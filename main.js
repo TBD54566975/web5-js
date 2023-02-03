@@ -69,7 +69,7 @@ async function connect(){
   triggerProtocolHandler(`web5://connect/${keys.encoded.publicKey}/${encodedOrigin}`);
 
   const intervals = [];
-  let abordController = new AbortController();
+  let abortController = new AbortController();
   let result = await new Promise((resolve, reject) => {
     setTimeout(async () => {
       let currentPort = 55_555;
@@ -79,9 +79,9 @@ async function connect(){
       intervals.push(setInterval(function() {
         if (currentPort <= maxPort) {
           const thisPort = currentPort;
-          getPendingConnection(thisPort, keys, abordController).then(result => {
-            if (result) resolve(result);
-            else if (result === null) targetPorts.push(thisPort);
+          getConnectionInfo(thisPort, keys, abortController).then(result => {
+            if (result === 'candidate') targetPorts.push(thisPort);
+            else resolve(result);
           });
           currentPort++;
         }
@@ -89,66 +89,76 @@ async function connect(){
 
       intervals.push(setInterval(function() {
         targetPorts.forEach(port => {
-          getPendingConnection(port, keys, abordController).then(result => {
-            if (result) resolve(result);
+          getConnectionInfo(port, keys, abortController).then(result => {
+            if (result !== 'candidate') resolve(result);
           })
         })
       }, 1000));
 
-      setTimeout(() => reject(), 90000);
+      setTimeout(() => resolve('timeout'), 90000);
 
     }, 1000);
   }).catch(e => {
-    abortFetching(intervals, abordController);
-    console.log('Promise catch: ', e);
+    abortFetching(intervals, abortController);
+    throw new Error('Promise catch: ', e);
   })
 
-  abortFetching(intervals, abordController);
+  abortFetching(intervals, abortController);
 
-  console.log('found it!: ', result);
-
-  if (result) return 'connected';
-  else if (!result) return 'denied';
+  if (result === 'timeout') throw new Error ('Request timed out')
+  else return result;
 }
 
-async function getPendingConnection(port, keys, controller){
+async function getConnectionInfo(port, keys, controller, connectedCheck){
+  const url = `http://localhost:${port}/connections/${keys.encoded.publicKey}`;
   try {
-    let payload;
-    const url = `http://localhost:${port}/connections/pending/${keys.encoded.publicKey}`;
-    try {
-      payload = await fetch(url, {
-        signal: controller.signal
-      }).then(res => {
-        return res.status === 204 ? null : res.json();
-      });
-
-      console.log(payload);
-
-      if (payload === null) return null;
-      else if (!payload) {
-        // console.log(`Response from ${url} did not contain the expected values. response: ${JSON.stringify(payload)}`);
+    let result = await fetch(url, {
+      signal: controller ? controller.signal : null
+    }).then(async res => {
+      if (res.headers.get('X-WEB5-UA')) {
+        switch (res.status) {
+          case 200: return res.json()
+          case 204: return 'candidate';
+          case 403: return 'denied';
+        }
       }
+    });
+    console.log('result', result);
+    if (!result || result === 'candidate' || result === 'denied') return result;
 
-    } catch (e) {
-      // console.log(`Failed to fetch ${url}. error: ${e}`);
-    }
-
-    if (payload) {
-      if (payload.connected) return payload;
-      const { pin, nonce, publicKey: theirPublicKey } = payload;
+    if (!connectedCheck) {
+      const { pin, nonce, publicKey: theirPublicKey } = result;
       const encryptedPinBytes = base64url.baseDecode(pin);
       const nonceBytes = new TextEncoder().encode(nonce);
       const theirPublicKeyBytes = base64url.baseDecode(theirPublicKey);
-
-      let message = nacl.box.open(encryptedPinBytes, nonceBytes, theirPublicKeyBytes, keys.decoded.secretKey);
-
-      if (message) {
-        return new TextDecoder().decode(message);
-      }
+      const encodedPin = nacl.box.open(encryptedPinBytes, nonceBytes, theirPublicKeyBytes, keys.decoded.secretKey);
+      result.port = port;
+      result.pin = new TextDecoder().decode(encodedPin);
+      result.connected = new Promise((resolve, reject) => {
+        if (result.connected) return resolve(true);
+        const interval = setInterval(() => {
+          getConnectionInfo(port, keys, null, true).then(result => {
+            if (result?.connected) {
+              clearInterval(interval);
+              resolve(true);
+            }
+            else if (result === 'denied') {
+              clearInterval(interval);
+              reject();
+            }
+          })
+        }, 500);
+        setTimeout(() => {
+          clearInterval(interval);
+          reject('timeout')
+        }, 90000);
+      })
     }
 
+    return result;
+
   } catch (e) {
-    console.log(e);
+    return null;
   }
 }
 
