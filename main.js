@@ -24,7 +24,6 @@ function getKeys(){
     }
     localStorage.setItem('keys', JSON.stringify(keys.encoded))
   }
-  console.log(keys);
   return keys;
 }
 
@@ -36,130 +35,107 @@ async function triggerProtocolHandler(url){
       form.submit();
       form.remove();
 
-  // let win = window.open(url, '_blank');
-  // win.close();
-
   // var iframe = document.createElement('iframe');
   //     iframe.src = url;
   //     document.body.appendChild(iframe);
   //     setTimeout(() => iframe.remove(), 10);
 }
 
-// function createWorker(fn) {
-//   var blob = new Blob([`self.onmessage = function(e){
-//     importScripts(e.data.imports);
 
-//   }`], {
-//     type: "text/javascript"
-//   });
-//   var url = window.URL.createObjectURL(blob);
-//   return new Worker(url);
-// }
-
-function abortFetching(intervals, controller){
+function abortConnect(intervals, controller){
   intervals.forEach(interval => clearInterval(interval));
+  intervals.length = 0;
   controller.abort();
 }
 
-async function connect(){
+async function fetchConnection(port, keys, events, intervals, resetTimeout, abortController, looping){
+  return fetch(`http://localhost:${port}/connections/${keys.encoded.publicKey}`, {
+    signal: abortController.signal
+  }).then(async res => {
+    if (res.headers.get('X-WEB5-UA')) {
+      if (res.status === 204) {
+        return true;
+      }
+      else if (res.status === 200) {
+        const result = await res.json();
+        result.port = port;
+        if (result.connected) {
+          resetTimeout(true);
+          abortConnect(intervals, abortController);
+          events?.onConnected(result);
+        }
+        else if (!looping){
+          resetTimeout();
+          abortConnect(intervals, abortController);
+          decodePin(result, keys.decoded.secretKey).then(() => {
+            events?.onRequest(result);
+            intervals.push(setInterval(() => {
+              fetchConnection(port, keys, events, intervals, resetTimeout, new AbortController(), true)
+            }, 100));
+          }).catch(e => {
+            events?.onError(e);
+          })
+        }
+      }
+      else {
+        resetTimeout(true);
+        abortConnect(intervals, abortController);
+        events?.[res.status === 403 ? 'onDenied' : 'onError']();
+      }
+    }
+  }).catch(e => {
+    console.log(e);
+    return false;
+  })
+}
+
+async function decodePin(result, secretKey){
+  const { pin, nonce, publicKey: theirPublicKey } = result;
+  const encryptedPinBytes = base64url.baseDecode(pin);
+  const nonceBytes = new TextEncoder().encode(nonce);
+  const theirPublicKeyBytes = base64url.baseDecode(theirPublicKey);
+  const encodedPin = nacl.box.open(encryptedPinBytes, nonceBytes, theirPublicKeyBytes, secretKey);
+  result.pin = new TextDecoder().decode(encodedPin);
+}
+
+function connect(options){
 
   let keys = getKeys();
   let encodedOrigin = base64url.baseEncode(location.origin);
 
   triggerProtocolHandler(`web5://connect/${keys.encoded.publicKey}/${encodedOrigin}`);
 
-  const intervals = [];
+  let timeout;
+  let wallets = [];
+  let intervals = [];
+  let currentPort = 55_555;
+  let maxPort = 55_558;
   let abortController = new AbortController();
-  let result = await new Promise((resolve, reject) => {
-    setTimeout(async () => {
-      let currentPort = 55_555;
-      let maxPort = 56_555;
-      let targetPorts = [];
 
-      intervals.push(setInterval(function() {
-        if (currentPort <= maxPort) {
-          const thisPort = currentPort;
-          getConnectionInfo(thisPort, keys, abortController).then(result => {
-            if (result === 'candidate') targetPorts.push(thisPort);
-            else resolve(result);
-          });
-          currentPort++;
-        }
-      }, 10))
-
-      intervals.push(setInterval(function() {
-        targetPorts.forEach(port => {
-          getConnectionInfo(port, keys, abortController).then(result => {
-            if (result !== 'candidate') resolve(result);
-          })
-        })
-      }, 1000));
-
-      setTimeout(() => resolve('timeout'), 90000);
-
-    }, 1000);
-  }).catch(e => {
-    abortFetching(intervals, abortController);
-    throw new Error('Promise catch: ', e);
-  })
-
-  abortFetching(intervals, abortController);
-
-  if (result === 'timeout') throw new Error ('Request timed out')
-  else return result;
-}
-
-async function getConnectionInfo(port, keys, controller, connectedCheck){
-  const url = `http://localhost:${port}/connections/${keys.encoded.publicKey}`;
-  try {
-    let result = await fetch(url, {
-      signal: controller ? controller.signal : null
-    }).then(async res => {
-      if (res.headers.get('X-WEB5-UA')) {
-        switch (res.status) {
-          case 200: return res.json()
-          case 204: return 'candidate';
-          case 403: return 'denied';
-        }
-      }
-    });
-    console.log('result', result);
-    if (!result || result === 'candidate' || result === 'denied') return result;
-
-    if (!connectedCheck) {
-      const { pin, nonce, publicKey: theirPublicKey } = result;
-      const encryptedPinBytes = base64url.baseDecode(pin);
-      const nonceBytes = new TextEncoder().encode(nonce);
-      const theirPublicKeyBytes = base64url.baseDecode(theirPublicKey);
-      const encodedPin = nacl.box.open(encryptedPinBytes, nonceBytes, theirPublicKeyBytes, keys.decoded.secretKey);
-      result.port = port;
-      result.pin = new TextDecoder().decode(encodedPin);
-      result.connected = new Promise((resolve, reject) => {
-        if (result.connected) return resolve(true);
-        const interval = setInterval(() => {
-          getConnectionInfo(port, keys, null, true).then(result => {
-            if (result?.connected) {
-              clearInterval(interval);
-              resolve(true);
-            }
-            else if (result === 'denied') {
-              clearInterval(interval);
-              reject();
-            }
-          })
-        }, 500);
-        setTimeout(() => {
-          clearInterval(interval);
-          reject('timeout')
-        }, 90000);
-      })
-    }
-
-    return result;
-
-  } catch (e) {
-    return null;
+  const resetTimeout = (clear) => {
+    clearTimeout(timeout);
+    if (!clear) timeout = setTimeout(() => {
+      abortConnect(intervals, abortController);
+      options?.onTimeout();
+    }, 60000);
   }
+
+  resetTimeout();
+
+  intervals.push(setInterval(async () => {
+    if (currentPort <= maxPort) {
+      const isWallet = await fetchConnection(currentPort, keys, options, intervals, resetTimeout, abortController);
+      if (isWallet) wallets.push(currentPort);
+      currentPort++;
+    }
+  }, 10));
+
+  intervals.push(setInterval(async () => {
+    wallets.forEach(port =>{
+      fetchConnection(port, keys, options, intervals, resetTimeout, abortController);
+    })
+  }, 100));
+
 }
 
 export {
