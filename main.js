@@ -62,6 +62,7 @@ async function fetchConnection(port, keys, events, intervals, resetTimeout, abor
         if (result.connected) {
           resetTimeout(true);
           abortConnect(intervals, abortController);
+          localStorage.setItem('web5_connect', JSON.stringify(result));
           events?.onConnected(result);
         }
         else if (!looping){
@@ -98,11 +99,21 @@ async function decodePin(result, secretKey){
   result.pin = new TextDecoder().decode(encodedPin);
 }
 
-function connect(options){
+async function connect(options){
 
-  let keys = getKeys();
-  let encodedOrigin = base64url.baseEncode(location.origin);
+  const keys = getKeys();
+  const connection = JSON.parse(localStorage.getItem('web5_connect') || null);
+  if (connection) {
+    const isConnected = await fetch(`http://localhost:${connection.port}/connections/${keys.encoded.publicKey}`).then(async res => {
+      return res.status === 200 && (await res.json()).connected;
+    }).catch(e => false);
+    if (isConnected) {
+      options.onConnected(connection);
+      return;
+    }
+  }
 
+  const encodedOrigin = base64url.baseEncode(location.origin);
   triggerProtocolHandler(`web5://connect/${keys.encoded.publicKey}/${encodedOrigin}`);
 
   let timeout;
