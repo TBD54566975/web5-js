@@ -119,8 +119,8 @@ async function connect(options){
   let timeout;
   let wallets = [];
   let intervals = [];
-  let currentPort = 55_555;
-  let maxPort = 55_558;
+  let currentPort = 55_500;
+  let maxPort = 55_600;
   let abortController = new AbortController();
 
   const resetTimeout = (clear) => {
