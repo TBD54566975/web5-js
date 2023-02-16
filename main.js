@@ -53,8 +53,13 @@ async function fetchConnection(port, keys, events, intervals, resetTimeout, abor
     signal: abortController.signal
   }).then(async res => {
     if (res.headers.get('X-WEB5-UA')) {
-      if (res.status === 204) {
-        return true;
+      if (res.status === 404) {
+        if (looping) {
+          resetTimeout(true);
+          abortConnect(intervals, abortController);
+          events?.onDenied();
+        }
+        else return true;
       }
       else if (res.status === 200) {
         const result = await res.json();
@@ -81,7 +86,7 @@ async function fetchConnection(port, keys, events, intervals, resetTimeout, abor
       else {
         resetTimeout(true);
         abortConnect(intervals, abortController);
-        events?.[res.status === 403 ? 'onDenied' : 'onError']();
+        events?.[res.status === 404 ? 'onDenied' : 'onError']();
       }
     }
   }).catch(e => {
