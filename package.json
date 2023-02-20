@@ -19,7 +19,9 @@
     "webpack-cli": "^5.0.1"
   },
   "dependencies": {
+    "@tbd54566975/dwn-sdk-js": "0.0.21",
     "multiformats": "11.0.0",
-    "tweetnacl": "1.0.3"
+    "tweetnacl": "1.0.3",
+    "deepmerge": "4.3.0"
   }
 }

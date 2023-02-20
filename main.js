@@ -1,6 +1,11 @@
 
 import nacl from 'tweetnacl';
+import merge from 'deepmerge';
+import * as DWN from '@tbd54566975/dwn-sdk-js';
 import { base64url } from 'multiformats/bases/base64';
+
+
+/* Keys */
 
 function getKeys(){
   let keys = JSON.parse(localStorage.getItem('keys') || null);
@@ -27,7 +32,8 @@ function getKeys(){
   return keys;
 }
 
-// Extend with the ability to trigger from Node as well
+/* Connect Flows */
+
 async function triggerProtocolHandler(url){
   let form = document.createElement('form');
       form.action = url;
@@ -104,17 +110,28 @@ async function decodePin(result, secretKey){
   result.pin = new TextDecoder().decode(encodedPin);
 }
 
-async function connect(options){
+function getConnection(){
+  return JSON.parse(localStorage.getItem('web5_connect') || null);
+}
+
+async function connect(options = {}){
 
   const keys = getKeys();
-  const connection = JSON.parse(localStorage.getItem('web5_connect') || null);
+  let connection = getConnection();
   if (connection) {
-    const isConnected = await fetch(`http://localhost:${connection.port}/connections/${keys.encoded.publicKey}`).then(async res => {
-      return res.status === 200 && (await res.json()).connected;
-    }).catch(e => false);
-    if (isConnected) {
-      options.onConnected(connection);
-      return;
+    if (options.refresh) {
+      connection = await fetch(`http://localhost:${connection.port}/connections/${keys.encoded.publicKey}`).then(async res => {
+        return res.status === 200 && await res.json();
+      }).catch(e => false);
+      if (connection) {
+        options?.onConnected(connection);
+        return connection;
+      }
+      else options?.onError();
+    }
+    else {
+      options?.onConnected(connection);
+      return connection;
     }
   }
 
@@ -154,9 +171,57 @@ async function connect(options){
 
 }
 
+/* DWeb Nodes */
+
+async function sendDWebMessage(request){
+  let endpoint;
+  let connection;
+  if (!request.target) {
+    connection = getConnection();
+    if (!connection) throw 'No Connection';
+    request.target = connection.did;
+    endpoint = `http://localhost:${connection.port}/dwn`;
+  }
+  else {
+    // TODO: resolve non-connection DID targets
+  }
+  return fetch(endpoint, {
+    method: 'POST',
+    mode: 'cors',
+    cache: 'no-cache',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(request)
+  })
+}
+
+const DWeb = {
+  records: {
+    async query(props){
+      const { message } = props;
+      return sendDWebMessage({
+        target: props.target,
+        message: merge.all([{
+          filter: {
+            dataFormat: 'application/json'
+          }
+        },
+        message,
+        {
+          interface: 'Records',
+          method: 'Query'
+        }])
+      }).then(raw => raw.json())
+    }
+  }
+}
+
 export {
+  DWeb,
   getKeys,
-  connect
+  connect,
+  getConnection
 }
 
 
