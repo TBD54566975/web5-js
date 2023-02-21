@@ -1,8 +1,9 @@
 
 import { connect } from './connect';
-
 import merge from 'deepmerge';
 import * as SDK from '@tbd54566975/dwn-sdk-js';
+
+const Encoder = SDK.Encoder;
 
 let node;
 const DWeb = {
@@ -12,30 +13,35 @@ const DWeb = {
   records: {
     query: async (props) => {
       return sendDWebMessage({
-        type: 'RecordsQuery',
-        target: props.target,
+        data: props.data,
         message: merge.all([
           {
             filter: {
               dataFormat: 'application/json'
             }
-          }, props.message
+          },
+          props.message,
+          {
+            interface: 'Records',
+            method: 'Query',
+            target: props.target
+          }
         ])
       }).then(raw => raw.json())
     },
     write: async (props) => {
-      const { message } = props;
-
-      console.log(message.data);
       return sendDWebMessage({
-        type: 'RecordsWrite',
-        target: props.target,
+        data: props.data === undefined ? undefined : props.data,
         message: merge.all([
           {
             dataFormat: 'application/json'
           },
           props.message,
-          { data: message.data === undefined ? undefined : message.data }
+          {
+            interface: 'Records',
+            method: 'Write',
+            target: props.target
+          }
         ])
       }).then(raw => raw.json())
     }
@@ -45,23 +51,34 @@ const DWeb = {
 let connection;
 async function sendDWebMessage(request){
   let endpoint;
-  if (!request.target) {
+  if (!request.message.target) {
     connection = connection || (connection = await connect({ request: false }));
     if (!connection) throw 'No Connection';
-    request.target = connection.did;
+    request.message.target = connection.did;
     endpoint = `http://localhost:${connection.port}/dwn`;
   }
   else {
     // TODO: resolve non-connection DID targets
   }
+
+  console.log(request.data);
+  let blob;
+  if (request.data !== undefined) {
+    blob = new Blob([
+      Encoder[typeof request.data === 'object' ? 'objectToBytes' : 'stringToBytes'](request.data)
+    ], { type: 'application/octet-stream' })
+    delete request.data;
+  }
+  console.log(blob);
   return fetch(endpoint, {
     method: 'POST',
     mode: 'cors',
     cache: 'no-cache',
     headers: {
-      'Content-Type': 'application/json'
+      'X-DWN-MESSAGE': Encoder.stringToBase64Url(JSON.stringify(request.message)),
+      'Content-Type': 'application/octet-stream'
     },
-    body: JSON.stringify(request)
+    body: blob
   })
 }
 
