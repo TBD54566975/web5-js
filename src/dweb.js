@@ -64,8 +64,13 @@ async function sendDWebMessage(request){
   console.log(request.data);
   let blob;
   if (request.data !== undefined) {
+    console.log(request.data);
+    let bytes = Encoder.stringToBytes(request.data);
+    console.log(bytes);
     blob = new Blob([
-      Encoder[typeof request.data === 'object' ? 'objectToBytes' : 'stringToBytes'](request.data)
+      request.data instanceof Uint8Array ? request.data : (
+        Encoder[typeof request.data === 'object' ? 'objectToBytes' : 'stringToBytes'](request.data)
+      )
     ], { type: 'application/octet-stream' })
     delete request.data;
   }
