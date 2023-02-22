@@ -54,7 +54,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
   \*********************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"DWeb\": () => (/* binding */ DWeb)\n/* harmony export */ });\n/* harmony import */ var _connect__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./connect */ \"./src/connect.js\");\n/* harmony import */ var deepmerge__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! deepmerge */ \"./node_modules/deepmerge/dist/cjs.js\");\n/* harmony import */ var deepmerge__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(deepmerge__WEBPACK_IMPORTED_MODULE_1__);\n/* harmony import */ var _tbd54566975_dwn_sdk_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @tbd54566975/dwn-sdk-js */ \"./node_modules/@tbd54566975/dwn-sdk-js/dist/bundles/browser.js\");\n\n\n\n\n\nconst Encoder = _tbd54566975_dwn_sdk_js__WEBPACK_IMPORTED_MODULE_2__.Encoder;\n\nlet node;\nconst DWeb = {\n  node: async (config = {}) => {\n    return node || (node = await _tbd54566975_dwn_sdk_js__WEBPACK_IMPORTED_MODULE_2__.Dwn.create(config));\n  },\n  records: {\n    query: async (props) => {\n      return sendDWebMessage({\n        data: props.data,\n        message: deepmerge__WEBPACK_IMPORTED_MODULE_1___default().all([\n          {\n            filter: {\n              dataFormat: 'application/json'\n            }\n          },\n          props.message,\n          {\n            interface: 'Records',\n            method: 'Query',\n            target: props.target\n          }\n        ])\n      }).then(raw => raw.json())\n    },\n    write: async (props) => {\n      return sendDWebMessage({\n        data: props.data,\n        message: deepmerge__WEBPACK_IMPORTED_MODULE_1___default().all([\n          {\n            dataFormat: 'application/json'\n          },\n          props.message,\n          {\n            interface: 'Records',\n            method: 'Write',\n            target: props.target\n          }\n        ])\n      }).then(raw => raw.json())\n    }\n  }\n}\n\nlet connection;\nasync function sendDWebMessage(request){\n  let endpoint;\n  if (!request.message.target) {\n    connection = connection || (connection = await (0,_connect__WEBPACK_IMPORTED_MODULE_0__.connect)({ prompt: false }));\n    if (!connection) throw 'No Connection';\n    request.message.target = connection.did;\n    endpoint = `http://localhost:${connection.port}/dwn`;\n  }\n  else {\n    // TODO: resolve non-connection DID targets\n  }\n\n  let body;\n  if (request.data !== undefined) {\n    body = JSON.stringify(request.data);\n  }\n\n  return fetch(endpoint, {\n    method: 'POST',\n    mode: 'cors',\n    cache: 'no-cache',\n    headers: {\n      'X-DWN-MESSAGE': Encoder.stringToBase64Url(JSON.stringify(request.message))\n    },\n    body: body\n  })\n}\n\n\n\n\n//# sourceURL=webpack://web5-sdk-js/./src/dweb.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"DWeb\": () => (/* binding */ DWeb)\n/* harmony export */ });\n/* harmony import */ var _connect__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./connect */ \"./src/connect.js\");\n/* harmony import */ var deepmerge__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! deepmerge */ \"./node_modules/deepmerge/dist/cjs.js\");\n/* harmony import */ var deepmerge__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(deepmerge__WEBPACK_IMPORTED_MODULE_1__);\n/* harmony import */ var _tbd54566975_dwn_sdk_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @tbd54566975/dwn-sdk-js */ \"./node_modules/@tbd54566975/dwn-sdk-js/dist/bundles/browser.js\");\n\n\n\n\n\nconst Encoder = _tbd54566975_dwn_sdk_js__WEBPACK_IMPORTED_MODULE_2__.Encoder;\n\nlet node;\nconst DWeb = {\n  node: async (config = {}) => {\n    return node || (node = await _tbd54566975_dwn_sdk_js__WEBPACK_IMPORTED_MODULE_2__.Dwn.create(config));\n  },\n  records: {\n    query: async (props) => {\n      return sendDWebMessage({\n        data: props.data,\n        message: deepmerge__WEBPACK_IMPORTED_MODULE_1___default().all([\n          {\n            filter: {\n              dataFormat: 'application/json'\n            }\n          },\n          props.message,\n          {\n            interface: 'Records',\n            method: 'Query',\n            target: props.target\n          }\n        ])\n      }).then(raw => raw.json())\n    },\n    write: async (props) => {\n      return sendDWebMessage({\n        data: props.data,\n        message: deepmerge__WEBPACK_IMPORTED_MODULE_1___default().all([\n          {\n            dataFormat: 'application/json'\n          },\n          props.message,\n          {\n            interface: 'Records',\n            method: 'Write',\n            target: props.target\n          }\n        ])\n      }).then(raw => raw.json())\n    }\n  }\n}\n\nlet connection;\nasync function sendDWebMessage(request){\n  let endpoint;\n  if (!request.message.target) {\n    connection = connection || (connection = await (0,_connect__WEBPACK_IMPORTED_MODULE_0__.connect)({ prompt: false }));\n    if (!connection) throw 'No Connection';\n    request.message.target = connection.did;\n    endpoint = `http://localhost:${connection.port}/dwn`;\n  }\n  else {\n    // TODO: resolve non-connection DID targets\n  }\n\n  let body;\n  if (request.data !== undefined) {\n    body = new Blob([\n      request.data instanceof Uint8Array ? request.data : (\n        Encoder[typeof request.data === 'object' ? 'objectToBytes' : 'stringToBytes'](request.data)\n      )\n    ], { type: 'application/octet-stream' })\n    delete request.data;\n  }\n\n  return fetch(endpoint, {\n    method: 'POST',\n    mode: 'cors',\n    cache: 'no-cache',\n    headers: {\n      'DWN-MESSAGE': Encoder.stringToBase64Url(JSON.stringify(request.message)),\n      'Content-Type': 'application/octet-stream'\n    },\n    body: body\n  })\n}\n\n\n\n\n//# sourceURL=webpack://web5-sdk-js/./src/dweb.js?");
 
 /***/ }),
 
@@ -132,7 +132,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
 /************************************************************************/
 /******/ // The module cache
 /******/ var __webpack_module_cache__ = {};
-/******/
+/******/ 
 /******/ // The require function
 /******/ function __webpack_require__(moduleId) {
 /******/ 	// Check if module is in cache
@@ -146,14 +146,14 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
 /******/ 		// no module.loaded needed
 /******/ 		exports: {}
 /******/ 	};
-/******/
+/******/ 
 /******/ 	// Execute the module function
 /******/ 	__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-/******/
+/******/ 
 /******/ 	// Return the exports of the module
 /******/ 	return module.exports;
 /******/ }
-/******/
+/******/ 
 /************************************************************************/
 /******/ /* webpack/runtime/compat get default export */
 /******/ (() => {
@@ -166,7 +166,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
 /******/ 		return getter;
 /******/ 	};
 /******/ })();
-/******/
+/******/ 
 /******/ /* webpack/runtime/define property getters */
 /******/ (() => {
 /******/ 	// define getter functions for harmony exports
@@ -178,12 +178,12 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
 /******/ 		}
 /******/ 	};
 /******/ })();
-/******/
+/******/ 
 /******/ /* webpack/runtime/hasOwnProperty shorthand */
 /******/ (() => {
 /******/ 	__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
 /******/ })();
-/******/
+/******/ 
 /******/ /* webpack/runtime/make namespace object */
 /******/ (() => {
 /******/ 	// define __esModule on exports
@@ -194,9 +194,9 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
 /******/ 		Object.defineProperty(exports, '__esModule', { value: true });
 /******/ 	};
 /******/ })();
-/******/
+/******/ 
 /************************************************************************/
-/******/
+/******/ 
 /******/ // startup
 /******/ // Load entry module and return exports
 /******/ // This entry module can't be inlined because the eval devtool is used.
@@ -204,4 +204,4 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
 /******/ var __webpack_exports__DWeb = __webpack_exports__.DWeb;
 /******/ var __webpack_exports__connect = __webpack_exports__.connect;
 /******/ export { __webpack_exports__DWeb as DWeb, __webpack_exports__connect as connect };
-/******/
+/******/ 
