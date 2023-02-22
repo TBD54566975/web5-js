@@ -132,7 +132,7 @@ async function connect(options = {}){
     }
   }
 
-  if (options.request === false) {
+  if (options.prompt === false) {
     return null;
   }
 

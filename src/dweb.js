@@ -52,7 +52,7 @@ let connection;
 async function sendDWebMessage(request){
   let endpoint;
   if (!request.message.target) {
-    connection = connection || (connection = await connect({ request: false }));
+    connection = connection || (connection = await connect({ prompt: false }));
     if (!connection) throw 'No Connection';
     request.message.target = connection.did;
     endpoint = `http://localhost:${connection.port}/dwn`;
