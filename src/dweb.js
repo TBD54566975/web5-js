@@ -30,8 +30,13 @@ const DWeb = {
       }).then(raw => raw.json())
     },
     write: async (props) => {
+      console.log('PROPS:', props);
+      let data;
+      if (props.data !== undefined) {
+        data = JSON.stringify({foo: 'bar'});
+      }
       return sendDWebMessage({
-        data: props.data === undefined ? undefined : props.data,
+        data: data,
         message: merge.all([
           {
             dataFormat: 'application/json'
@@ -43,7 +48,7 @@ const DWeb = {
             target: props.target
           }
         ])
-      }).then(raw => raw.json())
+      })//.then(raw => raw.json())
     }
   }
 }
@@ -61,30 +66,55 @@ async function sendDWebMessage(request){
     // TODO: resolve non-connection DID targets
   }
 
-  console.log(request.data);
-  let blob;
+  let body;
   if (request.data !== undefined) {
-    console.log(request.data);
-    let bytes = Encoder.stringToBytes(request.data);
-    console.log(bytes);
-    blob = new Blob([
-      request.data instanceof Uint8Array ? request.data : (
-        Encoder[typeof request.data === 'object' ? 'objectToBytes' : 'stringToBytes'](request.data)
-      )
-    ], { type: 'application/octet-stream' })
-    delete request.data;
+    console.log('REQUEST.DATA:', request.data);
+    body = JSON.stringify(request.data);
+    console.log('BODY:', request.data);
+    // console.log('BODY:', body);
   }
-  console.log(blob);
+
   return fetch(endpoint, {
     method: 'POST',
     mode: 'cors',
     cache: 'no-cache',
     headers: {
       'X-DWN-MESSAGE': Encoder.stringToBase64Url(JSON.stringify(request.message)),
-      'Content-Type': 'application/octet-stream'
+      // 'Content-Type': 'application/octet-stream'
+      // 'Content-Type': 'application/json'
     },
-    body: blob
+    body: body
   })
+
+
+
+
+
+
+  // console.log('REQUEST.DATA 1:', request.data);
+  // let blob;
+  // if (request.data !== undefined) {
+  //   console.log('REQUEST.DATA 2:', request.data);
+  //   let bytes = Encoder.stringToBytes(request.data);
+  //   console.log('BYTES:', bytes);
+  //   blob = new Blob([
+  //     request.data instanceof Uint8Array ? request.data : (
+  //       Encoder[typeof request.data === 'object' ? 'objectToBytes' : 'stringToBytes'](request.data)
+  //     )
+  //   ], { type: 'application/octet-stream' })
+  //   delete request.data;
+  // }
+  // console.log('BLOB:', blob);
+  // return fetch(endpoint, {
+  //   method: 'POST',
+  //   mode: 'cors',
+  //   cache: 'no-cache',
+  //   headers: {
+  //     'X-DWN-MESSAGE': Encoder.stringToBase64Url(JSON.stringify(request.message)),
+  //     'Content-Type': 'application/octet-stream'
+  //   },
+  //   body: blob
+  // })
 }
 
 export {
