@@ -5,7 +5,6 @@
   "description": "SDK for accessing the features and capabilities of Web5",
   "main": "main.js",
   "scripts": {
-    "start": "electron-forge start",
     "package": "webpack --config webpack.config.js"
   },
   "keywords": [],
@@ -15,13 +14,14 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "source-map-loader": "^4.0.1",
     "webpack": "^5.75.0",
     "webpack-cli": "^5.0.1"
   },
   "dependencies": {
     "@tbd54566975/dwn-sdk-js": "0.0.22",
+    "deepmerge": "4.3.0",
     "multiformats": "11.0.0",
-    "tweetnacl": "1.0.3",
-    "deepmerge": "4.3.0"
+    "tweetnacl": "1.0.3"
   }
 }

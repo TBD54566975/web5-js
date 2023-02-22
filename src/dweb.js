@@ -61,17 +61,16 @@ async function sendDWebMessage(request){
     // TODO: resolve non-connection DID targets
   }
 
-  console.log(request.data);
-  let blob;
+  let body;
   if (request.data !== undefined) {
-    blob = new Blob([
+    body = new Blob([
       request.data instanceof Uint8Array ? request.data : (
         Encoder[typeof request.data === 'object' ? 'objectToBytes' : 'stringToBytes'](request.data)
       )
     ], { type: 'application/octet-stream' })
     delete request.data;
   }
-  console.log(blob);
+
   return fetch(endpoint, {
     method: 'POST',
     mode: 'cors',
@@ -79,7 +78,7 @@ async function sendDWebMessage(request){
     headers: {
       'DWN-MESSAGE': Encoder.stringToBase64Url(JSON.stringify(request.message))
     },
-    body: blob
+    body: body
   })
 }
 

@@ -15,5 +15,14 @@ module.exports = {
   },
   resolve: {
     extensions: ['', '.js']
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        enforce: "pre",
+        use: ["source-map-loader"],
+      },
+    ],
   }
 };
