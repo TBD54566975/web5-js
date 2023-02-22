@@ -31,7 +31,7 @@ const DWeb = {
     },
     write: async (props) => {
       return sendDWebMessage({
-        data: props.data === undefined ? undefined : props.data,
+        data: props.data,
         message: merge.all([
           {
             dataFormat: 'application/json'
@@ -64,9 +64,6 @@ async function sendDWebMessage(request){
   console.log(request.data);
   let blob;
   if (request.data !== undefined) {
-    console.log(request.data);
-    let bytes = Encoder.stringToBytes(request.data);
-    console.log(bytes);
     blob = new Blob([
       request.data instanceof Uint8Array ? request.data : (
         Encoder[typeof request.data === 'object' ? 'objectToBytes' : 'stringToBytes'](request.data)
@@ -80,8 +77,7 @@ async function sendDWebMessage(request){
     mode: 'cors',
     cache: 'no-cache',
     headers: {
-      'X-DWN-MESSAGE': Encoder.stringToBase64Url(JSON.stringify(request.message)),
-      'Content-Type': 'application/octet-stream'
+      'DWN-MESSAGE': Encoder.stringToBase64Url(JSON.stringify(request.message))
     },
     body: blob
   })
