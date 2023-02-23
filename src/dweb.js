@@ -63,7 +63,7 @@ async function sendDWebMessage(request){
 
   let body;
   if (request.data !== undefined) {
-    body = JSON.stringify(request.data);
+    body = request.data;
   }
 
   return fetch(endpoint, {
@@ -71,7 +71,8 @@ async function sendDWebMessage(request){
     mode: 'cors',
     cache: 'no-cache',
     headers: {
-      'X-DWN-MESSAGE': Encoder.stringToBase64Url(JSON.stringify(request.message))
+      'X-DWN-MESSAGE': Encoder.stringToBase64Url(JSON.stringify(request.message)),
+      'Content-Type': 'application/octet-stream'
     },
     body: body
   })
