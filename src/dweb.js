@@ -71,7 +71,7 @@ async function sendDWebMessage(request){
     mode: 'cors',
     cache: 'no-cache',
     headers: {
-      'X-DWN-MESSAGE': Encoder.stringToBase64Url(JSON.stringify(request.message)),
+      'DWN-MESSAGE': Encoder.stringToBase64Url(JSON.stringify(request.message)),
       'Content-Type': 'application/octet-stream'
     },
     body: body
