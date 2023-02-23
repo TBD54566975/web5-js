@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Electron Comms Test</title>
+</head>
+
+<body style="background: #000; color: #fff;">
+  <button type="button" id="connect_button">DID Connect</button>
+  <div>
+    <span>Security Code: </span><strong id="security_code"></strong>
+  </div>
+  <div style="width: 100%; max-width: 400px; overflow: hidden; text-overflow: ellipsis;">
+    <span>Connected as: </span><strong id="connected_did"></strong>
+  </div>
+
+  <hr/>
+
+
+  <div style="display: flex; flex-direction: column; max-width: 60%;">
+    <div style="display: flex">
+      <input id="query_schema" value="foo/bar" />
+      <button type="button" id="query_button" style="margin-left: auto">Send Query</button>
+    </div>
+
+    <div style="display: flex">
+      <input id="write_text_schema" value="foo/bar" />
+      <input id="write_text_data" value="test" />
+      <button type="button" id="write_text_button" style="margin-left: auto">Write Text Data</button>
+    </div>
+
+    <div style="display: flex">
+      <input id="write_image_schema" value="foo/baz" />
+      <input id="write_image_file" type="file" />
+      <button type="button" id="write_image_button" style="margin-left: auto">Write Image Data</button>
+    </div>
+  </div>
+</body>
+
+<script type="module">
+
+import { connect, DWeb } from './web5-sdk.js';
+
+function generateRandomString(length) {
+  const randomValues = new Uint8Array(length);
+  window.crypto.getRandomValues(randomValues);
+  return Array.from(randomValues, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+connect_button.addEventListener('click', async event => {
+
+  event.preventDefault();
+
+  connect({
+    onRequest(response){
+      security_code.textContent = response.pin;
+    },
+    onConnected(connection){
+      connected_did.textContent = connection.did;
+      alert('Connection succeeded!');
+    },
+    onDenied(){
+      alert('Connection was denied');
+    },
+    onTimeout(){
+      alert('The connection request timed out');
+    },
+    onError(e){
+      console.log(e);
+    }
+  })
+
+});
+
+query_button.addEventListener('click', async event => {
+  const response = await DWeb.records.query({
+    message: {
+      filter: {
+        schema: query_schema.value || 'foo/bar',
+      }
+    }
+  });
+  console.log('QUERY RESPONSE:', response)
+});
+
+
+write_text_button.addEventListener('click', async event => {
+  // To validate that binary values can be sent, convert any text input to bytes before writing.
+  const data = write_text_data.value || generateRandomString(10);
+  const dataBytes = new TextEncoder().encode(data);
+
+  const response = await DWeb.records.write({
+    data: dataBytes,
+    message: {
+      schema: write_text_schema.value || 'foo/bar',
+    }
+  });
+  console.log('WRITE RESPONSE:', response)
+});
+
+
+write_image_button.addEventListener('click', async event => {
+  // Attempt to write an image file to a record.
+  const imageFile = write_image_file.files[0];
+  console.log(imageFile);
+
+  if (imageFile) {
+    // Create a new Blob object from the file data
+    const blob = new Blob([imageFile], { type: 'application/octet-stream' });
+    // Send the byte array to the server
+    const response = await DWeb.records.write({
+      data: blob,
+      message: {
+        schema: write_image_schema.value || 'foo/baz',
+      }
+    });
+  } else {
+    console.error('No image file selected!');
+  }
+});
+
+
+</script>
+
+</html>
