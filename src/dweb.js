@@ -1,5 +1,6 @@
 
 import { connect } from './connect';
+import { encodeData } from './utils';
 import merge from 'deepmerge';
 import * as SDK from '@tbd54566975/dwn-sdk-js';
 
@@ -17,6 +18,7 @@ const DWeb = {
         message: merge.all([
           {
             filter: {
+              // Default to 'application/json' but can be overwritten by passing a message.filter.dataFormat.
               dataFormat: 'application/json'
             }
           },
@@ -30,11 +32,12 @@ const DWeb = {
       }).then(raw => raw.json())
     },
     write: async (props) => {
+      const { encodedData, dataFormat } = encodeData(props.data, props.message.dataFormat);
       return sendDWebMessage({
-        data: props.data,
+        data: encodedData,
         message: merge.all([
           {
-            dataFormat: 'application/json'
+            dataFormat: dataFormat
           },
           props.message,
           {

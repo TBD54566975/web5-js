@@ -4,6 +4,31 @@
 <head>
   <meta charset="UTF-8" />
   <title>Electron Comms Test</title>
+  <style>
+    .box {
+      max-width: 52rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .box > .row {
+      display: flex;
+      padding-top: 0.5em;
+    }
+
+    .box > .row > label {
+      padding-right: 0.5em;
+      padding-left: 0.5em;
+    }
+
+    .box > .row > button {
+      margin-left: auto;
+    }
+
+    .box > .row > input[type=text] {
+      width: 8em;
+    }
+  </style>
 </head>
 
 <body style="background: #000; color: #fff;">
@@ -11,42 +36,106 @@
   <div>
     <span>Security Code: </span><strong id="security_code"></strong>
   </div>
-  <div style="width: 100%; max-width: 400px; overflow: hidden; text-overflow: ellipsis;">
+  <div style="width: 100%; overflow: hidden; text-overflow: ellipsis;">
     <span>Connected as: </span><strong id="connected_did"></strong>
   </div>
 
-  <hr/>
+  <hr />
 
+  <p style="font-size: large">Write Records</p>
+  
+  <div class="box">
+    <div class="row">
+      <label for="write_text_schema">Schema</label>
+      <input id="write_text_schema" type="text" value="foo/text" />
 
-  <div style="display: flex; flex-direction: column; max-width: 60%;">
-    <div style="display: flex">
-      <input id="query_schema" value="foo/bar" />
-      <button type="button" id="query_button" style="margin-left: auto">Send Query</button>
+      <label for="write_text_data">Value</label>
+      <input id="write_text_data" type="text" value="test" />
+      <button type="button" id="write_text_button">Write Text Data</button>
     </div>
-
-    <div style="display: flex">
-      <input id="write_text_schema" value="foo/bar" />
-      <input id="write_text_data" value="test" />
-      <button type="button" id="write_text_button" style="margin-left: auto">Write Text Data</button>
+    
+    <div class="row">
+      <label for="write_json_schema">Schema</label>
+      <input id="write_json_schema" type="text" value="foo/json" />
+      
+      <label for="write_json_data">Value</label>
+      <input id="write_json_data" type="text" value="{ &quot;testing&quot;: 123 }" />
+      <button type="button" id="write_json_button">Write JSON Data</button>
     </div>
+    
+    <div class="row">
+      <label for="write_image_schema">Schema</label>
+      <input id="write_image_schema" type="text" value="foo/avatar" />
 
-    <div style="display: flex">
-      <input id="write_image_schema" value="foo/baz" />
+      <label for="write_image_file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
       <input id="write_image_file" type="file" />
-      <button type="button" id="write_image_button" style="margin-left: auto">Write Image Data</button>
+      <button type="button" id="write_image_button">Write Image Data</button>
     </div>
   </div>
+  
+  <hr />
+  
+  <p style="font-size: large">Query Records</p>
+
+  <div class="box">
+    <div class="row">
+      <label for="query_text_schema">Schema</label>
+      <input id="query_text_schema" type="text" value="foo/text" />
+      <button type="button" id="query_text_button">Send Text Query</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <label for="query_json_schema">Schema</label>
+      <input id="query_json_schema" type="text" value="foo/json" />
+      <button type="button" id="query_json_button">Send JSON Query</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <label for="query_image_schema">Schema</label>
+      <input id="query_image_schema" type="text" value="foo/avatar" />
+      <button type="button" id="query_image_button">Send Image Query</button>
+    </div>
+  </div>
+
+  <hr />
+
+  <p style="font-size: large">Custom Data Formats</p>
+
+  <div class="box">
+    <div class="row">
+      <label for="write_image_type_schema">Schema</label>
+      <input id="write_image_type_schema" type="text" value="foo/background" />
+
+      <label for="write_image_type_data_format">Data Format</label>
+      <input id="write_image_type_data_format" type="text" value="image/png" />
+
+      <label for="write_image_type_file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+      <input id="write_image_type_file" type="file" />
+      <button type="button" id="write_image_type_button">Write Image Data</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <label for="query_image_type_schema">Schema</label>
+      <input id="query_image_type_schema" type="text" value="foo/background" />
+
+      <label for="query_image_type_data_format">Data Format</label>
+      <input id="query_image_type_data_format" type="text" value="image/png" />
+
+      <button type="button" id="query_image_type_button">Send Image Query</button>
+    </div>
+  </div>
+
 </body>
 
 <script type="module">
 
 import { connect, DWeb } from './web5-sdk.js';
-
-function generateRandomString(length) {
-  const randomValues = new Uint8Array(length);
-  window.crypto.getRandomValues(randomValues);
-  return Array.from(randomValues, (byte) => byte.toString(16).padStart(2, '0')).join('');
-}
 
 connect_button.addEventListener('click', async event => {
 
@@ -73,11 +162,52 @@ connect_button.addEventListener('click', async event => {
 
 });
 
-query_button.addEventListener('click', async event => {
+
+query_text_button.addEventListener('click', async event => {
   const response = await DWeb.records.query({
     message: {
       filter: {
-        schema: query_schema.value || 'foo/bar',
+        schema: query_text_schema.value,
+        dataFormat: 'text/plain'
+      }
+    }
+  });
+  console.log('QUERY RESPONSE:', response)
+});
+
+
+query_json_button.addEventListener('click', async event => {
+  const response = await DWeb.records.query({
+    message: {
+      filter: {
+        schema: query_json_schema.value,
+        dataFormat: 'application/json'
+      }
+    }
+  });
+  console.log('QUERY RESPONSE:', response)
+});
+
+
+query_image_button.addEventListener('click', async event => {
+  const response = await DWeb.records.query({
+    message: {
+      filter: {
+        schema: query_image_schema.value,
+        dataFormat: 'application/octet-stream'
+      }
+    }
+  });
+  console.log('QUERY RESPONSE:', response)
+});
+
+
+query_image_type_button.addEventListener('click', async event => {
+  const response = await DWeb.records.query({
+    message: {
+      filter: {
+        schema: query_image_type_schema.value,
+        dataFormat: query_image_type_data_format.value
       }
     }
   });
@@ -87,13 +217,26 @@ query_button.addEventListener('click', async event => {
 
 write_text_button.addEventListener('click', async event => {
   // To validate that binary values can be sent, convert any text input to bytes before writing.
-  const data = write_text_data.value || generateRandomString(10);
-  const dataBytes = new TextEncoder().encode(data);
+  const data = write_text_data.value;
 
   const response = await DWeb.records.write({
-    data: dataBytes,
+    data: data,
     message: {
-      schema: write_text_schema.value || 'foo/bar',
+      schema: write_text_schema.value,
+    }
+  });
+  console.log('WRITE RESPONSE:', response)
+});
+
+
+write_json_button.addEventListener('click', async event => {
+  // To validate that binary values can be sent, convert any text input to bytes before writing.
+  const data = JSON.parse(write_json_data.value);
+
+  const response = await DWeb.records.write({
+    data: data,
+    message: {
+      schema: write_json_schema.value,
     }
   });
   console.log('WRITE RESPONSE:', response)
@@ -103,23 +246,38 @@ write_text_button.addEventListener('click', async event => {
 write_image_button.addEventListener('click', async event => {
   // Attempt to write an image file to a record.
   const imageFile = write_image_file.files[0];
-  console.log(imageFile);
-
+  
   if (imageFile) {
-    // Create a new Blob object from the file data
-    const blob = new Blob([imageFile], { type: 'application/octet-stream' });
-    // Send the byte array to the server
     const response = await DWeb.records.write({
-      data: blob,
+      data: imageFile,
       message: {
-        schema: write_image_schema.value || 'foo/baz',
+        schema: write_image_schema.value,
       }
     });
+    console.log('WRITE RESPONSE:', response)
   } else {
-    console.error('No image file selected!');
+    alert('No image file selected!');
   }
 });
 
+
+write_image_type_button.addEventListener('click', async event => {
+  // Attempt to write an image file with a user-specified data format to a record.
+  const imageFile = write_image_type_file.files[0];
+
+  if (imageFile) {
+    const response = await DWeb.records.write({
+      data: imageFile,
+      message: {
+        schema: write_image_type_schema.value,
+        dataFormat: write_image_type_data_format.value
+      }
+    });
+    console.log('WRITE RESPONSE:', response)
+  } else {
+    alert('No image file selected!');
+  }
+});
 
 </script>
 
