@@ -55,7 +55,7 @@ async function fetchConnection(port, keys, events = {}, intervals, resetTimeout,
   return fetch(`http://localhost:${port}/connections/${keys.encoded.publicKey}`, {
     signal: abortController.signal
   }).then(async res => {
-    if (res.headers.get('X-WEB5-UA')) {
+    if (res.headers.get('WEB5-UA')) {
       if (res.status === 404) {
         if (looping) {
           resetTimeout(true);
