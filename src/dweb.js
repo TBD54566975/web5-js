@@ -67,23 +67,36 @@ const DWeb = {
       // return node.processMessage(target, output.message, stream);
     },
     query: async (props) => {
-      return sendDWebMessage({
-        data: props.data,
-        message: merge.all([
-          {
-            filter: {
-              // Default to 'application/json' but can be overwritten by passing a message.filter.dataFormat.
-              dataFormat: 'application/json'
-            }
-          },
-          props.message,
-          {
-            interface: 'Records',
-            method: 'Query',
-            target: props.target
+
+      const message = merge.all([
+        {
+          filter: {
+            // Default to 'application/json' but can be overwritten
+            // by passing a message.filter.dataFormat
+            dataFormat: 'application/json'
           }
-        ])
-      }).then(raw => raw.json())
+        },
+        props.message,
+        {
+          interface: 'Records',
+          method: 'Query'
+        }
+      ]);
+
+      if (props.process && props.target && props.keypair) {
+        return DWeb.ingestMessage({
+          message,
+          did: props.target,
+          keypair: props.keypair
+        })
+      }
+
+      if (!props.target || props.send) {
+        return await sendDWebMessage({
+          target: props.target,
+          message: message
+        }).then(raw => raw.json())
+      }
     },
     write: async (props) => {
       // sniff props.data for presence of file or other readable stream thingys
@@ -93,15 +106,14 @@ const DWeb = {
       const message = merge.all([props.message, {
           interface: 'Records',
           method: 'Write',
-          dataFormat: dataFormat,
-          target: props.target
+          dataFormat: dataFormat
         }
       ]);
 
       if (props.process && props.target && props.keypair) {
         await DWeb.ingestMessage({
           message,
-          target: props.target,
+          did: props.target,
           keypair: props.keypair,
           stream: toReadableStream(props.data)
         })
@@ -148,7 +160,7 @@ async function sendDWebMessage(request){
   let data;
   if (request.data !== undefined) {
     data = new (typeof FormData !== 'undefined' ? FormData : require('form-data'))();
-    data.append('data', request.data, { filename: 'myfile.png' });
+    data.append('data', request.data);
     delete request.data;
   }
 
