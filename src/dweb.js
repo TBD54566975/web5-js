@@ -83,17 +83,17 @@ const DWeb = {
         }
       ]);
 
-      if (props.process && props.target && props.keypair) {
+      if (props.process && props.did && props.keypair) {
         return DWeb.ingestMessage({
           message,
-          did: props.target,
+          did: props.did,
           keypair: props.keypair
         })
       }
 
       if (!props.target || props.send) {
         return await sendDWebMessage({
-          target: props.target,
+          did: props.did,
           message: message
         }).then(raw => raw.json())
       }
@@ -110,18 +110,18 @@ const DWeb = {
         }
       ]);
 
-      if (props.process && props.target && props.keypair) {
+      if (props.process && props.did && props.keypair) {
         await DWeb.ingestMessage({
           message,
-          did: props.target,
+          did: props.did,
           keypair: props.keypair,
           stream: toReadableStream(props.data)
         })
       }
 
-      if (!props.target || props.send) {
+      if (!props.did || props.send) {
         return await sendDWebMessage({
-          target: props.target,
+          did: props.did,
           message: message,
           data: encodedData
         }).then(raw => raw.json())
@@ -146,10 +146,10 @@ const DWeb = {
 let connection;
 async function sendDWebMessage(request){
   let endpoint;
-  if (!request.target) {
+  if (!request.did) {
     connection = connection || (connection = await connect({ prompt: false }));
     if (!connection) throw 'No Connection';
-    request.target = connection.did;
+    request.did = connection.did;
     endpoint = `http://localhost:${connection.port}/dwn`;
   }
   else {
