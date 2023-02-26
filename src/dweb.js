@@ -2,17 +2,14 @@
 import { connect } from './connect';
 import { encodeData, computeDagPbCid, toReadableStream, getCurrentTimeInHighPrecision } from './utils';
 import merge from 'deepmerge';
-import * as SDK from '@tbd54566975/dwn-sdk-js';
+import * as DWebNodeSDK from '@tbd54566975/dwn-sdk-js';
 
-const Encoder = SDK.Encoder;
+const Encoder = DWebNodeSDK.Encoder;
 
 let node;
 const DWeb = {
   node: async (config = {}) => {
-    return node || (node = await SDK.Dwn.create(config));
-  },
-  set node(instance){
-    node = instance;
+    return node || (node = await DWebNodeSDK.Dwn.create(config));
   },
   records: {
     create: async (props) => {
@@ -49,20 +46,20 @@ const DWeb = {
       //removeUndefinedProperties(descriptor);
 
       // `recordId` computation
-      //const recordId = props.recordId || await SDK.RecordsWrite.getEntryId(props.target, descriptor);
+      //const recordId = props.recordId || await DWebNodeSDK.RecordsWrite.getEntryId(props.target, descriptor);
 
       // if (!message.authorizationSignatureInput) {
-      //   message.authorizationSignatureInput = SDK.Jws.createSignatureInput({
+      //   message.authorizationSignatureInput = DWebNodeSDK.Jws.createSignatureInput({
       //     keyId: profile.did.id + '#key-1',
       //     keyPair: profile.did.keys[0].keypair
       //   })
       // }
       // let stream;
       // if (data !== undefined) {
-      //   stream = SDK.DataStream.fromBytes(data);
+      //   stream = DWebNodeSDK.DataStream.fromBytes(data);
       // }
       // message.data = data;
-      // const output = await SDK[message.interface + message.method].create(message);
+      // const output = await DWebNodeSDK[message.interface + message.method].create(message);
       // const node = await getNode();
       // return node.processMessage(target, output.message, stream);
     },
@@ -131,13 +128,13 @@ const DWeb = {
   ingestMessage: async (props) => {
     const { did, keypair, message, stream } = props;
     if (!message.authorization && !message.authorizationSignatureInput) {
-      message.authorizationSignatureInput = SDK.Jws.createSignatureInput({
+      message.authorizationSignatureInput = DWebNodeSDK.Jws.createSignatureInput({
         keyId: did + '#key-1',
         keyPair: keypair
       })
     }
     message.data = stream;
-    const output = await SDK[message.interface + message.method].create(message);
+    const output = await DWebNodeSDK[message.interface + message.method].create(message);
     delete message.data;
     return await DWeb.node().then(node => node.processMessage(did, output.message, stream || message.data));
   }
@@ -176,5 +173,6 @@ async function sendDWebMessage(request){
 }
 
 export {
-  DWeb
+  DWeb,
+  DWebNodeSDK
 }

@@ -1,8 +1,9 @@
 
-import { DWeb } from './src/dweb';
+import { DWeb, DWebNodeSDK } from './src/dweb';
 import { connect } from './src/connect';
 
 export {
   DWeb,
-  connect
+  connect,
+  DWebNodeSDK
 }
