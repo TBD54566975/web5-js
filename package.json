@@ -15,9 +15,7 @@
   ],
   "scripts": {
     "package": "webpack --config webpack.config.js",
-    "build": "npm run esbuild:node && npm run esbuild:browser",
-    "esbuild:node": "esbuild main.js --bundle --minify --sourcemap --platform=node --format=cjs --target=node16 --outdir=/dist/node",
-    "esbuild:browser": "esbuild main.js --bundle --platform=node --format=esm --outdir=/dist/browser --target=esnext"
+    "build": "node build.js && echo {\"type\": \"commonjs\"} > ./dist/cjs/package.json"
   },
   "keywords": [],
   "author": {
