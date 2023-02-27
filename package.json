@@ -3,7 +3,16 @@
   "productName": "web5-sdk-js",
   "version": "0.0.1",
   "description": "SDK for accessing the features and capabilities of Web5",
-  "main": "main.js",
+  "type": "module",
+  "main": "./dist/esm/index.js",
+  "exports": {
+    "import": "./dist/esm/index.js",
+    "require": "./dist/cjs/index.js"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
     "package": "webpack --config webpack.config.js",
     "build": "npm run esbuild:node && npm run esbuild:browser",

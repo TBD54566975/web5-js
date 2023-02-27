@@ -1,10 +1,10 @@
 
 import nacl from 'tweetnacl';
-import { base64url } from 'multiformats/bases/base64';
+// import { base64url } from 'multiformats/bases/base64';
 
 /* Keys */
 
-function getKeys(){
+function getKeys() {
   let keys = JSON.parse(localStorage.getItem('keys') || null);
   if (keys) {
     keys = {
@@ -31,12 +31,12 @@ function getKeys(){
 
 /* Connect Flows */
 
-async function triggerProtocolHandler(url){
+async function triggerProtocolHandler(url) {
   let form = document.createElement('form');
-      form.action = url;
-      document.body.append(form);
-      form.submit();
-      form.remove();
+  form.action = url;
+  document.body.append(form);
+  form.submit();
+  form.remove();
 
   // var iframe = document.createElement('iframe');
   //     iframe.src = url;
@@ -45,13 +45,13 @@ async function triggerProtocolHandler(url){
 }
 
 
-function abortConnect(intervals, controller){
+function abortConnect(intervals, controller) {
   intervals.forEach(interval => clearInterval(interval));
   intervals.length = 0;
   controller.abort();
 }
 
-async function fetchConnection(port, keys, events = {}, intervals, resetTimeout, abortController, looping){
+async function fetchConnection(port, keys, events = {}, intervals, resetTimeout, abortController, looping) {
   return fetch(`http://localhost:${port}/connections/${keys.encoded.publicKey}`, {
     signal: abortController.signal
   }).then(async res => {
@@ -73,7 +73,7 @@ async function fetchConnection(port, keys, events = {}, intervals, resetTimeout,
           localStorage.setItem('web5_connect', JSON.stringify(result));
           events.onConnected?.(result);
         }
-        else if (!looping){
+        else if (!looping) {
           resetTimeout();
           abortConnect(intervals, abortController);
           decodePin(result, keys.decoded.secretKey).then(() => {
@@ -98,7 +98,7 @@ async function fetchConnection(port, keys, events = {}, intervals, resetTimeout,
   })
 }
 
-async function decodePin(result, secretKey){
+async function decodePin(result, secretKey) {
   const { pin, nonce, publicKey: theirPublicKey } = result;
   const encryptedPinBytes = base64url.baseDecode(pin);
   const nonceBytes = new TextEncoder().encode(nonce);
@@ -107,11 +107,11 @@ async function decodePin(result, secretKey){
   result.pin = new TextDecoder().decode(encodedPin);
 }
 
-function getConnection(){
+function getConnection() {
   return JSON.parse(localStorage.getItem('web5_connect') || null);
 }
 
-async function connect(options = {}){
+async function connect(options = {}) {
 
   const keys = getKeys();
   let connection = getConnection();
@@ -165,7 +165,7 @@ async function connect(options = {}){
   }, 10));
 
   intervals.push(setInterval(async () => {
-    wallets.forEach(port =>{
+    wallets.forEach(port => {
       fetchConnection(port, keys, options, intervals, resetTimeout, abortController);
     })
   }, 100));

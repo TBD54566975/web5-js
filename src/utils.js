@@ -1,7 +1,7 @@
 import * as SDK from '@tbd54566975/dwn-sdk-js';
-import { importer } from 'ipfs-unixfs-importer';
+// import { importer } from 'ipfs-unixfs-importer';
 import { Temporal } from '@js-temporal/polyfill';
-const { Readable } = require('readable-stream');
+import { Readable } from 'readable-stream';
 import Blob from "cross-blob"
 
 const Encoder = SDK.Encoder;
