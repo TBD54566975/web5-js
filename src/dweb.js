@@ -4,8 +4,6 @@ import { encodeData, computeDagPbCid, toReadableStream, getCurrentTimeInHighPrec
 import merge from 'deepmerge';
 import * as DWebNodeSDK from '@tbd54566975/dwn-sdk-js';
 
-const Encoder = DWebNodeSDK.Encoder;
-
 let node;
 const DWeb = {
   node: async (config = {}) => {
@@ -126,17 +124,25 @@ const DWeb = {
     }
   },
   ingestMessage: async (props) => {
-    const { did, keypair, message, stream } = props;
+    // const { did, keypair, message, stream } = props;
+    const { did, keypair, message, data } = props;
     if (!message.authorization && !message.authorizationSignatureInput) {
       message.authorizationSignatureInput = DWebNodeSDK.Jws.createSignatureInput({
         keyId: did + '#key-1',
         keyPair: keypair
       })
     }
-    message.data = stream;
+    // message.data = stream;
+    let stream;
+    if (data !== undefined) {
+      stream = DWebNodeSDK.DataStream.fromBytes(data);
+    }
+    message.data = data;
     const output = await DWebNodeSDK[message.interface + message.method].create(message);
-    delete message.data;
-    return await DWeb.node().then(node => node.processMessage(did, output.message, stream || message.data));
+
+    // delete message.data;
+    // return await DWeb.node().then(node => node.processMessage(did, output.message, stream || message.data));
+    return await DWeb.node().then(node => node.processMessage(did, output.message, stream));
   }
 }
 
@@ -156,9 +162,10 @@ async function sendDWebMessage(request){
   // TODO: If file or FileReader leave this alone and let the browser do it
   let data;
   if (request.data !== undefined) {
-    data = new (typeof FormData !== 'undefined' ? FormData : require('form-data'))();
-    data.append('data', request.data);
-    delete request.data;
+    data = request.data;
+    // data = new (typeof FormData !== 'undefined' ? FormData : require('form-data'))();
+    // data.append('data', request.data);
+    // delete request.data;
   }
 
   return fetch(endpoint, {
@@ -166,7 +173,8 @@ async function sendDWebMessage(request){
     mode: 'cors',
     cache: 'no-cache',
     headers: {
-      'DWN-MESSAGE': Encoder.stringToBase64Url(JSON.stringify(request))
+      'DWN-MESSAGE': DWebNodeSDK.Encoder.stringToBase64Url(JSON.stringify(request)),
+      'Content-Type': 'application/octet-stream'
     },
     body: data
   })

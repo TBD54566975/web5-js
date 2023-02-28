@@ -1,6 +1,7 @@
 
 import nacl from 'tweetnacl';
 // import { base64url } from 'multiformats/bases/base64';
+import * as SDK from '@tbd54566975/dwn-sdk-js';
 
 /* Keys */
 
@@ -10,8 +11,8 @@ function getKeys() {
     keys = {
       encoded: keys,
       decoded: {
-        publicKey: base64url.baseDecode(keys.publicKey),
-        secretKey: base64url.baseDecode(keys.secretKey)
+        publicKey: SDK.Encoder.base64UrlToBytes(keys.publicKey),
+        secretKey: SDK.Encoder.base64UrlToBytes(keys.secretKey)
       }
     }
   }
@@ -20,8 +21,8 @@ function getKeys() {
     keys = {
       decoded: keys,
       encoded: {
-        publicKey: base64url.baseEncode(keys.publicKey),
-        secretKey: base64url.baseEncode(keys.secretKey)
+        publicKey: SDK.Encoder.bytesToBase64Url(keys.publicKey),
+        secretKey: SDK.Encoder.bytesToBase64Url(keys.secretKey)
       }
     }
     localStorage.setItem('keys', JSON.stringify(keys.encoded))
@@ -100,9 +101,9 @@ async function fetchConnection(port, keys, events = {}, intervals, resetTimeout,
 
 async function decodePin(result, secretKey) {
   const { pin, nonce, publicKey: theirPublicKey } = result;
-  const encryptedPinBytes = base64url.baseDecode(pin);
+  const encryptedPinBytes = SDK.Encoder.base64UrlToBytes(pin);
   const nonceBytes = new TextEncoder().encode(nonce);
-  const theirPublicKeyBytes = base64url.baseDecode(theirPublicKey);
+  const theirPublicKeyBytes = SDK.Encoder.base64UrlToBytes(theirPublicKey);
   const encodedPin = nacl.box.open(encryptedPinBytes, nonceBytes, theirPublicKeyBytes, secretKey);
   result.pin = new TextDecoder().decode(encodedPin);
 }
@@ -136,7 +137,7 @@ async function connect(options = {}) {
     return null;
   }
 
-  const encodedOrigin = base64url.baseEncode(location.origin);
+  const encodedOrigin = SDK.Encoder.bytesToBase64Url(location.origin);
   triggerProtocolHandler(`web5://connect/${keys.encoded.publicKey}/${encodedOrigin}`);
 
   let timeout;

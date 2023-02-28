@@ -7,7 +7,7 @@ const app = new Koa();
 app.use(serve('.'));
 
 // GET /web5-sdk.js
-app.use(serve('../dist'));
+app.use(serve('../dist/bundles'));
 
 app.listen(8080);
  

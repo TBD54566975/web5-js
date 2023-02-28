@@ -135,7 +135,7 @@
 
 <script type="module">
 
-import { connect, DWeb } from './web5-sdk.js';
+import { connect, DWeb } from './browser.js';
 
 connect_button.addEventListener('click', async event => {
 
@@ -252,6 +252,7 @@ write_image_button.addEventListener('click', async event => {
       data: imageFile,
       message: {
         schema: write_image_schema.value,
+        dataFormat: 'application/octet-stream'
       }
     });
     console.log('WRITE RESPONSE:', response)
