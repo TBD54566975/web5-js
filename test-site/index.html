@@ -167,7 +167,7 @@
 
 <script type="module">
 
-import { connect, DWeb, ManagedDid, Web5 } from './browser.js';
+import { connect, ManagedDid, Web5 } from './browser.js';
 
 const aliceDid = new ManagedDid()
 
@@ -199,8 +199,15 @@ connect_button.addEventListener('click', async event => {
 
 });
 
-
+function agentConnected() {
+  if (connected_did.textContent === '') {
+    alert('CONNECT or RECONNECT before sending messages.');
+    return false;
+  }
+  return true;
+}
 query_text_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
   const response = await Web5.records.query(aliceDid, {
     author: aliceDid,
     message: {
@@ -215,6 +222,7 @@ query_text_button.addEventListener('click', async event => {
 
 
 query_json_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
   const response = await Web5.records.query(aliceDid, {
     author: aliceDid,
     message: {
@@ -229,6 +237,7 @@ query_json_button.addEventListener('click', async event => {
 
 
 query_image_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
   const response = await Web5.records.query(aliceDid, {
     author: aliceDid,
     message: {
@@ -243,6 +252,7 @@ query_image_button.addEventListener('click', async event => {
 
 
 query_image_type_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
   const response = await Web5.records.query(aliceDid, {
     author: aliceDid,
     message: {
@@ -257,6 +267,7 @@ query_image_type_button.addEventListener('click', async event => {
 
 
 write_text_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
   const response = await Web5.records.write(aliceDid, {
     author: aliceDid,
     data: write_text_data.value,
@@ -269,6 +280,7 @@ write_text_button.addEventListener('click', async event => {
 
 
 write_json_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
   const response = await Web5.records.write(aliceDid, {
     author: aliceDid,
     data: JSON.parse(write_json_data.value),
@@ -281,6 +293,7 @@ write_json_button.addEventListener('click', async event => {
 
 
 write_image_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
   // Attempt to write an image file to a record.
   const imageFile = write_image_file.files[0];
   
@@ -301,6 +314,7 @@ write_image_button.addEventListener('click', async event => {
 
 
 write_image_type_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
   // Attempt to write an image file with a user-specified data format to a record.
   const imageFile = write_image_type_file.files[0];
 
@@ -329,6 +343,7 @@ write_image_type_button.addEventListener('click', async event => {
 const bobDid = 'did:ion:bob1234';
 
 write_alice_to_alice_local_btn.addEventListener('click', async event => {
+  if (!agentConnected()) return;
   // const response = await Web5.records.write(aliceDidLocalAgent, {
   //   author: aliceDidLocalAgent,
   //   data: 'test',
@@ -341,6 +356,7 @@ write_alice_to_alice_local_btn.addEventListener('click', async event => {
 });
 
 write_alice_to_alice_remote_btn.addEventListener('click', async event => {
+  if (!agentConnected()) return;
   const response = await Web5.records.write(aliceDid, {
     author: aliceDid,
     data: 'test',
@@ -352,6 +368,7 @@ write_alice_to_alice_remote_btn.addEventListener('click', async event => {
 });
 
 write_alice_to_bob_local_btn.addEventListener('click', async event => {
+  if (!agentConnected()) return;
   // const response = await Web5.records.write(bobDid, {
   //   author: aliceDidLocalAgent,
   //   data: 'test',
@@ -364,6 +381,7 @@ write_alice_to_bob_local_btn.addEventListener('click', async event => {
 });
 
 write_alice_to_bob_remote_btn.addEventListener('click', async event => {
+  if (!agentConnected()) return;
   const response = await Web5.records.write(bobDid, {
     author: aliceDid,
     data: 'test',
@@ -372,6 +390,7 @@ write_alice_to_bob_remote_btn.addEventListener('click', async event => {
     }
   });
   console.log('RESPONSE:', await response.json())
+  alert('TEST PARTIALLY IMPLEMENTED.\n\nHandling for unknown target DIDs not implemented yet.')
 });
 
 </script>
