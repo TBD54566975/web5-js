@@ -65,14 +65,24 @@ const DWeb = {
   node: async (config = {}) => {
     return node || (node = await DWebNodeSDK.Dwn.create(config));
   },
+
   records: {
+    delete: async (target, context) => {
+      context.message = merge.all([context.message, {
+          interface: 'Records',
+          method: 'Delete'
+        }
+      ]);
+      return await DWeb.send(target, context);
+    },
+
     query: async (target, context) => {
       context.message = merge.all([context.message, {
           interface: 'Records',
           method: 'Query'
         }
       ]);
-      return await DWeb.send(target, context)
+      return await DWeb.send(target, context);
     },
 
     write: async (target, context) => {
@@ -81,7 +91,7 @@ const DWeb = {
           method: 'Write'
         }
       ]);
-      return await DWeb.send(target, context)
+      return await DWeb.send(target, context);
     },
   },
 
@@ -103,7 +113,7 @@ const DWeb = {
         return await transport.send(author.endpoint, context);
       } else {
         // TODO: Is this sufficient or might we improve how the calling app can respond by initiating a connect/re-connect flow?
-        return { error: { code: 99, message: 'Local key chain not available and remote agent not connected'}}
+        return { error: { code: 99, message: 'Local key chain not available and remote agent not connected'}};
       }
     }
 
@@ -149,7 +159,7 @@ const transport = {
       message.authorizationSignatureInput = DWebNodeSDK.Jws.createSignatureInput({
         keyId: author.did + '#key-1',
         keyPair: author.keypair
-      })
+      });
 
       message.data = data;
       const encodedMessage = await DWebNodeSDK[message.interface + message.method].create(message);

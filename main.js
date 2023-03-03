@@ -10,7 +10,6 @@ const Web5 = {
 }
 
 export {
-  DWeb,
   connect,
   DWebNodeSDK,
   ManagedDid,

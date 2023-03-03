@@ -102,6 +102,18 @@
   </div>
 
   <hr />
+  
+  <p class="heading">Delete Records</p>
+
+  <div class="box">
+    <div class="row">
+      <label for="delete_record_id">Record ID</label>
+      <input id="delete_record_id" type="text" value="" />
+      <button type="button" id="delete_record_button">Delete Record</button>
+    </div>
+  </div>
+
+  <hr />
 
   <p style="font-size: large">Custom Data Formats</p>
 
@@ -206,6 +218,8 @@ function agentConnected() {
   }
   return true;
 }
+
+
 query_text_button.addEventListener('click', async event => {
   if (!agentConnected()) return;
   const response = await Web5.records.query(aliceDid, {
@@ -333,7 +347,15 @@ write_image_type_button.addEventListener('click', async event => {
   }
 });
 
-
+delete_record_button.addEventListener('click', async event => {
+  const response = await Web5.records.delete(aliceDid, {
+    author: aliceDid,
+    message: {
+      recordId: delete_record_id.value
+    }
+  });
+  console.log('DELETE RESPONSE:', await response.json())
+});
 
 
 /**
