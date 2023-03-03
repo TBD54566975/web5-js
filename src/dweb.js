@@ -66,6 +66,26 @@ const DWeb = {
     return node || (node = await DWebNodeSDK.Dwn.create(config));
   },
 
+  protocols: {
+    configure: async (target, context) => {
+      context.message = merge.all([context.message, {
+        interface: 'Protocols',
+        method: 'Configure'
+      }
+    ]);
+      return await DWeb.send(target, context);
+    },
+
+    query: async (target, context) => {
+      context.message = merge.all([context.message, {
+          interface: 'Protocols',
+          method: 'Query'
+        }
+      ]);
+      return await DWeb.send(target, context);
+    }
+  },
+
   records: {
     delete: async (target, context) => {
       context.message = merge.all([context.message, {

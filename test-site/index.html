@@ -13,6 +13,7 @@
 
     .box > .row {
       display: flex;
+      align-items: start;
       padding-top: 0.5em;
     }
 
@@ -27,6 +28,11 @@
 
     .box > .row > input[type=text] {
       width: 8em;
+    }
+
+    .box > .row > textarea {
+      width: 250px;
+      height: 125px;
     }
   </style>
 </head>
@@ -110,6 +116,29 @@
       <label for="delete_record_id">Record ID</label>
       <input id="delete_record_id" type="text" value="" />
       <button type="button" id="delete_record_button">Delete Record</button>
+    </div>
+  </div>
+
+  <hr />
+
+  <p class="heading">Protocols</p>
+
+  <div class="box">
+    <div class="box">
+      <div class="row">
+        <label for="query_protocol_name">Protocol Name</label>
+        <input id="query_protocol_name" type="text" value="exampleProtocol" />
+        <button type="button" id="query_protocol_button">Send Protocol Query</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <label for="configure_protocol_name">Protocol Name</label>
+      <input id="configure_protocol_name" type="text" value="exampleProtocol" />
+      
+      <label for="configure_protocol_definition">Definition</label>
+      <textarea id="configure_protocol_definition"></textarea>
+      <button type="button" id="configure_protocol_button">Configure Protocol</button>
     </div>
   </div>
 
@@ -357,6 +386,40 @@ delete_record_button.addEventListener('click', async event => {
   console.log('DELETE RESPONSE:', await response.json())
 });
 
+configure_protocol_definition.value = JSON.stringify(
+  {
+    "labels": {
+      "example": {
+        "schema": "foo/bar"
+      }
+    },
+    "records": {}
+  },
+  null, 2
+)
+  
+configure_protocol_button.addEventListener('click', async event => {
+  const response = await Web5.protocols.configure(aliceDid, {
+    author: aliceDid,
+    message: {
+      protocol: configure_protocol_name.value,
+      definition: JSON.parse(configure_protocol_definition.value)
+    }
+  });
+  console.log('PROTOCOLS CoNFIGURE RESPONSE:', await response.json())
+});
+
+query_protocol_button.addEventListener('click', async event => {
+  const response = await Web5.protocols.query(aliceDid, {
+    author: aliceDid,
+    message: {
+      filter: {
+        protocol: query_protocol_name.value,
+      }
+    }
+  });
+  console.log('PROTOCOLS QUERY RESPONSE:', await response.json())
+});
 
 /**
  * NEW TESTS

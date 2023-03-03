@@ -4,6 +4,7 @@ import { ManagedDid } from './src/did';
 import { connect } from './src/connect';
 
 const Web5 = {
+  protocols: DWeb.protocols,
   records: DWeb.records,
   send: DWeb.send,
   transport: transport
