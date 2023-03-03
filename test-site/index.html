@@ -131,11 +131,45 @@
     </div>
   </div>
 
+  <hr />
+
+  <p style="font-size: large">New Tests</p>
+
+  <div class="box">
+    <div class="row">
+      <span>Write data authored by Alice's DID to Alice's DWN WITH local key chain</span>
+      <button type="button" id="write_alice_to_alice_local_btn">Send</button>
+    </div>
+  </div>
+  
+  <div class="box">
+    <div class="row">
+      <span>Write data authored by Alice's DID to Alice's DWN withOUT local key chain</span>
+      <button type="button" id="write_alice_to_alice_remote_btn">Send</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <span>Write data authored by Alice's DID to Bob's DWN WITH local key chain</span>
+      <button type="button" id="write_alice_to_bob_local_btn">Send</button>
+    </div>
+  </div>
+  
+  <div class="box">
+    <div class="row">
+      <span>Write data authored by Alice's DID to Bob's DWN withOUT local key chain</span>
+      <button type="button" id="write_alice_to_bob_remote_btn">Send</button>
+    </div>
+  </div>
+
 </body>
 
 <script type="module">
 
-import { connect, DWeb } from './browser.js';
+import { connect, DWeb, ManagedDid, Web5 } from './browser.js';
+
+const aliceDid = new ManagedDid()
 
 connect_button.addEventListener('click', async event => {
 
@@ -147,6 +181,9 @@ connect_button.addEventListener('click', async event => {
     },
     onConnected(connection){
       connected_did.textContent = connection.did;
+      aliceDid.connected = connection.connected;
+      aliceDid.did = connection.did;
+      aliceDid.endpoint = `http://localhost:${connection.port}/dwn`;
       alert('Connection succeeded!');
     },
     onDenied(){
@@ -164,7 +201,8 @@ connect_button.addEventListener('click', async event => {
 
 
 query_text_button.addEventListener('click', async event => {
-  const response = await DWeb.records.query({
+  const response = await Web5.records.query(aliceDid, {
+    author: aliceDid,
     message: {
       filter: {
         schema: query_text_schema.value,
@@ -172,12 +210,13 @@ query_text_button.addEventListener('click', async event => {
       }
     }
   });
-  console.log('QUERY RESPONSE:', response)
+  console.log('QUERY RESPONSE:', await response.json())
 });
 
 
 query_json_button.addEventListener('click', async event => {
-  const response = await DWeb.records.query({
+  const response = await Web5.records.query(aliceDid, {
+    author: aliceDid,
     message: {
       filter: {
         schema: query_json_schema.value,
@@ -185,12 +224,13 @@ query_json_button.addEventListener('click', async event => {
       }
     }
   });
-  console.log('QUERY RESPONSE:', response)
+  console.log('QUERY RESPONSE:', await response.json())
 });
 
 
 query_image_button.addEventListener('click', async event => {
-  const response = await DWeb.records.query({
+  const response = await Web5.records.query(aliceDid, {
+    author: aliceDid,
     message: {
       filter: {
         schema: query_image_schema.value,
@@ -198,12 +238,13 @@ query_image_button.addEventListener('click', async event => {
       }
     }
   });
-  console.log('QUERY RESPONSE:', response)
+  console.log('QUERY RESPONSE:', await response.json())
 });
 
 
 query_image_type_button.addEventListener('click', async event => {
-  const response = await DWeb.records.query({
+  const response = await Web5.records.query(aliceDid, {
+    author: aliceDid,
     message: {
       filter: {
         schema: query_image_type_schema.value,
@@ -211,35 +252,31 @@ query_image_type_button.addEventListener('click', async event => {
       }
     }
   });
-  console.log('QUERY RESPONSE:', response)
+  console.log('QUERY RESPONSE:', await response.json())
 });
 
 
 write_text_button.addEventListener('click', async event => {
-  // To validate that binary values can be sent, convert any text input to bytes before writing.
-  const data = write_text_data.value;
-
-  const response = await DWeb.records.write({
-    data: data,
+  const response = await Web5.records.write(aliceDid, {
+    author: aliceDid,
+    data: write_text_data.value,
     message: {
       schema: write_text_schema.value,
     }
   });
-  console.log('WRITE RESPONSE:', response)
+  console.log('WRITE RESPONSE:', await response.json())
 });
 
 
 write_json_button.addEventListener('click', async event => {
-  // To validate that binary values can be sent, convert any text input to bytes before writing.
-  const data = JSON.parse(write_json_data.value);
-
-  const response = await DWeb.records.write({
-    data: data,
+  const response = await Web5.records.write(aliceDid, {
+    author: aliceDid,
+    data: JSON.parse(write_json_data.value),
     message: {
       schema: write_json_schema.value,
     }
   });
-  console.log('WRITE RESPONSE:', response)
+  console.log('WRITE RESPONSE:', await response.json())
 });
 
 
@@ -248,14 +285,15 @@ write_image_button.addEventListener('click', async event => {
   const imageFile = write_image_file.files[0];
   
   if (imageFile) {
-    const response = await DWeb.records.write({
+    const response = await Web5.records.write(aliceDid, {
+      author: aliceDid,
       data: imageFile,
       message: {
         schema: write_image_schema.value,
         dataFormat: 'application/octet-stream'
       }
     });
-    console.log('WRITE RESPONSE:', response)
+    console.log('WRITE RESPONSE:', await response.json())
   } else {
     alert('No image file selected!');
   }
@@ -267,17 +305,73 @@ write_image_type_button.addEventListener('click', async event => {
   const imageFile = write_image_type_file.files[0];
 
   if (imageFile) {
-    const response = await DWeb.records.write({
+    const response = await Web5.records.write(aliceDid, {
+      author: aliceDid,
       data: imageFile,
       message: {
         schema: write_image_type_schema.value,
         dataFormat: write_image_type_data_format.value
       }
     });
-    console.log('WRITE RESPONSE:', response)
+    console.log('WRITE RESPONSE:', await response.json())
   } else {
     alert('No image file selected!');
   }
+});
+
+
+
+
+/**
+ * NEW TESTS
+ */
+
+const bobDid = 'did:ion:bob1234';
+
+write_alice_to_alice_local_btn.addEventListener('click', async event => {
+  // const response = await Web5.records.write(aliceDidLocalAgent, {
+  //   author: aliceDidLocalAgent,
+  //   data: 'test',
+  //   message: {
+  //     schema: 'foo/bar',
+  //   }
+  // });
+  // console.log('RESPONSE:', await response.json())
+  alert('TEST NOT YET IMPLEMENTED');
+});
+
+write_alice_to_alice_remote_btn.addEventListener('click', async event => {
+  const response = await Web5.records.write(aliceDid, {
+    author: aliceDid,
+    data: 'test',
+    message: {
+      schema: 'foo/bar'
+    }
+  });
+  console.log('RESPONSE:', await response.json())
+});
+
+write_alice_to_bob_local_btn.addEventListener('click', async event => {
+  // const response = await Web5.records.write(bobDid, {
+  //   author: aliceDidLocalAgent,
+  //   data: 'test',
+  //   message: {
+  //     schema: 'foo/bar',
+  //   }
+  // });
+  // console.log('RESPONSE:', await response.json())
+  alert('TEST NOT YET IMPLEMENTED');
+});
+
+write_alice_to_bob_remote_btn.addEventListener('click', async event => {
+  const response = await Web5.records.write(bobDid, {
+    author: aliceDid,
+    data: 'test',
+    message: {
+      schema: 'foo/bar',
+    }
+  });
+  console.log('RESPONSE:', await response.json())
 });
 
 </script>

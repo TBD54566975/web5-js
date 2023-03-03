@@ -1,6 +1,5 @@
 
 import nacl from 'tweetnacl';
-// import { base64url } from 'multiformats/bases/base64';
 import * as SDK from '@tbd54566975/dwn-sdk-js';
 
 /* Keys */

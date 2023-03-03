@@ -4,28 +4,32 @@ import { Temporal } from '@js-temporal/polyfill';
 import { Readable } from 'readable-stream';
 // import Blob from "cross-blob"
 
-const Encoder = SDK.Encoder;
-
 /**
  * Set/detect the media type, encode the data, and return as a Blob.
  */
 
 const encodeData = (data, dataFormat) => {
+  let dataBytes;
 
   // Format was not provided so check for Object or String, and if neither, assume blob of raw data.
   if (!dataFormat) {
     const detectedType = toType(data);
     if (detectedType === 'string') {
       dataFormat = 'text/plain';
+      dataBytes = SDK.Encoder.stringToBytes(data);
     }
     else if (detectedType === 'object') {
       dataFormat = 'application/json';
-      data = Encoder.objectToBytes(data);
+      dataBytes = SDK.Encoder.objectToBytes(data);
+    } else {
+      dataFormat = 'application/octet-stream';
+      dataBytes = data;
     }
   }
 
   // All data encapsulated in a Blob object that can be transported to a remote DWN and converted into a ReadableStream.
-  const encodedData = data instanceof Blob ? data : new Blob([data], { type: dataFormat });
+  // const encodedData = data instanceof Blob ? data : new Blob([data], { type: dataFormat });
+  const encodedData = new Blob([dataBytes], { type: dataFormat });
 
   return { encodedData, dataFormat };
 };
