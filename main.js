@@ -1,5 +1,5 @@
 
-import { DWeb, DWebNodeSDK, transport } from './src/dweb';
+import { DWeb, DWebNodeSDK, transports } from './src/dweb';
 import { ManagedDid } from './src/did';
 import { connect } from './src/connect';
 
@@ -7,12 +7,13 @@ const Web5 = {
   protocols: DWeb.protocols,
   records: DWeb.records,
   send: DWeb.send,
-  transport: transport
+  transports: transports
 }
 
 export {
   connect,
   DWebNodeSDK,
   ManagedDid,
-  Web5
+  Web5,
+  DWeb
 }

@@ -49,7 +49,7 @@
   <hr />
 
   <p style="font-size: large">Write Records</p>
-  
+
   <div class="box">
     <div class="row">
       <label for="write_text_schema">Schema</label>
@@ -59,16 +59,16 @@
       <input id="write_text_data" type="text" value="test" />
       <button type="button" id="write_text_button">Write Text Data</button>
     </div>
-    
+
     <div class="row">
       <label for="write_json_schema">Schema</label>
       <input id="write_json_schema" type="text" value="foo/json" />
-      
+
       <label for="write_json_data">Value</label>
       <input id="write_json_data" type="text" value="{ &quot;testing&quot;: 123 }" />
       <button type="button" id="write_json_button">Write JSON Data</button>
     </div>
-    
+
     <div class="row">
       <label for="write_image_schema">Schema</label>
       <input id="write_image_schema" type="text" value="foo/avatar" />
@@ -78,9 +78,9 @@
       <button type="button" id="write_image_button">Write Image Data</button>
     </div>
   </div>
-  
+
   <hr />
-  
+
   <p style="font-size: large">Query Records</p>
 
   <div class="box">
@@ -108,7 +108,7 @@
   </div>
 
   <hr />
-  
+
   <p class="heading">Delete Records</p>
 
   <div class="box">
@@ -135,7 +135,7 @@
     <div class="row">
       <label for="configure_protocol_name">Protocol Name</label>
       <input id="configure_protocol_name" type="text" value="exampleProtocol" />
-      
+
       <label for="configure_protocol_definition">Definition</label>
       <textarea id="configure_protocol_definition"></textarea>
       <button type="button" id="configure_protocol_button">Configure Protocol</button>
@@ -182,7 +182,7 @@
       <button type="button" id="write_alice_to_alice_local_btn">Send</button>
     </div>
   </div>
-  
+
   <div class="box">
     <div class="row">
       <span>Write data authored by Alice's DID to Alice's DWN withOUT local key chain</span>
@@ -196,7 +196,7 @@
       <button type="button" id="write_alice_to_bob_local_btn">Send</button>
     </div>
   </div>
-  
+
   <div class="box">
     <div class="row">
       <span>Write data authored by Alice's DID to Bob's DWN withOUT local key chain</span>
@@ -339,7 +339,7 @@ write_image_button.addEventListener('click', async event => {
   if (!agentConnected()) return;
   // Attempt to write an image file to a record.
   const imageFile = write_image_file.files[0];
-  
+
   if (imageFile) {
     const response = await Web5.records.write(aliceDid, {
       author: aliceDid,
@@ -397,7 +397,7 @@ configure_protocol_definition.value = JSON.stringify(
   },
   null, 2
 )
-  
+
 configure_protocol_button.addEventListener('click', async event => {
   const response = await Web5.protocols.configure(aliceDid, {
     author: aliceDid,
@@ -406,7 +406,7 @@ configure_protocol_button.addEventListener('click', async event => {
       definition: JSON.parse(configure_protocol_definition.value)
     }
   });
-  console.log('PROTOCOLS CoNFIGURE RESPONSE:', await response.json())
+  console.log('PROTOCOLS CONFIGURE RESPONSE:', await response.json())
 });
 
 query_protocol_button.addEventListener('click', async event => {
