@@ -44,60 +44,6 @@ async function triggerProtocolHandler(url) {
   //     setTimeout(() => iframe.remove(), 10);
 }
 
-
-function abortConnect(intervals, controller) {
-  intervals.forEach(interval => clearInterval(interval));
-  intervals.length = 0;
-  controller.abort();
-}
-
-async function fetchConnection(port, keys, events = {}, intervals, resetTimeout, abortController, looping) {
-  return fetch(`http://localhost:${port}/connections/${keys.encoded.publicKey}`, {
-    signal: abortController.signal
-  }).then(async res => {
-    if (res.headers.get('WEB5-UA')) {
-      if (res.status === 404) {
-        if (looping) {
-          resetTimeout(true);
-          abortConnect(intervals, abortController);
-          events.onDenied?.();
-        }
-        else return true;
-      }
-      else if (res.status === 200) {
-        const result = await res.json();
-        result.port = port;
-        if (result.connected) {
-          resetTimeout(true);
-          abortConnect(intervals, abortController);
-          localStorage.setItem('web5_connect', JSON.stringify(result));
-          events.onConnected?.(result);
-        }
-        else if (!looping) {
-          resetTimeout();
-          abortConnect(intervals, abortController);
-          decodePin(result, keys.decoded.secretKey).then(() => {
-            events.onRequest?.(result);
-            intervals.push(setInterval(() => {
-              fetchConnection(port, keys, events, intervals, resetTimeout, new AbortController(), true)
-            }, 100));
-          }).catch(e => {
-            events.onError?.(e);
-          })
-        }
-      }
-      else {
-        resetTimeout(true);
-        abortConnect(intervals, abortController);
-        events?.[res.status === 404 ? 'onDenied' : 'onError']();
-      }
-    }
-  }).catch(e => {
-    console.log(e);
-    return false;
-  })
-}
-
 async function decodePin(result, secretKey) {
   const { pin, nonce, publicKey: theirPublicKey } = result;
   const encryptedPinBytes = SDK.Encoder.base64UrlToBytes(pin);
@@ -112,64 +58,89 @@ function getConnection() {
 }
 
 async function connect(options = {}) {
-
   const keys = getKeys();
   let connection = getConnection();
   if (connection) {
-    if (options.refresh) {
-      connection = await fetch(`http://localhost:${connection.port}/connections/${keys.encoded.publicKey}`).then(async res => {
-        return res.status === 200 && await res.json();
-      }).catch(e => false);
-      if (connection) {
-        options.onConnected?.(connection);
-        return connection;
-      }
-      else options.onError?.();
-    }
-    else {
-      options.onConnected?.(connection);
-      return connection;
-    }
+    options?.onConnected?.(connection);
+    return connection;
   }
 
-  if (options.prompt === false) {
+  if (options?.prompt === false) {
     return null;
   }
 
   const encodedOrigin = SDK.Encoder.bytesToBase64Url(location.origin);
   triggerProtocolHandler(`web5://connect/${keys.encoded.publicKey}/${encodedOrigin}`);
 
-  let timeout;
-  let wallets = [];
-  let intervals = [];
-  let currentPort = 55_500;
-  let maxPort = 55_600;
-  let abortController = new AbortController();
-
-  const resetTimeout = (clear) => {
-    clearTimeout(timeout);
-    if (!clear) timeout = setTimeout(() => {
-      abortConnect(intervals, abortController);
-      options.onTimeout?.();
-    }, 60000);
+  function destroySocket(socket) {
+    socket.close();
+    socket.removeEventListener('open', handleOpen);
+    socket.removeEventListener('message', handleMessage);
   }
 
-  resetTimeout();
+  function handleOpen(event) {
+    const socket = event.target;
+    socket.addEventListener('message', handleMessage);
+    sockets.add(socket);
+  }
 
-  intervals.push(setInterval(async () => {
-    if (currentPort <= maxPort) {
-      const isWallet = await fetchConnection(currentPort, keys, options, intervals, resetTimeout, abortController);
-      if (isWallet) wallets.push(currentPort);
-      currentPort++;
+  async function handleMessage(event) {
+    const socket = event.target;
+
+    let json;
+    try {
+      json = JSON.parse(event.data);
+    } catch { }
+
+    switch (json?.type) {
+      case 'connected':
+        if (!json.data) {
+          destroySocket(socket);
+          sockets.delete(socket);
+          return;
+        }
+
+        localStorage.setItem('web5_connect', JSON.stringify(json.data));
+        options?.onConnected?.(json.data);
+        break;
+
+      case 'requested':
+        if (!json.data) {
+          destroySocket(socket);
+          sockets.delete(socket);
+          return;
+        }
+
+        try {
+          await decodePin(json.data, keys.decoded.secretKey);
+        } catch {
+          destroySocket(socket);
+          sockets.delete(socket);
+          return;
+        }
+
+        options?.onRequest?.(json.data);
+        return;
+
+      case 'blocked':
+      case 'denied':
+      case 'closed':
+        options?.onDenied?.();
+        break;
+
+      case 'unknown':
+        return;
     }
-  }, 10));
 
-  intervals.push(setInterval(async () => {
-    wallets.forEach(port => {
-      fetchConnection(port, keys, options, intervals, resetTimeout, abortController);
-    })
-  }, 100));
+    sockets.forEach(destroySocket);
+    sockets.clear();
+  }
 
+  const sockets = new Set();
+  for (let port = 55_500; port <= 55_600; ++port) {
+    const socket = new WebSocket(`ws://localhost:${port}/connections/${keys.encoded.publicKey}`);
+    socket.addEventListener('open', handleOpen);
+  }
 }
 
 export {
