@@ -1,0 +1,56 @@
+{
+  "name": "@tbd54566975/web5",
+  "version": "0.0.1",
+  "description": "SDK for accessing the features and capabilities of Web5",
+  "type": "module",
+  "main": "./dist/esm/index.js",
+  "exports": {
+    "import": "./dist/esm/index.js",
+    "require": "./dist/cjs/index.js"
+  },
+  "browser": {
+    "./dist/esm/src/index.js": "./dist/bundles/browser.js",
+    "./dist/cjs/src/index.js": "./dist/bundles/browser.js"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "node build.js && echo {\"type\": \"commonjs\"} > ./dist/cjs/package.json",
+    "bundle": "node ./build/create-browser-bundle.cjs"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Daniel Buchner",
+    "email": "dbuchner@tbd.email"
+  },
+  "contributors": [
+    {
+      "name": "Frank Hinek",
+      "email": "frankhinek@tbd.email"
+    },
+    {
+      "name": "Moe Jangda",
+      "email": "moe@tbd.email"
+    }
+  ],
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "source-map-loader": "^4.0.1",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1"
+  },
+  "dependencies": {
+    "@js-temporal/polyfill": "0.4.3",
+    "@tbd54566975/dwn-sdk-js": "0.0.23",
+    "cross-fetch": "3.1.5",
+    "deepmerge": "4.3.0",
+    "esbuild": "0.17.10",
+    "ipfs-unixfs-importer": "14.0.1",
+    "multiformats": "11.0.0",
+    "node-stdlib-browser": "^1.2.0",
+    "readable-stream": "4.3.0",
+    "tweetnacl": "1.0.3"
+  }
+}

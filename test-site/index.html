@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Electron Comms Test</title>
+  <style>
+    .box {
+      max-width: 52rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .box > .row {
+      display: flex;
+      align-items: start;
+      padding-top: 0.5em;
+    }
+
+    .box > .row > label {
+      padding-right: 0.5em;
+      padding-left: 0.5em;
+    }
+
+    .box > .row > button {
+      margin-left: auto;
+    }
+
+    .box > .row > input[type=text] {
+      width: 8em;
+    }
+
+    .box > .row > textarea {
+      width: 250px;
+      height: 125px;
+    }
+  </style>
+</head>
+
+<body style="background: #000; color: #fff;">
+  <button type="button" id="connect_button">DID Connect</button>
+  <div>
+    <span>Security Code: </span><strong id="security_code"></strong>
+  </div>
+  <div style="width: 100%; overflow: hidden; text-overflow: ellipsis;">
+    <span>Connected as: </span><strong id="connected_did"></strong>
+  </div>
+
+  <hr />
+
+  <p style="font-size: large">Write Records</p>
+
+  <div class="box">
+    <div class="row">
+      <label for="write_text_schema">Schema</label>
+      <input id="write_text_schema" type="text" value="foo/text" />
+
+      <label for="write_text_data">Value</label>
+      <input id="write_text_data" type="text" value="test" />
+      <button type="button" id="write_text_button">Write Text Data</button>
+    </div>
+
+    <div class="row">
+      <label for="write_json_schema">Schema</label>
+      <input id="write_json_schema" type="text" value="foo/json" />
+
+      <label for="write_json_data">Value</label>
+      <input id="write_json_data" type="text" value="{ &quot;testing&quot;: 123 }" />
+      <button type="button" id="write_json_button">Write JSON Data</button>
+    </div>
+
+    <div class="row">
+      <label for="write_image_schema">Schema</label>
+      <input id="write_image_schema" type="text" value="foo/avatar" />
+
+      <label for="write_image_file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+      <input id="write_image_file" type="file" />
+      <button type="button" id="write_image_button">Write Image Data</button>
+    </div>
+  </div>
+
+  <hr />
+
+  <p style="font-size: large">Query Records</p>
+
+  <div class="box">
+    <div class="row">
+      <label for="query_text_schema">Schema</label>
+      <input id="query_text_schema" type="text" value="foo/text" />
+      <button type="button" id="query_text_button">Send Text Query</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <label for="query_json_schema">Schema</label>
+      <input id="query_json_schema" type="text" value="foo/json" />
+      <button type="button" id="query_json_button">Send JSON Query</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <label for="query_image_schema">Schema</label>
+      <input id="query_image_schema" type="text" value="foo/avatar" />
+      <button type="button" id="query_image_button">Send Image Query</button>
+    </div>
+  </div>
+
+  <hr />
+
+  <p class="heading">Delete Records</p>
+
+  <div class="box">
+    <div class="row">
+      <label for="delete_record_id">Record ID</label>
+      <input id="delete_record_id" type="text" value="" />
+      <button type="button" id="delete_record_button">Delete Record</button>
+    </div>
+  </div>
+
+  <hr />
+
+  <p class="heading">Protocols</p>
+
+  <div class="box">
+    <div class="box">
+      <div class="row">
+        <label for="query_protocol_name">Protocol Name</label>
+        <input id="query_protocol_name" type="text" value="exampleProtocol" />
+        <button type="button" id="query_protocol_button">Send Protocol Query</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <label for="configure_protocol_name">Protocol Name</label>
+      <input id="configure_protocol_name" type="text" value="exampleProtocol" />
+
+      <label for="configure_protocol_definition">Definition</label>
+      <textarea id="configure_protocol_definition"></textarea>
+      <button type="button" id="configure_protocol_button">Configure Protocol</button>
+    </div>
+  </div>
+
+  <hr />
+
+  <p style="font-size: large">Custom Data Formats</p>
+
+  <div class="box">
+    <div class="row">
+      <label for="write_image_type_schema">Schema</label>
+      <input id="write_image_type_schema" type="text" value="foo/background" />
+
+      <label for="write_image_type_data_format">Data Format</label>
+      <input id="write_image_type_data_format" type="text" value="image/png" />
+
+      <label for="write_image_type_file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+      <input id="write_image_type_file" type="file" />
+      <button type="button" id="write_image_type_button">Write Image Data</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <label for="query_image_type_schema">Schema</label>
+      <input id="query_image_type_schema" type="text" value="foo/background" />
+
+      <label for="query_image_type_data_format">Data Format</label>
+      <input id="query_image_type_data_format" type="text" value="image/png" />
+
+      <button type="button" id="query_image_type_button">Send Image Query</button>
+    </div>
+  </div>
+
+  <hr />
+
+  <p style="font-size: large">New Tests</p>
+
+  <div class="box">
+    <div class="row">
+      <span>Write data authored by Alice's DID to Alice's DWN WITH local key chain</span>
+      <button type="button" id="write_alice_to_alice_local_btn">Send</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <span>Write data authored by Alice's DID to Alice's DWN withOUT local key chain</span>
+      <button type="button" id="write_alice_to_alice_remote_btn">Send</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <span>Write data authored by Alice's DID to Bob's DWN WITH local key chain</span>
+      <button type="button" id="write_alice_to_bob_local_btn">Send</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <span>Write data authored by Alice's DID to Bob's DWN withOUT local key chain</span>
+      <button type="button" id="write_alice_to_bob_remote_btn">Send</button>
+    </div>
+  </div>
+
+</body>
+
+<script type="module">
+
+import { connect, ManagedDid, Web5 } from './browser.js';
+
+const aliceDid = new ManagedDid()
+
+connect_button.addEventListener('click', async event => {
+
+  event.preventDefault();
+
+  connect({
+    onRequest(response){
+      security_code.textContent = response.pin;
+    },
+    onConnected(connection){
+      connected_did.textContent = connection.did;
+      aliceDid.connected = connection.connected;
+      aliceDid.did = connection.did;
+      aliceDid.endpoint = `http://localhost:${connection.port}/dwn`;
+      alert('Connection succeeded!');
+    },
+    onDenied(){
+      alert('Connection was denied');
+    },
+    onTimeout(){
+      alert('The connection request timed out');
+    },
+    onError(e){
+      console.log(e);
+    }
+  })
+
+});
+
+function agentConnected() {
+  if (connected_did.textContent === '') {
+    alert('CONNECT or RECONNECT before sending messages.');
+    return false;
+  }
+  return true;
+}
+
+
+query_text_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
+  const response = await Web5.records.query(aliceDid, {
+    author: aliceDid,
+    message: {
+      filter: {
+        schema: query_text_schema.value,
+        dataFormat: 'text/plain'
+      }
+    }
+  });
+  console.log('QUERY RESPONSE:', await response.json())
+});
+
+
+query_json_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
+  const response = await Web5.records.query(aliceDid, {
+    author: aliceDid,
+    message: {
+      filter: {
+        schema: query_json_schema.value,
+        dataFormat: 'application/json'
+      }
+    }
+  });
+  console.log('QUERY RESPONSE:', await response.json())
+});
+
+
+query_image_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
+  const response = await Web5.records.query(aliceDid, {
+    author: aliceDid,
+    message: {
+      filter: {
+        schema: query_image_schema.value,
+        dataFormat: 'application/octet-stream'
+      }
+    }
+  });
+  console.log('QUERY RESPONSE:', await response.json())
+});
+
+
+query_image_type_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
+  const response = await Web5.records.query(aliceDid, {
+    author: aliceDid,
+    message: {
+      filter: {
+        schema: query_image_type_schema.value,
+        dataFormat: query_image_type_data_format.value
+      }
+    }
+  });
+  console.log('QUERY RESPONSE:', await response.json())
+});
+
+
+write_text_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
+  const response = await Web5.records.write(aliceDid, {
+    author: aliceDid,
+    data: write_text_data.value,
+    message: {
+      schema: write_text_schema.value,
+    }
+  });
+  console.log('WRITE RESPONSE:', await response.json())
+});
+
+
+write_json_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
+  const response = await Web5.records.write(aliceDid, {
+    author: aliceDid,
+    data: JSON.parse(write_json_data.value),
+    message: {
+      schema: write_json_schema.value,
+    }
+  });
+  console.log('WRITE RESPONSE:', await response.json())
+});
+
+
+write_image_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
+  // Attempt to write an image file to a record.
+  const imageFile = write_image_file.files[0];
+
+  if (imageFile) {
+    const response = await Web5.records.write(aliceDid, {
+      author: aliceDid,
+      data: imageFile,
+      message: {
+        schema: write_image_schema.value,
+        dataFormat: 'application/octet-stream'
+      }
+    });
+    console.log('WRITE RESPONSE:', await response.json())
+  } else {
+    alert('No image file selected!');
+  }
+});
+
+
+write_image_type_button.addEventListener('click', async event => {
+  if (!agentConnected()) return;
+  // Attempt to write an image file with a user-specified data format to a record.
+  const imageFile = write_image_type_file.files[0];
+
+  if (imageFile) {
+    const response = await Web5.records.write(aliceDid, {
+      author: aliceDid,
+      data: imageFile,
+      message: {
+        schema: write_image_type_schema.value,
+        dataFormat: write_image_type_data_format.value
+      }
+    });
+    console.log('WRITE RESPONSE:', await response.json())
+  } else {
+    alert('No image file selected!');
+  }
+});
+
+delete_record_button.addEventListener('click', async event => {
+  const response = await Web5.records.delete(aliceDid, {
+    author: aliceDid,
+    message: {
+      recordId: delete_record_id.value
+    }
+  });
+  console.log('DELETE RESPONSE:', await response.json())
+});
+
+configure_protocol_definition.value = JSON.stringify(
+  {
+    "labels": {
+      "example": {
+        "schema": "foo/bar"
+      }
+    },
+    "records": {}
+  },
+  null, 2
+)
+
+configure_protocol_button.addEventListener('click', async event => {
+  const response = await Web5.protocols.configure(aliceDid, {
+    author: aliceDid,
+    message: {
+      protocol: configure_protocol_name.value,
+      definition: JSON.parse(configure_protocol_definition.value)
+    }
+  });
+  console.log('PROTOCOLS CONFIGURE RESPONSE:', await response.json())
+});
+
+query_protocol_button.addEventListener('click', async event => {
+  const response = await Web5.protocols.query(aliceDid, {
+    author: aliceDid,
+    message: {
+      filter: {
+        protocol: query_protocol_name.value,
+      }
+    }
+  });
+  console.log('PROTOCOLS QUERY RESPONSE:', await response.json())
+});
+
+/**
+ * NEW TESTS
+ */
+
+const bobDid = 'did:ion:bob1234';
+
+write_alice_to_alice_local_btn.addEventListener('click', async event => {
+  if (!agentConnected()) return;
+  // const response = await Web5.records.write(aliceDidLocalAgent, {
+  //   author: aliceDidLocalAgent,
+  //   data: 'test',
+  //   message: {
+  //     schema: 'foo/bar',
+  //   }
+  // });
+  // console.log('RESPONSE:', await response.json())
+  alert('TEST NOT YET IMPLEMENTED');
+});
+
+write_alice_to_alice_remote_btn.addEventListener('click', async event => {
+  if (!agentConnected()) return;
+  const response = await Web5.records.write(aliceDid, {
+    author: aliceDid,
+    data: 'test',
+    message: {
+      schema: 'foo/bar'
+    }
+  });
+  console.log('RESPONSE:', await response.json())
+});
+
+write_alice_to_bob_local_btn.addEventListener('click', async event => {
+  if (!agentConnected()) return;
+  // const response = await Web5.records.write(bobDid, {
+  //   author: aliceDidLocalAgent,
+  //   data: 'test',
+  //   message: {
+  //     schema: 'foo/bar',
+  //   }
+  // });
+  // console.log('RESPONSE:', await response.json())
+  alert('TEST NOT YET IMPLEMENTED');
+});
+
+write_alice_to_bob_remote_btn.addEventListener('click', async event => {
+  if (!agentConnected()) return;
+  const response = await Web5.records.write(bobDid, {
+    author: aliceDid,
+    data: 'test',
+    message: {
+      schema: 'foo/bar',
+    }
+  });
+  console.log('RESPONSE:', await response.json())
+  alert('TEST PARTIALLY IMPLEMENTED.\n\nHandling for unknown target DIDs not implemented yet.')
+});
+
+</script>
+
+</html>
