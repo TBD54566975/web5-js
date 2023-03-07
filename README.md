@@ -85,6 +85,27 @@ const response = await Web5.records.query(aliceDid, {
 });
 ```
 
+### **`Web5.records.write(TARGET_DID, PARAMETERS_OBJECT)`**
+
+Method for writing a message with data to the DWeb Node of a provided target DID. The target DID and parameters object are required arguments, with the parameters options composed as follows:
+
+- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `TARGET_DID` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
+- **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
+- **`data`**  - *`blob | stream | file`*: The data object of the bytes to be sent.
+
+#### **Example** 
+
+```javascript
+const imageFile = document.querySelector('#file_input').files[0];
+const response = await Web5.records.write(aliceDid, {
+  author: aliceDid,
+  data: imageFile,
+  message: {
+    dataFormat: 'image/png'
+  }
+});
+```
+
 ## Project Resources
 
 | Resource                                   | Description                                                                    |
