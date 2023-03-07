@@ -125,6 +125,56 @@ const response = await Web5.records.delete('did:example:alice', {
 });
 ```
 
+### **`Web5.protocols.configure(TARGET_DID, PARAMETERS_OBJECT)`**
+
+Method for deleting a record in the DWeb Node of a provided target DID. The target DID and parameters object are required arguments, with the parameters options composed as follows:
+
+- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `TARGET_DID` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
+- **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
+    - **`protocol`**  - *`URI string`*: a URI that represents the protocol being configured via the `definition` object.
+    - **`definition`**  - *`object`*: an object that defines the ruleset that will be applied to the records and activities under the protocol.
+        - **`labels`**  - *`object`*: an object that defines the composition of records that will be used in the `records` tree below.
+        - **`records`**  - *`object`*: a recursive object that defines the structure of an app, including data relationships and constraints on which entities can perform various activities.
+
+#### **Example** 
+
+```javascript
+const response = await Web5.protocols.configure('did:example:alice', {
+  author: 'did:example:alice',
+  message: {
+    protocol: "https://decentralized-music.org/protocol",
+    definition: {
+      "labels": {
+        "playlist": {
+          "schema": "https://decentralized-music.org/protocol/playlist",
+          "dataFormat": [ "application/json" ]
+        },
+        "track": {
+          "schema": "https://decentralized-music.org/protocol/track",
+          "dataFormat": [ "application/json" ]
+        },
+        "audio": {
+          "schema": "https://decentralized-music.org/protocol/track",
+          "dataFormat": [ "audio/aac", "audio/mp4" ]
+        }
+      },
+      "records": {
+        "playlist": {
+          "records": {
+            "track": {}
+          }
+        },
+        "track": {
+          "records": {
+            "audio": {}
+          }
+        }
+      }
+    }
+  }
+});
+```
+
 ## Project Resources
 
 | Resource                                   | Description                                                                    |
