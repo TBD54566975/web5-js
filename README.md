@@ -1,29 +1,89 @@
-# $PROJECT_NAME README
+# Web5 JS SDK
+Making developing with Web5 components at least 5 times easier to work with.
 
-Congrats, project leads! You got a new project to grow!
-
-This stub is meant to help you form a strong community around your work. It's yours to adapt, and may 
-diverge from this initial structure. Just keep the files seeded in this repo, and the rest is yours to evolve! 
+⚠️ WEB5 JS SDK IS IN A PRE-BETA STATE ⚠️
 
 ## Introduction
 
-Orient users to the project here. This is a good place to start with an assumption
-that the user knows very little - so start with the Big Picture and show how this
-project fits into it. It may be good to reference/link the broader architecture in the
-`collaboration` repo or the developer site here.
+Web5 consists of the following components:
+- Decentralized Identifiers
+- Verifiable Credentials
+- DWeb Node personal datastores
 
-Then maybe a dive into what this project does.
+The SDK sets out to gather the most oft used functionality from all three of these 
+pillar technologies to provide a simple library that is as close to effortless as 
+possible. 
 
-Diagrams and other visuals are helpful here. Perhaps code snippets showing usage.
+## Docs
 
-Project leads should complete, alongside this `README`:
-* [CODEOWNERS](./CODEOWNERS) - set project lead(s)
-* [CONTRIBUTING.md](./CONTRIBUTING.md) - Fill out how to: install prereqs, build, test, run, access CI, chat, discuss, file issues
+### **`Web5.connect(OPTIONS_OBJECT)`**
 
-The other files in this template repo may be used as-is:
-* [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
-* [GOVERNANCE.md](./GOVERNANCE.md)
-* [LICENSE](./LICENSE)
+Enables an app to request connection to a user's local identity app, or generate an in-app DID to represent the user (e.g. if the user does not have an identity app).
+
+> NOTE: This method may only be invoked within the scope of a 'trusted user action', which is something the browser/OS decides. For browsers this is generally some direct user intent, like clicking a link or button.
+
+The `connect` method takes an object with the following properties:
+
+#### **`onRequest(REQUEST_OBJECT)`**
+
+An event function that is called in response to a pending connection response being delivered by the user's identity app, composed of the following properties:
+
+- **`pin`**  - *`number`*: 1-4 digit numerical code that must be displayed by the app developer in UI so the user can confirm they are connecting to the correct app.
+- **`port`** - *`number`*: The port number the identity app was located on.
+
+
+#### **`onConnected(CONNECTION_OBJECT)`**
+
+An event function that is called in response to the user accepting the connection and sending the DID they selected back to the app:
+
+- **`did`**  - *`string`*: The decentralized identifier sent back to the app.
+
+#### **`onDenied()`**
+
+An event function that is called in response to the user refusing to accept or respond to the connection attempt for any reason.
+
+#### **Example** 
+
+```javascript
+document.querySelector('#connect_button').addEventListener('click', async event => {
+
+  event.preventDefault();
+
+  Web5.connect({
+    onRequest(response){
+      document.querySelector('#pin_code_text').textContent = response.pin;
+    },
+    onConnected(connection){
+      alert('Connection succeeded! Connected to DID: ' + connection.did);
+    },
+    onDenied(){
+      alert('Connection was denied');
+    }
+  })
+
+});
+```
+
+### **`Web5.records.query(TARGET_DID, PARAMETERS_OBJECT)`**
+
+Method for querying the DWeb Node of a provided target DID. The target DID and parameters object are required arguments, with the parameters options composed as follows:
+
+- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `TARGET_DID` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
+- **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
+
+#### **Example** 
+
+```javascript
+const response = await Web5.records.query(aliceDid, {
+  author: aliceDid,
+  message: {
+    filter: {
+      schema: 'https://schema.org/Playlist',
+      dataFormat: 'application/json'
+    }
+  }
+});
+```
 
 ## Project Resources
 
