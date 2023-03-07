@@ -1,6 +1,5 @@
 {
-  "name": "web5-sdk-js",
-  "productName": "web5-sdk-js",
+  "name": "@tbd54566975/web5",
   "version": "0.0.1",
   "description": "SDK for accessing the features and capabilities of Web5",
   "type": "module",
@@ -26,7 +25,17 @@
     "name": "Daniel Buchner",
     "email": "dbuchner@tbd.email"
   },
-  "license": "MIT",
+  "contributors": [
+    {
+      "name": "Frank Hinek",
+      "email": "frankhinek@tbd.email"
+    },
+    {
+      "name": "Moe Jangda",
+      "email": "moe@tbd.email"
+    }
+  ],
+  "license": "Apache-2.0",
   "devDependencies": {
     "source-map-loader": "^4.0.1",
     "webpack": "^5.75.0",
