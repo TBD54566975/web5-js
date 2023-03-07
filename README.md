@@ -74,8 +74,8 @@ Method for querying the DWeb Node of a provided target DID. The target DID and p
 #### **Example** 
 
 ```javascript
-const response = await Web5.records.query(aliceDid, {
-  author: aliceDid,
+const response = await Web5.records.query('did:example:bob', {
+  author: 'did:example:alice',
   message: {
     filter: {
       schema: 'https://schema.org/Playlist',
@@ -87,7 +87,7 @@ const response = await Web5.records.query(aliceDid, {
 
 ### **`Web5.records.write(TARGET_DID, PARAMETERS_OBJECT)`**
 
-Method for writing a message with data to the DWeb Node of a provided target DID. The target DID and parameters object are required arguments, with the parameters options composed as follows:
+Method for writing a record to the DWeb Node of a provided target DID. The target DID and parameters object are required arguments, with the parameters options composed as follows:
 
 - **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `TARGET_DID` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
 - **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
@@ -97,11 +97,30 @@ Method for writing a message with data to the DWeb Node of a provided target DID
 
 ```javascript
 const imageFile = document.querySelector('#file_input').files[0];
-const response = await Web5.records.write(aliceDid, {
-  author: aliceDid,
+const response = await Web5.records.write('did:example:alice', {
+  author: 'did:example:alice',
   data: imageFile,
   message: {
     dataFormat: 'image/png'
+  }
+});
+```
+
+### **`Web5.records.delete(TARGET_DID, PARAMETERS_OBJECT)`**
+
+Method for deleting a record in the DWeb Node of a provided target DID. The target DID and parameters object are required arguments, with the parameters options composed as follows:
+
+- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `TARGET_DID` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
+- **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
+    - **`recordId`**  - *`string`*: the required record ID string that identifies the record being deleted.
+
+#### **Example** 
+
+```javascript
+const response = await Web5.records.delete('did:example:alice', {
+  author: 'did:example:alice',
+  message: {
+    recordId: 'bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5'
   }
 });
 ```
