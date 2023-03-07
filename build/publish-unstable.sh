@@ -16,7 +16,7 @@ new_unstable_version=$new_version"-unstable.$(git rev-parse --short HEAD)-$(date
 npm version $new_unstable_version --no-git-tag-version
 
 # Publish the unstable version
-npm publish --tag unstable --no-git-tag-version
+npm publish --tag unstable --no-git-tag-version --access public
 
 # Reset changes to the package.json
 git checkout -- package.json

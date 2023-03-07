@@ -19,7 +19,8 @@
   "scripts": {
     "build": "npm run build:node && npm run bundle",
     "build:node": "node build.js && echo {\"type\": \"commonjs\"} > ./dist/cjs/package.json",
-    "bundle": "node ./build/create-browser-bundle.cjs"
+    "bundle": "node ./build/create-browser-bundle.cjs",
+    "publish:unstable": "./build/publish-unstable.sh"
   },
   "keywords": [],
   "author": {
