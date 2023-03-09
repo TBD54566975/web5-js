@@ -210,6 +210,8 @@
 
 import { connect, ManagedDid, Web5 } from './browser.js';
 
+window.Web5 = Web5;
+
 const aliceDid = new ManagedDid()
 
 connect_button.addEventListener('click', async event => {
