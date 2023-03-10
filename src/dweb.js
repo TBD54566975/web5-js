@@ -6,6 +6,19 @@ import * as DWebNodeSDK from '@tbd54566975/dwn-sdk-js';
 let debug = true;
 let node;
 const DWeb = {
+  createAndSignMessage: async (author, message, data) => {
+    message.authorizationSignatureInput = DWebNodeSDK.Jws.createSignatureInput({
+      keyId: author.did + '#key-1',
+      keyPair: author.keypair
+    });
+
+    message.data = data;
+    const signedMessage = await DWebNodeSDK[message.interface + message.method].create(message);
+    delete signedMessage.data;
+
+    return signedMessage;
+  },
+
   node: async (config = {}) => {
     return node || (node = await DWebNodeSDK.Dwn.create(config));
   },
@@ -81,7 +94,9 @@ const DWeb = {
       }
     }
 
-    // if (debug) console.log('Web5.send: Key Chain IS available for Author DID');
+    // if (debug) console.log('Web5.send: Key Chain IS available to sign with Author DID');
+    context.message = await DWeb.createAndSignMessage(author, context.message, context.data);
+
     if (target?.connected) {
       // if (debug) console.log('Target DID is managed by Agent');
       // context.target = target;
@@ -108,22 +123,10 @@ const transports = {
       }
       return stream;
     },
-    messageEncoder: async (message, author, data) => {
-      message.authorizationSignatureInput = DWebNodeSDK.Jws.createSignatureInput({
-        keyId: author.did + '#key-1',
-        keyPair: author.keypair
-      });
-
-      message.data = data;
-      const encodedMessage = await DWebNodeSDK[message.interface + message.method].create(message);
-      delete encodedMessage.data;
-      return encodedMessage;
-    },
     send: async (endpoint, request) => {
       const encodedData = transports.app.dataEncoder(request.data);
-      const encodedMessage = await transports.app.messageEncoder(request.message, request.author, request.data);
-      const response = await DWeb.node().then(node => node.processMessage(request.target.did, encodedMessage.message, encodedData));
-      return response;
+      console.log('SIMPLIFIED');
+      return await DWeb.node().then(node => node.processMessage(request.target.did, request.message.message, encodedData));
     }
   },
 
