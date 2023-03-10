@@ -222,7 +222,8 @@ connect_button.addEventListener('click', async event => {
     },
     onConnected(connection){
       connected_did.textContent = connection.did;
-      aliceDid.connected = connection.connected;
+      // aliceDid.connected = connection.connected;
+      aliceDid.connected = true;
       aliceDid.did = connection.did;
       aliceDid.endpoint = `http://localhost:${connection.port}/dwn`;
       alert('Connection succeeded!');
