@@ -243,6 +243,14 @@ connect_button.addEventListener('click', async event => {
 
 });
 
+async function logConsole(obj, message = '') {
+  if (obj instanceof Response) {
+    console.log(message, await obj.json());
+  } else {
+    console.log(message, obj);
+  }
+}
+
 function agentConnected() {
   if (connected_did.textContent === '') {
     alert('CONNECT or RECONNECT before sending messages.');
@@ -250,7 +258,6 @@ function agentConnected() {
   }
   return true;
 }
-
 
 query_text_button.addEventListener('click', async event => {
   if (!agentConnected()) return;
@@ -263,7 +270,7 @@ query_text_button.addEventListener('click', async event => {
       }
     }
   });
-  console.log('QUERY RESPONSE:', await response.json())
+  logConsole(response, 'QUERY:');
 });
 
 
@@ -278,7 +285,7 @@ query_json_button.addEventListener('click', async event => {
       }
     }
   });
-  console.log('QUERY RESPONSE:', await response.json())
+  logConsole(response);
 });
 
 
@@ -293,7 +300,7 @@ query_image_button.addEventListener('click', async event => {
       }
     }
   });
-  console.log('QUERY RESPONSE:', await response.json())
+  logConsole(response);
 });
 
 
@@ -308,7 +315,7 @@ query_image_type_button.addEventListener('click', async event => {
       }
     }
   });
-  console.log('QUERY RESPONSE:', await response.json())
+  logConsole(response);
 });
 
 
@@ -321,7 +328,7 @@ write_text_button.addEventListener('click', async event => {
       schema: write_text_schema.value,
     }
   });
-  console.log('WRITE RESPONSE:', await response.json())
+  logConsole(response);
 });
 
 
@@ -334,7 +341,7 @@ write_json_button.addEventListener('click', async event => {
       schema: write_json_schema.value,
     }
   });
-  console.log('WRITE RESPONSE:', await response.json())
+  logConsole(response);
 });
 
 
@@ -352,7 +359,7 @@ write_image_button.addEventListener('click', async event => {
         dataFormat: 'application/octet-stream'
       }
     });
-    console.log('WRITE RESPONSE:', await response.json())
+    logConsole(response);
   } else {
     alert('No image file selected!');
   }
@@ -373,7 +380,7 @@ write_image_type_button.addEventListener('click', async event => {
         dataFormat: write_image_type_data_format.value
       }
     });
-    console.log('WRITE RESPONSE:', await response.json())
+    logConsole(response);
   } else {
     alert('No image file selected!');
   }
@@ -386,7 +393,7 @@ delete_record_button.addEventListener('click', async event => {
       recordId: delete_record_id.value
     }
   });
-  console.log('DELETE RESPONSE:', await response.json())
+  logConsole(response);
 });
 
 configure_protocol_definition.value = JSON.stringify(
@@ -409,7 +416,7 @@ configure_protocol_button.addEventListener('click', async event => {
       definition: JSON.parse(configure_protocol_definition.value)
     }
   });
-  console.log('PROTOCOLS CONFIGURE RESPONSE:', await response.json())
+  logConsole(response);
 });
 
 query_protocol_button.addEventListener('click', async event => {
@@ -421,7 +428,7 @@ query_protocol_button.addEventListener('click', async event => {
       }
     }
   });
-  console.log('PROTOCOLS QUERY RESPONSE:', await response.json())
+  logConsole(response);
 });
 
 /**
@@ -439,7 +446,7 @@ write_alice_to_alice_local_btn.addEventListener('click', async event => {
   //     schema: 'foo/bar',
   //   }
   // });
-  // console.log('RESPONSE:', await response.json())
+  // logConsole(response);
   alert('TEST NOT YET IMPLEMENTED');
 });
 
@@ -452,7 +459,7 @@ write_alice_to_alice_remote_btn.addEventListener('click', async event => {
       schema: 'foo/bar'
     }
   });
-  console.log('RESPONSE:', await response.json())
+  logConsole(response);
 });
 
 write_alice_to_bob_local_btn.addEventListener('click', async event => {
@@ -464,7 +471,7 @@ write_alice_to_bob_local_btn.addEventListener('click', async event => {
   //     schema: 'foo/bar',
   //   }
   // });
-  // console.log('RESPONSE:', await response.json())
+  // logConsole(response);
   alert('TEST NOT YET IMPLEMENTED');
 });
 
@@ -477,7 +484,7 @@ write_alice_to_bob_remote_btn.addEventListener('click', async event => {
       schema: 'foo/bar',
     }
   });
-  console.log('RESPONSE:', await response.json())
+  logConsole(response);
   alert('TEST PARTIALLY IMPLEMENTED.\n\nHandling for unknown target DIDs not implemented yet.')
 });
 
