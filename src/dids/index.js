@@ -1,11 +1,10 @@
-
 import * as DIDMethods from './methods';
 import { generateKeyPair } from '@decentralized-identity/ion-tools';
 
 async function getMethodAPI(name){
   name = name.split(':')[1] || name;
   let method = DIDMethods[name];
-  if (!method) throw `Unsupported method: ${name}`
+  if (!method) throw `Unsupported method: ${name}`;
   return method;
 }
 
@@ -40,7 +39,7 @@ async function resolve(did, options = {}){
       resolverCache[did] = {
         result,
         cachedAt: new Date().getTime()
-      }
+      };
     }
     return result;
   }
@@ -50,22 +49,22 @@ async function resolve(did, options = {}){
 }
 
 async function getDidDocument(did, options = {}){
-  await resolve(did, options).then(response => response.didDocument).catch(e => { return null });
+  await resolve(did, options).then(response => response.didDocument).catch(_ => { return null; });
 }
 
 async function getKeys(did, options = {}){
-  let doc = await getDidDocument(did, options)
+  let doc = await getDidDocument(did, options);
   return doc?.verificationMethods?.filter(method => {
     if (options.id && method.id !== options?.id) return false;
     return true;
-  })
+  });
 }
 
 async function getEndpoints(did, options = {}){
-  let doc = await getDidDocument(did, options)
+  let doc = await getDidDocument(did, options);
   return doc?.services?.filter(service => {
     if (options.id && service.id !== options?.id) return false;
-    if (options.type && service.type !== options?.type) return false
+    if (options.type && service.type !== options?.type) return false;
     return true;
   });
 }
@@ -79,4 +78,4 @@ export {
   generateKeyPair,
   resolverCache,
   clearResolverCache
-}
+};

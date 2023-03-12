@@ -13,7 +13,7 @@ function getKeys() {
         publicKey: SDK.Encoder.base64UrlToBytes(keys.publicKey),
         secretKey: SDK.Encoder.base64UrlToBytes(keys.secretKey)
       }
-    }
+    };
   }
   else {
     keys = nacl.box.keyPair();
@@ -23,8 +23,8 @@ function getKeys() {
         publicKey: SDK.Encoder.bytesToBase64Url(keys.publicKey),
         secretKey: SDK.Encoder.bytesToBase64Url(keys.secretKey)
       }
-    }
-    localStorage.setItem('keys', JSON.stringify(keys.encoded))
+    };
+    localStorage.setItem('keys', JSON.stringify(keys.encoded));
   }
   return keys;
 }
@@ -93,43 +93,43 @@ async function connect(options = {}) {
     } catch { }
 
     switch (json?.type) {
-      case 'connected':
-        if (!json.data) {
-          destroySocket(socket);
-          sockets.delete(socket);
-          return;
-        }
-
-        localStorage.setItem('web5_connect', JSON.stringify(json.data));
-        options?.onConnected?.(json.data);
-        break;
-
-      case 'requested':
-        if (!json.data) {
-          destroySocket(socket);
-          sockets.delete(socket);
-          return;
-        }
-
-        try {
-          await decodePin(json.data, keys.decoded.secretKey);
-        } catch {
-          destroySocket(socket);
-          sockets.delete(socket);
-          return;
-        }
-
-        options?.onRequest?.(json.data);
+    case 'connected':
+      if (!json.data) {
+        destroySocket(socket);
+        sockets.delete(socket);
         return;
+      }
 
-      case 'blocked':
-      case 'denied':
-      case 'closed':
-        options?.onDenied?.();
-        break;
+      localStorage.setItem('web5_connect', JSON.stringify(json.data));
+      options?.onConnected?.(json.data);
+      break;
 
-      case 'unknown':
+    case 'requested':
+      if (!json.data) {
+        destroySocket(socket);
+        sockets.delete(socket);
         return;
+      }
+
+      try {
+        await decodePin(json.data, keys.decoded.secretKey);
+      } catch {
+        destroySocket(socket);
+        sockets.delete(socket);
+        return;
+      }
+
+      options?.onRequest?.(json.data);
+      return;
+
+    case 'blocked':
+    case 'denied':
+    case 'closed':
+      options?.onDenied?.();
+      break;
+
+    case 'unknown':
+      return;
     }
 
     sockets.forEach(destroySocket);
@@ -145,4 +145,4 @@ async function connect(options = {}) {
 
 export {
   connect
-}
+};

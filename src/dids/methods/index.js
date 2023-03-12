@@ -1,5 +1,5 @@
-import * as ion from './ion'
+import * as ion from './ion';
 
 export {
   ion
-}
+};
