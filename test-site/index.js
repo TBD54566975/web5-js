@@ -7,8 +7,8 @@ const app = new Koa();
 app.use(serve('.'));
 
 // GET /web5-sdk.js
-app.use(serve('../dist/bundles'));
+app.use(serve('../dist'));
 
 app.listen(8080);
- 
+
 console.log('listening on port 8080');

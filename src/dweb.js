@@ -1,9 +1,8 @@
-import { connect } from './connect';
-import { encodeData, computeDagPbCid, getCurrentTimeInHighPrecision } from './utils';
+import { encodeData } from './utils';
 import merge from 'deepmerge';
 import * as DWebNodeSDK from '@tbd54566975/dwn-sdk-js';
 
-let debug = true;
+// let debug = true;
 let node;
 const DWeb = {
   createAndSignMessage: async (author, message, data) => {
@@ -29,15 +28,15 @@ const DWeb = {
         interface: 'Protocols',
         method: 'Configure'
       }
-    ]);
+      ]);
       return await DWeb.send(target, context);
     },
 
     query: async (target, context) => {
       context.message = merge.all([context.message, {
-          interface: 'Protocols',
-          method: 'Query'
-        }
+        interface: 'Protocols',
+        method: 'Query'
+      }
       ]);
       return await DWeb.send(target, context);
     }
@@ -46,27 +45,27 @@ const DWeb = {
   records: {
     delete: async (target, context) => {
       context.message = merge.all([context.message, {
-          interface: 'Records',
-          method: 'Delete'
-        }
+        interface: 'Records',
+        method: 'Delete'
+      }
       ]);
       return await DWeb.send(target, context);
     },
 
     query: async (target, context) => {
       context.message = merge.all([context.message, {
-          interface: 'Records',
-          method: 'Query'
-        }
+        interface: 'Records',
+        method: 'Query'
+      }
       ]);
       return await DWeb.send(target, context);
     },
 
     write: async (target, context) => {
       context.message = merge.all([context.message, {
-          interface: 'Records',
-          method: 'Write'
-        }
+        interface: 'Records',
+        method: 'Write'
+      }
       ]);
       return await DWeb.send(target, context);
     },
@@ -107,7 +106,7 @@ const DWeb = {
     }
     return {};
   }
-}
+};
 
 async function send (endpoint, request) {
   const scheme = endpoint.split(':')[0];
@@ -130,7 +129,7 @@ const transports = {
     }
   },
 
-  get https(){ return this.http },
+  get https(){ return this.http; },
   http: {
     dataEncoder: (data, dataFormat) => {
       return encodeData(data, dataFormat);
@@ -159,10 +158,10 @@ const transports = {
       });
     }
   }
-}
+};
 
 export {
   DWeb,
   DWebNodeSDK,
   transports
-}
+};

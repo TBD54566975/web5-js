@@ -1,5 +1,6 @@
 import * as SDK from '@tbd54566975/dwn-sdk-js';
 import { Temporal } from '@js-temporal/polyfill';
+import { importer } from 'ipfs-unixfs-importer';
 
 /**
  * Set/detect the media type, encode the data, and return as a Blob.
@@ -37,7 +38,7 @@ const encodeData = (data, dataFormat) => {
  */
 const toType = (obj) => {
   return ({}).toString.call(obj).match(/\s([a-zA-Z]+)/)[1].toLowerCase();
-}
+};
 
 function getCurrentTimeInHighPrecision() {
   return Temporal.Now.instant().toString({ smallestUnit: 'microseconds' });
@@ -48,7 +49,7 @@ async function computeDagPbCid(content) {
 
   // NOTE: the last block contains the root CID
   let block;
-  for await (block of asyncDataBlocks) { ; }
+  for await (block of asyncDataBlocks) {  }
 
   return block.cid.toString();
 }
@@ -57,4 +58,4 @@ export {
   encodeData,
   computeDagPbCid,
   getCurrentTimeInHighPrecision
-}
+};

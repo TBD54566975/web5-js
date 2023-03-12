@@ -7,7 +7,7 @@ async function create(options = {}){
     type: 'JsonWebKey2020',
     keypair: await generateKeyPair(),
     purposes: ['authentication']
-  }]
+  }];
 
   const did = new DID({
     content: {
@@ -27,7 +27,7 @@ async function create(options = {}){
     methodData: await did.getAllOperations(),
     keys: options.keys,
     services: options.services || []
-  }
+  };
 }
 
 export {
@@ -35,4 +35,4 @@ export {
   sign,
   verify,
   resolve
-}
+};
