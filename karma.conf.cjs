@@ -5,8 +5,11 @@
 const playwright = require('playwright');
 const esbuildBrowserConfig = require('./build/esbuild-browser-config.cjs');
 
-// set playwright as run-target for webkit tests
+// use playwright firefox exec path as run target for webkit tests
 process.env.WEBKIT_HEADLESS_BIN = playwright.webkit.executablePath();
+
+// use playwright firefox exec path as run target for firefox tests
+process.env.FIREFOX_BIN = playwright.firefox.executablePath();
 
 module.exports = function (config) {
   config.set({
