@@ -124,7 +124,6 @@ const transports = {
     },
     send: async (endpoint, request) => {
       const encodedData = transports.app.dataEncoder(request.data);
-      console.log('SIMPLIFIED');
       return await DWeb.node().then(node => node.processMessage(request.target.did, request.message.message, encodedData));
     }
   },
