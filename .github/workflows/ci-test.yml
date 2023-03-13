@@ -16,8 +16,10 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18.8.0
-          registry-url: https://registry.npmjs.org/
-      - run: npm install      
+          registry-url: https://registry.npmjs.org/      
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps      
+      - run: npm install              
       - run: npm run test:node
       - run: npm run test:browser
 
