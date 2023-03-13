@@ -9,7 +9,18 @@ on:
       - main
 
 jobs:
-  run-tests:
+  test-on-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18.8.0
+          registry-url: https://registry.npmjs.org/      
+      - run: npm install              
+      - run: npm run test:node
+
+  test-on-browsers:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -20,7 +31,5 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps      
       - run: npm install              
-      - run: npm run test:node
       - run: npm run test:browser
-
 
