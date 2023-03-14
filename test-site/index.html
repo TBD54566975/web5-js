@@ -210,33 +210,28 @@
 
   import { Web5 } from './browser.mjs';
 
-  window.Web5 = Web5;
   let myDid = '';
 
-  connect_button.addEventListener('click', async event => {
+  const web5 = new Web5();
+  web5.addEventListener('open', (event) => {
+    security_code.textContent = event.detail.pin;
+  });
+  web5.addEventListener('connection', (event) => {
+    connected_did.textContent = event.detail.did;
+    myDid = event.detail.did;
+    alert('Connection succeeded!');
+  });
+  web5.addEventListener('close', (event) => {
+    alert('Connection was denied');
+  });
+  web5.addEventListener('error', (event) => {
+    console.error(event);
+  });
 
+  connect_button.addEventListener('click', async event => {
     event.preventDefault();
 
-    Web5.connect({
-      onRequest(response) {
-        security_code.textContent = response.pin;
-      },
-      onConnected(connection) {
-        connected_did.textContent = connection.did;
-        myDid = connection.did;
-        alert('Connection succeeded!');
-      },
-      onDenied() {
-        alert('Connection was denied');
-      },
-      onTimeout() {
-        alert('The connection request timed out');
-      },
-      onError(e) {
-        console.log(e);
-      }
-    })
-
+    web5.connect();
   });
 
   async function logConsole(obj, message = '') {
@@ -257,7 +252,7 @@
 
   query_text_button.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    const response = await Web5.records.query(myDid, {
+    const response = await web5.dwn.records.query(myDid, {
       author: myDid,
       message: {
         filter: {
@@ -272,7 +267,7 @@
 
   query_json_button.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    const response = await Web5.records.query(myDid, {
+    const response = await web5.dwn.records.query(myDid, {
       author: myDid,
       message: {
         filter: {
@@ -287,7 +282,7 @@
 
   query_image_button.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    const response = await Web5.records.query(myDid, {
+    const response = await web5.dwn.records.query(myDid, {
       author: myDid,
       message: {
         filter: {
@@ -302,7 +297,7 @@
 
   query_image_type_button.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    const response = await Web5.records.query(myDid, {
+    const response = await web5.dwn.records.query(myDid, {
       author: myDid,
       message: {
         filter: {
@@ -317,7 +312,7 @@
 
   write_text_button.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    const response = await Web5.records.write(myDid, {
+    const response = await web5.dwn.records.write(myDid, {
       author: myDid,
       data: write_text_data.value,
       message: {
@@ -330,7 +325,7 @@
 
   write_json_button.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    const response = await Web5.records.write(myDid, {
+    const response = await web5.dwn.records.write(myDid, {
       author: myDid,
       data: JSON.parse(write_json_data.value),
       message: {
@@ -347,7 +342,7 @@
     const imageFile = write_image_file.files[0];
 
     if (imageFile) {
-      const response = await Web5.records.write(myDid, {
+      const response = await web5.dwn.records.write(myDid, {
         author: myDid,
         data: imageFile,
         message: {
@@ -368,7 +363,7 @@
     const imageFile = write_image_type_file.files[0];
 
     if (imageFile) {
-      const response = await Web5.records.write(myDid, {
+      const response = await web5.dwn.records.write(myDid, {
         author: myDid,
         data: imageFile,
         message: {
@@ -383,7 +378,7 @@
   });
 
   delete_record_button.addEventListener('click', async event => {
-    const response = await Web5.records.delete(myDid, {
+    const response = await web5.dwn.records.delete(myDid, {
       author: myDid,
       message: {
         recordId: delete_record_id.value
@@ -405,7 +400,8 @@
   )
 
   configure_protocol_button.addEventListener('click', async event => {
-    const response = await Web5.protocols.configure(myDid, {
+    if (!agentConnected()) return;
+    const response = await web5.dwn.protocols.configure(myDid, {
       author: myDid,
       message: {
         protocol: configure_protocol_name.value,
@@ -416,7 +412,8 @@
   });
 
   query_protocol_button.addEventListener('click', async event => {
-    const response = await Web5.protocols.query(myDid, {
+    if (!agentConnected()) return;
+    const response = await web5.dwn.protocols.query(myDid, {
       author: myDid,
       message: {
         filter: {
@@ -435,7 +432,7 @@
 
   write_alice_to_alice_local_btn.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    // const response = await Web5.records.write(myDidLocalAgent, {
+    // const response = await web5.dwn.records.write(myDidLocalAgent, {
     //   author: myDidLocalAgent,
     //   data: 'test',
     //   message: {
@@ -448,7 +445,7 @@
 
   write_alice_to_alice_remote_btn.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    const response = await Web5.records.write(myDid, {
+    const response = await web5.dwn.records.write(myDid, {
       author: myDid,
       data: 'test',
       message: {
@@ -460,7 +457,7 @@
 
   write_alice_to_bob_local_btn.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    // const response = await Web5.records.write(bobDid, {
+    // const response = await web5.dwn.records.write(bobDid, {
     //   author: myDidLocalAgent,
     //   data: 'test',
     //   message: {
@@ -473,7 +470,7 @@
 
   write_alice_to_bob_remote_btn.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    const response = await Web5.records.write(bobDid, {
+    const response = await web5.dwn.records.write(bobDid, {
       author: myDid,
       data: 'test',
       message: {

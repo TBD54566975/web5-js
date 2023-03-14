@@ -16,6 +16,7 @@ module.exports = {
     'eslint:recommended',
   ],
   rules: {
+    'comma-dangle': ['error', 'always-multiline'],
     'quotes': [
       'error',
       'single',

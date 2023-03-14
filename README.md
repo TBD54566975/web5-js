@@ -16,65 +16,36 @@ possible.
 
 ## Docs
 
-### **`Web5.connect(OPTIONS_OBJECT)`**
+### **`new Web5([options])`**
 
-Enables an app to request connection to a user's local identity app, or generate an in-app DID to represent the user (e.g. if the user does not have an identity app).
+Creates an isolated API object for doing Web5 things, split into three main top-level objects: `did`, `dwn`, and `vc`.
 
-> NOTE: This method may only be invoked within the scope of a 'trusted user action', which is something the browser/OS decides. For browsers this is generally some direct user intent, like clicking a link or button.
+#### **`options`**
 
-The `connect` method takes an object with the following properties:
+When creating a `Web5` instance the following options can be provided:
 
-#### **`onRequest(REQUEST_OBJECT)`**
+##### **`dwn`**
 
-An event function that is called in response to a pending connection response being delivered by the user's identity app, composed of the following properties:
+This object contains options related to `web5.dwn`.
 
-- **`pin`**  - *`number`*: 1-4 digit numerical code that must be displayed by the app developer in UI so the user can confirm they are connecting to the correct app.
-- **`port`** - *`number`*: The port number the identity app was located on.
+- **`node`**  - *`Dwn`*: A customizable `Dwn` instance to use instead of a default one created by `web5.dwn`. This can be used to customize the storage location/structure/etc. of the `Dwn`, how DIDs are resolved, etc..
 
+### **`web5.dwn.records.query(target, request)`**
 
-#### **`onConnected(CONNECTION_OBJECT)`**
+Method for querying the DWeb Node of a provided `target` DID.
 
-An event function that is called in response to the user accepting the connection and sending the DID they selected back to the app:
+#### **`request`**
 
-- **`did`**  - *`string`*: The decentralized identifier sent back to the app.
+The query `request` must contain the following:
 
-#### **`onDenied()`**
-
-An event function that is called in response to the user refusing to accept or respond to the connection attempt for any reason.
-
-#### **Example** 
-
-```javascript
-document.querySelector('#connect_button').addEventListener('click', async event => {
-
-  event.preventDefault();
-
-  Web5.connect({
-    onRequest(response){
-      document.querySelector('#pin_code_text').textContent = response.pin;
-    },
-    onConnected(connection){
-      alert('Connection succeeded! Connected to DID: ' + connection.did);
-    },
-    onDenied(){
-      alert('Connection was denied');
-    }
-  })
-
-});
-```
-
-### **`Web5.records.query(TARGET_DID, PARAMETERS_OBJECT)`**
-
-Method for querying the DWeb Node of a provided target DID. The target DID and parameters object are required arguments, with the parameters object composed as follows:
-
-- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `TARGET_DID` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
+- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `target` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
 - **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
 
 #### **Example** 
 
 ```javascript
-const response = await Web5.records.query('did:example:bob', {
+const web5 = new Web5();
+const response = await web5.dwn.records.query('did:example:bob', {
   author: 'did:example:alice',
   message: {
     filter: {
@@ -85,11 +56,15 @@ const response = await Web5.records.query('did:example:bob', {
 });
 ```
 
-### **`Web5.records.write(TARGET_DID, PARAMETERS_OBJECT)`**
+### **`web5.dwn.records.write(target, request)`**
 
-Method for writing a record to the DWeb Node of a provided target DID. The target DID and parameters object are required arguments, with the parameters object composed as follows:
+Method for writing a record to the DWeb Node of a provided `target` DID.
 
-- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `TARGET_DID` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
+#### **`request`**
+
+The write `request` must contain the following:
+
+- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `target` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
 - **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
 - **`data`**  - *`blob | stream | file`*: The data object of the bytes to be sent.
 
@@ -97,7 +72,9 @@ Method for writing a record to the DWeb Node of a provided target DID. The targe
 
 ```javascript
 const imageFile = document.querySelector('#file_input').files[0];
-const response = await Web5.records.write('did:example:alice', {
+
+const web5 = new Web5();
+const response = await web5.dwn.records.write('did:example:alice', {
   author: 'did:example:alice',
   data: imageFile,
   message: {
@@ -106,18 +83,23 @@ const response = await Web5.records.write('did:example:alice', {
 });
 ```
 
-### **`Web5.records.delete(TARGET_DID, PARAMETERS_OBJECT)`**
+### **`web5.dwn.records.delete(target, request)`**
 
-Method for deleting a record in the DWeb Node of a provided target DID. The target DID and parameters object are required arguments, with the parameters object composed as follows:
+Method for deleting a record in the DWeb Node of a provided `target` DID.
 
-- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `TARGET_DID` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
+#### **`request`**
+
+The delete `request` must contain the following:
+
+- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `target` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
 - **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
     - **`recordId`**  - *`string`*: the required record ID string that identifies the record being deleted.
 
 #### **Example** 
 
 ```javascript
-const response = await Web5.records.delete('did:example:alice', {
+const web5 = new Web5();
+const response = await web5.dwn.records.delete('did:example:alice', {
   author: 'did:example:alice',
   message: {
     recordId: 'bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5'
@@ -125,11 +107,15 @@ const response = await Web5.records.delete('did:example:alice', {
 });
 ```
 
-### **`Web5.protocols.query(TARGET_DID, PARAMETERS_OBJECT)`**
+### **`web5.dwn.protocols.query(target, request)`**
 
-Method for querying the protocols that a target DID has added configurations for in their DWeb Node. The target DID and parameters object are required arguments, with the parameters object composed as follows:
+Method for querying the protocols that a `target` DID has added configurations for in their DWeb Node.
 
-- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `TARGET_DID` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
+#### **`request`**
+
+The query `request` must contain the following:
+
+- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `target` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
 - **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
   - **`filter`**  - *`object`*: an object that defines a set of properties to filter results.
       - **`protocol`**  - *`URI string`*: a URI that represents the protocol being queried for.
@@ -137,7 +123,8 @@ Method for querying the protocols that a target DID has added configurations for
 #### **Example** 
 
 ```javascript
-const response = await Web5.protocols.query('did:example:alice', {
+const web5 = new Web5();
+const response = await web5.dwn.protocols.query('did:example:alice', {
   author: 'did:example:alice',
   message: {
     filter: {
@@ -147,11 +134,15 @@ const response = await Web5.protocols.query('did:example:alice', {
 });
 ```
 
-### **`Web5.protocols.configure(TARGET_DID, PARAMETERS_OBJECT)`**
+### **`web5.dwn.protocols.configure(target, request)`**
 
-Method for deleting a record in the DWeb Node of a provided target DID. The target DID and parameters object are required arguments, with the parameters object composed as follows:
+Method for deleting a record in the DWeb Node of a provided `target` DID.
 
-- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `TARGET_DID` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
+#### **`request`**
+
+The confiuration `request` must contain the following:
+
+- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `target` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
 - **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
     - **`protocol`**  - *`URI string`*: a URI that represents the protocol being configured via the `definition` object.
     - **`definition`**  - *`object`*: an object that defines the ruleset that will be applied to the records and activities under the protocol.
@@ -161,7 +152,8 @@ Method for deleting a record in the DWeb Node of a provided target DID. The targ
 #### **Example** 
 
 ```javascript
-const response = await Web5.protocols.configure('did:example:alice', {
+const web5 = new Web5();
+const response = await web5.dwn.protocols.configure('did:example:alice', {
   author: 'did:example:alice',
   message: {
     protocol: "https://decentralized-music.org/protocol",
@@ -194,6 +186,98 @@ const response = await Web5.protocols.configure('did:example:alice', {
       }
     }
   }
+});
+```
+
+### **`web5.connect([options])`**
+
+Enables an app to request connection to a user's local identity app, or generate an in-app DID to represent the user (e.g. if the user does not have an identity app).
+
+> NOTE: This method **_MUST_** be invoked within the scope of a 'trusted user action', which is something the browser/OS decides. For browsers this is generally some direct user intent, like clicking a link or button.
+
+#### **`options`**
+
+The `connect` method optionally accepts an object with the following properties:
+
+##### **`storage`**
+
+Used by `connect` to store connection data/keys/etc. for reuse when calling `connect` again (e.g. during another session).
+
+If provided, `storage` must be an object that has the same methods as [`Storage`](/TBD54566975/web5-js/tree/main/src/storage/Storage.js).
+
+If not provided, an instance of [`LocalStorage`](/TBD54566975/web5-js/tree/main/src/storage/LocalStorage.js) is used instead.
+
+##### **`connectionLocation`**
+
+Controls where in `storage` the connection data is stored.
+
+Defaults to `'web5-connection'`.
+
+##### **`keysLocation`**
+
+Controls where in `storage` the connection keys are stored.
+
+Defaults to `'web5-keys'`.
+
+##### **`silent`**
+
+Controls whether to prompt the user to start a new connection if a connection has not already been established.
+
+Defaults to `false`.
+
+#### **Events**
+
+After calling `connect`, at least one of the following events will be dispatched on the `Web5` instance:
+
+##### **`'open'`**
+
+A `'open'` event is dispatched if a local identity app is found, containing a verification pin and port number used for the connection.
+
+- **`event.detail.pin`**  - *`number`*: 1-4 digit numerical code that must be displayed to the user to ensure they are connecting to the desired local identity app.
+- **`event.detail.port`** - *`number`*: The port number used by the the local identity app to listen for connections.
+
+##### **`'connection'`**
+
+A `'connection'` event is dispatched if the user accepts the connection, containing the DID the user selected in the local identity app.
+
+- **`event.details.did`**  - *`string`*: The DID selected by the user in the local identity app.
+
+##### **`'close'`**
+
+A `'close'` event is dispatched if the user refuses to accept or respond to the connection attempt for any reason.
+
+##### **`'error'`**
+
+An `'error'` event is dispached if anything goes wrong (e.g. `Web5` was unable to find any local identity apps).
+
+#### **Example** 
+
+```javascript
+document.querySelector('#connect_button').addEventListener('click', async event => {
+
+  event.preventDefault();
+
+  const web5 = new Web5();
+
+  web5.addEventListener('open', (event) => {
+    const { pin } = event.detail
+    document.querySelector('#pin_code_text').textContent = pin;
+  });
+
+  web5.addEventListener('connection', (event) => {
+    const { did } = event.detail
+    alert('Connection succeeded! Connected to DID: ' + did);
+  });
+
+  web5.addEventListener('close', (event) => {
+    alert('Connection was denied');
+  });
+
+  web5.addEventListener('error', (event) => {
+    console.error(event);
+  });
+
+  web5.connect();
 });
 ```
 
