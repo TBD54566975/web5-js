@@ -1,9 +1,10 @@
-import * as SDK from '@tbd54566975/dwn-sdk-js';
+import nacl from 'tweetnacl';
+import { Encoder } from '@tbd54566975/dwn-sdk-js';
 
 /**
  * Set/detect the media type, encode the data, and return as a Blob.
  */
-const encodeData = (data, dataFormat) => {
+function encodeData(data, dataFormat) {
   let dataBytes = data;
 
   // Format was not provided so check for Object or String, and if neither, assume blob of raw data.
@@ -11,11 +12,11 @@ const encodeData = (data, dataFormat) => {
     const detectedType = toType(data);
     if (detectedType === 'string') {
       dataFormat = 'text/plain';
-      dataBytes = SDK.Encoder.stringToBytes(data);
+      dataBytes = Encoder.stringToBytes(data);
     }
     else if (detectedType === 'object') {
       dataFormat = 'application/json';
-      dataBytes = SDK.Encoder.objectToBytes(data);
+      dataBytes = Encoder.objectToBytes(data);
     } else {
       dataFormat = 'application/octet-stream';
     }
@@ -25,7 +26,7 @@ const encodeData = (data, dataFormat) => {
   const encodedData = new Blob([dataBytes], { type: dataFormat });
 
   return { encodedData, dataFormat };
-};
+}
 
 /**
  * Credit for toType() function:
@@ -33,10 +34,29 @@ const encodeData = (data, dataFormat) => {
  *   https://github.com/angus-c
  *   https://javascriptweblog.wordpress.com/2011/08/08/fixing-the-javascript-typeof-operator/
  */
-const toType = (obj) => {
+function toType(obj) {
   return ({}).toString.call(obj).match(/\s([a-zA-Z]+)/)[1].toLowerCase();
-};
+}
+
+async function triggerProtocolHandler(url) {
+  let form = document.createElement('form');
+  form.action = url;
+  document.body.append(form);
+  form.submit();
+  form.remove();
+}
+
+async function decodePin(data, secretKey) {
+  const { pin, nonce, publicKey } = data;
+  const encryptedPinBytes = Encoder.base64UrlToBytes(pin);
+  const nonceBytes = new TextEncoder().encode(nonce);
+  const publicKeyBytes = Encoder.base64UrlToBytes(publicKey);
+  const encodedPin = nacl.box.open(encryptedPinBytes, nonceBytes, publicKeyBytes, secretKey);
+  data.pin = new TextDecoder().decode(encodedPin);
+}
 
 export {
-  encodeData
+  encodeData,
+  decodePin,
+  triggerProtocolHandler,
 };
