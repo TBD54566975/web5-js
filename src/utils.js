@@ -1,4 +1,33 @@
-import * as SDK from '@tbd54566975/dwn-sdk-js';
+import nacl from 'tweetnacl';
+import { Encoder } from '@tbd54566975/dwn-sdk-js';
+
+function createWeakSingletonAccessor(creator) {
+  let weakref = null;
+  return function() {
+    let object = weakref?.deref();
+    if (!object) {
+      object = creator();
+      weakref = new WeakRef(object);
+    }
+    return object;
+  };
+}
+
+function parseJSON(string) {
+  try {
+    return JSON.parse(string);
+  } catch {
+    return null;
+  }
+}
+
+function parseURL(string) {
+  try {
+    return new URL(string);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Set/detect the media type and return the data as bytes.
@@ -10,41 +39,17 @@ const dataToBytes = (data, dataFormat) => {
   const detectedType = toType(data);
   if ((dataFormat === 'text/plain') || (detectedType === 'string')) {
     dataFormat = 'text/plain';
-    dataBytes = SDK.Encoder.stringToBytes(data);
+    dataBytes = Encoder.stringToBytes(data);
   }
   else if ((dataFormat === 'application/json') || (detectedType === 'object')) {
     dataFormat = 'application/json';
-    dataBytes = SDK.Encoder.objectToBytes(data);
+    dataBytes = Encoder.objectToBytes(data);
   } else if (!dataFormat) {
     dataFormat = 'application/octet-stream';
   }
 
   return { dataBytes, dataFormat };
 };
-
-function memoryCache(options = {}) {
-  let store = {};
-  const ttl = options?.ttl ?? 60 * 60 * 1000; // 1 hour default time-to-live
-  return {
-    del: (key) => {
-      clearTimeout(store[key].timeoutId);
-      delete store[key];
-    },
-    get: (key) => {
-      return store[key]?.value;
-    },
-    reset: () => {
-      for (let key in store) {
-        clearTimeout(store[key].timeoutId);
-      }
-      store = {};
-    },
-    set: (key, value, timeout) => {
-      let timeoutId = (timeout === Infinity) ? undefined : setTimeout(() => { delete store[key]; }, timeout || ttl);
-      store[key] = { value, timeoutId };
-    }
-  };
-}
 
 /**
  * Credit for toType() function:
@@ -56,7 +61,28 @@ const toType = (obj) => {
   return ({}).toString.call(obj).match(/\s([a-zA-Z]+)/)[1].toLowerCase();
 };
 
+async function triggerProtocolHandler(url) {
+  let form = document.createElement('form');
+  form.action = url;
+  document.body.append(form);
+  form.submit();
+  form.remove();
+}
+
+async function decodePin(data, secretKey) {
+  const { pin, nonce, publicKey } = data;
+  const encryptedPinBytes = Encoder.base64UrlToBytes(pin);
+  const nonceBytes = new TextEncoder().encode(nonce);
+  const publicKeyBytes = Encoder.base64UrlToBytes(publicKey);
+  const encodedPin = nacl.box.open(encryptedPinBytes, nonceBytes, publicKeyBytes, secretKey);
+  data.pin = new TextDecoder().decode(encodedPin);
+}
+
 export {
+  createWeakSingletonAccessor,
   dataToBytes,
-  memoryCache
+  decodePin,
+  parseJSON,
+  parseURL,
+  triggerProtocolHandler,
 };

@@ -1,5 +1,1 @@
-import * as ion from './ion';
-
-export {
-  ion
-};
+export * as ion from './ion.js';
