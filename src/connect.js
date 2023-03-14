@@ -1,18 +1,18 @@
-import nacl from "tweetnacl";
-import * as SDK from "@tbd54566975/dwn-sdk-js";
+import nacl from 'tweetnacl';
+import * as SDK from '@tbd54566975/dwn-sdk-js';
 
-const localStorageKeyPrefix = "web5_";
+const localStorageKeyPrefix = 'web5_';
 
 /* Keys */
 
 function getKeys() {
-  let keys = JSON.parse(localStorage.getItem(localStorageKeyPrefix + "keys") || null);
+  let keys = JSON.parse(localStorage.getItem(localStorageKeyPrefix + 'keys') || null);
   if (keys) {
     keys = {
       encoded: keys,
       decoded: {
         publicKey: SDK.Encoder.base64UrlToBytes(keys.publicKey),
-        secretKey: SDK.Encoder.base64UrlToBytes(keys.secretKey),
+        secretKey: SDK.Encoder.base64UrlToBytes(keys.secretKey)
       },
     };
   } else {
@@ -21,10 +21,10 @@ function getKeys() {
       decoded: keys,
       encoded: {
         publicKey: SDK.Encoder.bytesToBase64Url(keys.publicKey),
-        secretKey: SDK.Encoder.bytesToBase64Url(keys.secretKey),
+        secretKey: SDK.Encoder.bytesToBase64Url(keys.secretKey)
       },
     };
-    localStorage.setItem(localStorageKeyPrefix + "keys", JSON.stringify(keys.encoded));
+    localStorage.setItem(localStorageKeyPrefix + 'keys', JSON.stringify(keys.encoded));
   }
   return keys;
 }
@@ -32,7 +32,7 @@ function getKeys() {
 /* Connect Flows */
 
 async function triggerProtocolHandler(url) {
-  let form = document.createElement("form");
+  let form = document.createElement('form');
   form.action = url;
   document.body.append(form);
   form.submit();
@@ -59,7 +59,7 @@ async function decodePin(result, secretKey) {
 }
 
 function getConnection() {
-  return JSON.parse(localStorage.getItem(localStorageKeyPrefix + "connect") || null);
+  return JSON.parse(localStorage.getItem(localStorageKeyPrefix + 'connect') || null);
 }
 
 async function connect(options = {}) {
@@ -81,13 +81,13 @@ async function connect(options = {}) {
 
   function destroySocket(socket) {
     socket.close();
-    socket.removeEventListener("open", handleOpen);
-    socket.removeEventListener("message", handleMessage);
+    socket.removeEventListener('open', handleOpen);
+    socket.removeEventListener('message', handleMessage);
   }
 
   function handleOpen(event) {
     const socket = event.target;
-    socket.addEventListener("message", handleMessage);
+    socket.addEventListener('message', handleMessage);
     sockets.add(socket);
   }
 
@@ -100,18 +100,18 @@ async function connect(options = {}) {
     } catch {}
 
     switch (json?.type) {
-      case "connected":
+      case 'connected':
         if (!json.data) {
           destroySocket(socket);
           sockets.delete(socket);
           return;
         }
 
-        localStorage.setItem(localStorageKeyPrefix + "connect", JSON.stringify(json.data));
+        localStorage.setItem(localStorageKeyPrefix + 'connect', JSON.stringify(json.data));
         options?.onConnected?.(json.data);
         break;
 
-      case "requested":
+      case 'requested':
         if (!json.data) {
           destroySocket(socket);
           sockets.delete(socket);
@@ -129,13 +129,13 @@ async function connect(options = {}) {
         options?.onRequest?.(json.data);
         return;
 
-      case "blocked":
-      case "denied":
-      case "closed":
+      case 'blocked':
+      case 'denied':
+      case 'closed':
         options?.onDenied?.();
         break;
 
-      case "unknown":
+      case 'unknown':
         return;
     }
 
@@ -148,7 +148,7 @@ async function connect(options = {}) {
     const socket = new WebSocket(
       `ws://localhost:${port}/connections/${keys.encoded.publicKey}`
     );
-    socket.addEventListener("open", handleOpen);
+    socket.addEventListener('open', handleOpen);
   }
 }
 
