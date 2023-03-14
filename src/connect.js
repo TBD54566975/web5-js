@@ -1,30 +1,30 @@
-
 import nacl from 'tweetnacl';
 import * as SDK from '@tbd54566975/dwn-sdk-js';
+
+const localStorageKeyPrefix = 'web5_';
 
 /* Keys */
 
 function getKeys() {
-  let keys = JSON.parse(localStorage.getItem('keys') || null);
+  let keys = JSON.parse(localStorage.getItem(localStorageKeyPrefix + 'keys') || null);
   if (keys) {
     keys = {
       encoded: keys,
       decoded: {
         publicKey: SDK.Encoder.base64UrlToBytes(keys.publicKey),
         secretKey: SDK.Encoder.base64UrlToBytes(keys.secretKey)
-      }
+      },
     };
-  }
-  else {
+  } else {
     keys = nacl.box.keyPair();
     keys = {
       decoded: keys,
       encoded: {
         publicKey: SDK.Encoder.bytesToBase64Url(keys.publicKey),
         secretKey: SDK.Encoder.bytesToBase64Url(keys.secretKey)
-      }
+      },
     };
-    localStorage.setItem('keys', JSON.stringify(keys.encoded));
+    localStorage.setItem(localStorageKeyPrefix + 'keys', JSON.stringify(keys.encoded));
   }
   return keys;
 }
@@ -49,12 +49,17 @@ async function decodePin(result, secretKey) {
   const encryptedPinBytes = SDK.Encoder.base64UrlToBytes(pin);
   const nonceBytes = new TextEncoder().encode(nonce);
   const theirPublicKeyBytes = SDK.Encoder.base64UrlToBytes(theirPublicKey);
-  const encodedPin = nacl.box.open(encryptedPinBytes, nonceBytes, theirPublicKeyBytes, secretKey);
+  const encodedPin = nacl.box.open(
+    encryptedPinBytes,
+    nonceBytes,
+    theirPublicKeyBytes,
+    secretKey
+  );
   result.pin = new TextDecoder().decode(encodedPin);
 }
 
 function getConnection() {
-  return JSON.parse(localStorage.getItem('web5_connect') || null);
+  return JSON.parse(localStorage.getItem(localStorageKeyPrefix + 'connect') || null);
 }
 
 async function connect(options = {}) {
@@ -70,7 +75,9 @@ async function connect(options = {}) {
   }
 
   const encodedOrigin = SDK.Encoder.bytesToBase64Url(location.origin);
-  triggerProtocolHandler(`web5://connect/${keys.encoded.publicKey}/${encodedOrigin}`);
+  triggerProtocolHandler(
+    `web5://connect/${keys.encoded.publicKey}/${encodedOrigin}`
+  );
 
   function destroySocket(socket) {
     socket.close();
@@ -90,46 +97,46 @@ async function connect(options = {}) {
     let json;
     try {
       json = JSON.parse(event.data);
-    } catch { }
+    } catch {}
 
     switch (json?.type) {
-    case 'connected':
-      if (!json.data) {
-        destroySocket(socket);
-        sockets.delete(socket);
+      case 'connected':
+        if (!json.data) {
+          destroySocket(socket);
+          sockets.delete(socket);
+          return;
+        }
+
+        localStorage.setItem(localStorageKeyPrefix + 'connect', JSON.stringify(json.data));
+        options?.onConnected?.(json.data);
+        break;
+
+      case 'requested':
+        if (!json.data) {
+          destroySocket(socket);
+          sockets.delete(socket);
+          return;
+        }
+
+        try {
+          await decodePin(json.data, keys.decoded.secretKey);
+        } catch {
+          destroySocket(socket);
+          sockets.delete(socket);
+          return;
+        }
+
+        options?.onRequest?.(json.data);
         return;
-      }
 
-      localStorage.setItem('web5_connect', JSON.stringify(json.data));
-      options?.onConnected?.(json.data);
-      break;
+      case 'blocked':
+      case 'denied':
+      case 'closed':
+        options?.onDenied?.();
+        break;
 
-    case 'requested':
-      if (!json.data) {
-        destroySocket(socket);
-        sockets.delete(socket);
+      case 'unknown':
         return;
-      }
-
-      try {
-        await decodePin(json.data, keys.decoded.secretKey);
-      } catch {
-        destroySocket(socket);
-        sockets.delete(socket);
-        return;
-      }
-
-      options?.onRequest?.(json.data);
-      return;
-
-    case 'blocked':
-    case 'denied':
-    case 'closed':
-      options?.onDenied?.();
-      break;
-
-    case 'unknown':
-      return;
     }
 
     sockets.forEach(destroySocket);
@@ -138,11 +145,11 @@ async function connect(options = {}) {
 
   const sockets = new Set();
   for (let port = 55_500; port <= 55_600; ++port) {
-    const socket = new WebSocket(`ws://localhost:${port}/connections/${keys.encoded.publicKey}`);
+    const socket = new WebSocket(
+      `ws://localhost:${port}/connections/${keys.encoded.publicKey}`
+    );
     socket.addEventListener('open', handleOpen);
   }
 }
 
-export {
-  connect
-};
+export { connect };
