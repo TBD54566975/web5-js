@@ -1,0 +1,13 @@
+class Storage {
+  async get(_key) {
+    throw 'subclass must override';
+  }
+
+  async set(_key, _value) {
+    throw 'subclass must override';
+  }
+}
+
+export {
+  Storage,
+};
