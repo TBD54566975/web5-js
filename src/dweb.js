@@ -79,7 +79,7 @@ const DWeb = {
    * @returns
    */
   send: async (target, context) => {
-    const authorDid = resolve(context.author);
+    const authorDid = await resolve(context.author);
     context.target = target;  // Add target to context since its needed by transport methods.
     // If keys are not available to sign messages, transport the message to the specified agent.
     if (!authorDid?.keys) {
@@ -97,7 +97,7 @@ const DWeb = {
     context.message = await DWeb.createAndSignMessage(authorDid, context.message, context.data);
 
     // Resolve the target DID and check to see whether it is connected (i.e., managed by this agent).
-    const targetDid = resolve(target);
+    const targetDid = await resolve(target);
 
     if (targetDid?.connected) {
       // if (debug) console.log('Target DID is managed by Agent');
