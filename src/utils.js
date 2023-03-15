@@ -27,6 +27,16 @@ const encodeData = (data, dataFormat) => {
   return { encodedData, dataFormat };
 };
 
+function memoryCache(options) {
+  let store = {};
+  return {
+    del: (key) => delete store[key],
+    get: (key) => { return store[key]; },
+    reset: () => store = {}, 
+    set: (key, value) => store[key] = value,
+  };
+}
+
 /**
  * Credit for toType() function:
  *   Angus Croll
@@ -38,5 +48,6 @@ const toType = (obj) => {
 };
 
 export {
-  encodeData
+  encodeData,
+  memoryCache
 };

@@ -1,7 +1,5 @@
-
-// import * as DID from './dids';
-import { DWeb, DWebNodeSDK, transports } from './dweb';
 import * as DID from './did';
+import { DWeb, DWebNodeSDK, transports } from './dweb';
 import { connect } from './connect';
 
 const Web5 = {
