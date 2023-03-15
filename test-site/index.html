@@ -208,11 +208,10 @@
 
 <script type="module">
 
-  import { connect, ManagedDid, Web5 } from './browser.mjs';
+  import { connect, Web5 } from './browser.mjs';
 
   window.Web5 = Web5;
-
-  const aliceDid = new ManagedDid()
+  let myDid = '';
 
   connect_button.addEventListener('click', async event => {
 
@@ -224,10 +223,7 @@
       },
       onConnected(connection) {
         connected_did.textContent = connection.did;
-        // aliceDid.connected = connection.connected;
-        aliceDid.connected = true;
-        aliceDid.did = connection.did;
-        aliceDid.endpoint = `http://localhost:${connection.port}/dwn`;
+        myDid = connection.did;
         alert('Connection succeeded!');
       },
       onDenied() {
@@ -261,8 +257,8 @@
 
   query_text_button.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    const response = await Web5.records.query(aliceDid, {
-      author: aliceDid,
+    const response = await Web5.records.query(myDid, {
+      author: myDid,
       message: {
         filter: {
           schema: query_text_schema.value,
@@ -276,8 +272,8 @@
 
   query_json_button.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    const response = await Web5.records.query(aliceDid, {
-      author: aliceDid,
+    const response = await Web5.records.query(myDid, {
+      author: myDid,
       message: {
         filter: {
           schema: query_json_schema.value,
@@ -291,8 +287,8 @@
 
   query_image_button.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    const response = await Web5.records.query(aliceDid, {
-      author: aliceDid,
+    const response = await Web5.records.query(myDid, {
+      author: myDid,
       message: {
         filter: {
           schema: query_image_schema.value,
@@ -306,8 +302,8 @@
 
   query_image_type_button.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    const response = await Web5.records.query(aliceDid, {
-      author: aliceDid,
+    const response = await Web5.records.query(myDid, {
+      author: myDid,
       message: {
         filter: {
           schema: query_image_type_schema.value,
@@ -321,8 +317,8 @@
 
   write_text_button.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    const response = await Web5.records.write(aliceDid, {
-      author: aliceDid,
+    const response = await Web5.records.write(myDid, {
+      author: myDid,
       data: write_text_data.value,
       message: {
         schema: write_text_schema.value,
@@ -334,8 +330,8 @@
 
   write_json_button.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    const response = await Web5.records.write(aliceDid, {
-      author: aliceDid,
+    const response = await Web5.records.write(myDid, {
+      author: myDid,
       data: JSON.parse(write_json_data.value),
       message: {
         schema: write_json_schema.value,
@@ -351,8 +347,8 @@
     const imageFile = write_image_file.files[0];
 
     if (imageFile) {
-      const response = await Web5.records.write(aliceDid, {
-        author: aliceDid,
+      const response = await Web5.records.write(myDid, {
+        author: myDid,
         data: imageFile,
         message: {
           schema: write_image_schema.value,
@@ -372,8 +368,8 @@
     const imageFile = write_image_type_file.files[0];
 
     if (imageFile) {
-      const response = await Web5.records.write(aliceDid, {
-        author: aliceDid,
+      const response = await Web5.records.write(myDid, {
+        author: myDid,
         data: imageFile,
         message: {
           schema: write_image_type_schema.value,
@@ -387,8 +383,8 @@
   });
 
   delete_record_button.addEventListener('click', async event => {
-    const response = await Web5.records.delete(aliceDid, {
-      author: aliceDid,
+    const response = await Web5.records.delete(myDid, {
+      author: myDid,
       message: {
         recordId: delete_record_id.value
       }
@@ -409,8 +405,8 @@
   )
 
   configure_protocol_button.addEventListener('click', async event => {
-    const response = await Web5.protocols.configure(aliceDid, {
-      author: aliceDid,
+    const response = await Web5.protocols.configure(myDid, {
+      author: myDid,
       message: {
         protocol: configure_protocol_name.value,
         definition: JSON.parse(configure_protocol_definition.value)
@@ -420,8 +416,8 @@
   });
 
   query_protocol_button.addEventListener('click', async event => {
-    const response = await Web5.protocols.query(aliceDid, {
-      author: aliceDid,
+    const response = await Web5.protocols.query(myDid, {
+      author: myDid,
       message: {
         filter: {
           protocol: query_protocol_name.value,
@@ -439,8 +435,8 @@
 
   write_alice_to_alice_local_btn.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    // const response = await Web5.records.write(aliceDidLocalAgent, {
-    //   author: aliceDidLocalAgent,
+    // const response = await Web5.records.write(myDidLocalAgent, {
+    //   author: myDidLocalAgent,
     //   data: 'test',
     //   message: {
     //     schema: 'foo/bar',
@@ -452,8 +448,8 @@
 
   write_alice_to_alice_remote_btn.addEventListener('click', async event => {
     if (!agentConnected()) return;
-    const response = await Web5.records.write(aliceDid, {
-      author: aliceDid,
+    const response = await Web5.records.write(myDid, {
+      author: myDid,
       data: 'test',
       message: {
         schema: 'foo/bar'
@@ -465,7 +461,7 @@
   write_alice_to_bob_local_btn.addEventListener('click', async event => {
     if (!agentConnected()) return;
     // const response = await Web5.records.write(bobDid, {
-    //   author: aliceDidLocalAgent,
+    //   author: myDidLocalAgent,
     //   data: 'test',
     //   message: {
     //     schema: 'foo/bar',
@@ -478,7 +474,7 @@
   write_alice_to_bob_remote_btn.addEventListener('click', async event => {
     if (!agentConnected()) return;
     const response = await Web5.records.write(bobDid, {
-      author: aliceDid,
+      author: myDid,
       data: 'test',
       message: {
         schema: 'foo/bar',
