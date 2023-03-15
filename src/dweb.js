@@ -1,6 +1,7 @@
 import { encodeData } from './utils';
 import merge from 'deepmerge';
 import * as DWebNodeSDK from '@tbd54566975/dwn-sdk-js';
+import { resolve } from './did';
 
 // let debug = true;
 let node;
@@ -8,7 +9,7 @@ const DWeb = {
   createAndSignMessage: async (author, message, data) => {
     message.authorizationSignatureInput = DWebNodeSDK.Jws.createSignatureInput({
       keyId: author.did + '#key-1',
-      keyPair: author.keypair
+      keyPair: author.keys
     });
 
     message.data = data;
@@ -78,28 +79,29 @@ const DWeb = {
    * @returns
    */
   send: async (target, context) => {
-    const { author } = context;
+    const authorDid = resolve(context.author);
     context.target = target;  // Add target to context since its needed by transport methods.
-    // If a local key chain is not available to sign messages, transport the message to the specified agent.
-    if (!author?.keyChain) {
-      // if (debug) console.log('Web5.send: Key Chain NOT available for Author DID.');
-      if (author.connected) {
+    // If keys are not available to sign messages, transport the message to the specified agent.
+    if (!authorDid?.keys) {
+      // if (debug) console.log('Web5.send: Keys are NOT available for Author DID.');
+      if (authorDid.connected) {
         // if (debug) console.log('Web5.send: Remote agent connected. Transporting message to agent.');
-        // context.target = target;
-        return await send(author.endpoint, context);
+        return await send(authorDid.endpoint, context);
       } else {
         // TODO: Is this sufficient or might we improve how the calling app can respond by initiating a connect/re-connect flow?
         return { error: { code: 99, message: 'Local key chain not available and remote agent not connected'}};
       }
     }
 
-    // if (debug) console.log('Web5.send: Key Chain IS available to sign with Author DID');
-    context.message = await DWeb.createAndSignMessage(author, context.message, context.data);
+    // if (debug) console.log('Web5.send: Keys ARE available to sign with Author DID');
+    context.message = await DWeb.createAndSignMessage(authorDid, context.message, context.data);
 
-    if (target?.connected) {
+    // Resolve the target DID and check to see whether it is connected (i.e., managed by this agent).
+    const targetDid = resolve(target);
+
+    if (targetDid?.connected) {
       // if (debug) console.log('Target DID is managed by Agent');
-      // context.target = target;
-      return await send(author.endpoint, context);
+      return await send(targetDid.endpoint, context);
     } else {
       // if (debug) console.log('Target DID is NOT managed by Agent');
       // TODO: Add functionality to resolve the DWN endpoint of the target DID and send a message using the endpoint's transport protocol (HTTP or WS).
@@ -124,7 +126,7 @@ const transports = {
     },
     send: async (endpoint, request) => {
       const encodedData = transports.app.dataEncoder(request.data);
-      return await DWeb.node().then(node => node.processMessage(request.target.did, request.message.message, encodedData));
+      return await DWeb.node().then(node => node.processMessage(request.target, request.message.message, encodedData));
     }
   },
 
@@ -143,8 +145,8 @@ const transports = {
     send: async (endpoint, request) => {
       const { encodedData, dataFormat } = transports.http.dataEncoder(request.data, request.message.dataFormat);
       request.message.dataFormat = dataFormat;
-      request.message.author = request.author.toString();
-      request.message.target = request.target.toString();
+      request.message.author = request.author;
+      request.message.target = request.target;
       return await fetch(endpoint, {
         method: 'POST',
         mode: 'cors',

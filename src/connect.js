@@ -1,6 +1,7 @@
 
 import nacl from 'tweetnacl';
 import * as SDK from '@tbd54566975/dwn-sdk-js';
+import { register } from './did';
 
 /* Keys */
 
@@ -62,6 +63,11 @@ async function connect(options = {}) {
   let connection = getConnection();
   if (connection) {
     options?.onConnected?.(connection);
+    register({
+      connected: true,
+      did: connection.did,
+      endpoint: `http://localhost:${connection.port}/dwn`,
+    });
     return connection;
   }
 

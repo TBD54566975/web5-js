@@ -1,13 +1,20 @@
-export class ManagedDid {
-  constructor() {
-    this.connected = false;
-    this.did;
-    this.endpoint;
-    this.keyChain;
-    this.keypair;
-  }
+const didRegistry = {};
 
-  toString() {
-    return this.did;
+function register(options) {
+  didRegistry[options.did] = {
+    connected: options.connected,
+    did: options.did, // TODO: Consider removing if createAndSignMessage() no longer requires for Key ID
+    endpoint: options.endpoint,
+    keys: options?.keys
+  };
+}
+
+function resolve(did) {
+  if (didRegistry[did]) {
+    return didRegistry[did];
+  } else {
+    return;
   }
 }
+
+export { register, resolve };
