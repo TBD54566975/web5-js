@@ -27,13 +27,14 @@ const encodeData = (data, dataFormat) => {
   return { encodedData, dataFormat };
 };
 
-function memoryCache(options) {
+function memoryCache(options = {}) {
   let store = {};
+  const ttl = options?.ttl ?? 60 * 60 * 1000; // 1 hour default time-to-live
   return {
     del: (key) => delete store[key],
-    get: (key) => { return store[key]; },
+    get: (key) => { return store[key]?.value; },
     reset: () => store = {}, 
-    set: (key, value) => store[key] = value,
+    set: (key, value) => { store[key] = { value, timeout: setTimeout(() => { delete store[key]; }, ttl) }; }
   };
 }
 
