@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    body {
+      font-family: 'Press Start 2P', cursive;
+      background-color: yellow;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      margin-top: 1rem;
+    }
+    label {
+      font-size: 1.2rem;
+    }
+    input {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+    button {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 1.2rem;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <img src="TBD_LOGO_URL" alt="TBD logo" style="width: 200px; margin-top: 1rem;" />
+
+  <form id="message-form">
+    <label for="message">Your message:</label>
+    <input type="text" id="message" name="message">
+    <button type="submit">Submit</button>
+  </form>
+
+  <script type="module">
+    import { DWeb, DID } from 'https://cdn.jsdelivr.net/npm/@tbd54566975/web5@v0.0.1-unstable.d594a25-2023.3.16-03-06-55/dist/browser.mjs';
+
+    const form = document.getElementById('message-form');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const messageInput = document.getElementById('message');
+      const userMessage = messageInput.value;
+
+      const me = await DID.create('ion', {
+        services: [
+          {
+            'id': 'dwn',
+            'type': 'DecentralizedWebNode',
+            'serviceEndpoint': {
+              'nodes': ['https://dwn-usa-1.ue8cktdq71va0.us-east-2.cs.amazonlightsail.com/']
+            }
+          }
+        ]
+      });
+
+      const wishfulThinking = await DWeb.records.write(me.id, {
+        author: {
+          did: me.id,
+          keypair: me.keys[0].keypair,
+          keyChain: true
+        },
+        data: new TextEncoder().encode(userMessage),
+        message: {
+          schema: 'tbjank',
+          dataFormat: 'application/json',
+        }
+      });
+
+      console.log(wishfulThinking);
+    });
+
+  </script>
+</body>
+
+</html>
