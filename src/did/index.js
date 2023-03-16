@@ -47,7 +47,8 @@ function register(options) {
     did: options.did, // TODO: Consider removing if createAndSignMessage() no longer requires for Key ID
     endpoint: options.endpoint,
     keys: options?.keys
-  });
+  },
+  Infinity);
 }
 
 async function resolve(did, options = {}) {
