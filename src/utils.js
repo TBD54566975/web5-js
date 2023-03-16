@@ -31,10 +31,23 @@ function memoryCache(options = {}) {
   let store = {};
   const ttl = options?.ttl ?? 60 * 60 * 1000; // 1 hour default time-to-live
   return {
-    del: (key) => delete store[key],
-    get: (key) => { return store[key]?.value; },
-    reset: () => store = {}, 
-    set: (key, value) => { store[key] = { value, timeout: setTimeout(() => { delete store[key]; }, ttl) }; }
+    del: (key) => {
+      clearTimeout(store[key].timeoutId);
+      delete store[key];
+    },
+    get: (key) => {
+      return store[key]?.value;
+    },
+    reset: () => {
+      for (let key in store) {
+        clearTimeout(store[key].timeoutId);
+      }
+      store = {};
+    },
+    set: (key, value, timeout) => {
+      let timeoutId = (timeout === Infinity) ? undefined : setTimeout(() => { delete store[key]; }, timeout || ttl);
+      store[key] = { value, timeoutId };
+    }
   };
 }
 
