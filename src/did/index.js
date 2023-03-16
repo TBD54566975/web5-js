@@ -9,6 +9,10 @@ async function create(method, options) {
   return api.create(options);
 }
 
+function deregister(did) {
+  localRegistry.del(did);
+}
+
 async function getDidDocument(did, options = {}) {
   await resolve(did, options).then(response => response.didDocument).catch(_ => { return null; });
 }
@@ -68,6 +72,7 @@ async function resolve(did, options = {}) {
 
 export {
   create,
+  deregister,
   generateKeyPair,
   getEndpoints,
   getKeys,
