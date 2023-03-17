@@ -38,11 +38,6 @@ async function triggerProtocolHandler(url) {
   document.body.append(form);
   form.submit();
   form.remove();
-
-  // var iframe = document.createElement('iframe');
-  //     iframe.src = url;
-  //     document.body.appendChild(iframe);
-  //     setTimeout(() => iframe.remove(), 10);
 }
 
 async function decodePin(result, secretKey) {
@@ -63,6 +58,7 @@ async function connect(options = {}) {
   let connection = getConnection();
   if (connection) {
     options?.onConnected?.(connection);
+    // Register DID on reconnection
     register({
       connected: true,
       did: connection.did,
@@ -96,7 +92,7 @@ async function connect(options = {}) {
     let json;
     try {
       json = JSON.parse(event.data);
-    } catch { }
+    } catch (e) { console.log(e); }
 
     switch (json?.type) {
     case 'connected':
@@ -107,6 +103,12 @@ async function connect(options = {}) {
       }
 
       localStorage.setItem('web5_connect', JSON.stringify(json.data));
+      // Register DID on initial connection
+      register({
+        connected: true,
+        did: json.data.did,
+        endpoint: `http://localhost:${json.data.port}/dwn`,
+      });
       options?.onConnected?.(json.data);
       break;
 

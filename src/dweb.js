@@ -1,4 +1,4 @@
-import { encodeData } from './utils';
+import { dataToBytes } from './utils';
 import merge from 'deepmerge';
 import * as DWebNodeSDK from '@tbd54566975/dwn-sdk-js';
 import { resolve } from './did';
@@ -63,7 +63,13 @@ const DWeb = {
     },
 
     write: async (target, context) => {
+      // Convert string/object data to bytes before further processing.
+      const { dataBytes, dataFormat } = dataToBytes(context.data, context.message.dataFormat);
+      context.message.dataFormat = dataFormat;
+      context.data = dataBytes;
+
       context.message = merge.all([context.message, {
+        dataFormat,
         interface: 'Records',
         method: 'Write'
       }
@@ -133,7 +139,8 @@ const transports = {
   get https(){ return this.http; },
   http: {
     dataEncoder: (data, dataFormat) => {
-      return encodeData(data, dataFormat);
+      // TODO: Consider removing if not used after non-connected target DID transport is implemented.
+      return dataToBytes(data, dataFormat);
     },
     headerKey: 'DWN-MESSAGE',
     messageDecoder: (message) => {
@@ -143,8 +150,6 @@ const transports = {
       return DWebNodeSDK.Encoder.stringToBase64Url(JSON.stringify(message));
     },
     send: async (endpoint, request) => {
-      const { encodedData, dataFormat } = transports.http.dataEncoder(request.data, request.message.dataFormat);
-      request.message.dataFormat = dataFormat;
       request.message.author = request.author;
       request.message.target = request.target;
       return await fetch(endpoint, {
@@ -155,7 +160,7 @@ const transports = {
           [transports.http.headerKey]: transports.http.messageEncoder(request.message),
           'Content-Type': 'application/octet-stream'
         },
-        body: encodedData
+        body: request.data
       });
     }
   }
