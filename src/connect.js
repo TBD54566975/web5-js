@@ -58,6 +58,7 @@ async function connect(options = {}) {
   let connection = getConnection();
   if (connection) {
     options?.onConnected?.(connection);
+    // Register DID on reconnection
     register({
       connected: true,
       did: connection.did,
@@ -102,6 +103,12 @@ async function connect(options = {}) {
       }
 
       localStorage.setItem('web5_connect', JSON.stringify(json.data));
+      // Register DID on initial connection
+      register({
+        connected: true,
+        did: json.data.did,
+        endpoint: `http://localhost:${json.data.port}/dwn`,
+      });
       options?.onConnected?.(json.data);
       break;
 

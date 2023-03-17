@@ -208,7 +208,7 @@
 
 <script type="module">
 
-  import { connect, Web5 } from './browser.mjs';
+  import { Web5 } from './browser.mjs';
 
   window.Web5 = Web5;
   let myDid = '';
@@ -217,7 +217,7 @@
 
     event.preventDefault();
 
-    connect({
+    Web5.connect({
       onRequest(response) {
         security_code.textContent = response.pin;
       },

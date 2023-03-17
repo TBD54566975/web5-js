@@ -3,6 +3,7 @@ import { DWeb, DWebNodeSDK, transports } from './dweb';
 import { connect } from './connect';
 
 const Web5 = {
+  connect: connect,
   did: DID,
   protocols: DWeb.protocols,
   records: DWeb.records,
@@ -11,7 +12,6 @@ const Web5 = {
 };
 
 export {
-  connect,
   DWebNodeSDK,
   Web5,
   DWeb
