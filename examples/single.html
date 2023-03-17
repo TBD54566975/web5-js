@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <script type="module">
+    import { Web5, DWebNodeSDK } from 'https://cdn.jsdelivr.net/npm/@tbd54566975/web5@v0.2.0-unstable.03d4273-2023.3.17-04-09-58/dist/browser.mjs';
+
+        
+
+    // Create a new ION DID and public-private key pair.
+    const myDid = await Web5.did.create('ion', {
+      services: [
+        {
+          'id': 'dwn',
+          'type': 'DecentralizedWebNode',
+          'serviceEndpoint': {
+            'nodes': ['https://dwn-usa-1.ue8cktdq71va0.us-east-2.cs.amazonlightsail.com/']
+          }
+        }
+      ]
+    });
+    console.log('DID:', myDid);
+
+    // Register the DID as one which is running in browser and for which keys are available to sign messages.
+    Web5.did.register({
+      connected: true,
+      did: myDid.id,
+      endpoint: 'app://dwn',
+      keys: myDid.keys[0].keypair
+    });
+
+    // Write a plain text record to the in-memory DWN.
+    let response = await Web5.records.write(myDid.id, {
+      author: myDid.id,
+      data: 'Hello, world!',
+      message: {
+        schema: 'foo/bar',
+        dataFormat: 'text/plain'
+      }
+    });
+    console.log('WRITE RESPONSE:', response.status);
+
+    // Query for the record that was just created.
+    response = await Web5.records.query(myDid.id, {
+      author: myDid.id,
+      message: {
+        filter: {
+          schema: 'foo/bar'
+        }
+      }
+    });
+    console.log('QUERY RESPONSE:', response.entries[0]);
+    console.log('RESPONSE DATA:', base64UrlToString(response.entries[0].encodedData));
+
+    // Write a JSON record to the in-memory DWN.
+    response = await Web5.records.write(myDid.id, {
+      author: myDid.id,
+      data: { random: 'stuff' },
+      message: {
+        schema: 'foo/baz',
+        dataFormat: 'application/json'
+      }
+    });
+    console.log('WRITE RESPONSE:', response.status);
+
+    // Query for the record that was just created.
+    response = await Web5.records.query(myDid.id, {
+      author: myDid.id,
+      message: {
+        filter: {
+          schema: 'foo/baz'
+        }
+      }
+    });
+    console.log('QUERY RESPONSE:', response.entries[0]);
+    console.log('RESPONSE DATA:', base64UrlToObject(response.entries[0].encodedData));
+
+    // Convenience functions to decode data returned by queries
+    function base64UrlToString(encodedData) {
+      return DWebNodeSDK.Encoder.bytesToString(DWebNodeSDK.Encoder.base64UrlToBytes(encodedData));
+    }
+
+    function base64UrlToObject(encodedData) {
+      return DWebNodeSDK.Encoder.base64UrlToObject(encodedData);
+    }
+  </script>
+</body>
+
+</html>

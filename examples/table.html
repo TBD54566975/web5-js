@@ -1,0 +1,172 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editable Table</title>
+  <style>
+    body {
+      font-family: 'Press Start 2P', cursive;
+      background-color: yellow;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    table {
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    th, td {
+      padding: 0.5rem;
+      border: 1px solid black;
+      font-size: 1.2rem;
+    }
+
+    input {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 1.2rem;
+    }
+
+    button {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 1.2rem;
+      margin-top: 1rem;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+  <h1>Editable Table</h1>
+  <table id="table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Spring</th>
+        <th>Summer</th>
+        <th>Fall</th>
+        <th>Winter</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><input type="text" name="name" placeholder="Name"></td>
+        <td><input type="text" name="spring" placeholder="Favorite Season"></td>
+        <td><input type="text" name="summer" placeholder="Favorite Season"></td>
+        <td><input type="text" name="fall" placeholder="Favorite Season"></td>
+        <td><input type="text" name="winter" placeholder="Favorite Season"></td>
+      </tr>
+    </tbody>
+  </table>
+  <button id="add-row">Add Row</button>
+
+  <script type="module">
+    import { DWeb, DID } from 'https://cdn.jsdelivr.net/npm/@tbd54566975/web5@v0.0.1-unstable.d594a25-2023.3.16-03-06-55/dist/browser.mjs';
+
+    const table = document.getElementById('table');
+    const addRowButton = document.getElementById('add-row');
+
+    // create a DID in the page - just do this once and we can use it from here on.
+    const me = await DID.create('ion', {
+      services: [
+        {
+          'id': 'dwn',
+          'type': 'DecentralizedWebNode',
+          'serviceEndpoint': {
+            'nodes': ['https://dwn-usa-1.ue8cktdq71va0.us-east-2.cs.amazonlightsail.com/']
+          }
+        }
+      ]
+    });
+
+    // Listen for add row button clicks
+    addRowButton.addEventListener('click', () => {
+      addRow();
+    });
+
+    // Function to add a new row to the table
+    function addRow() {
+      const row = document.createElement('tr');
+      const nameInput = document.createElement('input');
+      const springInput = document.createElement('input');
+  const summerInput = document.createElement('input');
+  const fallInput = document.createElement('input');
+  const winterInput = document.createElement('input');
+
+  nameInput.type = 'text';
+  nameInput.name = 'name';
+  nameInput.placeholder = 'Name';
+
+  springInput.type = 'text';
+  springInput.name = 'spring';
+  springInput.placeholder = 'Favorite Season';
+
+  summerInput.type = 'text';
+  summerInput.name = 'summer';
+  summerInput.placeholder = 'Favorite Season';
+
+  fallInput.type = 'text';
+  fallInput.name = 'fall';
+  fallInput.placeholder = 'Favorite Season';
+
+  winterInput.type = 'text';
+  winterInput.name = 'winter';
+  winterInput.placeholder = 'Favorite Season';
+
+  row.appendChild(createTableCell(nameInput));
+  row.appendChild(createTableCell(springInput));
+  row.appendChild(createTableCell(summerInput));
+  row.appendChild(createTableCell(fallInput));
+  row.appendChild(createTableCell(winterInput));
+
+  table.querySelector('tbody').appendChild(row);
+}
+
+// Helper function to create a table cell with a given input
+function createTableCell(input) {
+  const cell = document.createElement('td');
+  cell.appendChild(input);
+  return cell;
+}
+
+// Write the table data to the DWN as a JSON object
+async function writeTableToDWN() {
+  const tableData = [];
+
+  const rows = table.querySelectorAll('tbody tr');
+  rows.forEach(row => {
+    const rowData = {};
+    const inputs = row.querySelectorAll('input');
+
+    inputs.forEach(input => {
+      rowData[input.name] = input.value;
+    });
+
+    tableData.push(rowData);
+  });
+
+  await DWeb.records.write(me.id, {
+    author: {
+      did: me.id,
+      keypair: me.keys[0].keypair,
+      keyChain: true
+    },
+    data: new TextEncoder().encode(JSON.stringify(tableData)),
+    message: {
+      schema: 'editable-table',
+      dataFormat: 'application/json',
+    }
+  });
+
+  console.log("Table data written to DWN");
+}
+
+// Listen for form submissions
+table.addEventListener('input', () => {
+  writeTableToDWN();
+});
+</script>
+</body>
+</html>
