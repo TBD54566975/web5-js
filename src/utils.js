@@ -1,30 +1,25 @@
 import * as SDK from '@tbd54566975/dwn-sdk-js';
 
 /**
- * Set/detect the media type, encode the data, and return as a Blob.
+ * Set/detect the media type and return the data as bytes.
  */
-const encodeData = (data, dataFormat) => {
+const dataToBytes = (data, dataFormat) => {
   let dataBytes = data;
 
-  // Format was not provided so check for Object or String, and if neither, assume blob of raw data.
-  if (!dataFormat) {
-    const detectedType = toType(data);
-    if (detectedType === 'string') {
-      dataFormat = 'text/plain';
-      dataBytes = SDK.Encoder.stringToBytes(data);
-    }
-    else if (detectedType === 'object') {
-      dataFormat = 'application/json';
-      dataBytes = SDK.Encoder.objectToBytes(data);
-    } else {
-      dataFormat = 'application/octet-stream';
-    }
+  // Check for Object or String, and if neither, assume bytes.
+  const detectedType = toType(data);
+  if ((dataFormat === 'text/plain') || (detectedType === 'string')) {
+    dataFormat = 'text/plain';
+    dataBytes = SDK.Encoder.stringToBytes(data);
+  }
+  else if ((dataFormat === 'application/json') || (detectedType === 'object')) {
+    dataFormat = 'application/json';
+    dataBytes = SDK.Encoder.objectToBytes(data);
+  } else if (!dataFormat) {
+    dataFormat = 'application/octet-stream';
   }
 
-  // All data encapsulated in a Blob object that can be transported to a remote DWN and converted into a ReadableStream.
-  const encodedData = new Blob([dataBytes], { type: dataFormat });
-
-  return { encodedData, dataFormat };
+  return { dataBytes, dataFormat };
 };
 
 function memoryCache(options = {}) {
@@ -62,6 +57,6 @@ const toType = (obj) => {
 };
 
 export {
-  encodeData,
+  dataToBytes,
   memoryCache
 };
