@@ -38,11 +38,6 @@ async function triggerProtocolHandler(url) {
   document.body.append(form);
   form.submit();
   form.remove();
-
-  // var iframe = document.createElement('iframe');
-  //     iframe.src = url;
-  //     document.body.appendChild(iframe);
-  //     setTimeout(() => iframe.remove(), 10);
 }
 
 async function decodePin(result, secretKey) {
@@ -96,7 +91,7 @@ async function connect(options = {}) {
     let json;
     try {
       json = JSON.parse(event.data);
-    } catch { }
+    } catch (e) { console.log(e); }
 
     switch (json?.type) {
     case 'connected':
