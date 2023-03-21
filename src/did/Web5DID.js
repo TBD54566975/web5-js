@@ -76,7 +76,7 @@ class Web5DID {
 
   async getServices(did, options = { }) {
     let didDocument = await this.getDidDocument(did, options);
-    return didDocument?.services?.filter(service => {
+    return didDocument?.service?.filter(service => {
       if (options?.id && service.id !== options.id) return false;
       if (options?.type && service.type !== options.type) return false;
       return true;
@@ -85,7 +85,7 @@ class Web5DID {
 
   async getKeys(did, options = { }) {
     let didDocument = await this.getDidDocument(did, options);
-    return didDocument?.verificationMethods?.filter(method => {
+    return didDocument?.verificationMethod?.filter(method => {
       if (options?.id && method.id !== options.id) return false;
       return true;
     }) ?? [ ];
