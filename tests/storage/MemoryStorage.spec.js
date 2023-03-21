@@ -3,10 +3,16 @@ import sinon from 'sinon';
 
 import { MemoryStorage } from '../../src/storage/MemoryStorage.js';
 
-let clock = sinon.useFakeTimers();
+describe('MemoryStorage', async () => {
+  before(function () {
+    this.clock = sinon.useFakeTimers();
+  });
 
-describe('memoryCache', async () => {
-  it('should set a per-entry custom TTL when specified', async () => {
+  after(function () {
+    this.clock.restore();
+  });
+
+  it('should set a per-entry custom TTL when specified', async function () {
     const storage = new MemoryStorage();
 
     await storage.set('key1', 'aValue');
@@ -17,7 +23,7 @@ describe('memoryCache', async () => {
     valueInCache = await storage.get('key2');
     expect(valueInCache).to.equal('bValue');
 
-    clock.tick(10); // Time travel 10 milliseconds
+    this.clock.tick(10); // Time travel 10 milliseconds
 
     valueInCache = await storage.get('key1');
     expect(valueInCache).to.equal('aValue');
@@ -25,7 +31,7 @@ describe('memoryCache', async () => {
     expect(valueInCache).to.be.undefined;
   });
 
-  it('should not expire entries if timeout is `Infinity`', async () => {
+  it('should not expire entries if timeout is `Infinity`', async function () {
     const storage = new MemoryStorage();
 
     await storage.set('key1', 'aValue');
@@ -36,14 +42,14 @@ describe('memoryCache', async () => {
     valueInCache = await storage.get('key2');
     expect(valueInCache).to.equal('bValue');
 
-    clock.tick(1000 * 60 * 60); // Time travel 1 hour
+    this.clock.tick(1000 * 60 * 60); // Time travel 1 hour
 
     valueInCache = await storage.get('key1');
     expect(valueInCache).to.equal('aValue');
     valueInCache = await storage.get('key2');
     expect(valueInCache).to.equal('bValue');
 
-    clock.tick(2147483647); // Time travel 23.85 days
+    this.clock.tick(2147483647); // Time travel 23.85 days
 
     valueInCache = await storage.get('key1');
     expect(valueInCache).to.equal('aValue');
