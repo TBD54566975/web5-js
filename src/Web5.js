@@ -221,12 +221,13 @@ class Web5 extends EventTarget {
   }
 
   async #createSignedMessage(resolvedAuthor, message, data) {
+    const authorizationSignatureInput = this.#dwn.SDK.Jws.createSignatureInput({
+      keyId: resolvedAuthor.did + '#key-1',
+      keyPair: resolvedAuthor.keys,
+    });
     const signedMessage = await this.#dwn.SDK[message.interface + message.method].create({
       ...message,
-      authorizationSignatureInput: this.#dwn.SDK.Jws.createSignatureInput({
-        keyId: resolvedAuthor.did + '#key-1',
-        keyPair: resolvedAuthor.keys,
-      }),
+      authorizationSignatureInput,
       data,
     });
     delete signedMessage.data;
