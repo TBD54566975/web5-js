@@ -9,8 +9,8 @@ class HTTPTransport extends Transport {
     return Encoder.stringToBase64Url(JSON.stringify(message));
   }
 
-  async decodeMessage(string) {
-    return Encoder.base64UrlToObject(string);
+  async decodeMessage(base64urlString) {
+    return Encoder.base64UrlToObject(base64urlString);
   }
 
   async send(endpoint, request) { // override

@@ -56,7 +56,7 @@ class Web5 extends EventTarget {
       }
 
       // TODO: Is this sufficient or might we improve how the calling app can respond by initiating a connect/re-connect flow?
-      return { error: { code: 99, message: 'Local key chain not available and remote agent not connected' } };
+      return { error: { code: 99, message: 'Local keys not available and remote agent not connected' } };
     }
 
     message = await this.#createSignedMessage(resolvedAuthor, message, data);

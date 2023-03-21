@@ -74,7 +74,7 @@ class Web5DID {
     return resolved.didDocument;
   }
 
-  async getEndpoints(did, options = { }) {
+  async getServices(did, options = { }) {
     let didDocument = await this.getDidDocument(did, options);
     return didDocument?.services?.filter(service => {
       if (options?.id && service.id !== options.id) return false;
@@ -94,7 +94,7 @@ class Web5DID {
   async #getMethodAPI(name) {
     name = name.split(':')[1] || name;
     let api = Methods[name];
-    if (!api) throw `Unsupported method: ${name}`;
+    if (!api) throw `Unsupported DID method: ${name}`;
     return api;
   }
 }
