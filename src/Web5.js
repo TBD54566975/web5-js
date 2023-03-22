@@ -5,7 +5,7 @@ import { Web5DWN } from './dwn/Web5DWN.js';
 import { LocalStorage } from './storage/LocalStorage.js';
 import { AppTransport } from './transport/AppTransport.js';
 import { HTTPTransport } from './transport/HTTPTransport.js';
-import { decodePin, parseJSON, parseURL, triggerProtocolHandler } from './utils.js';
+import { decodePin, isUnsignedMessage, parseJSON, parseURL, triggerProtocolHandler } from './utils.js';
 
 class Web5 extends EventTarget {
   #dwn;
@@ -47,28 +47,37 @@ class Web5 extends EventTarget {
   async send(target, request) {
     let { author, data, message } = request;
 
-    const resolvedAuthor = await this.#did.resolve(author);
+    if (isUnsignedMessage(message)) {
+      const resolvedAuthor = await this.#did.resolve(author);
 
-    // If keys are not available to sign messages, transport the message to the specified agent.
-    if (!resolvedAuthor?.keys) {
-      if (resolvedAuthor?.connected) {
-        return this.#send(resolvedAuthor.endpoint, { author, data, message, target });
+      // If keys are not available to sign messages, transport the message to the specified agent.
+      if (!resolvedAuthor?.keys) {
+        if (resolvedAuthor?.connected) {
+          return this.#send(resolvedAuthor.endpoint, { author, data, message, target });
+        }
+  
+        // TODO: Is this sufficient or might we improve how the calling app can respond by initiating a connect/re-connect flow?
+        return { status: { code: 97, detail: 'Local keys not available and remote agent not connected' } };
       }
-
-      // TODO: Is this sufficient or might we improve how the calling app can respond by initiating a connect/re-connect flow?
-      return { error: { code: 99, message: 'Local keys not available and remote agent not connected' } };
+      
+      message = await this.#createSignedMessage(resolvedAuthor, message, data);
     }
-
-    message = await this.#createSignedMessage(resolvedAuthor, message, data);
 
     const resolvedTarget = await this.#did.resolve(target);
 
     if (resolvedTarget?.connected) {
       return this.#send(resolvedTarget.endpoint, { author, data, message, target });
+    } else if (resolvedTarget) {
+      // Resolve the DWN endpoint(s) of the target and send using the endpoint's transport protocol (e.g., HTTP).
+      const dwnServices = await this.#did.getServices(target, { cache: true, type: 'DecentralizedWebNode' });
+      const dwnNodes = dwnServices[0]?.serviceEndpoint?.nodes;
+      if (dwnNodes) {
+        return this.#send(dwnNodes[0], { author, data, message, target });
+      }
+      return { status: { code: 98, detail: 'No DWN endpoints present in DID document. Request cannot be sent.' } };
     }
 
-    // TODO: Add functionality to resolve the DWN endpoint of the target DID and send a message using the endpoint's transport protocol (HTTP or WS).
-    return { };
+    return { status: { code: 99, detail: 'Target DID could not be resolved' } };
   }
 
   async connect(options = { }) {
