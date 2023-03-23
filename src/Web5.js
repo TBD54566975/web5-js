@@ -10,7 +10,6 @@ import {
   isUnsignedMessage,
   parseJSON,
   parseURL,
-  promiseSeriesAny,
   triggerProtocolHandler,
 } from './utils.js';
 
@@ -47,9 +46,12 @@ class Web5 extends EventTarget {
   }
 
   /**
-   * @param {string} target DID to route the message to
-   * @param {{author: string, data: any, message: {}}} request
-   * @returns
+   * @param {string} target The DID to send the message to.
+   * @param {Object} request - Object containing the request parameters.
+   * @param {string} request.author - The DID of the author of the message.
+   * @param {*} request.data - The message data (if any).
+   * @param {Object} request.message - The DWeb message.
+   * @returns Promise
    */
   async send(target, request) {
     let { author, data, message } = request;
@@ -250,22 +252,38 @@ class Web5 extends EventTarget {
     return signedMessage;
   }
 
+  /**
+   * Sends the message to one or more endpoint URIs
+   * 
+   * If more than one endpoint is passed, each endpoint is tried serially until one succeeds or all fail.
+   * 
+   * This strategy is used to account for cases like attempting to write large data streams to
+   * the DWN endpoints listed in a DID document. It would be inefficient to attempt to write data to
+   * multiple endpoints in parallel until the first one completes. Instead, we only try the next DWN if
+   * there is a failure.  Additionally, per the DWN Specification, implementers SHOULD select from the
+   * Service Endpoint URIs in the nodes array in index order, so this function makes that approach easy.
+   * 
+   * @param {string[]} endpoints - An array of one or more endpoints to send the message to.
+   * @param {Object} request - Object containing the request parameters.
+   * @param {string} request.author - The DID of the author of the message.
+   * @param {*} request.data - The message data (if any).
+   * @param {Object} request.message - The DWeb message.
+   * @param {string} request.target - The DID to send the message to.
+   * @returns Promise
+   */
   async #send(endpoints, request) {
-    // Convert each endpoint to a function that returns a promise.
-    const sendRequests = endpoints.map(endpoint => () => {
-      const url = parseURL(endpoint);
-      return this.#transports[url?.protocol?.slice(0, -1)]?.send(url.href, request);
-    });
+    let response;
+    for (let endpoint of endpoints) {
+      try {
+        const url = parseURL(endpoint);
+        response = await this.#transports[url?.protocol?.slice(0, -1)]?.send(url.href, request);
+      } catch {
+        // Intentionally ignore exception and try the next endpoint.
+      }
+      if (response) break; // Stop looping and return after the first endpoint successfully responds.
+    }
 
-    // Try to send to each endpoint serially until the first one fulfills or all reject
-    return promiseSeriesAny(sendRequests)
-      .then(result => {
-        return result;
-      })
-      .catch(error => {
-        console.error('All service endpoints were unreachable.', error);
-        return { status: { code: 503, detail: 'Service Unavailable' } };
-      });
+    return response ?? { status: { code: 503, detail: 'Service Unavailable' } };
   }
 }
 

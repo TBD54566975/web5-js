@@ -83,40 +83,6 @@ async function triggerProtocolHandler(url) {
   form.remove();
 }
 
-/**
- * Runs promise-returning and async functions in series until the first one fulfills or all reject
- * 
- * Returns a Promise that is fulfilled when the first Promise is fulfilled or rejects if all of the
- * Promises reject. Rather than stopping when a Promise rejects, the next Promise in the input array
- * is executed. This continues until a Promise fulfills or the end of the array is reached.
- * 
- * This execution strategy is used for specific cases like attempting to write large data streams to
- * the DWN endpoints listed in a DID document. It would be inefficient to attempt to write data to
- * multiple endpoints in parallel until the first one completes. Instead, we only try the next DWN if
- * there is a failure.  Additionally, per the DWN Specification, implementers SHOULD select from the
- * Service Endpoint URIs in the nodes array in index order, so this function makes that approach easy.
- * 
- * @param {[Promise]} tasks
- * @returns Promise<any>
- */
-function promiseSeriesAny(tasks) {
-  let index = 0;
-
-  function tryNextTask() {
-    if (index >= tasks.length) {
-      return Promise.reject(new Error('All promises rejected.'));
-    }
-
-    const task = tasks[index++];
-
-    return task()
-      .then(result => { return result; })
-      .catch(_ => { return tryNextTask(); });
-  }
-
-  return tryNextTask();
-}
-
 async function decodePin(data, secretKey) {
   const { pin, nonce, publicKey } = data;
   const encryptedPinBytes = Encoder.base64UrlToBytes(pin);
@@ -133,6 +99,5 @@ export {
   isUnsignedMessage,
   parseJSON,
   parseURL,
-  promiseSeriesAny,
   triggerProtocolHandler,
 };
