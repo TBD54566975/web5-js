@@ -40,12 +40,12 @@ describe('Utils Tests', () => {
 
     
     it('should return true is message is missing authorization', () => {
-      const result = utils.isMessageUnsigned(unsignedMessage);
+      const result = utils.isUnsignedMessage(unsignedMessage);
       expect(result).to.be.true;
     });
 
     it('should return false is message contains authorization', () => {
-      const result = utils.isMessageUnsigned(signedMessage);
+      const result = utils.isUnsignedMessage(signedMessage);
       expect(result).to.be.false;
     });
   });
