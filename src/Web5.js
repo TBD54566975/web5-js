@@ -5,7 +5,14 @@ import { Web5DWN } from './dwn/Web5DWN.js';
 import { LocalStorage } from './storage/LocalStorage.js';
 import { AppTransport } from './transport/AppTransport.js';
 import { HTTPTransport } from './transport/HTTPTransport.js';
-import { decodePin, isUnsignedMessage, parseJSON, parseURL, triggerProtocolHandler } from './utils.js';
+import {
+  decodePin,
+  isUnsignedMessage,
+  parseJSON,
+  parseURL,
+  promiseSeriesAny,
+  triggerProtocolHandler,
+} from './utils.js';
 
 class Web5 extends EventTarget {
   #dwn;
@@ -53,7 +60,7 @@ class Web5 extends EventTarget {
       // If keys are not available to sign messages, transport the message to the specified agent.
       if (!resolvedAuthor?.keys) {
         if (resolvedAuthor?.connected) {
-          return this.#send(resolvedAuthor.endpoint, { author, data, message, target });
+          return this.#send([resolvedAuthor.endpoint], { author, data, message, target });
         }
   
         // TODO: Is this sufficient or might we improve how the calling app can respond by initiating a connect/re-connect flow?
@@ -66,13 +73,13 @@ class Web5 extends EventTarget {
     const resolvedTarget = await this.#did.resolve(target);
 
     if (resolvedTarget?.connected) {
-      return this.#send(resolvedTarget.endpoint, { author, data, message, target });
+      return this.#send([resolvedTarget.endpoint], { author, data, message, target });
     } else if (resolvedTarget) {
       // Resolve the DWN endpoint(s) of the target and send using the endpoint's transport protocol (e.g., HTTP).
       const dwnServices = await this.#did.getServices(target, { cache: true, type: 'DecentralizedWebNode' });
       const dwnNodes = dwnServices[0]?.serviceEndpoint?.nodes;
       if (dwnNodes) {
-        return this.#send(dwnNodes[0], { author, data, message, target });
+        return this.#send(dwnNodes, { author, data, message, target });
       }
       return { status: { code: 98, detail: 'No DWN endpoints present in DID document. Request cannot be sent.' } };
     }
@@ -243,9 +250,22 @@ class Web5 extends EventTarget {
     return signedMessage;
   }
 
-  async #send(endpoint, request) {
-    const url = parseURL(endpoint);
-    return this.#transports[url?.protocol?.slice(0, -1)]?.send(url.href, request);
+  async #send(endpoints, request) {
+    // Convert each endpoint to a function that returns a promise.
+    const sendRequests = endpoints.map(endpoint => () => {
+      const url = parseURL(endpoint);
+      return this.#transports[url?.protocol?.slice(0, -1)]?.send(url.href, request);
+    });
+
+    // Try to send to each endpoint serially until the first one fulfills or all reject
+    return promiseSeriesAny(sendRequests)
+      .then(result => {
+        return result;
+      })
+      .catch(error => {
+        console.error('All service endpoints were unreachable.', error);
+        return { status: { code: 503, detail: 'Service Unavailable' } };
+      });
   }
 }
 

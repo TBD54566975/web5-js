@@ -204,6 +204,13 @@
     </div>
   </div>
 
+    <div class="box">
+      <div class="row">
+        <span>Query data authored by Alice's DID to Bob's DWN withOUT local key chain</span>
+        <button type="button" id="query_alice_to_bob_remote_btn">Send</button>
+      </div>
+    </div>
+  </div>
 </body>
 
 <script type="module">
@@ -428,7 +435,28 @@
    * NEW TESTS
    */
 
-  const bobDid = 'did:ion:bob1234';
+  /** ION DID that resolves to a DID Document containing:
+   *  "service": [
+   *     {
+   *       "id": "#dwn",
+   *       "type": "DecentralizedWebNode",
+   *       "serviceEndpoint": {
+   *         "nodes": [
+   *           "http://localhost:8085/dwn"
+   *         ],
+   *         "origins": []
+   *       }
+   *     }
+   *   ],
+   * 
+   * Must run a DWN addressable at http://localhost:8085/dwn to execute the tests below.
+   */
+  
+  // this one can be used to simulate a case where all endpoints are offline since the service endpoints in the resolved
+  // DID Document are http://localhost:8085 instead of http://localhost:8085/dwn
+
+  // const bobDid = 'did:ion:EiDPUAG_o_sameoRdJQ48M8A-j9WfrSr8GXbWlSQ01m-MQ:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJrZXktMSIsInB1YmxpY0tleUp3ayI6eyJjcnYiOiJzZWNwMjU2azEiLCJrdHkiOiJFQyIsIngiOiJyZ2RDNkhmbWt6aFNBUE45RkRkb3VvVTFQdnM4TjUyQmNHVkZFSVA5M2E0IiwieSI6Imc2UGtwX3V3M3ljTnJHVzl4b2ZOMXRZU2ZLUlY3MzlodW1DMXg3UzJjaWcifSwicHVycG9zZXMiOlsiYXV0aGVudGljYXRpb24iXSwidHlwZSI6Ikpzb25XZWJLZXkyMDIwIn1dLCJzZXJ2aWNlcyI6W3siaWQiOiJkd24iLCJzZXJ2aWNlRW5kcG9pbnQiOnsibm9kZXMiOlsiaHR0cDovL2xvY2FsaG9zdDo4MDg1IiwiaHR0cDovL2xvY2FsaG9zdDo4MDg2IiwiaHR0cDovL2xvY2FsaG9zdDo4MDg3Il19LCJ0eXBlIjoiRGVjZW50cmFsaXplZFdlYk5vZGUifV19fV0sInVwZGF0ZUNvbW1pdG1lbnQiOiJFaUF6MUdlRE9fRUJKMXdWWmtHaUFJYmZPWGZrQW9BSWZlR083WGtmb0V5UjdnIn0sInN1ZmZpeERhdGEiOnsiZGVsdGFIYXNoIjoiRWlCcTlzcTE5U1hEZ0hwdE1FVWRMZV9ta0d1dmluc0NmMUxNYndfek1rU0xrQSIsInJlY292ZXJ5Q29tbWl0bWVudCI6IkVpQjVscHZ2ZWZiUlIwZU9HTU94Uk52aUdYdmhzaVQxQWRiN19odWQ2QWdKQVEifX0';
+  const bobDid = 'did:ion:EiAa0ZGOuDaAz0IP9dtzfgcr9dqoVLMVjjce3qJVCeAE4g:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJrZXktMSIsInB1YmxpY0tleUp3ayI6eyJjcnYiOiJzZWNwMjU2azEiLCJrdHkiOiJFQyIsIngiOiJPMzhYcDIzR3lNSHBMWTl0SXFFR1dla2MtYU8tYk5pUzQ3VFYtend5ZGMwIiwieSI6Il9OeG0tQ05zWHB3a2NiQ05pT0ZxWnFtUUpDQ2VQbnI3a3JrbklPc1hNd2MifSwicHVycG9zZXMiOlsiYXV0aGVudGljYXRpb24iXSwidHlwZSI6Ikpzb25XZWJLZXkyMDIwIn1dLCJzZXJ2aWNlcyI6W3siaWQiOiJkd24iLCJzZXJ2aWNlRW5kcG9pbnQiOnsibm9kZXMiOlsiaHR0cDovL2xvY2FsaG9zdDo4MDg1L2R3biIsImh0dHA6Ly9sb2NhbGhvc3Q6ODA4Ni9kd24iLCJodHRwOi8vbG9jYWxob3N0OjgwODcvZHduIl19LCJ0eXBlIjoiRGVjZW50cmFsaXplZFdlYk5vZGUifV19fV0sInVwZGF0ZUNvbW1pdG1lbnQiOiJFaURtQ3Utcmo2V2J6QURLcjhoc2FfSnZzd2QwaGdOYzNPVmo0NFkzZzJvUzVnIn0sInN1ZmZpeERhdGEiOnsiZGVsdGFIYXNoIjoiRWlBU3NvZlJ3VGtmOGZNa0RwRTJlZUJiTHZyVkNQT1VXUmdaY3lKQ3laamJSQSIsInJlY292ZXJ5Q29tbWl0bWVudCI6IkVpQ05NVHNrZDRScWZvcmY0QTRwdTZCbmtpUTBPVDA4WWpVM2hSY0VWRjBFOVEifX0';
 
   write_alice_to_alice_local_btn.addEventListener('click', async event => {
     if (!agentConnected()) return;
@@ -474,11 +502,25 @@
       author: myDid,
       data: 'test',
       message: {
-        schema: 'foo/bar',
+        protocol: 'test',
+        schema: 'test/post'
       }
     });
     logConsole(response);
-    alert('TEST PARTIALLY IMPLEMENTED.\n\nHandling for unknown target DIDs not implemented yet.')
+  });
+
+  query_alice_to_bob_remote_btn.addEventListener('click', async event => {
+    if (!agentConnected()) return;
+    const response = await web5.dwn.records.query(bobDid, {
+      author: myDid,
+      message: {
+        filter: {
+          protocol: 'test',
+          schema: 'test/post',
+        }
+      }
+    });
+    logConsole(response);
   });
 
 </script>

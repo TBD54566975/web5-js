@@ -28,4 +28,25 @@ describe('Utils Tests', () => {
       expect(dataFormat).to.equal('image/png');
     });
   });
+
+  describe('isUnsignedMessage', () => {
+    const signedMessage = {
+      message: { authorization: 'value' },
+    };
+
+    const unsignedMessage = {
+      message: { descriptor: { schema: 'foo/bar' } },
+    };
+
+    
+    it('should return true is message is missing authorization', () => {
+      const result = utils.isMessageUnsigned(unsignedMessage);
+      expect(result).to.be.true;
+    });
+
+    it('should return false is message contains authorization', () => {
+      const result = utils.isMessageUnsigned(signedMessage);
+      expect(result).to.be.false;
+    });
+  });
 });
