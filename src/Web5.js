@@ -5,7 +5,13 @@ import { Web5DWN } from './dwn/Web5DWN.js';
 import { LocalStorage } from './storage/LocalStorage.js';
 import { AppTransport } from './transport/AppTransport.js';
 import { HTTPTransport } from './transport/HTTPTransport.js';
-import { decodePin, parseJSON, parseURL, triggerProtocolHandler } from './utils.js';
+import {
+  decodePin,
+  isUnsignedMessage,
+  parseJSON,
+  parseURL,
+  triggerProtocolHandler,
+} from './utils.js';
 
 class Web5 extends EventTarget {
   #dwn;
@@ -40,35 +46,47 @@ class Web5 extends EventTarget {
   }
 
   /**
-   * @param {string} target DID to route the message to
-   * @param {{author: string, data: any, message: {}}} request
-   * @returns
+   * @param {string} target The DID to send the message to.
+   * @param {Object} request - Object containing the request parameters.
+   * @param {string} request.author - The DID of the author of the message.
+   * @param {*} request.data - The message data (if any).
+   * @param {Object} request.message - The DWeb message.
+   * @returns Promise
    */
   async send(target, request) {
     let { author, data, message } = request;
 
-    const resolvedAuthor = await this.#did.resolve(author);
+    if (isUnsignedMessage(message)) {
+      const resolvedAuthor = await this.#did.resolve(author);
 
-    // If keys are not available to sign messages, transport the message to the specified agent.
-    if (!resolvedAuthor?.keys) {
-      if (resolvedAuthor?.connected) {
-        return this.#send(resolvedAuthor.endpoint, { author, data, message, target });
+      // If keys are not available to sign messages, transport the message to the specified agent.
+      if (!resolvedAuthor?.keys) {
+        if (resolvedAuthor?.connected) {
+          return this.#send([resolvedAuthor.endpoint], { author, data, message, target });
+        }
+  
+        // TODO: Is this sufficient or might we improve how the calling app can respond by initiating a connect/re-connect flow?
+        return { status: { code: 97, detail: 'Local keys not available and remote agent not connected' } };
       }
-
-      // TODO: Is this sufficient or might we improve how the calling app can respond by initiating a connect/re-connect flow?
-      return { error: { code: 99, message: 'Local keys not available and remote agent not connected' } };
+      
+      message = await this.#createSignedMessage(resolvedAuthor, message, data);
     }
-
-    message = await this.#createSignedMessage(resolvedAuthor, message, data);
 
     const resolvedTarget = await this.#did.resolve(target);
 
     if (resolvedTarget?.connected) {
-      return this.#send(resolvedTarget.endpoint, { author, data, message, target });
+      return this.#send([resolvedTarget.endpoint], { author, data, message, target });
+    } else if (resolvedTarget) {
+      // Resolve the DWN endpoint(s) of the target and send using the endpoint's transport protocol (e.g., HTTP).
+      const dwnServices = await this.#did.getServices(target, { cache: true, type: 'DecentralizedWebNode' });
+      const dwnNodes = dwnServices[0]?.serviceEndpoint?.nodes;
+      if (dwnNodes) {
+        return this.#send(dwnNodes, { author, data, message, target });
+      }
+      return { status: { code: 98, detail: 'No DWN endpoints present in DID document. Request cannot be sent.' } };
     }
 
-    // TODO: Add functionality to resolve the DWN endpoint of the target DID and send a message using the endpoint's transport protocol (HTTP or WS).
-    return { };
+    return { status: { code: 99, detail: 'Target DID could not be resolved' } };
   }
 
   async connect(options = { }) {
@@ -234,9 +252,38 @@ class Web5 extends EventTarget {
     return signedMessage;
   }
 
-  async #send(endpoint, request) {
-    const url = parseURL(endpoint);
-    return this.#transports[url?.protocol?.slice(0, -1)]?.send(url.href, request);
+  /**
+   * Sends the message to one or more endpoint URIs
+   * 
+   * If more than one endpoint is passed, each endpoint is tried serially until one succeeds or all fail.
+   * 
+   * This strategy is used to account for cases like attempting to write large data streams to
+   * the DWN endpoints listed in a DID document. It would be inefficient to attempt to write data to
+   * multiple endpoints in parallel until the first one completes. Instead, we only try the next DWN if
+   * there is a failure.  Additionally, per the DWN Specification, implementers SHOULD select from the
+   * Service Endpoint URIs in the nodes array in index order, so this function makes that approach easy.
+   * 
+   * @param {string[]} endpoints - An array of one or more endpoints to send the message to.
+   * @param {Object} request - Object containing the request parameters.
+   * @param {string} request.author - The DID of the author of the message.
+   * @param {*} request.data - The message data (if any).
+   * @param {Object} request.message - The DWeb message.
+   * @param {string} request.target - The DID to send the message to.
+   * @returns Promise
+   */
+  async #send(endpoints, request) {
+    let response;
+    for (let endpoint of endpoints) {
+      try {
+        const url = parseURL(endpoint);
+        response = await this.#transports[url?.protocol?.slice(0, -1)]?.send(url.href, request);
+      } catch {
+        // Intentionally ignore exception and try the next endpoint.
+      }
+      if (response) break; // Stop looping and return after the first endpoint successfully responds.
+    }
+
+    return response ?? { status: { code: 503, detail: 'Service Unavailable' } };
   }
 }
 

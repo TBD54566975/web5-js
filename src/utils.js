@@ -52,6 +52,20 @@ const dataToBytes = (data, dataFormat) => {
 };
 
 /**
+ * Simplistic initial implementation to check whether messages that are being routed
+ * to process locally or be transported to a remote DWN are already signed.
+ * 
+ * TODO: Consider whether cryptographic signature verification is warranted or if
+ *       the naive check is sufficient given that DWNs already verify authenticity
+ *       and integrity of every message.
+ * @param {{}} message 
+ * @returns boolean
+ */
+function isUnsignedMessage(message) {
+  return message?.message?.authorization ? false : true;
+}
+
+/**
  * Credit for toType() function:
  *   Angus Croll
  *   https://github.com/angus-c
@@ -82,6 +96,7 @@ export {
   createWeakSingletonAccessor,
   dataToBytes,
   decodePin,
+  isUnsignedMessage,
   parseJSON,
   parseURL,
   triggerProtocolHandler,
