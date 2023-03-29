@@ -4,7 +4,7 @@ import serve from 'koa-static';
 const app = new Koa();
 const port = 8080;
 
-// GET /index.html
+// GET /desktop-agent.html
 app.use(serve('.'));
 
 // GET /browser.mjs
