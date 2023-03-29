@@ -109,6 +109,24 @@
 
   <hr />
 
+  <p style="font-size: large">Read Records</p>
+
+  <div class="box">
+    <div class="row">
+    <button type="button" id="query_for_records_button">Get Record ID</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <label for="read_by_id">Schema</label>
+      <input id="read_by_id" type="text" value="foo/json" />
+      <button type="button" id="read_by_id_button">Read By ID</button>
+    </div>
+  </div>
+
+  <hr />
+
   <p class="heading">Delete Records</p>
 
   <div class="box">
@@ -316,6 +334,69 @@
     logConsole(response);
   });
 
+/* RECORDS READ */
+
+  query_for_records_button.addEventListener('click', async event => {
+    if (!agentConnected()) return;
+    
+    const existingRecords = await (await web5.dwn.records.query(myDid, {
+      author: myDid,
+      message: {
+        filter: {
+          schema: 'records/read',
+          dataFormat: 'text/plain',
+        }
+      }
+    })).json()
+
+    console.log('existing records: ', existingRecords);
+
+    const existingEntry = existingRecords?.entries?.[0];
+    if (existingEntry) {
+      read_by_id.value = existingEntry.recordId;
+    }
+    else {
+      await web5.dwn.records.write(myDid, {
+        author: myDid,
+        data: 'testing 123',
+        message: {
+          schema: 'records/read',
+        }
+      });
+
+      const response = await (await web5.dwn.records.query(myDid, {
+        author: myDid,
+        message: {
+          filter: {
+            schema: 'records/read',
+            dataFormat: 'text/plain',
+          }
+        }
+      })).json()
+
+      logConsole(response);
+
+      const entry = response?.entries?.[0];
+      if (entry) {
+        read_by_id.value = entry.recordId;
+      }
+    }
+
+    
+  });
+
+  read_by_id_button.addEventListener('click', async event => {
+    if (!agentConnected() || !read_by_id.value) return;
+    const response = await web5.dwn.records.read(myDid, {
+      author: myDid,
+      message: {
+        recordId: read_by_id.value
+      }
+    });
+    logConsole(response, 'QUERY:');
+  });
+
+/* END RECORDS READ */
 
   write_text_button.addEventListener('click', async event => {
     if (!agentConnected()) return;
