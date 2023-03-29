@@ -1,7 +1,7 @@
 {
-  "name": "test-site",
-  "version": "0.0.1",
-  "description": "Simple website to test using the web5 SDK",
+  "name": "test-dashboard",
+  "version": "0.0.2",
+  "description": "Simple website to test using the Web5-js library",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -14,7 +14,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "koa": "^2.14.1",
-    "koa-static": "^5.0.0"
+    "koa": "2.14.1",
+    "koa-static": "5.0.0"
   }
 }
