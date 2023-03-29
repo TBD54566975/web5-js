@@ -138,9 +138,6 @@ class Web5 extends EventTarget {
       }
     }
 
-    const encodedOrigin = this.#dwn.SDK.Encoder.stringToBase64Url(location.origin);
-    triggerProtocolHandler(`web5://connect/${this.#keys.encoded.publicKey}/${encodedOrigin}`);
-
     function destroySocket(socket) {
       socket.close();
       socket.removeEventListener('open', handleOpen);
@@ -174,58 +171,82 @@ class Web5 extends EventTarget {
 
       const json = parseJSON(event.data);
 
-      switch (json?.type) {
-      case 'connected':
-        if (!json.data) {
-          removeSocket(socket);
-          return;
-        }
-
-        this.#connection = json.data;
-        await storage.set(connectionLocation, this.#connection);
-
-        // Register DID on initial connection
-        await this.#did.register({
-          connected: true,
-          did: this.#connection.did,
-          endpoint: `http://localhost:${this.#connection.port}/dwn`,
-        });
-
-        this.dispatchEvent(new CustomEvent('connection', { detail: this.#connection }));
-        break;
-
-      case 'requested':
-        if (!json.data) {
-          removeSocket(socket);
-          return;
-        }
-
-        try {
-          await decodePin(json.data, this.#keys.decoded.secretKey);
-        } catch {
-          removeSocket(socket);
-          return;
-        }
-
-        this.dispatchEvent(new CustomEvent('open', { detail: json.data }));
-        return;
-
-      case 'blocked':
-      case 'denied':
-      case 'closed':
-        this.dispatchEvent(new CustomEvent('close'));
-        break;
-
-      case 'unknown':
-        return;
-
-      default:
-        removeSocket(socket);
+      if (json?.error) {
+        console.error(json.error);
         return;
       }
 
-      sockets.forEach(destroySocket);
-      sockets.clear();
+      switch (json?.req) {
+      case 'request':
+        switch (json.res) {
+        case 'received':
+          socket.send(JSON.stringify({ req: 'connect' }));
+          return;
+        }
+        break;
+
+      case 'connect':
+        switch (json.res) {
+        case 'connected':
+          if (!json.data) {
+            // stop listening to this socket as it is missing required data
+            removeSocket(socket);
+            return;
+          }
+
+          this.#connection = json.data;
+          await storage.set(connectionLocation, this.#connection);
+
+          // Register DID on initial connection
+          await this.#did.register({
+            connected: true,
+            did: this.#connection.did,
+            endpoint: `http://localhost:${this.#connection.port}/dwn`,
+          });
+
+          this.dispatchEvent(new CustomEvent('connection', { detail: this.#connection }));
+
+          // tear down everything as this connection has been allowed
+          sockets.forEach(destroySocket);
+          sockets.clear();
+          return;
+
+        case 'requested':
+          if (!json.data) {
+            // stop listening to this socket as it is missing required data
+            removeSocket(socket);
+            return;
+          }
+
+          try {
+            await decodePin(json.data, this.#keys.decoded.secretKey);
+          } catch {
+            // stop listening to this socket as it has sent us invalid data
+            removeSocket(socket);
+            return;
+          }
+
+          this.dispatchEvent(new CustomEvent('open', { detail: json.data }));
+          return;
+
+        case 'blocked':
+        case 'denied':
+        case 'closed':
+          this.dispatchEvent(new CustomEvent('close'));
+
+          // tear down everything as this connection has been denied
+          sockets.forEach(destroySocket);
+          sockets.clear();
+          return;
+
+        case 'unknown':
+          return;
+        }
+        break;
+      }
+
+      // stop listening to this socket as it has sent us unexpected data
+      removeSocket(socket);
     };
 
     const sockets = new Set();
@@ -236,6 +257,9 @@ class Web5 extends EventTarget {
       socket.addEventListener('open', handleOpen);
       socket.addEventListener('error', handleError);
     }
+
+    const encodedOrigin = this.#dwn.SDK.Encoder.stringToBase64Url(location.origin);
+    triggerProtocolHandler(`web5://connect/${this.#keys.encoded.publicKey}/${encodedOrigin}`);
   }
 
   async #createSignedMessage(resolvedAuthor, message, data) {
