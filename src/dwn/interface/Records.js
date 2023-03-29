@@ -10,6 +10,10 @@ class Records extends Interface {
     return this.send('Delete', target, request);
   }
 
+  async read(target, request) {
+    return this.send('Read', target, request);
+  }
+
   async query(target, request) {
     return this.send('Query', target, request);
   }
