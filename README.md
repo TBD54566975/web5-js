@@ -83,6 +83,30 @@ const response = await web5.dwn.records.write('did:example:alice', {
 });
 ```
 
+### **`web5.dwn.records.read(target, request)`**
+
+Method for writing a record to the DWeb Node of a provided `target` DID.
+
+#### **`request`**
+
+The write `request` must contain the following:
+
+- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `target` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
+- **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
+  - **`recordId`**  - *`string`*: the required record ID string that identifies the record data you are fetching.
+
+#### **Example** 
+
+```javascript
+const web5 = new Web5();
+const response = await web5.dwn.records.read('did:example:alice', {
+  author: 'did:example:alice',
+  message: {
+    recordId: 'bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5'
+  }
+});
+```
+
 ### **`web5.dwn.records.delete(target, request)`**
 
 Method for deleting a record in the DWeb Node of a provided `target` DID.
