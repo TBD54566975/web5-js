@@ -13,6 +13,6 @@ module.exports = {
   inject: [require.resolve('node-stdlib-browser/helpers/esbuild/shim')],
   plugins: [polyfillProviderPlugin(stdLibBrowser)],
   define: {
-    'global': 'globalThis'
-  }
+    'global': 'globalThis',
+  },
 };
