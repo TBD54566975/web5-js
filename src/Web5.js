@@ -66,7 +66,7 @@ class Web5 extends EventTarget {
         }
   
         // TODO: Is this sufficient or might we improve how the calling app can respond by initiating a connect/re-connect flow?
-        return { status: { code: 97, detail: 'Local keys not available and remote agent not connected' } };
+        return { status: { code: 422, detail: 'Local keys not available and remote agent not connected' } };
       }
       
       message = await this.#createSignedMessage(resolvedAuthor, message, data);
@@ -83,10 +83,10 @@ class Web5 extends EventTarget {
       if (dwnNodes) {
         return this.#send(dwnNodes, { author, data, message, target });
       }
-      return { status: { code: 98, detail: 'No DWN endpoints present in DID document. Request cannot be sent.' } };
+      return { status: { code: 422, detail: 'No DWN endpoints present in DID document. Request cannot be sent.' } };
     }
 
-    return { status: { code: 99, detail: 'Target DID could not be resolved' } };
+    return { status: { code: 422, detail: 'Target DID could not be resolved' } };
   }
 
   async connect(options = { }) {
@@ -277,7 +277,8 @@ class Web5 extends EventTarget {
       try {
         const url = parseURL(endpoint);
         response = await this.#transports[url?.protocol?.slice(0, -1)]?.send(url.href, request);
-      } catch {
+      } catch (error) {
+        console.log(error);
         // Intentionally ignore exception and try the next endpoint.
       }
       if (response) break; // Stop looping and return after the first endpoint successfully responds.
