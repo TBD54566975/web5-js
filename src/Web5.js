@@ -98,23 +98,6 @@ class Web5 extends EventTarget {
       return;
     }
 
-    this.#connection = await storage.get(connectionLocation);
-    if (this.#connection) {
-      // Register DID on reconnection
-      await this.#did.register({
-        connected: true,
-        did: this.#connection.did,
-        endpoint: `http://localhost:${this.#connection.port}/dwn`,
-      });
-
-      this.dispatchEvent(new CustomEvent('connection', { detail: this.#connection }));
-      return;
-    }
-
-    if (options?.silent) {
-      return;
-    }
-
     if (!this.#keys) {
       const keys = await storage.get(keysLocation);
       if (keys) {
@@ -125,6 +108,20 @@ class Web5 extends EventTarget {
             secretKey: this.#dwn.SDK.Encoder.base64UrlToBytes(keys.secretKey),
           },
         };
+
+        // only attempt to load the connection data if we already have keys
+        this.#connection = await storage.get(connectionLocation);
+        if (this.#connection) {
+          // Register DID on reconnection
+          await this.#did.register({
+            connected: true,
+            did: this.#connection.did,
+            endpoint: `http://localhost:${this.#connection.port}/dwn/${this.#keys.encoded.publicKey}`,
+          });
+
+          this.dispatchEvent(new CustomEvent('connection', { detail: this.#connection }));
+          return;
+        }
       } else {
         const keys = nacl.box.keyPair();
         this.#keys = {
@@ -136,6 +133,10 @@ class Web5 extends EventTarget {
         };
         await storage.set(keysLocation, this.#keys.encoded);
       }
+    }
+
+    if (options?.silent) {
+      return;
     }
 
     function destroySocket(socket) {
@@ -201,7 +202,7 @@ class Web5 extends EventTarget {
           await this.#did.register({
             connected: true,
             did: this.#connection.did,
-            endpoint: `http://localhost:${this.#connection.port}/dwn`,
+            endpoint: `http://localhost:${this.#connection.port}/dwn/${this.#keys.encoded.publicKey}`,
           });
 
           this.dispatchEvent(new CustomEvent('connection', { detail: this.#connection }));
