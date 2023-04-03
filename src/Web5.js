@@ -167,21 +167,10 @@ class Web5 extends EventTarget {
         return;
 
       case 'show-pin':
-        if (!params) {
+        if (!this.#decodePinAndDispatchOpenEvent(params)) {
           // stop listening to this socket as it is missing required data
           removeSocket(socket);
-          return;
         }
-
-        try {
-          await decodePin(params, this.#keys.decoded.secretKey);
-        } catch {
-          // stop listening to this socket as it has sent us invalid data
-          removeSocket(socket);
-          return;
-        }
-
-        this.dispatchEvent(new CustomEvent('open', { detail: params }));
         return;
       }
 
@@ -202,6 +191,75 @@ class Web5 extends EventTarget {
 
     const encodedOrigin = this.#dwn.SDK.Encoder.stringToBase64Url(location.origin);
     triggerProtocolHandler(`web5://connect/${this.#keys.encoded.publicKey}/${encodedOrigin}`);
+  }
+
+  async update(options = { }) {
+    const storage = options?.storage ?? new LocalStorage();
+    const connectionLocation = options?.connectionLocation ?? 'web5-connection';
+    const keysLocation = options?.keysLocation ?? 'web5-keys';
+
+    const permissionRequests = structuredClone(options?.permissionRequests);
+
+    const connectionAlreadyExists = await this.#loadConnection({ storage, connectionLocation, keysLocation });
+    if (!connectionAlreadyExists) {
+      throw 'must call connect() before calling update()';
+    }
+
+    function destroySocket() {
+      socket.close();
+      socket.removeEventListener('open', handleOpen);
+      socket.removeEventListener('error', removeSocket);
+      socket.removeEventListener('notification', handleNotification);
+    }
+
+    const removeSocket = () => {
+      destroySocket(socket);
+
+      this.dispatchEvent(new CustomEvent('error'));
+    };
+
+    const handleOpen = async () => {
+      socket.addEventListener('notification', handleNotification);
+
+      try {
+        const connection = await socket.sendRequest('update', { permissionRequests });
+        if (!connection) {
+          // stop listening to this socket as it is missing required data
+          removeSocket();
+          return;
+        }
+
+        this.#connection = { ...this.#connection, connection };
+        await storage.set(connectionLocation, this.#connection);
+
+        this.dispatchEvent(new CustomEvent('update', { detail: this.#connection }));
+      } catch {
+        this.dispatchEvent(new CustomEvent('close'));
+      }
+
+      destroySocket();
+    };
+
+    const handleNotification = async (event) => {
+      const { method, params } = event.detail;
+
+      switch (method) {
+      case 'show-pin':
+        if (!this.#decodePinAndDispatchOpenEvent(params)) {
+          // stop listening to this socket as it is missing required data
+          removeSocket();
+        }
+        return;
+      }
+
+      // stop listening to this socket as it has sent us unexpected data
+      removeSocket();
+    };
+
+    const socket = new JSONRPCSocket();
+    socket.addEventListener('open', handleOpen);
+    socket.addEventListener('error', removeSocket);
+    socket.open(`ws://localhost:${this.#connection.port}/connections/${this.#keys.encoded.publicKey}`);
   }
 
   async #createSignedMessage(resolvedAuthor, message, data) {
@@ -251,6 +309,21 @@ class Web5 extends EventTarget {
     }
 
     return response ?? { status: { code: 503, detail: 'Service Unavailable' } };
+  }
+
+  async #decodePinAndDispatchOpenEvent(data) {
+    if (!data) {
+      return false;
+    }
+
+    try {
+      await decodePin(data, this.#keys.decoded.secretKey);
+    } catch {
+      return false;
+    }
+
+    this.dispatchEvent(new CustomEvent('open', { detail: data }));
+    return true;
   }
 
   async #loadKeys(options) {

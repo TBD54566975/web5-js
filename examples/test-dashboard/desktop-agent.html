@@ -39,6 +39,7 @@
 
 <body style="background: #000; color: #fff;">
   <button type="button" id="connect_button">DID Connect</button>
+  <button type="button" id="update_button">DID Update</button>
   <div>
     <span>Security Code: </span><strong id="security_code"></strong>
   </div>
@@ -246,6 +247,9 @@
     myDid = event.detail.did;
     alert('Connection succeeded!');
   });
+  web5.addEventListener('update', (event) => {
+    alert('Update succeeded!');
+  });
   web5.addEventListener('close', (event) => {
     alert('Connection was denied');
   });
@@ -260,6 +264,28 @@
       permissionRequests: [
         {
           schema: 'foo/text'
+        },
+        {
+          protocol: 'test',
+          schema: 'test/post'
+        }
+      ]
+    });
+  });
+
+  update_button.addEventListener('click', async event => {
+    event.preventDefault();
+
+    web5.update({
+      permissionRequests: [
+        {
+          schema: 'foo/text'
+        },
+        {
+          schema: 'foo/json'
+        },
+        {
+          schema: 'foo/avatar'
         },
         {
           protocol: 'test',
