@@ -256,7 +256,17 @@
   connect_button.addEventListener('click', async event => {
     event.preventDefault();
 
-    web5.connect();
+    web5.connect({
+      permissionRequests: [
+        {
+          schema: 'foo/text'
+        },
+        {
+          protocol: 'test',
+          schema: 'test/post'
+        }
+      ]
+    });
   });
 
   async function logConsole(obj, message = '') {

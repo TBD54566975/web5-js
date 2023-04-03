@@ -94,6 +94,8 @@ class Web5 extends EventTarget {
     const connectionLocation = options?.connectionLocation ?? 'web5-connection';
     const keysLocation = options?.keysLocation ?? 'web5-keys';
 
+    const permissionRequests = structuredClone(options?.permissionRequests);
+
     if (this.#connection) {
       return;
     }
@@ -181,7 +183,11 @@ class Web5 extends EventTarget {
       case 'request':
         switch (json.res) {
         case 'received':
-          socket.send(JSON.stringify({ req: 'connect' }));
+          var connectMessage = { req: 'connect' };
+          if (permissionRequests) {
+            connectMessage.permissionRequests = permissionRequests;
+          }
+          socket.send(JSON.stringify(connectMessage));
           return;
         }
         break;
