@@ -96,45 +96,9 @@ class Web5 extends EventTarget {
 
     const permissionRequests = structuredClone(options?.permissionRequests);
 
-    if (this.#connection) {
+    const connectionAlreadyExists = await this.#loadConnection({ storage, connectionLocation, keysLocation });
+    if (connectionAlreadyExists) {
       return;
-    }
-
-    if (!this.#keys) {
-      const keys = await storage.get(keysLocation);
-      if (keys) {
-        this.#keys = {
-          encoded: keys,
-          decoded: {
-            publicKey: this.#dwn.SDK.Encoder.base64UrlToBytes(keys.publicKey),
-            secretKey: this.#dwn.SDK.Encoder.base64UrlToBytes(keys.secretKey),
-          },
-        };
-
-        // only attempt to load the connection data if we already have keys
-        this.#connection = await storage.get(connectionLocation);
-        if (this.#connection) {
-          // Register DID on reconnection
-          await this.#did.register({
-            connected: true,
-            did: this.#connection.did,
-            endpoint: `http://localhost:${this.#connection.port}/dwn/${this.#keys.encoded.publicKey}`,
-          });
-
-          this.dispatchEvent(new CustomEvent('connection', { detail: this.#connection }));
-          return;
-        }
-      } else {
-        const keys = nacl.box.keyPair();
-        this.#keys = {
-          encoded: {
-            publicKey: this.#dwn.SDK.Encoder.bytesToBase64Url(keys.publicKey),
-            secretKey: this.#dwn.SDK.Encoder.bytesToBase64Url(keys.secretKey),
-          },
-          decoded: keys,
-        };
-        await storage.set(keysLocation, this.#keys.encoded);
-      }
     }
 
     if (options?.silent) {
@@ -316,6 +280,70 @@ class Web5 extends EventTarget {
     }
 
     return response ?? { status: { code: 503, detail: 'Service Unavailable' } };
+  }
+
+  async #loadKeys(options) {
+    const storage = options.storage;
+    const keysLocation = options.keysLocation;
+
+    if (this.#keys) {
+      return true;
+    }
+
+    const encoded = await storage.get(keysLocation);
+    if (encoded) {
+      this.#keys = {
+        encoded,
+        decoded: {
+          publicKey: this.#dwn.SDK.Encoder.base64UrlToBytes(encoded.publicKey),
+          secretKey: this.#dwn.SDK.Encoder.base64UrlToBytes(encoded.secretKey),
+        },
+      };
+      return true;
+    }
+
+    if (!options.silent) {
+      const decoded = nacl.box.keyPair();
+      this.#keys = {
+        encoded: {
+          publicKey: this.#dwn.SDK.Encoder.bytesToBase64Url(decoded.publicKey),
+          secretKey: this.#dwn.SDK.Encoder.bytesToBase64Url(decoded.secretKey),
+        },
+        decoded,
+      };
+      await storage.set(keysLocation, this.#keys.encoded);
+    }
+
+    return false;
+  }
+
+  async #loadConnection(options) {
+    const storage = options.storage;
+    const connectionLocation = options.connectionLocation;
+
+    if (this.#connection) {
+      return true;
+    }
+
+    const keysAlreadyExist = await this.#loadKeys(options);
+    if (!keysAlreadyExist) {
+      return false;
+    }
+
+    this.#connection = await storage.get(connectionLocation);
+    if (!this.#connection) {
+      return false;
+    }
+
+    // Register DID on reconnection
+    await this.#did.register({
+      connected: true,
+      did: this.#connection.did,
+      endpoint: `http://localhost:${this.#connection.port}/dwn/${this.#keys.encoded.publicKey}`,
+    });
+
+    this.dispatchEvent(new CustomEvent('connection', { detail: this.#connection }));
+    return true;
   }
 }
 
