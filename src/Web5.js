@@ -2,13 +2,13 @@ import nacl from 'tweetnacl';
 
 import { Web5DID } from './did/Web5DID.js';
 import { Web5DWN } from './dwn/Web5DWN.js';
+import { JSONRPCSocket } from './json-rpc/JSONRPCSocket.js';
 import { LocalStorage } from './storage/LocalStorage.js';
 import { AppTransport } from './transport/AppTransport.js';
 import { HTTPTransport } from './transport/HTTPTransport.js';
 import {
   decodePin,
   isUnsignedMessage,
-  parseJSON,
   parseURL,
   triggerProtocolHandler,
 } from './utils.js';
@@ -109,7 +109,7 @@ class Web5 extends EventTarget {
       socket.close();
       socket.removeEventListener('open', handleOpen);
       socket.removeEventListener('error', handleError);
-      socket.removeEventListener('message', handleMessage);
+      socket.removeEventListener('notification', handleNotification);
     }
 
     const removeSocket = (socket) => {
@@ -124,7 +124,7 @@ class Web5 extends EventTarget {
     function handleOpen(event) {
       const socket = event.target;
 
-      socket.addEventListener('message', handleMessage);
+      socket.addEventListener('notification', handleNotification);
     }
 
     function handleError(event) {
@@ -133,39 +133,21 @@ class Web5 extends EventTarget {
       removeSocket(socket);
     }
 
-    const handleMessage = async (event) => {
+    const handleNotification = async (event) => {
       const socket = event.target;
+      const { method, params } = event.detail;
 
-      const json = parseJSON(event.data);
-
-      if (json?.error) {
-        console.error(json.error);
-        return;
-      }
-
-      switch (json?.req) {
-      case 'request':
-        switch (json.res) {
-        case 'received':
-          var connectMessage = { req: 'connect' };
-          if (permissionRequests) {
-            connectMessage.permissionRequests = permissionRequests;
-          }
-          socket.send(JSON.stringify(connectMessage));
-          return;
-        }
-        break;
-
-      case 'connect':
-        switch (json.res) {
-        case 'connected':
-          if (!json.data) {
+      switch (method) {
+      case 'requested-web5':
+        try {
+          const connection = await socket.sendRequest('connect', { permissionRequests });
+          if (!connection) {
             // stop listening to this socket as it is missing required data
             removeSocket(socket);
             return;
           }
 
-          this.#connection = json.data;
+          this.#connection = connection;
           await storage.set(connectionLocation, this.#connection);
 
           // Register DID on initial connection
@@ -176,44 +158,31 @@ class Web5 extends EventTarget {
           });
 
           this.dispatchEvent(new CustomEvent('connection', { detail: this.#connection }));
-
-          // tear down everything as this connection has been allowed
-          sockets.forEach(destroySocket);
-          sockets.clear();
-          return;
-
-        case 'requested':
-          if (!json.data) {
-            // stop listening to this socket as it is missing required data
-            removeSocket(socket);
-            return;
-          }
-
-          try {
-            await decodePin(json.data, this.#keys.decoded.secretKey);
-          } catch {
-            // stop listening to this socket as it has sent us invalid data
-            removeSocket(socket);
-            return;
-          }
-
-          this.dispatchEvent(new CustomEvent('open', { detail: json.data }));
-          return;
-
-        case 'blocked':
-        case 'denied':
-        case 'closed':
+        } catch {
           this.dispatchEvent(new CustomEvent('close'));
+        }
 
-          // tear down everything as this connection has been denied
-          sockets.forEach(destroySocket);
-          sockets.clear();
-          return;
+        sockets.forEach(destroySocket);
+        sockets.clear();
+        return;
 
-        case 'unknown':
+      case 'show-pin':
+        if (!params) {
+          // stop listening to this socket as it is missing required data
+          removeSocket(socket);
           return;
         }
-        break;
+
+        try {
+          await decodePin(params, this.#keys.decoded.secretKey);
+        } catch {
+          // stop listening to this socket as it has sent us invalid data
+          removeSocket(socket);
+          return;
+        }
+
+        this.dispatchEvent(new CustomEvent('open', { detail: params }));
+        return;
       }
 
       // stop listening to this socket as it has sent us unexpected data
@@ -222,11 +191,13 @@ class Web5 extends EventTarget {
 
     const sockets = new Set();
     for (let port = 55_500; port <= 55_600; ++port) {
-      const socket = new WebSocket(`ws://localhost:${port}/connections/${this.#keys.encoded.publicKey}`);
+      const socket = new JSONRPCSocket();
       sockets.add(socket);
 
       socket.addEventListener('open', handleOpen);
       socket.addEventListener('error', handleError);
+
+      socket.open(`ws://localhost:${port}/connections/${this.#keys.encoded.publicKey}`);
     }
 
     const encodedOrigin = this.#dwn.SDK.Encoder.stringToBase64Url(location.origin);
