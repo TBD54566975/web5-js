@@ -1,6 +1,7 @@
 import { base64url } from 'multiformats/bases/base64';
 import { base58btc } from 'multiformats/bases/base58';
-import { convertKeyPair } from 'ed2curve';
+import ed2curve from 'ed2curve';
+const { convertKeyPair } = ed2curve;
 import nacl from 'tweetnacl';
 
 // See https://github.com/multiformats/multicodec/blob/master/table.csv
