@@ -200,6 +200,10 @@ class Web5 extends EventTarget {
 
     const permissionRequests = structuredClone(options?.permissionRequests);
 
+    if (!permissionRequests) {
+      throw 'must provide at least one of: permissionRequests';
+    }
+
     const connectionAlreadyExists = await this.#loadConnection({ storage, connectionLocation, keysLocation });
     if (!connectionAlreadyExists) {
       throw 'must call connect() before calling update()';
