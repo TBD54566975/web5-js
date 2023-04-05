@@ -262,13 +262,10 @@
 
     web5.connect({
       permissionRequests: [
-        {
-          schema: 'foo/text'
-        },
-        {
-          protocol: 'test',
-          schema: 'test/post'
-        }
+        { interface: 'Records', method: 'Write', schema: 'foo/text' },
+        { interface: 'Records', method: 'Query', schema: 'foo/text' },
+        { interface: 'Records', method: 'Write', protocol: 'test', schema: 'test/post' },
+        { interface: 'Records', method: 'Query', protocol: 'test', schema: 'test/post' }
       ]
     });
   });
@@ -278,19 +275,14 @@
 
     web5.update({
       permissionRequests: [
-        {
-          schema: 'foo/text'
-        },
-        {
-          schema: 'foo/json'
-        },
-        {
-          schema: 'foo/avatar'
-        },
-        {
-          protocol: 'test',
-          schema: 'test/post'
-        }
+        { interface: 'Records', method: 'Write', schema: 'foo/text' },
+        { interface: 'Records', method: 'Query', schema: 'foo/text' },
+        { interface: 'Records', method: 'Write', schema: 'foo/json' },
+        { interface: 'Records', method: 'Query', schema: 'foo/json' },
+        { interface: 'Records', method: 'Write', schema: 'foo/avatar' },
+        { interface: 'Records', method: 'Query', schema: 'foo/avatar' },
+        { interface: 'Records', method: 'Write', protocol: 'test', schema: 'test/post' },
+        { interface: 'Records', method: 'Query', protocol: 'test', schema: 'test/post' }
       ]
     });
   });
