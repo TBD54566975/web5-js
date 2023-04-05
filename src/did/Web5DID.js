@@ -29,8 +29,18 @@ class Web5DID {
     });
   }
 
+  async sign(method, options = { }) {
+    const api = await this.#getMethodAPI(method);
+    return api.sign(options);
+  }
+
   async unregister(did) {
     await this.#registeredDIDs.delete(did);
+  }
+
+  async verify(method, options = { }) {
+    const api = await this.#getMethodAPI(method);
+    return api.verify(options);
   }
 
   async resolve(did, options = { }) {

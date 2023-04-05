@@ -138,7 +138,7 @@ class Web5 extends EventTarget {
       }
     }
 
-    const encodedOrigin = this.#dwn.SDK.Encoder.bytesToBase64Url(location.origin);
+    const encodedOrigin = this.#dwn.SDK.Encoder.stringToBase64Url(location.origin);
     triggerProtocolHandler(`web5://connect/${this.#keys.encoded.publicKey}/${encodedOrigin}`);
 
     function destroySocket(socket) {
