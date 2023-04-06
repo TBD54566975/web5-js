@@ -18,8 +18,11 @@ class Web5 extends EventTarget {
   #did;
   #transports;
 
+  #storage = null;
   #keys = null;
+  #keysLocation = null;
   #connection = null;
+  #connectionLocation = null;
 
   constructor(options = { }) {
     super();
@@ -90,13 +93,13 @@ class Web5 extends EventTarget {
   }
 
   async connect(options = { }) {
-    const storage = options?.storage ?? new LocalStorage();
-    const connectionLocation = options?.connectionLocation ?? 'web5-connection';
-    const keysLocation = options?.keysLocation ?? 'web5-keys';
+    this.#storage = options?.storage ?? new LocalStorage();
+    this.#connectionLocation = options?.connectionLocation ?? 'web5-connection';
+    this.#keysLocation = options?.keysLocation ?? 'web5-keys';
 
     const permissionRequests = structuredClone(options?.permissionRequests);
 
-    const connectionAlreadyExists = await this.#loadConnection({ storage, connectionLocation, keysLocation });
+    const connectionAlreadyExists = await this.#loadConnection(options);
     if (connectionAlreadyExists) {
       return;
     }
@@ -148,7 +151,7 @@ class Web5 extends EventTarget {
           }
 
           this.#connection = connection;
-          await storage.set(connectionLocation, this.#connection);
+          await this.#storage.set(this.#connectionLocation, this.#connection);
 
           // Register DID on initial connection
           await this.#did.register({
@@ -193,21 +196,12 @@ class Web5 extends EventTarget {
     triggerProtocolHandler(`web5://connect/${this.#keys.encoded.publicKey}/${encodedOrigin}`);
   }
 
-  async update(options = { }) {
-    const storage = options?.storage ?? new LocalStorage();
-    const connectionLocation = options?.connectionLocation ?? 'web5-connection';
-    const keysLocation = options?.keysLocation ?? 'web5-keys';
-
-    const permissionRequests = structuredClone(options?.permissionRequests);
-
-    if (!permissionRequests) {
-      throw 'must provide at least one of: permissionRequests';
+  async changePermissions(permissionRequests) {
+    if (!this.#connection || !this.#keys) {
+      throw 'must call connect() before calling changePermissions()';
     }
 
-    const connectionAlreadyExists = await this.#loadConnection({ storage, connectionLocation, keysLocation });
-    if (!connectionAlreadyExists) {
-      throw 'must call connect() before calling update()';
-    }
+    permissionRequests = structuredClone(permissionRequests);
 
     function destroySocket() {
       socket.close();
@@ -234,9 +228,9 @@ class Web5 extends EventTarget {
         }
 
         this.#connection = { ...this.#connection, connection };
-        await storage.set(connectionLocation, this.#connection);
+        await this.#storage.set(this.#connectionLocation, this.#connection);
 
-        this.dispatchEvent(new CustomEvent('update', { detail: this.#connection }));
+        this.dispatchEvent(new CustomEvent('change', { detail: this.#connection }));
       } catch {
         this.dispatchEvent(new CustomEvent('close'));
       }
@@ -330,15 +324,12 @@ class Web5 extends EventTarget {
     return true;
   }
 
-  async #loadKeys(options) {
-    const storage = options.storage;
-    const keysLocation = options.keysLocation;
-
+  async #loadKeys(options = { }) {
     if (this.#keys) {
       return true;
     }
 
-    const encoded = await storage.get(keysLocation);
+    const encoded = await this.#storage.get(this.#keysLocation);
     if (encoded) {
       this.#keys = {
         encoded,
@@ -359,16 +350,13 @@ class Web5 extends EventTarget {
         },
         decoded,
       };
-      await storage.set(keysLocation, this.#keys.encoded);
+      await this.#storage.set(this.#keysLocation, this.#keys.encoded);
     }
 
     return false;
   }
 
-  async #loadConnection(options) {
-    const storage = options.storage;
-    const connectionLocation = options.connectionLocation;
-
+  async #loadConnection(options = { }) {
     if (this.#connection) {
       return true;
     }
@@ -378,7 +366,7 @@ class Web5 extends EventTarget {
       return false;
     }
 
-    this.#connection = await storage.get(connectionLocation);
+    this.#connection = await this.#storage.get(this.#connectionLocation);
     if (!this.#connection) {
       return false;
     }

@@ -247,7 +247,7 @@
     myDid = event.detail.did;
     alert('Connection succeeded!');
   });
-  web5.addEventListener('update', (event) => {
+  web5.addEventListener('change', (event) => {
     alert('Update succeeded!');
   });
   web5.addEventListener('close', (event) => {
@@ -273,18 +273,16 @@
   update_button.addEventListener('click', async event => {
     event.preventDefault();
 
-    web5.update({
-      permissionRequests: [
-        { interface: 'Records', method: 'Write', schema: 'foo/text' },
-        { interface: 'Records', method: 'Query', schema: 'foo/text' },
-        { interface: 'Records', method: 'Write', schema: 'foo/json' },
-        { interface: 'Records', method: 'Query', schema: 'foo/json' },
-        { interface: 'Records', method: 'Write', schema: 'foo/avatar' },
-        { interface: 'Records', method: 'Query', schema: 'foo/avatar' },
-        { interface: 'Records', method: 'Write', protocol: 'test', schema: 'test/post' },
-        { interface: 'Records', method: 'Query', protocol: 'test', schema: 'test/post' }
-      ]
-    });
+    web5.changePermissions([
+      { interface: 'Records', method: 'Write', schema: 'foo/text' },
+      { interface: 'Records', method: 'Query', schema: 'foo/text' },
+      { interface: 'Records', method: 'Write', schema: 'foo/json' },
+      { interface: 'Records', method: 'Query', schema: 'foo/json' },
+      { interface: 'Records', method: 'Write', schema: 'foo/avatar' },
+      { interface: 'Records', method: 'Query', schema: 'foo/avatar' },
+      { interface: 'Records', method: 'Write', protocol: 'test', schema: 'test/post' },
+      { interface: 'Records', method: 'Query', protocol: 'test', schema: 'test/post' }
+    ]);
   });
 
   async function logConsole(obj, message = '') {

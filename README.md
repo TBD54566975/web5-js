@@ -322,57 +322,23 @@ document.querySelector('#connect_button').addEventListener('click', async event 
 });
 ```
 
-### **`web5.update(options)`**
+### **`web5.changePermissions(permissionRequests)`**
 
-Enables an app to update their connection to a user's local identity app, or update an in-app DID to represent the user (e.g. if the user does not have an identity app).
+Enables an app to change the permissions of their connection to a user's local identity app, or an in-app DID to represent the user (e.g. if the user does not have an identity app).
 
 > NOTE: This method **_MUST_** be called _after_ `web5.connect()`.
 
-> NOTE: At least one of the following **_MUST_** be provided: `permissionRequests`.
-
-#### **`options`**
-
-The `update` method optionally accepts an object with the following properties:
-
-##### **`storage`**
-
-Used by `update` to store connection data/keys/etc. for reuse when calling `update` again (e.g. during another session).
-
-If provided, `storage` must be an object that has the same methods as [`Storage`](/TBD54566975/web5-js/tree/main/src/storage/Storage.js).
-
-If not provided, an instance of [`LocalStorage`](/TBD54566975/web5-js/tree/main/src/storage/LocalStorage.js) is used instead.
-
-##### **`connectionLocation`**
-
-Controls where in `storage` the connection data is stored.
-
-Defaults to `'web5-connection'`.
-
-##### **`keysLocation`**
-
-Controls where in `storage` the connection keys are stored.
-
-Defaults to `'web5-keys'`.
-
-##### **`silent`**
-
-Controls whether to prompt the user to start a new connection if a connection has not already been established.
-
-Defaults to `false`.
-
-##### **`permissionRequests`**
+#### **`permissionRequests`**
 
 Allows for restricting the scope of access to the underlying DWeb Node.
 
-If provided, `permissionRequests` must be an array of [`scope`](https://identity.foundation/decentralized-web-node/spec/#permissionsrequest) objects.
-
-Defaults to `undefined`.
+`permissionRequests` must be an array of [`scope`](https://identity.foundation/decentralized-web-node/spec/#permissionsrequest) objects.
 
 > NOTE: `permissionRequests` are not additive, so all desired permissions must be provided together.
 
 #### **Events**
 
-After calling `connect`, at least one of the following events will be dispatched on the `Web5` instance:
+After calling `changePermissions`, at least one of the following events will be dispatched on the `Web5` instance:
 
 ##### **`'open'`**
 
@@ -380,13 +346,13 @@ A `'open'` event is dispatched if a local identity app is found, containing a ve
 
 - **`event.detail.pin`**  - *`number`*: 1-4 digit numerical code that must be displayed to the user to ensure they are connecting to the desired local identity app.
 
-##### **`'update'`**
+##### **`'change'`**
 
-A `'update'` event is dispatched if the user accepts the update.
+A `'change'` event is dispatched if the user accepts the change.
 
 ##### **`'close'`**
 
-A `'close'` event is dispatched if the user refuses to accept or respond to the update attempt for any reason.
+A `'close'` event is dispatched if the user refuses to accept or respond to the change attempt for any reason.
 
 ##### **`'error'`**
 
@@ -406,39 +372,37 @@ document.querySelector('#connect_button').addEventListener('click', async event 
     document.querySelector('#pin_code_text').textContent = pin;
   });
 
-  web5.addEventListener('update', (event) => {
-    alert('Update succeeded!');
+  web5.addEventListener('change', (event) => {
+    alert('Change succeeded!');
   });
 
   web5.addEventListener('close', (event) => {
-    alert('Update was denied');
+    alert('Change was denied');
   });
 
   web5.addEventListener('error', (event) => {
     console.error(event);
   });
 
-  web5.update({
-    permissionRequests: [
-      {
-        interface: 'Records',
-        method: 'Write',
-        protocol: 'https://decentralized-music.org/protocol'
-      },
-      {
-        interface: 'Records',
-        method: 'Write',
-        protocol: 'https://decentralized-music.org/protocol',
-        schema: 'https://decentralized-music.org/protocol/playlist'
-      },
-      {
-        interface: 'Records',
-        method: 'Write',
-        protocol: 'https://decentralized-music.org/protocol',
-        schema: 'https://decentralized-music.org/protocol/track'
-      }
-    ]
-  });
+  web5.changePermissions([
+    {
+      interface: 'Records',
+      method: 'Write',
+      protocol: 'https://decentralized-music.org/protocol'
+    },
+    {
+      interface: 'Records',
+      method: 'Write',
+      protocol: 'https://decentralized-music.org/protocol',
+      schema: 'https://decentralized-music.org/protocol/playlist'
+    },
+    {
+      interface: 'Records',
+      method: 'Write',
+      protocol: 'https://decentralized-music.org/protocol',
+      schema: 'https://decentralized-music.org/protocol/track'
+    }
+  ]);
 });
 ```
 
