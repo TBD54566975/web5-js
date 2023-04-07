@@ -7,6 +7,10 @@ class Interface {
     this.#name = name;
   }
 
+  get dwn() {
+    return this.#dwn;
+  }
+
   async send(method, target, request) {
     return this.#dwn.web5.send(target, {
       ...request,
