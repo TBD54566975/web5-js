@@ -1,4 +1,5 @@
-import * as Methods from './methods/index.js';
+import * as Web5DIDION from './methods/ion.js';
+import * as Web5DIDKey from './methods/key.js';
 import { MemoryStorage } from '../storage/MemoryStorage.js';
 
 class Web5DID {
@@ -6,6 +7,11 @@ class Web5DID {
 
   #registeredDIDs = new MemoryStorage();
   #resolvedDIDs = new MemoryStorage();
+
+  MethodName = {
+    Key: 'key',
+    Ion: 'ion',
+  };
 
   constructor(web5) {
     this.#web5 = web5;
@@ -103,9 +109,16 @@ class Web5DID {
 
   async #getMethodAPI(name) {
     name = name.split(':')[1] || name;
-    let api = Methods[name];
-    if (!api) throw `Unsupported DID method: ${name}`;
-    return api;
+
+    switch (name) {
+    case this.MethodName.Ion:
+      return Web5DIDION;
+
+    case this.MethodName.Key:
+      return Web5DIDKey;
+    }
+
+    throw `Unsupported DID method: ${name}`;
   }
 }
 

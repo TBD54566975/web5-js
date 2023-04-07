@@ -51,7 +51,7 @@ async function loadConfig() {
 }
 
 async function initOperatorDid() {
-  const operatorDid = await web5.did.create('ion', {
+  const operatorDid = await web5.did.create(web5.did.MethodName.Ion, {
     services: [
       {
         'id': 'dwn',

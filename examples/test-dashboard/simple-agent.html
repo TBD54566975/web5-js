@@ -117,7 +117,7 @@
     let response;
 
     // Create a new ION DID and public-private key pair.
-    const myDid = await web5.did.create('ion');
+    const myDid = await web5.did.create(web5.did.MethodName.Ion);
     console.log('DID:', myDid);
 
     // Register the DID as one which is running in browser memory and for which keys are available to sign messages.
