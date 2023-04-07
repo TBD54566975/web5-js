@@ -15,7 +15,7 @@ class Web5DID {
     return this.#web5;
   }
 
-  async create(method, options = { }) {
+  async create(method = 'key', options = { }) {
     const api = await this.#getMethodAPI(method);
     return api.create(options);
   }
