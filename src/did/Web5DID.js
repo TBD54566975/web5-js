@@ -8,6 +8,9 @@ class Web5DID {
   #registeredDIDs = new MemoryStorage();
   #resolvedDIDs = new MemoryStorage();
 
+  /**
+   * @typedef { 'key' | 'ion' } MethodName
+   */
   MethodName = {
     Key: 'key',
     Ion: 'ion',
@@ -21,6 +24,9 @@ class Web5DID {
     return this.#web5;
   }
 
+  /**
+   * @param { MethodName } method
+   */
   async create(method, options = { }) {
     const api = await this.#getMethodAPI(method);
     return api.create(options);
@@ -35,6 +41,9 @@ class Web5DID {
     });
   }
 
+  /**
+   * @param { MethodName } method
+   */
   async sign(method, options = { }) {
     const api = await this.#getMethodAPI(method);
     return api.sign(options);
@@ -44,6 +53,9 @@ class Web5DID {
     await this.#registeredDIDs.delete(did);
   }
 
+  /**
+   * @param { MethodName } method
+   */
   async verify(method, options = { }) {
     const api = await this.#getMethodAPI(method);
     return api.verify(options);
