@@ -281,7 +281,13 @@
       { interface: 'Records', method: 'Write', schema: 'foo/avatar' },
       { interface: 'Records', method: 'Query', schema: 'foo/avatar' },
       { interface: 'Records', method: 'Write', protocol: 'test', schema: 'test/post' },
-      { interface: 'Records', method: 'Query', protocol: 'test', schema: 'test/post' }
+      { interface: 'Records', method: 'Query', protocol: 'test', schema: 'test/post' },
+
+      // tests for permissions UI
+      { interface: 'Records', method: 'Write', schema: 'https://json-schema.org/learn/examples/address.schema.json' },
+      { interface: 'Records', method: 'Write', schema: 'https://json-schema.org/learn/examples/calendar.schema.json' },
+      { interface: 'Records', method: 'Write', schema: 'https://json-schema.org/learn/examples/card.schema.json' },
+      { interface: 'Records', method: 'Write', schema: 'https://json-schema.org/learn/examples/geographical-location.schema.json' }
     ]);
   });
 
