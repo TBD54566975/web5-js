@@ -7,7 +7,6 @@ export class DIDConnect {
   #web5;
 
   #client = null;
-  #connection = null;
   #did = null;
   #permissionsRequests = [];
 
@@ -71,13 +70,8 @@ export class DIDConnect {
       permissionsRequest.grantedBy = this.#did.endpoint.mruDid;
     }
 
-    if (!this.#connection) {
-      // Queue the request so that it can be processed DIDConnect reaches the Delegation step
-      this.#permissionsRequests.push(permissionsRequest);
-    } else {
-      // TODO: Handle post-connection permissions requests
-      //       Send a message to the Provider requesting adds/removes/changes to permissions granted
-    }
+    // Queue the request so that it can be processed DIDConnect reaches the Delegation step
+    this.#permissionsRequests.push(permissionsRequest);
   }
 
   async #initiateWeb5Client() {  
