@@ -3,8 +3,37 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Electron Comms Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Test Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --color-blue: rgb(36, 242, 255);
+      --color-blue-10: rgba(36, 242, 255, 0.1);
+      --color-red: rgb(235, 69, 38);
+      --color-white: rgb(250, 250, 250);
+      --color-yellow: rgb(255, 236, 25);
+      --btn-primary: rgb(47, 107, 225);
+    }
+
+    body {
+      background: rgb(32 32 34);
+      font-family: 'IBM Plex Mono';
+      padding: 0;
+      margin: 0;
+    }
+
+    input, button {
+      font-family: 'IBM Plex Mono'; 
+    }
+
+    main {
+      color: rgb(250, 250, 250);
+      padding: 0rem 1rem;
+    }
+
     .box {
       max-width: 52rem;
       display: flex;
@@ -34,201 +63,296 @@
       width: 250px;
       height: 125px;
     }
+
+    fieldset {
+      border: 2px solid var(--color-yellow);
+      border-radius: 5px;
+      padding: 20px;
+      margin: 0rem 1rem;
+    }
+
+    legend {
+      color: var(--color-yellow);
+      font-size: 1.5rem;
+      padding: 0 10px;
+    }
+
+    fieldset .buttons {
+      display: flex;
+      gap: 2rem;
+      justify-content: flex-start;
+    }
+
+    button {
+      background-color: var(--btn-primary);
+      border: none;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0.5em 20px;
+      text-align: center;
+    }
+
+    button:hover {
+      /* background-color: #45a049; */
+      filter: brightness(95%);
+    }
+
+    #container_connect_status {
+      color: var(--color-blue);
+      font-size: 1rem;
+      margin-top: 1rem;
+      text-align: center;
+    }
+
+    #container_connect_status.success {
+      color: var(--color-blue);
+    }    
+
+    #container_connect_status.error {
+      color: var(--color-red);
+    }    
+
+    #container_security_code {
+      margin-top: 1rem;
+      text-align: center;
+    }
+
+    #container_security_code .label {
+      color: var(--color-blue);
+      font-size: 1rem;
+      padding-bottom: 1rem;
+    }
+
+    #container_security_code .pin-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #container_security_code .pin-display {
+      color: var(--color-white);
+      width: 2.5rem;
+      height: 2.5rem;
+      font-size: 1.5rem;
+      text-align: center;
+      margin: 0 0.5rem;
+      border: 2px solid var(--color-blue);
+      border-radius: 5px;
+      background-color: var(--color-blue-10);
+      line-height: 2.5rem; /* Vertically center the text */
+    }
   </style>
 </head>
 
-<body style="background: #000; color: #fff;">
-  <button type="button" id="connect_button">DID Connect</button>
-  <div>
-    <span>Security Code: </span><strong id="security_code"></strong>
-  </div>
-  <div style="width: 100%; overflow: hidden; text-overflow: ellipsis;">
-    <span>Connected as: </span><strong id="connected_did"></strong>
-  </div>
+<body>
+  <header>
+    <fieldset>
+      <legend>DID Connect</legend>
+      <div class="buttons">
+        <button type="button" id="connect_button_limited_permissions">Basic Permissions</button>
+        <button type="button" id="connect_button_elevated_permissions">Elevated Permissions</button>
+      </div>
+      <div id="container_connect_status" style="display: none;"></div>
+      <div id="container_security_code" style="display: none;">
+        <div class="label">
+          Security Code<strong id="security_code"></strong>
+        </div>
+        <div class="pin-container">
+          <div class="pin-display"></div>
+          <div class="pin-display"></div>
+          <div class="pin-display"></div>
+          <div class="pin-display"></div>
+        </div>
+      </div>
+    </fieldset>
+  </header>
 
-  <hr />
-
-  <p style="font-size: large">Write Records</p>
-
-  <div class="box">
-    <div class="row">
-      <label for="write_text_schema">Schema</label>
-      <input id="write_text_schema" type="text" value="foo/text" />
-
-      <label for="write_text_data">Value</label>
-      <input id="write_text_data" type="text" value="test" />
-      <button type="button" id="write_text_button">Write Text Data</button>
-    </div>
-
-    <div class="row">
-      <label for="write_json_schema">Schema</label>
-      <input id="write_json_schema" type="text" value="foo/json" />
-
-      <label for="write_json_data">Value</label>
-      <input id="write_json_data" type="text" value="{ &quot;testing&quot;: 123 }" />
-      <button type="button" id="write_json_button">Write JSON Data</button>
-    </div>
-
-    <div class="row">
-      <label for="write_image_schema">Schema</label>
-      <input id="write_image_schema" type="text" value="foo/avatar" />
-
-      <label for="write_image_file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
-      <input id="write_image_file" type="file" />
-      <button type="button" id="write_image_button">Write Image Data</button>
-    </div>
-  </div>
-
-  <hr />
-
-  <p style="font-size: large">Query Records</p>
-
-  <div class="box">
-    <div class="row">
-      <label for="query_text_schema">Schema</label>
-      <input id="query_text_schema" type="text" value="foo/text" />
-      <button type="button" id="query_text_button">Send Text Query</button>
-    </div>
-  </div>
-
-  <div class="box">
-    <div class="row">
-      <label for="query_json_schema">Schema</label>
-      <input id="query_json_schema" type="text" value="foo/json" />
-      <button type="button" id="query_json_button">Send JSON Query</button>
-    </div>
-  </div>
-
-  <div class="box">
-    <div class="row">
-      <label for="query_image_schema">Schema</label>
-      <input id="query_image_schema" type="text" value="foo/avatar" />
-      <button type="button" id="query_image_button">Send Image Query</button>
-    </div>
-  </div>
-
-  <hr />
-
-  <p style="font-size: large">Read Records</p>
-
-  <div class="box">
-    <div class="row">
-    <button type="button" id="query_for_records_button">Get Record ID</button>
-    </div>
-  </div>
-
-  <div class="box">
-    <div class="row">
-      <label for="read_by_id">Schema</label>
-      <input id="read_by_id" type="text" value="foo/json" />
-      <button type="button" id="read_by_id_button">Read By ID</button>
-    </div>
-  </div>
-
-  <hr />
-
-  <p class="heading">Delete Records</p>
-
-  <div class="box">
-    <div class="row">
-      <label for="delete_record_id">Record ID</label>
-      <input id="delete_record_id" type="text" value="" />
-      <button type="button" id="delete_record_button">Delete Record</button>
-    </div>
-  </div>
-
-  <hr />
-
-  <p class="heading">Protocols</p>
-
-  <div class="box">
+  <main>
+    <p style="font-size: large">Write Records</p>
+  
     <div class="box">
       <div class="row">
-        <label for="query_protocol_name">Protocol Name</label>
-        <input id="query_protocol_name" type="text" value="exampleProtocol" />
-        <button type="button" id="query_protocol_button">Send Protocol Query</button>
+        <label for="write_text_schema">Schema</label>
+        <input id="write_text_schema" type="text" value="foo/text" />
+  
+        <label for="write_text_data">Value</label>
+        <input id="write_text_data" type="text" value="test" />
+        <button type="button" id="write_text_button">Write Text Data</button>
+      </div>
+  
+      <div class="row">
+        <label for="write_json_schema">Schema</label>
+        <input id="write_json_schema" type="text" value="foo/json" />
+  
+        <label for="write_json_data">Value</label>
+        <input id="write_json_data" type="text" value="{ &quot;testing&quot;: 123 }" />
+        <button type="button" id="write_json_button">Write JSON Data</button>
+      </div>
+  
+      <div class="row">
+        <label for="write_image_schema">Schema</label>
+        <input id="write_image_schema" type="text" value="foo/avatar" />
+  
+        <label for="write_image_file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input id="write_image_file" type="file" />
+        <button type="button" id="write_image_button">Write Image Data</button>
+      </div>
+    </div>
+  
+    <hr />
+  
+    <p style="font-size: large">Query Records</p>
+  
+    <div class="box">
+      <div class="row">
+        <label for="query_text_schema">Schema</label>
+        <input id="query_text_schema" type="text" value="foo/text" />
+        <button type="button" id="query_text_button">Send Text Query</button>
+      </div>
+    </div>
+  
+    <div class="box">
+      <div class="row">
+        <label for="query_json_schema">Schema</label>
+        <input id="query_json_schema" type="text" value="foo/json" />
+        <button type="button" id="query_json_button">Send JSON Query</button>
+      </div>
+    </div>
+  
+    <div class="box">
+      <div class="row">
+        <label for="query_image_schema">Schema</label>
+        <input id="query_image_schema" type="text" value="foo/avatar" />
+        <button type="button" id="query_image_button">Send Image Query</button>
+      </div>
+    </div>
+  
+    <hr />
+  
+    <p style="font-size: large">Read Records</p>
+  
+    <div class="box">
+      <div class="row">
+      <button type="button" id="query_for_records_button">Get Record ID</button>
+      </div>
+    </div>
+  
+    <div class="box">
+      <div class="row">
+        <label for="read_by_id">Schema</label>
+        <input id="read_by_id" type="text" value="foo/json" />
+        <button type="button" id="read_by_id_button">Read By ID</button>
+      </div>
+    </div>
+  
+    <hr />
+  
+    <p class="heading">Delete Records</p>
+  
+    <div class="box">
+      <div class="row">
+        <label for="delete_record_id">Record ID</label>
+        <input id="delete_record_id" type="text" value="" />
+        <button type="button" id="delete_record_button">Delete Record</button>
+      </div>
+    </div>
+  
+    <hr />
+  
+    <p class="heading">Protocols</p>
+  
+    <div class="box">
+      <div class="box">
+        <div class="row">
+          <label for="query_protocol_name">Protocol Name</label>
+          <input id="query_protocol_name" type="text" value="exampleProtocol" />
+          <button type="button" id="query_protocol_button">Send Protocol Query</button>
+        </div>
+      </div>
+  
+      <div class="row">
+        <label for="configure_protocol_name">Protocol Name</label>
+        <input id="configure_protocol_name" type="text" value="exampleProtocol" />
+  
+        <label for="configure_protocol_definition">Definition</label>
+        <textarea id="configure_protocol_definition"></textarea>
+        <button type="button" id="configure_protocol_button">Configure Protocol</button>
+      </div>
+    </div>
+  
+    <hr />
+  
+    <p style="font-size: large">Custom Data Formats</p>
+  
+    <div class="box">
+      <div class="row">
+        <label for="write_image_type_schema">Schema</label>
+        <input id="write_image_type_schema" type="text" value="foo/background" />
+  
+        <label for="write_image_type_data_format">Data Format</label>
+        <input id="write_image_type_data_format" type="text" value="image/png" />
+  
+        <label for="write_image_type_file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input id="write_image_type_file" type="file" />
+        <button type="button" id="write_image_type_button">Write Image Data</button>
+      </div>
+    </div>
+  
+    <div class="box">
+      <div class="row">
+        <label for="query_image_type_schema">Schema</label>
+        <input id="query_image_type_schema" type="text" value="foo/background" />
+  
+        <label for="query_image_type_data_format">Data Format</label>
+        <input id="query_image_type_data_format" type="text" value="image/png" />
+  
+        <button type="button" id="query_image_type_button">Send Image Query</button>
+      </div>
+    </div>
+  
+    <hr />
+  
+    <p style="font-size: large">New Tests</p>
+  
+    <div class="box">
+      <div class="row">
+        <span>Write data authored by Alice's DID to Alice's DWN WITH local key chain</span>
+        <button type="button" id="write_alice_to_alice_local_btn">Send</button>
+      </div>
+    </div>
+  
+    <div class="box">
+      <div class="row">
+        <span>Write data authored by Alice's DID to Alice's DWN withOUT local key chain</span>
+        <button type="button" id="write_alice_to_alice_remote_btn">Send</button>
+      </div>
+    </div>
+  
+    <div class="box">
+      <div class="row">
+        <span>Write data authored by Alice's DID to Bob's DWN WITH local key chain</span>
+        <button type="button" id="write_alice_to_bob_local_btn">Send</button>
+      </div>
+    </div>
+  
+    <div class="box">
+      <div class="row">
+        <span>Write data authored by Alice's DID to Bob's DWN withOUT local key chain</span>
+        <button type="button" id="write_alice_to_bob_remote_btn">Send</button>
+      </div>
+    </div>
+  
+      <div class="box">
+        <div class="row">
+          <span>Query data authored by Alice's DID to Bob's DWN withOUT local key chain</span>
+          <button type="button" id="query_alice_to_bob_remote_btn">Send</button>
+        </div>
       </div>
     </div>
 
-    <div class="row">
-      <label for="configure_protocol_name">Protocol Name</label>
-      <input id="configure_protocol_name" type="text" value="exampleProtocol" />
-
-      <label for="configure_protocol_definition">Definition</label>
-      <textarea id="configure_protocol_definition"></textarea>
-      <button type="button" id="configure_protocol_button">Configure Protocol</button>
-    </div>
-  </div>
-
-  <hr />
-
-  <p style="font-size: large">Custom Data Formats</p>
-
-  <div class="box">
-    <div class="row">
-      <label for="write_image_type_schema">Schema</label>
-      <input id="write_image_type_schema" type="text" value="foo/background" />
-
-      <label for="write_image_type_data_format">Data Format</label>
-      <input id="write_image_type_data_format" type="text" value="image/png" />
-
-      <label for="write_image_type_file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
-      <input id="write_image_type_file" type="file" />
-      <button type="button" id="write_image_type_button">Write Image Data</button>
-    </div>
-  </div>
-
-  <div class="box">
-    <div class="row">
-      <label for="query_image_type_schema">Schema</label>
-      <input id="query_image_type_schema" type="text" value="foo/background" />
-
-      <label for="query_image_type_data_format">Data Format</label>
-      <input id="query_image_type_data_format" type="text" value="image/png" />
-
-      <button type="button" id="query_image_type_button">Send Image Query</button>
-    </div>
-  </div>
-
-  <hr />
-
-  <p style="font-size: large">New Tests</p>
-
-  <div class="box">
-    <div class="row">
-      <span>Write data authored by Alice's DID to Alice's DWN WITH local key chain</span>
-      <button type="button" id="write_alice_to_alice_local_btn">Send</button>
-    </div>
-  </div>
-
-  <div class="box">
-    <div class="row">
-      <span>Write data authored by Alice's DID to Alice's DWN withOUT local key chain</span>
-      <button type="button" id="write_alice_to_alice_remote_btn">Send</button>
-    </div>
-  </div>
-
-  <div class="box">
-    <div class="row">
-      <span>Write data authored by Alice's DID to Bob's DWN WITH local key chain</span>
-      <button type="button" id="write_alice_to_bob_local_btn">Send</button>
-    </div>
-  </div>
-
-  <div class="box">
-    <div class="row">
-      <span>Write data authored by Alice's DID to Bob's DWN withOUT local key chain</span>
-      <button type="button" id="write_alice_to_bob_remote_btn">Send</button>
-    </div>
-  </div>
-
-    <div class="box">
-      <div class="row">
-        <span>Query data authored by Alice's DID to Bob's DWN withOUT local key chain</span>
-        <button type="button" id="query_alice_to_bob_remote_btn">Send</button>
-      </div>
-    </div>
-  </div>
+  </main>
 </body>
 
 <script type="module">
@@ -238,25 +362,109 @@
   let myDid = '';
 
   const web5 = new Web5();
-  web5.addEventListener('open', (event) => {
-    security_code.textContent = event.detail.pin;
+
+  let isAuthorized = false;
+
+  web5.addEventListener('challenge', (event) => {
+    const pin = event.detail.pin;
+    if (!isAuthorized) {
+      const pinDisplays = document.querySelectorAll('.pin-display');
+      for (let i = 0; i < pinDisplays.length; i++) {
+        pinDisplays[i].textContent = pin[i] || '';
+      }
+      container_security_code.style.display = 'block'
+    }
   });
-  web5.addEventListener('connection', (event) => {
-    connected_did.textContent = event.detail.did;
-    myDid = event.detail.did;
-    alert('Connection succeeded!');
+
+  web5.addEventListener('authorized', (event) => {
+    isAuthorized = true;
+
+    const didLong = event.detail.did;
+    const didShort = didLong.substring(0, didLong.lastIndexOf(":"));
+    myDid = didLong;
+
+    container_connect_status.textContent = `Connected as: ${didShort}`;
+    container_connect_status.classList.remove('error');
+    container_connect_status.classList.add('success');
+    container_connect_status.style.display = 'block';
+
+    container_security_code.style.display = 'none';
   });
-  web5.addEventListener('close', (event) => {
-    alert('Connection was denied');
+
+  web5.addEventListener('denied', (event) => {
+    isAuthorized = false;
+
+    container_security_code.style.display = 'none';
+
+    container_connect_status.textContent = 'Connection request was denied';
+    container_connect_status.classList.remove('success');
+    container_connect_status.classList.add('error');
+    container_connect_status.style.display = 'block';
   });
+  
+  web5.addEventListener('blocked', (event) => {
+    isAuthorized = false;
+    
+    container_security_code.style.display = 'none';
+    
+    container_connect_status.textContent = 'Connection request was denied';
+    container_connect_status.classList.remove('success');
+    container_connect_status.classList.add('error');
+    container_connect_status.style.display = 'block';
+  });
+  
   web5.addEventListener('error', (event) => {
     console.error(event);
+
+    container_security_code.style.display = 'none';
+    
+    container_connect_status.textContent = `${event}`;
+    container_connect_status.classList.add('error');
+    container_connect_status.style.display = 'block';
   });
 
-  connect_button.addEventListener('click', async event => {
+  connect_button_limited_permissions.addEventListener('click', async event => {
     event.preventDefault();
+    container_connect_status.style.display = 'none';
 
-    web5.connect();
+    await web5.did.connect();
+
+    web5.dwn.permissions.request(undefined, {
+      author: myDid,
+      message: {
+        description: 'Help you create and edit your music playlists',
+        scopes: [
+          { interface: 'Records', method: 'Write', schema: 'foo/text' },
+          { interface: 'Records', method: 'Query', schema: 'foo/text' },
+          { interface: 'Records', method: 'Write', protocol: 'test', schema: 'test/post' },
+          { interface: 'Records', method: 'Query', protocol: 'test', schema: 'test/post' }
+        ]
+      }
+    });
+  });
+
+  connect_button_elevated_permissions.addEventListener('click', async event => {
+    event.preventDefault();
+    container_connect_status.style.display = 'none';
+
+    await web5.did.connect();
+
+    web5.dwn.permissions.request(undefined, {
+      author: myDid,
+      message: {
+        description: 'Help you create and edit your music playlists',
+        scopes: [
+          { interface: 'Records', method: 'Write', schema: 'foo/text' },
+          { interface: 'Records', method: 'Query', schema: 'foo/text' },
+          { interface: 'Records', method: 'Write', schema: 'foo/json' },
+          { interface: 'Records', method: 'Query', schema: 'foo/json' },
+          { interface: 'Records', method: 'Write', schema: 'foo/avatar' },
+          { interface: 'Records', method: 'Query', schema: 'foo/avatar' },
+          { interface: 'Records', method: 'Write', protocol: 'test', schema: 'test/post' },
+          { interface: 'Records', method: 'Query', protocol: 'test', schema: 'test/post' },
+          ]
+      }
+    });
   });
 
   async function logConsole(obj, message = '') {
@@ -268,7 +476,7 @@
   }
 
   function agentConnected() {
-    if (connected_did.textContent === '') {
+    if (!isAuthorized) {
       alert('CONNECT or RECONNECT before sending messages.');
       return false;
     }

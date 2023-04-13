@@ -19,11 +19,30 @@ describe('Web5DID', async () => {
     this.clock.restore();
   });
 
+  describe('getDidDocument', async () => {
+    it('should return a didDocument for a valid did:ion DID', async () => {
+      sinon.stub(web5did, 'resolve').resolves(didDocuments.ion.oneVerificationMethodJwk);
+  
+      const didDocument = await web5did.getDidDocument('resolve-stubbed');
+
+      expect(didDocument['@context'][0]).to.equal('https://www.w3.org/ns/did/v1');
+      expect(didDocument).to.have.property('id', didDocuments.ion.oneVerificationMethodJwk.didDocument.id);
+    });
+
+    it('should return null didDocument for an invalid did:ion DID', async () => {
+      sinon.stub(web5did, 'resolve').resolves(didDocuments.ion.notFound);
+  
+      const didDocument = await web5did.getDidDocument('resolve-stubbed');
+
+      expect(didDocument).to.be.null;
+    });
+  });
+
   describe('getServices', async () => {
     it('should return array of services when defined in DID document', async () => {
       sinon.stub(web5did, 'resolve').resolves(didDocuments.ion.oneService);
 
-      const didServices = await web5did.getServices('response-stubbed');
+      const didServices = await web5did.getServices('resolve-stubbed');
 
       expect(didServices).to.have.lengthOf(1);
       expect(didServices[0]).to.have.property('type', 'DecentralizedWebNode');
@@ -32,7 +51,7 @@ describe('Web5DID', async () => {
     it('should return empty array when services not defined DID document', async () => {
       sinon.stub(web5did, 'resolve').resolves(didDocuments.ion.noServices);
 
-      const didServices = await web5did.getServices('response-stubbed');
+      const didServices = await web5did.getServices('resolve-stubbed');
 
       expect(didServices).to.have.lengthOf(0);
     });
@@ -54,11 +73,22 @@ describe('Web5DID', async () => {
       const _ = await web5did.resolve(did);
     }).timeout(10);
 
-    it('should return null for an invalid ION DID', async () => {
+    it('should return a didResolutionResult for a valid DID', async () => {
+      const did = 'did:ion:EiClkZMDxPKqC9c-umQfTkR8vvZ9JPhl_xLDI9Nfk38w5w';
+  
+      const resolved = await web5did.resolve(did);
+
+      expect(resolved['@context']).to.equal('https://w3id.org/did-resolution/v1');
+      expect(resolved.didDocument).to.have.property('id', did);
+    });
+
+    it('should return null didDocument for an invalid ION DID', async () => {
       const did = 'did:ion:invalid';
   
       const resolved = await web5did.resolve(did);
-      expect(resolved).to.be.null;
+      
+      expect(resolved.didDocument).to.be.null;
+      expect(resolved.didResolutionMetadata.error).to.equal(`unable to resolve ${did}, got http status 404`);
     });
   });
 });
