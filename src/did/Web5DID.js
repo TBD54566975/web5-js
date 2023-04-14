@@ -22,23 +22,10 @@ class Web5DID {
       const cipherName = pascalToKebabCase(cipher);
       this.#cryptoCiphers[cipherName] = new CryptoCiphers[cipher](this.web5);
     }
-
-    this.#didConnect = new DIDConnect(web5);
-    // Bind functions to the instance of DIDConnect
-    this.#didConnect.connect = this.#didConnect.connect.bind(this.#didConnect);
-    this.#didConnect.permissionsRequest = this.#didConnect.permissionsRequest.bind(this.#didConnect);
   }
   
   get web5() {
     return this.#web5;
-  }
-
-  get connect() {
-    return this.#didConnect.connect;
-  }
-
-  get permissionsRequest() {
-    return this.#didConnect.permissionsRequest;
   }
 
   get util() {
@@ -160,6 +147,16 @@ class Web5DID {
       methodId: options?.methodId,
       purpose: options?.purpose,
     });
+  }
+
+  connect(...args) {
+    this.#didConnect ??= new DIDConnect(this.#web5);
+    return this.#didConnect.connect(...args);
+  }
+
+  permissionsRequest(...args) {
+    this.#didConnect ??= new DIDConnect(this.#web5);
+    return this.#didConnect.permissionsRequest(...args);
   }
 
   async #getMethodAPI(name) {

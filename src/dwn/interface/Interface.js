@@ -8,8 +8,8 @@ class Interface {
   }
 
   // TODO: Remove this once Permissions implemented in dwn-sdk-js
-  get permissionsRequest() {
-    return this.#dwn.web5.did.permissionsRequest;
+  permissionsRequest(...args) {
+    return this.#dwn.web5.did.permissionsRequest(...args);
   }
 
   async send(method, target, request) {
