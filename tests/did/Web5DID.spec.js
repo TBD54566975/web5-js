@@ -31,7 +31,7 @@ describe('Web5DID', async () => {
 
     it('should be able to decrypt data encrypted using the default algorithm', async () => {
       // Create a DID for the recipient so that we have a private key to test decryption
-      const recipientDid = await web5.did.create('key');
+      const recipientDid = await web5.did.create(web5.did.DIDMethodName.Key);
       
       const inputString = 'Hello, world!';
       const payload = new TextEncoder().encode(inputString);

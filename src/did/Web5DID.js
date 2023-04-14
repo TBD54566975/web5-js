@@ -2,7 +2,8 @@ import { Encoder } from '@tbd54566975/dwn-sdk-js';
 
 import { DIDConnect } from './connect/connect.js';
 import { X25519Xsalsa20Poly1305 } from './crypto/x25519-xsalsa20-poly1305.js';
-import * as Methods from './methods/methods.js';
+import * as DIDMethodION from './methods/ion.js';
+import * as DIDMethodKey from './methods/key.js';
 import * as DidUtils from './didUtils.js';
 import { MemoryStorage } from '../storage/MemoryStorage.js';
 
@@ -11,6 +12,14 @@ import { MemoryStorage } from '../storage/MemoryStorage.js';
   */
 const CryptographicCipherName = {
   X25519Xsalsa20Poly1305: 'x25519-xsalsa20-poly1305',
+};
+
+/**
+ * @typedef { 'key' | 'ion' } DIDMethodName
+ */
+const DIDMethodName = {
+  Key: 'key',
+  ION: 'ion',
 };
 
 class Web5DID {
@@ -22,6 +31,7 @@ class Web5DID {
   #resolvedDIDs = new MemoryStorage();
 
   CryptographicCipherName = CryptographicCipherName;
+  DIDMethodName = DIDMethodName;
 
   constructor(web5) {
     this.#web5 = web5;
@@ -35,6 +45,9 @@ class Web5DID {
     return this.#util;
   }
 
+  /**
+   * @param { DIDMethodName } method
+   */
   async create(method, options = { }) {
     const api = await this.#getMethodAPI(method);
     return api.create(options);
@@ -90,6 +103,9 @@ class Web5DID {
     });
   }
 
+  /**
+   * @param { DIDMethodName } method
+   */
   async sign(method, options = { }) {
     const api = await this.#getMethodAPI(method);
     return api.sign(options);
@@ -99,6 +115,9 @@ class Web5DID {
     await this.#registeredDIDs.delete(did);
   }
 
+  /**
+   * @param { DIDMethodName } method
+   */
   async verify(method, options = { }) {
     const api = await this.#getMethodAPI(method);
     return api.verify(options);
@@ -163,9 +182,16 @@ class Web5DID {
 
   async #getMethodAPI(name) {
     name = name.split(':')[1] || name;
-    const api = Methods[name];
-    if (!api) throw `Unsupported DID method: ${name}`;
-    return api;
+
+    switch (name) {
+    case this.DIDMethodName.ION:
+      return DIDMethodION;
+
+    case this.DIDMethodName.Key:
+      return DIDMethodKey;
+    }
+
+    throw `Unsupported DID method: ${name}`;
   }
 
   #getCryptoCipherAPI(name) {

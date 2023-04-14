@@ -210,7 +210,7 @@ export class DIDConnect {
     let didLoadOrCreate = await this.#storage.get(this.#didStoreName);
     if (!didLoadOrCreate) {
       // Could not load from storage, so create a new DID
-      didLoadOrCreate = await this.#web5.did.create('key');
+      didLoadOrCreate = await this.#web5.did.create(this.#web5.did.DIDMethodName.Key);
       await this.#storage.set(this.#didStoreName, didLoadOrCreate);
     }
     this.#did = didLoadOrCreate;
