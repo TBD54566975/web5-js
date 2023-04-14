@@ -29,7 +29,10 @@ function createWeakSingletonAccessor(creator) {
 
 function isEmptyObject(obj) {
   if (typeof obj === 'object' && obj !== null) {
-    return Object.keys(obj).length === 0;
+    for (const _ in obj) {
+      return false;
+    }
+    return true;
   }
   return false;
 }
@@ -94,11 +97,19 @@ function isUnsignedMessage(message) {
 }
 
 function objectValuesBytesToBase64Url(obj) {
-  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, Encoder.bytesToBase64Url(value)]));
+  const result = { };
+  for (const key in obj) {
+    result[key] = Encoder.bytesToBase64Url(obj[key]);
+  }
+  return result;
 }
 
 function objectValuesBase64UrlToBytes(obj) {
-  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, Encoder.base64UrlToBytes(value)]));
+  const result = { };
+  for (const key in obj) {
+    result[key] = Encoder.base64UrlToBytes(obj[key]);
+  }
+  return result;
 }
 
 /**
