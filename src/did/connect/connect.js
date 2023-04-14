@@ -129,10 +129,9 @@ export class DIDConnect {
 
           this.#did.endpoint.authorized = true;
           this.#did.endpoint.mruDid = authorizedDid;
-          this.#did.endpoint.permissions = { ...this.#did.endpoint?.permissions,
-            [authorizedDid]: { ...delegationResult.message },
-          };
-          this.#storage.set(this.#didStoreName, { ...this.#did });
+          this.#did.endpoint.permissions ??= { };
+          this.#did.endpoint.permissions[authorizedDid] = delegationResult.message;
+          this.#storage.set(this.#didStoreName, this.#did);
 
           // Emit event notifying the DWA that the connection was authorized and which DID the app was authorized
           // to use for interactions with the Provider.
@@ -149,7 +148,7 @@ export class DIDConnect {
           this.#did.endpoint.authorized = false;
           this.#did.endpoint.permissions = {};
           // Update DID store
-          this.#storage.set(this.#didStoreName, { ...this.#did });
+          this.#storage.set(this.#didStoreName, this.#did);
 
           // Close and delete socket
           this.#client.removeEventListener('message', handleMessage);
@@ -250,7 +249,7 @@ export class DIDConnect {
     let socket, startPort, endPort, userInitiatedAction, host;
 
     // Check whether DID Connect configuration is available
-    if (this.#did?.endpoint !== undefined) {
+    if (this.#did.endpoint !== undefined) {
       // If configuration is available, attempt to reconnect
       host = this.#did.endpoint.host;
       startPort = endPort = this.#did.endpoint.port;
@@ -267,11 +266,10 @@ export class DIDConnect {
       // Instantiate a WebSocket Client instance with the already open socket
       this.#client = new WebSocketClient(socket, this.#web5);
       // Update DID store
-      this.#did.endpoint = { ...this.#did?.endpoint,
-        host,
-        port: this.#client.port,
-      };
-      this.#storage.set(this.#didStoreName, { ...this.#did });
+      this.#did.endpoint ??= { };
+      this.#did.endpoint.host = host;
+      this.#did.endpoint.port = this.#client.port;
+      this.#storage.set(this.#didStoreName, this.#did);
       return true;
 
     } catch (error) {

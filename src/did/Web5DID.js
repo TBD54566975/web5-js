@@ -42,7 +42,7 @@ class Web5DID {
   }
 
   get util() {
-    return this.#util;
+    return DidUtils;
   }
 
   /**
@@ -202,11 +202,6 @@ class Web5DID {
 
     throw `Unsupported cryptographic cipher: ${name}`;
   }
-
-  /**
-   * Utility functions for working with DIDs
-   */
-  #util = { ...DidUtils };
 }
 
 export {

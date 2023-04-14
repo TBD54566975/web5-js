@@ -37,22 +37,23 @@ export const DID_VERIFICATION_RELATIONSHIPS = [
  */
 export async function createJWK(options) {
   const { id, crv, kty, kid, publicKey, privateKey } = options;
-  const jsonWebKey = {
+
+  const publicKeyJwk = {
+    crv,
+    kid,
+    kty,
+    x: Encoder.bytesToBase64Url(publicKey),
+  };
+
+  const privateKeyJwk = structuredClone(publicKeyJwk);
+  privateKeyJwk.d = Encoder.bytesToBase64Url(privateKey);
+
+  return {
     id: `${id}#${kid}`,
     type: 'JsonWebKey2020',
     controller: id,
-    keypair: {},
+    keypair: { publicKeyJwk, privateKeyJwk },
   };
-
-  const jwk = { crv, kid, kty };
-
-  jsonWebKey.keypair.publicKeyJwk = { ...jwk };
-  jsonWebKey.keypair.publicKeyJwk.x = Encoder.bytesToBase64Url(publicKey);
-  
-  jsonWebKey.keypair.privateKeyJwk = { ...jsonWebKey.keypair.publicKeyJwk };
-  jsonWebKey.keypair.privateKeyJwk.d = Encoder.bytesToBase64Url(privateKey);
-  
-  return jsonWebKey;
 }
 
 /**
