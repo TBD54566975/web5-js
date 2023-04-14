@@ -3,25 +3,25 @@ import { dataToBytes } from '../../utils.js';
 
 class Records extends Interface {
   constructor(dwn) {
-    super(dwn, 'Records');
+    super(dwn, dwn.SDK.DwnInterfaceName.Records);
   }
 
   async delete(target, request) {
-    return this.send('Delete', target, request);
+    return this.send(this.dwn.SDK.DwnMethodName.Delete, target, request);
   }
 
   async read(target, request) {
-    return this.send('Read', target, request);
+    return this.send(this.dwn.SDK.DwnMethodName.Read, target, request);
   }
 
   async query(target, request) {
-    return this.send('Query', target, request);
+    return this.send(this.dwn.SDK.DwnMethodName.Query, target, request);
   }
 
   async write(target, request) {
     // Convert string/object data to bytes before further processing.
     const { dataBytes, dataFormat } = dataToBytes(request.data, request.message.dataFormat);
-    return this.send('Write', target, {
+    return this.send(this.dwn.SDK.DwnMethodName.Write, target, {
       ...request,
       data: dataBytes,
       message: {
