@@ -66,7 +66,7 @@ describe('Web5DID', async () => {
       });
       
       const header = Encoder.base64UrlToObject(result.header);
-      expect(header).to.have.property('alg', 'x25519-xsalsa20-poly1305');
+      expect(header).to.have.property('alg', web5.did.CryptographicCipherName.X25519Xsalsa20Poly1305);
     });
 
     it('should accept Uint8Array or ArrayBuffer payload', async () => {

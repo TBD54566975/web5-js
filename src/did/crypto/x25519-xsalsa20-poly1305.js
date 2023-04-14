@@ -1,12 +1,13 @@
 import nacl from 'tweetnacl';
-
 import { Encoder } from '@tbd54566975/dwn-sdk-js';
+
 import { ed25519PrivateKeyToX25519, ed25519PublicKeyToX25519, verificationMethodToPublicKeyBytes } from '../../did/didUtils.js';
+import { CryptographicCipherName } from '../../did/Web5DID.js';
 import { bytesToObject, objectValuesBase64UrlToBytes, objectValuesBytesToBase64Url } from '../../utils.js';
 
 export class X25519Xsalsa20Poly1305 {
   #web5;
-  #ALG = 'x25519-xsalsa20-poly1305';
+  #alg = CryptographicCipherName.X25519Xsalsa20Poly1305;
 
   constructor(web5) {
     this.#web5 = web5;
@@ -79,7 +80,7 @@ export class X25519Xsalsa20Poly1305 {
     const ciphertext = nacl.box(payload, nonce, recipientDHPublicKey, ephemeralKeyPair.secretKey);
 
     // Assemble the header
-    const header = Encoder.objectToBytes({ alg: this.#ALG, kid: verificationMethod.id });
+    const header = Encoder.objectToBytes({ alg: this.#alg, kid: verificationMethod.id });
 
     // Pack the results into an object and base64url encode each value
     let output = { header, ciphertext, ephemeralPublicKey: ephemeralKeyPair.publicKey, nonce };

@@ -1,11 +1,17 @@
 import { Encoder } from '@tbd54566975/dwn-sdk-js';
 
 import { DIDConnect } from './connect/connect.js';
-import * as CryptoCiphers from './crypto/ciphers.js';
+import { X25519Xsalsa20Poly1305 } from './crypto/x25519-xsalsa20-poly1305.js';
 import * as Methods from './methods/methods.js';
 import * as DidUtils from './didUtils.js';
 import { MemoryStorage } from '../storage/MemoryStorage.js';
-import { pascalToKebabCase } from '../utils.js';
+
+/**
+  * @typedef { 'x25519-xsalsa20-poly1305' } CryptographicCipherName
+  */
+const CryptographicCipherName = {
+  X25519Xsalsa20Poly1305: 'x25519-xsalsa20-poly1305',
+};
 
 class Web5DID {
   #web5;
@@ -15,13 +21,10 @@ class Web5DID {
   #registeredDIDs = new MemoryStorage();
   #resolvedDIDs = new MemoryStorage();
 
+  CryptographicCipherName = CryptographicCipherName;
+
   constructor(web5) {
     this.#web5 = web5;
-
-    for (const cipher in CryptoCiphers) {
-      const cipherName = pascalToKebabCase(cipher);
-      this.#cryptoCiphers[cipherName] = new CryptoCiphers[cipher](this.web5);
-    }
   }
   
   get web5() {
@@ -45,7 +48,7 @@ class Web5DID {
    * @typedef {Object} X25519Xsalsa20Poly1305Result
    * @property {string} ciphertext Base64Url encoded encrypted data
    * @property {string} ephemeralPublicKey Base64Url encoded random public key
-   * @property {string} header Base64Url encoded header containing stringified JSON {alg: string, kid: string}
+   * @property {string} header Base64Url encoded header containing stringified JSON {alg: CryptographicCipherName, kid: string}
    * @property {string} nonce Base64Url encoded random nonce
    */
 
@@ -69,12 +72,11 @@ class Web5DID {
    * @param {string} options.did DID of the recipient, whose public key is used to encrypt the data
    * @param {string} options.keyId Key identifier to use from the recipient's DID document
    * @param {ArrayBuffer | Uint8Array} options.payload The data to be encrypted (also know as the plaintext)
-   * @param {object} options.algorithm An object specifying the algorithm to be used and any extra parameters, if required
+   * @param {CryptographicCipherName} options.algorithm A string specifying the algorithm to be used
    * @returns {Promise<Web5EncryptionResult>} A Promise that fulfills with the output of the encryption algorithm
    */
   async encrypt(options = { }) {
-    // Default to X25519 / XSalsa20-Poly1305
-    const algorithmName = options?.algorithm || 'x25519-xsalsa20-poly1305';
+    const algorithmName = options?.algorithm || this.CryptographicCipherName.X25519Xsalsa20Poly1305;
     const api = this.#getCryptoCipherAPI(algorithmName);
     return api.encrypt(options);
   }
@@ -167,9 +169,12 @@ class Web5DID {
   }
 
   #getCryptoCipherAPI(name) {
-    const api = this.#cryptoCiphers[name];
-    if (!api) throw `Unsupported cryptographic cipher: ${name}`;
-    return api;
+    switch (name) {
+    case this.CryptographicCipherName.X25519Xsalsa20Poly1305:
+      return this.#cryptoCiphers[name] ??= new X25519Xsalsa20Poly1305(this.#web5);
+    }
+
+    throw `Unsupported cryptographic cipher: ${name}`;
   }
 
   /**
@@ -179,5 +184,6 @@ class Web5DID {
 }
 
 export {
+  CryptographicCipherName,
   Web5DID,
 };
