@@ -48,7 +48,7 @@ class Web5DID {
   /**
    * @param { DIDMethodName } method
    */
-  async create(method, options = { }) {
+  async create(method = this.DIDMethodName.Key, options = { }) {
     const api = await this.#getMethodAPI(method);
     return api.create(options);
   }
