@@ -1,7 +1,7 @@
 import nacl from 'tweetnacl';
 import { Encoder } from '@tbd54566975/dwn-sdk-js';
 
-import { ed25519PrivateKeyToX25519, ed25519PublicKeyToX25519, verificationMethodToPublicKeyBytes } from '../../did/didUtils.js';
+import { ed25519PrivateKeyToX25519, ed25519PublicKeyToX25519, verificationMethodToPublicKeyBytes } from '../../did/utils.js';
 import { CryptographicCipherName } from '../../did/Web5DID.js';
 import { bytesToObject, objectValuesBase64UrlToBytes, objectValuesBytesToBase64Url } from '../../utils.js';
 

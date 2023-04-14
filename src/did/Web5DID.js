@@ -4,7 +4,7 @@ import { DIDConnect } from './connect/connect.js';
 import { X25519Xsalsa20Poly1305 } from './crypto/x25519-xsalsa20-poly1305.js';
 import * as DIDMethodION from './methods/ion.js';
 import * as DIDMethodKey from './methods/key.js';
-import * as DidUtils from './didUtils.js';
+import * as DIDUtils from './utils.js';
 import { MemoryStorage } from '../storage/MemoryStorage.js';
 
 /**
@@ -42,7 +42,7 @@ class Web5DID {
   }
 
   get util() {
-    return DidUtils;
+    return DIDUtils;
   }
 
   /**
@@ -163,7 +163,7 @@ class Web5DID {
 
   async getKeys(did, options = { }) {
     const didDocument = await this.getDidDocument(did, options);
-    return DidUtils.findVerificationMethods({
+    return this.util.findVerificationMethods({
       didDocument: didDocument,
       methodId: options?.methodId,
       purpose: options?.purpose,

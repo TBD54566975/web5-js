@@ -1,7 +1,7 @@
 import chaiAsPromised from 'chai-as-promised';
 import chai, { expect } from 'chai';
 
-import * as DidUtils from '../../src/did/didUtils.js';
+import * as DIDUtils from '../../src/did/utils.js';
 import * as didDocuments from '../data/didDocuments.js';
 
 chai.use(chaiAsPromised);
@@ -16,7 +16,7 @@ describe('Web5DID', async () => {
         const testVectorInput = 'z2NEpo7TZRRrLZSi2U';
         const testVectorResult = 'Hello World!';
         const NO_HEADER = new Uint8Array([]);
-        const resultBytes = await DidUtils.decodeMultibaseBase58(testVectorInput, NO_HEADER);
+        const resultBytes = await DIDUtils.decodeMultibaseBase58(testVectorInput, NO_HEADER);
         const resultString = new TextDecoder().decode(resultBytes);
         expect(resultString).to.equal(testVectorResult);
       });
@@ -26,7 +26,7 @@ describe('Web5DID', async () => {
         const testVectorInput = 'zYAjKoNbau5KiqmHPmSxYCvn66dA1vLmwbt';
         const testVectorResult = 'Multibase is awesome! \\o/';
         const NO_HEADER = new Uint8Array([]);
-        const resultBytes = await DidUtils.decodeMultibaseBase58(testVectorInput, NO_HEADER);
+        const resultBytes = await DIDUtils.decodeMultibaseBase58(testVectorInput, NO_HEADER);
         const resultString = new TextDecoder().decode(resultBytes);
         expect(resultString).to.equal(testVectorResult);
       });
@@ -35,15 +35,15 @@ describe('Web5DID', async () => {
     describe('findVerificationMethods', () => {
 
       it('should throw error if didDocument is missing', () => {
-        expect(() => DidUtils.findVerificationMethods({ methodId: 'did:key:abcd1234' })).to.throw('didDocument is a required parameter');
+        expect(() => DIDUtils.findVerificationMethods({ methodId: 'did:key:abcd1234' })).to.throw('didDocument is a required parameter');
       });
 
       it('should not throw an error if purpose and methodId are both missing', () => {
-        expect(() => DidUtils.findVerificationMethods({ didDocument: {} })).to.not.throw();
+        expect(() => DIDUtils.findVerificationMethods({ didDocument: {} })).to.not.throw();
       });
 
       it('should throw error if purpose and methodId are both specified', () => {
-        expect(() => DidUtils.findVerificationMethods({ didDocument: {}, methodId: ' ', purpose: ' ' })).to.throw('Specify methodId or purpose but not both');
+        expect(() => DIDUtils.findVerificationMethods({ didDocument: {}, methodId: ' ', purpose: ' ' })).to.throw('Specify methodId or purpose but not both');
       });
 
       describe('by methodId', () => {
@@ -51,7 +51,7 @@ describe('Web5DID', async () => {
           const didDocument = didDocuments.key.oneVerificationMethodJwk.didDocument;
           const methodId = didDocuments.key.oneVerificationMethodJwk.didDocument.verificationMethod[0].id;
 
-          const verificationMethods = DidUtils.findVerificationMethods({ didDocument, methodId });
+          const verificationMethods = DIDUtils.findVerificationMethods({ didDocument, methodId });
           
           expect(verificationMethods).to.have.lengthOf(1);
           expect(verificationMethods[0]).to.be.an('object');
@@ -62,7 +62,7 @@ describe('Web5DID', async () => {
           const didDocument = didDocuments.key.manyVerificationMethodsJwk.didDocument;
           const methodId = didDocuments.key.manyVerificationMethodsJwk.didDocument.verificationMethod[1].id;
 
-          const verificationMethods = DidUtils.findVerificationMethods({ didDocument, methodId });
+          const verificationMethods = DIDUtils.findVerificationMethods({ didDocument, methodId });
           
           expect(verificationMethods).to.have.lengthOf(1);
           expect(verificationMethods[0]).to.be.an('object');
@@ -73,7 +73,7 @@ describe('Web5DID', async () => {
           const didDocument = didDocuments.key.manyVerificationMethodsJwk.didDocument;
           const methodId = didDocuments.key.manyVerificationMethodsJwk.didDocument['keyAgreement'][1].id;
 
-          const verificationMethods = DidUtils.findVerificationMethods({ didDocument, methodId });
+          const verificationMethods = DIDUtils.findVerificationMethods({ didDocument, methodId });
           
           expect(verificationMethods).to.have.lengthOf(1);
           expect(verificationMethods[0]).to.be.an('object');
@@ -83,7 +83,7 @@ describe('Web5DID', async () => {
         it('should return null if verification method ID not found', () => {
           const didDocument = didDocuments.key.oneVerificationMethodJwk.didDocument;
 
-          const verificationMethods = DidUtils.findVerificationMethods({ didDocument, methodId: 'did:key:abcd1234#def980' });
+          const verificationMethods = DIDUtils.findVerificationMethods({ didDocument, methodId: 'did:key:abcd1234#def980' });
     
           expect(verificationMethods).to.be.null;
         });
@@ -91,7 +91,7 @@ describe('Web5DID', async () => {
         it('should return one verification method when no method ID is specified in single method DID document', () => {
           const didDocument = didDocuments.key.oneVerificationMethodJwk.didDocument;
 
-          const verificationMethods = DidUtils.findVerificationMethods({ didDocument });
+          const verificationMethods = DIDUtils.findVerificationMethods({ didDocument });
           
           expect(verificationMethods).to.have.lengthOf(1);
           expect(verificationMethods[0]).to.be.an('object');
@@ -100,7 +100,7 @@ describe('Web5DID', async () => {
         it('should return all verification methods when no method ID is specified in single method DID document', () => {
           const didDocument = didDocuments.key.manyVerificationMethodsJwk.didDocument;
 
-          const verificationMethods = DidUtils.findVerificationMethods({ didDocument });
+          const verificationMethods = DIDUtils.findVerificationMethods({ didDocument });
           
           expect(verificationMethods).to.have.lengthOf(8);
           expect(verificationMethods[0]).to.have.property('id');
@@ -119,7 +119,7 @@ describe('Web5DID', async () => {
           const didDocument = didDocuments.key.twoAuthenticationReferencedKeysJwk.didDocument;
           const purpose = 'authentication';
 
-          const verificationMethods = DidUtils.findVerificationMethods({ didDocument, purpose });
+          const verificationMethods = DIDUtils.findVerificationMethods({ didDocument, purpose });
           
           expect(verificationMethods).to.be.an('Array');
           expect(verificationMethods).to.have.lengthOf(2);
@@ -133,7 +133,7 @@ describe('Web5DID', async () => {
           const didDocument = didDocuments.key.manyVerificationMethodsJwk.didDocument;
           const purpose = 'keyAgreement';
 
-          const verificationMethods = DidUtils.findVerificationMethods({ didDocument, purpose });
+          const verificationMethods = DIDUtils.findVerificationMethods({ didDocument, purpose });
           
           expect(verificationMethods).to.be.an('Array');
           expect(verificationMethods).to.have.lengthOf(2);
@@ -147,7 +147,7 @@ describe('Web5DID', async () => {
           const didDocument = didDocuments.key.manyVerificationMethodsJwk.didDocument;
           const purpose = 'authentication';
 
-          const verificationMethods = DidUtils.findVerificationMethods({ didDocument, purpose });
+          const verificationMethods = DIDUtils.findVerificationMethods({ didDocument, purpose });
           
           expect(verificationMethods).to.be.an('Array');
           expect(verificationMethods).to.have.lengthOf(3);
@@ -163,7 +163,7 @@ describe('Web5DID', async () => {
           const didDocument = didDocuments.key.twoAuthenticationReferencedKeysJwk.didDocument;
           const purpose = 'keyAgreement';
 
-          const verificationMethods = DidUtils.findVerificationMethods({ didDocument, purpose });
+          const verificationMethods = DIDUtils.findVerificationMethods({ didDocument, purpose });
     
           expect(verificationMethods).to.be.null;
         });
@@ -182,7 +182,7 @@ describe('Web5DID', async () => {
             x: '7n_8aiGRMBlsJHQd4t35n307na7TZNElysEBREpvRnk',
           },
         };
-        const resultBytes = await DidUtils.verificationMethodToPublicKeyBytes(testVectorInput);
+        const resultBytes = await DIDUtils.verificationMethodToPublicKeyBytes(testVectorInput);
         expect(resultBytes).to.have.length(32);
       });
 
@@ -198,7 +198,7 @@ describe('Web5DID', async () => {
             y: '7CnORxKJqon8qscaGY_nWROEn2B4oSBxtEryIUn3buc',
           },
         };
-        const resultBytes = await DidUtils.verificationMethodToPublicKeyBytes(testVectorInput);
+        const resultBytes = await DIDUtils.verificationMethodToPublicKeyBytes(testVectorInput);
         expect(resultBytes).to.have.length(65);
       });
 
@@ -209,7 +209,7 @@ describe('Web5DID', async () => {
           controller: 'did:key:z6MkowGxLDf5oVh8FUXHEo2GG2RsyvS4jNHFWoDeM96aU7pR',
           publicKeyBase58: 'AV1ujyQeTxCf8ygaZE4RQvstAMADKV2tpnJiWs8ZYu33',
         };
-        const resultBytes = await DidUtils.verificationMethodToPublicKeyBytes(testVectorInput);
+        const resultBytes = await DIDUtils.verificationMethodToPublicKeyBytes(testVectorInput);
         expect(resultBytes).to.have.length(32);
       });
 
@@ -220,7 +220,7 @@ describe('Web5DID', async () => {
           type: 'Ed25519VerificationKey2020',
           publicKeyMultibase: 'z6MkuBzvPSJafL9JZEj3Cp5CuG1rPyXsZbynHqtYjecxR2pe',
         };
-        const resultBytes = await DidUtils.verificationMethodToPublicKeyBytes(testVectorInput);
+        const resultBytes = await DIDUtils.verificationMethodToPublicKeyBytes(testVectorInput);
         expect(resultBytes).to.have.length(32);
       });
 
@@ -231,7 +231,7 @@ describe('Web5DID', async () => {
           controller: 'did:key:z6LSi7dU7FZfD8P71j5PJrBugYuhvWgPTP8kt9SvXM2moGCy',
           publicKeyBase58: '7STJawko7ffMvLhcnCfxMxhE5N9Gkmxc1AjF2tPF5tSD',
         };
-        const resultBytes = await DidUtils.verificationMethodToPublicKeyBytes(testVectorInput);
+        const resultBytes = await DIDUtils.verificationMethodToPublicKeyBytes(testVectorInput);
         expect(resultBytes).to.have.length(32);
       });
 
@@ -242,7 +242,7 @@ describe('Web5DID', async () => {
           type: 'X25519KeyAgreementKey2020',
           publicKeyMultibase: 'z6LSmWBeTmbc52MeApriadmSupqXqAjvqEQ64TY2bVjmbiw3',
         };
-        const resultBytes = await DidUtils.verificationMethodToPublicKeyBytes(testVectorInput);
+        const resultBytes = await DIDUtils.verificationMethodToPublicKeyBytes(testVectorInput);
         expect(resultBytes).to.have.length(32);
       });
 
@@ -253,7 +253,7 @@ describe('Web5DID', async () => {
           controller: 'did:key:z5TcEqLQRZagxohf4kbuku7tX1UfNKR3FawBUKuWMu12tKzEeAzjHcjHk2ewc7esb6f1izCBVrzTF16ec2fC95fzbMMtcPpvg4BY3uyfp6f89JdBZCLEtzfJtTM7p2MQF7hgtiUnuKFVcJKpL32cUta7Vr8vZ3uPYNoXgUCdbFEZgMre3AKSxHTjSPDqBSHLQdYeFzLaL',
           publicKeyBase58: '7SV3YJ2vwE1jHfqvJTgjBoGH44gepRzahyafHJF1kW23sc1FeUtYD4EU3pSBo8mVp8',
         };
-        await expect(DidUtils.verificationMethodToPublicKeyBytes(testVectorInput)).to.be.rejectedWith('Unsupported verification method type: Bls12381G1Key2020');
+        await expect(DIDUtils.verificationMethodToPublicKeyBytes(testVectorInput)).to.be.rejectedWith('Unsupported verification method type: Bls12381G1Key2020');
       });
     });
   });

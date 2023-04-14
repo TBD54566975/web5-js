@@ -2,12 +2,12 @@ import { DidKeyResolver, Encoder } from '@tbd54566975/dwn-sdk-js';
 import nacl from 'tweetnacl';
 
 import {
+  createJWK,
   ed25519KeyPairToX25519,
   encodeMultibaseBase58,
   MULTICODEC_ED25519_PUB_HEADER,
   MULTICODEC_X25519_PUB_HEADER,
-  createJWK,
-} from '../didUtils.js';
+} from '../utils.js';
 
 const didKeyResolver = new DidKeyResolver();
 
