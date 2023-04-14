@@ -5,8 +5,8 @@ import { ed25519PrivateKeyToX25519, ed25519PublicKeyToX25519, verificationMethod
 import { bytesToObject, objectValuesBase64UrlToBytes, objectValuesBytesToBase64Url } from '../../utils.js';
 
 export class X25519Xsalsa20Poly1305 {
-  #ALG = 'x25519-xsalsa20-poly1305';
   #web5;
+  #ALG = 'x25519-xsalsa20-poly1305';
 
   constructor(web5) {
     this.#web5 = web5;

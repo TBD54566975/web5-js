@@ -8,9 +8,9 @@ import { MemoryStorage } from '../storage/MemoryStorage.js';
 import { pascalToKebabCase } from '../utils.js';
 
 class Web5DID {
+  #web5;
   #cryptoCiphers = {};
   #didConnect;
-  #web5;
 
   #registeredDIDs = new MemoryStorage();
   #resolvedDIDs = new MemoryStorage();
@@ -29,6 +29,10 @@ class Web5DID {
     this.#didConnect.permissionsRequest = this.#didConnect.permissionsRequest.bind(this.#didConnect);
   }
   
+  get web5() {
+    return this.#web5;
+  }
+
   get connect() {
     return this.#didConnect.connect;
   }
@@ -39,10 +43,6 @@ class Web5DID {
 
   get util() {
     return this.#util;
-  }
-
-  get web5() {
-    return this.#web5;
   }
 
   async create(method, options = { }) {
