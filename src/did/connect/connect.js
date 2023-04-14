@@ -1,4 +1,4 @@
-import { DIDConnectRPCMethods, DIDConnectStep, JSONRPCErrorCodes, findWebSocket } from './utils.js';
+import { DIDConnectRPCMethods, DIDConnectStep, JSONRPCErrorCodes, findWebSocketListener } from './utils.js';
 import { WebSocketClient } from './ws-client.js';
 import { parseJSON } from '../../utils.js';
 import { LocalStorage } from '../../storage/LocalStorage.js';
@@ -31,7 +31,7 @@ export class DIDConnect {
     this.#didStoreName = options?.didStoreName ?? 'web5-dids';
 
     // Pre-Flight Check: Ensure that the app has a DID
-    await this.#pfcAppDid();
+    await this.#appDidLoadOrCreate();
 
     const protocol = (new URL(host)).protocol;
     switch (protocol) {
@@ -177,13 +177,10 @@ export class DIDConnect {
     
     let connectStep = DIDConnectStep.Initiation;
 
-    // Pre-Flight Check: Is the Web5 Client already connected to the Provider? If YES, discontinue further processing.
-    const alreadyConnected = this.#pfcAlreadyConnected();
+    // Pre-Flight Check: Is the Web5 Client already connected to the Provider? If NO, try to connect.
+    let connectedToProvider = this.#alreadyConnected() || await this.#connectWeb5Provider();
+    if (!connectedToProvider) return;
 
-    if (!alreadyConnected) {
-      // Pre-Flight Check: 
-      await this.#pfcWeb5AgentAvailability();
-    }
     // Start listening for messages from the DIDConnect Provider
     this.#client.addEventListener('message', handleMessage);
 
@@ -202,21 +199,21 @@ export class DIDConnect {
   /**
    * APP IDENTITY & CONFIGURATION
    * Verify that the client has the necessary credentials (DID with keys) to connect.
-   * Restore existing settings from storage, if present.
+   * Load existing DID material and settings from storage, if present. If not, create a new DID.
    * @returns {Promise<void>}
    */
-  async #pfcAppDid() {
+  async #appDidLoadOrCreate() {
     // If the DID is already stored in memory, nothing to to
     if (this.#did !== null) return;
 
-    // Try to restore from storage;
-    let didRestoreOrCreate = await this.#storage.get(this.#didStoreName);
-    if (!didRestoreOrCreate) {
-      // Could not restore from storage, so create a new DID
-      didRestoreOrCreate = await this.#web5.did.create('key');
-      await this.#storage.set(this.#didStoreName, didRestoreOrCreate);
+    // Try to load from storage;
+    let didLoadOrCreate = await this.#storage.get(this.#didStoreName);
+    if (!didLoadOrCreate) {
+      // Could not load from storage, so create a new DID
+      didLoadOrCreate = await this.#web5.did.create('key');
+      await this.#storage.set(this.#didStoreName, didLoadOrCreate);
     }
-    this.#did = didRestoreOrCreate;
+    this.#did = didLoadOrCreate;
   }
 
   /**
@@ -224,7 +221,7 @@ export class DIDConnect {
    * Check the client's state and if the client is already connected.
    * @returns {boolean} Is the client already connected?
   */
-  #pfcAlreadyConnected() {
+  #alreadyConnected() {
     // Check whether the client is already instantiated
     const clientAvailable = (this.#client !== null);
     const alreadyConnected = this.#client?.connected;
@@ -235,14 +232,14 @@ export class DIDConnect {
   }
 
   /**
-   * WEB5 AGENT AVAILABILITY
+   * WEB5 PROVIDER AVAILABILITY
    * Check whether configuration settings (server address, ports, etc.) are available.
-   * If Yes, attempt to reconnect and ensure the agent is online and client is authorized to access resources.
-   * If No, scan for local listening agent and attempt to open socket and trigger custom URL scheme handler.
+   * If Yes, attempt to reconnect and ensure the Provider is online and client is authorized to access resources.
+   * If No, scan for local listening Provider and attempt to open socket and trigger custom URL scheme handler.
    * 
-   * @returns {Promise<boolean>} True, if Agent was available and a connection was established. False, otherwise.
+   * @returns {Promise<boolean>} True, if Provider was available and a connection was established. False, otherwise.
    */
-  async #pfcWeb5AgentAvailability() {
+  async #connectWeb5Provider() {
     // DID data and configuration should already be present at this stage but double-check
     if (this.#did === null) throw new Error('Unexpected state: DID data and configuration should have already been initialized');
 
@@ -260,12 +257,12 @@ export class DIDConnect {
       userInitiatedAction = !this.#did.endpoint.authorized;
     } else {
       host = 'localhost';
-      startPort = 55_500, endPort = 55_600;
+      startPort = 55_500, endPort = 55_550;
       userInitiatedAction = true;
     }
 
     try {
-      socket = await findWebSocket(startPort, endPort, connectPath, userInitiatedAction, host);
+      socket = await findWebSocketListener(startPort, endPort, connectPath, userInitiatedAction, host);
 
       // Instantiate a WebSocket Client instance with the already open socket
       this.#client = new WebSocketClient(socket, this.#web5);
