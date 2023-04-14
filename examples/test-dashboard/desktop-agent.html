@@ -414,11 +414,10 @@
   });
   
   web5.addEventListener('error', (event) => {
-    console.error(event);
-
     container_security_code.style.display = 'none';
     
-    container_connect_status.textContent = `${event}`;
+    const errorMessage = event?.detail;
+    container_connect_status.textContent = `${event.detail}`;
     container_connect_status.classList.add('error');
     container_connect_status.style.display = 'block';
   });
