@@ -1,4 +1,7 @@
-import { DID, generateKeyPair, resolve, sign, verify } from '@decentralized-identity/ion-tools';
+import { DID, generateKeyPair, sign, verify } from '@decentralized-identity/ion-tools';
+import { DidIonResolver } from '@tbd54566975/dwn-sdk-js';
+
+const didIonResolver = new DidIonResolver();
 
 async function create(options = { }){
   options.keys ||= [
@@ -29,6 +32,20 @@ async function create(options = { }){
     keys: options.keys,
     services: options.services || [ ],
   };
+}
+
+async function resolve(did) {
+  try {
+    return await didIonResolver.resolve(did);
+  } catch (error) {
+    return {
+      didDocument           : null,
+      didDocumentMetadata   : {},
+      didResolutionMetadata : {
+        error: error.message,
+      },
+    };
+  }
 }
 
 export {

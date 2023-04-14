@@ -1,6 +1,20 @@
 import nacl from 'tweetnacl';
 import { Encoder } from '@tbd54566975/dwn-sdk-js';
 
+const textDecoder = new TextDecoder();
+
+// TODO: Remove if this method is ever added to the DWN SDK Encoder class
+export function base64UrlToString(base64urlString) {
+  const bytes = Encoder.base64UrlToBytes(base64urlString);
+  return Encoder.bytesToString(bytes);
+}
+
+// TODO: Remove if this method is ever added to the DWN SDK Encoder class
+export function bytesToObject(bytes) {
+  const objectString = textDecoder.decode(bytes);
+  return JSON.parse(objectString);
+}
+
 function createWeakSingletonAccessor(creator) {
   let weakref = null;
   return function() {
@@ -13,20 +27,34 @@ function createWeakSingletonAccessor(creator) {
   };
 }
 
-function parseJSON(string) {
+function isEmptyObject(obj) {
+  if (typeof obj === 'object' && obj !== null) {
+    return Object.keys(obj).length === 0;
+  }
+  return false;
+}
+
+function parseJSON(str) {
   try {
-    return JSON.parse(string);
+    return JSON.parse(str);
   } catch {
     return null;
   }
 }
 
-function parseURL(string) {
+function parseURL(str) {
   try {
-    return new URL(string);
+    return new URL(str);
   } catch {
     return null;
   }
+}
+
+function pascalToKebabCase(str) {
+  return str
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
+    .toLowerCase();
 }
 
 /**
@@ -65,6 +93,14 @@ function isUnsignedMessage(message) {
   return message?.message?.authorization ? false : true;
 }
 
+function objectValuesBytesToBase64Url(obj) {
+  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, Encoder.bytesToBase64Url(value)]));
+}
+
+function objectValuesBase64UrlToBytes(obj) {
+  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, Encoder.base64UrlToBytes(value)]));
+}
+
 /**
  * Credit for toType() function:
  *   Angus Croll
@@ -96,8 +132,12 @@ export {
   createWeakSingletonAccessor,
   dataToBytes,
   decodePin,
+  isEmptyObject,
   isUnsignedMessage,
+  objectValuesBase64UrlToBytes,
+  objectValuesBytesToBase64Url,
   parseJSON,
   parseURL,
+  pascalToKebabCase,
   triggerProtocolHandler,
 };

@@ -49,4 +49,26 @@ describe('Utils Tests', () => {
       expect(result).to.be.false;
     });
   });
+
+  describe('pascalToKebabCase', () => {
+    it('should return kebab case from regular pascal case', () => {
+      const result = utils.pascalToKebabCase('MyClassName');
+      expect(result).to.equal('my-class-name');
+    });
+    
+    it('should return kebab case from pascal case with leading acryonym', () => {
+      const result = utils.pascalToKebabCase('HTTPServer');
+      expect(result).to.equal('http-server');
+    });
+    
+    it('should return kebab case from pascal case with trailing acryonym', () => {
+      const result = utils.pascalToKebabCase('ResolvedDID');
+      expect(result).to.equal('resolved-did');
+    });
+    
+    it('should return kebab case from pascal case with mid acryonym', () => {
+      const result = utils.pascalToKebabCase('MyDIDClass');
+      expect(result).to.equal('my-did-class');
+    });
+  });
 });
