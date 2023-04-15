@@ -1,7 +1,6 @@
 import { parseJSON } from '../../utils.js';
 
 export class WebSocketClient {
-  #web5;
   #port;
   #requestID = 0;
   #socket;
@@ -10,10 +9,9 @@ export class WebSocketClient {
    * 
    * @param {WebSocket} socket 
    */
-  constructor(socket, web5) {
+  constructor(socket) {
     this.#port = (new URL(socket.url)).port;
     this.#socket = socket;
-    this.#web5 = web5;
   }
 
   get port() {
@@ -47,15 +45,14 @@ export class WebSocketClient {
   /**
    * 
    * @param {string} host protocol://hostname or protocol://hostname:port to connect to
-   * @param {Web5} web5 Web5 instance
    * @returns 
    */
-  static async create(url, web5) {
+  static async create(url) {
     return new Promise((resolve, _reject) => {
       const socket = new WebSocket(url);
       
       socket.onopen = _event => {
-        const client = new WebSocketClient(socket, web5);
+        const client = new WebSocketClient(socket);
         return resolve(client);
       };
     });

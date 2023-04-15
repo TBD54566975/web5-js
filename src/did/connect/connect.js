@@ -20,10 +20,6 @@ export class DIDConnect {
     this.#web5 = web5;
   }
 
-  get web5() {
-    return this.#web5;
-  }
-
   async connect(options = { }) {
     // DID Connection configuration
     const host = options?.host ?? 'web5://localhost'; // Default to local agent deep link (desktop or mobile)
@@ -92,15 +88,15 @@ export class DIDConnect {
         // Encrypted PIN challenge received from DIDConnect Provider
         if (verificationResult?.ok) {
           // Decrypt the PIN challenge payload
-          const pinBytes = await this.web5.did.decrypt({
+          const pinBytes = await this.#web5.did.decrypt({
             did: this.#did.id,
             payload: verificationResult.payload,
             privateKey: this.#did.keys[0].keypair.privateKeyJwk.d, // TODO: Remove once a keystore has been implemented
           });
-          const pin = this.web5.dwn.SDK.Encoder.bytesToString(pinBytes);
+          const pin = this.#web5.dwn.SDK.Encoder.bytesToString(pinBytes);
 
           // Emit event notifying the DWA that the PIN can be displayed to the end user
-          this.web5.dispatchEvent(new CustomEvent('challenge', { detail: { pin } }));
+          this.#web5.dispatchEvent(new CustomEvent('challenge', { detail: { pin } }));
           
           // Advance DIDConnect to Delegation and wait for challenge response from DIDConect Provider
           connectStep = DIDConnectStep.Delegation;
@@ -121,7 +117,7 @@ export class DIDConnect {
         if (delegationResult?.ok) {
           const authorizedDid = delegationResult?.message?.grantedBy;
           // Register DID now that the connection was authorized
-          await this.web5.did.register({
+          await this.#web5.did.register({
             connected: true,
             did: authorizedDid,
             endpoint: `http://localhost:${this.#client.port}/dwn`,
@@ -135,7 +131,7 @@ export class DIDConnect {
 
           // Emit event notifying the DWA that the connection was authorized and which DID the app was authorized
           // to use for interactions with the Provider.
-          this.web5.dispatchEvent(new CustomEvent('authorized', { detail: { did: authorizedDid } }));
+          this.#web5.dispatchEvent(new CustomEvent('authorized', { detail: { did: authorizedDid } }));
 
           // Stop handling messages since the DID Connect process has completed
           this.#client.removeEventListener('message', handleMessage);
@@ -158,10 +154,10 @@ export class DIDConnect {
           const { code = undefined, message = undefined } = delegationError;
           if (code === JSONRPCErrorCodes.Unauthorized) {
             // Emit event notifying the DWA that the connection request was denied
-            this.web5.dispatchEvent(new CustomEvent('denied', { detail: { message: message } }));
+            this.#web5.dispatchEvent(new CustomEvent('denied', { detail: { message: message } }));
           } else if (code === JSONRPCErrorCodes.Forbidden) {
             // Emit event notifying the DWA that this app has been blocked from connecting
-            this.web5.dispatchEvent(new CustomEvent('blocked', { detail: { message: message } }));
+            this.#web5.dispatchEvent(new CustomEvent('blocked', { detail: { message: message } }));
           }
         }
 
@@ -264,7 +260,7 @@ export class DIDConnect {
       socket = await findWebSocketListener(startPort, endPort, connectPath, userInitiatedAction, host);
 
       // Instantiate a WebSocket Client instance with the already open socket
-      this.#client = new WebSocketClient(socket, this.#web5);
+      this.#client = new WebSocketClient(socket);
       // Update DID store
       this.#did.endpoint ??= { };
       this.#did.endpoint.host = host;
@@ -275,7 +271,7 @@ export class DIDConnect {
     } catch (error) {
       console.error('Error:', error.message);
       // Emit event notifying the DWA that the connection attempt failed.
-      this.web5.dispatchEvent(new CustomEvent('error', { detail: error.message }));
+      this.#web5.dispatchEvent(new CustomEvent('error', { detail: error.message }));
     }
     return false;
   }

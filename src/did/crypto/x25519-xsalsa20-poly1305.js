@@ -13,10 +13,6 @@ export class X25519Xsalsa20Poly1305 {
     this.#web5 = web5;
   }
 
-  get web5() {
-    return this.#web5;
-  }
-
   /**
    * This algorithm converts the recipients Ed25519 signing private key to a Curve25519/X25519 key, and uses that key to decrypt.
    * 
@@ -90,8 +86,8 @@ export class X25519Xsalsa20Poly1305 {
   async #verificationMethodFromDid(did, keyId) {
     // Get assertion method(s) from the DID either using the specified keyId or by purpose (assertionMethod)
     const didAssertionMethods = (keyId) ?
-      await this.web5.did.getKeys(did, { methodId: keyId }) :
-      await this.web5.did.getKeys(did, { purpose: 'assertionMethod' });
+      await this.#web5.did.getKeys(did, { methodId: keyId }) :
+      await this.#web5.did.getKeys(did, { purpose: 'assertionMethod' });
     if (!didAssertionMethods) throw new Error('Ed25519 verification method not found in DID document');
     
     // If more than one assertionMethod key is referenced or embedded in the DID document, throw an error rather than
