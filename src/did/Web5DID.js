@@ -1,6 +1,6 @@
 import { Encoder } from '@tbd54566975/dwn-sdk-js';
 
-import { DIDConnect } from './connect/connect.js';
+import { DIDConnect } from './connect.js';
 import { X25519Xsalsa20Poly1305 } from './crypto/x25519-xsalsa20-poly1305.js';
 import * as DIDMethodION from './methods/ion.js';
 import * as DIDMethodKey from './methods/key.js';

@@ -1,6 +1,6 @@
-import { JSONRPCSocket } from '../../json-rpc/JSONRPCSocket.js';
-import { LocalStorage } from '../../storage/LocalStorage.js';
-import { parseJSON, sleep, triggerProtocolHandler } from '../../utils.js';
+import { JSONRPCSocket } from '../json-rpc/JSONRPCSocket.js';
+import { LocalStorage } from '../storage/LocalStorage.js';
+import { parseJSON, sleep, triggerProtocolHandler } from '../utils.js';
 
 const DIDConnectStep = {
   Initiation: 'Initiation',
