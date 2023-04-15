@@ -1,12 +1,31 @@
-import { DIDConnectRPCMethods, DIDConnectStep, JSONRPCErrorCodes, findWebSocketListener } from './utils.js';
-import { WebSocketClient } from './ws-client.js';
-import { parseJSON } from '../../utils.js';
+import { JSONRPCSocket } from '../../json-rpc/JSONRPCSocket.js';
 import { LocalStorage } from '../../storage/LocalStorage.js';
+import { parseJSON, sleep, triggerProtocolHandler } from '../../utils.js';
+
+const DIDConnectStep = {
+  Initiation: 'Initiation',
+  Verification: 'Verification',
+  Delegation: 'Delegation',
+  Authorized: 'Authorized',
+  Blocked: 'Blocked',
+};
+
+const DIDConnectMethod = {
+  Ready: 'didconnect.ready',
+  [DIDConnectStep.Initiation]: 'didconnect.initiation',
+  [DIDConnectStep.Delegation]: 'didconnect.delegation',
+};
+
+const DIDConnectError = {
+  BadRequest: -50400, // equivalent to HTTP Status 400
+  Unauthorized: -50401, // equivalent to HTTP Status 401
+  Forbidden: -50403, // equivalent to HTTP Status 403
+};
 
 export class DIDConnect {
   #web5;
 
-  #client = null;
+  #socket = null;
   #did = null;
   #permissionsRequests = [];
 
@@ -71,119 +90,75 @@ export class DIDConnect {
   }
 
   async #initiateWeb5Client() {  
-    // Handler that will be used to step through the DIDConnect process phases
-    const handleMessage = async (event) => {
-      const rpcMessage = parseJSON(event.data);
-
-      switch (connectStep) {
-
-      case DIDConnectStep.Initiation: {
-        // The Client App initiates the DIDConnect process, so no messages from the Provider are expected until the Verification step
-        console.warn('Unexpected message received before Web5 Client was ready');
-        break;
-      }
-
-      case DIDConnectStep.Verification: {
-        const verificationResult = rpcMessage?.result;
-        // Encrypted PIN challenge received from DIDConnect Provider
-        if (verificationResult?.ok) {
-          // Decrypt the PIN challenge payload
-          const pinBytes = await this.#web5.did.decrypt({
-            did: this.#did.id,
-            payload: verificationResult.payload,
-            privateKey: this.#did.keys[0].keypair.privateKeyJwk.d, // TODO: Remove once a keystore has been implemented
-          });
-          const pin = this.#web5.dwn.SDK.Encoder.bytesToString(pinBytes);
-
-          // Emit event notifying the DWA that the PIN can be displayed to the end user
-          this.#web5.dispatchEvent(new CustomEvent('challenge', { detail: { pin } }));
-          
-          // Advance DIDConnect to Delegation and wait for challenge response from DIDConect Provider
-          connectStep = DIDConnectStep.Delegation;
-          
-          // Send queued PermissionsRequest to Provider.
-          this.#client.sendRequest(DIDConnectRPCMethods[connectStep], { message: this.#permissionsRequests.pop() });
-
-        } else {
-          // TODO: Remove socket listeners, destroy socket, destroy this.#client, and emit error to notify user of app
-        }
-        break;
-      }
-
-      case DIDConnectStep.Delegation: {
-        const delegationResult = rpcMessage?.result;
-
-        // Success
-        if (delegationResult?.ok) {
-          const authorizedDid = delegationResult?.message?.grantedBy;
-          // Register DID now that the connection was authorized
-          await this.#web5.did.register({
-            connected: true,
-            did: authorizedDid,
-            endpoint: `http://localhost:${this.#client.port}/dwn`,
-          });
-
-          this.#did.endpoint.authorized = true;
-          this.#did.endpoint.mruDid = authorizedDid;
-          this.#did.endpoint.permissions ??= { };
-          this.#did.endpoint.permissions[authorizedDid] = delegationResult.message;
-          this.#storage.set(this.#didStoreName, this.#did);
-
-          // Emit event notifying the DWA that the connection was authorized and which DID the app was authorized
-          // to use for interactions with the Provider.
-          this.#web5.dispatchEvent(new CustomEvent('authorized', { detail: { did: authorizedDid } }));
-
-          // Stop handling messages since the DID Connect process has completed
-          this.#client.removeEventListener('message', handleMessage);
-        }
-        
-        // Handle errors
-        const delegationError = rpcMessage?.error;
-        if (delegationError) {
-          // Clear authorization and permissions
-          this.#did.endpoint.authorized = false;
-          this.#did.endpoint.permissions = {};
-          // Update DID store
-          this.#storage.set(this.#didStoreName, this.#did);
-
-          // Close and delete socket
-          this.#client.removeEventListener('message', handleMessage);
-          this.#client.close();
-          this.#client = null;
-
-          const { code = undefined, message = undefined } = delegationError;
-          if (code === JSONRPCErrorCodes.Unauthorized) {
-            // Emit event notifying the DWA that the connection request was denied
-            this.#web5.dispatchEvent(new CustomEvent('denied', { detail: { message: message } }));
-          } else if (code === JSONRPCErrorCodes.Forbidden) {
-            // Emit event notifying the DWA that this app has been blocked from connecting
-            this.#web5.dispatchEvent(new CustomEvent('blocked', { detail: { message: message } }));
-          }
-        }
-
-        // Reached terminal DID Connect state where connection was either authorized/denied/block
-        // Reset DID Connect step to be ready for any future reconnects/switch account/change permission requests
-        connectStep = DIDConnectStep.Initiation;
-
-        break;
-      }
-      }
-    };
-    
-    let connectStep = DIDConnectStep.Initiation;
-
     // Pre-Flight Check: Is the Web5 Client already connected to the Provider? If NO, try to connect.
     let connectedToProvider = this.#alreadyConnected() || await this.#connectWeb5Provider();
     if (!connectedToProvider) return;
 
-    // Start listening for messages from the DIDConnect Provider
-    this.#client.addEventListener('message', handleMessage);
+    try {
+      // Send a request to the agent initiating the DIDConnect process.
+      const verificationResult = await this.#socket.sendRequest(DIDConnectMethod[DIDConnectStep.Initiation]);
 
-    // Send a request to the agent initiating the DIDConnect process
-    this.#client.sendRequest(DIDConnectRPCMethods.Initiation);
+      // Decrypt the PIN challenge payload.
+      const pinBytes = await this.#web5.did.decrypt({
+        did: this.#did.id,
+        payload: verificationResult,
+        privateKey: this.#did.keys[0].keypair.privateKeyJwk.d, // TODO: Remove once a keystore has been implemented
+      });
+      const pin = this.#web5.dwn.SDK.Encoder.bytesToString(pinBytes);
 
-    // Advance DIDConnect to Verification and wait for encrypted challenge PIN from DIDConnect Provider
-    connectStep = DIDConnectStep.Verification;
+      // Emit event notifying the DWA that the PIN can be displayed to the end user.
+      this.#web5.dispatchEvent(new CustomEvent('challenge', { detail: { pin } }));
+
+      // Advance DIDConnect to Delegation and wait for challenge response from DIDConect Provider.
+      // Also send queued PermissionsRequest to Provider.
+      const delegationResult = await this.#socket.sendRequest(DIDConnectMethod[DIDConnectStep.Delegation], { message: this.#permissionsRequests.pop() });
+
+      const authorizedDID = delegationResult.grantedBy;
+
+      // Register DID now that the connection was authorized
+      await this.#web5.did.register({
+        connected: true,
+        did: authorizedDID,
+        endpoint: `http://localhost:${this.#did.endpoint.port}/dwn`,
+      });
+
+      this.#did.endpoint.authorized = true;
+      this.#did.endpoint.mruDid = authorizedDID;
+      this.#did.endpoint.permissions ??= { };
+      this.#did.endpoint.permissions[authorizedDID] = delegationResult;
+      this.#storage.set(this.#didStoreName, this.#did);
+
+      // Emit event notifying the DWA that the connection was authorized and which DID the app was authorized
+      // to use for interactions with the Provider.
+      this.#web5.dispatchEvent(new CustomEvent('authorized', { detail: { did: authorizedDID } }));
+    } catch (error) {
+      // Clear authorization and permissions
+      this.#did.endpoint.authorized = false;
+      this.#did.endpoint.permissions = { };
+      // Update DID store
+      this.#storage.set(this.#didStoreName, this.#did);
+
+      // Close and delete socket
+      this.#socket.close();
+      this.#socket = null;
+
+      switch (error.code) {
+      case DIDConnectError.Unauthorized:
+        // Emit event notifying the DWA that the connection request was denied
+        this.#web5.dispatchEvent(new CustomEvent('denied', { detail: { message: error.message } }));
+        break;
+
+      case DIDConnectError.Forbidden:
+        // Emit event notifying the DWA that this app has been blocked from connecting
+        this.#web5.dispatchEvent(new CustomEvent('blocked', { detail: { message: error.message } }));
+        break;
+
+      default:
+        // Emit event notifying the DWA that an error occurred
+        this.#web5.dispatchEvent(new CustomEvent('error', { detail: { message: error.message } }));
+        break;
+      }
+    }
   }
 
 
@@ -217,13 +192,7 @@ export class DIDConnect {
    * @returns {boolean} Is the client already connected?
   */
   #alreadyConnected() {
-    // Check whether the client is already instantiated
-    const clientAvailable = (this.#client !== null);
-    const alreadyConnected = this.#client?.connected;
-    if (clientAvailable && alreadyConnected) {
-      return true;
-    }
-    return false;
+    return !!this.#socket?.ready;
   }
 
   /**
@@ -240,9 +209,9 @@ export class DIDConnect {
 
     // Dynamically generate DID Connect path in case origin has changed.
     const encodedOrigin = this.#web5.dwn.SDK.Encoder.stringToBase64Url(location.origin);
-    const connectPath = `didconnect/${this.#did.id}/${encodedOrigin}`;
+    const path = `didconnect/${this.#did.id}/${encodedOrigin}`;
 
-    let socket, startPort, endPort, userInitiatedAction, host;
+    let host, startPort, endPort, userInitiatedAction;
 
     // Check whether DID Connect configuration is available
     if (this.#did.endpoint !== undefined) {
@@ -257,14 +226,14 @@ export class DIDConnect {
     }
 
     try {
-      socket = await findWebSocketListener(startPort, endPort, connectPath, userInitiatedAction, host);
+      const { port, socket } = await this.#findSocket(host, startPort, endPort, path, { userInitiatedAction });
 
-      // Instantiate a WebSocket Client instance with the already open socket
-      this.#client = new WebSocketClient(socket);
+      this.#socket = socket;
+
       // Update DID store
       this.#did.endpoint ??= { };
       this.#did.endpoint.host = host;
-      this.#did.endpoint.port = this.#client.port;
+      this.#did.endpoint.port = port;
       this.#storage.set(this.#didStoreName, this.#did);
       return true;
 
@@ -274,5 +243,70 @@ export class DIDConnect {
       this.#web5.dispatchEvent(new CustomEvent('error', { detail: error.message }));
     }
     return false;
+  }
+
+  async #findSocket(host, startPort, endPort, path, options = { }) {
+    for (let port = startPort; port <= endPort; ++port) {
+      try {
+        const socket = await this.#trySocket(host, port, path, options);
+        return { port, socket };
+      } catch (error) {
+        console.error(error.message);
+        if (port !== endPort) {
+          await sleep(options.delay ?? 5); // Wait between socket connection attempts.
+        }
+      }
+    }
+
+    throw new Error(`Failed to connect between ports ${startPort} and ${endPort}`);
+  }
+
+  async #trySocket(host, port, path, options = { }) {
+    return new Promise((resolve, reject) => {
+      const socket = new JSONRPCSocket();
+
+      function removeListeners() {
+        socket.removeEventListener('open', handleOpen, { capture: true });
+        socket.removeEventListener('notification', handleNotification, { capture: true });
+        socket.removeEventListener('close', handleClose, { capture: true });
+        socket.removeEventListener('error', handleError, { capture: true });
+      }
+
+      function handleOpen() {
+        if (options.userInitiatedAction) {
+          triggerProtocolHandler(`web5://${path}`);
+        }
+      }
+
+      function handleNotification(event) {
+        removeListeners();
+
+        const { method, params } = event.detail;
+        if (method === DIDConnectMethod.Ready) {
+          resolve(socket);
+        } else {
+          reject(new Error(`Unexpected notification on port ${port}: ${event.detail}`));
+        }
+      }
+
+      function handleClose() {
+        removeListeners();
+
+        reject(new Error(`Connection closed on port ${port}`));
+      }
+
+      function handleError() {
+        removeListeners();
+
+        reject(new Error(`Connection failed on port ${port}`));
+      }
+
+      socket.addEventListener('open', handleOpen, { capture: true, passive: true, once: true });
+      socket.addEventListener('notification', handleNotification, { capture: true, passive: true, once: true });
+      socket.addEventListener('close', handleClose, { capture: true, passive: true, once: true });
+      socket.addEventListener('error', handleError, { capture: true, passive: true, once: true });
+
+      socket.open(`ws://${host}:${port}/${path}`).catch(reject);
+    });
   }
 }

@@ -130,6 +130,10 @@ async function triggerProtocolHandler(url) {
   form.remove();
 }
 
+async function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function decodePin(data, secretKey) {
   const { pin, nonce, publicKey } = data;
   const encryptedPinBytes = Encoder.base64UrlToBytes(pin);
@@ -150,5 +154,6 @@ export {
   parseJSON,
   parseURL,
   pascalToKebabCase,
+  sleep,
   triggerProtocolHandler,
 };
