@@ -73,16 +73,12 @@ export async function decodeMultibaseBase58(mbString, header) {
  * @returns {object} For example, { method: 'key', id: 'abcd1234' }
  */
 export async function didToMethodIdentifier(did) {
-  let result;
   try {
-    // Converts 'did:key:abc1234#efg0987' to ['did', 'key', 'abc1234']
-    const didArray = did.split('#')[0].split(':');
-    // Converts ['did', 'key', 'abc1234'] to { method: 'key', id: 'abc1234' }
-    result = (([, method, id]) => ({ method, id }))(didArray);
+    const [ , method, id ] = did.split('#')[0].split(':');
+    return { method, id };
   } catch (error) {
     throw new Error(`Malformed did: ${did}`);
   }
-  return result;
 }
 
 /**
