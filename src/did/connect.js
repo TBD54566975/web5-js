@@ -105,7 +105,7 @@ export class DIDConnect {
 
       // Advance DIDConnect to Delegation and wait for challenge response from DIDConect Provider.
       // Also send queued PermissionsRequest to Provider.
-      const delegationResult = await this.#socket.sendRequest(DIDConnectMethod.Delegation, { message: this.#permissionsRequests.pop() });
+      const delegationResult = await this.#socket.sendRequest(DIDConnectMethod.Delegation, { permissionsRequest: this.#permissionsRequests.pop() });
 
       const authorizedDID = delegationResult.grantedBy;
 
