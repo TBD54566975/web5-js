@@ -367,13 +367,14 @@
 
   web5.addEventListener('challenge', (event) => {
     const pin = event.detail.pin;
-    if (!isAuthorized) {
-      const pinDisplays = document.querySelectorAll('.pin-display');
-      for (let i = 0; i < pinDisplays.length; i++) {
-        pinDisplays[i].textContent = pin[i] || '';
-      }
-      container_security_code.style.display = 'block'
+
+    console.assert(!isAuthorized);
+
+    const pinDisplays = document.querySelectorAll('.pin-display');
+    for (let i = 0; i < pinDisplays.length; i++) {
+      pinDisplays[i].textContent = pin[i] || '';
     }
+    container_security_code.style.display = 'block'
   });
 
   web5.addEventListener('authorized', (event) => {

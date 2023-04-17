@@ -1,6 +1,6 @@
 import { JSONRPCSocket } from '../json-rpc/JSONRPCSocket.js';
 import { LocalStorage } from '../storage/LocalStorage.js';
-import { parseJSON, sleep, triggerProtocolHandler } from '../utils.js';
+import { isEmptyObject, sleep, triggerProtocolHandler } from '../utils.js';
 
 const DIDConnectMethod = {
   Ready: 'didconnect.ready',
@@ -90,16 +90,18 @@ export class DIDConnect {
       // Send a request to the agent initiating the DIDConnect process.
       const verificationResult = await this.#socket.sendRequest(DIDConnectMethod.Initiation);
 
-      // Decrypt the PIN challenge payload.
-      const pinBytes = await this.#web5.did.decrypt({
-        did: this.#did.id,
-        payload: verificationResult,
-        privateKey: this.#did.keys[0].keypair.privateKeyJwk.d, // TODO: Remove once a keystore has been implemented
-      });
-      const pin = this.#web5.dwn.SDK.Encoder.bytesToString(pinBytes);
+      if (!isEmptyObject(verificationResult)) {
+        // Decrypt the PIN challenge payload.
+        const pinBytes = await this.#web5.did.decrypt({
+          did: this.#did.id,
+          payload: verificationResult,
+          privateKey: this.#did.keys[0].keypair.privateKeyJwk.d, // TODO: Remove once a keystore has been implemented
+        });
+        const pin = this.#web5.dwn.SDK.Encoder.bytesToString(pinBytes);
 
-      // Emit event notifying the DWA that the PIN can be displayed to the end user.
-      this.#web5.dispatchEvent(new CustomEvent('challenge', { detail: { pin } }));
+        // Emit event notifying the DWA that the PIN can be displayed to the end user.
+        this.#web5.dispatchEvent(new CustomEvent('challenge', { detail: { pin } }));
+      }
 
       // Advance DIDConnect to Delegation and wait for challenge response from DIDConect Provider.
       // Also send queued PermissionsRequest to Provider.
