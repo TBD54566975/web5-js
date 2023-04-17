@@ -124,7 +124,7 @@ export class DIDConnect {
           await this.web5.did.register({
             connected: true,
             did: authorizedDid,
-            endpoint: `http://localhost:${this.#client.port}/dwn`,
+            endpoint: `http://localhost:${this.#client.port}/dwn/${this.#did.id}`,
           });
 
           this.#did.endpoint.authorized = true;
