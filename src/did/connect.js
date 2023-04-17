@@ -2,18 +2,10 @@ import { JSONRPCSocket } from '../json-rpc/JSONRPCSocket.js';
 import { LocalStorage } from '../storage/LocalStorage.js';
 import { parseJSON, sleep, triggerProtocolHandler } from '../utils.js';
 
-const DIDConnectStep = {
-  Initiation: 'Initiation',
-  Verification: 'Verification',
-  Delegation: 'Delegation',
-  Authorized: 'Authorized',
-  Blocked: 'Blocked',
-};
-
 const DIDConnectMethod = {
   Ready: 'didconnect.ready',
-  [DIDConnectStep.Initiation]: 'didconnect.initiation',
-  [DIDConnectStep.Delegation]: 'didconnect.delegation',
+  Initiation: 'didconnect.initiation',
+  Delegation: 'didconnect.delegation',
 };
 
 const DIDConnectError = {
@@ -96,7 +88,7 @@ export class DIDConnect {
 
     try {
       // Send a request to the agent initiating the DIDConnect process.
-      const verificationResult = await this.#socket.sendRequest(DIDConnectMethod[DIDConnectStep.Initiation]);
+      const verificationResult = await this.#socket.sendRequest(DIDConnectMethod.Initiation);
 
       // Decrypt the PIN challenge payload.
       const pinBytes = await this.#web5.did.decrypt({
@@ -111,7 +103,7 @@ export class DIDConnect {
 
       // Advance DIDConnect to Delegation and wait for challenge response from DIDConect Provider.
       // Also send queued PermissionsRequest to Provider.
-      const delegationResult = await this.#socket.sendRequest(DIDConnectMethod[DIDConnectStep.Delegation], { message: this.#permissionsRequests.pop() });
+      const delegationResult = await this.#socket.sendRequest(DIDConnectMethod.Delegation, { message: this.#permissionsRequests.pop() });
 
       const authorizedDID = delegationResult.grantedBy;
 
