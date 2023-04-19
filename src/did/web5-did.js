@@ -1,19 +1,20 @@
 import { Encoder } from '@tbd54566975/dwn-sdk-js';
 
-import { DIDConnect } from './connect/connect.js';
+import { DidConnect } from './connect/connect.js';
 import * as CryptoCiphers from './crypto/ciphers.js';
+import * as DidManager from './manager.js';
 import * as Methods from './methods/methods.js';
-import * as DidUtils from './didUtils.js';
-import { MemoryStorage } from '../storage/MemoryStorage.js';
+import * as DidUtils from './utils.js';
+import { MemoryStorage } from '../storage/memory-storage.js';
 import { pascalToKebabCase } from '../utils.js';
 
-class Web5DID {
+export class Web5Did {
   #cryptoCiphers = {};
   #didConnect;
   #web5;
 
-  #registeredDIDs = new MemoryStorage();
-  #resolvedDIDs = new MemoryStorage();
+  #resolvedDids = new MemoryStorage();
+  didStore = new MemoryStorage();
 
   constructor(web5) {
     this.#web5 = web5;
@@ -23,8 +24,8 @@ class Web5DID {
       this.#cryptoCiphers[cipherName] = new CryptoCiphers[cipher](this.web5);
     }
 
-    this.#didConnect = new DIDConnect(web5);
-    // Bind functions to the instance of DIDConnect
+    this.#didConnect = new DidConnect(web5);
+    // Bind functions to the instance of DidConnect
     this.#didConnect.connect = this.#didConnect.connect.bind(this.#didConnect);
     this.#didConnect.permissionsRequest = this.#didConnect.permissionsRequest.bind(this.#didConnect);
   }
@@ -37,8 +38,18 @@ class Web5DID {
     return this.#didConnect.permissionsRequest;
   }
 
+  get manager() {
+    return {
+      clear: (...args) => DidManager.clear(...args, this.didStore),
+      exists: (...args) => DidManager.exists(...args, this.didStore),
+      get: (...args) => DidManager.get(...args, this.didStore),
+      remove: (...args) => DidManager.remove(...args, this.didStore),
+      set: (...args) => DidManager.set(...args, this.didStore),
+    };
+  }
+
   get util() {
-    return this.#util;
+    return DidUtils;
   }
 
   get web5() {
@@ -92,22 +103,9 @@ class Web5DID {
     return api.encrypt(options);
   }
 
-  async register(data) {
-    await this.#registeredDIDs.set(data.did, {
-      connected: data.connected,
-      did: data.did, // TODO: Consider removing if createAndSignMessage() no longer requires for Key ID
-      endpoint: data.endpoint,
-      keys: data.keys,
-    });
-  }
-
   async sign(method, options = { }) {
     const api = await this.#getMethodAPI(method);
     return api.sign(options);
-  }
-
-  async unregister(did) {
-    await this.#registeredDIDs.delete(did);
   }
 
   async verify(method, options = { }) {
@@ -116,12 +114,12 @@ class Web5DID {
   }
 
   async resolve(did, options = { }) {
-    const registered = await this.#registeredDIDs.get(did);
-    if (registered) {
-      return registered;
+    const managed = await this.manager.get(did);
+    if (managed) {
+      return managed;
     }
 
-    const resolved = await this.#resolvedDIDs.get(did);
+    const resolved = await this.#resolvedDids.get(did);
     if (resolved) {
       return resolved;
     }
@@ -130,8 +128,8 @@ class Web5DID {
     const result = await api.resolve(did);
 
     if (options.cache) {
-      // store separately in case the DID is `register` after `resolve` was called
-      await this.#resolvedDIDs.set(did, result, {
+      // store separately in case the DID is `managed` after `resolve` was called.
+      await this.#resolvedDids.set(did, result, {
         timeout: 1000 * 60 * 60, // 1hr
       });
     }
@@ -174,13 +172,4 @@ class Web5DID {
     if (!api) throw `Unsupported cryptographic cipher: ${name}`;
     return api;
   }
-
-  /**
-   * Utility functions for working with DIDs
-   */
-  #util = { ...DidUtils };
 }
-
-export {
-  Web5DID,
-};

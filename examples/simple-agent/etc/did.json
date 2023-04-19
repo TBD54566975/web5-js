@@ -7,7 +7,7 @@
       "content": {
         "publicKeys": [
           {
-            "id": "key-1",
+            "id": "dwn",
             "type": "JsonWebKey2020",
             "purposes": [
               "authentication"
@@ -68,9 +68,9 @@
   ],
   "keys": [
     {
-      "id": "key-1",
+      "id": "dwn",
       "type": "JsonWebKey2020",
-      "keypair": {
+      "keyPair": {
         "publicJwk": {
           "kty": "EC",
           "crv": "secp256k1",

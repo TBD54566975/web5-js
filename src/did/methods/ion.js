@@ -6,9 +6,9 @@ const didIonResolver = new DidIonResolver();
 async function create(options = { }){
   options.keys ||= [
     {
-      id: 'key-1',
+      id: 'dwn',
       type: 'JsonWebKey2020',
-      keypair: await generateKeyPair(),
+      keyPair: await generateKeyPair(),
       purposes: ['authentication'],
     },
   ];
@@ -17,8 +17,8 @@ async function create(options = { }){
     content: {
       publicKeys: options.keys.map(key => {
         let pubkey = Object.assign({ }, key);
-        pubkey.publicKeyJwk = key.keypair.publicJwk;
-        delete pubkey.keypair;
+        pubkey.publicKeyJwk = key.keyPair.publicJwk;
+        delete pubkey.keyPair;
         return pubkey;
       }),
       ...(options.services && { services: options.services }),

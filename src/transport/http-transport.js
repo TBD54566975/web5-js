@@ -1,7 +1,7 @@
 import crossFetch from 'cross-fetch';
 import { Encoder } from '@tbd54566975/dwn-sdk-js';
 
-import { Transport } from './Transport.js';
+import { Transport } from './transport.js';
 
 /**
  * Supports fetch in: browser, browser extensions, Node, and React Native.
@@ -16,8 +16,9 @@ import { Transport } from './Transport.js';
  */
 const fetch = globalThis.fetch ?? crossFetch;
 
-class HTTPTransport extends Transport {
+export class HttpTransport extends Transport {
   ENCODED_MESSAGE_HEADER = 'DWN-MESSAGE';
+  ENCODED_RESPONSE_HEADER = 'WEB5-RESPONSE';
 
   async encodeMessage(message) {
     return Encoder.stringToBase64Url(JSON.stringify(message));
@@ -28,7 +29,7 @@ class HTTPTransport extends Transport {
   }
 
   async send(endpoint, request) { // override
-    return fetch(endpoint, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       mode: 'cors',
       cache: 'no-cache',
@@ -41,17 +42,21 @@ class HTTPTransport extends Transport {
         'Content-Type': 'application/octet-stream',
       },
       body: request.data,
-    })
-      .then((response) => {
-        // Only resolve if response was successful (status of 200-299)
-        if (response.ok) { 
-          return response;
-        }
-        return Promise.reject(response); 
-      });
+    });
+
+    if (!response.ok) {
+      throw new Error(`Fetch failed with status ${response.status}`);
+    }
+
+    const web5ResponseHeader = response.headers.get(this.ENCODED_RESPONSE_HEADER);
+    if (web5ResponseHeader) {
+      // RecordsRead responses return `message` and `status` as header values, with a `data` ReadableStream in the body.
+      const { entries = null, message, record, status } = await this.decodeMessage(web5ResponseHeader);
+      return { entries, message, record: { data: response.body, ...record }, status };
+
+    } else { 
+      // All other DWN responses return `entries`, `message`, and `status` as stringified JSON in the body.
+      return await response.json();
+    }
   }
 }
-
-export {
-  HTTPTransport,
-};

@@ -1,8 +1,8 @@
 import { DataStream } from '@tbd54566975/dwn-sdk-js';
 
-import { Transport } from './Transport.js';
+import { Transport } from './transport.js';
 
-class AppTransport extends Transport {
+export class AppTransport extends Transport {
   async encodeData(data) {
     return DataStream.fromBytes(data);
   }
@@ -17,7 +17,3 @@ class AppTransport extends Transport {
     return node.processMessage(request.target, request.message.message, encodedData);
   }
 }
-
-export {
-  AppTransport,
-};

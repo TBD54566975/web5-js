@@ -1,4 +1,4 @@
-import { Storage } from './Storage.js';
+import { Storage } from './storage.js';
 
 class LocalStorage extends Storage {
   async get(key) {
@@ -9,7 +9,7 @@ class LocalStorage extends Storage {
     localStorage.setItem(key, JSON.stringify(value));
   }
 
-  async delete(key) {
+  async remove(key) {
     localStorage.removeItem(key);
   }
 

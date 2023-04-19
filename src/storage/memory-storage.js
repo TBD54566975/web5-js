@@ -1,4 +1,4 @@
-import { Storage } from './Storage.js';
+import { Storage } from './storage.js';
 
 class MemoryStorage extends Storage {
   #dataForKey = new Map;
@@ -13,13 +13,13 @@ class MemoryStorage extends Storage {
 
     if (Number.isFinite(options?.timeout)) {
       const timeout = setTimeout(() => {
-        this.delete(key);
+        this.remove(key);
       }, options.timeout);
       this.#timeoutForKey.set(key, timeout);
     }
   }
 
-  async delete(key) {
+  async remove(key) {
     this.#dataForKey.delete(key);
 
     clearTimeout(this.#timeoutForKey.get(key));

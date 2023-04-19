@@ -1,4 +1,3 @@
-import nacl from 'tweetnacl';
 import { Encoder } from '@tbd54566975/dwn-sdk-js';
 
 const textDecoder = new TextDecoder();
@@ -34,7 +33,7 @@ function isEmptyObject(obj) {
   return false;
 }
 
-function parseJSON(str) {
+function parseJson(str) {
   try {
     return JSON.parse(str);
   } catch {
@@ -42,7 +41,7 @@ function parseJSON(str) {
   }
 }
 
-function parseURL(str) {
+function parseUrl(str) {
   try {
     return new URL(str);
   } catch {
@@ -111,33 +110,14 @@ const toType = (obj) => {
   return ({}).toString.call(obj).match(/\s([a-zA-Z]+)/)[1].toLowerCase();
 };
 
-async function triggerProtocolHandler(url) {
-  let form = document.createElement('form');
-  form.action = url;
-  document.body.append(form);
-  form.submit();
-  form.remove();
-}
-
-async function decodePin(data, secretKey) {
-  const { pin, nonce, publicKey } = data;
-  const encryptedPinBytes = Encoder.base64UrlToBytes(pin);
-  const nonceBytes = new TextEncoder().encode(nonce);
-  const publicKeyBytes = Encoder.base64UrlToBytes(publicKey);
-  const encodedPin = nacl.box.open(encryptedPinBytes, nonceBytes, publicKeyBytes, secretKey);
-  data.pin = new TextDecoder().decode(encodedPin);
-}
-
 export {
   createWeakSingletonAccessor,
   dataToBytes,
-  decodePin,
   isEmptyObject,
   isUnsignedMessage,
   objectValuesBase64UrlToBytes,
   objectValuesBytesToBase64Url,
-  parseJSON,
-  parseURL,
+  parseJson,
+  parseUrl,
   pascalToKebabCase,
-  triggerProtocolHandler,
 };

@@ -20,10 +20,16 @@ router.post('/dwn', async (ctx, _next) => {
   try {
     const response = await receiveHttp(ctx);
 
-    // Normalize DWN MessageReply and HTTP Reponse
-    ctx.status = response?.status?.code ?? response?.status;
-    ctx.statusText = response?.status?.detail ?? response?.statusText;
-    ctx.body = 'entries' in response ? { entries: response.entries } : response.body;
+    console.log('SIMPLE AGENT receiveHTTP response:', response);
+
+    // // All DWN MessageReply responses contain a `status` object.
+    // // DWN RecordsQuery responses contain an `entries` array of query results.
+    // // DWN RecordsRead responses contain a data property which is a Readable stream.
+    // const { message, ...retainedResponse } = response;
+    
+    // ctx.body = retainedResponse;
+    // ctx.status = retainedResponse?.status?.code;
+    // ctx.statusText = retainedResponse?.status?.detail;
   }
   catch(err) {
     console.error(err);

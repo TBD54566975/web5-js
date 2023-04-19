@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid';
-import { Interface } from './Interface.js';
+import { Interface } from './interface.js';
 
 class Permissions extends Interface {
   constructor(dwn) {

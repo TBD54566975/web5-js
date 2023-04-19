@@ -1,1 +1,1 @@
-export { Web5 } from './Web5.js';
+export { Web5 } from './web5.js';

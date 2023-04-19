@@ -23,6 +23,7 @@
       font-family: 'IBM Plex Mono';
       padding: 0;
       margin: 0;
+      max-width: 72rem;
     }
 
     input, button {
@@ -31,50 +32,35 @@
 
     main {
       color: rgb(250, 250, 250);
-      padding: 0rem 1rem;
-    }
-
-    .box {
-      max-width: 52rem;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .box>.row {
-      display: flex;
-      align-items: start;
-      padding-top: 0.5em;
-    }
-
-    .box>.row>label {
-      padding-right: 0.5em;
-      padding-left: 0.5em;
-    }
-
-    .box>.row>button {
-      margin-left: auto;
-    }
-
-    .box>.row>input[type=text] {
-      width: 8em;
-    }
-
-    .box>.row>textarea {
-      width: 250px;
-      height: 125px;
     }
 
     fieldset {
-      border: 2px solid var(--color-yellow);
+      border-width: 2px;
+      border-style: solid;
       border-radius: 5px;
-      padding: 20px;
-      margin: 0rem 1rem;
+      padding: 1.25rem;
+      padding-block-start: 0.5em;
+      margin: 0rem 1rem 2rem 1rem;
+    }
+    
+    fieldset.yellow {
+      border-color: var(--color-yellow);
+    }
+
+    fieldset.yellow>legend {
+      color: var(--color-yellow);
+    }
+    
+    fieldset.blue {
+      border-color: var(--color-blue);
+    }
+
+    fieldset.blue>legend {
+      color: var(--color-blue);
     }
 
     legend {
-      color: var(--color-yellow);
       font-size: 1.5rem;
-      padding: 0 10px;
     }
 
     fieldset .buttons {
@@ -90,12 +76,13 @@
       color: white;
       cursor: pointer;
       font-size: 14px;
+      min-width:fit-content;
+      white-space: nowrap;
       padding: 0.5em 20px;
       text-align: center;
     }
 
     button:hover {
-      /* background-color: #45a049; */
       filter: brightness(95%);
     }
 
@@ -104,6 +91,20 @@
       font-size: 1rem;
       margin-top: 1rem;
       text-align: center;
+
+      /* for smooth appearance transition */
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      transition: opacity 0.4s ease, max-height 0.4s ease, margin 0.4s ease, padding 0.4s ease;
+    }
+
+    #container_connect_status.visible {
+      opacity: 1;
+      max-height: 1000px;
+      margin-top: 1rem;
     }
 
     #container_connect_status.success {
@@ -117,6 +118,20 @@
     #container_security_code {
       margin-top: 1rem;
       text-align: center;
+
+      /* for smooth appearance transition */
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      transition: opacity 0.4s ease, max-height 0.4s ease, margin 0.4s ease, padding 0.4s ease;
+    }
+
+    #container_security_code.visible {
+      opacity: 1;
+      max-height: 1000px;
+      margin-top: 1rem;
     }
 
     #container_security_code .label {
@@ -143,19 +158,75 @@
       background-color: var(--color-blue-10);
       line-height: 2.5rem; /* Vertically center the text */
     }
+
+    main #output {
+      padding: 0 1rem;
+    }
+    
+    main #output .row {
+      background-color: rgb(51, 51, 51);
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 0.75rem;
+      margin: 1rem 0rem;
+      padding: 1rem;
+      white-space: pre-wrap;
+    }
+
+    main #output .error {
+      color: var(--color-red);
+    }
+
+    main .button-container {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-auto-rows: 2rem;
+      column-gap: 1rem;
+      row-gap: 1rem;
+      width: 100%;
+      min-width: max-content;
+      /* max-width: 37.5rem; */
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 27em) {
+      main .button-container {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    main .output-status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-left: 1rem;
+      padding-right: 1rem;
+      padding-top: 1rem;
+    }
+
+    main .output-status .btn {
+      background-color: var(--color-red);
+      filter: brightness(70%);
+    }
+
+    main .output-status .btn:hover {
+      background-color: var(--color-red);
+      filter: brightness(95%);
+    }
   </style>
 </head>
 
 <body>
   <header>
-    <fieldset>
+    <fieldset class="yellow">
       <legend>DID Connect</legend>
       <div class="buttons">
         <button type="button" id="connect_button_limited_permissions">Basic Permissions</button>
         <button type="button" id="connect_button_elevated_permissions">Elevated Permissions</button>
       </div>
-      <div id="container_connect_status" style="display: none;"></div>
-      <div id="container_security_code" style="display: none;">
+      <div id="container_connect_status"></div>
+      <div id="container_security_code">
         <div class="label">
           Security Code<strong id="security_code"></strong>
         </div>
@@ -170,194 +241,55 @@
   </header>
 
   <main>
-    <p style="font-size: large">Write Records</p>
-  
-    <div class="box">
-      <div class="row">
-        <label for="write_text_schema">Schema</label>
-        <input id="write_text_schema" type="text" value="foo/text" />
-  
-        <label for="write_text_data">Value</label>
-        <input id="write_text_data" type="text" value="test" />
-        <button type="button" id="write_text_button">Write Text Data</button>
-      </div>
-  
-      <div class="row">
-        <label for="write_json_schema">Schema</label>
-        <input id="write_json_schema" type="text" value="foo/json" />
-  
-        <label for="write_json_data">Value</label>
-        <input id="write_json_data" type="text" value="{ &quot;testing&quot;: 123 }" />
-        <button type="button" id="write_json_button">Write JSON Data</button>
-      </div>
-  
-      <div class="row">
-        <label for="write_image_schema">Schema</label>
-        <input id="write_image_schema" type="text" value="foo/avatar" />
-  
-        <label for="write_image_file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
-        <input id="write_image_file" type="file" />
-        <button type="button" id="write_image_button">Write Image Data</button>
-      </div>
-    </div>
-  
-    <hr />
-  
-    <p style="font-size: large">Query Records</p>
-  
-    <div class="box">
-      <div class="row">
-        <label for="query_text_schema">Schema</label>
-        <input id="query_text_schema" type="text" value="foo/text" />
-        <button type="button" id="query_text_button">Send Text Query</button>
-      </div>
-    </div>
-  
-    <div class="box">
-      <div class="row">
-        <label for="query_json_schema">Schema</label>
-        <input id="query_json_schema" type="text" value="foo/json" />
-        <button type="button" id="query_json_button">Send JSON Query</button>
-      </div>
-    </div>
-  
-    <div class="box">
-      <div class="row">
-        <label for="query_image_schema">Schema</label>
-        <input id="query_image_schema" type="text" value="foo/avatar" />
-        <button type="button" id="query_image_button">Send Image Query</button>
-      </div>
-    </div>
-  
-    <hr />
-  
-    <p style="font-size: large">Read Records</p>
-  
-    <div class="box">
-      <div class="row">
-      <button type="button" id="query_for_records_button">Get Record ID</button>
-      </div>
-    </div>
-  
-    <div class="box">
-      <div class="row">
-        <label for="read_by_id">Schema</label>
-        <input id="read_by_id" type="text" value="foo/json" />
-        <button type="button" id="read_by_id_button">Read By ID</button>
-      </div>
-    </div>
-  
-    <hr />
-  
-    <p class="heading">Delete Records</p>
-  
-    <div class="box">
-      <div class="row">
-        <label for="delete_record_id">Record ID</label>
-        <input id="delete_record_id" type="text" value="" />
-        <button type="button" id="delete_record_button">Delete Record</button>
-      </div>
-    </div>
-  
-    <hr />
-  
-    <p class="heading">Protocols</p>
-  
-    <div class="box">
-      <div class="box">
-        <div class="row">
-          <label for="query_protocol_name">Protocol Name</label>
-          <input id="query_protocol_name" type="text" value="exampleProtocol" />
-          <button type="button" id="query_protocol_button">Send Protocol Query</button>
-        </div>
-      </div>
-  
-      <div class="row">
-        <label for="configure_protocol_name">Protocol Name</label>
-        <input id="configure_protocol_name" type="text" value="exampleProtocol" />
-  
-        <label for="configure_protocol_definition">Definition</label>
-        <textarea id="configure_protocol_definition"></textarea>
-        <button type="button" id="configure_protocol_button">Configure Protocol</button>
-      </div>
-    </div>
-  
-    <hr />
-  
-    <p style="font-size: large">Custom Data Formats</p>
-  
-    <div class="box">
-      <div class="row">
-        <label for="write_image_type_schema">Schema</label>
-        <input id="write_image_type_schema" type="text" value="foo/background" />
-  
-        <label for="write_image_type_data_format">Data Format</label>
-        <input id="write_image_type_data_format" type="text" value="image/png" />
-  
-        <label for="write_image_type_file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
-        <input id="write_image_type_file" type="file" />
-        <button type="button" id="write_image_type_button">Write Image Data</button>
-      </div>
-    </div>
-  
-    <div class="box">
-      <div class="row">
-        <label for="query_image_type_schema">Schema</label>
-        <input id="query_image_type_schema" type="text" value="foo/background" />
-  
-        <label for="query_image_type_data_format">Data Format</label>
-        <input id="query_image_type_data_format" type="text" value="image/png" />
-  
-        <button type="button" id="query_image_type_button">Send Image Query</button>
-      </div>
-    </div>
-  
-    <hr />
-  
-    <p style="font-size: large">New Tests</p>
-  
-    <div class="box">
-      <div class="row">
-        <span>Write data authored by Alice's DID to Alice's DWN WITH local key chain</span>
-        <button type="button" id="write_alice_to_alice_local_btn">Send</button>
-      </div>
-    </div>
-  
-    <div class="box">
-      <div class="row">
-        <span>Write data authored by Alice's DID to Alice's DWN withOUT local key chain</span>
-        <button type="button" id="write_alice_to_alice_remote_btn">Send</button>
-      </div>
-    </div>
-  
-    <div class="box">
-      <div class="row">
-        <span>Write data authored by Alice's DID to Bob's DWN WITH local key chain</span>
-        <button type="button" id="write_alice_to_bob_local_btn">Send</button>
-      </div>
-    </div>
-  
-    <div class="box">
-      <div class="row">
-        <span>Write data authored by Alice's DID to Bob's DWN withOUT local key chain</span>
-        <button type="button" id="write_alice_to_bob_remote_btn">Send</button>
-      </div>
-    </div>
-  
-      <div class="box">
-        <div class="row">
-          <span>Query data authored by Alice's DID to Bob's DWN withOUT local key chain</span>
-          <button type="button" id="query_alice_to_bob_remote_btn">Send</button>
-        </div>
-      </div>
-    </div>
+    <fieldset id="records_functional" class="blue">
+      <legend>Records Functions</legend>
+      <div class="button-container">
+        <button class="btn" type="button" id="write_text_button">Write Text</button>
+        <button class="btn" type="button" id="write_json_button">Write JSON</button>
+        <button class="btn" type="button" id="write_json_large_button">Write 11KB JSON</button>
+        <button class="btn" type="button" id="write_binary_button">Write Binary</button>
+        
+        <button class="btn" type="button" id="query_text_button">Query Text</button>
+        <button class="btn" type="button" id="query_json_button">Query JSON</button>
+        <button class="btn" type="button" id="query_json_large_button">Query 11KB JSON</button>
+        <button class="btn" type="button" id="query_binary_button">Query Binary</button>
+        
+        <button class="btn" type="button" id="read_text_button">Read Text</button>
+        <button class="btn" type="button" id="read_json_button">Read JSON</button>
+        <button class="btn" type="button" id="read_json_large_button">Read 11KB JSON</button>
+        <button class="btn" type="button" id="read_binary_button">Read Binary</button>
 
+        <button class="btn" type="button" id="delete_text_button">Delete Text</button>
+        <button class="btn" type="button" id="delete_json_button">Delete JSON</button>
+        <button class="btn" type="button" id="delete_json_large_button">Delete 11KB JSON</button>
+        <button class="btn" type="button" id="delete_binary_button">Delete Binary</button>
+      </div>
+    </fieldset>
+
+    <fieldset id="record_object" class="blue">
+      <legend>Record Instance</legend>
+      <div class="button-container">
+        <button class="btn" type="button" id="create_record_button">Create</button>
+        <button class="btn" type="button" id="create_from_record_button">Create From</button>
+        <button class="btn" type="button" id="update_record_button">Update</button>
+        <button class="btn" type="button" id="delete_record_button">Delete</button>
+      </div>
+    </fieldset>
+
+    <div class="output-status">
+      <div id="output_count"></div>
+      <div>
+        <button class="btn" type="button" id="clear_output_button">Clear Output</button>
+      </div>
+    </div>
+    <div id="output"></div>
   </main>
 </body>
 
 <script type="module">
 
   import { Web5 } from './browser.mjs';
+  import { DataStream, Encoder } from 'https://cdn.jsdelivr.net/npm/@tbd54566975/dwn-sdk-js@0.0.26';
 
   let myDid = '';
 
@@ -372,7 +304,7 @@
       for (let i = 0; i < pinDisplays.length; i++) {
         pinDisplays[i].textContent = pin[i] || '';
       }
-      container_security_code.style.display = 'block'
+      container_security_code.classList.add('visible');
     }
   });
 
@@ -386,45 +318,48 @@
     container_connect_status.textContent = `Connected as: ${didShort}`;
     container_connect_status.classList.remove('error');
     container_connect_status.classList.add('success');
-    container_connect_status.style.display = 'block';
+    container_connect_status.classList.add('visible');
 
-    container_security_code.style.display = 'none';
+    container_security_code.classList.remove('visible');
   });
 
   web5.addEventListener('denied', (event) => {
     isAuthorized = false;
 
-    container_security_code.style.display = 'none';
+    container_security_code.classList.remove('visible');
 
     container_connect_status.textContent = 'Connection request was denied';
     container_connect_status.classList.remove('success');
     container_connect_status.classList.add('error');
-    container_connect_status.style.display = 'block';
+    container_connect_status.classList.add('visible');
   });
   
   web5.addEventListener('blocked', (event) => {
     isAuthorized = false;
     
-    container_security_code.style.display = 'none';
+    container_security_code.classList.remove('visible');
     
     container_connect_status.textContent = 'Connection request was denied';
     container_connect_status.classList.remove('success');
     container_connect_status.classList.add('error');
-    container_connect_status.style.display = 'block';
+    container_connect_status.classList.add('visible');
   });
   
   web5.addEventListener('error', (event) => {
-    container_security_code.style.display = 'none';
+    console.error(event);
+
+    container_security_code.classList.remove('visible');
     
-    const errorMessage = event?.detail;
     container_connect_status.textContent = `${event.detail}`;
     container_connect_status.classList.add('error');
-    container_connect_status.style.display = 'block';
+    container_connect_status.classList.add('visible');
+    // container_connect_status.style.display = 'block';
   });
 
   connect_button_limited_permissions.addEventListener('click', async event => {
     event.preventDefault();
-    container_connect_status.style.display = 'none';
+    // container_connect_status.style.display = 'none';
+    container_connect_status.classList.remove('visible');
 
     await web5.did.connect();
 
@@ -444,7 +379,8 @@
 
   connect_button_elevated_permissions.addEventListener('click', async event => {
     event.preventDefault();
-    container_connect_status.style.display = 'none';
+    // container_connect_status.style.display = 'none';
+    container_connect_status.classList.remove('visible');
 
     await web5.did.connect();
 
@@ -466,349 +402,522 @@
     });
   });
 
-  async function logConsole(obj, message = '') {
-    if (obj instanceof Response) {
-      console.log(message, await obj.json());
+  /**
+   * Confirm Agent is connected before attempting to execute any calls
+   */
+  const buttons = document.querySelectorAll("main .button-container .btn");
+  buttons.forEach(function(button) {
+    button.addEventListener("click", function() {
+      if (!agentConnected()) return;
+      button.dispatchEvent(new CustomEvent('execute'));
+    });
+  });
+
+  clear_output_button.addEventListener('click', async event => {
+    output.textContent = '';
+  });
+
+  /***************************************************************************
+   * WRITE
+   ***************************************************************************/
+  let existingTextRecord;
+  write_text_button.addEventListener('execute', async event => {
+    const { record } = await web5.dwn.records.write(myDid, {
+      author: myDid,
+      data: 'Hello, world!',
+      message: {
+        schema: 'foo/text',
+      }
+    });
+    appendToOutput(await record.data.text());
+    existingTextRecord = record;
+  });
+  
+  let existingJsonRecord;
+  write_json_button.addEventListener('execute', async event => {
+    const { record } = await web5.dwn.records.write(myDid, {
+      author: myDid,
+      data: { hello: { foo: { bar: 'baz' } } },
+      message: {
+        schema: 'foo/json',
+      }
+    });
+    appendToOutput(await record.data.json());
+    existingJsonRecord = record
+  });
+  
+  let existingJsonLargeRecord;
+  write_json_large_button.addEventListener('execute', async event => {
+    const { record } = await web5.dwn.records.write(myDid, {
+      author: myDid,
+      data: generateLargeJson(11 * 1024),
+      message: {
+        schema: 'foo/json-large',
+      }
+    });
+    const dataJson = await record.data.json();
+    appendToOutput(`11KB JSON object with ${Object.keys(dataJson.items).length} keys`);
+    existingJsonLargeRecord = record
+  });
+  
+  let existingBinaryRecord;
+  write_binary_button.addEventListener('execute', async event => {
+    const { record } = await web5.dwn.records.write(myDid, {
+      author: myDid,
+      data: new Uint8Array([55, 55, 55]),
+      message: {
+        schema: 'foo/binary',
+        dataFormat: 'application/octet-stream',
+      }
+    });
+    existingBinaryRecord = record
+    const recordStream = await record.data;
+    const recordBytes = await DataStream.toBytes(recordStream);
+    appendToOutput(`Uint8Array([${recordBytes.join(', ')}])`);
+  });
+
+  /***************************************************************************
+   * QUERY
+   ***************************************************************************/
+
+  query_text_button.addEventListener('execute', async event => {
+    const { entries } = await web5.dwn.records.query(myDid, {
+      author: myDid,
+      message: {
+        filter: {
+          schema: 'foo/text',
+          dataFormat: 'text/plain',
+        }
+      }
+    });
+
+    entries.forEach(async record => {
+      appendToOutput(await record.data.text());
+      existingTextRecord = record;
+    })
+  })
+
+  query_json_button.addEventListener('execute', async event => {
+    const { entries } = await web5.dwn.records.query(myDid, {
+      author: myDid,
+      message: {
+        filter: {
+          schema: 'foo/json',
+          dataFormat: 'application/json',
+        }
+      }
+    });
+
+    entries.forEach(async record => {
+      appendToOutput(await record.data.json());
+      existingJsonRecord = record
+    })
+  })
+
+  query_json_large_button.addEventListener('execute', async event => {
+    const { entries } = await web5.dwn.records.query(myDid, {
+      author: myDid,
+      message: {
+        filter: {
+          schema: 'foo/json-large',
+          dataFormat: 'application/json',
+        }
+      }
+    });
+
+    entries.forEach(async record => {
+      const dataJson = await record.data.json();
+      appendToOutput(`11KB JSON object with ${Object.keys(dataJson.items).length} keys`);
+      existingJsonLargeRecord = record
+    })
+  })
+
+  query_binary_button.addEventListener('execute', async event => {
+    const { entries } = await web5.dwn.records.query(myDid, {
+      author: myDid,
+      message: {
+        filter: {
+          schema: 'foo/binary',
+          dataFormat: 'application/octet-stream',
+        }
+      }
+    });
+
+    entries.forEach(async record => {
+      const recordStream = await record.data;
+      const recordBytes = await DataStream.toBytes(recordStream);
+      appendToOutput(`Uint8Array([${recordBytes.join(', ')}])`);
+      existingBinaryRecord = record;
+    })
+  })
+
+  /***************************************************************************
+   * READ
+   ***************************************************************************/
+
+  read_text_button.addEventListener('execute', async event => {
+    if (!existingTextRecord?.id) {
+      displayError('Write or Query a record first before attempting to read.');
     } else {
-      console.log(message, obj);
+      const { record } = await web5.dwn.records.read(myDid, {
+        author: myDid,
+        message: {
+          recordId: existingTextRecord.id,
+        }
+      });
+      const recordBytes = await DataStream.toBytes(await record.data);
+      appendToOutput(Encoder.bytesToString(recordBytes));
     }
-  }
+  })
+  
+  read_json_button.addEventListener('execute', async event => {
+    if (!existingJsonRecord?.id) {
+      displayError('Write or Query a record first before attempting to read.');
+    } else {
+      const { record } = await web5.dwn.records.read(myDid, {
+        author: myDid,
+        message: {
+          recordId: existingJsonRecord.id,
+        }
+      });
+      const recordBytes = await DataStream.toBytes(await record.data);
+      appendToOutput(bytesToObject(recordBytes));
+    }
+  })
+  
+  read_json_large_button.addEventListener('execute', async event => {
+    if (!existingJsonLargeRecord?.id) {
+      displayError('Write or Query a record first before attempting to read.');
+    } else {
+      const { record } = await web5.dwn.records.read(myDid, {
+        author: myDid,
+        message: {
+          recordId: existingJsonLargeRecord.id,
+        }
+      });
+      const recordBytes = await DataStream.toBytes(await record.data);
+      const dataJson = bytesToObject(recordBytes);
+      appendToOutput(`${Math.ceil(recordBytes.length / 1024)}KB JSON object with ${Object.keys(dataJson.items).length} keys`);
+    }
+  })
+
+  read_binary_button.addEventListener('execute', async event => {
+    if (!existingBinaryRecord?.id) {
+      displayError('Write or Query a record first');
+    } else {
+      const { record } = await web5.dwn.records.read(myDid, {
+        author: myDid,
+        message: {
+          recordId: existingBinaryRecord.id,
+        }
+      });
+      const recordBytes = await DataStream.toBytes(await record.data);
+      appendToOutput(`Uint8Array([${recordBytes.join(', ')}])`);
+    }
+  })
+
+  /****+***********************************************************************
+   * DELETE
+   ***************************************************************************/
+
+  delete_text_button.addEventListener('execute', async event => {
+    if (!existingTextRecord?.id) {
+      displayError('Write or Query a record first before attempting to delete.');
+    } else {
+      const { status } = await web5.dwn.records.delete(myDid, {
+        author: myDid,
+        message: {
+          recordId: existingTextRecord.id,
+        }
+      });
+      if (status.code === 202) {
+        appendToOutput(`Successfully deleted record with ID: ${existingTextRecord.id}`);
+        existingTextRecord = null;
+      } else {
+        appendToOutput(`Failed to delete record with ID: ${existingTextRecord.id}`);
+      }
+    }
+  })
+
+  delete_json_button.addEventListener('execute', async event => {
+    if (!existingJsonRecord?.id) {
+      displayError('Write or Query a record first before attempting to delete.');
+    } else {
+      const { status } = await web5.dwn.records.delete(myDid, {
+        author: myDid,
+        message: {
+          recordId: existingJsonRecord.id,
+        }
+      });
+      if (status.code === 202) {
+        appendToOutput(`Successfully deleted record with ID: ${existingJsonRecord.id}`);
+        existingJsonRecord = null;
+      } else {
+        appendToOutput(`Failed to delete record with ID: ${existingJsonRecord.id}`);
+      }
+    }
+  })
+
+  delete_json_large_button.addEventListener('execute', async event => {
+    if (!existingJsonLargeRecord?.id) {
+      displayError('Write or Query a record first before attempting to delete.');
+    } else {
+      const { status } = await web5.dwn.records.delete(myDid, {
+        author: myDid,
+        message: {
+          recordId: existingJsonLargeRecord.id,
+        }
+      });
+      if (status.code === 202) {
+        appendToOutput(`Successfully deleted record with ID: ${existingJsonLargeRecord.id}`);
+        existingJsonLargeRecord = null;
+      } else {
+        appendToOutput(`Failed to delete record with ID: ${existingJsonLargeRecord.id}`);
+      }
+    }
+  })
+
+  delete_binary_button.addEventListener('execute', async event => {
+    if (!existingBinaryRecord?.id) {
+      displayError('Write or Query a record first before attempting to delete.');
+    } else {
+      const { status } = await web5.dwn.records.delete(myDid, {
+        author: myDid,
+        message: {
+          recordId: existingBinaryRecord.id,
+        }
+      });
+      if (status.code === 202) {
+        appendToOutput(`Successfully deleted record with ID: ${existingBinaryRecord.id}`);
+        existingBinaryRecord = null;
+      } else {
+        appendToOutput(`Failed to delete record with ID: ${existingBinaryRecord.id}`);
+      }
+    }
+  })
+
+  /***************************************************************************
+   * RECORD INSTANCE
+   ***************************************************************************/
+  let recordFoo;
+  create_record_button.addEventListener('execute', async event => {
+    const { record } = await web5.dwn.records.create(myDid, {
+      author: myDid,
+      data: 'Hello, world!',
+      message: {
+        published: true,
+        schema: 'foo/text',
+      }
+    });
+    appendToOutput(await record.data.text());
+    recordFoo = record;
+  });
+
+  create_from_record_button.addEventListener('execute', async event => {
+    const { record: sourceRecord } = await web5.dwn.records.create(myDid, {
+      author: myDid,
+      data: 'Hello, world!',
+      message: {
+        published: true,
+        schema: 'foo/text',
+      }
+    });
+    
+    const { record: newRecord } = await web5.dwn.records.createFrom(myDid, {
+      author: myDid,
+      data: { hello: 'world' }, // changed data
+      message: {
+        published: false, // changed published
+        schema: 'foo/json', // changed schema
+        dataFormat: 'application/json', //changed dataFormat
+      },
+      record: sourceRecord, // record to inherit properties from
+    });
+    appendToOutput(await newRecord.data.json());
+  });
+
+  update_record_button.addEventListener('execute', async event => {
+    if (!recordFoo?.id) {
+      displayError('Write a record first before attempting to update.');
+    } else {
+      await recordFoo.update({ published: false })
+        .then(response => {
+          appendToOutput(`Tried to set Published to false: ${recordFoo.published}`);
+        })
+        .catch(error => console.error(error.message));
+
+      await recordFoo.update({ published: true })
+        .then(response => {
+          appendToOutput(`Tried to set Published to true: ${recordFoo.published}`);
+        })
+        .catch(error => console.error(error.message));
+      
+      await recordFoo.update({ data: 'Foo bar' })
+        .then(async response => {
+          appendToOutput(`Tried to change 'data' to "Foo bar": ${await recordFoo.data.text()}`);
+        })
+        .catch(error => {
+          console.error(error.message)
+          appendToOutput(error.message, { error: true });
+        });
+    }
+  })
+
+  delete_record_button.addEventListener('execute', async event => {
+    if (!recordFoo?.id) {
+      displayError('Write a record first before attempting to delete.');
+    } else {
+      await recordFoo.delete()
+        .then(response => {
+            appendToOutput(`Successfully deleted record with ID: ${recordFoo.id}`);
+          })
+        .catch(error => {
+            console.error(error.message)
+            appendToOutput(error.message, { error: true });
+          });
+    }
+  })
+
+  /***************************************************************************
+   * UTILITY FUNCTIONS
+   ***************************************************************************/
 
   function agentConnected() {
     if (!isAuthorized) {
       alert('CONNECT or RECONNECT before sending messages.');
       return false;
     }
+    hideStatus();
     return true;
   }
 
-  query_text_button.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    const response = await web5.dwn.records.query(myDid, {
-      author: myDid,
-      message: {
-        filter: {
-          schema: query_text_schema.value,
-          dataFormat: 'text/plain'
-        }
-      }
-    });
-    logConsole(response, 'QUERY:');
-  });
+  const textDecoder = new TextDecoder();
+  export function bytesToObject(bytes) {
+    const objectString = textDecoder.decode(bytes);
+    return JSON.parse(objectString);
+  }
 
+  function displayError(error) {
+    container_connect_status.textContent = `${error}`;
+    container_connect_status.classList.remove('success');
+    container_connect_status.classList.add('error');
+    container_connect_status.classList.add('visible');
+  }
 
-  query_json_button.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    const response = await web5.dwn.records.query(myDid, {
-      author: myDid,
-      message: {
-        filter: {
-          schema: query_json_schema.value,
-          dataFormat: 'application/json'
-        }
-      }
-    });
-    logConsole(response);
-  });
+  function generateLargeJson(sizeBytes) {
+    const itemCount = sizeBytes/1024;
+    const items = [];
 
-
-  query_image_button.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    const response = await web5.dwn.records.query(myDid, {
-      author: myDid,
-      message: {
-        filter: {
-          schema: query_image_schema.value,
-          dataFormat: 'application/octet-stream'
-        }
-      }
-    });
-    logConsole(response);
-  });
-
-
-  query_image_type_button.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    const response = await web5.dwn.records.query(myDid, {
-      author: myDid,
-      message: {
-        filter: {
-          schema: query_image_type_schema.value,
-          dataFormat: query_image_type_data_format.value
-        }
-      }
-    });
-    logConsole(response);
-  });
-
-/* RECORDS READ */
-
-  query_for_records_button.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    
-    const existingRecords = await (await web5.dwn.records.query(myDid, {
-      author: myDid,
-      message: {
-        filter: {
-          schema: 'records/read',
-          dataFormat: 'text/plain',
-        }
-      }
-    })).json()
-
-    console.log('existing records: ', existingRecords);
-
-    const existingEntry = existingRecords?.entries?.[0];
-    if (existingEntry) {
-      read_by_id.value = existingEntry.recordId;
-    }
-    else {
-      await web5.dwn.records.write(myDid, {
-        author: myDid,
-        data: 'testing 123',
-        message: {
-          schema: 'records/read',
-        }
+    for (let i = 0; i < itemCount; i++) {
+      items.push({
+        id: i + 1,
+        name: `Item ${i + 1}`,
+        description: `This is a description for item`.padEnd(936, " "),
+        value: 1000,
+        tags: ["tag1", "tag2", "tag3"],
       });
+    }
+    items.push({ id: 123456789 });
 
-      const response = await (await web5.dwn.records.query(myDid, {
-        author: myDid,
-        message: {
-          filter: {
-            schema: 'records/read',
-            dataFormat: 'text/plain',
+    return { items };
+  }
+
+  function hideStatus() {
+    container_connect_status.classList.remove('visible');
+  }
+
+  function appendToOutput(data, options = { error: false }) {
+    const div = document.createElement('div');
+    div.classList.add('row');
+    if (options.error) div.classList.add('error');
+    if (typeof data === 'string') {
+      div.textContent = `${data}`
+    } else if (typeof data === 'object') {
+      div.textContent = JSON.stringify(data, null, 2);
+    } else {
+      alert(`Unexpected data type: ${typeof data}`);
+    }
+    output.appendChild(div);
+  }
+
+  async function streamToText(stream) {
+    const reader = stream.getReader();
+    const decoder = new TextDecoder('utf-8'); // You can specify other encodings if necessary
+    let result = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          return result;
+        }
+
+        if (value) {
+          result += decoder.decode(value, { stream: true });
+        }
+      }
+    } catch (error) {
+      console.error('Error while reading stream:', error);
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  async function streamToBytes(stream) {
+    const reader = stream.getReader();
+
+    // Create an empty array to store the chunks
+    const chunks = [];
+
+    // Read the stream and accumulate the chunks
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) {
+        break;
+      }
+      chunks.push(value);
+    }
+
+    // Combine the chunks into a single Uint8Array
+    const combinedLength = chunks.reduce((length, chunk) => length + chunk.byteLength, 0);
+    const combinedUint8Array = new Uint8Array(combinedLength);
+
+    let offset = 0;
+    for (const chunk of chunks) {
+      combinedUint8Array.set(new Uint8Array(chunk), offset);
+      offset += chunk.byteLength;
+    }
+
+    return combinedUint8Array;
+  }
+
+  function observeElementContentChange(elementId, callback) {
+    const element = document.getElementById(elementId);
+
+    if (element) {
+      const observer = new MutationObserver((mutationsList) => {
+        for (const mutation of mutationsList) {
+          if (mutation.type === 'childList') {
+            callback();
+            break;
           }
         }
-      })).json()
-
-      logConsole(response);
-
-      const entry = response?.entries?.[0];
-      if (entry) {
-        read_by_id.value = entry.recordId;
-      }
-    }
-
-    
-  });
-
-  read_by_id_button.addEventListener('click', async event => {
-    if (!agentConnected() || !read_by_id.value) return;
-    const response = await web5.dwn.records.read(myDid, {
-      author: myDid,
-      message: {
-        recordId: read_by_id.value
-      }
-    });
-    logConsole(response, 'QUERY:');
-  });
-
-/* END RECORDS READ */
-
-  write_text_button.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    const response = await web5.dwn.records.write(myDid, {
-      author: myDid,
-      data: write_text_data.value,
-      message: {
-        schema: write_text_schema.value,
-      }
-    });
-    logConsole(response);
-  });
-
-
-  write_json_button.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    const response = await web5.dwn.records.write(myDid, {
-      author: myDid,
-      data: JSON.parse(write_json_data.value),
-      message: {
-        schema: write_json_schema.value,
-      }
-    });
-    logConsole(response);
-  });
-
-
-  write_image_button.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    // Attempt to write an image file to a record.
-    const imageFile = write_image_file.files[0];
-
-    if (imageFile) {
-      const response = await web5.dwn.records.write(myDid, {
-        author: myDid,
-        data: imageFile,
-        message: {
-          schema: write_image_schema.value,
-          dataFormat: 'application/octet-stream'
-        }
       });
-      logConsole(response);
+
+      observer.observe(element, { childList: true, subtree: true });
     } else {
-      alert('No image file selected!');
+      console.error(`Element with ID '${elementId}' not found.`);
     }
-  });
+  }
 
+  document.addEventListener("DOMContentLoaded", () => {
+    const elementId = "output";
 
-  write_image_type_button.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    // Attempt to write an image file with a user-specified data format to a record.
-    const imageFile = write_image_type_file.files[0];
-
-    if (imageFile) {
-      const response = await web5.dwn.records.write(myDid, {
-        author: myDid,
-        data: imageFile,
-        message: {
-          schema: write_image_type_schema.value,
-          dataFormat: write_image_type_data_format.value
-        }
-      });
-      logConsole(response);
-    } else {
-      alert('No image file selected!');
-    }
-  });
-
-  delete_record_button.addEventListener('click', async event => {
-    const response = await web5.dwn.records.delete(myDid, {
-      author: myDid,
-      message: {
-        recordId: delete_record_id.value
-      }
+    observeElementContentChange(elementId, () => {
+      const trailingS = (output.childElementCount !== 1) ? 'ies' : 'y';
+      output_count.textContent = `Output row count: ${output.childElementCount} entr${trailingS}` || 'No results';
     });
-    logConsole(response);
-  });
-
-  configure_protocol_definition.value = JSON.stringify(
-    {
-      "labels": {
-        "example": {
-          "schema": "foo/bar"
-        }
-      },
-      "records": {}
-    },
-    null, 2
-  )
-
-  configure_protocol_button.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    const response = await web5.dwn.protocols.configure(myDid, {
-      author: myDid,
-      message: {
-        protocol: configure_protocol_name.value,
-        definition: JSON.parse(configure_protocol_definition.value)
-      }
-    });
-    logConsole(response);
-  });
-
-  query_protocol_button.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    const response = await web5.dwn.protocols.query(myDid, {
-      author: myDid,
-      message: {
-        filter: {
-          protocol: query_protocol_name.value,
-        }
-      }
-    });
-    logConsole(response);
-  });
-
-  /**
-   * NEW TESTS
-   */
-
-  /** ION DID that resolves to a DID Document containing:
-   *  "service": [
-   *     {
-   *       "id": "#dwn",
-   *       "type": "DecentralizedWebNode",
-   *       "serviceEndpoint": {
-   *         "nodes": [
-   *           "http://localhost:8085/dwn"
-   *         ],
-   *         "origins": []
-   *       }
-   *     }
-   *   ],
-   * 
-   * Must run a DWN addressable at http://localhost:8085/dwn to execute the tests below.
-   */
-  
-  // this one can be used to simulate a case where all endpoints are offline since the service endpoints in the resolved
-  // DID Document are http://localhost:8085 instead of http://localhost:8085/dwn
-
-  // const bobDid = 'did:ion:EiDPUAG_o_sameoRdJQ48M8A-j9WfrSr8GXbWlSQ01m-MQ:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJrZXktMSIsInB1YmxpY0tleUp3ayI6eyJjcnYiOiJzZWNwMjU2azEiLCJrdHkiOiJFQyIsIngiOiJyZ2RDNkhmbWt6aFNBUE45RkRkb3VvVTFQdnM4TjUyQmNHVkZFSVA5M2E0IiwieSI6Imc2UGtwX3V3M3ljTnJHVzl4b2ZOMXRZU2ZLUlY3MzlodW1DMXg3UzJjaWcifSwicHVycG9zZXMiOlsiYXV0aGVudGljYXRpb24iXSwidHlwZSI6Ikpzb25XZWJLZXkyMDIwIn1dLCJzZXJ2aWNlcyI6W3siaWQiOiJkd24iLCJzZXJ2aWNlRW5kcG9pbnQiOnsibm9kZXMiOlsiaHR0cDovL2xvY2FsaG9zdDo4MDg1IiwiaHR0cDovL2xvY2FsaG9zdDo4MDg2IiwiaHR0cDovL2xvY2FsaG9zdDo4MDg3Il19LCJ0eXBlIjoiRGVjZW50cmFsaXplZFdlYk5vZGUifV19fV0sInVwZGF0ZUNvbW1pdG1lbnQiOiJFaUF6MUdlRE9fRUJKMXdWWmtHaUFJYmZPWGZrQW9BSWZlR083WGtmb0V5UjdnIn0sInN1ZmZpeERhdGEiOnsiZGVsdGFIYXNoIjoiRWlCcTlzcTE5U1hEZ0hwdE1FVWRMZV9ta0d1dmluc0NmMUxNYndfek1rU0xrQSIsInJlY292ZXJ5Q29tbWl0bWVudCI6IkVpQjVscHZ2ZWZiUlIwZU9HTU94Uk52aUdYdmhzaVQxQWRiN19odWQ2QWdKQVEifX0';
-  const bobDid = 'did:ion:EiAa0ZGOuDaAz0IP9dtzfgcr9dqoVLMVjjce3qJVCeAE4g:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJrZXktMSIsInB1YmxpY0tleUp3ayI6eyJjcnYiOiJzZWNwMjU2azEiLCJrdHkiOiJFQyIsIngiOiJPMzhYcDIzR3lNSHBMWTl0SXFFR1dla2MtYU8tYk5pUzQ3VFYtend5ZGMwIiwieSI6Il9OeG0tQ05zWHB3a2NiQ05pT0ZxWnFtUUpDQ2VQbnI3a3JrbklPc1hNd2MifSwicHVycG9zZXMiOlsiYXV0aGVudGljYXRpb24iXSwidHlwZSI6Ikpzb25XZWJLZXkyMDIwIn1dLCJzZXJ2aWNlcyI6W3siaWQiOiJkd24iLCJzZXJ2aWNlRW5kcG9pbnQiOnsibm9kZXMiOlsiaHR0cDovL2xvY2FsaG9zdDo4MDg1L2R3biIsImh0dHA6Ly9sb2NhbGhvc3Q6ODA4Ni9kd24iLCJodHRwOi8vbG9jYWxob3N0OjgwODcvZHduIl19LCJ0eXBlIjoiRGVjZW50cmFsaXplZFdlYk5vZGUifV19fV0sInVwZGF0ZUNvbW1pdG1lbnQiOiJFaURtQ3Utcmo2V2J6QURLcjhoc2FfSnZzd2QwaGdOYzNPVmo0NFkzZzJvUzVnIn0sInN1ZmZpeERhdGEiOnsiZGVsdGFIYXNoIjoiRWlBU3NvZlJ3VGtmOGZNa0RwRTJlZUJiTHZyVkNQT1VXUmdaY3lKQ3laamJSQSIsInJlY292ZXJ5Q29tbWl0bWVudCI6IkVpQ05NVHNrZDRScWZvcmY0QTRwdTZCbmtpUTBPVDA4WWpVM2hSY0VWRjBFOVEifX0';
-
-  write_alice_to_alice_local_btn.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    // const response = await web5.dwn.records.write(myDidLocalAgent, {
-    //   author: myDidLocalAgent,
-    //   data: 'test',
-    //   message: {
-    //     schema: 'foo/bar',
-    //   }
-    // });
-    // logConsole(response);
-    alert('TEST NOT YET IMPLEMENTED');
-  });
-
-  write_alice_to_alice_remote_btn.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    const response = await web5.dwn.records.write(myDid, {
-      author: myDid,
-      data: 'test',
-      message: {
-        schema: 'foo/bar'
-      }
-    });
-    logConsole(response);
-  });
-
-  write_alice_to_bob_local_btn.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    // const response = await web5.dwn.records.write(bobDid, {
-    //   author: myDidLocalAgent,
-    //   data: 'test',
-    //   message: {
-    //     schema: 'foo/bar',
-    //   }
-    // });
-    // logConsole(response);
-    alert('TEST NOT YET IMPLEMENTED');
-  });
-
-  write_alice_to_bob_remote_btn.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    const response = await web5.dwn.records.write(bobDid, {
-      author: myDid,
-      data: 'test',
-      message: {
-        protocol: 'test',
-        schema: 'test/post'
-      }
-    });
-    logConsole(response);
-  });
-
-  query_alice_to_bob_remote_btn.addEventListener('click', async event => {
-    if (!agentConnected()) return;
-    const response = await web5.dwn.records.query(bobDid, {
-      author: myDid,
-      message: {
-        filter: {
-          protocol: 'test',
-          schema: 'test/post',
-        }
-      }
-    });
-    logConsole(response);
   });
 
 </script>

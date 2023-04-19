@@ -1,4 +1,4 @@
-import { Interface } from './Interface.js';
+import { Interface } from './interface.js';
 
 class Protocols extends Interface {
   constructor(dwn) {

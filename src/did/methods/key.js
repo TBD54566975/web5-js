@@ -7,7 +7,7 @@ import {
   MULTICODEC_ED25519_PUB_HEADER,
   MULTICODEC_X25519_PUB_HEADER,
   createJWK,
-} from '../didUtils.js';
+} from '../utils.js';
 
 const didKeyResolver = new DidKeyResolver();
 

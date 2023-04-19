@@ -1,13 +1,13 @@
-import * as SDK from '@tbd54566975/dwn-sdk-js';
+import * as Sdk from '@tbd54566975/dwn-sdk-js';
 
-import { Permissions } from './interface/Permissions.js';
-import { Protocols } from './interface/Protocols.js';
-import { Records } from './interface/Records.js';
+import { Permissions } from './interfaces/permissions.js';
+import { Protocols } from './interfaces/protocols.js';
+import { Records } from './interfaces/records.js';
 import { createWeakSingletonAccessor } from '../utils.js';
 
-const sharedNode = createWeakSingletonAccessor(() => SDK.Dwn.create());
+const sharedNode = createWeakSingletonAccessor(() => Sdk.Dwn.create());
 
-class Web5DWN {
+class Web5Dwn {
   #web5;
 
   #node;
@@ -27,8 +27,8 @@ class Web5DWN {
     this.#records = new Records(this);
   }
 
-  get SDK() {
-    return SDK;
+  get sdk() {
+    return Sdk;
   }
 
   get web5() {
@@ -53,5 +53,5 @@ class Web5DWN {
 }
 
 export {
-  Web5DWN,
+  Web5Dwn,
 };

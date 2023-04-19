@@ -1,10 +1,22 @@
 import getRawBody from 'raw-body';
+import { DataStoreLevel, Dwn, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
 import { Web5 } from '@tbd54566975/web5';
 import fs from 'node:fs';
 import mkdirp from 'mkdirp';
 import { createRequire } from 'node:module';
 
-const web5 = new Web5();
+// Use custom names for the block, message, and data stores to make it possible to launch multiple simple agents
+// in the same directory.  If you don't do this, you will get LevelDB lock errors.
+const port = await getPort(process.argv);
+const dataStore = new DataStoreLevel({ blockstoreLocation: `DATASTORE-${port}` });
+const messageStore = new MessageStoreLevel({
+  blockstoreLocation : `MESSAGESTORE-${port}`,
+  indexLocation      : `INDEX-${port}`,
+});
+
+const dwnNode = await Dwn.create({ messageStore, dataStore });
+
+const web5 = new Web5({ dwn: { node: dwnNode }});
 
 const etcPath = './etc';
 const didStoragePath = `${etcPath}/did.json`;
@@ -42,11 +54,10 @@ async function loadConfig() {
     didState = await initOperatorDid();
     fs.writeFileSync(didStoragePath, JSON.stringify(didState, null, 2));
   }
-  web5.did.register({
+  web5.did.manager.set(didState.id, {
     connected: true,
-    did: didState.id,
     endpoint: 'app://dwn',
-    keys: didState.keys[0].keypair,
+    keys: didState.keys['#dwn'].keyPair,
   });
 }
 
@@ -98,8 +109,6 @@ async function receiveHttp(ctx) {
   }
 
   const data = await getRawBody(ctx.req);
-
-  console.log('TRACE - receiveHttp() - message:', message);
 
   return await web5.send(target, {
     author,

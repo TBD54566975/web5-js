@@ -1,7 +1,7 @@
 import nacl from 'tweetnacl';
 
 import { Encoder } from '@tbd54566975/dwn-sdk-js';
-import { ed25519PrivateKeyToX25519, ed25519PublicKeyToX25519, verificationMethodToPublicKeyBytes } from '../../did/didUtils.js';
+import { ed25519PrivateKeyToX25519, ed25519PublicKeyToX25519, verificationMethodToPublicKeyBytes } from '../../did/utils.js';
 import { bytesToObject, objectValuesBase64UrlToBytes, objectValuesBytesToBase64Url } from '../../utils.js';
 
 export class X25519Xsalsa20Poly1305 {
@@ -69,7 +69,7 @@ export class X25519Xsalsa20Poly1305 {
     // Convert recipient's Ed25519 public key to X25519
     const recipientDHPublicKey = ed25519PublicKeyToX25519(recipientPublicKey);
 
-    // Generate ephemeral keypair
+    // Generate ephemeral keyPair
     const ephemeralKeyPair = nacl.box.keyPair();
 
     // Generate new nonce for every operation

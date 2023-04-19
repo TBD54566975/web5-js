@@ -1,10 +1,14 @@
-class Interface {
+export class Interface {
   #dwn;
   #name;
 
   constructor(dwn, name) {
     this.#dwn = dwn;
     this.#name = name;
+  }
+
+  get dwn() {
+    return this.#dwn;
   }
 
   // TODO: Remove this once Permissions implemented in dwn-sdk-js
@@ -23,7 +27,3 @@ class Interface {
     });
   }
 }
-
-export {
-  Interface,
-};

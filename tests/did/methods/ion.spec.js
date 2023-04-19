@@ -1,14 +1,14 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-import { Web5DID } from '../../../src/did/Web5DID.js';
-import * as didDocuments from '../../data/didDocuments.js';
+import { Web5Did } from '../../../src/did/web5-did.js';
+import * as didDocuments from '../../data/did-documents.js';
 
-describe('Web5DID', async () => {
+describe('Web5Did', async () => {
   let web5did;
 
   beforeEach(function () {
-    web5did = new Web5DID();
+    web5did = new Web5Did();
   });
 
   before(function () {
@@ -17,6 +17,30 @@ describe('Web5DID', async () => {
 
   after(function () {
     this.clock.restore();
+  });
+
+  describe('create', async () => {
+    it('should return one key when creating a did:ion DID', async () => {
+      const did = await web5did.create('ion');
+      expect(did.keys).to.have.lengthOf(1);
+    });
+
+    it('should return one purpose, authentication, when creating a did:ion DID', async () => {
+      const did = await web5did.create('ion');
+      expect(did.keys[0].purposes).to.have.lengthOf(1);
+      expect(did.keys[0].purposes[0]).to.equal('authentication');
+    });
+
+    it('should return keys with a default `dwn` keyId when creating a did:ion DID', async () => {
+      const did = await web5did.create('ion');
+      expect(did.keys[0].id).to.equal('dwn');
+    });
+
+    it('should return keys in JWK format when creating a did:ion DID', async () => {
+      const did = await web5did.create('ion');
+      expect(did.keys[0].keyPair).to.have.property('privateJwk');
+      expect(did.keys[0].keyPair).to.have.property('publicJwk');
+    });
   });
 
   describe('getDidDocument', async () => {
@@ -58,17 +82,16 @@ describe('Web5DID', async () => {
   });
 
   describe('resolve', async () => {
-    it('should not call ion-tools resolve() when registered DID is cached', async () => {
-      // If registered DID isn't cached, the fetch() call to resolve over the network
+    it('should not call ion-tools resolve() when managed DID is cached', async () => {
+      // If managed DID isn't cached, the fetch() call to resolve over the network
       // will take far more than 10ms timeout, causing the test to fail.
       const did = 'did:ion:EiClkZMDxPKqC9c-umQfTkR8vvZ9JPhl_xLDI9Nfk38w5w';
       const didData = {
         connected: true,
-        did: did,
         endpoint: 'http://localhost:55500',
       };
   
-      web5did.register(didData);
+      web5did.manager.set(did, didData);
 
       const _ = await web5did.resolve(did);
     }).timeout(10);
