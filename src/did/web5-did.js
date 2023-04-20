@@ -13,8 +13,8 @@ export class Web5Did {
   #didConnect;
   #web5;
 
+  #didStore = new MemoryStorage();
   #resolvedDids = new MemoryStorage();
-  didStore = new MemoryStorage();
 
   constructor(web5) {
     this.#web5 = web5;
@@ -40,11 +40,11 @@ export class Web5Did {
 
   get manager() {
     return {
-      clear: (...args) => DidManager.clear(...args, this.didStore),
-      exists: (...args) => DidManager.exists(...args, this.didStore),
-      get: (...args) => DidManager.get(...args, this.didStore),
-      remove: (...args) => DidManager.remove(...args, this.didStore),
-      set: (...args) => DidManager.set(...args, this.didStore),
+      clear: (...args) => DidManager.clear(...args, this.#didStore),
+      exists: (...args) => DidManager.exists(...args, this.#didStore),
+      get: (...args) => DidManager.get(...args, this.#didStore),
+      remove: (...args) => DidManager.remove(...args, this.#didStore),
+      set: (...args) => DidManager.set(...args, this.#didStore),
     };
   }
 
