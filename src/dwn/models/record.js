@@ -78,7 +78,7 @@ export class Record {
       // If neither of the above are true, then the record must be fetched from the DWN.
       this.#readableStream = this.#dwn.records.read(this.#target, { author: this.#author, message: { recordId: this.#recordId } })
         .then((response) => response.record )
-        .then((record) => { return record.data; });
+        .then((record) => record.data);
     }
 
     if (typeof this.#encodedData === 'string') {
@@ -107,7 +107,7 @@ export class Record {
         if (self.#readableStream) return self.#readableStream;
         return null;
       },
-      then (...callbacks) {
+      then(...callbacks) {
         return this.stream().then(...callbacks);
       },
       catch(callback) {
@@ -239,6 +239,5 @@ export class Record {
         throw new Error(`${propertyName} is an immutable property. Its value cannot be changed.`);
       }
     });
-    return true;
   }
 }
