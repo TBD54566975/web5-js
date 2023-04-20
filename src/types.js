@@ -3,19 +3,6 @@
  */
 
 /**
- * Web5 JS type definitions.
- */
-
-/**
- * @typedef {Object} Web5SendResponseMessage
- * @property {ProtocolsConfigureDescriptor | ProtocolsQueryDescriptor | RecordsQueryDescriptor | RecordsReadDescriptor | RecordsWriteDescriptor} message
- */
-
-/**
- * @typedef {MessageReplyOptions | Web5SendResponseMessage} Web5SendResponse
- */
-
-/**
  * DWN SDK JS type definitions converted from TypeScript.
  */
 

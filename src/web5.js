@@ -93,6 +93,15 @@ export class Web5 extends EventTarget {
   }
 
   /**
+   * @typedef {Object} Web5SendResponseMessage
+   * @property {ProtocolsConfigureDescriptor | ProtocolsQueryDescriptor | RecordsQueryDescriptor | RecordsReadDescriptor | RecordsWriteDescriptor} message
+   */
+
+  /**
+   * @typedef {MessageReplyOptions | Web5SendResponseMessage} Web5SendResponse
+   */
+
+  /**
    * Sends the message to one or more endpoint URIs
    * 
    * If more than one endpoint is passed, each endpoint is tried serially until one succeeds or all fail.
