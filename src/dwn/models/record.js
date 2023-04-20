@@ -13,7 +13,7 @@ export class Record {
   #target;
 
   #encodedData = null;
-  #isFrozen = false;
+  #isDeleted = false;
   #readableStream = null;
 
   constructor(dwn, options = { }) {
@@ -43,7 +43,7 @@ export class Record {
 
   // Mutable Web5 Record Class properties.
   get author() { return this.#author; }
-  get isFrozen() { return this.#isFrozen; }
+  get isDeleted() { return this.#isDeleted; }
   get target() { return this.#target; }
   set author(author) { this.#author = author; }
   set target(target) { this.#target = target; }
@@ -122,21 +122,21 @@ export class Record {
    */
 
   async delete() {
-    if (this.isFrozen) throw new Error(`Error: Record with ID '${this.id}' was previously deleted.`);
+    if (this.isDeleted) throw new Error(`Error: Record with ID '${this.id}' was previously deleted.`);
 
     // Attempt to delete the record from the DWN.
     const response = await this.#dwn.records.delete(this.#target, { author: this.#author, message: { recordId: this.#recordId } });
     
     if (response.status.code === 202) {
-      // If the record was successfully deleted, freeze the instance to prevent further modifications.
-      this.#freezeRecord();
+      // If the record was successfully deleted, mark the instance as deleted to prevent further modifications.
+      this.#setDeletedStatus(true);
     }
 
     return response;
   }
 
   async update(options = { }) {
-    if (this.isFrozen) throw new Error(`Error: Record with ID '${this.id}' was previously deleted.`);
+    if (this.isDeleted) throw new Error(`Error: Record with ID '${this.id}' was previously deleted.`);
 
     // Begin assembling update message.
     let updateMessage = { ...this.#descriptor, ...options };
@@ -225,12 +225,8 @@ export class Record {
     };
   }
 
-  #freezeRecord() {
-    this.#isFrozen = true;
-  }
-
-  #unFreezeRecord() {
-    this.#isFrozen = false;
+  #setDeletedStatus(status) {
+    this.#isDeleted = status;
   }
 
   static #verifyPermittedMutation(propertiesToMutate, mutableDescriptorProperties) {
