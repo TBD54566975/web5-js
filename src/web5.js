@@ -71,7 +71,7 @@ export class Web5 extends EventTarget {
       if (dwnNodes) {
         return this.#send(dwnNodes, { author, data, message, target });
       }
-      return { status: { code: 400, detail: 'No DWN endpoints present in DID document. Request cannot be sent.' } };
+      return { status: { code: 422, detail: 'No DWN endpoints present in DID document. Request cannot be sent.' } };
     }
 
     return { status: { code: 400, detail: 'Target DID could not be resolved' } };
