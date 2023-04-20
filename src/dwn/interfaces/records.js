@@ -9,8 +9,8 @@ export class Records extends Interface {
     super(dwn, 'Records');
   }
 
-  get create() {
-    return this.write;
+  async create(...args) {
+    return this.write(...args);
   }
 
   async createFrom(target, request) {
