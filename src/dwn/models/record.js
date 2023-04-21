@@ -36,7 +36,6 @@ export class Record {
 
     // If the record was created from a RecordsRead reply then it will have a `data` property.
     if (options?.data) {
-      // this.#readableStream = isReadableWebStream(options.data) ? toIsomorphicReadableStream(options.data) : options.data;
       this.#readableStream = isReadableWebStream(options.data) ? new ReadableWebToNodeStream(options.data) : options.data;
     }
   }
