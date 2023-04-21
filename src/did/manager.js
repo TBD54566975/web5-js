@@ -1,22 +1,28 @@
-export async function clear(store) {
-  if (store){
-    store.clear();
+export class DidManager {
+  #store;
+
+  constructor(options) {
+    this.#store = options.store;
   }
-}
 
-export async function exists(id, store) {
-  const value = await store.get(id);
-  return value !== undefined;
-}
-
-export async function get(id, store) {
-  return store.get(id);
-}
-
-export async function remove(id, store) {
-  store.remove(id);
-}
-
-export async function set(id, value, store) {
-  store.set(id, value);
+  async clear() {
+    this.#store.clear();
+  }
+  
+  async exists(id) {
+    const value = await this.#store.get(id);
+    return value !== undefined;
+  }
+  
+  async get(id) {
+    return this.#store.get(id);
+  }
+  
+  async remove(id) {
+    this.#store.remove(id);
+  }
+  
+  async set(id, value) {
+    this.#store.set(id, value);
+  }
 }

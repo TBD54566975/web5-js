@@ -2,7 +2,7 @@ import { Encoder } from '@tbd54566975/dwn-sdk-js';
 
 import { DidConnect } from './connect/connect.js';
 import * as CryptoCiphers from './crypto/ciphers.js';
-import * as DidManager from './manager.js';
+import { DidManager } from './manager.js';
 import * as Methods from './methods/methods.js';
 import * as DidUtils from './utils.js';
 import { MemoryStorage } from '../storage/memory-storage.js';
@@ -13,7 +13,7 @@ export class Web5Did {
   #didConnect;
   #web5;
 
-  #didStore = new MemoryStorage();
+  #didManager;
   #resolvedDids = new MemoryStorage();
 
   constructor(web5) {
@@ -28,6 +28,8 @@ export class Web5Did {
     // Bind functions to the instance of DidConnect
     this.#didConnect.connect = this.#didConnect.connect.bind(this.#didConnect);
     this.#didConnect.permissionsRequest = this.#didConnect.permissionsRequest.bind(this.#didConnect);
+
+    this.#didManager = new DidManager({ store: new MemoryStorage() });
   }
   
   get connect() {
@@ -40,11 +42,11 @@ export class Web5Did {
 
   get manager() {
     return {
-      clear: (...args) => DidManager.clear(...args, this.#didStore),
-      exists: (...args) => DidManager.exists(...args, this.#didStore),
-      get: (...args) => DidManager.get(...args, this.#didStore),
-      remove: (...args) => DidManager.remove(...args, this.#didStore),
-      set: (...args) => DidManager.set(...args, this.#didStore),
+      clear: () => this.#didManager.clear(),
+      exists: (...args) => this.#didManager.exists(...args),
+      get: (...args) => this.#didManager.get(...args),
+      remove: (...args) => this.#didManager.remove(...args),
+      set: (...args) => this.#didManager.set(...args),
     };
   }
 
