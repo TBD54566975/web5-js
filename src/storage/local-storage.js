@@ -9,7 +9,7 @@ export class LocalStorage extends Storage {
     localStorage.setItem(key, JSON.stringify(value));
   }
 
-  async remove(key) {
+  async delete(key) {
     localStorage.removeItem(key);
   }
 

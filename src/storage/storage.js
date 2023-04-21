@@ -7,7 +7,7 @@ export class Storage {
     throw 'subclass must override';
   }
 
-  async remove(_key) {
+  async delete(_key) {
     throw 'subclass must override';
   }
 

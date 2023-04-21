@@ -57,14 +57,14 @@ describe('MemoryStorage', async () => {
     expect(valueInCache).to.equal('bValue');
   });
 
-  it('should remove specified entry', async () => {
+  it('should delete specified entry', async () => {
     const storage = new MemoryStorage();
 
     await storage.set('key1', 'aValue');
     await storage.set('key2', 'aValue');
     await storage.set('key3', 'aValue');
 
-    await storage.remove('key1');
+    await storage.delete('key1');
 
     let valueInCache = await storage.get('key1');
     expect(valueInCache).to.be.undefined;
@@ -72,7 +72,7 @@ describe('MemoryStorage', async () => {
     expect(valueInCache).to.equal('aValue');
   });
 
-  it('should remove all entries after `clear()`', async () => {
+  it('should delete all entries after `clear()`', async () => {
     const storage = new MemoryStorage();
 
     await storage.set('key1', 'aValue');

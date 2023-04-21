@@ -18,8 +18,8 @@ export class DidManager {
     return this.#store.get(id);
   }
   
-  async remove(id) {
-    this.#store.remove(id);
+  async delete(id) {
+    this.#store.delete(id);
   }
   
   async set(id, value) {

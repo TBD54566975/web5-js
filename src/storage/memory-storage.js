@@ -13,13 +13,13 @@ export class MemoryStorage extends Storage {
 
     if (Number.isFinite(options?.timeout)) {
       const timeout = setTimeout(() => {
-        this.remove(key);
+        this.delete(key);
       }, options.timeout);
       this.#timeoutForKey.set(key, timeout);
     }
   }
 
-  async remove(key) {
+  async delete(key) {
     this.#dataForKey.delete(key);
 
     clearTimeout(this.#timeoutForKey.get(key));

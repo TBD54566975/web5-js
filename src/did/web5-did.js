@@ -45,7 +45,7 @@ export class Web5Did {
       clear: () => this.#didManager.clear(),
       exists: (...args) => this.#didManager.exists(...args),
       get: (...args) => this.#didManager.get(...args),
-      remove: (...args) => this.#didManager.remove(...args),
+      delete: (...args) => this.#didManager.delete(...args),
       set: (...args) => this.#didManager.set(...args),
     };
   }
