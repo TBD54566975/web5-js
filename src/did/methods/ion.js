@@ -1,14 +1,16 @@
-import { DID, generateKeyPair, sign, verify } from '@decentralized-identity/ion-tools';
+import { DID, generateKeyPair } from '@decentralized-identity/ion-tools';
 import { DidIonResolver } from '@tbd54566975/dwn-sdk-js';
+
+export { sign, verify } from '@decentralized-identity/ion-tools';
 
 const didIonResolver = new DidIonResolver();
 
-async function create(options = { }){
+export async function create(options = { }){
   options.keys ||= [
     {
-      id: 'key-1',
+      id: 'dwn',
       type: 'JsonWebKey2020',
-      keypair: await generateKeyPair(),
+      keyPair: await generateKeyPair(),
       purposes: ['authentication'],
     },
   ];
@@ -17,8 +19,8 @@ async function create(options = { }){
     content: {
       publicKeys: options.keys.map(key => {
         let pubkey = Object.assign({ }, key);
-        pubkey.publicKeyJwk = key.keypair.publicJwk;
-        delete pubkey.keypair;
+        pubkey.publicKeyJwk = key.keyPair.publicJwk;
+        delete pubkey.keyPair;
         return pubkey;
       }),
       ...(options.services && { services: options.services }),
@@ -34,7 +36,7 @@ async function create(options = { }){
   };
 }
 
-async function resolve(did) {
+export async function resolve(did) {
   try {
     return await didIonResolver.resolve(did);
   } catch (error) {
@@ -47,10 +49,3 @@ async function resolve(did) {
     };
   }
 }
-
-export {
-  create,
-  sign,
-  verify,
-  resolve,
-};

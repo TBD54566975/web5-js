@@ -33,7 +33,7 @@ export const DID_VERIFICATION_RELATIONSHIPS = [
  * @param {string} options.crv Cryptographic curve
  * @param {Uint8Array} options.publicKey Public key bytes
  * @param {Uint8Array} options.privateKey Private key bytes
- * @returns {{ id: string, type: string, controller: string, keypair: Object}}
+ * @returns {{ id: string, type: string, controller: string, keyPair: Object}}
  */
 export async function createJWK(options) {
   const { id, crv, kty, kid, publicKey, privateKey } = options;
@@ -41,16 +41,16 @@ export async function createJWK(options) {
     id: `${id}#${kid}`,
     type: 'JsonWebKey2020',
     controller: id,
-    keypair: {},
+    keyPair: {},
   };
 
   const jwk = { crv, kid, kty };
 
-  jsonWebKey.keypair.publicKeyJwk = { ...jwk };
-  jsonWebKey.keypair.publicKeyJwk.x = Encoder.bytesToBase64Url(publicKey);
+  jsonWebKey.keyPair.publicKeyJwk = { ...jwk };
+  jsonWebKey.keyPair.publicKeyJwk.x = Encoder.bytesToBase64Url(publicKey);
   
-  jsonWebKey.keypair.privateKeyJwk = { ...jsonWebKey.keypair.publicKeyJwk };
-  jsonWebKey.keypair.privateKeyJwk.d = Encoder.bytesToBase64Url(privateKey);
+  jsonWebKey.keyPair.privateKeyJwk = { ...jsonWebKey.keyPair.publicKeyJwk };
+  jsonWebKey.keyPair.privateKeyJwk.d = Encoder.bytesToBase64Url(privateKey);
   
   return jsonWebKey;
 }

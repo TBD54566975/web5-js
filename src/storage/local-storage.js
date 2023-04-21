@@ -1,6 +1,6 @@
-import { Storage } from './Storage.js';
+import { Storage } from './storage.js';
 
-class LocalStorage extends Storage {
+export class LocalStorage extends Storage {
   async get(key) {
     return JSON.parse(localStorage.getItem(key));
   }
@@ -17,7 +17,3 @@ class LocalStorage extends Storage {
     localStorage.clear();
   }
 }
-
-export {
-  LocalStorage,
-};

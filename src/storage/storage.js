@@ -1,4 +1,4 @@
-class Storage {
+export class Storage {
   async get(_key) {
     throw 'subclass must override';
   }
@@ -15,7 +15,3 @@ class Storage {
     throw 'subclass must override';
   }
 }
-
-export {
-  Storage,
-};

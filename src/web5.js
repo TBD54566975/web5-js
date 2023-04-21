@@ -1,10 +1,10 @@
-import { Web5DID } from './did/Web5DID.js';
-import { Web5DWN } from './dwn/Web5DWN.js';
-import { AppTransport } from './transport/AppTransport.js';
-import { HTTPTransport } from './transport/HTTPTransport.js';
-import { isUnsignedMessage, parseURL } from './utils.js';
+import { Web5Did } from './did/web5-did.js';
+import { Web5Dwn } from './dwn/web5-dwn.js';
+import { AppTransport } from './transport/app-transport.js';
+import { HttpTransport } from './transport/http-transport.js';
+import { isUnsignedMessage, parseUrl } from './utils.js';
 
-class Web5 extends EventTarget {
+export class Web5 extends EventTarget {
   #dwn;
   #did;
   #transports;
@@ -12,12 +12,12 @@ class Web5 extends EventTarget {
   constructor(options = { }) {
     super();
 
-    this.#dwn = new Web5DWN(this, options?.dwn);
-    this.#did = new Web5DID(this);
+    this.#dwn = new Web5Dwn(this, options?.dwn);
+    this.#did = new Web5Did(this);
     this.#transports = {
       app: new AppTransport(this),
-      http: new HTTPTransport(this),
-      https: new HTTPTransport(this),
+      http: new HttpTransport(this),
+      https: new HttpTransport(this),
     };
   }
 
@@ -54,10 +54,10 @@ class Web5 extends EventTarget {
         }
   
         // TODO: Is this sufficient or might we improve how the calling app can respond by initiating a connect/re-connect flow?
-        return { status: { code: 422, detail: 'Local keys not available and remote agent not connected' } };
+        return { status: { code: 401, detail: 'Local keys not available and remote agent not connected' } };
       }
       
-      message = await this.#createSignedMessage(resolvedAuthor, message, data);
+      message = await this.#createSignedMessage(author, resolvedAuthor, message, data);
     }
 
     const resolvedTarget = await this.#did.resolve(target);
@@ -74,15 +74,16 @@ class Web5 extends EventTarget {
       return { status: { code: 422, detail: 'No DWN endpoints present in DID document. Request cannot be sent.' } };
     }
 
-    return { status: { code: 422, detail: 'Target DID could not be resolved' } };
+    return { status: { code: 400, detail: 'Target DID could not be resolved' } };
   }
 
-  async #createSignedMessage(resolvedAuthor, message, data) {
-    const authorizationSignatureInput = this.#dwn.SDK.Jws.createSignatureInput({
-      keyId: resolvedAuthor.did + '#key-1',
-      keyPair: resolvedAuthor.keys,
+  async #createSignedMessage(author, resolvedAuthor, message, data) {
+    const keyId = '#dwn';
+    const authorizationSignatureInput = this.#dwn.sdk.Jws.createSignatureInput({
+      keyId: author + keyId,
+      keyPair: resolvedAuthor.keys[keyId].keyPair,
     });
-    const signedMessage = await this.#dwn.SDK[message.interface + message.method].create({
+    const signedMessage = await this.#dwn.sdk[message.interface + message.method].create({
       ...message,
       authorizationSignatureInput,
       data,
@@ -90,6 +91,15 @@ class Web5 extends EventTarget {
     delete signedMessage.data;
     return signedMessage;
   }
+
+  /**
+   * @typedef {Object} Web5SendResponseMessage
+   * @property {ProtocolsConfigureDescriptor | ProtocolsQueryDescriptor | RecordsQueryDescriptor | RecordsReadDescriptor | RecordsWriteDescriptor} message
+   */
+
+  /**
+   * @typedef {MessageReplyOptions | Web5SendResponseMessage} Web5SendResponse
+   */
 
   /**
    * Sends the message to one or more endpoint URIs
@@ -108,25 +118,29 @@ class Web5 extends EventTarget {
    * @param {*} request.data - The message data (if any).
    * @param {object} request.message - The DWeb message.
    * @param {string} request.target - The DID to send the message to.
-   * @returns Promise
+   * @returns {Promise<Web5SendResponse>}
    */
   async #send(endpoints, request) {
     let response;
     for (let endpoint of endpoints) {
       try {
-        const url = parseURL(endpoint);
+        const url = parseUrl(endpoint);
         response = await this.#transports[url?.protocol?.slice(0, -1)]?.send(url.href, request);
       } catch (error) {
-        console.log(error);
+        console.error(error);
         // Intentionally ignore exception and try the next endpoint.
       }
       if (response) break; // Stop looping and return after the first endpoint successfully responds.
     }
 
-    return response ?? { status: { code: 503, detail: 'Service Unavailable' } };
+    if (response && !isUnsignedMessage(request.message)) {
+      // If the message is signed return the `descriptor`, and if present, `recordId`.
+      const { recordId = null, descriptor } = request.message.message;
+      response.message = { recordId, descriptor };
+    }
+
+    response ??= { status: { code: 503, detail: 'Service Unavailable' } };
+
+    return response;
   }
 }
-
-export {
-  Web5,
-};

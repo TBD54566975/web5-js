@@ -1,12 +1,12 @@
-import { parseJSON, triggerProtocolHandler } from '../../utils.js';
+import { parseJson } from '../../utils.js';
 
-export const DIDConnectRPCMethods = {
+export const DidConnectRpcMethods = {
   Ready: 'didconnect.ready',
   Initiation: 'didconnect.initiation',
   Delegation: 'didconnect.delegation',
 };
 
-export const JSONRPCErrorCodes = {
+export const JsonRpcErrorCodes = {
   // JSON-RPC 2.0 pre-defined errors
   InvalidRequest: -32600,
   MethodNotFound: -32601,
@@ -20,7 +20,7 @@ export const JSONRPCErrorCodes = {
   Forbidden: -50403, // equivalent to HTTP Status 403
 };
 
-export const DIDConnectStep = {
+export const DidConnectStep = {
   Initiation: 'Initiation',
   Verification: 'Verification',
   Delegation: 'Delegation',
@@ -62,8 +62,8 @@ export async function findWebSocketListener(
         clearListeners(socket);
   
         // Resolve and complete connection only if the expected message is received from the agent.
-        const message = parseJSON(event.data);
-        if (message?.method === DIDConnectRPCMethods.Ready) {
+        const message = parseJson(event.data);
+        if (message?.method === DidConnectRpcMethods.Ready) {
           // Resolve and return the open socket back to the caller
           resolve(socket);
         } else {
@@ -103,4 +103,12 @@ export async function findWebSocketListener(
       }
     }
   }
+}
+
+export async function triggerProtocolHandler(url) {
+  let form = document.createElement('form');
+  form.action = url;
+  document.body.append(form);
+  form.submit();
+  form.remove();
 }

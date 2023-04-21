@@ -1,12 +1,12 @@
 import chaiAsPromised from 'chai-as-promised';
 import chai, { expect } from 'chai';
 
-import * as DidUtils from '../../src/did/didUtils.js';
-import * as didDocuments from '../data/didDocuments.js';
+import * as DidUtils from '../../src/did/utils.js';
+import * as didDocuments from '../data/did-documents.js';
 
 chai.use(chaiAsPromised);
 
-describe('Web5DID', async () => {
+describe('Web5Did', async () => {
 
   describe('DID Utils Tests', () => {
 

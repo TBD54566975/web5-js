@@ -1,6 +1,6 @@
-import { Interface } from './Interface.js';
+import { Interface } from './interface.js';
 
-class Protocols extends Interface {
+export class Protocols extends Interface {
   constructor(dwn) {
     super(dwn, 'Protocols');
   }
@@ -13,7 +13,3 @@ class Protocols extends Interface {
     return this.send('Query', target, request);
   }
 }
-
-export {
-  Protocols,
-};

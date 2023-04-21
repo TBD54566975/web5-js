@@ -1,4 +1,4 @@
-class Transport {
+export class Transport {
   #web5;
 
   constructor(web5) {
@@ -13,7 +13,3 @@ class Transport {
     throw 'subclass must override';
   }
 }
-
-export {
-  Transport,
-};

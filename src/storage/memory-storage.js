@@ -1,6 +1,6 @@
-import { Storage } from './Storage.js';
+import { Storage } from './storage.js';
 
-class MemoryStorage extends Storage {
+export class MemoryStorage extends Storage {
   #dataForKey = new Map;
   #timeoutForKey = new Map;
 
@@ -35,7 +35,3 @@ class MemoryStorage extends Storage {
     this.#timeoutForKey.clear();
   }
 }
-
-export {
-  MemoryStorage,
-};

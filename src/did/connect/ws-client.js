@@ -1,5 +1,3 @@
-import { parseJSON } from '../../utils.js';
-
 export class WebSocketClient {
   #port;
   #requestID = 0;

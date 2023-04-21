@@ -1,4 +1,3 @@
-import nacl from 'tweetnacl';
 import { Encoder } from '@tbd54566975/dwn-sdk-js';
 
 const textDecoder = new TextDecoder();
@@ -15,7 +14,7 @@ export function bytesToObject(bytes) {
   return JSON.parse(objectString);
 }
 
-function createWeakSingletonAccessor(creator) {
+export function createWeakSingletonAccessor(creator) {
   let weakref = null;
   return function() {
     let object = weakref?.deref();
@@ -27,14 +26,14 @@ function createWeakSingletonAccessor(creator) {
   };
 }
 
-function isEmptyObject(obj) {
+export function isEmptyObject(obj) {
   if (typeof obj === 'object' && obj !== null) {
     return Object.keys(obj).length === 0;
   }
   return false;
 }
 
-function parseJSON(str) {
+export function parseJson(str) {
   try {
     return JSON.parse(str);
   } catch {
@@ -42,7 +41,7 @@ function parseJSON(str) {
   }
 }
 
-function parseURL(str) {
+export function parseUrl(str) {
   try {
     return new URL(str);
   } catch {
@@ -50,7 +49,7 @@ function parseURL(str) {
   }
 }
 
-function pascalToKebabCase(str) {
+export function pascalToKebabCase(str) {
   return str
     .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
     .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
@@ -60,7 +59,7 @@ function pascalToKebabCase(str) {
 /**
  * Set/detect the media type and return the data as bytes.
  */
-const dataToBytes = (data, dataFormat) => {
+export const dataToBytes = (data, dataFormat) => {
   let dataBytes = data;
 
   // Check for Object or String, and if neither, assume bytes.
@@ -89,15 +88,15 @@ const dataToBytes = (data, dataFormat) => {
  * @param {{}} message 
  * @returns boolean
  */
-function isUnsignedMessage(message) {
+export function isUnsignedMessage(message) {
   return message?.message?.authorization ? false : true;
 }
 
-function objectValuesBytesToBase64Url(obj) {
+export function objectValuesBytesToBase64Url(obj) {
   return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, Encoder.bytesToBase64Url(value)]));
 }
 
-function objectValuesBase64UrlToBytes(obj) {
+export function objectValuesBase64UrlToBytes(obj) {
   return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, Encoder.base64UrlToBytes(value)]));
 }
 
@@ -109,35 +108,4 @@ function objectValuesBase64UrlToBytes(obj) {
  */
 const toType = (obj) => {
   return ({}).toString.call(obj).match(/\s([a-zA-Z]+)/)[1].toLowerCase();
-};
-
-async function triggerProtocolHandler(url) {
-  let form = document.createElement('form');
-  form.action = url;
-  document.body.append(form);
-  form.submit();
-  form.remove();
-}
-
-async function decodePin(data, secretKey) {
-  const { pin, nonce, publicKey } = data;
-  const encryptedPinBytes = Encoder.base64UrlToBytes(pin);
-  const nonceBytes = new TextEncoder().encode(nonce);
-  const publicKeyBytes = Encoder.base64UrlToBytes(publicKey);
-  const encodedPin = nacl.box.open(encryptedPinBytes, nonceBytes, publicKeyBytes, secretKey);
-  data.pin = new TextDecoder().decode(encodedPin);
-}
-
-export {
-  createWeakSingletonAccessor,
-  dataToBytes,
-  decodePin,
-  isEmptyObject,
-  isUnsignedMessage,
-  objectValuesBase64UrlToBytes,
-  objectValuesBytesToBase64Url,
-  parseJSON,
-  parseURL,
-  pascalToKebabCase,
-  triggerProtocolHandler,
 };

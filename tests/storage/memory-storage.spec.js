@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-import { MemoryStorage } from '../../src/storage/MemoryStorage.js';
+import { MemoryStorage } from '../../src/storage/memory-storage.js';
 
 describe('MemoryStorage', async () => {
   before(function () {

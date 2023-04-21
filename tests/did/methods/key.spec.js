@@ -1,14 +1,47 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-import { Web5DID } from '../../../src/did/Web5DID.js';
-import * as didDocuments from '../../data/didDocuments.js';
+import { Web5Did } from '../../../src/did/web5-did.js';
+import * as didDocuments from '../../data/did-documents.js';
 
-describe('Web5DID', async () => {
+describe('Web5Did', async () => {
   let web5did;
 
   beforeEach(function () {
-    web5did = new Web5DID();
+    web5did = new Web5Did();
+  });
+
+  describe('create', async () => {
+    it('should return two keys when creating a did:key DID', async () => {
+      const did = await web5did.create('key');
+      expect(did.keys).to.have.lengthOf(2);
+    });
+
+    it('should return two keys with keyId in form `did:key:id#publicKeyKeyId` when creating a did:key DID', async () => {
+      const did = await web5did.create('key');
+      expect(did.keys[0].id).to.equal(`${did.id}#${did.keys[0].keyPair.publicKeyJwk.kid}`);
+      expect(did.keys[1].id).to.equal(`${did.id}#${did.keys[1].keyPair.publicKeyJwk.kid}`);
+    });
+
+    it('should return keys in JWK format when creating a did:key DID', async () => {
+      const did = await web5did.create('key');
+      expect(did.keys[0].type).to.equal('JsonWebKey2020');
+      expect(did.keys[1].type).to.equal('JsonWebKey2020');
+      expect(did.keys[0].keyPair).to.have.property('privateKeyJwk');
+      expect(did.keys[0].keyPair).to.have.property('publicKeyJwk');
+      expect(did.keys[1].keyPair).to.have.property('privateKeyJwk');
+      expect(did.keys[1].keyPair).to.have.property('publicKeyJwk');
+    });
+
+    it('should return first key using Ed25519 curve when creating a did:key DID', async () => {
+      const did = await web5did.create('key');
+      expect(did.keys[0].keyPair.publicKeyJwk.crv).to.equal('Ed25519');
+    });
+
+    it('should return second key using X25519 curve when creating a did:key DID', async () => {
+      const did = await web5did.create('key');
+      expect(did.keys[1].keyPair.publicKeyJwk.crv).to.equal('X25519');
+    });
   });
 
   describe('getDidDocument', async () => {
@@ -40,12 +73,12 @@ describe('Web5DID', async () => {
       expect(resolved.didDocument).to.have.property('id', did);
     });
 
-    it('should return null didDocument for an invalid DID', async () => {
+    it('should return undefined didDocument for an invalid DID', async () => {
       const did = 'did:key:invalid';
   
       const resolved = await web5did.resolve(did);
       
-      expect(resolved.didDocument).to.be.null;
+      expect(resolved.didDocument).to.be.undefined;
       expect(resolved.didResolutionMetadata.error).to.equal('invalidDid');
     });
   });

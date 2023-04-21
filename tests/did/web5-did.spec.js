@@ -3,15 +3,15 @@ import sinon from 'sinon';
 
 import { Encoder } from '@tbd54566975/dwn-sdk-js';
 import { base64UrlToString } from '../../src/utils.js';
-import { Web5 } from '../../src/Web5.js';
-import { Web5DID } from '../../src/did/Web5DID.js';
-import * as didDocuments from '../data/didDocuments.js';
+import { Web5 } from '../../src/web5.js';
+import { Web5Did } from '../../src/did/web5-did.js';
+import * as didDocuments from '../data/did-documents.js';
 
-describe('Web5DID', async () => {
+describe('Web5Did', async () => {
   let web5did;
 
   beforeEach(function () {
-    web5did = new Web5DID();
+    web5did = new Web5Did();
   });
 
   before(function () {
@@ -42,7 +42,7 @@ describe('Web5DID', async () => {
       
       const decryptionResult = await web5.did.decrypt({
         did: recipientDid.id,
-        privateKey: recipientDid.keys[0].keypair.privateKeyJwk.d,
+        privateKey: recipientDid.keys[0].keyPair.privateKeyJwk.d,
         payload: encryptionResult,
       });
 
@@ -146,39 +146,40 @@ describe('Web5DID', async () => {
     });
   });
 
-  describe('register', async () => {
-    it('should never expire registered DIDs', async function () {
+
+  describe('manager', async () => {
+    it('should never expire managed DIDs', async function () {
       let resolved;
       const did = 'did:ion:abcd1234';
       const didData = {
         connected: true,
-        did: did,
         endpoint: 'http://localhost:55500',
       };
   
-      web5did.register(didData);
+      await web5did.manager.set(did, didData);
   
       resolved = await web5did.resolve(did);
-      expect(resolved.did).to.equal(did);
+      expect(resolved).to.not.be.undefined;
+      expect(resolved).to.equal(didData);
   
       this.clock.tick(2147483647); // Time travel 23.85 days
   
       resolved = await web5did.resolve(did);
-      expect(resolved.did).to.equal(did);
+      expect(resolved).to.not.be.undefined;
+      expect(resolved).to.equal(didData);
     });
 
     it('should return object with keys undefined if key data not provided', async () => {
       const did = 'did:ion:abcd1234';
       const didData = {
         connected: true,
-        did: did,
         endpoint: 'http://localhost:55500',
       };
   
-      web5did.register(didData);
+      await web5did.manager.set(did, didData);
   
       const resolved = await web5did.resolve(did);
       expect(resolved.keys).to.be.undefined;
-    }); 
+    });
   });
 });
