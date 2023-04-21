@@ -1,5 +1,5 @@
 import getRawBody from 'raw-body';
-import { DataStoreLevel, Dwn, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
+import { DataStoreLevel, Dwn, EventLogLevel, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
 import { Web5 } from '@tbd54566975/web5';
 import fs from 'node:fs';
 import mkdirp from 'mkdirp';
@@ -9,12 +9,13 @@ import { createRequire } from 'node:module';
 // in the same directory.  If you don't do this, you will get LevelDB lock errors.
 const port = await getPort(process.argv);
 const dataStore = new DataStoreLevel({ blockstoreLocation: `DATASTORE-${port}` });
+const eventLog = new EventLogLevel({ location: `EVENTLOG-${port}` });
 const messageStore = new MessageStoreLevel({
   blockstoreLocation : `MESSAGESTORE-${port}`,
   indexLocation      : `INDEX-${port}`,
 });
 
-const dwnNode = await Dwn.create({ messageStore, dataStore });
+const dwnNode = await Dwn.create({ dataStore, eventLog, messageStore });
 
 export const web5 = new Web5({ dwn: { node: dwnNode }});
 
@@ -57,7 +58,7 @@ export async function loadConfig() {
   web5.did.manager.set(didState.id, {
     connected: true,
     endpoint: 'app://dwn',
-    keys: didState.keys['#dwn'].keyPair,
+    keys: { ['#dwn']: { keyPair: didState.keys[0].keyPair} },
   });
 }
 
