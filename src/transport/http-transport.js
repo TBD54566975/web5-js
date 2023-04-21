@@ -52,7 +52,7 @@ export class HttpTransport extends Transport {
     if (web5ResponseHeader) {
       // RecordsRead responses return `message` and `status` as header values, with a `data` ReadableStream in the body.
       const { entries = null, message, record, status } = await this.decodeMessage(web5ResponseHeader);
-      return { entries, message, record: { data: response.body, ...record }, status };
+      return { entries, message, record: { ...record, data: response.body }, status };
 
     } else { 
       // All other DWN responses return `entries`, `message`, and `status` as stringified JSON in the body.

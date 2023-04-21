@@ -121,7 +121,7 @@ export class Web5 extends EventTarget {
    * @returns {Promise<Web5SendResponse>}
    */
   async #send(endpoints, request) {
-    let response, message = {};
+    let response;
     for (let endpoint of endpoints) {
       try {
         const url = parseUrl(endpoint);
@@ -133,14 +133,14 @@ export class Web5 extends EventTarget {
       if (response) break; // Stop looping and return after the first endpoint successfully responds.
     }
 
-    if (!isUnsignedMessage(request.message)) {
+    if (response && !isUnsignedMessage(request.message)) {
       // If the message is signed return the `descriptor`, and if present, `recordId`.
       const { recordId = null, descriptor } = request.message.message;
-      message = { recordId, descriptor };
+      response.message = { recordId, descriptor };
     }
 
     response ??= { status: { code: 503, detail: 'Service Unavailable' } };
 
-    return { message, ...response };
+    return response;
   }
 }
