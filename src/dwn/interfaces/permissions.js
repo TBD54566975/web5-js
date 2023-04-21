@@ -1,7 +1,7 @@
 import { v4 as uuid } from 'uuid';
 import { Interface } from './interface.js';
 
-class Permissions extends Interface {
+export class Permissions extends Interface {
   constructor(dwn) {
     super(dwn, 'Permissions');
   }
@@ -18,7 +18,3 @@ class Permissions extends Interface {
     });
   }
 }
-
-export {
-  Permissions,
-};

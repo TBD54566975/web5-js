@@ -11,7 +11,7 @@ import {
 
 const didKeyResolver = new DidKeyResolver();
 
-async function create(options = { }) {
+export async function create(options = { }) {
   // Generate new sign key pair.
   const verificationKeyPair = nacl.sign.keyPair();
   const keyAgreementKeyPair = ed25519KeyPairToX25519(verificationKeyPair);
@@ -46,7 +46,7 @@ async function create(options = { }) {
   };
 }
 
-async function resolve(did) {
+export async function resolve(did) {
   return didKeyResolver.resolve(did);
 }
 
@@ -62,7 +62,7 @@ async function resolve(did) {
  * @param {string} options.privateKeyJwk.x Base64url encoded public key
  * @returns {Uint8Array} Signature
  */
-async function sign(options) {
+export async function sign(options) {
   const { data, privateKeyJwk } = options;
   const privateKeyBytes = Encoder.base64UrlToBytes(privateKeyJwk.d);
 
@@ -91,7 +91,7 @@ async function sign(options) {
  * @param {string} options.publicKeyJwk.x Base64url encoded public key
  * @returns {boolean}
  */
-async function verify(options) {
+export async function verify(options) {
   const { signature, data, publicKeyJwk } = options;
   const publicKeyBytes = Encoder.base64UrlToBytes(publicKeyJwk.x);
 
@@ -109,10 +109,3 @@ async function verify(options) {
 
   return (result === null) ? false : true;
 }
-
-export {
-  create,
-  resolve,
-  sign,
-  verify,
-};

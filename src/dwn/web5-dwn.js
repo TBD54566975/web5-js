@@ -7,7 +7,7 @@ import { createWeakSingletonAccessor } from '../utils.js';
 
 const sharedNode = createWeakSingletonAccessor(() => Sdk.Dwn.create());
 
-class Web5Dwn {
+export class Web5Dwn {
   #web5;
 
   #node;
@@ -51,7 +51,3 @@ class Web5Dwn {
     return this.#node ??= sharedNode();
   }
 }
-
-export {
-  Web5Dwn,
-};

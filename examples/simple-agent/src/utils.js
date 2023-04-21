@@ -16,7 +16,7 @@ const messageStore = new MessageStoreLevel({
 
 const dwnNode = await Dwn.create({ messageStore, dataStore });
 
-const web5 = new Web5({ dwn: { node: dwnNode }});
+export const web5 = new Web5({ dwn: { node: dwnNode }});
 
 const etcPath = './etc';
 const didStoragePath = `${etcPath}/did.json`;
@@ -26,7 +26,7 @@ const require = createRequire(import.meta.url);
 const testProtocol = require('../resources/test-protocol.json');
 const protocols =  [testProtocol];
 
-async function getPort(processArgv) {
+export async function getPort(processArgv) {
   const defaultPort = 8080;
 
   // Find the -p option and get the port number
@@ -39,7 +39,7 @@ async function getPort(processArgv) {
   return port;
 }
 
-async function loadConfig() {
+export async function loadConfig() {
   if (!fs.existsSync(etcPath)) {
     // ensure that directory for persistent storage exists
     mkdirp.sync(etcPath);
@@ -61,7 +61,7 @@ async function loadConfig() {
   });
 }
 
-async function initOperatorDid() {
+export async function initOperatorDid() {
   const operatorDid = await web5.did.create('ion', {
     services: [
       {
@@ -76,7 +76,7 @@ async function initOperatorDid() {
   return operatorDid;
 }
 
-async function initializeProtocols() {
+export async function initializeProtocols() {
   for (let { protocol, definition } of protocols) {
     const queryResponse = await web5.dwn.protocols.query(didState.id, {
       author: didState.id,
@@ -98,7 +98,7 @@ async function initializeProtocols() {
   }
 }
 
-async function receiveHttp(ctx) {
+export async function receiveHttp(ctx) {
   const encodedMessage = ctx.get(web5.transports.http.ENCODED_MESSAGE_HEADER);
   if (!encodedMessage) throw 'Message is missing or malformed';
   
@@ -116,12 +116,3 @@ async function receiveHttp(ctx) {
     message,
   });
 }
-
-export {
-  getPort,
-  initializeProtocols,
-  initOperatorDid,
-  loadConfig,
-  receiveHttp,
-  web5,
-};
