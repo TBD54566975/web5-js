@@ -22,8 +22,8 @@ export class Record {
     // RecordsWriteMessage properties.
     const { author, contextId = undefined, descriptor, recordId = null, target } = options;
     this.#contextId = contextId;
-    if (descriptor?.data) delete descriptor.data;
     this.#descriptor = descriptor ?? { };
+    delete this.#descriptor.data;
     this.#recordId = recordId;
     
     // Store the target and author DIDs that were used to create the message to use for subsequent reads, etc.
@@ -143,7 +143,7 @@ export class Record {
     // If `data` is being updated then `dataCid` and `dataSize` must be undefined and the `data` property is passed as
     // a top-level property to `web5.dwn.records.write()`.
     let data;
-    if (options?.data !== undefined) {
+    if (options.data !== undefined) {
       delete updateMessage.dataCid;
       delete updateMessage.dataSize;
       data = options.data;
@@ -157,13 +157,13 @@ export class Record {
     // If a new `dateModified` was not provided, remove it from the updateMessage to let the DWN SDK auto-fill.
     // This is necessary because otherwise DWN SDK throws an Error 409 Conflict due to attempting to overwrite a record
     // when the `dateModified` timestamps are identical.
-    if (options?.dateModified === undefined) {
+    if (options.dateModified === undefined) {
       delete updateMessage.dateModified;
     }
 
     // If `published` is set to false, ensure that `datePublished` is undefined. Otherwise, DWN SDK's schema validation
     // will throw an error if `published` is false but `datePublished` is set.
-    if (options?.published === false && updateMessage?.datePublished !== undefined) {
+    if (options.published === false && updateMessage.datePublished !== undefined) {
       delete updateMessage.datePublished;
     }
 
@@ -229,10 +229,10 @@ export class Record {
   }
 
   static #verifyPermittedMutation(propertiesToMutate, mutableDescriptorProperties) {
-    propertiesToMutate.forEach(propertyName => {
-      if (!mutableDescriptorProperties.includes(propertyName)) {
-        throw new Error(`${propertyName} is an immutable property. Its value cannot be changed.`);
+    for (const property of propertiesToMutate) {
+      if (!mutableDescriptorProperties.includes(property)) {
+        throw new Error(`${property} is an immutable property. Its value cannot be changed.`);
       }
-    });
+    }
   }
 }

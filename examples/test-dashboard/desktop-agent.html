@@ -716,7 +716,7 @@
   create_from_record_button.addEventListener('execute', async event => {
     const { record: sourceRecord } = await web5.dwn.records.create(myDid, {
       author: myDid,
-      data: 'Hello, world!',
+      data: 'Source record to create from',
       message: {
         published: true,
         schema: 'foo/text',

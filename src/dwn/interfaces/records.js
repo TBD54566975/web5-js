@@ -2,7 +2,7 @@ import { DwnConstant } from '@tbd54566975/dwn-sdk-js';
 
 import { Interface } from './interface.js';
 import { Record } from '../models/record.js';
-import { dataToBytes } from '../../utils.js';
+import { dataToBytes, isEmptyObject } from '../../utils.js';
 
 export class Records extends Interface {
   constructor(dwn) {
@@ -14,31 +14,34 @@ export class Records extends Interface {
   }
 
   async createFrom(target, request) {
-    const { author: inheritedAuthor, target: _, ...inheritedProperties } = request.record.toJSON();
+    const { author: inheritedAuthor, ...inheritedProperties } = request.record.toJSON();
+
+    // Remove target from inherited properties since target is being explicitly defined in method parameters.
+    delete inheritedProperties.target;
+
 
     // If `data` is being updated then `dataCid` and `dataSize` must not be present.
-    if (request?.data !== undefined) {
+    if (request.data !== undefined) {
       delete inheritedProperties.dataCid;
       delete inheritedProperties.dataSize;
     }
 
     // If `published` is set to false, ensure that `datePublished` is undefined. Otherwise, DWN SDK's schema validation
     // will throw an error if `published` is false but `datePublished` is set.
-    if (request?.message?.published === false && inheritedProperties?.datePublished !== undefined) {
+    if (request.message?.published === false && inheritedProperties.datePublished !== undefined) {
       delete inheritedProperties.datePublished;
       delete inheritedProperties.published;
     }
 
     // If the request changes the `author` or message `descriptor` then the deterministic `recordId` will change.
     // As a result, we will discard the `recordId` if either of these changes occur.
-    if ((request?.message && Object.keys(request.message).length > 0)
-      || (request?.author && request.author !== inheritedAuthor)) {
+    if (!isEmptyObject(request.message) || (request.author && request.author !== inheritedAuthor)) {
       delete inheritedProperties.recordId;
     }
 
     return this.write(target, {
-      author: request?.author || inheritedAuthor,
-      data: request?.data,
+      author: request.author || inheritedAuthor,
+      data: request.data,
       message: {
         ...inheritedProperties,
         ...request.message,
@@ -64,11 +67,8 @@ export class Records extends Interface {
 
   async query(target, request) {
     const response = await this.send('Query', target, request);
+    const entries = response.entries.map(entry => new Record(this.dwn, { ...entry, target, author: request.author }));
 
-    const entries = [];
-    response.entries.forEach(entry => {
-      entries.push(new Record(this.dwn, { ...entry, target, author: request.author }));
-    });
     return { ...response, entries };
   }
 
@@ -98,6 +98,7 @@ export class Records extends Interface {
       
       record = new Record(this.dwn, { ...response.message, encodedData, target, author: request.author });
     }
+
     return { ...response, record };
   }
 }
