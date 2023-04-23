@@ -4,11 +4,20 @@ import { AppTransport } from './transport/app-transport.js';
 import { HttpTransport } from './transport/http-transport.js';
 import { isUnsignedMessage, parseUrl } from './utils.js';
 
+/**
+ * Provides a high-level interface for working with decentralized
+ * web nodes (DWNs), decentralized identifiers (DIDs), and
+ * network services.
+ */
 export class Web5 extends EventTarget {
   #dwn;
   #did;
   #transports;
 
+  /**
+   * Constructs a new Web5 instance with the provided options.
+   * @param {Object} [options] - Optional configuration options.
+   */
   constructor(options = { }) {
     super();
 
@@ -34,12 +43,14 @@ export class Web5 extends EventTarget {
   }
 
   /**
+   * Sends a request message to the specified target DID.
+   * 
    * @param {string} target The DID to send the message to.
    * @param {object} request - Object containing the request parameters.
    * @param {string} request.author - The DID of the author of the message.
    * @param {*} request.data - The message data (if any).
    * @param {object} request.message - The DWeb message.
-   * @returns Promise
+   * @returns {Promise<Web5SendResponse>} - A promise that resolves to the response object.
    */
   async send(target, request) {
     let { author, data, message } = request;
