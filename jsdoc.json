@@ -1,0 +1,24 @@
+{
+  "opts": {
+    "encoding": "utf8",
+    "destination": "./docs/",
+    "recurse": true,
+    "template": "node_modules/clean-jsdoc-theme"
+  },
+  "plugins": [],
+  "recurseDepth": 10,
+  "source": {
+      "include": ["src"],
+      "includePattern": ".+\\.js(doc|x)?$",
+      "excludePattern": "(^|\\/|\\\\)_"
+  },
+  "sourceType": "module",
+  "tags": {
+      "allowUnknownTags": true,
+      "dictionaries": ["jsdoc","closure"]
+  },
+  "templates": {
+      "cleverLinks": false,
+      "monospaceLinks": false
+  }
+}

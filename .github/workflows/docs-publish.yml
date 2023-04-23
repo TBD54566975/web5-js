@@ -1,0 +1,89 @@
+# Workflow that deploys project documentation to GitHub Pages
+name: Build and Deploy Docs
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches:
+      - main
+      - docs/autogenerate
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+
+  build:
+    permissions:
+      contents: write   # to write documentation files to the repo
+    
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run:  |
+          npm ci
+          npm i jsdoc
+          npm i clean-jsdoc-theme
+      
+      - name: Generate documentation
+        run: npx jsdoc -c jsdoc.json
+
+      - name: Upload documentation artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: jsdoc
+          path: ./docs
+
+  deploy:
+    # Add a dependency to the build job
+    needs: build
+    
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      contents: read    # to read from project repo
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+    
+    # Deploy to the github-pages environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+
+      - name: Download JSDoc artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: jsdoc
+          path: ./docs
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: './docs'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
