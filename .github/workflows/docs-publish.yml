@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - main
-      - docs/autogenerate
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -35,13 +34,17 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run:  |
+        run: |
           npm ci
           npm i jsdoc
           npm i clean-jsdoc-theme
       
       - name: Generate documentation
-        run: npx jsdoc -c jsdoc.json
+        run: |
+          echo "# Web5 JS SDK" > README-docs.md
+          echo "Select from the menu on the left to view API reference documentation." >> README-docs.md
+          npx jsdoc -c jsdoc.json
+          curl -o docs/favicon.ico https://developer.tbd.website/img/favicon.ico
 
       - name: Upload documentation artifacts
         uses: actions/upload-artifact@v3
