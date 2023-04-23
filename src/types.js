@@ -79,8 +79,9 @@
  */
 
 /**
- * @typedef {BaseMessage & Object} ProtocolsConfigureMessage
+ * @typedef {Object} ProtocolsConfigureMessage
  * @property {ProtocolsConfigureDescriptor} descriptor
+ * @augments BaseMessage
  */
 
 /**
@@ -93,8 +94,9 @@
  */
 
 /**
- * @typedef {BaseMessage & Object} ProtocolsQueryMessage
+ * @typedef {Object} ProtocolsQueryMessage
  * @property {ProtocolsQueryDescriptor} descriptor
+ * @augments BaseMessage
  */
 
 /**
@@ -115,11 +117,12 @@
  */
 
 /**
- * @typedef {BaseMessage & Object} RecordsWriteMessage
+ * @typedef {Object} RecordsWriteMessage
  * @property {string} recordId
  * @property {string} [contextId]
  * @property {RecordsWriteDescriptor} descriptor
  * @property {GeneralJws} [attestation]
+ * @augments BaseMessage
  */
 
 /**
@@ -185,8 +188,9 @@
  */
 
 /**
- * @typedef {BaseMessage & Object} RecordsQueryMessage
+ * @typedef {Object} RecordsQueryMessage
  * @property {RecordsQueryDescriptor} descriptor
+ * @augments BaseMessage
  */
 
 /**
@@ -204,8 +208,9 @@
  */
 
 /**
- * @typedef {BaseMessage & Object} RecordsDeleteMessage
+ * @typedef {Object} RecordsDeleteMessage
  * @property {RecordsDeleteDescriptor} descriptor
+ * @augments BaseMessage
  */
 
 /**

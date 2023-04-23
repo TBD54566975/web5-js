@@ -20,5 +20,19 @@
   "templates": {
       "cleverLinks": false,
       "monospaceLinks": false
+  },
+  "theme_opts": {
+    "base_url": "https://tbd54566975.github.io/web5-js/",
+    "default_theme": "dark",
+    "homepageTitle": "API Reference",
+    "menu": [
+      {
+        "title": "GitHub",
+        "link": "https://github.com/TBD54566975/web5-js",
+        "target": "_blank"
+      }
+    ],
+    "search": true,
+    "title": "Web5 JS SDK"
   }
 }

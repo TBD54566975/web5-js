@@ -16,6 +16,8 @@ possible.
 
 ## Docs
 
+[API Reference](https://tbd54566975.github.io/web5-js/)
+
 ### **`new Web5([options])`**
 
 Creates an isolated API object for doing Web5 things, split into three main top-level objects: `did`, `dwn`, and `vc`.
