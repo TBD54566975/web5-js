@@ -3,7 +3,7 @@
 There are many ways to be an open source contributor, and we're here to help you on your way! You may:
 
 * Propose ideas in our Web5 [discord](https://discord.com/channels/937858703112155166/969272658501976117) channel
-* Raise an issue or feature request in our [issue tracker](LINK_HERE)  ___***FIX LINK AND REMOVE THIS NOTICE***___
+* Raise an issue or feature request in our [issue tracker](https://github.com/TBD54566975/web5-js/issues)
 * Help another contributor with one of their questions, or a code review
 * Suggest improvements to our Getting Started documentation by supplying a Pull Request
 * Evangelize our work together in conferences, podcasts, and social media spaces.
@@ -205,9 +205,9 @@ to your valuable work:
   having trouble - feel free to ask a member or the community for help or leave the commits as-is, and flag that you'd like 
   rebasing assistance in your PR! We're here to support you.
 * Open a PR in the project to bring in the code from your feature branch.
-* The maintainers noted in the `CODEOWNERS` file will review your PR and optionally 
+* The maintainers noted in the [`CODEOWNERS`](https://github.com/TBD54566975/web5-js/blob/main/CODEOWNERS) file will review your PR and optionally 
   open a discussion about its contents before moving forward.
 * Remain responsive to follow-up questions, be open to making requested changes, and...
   You're a contributor!
 * And remember to respect everyone in our global development community. Guidelines 
-  are established in our `CODE_OF_CONDUCT.md`.
+  are established in our [`CODE_OF_CONDUCT.md`](https://github.com/TBD54566975/web5-js/blob/main/CODE_OF_CONDUCT.md).
