@@ -26,9 +26,11 @@ in the global folder `{prefix}/lib/node_modules/web5-js`:
     npm link
     ```
 
-2. Next, in the `simple-agent` directory, run the command below to create a symbolic link from the globally-installed `web5-js` package to the `node_modules/` of the current directory:
+2. Next, in the `simple-agent` directory, run the commands below to install package dependencies, and create a symbolic
+    link from the globally-installed `web5-js` package to the `node_modules/` of the current directory:
     ```shell
     cd examples/simple-agent/
+    npm install
     npm link @tbd54566975/web5
     ```
 
@@ -41,7 +43,6 @@ To test with remote DWNs, start at least one agent:
 
 ```shell
 cd examples/simple-agent/
-npm install
 npm run serve -p 8085
 ```
 
@@ -57,6 +58,7 @@ that serves the HTML and JS files from disk.
 ```shell
 cd examples/test-dashboard/
 npm install
+npm link @tbd54566975/web5
 npm run serve
 ```
 

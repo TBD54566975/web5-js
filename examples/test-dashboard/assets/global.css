@@ -1,0 +1,51 @@
+:root {
+  --font-family: 'IBM Plex Mono';
+}
+
+html,
+body {
+  font-family: var(--font-family);
+  color: var(--app-color-foreground);
+  background-color: var(--app-color-background);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  max-width: 900px;
+  min-height: 100vh;
+}
+
+@media only screen {
+  main {
+    margin: 0px auto;
+    max-width: 600px;
+    padding: 0px 1rem;
+  }
+}
+
+@media only screen and (min-width: 769px) {
+  main {
+    margin: 0px auto;
+    max-width: 768px;
+    padding: 0px 4rem;
+  }
+}
+
+@media only screen and (min-width: 1025px) {
+  main {
+    margin: 0px auto;
+    max-width: 1024px;
+    padding: 0px 6rem;
+  }
+}
+
+@media only screen and (min-width: 1281px) {
+  main {
+    margin: 0px auto;
+    max-width: 1280px;
+    padding: 0px 6rem;
+  }
+}

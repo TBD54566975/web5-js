@@ -6,20 +6,22 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Local and Remote DWN Example</title>
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="" />
+  <link rel="stylesheet" href="./assets/reset.css" />
+  <link rel="stylesheet" href="./assets/light.css" media="(prefers-color-scheme: light)" />
+  <link rel="stylesheet" href="./assets/dark.css" media="(prefers-color-scheme: dark)" />
+  <link rel="stylesheet" href="./assets/global.css" />
+  <script type="module" src="https://unpkg.com/dark-mode-toggle"></script>
+  <link rel="stylesheet" href="./assets/theme-switch.css">
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;700&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/prism-theme-night-owl@1.4.0/build/style.css" rel="stylesheet" />
+  <link rel="stylesheet" href="./assets/snippets.css">
   <style>
-    body {
-      font-family: 'IBM Plex Mono';
-      padding: 0;
-      margin: 0;
-    }
-
-    input, button {
-      font-family: 'IBM Plex Mono'; 
-    }
-
+    /* 
     h2 {
       font-size: large;
       padding-left: 2em;
@@ -84,35 +86,68 @@
     }
 
     .recordRow:nth-child(even) {
-      background-color: #ffffff;
-    }
+      background-color: #ffffff; 
+    }*/
   </style>
 </head>
 
 <body>
-  <h2>Write Records</h2>
+  <main>
+    <h2>Write Records</h2>
 
-  <div class="box">
-    <div class="row">
-      <textarea id="write_text_data">...data to save</textarea>
-      <button type="button" id="write_text_button">Write Text Data</button>
+    <div class="box">
+      <div class="row">
+        <textarea id="write_text_data">...data to save</textarea>
+        <button type="button" id="write_text_button">Write Text Data</button>
+      </div>
+      <div id="write_text_result" class="status green"></div>
     </div>
-    <div id="write_text_result" class="status green"></div>
-  </div>
 
-  <h2>Read Records</h2>
+    <h2>Read Records</h2>
 
-  <div class="box">
-    <div class="row">
-      <div id="query_text_data"><span style="color: gray;">Write at least one record before running a query.</span></div>
-      <button type="button" disabled id="query_text_button">Query & Display</button>
+    <div class="box">
+      <div class="row">
+        <div id="query_text_data"><span style="color: gray;">Write at least one record before running a query.</span></div>
+        <button type="button" disabled id="query_text_button">Query & Display</button>
+      </div>
     </div>
-  </div>
 
+
+    <p>thing</p>
+    <div class="code-wrapper">
+      <pre class="language-html" tabindex="0"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>link</span> <span class="token attr-name">rel</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>stylesheet<span class="token punctuation">"</span></span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism-tomorrow.min.css<span class="token punctuation">"</span></span> <span class="token attr-name">integrity</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>sha512-vswe+cgvic/XBoF1OcM/TeJ2FW0OofqAVdCZiEYkd6dwGXthvkSFWOoGGJgS2CW70VK5dQM5Oh+7ne47s74VTg==<span class="token punctuation">"</span></span> <span class="token attr-name">crossorigin</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>anonymous<span class="token punctuation">"</span></span> <span class="token attr-name">referrerpolicy</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>no-referrer<span class="token punctuation">"</span></span> <span class="token punctuation">/&gt;</span></span>
+      </code></pre><button class="copy-button" data-lang="html">html <svg viewBox="0 0 24 24">
+          <path fill="none" d="M0 0h24v24H0z"></path>
+          <path
+            d="M7 6V3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-3v3c0 .552-.45 1-1.007 1H4.007A1.001 1.001 0 0 1 3 21l.003-14c0-.552.45-1 1.007-1H7zM5.003 8L5 20h10V8H5.003zM9 6h8v10h2V4H9v2z"
+            fill="currentColor"></path>
+        </svg></button>
+    </div>
+    <p>stuff</p>
+    <div class="code-wrapper">
+      <pre class="language-css" tabindex="0"><code class="language-css"><span class="token comment">/* Import CSS reset and base styles */</span>
+  <span class="token atrule"><span class="token rule">@import</span> <span class="token string">"global.css"</span><span class="token punctuation">;</span></span>
+  <span class="token atrule"><span class="token rule">@import</span> <span class="token string">"prism.css"</span><span class="token punctuation">;</span></span></code></pre><button class="copy-button" data-lang="css">css <svg viewBox="0 0 24 24">
+          <path fill="none" d="M0 0h24v24H0z"></path>
+          <path
+            d="M7 6V3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-3v3c0 .552-.45 1-1.007 1H4.007A1.001 1.001 0 0 1 3 21l.003-14c0-.552.45-1 1.007-1H7zM5.003 8L5 20h10V8H5.003zM9 6h8v10h2V4H9v2z"
+            fill="currentColor"></path>
+        </svg></button>
+    </div>
+    <p>other stuff</p>
+  </main>
+  <aside>
+    <dark-mode-toggle
+    id="dark-mode-toggle"
+    class="slider"
+    legend="Theme"
+    permanent="true"
+    appearance="toggle"
+  ></dark-mode-toggle>
+  </aside>
 
   <script type="module">
     import { Web5 } from './browser.mjs';
-    import { DataStream } from 'https://cdn.jsdelivr.net/npm/@tbd54566975/dwn-sdk-js@0.0.26';
     
     const web5 = new Web5();
     let response;
@@ -125,7 +160,11 @@
     web5.did.manager.set(myDid.id, {
       connected: true,
       endpoint: 'app://dwn',
-      keys: myDid.keys['#dwn'].keyPair
+      keys: {
+        ['#dwn']: {
+          keyPair: did.keys.find(key => key.id === 'dwn').keyPair,
+        },
+      },
     });
 
     // Write a plain text record to the in-memory DWN.
@@ -161,7 +200,6 @@
       }
     });
     console.log(await response.data);
-    console.log('GOT SOME DATA', await DataStream.toBytes(response.data));
     }
 
     // // Write a JSON record to the in-memory DWN.
@@ -257,7 +295,7 @@
      * in this repo, so if you generate a new DID, be sure to
      * update in both places.
      */ 
-    const bobDid = 'did:ion:EiAa0ZGOuDaAz0IP9dtzfgcr9dqoVLMVjjce3qJVCeAE4g:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJrZXktMSIsInB1YmxpY0tleUp3ayI6eyJjcnYiOiJzZWNwMjU2azEiLCJrdHkiOiJFQyIsIngiOiJPMzhYcDIzR3lNSHBMWTl0SXFFR1dla2MtYU8tYk5pUzQ3VFYtend5ZGMwIiwieSI6Il9OeG0tQ05zWHB3a2NiQ05pT0ZxWnFtUUpDQ2VQbnI3a3JrbklPc1hNd2MifSwicHVycG9zZXMiOlsiYXV0aGVudGljYXRpb24iXSwidHlwZSI6Ikpzb25XZWJLZXkyMDIwIn1dLCJzZXJ2aWNlcyI6W3siaWQiOiJkd24iLCJzZXJ2aWNlRW5kcG9pbnQiOnsibm9kZXMiOlsiaHR0cDovL2xvY2FsaG9zdDo4MDg1L2R3biIsImh0dHA6Ly9sb2NhbGhvc3Q6ODA4Ni9kd24iLCJodHRwOi8vbG9jYWxob3N0OjgwODcvZHduIl19LCJ0eXBlIjoiRGVjZW50cmFsaXplZFdlYk5vZGUifV19fV0sInVwZGF0ZUNvbW1pdG1lbnQiOiJFaURtQ3Utcmo2V2J6QURLcjhoc2FfSnZzd2QwaGdOYzNPVmo0NFkzZzJvUzVnIn0sInN1ZmZpeERhdGEiOnsiZGVsdGFIYXNoIjoiRWlBU3NvZlJ3VGtmOGZNa0RwRTJlZUJiTHZyVkNQT1VXUmdaY3lKQ3laamJSQSIsInJlY292ZXJ5Q29tbWl0bWVudCI6IkVpQ05NVHNrZDRScWZvcmY0QTRwdTZCbmtpUTBPVDA4WWpVM2hSY0VWRjBFOVEifX0';
+    const bobDid = 'did:ion:EiA40yRRT5vqIp_DsI0ye6ml5iv8Ee6AE24Dz9aqc1wp7g:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJkd24iLCJwdWJsaWNLZXlKd2siOnsiY3J2Ijoic2VjcDI1NmsxIiwia3R5IjoiRUMiLCJ4IjoiOWJmZjFxbGNhNFF1YVdodWg3NzB3NW9Db1FYcmdaZTFQRkU3c09qb1BPVSIsInkiOiIwem1xdzR2aTktRENnX1o5REdicl9kYk9LaEdTYUVCMGxiekxPQWJBNGdrIn0sInB1cnBvc2VzIjpbImF1dGhlbnRpY2F0aW9uIl0sInR5cGUiOiJKc29uV2ViS2V5MjAyMCJ9XSwic2VydmljZXMiOlt7ImlkIjoiZHduIiwic2VydmljZUVuZHBvaW50Ijp7Im5vZGVzIjpbImh0dHA6Ly9sb2NhbGhvc3Q6ODA4NS9kd24iLCJodHRwOi8vbG9jYWxob3N0OjgwODYvZHduIiwiaHR0cDovL2xvY2FsaG9zdDo4MDg3L2R3biJdfSwidHlwZSI6IkRlY2VudHJhbGl6ZWRXZWJOb2RlIn1dfX1dLCJ1cGRhdGVDb21taXRtZW50IjoiRWlBUHN0V2pLYmp5UlNDdzM3SGxPZm4xZDBfVVlqT25UWGJ0dXl2cy1udGNXdyJ9LCJzdWZmaXhEYXRhIjp7ImRlbHRhSGFzaCI6IkVpQVpPY1E1c1NETU9yYThRRExlY3NiZk1Nd2M0NkEtdXlpdVN4a0JOaVVDT1EiLCJyZWNvdmVyeUNvbW1pdG1lbnQiOiJFaUFKc0loX1R6XzVVMDEwb1VFQTdOY3otVml6Vlk5SWxMMnFRRFVEaTJoa1ZBIn19';
     
     const carolDid = await web5.did.create('ion', {
       services: [
@@ -280,7 +318,11 @@
     web5.did.manager.set(carolDid.id, {
       connected: true,
       endpoint: 'http://localhost:8085/dwn',
-      keys: carolDid.keys['#dwn'].keyPair
+      keys: {
+        ['#dwn']: {
+          keyPair: did.keys.find(key => key.id === 'dwn').keyPair,
+        },
+      },
     });
 
     // // Write a JSON record to the remote DWN.
@@ -317,7 +359,6 @@
       //     recordId: 'bafyreicsmdtrvgirbesrti2ljdgqcqdyr2bekgd5a7lnuxdlhdfvft6woy'
       //   }
       // });
-    // console.log('GOT SOME DATA', await DataStream.toBytes(response.data));
     // }
 
     // Convenience functions to decode data returned by queries
@@ -329,6 +370,10 @@
       return web5.dwn.sdk.Encoder.base64UrlToObject(encodedData);
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/toolbar/prism-toolbar.js"></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.js"></script> -->
 </body>
 
 </html>
