@@ -32,6 +32,36 @@ This object contains options related to `web5.dwn`.
 
 - **`node`**  - *`Dwn`*: A customizable `Dwn` instance to use instead of a default one created by `web5.dwn`. This can be used to customize the storage location/structure/etc. of the `Dwn`, how DIDs are resolved, etc..
 
+### **`web5.did.create(method, options)`**
+
+The `create` method under the `did` scope enables generation of DIDs for a supported set of DID Methods. The output is method-specific, and handles things like key generation and assembly of DID Documents that can be published to decentralized DID networks.
+
+#### **Example**
+
+```javascript
+const myDid = await web5.did.create('ion');
+```
+
+### **`web5.did.manager.set(did, parameters)`**
+
+The package provides a DID manager mechanism that handles interactions with a DID that is being 'managed' by the local code (be it in a web page, agent app, or elsewhere). By adding a DID to the manager, the library ensures that all interactions with that DID, including things like signing and encryption, are handled automatically.
+
+#### **Example**
+
+Assuming the `myDid` instance is present from the example above, you would pass the following values to add it to the DID manager:
+
+```javascript
+await web5.did.manager.set(myDid.id, {
+    connected: true,
+    endpoint: 'app://dwn', //this points to the user's local DWN
+    keys: {
+        '#dwn': {
+          keyPair: myDid.keys.find(key => key.id === 'dwn').keyPair,
+        }
+    }
+});
+```
+
 ### **`web5.dwn.records.query(target, request)`**
 
 Method for querying the DWeb Node of a provided `target` DID.
@@ -56,7 +86,47 @@ const response = await web5.dwn.records.query('did:example:bob', {
     }
   }
 });
+
+console.log(response.entries) // logs array of Record class instances
 ```
+
+### **`web5.dwn.records.create(target, request)`**
+
+Method for writing a record to the DWeb Node of a provided `target` DID.
+
+#### **`request`**
+
+The write `request` must contain the following:
+
+- **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `target` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
+- **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
+- **`data`**  - *`blob | stream | file`*: The data object of the bytes to be sent.
+
+#### **Example** 
+
+```javascript
+const web5 = new Web5();
+const { record } = await web5.dwn.records.create('did:example:alice', {
+  author: 'did:example:alice',
+  data: 'Hello World!',
+  message: {
+    dataFormat: 'text/plain'
+  }
+});
+
+console.log(record.data.text()) // logs "Hello World!" in console
+```
+
+### **`Record` response instances**
+
+Every modifying method (`create`, `write`, etc.) and query entries return an instance of `Record` class, which is a representation of the Record(s) involved. `Record` class instances have the following properties:
+
+- **`recordId`**  - *`string`*: The unique identifier based on the record entry's composition. Note: all entries across all records are deterministically unique.
+- **`descriptor`**  - *`object`*: The descriptor object for the constructed DWeb Node message.
+- **`data`**  - *`object`*: a object with the following convenience methods that read out the data of the record entry in the following formats:
+  - **`text`**  - *`function`*: produces a textual representation of the data.
+  - **`json`**  - *`function`*: if the value is JSON data, this method will return a parsed JSON object.
+  - **`stream`**  - *`function`*: returns the raw stream of bytes for the data.
 
 ### **`web5.dwn.records.write(target, request)`**
 
@@ -72,17 +142,20 @@ The write `request` must contain the following:
 
 #### **Example** 
 
-```javascript
-const imageFile = document.querySelector('#file_input').files[0];
+For this example we assume we have created the record and are using the output `Record` instance from above to overwrite the data of the record with a subsequent `write`:
 
+```javascript
 const web5 = new Web5();
-const response = await web5.dwn.records.write('did:example:alice', {
+const { record } = await web5.dwn.records.write('did:example:alice', {
   author: 'did:example:alice',
-  data: imageFile,
+  data: 'Hello again!',
   message: {
-    dataFormat: 'image/png'
+    recordId: record.recordId,
+    dataFormat: 'text/plain'
   }
 });
+
+console.log(record.data.text()) // prints "Hello again!" in console
 ```
 
 ### **`web5.dwn.records.read(target, request)`**
@@ -166,7 +239,7 @@ Method for deleting a record in the DWeb Node of a provided `target` DID.
 
 #### **`request`**
 
-The confiuration `request` must contain the following:
+The configuration `request` must contain the following:
 
 - **`author`**  - *`string`*: The decentralized identifier of the DID signing the query. This may be the same as the `target` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
 - **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
@@ -194,16 +267,12 @@ const response = await web5.dwn.protocols.configure('did:example:alice', {
           "dataFormat": [ "application/json" ]
         },
         "audio": {
-          "schema": "https://decentralized-music.org/protocol/track",
+          "schema": "https://decentralized-music.org/protocol/audio",
           "dataFormat": [ "audio/aac", "audio/mp4" ]
         }
       },
       "records": {
-        "playlist": {
-          "records": {
-            "track": {}
-          }
-        },
+        "playlist": {},
         "track": {
           "records": {
             "audio": {}
