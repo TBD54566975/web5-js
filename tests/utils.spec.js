@@ -2,8 +2,8 @@ import { expect } from 'chai';
 
 import * as utils from '../src/utils.js';
 
-describe('Utils Tests', () => {
-  describe('dataToBytes', () => {
+describe('Web5 Utils', () => {
+  describe('dataToBytes()', () => {
     it('sets dataFormat to text/plain if string is provided', () => {
       const { dataFormat } = utils.dataToBytes('hello');
 
@@ -29,7 +29,7 @@ describe('Utils Tests', () => {
     });
   });
 
-  describe('isUnsignedMessage', () => {
+  describe('isUnsignedMessage()', () => {
     const signedMessage = {
       message: { authorization: 'value' },
     };
@@ -50,7 +50,7 @@ describe('Utils Tests', () => {
     });
   });
 
-  describe('pascalToKebabCase', () => {
+  describe('pascalToKebabCase()', () => {
     it('should return kebab case from regular pascal case', () => {
       const result = utils.pascalToKebabCase('MyClassName');
       expect(result).to.equal('my-class-name');

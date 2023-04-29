@@ -1,11 +1,11 @@
 import { expect } from 'chai';
+import { Encoder } from '@tbd54566975/dwn-sdk-js';
 import sinon from 'sinon';
 
-import { Encoder } from '@tbd54566975/dwn-sdk-js';
 import { base64UrlToString } from '../../src/utils.js';
 import { Web5 } from '../../src/web5.js';
 import { Web5Did } from '../../src/did/web5-did.js';
-import * as didDocuments from '../data/did-documents.js';
+import * as didDocuments from '../fixtures/did-documents.js';
 
 describe('Web5Did', async () => {
   let web5did;
@@ -22,7 +22,7 @@ describe('Web5Did', async () => {
     this.clock.restore();
   });
 
-  describe('decrypt', () => {
+  describe('decrypt()', () => {
     let web5;
 
     beforeEach(function () {
@@ -51,7 +51,7 @@ describe('Web5Did', async () => {
     });
   });
 
-  describe('encrypt', () => {
+  describe('encrypt()', () => {
     let web5;
 
     beforeEach(function () {
@@ -118,7 +118,7 @@ describe('Web5Did', async () => {
     });
   });
 
-  describe('getKeys', async () => {
+  describe('getKeys()', async () => {
     it('should return one key when one verification method is defined in DID document', async () => {
       sinon.stub(web5did, 'resolve').resolves(didDocuments.ion.oneVerificationMethodJwk);
 
@@ -143,43 +143,6 @@ describe('Web5Did', async () => {
       const didKeys = await web5did.getKeys('response-stubbed');
 
       expect(didKeys).to.be.null;
-    });
-  });
-
-
-  describe('manager', async () => {
-    it('should never expire managed DIDs', async function () {
-      let resolved;
-      const did = 'did:ion:abcd1234';
-      const didData = {
-        connected: true,
-        endpoint: 'http://localhost:55500',
-      };
-  
-      await web5did.manager.set(did, didData);
-  
-      resolved = await web5did.resolve(did);
-      expect(resolved).to.not.be.undefined;
-      expect(resolved).to.equal(didData);
-  
-      this.clock.tick(2147483647); // Time travel 23.85 days
-  
-      resolved = await web5did.resolve(did);
-      expect(resolved).to.not.be.undefined;
-      expect(resolved).to.equal(didData);
-    });
-
-    it('should return object with keys undefined if key data not provided', async () => {
-      const did = 'did:ion:abcd1234';
-      const didData = {
-        connected: true,
-        endpoint: 'http://localhost:55500',
-      };
-  
-      await web5did.manager.set(did, didData);
-  
-      const resolved = await web5did.resolve(did);
-      expect(resolved.keys).to.be.undefined;
     });
   });
 });

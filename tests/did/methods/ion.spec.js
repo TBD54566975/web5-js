@@ -2,9 +2,9 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 
 import { Web5Did } from '../../../src/did/web5-did.js';
-import * as didDocuments from '../../data/did-documents.js';
+import * as didDocuments from '../../fixtures/did-documents.js';
 
-describe('Web5Did', async () => {
+describe('did:ion method', async () => {
   let web5did;
 
   beforeEach(function () {
@@ -19,7 +19,7 @@ describe('Web5Did', async () => {
     this.clock.restore();
   });
 
-  describe('create', async () => {
+  describe('create()', async () => {
     it('should return one key when creating a did:ion DID', async () => {
       const did = await web5did.create('ion');
       expect(did.keys).to.have.lengthOf(1);
@@ -43,7 +43,7 @@ describe('Web5Did', async () => {
     });
   });
 
-  describe('getDidDocument', async () => {
+  describe('getDidDocument()', async () => {
     it('should return a didDocument for a valid did:ion DID', async () => {
       sinon.stub(web5did, 'resolve').resolves(didDocuments.ion.oneVerificationMethodJwk);
   
@@ -62,7 +62,7 @@ describe('Web5Did', async () => {
     });
   });
 
-  describe('getServices', async () => {
+  describe('getServices()', async () => {
     it('should return array of services when defined in DID document', async () => {
       sinon.stub(web5did, 'resolve').resolves(didDocuments.ion.oneService);
 
@@ -81,7 +81,7 @@ describe('Web5Did', async () => {
     });
   });
 
-  describe('resolve', async () => {
+  describe('resolve()', async () => {
     it('should not call ion-tools resolve() when managed DID is cached', async () => {
       // If managed DID isn't cached, the fetch() call to resolve over the network
       // will take far more than 10ms timeout, causing the test to fail.

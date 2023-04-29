@@ -98,7 +98,7 @@ export class Record {
       },
       async text() {
         if (self.#encodedData) return Encoder.bytesToString(self.#encodedData);
-        if (self.#readableStream) return self.#readableStream.then(DataStream.toBytes).then(Encoder.bytesToString);
+        if (self.#readableStream) return this.stream().then(DataStream.toBytes).then(Encoder.bytesToString);
         return null;
       },
       async stream() {
