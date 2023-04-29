@@ -55,7 +55,7 @@ await web5.did.manager.set(myDid.id, {
     connected: true,
     endpoint: 'app://dwn', //this points to the user's local DWN
     keys: {
-        ['#dwn']: {
+        '#dwn': {
           keyPair: myDid.keys.find(key => key.id === 'dwn').keyPair,
         }
     }
