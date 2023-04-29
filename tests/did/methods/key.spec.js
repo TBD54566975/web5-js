@@ -2,16 +2,16 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 
 import { Web5Did } from '../../../src/did/web5-did.js';
-import * as didDocuments from '../../data/did-documents.js';
+import * as didDocuments from '../../fixtures/did-documents.js';
 
-describe('Web5Did', async () => {
+describe('did:key method', async () => {
   let web5did;
 
   beforeEach(function () {
     web5did = new Web5Did();
   });
 
-  describe('create', async () => {
+  describe('create()', async () => {
     it('should return two keys when creating a did:key DID', async () => {
       const did = await web5did.create('key');
       expect(did.keys).to.have.lengthOf(2);
@@ -44,7 +44,7 @@ describe('Web5Did', async () => {
     });
   });
 
-  describe('getDidDocument', async () => {
+  describe('getDidDocument()', async () => {
     it('should return a didDocument for a valid did:key DID', async () => {
       sinon.stub(web5did, 'resolve').resolves(didDocuments.key.oneVerificationMethodJwk);
   
@@ -63,7 +63,7 @@ describe('Web5Did', async () => {
     });
   });
 
-  describe('resolve', async () => {
+  describe('resolve()', async () => {
     it('should return a didResolutionResult for a valid DID', async () => {
       const did = 'did:key:z6MkhvthBZDxVvLUswRey729CquxMiaoYXrT5SYbCAATc8V9';
   

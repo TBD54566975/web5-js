@@ -1,8 +1,11 @@
+# Ignore underlying DWN stores and indexes
+**/DATASTORE/
+**/EVENTLOG/
+**/INDEX/
+**/MESSAGESTORE/
+
 # bundle metadata
 bundle-metadata.json
-
-# Created by https://www.toptal.com/developers/gitignore/api/node
-# Edit at https://www.toptal.com/developers/gitignore?templates=node
 
 ### Node ###
 # Logs
@@ -143,5 +146,3 @@ dist
 
 # SvelteKit build / generate output
 .svelte-kit
-
-# End of https://www.toptal.com/developers/gitignore/api/node

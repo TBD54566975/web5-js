@@ -76,7 +76,7 @@ export class Records extends Interface {
     let dataBytes, dataFormat;
     if (request?.data) {
       // If `data` is specified, convert string/object data to bytes before further processing.
-      ({ dataBytes, dataFormat } = dataToBytes(request.data, request.message.dataFormat));
+      ({ dataBytes, dataFormat } = dataToBytes(request.data, request.message?.dataFormat));
     } else {
       // If not, `dataFormat` must be specified in the request message.
       dataFormat = request.message.dataFormat;

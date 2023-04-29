@@ -5,7 +5,10 @@
 const playwright = require('playwright');
 const esbuildBrowserConfig = require('./build/esbuild-browser-config.cjs');
 
-// use playwright firefox exec path as run target for webkit tests
+// use playwright chrome exec path as run target for chromium tests
+process.env.CHROME_BIN = playwright.chromium.executablePath();
+
+// use playwright webkit exec path as run target for safari tests
 process.env.WEBKIT_HEADLESS_BIN = playwright.webkit.executablePath();
 
 // use playwright firefox exec path as run target for firefox tests
@@ -19,7 +22,7 @@ module.exports = function (config) {
       'karma-webkit-launcher',
       'karma-esbuild',
       'karma-mocha',
-      'karma-mocha-reporter'
+      'karma-mocha-reporter',
     ],
 
     // frameworks to use
@@ -35,7 +38,7 @@ module.exports = function (config) {
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://www.npmjs.com/search?q=keywords:karma-preprocessor
     preprocessors: {
-      'tests/**/*.spec.js': ['esbuild']
+      'tests/**/*.spec.js': ['esbuild'],
     },
 
     esbuild: esbuildBrowserConfig,
@@ -66,6 +69,6 @@ module.exports = function (config) {
 
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits
-    singleRun: true
+    singleRun: true,
   });
 };
