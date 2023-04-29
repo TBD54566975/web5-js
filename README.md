@@ -142,17 +142,20 @@ The write `request` must contain the following:
 
 #### **Example** 
 
+For this example we assume we have created the record and are using the output `Record` instance from above to overwrite the data of the record with a subsequent `write`:
+
 ```javascript
 const web5 = new Web5();
 const { record } = await web5.dwn.records.write('did:example:alice', {
   author: 'did:example:alice',
-  data: 'Hello World!',
+  data: 'Hello again!',
   message: {
+    recordId: record.recordId,
     dataFormat: 'text/plain'
   }
 });
 
-console.log(record.data.text()) // prints "Hello World!" in console
+console.log(record.data.text()) // prints "Hello again!" in console
 ```
 
 ### **`web5.dwn.records.read(target, request)`**
