@@ -32,6 +32,36 @@ This object contains options related to `web5.dwn`.
 
 - **`node`**  - *`Dwn`*: A customizable `Dwn` instance to use instead of a default one created by `web5.dwn`. This can be used to customize the storage location/structure/etc. of the `Dwn`, how DIDs are resolved, etc..
 
+### **`web5.did.create(method, options)`**
+
+The `create` method under the `did` scope enables generation of DIDs for a supported set of DID Methods. The output is method-specific, and handles things like key generation and assembly of DID Documents that can be published to decentralized DID networks.
+
+#### **Example**
+
+```javascript
+const myDid = await web5.did.create('ion');
+```
+
+### **`web5.did.manager.set(did, parameters)`**
+
+The package provides a DID manager mechanism that handles interactions with a DID that is being 'managed' by the local code (be it in a web page, agent app, or elsewhere). By adding a DID to the manager, the library ensures that all interactions with that DID, including things like signing and encryption, are handled automatically.
+
+#### **Example**
+
+Assuming the `myDid` instance is present from the example above, you would pass the following values to add it to the DID manager:
+
+```javascript
+await web5.did.manager.set(myDid.id, {
+    connected: true,
+    endpoint: 'app://dwn', //this points to the user's local DWN
+    keys: {
+        ['#dwn']: {
+          keyPair: myDid.keys.find(key => key.id === 'dwn').keyPair,
+        }
+    }
+});
+```
+
 ### **`web5.dwn.records.query(target, request)`**
 
 Method for querying the DWeb Node of a provided `target` DID.
