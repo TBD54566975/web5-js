@@ -1,6 +1,0 @@
-:root {
-  color-scheme: light; /* stylelint-disable-line property-no-unknown */
-
-  --app-color-background: hsl(0, 0%, 96%);
-  --app-color-foreground: hsl(0, 0%, 0%);
-}
