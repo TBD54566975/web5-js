@@ -1,0 +1,75 @@
+@import url('reset.css');
+@import url('theme-switch.css');
+@import url('https://unpkg.com/prism-theme-night-owl@1.4.0/build/style.css');
+@import url('snippets.css');
+@import url('stdout.css');
+
+:root {
+  --font-family: 'IBM Plex Mono';
+  --color-tbd-blue: #24f2ff;
+  --color-tbd-purple: #9a1aff;
+  --color-tbd-yellow: rgb(255, 236, 25);
+  --color-tbd-red: rgb(255, 80, 53);
+}
+
+html,
+body {
+  font-family: var(--font-family);
+  color: var(--app-color-foreground);
+  background-color: var(--app-color-background);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  max-width: 900px;
+  min-height: 100vh;
+}
+
+@media only screen {
+  main {
+    margin: 0px auto;
+    max-width: 600px;
+    padding: 0px 1rem;
+  }
+}
+
+@media only screen and (min-width: 769px) {
+  main {
+    margin: 0px auto;
+    max-width: 768px;
+    padding: 0px 4rem;
+  }
+}
+
+@media only screen and (min-width: 1025px) {
+  main {
+    margin: 0px auto;
+    max-width: 1024px;
+    padding: 0px 6rem;
+  }
+}
+
+@media only screen and (min-width: 1281px) {
+  main {
+    margin: 0px auto;
+    max-width: 1280px;
+    padding: 0px 6rem;
+  }
+}
+
+/* Customization for Simple Agent Example */
+h2 {
+  margin: 2rem 0 1rem 0;
+}
+
+h3 {
+  margin: 1rem 0 1rem 0;
+}
+
+main p {
+  margin-bottom: 1rem;
+  margin-top: 1rem;
+}

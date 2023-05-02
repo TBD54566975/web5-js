@@ -1,0 +1,53 @@
+.code-wrapper {
+  border: 1px solid var(--color-code-border);
+  border-radius: 8px;
+  margin: 1rem 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.code-wrapper > pre[class*="language-"] {
+  margin-top: 0;
+}
+
+.copy-button {
+  align-items: center;
+  background: transparent;
+  background-color: #131a24;
+  border: none;
+  color: rgb(230, 202, 168);
+  cursor: pointer;
+  display: flex;
+  line-height: 1rem;
+  position: absolute;
+  right: 5px;
+  top: 5px;
+}
+
+.copy-button svg {
+  margin-left: 0.25rem;
+  opacity: 0.5;
+  transition: opacity 0.3s;
+  width: 1rem;
+}
+
+.copy-button:hover svg {
+  opacity: 1;
+}
+
+:not(pre)>code[class*=language-],pre[class*=language-] {
+  color: #fff;
+  background: #131a24;
+}
+
+pre[class*=language-] {
+  margin-bottom: 0;
+  margin-top: 0;
+  overflow: auto;
+  padding: 1.5rem;
+}
+
+code[class*="language-"],
+ pre[class*="language-"] {
+  line-height: 1.6rem;
+}

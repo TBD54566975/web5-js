@@ -289,7 +289,6 @@
 <script type="module">
 
   import { Web5 } from './browser.mjs';
-  import { DataStream, Encoder } from 'https://cdn.jsdelivr.net/npm/@tbd54566975/dwn-sdk-js@0.0.26';
 
   let myDid = '';
 
@@ -472,7 +471,7 @@
     });
     existingBinaryRecord = record
     const recordStream = await record.data;
-    const recordBytes = await DataStream.toBytes(recordStream);
+    const recordBytes = await web5.dwn.sdk.DataStream.toBytes(recordStream);
     appendToOutput(`Uint8Array([${recordBytes.join(', ')}])`);
   });
 
@@ -545,7 +544,7 @@
 
     entries.forEach(async record => {
       const recordStream = await record.data;
-      const recordBytes = await DataStream.toBytes(recordStream);
+      const recordBytes = await web5.dwn.sdk.DataStream.toBytes(recordStream);
       appendToOutput(`Uint8Array([${recordBytes.join(', ')}])`);
       existingBinaryRecord = record;
     })
@@ -565,8 +564,8 @@
           recordId: existingTextRecord.id,
         }
       });
-      const recordBytes = await DataStream.toBytes(await record.data);
-      appendToOutput(Encoder.bytesToString(recordBytes));
+      const recordText = await record.data.text();
+      appendToOutput(recordText);
     }
   })
   
@@ -595,8 +594,7 @@
           recordId: existingJsonLargeRecord.id,
         }
       });
-      const recordBytes = await DataStream.toBytes(await record.data);
-      const dataJson = bytesToObject(recordBytes);
+      const dataJson = await record.data.json();
       appendToOutput(`${Math.ceil(recordBytes.length / 1024)}KB JSON object with ${Object.keys(dataJson.items).length} keys`);
     }
   })
