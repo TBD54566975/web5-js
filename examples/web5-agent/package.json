@@ -1,0 +1,21 @@
+{
+  "name": "example-web5-agent",
+  "version": "0.0.1",
+  "description": "Simple in-browser Web5 Agent to demonstrate using the Web5-js library",
+  "main": "index.js",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "server": "node index.js"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Frank Hinek",
+    "email": "frankhinek@tbd.email"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "koa": "2.14.1",
+    "koa-static": "5.0.0"
+  }
+}

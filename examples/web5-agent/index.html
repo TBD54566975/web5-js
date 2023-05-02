@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web5 Agent Example</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png">
+  <link rel="manifest" href="/assets/images/site.webmanifest">
+  <link rel="mask-icon" href="/assets/images/safari-pinned-tab.svg" color="#000000">
+  <link rel="shortcut icon" href="/assets/images/favicon.ico">
+  <meta name="msapplication-TileColor" content="#603cba">
+  <meta name="msapplication-config" content="/assets/images/browserconfig.xml">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="" />
+  <link rel="stylesheet" href="./assets/styles/global.css" />
+  <link rel="stylesheet" href="./assets/styles/light.css" media="(prefers-color-scheme: light)" />
+  <link rel="stylesheet" href="./assets/styles/dark.css" media="(prefers-color-scheme: dark)" />
+  <script type="module" src="https://unpkg.com/dark-mode-toggle"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;700&display=swap" rel="stylesheet">
+  <script src="./assets/js/utils.js"></script>
+</head>
+
+<body>
+  <main>
+    <h2>Create Web5 App Instance</h2>
+    <pre><code class="language-javascript">const web5 = new Web5();</code></pre>
+
+    <h2>Create DID</h2>
+    <pre><code class="language-javascript">let alice = await web5.did.create('ion');
+
+console.log('ID:', alice.internalId);
+console.log('ID (long form):', alice.id);</code></pre>
+    <div id="create_did_output"></div>
+
+    <h2>Associate DID with DWN Instance</h2>
+    <pre><code class="language-javascript">web5.did.manager.set(alice.id, {
+  connected: true,
+  endpoint: 'app://dwn',
+  keys: {
+    ['#dwn']: {
+      keyPair: did.keys.find(key => key.id === 'dwn').keyPair
+    }
+  }
+});</code></pre>
+
+    <h2>CRUD with Browser DWN</h2>
+    <p>We'll first start by creating, reading, updating, and deleting a record using a DWN running in your web browser.</p>
+
+    <h3>Create a Record</h3>
+    <pre><code class="language-javascript">let { record, status } = await web5.dwn.records.create(alice.id, {
+  author: alice.id,
+  data: 'Hello, world!',
+  message: {
+    dataFormat: 'text/plain'
+  }
+});
+
+console.log('Status:' status);
+console.log('Record ID:', record.id);</code></pre>
+    <div id="create_record_output"></div>
+
+    <h3>Read Record Data</h3>
+    <pre><code class="language-javascript">console.log(await record.data.text());</code></pre>
+    <div id="record_text_data_output"></div>
+
+    <h3>Update Record</h3>
+    <pre><code class="language-javascript">const updateResult = await record.update({data: "Hello, I'm updated!"});
+
+console.log(await record.data.text());</code></pre>
+    <div id="record_text_data_updated_output"></div>
+
+    <h3>Delete Record</h3>
+    <pre><code class="language-javascript">({ status } = await record.delete());
+
+console.log('Status:' status);</code></pre>
+    <div id="delete_record_output"></div>
+
+
+    <h2>Remote DWN Server</h2>
+    <p>
+      Now that we've seen how easy it is to work with records when the DWN is running in your browser, let's try something
+      a little more interesting.  We'll create a second DID for Bob and walk through how Alice and Bob can send messages to
+      each other via a remote DWN server.
+    </p>
+    <p>
+      In a real-world scenario, this DWN server would likely be publicly addressable over the Internet.  Alice and Bob
+      would each have a local Web5 Agent (e.g., browser, desktop, or mobile app) that would secure their keys and manage
+      their personal DWN datastore, and by using the remote DWN server, they can interact asynchronously even if their
+      local agent is offline.
+    </p>
+        
+      
+    <h3>Create DIDs with Services for Alice and Bob</h3>
+
+    We'll create new DIDs for Alice and Bob that have a service endpoint defined that points to the local DWN Server
+    instance you setup when following the examples
+    <a href="https://github.com/TBD54566975/web5-js/tree/main/examples/test-dashboard">README</a>.  Make sure you
+    change the port number if you choose to override the default of <code class="language-javascript">3000</code>.
+
+    <pre><code class="language-javascript">alice = await web5.did.create('ion', {
+  services: [
+    {
+      'id': 'dwn',
+      'type': 'DecentralizedWebNode',
+      'serviceEndpoint': {
+        'nodes': ['http://localhost:3000']
+      }
+    }
+  ]
+});
+
+const bob = await web5.did.create('ion', {
+  services: [
+    {
+      'id': 'dwn',
+      'type': 'DecentralizedWebNode',
+      'serviceEndpoint': {
+        'nodes': ['http://localhost:3000']
+      }
+    }
+  ]
+});
+
+console.log('Alice ID:', alice.id);
+console.log('Bob ID:', bob.id);</code></pre>
+    <div id="create_did_services_output"></div>
+
+    <p>
+      If you resolve the DIDs created for
+      <a id="resolveDidDocAlice" target="_blank" rel="noopener">Alice</a>
+      or
+      <a id="resolveDidDocBob" target="_blank" rel="noopener">Bob</a>
+      to a DID document, you'll find that each has <code class="language-json">DecentralizedWebNode</code> service
+      endpoint defined:
+    </p>
+    <pre><code class="language-json">"service": [
+  {
+    "id": "#dwn",
+    "type": "DecentralizedWebNode",
+    "serviceEndpoint": {
+      "nodes": [
+        "http://localhost:3000"
+      ]
+    }
+  }
+],</code></pre>
+    <p>
+      When we construct a <code class="language-javascript">web5.dwn.records.create()</code> that targets Alice's or
+      Bob's DID, Web5 JS will resolve the DID document and find that the first DWN endpoint to connect to is
+      <code class="language-markup">http://localhost:3000</code>.  Consequently, the message will be transported
+      over HTTP since the target DID's DWN endpoint specifies the <code class="language-markup">http</code> protocol in
+      its URL.  In a real-world example, this endpoint would typically be reachable over the Internet using a public IP
+      address or DNS name that resolves to a public address.
+    </p>
+
+    <h3>Define and Configure a Protocol</h3>
+    <p>
+      By default, only the owner/controller of a DWN tenant is able to create, read, update, or delete records.  This is
+      enforced by checking whether the message is signed by the tenant's DID.  For this example scenario, to permit
+      Alice to create a record on Bob's DWN (and vice versa), we define a
+      <code class="language-javascript">test</code> protocol that permits anyone to read and write
+      <code class="language-javascript">test/post</code> messages.  Other than perhaps a public social media use case,
+      in a real-world scenario you would not typically grant <code class="language-javascript">anyone</code> this
+      level of access.
+    </p>
+    <pre><code class="language-javascript">const protocolDefinition = {
+  "labels": {
+    "post": {
+      "schema": "test/post"
+    }
+  },
+  "records": {
+    "post": {
+      "allow": {
+        "anyone": {
+          "to": [
+            "read",
+            "write"
+          ]
+        }
+      }
+    }
+  }
+}</code></pre>
+    <p>
+      The <code class="language-javascript">test</code> protocol needs to be configured for both Alice's and Bob's DWNs
+      to permit each to create and read messages to each other as follows.
+    </p>
+    <pre><code class="language-javascript">({ status } = await web5.dwn.protocols.configure(alice.id, {
+  author: alice.id,
+  message: {
+    protocol: 'test',
+    definition: protocolDefinition
+  }
+}));
+
+console.log('Configure Protocol Alice:', status);
+
+({ status } = await web5.dwn.protocols.configure(bob.id, {
+  author: bob.id,
+  message: {
+    protocol: 'test',
+    definition: protocolDefinition
+  }
+}));
+
+console.log('Configure Protocol Bob:', status);</code></pre>
+    <div id="configure_protocols_output"></div>
+
+    <h3>Alice Creates a Record on Bob's DWN</h3>
+    Now that a protocol has been configured to permit Alice to message Bob, let's actually do that.
+    <pre><code class="language-javascript">({ record, status } = await web5.dwn.records.create(bob.id, {
+  author: alice.id,
+  data: 'Hi, Bob!',
+  message: {
+    recipient: bob.id,
+    protocol: 'test',
+    schema: 'test/post'
+  }
+}));</code></pre>
+
+    <h3>Bob Reads the Message Received from Alice</h3>
+    <pre><code class="language-javascript">let { entries } = await web5.dwn.records.query(bob.id, {
+  author: bob.id,
+  filter: {
+    recipient: bob.id,
+    protocol: 'test',
+    schema: 'test/post'
+  }
+});
+
+entries.forEach(async record => {
+  console.log(await record.data.text());
+});</code></pre>
+    <div id="read_record_bob_output"></div>
+    
+    <h3>Bob Sends a Reply to Alice</h3>
+    <pre><code class="language-javascript">({ record, status } = await web5.dwn.records.create(alice.id, {
+      author: bob.id,
+      data: 'Hey, Alice! Message received.',
+      message: {
+        recipient: alice.id,
+        protocol: 'test',
+        schema: 'test/post'
+      }
+    }));</code></pre>
+    
+    <h3>Alice Reads Bob's Reply</h3>
+    <pre><code class="language-javascript">({ entries } = await web5.dwn.records.query(alice.id, {
+      author: alice.id,
+      filter: {
+        recipient: alice.id,
+        protocol: 'test',
+        schema: 'test/post'
+      }
+    }));
+    
+    entries.forEach(async record => {
+      console.log(await record.data.text());
+    });</code></pre>
+    <div id="read_record_alice_output"></div>
+
+  </main>
+  <aside>
+    <dark-mode-toggle
+    id="dark-mode-toggle"
+    class="slider"
+    legend="Theme"
+    permanent="true"
+    appearance="toggle"
+  ></dark-mode-toggle>
+  </aside>
+
+  <script type="module">
+    import { Web5 } from 'https://unpkg.com/@tbd54566975/web5@0.6.0/dist/browser.mjs';
+    // import { Web5 } from './browser.mjs';
+    import { initCodeCopy } from './assets/js/copy-to-clipboard.js';
+    initCodeCopy();
+    
+    const web5 = new Web5();
+    let message, record, status;
+
+    // Create a new ION DID and public-private key pair.
+    let alice = await web5.did.create('ion', {
+      services: [
+        {
+          'id': 'dwn',
+          'type': 'DecentralizedWebNode',
+          'serviceEndpoint': {
+            'nodes': ['http://localhost:3000'],
+          },
+        },
+      ],
+    });
+    generateStdoutElement('create_did_output', 'Create DID Output');
+    appendStdoutLine('create_did_output', `ID: ${alice.internalId}`);
+    appendStdoutLine('create_did_output', `ID (long form): ${alice.id}`);
+
+    // Set Managed DID as running in browser memory and for which keys are available to sign messages.
+    web5.did.manager.set(alice.id, {
+      connected: true,
+      endpoint: 'app://dwn',
+      keys: {
+        ['#dwn']: {
+          keyPair: alice.keys.find(key => key.id === 'dwn').keyPair,
+        },
+      },
+    });
+
+    // Create a plain text record to the in-memory DWN.
+    ({record, status} = await web5.dwn.records.create(alice.id, {
+      author: alice.id,
+      data: 'Hello, world!',
+      message: {
+        dataFormat: 'text/plain'
+      }
+    }));
+    generateStdoutElement('create_record_output', 'Create Record Output');
+    appendStdoutLine('create_record_output', `Status: ${JSON.stringify(status, null, 2)}`);
+    appendStdoutLine('create_record_output', `Record ID: ${record.id}`);
+
+    // Read record data from in-memory DWN.
+    const readResult = await record.data.text();
+    generateStdoutElement('record_text_data_output', 'Read Record Data Output');
+    appendStdoutLine('record_text_data_output', readResult);
+
+    // Update record data.
+    const updateResult = await record.update({data: "Hello, I'm updated!"});
+    generateStdoutElement('record_text_data_updated_output', 'Update Record Data Output');
+    appendStdoutLine('record_text_data_updated_output', await record.data.text());
+
+    // Delete record.
+    const deleteResult = await record.delete();
+    generateStdoutElement('delete_record_output', 'Delete Record Output');
+    appendStdoutLine('delete_record_output', `Status: ${JSON.stringify(status, null, 2)}`);
+
+    /**
+     * START - TODO: Replace with Web5 JS methods once `web5-js` has been updated to communicate with `dwn-server`.
+     */
+    // Temporary imports:
+    import { Encoder, ProtocolsConfigure, RecordsQuery, RecordsWrite } from 'https://cdn.jsdelivr.net/npm/@tbd54566975/dwn-sdk-js@0.0.30/dist/bundles/browser.js';
+
+    // Create a new ION DID and public-private key pair with services for Alice and Bob.
+    alice = await web5.did.create('ion', {
+      services: [
+        {
+          'id': 'dwn',
+          'type': 'DecentralizedWebNode',
+          'serviceEndpoint': {
+            'nodes': ['http://localhost:3000'],
+          },
+        },
+      ],
+    });
+    const bob = await web5.did.create('ion', {
+      services: [
+        {
+          'id': 'dwn',
+          'type': 'DecentralizedWebNode',
+          'serviceEndpoint': {
+            'nodes': ['http://localhost:3000'],
+          },
+        },
+      ],
+    });
+    generateStdoutElement('create_did_services_output', 'Create DID Output');
+    appendStdoutLine('create_did_services_output', `Alice ID: ${alice.id}`);
+    appendStdoutLine('create_did_services_output', `Bob ID: ${bob.id}`);
+    resolveDidDocAlice.href = `https://dev.uniresolver.io/#did=${alice.id}`;
+    resolveDidDocBob.href = `https://dev.uniresolver.io/#did=${bob.id}`;
+
+    // Create Protocols Configure message on DWN Server for Alice tenant.
+    const testProtocolDefinition = {
+      "labels": {
+        "post": {
+          "schema": "test/post"
+        }
+      },
+      "records": {
+        "post": {
+          "allow": {
+            "anyone": {
+              "to": [
+                "read",
+                "write"
+              ]
+            }
+          }
+        }
+      }
+    };
+
+    const authorizationSignatureInputAlice = {
+      privateJwk: alice.keys.find(key => key.id === 'dwn').keyPair.privateJwk,
+      protectedHeader: { alg: 'ES256K', kid: `${alice.id}#dwn` },
+    }
+    
+    const authorizationSignatureInputBob = {
+      privateJwk: bob.keys.find(key => key.id === 'dwn').keyPair.privateJwk,
+      protectedHeader: { alg: 'ES256K', kid: `${bob.id}#dwn` },
+    }
+
+    const protocolsConfigureAlice = await ProtocolsConfigure.create({
+      protocol: 'test',
+      definition: testProtocolDefinition,
+      authorizationSignatureInput: authorizationSignatureInputAlice,
+    });
+
+    const protocolsConfigureBob = await ProtocolsConfigure.create({
+      protocol: 'test',
+      definition: testProtocolDefinition,
+      authorizationSignatureInput: authorizationSignatureInputBob,
+    });
+
+    const protocolsConfigureMessageAlice = {
+      jsonrpc: '2.0',
+      method: 'dwn.processMessage',
+      params: {
+        target: alice.id,
+        message: protocolsConfigureAlice,
+      },
+      id: Date.now(),
+    }
+
+    const protocolsConfigureMessageBob = {
+      jsonrpc: '2.0',
+      method: 'dwn.processMessage',
+      params: {
+        target: bob.id,
+        message: protocolsConfigureBob,
+      },
+      id: Date.now(),
+    }
+
+    const protocolsConfigureResponseAlice = await fetch('http://localhost:3000', {
+      method: 'POST',
+      headers: {
+        'dwn-request': JSON.stringify(protocolsConfigureMessageAlice)
+      }
+    });
+    const protocolsConfigureResponseStatusAlice = (await protocolsConfigureResponseAlice.json()).result.reply.status;
+    
+    const protocolsConfigureResponseBob = await fetch('http://localhost:3000', {
+      method: 'POST',
+      headers: {
+        'dwn-request': JSON.stringify(protocolsConfigureMessageBob)
+      }
+    });
+    const protocolsConfigureResponseStatusBob = (await protocolsConfigureResponseBob.json()).result.reply.status;
+    generateStdoutElement('configure_protocols_output', 'Configure Protocols Output');
+    appendStdoutLine('configure_protocols_output', `Configure Protocol Alice: ${JSON.stringify(protocolsConfigureResponseStatusAlice, null, 2)}`);
+    appendStdoutLine('configure_protocols_output', `Configure Protocol Bob: ${JSON.stringify(protocolsConfigureResponseStatusBob, null, 2)}`);
+
+    // Alice sends a message to Bob.
+    const aliceMessageDataBytes = web5.dwn.sdk.Encoder.stringToBytes('Hi, Bob!');
+    const recordsWriteMessageAliceToBob = await RecordsWrite.create({
+      recipient: bob.id,
+      protocol: 'test',
+      schema: 'test/post',
+      data: aliceMessageDataBytes,
+      dataFormat: 'plain/text',
+      authorizationSignatureInput: authorizationSignatureInputAlice,
+    });
+
+    const recordsWriteRpcAliceToAlice = {
+      jsonrpc: '2.0',
+      method: 'dwn.processMessage',
+      params: {
+        target: alice.id,
+        message: recordsWriteMessageAliceToBob,
+      },
+      id: Date.now(),
+    }
+
+    const recordsWriteRpcAliceToBob = {
+      jsonrpc: '2.0',
+      method: 'dwn.processMessage',
+      params: {
+        target: bob.id,
+        message: recordsWriteMessageAliceToBob,
+      },
+      id: Date.now(),
+    }
+
+    // Message is written first to Alice's DWN.
+    const recordsWriteResponseAliceToAlice = await fetch('http://localhost:3000', {
+      method: 'POST',
+      body: aliceMessageDataBytes,
+      headers: {
+        'dwn-request': JSON.stringify(recordsWriteRpcAliceToAlice)
+      }
+    });
+
+    // Message is then written to Bob's DWN.
+    const recordsWriteResponseAliceToBob = await fetch('http://localhost:3000', {
+      method: 'POST',
+      body: aliceMessageDataBytes,
+      headers: {
+        'dwn-request': JSON.stringify(recordsWriteRpcAliceToBob)
+      }
+    });
+
+    // Bob reads the message Alice created.
+    const recordsQueryMessageBob = await RecordsQuery.create({
+      filter: {
+        recipient: bob.id,
+        protocol: 'test',
+        schema: 'test/post',
+        dataFormat: 'plain/text',
+      },
+      authorizationSignatureInput: authorizationSignatureInputBob,
+    });
+
+    const recordsQueryRpcBob = {
+      jsonrpc: '2.0',
+      method: 'dwn.processMessage',
+      params: {
+        target: bob.id,
+        message: recordsQueryMessageBob,
+      },
+      id: Date.now(),
+    }
+
+    const recordsQueryResponseBob = await fetch('http://localhost:3000', {
+      method: 'POST',
+      body: new TextEncoder().encode('Hi, Bob!'),
+      headers: {
+        'dwn-request': JSON.stringify(recordsQueryRpcBob)
+      }
+    });
+    const [ aliceMessageRecord ] = (await recordsQueryResponseBob.json()).result.reply.entries;
+    const aliceMessageContents = base64UrlToString(aliceMessageRecord.encodedData);
+    generateStdoutElement('read_record_bob_output', 'Bob Read Message Output');
+    appendStdoutLine('read_record_bob_output', aliceMessageContents);
+
+    // Bob sends a reply to Alice.
+    const bobMessageDataBytes = web5.dwn.sdk.Encoder.stringToBytes('Hey, Alice! Message received.');
+    const recordsWriteMessageBobToAlice = await RecordsWrite.create({
+      recipient: alice.id,
+      protocol: 'test',
+      schema: 'test/post',
+      data: bobMessageDataBytes,
+      dataFormat: 'plain/text',
+      authorizationSignatureInput: authorizationSignatureInputBob,
+    });
+
+    const recordsWriteRpcBobToBob = {
+      jsonrpc: '2.0',
+      method: 'dwn.processMessage',
+      params: {
+        target: alice.id,
+        message: recordsWriteMessageBobToAlice,
+      },
+      id: Date.now(),
+    }
+
+    const recordsWriteRpcBobToAlice = {
+      jsonrpc: '2.0',
+      method: 'dwn.processMessage',
+      params: {
+        target: bob.id,
+        message: recordsWriteMessageBobToAlice,
+      },
+      id: Date.now(),
+    }
+
+    // Message is written first to Bob's DWN.
+    const recordsWriteResponseBobToBob = await fetch('http://localhost:3000', {
+      method: 'POST',
+      body: bobMessageDataBytes,
+      headers: {
+        'dwn-request': JSON.stringify(recordsWriteRpcBobToBob)
+      }
+    });
+    (await recordsWriteResponseBobToBob.json());
+
+    // Message is then written to Bob's DWN.
+    const recordsWriteResponseBobToAlice = await fetch('http://localhost:3000', {
+      method: 'POST',
+      body: bobMessageDataBytes,
+      headers: {
+        'dwn-request': JSON.stringify(recordsWriteRpcBobToAlice)
+      }
+    });
+
+    // Alice reads the message Bob sent.
+    const recordsQueryMessageAlice = await RecordsQuery.create({
+      filter: {
+        recipient: alice.id,
+        protocol: 'test',
+        schema: 'test/post',
+        dataFormat: 'plain/text',
+      },
+      authorizationSignatureInput: authorizationSignatureInputAlice,
+    });
+
+    const recordsQueryRpcAlice = {
+      jsonrpc: '2.0',
+      method: 'dwn.processMessage',
+      params: {
+        target: bob.id,
+        message: recordsQueryMessageAlice,
+      },
+      id: Date.now(),
+    }
+
+    const recordsQueryResponseAlice = await fetch('http://localhost:3000', {
+      method: 'POST',
+      body: new TextEncoder().encode('Hi, Bob!'),
+      headers: {
+        'dwn-request': JSON.stringify(recordsQueryRpcAlice)
+      }
+    });
+    const [ bobMessageRecord ] = (await recordsQueryResponseAlice.json()).result.reply.entries;
+    const bobMessageContents = base64UrlToString(bobMessageRecord.encodedData);
+    generateStdoutElement('read_record_alice_output', 'Alice Read Message Output');
+    appendStdoutLine('read_record_alice_output', bobMessageContents);
+    /**
+     * END - TODO: Replace with Web5 JS methods.
+     * Note: Temporary until Web5 JS updated to communicate with `dwn-server`.
+     */
+
+    // Update stdout row counts after all example script actions have completed.
+    setStdoutRowCounts('stdout');
+
+    // Convenience functions to decode data returned by queries
+    function base64UrlToString(encodedData) {
+      return web5.dwn.sdk.Encoder.bytesToString(web5.dwn.sdk.Encoder.base64UrlToBytes(encodedData));
+    }
+
+    function base64UrlToObject(encodedData) {
+      return web5.dwn.sdk.Encoder.base64UrlToObject(encodedData);
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body>
+
+</html>

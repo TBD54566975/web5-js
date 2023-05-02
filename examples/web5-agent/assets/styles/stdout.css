@@ -1,0 +1,140 @@
+.stdout-wrapper {
+  background-color: var(--stdout-color-background);
+  border: 1px solid var(--color-code-border);
+  border-radius: 5px;
+  box-sizing: border-box;
+  color: var(--stdout-color-foreground);
+  display: block;
+  margin: 1rem 0;
+  padding: 5px;
+  position: relative;
+}
+
+.stdout-wrapper *,.stdout-wrapper :after,.stdout-wrapper :before {
+  background-color: transparent;
+  border: 0;
+  box-sizing: border-box;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  list-style: none;
+  margin: 0;
+  outline: 0;
+  padding: 0;
+}
+
+.stdout-wrapper .stdout-header {
+  background-color: var(--stdout-color-header);
+  border-radius: 3px;
+  color: var(--stdout-color-foreground);
+  margin: 0 0 5px 0;
+  padding: 6px 8px 4px 8px;
+}
+
+.stdout-wrapper .stdout-scroller {
+  display: grid;
+  grid-auto-rows: min-content;
+  margin: 0;
+  max-height: 600px;
+  overflow: hidden;
+  padding: 0;
+}
+
+
+.stdout-wrapper .stdout-scroller:hover {
+  overflow: auto;
+}
+
+.stdout-wrapper .stdout-scroller.stdout-nonums .stdout-line-wrap:after {
+  display: none;
+}
+
+.stdout-wrapper .stdout-scroller.stdout-nonums .stdout-line-code {
+  border-left: none;
+  margin-left: 0;
+  padding-left: 10px;
+}
+
+.stdout-wrapper .stdout-line-wrap {
+  border-radius: 3px;
+  display: grid;
+  grid-template-columns: 100% 1fr;
+  margin: 0;
+  overflow: visible;
+  padding: 0;
+  position: relative;
+}
+
+.stdout-wrapper .stdout-line-wrap .stdout-line-code {
+  border-left: 1px solid var(--stdout-color-divider);
+  color: var(--stdout-color-line-code);
+  margin-left: 60px;
+  padding: 2px 0 2px 10px;
+  padding-right: 0;
+}
+
+.stdout-wrapper .stdout-line-wrap:after {
+  color: var(--stdout-color-line-number);
+  content: attr(data-line);
+  cursor: default;
+  display: inline-block;
+  left: 0;
+  margin: 0;
+  padding: 2px 0;
+  position: absolute;
+  text-align: right;
+  top: 0;
+  user-select: none;
+  width: 50px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.stdout-wrapper .stdout-line-wrap:nth-child(odd)  {
+  background-color: var(--stdout-color-line-background-odd);
+}
+
+.stdout-wrapper .stdout-line-wrap:nth-child(even)  {
+  background-color: var(--stdout-color-line-background-even);
+}
+
+.stdout-wrapper .stdout-line-wrap:hover {
+  background-color: var(--stdout-color-line-background-hover);
+}
+
+.stdout-wrapper .stdout-line-wrap:active {
+  background-color: var(--stdout-color-line-background-active);
+}
+
+.stdout-left {
+  float: left;
+}
+
+.stdout-right {
+  float: right;
+}
+
+.stdout-clear:after {
+  border: none;
+  clear: both;
+  content: ".";
+  display: block;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  visibility: hidden;
+}
+
+.stdout-nowrap {
+  white-space: pre;
+  word-break: keep-all;
+  word-wrap: normal;
+}
+
+.stdout-wordwrap {
+  white-space: pre-wrap;
+  word-break: break-all;
+  word-wrap: break-word;
+}

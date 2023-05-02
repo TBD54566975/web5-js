@@ -1,0 +1,21 @@
+:root {
+  color-scheme: dark; /* stylelint-disable-line property-no-unknown */
+
+  --app-color-background: hsl(0, 0%, 10%);
+  --app-color-foreground: hsl(0, 0%, 96%);
+
+  /* Code snippets and output shared */
+  --color-code-border: rgb(26, 36, 51);
+  
+  /* Code output examples */
+  --stdout-color-background: rgb(16, 22, 31);
+  --stdout-color-divider: rgb(25, 34, 48);
+  --stdout-color-foreground: rgb(224, 224, 224);
+  --stdout-color-header: rgb(30, 41, 58);
+  --stdout-color-line-background-active: rgb(42, 58, 81);
+  --stdout-color-line-background-even: rgb(13, 18, 26);
+  --stdout-color-line-background-hover: rgb(26, 36, 51);
+  --stdout-color-line-background-odd: rgb(19, 26, 36);
+  --stdout-color-line-code: rgb(144, 152, 159);
+  --stdout-color-line-number: rgb(93, 101, 108);
+}
