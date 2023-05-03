@@ -1,6 +1,6 @@
 {
   "name": "@tbd54566975/web5",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "SDK for accessing the features and capabilities of Web5",
   "type": "module",
   "main": "./dist/cjs/index.cjs",
