@@ -226,7 +226,7 @@ export function publicKeyJwkToBytes(publicKeyJwk) {
     }
   
     default:
-      throw new Error(`Unsupport cryptographic curve: ${publicKeyJwk?.crv}`);
+      throw new Error(`Unsupported cryptographic curve: ${publicKeyJwk?.crv}`);
     }
 
   } catch (error) {

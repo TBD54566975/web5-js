@@ -1,0 +1,62 @@
+{
+  "name": "@tbd54566975/crypto",
+  "type": "module",
+  "version": "1.0.0",
+  "main": "./dist/cjs/main.cjs",
+  "module": "./dist/esm/main.mjs",
+  "types": "./dist/types/main.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/main.mjs",
+      "require": "./dist/cjs/main.cjs",
+      "types": "./dist/types/main.d.ts"
+    },
+    "./electron": {
+      "import": "./dist/esm/main.mjs",
+      "require": "./dist/electron/main.cjs",
+      "types": "./dist/types/main.d.ts"
+    }
+  },
+  "browser": {
+    "./dist/esm/index.js": "./dist/browser.mjs",
+    "./dist/cjs/index.js": "./dist/browser.js",
+    "types": "./dist/types/main.d.ts"
+  },
+  "dependencies": {
+    "ed2curve": "0.3.0",
+    "multiformats": "11.0.2"
+  },
+  "devDependencies": {
+    "@types/ed2curve": "0.2.2",
+    "@types/eslint": "8.37.0",
+    "@typescript-eslint/eslint-plugin": "5.59.0",
+    "@typescript-eslint/parser": "5.59.0",
+    "esbuild": "0.17.18",
+    "eslint": "8.39.0",
+    "karma": "6.4.1",
+    "karma-chai": "0.1.0",
+    "karma-chrome-launcher": "3.1.1",
+    "karma-esbuild": "2.2.5",
+    "karma-firefox-launcher": "2.1.2",
+    "karma-mocha": "2.0.1",
+    "karma-mocha-reporter": "2.2.5",
+    "karma-webkit-launcher": "2.1.0",
+    "mocha": "10.2.0",
+    "node-stdlib-browser": "1.2.0",
+    "playwright": "1.31.2",
+    "rimraf": "4.4.0",
+    "typescript": "5.0.4"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "rimraf dist && node build/bundles.js && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json && tsc",
+    "lint": "eslint . --ext .js --max-warnings 0",
+    "lint:fix": "eslint . --ext .js --fix",
+    "publish:unstable": "./build/publish-unstable.sh",
+    "test:node": "mocha \"tests/**/*.spec.js\" --exit",
+    "test:browser": "karma start karma.conf.cjs"
+  }
+}

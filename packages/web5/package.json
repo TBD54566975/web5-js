@@ -1,0 +1,90 @@
+{
+  "name": "@tbd54566975/web5",
+  "version": "0.6.2",
+  "description": "SDK for accessing the features and capabilities of Web5",
+  "type": "module",
+  "main": "./dist/cjs/main.cjs",
+  "module": "./dist/esm/main.mjs",
+  "types": "./dist/types/main.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/main.mjs",
+      "require": "./dist/cjs/main.cjs",
+      "types": "./dist/types/main.d.ts"
+    },
+    "./electron": {
+      "import": "./dist/esm/main.mjs",
+      "require": "./dist/electron/main.cjs",
+      "types": "./dist/types/main.d.ts"
+    }
+  },
+  "browser": {
+    "./dist/esm/index.js": "./dist/browser.mjs",
+    "./dist/cjs/index.js": "./dist/browser.js",
+    "types": "./dist/types/main.d.ts"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "rimraf dist && node build/bundles.js && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json && tsc",
+    "lint": "eslint . --ext .js --max-warnings 0",
+    "lint:fix": "eslint . --ext .js --fix",
+    "publish:unstable": "./build/publish-unstable.sh",
+    "test:node": "mocha \"tests/**/*.spec.js\" --exit",
+    "test:browser": "karma start karma.conf.cjs"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Daniel Buchner",
+    "email": "dbuchner@tbd.email"
+  },
+  "contributors": [
+    {
+      "name": "Frank Hinek",
+      "email": "frankhinek@tbd.email"
+    },
+    {
+      "name": "Moe Jangda",
+      "email": "moe@tbd.email"
+    }
+  ],
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@decentralized-identity/ion-tools": "1.0.7",
+    "@tbd54566975/crypto": "1.0.0",
+    "@tbd54566975/dids": "1.0.0",
+    "@tbd54566975/dwn-sdk-js": "0.0.30",
+    "@tbd54566975/web5-agent": "1.0.0",
+    "@tbd54566975/web5-user-agent": "1.0.0",
+    "@tbd54566975/web5-proxy-agent": "1.0.0",
+    "cross-fetch": "3.1.5",
+    "ed2curve": "0.3.0",
+    "readable-web-to-node-stream": "3.0.2",
+    "tweetnacl": "1.0.3"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "5.59.0",
+    "@typescript-eslint/parser": "5.59.0",
+    "chai": "4.3.7",
+    "chai-as-promised": "7.1.1",
+    "esbuild": "0.16.17",
+    "eslint": "8.39.0",
+    "karma": "6.4.1",
+    "karma-chai": "0.1.0",
+    "karma-chrome-launcher": "3.1.1",
+    "karma-esbuild": "2.2.5",
+    "karma-firefox-launcher": "2.1.2",
+    "karma-mocha": "2.0.1",
+    "karma-mocha-reporter": "2.2.5",
+    "karma-webkit-launcher": "2.1.0",
+    "mocha": "10.2.0",
+    "node-stdlib-browser": "1.2.0",
+    "playwright": "1.31.2",
+    "rimraf": "4.4.0",
+    "sinon": "15.0.2",
+    "source-map-loader": "4.0.1",
+    "typescript": "5.0.4"
+  }
+}

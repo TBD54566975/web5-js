@@ -7,10 +7,10 @@ module.exports = {
     browser: true,
     es2022: true,
     mocha: true,
-    node: true
+    node: true,
   },
   globals: {
-    globalThis: false // means it's not writable
+    globalThis: false, // means it's not writable
   },
   extends: [
     'eslint:recommended',
@@ -20,7 +20,7 @@ module.exports = {
     'quotes': [
       'error',
       'single',
-      { 'allowTemplateLiterals': true }
+      { 'allowTemplateLiterals': true },
     ],
     'semi': ['error', 'always'],
     'indent': ['error', 2],
@@ -31,8 +31,8 @@ module.exports = {
         'args': 'after-used',
         'ignoreRestSiblings': true,
         'argsIgnorePattern': '^_',
-        'varsIgnorePattern': '^_'
-      }
-    ]
-  }
+        'varsIgnorePattern': '^_',
+      },
+    ],
+  },
 };

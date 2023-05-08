@@ -1,5 +1,5 @@
-const esbuild = require('esbuild');
-const browserConfig = require('./esbuild-browser-config.cjs');
+import esbuild from 'esbuild';
+import browserConfig from './esbuild-browser-config.cjs';
 
 // cjs bundle for Electron apps. external dependencies bundled except LevelDB
 // Remove if/when the following PR is merged and this bundle is no longer needed by Electron apps
@@ -11,8 +11,8 @@ esbuild.buildSync({
   // packages: 'external',
   external: ['level'],
   sourcemap: true,
-  entryPoints: ['./src/main.js'],
-  outfile: './dist/electron/index.cjs',
+  entryPoints: ['./src/main.ts'],
+  outfile: './dist/electron/main.cjs',
   allowOverwrite: true,
 });
 
@@ -23,8 +23,8 @@ esbuild.buildSync({
   format: 'cjs',
   packages: 'external',
   sourcemap: true,
-  entryPoints: ['./src/main.js'],
-  outfile: './dist/cjs/index.cjs',
+  entryPoints: ['./src/main.ts'],
+  outfile: './dist/cjs/main.cjs',
   allowOverwrite: true,
 });
 
@@ -35,8 +35,8 @@ esbuild.buildSync({
   format: 'esm',
   packages: 'external',
   sourcemap: true,
-  entryPoints: ['./src/main.js'],
-  outfile: './dist/esm/index.mjs',
+  entryPoints: ['./src/main.ts'],
+  outfile: './dist/esm/main.mjs',
   allowOverwrite: true,
 });
 

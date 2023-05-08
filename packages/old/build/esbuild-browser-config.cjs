@@ -3,7 +3,7 @@ const stdLibBrowser = require('node-stdlib-browser');
 
 /** @type {import('esbuild').BuildOptions} */
 module.exports = {
-  entryPoints: ['./src/main.js'],
+  entryPoints: ['./src/main.ts'],
   bundle: true,
   format: 'esm',
   sourcemap: true,

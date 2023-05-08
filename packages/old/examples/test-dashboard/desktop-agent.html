@@ -26,8 +26,9 @@
       max-width: 72rem;
     }
 
-    input, button {
-      font-family: 'IBM Plex Mono'; 
+    input,
+    button {
+      font-family: 'IBM Plex Mono';
     }
 
     main {
@@ -42,7 +43,7 @@
       padding-block-start: 0.5em;
       margin: 0rem 1rem 2rem 1rem;
     }
-    
+
     fieldset.yellow {
       border-color: var(--color-yellow);
     }
@@ -50,7 +51,7 @@
     fieldset.yellow>legend {
       color: var(--color-yellow);
     }
-    
+
     fieldset.blue {
       border-color: var(--color-blue);
     }
@@ -76,7 +77,7 @@
       color: white;
       cursor: pointer;
       font-size: 14px;
-      min-width:fit-content;
+      min-width: fit-content;
       white-space: nowrap;
       padding: 0.5em 20px;
       text-align: center;
@@ -109,11 +110,11 @@
 
     #container_connect_status.success {
       color: var(--color-blue);
-    }    
+    }
 
     #container_connect_status.error {
       color: var(--color-red);
-    }    
+    }
 
     #container_security_code {
       margin-top: 1rem;
@@ -156,13 +157,14 @@
       border: 2px solid var(--color-blue);
       border-radius: 5px;
       background-color: var(--color-blue-10);
-      line-height: 2.5rem; /* Vertically center the text */
+      line-height: 2.5rem;
+      /* Vertically center the text */
     }
 
     main #output {
       padding: 0 1rem;
     }
-    
+
     main #output .row {
       background-color: rgb(51, 51, 51);
       border: none;
@@ -248,12 +250,12 @@
         <button class="btn" type="button" id="write_json_button">Write JSON</button>
         <button class="btn" type="button" id="write_json_large_button">Write 11KB JSON</button>
         <button class="btn" type="button" id="write_binary_button">Write Binary</button>
-        
+
         <button class="btn" type="button" id="query_text_button">Query Text</button>
         <button class="btn" type="button" id="query_json_button">Query JSON</button>
         <button class="btn" type="button" id="query_json_large_button">Query 11KB JSON</button>
         <button class="btn" type="button" id="query_binary_button">Query Binary</button>
-        
+
         <button class="btn" type="button" id="read_text_button">Read Text</button>
         <button class="btn" type="button" id="read_json_button">Read JSON</button>
         <button class="btn" type="button" id="read_json_large_button">Read 11KB JSON</button>
@@ -333,23 +335,23 @@
     container_connect_status.classList.add('error');
     container_connect_status.classList.add('visible');
   });
-  
+
   web5.addEventListener('blocked', (event) => {
     isAuthorized = false;
-    
+
     container_security_code.classList.remove('visible');
-    
+
     container_connect_status.textContent = 'Connection request was denied';
     container_connect_status.classList.remove('success');
     container_connect_status.classList.add('error');
     container_connect_status.classList.add('visible');
   });
-  
+
   web5.addEventListener('error', (event) => {
     console.error(event);
 
     container_security_code.classList.remove('visible');
-    
+
     container_connect_status.textContent = `${event.detail}`;
     container_connect_status.classList.add('error');
     container_connect_status.classList.add('visible');
@@ -397,7 +399,7 @@
           { interface: 'Records', method: 'Query', schema: 'foo/avatar' },
           { interface: 'Records', method: 'Write', protocol: 'test', schema: 'test/post' },
           { interface: 'Records', method: 'Query', protocol: 'test', schema: 'test/post' },
-          ]
+        ]
       }
     });
   });
@@ -406,8 +408,8 @@
    * Confirm Agent is connected before attempting to execute any calls
    */
   const buttons = document.querySelectorAll("main .button-container .btn");
-  buttons.forEach(function(button) {
-    button.addEventListener("click", function() {
+  buttons.forEach(function (button) {
+    button.addEventListener("click", function () {
       if (!agentConnected()) return;
       button.dispatchEvent(new CustomEvent('execute'));
     });
@@ -432,7 +434,7 @@
     appendToOutput(await record.data.text());
     existingTextRecord = record;
   });
-  
+
   let existingJsonRecord;
   write_json_button.addEventListener('execute', async event => {
     const { record } = await web5.dwn.records.write(myDid, {
@@ -445,7 +447,7 @@
     appendToOutput(await record.data.json());
     existingJsonRecord = record
   });
-  
+
   let existingJsonLargeRecord;
   write_json_large_button.addEventListener('execute', async event => {
     const { record } = await web5.dwn.records.write(myDid, {
@@ -459,7 +461,7 @@
     appendToOutput(`11KB JSON object with ${Object.keys(dataJson.items).length} keys`);
     existingJsonLargeRecord = record
   });
-  
+
   let existingBinaryRecord;
   write_binary_button.addEventListener('execute', async event => {
     const { record } = await web5.dwn.records.write(myDid, {
@@ -569,7 +571,7 @@
       appendToOutput(Encoder.bytesToString(recordBytes));
     }
   })
-  
+
   read_json_button.addEventListener('execute', async event => {
     if (!existingJsonRecord?.id) {
       displayError('Write or Query a record first before attempting to read.');
@@ -584,7 +586,7 @@
       appendToOutput(bytesToObject(recordBytes));
     }
   })
-  
+
   read_json_large_button.addEventListener('execute', async event => {
     if (!existingJsonLargeRecord?.id) {
       displayError('Write or Query a record first before attempting to read.');
@@ -722,7 +724,7 @@
         schema: 'foo/text',
       }
     });
-    
+
     const { record: newRecord } = await web5.dwn.records.createFrom(myDid, {
       author: myDid,
       data: { hello: 'world' }, // changed data
@@ -751,7 +753,7 @@
           appendToOutput(`Tried to set Published to true: ${recordFoo.published}`);
         })
         .catch(error => console.error(error.message));
-      
+
       await recordFoo.update({ data: 'Foo bar' })
         .then(async response => {
           appendToOutput(`Tried to change 'data' to "Foo bar": ${await recordFoo.data.text()}`);
@@ -769,12 +771,12 @@
     } else {
       await recordFoo.delete()
         .then(response => {
-            appendToOutput(`Successfully deleted record with ID: ${recordFoo.id}`);
-          })
+          appendToOutput(`Successfully deleted record with ID: ${recordFoo.id}`);
+        })
         .catch(error => {
-            console.error(error.message)
-            appendToOutput(error.message, { error: true });
-          });
+          console.error(error.message)
+          appendToOutput(error.message, { error: true });
+        });
     }
   })
 
@@ -805,7 +807,7 @@
   }
 
   function generateLargeJson(sizeBytes) {
-    const itemCount = sizeBytes/1024;
+    const itemCount = sizeBytes / 1024;
     const items = [];
 
     for (let i = 0; i < itemCount; i++) {
