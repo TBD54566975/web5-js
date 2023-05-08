@@ -4,7 +4,8 @@ import nacl from 'tweetnacl';
 import ed2curve from 'ed2curve';
 import { base64UrlToBytes, bytesToBase64Url } from './utils.js';
 
-// TODO: decide if we want to use tweetnacl or @noble/ed25519. is there a functional difference?
+// TODO: (not important) decide if we want to use tweetnacl or @noble/ed25519. is there a functional difference?
+//       dwn-sdk-js also has ed25519 cryptosuite stuff
 
 export function generateKeyPair(): KeyPair {
   const ed25519KeyPair = nacl.sign.keyPair();

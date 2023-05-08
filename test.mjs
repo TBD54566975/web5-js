@@ -12,5 +12,6 @@ const didIonState = await DidIon.create();
 console.log('---------DID ION-------------');
 console.log(JSON.stringify(didIonState, null, 2));
 
+//! NOTE: this only works in browser right now because storage is localStorage. will swap that out tomorrow
 const { web5 } = await Web5.connect();
 console.log(web5);
