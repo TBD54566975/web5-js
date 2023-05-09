@@ -7,7 +7,6 @@ const didKeyResolver = new DidKeyResolver();
 
 export type DidKeyOptions = never;
 
-// TODO: discuss. need to normalize what's returned from `create`. DidIon.create and DidKey.create return different things.
 //! i know dwn-sdk-js has a resolver that includes both creation and resolving. but they're slightly different and we really
 //! need to settle on what the normalized result of did creation is.
 

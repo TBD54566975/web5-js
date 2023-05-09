@@ -1,9 +1,9 @@
-import type { DidState } from '@tbd54566975/dids';
+import type { DidState, DidMethodApi } from '@tbd54566975/dids';
 import type { Web5Agent } from '@tbd54566975/web5-agent';
 
 import  { Web5ProxyAgent } from '@tbd54566975/web5-proxy-agent';
 import  { Web5UserAgent, ProfileApi } from '@tbd54566975/web5-user-agent';
-import { DidResolver, DidIonApi, DidKeyApi } from '@tbd54566975/dids';
+import { DidIonApi, DidKeyApi } from '@tbd54566975/dids';
 
 import { DwnApi } from './dwn-api.js';
 import { DidApi } from './did-api.js';
@@ -13,29 +13,30 @@ import { AppStorage } from './app-storage.js';
 export type Web5ConnectOptions = {
   web5Agent?: Web5Agent;
   // TODO: discuss whether this should be something that the user can provide. could also just ask for methodResolvers
-  didResolver?: DidResolver;
+  didMethodApis?: DidMethodApi[];
 }
 
+export type Web5Options = {
+  web5Agent: Web5Agent;
+  appStorage?: AppStorage;
+};
+
 export class Web5 {
+  appStorage: AppStorage;
   dwn: ReturnType<typeof DwnApi>;
-  did: ReturnType<typeof DidApi>;
+
+  static did = new DidApi({
+    didMethodApis: [new DidIonApi(), new DidKeyApi()]
+  });
 
   private static APP_DID_KEY = 'WEB5_APP_DID';
 
-  constructor(web5Agent: Web5Agent) {
-    this.dwn = DwnApi(web5Agent);
-
-    const DidIon = new DidIonApi();
-    const DidKey = new DidKeyApi();
-    const didResolver = new DidResolver({ methodResolvers: [DidIon, DidKey] });
-
-    this.did = DidApi(didResolver);
+  constructor(options: Web5Options) {
+    this.dwn = DwnApi(options.web5Agent);
+    this.appStorage ||= new AppStorage();
   }
 
   static async connect() {
-    const DidKey = new DidKeyApi();
-    const DidIon = new DidIonApi();
-
     // load app's did
     const appStorage = new AppStorage();
     const cachedAppDidState = await appStorage.get(Web5.APP_DID_KEY);
@@ -44,7 +45,7 @@ export class Web5 {
     if (cachedAppDidState) {
       appDidState = JSON.parse(cachedAppDidState);
     } else {
-      appDidState = await DidKey.create();
+      appDidState = await this.did.create('key');
       appStorage.set(Web5.APP_DID_KEY, JSON.stringify(appDidState));
     }
 
@@ -58,7 +59,9 @@ export class Web5 {
     // create enc. keys
 
     if (!profile) {
-      const defaultProfileDid = await DidIon.create();
+      // TODO: add good samaritan nodes here when they're ready
+
+      const defaultProfileDid = await this.did.create('ion');
       // setting id & name as the app's did to make migration easier
       profile = await profileApi.createProfile({
         name        : appDidState.id,
@@ -68,7 +71,7 @@ export class Web5 {
     }
 
     const agent = await Web5UserAgent.create({ profileManager: profileApi });
-    const web5 = new Web5(agent);
+    const web5 = new Web5({ appStorage: appStorage, web5Agent: agent });
 
     return { web5, did: profile.did.id };
   }

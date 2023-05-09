@@ -73,9 +73,25 @@ export type VerificationMethod = {
   publicKeyJwk?: PublicJwk
 };
 
+/**
+ * implement this interface to include support for different did methods. can be plugged in through Web5 API
+ */
+export interface DidMethodApi extends DidMethodCreator, DidMethodResolver {}
+
+/**
+ * implement this interface to include support for resolving different dids. can be plugged in through Web5 API
+ */
 export interface DidMethodResolver {
   get methodName(): string;
   resolve(did: string): Promise<DidResolutionResult>
+}
+
+/**
+ * implement this interface to include support for creating different dids. can be plugged in through Web5 API
+ */
+export interface DidMethodCreator {
+  get methodName(): string;
+  create(options: any): Promise<DidState>
 }
 
 export type DidState = {
@@ -91,8 +107,3 @@ export type DidState = {
 export type InterestingVerificationMethod = VerificationMethod & {
   privateKeyJwk: PrivateJwk
 };
-
-export interface DidMethodCreator {
-  get methodName(): string;
-  create(options: any): Promise<DidState>
-}

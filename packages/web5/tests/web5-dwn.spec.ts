@@ -11,7 +11,7 @@ let did: string;
 describe('web5.dwn', () => {
   before(async () => {
     testAgent = await createTestAgent();
-    web5 = new Web5(testAgent.agent);
+    web5 = new Web5({ web5Agent: testAgent.agent });
   });
 
   beforeEach(async () => {
