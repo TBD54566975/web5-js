@@ -4,8 +4,21 @@ import { Dwn, DataStoreLevel, EventLogLevel, MessageStoreLevel } from '@tbd54566
 
 import { AppStorage } from '../src/app-storage.js';
 
+export type TestAgent = {
+  dwn: Dwn;
+  profileApi: ProfileApi;
+  profileStore: ProfileStore;
+  agent: Web5UserAgent;
+  clear: () => Promise<void>;
+  createTestProfile: () => Promise<TestProfile>;
+}
+
+export type TestProfile = {
+  did: string
+}
+
 // have to do it this way because esbuild doesn't support top-level await
-export async function createTestAgent() {
+export async function createTestAgent(): Promise<TestAgent> {
   const DidIon = new DidIonApi();
   const DidKey = new DidKeyApi();
   const appStorage = new AppStorage('__TESTDATA__/APPSTORAGE');
@@ -62,8 +75,4 @@ export async function createTestAgent() {
     clear,
     createTestProfile
   };
-}
-
-export type TestProfile = {
-  did: string
 }

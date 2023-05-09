@@ -86,6 +86,8 @@ export type DidState = {
   keys: InterestingVerificationMethod[]
 }
 
+// TODO: change this to something that doesn't include Interesting
+// TODO: remove this once we've figured out keystore stuff
 export type InterestingVerificationMethod = VerificationMethod & {
   privateKeyJwk: PrivateJwk
 };

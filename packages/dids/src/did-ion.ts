@@ -1,5 +1,5 @@
 import type { PublicJwk, PrivateJwk } from '@tbd54566975/crypto';
-import type { DidResolutionResult, DidMethodResolver, DidMethodCreator } from './types.js';
+import type { DidResolutionResult, DidMethodResolver, DidMethodCreator, DidState } from './types.js';
 
 import { DID, generateKeyPair } from '@decentralized-identity/ion-tools';
 
@@ -35,7 +35,7 @@ export class DidIonApi implements DidMethodResolver, DidMethodCreator {
   }
 
   // TODO: discuss. need to normalize what's returned from `create`. DidIon.create and DidKey.create return different things.
-  async create(options: DidIonCreateOptions = {}) {
+  async create(options: DidIonCreateOptions = {}): Promise<DidState> {
     options.keys ||= [
       {
         id       : 'dwn',

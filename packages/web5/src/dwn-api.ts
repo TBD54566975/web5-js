@@ -133,10 +133,11 @@ export const DwnApi = (web5Agent: Web5Agent) => ({
         messageOptions : request.message,
       });
 
+      return null;
       const { reply } = resp;
-      const records = reply.entries.map(entry => new Record(this.dwn, { ...entry, target, author: request.author }));
+      // const records = reply.entries.map(entry => new Record(this.dwn, { ...entry, target, author: request.author }));
 
-      return { ...reply, records };
+      // return { ...reply, records };
     },
 
     // async read(target: string, request: RecordsReadRequest): Promise<RecordsReadResponse> {

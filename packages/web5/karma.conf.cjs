@@ -34,14 +34,14 @@ module.exports = function (config) {
     // list of files / patterns to load in the browser
     files: [
       // { pattern: 'tests/test-user-agent.ts', watched: false },
-      { pattern: 'tests/web5.spec.ts', watched: false },
+      { pattern: 'tests/**/*.spec.ts', watched: false },
     ],
 
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://www.npmjs.com/search?q=keywords:karma-preprocessor
     preprocessors: {
       // 'tests/test-user-agent.ts' : ['esbuild'],
-      'tests/web5.spec.ts': ['esbuild'],
+      'tests/**/*.spec.ts': ['esbuild'],
     },
 
     esbuild: esbuildBrowserConfig,

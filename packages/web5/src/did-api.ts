@@ -2,7 +2,8 @@ import type {
   DidKeyOptions,
   DidIonCreateOptions,
   DidResolver,
-  DidResolutionResult
+  DidResolutionResult,
+  DidState
 } from '@tbd54566975/dids';
 
 // Map method names to option types
@@ -17,7 +18,7 @@ type CreateOptions<M extends keyof CreateMethodOptions> = CreateMethodOptions[M]
 export const DidApi = (didResolver: DidResolver) => ({
   // TODO: discuss whether we want this approach or would rather just go with options being unknown. this approach
   //       leads to a better devex because intellisense will work based on what was provided for method
-  create<M extends keyof CreateMethodOptions>(method: M, options?: CreateOptions<M>): Promise<any> {
+  create<M extends keyof CreateMethodOptions>(method: M, options?: CreateOptions<M>): Promise<DidState> {
     return null;
   },
 

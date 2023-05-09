@@ -55,12 +55,14 @@ export class Web5 {
     const profileApi = new ProfileApi();
     let [ profile ] = await profileApi.listProfiles();
 
+    // create enc. keys
+
     if (!profile) {
       const defaultProfileDid = await DidIon.create();
       // setting id & name as the app's did to make migration easier
       profile = await profileApi.createProfile({
         name        : appDidState.id,
-        did         : defaultProfileDid, // TODO: need to figure out concrete return type for DidCreator
+        did         : defaultProfileDid,
         connections : [appDidState.id],
       });
     }
