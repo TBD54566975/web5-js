@@ -4,14 +4,12 @@
       "DOM",
       "ES6"
     ],
-    "allowJs": true,
-    "target": "es6",
+    "target": "ESNext",
     "module": "ESNext", // Required for enabling JavaScript import assertion support
     "declaration": true,
     "declarationMap": true,
-    "emitDeclarationOnly": true,
-    "declarationDir": "dist/types",
-    "sourceMap": true,
+    "outDir": "__tests__",
+    "declarationDir": "__tests__/types",
     // `NodeNext` will throw compilation errors if relative import paths are missing file extension
     // reference: https://devblogs.microsoft.com/typescript/announcing-typescript-4-7/#ecmascript-module-support-in-node-js
     "moduleResolution": "NodeNext",
@@ -19,7 +17,7 @@
   },
   "include": [
     "src",
-    "tests" // building tests also so we can run tests directly without the need for ts-node, ts-mocha
+    "tests",
   ],
   "exclude": [
     "node_modules",

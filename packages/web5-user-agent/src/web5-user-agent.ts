@@ -53,20 +53,17 @@ export class Web5UserAgent implements Web5Agent {
 
   async processDwnRequest(message: DwnRequest): Promise<DwnResponse> {
     // TODO: find profile
-    const profile = await this.profileManager.getProfile('abcd');
+    const profile = await this.profileManager.getProfile(message.author);
 
     if (!profile) {
       throw new Error('profile not found for author.');
     }
 
-    // TODO: really need to nail down concrete type for what DidCreator returns
     const { keys } = profile.did;
     const [ key ] = keys;
-    const { keyPair } = key;
+    const { privateKeyJwk } = key;
 
     // TODO: make far less naive
-    // currently DidIon's create returns privateJwk instead of privateKeyJwk
-    const privateKeyJwk = keyPair.privateKeyJwk || (<any>keyPair).privateJwk ;
     const kidFragment = privateKeyJwk.kid || key.id;
     const kid = `${profile.did.id}#${kidFragment}`;
 

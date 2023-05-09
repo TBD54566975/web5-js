@@ -21,17 +21,24 @@ export class ProfileApi implements ProfileManager {
       dateCreated : new Date(),
     };
 
-    if (!options.did) {
+    if (options.did) {
+      profile.did = options.did;
+    } else {
       // TODO: create DID based on didMethod
     }
 
     profile.id = options.did?.id;
     await this.store.put(profile as Profile);
 
-    throw new Error('Method not implemented.');
+    return profile as Profile;
   }
 
   getProfile(id: string): Promise<Profile | undefined> {
     return this.store.get(id);
+  }
+
+  // TODO: discuss whether we want to rename this to getProfiles instead
+  listProfiles(): Promise<Profile[]> {
+    return this.store.all();
   }
 }

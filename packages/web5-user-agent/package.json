@@ -54,9 +54,13 @@
   "dependencies": {
     "@decentralized-identity/ion-tools": "1.0.7",
     "@tbd54566975/dids": "1.0.0",
-    "@tbd54566975/dwn-sdk-js": "0.0.30"
+    "@tbd54566975/dwn-sdk-js": "0.0.30",
+    "abstract-level": "1.0.3",
+    "flat": "5.0.2",
+    "level": "8.0.0"
   },
   "devDependencies": {
+    "@types/flat": "5.0.2",
     "@typescript-eslint/eslint-plugin": "5.59.0",
     "@typescript-eslint/parser": "5.59.0",
     "chai": "4.3.7",

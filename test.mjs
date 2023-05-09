@@ -1,17 +1,18 @@
-import { Web5 } from './packages/web5/dist/esm/main.mjs';
-import { DidIonApi, DidKeyApi } from './packages/dids/dist/esm/main.mjs';
+import { Web5 } from '@tbd54566975/web5';
+import { DidIonApi } from '@tbd54566975/dids';
+import { Web5 as OldWeb5 } from './packages/old/dist/esm/index.mjs'
+
+const oldWeb5 = new OldWeb5();
+await oldWeb5.did.create('ion');
 
 const DidIon = new DidIonApi();
-const DidKey = new DidKeyApi();
 
-const didKeyState = DidKey.create();
-console.log('---------DID KEY-------------');
-console.log(JSON.stringify(didKeyState, null, 2));
+const did = await DidIon.create();
+console.log(did);
 
-const didIonState = await DidIon.create();
-console.log('---------DID ION-------------');
-console.log(JSON.stringify(didIonState, null, 2));
+const drr = await DidIon.resolve(did.id);
+console.log(JSON.stringify(drr, null, 2));
 
 //! NOTE: this only works in browser right now because storage is localStorage. will swap that out tomorrow
-const { web5 } = await Web5.connect();
-console.log(web5);
+// const { web5 } = await Web5.connect();
+// console.log(web5);

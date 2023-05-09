@@ -11,7 +11,7 @@ esbuild.buildSync({
   // packages: 'external',
   external: ['level'],
   sourcemap: true,
-  entryPoints: ['./src/main.ts'],
+  entryPoints: ['./src/main.js'],
   outfile: './dist/electron/index.cjs',
   allowOverwrite: true,
 });
@@ -23,7 +23,7 @@ esbuild.buildSync({
   format: 'cjs',
   packages: 'external',
   sourcemap: true,
-  entryPoints: ['./src/main.ts'],
+  entryPoints: ['./src/main.js'],
   outfile: './dist/cjs/index.cjs',
   allowOverwrite: true,
 });
@@ -35,7 +35,7 @@ esbuild.buildSync({
   format: 'esm',
   packages: 'external',
   sourcemap: true,
-  entryPoints: ['./src/main.ts'],
+  entryPoints: ['./src/main.js'],
   outfile: './dist/esm/index.mjs',
   allowOverwrite: true,
 });

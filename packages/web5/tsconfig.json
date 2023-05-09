@@ -19,10 +19,10 @@
   },
   "include": [
     "./src/main.ts",
-    "tests" // building tests also so we can run tests directly without the need for ts-node, ts-mocha
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "examples",
   ]
 }

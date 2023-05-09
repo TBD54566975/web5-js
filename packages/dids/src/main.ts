@@ -1,5 +1,3 @@
-export type { InterestingVerificationMethod } from './utils.js';
-
 export * from './types.js';
 export * from './did-ion.js';
 export * from './did-key.js';

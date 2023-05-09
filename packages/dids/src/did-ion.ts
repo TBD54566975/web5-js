@@ -1,5 +1,5 @@
 import type { PublicJwk, PrivateJwk } from '@tbd54566975/crypto';
-import type { DidResolutionResult, DidMethodResolver } from './types.js';
+import type { DidResolutionResult, DidMethodResolver, DidMethodCreator } from './types.js';
 
 import { DID, generateKeyPair } from '@decentralized-identity/ion-tools';
 
@@ -24,7 +24,7 @@ export type KeyOption = {
   purposes: string[];
 }
 
-export class DidIonApi implements DidMethodResolver {
+export class DidIonApi implements DidMethodResolver, DidMethodCreator {
   /**
    * @param resolutionEndpoint optional custom URL to send DID resolution request to
    */
@@ -59,13 +59,32 @@ export class DidIonApi implements DidMethodResolver {
       didOptions.publicKeys.push(publicKey);
     }
 
-    const did = new DID(didOptions);
+    const did = new DID({ content: didOptions });
+    const didState = {
+      id         : await did.getURI(),
+      internalId : await did.getURI('short'),
+      methodData : await did.getAllOperations(),
+      services   : options.services || [ ],
+    };
+
+    const keys = [];
+    for (let keyOption of options.keys) {
+      const key = {
+        id            : `${didState.id}#${keyOption.id}`,
+        type          : keyOption.type,
+        controller    : didState.id,
+        publicKeyJwk  : keyOption.keyPair.publicJwk,
+        privateKeyJwk : keyOption.keyPair.privateJwk
+      };
+
+      keys.push(key);
+    }
 
     return {
       id         : await did.getURI(),
       internalId : await did.getURI('short'),
       methodData : await did.getAllOperations(),
-      keys       : options.keys,
+      keys       : keys,
       services   : options.services || [ ],
     };
   }

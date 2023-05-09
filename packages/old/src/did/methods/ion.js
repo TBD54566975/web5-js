@@ -15,6 +15,18 @@ export async function create(options = { }){
     },
   ];
 
+  console.log(JSON.stringify({
+    content: {
+      publicKeys: options.keys.map(key => {
+        let pubkey = Object.assign({ }, key);
+        pubkey.publicKeyJwk = key.keyPair.publicJwk;
+        delete pubkey.keyPair;
+        return pubkey;
+      }),
+      ...(options.services && { services: options.services }),
+    },
+  }, null, 2));
+
   const did = new DID({
     content: {
       publicKeys: options.keys.map(key => {

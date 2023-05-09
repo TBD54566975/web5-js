@@ -1,6 +1,7 @@
 export interface QueryStore<T> {
   put(entry: T): Promise<void>;
-  get(id: string): Promise<T>;
+  get(id: string): Promise<T | undefined>;
+  all(): Promise<T[]>;
   query(filter: Filter): Promise<T[]>;
   delete(): Promise<void>;
 }

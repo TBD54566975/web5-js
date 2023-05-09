@@ -3,6 +3,10 @@
 **/EVENTLOG/
 **/INDEX/
 **/MESSAGESTORE/
+data
+
+**/__tests__/
+**/__TESTDATA__/
 
 # bundle metadata
 bundle-metadata.json

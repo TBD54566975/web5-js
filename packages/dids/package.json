@@ -31,8 +31,11 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "5.59.0",
     "@typescript-eslint/parser": "5.59.0",
+    "@types/chai": "4.3.0",
     "@types/eslint": "8.37.0",
-    "esbuild": "0.17.18",
+    "@types/mocha": "10.0.1",
+    "chai": "4.3.7",
+    "esbuild": "0.16.7",
     "eslint": "8.39.0",
     "karma": "6.4.1",
     "karma-chai": "0.1.0",
@@ -52,7 +55,7 @@
     "build": "rimraf dist && node build/bundles.js && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json && tsc",
     "lint": "eslint . --ext .js --max-warnings 0",
     "lint:fix": "eslint . --ext .js --fix",
-    "test:node": "mocha \"tests/**/*.spec.js\" --exit",
+    "test:node": "tsc -p tsconfig.test.json && mocha \"__tests__/**/*.spec.js\"",
     "test:browser": "karma start karma.conf.cjs"
   }
 }

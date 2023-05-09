@@ -1,4 +1,4 @@
-import type { PublicJwk } from '@tbd54566975/crypto';
+import type { PublicJwk, PrivateJwk } from '@tbd54566975/crypto';
 
 export type DidResolutionResult = {
   '@context'?: 'https://w3id.org/did-resolution/v1' | string | string[]
@@ -76,4 +76,21 @@ export type VerificationMethod = {
 export interface DidMethodResolver {
   get methodName(): string;
   resolve(did: string): Promise<DidResolutionResult>
+}
+
+export type DidState = {
+  id: string;
+  internalId: string;
+  methodData: { [prop: string]: any },
+  services: ServiceEndpoint[],
+  keys: InterestingVerificationMethod[]
+}
+
+export type InterestingVerificationMethod = VerificationMethod & {
+  privateKeyJwk: PrivateJwk
+};
+
+export interface DidMethodCreator {
+  get methodName(): string;
+  create(options: any): Promise<DidState>
 }

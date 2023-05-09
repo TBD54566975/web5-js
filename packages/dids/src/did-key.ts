@@ -1,7 +1,7 @@
 import { ed25519, utils } from '@tbd54566975/crypto';
 import { DidKeyResolver } from '@tbd54566975/dwn-sdk-js';
-import { InterestingVerificationMethod, createInterestingVerificationMethod } from './utils.js';
-import { DidMethodResolver } from './types.js';
+import { createInterestingVerificationMethod } from './utils.js';
+import { DidMethodCreator, DidMethodResolver, DidState } from './types.js';
 
 const didKeyResolver = new DidKeyResolver();
 
@@ -10,18 +10,13 @@ export type DidKeyOptions = never;
 // TODO: discuss. need to normalize what's returned from `create`. DidIon.create and DidKey.create return different things.
 //! i know dwn-sdk-js has a resolver that includes both creation and resolving. but they're slightly different and we really
 //! need to settle on what the normalized result of did creation is.
-export type DidState = {
-  id: string;
-  internalId: string;
-  keys: InterestingVerificationMethod[]
-}
 
-export class DidKeyApi implements DidMethodResolver {
+export class DidKeyApi implements DidMethodResolver, DidMethodCreator {
   get methodName() {
     return 'key';
   }
 
-  create(): DidState {
+  create(_options: any = {}): Promise<DidState> {
     // Generate new sign key pair.
     const verificationKeyPair = ed25519.generateKeyPair();
     const keyAgreementKeyPair = ed25519.deriveX25519KeyPair(verificationKeyPair);
@@ -37,11 +32,13 @@ export class DidKeyApi implements DidMethodResolver {
     const keyAgreementJwkPair = ed25519.keyPairToJwk(keyAgreementKeyPair, keyAgreementKeyId, { crv: 'X25519' });
     const keyAgreementKey = createInterestingVerificationMethod(id, keyAgreementJwkPair);
 
-    return {
+    return Promise.resolve({
       id,
       internalId : id,
       keys       : [verificationKey, keyAgreementKey],
-    };
+      services   : [],
+      methodData : {}
+    });
   }
 
   resolve(did: string) {
