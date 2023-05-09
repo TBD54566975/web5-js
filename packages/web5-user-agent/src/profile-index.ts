@@ -156,4 +156,8 @@ export class ProfileIndex {
   async clear(): Promise<void> {
     this.level.clear();
   }
+
+  async close(): Promise<void> {
+    return this.level.close();
+  }
 }

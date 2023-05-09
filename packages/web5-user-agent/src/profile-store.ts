@@ -82,6 +82,13 @@ export class ProfileStore implements QueryStore<Profile> {
     return;
   }
 
+  async close(): Promise<void> {
+    await this.index.close();
+    await this.db.close();
+
+    return;
+  }
+
   private generateKey(id: string) {
     return `PROFILE_${id}`;
   }

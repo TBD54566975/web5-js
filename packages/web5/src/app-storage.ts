@@ -32,4 +32,8 @@ export class AppStorage {
   async clear(): Promise<void> {
     return this.store.clear();
   }
+
+  async close(): Promise<void> {
+    return this.store.close();
+  }
 }
