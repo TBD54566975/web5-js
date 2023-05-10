@@ -1,4 +1,4 @@
-import type { PublicJwk, PrivateJwk } from '@tbd54566975/crypto';
+import type { PublicKeyJwk, PrivateKeyJwk } from '@tbd54566975/crypto';
 
 export type DidResolutionResult = {
   '@context'?: 'https://w3id.org/did-resolution/v1' | string | string[]
@@ -70,7 +70,7 @@ export type VerificationMethod = {
   // DID of the key's controller
   controller: string
   // a JSON Web Key that conforms to https://datatracker.ietf.org/doc/html/rfc7517
-  publicKeyJwk?: PublicJwk
+  publicKeyJwk?: PublicKeyJwk
 };
 
 /**
@@ -105,5 +105,5 @@ export type DidState = {
 // TODO: change this to something that doesn't include Interesting
 // TODO: remove this once we've figured out keystore stuff
 export type InterestingVerificationMethod = VerificationMethod & {
-  privateKeyJwk: PrivateJwk
+  privateKeyJwk: PrivateKeyJwk
 };

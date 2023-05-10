@@ -1,4 +1,4 @@
-import type { PublicJwk, PrivateJwk } from '@tbd54566975/crypto';
+import type { PublicKeyJwk, PrivateKeyJwk } from '@tbd54566975/crypto';
 import type { DidResolutionResult, DidMethodResolver, DidMethodCreator, DidState } from './types.js';
 
 import { DID, generateKeyPair } from '@decentralized-identity/ion-tools';
@@ -18,8 +18,8 @@ export type KeyOption = {
   id: string;
   type: string;
   keyPair: {
-    publicJwk: PublicJwk;
-    privateJwk: PrivateJwk;
+    publicJwk: PublicKeyJwk;
+    privateJwk: PrivateKeyJwk;
   },
   purposes: string[];
 }

@@ -1,4 +1,4 @@
-import type { KeyPair, Jwk, PublicJwk, PrivateJwk, KeyPairJwk } from './types.js';
+import type { KeyPair, Jwk, PublicKeyJwk, PrivateKeyJwk, KeyPairJwk } from './types.js';
 
 import nacl from 'tweetnacl';
 import ed2curve from 'ed2curve';
@@ -31,10 +31,10 @@ export function keyPairToJwk(keyPair: KeyPair, kid: string, overrides: JwkOverri
   const jwk: Jwk = { kty: 'OKP', crv: overrides.crv, kid };
 
   const encodedPublicKey = bytesToBase64Url(keyPair.publicKey);
-  const publicKeyJwk: PublicJwk = { ...jwk, x: encodedPublicKey };
+  const publicKeyJwk: PublicKeyJwk = { ...jwk, x: encodedPublicKey };
 
   const encodedSecretKey = bytesToBase64Url(keyPair.privateKey);
-  const privateKeyJwk: PrivateJwk = { ...publicKeyJwk, d: encodedSecretKey };
+  const privateKeyJwk: PrivateKeyJwk = { ...publicKeyJwk, d: encodedSecretKey };
 
   return { publicKeyJwk, privateKeyJwk };
 }
@@ -43,7 +43,7 @@ export type SignOptions = {
   /** the data being signed */
   payload: Uint8Array;
   /** the key being used to sign */
-  privateKeyJwk: PrivateJwk;
+  privateKeyJwk: PrivateKeyJwk;
 };
 
 export function sign(options: SignOptions) {
@@ -65,7 +65,7 @@ export type VerifyOptions = {
   /** the payload that was signed */
   payload: Uint8Array;
   /** the key to verify the signature with */
-  publicKeyJwk: PublicJwk;
+  publicKeyJwk: PublicKeyJwk;
 }
 
 export async function verify(options: VerifyOptions) {

@@ -1,4 +1,4 @@
-import type { SignatureInput, PrivateJwk as DwnPrivateJwk } from '@tbd54566975/dwn-sdk-js';
+import type { SignatureInput, PrivateKeyJwk as DwnPrivateKeyJwk } from '@tbd54566975/dwn-sdk-js';
 import type { Web5Agent, DwnRequest, DwnResponse } from '@tbd54566975/web5-agent';
 
 import type { ProfileManager } from './profile-manager.js';
@@ -68,7 +68,7 @@ export class Web5UserAgent implements Web5Agent {
     const kid = `${profile.did.id}#${kidFragment}`;
 
     const dwnSignatureInput: SignatureInput = {
-      privateJwk      : <DwnPrivateJwk>privateKeyJwk,
+      privateJwk      : <DwnPrivateKeyJwk>privateKeyJwk,
       protectedHeader : { alg: privateKeyJwk.crv, kid }
     };
 
