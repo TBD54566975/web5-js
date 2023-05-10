@@ -1,4 +1,4 @@
-import type { SignatureInput, PrivateKeyJwk as DwnPrivateKeyJwk } from '@tbd54566975/dwn-sdk-js';
+import type { SignatureInput, PrivateJwk as DwnPrivateKeyJwk } from '@tbd54566975/dwn-sdk-js';
 import type { Web5Agent, DwnRequest, DwnResponse } from '@tbd54566975/web5-agent';
 
 import type { ProfileManager } from './profile-manager.js';
