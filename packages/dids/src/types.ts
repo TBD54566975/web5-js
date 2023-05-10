@@ -1,3 +1,4 @@
+import type { KeyValueStore } from '@tbd54566975/web5-agent';
 import type { PublicKeyJwk, PrivateKeyJwk } from '@tbd54566975/crypto';
 
 export type DidResolutionResult = {
@@ -72,6 +73,11 @@ export type VerificationMethod = {
   // a JSON Web Key that conforms to https://datatracker.ietf.org/doc/html/rfc7517
   publicKeyJwk?: PublicKeyJwk
 };
+
+/**
+ * implement this interface to provide your own cache for did resolution results. can be plugged in through Web5 API
+ */
+export type DidResolverCache = KeyValueStore<string, DidResolutionResult | void>;
 
 /**
  * implement this interface to include support for different did methods. can be plugged in through Web5 API

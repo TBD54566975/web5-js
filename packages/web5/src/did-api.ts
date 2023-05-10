@@ -4,9 +4,11 @@ import type {
   DidMethodApi,
   DidMethodCreator,
   DidMethodResolver,
+  DidResolverCache,
   DidResolutionResult,
   DidState
 } from '@tbd54566975/dids';
+
 
 import { DidResolver } from '@tbd54566975/dids';
 
@@ -22,16 +24,16 @@ type CreateOptions<M extends keyof CreateMethodOptions> = CreateMethodOptions[M]
 export type DidApiOptions = {
   didMethodApis: DidMethodApi[];
   // TODO: implement cache in DidResolver
-  cache?: never
+  cache?: DidResolverCache;
 }
 export class DidApi {
   private didResolver: DidResolver;
   private methodCreatorMap: Map<string, DidMethodCreator> = new Map();
 
   constructor(options: DidApiOptions) {
-    const { didMethodApis } = options;
+    const { didMethodApis, cache } = options;
 
-    this.didResolver = new DidResolver({ methodResolvers: options.didMethodApis });
+    this.didResolver = new DidResolver({ methodResolvers: options.didMethodApis, cache });
 
     for (let methodApi of didMethodApis) {
       this.methodCreatorMap.set(methodApi.methodName, methodApi);

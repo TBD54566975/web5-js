@@ -1,7 +1,7 @@
-import type { DidState, DidMethodApi } from '@tbd54566975/dids';
+import type { DidState, DidMethodApi, DidResolverCache } from '@tbd54566975/dids';
 import type { Web5Agent } from '@tbd54566975/web5-agent';
 
-import  { Web5ProxyAgent } from '@tbd54566975/web5-proxy-agent';
+// import  { Web5ProxyAgent } from '@tbd54566975/web5-proxy-agent';
 import  { Web5UserAgent, ProfileApi } from '@tbd54566975/web5-user-agent';
 import { DidIonApi, DidKeyApi } from '@tbd54566975/dids';
 
@@ -14,6 +14,7 @@ export type Web5ConnectOptions = {
   web5Agent?: Web5Agent;
   // TODO: discuss whether this should be something that the user can provide. could also just ask for methodResolvers
   didMethodApis?: DidMethodApi[];
+  didResolutionCache?: DidResolverCache;
 }
 
 export type Web5Options = {

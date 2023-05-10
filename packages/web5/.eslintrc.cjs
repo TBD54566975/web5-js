@@ -42,7 +42,8 @@ module.exports = {
         'varsIgnorePattern'  : '^_'
       }
     ],
-    '@typescript-eslint/no-explicit-any' : 'off',
-    'no-trailing-spaces'                 : ['error'],
+    '@typescript-eslint/no-explicit-any'       : 'off',
+    'no-trailing-spaces'                       : ['error'],
+    '@typescript-eslint/no-non-null-assertion' : 'off'
   }
 };
