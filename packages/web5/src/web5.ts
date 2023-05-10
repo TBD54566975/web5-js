@@ -30,6 +30,10 @@ export class Web5 {
     didMethodApis: [new DidIonApi(), new DidKeyApi()]
   });
 
+  get did() {
+    return Web5.did;
+  }
+
   private static APP_DID_KEY = 'WEB5_APP_DID';
 
   constructor(options: Web5Options) {
