@@ -47,7 +47,7 @@ export function pascalToKebabCase(str) {
 /**
  * Set/detect the media type and return the data as bytes.
  */
-export const dataToBytes = (data, dataFormat) => {
+export const dataToBytes = (data: any, dataFormat?: string) => {
   let dataBytes = data;
 
   // Check for Object or String, and if neither, assume bytes.

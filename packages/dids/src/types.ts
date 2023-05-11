@@ -60,7 +60,7 @@ export type ServiceEndpoint = {
 
 export type DwnServiceEndpoint = {
   messageAttestationKeys?: string[]
-  messageSigningKeys?: string[]  //! TODO: This property should be required by TS throws an error if it is.
+  messageAuthorizationKeys?: string[]  //! TODO: This property should be required by TS throws an error if it is.
   nodes: string[]
   recordEncryptionKeys?: string[]  //! TODO: This property should be required by TS throws an error if it is.
 };
@@ -106,13 +106,12 @@ export interface DidMethodCreator {
 export type DidState = {
   id: string;
   internalId: string;
-  methodData: { [prop: string]: any },
-  services: ServiceEndpoint[],
-  keys: InterestingVerificationMethod[]
+  didDocument?: DidDocument;
+  keys: VerificationMethodWithPrivateKeyJwk[];
+  methodData: { [prop: string]: any };
 }
 
-// TODO: change this to something that doesn't include Interesting
 // TODO: remove this once we've figured out keystore stuff
-export type InterestingVerificationMethod = VerificationMethod & {
+export type VerificationMethodWithPrivateKeyJwk = VerificationMethod & {
   privateKeyJwk: PrivateKeyJwk
 };

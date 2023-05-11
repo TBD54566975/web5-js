@@ -1,7 +1,7 @@
 import { ed25519, utils } from '@tbd54566975/crypto';
 import { DidKeyResolver } from '@tbd54566975/dwn-sdk-js';
-import { createInterestingVerificationMethod } from './utils.js';
-import { DidMethodCreator, DidMethodResolver, DidResolutionResult, DidState } from './types.js';
+import { createVerificationMethodWithPrivateKeyJwk } from './utils.js';
+import { DidMethodCreator, DidMethodResolver, DidState } from './types.js';
 
 const didKeyResolver = new DidKeyResolver();
 
@@ -26,21 +26,23 @@ export class DidKeyApi implements DidMethodResolver, DidMethodCreator {
     const id = `did:key:${verificationKeyId}`;
 
     const verificationJwkPair = ed25519.keyPairToJwk(verificationKeyPair, verificationKeyId);
-    const verificationKey = createInterestingVerificationMethod(id, verificationJwkPair);
+    const verificationKey = createVerificationMethodWithPrivateKeyJwk(id, verificationJwkPair);
 
     const keyAgreementJwkPair = ed25519.keyPairToJwk(keyAgreementKeyPair, keyAgreementKeyId, { crv: 'X25519' });
-    const keyAgreementKey = createInterestingVerificationMethod(id, keyAgreementJwkPair);
+    const keyAgreementKey = createVerificationMethodWithPrivateKeyJwk(id, keyAgreementJwkPair);
 
+    //! TODO: Figure out why is this method not async but returns a Promise?
     return Promise.resolve({
       id,
       internalId : id,
+      // didDocument : {},  //! TODO: Add DidDocument to object returned.
       keys       : [verificationKey, keyAgreementKey],
-      services   : [],
       methodData : {}
     });
   }
 
-  resolve(did: string): Promise<DidResolutionResult> {
+  resolve(did: string) {
+    // TODO: Support resolutionOptions as defined in https://www.w3.org/TR/did-core/#did-resolution
     // TODO: move did:key resolving logic to this package. resolved Did Doc does **not** include keyAgreement
     return didKeyResolver.resolve(did);
   }

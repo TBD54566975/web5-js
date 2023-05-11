@@ -1,66 +1,125 @@
+import type { DidIonCreateOptions } from '@tbd54566975/dids';
+
 import { DidIonApi, DidKeyApi, DidResolver } from '@tbd54566975/dids';
 import { Web5UserAgent, ProfileApi, ProfileStore } from '@tbd54566975/web5-user-agent';
 import { Dwn, DataStoreLevel, EventLogLevel, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
 
 import { AppStorage } from '../src/app-storage.js';
 
-export type TestAgent = {
+type CreateMethodOptions = {
+  testDataLocation?: string;
+}
+
+export type TestAgentOptions = {
+  agent: Web5UserAgent;
+  appStorage: AppStorage;
+  dataStore: DataStoreLevel;
   dwn: Dwn;
+  eventLog: EventLogLevel;
+  messageStore: MessageStoreLevel;
   profileApi: ProfileApi;
   profileStore: ProfileStore;
-  agent: Web5UserAgent;
-  clear: () => Promise<void>;
-  createTestProfile: () => Promise<TestProfile>;
 }
 
 export type TestProfile = {
   did: string
 }
 
-// have to do it this way because esbuild doesn't support top-level await
-export async function createTestAgent(): Promise<TestAgent> {
-  const DidIon = new DidIonApi();
-  const DidKey = new DidKeyApi();
-  const didResolver = new DidResolver({ methodResolvers: [DidIon, DidKey] });
-  const appStorage = new AppStorage('__TESTDATA__/APPSTORAGE');
+export type TestProfileOptions = {
+  profileDidOptions?: DidIonCreateOptions;
+}
 
-  const dataStore = new DataStoreLevel({ blockstoreLocation: '__TESTDATA__/DATASTORE' });
-  const eventLog = new EventLogLevel({ location: '__TESTDATA__/EVENTLOG' });
-  const messageStore = new MessageStoreLevel({
-    blockstoreLocation : '__TESTDATA__/MESSAGESTORE',
-    indexLocation      : '__TESTDATA__/INDEX'
-  });
+export class TestAgent {
+  agent: Web5UserAgent;
+  appStorage: AppStorage;
+  dataStore: DataStoreLevel;
+  dwn: Dwn;
+  eventLog: EventLogLevel;
+  messageStore: MessageStoreLevel;
+  profileApi: ProfileApi;
+  profileStore: ProfileStore;
 
-
-  const dwn = await Dwn.create({ eventLog, dataStore, messageStore });
-
-  const profileStore = new ProfileStore({
-    location      : '__TESTDATA__/PROFILES',
-    indexLocation : '__TESTDATA__/PROFILES-INDEX'
-  });
-
-  const profileApi = new ProfileApi(profileStore);
-
-
-  const agent = new Web5UserAgent({
-    profileManager : new ProfileApi(profileStore),
-    dwn            : dwn,
-    didResolver    : didResolver
-  });
-
-  async function clear(): Promise<void> {
-    await profileStore.clear();
-    await dataStore.clear();
-    await eventLog.clear();
-    await messageStore.clear();
-    await appStorage.clear();
+  constructor(options: TestAgentOptions) {
+    this.agent = options.agent;
+    this.appStorage = options.appStorage;
+    this.dataStore = options.dataStore;
+    this.dwn = options.dwn;
+    this.eventLog = options.eventLog;
+    this.messageStore = options.messageStore;
+    this.profileApi = options.profileApi;
+    this.profileStore = options.profileStore;
   }
 
-  async function createTestProfile(): Promise<TestProfile> {
-    const profileDidState = await DidIon.create();
-    const appDidState = await DidKey.create();
+  async clearStorage(): Promise<void> {
+    await this.appStorage.clear();
+    await this.dataStore.clear();
+    await this.eventLog.clear();
+    await this.messageStore.clear();
+    await this.profileStore.clear();
+  }
 
-    const profile = await profileApi.createProfile({
+  async closeStorage() {
+    await this.appStorage.close();
+    await this.dataStore.close();
+    await this.eventLog.close();
+    await this.messageStore.close();
+    await this.profileStore.close();
+  }
+
+  static async create(options: CreateMethodOptions = {}): Promise<TestAgent> {
+    const testDataLocation = options.testDataLocation ?? '__TESTDATA__';
+    const testDataPath = (path: string) => `${testDataLocation}/${path}`;
+
+    const appStorage = new AppStorage(testDataPath('APPSTORAGE'));
+
+    const DidIon = new DidIonApi();
+    const DidKey = new DidKeyApi();
+    const didResolver = new DidResolver({ methodResolvers: [DidIon, DidKey] });
+
+    const dataStore = new DataStoreLevel({ blockstoreLocation: testDataPath('DATASTORE') });
+
+    const eventLog = new EventLogLevel({ location: testDataPath('EVENTLOG') });
+
+    const messageStore = new MessageStoreLevel({
+      blockstoreLocation : testDataPath('MESSAGESTORE'),
+      indexLocation      : testDataPath('INDEX')
+    });
+
+    const dwn = await Dwn.create({ eventLog, dataStore, messageStore });
+
+    const profileStore = new ProfileStore({
+      location      : testDataPath('PROFILES'),
+      indexLocation : testDataPath('PROFILES-INDEX')
+    });
+
+    const profileApi = new ProfileApi(profileStore);
+
+    const agent = new Web5UserAgent({
+      profileManager : new ProfileApi(profileStore),
+      dwn            : dwn,
+      didResolver    : didResolver
+    });
+
+    return new TestAgent({
+      agent,
+      appStorage,
+      dataStore,
+      dwn,
+      eventLog,
+      messageStore,
+      profileApi,
+      profileStore
+    });
+  }
+
+  async createProfile(options: TestProfileOptions = {}): Promise<TestProfile> {
+    const DidIon = new DidIonApi();
+    const DidKey = new DidKeyApi();
+
+    const appDidState = await DidKey.create();
+    const profileDidState = await DidIon.create(options.profileDidOptions);
+
+    const profile = await this.profileApi.createProfile({
       name        : appDidState.id,
       did         : profileDidState, // TODO: need to figure out concrete return type for DidCreator
       connections : [appDidState.id],
@@ -69,12 +128,11 @@ export async function createTestAgent(): Promise<TestAgent> {
     return { did: profile.did.id };
   }
 
-  return {
-    dwn,
-    profileStore,
-    profileApi,
-    agent,
-    clear,
-    createTestProfile
-  };
+  async openStorage() {
+    // await this.appStorage.open(); // TODO: Should AppStorage have an open() method?
+    await this.dataStore.open();
+    await this.eventLog.open();
+    await this.messageStore.open();
+    // await this.profileStore.open(); // TODO: Should ProfileStore have an open() method?
+  }
 }

@@ -55,7 +55,7 @@
     "@decentralized-identity/ion-tools": "1.0.7",
     "@tbd54566975/crypto": "1.0.0",
     "@tbd54566975/dids": "1.0.0",
-    "@tbd54566975/dwn-sdk-js": "0.0.30",
+    "@tbd54566975/dwn-sdk-js": "0.0.31-unstable-2023-05-10-816a0ef",
     "@tbd54566975/web5-agent": "1.0.0",
     "@tbd54566975/web5-proxy-agent": "1.0.0",
     "@tbd54566975/web5-user-agent": "1.0.0",

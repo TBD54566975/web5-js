@@ -1,5 +1,5 @@
 import type { KeyPairJwk } from '@tbd54566975/crypto';
-import type { DidDocument, InterestingVerificationMethod, ServiceEndpoint } from './types.js';
+import type { DidDocument, VerificationMethodWithPrivateKeyJwk, ServiceEndpoint } from './types.js';
 
 export type ParsedDid = {
   method: string;
@@ -17,7 +17,7 @@ export function parseDid(did: string): ParsedDid {
   return { method, id };
 }
 
-export function createInterestingVerificationMethod(id: string, keyPairJwk: KeyPairJwk): InterestingVerificationMethod {
+export function createVerificationMethodWithPrivateKeyJwk(id: string, keyPairJwk: KeyPairJwk): VerificationMethodWithPrivateKeyJwk {
   const { publicKeyJwk, privateKeyJwk } = keyPairJwk;
 
   return {

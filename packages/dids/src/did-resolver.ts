@@ -21,6 +21,7 @@ export class DidResolver {
   }
 
   async resolve(did: string): Promise<DidResolutionResult> {
+    // TODO: Support resolutionOptions as defined in https://www.w3.org/TR/did-core/#did-resolution
     const { method } = parseDid(did);
     const resolver = this.methodResolverMap.get(method);
 
