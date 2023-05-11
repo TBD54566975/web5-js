@@ -298,9 +298,9 @@ The `connect` method optionally accepts an object with the following properties:
 
 Used by `connect` to store connection data/keys/etc. for reuse when calling `connect` again (e.g. during another session).
 
-If provided, `storage` must be an object that has the same methods as [`Storage`](/TBD54566975/web5-js/tree/main/src/storage/Storage.js).
+If provided, `storage` must be an object that has the same methods as [`Storage`](src/storage/storage.js).
 
-If not provided, an instance of [`LocalStorage`](/TBD54566975/web5-js/tree/main/src/storage/LocalStorage.js) is used instead.
+If not provided, an instance of [`LocalStorage`](src/storage/local-storage.js) is used instead.
 
 ##### **`connectionLocation`**
 
