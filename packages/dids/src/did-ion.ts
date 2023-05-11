@@ -1,5 +1,5 @@
 import type { PublicKeyJwk, PrivateKeyJwk } from '@tbd54566975/crypto';
-import type { DidResolutionResult, DidMethodResolver, DidMethodCreator, DidState } from './types.js';
+import type { DidResolutionResult, DidMethodResolver, DidMethodCreator, DidState, DwnServiceEndpoint } from './types.js';
 
 import { DID, generateKeyPair } from '@decentralized-identity/ion-tools';
 
@@ -11,7 +11,7 @@ export type DidIonCreateOptions = {
 export type ServiceOption = {
   id: string;
   type: string;
-  serviceEndpoint: string;
+  serviceEndpoint: string | DwnServiceEndpoint;
 }
 
 export type KeyOption = {

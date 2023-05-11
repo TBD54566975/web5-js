@@ -59,7 +59,10 @@ export type ServiceEndpoint = {
 };
 
 export type DwnServiceEndpoint = {
+  messageAttestationKeys?: string[]
+  messageSigningKeys?: string[]  //! TODO: This property should be required by TS throws an error if it is.
   nodes: string[]
+  recordEncryptionKeys?: string[]  //! TODO: This property should be required by TS throws an error if it is.
 };
 
 
