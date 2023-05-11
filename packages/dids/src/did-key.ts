@@ -1,7 +1,7 @@
 import { ed25519, utils } from '@tbd54566975/crypto';
 import { DidKeyResolver } from '@tbd54566975/dwn-sdk-js';
 import { createInterestingVerificationMethod } from './utils.js';
-import { DidMethodCreator, DidMethodResolver, DidState } from './types.js';
+import { DidMethodCreator, DidMethodResolver, DidResolutionResult, DidState } from './types.js';
 
 const didKeyResolver = new DidKeyResolver();
 
@@ -40,7 +40,7 @@ export class DidKeyApi implements DidMethodResolver, DidMethodCreator {
     });
   }
 
-  resolve(did: string) {
+  resolve(did: string): Promise<DidResolutionResult> {
     // TODO: move did:key resolving logic to this package. resolved Did Doc does **not** include keyAgreement
     return didKeyResolver.resolve(did);
   }

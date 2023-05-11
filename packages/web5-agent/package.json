@@ -4,8 +4,27 @@
   "main": "",
   "type": "module",
   "types": "./dist/types/main.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/main.mjs",
+      "require": "./dist/cjs/main.cjs",
+      "types": "./dist/types/main.d.ts"
+    },
+    "./electron": {
+      "import": "./dist/esm/main.mjs",
+      "require": "./dist/electron/main.cjs",
+      "types": "./dist/types/main.d.ts"
+    }
+  },
+  "browser": {
+    "./dist/esm/index.js": "./dist/browser.mjs",
+    "./dist/cjs/index.js": "./dist/browser.js",
+    "types": "./dist/types/main.d.ts"
+  },
   "scripts": {
-    "build": "tsc"
+    "build": "rimraf dist && node build/bundles.js && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json && tsc",
+    "lint": "eslint . --ext .js --max-warnings 0",
+    "lint:fix": "eslint . --ext .js --fix"
   },
   "dependencies": {
     "readable-stream": "4.3.0",

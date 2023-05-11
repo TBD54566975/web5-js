@@ -12,7 +12,6 @@ import { AppStorage } from './app-storage.js';
 // TODO: discuss what other options we want
 export type Web5ConnectOptions = {
   web5Agent?: Web5Agent;
-  // TODO: discuss whether this should be something that the user can provide. could also just ask for methodResolvers
   didMethodApis?: DidMethodApi[];
   didResolutionCache?: DidResolverCache;
 }
@@ -41,7 +40,7 @@ export class Web5 {
     this.appStorage ||= new AppStorage();
   }
 
-  static async connect() {
+  static async connect(options: Web5ConnectOptions = {}) {
     // load app's did
     const appStorage = new AppStorage();
     const cachedAppDidState = await appStorage.get(Web5.APP_DID_KEY);
@@ -75,7 +74,7 @@ export class Web5 {
       });
     }
 
-    const agent = await Web5UserAgent.create({ profileManager: profileApi });
+    const agent = await Web5UserAgent.create({ profileManager: profileApi, didResolver: Web5.did.resolver });
     const web5 = new Web5({ appStorage: appStorage, web5Agent: agent });
 
     return { web5, did: profile.did.id };

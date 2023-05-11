@@ -1,4 +1,4 @@
-import { DidIonApi, DidKeyApi } from '@tbd54566975/dids';
+import { DidIonApi, DidKeyApi, DidResolver } from '@tbd54566975/dids';
 import { Web5UserAgent, ProfileApi, ProfileStore } from '@tbd54566975/web5-user-agent';
 import { Dwn, DataStoreLevel, EventLogLevel, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
 
@@ -21,6 +21,7 @@ export type TestProfile = {
 export async function createTestAgent(): Promise<TestAgent> {
   const DidIon = new DidIonApi();
   const DidKey = new DidKeyApi();
+  const didResolver = new DidResolver({ methodResolvers: [DidIon, DidKey] });
   const appStorage = new AppStorage('__TESTDATA__/APPSTORAGE');
 
   const dataStore = new DataStoreLevel({ blockstoreLocation: '__TESTDATA__/DATASTORE' });
@@ -43,7 +44,8 @@ export async function createTestAgent(): Promise<TestAgent> {
 
   const agent = new Web5UserAgent({
     profileManager : new ProfileApi(profileStore),
-    dwn            : dwn
+    dwn            : dwn,
+    didResolver    : didResolver
   });
 
   async function clear(): Promise<void> {

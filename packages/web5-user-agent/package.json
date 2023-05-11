@@ -56,8 +56,10 @@
     "@tbd54566975/dids": "1.0.0",
     "@tbd54566975/dwn-sdk-js": "0.0.30",
     "abstract-level": "1.0.3",
+    "cross-fetch": "3.1.5",
     "flat": "5.0.2",
-    "level": "8.0.0"
+    "level": "8.0.0",
+    "uuid": "9.0.0"
   },
   "devDependencies": {
     "@types/flat": "5.0.2",

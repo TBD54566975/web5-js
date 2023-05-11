@@ -30,6 +30,14 @@ export class DidApi {
   private didResolver: DidResolver;
   private methodCreatorMap: Map<string, DidMethodCreator> = new Map();
 
+  /**
+   * returns the DID resolver created by this api. useful in scenarios where you want to pass around
+   * the same resolver so that you can leverage the resolver's cache
+   */
+  get resolver() {
+    return this.didResolver;
+  }
+
   constructor(options: DidApiOptions) {
     const { didMethodApis, cache } = options;
 
@@ -58,7 +66,7 @@ export class DidApi {
    * can be used to add different did method resolvers
    * @param _resolver
    */
-  addResolver(_resolver: DidMethodResolver) {
+  addMethodResolver(_resolver: DidMethodResolver) {
     throw new Error('not yet implemented');
   }
 
@@ -66,7 +74,7 @@ export class DidApi {
    * can be used to add differed did method creators
    * @param _creator
    */
-  addCreator(_creator: DidMethodCreator) {
+  addMethodCreator(_creator: DidMethodCreator) {
     throw new Error('not yet implemented');
   }
 }
