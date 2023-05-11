@@ -15,7 +15,7 @@ export class DidKeyApi implements DidMethodResolver, DidMethodCreator {
     return 'key';
   }
 
-  create(_options: any = {}): Promise<DidState> {
+  async create(_options: any = {}): Promise<DidState> {
     // Generate new sign key pair.
     const verificationKeyPair = ed25519.generateKeyPair();
     const keyAgreementKeyPair = ed25519.deriveX25519KeyPair(verificationKeyPair);
@@ -31,14 +31,13 @@ export class DidKeyApi implements DidMethodResolver, DidMethodCreator {
     const keyAgreementJwkPair = ed25519.keyPairToJwk(keyAgreementKeyPair, keyAgreementKeyId, { crv: 'X25519' });
     const keyAgreementKey = createVerificationMethodWithPrivateKeyJwk(id, keyAgreementJwkPair);
 
-    //! TODO: Figure out why is this method not async but returns a Promise?
-    return Promise.resolve({
+    return {
       id,
       internalId : id,
       // didDocument : {},  //! TODO: Add DidDocument to object returned.
       keys       : [verificationKey, keyAgreementKey],
       methodData : {}
-    });
+    };
   }
 
   resolve(did: string) {

@@ -93,7 +93,7 @@ export class DidIonApi implements DidMethodResolver, DidMethodCreator {
       }
     }
 
-    for (let service of didState.methodData[0].content.services) {
+    for (let service of didState.methodData[0]?.content?.services || []) {
       const serviceEntry = {
         id              : `#${service.id}`,
         type            : service.type,
