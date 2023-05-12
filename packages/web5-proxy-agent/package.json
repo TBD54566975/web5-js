@@ -23,7 +23,7 @@
     "types": "./dist/types/main.d.ts"
   },
   "dependencies": {
-    "@tbd54566975/web5-agent": "0.1.0"
+    "@tbd54566975/web5-agent": "alpha"
   },
   "devDependencies": {
     "@types/ed2curve": "0.2.2",
