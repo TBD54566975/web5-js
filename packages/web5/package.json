@@ -1,5 +1,5 @@
 {
-  "name": "@test-2023-05/web5",
+  "name": "@tbd54566975/web5",
   "version": "0.7.0",
   "description": "SDK for accessing the features and capabilities of Web5",
   "type": "module",
@@ -54,11 +54,11 @@
   "dependencies": {
     "@decentralized-identity/ion-tools": "1.0.7",
     "@tbd54566975/crypto": "alpha",
-    "@tbd54566975/dids": "0.1.0",
+    "@tbd54566975/dids": "alpha",
     "@tbd54566975/dwn-sdk-js": "0.0.31-unstable-2023-05-10-816a0ef",
-    "@tbd54566975/web5-agent": "0.1.0",
-    "@tbd54566975/web5-proxy-agent": "0.1.0",
-    "@tbd54566975/web5-user-agent": "0.1.0",
+    "@tbd54566975/web5-agent": "alpha",
+    "@tbd54566975/web5-proxy-agent": "alpha",
+    "@tbd54566975/web5-user-agent": "alpha",
     "cross-fetch": "3.1.5",
     "level": "8.0.0",
     "ms": "2.1.3",
