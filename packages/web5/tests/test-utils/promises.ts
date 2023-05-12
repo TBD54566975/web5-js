@@ -11,7 +11,7 @@
  * // Assert that the neverFulfillingPromise is rejected due to the timeout.
  * await chai.assert.isRejected(Promise.race([neverFulfillingPromise, timeoutPromise]));
  */
-export function createTimeoutPromise(ms) {
+export function createTimeoutPromise(ms: number): Promise<never> {
   return new Promise((_, reject) => {
     setTimeout(() => {
       reject(new Error('Promise should not have been fulfilled'));

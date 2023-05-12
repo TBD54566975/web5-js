@@ -116,9 +116,10 @@
 
 
   <script type="module">
-    console.log('hi');
     import { Web5 } from '/node_modules/@tbd54566975/web5/dist/browser.mjs';
-    const { web5, did } = await Web5.connect();
+    const { web5, did: aliceDid } = await Web5.connect();
+
+    const bob = await Web5.did.create('ion');
 
     let response;
 
@@ -127,8 +128,8 @@
     // console.log('DID:', myDid);
 
     // Write a plain text record to the in-memory DWN.
-    response = await web5.dwn.records.write(did, {
-      author: did,
+    response = await web5.dwn.records.write(bob.id, {
+      author: aliceDid,
       data: 'Hello, world!',
       message: {
         schema: 'foo/bar',
@@ -138,17 +139,121 @@
 
     console.log('WRITE RESPONSE:', response);
 
-    // // Query for the record that was just created.
-    // response = await web5.dwn.records.query(myDid.id, {
-    //   author: myDid.id,
-    //   message: {
-    //     filter: {
-    //       schema: 'foo/bar'
-    //     }
-    //   }
-    // });
-    // console.log('QUERY REPONSE:', response);
-    // // console.log('RESPONSE DATA:', base64UrlToString(response.entries[0].encodedData));
+    // Write a plain text record to the in-memory DWN using create() to confirm it works identically.
+    response = await web5.dwn.records.create(aliceDid, {
+      author: aliceDid,
+      data: 'Hello, world!',
+      message: {
+        schema: 'foo/bar',
+        dataFormat: 'text/plain'
+      }
+    });
+
+    console.log('WRITE RESPONSE:', response);
+
+    // Write a plain text record to the in-memory DWN using create() to confirm it works identically.
+    response = await web5.dwn.records.create(aliceDid, {
+      author: aliceDid,
+      data: randomJson(11_000),
+      message: {
+        schema: 'foo/bar',
+        dataFormat: 'application/json'
+      }
+    });
+    console.log('LARGE JSON RESPONSE:', response);
+    console.log('READ DATA.JSON()', await response.record.data.json())
+
+    // Read the large record.
+    const largeJsonRecordId = response.record.id;
+    response = await web5.dwn.records.read(aliceDid, {
+      author: aliceDid,
+      message: {
+        recordId: largeJsonRecordId
+      }
+    });
+    console.log('READ RESPONSE:', response);
+
+    // Query for the record that was just created.
+    response = await web5.dwn.records.query(aliceDid, {
+      author: aliceDid,
+      message: {
+        filter: {
+          schema: 'foo/bar'
+        }
+      }
+    });
+    console.log('QUERY REPONSE:', response);
+
+    // Try to delete all of the records returned by the query.
+    response.records.forEach(async record => {
+      const deleteResponse = await web5.dwn.records.delete(aliceDid, {
+        author: aliceDid,
+        message: {
+          recordId: record.id
+        }
+      });
+      if (deleteResponse.status.code !== 202) console.log(deleteResponse);
+    })
+
+    const { record: sourceRecord } = await web5.dwn.records.create(aliceDid, {
+      author: aliceDid,
+      data: 'Source record to create from',
+      message: {
+        published: true,
+        schema: 'foo/text',
+      }
+    });
+
+    const { record: newRecord, status } = await web5.dwn.records.createFrom(aliceDid, {
+      author: aliceDid,
+      data: { hello: 'world' }, // changed data
+      message: {
+        published: false, // changed published
+        schema: 'foo/json', // changed schema
+        dataFormat: 'application/json', //changed dataFormat
+      },
+      record: sourceRecord, // record to inherit properties from
+    });
+    console.log('CREATE FROM:', status);
+
+    await newRecord.delete()
+      .then(response => {
+        console.log(`Successfully deleted record with ID: ${newRecord.id}`);
+      })
+      .catch(error => {
+        console.error(error.message)
+      });
+
+    // Test Record.update().
+    const { record: recordFoo } = await web5.dwn.records.create(aliceDid, {
+      author: aliceDid,
+      data: 'Source record to create from',
+      message: {
+        published: true,
+        schema: 'foo/text',
+      }
+    });
+
+    await recordFoo.update({ published: false })
+      .then(response => {
+        console.log(`Tried to set Published to false: ${recordFoo.published}`);
+      })
+      .catch(error => console.error(error.message));
+
+    await recordFoo.update({ published: true })
+      .then(response => {
+        console.log(`Tried to set Published to true: ${recordFoo.published}`);
+      })
+      .catch(error => console.error(error.message));
+
+    await recordFoo.update({ data: 'Foo bar' })
+      .then(async response => {
+        console.log(`Tried to change 'data' to "Foo bar": ${await recordFoo.data.text()}`);
+      })
+      .catch(error => {
+        console.error(error.message)
+      });
+
 
     // const existingEntry = response?.entries?.[0];
     // if (existingEntry) {
@@ -318,6 +423,46 @@
     // });
     // console.log('GOT SOME DATA', await DataStream.toBytes(response.data));
     // }
+
+    function randomDigits(length) {
+      let result = 0;
+      for (let i = 0; i < length; i++) {
+        result = result * 10 + Math.floor(Math.random() * 10);
+      }
+      return result;
+    }
+
+    function randomJson(length) {
+      // Start with an empty object.
+      let obj = {};
+
+      // Generate properties until the JSON string is close to the desired length.
+      let lessThanDesiredLength = true;
+      while (lessThanDesiredLength) {
+        // Use a random key and value to avoid any optimization that might occur
+        // from using the same key and value repeatedly.
+        let key = Math.random().toString(36).substring(2);
+        let value = Math.random().toString(36).substring(2);
+
+        // Calculate the size of the new property (including quotes and colon).
+        let propertySize = key.length + value.length + 4;
+
+        // If the new property fits within the desired size, add it to the object.
+        const currentLength = JSON.stringify(obj).length;
+
+        if (currentLength + propertySize <= length) {
+          obj[key] = value;
+        } else if (length - currentLength > 5) {
+          const padLength = length - currentLength - 4;
+          obj[0] = randomDigits(padLength);
+          lessThanDesiredLength = false;
+        } else {
+          lessThanDesiredLength = false;
+        }
+      }
+
+      return JSON.stringify(obj);
+    }
 
     // Convenience functions to decode data returned by queries
     function base64UrlToString(encodedData) {

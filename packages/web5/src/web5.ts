@@ -23,7 +23,7 @@ export type Web5Options = {
 
 export class Web5 {
   appStorage: AppStorage;
-  dwn: ReturnType<typeof DwnApi>;
+  dwn: DwnApi;
 
   static did = new DidApi({
     didMethodApis: [new DidIonApi(), new DidKeyApi()]
@@ -36,11 +36,11 @@ export class Web5 {
   private static APP_DID_KEY = 'WEB5_APP_DID';
 
   constructor(options: Web5Options) {
-    this.dwn = DwnApi(options.web5Agent);
+    this.dwn = new DwnApi(options.web5Agent);
     this.appStorage ||= new AppStorage();
   }
 
-  static async connect(options: Web5ConnectOptions = {}) {
+  static async connect(_options: Web5ConnectOptions = {}) {
     // load app's did
     const appStorage = new AppStorage();
     const cachedAppDidState = await appStorage.get(Web5.APP_DID_KEY);

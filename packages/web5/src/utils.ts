@@ -1,4 +1,4 @@
-import { Encoder } from '@tbd54566975/dwn-sdk-js';
+import { DwnConstant, Encoder } from '@tbd54566975/dwn-sdk-js';
 
 const textDecoder = new TextDecoder();
 
@@ -14,34 +14,24 @@ export function bytesToObject(bytes) {
   return JSON.parse(objectString);
 }
 
-export function isEmptyObject(obj) {
-  if (typeof obj === 'object' && obj !== null) {
-    return Object.keys(obj).length === 0;
-  }
-  return false;
-}
-
-export function parseJson(str) {
-  try {
-    return JSON.parse(str);
-  } catch {
-    return null;
-  }
-}
-
-export function parseUrl(str) {
-  try {
-    return new URL(str);
-  } catch {
-    return null;
-  }
-}
-
-export function pascalToKebabCase(str) {
-  return str
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
-    .toLowerCase();
+/**
+ * Checks if the provided data size is under the cache limit.
+ * The cache limit is based on the maxDataSizeAllowedToBeEncoded defined in the DWN SDK.
+ *
+ * @export
+ * @param {number} dataSize - The size of the data to be checked, in bytes.
+ * @returns {boolean} True if the data size is less than or equal to the maximum allowed data size, false otherwise.
+ *
+ * @example
+ * // Returns: true
+ * isDataSizeUnderCacheLimit(5000);
+ *
+ * @example
+ * // Returns: false
+ * isDataSizeUnderCacheLimit(15000);
+ */
+export function isDataSizeUnderCacheLimit(dataSize: number): boolean {
+  return dataSize <= DwnConstant.maxDataSizeAllowedToBeEncoded;
 }
 
 /**
@@ -66,6 +56,13 @@ export const dataToBytes = (data: any, dataFormat?: string) => {
   return { dataBytes, dataFormat };
 };
 
+export function isEmptyObject(obj) {
+  if (typeof obj === 'object' && obj !== null) {
+    return Object.keys(obj).length === 0;
+  }
+  return false;
+}
+
 /**
  * Simplistic initial implementation to check whether messages that are being routed
  * to process locally or be transported to a remote DWN are already signed.
@@ -80,12 +77,35 @@ export function isUnsignedMessage(message) {
   return message?.message?.authorization ? false : true;
 }
 
+export function objectValuesBase64UrlToBytes(obj) {
+  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, Encoder.base64UrlToBytes(value as string)]));
+}
+
 export function objectValuesBytesToBase64Url(obj) {
   return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, Encoder.bytesToBase64Url(value as Uint8Array)]));
 }
 
-export function objectValuesBase64UrlToBytes(obj) {
-  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, Encoder.base64UrlToBytes(value as string)]));
+export function parseJson(str) {
+  try {
+    return JSON.parse(str);
+  } catch {
+    return null;
+  }
+}
+
+export function parseUrl(str) {
+  try {
+    return new URL(str);
+  } catch {
+    return null;
+  }
+}
+
+export function pascalToKebabCase(str) {
+  return str
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
+    .toLowerCase();
 }
 
 /**
