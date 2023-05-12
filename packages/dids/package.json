@@ -1,7 +1,7 @@
 {
   "name": "@tbd54566975/dids",
   "type": "module",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "main": "./dist/cjs/main.cjs",
   "module": "./dist/esm/main.mjs",
   "types": "./dist/types/main.d.ts",
@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@decentralized-identity/ion-tools": "1.0.7",
-    "@tbd54566975/crypto": "1.0.0",
+    "@tbd54566975/crypto": "alpha",
     "@tbd54566975/dwn-sdk-js": "0.0.31-unstable-2023-05-10-816a0ef",
     "cross-fetch": "3.1.5"
   },

@@ -1,7 +1,7 @@
 {
   "name": "@tbd54566975/web5-proxy-agent",
   "type": "module",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "main": "./dist/cjs/main.cjs",
   "module": "./dist/esm/main.mjs",
   "types": "./dist/main.d.ts",
@@ -23,7 +23,7 @@
     "types": "./dist/types/main.d.ts"
   },
   "dependencies": {
-    "@tbd54566975/web5-agent": "1.0.0"
+    "@tbd54566975/web5-agent": "0.1.0"
   },
   "devDependencies": {
     "@types/ed2curve": "0.2.2",

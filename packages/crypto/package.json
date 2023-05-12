@@ -1,7 +1,7 @@
 {
   "name": "@tbd54566975/crypto",
   "type": "module",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "main": "./dist/cjs/main.cjs",
   "module": "./dist/esm/main.mjs",
   "types": "./dist/types/main.d.ts",

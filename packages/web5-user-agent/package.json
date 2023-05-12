@@ -1,6 +1,6 @@
 {
   "name": "@tbd54566975/web5-user-agent",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "SDK for accessing the features and capabilities of Web5",
   "type": "module",
   "main": "./dist/cjs/main.cjs",
@@ -53,7 +53,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@decentralized-identity/ion-tools": "1.0.7",
-    "@tbd54566975/dids": "1.0.0",
+    "@tbd54566975/dids": "0.1.0",
     "@tbd54566975/dwn-sdk-js": "0.0.31-unstable-2023-05-10-816a0ef",
     "abstract-level": "1.0.3",
     "cross-fetch": "3.1.5",
