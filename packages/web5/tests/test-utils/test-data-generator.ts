@@ -25,7 +25,7 @@ export class TestDataGenerator {
   /**
    * Generates a random JavaScript object of given length in bytes.
    */
-  static randomJson(length: number): string {
+  static randomJson(length: number): object {
     // Start with an empty object.
     let obj = {};
 
@@ -54,7 +54,7 @@ export class TestDataGenerator {
       }
     }
 
-    return JSON.stringify(obj);
+    return obj;
   }
 
   /**

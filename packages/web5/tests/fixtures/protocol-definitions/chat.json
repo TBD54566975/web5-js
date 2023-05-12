@@ -1,0 +1,18 @@
+{
+  "recordDefinitions": [
+    {
+      "id": "message",
+      "schema": "http://example.org/chat/schema/message"
+    }
+  ],
+  "records": {
+    "message": {
+      "allow": [
+        {
+          "actor": "anyone",
+          "actions": ["write"]
+        }
+      ]
+    }
+  }
+}
