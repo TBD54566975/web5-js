@@ -22,6 +22,7 @@ export enum JsonRpcErrorCodes {
   InvalidParams = -32602,
   InternalError = -32603,
   ParseError = -32700,
+  TransportError = -32300,
 
   // App defined errors
   BadRequest = -50400, // equivalent to HTTP Status 400

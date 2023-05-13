@@ -1,10 +1,8 @@
 import type { DidIonCreateOptions } from '@tbd54566975/dids';
 
 import { DidIonApi, DidKeyApi, DidResolver } from '@tbd54566975/dids';
-import { Web5UserAgent, ProfileApi, ProfileStore } from '@tbd54566975/web5-user-agent';
+import { Web5UserAgent, ProfileApi, ProfileStore } from '../../src/main.js';
 import { Dwn, DataStoreLevel, EventLogLevel, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
-
-import { AppStorage } from '../../src/app-storage.js';
 
 type CreateMethodOptions = {
   testDataLocation?: string;
@@ -12,16 +10,12 @@ type CreateMethodOptions = {
 
 export type TestAgentOptions = {
   agent: Web5UserAgent;
-  appStorage: AppStorage;
   dataStore: DataStoreLevel;
   dwn: Dwn;
   eventLog: EventLogLevel;
   messageStore: MessageStoreLevel;
   profileApi: ProfileApi;
   profileStore: ProfileStore;
-  didResolver: DidResolver;
-  didIon: DidIonApi;
-  didKey: DidKeyApi;
 }
 
 export type TestProfile = {
@@ -34,33 +28,24 @@ export type TestProfileOptions = {
 
 export class TestAgent {
   agent: Web5UserAgent;
-  appStorage: AppStorage;
   dataStore: DataStoreLevel;
   dwn: Dwn;
   eventLog: EventLogLevel;
   messageStore: MessageStoreLevel;
   profileApi: ProfileApi;
   profileStore: ProfileStore;
-  didResolver: DidResolver;
-  didIon: DidIonApi;
-  didKey: DidKeyApi;
 
   constructor(options: TestAgentOptions) {
     this.agent = options.agent;
-    this.appStorage = options.appStorage;
     this.dataStore = options.dataStore;
     this.dwn = options.dwn;
     this.eventLog = options.eventLog;
     this.messageStore = options.messageStore;
     this.profileApi = options.profileApi;
     this.profileStore = options.profileStore;
-    this.didResolver = options.didResolver;
-    this.didIon = options.didIon;
-    this.didKey = options.didKey;
   }
 
   async clearStorage(): Promise<void> {
-    await this.appStorage.clear();
     await this.dataStore.clear();
     await this.eventLog.clear();
     await this.messageStore.clear();
@@ -68,7 +53,6 @@ export class TestAgent {
   }
 
   async closeStorage() {
-    await this.appStorage.close();
     await this.dataStore.close();
     await this.eventLog.close();
     await this.messageStore.close();
@@ -78,8 +62,6 @@ export class TestAgent {
   static async create(options: CreateMethodOptions = {}): Promise<TestAgent> {
     const testDataLocation = options.testDataLocation ?? '__TESTDATA__';
     const testDataPath = (path: string) => `${testDataLocation}/${path}`;
-
-    const appStorage = new AppStorage(testDataPath('APPSTORAGE'));
 
     const DidIon = new DidIonApi();
     const DidKey = new DidKeyApi();
@@ -111,17 +93,12 @@ export class TestAgent {
 
     return new TestAgent({
       agent,
-      appStorage,
       dataStore,
       dwn,
       eventLog,
       messageStore,
       profileApi,
-      profileStore,
-      didResolver,
-      didIon : DidIon,
-      didKey : DidKey
-
+      profileStore
     });
   }
 

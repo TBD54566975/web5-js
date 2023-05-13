@@ -18,17 +18,14 @@ import { Record } from './record.js';
 import { dataToBytes, isDataSizeUnderCacheLimit, isEmptyObject } from './utils.js';
 
 export type ProtocolsConfigureRequest = {
-  author: string;
   message: Omit<ProtocolsConfigureOptions, 'authorizationSignatureInput'>;
 }
 
 export type ProtocolsQueryRequest = {
-  author: string;
   message: Omit<ProtocolsQueryOptions, 'authorizationSignatureInput'>
 }
 
 export type RecordsDeleteRequest = {
-  author: string;
   message: Omit<RecordsDeleteOptions, 'authorizationSignatureInput'>;
 }
 
@@ -39,11 +36,13 @@ export type RecordsCreateResponse = RecordsWriteResponse;
 export type RecordsCreateFromRequest = {
   author: string;
   data: unknown;
-  message?: Omit<RecordsWriteOptions, 'authorizationSignatureInput' | 'data'>;
+  message?: Omit<RecordsWriteOptions, 'authorizationSignatureInput'>;
   record: Record;
 }
 
-export type RecordsDeleteResponse = MessageReply;
+export type RecordsDeleteResponse = {
+  status: MessageReply['status'];
+};
 
 // TODO: Export type RecordsQueryReplyEntry and EncryptionProperty from dwn-sdk-js.
 export type RecordsQueryReplyEntry = {
@@ -55,38 +54,57 @@ export type RecordsQueryReplyEntry = {
 };
 
 export type RecordsQueryRequest = {
-  author: string;
   message: Omit<RecordsQueryOptions, 'authorizationSignatureInput'>;
 }
 
-export type RecordsQueryResponse = MessageReply & {
+export type RecordsQueryResponse = {
+  status: MessageReply['status'];
   records: Record[]
 };
 
 export type RecordsReadRequest = {
-  author: string;
   message: Omit<RecordsReadOptions, 'authorizationSignatureInput'>;
 }
 
-export type RecordsReadResponse = MessageReply & {
+export type RecordsReadResponse = {
+  status: MessageReply['status'];
   record: Record;
 };
 
 export type RecordsWriteRequest = {
-  author: string;
   data: unknown;
-  message?: Omit<RecordsWriteOptions, 'authorizationSignatureInput' | 'data'>;
+  message?: Omit<RecordsWriteOptions, 'authorizationSignatureInput'>;
 }
 
-export type RecordsWriteResponse = MessageReply & {
+export type RecordsWriteResponse = {
+  status: MessageReply['status'];
   record?: Record
 };
+
+type SendRecordOptions =
+  ({ method: 'write' } & RecordsWriteRequest) |
+  ({ method: 'read' } & RecordsReadRequest) |
+  ({ method: 'query' } & RecordsQueryRequest) |
+  ({ method: 'delete' } & RecordsDeleteRequest)
+
+type SendResponseMap = {
+  write: RecordsWriteResponse;
+  read: RecordsReadResponse;
+  query: RecordsQueryResponse;
+  delete: RecordsDeleteResponse;
+};
+
+type SendRecordRequest<T extends SendRecordOptions> = {
+  target: string;
+} & T;
+
+type SendRecordResponse<T extends SendRecordOptions> = SendResponseMap[T['method']];
 
 /**
  * TODO: Document class.
  */
 export class DwnApi {
-  constructor(private web5Agent: Web5Agent) {}
+  constructor(private web5Agent: Web5Agent, private connectedDid: string) {}
 
   /**
  * TODO: Document namespace.
@@ -96,10 +114,10 @@ export class DwnApi {
       /**
        * TODO: Document method.
        */
-      configure: async (target: string, request: ProtocolsConfigureRequest) => {
+      configure: async (request: ProtocolsConfigureRequest) => {
         return await this.web5Agent.processDwnRequest({
-          target         : target,
-          author         : request.author,
+          target         : this.connectedDid,
+          author         : this.connectedDid,
           messageOptions : request.message,
           messageType    : DwnInterfaceName.Protocols + DwnMethodName.Configure
         });
@@ -108,12 +126,12 @@ export class DwnApi {
       /**
        * TODO: Document method.
        */
-      query: async (target: string, request: ProtocolsQueryRequest) => {
+      query: async (request: ProtocolsQueryRequest) => {
         return await this.web5Agent.processDwnRequest({
-          author         : request.author,
+          author         : this.connectedDid,
           messageOptions : request.message,
           messageType    : DwnInterfaceName.Protocols + DwnMethodName.Query,
-          target         : target
+          target         : this.connectedDid
         });
       }
     };
@@ -127,14 +145,14 @@ export class DwnApi {
       /**
        * TODO: Document method.
        */
-      create: async (target: string, request: RecordsCreateRequest): Promise<RecordsCreateResponse> => {
-        return this.records.write(target, request);
+      create: async (request: RecordsCreateRequest): Promise<RecordsCreateResponse> => {
+        return this.records.write(request);
       },
 
       /**
        * TODO: Document method.
        */
-      createFrom: async (target: string, request: RecordsCreateFromRequest): Promise<RecordsWriteResponse> => {
+      createFrom: async (request: RecordsCreateFromRequest): Promise<RecordsWriteResponse> => {
         const { author: inheritedAuthor, ...inheritedProperties } = request.record.toJSON();
 
         // Remove target from inherited properties since target is being explicitly defined in method parameters.
@@ -160,8 +178,7 @@ export class DwnApi {
           delete inheritedProperties.recordId;
         }
 
-        return this.records.write(target, {
-          author  : request.author || inheritedAuthor,
+        return this.records.write({
           data    : request.data,
           message : {
             ...inheritedProperties,
@@ -173,18 +190,18 @@ export class DwnApi {
       /**
        * TODO: Document method.
        */
-      delete: async (target: string, request: RecordsDeleteRequest): Promise<RecordsDeleteResponse> => {
-        const { author, message: requestMessage } = request;
+      delete: async (request: RecordsDeleteRequest): Promise<RecordsDeleteResponse> => {
+        const { message: requestMessage } = request;
 
         const messageOptions: Partial<RecordsDeleteOptions> = {
           ...requestMessage
         };
 
         const agentResponse = await this.web5Agent.processDwnRequest({
-          author,
+          author      : this.connectedDid,
           messageOptions,
-          messageType: DwnInterfaceName.Records + DwnMethodName.Delete,
-          target
+          messageType : DwnInterfaceName.Records + DwnMethodName.Delete,
+          target      : this.connectedDid
         });
 
         const { reply: { status } } = agentResponse;
@@ -195,26 +212,26 @@ export class DwnApi {
       /**
        * TODO: Document method.
        */
-      query: async (target: string, request: RecordsQueryRequest): Promise<RecordsQueryResponse> => {
-        const { author, message: requestMessage } = request;
+      query: async (request: RecordsQueryRequest): Promise<RecordsQueryResponse> => {
+        const { message: requestMessage } = request;
 
         const messageOptions: Partial<RecordsQueryOptions> = {
           ...requestMessage
         };
 
         const agentResponse = await this.web5Agent.processDwnRequest({
-          author,
+          author      : this.connectedDid,
           messageOptions,
-          messageType: DwnInterfaceName.Records + DwnMethodName.Query,
-          target
+          messageType : DwnInterfaceName.Records + DwnMethodName.Query,
+          target      : this.connectedDid
         });
 
         const { reply: { entries, status } } = agentResponse;
 
         const records = entries.map((entry: RecordsQueryReplyEntry) => {
           const recordOptions = {
-            author,
-            target,
+            author : this.connectedDid,
+            target : this.connectedDid,
             ...entry as RecordsWriteMessage
           };
           const record = new Record(this.web5Agent, recordOptions);
@@ -227,18 +244,18 @@ export class DwnApi {
       /**
        * TODO: Document method.
        */
-      read: async (target: string, request: RecordsReadRequest): Promise<RecordsReadResponse> => {
-        const { author, message: requestMessage } = request;
+      read: async (request: RecordsReadRequest): Promise<RecordsReadResponse> => {
+        const { message: requestMessage } = request;
 
         const messageOptions: Partial<RecordsReadOptions> = {
           ...requestMessage
         };
 
         const agentResponse = await this.web5Agent.processDwnRequest({
-          author,
+          author      : this.connectedDid,
           messageOptions,
-          messageType: DwnInterfaceName.Records + DwnMethodName.Read,
-          target
+          messageType : DwnInterfaceName.Records + DwnMethodName.Read,
+          target      : this.connectedDid
         });
 
         const { reply } = agentResponse;
@@ -247,8 +264,8 @@ export class DwnApi {
         let record: Record;
         if (200 <= status.code && status.code <= 299) {
           const recordOptions = {
-            author,
-            target,
+            author : this.connectedDid,
+            target : this.connectedDid,
             ...responseRecord,
           };
 
@@ -269,8 +286,8 @@ export class DwnApi {
        * `record.data.stream()` will return the data when called even if it requires fetching
        * from the DWN datastore.
        */
-      write: async (target: string, request: RecordsWriteRequest): Promise<RecordsWriteResponse> => {
-        const { author, data, message: requestMessage } = request;
+      write: async (request: RecordsWriteRequest): Promise<RecordsWriteResponse> => {
+        const { data, message: requestMessage } = request;
 
         const messageOptions: Partial<RecordsWriteOptions> = {
           ...requestMessage
@@ -288,11 +305,11 @@ export class DwnApi {
         }
 
         const agentResponse = await this.web5Agent.processDwnRequest({
-          author,
-          dataStream,
+          author      : this.connectedDid,
+          dataStream  : dataStream as any,
           messageOptions,
-          messageType: DwnInterfaceName.Records + DwnMethodName.Write,
-          target
+          messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+          target      : this.connectedDid
         });
 
         const { message, reply: { status } } = agentResponse;
@@ -304,9 +321,9 @@ export class DwnApi {
           const encodedData = isDataSizeUnderCacheLimit(responseMessage.descriptor.dataSize) ? messageOptions.data : null;
 
           const recordOptions = {
-            author,
+            author : this.connectedDid,
             encodedData,
-            target,
+            target : this.connectedDid,
             ...responseMessage,
           };
 
@@ -315,6 +332,48 @@ export class DwnApi {
 
         return { record, status };
       },
+
+      /**
+       * sends a record to a remote DWN
+       * @param _request
+       * @returns
+       */
+      send: async <T extends SendRecordOptions>(request: SendRecordRequest<T>): Promise<SendRecordResponse<T>> => {
+        const author = this.connectedDid;
+
+        if (request.method === 'query') {
+          const agentResponse = await this.web5Agent.sendDwnRequest({
+            author,
+            target         : request.target,
+            messageOptions : request.message,
+            messageType    : DwnInterfaceName.Records + DwnMethodName.Query,
+          });
+
+          // TODO: (Moe -> Frank) figure out error handling
+          if (agentResponse.error) {}
+
+          return this.#parseRecordsQueryResult(agentResponse.result, author, request.target) as any;
+        } else if (request.method === 'write') {
+          // TODO: (Moe) resume here
+          return undefined;
+        }
+      },
     };
+  }
+
+  #parseRecordsQueryResult(recordsQueryResult: { reply: MessageReply }, author: string, target: string): RecordsQueryResponse {
+    const { reply: { entries, status } } = recordsQueryResult;
+
+    const records = entries.map((entry: RecordsQueryReplyEntry) => {
+      const recordOptions = {
+        author,
+        target,
+        ...entry as RecordsWriteMessage
+      };
+      const record = new Record(this.web5Agent, recordOptions);
+      return record;
+    });
+
+    return { records, status };
   }
 }

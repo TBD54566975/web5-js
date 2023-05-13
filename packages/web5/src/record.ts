@@ -157,7 +157,7 @@ export class Record implements RecordModel {
    * TODO: Document method.
    */
   async delete(): Promise<RecordsDeleteResponse> {
-    if (this.isDeleted) throw new Error(`Error: Record with ID '${this.id}' was previously deleted.`);
+    if (this.isDeleted) throw new Error(`Record with ID '${this.id}' was previously deleted.`);
 
     // Attempt to delete the record from the DWN.
     const agentResponse = await this.#web5Agent.processDwnRequest({
@@ -207,6 +207,10 @@ export class Record implements RecordModel {
     };
   }
 
+  toString() {
+    return 'hi';
+  }
+
   /**
    * TODO: Document method.
    */
@@ -233,7 +237,7 @@ export class Record implements RecordModel {
     }
 
     // Throw an error if an attempt is made to modify immutable properties. `data` has already been handled.
-    const mutableDescriptorProperties = ['data', 'dataCid', 'dataSize', 'dateModified', 'datePublished', 'published'];
+    const mutableDescriptorProperties = new Set(['data', 'dataCid', 'dataSize', 'dateModified', 'datePublished', 'published']);
     Record.#verifyPermittedMutation(Object.keys(options), mutableDescriptorProperties);
 
     // If a new `dateModified` was not provided, remove it from the updateMessage to let the DWN SDK auto-fill.
@@ -259,7 +263,7 @@ export class Record implements RecordModel {
 
     const agentResponse = await this.#web5Agent.processDwnRequest({
       author      : this.author,
-      dataStream,
+      dataStream  : dataStream as any,
       messageOptions,
       messageType : DwnInterfaceName.Records + DwnMethodName.Write,
       target      : this.target,
@@ -301,9 +305,9 @@ export class Record implements RecordModel {
   /**
    * TODO: Document method.
    */
-  static #verifyPermittedMutation(propertiesToMutate: Iterable<string>, mutableDescriptorProperties: Array<string>) {
+  static #verifyPermittedMutation(propertiesToMutate: Iterable<string>, mutableDescriptorProperties: Set<string>) {
     for (const property of propertiesToMutate) {
-      if (!mutableDescriptorProperties.includes(property)) {
+      if (!mutableDescriptorProperties.has(property)) {
         throw new Error(`${property} is an immutable property. Its value cannot be changed.`);
       }
     }
