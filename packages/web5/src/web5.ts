@@ -16,14 +16,16 @@ export type Web5ConnectOptions = {
   didResolutionCache?: DidResolverCache;
 }
 
-export type Web5Options = {
+type Web5Options = {
   web5Agent: Web5Agent;
   appStorage?: AppStorage;
+  connectedDid: string;
 };
 
 export class Web5 {
   appStorage: AppStorage;
   dwn: DwnApi;
+  #connectedDid: string;
 
   static did = new DidApi({
     didMethodApis: [new DidIonApi(), new DidKeyApi()]
@@ -35,8 +37,9 @@ export class Web5 {
 
   private static APP_DID_KEY = 'WEB5_APP_DID';
 
-  constructor(options: Web5Options) {
-    this.dwn = new DwnApi(options.web5Agent);
+  private constructor(options: Web5Options) {
+    this.#connectedDid = options.connectedDid;
+    this.dwn = new DwnApi(options.web5Agent, this.#connectedDid);
     this.appStorage ||= new AppStorage();
   }
 
@@ -75,8 +78,10 @@ export class Web5 {
     }
 
     const agent = await Web5UserAgent.create({ profileManager: profileApi, didResolver: Web5.did.resolver });
-    const web5 = new Web5({ appStorage: appStorage, web5Agent: agent });
+    const connectedDid = profile.did.id;
 
-    return { web5, did: profile.did.id };
+    const web5 = new Web5({ appStorage: appStorage, web5Agent: agent, connectedDid });
+
+    return { web5, did: connectedDid };
   }
 }

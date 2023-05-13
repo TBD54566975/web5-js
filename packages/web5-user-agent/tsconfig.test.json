@@ -4,13 +4,13 @@
       "DOM",
       "ES6"
     ],
-    "allowJs": true,
-    "target": "es6",
+    "target": "ESNext",
     "module": "ESNext", // Required for enabling JavaScript import assertion support
     "declaration": true,
     "declarationMap": true,
-    "emitDeclarationOnly": true,
-    "declarationDir": "dist/types",
+    "rootDir": "./",
+    "outDir": "__tests__",
+    "declarationDir": "__tests__/types",
     "sourceMap": true,
     // `NodeNext` will throw compilation errors if relative import paths are missing file extension
     // reference: https://devblogs.microsoft.com/typescript/announcing-typescript-4-7/#ecmascript-module-support-in-node-js
@@ -18,10 +18,12 @@
     "esModuleInterop": true
   },
   "include": [
-    "src"
+    "src",
+    "tests",
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "__tests__"
   ]
 }

@@ -1,5 +1,15 @@
 import type { DwnServiceEndpoint } from '@tbd54566975/dids';
-import type { Web5Agent, SendDwnRequest, ProcessDwnRequest, ProcessDwnResponse } from '@tbd54566975/web5-agent';
+import {
+  Web5Agent,
+  SendDwnRequest,
+  ProcessDwnRequest,
+  ProcessDwnResponse,
+  JsonRpcErrorCodes,
+  DwnRpcRequest,
+  DwnRpcResponse,
+  DwnRpc
+} from '@tbd54566975/web5-agent';
+
 import type {
   SignatureInput,
   PrivateJwk as DwnPrivateKeyJwk,
@@ -7,7 +17,6 @@ import type {
   RecordsWriteMessage
 } from '@tbd54566975/dwn-sdk-js';
 
-import type { DwnRpcRequest, DwnRpc } from './dwn-rpc-client.js';
 import type { ProfileManager } from './profile-manager.js';
 
 import { DidResolver, DidIonApi, DidKeyApi, utils as didUtils } from '@tbd54566975/dids';
@@ -47,6 +56,8 @@ const dwnMessageCreators = {
   [DwnInterfaceName.Protocols + DwnMethodName.Configure] : ProtocolsConfigure,
 };
 
+const sendRetryCodes = new Set([JsonRpcErrorCodes.InternalError, JsonRpcErrorCodes.TransportError]);
+
 export class Web5UserAgent implements Web5Agent {
   private dwn: Dwn;
   private profileManager: ProfileManager;
@@ -61,6 +72,11 @@ export class Web5UserAgent implements Web5Agent {
     this.dwnRpcClient = new DwnRpcClient();
   }
 
+  /**
+   * TODO: add jsdoc
+   * @param options
+   * @returns
+   */
   static async create(options: Partial<Web5UserAgentOptions>) {
     options.dwn ||= await Dwn.create();
     options.profileManager ||= new ProfileApi();
@@ -69,20 +85,15 @@ export class Web5UserAgent implements Web5Agent {
     return new Web5UserAgent(options as Web5UserAgentOptions);
   }
 
-  async processDwnRequest(message: ProcessDwnRequest): Promise<ProcessDwnResponse> {
+  /**
+   * TODO: add jsdoc
+   * @param message
+   * @returns
+   */
+  async processDwnRequest(request: ProcessDwnRequest): Promise<ProcessDwnResponse> {
+    const dwnMessage = await this.#constructDwnMessage(request);
 
-    const dwnSignatureInput = await this.#getAuthorSignatureInput(message.author);
-
-    // TODO: if we ever find time, figure out how to narrow this type. may have figured something out in `web5.DidInterface`
-    const messageCreateInput = {
-      ...<any>message.messageOptions,
-      authorizationSignatureInput: dwnSignatureInput
-    };
-
-    const messageCreator = dwnMessageCreators[message.messageType];
-    const dwnMessage = await messageCreator.create(messageCreateInput as any);
-
-    const reply = await this.dwn.processMessage(message.target, dwnMessage.toJSON(), message.dataStream);
+    const reply = await this.dwn.processMessage(request.target, dwnMessage.toJSON(), request.dataStream as any);
 
     return {
       reply,
@@ -90,62 +101,30 @@ export class Web5UserAgent implements Web5Agent {
     };
   }
 
-  async sendDwnRequest(request: SendDwnRequest): Promise<any> {
-    const dwnSignatureInput = await this.#getAuthorSignatureInput(request.author);
-    const messagesGet = await MessagesGet.create({
-      authorizationSignatureInput : dwnSignatureInput,
-      messageCids                 : [request.messageCid]
-    });
-
-    const result: MessagesGetReply = await this.dwn.processMessage(request.author, messagesGet.toJSON());
-    const [ messageEntry ] = result.messages;
-
-    if (!messageEntry) {
-      throw new Error('TODO: figure out error message');
-    }
-
-    const { messageType } = request;
-    let { message } = messageEntry;
-
-    if (!message) {
-      throw new Error('TODO: message not found');
-    }
-
+  async sendDwnRequest(request: ProcessDwnRequest): Promise<any> {
+    const dwnMessage = await this.#constructDwnMessage(request);
     const dwnRpcRequest: Partial<DwnRpcRequest> = {
-      targetDid: request.author,
-      message
+      targetDid : request.target,
+      message   : dwnMessage
     };
-    // if the message is a RecordsWrite, either data will be present, OR we have to fetch it using a RecordsRead
-    if (messageType === 'RecordsWrite') {
-      const { encodedData } = messageEntry;
-      message = message as RecordsWriteMessage;
 
-      if (encodedData) {
-        const dataBytes = Encoder.base64UrlToBytes(encodedData);
-        dwnRpcRequest.data = new Blob([dataBytes]);
+    const didResolution = await this.didResolver.resolve(request.target);
+
+    if (!didResolution.didDocument) {
+      if (didResolution.didResolutionMetadata?.error) {
+        throw new Error(`DID resolution error: ${didResolution.didResolutionMetadata.error}`);
+
       } else {
-        const recordsRead = await RecordsRead.create({
-          authorizationSignatureInput : dwnSignatureInput,
-          recordId                    : message['recordId']
-        });
-
-        // TODO: set reply type to RecordsReadReply once it is exported from dwn-sdk-js
-        const reply = await this.dwn.processMessage(request.author, recordsRead.toJSON());
-        dwnRpcRequest.data = reply.data;
+        throw new Error('DID resolution error: figure out error message');
       }
     }
 
-    const { didDocument } = await this.didResolver.resolve(request.author);
-    if (!didDocument) {
-      throw new Error('TODO: figure out error message <Did Resolution failure>');
-    }
+    const { didDocument } = didResolution;
 
-    // TODO: is it true that there would only be 1 service that matches id '#dwn'?
     const [ service ] = didUtils.getServices(didDocument, { id: '#dwn' });
 
     if (!service) {
-      // TODO: return silently or throw error?
-      throw new Error(`${request.author} has no dwn service endpoints`);
+      throw new Error(`${request.target} has no dwn service endpoints`);
     }
 
     const { serviceEndpoint } = service;
@@ -154,20 +133,40 @@ export class Web5UserAgent implements Web5Agent {
     }
 
     const { nodes } = serviceEndpoint as DwnServiceEndpoint;
+    let lastDwnRpcResponse: DwnRpcResponse;
 
     // try sending to author's publicly addressable dwn's until first request succeeds.
     for (let node of nodes) {
       dwnRpcRequest.dwnUrl = node;
-      // TODO: check for presence of error in dwnResponse.jsonRpcResponse. no point in blindly trying other nodes
-      //       if request is malformed. going to have to decide based on error code
+      lastDwnRpcResponse = await this.dwnRpcClient.sendDwnRequest(dwnRpcRequest as DwnRpcRequest);
 
-      // TODO: collect all responses
-      const _dwnResponse = await this.dwnRpcClient.sendDwnRequest(dwnRpcRequest as DwnRpcRequest);
+      if (lastDwnRpcResponse.error) {
+        const { error } = lastDwnRpcResponse;
+        if (sendRetryCodes.has(error.code)) {
+          continue;
+        } else {
+          break;
+        }
+      }
     }
 
-    // TODO: resume here. decision fatigue (Moe - 05-11-2022)
-    // TODO: if sending to author's DWN failed, bail
-    // TODO: if request.target, attempt to send to target's DWN
+    // TODO: (Moe -> Frank): Chat with frank about what to return
+    return lastDwnRpcResponse;
+  }
+
+  async #constructDwnMessage(request) {
+    const dwnSignatureInput = await this.#getAuthorSignatureInput(request.author);
+
+    // TODO: if we ever find time, figure out how to narrow this type. may have figured something out in `web5.DidInterface`
+    const messageCreateInput = {
+      ...<any>request.messageOptions,
+      authorizationSignatureInput: dwnSignatureInput
+    };
+
+    const messageCreator = dwnMessageCreators[request.messageType];
+    const dwnMessage = await messageCreator.create(messageCreateInput as any);
+
+    return dwnMessage;
   }
 
   /**
