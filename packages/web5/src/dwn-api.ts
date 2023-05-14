@@ -198,7 +198,7 @@ export class DwnApi {
        * TODO: Document method.
        */
       query: async (request: RecordsQueryRequest): Promise<RecordsQueryResponse> => {
-        const agentRequestPayload = {
+        const agentRequest = {
           author         : this.connectedDid,
           messageOptions : request.message,
           messageType    : DwnInterfaceName.Records + DwnMethodName.Query,
@@ -208,9 +208,9 @@ export class DwnApi {
         let agentResponse;
 
         if (request.from) {
-          agentResponse = await this.web5Agent.sendDwnRequest(agentRequestPayload);
+          agentResponse = await this.web5Agent.sendDwnRequest(agentRequest);
         } else {
-          agentResponse = await this.web5Agent.processDwnRequest(agentRequestPayload);
+          agentResponse = await this.web5Agent.processDwnRequest(agentRequest);
         }
 
         const { reply: { entries, status } } = agentResponse;

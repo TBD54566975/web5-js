@@ -40,7 +40,7 @@ describe('web5.dwn', () => {
         purposes : ['authentication'],
       },
       {
-        id       : 'encrypt',
+        id       : 'encr',
         type     : 'JsonWebKey2020',
         keyPair  : await generateKeyPair('secp256k1'),
         purposes : ['keyAgreement'],
@@ -411,10 +411,14 @@ describe('web5.dwn', () => {
       });
 
       it('sends the query to the target provided', async () => {
+        // Write the record to the connected agent's DWN.
         const { record, status } = await dwn.records.write({ data: 'hi' });
         expect(status.code).to.equal(202);
 
+        // Create a new DID to represent an external entity who has a remote DWN server defined in their DID document.
         const { id: bobDid } = await testAgent.didIon.create(didIonOptions);
+
+        // Attempt to query Bob's DWN using the ID of a record that only exists in the connected agent's DWN.
         const result = await dwn.records.query({
           from    : bobDid,
           message : {
@@ -424,6 +428,7 @@ describe('web5.dwn', () => {
           }
         });
 
+        // Confirm that the record does not currently exist on Bob's DWN.
         expect(result.status.code).to.equal(200);
         expect(result.records).to.exist;
         expect(result.records!.length).to.equal(0);
