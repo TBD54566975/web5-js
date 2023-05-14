@@ -44,17 +44,17 @@ export type ProcessDwnRequest = {
  * TODO: add JSDoc
  */
 export type ProcessDwnResponse = {
-  reply: MessageReply;
   message?: unknown;
+  reply: MessageReply;
 };
 
 /**
  * TODO: add JSDoc
  */
 export type SendDwnRequest = {
+  author: string;
   messageCid: string;
   messageType: string;
-  author: string;
   target: string;
 };
 
@@ -92,10 +92,10 @@ export interface DwnRpc {
  * TODO: add jsdoc
  */
 export type DwnRpcRequest = {
-  targetDid: string;
+  data?: any;
   dwnUrl: string;
   message: SerializableDwnMessage | any;
-  data?: any;
+  targetDid: string;
 }
 
 /**

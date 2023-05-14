@@ -6,5 +6,5 @@ let web5: Web5;
 let did: string;
 
 describe('web5.did', () => {
-  xit('works');
+  xit('tests needed');
 });

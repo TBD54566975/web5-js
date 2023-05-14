@@ -2,21 +2,21 @@ import type { DwnServiceEndpoint } from '@tbd54566975/dids';
 
 import { Readable } from 'readable-stream';
 import {
+  DwnRpc,
   Web5Agent,
-  ProcessDwnRequest,
-  ProcessDwnResponse,
-  JsonRpcErrorCodes,
   DwnRpcRequest,
   DwnRpcResponse,
-  DwnRpc
+  JsonRpcErrorCodes,
+  ProcessDwnRequest,
+  ProcessDwnResponse,
 } from '@tbd54566975/web5-agent';
 
 import {
-  SignatureInput,
-  PrivateJwk as DwnPrivateKeyJwk,
-  RecordsWriteOptions,
   Cid,
-  DataStream
+  DataStream,
+  SignatureInput,
+  RecordsWriteOptions,
+  PrivateJwk as DwnPrivateKeyJwk,
 } from '@tbd54566975/dwn-sdk-js';
 
 import type { ProfileManager } from './profile-manager.js';
