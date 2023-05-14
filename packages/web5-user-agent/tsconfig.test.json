@@ -19,7 +19,8 @@
   },
   "include": [
     "src",
-    "tests",
+    "tests/common",
+    "tests/node"
   ],
   "exclude": [
     "node_modules",

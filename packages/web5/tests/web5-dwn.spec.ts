@@ -1,4 +1,4 @@
-import type { DidDocument } from '@tbd54566975/dids';
+import type { DidDocument, DidIonCreateOptions } from '@tbd54566975/dids';
 import type { TestProfileOptions } from './test-utils/test-user-agent.js';
 import type { PrivateJwk as DwnPrivateKeyJwk, PublicJwk as DwnPublicKeyJwk, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
@@ -22,6 +22,7 @@ let aliceDid: string;
 let dataBytes: Uint8Array;
 let dataFormat: string;
 let dataText: string;
+let didIonOptions: DidIonCreateOptions;
 let testProfileOptions: TestProfileOptions;
 let testAgent: TestAgent;
 let did: string;
@@ -52,21 +53,25 @@ describe('web5.dwn', () => {
       }
     ];
 
+    didIonOptions = {
+      services: [
+        {
+          id              : 'dwn',
+          type            : 'DecentralizedWebNode',
+          serviceEndpoint : {
+            nodes                    : ['https://dwn.tbddev.org/dwn0'],
+            messageAttestationKeys   : ['#attest'],
+            messageAuthorizationKeys : ['#authz'],
+            recordEncryptionKeys     : ['#encr']
+          }
+        }
+      ]
+    };
+
     testProfileOptions = {
       profileDidOptions: {
         keys,
-        services: [
-          {
-            id              : 'dwn',
-            type            : 'DecentralizedWebNode',
-            serviceEndpoint : {
-              nodes                    : ['https://dwn.tbddev.xyz'],
-              messageAttestationKeys   : ['#attest'],
-              messageAuthorizationKeys : ['#authz'],
-              recordEncryptionKeys     : ['#encrypt']
-            }
-          }
-        ]
+        ...didIonOptions
       }
     };
 
@@ -400,8 +405,28 @@ describe('web5.dwn', () => {
         });
 
         expect(result.status.code).to.equal(200);
-        expect(result.records.length).to.equal(1);
-        expect(result.records[0].id).to.equal(writeResult.record!.id);
+        expect(result.records).to.exist;
+        expect(result.records!.length).to.equal(1);
+        expect(result.records![0].id).to.equal(writeResult.record!.id);
+      });
+
+      it('sends the query to the target provided', async () => {
+        const { record, status } = await dwn.records.write({ data: 'hi' });
+        expect(status.code).to.equal(202);
+
+        const { id: bobDid } = await testAgent.didIon.create(didIonOptions);
+        const result = await dwn.records.query({
+          from    : bobDid,
+          message : {
+            filter: {
+              recordId: record!.id
+            }
+          }
+        });
+
+        expect(result.status.code).to.equal(200);
+        expect(result.records).to.exist;
+        expect(result.records!.length).to.equal(0);
       });
     });
 

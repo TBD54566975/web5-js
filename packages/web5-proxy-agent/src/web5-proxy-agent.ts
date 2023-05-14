@@ -9,7 +9,7 @@ export class Web5ProxyAgent implements Web5Agent {
     throw new Error('Method not implemented.');
   }
 
-  sendDwnRequest(_request: SendDwnRequest): Promise<any> {
+  sendDwnRequest(_request: ProcessDwnRequest): Promise<any> {
     throw new Error('Method not implemented.');
   }
 }

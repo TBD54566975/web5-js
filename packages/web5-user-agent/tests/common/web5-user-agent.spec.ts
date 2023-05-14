@@ -63,13 +63,11 @@ describe('Web5UserAgent', () => {
         }
       });
 
-      expect(response.id).to.exist;
-      expect(response.result).to.exist;
-      expect(response.result.reply).to.exist;
-      expect(response.result.error).to.not.exist;
-      expect(response.result.reply.status).to.exist;
-      expect(response.result.reply.entries).to.exist;
-      expect(response.result.reply.status.code).to.equal(200);
+      expect(response.reply).to.exist;
+      expect(response.error).to.not.exist;
+      expect(response.reply.status).to.exist;
+      expect(response.reply.entries).to.exist;
+      expect(response.reply.status.code).to.equal(200);
     });
 
     it('handles RecordsDelete Messages', async () => {
@@ -95,12 +93,10 @@ describe('Web5UserAgent', () => {
       });
 
       // TODO: (Moe -> Frank): interesting that  202 is returned
-      expect(response.id).to.exist;
-      expect(response.result).to.exist;
-      expect(response.result.reply).to.exist;
-      expect(response.result.error).to.not.exist;
-      expect(response.result.reply.status).to.exist;
-      expect(response.result.reply.status.code).to.equal(202);
+      expect(response.reply).to.exist;
+      expect(response.error).to.not.exist;
+      expect(response.reply.status).to.exist;
+      expect(response.reply.status.code).to.equal(202);
     });
 
     it('returns something when an jwark is smorked', async () => {

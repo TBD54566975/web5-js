@@ -1,3 +1,5 @@
+import type { Readable } from 'readable-stream';
+
 import type {
   MessageReply,
   RecordsQueryMessage,
@@ -32,7 +34,7 @@ export type DwnMessageType = keyof DwnMessages;
  */
 export type ProcessDwnRequest = {
   author: string;
-  dataStream?: Blob | ReadableStream;
+  dataStream?: Blob | ReadableStream | Readable;
   messageType: string;
   messageOptions: unknown;
   target: string;
