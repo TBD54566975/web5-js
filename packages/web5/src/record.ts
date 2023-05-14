@@ -179,6 +179,24 @@ export class Record implements RecordModel {
 
   /**
    * TODO: Document method.
+   */
+  async send(target: string): Promise<any> {
+    if (this.isDeleted) throw new Error(`Record with ID '${this.id}' was previously deleted.`);
+
+    const agentResponse = await this.#web5Agent.sendDwnRequest({
+      author         : this.author,
+      // TODO: Frank -> Moe: The data in a Record instance is a node Readable. At what stage in processing should it be converted depending on whether its Web5ProxyAgent or Web5UserAgent.
+      // dataStream     : await this.data.stream(),
+      target         : target,
+      messageOptions : this.toJSON(),
+      messageType    : DwnInterfaceName.Records + DwnMethodName.Write,
+    });
+
+    console.log(agentResponse);
+  }
+
+  /**
+   * TODO: Document method.
    *
    * Called by `JSON.stringify(...)` automatically.
    */
@@ -207,8 +225,24 @@ export class Record implements RecordModel {
     };
   }
 
+  /**
+   * TODO: Document method.
+   *
+   * Called automatically in string concatenation, String() type conversion, and template literals.
+   */
   toString() {
-    return 'hi';
+    let str = `Record: {\n`;
+    str += `  ID: ${this.id}\n`;
+    str += this.contextId ? `  Context ID: ${this.contextId}\n` : '';
+    str += this.protocol ? `  Protocol: ${this.protocol}\n` : '';
+    str += this.schema ? `  Schema: ${this.schema}\n` : '';
+    str += `  Data CID: ${this.dataCid}\n`;
+    str += `  Data Format: ${this.dataFormat}\n`;
+    str += `  Data Size: ${this.dataSize}\n`;
+    str += `  Created: ${this.dateCreated}\n`;
+    str += `  Modified: ${this.dateModified}\n`;
+    str += `}`;
+    return str;
   }
 
   /**

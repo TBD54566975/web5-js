@@ -28,7 +28,7 @@ describe('Web5UserAgent', () => {
           messageType    : 'RecordsQuery',
           messageOptions : {
             filter: {
-              schema: 'farts'
+              schema: 'https://schemas.xyz/example'
             }
           }
         });
@@ -58,7 +58,7 @@ describe('Web5UserAgent', () => {
         messageType    : 'RecordsQuery',
         messageOptions : {
           filter: {
-            schema: 'farts'
+            schema: 'https://schemas.xyz/example'
           }
         }
       });

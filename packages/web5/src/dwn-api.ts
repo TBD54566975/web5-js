@@ -332,48 +332,6 @@ export class DwnApi {
 
         return { record, status };
       },
-
-      /**
-       * sends a record to a remote DWN
-       * @param _request
-       * @returns
-       */
-      send: async <T extends SendRecordOptions>(request: SendRecordRequest<T>): Promise<SendRecordResponse<T>> => {
-        const author = this.connectedDid;
-
-        if (request.method === 'query') {
-          const agentResponse = await this.web5Agent.sendDwnRequest({
-            author,
-            target         : request.target,
-            messageOptions : request.message,
-            messageType    : DwnInterfaceName.Records + DwnMethodName.Query,
-          });
-
-          // TODO: (Moe -> Frank) figure out error handling
-          if (agentResponse.error) {}
-
-          return this.#parseRecordsQueryResult(agentResponse.result, author, request.target) as any;
-        } else if (request.method === 'write') {
-          // TODO: (Moe) resume here
-          return undefined;
-        }
-      },
     };
-  }
-
-  #parseRecordsQueryResult(recordsQueryResult: { reply: MessageReply }, author: string, target: string): RecordsQueryResponse {
-    const { reply: { entries, status } } = recordsQueryResult;
-
-    const records = entries.map((entry: RecordsQueryReplyEntry) => {
-      const recordOptions = {
-        author,
-        target,
-        ...entry as RecordsWriteMessage
-      };
-      const record = new Record(this.web5Agent, recordOptions);
-      return record;
-    });
-
-    return { records, status };
   }
 }

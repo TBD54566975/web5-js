@@ -24,7 +24,7 @@ describe('Record', () => {
 
 
   describe('record.update', () => {
-    it(`updates a record`, async () => {
+    it('updates a record', async () => {
       const { status, record } = await dwn.records.write({
         data    : 'Hello, world!',
         message : {
@@ -33,25 +33,25 @@ describe('Record', () => {
         }
       });
 
+      const dataCidBeforeDataUpdate = record!.dataCid;
+
       expect(status.code).to.equal(202);
       expect(record).to.not.be.undefined;
 
       const updateResult = await record!.update({ data: 'bye' });
       expect(updateResult.status.code).to.equal(202);
 
-      const queryResult = await dwn.records.query({
+      const readResult = await dwn.records.read({
         message: {
-          filter: {
-            recordId: record!.id
-          }
+          recordId: record!.id
         }
       });
 
-      expect(queryResult.status.code).to.equal(200);
-      expect(queryResult.records.length).to.equal(1);
+      expect(readResult.status.code).to.equal(200);
+      expect(readResult.record).to.not.be.undefined;
 
-      // TODO: From Moe to Frank
-      // expect(queryResult.records[0].dataCid).to.not.equal(record!.dataCid);
+      expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
+      expect(readResult.record.dataCid).to.equal(record!.dataCid);
 
       const updatedData = await record!.data.text();
       expect(updatedData).to.equal('bye');

@@ -57,12 +57,10 @@ describe('web5.dwn', () => {
         keys,
         services: [
           {
-            'id'              : 'dwn',
-            'type'            : 'DecentralizedWebNode',
-            'serviceEndpoint' : {
-              'nodes': [
-                'https://dwn.tbddev.xyz'
-              ],
+            id              : 'dwn',
+            type            : 'DecentralizedWebNode',
+            serviceEndpoint : {
+              nodes                    : ['https://dwn.tbddev.xyz'],
               messageAttestationKeys   : ['#attest'],
               messageAuthorizationKeys : ['#authz'],
               recordEncryptionKeys     : ['#encrypt']
@@ -506,58 +504,6 @@ describe('web5.dwn', () => {
         });
 
         expect(deleteResult.status.code).to.equal(202);
-      });
-    });
-
-
-    describe('send', () => {
-      it('TODO: figure out what we want to do when target did has no service endpoints', async () => {
-        const { id: bobDid } = await testAgent.didIon.create();
-
-        try {
-          const response = await dwn.records.send({
-            target  : bobDid,
-            method  : 'query',
-            message : {
-              filter: {
-                schema: 'butts'
-              }
-            }
-          });
-
-          expect.fail();
-        } catch(e) {
-          expect(e.message).to.include('no dwn service endpoints');
-        }
-      });
-
-      describe('write', () => {
-        it(`sends a RecordsWrite dwn message to the target's did-resolvable dwn`, async () => {
-          const response = await dwn.records.send({
-            target : did,
-            method : 'write',
-            data   : 'Hi!',
-          });
-
-          console.log(response);
-        });
-      });
-
-      describe('query', () => {
-        it(`sends a RecordsQuery dwn message to the target's did-resolvable dwn`, async () => {
-          const response = await dwn.records.send({
-            target  : did,
-            method  : 'query',
-            message : {
-              filter: {
-                schema: 'butts'
-              }
-            }
-          });
-
-          expect(response.status.code).to.equal(200);
-          expect(response.records.length).to.equal(0);
-        });
       });
     });
   });
