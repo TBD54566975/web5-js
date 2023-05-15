@@ -6,7 +6,6 @@ import type {
   RecordsDeleteOptions,
   RecordsQueryOptions,
   RecordsReadOptions,
-  RecordsReadReply,
   RecordsWriteDescriptor,
   RecordsWriteMessage,
   RecordsWriteOptions,
@@ -56,7 +55,7 @@ export type RecordsQueryReplyEntry = {
 
 
 export type RecordsQueryRequest = {
-  /** where the query results will come from */
+  /** The from property indicates the DID to query from and return results. */
   from?: string;
   message: Omit<RecordsQueryOptions, 'authorizationSignatureInput'>;
 }
@@ -67,6 +66,8 @@ export type RecordsQueryResponse = {
 };
 
 export type RecordsReadRequest = {
+  /** The from property indicates the DID to read from and return results fro. */
+  from?: string;
   message: Omit<RecordsReadOptions, 'authorizationSignatureInput'>;
 }
 
@@ -232,21 +233,31 @@ export class DwnApi {
        * TODO: Document method.
        */
       read: async (request: RecordsReadRequest): Promise<RecordsReadResponse> => {
-        const { message: requestMessage } = request;
-
-        const messageOptions: Partial<RecordsReadOptions> = {
-          ...requestMessage
+        const agentRequest = {
+          author         : this.connectedDid,
+          messageOptions : request.message,
+          messageType    : DwnInterfaceName.Records + DwnMethodName.Read,
+          target         : request.from || this.connectedDid
         };
 
-        const agentResponse = await this.web5Agent.processDwnRequest({
-          author      : this.connectedDid,
-          messageOptions,
-          messageType : DwnInterfaceName.Records + DwnMethodName.Read,
-          target      : this.connectedDid
-        });
+        let agentResponse;
 
-        const { reply } = agentResponse;
-        const { record: responseRecord, status } = reply as RecordsReadReply;
+        if (request.from) {
+          agentResponse = await this.web5Agent.sendDwnRequest(agentRequest);
+        } else {
+          agentResponse = await this.web5Agent.processDwnRequest(agentRequest);
+        }
+
+        //! TODO: (Frank -> Moe): This quirk is the result of how 4XX errors are being returned by `dwn-server`
+        //!                       When DWN SDK returns 404, agentResponse is { status: { code: 404 }} and that's it.
+        //!                       Need to decide how to resolve.
+        let responseRecord;
+        let status;
+        if (agentResponse.reply) {
+          ({ reply: { record: responseRecord, status } } = agentResponse);
+        } else {
+          ({ status } = agentResponse);
+        }
 
         let record: Record;
         if (200 <= status.code && status.code <= 299) {

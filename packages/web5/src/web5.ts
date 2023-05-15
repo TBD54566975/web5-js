@@ -2,8 +2,8 @@ import type { DidState, DidMethodApi, DidResolverCache } from '@tbd54566975/dids
 import type { Web5Agent } from '@tbd54566975/web5-agent';
 
 // import  { Web5ProxyAgent } from '@tbd54566975/web5-proxy-agent';
-import  { Web5UserAgent, ProfileApi } from '@tbd54566975/web5-user-agent';
 import { DidIonApi, DidKeyApi } from '@tbd54566975/dids';
+import  { Web5UserAgent, ProfileApi } from '@tbd54566975/web5-user-agent';
 
 import { DwnApi } from './dwn-api.js';
 import { DidApi } from './did-api.js';

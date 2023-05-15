@@ -170,7 +170,27 @@ describe('web5.dwn', () => {
       });
 
       describe('from: did', () => {
-        xit('tests needed');
+        it('returns undefined record when requested record does not exit', async () => {
+        // Generate a recordId that will not be present on the did endpoint being read from.
+          const { record, status } = await dwn.records.write({ data: 'hi' });
+          expect(status.code).to.equal(202);
+
+          // Create a new DID to represent an external entity who has a remote DWN server defined in their DID document.
+          const ionCreateOptions = await testProfile.ionCreateOptions.services.dwn.authorization.keys();
+          const { id: bobDid } = await testAgent.didIon.create(ionCreateOptions);
+
+          // Attempt to read a record from Bob's DWN using the ID of a record that only exists in the connected agent's DWN.
+          const result = await dwn.records.read({
+            from    : bobDid,
+            message : {
+              recordId: record!.id
+            }
+          });
+
+          // Confirm that the record does not currently exist on Bob's DWN.
+          expect(result.status.code).to.equal(404);
+          expect(result.record).to.be.undefined;
+        });
       });
     });
 
@@ -222,6 +242,15 @@ describe('web5.dwn', () => {
             }
           });
 
+          expect(deleteResult.status.code).to.equal(202);
+        });
+
+        it('returns a 202 if the recordId does not exist', async () => {
+          let deleteResult = await dwn.records.delete({
+            message: {
+              recordId: 'abcd1234'
+            }
+          });
           expect(deleteResult.status.code).to.equal(202);
         });
       });

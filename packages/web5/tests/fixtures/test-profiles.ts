@@ -89,8 +89,8 @@ export const ionCreateOptions = {
               id              : 'dwn',
               type            : 'DecentralizedWebNode',
               serviceEndpoint : {
-                nodes                  : ['https://dwn.tbddev.org/dwn0'],
-                messageAttestationKeys : [`#${keyIds.did.service.dwn.attestation}`],
+                nodes                    : ['https://dwn.tbddev.org/dwn0'],
+                messageAuthorizationKeys : [`#${keyIds.did.service.dwn.authorization}`],
               }
             }]
           };
