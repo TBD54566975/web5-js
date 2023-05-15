@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import { DwnApi } from '../src/dwn-api.js';
 import * as testProfile from './fixtures/test-profiles.js';
 import { TestAgent, TestProfileOptions } from './test-utils/test-user-agent.js';
+import messageProtocolDefinition from './fixtures/protocol-definitions/message.json' assert { type: 'json' };
 
 let didOnlyAuthz: string;
 let dwn: DwnApi;
@@ -29,18 +30,91 @@ describe('web5.dwn', () => {
 
   describe('protocols', () => {
     describe('configure', () => {
-      xit('tests needed');
+      describe('agent', () => {
+        it('writes a protocol definition', async () => {
+          const protocolUri = 'https://protocols.xyz/message/protocol';
+          const protocolDefinition = messageProtocolDefinition;
+
+          const response = await dwn.protocols.configure({
+            message: {
+              protocol   : protocolUri,
+              definition : protocolDefinition
+            }
+          });
+
+          expect(response.status.code).to.equal(202);
+          expect(response.status.detail).to.equal('Accepted');
+        });
+      });
+
+      describe('from: did', () => {
+        xit('test neeed');
+      });
     });
 
     describe('query', () => {
-      xit('tests needed');
+      describe('agent', () => {
+        it('should return protocols matching the query', async () => {
+          let response;
+          // Write a protocols configure to the connected agent's DWN.
+          const protocolUri = 'https://protocols.xyz/message/protocol';
+          const protocolDefinition = messageProtocolDefinition;
+          response = await dwn.protocols.configure({
+            message: {
+              protocol   : protocolUri,
+              definition : protocolDefinition
+            }
+          });
+          expect(response.status.code).to.equal(202);
+          expect(response.status.detail).to.equal('Accepted');
+
+          // Query for the protocol just configured.
+          response = await dwn.protocols.query({
+            message: {
+              filter: {
+                protocol: protocolUri
+              }
+            }
+          });
+
+          expect(response.status.code).to.equal(200);
+          expect(response.protocols.length).to.equal(1);
+          expect(response.protocols[0].descriptor).to.have.property('protocol');
+          expect(response.protocols[0].descriptor).to.have.property('definition');
+          expect(response.protocols[0].descriptor.protocol).to.equal(protocolUri);
+          expect(response.protocols[0].descriptor.definition).to.have.property('types');
+          expect(response.protocols[0].descriptor.definition).to.have.property('structure');
+        });
+      });
+
+      describe('from: did', () => {
+        it('returns empty protocols array when no protocols match the filter provided', async () => {
+          // Create a new DID to represent an external entity who has a remote DWN server defined in their DID document.
+          const ionCreateOptions = await testProfile.ionCreateOptions.services.dwn.authorization.keys();
+          const { id: bobDid } = await testAgent.didIon.create(ionCreateOptions);
+
+          // Query for the protocol just configured.
+          const response = await dwn.protocols.query({
+            from    : bobDid,
+            message : {
+              filter: {
+                protocol: 'https://doesnotexist.com/protocol'
+              }
+            }
+          });
+
+          expect(response.status.code).to.equal(200);
+          expect(response.protocols).to.exist;
+          expect(response.protocols.length).to.equal(0);
+        });
+      });
     });
   });
 
   describe('records', () => {
     describe('write', () => {
       describe('agent', () => {
-        it(`writes a record to alice's local dwn`, async () => {
+        it('writes a record', async () => {
           const result = await dwn.records.write({
             data    : 'Hello, world!',
             message : {
@@ -92,20 +166,20 @@ describe('web5.dwn', () => {
 
       describe('from: did', () => {
         it('returns empty records array when no records match the filter provided', async () => {
-        // Write the record to the connected agent's DWN.
-          const { record, status } = await dwn.records.write({ data: 'hi' });
-          expect(status.code).to.equal(202);
+        // // Write the record to the connected agent's DWN.
+        //   const { record, status } = await dwn.records.write({ data: 'hi' });
+        //   expect(status.code).to.equal(202);
 
           // Create a new DID to represent an external entity who has a remote DWN server defined in their DID document.
           const ionCreateOptions = await testProfile.ionCreateOptions.services.dwn.authorization.keys();
           const { id: bobDid } = await testAgent.didIon.create(ionCreateOptions);
 
-          // Attempt to query Bob's DWN using the ID of a record that only exists in the connected agent's DWN.
+          // Attempt to query Bob's DWN using the ID of a record that does not exist.
           const result = await dwn.records.query({
             from    : bobDid,
             message : {
               filter: {
-                recordId: record!.id
+                recordId: 'abcd1234'
               }
             }
           });
@@ -245,7 +319,7 @@ describe('web5.dwn', () => {
           expect(deleteResult.status.code).to.equal(202);
         });
 
-        it('returns a 202 if the recordId does not exist', async () => {
+        it('returns a 202 when the specified record does not exist', async () => {
           let deleteResult = await dwn.records.delete({
             message: {
               recordId: 'abcd1234'
@@ -256,7 +330,23 @@ describe('web5.dwn', () => {
       });
 
       describe('from: did', () => {
-        xit('tests needed');
+        it('returns a 401 when authentication or authorization fails', async () => {
+          // Create a new DID to represent an external entity who has a remote DWN server defined in their DID document.
+          const ionCreateOptions = await testProfile.ionCreateOptions.services.dwn.authorization.keys();
+          const { id: bobDid } = await testAgent.didIon.create(ionCreateOptions);
+
+          // Attempt to delete a record from Bob's DWN specifying a recordId that does not exist.
+          const deleteResult = await dwn.records.delete({
+            from    : bobDid,
+            message : {
+              recordId: 'abcd1234'
+            }
+          });
+
+          //! TODO: Once record.send() has been implemented, add another test to write a record
+          //!       and test a delete to confirm that authn/authz pass and a 202 is returned.
+          expect(deleteResult.status.code).to.equal(401);
+        });
       });
     });
   });

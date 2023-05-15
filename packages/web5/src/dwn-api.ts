@@ -1,6 +1,7 @@
 import type { Web5Agent } from '@tbd54566975/web5-agent';
 import type {
   MessageReply,
+  ProtocolDefinition,
   ProtocolsConfigureOptions,
   ProtocolsQueryOptions,
   RecordsDeleteOptions,
@@ -16,17 +17,35 @@ import { DwnInterfaceName, DwnMethodName, DataStream } from '@tbd54566975/dwn-sd
 import { Record } from './record.js';
 import { dataToBytes, isDataSizeUnderCacheLimit, isEmptyObject } from './utils.js';
 
+// TODO: Export type ProtocolsConfigureDescriptor from dwn-sdk-js.
+export type ProtocolsConfigureDescriptor = {
+  dateCreated: string;
+  definition: ProtocolDefinition;
+  interface : DwnInterfaceName.Protocols;
+  method: DwnMethodName.Configure;
+  protocol: string;
+};
+
 export type ProtocolsConfigureRequest = {
   message: Omit<ProtocolsConfigureOptions, 'authorizationSignatureInput'>;
 }
+
+export type ProtocolsConfigureResponse = {
+  status: MessageReply['status'];
+}
+
+export type ProtocolsQueryReplyEntry = {
+  descriptor: ProtocolsConfigureDescriptor;
+};
 
 export type ProtocolsQueryRequest = {
   from?: string;
   message: Omit<ProtocolsQueryOptions, 'authorizationSignatureInput'>
 }
 
-export type RecordsDeleteRequest = {
-  message: Omit<RecordsDeleteOptions, 'authorizationSignatureInput'>;
+export type ProtocolsQueryResponse = {
+  protocols: ProtocolsQueryReplyEntry[];
+  status: MessageReply['status'];
 }
 
 export type RecordsCreateRequest = RecordsWriteRequest;
@@ -38,6 +57,11 @@ export type RecordsCreateFromRequest = {
   data: unknown;
   message?: Omit<RecordsWriteOptions, 'authorizationSignatureInput'>;
   record: Record;
+}
+
+export type RecordsDeleteRequest = {
+  from?: string;
+  message: Omit<RecordsDeleteOptions, 'authorizationSignatureInput'>;
 }
 
 export type RecordsDeleteResponse = {
@@ -100,25 +124,34 @@ export class DwnApi {
       /**
        * TODO: Document method.
        */
-      configure: async (request: ProtocolsConfigureRequest) => {
-        return await this.web5Agent.processDwnRequest({
+      configure: async (request: ProtocolsConfigureRequest): Promise<ProtocolsConfigureResponse> => {
+        const agentResponse = await this.web5Agent.processDwnRequest({
           target         : this.connectedDid,
           author         : this.connectedDid,
           messageOptions : request.message,
           messageType    : DwnInterfaceName.Protocols + DwnMethodName.Configure
         });
+
+        const { reply: { status }} = agentResponse;
+
+        return { status };
       },
 
       /**
        * TODO: Document method.
        */
-      query: async (request: ProtocolsQueryRequest) => {
-        return await this.web5Agent.processDwnRequest({
+      query: async (request: ProtocolsQueryRequest): Promise<ProtocolsQueryResponse> => {
+        const agentResponse = await this.web5Agent.processDwnRequest({
           author         : this.connectedDid,
           messageOptions : request.message,
           messageType    : DwnInterfaceName.Protocols + DwnMethodName.Query,
           target         : this.connectedDid
         });
+
+        const { reply: { entries, status } } = agentResponse;
+        const protocols = entries as ProtocolsQueryReplyEntry[];
+
+        return { protocols, status };
       }
     };
   }
@@ -177,20 +210,30 @@ export class DwnApi {
        * TODO: Document method.
        */
       delete: async (request: RecordsDeleteRequest): Promise<RecordsDeleteResponse> => {
-        const { message: requestMessage } = request;
-
-        const messageOptions: Partial<RecordsDeleteOptions> = {
-          ...requestMessage
+        const agentRequest = {
+          author         : this.connectedDid,
+          messageOptions : request.message,
+          messageType    : DwnInterfaceName.Records + DwnMethodName.Delete,
+          target         : request.from || this.connectedDid
         };
 
-        const agentResponse = await this.web5Agent.processDwnRequest({
-          author      : this.connectedDid,
-          messageOptions,
-          messageType : DwnInterfaceName.Records + DwnMethodName.Delete,
-          target      : this.connectedDid
-        });
+        let agentResponse;
 
-        const { reply: { status } } = agentResponse;
+        if (request.from) {
+          agentResponse = await this.web5Agent.sendDwnRequest(agentRequest);
+        } else {
+          agentResponse = await this.web5Agent.processDwnRequest(agentRequest);
+        }
+
+        //! TODO: (Frank -> Moe): This quirk is the result of how 4XX errors are being returned by `dwn-server`
+        //!                       When DWN SDK returns 404, agentResponse is { status: { code: 404 }} and that's it.
+        //!                       Need to decide how to resolve.
+        let status;
+        if (agentResponse.reply) {
+          ({ reply: { status } } = agentResponse);
+        } else {
+          ({ status } = agentResponse);
+        }
 
         return { status };
       },

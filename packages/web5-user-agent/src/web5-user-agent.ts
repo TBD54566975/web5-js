@@ -13,7 +13,6 @@ import {
 
 import {
   Cid,
-  DataStream,
   SignatureInput,
   RecordsWriteOptions,
   PrivateJwk as DwnPrivateKeyJwk,
