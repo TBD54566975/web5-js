@@ -10,12 +10,14 @@ import type {
   RecordsWriteDescriptor,
   RecordsWriteMessage,
   RecordsWriteOptions,
+  ProtocolsConfigureMessage
 } from '@tbd54566975/dwn-sdk-js';
 
-import { DwnInterfaceName, DwnMethodName, DataStream } from '@tbd54566975/dwn-sdk-js';
+import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 
 import { Record } from './record.js';
-import { dataToBytes, isDataSizeUnderCacheLimit, isEmptyObject } from './utils.js';
+import { Protocol } from './protocol.js';
+import { dataToBlob, isDataSizeUnderCacheLimit, isEmptyObject } from './utils.js';
 
 // TODO: Export type ProtocolsConfigureDescriptor from dwn-sdk-js.
 export type ProtocolsConfigureDescriptor = {
@@ -32,6 +34,7 @@ export type ProtocolsConfigureRequest = {
 
 export type ProtocolsConfigureResponse = {
   status: MessageReply['status'];
+  protocol?: Protocol;
 }
 
 export type ProtocolsQueryReplyEntry = {
@@ -102,7 +105,7 @@ export type RecordsReadResponse = {
 
 export type RecordsWriteRequest = {
   data: unknown;
-  message?: Omit<RecordsWriteOptions, 'authorizationSignatureInput'>;
+  message?: Omit<Partial<RecordsWriteOptions>, 'authorizationSignatureInput'>;
 }
 
 export type RecordsWriteResponse = {
@@ -132,9 +135,15 @@ export class DwnApi {
           messageType    : DwnInterfaceName.Protocols + DwnMethodName.Configure
         });
 
-        const { reply: { status }} = agentResponse;
+        const { message, messageCid, reply: { status }} = agentResponse;
+        const response: ProtocolsConfigureResponse = { status };
 
-        return { status };
+        if (status.code < 300) {
+          const metadata = { author: this.connectedDid, messageCid };
+          response.protocol = new Protocol(this.web5Agent, message as ProtocolsConfigureMessage, metadata);
+        }
+
+        return response;
       },
 
       /**
@@ -328,26 +337,16 @@ export class DwnApi {
        * from the DWN datastore.
        */
       write: async (request: RecordsWriteRequest): Promise<RecordsWriteResponse> => {
-        const { data, message: requestMessage } = request;
-
         const messageOptions: Partial<RecordsWriteOptions> = {
-          ...requestMessage
+          ...request.message
         };
 
-        let dataStream;
-        if (data instanceof Blob || data instanceof ReadableStream) {
-          dataStream = data;
-        } else {
-          const { dataBytes, dataFormat } = dataToBytes(request.data, messageOptions.dataFormat);
-          messageOptions.data = dataBytes;
-          messageOptions.dataFormat = dataFormat;
-
-          dataStream = DataStream.fromBytes(dataBytes);
-        }
+        const { dataBlob, dataFormat } = dataToBlob(request.data, messageOptions.dataFormat);
+        messageOptions.dataFormat = dataFormat;
 
         const agentResponse = await this.web5Agent.processDwnRequest({
           author      : this.connectedDid,
-          dataStream  : dataStream as any,
+          dataStream  : dataBlob,
           messageOptions,
           messageType : DwnInterfaceName.Records + DwnMethodName.Write,
           target      : this.connectedDid
@@ -358,13 +357,10 @@ export class DwnApi {
 
         let record: Record;
         if (200 <= status.code && status.code <= 299) {
-          // As a convenience, store a copy of relatively small data with the Record instance.
-          const encodedData = isDataSizeUnderCacheLimit(responseMessage.descriptor.dataSize) ? messageOptions.data : null;
-
           const recordOptions = {
-            author : this.connectedDid,
-            encodedData,
-            target : this.connectedDid,
+            author      : this.connectedDid,
+            encodedData : dataBlob,
+            target      : this.connectedDid,
             ...responseMessage,
           };
 

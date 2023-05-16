@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { DwnApi } from '../src/dwn-api.js';
 import * as testProfile from './fixtures/test-profiles.js';
 import { TestAgent, TestProfileOptions } from './test-utils/test-user-agent.js';
-import messageProtocolDefinition from './fixtures/protocol-definitions/message.json' assert { type: 'json' };
+import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
 
 let didOnlyAuthz: string;
 let dwn: DwnApi;
@@ -32,13 +32,9 @@ describe('web5.dwn', () => {
     describe('configure', () => {
       describe('agent', () => {
         it('writes a protocol definition', async () => {
-          const protocolUri = 'https://protocols.xyz/message/protocol';
-          const protocolDefinition = messageProtocolDefinition;
-
           const response = await dwn.protocols.configure({
             message: {
-              protocol   : protocolUri,
-              definition : protocolDefinition
+              definition: emailProtocolDefinition
             }
           });
 
@@ -57,12 +53,9 @@ describe('web5.dwn', () => {
         it('should return protocols matching the query', async () => {
           let response;
           // Write a protocols configure to the connected agent's DWN.
-          const protocolUri = 'https://protocols.xyz/message/protocol';
-          const protocolDefinition = messageProtocolDefinition;
           response = await dwn.protocols.configure({
             message: {
-              protocol   : protocolUri,
-              definition : protocolDefinition
+              definition: emailProtocolDefinition
             }
           });
           expect(response.status.code).to.equal(202);
@@ -72,17 +65,17 @@ describe('web5.dwn', () => {
           response = await dwn.protocols.query({
             message: {
               filter: {
-                protocol: protocolUri
+                protocol: emailProtocolDefinition.protocol
               }
             }
           });
 
           expect(response.status.code).to.equal(200);
           expect(response.protocols.length).to.equal(1);
-          expect(response.protocols[0].descriptor).to.have.property('protocol');
           expect(response.protocols[0].descriptor).to.have.property('definition');
-          expect(response.protocols[0].descriptor.protocol).to.equal(protocolUri);
           expect(response.protocols[0].descriptor.definition).to.have.property('types');
+          expect(response.protocols[0].descriptor.definition).to.have.property('protocol');
+          expect(response.protocols[0].descriptor.definition.protocol).to.equal(emailProtocolDefinition.protocol);
           expect(response.protocols[0].descriptor.definition).to.have.property('structure');
         });
       });
@@ -291,41 +284,13 @@ describe('web5.dwn', () => {
           expect(deleteResult.status.code).to.equal(202);
         });
 
-        it('returns a 202 no matter what?', async () => {
-          const writeResult = await dwn.records.write({
-            data    : 'Hello, world!',
-            message : {
-              schema     : 'foo/bar',
-              dataFormat : 'text/plain'
-            }
-          });
-
-          expect(writeResult.status.code).to.equal(202);
-          expect(writeResult.record).to.not.be.undefined;
-
-          let deleteResult = await dwn.records.delete({
-            message: {
-              recordId: writeResult.record!.id
-            }
-          });
-
-          // TODO: (Moe -> Frank): this returns a 202. interesting
-          deleteResult = await dwn.records.delete({
-            message: {
-              recordId: writeResult.record!.id
-            }
-          });
-
-          expect(deleteResult.status.code).to.equal(202);
-        });
-
-        it('returns a 202 when the specified record does not exist', async () => {
+        it('returns a 404 when the specified record does not exist', async () => {
           let deleteResult = await dwn.records.delete({
             message: {
               recordId: 'abcd1234'
             }
           });
-          expect(deleteResult.status.code).to.equal(202);
+          expect(deleteResult.status.code).to.equal(404);
         });
       });
 

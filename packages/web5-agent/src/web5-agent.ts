@@ -1,6 +1,6 @@
 import type { Readable } from 'readable-stream';
 
-import type {
+import {
   MessageReply,
   RecordsQueryMessage,
   ProtocolsQueryMessage,
@@ -13,8 +13,8 @@ import type {
 
 import type { JsonRpcResponse } from './json-rpc.js';
 export interface Web5Agent {
-  processDwnRequest(request: ProcessDwnRequest): Promise<ProcessDwnResponse>
-  sendDwnRequest(request: ProcessDwnRequest): Promise<SendDwnResponse>;
+  processDwnRequest(request: ProcessDwnRequest): Promise<DwnResponse>
+  sendDwnRequest(request: SendDwnRequest): Promise<DwnResponse>;
 }
 
 export type DwnMessages = {
@@ -29,33 +29,29 @@ export type DwnMessages = {
 
 export type DwnMessageType = keyof DwnMessages;
 
-/**
- * TODO: add JSDoc
- */
-export type ProcessDwnRequest = {
+export type DwnRequest = {
   author: string;
-  dataStream?: Blob | ReadableStream | Readable;
-  messageType: string;
-  messageOptions: unknown;
   target: string;
+  messageType: string;
 }
 
 /**
  * TODO: add JSDoc
  */
-export type ProcessDwnResponse = {
-  message?: unknown;
-  reply: MessageReply;
+export type ProcessDwnRequest = DwnRequest & {
+  dataStream?: Blob | ReadableStream | Readable;
+  messageOptions: unknown;
 };
+
+export type SendDwnRequest = DwnRequest & (ProcessDwnRequest | { messageCid: string })
 
 /**
  * TODO: add JSDoc
  */
-export type SendDwnRequest = {
-  author: string;
-  messageCid: string;
-  messageType: string;
-  target: string;
+export type DwnResponse = {
+  message?: unknown;
+  messageCid?: string;
+  reply: MessageReply;
 };
 
 

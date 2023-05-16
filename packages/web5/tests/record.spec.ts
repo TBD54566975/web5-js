@@ -3,13 +3,16 @@ import type  { PrivateJwk as DwnPrivateKeyJwk, PublicJwk as DwnPublicKeyJwk, Rec
 
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
+import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
+
 import { utils as didUtils } from '@tbd54566975/dids';
 import { DwnInterfaceName, DwnMethodName, KeyDerivationScheme, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 
+import * as testProfile from './fixtures/test-profiles.js';
+
 import { Record } from '../src/record.js';
 import { DwnApi } from '../src/dwn-api.js';
-import { dataToBytes } from '../src/utils.js';
-import * as testProfile from './fixtures/test-profiles.js';
+import { dataToBlob } from '../src/utils.js';
 import { TestDataGenerator } from './test-utils/test-data-generator.js';
 import { TestAgent, TestProfileOptions } from './test-utils/test-user-agent.js';
 
@@ -20,27 +23,28 @@ type RecordsWriteTest = RecordsWrite & RecordsWriteMessage;
 
 let testAgent: TestAgent;
 let testProfileOptions: TestProfileOptions;
-let did: string;
+let aliceDid: string;
 let dwn: DwnApi;
 let didAllKeys: string;
 let dataText: string;
-let dataBytes: Uint8Array;
+let dataBlob: Blob;
 let dataFormat: string;
 
 describe('Record', () => {
   before(async () => {
     testAgent = await TestAgent.create();
     dataText = TestDataGenerator.randomString(100);
-    ({ dataBytes, dataFormat } = dataToBytes(dataText));
+    ({ dataBlob, dataFormat } = dataToBlob(dataText));
   });
 
   beforeEach(async () => {
     await testAgent.clearStorage();
-    ({ did } = await testAgent.createProfile());
-    dwn = new DwnApi(testAgent.agent, did);
 
     testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.encryption.attestation.keys();
     ({ did: didAllKeys } = await testAgent.createProfile(testProfileOptions));
+
+    dwn = new DwnApi(testAgent.agent, didAllKeys);
+
   });
 
   after(async () => {
@@ -117,7 +121,7 @@ describe('Record', () => {
       protocol,
       protocolPath,
       schema,
-      data                        : dataBytes,
+      data                        : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       authorizationSignatureInput : authorization,
     }) as RecordsWriteTest;
@@ -129,7 +133,7 @@ describe('Record', () => {
       recipient,
       schema,
       parentId                    : parentRecorsWrite.recordId,
-      data                        : dataBytes,
+      data                        : new Uint8Array(await dataBlob.arrayBuffer()),
       published,
       dataFormat,
       attestationSignatureInputs  : attestation,
@@ -140,7 +144,7 @@ describe('Record', () => {
     // Create record using test RecordsWriteMessage.
     const record = new Record(testAgent.agent, {
       ...recordsWrite.message,
-      encodedData: dataBytes,
+      encodedData: dataBlob,
       target,
       author,
     });
@@ -273,7 +277,52 @@ describe('Record', () => {
   });
 
   describe('send()', () => {
-    xit('tests needed');
+    it('works', async () => {
+      // install a protocol for alice
+      let { protocol: aliceProtocol, status: aliceStatus } = await dwn.protocols.configure({
+        message: {
+          definition: emailProtocolDefinition
+        }
+      });
+
+      expect(aliceStatus.code).to.equal(202);
+      expect(aliceProtocol).to.exist;
+
+      const { status: alicePushStatus } = await aliceProtocol!.send();
+      expect(alicePushStatus.code).to.equal(202);
+
+      // install a protocol for bob
+      testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.encryption.attestation.keys();
+      const { did: bobDid } = await testAgent.createProfile(testProfileOptions);
+      const bobDwn = new DwnApi(testAgent.agent, bobDid);
+
+      const { protocol: bobProtocol, status: bobStatus } = await bobDwn.protocols.configure({
+        message: {
+          definition: emailProtocolDefinition
+        }
+      });
+
+      expect(bobStatus.code).to.equal(202);
+      expect(bobProtocol).to.exist;
+
+      const { status: bobPushStatus } = await bobProtocol!.send();
+      expect(bobPushStatus.code).to.equal(202);
+
+      // alice writes a message to her own dwn
+      const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwn.records.write({
+        data    : 'Herro!',
+        message : {
+          protocol     : emailProtocolDefinition.protocol,
+          protocolPath : 'email',
+          schema       : 'email',
+        }
+      });
+
+      expect(aliceEmailStatus.code).to.equal(202);
+
+      const { status } = await aliceEmailRecord!.send(bobDid);
+      expect(status.code).to.equal(202);
+    });
   });
 
   describe('toJSON()', () => {
@@ -346,7 +395,7 @@ describe('Record', () => {
         protocol,
         protocolPath,
         schema,
-        data                        : dataBytes,
+        data                        : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         authorizationSignatureInput : authorization,
       }) as RecordsWriteTest;
@@ -358,7 +407,7 @@ describe('Record', () => {
         recipient,
         schema,
         parentId                    : parentRecorsWrite.recordId,
-        data                        : dataBytes,
+        data                        : new Uint8Array(await dataBlob.arrayBuffer()),
         published,
         dataFormat,
         attestationSignatureInputs  : attestation,
@@ -369,7 +418,7 @@ describe('Record', () => {
       // Create record using test RecordsWriteMessage.
       const record = new Record(testAgent.agent, {
         ...recordsWrite.message,
-        encodedData: dataBytes,
+        encodedData: dataBlob,
         target,
         author,
       });

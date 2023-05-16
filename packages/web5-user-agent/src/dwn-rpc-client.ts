@@ -1,27 +1,9 @@
-import { DwnRpc, DwnRpcRequest, DwnRpcResponse, createJsonRpcErrorResponse } from '@tbd54566975/web5-agent';
-
-import crossFetch from 'cross-fetch';
+import type { DwnRpc, DwnRpcRequest, DwnRpcResponse, JsonRpcResponse } from '@tbd54566975/web5-agent';
 
 import { v4 as uuidv4 } from 'uuid';
-import { JsonRpcResponse, createJsonRpcRequest, parseJson, JsonRpcErrorCodes } from '@tbd54566975/web5-agent';
+import { createJsonRpcRequest, parseJson } from '@tbd54566975/web5-agent';
 
 // TODO: move what's below to dwn-server repo. i wrote this here for expediency
-
-/**
- * Supports fetch in: browser, browser extensions, Node, and React Native.
- * In node, it uses node-fetch, and in a browser or React Native, it uses
- * Github's whatwg-fetch.
- *
- * WARNING for browser extension background service workers:
- * 'cross-fetch' is a ponyfill that uses `XMLHTTPRequest` under the hood.
- * `XMLHTTPRequest` cannot be used in browser extension background service
- * workers.  Browser extensions get even more strict with `fetch` in that it
- * cannot be referenced indirectly.
- *
- * use presence of File to decide whether we're in the browser or not
- * TODO: ask Adam or Tim if globalThis is available in react native
- */
-const fetch = globalThis.File ? globalThis.fetch : crossFetch;
 
 /**
  * Client used to communicate with Dwn Servers
@@ -89,16 +71,12 @@ class HttpDwnRpcClient implements DwnRpc {
       fetchOpts.headers['content-type'] = 'application/octet-stream';
       fetchOpts['body'] = request.data;
     }
-    let resp;
-    try {
-      resp = await fetch(request.dwnUrl, fetchOpts);
-    } catch(e) {
-      return createJsonRpcErrorResponse(requestId, JsonRpcErrorCodes.TransportError, e.message);
-    }
 
+    const resp = await fetch(request.dwnUrl, fetchOpts);
     let dwnRpcResponse: DwnRpcResponse;
 
     // check to see if response is in header first. if it is, that means the response is a ReadableStream
+    let dataStream;
     const { headers } = resp;
     if (headers.has('dwn-response')) {
       const jsonRpcResponse = parseJson(headers.get('dwn-response')) as JsonRpcResponse;
@@ -107,15 +85,23 @@ class HttpDwnRpcClient implements DwnRpc {
         throw new Error(`failed to parse json rpc response. dwn url: ${request.dwnUrl}`);
       }
 
-      dwnRpcResponse = {
-        ...jsonRpcResponse,
-        dataStream: resp.body
-      };
+      dataStream = resp.body;
+      dwnRpcResponse = jsonRpcResponse;
     } else {
       // TODO: wonder if i need to try/catch this?
       dwnRpcResponse = await resp.json() as JsonRpcResponse;
     }
 
-    return dwnRpcResponse;
+    if (dwnRpcResponse.error) {
+      const { code, message } = dwnRpcResponse.error;
+      throw new Error(`(${code}) - ${message}`);
+    }
+
+    const { reply } = dwnRpcResponse.result;
+    if (dataStream) {
+      reply['record']['data'] = dataStream;
+    }
+
+    return reply;
   }
 }

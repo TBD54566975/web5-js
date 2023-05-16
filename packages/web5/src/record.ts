@@ -5,13 +5,13 @@ import type { RecordsReadReply, RecordsWriteDescriptor, RecordsWriteMessage, Rec
 import { ReadableWebToNodeStream } from 'readable-web-to-node-stream';
 import { DataStream, DwnInterfaceName, DwnMethodName, Encoder } from '@tbd54566975/dwn-sdk-js';
 
-import { dataToBytes, isDataSizeUnderCacheLimit } from './utils.js';
+import { dataToBlob, isDataSizeUnderCacheLimit } from './utils.js';
 import type { RecordsDeleteResponse } from './dwn-api.js';
 
 export type RecordOptions = RecordsWriteMessage & {
   author: string;
   target: string;
-  encodedData?: string | Uint8Array;
+  encodedData?: string | Blob;
   data?: Readable | ReadableStream;
 };
 
@@ -42,7 +42,7 @@ export class Record implements RecordModel {
   #attestation?: RecordsWriteMessage['attestation'];
   #contextId?: string;
   #descriptor: RecordsWriteDescriptor;
-  #encodedData?: string | Uint8Array | null;
+  #encodedData?: string | Blob | null;
   #encryption?: RecordsWriteMessage['encryption'];
   #readableStream?: Readable | Promise<Readable>;
   #recordId: string;
@@ -84,8 +84,9 @@ export class Record implements RecordModel {
     this.#encryption = options.encryption;
     this.#recordId = options.recordId;
 
-    // If the record `dataSize is less than the DwnConstant.maxDataSizeAllowedToBeEncoded value,
-    // then an `encodedData` property will be present.
+
+    // options.encodedData will either be a base64url encoded string (in the case of RecordsQuery)
+    // OR a Blob in the case of a RecordsWrite.
     this.#encodedData = options.encodedData ?? null;
 
     // If the record was created from a RecordsRead reply then it will have a `data` property.
@@ -122,24 +123,30 @@ export class Record implements RecordModel {
       // type is Uint8Array bytes if the Record object was instantiated from a RecordsWrite response
       // type is Base64 URL encoded string if the Record object was instantiated from a RecordsQuery response
       // If it is a string, we need to Base64 URL decode to bytes
-      this.#encodedData = Encoder.base64UrlToBytes(this.#encodedData);
+      const dataBytes = Encoder.base64UrlToBytes(this.#encodedData);
+      this.#encodedData = new Blob([dataBytes]);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this; // Capture the context of the `Record` instance.
+    const dataBlob = this.#encodedData as Blob;
     const dataObj = {
+      async blob(): Promise<Blob> {
+        if (self.#encodedData) return self.#encodedData as Blob;
+        if (self.#readableStream) return new Blob([this.stream().then(DataStream.toBytes)]);
+      },
       async json() {
         if (self.#encodedData) return this.text().then(JSON.parse);
         if (self.#readableStream) return this.text().then(JSON.parse);
         return null;
       },
       async text() {
-        if (self.#encodedData) return Encoder.bytesToString(self.#encodedData as Uint8Array);
+        if (self.#encodedData) return dataBlob.text();
         if (self.#readableStream) return this.stream().then(DataStream.toBytes).then(Encoder.bytesToString);
         return null;
       },
       async stream() {
-        if (self.#encodedData) return DataStream.fromBytes(self.#encodedData as Uint8Array);
+        if (self.#encodedData) return new ReadableWebToNodeStream(dataBlob.stream());
         if (self.#readableStream) return self.#readableStream;
         return null;
       },
@@ -183,16 +190,17 @@ export class Record implements RecordModel {
   async send(target: string): Promise<any> {
     if (this.isDeleted) throw new Error(`Record with ID '${this.id}' was previously deleted.`);
 
-    const agentResponse = await this.#web5Agent.sendDwnRequest({
+    const { reply: { status } } = await this.#web5Agent.sendDwnRequest({
+      messageType    : DwnInterfaceName.Records + DwnMethodName.Write,
       author         : this.author,
-      // TODO: Frank -> Moe: The data in a Record instance is a node Readable. At what stage in processing should it be converted depending on whether its Web5ProxyAgent or Web5UserAgent.
-      // dataStream     : await this.data.stream(),
+      dataStream     : await this.data.blob(),
       target         : target,
       messageOptions : this.toJSON(),
-      messageType    : DwnInterfaceName.Records + DwnMethodName.Write,
     });
 
-    console.log(agentResponse);
+    return { status };
+
+    // console.log(JSON.stringify(agentResponse, null, 2));
   }
 
   /**
@@ -254,20 +262,15 @@ export class Record implements RecordModel {
     // Begin assembling update message.
     let updateMessage = { ...this.#descriptor, ...options } as Partial<RecordsWriteOptions>;
 
-    let dataStream: _Readable.Readable;
+    let dataBlob: Blob;
     if (options.data !== undefined) {
       // If `data` is being updated then `dataCid` and `dataSize` must be undefined and the `data` property is passed as
       // a top-level property to `web5Agent.processDwnRequest()`.
       delete updateMessage.dataCid;
       delete updateMessage.dataSize;
+      delete updateMessage.data;
 
-      if (options.data instanceof Blob || options.data instanceof ReadableStream) {
-        //! TODO: get dataSize and dataCid of data
-      } else {
-        const { dataBytes } = dataToBytes(options.data, updateMessage.dataFormat);
-        updateMessage.data = dataBytes;
-        dataStream = DataStream.fromBytes(dataBytes);
-      }
+      ({ dataBlob } = dataToBlob(options.data, updateMessage.dataFormat));
     }
 
     // Throw an error if an attempt is made to modify immutable properties. `data` has already been handled.
@@ -297,7 +300,7 @@ export class Record implements RecordModel {
 
     const agentResponse = await this.#web5Agent.processDwnRequest({
       author      : this.author,
-      dataStream  : dataStream as any,
+      dataStream  : dataBlob,
       messageOptions,
       messageType : DwnInterfaceName.Records + DwnMethodName.Write,
       target      : this.target,
@@ -312,9 +315,8 @@ export class Record implements RecordModel {
         this.#descriptor[property] = responseMessage.descriptor[property];
       });
       // Only cache data if `dataSize` is less than DWN 'max data size allowed to be encoded'.
-      if (updateMessage.data !== undefined) {
-        this.#readableStream = isDataSizeUnderCacheLimit(responseMessage.descriptor.dataSize) ? DataStream.fromBytes(updateMessage.data) : null;
-        this.#encodedData = null; // Clear `encodedData` in case it was previously set.
+      if (options.data !== undefined) {
+        this.#encodedData = dataBlob; // Clear `encodedData` in case it was previously set.
       }
     }
 

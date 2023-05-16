@@ -1,21 +1,28 @@
 import type { DwnServiceEndpoint } from '@tbd54566975/dids';
+import {
+  SignatureInput,
+  RecordsWriteOptions,
+  RecordsWriteMessage,
+  PrivateJwk as DwnPrivateKeyJwk,
+  MessagesGetReply,
+  DataStream,
+  RecordsReadReply,
+} from '@tbd54566975/dwn-sdk-js';
 
 import { Readable } from 'readable-stream';
 import {
   DwnRpc,
   Web5Agent,
   DwnRpcRequest,
-  DwnRpcResponse,
-  JsonRpcErrorCodes,
   ProcessDwnRequest,
-  ProcessDwnResponse,
+  DwnResponse,
+  SendDwnRequest,
 } from '@tbd54566975/web5-agent';
 
 import {
   Cid,
-  SignatureInput,
-  RecordsWriteOptions,
-  PrivateJwk as DwnPrivateKeyJwk,
+  Encoder,
+  Message
 } from '@tbd54566975/dwn-sdk-js';
 
 import type { ProfileManager } from './profile-manager.js';
@@ -37,7 +44,7 @@ import {
 
 import { ProfileApi } from './profile-api.js';
 import { DwnRpcClient } from './dwn-rpc-client.js';
-import { blobToIsomorphicNodeReadable } from './utils.js';
+import { blobToIsomorphicNodeReadable, webReadableToIsomorphicNodeReadable } from './utils.js';
 
 // TODO: allow user to provide optional array of DwnRpc implementations once DwnRpc has been moved out of this package
 export type Web5UserAgentOptions = {
@@ -45,6 +52,11 @@ export type Web5UserAgentOptions = {
   profileManager: ProfileManager;
   didResolver: DidResolver;
 };
+
+type DwnMessage = {
+  message: any;
+  data?: Blob;
+}
 
 const dwnMessageCreators = {
   [DwnInterfaceName.Events + DwnMethodName.Get]          : EventsGet,
@@ -56,8 +68,6 @@ const dwnMessageCreators = {
   [DwnInterfaceName.Protocols + DwnMethodName.Query]     : ProtocolsQuery,
   [DwnInterfaceName.Protocols + DwnMethodName.Configure] : ProtocolsConfigure,
 };
-
-const sendRetryCodes = new Set([JsonRpcErrorCodes.InternalError, JsonRpcErrorCodes.TransportError]);
 
 export class Web5UserAgent implements Web5Agent {
   private dwn: Dwn;
@@ -91,31 +101,37 @@ export class Web5UserAgent implements Web5Agent {
    * @param message
    * @returns
    */
-  async processDwnRequest(request: ProcessDwnRequest): Promise<ProcessDwnResponse> {
-    const dwnMessage = await this.#constructDwnMessage(request);
-
-    let dataStream = request.dataStream;
-    if (request?.dataStream instanceof Blob) {
-      dataStream = blobToIsomorphicNodeReadable(request.dataStream);
-    }
-
-    const reply = await this.dwn.processMessage(request.target, dwnMessage.toJSON(), dataStream as any);
+  async processDwnRequest(request: ProcessDwnRequest): Promise<DwnResponse> {
+    const { message, dataStream }= await this.#constructDwnMessage(request);
+    const reply = await this.dwn.processMessage(request.target, message, dataStream as any);
 
     return {
       reply,
-      message: dwnMessage.toJSON()
+      message    : message,
+      messageCid : await Message.getCid(message)
     };
   }
 
-  async sendDwnRequest(request: ProcessDwnRequest): Promise<any> {
-    const dwnMessage = await this.#constructDwnMessage(request);
-    const dwnRpcRequest: Partial<DwnRpcRequest> = {
-      targetDid : request.target,
-      message   : dwnMessage
-    };
+  async sendDwnRequest(request: SendDwnRequest): Promise<DwnResponse> {
+    const dwnRpcRequest: Partial<DwnRpcRequest> = { targetDid: request.target };
+    let messageData;
+
+    if ('messageCid' in request) {
+      const { message, data } =  await this.#getDwnMessage(request.author, request.messageType, request.messageCid);
+
+      dwnRpcRequest.message = message;
+      messageData = data;
+    } else {
+      const { message } = await this.#constructDwnMessage(request);
+      dwnRpcRequest.message = message;
+      messageData = request.dataStream;
+    }
+
+    if (messageData) {
+      dwnRpcRequest.data = messageData;
+    }
 
     const didResolution = await this.didResolver.resolve(request.target);
-
     if (!didResolution.didDocument) {
       if (didResolution.didResolutionMetadata?.error) {
         throw new Error(`DID resolution error: ${didResolution.didResolutionMetadata.error}`);
@@ -135,147 +151,110 @@ export class Web5UserAgent implements Web5Agent {
     }
 
     const { nodes } = serviceEndpoint as DwnServiceEndpoint;
-    let lastDwnRpcResponse: DwnRpcResponse;
+    let dwnReply;
+    let errorMessages = [];
 
     // try sending to author's publicly addressable dwn's until first request succeeds.
     for (let node of nodes) {
       dwnRpcRequest.dwnUrl = node;
-      lastDwnRpcResponse = await this.dwnRpcClient.sendDwnRequest(dwnRpcRequest as DwnRpcRequest);
 
-      if (lastDwnRpcResponse.error) {
-        const { error } = lastDwnRpcResponse;
-        if (sendRetryCodes.has(error.code)) {
-          continue;
-        } else {
-          break;
-        }
-      } else {
+      try {
+        dwnReply = await this.dwnRpcClient.sendDwnRequest(dwnRpcRequest as DwnRpcRequest);
         break;
+      } catch(e) {
+        errorMessages.push({ url: node, message: e.message });
       }
     }
 
-    //! (Moe -> Frank) i think we're going to have to go back and change dwn-server to only return an error
-    //! if the server errored.
-    // was the error an error returned by dwn.processMessage or did the error happen at the server level?
-    if (lastDwnRpcResponse.error) {
-      const { error } = lastDwnRpcResponse;
-      if (error.data?.status) {
-        return { status: error.data!.status };
-      } else {
-        throw new Error(`(${error.code}) - ${error.message}`);
-      }
+    if (!dwnReply) {
+      throw new Error(JSON.stringify(errorMessages));
     }
 
-    // TODO: (Moe -> Frank): Chat with frank about what to return
-    return lastDwnRpcResponse.result;
+    return {
+      message    : dwnRpcRequest.message,
+      messageCid : await Message.getCid(dwnRpcRequest.message),
+      reply      : dwnReply,
+    };
   }
 
-  // async getDwnMessage(request: SendDwnRequest): Promise<any> {
-  //   const dwnSignatureInput = await this.#getAuthorSignatureInput(request.author);
-  //   const messagesGet = await MessagesGet.create({
-  //     authorizationSignatureInput : dwnSignatureInput,
-  //     messageCids                 : [request.messageCid]
-  //   });
+  async #getDwnMessage(author: string, messageType: string, messageCid: string): Promise<DwnMessage> {
+    const dwnSignatureInput = await this.#getAuthorSignatureInput(author);
+    const messagesGet = await MessagesGet.create({
+      authorizationSignatureInput : dwnSignatureInput,
+      messageCids                 : [messageCid]
+    });
 
-  //   const result: MessagesGetReply = await this.dwn.processMessage(request.author, messagesGet.toJSON());
-  //   const [ messageEntry ] = result.messages;
+    const result: MessagesGetReply = await this.dwn.processMessage(author, messagesGet.toJSON());
+    const [ messageEntry ] = result.messages;
 
-  //   if (!messageEntry) {
-  //     throw new Error('TODO: figure out error message');
-  //   }
+    if (!messageEntry) {
+      throw new Error('TODO: figure out error message');
+    }
 
-  //   const { messageType } = request;
-  //   let { message } = messageEntry;
+    let { message } = messageEntry;
+    if (!message) {
+      throw new Error('TODO: message not found');
+    }
 
-  //   if (!message) {
-  //     throw new Error('TODO: message not found');
-  //   }
+    let dwnMessage: DwnMessage = { message };
 
-  //   const dwnRpcRequest: Partial<DwnRpcRequest> = {
-  //     targetDid: request.author,
-  //     message
-  //   };
-  //   // if the message is a RecordsWrite, either data will be present, OR we have to fetch it using a RecordsRead
-  //   if (messageType === 'RecordsWrite') {
-  //     const { encodedData } = messageEntry;
-  //     message = message as RecordsWriteMessage;
+    // if the message is a RecordsWrite, either data will be present, OR we have to fetch it using a RecordsRead
+    if (messageType === 'RecordsWrite') {
+      const { encodedData } = messageEntry;
+      message = message as RecordsWriteMessage;
 
-  //     if (encodedData) {
-  //       const dataBytes = Encoder.base64UrlToBytes(encodedData);
-  //       dwnRpcRequest.data = new Blob([dataBytes]);
-  //     } else {
-  //       const recordsRead = await RecordsRead.create({
-  //         authorizationSignatureInput : dwnSignatureInput,
-  //         recordId                    : message['recordId']
-  //       });
+      if (encodedData) {
+        const dataBytes = Encoder.base64UrlToBytes(encodedData);
+        dwnMessage.data = new Blob([dataBytes]);
+      } else {
+        const recordsRead = await RecordsRead.create({
+          authorizationSignatureInput : dwnSignatureInput,
+          recordId                    : message['recordId']
+        });
 
-  //       // TODO: set reply type to RecordsReadReply once it is exported from dwn-sdk-js
-  //       const reply = await this.dwn.processMessage(request.author, recordsRead.toJSON());
-  //       dwnRpcRequest.data = reply.data;
-  //     }
-  //   }
+        const reply = await this.dwn.processMessage(author, recordsRead.toJSON()) as RecordsReadReply;
 
-  //   const { didDocument } = await this.didResolver.resolve(request.author);
-  //   if (!didDocument) {
-  //     throw new Error('TODO: figure out error message <Did Resolution failure>');
-  //   }
+        if (reply.status.code >= 400) {
+          const { status: { code, detail } } = reply;
+          throw new Error(`(${code}) Failed to read data associated with record ${message['recordId']}. ${detail}}`);
+        } else {
+          const dataBytes = await DataStream.toBytes(reply.record.data);
+          dwnMessage.data = new Blob([dataBytes]);
+        }
+      }
+    }
 
-  //   const [ service ] = didUtils.getServices(didDocument, { id: '#dwn' });
-
-  //   if (!service) {
-  //     throw new Error(`${request.author} has no dwn service endpoints`);
-  //   }
-
-  //   const { serviceEndpoint } = service;
-  //   if (!serviceEndpoint['nodes']) {
-  //     throw new Error('malformed dwn service endpoint. expected nodes array');
-  //   }
-
-  //   const { nodes } = serviceEndpoint as DwnServiceEndpoint;
-  //   let lastDwnRpcResponse: DwnRpcResponse;
-
-  //   // try sending to author's publicly addressable dwn's until first request succeeds.
-  //   for (let node of nodes) {
-  //     dwnRpcRequest.dwnUrl = node;
-  //     // TODO: check for presence of error in dwnResponse.jsonRpcResponse. no point in blindly trying other nodes
-  //     //       if request is malformed. going to have to decide based on error code
-
-  //     // TODO: collect all responses
-  //     const lastDwnRpcResponse = await this.dwnRpcClient.sendDwnRequest(dwnRpcRequest as DwnRpcRequest);
-  //     if (lastDwnRpcResponse.error) {
-  //       const { error } = lastDwnRpcResponse;
-  //       if (sendRetryCodes.has(error.code)) {
-  //         continue;
-  //       } else {
-  //         break;
-  //       }
-  //     }
-  //   }
-
-  //   // if sending to the author's dwn(s) failed don't try the target's dwn
-  //   if (lastDwnRpcResponse.error) {
-  //     // TODO: figure out what SendDwnResponse looks like
-  //   }
-  // }
+    return dwnMessage;
+  }
 
   async #constructDwnMessage(request: ProcessDwnRequest) {
-    const dwnSignatureInput = await this.#getAuthorSignatureInput(request.author);
+    // TODO: show henry the consequence of him choosing Readable
 
+    const dwnSignatureInput = await this.#getAuthorSignatureInput(request.author);
+    let readableStream: Readable;
+
+    // TODO: MOVE ALL THIS TO HTTP TRANSPORT LAND BECAUSE THATS WHY WE HAVE TO DO IT
+    // THANKS A LOT BROWSER NECKBEARDS
     if (request.messageType === 'RecordsWrite') {
       const messageOptions = request.messageOptions as RecordsWriteOptions;
 
       if (request.dataStream && !messageOptions.data) {
         const { dataStream } = request;
+        let isomorphicNodeReadable: Readable;
 
         if (dataStream instanceof Blob) {
-          messageOptions.dataSize = dataStream.size;
+          isomorphicNodeReadable = blobToIsomorphicNodeReadable(dataStream);
 
-          //! Note: this _won't_ work with nodejs because a blob's stream can only be consumed once
-          const isomorphicNodeReadable = blobToIsomorphicNodeReadable(dataStream);
-          messageOptions.dataCid = await Cid.computeDagPbCidFromStream(isomorphicNodeReadable);
-        } else if (dataStream instanceof Readable) {
-          // TODO: handle this?
+          readableStream = blobToIsomorphicNodeReadable(dataStream);
+        } else if (dataStream instanceof ReadableStream) {
+          const [ forCid, forProcessMessage ] = dataStream.tee();
+
+          isomorphicNodeReadable = webReadableToIsomorphicNodeReadable(forCid);
+          readableStream = webReadableToIsomorphicNodeReadable(forProcessMessage);
         }
+
+        messageOptions.dataCid = await Cid.computeDagPbCidFromStream(isomorphicNodeReadable);
+        messageOptions.dataSize ??= isomorphicNodeReadable['bytesRead'];
       }
     }
 
@@ -288,7 +267,7 @@ export class Web5UserAgent implements Web5Agent {
     const messageCreator = dwnMessageCreators[request.messageType];
     const dwnMessage = await messageCreator.create(messageCreateInput as any);
 
-    return dwnMessage;
+    return { message: dwnMessage.toJSON(), dataStream: readableStream };
   }
 
   /**

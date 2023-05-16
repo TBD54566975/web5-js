@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import { Encoder, RecordsWriteMessage, RecordsRead } from '@tbd54566975/dwn-sdk-js';
 import { TestAgent } from './utils/test-user-agent.js';
 
 let testAgent: TestAgent;
@@ -46,7 +47,8 @@ describe('Web5UserAgent', () => {
             type            : 'dwn',
             id              : 'dwn',
             serviceEndpoint : {
-              nodes: ['https://dwn.tbddev.org/dwn0']
+              // nodes: ['https://dwn.tbddev.org/dwn0']
+              nodes: ['http://localhost:3000']
             }
           }]
         }
@@ -64,7 +66,8 @@ describe('Web5UserAgent', () => {
       });
 
       expect(response.reply).to.exist;
-      expect(response.error).to.not.exist;
+      expect(response.message).to.exist;
+      expect(response.messageCid).to.exist;
       expect(response.reply.status).to.exist;
       expect(response.reply.entries).to.exist;
       expect(response.reply.status.code).to.equal(200);
@@ -77,7 +80,8 @@ describe('Web5UserAgent', () => {
             type            : 'dwn',
             id              : 'dwn',
             serviceEndpoint : {
-              nodes: ['https://dwn.tbddev.org/dwn0']
+              // nodes: ['https://dwn.tbddev.org/dwn0']
+              nodes: ['http://localhost:3000']
             }
           }]
         }
@@ -92,11 +96,9 @@ describe('Web5UserAgent', () => {
         }
       });
 
-      // TODO: (Moe -> Frank): interesting that  202 is returned
       expect(response.reply).to.exist;
-      expect(response.error).to.not.exist;
       expect(response.reply.status).to.exist;
-      expect(response.reply.status.code).to.equal(202);
+      expect(response.reply.status.code).to.equal(404);
     });
 
     it('returns something when an jwark is smorked', async () => {
@@ -106,7 +108,8 @@ describe('Web5UserAgent', () => {
             type            : 'dwn',
             id              : 'dwn',
             serviceEndpoint : {
-              nodes: ['https://dwn.tbddev.org/dwn0']
+              // nodes: ['https://dwn.tbddev.org/dwn0']
+              nodes: ['http://localhost:3000']
             }
           }]
         }
@@ -126,6 +129,63 @@ describe('Web5UserAgent', () => {
       } catch(e) {
         expect(e.message).to.include('/descriptor/filter');
       }
+    });
+
+    it('handles RecordsRead Messages', async () => {
+      const { did: aliceDid } = await testAgent.createProfile({
+        profileDidOptions: {
+          services: [{
+            type            : 'dwn',
+            id              : 'dwn',
+            serviceEndpoint : {
+              // nodes: ['https://dwn.tbddev.org/dwn0']
+              nodes: ['http://localhost:3000']
+            }
+          }]
+        }
+      });
+
+      const dataBytes = Encoder.stringToBytes('hi');
+
+      let response = await testAgent.agent.sendDwnRequest({
+        author         : aliceDid,
+        target         : aliceDid,
+        messageType    : 'RecordsWrite',
+        messageOptions : {
+          dataFormat : 'text/plain',
+          data       : dataBytes
+        },
+        dataStream: new Blob([dataBytes])
+      });
+
+      const message = response.message as RecordsWriteMessage;
+
+      response = await testAgent.agent.sendDwnRequest({
+        author         : aliceDid,
+        target         : aliceDid,
+        messageType    : 'RecordsRead',
+        messageOptions : {
+          recordId: message.recordId
+        }
+      });
+
+      expect(response.reply.status.code).to.equal(200);
+      expect(response.message).to.exist;
+
+      const readMessage = response.message as RecordsRead['message'];
+      expect(readMessage.descriptor.method).to.equal('Read');
+      expect(readMessage.descriptor.interface).to.equal('Records');
+
+      expect(response.reply['record']).to.exist;
+
+      const record = response.reply['record'] as RecordsWriteMessage & { data: ReadableStream };
+      expect(record.recordId).to.equal(message.recordId);
+
+      expect(record.data).to.exist;
+      expect(record.data instanceof ReadableStream).to.be.true;
+
+      const { value } = await record.data.getReader().read();
+      expect(dataBytes).to.eql(value);
     });
   });
 });
