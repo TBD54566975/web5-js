@@ -2,12 +2,14 @@ import type { DidState, DidMethodApi, DidResolverCache } from '@tbd54566975/dids
 import type { Web5Agent } from '@tbd54566975/web5-agent';
 
 // import  { Web5ProxyAgent } from '@tbd54566975/web5-proxy-agent';
-import { DidIonApi, DidKeyApi } from '@tbd54566975/dids';
+import { DidIonApi, DidKeyApi, utils as didUtils } from '@tbd54566975/dids';
 import  { Web5UserAgent, ProfileApi } from '@tbd54566975/web5-user-agent';
 
 import { DwnApi } from './dwn-api.js';
 import { DidApi } from './did-api.js';
 import { AppStorage } from './app-storage.js';
+import { getRandomInt } from './utils.js';
+import { DwnServiceEndpoint } from '@tbd54566975/dwn-sdk-js';
 
 // TODO: discuss what other options we want
 export type Web5ConnectOptions = {
@@ -66,9 +68,20 @@ export class Web5 {
     // create enc. keys
 
     if (!profile) {
-      // TODO: add good samaritan nodes here when they're ready
+      const dwnUrls = await Web5.getDwnHosts();
+      let ionCreateOptions;
 
-      const defaultProfileDid = await this.did.create('ion');
+      if (dwnUrls.length > 0) {
+        ionCreateOptions = {
+          services: [{
+            id              : 'dwn',
+            type            : 'DecentralizedWebNode',
+            serviceEndpoint : { nodes: dwnUrls }
+          }]
+        };
+      }
+
+      const defaultProfileDid = await this.did.create('ion', ionCreateOptions);
       // setting id & name as the app's did to make migration easier
       profile = await profileApi.createProfile({
         name        : appDidState.id,
@@ -83,5 +96,27 @@ export class Web5 {
     const web5 = new Web5({ appStorage: appStorage, web5Agent: agent, connectedDid });
 
     return { web5, did: connectedDid };
+  }
+
+  /**
+   * dynamically selects up to 4 dwn hosts
+   */
+  static async getDwnHosts() {
+    const response = await fetch('https://dwn.tbddev.org/.well-known/did.json');
+
+    const didDoc = await response.json();
+    const [ service ] = didUtils.getServices(didDoc, { id: '#dwn', type: 'DecentralizedWebNode' });
+    const { nodes } = <DwnServiceEndpoint>service.serviceEndpoint;
+
+    // allocate up to 4 nodes for a user.
+    const numNodesToAllocate = Math.min(Math.floor(nodes.length / 2), 4);
+    const dwnUrls = [];
+
+    for (let i = 0; i < numNodesToAllocate; i += 1) {
+      const nodeIdx = getRandomInt(0, nodes.length);
+      dwnUrls.push(nodes[nodeIdx]);
+    }
+
+    return dwnUrls;
   }
 }

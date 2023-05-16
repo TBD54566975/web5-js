@@ -112,6 +112,12 @@ export function pascalToKebabCase(str) {
     .toLowerCase();
 }
 
+export function getRandomInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min)) + min;
+}
+
 /**
  * Credit for toType() function:
  *   Angus Croll
