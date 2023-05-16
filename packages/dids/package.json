@@ -1,10 +1,44 @@
 {
   "name": "@tbd54566975/dids",
-  "type": "module",
   "version": "0.1.0",
+  "description": "TBD DIDs library",
+  "type": "module",
   "main": "./dist/cjs/main.cjs",
   "module": "./dist/esm/main.mjs",
   "types": "./dist/types/main.d.ts",
+  "scripts": {
+    "build": "rimraf dist && node build/bundles.js && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json && tsc",
+    "lint": "eslint . --ext .js --max-warnings 0",
+    "lint:fix": "eslint . --ext .js --fix",
+    "test:node": "rimraf __tests__ && tsc -p tsconfig.test.json && mocha \"__tests__/**/*.spec.js\" --exit",
+    "test:browser": "karma start karma.conf.cjs"
+  },
+  "homepage": "https://github.com/TBD54566975/web5-js/tree/main/packages/dids#readme",
+  "bugs": "https://github.com/TBD54566975/web5-js/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TBD54566975/web5-js",
+    "directory": "packages/dids"
+  },
+  "license": "Apache-2.0",
+  "contributors": [
+    {
+      "name": "Daniel Buchner",
+      "url": "https://github.com/csuwildcat"
+    },
+    {
+      "name": "Frank Hinek",
+      "url": "https://github.com/frankhinek"
+    },
+    {
+      "name": "Moe Jangda",
+      "url": "https://github.com/mistermoe"
+    }
+  ],
+  "files": [
+    "dist",
+    "src"
+  ],
   "exports": {
     ".": {
       "import": "./dist/esm/main.mjs",
@@ -21,6 +55,22 @@
     "./dist/esm/index.js": "./dist/browser.mjs",
     "./dist/cjs/index.js": "./dist/browser.js",
     "types": "./dist/types/main.d.ts"
+  },
+  "keywords": [
+    "decentralized",
+    "decentralized-identity",
+    "DID",
+    "did:ion",
+    "did:key",
+    "did-utils",
+    "self-sovereign-identity",
+    "web5"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "@decentralized-identity/ion-tools": "1.0.7",
@@ -50,12 +100,5 @@
     "playwright": "1.31.2",
     "rimraf": "4.4.0",
     "typescript": "5.0.4"
-  },
-  "scripts": {
-    "build": "rimraf dist && node build/bundles.js && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json && tsc",
-    "lint": "eslint . --ext .js --max-warnings 0",
-    "lint:fix": "eslint . --ext .js --fix",
-    "test:node": "tsc -p tsconfig.test.json && mocha \"__tests__/**/*.spec.js\"",
-    "test:browser": "karma start karma.conf.cjs"
   }
 }

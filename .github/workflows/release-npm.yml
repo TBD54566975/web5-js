@@ -1,0 +1,46 @@
+name: Release to NPM Registry
+
+on:
+  release:
+    types: [created]
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish-npm:
+    name: Release NPM Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
+        with:
+          node-version: 18
+          registry-url: https://registry.npmjs.org/
+
+      - name: Install latest npm
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build all workspace packages
+        run: npm run build
+
+      # Note - this is not required but it gives a clean failure prior to attempting a release if the GH workflow runner is not authenticated with NPMjs.com
+      - name: Display the npm username of the currently logged-in user
+        run: npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+
+      - name: Publish Release to NPM Public Registry
+        run: npm publish --ws --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
