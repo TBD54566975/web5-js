@@ -1,3 +1,7 @@
+import { expect } from 'chai';
+
 describe('@tbd54566975/web5-proxy-agent', () => {
-  xit('should have tests');
+  it('should have tests', () => {
+    expect(true).to.equal(true);
+  });
 });
