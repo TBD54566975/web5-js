@@ -107,9 +107,10 @@ describe('web5.dwn', () => {
   describe('records', () => {
     describe('write', () => {
       describe('agent', () => {
-        it('writes a record', async () => {
+        it('writes a record with string data', async () => {
+          const dataString = 'Hello, world!';
           const result = await dwn.records.write({
-            data    : 'Hello, world!',
+            data    : dataString,
             message : {
               schema     : 'foo/bar',
               dataFormat : 'text/plain'
@@ -119,6 +120,23 @@ describe('web5.dwn', () => {
           expect(result.status.code).to.equal(202);
           expect(result.status.detail).to.equal('Accepted');
           expect(result.record).to.exist;
+          expect(await result.record?.data.text()).to.equal(dataString);
+        });
+
+        it('writes a record with JSON data', async () => {
+          const dataJson = { hello: 'world!'};
+          const result = await dwn.records.write({
+            data    : dataJson,
+            message : {
+              schema     : 'foo/bar',
+              dataFormat : 'application/json'
+            }
+          });
+
+          expect(result.status.code).to.equal(202);
+          expect(result.status.detail).to.equal('Accepted');
+          expect(result.record).to.exist;
+          expect(await result.record?.data.json()).to.deep.equal(dataJson);
         });
       });
 
