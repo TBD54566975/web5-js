@@ -144,4 +144,50 @@ export class DidIonApi implements DidMethodResolver, DidMethodCreator {
     const didResolutionResult = await response.json();
     return didResolutionResult;
   }
+
+  /**
+   * generates three key pairs used for attestation, authorization and encryption purposes
+   * when interfacing with DWNs. the ids of these keys are referenced in the service object
+   *  that includes the dwnUrls provided.
+   */
+  async generateDwnConfiguration(dwnUrls: string[]): Promise<DidIonCreateOptions> {
+    return DidIonApi.generateDwnConfiguration(dwnUrls);
+  }
+
+  /**
+   * generates three key pairs used for attestation, authorization and encryption purposes
+   * when interfacing with DWNs. the ids of these keys are referenced in the service object
+   *  that includes the dwnUrls provided.
+   */
+  static async generateDwnConfiguration(dwnUrls: string[]): Promise<DidIonCreateOptions> {
+    const keys = [{
+      id       : 'attest',
+      type     : 'JsonWebKey2020',
+      keyPair  : await generateKeyPair('secp256k1'),
+      purposes : ['authentication'],
+    }, {
+      id       : 'authz',
+      type     : 'JsonWebKey2020',
+      keyPair  : await generateKeyPair('secp256k1'),
+      purposes : ['authentication'],
+    }, {
+      id       : 'encr',
+      type     : 'JsonWebKey2020',
+      keyPair  : await generateKeyPair('secp256k1'),
+      purposes : ['keyAgreement'],
+    }];
+
+    const services = [{
+      'id'              : 'dwn',
+      'type'            : 'DecentralizedWebNode',
+      'serviceEndpoint' : {
+        'nodes'                    : dwnUrls,
+        'messageAttestationKeys'   : ['#attest'],
+        'messageAuthorizationKeys' : ['#authz'],
+        'recordEncryptionKeys'     : ['#encr']
+      }
+    }];
+
+    return { keys, services };
+  }
 }
