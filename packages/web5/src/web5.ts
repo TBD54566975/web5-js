@@ -72,13 +72,7 @@ export class Web5 {
       let ionCreateOptions;
 
       if (dwnUrls.length > 0) {
-        ionCreateOptions = {
-          services: [{
-            id              : 'dwn',
-            type            : 'DecentralizedWebNode',
-            serviceEndpoint : { nodes: dwnUrls }
-          }]
-        };
+        ionCreateOptions = await DidIonApi.generateDwnConfiguration(dwnUrls);
       }
 
       const defaultProfileDid = await this.did.create('ion', ionCreateOptions);
