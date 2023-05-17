@@ -3,6 +3,9 @@ import type { TestProfileOptions } from '../test-utils/test-user-agent.js';
 
 import { generateKeyPair } from '@decentralized-identity/ion-tools';
 
+const dwnNodes = ['https://dwn.tbddev.org/dwn0'];
+// const dwnNodes = ['http://localhost:3000'];
+
 export const keyIds = {
   did: {
     service: {
@@ -54,12 +57,13 @@ export const ionCreateOptions = {
       authorization: {
         encryption: {
           attestation: {
+
+            // Authorization, Encryption, and Attestation keys.
             keys: async (): Promise<DidIonCreateOptions> => {
               let profileKeys: KeyOption[] = [];
               profileKeys.push(await keys.secp256k1.jwk.attestation());
               profileKeys.push(await keys.secp256k1.jwk.authorization());
               profileKeys.push(await keys.secp256k1.jwk.encryption());
-
               return {
                 keys     : profileKeys,
                 services : [
@@ -67,8 +71,7 @@ export const ionCreateOptions = {
                     id              : 'dwn',
                     type            : 'DecentralizedWebNode',
                     serviceEndpoint : {
-                      nodes                    : ['http://localhost:3000'],
-                      // nodes                    : ['https://dwn.tbddev.org/dwn0'],
+                      nodes                    : dwnNodes,
                       messageAttestationKeys   : [`#${keyIds.did.service.dwn.attestation}`],
                       messageAuthorizationKeys : [`#${keyIds.did.service.dwn.authorization}`],
                       recordEncryptionKeys     : [`#${keyIds.did.service.dwn.encryption}`]
@@ -80,18 +83,17 @@ export const ionCreateOptions = {
           }
         },
 
+        // Authorization and Encryption keys.
         keys: async (): Promise<DidIonCreateOptions> => {
           let profileKeys: KeyOption[] = [];
           profileKeys.push(await keys.secp256k1.jwk.authorization());
-
           return {
             keys     : profileKeys,
             services : [{
               id              : 'dwn',
               type            : 'DecentralizedWebNode',
               serviceEndpoint : {
-                nodes                    : ['http://localhost:3000'],
-                // nodes                    : ['https://dwn.tbddev.org/dwn0'],
+                nodes                    : dwnNodes,
                 messageAuthorizationKeys : [`#${keyIds.did.service.dwn.authorization}`],
               }
             }]
