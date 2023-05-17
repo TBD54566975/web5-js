@@ -44,7 +44,7 @@ describe('web5.dwn', () => {
       });
 
       describe('from: did', () => {
-        xit('test neeed');
+        xit('test needed');
       });
     });
 

@@ -4,7 +4,7 @@ import { DidKeyApi } from '../src/did-key.js';
 const DidKey = new DidKeyApi();
 
 describe('DidKeyApi', () => {
-  it.only('works', async () => {
+  it('works', async () => {
     const didState = await DidKey.create();
 
     expect(didState.id).to.exist;
