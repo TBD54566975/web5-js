@@ -1,6 +1,6 @@
 {
   "name": "@tbd54566975/web5-proxy-agent",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Web5 Proxy Agent",
   "type": "module",
   "main": "./dist/cjs/main.cjs",
@@ -45,6 +45,11 @@
       "require": "./dist/cjs/main.cjs",
       "types": "./dist/types/main.d.ts"
     },
+    "./browser": {
+      "import": "./dist/browser.mjs",
+      "require": "./dist/browser.js",
+      "types": "./dist/types/main.d.ts"
+    },
     "./electron": {
       "import": "./dist/esm/main.mjs",
       "require": "./dist/electron/main.cjs",
@@ -70,7 +75,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@tbd54566975/web5-agent": "0.1.1"
+    "@tbd54566975/web5-agent": "0.1.2"
   },
   "devDependencies": {
     "@types/chai": "4.3.0",

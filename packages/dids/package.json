@@ -1,6 +1,6 @@
 {
   "name": "@tbd54566975/dids",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "TBD DIDs library",
   "type": "module",
   "main": "./dist/cjs/main.cjs",
@@ -45,6 +45,11 @@
       "require": "./dist/cjs/main.cjs",
       "types": "./dist/types/main.d.ts"
     },
+    "./browser": {
+      "import": "./dist/browser.mjs",
+      "require": "./dist/browser.js",
+      "types": "./dist/types/main.d.ts"
+    },
     "./electron": {
       "import": "./dist/esm/main.mjs",
       "require": "./dist/electron/main.cjs",
@@ -74,7 +79,7 @@
   },
   "dependencies": {
     "@decentralized-identity/ion-tools": "1.0.7",
-    "@tbd54566975/crypto": "0.1.1",
+    "@tbd54566975/crypto": "0.1.2",
     "@tbd54566975/dwn-sdk-js": "0.0.32",
     "cross-fetch": "3.1.5"
   },

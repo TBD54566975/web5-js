@@ -1,6 +1,6 @@
 {
   "name": "@tbd54566975/web5-agent",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Web5 Agent",
   "type": "module",
   "main": "./dist/cjs/main.cjs",
@@ -43,6 +43,11 @@
     ".": {
       "import": "./dist/esm/main.mjs",
       "require": "./dist/cjs/main.cjs",
+      "types": "./dist/types/main.d.ts"
+    },
+    "./browser": {
+      "import": "./dist/browser.mjs",
+      "require": "./dist/browser.js",
       "types": "./dist/types/main.d.ts"
     },
     "./electron": {
