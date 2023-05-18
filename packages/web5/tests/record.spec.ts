@@ -288,7 +288,7 @@ describe('Record', () => {
       expect(aliceStatus.code).to.equal(202);
       expect(aliceProtocol).to.exist;
 
-      const { status: alicePushStatus } = await aliceProtocol!.send();
+      const { status: alicePushStatus } = await aliceProtocol!.send(didAllKeys);
       expect(alicePushStatus.code).to.equal(202);
 
       // install a protocol for bob
@@ -305,7 +305,7 @@ describe('Record', () => {
       expect(bobStatus.code).to.equal(202);
       expect(bobProtocol).to.exist;
 
-      const { status: bobPushStatus } = await bobProtocol!.send();
+      const { status: bobPushStatus } = await bobProtocol!.send(bobDid);
       expect(bobPushStatus.code).to.equal(202);
 
       // alice writes a message to her own dwn

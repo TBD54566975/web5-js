@@ -5,13 +5,17 @@ import type { ProtocolsConfigure } from '@tbd54566975/dwn-sdk-js';
 export type ProtocolsConfigureMessage = ProtocolsConfigure['message'];
 type ProtocolMetadata = {
   author: string;
-  messageCid: string;
+  messageCid?: string;
 };
 
 export class Protocol {
   #metadata: ProtocolMetadata;
   #web5Agent: Web5Agent;
   #protocolsConfigureMessage: ProtocolsConfigureMessage;
+
+  get definition() {
+    return this.#protocolsConfigureMessage.descriptor.definition;
+  }
 
   constructor(web5Agent: Web5Agent, protocolsConfigureMessage: ProtocolsConfigureMessage, metadata: ProtocolMetadata) {
     this.#metadata = metadata;
@@ -23,11 +27,11 @@ export class Protocol {
     return this.#protocolsConfigureMessage;
   }
 
-  async send() {
+  async send(target: string) {
     const { reply } = await this.#web5Agent.sendDwnRequest({
       messageType : 'ProtocolsConfigure',
       author      : this.#metadata.author,
-      target      : this.#metadata.author,
+      target      : target,
       messageCid  : this.#metadata.messageCid
     });
 

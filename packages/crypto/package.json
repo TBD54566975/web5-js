@@ -1,6 +1,6 @@
 {
   "name": "@tbd54566975/crypto",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TBD crypto library",
   "type": "module",
   "main": "./dist/cjs/main.cjs",
@@ -52,8 +52,8 @@
     }
   },
   "browser": {
-    "./dist/esm/index.js": "./dist/browser.mjs",
-    "./dist/cjs/index.js": "./dist/browser.js",
+    "./dist/esm/main.mjs": "./dist/browser.mjs",
+    "./dist/cjs/main.cjs": "./dist/browser.js",
     "types": "./dist/types/main.d.ts"
   },
   "keywords": [
