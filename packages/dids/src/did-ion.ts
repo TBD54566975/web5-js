@@ -161,11 +161,6 @@ export class DidIonApi implements DidMethodResolver, DidMethodCreator {
    */
   static async generateDwnConfiguration(dwnUrls: string[]): Promise<DidIonCreateOptions> {
     const keys = [{
-      id       : 'attest',
-      type     : 'JsonWebKey2020',
-      keyPair  : await generateKeyPair('secp256k1'),
-      purposes : ['authentication'],
-    }, {
       id       : 'authz',
       type     : 'JsonWebKey2020',
       keyPair  : await generateKeyPair('secp256k1'),
@@ -182,7 +177,6 @@ export class DidIonApi implements DidMethodResolver, DidMethodCreator {
       'type'            : 'DecentralizedWebNode',
       'serviceEndpoint' : {
         'nodes'                    : dwnUrls,
-        'messageAttestationKeys'   : ['#attest'],
         'messageAuthorizationKeys' : ['#authz'],
         'recordEncryptionKeys'     : ['#encr']
       }
