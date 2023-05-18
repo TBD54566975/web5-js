@@ -166,7 +166,7 @@ export class DidIonApi implements DidMethodResolver, DidMethodCreator {
       keyPair  : await generateKeyPair('secp256k1'),
       purposes : ['authentication'],
     }, {
-      id       : 'encr',
+      id       : 'enc',
       type     : 'JsonWebKey2020',
       keyPair  : await generateKeyPair('secp256k1'),
       purposes : ['keyAgreement'],
@@ -178,7 +178,7 @@ export class DidIonApi implements DidMethodResolver, DidMethodCreator {
       'serviceEndpoint' : {
         'nodes'                    : dwnUrls,
         'messageAuthorizationKeys' : ['#authz'],
-        'recordEncryptionKeys'     : ['#encr']
+        'recordEncryptionKeys'     : ['#enc']
       }
     }];
 
