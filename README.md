@@ -276,7 +276,7 @@ The `delete` request object is composed as follows:
 Method for configuring a protocol definition in the DWeb Node of the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted).
 
 ```javascript
-const response = await web5.dwn.protocols.configure({
+const { protocol } = await web5.dwn.protocols.configure({
   message: {
     definition: {
       protocol: "https://photos.org/protocol",
@@ -327,6 +327,8 @@ const response = await web5.dwn.protocols.configure({
     }
   }
 });
+
+protocol.send(myDid) // sends the protocol configuration to the user's other DWeb Nodes.
 ```
 
 #### **Request**
