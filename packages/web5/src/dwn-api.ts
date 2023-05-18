@@ -47,7 +47,7 @@ export type ProtocolsQueryRequest = {
 }
 
 export type ProtocolsQueryResponse = {
-  protocols: ProtocolsQueryReplyEntry[];
+  protocols: Protocol[];
   status: MessageReply['status'];
 }
 
@@ -158,7 +158,13 @@ export class DwnApi {
         });
 
         const { reply: { entries, status } } = agentResponse;
-        const protocols = entries as ProtocolsQueryReplyEntry[];
+        // const protocols = entries as ProtocolsQueryReplyEntry[];
+
+        const protocols = entries.map((entry: ProtocolsQueryReplyEntry) => {
+          const metadata = { author: this.connectedDid, };
+
+          return new Protocol(this.web5Agent, entry, metadata);
+        });
 
         return { protocols, status };
       }

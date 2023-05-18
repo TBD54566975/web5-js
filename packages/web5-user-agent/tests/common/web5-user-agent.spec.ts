@@ -47,8 +47,8 @@ describe('Web5UserAgent', () => {
             type            : 'dwn',
             id              : 'dwn',
             serviceEndpoint : {
-              // nodes: ['https://dwn.tbddev.org/dwn0']
-              nodes: ['http://localhost:3000']
+              nodes: ['https://dwn.tbddev.org/dwn0']
+              // nodes: ['http://localhost:3000']
             }
           }]
         }
@@ -80,8 +80,8 @@ describe('Web5UserAgent', () => {
             type            : 'dwn',
             id              : 'dwn',
             serviceEndpoint : {
-              // nodes: ['https://dwn.tbddev.org/dwn0']
-              nodes: ['http://localhost:3000']
+              nodes: ['https://dwn.tbddev.org/dwn0']
+              // nodes: ['http://localhost:3000']
             }
           }]
         }
@@ -108,8 +108,8 @@ describe('Web5UserAgent', () => {
             type            : 'dwn',
             id              : 'dwn',
             serviceEndpoint : {
-              // nodes: ['https://dwn.tbddev.org/dwn0']
-              nodes: ['http://localhost:3000']
+              nodes: ['https://dwn.tbddev.org/dwn0']
+              // nodes: ['http://localhost:3000']
             }
           }]
         }
@@ -138,8 +138,8 @@ describe('Web5UserAgent', () => {
             type            : 'dwn',
             id              : 'dwn',
             serviceEndpoint : {
-              // nodes: ['https://dwn.tbddev.org/dwn0']
-              nodes: ['http://localhost:3000']
+              nodes: ['https://dwn.tbddev.org/dwn0']
+              // nodes: ['http://localhost:3000']
             }
           }]
         }

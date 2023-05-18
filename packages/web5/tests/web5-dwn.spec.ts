@@ -72,11 +72,10 @@ describe('web5.dwn', () => {
 
           expect(response.status.code).to.equal(200);
           expect(response.protocols.length).to.equal(1);
-          expect(response.protocols[0].descriptor).to.have.property('definition');
-          expect(response.protocols[0].descriptor.definition).to.have.property('types');
-          expect(response.protocols[0].descriptor.definition).to.have.property('protocol');
-          expect(response.protocols[0].descriptor.definition.protocol).to.equal(emailProtocolDefinition.protocol);
-          expect(response.protocols[0].descriptor.definition).to.have.property('structure');
+          expect(response.protocols[0].definition).to.have.property('types');
+          expect(response.protocols[0].definition).to.have.property('protocol');
+          expect(response.protocols[0].definition.protocol).to.equal(emailProtocolDefinition.protocol);
+          expect(response.protocols[0].definition).to.have.property('structure');
         });
       });
 
