@@ -5,7 +5,7 @@ import type { RecordsReadReply, RecordsWriteDescriptor, RecordsWriteMessage, Rec
 import { ReadableWebToNodeStream } from 'readable-web-to-node-stream';
 import { DataStream, DwnInterfaceName, DwnMethodName, Encoder } from '@tbd54566975/dwn-sdk-js';
 
-import { dataToBlob, isDataSizeUnderCacheLimit } from './utils.js';
+import { dataToBlob } from './utils.js';
 import type { RecordsDeleteResponse } from './dwn-api.js';
 
 export type RecordOptions = RecordsWriteMessage & {
