@@ -17,7 +17,7 @@ import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 
 import { Record } from './record.js';
 import { Protocol } from './protocol.js';
-import { dataToBlob, isDataSizeUnderCacheLimit, isEmptyObject } from './utils.js';
+import { dataToBlob, isEmptyObject } from './utils.js';
 
 // TODO: Export type ProtocolsConfigureDescriptor from dwn-sdk-js.
 export type ProtocolsConfigureDescriptor = {

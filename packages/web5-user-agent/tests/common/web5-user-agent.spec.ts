@@ -2,8 +2,10 @@ import { expect } from 'chai';
 import { Encoder, RecordsWriteMessage, RecordsRead } from '@tbd54566975/dwn-sdk-js';
 import { TestAgent } from './utils/test-user-agent.js';
 
-let testAgent: TestAgent;
 let did: string;
+let dwnNodes: string[] = ['https://dwn.tbddev.org/dwn0'];
+// let dwnNodes: string[] = ['http://localhost:3000'];
+let testAgent: TestAgent;
 
 describe('Web5UserAgent', () => {
   before(async () => {
@@ -47,8 +49,7 @@ describe('Web5UserAgent', () => {
             type            : 'dwn',
             id              : 'dwn',
             serviceEndpoint : {
-              nodes: ['https://dwn.tbddev.org/dwn0']
-              // nodes: ['http://localhost:3000']
+              nodes: dwnNodes
             }
           }]
         }
@@ -80,8 +81,7 @@ describe('Web5UserAgent', () => {
             type            : 'dwn',
             id              : 'dwn',
             serviceEndpoint : {
-              nodes: ['https://dwn.tbddev.org/dwn0']
-              // nodes: ['http://localhost:3000']
+              nodes: dwnNodes
             }
           }]
         }
@@ -101,22 +101,20 @@ describe('Web5UserAgent', () => {
       expect(response.reply.status.code).to.equal(404);
     });
 
-    it('returns something when an jwark is smorked', async () => {
+    it('throws an error when DwnRequest fails validation', async () => {
       const { did: aliceDid } = await testAgent.createProfile({
         profileDidOptions: {
           services: [{
             type            : 'dwn',
             id              : 'dwn',
             serviceEndpoint : {
-              nodes: ['https://dwn.tbddev.org/dwn0']
-              // nodes: ['http://localhost:3000']
+              nodes: dwnNodes
             }
           }]
         }
       });
 
       try {
-        // TODO: (Moe -> Frank): what should sendDwnRequest return and how does it propogate back up to the caller?
         await testAgent.agent.sendDwnRequest({
           author         : aliceDid,
           target         : aliceDid,
@@ -138,8 +136,7 @@ describe('Web5UserAgent', () => {
             type            : 'dwn',
             id              : 'dwn',
             serviceEndpoint : {
-              nodes: ['https://dwn.tbddev.org/dwn0']
-              // nodes: ['http://localhost:3000']
+              nodes: dwnNodes
             }
           }]
         }
