@@ -83,7 +83,7 @@ Method for querying the DWeb Node of a provided `target` DID.
 
 ```javascript
 // This invocation will query the user's own DWeb Nodes
-const result = await web5.dwn.records.query({
+const { records } = await web5.dwn.records.query({
   message: {
     filter: {
       schema: 'https://schema.org/Playlist',
@@ -93,10 +93,10 @@ const result = await web5.dwn.records.query({
 });
 
 
-console.log(result.entries) // an array of record entries from the user's own DWeb Nodes
+console.log(records) // an array of record entries from Bob's DWeb Nodes
 
 // This invocation will query Bob's DWeb Nodes
-const result = await web5.dwn.records.query({
+const { records } = await web5.dwn.records.query({
   from: 'did:example:bob',
   message: {
     filter: {
@@ -107,18 +107,19 @@ const result = await web5.dwn.records.query({
   }
 });
 
-console.log(result.entries) // an array of record entries from Bob's DWeb Nodes
+console.log(records) // an array of record entries from Bob's DWeb Nodes
 ```
 
 #### **Request**
 
 The query `request` must contain the following:
 
-- **`from`** - *`DID string`* (*optional*): The decentralized identifier of the DID of the DWeb Node the query will fetch results from.
-- **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid record query:
-    - **`protocol`** - *`URI string`* (*optional*): the URI of the protocol bucket in which to query.
-    - **`schema`** - *`URI string`* (*optional*): the URI of the protocol bucket in which to query.
-    - **`dataFormat`** - *`Media Type string`* (*optional*): the IANA string corresponding with the format of the data to filter for. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
+- **`from`** - *`DID string`* (*optional*): the decentralized identifier of the DID of the DWeb Node the query will fetch results from.
+- **`message`**  - *`object`*: the properties of the DWeb Node Message Descriptor that will be used to construct a valid record query:
+    - **`filter`**  - *`object`*: properties against which results of the query will be filtered: 
+      - **`protocol`** - *`URI string`* (*optional*): the URI of the protocol bucket in which to query.
+      - **`schema`** - *`URI string`* (*optional*): the URI of the protocol bucket in which to query.
+      - **`dataFormat`** - *`Media Type string`* (*optional*): the IANA string corresponding with the format of the data to filter for. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
 
 ### **`web5.dwn.records.create()`**
 
@@ -344,6 +345,43 @@ The `configure` request object is composed as follows:
         - **`who`**  - *`string`*: the actor (`author`, `recipient`) that is being permitted to invoke a given action.
         - **`of`**  - *`string`*: the protocol path that refers to the record subject. Using the above example protocol, the protocol path to `binaryImage` would be `photo/binaryImage`.
         - **`can`**  - *`string`*: the action being permitted by the rule.
+
+
+### **`web5.dwn.protocols.query()`**
+
+Method for querying a DID's DWeb Nodes for the presence of a protocol. This method is useful in detecting what protocols a given DID has installed to enable interaction over the protocol.
+
+```javascript
+const { protocols } = await web5.dwn.protocols.query({
+  message: {
+    filter: {
+      protocol: 'https://music.org/protocol'
+    }
+  }
+});
+
+console.log(protocols) // logs an array of protocol configurations installed on the user's own DWeb Node
+
+const { protocols } = await web5.dwn.protocols.query({
+  from: 'did:example:bob',
+  message: {
+    filter: {
+      protocol: 'https://music.org/protocol'
+    }
+  }
+});
+
+console.log(protocols) // logs an array of protocol configurations installed on Bob's DWeb Node
+```
+
+#### **Request**
+
+The query `request` must contain the following:
+
+- **`from`** - *`DID string`* (*optional*): the decentralized identifier of the DID of the DWeb Node the query will fetch results from.
+- **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid record query:
+  - **`filter`**  - *`object`*: properties against which results of the query will be filtered: 
+    - **`protocol`** - *`URI string`* (*optional*): the URI of the protocol bucket in which to query.
 
 
 ### **`web5.did.create(method, options)`**
