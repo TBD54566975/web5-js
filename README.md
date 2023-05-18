@@ -1,7 +1,9 @@
 # Web5 JS SDK
 Making developing with Web5 components at least 5 times easier to work with.
 
-⚠️ WEB5 JS SDK IS IN A PRE-BETA STATE ⚠️
+⚠️ WEB5 JS SDK IS CURRENTLY IN TECH PREVIEW ⚠️
+
+The SDK is currently still under active development, but having entered the Tech Preview phase there is now a drive to avoid unnecessary changes without providing backwards compatibility. Additional functionality will be added in the lead up to 1.0 final, and modifications will be made to address issues and community feedback.
 
 ## Introduction
 
