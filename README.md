@@ -18,14 +18,27 @@ possible.
 
 ### Installation
 
-```bash
+*NPM*
+```yaml
 npm install @tbd54566975/web5
+```
+
+*CDNs*
+```yaml
+https://unpkg.com/@tbd54566975/web5@0.7.0/dist/browser.js
+```
+```yaml
+https://cdn.jsdelivr.net/npm/@tbd54566975/web5@0.7.0/dist/browser.mjs
 ```
 
 ### Importing the SDK
 
 ```javascript
-import { Web5 } from '/node_modules/@tbd54566975/web5/dist/browser.mjs';
+import { Web5 } from '@tbd54566975/web5';
+```
+or
+```javascript
+import { Web5 } from CDN_LINK_HERE;
 ```
 
 ### **`Web5.connect()`**
@@ -50,7 +63,7 @@ An invocation of `Web5.connect()` produces the following items in response:
 
 ### **`Record` instances from responses**
 
-Every modifying method (`create`, `write`, etc.) and query entries return an instance of a `Record` class, which is a representation of the Record(s) involved. All the methods below where a `record` return instances is specified in a destructuring statement is a `Record` instance. `Record` class instances have the following properties:
+Every modifying method (`create`, `write`, etc.) and the `entries` from queries return an instance of a `Record` class, which is a representation of the Record(s) being referenced. `Record` class instances offer the following properties and methods:
 
 - **`id`**  - *`string`*: The unique identifier based on the record entry's composition. Note: all entries across all records are deterministically unique.
 - **`descriptor`**  - *`object`*: The descriptor object for the constructed DWeb Node message.
@@ -58,6 +71,7 @@ Every modifying method (`create`, `write`, etc.) and query entries return an ins
   - **`text`**  - *`function`*: produces a textual representation of the data.
   - **`json`**  - *`function`*: if the value is JSON data, this method will return a parsed JSON object.
   - **`stream`**  - *`function`*: returns the raw stream of bytes for the data.
+- **`send`**  - *`function`*: generates a `delete` entry tombstone for the record. This is a convenience method that allows you to easily delete records with less verbosity.
 - **`update`**  - *`function`*: takes in a new request object matching the expected method signature of a `write` and overwrites the record. This is a convenience method that allows you to easily overwrite records with less verbosity.
 - **`delete`**  - *`function`*: generates a `delete` entry tombstone for the record. This is a convenience method that allows you to easily delete records with less verbosity.
 
@@ -117,9 +131,9 @@ const { record } = await web5.dwn.records.create({
   }
 });
 
-console.log(record.data.text()) // logs "Hello World!" 
-record.send(myDid) // send the record to the user's remote DWeb Nodes
-record.send('did:example:bob') // send the newly generated record to Bob's DWeb Nodes
+console.log(await record.data.text()) // logs "Hello World!" 
+const { status } = await record.send(myDid) // send the record to the user's remote DWeb Nodes
+const { status } = await record.send('did:example:bob') // send the newly generated record to Bob's DWeb Nodes
 
 // this creates a record, but does not store it in the user's local DWeb Node
 const { record } = await web5.dwn.records.create({
@@ -130,7 +144,7 @@ const { record } = await web5.dwn.records.create({
   }
 });
 
-record.send('did:example:bob') // send the newly generated record to Bob's DWeb Nodes
+const { status } = await record.send('did:example:bob') // send the newly generated record to Bob's DWeb Nodes
 ```
 
 #### **Request**
@@ -159,9 +173,9 @@ const { record } = await web5.dwn.records.create({
   }
 });
 
-console.log(record.data.text()) // logs "Hello World!"
-record.send(myDid) // send the record to the user's remote DWeb Nodes
-record.send('did:example:bob') // send the newly generated record to Bob's DWeb Nodes
+console.log(await record.data.text()) // logs "Hello World!"
+const { status } = await record.send(myDid) // send the record to the user's remote DWeb Nodes
+const { status } = await record.send('did:example:bob') // send the newly generated record to Bob's DWeb Nodes
 
 // this overwrites the existing a record, but does not store it in the user's local DWeb Node
 const { record } = await web5.dwn.records.write({
@@ -172,12 +186,12 @@ const { record } = await web5.dwn.records.write({
   }
 });
 
-console.log(record.data.text()) // logs "Hello again, World!"
-record.send(myDid) // send updated record to the user's remote DWeb Nodes
-record.send('did:example:bob') // send the updated record to Bob's DWeb Nodes
+console.log(await record.data.text()) // logs "Hello again, World!"
+const { status } = await record.send(myDid) // send updated record to the user's remote DWeb Nodes
+const { status } = await record.send('did:example:bob') // send the updated record to Bob's DWeb Nodes
 
 // A convenience method of the Record instance
-record.update({
+const { status } = await record.update({
   data: 'Hello for a final time, world'
 })
 ```
@@ -204,7 +218,7 @@ const { record } = await web5.dwn.records.read({
   }
 });
 
-console.log(record.data.text()) // assuming the record is a text payload, logs the text
+console.log(await record.data.text()) // assuming the record is a text payload, logs the text
 
 // Reads the indicated record from Bob's DWeb Nodes
 const { record } = await web5.dwn.records.read({
@@ -214,7 +228,7 @@ const { record } = await web5.dwn.records.read({
   }
 });
 
-console.log(record.data.text()) // assuming the record is a text payload, logs the text
+console.log(await record.data.text()) // assuming the record is a text payload, logs the text
 ```
 
 #### **Request**
@@ -320,8 +334,15 @@ The `configure` request object is composed as follows:
 - **`message`**  - *`object`*: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
   - **`definition`**  - *`object`*: an object that defines the enforced composition of the protocol.
     - **`protocol`**  - *`URI string`*: a URI that represents the protocol being configured.
-    - **`types`**  - *`object`*: an object that defines the records that can be used in the `structure` graph of the `definition` object.
-    - **`structure`**  - *`object`*: an object that defines the structure of a protocol, including data relationships and constraints on which entities can perform various activities.
+    - **`types`**  - *`object`*: an object that defines the records that can be used in the `structure` graph of the `definition` object. The following properties are optional constraints you can set for the type being defined:
+      - **`schema`** - *`URI string`* (*optional*): the URI of the schema under which the record will be bucketed.
+      - **`dataFormat`** - *`Media Type string`* (*optional*): the IANA string corresponding with the format of the data the record will be bucketed. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
+    - **`structure`**  - *`object`*: an object that defines the structure of a protocol, including data relationships and constraints on which entities can perform various activities. Fields under the `structure` object of the Protocol definition are expected to be either type references matching those defined in the `types` object. The type structures are recursive, so types form a graph and each type can have within it further attached types or the following rule statements that are all denoted with the prefix `$`:
+      - **`$actions`**  - *`array`*: one or more rule objects that expose various allowed actions to actors (`author`, `recipient`), composed as follows:
+        - **`who`**  - *`string`*: the actor (`author`, `recipient`) that is being permitted to invoke a given action.
+        - **`of`**  - *`string`*: the protocol path that refers to the record subject. Using the above example protocol, the protocol path to `binaryImage` would be `photo/binaryImage`.
+        - **`can`**  - *`string`*: the action being permitted by the rule.
+
 
 ### **`web5.did.create(method, options)`**
 
