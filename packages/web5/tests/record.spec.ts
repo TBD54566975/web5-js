@@ -322,7 +322,7 @@ describe('Record', () => {
 
       const { status } = await aliceEmailRecord!.send(bobDid);
       expect(status.code).to.equal(202);
-    });
+    }).timeout(10_000);
   });
 
   describe('toJSON()', () => {

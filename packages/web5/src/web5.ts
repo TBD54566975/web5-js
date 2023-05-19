@@ -102,15 +102,24 @@ export class Web5 {
     const [ service ] = didUtils.getServices(didDoc, { id: '#dwn', type: 'DecentralizedWebNode' });
     const { nodes } = <DwnServiceEndpoint>service.serviceEndpoint;
 
-    // allocate up to 4 nodes for a user.
-    const numNodesToAllocate = Math.min(Math.floor(nodes.length / 2), 4);
-    const dwnUrls = [];
+    // allocate up to 2 nodes for a user.
+    const numNodesToAllocate = Math.min(Math.floor(nodes.length / 2), 2);
+    const dwnUrls = new Set([]);
 
     for (let i = 0; i < numNodesToAllocate; i += 1) {
       const nodeIdx = getRandomInt(0, nodes.length);
-      dwnUrls.push(nodes[nodeIdx]);
+      const dwnUrl = nodes[nodeIdx];
+
+      try {
+        const healthCheck = await fetch(`${dwnUrl}/health`);
+        if (healthCheck.status === 200) {
+          dwnUrls.add(dwnUrl);
+        }
+      } catch(e) {
+        // ignore healthcheck failures and try the next node.
+      }
     }
 
-    return dwnUrls;
+    return Array.from(dwnUrls);
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@tbd54566975/web5-user-agent",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Web5 User Agent",
   "type": "module",
   "main": "./dist/cjs/main.cjs",
@@ -76,7 +76,7 @@
   },
   "dependencies": {
     "@decentralized-identity/ion-tools": "1.0.7",
-    "@tbd54566975/dids": "0.1.2",
+    "@tbd54566975/dids": "0.1.3",
     "@tbd54566975/dwn-sdk-js": "0.0.32",
     "abstract-level": "1.0.3",
     "cross-fetch": "3.1.5",
