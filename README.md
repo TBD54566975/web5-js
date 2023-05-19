@@ -2,7 +2,7 @@
 
 Making developing with Web5 components at least 5 times easier to work with.
 
-⚠️ WEB5 JS SDK IS CURRENTLY IN TECH PREVIEW ⚠️
+> ⚠️ WEB5 JS SDK IS CURRENTLY IN TECH PREVIEW ⚠️
 
 The SDK is currently still under active development, but having entered the Tech Preview phase there is now a drive to avoid unnecessary changes unless backwards compatibility is provided. Additional functionality will be added in the lead up to 1.0 final, and modifications will be made to address issues and community feedback.
 
@@ -31,11 +31,11 @@ npm install @tbd54566975/web5
 _CDNs_
 
 ```yaml
-https://unpkg.com/@tbd54566975/web5@0.7.2/dist/browser.js
+https://unpkg.com/@tbd54566975/web5@0.7.3/dist/browser.js
 ```
 
 ```yaml
-https://cdn.jsdelivr.net/npm/@tbd54566975/web5@0.7.2/dist/browser.mjs
+https://cdn.jsdelivr.net/npm/@tbd54566975/web5@0.7.3/dist/browser.mjs
 ```
 
 ### Importing the SDK
