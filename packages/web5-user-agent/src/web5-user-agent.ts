@@ -230,13 +230,12 @@ export class Web5UserAgent implements Web5Agent {
   }
 
   async #constructDwnMessage(request: ProcessDwnRequest) {
-    // TODO: Show Henry the consequence of choosing Readable for the DWN SDK.
+    // TODO: Reconsider use of Node Readable for the DWN SDK and evaluate refactor to use Web ReadableStream.
 
     const dwnSignatureInput = await this.#getAuthorSignatureInput(request.author);
     let streamForProcessMessage: Readable;
 
-    // TODO: MOVE ALL THIS TO HTTP TRANSPORT LAND BECAUSE THATS WHY WE HAVE TO DO IT
-    // THANKS A LOT BROWSER NECKBEARDS
+    // TODO: Consider refactoring to move data transformations imposed by fetch() limitations to the HTTP transport-related methods.
     if (request.messageType === 'RecordsWrite') {
       const messageOptions = request.messageOptions as RecordsWriteOptions;
 
@@ -304,7 +303,7 @@ export class Web5UserAgent implements Web5Agent {
       }
     }
 
-    // TODO: if we ever find time, figure out how to narrow this type. may have figured something out in `web5.DidInterface`
+    // TODO: Figure out how to narrow this type. may have figured something out in `web5.DidInterface`
     const messageCreateInput = {
       ...<any>request.messageOptions,
       authorizationSignatureInput: dwnSignatureInput

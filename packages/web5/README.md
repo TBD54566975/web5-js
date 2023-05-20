@@ -164,7 +164,8 @@ const { status } = await record.send("did:example:bob"); // send the newly gener
 The `create` request object is composed as follows:
 
 - **`store`** - _`boolean`_: tells the create function whether or not to store the record in the user's local DWeb Node. (you might pass `false` if you didn't want to retain a copy of the record for yourself)
-- **`data`** - _`text|object|file|blob`_: The data payload of the record.
+- **`data`** - _`text|object|file|blob`_: the data payload of the record.
+- **`encrypt`** - _`boolean|object` (optional)_: whether to encrypt the record. A value of `true` encrypts the record using the local active DID's public key such that only they can decrypt. To encrypt a record using someone else's public key, specify their DID with a value of `{ for: 'did:example:bob'}`.
 - **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid record query:
   - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol under which the record will be bucketed.
   - **`schema`** - _`URI string`_ (_optional_): the URI of the schema under which the record will be bucketed.
