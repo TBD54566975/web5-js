@@ -106,6 +106,7 @@ export type RecordsReadResponse = {
 export type RecordsWriteRequest = {
   data: unknown;
   message?: Omit<Partial<RecordsWriteOptions>, 'authorizationSignatureInput'>;
+  store?: boolean;
 }
 
 export type RecordsWriteResponse = {
@@ -355,6 +356,7 @@ export class DwnApi {
           dataStream  : dataBlob,
           messageOptions,
           messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+          store       : request.store,
           target      : this.connectedDid
         });
 

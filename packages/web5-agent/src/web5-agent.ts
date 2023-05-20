@@ -41,6 +41,7 @@ export type DwnRequest = {
 export type ProcessDwnRequest = DwnRequest & {
   dataStream?: Blob | ReadableStream | Readable;
   messageOptions: unknown;
+  store?: boolean;
 };
 
 export type SendDwnRequest = DwnRequest & (ProcessDwnRequest | { messageCid: string })

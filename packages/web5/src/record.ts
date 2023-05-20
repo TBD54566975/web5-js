@@ -100,7 +100,7 @@ export class Record implements RecordModel {
    * TODO: Document method.
    */
   get data() {
-    if (this.isDeleted) throw new Error(`Error: Record with ID '${this.id}' was previously deleted.`);
+    if (this.isDeleted) throw new Error('Operation failed: Attempted to access `data` of a record that has already been deleted.');
 
     if (!this.#encodedData && !this.#readableStream) {
       // `encodedData` will be set if `dataSize` <= DwnConstant.maxDataSizeAllowedToBeEncoded. (10KB as of April 2023)
@@ -124,7 +124,7 @@ export class Record implements RecordModel {
       // type is Base64 URL encoded string if the Record object was instantiated from a RecordsQuery response
       // If it is a string, we need to Base64 URL decode to bytes
       const dataBytes = Encoder.base64UrlToBytes(this.#encodedData);
-      this.#encodedData = new Blob([dataBytes]);
+      this.#encodedData = new Blob([dataBytes], { type: this.dataFormat });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -133,7 +133,7 @@ export class Record implements RecordModel {
     const dataObj = {
       async blob(): Promise<Blob> {
         if (self.#encodedData) return self.#encodedData as Blob;
-        if (self.#readableStream) return new Blob([this.stream().then(DataStream.toBytes)]);
+        if (self.#readableStream) return new Blob([this.stream().then(DataStream.toBytes)], { type: self.dataFormat });
       },
       async json() {
         if (self.#encodedData) return this.text().then(JSON.parse);
@@ -164,7 +164,7 @@ export class Record implements RecordModel {
    * TODO: Document method.
    */
   async delete(): Promise<RecordsDeleteResponse> {
-    if (this.isDeleted) throw new Error(`Record with ID '${this.id}' was previously deleted.`);
+    if (this.isDeleted) throw new Error('Operation failed: Attempted to call `delete()` on a record that has already been deleted.');
 
     // Attempt to delete the record from the DWN.
     const agentResponse = await this.#web5Agent.processDwnRequest({
@@ -188,7 +188,7 @@ export class Record implements RecordModel {
    * TODO: Document method.
    */
   async send(target: string): Promise<any> {
-    if (this.isDeleted) throw new Error(`Record with ID '${this.id}' was previously deleted.`);
+    if (this.isDeleted) throw new Error('Operation failed: Attempted to call `send()` on a record that has already been deleted.');
 
     const { reply: { status } } = await this.#web5Agent.sendDwnRequest({
       messageType    : DwnInterfaceName.Records + DwnMethodName.Write,
@@ -199,8 +199,6 @@ export class Record implements RecordModel {
     });
 
     return { status };
-
-    // console.log(JSON.stringify(agentResponse, null, 2));
   }
 
   /**
@@ -257,7 +255,7 @@ export class Record implements RecordModel {
    * TODO: Document method.
    */
   async update(options: RecordUpdateOptions = {}) {
-    if (this.isDeleted) throw new Error(`Error: Record with ID '${this.id}' was previously deleted.`);
+    if (this.isDeleted) throw new Error('Operation failed: Attempted to call `update()` on a record that has already been deleted.');
 
     // Begin assembling update message.
     let updateMessage = { ...this.#descriptor, ...options } as Partial<RecordsWriteOptions>;

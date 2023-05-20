@@ -140,7 +140,65 @@ describe('web5.dwn', () => {
       });
 
       describe('agent store: false', () => {
-        xit('tests needed');
+        it('does not persist record to agent DWN', async () => {
+          const dataString = 'Hello, world!';
+          const writeResult = await dwn.records.write({
+            store   : false,
+            data    : dataString,
+            message : {
+              schema     : 'foo/bar',
+              dataFormat : 'text/plain'
+            }
+          });
+
+          expect(writeResult.status.code).to.equal(202);
+          expect(writeResult.status.detail).to.equal('Accepted');
+          expect(writeResult.record).to.exist;
+          expect(await writeResult.record?.data.text()).to.equal(dataString);
+
+          const queryResult = await dwn.records.query({
+            message: {
+              filter: {
+                schema: 'foo/bar'
+              }
+            }
+          });
+
+          expect(queryResult.status.code).to.equal(200);
+          expect(queryResult.records).to.exist;
+          expect(queryResult.records!.length).to.equal(0);
+        });
+
+        it('has no effect if `store: true`', async () => {
+          const dataString = 'Hello, world!';
+          const writeResult = await dwn.records.write({
+            store   : true,
+            data    : dataString,
+            message : {
+              schema     : 'foo/bar',
+              dataFormat : 'text/plain'
+            }
+          });
+
+          expect(writeResult.status.code).to.equal(202);
+          expect(writeResult.status.detail).to.equal('Accepted');
+          expect(writeResult.record).to.exist;
+          expect(await writeResult.record?.data.text()).to.equal(dataString);
+
+          const queryResult = await dwn.records.query({
+            message: {
+              filter: {
+                schema: 'foo/bar'
+              }
+            }
+          });
+
+          expect(queryResult.status.code).to.equal(200);
+          expect(queryResult.records).to.exist;
+          expect(queryResult.records!.length).to.equal(1);
+          expect(queryResult.records![0].id).to.equal(writeResult.record!.id);
+          expect(await queryResult.records![0].data.text()).to.equal(dataString);
+        });
       });
     });
 

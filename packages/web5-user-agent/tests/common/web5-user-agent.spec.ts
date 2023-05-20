@@ -23,7 +23,7 @@ describe('Web5UserAgent', () => {
   });
 
   describe('sendDwnRequest', () => {
-    it('throws an exception if target did has no #dwn service endpoints', async () => {
+    it('throws an exception if target DID has no #dwn service endpoints', async () => {
       try {
         await testAgent.agent.sendDwnRequest({
           author         : did,
@@ -38,7 +38,7 @@ describe('Web5UserAgent', () => {
 
         expect.fail();
       } catch(e) {
-        expect(e.message).to.include(`${did} has no dwn service endpoints`);
+        expect(e.message).to.include(`has no '#dwn' service endpoints`);
       }
     });
 

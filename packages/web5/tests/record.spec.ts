@@ -23,7 +23,6 @@ type RecordsWriteTest = RecordsWrite & RecordsWriteMessage;
 
 let testAgent: TestAgent;
 let testProfileOptions: TestProfileOptions;
-let aliceDid: string;
 let dwn: DwnApi;
 let didAllKeys: string;
 let dataText: string;
@@ -272,12 +271,63 @@ describe('Record', () => {
       let deleteResult = await record!.delete();
       expect(deleteResult.status.code).to.equal(202);
 
-      await expect(record!.delete()).to.eventually.be.rejectedWith('was previously deleted');
+      await expect(record!.delete()).to.eventually.be.rejectedWith('Operation failed');
     });
   });
 
   describe('send()', () => {
-    it('works', async () => {
+    it(`writes records to remote DWNs for your own DID`, async () => {
+      const dataString = 'Hello, world!';
+
+      // Alice writes a message to her agent connected DWN.
+      const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwn.records.write({
+        data    : dataString,
+        message : {
+          schema: 'email',
+        }
+      });
+
+      expect(aliceEmailStatus.code).to.equal(202);
+      expect(await aliceEmailRecord?.data.text()).to.equal(dataString);
+
+      // Query Alice's agent connected DWN for `email` schema records.
+      const aliceAgentQueryResult = await dwn.records.query({
+        message: {
+          filter: {
+            schema: 'email'
+          }
+        }
+      });
+
+      expect(aliceAgentQueryResult.status.code).to.equal(200);
+      expect(aliceAgentQueryResult!.records).to.have.length(1);
+      const [ aliceAgentEmailRecord ] = aliceAgentQueryResult!.records!;
+      expect(await aliceAgentEmailRecord.data.text()).to.equal(dataString);
+
+      // Attempt to write the record to Alice's remote DWN.
+      const { status } = await aliceEmailRecord!.send(didAllKeys);
+      expect(status.code).to.equal(202);
+
+      // Query Alices's remote DWN for `email` schema records.
+      const aliceRemoteQueryResult = await dwn.records.query({
+        from    : didAllKeys,
+        message : {
+          filter: {
+            schema: 'email'
+          }
+        }
+      });
+
+      expect(aliceRemoteQueryResult.status.code).to.equal(200);
+      expect(aliceRemoteQueryResult.records).to.exist;
+      expect(aliceRemoteQueryResult.records!.length).to.equal(1);
+      const [ aliceRemoteEmailRecord ] = aliceAgentQueryResult!.records!;
+      expect(await aliceRemoteEmailRecord.data.text()).to.equal(dataString);
+    }).timeout(10_000);
+
+    it(`writes records to remote DWNs for someone else's DID`, async () => {
+      const dataString = 'Hello, world!';
+
       // install a protocol for alice
       let { protocol: aliceProtocol, status: aliceStatus } = await dwn.protocols.configure({
         message: {
@@ -310,7 +360,7 @@ describe('Record', () => {
 
       // alice writes a message to her own dwn
       const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwn.records.write({
-        data    : 'Herro!',
+        data    : dataString,
         message : {
           protocol     : emailProtocolDefinition.protocol,
           protocolPath : 'email',
@@ -322,7 +372,221 @@ describe('Record', () => {
 
       const { status } = await aliceEmailRecord!.send(bobDid);
       expect(status.code).to.equal(202);
+
+      // Query Bob's remote DWN for `email` schema records.
+      const bobQueryResult = await bobDwn.records.query({
+        from    : bobDid,
+        message : {
+          filter: {
+            schema: 'email'
+          }
+        }
+      });
+
+      expect(bobQueryResult.status.code).to.equal(200);
+      expect(bobQueryResult.records).to.exist;
+      expect(bobQueryResult.records!.length).to.equal(1);
+      const [ bobRemoteEmailRecord ] = bobQueryResult!.records!;
+      expect(await bobRemoteEmailRecord.data.text()).to.equal(dataString);
     }).timeout(10_000);
+
+    describe('with `store: false`', () => {
+      it('writes records to your own remote DWN but not your agent DWN', async () => {
+        // Alice writes a message to her agent DWN with `store: false`.
+        const dataString = 'Hello, world!';
+        const writeResult = await dwn.records.write({
+          store   : false,
+          data    : dataString,
+          message : {
+            dataFormat: 'text/plain'
+          }
+        });
+
+        // Confirm that the request was accepted and a Record instance was returned.
+        expect(writeResult.status.code).to.equal(202);
+        expect(writeResult.status.detail).to.equal('Accepted');
+        expect(writeResult.record).to.exist;
+        expect(await writeResult.record?.data.text()).to.equal(dataString);
+
+        // Query Alice's agent DWN for `text/plain` records.
+        const queryResult = await dwn.records.query({
+          message: {
+            filter: {
+              dataFormat: 'text/plain'
+            }
+          }
+        });
+
+        // Confirm no `email` schema records were written.
+        expect(queryResult.status.code).to.equal(200);
+        expect(queryResult.records).to.exist;
+        expect(queryResult.records!.length).to.equal(0);
+
+        // Alice writes the message to her remote DWN.
+        const { status } = await writeResult.record!.send(didAllKeys);
+        expect(status.code).to.equal(202);
+
+        // Query Alice's remote DWN for `plain/text` records.
+        const aliceRemoteQueryResult = await dwn.records.query({
+          from    : didAllKeys,
+          message : {
+            filter: {
+              dataFormat: 'text/plain'
+            }
+          }
+        });
+
+        // Confirm `email` schema record was written to Alice's remote DWN.
+        expect(aliceRemoteQueryResult.status.code).to.equal(200);
+        expect(aliceRemoteQueryResult.records).to.exist;
+        expect(aliceRemoteQueryResult.records!.length).to.equal(1);
+        const [ aliceRemoteEmailRecord ] = aliceRemoteQueryResult!.records!;
+        expect(await aliceRemoteEmailRecord.data.text()).to.equal(dataString);
+      }).timeout(10_000);
+
+      it(`writes records to someone else's remote DWN but not your agent DWN`, async () => {
+        // Install a protocol on Alice's agent connected DWN.
+        let { protocol: aliceProtocol, status: aliceStatus } = await dwn.protocols.configure({
+          message: {
+            definition: emailProtocolDefinition
+          }
+        });
+
+        expect(aliceStatus.code).to.equal(202);
+        expect(aliceProtocol).to.exist;
+
+        // Install the protocol on Alice's remote DWN.
+        const { status: alicePushStatus } = await aliceProtocol!.send(didAllKeys);
+        expect(alicePushStatus.code).to.equal(202);
+
+        // Create a second profile for Bob.
+        testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.encryption.attestation.keys();
+        const { did: bobDid } = await testAgent.createProfile(testProfileOptions);
+        const bobDwn = new DwnApi(testAgent.agent, bobDid);
+
+        // Install a protocol on Bob's agent connected DWN.
+        const { protocol: bobProtocol, status: bobStatus } = await bobDwn.protocols.configure({
+          message: {
+            definition: emailProtocolDefinition
+          }
+        });
+
+        expect(bobStatus.code).to.equal(202);
+        expect(bobProtocol).to.exist;
+
+        // Install the protocol on Bob's remote DWN.
+        const { status: bobPushStatus } = await bobProtocol!.send(bobDid);
+        expect(bobPushStatus.code).to.equal(202);
+
+        // Alice writes a message to her agent DWN with `store: false`.
+        const dataString = 'Hello, world!';
+        const writeResult = await dwn.records.write({
+          store   : false,
+          data    : dataString,
+          message : {
+            protocol     : emailProtocolDefinition.protocol,
+            protocolPath : 'email',
+            schema       : 'email',
+          }
+        });
+
+        // Confirm that the request was accepted and a Record instance was returned.
+        expect(writeResult.status.code).to.equal(202);
+        expect(writeResult.status.detail).to.equal('Accepted');
+        expect(writeResult.record).to.exist;
+        expect(await writeResult.record?.data.text()).to.equal(dataString);
+
+        // Query Alice's agent DWN for `email` schema records.
+        const queryResult = await dwn.records.query({
+          message: {
+            filter: {
+              schema: 'email'
+            }
+          }
+        });
+
+        // Confirm no `email` schema records were written.
+        expect(queryResult.status.code).to.equal(200);
+        expect(queryResult.records).to.exist;
+        expect(queryResult.records!.length).to.equal(0);
+
+        // Alice writes the message to Bob's remote DWN.
+        const { status } = await writeResult.record!.send(bobDid);
+        expect(status.code).to.equal(202);
+
+        // Query Bobs's remote DWN for `email` schema records.
+        const bobQueryResult = await bobDwn.records.query({
+          from    : bobDid,
+          message : {
+            filter: {
+              dataFormat: 'text/plain'
+            }
+          }
+        });
+
+        // Confirm `email` schema record was written to Bob's remote DWN.
+        expect(bobQueryResult.status.code).to.equal(200);
+        expect(bobQueryResult.records).to.exist;
+        expect(bobQueryResult.records!.length).to.equal(1);
+        const [ bobRemoteEmailRecord ] = bobQueryResult!.records!;
+        expect(await bobRemoteEmailRecord.data.text()).to.equal(dataString);
+      }).timeout(10_000);
+
+      it('has no effect if `store: true`', async () => {
+        // Alice writes a message to her agent DWN with `store: true`.
+        const dataString = 'Hello, world!';
+        const writeResult = await dwn.records.write({
+          store   : true,
+          data    : dataString,
+          message : {
+            dataFormat: 'text/plain'
+          }
+        });
+
+        // Confirm that the request was accepted and a Record instance was returned.
+        expect(writeResult.status.code).to.equal(202);
+        expect(writeResult.status.detail).to.equal('Accepted');
+        expect(writeResult.record).to.exist;
+        expect(await writeResult.record?.data.text()).to.equal(dataString);
+
+        // Query Alice's agent DWN for `text/plain` records.
+        const queryResult = await dwn.records.query({
+          message: {
+            filter: {
+              dataFormat: 'text/plain'
+            }
+          }
+        });
+
+        // Confirm the `email` schema records was written.
+        expect(queryResult.status.code).to.equal(200);
+        expect(queryResult.records).to.exist;
+        expect(queryResult.records!.length).to.equal(1);
+        const [ aliceAgentRecord ] = queryResult!.records!;
+        expect(await aliceAgentRecord.data.text()).to.equal(dataString);
+
+        // Alice writes the message to her remote DWN.
+        const { status } = await writeResult.record!.send(didAllKeys);
+        expect(status.code).to.equal(202);
+
+        // Query Alice's remote DWN for `plain/text` records.
+        const aliceRemoteQueryResult = await dwn.records.query({
+          from    : didAllKeys,
+          message : {
+            filter: {
+              dataFormat: 'text/plain'
+            }
+          }
+        });
+
+        // Confirm `email` schema record was written to Alice's remote DWN.
+        expect(aliceRemoteQueryResult.status.code).to.equal(200);
+        expect(aliceRemoteQueryResult.records).to.exist;
+        expect(aliceRemoteQueryResult.records!.length).to.equal(1);
+        const [ aliceRemoteEmailRecord ] = aliceRemoteQueryResult!.records!;
+        expect(await aliceRemoteEmailRecord.data.text()).to.equal(dataString);
+      });
+    });
   });
 
   describe('toJSON()', () => {
