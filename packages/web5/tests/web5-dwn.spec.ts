@@ -137,6 +137,39 @@ describe('web5.dwn', () => {
           expect(result.record).to.exist;
           expect(await result.record?.data.json()).to.deep.equal(dataJson);
         });
+
+        it('writes an encrypted record with encrypt: true', async () => {
+          testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.encryption.keys();
+          let { did: didAuthzEncr } = await testAgent.createProfile(testProfileOptions);
+          dwn = new DwnApi(testAgent.agent, didAuthzEncr);
+
+          const { record, status } = await dwn.records.write({
+            data    : 'Hello, world!',
+            encrypt : true,
+          });
+
+          expect(status.code).to.equal(202);
+          expect(record?.encryption).to.not.be.undefined;
+          expect(record?.encryption?.keyEncryption).to.have.length(1);
+          expect(record?.encryption?.keyEncryption[0]).to.have.property('derivationScheme', 'dataFormats');
+        });
+
+        it('writes an encrypted record with encrypt: did', async () => {
+          testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.encryption.keys();
+          let { did: didAuthzEncr } = await testAgent.createProfile(testProfileOptions);
+          dwn = new DwnApi(testAgent.agent, didAuthzEncr);
+          const { did: bobDid } = await testAgent.createProfile(testProfileOptions);
+
+          const { record, status } = await dwn.records.write({
+            data    : 'Hello, world!',
+            encrypt : { for: bobDid },
+          });
+
+          expect(status.code).to.equal(202);
+          expect(record?.encryption).to.not.be.undefined;
+          expect(record?.encryption?.keyEncryption).to.have.length(1);
+          expect(record?.encryption?.keyEncryption[0]).to.have.property('derivationScheme', 'dataFormats');
+        });
       });
 
       describe('agent store: false', () => {

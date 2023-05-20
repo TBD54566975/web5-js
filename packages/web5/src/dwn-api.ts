@@ -1,16 +1,16 @@
-import type { Web5Agent } from '@tbd54566975/web5-agent';
+import type { RecordEncryptionOptions, Web5Agent } from '@tbd54566975/web5-agent';
 import type {
   MessageReply,
   ProtocolDefinition,
-  ProtocolsConfigureOptions,
-  ProtocolsQueryOptions,
-  RecordsDeleteOptions,
-  RecordsQueryOptions,
   RecordsReadOptions,
-  RecordsWriteDescriptor,
+  RecordsQueryOptions,
   RecordsWriteMessage,
   RecordsWriteOptions,
-  ProtocolsConfigureMessage
+  RecordsDeleteOptions,
+  ProtocolsQueryOptions,
+  RecordsWriteDescriptor,
+  ProtocolsConfigureMessage,
+  ProtocolsConfigureOptions,
 } from '@tbd54566975/dwn-sdk-js';
 
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
@@ -80,7 +80,6 @@ export type RecordsQueryReplyEntry = {
   encodedData?: string;
 };
 
-
 export type RecordsQueryRequest = {
   /** The from property indicates the DID to query from and return results. */
   from?: string;
@@ -105,6 +104,7 @@ export type RecordsReadResponse = {
 
 export type RecordsWriteRequest = {
   data: unknown;
+  encrypt?: boolean | RecordEncryptionOptions;
   message?: Omit<Partial<RecordsWriteOptions>, 'authorizationSignatureInput'>;
 }
 
@@ -343,7 +343,7 @@ export class DwnApi {
        * from the DWN datastore.
        */
       write: async (request: RecordsWriteRequest): Promise<RecordsWriteResponse> => {
-        const messageOptions: Partial<RecordsWriteOptions> = {
+        const messageOptions: Partial<RecordsWriteOptions> & { encryptionSubject?: string } = {
           ...request.message
         };
 
@@ -353,6 +353,7 @@ export class DwnApi {
         const agentResponse = await this.web5Agent.processDwnRequest({
           author      : this.connectedDid,
           dataStream  : dataBlob,
+          encrypt     : request.encrypt,
           messageOptions,
           messageType : DwnInterfaceName.Records + DwnMethodName.Write,
           target      : this.connectedDid

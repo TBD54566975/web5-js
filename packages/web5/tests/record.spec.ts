@@ -272,7 +272,7 @@ describe('Record', () => {
       let deleteResult = await record!.delete();
       expect(deleteResult.status.code).to.equal(202);
 
-      await expect(record!.delete()).to.eventually.be.rejectedWith('was previously deleted');
+      await expect(record!.delete()).to.eventually.be.rejectedWith('Operation failed');
     });
   });
 
