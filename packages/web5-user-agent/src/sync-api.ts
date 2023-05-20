@@ -19,7 +19,52 @@ import { utils as didUtils } from '@tbd54566975/dids';
 import { DataStream, EventsGet, MessagesGet, Encoder, RecordsRead } from '@tbd54566975/dwn-sdk-js';
 
 
+import type { DwnRpc } from '@tbd54566975/web5-agent';
+import type { BatchOperation } from 'level';
+import type { DwnServiceEndpoint, DidResolver } from '@tbd54566975/dids';
+import type {
+  Dwn,
+  EventsGetReply,
+  MessagesGetReply,
+  SignatureInput,
+  RecordsWriteMessage,
+  RecordsReadReply,
+  PrivateJwk as DwnPrivateKeyJwk,
+  Event,
+} from '@tbd54566975/dwn-sdk-js';
+
+import type { ProfileManager } from './profile-manager.js';
+
+import { Level } from 'level';
+import { utils as didUtils } from '@tbd54566975/dids';
+import { DataStream, EventsGet, MessagesGet, Encoder, RecordsRead } from '@tbd54566975/dwn-sdk-js';
+
+
 import { SyncManager } from './sync-manager.js';
+import { DwnRpcClient } from './dwn-rpc-client.js';
+import { webReadableToIsomorphicNodeReadable } from './utils.js';
+
+export type SyncApiOptions = {
+  dwn: Dwn;
+  didResolver: DidResolver;
+  profileManager: ProfileManager;
+  storeLocation?: string;
+};
+
+type Direction = 'push' | 'pull';
+
+type SyncState = {
+  did: string;
+  dwnUrl: string;
+  watermark: string | undefined;
+}
+
+type DwnMessage = {
+  message: any;
+  data?: Blob;
+}
+
+type DbBatchOperation = BatchOperation<Level, string, string>;
 import { DwnRpcClient } from './dwn-rpc-client.js';
 import { webReadableToIsomorphicNodeReadable } from './utils.js';
 
@@ -149,7 +194,6 @@ export class SyncApi implements SyncManager {
 
     const pushQueue = this.#getPushQueue();
     const pushJobs = await pushQueue.iterator().all();
-    const errored: Set<string> = new Set();
 
     const delOps: DbBatchOperation[] = [];
 
@@ -157,27 +201,18 @@ export class SyncApi implements SyncManager {
       const [key, watermark] = job;
       const [did, dwnUrl, messageCid] = key.split('~');
 
-      if (errored.has(dwnUrl)) {
-        continue;
-      }
-
       const dwnMessage = await this.#getDwnMessage(did, messageCid);
+      const reply = await this.#dwnRpcClient.sendDwnRequest({
+        dwnUrl,
+        targetDid : did,
+        data      : dwnMessage.data,
+        message   : dwnMessage.message
+      });
 
-      try {
-        const reply = await this.#dwnRpcClient.sendDwnRequest({
-          dwnUrl,
-          targetDid : did,
-          data      : dwnMessage.data,
-          message   : dwnMessage.message
-        });
-
-        if (reply.status.code === 202) {
-          delOps.push({ type: 'del', key: key });
-          await this.setWatermark(did, dwnUrl, 'push', watermark);
-          await this.#addMessage(did, messageCid);
-        }
-      } catch(e) {
-        errored.add(dwnUrl);
+      if (reply.status.code === 202) {
+        delOps.push({ type: 'del', key: key });
+        await this.setWatermark(did, dwnUrl, 'push', watermark);
+        await this.#addMessage(did, messageCid);
       }
     }
 
@@ -246,15 +281,10 @@ export class SyncApi implements SyncManager {
     const pullQueue = this.#getPullQueue();
     const pullJobs = await pullQueue.iterator().all();
     const delOps: DbBatchOperation[] = [];
-    const errored: Set<string> = new Set();
 
     for (let job of pullJobs) {
       const [key, watermark] = job;
       const [did, dwnUrl, messageCid] = key.split('~');
-
-      if (errored.has(dwnUrl)) {
-        continue;
-      }
 
       const messageExists = await this.#messageExists(did, messageCid);
       if (messageExists) {
@@ -270,18 +300,11 @@ export class SyncApi implements SyncManager {
         authorizationSignatureInput : signatureInput
       });
 
-      let reply: MessagesGetReply;
-
-      try {
-        reply = await this.#dwnRpcClient.sendDwnRequest({
-          dwnUrl,
-          targetDid : did,
-          message   : messagesGet
-        }) as MessagesGetReply;
-      } catch(e) {
-        errored.add(dwnUrl);
-        continue;
-      }
+      const reply = await this.#dwnRpcClient.sendDwnRequest({
+        dwnUrl,
+        targetDid : did,
+        message   : messagesGet
+      }) as MessagesGetReply;
 
       for (let entry of reply.messages) {
         // TODO: check entry.error
@@ -308,8 +331,7 @@ export class SyncApi implements SyncManager {
             }) as RecordsReadReply;
 
             if (reply.status.code >= 400) {
-              // TODO: handle reply
-              const pruneReply = await this.#dwn.synchronizePrunedInitialRecordsWrite(did, message);
+              // TODO: tombstone BS
             } else {
               dataStream = webReadableToIsomorphicNodeReadable(recordsReadReply.record.data as any);
             }
@@ -458,12 +480,19 @@ export class SyncApi implements SyncManager {
 
   #getPushQueue() {
     return this.#db.sublevel('pushQueue');
+  #getPushQueue() {
+    return this.#db.sublevel('pushQueue');
   }
 
   #getPullQueue() {
     return this.#db.sublevel('pullQueue');
+  #getPullQueue() {
+    return this.#db.sublevel('pullQueue');
   }
 
+  // TODO: export BaseMessage from dwn-sdk.
+  #getDwnMessageType(message: any) {
+    return `${message.descriptor.interface}${message.descriptor.method}`;
   // TODO: export BaseMessage from dwn-sdk.
   #getDwnMessageType(message: any) {
     return `${message.descriptor.interface}${message.descriptor.method}`;
