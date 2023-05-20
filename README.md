@@ -31,11 +31,11 @@ npm install @tbd54566975/web5
 _CDNs_
 
 ```yaml
-https://unpkg.com/@tbd54566975/web5@0.7.3/dist/browser.js
+https://unpkg.com/@tbd54566975/web5@0.7.4/dist/browser.js
 ```
 
 ```yaml
-https://cdn.jsdelivr.net/npm/@tbd54566975/web5@0.7.3/dist/browser.mjs
+https://cdn.jsdelivr.net/npm/@tbd54566975/web5@0.7.4/dist/browser.mjs
 ```
 
 ### Importing the SDK
@@ -296,7 +296,7 @@ protocol.send(myDid); // sends the protocol configuration to the user's other DW
 
 The `configure` request object is composed as follows:
 
-- **`from`** - _`string`_: The decentralized identifier of the DID signing the query. This may be the same as the `target` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
+- **`from`** - _`string`_: The decentralized identifier signing the query. This may be the same as the `target` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
 - **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
   - **`definition`** - _`object`_: an object that defines the enforced composition of the protocol.
     - **`protocol`** - _`URI string`_: a URI that represents the protocol being configured.
