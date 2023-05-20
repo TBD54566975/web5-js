@@ -146,18 +146,18 @@ export class DidIonApi implements DidMethodResolver, DidMethodCreator {
   }
 
   /**
-   * generates three key pairs used for attestation, authorization and encryption purposes
-   * when interfacing with DWNs. the ids of these keys are referenced in the service object
-   *  that includes the dwnUrls provided.
+   * Generates two key pairs used for authorization and encryption purposes
+   * when interfacing with DWNs. The IDs of these keys are referenced in the
+   * service object that includes the dwnUrls provided.
    */
   async generateDwnConfiguration(dwnUrls: string[]): Promise<DidIonCreateOptions> {
     return DidIonApi.generateDwnConfiguration(dwnUrls);
   }
 
   /**
-   * generates three key pairs used for attestation, authorization and encryption purposes
-   * when interfacing with DWNs. the ids of these keys are referenced in the service object
-   *  that includes the dwnUrls provided.
+   * Generates two key pairs used for authorization and encryption purposes
+   * when interfacing with DWNs. The IDs of these keys are referenced in the
+   * service object that includes the dwnUrls provided.
    */
   static async generateDwnConfiguration(dwnUrls: string[]): Promise<DidIonCreateOptions> {
     const keys = [{

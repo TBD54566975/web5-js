@@ -1,9 +1,9 @@
 import type { DidIonCreateOptions, KeyOption } from '@tbd54566975/dids';
-import type { TestProfileOptions } from '../test-utils/test-user-agent.js';
+import type { TestProfileOptions } from '../common/utils/test-user-agent.js';
 
 import { generateKeyPair } from '@decentralized-identity/ion-tools';
 
-const dwnNodes = ['https://dwn.tbddev.org/dwn0'];
+export const dwnNodes = ['https://dwn.tbddev.org/dwn0'];
 // const dwnNodes = ['http://localhost:3000'];
 
 export const keyIds = {
@@ -80,10 +80,31 @@ export const ionCreateOptions = {
                 ]
               };
             }
+          },
+
+          // Authorization and Encryption keys.
+          keys: async (): Promise<DidIonCreateOptions> => {
+            let profileKeys: KeyOption[] = [];
+            profileKeys.push(await keys.secp256k1.jwk.authorization());
+            profileKeys.push(await keys.secp256k1.jwk.encryption());
+            return {
+              keys     : profileKeys,
+              services : [
+                {
+                  id              : 'dwn',
+                  type            : 'DecentralizedWebNode',
+                  serviceEndpoint : {
+                    nodes                    : dwnNodes,
+                    messageAuthorizationKeys : [`#${keyIds.did.service.dwn.authorization}`],
+                    recordEncryptionKeys     : [`#${keyIds.did.service.dwn.encryption}`]
+                  }
+                }
+              ]
+            };
           }
         },
 
-        // Authorization and Encryption keys.
+        // Authorization keys.
         keys: async (): Promise<DidIonCreateOptions> => {
           let profileKeys: KeyOption[] = [];
           profileKeys.push(await keys.secp256k1.jwk.authorization());
@@ -117,6 +138,12 @@ export const ion = {
                     profileDidOptions: await ionCreateOptions.services.dwn.authorization.encryption.attestation.keys()
                   };
                 }
+              },
+
+              keys: async (): Promise<TestProfileOptions> => {
+                return {
+                  profileDidOptions: await ionCreateOptions.services.dwn.authorization.encryption.keys()
+                };
               }
             },
 

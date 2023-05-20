@@ -7,6 +7,7 @@ import {
   MessagesGetReply,
   DataStream,
   RecordsReadReply,
+  MessageReply,
 } from '@tbd54566975/dwn-sdk-js';
 
 import { Readable } from 'readable-stream';
@@ -109,7 +110,13 @@ export class Web5UserAgent implements Web5Agent {
    */
   async processDwnRequest(request: ProcessDwnRequest): Promise<DwnResponse> {
     const { message, dataStream }= await this.#constructDwnMessage(request);
-    const reply = await this.dwn.processMessage(request.target, message, dataStream as any);
+
+    let reply: MessageReply;
+    if (request.store !== false) {
+      reply = await this.dwn.processMessage(request.target, message, dataStream as any);
+    } else {
+      reply = { status: { code: 202, detail: 'Accepted' }};
+    }
 
     return {
       reply,
@@ -148,12 +155,12 @@ export class Web5UserAgent implements Web5Agent {
 
     const [ service ] = didUtils.getServices(didResolution.didDocument, { id: '#dwn' });
     if (!service) {
-      throw new Error(`${request.target} has no dwn service endpoints`);
+      throw new Error(`${request.target} has no '#dwn' service endpoints`);
     }
 
     const { serviceEndpoint } = service;
     if (!serviceEndpoint['nodes']) {
-      throw new Error('malformed dwn service endpoint. expected nodes array');
+      throw new Error(`malformed '#dwn' service endpoint. expected nodes array`);
     }
 
     const { nodes } = serviceEndpoint as DwnServiceEndpoint;
@@ -237,6 +244,7 @@ export class Web5UserAgent implements Web5Agent {
     const dwnSignatureInput = await this.#getAuthorSignatureInput(request.author);
     let readableStream: Readable;
 
+    // TODO: Consider refactoring to move data transformations imposed by fetch() limitations to the HTTP transport-related methods.
     if (request.messageType === 'RecordsWrite') {
       const messageOptions = request.messageOptions as RecordsWriteOptions;
 
@@ -260,7 +268,7 @@ export class Web5UserAgent implements Web5Agent {
       }
     }
 
-    // TODO: if we ever find time, figure out how to narrow this type. may have figured something out in `web5.DidInterface`
+    // TODO: Figure out how to narrow this type. may have figured something out in `web5.DidInterface`
     const messageCreateInput = {
       ...<any>request.messageOptions,
       authorizationSignatureInput: dwnSignatureInput
