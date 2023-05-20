@@ -123,7 +123,7 @@ console.log(records); // an array of record entries from Bob's DWeb Nodes
 
 The query `request` contains the following properties:
 
-- **`from`** - _`DID string`_ (_optional_): the decentralized identifier of the DID of the DWeb Node the query will fetch results from.
+- **`from`** - _`DID string`_ (_optional_): the decentralized identifier of the DWeb Node the query will fetch results from.
 - **`message`** - _`object`_: the properties of the DWeb Node Message Descriptor that will be used to construct a valid record query:
   - **`filter`** - _`object`_: properties against which results of the query will be filtered:
     - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol bucket in which to query.
@@ -340,7 +340,7 @@ console.log(protocols); // logs an array of protocol configurations installed on
 
 The query `request` must contain the following:
 
-- **`from`** - _`DID string`_ (_optional_): the decentralized identifier of the DID of the DWeb Node the query will fetch results from.
+- **`from`** - _`DID string`_ (_optional_): the decentralized identifier of the DWeb Node the query will fetch results from.
 - **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid record query:
   - **`filter`** - _`object`_: properties against which results of the query will be filtered:
     - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol bucket in which to query.
