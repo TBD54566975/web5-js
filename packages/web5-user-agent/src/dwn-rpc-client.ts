@@ -73,7 +73,7 @@ class HttpDwnRpcClient implements DwnRpc {
     }
 
     const resp = await fetch(request.dwnUrl, fetchOpts);
-    let dwnRpcResponse: DwnRpcResponse;
+    let dwnRpcResponse: JsonRpcResponse;
 
     // check to see if response is in header first. if it is, that means the response is a ReadableStream
     let dataStream;
@@ -89,7 +89,8 @@ class HttpDwnRpcClient implements DwnRpc {
       dwnRpcResponse = jsonRpcResponse;
     } else {
       // TODO: wonder if i need to try/catch this?
-      dwnRpcResponse = await resp.json() as JsonRpcResponse;
+      const responseBody = await resp.text();
+      dwnRpcResponse = JSON.parse(responseBody);
     }
 
     if (dwnRpcResponse.error) {
@@ -102,6 +103,6 @@ class HttpDwnRpcClient implements DwnRpc {
       reply['record']['data'] = dataStream;
     }
 
-    return reply;
+    return reply as DwnRpcResponse;
   }
 }

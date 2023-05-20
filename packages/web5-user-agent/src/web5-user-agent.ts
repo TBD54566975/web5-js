@@ -25,6 +25,7 @@ import {
   Message
 } from '@tbd54566975/dwn-sdk-js';
 
+import type { SyncManager } from './sync-manager.js';
 import type { ProfileManager } from './profile-manager.js';
 
 import { DidResolver, DidIonApi, DidKeyApi, utils as didUtils } from '@tbd54566975/dids';
@@ -51,6 +52,7 @@ export type Web5UserAgentOptions = {
   dwn: Dwn;
   profileManager: ProfileManager;
   didResolver: DidResolver;
+  syncManager?: SyncManager;
 };
 
 type DwnMessage = {
@@ -74,13 +76,17 @@ export class Web5UserAgent implements Web5Agent {
   private profileManager: ProfileManager;
   private didResolver: DidResolver;
   private dwnRpcClient: DwnRpc;
+  private syncManager: SyncManager;
 
   constructor(options: Web5UserAgentOptions) {
     this.dwn = options.dwn;
     this.didResolver = options.didResolver;
     this.profileManager = options.profileManager;
-
     this.dwnRpcClient = new DwnRpcClient();
+
+    if (options.syncManager) {
+      this.syncManager = options.syncManager;
+    }
   }
 
   /**
@@ -228,13 +234,9 @@ export class Web5UserAgent implements Web5Agent {
   }
 
   async #constructDwnMessage(request: ProcessDwnRequest) {
-    // TODO: show henry the consequence of him choosing Readable
-
     const dwnSignatureInput = await this.#getAuthorSignatureInput(request.author);
     let readableStream: Readable;
 
-    // TODO: MOVE ALL THIS TO HTTP TRANSPORT LAND BECAUSE THATS WHY WE HAVE TO DO IT
-    // THANKS A LOT BROWSER NECKBEARDS
     if (request.messageType === 'RecordsWrite') {
       const messageOptions = request.messageOptions as RecordsWriteOptions;
 

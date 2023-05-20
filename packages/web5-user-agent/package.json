@@ -86,6 +86,7 @@
     "uuid": "9.0.0"
   },
   "devDependencies": {
+    "@faker-js/faker": "8.0.1",
     "@playwright/test": "1.33.0",
     "@types/flat": "5.0.2",
     "@typescript-eslint/eslint-plugin": "5.59.0",

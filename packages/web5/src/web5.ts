@@ -1,15 +1,16 @@
-import type { DidState, DidMethodApi, DidResolverCache } from '@tbd54566975/dids';
 import type { Web5Agent } from '@tbd54566975/web5-agent';
+import type { SyncManager } from '@tbd54566975/web5-user-agent';
+import type { DidState, DidMethodApi, DidResolverCache, DwnServiceEndpoint } from '@tbd54566975/dids';
 
 // import  { Web5ProxyAgent } from '@tbd54566975/web5-proxy-agent';
 import { DidIonApi, DidKeyApi, utils as didUtils } from '@tbd54566975/dids';
-import  { Web5UserAgent, ProfileApi } from '@tbd54566975/web5-user-agent';
+import  { Web5UserAgent, ProfileApi, SyncApi } from '@tbd54566975/web5-user-agent';
 
 import { DwnApi } from './dwn-api.js';
 import { DidApi } from './did-api.js';
 import { AppStorage } from './app-storage.js';
 import { getRandomInt } from './utils.js';
-import { DwnServiceEndpoint } from '@tbd54566975/dwn-sdk-js';
+import { Dwn } from '@tbd54566975/dwn-sdk-js';
 
 // TODO: discuss what other options we want
 export type Web5ConnectOptions = {
@@ -65,7 +66,12 @@ export class Web5 {
     const profileApi = new ProfileApi();
     let [ profile ] = await profileApi.listProfiles();
 
-    // create enc. keys
+    const dwn = await Dwn.create();
+    const syncManager = new SyncApi({
+      profileManager : profileApi,
+      didResolver    : Web5.did.resolver,
+      dwn            : dwn
+    });
 
     if (!profile) {
       const dwnUrls = await Web5.getDwnHosts();
@@ -82,12 +88,21 @@ export class Web5 {
         did         : defaultProfileDid,
         connections : [appDidState.id],
       });
+
+      await syncManager.registerProfile(profile.did.id);
     }
 
-    const agent = await Web5UserAgent.create({ profileManager: profileApi, didResolver: Web5.did.resolver });
-    const connectedDid = profile.did.id;
+    const agent = await Web5UserAgent.create({
+      profileManager : profileApi,
+      didResolver    : Web5.did.resolver,
+      syncManager    : syncManager,
+      dwn            : dwn,
+    });
 
+    const connectedDid = profile.did.id;
     const web5 = new Web5({ appStorage: appStorage, web5Agent: agent, connectedDid });
+
+    Web5.#enqueueNextSync(syncManager, 1_000);
 
     return { web5, did: connectedDid };
   }
@@ -121,5 +136,18 @@ export class Web5 {
     }
 
     return Array.from(dwnUrls);
+  }
+
+  static #enqueueNextSync(syncManager: SyncManager, delay = 1_000) {
+    setTimeout(async () => {
+      try {
+        await syncManager.push();
+        await syncManager.pull();
+
+        return this.#enqueueNextSync(syncManager, delay);
+      } catch(e) {
+        console.error('Sync failed due to error: ', e);
+      }
+    }, delay);
   }
 }
