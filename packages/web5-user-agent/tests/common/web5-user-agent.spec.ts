@@ -31,197 +31,200 @@ describe('Web5UserAgent', () => {
   });
 
   describe('processDwnRequest', () => {
-    it('throws an error if DID doc is missing DWN service endoint', async () => {
-      const dataBlob = new Blob(['Hello, world!']);
-      const { did: aliceDid } = await testAgent.createProfile();
-
-      await expect(testAgent.agent.processDwnRequest({
-        author         : aliceDid,
-        dataStream     : dataBlob,
-        encrypt        : true,
-        messageOptions : { dataFormat: 'text/plain' },
-        messageType    : 'RecordsWrite',
-        target         : aliceDid
-      })).to.eventually.be.rejectedWith('service endpoint defined in DID document');
-    });
-
-    it('throws an error if DID doc is missing record encryption keys', async () => {
-      const dataBlob = new Blob(['Hello, world!']);
-      const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.keys();
-      const { did: aliceDid } = await testAgent.createProfile(testProfileOptions);
-
-      await expect(testAgent.agent.processDwnRequest({
-        author         : aliceDid,
-        dataStream     : dataBlob,
-        encrypt        : true,
-        messageOptions : { dataFormat: 'text/plain' },
-        messageType    : 'RecordsWrite',
-        target         : aliceDid
-      })).to.eventually.be.rejectedWith(`no 'recordEncryptionKeys' defined`);
-    });
-
-    it('throws an error if record encryption key ID cannot be found in DID document', async () => {
-      const dataBlob = new Blob(['Hello, world!']);
-      const testProfileOptions = {
-        keys: [
-          await testProfile.keys.secp256k1.jwk.authorization(),
-          await testProfile.keys.secp256k1.jwk.encryption()
-        ],
-        services: [{
-          'id'              : 'dwn',
-          'type'            : 'DecentralizedWebNode',
-          'serviceEndpoint' : {
-            'nodes'                    : ['https://dwn-host.com'],
-            'messageAuthorizationKeys' : ['#authz'],
-            'recordEncryptionKeys'     : ['#wrong']
-          }
-        }]
-      };
-      const { did: aliceDid } = await testAgent.createProfile({
-        profileDidOptions: testProfileOptions
-      });
-
-      await expect(testAgent.agent.processDwnRequest({
-        author         : aliceDid,
-        dataStream     : dataBlob,
-        encrypt        : true,
-        messageOptions : { dataFormat: 'text/plain' },
-        messageType    : 'RecordsWrite',
-        target         : aliceDid
-      })).to.eventually.be.rejectedWith(`no '#wrong' verification method defined`);
-    });
-
-    describe('handles a RecordsWrite with encrypt: true', () => {
-      it('with DataFormats key derivation', async () => {
+    describe('handles a RecordsWrite with encryption enabled', () => {
+      it('throws an error if DID doc is missing DWN service endoint', async () => {
         const dataBlob = new Blob(['Hello, world!']);
-        const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.encryption.keys();
-        const { did: aliceDid } = await testAgent.createProfile(testProfileOptions);
+        const { did: aliceDid } = await testAgent.createProfile();
 
-        const response = await testAgent.agent.processDwnRequest({
+        await expect(testAgent.agent.processDwnRequest({
           author         : aliceDid,
           dataStream     : dataBlob,
           encrypt        : true,
           messageOptions : { dataFormat: 'text/plain' },
           messageType    : 'RecordsWrite',
           target         : aliceDid
-        });
-        const message = response.message as RecordsWriteMessage;
-        const status = response.reply.status as MessageReply['status'];
-
-        expect(status.code).to.equal(202);
-        expect(message.encryption).to.exist;
-        expect(message?.encryption?.keyEncryption).to.have.length(1);
-        expect(message?.encryption?.keyEncryption[0]).to.have.property('derivationScheme', 'dataFormats');
+        })).to.eventually.be.rejectedWith('service endpoint defined in DID document');
       });
 
-      it('with DataFormats and Schemas key derivation', async () => {
+      it('throws an error if DID doc is missing record encryption keys', async () => {
         const dataBlob = new Blob(['Hello, world!']);
-        const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.encryption.keys();
-        const { did: aliceDid } = await testAgent.createProfile(testProfileOptions);
-
-        const response = await testAgent.agent.processDwnRequest({
-          author         : aliceDid,
-          dataStream     : dataBlob,
-          encrypt        : true,
-          messageOptions : {
-            dataFormat : 'text/plain',
-            schema     : 'https://protocols.xyz/schemas/music-playlist'
-          },
-          messageType : 'RecordsWrite',
-          target      : aliceDid
-        });
-
-        const message = response.message as RecordsWriteMessage;
-        const status = response.reply.status as MessageReply['status'];
-
-        expect(status.code).to.equal(202);
-        expect(message.encryption).to.exist;
-        expect(message?.encryption?.keyEncryption).to.have.length(2);
-        expect(message?.encryption?.keyEncryption[0]).to.have.property('derivationScheme', 'dataFormats');
-        expect(message?.encryption?.keyEncryption[1]).to.have.property('derivationScheme', 'schemas');
-      });
-
-      it('with DataFormats, Schemas, and Protocols key derivation', async () => {
-        // Create data to use to test encryption.
-        const dataBlob = new Blob(['Hello, world!']);
-        // Create an encryption subject to
-        const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.encryption.keys();
-        const { did: aliceDid } = await testAgent.createProfile(testProfileOptions);
-
-        // First configure a protocol on the agent-connected DWN.
-        const protocolsConfigureResponse = await testAgent.agent.processDwnRequest({
-          author         : aliceDid,
-          messageOptions : { definition: messageProtocolDefinition },
-          messageType    : 'ProtocolsConfigure',
-          target         : aliceDid
-        });
-        expect(protocolsConfigureResponse.reply.status.code).to.equal(202);
-
-        // Then try to process the RecordsWrite.
-        const response = await testAgent.agent.processDwnRequest({
-          author         : aliceDid,
-          dataStream     : dataBlob,
-          encrypt        : true,
-          messageOptions : {
-            dataFormat   : 'text/plain',
-            protocol     : 'http://message-protocol.xyz',
-            protocolPath : 'message',
-            schema       : 'https://protocols.xyz/message/schema/message'
-          },
-          messageType : 'RecordsWrite',
-          target      : aliceDid
-        });
-
-        const message = response.message as RecordsWriteMessage;
-        const status = response.reply.status as MessageReply['status'];
-
-        expect(status.code).to.equal(202);
-        expect(message.encryption).to.exist;
-        expect(message?.encryption?.keyEncryption).to.have.length(3);
-        expect(message?.encryption?.keyEncryption[0]).to.have.property('derivationScheme', 'dataFormats');
-        expect(message?.encryption?.keyEncryption[1]).to.have.property('derivationScheme', 'protocols');
-        expect(message?.encryption?.keyEncryption[2]).to.have.property('derivationScheme', 'schemas');
-      });
-    });
-
-    describe('handles a RecordsWrite with encrypt: { for: did }', () => {
-      it('throws an error if `encrypt: { for: }` missing DID', async () => {
-        const dataBlob = new Blob(['Hello, world!']);
-        const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.encryption.keys();
+        const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.keys();
         const { did: aliceDid } = await testAgent.createProfile(testProfileOptions);
 
         await expect(testAgent.agent.processDwnRequest({
           author         : aliceDid,
           dataStream     : dataBlob,
-          encrypt        : { for: undefined },
+          encrypt        : true,
           messageOptions : { dataFormat: 'text/plain' },
           messageType    : 'RecordsWrite',
           target         : aliceDid
-        })).to.eventually.be.rejectedWith('DID to encrypt for not provided');
+        })).to.eventually.be.rejectedWith(`no 'recordEncryptionKeys' defined`);
       });
 
-      it('with DataFormats key derivation', async () => {
+      it('throws an error if record encryption key ID cannot be found in DID document', async () => {
         const dataBlob = new Blob(['Hello, world!']);
-        const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.encryption.keys();
-        const { did: aliceDid } = await testAgent.createProfile(testProfileOptions);
-        const { did: bobDid } = await testAgent.createProfile(testProfileOptions);
+        const testProfileOptions = {
+          keys: [
+            await testProfile.keys.secp256k1.jwk.authorization(),
+            await testProfile.keys.secp256k1.jwk.encryption()
+          ],
+          services: [{
+            'id'              : 'dwn',
+            'type'            : 'DecentralizedWebNode',
+            'serviceEndpoint' : {
+              'nodes'                    : ['https://dwn-host.com'],
+              'messageAuthorizationKeys' : ['#authz'],
+              'recordEncryptionKeys'     : ['#wrong']
+            }
+          }]
+        };
+        const { did: aliceDid } = await testAgent.createProfile({
+          profileDidOptions: testProfileOptions
+        });
 
-        const response = await testAgent.agent.processDwnRequest({
+        await expect(testAgent.agent.processDwnRequest({
           author         : aliceDid,
           dataStream     : dataBlob,
-          encrypt        : { for: bobDid },
+          encrypt        : true,
           messageOptions : { dataFormat: 'text/plain' },
           messageType    : 'RecordsWrite',
           target         : aliceDid
+        })).to.eventually.be.rejectedWith(`no '#wrong' verification method defined`);
+      });
+
+
+      describe('encrypt: true', () => {
+        it('with DataFormats key derivation', async () => {
+          const dataBlob = new Blob(['Hello, world!']);
+          const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.encryption.keys();
+          const { did: aliceDid } = await testAgent.createProfile(testProfileOptions);
+
+          const response = await testAgent.agent.processDwnRequest({
+            author         : aliceDid,
+            dataStream     : dataBlob,
+            encrypt        : true,
+            messageOptions : { dataFormat: 'text/plain' },
+            messageType    : 'RecordsWrite',
+            target         : aliceDid
+          });
+          const message = response.message as RecordsWriteMessage;
+          const status = response.reply.status as MessageReply['status'];
+
+          expect(status.code).to.equal(202);
+          expect(message.encryption).to.exist;
+          expect(message?.encryption?.keyEncryption).to.have.length(1);
+          expect(message?.encryption?.keyEncryption[0]).to.have.property('derivationScheme', 'dataFormats');
         });
 
-        const message = response.message as RecordsWriteMessage;
-        const status = response.reply.status as MessageReply['status'];
+        it('with DataFormats and Schemas key derivation', async () => {
+          const dataBlob = new Blob(['Hello, world!']);
+          const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.encryption.keys();
+          const { did: aliceDid } = await testAgent.createProfile(testProfileOptions);
 
-        expect(status.code).to.equal(202);
-        expect(message.encryption).to.exist;
-        expect(message?.encryption?.keyEncryption).to.have.length(1);
-        expect(message?.encryption?.keyEncryption[0]).to.have.property('derivationScheme', 'dataFormats');
+          const response = await testAgent.agent.processDwnRequest({
+            author         : aliceDid,
+            dataStream     : dataBlob,
+            encrypt        : true,
+            messageOptions : {
+              dataFormat : 'text/plain',
+              schema     : 'https://protocols.xyz/schemas/music-playlist'
+            },
+            messageType : 'RecordsWrite',
+            target      : aliceDid
+          });
+
+          const message = response.message as RecordsWriteMessage;
+          const status = response.reply.status as MessageReply['status'];
+
+          expect(status.code).to.equal(202);
+          expect(message.encryption).to.exist;
+          expect(message?.encryption?.keyEncryption).to.have.length(2);
+          expect(message?.encryption?.keyEncryption[0]).to.have.property('derivationScheme', 'dataFormats');
+          expect(message?.encryption?.keyEncryption[1]).to.have.property('derivationScheme', 'schemas');
+        });
+
+        it('with DataFormats, Schemas, and Protocols key derivation', async () => {
+        // Create data to use to test encryption.
+          const dataBlob = new Blob(['Hello, world!']);
+          // Create an encryption subject to
+          const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.encryption.keys();
+          const { did: aliceDid } = await testAgent.createProfile(testProfileOptions);
+
+          // First configure a protocol on the agent-connected DWN.
+          const protocolsConfigureResponse = await testAgent.agent.processDwnRequest({
+            author         : aliceDid,
+            messageOptions : { definition: messageProtocolDefinition },
+            messageType    : 'ProtocolsConfigure',
+            target         : aliceDid
+          });
+          expect(protocolsConfigureResponse.reply.status.code).to.equal(202);
+
+          // Then try to process the RecordsWrite.
+          const response = await testAgent.agent.processDwnRequest({
+            author         : aliceDid,
+            dataStream     : dataBlob,
+            encrypt        : true,
+            messageOptions : {
+              dataFormat   : 'text/plain',
+              protocol     : 'http://message-protocol.xyz',
+              protocolPath : 'message',
+              schema       : 'https://protocols.xyz/message/schema/message'
+            },
+            messageType : 'RecordsWrite',
+            target      : aliceDid
+          });
+
+          const message = response.message as RecordsWriteMessage;
+          const status = response.reply.status as MessageReply['status'];
+
+          expect(status.code).to.equal(202);
+          expect(message.encryption).to.exist;
+          expect(message?.encryption?.keyEncryption).to.have.length(3);
+          expect(message?.encryption?.keyEncryption[0]).to.have.property('derivationScheme', 'dataFormats');
+          expect(message?.encryption?.keyEncryption[1]).to.have.property('derivationScheme', 'protocols');
+          expect(message?.encryption?.keyEncryption[2]).to.have.property('derivationScheme', 'schemas');
+        });
+      });
+
+      describe('encrypt: { for: did }', () => {
+        it('throws an error if `encrypt: { for: }` missing DID', async () => {
+          const dataBlob = new Blob(['Hello, world!']);
+          const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.encryption.keys();
+          const { did: aliceDid } = await testAgent.createProfile(testProfileOptions);
+
+          await expect(testAgent.agent.processDwnRequest({
+            author         : aliceDid,
+            dataStream     : dataBlob,
+            encrypt        : { for: undefined },
+            messageOptions : { dataFormat: 'text/plain' },
+            messageType    : 'RecordsWrite',
+            target         : aliceDid
+          })).to.eventually.be.rejectedWith('DID to encrypt for not provided');
+        });
+
+        it('with DataFormats key derivation', async () => {
+          const dataBlob = new Blob(['Hello, world!']);
+          const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.encryption.keys();
+          const { did: aliceDid } = await testAgent.createProfile(testProfileOptions);
+          const { did: bobDid } = await testAgent.createProfile(testProfileOptions);
+
+          const response = await testAgent.agent.processDwnRequest({
+            author         : aliceDid,
+            dataStream     : dataBlob,
+            encrypt        : { for: bobDid },
+            messageOptions : { dataFormat: 'text/plain' },
+            messageType    : 'RecordsWrite',
+            target         : aliceDid
+          });
+
+          const message = response.message as RecordsWriteMessage;
+          const status = response.reply.status as MessageReply['status'];
+
+          expect(status.code).to.equal(202);
+          expect(message.encryption).to.exist;
+          expect(message?.encryption?.keyEncryption).to.have.length(1);
+          expect(message?.encryption?.keyEncryption[0]).to.have.property('derivationScheme', 'dataFormats');
+        });
       });
     });
   });
