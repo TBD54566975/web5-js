@@ -286,7 +286,8 @@ export class SyncApi implements SyncManager {
             }) as RecordsReadReply;
 
             if (reply.status.code >= 400) {
-              // TODO: tombstone BS
+              // TODO: handle reply
+              const pruneReply = await this.#dwn.synchronizePrunedInitialRecordsWrite(did, message);
             } else {
               dataStream = webReadableToIsomorphicNodeReadable(recordsReadReply.record.data as any);
             }
