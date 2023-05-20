@@ -97,6 +97,4 @@ export type DwnRpcRequest = {
 /**
  * TODO: add jsdoc
  */
-export type DwnRpcResponse = JsonRpcResponse & {
-  dataStream?: ReadableStream
-};
+export type DwnRpcResponse = MessageReply;
