@@ -72,7 +72,7 @@ describe('Web5UserAgent', () => {
       expect(response.reply.status).to.exist;
       expect(response.reply.entries).to.exist;
       expect(response.reply.status.code).to.equal(200);
-    });
+    }).timeout(10_000);
 
     it('handles RecordsDelete Messages', async () => {
       const { did: aliceDid } = await testAgent.createProfile({

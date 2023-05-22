@@ -1,13 +1,13 @@
 import type { Web5Agent } from '@tbd54566975/web5-agent';
 import type {
   MessageReply,
-  ProtocolDefinition,
+  ProtocolsConfigureDescriptor,
   ProtocolsConfigureOptions,
   ProtocolsQueryOptions,
   RecordsDeleteOptions,
   RecordsQueryOptions,
+  RecordsQueryReplyEntry,
   RecordsReadOptions,
-  RecordsWriteDescriptor,
   RecordsWriteMessage,
   RecordsWriteOptions,
   ProtocolsConfigureMessage
@@ -18,15 +18,6 @@ import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 import { Record } from './record.js';
 import { Protocol } from './protocol.js';
 import { dataToBlob, isEmptyObject } from './utils.js';
-
-// TODO: Export type ProtocolsConfigureDescriptor from dwn-sdk-js.
-export type ProtocolsConfigureDescriptor = {
-  dateCreated: string;
-  definition: ProtocolDefinition;
-  interface : DwnInterfaceName.Protocols;
-  method: DwnMethodName.Configure;
-  protocol: string;
-};
 
 export type ProtocolsConfigureRequest = {
   message: Omit<ProtocolsConfigureOptions, 'authorizationSignatureInput'>;
@@ -70,16 +61,6 @@ export type RecordsDeleteRequest = {
 export type RecordsDeleteResponse = {
   status: MessageReply['status'];
 };
-
-// TODO: Export type RecordsQueryReplyEntry and EncryptionProperty from dwn-sdk-js.
-export type RecordsQueryReplyEntry = {
-  recordId: string,
-  contextId?: string;
-  descriptor: RecordsWriteDescriptor;
-  encryption?: RecordsWriteMessage['encryption'];
-  encodedData?: string;
-};
-
 
 export type RecordsQueryRequest = {
   /** The from property indicates the DID to query from and return results. */
