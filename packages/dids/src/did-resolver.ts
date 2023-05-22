@@ -34,7 +34,10 @@ export class DidResolver {
     if (cachedResolution) {
       return cachedResolution;
     } else {
-      return resolver.resolve(did);
+      const didResolutionResult = await resolver.resolve(did);
+      await this.cache.set(did, didResolutionResult);
+
+      return didResolutionResult;
     }
   }
 }

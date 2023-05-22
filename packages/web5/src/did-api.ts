@@ -23,7 +23,6 @@ type CreateOptions<M extends keyof CreateMethodOptions> = CreateMethodOptions[M]
 
 export type DidApiOptions = {
   didMethodApis: DidMethodApi[];
-  // TODO: implement cache in DidResolver
   cache?: DidResolverCache;
 }
 export class DidApi {
