@@ -103,8 +103,8 @@ export class Record implements RecordModel {
     if (this.isDeleted) throw new Error('Operation failed: Attempted to access `data` of a record that has already been deleted.');
 
     if (!this.#encodedData && !this.#readableStream) {
-      // `encodedData` will be set if `dataSize` <= DwnConstant.maxDataSizeAllowedToBeEncoded. (10KB as of April 2023)
-      // `readableStream` will be set if Record was instantiated from a RecordsRead reply.
+      // `encodedData` will be set if the Record was instantiated by dwn.records.create()/write().
+      // `readableStream` will be set if Record was instantiated by dwn.records.read().
       // If neither of the above are true, then the record must be fetched from the DWN.
       this.#readableStream = this.#web5Agent.processDwnRequest({
         author         : this.author,
@@ -119,34 +119,35 @@ export class Record implements RecordModel {
 
     if (typeof this.#encodedData === 'string') {
       // If `encodedData` is set, then it is expected that:
-      // `dataSize` <= DwnConstant.maxDataSizeAllowedToBeEncoded (10KB as of April 2023)
-      // type is Uint8Array bytes if the Record object was instantiated from a RecordsWrite response
-      // type is Base64 URL encoded string if the Record object was instantiated from a RecordsQuery response
-      // If it is a string, we need to Base64 URL decode to bytes
+      // type is Blob if the Record object was instantiated by dwn.records.create()/write().
+      // type is Base64 URL encoded string if the Record object was instantiated by dwn.records.query().
+      // If it is a string, we need to Base64 URL decode to bytes and instantiate a Blob.
       const dataBytes = Encoder.base64UrlToBytes(this.#encodedData);
       this.#encodedData = new Blob([dataBytes], { type: this.dataFormat });
     }
 
+    // Explicitly cast #encodedData as a Blob since if non-null, it has been converted from string to Blob.
+    const dataBlob = this.#encodedData as Blob;
+
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this; // Capture the context of the `Record` instance.
-    const dataBlob = this.#encodedData as Blob;
     const dataObj = {
       async blob(): Promise<Blob> {
-        if (self.#encodedData) return self.#encodedData as Blob;
-        if (self.#readableStream) return new Blob([this.stream().then(DataStream.toBytes)], { type: self.dataFormat });
+        if (dataBlob) return dataBlob;
+        if (self.#readableStream) return new Blob([await this.stream().then(DataStream.toBytes)], { type: self.dataFormat });
       },
       async json() {
-        if (self.#encodedData) return this.text().then(JSON.parse);
+        if (dataBlob) return this.text().then(JSON.parse);
         if (self.#readableStream) return this.text().then(JSON.parse);
         return null;
       },
       async text() {
-        if (self.#encodedData) return dataBlob.text();
+        if (dataBlob) return dataBlob.text();
         if (self.#readableStream) return this.stream().then(DataStream.toBytes).then(Encoder.bytesToString);
         return null;
       },
       async stream() {
-        if (self.#encodedData) return new ReadableWebToNodeStream(dataBlob.stream());
+        if (dataBlob) return new ReadableWebToNodeStream(dataBlob.stream());
         if (self.#readableStream) return self.#readableStream;
         return null;
       },
