@@ -3,14 +3,15 @@ import type { SyncManager } from '@tbd54566975/web5-user-agent';
 import type { DidState, DidMethodApi, DidResolverCache, DwnServiceEndpoint } from '@tbd54566975/dids';
 
 // import  { Web5ProxyAgent } from '@tbd54566975/web5-proxy-agent';
+import { Dwn } from '@tbd54566975/dwn-sdk-js';
+import { Web5UserAgent, ProfileApi, SyncApi } from '@tbd54566975/web5-user-agent';
 import { DidIonApi, DidKeyApi, utils as didUtils } from '@tbd54566975/dids';
-import  { Web5UserAgent, ProfileApi, SyncApi } from '@tbd54566975/web5-user-agent';
 
 import { DwnApi } from './dwn-api.js';
 import { DidApi } from './did-api.js';
 import { AppStorage } from './app-storage.js';
 import { getRandomInt } from './utils.js';
-import { Dwn } from '@tbd54566975/dwn-sdk-js';
+import { DidResolutionCache } from './did-resolution-cache.js';
 
 // TODO: discuss what other options we want
 export type Web5ConnectOptions = {
@@ -31,7 +32,8 @@ export class Web5 {
   #connectedDid: string;
 
   static did = new DidApi({
-    didMethodApis: [new DidIonApi(), new DidKeyApi()]
+    didMethodApis : [new DidIonApi(), new DidKeyApi()],
+    cache         : new DidResolutionCache()
   });
 
   get did() {

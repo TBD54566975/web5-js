@@ -23,8 +23,8 @@ export class DidResolutionCache implements DidResolverCache {
   private ttl: number;
 
   static #defaultOptions = {
-    location  : 'data/did-res-cache',
-    ttlMillis : '15m'
+    location : 'data/did-res-cache',
+    ttl      : '15m'
   };
 
   constructor(options: DidResolutionCacheOptions = {}) {
