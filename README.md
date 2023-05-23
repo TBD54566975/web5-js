@@ -159,6 +159,18 @@ const { record } = await web5.dwn.records.create({
 const { status } = await record.send("did:example:bob"); // send the newly generated record to Bob's DWeb Nodes
 ```
 
+// this creates a record similarly to the above, but uses a protocol
+```
+    const { record, status } = await web5.dwn.records.write({
+      data: {"photo", "Hello again, World!"},
+      message: {
+        protocol: 'https://photos.org/protocol',
+        protocolPath: 'album',
+        recipient: did
+      }
+    });
+ ```   
+
 #### **Request**
 
 The `create` request object is composed as follows:
