@@ -12,8 +12,20 @@ permissions:
 
 jobs:
   publish-npm:
-    name: Release NPM Package
+    name: NPM Publish
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        package:
+          [
+            "crypto",
+            "dids",
+            "web5",
+            "web5-agent",
+            "web5-proxy-agent",
+            "web5-user-agent",
+          ]
 
     steps:
       - name: Checkout source
@@ -28,19 +40,54 @@ jobs:
       - name: Install latest npm
         run: npm install -g npm@latest
 
+      - name: Install semver utility
+        run: npm install -g semver@7.5.1
+
+      # Note - this is not required but it gives a clean failure prior to attempting a release if the GH workflow runner is not authenticated with NPMjs.com
+      - name: Verify NPM token is authenticated with NPMjs.com
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: npm whoami
+
+      - name: Check if GitHub repo package version is latest
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: |
+          cd packages/${{ matrix.package }}
+
+          # Fetch the published version on NPMjs.com.
+          PUBLISHED_VERSION=$(npm view @tbd54566975/${{ matrix.package }} version)
+          echo "Published Version: $PUBLISHED_VERSION"
+
+          # Fetch the version in the GitHub repo's package.json file.
+          REPO_VERSION=$(node -p "require('./package.json').version")
+          echo "REPO_VERSION=$REPO_VERSION" >> $GITHUB_ENV
+          echo "Repo Version: $REPO_VERSION"
+
+          # Compare the repo and NPMjs.com package versions.
+          IS_GREATER=$(semver --range ">$PUBLISHED_VERSION" $REPO_VERSION || true)
+          if [ -n "$IS_GREATER" ] ; then
+            echo "@tbd54566975/${{ matrix.package }}@$REPO_VERSION is latest"
+            echo "IS_LATEST=true" >> $GITHUB_ENV
+          else
+            echo "@tbd54566975/${{ matrix.package }}@$REPO_VERSION is already published or repo version is lower"
+            echo "IS_LATEST=false" >> $GITHUB_ENV
+          fi
+        shell: bash
+
       - name: Install dependencies
+        if: env.IS_LATEST == 'true'
         run: npm ci
 
       - name: Build all workspace packages
+        if: env.IS_LATEST == 'true'
         run: npm run build
 
-      # Note - this is not required but it gives a clean failure prior to attempting a release if the GH workflow runner is not authenticated with NPMjs.com
-      - name: Display the npm username of the currently logged-in user
-        run: npm whoami
+      - name: Publish @tbd54566975/${{ matrix.package }}@${{ env.REPO_VERSION }}
+        if: env.IS_LATEST == 'true'
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-
-      - name: Publish Release to NPM Public Registry
-        run: npm publish --ws --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: |
+          cd packages/${{ matrix.package }}
+          npm publish --access public --provenance
+        shell: bash
