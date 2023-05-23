@@ -31,11 +31,11 @@ npm install @tbd54566975/web5
 _CDNs_
 
 ```yaml
-https://unpkg.com/@tbd54566975/web5@0.7.4/dist/browser.js
+https://unpkg.com/@tbd54566975/web5@0.7.5/dist/browser.js
 ```
 
 ```yaml
-https://cdn.jsdelivr.net/npm/@tbd54566975/web5@0.7.4/dist/browser.mjs
+https://cdn.jsdelivr.net/npm/@tbd54566975/web5@0.7.5/dist/browser.mjs
 ```
 
 ### Importing the SDK
