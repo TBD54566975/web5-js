@@ -60,11 +60,11 @@ Enables an app to request connection to a user's local identity app (like a desk
 const { web5, did: myDid } = await Web5.connect();
 ```
 
-connect() takes in an optional `options` object with the following properties: `dwnHosts` which is a list of DWeb Node endpoints to connect to if a new DID is to be created. If no `dwnHosts` are provided, the SDK will default to built in bootstrap nodes.
+connect() takes in an optional `options` object with the following properties: `dwnEndpoints` which is a list of DWeb Node endpoints to connect to if a new DID is to be created. If no `dwnEndpoints` are provided, the SDK will default to built in bootstrap nodes.
 
 For example:
 ```javascript
-const { web5, did: myDid } = await connect({ 'dwnHosts': ['https://dwn.tbddev.org/dwn0'] });
+const { web5, did: myDid } = await connect({ 'dwnEndpoints': ['https://dwn.tbddev.org/dwn0'] });
 ```
 
 <!-- > NOTE: This method **_MUST_** be invoked within the scope of a 'trusted user action' (something enforced by the OS/browser) if the desire is to connect to a local identity app. For browsers this is generally some direct user action, like clicking a link or button. -->
