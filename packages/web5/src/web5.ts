@@ -18,6 +18,7 @@ export type Web5ConnectOptions = {
   web5Agent?: Web5Agent;
   didMethodApis?: DidMethodApi[];
   didResolutionCache?: DidResolverCache;
+  dwnHosts?: string[];
 }
 
 type Web5Options = {
@@ -42,13 +43,14 @@ export class Web5 {
 
   private static APP_DID_KEY = 'WEB5_APP_DID';
 
+
   private constructor(options: Web5Options) {
     this.#connectedDid = options.connectedDid;
     this.dwn = new DwnApi(options.web5Agent, this.#connectedDid);
     this.appStorage ||= new AppStorage();
   }
 
-  static async connect(_options: Web5ConnectOptions = {}) {
+  static async connect(options: Web5ConnectOptions = {}) {
     // load app's did
     const appStorage = new AppStorage();
     const cachedAppDidState = await appStorage.get(Web5.APP_DID_KEY);
@@ -76,7 +78,7 @@ export class Web5 {
     });
 
     if (!profile) {
-      const dwnUrls = await Web5.getDwnHosts();
+      const dwnUrls = options.dwnHosts || await Web5.getBootstrapDwnHosts();
       let ionCreateOptions;
 
       if (dwnUrls.length > 0) {
@@ -112,7 +114,7 @@ export class Web5 {
   /**
    * dynamically selects up to 4 dwn hosts
    */
-  static async getDwnHosts() {
+  static async getBootstrapDwnHosts() {
     const response = await fetch('https://dwn.tbddev.org/.well-known/did.json');
 
     const didDoc = await response.json();
