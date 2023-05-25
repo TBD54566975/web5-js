@@ -1,5 +1,8 @@
 # Web5 JS SDK
 
+[![npm version](https://badge.fury.io/js/web5-js.svg)](https://www.npmjs.com/package/@tbd54566975/web5)
+
+
 Making developing with Web5 components at least 5 times easier to work with.
 
 > ⚠️ WEB5 JS SDK IS CURRENTLY IN TECH PREVIEW ⚠️
