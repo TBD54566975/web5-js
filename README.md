@@ -50,22 +50,33 @@ or
 import { Web5 } from CDN_LINK_HERE;
 ```
 
-### **`Web5.connect()`**
+### **`Web5.connect(options)`**
 
 Enables an app to request connection to a user's local identity app (like a desktop or mobile agent - work is underway for reference apps of each), or generate an in-app DID to represent the user (e.g. if the user does not have an identity app).
 
-> **NOTE:** The outputs of this method invocation with be used throughout the other API methods below.
+> **NOTE:** The outputs of this method invocation will be used throughout the other API methods below.
 
 ```javascript
 const { web5, did: myDid } = await Web5.connect();
 ```
 
-connect() takes in an optional `options` object with the following properties: `dwnEndpoints` which is a list of DWeb Node endpoints to connect to if a new DID is to be created. If no `dwnEndpoints` are provided, the SDK will default to built in bootstrap nodes.
+#### **`options`** _(optional)_
 
-For example:
-```javascript
-const { web5, did: myDid } = await connect({ 'dwnEndpoints': ['https://dwn.tbddev.org/dwn0'] });
-```
+An object which may specify any of the following properties:
+
+- **`techPreview`** - _`object`_ _(optional)_: an object that specifies configuration parameters that are relevant during the Tech Preview period of Web5 JS and may be deprecated in the future with advance notice.
+
+  - **`dwnEndpoints`** - _`array`_ _(optional)_: a list of DWeb Node endpoints to define in the DID created and returned by `Web5.connect()`. If this property is omitted, during the Tech Preview two nodes will be included by default (e.g., `['https://dwn.tbddev.org/dwn0', 'https://dwn.tbddev.org/dwn3']`).
+
+  For example:
+
+  ```typescript
+  const { web5, did: myDid } = await Web5.connect({
+    techPreview: {
+      dwnEndpoints: ["https://dwn.your-domain.org/"],
+    },
+  });
+  ```
 
 <!-- > NOTE: This method **_MUST_** be invoked within the scope of a 'trusted user action' (something enforced by the OS/browser) if the desire is to connect to a local identity app. For browsers this is generally some direct user action, like clicking a link or button. -->
 
@@ -86,7 +97,7 @@ Each `Record` instance has the following instance properties: `id`, `attestation
 
 Each `Record` instance has the following instance methods:
 
-- **`data`** - _`object`_: a object with the following convenience methods that read out the data of the record entry in the following formats:
+- **`data`** - _`object`_: an object with the following convenience methods that read out the data of the record entry in the following formats:
   - **`text`** - _`function`_: produces a textual representation of the data.
   - **`json`** - _`function`_: if the value is JSON data, this method will return a parsed JSON object.
   - **`stream`** - _`function`_: returns the raw stream of bytes for the data.
