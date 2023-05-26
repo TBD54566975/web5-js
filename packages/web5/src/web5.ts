@@ -13,12 +13,16 @@ import { AppStorage } from './app-storage.js';
 import { getRandomInt } from './utils.js';
 import { DidResolutionCache } from './did-resolution-cache.js';
 
+export type TechPreviewOptions = {
+  dwnEndpoints?: string[];
+}
+
 // TODO: discuss what other options we want
 export type Web5ConnectOptions = {
   web5Agent?: Web5Agent;
   didMethodApis?: DidMethodApi[];
   didResolutionCache?: DidResolverCache;
-  dwnEndpoints?: string[];
+  techPreview?: TechPreviewOptions;
 }
 
 type Web5Options = {
@@ -78,7 +82,7 @@ export class Web5 {
     });
 
     if (!profile) {
-      const dwnUrls = options.dwnEndpoints || await Web5.getBootstrapDwnEndpoints();
+      const dwnUrls = options.techPreview?.dwnEndpoints || await Web5.getTechPreviewDwnEndpoints();
       let ionCreateOptions;
 
       if (dwnUrls.length > 0) {
@@ -112,9 +116,10 @@ export class Web5 {
   }
 
   /**
-   * dynamically selects up to 4 dwn hosts
+   * Dynamically selects up to 2 DWN endpoints that are provided
+   * by default during the Tech Preview period.
    */
-  static async getBootstrapDwnEndpoints() {
+  static async getTechPreviewDwnEndpoints(): Promise<string[]> {
     const response = await fetch('https://dwn.tbddev.org/.well-known/did.json');
 
     const didDoc = await response.json();
