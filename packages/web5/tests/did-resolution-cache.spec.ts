@@ -14,7 +14,7 @@ describe('DidResolutionCache', () => {
 
   it('uses a custom TTL when specified', async function () {
     // Instantiate DID resolution cache with custom TTL of 60 seconds.
-    const cache = new DidResolutionCache({ ttl: '1m' });
+    const cache = new DidResolutionCache({ ttl: '1m', location: '__TESTDATA__/DID-RES-CACHE' });
 
     const testDid = 'did:example:alice';
 
@@ -43,7 +43,7 @@ describe('DidResolutionCache', () => {
 
   it('deletes specified entry', async function () {
     // Instantiate DID resolution cache with default TTL of 15 minutes.
-    const cache = new DidResolutionCache();
+    const cache = new DidResolutionCache({ location: '__TESTDATA__/DID-RES-CACHE' });
 
     const testDid1 = 'did:example:alice';
     const testDid2 = 'did:example:bob';
@@ -75,7 +75,7 @@ describe('DidResolutionCache', () => {
 
   it('deletes all entries after clear()', async () => {
     // Instantiate DID resolution cache with default TTL of 15 minutes.
-    const cache = new DidResolutionCache();
+    const cache = new DidResolutionCache({ location: '__TESTDATA__/DID-RES-CACHE' });
 
     const testDid1 = 'did:example:alice';
     const testDid2 = 'did:example:bob';
