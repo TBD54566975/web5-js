@@ -83,13 +83,9 @@ export class Web5 {
 
     if (!profile) {
       const dwnUrls = options.techPreview?.dwnEndpoints || await Web5.getTechPreviewDwnEndpoints();
-      let ionCreateOptions;
-
-      if (dwnUrls.length > 0) {
-        ionCreateOptions = await DidIonApi.generateDwnConfiguration(dwnUrls);
-      }
-
+      const ionCreateOptions = await DidIonApi.generateDwnConfiguration(dwnUrls);
       const defaultProfileDid = await this.did.create('ion', ionCreateOptions);
+
       // setting id & name as the app's did to make migration easier
       profile = await profileApi.createProfile({
         name        : appDidState.id,
@@ -122,15 +118,19 @@ export class Web5 {
   static async getTechPreviewDwnEndpoints(): Promise<string[]> {
     const response = await fetch('https://dwn.tbddev.org/.well-known/did.json');
 
+    // Return an empty array if dwn.tbddev.org is not responding.
+    if (!response.ok) { return []; }
+
     const didDoc = await response.json();
     const [ service ] = didUtils.getServices(didDoc, { id: '#dwn', type: 'DecentralizedWebNode' });
     const { nodes } = <DwnServiceEndpoint>service.serviceEndpoint;
 
     // allocate up to 2 nodes for a user.
-    const numNodesToAllocate = Math.min(Math.floor(nodes.length / 2), 2);
-    const dwnUrls = new Set([]);
+    const dwnUrls = new Set<string>();
+    let attempts = 0;
+    const numNodesToAllocate = Math.min(nodes.length, 2);
 
-    for (let i = 0; i < numNodesToAllocate; i += 1) {
+    while(dwnUrls.size < numNodesToAllocate && attempts < nodes.length) {
       const nodeIdx = getRandomInt(0, nodes.length);
       const dwnUrl = nodes[nodeIdx];
 
@@ -139,9 +139,11 @@ export class Web5 {
         if (healthCheck.status === 200) {
           dwnUrls.add(dwnUrl);
         }
-      } catch(e) {
-        // ignore healthcheck failures and try the next node.
+      } catch(e: unknown) {
+        // Ignore healthcheck failures and try the next node.
       }
+
+      attempts++;
     }
 
     return Array.from(dwnUrls);
