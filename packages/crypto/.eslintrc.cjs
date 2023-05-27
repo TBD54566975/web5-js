@@ -1,4 +1,3 @@
-
 /** @type {import('eslint').ESLint.ConfigData} */
 module.exports = {
   extends       : ['eslint:recommended', 'plugin:@typescript-eslint/recommended'],
@@ -43,7 +42,9 @@ module.exports = {
         'varsIgnorePattern'  : '^_'
       }
     ],
-    '@typescript-eslint/no-explicit-any' : 'off',
-    'no-trailing-spaces'                 : ['error'],
+    '@typescript-eslint/no-explicit-any'       : 'off',
+    'no-trailing-spaces'                       : ['error'],
+    '@typescript-eslint/no-non-null-assertion' : 'off',
+    '@typescript-eslint/ban-ts-comment'        : 'off'
   }
 };
