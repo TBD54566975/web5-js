@@ -1,3 +1,4 @@
+/** @type {import('eslint').ESLint.ConfigData} */
 module.exports = {
   extends       : ['eslint:recommended', 'plugin:@typescript-eslint/recommended'],
   parser        : '@typescript-eslint/parser',
@@ -7,8 +8,9 @@ module.exports = {
   },
   plugins : ['@typescript-eslint'],
   env     : {
-    node   : true,
-    es2022 : true
+    node    : true,
+    es2022  : true,
+    browser : true
   },
   rules: {
     'key-spacing': [
@@ -42,6 +44,7 @@ module.exports = {
     ],
     '@typescript-eslint/no-explicit-any'       : 'off',
     'no-trailing-spaces'                       : ['error'],
-    '@typescript-eslint/no-non-null-assertion' : 'off'
+    '@typescript-eslint/no-non-null-assertion' : 'off',
+    '@typescript-eslint/ban-ts-comment'        : 'off'
   }
 };
