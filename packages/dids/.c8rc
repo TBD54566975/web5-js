@@ -1,0 +1,20 @@
+{
+  "all": true,
+  "cache": false,
+  "extension": [
+    ".js"
+  ],
+  "include": [
+    "__tests__/src/**"
+  ],
+  "exclude": [
+    "dist/esm/src/types/**"
+  ],
+  "reporter": [
+    "text",
+    "cobertura",
+    "html",
+    "json-summary"
+  ]
+}
+
