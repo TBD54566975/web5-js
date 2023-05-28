@@ -116,10 +116,16 @@ export class Web5 {
    * by default during the Tech Preview period.
    */
   static async getTechPreviewDwnEndpoints(): Promise<string[]> {
-    const response = await fetch('https://dwn.tbddev.org/.well-known/did.json');
-
-    // Return an empty array if dwn.tbddev.org is not responding.
-    if (!response.ok) { return []; }
+    let response: Response;
+    try {
+      response = await fetch('https://dwn.tbddev.org/.well-known/did.json');
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+      }
+    } catch(e) {
+      console.warn('failed to get tech preview dwn endpoints:', e.message);
+      return [];
+    }
 
     const didDoc = await response.json();
     const [ service ] = didUtils.getServices(didDoc, { id: '#dwn', type: 'DecentralizedWebNode' });
@@ -127,23 +133,20 @@ export class Web5 {
 
     // allocate up to 2 nodes for a user.
     const dwnUrls = new Set<string>();
-    let attempts = 0;
     const numNodesToAllocate = Math.min(nodes.length, 2);
 
-    while(dwnUrls.size < numNodesToAllocate && attempts < nodes.length) {
+    for (let attempts = 0; attempts < nodes.length && dwnUrls.size < numNodesToAllocate; attempts += 1) {
       const nodeIdx = getRandomInt(0, nodes.length);
       const dwnUrl = nodes[nodeIdx];
 
       try {
         const healthCheck = await fetch(`${dwnUrl}/health`);
-        if (healthCheck.status === 200) {
+        if (healthCheck.ok) {
           dwnUrls.add(dwnUrl);
         }
       } catch(e: unknown) {
         // Ignore healthcheck failures and try the next node.
       }
-
-      attempts++;
     }
 
     return Array.from(dwnUrls);
