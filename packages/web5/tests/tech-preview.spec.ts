@@ -15,9 +15,10 @@ describe('Tech Preview', () => {
     let mockDwnEndpoints: Array<string>;
 
     let tbdWellKnownOkResponse = {
-      status : 200,
-      ok     : true,
-      json   : async () => Promise.resolve({
+      status     : 200,
+      statusText : 'OK',
+      ok         : true,
+      json       : async () => Promise.resolve({
         id      : 'did:web:dwn.tbddev.org',
         service : [
           {
@@ -32,19 +33,22 @@ describe('Tech Preview', () => {
     };
 
     let tbdWellKnownBadResponse = {
-      status : 400,
-      ok     : false
+      status     : 400,
+      statusText : 'Bad Request',
+      ok         : false
     };
 
     let dwnServerHealthOkResponse = {
-      status : 200,
-      ok     : true,
-      json   : async () => Promise.resolve({ok: true})
+      status     : 200,
+      statusText : 'OK',
+      ok         : true,
+      json       : async () => Promise.resolve({ok: true})
     };
 
     let dwnServerHealthBadResponse = {
-      status : 400,
-      ok     : false
+      status     : 400,
+      statusText : 'Bad Request',
+      ok         : false
     };
 
     beforeEach(() => {
@@ -141,6 +145,17 @@ describe('Tech Preview', () => {
           return Promise.resolve(tbdWellKnownBadResponse);
         }
       });
+
+      const dwnEndpoints = await Web5.getTechPreviewDwnEndpoints();
+
+      expect(dwnEndpoints).to.be.an('array').that.has.lengthOf(0);
+    });
+
+    it('returns 0 DWN endpoints if fetching dwn.tbddev.org throws an exception', async function() {
+      // Stub fetch to simulate fetching dwn.tbddev.org throwing an exception.
+      fetchStub.restore();
+      fetchStub = sinon.stub(globalThis as any, 'fetch');
+      fetchStub.withArgs('https://dwn.tbddev.org/.well-known/did.json').rejects(new Error('Network error'));
 
       const dwnEndpoints = await Web5.getTechPreviewDwnEndpoints();
 
