@@ -1,6 +1,9 @@
 # Web5 JS SDK
-Code Coverage
-![Statements](https://img.shields.io/badge/statements-69.82%25-red.svg?style=flat) ![Branches](https://img.shields.io/badge/branches-84.29%25-yellow.svg?style=flat) ![Functions](https://img.shields.io/badge/functions-70.12%25-red.svg?style=flat) ![Lines](https://img.shields.io/badge/lines-69.82%25-red.svg?style=flat)
+
+[![NPM](https://img.shields.io/npm/v/@tbd54566975/web5.svg?style=flat-square&logo=npm&logoColor=FFFFFF&color=FFEC19&santize=true)](https://www.npmjs.com/package/@tbd54566975/web5)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/TBD54566975/web5-js/tests-ci.yml?branch=main&logo=github&label=ci&logoColor=FFFFFF&style=flat-square)](https://github.com/TBD54566975/web5-js/actions/workflows/tests-ci.yml)
+[![License](https://img.shields.io/npm/l/@tbd54566975/web5.svg?style=flat-square&color=24f2ff&logo=apache&logoColor=FFFFFF&santize=true)](https://github.com/TBD54566975/web5-js/blob/main/LICENSE)
+[![Chat](https://img.shields.io/badge/chat-on%20discord-7289da.svg?style=flat-square&color=9a1aff&logo=discord&logoColor=FFFFFF&sanitize=true)](https://discord.com/channels/937858703112155166/969272658501976117)
 
 Making developing with Web5 components at least 5 times easier to work with.
 
