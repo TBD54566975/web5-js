@@ -8,7 +8,8 @@
     "__tests__/src/**"
   ],
   "exclude": [
-    "dist/esm/src/types/**"
+    "__tests__/src/main.js",
+    "__tests__/types/**"
   ],
   "reporter": [
     "text",
