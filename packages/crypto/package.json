@@ -102,8 +102,6 @@
     "typescript": "5.0.4"
   },
   "overrides": {
-    "karma": {
-      "socket.io-parser@>4.0.4 <4.2.3": "4.2.3"
-    }
+     "socket.io-parser@>4.0.4 <4.2.3": "4.2.3"
   }
 }
