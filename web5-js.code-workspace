@@ -36,5 +36,37 @@
 			"path": "packages/web5-user-agent",
 		},
 	],
-	"settings": {}
+	"settings": {},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"type": "node",
+				"request": "launch",
+				"name": "Test All - Node",
+				"runtimeExecutable": "${workspaceFolder:root}/node_modules/.bin/mocha",
+				"runtimeArgs": [
+					"packages/**/__tests__/**/*.spec.js"
+				],
+				"preLaunchTask": "Build All",
+				"console": "internalConsole",
+				"internalConsoleOptions": "openOnSessionStart",
+			}
+		]
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "Build All",
+				"type": "shell",
+				"command": "npm run build",
+				"problemMatcher": [],
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				}
+			},
+		]
+	}
 }
