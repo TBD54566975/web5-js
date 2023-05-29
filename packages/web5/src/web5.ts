@@ -12,6 +12,7 @@ import { DidApi } from './did-api.js';
 import { AppStorage } from './app-storage.js';
 import { getRandomInt } from './utils.js';
 import { DidResolutionCache } from './did-resolution-cache.js';
+import { LevelType } from '@tbd54566975/storage';
 
 export type TechPreviewOptions = {
   dwnEndpoints?: string[];
@@ -36,29 +37,38 @@ export class Web5 {
   dwn: DwnApi;
   #connectedDid: string;
 
-  static did = new DidApi({
-    didMethodApis : [new DidIonApi(), new DidKeyApi()],
-    cache         : new DidResolutionCache()
-  });
+  static did: DidApi | null = null;
+
+  static initializeDid(store: LevelType) {
+    this.did = new DidApi({
+      didMethodApis : [new DidIonApi(), new DidKeyApi()],
+      cache         : new DidResolutionCache(undefined, store),
+    });
+  }
 
   get did() {
+    if (!Web5.did) {
+      throw new Error('DidApi not initialized. Call Web5.initializeDid() first.');
+    }
     return Web5.did;
   }
 
   private static APP_DID_KEY = 'WEB5_APP_DID';
 
 
-  private constructor(options: Web5Options) {
+  private constructor(options: Web5Options, levelStorage?: { appStorage: LevelType }) {
     this.#connectedDid = options.connectedDid;
     this.dwn = new DwnApi(options.web5Agent, this.#connectedDid);
-    this.appStorage ||= new AppStorage();
+    this.appStorage ||= new AppStorage(undefined, levelStorage.appStorage);
   }
 
-  static async connect(options: Web5ConnectOptions = {}) {
+  static async connect(options: Web5ConnectOptions = {}, levelStorage?: { appStorage: LevelType, profileApi: { profileStore: LevelType, profileIndex: LevelType }, did: LevelType, syncApi: LevelType }) {
     // load app's did
-    const appStorage = new AppStorage();
+    const appStorage = new AppStorage(undefined, levelStorage.appStorage);
     const cachedAppDidState = await appStorage.get(Web5.APP_DID_KEY);
     let appDidState: DidState;
+
+    Web5.initializeDid(levelStorage.did);
 
     if (cachedAppDidState) {
       appDidState = JSON.parse(cachedAppDidState);
@@ -71,7 +81,7 @@ export class Web5 {
     // TODO: if available,connect to remote agent using Web5ProxyAgent
 
     // fall back to instantiating local agent
-    const profileApi = new ProfileApi();
+    const profileApi = new ProfileApi(undefined, levelStorage.profileApi);
     let [ profile ] = await profileApi.listProfiles();
 
     const dwn = await Dwn.create();
@@ -79,7 +89,7 @@ export class Web5 {
       profileManager : profileApi,
       didResolver    : Web5.did.resolver,
       dwn            : dwn
-    });
+    }, levelStorage.syncApi);
 
     if (!profile) {
       const dwnUrls = options.techPreview?.dwnEndpoints || await Web5.getTechPreviewDwnEndpoints();
@@ -104,7 +114,7 @@ export class Web5 {
     });
 
     const connectedDid = profile.did.id;
-    const web5 = new Web5({ appStorage: appStorage, web5Agent: agent, connectedDid });
+    const web5 = new Web5({ appStorage: appStorage, web5Agent: agent, connectedDid }, {appStorage: levelStorage.appStorage});
 
     Web5.#enqueueNextSync(syncManager, 1_000);
 

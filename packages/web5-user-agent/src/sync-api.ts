@@ -1,5 +1,5 @@
 import type { DwnRpc } from '@tbd54566975/web5-agent';
-import type { BatchOperation } from 'level';
+import type { AbstractBatchOperation } from 'abstract-level';
 import type { DwnServiceEndpoint, DidResolver } from '@tbd54566975/dids';
 import type {
   Dwn,
@@ -14,9 +14,9 @@ import type {
 
 import type { ProfileManager } from './profile-manager.js';
 
-import { Level } from 'level';
 import { utils as didUtils } from '@tbd54566975/dids';
 import { DataStream, EventsGet, MessagesGet, Encoder, RecordsRead } from '@tbd54566975/dwn-sdk-js';
+import { LevelFactory, LevelType } from '@tbd54566975/storage';
 
 
 import { SyncManager } from './sync-manager.js';
@@ -43,10 +43,10 @@ type DwnMessage = {
   data?: Blob;
 }
 
-type DbBatchOperation = BatchOperation<Level, string, string>;
+type DbBatchOperation = AbstractBatchOperation<LevelType, string, string>;
 
 export class SyncApi implements SyncManager {
-  #db: Level;
+  #db: LevelType;
   #dwn: Dwn;
   #didResolver: DidResolver;
   #profileManager: ProfileManager;
@@ -56,13 +56,17 @@ export class SyncApi implements SyncManager {
     storeLocation: 'data/agent/sync-store',
   };
 
-  constructor(options: SyncApiOptions) {
+  constructor(options: SyncApiOptions, store?: LevelType) {
     options = { ...SyncApi.#defaultOptions, ...options };
     this.#dwn = options.dwn;
     this.#didResolver = options.didResolver;
     this.#profileManager = options.profileManager;
 
-    this.#db = new Level(options.storeLocation);
+    if (!store) {
+      store = LevelFactory.createLevel(options.storeLocation);
+    }
+
+    this.#db = store;
     this.#dwnRpcClient = new DwnRpcClient();
   }
 
@@ -309,7 +313,7 @@ export class SyncApi implements SyncManager {
 
             if (reply.status.code >= 400) {
               // TODO: handle reply
-              const pruneReply = await this.#dwn.synchronizePrunedInitialRecordsWrite(did, message);
+              // const pruneReply = await this.#dwn.synchronizePrunedInitialRecordsWrite(did, message);
             } else {
               dataStream = webReadableToIsomorphicNodeReadable(recordsReadReply.record.data as any);
             }

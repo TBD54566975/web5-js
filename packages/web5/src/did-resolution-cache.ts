@@ -1,7 +1,7 @@
 import type { DidResolutionResult, DidResolverCache } from '@tbd54566975/dids';
+import { LevelFactory, LevelType } from '@tbd54566975/storage';
 
 import ms from 'ms';
-import { Level } from 'level';
 
 export type DidResolutionCacheOptions = {
   location?: string;
@@ -19,7 +19,7 @@ type CacheWrapper = {
  * the persistent aspect is especially useful across page refreshes.
  */
 export class DidResolutionCache implements DidResolverCache {
-  private cache: Level<string, string>;
+  private cache: LevelType;
   private ttl: number;
 
   static #defaultOptions = {
@@ -27,10 +27,12 @@ export class DidResolutionCache implements DidResolverCache {
     ttl      : '15m'
   };
 
-  constructor(options: DidResolutionCacheOptions = {}) {
+  constructor(options: DidResolutionCacheOptions = {}, store?: LevelType) {
     options = { ...DidResolutionCache.#defaultOptions, ...options };
-
-    this.cache = new Level(options.location!);
+    if (!store) {
+      store = LevelFactory.createLevel(options.location);
+    }
+    this.cache = store;
     this.ttl = ms(options.ttl!);
   }
 

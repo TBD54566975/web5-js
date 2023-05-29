@@ -1,7 +1,7 @@
 import type { AbstractBatchOperation, AbstractBatchDelOperation } from 'abstract-level';
 
-import { Level } from 'level';
 import flat from 'flat';
+import { LevelFactory, LevelType } from '@tbd54566975/storage';
 
 const { flatten } = flat;
 
@@ -24,23 +24,26 @@ export type Filter = {
 }
 
 export class ProfileIndex {
-  level: Level<string, string>;
+  level: LevelType;
 
-  constructor(private location = 'data/agent/profiles-index') {
-    this.level = new Level(location);
+  constructor(location = 'data/agent/profiles-index', store?: LevelType) {
+    if (!store) {
+      store = LevelFactory.createLevel(location);
+    }
+    this.level = store;
   }
 
   async delete(id: string): Promise<void> {
     const ops: AbstractBatchDelOperation<typeof this.level, string>[] = [];
 
-    let keyPrefixes: string | string[] = await this.level.get(`__${id}__meta`);
+    let keyPrefixes: string = await this.level.get(`__${id}__meta`);
     if (!keyPrefixes) {
       return;
     }
 
-    keyPrefixes = keyPrefixes.split('@');
+    const splitKeyPrefixes = keyPrefixes.split('@');
 
-    for (let keyPrefix of keyPrefixes) {
+    for (let keyPrefix of splitKeyPrefixes) {
       const op = { type: 'del' as const, key: `${keyPrefix}~${id}` };
       ops.push(op);
     }

@@ -1,9 +1,8 @@
 import type { Filter, QueryStore } from '@tbd54566975/web5-agent';
 import type { Profile } from './profile-manager.js';
 
-import { Level } from 'level';
-
 import { ProfileIndex } from './profile-index.js';
+import { LevelFactory, LevelType } from '@tbd54566975/storage';
 // TODO: refactor to use another underlying datastore
 
 export type ProfileStoreOptions = {
@@ -11,7 +10,7 @@ export type ProfileStoreOptions = {
   indexLocation?: string;
 };
 export class ProfileStore implements QueryStore<Profile> {
-  private db: Level;
+  private db: LevelType;
   private index: ProfileIndex;
 
   private static _defaultOptions = {
@@ -19,11 +18,15 @@ export class ProfileStore implements QueryStore<Profile> {
     indexLocation : 'data/agent/profiles-index'
   };
 
-  constructor(options: ProfileStoreOptions = {}) {
+  constructor(options: ProfileStoreOptions = {}, levelStorage?: { profileStore: LevelType, profileIndex: LevelType }) {
     options = { ...ProfileStore._defaultOptions, ...options };
 
-    this.db = new Level(options.location);
-    this.index = new ProfileIndex(options.indexLocation);
+    if (!levelStorage.profileStore) {
+      levelStorage.profileStore = LevelFactory.createLevel(options.location);
+    }
+
+    this.db = levelStorage.profileStore;
+    this.index = new ProfileIndex(options.indexLocation, levelStorage.profileIndex);
   }
 
   async put(entry: Profile): Promise<void> {

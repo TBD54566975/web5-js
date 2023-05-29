@@ -2,12 +2,13 @@ import type { QueryStore } from '@tbd54566975/web5-agent';
 import type { CreateProfileOptions, Profile, ProfileManager } from './profile-manager.js';
 
 import { ProfileStore } from './profile-store.js';
+import { LevelType } from '@tbd54566975/storage';
 
 export class ProfileApi implements ProfileManager {
   private store: QueryStore<Profile>;
 
-  constructor(store?: QueryStore<Profile>) {
-    this.store = store ||= new ProfileStore();
+  constructor(store?: QueryStore<Profile>, levelStorage?: { profileStore: LevelType, profileIndex: LevelType }) {
+    this.store = store ||= new ProfileStore(undefined, levelStorage);
   }
 
   async createProfile(options: CreateProfileOptions): Promise<Profile> {

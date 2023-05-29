@@ -1,12 +1,15 @@
-import { Level } from 'level';
+import { LevelFactory, LevelType } from '@tbd54566975/storage';
 
 // simple isomorphic key/value store
 // TODO: create KeyValueStore interface that this class implements
 export class AppStorage {
-  private store: Level<string, string>;
+  private store: LevelType;
 
-  constructor(location = 'data/app/storage') {
-    this.store = new Level(location);
+  constructor(location = 'data/app/storage', store?: LevelType) {
+    if (!store) {
+      store = LevelFactory.createLevel(location);
+    }
+    this.store = store;
   }
 
   async get(key: string): Promise<string | undefined> {
