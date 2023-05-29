@@ -98,12 +98,12 @@
     "@types/sinon": "10.0.15",
     "@typescript-eslint/eslint-plugin": "5.59.0",
     "@typescript-eslint/parser": "5.59.0",
-    "c8": "^7.14.0",
+    "c8": "7.14.0",
     "chai": "4.3.7",
     "chai-as-promised": "7.1.1",
     "esbuild": "0.16.17",
     "eslint": "8.39.0",
-    "istanbul-badges-readme": "^1.8.5",
+    "istanbul-badges-readme": "1.8.5",
     "karma": "6.4.1",
     "karma-chai": "0.1.0",
     "karma-chrome-launcher": "3.1.1",
@@ -121,8 +121,6 @@
     "typescript": "5.0.4"
   },
   "overrides": {
-    "karma": {
-      "socket.io-parser@>4.0.4 <4.2.3": "4.2.3"
-    }
-  }
+    "socket.io-parser@>4.0.4 <4.2.3": "4.2.3"
+ }
 }
