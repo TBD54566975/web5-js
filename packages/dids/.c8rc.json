@@ -8,13 +8,11 @@
     "__tests__/src/**"
   ],
   "exclude": [
+    "__tests__/src/main.js",
     "__tests__/types/**"
   ],
   "reporter": [
-    "text",
     "cobertura",
-    "html",
-    "json-summary"
+    "text"
   ]
 }
-
