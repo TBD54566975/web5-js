@@ -96,7 +96,7 @@
     "@types/chai": "4.3.0",
     "@types/chai-as-promised": "7.1.5",
     "@types/ms": "0.7.31",
-    "@types/sinon": "^10.0.15",
+    "@types/sinon": "10.0.15",
     "@typescript-eslint/eslint-plugin": "5.59.0",
     "@typescript-eslint/parser": "5.59.0",
     "chai": "4.3.7",
@@ -118,5 +118,10 @@
     "sinon": "15.0.2",
     "source-map-loader": "4.0.1",
     "typescript": "5.0.4"
+  },
+  "overrides": {
+    "karma": {
+      "socket.io-parser@>4.0.4 <4.2.3": "4.2.3"
+    }
   }
 }

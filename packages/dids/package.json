@@ -105,5 +105,10 @@
     "playwright": "1.31.2",
     "rimraf": "4.4.0",
     "typescript": "5.0.4"
+  },
+  "overrides": {
+    "karma": {
+      "socket.io-parser@>4.0.4 <4.2.3": "4.2.3"
+    }
   }
 }
