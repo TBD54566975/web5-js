@@ -6,7 +6,7 @@ component_management:
     statuses:
       - type: project
         target: auto # auto compares coverage to the previous base commit
-        threshold: 10% # allows a 10% drop from the previous base commit coverage
+        threshold: 5% # allows a 5% drop from the previous base commit coverage
       - type: patch
         target: 100 # every PR opened should strive for full test coverage
 
