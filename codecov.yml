@@ -1,0 +1,45 @@
+comment:
+  layout: "header, diff, components"
+
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: auto # auto compares coverage to the previous base commit
+        threshold: 10% # allows a 10% drop from the previous base commit coverage
+      - type: patch
+        target: 100 # every PR opened should strive for full test coverage
+
+  individual_components:
+    - component_id: package_crypto
+      name: crypto
+      paths: ["packages/crypto/**"]
+
+    - component_id: package_dids
+      name: dids
+      paths: ["packages/dids/**"]
+
+    - component_id: package-web5
+      name: web5
+      paths: ["packages/web5/**"]
+
+    - component_id: package-web5-agent
+      name: web5-agent
+      paths: ["packages/web5-agent/**"]
+
+    - component_id: package-web5-proxy-agent
+      name: web5-proxy-agent
+      paths: ["packages/web5-proxy-agent/**"]
+
+    - component_id: package-web5-user-agent
+      name: web5-user-agent
+      paths: ["packages/web5-user-agent/**"]
+
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true # Don't gate PRs based on Codecov passing thresholds
