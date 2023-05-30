@@ -18,7 +18,7 @@ export class ProfileStore implements QueryStore<Profile> {
     indexLocation : 'data/agent/profiles-index'
   };
 
-  constructor(options: ProfileStoreOptions = {}, levelStorage?: { profileStore: LevelType, profileIndex: LevelType }) {
+  constructor(options: ProfileStoreOptions = {}, levelStorage: { profileStore?: LevelType, profileIndex?: LevelType } = {}) {
     options = { ...ProfileStore._defaultOptions, ...options };
 
     if (!levelStorage.profileStore) {

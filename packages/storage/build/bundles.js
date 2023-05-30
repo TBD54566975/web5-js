@@ -9,7 +9,7 @@ esbuild.buildSync({
   bundle         : true,
   format         : 'cjs',
   // packages: 'external',
-  external       : ['level'],
+  external       : ['level', 'abstract-level'],
   sourcemap      : true,
   entryPoints    : ['./src/main.ts'],
   outfile        : './dist/electron/main.cjs',

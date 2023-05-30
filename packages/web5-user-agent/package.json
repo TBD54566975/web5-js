@@ -78,6 +78,7 @@
     "@decentralized-identity/ion-tools": "1.0.7",
     "@tbd54566975/dids": "0.1.5",
     "@tbd54566975/dwn-sdk-js": "0.0.32",
+    "@tbd54566975/storage": "^0.0.2",
     "@tbd54566975/web5-agent": "0.1.4",
     "abstract-level": "1.0.3",
     "cross-fetch": "3.1.5",

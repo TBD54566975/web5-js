@@ -16,7 +16,8 @@
     "moduleResolution": "NodeNext",
     // allows us to import json files
     "resolveJsonModule": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "rootDir": "./"
   },
   "include": [
     "src",

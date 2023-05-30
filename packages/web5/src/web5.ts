@@ -1,6 +1,7 @@
 import type { Web5Agent } from '@tbd54566975/web5-agent';
 import type { SyncManager } from '@tbd54566975/web5-user-agent';
 import type { DidState, DidMethodApi, DidResolverCache, DwnServiceEndpoint } from '@tbd54566975/dids';
+import type { LevelType, Storage } from '@tbd54566975/storage';
 
 // import  { Web5ProxyAgent } from '@tbd54566975/web5-proxy-agent';
 import { Dwn } from '@tbd54566975/dwn-sdk-js';
@@ -12,7 +13,7 @@ import { DidApi } from './did-api.js';
 import { AppStorage } from './app-storage.js';
 import { getRandomInt } from './utils.js';
 import { DidResolutionCache } from './did-resolution-cache.js';
-import { LevelType } from '@tbd54566975/storage';
+import { AbstractLevel } from 'abstract-level';
 
 export type TechPreviewOptions = {
   dwnEndpoints?: string[];
@@ -56,15 +57,15 @@ export class Web5 {
   private static APP_DID_KEY = 'WEB5_APP_DID';
 
 
-  private constructor(options: Web5Options, levelStorage?: { appStorage: LevelType }) {
+  private constructor(options: Web5Options, levelStorage: { appStorage?: LevelType } = {}) {
     this.#connectedDid = options.connectedDid;
     this.dwn = new DwnApi(options.web5Agent, this.#connectedDid);
     this.appStorage ||= new AppStorage(undefined, levelStorage.appStorage);
   }
 
-  static async connect(options: Web5ConnectOptions = {}, levelStorage?: { appStorage: LevelType, profileApi: { profileStore: LevelType, profileIndex: LevelType }, did: LevelType, syncApi: LevelType }) {
+  static async connect<T extends AbstractLevel<string | Buffer | Uint8Array, string, string>>(options: Web5ConnectOptions = {}, levelStorage: Storage<LevelType<T>> = {}) {
     // load app's did
-    const appStorage = new AppStorage(undefined, levelStorage.appStorage);
+    const appStorage = new AppStorage(undefined, levelStorage?.appStorage);
     const cachedAppDidState = await appStorage.get(Web5.APP_DID_KEY);
     let appDidState: DidState;
 
@@ -81,7 +82,7 @@ export class Web5 {
     // TODO: if available,connect to remote agent using Web5ProxyAgent
 
     // fall back to instantiating local agent
-    const profileApi = new ProfileApi(undefined, levelStorage.profileApi);
+    const profileApi = new ProfileApi(undefined, {profileStore: levelStorage.profileStore, profileIndex: levelStorage.profileIndex});
     let [ profile ] = await profileApi.listProfiles();
 
     const dwn = await Dwn.create();
