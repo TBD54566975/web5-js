@@ -3,7 +3,8 @@
  * @see {@link https://www.w3.org/TR/vc-data-model/#credentials | VC data model}
  */
 export type VerifiableCredential = {
-  '@context': string;
+  /** see {@link https://www.w3.org/TR/vc-data-model/#contexts | Contexts} */
+  '@context': ['https://www.w3.org/2018/credentials/v1', ...string[]];
   credentialSubject: CredentialSubject | CredentialSubject[];
   /** @see {@link https://www.w3.org/TR/vc-data-model/#identifiers | Identifiers} */
   id?: string;
