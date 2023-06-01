@@ -1,3 +1,5 @@
 {
-    "enable-source-maps": true
-}
+    "enable-source-maps": true,
+    "exit": true,
+    "spec": ["__tests__/**/*.spec.js"]
+  }

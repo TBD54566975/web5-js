@@ -2,7 +2,7 @@
 
 There are many ways to be an open source contributor, and we're here to help you on your way! You may:
 
-- Propose ideas in our Web5 [discord](https://discord.com/channels/937858703112155166/969272658501976117) channel
+- Propose ideas in our Web5 [Discord](https://discord.com/channels/937858703112155166/969272658501976117) channel
 - Raise an issue or feature request in our [issue tracker](https://github.com/TBD54566975/web5-js/issues)
 - Help another contributor with one of their questions, or a code review
 - Suggest improvements to our Getting Started documentation by supplying a Pull Request
@@ -96,6 +96,7 @@ to your valuable work:
   having trouble - feel free to ask a member or the community for help or leave the commits as-is, and flag that you'd like
   rebasing assistance in your PR! We're here to support you.
 - Open a PR in the project to bring in the code from your feature branch.
+- [Codecov](https://app.codecov.io/github/TBD54566975/web5-js) will automatically comment on your pull request showing the impact to the overall test coverage.
 - The maintainers noted in the [`CODEOWNERS`](https://github.com/TBD54566975/web5-js/blob/main/CODEOWNERS) file will review your PR and optionally
   open a discussion about its contents before moving forward.
 - Remain responsive to follow-up questions, be open to making requested changes, and...
@@ -103,10 +104,30 @@ to your valuable work:
 - And remember to respect everyone in our global development community. Guidelines
   are established in our [`CODE_OF_CONDUCT.md`](https://github.com/TBD54566975/web5-js/blob/main/CODE_OF_CONDUCT.md).
 
-### Running tests
+### Running Tests
 
 - Running the `npm run test:node --ws` command from the root of the project will run all tests using node.
   - This is run via CI whenever a pull request is opened, or a commit is pushed to a branch that has an open PR
 - Running the `npm run test:browser --ws` command from the root of the project will run the tests in a browser environment
   - Please make sure there are no failing tests before switching your PR to ready for review! We hope to have this automated via a github action very soon.
 - You can also run `npm run test:node -w=packages/DIR` or `npm run test:browser -w=packages/DIR` from the root of the project to run tests for a single package. For example, to run the tests only for the `web5` package run `npm run test:node -w=packages/web5`.
+
+### Test Coverage Expectations
+
+To maintain the robustness and reliability of the codebase, we highly value test coverage.
+
+- [Codecov](https://app.codecov.io/github/TBD54566975/web5-js) is used to track
+  the coverage of our tests and will automatically comment on every pull request
+  showing the impact to overall coverage.
+- We have a strong expectation for every pull request to strive for 100% test
+  coverage. This means that all new code you contribute should be fully covered
+  by tests, and it should not decrease the overall test coverage of the project.
+- If your pull request introduces new features or changes existing logic, please
+  ensure you include comprehensive tests that cover edge-cases and failure
+  scenarios. This ensures that your contributions are of the highest quality and
+  safeguards our codebase against potential bugs or breaking changes.
+- Thorough tests are also a great way to better understand your proposed changes.
+- If you encounter any difficulties while writing tests, don't hesitate to reach
+  out for help or guidance in our Web5
+  [Discord](https://discord.com/channels/937858703112155166/969272658501976117)
+  channel.

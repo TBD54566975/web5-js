@@ -10,7 +10,7 @@
     "build": "rimraf dist && node build/bundles.js && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json && tsc",
     "lint": "eslint . --ext .js --max-warnings 0",
     "lint:fix": "eslint . --ext .js --fix",
-    "test:node": "rimraf __tests__ && tsc -p tsconfig.test.json && mocha \"__tests__/**/*.spec.js\" --exit",
+    "test:node": "rimraf __tests__ && tsc -p tsconfig.test.json && c8 mocha",
     "test:browser": "karma start karma.conf.cjs"
   },
   "homepage": "https://github.com/TBD54566975/web5-js/tree/main/packages/web5-user-agent#readme",
@@ -90,9 +90,14 @@
   "devDependencies": {
     "@faker-js/faker": "8.0.1",
     "@playwright/test": "1.33.0",
+    "@types/chai": "4.3.0",
+    "@types/chai-as-promised": "7.1.5",
     "@types/flat": "5.0.2",
+    "@types/mocha": "10.0.1",
+    "@types/sinon": "10.0.15",
     "@typescript-eslint/eslint-plugin": "5.59.0",
     "@typescript-eslint/parser": "5.59.0",
+    "c8": "7.14.0",
     "chai": "4.3.7",
     "chai-as-promised": "7.1.1",
     "esbuild": "0.16.17",
@@ -114,8 +119,6 @@
     "typescript": "5.0.4"
   },
   "overrides": {
-    "karma": {
-      "socket.io-parser@>4.0.4 <4.2.3": "4.2.3"
-    }
-  }
+    "socket.io-parser@>4.0.4 <4.2.3": "4.2.3"
+ }
 }
