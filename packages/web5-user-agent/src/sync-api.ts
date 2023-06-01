@@ -377,12 +377,16 @@ export class SyncApi implements SyncManager {
 
         const reply = await this.#dwn.processMessage(author, recordsRead.toJSON()) as RecordsReadReply;
 
-        if (reply.status.code >= 400) {
-          const { status: { code, detail } } = reply;
-          throw new Error(`(${code}) Failed to read data associated with record ${message['recordId']}. ${detail}}`);
-        } else {
+        // if the data no longer exists (aka 404), it's likely that a `RecordsDelete` took place.
+        // `RecordsDelete` keeps a `RecordsWrite` and just deletes the associated data, effectively acting as a "tombstone".
+        // We still need to _push_ this tombstone so that the `RecordsDelete` can be processed successfully.
+        // if 200, return the data. if 4xx ignore for the reason explained, if >= 5xx throw error
+        if (reply.status.code === 200) {
           const dataBytes = await DataStream.toBytes(reply.record.data);
           dwnMessage.data = new Blob([dataBytes]);
+        } else if (reply.status.code >= 500) {
+          const { status: { code, detail } } = reply;
+          throw new Error(`(${code}) Failed to read data associated with record ${message['recordId']}. ${detail}}`);
         }
       }
     }
