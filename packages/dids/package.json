@@ -80,7 +80,7 @@
   "dependencies": {
     "@decentralized-identity/ion-tools": "1.0.7",
     "@tbd54566975/crypto": "0.1.4",
-    "@tbd54566975/dwn-sdk-js": "0.0.32",
+    "@tbd54566975/dwn-sdk-js": "0.0.33",
     "cross-fetch": "3.1.5"
   },
   "devDependencies": {

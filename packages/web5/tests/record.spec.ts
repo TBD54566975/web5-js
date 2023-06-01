@@ -99,11 +99,13 @@ describe('Record', () => {
       keyEncryptionInputs  : [
         {
           derivationScheme : KeyDerivationScheme.Protocols,
-          publicKey        : encryptionPublicKeyJwk as DwnPublicKeyJwk
+          publicKey        : encryptionPublicKeyJwk as DwnPublicKeyJwk,
+          publicKeyId      : recordEncryptionKeyId
         },
         {
           derivationScheme : KeyDerivationScheme.Schemas,
-          publicKey        : encryptionPublicKeyJwk as DwnPublicKeyJwk
+          publicKey        : encryptionPublicKeyJwk as DwnPublicKeyJwk,
+          publicKeyId      : recordEncryptionKeyId
         },
       ]
     };
@@ -908,11 +910,13 @@ describe('Record', () => {
         keyEncryptionInputs  : [
           {
             derivationScheme : KeyDerivationScheme.Protocols,
-            publicKey        : encryptionPublicKeyJwk as DwnPublicKeyJwk
+            publicKey        : encryptionPublicKeyJwk as DwnPublicKeyJwk,
+            publicKeyId      : recordEncryptionKeyId
           },
           {
             derivationScheme : KeyDerivationScheme.Schemas,
-            publicKey        : encryptionPublicKeyJwk as DwnPublicKeyJwk
+            publicKey        : encryptionPublicKeyJwk as DwnPublicKeyJwk,
+            publicKeyId      : recordEncryptionKeyId
           },
         ]
       };
