@@ -76,7 +76,7 @@
   },
   "dependencies": {
     "readable-stream": "4.4.0",
-    "@tbd54566975/dwn-sdk-js": "0.0.32"
+    "@tbd54566975/dwn-sdk-js": "0.0.33"
   },
   "devDependencies": {
     "@types/chai": "4.3.0",
@@ -109,5 +109,5 @@
   },
   "overrides": {
     "socket.io-parser@>4.0.4 <4.2.3": "4.2.3"
- }
+  }
 }
