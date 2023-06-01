@@ -162,6 +162,13 @@ export class SyncApi implements SyncManager {
       }
 
       const dwnMessage = await this.#getDwnMessage(did, messageCid);
+      if (!dwnMessage) {
+        delOps.push({ type: 'del', key: key });
+        await this.setWatermark(did, dwnUrl, 'push', watermark);
+        await this.#addMessage(did, messageCid);
+
+        continue;
+      }
 
       try {
         const reply = await this.#dwnRpcClient.sendDwnRequest({
@@ -339,13 +346,16 @@ export class SyncApi implements SyncManager {
     const result: MessagesGetReply = await this.#dwn.processMessage(author, messagesGet.toJSON());
     const [ messageEntry ] = result.messages;
 
+    // absence of a messageEntry or message within messageEntry can happen because updating a Record actually creates another
+    // RecordsWrite with the same recordId. only the first and most recent RecordsWrite messages are kept for a given
+    // recordId. any in between are outright nuked from everywhere.
     if (!messageEntry) {
-      throw new Error('TODO: figure out error message');
+      return undefined;
     }
 
     let { message } = messageEntry;
     if (!message) {
-      throw new Error('TODO: message not found');
+      return undefined;
     }
 
     let dwnMessage: DwnMessage = { message };
