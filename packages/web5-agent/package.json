@@ -76,7 +76,7 @@
   },
   "dependencies": {
     "readable-stream": "4.4.0",
-    "@tbd54566975/dwn-sdk-js": "0.0.33"
+    "@tbd54566975/dwn-sdk-js": "0.0.32"
   },
   "devDependencies": {
     "@types/chai": "4.3.0",
