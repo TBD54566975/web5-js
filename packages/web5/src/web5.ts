@@ -13,18 +13,31 @@ import { AppStorage } from './app-storage.js';
 import { getRandomInt } from './utils.js';
 import { DidResolutionCache } from './did-resolution-cache.js';
 
+/**
+ * overrides to defaults configured for technical preview phase
+ */
 export type TechPreviewOptions = {
+  /** overrides default dwnEndpoints provided for technical preview. see `Web5.#enqueueNextSync` */
   dwnEndpoints?: string[];
 }
 
-// TODO: discuss what other options we want
+/**
+ * optional overrides that can be provided when calling {@link Web5.connect}
+ */
 export type Web5ConnectOptions = {
+  /** a custom {@link Web5Agent}. Defaults to creating an embedded {@link Web5UserAgent} if one isnt provided */
   web5Agent?: Web5Agent;
+  /** additional {@link DidMethodApi}s that can be used to create and resolve DID methods. defaults to did:key and did:ion */
   didMethodApis?: DidMethodApi[];
+  /** custom cache used to store DidResolutionResults. defaults to a {@link DidResolutionCache} */
   didResolutionCache?: DidResolverCache;
+  /** overrides to defaults configured for technical preview phase. See {@link TechPreviewOptions} */
   techPreview?: TechPreviewOptions;
 }
 
+/**
+ * @see {@link Web5ConnectOptions}
+ */
 type Web5Options = {
   web5Agent: Web5Agent;
   appStorage?: AppStorage;
@@ -36,14 +49,20 @@ export class Web5 {
   dwn: DwnApi;
   #connectedDid: string;
 
+  /**
+   * Statically available DID functionality. can be used to create and resolve DIDs without calling {@link connect}.
+   * By default, can create and resolve `did:key` and `did:ion`. DID resolution results are not cached unless `connect`
+   * is called
+   */
   static did = new DidApi({
     didMethodApis : [new DidIonApi(), new DidKeyApi()],
     cache         : new DidResolutionCache()
   });
 
-  get did() {
-    return Web5.did;
-  }
+  /**
+   * DID functionality (e.g. creating and resolving DIDs)
+   */
+  get did() { return Web5.did; }
 
   private static APP_DID_KEY = 'WEB5_APP_DID';
 
@@ -54,6 +73,11 @@ export class Web5 {
     this.appStorage ||= new AppStorage();
   }
 
+  /**
+   * Connects to a {@link Web5Agent}. defaults to creating an embedded {@link Web5UserAgent} if one isn't provided
+   * @param options - optional overrides
+   * @returns
+   */
   static async connect(options: Web5ConnectOptions = {}) {
     // load app's did
     const appStorage = new AppStorage();
