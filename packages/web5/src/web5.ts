@@ -55,8 +55,7 @@ export class Web5 {
    * is called
    */
   static did = new DidApi({
-    didMethodApis : [new DidIonApi(), new DidKeyApi()],
-    cache         : new DidResolutionCache()
+    didMethodApis: [new DidIonApi(), new DidKeyApi()]
   });
 
   /**
@@ -65,7 +64,6 @@ export class Web5 {
   get did() { return Web5.did; }
 
   private static APP_DID_KEY = 'WEB5_APP_DID';
-
 
   private constructor(options: Web5Options) {
     this.#connectedDid = options.connectedDid;
@@ -98,10 +96,18 @@ export class Web5 {
     const profileApi = new ProfileApi();
     let [ profile ] = await profileApi.listProfiles();
 
+    options.didMethodApis ??= [];
+
+    // override default cache used by `Web5.did`
+    Web5.did = new DidApi({
+      didMethodApis : [new DidIonApi(), new DidKeyApi(), ...options.didMethodApis],
+      cache         : options.didResolutionCache || new DidResolutionCache()
+    });
+
     const dwn = await Dwn.create();
     const syncManager = new SyncApi({
       profileManager : profileApi,
-      didResolver    : Web5.did.resolver,
+      didResolver    : Web5.did.resolver, // share the same resolver to share the same underlying cache
       dwn            : dwn
     });
 
@@ -122,7 +128,7 @@ export class Web5 {
 
     const agent = await Web5UserAgent.create({
       profileManager : profileApi,
-      didResolver    : Web5.did.resolver,
+      didResolver    : Web5.did.resolver, // share the same resolver to share the same underlying cache
       syncManager    : syncManager,
       dwn            : dwn,
     });
