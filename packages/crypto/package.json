@@ -78,6 +78,7 @@
     "multiformats": "11.0.2"
   },
   "devDependencies": {
+    "@playwright/test": "1.34.3",
     "@types/chai": "4.3.0",
     "@types/chai-as-promised": "7.1.5",
     "@types/ed2curve": "0.2.2",
@@ -101,7 +102,6 @@
     "karma-webkit-launcher": "2.1.0",
     "mocha": "10.2.0",
     "node-stdlib-browser": "1.2.0",
-    "playwright": "1.31.2",
     "rimraf": "4.4.0",
     "sinon": "15.0.2",
     "source-map-loader": "4.0.1",
