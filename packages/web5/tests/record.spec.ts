@@ -595,7 +595,7 @@ describe('Record', () => {
       expect(aliceRemoteQueryResult.records!.length).to.equal(1);
       const [ aliceRemoteEmailRecord ] = aliceAgentQueryResult!.records!;
       expect(await aliceRemoteEmailRecord.data.text()).to.equal(dataString);
-    }).timeout(10_000);
+    });
 
     it(`writes records to remote DWNs for someone else's DID`, async () => {
       const dataString = 'Hello, world!';
@@ -660,7 +660,7 @@ describe('Record', () => {
       expect(bobQueryResult.records!.length).to.equal(1);
       const [ bobRemoteEmailRecord ] = bobQueryResult!.records!;
       expect(await bobRemoteEmailRecord.data.text()).to.equal(dataString);
-    }).timeout(10_000);
+    });
 
     describe('with `store: false`', () => {
       it('writes records to your own remote DWN but not your agent DWN', async () => {
@@ -714,7 +714,7 @@ describe('Record', () => {
         expect(aliceRemoteQueryResult.records!.length).to.equal(1);
         const [ aliceRemoteEmailRecord ] = aliceRemoteQueryResult!.records!;
         expect(await aliceRemoteEmailRecord.data.text()).to.equal(dataString);
-      }).timeout(10_000);
+      });
 
       it(`writes records to someone else's remote DWN but not your agent DWN`, async () => {
         // Install a protocol on Alice's agent connected DWN.
@@ -802,7 +802,7 @@ describe('Record', () => {
         expect(bobQueryResult.records!.length).to.equal(1);
         const [ bobRemoteEmailRecord ] = bobQueryResult!.records!;
         expect(await bobRemoteEmailRecord.data.text()).to.equal(dataString);
-      }).timeout(10_000);
+      });
 
       it('has no effect if `store: true`', async () => {
         // Alice writes a message to her agent DWN with `store: true`.
