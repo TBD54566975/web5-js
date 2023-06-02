@@ -62,6 +62,12 @@ export class DidApi {
     return didMethodCreator.create(options);
   }
 
+  /**
+   * Resolves the provided DID
+   * @param did - the did to resolve
+   * @see {@link https://www.w3.org/TR/did-core/#did-resolution | DID Resolution}
+   * @returns DID Resolution Result
+   */
   resolve(did: string): Promise<DidResolutionResult> {
     return this.didResolver.resolve(did);
   }
