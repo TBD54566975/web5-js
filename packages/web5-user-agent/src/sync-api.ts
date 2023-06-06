@@ -314,9 +314,18 @@ export class SyncApi implements SyncManager {
               message   : recordsRead
             }) as RecordsReadReply;
 
-            if (reply.status.code >= 400) {
-              // TODO: handle reply
+            if (recordsReadReply.status.code >= 400) {
               const pruneReply = await this.#dwn.synchronizePrunedInitialRecordsWrite(did, message);
+
+              if (pruneReply.status.code === 202 || pruneReply.status.code === 409) {
+                await this.setWatermark(did, dwnUrl, 'pull', watermark);
+                await this.#addMessage(did, messageCid);
+                delOps.push({ type: 'del', key });
+
+                continue;
+              } else {
+                throw new Error(`Failed to sync tombstone. message cid: ${messageCid}`);
+              }
             } else {
               dataStream = webReadableToIsomorphicNodeReadable(recordsReadReply.record.data as any);
             }
