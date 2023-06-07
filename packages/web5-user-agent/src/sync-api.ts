@@ -291,7 +291,16 @@ export class SyncApi implements SyncManager {
       }
 
       for (let entry of reply.messages) {
-        // TODO: check entry.error
+        if (entry.error || !entry.message) {
+          console.warn(`message ${messageCid} not found. entry: ${JSON.stringify(entry, null, 2)} ignoring..`);
+
+          await this.setWatermark(did, dwnUrl, 'pull', watermark);
+          await this.#addMessage(did, messageCid);
+          delOps.push({ type: 'del', key });
+
+          continue;
+        }
+
         const messageType = this.#getDwnMessageType(entry.message);
         let dataStream;
 
