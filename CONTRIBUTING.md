@@ -24,7 +24,9 @@ As we work our way towards a beta release and beyond, we'll be creating more foc
 - `good first issue`
 - `help wanted`
 
-These issues are excellent canditates for contribution and we'd be thrilled to get all the help we can get! You can take a look at all of the Issues that match the labels above [here](https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+label%3A%22help+wanted%22%2C%22good+first+issue%22%2C%22documentation%22%2C%22bug%22+).
+These issues are excellent canditates for contribution and we'd be thrilled to get all the help we can get! You can
+take a look at all of the Issues that match the labels above
+[here](https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+label%3A%22help+wanted%22%2C%22good+first+issue%22%2C%22documentation%22%2C%22bug%22+).
 
 We suggest the following process when picking up one of these issues:
 
@@ -131,3 +133,70 @@ To maintain the robustness and reliability of the codebase, we highly value test
   out for help or guidance in our Web5
   [Discord](https://discord.com/channels/937858703112155166/969272658501976117)
   channel.
+
+### Project Versioning Guidelines
+
+This section provides guidelines for versioning Web5 JS packages. All releases are published to the
+[NPM Registry](https://npmjs.com). By following these guidelines, you can ensure that package versioning
+remains consistent and well-organized.
+
+#### Stable Releases
+
+We use semantic versioning for stable releases that have completed testing and are considered reliable enough for
+general use. Project maintainers will follow the steps below to create a new release:
+
+1. For each updated package that requires a new release, update the version in `package.json` according to semantic versioning rules (`MAJOR.MINOR.PATCH`).
+
+1. In a local feature branch, commit the changes:
+
+   ```
+   git add package.json
+   git commit -m "Bump version to x.y.z"
+   ```
+
+1. Create a tag for the new release:
+
+   ```
+   git tag -a vx.y.z -m "Release x.y.z"
+   ```
+
+1. Push the changes and the tag to the remote repository:
+
+   ```
+   git push --tags
+   ```
+
+1. Open a pull request (PR) from your feature branch to begin the review process.
+
+After one or more PRs have been approved and merged by project maintainers, a GitHub Release will be created using the
+version tag. The act of creating the GitHub release triggers automated publication of the package to the
+[NPM Registry](https://npmjs.com) which will be tagged as _latest_.
+
+The next time someone runs `npm install @tbd54566975/<package_name>` the newly published release will be installed.
+
+#### Alpha Releases
+
+Project maintainers can release an alpha version at any time from main or feature branches. We use the
+`version-alpha-date-commithash` naming convention for alpha releases. Once triggered, alpha releases are automatically
+published to the [NPM Registry](https://npmjs.com) by the GitHub Actions CI system.
+
+To create an alpha release, a project maintainer should follow these steps:
+
+1. Access the [Web5 JS GitHub](https://github.com/TBD54566975/web5-js) repository from a web browser.
+
+1. Click the **"Actions"** tab.
+
+1. Select the **"Alpha to NPM Registry"** workflow.
+
+1. Click the **"Run workflow"** button and use the drop-down menu to select the branch you wish to publish an alpha release from.
+
+1. Click the **"Run workflow"** button.
+
+Within a few seconds you'll see the dispatched workflow begin running. Then alpha tagged releases will be published to
+the [NPM Registry](https://npmjs.com) within a few minutes.
+
+> **Note**
+> Alpha version will never be tagged as _latest_.
+
+To install an `alpha` tagged release use either the `npm install @tbd54566975/<package>@alpha` or
+`npm install @tbd5456975/<package>@x.y.z-alpha-YYYYMMDD-commithash` syntax.
