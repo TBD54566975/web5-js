@@ -2,6 +2,8 @@ import type { Web5Agent } from '@tbd54566975/web5-agent';
 import type { SyncManager } from '@tbd54566975/web5-user-agent';
 import type { DidState, DidMethodApi, DidResolverCache, DwnServiceEndpoint } from '@tbd54566975/dids';
 
+import ms from 'ms';
+
 // import  { Web5ProxyAgent } from '@tbd54566975/web5-proxy-agent';
 import { Dwn } from '@tbd54566975/dwn-sdk-js';
 import { Web5UserAgent, ProfileApi, SyncApi } from '@tbd54566975/web5-user-agent';
@@ -20,6 +22,11 @@ import { DidResolutionCache } from './did-resolution-cache.js';
 export type TechPreviewOptions = {
   /** overrides default dwnEndpoints provided for technical preview. see `Web5.#enqueueNextSync` */
   dwnEndpoints?: string[];
+  /**
+   * used to turn sync on/off _or_ configure the frequency of sync. defaults to _on_ with a frequency of `1m`
+   *
+   * */
+  sync?: boolean | string | number;
 }
 
 /**
@@ -139,7 +146,27 @@ export class Web5 {
     const connectedDid = profile.did.id;
     const web5 = new Web5({ appStorage: appStorage, web5Agent: agent, connectedDid });
 
-    Web5.#enqueueNextSync(syncManager, 1_000);
+    let syncInterval = options?.techPreview?.sync;
+
+    if (syncInterval === undefined) {
+      syncInterval = true;
+    }
+
+    if (typeof syncInterval === 'boolean') {
+      syncInterval = syncInterval ? ms('60s') : -1;
+    }
+
+    if (typeof syncInterval !== 'number') {
+      try {
+        syncInterval = ms(syncInterval);
+      } catch (e) {
+        throw new Error('expected sync to be a boolean, number, or string');
+      }
+    }
+
+    if (syncInterval > 0) {
+      Web5.#enqueueNextSync(syncManager, syncInterval);
+    }
 
     return { web5, did: connectedDid };
   }
@@ -185,7 +212,7 @@ export class Web5 {
     return Array.from(dwnUrls);
   }
 
-  static #enqueueNextSync(syncManager: SyncManager, delay = 1_000) {
+  static #enqueueNextSync(syncManager: SyncManager, delay) {
     setTimeout(async () => {
       try {
         await syncManager.push();
