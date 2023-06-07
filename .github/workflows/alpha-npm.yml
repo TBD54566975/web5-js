@@ -1,11 +1,11 @@
-name: Release to NPM Registry
+name: Alpha to NPM Registry
 
 on:
-  release:
-    types: [created]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 # Allow only one concurrent deployment,but do NOT cancel in-progress runs as
-# we want to allow these release deployments to complete.
+# we want to allow these alpha deployments to complete.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -15,7 +15,7 @@ permissions:
   id-token: write # necessary for NPM provenance
 
 jobs:
-  publish-npm:
+  publish-alpha-npm:
     name: NPM Publish
     runs-on: ubuntu-latest
 
@@ -44,54 +44,45 @@ jobs:
       - name: Install latest npm
         run: npm install -g npm@latest
 
-      - name: Install semver utility
-        run: npm install -g semver@7.5.1
-
       # Note - this is not required but it gives a clean failure prior to attempting a release if the GH workflow runner is not authenticated with NPMjs.com
       - name: Verify NPM token is authenticated with NPMjs.com
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: npm whoami
 
-      - name: Check if GitHub repo package version is latest
+      - name: Fetch the version in the GitHub repo's package.json file
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: |
           cd packages/${{ matrix.package }}
-
-          # Fetch the published version on NPMjs.com.
-          PUBLISHED_VERSION=$(npm view @tbd54566975/${{ matrix.package }} version)
-          echo "Published Version: $PUBLISHED_VERSION"
-
-          # Fetch the version in the GitHub repo's package.json file.
           REPO_VERSION=$(node -p "require('./package.json').version")
           echo "REPO_VERSION=$REPO_VERSION" >> $GITHUB_ENV
           echo "Repo Version: $REPO_VERSION"
-
-          # Compare the repo and NPMjs.com package versions.
-          IS_GREATER=$(semver --range ">$PUBLISHED_VERSION" $REPO_VERSION || true)
-          if [ -n "$IS_GREATER" ] ; then
-            echo "@tbd54566975/${{ matrix.package }}@$REPO_VERSION is latest"
-            echo "IS_LATEST=true" >> $GITHUB_ENV
-          else
-            echo "@tbd54566975/${{ matrix.package }}@$REPO_VERSION is already published or repo version is lower"
-            echo "IS_LATEST=false" >> $GITHUB_ENV
-          fi
         shell: bash
 
-      - name: Install dependencies
-        if: env.IS_LATEST == 'true'
-        run: npm ci
-
-      - name: Build all workspace packages
-        if: env.IS_LATEST == 'true'
-        run: npm run build
-
-      - name: Publish @tbd54566975/${{ matrix.package }}@${{ env.REPO_VERSION }}
-        if: env.IS_LATEST == 'true'
+      - name: Generate the alpha version string
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: |
           cd packages/${{ matrix.package }}
-          npm publish --access public --provenance
+          SHORT_COMMIT_SHA=$(git rev-parse --short HEAD)
+          YYYYMMDD=$(date +'%Y%m%d')
+          ALPHA_VERSION="${{ env.REPO_VERSION }}-alpha-$YYYYMMDD-$SHORT_COMMIT_SHA"
+          echo "ALPHA_VERSION=$ALPHA_VERSION" >> $GITHUB_ENV
+          echo "Alpha Version: $ALPHA_VERSION"
+        shell: bash
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build all workspace packages
+        run: npm run build
+
+      - name: Publish @tbd54566975/${{ matrix.package }}@${{ env.ALPHA_VERSION }}
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: |
+          cd packages/${{ matrix.package }}
+          npm version ${{ env.ALPHA_VERSION }} --no-git-tag-version
+          npm publish --tag alpha --no-git-tag-version --access public --provenance
         shell: bash
