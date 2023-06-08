@@ -66,6 +66,8 @@
     "decentralized-applications",
     "decentralized-identity",
     "decentralized-web",
+    "vcs",
+    "verifiable credentials",
     "web5"
   ],
   "publishConfig": {
