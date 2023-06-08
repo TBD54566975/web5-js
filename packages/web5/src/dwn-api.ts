@@ -85,6 +85,7 @@ export type RecordsReadResponse = {
 };
 
 export type RecordsWriteRequest = {
+  to?: string;
   data: unknown;
   message?: Omit<Partial<RecordsWriteOptions>, 'authorizationSignatureInput'>;
   store?: boolean;
@@ -332,14 +333,22 @@ export class DwnApi {
         const { dataBlob, dataFormat } = dataToBlob(request.data, messageOptions.dataFormat);
         messageOptions.dataFormat = dataFormat;
 
-        const agentResponse = await this.web5Agent.processDwnRequest({
+        const agentRequest = {
           author      : this.connectedDid,
           dataStream  : dataBlob,
           messageOptions,
           messageType : DwnInterfaceName.Records + DwnMethodName.Write,
           store       : request.store,
-          target      : this.connectedDid
-        });
+          target      : request.to ?? this.connectedDid
+        };
+
+        let agentResponse;
+
+        if (request.to) {
+          agentResponse = await this.web5Agent.sendDwnRequest(agentRequest);
+        } else {
+          agentResponse = await this.web5Agent.processDwnRequest(agentRequest);
+        }
 
         const { message, reply: { status } } = agentResponse;
         const responseMessage = message as RecordsWriteMessage;
