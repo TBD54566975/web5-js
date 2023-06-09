@@ -1,5 +1,6 @@
 /** @type {import('eslint').ESLint.ConfigData} */
 module.exports = {
+  root          : true,
   extends       : ['eslint:recommended', 'plugin:@typescript-eslint/recommended'],
   parser        : '@typescript-eslint/parser',
   parserOptions : {
@@ -12,6 +13,10 @@ module.exports = {
     es2022  : true,
     browser : true
   },
+  'ignorePatterns': [
+    'dist',
+    '__tests__'
+  ],
   rules: {
     'key-spacing': [
       'error',
