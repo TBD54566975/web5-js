@@ -1,3 +1,5 @@
+import type { ManagedKey, ManagedKeyPair, Web5Crypto } from './types-new.js';
+
 import { base64url } from 'multiformats/bases/base64';
 import { base58btc } from 'multiformats/bases/base58';
 
@@ -30,4 +32,76 @@ export function bytesToBase58btcMultibase(header: Uint8Array, bytes: Uint8Array)
   multibaseBytes.set(bytes, header.length);
 
   return base58btc.encode(multibaseBytes);
+}
+
+/**
+ * Checks whether the property specified is a member of the list of valid properties.
+ *
+ * @param property Property key to check for.
+ * @param properties Properties Array, Map, or Set to check within.
+ * @returns void
+ * @throws {SyntaxError} If the property is not a member of the properties Array, Map, or Set.
+ */
+export function checkPropertyExists(property: string, properties: Array<string> | Map<string, unknown> | Set<string>): void {
+  if (property === undefined || properties === undefined) {
+    throw new TypeError(`One or more required arguments missing: 'property, properties'`);
+  }
+  if (
+    (Array.isArray(properties) && !properties.includes(property)) ||
+    (properties instanceof Set && !properties.has(property)) ||
+    (properties instanceof Map && !properties.has(property))
+  ) {
+    const validProperties = Array.from((properties instanceof Map) ? properties.keys() : properties).join(', ');
+    throw new TypeError(`Out of range: '${property}'. Must be one of '${validProperties}'`);
+  }
+}
+
+/**
+ * Checks whether the properties object provided contains the specified property.
+ *
+ * @param property Property key to check for.
+ * @param properties Properties object to check within.
+ * @returns void
+ * @throws {SyntaxError} If the property is not a key in the properties object.
+ */
+export function checkRequiredProperty(property: string, properties: object): void {
+  if (property === undefined || properties === undefined) {
+    throw new TypeError(`One or more required arguments missing: 'property, properties'`);
+  }
+  if (!(property in properties)) {
+    throw new TypeError(`Required parameter was missing: '${property}'`);
+  }
+}
+
+/**
+ * !TODO: Consider combining isCryptoKeyPair and isManagedKeyPair:
+ * !  export function isKeyPair<K, KP>(key: K | KP): key is KP {
+ * !    return (key as any).privateKey !== undefined && (key as any).publicKey !== undefined;
+ * !  }
+ * !  usage examples:
+ * !    if (isKeyPair<Web5Crypto.CryptoKey, Web5Crypto.CryptoKeyPair>(key))...
+ * !    if (isKeyPair<ManagedKey, ManagedKeyPair>(key))...
+ */
+
+/**
+ * Type guard function to check if the given key is a
+ * Web5Crypto.CryptoKeyPair.
+ *
+ * @param key The key to check.
+ * @returns True if the key is a CryptoKeyPair, false otherwise.
+ */
+export function isCryptoKeyPair(key: Web5Crypto.CryptoKey | Web5Crypto.CryptoKeyPair): key is Web5Crypto.CryptoKeyPair {
+  // return (key as Web5Crypto.CryptoKeyPair).publicKey !== undefined && (key as Web5Crypto.CryptoKeyPair).privateKey !== undefined;
+  return key && 'privateKey' in key && 'publicKey' in key;
+}
+
+/**
+ * Type guard function to check if the given key is a ManagedKeyPair.
+ *
+ * @param key The key to check.
+ * @returns True if the key is a ManagedKeyPair, false otherwise.
+ */
+export function isManagedKeyPair(key: ManagedKey | ManagedKeyPair): key is ManagedKeyPair {
+  // return (key as ManagedKeyPair).publicKey !== undefined && (key as ManagedKeyPair).privateKey !== undefined;
+  return key && 'privateKey' in key && 'publicKey' in key;
 }
