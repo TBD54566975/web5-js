@@ -18,7 +18,7 @@ export type VerifiableCredential = {
   expirationDate?: string;
   /** @see {@link CredentialStatusReference} */
   credentialStatus?: CredentialStatusReference;
-  [x: string]: any;
+  [key: string]: any;
 }
 
 /**
@@ -33,7 +33,7 @@ export type VerifiableCredential = {
 export type Issuer = {
   /** @see {@link https://www.w3.org/TR/vc-data-model/#identifiers | Identifiers} */
   id: string;
-  [x: string]: any;
+  [key: string]: any;
 } | string
 
 /**
@@ -45,7 +45,7 @@ export type Issuer = {
 export type CredentialSubject = {
   /** @see {@link https://www.w3.org/TR/vc-data-model/#identifiers | Identifiers} */
   id?: string;
-  [x: string]: any;
+  [key: string]: any;
 }
 
 /**
@@ -66,7 +66,7 @@ export type CredentialStatusReference = {
    * is suspended or revoked.
    */
   type: string;
-  [x: string]: any;
+  [key: string]: any;
 }
 
 /**
@@ -75,5 +75,5 @@ export type CredentialStatusReference = {
 export type ProofType = {
   /** @see {@link https://www.w3.org/TR/vc-data-model/#types | Types} */
   type?: string;
-  [x: string]: any;
+  [key: string]: any;
 }
