@@ -30,6 +30,13 @@ module.exports = function (config) {
     // available frameworks: https://www.npmjs.com/search?q=keywords:karma-adapter
     frameworks: ['mocha'],
 
+    // Increase Mocha's default timeout of 2 seconds to prevent timeouts during GitHub CI runs.
+    client: {
+      mocha: {
+        timeout: 10000 // 10 seconds
+      }
+    },
+
 
     // list of files / patterns to load in the browser
     files: [
