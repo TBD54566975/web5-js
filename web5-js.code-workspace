@@ -36,7 +36,13 @@
 			"path": "packages/web5-user-agent",
 		},
 	],
-	"settings": {},
+	"settings": {
+		"eslint.workingDirectories": [
+			{
+				"mode": "auto"
+			}
+		],
+	},
 	"launch": {
 		"version": "0.2.0",
 		"configurations": [
