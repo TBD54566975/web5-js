@@ -3,7 +3,7 @@
 // Karma does not support .mjs
 
 // playwright acts as a safari executable on windows and mac
-const playwright = require('playwright');
+const playwright = require('@playwright/test');
 const esbuildBrowserConfig = require('./build/esbuild-browser-config.cjs');
 
 // use playwright chrome exec path as run target for chromium tests
