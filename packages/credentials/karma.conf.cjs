@@ -71,5 +71,9 @@ module.exports = function (config) {
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits
     singleRun: true,
+
+    // Increase browser timeouts to avoid DISCONNECTED messages during GitHub CI runs.
+    browserDisconnectTimeout   : 10000, // default 2000
+    browserDisconnectTolerance : 1, // default 0
   });
 };
