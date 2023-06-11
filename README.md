@@ -272,14 +272,14 @@ const { protocol } = await web5.dwn.protocols.configure({
       types: {
         album: {
           schema: "https://photos.org/protocol/album",
-          dataFormat: ["application/json"],
+          dataFormats: ["application/json"],
         },
         photo: {
           schema: "https://photos.org/protocols/photo",
-          dataFormat: ["application/json"],
+          dataFormats: ["application/json"],
         },
         binaryImage: {
-          dataFormat: ["image/png", "jpeg", "gif"],
+          dataFormats: ["image/png", "jpeg", "gif"],
         },
       },
       structure: {
@@ -325,7 +325,7 @@ The `configure` request object is composed as follows:
     - **`protocol`** - _`URI string`_: a URI that represents the protocol being configured.
     - **`types`** - _`object`_: an object that defines the records that can be used in the `structure` graph of the `definition` object. The following properties are optional constraints you can set for the type being defined:
       - **`schema`** - _`URI string`_ (_optional_): the URI of the schema under which the record will be bucketed.
-      - **`dataFormat`** - _`Media Type string`_ (_optional_): the IANA string corresponding with the format of the data the record will be bucketed. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
+      - **`dataFormats`** - _`Media Type string[]`_ (_optional_): Array of the IANA strings corresponding with the formats of the data the record will be bucketed. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
     - **`structure`** - _`object`_: an object that defines the structure of a protocol, including data relationships and constraints on which entities can perform various activities. Fields under the `structure` object of the Protocol definition are expected to be either type references matching those defined in the `types` object. The type structures are recursive, so types form a graph and each type can have within it further attached types or the following rule statements that are all denoted with the prefix `$`:
       - **`$actions`** - _`array`_: one or more rule objects that expose various allowed actions to actors (`author`, `recipient`), composed as follows:
         - **`who`** - _`string`_: the actor (`author`, `recipient`) that is being permitted to invoke a given action.
