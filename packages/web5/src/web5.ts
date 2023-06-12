@@ -7,6 +7,7 @@ import { Dwn } from '@tbd54566975/dwn-sdk-js';
 import { Web5UserAgent, ProfileApi, SyncApi } from '@tbd54566975/web5-user-agent';
 import { DidIonApi, DidKeyApi, utils as didUtils } from '@tbd54566975/dids';
 
+import { VcApi } from './vc-api.js';
 import { DwnApi } from './dwn-api.js';
 import { DidApi } from './did-api.js';
 import { AppStorage } from './app-storage.js';
@@ -47,6 +48,7 @@ type Web5Options = {
 export class Web5 {
   appStorage: AppStorage;
   dwn: DwnApi;
+  vc: VcApi;
   #connectedDid: string;
 
   /**
@@ -68,6 +70,7 @@ export class Web5 {
   private constructor(options: Web5Options) {
     this.#connectedDid = options.connectedDid;
     this.dwn = new DwnApi(options.web5Agent, this.#connectedDid);
+    this.vc = new VcApi(options.web5Agent, this.#connectedDid);
     this.appStorage ||= new AppStorage();
   }
 
