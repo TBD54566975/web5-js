@@ -6,6 +6,11 @@
 			"path": "."
 		},
 		{
+			// @tbd54566975/credentials
+			"name": "credentials",
+			"path": "packages/credentials",
+		},
+		{
 			// @tbd54566975/crypto
 			"name": "crypto",
 			"path": "packages/crypto",

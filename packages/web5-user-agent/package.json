@@ -1,6 +1,6 @@
 {
   "name": "@tbd54566975/web5-user-agent",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Web5 User Agent",
   "type": "module",
   "main": "./dist/cjs/main.cjs",
