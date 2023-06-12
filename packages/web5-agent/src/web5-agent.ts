@@ -11,7 +11,6 @@ import {
   RecordsDeleteMessage
 } from '@tbd54566975/dwn-sdk-js';
 
-import type { JsonRpcResponse } from './json-rpc.js';
 export interface Web5Agent {
   processDwnRequest(request: ProcessDwnRequest): Promise<DwnResponse>
   sendDwnRequest(request: SendDwnRequest): Promise<DwnResponse>;

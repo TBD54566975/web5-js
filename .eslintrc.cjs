@@ -7,7 +7,7 @@ module.exports = {
     ecmaVersion : 2022,
     sourceType  : 'module'
   },
-  plugins : ['@typescript-eslint'],
+  plugins : ['@typescript-eslint', 'mocha'],
   env     : {
     node    : true,
     es2022  : true,
@@ -50,6 +50,7 @@ module.exports = {
     '@typescript-eslint/no-explicit-any'       : 'off',
     'no-trailing-spaces'                       : ['error'],
     '@typescript-eslint/no-non-null-assertion' : 'off',
-    '@typescript-eslint/ban-ts-comment'        : 'off'
+    '@typescript-eslint/ban-ts-comment'        : 'off',
+    'mocha/no-exclusive-tests'                 : 'warn'
   }
 };
