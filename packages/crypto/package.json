@@ -92,6 +92,7 @@
     "chai-as-promised": "7.1.1",
     "esbuild": "0.16.17",
     "eslint": "8.39.0",
+    "eslint-plugin-mocha": "10.1.0",
     "karma": "6.4.1",
     "karma-chai": "0.1.0",
     "karma-chrome-launcher": "3.1.1",

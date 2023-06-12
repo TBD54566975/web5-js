@@ -10,7 +10,7 @@ let vc: VcApi;
 let did: string;
 let testProfileOptions: TestProfileOptions;
 
-describe.only('web5.vc', () => {
+describe('web5.vc', () => {
   before(async () => {
     testAgent = await TestAgent.create();
   });
