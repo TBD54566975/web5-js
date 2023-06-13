@@ -1,4 +1,4 @@
-import type { KeyValueStore } from '@tbd54566975/web5-agent';
+import type { KeyValueStore } from '@tbd54566975/common';
 import type { PublicKeyJwk, PrivateKeyJwk } from '@tbd54566975/crypto';
 
 export type DidResolutionResult = {
