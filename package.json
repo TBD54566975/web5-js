@@ -1,12 +1,13 @@
 {
     "workspaces": [
-        "packages/web5-agent",
-        "packages/credentials",
+        "packages/common",
         "packages/crypto",
+        "packages/web5-agent",
         "packages/dids",
-        "packages/web5",
+        "packages/credentials",
+        "packages/web5-user-agent",
         "packages/web5-proxy-agent",
-        "packages/web5-user-agent"
+        "packages/web5"
     ],
     "scripts": {
         "clean": "npx npkill -d $(pwd) -t node_modules && npx npkill -d $(pwd) -t dist",
