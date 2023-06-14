@@ -2,9 +2,10 @@ import type { Web5Agent } from '@tbd54566975/web5-agent';
 import type { SyncManager } from '@tbd54566975/web5-user-agent';
 import type { DidState, DidMethodApi, DidResolverCache, DwnServiceEndpoint } from '@tbd54566975/dids';
 
+
 // import  { Web5ProxyAgent } from '@tbd54566975/web5-proxy-agent';
 import { Dwn } from '@tbd54566975/dwn-sdk-js';
-import { Web5UserAgent, ProfileApi, SyncApi } from '@tbd54566975/web5-user-agent';
+import { Web5UserAgent, ProfileApi, SyncApi, Profile } from '@tbd54566975/web5-user-agent';
 import { DidIonApi, DidKeyApi, utils as didUtils } from '@tbd54566975/dids';
 
 import { VcApi } from './vc-api.js';
@@ -12,6 +13,7 @@ import { DwnApi } from './dwn-api.js';
 import { DidApi } from './did-api.js';
 import { AppStorage } from './app-storage.js';
 import { getRandomInt } from './utils.js';
+
 import { DidResolutionCache } from './did-resolution-cache.js';
 
 /**
@@ -34,6 +36,8 @@ export type Web5ConnectOptions = {
   didResolutionCache?: DidResolverCache;
   /** overrides to defaults configured for technical preview phase. See {@link TechPreviewOptions} */
   techPreview?: TechPreviewOptions;
+  /** use the provided profile serialized object */
+  profile? : string;
 }
 
 /**
@@ -43,6 +47,7 @@ type Web5Options = {
   web5Agent: Web5Agent;
   appStorage?: AppStorage;
   connectedDid: string;
+  profile: Profile;
 };
 
 export class Web5 {
@@ -50,6 +55,7 @@ export class Web5 {
   dwn: DwnApi;
   vc: VcApi;
   #connectedDid: string;
+  #profile: Profile;
 
   /**
    * Statically available DID functionality. can be used to create and resolve DIDs without calling {@link connect}.
@@ -67,11 +73,21 @@ export class Web5 {
 
   private static APP_DID_KEY = 'WEB5_APP_DID';
 
+  /**
+   * @returns the current profile as a JSON string for saving.
+   */
+
+  exportProfile(): string {
+    return JSON.stringify(this.#profile);
+  }
+
+
   private constructor(options: Web5Options) {
     this.#connectedDid = options.connectedDid;
     this.dwn = new DwnApi(options.web5Agent, this.#connectedDid);
     this.vc = new VcApi(options.web5Agent, this.#connectedDid);
     this.appStorage ||= new AppStorage();
+    this.#profile = options.profile;
   }
 
   /**
@@ -95,9 +111,14 @@ export class Web5 {
     // TODO: sniff to see if remote agent is available
     // TODO: if available,connect to remote agent using Web5ProxyAgent
 
+    let profile: Profile | undefined;
     // fall back to instantiating local agent
     const profileApi = new ProfileApi();
-    let [ profile ] = await profileApi.listProfiles();
+    if (!options.profile) {
+      [ profile ] = await profileApi.listProfiles();
+    } else {
+      profile = JSON.parse(options.profile);
+    }
 
     options.didMethodApis ??= [];
 
@@ -137,9 +158,10 @@ export class Web5 {
     });
 
     const connectedDid = profile.did.id;
-    const web5 = new Web5({ appStorage: appStorage, web5Agent: agent, connectedDid });
+    const web5 = new Web5({ appStorage: appStorage, web5Agent: agent, connectedDid, profile });
 
     Web5.#enqueueNextSync(syncManager, 1_000);
+
 
     return { web5, did: connectedDid };
   }

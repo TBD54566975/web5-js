@@ -119,7 +119,17 @@
     import { Web5 } from '/node_modules/@tbd54566975/web5/dist/browser.mjs';
     const { web5, did: aliceDid } = await Web5.connect();
 
+    
+    const profile = web5.exportProfile();
+
+
     const bob = await Web5.did.create('ion');
+
+
+    const { web5_, did: aliceDid_ } = await Web5.connect({profile: profile})
+
+    console.log('aliceDid', aliceDid);
+    console.log('aliceDid_', aliceDid_);
 
     let response;
 
