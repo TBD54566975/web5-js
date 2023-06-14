@@ -23,6 +23,7 @@ jobs:
       matrix:
         package:
           [
+            "common",
             "crypto",
             "dids",
             "web5",
