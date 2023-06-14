@@ -6,6 +6,11 @@
 			"path": "."
 		},
 		{
+			// @tbd54566975/common
+			"name": "common",
+			"path": "packages/common",
+		},
+		{
 			// @tbd54566975/credentials
 			"name": "credentials",
 			"path": "packages/credentials",

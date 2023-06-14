@@ -11,6 +11,10 @@ component_management:
         target: 100 # every PR opened should strive for full test coverage
 
   individual_components:
+    - component_id: package_common
+      name: common
+      paths: ["packages/common/**"]
+
     - component_id: package_credentials
       name: credentials
       paths: ["packages/credentials/**"]
