@@ -62,7 +62,7 @@ jobs:
           cd packages/${{ matrix.package }}
 
           # Fetch the published version on NPMjs.com.
-          PUBLISHED_VERSION=$(npm view @tbd54566975/${{ matrix.package }} version)
+          PUBLISHED_VERSION=$(npm view @tbd54566975/${{ matrix.package }} version 2>/dev/null || echo "0.0.0")
           echo "Published Version: $PUBLISHED_VERSION"
 
           # Fetch the version in the GitHub repo's package.json file.
