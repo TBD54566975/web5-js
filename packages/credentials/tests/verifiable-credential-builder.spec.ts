@@ -101,6 +101,14 @@ describe('VerifiableCredentialBuilder', async () => {
       expect(vc.issuanceDate).to.equal('2023-12-31T23:59:59Z');
     });
 
+    it('can set the issuance date', () => {
+      const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
+      vcBuilder.setIssuanceDate(new Date('2023-12-31T23:59:59Z'));
+      const vc = vcBuilder.build();
+
+      expect(vc.issuanceDate).to.equal('2023-12-31T23:59:59Z');
+    });
+
     it('throws an error when setting an empty issuance date', () => {
       const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
 
@@ -115,9 +123,17 @@ describe('VerifiableCredentialBuilder', async () => {
   });
 
   describe('setExpirationDate', () => {
-    it('can set the expiration date', () => {
+    it('can set the expiration date string', () => {
       const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
       vcBuilder.setExpirationDate('2024-12-31T23:59:59Z');
+      const vc = vcBuilder.build();
+
+      expect(vc.expirationDate).to.equal('2024-12-31T23:59:59Z');
+    });
+
+    it('can set the expiration date', () => {
+      const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
+      vcBuilder.setExpirationDate(new Date('2024-12-31T23:59:59Z'));
       const vc = vcBuilder.build();
 
       expect(vc.expirationDate).to.equal('2024-12-31T23:59:59Z');
@@ -133,6 +149,7 @@ describe('VerifiableCredentialBuilder', async () => {
       const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
 
       expect(() => vcBuilder.setExpirationDate('not-a-date')).to.throw('expirationDate is not a valid XMLSCHEMA11-2 timestamp');
+      expect(() => vcBuilder.setExpirationDate('0')).to.throw('expirationDate is not a valid XMLSCHEMA11-2 timestamp');
     });
   });
 });
