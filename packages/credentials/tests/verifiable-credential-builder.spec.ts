@@ -4,8 +4,6 @@ import type { CredentialSubject, Issuer } from '../src/types.js';
 import {VerifiableCredentialBuilder}  from '../src/verifiable-credential-builder.js';
 import { DidKeyApi } from '../../dids/src/did-key.js';
 
-
-
 describe('VerifiableCredentialBuilder', async () => {
   const didKey = new DidKeyApi();
   const did = await didKey.create();
@@ -76,8 +74,6 @@ describe('VerifiableCredentialBuilder', async () => {
       expect(vc.type!.length).to.equal(2);
     });
   });
-
-
   describe('setIssuer', () => {
     it('can set the issuer', () => {
       const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
@@ -95,7 +91,6 @@ describe('VerifiableCredentialBuilder', async () => {
     });
 
   });
-
 
   describe('setIssuanceDate', () => {
     it('can set the issuance date', () => {

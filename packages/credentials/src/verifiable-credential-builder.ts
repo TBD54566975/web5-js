@@ -97,7 +97,6 @@ export class VerifiableCredentialBuilder {
     return this;
   }
 
-
   build(): VerifiableCredential {
     return this.verifiableCredential;
   }
