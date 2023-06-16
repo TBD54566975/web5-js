@@ -18,21 +18,23 @@ describe('VerifiableCredentialBuilder', async () => {
     id: did.id
   };
 
-  it('can build a valid vc', async () => {
-    const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
-    const vc = vcBuilder.build();
+  describe('build', () => {
+    it('can build a valid vc', async () => {
+      const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
+      const vc = vcBuilder.build();
 
-    expect(vc).to.exist;
+      expect(vc).to.exist;
 
-    expect(vc['@context']).to.include('https://www.w3.org/2018/credentials/v1');
-    expect(vc.credentialSubject).to.equal(credentialSubject);
-    expect(vc.issuer).to.equal(issuer);
-    expect(vc.type).to.include('VerifiableCredential');
-    expect(vc.issuanceDate).to.exist;
+      expect(vc['@context']).to.include('https://www.w3.org/2018/credentials/v1');
+      expect(vc.credentialSubject).to.equal(credentialSubject);
+      expect(vc.issuer).to.equal(issuer);
+      expect(vc.type).to.include('VerifiableCredential');
+      expect(vc.issuanceDate).to.exist;
 
-    expect(vc.id).to.not.exist;
-    expect(vc.credentialStatus).to.not.exist;
-    expect(vc.expirationDate).to.not.exist;
+      expect(vc.id).to.not.exist;
+      expect(vc.credentialStatus).to.not.exist;
+      expect(vc.expirationDate).to.not.exist;
+    });
   });
 
   describe('setId', () => {
