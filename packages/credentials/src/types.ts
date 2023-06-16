@@ -4,14 +4,14 @@
  */
 export type VerifiableCredential = {
   /** see {@link https://www.w3.org/TR/vc-data-model/#contexts | Contexts} */
-  '@context': ['https://www.w3.org/2018/credentials/v1', ...string[]];
+  '@context': string[]
   credentialSubject: CredentialSubject | CredentialSubject[];
   /** @see {@link https://www.w3.org/TR/vc-data-model/#identifiers | Identifiers} */
   id?: string;
   /** @see {@link IssuerType} */
   issuer: Issuer;
   /** @see {@link https://www.w3.org/TR/vc-data-model/#types | Types} */
-  type?: string[] | string;
+  type: string[]
   /** @see {@link https://www.w3.org/TR/vc-data-model/#issuance-date | Issuance Date} */
   issuanceDate: string;
   /** @see {@link https://www.w3.org/TR/vc-data-model/#expiration | Expiration} */
@@ -20,6 +20,7 @@ export type VerifiableCredential = {
   credentialStatus?: CredentialStatusReference;
   [key: string]: any;
 }
+
 
 /**
  * The issuer of a {@link VerifiableCredential}.

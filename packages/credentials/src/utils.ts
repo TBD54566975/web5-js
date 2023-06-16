@@ -1,11 +1,13 @@
-export function getCurrentTimestamp() : string {
-  return new Date().toISOString();
+export function getCurrentXmlSchema112Timestamp() : string {
+  // Omit the milliseconds part from toISOString() output
+  return new Date().toISOString().replace(/\.\d+Z$/, 'Z');
 }
 
-export function isRFC3339Timestamp(timestamp: string): boolean {
-  if (typeof timestamp !== 'string') {
+export function isXmlSchema112Timestamp(timestamp : string): boolean {
+  if (isNaN(Date.parse(timestamp))) {
     return false;
   }
-
-  return !isNaN(Date.parse(timestamp));
+  // Omit the milliseconds part from toISOString() output
+  const isoStr = new Date(timestamp).toISOString().replace(/\.\d+Z$/, 'Z');
+  return isoStr === timestamp;
 }

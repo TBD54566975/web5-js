@@ -5,7 +5,8 @@ import {VerifiableCredentialBuilder}  from '../src/verifiable-credential-builder
 import { DidKeyApi } from '../../dids/src/did-key.js';
 
 
-describe('VCBuilder', async () => {
+
+describe('VerifiableCredentialBuilder', async () => {
   const didKey = new DidKeyApi();
   const did = await didKey.create();
 
@@ -17,29 +18,27 @@ describe('VCBuilder', async () => {
     id: did.id
   };
 
-  describe('VCBuilder builds VC()', () => {
-    it('can build a valid vc', async () => {
-      const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
-      const vc = vcBuilder.build();
+  it('can build a valid vc', async () => {
+    const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
+    const vc = vcBuilder.build();
 
-      expect(vc).to.exist;
+    expect(vc).to.exist;
 
-      expect(vc['@context']).to.include('https://www.w3.org/2018/credentials/v1');
-      expect(vc.credentialSubject).to.equal(credentialSubject);
-      expect(vc.issuer).to.equal(issuer);
-      expect(vc.type).to.include('VerifiableCredential');
-      expect(vc.issuanceDate).to.exist;
+    expect(vc['@context']).to.include('https://www.w3.org/2018/credentials/v1');
+    expect(vc.credentialSubject).to.equal(credentialSubject);
+    expect(vc.issuer).to.equal(issuer);
+    expect(vc.type).to.include('VerifiableCredential');
+    expect(vc.issuanceDate).to.exist;
 
-      expect(vc.id).to.not.exist;
-      expect(vc.credentialStatus).to.not.exist;
-      expect(vc.expirationDate).to.not.exist;
+    expect(vc.id).to.not.exist;
+    expect(vc.credentialStatus).to.not.exist;
+    expect(vc.expirationDate).to.not.exist;
+  });
 
-
-    });
-
+  describe('setId', () => {
     it('can set the ID', () => {
       const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
-      vcBuilder.setID('customID');
+      vcBuilder.setId('customID');
       const vc = vcBuilder.build();
 
       expect(vc.id).to.equal('customID');
@@ -48,9 +47,11 @@ describe('VCBuilder', async () => {
     it('throws an error when setting an empty ID', () => {
       const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
 
-      expect(() => vcBuilder.setID('')).to.throw('id cannot be empty');
+      expect(() => vcBuilder.setId('')).to.throw('id cannot be empty');
     });
+  });
 
+  describe('addContext', () => {
     it('can add new context', () => {
       const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
       vcBuilder.addContext(['newContext']);
@@ -60,7 +61,9 @@ describe('VCBuilder', async () => {
       expect(vc['@context']).to.include('newContext');
       expect(vc['@context'].length).to.equal(2);
     });
+  });
 
+  describe('addType', () => {
     it('can add new type', () => {
       const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
       vcBuilder.addType('newType');
@@ -70,8 +73,10 @@ describe('VCBuilder', async () => {
       expect(vc.type).to.include('VerifiableCredential');
       expect(vc.type!.length).to.equal(2);
     });
+  });
 
 
+  describe('setIssuer', () => {
     it('can set the issuer', () => {
       const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
       vcBuilder.setIssuer({ id: 'customIssuer' });
@@ -80,12 +85,17 @@ describe('VCBuilder', async () => {
       expect(vc.issuer).to.deep.equal({ id: 'customIssuer' });
     });
 
+
     it('throws an error when setting an empty issuer', () => {
       const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
 
       expect(() => vcBuilder.setIssuer({} as Issuer)).to.throw('issuer must be a non-empty object');
     });
 
+  });
+
+
+  describe('setIssuanceDate', () => {
     it('can set the issuance date', () => {
       const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
       vcBuilder.setIssuanceDate('2023-12-31T23:59:59Z');
@@ -103,9 +113,11 @@ describe('VCBuilder', async () => {
     it('throws an error when setting an invalid issuance date', () => {
       const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
 
-      expect(() => vcBuilder.setIssuanceDate('not-a-date')).to.throw('issuanceDate is not a valid RFC3339 timestamp');
+      expect(() => vcBuilder.setIssuanceDate('not-a-date')).to.throw('issuanceDate is not a valid XMLSCHEMA11-2 timestamp');
     });
+  });
 
+  describe('setExpirationDate', () => {
     it('can set the expiration date', () => {
       const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
       vcBuilder.setExpirationDate('2024-12-31T23:59:59Z');
@@ -123,8 +135,7 @@ describe('VCBuilder', async () => {
     it('throws an error when setting an invalid expiration date', () => {
       const vcBuilder = new VerifiableCredentialBuilder(credentialSubject, issuer);
 
-      expect(() => vcBuilder.setExpirationDate('not-a-date')).to.throw('expirationDate is not a valid RFC3339 timestamp');
+      expect(() => vcBuilder.setExpirationDate('not-a-date')).to.throw('expirationDate is not a valid XMLSCHEMA11-2 timestamp');
     });
-
   });
 });

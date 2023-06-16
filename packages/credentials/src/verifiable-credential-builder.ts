@@ -1,36 +1,36 @@
 import type { VerifiableCredential, CredentialSubject, Issuer } from './types.js';
-import { getCurrentTimestamp, isRFC3339Timestamp } from './utils.js';
+import { getCurrentXmlSchema112Timestamp, isXmlSchema112Timestamp } from './utils.js';
 
 export class VerifiableCredentialBuilder {
   verifiableCredential: VerifiableCredential;
 
   constructor(credentialSubject: CredentialSubject | CredentialSubject[], issuer: Issuer) {
-    const contexts = ['https://www.w3.org/2018/credentials/v1'];
+    const context = ['https://www.w3.org/2018/credentials/v1'];
     const types: string[] = ['VerifiableCredential'];
 
     this.verifiableCredential = {
-      '@context'        : contexts as ['https://www.w3.org/2018/credentials/v1', ...string[]],
+      '@context'        : context,
       credentialSubject : credentialSubject,
       issuer            : issuer,
       type              : types,
-      issuanceDate      : getCurrentTimestamp(),
+      issuanceDate      : getCurrentXmlSchema112Timestamp(),
     };
   }
 
-  addContext(context: string[] | string): VerifiableCredentialBuilder  {
+  addContext(context: string | string[]): VerifiableCredentialBuilder  {
     if (!context || context === '' || context.length === 0) {
       throw new Error('context cannot be empty');
     }
 
     let contextArray = Array.isArray(context) ? context : [context];
-    this.verifiableCredential['@context'] = [
-      ...new Set([...this.verifiableCredential['@context'], ...contextArray])
-    ] as ['https://www.w3.org/2018/credentials/v1', ...string[]];
+    let combined = [...this.verifiableCredential['@context'], ...contextArray];
+
+    this.verifiableCredential['@context'] = combined;
 
     return this;
   }
 
-  addType(type: string[] | string): VerifiableCredentialBuilder  {
+  addType(type: string | string[]): VerifiableCredentialBuilder  {
     if (!type || type === '' || type.length === 0) {
       throw new Error('type cannot be empty');
     }
@@ -45,7 +45,7 @@ export class VerifiableCredentialBuilder {
     return this;
   }
 
-  setID(id: string): VerifiableCredentialBuilder  {
+  setId(id: string): VerifiableCredentialBuilder  {
     if (!id || id === '') {
       throw new Error('id cannot be empty');
 
@@ -63,26 +63,34 @@ export class VerifiableCredentialBuilder {
     return this;
   }
 
-  setIssuanceDate(issuanceDate: string): VerifiableCredentialBuilder  {
+  setIssuanceDate(issuanceDate: string | Date): VerifiableCredentialBuilder  {
     if (!issuanceDate || issuanceDate === '') {
       throw new Error('issuanceDate cannot be empty');
     }
 
-    if (isRFC3339Timestamp(issuanceDate) === false) {
-      throw new Error('issuanceDate is not a valid RFC3339 timestamp');
+    if (typeof issuanceDate === 'object' && issuanceDate instanceof Date) {
+      issuanceDate = issuanceDate.toISOString().replace(/\.\d+Z$/, 'Z');
+    }
+
+    if (isXmlSchema112Timestamp(issuanceDate) === false) {
+      throw new Error('issuanceDate is not a valid XMLSCHEMA11-2 timestamp');
     }
 
     this.verifiableCredential.issuanceDate = issuanceDate;
     return this;
   }
 
-  setExpirationDate(expirationDate: string): VerifiableCredentialBuilder  {
+  setExpirationDate(expirationDate: string | Date): VerifiableCredentialBuilder  {
     if (!expirationDate || expirationDate === '') {
       throw new Error('expirationDate cannot be empty');
     }
 
-    if (isRFC3339Timestamp(expirationDate) === false) {
-      throw new Error('expirationDate is not a valid RFC3339 timestamp');
+    if (typeof expirationDate === 'object' && expirationDate instanceof Date) {
+      expirationDate = expirationDate.toISOString().replace(/\.\d+Z$/, 'Z');
+    }
+
+    if (isXmlSchema112Timestamp(expirationDate) === false) {
+      throw new Error('expirationDate is not a valid XMLSCHEMA11-2 timestamp');
     }
 
     this.verifiableCredential.expirationDate = expirationDate;
