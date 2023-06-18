@@ -1,4 +1,4 @@
-import type { ManagedKey, ManagedKeyPair, ManagedPrivateKey } from '../src/types-new.js';
+import type { ManagedKey, ManagedKeyPair, ManagedPrivateKey } from '../src/types-key-manager.js';
 
 import { expect } from 'chai';
 
@@ -24,7 +24,7 @@ describe('KeyManager', () => {
       const kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryPrivateKeyStore);
 
       // Instantiate default KMS using key stores.
-      const kms = new DefaultKms(kmsKeyStore, kmsPrivateKeyStore);
+      const kms = new DefaultKms('default', kmsKeyStore, kmsPrivateKeyStore);
 
       // @ts-expect-error because KeyManager is intentionally instantiated without required properties.
       expect(() => new KeyManager({ kms })).to.throw(TypeError);
@@ -58,34 +58,44 @@ describe('KeyManager', () => {
     });
   });
 
-  describe('createKey()', () => {
+  describe('generateKey()', () => {
     it('creates key pairs', async () => {
       const kmMemoryKeyStore = new MemoryKeyStore<string, ManagedKey | ManagedKeyPair>();
       const kmKeyStore = new KeyManagerStore({ store: kmMemoryKeyStore });
       const keyMgr = new KeyManager({ store: kmKeyStore });
 
-      const keys = await keyMgr.createKey({
-        spec   : 'ECDSA_K-256',
-        usages : ['sign', 'verify']
+      const keys = await keyMgr.generateKey({
+        algorithm : { name: 'ECDSA', namedCurve: 'secp256k1' },
+        keyUsages : ['sign', 'verify']
       }) as ManagedKeyPair;
 
       expect(keys).to.have.property('privateKey');
       expect(keys).to.have.property('publicKey');
-      if (!keys.privateKey || !keys.publicKey) throw new Error; // type guard
       expect(keys.privateKey.id).to.equal(keys!.publicKey!.id);
 
-      expect(keys.privateKey.material).to.be.undefined;
-      expect(keys.privateKey.spec).to.equal('ECDSA_K-256');
+      // Check values that are identical for both keys in the pair.
       expect(keys.privateKey.algorithm.name).to.equal('ECDSA');
+      expect(keys.publicKey.algorithm.name).to.equal('ECDSA');
       if (!('namedCurve' in keys.privateKey.algorithm)) throw new Error; // type guard
-      expect(keys.privateKey.algorithm.namedCurve).to.equal('K-256');
+      expect(keys.privateKey.algorithm.namedCurve).to.equal('secp256k1');
+      if (!('namedCurve' in keys.publicKey.algorithm)) throw new Error; // type guard
+      expect(keys.publicKey.algorithm.namedCurve).to.equal('secp256k1');
+      expect(keys.privateKey.kms).to.equal('default');
+      expect(keys.publicKey.kms).to.equal('default');
+      expect(keys.privateKey.spec).to.be.undefined;
+      expect(keys.publicKey.spec).to.be.undefined;
+      expect(keys.privateKey.state).to.equal('Enabled');
+      expect(keys.publicKey.state).to.equal('Enabled');
+
+      // Check values unique to the private key.
+      expect(keys.privateKey.material).to.be.undefined;
       expect(keys.privateKey.type).to.equal('private');
       expect(keys.privateKey.usages).to.deep.equal(['sign']);
 
+      // Check values unique to the public key.
       expect(keys.publicKey.material).to.be.an.instanceOf(ArrayBuffer);
       if (!keys.publicKey.material) throw new Error; // type guard
       expect(keys.publicKey.material.byteLength).to.equal(33);
-      expect(keys.publicKey.algorithm.name).to.equal('ECDSA');
       expect(keys.publicKey.type).to.equal('public');
       expect(keys.publicKey.usages).to.deep.equal(['verify']);
     });

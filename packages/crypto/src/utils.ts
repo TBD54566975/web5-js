@@ -1,4 +1,4 @@
-import type { ManagedKey, ManagedKeyPair, Web5Crypto } from './types-new.js';
+import type { ManagedKey, ManagedKeyPair, Web5Crypto } from './types-key-manager.js';
 
 import { base64url } from 'multiformats/bases/base64';
 import { base58btc } from 'multiformats/bases/base58';

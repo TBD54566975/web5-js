@@ -1,10 +1,10 @@
-import type { CryptoKeyStore, ManagedKey, ManagedKeyPair } from './types-new.js';
+import type { ManagedKeyStore, ManagedKey, ManagedKeyPair } from './types-key-manager.js';
 
 import { isManagedKeyPair } from './utils.js';
 import { MemoryKeyStore } from './key-store-memory.js';
 
 /**
- * An implementation of `CryptoKeyStore` that stores key metadata and
+ * An implementation of `ManagedKeyStore` that stores key metadata and
  * public key material in memory.
  *
  * An instance of this class can be used by `KeyManager`.`
@@ -12,7 +12,7 @@ import { MemoryKeyStore } from './key-store-memory.js';
  * This class must be initialized with a {@link MemoryKeyStore}, which serves
  * as the key/value store.
  */
-export class KeyManagerStore implements CryptoKeyStore<string, ManagedKey | ManagedKeyPair> {
+export class KeyManagerStore implements ManagedKeyStore<string, ManagedKey | ManagedKeyPair> {
   #store: MemoryKeyStore<string, ManagedKey | ManagedKeyPair>;
 
   constructor(options: { store: MemoryKeyStore<string, ManagedKey | ManagedKeyPair> }) {
