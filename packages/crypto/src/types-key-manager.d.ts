@@ -15,7 +15,7 @@
  *
  * @public
  */
-export interface CryptoKeyStore<K, V> {
+export interface ManagedKeyStore<K, V> {
   deleteKey(options: { id: K }): Promise<boolean>
   getKey(options: { id: K }): Promise<V>
   importKey(options: { key: Omit<V, 'id'> }): Promise<boolean | K>
@@ -54,12 +54,12 @@ export interface ManagedKey {
   /**
    * A boolean value that is `true` if the key can be exported and `false` if not.
    */
-  extractable?: boolean;
+  extractable: boolean;
 
   /**
    * Name of a registered key management system.
    */
-  kms?: string;
+  kms: string;
 
   /**
    * Optional. Key material as a raw binary data buffer.
@@ -69,14 +69,14 @@ export interface ManagedKey {
   /**
    * Optional. Additional Key metadata.
    */
-  metadata?: KeyMetadata | undefined;
+  metadata?: KeyMetadata;
 
   /**
    * A registered string value specifying the algorithm and any algorithm
    * specific parameters.
    * Supported algorithms vary by KMS.
    */
-  spec: string;
+  spec?: string;
 
   /**
    * The current status of the ManagedKey.
@@ -106,7 +106,7 @@ export type ManagedKeyInfo = Omit<ManagedKey, 'material'>;
  * A ManagedKeyPair represents a key pair for an asymmetric cryptography algorithm,
  * also known as a public-key algorithm.
  *
- * A ManagedKeyPair object can be obtained using `createKey()`, when the
+ * A ManagedKeyPair object can be obtained using `generateKey()`, when the
  * selected algorithm is one of the asymmetric algorithms: ECDSA or ECDH.
  */
 export interface ManagedKeyPair {
@@ -115,14 +115,14 @@ export interface ManagedKeyPair {
    * decryption algorithms, this key is used to decrypt. For signing and
    * verification algorithms it is used to sign.
    */
-  privateKey?: ManagedKey;
+  privateKey: ManagedKey;
 
   /**
    * A ManagedKey object representing the public key. For encryption and
    * decryption algorithms, this key is used to encrypt. For signing and
    * verification algorithms it is used to verify signatures.
    */
-  publicKey?: ManagedKey;
+  publicKey: ManagedKey;
 }
 
 /**
@@ -211,11 +211,11 @@ export type KeyMetadata = {
 /**
  * Base interface to be implemented by key management systems.
  */
-export interface KeyManagementSystem {
+export interface KeyManagementSystem extends CryptoManager {
   /**
    * Create a new ManagedKey within a KMS.
    */
-  createKey(options: CreateKeyOptions): Promise<ManagedKey | ManagedKeyPair>;
+  temp?(options: any): Promise<ManagedKey | ManagedKeyPair>;
 
   /**
    * Schedule a ManagedKey for deletion.
@@ -258,13 +258,6 @@ export interface KeyManagementSystem {
   // listKeys(): Promise<ListKeysResponse[]>
 }
 
-export type CreateKeyOptions = {
-  additionalOptions?: { [key: string]: any };
-  extractable: boolean;
-  spec: string;
-  usages: Web5Crypto.KeyUsage[];
-}
-
 export type DeleteKeyResponse = Pick<ManagedKey, 'id' | 'state'> & {
   /**
    * The date and time after which the KMS deletes the ManagedKey.
@@ -281,13 +274,15 @@ export type ListKeysResponse = Pick<ManagedKey, 'id' | 'alias'>;
 //#region Web5 Crypto namespace
 
 export namespace Web5Crypto {
-  export interface AesKeyGenParams extends Algorithm {
+  export interface AesGenerateKeyOptions extends Algorithm {
     length: number;
   }
 
   export interface Algorithm {
     name: string;
   }
+
+  export type AlgorithmIdentifier = Algorithm;
 
   export interface CryptoKey {
     algorithm: KeyGenParams;
@@ -302,23 +297,33 @@ export namespace Web5Crypto {
     publicKey: CryptoKey;
   }
 
+  export interface EcdsaOptions extends Algorithm {
+    hash: string;
+  }
+
+  export interface EcGenerateKeyOptions extends Algorithm {
+    namedCurve: NamedCurve;
+  }
+
+  export interface EcdhDeriveKeyOptions {
+    publicKey: CryptoKey;
+  }
+
+  export interface EcdsaGenerateKeyOptions extends EcGenerateKeyOptions {
+    compressedPublicKey?: boolean;
+  }
+
+  export type EdDsaGenerateKeyOptions = EcGenerateKeyOptions
+
+  export interface EdDsaOptions extends Algorithm {
+    hash: string;
+  }
+
   export interface KeyAlgorithm {
     name: string;
   }
 
-  export interface EcdsaParams extends Algorithm {
-    hash: string;
-  }
-
-  export interface EdDsaParams extends Algorithm {
-    hash: string;
-  }
-
-  export interface EcKeyGenParams extends Algorithm {
-    namedCurve: NamedCurve;
-  }
-
-  export type KeyGenParams = AesKeyGenParams | EcKeyGenParams;
+  export type KeyGenParams = AesGenerateKeyOptions | EcGenerateKeyOptions;
 
   /**
    * KeyType
@@ -367,3 +372,102 @@ export namespace Web5Crypto {
 }
 
 //#endregion Web5 Crypto namespace
+
+
+
+export interface CryptoManager {
+  // decrypt(algorithm: AlgorithmIdentifier | RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams, key: CryptoKey, data: BufferSource): Promise<ArrayBuffer>;
+
+  // deriveBits(algorithm: AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params, baseKey: CryptoKey, length: number): Promise<ArrayBuffer>;
+
+  // deriveKey(algorithm: AlgorithmIdentifier | EcdhKeyDeriveParams | HkdfParams | Pbkdf2Params, baseKey: CryptoKey, derivedKeyType: AlgorithmIdentifier | AesDerivedKeyParams | HmacImportParams | HkdfParams | Pbkdf2Params, extractable: boolean, keyUsages: KeyUsage[]): Promise<CryptoKey>;
+
+  // digest(algorithm: AlgorithmIdentifier, data: BufferSource): Promise<ArrayBuffer>;
+
+  // encrypt(algorithm: AlgorithmIdentifier | RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams, key: CryptoKey, data: BufferSource): Promise<ArrayBuffer>;
+
+  // exportKey(format: "jwk", key: CryptoKey): Promise<JsonWebKey>;
+  // exportKey(format: Exclude<KeyFormat, "jwk">, key: CryptoKey): Promise<ArrayBuffer>;
+
+  // generateKey(algorithm: RsaHashedKeyGenParams | EcKeyGenParams, extractable: boolean, keyUsages: ReadonlyArray<KeyUsage>): Promise<CryptoKeyPair>;
+  // generateKey(algorithm: AesKeyGenParams | HmacKeyGenParams | Pbkdf2Params, extractable: boolean, keyUsages: ReadonlyArray<KeyUsage>): Promise<CryptoKey>;
+  // generateKey(algorithm: AlgorithmIdentifier, extractable: boolean, keyUsages: KeyUsage[]): Promise<CryptoKeyPair | CryptoKey>;
+
+  // importKey(format: "jwk", keyData: JsonWebKey, algorithm: AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams | HmacImportParams | AesKeyAlgorithm, extractable: boolean, keyUsages: ReadonlyArray<KeyUsage>): Promise<CryptoKey>;
+  // importKey(format: Exclude<KeyFormat, "jwk">, keyData: BufferSource, algorithm: AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams | HmacImportParams | AesKeyAlgorithm, extractable: boolean, keyUsages: KeyUsage[]): Promise<CryptoKey>;
+
+  // sign(algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams, key: CryptoKey, data: BufferSource): Promise<ArrayBuffer>;
+
+  // unwrapKey(format: KeyFormat, wrappedKey: BufferSource, unwrappingKey: CryptoKey, unwrapAlgorithm: AlgorithmIdentifier | RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams, unwrappedKeyAlgorithm: AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams | HmacImportParams | AesKeyAlgorithm, extractable: boolean, keyUsages: KeyUsage[]): Promise<CryptoKey>;
+
+  // verify(algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams, key: CryptoKey, signature: BufferSource, data: BufferSource): Promise<boolean>;
+
+  // wrapKey(format: KeyFormat, key: CryptoKey, wrappingKey: CryptoKey, wrapAlgorithm: AlgorithmIdentifier | RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams): Promise<ArrayBuffer>;
+
+  /**
+   * Generate a new ManagedKey within a CryptoManager implementation.
+   */
+  generateKey<T extends GenerateKeyOptionTypes>(options: GenerateKeyOptions<T>): Promise<GenerateKeyType<T>>;
+
+  /**
+   * Retrieves detailed information about a ManagedKey or ManagedKeyPair object.
+   *
+   * @param options - The options for retrieving the key.
+   * @param options.keyRef - The reference identifier for the key. Can specify the id or alias property of the key.
+   * @returns A promise that resolves to either a ManagedKey or ManagedKeyPair object.
+   */
+  getKey(options: { keyRef: string }): Promise<ManagedKey | ManagedKeyPair>;
+
+  sign(options: SignOptions): Promise<ArrayBuffer>;
+}
+
+export type GenerateKeyOptionTypes =
+  | Web5Crypto.AlgorithmIdentifier
+  | RsaHashedKeyGenParams
+  | Web5Crypto.EcdsaGenerateKeyOptions
+  | Web5Crypto.EdDsaGenerateKeyOptions
+  | Web5Crypto.AesGenerateKeyOptions
+  | HmacKeyGenParams
+  | Pbkdf2Params;
+
+export type GenerateKeyOptions<T extends GenerateKeyOptionTypes> = {
+  algorithm: T;
+  alias?: string;
+  extractable?: boolean;
+  keyUsages: Web5Crypto.KeyUsage[];
+  metadata?: KeyMetadata;
+};
+
+export type GenerateKeyType<T> = T extends Web5Crypto.EcGenerateKeyOptions ? ManagedKeyPair :
+  T extends Web5Crypto.AesGenerateKeyOptions | HmacKeyGenParams | Pbkdf2Params ? ManagedKey :
+  T extends Web5Crypto.AlgorithmIdentifier ? ManagedKey | ManagedKeyPair :
+  never;
+
+/**
+ * Input arguments for implementations of the CryptoManager interface {@link CryptoManager.sign | sign} method.
+ *
+ * @public
+ */
+export type SignOptions = {
+  /**
+   * An object that specifies the signature algorithm to use and its parameters.
+   */
+  algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdsaOptions | Web5Crypto.EdDsaOptions;
+
+  /**
+   * An ArrayBuffer, a TypedArray, or a DataView object containing the data to be signed.
+   */
+  data: BufferSource;
+
+  /**
+   * A CryptoKey object containing the key to be used for signing.
+   * If signing algorithm is a public-key cryptosystem, this is the private key.
+   */
+  key?: ManagedKey;
+
+  /**
+   *   An identifier of the ManagedKey to sign with.
+   *   You can use the id or alias property of the key.
+   */
+  keyRef?: string;
+}

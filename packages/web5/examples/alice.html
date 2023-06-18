@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>client1 sender</title>
+  <link href="https://cdn.jsdelivr.net/gh/TBD54566975/web5-omg@main/styles.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <h1>{TBD logo}</h1>
+  <script type="module">
+
+    import { Web5 } from 'https://cdn.jsdelivr.net/npm/@tbd54566975/web5@0.7.5/dist/browser.mjs';
+    const { web5, did: myDid } = await Web5.connect();
+
+    // Define a simple message protocol.
+    const simpleMessageProtocol = {
+      protocol: 'http://simple-messaging-protocol3.xyz',
+      types: {
+        message: {
+          schema: 'http://simple-messaging-protocol3.xyz/schemas/message',
+          dataFormats: ['text/plain']
+        },
+        messageResponse: {
+          schema: 'http://simple-messaging-protocol3.xyz/schemas/message-response',
+          dataFormats: ['text/plain']
+        }
+      },
+      structure: {
+        message: {
+          $actions: [
+            {
+              who: 'anyone',
+              can: 'write'
+            },
+            {
+              who: 'recipient',
+              of: 'message',
+              can: 'read'
+            }
+          ],
+        }
+      }
+    };
+
+    // First, check to see if the protocol was already configured.
+    const { protocols, status: pqStatus } = await web5.dwn.protocols.query({
+      message: {
+        filter: {
+          protocol: simpleMessageProtocol.protocol
+        }
+      }
+    })
+
+    // If the protocol was not already installed, configure it.
+    if (pqStatus.code === 200 && protocols.length !== 1) {
+      const { protocol, status } = await web5.dwn.protocols.configure({
+        message: {
+          definition: simpleMessageProtocol
+        }
+      });
+      console.log(`Configure simple message protocol: ${status.code} ${status.detail}`);
+    }
+
+    // get DID from client2.html
+    const client2 = 'did:ion:EiBnFnHgePNLH2B745ZHo-fjJxhTV829MH5uJ_A5cWLe6Q:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJhdXRoeiIsInB1YmxpY0tleUp3ayI6eyJjcnYiOiJzZWNwMjU2azEiLCJrdHkiOiJFQyIsIngiOiI2QnFVTE9mUXo0d19IbE5yNDV3MGJRZ0N0dFhrSGF2ci1waGdSZTFFY1hJIiwieSI6IlR0c1E2dUpLRUxFOWMyT3Q1c2lVdUJOVG1kdVVYWkhEeGE4U3RFOXRBU1UifSwicHVycG9zZXMiOlsiYXV0aGVudGljYXRpb24iXSwidHlwZSI6Ikpzb25XZWJLZXkyMDIwIn0seyJpZCI6ImVuYyIsInB1YmxpY0tleUp3ayI6eyJjcnYiOiJzZWNwMjU2azEiLCJrdHkiOiJFQyIsIngiOiJFRS1SLXc2WGNWWE11TVM5SkRSOVNvVGtxUU1KdHZwV1BQZkJSbHNOTmF3IiwieSI6Impja0lYSExtRU1UZnNCTU5xZjlQUFUyaUd4QXc5TjFzdE0tVFkzZTVJTFkifSwicHVycG9zZXMiOlsia2V5QWdyZWVtZW50Il0sInR5cGUiOiJKc29uV2ViS2V5MjAyMCJ9XSwic2VydmljZXMiOlt7ImlkIjoiZHduIiwic2VydmljZUVuZHBvaW50Ijp7Im1lc3NhZ2VBdXRob3JpemF0aW9uS2V5cyI6WyIjYXV0aHoiXSwibm9kZXMiOlsiaHR0cHM6Ly9kd24udGJkZGV2Lm9yZy9kd24zIiwiaHR0cHM6Ly9kd24udGJkZGV2Lm9yZy9kd24yIl0sInJlY29yZEVuY3J5cHRpb25LZXlzIjpbIiNlbmMiXX0sInR5cGUiOiJEZWNlbnRyYWxpemVkV2ViTm9kZSJ9XX19XSwidXBkYXRlQ29tbWl0bWVudCI6IkVpQmV5Q0c4UkgzdjIzeDdyWHRsTkpSYktEaVBBOEVsQVE0b3FLLWsyb0NaRUEifSwic3VmZml4RGF0YSI6eyJkZWx0YUhhc2giOiJFaUNFMGZTbDR6d3dGMWZNWHIwVlpwTWJTV1ZIZVlZejgxdG9SQkRDbUJ0Y1V3IiwicmVjb3ZlcnlDb21taXRtZW50IjoiRWlEZHpZMjZrakp0b3dJNHhLdlpFOXBqdkpOUjlTb2Y3eE05OE0xbVQyTUtkQSJ9fQ';
+
+    // Create a record and store it in the user's local DWeb Node
+    const { record, status: writeClient1Status } = await web5.dwn.records.create({
+      data: "Hello World!",
+      message: {
+        protocol: "http://simple-messaging-protocol3.xyz",
+        schema: "http://simple-messaging-protocol3.xyz/schemas/message",
+        protocolPath: "message"
+      },
+    });
+    console.log(`Result of writing to client 1 DID: ${writeClient1Status.code} ${writeClient1Status.detail}`);
+
+    // Send the record to be written on Client 2's remote DWN.
+    var { status: writeClient2Status } = await record.send(client2);
+    console.log(`Result of writing to client 2 DID: ${writeClient2Status.code} ${writeClient2Status.detail}`);
+
+  </script>
+</body>
+
+</html>

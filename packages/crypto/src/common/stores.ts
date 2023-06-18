@@ -22,7 +22,7 @@ export interface KeyValueStore<K, V> {
    * @param key - The key of the value to delete.
    * @returns A promise that resolves to true if the element existed and has been removed, or false if the element does not exist.
    */
-  delete(key: K): Promise<boolean>;
+  delete(key: K): Promise<boolean | void>;
 
   /**
    * Fetches a value from the store given its key.

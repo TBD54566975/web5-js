@@ -1,4 +1,4 @@
-import type { Web5Crypto } from '../types-new.js';
+import type { Web5Crypto } from '../types-key-manager.js';
 
 import { InvalidAccessError, NotSupportedError, SyntaxError } from '../errors.js';
 
@@ -12,7 +12,7 @@ export abstract class CryptoAlgorithm {
   /**
    * Indicates which cryptographic operations are permissible to be used with this algorithm.
    */
-  public abstract usages: Web5Crypto.KeyUsage[] | Web5Crypto.KeyPairUsage;
+  public abstract keyUsages: Web5Crypto.KeyUsage[] | Web5Crypto.KeyPairUsage;
 
   public checkAlgorithmName(algorithmName: string): void {
     if (algorithmName !== this.name) {
@@ -20,11 +20,20 @@ export abstract class CryptoAlgorithm {
     }
   }
 
-  public checkKeyUsages(keyUsages: Web5Crypto.KeyUsage[]): void {
+  public checkKeyType(keyType: Web5Crypto.KeyType, allowedKeyType: Web5Crypto.KeyType): void {
+    if (keyType === undefined || allowedKeyType === undefined) {
+      throw new TypeError(`One or more required arguments missing: 'keyType, allowedKeyType'`);
+    }
+    if (keyType && keyType !== allowedKeyType) {
+      throw new InvalidAccessError(`Requested operation is not valid for the provided '${keyType}' key.`);
+    }
+  }
+
+  public checkKeyUsages(keyUsages: Web5Crypto.KeyUsage[], allowedKeyUsages: Web5Crypto.KeyUsage[] | Web5Crypto.KeyPairUsage): void {
     if (!(keyUsages && keyUsages.length > 0)) {
       throw new SyntaxError(`required parameter was missing or empty: 'keyUsages'`);
     }
-    const allowedUsages = (Array.isArray(this.usages)) ? this.usages : [...this.usages.privateKey, ...this.usages.publicKey];
+    const allowedUsages = (Array.isArray(allowedKeyUsages)) ? allowedKeyUsages : [...allowedKeyUsages.privateKey, ...allowedKeyUsages.publicKey];
     if (!keyUsages.every(usage => allowedUsages.includes(usage))) {
       throw new InvalidAccessError(`Requested operation(s) '${keyUsages.join(', ')}' is not valid for the provided key.`);
     }
@@ -44,5 +53,22 @@ export abstract class CryptoAlgorithm {
     return new this();
   }
 
-  public abstract generateKey(algorithm: Partial<Web5Crypto.KeyGenParams>, extractable: boolean, keyUsages: Web5Crypto.KeyUsage[], ...args: any[]): Promise<Web5Crypto.CryptoKey | Web5Crypto.CryptoKeyPair>;
+  public abstract generateKey(options: {
+    algorithm: Partial<Web5Crypto.KeyGenParams>,
+    extractable: boolean,
+    keyUsages: Web5Crypto.KeyUsage[],
+  }): Promise<Web5Crypto.CryptoKey | Web5Crypto.CryptoKeyPair>;
+
+  public abstract sign(options: {
+    algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdsaOptions | Web5Crypto.EdDsaOptions,
+    key: Web5Crypto.CryptoKey,
+    data: BufferSource
+  }): Promise<ArrayBuffer>;
+
+  public abstract verify(options: {
+    algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdsaOptions | Web5Crypto.EdDsaOptions,
+    key: Web5Crypto.CryptoKey,
+    signature: ArrayBuffer,
+    data: BufferSource
+  }): Promise<boolean>;
 }

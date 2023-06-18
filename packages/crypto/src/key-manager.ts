@@ -1,6 +1,16 @@
-import type { KeyManagementSystem, ManagedKey, ManagedKeyPair, ManagedPrivateKey } from './types-new.js';
+import type {
+  ManagedKey,
+  SignOptions,
+  CryptoManager,
+  ManagedKeyPair,
+  GenerateKeyType,
+  ManagedPrivateKey,
+  GenerateKeyOptions,
+  KeyManagementSystem,
+  GenerateKeyOptionTypes,
+} from './types-key-manager.js';
 
-import { checkRequiredProperty } from './utils.js';
+import { checkRequiredProperty, isManagedKeyPair } from './utils.js';
 import { MemoryKeyStore } from './key-store-memory.js';
 import { KeyManagerStore } from './key-manager-store.js';
 import { DefaultKms, KmsKeyStore, KmsPrivateKeyStore } from './kms/default/index.js';
@@ -8,8 +18,6 @@ import { DefaultKms, KmsKeyStore, KmsPrivateKeyStore } from './kms/default/index
 export type KmsMap = {
   [name: string]: KeyManagementSystem;
 }
-
-export type KeyManagerCreateOptions = Pick<ManagedKey, 'alias' | 'extractable' | 'kms' | 'metadata' | 'spec' | 'usages'>
 
 export type KeyManagerOptions = {
   store: KeyManagerStore;
@@ -32,36 +40,65 @@ export type KeyManagerOptions = {
  *
  * @public
  */
-export class KeyManager {
+export class KeyManager implements CryptoManager {
   // KMS name to KeyManagementSystem mapping
   #kms: Map<string, KeyManagementSystem>;
   // Store for managed key metadata.
-  #store: KeyManagerStore;
+  #keyStore: KeyManagerStore;
 
   constructor(options: KeyManagerOptions) {
     checkRequiredProperty('store', options);
-    this.#store = options.store;
+    this.#keyStore = options.store;
 
     options.kms ??= this.#useDefaultKms();
     this.#kms = new Map(Object.entries(options.kms)) ;
   }
 
-  async createKey(options: KeyManagerCreateOptions): Promise<ManagedKey | ManagedKeyPair> {
-    let { extractable, kms: kmsName, spec, usages, ...additionalOptions } = options;
+  async generateKey<T extends GenerateKeyOptionTypes>(options: GenerateKeyOptions<T> & { kms?: string }): Promise<GenerateKeyType<T>> {
+    const { kms: kmsName, ...generateKeyOptions } = options;
 
     const kms = this.#getKms(kmsName);
 
-    extractable ??= false; // Default to non-extractable keys, if not specified.
-    const keyOrKeyPair = await kms.createKey({ spec, extractable, usages, additionalOptions });
+    const keyOrKeyPair = await kms.generateKey(generateKeyOptions);
 
     // Store the ManagedKey or ManagedKeyPair in KeyManager's key store.
-    await this.#store.importKey({ key: keyOrKeyPair });
+    await this.#keyStore.importKey({ key: keyOrKeyPair });
 
+    return keyOrKeyPair;
+  }
+
+  async getKey(options: { keyRef: string; }): Promise<ManagedKey | ManagedKeyPair> {
+    const keyOrKeyPair = this.#keyStore.getKey({ id: options.keyRef });
     return keyOrKeyPair;
   }
 
   listKms() {
     return Array.from(this.#kms.keys());
+  }
+
+  async sign(options: SignOptions): Promise<ArrayBuffer> {
+    let { key, keyRef, ...signOptions } = options;
+
+    let keyPair;
+    if (key) {
+      keyPair = key;
+    } else if (!key && keyRef) {
+      keyPair = await this.getKey({ keyRef });
+    } else {
+      throw new TypeError(`Required parameter was missing: 'key' or 'keyRef'.`);
+    }
+
+    if (!isManagedKeyPair(keyPair)) {
+      throw new TypeError(`'key' or 'keyRef' must refer to a valid key pair.`);
+    }
+
+    const kmsName = keyPair.privateKey.kms;
+    const kms = this.#getKms(kmsName);
+
+    const keyId = keyPair.privateKey.id;
+    const signature = await kms.sign({ keyRef: keyId, ...signOptions });
+
+    return signature;
   }
 
   #getKms(name: string | undefined): KeyManagementSystem {
@@ -88,7 +125,7 @@ export class KeyManager {
     const kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryPrivateKeyStore);
 
     // Instantiate default KMS using key stores.
-    const kms = new DefaultKms(kmsKeyStore, kmsPrivateKeyStore);
+    const kms = new DefaultKms('default', kmsKeyStore, kmsPrivateKeyStore);
 
     return { default: kms };
   }

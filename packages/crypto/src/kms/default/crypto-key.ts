@@ -1,9 +1,9 @@
-import type { Web5Crypto } from '../../types-new.js';
+import type { Web5Crypto } from '../../types-key-manager.js';
 
 /**
- * InternalCryptoKey interface
+ * CryptoKey interface
  */
-export class InternalCryptoKey implements Web5Crypto.CryptoKey {
+export class CryptoKey implements Web5Crypto.CryptoKey {
   public algorithm: Web5Crypto.KeyGenParams;
   public extractable: boolean;
   public handle: ArrayBuffer;
