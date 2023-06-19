@@ -1,6 +1,6 @@
 import type { Web5Crypto } from '../types-key-manager.js';
 
-import { InvalidAccessError, NotSupportedError, SyntaxError } from '../errors.js';
+import { InvalidAccessError, NotSupportedError, SyntaxError } from './errors.js';
 
 export abstract class CryptoAlgorithm {
 
@@ -12,7 +12,7 @@ export abstract class CryptoAlgorithm {
   /**
    * Indicates which cryptographic operations are permissible to be used with this algorithm.
    */
-  public abstract keyUsages: Web5Crypto.KeyUsage[] | Web5Crypto.KeyPairUsage;
+  public abstract readonly keyUsages: Web5Crypto.KeyUsage[] | Web5Crypto.KeyPairUsage;
 
   public checkAlgorithmName(algorithmName: string): void {
     if (algorithmName !== this.name) {

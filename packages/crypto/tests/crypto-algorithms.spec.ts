@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Ed25519, Secp256k1 } from '../src/crypto-algorithms/index.js';
+import { Ed25519, Secp256k1, X25519 } from '../src/crypto-algorithms/index.js';
 
 describe('Cryptographic Algorithm Implementations', () => {
   describe('Secp256k1', () => {
@@ -393,6 +393,41 @@ describe('Cryptographic Algorithm Implementations', () => {
         // Verification should return false with the public key from key pair A.
         isValid = await Ed25519.verify({ key: keyPairA.publicKey, signature: signatureB, data: dataU8A.buffer });
         expect(isValid).to.be.false;
+      });
+    });
+  });
+
+  describe('X25519', () => {
+    describe('generateKeyPair()', () => {
+      it('returns a pair of keys of type ArrayBuffer', async () => {
+        const keyPair = await X25519.generateKeyPair();
+        expect(keyPair).to.have.property('privateKey');
+        expect(keyPair).to.have.property('publicKey');
+        expect(keyPair.privateKey).to.be.instanceOf(ArrayBuffer);
+        expect(keyPair.publicKey).to.be.instanceOf(ArrayBuffer);
+      });
+
+      it('returns a 32-byte private key', async () => {
+        const keyPair = await X25519.generateKeyPair();
+        expect(keyPair.privateKey.byteLength).to.equal(32);
+      });
+
+      it('returns a 32-byte compressed public key', async () => {
+        const keyPair = await X25519.generateKeyPair();
+        expect(keyPair.publicKey.byteLength).to.equal(32);
+      });
+    });
+
+    describe('getPublicKey()', () => {
+      let keyPair: { privateKey: ArrayBuffer, publicKey: ArrayBuffer };
+
+      before(async () => {
+        keyPair = await X25519.generateKeyPair();
+      });
+
+      it('returns a 32-byte compressed public key', async () => {
+        const publicKey = await X25519.getPublicKey({ privateKey: keyPair.privateKey });
+        expect(publicKey.byteLength).to.equal(32);
       });
     });
   });

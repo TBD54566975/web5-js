@@ -27,6 +27,11 @@ export interface ManagedKeyStore<K, V> {
 
 //#region Managed Crypto Keys
 
+export interface BufferKeyPair {
+  privateKey: ArrayBuffer;
+  publicKey: ArrayBuffer;
+}
+
 /** ManagedKey
  *
  * A ManagedKey represents a cryptographic key used by a cipher for

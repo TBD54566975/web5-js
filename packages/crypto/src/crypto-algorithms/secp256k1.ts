@@ -1,5 +1,8 @@
+import type { BufferKeyPair } from '../types-key-manager.js';
+
 import * as secp256k1 from '@noble/secp256k1';
 import { sha256 } from '@noble/hashes/sha256';
+
 import { Convert } from '../common/convert.js';
 
 export type HashFunction = (data: Uint8Array) => Uint8Array;
@@ -54,7 +57,7 @@ export class Secp256k1 {
    */
   public static async generateKeyPair(
     options?: { compressedPublicKey?: boolean }
-  ): Promise<{ privateKey: ArrayBuffer, publicKey: ArrayBuffer}> {
+  ): Promise<BufferKeyPair> {
     let { compressedPublicKey } = options ?? { };
 
     compressedPublicKey ??= true; // Default to compressed public key, matching the default of @noble/secp256k1.

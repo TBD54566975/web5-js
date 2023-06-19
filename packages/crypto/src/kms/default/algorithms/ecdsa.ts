@@ -1,6 +1,7 @@
-import type { Web5Crypto } from '../../../types-key-manager.js';
+import type { BufferKeyPair, Web5Crypto } from '../../../types-key-manager.js';
 
 import { CryptoKey } from '../crypto-key.js';
+import { isBufferKeyPair } from '../../../utils.js';
 import { Secp256k1 } from '../../../crypto-algorithms/index.js';
 import { EcdsaAlgorithm } from '../../../algorithms-api/index.js';
 export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
@@ -14,24 +15,30 @@ export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
   }): Promise<Web5Crypto.CryptoKeyPair> {
     const { algorithm, extractable, keyUsages } = options;
 
-    this.checkGenerateKey(algorithm, keyUsages);
+    this.checkGenerateKey({ algorithm, keyUsages });
 
-    let cryptoKeyPair: { privateKey: Web5Crypto.CryptoKey, publicKey: Web5Crypto.CryptoKey };
+    let keyPair: BufferKeyPair | undefined;
+    let cryptoKeyPair: Web5Crypto.CryptoKeyPair;
 
     switch (algorithm.namedCurve) {
 
       case 'secp256k1': {
-        const keyPair = await Secp256k1.generateKeyPair({ compressedPublicKey: algorithm.compressedPublicKey });
-        cryptoKeyPair = {
-          privateKey : new CryptoKey(algorithm, extractable, keyPair.privateKey, 'private', this.keyUsages.privateKey),
-          publicKey  : new CryptoKey(algorithm, true, keyPair.publicKey, 'public', this.keyUsages.publicKey)
-        };
+        keyPair = await Secp256k1.generateKeyPair({ compressedPublicKey: algorithm.compressedPublicKey });
         break;
       }
       // Default case not needed because checkGenerateKey() already validates the specified namedCurve is supported.
     }
 
-    return cryptoKeyPair!;
+    if (!isBufferKeyPair(keyPair)) {
+      throw new Error('Operation failed to generate key pair.');
+    }
+
+    cryptoKeyPair = {
+      privateKey : new CryptoKey(algorithm, extractable, keyPair.privateKey, 'private', this.keyUsages.privateKey),
+      publicKey  : new CryptoKey(algorithm, true, keyPair.publicKey, 'public', this.keyUsages.publicKey)
+    };
+
+    return cryptoKeyPair;
   }
 
   public async sign(options: {

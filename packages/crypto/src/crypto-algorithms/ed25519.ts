@@ -1,4 +1,7 @@
+import type { BufferKeyPair } from '../types-key-manager.js';
+
 import * as ed25519 from '@noble/ed25519';
+
 import { Convert } from '../common/convert.js';
 
 /**
@@ -34,7 +37,7 @@ export class Ed25519 {
    *
    * @returns A Promise that resolves to an object containing the private and public keys as ArrayBuffers.
    */
-  public static async generateKeyPair(): Promise<{ privateKey: ArrayBuffer, publicKey: ArrayBuffer}> {
+  public static async generateKeyPair(): Promise<BufferKeyPair> {
     // Generate the private key and compute its public key.
     const privateKey = ed25519.utils.randomPrivateKey();
     const publicKey  = await ed25519.getPublicKeyAsync(privateKey);

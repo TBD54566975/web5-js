@@ -7,7 +7,11 @@ export abstract class EllipticCurveAlgorithm extends CryptoAlgorithm {
 
   public abstract namedCurves: string[];
 
-  public checkGenerateKey(algorithm: Web5Crypto.EcGenerateKeyOptions, keyUsages: Web5Crypto.KeyUsage[]) {
+  public checkGenerateKey(options: {
+    algorithm: Web5Crypto.EcGenerateKeyOptions,
+    keyUsages: Web5Crypto.KeyUsage[]
+  }): void {
+    const { algorithm, keyUsages } = options;
     this.checkAlgorithmName(algorithm.name);
     checkRequiredProperty('namedCurve', algorithm);
     checkPropertyExists(algorithm.namedCurve, this.namedCurves);

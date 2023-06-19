@@ -1,6 +1,7 @@
-import type { Web5Crypto } from '../../../types-key-manager.js';
+import type { BufferKeyPair, Web5Crypto } from '../../../types-key-manager.js';
 
 import { CryptoKey } from '../crypto-key.js';
+import { isBufferKeyPair } from '../../../utils.js';
 import { Ed25519 } from '../../../crypto-algorithms/index.js';
 import { EdDsaAlgorithm } from '../../../algorithms-api/index.js';
 
@@ -14,24 +15,30 @@ export class DefaultEdDsaAlgorithm extends EdDsaAlgorithm {
   }): Promise<Web5Crypto.CryptoKeyPair> {
     const { algorithm, extractable, keyUsages } = options;
 
-    this.checkGenerateKey(algorithm, keyUsages);
+    this.checkGenerateKey({ algorithm, keyUsages });
 
-    let cryptoKeyPair: { privateKey: Web5Crypto.CryptoKey, publicKey: Web5Crypto.CryptoKey };
+    let keyPair: BufferKeyPair | undefined;
+    let cryptoKeyPair: Web5Crypto.CryptoKeyPair;
 
     switch (algorithm.namedCurve) {
 
       case 'Ed25519': {
-        const keyPair = await Ed25519.generateKeyPair();
-        cryptoKeyPair = {
-          privateKey : new CryptoKey(algorithm, extractable, keyPair.privateKey, 'private', this.keyUsages.privateKey),
-          publicKey  : new CryptoKey(algorithm, true, keyPair.publicKey, 'public', this.keyUsages.publicKey)
-        };
+        keyPair = await Ed25519.generateKeyPair();
         break;
       }
       // Default case not needed because checkGenerateKey() already validates the specified namedCurve is supported.
     }
 
-    return cryptoKeyPair!;
+    if (!isBufferKeyPair(keyPair)) {
+      throw new Error('Operation failed to generate key pair.');
+    }
+
+    cryptoKeyPair = {
+      privateKey : new CryptoKey(algorithm, extractable, keyPair.privateKey, 'private', this.keyUsages.privateKey),
+      publicKey  : new CryptoKey(algorithm, true, keyPair.publicKey, 'public', this.keyUsages.publicKey)
+    };
+
+    return cryptoKeyPair;
   }
 
   public async sign(options: {
@@ -47,7 +54,7 @@ export class DefaultEdDsaAlgorithm extends EdDsaAlgorithm {
 
     let signature: ArrayBuffer;
 
-    const keyAlgorithm = key.algorithm as Web5Crypto.EcdsaGenerateKeyOptions; // Type guard.
+    const keyAlgorithm = key.algorithm as Web5Crypto.EdDsaGenerateKeyOptions; // Type guard.
 
     switch (keyAlgorithm.namedCurve) {
 
@@ -77,11 +84,11 @@ export class DefaultEdDsaAlgorithm extends EdDsaAlgorithm {
 
     let isValid: boolean;
 
-    const keyAlgorithm = key.algorithm as Web5Crypto.EcdsaGenerateKeyOptions; // Type guard.
+    const keyAlgorithm = key.algorithm as Web5Crypto.EdDsaGenerateKeyOptions; // Type guard.
 
     switch (keyAlgorithm.namedCurve) {
 
-      case 'secp256k1': {
+      case 'Ed25519': {
         isValid = await Ed25519.verify({ key: key.handle, signature, data });
         break;
       }

@@ -1,8 +1,20 @@
-import { expect } from 'chai';
+
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 
 import { MemoryKeyStore } from '../src/key-store-memory.js';
+import { InvalidAccessError, NotSupportedError } from '../src/algorithms-api/errors.js';
 import { ManagedKey, ManagedKeyPair, ManagedPrivateKey } from '../src/types-key-manager.js';
-import { DefaultKms, DefaultEcdsaAlgorithm, DefaultEdDsaAlgorithm, KmsKeyStore, KmsPrivateKeyStore } from '../src/kms/default/index.js';
+import {
+  DefaultKms,
+  KmsKeyStore,
+  KmsPrivateKeyStore,
+  DefaultEcdhAlgorithm,
+  DefaultEcdsaAlgorithm,
+  DefaultEdDsaAlgorithm,
+} from '../src/kms/default/index.js';
+
+chai.use(chaiAsPromised);
 
 describe('DefaultKms', () => {
   describe('KMS', () => {
@@ -205,8 +217,52 @@ describe('DefaultKms', () => {
           if (!('namedCurve' in keys.publicKey.algorithm)) throw new Error; // type guard
           expect(keys.publicKey.algorithm.namedCurve).to.equal('secp256k1');
         });
+
+        it(`supports 'sign' and/or 'verify' key usages`, async () => {
+          await expect(ecdsa.generateKey({
+            algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+            extractable : false,
+            keyUsages   : ['sign']
+          })).to.eventually.be.fulfilled;
+
+          await expect(ecdsa.generateKey({
+            algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+            extractable : false,
+            keyUsages   : ['verify']
+          })).to.eventually.be.fulfilled;
+
+          await expect(ecdsa.generateKey({
+            algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+            extractable : false,
+            keyUsages   : ['sign', 'verify']
+          })).to.eventually.be.fulfilled;
+        });
+
+        it('validates algorithm, named curve, and key usages', async () => {
+          // Invalid (algorithm name, named curve, and key usages) result in algorithm name check failing first.
+          await expect(ecdsa.generateKey({
+            algorithm   : { name: 'foo', namedCurve: 'bar' },
+            extractable : false,
+            keyUsages   : ['encrypt']
+          })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
+
+          // Valid (algorithm name) + Invalid (named curve, key usages) result named curve check failing first.
+          await expect(ecdsa.generateKey({
+            algorithm   : { name: 'ECDSA', namedCurve: 'bar' },
+            extractable : false,
+            keyUsages   : ['encrypt']
+          })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
+
+          // Valid (algorithm name, named curve) + Invalid (key usages) result key usages check failing first.
+          await expect(ecdsa.generateKey({
+            algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+            extractable : false,
+            keyUsages   : ['encrypt']
+          })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation');
+        });
       });
     });
+
     describe('DefaultEdDsaAlgorithm', () => {
       let eddsa: DefaultEdDsaAlgorithm;
 
@@ -280,6 +336,169 @@ describe('DefaultKms', () => {
           expect(keys.privateKey.algorithm.namedCurve).to.equal('Ed25519');
           if (!('namedCurve' in keys.publicKey.algorithm)) throw new Error; // type guard
           expect(keys.publicKey.algorithm.namedCurve).to.equal('Ed25519');
+        });
+
+        it(`supports 'sign' and/or 'verify' key usages`, async () => {
+          await expect(eddsa.generateKey({
+            algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
+            extractable : false,
+            keyUsages   : ['sign']
+          })).to.eventually.be.fulfilled;
+
+          await expect(eddsa.generateKey({
+            algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
+            extractable : false,
+            keyUsages   : ['verify']
+          })).to.eventually.be.fulfilled;
+
+          await expect(eddsa.generateKey({
+            algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
+            extractable : false,
+            keyUsages   : ['sign', 'verify']
+          })).to.eventually.be.fulfilled;
+        });
+
+        it('validates algorithm, named curve, and key usages', async () => {
+          // Invalid (algorithm name, named curve, and key usages) result in algorithm name check failing first.
+          await expect(eddsa.generateKey({
+            algorithm   : { name: 'foo', namedCurve: 'bar' },
+            extractable : false,
+            keyUsages   : ['encrypt']
+          })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
+
+          // Valid (algorithm name) + Invalid (named curve, key usages) result named curve check failing first.
+          await expect(eddsa.generateKey({
+            algorithm   : { name: 'EdDSA', namedCurve: 'bar' },
+            extractable : false,
+            keyUsages   : ['encrypt']
+          })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
+
+          // Valid (algorithm name, named curve) + Invalid (key usages) result key usages check failing first.
+          await expect(eddsa.generateKey({
+            algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
+            extractable : false,
+            keyUsages   : ['encrypt']
+          })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation');
+        });
+      });
+    });
+
+    describe('DefaultEcdhAlgorithm', () => {
+      let ecdh: DefaultEcdhAlgorithm;
+
+      before(() => {
+        ecdh = DefaultEcdhAlgorithm.create();
+      });
+
+      describe('generateKey()', async () => {
+        it('returns a key pair', async () => {
+          const keys = await ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+            extractable : false,
+            keyUsages   : ['deriveBits', 'deriveKey']
+          });
+
+          expect(keys).to.have.property('privateKey');
+          expect(keys.privateKey.type).to.equal('private');
+          expect(keys.privateKey.usages).to.deep.equal(['deriveBits', 'deriveKey']);
+
+          expect(keys).to.have.property('publicKey');
+          expect(keys.publicKey.type).to.equal('public');
+          expect(keys.publicKey.usages).to.deep.equal(['deriveBits', 'deriveKey']);
+        });
+
+        it('public key is always extractable', async () => {
+          let keys: CryptoKeyPair;
+          // publicKey is extractable if generateKey() called with extractable = false
+          keys = await ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519'  },
+            extractable : false,
+            keyUsages   : ['deriveBits', 'deriveKey']
+          });
+          expect(keys.publicKey.extractable).to.be.true;
+
+          // publicKey is extractable if generateKey() called with extractable = true
+          keys = await ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519'  },
+            extractable : true,
+            keyUsages   : ['deriveBits', 'deriveKey']
+          });
+          expect(keys.publicKey.extractable).to.be.true;
+        });
+
+        it('private key is selectively extractable', async () => {
+          let keys: CryptoKeyPair;
+          // privateKey is NOT extractable if generateKey() called with extractable = false
+          keys = await ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519'  },
+            extractable : false,
+            keyUsages   : ['deriveBits', 'deriveKey']
+          });
+          expect(keys.privateKey.extractable).to.be.false;
+
+          // privateKey is extractable if generateKey() called with extractable = true
+          keys = await ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519'  },
+            extractable : true,
+            keyUsages   : ['deriveBits', 'deriveKey']
+          });
+          expect(keys.privateKey.extractable).to.be.true;
+        });
+
+        it(`supports 'X25519' curve`, async () => {
+          const keys = await ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+            extractable : false,
+            keyUsages   : ['deriveBits', 'deriveKey']
+          });
+
+          if (!('namedCurve' in keys.privateKey.algorithm)) throw new Error; // type guard
+          expect(keys.privateKey.algorithm.namedCurve).to.equal('X25519');
+          if (!('namedCurve' in keys.publicKey.algorithm)) throw new Error; // type guard
+          expect(keys.publicKey.algorithm.namedCurve).to.equal('X25519');
+        });
+
+        it(`supports 'deriveBits' and/or 'deriveKey' key usages`, async () => {
+          await expect(ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+            extractable : false,
+            keyUsages   : ['deriveBits']
+          })).to.eventually.be.fulfilled;
+
+          await expect(ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+            extractable : false,
+            keyUsages   : ['deriveKey']
+          })).to.eventually.be.fulfilled;
+
+          await expect(ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+            extractable : false,
+            keyUsages   : ['deriveBits', 'deriveKey']
+          })).to.eventually.be.fulfilled;
+        });
+
+        it('validates algorithm, named curve, and key usages', async () => {
+          // Invalid (algorithm name, named curve, and key usages) result in algorithm name check failing first.
+          await expect(ecdh.generateKey({
+            algorithm   : { name: 'foo', namedCurve: 'bar' },
+            extractable : false,
+            keyUsages   : ['encrypt']
+          })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
+
+          // Valid (algorithm name) + Invalid (named curve, key usages) result named curve check failing first.
+          await expect(ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'bar' },
+            extractable : false,
+            keyUsages   : ['encrypt']
+          })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
+
+          // Valid (algorithm name, named curve) + Invalid (key usages) result key usages check failing first.
+          await expect(ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+            extractable : false,
+            keyUsages   : ['encrypt']
+          })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation');
         });
       });
     });
