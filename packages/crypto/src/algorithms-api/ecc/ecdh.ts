@@ -9,10 +9,10 @@ export abstract class EcdhAlgorithm extends EllipticCurveAlgorithm {
 
   public keyUsages: Web5Crypto.KeyPairUsage = {
     privateKey : ['deriveBits', 'deriveKey'],
-    publicKey  : [],
+    publicKey  : ['deriveBits', 'deriveKey'],
   };
 
   public checkAlgorithmOptions(algorithm: Web5Crypto.EcdsaOptions) {
-    checkRequiredProperty('public', algorithm);
+    checkRequiredProperty('publicKey', algorithm);
   }
 }

@@ -1,7 +1,8 @@
-import type { ManagedKey, ManagedKeyPair, Web5Crypto } from './types-key-manager.js';
+import type { BufferKeyPair, ManagedKey, ManagedKeyPair, Web5Crypto } from './types-key-manager.js';
 
 import { base64url } from 'multiformats/bases/base64';
 import { base58btc } from 'multiformats/bases/base58';
+import { universalTypeOf } from './common/type-utils.js';
 
 
 // See https://github.com/multiformats/multicodec/blob/master/table.csv
@@ -91,7 +92,6 @@ export function checkRequiredProperty(property: string, properties: object): voi
  * @returns True if the key is a CryptoKeyPair, false otherwise.
  */
 export function isCryptoKeyPair(key: Web5Crypto.CryptoKey | Web5Crypto.CryptoKeyPair): key is Web5Crypto.CryptoKeyPair {
-  // return (key as Web5Crypto.CryptoKeyPair).publicKey !== undefined && (key as Web5Crypto.CryptoKeyPair).privateKey !== undefined;
   return key && 'privateKey' in key && 'publicKey' in key;
 }
 
@@ -102,6 +102,18 @@ export function isCryptoKeyPair(key: Web5Crypto.CryptoKey | Web5Crypto.CryptoKey
  * @returns True if the key is a ManagedKeyPair, false otherwise.
  */
 export function isManagedKeyPair(key: ManagedKey | ManagedKeyPair): key is ManagedKeyPair {
-  // return (key as ManagedKeyPair).publicKey !== undefined && (key as ManagedKeyPair).privateKey !== undefined;
   return key && 'privateKey' in key && 'publicKey' in key;
+}
+
+/**
+ * Type guard function to check if the given key is a raw key pair
+ * of ArrayBuffers.
+ *
+ * @param key The key to check.
+ * @returns True if the key is a pair of key ArrayBuffers, false otherwise.
+ */
+export function isBufferKeyPair(key: BufferKeyPair | undefined): key is BufferKeyPair {
+  return (key && 'privateKey' in key && 'publicKey' in key &&
+    universalTypeOf(key.privateKey) === 'ArrayBuffer' &&
+    universalTypeOf(key.publicKey) === 'ArrayBuffer') ? true : false;
 }

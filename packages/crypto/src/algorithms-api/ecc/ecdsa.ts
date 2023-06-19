@@ -9,7 +9,7 @@ export abstract class EcdsaAlgorithm extends EllipticCurveAlgorithm {
 
   public abstract hashAlgorithms: string[];
 
-  public keyUsages: Web5Crypto.KeyPairUsage = {
+  public readonly keyUsages: Web5Crypto.KeyPairUsage = {
     privateKey : ['sign'],
     publicKey  : ['verify'],
   };

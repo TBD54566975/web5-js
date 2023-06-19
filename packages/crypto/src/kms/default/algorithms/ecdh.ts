@@ -1,29 +1,50 @@
-import type { Web5Crypto } from '../../../types-key-manager.js';
-
-import * as secp256k1 from '@noble/secp256k1';
+import type { BufferKeyPair, Web5Crypto } from '../../../types-key-manager.js';
 
 import { CryptoKey } from '../crypto-key.js';
+import { isBufferKeyPair } from '../../../utils.js';
+import { Secp256k1, X25519 } from '../../../crypto-algorithms/index.js';
 import { EcdhAlgorithm, InvalidAccessError } from '../../../algorithms-api/index.js';
 
 export class DefaultEcdhAlgorithm extends EcdhAlgorithm {
   public readonly namedCurves = ['secp256k1', 'X25519'];
 
   public async generateKey(options: {
-    algorithm: Web5Crypto.EcGenerateKeyOptions,
+    algorithm: Web5Crypto.EcGenerateKeyOptions | Web5Crypto.EcdsaGenerateKeyOptions,
     extractable: boolean,
     keyUsages: Web5Crypto.KeyUsage[]
   }): Promise<Web5Crypto.CryptoKeyPair> {
     const { algorithm, extractable, keyUsages } = options;
 
-    this.checkGenerateKey(algorithm, keyUsages);
+    this.checkGenerateKey({ algorithm, keyUsages });
 
-    const privateKeyBytes = secp256k1.utils.randomPrivateKey();
-    const publicKeyBytes = secp256k1.getPublicKey(privateKeyBytes);
+    let keyPair: BufferKeyPair | undefined;
+    let cryptoKeyPair: Web5Crypto.CryptoKeyPair;
 
-    const privateKey = new CryptoKey(algorithm, extractable, privateKeyBytes.buffer, 'private', this.keyUsages.privateKey);
-    const publicKey = new CryptoKey(algorithm, true, publicKeyBytes.buffer, 'public', this.keyUsages.publicKey);
+    switch (algorithm.namedCurve) {
 
-    return { privateKey, publicKey };
+      case 'secp256k1': {
+        const compressedPublicKey = ('compressedPublicKey' in algorithm) ? algorithm.compressedPublicKey : undefined; // Type guard.
+        keyPair = await Secp256k1.generateKeyPair({ compressedPublicKey });
+        break;
+      }
+
+      case 'X25519': {
+        keyPair = await X25519.generateKeyPair();
+        break;
+      }
+      // Default case not needed because checkGenerateKey() already validates the specified namedCurve is supported.
+    }
+
+    if (!isBufferKeyPair(keyPair)) {
+      throw new Error('Operation failed to generate key pair.');
+    }
+
+    cryptoKeyPair = {
+      privateKey : new CryptoKey(algorithm, extractable, keyPair.privateKey, 'private', this.keyUsages.privateKey),
+      publicKey  : new CryptoKey(algorithm, true, keyPair.publicKey, 'public', this.keyUsages.publicKey)
+    };
+
+    return cryptoKeyPair;
   }
 
   public override async sign(): Promise<ArrayBuffer> {

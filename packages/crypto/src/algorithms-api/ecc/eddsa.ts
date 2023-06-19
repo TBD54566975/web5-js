@@ -6,7 +6,7 @@ export abstract class EdDsaAlgorithm extends EllipticCurveAlgorithm {
 
   public readonly name: string = 'EdDSA';
 
-  public keyUsages: Web5Crypto.KeyPairUsage = {
+  public readonly keyUsages: Web5Crypto.KeyPairUsage = {
     privateKey : ['sign'],
     publicKey  : ['verify'],
   };
