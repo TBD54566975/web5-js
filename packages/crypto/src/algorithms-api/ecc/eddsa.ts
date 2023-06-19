@@ -11,8 +11,9 @@ export abstract class EdDsaAlgorithm extends EllipticCurveAlgorithm {
     publicKey  : ['verify'],
   };
 
-  public checkAlgorithmOptions(algorithm: Web5Crypto.EdDsaOptions) {
-    this.checkAlgorithmName(algorithm.name);
+  public checkAlgorithmOptions(options: { algorithm: Web5Crypto.EdDsaOptions }) {
+    const { algorithm } = options;
+    this.checkAlgorithmName({ algorithmName: algorithm.name });
   }
 
   public abstract sign(options: { algorithm: Web5Crypto.EdDsaOptions; key: Web5Crypto.CryptoKey; data: BufferSource; }): Promise<ArrayBuffer>;

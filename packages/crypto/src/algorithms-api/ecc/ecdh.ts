@@ -1,7 +1,7 @@
 import type { Web5Crypto } from '../../types-key-manager.js';
-import { checkRequiredProperty } from '../../utils.js';
 
 import { EllipticCurveAlgorithm } from './base.js';
+import { checkRequiredProperty } from '../../utils.js';
 
 export abstract class EcdhAlgorithm extends EllipticCurveAlgorithm {
 
@@ -12,7 +12,20 @@ export abstract class EcdhAlgorithm extends EllipticCurveAlgorithm {
     publicKey  : ['deriveBits', 'deriveKey'],
   };
 
-  public checkAlgorithmOptions(algorithm: Web5Crypto.EcdsaOptions) {
-    checkRequiredProperty('publicKey', algorithm);
+  public checkAlgorithmOptions(options: { algorithm: Web5Crypto.EcdhDeriveKeyOptions }) {
+    const { algorithm } = options;
+    this.checkAlgorithmName({ algorithmName: algorithm.name });
+    checkRequiredProperty({ property: 'publicKey', inObject: algorithm });
+    /**
+    if (!(algorithm.public instanceof CryptoKey)) {
+      throw new TypeError("public: Is not a CryptoKey");
+    }
+    if (algorithm.public.type !== "public") {
+      throw new OperationError("public: Is not a public key");
+    }
+    if (algorithm.public.algorithm.name !== this.name) {
+      throw new OperationError(`public: Is not ${this.name} key`);
+    }
+     */
   }
 }

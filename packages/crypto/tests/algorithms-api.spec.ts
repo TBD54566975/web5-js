@@ -29,11 +29,11 @@ describe('Algorithms API', () => {
 
     describe('checkAlgorithmName()', () => {
       it('throws an error if the algorithm name does not match', () => {
-        expect(() => alg.checkAlgorithmName('SomeOtherAlgorithm')).to.throw('Algorithm not supported');
+        expect(() => alg.checkAlgorithmName({ algorithmName: 'SomeOtherAlgorithm' })).to.throw('Algorithm not supported');
       });
 
       it('does not throw an error if the algorithm name matches', () => {
-        expect(() => alg.checkAlgorithmName('TestAlgorithm')).to.not.throw();
+        expect(() => alg.checkAlgorithmName({ algorithmName: 'TestAlgorithm' })).to.not.throw();
       });
     });
   });
@@ -89,6 +89,33 @@ describe('Algorithms API', () => {
             algorithm : { name: 'TestAlgorithm', namedCurve: 'curveA' },
             keyUsages : [operation as KeyUsage]
           })).to.throw(InvalidAccessError, 'Requested operation');
+        });
+      });
+    });
+
+    describe('EcdhAlgorithm', () => {
+      describe('checkAlgorithmOptions()', () => {
+        it('', () => {
+          // this.checkAlgorithmName(algorithm.name);
+          // checkRequiredProperty('publicKey', algorithm);
+        });
+      });
+    });
+
+    describe('EcdsaAlgorithm', () => {
+      describe('checkAlgorithmOptions()', () => {
+        it('', () => {
+          //     this.checkAlgorithmName(algorithm.name);
+          // checkRequiredProperty('hash', algorithm);
+          // checkValidProperty(algorithm.hash, this.hashAlgorithms);
+        });
+      });
+    });
+
+    describe('EdDsaAlgorithm', () => {
+      describe('checkAlgorithmOptions()', () => {
+        it('', () => {
+          // this.checkAlgorithmName(algorithm.name);
         });
       });
     });

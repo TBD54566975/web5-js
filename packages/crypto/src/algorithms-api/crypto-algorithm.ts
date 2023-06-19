@@ -14,13 +14,32 @@ export abstract class CryptoAlgorithm {
    */
   public abstract readonly keyUsages: Web5Crypto.KeyUsage[] | Web5Crypto.KeyPairUsage;
 
-  public checkAlgorithmName(algorithmName: string): void {
+  public checkAlgorithmName(options: {
+    algorithmName: string
+  }): void {
+    const { algorithmName } = options;
     if (algorithmName !== this.name) {
       throw new NotSupportedError(`Algorithm not supported: '${algorithmName}'`);
     }
   }
 
-  public checkKeyType(keyType: Web5Crypto.KeyType, allowedKeyType: Web5Crypto.KeyType): void {
+  public checkKeyAlgorithm(options: {
+    keyAlgorithmName: string
+  }): void {
+    const { keyAlgorithmName } = options;
+    if (keyAlgorithmName === undefined) {
+      throw new TypeError(`Required argument missing: 'keyAlgorithm'`);
+    }
+    if (keyAlgorithmName && keyAlgorithmName !== this.name) {
+      throw new InvalidAccessError(`Algorithm '${this.name} does not match the provided '${keyAlgorithmName}' key.`);
+    }
+  }
+
+  public checkKeyType(options: {
+    keyType: Web5Crypto.KeyType,
+    allowedKeyType: Web5Crypto.KeyType
+  }): void {
+    const { keyType, allowedKeyType } = options;
     if (keyType === undefined || allowedKeyType === undefined) {
       throw new TypeError(`One or more required arguments missing: 'keyType, allowedKeyType'`);
     }
@@ -29,7 +48,11 @@ export abstract class CryptoAlgorithm {
     }
   }
 
-  public checkKeyUsages(keyUsages: Web5Crypto.KeyUsage[], allowedKeyUsages: Web5Crypto.KeyUsage[] | Web5Crypto.KeyPairUsage): void {
+  public checkKeyUsages(options: {
+    keyUsages: Web5Crypto.KeyUsage[],
+    allowedKeyUsages: Web5Crypto.KeyUsage[] | Web5Crypto.KeyPairUsage
+  }): void {
+    const { keyUsages, allowedKeyUsages } = options;
     if (!(keyUsages && keyUsages.length > 0)) {
       throw new SyntaxError(`required parameter was missing or empty: 'keyUsages'`);
     }
