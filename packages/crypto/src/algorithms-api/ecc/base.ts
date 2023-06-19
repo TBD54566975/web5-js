@@ -1,5 +1,5 @@
 import type { Web5Crypto } from '../../types-key-manager.js';
-import { checkPropertyExists, checkRequiredProperty } from '../../utils.js';
+import { checkValidProperty, checkRequiredProperty } from '../../utils.js';
 
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
 
@@ -12,10 +12,10 @@ export abstract class EllipticCurveAlgorithm extends CryptoAlgorithm {
     keyUsages: Web5Crypto.KeyUsage[]
   }): void {
     const { algorithm, keyUsages } = options;
-    this.checkAlgorithmName(algorithm.name);
-    checkRequiredProperty('namedCurve', algorithm);
-    checkPropertyExists(algorithm.namedCurve, this.namedCurves);
-    this.checkKeyUsages(keyUsages, this.keyUsages);
+    this.checkAlgorithmName({ algorithmName: algorithm.name });
+    checkRequiredProperty({ property: 'namedCurve', inObject: algorithm });
+    checkValidProperty({ property: algorithm.namedCurve, allowedProperties: this.namedCurves });
+    this.checkKeyUsages({ keyUsages, allowedKeyUsages: this.keyUsages });
   }
 
   public abstract generateKey(options: {

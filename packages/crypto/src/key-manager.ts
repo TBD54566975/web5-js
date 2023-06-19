@@ -47,7 +47,7 @@ export class KeyManager implements CryptoManager {
   #keyStore: KeyManagerStore;
 
   constructor(options: KeyManagerOptions) {
-    checkRequiredProperty('store', options);
+    checkRequiredProperty({ property: 'store', inObject: options });
     this.#keyStore = options.store;
 
     options.kms ??= this.#useDefaultKms();

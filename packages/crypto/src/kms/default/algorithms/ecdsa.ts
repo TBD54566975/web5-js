@@ -48,9 +48,10 @@ export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
   }): Promise<ArrayBuffer> {
     const { algorithm, key, data } = options;
 
-    this.checkAlgorithmOptions(algorithm);
-    this.checkKeyType(key.type, 'private');
-    this.checkKeyUsages(key.usages, ['sign']);
+    this.checkAlgorithmOptions({ algorithm });
+    this.checkKeyAlgorithm({ keyAlgorithmName: key.algorithm.name });
+    this.checkKeyType({ keyType: key.type, allowedKeyType: 'private' });
+    this.checkKeyUsages({ keyUsages: key.usages, allowedKeyUsages: ['sign'] });
 
     let signature: ArrayBuffer;
 
@@ -78,9 +79,10 @@ export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
   }): Promise<boolean> {
     const { algorithm, key, signature, data } = options;
 
-    this.checkAlgorithmOptions(algorithm);
-    this.checkKeyType(key.type, 'public');
-    this.checkKeyUsages(key.usages, ['verify']);
+    this.checkAlgorithmOptions({ algorithm });
+    this.checkKeyAlgorithm({ keyAlgorithmName: key.algorithm.name });
+    this.checkKeyType({ keyType: key.type, allowedKeyType: 'public' });
+    this.checkKeyUsages({ keyUsages: key.usages, allowedKeyUsages: ['verify'] });
 
     let isValid: boolean;
 

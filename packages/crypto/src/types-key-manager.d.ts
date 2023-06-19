@@ -310,7 +310,7 @@ export namespace Web5Crypto {
     namedCurve: NamedCurve;
   }
 
-  export interface EcdhDeriveKeyOptions {
+  export interface EcdhDeriveKeyOptions extends Algorithm {
     publicKey: CryptoKey;
   }
 
@@ -320,9 +320,7 @@ export namespace Web5Crypto {
 
   export type EdDsaGenerateKeyOptions = EcGenerateKeyOptions
 
-  export interface EdDsaOptions extends Algorithm {
-    hash: string;
-  }
+  export type EdDsaOptions = Algorithm
 
   export interface KeyAlgorithm {
     name: string;

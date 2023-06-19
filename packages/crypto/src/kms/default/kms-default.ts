@@ -123,7 +123,7 @@ export class DefaultKms implements KeyManagementSystem {
   }
 
   #getAlgorithm(algorithmIdentifier: Web5Crypto.AlgorithmIdentifier): CryptoAlgorithm {
-    checkRequiredProperty('name', algorithmIdentifier);
+    checkRequiredProperty({ property: 'name', inObject: algorithmIdentifier });
     const algorithm = this.#supportedAlgorithms.get(algorithmIdentifier.name.toUpperCase());
 
     if (algorithm === undefined) {

@@ -39,20 +39,23 @@ export function bytesToBase58btcMultibase(header: Uint8Array, bytes: Uint8Array)
  * Checks whether the property specified is a member of the list of valid properties.
  *
  * @param property Property key to check for.
- * @param properties Properties Array, Map, or Set to check within.
+ * @param allowedProperties Properties Array, Map, or Set to check within.
  * @returns void
- * @throws {SyntaxError} If the property is not a member of the properties Array, Map, or Set.
+ * @throws {SyntaxError} If the property is not a member of the allowedProperties Array, Map, or Set.
  */
-export function checkPropertyExists(property: string, properties: Array<string> | Map<string, unknown> | Set<string>): void {
-  if (property === undefined || properties === undefined) {
-    throw new TypeError(`One or more required arguments missing: 'property, properties'`);
+export function checkValidProperty(options: {
+  property: string, allowedProperties: Array<string> | Map<string, unknown> | Set<string>
+}): void {
+  if (!options || options.property === undefined || options.allowedProperties === undefined) {
+    throw new TypeError(`One or more required arguments missing: 'property, allowedProperties'`);
   }
+  const { property, allowedProperties } = options;
   if (
-    (Array.isArray(properties) && !properties.includes(property)) ||
-    (properties instanceof Set && !properties.has(property)) ||
-    (properties instanceof Map && !properties.has(property))
+    (Array.isArray(allowedProperties) && !allowedProperties.includes(property)) ||
+    (allowedProperties instanceof Set && !allowedProperties.has(property)) ||
+    (allowedProperties instanceof Map && !allowedProperties.has(property))
   ) {
-    const validProperties = Array.from((properties instanceof Map) ? properties.keys() : properties).join(', ');
+    const validProperties = Array.from((allowedProperties instanceof Map) ? allowedProperties.keys() : allowedProperties).join(', ');
     throw new TypeError(`Out of range: '${property}'. Must be one of '${validProperties}'`);
   }
 }
@@ -65,11 +68,15 @@ export function checkPropertyExists(property: string, properties: Array<string> 
  * @returns void
  * @throws {SyntaxError} If the property is not a key in the properties object.
  */
-export function checkRequiredProperty(property: string, properties: object): void {
-  if (property === undefined || properties === undefined) {
+export function checkRequiredProperty(options: {
+  property: string,
+  inObject: object
+}): void {
+  if (!options || options.property === undefined || options.inObject === undefined) {
     throw new TypeError(`One or more required arguments missing: 'property, properties'`);
   }
-  if (!(property in properties)) {
+  const { property, inObject } = options;
+  if (!(property in inObject)) {
     throw new TypeError(`Required parameter was missing: '${property}'`);
   }
 }

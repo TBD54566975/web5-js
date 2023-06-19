@@ -1,7 +1,7 @@
 import type { Web5Crypto } from '../../types-key-manager.js';
 
 import { EllipticCurveAlgorithm } from './base.js';
-import { checkPropertyExists, checkRequiredProperty } from '../../utils.js';
+import { checkValidProperty, checkRequiredProperty } from '../../utils.js';
 
 export abstract class EcdsaAlgorithm extends EllipticCurveAlgorithm {
 
@@ -14,10 +14,11 @@ export abstract class EcdsaAlgorithm extends EllipticCurveAlgorithm {
     publicKey  : ['verify'],
   };
 
-  public checkAlgorithmOptions(algorithm: Web5Crypto.EcdsaOptions) {
-    this.checkAlgorithmName(algorithm.name);
-    checkRequiredProperty('hash', algorithm);
-    checkPropertyExists(algorithm.hash, this.hashAlgorithms);
+  public checkAlgorithmOptions(options: { algorithm: Web5Crypto.EcdsaOptions }) {
+    const { algorithm } = options;
+    this.checkAlgorithmName({ algorithmName: algorithm.name });
+    checkRequiredProperty({ property: 'hash', inObject: algorithm });
+    checkValidProperty({ property: algorithm.hash, allowedProperties: this.hashAlgorithms });
   }
 
   public abstract sign(options: { algorithm: Web5Crypto.EcdsaOptions; key: Web5Crypto.CryptoKey; data: BufferSource; }): Promise<ArrayBuffer>;
