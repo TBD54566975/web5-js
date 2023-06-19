@@ -12,6 +12,24 @@ Making developing with Web5 components at least 5 times easier to work with.
 
 The SDK is currently still under active development, but having entered the Tech Preview phase there is now a drive to avoid unnecessary changes unless backwards compatibility is provided. Additional functionality will be added in the lead up to 1.0 final, and modifications will be made to address issues and community feedback.
 
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Components](#components)
+- [Installation](#installation)
+- [Importing the SDK](#importing-the-sdk)
+- [APIs](#usage-and-api-documentation)
+  - [Web5.connect](#web5connectoptions)
+  - [web5.dwn.records.query](#web5dwnrecordsqueryrequest)
+  - [web5.dwn.records.create](#web5dwnrecordscreaterequest)
+  - [web5.dwn.records.write](#web5dwnrecordswriterequest)
+  - [web5.dwn.records.read](#web5dwnrecordsreadrequest)
+  - [web5.dwn.records.delete](#web5dwnrecordsdeleterequest)
+  - [web5.dwn.protocols.configure](#web5dwnprotocolsconfigurerequest)
+  - [web5.dwn.protocols.query](#web5dwnprotocolsqueryrequest)
+  - [web5.did.create](#web5didcreatemethod-options)
+- [Project Resources](#project-resources)
+
 ## Introduction
 
 Web5 consists of the following components:
