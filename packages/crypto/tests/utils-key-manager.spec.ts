@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 
-import { bytesToBase58btcMultibase, checkValidProperty, checkRequiredProperty } from '../src/utils.js';
+import { bytesToBase58btcMultibase } from '../src/utils.js';
+import { checkValidProperty, checkRequiredProperty } from '../src/utils-key-manager.js';
 
 describe('Crypto Utils', () => {
   describe('bytesToBase58btcMultibase()', () => {
@@ -32,22 +33,25 @@ describe('Crypto Utils', () => {
   });
 
   describe('checkValidProperty()', () => {
+    it('should not throw for a property in the allowed list', () => {
+      expect(() => checkValidProperty({ property: 'foo', allowedProperties: ['foo', 'bar']})).to.not.throw();
+      expect(() => checkValidProperty({ property: 'foo', allowedProperties: new Set(['foo', 'bar'])})).to.not.throw();
+      expect(() => checkValidProperty({ property: 'foo', allowedProperties: new Map([['foo', 1], ['bar', 2]])})).to.not.throw();
+    });
+
     it('throws an error if required arguments are missing', () => {
-    // @ts-expect-error because second argument is intentionally omitted.
-      expect(() => checkValidProperty({ property: 'foo' })).to.throw('required arguments missing');
+      expect(() => checkValidProperty({ property: 'foo' } as any)).to.throw(TypeError, 'required arguments missing');
+      expect(() => checkValidProperty({ allowedProperties: ['foo', 'bar'] } as any)).to.throw(TypeError, 'required arguments missing');
       // @ts-expect-error because both arguments are intentionally omitted.
-      expect(() => checkValidProperty()).to.throw('required arguments missing');
+      expect(() => checkValidProperty()).to.throw(TypeError, 'required arguments missing');
     });
 
     it('throws an error if the property does not exist', () => {
-      const propertiesCollection = ['foo', 'bar'];
-      expect(() => checkValidProperty({ property: 'baz', allowedProperties: propertiesCollection })).to.throw('Out of range');
+      expect(() => checkValidProperty({ property: 'baz', allowedProperties: ['foo', 'bar']})).to.throw(TypeError, 'Out of range');
+      expect(() => checkValidProperty({ property: 'baz', allowedProperties: new Set(['foo', 'bar'])})).to.throw(TypeError, 'Out of range');
+      expect(() => checkValidProperty({ property: 'baz', allowedProperties: new Map([['foo', 1], ['bar', 2]])})).to.throw(TypeError, 'Out of range');
     });
 
-    it('does not throw an error if the property exists', () => {
-      const propertiesCollection = ['foo', 'bar'];
-      expect(() => checkValidProperty({ property: 'foo', allowedProperties: propertiesCollection })).to.not.throw();
-    });
   });
 
   describe('checkRequiredProperty', () => {

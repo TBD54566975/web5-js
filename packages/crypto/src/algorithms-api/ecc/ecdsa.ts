@@ -1,20 +1,22 @@
 import type { Web5Crypto } from '../../types-key-manager.js';
 
 import { EllipticCurveAlgorithm } from './base.js';
-import { checkValidProperty, checkRequiredProperty } from '../../utils.js';
+import { checkValidProperty, checkRequiredProperty } from '../../utils-key-manager.js';
 
 export abstract class EcdsaAlgorithm extends EllipticCurveAlgorithm {
 
   public readonly name: string = 'ECDSA';
 
-  public abstract hashAlgorithms: string[];
+  public readonly abstract hashAlgorithms: string[];
 
   public readonly keyUsages: Web5Crypto.KeyPairUsage = {
     privateKey : ['sign'],
     publicKey  : ['verify'],
   };
 
-  public checkAlgorithmOptions(options: { algorithm: Web5Crypto.EcdsaOptions }) {
+  public checkAlgorithmOptions(options: {
+    algorithm: Web5Crypto.EcdsaOptions
+  }): void {
     const { algorithm } = options;
     this.checkAlgorithmName({ algorithmName: algorithm.name });
     checkRequiredProperty({ property: 'hash', inObject: algorithm });

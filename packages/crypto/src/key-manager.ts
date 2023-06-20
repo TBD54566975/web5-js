@@ -10,7 +10,7 @@ import type {
   GenerateKeyOptionTypes,
 } from './types-key-manager.js';
 
-import { checkRequiredProperty, isManagedKeyPair } from './utils.js';
+import { checkRequiredProperty, isManagedKeyPair } from './utils-key-manager.js';
 import { MemoryKeyStore } from './key-store-memory.js';
 import { KeyManagerStore } from './key-manager-store.js';
 import { DefaultKms, KmsKeyStore, KmsPrivateKeyStore } from './kms/default/index.js';

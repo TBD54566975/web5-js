@@ -15,8 +15,8 @@ import type {
 import { isDefined } from '../../common/type-utils.js';
 import { defaultAlgorithms } from './supported-algorithms.js';
 import { KmsKeyStore, KmsPrivateKeyStore } from './key-stores.js';
-import { checkRequiredProperty, isCryptoKeyPair } from '../../utils.js';
 import { CryptoAlgorithm, NotSupportedError } from '../../algorithms-api/index.js';
+import { checkRequiredProperty, isCryptoKeyPair } from '../../utils-key-manager.js';
 
 
 export type KmsOptions = {

@@ -1,4 +1,4 @@
-import type { KeyValueStore } from './common/stores.js';
+import type { KeyValueStore } from './common/types.d.js';
 
 /**
  * An implementation of `KeyValueStore` that holds data in memory.

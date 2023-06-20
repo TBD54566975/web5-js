@@ -1,7 +1,7 @@
 import type { BufferKeyPair, Web5Crypto } from '../../../types-key-manager.js';
 
 import { CryptoKey } from '../crypto-key.js';
-import { isBufferKeyPair } from '../../../utils.js';
+import { isBufferKeyPair } from '../../../utils-key-manager.js';
 import { Secp256k1 } from '../../../crypto-algorithms/index.js';
 import { EcdsaAlgorithm } from '../../../algorithms-api/index.js';
 export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
@@ -23,6 +23,7 @@ export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
     switch (algorithm.namedCurve) {
 
       case 'secp256k1': {
+        algorithm.compressedPublicKey ??= true;
         keyPair = await Secp256k1.generateKeyPair({ compressedPublicKey: algorithm.compressedPublicKey });
         break;
       }

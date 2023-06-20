@@ -1,3 +1,5 @@
+import type { BufferKeyPair } from '../src/types-key-manager.js';
+
 import { expect } from 'chai';
 import { Ed25519, Secp256k1, X25519 } from '../src/crypto-algorithms/index.js';
 
@@ -29,7 +31,7 @@ describe('Cryptographic Algorithm Implementations', () => {
     });
 
     describe('getPublicKey()', () => {
-      let keyPair: { privateKey: ArrayBuffer, publicKey: ArrayBuffer };
+      let keyPair: BufferKeyPair;
 
       before(async () => {
         keyPair = await Secp256k1.generateKeyPair();
@@ -47,7 +49,7 @@ describe('Cryptographic Algorithm Implementations', () => {
     });
 
     describe('sign()', () => {
-      let keyPair: { privateKey: ArrayBuffer, publicKey: ArrayBuffer };
+      let keyPair: BufferKeyPair;
 
       before(async () => {
         keyPair = await Secp256k1.generateKeyPair();
@@ -89,7 +91,7 @@ describe('Cryptographic Algorithm Implementations', () => {
     });
 
     describe('verify()', () => {
-      let keyPair: { privateKey: ArrayBuffer, publicKey: ArrayBuffer };
+      let keyPair: BufferKeyPair;
 
       before(async () => {
         keyPair = await Secp256k1.generateKeyPair();
@@ -237,7 +239,7 @@ describe('Cryptographic Algorithm Implementations', () => {
     });
 
     describe('getPublicKey()', () => {
-      let keyPair: { privateKey: ArrayBuffer, publicKey: ArrayBuffer };
+      let keyPair: BufferKeyPair;
 
       before(async () => {
         keyPair = await Ed25519.generateKeyPair();
@@ -250,7 +252,7 @@ describe('Cryptographic Algorithm Implementations', () => {
     });
 
     describe('sign()', () => {
-      let keyPair: { privateKey: ArrayBuffer, publicKey: ArrayBuffer };
+      let keyPair: BufferKeyPair;
 
       before(async () => {
         keyPair = await Ed25519.generateKeyPair();
@@ -290,7 +292,7 @@ describe('Cryptographic Algorithm Implementations', () => {
     });
 
     describe('verify()', () => {
-      let keyPair: { privateKey: ArrayBuffer, publicKey: ArrayBuffer };
+      let keyPair: BufferKeyPair;
 
       before(async () => {
         keyPair = await Ed25519.generateKeyPair();
@@ -419,7 +421,7 @@ describe('Cryptographic Algorithm Implementations', () => {
     });
 
     describe('getPublicKey()', () => {
-      let keyPair: { privateKey: ArrayBuffer, publicKey: ArrayBuffer };
+      let keyPair: BufferKeyPair;
 
       before(async () => {
         keyPair = await X25519.generateKeyPair();

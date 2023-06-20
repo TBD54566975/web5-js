@@ -1,5 +1,5 @@
 import type { Web5Crypto } from '../../types-key-manager.js';
-import { checkValidProperty, checkRequiredProperty } from '../../utils.js';
+import { checkValidProperty, checkRequiredProperty } from '../../utils-key-manager.js';
 
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
 

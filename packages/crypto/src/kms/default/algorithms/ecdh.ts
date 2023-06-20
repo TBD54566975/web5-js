@@ -1,7 +1,7 @@
 import type { BufferKeyPair, Web5Crypto } from '../../../types-key-manager.js';
 
 import { CryptoKey } from '../crypto-key.js';
-import { isBufferKeyPair } from '../../../utils.js';
+import { isBufferKeyPair } from '../../../utils-key-manager.js';
 import { Secp256k1, X25519 } from '../../../crypto-algorithms/index.js';
 import { EcdhAlgorithm, InvalidAccessError } from '../../../algorithms-api/index.js';
 
@@ -23,8 +23,10 @@ export class DefaultEcdhAlgorithm extends EcdhAlgorithm {
     switch (algorithm.namedCurve) {
 
       case 'secp256k1': {
-        const compressedPublicKey = ('compressedPublicKey' in algorithm) ? algorithm.compressedPublicKey : undefined; // Type guard.
-        keyPair = await Secp256k1.generateKeyPair({ compressedPublicKey });
+        (algorithm as Web5Crypto.EcdsaGenerateKeyOptions).compressedPublicKey ??= true;
+        keyPair = await Secp256k1.generateKeyPair({
+          compressedPublicKey: (algorithm as Web5Crypto.EcdsaGenerateKeyOptions).compressedPublicKey
+        });
         break;
       }
 

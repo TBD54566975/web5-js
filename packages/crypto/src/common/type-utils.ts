@@ -10,11 +10,6 @@ export function isDefined<T>(arg: T): arg is Exclude<T, null | undefined> {
 }
 
 /**
- * Represents an object type where a subset of keys are required and everything else is optional.
- */
-export type RequireOnly<T, K extends keyof T> = Required<Pick<T, K>> & Partial<T>
-
-/**
  * universalTypeOf
  *
  * Why does this function exist?
@@ -51,13 +46,9 @@ export function universalTypeOf(value: unknown) {
   // Returns '[Object Type]' string.
   const typeString = Object.prototype.toString.call(value);
   // Returns ['Object', 'Type'] array or null.
-  const match = typeString.match(/\s([a-zA-Z]+)/);
-  // Mostly a typeguard, but if `match()` returns null, throw an error.
-  if (match === null) {
-    throw new Error('unable to determine type.');
-  }
+  const match = typeString.match(/\s([a-zA-Z0-9]+)/);
   // Deconstructs the array and gets just the type from index 1.
-  const [_, type] = match;
+  const [_, type] = match as RegExpMatchArray;
 
   return type;
 }
