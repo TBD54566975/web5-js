@@ -2,6 +2,7 @@ import type {
   ManagedKey,
   SignOptions,
   CryptoManager,
+  VerifyOptions,
   ManagedKeyPair,
   GenerateKeyType,
   ManagedPrivateKey,
@@ -10,9 +11,9 @@ import type {
   GenerateKeyOptionTypes,
 } from './types-key-manager.js';
 
-import { checkRequiredProperty, isManagedKeyPair } from './utils-key-manager.js';
 import { MemoryKeyStore } from './key-store-memory.js';
 import { KeyManagerStore } from './key-manager-store.js';
+import { checkRequiredProperty, isManagedKeyPair } from './utils-key-manager.js';
 import { DefaultKms, KmsKeyStore, KmsPrivateKeyStore } from './kms/default/index.js';
 
 export type KmsMap = {
@@ -77,19 +78,12 @@ export class KeyManager implements CryptoManager {
   }
 
   async sign(options: SignOptions): Promise<ArrayBuffer> {
-    let { key, keyRef, ...signOptions } = options;
+    let { keyRef, ...signOptions } = options;
 
-    let keyPair;
-    if (key) {
-      keyPair = key;
-    } else if (!key && keyRef) {
-      keyPair = await this.getKey({ keyRef });
-    } else {
-      throw new TypeError(`Required parameter was missing: 'key' or 'keyRef'.`);
-    }
+    const keyPair = await this.getKey({ keyRef });
 
     if (!isManagedKeyPair(keyPair)) {
-      throw new TypeError(`'key' or 'keyRef' must refer to a valid key pair.`);
+      throw new TypeError(`'keyRef' must refer to a valid key pair.`);
     }
 
     const kmsName = keyPair.privateKey.kms;
@@ -99,6 +93,24 @@ export class KeyManager implements CryptoManager {
     const signature = await kms.sign({ keyRef: keyId, ...signOptions });
 
     return signature;
+  }
+
+  async verify(options: VerifyOptions): Promise<boolean> {
+    let { keyRef, ...verifyOptions } = options;
+
+    const keyPair = await this.getKey({ keyRef });
+
+    if (!isManagedKeyPair(keyPair)) {
+      throw new TypeError(`'keyRef' must refer to a valid key pair.`);
+    }
+
+    const kmsName = keyPair.publicKey.kms;
+    const kms = this.#getKms(kmsName);
+
+    const keyId = keyPair.publicKey.id;
+    const isValid = await kms.verify({ keyRef: keyId, ...verifyOptions });
+
+    return isValid;
   }
 
   #getKms(name: string | undefined): KeyManagementSystem {

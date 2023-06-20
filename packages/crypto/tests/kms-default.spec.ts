@@ -20,18 +20,18 @@ chai.use(chaiAsPromised);
 
 describe('DefaultKms', () => {
   describe('KMS', () => {
+    let kms: DefaultKms;
+
+    beforeEach(() => {
+      const memoryKeyStore = new MemoryKeyStore<string, ManagedKey | ManagedKeyPair>();
+      const kmsKeyStore = new KmsKeyStore(memoryKeyStore);
+      const memoryPrivateKeyStore = new MemoryKeyStore<string, ManagedPrivateKey>();
+      const kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryPrivateKeyStore);
+      kms = new DefaultKms('default', kmsKeyStore, kmsPrivateKeyStore);
+    });
+
     describe('generateKey()', () => {
-      let kms: DefaultKms;
-
-      beforeEach(() => {
-        const memoryKeyStore = new MemoryKeyStore<string, ManagedKey | ManagedKeyPair>();
-        const kmsKeyStore = new KmsKeyStore(memoryKeyStore);
-        const memoryPrivateKeyStore = new MemoryKeyStore<string, ManagedPrivateKey>();
-        const kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryPrivateKeyStore);
-        kms = new DefaultKms('default', kmsKeyStore, kmsPrivateKeyStore);
-      });
-
-      it('creates ECDSA secp256k1 key pairs with compressed public keys, by default', async () => {
+      it('creates valid key pairs', async () => {
         const keys = await kms.generateKey({
           algorithm : { name: 'ECDSA', namedCurve: 'secp256k1' },
           keyUsages : ['sign', 'verify']
@@ -44,10 +44,6 @@ describe('DefaultKms', () => {
         // Check values that are identical for both keys in the pair.
         expect(keys.privateKey.algorithm.name).to.equal('ECDSA');
         expect(keys.publicKey.algorithm.name).to.equal('ECDSA');
-        if (!('namedCurve' in keys.privateKey.algorithm)) throw new Error; // type guard
-        expect(keys.privateKey.algorithm.namedCurve).to.equal('secp256k1');
-        if (!('namedCurve' in keys.publicKey.algorithm)) throw new Error; // type guard
-        expect(keys.publicKey.algorithm.namedCurve).to.equal('secp256k1');
         expect(keys.privateKey.kms).to.equal('default');
         expect(keys.publicKey.kms).to.equal('default');
         expect(keys.privateKey.spec).to.be.undefined;
@@ -62,10 +58,61 @@ describe('DefaultKms', () => {
 
         // Check values unique to the public key.
         expect(keys.publicKey.material).to.be.an.instanceOf(ArrayBuffer);
-        if (!keys.publicKey.material) throw new Error; // type guard
-        expect(keys.publicKey.material.byteLength).to.equal(33);
         expect(keys.publicKey.type).to.equal('public');
         expect(keys.publicKey.usages).to.deep.equal(['verify']);
+      });
+
+      it('creates ECDH secp256k1 key pairs with compressed public keys, by default', async () => {
+        const keys = await kms.generateKey({
+          algorithm : { name: 'ECDH', namedCurve: 'secp256k1' },
+          keyUsages : ['deriveBits', 'deriveKey']
+        });
+
+        // Check values that are identical for both keys in the pair.
+        expect(keys.privateKey.algorithm.name).to.equal('ECDH');
+        expect(keys.publicKey.algorithm.name).to.equal('ECDH');
+        if (!('namedCurve' in keys.privateKey.algorithm)) throw new Error; // type guard
+        if (!('namedCurve' in keys.publicKey.algorithm)) throw new Error; // type guard
+        expect(keys.privateKey.algorithm.namedCurve).to.equal('secp256k1');
+        expect(keys.publicKey.algorithm.namedCurve).to.equal('secp256k1');
+
+        // Check values unique to the public key.
+        if (!keys.publicKey.material) throw new Error; // type guard
+        expect(keys.publicKey.material.byteLength).to.equal(33);
+      });
+
+      it('creates ECDH secp256k1 key pairs with uncompressed public keys, if specified', async () => {
+        const keys = await kms.generateKey({
+          algorithm : { name: 'ECDH', namedCurve: 'secp256k1', compressedPublicKey: false },
+          keyUsages : ['deriveBits', 'deriveKey']
+        });
+
+        // Check values unique to the public key.
+        if (!keys.publicKey.material) throw new Error; // type guard
+        expect(keys.publicKey.material.byteLength).to.equal(65);
+      });
+
+      it('creates ECDSA secp256k1 key pairs with compressed public keys, by default', async () => {
+        const keys = await kms.generateKey({
+          algorithm : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          keyUsages : ['sign', 'verify']
+        });
+
+        // Check values that are identical for both keys in the pair.
+        expect(keys.privateKey.algorithm.name).to.equal('ECDSA');
+        expect(keys.publicKey.algorithm.name).to.equal('ECDSA');
+        if (!('namedCurve' in keys.privateKey.algorithm)) throw new Error; // type guard
+        if (!('namedCurve' in keys.publicKey.algorithm)) throw new Error; // type guard
+        expect(keys.privateKey.algorithm.namedCurve).to.equal('secp256k1');
+        expect(keys.publicKey.algorithm.namedCurve).to.equal('secp256k1');
+        if (!('compressedPublicKey' in keys.privateKey.algorithm)) throw new Error; // type guard
+        if (!('compressedPublicKey' in keys.publicKey.algorithm)) throw new Error; // type guard
+        expect(keys.privateKey.algorithm.compressedPublicKey).to.be.true;
+        expect(keys.publicKey.algorithm.compressedPublicKey).to.be.true;
+
+        // Check values unique to the public key.
+        if (!keys.publicKey.material) throw new Error; // type guard
+        expect(keys.publicKey.material.byteLength).to.equal(33);
       });
 
       it('creates ECDSA secp256k1 key pairs with uncompressed public keys, if specified', async () => {
@@ -74,54 +121,28 @@ describe('DefaultKms', () => {
           keyUsages : ['sign', 'verify']
         });
 
-        // Check values that are identical for both keys in the pair.
-        expect(keys.privateKey.algorithm.name).to.equal('ECDSA');
-        expect(keys.publicKey.algorithm.name).to.equal('ECDSA');
-        if (!('namedCurve' in keys.privateKey.algorithm)) throw new Error; // type guard
-        expect(keys.privateKey.algorithm.namedCurve).to.equal('secp256k1');
-        if (!('namedCurve' in keys.publicKey.algorithm)) throw new Error; // type guard
-        expect(keys.publicKey.algorithm.namedCurve).to.equal('secp256k1');
-
         // Check values unique to the public key.
         if (!keys.publicKey.material) throw new Error; // type guard
         expect(keys.publicKey.material.byteLength).to.equal(65);
       });
 
-      it('creates EdDSA key pairs', async () => {
+      it('creates EdDSA Ed25519 key pairs', async () => {
         const keys = await kms.generateKey({
           algorithm : { name: 'EdDSA', namedCurve: 'Ed25519' },
           keyUsages : ['sign', 'verify']
         });
 
-        expect(keys).to.have.property('privateKey');
-        expect(keys).to.have.property('publicKey');
-        expect(keys.privateKey.id).to.equal(keys.publicKey.id);
-
         // Check values that are identical for both keys in the pair.
         expect(keys.privateKey.algorithm.name).to.equal('EdDSA');
         expect(keys.publicKey.algorithm.name).to.equal('EdDSA');
         if (!('namedCurve' in keys.privateKey.algorithm)) throw new Error; // type guard
-        expect(keys.privateKey.algorithm.namedCurve).to.equal('Ed25519');
         if (!('namedCurve' in keys.publicKey.algorithm)) throw new Error; // type guard
+        expect(keys.privateKey.algorithm.namedCurve).to.equal('Ed25519');
         expect(keys.publicKey.algorithm.namedCurve).to.equal('Ed25519');
-        expect(keys.privateKey.kms).to.equal('default');
-        expect(keys.publicKey.kms).to.equal('default');
-        expect(keys.privateKey.spec).to.be.undefined;
-        expect(keys.publicKey.spec).to.be.undefined;
-        expect(keys.privateKey.state).to.equal('Enabled');
-        expect(keys.publicKey.state).to.equal('Enabled');
-
-        // Check values unique to the private key.
-        expect(keys.privateKey.material).to.be.undefined;
-        expect(keys.privateKey.type).to.equal('private');
-        expect(keys.privateKey.usages).to.deep.equal(['sign']);
 
         // Check values unique to the public key.
-        expect(keys.publicKey.material).to.be.an.instanceOf(ArrayBuffer);
         if (!keys.publicKey.material) throw new Error; // type guard
         expect(keys.publicKey.material.byteLength).to.equal(32);
-        expect(keys.publicKey.type).to.equal('public');
-        expect(keys.publicKey.usages).to.deep.equal(['verify']);
       });
 
       it('ignores case of algorithm name', () => {
@@ -139,6 +160,224 @@ describe('DefaultKms', () => {
           if (!('namedCurve' in keys.privateKey.algorithm)) throw new Error; // type guard
           expect(keys.privateKey.algorithm.namedCurve).to.equal('secp256k1');
         });
+      });
+    });
+
+    describe('sign()', () => {
+      it('generates signatures', async () => {
+        const keyPair = await kms.generateKey({
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : false,
+          keyUsages   : ['sign', 'verify']
+        });
+
+        const signature = await kms.sign({
+          algorithm : { name: 'ECDSA', hash: 'SHA-256' },
+          keyRef    : keyPair.privateKey.id,
+          data      : new Uint8Array([51, 52, 53]),
+        });
+
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+        expect(signature.byteLength).to.equal(64);
+      });
+
+      it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
+        const algorithm = { name: 'ECDSA', hash: 'SHA-256' };
+        const keyPair = await kms.generateKey({
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : false,
+          keyUsages   : ['sign', 'verify']
+        });
+        const key = keyPair.privateKey;
+        let signature: ArrayBuffer;
+
+        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        signature = await kms.sign({ algorithm, keyRef: key.id, data: dataU8A });
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+
+        const dataArrayBuffer = dataU8A.buffer;
+        signature = await kms.sign({ algorithm, keyRef: key.id, data: dataArrayBuffer });
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+
+        const dataView = new DataView(dataArrayBuffer);
+        signature = await kms.sign({ algorithm, keyRef: key.id, data: dataView });
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+
+        const dataI32A = new Int32Array([10, 20, 30, 40]);
+        signature = await kms.sign({ algorithm, keyRef: key.id, data: dataI32A });
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+
+        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
+        signature = await kms.sign({ algorithm, keyRef: key.id, data: dataU32A });
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+      });
+
+      it('generates ECDSA secp256k1 signatures', async () => {
+        const keyPair = await kms.generateKey({
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : false,
+          keyUsages   : ['sign', 'verify']
+        });
+
+        const signature = await kms.sign({
+          algorithm : { name: 'ECDSA', hash: 'SHA-256' },
+          keyRef    : keyPair.privateKey.id,
+          data      : new Uint8Array([51, 52, 53]),
+        });
+
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+        expect(signature.byteLength).to.equal(64);
+      });
+
+      it('generates EdDSA Ed25519 signatures', async () => {
+        const keyPair = await kms.generateKey({
+          algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
+          extractable : false,
+          keyUsages   : ['sign', 'verify']
+        });
+
+        const signature = await kms.sign({
+          algorithm : { name: 'EdDSA' },
+          keyRef    : keyPair.privateKey.id,
+          data      : new Uint8Array([51, 52, 53]),
+        });
+
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+        expect(signature.byteLength).to.equal(64);
+      });
+
+      it('throws an error when key reference is not found', async () => {
+        await expect(kms.sign({
+          algorithm : { name: 'ECDSA', hash: 'SHA-256' },
+          keyRef    : 'non-existent-key',
+          data      : new Uint8Array([51, 52, 53])
+        })).to.eventually.be.rejectedWith(Error, 'Key not found');
+      });
+    });
+
+    describe('verify()', () => {
+      it('returns a boolean result', async () => {
+        const dataU8A = new Uint8Array([51, 52, 53]);
+        const keyPair = await kms.generateKey({
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : false,
+          keyUsages   : ['sign', 'verify']
+        });
+
+        const signature = await kms.sign({
+          algorithm : { name: 'ECDSA', hash: 'SHA-256' },
+          keyRef    : keyPair.privateKey.id,
+          data      : dataU8A,
+        });
+
+        const isValid = await kms.verify({
+          algorithm : { name: 'ECDSA', hash: 'SHA-256' },
+          keyRef    : keyPair.publicKey.id,
+          signature : signature,
+          data      : dataU8A
+        });
+
+        expect(isValid).to.exist;
+        expect(isValid).to.be.true;
+      });
+
+      it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
+        const algorithm = { name: 'ECDSA', hash: 'SHA-256' };
+        const keyPair = await kms.generateKey({
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : false,
+          keyUsages   : ['sign', 'verify']
+        });
+        let signature: ArrayBuffer;
+        let isValid: boolean;
+
+        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        signature = await kms.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataU8A });
+        isValid = await kms.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataU8A });
+        expect(isValid).to.be.true;
+
+        const dataArrayBuffer = dataU8A.buffer;
+        signature = await kms.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataArrayBuffer });
+        isValid = await kms.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataArrayBuffer });
+        expect(isValid).to.be.true;
+
+        const dataView = new DataView(dataArrayBuffer);
+        signature = await kms.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataView });
+        isValid = await kms.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataView });
+        expect(isValid).to.be.true;
+
+        const dataI32A = new Int32Array([10, 20, 30, 40]);
+        signature = await kms.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataI32A });
+        isValid = await kms.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataI32A });
+        expect(isValid).to.be.true;
+
+        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
+        signature = await kms.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataU32A });
+        isValid = await kms.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataU32A });
+        expect(isValid).to.be.true;
+      });
+
+      it('verifies ECDSA secp256k1 signatures', async () => {
+        const keyPair = await kms.generateKey({
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : false,
+          keyUsages   : ['sign', 'verify']
+        });
+
+        const algorithm = { name: 'ECDSA', hash: 'SHA-256' };
+        const dataU8A = new Uint8Array([51, 52, 53]);
+
+        const signature = await kms.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataU8A });
+        const isValid = await kms.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataU8A });
+
+        expect(isValid).to.be.true;
+      });
+
+      it('verifies EdDSA Ed25519 signatures', async () => {
+        const keyPair = await kms.generateKey({
+          algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
+          extractable : false,
+          keyUsages   : ['sign', 'verify']
+        });
+
+        const algorithm = { name: 'EdDSA' };
+        const dataU8A = new Uint8Array([51, 52, 53]);
+
+        const signature = await kms.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataU8A });
+        const isValid = await kms.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataU8A });
+
+        expect(isValid).to.be.true;
+      });
+
+      it('throws an error when key reference is not found', async () => {
+        await expect(kms.verify({
+          algorithm : { name: 'ECDSA', hash: 'SHA-256' },
+          keyRef    : 'non-existent-key',
+          signature : (new Uint8Array([51, 52, 53])).buffer,
+          data      : new Uint8Array([51, 52, 53])
+        })).to.eventually.be.rejectedWith(Error, 'Key not found');
+      });
+    });
+
+    describe('#getAlgorithm', function() {
+      /**
+       * We can't directly test private methods, but we can indirectly
+       * test their behavior through the methods that use them. Since
+       * #getAlgorithm() is used in the generateKey() method, we can
+       * test this methods with known algorithm names.
+       */
+      it('does not throw an error when a supported algorithm is specified', async () => {
+        await expect(kms.generateKey({
+          algorithm : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          keyUsages : ['sign', 'verify']
+        })).to.eventually.be.fulfilled;
+      });
+
+      it('throws a NotSupportedError when an unsupported algorithm is specified', async () => {
+        await expect(kms.generateKey({
+          algorithm : { name: 'not-valid' },
+          keyUsages : []
+        })).to.eventually.be.rejectedWith(NotSupportedError, 'is not supported');
       });
     });
   });
