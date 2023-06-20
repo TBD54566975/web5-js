@@ -392,18 +392,10 @@ export interface CryptoManager {
   // exportKey(format: "jwk", key: CryptoKey): Promise<JsonWebKey>;
   // exportKey(format: Exclude<KeyFormat, "jwk">, key: CryptoKey): Promise<ArrayBuffer>;
 
-  // generateKey(algorithm: RsaHashedKeyGenParams | EcKeyGenParams, extractable: boolean, keyUsages: ReadonlyArray<KeyUsage>): Promise<CryptoKeyPair>;
-  // generateKey(algorithm: AesKeyGenParams | HmacKeyGenParams | Pbkdf2Params, extractable: boolean, keyUsages: ReadonlyArray<KeyUsage>): Promise<CryptoKey>;
-  // generateKey(algorithm: AlgorithmIdentifier, extractable: boolean, keyUsages: KeyUsage[]): Promise<CryptoKeyPair | CryptoKey>;
-
   // importKey(format: "jwk", keyData: JsonWebKey, algorithm: AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams | HmacImportParams | AesKeyAlgorithm, extractable: boolean, keyUsages: ReadonlyArray<KeyUsage>): Promise<CryptoKey>;
   // importKey(format: Exclude<KeyFormat, "jwk">, keyData: BufferSource, algorithm: AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams | HmacImportParams | AesKeyAlgorithm, extractable: boolean, keyUsages: KeyUsage[]): Promise<CryptoKey>;
 
-  // sign(algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams, key: CryptoKey, data: BufferSource): Promise<ArrayBuffer>;
-
   // unwrapKey(format: KeyFormat, wrappedKey: BufferSource, unwrappingKey: CryptoKey, unwrapAlgorithm: AlgorithmIdentifier | RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams, unwrappedKeyAlgorithm: AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams | HmacImportParams | AesKeyAlgorithm, extractable: boolean, keyUsages: KeyUsage[]): Promise<CryptoKey>;
-
-  // verify(algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams, key: CryptoKey, signature: BufferSource, data: BufferSource): Promise<boolean>;
 
   // wrapKey(format: KeyFormat, key: CryptoKey, wrappingKey: CryptoKey, wrapAlgorithm: AlgorithmIdentifier | RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams): Promise<ArrayBuffer>;
 
@@ -422,15 +414,17 @@ export interface CryptoManager {
   getKey(options: { keyRef: string }): Promise<ManagedKey | ManagedKeyPair | undefined>;
 
   sign(options: SignOptions): Promise<ArrayBuffer>;
+
+  verify(options: VerifyOptions): Promise<boolean>;
 }
 
 export type GenerateKeyOptionTypes =
   | Web5Crypto.AlgorithmIdentifier
-  | RsaHashedKeyGenParams
+  // | RsaHashedKeyGenParams
   | Web5Crypto.EcdsaGenerateKeyOptions
   | Web5Crypto.EdDsaGenerateKeyOptions
   | Web5Crypto.AesGenerateKeyOptions
-  | HmacKeyGenParams
+  // | HmacKeyGenParams
   | Pbkdf2Params;
 
 export type GenerateKeyOptions<T extends GenerateKeyOptionTypes> = {
@@ -463,14 +457,38 @@ export type SignOptions = {
   data: BufferSource;
 
   /**
-   * A CryptoKey object containing the key to be used for signing.
-   * If signing algorithm is a public-key cryptosystem, this is the private key.
+   * An identifier of the ManagedKey to sign with.
+   * You can use the id or alias property of the key.
    */
-  key?: ManagedKey;
+  keyRef: string;
+}
+
+/**
+ * Input arguments for implementations of the CryptoManager interface
+ * {@link CryptoManager.verify | verify} method.
+ *
+ * @public
+ */
+export type VerifyOptions = {
+  /**
+   * An object that specifies the algorithm to use and its parameters.
+   */
+  algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdsaOptions | Web5Crypto.EdDsaOptions;
 
   /**
-   *   An identifier of the ManagedKey to sign with.
-   *   You can use the id or alias property of the key.
+   * An ArrayBuffer, a TypedArray, or a DataView object containing the data
+   * whose signature is to be verified.
    */
-  keyRef?: string;
+  data: BufferSource;
+
+  /**
+   * An identifier of the ManagedKey to sign with.
+   * You can use the id or alias property of the key.
+   */
+  keyRef: string;
+
+  /**
+   * A ArrayBuffer containing the signature to verify.
+   */
+  signature: ArrayBuffer;
 }

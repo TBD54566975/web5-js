@@ -4,19 +4,18 @@ import type {
   Web5Crypto,
   KeyMetadata,
   SignOptions,
+  VerifyOptions,
   ManagedKeyPair,
   GenerateKeyType,
-  ManagedPrivateKey,
   GenerateKeyOptions,
   KeyManagementSystem,
   GenerateKeyOptionTypes,
 } from '../../types-key-manager.js';
 
-import { isDefined } from '../../common/type-utils.js';
 import { defaultAlgorithms } from './supported-algorithms.js';
 import { KmsKeyStore, KmsPrivateKeyStore } from './key-stores.js';
 import { CryptoAlgorithm, NotSupportedError } from '../../algorithms-api/index.js';
-import { checkRequiredProperty, isCryptoKeyPair } from '../../utils-key-manager.js';
+import { checkRequiredProperty, isCryptoKeyPair, isManagedKeyPair } from '../../utils-key-manager.js';
 
 
 export type KmsOptions = {
@@ -69,7 +68,7 @@ export class DefaultKms implements KeyManagementSystem {
     return managedKeyOrKeyPair;
   }
 
-  async getKey(options: { keyRef: string }): Promise<ManagedKey | ManagedKeyPair> {
+  async getKey(options: { keyRef: string }): Promise<ManagedKey | ManagedKeyPair | undefined> {
     const keyOrKeyPair = this.#keyStore.getKey({ id: options.keyRef });
     return keyOrKeyPair;
   }
@@ -77,29 +76,54 @@ export class DefaultKms implements KeyManagementSystem {
   async sign(options: SignOptions): Promise<ArrayBuffer> {
     const { algorithm, keyRef, data } = options;
 
-    if (!isDefined(keyRef)) {
-      throw new TypeError(`Required property missing: ${keyRef}`);
+    // Assemble the private CryptoKey from the KMS key metadata and private key stores.
+    const keyPair = await this.getKey({ keyRef });
+    if (isManagedKeyPair(keyPair)) {
+      const privateManagedKey = await this.#privateKeyStore.getKey({ id: keyPair.privateKey.id });
+      if (privateManagedKey !== undefined) {
+        const privateCryptoKey = this.#toCryptoKey({ ...keyPair.privateKey, material: privateManagedKey.material });
+
+        // Sign the data.
+        const cryptoAlgorithm = this.#getAlgorithm(algorithm);
+        const signature = cryptoAlgorithm.sign({ algorithm, key: privateCryptoKey, data });
+
+        return signature;
+      }
     }
 
-    // Assemble the CryptoKey from the KMS key info and private key stores.
-    const keyPair = await this.getKey({ keyRef }) as ManagedKeyPair;
-    const privateManagedKey = await this.#privateKeyStore.getKey({ id: keyPair.privateKey.id });
-    const privateCryptoKey = this.#toCryptoKey(keyPair.privateKey, privateManagedKey);
-
-    // Sign the data.
-    const cryptoAlgorithm = this.#getAlgorithm(algorithm);
-    const signature = cryptoAlgorithm.sign({ algorithm, key: privateCryptoKey, data });
-
-    return signature;
+    throw new Error(`Sign operation failed. Key not found: ${keyRef}`);
   }
 
-  #toCryptoKey(privateKeyInfo: ManagedKey, privateKey: ManagedPrivateKey): Web5Crypto.CryptoKey {
+  async verify(options: VerifyOptions): Promise<boolean> {
+    const { algorithm, data, keyRef, signature } = options;
+
+    // Retrieve the ManagedKeyPair from the KMS key metadata store.
+    const keyPair = await this.getKey({ keyRef });
+
+    if (isManagedKeyPair(keyPair)) {
+      const publicCryptoKey = this.#toCryptoKey({ ...keyPair.publicKey });
+
+      // Verify the signature and data.
+      const cryptoAlgorithm = this.#getAlgorithm(algorithm);
+      const isValid = cryptoAlgorithm.verify({ algorithm, key: publicCryptoKey, signature, data });
+
+      return isValid;
+    }
+
+    throw new Error(`Verify operation failed. Key not found: ${keyRef}`);
+  }
+
+  #toCryptoKey(managedKey: ManagedKey): Web5Crypto.CryptoKey {
+    if (!managedKey.material) {
+      throw new Error(`Required property missing: 'material'`);
+    }
+
     const cryptoKey: Web5Crypto.CryptoKey = {
-      algorithm   : privateKeyInfo.algorithm,
-      extractable : privateKeyInfo.extractable,
-      handle      : privateKey.material,
-      type        : privateKeyInfo.type,
-      usages      : privateKeyInfo.usages
+      algorithm   : managedKey.algorithm,
+      extractable : managedKey.extractable,
+      handle      : managedKey.material,
+      type        : managedKey.type,
+      usages      : managedKey.usages
     };
 
     return cryptoKey;
