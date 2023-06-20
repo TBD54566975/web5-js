@@ -67,7 +67,7 @@ export class KeyManager implements CryptoManager {
     return keyOrKeyPair;
   }
 
-  async getKey(options: { keyRef: string; }): Promise<ManagedKey | ManagedKeyPair> {
+  async getKey(options: { keyRef: string; }): Promise<ManagedKey | ManagedKeyPair | undefined> {
     const keyOrKeyPair = this.#keyStore.getKey({ id: options.keyRef });
     return keyOrKeyPair;
   }

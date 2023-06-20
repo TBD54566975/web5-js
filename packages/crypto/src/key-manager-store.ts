@@ -28,7 +28,7 @@ export class KeyManagerStore implements ManagedKeyStore<string, ManagedKey | Man
     }
   }
 
-  async getKey({ id }: { id: string }): Promise<ManagedKey | ManagedKeyPair> {
+  async getKey({ id }: { id: string }): Promise<ManagedKey | ManagedKeyPair | undefined> {
     return this.#store.get(id);
   }
 
