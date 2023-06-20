@@ -1,4 +1,4 @@
-import type { Web5Crypto } from '../src/types-key-manager.js';
+import type { ManagedKey, ManagedKeyPair, ManagedPrivateKey, Web5Crypto } from '../src/types-key-manager.js';
 
 import sinon from 'sinon';
 import chai, { expect } from 'chai';
@@ -7,7 +7,6 @@ import chaiAsPromised from 'chai-as-promised';
 import { MemoryKeyStore } from '../src/key-store-memory.js';
 import { Ed25519, Secp256k1, X25519 } from '../src/crypto-algorithms/index.js';
 import { InvalidAccessError, NotSupportedError } from '../src/algorithms-api/errors.js';
-import { ManagedKey, ManagedKeyPair, ManagedPrivateKey } from '../src/types-key-manager.js';
 import {
   DefaultKms,
   KmsKeyStore,
@@ -1011,12 +1010,11 @@ describe('DefaultKms', () => {
 });
 
 describe('KmsKeyStore', () => {
-  let memoryKeyStore: MemoryKeyStore<string, ManagedKey | ManagedKeyPair>;
   let kmsKeyStore: KmsKeyStore;
   let testKey: ManagedKey;
 
   beforeEach(() => {
-    memoryKeyStore = new MemoryKeyStore();
+    const memoryKeyStore = new MemoryKeyStore<string, ManagedKey | ManagedKeyPair>();
 
     kmsKeyStore = new KmsKeyStore(memoryKeyStore);
 
@@ -1033,72 +1031,221 @@ describe('KmsKeyStore', () => {
 
   describe('deleteKey()', () => {
     it('should delete key and return true if key exists', async () => {
-      // Spy on the underlying memory store.
-      const hasSpy = sinon.spy(memoryKeyStore, 'has');
-      const deleteSpy = sinon.spy(memoryKeyStore, 'delete');
+      // Import the key.
+      await kmsKeyStore.importKey({ key: testKey });
 
-      // Add a key to the memory store directly.
-      await memoryKeyStore.set('testKey', testKey);
+      // Test deleting the key and validate the result.
+      const deleteResult = await kmsKeyStore.deleteKey({ id: testKey.id });
+      expect(deleteResult).to.be.true;
 
-      // Test deleting the key.
-      const result = await kmsKeyStore.deleteKey({ id: 'testKey' });
-
-      // Assert the key was deleted.
-      expect(result).to.be.true;
-
-      // Check the underlying store methods were called.
-      expect(hasSpy.calledOnce).to.be.true;
-      expect(deleteSpy.calledOnce).to.be.true;
-
-      // Check the key is no longer in the store.
-      const keyExists = await memoryKeyStore.has('test-key');
-      expect(keyExists).to.be.false;
+      // Verify the key is no longer in the store.
+      const storedKey = await kmsKeyStore.getKey({ id: testKey.id });
+      expect(storedKey).to.be.undefined;
     });
 
     it('should return false if key does not exist', async () => {
-      // Spy on the underlying memory store.
-      const hasSpy = sinon.spy(memoryKeyStore, 'has');
-      const deleteSpy = sinon.spy(memoryKeyStore, 'delete');
-
       // Test deleting the key.
-      const result = await kmsKeyStore.deleteKey({ id: 'test-key' });
+      const nonExistentId = '1234';
+      const deleteResult = await kmsKeyStore.deleteKey({ id: nonExistentId });
 
-      // Assert the key was not deleted.
-      expect(result).to.be.false;
-
-      // Check the underlying store methods were called.
-      expect(hasSpy.calledOnce).to.be.true;
-      expect(deleteSpy.calledOnce).to.be.false;
+      // Validate the key was not deleted.
+      expect(deleteResult).to.be.false;
     });
   });
 
   describe('getKey()', () => {
     it('should return a key if it exists', async () => {
-      // Spy on the underlying memory store.
-      const getSpy = sinon.spy(memoryKeyStore, 'get');
-
-      // Add a key to the memory store directly.
-      await memoryKeyStore.set('test-key', testKey);
+      // Import the key.
+      await kmsKeyStore.importKey({ key: testKey });
 
       // Test getting the key.
-      const result = await kmsKeyStore.getKey({ id: 'test-key' });
+      const storedKey = await kmsKeyStore.getKey({ id: testKey.id });
 
-      // Assert the key was returned.
-      expect(result).to.deep.equal(testKey);
-
-      // Check the underlying store method was called.
-      expect(getSpy.calledOnce).to.be.true;
+      // Verify the key is in the store.
+      expect(storedKey).to.deep.equal(testKey);
     });
 
-    it('should throw an error when attempting to get a non-existent key', async () => {
-      // Spy on the underlying memory store.
-      const getSpy = sinon.spy(memoryKeyStore, 'get');
+    it('should return undefined when attempting to get a non-existent key', async () => {
+      // Test getting the key.
+      const storedKey = await kmsKeyStore.getKey({ id: 'non-existent-key' });
+
+      // Verify the key is no longer in the store.
+      expect(storedKey).to.be.undefined;
+    });
+  });
+
+  describe('importKey()', () => {
+    it('should import a key that does not already exist', async () => {
+      // Test importing the key and validate the result.
+      const importResult = await kmsKeyStore.importKey({ key: testKey });
+      expect(importResult).to.be.true;
+
+      // Verify the key is present in the key store.
+      const storedKey = await kmsKeyStore.getKey({ id: testKey.id });
+      expect(storedKey).to.deep.equal(testKey);
+    });
+
+    it('should throw an error when attempting to import a key that already exists', async () => {
+      // Import the key and validate the result.
+      const importResult = await kmsKeyStore.importKey({ key: testKey });
+      expect(importResult).to.be.true;
+
+      // Test importing the key and assert it throws an error.
+      const importKey = kmsKeyStore.importKey({ key: testKey });
+      await expect(importKey).to.eventually.be.rejectedWith(Error, 'Key with ID already exists');
+    });
+  });
+
+  describe('listKeys()', () => {
+    it('should return an array of all keys in the store', async () => {
+      // Define multiple keys to be added.
+      const testKeys = [
+        { ...testKey, ...{ id: 'key-1' }},
+        { ...testKey, ...{ id: 'key-2' }},
+        { ...testKey, ...{ id: 'key-3' }}
+      ];
+
+      // Import the keys into the store.
+      for (let key of testKeys) {
+        await kmsKeyStore.importKey({ key });
+      }
+
+      // List keys and verify the result.
+      const storedKeys = await kmsKeyStore.listKeys();
+      expect(storedKeys).to.deep.equal(testKeys);
+    });
+
+    it('should return an empty array if the store contains no keys', async () => {
+      // List keys and verify the result is empty.
+      const storedKeys = await kmsKeyStore.listKeys();
+      expect(storedKeys).to.be.empty;
+    });
+  });
+});
+
+describe('KmsPrivateKeyStore', () => {
+  let kmsPrivateKeyStore: KmsPrivateKeyStore;
+  let testKey: Omit<ManagedPrivateKey, 'id'>;
+  let keyMaterial: ArrayBuffer;
+
+  beforeEach(() => {
+    const memoryKeyStore = new MemoryKeyStore<string, ManagedPrivateKey>();
+
+    kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryKeyStore);
+
+    keyMaterial = (new Uint8Array([1, 2, 3])).buffer;
+    testKey = {
+      material : (new Uint8Array([1, 2, 3])).buffer,
+      type     : 'private',
+    };
+  });
+
+  describe('deleteKey()', () => {
+    it('should delete key and return true if key exists', async () => {
+      // Import the key and get back the assigned ID.
+      const id = await kmsPrivateKeyStore.importKey({ key: testKey });
+
+      // Test deleting the key and validate the result.
+      const deleteResult = await kmsPrivateKeyStore.deleteKey({ id });
+      expect(deleteResult).to.be.true;
+
+      // Verify the key is no longer in the store.
+      const storedKey = await kmsPrivateKeyStore.getKey({ id });
+      expect(storedKey).to.be.undefined;
+    });
+
+    it('should return false if key does not exist', async () => {
+      // Test deleting the key.
+      const deleteResult = await kmsPrivateKeyStore.deleteKey({ id: 'non-existent-key' });
+
+      // Validate the key was deleted.
+      expect(deleteResult).to.be.false;
+    });
+  });
+
+  describe('getKey()', () => {
+    it('sshould return a key if it exists', async () => {
+      // Import the key.
+      const id = await kmsPrivateKeyStore.importKey({ key: testKey });
 
       // Test getting the key.
-      await expect(kmsKeyStore.getKey({ id: 'non-existent-key' })).to.eventually.be.rejectedWith(Error, 'Key not found');
+      const storedKey = await kmsPrivateKeyStore.getKey({ id });
 
-      // Check the underlying store method was called.
-      expect(getSpy.calledOnce).to.be.true;
+      // Verify the key is in the store.
+      expect(storedKey).to.deep.equal({ id, material: keyMaterial, type: 'private' });
+    });
+
+    it('should return undefined if the specified key does not exist', async () => {
+      // Test getting the key.
+      const storedKey = await kmsPrivateKeyStore.getKey({ id: 'non-existent-key' });
+
+      // Verify the key is no longer in the store.
+      expect(storedKey).to.be.undefined;
+    });
+  });
+
+  describe('importKey()', () => {
+    it('should import a private key and return its ID', async () => {
+      // Test importing the key.
+      const id = await kmsPrivateKeyStore.importKey({ key: testKey });
+
+      // Validate the returned id.
+      expect(id).to.be.a('string');
+
+      // Verify the key is present in the private key store.
+      const storedKey = await kmsPrivateKeyStore.getKey({ id });
+      expect(storedKey).to.deep.equal({ id, material: keyMaterial, type: 'private' });
+    });
+
+    it('should permanently transfer the private key material', async () => {
+      // Test importing the key.
+      await kmsPrivateKeyStore.importKey({ key: testKey });
+
+      // Verify that attempting to access the key material after import triggers an error.
+      expect(() => new Uint8Array(testKey.material)).to.throw(TypeError, 'Cannot perform Construct on a detached ArrayBuffer');
+    });
+
+    it('should throw an error if required parameters are missing', async () => {
+      // Missing 'material'.
+      const keyMissingMaterial = { type: 'private' };
+      await expect(kmsPrivateKeyStore.importKey({
+        // @ts-expect-error because the material property is intentionally omitted to trigger an error.
+        key: keyMissingMaterial
+      })).to.eventually.be.rejectedWith(TypeError, `Required parameter was missing: 'material'`);
+
+      // Missing 'type'.
+      const keyMissingType = { material: new ArrayBuffer(8) };
+      await expect(kmsPrivateKeyStore.importKey({
+        // @ts-expect-error because the type property is intentionally omitted to trigger an error.
+        key: keyMissingType
+      })).to.eventually.be.rejectedWith(TypeError, `Required parameter was missing: 'type'`);
+    });
+  });
+
+  describe('listKeys()', function() {
+    it('should return an array of all keys in the store', async function() {
+      // Define multiple keys to be added.
+      const testKeys = [
+        { ...testKey, material: (new Uint8Array([1, 2, 3])).buffer},
+        { ...testKey, material: (new Uint8Array([1, 2, 3])).buffer},
+        { ...testKey, material: (new Uint8Array([1, 2, 3])).buffer}
+      ];
+
+      // Import the keys into the store.
+      const expectedTestKeys = [];
+      for (let key of testKeys) {
+        const id = await kmsPrivateKeyStore.importKey({ key });
+        expectedTestKeys.push({ id, material: keyMaterial, type: 'private', });
+      }
+
+      const storedKeys = await kmsPrivateKeyStore.listKeys();
+      expect(storedKeys).to.deep.equal(expectedTestKeys);
+    });
+
+    it('should return an empty array if the store contains no keys', async function() {
+      // List keys and verify the result is empty.
+      const storedKeys = await kmsPrivateKeyStore.listKeys();
+      expect(storedKeys).to.be.empty;
     });
   });
 });

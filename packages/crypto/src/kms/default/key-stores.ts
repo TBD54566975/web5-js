@@ -31,7 +31,7 @@ export class KmsKeyStore implements ManagedKeyStore<string, ManagedKey | Managed
     }
   }
 
-  async getKey({ id }: { id: string }): Promise<ManagedKey | ManagedKeyPair> {
+  async getKey({ id }: { id: string }): Promise<ManagedKey | ManagedKeyPair | undefined> {
     return this.#keyStore.get(id);
   }
 
@@ -78,7 +78,7 @@ export class KmsPrivateKeyStore implements ManagedKeyStore<string, ManagedPrivat
     }
   }
 
-  async getKey({ id }: { id: string }): Promise<ManagedPrivateKey> {
+  async getKey({ id }: { id: string }): Promise<ManagedPrivateKey | undefined> {
     return this.#keyStore.get(id);
   }
 

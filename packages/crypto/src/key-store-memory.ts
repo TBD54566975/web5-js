@@ -24,10 +24,8 @@ export class MemoryKeyStore<K, V> implements KeyValueStore<K, V> {
     return this.#store.delete(id);
   }
 
-  async get(id: K): Promise<V> {
-    const key = this.#store.get(id);
-    if (!key) throw new Error('Key not found');
-    return key;
+  async get(id: K): Promise<V | undefined> {
+    return this.#store.get(id);
   }
 
   /**

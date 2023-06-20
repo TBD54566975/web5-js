@@ -75,8 +75,8 @@ export function isCryptoKeyPair(key: Web5Crypto.CryptoKey | Web5Crypto.CryptoKey
  * @param key The key to check.
  * @returns True if the key is a ManagedKeyPair, false otherwise.
  */
-export function isManagedKeyPair(key: ManagedKey | ManagedKeyPair): key is ManagedKeyPair {
-  return key && 'privateKey' in key && 'publicKey' in key;
+export function isManagedKeyPair(key: ManagedKey | ManagedKeyPair | undefined): key is ManagedKeyPair {
+  return key !== undefined && 'privateKey' in key && 'publicKey' in key;
 }
 
 /**

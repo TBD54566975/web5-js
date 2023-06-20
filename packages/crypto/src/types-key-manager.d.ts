@@ -17,7 +17,7 @@
  */
 export interface ManagedKeyStore<K, V> {
   deleteKey(options: { id: K }): Promise<boolean>
-  getKey(options: { id: K }): Promise<V>
+  getKey(options: { id: K }): Promise<V | undefined>
   importKey(options: { key: Omit<V, 'id'> }): Promise<boolean | K>
   listKeys(options: unknown): Promise<V[]>
 }
@@ -419,7 +419,7 @@ export interface CryptoManager {
    * @param options.keyRef - The reference identifier for the key. Can specify the id or alias property of the key.
    * @returns A promise that resolves to either a ManagedKey or ManagedKeyPair object.
    */
-  getKey(options: { keyRef: string }): Promise<ManagedKey | ManagedKeyPair>;
+  getKey(options: { keyRef: string }): Promise<ManagedKey | ManagedKeyPair | undefined>;
 
   sign(options: SignOptions): Promise<ArrayBuffer>;
 }
