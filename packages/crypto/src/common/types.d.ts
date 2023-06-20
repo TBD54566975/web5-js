@@ -1,4 +1,9 @@
 /**
+ * Represents an object type where a subset of keys are required and everything else is optional.
+ */
+export type RequireOnly<T, K extends keyof T> = Required<Pick<T, K>> & Partial<T>
+
+/**
  * Interface for a generic key-value store.
  */
 export interface KeyValueStore<K, V> {

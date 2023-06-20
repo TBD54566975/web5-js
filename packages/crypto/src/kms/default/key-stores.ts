@@ -2,7 +2,7 @@ import type { ManagedKeyStore, ManagedKey, ManagedKeyPair, ManagedPrivateKey } f
 
 import { v4 as uuid } from 'uuid';
 
-import { isManagedKeyPair } from '../../utils.js';
+import { isManagedKeyPair } from '../../utils-key-manager.js';
 import { MemoryKeyStore } from '../../key-store-memory.js';
 
 /**

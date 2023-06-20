@@ -1,6 +1,6 @@
 import type { Web5Crypto } from '../types-key-manager.js';
 
-import { InvalidAccessError, NotSupportedError, SyntaxError } from './errors.js';
+import { InvalidAccessError, NotSupportedError } from './errors.js';
 
 export abstract class CryptoAlgorithm {
 
@@ -18,8 +18,20 @@ export abstract class CryptoAlgorithm {
     algorithmName: string
   }): void {
     const { algorithmName } = options;
+    if (algorithmName === undefined) {
+      throw new TypeError(`Required argument missing: 'algorithmName'`);
+    }
     if (algorithmName !== this.name) {
       throw new NotSupportedError(`Algorithm not supported: '${algorithmName}'`);
+    }
+  }
+
+  public checkCryptoKey(options: {
+    key: Web5Crypto.CryptoKey
+  }): void {
+    const { key } = options;
+    if (!('algorithm' in key && 'extractable' in key && 'type' in key && 'usages' in key)) {
+      throw new TypeError('Object is not a CryptoKey');
     }
   }
 
@@ -28,10 +40,10 @@ export abstract class CryptoAlgorithm {
   }): void {
     const { keyAlgorithmName } = options;
     if (keyAlgorithmName === undefined) {
-      throw new TypeError(`Required argument missing: 'keyAlgorithm'`);
+      throw new TypeError(`Required argument missing: 'keyAlgorithmName'`);
     }
     if (keyAlgorithmName && keyAlgorithmName !== this.name) {
-      throw new InvalidAccessError(`Algorithm '${this.name} does not match the provided '${keyAlgorithmName}' key.`);
+      throw new InvalidAccessError(`Algorithm '${this.name}' does not match the provided '${keyAlgorithmName}' key.`);
     }
   }
 
@@ -54,11 +66,11 @@ export abstract class CryptoAlgorithm {
   }): void {
     const { keyUsages, allowedKeyUsages } = options;
     if (!(keyUsages && keyUsages.length > 0)) {
-      throw new SyntaxError(`required parameter was missing or empty: 'keyUsages'`);
+      throw new TypeError(`required parameter was missing or empty: 'keyUsages'`);
     }
     const allowedUsages = (Array.isArray(allowedKeyUsages)) ? allowedKeyUsages : [...allowedKeyUsages.privateKey, ...allowedKeyUsages.publicKey];
     if (!keyUsages.every(usage => allowedUsages.includes(usage))) {
-      throw new InvalidAccessError(`Requested operation(s) '${keyUsages.join(', ')}' is not valid for the provided key.`);
+      throw new InvalidAccessError(`Requested operation(s) '${allowedUsages.join(', ')}' is not valid for the provided key.`);
     }
   }
 

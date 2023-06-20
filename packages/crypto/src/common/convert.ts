@@ -62,7 +62,7 @@ export class Convert {
       }
 
       default:
-        throw new Error(`Not implemented: Convert from ${this.format} to Base64url.`);
+        throw new TypeError(`Conversion from ${this.format} to Base64url is not supported.`);
     }
   }
 
@@ -85,7 +85,7 @@ export class Convert {
       }
 
       default:
-        throw new Error(`Not implemented: Convert from ${this.format} to string.`);
+        throw new TypeError(`Conversion from ${this.format} to Object is not supported.`);
     }
   }
 
@@ -106,7 +106,7 @@ export class Convert {
       }
 
       default:
-        throw new Error(`Not implemented: Convert from ${this.format} to string.`);
+        throw new TypeError(`Conversion from ${this.format} to String is not supported.`);
     }
   }
 
@@ -151,7 +151,7 @@ export class Convert {
       }
 
       default:
-        throw new Error(`Not implemented: Convert from ${this.format} to Uint8Array.`);
+        throw new TypeError(`Conversion from ${this.format} to Uint8Array is not supported.`);
     }
   }
 }

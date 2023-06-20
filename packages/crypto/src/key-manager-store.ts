@@ -1,6 +1,6 @@
 import type { ManagedKeyStore, ManagedKey, ManagedKeyPair } from './types-key-manager.js';
 
-import { isManagedKeyPair } from './utils.js';
+import { isManagedKeyPair } from './utils-key-manager.js';
 import { MemoryKeyStore } from './key-store-memory.js';
 
 /**
