@@ -31,4 +31,22 @@ export class X25519 {
 
     return publicKey;
   }
+
+  /**
+   * Generates a RFC6090 ECDH shared secret given the private key of one party
+   * and the public key another party.
+   */
+  public static async sharedSecret(
+    options: { privateKey: ArrayBuffer, publicKey: ArrayBuffer }
+  ): Promise<ArrayBuffer> {
+    let { privateKey, publicKey } = options;
+
+    // Convert private and public key material from ArrayBuffer to Uint8Array.
+    const privateKeyU8A = Convert.arrayBuffer(privateKey).toUint8Array();
+    const publicKeyU8A = Convert.arrayBuffer(publicKey).toUint8Array();
+
+    const sharedSecret = x25519.getSharedSecret(privateKeyU8A, publicKeyU8A);
+
+    return sharedSecret.buffer;
+  }
 }

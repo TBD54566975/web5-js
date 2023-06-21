@@ -48,6 +48,39 @@ describe('Cryptographic Algorithm Implementations', () => {
       });
     });
 
+    describe('sharedSecret()', () => {
+      let otherPartyKeyPair: BufferKeyPair;
+      let ownKeyPair: BufferKeyPair;
+
+      beforeEach(async () => {
+        otherPartyKeyPair = await Secp256k1.generateKeyPair();
+        ownKeyPair = await Secp256k1.generateKeyPair();
+      });
+
+      it('generates a 32-byte shared secret', async () => {
+        const sharedSecret = await Secp256k1.sharedSecret({
+          privateKey : ownKeyPair.privateKey,
+          publicKey  : otherPartyKeyPair.publicKey
+        });
+        expect(sharedSecret).to.be.instanceOf(ArrayBuffer);
+        expect(sharedSecret.byteLength).to.equal(32);
+      });
+
+      it('generates identical output if keypairs are swapped', async () => {
+        const sharedSecretOwnOther = await Secp256k1.sharedSecret({
+          privateKey : ownKeyPair.privateKey,
+          publicKey  : otherPartyKeyPair.publicKey
+        });
+
+        const sharedSecretOtherOwn = await Secp256k1.sharedSecret({
+          privateKey : otherPartyKeyPair.privateKey,
+          publicKey  : ownKeyPair.publicKey
+        });
+
+        expect(sharedSecretOwnOther).to.deep.equal(sharedSecretOtherOwn);
+      });
+    });
+
     describe('sign()', () => {
       let keyPair: BufferKeyPair;
 
@@ -56,36 +89,36 @@ describe('Cryptographic Algorithm Implementations', () => {
       });
 
       it('returns a 64-byte signature of type ArrayBuffer', async () => {
-        const algorithm = { hash: 'SHA-256' };
+        const hash = 'SHA-256';
         const dataU8A = new Uint8Array([51, 52, 53]);
-        const signature = await Secp256k1.sign({ algorithm, key: keyPair.privateKey, data: dataU8A });
+        const signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataU8A });
         expect(signature).to.be.instanceOf(ArrayBuffer);
         expect(signature.byteLength).to.equal(64);
       });
 
       it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
-        const algorithm = { hash: 'SHA-256' };
+        const hash = 'SHA-256';
         const key = keyPair.privateKey;
         let signature: ArrayBuffer;
 
         const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        signature = await Secp256k1.sign({ algorithm, key, data: dataU8A });
+        signature = await Secp256k1.sign({ hash, key, data: dataU8A });
         expect(signature).to.be.instanceOf(ArrayBuffer);
 
         const dataArrayBuffer = dataU8A.buffer;
-        signature = await Secp256k1.sign({ algorithm, key, data: dataArrayBuffer });
+        signature = await Secp256k1.sign({ hash, key, data: dataArrayBuffer });
         expect(signature).to.be.instanceOf(ArrayBuffer);
 
         const dataView = new DataView(dataArrayBuffer);
-        signature = await Secp256k1.sign({ algorithm, key, data: dataView });
+        signature = await Secp256k1.sign({ hash, key, data: dataView });
         expect(signature).to.be.instanceOf(ArrayBuffer);
 
         const dataI32A = new Int32Array([10, 20, 30, 40]);
-        signature = await Secp256k1.sign({ algorithm, key, data: dataI32A });
+        signature = await Secp256k1.sign({ hash, key, data: dataI32A });
         expect(signature).to.be.instanceOf(ArrayBuffer);
 
         const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
-        signature = await Secp256k1.sign({ algorithm, key, data: dataU32A });
+        signature = await Secp256k1.sign({ hash, key, data: dataU32A });
         expect(signature).to.be.instanceOf(ArrayBuffer);
       });
     });
@@ -98,76 +131,75 @@ describe('Cryptographic Algorithm Implementations', () => {
       });
 
       it('returns a boolean result', async () => {
-        const algorithm = { hash: 'SHA-256' };
         const dataU8A = new Uint8Array([51, 52, 53]);
-        const signature = await Secp256k1.sign({ algorithm, key: keyPair.privateKey, data: dataU8A });
+        const signature = await Secp256k1.sign({ hash: 'SHA-256', key: keyPair.privateKey, data: dataU8A });
 
-        const isValid = await Secp256k1.verify({ algorithm, key: keyPair.publicKey, signature, data: dataU8A });
+        const isValid = await Secp256k1.verify({ hash: 'SHA-256', key: keyPair.publicKey, signature, data: dataU8A });
         expect(isValid).to.exist;
         expect(isValid).to.be.true;
       });
 
       it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
-        const algorithm = { hash: 'SHA-256' };
+        const hash = 'SHA-256';
         let signature: ArrayBuffer;
         let isValid: boolean;
 
         const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        signature = await Secp256k1.sign({ algorithm, key: keyPair.privateKey, data: dataU8A });
-        isValid = await Secp256k1.verify({ algorithm, key: keyPair.publicKey, signature, data: dataU8A });
+        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataU8A });
+        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataU8A });
         expect(isValid).to.be.true;
 
         const dataArrayBuffer = dataU8A.buffer;
-        signature = await Secp256k1.sign({ algorithm, key: keyPair.privateKey, data: dataArrayBuffer });
-        isValid = await Secp256k1.verify({ algorithm, key: keyPair.publicKey, signature, data: dataArrayBuffer });
+        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataArrayBuffer });
+        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataArrayBuffer });
         expect(isValid).to.be.true;
 
         const dataView = new DataView(dataArrayBuffer);
-        signature = await Secp256k1.sign({ algorithm, key: keyPair.privateKey, data: dataView });
-        isValid = await Secp256k1.verify({ algorithm, key: keyPair.publicKey, signature, data: dataView });
+        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataView });
+        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataView });
         expect(isValid).to.be.true;
 
         const dataI32A = new Int32Array([10, 20, 30, 40]);
-        signature = await Secp256k1.sign({ algorithm, key: keyPair.privateKey, data: dataI32A });
-        isValid = await Secp256k1.verify({ algorithm, key: keyPair.publicKey, signature, data: dataI32A });
+        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataI32A });
+        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataI32A });
         expect(isValid).to.be.true;
 
         const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
-        signature = await Secp256k1.sign({ algorithm, key: keyPair.privateKey, data: dataU32A });
-        isValid = await Secp256k1.verify({ algorithm, key: keyPair.publicKey, signature, data: dataU32A });
+        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataU32A });
+        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataU32A });
         expect(isValid).to.be.true;
       });
 
       it('accepts both compressed and uncompressed public keys', async () => {
         let signature: ArrayBuffer;
         let isValid: boolean;
-        const algorithm = { hash: 'SHA-256' };
+        const hash = 'SHA-256';
         const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
 
         // Generate signature using the private key.
-        signature = await Secp256k1.sign({ algorithm, key: keyPair.privateKey, data: dataU8A });
+        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataU8A });
 
         // Attempt to verify the signature using a compressed public key.
         const compressedPublicKey = await Secp256k1.getPublicKey({ privateKey: keyPair.privateKey, compressedPublicKey: true });
-        isValid = await Secp256k1.verify({ algorithm, key: compressedPublicKey, signature, data: dataU8A });
+        isValid = await Secp256k1.verify({ hash, key: compressedPublicKey, signature, data: dataU8A });
         expect(isValid).to.be.true;
 
         // Attempt to verify the signature using an uncompressed public key.
         const uncompressedPublicKey = await Secp256k1.getPublicKey({ privateKey: keyPair.privateKey, compressedPublicKey: false });
-        isValid = await Secp256k1.verify({ algorithm, key: uncompressedPublicKey, signature, data: dataU8A });
+        isValid = await Secp256k1.verify({ hash, key: uncompressedPublicKey, signature, data: dataU8A });
         expect(isValid).to.be.true;
       });
 
       it('returns false if the signed data was mutated', async () => {
-        const algorithm = { hash: 'SHA-256' };
+        const hash = 'SHA-256';
         const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         let isValid: boolean;
 
         // Generate signature using the private key.
-        const signature = await Secp256k1.sign({ algorithm, key: keyPair.privateKey, data: dataU8A });
+        const signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataU8A });
 
         // Verification should return true with the data used to generate the signature.
-        isValid = await Secp256k1.verify({ algorithm, key: keyPair.publicKey, signature, data: dataU8A });
+        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataU8A });
         expect(isValid).to.be.true;
 
         // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
@@ -175,20 +207,20 @@ describe('Cryptographic Algorithm Implementations', () => {
         mutatedDataU8A[0] ^= 1 << 0;
 
         // Verification should return false if the given data does not match the data used to generate the signature.
-        isValid = await Secp256k1.verify({ algorithm, key: keyPair.publicKey, signature, data: mutatedDataU8A });
+        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: mutatedDataU8A });
         expect(isValid).to.be.false;
       });
 
       it('returns false if the signature was mutated', async () => {
-        const algorithm = { hash: 'SHA-256' };
+        const hash = 'SHA-256';
         const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         let isValid: boolean;
 
         // Generate signature using the private key.
-        const signature = await Secp256k1.sign({ algorithm, key: keyPair.privateKey, data: dataU8A });
+        const signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataU8A });
 
         // Verification should return true with the data used to generate the signature.
-        isValid = await Secp256k1.verify({ algorithm, key: keyPair.publicKey, signature, data: dataU8A });
+        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataU8A });
         expect(isValid).to.be.true;
 
         // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
@@ -196,22 +228,22 @@ describe('Cryptographic Algorithm Implementations', () => {
         mutatedSignature[0] ^= 1 << 0;
 
         // Verification should return false if the signature was modified.
-        isValid = await Secp256k1.verify({ algorithm, key: keyPair.publicKey, signature: signature, data: mutatedSignature.buffer });
+        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature: signature, data: mutatedSignature.buffer });
         expect(isValid).to.be.false;
       });
 
       it('returns false with a signature generated using a different private key', async () => {
-        const algorithm = { hash: 'SHA-256' };
+        const hash = 'SHA-256';
         const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         const keyPairA = await Secp256k1.generateKeyPair();
         const keyPairB = await Secp256k1.generateKeyPair();
         let isValid: boolean;
 
         // Generate a signature using the private key from key pair B.
-        const signatureB = await Secp256k1.sign({ algorithm, key: keyPairB.privateKey, data: dataU8A });
+        const signatureB = await Secp256k1.sign({ hash, key: keyPairB.privateKey, data: dataU8A });
 
         // Verification should return false with the public key from key pair A.
-        isValid = await Secp256k1.verify({ algorithm, key: keyPairA.publicKey, signature: signatureB, data: dataU8A.buffer });
+        isValid = await Secp256k1.verify({ hash, key: keyPairA.publicKey, signature: signatureB, data: dataU8A.buffer });
         expect(isValid).to.be.false;
       });
     });
@@ -430,6 +462,41 @@ describe('Cryptographic Algorithm Implementations', () => {
       it('returns a 32-byte compressed public key', async () => {
         const publicKey = await X25519.getPublicKey({ privateKey: keyPair.privateKey });
         expect(publicKey.byteLength).to.equal(32);
+      });
+    });
+
+    describe('sharedSecret()', () => {
+      describe('sharedSecret()', () => {
+        let otherPartyKeyPair: BufferKeyPair;
+        let ownKeyPair: BufferKeyPair;
+
+        beforeEach(async () => {
+          otherPartyKeyPair = await X25519.generateKeyPair();
+          ownKeyPair = await X25519.generateKeyPair();
+        });
+
+        it('generates a 32-byte compressed secret, by default', async () => {
+          const sharedSecret = await X25519.sharedSecret({
+            privateKey : ownKeyPair.privateKey,
+            publicKey  : otherPartyKeyPair.publicKey
+          });
+          expect(sharedSecret).to.be.instanceOf(ArrayBuffer);
+          expect(sharedSecret.byteLength).to.equal(32);
+        });
+
+        it('generates identical output if keypairs are swapped', async () => {
+          const sharedSecretOwnOther = await X25519.sharedSecret({
+            privateKey : ownKeyPair.privateKey,
+            publicKey  : otherPartyKeyPair.publicKey
+          });
+
+          const sharedSecretOtherOwn = await X25519.sharedSecret({
+            privateKey : otherPartyKeyPair.privateKey,
+            publicKey  : ownKeyPair.publicKey
+          });
+
+          expect(sharedSecretOwnOther).to.deep.equal(sharedSecretOtherOwn);
+        });
       });
     });
   });

@@ -101,24 +101,55 @@ export class Secp256k1 {
   }
 
   /**
+   * Generates a RFC6090 ECDH shared secret given the private key of one party
+   * and the public key another party.
+   *
+   * Note: When performing Elliptic Curve Diffie-Hellman (ECDH) key agreement,
+   * the resulting shared secret is a point on the elliptic curve, which
+   * consists of an x-coordinate and a y-coordinate. With a 256-bit curve like
+   * secp256k1, each of these coordinates is 32 bytes (256 bits) long. However,
+   * in the ECDH process, it's standard practice to use only the x-coordinate
+   * of the shared secret point as the resulting shared key. This is because
+   * the y-coordinate does not add to the entropy of the key, and both parties
+   * can independently compute the x-coordinate, so using just the x-coordinate
+   * simplifies matters.
+   */
+  public static async sharedSecret(
+    options: { privateKey: ArrayBuffer, publicKey: ArrayBuffer, compressedSecret?: boolean }
+  ): Promise<ArrayBuffer> {
+    let { privateKey, publicKey } = options;
+
+    // Convert private and public key material from ArrayBuffer to Uint8Array.
+    const privateKeyU8A = Convert.arrayBuffer(privateKey).toUint8Array();
+    const publicKeyU8A = Convert.arrayBuffer(publicKey).toUint8Array();
+
+    // Compute the shared secret between the public and private keys.
+    const sharedSecret = secp256k1.getSharedSecret(privateKeyU8A, publicKeyU8A);
+
+    // Remove the leading byte that indicates the sign of the y-coordinate
+    // of the point on the elliptic curve.  See note above.
+    return sharedSecret.slice(1).buffer;
+  }
+
+  /**
    * Generates a RFC6979 ECDSA signature of given data with a given private key and hash algorithm.
    *
    * @param options - The options for the signing operation.
-   * @param options.algorithm - The hash algorithm to use to generate a digest of the data.
-   * @param options.key - The private key to use for signing.
    * @param options.data - The data to sign.
+   * @param options.hash - The hash algorithm to use to generate a digest of the data.
+   * @param options.key - The private key to use for signing.
    * @returns A Promise that resolves to the signature as an ArrayBuffer.
    */
   public static async sign(
-    options: { algorithm: { hash: string }, key: ArrayBuffer, data: BufferSource }
+    options: { data: BufferSource, hash: string, key: ArrayBuffer }
   ): Promise<ArrayBuffer> {
-    const { algorithm, key, data } = options;
+    const { data, hash, key } = options;
 
     // Convert data from BufferSource to Uint8Array.
     const dataU8A = Convert.bufferSource(data).toUint8Array();
 
     // Generate a digest of the data using the specified hash function.
-    const hashFunction = this.#hashAlgorithms[algorithm.hash];
+    const hashFunction = this.#hashAlgorithms[hash];
     const digest = hashFunction(dataU8A);
 
     // Convert private key material from ArrayBuffer to Uint8Array.
@@ -137,16 +168,16 @@ export class Secp256k1 {
    * Verifies a RFC6979 ECDSA signature of given data with a given public key and hash algorithm.
    *
    * @param options - The options for the verification operation.
-   * @param options.algorithm - The hash algorithm to use to generate a digest of the data.
+   * @param options.data - The data that was signed.
+   * @param options.hash - The hash algorithm to use to generate a digest of the data.
    * @param options.key - The public key to use for verification.
    * @param options.signature - The signature to verify.
-   * @param options.data - The data that was signed.
    * @returns A Promise that resolves to a boolean indicating whether the signature is valid.
    */
   public static async verify(
-    options: { algorithm: { hash: string }, key: ArrayBuffer, signature: ArrayBuffer, data: BufferSource }
+    options: { data: BufferSource, hash: string, key: ArrayBuffer, signature: ArrayBuffer }
   ): Promise<boolean> {
-    const { algorithm, key, signature, data } = options;
+    const { data, hash, key, signature } = options;
 
     // Convert public key material from ArrayBuffer to Uint8Array.
     const publicKeyU8A = Convert.arrayBuffer(key).toUint8Array();
@@ -158,7 +189,7 @@ export class Secp256k1 {
     const dataU8A = Convert.bufferSource(data).toUint8Array();
 
     // Generate a digest of the data using the specified hash function.
-    const hashFunction = this.#hashAlgorithms[algorithm.hash];
+    const hashFunction = this.#hashAlgorithms[hash];
     const digest = hashFunction(dataU8A);
 
     // Verify operation.

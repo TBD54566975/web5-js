@@ -49,8 +49,11 @@ export class DefaultEdDsaAlgorithm extends EdDsaAlgorithm {
     const { algorithm, key, data } = options;
 
     this.checkAlgorithmOptions({ algorithm });
+    // The key's algorithm must match the algorithm implementation processing the operation.
     this.checkKeyAlgorithm({ keyAlgorithmName: key.algorithm.name });
+    // The key must be a private key.
     this.checkKeyType({ keyType: key.type, allowedKeyType: 'private' });
+    // The key must be allowed to be used for sign operations.
     this.checkKeyUsages({ keyUsages: key.usages, allowedKeyUsages: ['sign'] });
 
     let signature: ArrayBuffer;
@@ -80,8 +83,11 @@ export class DefaultEdDsaAlgorithm extends EdDsaAlgorithm {
     const { algorithm, key, signature, data } = options;
 
     this.checkAlgorithmOptions({ algorithm });
+    // The key's algorithm must match the algorithm implementation processing the operation.
     this.checkKeyAlgorithm({ keyAlgorithmName: key.algorithm.name });
+    // The key must be a public key.
     this.checkKeyType({ keyType: key.type, allowedKeyType: 'public' });
+    // The key must be allowed to be used for verify operations.
     this.checkKeyUsages({ keyUsages: key.usages, allowedKeyUsages: ['verify'] });
 
     let isValid: boolean;

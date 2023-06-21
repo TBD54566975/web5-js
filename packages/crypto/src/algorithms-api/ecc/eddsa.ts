@@ -1,5 +1,6 @@
 import type { Web5Crypto } from '../../types-key-manager.js';
 
+import { InvalidAccessError } from '../errors.js';
 import { EllipticCurveAlgorithm } from './base.js';
 
 export abstract class EdDsaAlgorithm extends EllipticCurveAlgorithm {
@@ -15,7 +16,12 @@ export abstract class EdDsaAlgorithm extends EllipticCurveAlgorithm {
     algorithm: Web5Crypto.EdDsaOptions
   }): void {
     const { algorithm } = options;
+    // Algorithm specified in the operation must match the algorithm implementation processing the operation.
     this.checkAlgorithmName({ algorithmName: algorithm.name });
+  }
+
+  public override async deriveBits(): Promise<ArrayBuffer> {
+    throw new InvalidAccessError(`Requested operation 'deriveBits' is not valid for ${this.name} keys.`);
   }
 
   public abstract sign(options: { algorithm: Web5Crypto.EdDsaOptions; key: Web5Crypto.CryptoKey; data: BufferSource; }): Promise<ArrayBuffer>;

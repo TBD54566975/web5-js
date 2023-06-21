@@ -88,6 +88,12 @@ export abstract class CryptoAlgorithm {
     return new this();
   }
 
+  public abstract deriveBits(options: {
+    algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdhDeriveKeyOptions,
+    baseKey: Web5Crypto.CryptoKey,
+    length: number | null
+  }): Promise<ArrayBuffer>;
+
   public abstract generateKey(options: {
     algorithm: Partial<Web5Crypto.KeyGenParams>,
     extractable: boolean,
