@@ -50,8 +50,11 @@ export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
     const { algorithm, key, data } = options;
 
     this.checkAlgorithmOptions({ algorithm });
+    // The key's algorithm must match the algorithm implementation processing the operation.
     this.checkKeyAlgorithm({ keyAlgorithmName: key.algorithm.name });
+    // The key must be a private key.
     this.checkKeyType({ keyType: key.type, allowedKeyType: 'private' });
+    // The key must be allowed to be used for sign operations.
     this.checkKeyUsages({ keyUsages: key.usages, allowedKeyUsages: ['sign'] });
 
     let signature: ArrayBuffer;
@@ -61,7 +64,7 @@ export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
     switch (keyAlgorithm.namedCurve) {
 
       case 'secp256k1': {
-        signature = await Secp256k1.sign({ algorithm, key: key.handle, data });
+        signature = await Secp256k1.sign({ hash: algorithm.hash, key: key.handle, data });
         break;
       }
 
@@ -81,8 +84,11 @@ export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
     const { algorithm, key, signature, data } = options;
 
     this.checkAlgorithmOptions({ algorithm });
+    // The key's algorithm must match the algorithm implementation processing the operation.
     this.checkKeyAlgorithm({ keyAlgorithmName: key.algorithm.name });
+    // The key must be a public key.
     this.checkKeyType({ keyType: key.type, allowedKeyType: 'public' });
+    // The key must be allowed to be used for verify operations.
     this.checkKeyUsages({ keyUsages: key.usages, allowedKeyUsages: ['verify'] });
 
     let isValid: boolean;
@@ -92,7 +98,7 @@ export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
     switch (keyAlgorithm.namedCurve) {
 
       case 'secp256k1': {
-        isValid = await Secp256k1.verify({ algorithm, key: key.handle, signature, data });
+        isValid = await Secp256k1.verify({ hash: algorithm.hash, key: key.handle, signature, data });
         break;
       }
 

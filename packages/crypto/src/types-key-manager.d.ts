@@ -392,12 +392,22 @@ export interface CryptoManager {
   // exportKey(format: "jwk", key: CryptoKey): Promise<JsonWebKey>;
   // exportKey(format: Exclude<KeyFormat, "jwk">, key: CryptoKey): Promise<ArrayBuffer>;
 
+  // generateKey(algorithm: RsaHashedKeyGenParams | EcKeyGenParams, extractable: boolean, keyUsages: ReadonlyArray<KeyUsage>): Promise<CryptoKeyPair>;
+  // generateKey(algorithm: AesKeyGenParams | HmacKeyGenParams | Pbkdf2Params, extractable: boolean, keyUsages: ReadonlyArray<KeyUsage>): Promise<CryptoKey>;
+  // generateKey(algorithm: AlgorithmIdentifier, extractable: boolean, keyUsages: KeyUsage[]): Promise<CryptoKeyPair | CryptoKey>;
+
   // importKey(format: "jwk", keyData: JsonWebKey, algorithm: AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams | HmacImportParams | AesKeyAlgorithm, extractable: boolean, keyUsages: ReadonlyArray<KeyUsage>): Promise<CryptoKey>;
   // importKey(format: Exclude<KeyFormat, "jwk">, keyData: BufferSource, algorithm: AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams | HmacImportParams | AesKeyAlgorithm, extractable: boolean, keyUsages: KeyUsage[]): Promise<CryptoKey>;
 
+  // sign(algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams, key: CryptoKey, data: BufferSource): Promise<ArrayBuffer>;
+
   // unwrapKey(format: KeyFormat, wrappedKey: BufferSource, unwrappingKey: CryptoKey, unwrapAlgorithm: AlgorithmIdentifier | RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams, unwrappedKeyAlgorithm: AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams | HmacImportParams | AesKeyAlgorithm, extractable: boolean, keyUsages: KeyUsage[]): Promise<CryptoKey>;
 
+  // verify(algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams, key: CryptoKey, signature: BufferSource, data: BufferSource): Promise<boolean>;
+
   // wrapKey(format: KeyFormat, key: CryptoKey, wrappingKey: CryptoKey, wrapAlgorithm: AlgorithmIdentifier | RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams): Promise<ArrayBuffer>;
+
+  deriveBits(options: DeriveBitsOptions): Promise<ArrayBuffer>;
 
   /**
    * Generate a new ManagedKey within a CryptoManager implementation.
@@ -425,7 +435,7 @@ export type GenerateKeyOptionTypes =
   | Web5Crypto.EdDsaGenerateKeyOptions
   | Web5Crypto.AesGenerateKeyOptions
   // | HmacKeyGenParams
-  | Pbkdf2Params;
+  // | Pbkdf2Params;
 
 export type GenerateKeyOptions<T extends GenerateKeyOptionTypes> = {
   algorithm: T;
@@ -491,4 +501,34 @@ export type VerifyOptions = {
    * A ArrayBuffer containing the signature to verify.
    */
   signature: ArrayBuffer;
+}
+
+/**
+ * Input arguments for implementations of the CryptoManager interface
+ * {@link CryptoManager.deriveBits | deriveBits} method.
+ *
+ * @public
+ */
+export type DeriveBitsOptions = {
+
+  /**
+   * An object defining the derivation algorithm to use and its parameters.
+   */
+  algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdhDeriveKeyOptions;
+
+  /**
+   * An identifier of the ManagedKey that will be the input to the
+   * derivation algorithm.
+   *
+   * If the algorithm is ECDH, this identifier will refer to an ECDH key pair.
+   * For PBKDF2, it might be a password.
+   * For HDKF, it might be the shared secret output of an ECDH key agreement operation.
+   */
+  baseKeyRef: string;
+
+  /**
+   * A number representing the number of bits to derive. To be compatible with
+   * all browsers, the number should be a multiple of 8.
+   */
+  length?: number;
 }

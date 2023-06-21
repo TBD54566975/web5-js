@@ -19,6 +19,9 @@ describe('Algorithms API', () => {
     class TestCryptoAlgorithm extends CryptoAlgorithm {
       public name = 'TestAlgorithm';
       public keyUsages: KeyUsage[] = ['decrypt', 'deriveBits', 'deriveKey', 'encrypt', 'sign', 'unwrapKey', 'verify', 'wrapKey'];
+      public async deriveBits(): Promise<ArrayBuffer> {
+        return null as any;
+      }
       public async generateKey(): Promise<Web5Crypto.CryptoKeyPair> {
         return { publicKey: {} as any, privateKey: {} as any };
       }
@@ -144,12 +147,14 @@ describe('Algorithms API', () => {
   });
 
   describe('EllipticCurveAlgorithm', () => {
-
     describe('checkGenerateKey()', () => {
       class TestEllipticCurveAlgorithm extends EllipticCurveAlgorithm {
         public name = 'TestAlgorithm';
         public namedCurves = ['curveA'];
         public keyUsages: KeyUsage[] = ['decrypt']; // Intentionally specify no permitted key usages for this test.
+        public async deriveBits(): Promise<ArrayBuffer> {
+          return null as any;
+        }
         public async generateKey(): Promise<Web5Crypto.CryptoKeyPair> {
           return { publicKey: {} as any, privateKey: {} as any };
         }
@@ -199,76 +204,142 @@ describe('Algorithms API', () => {
     });
 
     describe('EcdhAlgorithm', () => {
+      let alg: EcdhAlgorithm;
+
+      before(() => {
+        alg = Reflect.construct(EcdhAlgorithm, []) as EcdhAlgorithm;
+      });
+
       describe('checkAlgorithmOptions()', () => {
 
-        const testEcdhAlgorithm = Reflect.construct(EcdhAlgorithm, []) as EcdhAlgorithm;
+        let otherPartyPublicKey: Web5Crypto.CryptoKey;
+        let ownPrivateKey: Web5Crypto.CryptoKey;
 
-        it('does not throw with matching algorithm name and valid publicKey', () => {
-          const ecdhPublicKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'public', ['deriveBits', 'deriveKey']);
-          testEcdhAlgorithm.checkAlgorithmOptions({ algorithm: {
-            name      : 'ECDH',
-            publicKey : ecdhPublicKey
-          }});
+        beforeEach(() => {
+          otherPartyPublicKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'public', ['deriveBits', 'deriveKey']);
+          ownPrivateKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'private', ['deriveBits', 'deriveKey']);
+        });
+
+        it('does not throw with matching algorithm name and valid publicKey and baseKey', () => {
+          alg.checkAlgorithmOptions({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey
+          });
         });
 
         it('throws an error when unsupported algorithm specified', () => {
-          const ecdhPublicKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'public', ['deriveBits', 'deriveKey']);
-          expect(() => testEcdhAlgorithm.checkAlgorithmOptions({ algorithm: {
-            name      : 'Nope',
-            publicKey : ecdhPublicKey
-          }})).to.throw(NotSupportedError, 'Algorithm not supported');
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : { name: 'non-existent-algorithm', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey
+          })).to.throw(NotSupportedError, 'Algorithm not supported');
         });
 
         it('throws an error if the publicKey property is missing', () => {
-          // @ts-expect-error because `publicKey` property is intentionally omitted.
-          expect(() => testEcdhAlgorithm.checkAlgorithmOptions({ algorithm: {
-            name: 'ECDH'
-          }})).to.throw(TypeError, 'Required parameter was missing');
+          expect(() => alg.checkAlgorithmOptions({
+            // @ts-expect-error because `publicKey` property is intentionally omitted.
+            algorithm : { name: 'ECDH' },
+            baseKey   : ownPrivateKey
+          })).to.throw(TypeError, `Required parameter was missing: 'publicKey'`);
         });
 
         it('throws an error if the given publicKey is not valid', () => {
-          const ecdhPublicKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'public', ['deriveBits', 'deriveKey']);
           // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
-          delete ecdhPublicKey.extractable;
-          expect(() => testEcdhAlgorithm.checkAlgorithmOptions({ algorithm: {
-            name      : 'ECDH',
-            publicKey : ecdhPublicKey
-          }})).to.throw(TypeError, 'Object is not a CryptoKey');
+          delete otherPartyPublicKey.extractable;
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey
+          })).to.throw(TypeError, 'Object is not a CryptoKey');
         });
 
         it('throws an error if the algorithm of the publicKey does not match', () => {
-          const ecdhPublicKey = new CryptoKey({ name: 'Nope', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'public', ['deriveBits', 'deriveKey']);
-          expect(() => testEcdhAlgorithm.checkAlgorithmOptions({ algorithm: {
-            name      : 'ECDH',
-            publicKey : ecdhPublicKey
-          }})).to.throw(InvalidAccessError, 'does not match');
+          const otherPartyPublicKey = new CryptoKey({ name: 'Nope', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'public', ['deriveBits', 'deriveKey']);
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey
+          })).to.throw(InvalidAccessError, 'does not match');
         });
 
         it('throws an error if a private key is specified as the publicKey', () => {
           const ecdhPrivateKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'private', ['deriveBits', 'deriveKey']);
-          expect(() => testEcdhAlgorithm.checkAlgorithmOptions({ algorithm: {
-            name      : 'ECDH',
-            publicKey : ecdhPrivateKey
-          }})).to.throw(InvalidAccessError, 'Requested operation is not valid');
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : { name: 'ECDH', publicKey: ecdhPrivateKey },
+            baseKey   : ownPrivateKey
+          })).to.throw(InvalidAccessError, 'Requested operation is not valid');
+        });
+
+        it('throws an error if the baseKey property is missing', () => {
+          // @ts-expect-error because `baseKey` property is intentionally omitted.
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm: { name: 'ECDH', publicKey: otherPartyPublicKey  }
+          })).to.throw(TypeError, `Required parameter was missing: 'baseKey'`);
+        });
+
+        it('throws an error if the given baseKey is not valid', () => {
+          // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
+          delete ownPrivateKey.extractable;
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey
+          })).to.throw(TypeError, 'Object is not a CryptoKey');
+        });
+
+        it('throws an error if the algorithm of the baseKey does not match', () => {
+          const ownPrivateKey = new CryptoKey({ name: 'non-existent-algorithm', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'private', ['deriveBits', 'deriveKey']);
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey
+          })).to.throw(InvalidAccessError, 'does not match');
+        });
+
+        it('throws an error if a public key is specified as the baseKey', () => {
+          const ownPrivateKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'public', ['deriveBits', 'deriveKey']);
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey
+          })).to.throw(InvalidAccessError, 'Requested operation is not valid');
+        });
+
+        it('throws an error if the named curve of the public and base keys does not match', () => {
+          const ownPrivateKey = new CryptoKey({ name: 'ECDH', namedCurve: 'secp256k1' }, false, new ArrayBuffer(32), 'private', ['deriveBits', 'deriveKey']);
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey
+          })).to.throw(InvalidAccessError, `named curve of the publicKey and baseKey must match`);
+        });
+      });
+
+      describe('sign()', () => {
+        it(`throws an error because 'sign' operation is valid for ECDH keys`, async () => {
+          await expect(alg.sign()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for ECDH');
+        });
+      });
+
+      describe('verify()', () => {
+        it(`throws an error because 'verify' operation is valid for ECDH keys`, async () => {
+          await expect(alg.verify()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for ECDH');
         });
       });
     });
 
     describe('EcdsaAlgorithm', () => {
-      describe('checkAlgorithmOptions()', () => {
-        const testEcdsaAlgorithm = Reflect.construct(EcdsaAlgorithm, []) as EcdsaAlgorithm;
-        // @ts-expect-error because `hashAlgorithms` is a read-only property.
-        testEcdsaAlgorithm.hashAlgorithms = ['SHA-256'];
+      let alg: EcdsaAlgorithm;
 
+      before(() => {
+        alg = Reflect.construct(EcdsaAlgorithm, []) as EcdsaAlgorithm;
+        // @ts-expect-error because `hashAlgorithms` is a read-only property.
+        alg.hashAlgorithms = ['SHA-256'];
+      });
+
+      describe('checkAlgorithmOptions()', () => {
         it('does not throw with matching algorithm name and valid hash algorithm', () => {
-          testEcdsaAlgorithm.checkAlgorithmOptions({ algorithm: {
+          alg.checkAlgorithmOptions({ algorithm: {
             name : 'ECDSA',
             hash : 'SHA-256'
           }});
         });
 
         it('throws an error when unsupported algorithm specified', () => {
-          expect(() => testEcdsaAlgorithm.checkAlgorithmOptions({ algorithm: {
+          expect(() => alg.checkAlgorithmOptions({ algorithm: {
             name : 'Nope',
             hash : 'SHA-256'
           }})).to.throw(NotSupportedError, 'Algorithm not supported');
@@ -276,7 +347,7 @@ describe('Algorithms API', () => {
 
         it('throws an error if the hash property is missing', () => {
           // @ts-expect-error because `hash` property is intentionally omitted.
-          expect(() => testEcdsaAlgorithm.checkAlgorithmOptions({ algorithm: {
+          expect(() => alg.checkAlgorithmOptions({ algorithm: {
             name: 'ECDSA',
           }})).to.throw(TypeError, 'Required parameter was missing');
         });
@@ -285,15 +356,27 @@ describe('Algorithms API', () => {
           const ecdhPublicKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'public', ['deriveBits', 'deriveKey']);
           // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
           delete ecdhPublicKey.extractable;
-          expect(() => testEcdsaAlgorithm.checkAlgorithmOptions({ algorithm: {
+          expect(() => alg.checkAlgorithmOptions({ algorithm: {
             name : 'ECDSA',
             hash : 'SHA-1234'
           }})).to.throw(TypeError, 'Out of range');
         });
       });
+
+      describe('deriveBits()', () => {
+        it(`throws an error because 'deriveBits' operation is valid for ECDSA keys`, async () => {
+          await expect(alg.deriveBits()).to.eventually.be.rejectedWith(InvalidAccessError, `is not valid for ECDSA`);
+        });
+      });
     });
 
     describe('EdDsaAlgorithm', () => {
+      let alg: EdDsaAlgorithm;
+
+      before(() => {
+        alg = Reflect.construct(EdDsaAlgorithm, []) as EdDsaAlgorithm;
+      });
+
       describe('checkAlgorithmOptions()', () => {
         const testEdDsaAlgorithm = Reflect.construct(EdDsaAlgorithm, []) as EdDsaAlgorithm;
 
@@ -307,6 +390,12 @@ describe('Algorithms API', () => {
           expect(() => testEdDsaAlgorithm.checkAlgorithmOptions({ algorithm: {
             name: 'Nope'
           }})).to.throw(NotSupportedError, 'Algorithm not supported');
+        });
+      });
+
+      describe('deriveBits()', () => {
+        it(`throws an error because 'deriveBits' operation is valid for EdDSA keys`, async () => {
+          await expect(alg.deriveBits()).to.eventually.be.rejectedWith(InvalidAccessError, `is not valid for EdDSA`);
         });
       });
     });

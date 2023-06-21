@@ -9,6 +9,7 @@ import type {
   GenerateKeyOptions,
   KeyManagementSystem,
   GenerateKeyOptionTypes,
+  DeriveBitsOptions,
 } from './types-key-manager.js';
 
 import { MemoryKeyStore } from './key-store-memory.js';
@@ -55,6 +56,24 @@ export class KeyManager implements CryptoManager {
     this.#kms = new Map(Object.entries(options.kms)) ;
   }
 
+  async deriveBits(options: DeriveBitsOptions): Promise<ArrayBuffer> {
+    const { baseKeyRef, ...deriveBitsOptions } = options;
+
+    const ownKeyPair = await this.getKey({ keyRef: baseKeyRef });
+
+    if (!isManagedKeyPair(ownKeyPair)) {
+      throw new Error(`Key not found: '${baseKeyRef}'.`);
+    }
+
+    const kmsName = ownKeyPair.privateKey.kms;
+    const kms = this.#getKms(kmsName);
+
+    const ownKeyId = ownKeyPair.privateKey.id;
+    const sharedSecret = kms.deriveBits({ baseKeyRef: ownKeyId, ...deriveBitsOptions });
+
+    return sharedSecret;
+  }
+
   async generateKey<T extends GenerateKeyOptionTypes>(options: GenerateKeyOptions<T> & { kms?: string }): Promise<GenerateKeyType<T>> {
     const { kms: kmsName, ...generateKeyOptions } = options;
 
@@ -83,7 +102,7 @@ export class KeyManager implements CryptoManager {
     const keyPair = await this.getKey({ keyRef });
 
     if (!isManagedKeyPair(keyPair)) {
-      throw new TypeError(`'keyRef' must refer to a valid key pair.`);
+      throw new Error(`Key not found: '${keyRef}'.`);
     }
 
     const kmsName = keyPair.privateKey.kms;
@@ -101,7 +120,7 @@ export class KeyManager implements CryptoManager {
     const keyPair = await this.getKey({ keyRef });
 
     if (!isManagedKeyPair(keyPair)) {
-      throw new TypeError(`'keyRef' must refer to a valid key pair.`);
+      throw new Error(`Key not found: '${keyRef}'.`);
     }
 
     const kmsName = keyPair.publicKey.kms;

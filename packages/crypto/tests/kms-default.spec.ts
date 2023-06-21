@@ -1,12 +1,11 @@
 import type { ManagedKey, ManagedKeyPair, ManagedPrivateKey, Web5Crypto } from '../src/types-key-manager.js';
-
 import sinon from 'sinon';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
 import { MemoryKeyStore } from '../src/key-store-memory.js';
 import { Ed25519, Secp256k1, X25519 } from '../src/crypto-algorithms/index.js';
-import { InvalidAccessError, NotSupportedError } from '../src/algorithms-api/errors.js';
+import { InvalidAccessError, NotSupportedError, OperationError } from '../src/algorithms-api/errors.js';
 import {
   DefaultKms,
   KmsKeyStore,
@@ -28,6 +27,100 @@ describe('DefaultKms', () => {
       const memoryPrivateKeyStore = new MemoryKeyStore<string, ManagedPrivateKey>();
       const kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryPrivateKeyStore);
       kms = new DefaultKms('default', kmsKeyStore, kmsPrivateKeyStore);
+    });
+
+    describe('deriveBites()', () => {
+      let otherPartyPublicKey: ManagedKey;
+      let otherPartyPublicCryptoKey: Web5Crypto.CryptoKey;
+      let ownPrivateKey: ManagedKey;
+
+      beforeEach(async () => {
+        const otherPartyKeyPair = await kms.generateKey({
+          algorithm   : { name: 'ECDH', namedCurve: 'secp256k1' },
+          extractable : false,
+          keyUsages   : ['deriveBits']
+        });
+        otherPartyPublicKey = otherPartyKeyPair.publicKey;
+
+        otherPartyPublicCryptoKey = {
+          algorithm   : otherPartyPublicKey.algorithm,
+          extractable : otherPartyPublicKey.extractable,
+          handle      : otherPartyPublicKey.material!,
+          type        : otherPartyPublicKey.type,
+          usages      : otherPartyPublicKey.usages
+        };
+
+        const ownKeyPair = await kms.generateKey({
+          algorithm   : { name: 'ECDH', namedCurve: 'secp256k1' },
+          extractable : false,
+          keyUsages   : ['deriveBits']
+        });
+        ownPrivateKey = ownKeyPair.privateKey;
+      });
+
+      it('generates shared secrets', async () => {
+        const sharedSecret = await kms.deriveBits({
+          algorithm  : { name: 'ECDH', publicKey: otherPartyPublicCryptoKey },
+          baseKeyRef : ownPrivateKey.id
+        });
+        expect(sharedSecret).to.be.an('ArrayBuffer');
+        expect(sharedSecret.byteLength).to.equal(32);
+      });
+
+      it(`accepts 'id' as a baseKey reference`, async () => {
+        const sharedSecret = await kms.deriveBits({
+          algorithm  : { name: 'ECDH', publicKey: otherPartyPublicCryptoKey },
+          baseKeyRef : ownPrivateKey.id
+        });
+        expect(sharedSecret).to.be.an('ArrayBuffer');
+        expect(sharedSecret.byteLength).to.equal(32);
+      });
+
+      it('generates ECDH secp256k1 shared secrets', async () => {
+        const sharedSecret = await kms.deriveBits({
+          algorithm  : { name: 'ECDH', publicKey: otherPartyPublicCryptoKey },
+          baseKeyRef : ownPrivateKey.id
+        });
+        expect(sharedSecret).to.be.an('ArrayBuffer');
+        expect(sharedSecret.byteLength).to.equal(32);
+      });
+
+      it('generates ECDH X25519 shared secrets', async () => {
+        const otherPartyKeyPair = await kms.generateKey({
+          algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+          extractable : false,
+          keyUsages   : ['deriveBits']
+        });
+        otherPartyPublicKey = otherPartyKeyPair.publicKey;
+
+        otherPartyPublicCryptoKey = {
+          algorithm   : otherPartyPublicKey.algorithm,
+          extractable : otherPartyPublicKey.extractable,
+          handle      : otherPartyPublicKey.material!,
+          type        : otherPartyPublicKey.type,
+          usages      : otherPartyPublicKey.usages
+        };
+
+        const ownKeyPair = await kms.generateKey({
+          algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+          extractable : false,
+          keyUsages   : ['deriveBits']
+        });
+        ownPrivateKey = ownKeyPair.privateKey;
+
+        const sharedSecret = await kms.deriveBits({
+          algorithm  : { name: 'ECDH', publicKey: otherPartyPublicCryptoKey },
+          baseKeyRef : ownPrivateKey.id
+        });
+        expect(sharedSecret.byteLength).to.equal(32);
+      });
+
+      it('throws an error when baseKey reference is not found', async () => {
+        await expect(kms.deriveBits({
+          algorithm  : { name: 'ECDH', publicKey: otherPartyPublicCryptoKey },
+          baseKeyRef : 'non-existent-id'
+        })).to.eventually.be.rejectedWith(Error, 'Key not found');
+      });
     });
 
     describe('generateKey()', () => {
@@ -391,6 +484,160 @@ describe('DefaultKms', () => {
         ecdh = DefaultEcdhAlgorithm.create();
       });
 
+      describe('deriveBits()', () => {
+
+        let otherPartyPublicKey: Web5Crypto.CryptoKey;
+        let ownPrivateKey: Web5Crypto.CryptoKey;
+
+        beforeEach(async () => {
+          const otherPartyKeyPair = await ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'secp256k1' },
+            extractable : false,
+            keyUsages   : ['deriveBits']
+          });
+          otherPartyPublicKey = otherPartyKeyPair.publicKey;
+
+          const ownKeyPair = await ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'secp256k1' },
+            extractable : false,
+            keyUsages   : ['deriveBits']
+          });
+          ownPrivateKey = ownKeyPair.privateKey;
+        });
+
+        it('returns shared secrets with maximum bit length when length is null', async () => {
+          const sharedSecretSecp256k1 = await ecdh.deriveBits({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey,
+            length    : null
+          });
+
+          const otherPartyKeyPair = await ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+            extractable : false,
+            keyUsages   : ['deriveBits']
+          });
+          otherPartyPublicKey = otherPartyKeyPair.publicKey;
+
+          const ownKeyPair = await ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+            extractable : false,
+            keyUsages   : ['deriveBits']
+          });
+          ownPrivateKey = ownKeyPair.privateKey;
+
+          const sharedSecretX25519 = await ecdh.deriveBits({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey,
+            length    : null
+          });
+          expect(sharedSecretSecp256k1.byteLength).to.equal(32);
+          expect(sharedSecretX25519.byteLength).to.equal(32);
+        });
+
+        it('returns shared secrets with specified length, if possible', async () => {
+          let sharedSecretSecp256k1 = await ecdh.deriveBits({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey,
+            length    : 16
+          });
+          expect(sharedSecretSecp256k1.byteLength).to.equal(16 / 8);
+
+          sharedSecretSecp256k1 = await ecdh.deriveBits({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey,
+            length    : 256
+          });
+          expect(sharedSecretSecp256k1.byteLength).to.equal(256 / 8);
+
+          const otherPartyKeyPair = await ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+            extractable : false,
+            keyUsages   : ['deriveBits']
+          });
+          otherPartyPublicKey = otherPartyKeyPair.publicKey;
+
+          const ownKeyPair = await ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+            extractable : false,
+            keyUsages   : ['deriveBits']
+          });
+          ownPrivateKey = ownKeyPair.privateKey;
+
+          const sharedSecretX25519 = await ecdh.deriveBits({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey,
+            length    : 32
+          });
+          expect(sharedSecretX25519.byteLength).to.equal(32 / 8);
+        });
+
+        it('throws error if requested length exceeds that of the generated shared secret', async () => {
+          await expect(ecdh.deriveBits({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey,
+            length    : 264
+          })).to.eventually.be.rejectedWith(OperationError, `Requested 'length' exceeds the byte length of the derived secret`);
+        });
+
+        it('throws an error if the given length is not a multiple of 8', async () => {
+          await expect(ecdh.deriveBits({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey,
+            length    : 127
+          })).to.eventually.be.rejectedWith(OperationError, `'length' must be a multiple of 8`);
+        });
+
+        it(`supports 'secp256k1' curve`, async () => {
+          const sharedSecret = await ecdh.deriveBits({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey,
+            length    : null
+          });
+          expect(sharedSecret).to.be.instanceOf(ArrayBuffer);
+          expect(sharedSecret.byteLength).to.equal(32);
+        });
+
+        it(`supports 'X25519' curve`, async () => {
+          const otherPartyKeyPair = await ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+            extractable : false,
+            keyUsages   : ['deriveBits']
+          });
+          otherPartyPublicKey = otherPartyKeyPair.publicKey;
+
+          const ownKeyPair = await ecdh.generateKey({
+            algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+            extractable : false,
+            keyUsages   : ['deriveBits']
+          });
+          ownPrivateKey = ownKeyPair.privateKey;
+
+          const sharedSecret = await ecdh.deriveBits({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey,
+            length    : null
+          });
+
+          expect(sharedSecret).to.be.instanceOf(ArrayBuffer);
+          expect(sharedSecret.byteLength).to.equal(32);
+        });
+
+        it('throws an error when key(s) is an unsupported curve', async () => {
+          // Manually change the key's named curve to trigger an error.
+          // @ts-expect-error because TS can't determine the type of key.
+          otherPartyPublicKey.algorithm.namedCurve = 'non-existent-curve';
+          // @ts-expect-error because TS can't determine the type of key.
+          ownPrivateKey.algorithm.namedCurve = 'non-existent-curve';
+
+          await expect(ecdh.deriveBits({
+            algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+            baseKey   : ownPrivateKey,
+            length    : 40
+          })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
+        });
+      });
+
       describe('generateKey()', () => {
         it('returns a key pair', async () => {
           const keys = await ecdh.generateKey({
@@ -547,6 +794,25 @@ describe('DefaultKms', () => {
           })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation');
         });
 
+        it(`should throw an error if 'secp256k1' key pair generation fails`, async function() {
+          // @ts-ignore because the method is being intentionally stubbed to return null.
+          const secp256k1Stub = sinon.stub(Secp256k1, 'generateKeyPair').returns(Promise.resolve(null));
+
+          try {
+            await ecdh.generateKey({
+              algorithm   : { name: 'ECDH', namedCurve: 'secp256k1' },
+              extractable : false,
+              keyUsages   : ['deriveBits', 'deriveKey']
+            });
+            secp256k1Stub.restore();
+            expect.fail('Expect generateKey() to throw an error');
+          } catch (error) {
+            secp256k1Stub.restore();
+            expect(error).to.be.an('error');
+            expect((error as Error).message).to.equal('Operation failed to generate key pair.');
+          }
+        });
+
         it(`should throw an error if 'X25519' key pair generation fails`, async function() {
           // @ts-ignore because the method is being intentionally stubbed to return null.
           const x25519Stub = sinon.stub(X25519, 'generateKeyPair').returns(Promise.resolve(null));
@@ -564,18 +830,6 @@ describe('DefaultKms', () => {
             expect(error).to.be.an('error');
             expect((error as Error).message).to.equal('Operation failed to generate key pair.');
           }
-        });
-      });
-
-      describe('sign()', () => {
-        it(`throws an error because 'sign' operation is valid for ECDH keys`, async () => {
-          await expect(ecdh.sign()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for ECDH keys');
-        });
-      });
-
-      describe('verify()', () => {
-        it(`throws an error because 'verify' operation is valid for ECDH keys`, async () => {
-          await expect(ecdh.verify()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for ECDH keys');
         });
       });
     });

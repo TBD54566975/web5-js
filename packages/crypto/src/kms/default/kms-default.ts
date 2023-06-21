@@ -7,6 +7,7 @@ import type {
   VerifyOptions,
   ManagedKeyPair,
   GenerateKeyType,
+  DeriveBitsOptions,
   GenerateKeyOptions,
   KeyManagementSystem,
   GenerateKeyOptionTypes,
@@ -36,6 +37,30 @@ export class DefaultKms implements KeyManagementSystem {
     // Merge the default and custom algorithms and register with the KMS.
     const cryptoAlgorithms = {...defaultAlgorithms, ...options.cryptoAlgorithms};
     this.#registerSupportedAlgorithms(cryptoAlgorithms);
+  }
+
+  async deriveBits(options: DeriveBitsOptions): Promise<ArrayBuffer> {
+    let { algorithm, baseKeyRef, length } = options;
+
+    // Retrieve the ManagedKeyPair from the KMS key metadata store.
+    const ownKeyPair = await this.getKey({ keyRef: baseKeyRef });
+
+    if (isManagedKeyPair(ownKeyPair)) {
+      const privateManagedKey = await this.#privateKeyStore.getKey({ id: ownKeyPair.privateKey.id });
+
+      if (privateManagedKey !== undefined) {
+        // Construct a CryptoKey object from the key metadata and private key material.
+        const privateCryptoKey = this.#toCryptoKey({ ...ownKeyPair.privateKey, material: privateManagedKey.material });
+
+        // Derive the shared secret.
+        const cryptoAlgorithm = this.#getAlgorithm(algorithm);
+        const sharedSecret = cryptoAlgorithm.deriveBits({ algorithm, baseKey: privateCryptoKey, length: length ?? null });
+
+        return sharedSecret;
+      }
+    }
+
+    throw new Error(`Operation failed: 'deriveBits'. Key not found: ${baseKeyRef}`);
   }
 
   async generateKey<T extends GenerateKeyOptionTypes>(options: GenerateKeyOptions<T>): Promise<GenerateKeyType<T>> {
@@ -76,11 +101,14 @@ export class DefaultKms implements KeyManagementSystem {
   async sign(options: SignOptions): Promise<ArrayBuffer> {
     const { algorithm, keyRef, data } = options;
 
-    // Assemble the private CryptoKey from the KMS key metadata and private key stores.
+    // Retrieve the ManagedKeyPair from the KMS key metadata store.
     const keyPair = await this.getKey({ keyRef });
+
     if (isManagedKeyPair(keyPair)) {
       const privateManagedKey = await this.#privateKeyStore.getKey({ id: keyPair.privateKey.id });
+
       if (privateManagedKey !== undefined) {
+        // Construct a CryptoKey object from the key metadata and private key material.
         const privateCryptoKey = this.#toCryptoKey({ ...keyPair.privateKey, material: privateManagedKey.material });
 
         // Sign the data.
@@ -91,7 +119,7 @@ export class DefaultKms implements KeyManagementSystem {
       }
     }
 
-    throw new Error(`Sign operation failed. Key not found: ${keyRef}`);
+    throw new Error(`Operation failed: 'sign'. Key not found: ${keyRef}`);
   }
 
   async verify(options: VerifyOptions): Promise<boolean> {
@@ -101,6 +129,7 @@ export class DefaultKms implements KeyManagementSystem {
     const keyPair = await this.getKey({ keyRef });
 
     if (isManagedKeyPair(keyPair)) {
+      // Construct a CryptoKey object from the key metadata and private key material.
       const publicCryptoKey = this.#toCryptoKey({ ...keyPair.publicKey });
 
       // Verify the signature and data.
@@ -110,7 +139,7 @@ export class DefaultKms implements KeyManagementSystem {
       return isValid;
     }
 
-    throw new Error(`Verify operation failed. Key not found: ${keyRef}`);
+    throw new Error(`Operation failed: 'verify'. Key not found: ${keyRef}`);
   }
 
   #toCryptoKey(managedKey: ManagedKey): Web5Crypto.CryptoKey {

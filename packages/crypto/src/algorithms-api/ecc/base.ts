@@ -12,9 +12,13 @@ export abstract class EllipticCurveAlgorithm extends CryptoAlgorithm {
     keyUsages: Web5Crypto.KeyUsage[]
   }): void {
     const { algorithm, keyUsages } = options;
+    // Algorithm specified in the operation must match the algorithm implementation processing the operation.
     this.checkAlgorithmName({ algorithmName: algorithm.name });
+    // The algorithm object must contain a namedCurve property.
     checkRequiredProperty({ property: 'namedCurve', inObject: algorithm });
+    // The named curve specified must be supported by the algorithm implementation processing the operation.
     checkValidProperty({ property: algorithm.namedCurve, allowedProperties: this.namedCurves });
+    // The key usages specified must be permitted by the algorithm implementation processing the operation.
     this.checkKeyUsages({ keyUsages, allowedKeyUsages: this.keyUsages });
   }
 
