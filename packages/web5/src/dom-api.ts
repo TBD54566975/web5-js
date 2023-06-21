@@ -1,4 +1,4 @@
 
-export function watchDom(){}
+export function activateDomFeatures(){}
 
-export function unwatchDom(){}
+export function deactivateDomFeatures(){}
