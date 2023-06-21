@@ -58,6 +58,7 @@
   },
   "browser": {
     "./dist/esm/main.mjs": "./dist/browser.mjs",
+    "./dist/esm/dom-api.ts": "./dist/esm/dom-api-browser.ts",
     "./dist/cjs/main.cjs": "./dist/browser.js",
     "types": "./dist/types/main.d.ts"
   },
