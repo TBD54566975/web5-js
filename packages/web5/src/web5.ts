@@ -13,6 +13,7 @@ import { DidApi } from './did-api.js';
 import { AppStorage } from './app-storage.js';
 import { getRandomInt } from './utils.js';
 import { DidResolutionCache } from './did-resolution-cache.js';
+import { watchDom, unwatchDom } from './dom-api-browser.js';
 
 /**
  * overrides to defaults configured for technical preview phase
@@ -196,5 +197,13 @@ export class Web5 {
         console.error('Sync failed due to error: ', e);
       }
     }, delay);
+  }
+
+  static watchDom(){
+    watchDom(this);
+  }
+
+  static uwatchDom(){
+    unwatchDom();
   }
 }
