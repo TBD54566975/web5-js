@@ -49,6 +49,51 @@ describe('Convert', () =>{
   });
 
   describe('from: BufferSource', () => {
+    it('to: ArrayBuffer', () => {
+      // Test Vector 1 - BufferSource is Uint8Array.
+      let inputT1 = new Uint8Array([102, 111, 111]);
+      let outputT1 = new Uint8Array([102, 111, 111]);
+      let resultT1 = Convert.bufferSource(inputT1).toUint8Array();
+      expect(resultT1).to.deep.equal(outputT1);
+
+      // Test Vector 2 - BufferSource is ArrayBuffer.
+      let inputT2 = (new Uint8Array([102, 111, 111])).buffer;
+      let outputT2 = new Uint8Array([102, 111, 111]);
+      let resultT2 = Convert.bufferSource(inputT2).toUint8Array();
+      expect(resultT2).to.deep.equal(outputT2);
+
+      // Test Vector 3 - BufferSource is DataView.
+      let inputT3 = new DataView((new Uint8Array([102, 111, 111])).buffer);
+      let outputT3 = new Uint8Array([102, 111, 111]);
+      let resultT3 = Convert.bufferSource(inputT3).toUint8Array();
+      expect(resultT3).to.deep.equal(outputT3);
+
+      // Test Vector 4 - BufferSource is an unsigned, 16-bit Typed Array.
+      let inputT4 = new Uint16Array([299]);
+      let outputT4 = new Uint8Array([43, 1]);
+      let resultT4 = Convert.bufferSource(inputT4).toUint8Array();
+      expect(resultT4).to.deep.equal(outputT4);
+
+      // Test Vector 5 - BufferSource is a signed, 32-bit Typed Array.
+      let inputT5 = new Int32Array([1111]);
+      let outputT5 = new Uint8Array([87, 4, 0, 0]);
+      let resultT5 = Convert.bufferSource(inputT5).toUint8Array();
+      expect(resultT5).to.deep.equal(outputT5);
+
+      // Test Vector 6 - BufferSource is a slice of a Typed Array.
+      let inputT6 = (new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7])).slice(1, 6);
+      let outputT6 = (new Uint8Array([1, 2, 3, 4, 5])).buffer;
+      let resultT6 = Convert.bufferSource(inputT6).toArrayBuffer();
+      expect(resultT6).to.deep.equal(outputT6);
+
+      // Test Vector 7 - BufferSource is a slice of a DataView.
+      let dataView = new DataView((new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7])).buffer);
+      let inputT7 = new DataView(dataView.buffer, dataView.byteOffset + 1, 6 - 1);
+      let outputT7 = (new Uint8Array([1, 2, 3, 4, 5])).buffer;
+      let resultT7 = Convert.bufferSource(inputT7).toArrayBuffer();
+      expect(resultT7).to.deep.equal(outputT7);
+    });
+
     it('to: Uint8Array', () => {
       // Test Vector 1 - BufferSource is Uint8Array.
       let inputT1 = new Uint8Array([102, 111, 111]);
@@ -74,7 +119,7 @@ describe('Convert', () =>{
       let resultT4 = Convert.bufferSource(inputT4).toUint8Array();
       expect(resultT4).to.deep.equal(outputT4);
 
-      // Test Vector 4 - BufferSource is a signed, 32-bit Typed Array.
+      // Test Vector 5 - BufferSource is a signed, 32-bit Typed Array.
       let inputT5 = new Int32Array([1111]);
       let outputT5 = new Uint8Array([87, 4, 0, 0]);
       let resultT5 = Convert.bufferSource(inputT5).toUint8Array();

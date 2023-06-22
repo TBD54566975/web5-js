@@ -2,7 +2,6 @@ import type { AlgorithmImplementation, AlgorithmImplementations } from './suppor
 import type {
   ManagedKey,
   Web5Crypto,
-  KeyMetadata,
   SignOptions,
   VerifyOptions,
   ManagedKeyPair,
@@ -11,12 +10,15 @@ import type {
   GenerateKeyOptions,
   KeyManagementSystem,
   GenerateKeyOptionTypes,
+  ImportKeyOptions,
 } from '../../types-key-manager.js';
 
+import { Convert } from '../../common/convert.js';
 import { defaultAlgorithms } from './supported-algorithms.js';
 import { KmsKeyStore, KmsPrivateKeyStore } from './key-stores.js';
 import { CryptoAlgorithm, NotSupportedError } from '../../algorithms-api/index.js';
 import { checkRequiredProperty, isCryptoKeyPair, isManagedKeyPair } from '../../utils-key-manager.js';
+import { RequireOnly } from '../../common/types.js';
 
 
 export type KmsOptions = {
@@ -78,13 +80,13 @@ export class DefaultKms implements KeyManagementSystem {
     if (isCryptoKeyPair(cryptoKey)) {
       const privateKeyType = cryptoKey.privateKey.type as Web5Crypto.PrivateKeyType;
       const id = await this.#privateKeyStore.importKey({ key: { material: cryptoKey.privateKey.handle, type: privateKeyType} });
-      const privateKey = this.#toManagedKey(cryptoKey.privateKey, id, alias, metadata);
-      const publicKey = this.#toManagedKey(cryptoKey.publicKey, id, alias, metadata);
+      const privateKey = this.#toManagedKey({ ...cryptoKey.privateKey, id, alias, metadata });
+      const publicKey = this.#toManagedKey({ ...cryptoKey.publicKey, material: cryptoKey.publicKey.handle, id, alias, metadata });
       managedKeyOrKeyPair = { privateKey, publicKey } as GenerateKeyType<T>;
     } else {
       const keyType = cryptoKey.type as Web5Crypto.PrivateKeyType;
       const id = await this.#privateKeyStore.importKey({ key: { material: cryptoKey.handle, type: keyType } });
-      managedKeyOrKeyPair = this.#toManagedKey(cryptoKey, id, alias, metadata) as GenerateKeyType<T>;
+      managedKeyOrKeyPair = this.#toManagedKey({ ...cryptoKey, id, alias, metadata }) as GenerateKeyType<T>;
     }
 
     // Store the ManagedKey or ManagedKeyPair in the KMS key store.
@@ -96,6 +98,47 @@ export class DefaultKms implements KeyManagementSystem {
   async getKey(options: { keyRef: string }): Promise<ManagedKey | ManagedKeyPair | undefined> {
     const keyOrKeyPair = this.#keyStore.getKey({ id: options.keyRef });
     return keyOrKeyPair;
+  }
+
+  async importKey(options: ImportKeyOptions): Promise<ManagedKey | ManagedKeyPair> {
+    const { material, ...keyOptions } = options;
+
+    let managedKeyOrKeyPair: ManagedKey | ManagedKeyPair;
+
+    switch (options.type) {
+      case 'secret': {
+        // Symmetric or HMAC key to be imported.
+
+        managedKeyOrKeyPair = null as any;
+        break;
+      }
+
+      case 'private': {
+        // Asymmetric key to be imported.
+        const materialBuffer = Convert.bufferSource(material).toArrayBuffer();
+        const id = await this.#privateKeyStore.importKey({ key: { material: materialBuffer, type: options.type } });
+        const privateKey = this.#toManagedKey({ ...keyOptions, id });
+
+        const publicKey = this.#toManagedKey({ ...keyOptions, id });
+        managedKeyOrKeyPair = { privateKey, publicKey };
+        break;
+      }
+
+      case 'public': {
+        // Asymmetric key to be imported, but only the public key has been provided.
+
+        managedKeyOrKeyPair = null as any;
+        break;
+      }
+
+      default:
+        throw new TypeError(`Out of range: '${options.type}'. Must be one of 'private, public, secret'`);
+    }
+
+    // Store the ManagedKey or ManagedKeyPair in the KMS key store.
+    await this.#keyStore.importKey({ key: managedKeyOrKeyPair });
+
+    return managedKeyOrKeyPair;
   }
 
   async sign(options: SignOptions): Promise<ArrayBuffer> {
@@ -158,18 +201,18 @@ export class DefaultKms implements KeyManagementSystem {
     return cryptoKey;
   }
 
-  #toManagedKey(cryptoKey: Web5Crypto.CryptoKey, id: string, alias?: string, metadata?: KeyMetadata): ManagedKey {
+  #toManagedKey(options: Omit<Web5Crypto.CryptoKey, 'handle'> & RequireOnly<ManagedKey, 'id'>): ManagedKey {
     const managedKey: ManagedKey = {
-      id          : id,
-      algorithm   : cryptoKey.algorithm,
-      alias       : alias,
-      extractable : cryptoKey.extractable,
+      id          : options.id,
+      algorithm   : options.algorithm,
+      alias       : options.alias,
+      extractable : options.extractable,
       kms         : this.#name,
-      material    : (cryptoKey.type === 'public') ? cryptoKey.handle : undefined,
-      metadata    : metadata,
+      material    : (options.type === 'public') ? options.material : undefined,
+      metadata    : options.metadata,
       state       : 'Enabled',
-      type        : cryptoKey.type,
-      usages      : cryptoKey.usages
+      type        : options.type,
+      usages      : options.usages
     };
 
     return managedKey;

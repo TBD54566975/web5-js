@@ -10,6 +10,7 @@ import type {
   KeyManagementSystem,
   GenerateKeyOptionTypes,
   DeriveBitsOptions,
+  ImportKeyOptions,
 } from './types-key-manager.js';
 
 import { MemoryKeyStore } from './key-store-memory.js';
@@ -90,6 +91,11 @@ export class KeyManager implements CryptoManager {
   async getKey(options: { keyRef: string; }): Promise<ManagedKey | ManagedKeyPair | undefined> {
     const keyOrKeyPair = this.#keyStore.getKey({ id: options.keyRef });
     return keyOrKeyPair;
+  }
+
+  async importKey(options: ImportKeyOptions): Promise<ManagedKey | ManagedKeyPair> {
+    console.log(options);
+    return null as any;
   }
 
   listKms() {
