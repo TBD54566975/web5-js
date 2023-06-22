@@ -1,3 +1,5 @@
+import { RequireOnly } from './common/types.js';
+
 //#region Crypto Key Stores
 
 /**
@@ -270,8 +272,6 @@ export type DeleteKeyResponse = Pick<ManagedKey, 'id' | 'state'> & {
   deletionDate: Date;
 }
 
-export type ImportKeyOptions = Omit<ManagedKey, 'id' | 'kms'>;
-
 export type ListKeysResponse = Pick<ManagedKey, 'id' | 'alias'>;
 
 //#endregion Key Management Systems
@@ -423,10 +423,19 @@ export interface CryptoManager {
    */
   getKey(options: { keyRef: string }): Promise<ManagedKey | ManagedKeyPair | undefined>;
 
+  // importKey(options: PrivateKeyImportOptions): Promise<ManagedKey>;
+  // importKey(options: PublicKeyImportOptions): Promise<ManagedKey>;
+  // importKey(options: SecretKeyImportOptions): Promise<ManagedKey>;
+  // importKey(options: KeyPairImportOptions): Promise<ManagedKey>;
+  importKey(options: ImportKeyOptions): Promise<ManagedKey | ManagedKeyPair>;
+
   sign(options: SignOptions): Promise<ArrayBuffer>;
 
   verify(options: VerifyOptions): Promise<boolean>;
 }
+
+export type ImportKeyOptions = RequireOnly<ManagedKey, 'algorithm' | 'extractable' | 'kms' | 'type' | 'usages', 'id' | 'material' | 'state'>
+  & { material: BufferSource; };
 
 export type GenerateKeyOptionTypes =
   | Web5Crypto.AlgorithmIdentifier

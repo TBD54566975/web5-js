@@ -1,5 +1,5 @@
 import { base64url } from 'multiformats/bases/base64';
-import { universalTypeOf } from './type-utils.js';
+import { isArrayBufferSlice, universalTypeOf } from './type-utils.js';
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
@@ -41,6 +41,33 @@ export class Convert {
 
   static uint8Array(data: Uint8Array): Convert {
     return new Convert(data, 'Uint8Array');
+  }
+
+  toArrayBuffer(): ArrayBuffer {
+    switch (this.format) {
+
+      case 'BufferSource': {
+        const dataType = universalTypeOf(this.data);
+        if (dataType === 'ArrayBuffer') {
+          // Data is already an ArrayBuffer, No conversion is necessary.
+          return this.data;
+        } else if (ArrayBuffer.isView(this.data)) {
+          // Data is a DataView or a different TypedArray (e.g., Uint16Array).
+          if (isArrayBufferSlice(this.data)) {
+            // Data is a slice of an ArrayBuffer. Return a new ArrayBuffer or ArrayBufferView of the same slice.
+            return this.data.buffer.slice(this.data.byteOffset, this.data.byteOffset + this.data.byteLength);
+          } else {
+            // Data is a whole ArrayBuffer viewed as a different TypedArray or DataView. Return the whole ArrayBuffer.
+            return this.data.buffer;
+          }
+        } else {
+          throw new TypeError(`${this.format} value is not of type: 'ArrayBuffer', 'DataView', or 'TypedArray'.`);
+        }
+      }
+
+      default:
+        throw new TypeError(`Conversion from ${this.format} to ArrayBuffer is not supported.`);
+    }
   }
 
   toBase64Url(): string {

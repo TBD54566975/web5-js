@@ -1,12 +1,38 @@
 /**
- * Checks if a variable is defined and not null.
- * After this check, Typescript sees the variable as defined.
+ * isDefined
  *
- * @param arg - The input to be verified
- * @returns true if the input variable is defined.
+ * Utility function to check if a variable is neither null nor undefined.
+ * This function helps in making TypeScript infer the type of the variable
+ * as being defined, excluding `null` and `undefined`.
+ *
+ * The function uses strict equality (`!==`) for the comparison, ensuring
+ * that the variable is not just falsy (like an empty string or zero),
+ * but is truly either `null` or `undefined`.
+ *
+ * @param arg - The variable to be checked
+ * @returns true if the variable is neither `null` nor `undefined`
  */
 export function isDefined<T>(arg: T): arg is Exclude<T, null | undefined> {
   return arg !== null && typeof arg !== 'undefined';
+}
+
+/**
+ * isArrayBufferSlice
+ *
+ * Checks if the ArrayBufferView represents a slice (subarray or a subview)
+ * of an ArrayBuffer.
+ *
+ * An ArrayBufferView (TypedArray or DataView) can represent a portion of an
+ * ArrayBuffer - such a view is said to be a "slice" of the original buffer.
+ * This can occur when the `subarray` or `slice` method is called on a
+ * TypedArray or when a DataView is created with a byteOffset and/or
+ * byteLength that doesn't cover the full ArrayBuffer.
+ *
+ * @param arrayBufferView - The ArrayBufferView to be checked
+ * @returns true if the ArrayBufferView represents a slice of an ArrayBuffer; false otherwise.
+ */
+export function isArrayBufferSlice(arrayBufferView: ArrayBufferView): boolean {
+  return arrayBufferView.byteOffset !== 0 || arrayBufferView.byteLength !== arrayBufferView.buffer.byteLength;
 }
 
 /**
