@@ -1,0 +1,9 @@
+{
+  "name": "@tbd54566975/kms-aws",
+  "version": "0.1.0",
+  "description": "Web5 library for AWS KMS",
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-kms": "3.354.0"
+  }
+}
