@@ -1,4 +1,5 @@
-import type { ImportKeyOptions, ManagedKey, ManagedKeyPair, ManagedPrivateKey, Web5Crypto } from '../src/types-key-manager.js';
+import type { ManagedKey, ManagedKeyPair, ManagedPrivateKey, Web5Crypto } from '../src/types-key-manager.js';
+
 import sinon from 'sinon';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
@@ -257,20 +258,28 @@ describe('DefaultKms', () => {
     });
 
     describe('importKey()', () => {
-      let testKey: ImportKeyOptions;
-
-      it('imports private keys', async () => {
-        testKey = {
+      it('imports asymmetric key pairs', async () => {
+        const testKeyBase = {
           algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
           extractable : true,
           kms         : 'testKms',
-          material    : new Uint8Array([1, 2, 3, 4]),
-          type        : 'private',
-          usages      : ['sign', 'verify'],
         };
 
         // Test importing the key and validate the result.
-        const importedKeyPair = await kms.importKey( { ...testKey }) as ManagedKeyPair;
+        const importedKeyPair = await kms.importKey({
+          privateKey: {
+            ...testKeyBase,
+            material : new Uint8Array([1, 2, 3, 4]),
+            type     : 'private',
+            usages   : ['sign'],
+          },
+          publicKey: {
+            ...testKeyBase,
+            material : new Uint8Array([1, 2, 3, 4]),
+            type     : 'public',
+            usages   : ['verify'],
+          }
+        });
         expect(importedKeyPair).to.exist;
 
         // Verify the key is present in the key store.
@@ -294,91 +303,191 @@ describe('DefaultKms', () => {
         // Check values unique to the private key.
         expect(storedKeyPair.privateKey.material).to.be.undefined;
         expect(storedKeyPair.privateKey.type).to.equal('private');
-        expect(storedKeyPair.privateKey.usages).to.deep.equal(['sign', 'verify']);
+        expect(storedKeyPair.privateKey.usages).to.deep.equal(['sign']);
 
         // Check values unique to the public key.
         expect(storedKeyPair.publicKey.material).to.be.an.instanceOf(ArrayBuffer);
         expect(storedKeyPair.publicKey.type).to.equal('public');
-        expect(storedKeyPair.publicKey.usages).to.deep.equal(['sign', 'verify']);
+        expect(storedKeyPair.publicKey.usages).to.deep.equal(['verify']);
       });
 
-      // it(`ignores the 'kms' property and overwrites with configured value`, async () => {
-      //   testKey = {
-      //     algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-      //     extractable : true,
-      //     kms         : 'testKms',
-      //     material    : new Uint8Array([1, 2, 3, 4]),
-      //     type        : 'private',
-      //     usages      : ['sign', 'verify'],
-      //   };
+      it('imports asymmetric private keys', async () => {
+        // Test importing the key and validate the result.
+        const importedPrivateKey = await kms.importKey({
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : true,
+          kms         : 'testKms',
+          material    : new Uint8Array([1, 2, 3, 4]),
+          type        : 'private',
+          usages      : ['sign'],
+        });
+        expect(importedPrivateKey.kms).to.equal('default');
+        expect(importedPrivateKey).to.exist;
 
-      //   // Test importing the key and validate the result.
-      //   const importedKeyPair = await kms.importKey( { ...testKey }) as ManagedKeyPair;
-      //   expect(importedKeyPair.privateKey.kms).to.equal('default');
-      //   expect(importedKeyPair.publicKey.kms).to.equal('default');
-      // });
+        // Verify the key is present in the key store.
+        const storedPrivateKey = await kms.getKey({ keyRef: importedPrivateKey.id }) as ManagedKey;
+        expect(storedPrivateKey).to.deep.equal(importedPrivateKey);
 
-      // it(`ignores the 'id' property and overwrites with internally generated unique identifier`, async () => {
-      //   testKey = {
-      //     algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-      //     extractable : true,
-      //     // @ts-expect-error because an 'id' property is being specified even though it should not be.
-      //     id          : '1234',
-      //     kms         : 'testKms',
-      //     material    : new Uint8Array([1, 2, 3, 4]),
-      //     type        : 'private',
-      //     usages      : ['sign', 'verify'],
-      //   };
+        // Validate the expected values.
+        expect(storedPrivateKey.algorithm.name).to.equal('ECDSA');
+        expect(storedPrivateKey.kms).to.equal('default');
+        expect(storedPrivateKey.spec).to.be.undefined;
+        expect(storedPrivateKey.state).to.equal('Enabled');
+        expect(storedPrivateKey.material).to.be.undefined;
+        expect(storedPrivateKey.type).to.equal('private');
+        expect(storedPrivateKey.usages).to.deep.equal(['sign']);
+      });
 
-      //   // Test importing the key and validate the result.
-      //   const importedKeyPair = await kms.importKey( { ...testKey }) as ManagedKeyPair;
-      //   expect(importedKeyPair.privateKey.id).to.be.a.string;
-      //   expect(importedKeyPair.privateKey.id).to.not.equal('1234');
-      //   expect(importedKeyPair.publicKey.id).to.be.a.string;
-      //   expect(importedKeyPair.publicKey.id).to.not.equal('1234');
-      // });
+      it('imports asymmetric public keys', async () => {
+        // Test importing the key and validate the result.
+        const importedPublicKey = await kms.importKey({
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : true,
+          kms         : 'testKms',
+          material    : new Uint8Array([1, 2, 3, 4]),
+          type        : 'public',
+          usages      : ['verify'],
+        });
+        expect(importedPublicKey.kms).to.equal('default');
+        expect(importedPublicKey).to.exist;
 
-      // it(`never returns key material for private key of key pair`, async () => {
-      //   testKey = {
-      //     algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-      //     extractable : true,
-      //     kms         : 'testKms',
-      //     material    : new Uint8Array([1, 2, 3, 4]),
-      //     type        : 'private',
-      //     usages      : ['sign', 'verify'],
-      //   };
+        // Verify the key is present in the key store.
+        const storedPublicKey = await kms.getKey({ keyRef: importedPublicKey.id }) as ManagedKey;
+        expect(storedPublicKey).to.deep.equal(importedPublicKey);
 
-      //   // Test importing the key and validate the result.
-      //   const importedKeyPair = await kms.importKey( { ...testKey }) as ManagedKeyPair;
-      //   expect(importedKeyPair.privateKey.material).to.be.undefined;
-      // });
+        // Validate the expected values.
+        expect(storedPublicKey.algorithm.name).to.equal('ECDSA');
+        expect(storedPublicKey.kms).to.equal('default');
+        expect(storedPublicKey.spec).to.be.undefined;
+        expect(storedPublicKey.state).to.equal('Enabled');
+        expect(storedPublicKey.material).to.be.an.instanceOf(ArrayBuffer);
+        expect(storedPublicKey.type).to.equal('public');
+        expect(storedPublicKey.usages).to.deep.equal(['verify']);
+      });
 
-      // it(`returns key material for public key of key pair`, async () => {
-      //   testKey = {
-      //     algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-      //     extractable : true,
-      //     kms         : 'testKms',
-      //     material    : new Uint8Array([1, 2, 3, 4]),
-      //     type        : 'private',
-      //     usages      : ['sign', 'verify'],
-      //   };
+      xit('imports symmetric keys');
+      xit('imports HMAC keys');
 
-      //   // Test importing the key and validate the result.
-      //   const importedKeyPair = await kms.importKey( { ...testKey }) as ManagedKeyPair;
-      //   expect(importedKeyPair.publicKey.material).to.exist;
-      //   console.log(importedKeyPair.publicKey.material);
-      //   console.log('hello');
-      // });
+      it(`ignores the 'kms' property and overwrites with configured value`, async () => {
+        // Test importing the key and validate the result.
+        const importedPrivateKey = await kms.importKey({
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : true,
+          kms         : 'incorrect-kms-name',
+          material    : new Uint8Array([1, 2, 3, 4]),
+          type        : 'private',
+          usages      : ['sign'],
+        });
+        expect(importedPrivateKey.kms).to.equal('default');
+      });
 
-      // it('should throw an error when attempting to import a key that already exists', async () => {
-      //   // Import the key and validate the result.
-      //   const importResult = await kms.importKey({ key: testKey });
-      //   expect(importResult).to.be.true;
+      it(`ignores the 'id' property and overwrites with internally generated unique identifier`, async () => {
+        // Test importing a private key and validate the result.
+        // @ts-expect-error because an 'id' property is being specified even though it should not be.
+        const importedPrivateKey = await kms.importKey({
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : true,
+          id          : '1234',
+          kms         : 'testKms',
+          material    : new Uint8Array([1, 2, 3, 4]),
+          type        : 'private',
+          usages      : ['sign'],
+        });
+        expect(importedPrivateKey.id).to.be.a.string;
+        expect(importedPrivateKey.id).to.not.equal('1234');
 
-      //   // Test importing the key and assert it throws an error.
-      //   const importKey = kms.importKey({ key: testKey });
-      //   await expect(importKey).to.eventually.be.rejectedWith(Error, 'Key with ID already exists');
-      // });
+        // Test importing a public key and validate the result.
+        // @ts-expect-error because an 'id' property is being specified even though it should not be.
+        const importedPublicKey = await kms.importKey({
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : true,
+          id          : '1234',
+          kms         : 'testKms',
+          material    : new Uint8Array([1, 2, 3, 4]),
+          type        : 'public',
+          usages      : ['sign'],
+        });
+        expect(importedPublicKey.id).to.be.a.string;
+        expect(importedPublicKey.id).to.not.equal('1234');
+
+        // Test importing the asymmetric key pair and validate the result.
+        const importedKeyPair = await kms.importKey({
+          // @ts-expect-error because an 'id' property is being specified even though it should not be.
+          privateKey: {
+            algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+            extractable : true,
+            id          : '1234',
+            kms         : 'testKms',
+            material    : new Uint8Array([1, 2, 3, 4]),
+            type        : 'private',
+            usages      : ['sign'],
+          },
+          publicKey: {
+            algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+            extractable : true,
+            id          : '1234',
+            kms         : 'testKms',
+            material    : new Uint8Array([1, 2, 3, 4]),
+            type        : 'public',
+            usages      : ['verify'],
+          }
+        });
+        expect(importedKeyPair.privateKey.id).to.be.a.string;
+        expect(importedKeyPair.privateKey.id).to.not.equal('1234');
+        expect(importedKeyPair.publicKey.id).to.be.a.string;
+        expect(importedKeyPair.publicKey.id).to.not.equal('1234');
+      });
+
+      it('never returns key material for private keys', async () => {
+        // Test importing the key and validate the result.
+        const importedPrivateKey = await kms.importKey({
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : true,
+          kms         : 'testKms',
+          material    : new Uint8Array([1, 2, 3, 4]),
+          type        : 'private',
+          usages      : ['sign'],
+        });
+        expect(importedPrivateKey.material).to.not.exist;
+      });
+
+      it('returns key material for public keys', async () => {
+        // Test importing the key and validate the result.
+        const importedPrivateKey = await kms.importKey({
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : true,
+          kms         : 'testKms',
+          material    : new Uint8Array([1, 2, 3, 4]),
+          type        : 'public',
+          usages      : ['verify'],
+        });
+        expect(importedPrivateKey.material).to.exist;
+        expect(importedPrivateKey.material).to.be.an.instanceOf(ArrayBuffer);
+      });
+
+      it('throws an error if public and private keys are swapped', async () => {
+        const testKeyBase = {
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : true,
+          kms         : 'testKms',
+        };
+
+        // Test importing the key and validate the result.
+        await expect(kms.importKey({
+          privateKey: {
+            ...testKeyBase,
+            material : new Uint8Array([1, 2, 3, 4]),
+            type     : 'public',
+            usages   : ['verify'],
+          },
+          publicKey: {
+            ...testKeyBase,
+            material : new Uint8Array([1, 2, 3, 4]),
+            type     : 'private',
+            usages   : ['sign'],
+          }
+        })).to.eventually.be.rejectedWith(Error, 'failed due to private and public key mismatch');
+      });
     });
 
     describe('sign()', () => {
@@ -1696,7 +1805,7 @@ describe('KmsKeyStore', () => {
     it('should import a key that does not already exist', async () => {
       // Test importing the key and validate the result.
       const importResult = await kmsKeyStore.importKey({ key: testKey });
-      expect(importResult).to.be.true;
+      expect(importResult).to.equal(testKey.id);
 
       // Verify the key is present in the key store.
       const storedKey = await kmsKeyStore.getKey({ id: testKey.id });
@@ -1706,7 +1815,7 @@ describe('KmsKeyStore', () => {
     it('should throw an error when attempting to import a key that already exists', async () => {
       // Import the key and validate the result.
       const importResult = await kmsKeyStore.importKey({ key: testKey });
-      expect(importResult).to.be.true;
+      expect(importResult).to.equal(testKey.id);
 
       // Test importing the key and assert it throws an error.
       const importKey = kmsKeyStore.importKey({ key: testKey });
