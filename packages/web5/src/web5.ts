@@ -75,6 +75,10 @@ export class Web5 {
     this.appStorage ||= new AppStorage();
   }
 
+  static activateDomFeatures() {
+    activateDomFeatures(this);
+  }
+
   /**
    * Connects to a {@link Web5Agent}. defaults to creating an embedded {@link Web5UserAgent} if one isn't provided
    * @param options - optional overrides
@@ -145,6 +149,10 @@ export class Web5 {
     return { web5, did: connectedDid };
   }
 
+  static deactivateDomFeatures() {
+    deactivateDomFeatures();
+  }
+
   /**
    * Dynamically selects up to 2 DWN endpoints that are provided
    * by default during the Tech Preview period.
@@ -197,13 +205,5 @@ export class Web5 {
         console.error('Sync failed due to error: ', e);
       }
     }, delay);
-  }
-
-  static activateDomFeatures(){
-    activateDomFeatures(this)
-  }
-
-  static deactivateDomFeatures(){
-    deactivateDomFeatures();
   }
 }
