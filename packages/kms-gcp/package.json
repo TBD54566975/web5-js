@@ -1,0 +1,9 @@
+{
+  "name": "@tbd54566975/kms-gcp",
+  "version": "0.1.0",
+  "description": "Web5 library for GCP KMS",
+  "type": "module",
+  "dependencies": {
+    "@google-cloud/kms": "3.6.0"
+  }
+}
