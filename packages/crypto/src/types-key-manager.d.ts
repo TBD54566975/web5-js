@@ -93,12 +93,12 @@ export interface ManagedKey {
   /**
    * The type of key.
    */
-  type: KeyType;
+  type: Web5Crypto.KeyType;
 
   /**
    * Indicates which cryptographic operations are permissible to be used with this key.
    */
-  usages: KeyUsage[];
+  usages: Web5Crypto.KeyUsage[];
 }
 
 /**
@@ -423,10 +423,8 @@ export interface CryptoManager {
    */
   getKey(options: { keyRef: string }): Promise<ManagedKey | ManagedKeyPair | undefined>;
 
-  // importKey(options: PrivateKeyImportOptions): Promise<ManagedKey>;
-  // importKey(options: PublicKeyImportOptions): Promise<ManagedKey>;
-  // importKey(options: SecretKeyImportOptions): Promise<ManagedKey>;
-  // importKey(options: KeyPairImportOptions): Promise<ManagedKey>;
+  importKey(options: ImportableKeyPair): Promise<ManagedKeyPair>;
+  importKey(options: ImportableKey): Promise<ManagedKey>;
   importKey(options: ImportKeyOptions): Promise<ManagedKey | ManagedKeyPair>;
 
   sign(options: SignOptions): Promise<ArrayBuffer>;
@@ -434,8 +432,18 @@ export interface CryptoManager {
   verify(options: VerifyOptions): Promise<boolean>;
 }
 
-export type ImportKeyOptions = RequireOnly<ManagedKey, 'algorithm' | 'extractable' | 'kms' | 'type' | 'usages', 'id' | 'material' | 'state'>
+export type ImportableKey = RequireOnly<ManagedKey, 'algorithm' | 'extractable' | 'kms' | 'type' | 'usages', 'id' | 'material' | 'state'>
   & { material: BufferSource; };
+
+export interface ImportableKeyPair {
+  privateKey: ImportableKey;
+  publicKey: ImportableKey;
+}
+
+export type ImportKeyOptions =
+  | ImportableKey
+  | ImportableKeyPair
+
 
 export type GenerateKeyOptionTypes =
   | Web5Crypto.AlgorithmIdentifier

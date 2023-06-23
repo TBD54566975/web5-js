@@ -11,6 +11,8 @@ import type {
   GenerateKeyOptionTypes,
   DeriveBitsOptions,
   ImportKeyOptions,
+  ImportableKeyPair,
+  ImportableKey,
 } from './types-key-manager.js';
 
 import { MemoryKeyStore } from './key-store-memory.js';
@@ -93,9 +95,18 @@ export class KeyManager implements CryptoManager {
     return keyOrKeyPair;
   }
 
+  async importKey(options: ImportableKeyPair): Promise<ManagedKeyPair>;
+  async importKey(options: ImportableKey): Promise<ManagedKey>;
   async importKey(options: ImportKeyOptions): Promise<ManagedKey | ManagedKeyPair> {
-    console.log(options);
-    return null as any;
+    const kmsName = ('privateKey' in options) ? options.privateKey.kms : options.kms;
+    const kms = this.#getKms(kmsName);
+
+    const importedKeyOrKeyPair = await kms.importKey(options);
+
+    // Store the ManagedKey or ManagedKeyPair in KeyManager's key store.
+    await this.#keyStore.importKey({ key: importedKeyOrKeyPair });
+
+    return importedKeyOrKeyPair;
   }
 
   listKms() {

@@ -35,8 +35,10 @@ export class KmsKeyStore implements ManagedKeyStore<string, ManagedKey | Managed
     return this.#keyStore.get(id);
   }
 
-  async importKey({ key }: { key: ManagedKey | ManagedKeyPair }): Promise<boolean> {
-    const id = isManagedKeyPair(key) ? key.publicKey!.id : key.id;
+  async importKey({ key }: { key: ManagedKey | ManagedKeyPair }): Promise<string> {
+    let id = isManagedKeyPair(key) ? key.publicKey!.id : key.id;
+    id ??= uuid(); // If an ID wasn't specified, generate one.
+
     if (await this.#keyStore.has(id)) {
       throw new Error(`Key with ID already exists: '${id}'`);
     }
@@ -44,7 +46,7 @@ export class KmsKeyStore implements ManagedKeyStore<string, ManagedKey | Managed
     // Make a deep copy of the key so that the object stored does not share the same references as the input key.
     const clonedKey = structuredClone(key);
     await this.#keyStore.set(id, clonedKey);
-    return true;
+    return id;
   }
 
   async listKeys(): Promise<Array<ManagedKey | ManagedKeyPair>> {

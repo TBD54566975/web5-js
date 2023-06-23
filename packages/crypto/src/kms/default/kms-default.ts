@@ -4,21 +4,23 @@ import type {
   Web5Crypto,
   SignOptions,
   VerifyOptions,
+  ImportableKey,
   ManagedKeyPair,
   GenerateKeyType,
+  ImportKeyOptions,
   DeriveBitsOptions,
+  ImportableKeyPair,
   GenerateKeyOptions,
   KeyManagementSystem,
   GenerateKeyOptionTypes,
-  ImportKeyOptions,
 } from '../../types-key-manager.js';
 
 import { Convert } from '../../common/convert.js';
+import { RequireOnly } from '../../common/types.js';
 import { defaultAlgorithms } from './supported-algorithms.js';
 import { KmsKeyStore, KmsPrivateKeyStore } from './key-stores.js';
 import { CryptoAlgorithm, NotSupportedError } from '../../algorithms-api/index.js';
 import { checkRequiredProperty, isCryptoKeyPair, isManagedKeyPair } from '../../utils-key-manager.js';
-import { RequireOnly } from '../../common/types.js';
 
 
 export type KmsOptions = {
@@ -100,45 +102,55 @@ export class DefaultKms implements KeyManagementSystem {
     return keyOrKeyPair;
   }
 
+  async importKey(options: ImportableKeyPair): Promise<ManagedKeyPair>;
+  async importKey(options: ImportableKey): Promise<ManagedKey>;
   async importKey(options: ImportKeyOptions): Promise<ManagedKey | ManagedKeyPair> {
-    const { material, ...keyOptions } = options;
 
-    let managedKeyOrKeyPair: ManagedKey | ManagedKeyPair;
+    if ('privateKey' in options) {
+      // Asymmetric key pair import.
+      const { privateKey, publicKey } = options;
+      if (!(privateKey.type === 'private' && publicKey.type === 'public'))
+        throw new Error(`Import failed due to private and public key mismatch`);
+      privateKey.material = Convert.bufferSource(privateKey.material).toArrayBuffer();
+      publicKey.material = Convert.bufferSource(publicKey.material).toArrayBuffer();
+      const id = await this.#privateKeyStore.importKey({ key: { material: privateKey.material, type: privateKey.type } });
+      const managedKeyPair = {
+        privateKey : this.#toManagedKey({ ...privateKey, material: undefined, id }),
+        publicKey  : this.#toManagedKey({ ...publicKey, material: publicKey.material, id })
+      };
+      await this.#keyStore.importKey({ key: managedKeyPair });
+      return managedKeyPair;
+    }
 
-    switch (options.type) {
-      case 'secret': {
-        // Symmetric or HMAC key to be imported.
-
-        managedKeyOrKeyPair = null as any;
-        break;
-      }
-
+    const keyType = options.type;
+    switch (keyType) {
       case 'private': {
-        // Asymmetric key to be imported.
-        const materialBuffer = Convert.bufferSource(material).toArrayBuffer();
-        const id = await this.#privateKeyStore.importKey({ key: { material: materialBuffer, type: options.type } });
-        const privateKey = this.#toManagedKey({ ...keyOptions, id });
-
-        const publicKey = this.#toManagedKey({ ...keyOptions, id });
-        managedKeyOrKeyPair = { privateKey, publicKey };
-        break;
+        // Asymmetric private key import.
+        let { material } = options;
+        material = Convert.bufferSource(material).toArrayBuffer();
+        const id = await this.#privateKeyStore.importKey({ key: { material, type: keyType } });
+        const privateKey = this.#toManagedKey({ ...options, material: undefined, id });
+        await this.#keyStore.importKey({ key: privateKey });
+        return privateKey;
       }
 
       case 'public': {
-        // Asymmetric key to be imported, but only the public key has been provided.
+        // Asymmetric public key import.
+        let { material } = options;
+        material = Convert.bufferSource(material).toArrayBuffer();
+        const privateKey = this.#toManagedKey({ ...options, material, id: 'placeholder' });
+        privateKey.id = await this.#keyStore.importKey({ key: privateKey });
+        return privateKey;
+      }
 
-        managedKeyOrKeyPair = null as any;
-        break;
+      case 'secret': {
+        //! TODO: Symmetric or HMAC key import.
+        return null as any;
       }
 
       default:
-        throw new TypeError(`Out of range: '${options.type}'. Must be one of 'private, public, secret'`);
+        throw new TypeError(`Out of range: '${keyType}'. Must be one of 'private, public, secret'`);
     }
-
-    // Store the ManagedKey or ManagedKeyPair in the KMS key store.
-    await this.#keyStore.importKey({ key: managedKeyOrKeyPair });
-
-    return managedKeyOrKeyPair;
   }
 
   async sign(options: SignOptions): Promise<ArrayBuffer> {
