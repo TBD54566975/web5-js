@@ -34,7 +34,7 @@ module.exports = {
       { 'allowTemplateLiterals': true }
     ],
     'semi'                              : ['error', 'always'],
-    'indent'                            : ['error', 2],
+    'indent'                            : ['error', 2, { 'SwitchCase': 1 }],
     'no-unused-vars'                    : 'off',
     'prefer-const'                      : 'off',
     '@typescript-eslint/no-unused-vars' : [
