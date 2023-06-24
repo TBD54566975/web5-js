@@ -2,8 +2,8 @@ import type { Web5Crypto } from '../src/types-key-manager.js';
 
 import { expect } from 'chai';
 
-import { CryptoKey } from '../src/kms/default/crypto-key.js';
 import {
+  CryptoKey,
   EcdhAlgorithm,
   EcdsaAlgorithm,
   EdDsaAlgorithm,

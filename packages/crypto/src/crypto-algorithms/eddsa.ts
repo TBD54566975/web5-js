@@ -1,15 +1,14 @@
-import type { BufferKeyPair, Web5Crypto } from '../../../types-key-manager.js';
+import type { BufferKeyPair, Web5Crypto } from '../types-key-manager.js';
 
-import { CryptoKey } from '../crypto-key.js';
-import { isBufferKeyPair } from '../../../utils-key-manager.js';
-import { Secp256k1 } from '../../../crypto-algorithms/index.js';
-import { EcdsaAlgorithm } from '../../../algorithms-api/index.js';
-export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
-  public readonly hashAlgorithms = ['SHA-256'];
-  public readonly namedCurves = ['secp256k1'];
+import { Ed25519 } from '../crypto-primitives/index.js';
+import { isBufferKeyPair } from '../utils-key-manager.js';
+import { CryptoKey, EdDsaAlgorithm } from '../algorithms-api/index.js';
+
+export class DefaultEdDsaAlgorithm extends EdDsaAlgorithm {
+  public readonly namedCurves = ['Ed25519', 'Ed448'];
 
   public async generateKey(options: {
-    algorithm: Web5Crypto.EcdsaGenerateKeyOptions,
+    algorithm: Web5Crypto.EdDsaGenerateKeyOptions,
     extractable: boolean,
     keyUsages: Web5Crypto.KeyUsage[]
   }): Promise<Web5Crypto.CryptoKeyPair> {
@@ -22,9 +21,8 @@ export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
 
     switch (algorithm.namedCurve) {
 
-      case 'secp256k1': {
-        algorithm.compressedPublicKey ??= true;
-        keyPair = await Secp256k1.generateKeyPair({ compressedPublicKey: algorithm.compressedPublicKey });
+      case 'Ed25519': {
+        keyPair = await Ed25519.generateKeyPair();
         break;
       }
       // Default case not needed because checkGenerateKey() already validates the specified namedCurve is supported.
@@ -43,7 +41,7 @@ export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
   }
 
   public async sign(options: {
-    algorithm: Web5Crypto.EcdsaOptions,
+    algorithm: Web5Crypto.EdDsaOptions,
     key: Web5Crypto.CryptoKey,
     data: BufferSource
   }): Promise<ArrayBuffer> {
@@ -59,12 +57,12 @@ export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
 
     let signature: ArrayBuffer;
 
-    const keyAlgorithm = key.algorithm as Web5Crypto.EcdsaGenerateKeyOptions; // Type guard.
+    const keyAlgorithm = key.algorithm as Web5Crypto.EdDsaGenerateKeyOptions; // Type guard.
 
     switch (keyAlgorithm.namedCurve) {
 
-      case 'secp256k1': {
-        signature = await Secp256k1.sign({ hash: algorithm.hash, key: key.handle, data });
+      case 'Ed25519': {
+        signature = await Ed25519.sign({ key: key.handle, data });
         break;
       }
 
@@ -76,7 +74,7 @@ export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
   }
 
   public async verify(options: {
-    algorithm: Web5Crypto.EcdsaOptions;
+    algorithm: Web5Crypto.EdDsaOptions;
     key: Web5Crypto.CryptoKey;
     signature: ArrayBuffer;
     data: BufferSource;
@@ -93,12 +91,12 @@ export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
 
     let isValid: boolean;
 
-    const keyAlgorithm = key.algorithm as Web5Crypto.EcdsaGenerateKeyOptions; // Type guard.
+    const keyAlgorithm = key.algorithm as Web5Crypto.EdDsaGenerateKeyOptions; // Type guard.
 
     switch (keyAlgorithm.namedCurve) {
 
-      case 'secp256k1': {
-        isValid = await Secp256k1.verify({ hash: algorithm.hash, key: key.handle, signature, data });
+      case 'Ed25519': {
+        isValid = await Ed25519.verify({ key: key.handle, signature, data });
         break;
       }
 

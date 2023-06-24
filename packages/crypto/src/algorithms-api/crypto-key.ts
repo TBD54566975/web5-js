@@ -1,4 +1,4 @@
-import type { Web5Crypto } from '../../types-key-manager.js';
+import type { Web5Crypto } from '../types-key-manager.js';
 
 /**
  * CryptoKey interface

@@ -1,9 +1,8 @@
-import type { BufferKeyPair, Web5Crypto } from '../../../types-key-manager.js';
+import type { BufferKeyPair, Web5Crypto } from '../types-key-manager.js';
 
-import { CryptoKey } from '../crypto-key.js';
-import { isBufferKeyPair } from '../../../utils-key-manager.js';
-import { Secp256k1, X25519 } from '../../../crypto-algorithms/index.js';
-import { EcdhAlgorithm, OperationError } from '../../../algorithms-api/index.js';
+import { isBufferKeyPair } from '../utils-key-manager.js';
+import { Secp256k1, X25519 } from '../crypto-primitives/index.js';
+import { CryptoKey, EcdhAlgorithm, OperationError } from '../algorithms-api/index.js';
 
 export class DefaultEcdhAlgorithm extends EcdhAlgorithm {
   public readonly namedCurves = ['secp256k1', 'X25519'];

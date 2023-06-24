@@ -1,84 +1,31 @@
-import type { KeyManagerOptions } from '../src/key-manager.js';
 import type { ManagedKey, ManagedKeyPair, ManagedPrivateKey, Web5Crypto } from '../src/types-key-manager.js';
 
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 
-import { KeyManager } from '../src/key-manager.js';
 import { MemoryKeyStore } from '../src/key-store-memory.js';
-import { KeyManagerStore } from '../src/key-manager-store.js';
 import { LocalKms, KmsKeyStore, KmsPrivateKeyStore } from '../src/kms-local/index.js';
 
-describe('KeyManager', () => {
-  let keyManager: KeyManager;
-  let keyManagerStore: KeyManagerStore;
-  let localKms: LocalKms;
-  let kmsKeyStore: KmsKeyStore;
-  let kmsPrivateKeyStore: KmsPrivateKeyStore;
+chai.use(chaiAsPromised);
+
+describe('LocalKms', () => {
+  let kms: LocalKms;
 
   beforeEach(() => {
-    // Instantiate in-memory store for KMS key metadata and public keys.
-    const kmsMemoryKeyStore = new MemoryKeyStore<string, ManagedKey | ManagedKeyPair>();
-    kmsKeyStore = new KmsKeyStore(kmsMemoryKeyStore);
-
-    // Instantiate in-memory store for KMS private keys.
+    const memoryKeyStore = new MemoryKeyStore<string, ManagedKey | ManagedKeyPair>();
+    const kmsKeyStore = new KmsKeyStore(memoryKeyStore);
     const memoryPrivateKeyStore = new MemoryKeyStore<string, ManagedPrivateKey>();
-    kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryPrivateKeyStore);
-
-    // Instantiate local KMS using key stores.
-    localKms = new LocalKms('local', kmsKeyStore, kmsPrivateKeyStore);
-
-    // Instantiate in-memory store for KeyManager key metadata.
-    const kmMemoryKeyStore = new MemoryKeyStore<string, ManagedKey | ManagedKeyPair>();
-    keyManagerStore = new KeyManagerStore({ store: kmMemoryKeyStore });
-
-    const options: KeyManagerOptions = {
-      store : keyManagerStore,
-      kms   : { local: localKms },
-    };
-
-    keyManager = new KeyManager(options);
+    const kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryPrivateKeyStore);
+    kms = new LocalKms('local', kmsKeyStore, kmsPrivateKeyStore);
   });
 
-  describe('constructor', () => {
-    it('throws an exception if store and kms inputs are missing', async () => {
-      // @ts-expect-error because KeyManager is intentionally instantiated without required properties.
-      expect(() => new KeyManager()).to.throw(TypeError);
-    });
-
-    it('throws an exception if store is missing', async () => {
-      // @ts-expect-error because KeyManager is intentionally instantiated without required properties.
-      expect(() => new KeyManager({ kms: { local: localKms } })).to.throw(TypeError, 'Required parameter was missing');
-    });
-
-    it('will use a local KMS if kms is not specified', async () => {
-      keyManager = new KeyManager({ store: keyManagerStore });
-
-      const kmsList = keyManager.listKms();
-      expect(kmsList[0]).to.equal('local');
-    });
-  });
-
-  describe('instances', () => {
-    it('should not be possible to externally access the KeyManager store', async () => {
-      /**
-       * Note: It isn't possible to test that trying to access keyMgr.#store will throw a SyntaxError.
-       * In JavaScript, a SyntaxError is thrown when parsing code before it is executed. This makes it
-       * different from runtime exceptions (like TypeError, ReferenceError, etc.), which occur during
-       * the execution of the code. This means you can't catch a SyntaxError with a try-catch block in
-       * the same script, because the error is thrown before the script is run.
-       */
-      const hasPrivateStoreField = Object.getOwnPropertyNames(keyManager).includes('#store');
-      expect(hasPrivateStoreField).to.be.false;
-    });
-  });
-
-  describe('deriveBits()', () => {
+  describe('deriveBites()', () => {
     let otherPartyPublicKey: ManagedKey;
     let otherPartyPublicCryptoKey: Web5Crypto.CryptoKey;
     let ownPrivateKey: ManagedKey;
 
     beforeEach(async () => {
-      const otherPartyKeyPair = await keyManager.generateKey({
+      const otherPartyKeyPair = await kms.generateKey({
         algorithm   : { name: 'ECDH', namedCurve: 'secp256k1' },
         extractable : false,
         keyUsages   : ['deriveBits']
@@ -93,16 +40,16 @@ describe('KeyManager', () => {
         usages      : otherPartyPublicKey.usages
       };
 
-      const ownKeyPair = await keyManager.generateKey({
+      const ownKeyPair = await kms.generateKey({
         algorithm   : { name: 'ECDH', namedCurve: 'secp256k1' },
         extractable : false,
-        keyUsages   : ['deriveBits', 'deriveKey']
+        keyUsages   : ['deriveBits']
       });
       ownPrivateKey = ownKeyPair.privateKey;
     });
 
     it('generates shared secrets', async () => {
-      const sharedSecret = await keyManager.deriveBits({
+      const sharedSecret = await kms.deriveBits({
         algorithm  : { name: 'ECDH', publicKey: otherPartyPublicCryptoKey },
         baseKeyRef : ownPrivateKey.id
       });
@@ -111,7 +58,7 @@ describe('KeyManager', () => {
     });
 
     it(`accepts 'id' as a baseKey reference`, async () => {
-      const sharedSecret = await keyManager.deriveBits({
+      const sharedSecret = await kms.deriveBits({
         algorithm  : { name: 'ECDH', publicKey: otherPartyPublicCryptoKey },
         baseKeyRef : ownPrivateKey.id
       });
@@ -120,7 +67,7 @@ describe('KeyManager', () => {
     });
 
     it('generates ECDH secp256k1 shared secrets', async () => {
-      const sharedSecret = await keyManager.deriveBits({
+      const sharedSecret = await kms.deriveBits({
         algorithm  : { name: 'ECDH', publicKey: otherPartyPublicCryptoKey },
         baseKeyRef : ownPrivateKey.id
       });
@@ -129,7 +76,7 @@ describe('KeyManager', () => {
     });
 
     it('generates ECDH X25519 shared secrets', async () => {
-      const otherPartyKeyPair = await keyManager.generateKey({
+      const otherPartyKeyPair = await kms.generateKey({
         algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
         extractable : false,
         keyUsages   : ['deriveBits']
@@ -144,14 +91,14 @@ describe('KeyManager', () => {
         usages      : otherPartyPublicKey.usages
       };
 
-      const ownKeyPair = await keyManager.generateKey({
+      const ownKeyPair = await kms.generateKey({
         algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
         extractable : false,
         keyUsages   : ['deriveBits']
       });
       ownPrivateKey = ownKeyPair.privateKey;
 
-      const sharedSecret = await keyManager.deriveBits({
+      const sharedSecret = await kms.deriveBits({
         algorithm  : { name: 'ECDH', publicKey: otherPartyPublicCryptoKey },
         baseKeyRef : ownPrivateKey.id
       });
@@ -159,7 +106,7 @@ describe('KeyManager', () => {
     });
 
     it('throws an error when baseKey reference is not found', async () => {
-      await expect(keyManager.deriveBits({
+      await expect(kms.deriveBits({
         algorithm  : { name: 'ECDH', publicKey: otherPartyPublicCryptoKey },
         baseKeyRef : 'non-existent-id'
       })).to.eventually.be.rejectedWith(Error, 'Key not found');
@@ -168,7 +115,7 @@ describe('KeyManager', () => {
 
   describe('generateKey()', () => {
     it('creates valid key pairs', async () => {
-      const keys = await keyManager.generateKey({
+      const keys = await kms.generateKey({
         algorithm : { name: 'ECDSA', namedCurve: 'secp256k1' },
         keyUsages : ['sign', 'verify']
       });
@@ -198,9 +145,8 @@ describe('KeyManager', () => {
       expect(keys.publicKey.usages).to.deep.equal(['verify']);
     });
 
-
     it('creates ECDH secp256k1 key pairs with compressed public keys, by default', async () => {
-      const keys = await keyManager.generateKey({
+      const keys = await kms.generateKey({
         algorithm : { name: 'ECDH', namedCurve: 'secp256k1' },
         keyUsages : ['deriveBits', 'deriveKey']
       });
@@ -219,7 +165,7 @@ describe('KeyManager', () => {
     });
 
     it('creates ECDH secp256k1 key pairs with uncompressed public keys, if specified', async () => {
-      const keys = await keyManager.generateKey({
+      const keys = await kms.generateKey({
         algorithm : { name: 'ECDH', namedCurve: 'secp256k1', compressedPublicKey: false },
         keyUsages : ['deriveBits', 'deriveKey']
       });
@@ -230,7 +176,7 @@ describe('KeyManager', () => {
     });
 
     it('creates ECDSA secp256k1 key pairs with compressed public keys, by default', async () => {
-      const keys = await keyManager.generateKey({
+      const keys = await kms.generateKey({
         algorithm : { name: 'ECDSA', namedCurve: 'secp256k1' },
         keyUsages : ['sign', 'verify']
       });
@@ -253,7 +199,7 @@ describe('KeyManager', () => {
     });
 
     it('creates ECDSA secp256k1 key pairs with uncompressed public keys, if specified', async () => {
-      const keys = await keyManager.generateKey({
+      const keys = await kms.generateKey({
         algorithm : { name: 'ECDSA', namedCurve: 'secp256k1', compressedPublicKey: false },
         keyUsages : ['sign', 'verify']
       });
@@ -264,7 +210,7 @@ describe('KeyManager', () => {
     });
 
     it('creates EdDSA Ed25519 key pairs', async () => {
-      const keys = await keyManager.generateKey({
+      const keys = await kms.generateKey({
         algorithm : { name: 'EdDSA', namedCurve: 'Ed25519' },
         keyUsages : ['sign', 'verify']
       });
@@ -286,7 +232,7 @@ describe('KeyManager', () => {
       let keys: ManagedKeyPair;
 
       ['eCdSa', 'ecdsa'].forEach(async (algorithmName) => {
-        keys = await keyManager.generateKey({
+        keys = await kms.generateKey({
           algorithm   : { name: algorithmName, namedCurve: 'secp256k1' },
           keyUsages   : ['sign', 'verify'],
           extractable : true,
@@ -300,54 +246,33 @@ describe('KeyManager', () => {
     });
   });
 
-  describe('getKey()', function() {
-    xit('returns the key if it exists in the store', async function() {
-      const keyRef = 'testKey';
-      const expectedKey = { id: keyRef, kms: 'local' };
-
-      // Prepopulate the store with a key.
-      //! TODO: Enable this test once the importKey() method has been added to KeyManager.
-      // await keyManager.importKey({ key: expectedKey });
-
-      const storedKey = await keyManager.getKey({ keyRef });
-
-      expect(storedKey).to.deep.equal(expectedKey);
-    });
-
-    it('should return undefined if the key does not exist in the store', async function() {
-      const keyRef = 'non-existent-key';
-
-      const storedKey = await keyManager.getKey({ keyRef });
-
-      expect(storedKey).to.be.undefined;
-    });
-  });
-
   describe('importKey()', () => {
     it('imports asymmetric key pairs', async () => {
+      const testKeyBase = {
+        algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+        extractable : true,
+        kms         : 'testKms',
+      };
+
       // Test importing the key and validate the result.
-      const importedKeyPair = await keyManager.importKey({
+      const importedKeyPair = await kms.importKey({
         privateKey: {
-          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-          extractable : true,
-          kms         : 'local',
-          material    : new Uint8Array([1, 2, 3, 4]),
-          type        : 'private',
-          usages      : ['sign'],
+          ...testKeyBase,
+          material : new Uint8Array([1, 2, 3, 4]),
+          type     : 'private',
+          usages   : ['sign'],
         },
         publicKey: {
-          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-          extractable : true,
-          kms         : 'local',
-          material    : new Uint8Array([1, 2, 3, 4]),
-          type        : 'public',
-          usages      : ['verify'],
+          ...testKeyBase,
+          material : new Uint8Array([1, 2, 3, 4]),
+          type     : 'public',
+          usages   : ['verify'],
         }
       });
       expect(importedKeyPair).to.exist;
 
       // Verify the key is present in the key store.
-      const storedKeyPair = await keyManager.getKey({ keyRef: importedKeyPair.privateKey.id }) as ManagedKeyPair;
+      const storedKeyPair = await kms.getKey({ keyRef: importedKeyPair.privateKey.id }) as ManagedKeyPair;
       expect(storedKeyPair).to.deep.equal(importedKeyPair);
 
       expect(storedKeyPair).to.have.property('privateKey');
@@ -377,10 +302,10 @@ describe('KeyManager', () => {
 
     it('imports asymmetric private keys', async () => {
       // Test importing the key and validate the result.
-      const importedPrivateKey = await keyManager.importKey({
+      const importedPrivateKey = await kms.importKey({
         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
         extractable : true,
-        kms         : 'local',
+        kms         : 'testKms',
         material    : new Uint8Array([1, 2, 3, 4]),
         type        : 'private',
         usages      : ['sign'],
@@ -389,7 +314,7 @@ describe('KeyManager', () => {
       expect(importedPrivateKey).to.exist;
 
       // Verify the key is present in the key store.
-      const storedPrivateKey = await keyManager.getKey({ keyRef: importedPrivateKey.id }) as ManagedKey;
+      const storedPrivateKey = await kms.getKey({ keyRef: importedPrivateKey.id }) as ManagedKey;
       expect(storedPrivateKey).to.deep.equal(importedPrivateKey);
 
       // Validate the expected values.
@@ -404,10 +329,10 @@ describe('KeyManager', () => {
 
     it('imports asymmetric public keys', async () => {
       // Test importing the key and validate the result.
-      const importedPublicKey = await keyManager.importKey({
+      const importedPublicKey = await kms.importKey({
         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
         extractable : true,
-        kms         : 'local',
+        kms         : 'testKms',
         material    : new Uint8Array([1, 2, 3, 4]),
         type        : 'public',
         usages      : ['verify'],
@@ -416,7 +341,7 @@ describe('KeyManager', () => {
       expect(importedPublicKey).to.exist;
 
       // Verify the key is present in the key store.
-      const storedPublicKey = await keyManager.getKey({ keyRef: importedPublicKey.id }) as ManagedKey;
+      const storedPublicKey = await kms.getKey({ keyRef: importedPublicKey.id }) as ManagedKey;
       expect(storedPublicKey).to.deep.equal(importedPublicKey);
 
       // Validate the expected values.
@@ -432,14 +357,27 @@ describe('KeyManager', () => {
     xit('imports symmetric keys');
     xit('imports HMAC keys');
 
+    it(`ignores the 'kms' property and overwrites with configured value`, async () => {
+      // Test importing the key and validate the result.
+      const importedPrivateKey = await kms.importKey({
+        algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+        extractable : true,
+        kms         : 'incorrect-kms-name',
+        material    : new Uint8Array([1, 2, 3, 4]),
+        type        : 'private',
+        usages      : ['sign'],
+      });
+      expect(importedPrivateKey.kms).to.equal('local');
+    });
+
     it(`ignores the 'id' property and overwrites with internally generated unique identifier`, async () => {
       // Test importing a private key and validate the result.
       // @ts-expect-error because an 'id' property is being specified even though it should not be.
-      const importedPrivateKey = await keyManager.importKey({
+      const importedPrivateKey = await kms.importKey({
         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
         extractable : true,
         id          : '1234',
-        kms         : 'local',
+        kms         : 'testKms',
         material    : new Uint8Array([1, 2, 3, 4]),
         type        : 'private',
         usages      : ['sign'],
@@ -449,11 +387,11 @@ describe('KeyManager', () => {
 
       // Test importing a public key and validate the result.
       // @ts-expect-error because an 'id' property is being specified even though it should not be.
-      const importedPublicKey = await keyManager.importKey({
+      const importedPublicKey = await kms.importKey({
         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
         extractable : true,
         id          : '1234',
-        kms         : 'local',
+        kms         : 'testKms',
         material    : new Uint8Array([1, 2, 3, 4]),
         type        : 'public',
         usages      : ['sign'],
@@ -462,13 +400,13 @@ describe('KeyManager', () => {
       expect(importedPublicKey.id).to.not.equal('1234');
 
       // Test importing the asymmetric key pair and validate the result.
-      const importedKeyPair = await keyManager.importKey({
+      const importedKeyPair = await kms.importKey({
         // @ts-expect-error because an 'id' property is being specified even though it should not be.
         privateKey: {
           algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
           extractable : true,
           id          : '1234',
-          kms         : 'local',
+          kms         : 'testKms',
           material    : new Uint8Array([1, 2, 3, 4]),
           type        : 'private',
           usages      : ['sign'],
@@ -477,7 +415,7 @@ describe('KeyManager', () => {
           algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
           extractable : true,
           id          : '1234',
-          kms         : 'local',
+          kms         : 'testKms',
           material    : new Uint8Array([1, 2, 3, 4]),
           type        : 'public',
           usages      : ['verify'],
@@ -491,10 +429,10 @@ describe('KeyManager', () => {
 
     it('never returns key material for private keys', async () => {
       // Test importing the key and validate the result.
-      const importedPrivateKey = await keyManager.importKey({
+      const importedPrivateKey = await kms.importKey({
         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
         extractable : true,
-        kms         : 'local',
+        kms         : 'testKms',
         material    : new Uint8Array([1, 2, 3, 4]),
         type        : 'private',
         usages      : ['sign'],
@@ -504,10 +442,10 @@ describe('KeyManager', () => {
 
     it('returns key material for public keys', async () => {
       // Test importing the key and validate the result.
-      const importedPrivateKey = await keyManager.importKey({
+      const importedPrivateKey = await kms.importKey({
         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
         extractable : true,
-        kms         : 'local',
+        kms         : 'testKms',
         material    : new Uint8Array([1, 2, 3, 4]),
         type        : 'public',
         usages      : ['verify'],
@@ -517,55 +455,39 @@ describe('KeyManager', () => {
     });
 
     it('throws an error if public and private keys are swapped', async () => {
+      const testKeyBase = {
+        algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+        extractable : true,
+        kms         : 'testKms',
+      };
+
       // Test importing the key and validate the result.
-      await expect(keyManager.importKey({
+      await expect(kms.importKey({
         privateKey: {
-          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-          extractable : true,
-          kms         : 'local',
-          material    : new Uint8Array([1, 2, 3, 4]),
-          type        : 'public',
-          usages      : ['verify'],
+          ...testKeyBase,
+          material : new Uint8Array([1, 2, 3, 4]),
+          type     : 'public',
+          usages   : ['verify'],
         },
         publicKey: {
-          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-          extractable : true,
-          kms         : 'local',
-          material    : new Uint8Array([1, 2, 3, 4]),
-          type        : 'private',
-          usages      : ['sign'],
+          ...testKeyBase,
+          material : new Uint8Array([1, 2, 3, 4]),
+          type     : 'private',
+          usages   : ['sign'],
         }
       })).to.eventually.be.rejectedWith(Error, 'failed due to private and public key mismatch');
     });
   });
 
-  describe('listKms()', function() {
-    it('should return an empty array if no KMSs are specified', function() {
-      const keyManager = new KeyManager({ store: keyManagerStore, kms: {}, });
-      const kmsList = keyManager.listKms();
-      expect(kmsList).to.be.an('array').that.is.empty;
-    });
-
-    it('should return the names of all KMSs present', function() {
-      const keyManager = new KeyManager({
-        store : keyManagerStore,
-        // @ts-expect-error because dummy KMS objects are intentionally used as input.
-        kms   : { 'dummy1': {}, 'dummy2': {} }
-      });
-      const kmsList = keyManager.listKms();
-      expect(kmsList).to.be.an('array').that.includes.members(['dummy1', 'dummy2']);
-    });
-  });
-
   describe('sign()', () => {
     it('generates signatures', async () => {
-      const keyPair = await keyManager.generateKey({
+      const keyPair = await kms.generateKey({
         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
         extractable : false,
         keyUsages   : ['sign', 'verify']
       });
 
-      const signature = await keyManager.sign({
+      const signature = await kms.sign({
         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
         keyRef    : keyPair.privateKey.id,
         data      : new Uint8Array([51, 52, 53]),
@@ -577,7 +499,7 @@ describe('KeyManager', () => {
 
     it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
       const algorithm = { name: 'ECDSA', hash: 'SHA-256' };
-      const keyPair = await keyManager.generateKey({
+      const keyPair = await kms.generateKey({
         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
         extractable : false,
         keyUsages   : ['sign', 'verify']
@@ -586,34 +508,34 @@ describe('KeyManager', () => {
       let signature: ArrayBuffer;
 
       const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-      signature = await keyManager.sign({ algorithm, keyRef: key.id, data: dataU8A });
+      signature = await kms.sign({ algorithm, keyRef: key.id, data: dataU8A });
       expect(signature).to.be.instanceOf(ArrayBuffer);
 
       const dataArrayBuffer = dataU8A.buffer;
-      signature = await keyManager.sign({ algorithm, keyRef: key.id, data: dataArrayBuffer });
+      signature = await kms.sign({ algorithm, keyRef: key.id, data: dataArrayBuffer });
       expect(signature).to.be.instanceOf(ArrayBuffer);
 
       const dataView = new DataView(dataArrayBuffer);
-      signature = await keyManager.sign({ algorithm, keyRef: key.id, data: dataView });
+      signature = await kms.sign({ algorithm, keyRef: key.id, data: dataView });
       expect(signature).to.be.instanceOf(ArrayBuffer);
 
       const dataI32A = new Int32Array([10, 20, 30, 40]);
-      signature = await keyManager.sign({ algorithm, keyRef: key.id, data: dataI32A });
+      signature = await kms.sign({ algorithm, keyRef: key.id, data: dataI32A });
       expect(signature).to.be.instanceOf(ArrayBuffer);
 
       const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
-      signature = await keyManager.sign({ algorithm, keyRef: key.id, data: dataU32A });
+      signature = await kms.sign({ algorithm, keyRef: key.id, data: dataU32A });
       expect(signature).to.be.instanceOf(ArrayBuffer);
     });
 
     it('generates ECDSA secp256k1 signatures', async () => {
-      const keyPair = await keyManager.generateKey({
+      const keyPair = await kms.generateKey({
         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
         extractable : false,
         keyUsages   : ['sign', 'verify']
       });
 
-      const signature = await keyManager.sign({
+      const signature = await kms.sign({
         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
         keyRef    : keyPair.privateKey.id,
         data      : new Uint8Array([51, 52, 53]),
@@ -624,13 +546,13 @@ describe('KeyManager', () => {
     });
 
     it('generates EdDSA Ed25519 signatures', async () => {
-      const keyPair = await keyManager.generateKey({
+      const keyPair = await kms.generateKey({
         algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
         extractable : false,
         keyUsages   : ['sign', 'verify']
       });
 
-      const signature = await keyManager.sign({
+      const signature = await kms.sign({
         algorithm : { name: 'EdDSA' },
         keyRef    : keyPair.privateKey.id,
         data      : new Uint8Array([51, 52, 53]),
@@ -641,7 +563,7 @@ describe('KeyManager', () => {
     });
 
     it('throws an error when key reference is not found', async () => {
-      await expect(keyManager.sign({
+      await expect(kms.sign({
         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
         keyRef    : 'non-existent-key',
         data      : new Uint8Array([51, 52, 53])
@@ -652,19 +574,19 @@ describe('KeyManager', () => {
   describe('verify()', () => {
     it('returns a boolean result', async () => {
       const dataU8A = new Uint8Array([51, 52, 53]);
-      const keyPair = await keyManager.generateKey({
+      const keyPair = await kms.generateKey({
         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
         extractable : false,
         keyUsages   : ['sign', 'verify']
       });
 
-      const signature = await keyManager.sign({
+      const signature = await kms.sign({
         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
         keyRef    : keyPair.privateKey.id,
         data      : dataU8A,
       });
 
-      const isValid = await keyManager.verify({
+      const isValid = await kms.verify({
         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
         keyRef    : keyPair.publicKey.id,
         signature : signature,
@@ -677,7 +599,7 @@ describe('KeyManager', () => {
 
     it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
       const algorithm = { name: 'ECDSA', hash: 'SHA-256' };
-      const keyPair = await keyManager.generateKey({
+      const keyPair = await kms.generateKey({
         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
         extractable : false,
         keyUsages   : ['sign', 'verify']
@@ -686,33 +608,33 @@ describe('KeyManager', () => {
       let isValid: boolean;
 
       const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-      signature = await keyManager.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataU8A });
-      isValid = await keyManager.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataU8A });
+      signature = await kms.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataU8A });
+      isValid = await kms.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataU8A });
       expect(isValid).to.be.true;
 
       const dataArrayBuffer = dataU8A.buffer;
-      signature = await keyManager.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataArrayBuffer });
-      isValid = await keyManager.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataArrayBuffer });
+      signature = await kms.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataArrayBuffer });
+      isValid = await kms.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataArrayBuffer });
       expect(isValid).to.be.true;
 
       const dataView = new DataView(dataArrayBuffer);
-      signature = await keyManager.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataView });
-      isValid = await keyManager.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataView });
+      signature = await kms.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataView });
+      isValid = await kms.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataView });
       expect(isValid).to.be.true;
 
       const dataI32A = new Int32Array([10, 20, 30, 40]);
-      signature = await keyManager.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataI32A });
-      isValid = await keyManager.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataI32A });
+      signature = await kms.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataI32A });
+      isValid = await kms.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataI32A });
       expect(isValid).to.be.true;
 
       const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
-      signature = await keyManager.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataU32A });
-      isValid = await keyManager.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataU32A });
+      signature = await kms.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataU32A });
+      isValid = await kms.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataU32A });
       expect(isValid).to.be.true;
     });
 
     it('verifies ECDSA secp256k1 signatures', async () => {
-      const keyPair = await keyManager.generateKey({
+      const keyPair = await kms.generateKey({
         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
         extractable : false,
         keyUsages   : ['sign', 'verify']
@@ -721,14 +643,14 @@ describe('KeyManager', () => {
       const algorithm = { name: 'ECDSA', hash: 'SHA-256' };
       const dataU8A = new Uint8Array([51, 52, 53]);
 
-      const signature = await keyManager.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataU8A });
-      const isValid = await keyManager.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataU8A });
+      const signature = await kms.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataU8A });
+      const isValid = await kms.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataU8A });
 
       expect(isValid).to.be.true;
     });
 
     it('verifies EdDSA Ed25519 signatures', async () => {
-      const keyPair = await keyManager.generateKey({
+      const keyPair = await kms.generateKey({
         algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
         extractable : false,
         keyUsages   : ['sign', 'verify']
@@ -737,14 +659,14 @@ describe('KeyManager', () => {
       const algorithm = { name: 'EdDSA' };
       const dataU8A = new Uint8Array([51, 52, 53]);
 
-      const signature = await keyManager.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataU8A });
-      const isValid = await keyManager.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataU8A });
+      const signature = await kms.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataU8A });
+      const isValid = await kms.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataU8A });
 
       expect(isValid).to.be.true;
     });
 
     it('throws an error when key reference is not found', async () => {
-      await expect(keyManager.verify({
+      await expect(kms.verify({
         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
         keyRef    : 'non-existent-key',
         signature : (new Uint8Array([51, 52, 53])).buffer,
@@ -753,39 +675,267 @@ describe('KeyManager', () => {
     });
   });
 
-  describe('#getKms()', () => {
-    it(`if 'kms' is not specified and there is only one, use it automatically`, async () => {
-      const key = await keyManager.generateKey({
-        algorithm : { name: 'EdDSA', namedCurve: 'Ed25519' },
+  describe('#getAlgorithm', function() {
+    /**
+       * We can't directly test private methods, but we can indirectly
+       * test their behavior through the methods that use them. Since
+       * #getAlgorithm() is used in the generateKey() method, we can
+       * test this methods with known algorithm names.
+       */
+    it('does not throw an error when a supported algorithm is specified', async () => {
+      await expect(kms.generateKey({
+        algorithm : { name: 'ECDSA', namedCurve: 'secp256k1' },
         keyUsages : ['sign', 'verify']
-      });
-
-      expect(key.privateKey.kms).to.equal('local');
+      })).to.eventually.be.fulfilled;
     });
 
-    it(`throws an error if 'kms' is not specified and there is more than 1`, async () => {
-      // Instantiate KeyManager with two KMSs.
-      const options: KeyManagerOptions = {
-        store : keyManagerStore,
-        kms   : {
-          one : localKms,
-          two : localKms
-        },
-      };
-      keyManager = new KeyManager(options);
+    it('throws error when an unsupported algorithm is specified', async () => {
+      await expect(kms.generateKey({
+        algorithm : { name: 'not-valid' },
+        keyUsages : []
+      })).to.eventually.be.rejectedWith(Error, 'is not supported');
+    });
+  });
+});
 
-      await expect(keyManager.generateKey({
-        algorithm : { name: 'EdDSA', namedCurve: 'Ed25519' },
-        keyUsages : ['sign', 'verify']
-      })).to.eventually.be.rejectedWith(Error, 'Unknown key management system');
+describe('KmsKeyStore', () => {
+  let kmsKeyStore: KmsKeyStore;
+  let testKey: ManagedKey;
+
+  beforeEach(() => {
+    const memoryKeyStore = new MemoryKeyStore<string, ManagedKey | ManagedKeyPair>();
+
+    kmsKeyStore = new KmsKeyStore(memoryKeyStore);
+
+    testKey = {
+      id          : 'testKey',
+      algorithm   : { name: 'AES', length: 256 },
+      extractable : true,
+      kms         : 'testKms',
+      state       : 'Enabled',
+      type        : 'secret',
+      usages      : ['encrypt', 'decrypt'],
+    };
+  });
+
+  describe('deleteKey()', () => {
+    it('should delete key and return true if key exists', async () => {
+      // Import the key.
+      await kmsKeyStore.importKey({ key: testKey });
+
+      // Test deleting the key and validate the result.
+      const deleteResult = await kmsKeyStore.deleteKey({ id: testKey.id });
+      expect(deleteResult).to.be.true;
+
+      // Verify the key is no longer in the store.
+      const storedKey = await kmsKeyStore.getKey({ id: testKey.id });
+      expect(storedKey).to.be.undefined;
     });
 
-    it('throws an error if the KMS is not found', async () => {
-      await expect(keyManager.generateKey({
-        algorithm : { name: 'EdDSA', namedCurve: 'Ed25519' },
-        keyUsages : ['sign', 'verify'],
-        kms       : 'non-existent-kms'
-      })).to.eventually.be.rejectedWith(Error, 'Unknown key management system');
+    it('should return false if key does not exist', async () => {
+      // Test deleting the key.
+      const nonExistentId = '1234';
+      const deleteResult = await kmsKeyStore.deleteKey({ id: nonExistentId });
+
+      // Validate the key was not deleted.
+      expect(deleteResult).to.be.false;
+    });
+  });
+
+  describe('getKey()', () => {
+    it('should return a key if it exists', async () => {
+      // Import the key.
+      await kmsKeyStore.importKey({ key: testKey });
+
+      // Test getting the key.
+      const storedKey = await kmsKeyStore.getKey({ id: testKey.id });
+
+      // Verify the key is in the store.
+      expect(storedKey).to.deep.equal(testKey);
+    });
+
+    it('should return undefined when attempting to get a non-existent key', async () => {
+      // Test getting the key.
+      const storedKey = await kmsKeyStore.getKey({ id: 'non-existent-key' });
+
+      // Verify the key is no longer in the store.
+      expect(storedKey).to.be.undefined;
+    });
+  });
+
+  describe('importKey()', () => {
+    it('should import a key that does not already exist', async () => {
+      // Test importing the key and validate the result.
+      const importResult = await kmsKeyStore.importKey({ key: testKey });
+      expect(importResult).to.equal(testKey.id);
+
+      // Verify the key is present in the key store.
+      const storedKey = await kmsKeyStore.getKey({ id: testKey.id });
+      expect(storedKey).to.deep.equal(testKey);
+    });
+
+    it('should throw an error when attempting to import a key that already exists', async () => {
+      // Import the key and validate the result.
+      const importResult = await kmsKeyStore.importKey({ key: testKey });
+      expect(importResult).to.equal(testKey.id);
+
+      // Test importing the key and assert it throws an error.
+      const importKey = kmsKeyStore.importKey({ key: testKey });
+      await expect(importKey).to.eventually.be.rejectedWith(Error, 'Key with ID already exists');
+    });
+  });
+
+  describe('listKeys()', () => {
+    it('should return an array of all keys in the store', async () => {
+      // Define multiple keys to be added.
+      const testKeys = [
+        { ...testKey, ...{ id: 'key-1' }},
+        { ...testKey, ...{ id: 'key-2' }},
+        { ...testKey, ...{ id: 'key-3' }}
+      ];
+
+      // Import the keys into the store.
+      for (let key of testKeys) {
+        await kmsKeyStore.importKey({ key });
+      }
+
+      // List keys and verify the result.
+      const storedKeys = await kmsKeyStore.listKeys();
+      expect(storedKeys).to.deep.equal(testKeys);
+    });
+
+    it('should return an empty array if the store contains no keys', async () => {
+      // List keys and verify the result is empty.
+      const storedKeys = await kmsKeyStore.listKeys();
+      expect(storedKeys).to.be.empty;
+    });
+  });
+});
+
+describe('KmsPrivateKeyStore', () => {
+  let kmsPrivateKeyStore: KmsPrivateKeyStore;
+  let testKey: Omit<ManagedPrivateKey, 'id'>;
+  let keyMaterial: ArrayBuffer;
+
+  beforeEach(() => {
+    const memoryKeyStore = new MemoryKeyStore<string, ManagedPrivateKey>();
+
+    kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryKeyStore);
+
+    keyMaterial = (new Uint8Array([1, 2, 3])).buffer;
+    testKey = {
+      material : (new Uint8Array([1, 2, 3])).buffer,
+      type     : 'private',
+    };
+  });
+
+  describe('deleteKey()', () => {
+    it('should delete key and return true if key exists', async () => {
+      // Import the key and get back the assigned ID.
+      const id = await kmsPrivateKeyStore.importKey({ key: testKey });
+
+      // Test deleting the key and validate the result.
+      const deleteResult = await kmsPrivateKeyStore.deleteKey({ id });
+      expect(deleteResult).to.be.true;
+
+      // Verify the key is no longer in the store.
+      const storedKey = await kmsPrivateKeyStore.getKey({ id });
+      expect(storedKey).to.be.undefined;
+    });
+
+    it('should return false if key does not exist', async () => {
+      // Test deleting the key.
+      const deleteResult = await kmsPrivateKeyStore.deleteKey({ id: 'non-existent-key' });
+
+      // Validate the key was deleted.
+      expect(deleteResult).to.be.false;
+    });
+  });
+
+  describe('getKey()', () => {
+    it('sshould return a key if it exists', async () => {
+      // Import the key.
+      const id = await kmsPrivateKeyStore.importKey({ key: testKey });
+
+      // Test getting the key.
+      const storedKey = await kmsPrivateKeyStore.getKey({ id });
+
+      // Verify the key is in the store.
+      expect(storedKey).to.deep.equal({ id, material: keyMaterial, type: 'private' });
+    });
+
+    it('should return undefined if the specified key does not exist', async () => {
+      // Test getting the key.
+      const storedKey = await kmsPrivateKeyStore.getKey({ id: 'non-existent-key' });
+
+      // Verify the key is no longer in the store.
+      expect(storedKey).to.be.undefined;
+    });
+  });
+
+  describe('importKey()', () => {
+    it('should import a private key and return its ID', async () => {
+      // Test importing the key.
+      const id = await kmsPrivateKeyStore.importKey({ key: testKey });
+
+      // Validate the returned id.
+      expect(id).to.be.a('string');
+
+      // Verify the key is present in the private key store.
+      const storedKey = await kmsPrivateKeyStore.getKey({ id });
+      expect(storedKey).to.deep.equal({ id, material: keyMaterial, type: 'private' });
+    });
+
+    it('should permanently transfer the private key material', async () => {
+      // Test importing the key.
+      await kmsPrivateKeyStore.importKey({ key: testKey });
+
+      // Verify that attempting to access the key material after import triggers an error.
+      // Chrome, Firefox, Node.js, and Firefox report different error messages but all contain 'detached'.
+      expect(() => new Uint8Array(testKey.material)).to.throw(TypeError, 'detached');
+    });
+
+    it('should throw an error if required parameters are missing', async () => {
+      // Missing 'material'.
+      const keyMissingMaterial = { type: 'private' };
+      await expect(kmsPrivateKeyStore.importKey({
+        // @ts-expect-error because the material property is intentionally omitted to trigger an error.
+        key: keyMissingMaterial
+      })).to.eventually.be.rejectedWith(TypeError, `Required parameter was missing: 'material'`);
+
+      // Missing 'type'.
+      const keyMissingType = { material: new ArrayBuffer(8) };
+      await expect(kmsPrivateKeyStore.importKey({
+        // @ts-expect-error because the type property is intentionally omitted to trigger an error.
+        key: keyMissingType
+      })).to.eventually.be.rejectedWith(TypeError, `Required parameter was missing: 'type'`);
+    });
+  });
+
+  describe('listKeys()', function() {
+    it('should return an array of all keys in the store', async function() {
+      // Define multiple keys to be added.
+      const testKeys = [
+        { ...testKey, material: (new Uint8Array([1, 2, 3])).buffer},
+        { ...testKey, material: (new Uint8Array([1, 2, 3])).buffer},
+        { ...testKey, material: (new Uint8Array([1, 2, 3])).buffer}
+      ];
+
+      // Import the keys into the store.
+      const expectedTestKeys = [];
+      for (let key of testKeys) {
+        const id = await kmsPrivateKeyStore.importKey({ key });
+        expectedTestKeys.push({ id, material: keyMaterial, type: 'private', });
+      }
+
+      const storedKeys = await kmsPrivateKeyStore.listKeys();
+      expect(storedKeys).to.deep.equal(expectedTestKeys);
+    });
+
+    it('should return an empty array if the store contains no keys', async function() {
+      // List keys and verify the result is empty.
+      const storedKeys = await kmsPrivateKeyStore.listKeys();
+      expect(storedKeys).to.be.empty;
     });
   });
 });

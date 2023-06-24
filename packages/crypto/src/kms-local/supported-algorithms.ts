@@ -1,6 +1,6 @@
-import type { CryptoAlgorithm } from '../../algorithms-api/index.js';
+import type { CryptoAlgorithm } from '../algorithms-api/index.js';
 
-import { DefaultEcdhAlgorithm, DefaultEcdsaAlgorithm, DefaultEdDsaAlgorithm } from './algorithms/index.js';
+import { DefaultEcdhAlgorithm, DefaultEcdsaAlgorithm, DefaultEdDsaAlgorithm } from '../crypto-algorithms/index.js';
 
 export type AlgorithmImplementation = typeof CryptoAlgorithm & { new(): CryptoAlgorithm; };
 

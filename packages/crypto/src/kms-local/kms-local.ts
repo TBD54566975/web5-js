@@ -13,21 +13,21 @@ import type {
   GenerateKeyOptions,
   KeyManagementSystem,
   GenerateKeyOptionTypes,
-} from '../../types-key-manager.js';
+} from '../types-key-manager.js';
 
-import { Convert } from '../../common/convert.js';
-import { RequireOnly } from '../../common/types.js';
+import { Convert } from '../common/convert.js';
+import { RequireOnly } from '../common/types.js';
+import { CryptoAlgorithm } from '../algorithms-api/index.js';
 import { defaultAlgorithms } from './supported-algorithms.js';
 import { KmsKeyStore, KmsPrivateKeyStore } from './key-stores.js';
-import { CryptoAlgorithm, NotSupportedError } from '../../algorithms-api/index.js';
-import { checkRequiredProperty, isCryptoKeyPair, isManagedKeyPair } from '../../utils-key-manager.js';
+import { checkRequiredProperty, isCryptoKeyPair, isManagedKeyPair } from '../utils-key-manager.js';
 
 
 export type KmsOptions = {
   cryptoAlgorithms?: AlgorithmImplementations;
 }
 
-export class DefaultKms implements KeyManagementSystem {
+export class LocalKms implements KeyManagementSystem {
   #name: string;
   #keyStore: KmsKeyStore;
   #privateKeyStore: KmsPrivateKeyStore;
@@ -235,7 +235,7 @@ export class DefaultKms implements KeyManagementSystem {
     const algorithm = this.#supportedAlgorithms.get(algorithmIdentifier.name.toUpperCase());
 
     if (algorithm === undefined) {
-      throw new NotSupportedError(`The algorithm '${algorithmIdentifier.name}' is not supported`);
+      throw new Error(`The algorithm '${algorithmIdentifier.name}' is not supported`);
     }
 
     return algorithm.create();
