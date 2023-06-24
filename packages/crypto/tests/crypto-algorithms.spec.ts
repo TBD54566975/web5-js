@@ -10,7 +10,7 @@ import { DefaultEcdhAlgorithm, DefaultEcdsaAlgorithm, DefaultEdDsaAlgorithm } fr
 
 chai.use(chaiAsPromised);
 
-describe('Supported Crypto Algorithms', () => {
+describe('Default Crypto Algorithm Implementations', () => {
 
   describe('DefaultEcdhAlgorithm', () => {
     let ecdh: DefaultEcdhAlgorithm;

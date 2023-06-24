@@ -4,9 +4,11 @@ import { expect } from 'chai';
 
 import {
   CryptoKey,
+  AesAlgorithm,
   EcdhAlgorithm,
   EcdsaAlgorithm,
   EdDsaAlgorithm,
+  OperationError,
   CryptoAlgorithm,
   NotSupportedError,
   InvalidAccessError,
@@ -146,12 +148,87 @@ describe('Algorithms API', () => {
     });
   });
 
+  describe('AesAlgorithm', () => {
+    describe('checkGenerateKey()', () => {
+      class TestAesAlgorithm extends AesAlgorithm {
+        public name = 'TestAlgorithm';
+        public keyUsages: KeyUsage[] = ['encrypt'];
+        public async deriveBits(): Promise<ArrayBuffer> {
+          return null as any;
+        }
+        public async generateKey(): Promise<Web5Crypto.CryptoKeyPair> {
+          return { publicKey: {} as any, privateKey: {} as any };
+        }
+        public async sign(): Promise<ArrayBuffer> {
+          return null as any;
+        }
+        public async verify(): Promise<boolean> {
+          return null as any;
+        }
+      }
+
+      let alg: TestAesAlgorithm;
+
+      beforeEach(() => {
+        alg = TestAesAlgorithm.create();
+      });
+
+      it('does not throw with supported algorithm, length, and key usage', () => {
+        expect(() => alg.checkGenerateKey({
+          algorithm : { name: 'TestAlgorithm', length: 128 },
+          keyUsages : ['encrypt']
+        })).to.not.throw();
+      });
+
+      it('throws an error when unsupported algorithm specified', () => {
+        expect(() => alg.checkGenerateKey({
+          algorithm : { name: 'ECDSA', length: 128 },
+          keyUsages : ['encrypt']
+        })).to.throw(NotSupportedError, 'Algorithm not supported');
+      });
+
+      it('throws an error when the length property is missing', () => {
+        expect(() => alg.checkGenerateKey({
+          // @ts-expect-error because length was intentionally omitted.
+          algorithm : { name: 'TestAlgorithm' },
+          keyUsages : ['encrypt']
+        })).to.throw(TypeError, 'Required parameter was missing');
+      });
+
+      it('throws an error when the specified length is not a Number', () => {
+        expect(() => alg.checkGenerateKey({
+          // @ts-expect-error because length is intentionally set as a string instead of number.
+          algorithm : { name: 'TestAlgorithm', length: '256' },
+          keyUsages : ['encrypt']
+        })).to.throw(TypeError, `Algorithm 'length' is not of type Number`);
+      });
+
+      it('throws an error when the specified length is not valid', () => {
+        [64, 96, 160, 224, 512].forEach((length) => {
+          expect(() => alg.checkGenerateKey({
+            algorithm : { name: 'TestAlgorithm', length },
+            keyUsages : ['encrypt']
+          })).to.throw(OperationError, `Algorithm 'length' must be 128, 192, or 256`);
+        });
+      });
+
+      it('throws an error when the requested operation is not valid', () => {
+        ['sign', 'verify'].forEach((operation) => {
+          expect(() => alg.checkGenerateKey({
+            algorithm : { name: 'TestAlgorithm', length: 128 },
+            keyUsages : [operation as KeyUsage]
+          })).to.throw(InvalidAccessError, 'Requested operation');
+        });
+      });
+    });
+  });
+
   describe('EllipticCurveAlgorithm', () => {
     describe('checkGenerateKey()', () => {
       class TestEllipticCurveAlgorithm extends EllipticCurveAlgorithm {
         public name = 'TestAlgorithm';
         public namedCurves = ['curveA'];
-        public keyUsages: KeyUsage[] = ['decrypt']; // Intentionally specify no permitted key usages for this test.
+        public keyUsages: KeyUsage[] = ['decrypt'];
         public async deriveBits(): Promise<ArrayBuffer> {
           return null as any;
         }
