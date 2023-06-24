@@ -3,7 +3,8 @@ import type { BufferKeyPair } from '../src/types-key-manager.js';
 import { expect } from 'chai';
 import { Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
 
-describe('Cryptographic Algorithm Implementations', () => {
+describe('Cryptographic Primitive Implementations', () => {
+
   describe('Secp256k1', () => {
     describe('generateKeyPair()', () => {
       it('returns a pair of keys of type ArrayBuffer', async () => {
@@ -500,4 +501,5 @@ describe('Cryptographic Algorithm Implementations', () => {
       });
     });
   });
+
 });
