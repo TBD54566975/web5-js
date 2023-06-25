@@ -51,33 +51,33 @@ describe('Convert', () =>{
   describe('from: BufferSource', () => {
     it('to: ArrayBuffer', () => {
       // Test Vector 1 - BufferSource is Uint8Array.
-      let inputT1 = new Uint8Array([102, 111, 111]);
-      let outputT1 = new Uint8Array([102, 111, 111]);
-      let resultT1 = Convert.bufferSource(inputT1).toUint8Array();
+      let inputT1 = new Uint8Array([101, 111, 111]);
+      let outputT1 = (new Uint8Array([101, 111, 111])).buffer;
+      let resultT1 = Convert.bufferSource(inputT1).toArrayBuffer();
       expect(resultT1).to.deep.equal(outputT1);
 
       // Test Vector 2 - BufferSource is ArrayBuffer.
       let inputT2 = (new Uint8Array([102, 111, 111])).buffer;
-      let outputT2 = new Uint8Array([102, 111, 111]);
-      let resultT2 = Convert.bufferSource(inputT2).toUint8Array();
+      let outputT2 = (new Uint8Array([102, 111, 111])).buffer;
+      let resultT2 = Convert.bufferSource(inputT2).toArrayBuffer();
       expect(resultT2).to.deep.equal(outputT2);
 
       // Test Vector 3 - BufferSource is DataView.
-      let inputT3 = new DataView((new Uint8Array([102, 111, 111])).buffer);
-      let outputT3 = new Uint8Array([102, 111, 111]);
-      let resultT3 = Convert.bufferSource(inputT3).toUint8Array();
+      let inputT3 = new DataView((new Uint8Array([103, 111, 111])).buffer);
+      let outputT3 = (new Uint8Array([103, 111, 111])).buffer;
+      let resultT3 = Convert.bufferSource(inputT3).toArrayBuffer();
       expect(resultT3).to.deep.equal(outputT3);
 
       // Test Vector 4 - BufferSource is an unsigned, 16-bit Typed Array.
       let inputT4 = new Uint16Array([299]);
-      let outputT4 = new Uint8Array([43, 1]);
-      let resultT4 = Convert.bufferSource(inputT4).toUint8Array();
+      let outputT4 = (new Uint8Array([43, 1])).buffer;
+      let resultT4 = Convert.bufferSource(inputT4).toArrayBuffer();
       expect(resultT4).to.deep.equal(outputT4);
 
       // Test Vector 5 - BufferSource is a signed, 32-bit Typed Array.
       let inputT5 = new Int32Array([1111]);
-      let outputT5 = new Uint8Array([87, 4, 0, 0]);
-      let resultT5 = Convert.bufferSource(inputT5).toUint8Array();
+      let outputT5 = (new Uint8Array([87, 4, 0, 0])).buffer;
+      let resultT5 = Convert.bufferSource(inputT5).toArrayBuffer();
       expect(resultT5).to.deep.equal(outputT5);
 
       // Test Vector 6 - BufferSource is a slice of a Typed Array.
@@ -92,6 +92,11 @@ describe('Convert', () =>{
       let outputT7 = (new Uint8Array([1, 2, 3, 4, 5])).buffer;
       let resultT7 = Convert.bufferSource(inputT7).toArrayBuffer();
       expect(resultT7).to.deep.equal(outputT7);
+
+      // Test Vector 8 - BufferSource is Uint8Array.
+      let inputT8 = 'not BufferSource type';
+      // @ts-expect-error because incorrect input data type is intentionally being used to trigger error.
+      expect (() => Convert.bufferSource(inputT8).toArrayBuffer()).to.throw(TypeError, 'value is not of type');
     });
 
     it('to: Uint8Array', () => {
@@ -124,13 +129,40 @@ describe('Convert', () =>{
       let outputT5 = new Uint8Array([87, 4, 0, 0]);
       let resultT5 = Convert.bufferSource(inputT5).toUint8Array();
       expect(resultT5).to.deep.equal(outputT5);
+
+      // Test Vector 6 - BufferSource is Uint8Array.
+      let inputT6 = 'not BufferSource type';
+      // @ts-expect-error because incorrect input data type is intentionally being used to trigger error.
+      expect (() => Convert.bufferSource(inputT6).toUint8Array()).to.throw(TypeError, 'value is not of type');
+    });
+  });
+
+  describe('from: Hex', () => {
+    it('throws an error if the input is not a string', () => {
+      // Test Vector 1.
+      let input = 0xaf;
+
+      // @ts-expect-error because error is being intentionally trigger by passing non-string input.
+      expect(() => Convert.hex(input)).to.throw(TypeError, 'must be a string');
     });
 
-    it('throws an error if input data type is not ArrayBuffer, DataView, or TypedArray', () => {
-      // Test Vector 1 - BufferSource is Uint8Array.
-      let input = 'not BufferSource type';
-      // @ts-expect-error because incorrect input data type is intentionally being used to trigger error.
-      expect (() => Convert.bufferSource(input).toUint8Array()).to.throw(TypeError, 'value is not of type');
+    it('throws an error if the input string is an odd number of characters', () => {
+      // Test Vector 1.
+      let input = 'faaba';
+
+      expect(() => Convert.hex(input)).to.throw(TypeError, 'must have an even number of characters');
+    });
+
+    it('to: Uint8Array', () => {
+      // Test Vector 1.
+      let input = 'abbafaab';
+      let output = new Uint8Array([0xab, 0xba, 0xfa, 0xab]);
+      const result = Convert.hex(input).toUint8Array();
+      expect(result).to.deep.equal(output);
+
+      // Test Vector 2.
+      input = 'foobar';
+      expect(() => Convert.hex(input).toUint8Array()).to.throw(TypeError, 'Input is not a valid hexadecimal string');
     });
   });
 
@@ -209,6 +241,14 @@ describe('Convert', () =>{
       expect(result).to.deep.equal(output);
     });
 
+    it('to: Hex', () => {
+      // Test Vector 1.
+      let input = new Uint8Array([0xab, 0xba, 0xfa, 0xab]);
+      let output = 'abbafaab';
+      const result = Convert.uint8Array(input).toHex();
+      expect(result).to.deep.equal(output);
+    });
+
     it('to: Object', () => {
       // Test Vector 1.
       let input = new Uint8Array([123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 125]);
@@ -234,8 +274,16 @@ describe('Convert', () =>{
 
     const unsupported = new Convert(null, 'Unobtanium');
 
+    it('toArrayBuffer() throw an error', () => {
+      expect(() => unsupported.toArrayBuffer()).to.throw(TypeError, 'not supported');
+    });
+
     it('toBase64url() throw an error', () => {
       expect(() => unsupported.toBase64Url()).to.throw(TypeError, 'not supported');
+    });
+
+    it('toHex() throw an error', () => {
+      expect(() => unsupported.toHex()).to.throw(TypeError, 'not supported');
     });
 
     it('toObject() throw an error', () => {

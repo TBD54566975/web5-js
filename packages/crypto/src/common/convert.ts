@@ -31,11 +31,21 @@ export class Convert {
     return new Convert(data, 'BufferSource');
   }
 
+  static hex(data: string): Convert {
+    if (typeof data !== 'string') {
+      throw new TypeError('Hex input must be a string.');
+    }
+    if (data.length % 2 !== 0) {
+      throw new TypeError('Hex input must have an even number of characters.');
+    }
+    return new Convert(data, 'Hex');
+  }
+
   static object(data: Record<string, any>): Convert {
     return new Convert(data, 'Object');
   }
 
-  static string(data: any): Convert {
+  static string(data: string): Convert {
     return new Convert(data, 'String');
   }
 
@@ -90,6 +100,25 @@ export class Convert {
 
       default:
         throw new TypeError(`Conversion from ${this.format} to Base64url is not supported.`);
+    }
+  }
+
+  toHex(): string {
+    // pre-calculating Hex values improves runtime by 6-10x.
+    const hexes = Array.from({ length: 256 }, (v, i) => i.toString(16).padStart(2, '0'));
+
+    switch (this.format) {
+
+      case 'Uint8Array': {
+        let hex = '';
+        for (let i = 0; i < this.data.length; i++) {
+          hex += hexes[this.data[i]];
+        }
+        return hex;
+      }
+
+      default:
+        throw new TypeError(`Conversion from ${this.format} to Object is not supported.`);
     }
   }
 
@@ -166,6 +195,18 @@ export class Convert {
         } else {
           throw new TypeError(`${this.format} value is not of type: ArrayBuffer, DataView, or TypedArray.`);
         }
+      }
+
+      case 'Hex': {
+        const u8a = new Uint8Array(this.data.length / 2);
+        for (let i = 0; i < this.data.length; i += 2) {
+          const byteValue = parseInt(this.data.substring(i, i + 2), 16);
+          if (isNaN(byteValue)) {
+            throw new TypeError('Input is not a valid hexadecimal string.');
+          }
+          u8a[i / 2] = byteValue;
+        }
+        return u8a;
       }
 
       case 'Object': {
