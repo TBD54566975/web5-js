@@ -5,6 +5,14 @@ import { isDefined, universalTypeOf } from '../src/common/type-utils.js';
 
 describe('Convert', () =>{
   describe('from: ArrayBuffer', () => {
+    it('to: Hex', () => {
+      // Test Vector 1.
+      let input = (new Uint8Array([0xab, 0xba, 0xfa, 0xab])).buffer;
+      let output = 'abbafaab';
+      const result = Convert.arrayBuffer(input).toHex();
+      expect(result).to.deep.equal(output);
+    });
+
     it('to: Uint8Array', () => {
       // Test Vector 1.
       let input = (new Uint8Array([102, 111, 111])).buffer;
@@ -151,6 +159,18 @@ describe('Convert', () =>{
       let input = 'faaba';
 
       expect(() => Convert.hex(input)).to.throw(TypeError, 'must have an even number of characters');
+    });
+
+    it('to: ArrayBuffer', () => {
+      // Test Vector 1.
+      let input = 'abbafaab';
+      let output = (new Uint8Array([0xab, 0xba, 0xfa, 0xab])).buffer;
+      const result = Convert.hex(input).toArrayBuffer();
+      expect(result).to.deep.equal(output);
+
+      // Test Vector 2.
+      input = 'foobar';
+      expect(() => Convert.hex(input).toArrayBuffer()).to.throw(TypeError, 'Input is not a valid hexadecimal string');
     });
 
     it('to: Uint8Array', () => {

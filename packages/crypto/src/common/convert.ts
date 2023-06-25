@@ -75,6 +75,10 @@ export class Convert {
         }
       }
 
+      case 'Hex': {
+        return Convert.hex(this.data).toUint8Array().buffer;
+      }
+
       default:
         throw new TypeError(`Conversion from ${this.format} to ArrayBuffer is not supported.`);
     }
@@ -108,6 +112,11 @@ export class Convert {
     const hexes = Array.from({ length: 256 }, (v, i) => i.toString(16).padStart(2, '0'));
 
     switch (this.format) {
+
+      case 'ArrayBuffer': {
+        const u8a = new Uint8Array(this.data);
+        return Convert.uint8Array(u8a).toHex();
+      }
 
       case 'Uint8Array': {
         let hex = '';
