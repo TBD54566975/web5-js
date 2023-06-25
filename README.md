@@ -15,10 +15,9 @@ The SDK is currently still under active development, but having entered the Tech
 ## Table of Contents
 
 - [Introduction](#introduction)
-- [Components](#components)
 - [Installation](#installation)
 - [Importing the SDK](#importing-the-sdk)
-- [APIs](#usage-and-api-documentation)
+- [APIs](#api-documentation)
   - [Web5.connect](#web5connectoptions)
   - [web5.dwn.records.query](#web5dwnrecordsqueryrequest)
   - [web5.dwn.records.create](#web5dwnrecordscreaterequest)
