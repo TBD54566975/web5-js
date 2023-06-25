@@ -1,9 +1,34 @@
 import type { BufferKeyPair } from '../src/types-key-manager.js';
 
 import { expect } from 'chai';
-import { Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
+import { Aes, Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
 
 describe('Cryptographic Primitive Implementations', () => {
+
+  describe('Aes', () => {
+    describe('generateKey()', () => {
+      it('returns a secret key of type ArrayBuffer', async () => {
+        const secretKey = await Aes.generateKey(32);
+        expect(secretKey).to.be.instanceOf(ArrayBuffer);
+      });
+
+      it('returns a secret key of the specified length', async () => {
+        let secretKey: ArrayBuffer;
+
+        // 128 bits
+        secretKey= await Aes.generateKey(16);
+        expect(secretKey.byteLength).to.equal(16);
+
+        // 192 bits
+        secretKey= await Aes.generateKey(24);
+        expect(secretKey.byteLength).to.equal(24);
+
+        // 256 bits
+        secretKey= await Aes.generateKey(32);
+        expect(secretKey.byteLength).to.equal(32);
+      });
+    });
+  });
 
   describe('Secp256k1', () => {
     describe('generateKeyPair()', () => {
@@ -98,26 +123,31 @@ describe('Cryptographic Primitive Implementations', () => {
       });
 
       it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
+        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         const hash = 'SHA-256';
         const key = keyPair.privateKey;
         let signature: ArrayBuffer;
 
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        signature = await Secp256k1.sign({ hash, key, data: dataU8A });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
-
+        // ArrayBuffer
         const dataArrayBuffer = dataU8A.buffer;
         signature = await Secp256k1.sign({ hash, key, data: dataArrayBuffer });
         expect(signature).to.be.instanceOf(ArrayBuffer);
 
+        // DataView
         const dataView = new DataView(dataArrayBuffer);
         signature = await Secp256k1.sign({ hash, key, data: dataView });
         expect(signature).to.be.instanceOf(ArrayBuffer);
 
+        // TypedArray - Uint8Array
+        signature = await Secp256k1.sign({ hash, key, data: dataU8A });
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+
+        // TypedArray - Int32Array
         const dataI32A = new Int32Array([10, 20, 30, 40]);
         signature = await Secp256k1.sign({ hash, key, data: dataI32A });
         expect(signature).to.be.instanceOf(ArrayBuffer);
 
+        // TypedArray - Uint32Array
         const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
         signature = await Secp256k1.sign({ hash, key, data: dataU32A });
         expect(signature).to.be.instanceOf(ArrayBuffer);
@@ -141,30 +171,35 @@ describe('Cryptographic Primitive Implementations', () => {
       });
 
       it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
-        const hash = 'SHA-256';
-        let signature: ArrayBuffer;
-        let isValid: boolean;
-
         const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataU8A });
-        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataU8A });
-        expect(isValid).to.be.true;
+        const hash = 'SHA-256';
+        let isValid: boolean;
+        let signature: ArrayBuffer;
 
+        // ArrayBuffer
         const dataArrayBuffer = dataU8A.buffer;
         signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataArrayBuffer });
         isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataArrayBuffer });
         expect(isValid).to.be.true;
 
+        // DataView
         const dataView = new DataView(dataArrayBuffer);
         signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataView });
         isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataView });
         expect(isValid).to.be.true;
 
+        // TypedArray - Uint8Array
+        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataU8A });
+        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataU8A });
+        expect(isValid).to.be.true;
+
+        // TypedArray - Int32Array
         const dataI32A = new Int32Array([10, 20, 30, 40]);
         signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataI32A });
         isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataI32A });
         expect(isValid).to.be.true;
 
+        // TypedArray - Uint32Array
         const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
         signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataU32A });
         isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataU32A });
@@ -299,25 +334,30 @@ describe('Cryptographic Primitive Implementations', () => {
       });
 
       it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
+        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         const key = keyPair.privateKey;
         let signature: ArrayBuffer;
 
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        signature = await Ed25519.sign({ key, data: dataU8A });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
-
+        // ArrayBuffer
         const dataArrayBuffer = dataU8A.buffer;
         signature = await Ed25519.sign({ key, data: dataArrayBuffer });
         expect(signature).to.be.instanceOf(ArrayBuffer);
 
+        // DataView
         const dataView = new DataView(dataArrayBuffer);
         signature = await Ed25519.sign({ key, data: dataView });
         expect(signature).to.be.instanceOf(ArrayBuffer);
 
+        // TypedArray - Uint8Array
+        signature = await Ed25519.sign({ key, data: dataU8A });
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+
+        // TypedArray - Int32Array
         const dataI32A = new Int32Array([10, 20, 30, 40]);
         signature = await Ed25519.sign({ key, data: dataI32A });
         expect(signature).to.be.instanceOf(ArrayBuffer);
 
+        // TypedArray - Uint32Array
         const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
         signature = await Ed25519.sign({ key, data: dataU32A });
         expect(signature).to.be.instanceOf(ArrayBuffer);
@@ -341,29 +381,34 @@ describe('Cryptographic Primitive Implementations', () => {
       });
 
       it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
-        let signature: ArrayBuffer;
-        let isValid: boolean;
-
         const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataU8A });
-        expect(isValid).to.be.true;
+        let isValid: boolean;
+        let signature: ArrayBuffer;
 
+        // ArrayBuffer
         const dataArrayBuffer = dataU8A.buffer;
         signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataArrayBuffer });
         isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataArrayBuffer });
         expect(isValid).to.be.true;
 
+        // DataView
         const dataView = new DataView(dataArrayBuffer);
         signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataView });
         isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataView });
         expect(isValid).to.be.true;
 
+        // TypedArray - Uint8Array
+        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
+        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataU8A });
+        expect(isValid).to.be.true;
+
+        // TypedArray - Int32Array
         const dataI32A = new Int32Array([10, 20, 30, 40]);
         signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataI32A });
         isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataI32A });
         expect(isValid).to.be.true;
 
+        // TypedArray - Uint32Array
         const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
         signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU32A });
         isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataU32A });

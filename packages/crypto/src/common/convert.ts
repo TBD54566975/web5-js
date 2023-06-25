@@ -61,7 +61,7 @@ export class Convert {
             return this.data.buffer;
           }
         } else {
-          throw new TypeError(`${this.format} value is not of type: 'ArrayBuffer', 'DataView', or 'TypedArray'.`);
+          throw new TypeError(`${this.format} value is not of type: ArrayBuffer, DataView, or TypedArray.`);
         }
       }
 
@@ -164,7 +164,7 @@ export class Convert {
           // Data is a DataView or a different TypedArray (e.g., Uint16Array).
           return new Uint8Array(this.data.buffer, this.data.byteOffset, this.data.byteLength);
         } else {
-          throw new TypeError(`${this.format} value is not of type: 'ArrayBuffer', 'DataView', or 'TypedArray'.`);
+          throw new TypeError(`${this.format} value is not of type: ArrayBuffer, DataView, or TypedArray.`);
         }
       }
 

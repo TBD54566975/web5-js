@@ -577,6 +577,7 @@ describe('KeyManager', () => {
 
     it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
       const algorithm = { name: 'ECDSA', hash: 'SHA-256' };
+      const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
       const keyPair = await keyManager.generateKey({
         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
         extractable : false,
@@ -585,22 +586,26 @@ describe('KeyManager', () => {
       const key = keyPair.privateKey;
       let signature: ArrayBuffer;
 
-      const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-      signature = await keyManager.sign({ algorithm, keyRef: key.id, data: dataU8A });
-      expect(signature).to.be.instanceOf(ArrayBuffer);
-
+      // ArrayBuffer
       const dataArrayBuffer = dataU8A.buffer;
       signature = await keyManager.sign({ algorithm, keyRef: key.id, data: dataArrayBuffer });
       expect(signature).to.be.instanceOf(ArrayBuffer);
 
+      // DataView
       const dataView = new DataView(dataArrayBuffer);
       signature = await keyManager.sign({ algorithm, keyRef: key.id, data: dataView });
       expect(signature).to.be.instanceOf(ArrayBuffer);
 
+      // TypedArray - Uint8Array
+      signature = await keyManager.sign({ algorithm, keyRef: key.id, data: dataU8A });
+      expect(signature).to.be.instanceOf(ArrayBuffer);
+
+      // TypedArray - Int32Array
       const dataI32A = new Int32Array([10, 20, 30, 40]);
       signature = await keyManager.sign({ algorithm, keyRef: key.id, data: dataI32A });
       expect(signature).to.be.instanceOf(ArrayBuffer);
 
+      // TypedArray - Uint32Array
       const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
       signature = await keyManager.sign({ algorithm, keyRef: key.id, data: dataU32A });
       expect(signature).to.be.instanceOf(ArrayBuffer);
@@ -677,6 +682,7 @@ describe('KeyManager', () => {
 
     it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
       const algorithm = { name: 'ECDSA', hash: 'SHA-256' };
+      const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
       const keyPair = await keyManager.generateKey({
         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
         extractable : false,
@@ -685,26 +691,30 @@ describe('KeyManager', () => {
       let signature: ArrayBuffer;
       let isValid: boolean;
 
-      const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-      signature = await keyManager.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataU8A });
-      isValid = await keyManager.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataU8A });
-      expect(isValid).to.be.true;
-
+      // ArrayBuffer
       const dataArrayBuffer = dataU8A.buffer;
       signature = await keyManager.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataArrayBuffer });
       isValid = await keyManager.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataArrayBuffer });
       expect(isValid).to.be.true;
 
+      // DataView
       const dataView = new DataView(dataArrayBuffer);
       signature = await keyManager.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataView });
       isValid = await keyManager.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataView });
       expect(isValid).to.be.true;
 
+      // TypedArray - Uint8Array
+      signature = await keyManager.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataU8A });
+      isValid = await keyManager.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataU8A });
+      expect(isValid).to.be.true;
+
+      // TypedArray - Int32Array
       const dataI32A = new Int32Array([10, 20, 30, 40]);
       signature = await keyManager.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataI32A });
       isValid = await keyManager.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataI32A });
       expect(isValid).to.be.true;
 
+      // TypedArray - Uint32Array
       const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
       signature = await keyManager.sign({ algorithm, keyRef: keyPair.privateKey.id, data: dataU32A });
       isValid = await keyManager.verify({ algorithm, keyRef: keyPair.publicKey.id, signature, data: dataU32A });

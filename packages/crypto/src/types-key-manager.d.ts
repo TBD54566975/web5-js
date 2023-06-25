@@ -49,7 +49,7 @@ export interface ManagedKey {
    * An object detailing the algorithm for which the key can be used along
    * with additional algorithm-specific parameters.
    */
-  algorithm: Web5Crypto.KeyGenParams;
+  algorithm: Web5Crypto.GenerateKeyOptions;
 
   /**
    * An alternate identifier used to identify the key in a KMS.
@@ -279,8 +279,19 @@ export type ListKeysResponse = Pick<ManagedKey, 'id' | 'alias'>;
 //#region Web5 Crypto namespace
 
 export namespace Web5Crypto {
+  export interface AesCtrOptions extends Algorithm {
+    counter: BufferSource;
+    length: number;
+  }
+
   export interface AesGenerateKeyOptions extends Algorithm {
     length: number;
+  }
+
+  export interface AesGcmOptions extends Algorithm {
+    additionalData?: BufferSource;
+    iv: BufferSource;
+    tagLength?: number;
   }
 
   export interface Algorithm {
@@ -290,7 +301,7 @@ export namespace Web5Crypto {
   export type AlgorithmIdentifier = Algorithm;
 
   export interface CryptoKey {
-    algorithm: KeyGenParams;
+    algorithm: Web5Crypto.GenerateKeyOptions;
     extractable: boolean;
     handle: ArrayBuffer;
     type: KeyType;
@@ -326,7 +337,7 @@ export namespace Web5Crypto {
     name: string;
   }
 
-  export type KeyGenParams = AesGenerateKeyOptions | EcGenerateKeyOptions;
+  export type GenerateKeyOptions = AesGenerateKeyOptions | EcGenerateKeyOptions;
 
   /**
    * KeyType
@@ -447,11 +458,11 @@ export type ImportKeyOptions =
 
 export type GenerateKeyOptionTypes =
   | Web5Crypto.AlgorithmIdentifier
-  // | RsaHashedKeyGenParams
+  // | RsaHashedGenerateKeyOptions
   | Web5Crypto.EcdsaGenerateKeyOptions
   | Web5Crypto.EdDsaGenerateKeyOptions
   | Web5Crypto.AesGenerateKeyOptions
-  // | HmacKeyGenParams
+  // | HmacGenerateKeyOptions
   // | Pbkdf2Params;
 
 export type GenerateKeyOptions<T extends GenerateKeyOptionTypes> = {
@@ -463,7 +474,7 @@ export type GenerateKeyOptions<T extends GenerateKeyOptionTypes> = {
 };
 
 export type GenerateKeyType<T> = T extends Web5Crypto.EcGenerateKeyOptions ? ManagedKeyPair :
-  T extends Web5Crypto.AesGenerateKeyOptions | HmacKeyGenParams | Pbkdf2Params ? ManagedKey :
+  T extends Web5Crypto.AesGenerateKeyOptions /*| HmacGenerateKeyOptions | Pbkdf2Params*/ ? ManagedKey :
   T extends Web5Crypto.AlgorithmIdentifier ? ManagedKey | ManagedKeyPair :
   never;
 

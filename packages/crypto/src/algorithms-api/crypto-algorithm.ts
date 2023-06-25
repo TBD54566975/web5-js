@@ -70,7 +70,7 @@ export abstract class CryptoAlgorithm {
     }
     const allowedUsages = (Array.isArray(allowedKeyUsages)) ? allowedKeyUsages : [...allowedKeyUsages.privateKey, ...allowedKeyUsages.publicKey];
     if (!keyUsages.every(usage => allowedUsages.includes(usage))) {
-      throw new InvalidAccessError(`Requested operation(s) '${allowedUsages.join(', ')}' is not valid for the provided key.`);
+      throw new InvalidAccessError(`Requested operation(s) '${keyUsages.join(', ')}' is not valid for the provided key.`);
     }
   }
 
@@ -95,7 +95,7 @@ export abstract class CryptoAlgorithm {
   }): Promise<ArrayBuffer>;
 
   public abstract generateKey(options: {
-    algorithm: Partial<Web5Crypto.KeyGenParams>,
+    algorithm: Partial<Web5Crypto.GenerateKeyOptions>,
     extractable: boolean,
     keyUsages: Web5Crypto.KeyUsage[],
   }): Promise<Web5Crypto.CryptoKey | Web5Crypto.CryptoKeyPair>;

@@ -2,6 +2,7 @@ import type { Web5Crypto } from '../../types-key-manager.js';
 
 import { OperationError } from '../errors.js';
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
+import { universalTypeOf } from '../../common/type-utils.js';
 import { checkRequiredProperty } from '../../utils-key-manager.js';
 
 export abstract class AesAlgorithm extends CryptoAlgorithm {
@@ -16,8 +17,8 @@ export abstract class AesAlgorithm extends CryptoAlgorithm {
     // The algorithm object must contain a length property.
     checkRequiredProperty({ property: 'length', inObject: algorithm });
     // The length specified must be a number.
-    if (typeof algorithm.length !== 'number') {
-      throw new TypeError(`Algorithm 'length' is not of type Number.`);
+    if (universalTypeOf(algorithm.length) !== 'Number') {
+      throw new TypeError(`Algorithm 'length' is not of type: Number.`);
     }
     // The length specified must be one of the allowed bit lengths for AES.
     if (![128, 192, 256].includes(algorithm.length)) {
@@ -31,5 +32,5 @@ export abstract class AesAlgorithm extends CryptoAlgorithm {
     algorithm: Web5Crypto.AesGenerateKeyOptions,
     extractable: boolean,
     keyUsages: Web5Crypto.KeyUsage[]
-  }): Promise<Web5Crypto.CryptoKeyPair>;
+  }): Promise<Web5Crypto.CryptoKey>;
 }
