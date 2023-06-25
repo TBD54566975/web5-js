@@ -12,6 +12,23 @@ Making developing with Web5 components at least 5 times easier to work with.
 
 The SDK is currently still under active development, but having entered the Tech Preview phase there is now a drive to avoid unnecessary changes unless backwards compatibility is provided. Additional functionality will be added in the lead up to 1.0 final, and modifications will be made to address issues and community feedback.
 
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Installation](#installation)
+- [Importing the SDK](#importing-the-sdk)
+- [APIs](#api-documentation)
+  - [Web5.connect](#web5connectoptions)
+  - [web5.dwn.records.query](#web5dwnrecordsqueryrequest)
+  - [web5.dwn.records.create](#web5dwnrecordscreaterequest)
+  - [web5.dwn.records.write](#web5dwnrecordswriterequest)
+  - [web5.dwn.records.read](#web5dwnrecordsreadrequest)
+  - [web5.dwn.records.delete](#web5dwnrecordsdeleterequest)
+  - [web5.dwn.protocols.configure](#web5dwnprotocolsconfigurerequest)
+  - [web5.dwn.protocols.query](#web5dwnprotocolsqueryrequest)
+  - [web5.did.create](#web5didcreatemethod-options)
+- [Project Resources](#project-resources)
+
 ## Introduction
 
 Web5 consists of the following components:
@@ -111,7 +128,7 @@ Each `Record` instance has the following instance methods:
 - **`update`** - _`function`_: takes in a new request object matching the expected method signature of a `write` and overwrites the record. This is a convenience method that allows you to easily overwrite records with less verbosity.
 - **`delete`** - _`function`_: generates a `delete` entry tombstone for the record. This is a convenience method that allows you to easily delete records with less verbosity.
 
-### **`web5.dwn.records.query()`**
+### **`web5.dwn.records.query(request)`**
 
 Method for querying either the locally connected DWeb Node or any remote DWeb Node specified in the `from` property.
 
@@ -151,10 +168,10 @@ The query `request` contains the following properties:
 - **`message`** - _`object`_: the properties of the DWeb Node Message Descriptor that will be used to construct a valid record query:
   - **`filter`** - _`object`_: properties against which results of the query will be filtered:
     - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol bucket in which to query.
-    - **`schema`** - _`URI string`_ (_optional_): the URI of the protocol bucket in which to query.
+    - **`schema`** - _`URI string`_ (_optional_): the URI of the schema bucket in which to query.
     - **`dataFormat`** - _`Media Type string`_ (_optional_): the IANA string corresponding with the format of the data to filter for. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
 
-### **`web5.dwn.records.create()`**
+### **`web5.dwn.records.create(request)`**
 
 Method for creating a new record and storing it in the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted).
 
@@ -187,20 +204,20 @@ const { status } = await record.send("did:example:bob"); // send the newly gener
 
 The `create` request object is composed as follows:
 
-- **`store`** - _`boolean`_: tells the create function whether or not to store the record in the user's local DWeb Node. (you might pass `false` if you didn't want to retain a copy of the record for yourself)
+- **`store`** - _`boolean`_ (_optional_): tells the create function whether or not to store the record in the user's local DWeb Node. (you might pass `false` if you didn't want to retain a copy of the record for yourself)
 - **`data`** - _`text|object|file|blob`_: the data payload of the record.
 - **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid record query:
   - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol under which the record will be bucketed.
   - **`schema`** - _`URI string`_ (_optional_): the URI of the schema under which the record will be bucketed.
   - **`dataFormat`** - _`Media Type string`_ (_optional_): the IANA string corresponding with the format of the data the record will be bucketed. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
 
-### **`web5.dwn.records.write()`**
+### **`web5.dwn.records.write(request)`**
 
 The `create()` method is an alias for `write()` and both can take the same request object properties.
 
-### **`web5.dwn.records.read()`**
+### **`web5.dwn.records.read(request)`**
 
-Method for reading a record stored in the DWeb Node of the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted).
+Method for reading a record stored in the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted).
 
 ```javascript
 // Reads the indicated record from the user's DWeb Nodes
@@ -231,9 +248,9 @@ The `read` request object is composed as follows:
 - **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
   - **`recordId`** - _`string`_: the required record ID string that identifies the record data you are fetching.
 
-### **`web5.dwn.records.delete()`**
+### **`web5.dwn.records.delete(request)`**
 
-Method for deleting a record stored in the DWeb Node of the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted).
+Method for deleting a record stored in the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted).
 
 ```javascript
 // Deletes the indicated record from the user's DWeb Node
@@ -260,7 +277,7 @@ The `delete` request object is composed as follows:
 - **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
   - **`recordId`** - _`string`_: the required record ID string that identifies the record being deleted.
 
-### **`web5.dwn.protocols.configure()`**
+### **`web5.dwn.protocols.configure(request)`**
 
 Method for configuring a protocol definition in the DWeb Node of the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted).
 
@@ -272,14 +289,14 @@ const { protocol } = await web5.dwn.protocols.configure({
       types: {
         album: {
           schema: "https://photos.org/protocol/album",
-          dataFormat: ["application/json"],
+          dataFormats: ["application/json"],
         },
         photo: {
           schema: "https://photos.org/protocols/photo",
-          dataFormat: ["application/json"],
+          dataFormats: ["application/json"],
         },
         binaryImage: {
-          dataFormat: ["image/png", "jpeg", "gif"],
+          dataFormats: ["image/png", "jpeg", "gif"],
         },
       },
       structure: {
@@ -320,20 +337,19 @@ protocol.send(myDid); // sends the protocol configuration to the user's other DW
 
 The `configure` request object is composed as follows:
 
-- **`from`** - _`string`_: The decentralized identifier signing the query. This may be the same as the `target` parameter if the target and the signer of the query are the same entity, which is common for an app querying the DWeb Node of its own user.
 - **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
   - **`definition`** - _`object`_: an object that defines the enforced composition of the protocol.
     - **`protocol`** - _`URI string`_: a URI that represents the protocol being configured.
     - **`types`** - _`object`_: an object that defines the records that can be used in the `structure` graph of the `definition` object. The following properties are optional constraints you can set for the type being defined:
       - **`schema`** - _`URI string`_ (_optional_): the URI of the schema under which the record will be bucketed.
-      - **`dataFormat`** - _`Media Type string`_ (_optional_): the IANA string corresponding with the format of the data the record will be bucketed. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
+      - **`dataFormats`** - _`Media Type string[]`_ (_optional_): Array of the IANA strings corresponding with the formats of the data the record will be bucketed. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
     - **`structure`** - _`object`_: an object that defines the structure of a protocol, including data relationships and constraints on which entities can perform various activities. Fields under the `structure` object of the Protocol definition are expected to be either type references matching those defined in the `types` object. The type structures are recursive, so types form a graph and each type can have within it further attached types or the following rule statements that are all denoted with the prefix `$`:
       - **`$actions`** - _`array`_: one or more rule objects that expose various allowed actions to actors (`author`, `recipient`), composed as follows:
         - **`who`** - _`string`_: the actor (`author`, `recipient`) that is being permitted to invoke a given action.
         - **`of`** - _`string`_: the protocol path that refers to the record subject. Using the above example protocol, the protocol path to `binaryImage` would be `photo/binaryImage`.
         - **`can`** - _`string`_: the action being permitted by the rule.
 
-### **`web5.dwn.protocols.query()`**
+### **`web5.dwn.protocols.query(request)`**
 
 Method for querying a DID's DWeb Nodes for the presence of a protocol. This method is useful in detecting what protocols a given DID has installed to enable interaction over the protocol.
 
@@ -366,12 +382,12 @@ The query `request` must contain the following:
 
 - **`from`** - _`DID string`_ (_optional_): the decentralized identifier of the DWeb Node the query will fetch results from.
 - **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid record query:
-  - **`filter`** - _`object`_: properties against which results of the query will be filtered:
+  - **`filter`** - _`object`_ (_optional_): properties against which results of the query will be filtered:
     - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol bucket in which to query.
 
 ### **`web5.did.create(method, options)`**
 
-The `create` method under the `did` object enables generation of DIDs for a supported set of DID Methods. The output is method-specific, and handles things like key generation and assembly of DID Documents that can be published to DID networks.
+The `create` method under the `did` object enables generation of DIDs for a supported set of DID Methods ('ion'|'key'). The output is method-specific, and handles things like key generation and assembly of DID Documents that can be published to DID networks.
 
 > NOTE: You do not usually need to manually invoke this, as the `Web5.connect()` method already acquires a DID for the user (either by direct creation or connection to an identity agent app).
 
@@ -381,10 +397,10 @@ const myDid = await Web5.did.create("ion");
 
 ## Project Resources
 
-| Resource                                                                                  | Description                                                                   |
-| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| [CODEOWNERS](https://github.com/TBD54566975/web5-js/blob/main/CODEOWNERS)                 | Outlines the project lead(s)                                                  |
-| [CODE_OF_CONDUCT.md](https://github.com/TBD54566975/web5-js/blob/main/CODE_OF_CONDUCT.md) | Expected behavior for project contributors, promoting a welcoming environment |
-| [CONTRIBUTING.md](https://github.com/TBD54566975/web5-js/blob/main/CONTRIBUTING.md)       | Developer guide to build, test, run, access CI, chat, discuss, file issues    |
-| [GOVERNANCE.md](https://github.com/TBD54566975/web5-js/blob/main/GOVERNANCE.md)           | Project governance                                                            |
-| [LICENSE](./LICENSE)                                                                      | Apache License, Version 2.0                                                   |
+| Resource                                   | Description                                                                   |
+| ------------------------------------------ | ----------------------------------------------------------------------------- |
+| [CODEOWNERS](./CODEOWNERS)                 | Outlines the project lead(s)                                                  |
+| [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) | Expected behavior for project contributors, promoting a welcoming environment |
+| [CONTRIBUTING.md](./CONTRIBUTING.md)       | Developer guide to build, test, run, access CI, chat, discuss, file issues    |
+| [GOVERNANCE.md](./GOVERNANCE.md)           | Project governance                                                            |
+| [LICENSE](./LICENSE)                       | Apache License, Version 2.0                                                   |
