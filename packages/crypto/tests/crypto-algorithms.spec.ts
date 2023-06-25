@@ -4,13 +4,112 @@ import sinon from 'sinon';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
-import { Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
+import { Aes, Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
 import { InvalidAccessError, NotSupportedError, OperationError } from '../src/algorithms-api/index.js';
-import { DefaultEcdhAlgorithm, DefaultEcdsaAlgorithm, DefaultEdDsaAlgorithm } from '../src/crypto-algorithms/index.js';
+import {
+  DefaultEcdhAlgorithm,
+  DefaultEcdsaAlgorithm,
+  DefaultEdDsaAlgorithm,
+  DefaultAesCtrAlgorithm,
+} from '../src/crypto-algorithms/index.js';
 
 chai.use(chaiAsPromised);
 
 describe('Default Crypto Algorithm Implementations', () => {
+
+  describe('DefaultAesCtrAlgorithm', () => {
+    let aesCtr: DefaultAesCtrAlgorithm;
+
+    before(() => {
+      aesCtr = DefaultAesCtrAlgorithm.create();
+    });
+
+    describe('generateKey()', () => {
+      it('returns a secret key', async () => {
+        const key = await aesCtr.generateKey({
+          algorithm   : { name: 'AES-CTR', length: 128 },
+          extractable : false,
+          keyUsages   : ['encrypt', 'decrypt']
+        });
+
+        expect(key.algorithm.name).to.equal('AES-CTR');
+        expect(key.usages).to.deep.equal(['encrypt', 'decrypt', 'wrapKey', 'unwrapKey']);
+        expect(key.handle.byteLength).to.equal(128 / 8);
+      });
+
+      it('secret key is selectively extractable', async () => {
+        let key: CryptoKey;
+        // key is NOT extractable if generateKey() called with extractable = false
+        key = await aesCtr.generateKey({
+          algorithm   : { name: 'AES-CTR', length: 128 },
+          extractable : false,
+          keyUsages   : ['encrypt', 'decrypt']
+        });
+        expect(key.extractable).to.be.false;
+
+        // key is extractable if generateKey() called with extractable = true
+        key = await aesCtr.generateKey({
+          algorithm   : { name: 'AES-CTR', length: 128 },
+          extractable : true,
+          keyUsages   : ['encrypt', 'decrypt']
+        });
+        expect(key.extractable).to.be.true;
+      });
+
+      it(`supports 'encrypt', 'decrypt', 'wrapKey', and/or 'unWrapKey' key usages`, async () => {
+        const operations = ['encrypt', 'decrypt', 'wrapKey', 'unwrapKey'];
+        for (const operation of operations) {
+          await expect(aesCtr.generateKey({
+            algorithm   : { name: 'AES-CTR', length: 128 },
+            extractable : true,
+            keyUsages   : [operation as KeyUsage]
+          })).to.eventually.be.fulfilled;
+        }
+      });
+
+      it('validates algorithm, length, and key usages', async () => {
+        // Invalid (algorithm name, length, and key usages) result in algorithm name check failing first.
+        await expect(aesCtr.generateKey({
+          algorithm   : { name: 'foo', length: 512 },
+          extractable : false,
+          keyUsages   : ['sign']
+        })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
+
+        // Valid (algorithm name) + Invalid (length, key usages) result length check failing first.
+        await expect(aesCtr.generateKey({
+          algorithm   : { name: 'AES-CTR', length: 512 },
+          extractable : false,
+          keyUsages   : ['sign']
+        })).to.eventually.be.rejectedWith(OperationError, `'length' must be 128, 192, or 256`);
+
+        // Valid (algorithm name, length) + Invalid (key usages) result key usages check failing first.
+        await expect(aesCtr.generateKey({
+          algorithm   : { name: 'AES-CTR', length: 256 },
+          extractable : false,
+          keyUsages   : ['sign']
+        })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation');
+      });
+
+      it(`should throw an error if 'AES-CTR' key generation fails`, async function() {
+        // @ts-ignore because the method is being intentionally stubbed to return null.
+        const aesStub = sinon.stub(Aes, 'generateKey').returns(Promise.resolve(null));
+
+        try {
+          await aesCtr.generateKey({
+            algorithm   : { name: 'AES-CTR', length: 128 },
+            extractable : false,
+            keyUsages   : ['encrypt', 'decrypt']
+          });
+          aesStub.restore();
+          expect.fail('Expect generateKey() to throw an error');
+        } catch (error) {
+          aesStub.restore();
+          expect(error).to.be.an('error');
+          expect((error as Error).message).to.equal('Operation failed to generate key.');
+        }
+      });
+    });
+  });
 
   describe('DefaultEcdhAlgorithm', () => {
     let ecdh: DefaultEcdhAlgorithm;
