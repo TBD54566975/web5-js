@@ -1,6 +1,6 @@
 import type { Web5Crypto } from '../../types-key-manager.js';
 
-import { OperationError } from '../errors.js';
+import { InvalidAccessError, OperationError } from '../errors.js';
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
 import { universalTypeOf } from '../../common/type-utils.js';
 import { checkRequiredProperty } from '../../utils-key-manager.js';
@@ -33,4 +33,16 @@ export abstract class AesAlgorithm extends CryptoAlgorithm {
     extractable: boolean,
     keyUsages: Web5Crypto.KeyUsage[]
   }): Promise<Web5Crypto.CryptoKey>;
+
+  public override async deriveBits(): Promise<ArrayBuffer> {
+    throw new InvalidAccessError(`Requested operation 'deriveBits' is not valid for ${this.name} keys.`);
+  }
+
+  public override async sign(): Promise<ArrayBuffer> {
+    throw new InvalidAccessError(`Requested operation 'sign' is not valid for ${this.name} keys.`);
+  }
+
+  public override async verify(): Promise<boolean> {
+    throw new InvalidAccessError(`Requested operation 'verify' is not valid for ${this.name} keys.`);
+  }
 }

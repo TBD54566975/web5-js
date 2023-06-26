@@ -1,5 +1,6 @@
 import type { Web5Crypto } from '../../types-key-manager.js';
 
+import { InvalidAccessError } from '../errors.js';
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
 import { checkValidProperty, checkRequiredProperty } from '../../utils-key-manager.js';
 
@@ -20,6 +21,14 @@ export abstract class EllipticCurveAlgorithm extends CryptoAlgorithm {
     checkValidProperty({ property: algorithm.namedCurve, allowedProperties: this.namedCurves });
     // The key usages specified must be permitted by the algorithm implementation processing the operation.
     this.checkKeyUsages({ keyUsages, allowedKeyUsages: this.keyUsages });
+  }
+
+  public override async decrypt(): Promise<ArrayBuffer> {
+    throw new InvalidAccessError(`Requested operation 'decrypt' is not valid for ${this.name} keys.`);
+  }
+
+  public override async encrypt(): Promise<ArrayBuffer> {
+    throw new InvalidAccessError(`Requested operation 'encrypt' is not valid for ${this.name} keys.`);
   }
 
   public abstract generateKey(options: {

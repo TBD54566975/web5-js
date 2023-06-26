@@ -418,7 +418,11 @@ export interface CryptoManager {
 
   // wrapKey(format: KeyFormat, key: CryptoKey, wrappingKey: CryptoKey, wrapAlgorithm: AlgorithmIdentifier | RsaOaepParams | AesCtrParams | AesCbcParams | AesGcmParams): Promise<ArrayBuffer>;
 
+  decrypt(options: DecryptOptions): Promise<ArrayBuffer>;
+
   deriveBits(options: DeriveBitsOptions): Promise<ArrayBuffer>;
+
+  encrypt(options: EncryptOptions): Promise<ArrayBuffer>;
 
   /**
    * Generate a new ManagedKey within a CryptoManager implementation.
@@ -559,4 +563,54 @@ export type DeriveBitsOptions = {
    * all browsers, the number should be a multiple of 8.
    */
   length?: number;
+}
+
+/**
+ * Input arguments for implementations of the CryptoManager interface
+ * {@link CryptoManager.encrypt | encrypt} method.
+ *
+ * @public
+ */
+export type EncryptOptions = {
+  /**
+   * An object defining the encryption algorithm to use and its parameters.
+   */
+  algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions;
+
+  /**
+   * An ArrayBuffer, a TypedArray, or a DataView object containing the data
+   * to be encrypted (also known as the plaintext).
+   */
+  data: BufferSource;
+
+  /**
+   * An identifier of the ManagedKey to be used for encryption.
+   * You can use the id or alias property of the key.
+   */
+  keyRef: string;
+}
+
+/**
+ * Input arguments for implementations of the CryptoManager interface
+ * {@link CryptoManager.encrypt | encrypt} method.
+ *
+ * @public
+ */
+export type DecryptOptions = {
+  /**
+   * An object defining the encryption algorithm to use and its parameters.
+   */
+  algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions;
+
+  /**
+   * An ArrayBuffer, a TypedArray, or a DataView object containing the data
+   * to be encrypted (also known as the plaintext).
+   */
+  data: BufferSource;
+
+  /**
+   * An identifier of the ManagedKey to be used for encryption.
+   * You can use the id or alias property of the key.
+   */
+  keyRef: string;
 }

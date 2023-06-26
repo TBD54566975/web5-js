@@ -1,14 +1,45 @@
 import type { BufferKeyPair } from '../src/types-key-manager.js';
 
 import { expect } from 'chai';
-import { Aes, Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
+
+import { aesCtrTestVectors } from './fixtures/test-vectors/aes.js';
+import { AesCtr, Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
+import { Convert } from '../src/common/convert.js';
 
 describe('Cryptographic Primitive Implementations', () => {
 
-  describe('Aes', () => {
+  describe('AesCtr', () => {
+    describe('decrypt', () => {
+      for (const vector of aesCtrTestVectors) {
+        it(`passes test vector ${vector.id}`, async () => {
+          const plaintext = await AesCtr.decrypt({
+            counter : Convert.hex(vector.counter).toUint8Array(),
+            data    : Convert.hex(vector.ciphertext).toUint8Array(),
+            key     : Convert.hex(vector.key).toArrayBuffer(),
+            length  : vector.length
+          });
+          expect(Convert.arrayBuffer(plaintext).toHex()).to.deep.equal(vector.data);
+        });
+      }
+    });
+
+    describe('encrypt', () => {
+      for (const vector of aesCtrTestVectors) {
+        it(`passes test vector ${vector.id}`, async () => {
+          const ciphertext = await AesCtr.encrypt({
+            counter : Convert.hex(vector.counter).toUint8Array(),
+            data    : Convert.hex(vector.data).toUint8Array(),
+            key     : Convert.hex(vector.key).toArrayBuffer(),
+            length  : vector.length
+          });
+          expect(Convert.arrayBuffer(ciphertext).toHex()).to.deep.equal(vector.ciphertext);
+        });
+      }
+    });
+
     describe('generateKey()', () => {
       it('returns a secret key of type ArrayBuffer', async () => {
-        const secretKey = await Aes.generateKey(32);
+        const secretKey = await AesCtr.generateKey(32);
         expect(secretKey).to.be.instanceOf(ArrayBuffer);
       });
 
@@ -16,15 +47,15 @@ describe('Cryptographic Primitive Implementations', () => {
         let secretKey: ArrayBuffer;
 
         // 128 bits
-        secretKey= await Aes.generateKey(16);
+        secretKey= await AesCtr.generateKey(16);
         expect(secretKey.byteLength).to.equal(16);
 
         // 192 bits
-        secretKey= await Aes.generateKey(24);
+        secretKey= await AesCtr.generateKey(24);
         expect(secretKey.byteLength).to.equal(24);
 
         // 256 bits
-        secretKey= await Aes.generateKey(32);
+        secretKey= await AesCtr.generateKey(32);
         expect(secretKey.byteLength).to.equal(32);
       });
     });

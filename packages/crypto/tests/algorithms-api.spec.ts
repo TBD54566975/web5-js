@@ -22,7 +22,13 @@ describe('Algorithms API', () => {
     class TestCryptoAlgorithm extends CryptoAlgorithm {
       public name = 'TestAlgorithm';
       public keyUsages: KeyUsage[] = ['decrypt', 'deriveBits', 'deriveKey', 'encrypt', 'sign', 'unwrapKey', 'verify', 'wrapKey'];
+      public async decrypt(): Promise<ArrayBuffer> {
+        return null as any;
+      }
       public async deriveBits(): Promise<ArrayBuffer> {
+        return null as any;
+      }
+      public async encrypt(): Promise<ArrayBuffer> {
         return null as any;
       }
       public async generateKey(): Promise<Web5Crypto.CryptoKeyPair> {
@@ -150,24 +156,21 @@ describe('Algorithms API', () => {
   });
 
   describe('AesAlgorithm', () => {
-    describe('checkGenerateKey()', () => {
-      class TestAesAlgorithm extends AesAlgorithm {
-        public name = 'TestAlgorithm';
-        public keyUsages: KeyUsage[] = ['encrypt'];
-        public async deriveBits(): Promise<ArrayBuffer> {
-          return null as any;
-        }
-        public async generateKey(): Promise<Web5Crypto.CryptoKey> {
-          return null as any;
-        }
-        public async sign(): Promise<ArrayBuffer> {
-          return null as any;
-        }
-        public async verify(): Promise<boolean> {
-          return null as any;
-        }
+    class TestAesAlgorithm extends AesAlgorithm {
+      public name = 'TestAlgorithm';
+      public keyUsages: KeyUsage[] = ['decrypt', 'encrypt'];
+      public async decrypt(): Promise<ArrayBuffer> {
+        return null as any;
       }
+      public async encrypt(): Promise<ArrayBuffer> {
+        return null as any;
+      }
+      public async generateKey(): Promise<Web5Crypto.CryptoKey> {
+        return null as any;
+      }
+    }
 
+    describe('checkGenerateKey()', () => {
       let alg: TestAesAlgorithm;
 
       beforeEach(() => {
@@ -223,6 +226,27 @@ describe('Algorithms API', () => {
       });
     });
 
+    describe('deriveBits()', () => {
+      it(`throws an error because 'deriveBits' operation is valid for AES-CTR keys`, async () => {
+        const alg = TestAesAlgorithm.create();
+        await expect(alg.deriveBits()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
+      });
+    });
+
+    describe('sign()', () => {
+      it(`throws an error because 'sign' operation is valid for AES-CTR keys`, async () => {
+        const alg = TestAesAlgorithm.create();
+        await expect(alg.sign()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
+      });
+    });
+
+    describe('verify()', () => {
+      it(`throws an error because 'verify' operation is valid for AES-CTR keys`, async () => {
+        const alg = TestAesAlgorithm.create();
+        await expect(alg.verify()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
+      });
+    });
+
     describe('AesCtrAlgorithm', () => {
       let alg: AesCtrAlgorithm;
 
@@ -230,21 +254,33 @@ describe('Algorithms API', () => {
         alg = Reflect.construct(AesCtrAlgorithm, []) as AesCtrAlgorithm;
       });
 
+      let dataEncryptionKey: Web5Crypto.CryptoKey;
+
+      beforeEach(() => {
+        dataEncryptionKey = new CryptoKey({ name: 'AES-CTR', length: 128 }, false, new ArrayBuffer(32), 'secret', ['encrypt', 'decrypt']);
+      });
+
       describe('checkAlgorithmOptions()', () => {
         it('does not throw with matching algorithm name and valid counter and length', () => {
-          expect(() => alg.checkAlgorithmOptions({ algorithm: {
-            name    : 'AES-CTR',
-            counter : new ArrayBuffer(16),
-            length  : 128
-          }})).to.not.throw();
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm: {
+              name    : 'AES-CTR',
+              counter : new ArrayBuffer(16),
+              length  : 128
+            },
+            key: dataEncryptionKey
+          })).to.not.throw();
         });
 
         it('throws an error when unsupported algorithm specified', () => {
-          expect(() => alg.checkAlgorithmOptions({ algorithm: {
-            name    : 'Nope',
-            counter : new ArrayBuffer(16),
-            length  : 128
-          }})).to.throw(NotSupportedError, 'Algorithm not supported');
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm: {
+              name    : 'invalid-name',
+              counter : new ArrayBuffer(16),
+              length  : 128
+            },
+            key: dataEncryptionKey
+          })).to.throw(NotSupportedError, 'Algorithm not supported');
         });
 
         it('throws an error if the counter property is missing', () => {
@@ -257,54 +293,60 @@ describe('Algorithms API', () => {
 
         it('accepts counter as ArrayBuffer, DataView, and TypedArray', () => {
           const dataU8A = new Uint8Array(16);
+          const algorithm: { name?: string, counter?: any, length?: number } = {};
+          algorithm.name = 'AES-CTR';
+          algorithm.length = 128;
 
           // ArrayBuffer
-          const dataArrayBuffer = dataU8A.buffer;
-          expect(() => alg.checkAlgorithmOptions({ algorithm: {
-            name    : 'AES-CTR',
-            counter : dataArrayBuffer,
-            length  : 128
-          }})).to.not.throw();
+          algorithm.counter = dataU8A.buffer;
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : algorithm as Web5Crypto.AesCtrOptions,
+            key       : dataEncryptionKey
+          })).to.not.throw();
 
           // DataView
-          const dataView = new DataView(dataArrayBuffer);
-          expect(() => alg.checkAlgorithmOptions({ algorithm: {
-            name    : 'AES-CTR',
-            counter : dataView,
-            length  : 128
-          }})).to.not.throw();
+          algorithm.counter = new DataView(dataU8A.buffer);
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : algorithm as Web5Crypto.AesCtrOptions,
+            key       : dataEncryptionKey
+          })).to.not.throw();
 
           // TypedArray - Uint8Array
-          expect(() => alg.checkAlgorithmOptions({ algorithm: {
-            name    : 'AES-CTR',
-            counter : dataU8A,
-            length  : 128
-          }})).to.not.throw();
+          algorithm.counter = dataU8A;
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : algorithm as Web5Crypto.AesCtrOptions,
+            key       : dataEncryptionKey
+          })).to.not.throw();
 
           // TypedArray - Int8Array
-          const dataI8A = new Int8Array(16);
-          expect(() => alg.checkAlgorithmOptions({ algorithm: {
-            name    : 'AES-CTR',
-            counter : dataI8A,
-            length  : 128
-          }})).to.not.throw();
+          algorithm.counter = new Int8Array(16);
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : algorithm as Web5Crypto.AesCtrOptions,
+            key       : dataEncryptionKey
+          })).to.not.throw();
         });
 
         it('throws error if counter is not acceptable data type', () => {
-          expect(() => alg.checkAlgorithmOptions({ algorithm: {
-            name    : 'AES-CTR',
-            // @ts-expect-error because counter is being intentionally set to the wrong data type to trigger an error.
-            counter : new Set([...Array(16).keys()].map(n => n.toString(16))),
-            length  : 128
-          }})).to.throw(TypeError, 'is not of type');
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm: {
+              name    : 'AES-CTR',
+              // @ts-expect-error because counter is being intentionally set to the wrong data type to trigger an error.
+              counter : new Set([...Array(16).keys()].map(n => n.toString(16))),
+              length  : 128
+            },
+            key: dataEncryptionKey
+          })).to.throw(TypeError, 'is not of type');
         });
 
         it('throws error if initial value of the counter block is not 16 bytes', () => {
-          expect(() => alg.checkAlgorithmOptions({ algorithm: {
-            name    : 'AES-CTR',
-            counter : new ArrayBuffer(128),
-            length  : 128
-          }})).to.throw(OperationError, 'must have length');
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm: {
+              name    : 'AES-CTR',
+              counter : new ArrayBuffer(128),
+              length  : 128
+            },
+            key: dataEncryptionKey
+          })).to.throw(OperationError, 'must have length');
         });
 
         it('throws an error if the length property is missing', () => {
@@ -312,7 +354,7 @@ describe('Algorithms API', () => {
           expect(() => alg.checkAlgorithmOptions({ algorithm: {
             name    : 'AES-CTR',
             counter : new ArrayBuffer(16)
-          }})).to.throw(TypeError, 'Required parameter was missing');
+          }})).to.throw(TypeError, `Required parameter was missing: 'length'`);
         });
 
         it('throws an error if length is not a Number', () => {
@@ -325,60 +367,90 @@ describe('Algorithms API', () => {
         });
 
         it('throws an error if length is not between 1 and 128', () => {
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm: {
+              name    : 'AES-CTR',
+              counter : new ArrayBuffer(16),
+              length  : 0
+            },
+            key: dataEncryptionKey
+          })).to.throw(OperationError, 'should be in the range');
+
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm: {
+              name    : 'AES-CTR',
+              counter : new ArrayBuffer(16),
+              length  : 256
+            },
+            key: dataEncryptionKey
+          })).to.throw(OperationError, 'should be in the range');
+        });
+
+        it('throws an error if the key property is missing', () => {
+          // @ts-expect-error because keyy property was intentionally omitted.
           expect(() => alg.checkAlgorithmOptions({ algorithm: {
             name    : 'AES-CTR',
             counter : new ArrayBuffer(16),
-            length  : 0
-          }})).to.throw(OperationError, 'should be in the range');
-
-          expect(() => alg.checkAlgorithmOptions({ algorithm: {
-            name    : 'AES-CTR',
-            counter : new ArrayBuffer(16),
-            length  : 256
-          }})).to.throw(OperationError, 'should be in the range');
+            length  : 64
+          }})).to.throw(TypeError, `Required parameter was missing: 'key'`);
         });
-      });
 
-      describe('deriveBits()', () => {
-        it(`throws an error because 'deriveBits' operation is valid for AES-CTR keys`, async () => {
-          await expect(alg.deriveBits()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for AES-CTR');
+        it('throws an error if the given key is not valid', () => {
+          // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
+          delete dataEncryptionKey.extractable;
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 64 },
+            key       : dataEncryptionKey
+          })).to.throw(TypeError, 'Object is not a CryptoKey');
         });
-      });
 
-      describe('sign()', () => {
-        it(`throws an error because 'sign' operation is valid for AES-CTR keys`, async () => {
-          await expect(alg.sign()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for AES-CTR');
+        it('throws an error if the algorithm of the key does not match', () => {
+          const dataEncryptionKey = new CryptoKey({ name: 'non-existent-algorithm', length: 128 }, false, new ArrayBuffer(32), 'secret', ['encrypt', 'decrypt']);
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 64 },
+            key       : dataEncryptionKey
+          })).to.throw(InvalidAccessError, 'does not match');
         });
-      });
 
-      describe('verify()', () => {
-        it(`throws an error because 'verify' operation is valid for AES-CTR keys`, async () => {
-          await expect(alg.verify()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for AES-CTR');
+        it('throws an error if a private key is specified as the key', () => {
+          const dataEncryptionKey = new CryptoKey({ name: 'AES-CTR', length: 128 }, false, new ArrayBuffer(32), 'private', ['encrypt', 'decrypt']);
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 64 },
+            key       : dataEncryptionKey
+          })).to.throw(InvalidAccessError, 'Requested operation is not valid');
+        });
+
+        it('throws an error if a public key is specified as the key', () => {
+          const dataEncryptionKey = new CryptoKey({ name: 'AES-CTR', length: 128 }, false, new ArrayBuffer(32), 'public', ['encrypt', 'decrypt']);
+          expect(() => alg.checkAlgorithmOptions({
+            algorithm : { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 64 },
+            key       : dataEncryptionKey
+          })).to.throw(InvalidAccessError, 'Requested operation is not valid');
         });
       });
     });
   });
 
   describe('EllipticCurveAlgorithm', () => {
-    describe('checkGenerateKey()', () => {
-      class TestEllipticCurveAlgorithm extends EllipticCurveAlgorithm {
-        public name = 'TestAlgorithm';
-        public namedCurves = ['curveA'];
-        public keyUsages: KeyUsage[] = ['decrypt'];
-        public async deriveBits(): Promise<ArrayBuffer> {
-          return null as any;
-        }
-        public async generateKey(): Promise<Web5Crypto.CryptoKeyPair> {
-          return { publicKey: {} as any, privateKey: {} as any };
-        }
-        public async sign(): Promise<ArrayBuffer> {
-          return null as any;
-        }
-        public async verify(): Promise<boolean> {
-          return null as any;
-        }
+    class TestEllipticCurveAlgorithm extends EllipticCurveAlgorithm {
+      public name = 'TestAlgorithm';
+      public namedCurves = ['curveA'];
+      public keyUsages: KeyUsage[] = ['decrypt'];
+      public async deriveBits(): Promise<ArrayBuffer> {
+        return null as any;
       }
+      public async generateKey(): Promise<Web5Crypto.CryptoKeyPair> {
+        return { publicKey: {} as any, privateKey: {} as any };
+      }
+      public async sign(): Promise<ArrayBuffer> {
+        return null as any;
+      }
+      public async verify(): Promise<boolean> {
+        return null as any;
+      }
+    }
 
+    describe('checkGenerateKey()', () => {
       let alg: TestEllipticCurveAlgorithm;
 
       beforeEach(() => {
@@ -413,6 +485,20 @@ describe('Algorithms API', () => {
             keyUsages : [operation as KeyUsage]
           })).to.throw(InvalidAccessError, 'Requested operation');
         });
+      });
+    });
+
+    describe('decrypt()', () => {
+      it(`throws an error because 'decrypt' operation is valid for AES-CTR keys`, async () => {
+        const alg = TestEllipticCurveAlgorithm.create();
+        await expect(alg.decrypt()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
+      });
+    });
+
+    describe('encrypt()', () => {
+      it(`throws an error because 'encrypt' operation is valid for AES-CTR keys`, async () => {
+        const alg = TestEllipticCurveAlgorithm.create();
+        await expect(alg.encrypt()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
       });
     });
 

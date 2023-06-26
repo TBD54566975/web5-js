@@ -15,6 +15,10 @@ export class DefaultEcdhAlgorithm extends EcdhAlgorithm {
     const { algorithm, baseKey, length } = options;
 
     this.checkAlgorithmOptions({ algorithm, baseKey });
+    // The base key must be allowed to be used for deriveBits operations.
+    this.checkKeyUsages({ keyUsages: ['deriveBits'], allowedKeyUsages: baseKey.usages });
+    // The public key must be allowed to be used for deriveBits operations.
+    this.checkKeyUsages({ keyUsages: ['deriveBits'], allowedKeyUsages: algorithm.publicKey.usages });
 
     let sharedSecret: ArrayBuffer;
 

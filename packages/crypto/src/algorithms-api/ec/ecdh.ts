@@ -28,7 +28,7 @@ export abstract class EcdhAlgorithm extends EllipticCurveAlgorithm {
     this.checkKeyType({ keyType: algorithm.publicKey.type, allowedKeyType: 'public' });
     // The publicKey algorithm must match the algorithm implementation processing the operation.
     this.checkKeyAlgorithm({ keyAlgorithmName: algorithm.publicKey.algorithm.name });
-    // The options object must contain a publicKey property.
+    // The options object must contain a baseKey property.
     checkRequiredProperty({ property: 'baseKey', inObject: options });
     // The baseKey object must be a CryptoKey.
     this.checkCryptoKey({ key: baseKey });
