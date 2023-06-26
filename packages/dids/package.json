@@ -61,6 +61,11 @@
     "./dist/cjs/main.cjs": "./dist/browser.js",
     "types": "./dist/types/main.d.ts"
   },
+  "react-native": {
+    "./dist/esm/main.mjs": "./dist/esm/main.mjs",
+    "./dist/cjs/main.cjs": "./dist/esm/main.mjs",
+    "types": "./dist/types/main.d.ts"
+  },
   "keywords": [
     "decentralized",
     "decentralized-identity",
