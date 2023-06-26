@@ -2,7 +2,7 @@ import type { Web5Crypto } from '../../types-key-manager.js';
 
 import { AesAlgorithm } from './base.js';
 import { universalTypeOf } from '../../common/type-utils.js';
-import { InvalidAccessError, OperationError } from '../errors.js';
+import { OperationError } from '../errors.js';
 import { checkRequiredProperty } from '../../utils-key-manager.js';
 
 export abstract class AesCtrAlgorithm extends AesAlgorithm {
@@ -12,9 +12,10 @@ export abstract class AesCtrAlgorithm extends AesAlgorithm {
   public readonly keyUsages: Web5Crypto.KeyUsage[] = ['encrypt', 'decrypt', 'wrapKey', 'unwrapKey'];
 
   public checkAlgorithmOptions(options: {
-    algorithm: Web5Crypto.AesCtrOptions
+    algorithm: Web5Crypto.AesCtrOptions,
+    key: Web5Crypto.CryptoKey
   }): void {
-    const { algorithm } = options;
+    const { algorithm, key } = options;
     // Algorithm specified in the operation must match the algorithm implementation processing the operation.
     this.checkAlgorithmName({ algorithmName: algorithm.name });
     // The algorithm object must contain a counter property.
@@ -25,7 +26,7 @@ export abstract class AesCtrAlgorithm extends AesAlgorithm {
     }
     // The initial value of the counter block must be 16 bytes long (the AES block size).
     if (algorithm.counter.byteLength !== 16) {
-      throw new OperationError(`Algorithm 'iv' must have length: 16 bytes.`);
+      throw new OperationError(`Algorithm 'counter' must have length: 16 bytes.`);
     }
     // The algorithm object must contain a length property.
     checkRequiredProperty({ property: 'length', inObject: algorithm });
@@ -37,17 +38,13 @@ export abstract class AesCtrAlgorithm extends AesAlgorithm {
     if ((algorithm.length < 1 || algorithm.length > 128)) {
       throw new OperationError(`Algorithm 'length' should be in the range: 1 to 128.`);
     }
-  }
-
-  public override async deriveBits(): Promise<ArrayBuffer> {
-    throw new InvalidAccessError(`Requested operation 'deriveBits' is not valid for ${this.name} keys.`);
-  }
-
-  public override async sign(): Promise<ArrayBuffer> {
-    throw new InvalidAccessError(`Requested operation 'sign' is not valid for ${this.name} keys.`);
-  }
-
-  public override async verify(): Promise<boolean> {
-    throw new InvalidAccessError(`Requested operation 'verify' is not valid for ${this.name} keys.`);
+    // The options object must contain a key property.
+    checkRequiredProperty({ property: 'key', inObject: options });
+    // The key object must be a CryptoKey.
+    this.checkCryptoKey({ key });
+    // The key algorithm must match the algorithm implementation processing the operation.
+    this.checkKeyAlgorithm({ keyAlgorithmName: key.algorithm.name });
+    // The CryptoKey object must be a secret key.
+    this.checkKeyType({ keyType: key.type, allowedKeyType: 'secret' });
   }
 }

@@ -88,10 +88,22 @@ export abstract class CryptoAlgorithm {
     return new this();
   }
 
+  public abstract decrypt(options: {
+    algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions,
+    key: Web5Crypto.CryptoKey,
+    data: BufferSource
+  }): Promise<ArrayBuffer>;
+
   public abstract deriveBits(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdhDeriveKeyOptions,
     baseKey: Web5Crypto.CryptoKey,
     length: number | null
+  }): Promise<ArrayBuffer>;
+
+  public abstract encrypt(options: {
+    algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions,
+    key: Web5Crypto.CryptoKey,
+    data: BufferSource
   }): Promise<ArrayBuffer>;
 
   public abstract generateKey(options: {

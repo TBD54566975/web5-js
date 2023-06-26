@@ -53,7 +53,7 @@ export class DefaultEdDsaAlgorithm extends EdDsaAlgorithm {
     // The key must be a private key.
     this.checkKeyType({ keyType: key.type, allowedKeyType: 'private' });
     // The key must be allowed to be used for sign operations.
-    this.checkKeyUsages({ keyUsages: key.usages, allowedKeyUsages: ['sign'] });
+    this.checkKeyUsages({ keyUsages: ['sign'], allowedKeyUsages: key.usages });
 
     let signature: ArrayBuffer;
 
@@ -87,7 +87,7 @@ export class DefaultEdDsaAlgorithm extends EdDsaAlgorithm {
     // The key must be a public key.
     this.checkKeyType({ keyType: key.type, allowedKeyType: 'public' });
     // The key must be allowed to be used for verify operations.
-    this.checkKeyUsages({ keyUsages: key.usages, allowedKeyUsages: ['verify'] });
+    this.checkKeyUsages({ keyUsages: ['verify'], allowedKeyUsages: key.usages });
 
     let isValid: boolean;
 
