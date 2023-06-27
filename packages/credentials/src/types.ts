@@ -222,12 +222,12 @@ export type DisplayMapping = {
     /** If the `type` property is "string", this property is used to format the string in any rendered UI */
     format?: 'date-time' | 'time' | 'date' | 'email' | 'idn-email' | 'hostname' | 'idn-hostname' |
      'ipv4' | 'ipv6' | 'uri' | 'uri-reference' | 'iri' | 'iri-reference';
-    /**
-     * String to be rendered into the UI if all the `path` property's item's value is
-     * undefined OR incorrectly processed
-    */
-    fallback?: string;
   }
+  /**
+   * String to be rendered into the UI if all the `path` property's item's value is
+   * undefined OR incorrectly processed
+  */
+  fallback?: string;
 }
 
 /** See {@link https://identity.foundation/presentation-exchange/#presentation-definition | Presentation Definiton}'s `format` property */
