@@ -1,5 +1,6 @@
 import type { ManagedKey, ManagedKeyPair, ManagedPrivateKey, Web5Crypto } from '../src/types-key-manager.js';
 
+import sinon from 'sinon';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
@@ -139,6 +140,25 @@ describe('LocalKms', () => {
       });
       expect(sharedSecret).to.be.an('ArrayBuffer');
       expect(sharedSecret.byteLength).to.equal(32);
+    });
+
+    it('returns shared secrets with maximum bit length when length is null', async () => {
+      const sharedSecret = await kms.deriveBits({
+        algorithm  : { name: 'ECDH', publicKey: otherPartyPublicCryptoKey },
+        baseKeyRef : ownPrivateKey.id
+      });
+      expect(sharedSecret).to.be.an('ArrayBuffer');
+      expect(sharedSecret.byteLength).to.equal(32);
+    });
+
+    it('returns shared secrets with specified length, if possible', async () => {
+      const sharedSecret = await kms.deriveBits({
+        algorithm  : { name: 'ECDH', publicKey: otherPartyPublicCryptoKey },
+        baseKeyRef : ownPrivateKey.id,
+        length     : 64
+      });
+      expect(sharedSecret).to.be.an('ArrayBuffer');
+      expect(sharedSecret.byteLength).to.equal(64 / 8);
     });
 
     it(`accepts 'id' as a baseKey reference`, async () => {
@@ -937,6 +957,49 @@ describe('LocalKms', () => {
       })).to.eventually.be.rejectedWith(Error, 'is not supported');
     });
   });
+
+  describe('#toCryptoKey', function() {
+    /**
+       * We can't directly test private methods, but we can indirectly
+       * test their behavior through the methods that use them. Since
+       * #toCryptoKey() is used in the verify() method, we can
+       * test this methods with known algorithm names.
+       */
+
+    let getKeyStub: sinon.SinonStub<any[], any>;
+    let kms: LocalKms;
+    let kmsKeyStore: KmsKeyStore;
+
+    beforeEach(() => {
+      const memoryKeyStore = new MemoryKeyStore<string, ManagedKey | ManagedKeyPair>();
+      kmsKeyStore = new KmsKeyStore(memoryKeyStore);
+      const memoryPrivateKeyStore = new MemoryKeyStore<string, ManagedPrivateKey>();
+      const kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryPrivateKeyStore);
+      kms = new LocalKms('local', kmsKeyStore, kmsPrivateKeyStore);
+    });
+
+    afterEach(() => {
+      // Restore the original KmsKeyStore getKey() method after each test.
+      getKeyStub.restore();
+    });
+
+    it('throws error when key material is missing', async () => {
+      const keyPair = await kms.generateKey({
+        algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+        extractable : false,
+        keyUsages   : ['sign', 'verify']
+      });
+
+      getKeyStub = sinon.stub(kmsKeyStore, 'getKey');
+      getKeyStub.returns(Promise.resolve({ privateKey: {}, publicKey: {} }));
+      await expect(kms.verify({
+        algorithm : { name: 'ECDSA', hash: 'SHA-256' },
+        keyRef    : keyPair.publicKey.id,
+        signature : new ArrayBuffer(64),
+        data      : new Uint8Array([51, 52, 53])
+      })).to.eventually.be.rejectedWith(Error, `Required property missing: 'material'`);
+    });
+  });
 });
 
 describe('KmsKeyStore', () => {
@@ -1009,10 +1072,31 @@ describe('KmsKeyStore', () => {
       // Test importing the key and validate the result.
       const importResult = await kmsKeyStore.importKey({ key: testKey });
       expect(importResult).to.equal(testKey.id);
+      expect(importResult).to.be.a.string;
 
       // Verify the key is present in the key store.
       const storedKey = await kmsKeyStore.getKey({ id: testKey.id });
       expect(storedKey).to.deep.equal(testKey);
+    });
+
+    it('should generate and return an ID if one is not provided', async () => {
+      const     testKey = {
+        algorithm   : { name: 'AES', length: 256 },
+        extractable : true,
+        kms         : 'testKms',
+        state       : 'Enabled',
+        type        : 'secret',
+        usages      : ['encrypt', 'decrypt'],
+      };
+
+      // Test importing the key and validate the result.
+      // @ts-expect-error because the ID property was intentionally omitted from the key object to be imported.
+      const importResult = await kmsKeyStore.importKey({ key: testKey });
+      expect(importResult).to.be.a.string;
+
+      // Verify the key is present in the key store.
+      const storedKey = await kmsKeyStore.getKey({ id: importResult }) as ManagedKey;
+      expect(storedKey.id).to.equal(importResult);
     });
 
     it('should throw an error when attempting to import a key that already exists', async () => {

@@ -36,8 +36,13 @@ export class KmsKeyStore implements ManagedKeyStore<string, ManagedKey | Managed
   }
 
   async importKey({ key }: { key: ManagedKey | ManagedKeyPair }): Promise<string> {
-    let id = isManagedKeyPair(key) ? key.publicKey!.id : key.id;
-    id ??= uuid(); // If an ID wasn't specified, generate one.
+    let id: string;
+    if (isManagedKeyPair(key)) {
+      id = key.publicKey.id;
+    } else {
+      key.id ??= uuid(); // If an ID wasn't specified, generate one.
+      id = key.id;
+    }
 
     if (await this.#keyStore.has(id)) {
       throw new Error(`Key with ID already exists: '${id}'`);

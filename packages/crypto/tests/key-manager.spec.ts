@@ -72,6 +72,90 @@ describe('KeyManager', () => {
     });
   });
 
+  describe('decrypt()', () => {
+    let key: ManagedKey;
+
+    beforeEach(async () => {
+      key = await keyManager.generateKey({
+        algorithm   : { name: 'AES-CTR', length: 128 },
+        extractable : false,
+        keyUsages   : ['encrypt', 'decrypt']
+      });
+    });
+
+    it('decrypts data', async () => {
+      const plaintext = await keyManager.decrypt({
+        algorithm: {
+          name    : 'AES-CTR',
+          counter : new ArrayBuffer(16),
+          length  : 128
+        },
+        keyRef : key.id,
+        data   : new Uint8Array([1, 2, 3, 4])
+      });
+
+      expect(plaintext).to.be.instanceOf(ArrayBuffer);
+      expect(plaintext.byteLength).to.equal(4);
+    });
+
+    it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
+      const algorithm = { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 128 };
+      const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+      let plaintext: ArrayBuffer;
+
+      // ArrayBuffer
+      const dataArrayBuffer = dataU8A.buffer;
+      plaintext = await keyManager.decrypt({ algorithm, keyRef: key.id, data: dataArrayBuffer });
+      expect(plaintext).to.be.instanceOf(ArrayBuffer);
+
+      // DataView
+      const dataView = new DataView(dataArrayBuffer);
+      plaintext = await keyManager.decrypt({ algorithm, keyRef: key.id, data: dataView });
+      expect(plaintext).to.be.instanceOf(ArrayBuffer);
+
+      // TypedArray - Uint8Array
+      plaintext = await keyManager.decrypt({ algorithm, keyRef: key.id, data: dataU8A });
+      expect(plaintext).to.be.instanceOf(ArrayBuffer);
+
+      // TypedArray - Int32Array
+      const dataI32A = new Int32Array([10, 20, 30, 40]);
+      plaintext = await keyManager.decrypt({ algorithm, keyRef: key.id, data: dataI32A });
+      expect(plaintext).to.be.instanceOf(ArrayBuffer);
+
+      // TypedArray - Uint32Array
+      const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
+      plaintext = await keyManager.decrypt({ algorithm, keyRef: key.id, data: dataU32A });
+      expect(plaintext).to.be.instanceOf(ArrayBuffer);
+    });
+
+    it('decrypts data with AES-CTR', async () => {
+      const plaintext = await keyManager.decrypt({
+        algorithm: {
+          name    : 'AES-CTR',
+          counter : new ArrayBuffer(16),
+          length  : 128
+        },
+        keyRef : key.id,
+        data   : new Uint8Array([1, 2, 3, 4])
+      });
+
+      expect(plaintext).to.be.instanceOf(ArrayBuffer);
+      expect(plaintext.byteLength).to.equal(4);
+    });
+
+    it('throws an error when key reference is not found', async () => {
+      await expect(keyManager.decrypt({
+        algorithm: {
+          name    : 'AES-CTR',
+          counter : new ArrayBuffer(16),
+          length  : 128
+        },
+        keyRef : 'non-existent-key',
+        data   : new Uint8Array([1, 2, 3, 4])
+      })).to.eventually.be.rejectedWith(Error, 'Key not found');
+    });
+  });
+
   describe('deriveBits()', () => {
     let otherPartyPublicKey: ManagedKey;
     let otherPartyPublicCryptoKey: Web5Crypto.CryptoKey;
@@ -162,6 +246,90 @@ describe('KeyManager', () => {
       await expect(keyManager.deriveBits({
         algorithm  : { name: 'ECDH', publicKey: otherPartyPublicCryptoKey },
         baseKeyRef : 'non-existent-id'
+      })).to.eventually.be.rejectedWith(Error, 'Key not found');
+    });
+  });
+
+  describe('encrypt()', () => {
+    let key: ManagedKey;
+
+    beforeEach(async () => {
+      key = await keyManager.generateKey({
+        algorithm   : { name: 'AES-CTR', length: 128 },
+        extractable : false,
+        keyUsages   : ['encrypt', 'decrypt']
+      });
+    });
+
+    it('encrypts data', async () => {
+      const ciphertext = await keyManager.encrypt({
+        algorithm: {
+          name    : 'AES-CTR',
+          counter : new ArrayBuffer(16),
+          length  : 128
+        },
+        keyRef : key.id,
+        data   : new Uint8Array([1, 2, 3, 4])
+      });
+
+      expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+      expect(ciphertext.byteLength).to.equal(4);
+    });
+
+    it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
+      const algorithm = { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 128 };
+      const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+      let ciphertext: ArrayBuffer;
+
+      // ArrayBuffer
+      const dataArrayBuffer = dataU8A.buffer;
+      ciphertext = await keyManager.encrypt({ algorithm, keyRef: key.id, data: dataArrayBuffer });
+      expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+      // DataView
+      const dataView = new DataView(dataArrayBuffer);
+      ciphertext = await keyManager.encrypt({ algorithm, keyRef: key.id, data: dataView });
+      expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+      // TypedArray - Uint8Array
+      ciphertext = await keyManager.encrypt({ algorithm, keyRef: key.id, data: dataU8A });
+      expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+      // TypedArray - Int32Array
+      const dataI32A = new Int32Array([10, 20, 30, 40]);
+      ciphertext = await keyManager.encrypt({ algorithm, keyRef: key.id, data: dataI32A });
+      expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+      // TypedArray - Uint32Array
+      const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
+      ciphertext = await keyManager.encrypt({ algorithm, keyRef: key.id, data: dataU32A });
+      expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+    });
+
+    it('encrypts data with AES-CTR', async () => {
+      const ciphertext = await keyManager.encrypt({
+        algorithm: {
+          name    : 'AES-CTR',
+          counter : new ArrayBuffer(16),
+          length  : 128
+        },
+        keyRef : key.id,
+        data   : new Uint8Array([1, 2, 3, 4])
+      });
+
+      expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+      expect(ciphertext.byteLength).to.equal(4);
+    });
+
+    it('throws an error when key reference is not found', async () => {
+      await expect(keyManager.encrypt({
+        algorithm: {
+          name    : 'AES-CTR',
+          counter : new ArrayBuffer(16),
+          length  : 128
+        },
+        keyRef : 'non-existent-key',
+        data   : new Uint8Array([1, 2, 3, 4])
       })).to.eventually.be.rejectedWith(Error, 'Key not found');
     });
   });
@@ -301,17 +469,20 @@ describe('KeyManager', () => {
   });
 
   describe('getKey()', function() {
-    xit('returns the key if it exists in the store', async function() {
-      const keyRef = 'testKey';
-      const expectedKey = { id: keyRef, kms: 'local' };
-
+    it('returns the key if it exists in the store', async function() {
       // Prepopulate the store with a key.
-      //! TODO: Enable this test once the importKey() method has been added to KeyManager.
-      // await keyManager.importKey({ key: expectedKey });
+      const importedPrivateKey = await keyManager.importKey({
+        algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+        extractable : true,
+        kms         : 'local',
+        material    : new Uint8Array([1, 2, 3, 4]),
+        type        : 'private',
+        usages      : ['sign'],
+      });
 
-      const storedKey = await keyManager.getKey({ keyRef });
+      const storedPrivateKey = await keyManager.getKey({ keyRef: importedPrivateKey.id });
 
-      expect(storedKey).to.deep.equal(expectedKey);
+      expect(storedPrivateKey).to.deep.equal(importedPrivateKey);
     });
 
     it('should return undefined if the key does not exist in the store', async function() {
@@ -429,7 +600,33 @@ describe('KeyManager', () => {
       expect(storedPublicKey.usages).to.deep.equal(['verify']);
     });
 
-    xit('imports symmetric keys');
+    it('imports symmetric keys', async () => {
+      // Test importing the key and validate the result.
+      const importedSecretKey = await keyManager.importKey({
+        algorithm   : { name: 'AES-CTR', length: 128 },
+        extractable : true,
+        kms         : 'local',
+        material    : new Uint8Array([1, 2, 3, 4]),
+        type        : 'secret',
+        usages      : ['encrypt', 'decrypt'],
+      });
+      expect(importedSecretKey.kms).to.equal('local');
+      expect(importedSecretKey).to.exist;
+
+      // Verify the key is present in the key store.
+      const storedSecretKey = await keyManager.getKey({ keyRef: importedSecretKey.id }) as ManagedKey;
+      expect(storedSecretKey).to.deep.equal(importedSecretKey);
+
+      // Validate the expected values.
+      expect(storedSecretKey.algorithm.name).to.equal('AES-CTR');
+      expect(storedSecretKey.kms).to.equal('local');
+      expect(storedSecretKey.spec).to.be.undefined;
+      expect(storedSecretKey.state).to.equal('Enabled');
+      expect(storedSecretKey.material).to.be.undefined;
+      expect(storedSecretKey.type).to.equal('secret');
+      expect(storedSecretKey.usages).to.deep.equal(['encrypt', 'decrypt']);
+    });
+
     xit('imports HMAC keys');
 
     it(`ignores the 'id' property and overwrites with internally generated unique identifier`, async () => {
