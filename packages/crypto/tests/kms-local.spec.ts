@@ -113,6 +113,90 @@ describe('LocalKms', () => {
     });
   });
 
+  describe('encrypt()', () => {
+    let key: ManagedKey;
+
+    beforeEach(async () => {
+      key = await kms.generateKey({
+        algorithm   : { name: 'AES-CTR', length: 128 },
+        extractable : false,
+        keyUsages   : ['encrypt', 'decrypt']
+      });
+    });
+
+    it('encrypts data', async () => {
+      const ciphertext = await kms.encrypt({
+        algorithm: {
+          name    : 'AES-CTR',
+          counter : new ArrayBuffer(16),
+          length  : 128
+        },
+        keyRef : key.id,
+        data   : new Uint8Array([1, 2, 3, 4])
+      });
+
+      expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+      expect(ciphertext.byteLength).to.equal(4);
+    });
+
+    it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
+      const algorithm = { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 128 };
+      const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+      let signature: ArrayBuffer;
+
+      // ArrayBuffer
+      const dataArrayBuffer = dataU8A.buffer;
+      signature = await kms.encrypt({ algorithm, keyRef: key.id, data: dataArrayBuffer });
+      expect(signature).to.be.instanceOf(ArrayBuffer);
+
+      // DataView
+      const dataView = new DataView(dataArrayBuffer);
+      signature = await kms.encrypt({ algorithm, keyRef: key.id, data: dataView });
+      expect(signature).to.be.instanceOf(ArrayBuffer);
+
+      // TypedArray - Uint8Array
+      signature = await kms.encrypt({ algorithm, keyRef: key.id, data: dataU8A });
+      expect(signature).to.be.instanceOf(ArrayBuffer);
+
+      // TypedArray - Int32Array
+      const dataI32A = new Int32Array([10, 20, 30, 40]);
+      signature = await kms.encrypt({ algorithm, keyRef: key.id, data: dataI32A });
+      expect(signature).to.be.instanceOf(ArrayBuffer);
+
+      // TypedArray - Uint32Array
+      const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
+      signature = await kms.encrypt({ algorithm, keyRef: key.id, data: dataU32A });
+      expect(signature).to.be.instanceOf(ArrayBuffer);
+    });
+
+    it('encrypts data with AES-CTR', async () => {
+      const ciphertext = await kms.encrypt({
+        algorithm: {
+          name    : 'AES-CTR',
+          counter : new ArrayBuffer(16),
+          length  : 128
+        },
+        keyRef : key.id,
+        data   : new Uint8Array([1, 2, 3, 4])
+      });
+
+      expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+      expect(ciphertext.byteLength).to.equal(4);
+    });
+
+    it('throws an error when key reference is not found', async () => {
+      await expect(kms.encrypt({
+        algorithm: {
+          name    : 'AES-CTR',
+          counter : new ArrayBuffer(16),
+          length  : 128
+        },
+        keyRef : 'non-existent-key',
+        data   : new Uint8Array([1, 2, 3, 4])
+      })).to.eventually.be.rejectedWith(Error, 'Key not found');
+    });
+  });
+
   describe('generateKey()', () => {
     it('creates valid key pairs', async () => {
       const keys = await kms.generateKey({
@@ -354,7 +438,33 @@ describe('LocalKms', () => {
       expect(storedPublicKey.usages).to.deep.equal(['verify']);
     });
 
-    xit('imports symmetric keys');
+    it('imports symmetric keys', async () => {
+      // Test importing the key and validate the result.
+      const importedSecretKey = await kms.importKey({
+        algorithm   : { name: 'AES-CTR', length: 128 },
+        extractable : true,
+        kms         : 'local',
+        material    : new Uint8Array([1, 2, 3, 4]),
+        type        : 'secret',
+        usages      : ['encrypt', 'decrypt'],
+      });
+      expect(importedSecretKey.kms).to.equal('local');
+      expect(importedSecretKey).to.exist;
+
+      // Verify the key is present in the key store.
+      const storedSecretKey = await kms.getKey({ keyRef: importedSecretKey.id }) as ManagedKey;
+      expect(storedSecretKey).to.deep.equal(importedSecretKey);
+
+      // Validate the expected values.
+      expect(storedSecretKey.algorithm.name).to.equal('AES-CTR');
+      expect(storedSecretKey.kms).to.equal('local');
+      expect(storedSecretKey.spec).to.be.undefined;
+      expect(storedSecretKey.state).to.equal('Enabled');
+      expect(storedSecretKey.material).to.be.undefined;
+      expect(storedSecretKey.type).to.equal('secret');
+      expect(storedSecretKey.usages).to.deep.equal(['encrypt', 'decrypt']);
+    });
+
     xit('imports HMAC keys');
 
     it(`ignores the 'kms' property and overwrites with configured value`, async () => {
@@ -476,6 +586,43 @@ describe('LocalKms', () => {
           usages   : ['sign'],
         }
       })).to.eventually.be.rejectedWith(Error, 'failed due to private and public key mismatch');
+    });
+
+    it(`throws an error if key pair types are not 'private, public'`, async () => {
+      const testKeyBase = {
+        algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+        extractable : true,
+        kms         : 'testKms',
+      };
+
+      // Test importing the key and validate the result.
+      await expect(kms.importKey({
+        privateKey: {
+          ...testKeyBase,
+          material : new Uint8Array([1, 2, 3, 4]),
+          type     : 'secret',
+          usages   : ['verify'],
+        },
+        publicKey: {
+          ...testKeyBase,
+          material : new Uint8Array([1, 2, 3, 4]),
+          type     : 'public',
+          usages   : ['sign'],
+        }
+      })).to.eventually.be.rejectedWith(Error, `Must be 'private, public'`);
+    });
+
+    it(`throws an error if key type is not 'public', 'private', or 'secret'`, async () => {
+      // Test importing the key and validate the result.
+      // @ts-expect-error because `type` is being intentionally set to an invalid value to trigger an error.
+      await expect(kms.importKey({
+        algorithm   : { name: 'AES-CTR', length: 128 },
+        extractable : true,
+        kms         : 'local',
+        material    : new Uint8Array([1, 2, 3, 4]),
+        type        : 'invalid',
+        usages      : ['encrypt', 'decrypt'],
+      })).to.eventually.be.rejectedWith(Error, `Must be one of 'private, public, secret'`);
     });
   });
 
