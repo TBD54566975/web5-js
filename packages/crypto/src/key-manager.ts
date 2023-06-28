@@ -2,22 +2,24 @@ import type {
   ManagedKey,
   SignOptions,
   CryptoManager,
+  ImportableKey,
   VerifyOptions,
+  DecryptOptions,
+  EncryptOptions,
   ManagedKeyPair,
   GenerateKeyType,
+  ImportKeyOptions,
+  DeriveBitsOptions,
+  ImportableKeyPair,
   ManagedPrivateKey,
   GenerateKeyOptions,
   KeyManagementSystem,
   GenerateKeyOptionTypes,
-  DeriveBitsOptions,
-  ImportKeyOptions,
-  ImportableKeyPair,
-  ImportableKey,
 } from './types-key-manager.js';
 
 import { MemoryKeyStore } from './key-store-memory.js';
 import { KeyManagerStore } from './key-manager-store.js';
-import { checkRequiredProperty, isManagedKeyPair } from './utils-key-manager.js';
+import { checkRequiredProperty, isManagedKey, isManagedKeyPair } from './utils-key-manager.js';
 import { LocalKms, KmsKeyStore, KmsPrivateKeyStore } from './kms-local/index.js';
 
 export type KmsMap = {
@@ -59,6 +61,24 @@ export class KeyManager implements CryptoManager {
     this.#kms = new Map(Object.entries(options.kms)) ;
   }
 
+  async decrypt(options: DecryptOptions): Promise<ArrayBuffer> {
+    let { keyRef, ...decryptOptions } = options;
+
+    const key = await this.getKey({ keyRef });
+
+    if (!isManagedKey(key)) {
+      throw new Error(`Key not found: '${keyRef}'.`);
+    }
+
+    const kmsName = key.kms;
+    const kms = this.#getKms(kmsName);
+
+    const keyId = key.id;
+    const plaintext = await kms.decrypt({ keyRef: keyId, ...decryptOptions });
+
+    return plaintext;
+  }
+
   async deriveBits(options: DeriveBitsOptions): Promise<ArrayBuffer> {
     const { baseKeyRef, ...deriveBitsOptions } = options;
 
@@ -75,6 +95,24 @@ export class KeyManager implements CryptoManager {
     const sharedSecret = kms.deriveBits({ baseKeyRef: ownKeyId, ...deriveBitsOptions });
 
     return sharedSecret;
+  }
+
+  async encrypt(options: EncryptOptions): Promise<ArrayBuffer> {
+    let { keyRef, ...encryptOptions } = options;
+
+    const key = await this.getKey({ keyRef });
+
+    if (!isManagedKey(key)) {
+      throw new Error(`Key not found: '${keyRef}'.`);
+    }
+
+    const kmsName = key.kms;
+    const kms = this.#getKms(kmsName);
+
+    const keyId = key.id;
+    const ciphertext = await kms.encrypt({ keyRef: keyId, ...encryptOptions });
+
+    return ciphertext;
   }
 
   async generateKey<T extends GenerateKeyOptionTypes>(options: GenerateKeyOptions<T> & { kms?: string }): Promise<GenerateKeyType<T>> {

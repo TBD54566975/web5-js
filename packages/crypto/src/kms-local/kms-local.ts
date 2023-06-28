@@ -254,6 +254,25 @@ export class LocalKms implements KeyManagementSystem {
     throw new Error(`Operation failed: 'verify'. Key not found: ${keyRef}`);
   }
 
+  #getAlgorithm(algorithmIdentifier: Web5Crypto.AlgorithmIdentifier): CryptoAlgorithm {
+    checkRequiredProperty({ property: 'name', inObject: algorithmIdentifier });
+    const algorithm = this.#supportedAlgorithms.get(algorithmIdentifier.name.toUpperCase());
+
+    if (algorithm === undefined) {
+      throw new Error(`The algorithm '${algorithmIdentifier.name}' is not supported`);
+    }
+
+    return algorithm.create();
+  }
+
+  #registerSupportedAlgorithms(cryptoAlgorithms: AlgorithmImplementations): void {
+    for (const [name, implementation] of Object.entries(cryptoAlgorithms)) {
+      // Add the algorithm name and its implementation to the supported algorithms map,
+      // upper-cased to allow for case-insensitive.
+      this.#supportedAlgorithms.set(name.toUpperCase(), implementation);
+    }
+  }
+
   #toCryptoKey(managedKey: ManagedKey): Web5Crypto.CryptoKey {
     if (!managedKey.material) {
       throw new Error(`Required property missing: 'material'`);
@@ -285,24 +304,5 @@ export class LocalKms implements KeyManagementSystem {
     };
 
     return managedKey;
-  }
-
-  #getAlgorithm(algorithmIdentifier: Web5Crypto.AlgorithmIdentifier): CryptoAlgorithm {
-    checkRequiredProperty({ property: 'name', inObject: algorithmIdentifier });
-    const algorithm = this.#supportedAlgorithms.get(algorithmIdentifier.name.toUpperCase());
-
-    if (algorithm === undefined) {
-      throw new Error(`The algorithm '${algorithmIdentifier.name}' is not supported`);
-    }
-
-    return algorithm.create();
-  }
-
-  #registerSupportedAlgorithms(cryptoAlgorithms: AlgorithmImplementations): void {
-    for (const [name, implementation] of Object.entries(cryptoAlgorithms)) {
-      // Add the algorithm name and its implementation to the supported algorithms map,
-      // upper-cased to allow for case-insensitive.
-      this.#supportedAlgorithms.set(name.toUpperCase(), implementation);
-    }
   }
 }
