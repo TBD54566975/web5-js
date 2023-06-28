@@ -19,6 +19,90 @@ describe('LocalKms', () => {
     kms = new LocalKms('local', kmsKeyStore, kmsPrivateKeyStore);
   });
 
+  describe('decrypt()', () => {
+    let key: ManagedKey;
+
+    beforeEach(async () => {
+      key = await kms.generateKey({
+        algorithm   : { name: 'AES-CTR', length: 128 },
+        extractable : false,
+        keyUsages   : ['encrypt', 'decrypt']
+      });
+    });
+
+    it('decrypts data', async () => {
+      const plaintext = await kms.decrypt({
+        algorithm: {
+          name    : 'AES-CTR',
+          counter : new ArrayBuffer(16),
+          length  : 128
+        },
+        keyRef : key.id,
+        data   : new Uint8Array([1, 2, 3, 4])
+      });
+
+      expect(plaintext).to.be.instanceOf(ArrayBuffer);
+      expect(plaintext.byteLength).to.equal(4);
+    });
+
+    it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
+      const algorithm = { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 128 };
+      const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+      let plaintext: ArrayBuffer;
+
+      // ArrayBuffer
+      const dataArrayBuffer = dataU8A.buffer;
+      plaintext = await kms.decrypt({ algorithm, keyRef: key.id, data: dataArrayBuffer });
+      expect(plaintext).to.be.instanceOf(ArrayBuffer);
+
+      // DataView
+      const dataView = new DataView(dataArrayBuffer);
+      plaintext = await kms.decrypt({ algorithm, keyRef: key.id, data: dataView });
+      expect(plaintext).to.be.instanceOf(ArrayBuffer);
+
+      // TypedArray - Uint8Array
+      plaintext = await kms.decrypt({ algorithm, keyRef: key.id, data: dataU8A });
+      expect(plaintext).to.be.instanceOf(ArrayBuffer);
+
+      // TypedArray - Int32Array
+      const dataI32A = new Int32Array([10, 20, 30, 40]);
+      plaintext = await kms.decrypt({ algorithm, keyRef: key.id, data: dataI32A });
+      expect(plaintext).to.be.instanceOf(ArrayBuffer);
+
+      // TypedArray - Uint32Array
+      const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
+      plaintext = await kms.decrypt({ algorithm, keyRef: key.id, data: dataU32A });
+      expect(plaintext).to.be.instanceOf(ArrayBuffer);
+    });
+
+    it('decrypts data with AES-CTR', async () => {
+      const plaintext = await kms.decrypt({
+        algorithm: {
+          name    : 'AES-CTR',
+          counter : new ArrayBuffer(16),
+          length  : 128
+        },
+        keyRef : key.id,
+        data   : new Uint8Array([1, 2, 3, 4])
+      });
+
+      expect(plaintext).to.be.instanceOf(ArrayBuffer);
+      expect(plaintext.byteLength).to.equal(4);
+    });
+
+    it('throws an error when key reference is not found', async () => {
+      await expect(kms.decrypt({
+        algorithm: {
+          name    : 'AES-CTR',
+          counter : new ArrayBuffer(16),
+          length  : 128
+        },
+        keyRef : 'non-existent-key',
+        data   : new Uint8Array([1, 2, 3, 4])
+      })).to.eventually.be.rejectedWith(Error, 'Key not found');
+    });
+  });
+
   describe('deriveBites()', () => {
     let otherPartyPublicKey: ManagedKey;
     let otherPartyPublicCryptoKey: Web5Crypto.CryptoKey;
@@ -142,31 +226,31 @@ describe('LocalKms', () => {
     it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
       const algorithm = { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 128 };
       const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-      let signature: ArrayBuffer;
+      let ciphertext: ArrayBuffer;
 
       // ArrayBuffer
       const dataArrayBuffer = dataU8A.buffer;
-      signature = await kms.encrypt({ algorithm, keyRef: key.id, data: dataArrayBuffer });
-      expect(signature).to.be.instanceOf(ArrayBuffer);
+      ciphertext = await kms.encrypt({ algorithm, keyRef: key.id, data: dataArrayBuffer });
+      expect(ciphertext).to.be.instanceOf(ArrayBuffer);
 
       // DataView
       const dataView = new DataView(dataArrayBuffer);
-      signature = await kms.encrypt({ algorithm, keyRef: key.id, data: dataView });
-      expect(signature).to.be.instanceOf(ArrayBuffer);
+      ciphertext = await kms.encrypt({ algorithm, keyRef: key.id, data: dataView });
+      expect(ciphertext).to.be.instanceOf(ArrayBuffer);
 
       // TypedArray - Uint8Array
-      signature = await kms.encrypt({ algorithm, keyRef: key.id, data: dataU8A });
-      expect(signature).to.be.instanceOf(ArrayBuffer);
+      ciphertext = await kms.encrypt({ algorithm, keyRef: key.id, data: dataU8A });
+      expect(ciphertext).to.be.instanceOf(ArrayBuffer);
 
       // TypedArray - Int32Array
       const dataI32A = new Int32Array([10, 20, 30, 40]);
-      signature = await kms.encrypt({ algorithm, keyRef: key.id, data: dataI32A });
-      expect(signature).to.be.instanceOf(ArrayBuffer);
+      ciphertext = await kms.encrypt({ algorithm, keyRef: key.id, data: dataI32A });
+      expect(ciphertext).to.be.instanceOf(ArrayBuffer);
 
       // TypedArray - Uint32Array
       const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
-      signature = await kms.encrypt({ algorithm, keyRef: key.id, data: dataU32A });
-      expect(signature).to.be.instanceOf(ArrayBuffer);
+      ciphertext = await kms.encrypt({ algorithm, keyRef: key.id, data: dataU32A });
+      expect(ciphertext).to.be.instanceOf(ArrayBuffer);
     });
 
     it('encrypts data with AES-CTR', async () => {

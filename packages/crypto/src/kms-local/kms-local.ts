@@ -5,6 +5,7 @@ import type {
   SignOptions,
   VerifyOptions,
   ImportableKey,
+  DecryptOptions,
   EncryptOptions,
   ManagedKeyPair,
   GenerateKeyType,
@@ -42,6 +43,30 @@ export class LocalKms implements KeyManagementSystem {
     // Merge the default and custom algorithms and register with the KMS.
     const cryptoAlgorithms = {...defaultAlgorithms, ...options.cryptoAlgorithms};
     this.#registerSupportedAlgorithms(cryptoAlgorithms);
+  }
+
+  async decrypt(options: DecryptOptions): Promise<ArrayBuffer> {
+    const { algorithm, data, keyRef } = options;
+
+    // Retrieve the ManagedKey from the KMS key metadata store.
+    const key = await this.getKey({ keyRef });
+
+    if (isManagedKey(key)) {
+      const privateManagedKey = await this.#privateKeyStore.getKey({ id: key.id });
+
+      if (privateManagedKey !== undefined) {
+        // Construct a CryptoKey object from the key metadata and private key material.
+        const privateCryptoKey = this.#toCryptoKey({ ...key, material: privateManagedKey.material });
+
+        // Decrypt the data.
+        const cryptoAlgorithm = this.#getAlgorithm(algorithm);
+        const plaintext = cryptoAlgorithm.decrypt({ algorithm, key: privateCryptoKey, data });
+
+        return plaintext;
+      }
+    }
+
+    throw new Error(`Operation failed: 'decrypt'. Key not found: ${keyRef}`);
   }
 
   async deriveBits(options: DeriveBitsOptions): Promise<ArrayBuffer> {

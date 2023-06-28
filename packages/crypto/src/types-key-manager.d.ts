@@ -573,7 +573,7 @@ export type DeriveBitsOptions = {
  */
 export type EncryptOptions = {
   /**
-   * An object defining the encryption algorithm to use and its parameters.
+   * An object defining the cipher algorithm to use and its parameters.
    */
   algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions;
 
@@ -598,18 +598,18 @@ export type EncryptOptions = {
  */
 export type DecryptOptions = {
   /**
-   * An object defining the encryption algorithm to use and its parameters.
+   * An object defining the cipher algorithm to use and its parameters.
    */
   algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions;
 
   /**
    * An ArrayBuffer, a TypedArray, or a DataView object containing the data
-   * to be encrypted (also known as the plaintext).
+   * to be decrypted (also known as the ciphertext).
    */
   data: BufferSource;
 
   /**
-   * An identifier of the ManagedKey to be used for encryption.
+   * An identifier of the ManagedKey to be used for decryption.
    * You can use the id or alias property of the key.
    */
   keyRef: string;
