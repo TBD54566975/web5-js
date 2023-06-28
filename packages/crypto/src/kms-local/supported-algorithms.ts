@@ -1,6 +1,6 @@
 import type { CryptoAlgorithm } from '../algorithms-api/index.js';
 
-import { DefaultEcdhAlgorithm, DefaultEcdsaAlgorithm, DefaultEdDsaAlgorithm } from '../crypto-algorithms/index.js';
+import { DefaultAesCtrAlgorithm, DefaultEcdhAlgorithm, DefaultEcdsaAlgorithm, DefaultEdDsaAlgorithm } from '../crypto-algorithms/index.js';
 
 export type AlgorithmImplementation = typeof CryptoAlgorithm & { new(): CryptoAlgorithm; };
 
@@ -10,7 +10,8 @@ export type AlgorithmImplementations = {
 
 // Map key operations to algorithm specs to implementations.
 export const defaultAlgorithms: AlgorithmImplementations = {
-  ECDH  : DefaultEcdhAlgorithm,
-  ECDSA : DefaultEcdsaAlgorithm,
-  EdDSA : DefaultEdDsaAlgorithm,
+  'AES-CTR' : DefaultAesCtrAlgorithm,
+  ECDH      : DefaultEcdhAlgorithm,
+  ECDSA     : DefaultEcdsaAlgorithm,
+  EdDSA     : DefaultEdDsaAlgorithm,
 };

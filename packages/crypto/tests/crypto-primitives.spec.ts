@@ -21,6 +21,36 @@ describe('Cryptographic Primitive Implementations', () => {
           expect(Convert.arrayBuffer(plaintext).toHex()).to.deep.equal(vector.data);
         });
       }
+
+      it('accepts ciphertext input as ArrayBuffer, DataView, and TypedArray', async () => {
+        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        const secretKey = await AesCtr.generateKey(32);
+        let ciphertext: ArrayBuffer;
+
+        // ArrayBuffer
+        const dataArrayBuffer = dataU8A.buffer;
+        ciphertext = await AesCtr.decrypt({ counter: new ArrayBuffer(16), data: dataArrayBuffer, key: secretKey, length: 128 });
+        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+        // DataView
+        const dataView = new DataView(dataArrayBuffer);
+        ciphertext = await AesCtr.decrypt({ counter: new ArrayBuffer(16), data: dataView, key: secretKey, length: 128 });
+        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+        // TypedArray - Uint8Array
+        ciphertext = await AesCtr.decrypt({ counter: new ArrayBuffer(16), data: dataU8A, key: secretKey, length: 128 });
+        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+        // TypedArray - Int32Array
+        const dataI32A = new Int32Array([10, 20, 30, 40]);
+        ciphertext = await AesCtr.decrypt({ counter: new ArrayBuffer(16), data: dataI32A, key: secretKey, length: 128 });
+        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+        // TypedArray - Uint32Array
+        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
+        ciphertext = await AesCtr.decrypt({ counter: new ArrayBuffer(16), data: dataU32A, key: secretKey, length: 128 });
+        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+      });
     });
 
     describe('encrypt', () => {
@@ -35,6 +65,36 @@ describe('Cryptographic Primitive Implementations', () => {
           expect(Convert.arrayBuffer(ciphertext).toHex()).to.deep.equal(vector.ciphertext);
         });
       }
+
+      it('accepts plaintext input as ArrayBuffer, DataView, and TypedArray', async () => {
+        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        const secretKey = await AesCtr.generateKey(32);
+        let ciphertext: ArrayBuffer;
+
+        // ArrayBuffer
+        const dataArrayBuffer = dataU8A.buffer;
+        ciphertext = await AesCtr.encrypt({ counter: new ArrayBuffer(16), data: dataArrayBuffer, key: secretKey, length: 128 });
+        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+        // DataView
+        const dataView = new DataView(dataArrayBuffer);
+        ciphertext = await AesCtr.encrypt({ counter: new ArrayBuffer(16), data: dataView, key: secretKey, length: 128 });
+        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+        // TypedArray - Uint8Array
+        ciphertext = await AesCtr.encrypt({ counter: new ArrayBuffer(16), data: dataU8A, key: secretKey, length: 128 });
+        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+        // TypedArray - Int32Array
+        const dataI32A = new Int32Array([10, 20, 30, 40]);
+        ciphertext = await AesCtr.encrypt({ counter: new ArrayBuffer(16), data: dataI32A, key: secretKey, length: 128 });
+        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+        // TypedArray - Uint32Array
+        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
+        ciphertext = await AesCtr.encrypt({ counter: new ArrayBuffer(16), data: dataU32A, key: secretKey, length: 128 });
+        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+      });
     });
 
     describe('generateKey()', () => {
