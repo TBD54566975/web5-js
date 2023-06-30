@@ -15,7 +15,8 @@ if (!globalThis.crypto) { globalThis.crypto = webcrypto; }
 
 /**
  * The `Secp256k1` class provides an interface for generating secp256k1 key pairs,
- * computing public keys from private keys, and signing and verifying messages.
+ * computing public keys from private keys, generating shaerd secrets, and
+ * signing and verifying messages.
  *
  * The class uses the '@noble/secp256k1' package for the cryptographic operations,
  * and the '@noble/hashes/sha256' package for generating the hash digests needed
