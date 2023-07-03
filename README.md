@@ -16,8 +16,8 @@ The SDK is currently still under active development, but having entered the Tech
 
 - [Introduction](#introduction)
 - [Installation](#installation)
-- [Importing the SDK](#importing-the-sdk)
-- [APIs](#api-documentation)
+- [Usage](#usage)
+- [API Documentation](#api-documentation)
   - [Web5.connect](#web5connectoptions)
   - [web5.dwn.records.query](#web5dwnrecordsqueryrequest)
   - [web5.dwn.records.create](#web5dwnrecordscreaterequest)
@@ -41,9 +41,7 @@ The SDK sets out to gather the most oft used functionality from all three of the
 pillar technologies to provide a simple library that is as close to effortless as
 possible.
 
-## Docs
-
-### Installation
+## Installation
 
 _NPM_
 
@@ -61,6 +59,8 @@ https://unpkg.com/@tbd54566975/web5@0.7.10/dist/browser.js
 https://cdn.jsdelivr.net/npm/@tbd54566975/web5@0.7.10/dist/browser.mjs
 ```
 
+## Usage
+
 ### Importing the SDK
 
 ```javascript
@@ -75,13 +75,15 @@ import { Web5 } from CDN_LINK_HERE;
 
 ### Additional Steps
 
-This package has transitive dependency on the [`@noble/ed25519`](https://github.com/paulmillr/noble-ed25519#usage) and [`@noble/secp256k1`](https://github.com/paulmillr/noble-secp256k1#usage) v2, additional steps are needed for some environments:
+This SDK relies indirectly on the [`@noble/ed25519`](https://github.com/paulmillr/noble-ed25519#usage)
+and [`@noble/secp256k1`](https://github.com/paulmillr/noble-secp256k1#usage) packages. Therefore,
+in certain environments, you'll need to perform additional steps to make it work.
 
 - Node.js <= 18
 
 ```js
 // node.js 18 and earlier,  needs globalThis.crypto polyfill
-import { webcrypto } from 'node:crypto';
+import { webcrypto } from "node:crypto";
 // @ts-ignore
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 ```
@@ -103,6 +105,7 @@ secp.etc.hmacSha256Async = (k, ...m) =>
   Promise.resolve(secp.etc.hmacSha256Sync(k, ...m));
 ```
 
+## API Documentation
 
 ### **`Web5.connect(options)`**
 
