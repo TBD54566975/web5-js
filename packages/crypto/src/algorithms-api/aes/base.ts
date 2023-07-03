@@ -1,8 +1,9 @@
 import type { Web5Crypto } from '../../types-key-manager.js';
 
-import { InvalidAccessError, OperationError } from '../errors.js';
+import { universalTypeOf } from '@tbd54566975/common';
+
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
-import { universalTypeOf } from '../../common/type-utils.js';
+import { InvalidAccessError, OperationError } from '../errors.js';
 import { checkRequiredProperty } from '../../utils-key-manager.js';
 
 export abstract class AesAlgorithm extends CryptoAlgorithm {

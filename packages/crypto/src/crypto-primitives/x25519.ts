@@ -1,8 +1,7 @@
 import type { BufferKeyPair } from '../types-key-manager.js';
 
+import { Convert } from '@tbd54566975/common';
 import { x25519 } from '@noble/curves/ed25519';
-
-import { Convert } from '../common/convert.js';
 
 /**
  * The `X25519` class provides an interface for X25519 (Curve25519) key pair

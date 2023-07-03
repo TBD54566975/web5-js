@@ -1,8 +1,8 @@
 import type { BufferKeyPair } from '../src/types-key-manager.js';
 
 import { expect } from 'chai';
+import { Convert } from '@tbd54566975/common';
 
-import { Convert } from '../src/common/convert.js';
 import { aesCtrTestVectors } from './fixtures/test-vectors/aes.js';
 import { NotSupportedError } from '../src/algorithms-api/errors.js';
 import { AesCtr, ConcatKdf, Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
@@ -402,26 +402,19 @@ describe('Cryptographic Primitive Implementations', () => {
         const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         let isValid: boolean;
 
-        // If the signature is mutated (e.g., bit flip) verifyAsync() will
-        // occassionally throw an error "Error: bad y coordinate". This
-        // happens at least 10% of the time, so by running 20 times, we
-        // ensure that the try/catch implemented in Ed25519.verify() has
-        // made this inconsistent outcome deterministically return false.
-        for(let i = 0; i < 20; i++) {
         // Generate a new key pair.
-          keyPair = await Ed25519.generateKeyPair();
+        keyPair = await Ed25519.generateKeyPair();
 
-          // Generate signature using the private key.
-          const signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
+        // Generate signature using the private key.
+        const signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
 
-          // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
-          const mutatedSignature = new Uint8Array(signature);
-          mutatedSignature[0] ^= 1 << 0;
+        // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
+        const mutatedSignature = new Uint8Array(signature);
+        mutatedSignature[0] ^= 1 << 0;
 
-          // Verification should return false if the signature was modified.
-          isValid = await Ed25519.verify({ key: keyPair.publicKey, signature: signature, data: mutatedSignature.buffer });
-          expect(isValid).to.be.false;
-        }
+        // Verification should return false if the signature was modified.
+        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature: signature, data: mutatedSignature.buffer });
+        expect(isValid).to.be.false;
       });
 
       it('returns false with a signature generated using a different private key', async () => {

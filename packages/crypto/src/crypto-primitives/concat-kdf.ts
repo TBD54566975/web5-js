@@ -1,9 +1,8 @@
 import { sha256 } from '@noble/hashes/sha256';
 import { TypedArray, concatBytes } from '@noble/hashes/utils';
+import { Convert, universalTypeOf } from '@tbd54566975/common';
 
 import { NotSupportedError } from '../algorithms-api/errors.js';
-import { universalTypeOf } from '../common/type-utils.js';
-import { Convert } from '../common/convert.js';
 
 export type ConcatKdfOtherInfo = {
   /**

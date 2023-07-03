@@ -1,3 +1,4 @@
+import type { RequireOnly } from '@tbd54566975/common';
 import type { AlgorithmImplementation, AlgorithmImplementations } from './supported-algorithms.js';
 import type {
   ManagedKey,
@@ -17,8 +18,8 @@ import type {
   GenerateKeyOptionTypes,
 } from '../types-key-manager.js';
 
-import { Convert } from '../common/convert.js';
-import { RequireOnly } from '../common/types.js';
+import { Convert } from '@tbd54566975/common';
+
 import { CryptoAlgorithm } from '../algorithms-api/index.js';
 import { defaultAlgorithms } from './supported-algorithms.js';
 import { KmsKeyStore, KmsPrivateKeyStore } from './key-stores.js';
