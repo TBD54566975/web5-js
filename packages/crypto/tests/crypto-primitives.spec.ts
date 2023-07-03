@@ -2,9 +2,10 @@ import type { BufferKeyPair } from '../src/types-key-manager.js';
 
 import { expect } from 'chai';
 
-import { aesCtrTestVectors } from './fixtures/test-vectors/aes.js';
-import { AesCtr, Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
 import { Convert } from '../src/common/convert.js';
+import { aesCtrTestVectors } from './fixtures/test-vectors/aes.js';
+import { NotSupportedError } from '../src/algorithms-api/errors.js';
+import { AesCtr, ConcatKdf, Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
 
 describe('Cryptographic Primitive Implementations', () => {
 
@@ -117,6 +118,324 @@ describe('Cryptographic Primitive Implementations', () => {
         // 256 bits
         secretKey= await AesCtr.generateKey(32);
         expect(secretKey.byteLength).to.equal(32);
+      });
+    });
+  });
+
+  describe('ConcatKdf', () => {
+    describe('deriveKey()', () => {
+      it('matches RFC 7518 ECDH-ES key agreement computation example', async () => {
+        // Test vector 1
+        const inputSharedSecret = 'nlbZHYFxNdNyg0KDv4QmnPsxbqPagGpI9tqneYz-kMQ';
+        const input = {
+          sharedSecret : Convert.base64Url(inputSharedSecret).toUint8Array(),
+          keyDataLen   : 128,
+          otherInfo    : {
+            algorithmId : 'A128GCM',
+            partyUInfo  : 'Alice',
+            partyVInfo  : 'Bob',
+            suppPubInfo : 128
+          }
+        };
+        const output = 'VqqN6vgjbSBcIijNcacQGg';
+
+        const derivedKeyingMaterial = await ConcatKdf.deriveKey(input);
+
+        const expectedResult = Convert.base64Url(output).toArrayBuffer();
+        expect(derivedKeyingMaterial).to.deep.equal(expectedResult);
+        expect(derivedKeyingMaterial.byteLength).to.equal(16);
+      });
+
+      it('accepts other info as ArrayBuffer, String, and TypedArray', async () => {
+        const inputBase = {
+          sharedSecret : new Uint8Array([1, 2, 3]),
+          keyDataLen   : 256,
+          otherInfo    : {}
+        };
+
+        // ArrayBuffer input.
+        const inputArrayBuffer = { ...inputBase, otherInfo: {
+          algorithmId : 'A128GCM',
+          partyUInfo  : Convert.string('Alice').toArrayBuffer(),
+          partyVInfo  : Convert.string('Bob').toArrayBuffer(),
+          suppPubInfo : 128
+        }};
+        let derivedKeyingMaterial = await ConcatKdf.deriveKey(inputArrayBuffer);
+        expect(derivedKeyingMaterial).to.be.an('ArrayBuffer');
+        expect(derivedKeyingMaterial.byteLength).to.equal(32);
+
+        // String input.
+        const inputString = { ...inputBase, otherInfo: {
+          algorithmId : 'A128GCM',
+          partyUInfo  : 'Alice',
+          partyVInfo  : 'Bob',
+          suppPubInfo : 128
+        }};
+        derivedKeyingMaterial = await ConcatKdf.deriveKey(inputString);
+        expect(derivedKeyingMaterial).to.be.an('ArrayBuffer');
+        expect(derivedKeyingMaterial.byteLength).to.equal(32);
+
+        // TypedArray input.
+        const inputTypedArray = { ...inputBase, otherInfo: {
+          algorithmId : 'A128GCM',
+          partyUInfo  : Convert.string('Alice').toUint8Array(),
+          partyVInfo  : Convert.string('Bob').toUint8Array(),
+          suppPubInfo : 128
+        }};
+        derivedKeyingMaterial = await ConcatKdf.deriveKey(inputTypedArray);
+        expect(derivedKeyingMaterial).to.be.an('ArrayBuffer');
+        expect(derivedKeyingMaterial.byteLength).to.equal(32);
+      });
+
+      it('throws error if multi-round Concat KDF attempted', async () => {
+        await expect(
+          // @ts-expect-error because only parameters needed to trigger the error are specified.
+          ConcatKdf.deriveKey({ keyDataLen: 512 })
+        ).to.eventually.be.rejectedWith(NotSupportedError, 'rounds not supported');
+      });
+
+      it('throws an error if suppPubInfo is not a Number', async () => {
+        await expect(
+          ConcatKdf.deriveKey({
+            sharedSecret : new Uint8Array([1, 2, 3]),
+            keyDataLen   : 128,
+            otherInfo    : {
+              algorithmId : 'A128GCM',
+              partyUInfo  : 'Alice',
+              partyVInfo  : 'Bob',
+              // @ts-expect-error because a string is specified to trigger an error.
+              suppPubInfo : '128',
+            }
+          })
+        ).to.eventually.be.rejectedWith(TypeError, 'Fixed length input must be a number');
+      });
+    });
+
+    describe('#computeOtherInfo()', () => {
+      it('returns concatenated and formatted Uint8Array', () => {
+        const input = {
+          algorithmId  : 'A128GCM',
+          partyUInfo   : 'Alice',
+          partyVInfo   : 'Bob',
+          suppPubInfo  : 128,
+          suppPrivInfo : 'gI0GAILBdu7T53akrFmMyGcsF3n5dO7MmwNBHKW5SV0'
+        };
+        const output = 'AAAAB0ExMjhHQ00AAAAFQWxpY2UAAAADQm9iAAAAgAAAACtnSTBHQUlMQmR1N1Q1M2FrckZtTXlHY3NGM241ZE83TW13TkJIS1c1U1Yw';
+
+        // @ts-expect-error because computeOtherInfo() is a private method.
+        const otherInfo = ConcatKdf.computeOtherInfo(input);
+
+        const expectedResult = Convert.base64Url(output).toUint8Array();
+        expect(otherInfo).to.deep.equal(expectedResult);
+      });
+
+      it('matches RFC 7518 ECDH-ES key agreement computation example', async () => {
+        // Test vector 1.
+        const input = {
+          algorithmId : 'A128GCM',
+          partyUInfo  : 'Alice',
+          partyVInfo  : 'Bob',
+          suppPubInfo : 128
+        };
+        const output = 'AAAAB0ExMjhHQ00AAAAFQWxpY2UAAAADQm9iAAAAgA';
+
+        // @ts-expect-error because computeOtherInfo() is a private method.
+        const otherInfo = ConcatKdf.computeOtherInfo(input);
+
+        const expectedResult = Convert.base64Url(output).toUint8Array();
+        expect(otherInfo).to.deep.equal(expectedResult);
+      });
+    });
+  });
+
+  describe('Ed25519', () => {
+    describe('generateKeyPair()', () => {
+      it('returns a pair of keys of type ArrayBuffer', async () => {
+        const keyPair = await Ed25519.generateKeyPair();
+        expect(keyPair).to.have.property('privateKey');
+        expect(keyPair).to.have.property('publicKey');
+        expect(keyPair.privateKey).to.be.instanceOf(ArrayBuffer);
+        expect(keyPair.publicKey).to.be.instanceOf(ArrayBuffer);
+      });
+
+      it('returns a 32-byte private key', async () => {
+        const keyPair = await Ed25519.generateKeyPair();
+        expect(keyPair.privateKey.byteLength).to.equal(32);
+      });
+
+      it('returns a 32-byte compressed public key', async () => {
+        const keyPair = await Ed25519.generateKeyPair();
+        expect(keyPair.publicKey.byteLength).to.equal(32);
+      });
+    });
+
+    describe('getPublicKey()', () => {
+      let keyPair: BufferKeyPair;
+
+      before(async () => {
+        keyPair = await Ed25519.generateKeyPair();
+      });
+
+      it('returns a 32-byte compressed public key', async () => {
+        const publicKey = await Ed25519.getPublicKey({ privateKey: keyPair.privateKey });
+        expect(publicKey.byteLength).to.equal(32);
+      });
+    });
+
+    describe('sign()', () => {
+      let keyPair: BufferKeyPair;
+
+      before(async () => {
+        keyPair = await Ed25519.generateKeyPair();
+      });
+
+      it('returns a 64-byte signature of type ArrayBuffer', async () => {
+        const dataU8A = new Uint8Array([51, 52, 53]);
+        const signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+        expect(signature.byteLength).to.equal(64);
+      });
+
+      it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
+        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        const key = keyPair.privateKey;
+        let signature: ArrayBuffer;
+
+        // ArrayBuffer
+        const dataArrayBuffer = dataU8A.buffer;
+        signature = await Ed25519.sign({ key, data: dataArrayBuffer });
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+
+        // DataView
+        const dataView = new DataView(dataArrayBuffer);
+        signature = await Ed25519.sign({ key, data: dataView });
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+
+        // TypedArray - Uint8Array
+        signature = await Ed25519.sign({ key, data: dataU8A });
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+
+        // TypedArray - Int32Array
+        const dataI32A = new Int32Array([10, 20, 30, 40]);
+        signature = await Ed25519.sign({ key, data: dataI32A });
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+
+        // TypedArray - Uint32Array
+        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
+        signature = await Ed25519.sign({ key, data: dataU32A });
+        expect(signature).to.be.instanceOf(ArrayBuffer);
+      });
+    });
+
+    describe('verify()', () => {
+      let keyPair: BufferKeyPair;
+
+      before(async () => {
+        keyPair = await Ed25519.generateKeyPair();
+      });
+
+      it('returns a boolean result', async () => {
+        const dataU8A = new Uint8Array([51, 52, 53]);
+        const signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
+
+        const isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataU8A });
+        expect(isValid).to.exist;
+        expect(isValid).to.be.true;
+      });
+
+      it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
+        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        let isValid: boolean;
+        let signature: ArrayBuffer;
+
+        // ArrayBuffer
+        const dataArrayBuffer = dataU8A.buffer;
+        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataArrayBuffer });
+        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataArrayBuffer });
+        expect(isValid).to.be.true;
+
+        // DataView
+        const dataView = new DataView(dataArrayBuffer);
+        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataView });
+        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataView });
+        expect(isValid).to.be.true;
+
+        // TypedArray - Uint8Array
+        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
+        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataU8A });
+        expect(isValid).to.be.true;
+
+        // TypedArray - Int32Array
+        const dataI32A = new Int32Array([10, 20, 30, 40]);
+        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataI32A });
+        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataI32A });
+        expect(isValid).to.be.true;
+
+        // TypedArray - Uint32Array
+        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
+        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU32A });
+        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataU32A });
+        expect(isValid).to.be.true;
+      });
+
+      it('returns false if the signed data was mutated', async () => {
+        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        let isValid: boolean;
+
+        // Generate signature using the private key.
+        const signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
+
+        // Verification should return true with the data used to generate the signature.
+        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataU8A });
+        expect(isValid).to.be.true;
+
+        // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
+        const mutatedDataU8A = new Uint8Array(dataU8A);
+        mutatedDataU8A[0] ^= 1 << 0;
+
+        // Verification should return false if the given data does not match the data used to generate the signature.
+        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: mutatedDataU8A });
+        expect(isValid).to.be.false;
+      });
+
+      it('returns false if the signature was mutated', async () => {
+        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        let isValid: boolean;
+
+        // If the signature is mutated (e.g., bit flip) verifyAsync() will
+        // occassionally throw an error "Error: bad y coordinate". This
+        // happens at least 10% of the time, so by running 20 times, we
+        // ensure that the try/catch implemented in Ed25519.verify() has
+        // made this inconsistent outcome deterministically return false.
+        for(let i = 0; i < 20; i++) {
+        // Generate a new key pair.
+          keyPair = await Ed25519.generateKeyPair();
+
+          // Generate signature using the private key.
+          const signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
+
+          // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
+          const mutatedSignature = new Uint8Array(signature);
+          mutatedSignature[0] ^= 1 << 0;
+
+          // Verification should return false if the signature was modified.
+          isValid = await Ed25519.verify({ key: keyPair.publicKey, signature: signature, data: mutatedSignature.buffer });
+          expect(isValid).to.be.false;
+        }
+      });
+
+      it('returns false with a signature generated using a different private key', async () => {
+        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        const keyPairA = await Ed25519.generateKeyPair();
+        const keyPairB = await Ed25519.generateKeyPair();
+        let isValid: boolean;
+
+        // Generate a signature using the private key from key pair B.
+        const signatureB = await Ed25519.sign({ key: keyPairB.privateKey, data: dataU8A });
+
+        // Verification should return false with the public key from key pair A.
+        isValid = await Ed25519.verify({ key: keyPairA.publicKey, signature: signatureB, data: dataU8A.buffer });
+        expect(isValid).to.be.false;
       });
     });
   });
@@ -371,198 +690,6 @@ describe('Cryptographic Primitive Implementations', () => {
 
         // Verification should return false with the public key from key pair A.
         isValid = await Secp256k1.verify({ hash, key: keyPairA.publicKey, signature: signatureB, data: dataU8A.buffer });
-        expect(isValid).to.be.false;
-      });
-    });
-  });
-
-  describe('Ed25519', () => {
-    describe('generateKeyPair()', () => {
-      it('returns a pair of keys of type ArrayBuffer', async () => {
-        const keyPair = await Ed25519.generateKeyPair();
-        expect(keyPair).to.have.property('privateKey');
-        expect(keyPair).to.have.property('publicKey');
-        expect(keyPair.privateKey).to.be.instanceOf(ArrayBuffer);
-        expect(keyPair.publicKey).to.be.instanceOf(ArrayBuffer);
-      });
-
-      it('returns a 32-byte private key', async () => {
-        const keyPair = await Ed25519.generateKeyPair();
-        expect(keyPair.privateKey.byteLength).to.equal(32);
-      });
-
-      it('returns a 32-byte compressed public key', async () => {
-        const keyPair = await Ed25519.generateKeyPair();
-        expect(keyPair.publicKey.byteLength).to.equal(32);
-      });
-    });
-
-    describe('getPublicKey()', () => {
-      let keyPair: BufferKeyPair;
-
-      before(async () => {
-        keyPair = await Ed25519.generateKeyPair();
-      });
-
-      it('returns a 32-byte compressed public key', async () => {
-        const publicKey = await Ed25519.getPublicKey({ privateKey: keyPair.privateKey });
-        expect(publicKey.byteLength).to.equal(32);
-      });
-    });
-
-    describe('sign()', () => {
-      let keyPair: BufferKeyPair;
-
-      before(async () => {
-        keyPair = await Ed25519.generateKeyPair();
-      });
-
-      it('returns a 64-byte signature of type ArrayBuffer', async () => {
-        const dataU8A = new Uint8Array([51, 52, 53]);
-        const signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
-        expect(signature.byteLength).to.equal(64);
-      });
-
-      it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        const key = keyPair.privateKey;
-        let signature: ArrayBuffer;
-
-        // ArrayBuffer
-        const dataArrayBuffer = dataU8A.buffer;
-        signature = await Ed25519.sign({ key, data: dataArrayBuffer });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
-
-        // DataView
-        const dataView = new DataView(dataArrayBuffer);
-        signature = await Ed25519.sign({ key, data: dataView });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
-
-        // TypedArray - Uint8Array
-        signature = await Ed25519.sign({ key, data: dataU8A });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
-
-        // TypedArray - Int32Array
-        const dataI32A = new Int32Array([10, 20, 30, 40]);
-        signature = await Ed25519.sign({ key, data: dataI32A });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
-
-        // TypedArray - Uint32Array
-        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
-        signature = await Ed25519.sign({ key, data: dataU32A });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
-      });
-    });
-
-    describe('verify()', () => {
-      let keyPair: BufferKeyPair;
-
-      before(async () => {
-        keyPair = await Ed25519.generateKeyPair();
-      });
-
-      it('returns a boolean result', async () => {
-        const dataU8A = new Uint8Array([51, 52, 53]);
-        const signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
-
-        const isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataU8A });
-        expect(isValid).to.exist;
-        expect(isValid).to.be.true;
-      });
-
-      it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        let isValid: boolean;
-        let signature: ArrayBuffer;
-
-        // ArrayBuffer
-        const dataArrayBuffer = dataU8A.buffer;
-        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataArrayBuffer });
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataArrayBuffer });
-        expect(isValid).to.be.true;
-
-        // DataView
-        const dataView = new DataView(dataArrayBuffer);
-        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataView });
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataView });
-        expect(isValid).to.be.true;
-
-        // TypedArray - Uint8Array
-        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataU8A });
-        expect(isValid).to.be.true;
-
-        // TypedArray - Int32Array
-        const dataI32A = new Int32Array([10, 20, 30, 40]);
-        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataI32A });
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataI32A });
-        expect(isValid).to.be.true;
-
-        // TypedArray - Uint32Array
-        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
-        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU32A });
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataU32A });
-        expect(isValid).to.be.true;
-      });
-
-      it('returns false if the signed data was mutated', async () => {
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        let isValid: boolean;
-
-        // Generate signature using the private key.
-        const signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
-
-        // Verification should return true with the data used to generate the signature.
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataU8A });
-        expect(isValid).to.be.true;
-
-        // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
-        const mutatedDataU8A = new Uint8Array(dataU8A);
-        mutatedDataU8A[0] ^= 1 << 0;
-
-        // Verification should return false if the given data does not match the data used to generate the signature.
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: mutatedDataU8A });
-        expect(isValid).to.be.false;
-      });
-
-      it('returns false if the signature was mutated', async () => {
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        let isValid: boolean;
-
-        // If the signature is mutated (e.g., bit flip) verifyAsync() will
-        // occassionally throw an error "Error: bad y coordinate". This
-        // happens at least 10% of the time, so by running 20 times, we
-        // ensure that the try/catch implemented in Ed25519.verify() has
-        // made this inconsistent outcome deterministically return false.
-        for(let i = 0; i < 20; i++) {
-        // Generate a new key pair.
-          keyPair = await Ed25519.generateKeyPair();
-
-          // Generate signature using the private key.
-          const signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
-
-          // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
-          const mutatedSignature = new Uint8Array(signature);
-          mutatedSignature[0] ^= 1 << 0;
-
-          // Verification should return false if the signature was modified.
-          isValid = await Ed25519.verify({ key: keyPair.publicKey, signature: signature, data: mutatedSignature.buffer });
-          expect(isValid).to.be.false;
-        }
-      });
-
-      it('returns false with a signature generated using a different private key', async () => {
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        const keyPairA = await Ed25519.generateKeyPair();
-        const keyPairB = await Ed25519.generateKeyPair();
-        let isValid: boolean;
-
-        // Generate a signature using the private key from key pair B.
-        const signatureB = await Ed25519.sign({ key: keyPairB.privateKey, data: dataU8A });
-
-        // Verification should return false with the public key from key pair A.
-        isValid = await Ed25519.verify({ key: keyPairA.publicKey, signature: signatureB, data: dataU8A.buffer });
         expect(isValid).to.be.false;
       });
     });
