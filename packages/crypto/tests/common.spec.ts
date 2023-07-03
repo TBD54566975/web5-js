@@ -5,11 +5,31 @@ import { isDefined, universalTypeOf } from '../src/common/type-utils.js';
 
 describe('Convert', () =>{
   describe('from: ArrayBuffer', () => {
+    it('to: Base64url', () => {
+      // Test Vector 1.
+      let input = (new Uint8Array([51, 52, 53])).buffer;
+      let output = 'MzQ1';
+
+      let result = Convert.arrayBuffer(input).toBase64Url();
+
+      expect(result).to.deep.equal(output);
+    });
+
     it('to: Hex', () => {
       // Test Vector 1.
       let input = (new Uint8Array([0xab, 0xba, 0xfa, 0xab])).buffer;
       let output = 'abbafaab';
       const result = Convert.arrayBuffer(input).toHex();
+      expect(result).to.deep.equal(output);
+    });
+
+    it('to: String', () => {
+      // Test Vector 1.
+      let input = (new Uint8Array([102, 111, 111])).buffer;
+      let output = 'foo';
+
+      const result = Convert.arrayBuffer(input).toString();
+
       expect(result).to.deep.equal(output);
     });
 
@@ -25,6 +45,16 @@ describe('Convert', () =>{
   });
 
   describe('from: Base64url', () => {
+    it('to: ArrayBuffer', () => {
+      // Test Vector 1.
+      let input = 'MzQ1';
+      let output = (new Uint8Array([51, 52, 53])).buffer;
+
+      let result = Convert.base64Url(input).toArrayBuffer();
+
+      expect(result).to.deep.equal(output);
+    });
+
     it('to: Object', () => {
       // Test Vector 1.
       let input = 'eyJmb28iOiJiYXIifQ';
@@ -35,22 +65,22 @@ describe('Convert', () =>{
       expect(result).to.deep.equal(output);
     });
 
-    it('to: Uint8Array', () => {
-      // Test Vector 1.
-      let input = 'MzQ1';
-      let output = new Uint8Array([51, 52, 53]);
-
-      let result = Convert.base64Url(input).toUint8Array();
-
-      expect(result).to.deep.equal(output);
-    });
-
     it('to: String', () => {
       // Test Vector 1.
       let input = 'Zm9v';
       let output = 'foo';
 
       const result = Convert.base64Url(input).toString();
+
+      expect(result).to.deep.equal(output);
+    });
+
+    it('to: Uint8Array', () => {
+      // Test Vector 1.
+      let input = 'MzQ1';
+      let output = new Uint8Array([51, 52, 53]);
+
+      let result = Convert.base64Url(input).toUint8Array();
 
       expect(result).to.deep.equal(output);
     });
@@ -219,6 +249,16 @@ describe('Convert', () =>{
   });
 
   describe('from: String', () => {
+    it('to: ArrayBuffer', () => {
+      // Test Vector 1.
+      let input = 'foo';
+      let output = (new Uint8Array([102, 111, 111])).buffer;
+
+      const result = Convert.string(input).toArrayBuffer();
+
+      expect(result).to.deep.equal(output);
+    });
+
     it('to: Base64url', () => {
       // Test Vector 1.
       let input = 'foo';
@@ -251,6 +291,16 @@ describe('Convert', () =>{
   });
 
   describe('from: Uint8Array', () => {
+    it('to: ArrayBuffer', () => {
+      // Test Vector 1.
+      let input = new Uint8Array([102, 111, 111]);
+      let output = (new Uint8Array([102, 111, 111])).buffer;
+
+      let result = Convert.uint8Array(input).toArrayBuffer();
+
+      expect(result).to.deep.equal(output);
+    });
+
     it('to: Base64url', () => {
       // Test Vector 1.
       let input = new Uint8Array([51, 52, 53]);
