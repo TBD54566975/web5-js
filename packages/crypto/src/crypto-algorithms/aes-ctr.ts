@@ -1,7 +1,8 @@
 import type { Web5Crypto } from '../types-key-manager.js';
 
+import { universalTypeOf } from '@tbd54566975/common';
+
 import { AesCtr } from '../crypto-primitives/index.js';
-import { universalTypeOf } from '../common/type-utils.js';
 import { AesCtrAlgorithm, CryptoKey } from '../algorithms-api/index.js';
 
 export class DefaultAesCtrAlgorithm extends AesCtrAlgorithm {

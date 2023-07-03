@@ -1,17 +1,10 @@
 import type { BufferKeyPair } from '../types-key-manager.js';
 
-import * as secp256k1 from '@noble/secp256k1';
+import { Convert } from '@tbd54566975/common';
 import { sha256 } from '@noble/hashes/sha256';
-
-import { Convert } from '../common/convert.js';
+import { secp256k1 } from '@noble/curves/secp256k1';
 
 export type HashFunction = (data: Uint8Array) => Uint8Array;
-
-// NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
-// Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
-import { webcrypto } from 'node:crypto';
-// @ts-expect-error
-if (!globalThis.crypto) { globalThis.crypto = webcrypto; }
 
 /**
  * The `Secp256k1` class provides an interface for generating secp256k1 key pairs,
@@ -163,7 +156,7 @@ export class Secp256k1 {
     const privateKeyU8A = Convert.arrayBuffer(key).toUint8Array();
 
     // Signature operation returns a Signature instance with { r, s, recovery } properties.
-    const signatureObject = await secp256k1.signAsync(digest, privateKeyU8A);
+    const signatureObject = secp256k1.sign(digest, privateKeyU8A);
 
     // Convert Signature object to Uint8Array.
     const signatureU8A = signatureObject.toCompactRawBytes();

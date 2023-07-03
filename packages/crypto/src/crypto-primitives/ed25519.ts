@@ -1,14 +1,14 @@
 import type { BufferKeyPair } from '../types-key-manager.js';
 
-import * as ed25519 from '@noble/ed25519';
+import { ed25519 } from '@noble/curves/ed25519';
 
-import { Convert } from '../common/convert.js';
+import { Convert } from '@tbd54566975/common';
 
 /**
  * The `Ed25519` class provides an interface for generating Ed25519 key pairs,
  * computing public keys from private keys, and signing and verifying messages.
  *
- * The class uses the '@noble/ed25519' package for the cryptographic operations.
+ * The class uses the '@noble/curves' package for the cryptographic operations.
  *
  * The methods of this class are all asynchronous and return Promises. They all use
  * the ArrayBuffer type for keys, signatures, and data, providing a consistent
@@ -40,7 +40,7 @@ export class Ed25519 {
   public static async generateKeyPair(): Promise<BufferKeyPair> {
     // Generate the private key and compute its public key.
     const privateKey = ed25519.utils.randomPrivateKey();
-    const publicKey  = await ed25519.getPublicKeyAsync(privateKey);
+    const publicKey  = ed25519.getPublicKey(privateKey);
 
     const keyPair = {
       privateKey : privateKey.buffer,
@@ -66,7 +66,7 @@ export class Ed25519 {
     const privateKeyU8A = Convert.arrayBuffer(privateKey).toUint8Array();
 
     // Compute public key.
-    const publicKey  = await ed25519.getPublicKeyAsync(privateKeyU8A);
+    const publicKey  = ed25519.getPublicKey(privateKeyU8A);
 
     return publicKey;
   }
@@ -91,7 +91,7 @@ export class Ed25519 {
     const privateKeyU8A = Convert.arrayBuffer(key).toUint8Array();
 
     // Signature operation.
-    const signatureU8A = await ed25519.signAsync(dataU8A, privateKeyU8A);
+    const signatureU8A = ed25519.sign(dataU8A, privateKeyU8A);
 
     return signatureU8A.buffer;
   }
@@ -120,15 +120,7 @@ export class Ed25519 {
     const dataU8A = Convert.bufferSource(data).toUint8Array();
 
     // Verify operation.
-    let isValid = false;
-    try {
-      isValid = await ed25519.verifyAsync(signatureU8A, dataU8A, publicKeyU8A);
-    } catch (error) {
-      // If the signature is mutated (e.g., bit flip) verifyAsync() will
-      // occassionally throw an error "Error: bad y coordinate". Wrapping
-      // in a try/catch ensures this error does not halt execution and
-      // instead returns false, since the signature could not be verified.
-    }
+    const isValid = ed25519.verify(signatureU8A, dataU8A, publicKeyU8A);
 
     return isValid;
   }

@@ -1,6 +1,7 @@
 import type { BufferKeyPair, ManagedKey, ManagedKeyPair, Web5Crypto } from './types-key-manager.js';
 
-import { universalTypeOf } from './common/type-utils.js';
+import { bytesToHex, randomBytes } from '@noble/hashes/utils';
+import { universalTypeOf } from '@tbd54566975/common';
 
 /**
  * Checks whether the property specified is a member of the list of valid properties.
@@ -100,4 +101,45 @@ export function isBufferKeyPair(key: BufferKeyPair | undefined): key is BufferKe
   return (key && 'privateKey' in key && 'publicKey' in key &&
     universalTypeOf(key.privateKey) === 'ArrayBuffer' &&
     universalTypeOf(key.publicKey) === 'ArrayBuffer') ? true : false;
+}
+
+/**
+ * Generates a UUID (Universally Unique Identifier) using a
+ * cryptographically strong random number generator following
+ * the version 4 format, as specified in RFC 4122.
+ *
+ * A version 4 UUID is a randomly generated UUID. The 13th character
+ * is set to '4' to denote version 4, and the 17th character is one
+ * of '8', '9', 'A', or 'B' to comply with the variant 1 format of
+ * UUIDs (the high bits are set to '10').
+ *
+ * The UUID is a 36 character string, including hyphens, and looks like this:
+ * xxxxxxxx-xxxx-4xxx-axxx-xxxxxxxxxxxx
+ *
+ * Note that while UUIDs are not guaranteed to be unique, they are
+ * practically unique" given the large number of possible UUIDs and
+ * the randomness of generation.
+ *
+ * After generating the UUID, the function securely wipes the memory
+ * areas used to hold temporary values to prevent any possibility of
+ * the random values being unintentionally leaked or retained in memory.
+ *
+ * @returns A UUID string in version 4 format.
+ */
+export function uuid(): string {
+  const bytes = randomBytes(16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // set version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // set variant 1
+  const hex = bytesToHex(bytes);
+  bytes.fill(0); // wipe the random values array
+  const segments = [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20, 32)
+  ];
+  const uuid = segments.join('-');
+  segments.fill('0'); // wipe the segments array
+  return uuid;
 }

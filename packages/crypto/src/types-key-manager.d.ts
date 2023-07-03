@@ -1,4 +1,4 @@
-import { RequireOnly } from './common/types.js';
+import type { RequireOnly } from '@tbd54566975/common';
 
 //#region Crypto Key Stores
 

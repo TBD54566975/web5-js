@@ -1,7 +1,8 @@
 import type { Web5Crypto } from '../../types-key-manager.js';
 
+import { universalTypeOf } from '@tbd54566975/common';
+
 import { AesAlgorithm } from './base.js';
-import { universalTypeOf } from '../../common/type-utils.js';
 import { OperationError } from '../errors.js';
 import { checkRequiredProperty } from '../../utils-key-manager.js';
 

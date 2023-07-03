@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
-import { Convert } from '../src/common/convert.js';
-import { isDefined, universalTypeOf } from '../src/common/type-utils.js';
+import { Convert } from '../src/convert.js';
+import { isDefined, universalTypeOf } from '../src/type-utils.js';
 
 describe('Convert', () =>{
   describe('from: ArrayBuffer', () => {

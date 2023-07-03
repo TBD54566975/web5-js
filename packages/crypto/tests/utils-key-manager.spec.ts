@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
 import { bytesToBase58btcMultibase } from '../src/utils.js';
-import { checkValidProperty, checkRequiredProperty } from '../src/utils-key-manager.js';
+import { checkValidProperty, checkRequiredProperty, uuid } from '../src/utils-key-manager.js';
 
 describe('Crypto Utils', () => {
   describe('bytesToBase58btcMultibase()', () => {
@@ -70,6 +70,20 @@ describe('Crypto Utils', () => {
     it('does not throw an error if the property is present', () => {
       const propertiesCollection = { foo: 'bar', baz: 'qux' };
       expect(() => checkRequiredProperty({ property: 'foo', inObject: propertiesCollection })).to.not.throw();
+    });
+  });
+
+  describe('uuid()', () => {
+    it('should generate a valid v4 UUID', () => {
+      const id = uuid();
+      expect(id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      expect(id).to.have.length(36);
+    });
+
+    it('should generate different UUIDs', () => {
+      const id1 = uuid();
+      const id2 = uuid();
+      expect(id1).to.not.equal(id2);
     });
   });
 });
