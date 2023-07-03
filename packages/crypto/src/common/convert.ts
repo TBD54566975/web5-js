@@ -56,6 +56,10 @@ export class Convert {
   toArrayBuffer(): ArrayBuffer {
     switch (this.format) {
 
+      case 'Base64url': {
+        return base64url.baseDecode(this.data).buffer;
+      }
+
       case 'BufferSource': {
         const dataType = universalTypeOf(this.data);
         if (dataType === 'ArrayBuffer') {
@@ -79,6 +83,14 @@ export class Convert {
         return Convert.hex(this.data).toUint8Array().buffer;
       }
 
+      case 'String': {
+        return Convert.string(this.data).toUint8Array().buffer;
+      }
+
+      case 'Uint8Array': {
+        return this.data.buffer;
+      }
+
       default:
         throw new TypeError(`Conversion from ${this.format} to ArrayBuffer is not supported.`);
     }
@@ -86,6 +98,11 @@ export class Convert {
 
   toBase64Url(): string {
     switch (this.format) {
+
+      case 'ArrayBuffer': {
+        const u8a = new Uint8Array(this.data);
+        return base64url.baseEncode(u8a);
+      }
 
       case 'Object': {
         const string = JSON.stringify(this.data);
@@ -156,6 +173,10 @@ export class Convert {
 
   toString(): string {
     switch (this.format) {
+
+      case 'ArrayBuffer': {
+        return textDecoder.decode(this.data);
+      }
 
       case 'Base64url': {
         const u8a = base64url.baseDecode(this.data);
