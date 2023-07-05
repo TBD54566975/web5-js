@@ -2,6 +2,8 @@ import type { Web5Agent } from '@tbd54566975/web5-agent';
 import type { SyncManager } from '@tbd54566975/web5-user-agent';
 import type { DidState, DidMethodApi, DidResolverCache, DwnServiceEndpoint } from '@tbd54566975/dids';
 
+import ms from 'ms';
+
 // import  { Web5ProxyAgent } from '@tbd54566975/web5-proxy-agent';
 import { Dwn } from '@tbd54566975/dwn-sdk-js';
 import { Web5UserAgent, ProfileApi, SyncApi } from '@tbd54566975/web5-user-agent';
@@ -139,7 +141,7 @@ export class Web5 {
     const connectedDid = profile.did.id;
     const web5 = new Web5({ appStorage: appStorage, web5Agent: agent, connectedDid });
 
-    Web5.#enqueueNextSync(syncManager, 1_000);
+    Web5.#enqueueNextSync(syncManager, ms('2m'));
 
     return { web5, did: connectedDid };
   }
