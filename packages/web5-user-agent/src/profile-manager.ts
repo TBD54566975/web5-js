@@ -4,6 +4,7 @@ export interface ProfileManager {
   createProfile(options: CreateProfileOptions): Promise<Profile>
   getProfile(id: string): Promise<Profile | undefined>
   listProfiles(): Promise<Profile[]>;
+  deleteProfile(id: string): Promise<void>;
 }
 
 export type Profile = {

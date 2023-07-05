@@ -41,4 +41,8 @@ export class ProfileApi implements ProfileManager {
   listProfiles(): Promise<Profile[]> {
     return this.store.all();
   }
+
+  deleteProfile(id: string): Promise<void> {
+    return this.store.delete(id);
+  }
 }

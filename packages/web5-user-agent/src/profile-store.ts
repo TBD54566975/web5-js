@@ -71,7 +71,12 @@ export class ProfileStore implements QueryStore<Profile> {
     return profiles;
   }
 
-  async delete(): Promise<void> {
+  async delete(id: string): Promise<void> {
+    const key = this.generateKey(id);
+    return this.db.del(key);
+  }
+
+  async deleteAll(): Promise<void> {
     throw new Error('Method not implemented.');
   }
 

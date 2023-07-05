@@ -3,7 +3,8 @@ export interface QueryStore<T> {
   get(id: string): Promise<T | undefined>;
   all(): Promise<T[]>;
   query(filter: Filter): Promise<T[]>;
-  delete(): Promise<void>;
+  delete(id: string): Promise<void>;
+  deleteAll(): Promise<void>;
 }
 
 
