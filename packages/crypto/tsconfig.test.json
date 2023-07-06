@@ -20,8 +20,7 @@
   },
   "include": [
     "src",
-    "tests",
-    "typings"
+    "tests"
   ],
   "exclude": [
     "node_modules",
