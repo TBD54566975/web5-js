@@ -27,7 +27,7 @@ export function base64UrlToBytes(base64urlString: string): Uint8Array {
 export function bytesToBase58btcMultibase(header: Uint8Array, bytes: Uint8Array): string {
   const multibaseBytes = new Uint8Array(header.length + bytes.length);
   multibaseBytes.set(header);
-  multibaseBytes.set(bytes);
+  multibaseBytes.set(bytes, header.length);
 
   return base58btc.encode(multibaseBytes);
 }
