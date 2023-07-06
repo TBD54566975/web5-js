@@ -18,8 +18,7 @@
     "esModuleInterop": true
   },
   "include": [
-    "src",
-    "tests" // building tests also so we can run tests directly without the need for ts-node, ts-mocha
+    "src"
   ],
   "exclude": [
     "node_modules",
