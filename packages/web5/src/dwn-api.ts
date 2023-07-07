@@ -1,16 +1,16 @@
 import type { Web5Agent } from '@tbd54566975/web5-agent';
 import type {
-  MessageReply,
-  ProtocolsConfigureDescriptor,
-  ProtocolsConfigureOptions,
-  ProtocolsQueryOptions,
-  RecordsDeleteOptions,
-  RecordsQueryOptions,
-  RecordsQueryReplyEntry,
+  UnionMessageReply,
   RecordsReadOptions,
+  RecordsQueryOptions,
   RecordsWriteMessage,
   RecordsWriteOptions,
-  ProtocolsConfigureMessage
+  RecordsDeleteOptions,
+  ProtocolsQueryOptions,
+  RecordsQueryReplyEntry,
+  ProtocolsConfigureMessage,
+  ProtocolsConfigureOptions,
+  ProtocolsConfigureDescriptor,
 } from '@tbd54566975/dwn-sdk-js';
 
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
@@ -24,7 +24,7 @@ export type ProtocolsConfigureRequest = {
 }
 
 export type ProtocolsConfigureResponse = {
-  status: MessageReply['status'];
+  status: UnionMessageReply['status'];
   protocol?: Protocol;
 }
 
@@ -39,7 +39,7 @@ export type ProtocolsQueryRequest = {
 
 export type ProtocolsQueryResponse = {
   protocols: Protocol[];
-  status: MessageReply['status'];
+  status: UnionMessageReply['status'];
 }
 
 export type RecordsCreateRequest = RecordsWriteRequest;
@@ -59,7 +59,7 @@ export type RecordsDeleteRequest = {
 }
 
 export type RecordsDeleteResponse = {
-  status: MessageReply['status'];
+  status: UnionMessageReply['status'];
 };
 
 export type RecordsQueryRequest = {
@@ -69,7 +69,7 @@ export type RecordsQueryRequest = {
 }
 
 export type RecordsQueryResponse = {
-  status: MessageReply['status'];
+  status: UnionMessageReply['status'];
   records?: Record[]
 };
 
@@ -80,7 +80,7 @@ export type RecordsReadRequest = {
 }
 
 export type RecordsReadResponse = {
-  status: MessageReply['status'];
+  status: UnionMessageReply['status'];
   record: Record;
 };
 
@@ -91,7 +91,7 @@ export type RecordsWriteRequest = {
 }
 
 export type RecordsWriteResponse = {
-  status: MessageReply['status'];
+  status: UnionMessageReply['status'];
   record?: Record
 };
 
