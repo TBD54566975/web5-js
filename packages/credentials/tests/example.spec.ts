@@ -1,7 +1,8 @@
 import { expect } from 'chai';
+import {getCurrentXmlSchema112Timestamp} from '../src/utils.js';
 
 describe('example', () => {
-  it('needs more tests', () => {
-    expect(true).to.be.true;
+  it('gets correct time', () => {
+    expect(getCurrentXmlSchema112Timestamp()).to.not.be.undefined;
   });
 });
