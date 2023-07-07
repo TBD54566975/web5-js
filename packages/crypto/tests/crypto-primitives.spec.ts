@@ -5,7 +5,13 @@ import { Convert } from '@tbd54566975/common';
 
 import { aesCtrTestVectors } from './fixtures/test-vectors/aes.js';
 import { NotSupportedError } from '../src/algorithms-api/errors.js';
-import { AesCtr, ConcatKdf, Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
+import { AesCtr, ConcatKdf, Ed25519, Secp256k1, X25519, XChaCha20 } from '../src/crypto-primitives/index.js';
+
+// NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
+// Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
+import { webcrypto } from 'node:crypto';
+// @ts-ignore
+if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 describe('Cryptographic Primitive Implementations', () => {
 
@@ -754,6 +760,148 @@ describe('Cryptographic Primitive Implementations', () => {
 
           expect(sharedSecretOwnOther).to.deep.equal(sharedSecretOtherOwn);
         });
+      });
+    });
+  });
+
+  describe('XChaCha20', () => {
+    describe('decrypt()', () => {
+      it('returns ArrayBuffer plaintext with length matching input', async () => {
+        const plaintext = await XChaCha20.decrypt({
+          data  : new Uint8Array(10),
+          key   : new ArrayBuffer(32),
+          nonce : new Uint8Array(24)
+        });
+        expect(plaintext).to.be.an('ArrayBuffer');
+        expect(plaintext.byteLength).to.equal(10);
+      });
+
+      it('passes test vectors', async () => {
+        const input = {
+          data  : Convert.hex('879b10a139674fe65087f59577ee2c1ab54655d900697fd02d953f53ddcc1ae476e8').toArrayBuffer(),
+          key   : Convert.hex('79c99798ac67300bbb2704c95c341e3245f3dcb21761b98e52ff45b24f304fc4').toArrayBuffer(),
+          nonce : Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toArrayBuffer()
+        };
+        const output = Convert.string(`Are You There Bob? It's Me, Alice.`).toArrayBuffer();
+
+        const ciphertext = await XChaCha20.decrypt({
+          data  : input.data,
+          key   : input.key,
+          nonce : input.nonce
+        });
+
+        expect(ciphertext).to.deep.equal(output);
+      });
+
+      it('accepts plaintext input as ArrayBuffer, DataView, and TypedArray', async () => {
+        const input = {
+          data  : Convert.hex('879b10a139674fe65087f59577ee2c1ab54655d900697fd02d953f53ddcc1ae476e8').toUint8Array(),
+          key   : Convert.hex('79c99798ac67300bbb2704c95c341e3245f3dcb21761b98e52ff45b24f304fc4').toArrayBuffer(),
+          nonce : Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toArrayBuffer()
+        };
+        let ciphertext: ArrayBuffer;
+        let output: ArrayBuffer;
+        output = Convert.string(`Are You There Bob? It's Me, Alice.`).toArrayBuffer();
+
+        // ArrayBuffer
+        const dataArrayBuffer = input.data.buffer;
+        ciphertext = await XChaCha20.decrypt({ data: dataArrayBuffer, key: input.key, nonce: input.nonce });
+        expect(ciphertext).to.deep.equal(output);
+
+        // DataView
+        const dataView = new DataView(dataArrayBuffer);
+        ciphertext = await XChaCha20.decrypt({ data: dataView, key: input.key, nonce: input.nonce });
+        expect(ciphertext).to.deep.equal(output);
+
+        // TypedArray - Uint8Array
+        ciphertext = await XChaCha20.decrypt({ data: input.data, key: input.key,nonce: input.nonce });
+        expect(ciphertext).to.deep.equal(output);
+
+        // TypedArray - Int32Array
+        const dataI32A = new Int32Array(Convert.hex('cce9758174083ac61aef90e73ace6e75').toArrayBuffer());
+        ciphertext = await XChaCha20.decrypt({ data: dataI32A, key: input.key, nonce: input.nonce });
+        output = (new Int32Array([10, 20, 30, 40])).buffer;
+        expect(ciphertext).to.deep.equal(output);
+
+        // TypedArray - Uint32Array
+        const dataU32A = new Uint32Array(Convert.hex('cee9758167083ac602ef90e717ce6e75d3797590774e0cf062f013739da07387').toArrayBuffer());
+        ciphertext = await XChaCha20.decrypt({ data: dataU32A, key: input.key, nonce: input.nonce });
+        output = (new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1])).buffer;
+        expect(ciphertext).to.deep.equal(output);
+      });
+    });
+
+    describe('encrypt()', () => {
+      it('returns ArrayBuffer ciphertext with length matching input', async () => {
+        const ciphertext = await XChaCha20.encrypt({
+          data  : new Uint8Array(10),
+          key   : new ArrayBuffer(32),
+          nonce : new Uint8Array(24)
+        });
+        expect(ciphertext).to.be.an('ArrayBuffer');
+        expect(ciphertext.byteLength).to.equal(10);
+      });
+
+      it('passes test vectors', async () => {
+        const input = {
+          data  : Convert.string(`Are You There Bob? It's Me, Alice.`).toArrayBuffer(),
+          key   : Convert.hex('79c99798ac67300bbb2704c95c341e3245f3dcb21761b98e52ff45b24f304fc4').toArrayBuffer(),
+          nonce : Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toArrayBuffer()
+        };
+        const output = Convert.hex('879b10a139674fe65087f59577ee2c1ab54655d900697fd02d953f53ddcc1ae476e8').toArrayBuffer();
+
+        const ciphertext = await XChaCha20.encrypt({
+          data  : input.data,
+          key   : input.key,
+          nonce : input.nonce
+        });
+
+        expect(ciphertext).to.deep.equal(output);
+      });
+
+      it('accepts plaintext input as ArrayBuffer, DataView, and TypedArray', async () => {
+        const input = {
+          data  : Convert.string(`Are You There Bob? It's Me, Alice.`).toUint8Array(),
+          key   : Convert.hex('79c99798ac67300bbb2704c95c341e3245f3dcb21761b98e52ff45b24f304fc4').toArrayBuffer(),
+          nonce : Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toArrayBuffer()
+        };
+        let ciphertext: ArrayBuffer;
+        let output: ArrayBuffer;
+        output = Convert.hex('879b10a139674fe65087f59577ee2c1ab54655d900697fd02d953f53ddcc1ae476e8').toArrayBuffer();
+
+        // ArrayBuffer
+        const dataArrayBuffer = input.data.buffer;
+        ciphertext = await XChaCha20.encrypt({ data: dataArrayBuffer, key: input.key, nonce: input.nonce });
+        expect(ciphertext).to.deep.equal(output);
+
+        // DataView
+        const dataView = new DataView(dataArrayBuffer);
+        ciphertext = await XChaCha20.encrypt({ data: dataView, key: input.key, nonce: input.nonce });
+        expect(ciphertext).to.deep.equal(output);
+
+        // TypedArray - Uint8Array
+        ciphertext = await XChaCha20.encrypt({ data: input.data, key: input.key,nonce: input.nonce });
+        expect(ciphertext).to.deep.equal(output);
+
+        // TypedArray - Int32Array
+        const dataI32A = new Int32Array([10, 20, 30, 40]);
+        ciphertext = await XChaCha20.encrypt({ data: dataI32A, key: input.key, nonce: input.nonce });
+        output = Convert.hex('cce9758174083ac61aef90e73ace6e75').toArrayBuffer();
+        expect(ciphertext).to.deep.equal(output);
+
+        // TypedArray - Uint32Array
+        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
+        ciphertext = await XChaCha20.encrypt({ data: dataU32A, key: input.key, nonce: input.nonce });
+        output = Convert.hex('cee9758167083ac602ef90e717ce6e75d3797590774e0cf062f013739da07387').toArrayBuffer();
+        expect(ciphertext).to.deep.equal(output);
+      });
+    });
+
+    describe('generateKey()', () => {
+      it('returns a 32-byte secret key of type ArrayBuffer', async () => {
+        const secretKey = await XChaCha20.generateKey();
+        expect(secretKey).to.be.instanceOf(ArrayBuffer);
+        expect(secretKey.byteLength).to.equal(32);
       });
     });
   });
