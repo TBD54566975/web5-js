@@ -1,29 +1,29 @@
 import type { DwnServiceEndpoint } from '@tbd54566975/dids';
 import {
-  SignatureInput,
-  RecordsWriteOptions,
-  RecordsWriteMessage,
-  PrivateJwk as DwnPrivateKeyJwk,
-  MessagesGetReply,
   DataStream,
+  SignatureInput,
+  MessagesGetReply,
   RecordsReadReply,
-  MessageReply,
+  UnionMessageReply,
+  RecordsWriteMessage,
+  RecordsWriteOptions,
+  PrivateJwk as DwnPrivateKeyJwk,
 } from '@tbd54566975/dwn-sdk-js';
 
 import { Readable } from 'readable-stream';
 import {
   DwnRpc,
   Web5Agent,
-  DwnRpcRequest,
-  ProcessDwnRequest,
   DwnResponse,
+  DwnRpcRequest,
   SendDwnRequest,
+  ProcessDwnRequest,
 } from '@tbd54566975/web5-agent';
 
 import {
   Cid,
   Encoder,
-  Message
+  Message,
 } from '@tbd54566975/dwn-sdk-js';
 
 import type { SyncManager } from './sync-manager.js';
@@ -111,7 +111,7 @@ export class Web5UserAgent implements Web5Agent {
   async processDwnRequest(request: ProcessDwnRequest): Promise<DwnResponse> {
     const { message, dataStream }= await this.#constructDwnMessage(request);
 
-    let reply: MessageReply;
+    let reply: UnionMessageReply;
     if (request.store !== false) {
       reply = await this.dwn.processMessage(request.target, message, dataStream as any);
     } else {
