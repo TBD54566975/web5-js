@@ -2,7 +2,7 @@ import type { KeyPair, Jwk, PublicKeyJwk, PrivateKeyJwk, KeyPairJwk } from './ty
 
 import nacl from 'tweetnacl';
 import ed2curve from 'ed2curve';
-import { base64UrlToBytes, bytesToBase64Url } from './utils.js';
+import { Convert } from '@tbd54566975/common';
 
 // TODO: (not important) decide if we want to use tweetnacl or @noble/ed25519. is there a functional difference?
 //       dwn-sdk-js also has ed25519 cryptosuite stuff
@@ -30,10 +30,10 @@ export type JwkOverrides = { crv: 'Ed25519' | 'X25519' };
 export function keyPairToJwk(keyPair: KeyPair, kid: string, overrides: JwkOverrides = { crv: 'Ed25519' }): KeyPairJwk {
   const jwk: Jwk = { kty: 'OKP', crv: overrides.crv, kid };
 
-  const encodedPublicKey = bytesToBase64Url(keyPair.publicKey);
+  const encodedPublicKey = Convert.uint8Array(keyPair.publicKey).toBase64Url();
   const publicKeyJwk: PublicKeyJwk = { ...jwk, x: encodedPublicKey };
 
-  const encodedSecretKey = bytesToBase64Url(keyPair.privateKey);
+  const encodedSecretKey = Convert.uint8Array(keyPair.privateKey).toBase64Url();
   const privateKeyJwk: PrivateKeyJwk = { ...publicKeyJwk, d: encodedSecretKey };
 
   return { publicKeyJwk, privateKeyJwk };
@@ -48,7 +48,7 @@ export type SignOptions = {
 
 export function sign(options: SignOptions) {
   const { payload, privateKeyJwk } = options;
-  const privateKeyBytes = base64UrlToBytes(privateKeyJwk.d);
+  const privateKeyBytes = Convert.base64Url(privateKeyJwk.d).toUint8Array();
 
   if (privateKeyJwk.crv !== 'Ed25519') {
     throw new Error('crv must be Ed25519');
@@ -70,7 +70,7 @@ export type VerifyOptions = {
 
 export async function verify(options: VerifyOptions) {
   const { signature, payload, publicKeyJwk } = options;
-  const publicKeyBytes = base64UrlToBytes(publicKeyJwk.x);
+  const publicKeyBytes = Convert.base64Url(publicKeyJwk.x).toUint8Array();
 
   if (publicKeyJwk.crv !== 'Ed25519') {
     throw new Error('crv must be Ed25519');
