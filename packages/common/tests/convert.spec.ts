@@ -1,8 +1,6 @@
 import { expect } from 'chai';
 
 import { Convert } from '../src/convert.js';
-import { Multicodec } from '../src/multicodec.js';
-import { isDefined, universalTypeOf } from '../src/type-utils.js';
 
 describe('Convert', () =>{
   describe('from: ArrayBuffer', () => {
@@ -368,95 +366,5 @@ describe('Convert', () =>{
     it('toUint8Array() throw an error', () => {
       expect(() => unsupported.toUint8Array()).to.throw(TypeError, 'not supported');
     });
-  });
-});
-
-describe('Multicodec', () => {
-  describe('addPrefix()', () => {
-    it('returns Uint8Array with prefixed codec by code', () => {
-      const mockEd25519PublicKey = new Uint8Array(32);
-      const prefixedData = Multicodec.addPrefix({ code: 0xed, data: mockEd25519PublicKey });
-
-      expect(prefixedData.byteLength).to.equal(2 + mockEd25519PublicKey.byteLength);
-      expect(prefixedData.slice(0, 2)).to.deep.equal(Multicodec.codecs.get(0xed)?.codeBytes);
-    });
-
-    it('returns Uint8Array with prefixed codec by name', () => {
-      const mockEd25519PublicKey = new Uint8Array(32);
-      const prefixedData = Multicodec.addPrefix({ name: 'ed25519-pub', data: mockEd25519PublicKey });
-
-      expect(prefixedData.byteLength).to.equal(2 + mockEd25519PublicKey.byteLength);
-      const code = Multicodec.registry.get('ed25519-pub');
-      expect(prefixedData.slice(0, 2)).to.deep.equal(Multicodec.codecs.get(code!)?.codeBytes);
-    });
-
-    it('throws an error when code and name input data missing', () => {
-      expect(
-        () => Multicodec.addPrefix({ data: new Uint8Array(0) })
-      ).to.throw(Error, 'Required parameter missing');
-    });
-
-    it('throws an error when codec not found', () => {
-      expect(
-        () => Multicodec.addPrefix({ code: 0x99999, data: new Uint8Array(0) })
-      ).to.throw(Error, 'Multicodec not found');
-
-      expect(
-        () => Multicodec.addPrefix({ name: 'non-existent', data: new Uint8Array(0) })
-      ).to.throw(Error, 'Multicodec not found');
-    });
-  });
-});
-
-describe('isDefined()', () => {
-  it('should return true for defined non-null values', () => {
-    expect(isDefined('string')).to.equal(true);
-    expect(isDefined(42)).to.equal(true);
-    expect(isDefined(false)).to.equal(true);
-    expect(isDefined({})).to.equal(true);
-    expect(isDefined([])).to.equal(true);
-  });
-
-  it('should return false for undefined or null', () => {
-    expect(isDefined(undefined)).to.equal(false);
-    expect(isDefined(null)).to.equal(false);
-  });
-});
-
-describe('universalTypeOf()', () => {
-  it('should correctly identify Array', () => {
-    expect(universalTypeOf([1, 2, 3])).to.equal('Array');
-  });
-
-  it('should correctly identify ArrayBuffer', () => {
-    expect(universalTypeOf(new ArrayBuffer(2))).to.equal('ArrayBuffer');
-  });
-
-  it('should correctly identify Boolean', () => {
-    expect(universalTypeOf(true)).to.equal('Boolean');
-  });
-
-  it('should correctly identify Number', () => {
-    expect(universalTypeOf(42)).to.equal('Number');
-  });
-
-  it('should correctly identify Null', () => {
-    expect(universalTypeOf(null)).to.equal('Null');
-  });
-
-  it('should correctly identify Object', () => {
-    expect(universalTypeOf({a: 1, b: 2})).to.equal('Object');
-  });
-
-  it('should correctly identify String', () => {
-    expect(universalTypeOf('some string')).to.equal('String');
-  });
-
-  it('should correctly identify Uint8Array', () => {
-    expect(universalTypeOf(new Uint8Array([1, 2, 3]))).to.equal('Uint8Array');
-  });
-
-  it('should correctly identify Undefined', () => {
-    expect(universalTypeOf(undefined)).to.equal('Undefined');
   });
 });

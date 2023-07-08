@@ -3,8 +3,8 @@ import type { ManagedKey, ManagedKeyPair, ManagedPrivateKey, Web5Crypto } from '
 import sinon from 'sinon';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
+import { MemoryStore } from '@tbd54566975/common';
 
-import { MemoryKeyStore } from '../src/key-store-memory.js';
 import { LocalKms, KmsKeyStore, KmsPrivateKeyStore } from '../src/kms-local/index.js';
 
 chai.use(chaiAsPromised);
@@ -13,9 +13,9 @@ describe('LocalKms', () => {
   let kms: LocalKms;
 
   beforeEach(() => {
-    const memoryKeyStore = new MemoryKeyStore<string, ManagedKey | ManagedKeyPair>();
+    const memoryKeyStore = new MemoryStore<string, ManagedKey | ManagedKeyPair>();
     const kmsKeyStore = new KmsKeyStore(memoryKeyStore);
-    const memoryPrivateKeyStore = new MemoryKeyStore<string, ManagedPrivateKey>();
+    const memoryPrivateKeyStore = new MemoryStore<string, ManagedPrivateKey>();
     const kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryPrivateKeyStore);
     kms = new LocalKms('local', kmsKeyStore, kmsPrivateKeyStore);
   });
@@ -971,10 +971,10 @@ describe('LocalKms', () => {
     let kmsKeyStore: KmsKeyStore;
 
     beforeEach(() => {
-      const memoryKeyStore = new MemoryKeyStore<string, ManagedKey | ManagedKeyPair>();
-      kmsKeyStore = new KmsKeyStore(memoryKeyStore);
-      const memoryPrivateKeyStore = new MemoryKeyStore<string, ManagedPrivateKey>();
-      const kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryPrivateKeyStore);
+      const kmsMemoryStore = new MemoryStore<string, ManagedKey | ManagedKeyPair>();
+      kmsKeyStore = new KmsKeyStore(kmsMemoryStore);
+      const kmsPrivateMemoryStore = new MemoryStore<string, ManagedPrivateKey>();
+      const kmsPrivateKeyStore = new KmsPrivateKeyStore(kmsPrivateMemoryStore);
       kms = new LocalKms('local', kmsKeyStore, kmsPrivateKeyStore);
     });
 
@@ -1007,9 +1007,9 @@ describe('KmsKeyStore', () => {
   let testKey: ManagedKey;
 
   beforeEach(() => {
-    const memoryKeyStore = new MemoryKeyStore<string, ManagedKey | ManagedKeyPair>();
+    const memoryStore = new MemoryStore<string, ManagedKey | ManagedKeyPair>();
 
-    kmsKeyStore = new KmsKeyStore(memoryKeyStore);
+    kmsKeyStore = new KmsKeyStore(memoryStore);
 
     testKey = {
       id          : 'testKey',
@@ -1143,9 +1143,9 @@ describe('KmsPrivateKeyStore', () => {
   let keyMaterial: ArrayBuffer;
 
   beforeEach(() => {
-    const memoryKeyStore = new MemoryKeyStore<string, ManagedPrivateKey>();
+    const memoryStore = new MemoryStore<string, ManagedPrivateKey>();
 
-    kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryKeyStore);
+    kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryStore);
 
     keyMaterial = (new Uint8Array([1, 2, 3])).buffer;
     testKey = {
@@ -1247,7 +1247,7 @@ describe('KmsPrivateKeyStore', () => {
       ];
 
       // Import the keys into the store.
-      const expectedTestKeys = [];
+      const expectedTestKeys: ManagedPrivateKey[] = [];
       for (let key of testKeys) {
         const id = await kmsPrivateKeyStore.importKey({ key });
         expectedTestKeys.push({ id, material: keyMaterial, type: 'private', });

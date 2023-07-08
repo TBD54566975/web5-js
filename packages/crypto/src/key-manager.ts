@@ -17,7 +17,8 @@ import type {
   GenerateKeyOptionTypes,
 } from './types-key-manager.js';
 
-import { MemoryKeyStore } from './key-store-memory.js';
+import { MemoryStore } from '@tbd54566975/common';
+
 import { KeyManagerStore } from './key-manager-store.js';
 import { checkRequiredProperty, isManagedKey, isManagedKeyPair } from './utils-key-manager.js';
 import { LocalKms, KmsKeyStore, KmsPrivateKeyStore } from './kms-local/index.js';
@@ -203,12 +204,12 @@ export class KeyManager implements CryptoManager {
 
   #useLocalKms(): KmsMap {
     // Instantiate local in-memory store for KMS key metadata and public keys.
-    const kmsMemoryKeyStore = new MemoryKeyStore<string, ManagedKey | ManagedKeyPair>();
-    const kmsKeyStore = new KmsKeyStore(kmsMemoryKeyStore);
+    const kmsMemoryStore = new MemoryStore<string, ManagedKey | ManagedKeyPair>();
+    const kmsKeyStore = new KmsKeyStore(kmsMemoryStore);
 
     // Instantiate local in-memory store for KMS private keys.
-    const memoryPrivateKeyStore = new MemoryKeyStore<string, ManagedPrivateKey>();
-    const kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryPrivateKeyStore);
+    const kmsPrivateMemoryStore = new MemoryStore<string, ManagedPrivateKey>();
+    const kmsPrivateKeyStore = new KmsPrivateKeyStore(kmsPrivateMemoryStore);
 
     // Instantiate local KMS using key stores.
     const kms = new LocalKms('local', kmsKeyStore, kmsPrivateKeyStore);
