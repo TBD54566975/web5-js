@@ -2,9 +2,9 @@ import type { KeyManagerOptions } from '../src/key-manager.js';
 import type { ManagedKey, ManagedKeyPair, ManagedPrivateKey, Web5Crypto } from '../src/types-key-manager.js';
 
 import { expect } from 'chai';
+import { MemoryStore } from '@tbd54566975/common';
 
 import { KeyManager } from '../src/key-manager.js';
-import { MemoryKeyStore } from '../src/key-store-memory.js';
 import { KeyManagerStore } from '../src/key-manager-store.js';
 import { LocalKms, KmsKeyStore, KmsPrivateKeyStore } from '../src/kms-local/index.js';
 
@@ -17,19 +17,19 @@ describe('KeyManager', () => {
 
   beforeEach(() => {
     // Instantiate in-memory store for KMS key metadata and public keys.
-    const kmsMemoryKeyStore = new MemoryKeyStore<string, ManagedKey | ManagedKeyPair>();
-    kmsKeyStore = new KmsKeyStore(kmsMemoryKeyStore);
+    const kmsMemoryStore = new MemoryStore<string, ManagedKey | ManagedKeyPair>();
+    kmsKeyStore = new KmsKeyStore(kmsMemoryStore);
 
     // Instantiate in-memory store for KMS private keys.
-    const memoryPrivateKeyStore = new MemoryKeyStore<string, ManagedPrivateKey>();
+    const memoryPrivateKeyStore = new MemoryStore<string, ManagedPrivateKey>();
     kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryPrivateKeyStore);
 
     // Instantiate local KMS using key stores.
     localKms = new LocalKms('local', kmsKeyStore, kmsPrivateKeyStore);
 
     // Instantiate in-memory store for KeyManager key metadata.
-    const kmMemoryKeyStore = new MemoryKeyStore<string, ManagedKey | ManagedKeyPair>();
-    keyManagerStore = new KeyManagerStore({ store: kmMemoryKeyStore });
+    const kmMemoryStore = new MemoryStore<string, ManagedKey | ManagedKeyPair>();
+    keyManagerStore = new KeyManagerStore({ store: kmMemoryStore });
 
     const options: KeyManagerOptions = {
       store : keyManagerStore,

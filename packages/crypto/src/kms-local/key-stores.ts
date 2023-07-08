@@ -1,7 +1,8 @@
 import type { ManagedKeyStore, ManagedKey, ManagedKeyPair, ManagedPrivateKey } from '../types-key-manager.js';
 
+import { MemoryStore } from '@tbd54566975/common';
+
 import { uuid } from '../utils-key-manager.js';
-import { MemoryKeyStore } from '../key-store-memory.js';
 import { isManagedKeyPair } from '../utils-key-manager.js';
 
 /**
@@ -11,13 +12,13 @@ import { isManagedKeyPair } from '../utils-key-manager.js';
  * An instance of this class can be used by an implementation of
  * `KeyManagementSystem`.
  *
- * This class must be initialized with a {@link MemoryKeyStore}, which serves
+ * This class must be initialized with a {@link MemoryStore}, which serves
  * as the key/value store.
  */
 export class KmsKeyStore implements ManagedKeyStore<string, ManagedKey | ManagedKeyPair> {
-  #keyStore: MemoryKeyStore<string, ManagedKey | ManagedKeyPair>;
+  #keyStore: MemoryStore<string, ManagedKey | ManagedKeyPair>;
 
-  constructor(keyStore: MemoryKeyStore<string, ManagedKey | ManagedKeyPair>) {
+  constructor(keyStore: MemoryStore<string, ManagedKey | ManagedKeyPair>) {
     this.#keyStore = keyStore;
   }
 
@@ -65,13 +66,13 @@ export class KmsKeyStore implements ManagedKeyStore<string, ManagedKey | Managed
  * An instance of this class can be used by an implementation of
  * `KeyManagementSystem`.
  *
- * This class must be initialized with a {@link MemoryKeyStore}, which serves
+ * This class must be initialized with a {@link MemoryStore}, which serves
  * as the key/value store.
  */
 export class KmsPrivateKeyStore implements ManagedKeyStore<string, ManagedPrivateKey> {
-  #keyStore: MemoryKeyStore<string, ManagedPrivateKey>;
+  #keyStore: MemoryStore<string, ManagedPrivateKey>;
 
-  constructor(keyStore: MemoryKeyStore<string, ManagedPrivateKey>) {
+  constructor(keyStore: MemoryStore<string, ManagedPrivateKey>) {
     this.#keyStore = keyStore;
   }
 
