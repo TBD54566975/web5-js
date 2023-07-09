@@ -411,12 +411,20 @@ describe('Convert', () =>{
       expect(() => unsupported.toArrayBuffer()).to.throw(TypeError, 'not supported');
     });
 
+    it('toBase58Btc() throw an error', () => {
+      expect(() => unsupported.toBase58Btc()).to.throw(TypeError, 'not supported');
+    });
+
     it('toBase64Url() throw an error', () => {
       expect(() => unsupported.toBase64Url()).to.throw(TypeError, 'not supported');
     });
 
     it('toHex() throw an error', () => {
       expect(() => unsupported.toHex()).to.throw(TypeError, 'not supported');
+    });
+
+    it('toMultibase() throw an error', () => {
+      expect(() => unsupported.toMultibase()).to.throw(TypeError, 'not supported');
     });
 
     it('toObject() throw an error', () => {
