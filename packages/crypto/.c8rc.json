@@ -9,6 +9,7 @@
   ],
   "exclude": [
     "__tests__/src/main.js",
+    "__tests__/src/types/**",
     "__tests__/types/**"
   ],
   "reporter": [

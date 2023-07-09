@@ -1,4 +1,4 @@
-import type { ManagedKey, ManagedKeyPair, ManagedPrivateKey, Web5Crypto } from '../src/types-new.js';
+import type { ManagedKey, ManagedKeyPair, ManagedPrivateKey, Web5Crypto } from '../src/types/index.js';
 
 import sinon from 'sinon';
 import chai, { expect } from 'chai';

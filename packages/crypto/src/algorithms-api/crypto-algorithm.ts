@@ -1,4 +1,4 @@
-import type { Web5Crypto } from '../types-new.js';
+import type { Web5Crypto } from '../types/index.js';
 
 import { InvalidAccessError, NotSupportedError } from './errors.js';
 

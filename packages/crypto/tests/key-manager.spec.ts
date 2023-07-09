@@ -1,5 +1,5 @@
 import type { KeyManagerOptions } from '../src/key-manager/index.js';
-import type { ManagedKey, ManagedKeyPair, ManagedPrivateKey, Web5Crypto } from '../src/types-new.js';
+import type { ManagedKey, ManagedKeyPair, ManagedPrivateKey, Web5Crypto } from '../src/types/index.js';
 
 import { expect } from 'chai';
 import { MemoryStore } from '@tbd54566975/common';

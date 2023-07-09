@@ -1,4 +1,4 @@
-import type { Web5Crypto } from '../src/types-new.js';
+import type { Web5Crypto } from '../src/types/index.js';
 
 import sinon from 'sinon';
 import chai, { expect } from 'chai';
