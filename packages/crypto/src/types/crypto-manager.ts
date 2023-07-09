@@ -124,9 +124,9 @@ export type GenerateKeyOptions<T extends GenerateKeyOptionTypes> = {
 export type GenerateKeyOptionTypes =
   | Web5Crypto.AlgorithmIdentifier
   // | RsaHashedGenerateKeyOptions
+  | Web5Crypto.AesGenerateKeyOptions
   | Web5Crypto.EcdsaGenerateKeyOptions
   | Web5Crypto.EdDsaGenerateKeyOptions
-  | Web5Crypto.AesGenerateKeyOptions
   // | HmacGenerateKeyOptions
   // | Pbkdf2Params;
 

@@ -57,9 +57,7 @@ export class AesCtrAlgorithm extends BaseAesCtrAlgorithm {
 
     this.checkGenerateKey({ algorithm, keyUsages });
 
-    // Convert length from bits to bytes.
-    const lengthInBytes = algorithm.length / 8;
-    const secretKey = await AesCtr.generateKey({ byteLength: lengthInBytes });
+    const secretKey = await AesCtr.generateKey({ length: algorithm.length });
 
     if (universalTypeOf(secretKey) !== 'ArrayBuffer') {
       throw new Error('Operation failed to generate key.');

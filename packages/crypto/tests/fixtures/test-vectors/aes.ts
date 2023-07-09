@@ -42,3 +42,29 @@ export const aesCtrTestVectors = [
     ciphertext : '010bb6dc10ea201bf2d586de4741309373c07b6ddf30ad8502adf4dd0bda2d23c436b35e5dfa0a0088dcb6ae7328f1ec66212099222ee1c18983b58513cf5f4c'
   }
 ];
+
+// Test vector source: https://github.com/paulmillr/noble-ciphers/blob/main/test/wycheproof/aes_gcm_test.json
+export const aesGcmTestVectors = [
+  {
+    id         : 'nc.1.1',
+    iv         : '028318abc1824029138141a2',
+    aad        : '',
+    data       : '001d0c231287c1182784554ca3a21908',
+    key        : '5b9604fe14eadba931b0ccf34843dab9',
+    keyLength  : 128,
+    tag        : '0a3ea7a5487cb5f7d70fb6c58d038554',
+    tagLength  : 128,
+    ciphertext : '26073cc1d851beff176384dc9896d5ff'
+  },
+  {
+    id         : 'nc.1.2',
+    iv         : '921d2507fa8007b7bd067d34',
+    aad        : '00112233445566778899aabbccddeeff',
+    data       : '001d0c231287c1182784554ca3a21908',
+    key        : '5b9604fe14eadba931b0ccf34843dab9',
+    keyLength  : 128,
+    tag        : '1e348ba07cca2cf04c618cb4d43a5b92',
+    tagLength  : 128,
+    ciphertext : '49d8b9783e911913d87094d1f63cc765'
+  },
+];
