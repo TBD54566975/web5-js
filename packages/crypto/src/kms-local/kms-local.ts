@@ -16,7 +16,7 @@ import type {
   GenerateKeyOptions,
   KeyManagementSystem,
   GenerateKeyOptionTypes,
-} from '../types-new.js';
+} from '../types/index.js';
 
 import { Convert } from '@tbd54566975/common';
 

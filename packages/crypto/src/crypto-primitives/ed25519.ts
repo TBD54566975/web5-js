@@ -1,4 +1,4 @@
-import type { BufferKeyPair } from '../types-new.js';
+import type { BufferKeyPair } from '../types/index.js';
 
 import { ed25519 } from '@noble/curves/ed25519';
 

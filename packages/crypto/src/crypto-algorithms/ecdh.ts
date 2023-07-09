@@ -1,4 +1,4 @@
-import type { BufferKeyPair, Web5Crypto } from '../types-new.js';
+import type { BufferKeyPair, Web5Crypto } from '../types/index.js';
 
 import { isBufferKeyPair } from '../utils-new.js';
 import { Secp256k1, X25519 } from '../crypto-primitives/index.js';

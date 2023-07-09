@@ -1,4 +1,4 @@
-import type { BufferKeyPair } from '../types-new.js';
+import type { BufferKeyPair } from '../types/index.js';
 
 import { Convert } from '@tbd54566975/common';
 import { sha256 } from '@noble/hashes/sha256';

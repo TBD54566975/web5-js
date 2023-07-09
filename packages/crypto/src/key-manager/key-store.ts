@@ -1,4 +1,4 @@
-import type { ManagedKeyStore, ManagedKey, ManagedKeyPair } from '../types-new.js';
+import type { ManagedKeyStore, ManagedKey, ManagedKeyPair } from '../types/index.js';
 
 import { isManagedKeyPair } from '../utils-new.js';
 import { MemoryStore } from '@tbd54566975/common';
