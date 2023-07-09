@@ -4,7 +4,7 @@ import { InvalidAccessError } from '../errors.js';
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
 import { checkValidProperty, checkRequiredProperty } from '../../utils-new.js';
 
-export abstract class EllipticCurveAlgorithm extends CryptoAlgorithm {
+export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
 
   public abstract namedCurves: string[];
 

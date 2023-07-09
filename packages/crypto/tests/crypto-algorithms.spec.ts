@@ -9,21 +9,21 @@ import { aesCtrTestVectors } from './fixtures/test-vectors/aes.js';
 import { AesCtr, Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
 import { CryptoKey, InvalidAccessError, NotSupportedError, OperationError } from '../src/algorithms-api/index.js';
 import {
-  DefaultEcdhAlgorithm,
-  DefaultEcdsaAlgorithm,
-  DefaultEdDsaAlgorithm,
-  DefaultAesCtrAlgorithm,
+  EcdhAlgorithm,
+  EcdsaAlgorithm,
+  EdDsaAlgorithm,
+  AesCtrAlgorithm,
 } from '../src/crypto-algorithms/index.js';
 
 chai.use(chaiAsPromised);
 
 describe('Default Crypto Algorithm Implementations', () => {
 
-  describe('DefaultAesCtrAlgorithm', () => {
-    let aesCtr: DefaultAesCtrAlgorithm;
+  describe('AesCtrAlgorithm', () => {
+    let aesCtr: AesCtrAlgorithm;
 
     before(() => {
-      aesCtr = DefaultAesCtrAlgorithm.create();
+      aesCtr = AesCtrAlgorithm.create();
     });
 
     describe('decrypt()', () => {
@@ -298,11 +298,11 @@ describe('Default Crypto Algorithm Implementations', () => {
     });
   });
 
-  describe('DefaultEcdhAlgorithm', () => {
-    let ecdh: DefaultEcdhAlgorithm;
+  describe('EcdhAlgorithm', () => {
+    let ecdh: EcdhAlgorithm;
 
     before(() => {
-      ecdh = DefaultEcdhAlgorithm.create();
+      ecdh = EcdhAlgorithm.create();
     });
 
     describe('deriveBits()', () => {
@@ -666,11 +666,11 @@ describe('Default Crypto Algorithm Implementations', () => {
     });
   });
 
-  describe('DefaultEcdsaAlgorithm', () => {
-    let ecdsa: DefaultEcdsaAlgorithm;
+  describe('EcdsaAlgorithm', () => {
+    let ecdsa: EcdsaAlgorithm;
 
     before(() => {
-      ecdsa = DefaultEcdsaAlgorithm.create();
+      ecdsa = EcdsaAlgorithm.create();
     });
 
     describe('generateKey()', () => {
@@ -1025,11 +1025,11 @@ describe('Default Crypto Algorithm Implementations', () => {
     });
   });
 
-  describe('DefaultEdDsaAlgorithm', () => {
-    let eddsa: DefaultEdDsaAlgorithm;
+  describe('EdDsaAlgorithm', () => {
+    let eddsa: EdDsaAlgorithm;
 
     before(() => {
-      eddsa = DefaultEdDsaAlgorithm.create();
+      eddsa = EdDsaAlgorithm.create();
     });
 
     describe('generateKey()', () => {

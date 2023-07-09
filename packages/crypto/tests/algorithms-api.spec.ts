@@ -4,16 +4,16 @@ import { expect } from 'chai';
 
 import {
   CryptoKey,
-  AesAlgorithm,
-  EcdhAlgorithm,
-  EcdsaAlgorithm,
-  EdDsaAlgorithm,
   OperationError,
-  AesCtrAlgorithm,
   CryptoAlgorithm,
+  BaseAesAlgorithm,
+  BaseEcdhAlgorithm,
   NotSupportedError,
+  BaseEcdsaAlgorithm,
+  BaseEdDsaAlgorithm,
   InvalidAccessError,
-  EllipticCurveAlgorithm,
+  BaseAesCtrAlgorithm,
+  BaseEllipticCurveAlgorithm,
 } from '../src/algorithms-api/index.js';
 
 describe('Algorithms API', () => {
@@ -155,8 +155,8 @@ describe('Algorithms API', () => {
     });
   });
 
-  describe('AesAlgorithm', () => {
-    class TestAesAlgorithm extends AesAlgorithm {
+  describe('BaseAesAlgorithm', () => {
+    class TestAesAlgorithm extends BaseAesAlgorithm {
       public name = 'TestAlgorithm';
       public keyUsages: KeyUsage[] = ['decrypt', 'encrypt'];
       public async decrypt(): Promise<ArrayBuffer> {
@@ -247,11 +247,11 @@ describe('Algorithms API', () => {
       });
     });
 
-    describe('AesCtrAlgorithm', () => {
-      let alg: AesCtrAlgorithm;
+    describe('BaseAesCtrAlgorithm', () => {
+      let alg: BaseAesCtrAlgorithm;
 
       before(() => {
-        alg = Reflect.construct(AesCtrAlgorithm, []) as AesCtrAlgorithm;
+        alg = Reflect.construct(BaseAesCtrAlgorithm, []) as BaseAesCtrAlgorithm;
       });
 
       let dataEncryptionKey: Web5Crypto.CryptoKey;
@@ -431,8 +431,8 @@ describe('Algorithms API', () => {
     });
   });
 
-  describe('EllipticCurveAlgorithm', () => {
-    class TestEllipticCurveAlgorithm extends EllipticCurveAlgorithm {
+  describe('BaseEllipticCurveAlgorithm', () => {
+    class TestEllipticCurveAlgorithm extends BaseEllipticCurveAlgorithm {
       public name = 'TestAlgorithm';
       public namedCurves = ['curveA'];
       public keyUsages: KeyUsage[] = ['decrypt'];
@@ -502,11 +502,11 @@ describe('Algorithms API', () => {
       });
     });
 
-    describe('EcdhAlgorithm', () => {
-      let alg: EcdhAlgorithm;
+    describe('BaseEcdhAlgorithm', () => {
+      let alg: BaseEcdhAlgorithm;
 
       before(() => {
-        alg = Reflect.construct(EcdhAlgorithm, []) as EcdhAlgorithm;
+        alg = Reflect.construct(BaseEcdhAlgorithm, []) as BaseEcdhAlgorithm;
       });
 
       describe('checkAlgorithmOptions()', () => {
@@ -620,11 +620,11 @@ describe('Algorithms API', () => {
       });
     });
 
-    describe('EcdsaAlgorithm', () => {
-      let alg: EcdsaAlgorithm;
+    describe('BaseEcdsaAlgorithm', () => {
+      let alg: BaseEcdsaAlgorithm;
 
       before(() => {
-        alg = Reflect.construct(EcdsaAlgorithm, []) as EcdsaAlgorithm;
+        alg = Reflect.construct(BaseEcdsaAlgorithm, []) as BaseEcdsaAlgorithm;
         // @ts-expect-error because `hashAlgorithms` is a read-only property.
         alg.hashAlgorithms = ['SHA-256'];
       });
@@ -669,15 +669,15 @@ describe('Algorithms API', () => {
       });
     });
 
-    describe('EdDsaAlgorithm', () => {
-      let alg: EdDsaAlgorithm;
+    describe('BaseEdDsaAlgorithm', () => {
+      let alg: BaseEdDsaAlgorithm;
 
       before(() => {
-        alg = Reflect.construct(EdDsaAlgorithm, []) as EdDsaAlgorithm;
+        alg = Reflect.construct(BaseEdDsaAlgorithm, []) as BaseEdDsaAlgorithm;
       });
 
       describe('checkAlgorithmOptions()', () => {
-        const testEdDsaAlgorithm = Reflect.construct(EdDsaAlgorithm, []) as EdDsaAlgorithm;
+        const testEdDsaAlgorithm = Reflect.construct(BaseEdDsaAlgorithm, []) as BaseEdDsaAlgorithm;
 
         it('does not throw with matching algorithm name', () => {
           expect(() => testEdDsaAlgorithm.checkAlgorithmOptions({ algorithm: {

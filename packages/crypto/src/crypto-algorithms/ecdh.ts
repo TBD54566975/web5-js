@@ -2,9 +2,9 @@ import type { BufferKeyPair, Web5Crypto } from '../types/index.js';
 
 import { isBufferKeyPair } from '../utils-new.js';
 import { Secp256k1, X25519 } from '../crypto-primitives/index.js';
-import { CryptoKey, EcdhAlgorithm, OperationError } from '../algorithms-api/index.js';
+import { CryptoKey, BaseEcdhAlgorithm, OperationError } from '../algorithms-api/index.js';
 
-export class DefaultEcdhAlgorithm extends EcdhAlgorithm {
+export class EcdhAlgorithm extends BaseEcdhAlgorithm {
   public readonly namedCurves = ['secp256k1', 'X25519'];
 
   public async deriveBits(options: {

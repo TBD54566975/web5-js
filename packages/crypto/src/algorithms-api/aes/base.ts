@@ -6,7 +6,7 @@ import { CryptoAlgorithm } from '../crypto-algorithm.js';
 import { checkRequiredProperty } from '../../utils-new.js';
 import { InvalidAccessError, OperationError } from '../errors.js';
 
-export abstract class AesAlgorithm extends CryptoAlgorithm {
+export abstract class BaseAesAlgorithm extends CryptoAlgorithm {
 
   public checkGenerateKey(options: {
     algorithm: Web5Crypto.AesGenerateKeyOptions,

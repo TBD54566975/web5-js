@@ -3,9 +3,9 @@ import type { Web5Crypto } from '../types/index.js';
 import { universalTypeOf } from '@tbd54566975/common';
 
 import { AesCtr } from '../crypto-primitives/index.js';
-import { AesCtrAlgorithm, CryptoKey } from '../algorithms-api/index.js';
+import { BaseAesCtrAlgorithm, CryptoKey } from '../algorithms-api/index.js';
 
-export class DefaultAesCtrAlgorithm extends AesCtrAlgorithm {
+export class AesCtrAlgorithm extends BaseAesCtrAlgorithm {
   public async decrypt(options: {
     algorithm: Web5Crypto.AesCtrOptions,
     key: Web5Crypto.CryptoKey,
