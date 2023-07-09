@@ -1,7 +1,7 @@
-import type { BufferKeyPair, Web5Crypto } from '../types-key-manager.js';
+import type { BufferKeyPair, Web5Crypto } from '../types-new.js';
 
 import { Ed25519 } from '../crypto-primitives/index.js';
-import { isBufferKeyPair } from '../utils-key-manager.js';
+import { isBufferKeyPair } from '../utils-new.js';
 import { CryptoKey, EdDsaAlgorithm } from '../algorithms-api/index.js';
 
 export class DefaultEdDsaAlgorithm extends EdDsaAlgorithm {

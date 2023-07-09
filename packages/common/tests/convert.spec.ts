@@ -4,7 +4,17 @@ import { Convert } from '../src/convert.js';
 
 describe('Convert', () =>{
   describe('from: ArrayBuffer', () => {
-    it('to: Base64url', () => {
+    it('to: Base58Btc', () => {
+      // Test Vector 1.
+      let input = (new Uint8Array([51, 52, 53])).buffer;
+      let output = 'JCXv';
+
+      let result = Convert.arrayBuffer(input).toBase58Btc();
+
+      expect(result).to.deep.equal(output);
+    });
+
+    it('to: Base64Url', () => {
       // Test Vector 1.
       let input = (new Uint8Array([51, 52, 53])).buffer;
       let output = 'MzQ1';
@@ -43,7 +53,39 @@ describe('Convert', () =>{
     });
   });
 
-  describe('from: Base64url', () => {
+  describe('from: Base58Btc', () => {
+    it('to: ArrayBuffer', () => {
+      // Test Vector 1.
+      let input = 'JCXv';
+      let output = (new Uint8Array([51, 52, 53])).buffer;
+
+      let result = Convert.base58Btc(input).toArrayBuffer();
+
+      expect(result).to.deep.equal(output);
+    });
+
+    it('to: Multibase', () => {
+      // Test Vector 1.
+      let input = '6MkugFXawZ8fvt5Q9gXkrtSZdTRg9W9M1hBpEh8HpF7wjSZ';
+      let output = 'z6MkugFXawZ8fvt5Q9gXkrtSZdTRg9W9M1hBpEh8HpF7wjSZ';
+
+      let result = Convert.base58Btc(input).toMultibase();
+
+      expect(result).to.deep.equal(output);
+    });
+
+    it('to: Uint8Array', () => {
+      // Test Vector 1.
+      let input = 'JCXv';
+      let output = new Uint8Array([51, 52, 53]);
+
+      let result = Convert.base58Btc(input).toUint8Array();
+
+      expect(result).to.deep.equal(output);
+    });
+  });
+
+  describe('from: Base64Url', () => {
     it('to: ArrayBuffer', () => {
       // Test Vector 1.
       let input = 'MzQ1';
@@ -215,8 +257,20 @@ describe('Convert', () =>{
     });
   });
 
+  describe('from: Multibase', () => {
+    it('to: Base58Btc', () => {
+      // Test Vector 1.
+      let input = 'z6MkugFXawZ8fvt5Q9gXkrtSZdTRg9W9M1hBpEh8HpF7wjSZ';
+      let output = '6MkugFXawZ8fvt5Q9gXkrtSZdTRg9W9M1hBpEh8HpF7wjSZ';
+
+      let result = Convert.multibase(input).toBase58Btc();
+
+      expect(result).to.deep.equal(output);
+    });
+  });
+
   describe('from: Object', () => {
-    it('to: Base64url', () => {
+    it('to: Base64Url', () => {
       // Test Vector 1.
       let input = { foo: 'bar' };
       let output = 'eyJmb28iOiJiYXIifQ';
@@ -258,7 +312,7 @@ describe('Convert', () =>{
       expect(result).to.deep.equal(output);
     });
 
-    it('to: Base64url', () => {
+    it('to: Base64Url', () => {
       // Test Vector 1.
       let input = 'foo';
       let output = 'Zm9v';
@@ -300,7 +354,17 @@ describe('Convert', () =>{
       expect(result).to.deep.equal(output);
     });
 
-    it('to: Base64url', () => {
+    it('to: Base58Btc', () => {
+      // Test Vector 1.
+      let input = new Uint8Array([51, 52, 53]);
+      let output = 'JCXv';
+
+      let result = Convert.uint8Array(input).toBase58Btc();
+
+      expect(result).to.deep.equal(output);
+    });
+
+    it('to: Base64Url', () => {
       // Test Vector 1.
       let input = new Uint8Array([51, 52, 53]);
       let output = 'MzQ1';
@@ -347,7 +411,7 @@ describe('Convert', () =>{
       expect(() => unsupported.toArrayBuffer()).to.throw(TypeError, 'not supported');
     });
 
-    it('toBase64url() throw an error', () => {
+    it('toBase64Url() throw an error', () => {
       expect(() => unsupported.toBase64Url()).to.throw(TypeError, 'not supported');
     });
 

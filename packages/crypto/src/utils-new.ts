@@ -1,4 +1,4 @@
-import type { BufferKeyPair, ManagedKey, ManagedKeyPair, Web5Crypto } from './types-key-manager.js';
+import type { BufferKeyPair, ManagedKey, ManagedKeyPair, Web5Crypto } from './types-new.js';
 
 import { bytesToHex, randomBytes } from '@noble/hashes/utils';
 import { universalTypeOf } from '@tbd54566975/common';

@@ -1,6 +1,6 @@
-import type { BufferKeyPair, Web5Crypto } from '../types-key-manager.js';
+import type { BufferKeyPair, Web5Crypto } from '../types-new.js';
 
-import { isBufferKeyPair } from '../utils-key-manager.js';
+import { isBufferKeyPair } from '../utils-new.js';
 import { Secp256k1, X25519 } from '../crypto-primitives/index.js';
 import { CryptoKey, EcdhAlgorithm, OperationError } from '../algorithms-api/index.js';
 

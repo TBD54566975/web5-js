@@ -1,4 +1,4 @@
-import type { BufferKeyPair } from '../types-key-manager.js';
+import type { BufferKeyPair } from '../types-new.js';
 
 import { Convert } from '@tbd54566975/common';
 import { x25519 } from '@noble/curves/ed25519';

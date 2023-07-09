@@ -1,4 +1,8 @@
+import type { Multibase } from 'multiformats';
+
+import { base58btc } from 'multiformats/bases/base58';
 import { base64url } from 'multiformats/bases/base64';
+
 import { isArrayBufferSlice, universalTypeOf } from './type-utils.js';
 
 const textEncoder = new TextEncoder();
@@ -17,8 +21,12 @@ export class Convert {
     return new Convert(data, 'ArrayBuffer');
   }
 
+  static base58Btc(data: string): Convert {
+    return new Convert(data, 'Base58Btc');
+  }
+
   static base64Url(data: string): Convert {
-    return new Convert(data, 'Base64url');
+    return new Convert(data, 'Base64Url');
   }
 
   /**
@@ -41,6 +49,10 @@ export class Convert {
     return new Convert(data, 'Hex');
   }
 
+  static multibase(data: string): Convert {
+    return new Convert(data, 'Multibase');
+  }
+
   static object(data: Record<string, any>): Convert {
     return new Convert(data, 'Object');
   }
@@ -56,7 +68,11 @@ export class Convert {
   toArrayBuffer(): ArrayBuffer {
     switch (this.format) {
 
-      case 'Base64url': {
+      case 'Base58Btc': {
+        return base58btc.baseDecode(this.data).buffer;
+      }
+
+      case 'Base64Url': {
         return base64url.baseDecode(this.data).buffer;
       }
 
@@ -96,6 +112,27 @@ export class Convert {
     }
   }
 
+  toBase58Btc(): string {
+    switch (this.format) {
+
+      case 'ArrayBuffer': {
+        const u8a = new Uint8Array(this.data);
+        return base58btc.baseEncode(u8a);
+      }
+
+      case 'Multibase': {
+        return this.data.substring(1);
+      }
+
+      case 'Uint8Array': {
+        return base58btc.baseEncode(this.data);
+      }
+
+      default:
+        throw new TypeError(`Conversion from ${this.format} to Base58Btc is not supported.`);
+    }
+  }
+
   toBase64Url(): string {
     switch (this.format) {
 
@@ -120,7 +157,7 @@ export class Convert {
       }
 
       default:
-        throw new TypeError(`Conversion from ${this.format} to Base64url is not supported.`);
+        throw new TypeError(`Conversion from ${this.format} to Base64Url is not supported.`);
     }
   }
 
@@ -148,10 +185,21 @@ export class Convert {
     }
   }
 
+  toMultibase(): Multibase<any> {
+    switch (this.format) {
+      case 'Base58Btc': {
+        return `z${this.data}`;
+      }
+
+      default:
+        throw new TypeError(`Conversion from ${this.format} to Multibase is not supported.`);
+    }
+  }
+
   toObject(): object {
     switch (this.format) {
 
-      case 'Base64url': {
+      case 'Base64Url': {
         const u8a = base64url.baseDecode(this.data);
         const string = textDecoder.decode(u8a);
         return JSON.parse(string);
@@ -178,7 +226,7 @@ export class Convert {
         return textDecoder.decode(this.data);
       }
 
-      case 'Base64url': {
+      case 'Base64Url': {
         const u8a = base64url.baseDecode(this.data);
         return textDecoder.decode(u8a);
       }
@@ -205,7 +253,11 @@ export class Convert {
         return new Uint8Array(this.data);
       }
 
-      case 'Base64url': {
+      case 'Base58Btc': {
+        return base58btc.baseDecode(this.data);
+      }
+
+      case 'Base64Url': {
         return base64url.baseDecode(this.data);
       }
 

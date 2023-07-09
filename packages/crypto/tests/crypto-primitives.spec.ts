@@ -1,4 +1,4 @@
-import type { BufferKeyPair } from '../src/types-key-manager.js';
+import type { BufferKeyPair } from '../src/types-new.js';
 
 import { expect } from 'chai';
 import { Convert } from '@tbd54566975/common';

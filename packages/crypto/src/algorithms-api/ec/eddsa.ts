@@ -1,4 +1,4 @@
-import type { Web5Crypto } from '../../types-key-manager.js';
+import type { Web5Crypto } from '../../types-new.js';
 
 import { InvalidAccessError } from '../errors.js';
 import { EllipticCurveAlgorithm } from './base.js';

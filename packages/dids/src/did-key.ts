@@ -1,7 +1,8 @@
-import { ed25519, utils } from '@tbd54566975/crypto';
+import type { DidMethodCreator, DidMethodResolver, DidState } from './types.js';
+
+import { ed25519 } from '@tbd54566975/crypto';
 import { DidKeyResolver } from '@tbd54566975/dwn-sdk-js';
-import { createVerificationMethodWithPrivateKeyJwk } from './utils.js';
-import { DidMethodCreator, DidMethodResolver, DidState } from './types.js';
+import { createVerificationMethodWithPrivateKeyJwk, keyToMultibaseId } from './utils.js';
 
 const didKeyResolver = new DidKeyResolver();
 
@@ -20,8 +21,8 @@ export class DidKeyApi implements DidMethodResolver, DidMethodCreator {
     const verificationKeyPair = ed25519.generateKeyPair();
     const keyAgreementKeyPair = ed25519.deriveX25519KeyPair(verificationKeyPair);
 
-    const verificationKeyId = utils.bytesToBase58btcMultibase(utils.MULTICODEC_HEADERS.ED25519.PUB, verificationKeyPair.publicKey);
-    const keyAgreementKeyId = utils.bytesToBase58btcMultibase(utils.MULTICODEC_HEADERS.X25519.PUB, keyAgreementKeyPair.publicKey);
+    const verificationKeyId = keyToMultibaseId({ key: verificationKeyPair.publicKey, multicodecName: 'ed25519-pub' });
+    const keyAgreementKeyId = keyToMultibaseId({ key: keyAgreementKeyPair.publicKey, multicodecName: 'x25519-pub' });
 
     const id = `did:key:${verificationKeyId}`;
 

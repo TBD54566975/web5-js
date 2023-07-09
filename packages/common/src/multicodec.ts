@@ -1,8 +1,10 @@
-import { Convert } from './convert.js';
+import { varint } from 'multiformats';
 
-export type MulticodecDefinition<Code extends number> = {
-  code: Code;
-  codeBytes: Uint8Array;
+export type MulticodecCode = number;
+
+export type MulticodecDefinition<MulticodecCode> = {
+  code: MulticodecCode;
+  // codeBytes: Uint8Array;
   name: string;
 }
 
@@ -21,20 +23,20 @@ export type MulticodecDefinition<Code extends number> = {
  * Example usage:
  *
  * ```ts
- * Multicodec.registerCodec({ code: 0xed, codeBytes: new Uint8Array([0xed, 0x01]), name: 'ed25519-pub' });
+ * Multicodec.registerCodec({ code: 0xed, name: 'ed25519-pub' });
  * const prefixedData = Multicodec.addPrefix({ code: 0xed, data: new Uint8Array(32) });
  * ```
  */
 export class Multicodec {
   /**
-   * A static field containing a map of codec codes to their corresponding codec definitions.
+   * A static field containing a map of codec codes to their corresponding names.
    */
-  static codecs = new Map<number, MulticodecDefinition<number>>();
+  static codeToName = new Map<MulticodecCode, string>();
 
   /**
    * A static field containing a map of codec names to their corresponding codes.
    */
-  static registry = new Map<string, number>;
+  static nameToCode = new Map<string, MulticodecCode>();
 
   /**
    * Adds a multicodec prefix to input data.
@@ -46,33 +48,50 @@ export class Multicodec {
    * @returns The data with the added prefix as a Uint8Array.
    */
   public static addPrefix(options: {
-    code?: number,
+    code?: MulticodecCode,
+    data: Uint8Array,
     name?: string,
-    data: BufferSource,
   }): Uint8Array {
-    const { code, name } = options;
-    let prefix: Uint8Array | undefined;
+    let { code, data, name } = options;
 
-    if (code) {
-      prefix = Multicodec.codecs.get(code)?.codeBytes;
-    } else if (name) {
-      const code = Multicodec.registry.get(name);
-      prefix = code ? Multicodec.codecs.get(code)!.codeBytes : undefined;
-    } else {
-      throw new Error(`Required parameter missing: 'code' or 'name'`);
+    // Either code or name must be specified, but not both.
+    if (!(name ? !code : code)) {
+      throw new Error(`Exactly one of 'name' or 'code' must be defined.`);
     }
 
-    if (prefix === undefined) {
-      throw new Error(`Multicodec not found: ${code ?? name}`);
+    // If code was given, confirm it exists, or lookup code by name.
+    code = Multicodec.codeToName.has(code!) ? code : Multicodec.nameToCode.get(name!);
+
+    // Throw error if a registered Codec wasn't found.
+    if (code === undefined) {
+      throw new Error(`Multicodec not found: ${name ?? code}`);
     }
 
-    const data = Convert.bufferSource(options.data).toUint8Array();
+    // Create a new array to store the prefix and input data.
+    const prefixLength = varint.encodingLength(code);
+    const dataWithPrefix = new Uint8Array(prefixLength + data.byteLength);
+    dataWithPrefix.set(data, prefixLength);
 
-    const dataWithPrefix = new Uint8Array(prefix.length + data.length);
-    dataWithPrefix.set(prefix);
-    dataWithPrefix.set(data, prefix.length);
+    // Prepend the prefix.
+    varint.encodeTo(code, dataWithPrefix);
 
     return dataWithPrefix;
+  }
+
+  /**
+   * Get the Multicodec code from given prefixed data.
+   *
+   * @param options - The options for getting the codec code.
+   * @param options.prefixedData - The data to extract the codec code from.
+   * @returns - The Multicodec code as a number.
+   */
+  public static getCodeFromData(options: {
+    prefixedData: Uint8Array
+  }): MulticodecCode {
+    const { prefixedData } = options;
+    const [code, _] = varint.decode(prefixedData);
+
+    return code;
   }
 
   /**
@@ -80,16 +99,30 @@ export class Multicodec {
    *
    * @param codec - The codec to be registered.
    */
-  public static registerCodec(codec: MulticodecDefinition<number>) {
-    Multicodec.codecs.set(codec.code, codec);
-    Multicodec.registry.set(codec.name, codec.code);
+  public static registerCodec(codec: MulticodecDefinition<MulticodecCode>) {
+    Multicodec.codeToName.set(codec.code, codec.name);
+    Multicodec.nameToCode.set(codec.name, codec.code);
+  }
+
+  /**
+   * Returns the data with the Multicodec prefix removed.
+   *
+   * @param refixedData - The data to extract the codec code from.
+   * @returns {Uint8Array}
+   */
+  public static removePrefix(options: {
+    prefixedData: Uint8Array
+  }): Uint8Array {
+    const { prefixedData } = options;
+    const [_, codeByteLength] = varint.decode(prefixedData);
+    return prefixedData.slice(codeByteLength);
   }
 }
 
 // Pre-defined registered codecs:
-Multicodec.registerCodec({ code: 0xed, codeBytes: new Uint8Array([0xed, 0x01]), name: 'ed25519-pub' });
-Multicodec.registerCodec({ code: 0x1300, codeBytes: new Uint8Array([0x80, 0x26]), name: 'ed25519-priv' });
-Multicodec.registerCodec({ code: 0xec, codeBytes: new Uint8Array([0xec, 0x01]), name: 'x25519-pub' });
-Multicodec.registerCodec({ code: 0x1302, codeBytes: new Uint8Array([0x82, 0x26]), name: 'x25519-priv' });
-Multicodec.registerCodec({ code: 0xe7, codeBytes: new Uint8Array([0xe7, 0x01]), name: 'secp256k1-pub' });
-Multicodec.registerCodec({ code: 0x1301, codeBytes: new Uint8Array([0x81, 0x26]), name: 'secp256k1-priv' });
+Multicodec.registerCodec({ code: 0xed, name: 'ed25519-pub' });
+Multicodec.registerCodec({ code: 0x1300, name: 'ed25519-priv' });
+Multicodec.registerCodec({ code: 0xec, name: 'x25519-pub' });
+Multicodec.registerCodec({ code: 0x1302, name: 'x25519-priv' });
+Multicodec.registerCodec({ code: 0xe7, name: 'secp256k1-pub' });
+Multicodec.registerCodec({ code: 0x1301, name: 'secp256k1-priv' });

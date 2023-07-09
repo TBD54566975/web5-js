@@ -1,11 +1,10 @@
-import type { KeyManagerOptions } from '../src/key-manager.js';
-import type { ManagedKey, ManagedKeyPair, ManagedPrivateKey, Web5Crypto } from '../src/types-key-manager.js';
+import type { KeyManagerOptions } from '../src/key-manager/index.js';
+import type { ManagedKey, ManagedKeyPair, ManagedPrivateKey, Web5Crypto } from '../src/types-new.js';
 
 import { expect } from 'chai';
 import { MemoryStore } from '@tbd54566975/common';
 
-import { KeyManager } from '../src/key-manager.js';
-import { KeyManagerStore } from '../src/key-manager-store.js';
+import { KeyManager, KeyManagerStore } from '../src/key-manager/index.js';
 import { LocalKms, KmsKeyStore, KmsPrivateKeyStore } from '../src/kms-local/index.js';
 
 describe('KeyManager', () => {
@@ -993,6 +992,120 @@ describe('KeyManager', () => {
         keyUsages : ['sign', 'verify'],
         kms       : 'non-existent-kms'
       })).to.eventually.be.rejectedWith(Error, 'Unknown key management system');
+    });
+  });
+});
+
+describe('KeyManagerStore', () => {
+  let keyManagerStore: KeyManagerStore;
+  let testKey: ManagedKey;
+
+  beforeEach(() => {
+    const memoryStore = new MemoryStore<string, ManagedKey | ManagedKeyPair>();
+
+    keyManagerStore = new KeyManagerStore({ store: memoryStore });
+
+    testKey = {
+      id          : 'testKey',
+      algorithm   : { name: 'AES', length: 256 },
+      extractable : true,
+      kms         : 'testKms',
+      state       : 'Enabled',
+      type        : 'secret',
+      usages      : ['encrypt', 'decrypt'],
+    };
+  });
+
+  describe('deleteKey()', () => {
+    it('should delete key and return true if key exists', async () => {
+      // Import the key.
+      await keyManagerStore.importKey({ key: testKey });
+
+      // Test deleting the key and validate the result.
+      const deleteResult = await keyManagerStore.deleteKey({ id: testKey.id });
+      expect(deleteResult).to.be.true;
+
+      // Verify the key is no longer in the store.
+      const storedKey = await keyManagerStore.getKey({ id: testKey.id });
+      expect(storedKey).to.be.undefined;
+    });
+
+    it('should return false if key does not exist', async () => {
+      // Test deleting the key.
+      const nonExistentId = '1234';
+      const deleteResult = await keyManagerStore.deleteKey({ id: nonExistentId });
+
+      // Validate the key was not deleted.
+      expect(deleteResult).to.be.false;
+    });
+  });
+
+  describe('getKey()', () => {
+    it('should return a key if it exists', async () => {
+      // Import the key.
+      await keyManagerStore.importKey({ key: testKey });
+
+      // Test getting the key.
+      const storedKey = await keyManagerStore.getKey({ id: testKey.id });
+
+      // Verify the key is in the store.
+      expect(storedKey).to.deep.equal(testKey);
+    });
+
+    it('should return undefined when attempting to get a non-existent key', async () => {
+      // Test getting the key.
+      const storedKey = await keyManagerStore.getKey({ id: 'non-existent-key' });
+
+      // Verify the key is no longer in the store.
+      expect(storedKey).to.be.undefined;
+    });
+  });
+
+  describe('importKey()', () => {
+    it('should import a key that does not already exist', async () => {
+      // Test importing the key and validate the result.
+      const importResult = await keyManagerStore.importKey({ key: testKey });
+      expect(importResult).to.be.true;
+
+      // Verify the key is present in the key store.
+      const storedKey = await keyManagerStore.getKey({ id: testKey.id });
+      expect(storedKey).to.deep.equal(testKey);
+    });
+
+    it('should throw an error when attempting to import a key that already exists', async () => {
+      // Import the key and validate the result.
+      const importResult = await keyManagerStore.importKey({ key: testKey });
+      expect(importResult).to.be.true;
+
+      // Test importing the key again and assert it throws an error.
+      const importKey = keyManagerStore.importKey({ key: testKey });
+      await expect(importKey).to.eventually.be.rejectedWith(Error, 'Key with ID already exists');
+    });
+  });
+
+  describe('listKeys()', () => {
+    it('should return an array of all keys in the store', async () => {
+      // Define multiple keys to be added.
+      const testKeys = [
+        { ...testKey, ...{ id: 'key-1' }},
+        { ...testKey, ...{ id: 'key-2' }},
+        { ...testKey, ...{ id: 'key-3' }}
+      ];
+
+      // Import the keys into the store.
+      for (let key of testKeys) {
+        await keyManagerStore.importKey({ key });
+      }
+
+      // List keys and verify the result.
+      const storedKeys = await keyManagerStore.listKeys();
+      expect(storedKeys).to.deep.equal(testKeys);
+    });
+
+    it('should return an empty array if the store contains no keys', async () => {
+      // List keys and verify the result is empty.
+      const storedKeys = await keyManagerStore.listKeys();
+      expect(storedKeys).to.be.empty;
     });
   });
 });
