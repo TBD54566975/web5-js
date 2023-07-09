@@ -113,8 +113,5 @@
     "sinon": "15.0.2",
     "source-map-loader": "4.0.1",
     "typescript": "5.0.4"
-  },
-  "overrides": {
-    "socket.io-parser@>4.0.4 <4.2.3": "4.2.3"
   }
 }
