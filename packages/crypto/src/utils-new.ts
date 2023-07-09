@@ -50,16 +50,6 @@ export function checkRequiredProperty(options: {
 }
 
 /**
- * !TODO: Consider combining isCryptoKeyPair and isManagedKeyPair:
- * !  export function isKeyPair<K, KP>(key: K | KP): key is KP {
- * !    return (key as any).privateKey !== undefined && (key as any).publicKey !== undefined;
- * !  }
- * !  usage examples:
- * !    if (isKeyPair<Web5Crypto.CryptoKey, Web5Crypto.CryptoKeyPair>(key))...
- * !    if (isKeyPair<ManagedKey, ManagedKeyPair>(key))...
- */
-
-/**
  * Type guard function to check if the given key is a
  * Web5Crypto.CryptoKeyPair.
  *
@@ -141,5 +131,6 @@ export function uuid(): string {
   ];
   const uuid = segments.join('-');
   segments.fill('0'); // wipe the segments array
+
   return uuid;
 }

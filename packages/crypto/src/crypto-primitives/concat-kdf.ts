@@ -139,8 +139,8 @@ export class ConcatKdf {
 
   * @returns OtherInfo as a Uint8Array.
    */
-  private static computeOtherInfo(
-    options: ConcatKdfOtherInfo
+  private static computeOtherInfo(options:
+    ConcatKdfOtherInfo
   ): Uint8Array {
     // Required sub-fields.
     const algorithmId = ConcatKdf.toDataLenData({ data: options.algorithmId });

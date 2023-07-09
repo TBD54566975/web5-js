@@ -114,9 +114,11 @@ export class Secp256k1 {
    * can independently compute the x-coordinate, so using just the x-coordinate
    * simplifies matters.
    */
-  public static async sharedSecret(
-    options: { privateKey: ArrayBuffer, publicKey: ArrayBuffer, compressedSecret?: boolean }
-  ): Promise<ArrayBuffer> {
+  public static async sharedSecret(options: {
+    compressedSecret?: boolean,
+    privateKey: ArrayBuffer,
+    publicKey: ArrayBuffer
+  }): Promise<ArrayBuffer> {
     let { privateKey, publicKey } = options;
 
     // Convert private and public key material from ArrayBuffer to Uint8Array.
@@ -140,9 +142,11 @@ export class Secp256k1 {
    * @param options.key - The private key to use for signing.
    * @returns A Promise that resolves to the signature as an ArrayBuffer.
    */
-  public static async sign(
-    options: { data: BufferSource, hash: string, key: ArrayBuffer }
-  ): Promise<ArrayBuffer> {
+  public static async sign(options: {
+    data: BufferSource,
+    hash: string,
+    key: ArrayBuffer
+  }): Promise<ArrayBuffer> {
     const { data, hash, key } = options;
 
     // Convert data from BufferSource to Uint8Array.
@@ -174,9 +178,12 @@ export class Secp256k1 {
    * @param options.signature - The signature to verify.
    * @returns A Promise that resolves to a boolean indicating whether the signature is valid.
    */
-  public static async verify(
-    options: { data: BufferSource, hash: string, key: ArrayBuffer, signature: ArrayBuffer }
-  ): Promise<boolean> {
+  public static async verify(options: {
+    data: BufferSource,
+    hash: string,
+    key: ArrayBuffer,
+    signature: ArrayBuffer
+  }): Promise<boolean> {
     const { data, hash, key, signature } = options;
 
     // Convert public key material from ArrayBuffer to Uint8Array.

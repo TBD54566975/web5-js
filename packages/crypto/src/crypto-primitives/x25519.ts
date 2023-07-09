@@ -49,9 +49,9 @@ export class X25519 {
    * @param options.privateKey - The private key used to compute the public key.
    * @returns A Promise that resolves to the computed public key as an ArrayBuffer.
    */
-  public static async getPublicKey(
-    options: { privateKey: ArrayBuffer }
-  ): Promise<ArrayBuffer> {
+  public static async getPublicKey(options: {
+    privateKey: ArrayBuffer
+  }): Promise<ArrayBuffer> {
     let { privateKey } = options;
 
     // Convert key material from ArrayBuffer to Uint8Array.
@@ -72,9 +72,10 @@ export class X25519 {
    * @param options.publicKey - The public key of the other party.
    * @returns A Promise that resolves to the computed shared secret as an ArrayBuffer.
    */
-  public static async sharedSecret(
-    options: { privateKey: ArrayBuffer, publicKey: ArrayBuffer }
-  ): Promise<ArrayBuffer> {
+  public static async sharedSecret(options: {
+    privateKey: ArrayBuffer,
+    publicKey: ArrayBuffer
+  }): Promise<ArrayBuffer> {
     let { privateKey, publicKey } = options;
 
     // Convert private and public key material from ArrayBuffer to Uint8Array.

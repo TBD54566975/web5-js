@@ -57,9 +57,9 @@ export class Ed25519 {
    * @param options.privateKey - The 32-byte private key from which to compute the public key.
    * @returns A Promise that resolves to the computed 32-byte public key as an ArrayBuffer.
    */
-  public static async getPublicKey(
-    options: { privateKey: ArrayBuffer }
-  ): Promise<ArrayBuffer> {
+  public static async getPublicKey(options: {
+    privateKey: ArrayBuffer
+  }): Promise<ArrayBuffer> {
     let { privateKey } = options;
 
     // Convert key material from ArrayBuffer to Uint8Array.
@@ -79,9 +79,10 @@ export class Ed25519 {
    * @param options.data - The data to sign.
    * @returns A Promise that resolves to the signature as an ArrayBuffer.
    */
-  public static async sign(
-    options: { key: ArrayBuffer, data: BufferSource }
-  ): Promise<ArrayBuffer> {
+  public static async sign(options: {
+    data: BufferSource,
+    key: ArrayBuffer
+  }): Promise<ArrayBuffer> {
     const { key, data } = options;
 
     // Convert data from BufferSource to Uint8Array.
@@ -105,9 +106,11 @@ export class Ed25519 {
    * @param options.data - The data that was signed.
    * @returns A Promise that resolves to a boolean indicating whether the signature is valid.
    */
-  public static async verify(
-    options: { key: ArrayBuffer, signature: ArrayBuffer, data: BufferSource }
-  ): Promise<boolean> {
+  public static async verify(options: {
+    data: BufferSource,
+    key: ArrayBuffer,
+    signature: ArrayBuffer
+  }): Promise<boolean> {
     const { key, signature, data } = options;
 
     // Convert public key material from ArrayBuffer to Uint8Array.
