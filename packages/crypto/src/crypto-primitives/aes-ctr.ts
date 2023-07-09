@@ -1,18 +1,19 @@
 import { crypto } from '@noble/hashes/crypto';
 
 /**
- * The `AesCtr` class provides an interface for AES-CTR (Advanced Encryption Standard - Counter)
- * encryption and decryption operations. The class uses the '@noble/hashes/crypto' package for
+ * The `AesCtr` class provides an interface for AES-CTR
+ * (Advanced Encryption Standard - Counter) encryption and decryption
+ * operations. The class uses the '@noble/hashes/crypto' package for
  * the cryptographic operations.
  *
- * All methods of this class are asynchronous and return Promises. They all use
- * the ArrayBuffer type for keys and data, providing a consistent
+ * All methods of this class are asynchronous and return Promises. They all
+ * use the ArrayBuffer type for keys and data, providing a consistent
  * interface for working with binary data.
  *
  * Example usage:
  *
  * ```ts
- * const key = await AesCtr.generateKey(16); // 16 bytes = 128 bits
+ * const key = await AesCtr.generateKey({ byteLength: 16 }); // 16 bytes = 128 bits
  * const counter = new Uint8Array(16); // initialize a 16-byte counter
  * const message = new TextEncoder().encode('Hello, world!');
  * const ciphertext = await AesCtr.encrypt({
@@ -95,7 +96,11 @@ export class AesCtr {
    * @param byteLength - The length of the key in bytes.
    * @returns A Promise that resolves to the generated key as an ArrayBuffer.
    */
-  public static async generateKey(byteLength: number): Promise<ArrayBuffer> {
+  public static async generateKey(options: {
+    byteLength: number
+  }): Promise<ArrayBuffer> {
+    const { byteLength } = options;
+
     // Generate the secret key.
     const secretKey = crypto.getRandomValues(new Uint8Array(byteLength));
 

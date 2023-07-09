@@ -31,7 +31,7 @@ describe('Cryptographic Primitive Implementations', () => {
 
       it('accepts ciphertext input as ArrayBuffer, DataView, and TypedArray', async () => {
         const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        const secretKey = await AesCtr.generateKey(32);
+        const secretKey = await AesCtr.generateKey({ byteLength: 32 });
         let ciphertext: ArrayBuffer;
 
         // ArrayBuffer
@@ -75,7 +75,7 @@ describe('Cryptographic Primitive Implementations', () => {
 
       it('accepts plaintext input as ArrayBuffer, DataView, and TypedArray', async () => {
         const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        const secretKey = await AesCtr.generateKey(32);
+        const secretKey = await AesCtr.generateKey({ byteLength: 32 });
         let ciphertext: ArrayBuffer;
 
         // ArrayBuffer
@@ -106,7 +106,7 @@ describe('Cryptographic Primitive Implementations', () => {
 
     describe('generateKey()', () => {
       it('returns a secret key of type ArrayBuffer', async () => {
-        const secretKey = await AesCtr.generateKey(32);
+        const secretKey = await AesCtr.generateKey({ byteLength: 32 });
         expect(secretKey).to.be.instanceOf(ArrayBuffer);
       });
 
@@ -114,15 +114,15 @@ describe('Cryptographic Primitive Implementations', () => {
         let secretKey: ArrayBuffer;
 
         // 128 bits
-        secretKey= await AesCtr.generateKey(16);
+        secretKey= await AesCtr.generateKey({ byteLength: 16 });
         expect(secretKey.byteLength).to.equal(16);
 
         // 192 bits
-        secretKey= await AesCtr.generateKey(24);
+        secretKey= await AesCtr.generateKey({ byteLength: 24 });
         expect(secretKey.byteLength).to.equal(24);
 
         // 256 bits
-        secretKey= await AesCtr.generateKey(32);
+        secretKey= await AesCtr.generateKey({ byteLength: 32 });
         expect(secretKey.byteLength).to.equal(32);
       });
     });
