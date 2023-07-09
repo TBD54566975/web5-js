@@ -1,22 +1,4 @@
 /**
- * isDefined
- *
- * Utility function to check if a variable is neither null nor undefined.
- * This function helps in making TypeScript infer the type of the variable
- * as being defined, excluding `null` and `undefined`.
- *
- * The function uses strict equality (`!==`) for the comparison, ensuring
- * that the variable is not just falsy (like an empty string or zero),
- * but is truly either `null` or `undefined`.
- *
- * @param arg - The variable to be checked
- * @returns true if the variable is neither `null` nor `undefined`
- */
-export function isDefined<T>(arg: T): arg is Exclude<T, null | undefined> {
-  return arg !== null && typeof arg !== 'undefined';
-}
-
-/**
  * isArrayBufferSlice
  *
  * Checks if the ArrayBufferView represents a slice (subarray or a subview)
@@ -33,6 +15,24 @@ export function isDefined<T>(arg: T): arg is Exclude<T, null | undefined> {
  */
 export function isArrayBufferSlice(arrayBufferView: ArrayBufferView): boolean {
   return arrayBufferView.byteOffset !== 0 || arrayBufferView.byteLength !== arrayBufferView.buffer.byteLength;
+}
+
+/**
+ * isDefined
+ *
+ * Utility function to check if a variable is neither null nor undefined.
+ * This function helps in making TypeScript infer the type of the variable
+ * as being defined, excluding `null` and `undefined`.
+ *
+ * The function uses strict equality (`!==`) for the comparison, ensuring
+ * that the variable is not just falsy (like an empty string or zero),
+ * but is truly either `null` or `undefined`.
+ *
+ * @param arg - The variable to be checked
+ * @returns true if the variable is neither `null` nor `undefined`
+ */
+export function isDefined<T>(arg: T): arg is Exclude<T, null | undefined> {
+  return arg !== null && typeof arg !== 'undefined';
 }
 
 /**

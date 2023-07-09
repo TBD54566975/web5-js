@@ -4,6 +4,27 @@ import { universalTypeOf } from '@tbd54566975/common';
 import { bytesToHex, randomBytes } from '@noble/hashes/utils';
 
 /**
+ * Checks whether the properties object provided contains the specified property.
+ *
+ * @param property Property key to check for.
+ * @param properties Properties object to check within.
+ * @returns void
+ * @throws {SyntaxError} If the property is not a key in the properties object.
+ */
+export function checkRequiredProperty(options: {
+  property: string,
+  inObject: object
+}): void {
+  if (!options || options.property === undefined || options.inObject === undefined) {
+    throw new TypeError(`One or more required arguments missing: 'property, properties'`);
+  }
+  const { property, inObject } = options;
+  if (!(property in inObject)) {
+    throw new TypeError(`Required parameter was missing: '${property}'`);
+  }
+}
+
+/**
  * Checks whether the property specified is a member of the list of valid properties.
  *
  * @param property Property key to check for.
@@ -29,24 +50,16 @@ export function checkValidProperty(options: {
 }
 
 /**
- * Checks whether the properties object provided contains the specified property.
+ * Type guard function to check if the given key is a raw key pair
+ * of ArrayBuffers.
  *
- * @param property Property key to check for.
- * @param properties Properties object to check within.
- * @returns void
- * @throws {SyntaxError} If the property is not a key in the properties object.
+ * @param key The key to check.
+ * @returns True if the key is a pair of key ArrayBuffers, false otherwise.
  */
-export function checkRequiredProperty(options: {
-  property: string,
-  inObject: object
-}): void {
-  if (!options || options.property === undefined || options.inObject === undefined) {
-    throw new TypeError(`One or more required arguments missing: 'property, properties'`);
-  }
-  const { property, inObject } = options;
-  if (!(property in inObject)) {
-    throw new TypeError(`Required parameter was missing: '${property}'`);
-  }
+export function isBufferKeyPair(key: BufferKeyPair | undefined): key is BufferKeyPair {
+  return (key && 'privateKey' in key && 'publicKey' in key &&
+    universalTypeOf(key.privateKey) === 'ArrayBuffer' &&
+    universalTypeOf(key.publicKey) === 'ArrayBuffer') ? true : false;
 }
 
 /**
@@ -78,19 +91,6 @@ export function isManagedKey(key: ManagedKey | ManagedKeyPair | undefined): key 
  */
 export function isManagedKeyPair(key: ManagedKey | ManagedKeyPair | undefined): key is ManagedKeyPair {
   return key !== undefined && 'privateKey' in key && 'publicKey' in key;
-}
-
-/**
- * Type guard function to check if the given key is a raw key pair
- * of ArrayBuffers.
- *
- * @param key The key to check.
- * @returns True if the key is a pair of key ArrayBuffers, false otherwise.
- */
-export function isBufferKeyPair(key: BufferKeyPair | undefined): key is BufferKeyPair {
-  return (key && 'privateKey' in key && 'publicKey' in key &&
-    universalTypeOf(key.privateKey) === 'ArrayBuffer' &&
-    universalTypeOf(key.publicKey) === 'ArrayBuffer') ? true : false;
 }
 
 /**
