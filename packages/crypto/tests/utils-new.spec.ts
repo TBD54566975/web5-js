@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 
-import { checkValidProperty, checkRequiredProperty, uuid } from '../src/utils-key-manager.js';
+import { checkValidProperty, checkRequiredProperty, uuid } from '../src/utils-new.js';
 
 describe('Crypto Utils', () => {
   describe('checkValidProperty()', () => {

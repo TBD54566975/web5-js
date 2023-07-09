@@ -1,4 +1,4 @@
-import type { Web5Crypto } from '../types-key-manager.js';
+import type { Web5Crypto } from '../types-new.js';
 
 import { universalTypeOf } from '@tbd54566975/common';
 

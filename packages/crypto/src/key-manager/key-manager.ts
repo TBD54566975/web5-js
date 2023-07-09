@@ -15,13 +15,13 @@ import type {
   GenerateKeyOptions,
   KeyManagementSystem,
   GenerateKeyOptionTypes,
-} from './types-key-manager.js';
+} from '../types-new.js';
 
 import { MemoryStore } from '@tbd54566975/common';
 
-import { KeyManagerStore } from './key-manager-store.js';
-import { checkRequiredProperty, isManagedKey, isManagedKeyPair } from './utils-key-manager.js';
-import { LocalKms, KmsKeyStore, KmsPrivateKeyStore } from './kms-local/index.js';
+import { KeyManagerStore } from './key-store.js';
+import { checkRequiredProperty, isManagedKey, isManagedKeyPair } from '../utils-new.js';
+import { LocalKms, KmsKeyStore, KmsPrivateKeyStore } from '../kms-local/index.js';
 
 export type KmsMap = {
   [name: string]: KeyManagementSystem;

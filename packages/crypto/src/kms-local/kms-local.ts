@@ -16,14 +16,14 @@ import type {
   GenerateKeyOptions,
   KeyManagementSystem,
   GenerateKeyOptionTypes,
-} from '../types-key-manager.js';
+} from '../types-new.js';
 
 import { Convert } from '@tbd54566975/common';
 
 import { CryptoAlgorithm } from '../algorithms-api/index.js';
 import { defaultAlgorithms } from './supported-algorithms.js';
-import { KmsKeyStore, KmsPrivateKeyStore } from './key-stores.js';
-import { checkRequiredProperty, isCryptoKeyPair, isManagedKey, isManagedKeyPair } from '../utils-key-manager.js';
+import { KmsKeyStore, KmsPrivateKeyStore } from './key-store.js';
+import { checkRequiredProperty, isCryptoKeyPair, isManagedKey, isManagedKeyPair } from '../utils-new.js';
 
 
 export type KmsOptions = {

@@ -1,8 +1,8 @@
-import type { Web5Crypto } from '../../types-key-manager.js';
+import type { Web5Crypto } from '../../types-new.js';
 
 import { InvalidAccessError } from '../errors.js';
 import { EllipticCurveAlgorithm } from './base.js';
-import { checkValidProperty, checkRequiredProperty } from '../../utils-key-manager.js';
+import { checkValidProperty, checkRequiredProperty } from '../../utils-new.js';
 
 export abstract class EcdsaAlgorithm extends EllipticCurveAlgorithm {
 

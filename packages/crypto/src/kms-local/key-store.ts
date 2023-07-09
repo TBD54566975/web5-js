@@ -1,9 +1,9 @@
-import type { ManagedKeyStore, ManagedKey, ManagedKeyPair, ManagedPrivateKey } from '../types-key-manager.js';
+import type { ManagedKeyStore, ManagedKey, ManagedKeyPair, ManagedPrivateKey } from '../types-new.js';
 
 import { MemoryStore } from '@tbd54566975/common';
 
-import { uuid } from '../utils-key-manager.js';
-import { isManagedKeyPair } from '../utils-key-manager.js';
+import { uuid } from '../utils-new.js';
+import { isManagedKeyPair } from '../utils-new.js';
 
 /**
  * An implementation of `ManagedKeyStore` that stores key metadata and
