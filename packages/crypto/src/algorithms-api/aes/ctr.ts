@@ -2,11 +2,11 @@ import type { Web5Crypto } from '../../types/index.js';
 
 import { universalTypeOf } from '@tbd54566975/common';
 
-import { AesAlgorithm } from './base.js';
+import { BaseAesAlgorithm } from './base.js';
 import { OperationError } from '../errors.js';
 import { checkRequiredProperty } from '../../utils-new.js';
 
-export abstract class AesCtrAlgorithm extends AesAlgorithm {
+export abstract class BaseAesCtrAlgorithm extends BaseAesAlgorithm {
 
   public readonly name = 'AES-CTR';
 

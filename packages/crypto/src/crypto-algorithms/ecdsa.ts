@@ -2,8 +2,8 @@ import type { BufferKeyPair, Web5Crypto } from '../types/index.js';
 
 import { isBufferKeyPair } from '../utils-new.js';
 import { Secp256k1 } from '../crypto-primitives/index.js';
-import { CryptoKey, EcdsaAlgorithm } from '../algorithms-api/index.js';
-export class DefaultEcdsaAlgorithm extends EcdsaAlgorithm {
+import { CryptoKey, BaseEcdsaAlgorithm } from '../algorithms-api/index.js';
+export class EcdsaAlgorithm extends BaseEcdsaAlgorithm {
   public readonly hashAlgorithms = ['SHA-256'];
   public readonly namedCurves = ['secp256k1'];
 

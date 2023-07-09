@@ -2,9 +2,9 @@ import type { BufferKeyPair, Web5Crypto } from '../types/index.js';
 
 import { isBufferKeyPair } from '../utils-new.js';
 import { Ed25519 } from '../crypto-primitives/index.js';
-import { CryptoKey, EdDsaAlgorithm } from '../algorithms-api/index.js';
+import { CryptoKey, BaseEdDsaAlgorithm } from '../algorithms-api/index.js';
 
-export class DefaultEdDsaAlgorithm extends EdDsaAlgorithm {
+export class EdDsaAlgorithm extends BaseEdDsaAlgorithm {
   public readonly namedCurves = ['Ed25519', 'Ed448'];
 
   public async generateKey(options: {
