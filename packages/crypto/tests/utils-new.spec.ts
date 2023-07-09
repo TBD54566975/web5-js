@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 
-import { checkValidProperty, checkRequiredProperty, uuid } from '../src/utils-new.js';
+import { checkValidProperty, checkRequiredProperty, randomUuid } from '../src/utils-new.js';
 
 describe('Crypto Utils', () => {
   describe('checkValidProperty()', () => {
@@ -44,16 +44,16 @@ describe('Crypto Utils', () => {
     });
   });
 
-  describe('uuid()', () => {
+  describe('randomUuid()', () => {
     it('should generate a valid v4 UUID', () => {
-      const id = uuid();
+      const id = randomUuid();
       expect(id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
       expect(id).to.have.length(36);
     });
 
     it('should generate different UUIDs', () => {
-      const id1 = uuid();
-      const id2 = uuid();
+      const id1 = randomUuid();
+      const id2 = randomUuid();
       expect(id1).to.not.equal(id2);
     });
   });

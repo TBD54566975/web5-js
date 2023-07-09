@@ -2,7 +2,7 @@ import type { ManagedKeyStore, ManagedKey, ManagedKeyPair, ManagedPrivateKey } f
 
 import { MemoryStore } from '@tbd54566975/common';
 
-import { uuid } from '../utils-new.js';
+import { randomUuid } from '../utils-new.js';
 import { isManagedKeyPair } from '../utils-new.js';
 
 /**
@@ -40,7 +40,7 @@ export class KmsKeyStore implements ManagedKeyStore<string, ManagedKey | Managed
     if (isManagedKeyPair(key)) {
       id = key.publicKey.id;
     } else {
-      key.id ??= uuid(); // If an ID wasn't specified, generate one.
+      key.id ??= randomUuid(); // If an ID wasn't specified, generate one.
       id = key.id;
     }
 
@@ -97,7 +97,7 @@ export class KmsPrivateKeyStore implements ManagedKeyStore<string, ManagedPrivat
     // The private key material is transferred to the new object, making the original obj.material unusable.
     const clonedKey = structuredClone(key, { transfer: [key.material] }) as ManagedPrivateKey;
 
-    clonedKey.id = uuid();
+    clonedKey.id = randomUuid();
     await this.#keyStore.set(clonedKey.id, clonedKey);
 
     return clonedKey.id;
