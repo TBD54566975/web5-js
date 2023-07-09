@@ -3,9 +3,9 @@ import type { BufferKeyPair } from '../src/types/index.js';
 import { expect } from 'chai';
 import { Convert } from '@tbd54566975/common';
 
-import { aesCtrTestVectors } from './fixtures/test-vectors/aes.js';
+import { aesCtrTestVectors, aesGcmTestVectors } from './fixtures/test-vectors/aes.js';
 import { NotSupportedError } from '../src/algorithms-api/errors.js';
-import { AesCtr, ConcatKdf, Ed25519, Secp256k1, X25519, XChaCha20 } from '../src/crypto-primitives/index.js';
+import { AesCtr, AesGcm, ConcatKdf, Ed25519, Secp256k1, X25519, XChaCha20 } from '../src/crypto-primitives/index.js';
 
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
@@ -31,7 +31,7 @@ describe('Cryptographic Primitive Implementations', () => {
 
       it('accepts ciphertext input as ArrayBuffer, DataView, and TypedArray', async () => {
         const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        const secretKey = await AesCtr.generateKey({ byteLength: 32 });
+        const secretKey = await AesCtr.generateKey({ length: 256 });
         let ciphertext: ArrayBuffer;
 
         // ArrayBuffer
@@ -75,7 +75,7 @@ describe('Cryptographic Primitive Implementations', () => {
 
       it('accepts plaintext input as ArrayBuffer, DataView, and TypedArray', async () => {
         const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        const secretKey = await AesCtr.generateKey({ byteLength: 32 });
+        const secretKey = await AesCtr.generateKey({ length: 256 });
         let ciphertext: ArrayBuffer;
 
         // ArrayBuffer
@@ -106,7 +106,7 @@ describe('Cryptographic Primitive Implementations', () => {
 
     describe('generateKey()', () => {
       it('returns a secret key of type ArrayBuffer', async () => {
-        const secretKey = await AesCtr.generateKey({ byteLength: 32 });
+        const secretKey = await AesCtr.generateKey({ length: 256 });
         expect(secretKey).to.be.instanceOf(ArrayBuffer);
       });
 
@@ -114,15 +114,115 @@ describe('Cryptographic Primitive Implementations', () => {
         let secretKey: ArrayBuffer;
 
         // 128 bits
-        secretKey= await AesCtr.generateKey({ byteLength: 16 });
+        secretKey= await AesCtr.generateKey({ length: 128 });
         expect(secretKey.byteLength).to.equal(16);
 
         // 192 bits
-        secretKey= await AesCtr.generateKey({ byteLength: 24 });
+        secretKey= await AesCtr.generateKey({ length: 192 });
         expect(secretKey.byteLength).to.equal(24);
 
         // 256 bits
-        secretKey= await AesCtr.generateKey({ byteLength: 32 });
+        secretKey= await AesCtr.generateKey({ length: 256 });
+        expect(secretKey.byteLength).to.equal(32);
+      });
+    });
+  });
+
+  describe('AesGcm', () => {
+    describe('decrypt', () => {
+      for (const vector of aesGcmTestVectors) {
+        it(`passes test vector ${vector.id}`, async () => {
+          const plaintext = await AesGcm.decrypt({
+            additionalData : Convert.hex(vector.aad).toUint8Array(),
+            iv             : Convert.hex(vector.iv).toUint8Array(),
+            data           : Convert.hex(vector.ciphertext + vector.tag).toUint8Array(),
+            key            : Convert.hex(vector.key).toArrayBuffer(),
+            tagLength      : vector.tagLength
+          });
+          expect(Convert.arrayBuffer(plaintext).toHex()).to.deep.equal(vector.data);
+        });
+      }
+
+      it('accepts ciphertext input as ArrayBuffer and TypedArray', async () => {
+        const secretKey = new Uint8Array([222, 78, 162, 222, 38, 146, 151, 191, 191, 75, 227, 71, 220, 221, 70, 49]);
+        let plaintext: ArrayBuffer;
+
+        // ArrayBuffer
+        const ciphertextArrayBuffer = (new Uint8Array([242, 126, 129, 170, 99, 195, 21, 165, 205, 3, 226, 171, 203, 198, 42, 86, 101])).buffer;
+        plaintext = await AesGcm.decrypt({ data: ciphertextArrayBuffer, iv: new ArrayBuffer(12), key: secretKey, tagLength: 128 });
+        expect(plaintext).to.be.instanceOf(ArrayBuffer);
+
+        // TypedArray - Uint8Array
+        const ciphertextU8A = new Uint8Array([242, 126, 129, 170, 99, 195, 21, 165, 205, 3, 226, 171, 203, 198, 42, 86, 101]);
+        plaintext = await AesGcm.decrypt({ data: ciphertextU8A, iv: new ArrayBuffer(12), key: secretKey, tagLength: 128 });
+        expect(plaintext).to.be.instanceOf(ArrayBuffer);
+      });
+    });
+
+    describe('encrypt', () => {
+      for (const vector of aesGcmTestVectors) {
+        it(`passes test vector ${vector.id}`, async () => {
+          const ciphertext = await AesGcm.encrypt({
+            additionalData : Convert.hex(vector.aad).toUint8Array(),
+            iv             : Convert.hex(vector.iv).toUint8Array(),
+            data           : Convert.hex(vector.data).toUint8Array(),
+            key            : Convert.hex(vector.key).toArrayBuffer(),
+            tagLength      : vector.tagLength
+          });
+          expect(Convert.arrayBuffer(ciphertext).toHex()).to.deep.equal(vector.ciphertext + vector.tag);
+        });
+      }
+
+      it('accepts plaintext input as ArrayBuffer, DataView, and TypedArray', async () => {
+        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        const secretKey = await AesGcm.generateKey({ length: 256 });
+        let ciphertext: ArrayBuffer;
+
+        // ArrayBuffer
+        const dataArrayBuffer = dataU8A.buffer;
+        ciphertext = await AesGcm.encrypt({ data: dataArrayBuffer, iv: new ArrayBuffer(12), key: secretKey, tagLength: 128 });
+        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+        // DataView
+        const dataView = new DataView(dataArrayBuffer);
+        ciphertext = await AesGcm.encrypt({ data: dataView, iv: new ArrayBuffer(12), key: secretKey, tagLength: 128 });
+        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+        // TypedArray - Uint8Array
+        ciphertext = await AesGcm.encrypt({ data: dataU8A, iv: new ArrayBuffer(12), key: secretKey, tagLength: 128 });
+        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+        // TypedArray - Int32Array
+        const dataI32A = new Int32Array([10, 20, 30, 40]);
+        ciphertext = await AesGcm.encrypt({ data: dataI32A, iv: new ArrayBuffer(12), key: secretKey, tagLength: 128 });
+        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+
+        // TypedArray - Uint32Array
+        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
+        ciphertext = await AesGcm.encrypt({ data: dataU32A, iv: new ArrayBuffer(12), key: secretKey, tagLength: 128 });
+        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+      });
+    });
+
+    describe('generateKey()', () => {
+      it('returns a secret key of type ArrayBuffer', async () => {
+        const secretKey = await AesGcm.generateKey({ length: 256 });
+        expect(secretKey).to.be.instanceOf(ArrayBuffer);
+      });
+
+      it('returns a secret key of the specified length', async () => {
+        let secretKey: ArrayBuffer;
+
+        // 128 bits
+        secretKey= await AesGcm.generateKey({ length: 128 });
+        expect(secretKey.byteLength).to.equal(16);
+
+        // 192 bits
+        secretKey= await AesGcm.generateKey({ length: 192 });
+        expect(secretKey.byteLength).to.equal(24);
+
+        // 256 bits
+        secretKey= await AesGcm.generateKey({ length: 256 });
         expect(secretKey.byteLength).to.equal(32);
       });
     });
