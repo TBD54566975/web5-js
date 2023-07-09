@@ -3,8 +3,8 @@ import type { Web5Crypto } from '../../types/index.js';
 import { universalTypeOf } from '@tbd54566975/common';
 
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
-import { InvalidAccessError, OperationError } from '../errors.js';
 import { checkRequiredProperty } from '../../utils-new.js';
+import { InvalidAccessError, OperationError } from '../errors.js';
 
 export abstract class AesAlgorithm extends CryptoAlgorithm {
 

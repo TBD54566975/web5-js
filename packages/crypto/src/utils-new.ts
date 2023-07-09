@@ -1,7 +1,7 @@
 import type { BufferKeyPair, ManagedKey, ManagedKeyPair, Web5Crypto } from './types/index.js';
 
-import { bytesToHex, randomBytes } from '@noble/hashes/utils';
 import { universalTypeOf } from '@tbd54566975/common';
+import { bytesToHex, randomBytes } from '@noble/hashes/utils';
 
 /**
  * Checks whether the property specified is a member of the list of valid properties.
@@ -116,7 +116,7 @@ export function isBufferKeyPair(key: BufferKeyPair | undefined): key is BufferKe
  *
  * @returns A UUID string in version 4 format.
  */
-export function uuid(): string {
+export function randomUuid(): string {
   const bytes = randomBytes(16);
   bytes[6] = (bytes[6] & 0x0f) | 0x40; // set version 4
   bytes[8] = (bytes[8] & 0x3f) | 0x80; // set variant 1

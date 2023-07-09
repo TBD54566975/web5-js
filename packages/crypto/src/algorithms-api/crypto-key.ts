@@ -1,8 +1,5 @@
 import type { Web5Crypto } from '../types/index.js';
 
-/**
- * CryptoKey interface
- */
 export class CryptoKey implements Web5Crypto.CryptoKey {
   public algorithm: Web5Crypto.GenerateKeyOptions;
   public extractable: boolean;
@@ -10,9 +7,6 @@ export class CryptoKey implements Web5Crypto.CryptoKey {
   public type: Web5Crypto.KeyType;
   public usages: Web5Crypto.KeyUsage[];
 
-  /**
-   * Constructor
-   */
   constructor (algorithm: Web5Crypto.GenerateKeyOptions, extractable: boolean, handle: ArrayBuffer, type: Web5Crypto.KeyType, usages: Web5Crypto.KeyUsage[]) {
     this.algorithm = algorithm;
     this.extractable = extractable;

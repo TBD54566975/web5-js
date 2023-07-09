@@ -1,8 +1,7 @@
 import type { BufferKeyPair } from '../types/index.js';
 
-import { ed25519 } from '@noble/curves/ed25519';
-
 import { Convert } from '@tbd54566975/common';
+import { ed25519 } from '@noble/curves/ed25519';
 
 /**
  * The `Ed25519` class provides an interface for generating Ed25519 key pairs,
