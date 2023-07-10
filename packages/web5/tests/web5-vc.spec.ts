@@ -28,25 +28,27 @@ describe('web5.vc', () => {
     await testAgent.closeStorage();
   });
 
-  describe('create', () => {
-    it('valid vc', async () => {
-      const credentialSubject = {firstName: 'alice'};
-      const result = await vc.create(credentialSubject);
+  describe('verifiable credentials', () => {
+    describe('create', () => {
+      it('valid vc', async () => {
+        const credentialSubject = {firstName: 'alice'};
+        const result = await vc.create(credentialSubject);
 
-      expect(result.status.code).to.equal(202);
-      expect(result.status.detail).to.equal('Accepted');
-      expect(result.record).to.exist;
-      expect(await result.record?.data.json()).to.deep.equal(result.vc);
-    });
+        expect(result.status.code).to.equal(202);
+        expect(result.status.detail).to.equal('Accepted');
+        expect(result.record).to.exist;
+        expect(await result.record?.data.json()).to.deep.equal(result.vc);
+      });
 
-    it('invalid credential subject', async () => {
-      const credentialSubject = 'badcredsubject';
-      try {
-        await vc.create(credentialSubject);
-        expect.fail();
-      } catch(e) {
-        expect(e.message).to.include('credentialSubject not valid');
-      }
+      it('invalid credential subject', async () => {
+        const credentialSubject = 'badcredsubject';
+        try {
+          await vc.create(credentialSubject);
+          expect.fail();
+        } catch(e) {
+          expect(e.message).to.include('credentialSubject not valid');
+        }
+      });
     });
   });
 });
