@@ -1,6 +1,6 @@
 {
   "name": "@tbd54566975/web5-user-agent",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Web5 User Agent",
   "type": "module",
   "main": "./dist/cjs/main.cjs",
@@ -81,9 +81,9 @@
   },
   "dependencies": {
     "@decentralized-identity/ion-tools": "1.1.1",
-    "@tbd54566975/dids": "0.1.8",
-    "@tbd54566975/dwn-sdk-js": "0.0.36",
-    "@tbd54566975/web5-agent": "0.1.6",
+    "@tbd54566975/dids": "0.1.9",
+    "@tbd54566975/dwn-sdk-js": "0.0.37",
+    "@tbd54566975/web5-agent": "0.1.7",
     "abstract-level": "1.0.3",
     "cross-fetch": "3.1.5",
     "flat": "5.0.2",
@@ -122,8 +122,5 @@
     "sinon": "15.0.2",
     "source-map-loader": "4.0.1",
     "typescript": "5.0.4"
-  },
-  "overrides": {
-    "socket.io-parser@>4.0.4 <4.2.3": "4.2.3"
   }
 }
