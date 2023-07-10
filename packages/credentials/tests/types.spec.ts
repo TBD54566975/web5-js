@@ -10,7 +10,7 @@ describe('credential types', () => {
 
     const issuer: Issuer = {
       id        : 'did:example:123456',
-      otherProp : 'value', // Replace with actual properties as needed
+      otherProp : 'value',
     };
 
     const credentialStatus: CredentialStatus = {
@@ -31,13 +31,11 @@ describe('credential types', () => {
         type : 'SchemaType1',
       },
       id             : 'http://example.edu/credentials/3732',
-      expirationDate : getFutureXmlSchema112Timestamp(60 * 60 * 24 * 365),
+      expirationDate : getFutureXmlSchema112Timestamp(60 * 60 * 24 * 365), // expires in 1 year
       name           : 'Credential Name',
       description    : 'Credential Description',
-    // Include other properties here
     };
 
-    // Check that credential has all the properties required for ICredential
     expect(credential).to.have.property('@context');
     expect(credential).to.have.property('type');
     expect(credential).to.have.property('issuer');

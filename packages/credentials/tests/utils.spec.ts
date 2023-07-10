@@ -3,10 +3,15 @@ import {getCurrentXmlSchema112Timestamp, getFutureXmlSchema112Timestamp} from '.
 
 describe('credentials utils', () => {
   it('gets correct time', () => {
-    expect(getCurrentXmlSchema112Timestamp()).to.not.be.undefined;
+    const timestamp = getCurrentXmlSchema112Timestamp();
+    expect(timestamp).to.not.be.undefined;
+    expect(timestamp).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+
   });
 
   it('gets correct time', () => {
-    expect(getFutureXmlSchema112Timestamp(123)).to.not.be.undefined;
+    const timestamp = getFutureXmlSchema112Timestamp(123);
+    expect(timestamp).to.not.be.undefined;
+    expect(timestamp).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
   });
 });
