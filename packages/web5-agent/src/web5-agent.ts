@@ -1,6 +1,6 @@
 import type { Readable } from 'readable-stream';
 
-import {
+import type {
   EventsGetMessage,
   UnionMessageReply,
   MessagesGetMessage,
