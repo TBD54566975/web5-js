@@ -3,8 +3,8 @@
   "version": "0.1.6",
   "description": "TBD crypto library",
   "type": "module",
-  "main": "./dist/cjs/main.cjs",
-  "module": "./dist/esm/main.mjs",
+  "main": "./dist/cjs/main.js",
+  "module": "./dist/esm/main.js",
   "types": "./dist/types/main.d.ts",
   "scripts": {
     "clean": "rimraf dist tests/compiled",
@@ -45,29 +45,15 @@
   ],
   "exports": {
     ".": {
-      "import": "./dist/esm/main.mjs",
-      "require": "./dist/cjs/main.cjs",
-      "types": "./dist/types/main.d.ts"
-    },
-    "./browser": {
-      "import": "./dist/browser.mjs",
-      "require": "./dist/browser.js",
-      "types": "./dist/types/main.d.ts"
-    },
-    "./electron": {
-      "import": "./dist/esm/main.mjs",
-      "require": "./dist/electron/main.cjs",
+      "import": "./dist/esm/main.js",
+      "require": "./dist/cjs/main.js",
       "types": "./dist/types/main.d.ts"
     }
   },
   "browser": {
     "node:crypto": false
   },
-  "react-native": {
-    "./dist/esm/main.mjs": "./dist/esm/main.mjs",
-    "./dist/cjs/main.cjs": "./dist/esm/main.mjs",
-    "types": "./dist/types/main.d.ts"
-  },
+  "react-native": "./dist/esm/main.js",
   "keywords": [
     "cryptography",
     "ed25519",
