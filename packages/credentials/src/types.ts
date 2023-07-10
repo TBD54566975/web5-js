@@ -1,4 +1,4 @@
-import { ICredential, IIssuer, IProofType, ICredentialStatus, ICredentialSubject} from '@sphereon/ssi-types';
+import { ICredential, IIssuer, ICredentialStatus, ICredentialSubject} from '@sphereon/ssi-types';
 
 
 /**
