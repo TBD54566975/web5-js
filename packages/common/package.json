@@ -6,7 +6,7 @@
   "module": "./dist/esm/main.js",
   "types": "./dist/types/main.d.ts",
   "scripts": {
-    "clean": "rimraf dist tests/compiled",
+    "clean": "rimraf dist coverage tests/compiled",
     "build:esm": "rimraf dist/esm dist/types && npx tsc -p tsconfig.json",
     "build:cjs": "rimraf dist/cjs && tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
     "build:browser": "rimraf dist/browser.mjs dist/browser.js && node build/bundles.js",
