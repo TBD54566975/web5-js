@@ -52,7 +52,7 @@ export class AesGcm {
   }): Promise<ArrayBuffer> {
     const { additionalData, data, iv, key, tagLength } = options;
 
-    const webCryptoKey = await this.#importKey(key);
+    const webCryptoKey = await this.importKey(key);
 
     const algorithm = (additionalData === undefined)
       ? { name: 'AES-GCM', iv, tagLength }
@@ -83,7 +83,7 @@ export class AesGcm {
   }): Promise<ArrayBuffer> {
     const { additionalData, data, iv, key, tagLength } = options;
 
-    const webCryptoKey = await this.#importKey(key);
+    const webCryptoKey = await this.importKey(key);
 
     const algorithm = (additionalData === undefined)
       ? { name: 'AES-GCM', iv, tagLength }
@@ -118,7 +118,7 @@ export class AesGcm {
    * @param key - The raw key material.
    * @returns A Promise that resolves to a CryptoKey.
    */
-  static async #importKey(key: ArrayBuffer): Promise<CryptoKey> {
+  private static async importKey(key: ArrayBuffer): Promise<CryptoKey> {
     return crypto.subtle.importKey(
       'raw',
       key,

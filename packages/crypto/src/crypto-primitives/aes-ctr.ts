@@ -49,7 +49,7 @@ export class AesCtr {
   }): Promise<ArrayBuffer> {
     const { counter, data, key, length } = options;
 
-    const webCryptoKey = await this.#importKey(key);
+    const webCryptoKey = await this.importKey(key);
 
     const ciphertext = await crypto.subtle.decrypt(
       { name: 'AES-CTR', counter, length },
@@ -78,7 +78,7 @@ export class AesCtr {
   }): Promise<ArrayBuffer> {
     const { counter, data, key, length } = options;
 
-    const webCryptoKey = await this.#importKey(key);
+    const webCryptoKey = await this.importKey(key);
 
     const plaintext = await crypto.subtle.encrypt(
       { name: 'AES-CTR', counter, length },
@@ -113,7 +113,7 @@ export class AesCtr {
    * @param key - The raw key material.
    * @returns A Promise that resolves to a CryptoKey.
    */
-  static async #importKey(key: ArrayBuffer): Promise<CryptoKey> {
+  private static async importKey(key: ArrayBuffer): Promise<CryptoKey> {
     return crypto.subtle.importKey(
       'raw',
       key,

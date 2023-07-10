@@ -16,15 +16,15 @@ import { isManagedKeyPair } from '../utils-new.js';
  * as the key/value store.
  */
 export class KmsKeyStore implements ManagedKeyStore<string, ManagedKey | ManagedKeyPair> {
-  #keyStore: MemoryStore<string, ManagedKey | ManagedKeyPair>;
+  private keyStore: MemoryStore<string, ManagedKey | ManagedKeyPair>;
 
   constructor(keyStore: MemoryStore<string, ManagedKey | ManagedKeyPair>) {
-    this.#keyStore = keyStore;
+    this.keyStore = keyStore;
   }
 
   async deleteKey({ id }: { id: string }) {
-    if (await this.#keyStore.has(id)) {
-      await this.#keyStore.delete(id);
+    if (await this.keyStore.has(id)) {
+      await this.keyStore.delete(id);
       return true;
     } else {
       return false;
@@ -32,7 +32,7 @@ export class KmsKeyStore implements ManagedKeyStore<string, ManagedKey | Managed
   }
 
   async getKey({ id }: { id: string }): Promise<ManagedKey | ManagedKeyPair | undefined> {
-    return this.#keyStore.get(id);
+    return this.keyStore.get(id);
   }
 
   async importKey({ key }: { key: ManagedKey | ManagedKeyPair }): Promise<string> {
@@ -44,18 +44,18 @@ export class KmsKeyStore implements ManagedKeyStore<string, ManagedKey | Managed
       id = key.id;
     }
 
-    if (await this.#keyStore.has(id)) {
+    if (await this.keyStore.has(id)) {
       throw new Error(`Key with ID already exists: '${id}'`);
     }
 
     // Make a deep copy of the key so that the object stored does not share the same references as the input key.
     const clonedKey = structuredClone(key);
-    await this.#keyStore.set(id, clonedKey);
+    await this.keyStore.set(id, clonedKey);
     return id;
   }
 
   async listKeys(): Promise<Array<ManagedKey | ManagedKeyPair>> {
-    return this.#keyStore.list();
+    return this.keyStore.list();
   }
 }
 
@@ -70,15 +70,15 @@ export class KmsKeyStore implements ManagedKeyStore<string, ManagedKey | Managed
  * as the key/value store.
  */
 export class KmsPrivateKeyStore implements ManagedKeyStore<string, ManagedPrivateKey> {
-  #keyStore: MemoryStore<string, ManagedPrivateKey>;
+  private keyStore: MemoryStore<string, ManagedPrivateKey>;
 
   constructor(keyStore: MemoryStore<string, ManagedPrivateKey>) {
-    this.#keyStore = keyStore;
+    this.keyStore = keyStore;
   }
 
   async deleteKey({ id }: { id: string }) {
-    if (await this.#keyStore.has(id)) {
-      await this.#keyStore.delete(id);
+    if (await this.keyStore.has(id)) {
+      await this.keyStore.delete(id);
       return true;
     } else {
       return false;
@@ -86,7 +86,7 @@ export class KmsPrivateKeyStore implements ManagedKeyStore<string, ManagedPrivat
   }
 
   async getKey({ id }: { id: string }): Promise<ManagedPrivateKey | undefined> {
-    return this.#keyStore.get(id);
+    return this.keyStore.get(id);
   }
 
   async importKey({ key }: { key: Omit<ManagedPrivateKey, 'id'> }): Promise<string> {
@@ -98,12 +98,12 @@ export class KmsPrivateKeyStore implements ManagedKeyStore<string, ManagedPrivat
     const clonedKey = structuredClone(key, { transfer: [key.material] }) as ManagedPrivateKey;
 
     clonedKey.id = randomUuid();
-    await this.#keyStore.set(clonedKey.id, clonedKey);
+    await this.keyStore.set(clonedKey.id, clonedKey);
 
     return clonedKey.id;
   }
 
   async listKeys(): Promise<Array<ManagedPrivateKey>> {
-    return this.#keyStore.list();
+    return this.keyStore.list();
   }
 }
