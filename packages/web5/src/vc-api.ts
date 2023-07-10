@@ -22,20 +22,29 @@ export class VcApi {
     this.#connectedDid = connectedDid;
   }
 
+  // TODO: Add CreateOptions for more robust VC creation
   async create(credentialSubject: any): Promise<VcCreateResponse> {
     if (!credentialSubject || typeof credentialSubject !== 'object') {
       throw new Error('credentialSubject not valid');
     }
 
     const vc: VerifiableCredential = {
+      id                : uuidv4(),
       '@context'        : ['https://www.w3.org/2018/credentials/v1'],
       credentialSubject : credentialSubject,
       type              : ['VerifiableCredential'],
       issuer            : { id: this.#connectedDid },
       issuanceDate      : getCurrentXmlSchema112Timestamp(),
-      id                : uuidv4(),
     };
 
+    // TODO: Sign VC
+    // const signedVc = this.#web5Agent.sign(vc);
+
+    const { record, status } = await this._writeRecord(vc);
+    return { record, status, vc };
+  }
+
+  private async _writeRecord(vc: VerifiableCredential) {
     const messageOptions: Partial<RecordsWriteOptions> = { ...{ schema: 'vc/vc', dataFormat: 'application/json' } };
 
     const { dataBlob, dataFormat } = dataToBlob(vc, 'application/json');
@@ -63,8 +72,8 @@ export class VcApi {
       };
 
       record = new Record(this.#web5Agent, recordOptions);
-    }
 
-    return { record, status, vc };
+      return {record, status};
+    }
   }
 }
