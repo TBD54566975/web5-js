@@ -1,6 +1,5 @@
 import { ICredential, IIssuer, ICredentialStatus, ICredentialSubject} from '@sphereon/ssi-types';
 
-
 /**
  * @see {@link https://www.w3.org/TR/vc-data-model/#credentials | VC data model}
  */
