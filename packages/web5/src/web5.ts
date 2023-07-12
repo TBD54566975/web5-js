@@ -52,6 +52,7 @@ export class Web5 {
   dwn: DwnApi;
   vc: VcApi;
   #connectedDid: string;
+  #techPreview: { userAgent: Web5UserAgent };
 
   /**
    * Statically available DID functionality. can be used to create and resolve DIDs without calling {@link connect}.
@@ -67,6 +68,8 @@ export class Web5 {
    */
   get did() { return Web5.did; }
 
+  get techPreview() { return this.#techPreview; }
+
   private static APP_DID_KEY = 'WEB5_APP_DID';
 
   private constructor(options: Web5Options) {
@@ -74,6 +77,10 @@ export class Web5 {
     this.dwn = new DwnApi(options.web5Agent, this.#connectedDid);
     this.vc = new VcApi(options.web5Agent, this.#connectedDid);
     this.appStorage ||= new AppStorage();
+
+    this.#techPreview = {
+      userAgent: options.web5Agent
+    };
   }
 
   /**
