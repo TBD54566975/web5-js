@@ -210,6 +210,3 @@ export class Web5 {
     }, delay);
   }
 }
-
-const { web5, did } = await Web5.connect();
-
