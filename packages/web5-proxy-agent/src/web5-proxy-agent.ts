@@ -1,5 +1,7 @@
 import type { DwnRequest, DwnResponse, Web5Agent } from '@tbd54566975/web5-agent';
 
+import { KeyManager} from '@tbd54566975/crypto';
+
 // TODO: concretely define json-rpc types specific to each Web5Agent interface method
 // TODO: write http transport. that transport will be shareable with client for dwn-server
 // TODO: write ws transport. that transport will be shareable with client for dwn-server
@@ -10,6 +12,10 @@ export class Web5ProxyAgent implements Web5Agent {
   }
 
   sendDwnRequest(_request: DwnRequest): Promise<any> {
+    throw new Error('Method not implemented.');
+  }
+
+  getKeyManager(): Promise<KeyManager> {
     throw new Error('Method not implemented.');
   }
 }

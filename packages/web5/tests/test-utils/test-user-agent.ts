@@ -3,6 +3,8 @@ import type { DidIonCreateOptions } from '@tbd54566975/dids';
 import { DidIonApi, DidKeyApi, DidResolver } from '@tbd54566975/dids';
 import { Web5UserAgent, ProfileApi, ProfileStore } from '@tbd54566975/web5-user-agent';
 import { Dwn, DataStoreLevel, EventLogLevel, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
+import { KeyManager, KeyManagerOptions, KeyManagerStore, ManagedKeyPair, ManagedKey, KmsKeyStore, KmsPrivateKeyStore, ManagedPrivateKey, LocalKms} from '@tbd54566975/crypto';
+import { MemoryStore } from '@tbd54566975/common';
 
 import { AppStorage } from '../../src/app-storage.js';
 
@@ -103,10 +105,33 @@ export class TestAgent {
 
     const profileApi = new ProfileApi(profileStore);
 
+    // Instantiate in-memory store for KMS key metadata and public keys.
+    const kmsMemoryStore = new MemoryStore<string, ManagedKey | ManagedKeyPair>();
+    const kmsKeyStore = new KmsKeyStore(kmsMemoryStore);
+
+    // Instantiate in-memory store for KMS private keys.
+    const memoryPrivateKeyStore = new MemoryStore<string, ManagedPrivateKey>();
+    const kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryPrivateKeyStore);
+
+    // Instantiate local KMS using key stores.
+    const localKms = new LocalKms('local', kmsKeyStore, kmsPrivateKeyStore);
+
+    // Instantiate in-memory store for KeyManager key metadata.
+    const kmMemoryStore = new MemoryStore<string, ManagedKey | ManagedKeyPair>();
+    const keyManagerStore = new KeyManagerStore({ store: kmMemoryStore });
+
+    const keyManagerOptions: KeyManagerOptions = {
+      store : keyManagerStore,
+      kms   : { local: localKms },
+    };
+
+    const keyManager = new KeyManager(keyManagerOptions);
+
     const agent = new Web5UserAgent({
       profileManager : new ProfileApi(profileStore),
       dwn            : dwn,
-      didResolver    : didResolver
+      didResolver    : didResolver,
+      keyManager     : keyManager
     });
 
     return new TestAgent({
@@ -120,8 +145,7 @@ export class TestAgent {
       profileStore,
       didResolver,
       didIon : DidIon,
-      didKey : DidKey
-
+      didKey : DidKey,
     });
   }
 

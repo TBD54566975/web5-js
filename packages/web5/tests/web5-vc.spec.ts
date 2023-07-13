@@ -6,7 +6,7 @@ import { VcApi } from '../src/vc-api.js';
 import { TestAgent, TestProfileOptions } from './test-utils/test-user-agent.js';
 
 let testAgent;
-let vc: VcApi;
+let vcApi: VcApi;
 let did: string;
 let testProfileOptions: TestProfileOptions;
 
@@ -20,7 +20,7 @@ describe('web5.vc', () => {
 
     testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.keys();
     ({ did } = await testAgent.createProfile(testProfileOptions));
-    vc = new VcApi(testAgent.agent, did);
+    vcApi = new VcApi(testAgent.agent, did);
   });
 
   after(async () => {
@@ -32,7 +32,7 @@ describe('web5.vc', () => {
     describe('create', () => {
       it('valid vc', async () => {
         const credentialSubject = {firstName: 'alice'};
-        const result = await vc.create(credentialSubject);
+        const result = await vcApi.create(credentialSubject);
 
         expect(result.status.code).to.equal(202);
         expect(result.status.detail).to.equal('Accepted');
@@ -43,7 +43,7 @@ describe('web5.vc', () => {
       it('invalid credential subject', async () => {
         const credentialSubject = 'badcredsubject';
         try {
-          await vc.create(credentialSubject);
+          await vcApi.create(credentialSubject);
           expect.fail();
         } catch(e) {
           expect(e.message).to.include('credentialSubject not valid');

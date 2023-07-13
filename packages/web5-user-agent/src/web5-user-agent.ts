@@ -47,6 +47,8 @@ import {
 import { ProfileApi } from './profile-api.js';
 import { DwnRpcClient } from './dwn-rpc-client.js';
 import { blobToIsomorphicNodeReadable, webReadableToIsomorphicNodeReadable } from './utils.js';
+import { KeyManager} from '@tbd54566975/crypto';
+
 
 // TODO: allow user to provide optional array of DwnRpc implementations once DwnRpc has been moved out of this package
 export type Web5UserAgentOptions = {
@@ -54,6 +56,7 @@ export type Web5UserAgentOptions = {
   profileManager: ProfileManager;
   didResolver: DidResolver;
   syncManager?: SyncManager;
+  keyManager?: KeyManager;
 };
 
 type DwnMessage = {
@@ -78,6 +81,7 @@ export class Web5UserAgent implements Web5Agent {
   private didResolver: DidResolver;
   private dwnRpcClient: DwnRpc;
   private syncManager: SyncManager;
+  private keyManager: KeyManager;
 
   constructor(options: Web5UserAgentOptions) {
     this.dwn = options.dwn;
@@ -87,6 +91,10 @@ export class Web5UserAgent implements Web5Agent {
 
     if (options.syncManager) {
       this.syncManager = options.syncManager;
+    }
+
+    if (options.keyManager) {
+      this.keyManager = options.keyManager;
     }
   }
 
@@ -188,6 +196,10 @@ export class Web5UserAgent implements Web5Agent {
       messageCid : await Message.getCid(dwnRpcRequest.message),
       reply      : dwnReply,
     };
+  }
+
+  async getKeyManager(): Promise<KeyManager> {
+    return this.keyManager;
   }
 
   async #getDwnMessage(author: string, messageType: string, messageCid: string): Promise<DwnMessage> {

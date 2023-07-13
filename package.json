@@ -20,5 +20,11 @@
           "make-dir": "^4.0.0"
         }
       }
+    },
+    "devDependencies": {
+      "npm-force-resolutions": "^0.0.10"
+    },
+    "resolutions": {
+      "optionator": "0.9.1"
     }
 }

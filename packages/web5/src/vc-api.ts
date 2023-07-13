@@ -37,8 +37,7 @@ export class VcApi {
       issuanceDate      : getCurrentXmlSchema112Timestamp(),
     };
 
-    // TODO: Sign VC
-    // const signedVc = this.#web5Agent.sign(vc);
+    // const jwtVc = await this._signVC(vc);
 
     const { record, status } = await this._writeRecord(vc);
     return { record, status, vc };
@@ -73,7 +72,34 @@ export class VcApi {
 
       record = new Record(this.#web5Agent, recordOptions);
 
-      return {record, status};
+      return { record, status };
     }
+  }
+
+  // TODO: This is a stub
+  private async _signVC(vc: VerifiableCredential): Promise<string> {
+    const vcStr = JSON.stringify(vc);
+    const encoder = new TextEncoder();
+    const uint8array = encoder.encode(vcStr);
+
+    const keyManager = await this.#web5Agent.getKeyManager();
+
+    // Need to generate keypair outside of this function?
+    const keyPair = await keyManager.generateKey({
+      algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+      extractable : false,
+      keyUsages   : ['sign', 'verify']
+    });
+
+    const signature = await keyManager.sign({
+      algorithm : { name: 'ECDSA', hash: 'SHA-256' },
+      keyRef    : keyPair.privateKey.id,
+      data      : uint8array,
+    });
+
+    const uint8Array = new Uint8Array(signature);
+    const signatureString = new TextDecoder('utf-8').decode(uint8Array);
+
+    return signatureString;
   }
 }
