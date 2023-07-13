@@ -79,7 +79,7 @@ export class Web5 {
     this.appStorage ||= new AppStorage();
 
     this.#techPreview = {
-      userAgent: options.web5Agent
+      userAgent: options.web5Agent as Web5UserAgent
     };
   }
 
