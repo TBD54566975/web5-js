@@ -1,5 +1,5 @@
 import type { Web5Agent } from '@tbd54566975/web5-agent';
-import type { SyncManager } from '@tbd54566975/web5-user-agent';
+import type { ProfileManager, SyncManager } from '@tbd54566975/web5-user-agent';
 import type { DidState, DidMethodApi, DidResolverCache, DwnServiceEndpoint } from '@tbd54566975/dids';
 
 import ms from 'ms';
@@ -44,6 +44,7 @@ export type Web5ConnectOptions = {
 type Web5Options = {
   web5Agent: Web5Agent;
   appStorage?: AppStorage;
+  profileManager: ProfileManager;
   connectedDid: string;
 };
 
@@ -52,7 +53,9 @@ export class Web5 {
   dwn: DwnApi;
   vc: VcApi;
   #connectedDid: string;
-  #techPreview: { userAgent: Web5UserAgent };
+  #techPreview: {
+    profileManager: ProfileManager
+   };
 
   /**
    * Statically available DID functionality. can be used to create and resolve DIDs without calling {@link connect}.
@@ -79,7 +82,7 @@ export class Web5 {
     this.appStorage ||= new AppStorage();
 
     this.#techPreview = {
-      userAgent: options.web5Agent as Web5UserAgent
+      profileManager: options.profileManager
     };
   }
 
@@ -146,7 +149,7 @@ export class Web5 {
     });
 
     const connectedDid = profile.did.id;
-    const web5 = new Web5({ appStorage: appStorage, web5Agent: agent, connectedDid });
+    const web5 = new Web5({ appStorage: appStorage, profileManager: profileApi, web5Agent: agent, connectedDid });
 
     Web5.#enqueueNextSync(syncManager, ms('2m'));
 
@@ -207,3 +210,6 @@ export class Web5 {
     }, delay);
   }
 }
+
+const { web5, did } = await Web5.connect();
+
