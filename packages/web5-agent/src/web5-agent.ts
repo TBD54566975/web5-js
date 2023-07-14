@@ -11,12 +11,10 @@ import {
   ProtocolsConfigureMessage,
 } from '@tbd54566975/dwn-sdk-js';
 
-import { KeyManager} from '@tbd54566975/crypto';
-
 export interface Web5Agent {
   processDwnRequest(request: ProcessDwnRequest): Promise<DwnResponse>
   sendDwnRequest(request: SendDwnRequest): Promise<DwnResponse>;
-  getKeyManager(): Promise<KeyManager>;
+  sign(obj: any): Promise<string>;
 }
 
 export type DwnMessages = {

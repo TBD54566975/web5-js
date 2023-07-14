@@ -72,7 +72,7 @@ export class Web5 {
   private constructor(options: Web5Options) {
     this.#connectedDid = options.connectedDid;
     this.dwn = new DwnApi(options.web5Agent, this.#connectedDid);
-    this.vc = new VcApi(options.web5Agent, this.#connectedDid);
+    this.vc = new VcApi(options.web5Agent, this.#connectedDid, this.dwn);
     this.appStorage ||= new AppStorage();
   }
 

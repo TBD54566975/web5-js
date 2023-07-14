@@ -3,11 +3,15 @@ import { expect } from 'chai';
 import * as testProfile from './fixtures/test-profiles.js';
 
 import { VcApi } from '../src/vc-api.js';
+import { DwnApi } from '../src/dwn-api.js';
 import { TestAgent, TestProfileOptions } from './test-utils/test-user-agent.js';
 
-let testAgent;
-let vcApi: VcApi;
+import jwt from 'jsonwebtoken';
+
 let did: string;
+let vcApi: VcApi;
+let dwn: DwnApi;
+let testAgent;
 let testProfileOptions: TestProfileOptions;
 
 describe('web5.vc', () => {
@@ -20,7 +24,9 @@ describe('web5.vc', () => {
 
     testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.keys();
     ({ did } = await testAgent.createProfile(testProfileOptions));
-    vcApi = new VcApi(testAgent.agent, did);
+
+    dwn = new DwnApi(testAgent.agent, did);
+    vcApi = new VcApi(testAgent.agent, did, dwn);
   });
 
   after(async () => {
@@ -34,10 +40,16 @@ describe('web5.vc', () => {
         const credentialSubject = {firstName: 'alice'};
         const result = await vcApi.create(credentialSubject);
 
+        const resultRecord = await result.record?.data.text();
+        const decoded = jwt.decode(resultRecord, { complete: true });
+
         expect(result.status.code).to.equal(202);
         expect(result.status.detail).to.equal('Accepted');
         expect(result.record).to.exist;
-        expect(await result.record?.data.json()).to.deep.equal(result.vc);
+        expect(resultRecord).to.deep.equal(result.vcJwt);
+        expect(decoded.payload.id).to.equal(result.vc.id);
+        expect(decoded.payload.credentialSubject).to.deep.equal(result.vc.credentialSubject);
+        expect(decoded.payload.issuer).to.deep.equal(result.vc.issuer);
       });
 
       it('invalid credential subject', async () => {

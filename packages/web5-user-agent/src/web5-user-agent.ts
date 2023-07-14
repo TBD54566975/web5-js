@@ -48,7 +48,7 @@ import { ProfileApi } from './profile-api.js';
 import { DwnRpcClient } from './dwn-rpc-client.js';
 import { blobToIsomorphicNodeReadable, webReadableToIsomorphicNodeReadable } from './utils.js';
 import { KeyManager} from '@tbd54566975/crypto';
-
+import { VerifiableCredential } from '@tbd54566975/credentials';
 
 // TODO: allow user to provide optional array of DwnRpc implementations once DwnRpc has been moved out of this package
 export type Web5UserAgentOptions = {
@@ -198,8 +198,51 @@ export class Web5UserAgent implements Web5Agent {
     };
   }
 
-  async getKeyManager(): Promise<KeyManager> {
-    return this.keyManager;
+  async sign(obj: any): Promise<string> {
+    const vc = obj as VerifiableCredential;
+
+    // TODO: issuer did key already stored in key manager and use that instead of generating a new one
+    const keyPair = await this.keyManager.generateKey({
+      algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+      extractable : false,
+      keyUsages   : ['sign', 'verify']
+    });
+
+    let subjectId;
+
+    if (Array.isArray(vc.credentialSubject)) {
+      subjectId = vc.credentialSubject[0].id;
+    }
+    else {
+      subjectId = vc.credentialSubject.id;
+    }
+
+    const jwtPayload = {
+      iss : vc.issuer,
+      sub : subjectId,
+      ...vc
+    };
+
+    const payloadBytes = Encoder.objectToBytes(jwtPayload);
+    const payloadBase64url = Encoder.bytesToBase64Url(payloadBytes);
+
+    const protectedHeader = {alg: 'ECDSA', kid: keyPair.privateKey.id};
+    const headerBytes = Encoder.objectToBytes(protectedHeader);
+    const headerBase64url = Encoder.bytesToBase64Url(headerBytes);
+
+    const signatureInput = `${headerBase64url}.${payloadBase64url}`;
+    const signatureInputBytes = Encoder.stringToBytes(signatureInput);
+
+    const signatureArrayBuffer = await this.keyManager.sign({
+      algorithm : { name: 'ECDSA', hash: 'SHA-256' },
+      keyRef    : keyPair.privateKey.id,
+      data      : signatureInputBytes,
+    });
+
+    let uint8ArraySignature = new Uint8Array(signatureArrayBuffer);
+    const signatureBase64url = Encoder.bytesToBase64Url(uint8ArraySignature);
+
+    return `${headerBase64url}.${payloadBase64url}.${signatureBase64url}`;
   }
 
   async #getDwnMessage(author: string, messageType: string, messageCid: string): Promise<DwnMessage> {
