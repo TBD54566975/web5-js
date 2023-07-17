@@ -206,7 +206,7 @@ export class DwnApi {
       /**
        * TODO: Document method.
        */
-      delete: async (request: RecordsDeleteRequest): Promise<RecordsDeleteResponse> => {
+      delete: async (request: { from?: string, message: { filter: { recordId: string } } }): Promise<RecordsDeleteResponse> => {
         const agentRequest = {
           author         : this.connectedDid,
           messageOptions : request.message,
@@ -272,7 +272,7 @@ export class DwnApi {
       /**
        * TODO: Document method.
        */
-      read: async (request: RecordsReadRequest): Promise<RecordsReadResponse> => {
+      read: async (request: { from?: string, message: { filter: { recordId: string } } }): Promise<RecordsReadResponse> => {
         const agentRequest = {
           author         : this.connectedDid,
           messageOptions : request.message,
