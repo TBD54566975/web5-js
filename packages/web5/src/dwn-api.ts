@@ -55,7 +55,7 @@ export type RecordsCreateFromRequest = {
 
 export type RecordsDeleteRequest = {
   from?: string;
-  message: Omit<RecordsDeleteOptions, 'authorizationSignatureInput'>;
+  message: { filter: { recordId: string }, dataFormat?: string };
 }
 
 export type RecordsDeleteResponse = {
@@ -76,7 +76,7 @@ export type RecordsQueryResponse = {
 export type RecordsReadRequest = {
   /** The from property indicates the DID to read from and return results fro. */
   from?: string;
-  message: Omit<RecordsReadOptions, 'authorizationSignatureInput'>;
+  message: { filter: { recordId: string }, dataFormat?: string };
 }
 
 export type RecordsReadResponse = {
@@ -206,7 +206,7 @@ export class DwnApi {
       /**
        * TODO: Document method.
        */
-      delete: async (request: { from?: string, message: { filter: { recordId: string } } }): Promise<RecordsDeleteResponse> => {
+      delete: async (request: RecordsDeleteRequest): Promise<RecordsDeleteResponse> => {
         const agentRequest = {
           author         : this.connectedDid,
           messageOptions : request.message,
@@ -272,7 +272,7 @@ export class DwnApi {
       /**
        * TODO: Document method.
        */
-      read: async (request: { from?: string, message: { filter: { recordId: string } } }): Promise<RecordsReadResponse> => {
+      read: async (request: RecordsReadRequest): Promise<RecordsReadResponse> => {
         const agentRequest = {
           author         : this.connectedDid,
           messageOptions : request.message,
