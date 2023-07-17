@@ -208,7 +208,9 @@ describe('Record', () => {
 
       const readResult = await dwn.records.read({
         message: {
-          recordId: record!.id
+          filter: {
+            recordId: record!.id
+          }
         }
       });
 
@@ -273,7 +275,7 @@ describe('Record', () => {
         expect(status.code).to.equal(202);
 
         // Read the record that was just created.
-        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { recordId: record!.id }});
+        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: {recordId: record!.id }}});
 
         expect(readRecordStatus.code).to.equal(200);
 
@@ -318,7 +320,7 @@ describe('Record', () => {
         expect(status.code).to.equal(202);
 
         // Read the record that was just created.
-        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { recordId: record!.id }});
+        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: { recordId: record!.id }}});
 
         expect(readRecordStatus.code).to.equal(200);
 
@@ -365,7 +367,7 @@ describe('Record', () => {
         expect(status.code).to.equal(202);
 
         // Read the record that was just created.
-        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { recordId: record!.id }});
+        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: {recordId: record!.id }}});
 
         expect(readRecordStatus.code).to.equal(200);
 
@@ -410,7 +412,7 @@ describe('Record', () => {
         expect(status.code).to.equal(202);
 
         // Read the record that was just created.
-        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { recordId: record!.id }});
+        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: {recordId: record!.id }}});
 
         expect(readRecordStatus.code).to.equal(200);
 
@@ -454,7 +456,7 @@ describe('Record', () => {
         expect(status.code).to.equal(202);
 
         // Read the record that was just created.
-        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { recordId: record!.id }});
+        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: {recordId: record!.id }}});
 
         expect(readRecordStatus.code).to.equal(200);
 
@@ -495,7 +497,7 @@ describe('Record', () => {
         expect(status.code).to.equal(202);
 
         // Read the record that was just created.
-        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { recordId: record!.id }});
+        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: {recordId: record!.id }}});
 
         expect(readRecordStatus.code).to.equal(200);
 

@@ -277,7 +277,9 @@ describe('web5.dwn', () => {
 
           const result = await dwn.records.read({
             message: {
-              recordId: writeResult.record!.id
+              filter: {
+                recordId: writeResult.record!.id
+              }
             }
           });
 
@@ -302,7 +304,9 @@ describe('web5.dwn', () => {
 
           const result = await dwn.records.read({
             message: {
-              recordId: writeResult.record!.id
+              filter: {
+                recordId: writeResult.record!.id
+              }
             }
           });
 
@@ -325,7 +329,9 @@ describe('web5.dwn', () => {
           const result = await dwn.records.read({
             from    : bobDid,
             message : {
-              recordId: record!.id
+              filter: {
+                recordId: record!.id
+              }
             }
           });
 
@@ -352,7 +358,9 @@ describe('web5.dwn', () => {
 
           const deleteResult = await dwn.records.delete({
             message: {
-              recordId: writeResult.record!.id
+              filter: {
+                recordId: writeResult.record!.id
+              }
             }
           });
 
@@ -362,7 +370,9 @@ describe('web5.dwn', () => {
         it('returns a 404 when the specified record does not exist', async () => {
           let deleteResult = await dwn.records.delete({
             message: {
-              recordId: 'abcd1234'
+              filter: {
+                recordId: 'abcd1234'
+              }
             }
           });
           expect(deleteResult.status.code).to.equal(404);
@@ -379,7 +389,9 @@ describe('web5.dwn', () => {
           const deleteResult = await dwn.records.delete({
             from    : bobDid,
             message : {
-              recordId: 'abcd1234'
+              filter: {
+                recordId: 'abcd1234'
+              }
             }
           });
 
