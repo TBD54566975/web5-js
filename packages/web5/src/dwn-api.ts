@@ -1,11 +1,9 @@
 import type { Web5Agent } from '@tbd54566975/web5-agent';
 import type {
   UnionMessageReply,
-  RecordsReadOptions,
   RecordsQueryOptions,
   RecordsWriteMessage,
   RecordsWriteOptions,
-  RecordsDeleteOptions,
   ProtocolsQueryOptions,
   RecordsQueryReplyEntry,
   ProtocolsConfigureMessage,
