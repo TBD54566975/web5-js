@@ -3,23 +3,22 @@ import type { VerifiableCredential } from '../../credentials/src/types.js';
 
 import { getCurrentXmlSchema112Timestamp } from '../../credentials/src/utils.js';
 import { v4 as uuidv4 } from 'uuid';
+import { UnionMessageReply} from '@tbd54566975/dwn-sdk-js';
 
-import { DwnApi, RecordsWriteResponse } from './dwn-api.js';
+import { Record } from './record.js';
 
-export type VcCreateResponse = RecordsWriteResponse & {
-  vc: VerifiableCredential;
-  vcJwt: string;
+export type VcCreateResponse = {
+  status: UnionMessageReply['status'];
+  record?: Record
 };
 
 export class VcApi {
   #web5Agent: Web5Agent;
   #connectedDid: string;
-  #dwn: DwnApi;
 
-  constructor(agent: Web5Agent, connectedDid: string, dwn: DwnApi) {
+  constructor(agent: Web5Agent, connectedDid: string) {
     this.#web5Agent = agent;
     this.#connectedDid = connectedDid;
-    this.#dwn = dwn;
   }
 
   // TODO: Add CreateOptions for more robust VC creation
@@ -37,15 +36,12 @@ export class VcApi {
       issuanceDate      : getCurrentXmlSchema112Timestamp(),
     };
 
-    const vcJwt = await this.#web5Agent.sign(vc);
-
-    const { status, record } = await this.#dwn.records.write({
-      data    : vcJwt,
-      message : {
-        dataFormat: 'application/vc+jwt'
-      }
+    const agentResponse: VcCreateResponse  = await this.#web5Agent.processVcRequest({
+      author : this.#connectedDid,
+      target : this.#connectedDid,
+      vc     : vc
     });
 
-    return { status, record, vc, vcJwt};
+    return agentResponse;
   }
 }

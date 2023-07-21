@@ -18,6 +18,9 @@ import {
   DwnRpcRequest,
   SendDwnRequest,
   ProcessDwnRequest,
+  SendVcRequest,
+  ProcessVcRequest,
+  VcResponse,
 } from '@tbd54566975/web5-agent';
 
 import {
@@ -47,8 +50,12 @@ import {
 import { ProfileApi } from './profile-api.js';
 import { DwnRpcClient } from './dwn-rpc-client.js';
 import { blobToIsomorphicNodeReadable, webReadableToIsomorphicNodeReadable } from './utils.js';
-import { KeyManager} from '@tbd54566975/crypto';
+import { dataToBlob } from '../../web5/src/utils.js';
+
+import { KeyManager } from '@tbd54566975/crypto';
 import { VerifiableCredential } from '@tbd54566975/credentials';
+
+import { Record } from '../../web5/src/record.js';
 
 // TODO: allow user to provide optional array of DwnRpc implementations once DwnRpc has been moved out of this package
 export type Web5UserAgentOptions = {
@@ -198,51 +205,43 @@ export class Web5UserAgent implements Web5Agent {
     };
   }
 
-  async sign(obj: any): Promise<string> {
-    const vc = obj as VerifiableCredential;
+  async processVcRequest(request: ProcessVcRequest): Promise<VcResponse> {
+    const signedJwt = await this.#sign(request.vc as VerifiableCredential);
 
-    // TODO: issuer did key already stored in key manager and use that instead of generating a new one
-    const keyPair = await this.keyManager.generateKey({
-      algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-      extractable : false,
-      keyUsages   : ['sign', 'verify']
+    const messageOptions: Partial<RecordsWriteOptions> = { ...{ schema: 'vc/vc', dataFormat: 'application/vc+jwt' } };
+    const { dataBlob, dataFormat } = dataToBlob(signedJwt, messageOptions.dataFormat);
+    messageOptions.dataFormat = dataFormat;
+
+    const dwnResponse = await this.processDwnRequest({
+      author      : request.author,
+      dataStream  : dataBlob,
+      messageOptions,
+      messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+      store       : true,
+      target      : request.target
     });
 
-    let subjectId;
+    const { message, reply: { status } } = dwnResponse;
+    const responseMessage = message as RecordsWriteMessage;
 
-    if (Array.isArray(vc.credentialSubject)) {
-      subjectId = vc.credentialSubject[0].id;
+    let record: Record;
+    if (200 <= status.code && status.code <= 299) {
+      const recordOptions = {
+        author      : request.author,
+        encodedData : dataBlob,
+        target      : request.target,
+        ...responseMessage,
+      };
+
+      record = new Record(this, recordOptions);
     }
-    else {
-      subjectId = vc.credentialSubject.id;
-    }
 
-    const jwtPayload = {
-      iss : vc.issuer,
-      sub : subjectId,
-      ...vc
-    };
+    return { record, status };
+  }
 
-    const payloadBytes = Encoder.objectToBytes(jwtPayload);
-    const payloadBase64url = Encoder.bytesToBase64Url(payloadBytes);
-
-    const protectedHeader = {alg: 'ECDSA', kid: keyPair.privateKey.id};
-    const headerBytes = Encoder.objectToBytes(protectedHeader);
-    const headerBase64url = Encoder.bytesToBase64Url(headerBytes);
-
-    const signatureInput = `${headerBase64url}.${payloadBase64url}`;
-    const signatureInputBytes = Encoder.stringToBytes(signatureInput);
-
-    const signatureArrayBuffer = await this.keyManager.sign({
-      algorithm : { name: 'ECDSA', hash: 'SHA-256' },
-      keyRef    : keyPair.privateKey.id,
-      data      : signatureInputBytes,
-    });
-
-    let uint8ArraySignature = new Uint8Array(signatureArrayBuffer);
-    const signatureBase64url = Encoder.bytesToBase64Url(uint8ArraySignature);
-
-    return `${headerBase64url}.${payloadBase64url}.${signatureBase64url}`;
+  async sendVcRequest(request: SendVcRequest): Promise<VcResponse> {
+    console.log(request);
+    return {} as VcResponse;
   }
 
   async #getDwnMessage(author: string, messageType: string, messageCid: string): Promise<DwnMessage> {
@@ -333,6 +332,54 @@ export class Web5UserAgent implements Web5Agent {
     const dwnMessage = await messageCreator.create(messageCreateInput as any);
 
     return { message: dwnMessage.toJSON(), dataStream: readableStream };
+  }
+
+
+  // TODO: have issuer did key already stored in key manager and use that instead of generating a new one
+  async #sign(obj: any): Promise<string> {
+    const vc = obj as VerifiableCredential;
+
+    const keyPair = await this.keyManager.generateKey({
+      algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+      extractable : false,
+      keyUsages   : ['sign', 'verify']
+    });
+
+    let subjectId;
+
+    if (Array.isArray(vc.credentialSubject)) {
+      subjectId = vc.credentialSubject[0].id;
+    }
+    else {
+      subjectId = vc.credentialSubject.id;
+    }
+
+    const jwtPayload = {
+      iss : vc.issuer,
+      sub : subjectId,
+      ...vc
+    };
+
+    const payloadBytes = Encoder.objectToBytes(jwtPayload);
+    const payloadBase64url = Encoder.bytesToBase64Url(payloadBytes);
+
+    const protectedHeader = {alg: 'ECDSA', kid: keyPair.privateKey.id};
+    const headerBytes = Encoder.objectToBytes(protectedHeader);
+    const headerBase64url = Encoder.bytesToBase64Url(headerBytes);
+
+    const signatureInput = `${headerBase64url}.${payloadBase64url}`;
+    const signatureInputBytes = Encoder.stringToBytes(signatureInput);
+
+    const signatureArrayBuffer = await this.keyManager.sign({
+      algorithm : { name: 'ECDSA', hash: 'SHA-256' },
+      keyRef    : keyPair.privateKey.id,
+      data      : signatureInputBytes,
+    });
+
+    let uint8ArraySignature = new Uint8Array(signatureArrayBuffer);
+    const signatureBase64url = Encoder.bytesToBase64Url(uint8ArraySignature);
+
+    return `${headerBase64url}.${payloadBase64url}.${signatureBase64url}`;
   }
 
   /**
