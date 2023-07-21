@@ -5,7 +5,7 @@ import * as testProfile from './fixtures/test-profiles.js';
 import { VcApi } from '../src/vc-api.js';
 import { TestAgent, TestProfileOptions } from './test-utils/test-user-agent.js';
 
-import jwt from 'jsonwebtoken';
+// import jwt from 'jsonwebtoken';
 
 let did: string;
 let vcApi: VcApi;
@@ -37,8 +37,8 @@ describe('web5.vc', () => {
         const credentialSubject = {firstName: 'alice'};
         const result = await vcApi.create(credentialSubject);
 
-        const resultRecord = await result.record?.data.text();
-        const decoded = jwt.decode(resultRecord, { complete: true });
+        // const resultRecord = await result.record?.data.text();
+        // const decoded = jwt.decode(resultRecord, { complete: true });
 
         expect(result.status.code).to.equal(202);
         expect(result.status.detail).to.equal('Accepted');
