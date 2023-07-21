@@ -1,6 +1,7 @@
 import type { Readable } from 'readable-stream';
 
-import type { VerifiableCredential } from '@tbd54566975/credentials';
+// TODO: Why does this not work?
+// import type { VerifiableCredential } from '@tbd54566975/credentials';
 
 import {
   EventsGetMessage,
@@ -66,7 +67,7 @@ export type DwnResponse = {
 export type ProcessVcRequest = {
   author: string;
   target: string;
-  vc: VerifiableCredential;
+  vc: any;
 };
 
 export type SendVcRequest = DwnRequest & (ProcessVcRequest | { messageCid: string })
