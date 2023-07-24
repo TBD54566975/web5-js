@@ -15,6 +15,7 @@ import { DidApi } from './did-api.js';
 import { AppStorage } from './app-storage.js';
 import { getRandomInt } from './utils.js';
 import { DidResolutionCache } from './did-resolution-cache.js';
+import { activateDomFeatures, deactivateDomFeatures } from './dom-api-browser.js';
 
 /**
  * overrides to defaults configured for technical preview phase
@@ -74,6 +75,10 @@ export class Web5 {
     this.dwn = new DwnApi(options.web5Agent, this.#connectedDid);
     this.vc = new VcApi(options.web5Agent, this.#connectedDid);
     this.appStorage ||= new AppStorage();
+  }
+
+  static activateDomFeatures() {
+    activateDomFeatures(this);
   }
 
   /**
@@ -144,6 +149,10 @@ export class Web5 {
     Web5.#enqueueNextSync(syncManager, ms('2m'));
 
     return { web5, did: connectedDid };
+  }
+
+  static deactivateDomFeatures() {
+    deactivateDomFeatures();
   }
 
   /**

@@ -5,7 +5,7 @@ export { sign, verify } from '@decentralized-identity/ion-tools';
 
 const didIonResolver = new DidIonResolver();
 
-export async function create(options = { }){
+export async function create(options = { }) {
   options.keys ||= [
     {
       id: 'dwn',
