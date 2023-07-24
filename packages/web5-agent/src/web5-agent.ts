@@ -73,8 +73,10 @@ export type ProcessVcRequest = {
 export type SendVcRequest = DwnRequest & (ProcessVcRequest | { messageCid: string })
 
 export type VcResponse = {
-  status: UnionMessageReply['status'];
-  record?: any
+  vcDataBlob?: Blob;
+  message?: unknown;
+  messageCid?: string;
+  reply: UnionMessageReply;
 };
 
 /**

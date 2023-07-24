@@ -1,9 +1,9 @@
-import { Web5Agent } from '@tbd54566975/web5-agent';
+import { Web5Agent, VcResponse } from '@tbd54566975/web5-agent';
 import type { VerifiableCredential } from '../../credentials/src/types.js';
 
 import { getCurrentXmlSchema112Timestamp } from '../../credentials/src/utils.js';
 import { v4 as uuidv4 } from 'uuid';
-import { UnionMessageReply} from '@tbd54566975/dwn-sdk-js';
+import { UnionMessageReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import { Record } from './record.js';
 
@@ -36,12 +36,27 @@ export class VcApi {
       issuanceDate      : getCurrentXmlSchema112Timestamp(),
     };
 
-    const agentResponse: VcCreateResponse  = await this.#web5Agent.processVcRequest({
+    const agentResponse: VcResponse  = await this.#web5Agent.processVcRequest({
       author : this.#connectedDid,
       target : this.#connectedDid,
       vc     : vc
     });
 
-    return agentResponse;
+    const { message, reply: { status } } = agentResponse;
+    const responseMessage = message as RecordsWriteMessage;
+
+    let record: Record;
+    if (200 <= status.code && status.code <= 299) {
+      const recordOptions = {
+        author      : this.#connectedDid,
+        encodedData : agentResponse.vcDataBlob,
+        target      : this.#connectedDid,
+        ...responseMessage,
+      };
+
+      record = new Record(this.#web5Agent, recordOptions);
+    }
+
+    return { record, status };
   }
 }

@@ -50,12 +50,10 @@ import {
 import { ProfileApi } from './profile-api.js';
 import { DwnRpcClient } from './dwn-rpc-client.js';
 import { blobToIsomorphicNodeReadable, webReadableToIsomorphicNodeReadable } from './utils.js';
-import { dataToBlob } from '../../web5/src/utils.js';
+import { dataToBlob } from './utils.js';
 
 import { KeyManager } from '@tbd54566975/crypto';
 import { VerifiableCredential } from '@tbd54566975/credentials';
-
-import { Record } from '../../web5/src/record.js';
 
 // TODO: allow user to provide optional array of DwnRpc implementations once DwnRpc has been moved out of this package
 export type Web5UserAgentOptions = {
@@ -221,22 +219,12 @@ export class Web5UserAgent implements Web5Agent {
       target      : request.target
     });
 
-    const { message, reply: { status } } = dwnResponse;
-    const responseMessage = message as RecordsWriteMessage;
+    const vcResponse: VcResponse = {
+      vcDataBlob: dataBlob,
+      ...dwnResponse,
+    };
 
-    let record: Record;
-    if (200 <= status.code && status.code <= 299) {
-      const recordOptions = {
-        author      : request.author,
-        encodedData : dataBlob,
-        target      : request.target,
-        ...responseMessage,
-      };
-
-      record = new Record(this, recordOptions);
-    }
-
-    return { record, status };
+    return vcResponse;
   }
 
   async sendVcRequest(request: SendVcRequest): Promise<VcResponse> {

@@ -5,7 +5,7 @@ import type { DidState, DidMethodApi, DidResolverCache, DwnServiceEndpoint } fro
 import ms from 'ms';
 
 // import  { Web5ProxyAgent } from '@tbd54566975/web5-proxy-agent';
-import { Dwn } from '@tbd54566975/dwn-sdk-js';
+import { Dwn} from '@tbd54566975/dwn-sdk-js';
 import { Web5UserAgent, ProfileApi, SyncApi } from '@tbd54566975/web5-user-agent';
 import { DidIonApi, DidKeyApi, utils as didUtils } from '@tbd54566975/dids';
 
