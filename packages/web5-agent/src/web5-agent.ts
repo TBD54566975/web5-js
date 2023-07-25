@@ -1,7 +1,5 @@
 import type { Readable } from 'readable-stream';
-
-// TODO: Why does this not work?
-// import type { VerifiableCredential } from '@tbd54566975/credentials';
+import type { VerifiableCredential } from '@tbd54566975/credentials';
 
 import {
   EventsGetMessage,
@@ -60,17 +58,21 @@ export type DwnResponse = {
   reply: UnionMessageReply;
 };
 
-
 /**
  * TODO: add JSDoc
  */
 export type ProcessVcRequest = {
   author: string;
   target: string;
-  vc: any;
+  vc: VerifiableCredential;
 };
 
-export type SendVcRequest = DwnRequest & (ProcessVcRequest | { messageCid: string })
+export type SendVcRequest = {
+  author: string;
+  target: string;
+  vc: VerifiableCredential;
+  messageCid?: string;
+};
 
 export type VcResponse = {
   vcDataBlob?: Blob;
