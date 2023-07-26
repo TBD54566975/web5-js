@@ -10,6 +10,7 @@ import { Record } from './record.js';
 export type VcCreateResponse = {
   status: UnionMessageReply['status'];
   record?: Record
+  vcJwt?: string;
 };
 
 export class VcApi {
@@ -22,7 +23,7 @@ export class VcApi {
   }
 
   // TODO: Add CreateOptions for more robust VC creation
-  async create(credentialSubject: any): Promise<VcCreateResponse> {
+  async create(credentialSubject: any, kid?: string): Promise<VcCreateResponse> {
     if (!credentialSubject || typeof credentialSubject !== 'object') {
       throw new Error('credentialSubject not valid');
     }
@@ -32,14 +33,15 @@ export class VcApi {
       '@context'        : ['https://www.w3.org/2018/credentials/v1'],
       credentialSubject : credentialSubject,
       type              : ['VerifiableCredential'],
-      issuer            : { id: this.#connectedDid },
+      issuer            : this.#connectedDid ,
       issuanceDate      : getCurrentXmlSchema112Timestamp(),
     };
 
     const agentResponse: VcResponse  = await this.#web5Agent.processVcRequest({
       author : this.#connectedDid,
       target : this.#connectedDid,
-      vc     : vc
+      vc     : vc,
+      kid    : kid
     });
 
     const { message, reply: { status } } = agentResponse;
@@ -49,7 +51,7 @@ export class VcApi {
     if (200 <= status.code && status.code <= 299) {
       const recordOptions = {
         author      : this.#connectedDid,
-        encodedData : agentResponse.vcDataBlob,
+        encodedData : new Blob([agentResponse.vcJwt], { type: 'text/plain' }),
         target      : this.#connectedDid,
         ...responseMessage,
       };
@@ -57,6 +59,6 @@ export class VcApi {
       record = new Record(this.#web5Agent, recordOptions);
     }
 
-    return { record, status };
+    return { record: record, status: status, vcJwt: agentResponse.vcJwt };
   }
 }

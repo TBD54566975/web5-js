@@ -65,6 +65,7 @@ export type ProcessVcRequest = {
   author: string;
   target: string;
   vc: VerifiableCredential;
+  kid?: string
 };
 
 export type SendVcRequest = {
@@ -75,7 +76,7 @@ export type SendVcRequest = {
 };
 
 export type VcResponse = {
-  vcDataBlob?: Blob;
+  vcJwt?: string;
   message?: unknown;
   messageCid?: string;
   reply: UnionMessageReply;

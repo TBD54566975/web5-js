@@ -19,8 +19,11 @@ describe('web5.vc', () => {
 
   beforeEach(async () => {
     await testAgent.clearStorage();
-
     testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.keys();
+
+    // TODO: Store this key in keymanager
+    // console.log(testProfileOptions.profileDidOptions.keys[0]);
+
     ({ did } = await testAgent.createProfile(testProfileOptions));
 
     vcApi = new VcApi(testAgent.agent, did);
@@ -35,10 +38,13 @@ describe('web5.vc', () => {
     describe('create', () => {
       it('valid vc', async () => {
         const credentialSubject = {firstName: 'alice'};
-        const result = await vcApi.create(credentialSubject);
+        const result = await vcApi.create(credentialSubject, testAgent.signKeyPair.privateKey.id);
 
         // const resultRecord = await result.record?.data.text();
+        // console.log({resultRecord});
+
         // const decoded = jwt.decode(resultRecord, { complete: true });
+        // console.log(decoded);
 
         expect(result.status.code).to.equal(202);
         expect(result.status.detail).to.equal('Accepted');
@@ -52,7 +58,7 @@ describe('web5.vc', () => {
       it('invalid credential subject', async () => {
         const credentialSubject = 'badcredsubject';
         try {
-          await vcApi.create(credentialSubject);
+          await vcApi.create(credentialSubject, testAgent.signKeyPair.privateKey.id);
           expect.fail();
         } catch(e) {
           expect(e.message).to.include('credentialSubject not valid');

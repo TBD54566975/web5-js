@@ -50,10 +50,11 @@ import {
 import { ProfileApi } from './profile-api.js';
 import { DwnRpcClient } from './dwn-rpc-client.js';
 import { blobToIsomorphicNodeReadable, webReadableToIsomorphicNodeReadable } from './utils.js';
-import { dataToBlob } from './utils.js';
 
-import { KeyManager } from '@tbd54566975/crypto';
+import { KeyManager, ManagedKeyPair } from '@tbd54566975/crypto';
 import { VerifiableCredential } from '@tbd54566975/credentials';
+
+import { Convert } from '@tbd54566975/common';
 
 // TODO: allow user to provide optional array of DwnRpc implementations once DwnRpc has been moved out of this package
 export type Web5UserAgentOptions = {
@@ -204,11 +205,32 @@ export class Web5UserAgent implements Web5Agent {
   }
 
   async processVcRequest(request: ProcessVcRequest): Promise<VcResponse> {
-    const signedJwt = await this.#sign(request.vc as VerifiableCredential);
+
+    let kid = request.kid;
+    if (!kid) {
+      const didResolution = await this.didResolver.resolve(request.author);
+
+      if (!didResolution.didDocument) {
+        if (didResolution.didResolutionMetadata?.error) {
+          throw new Error(`DID resolution error: ${didResolution.didResolutionMetadata.error}`);
+        } else {
+          throw new Error('DID resolution error: other');
+        }
+      }
+
+      const [ service ] = didUtils.getServices(didResolution.didDocument, { id: '#dwn' });
+      if (!service) {
+        throw new Error(`${request.target} has no '#dwn' service endpoints`);
+      }
+
+      const serviceEndpoint = service.serviceEndpoint as DwnServiceEndpoint;
+      kid = serviceEndpoint.messageAuthorizationKeys[0];
+    }
+
+    const vcJwt = await this.#sign(request.vc as VerifiableCredential, kid);
 
     const messageOptions: Partial<RecordsWriteOptions> = { ...{ schema: 'vc/vc', dataFormat: 'application/vc+jwt' } };
-    const { dataBlob, dataFormat } = dataToBlob(signedJwt, messageOptions.dataFormat);
-    messageOptions.dataFormat = dataFormat;
+    const dataBlob = new Blob([vcJwt], { type: 'text/plain' });
 
     const dwnResponse = await this.processDwnRequest({
       author      : request.author,
@@ -220,16 +242,15 @@ export class Web5UserAgent implements Web5Agent {
     });
 
     const vcResponse: VcResponse = {
-      vcDataBlob: dataBlob,
+      vcJwt: vcJwt,
       ...dwnResponse,
     };
 
     return vcResponse;
   }
 
-  async sendVcRequest(request: SendVcRequest): Promise<VcResponse> {
-    console.log(request);
-    return {} as VcResponse;
+  async sendVcRequest(_request: SendVcRequest): Promise<VcResponse> {
+    throw new Error('Method not implemented.');
   }
 
   async #getDwnMessage(author: string, messageType: string, messageCid: string): Promise<DwnMessage> {
@@ -324,34 +345,24 @@ export class Web5UserAgent implements Web5Agent {
 
 
   // TODO: have issuer did key already stored in key manager and use that instead of generating a new one
-  async #sign(obj: any): Promise<string> {
-    const vc = obj as VerifiableCredential;
+  async #sign(vc: VerifiableCredential, kid: string): Promise<string> {
+    const keyPair = await this.keyManager.getKey({keyRef: kid}) as ManagedKeyPair;
 
-    const keyPair = await this.keyManager.generateKey({
-      algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-      extractable : false,
-      keyUsages   : ['sign', 'verify']
-    });
-
-    let subjectId;
-
-    if (Array.isArray(vc.credentialSubject)) {
-      subjectId = vc.credentialSubject[0].id;
-    }
-    else {
-      subjectId = vc.credentialSubject.id;
-    }
+    const now = Math.floor(Date.now() / 1000);
 
     const jwtPayload = {
+      iat : now,
       iss : vc.issuer,
-      sub : subjectId,
-      ...vc
+      jti : vc.id,
+      nbf : now,
+      sub : vc.issuer,
+      vc  : vc,
     };
 
     const payloadBytes = Encoder.objectToBytes(jwtPayload);
     const payloadBase64url = Encoder.bytesToBase64Url(payloadBytes);
 
-    const protectedHeader = {alg: 'ECDSA', kid: keyPair.privateKey.id};
+    const protectedHeader = {alg: 'ECDSA', kid: keyPair.privateKey.id, typ: 'JWT'};
     const headerBytes = Encoder.objectToBytes(protectedHeader);
     const headerBase64url = Encoder.bytesToBase64Url(headerBytes);
 
@@ -364,8 +375,7 @@ export class Web5UserAgent implements Web5Agent {
       data      : signatureInputBytes,
     });
 
-    let uint8ArraySignature = new Uint8Array(signatureArrayBuffer);
-    const signatureBase64url = Encoder.bytesToBase64Url(uint8ArraySignature);
+    const signatureBase64url = Convert.arrayBuffer(signatureArrayBuffer).toBase64Url();
 
     return `${headerBase64url}.${payloadBase64url}.${signatureBase64url}`;
   }

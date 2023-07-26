@@ -24,6 +24,7 @@ export type TestAgentOptions = {
   didResolver: DidResolver;
   didIon: DidIonApi;
   didKey: DidKeyApi;
+  signKeyPair: ManagedKeyPair;
 }
 
 export type TestProfile = {
@@ -46,6 +47,7 @@ export class TestAgent {
   didResolver: DidResolver;
   didIon: DidIonApi;
   didKey: DidKeyApi;
+  signKeyPair: ManagedKeyPair;
 
   constructor(options: TestAgentOptions) {
     this.agent = options.agent;
@@ -59,6 +61,7 @@ export class TestAgent {
     this.didResolver = options.didResolver;
     this.didIon = options.didIon;
     this.didKey = options.didKey;
+    this.signKeyPair = options.signKeyPair;
   }
 
   async clearStorage(): Promise<void> {
@@ -105,18 +108,14 @@ export class TestAgent {
 
     const profileApi = new ProfileApi(profileStore);
 
-    // Instantiate in-memory store for KMS key metadata and public keys.
     const kmsMemoryStore = new MemoryStore<string, ManagedKey | ManagedKeyPair>();
     const kmsKeyStore = new KmsKeyStore(kmsMemoryStore);
 
-    // Instantiate in-memory store for KMS private keys.
     const memoryPrivateKeyStore = new MemoryStore<string, ManagedPrivateKey>();
     const kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryPrivateKeyStore);
 
-    // Instantiate local KMS using key stores.
     const localKms = new LocalKms('local', kmsKeyStore, kmsPrivateKeyStore);
 
-    // Instantiate in-memory store for KeyManager key metadata.
     const kmMemoryStore = new MemoryStore<string, ManagedKey | ManagedKeyPair>();
     const keyManagerStore = new KeyManagerStore({ store: kmMemoryStore });
 
@@ -126,6 +125,12 @@ export class TestAgent {
     };
 
     const keyManager = new KeyManager(keyManagerOptions);
+
+    const keyPair = await keyManager.generateKey({
+      algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+      extractable : false,
+      keyUsages   : ['sign', 'verify']
+    });
 
     const agent = new Web5UserAgent({
       profileManager : new ProfileApi(profileStore),
@@ -144,8 +149,9 @@ export class TestAgent {
       profileApi,
       profileStore,
       didResolver,
-      didIon : DidIon,
-      didKey : DidKey,
+      didIon      : DidIon,
+      didKey      : DidKey,
+      signKeyPair : keyPair
     });
   }
 
