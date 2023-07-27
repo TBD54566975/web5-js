@@ -1,4 +1,7 @@
 import type { DwnServiceEndpoint } from '@tbd54566975/dids';
+
+import { Readable } from 'readable-stream';
+import { MessageStoreLevel, DataStoreLevel, EventLogLevel } from '@tbd54566975/dwn-sdk-js/stores';
 import {
   DataStream,
   SignatureInput,
@@ -7,10 +10,12 @@ import {
   UnionMessageReply,
   RecordsWriteMessage,
   RecordsWriteOptions,
+  Cid,
+  Encoder,
+  Message,
   PrivateJwk as DwnPrivateKeyJwk,
 } from '@tbd54566975/dwn-sdk-js';
 
-import { Readable } from 'readable-stream';
 import {
   DwnRpc,
   Web5Agent,
@@ -19,12 +24,6 @@ import {
   SendDwnRequest,
   ProcessDwnRequest,
 } from '@tbd54566975/web5-agent';
-
-import {
-  Cid,
-  Encoder,
-  Message,
-} from '@tbd54566975/dwn-sdk-js';
 
 import type { SyncManager } from './sync-manager.js';
 import type { ProfileManager } from './profile-manager.js';
@@ -96,7 +95,14 @@ export class Web5UserAgent implements Web5Agent {
    * @returns
    */
   static async create(options: Partial<Web5UserAgentOptions>) {
-    options.dwn ||= await Dwn.create();
+    if (!options.dwn) {
+      const messageStore = new MessageStoreLevel();
+      const dataStore = new DataStoreLevel();
+      const eventLog = new EventLogLevel();
+
+      options.dwn = await Dwn.create({ messageStore, dataStore, eventLog });
+    }
+
     options.profileManager ||= new ProfileApi();
     options.didResolver ||= new DidResolver({ methodResolvers: [new DidIonApi(), new DidKeyApi()] });
 
@@ -109,7 +115,7 @@ export class Web5UserAgent implements Web5Agent {
    * @returns
    */
   async processDwnRequest(request: ProcessDwnRequest): Promise<DwnResponse> {
-    const { message, dataStream }= await this.#constructDwnMessage(request);
+    const { message, dataStream }= await this.constructDwnMessage(request);
 
     let reply: UnionMessageReply;
     if (request.store !== false) {
@@ -130,12 +136,12 @@ export class Web5UserAgent implements Web5Agent {
     let messageData;
 
     if ('messageCid' in request) {
-      const { message, data } =  await this.#getDwnMessage(request.author, request.messageType, request.messageCid);
+      const { message, data } =  await this.getDwnMessage(request.author, request.messageType, request.messageCid);
 
       dwnRpcRequest.message = message;
       messageData = data;
     } else {
-      const { message } = await this.#constructDwnMessage(request);
+      const { message } = await this.constructDwnMessage(request);
       dwnRpcRequest.message = message;
       messageData = request.dataStream;
     }
@@ -190,8 +196,8 @@ export class Web5UserAgent implements Web5Agent {
     };
   }
 
-  async #getDwnMessage(author: string, messageType: string, messageCid: string): Promise<DwnMessage> {
-    const dwnSignatureInput = await this.#getAuthorSignatureInput(author);
+  async getDwnMessage(author: string, messageType: string, messageCid: string): Promise<DwnMessage> {
+    const dwnSignatureInput = await this.getAuthorSignatureInput(author);
     const messagesGet = await MessagesGet.create({
       authorizationSignatureInput : dwnSignatureInput,
       messageCids                 : [messageCid]
@@ -240,8 +246,8 @@ export class Web5UserAgent implements Web5Agent {
     return dwnMessage;
   }
 
-  async #constructDwnMessage(request: ProcessDwnRequest) {
-    const dwnSignatureInput = await this.#getAuthorSignatureInput(request.author);
+  async constructDwnMessage(request: ProcessDwnRequest) {
+    const dwnSignatureInput = await this.getAuthorSignatureInput(request.author);
     let readableStream: Readable;
 
     // TODO: Consider refactoring to move data transformations imposed by fetch() limitations to the HTTP transport-related methods.
@@ -285,7 +291,7 @@ export class Web5UserAgent implements Web5Agent {
    * @param authorDid
    * @returns {SignatureInput}
    */
-  async #getAuthorSignatureInput(authorDid: string): Promise<SignatureInput> {
+  async getAuthorSignatureInput(authorDid: string): Promise<SignatureInput> {
     const profile = await this.profileManager.getProfile(authorDid);
 
     if (!profile) {

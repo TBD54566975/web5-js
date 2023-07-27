@@ -45,8 +45,8 @@
   ],
   "exports": {
     ".": {
-      "import": "./dist/esm/main.mjs",
-      "require": "./dist/cjs/main.cjs",
+      "import": "./dist/esm/main.js",
+      "require": "./dist/cjs/main.js",
       "types": "./dist/types/main.d.ts"
     }
   },

@@ -46,43 +46,43 @@ type DwnMessage = {
 type DbBatchOperation = BatchOperation<Level, string, string>;
 
 export class SyncApi implements SyncManager {
-  #db: Level;
-  #dwn: Dwn;
-  #didResolver: DidResolver;
-  #profileManager: ProfileManager;
-  #dwnRpcClient: DwnRpc;
+  private db: Level;
+  private dwn: Dwn;
+  private didResolver: DidResolver;
+  private profileManager: ProfileManager;
+  private dwnRpcClient: DwnRpc;
 
-  static #defaultOptions = {
+  static defaultOptions = {
     storeLocation: 'data/agent/sync-store',
   };
 
   constructor(options: SyncApiOptions) {
-    options = { ...SyncApi.#defaultOptions, ...options };
-    this.#dwn = options.dwn;
-    this.#didResolver = options.didResolver;
-    this.#profileManager = options.profileManager;
+    options = { ...SyncApi.defaultOptions, ...options };
+    this.dwn = options.dwn;
+    this.didResolver = options.didResolver;
+    this.profileManager = options.profileManager;
 
-    this.#db = new Level(options.storeLocation);
-    this.#dwnRpcClient = new DwnRpcClient();
+    this.db = new Level(options.storeLocation);
+    this.dwnRpcClient = new DwnRpcClient();
   }
 
   async clear() {
-    return this.#db.clear();
+    return this.db.clear();
   }
 
   async registerProfile(did: string): Promise<void> {
-    const registeredProfiles = this.#db.sublevel('registeredProfiles');
+    const registeredProfiles = this.db.sublevel('registeredProfiles');
 
     await registeredProfiles.put(did, '');
   }
 
   async enqueuePush() {
-    const profileDids = await this.#db.sublevel('registeredProfiles').keys().all();
+    const profileDids = await this.db.sublevel('registeredProfiles').keys().all();
     const syncStates: SyncState[] = [];
 
     for (let did of profileDids) {
       // TODO: try/catch
-      const { didDocument } = await this.#didResolver.resolve(did);
+      const { didDocument } = await this.didResolver.resolve(did);
       const [ service ] = didUtils.getServices(didDocument, { id: '#dwn', type: 'DecentralizedWebNode' });
 
       // did has no dwn service endpoints listed in DID Doc. ignore
@@ -99,13 +99,13 @@ export class SyncApi implements SyncManager {
     }
 
     for (let syncState of syncStates) {
-      const signatureInput = await this.#getAuthorSignatureInput(syncState.did);
+      const signatureInput = await this.getAuthorSignatureInput(syncState.did);
       const eventsGet = await EventsGet.create({
         watermark                   : syncState.watermark,
         authorizationSignatureInput : signatureInput
       });
 
-      const eventsReply = await this.#dwn.processMessage(syncState.did, eventsGet.toJSON()) as EventsGetReply;
+      const eventsReply = await this.dwn.processMessage(syncState.did, eventsGet.toJSON()) as EventsGetReply;
       const putOps: DbBatchOperation[] = [];
 
       for (let event of eventsReply.events) {
@@ -115,13 +115,13 @@ export class SyncApi implements SyncManager {
         putOps.push(putOp);
       }
 
-      const pushQueue = this.#getPushQueue();
+      const pushQueue = this.getPushQueue();
       await pushQueue.batch(putOps as any);
     }
   }
 
   async getEvents(did: string, watermark: string | undefined, dwnUrl: string) {
-    const signatureInput = await this.#getAuthorSignatureInput(did);
+    const signatureInput = await this.getAuthorSignatureInput(did);
     const eventsGet = await EventsGet.create({
       watermark                   : watermark,
       authorizationSignatureInput : signatureInput
@@ -129,10 +129,10 @@ export class SyncApi implements SyncManager {
 
     let events: Event[];
     if (dwnUrl === 'local') {
-      const reply = await this.#dwn.processMessage(did, eventsGet.toJSON()) as EventsGetReply;
+      const reply = await this.dwn.processMessage(did, eventsGet.toJSON()) as EventsGetReply;
       ({ events } = reply);
     } else {
-      const reply = await this.#dwnRpcClient.sendDwnRequest({
+      const reply = await this.dwnRpcClient.sendDwnRequest({
         dwnUrl,
         targetDid : did,
         message   : eventsGet
@@ -147,7 +147,7 @@ export class SyncApi implements SyncManager {
   async push() {
     await this.enqueuePush();
 
-    const pushQueue = this.#getPushQueue();
+    const pushQueue = this.getPushQueue();
     const pushJobs = await pushQueue.iterator().all();
     const errored: Set<string> = new Set();
 
@@ -161,17 +161,17 @@ export class SyncApi implements SyncManager {
         continue;
       }
 
-      const dwnMessage = await this.#getDwnMessage(did, messageCid);
+      const dwnMessage = await this.getDwnMessage(did, messageCid);
       if (!dwnMessage) {
         delOps.push({ type: 'del', key: key });
         await this.setWatermark(did, dwnUrl, 'push', watermark);
-        await this.#addMessage(did, messageCid);
+        await this.addMessage(did, messageCid);
 
         continue;
       }
 
       try {
-        const reply = await this.#dwnRpcClient.sendDwnRequest({
+        const reply = await this.dwnRpcClient.sendDwnRequest({
           dwnUrl,
           targetDid : did,
           data      : dwnMessage.data,
@@ -181,7 +181,7 @@ export class SyncApi implements SyncManager {
         if (reply.status.code === 202 || reply.status.code === 409) {
           delOps.push({ type: 'del', key: key });
           await this.setWatermark(did, dwnUrl, 'push', watermark);
-          await this.#addMessage(did, messageCid);
+          await this.addMessage(did, messageCid);
         }
       } catch(e) {
         errored.add(dwnUrl);
@@ -192,12 +192,12 @@ export class SyncApi implements SyncManager {
   }
 
   async enqueuePull() {
-    const profileDids = await this.#db.sublevel('registeredProfiles').keys().all();
+    const profileDids = await this.db.sublevel('registeredProfiles').keys().all();
     const syncStates: SyncState[] = [];
 
     for (let did of profileDids) {
       // TODO: try/catch
-      const { didDocument } = await this.#didResolver.resolve(did);
+      const { didDocument } = await this.didResolver.resolve(did);
       const [ service ] = didUtils.getServices(didDocument, { id: '#dwn', type: 'DecentralizedWebNode' });
 
       // did has no dwn service endpoints listed in DID Doc. ignore
@@ -215,7 +215,7 @@ export class SyncApi implements SyncManager {
     const pullOps: DbBatchOperation[] = [];
 
     for (let syncState of syncStates) {
-      const signatureInput = await this.#getAuthorSignatureInput(syncState.did);
+      const signatureInput = await this.getAuthorSignatureInput(syncState.did);
       const eventsGet = await EventsGet.create({
         watermark                   : syncState.watermark,
         authorizationSignatureInput : signatureInput
@@ -224,7 +224,7 @@ export class SyncApi implements SyncManager {
       let reply: EventsGetReply;
 
       try {
-        reply = await this.#dwnRpcClient.sendDwnRequest({
+        reply = await this.dwnRpcClient.sendDwnRequest({
           dwnUrl    : syncState.dwnUrl,
           targetDid : syncState.did,
           message   : eventsGet
@@ -241,7 +241,7 @@ export class SyncApi implements SyncManager {
       }
 
       if (pullOps.length > 0) {
-        const pullQueue = this.#getPullQueue();
+        const pullQueue = this.getPullQueue();
         pullQueue.batch(pullOps as any);
       }
     }
@@ -250,7 +250,7 @@ export class SyncApi implements SyncManager {
   async pull() {
     await this.enqueuePull();
 
-    const pullQueue = this.#getPullQueue();
+    const pullQueue = this.getPullQueue();
     const pullJobs = await pullQueue.iterator().all();
     const delOps: DbBatchOperation[] = [];
     const errored: Set<string> = new Set();
@@ -263,7 +263,7 @@ export class SyncApi implements SyncManager {
         continue;
       }
 
-      const messageExists = await this.#messageExists(did, messageCid);
+      const messageExists = await this.messageExists(did, messageCid);
       if (messageExists) {
         await this.setWatermark(did, dwnUrl, 'pull', watermark);
         delOps.push({ type: 'del', key });
@@ -271,7 +271,7 @@ export class SyncApi implements SyncManager {
         continue;
       }
 
-      const signatureInput = await this.#getAuthorSignatureInput(did);
+      const signatureInput = await this.getAuthorSignatureInput(did);
       const messagesGet = await MessagesGet.create({
         messageCids                 : [messageCid],
         authorizationSignatureInput : signatureInput
@@ -280,7 +280,7 @@ export class SyncApi implements SyncManager {
       let reply: MessagesGetReply;
 
       try {
-        reply = await this.#dwnRpcClient.sendDwnRequest({
+        reply = await this.dwnRpcClient.sendDwnRequest({
           dwnUrl,
           targetDid : did,
           message   : messagesGet
@@ -295,13 +295,13 @@ export class SyncApi implements SyncManager {
           console.warn(`message ${messageCid} not found. entry: ${JSON.stringify(entry, null, 2)} ignoring..`);
 
           await this.setWatermark(did, dwnUrl, 'pull', watermark);
-          await this.#addMessage(did, messageCid);
+          await this.addMessage(did, messageCid);
           delOps.push({ type: 'del', key });
 
           continue;
         }
 
-        const messageType = this.#getDwnMessageType(entry.message);
+        const messageType = this.getDwnMessageType(entry.message);
         let dataStream;
 
         if (messageType === 'RecordsWrite') {
@@ -317,18 +317,18 @@ export class SyncApi implements SyncManager {
               recordId                    : message['recordId']
             });
 
-            const recordsReadReply = await this.#dwnRpcClient.sendDwnRequest({
+            const recordsReadReply = await this.dwnRpcClient.sendDwnRequest({
               targetDid : did,
               dwnUrl,
               message   : recordsRead
             }) as RecordsReadReply;
 
             if (recordsReadReply.status.code >= 400) {
-              const pruneReply = await this.#dwn.synchronizePrunedInitialRecordsWrite(did, message);
+              const pruneReply = await this.dwn.synchronizePrunedInitialRecordsWrite(did, message);
 
               if (pruneReply.status.code === 202 || pruneReply.status.code === 409) {
                 await this.setWatermark(did, dwnUrl, 'pull', watermark);
-                await this.#addMessage(did, messageCid);
+                await this.addMessage(did, messageCid);
                 delOps.push({ type: 'del', key });
 
                 continue;
@@ -341,11 +341,11 @@ export class SyncApi implements SyncManager {
           }
         }
 
-        const pullReply = await this.#dwn.processMessage(did, entry.message, dataStream);
+        const pullReply = await this.dwn.processMessage(did, entry.message, dataStream);
 
         if (pullReply.status.code === 202 || pullReply.status.code === 409) {
           await this.setWatermark(did, dwnUrl, 'pull', watermark);
-          await this.#addMessage(did, messageCid);
+          await this.addMessage(did, messageCid);
           delOps.push({ type: 'del', key });
         }
       }
@@ -354,14 +354,14 @@ export class SyncApi implements SyncManager {
     await pullQueue.batch(delOps as any);
   }
 
-  async #getDwnMessage(author: string, messageCid: string): Promise<DwnMessage> {
-    const dwnSignatureInput = await this.#getAuthorSignatureInput(author);
+  async getDwnMessage(author: string, messageCid: string): Promise<DwnMessage> {
+    const dwnSignatureInput = await this.getAuthorSignatureInput(author);
     const messagesGet = await MessagesGet.create({
       authorizationSignatureInput : dwnSignatureInput,
       messageCids                 : [messageCid]
     });
 
-    const result: MessagesGetReply = await this.#dwn.processMessage(author, messagesGet.toJSON());
+    const result: MessagesGetReply = await this.dwn.processMessage(author, messagesGet.toJSON());
     const [ messageEntry ] = result.messages;
 
     // absence of a messageEntry or message within messageEntry can happen because updating a Record actually creates another
@@ -393,7 +393,7 @@ export class SyncApi implements SyncManager {
           recordId                    : message['recordId']
         });
 
-        const reply = await this.#dwn.processMessage(author, recordsRead.toJSON()) as RecordsReadReply;
+        const reply = await this.dwn.processMessage(author, recordsRead.toJSON()) as RecordsReadReply;
 
         // if the data no longer exists (aka 404), it's likely that a `RecordsDelete` took place.
         // `RecordsDelete` keeps a `RecordsWrite` and just deletes the associated data, effectively acting as a "tombstone".
@@ -417,8 +417,8 @@ export class SyncApi implements SyncManager {
    * @param authorDid
    * @returns {SignatureInput}
    */
-  async #getAuthorSignatureInput(authorDid: string): Promise<SignatureInput> {
-    const profile = await this.#profileManager.getProfile(authorDid);
+  async getAuthorSignatureInput(authorDid: string): Promise<SignatureInput> {
+    const profile = await this.profileManager.getProfile(authorDid);
 
     if (!profile) {
       throw new Error('profile not found for author.');
@@ -442,7 +442,7 @@ export class SyncApi implements SyncManager {
 
   async getWatermark(did: string, dwnUrl: string, direction: Direction) {
     const wmKey = `${did}~${dwnUrl}~${direction}`;
-    const watermarkStore = this.#getWatermarkStore();
+    const watermarkStore = this.getWatermarkStore();
 
     try {
       return await watermarkStore.get(wmKey);
@@ -455,13 +455,13 @@ export class SyncApi implements SyncManager {
 
   async setWatermark(did: string, dwnUrl: string, direction: Direction, watermark: string) {
     const wmKey = `${did}~${dwnUrl}~${direction}`;
-    const watermarkStore = this.#getWatermarkStore();
+    const watermarkStore = this.getWatermarkStore();
 
     return watermarkStore.put(wmKey, watermark);
   }
 
-  async #messageExists(did: string, messageCid: string) {
-    const messageStore = this.#getMessageStore(did);
+  async messageExists(did: string, messageCid: string) {
+    const messageStore = this.getMessageStore(did);
     const hashedKey = new Set([messageCid]);
 
     const itr = messageStore.keys({ lte: messageCid, limit: 1 });
@@ -474,30 +474,30 @@ export class SyncApi implements SyncManager {
     }
   }
 
-  async #addMessage(did: string, messageCid: string) {
-    const messageStore = this.#getMessageStore(did);
+  async addMessage(did: string, messageCid: string) {
+    const messageStore = this.getMessageStore(did);
 
     return messageStore.put(messageCid, '');
   }
 
-  #getMessageStore(did: string) {
-    return this.#db.sublevel('history').sublevel(did).sublevel('messages');
+  getMessageStore(did: string) {
+    return this.db.sublevel('history').sublevel(did).sublevel('messages');
   }
 
-  #getWatermarkStore() {
-    return this.#db.sublevel('watermarks');
+  getWatermarkStore() {
+    return this.db.sublevel('watermarks');
   }
 
-  #getPushQueue() {
-    return this.#db.sublevel('pushQueue');
+  getPushQueue() {
+    return this.db.sublevel('pushQueue');
   }
 
-  #getPullQueue() {
-    return this.#db.sublevel('pullQueue');
+  getPullQueue() {
+    return this.db.sublevel('pullQueue');
   }
 
   // TODO: export BaseMessage from dwn-sdk.
-  #getDwnMessageType(message: any) {
+  getDwnMessageType(message: any) {
     return `${message.descriptor.interface}${message.descriptor.method}`;
   }
 }

@@ -1,8 +1,11 @@
 import type { DidIonCreateOptions } from '@tbd54566975/dids';
 
+import { Dwn } from '@tbd54566975/dwn-sdk-js';
+import { DataStoreLevel, EventLogLevel, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js/stores';
 import { DidIonApi, DidKeyApi, DidResolver } from '@tbd54566975/dids';
+
+
 import { Web5UserAgent, ProfileApi, ProfileStore } from '../../../src/main.js';
-import { Dwn, DataStoreLevel, EventLogLevel, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
 
 type CreateMethodOptions = {
   testDataLocation?: string;
