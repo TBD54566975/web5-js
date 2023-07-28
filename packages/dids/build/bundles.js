@@ -11,6 +11,6 @@ esbuild.build({
 esbuild.build({
   ...browserConfig,
   format     : 'iife',
-  globalName : 'Web5',
+  globalName : 'Web5Dids',
   outfile    : 'dist/browser.js',
 });
