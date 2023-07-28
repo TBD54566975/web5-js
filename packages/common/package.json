@@ -2,7 +2,7 @@
   "name": "@tbd54566975/common",
   "version": "0.8.0",
   "type": "module",
-  "main": "./dist/cjs/main.cjs",
+  "main": "./dist/cjs/main.js",
   "module": "./dist/esm/main.js",
   "types": "./dist/types/main.d.ts",
   "scripts": {
@@ -46,11 +46,6 @@
     ".": {
       "import": "./dist/esm/main.js",
       "require": "./dist/cjs/main.js",
-      "types": "./dist/types/main.d.ts"
-    },
-    "./browser": {
-      "import": "./dist/browser.mjs",
-      "require": "./dist/browser.js",
       "types": "./dist/types/main.d.ts"
     }
   },

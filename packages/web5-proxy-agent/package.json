@@ -65,7 +65,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@tbd54566975/web5-agent": "0.1.7-alpha-20230728-c6d0363"
+    "@tbd54566975/web5-agent": "0.8.0"
   },
   "devDependencies": {
     "@playwright/test": "1.34.3",
