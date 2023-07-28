@@ -182,7 +182,7 @@ describe('Record', () => {
     expect(record.dataCid).to.equal(recordsWrite.message.descriptor.dataCid);
     expect(record.dataSize).to.equal(recordsWrite.message.descriptor.dataSize);
     expect(record.dateCreated).to.equal(recordsWrite.message.descriptor.dateCreated);
-    expect(record.dateModified).to.equal(recordsWrite.message.descriptor.dateModified);
+    expect(record.dateModified).to.equal(recordsWrite.message.descriptor.messageTimestamp);
     expect(record.published).to.equal(published);
     expect(record.datePublished).to.equal(recordsWrite.message.descriptor.datePublished);
     expect(record.dataFormat).to.equal(dataFormat);
@@ -998,7 +998,7 @@ describe('Record', () => {
       expect(recordJson.dataCid).to.equal(recordsWrite.message.descriptor.dataCid);
       expect(recordJson.dataSize).to.equal(recordsWrite.message.descriptor.dataSize);
       expect(recordJson.dateCreated).to.equal(recordsWrite.message.descriptor.dateCreated);
-      expect(recordJson.dateModified).to.equal(recordsWrite.message.descriptor.dateModified);
+      expect(recordJson.messageTimestamp).to.equal(recordsWrite.message.descriptor.messageTimestamp);
       expect(recordJson.published).to.equal(published);
       expect(recordJson.datePublished).to.equal(recordsWrite.message.descriptor.datePublished);
       expect(recordJson.dataFormat).to.equal(dataFormat);

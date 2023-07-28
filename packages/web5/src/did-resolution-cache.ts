@@ -22,13 +22,13 @@ export class DidResolutionCache implements DidResolverCache {
   private cache: Level<string, string>;
   private ttl: number;
 
-  static #defaultOptions = {
+  private static defaultOptions = {
     location : 'data/did-res-cache',
     ttl      : '15m'
   };
 
   constructor(options: DidResolutionCacheOptions = {}) {
-    options = { ...DidResolutionCache.#defaultOptions, ...options };
+    options = { ...DidResolutionCache.defaultOptions, ...options };
 
     this.cache = new Level(options.location!);
     this.ttl = ms(options.ttl!);
