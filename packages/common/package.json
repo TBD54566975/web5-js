@@ -1,6 +1,6 @@
 {
   "name": "@tbd54566975/common",
-  "version": "0.8.0-alpha-20230728-70f8cf0",
+  "version": "0.8.0-alpha-20230728-d004f01",
   "type": "module",
   "main": "./dist/cjs/main.js",
   "module": "./dist/esm/main.js",

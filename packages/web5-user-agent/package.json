@@ -1,6 +1,6 @@
 {
   "name": "@tbd54566975/web5-user-agent",
-  "version": "0.8.0-alpha-20230728-70f8cf0",
+  "version": "0.8.0-alpha-20230728-d004f01",
   "description": "Web5 User Agent",
   "type": "module",
   "main": "./dist/cjs/main.js",
@@ -66,9 +66,9 @@
   },
   "dependencies": {
     "@decentralized-identity/ion-tools": "1.1.1",
-    "@tbd54566975/dids": "0.8.0-alpha-20230728-70f8cf0",
+    "@tbd54566975/dids": "0.8.0-alpha-20230728-d004f01",
     "@tbd54566975/dwn-sdk-js": "0.1.0-unstable-2023-07-18-09-24-a78a613",
-    "@tbd54566975/web5-agent": "0.8.0-alpha-20230728-70f8cf0",
+    "@tbd54566975/web5-agent": "0.8.0-alpha-20230728-d004f01",
     "abstract-level": "1.0.3",
     "cross-fetch": "4.0.0",
     "flat": "5.0.2",

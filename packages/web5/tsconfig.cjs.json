@@ -7,6 +7,7 @@
     ],
     "target": "ES5",
     "outDir": "dist/cjs",
+    "module": "CommonJS",
     "declaration": false,
     "declarationMap": false,
     "declarationDir": null
