@@ -1,6 +1,6 @@
 {
   "name": "@tbd54566975/common",
-  "version": "0.8.0-alpha-20230728-d004f01",
+  "version": "0.8.0-alpha-20230728-88c49a2",
   "type": "module",
   "main": "./dist/cjs/main.js",
   "module": "./dist/esm/main.js",
@@ -8,7 +8,7 @@
   "scripts": {
     "clean": "rimraf dist coverage tests/compiled",
     "build:esm": "rimraf dist/esm dist/types && npx tsc -p tsconfig.json",
-    "build:cjs": "rimraf dist/cjs && tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
+    "build:cjs": "rimraf dist/cjs && node build/cjs-bundle.js && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
     "build:browser": "rimraf dist/browser.mjs dist/browser.js && node build/bundles.js",
     "build": "npm run clean && npm run build:esm && npm run build:cjs && npm run build:browser",
     "lint": "eslint . --ext .ts --max-warnings 0",

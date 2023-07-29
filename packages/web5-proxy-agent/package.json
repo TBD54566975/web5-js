@@ -1,6 +1,6 @@
 {
   "name": "@tbd54566975/web5-proxy-agent",
-  "version": "0.8.0-alpha-20230728-d004f01",
+  "version": "0.8.0-alpha-20230728-88c49a2",
   "description": "Web5 Proxy Agent",
   "type": "module",
   "main": "./dist/cjs/main.js",
@@ -65,7 +65,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@tbd54566975/web5-agent": "0.8.0-alpha-20230728-d004f01"
+    "@tbd54566975/web5-agent": "0.8.0-alpha-20230728-88c49a2"
   },
   "devDependencies": {
     "@playwright/test": "1.34.3",

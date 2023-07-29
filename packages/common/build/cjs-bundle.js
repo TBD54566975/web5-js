@@ -1,11 +1,8 @@
 import esbuild from 'esbuild';
-import browserConfig from './esbuild-browser-config.cjs';
-import packageJson from './package.json' assert { type: 'json' };
+import packageJson from '../package.json' assert { type: 'json' };
 
 // list of dependencies that _dont_ ship cjs
-const includeList = new Set([
-  'multiformats'
-]);
+const includeList = new Set(['multiformats']);
 
 // create list of dependencies that we _do not_ want to include in our bundle
 const excludeList = [];
@@ -26,18 +23,4 @@ esbuild.build({
   platform       : 'node',
   outfile        : 'dist/cjs/main.js',
   allowOverwrite : true
-});
-
-// esm polyfilled bundle for browser
-esbuild.build({
-  ...browserConfig,
-  outfile: 'dist/browser.mjs',
-});
-
-// iife polyfilled bundle for browser
-esbuild.build({
-  ...browserConfig,
-  format     : 'iife',
-  globalName : 'Web5Common',
-  outfile    : 'dist/browser.js',
 });
