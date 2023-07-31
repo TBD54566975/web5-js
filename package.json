@@ -2,9 +2,9 @@
     "workspaces": [
         "packages/common",
         "packages/crypto",
+        "packages/credentials",
         "packages/web5-agent",
         "packages/dids",
-        "packages/credentials",
         "packages/web5-user-agent",
         "packages/web5-proxy-agent",
         "packages/web5"

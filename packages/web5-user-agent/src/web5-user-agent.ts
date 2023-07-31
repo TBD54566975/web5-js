@@ -18,6 +18,9 @@ import {
   DwnRpcRequest,
   SendDwnRequest,
   ProcessDwnRequest,
+  SendVcRequest,
+  ProcessVcRequest,
+  VcResponse,
 } from '@tbd54566975/web5-agent';
 
 import {
@@ -48,12 +51,18 @@ import { ProfileApi } from './profile-api.js';
 import { DwnRpcClient } from './dwn-rpc-client.js';
 import { blobToIsomorphicNodeReadable, webReadableToIsomorphicNodeReadable } from './utils.js';
 
+import { KeyManager, ManagedKeyPair } from '@tbd54566975/crypto';
+import { VerifiableCredential } from '@tbd54566975/credentials';
+
+import { Convert } from '@tbd54566975/common';
+
 // TODO: allow user to provide optional array of DwnRpc implementations once DwnRpc has been moved out of this package
 export type Web5UserAgentOptions = {
   dwn: Dwn;
   profileManager: ProfileManager;
   didResolver: DidResolver;
   syncManager?: SyncManager;
+  keyManager?: KeyManager;
 };
 
 type DwnMessage = {
@@ -78,6 +87,7 @@ export class Web5UserAgent implements Web5Agent {
   private didResolver: DidResolver;
   private dwnRpcClient: DwnRpc;
   private syncManager: SyncManager;
+  private keyManager: KeyManager;
 
   constructor(options: Web5UserAgentOptions) {
     this.dwn = options.dwn;
@@ -87,6 +97,10 @@ export class Web5UserAgent implements Web5Agent {
 
     if (options.syncManager) {
       this.syncManager = options.syncManager;
+    }
+
+    if (options.keyManager) {
+      this.keyManager = options.keyManager;
     }
   }
 
@@ -190,6 +204,90 @@ export class Web5UserAgent implements Web5Agent {
     };
   }
 
+  async processVcRequest(request: ProcessVcRequest): Promise<VcResponse> {
+    if (!request.vc) {
+      throw new Error(`must have vc to process vc request`);
+    }
+
+    let kid = request.kid;
+
+    if (!kid) {
+      const didResolution = await this.didResolver.resolve(request.author);
+
+      if (!didResolution.didDocument) {
+        if (didResolution.didResolutionMetadata?.error) {
+          throw new Error(`DID resolution error: ${didResolution.didResolutionMetadata.error}`);
+        } else {
+          throw new Error('DID resolution error: other');
+        }
+      }
+
+      const [ service ] = didUtils.getServices(didResolution.didDocument, { id: '#dwn' });
+      if (!service) {
+        throw new Error(`${request.target} has no '#dwn' service endpoints`);
+      }
+
+      const serviceEndpoint = service.serviceEndpoint as DwnServiceEndpoint;
+      kid = serviceEndpoint.messageAuthorizationKeys[0];
+    }
+
+    const vcJwt = await this.#sign(request.vc as VerifiableCredential, kid);
+
+    let schema;
+
+    if (request.vc.credentialSchema) {
+      let credentialSchema = request.vc.credentialSchema;
+      if (typeof credentialSchema === 'string') {
+        schema = credentialSchema;
+      } else if (Array.isArray(credentialSchema)) {
+        for (let item of credentialSchema) {
+          if (typeof item !== 'string' && item.id) {
+            schema = item.id;
+            break;
+          }
+        }
+      } else if (typeof credentialSchema === 'object' && credentialSchema.id) {
+        schema = credentialSchema.id;
+      }
+    } else if (!schema  && request.vc['@context']) {
+      let context = request.vc['@context'];
+
+      if (typeof context === 'string' && context !== 'https://www.w3.org/2018/credentials/v1') {
+        schema = context;
+      } else if (Array.isArray(context)) {
+        let filteredContext = context.filter(e => typeof e === 'string' && e !== 'https://www.w3.org/2018/credentials/v1');
+        if (filteredContext.length > 0) {
+          schema = filteredContext[0];
+        }
+      } else if (typeof context === 'object' && context.name && context.name !== 'https://www.w3.org/2018/credentials/v1') {
+        schema = context.name;
+      }
+    }
+
+    const messageOptions: Partial<RecordsWriteOptions> = { ...{ schema, dataFormat: 'application/vc+jwt' } };
+    const dataBlob = new Blob([vcJwt], { type: 'application/vc+jwt' });
+
+    const dwnResponse = await this.processDwnRequest({
+      author      : request.author,
+      dataStream  : dataBlob,
+      messageOptions,
+      messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+      store       : true,
+      target      : request.target
+    });
+
+    const vcResponse: VcResponse = {
+      vcJwt: vcJwt,
+      ...dwnResponse,
+    };
+
+    return vcResponse;
+  }
+
+  async sendVcRequest(_request: SendVcRequest): Promise<VcResponse> {
+    throw new Error('Method not implemented.');
+  }
+
   async #getDwnMessage(author: string, messageType: string, messageCid: string): Promise<DwnMessage> {
     const dwnSignatureInput = await this.#getAuthorSignatureInput(author);
     const messagesGet = await MessagesGet.create({
@@ -278,6 +376,41 @@ export class Web5UserAgent implements Web5Agent {
     const dwnMessage = await messageCreator.create(messageCreateInput as any);
 
     return { message: dwnMessage.toJSON(), dataStream: readableStream };
+  }
+
+  async #sign(vc: VerifiableCredential, kid: string): Promise<string> {
+    const keyPair = await this.keyManager.getKey({keyRef: kid}) as ManagedKeyPair;
+
+    const now = Math.floor(Date.now() / 1000);
+
+    const jwtPayload = {
+      iat : now,
+      iss : vc.issuer,
+      jti : vc.id,
+      nbf : now,
+      sub : vc.issuer,
+      vc  : vc,
+    };
+
+    const payloadBytes = Encoder.objectToBytes(jwtPayload);
+    const payloadBase64url = Encoder.bytesToBase64Url(payloadBytes);
+
+    const protectedHeader = {alg: 'ECDSA', kid: keyPair.privateKey.id, typ: 'JWT'};
+    const headerBytes = Encoder.objectToBytes(protectedHeader);
+    const headerBase64url = Encoder.bytesToBase64Url(headerBytes);
+
+    const signatureInput = `${headerBase64url}.${payloadBase64url}`;
+    const signatureInputBytes = Encoder.stringToBytes(signatureInput);
+
+    const signatureArrayBuffer = await this.keyManager.sign({
+      algorithm : { name: 'ECDSA', hash: 'SHA-256' },
+      keyRef    : keyPair.privateKey.id,
+      data      : signatureInputBytes,
+    });
+
+    const signatureBase64url = Convert.arrayBuffer(signatureArrayBuffer).toBase64Url();
+
+    return `${headerBase64url}.${payloadBase64url}.${signatureBase64url}`;
   }
 
   /**

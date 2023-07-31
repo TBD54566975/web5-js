@@ -1,4 +1,5 @@
 import type { Readable } from 'readable-stream';
+import type { VerifiableCredential } from '@tbd54566975/credentials';
 
 import {
   EventsGetMessage,
@@ -11,9 +12,12 @@ import {
   ProtocolsConfigureMessage,
 } from '@tbd54566975/dwn-sdk-js';
 
+
 export interface Web5Agent {
   processDwnRequest(request: ProcessDwnRequest): Promise<DwnResponse>
   sendDwnRequest(request: SendDwnRequest): Promise<DwnResponse>;
+  processVcRequest(request: ProcessVcRequest): Promise<VcResponse>;
+  sendVcRequest(request: SendVcRequest): Promise<VcResponse>;
 }
 
 export type DwnMessages = {
@@ -54,6 +58,29 @@ export type DwnResponse = {
   reply: UnionMessageReply;
 };
 
+/**
+ * TODO: add JSDoc
+ */
+export type ProcessVcRequest = {
+  author: string;
+  target: string;
+  vc: VerifiableCredential;
+  kid?: string
+};
+
+export type SendVcRequest = {
+  author: string;
+  target: string;
+  vc: VerifiableCredential;
+  messageCid?: string;
+};
+
+export type VcResponse = {
+  vcJwt?: string;
+  message?: unknown;
+  messageCid?: string;
+  reply: UnionMessageReply;
+};
 
 /**
  * TODO: add JSDoc

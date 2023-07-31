@@ -3,6 +3,8 @@ import type { DidIonCreateOptions } from '@tbd54566975/dids';
 import { DidIonApi, DidKeyApi, DidResolver } from '@tbd54566975/dids';
 import { Web5UserAgent, ProfileApi, ProfileStore } from '@tbd54566975/web5-user-agent';
 import { Dwn, DataStoreLevel, EventLogLevel, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
+import { KeyManager, KeyManagerOptions, KeyManagerStore, ManagedKeyPair, ManagedKey, KmsKeyStore, KmsPrivateKeyStore, ManagedPrivateKey, LocalKms} from '@tbd54566975/crypto';
+import { MemoryStore } from '@tbd54566975/common';
 
 import { AppStorage } from '../../src/app-storage.js';
 
@@ -22,6 +24,7 @@ export type TestAgentOptions = {
   didResolver: DidResolver;
   didIon: DidIonApi;
   didKey: DidKeyApi;
+  signKeyPair: ManagedKeyPair;
 }
 
 export type TestProfile = {
@@ -44,6 +47,7 @@ export class TestAgent {
   didResolver: DidResolver;
   didIon: DidIonApi;
   didKey: DidKeyApi;
+  signKeyPair: ManagedKeyPair;
 
   constructor(options: TestAgentOptions) {
     this.agent = options.agent;
@@ -57,6 +61,7 @@ export class TestAgent {
     this.didResolver = options.didResolver;
     this.didIon = options.didIon;
     this.didKey = options.didKey;
+    this.signKeyPair = options.signKeyPair;
   }
 
   async clearStorage(): Promise<void> {
@@ -103,10 +108,35 @@ export class TestAgent {
 
     const profileApi = new ProfileApi(profileStore);
 
+    const kmsMemoryStore = new MemoryStore<string, ManagedKey | ManagedKeyPair>();
+    const kmsKeyStore = new KmsKeyStore(kmsMemoryStore);
+
+    const memoryPrivateKeyStore = new MemoryStore<string, ManagedPrivateKey>();
+    const kmsPrivateKeyStore = new KmsPrivateKeyStore(memoryPrivateKeyStore);
+
+    const localKms = new LocalKms('local', kmsKeyStore, kmsPrivateKeyStore);
+
+    const kmMemoryStore = new MemoryStore<string, ManagedKey | ManagedKeyPair>();
+    const keyManagerStore = new KeyManagerStore({ store: kmMemoryStore });
+
+    const keyManagerOptions: KeyManagerOptions = {
+      store : keyManagerStore,
+      kms   : { local: localKms },
+    };
+
+    const keyManager = new KeyManager(keyManagerOptions);
+
+    const keyPair = await keyManager.generateKey({
+      algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+      extractable : false,
+      keyUsages   : ['sign', 'verify']
+    });
+
     const agent = new Web5UserAgent({
       profileManager : new ProfileApi(profileStore),
       dwn            : dwn,
-      didResolver    : didResolver
+      didResolver    : didResolver,
+      keyManager     : keyManager
     });
 
     return new TestAgent({
@@ -119,9 +149,9 @@ export class TestAgent {
       profileApi,
       profileStore,
       didResolver,
-      didIon : DidIon,
-      didKey : DidKey
-
+      didIon      : DidIon,
+      didKey      : DidKey,
+      signKeyPair : keyPair
     });
   }
 
@@ -137,6 +167,8 @@ export class TestAgent {
       did         : profileDidState, // TODO: need to figure out concrete return type for DidCreator
       connections : [appDidState.id],
     });
+
+    // TODO: Import did auth key into key manager (but will have to convert format from jwk to key material)
 
     return { did: profile.did.id };
   }
