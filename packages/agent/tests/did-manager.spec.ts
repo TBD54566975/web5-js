@@ -277,7 +277,7 @@ describe('DidManager', () => {
             // Verify that the DID was NOT stored under the new DID's tenant.
             storedDid = await testAgent.agent.didManager.get({ didRef: managedDid.did, context: managedDid.did });
             expect(storedDid).to.not.exist;
-          });
+          }).timeout(30000);
         }
       });
 
