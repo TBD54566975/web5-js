@@ -4,9 +4,18 @@ export function getCurrentXmlSchema112Timestamp() : string {
 }
 
 export function getFutureXmlSchema112Timestamp(secondsInFuture: number): string {
-  // Create a new Date object for the current time plus the specified number of seconds
-  const futureDate = new Date(Date.now() + secondsInFuture * 1000); // convert seconds to milliseconds
-
-  // Omit the milliseconds part from toISOString() output
+  const futureDate = new Date(Date.now() + secondsInFuture * 1000);
   return futureDate.toISOString().replace(/\.\d+Z$/, 'Z');
+}
+
+export function isValidXmlSchema112Timestamp(timestamp: string): boolean {
+  // Format: yyyy-MM-ddTHH:mm:ssZ
+  const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+  if (!regex.test(timestamp)) {
+    return false;
+  }
+
+  const date = new Date(timestamp);
+
+  return !isNaN(date.getTime());
 }

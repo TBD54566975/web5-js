@@ -1,9 +1,15 @@
-import { ICredential, IIssuer, ICredentialStatus, ICredentialSubject} from '@sphereon/ssi-types';
+import { ICredential, IIssuer, ICredentialStatus, ICredentialSubject, ICredentialSchemaType} from '@sphereon/ssi-types';
 
 /**
  * @see {@link https://www.w3.org/TR/vc-data-model/#credentials | VC data model}
  */
 export type { ICredential as VerifiableCredential };
+
+
+/**
+ * @see {@link https://www.w3.org/TR/vc-data-model/#data-schemas | Data schemas}
+ */
+export type { ICredentialSchemaType as CredentialSchemaType };
 
 /**
  * The issuer of a {@link VerifiableCredential}.

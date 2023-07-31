@@ -21,4 +21,8 @@ describe('[Node only] Web5UserAgent', () => {
   describe('processDwnRequest', () => {
     xit('can accept Blobs');
   });
+
+  describe('processVcRequest', () => {
+    xit('can accept Vcs');
+  });
 });

@@ -193,4 +193,29 @@ describe('Web5UserAgent', () => {
       expect(dataBytes).to.eql(value);
     });
   });
+
+  describe('sendVcRequest', () => {
+    it('throws an exception method not implemented.', async () => {
+      try {
+        const vc = {
+          id                : '123',
+          '@context'        : ['https://www.w3.org/2018/credentials/v1'],
+          credentialSubject : {firstName: 'Bob'},
+          type              : ['VerifiableCredential'],
+          issuer            : did,
+          issuanceDate      : '2023-07-31T12:34:56Z',
+        };
+
+        await testAgent.agent.sendVcRequest({
+          author : did,
+          target : did,
+          vc     : vc
+        });
+
+        expect.fail();
+      } catch(e) {
+        expect(e.message).to.include(`Method not implemented.`);
+      }
+    });
+  });
 });

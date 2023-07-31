@@ -168,6 +168,8 @@ export class TestAgent {
       connections : [appDidState.id],
     });
 
+    // TODO: Import did auth key into key manager (but will have to convert format from jwk to key material)
+
     return { did: profile.did.id };
   }
 

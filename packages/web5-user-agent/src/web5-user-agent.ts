@@ -205,8 +205,12 @@ export class Web5UserAgent implements Web5Agent {
   }
 
   async processVcRequest(request: ProcessVcRequest): Promise<VcResponse> {
+    if (!request.vc) {
+      throw new Error(`must have vc to process vc request`);
+    }
 
     let kid = request.kid;
+
     if (!kid) {
       const didResolution = await this.didResolver.resolve(request.author);
 
@@ -229,8 +233,39 @@ export class Web5UserAgent implements Web5Agent {
 
     const vcJwt = await this.#sign(request.vc as VerifiableCredential, kid);
 
-    const messageOptions: Partial<RecordsWriteOptions> = { ...{ schema: 'vc/vc', dataFormat: 'application/vc+jwt' } };
-    const dataBlob = new Blob([vcJwt], { type: 'text/plain' });
+    let schema;
+
+    if (request.vc.credentialSchema) {
+      let credentialSchema = request.vc.credentialSchema;
+      if (typeof credentialSchema === 'string') {
+        schema = credentialSchema;
+      } else if (Array.isArray(credentialSchema)) {
+        for (let item of credentialSchema) {
+          if (typeof item !== 'string' && item.id) {
+            schema = item.id;
+            break;
+          }
+        }
+      } else if (typeof credentialSchema === 'object' && credentialSchema.id) {
+        schema = credentialSchema.id;
+      }
+    } else if (!schema  && request.vc['@context']) {
+      let context = request.vc['@context'];
+
+      if (typeof context === 'string' && context !== 'https://www.w3.org/2018/credentials/v1') {
+        schema = context;
+      } else if (Array.isArray(context)) {
+        let filteredContext = context.filter(e => typeof e === 'string' && e !== 'https://www.w3.org/2018/credentials/v1');
+        if (filteredContext.length > 0) {
+          schema = filteredContext[0];
+        }
+      } else if (typeof context === 'object' && context.name && context.name !== 'https://www.w3.org/2018/credentials/v1') {
+        schema = context.name;
+      }
+    }
+
+    const messageOptions: Partial<RecordsWriteOptions> = { ...{ schema, dataFormat: 'application/vc+jwt' } };
+    const dataBlob = new Blob([vcJwt], { type: 'application/vc+jwt' });
 
     const dwnResponse = await this.processDwnRequest({
       author      : request.author,
@@ -343,8 +378,6 @@ export class Web5UserAgent implements Web5Agent {
     return { message: dwnMessage.toJSON(), dataStream: readableStream };
   }
 
-
-  // TODO: have issuer did key already stored in key manager and use that instead of generating a new one
   async #sign(vc: VerifiableCredential, kid: string): Promise<string> {
     const keyPair = await this.keyManager.getKey({keyRef: kid}) as ManagedKeyPair;
 
