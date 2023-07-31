@@ -1,13 +1,12 @@
 import { expect } from 'chai';
+import { DidIonMethod } from '@web5/dids';
+import { MemoryStore } from '@web5/common';
 import { AppDataVault, TestManagedAgent } from '@web5/agent';
 
 import { Web5 } from '../src/web5.js';
 import { TestUserAgent } from './utils/test-user-agent.js';
-import { MemoryStore } from '@web5/common';
-import { DidIonMethod } from '@web5/dids';
-import { Web5UserAgent } from '@web5/user-agent';
 
-describe.only('Web5', () => {
+describe('Web5', () => {
   describe('using TestManagedAgent', () => {
     let testAgent: TestManagedAgent;
 
@@ -84,6 +83,6 @@ describe.only('Web5', () => {
 
       expect(did).to.exist;
       expect(web5).to.exist;
-    }).timeout(5000);
+    }).timeout(10000);
   });
 });

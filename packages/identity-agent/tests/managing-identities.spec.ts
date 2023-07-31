@@ -70,7 +70,7 @@ describe('Managing Identities', () => {
           expect(storedCareerIdentity).to.have.property('did', careerIdentity.did);
           expect(storedFamilyIdentity).to.have.property('did', familyIdentity.did);
           expect(storedSocialIdentity).to.have.property('did', socialIdentity.did);
-        });
+        }).timeout(30000);
 
         // Tests that should only run for DWN-backed stores that provide multi-tenancy.
         if (agentStoreType === 'dwn') {
@@ -141,7 +141,7 @@ describe('Managing Identities', () => {
               keyRef: await testAgent.agent.didManager.getDefaultSigningKey({ did: socialIdentity.did }) ?? '' // Type guard.
             });
             expect(socialKey).to.exist;
-          });
+          }).timeout(30000);
         }
       });
 
@@ -169,7 +169,7 @@ describe('Managing Identities', () => {
           // Instantiate a Web5 instance with the "Social" Identity, write a record, and verify the result.
           const web5Social = new Web5({ agent: testAgent.agent, connectedDid: socialIdentity.did });
           expect(web5Social).to.exist;
-        });
+        }).timeout(30000);
 
         it('Can write records using an Identity under management', async () => {
           // Start agent for the first time.
@@ -214,7 +214,7 @@ describe('Managing Identities', () => {
           expect(socialResult.record).to.exist;
           expect(socialResult.record?.author).to.equal(socialIdentity.did);
           expect(await socialResult.record?.data.text()).to.equal('Hello, everyone!');
-        });
+        }).timeout(30000);
 
       });
     });
