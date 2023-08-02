@@ -71,7 +71,7 @@
     "@decentralized-identity/ion-tools": "1.1.4",
     "@tbd54566975/common": "0.8.0",
     "@tbd54566975/crypto": "0.8.0",
-    "@tbd54566975/dwn-sdk-js": "0.1.0-unstable-2023-07-18-09-24-a78a613",
+    "@tbd54566975/dwn-sdk-js": "0.2.0",
     "cross-fetch": "4.0.0"
   },
   "devDependencies": {
