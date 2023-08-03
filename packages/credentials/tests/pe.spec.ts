@@ -1,12 +1,14 @@
 import { webcrypto } from 'node:crypto';
-
 import { expect } from 'chai';
 import { Encoder } from '@tbd54566975/dwn-sdk-js';
 import { sha256 } from '@noble/hashes/sha256';
 import { Web5 } from '@tbd54566975/web5';
 import * as secp256k1 from '@noble/secp256k1';
 
-import { PresentationDefinition, PresentationResult, VerifiableCredential, evaluateCredentials, evaluatePresentation, presentationFrom } from '../src/types.js';
+import {
+  PresentationDefinition, PresentationResult, VerifiableCredential,
+  evaluateCredentials, evaluatePresentation, presentationFrom,
+} from '../src/types.js';
 import * as testProfile from '../../web5/tests/fixtures/test-profiles.js';
 import { TestAgent } from '../../web5/tests/test-utils/test-user-agent.js';
 
@@ -24,76 +26,159 @@ describe('PresentationExchange', () => {
     testAgent = await TestAgent.create();
   });
 
-  it('does a full presentation exchange', async () => {
-    const { web5, did: aliceDid } = await Web5.connect();
-    const aliceSignatureMaterial = await getSignatureMaterial(web5, aliceDid);
+  describe('Full Presentation Exchange', () => {
+    let aliceSignatureMaterial;
+    let btcCredentialJwt;
+    let aliceDid;
+    let presentationDefinition: PresentationDefinition;
+    let presentationResult: PresentationResult;
 
-    const btcCredential: VerifiableCredential =  {
-      '@context': [
-        'https://www.w3.org/2018/credentials/v1',
-      ],
-      'id'                : 'btc-credential',
-      'type'              : ['VerifiableCredential'],
-      'issuer'            : aliceDid,
-      'issuanceDate'      : new Date().toISOString(),
-      'credentialSubject' : {
-        'btcAddress': 'btcAddress123'
-      }
-    };
-
-    const btcCredentialJwt = await createJwt({
-      payload           : { vc: btcCredential },
-      issuer            : aliceDid,
-      subject           : aliceDid,
-      signatureMaterial : aliceSignatureMaterial as any
+    before(async () => {
+      const { web5, did } = await Web5.connect();
+      aliceDid = did;
+      aliceSignatureMaterial = await getSignatureMaterial(web5, aliceDid);
+      btcCredentialJwt = await createBtcCredentialJwt(aliceDid, aliceSignatureMaterial);
+      presentationDefinition = createPresentationDefinition();
     });
 
-    const presentationDefinition: PresentationDefinition = {
-      'id'                : 'test-pd-id',
-      'name'              : 'simple PD',
-      'purpose'           : 'pd for testing',
-      'input_descriptors' : [
-        {
-          'id'          : 'whatever',
-          'purpose'     : 'id for testing',
-          'constraints' : {
-            'fields': [
-              {
-                'path': [
-                  '$.credentialSubject.btcAddress',
-                ]
-              }
-            ]
-          }
-        }
-      ]
-    };
+    it('evaluateCredentials should not return any errors', async () => {
+      const evaluationResults = evaluateCredentials(presentationDefinition, [btcCredentialJwt]);
 
-    const evaluationResults = evaluateCredentials(presentationDefinition, [btcCredentialJwt]);
-
-    expect(evaluationResults.errors).to.be.an('array');
-    expect(evaluationResults.errors?.length).to.equal(0);
-
-    const presentationResult: PresentationResult = presentationFrom(presentationDefinition, [btcCredentialJwt]);
-
-    const vpJwt = await createJwt({
-      payload           : { vp: presentationResult.presentation },
-      issuer            : aliceDid,
-      subject           : aliceDid,
-      signatureMaterial : aliceSignatureMaterial as any
+      expect(evaluationResults.errors).to.be.an('array');
+      expect(evaluationResults.errors?.length).to.equal(0);
+      expect(evaluationResults.warnings).to.be.an('array');
+      expect(evaluationResults.warnings?.length).to.equal(0);
     });
 
-    const presentation = decodeJwt(vpJwt).payload.vp;
+    it('presentationFrom should return a valid PresentationResult', () => {
+      presentationResult = presentationFrom(presentationDefinition, [btcCredentialJwt]);
 
-    const { warnings, errors } = evaluatePresentation(presentationDefinition,  presentation );
+      expect(presentationResult).to.exist;
+      expect(presentationResult.presentationSubmission.definition_id).to.equal(presentationDefinition.id);
+    });
 
-    expect(errors).to.be.an('array');
-    expect(errors?.length).to.equal(0);
+    it('evaluatePresentation should not return any warnings or errors', async () => {
+      const vpJwt = await createJwt({
+        payload           : { vp: presentationResult.presentation },
+        issuer            : aliceDid,
+        subject           : aliceDid,
+        signatureMaterial : aliceSignatureMaterial
+      });
 
-    expect(warnings).to.be.an('array');
-    expect(warnings?.length).to.equal(0);
+      const presentation = decodeJwt(vpJwt).payload.vp;
+
+      const { warnings, errors } = evaluatePresentation(presentationDefinition,  presentation );
+
+      expect(errors).to.be.an('array');
+      expect(errors?.length).to.equal(0);
+
+      expect(warnings).to.be.an('array');
+      expect(warnings?.length).to.equal(0);
+    });
+
+    it('does a full presentation exchange', async () => {
+      const evaluationResults = evaluateCredentials(presentationDefinition, [btcCredentialJwt]);
+
+      expect(evaluationResults.errors).to.be.an('array');
+      expect(evaluationResults.errors?.length).to.equal(0);
+      expect(evaluationResults.warnings).to.be.an('array');
+      expect(evaluationResults.warnings?.length).to.equal(0);
+
+      presentationResult = presentationFrom(presentationDefinition, [btcCredentialJwt]);
+
+      expect(presentationResult).to.exist;
+      expect(presentationResult.presentationSubmission.definition_id).to.equal(presentationDefinition.id);
+
+      const vpJwt = await createJwt({
+        payload           : { vp: presentationResult.presentation },
+        issuer            : aliceDid,
+        subject           : aliceDid,
+        signatureMaterial : aliceSignatureMaterial
+      });
+
+      const presentation = decodeJwt(vpJwt).payload.vp;
+
+      const { warnings, errors } = evaluatePresentation(presentationDefinition,  presentation );
+
+      expect(errors).to.be.an('array');
+      expect(errors?.length).to.equal(0);
+
+      expect(warnings).to.be.an('array');
+      expect(warnings?.length).to.equal(0);
+    });
   });
 });
+type CreateJwtOpts = {
+  payload: any,
+  subject: string
+  issuer: string
+  signatureMaterial: SignatureInput
+}
+
+async function getSignatureMaterial(web5, did) {
+  const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.keys();
+  const { did: newDid } = await testAgent.createProfile(testProfileOptions);
+
+  const profile = await testAgent.getProfile(newDid || did);
+
+  if (!profile) {
+    throw new Error('profile not found for author.');
+  }
+
+  const { keys } = profile.did;
+  const [ key ] = keys;
+  const { privateKeyJwk } = key;
+
+  const kid = key.id;
+
+  return {
+    privateJwk      : privateKeyJwk,
+    protectedHeader : { alg: privateKeyJwk.crv, kid, typ: 'JWT' }
+  };
+}
+
+async function createBtcCredentialJwt(aliceDid, aliceSignatureMaterial) {
+  const btcCredential: VerifiableCredential = {
+    '@context'          : ['https://www.w3.org/2018/credentials/v1'],
+    'id'                : 'btc-credential',
+    'type'              : ['VerifiableCredential'],
+    'issuer'            : aliceDid,
+    'issuanceDate'      : new Date().toISOString(),
+    'credentialSubject' : {
+      'btcAddress': 'btcAddress123'
+    }
+  };
+
+  return await createJwt({
+    payload           : { vc: btcCredential },
+    issuer            : aliceDid,
+    subject           : aliceDid,
+    signatureMaterial : aliceSignatureMaterial as any
+  });
+}
+
+function createPresentationDefinition() {
+  return {
+    'id'                : 'test-pd-id',
+    'name'              : 'simple PD',
+    'purpose'           : 'pd for testing',
+    'input_descriptors' : [
+      {
+        'id'          : 'whatever',
+        'purpose'     : 'id for testing',
+        'constraints' : {
+          'fields': [
+            {
+              'path': [
+                '$.credentialSubject.btcAddress',
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  };
+}
 
 function decodeJwt(jwt) {
   const [encodedHeader, encodedPayload, encodedSignature] = jwt.split('.');
@@ -103,13 +188,6 @@ function decodeJwt(jwt) {
     payload : Encoder.base64UrlToObject(encodedPayload),
     encodedSignature
   };
-}
-
-type CreateJwtOpts = {
-  payload: any,
-  subject: string
-  issuer: string
-  signatureMaterial: SignatureInput
 }
 
 export async function createJwt(opts: CreateJwtOpts) {
@@ -141,31 +219,4 @@ export async function createJwt(opts: CreateJwtOpts) {
   const signatureBase64url = Encoder.bytesToBase64Url(signatureBytes);
 
   return `${headerBase64url}.${payloadBase64url}.${signatureBase64url}`;
-}
-
-
-async function getSignatureMaterial(web5, did) {
-  const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.keys();
-  ({ did } = await testAgent.createProfile(testProfileOptions));
-
-  const profile = await testAgent.getProfile(did);
-
-  if (!profile) {
-    throw new Error('profile not found for author.');
-  }
-
-  const { keys } = profile.did;
-  const [ key ] = keys;
-  const { privateKeyJwk } = key;
-
-  // const kidFragment = privateKeyJwk.kid || key.id;
-  // const kid = `${profile.did.id}#${kidFragment}`;
-  const kid = key.id;
-
-  const dwnSignatureInput = {
-    privateJwk      : privateKeyJwk,
-    protectedHeader : { alg: privateKeyJwk.crv, kid, typ: 'JWT' }
-  };
-
-  return dwnSignatureInput;
 }
