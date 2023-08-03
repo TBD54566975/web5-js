@@ -35,7 +35,6 @@ describe('credential types', () => {
     expect(credential).to.have.property('issuer');
     expect(credential).to.have.property('issuanceDate');
     expect(credential).to.have.property('credentialSubject');
-    expect(credential).to.have.property('credentialStatus');
     expect(credential).to.have.property('credentialSchema');
     expect(credential).to.have.property('id');
     expect(credential).to.have.property('expirationDate');

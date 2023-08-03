@@ -5,10 +5,7 @@ import { sha256 } from '@noble/hashes/sha256';
 import { Web5 } from '@tbd54566975/web5';
 import * as secp256k1 from '@noble/secp256k1';
 
-import {
-  PresentationDefinition, PresentationResult, VerifiableCredential,
-  evaluateCredentials, evaluatePresentation, presentationFrom,
-} from '../src/types.js';
+import { PresentationDefinition, PresentationResult, VerifiableCredential, evaluateCredentials, evaluatePresentation, presentationFrom } from '../src/types.js';
 import * as testProfile from '../../web5/tests/fixtures/test-profiles.js';
 import { TestAgent } from '../../web5/tests/test-utils/test-user-agent.js';
 
