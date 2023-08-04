@@ -17,8 +17,10 @@
       "name": "test:node",
       "runtimeExecutable": "${workspaceFolder:root}/node_modules/.bin/mocha",
       "console": "internalConsole",
-      "preLaunchTask": "tsc: test",
-      "skipFiles": ["<node_internals>/**"]
+      "preLaunchTask": "build tests",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
     }
   ]
 }

@@ -5,7 +5,6 @@
       "label": "npm run build",
       "type": "npm",
       "script": "build",
-      "problemMatcher": [],
       "group": {
         "kind": "build",
         "isDefault": true

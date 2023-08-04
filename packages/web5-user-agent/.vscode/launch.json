@@ -11,7 +11,9 @@
       "runtimeExecutable": "${workspaceFolder:root}/node_modules/.bin/mocha",
       "console": "internalConsole",
       "preLaunchTask": "build tests",
-      "skipFiles": ["<node_internals>/**"]
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
     }
   ]
 }
