@@ -107,7 +107,7 @@ describe('Record', () => {
       key                  : TestDataGenerator.randomBytes(32),
       keyEncryptionInputs  : [
         {
-          derivationScheme : KeyDerivationScheme.Protocols,
+          derivationScheme : KeyDerivationScheme.ProtocolPath,
           publicKey        : encryptionPublicKeyJwk as DwnPublicKeyJwk,
           publicKeyId      : recordEncryptionKeyId
         },
@@ -168,7 +168,7 @@ describe('Record', () => {
     expect(record.id).to.equal(recordsWrite.message.recordId);
     expect(record.encryption).to.not.be.undefined;
     expect(record.encryption).to.deep.equal(recordsWrite.message.encryption);
-    expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === KeyDerivationScheme.Protocols));
+    expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === KeyDerivationScheme.ProtocolPath));
     expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === KeyDerivationScheme.Schemas));
     expect(record.attestation).to.not.be.undefined;
     expect(record.attestation).to.have.property('signatures');
@@ -182,7 +182,7 @@ describe('Record', () => {
     expect(record.dataCid).to.equal(recordsWrite.message.descriptor.dataCid);
     expect(record.dataSize).to.equal(recordsWrite.message.descriptor.dataSize);
     expect(record.dateCreated).to.equal(recordsWrite.message.descriptor.dateCreated);
-    expect(record.dateModified).to.equal(recordsWrite.message.descriptor.dateModified);
+    expect(record.dateModified).to.equal(recordsWrite.message.descriptor.messageTimestamp);
     expect(record.published).to.equal(published);
     expect(record.datePublished).to.equal(recordsWrite.message.descriptor.datePublished);
     expect(record.dataFormat).to.equal(dataFormat);
@@ -918,7 +918,7 @@ describe('Record', () => {
         key                  : TestDataGenerator.randomBytes(32),
         keyEncryptionInputs  : [
           {
-            derivationScheme : KeyDerivationScheme.Protocols,
+            derivationScheme : KeyDerivationScheme.ProtocolPath,
             publicKey        : encryptionPublicKeyJwk as DwnPublicKeyJwk,
             publicKeyId      : recordEncryptionKeyId
           },
@@ -982,7 +982,7 @@ describe('Record', () => {
       expect(record.id).to.equal(recordsWrite.message.recordId);
       expect(record.encryption).to.not.be.undefined;
       expect(record.encryption).to.deep.equal(recordsWrite.message.encryption);
-      expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === KeyDerivationScheme.Protocols));
+      expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === KeyDerivationScheme.ProtocolPath));
       expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === KeyDerivationScheme.Schemas));
       expect(record.attestation).to.not.be.undefined;
       expect(record.attestation).to.have.property('signatures');
@@ -998,7 +998,7 @@ describe('Record', () => {
       expect(recordJson.dataCid).to.equal(recordsWrite.message.descriptor.dataCid);
       expect(recordJson.dataSize).to.equal(recordsWrite.message.descriptor.dataSize);
       expect(recordJson.dateCreated).to.equal(recordsWrite.message.descriptor.dateCreated);
-      expect(recordJson.dateModified).to.equal(recordsWrite.message.descriptor.dateModified);
+      expect(recordJson.messageTimestamp).to.equal(recordsWrite.message.descriptor.messageTimestamp);
       expect(recordJson.published).to.equal(published);
       expect(recordJson.datePublished).to.equal(recordsWrite.message.descriptor.datePublished);
       expect(recordJson.dataFormat).to.equal(dataFormat);

@@ -27,19 +27,12 @@
       }
     },
     {
-      "label": "tsc: build - tsconfig.test.json",
-      "type": "typescript",
-      "tsconfig": "tsconfig.test.json",
-      "problemMatcher": [
-        "$tsc"
-      ],
-      "group": {
-        "kind": "build",
-        "isDefault": false
-      },
+      "label": "build tests",
+      "type": "npm",
+      "script": "build:tests:node",
       "options": {
-        "cwd": "${workspaceFolder:root}"
+        "cwd": "${workspaceFolder:web5-proxy-agent}"
       }
-    },
+    }
   ]
 }

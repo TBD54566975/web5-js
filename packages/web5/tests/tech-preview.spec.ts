@@ -7,11 +7,8 @@ import { Web5 } from '../src/web5.js';
 chai.use(chaiUrl);
 
 describe('Tech Preview', () => {
-
   describe('web5.getTechPreviewDwnEndpoints()', () => {
-
     let fetchStub: sinon.SinonStub;
-
     let mockDwnEndpoints: Array<string>;
 
     let tbdWellKnownOkResponse = {

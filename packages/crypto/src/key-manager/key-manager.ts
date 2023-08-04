@@ -50,16 +50,16 @@ export type KeyManagerOptions = {
  */
 export class KeyManager implements CryptoManager {
   // KMS name to KeyManagementSystem mapping
-  #kms: Map<string, KeyManagementSystem>;
+  private kms: Map<string, KeyManagementSystem>;
   // Store for managed key metadata.
-  #keyStore: KeyManagerStore;
+  private keyStore: KeyManagerStore;
 
   constructor(options: KeyManagerOptions) {
     checkRequiredProperty({ property: 'store', inObject: options });
-    this.#keyStore = options.store;
+    this.keyStore = options.store;
 
-    options.kms ??= this.#useLocalKms();
-    this.#kms = new Map(Object.entries(options.kms)) ;
+    options.kms ??= this.useLocalKms();
+    this.kms = new Map(Object.entries(options.kms)) ;
   }
 
   async decrypt(options: DecryptOptions): Promise<ArrayBuffer> {
@@ -72,7 +72,7 @@ export class KeyManager implements CryptoManager {
     }
 
     const kmsName = key.kms;
-    const kms = this.#getKms(kmsName);
+    const kms = this.getKms(kmsName);
 
     const keyId = key.id;
     const plaintext = await kms.decrypt({ keyRef: keyId, ...decryptOptions });
@@ -90,7 +90,7 @@ export class KeyManager implements CryptoManager {
     }
 
     const kmsName = ownKeyPair.privateKey.kms;
-    const kms = this.#getKms(kmsName);
+    const kms = this.getKms(kmsName);
 
     const ownKeyId = ownKeyPair.privateKey.id;
     const sharedSecret = kms.deriveBits({ baseKeyRef: ownKeyId, ...deriveBitsOptions });
@@ -108,7 +108,7 @@ export class KeyManager implements CryptoManager {
     }
 
     const kmsName = key.kms;
-    const kms = this.#getKms(kmsName);
+    const kms = this.getKms(kmsName);
 
     const keyId = key.id;
     const ciphertext = await kms.encrypt({ keyRef: keyId, ...encryptOptions });
@@ -119,18 +119,18 @@ export class KeyManager implements CryptoManager {
   async generateKey<T extends GenerateKeyOptionTypes>(options: GenerateKeyOptions<T> & { kms?: string }): Promise<GenerateKeyType<T>> {
     const { kms: kmsName, ...generateKeyOptions } = options;
 
-    const kms = this.#getKms(kmsName);
+    const kms = this.getKms(kmsName);
 
     const keyOrKeyPair = await kms.generateKey(generateKeyOptions);
 
     // Store the ManagedKey or ManagedKeyPair in KeyManager's key store.
-    await this.#keyStore.importKey({ key: keyOrKeyPair });
+    await this.keyStore.importKey({ key: keyOrKeyPair });
 
     return keyOrKeyPair;
   }
 
   async getKey(options: { keyRef: string; }): Promise<ManagedKey | ManagedKeyPair | undefined> {
-    const keyOrKeyPair = this.#keyStore.getKey({ id: options.keyRef });
+    const keyOrKeyPair = this.keyStore.getKey({ id: options.keyRef });
     return keyOrKeyPair;
   }
 
@@ -138,18 +138,18 @@ export class KeyManager implements CryptoManager {
   async importKey(options: ImportableKey): Promise<ManagedKey>;
   async importKey(options: ImportKeyOptions): Promise<ManagedKey | ManagedKeyPair> {
     const kmsName = ('privateKey' in options) ? options.privateKey.kms : options.kms;
-    const kms = this.#getKms(kmsName);
+    const kms = this.getKms(kmsName);
 
     const importedKeyOrKeyPair = await kms.importKey(options);
 
     // Store the ManagedKey or ManagedKeyPair in KeyManager's key store.
-    await this.#keyStore.importKey({ key: importedKeyOrKeyPair });
+    await this.keyStore.importKey({ key: importedKeyOrKeyPair });
 
     return importedKeyOrKeyPair;
   }
 
   listKms() {
-    return Array.from(this.#kms.keys());
+    return Array.from(this.kms.keys());
   }
 
   async sign(options: SignOptions): Promise<ArrayBuffer> {
@@ -162,7 +162,7 @@ export class KeyManager implements CryptoManager {
     }
 
     const kmsName = keyPair.privateKey.kms;
-    const kms = this.#getKms(kmsName);
+    const kms = this.getKms(kmsName);
 
     const keyId = keyPair.privateKey.id;
     const signature = await kms.sign({ keyRef: keyId, ...signOptions });
@@ -180,7 +180,7 @@ export class KeyManager implements CryptoManager {
     }
 
     const kmsName = keyPair.publicKey.kms;
-    const kms = this.#getKms(kmsName);
+    const kms = this.getKms(kmsName);
 
     const keyId = keyPair.publicKey.id;
     const isValid = await kms.verify({ keyRef: keyId, ...verifyOptions });
@@ -188,12 +188,12 @@ export class KeyManager implements CryptoManager {
     return isValid;
   }
 
-  #getKms(name: string | undefined): KeyManagementSystem {
+  private getKms(name: string | undefined): KeyManagementSystem {
     // For developer convenience, if a KMS name isn't specified and KeyManager only has
     // one KMS defined, use it.  Otherwise, an exception will be thrown.
-    name ??= (this.#kms.size === 1) ? this.#kms.keys().next().value : '';
+    name ??= (this.kms.size === 1) ? this.kms.keys().next().value : '';
 
-    const kms = this.#kms.get(name!);
+    const kms = this.kms.get(name!);
 
     if (!kms) {
       throw Error(`Unknown key management system: '${name}'`);
@@ -202,7 +202,7 @@ export class KeyManager implements CryptoManager {
     return kms;
   }
 
-  #useLocalKms(): KmsMap {
+  private useLocalKms(): KmsMap {
     // Instantiate local in-memory store for KMS key metadata and public keys.
     const kmsMemoryStore = new MemoryStore<string, ManagedKey | ManagedKeyPair>();
     const kmsKeyStore = new KmsKeyStore(kmsMemoryStore);

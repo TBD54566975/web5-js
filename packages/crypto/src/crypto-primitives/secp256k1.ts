@@ -44,7 +44,7 @@ export class Secp256k1 {
    * corresponding hash functions.  The map is used in the 'sign' and 'verify'
    * methods to get the specified hash function.
    */
-  static #hashAlgorithms: Record<string, HashFunction> = {
+  private static hashAlgorithms: Record<string, HashFunction> = {
     'SHA-256': sha256
   };
 
@@ -153,7 +153,7 @@ export class Secp256k1 {
     const dataU8A = Convert.bufferSource(data).toUint8Array();
 
     // Generate a digest of the data using the specified hash function.
-    const hashFunction = this.#hashAlgorithms[hash];
+    const hashFunction = this.hashAlgorithms[hash];
     const digest = hashFunction(dataU8A);
 
     // Convert private key material from ArrayBuffer to Uint8Array.
@@ -196,7 +196,7 @@ export class Secp256k1 {
     const dataU8A = Convert.bufferSource(data).toUint8Array();
 
     // Generate a digest of the data using the specified hash function.
-    const hashFunction = this.#hashAlgorithms[hash];
+    const hashFunction = this.hashAlgorithms[hash];
     const digest = hashFunction(dataU8A);
 
     // Verify operation.

@@ -27,18 +27,14 @@
 			}
 		},
 		{
-			"label": "tsc: build - tsconfig.test.json",
-			"type": "typescript",
-			"tsconfig": "tsconfig.test.json",
+			"label": "build tests",
+			"type": "npm",
+			"script": "build:tests:node",
 			"problemMatcher": [
 				"$tsc"
 			],
-			"group": {
-				"kind": "build",
-				"isDefault": false
-			},
 			"options": {
-				"cwd": "${workspaceFolder:root}"
+				"cwd": "${workspaceFolder:web5}"
 			}
 		},
 	]
