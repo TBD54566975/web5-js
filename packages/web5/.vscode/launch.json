@@ -16,14 +16,9 @@
       "request": "launch",
       "name": "test:node",
       "runtimeExecutable": "${workspaceFolder:root}/node_modules/.bin/mocha",
-      "runtimeArgs": [
-        "${workspaceFolder:web5}/__tests__/**/*.spec.js"
-      ],
       "console": "internalConsole",
-      "preLaunchTask": "tsc: build - tsconfig.test.json",
-      "outFiles": [
-        "${workspaceFolder:web5}/__tests__/**/*.js"
-      ],
+      "preLaunchTask": "tsc: test",
+      "skipFiles": ["<node_internals>/**"]
     }
   ]
 }

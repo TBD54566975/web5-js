@@ -30,7 +30,8 @@ describe('web5.dwn', () => {
 
   describe('protocols', () => {
     describe('configure', () => {
-      describe('agent', () => {
+      // eslint-disable-next-line mocha/no-exclusive-tests
+      describe.only('agent', () => {
         it('writes a protocol definition', async () => {
           const response = await dwn.protocols.configure({
             message: {

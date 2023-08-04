@@ -1,5 +1,6 @@
 {
   "protocol": "http://email-protocol.xyz",
+  "published": false,
   "types": {
     "email": {
       "schema": "email",

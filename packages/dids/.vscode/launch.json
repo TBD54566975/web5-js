@@ -9,14 +9,11 @@
       "request": "launch",
       "name": "test:node",
       "runtimeExecutable": "${workspaceFolder:root}/node_modules/.bin/mocha",
-      "runtimeArgs": [
-        "${workspaceFolder:dids}/__tests__/**/*.spec.js"
-      ],
       "console": "internalConsole",
-      "preLaunchTask": "tsc: build - tsconfig.test.json",
-      "outFiles": [
-        "${workspaceFolder:dids}/__tests__/**/*.js"
-      ],
+      "preLaunchTask": "build tests",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
     }
   ]
 }
