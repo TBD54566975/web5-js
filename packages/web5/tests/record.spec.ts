@@ -107,7 +107,7 @@ describe('Record', () => {
       key                  : TestDataGenerator.randomBytes(32),
       keyEncryptionInputs  : [
         {
-          derivationScheme : KeyDerivationScheme.Protocols,
+          derivationScheme : KeyDerivationScheme.ProtocolPath,
           publicKey        : encryptionPublicKeyJwk as DwnPublicKeyJwk,
           publicKeyId      : recordEncryptionKeyId
         },
@@ -168,7 +168,7 @@ describe('Record', () => {
     expect(record.id).to.equal(recordsWrite.message.recordId);
     expect(record.encryption).to.not.be.undefined;
     expect(record.encryption).to.deep.equal(recordsWrite.message.encryption);
-    expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === KeyDerivationScheme.Protocols));
+    expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === KeyDerivationScheme.ProtocolPath));
     expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === KeyDerivationScheme.Schemas));
     expect(record.attestation).to.not.be.undefined;
     expect(record.attestation).to.have.property('signatures');
@@ -918,7 +918,7 @@ describe('Record', () => {
         key                  : TestDataGenerator.randomBytes(32),
         keyEncryptionInputs  : [
           {
-            derivationScheme : KeyDerivationScheme.Protocols,
+            derivationScheme : KeyDerivationScheme.ProtocolPath,
             publicKey        : encryptionPublicKeyJwk as DwnPublicKeyJwk,
             publicKeyId      : recordEncryptionKeyId
           },
@@ -982,7 +982,7 @@ describe('Record', () => {
       expect(record.id).to.equal(recordsWrite.message.recordId);
       expect(record.encryption).to.not.be.undefined;
       expect(record.encryption).to.deep.equal(recordsWrite.message.encryption);
-      expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === KeyDerivationScheme.Protocols));
+      expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === KeyDerivationScheme.ProtocolPath));
       expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === KeyDerivationScheme.Schemas));
       expect(record.attestation).to.not.be.undefined;
       expect(record.attestation).to.have.property('signatures');
