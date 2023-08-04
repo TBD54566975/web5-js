@@ -68,7 +68,7 @@
   "dependencies": {
     "@decentralized-identity/ion-tools": "1.1.1",
     "@tbd54566975/dids": "0.8.0",
-    "@tbd54566975/dwn-sdk-js": "0.2.0",
+    "@tbd54566975/dwn-sdk-js": "0.2.1",
     "@tbd54566975/web5-agent": "0.8.0",
     "abstract-level": "1.0.3",
     "cross-fetch": "4.0.0",
