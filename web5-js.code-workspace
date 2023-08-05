@@ -62,9 +62,9 @@
 				"name": "Test All - Node",
 				"runtimeExecutable": "${workspaceFolder:root}/node_modules/.bin/mocha",
 				"runtimeArgs": [
-					"packages/**/__tests__/**/*.spec.js"
+					"${workspaceFolder:root}/packages/**/tests/compiled/**/*.spec.js"
 				],
-				"preLaunchTask": "Build All",
+				"preLaunchTask": "build tests",
 				"console": "internalConsole",
 				"internalConsoleOptions": "openOnSessionStart",
 			}
@@ -81,6 +81,22 @@
 				"group": {
 					"kind": "build",
 					"isDefault": true
+				}
+			},
+			{
+				"label": "build tests",
+				"type": "shell",
+				"command": "npm",
+				"args": [
+					"run",
+					"build:tests:node",
+					"--ws"
+				],
+				"problemMatcher": [
+					"$tsc"
+				],
+				"options": {
+					"cwd": "${workspaceFolder:root}"
 				}
 			},
 		]

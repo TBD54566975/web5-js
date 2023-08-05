@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "compiled",
+    "declarationDir": "compiled/types",
+    "sourceMap": true,
+  },
+  "include": [
+    "../src",
+    ".",
+  ],
+  "exclude": [
+    "./compiled"
+  ]
+}

@@ -31,19 +31,19 @@ export type KmsOptions = {
 }
 
 export class LocalKms implements KeyManagementSystem {
-  #name: string;
-  #keyStore: KmsKeyStore;
-  #privateKeyStore: KmsPrivateKeyStore;
-  #supportedAlgorithms: Map<string, AlgorithmImplementation> = new Map();
+  private name: string;
+  private keyStore: KmsKeyStore;
+  private privateKeyStore: KmsPrivateKeyStore;
+  private supportedAlgorithms: Map<string, AlgorithmImplementation> = new Map();
 
   constructor(kmsName: string, keyStore: KmsKeyStore, privateKeyStore: KmsPrivateKeyStore, options: KmsOptions = {}) {
-    this.#name = kmsName;
-    this.#keyStore = keyStore;
-    this.#privateKeyStore = privateKeyStore;
+    this.name = kmsName;
+    this.keyStore = keyStore;
+    this.privateKeyStore = privateKeyStore;
 
     // Merge the default and custom algorithms and register with the KMS.
     const cryptoAlgorithms = {...defaultAlgorithms, ...options.cryptoAlgorithms};
-    this.#registerSupportedAlgorithms(cryptoAlgorithms);
+    this.registerSupportedAlgorithms(cryptoAlgorithms);
   }
 
   async decrypt(options: DecryptOptions): Promise<ArrayBuffer> {
@@ -53,14 +53,14 @@ export class LocalKms implements KeyManagementSystem {
     const key = await this.getKey({ keyRef });
 
     if (isManagedKey(key)) {
-      const privateManagedKey = await this.#privateKeyStore.getKey({ id: key.id });
+      const privateManagedKey = await this.privateKeyStore.getKey({ id: key.id });
 
       if (privateManagedKey !== undefined) {
         // Construct a CryptoKey object from the key metadata and private key material.
-        const privateCryptoKey = this.#toCryptoKey({ ...key, material: privateManagedKey.material });
+        const privateCryptoKey = this.toCryptoKey({ ...key, material: privateManagedKey.material });
 
         // Decrypt the data.
-        const cryptoAlgorithm = this.#getAlgorithm(algorithm);
+        const cryptoAlgorithm = this.getAlgorithm(algorithm);
         const plaintext = cryptoAlgorithm.decrypt({ algorithm, key: privateCryptoKey, data });
 
         return plaintext;
@@ -77,14 +77,14 @@ export class LocalKms implements KeyManagementSystem {
     const ownKeyPair = await this.getKey({ keyRef: baseKeyRef });
 
     if (isManagedKeyPair(ownKeyPair)) {
-      const privateManagedKey = await this.#privateKeyStore.getKey({ id: ownKeyPair.privateKey.id });
+      const privateManagedKey = await this.privateKeyStore.getKey({ id: ownKeyPair.privateKey.id });
 
       if (privateManagedKey !== undefined) {
         // Construct a CryptoKey object from the key metadata and private key material.
-        const privateCryptoKey = this.#toCryptoKey({ ...ownKeyPair.privateKey, material: privateManagedKey.material });
+        const privateCryptoKey = this.toCryptoKey({ ...ownKeyPair.privateKey, material: privateManagedKey.material });
 
         // Derive the shared secret.
-        const cryptoAlgorithm = this.#getAlgorithm(algorithm);
+        const cryptoAlgorithm = this.getAlgorithm(algorithm);
         const sharedSecret = cryptoAlgorithm.deriveBits({ algorithm, baseKey: privateCryptoKey, length: length ?? null });
 
         return sharedSecret;
@@ -101,14 +101,14 @@ export class LocalKms implements KeyManagementSystem {
     const key = await this.getKey({ keyRef });
 
     if (isManagedKey(key)) {
-      const privateManagedKey = await this.#privateKeyStore.getKey({ id: key.id });
+      const privateManagedKey = await this.privateKeyStore.getKey({ id: key.id });
 
       if (privateManagedKey !== undefined) {
         // Construct a CryptoKey object from the key metadata and private key material.
-        const privateCryptoKey = this.#toCryptoKey({ ...key, material: privateManagedKey.material });
+        const privateCryptoKey = this.toCryptoKey({ ...key, material: privateManagedKey.material });
 
         // Encrypt the data.
-        const cryptoAlgorithm = this.#getAlgorithm(algorithm);
+        const cryptoAlgorithm = this.getAlgorithm(algorithm);
         const ciphertext = cryptoAlgorithm.encrypt({ algorithm, key: privateCryptoKey, data });
 
         return ciphertext;
@@ -122,7 +122,7 @@ export class LocalKms implements KeyManagementSystem {
     let { algorithm, alias, extractable, keyUsages, metadata } = options;
 
     // Get crypto algorithm implementation.
-    const cryptoAlgorithm = this.#getAlgorithm(algorithm);
+    const cryptoAlgorithm = this.getAlgorithm(algorithm);
 
     // Generate the key.
     extractable ??= true; // Default to extractable if not specified.
@@ -132,24 +132,24 @@ export class LocalKms implements KeyManagementSystem {
     let managedKeyOrKeyPair: GenerateKeyType<T>;
     if (isCryptoKeyPair(cryptoKey)) {
       const privateKeyType = cryptoKey.privateKey.type as Web5Crypto.PrivateKeyType;
-      const id = await this.#privateKeyStore.importKey({ key: { material: cryptoKey.privateKey.handle, type: privateKeyType} });
-      const privateKey = this.#toManagedKey({ ...cryptoKey.privateKey, id, alias, metadata });
-      const publicKey = this.#toManagedKey({ ...cryptoKey.publicKey, material: cryptoKey.publicKey.handle, id, alias, metadata });
+      const id = await this.privateKeyStore.importKey({ key: { material: cryptoKey.privateKey.handle, type: privateKeyType} });
+      const privateKey = this.toManagedKey({ ...cryptoKey.privateKey, id, alias, metadata });
+      const publicKey = this.toManagedKey({ ...cryptoKey.publicKey, material: cryptoKey.publicKey.handle, id, alias, metadata });
       managedKeyOrKeyPair = { privateKey, publicKey } as GenerateKeyType<T>;
     } else {
       const keyType = cryptoKey.type as Web5Crypto.PrivateKeyType;
-      const id = await this.#privateKeyStore.importKey({ key: { material: cryptoKey.handle, type: keyType } });
-      managedKeyOrKeyPair = this.#toManagedKey({ ...cryptoKey, id, alias, metadata }) as GenerateKeyType<T>;
+      const id = await this.privateKeyStore.importKey({ key: { material: cryptoKey.handle, type: keyType } });
+      managedKeyOrKeyPair = this.toManagedKey({ ...cryptoKey, id, alias, metadata }) as GenerateKeyType<T>;
     }
 
     // Store the ManagedKey or ManagedKeyPair in the KMS key store.
-    await this.#keyStore.importKey({ key: managedKeyOrKeyPair });
+    await this.keyStore.importKey({ key: managedKeyOrKeyPair });
 
     return managedKeyOrKeyPair;
   }
 
   async getKey(options: { keyRef: string }): Promise<ManagedKey | ManagedKeyPair | undefined> {
-    const keyOrKeyPair = this.#keyStore.getKey({ id: options.keyRef });
+    const keyOrKeyPair = this.keyStore.getKey({ id: options.keyRef });
     return keyOrKeyPair;
   }
 
@@ -166,12 +166,12 @@ export class LocalKms implements KeyManagementSystem {
         throw new TypeError(`Out of range: '${privateKey.type}, ${publicKey.type}'. Must be 'private, public'`);
       privateKey.material = Convert.bufferSource(privateKey.material).toArrayBuffer();
       publicKey.material = Convert.bufferSource(publicKey.material).toArrayBuffer();
-      const id = await this.#privateKeyStore.importKey({ key: { material: privateKey.material, type: privateKey.type } });
+      const id = await this.privateKeyStore.importKey({ key: { material: privateKey.material, type: privateKey.type } });
       const managedKeyPair = {
-        privateKey : this.#toManagedKey({ ...privateKey, material: undefined, id }),
-        publicKey  : this.#toManagedKey({ ...publicKey, material: publicKey.material, id })
+        privateKey : this.toManagedKey({ ...privateKey, material: undefined, id }),
+        publicKey  : this.toManagedKey({ ...publicKey, material: publicKey.material, id })
       };
-      await this.#keyStore.importKey({ key: managedKeyPair });
+      await this.keyStore.importKey({ key: managedKeyPair });
       return managedKeyPair;
     }
 
@@ -181,9 +181,9 @@ export class LocalKms implements KeyManagementSystem {
         // Asymmetric private key import.
         let { material } = options;
         material = Convert.bufferSource(material).toArrayBuffer();
-        const id = await this.#privateKeyStore.importKey({ key: { material, type: keyType } });
-        const privateManagedKey = this.#toManagedKey({ ...options, material: undefined, id });
-        await this.#keyStore.importKey({ key: privateManagedKey });
+        const id = await this.privateKeyStore.importKey({ key: { material, type: keyType } });
+        const privateManagedKey = this.toManagedKey({ ...options, material: undefined, id });
+        await this.keyStore.importKey({ key: privateManagedKey });
         return privateManagedKey;
       }
 
@@ -191,8 +191,8 @@ export class LocalKms implements KeyManagementSystem {
         // Asymmetric public key import.
         let { material } = options;
         material = Convert.bufferSource(material).toArrayBuffer();
-        const privateManagedKey = this.#toManagedKey({ ...options, material, id: 'placeholder' });
-        privateManagedKey.id = await this.#keyStore.importKey({ key: privateManagedKey });
+        const privateManagedKey = this.toManagedKey({ ...options, material, id: 'placeholder' });
+        privateManagedKey.id = await this.keyStore.importKey({ key: privateManagedKey });
         return privateManagedKey;
       }
 
@@ -200,9 +200,9 @@ export class LocalKms implements KeyManagementSystem {
         // Symmetric secret key import.
         let { material } = options;
         material = Convert.bufferSource(material).toArrayBuffer();
-        const id = await this.#privateKeyStore.importKey({ key: { material, type: keyType } });
-        const secretManagedKey = this.#toManagedKey({ ...options, material: undefined, id });
-        await this.#keyStore.importKey({ key: secretManagedKey });
+        const id = await this.privateKeyStore.importKey({ key: { material, type: keyType } });
+        const secretManagedKey = this.toManagedKey({ ...options, material: undefined, id });
+        await this.keyStore.importKey({ key: secretManagedKey });
         return secretManagedKey;
       }
 
@@ -218,14 +218,14 @@ export class LocalKms implements KeyManagementSystem {
     const keyPair = await this.getKey({ keyRef });
 
     if (isManagedKeyPair(keyPair)) {
-      const privateManagedKey = await this.#privateKeyStore.getKey({ id: keyPair.privateKey.id });
+      const privateManagedKey = await this.privateKeyStore.getKey({ id: keyPair.privateKey.id });
 
       if (privateManagedKey !== undefined) {
         // Construct a CryptoKey object from the key metadata and private key material.
-        const privateCryptoKey = this.#toCryptoKey({ ...keyPair.privateKey, material: privateManagedKey.material });
+        const privateCryptoKey = this.toCryptoKey({ ...keyPair.privateKey, material: privateManagedKey.material });
 
         // Sign the data.
-        const cryptoAlgorithm = this.#getAlgorithm(algorithm);
+        const cryptoAlgorithm = this.getAlgorithm(algorithm);
         const signature = cryptoAlgorithm.sign({ algorithm, key: privateCryptoKey, data });
 
         return signature;
@@ -243,10 +243,10 @@ export class LocalKms implements KeyManagementSystem {
 
     if (isManagedKeyPair(keyPair)) {
       // Construct a CryptoKey object from the key metadata and private key material.
-      const publicCryptoKey = this.#toCryptoKey({ ...keyPair.publicKey });
+      const publicCryptoKey = this.toCryptoKey({ ...keyPair.publicKey });
 
       // Verify the signature and data.
-      const cryptoAlgorithm = this.#getAlgorithm(algorithm);
+      const cryptoAlgorithm = this.getAlgorithm(algorithm);
       const isValid = cryptoAlgorithm.verify({ algorithm, key: publicCryptoKey, signature, data });
 
       return isValid;
@@ -255,9 +255,9 @@ export class LocalKms implements KeyManagementSystem {
     throw new Error(`Operation failed: 'verify'. Key not found: ${keyRef}`);
   }
 
-  #getAlgorithm(algorithmIdentifier: Web5Crypto.AlgorithmIdentifier): CryptoAlgorithm {
+  private getAlgorithm(algorithmIdentifier: Web5Crypto.AlgorithmIdentifier): CryptoAlgorithm {
     checkRequiredProperty({ property: 'name', inObject: algorithmIdentifier });
-    const algorithm = this.#supportedAlgorithms.get(algorithmIdentifier.name.toUpperCase());
+    const algorithm = this.supportedAlgorithms.get(algorithmIdentifier.name.toUpperCase());
 
     if (algorithm === undefined) {
       throw new Error(`The algorithm '${algorithmIdentifier.name}' is not supported`);
@@ -266,15 +266,15 @@ export class LocalKms implements KeyManagementSystem {
     return algorithm.create();
   }
 
-  #registerSupportedAlgorithms(cryptoAlgorithms: AlgorithmImplementations): void {
+  private registerSupportedAlgorithms(cryptoAlgorithms: AlgorithmImplementations): void {
     for (const [name, implementation] of Object.entries(cryptoAlgorithms)) {
       // Add the algorithm name and its implementation to the supported algorithms map,
       // upper-cased to allow for case-insensitive.
-      this.#supportedAlgorithms.set(name.toUpperCase(), implementation);
+      this.supportedAlgorithms.set(name.toUpperCase(), implementation);
     }
   }
 
-  #toCryptoKey(managedKey: ManagedKey): Web5Crypto.CryptoKey {
+  private toCryptoKey(managedKey: ManagedKey): Web5Crypto.CryptoKey {
     if (!managedKey.material) {
       throw new Error(`Required property missing: 'material'`);
     }
@@ -290,13 +290,13 @@ export class LocalKms implements KeyManagementSystem {
     return cryptoKey;
   }
 
-  #toManagedKey(options: Omit<Web5Crypto.CryptoKey, 'handle'> & RequireOnly<ManagedKey, 'id'>): ManagedKey {
+  private toManagedKey(options: Omit<Web5Crypto.CryptoKey, 'handle'> & RequireOnly<ManagedKey, 'id'>): ManagedKey {
     const managedKey: ManagedKey = {
       id          : options.id,
       algorithm   : options.algorithm,
       alias       : options.alias,
       extractable : options.extractable,
-      kms         : this.#name,
+      kms         : this.name,
       material    : (options.type === 'public') ? options.material : undefined,
       metadata    : options.metadata,
       state       : 'Enabled',

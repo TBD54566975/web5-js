@@ -9,10 +9,10 @@ import { createJsonRpcRequest, parseJson } from '@tbd54566975/web5-agent';
  * Client used to communicate with Dwn Servers
  */
 export class DwnRpcClient implements DwnRpc {
-  #transportClients: Map<string, DwnRpc>;
+  private transportClients: Map<string, DwnRpc>;
 
   constructor(clients: DwnRpc[] = []) {
-    this.#transportClients = new Map();
+    this.transportClients = new Map();
 
     // include http client as default. can be overwritten for 'http:' or 'https:' if instantiator provides
     // their own.
@@ -20,20 +20,20 @@ export class DwnRpcClient implements DwnRpc {
 
     for (let client of clients) {
       for (let transportScheme of client.transportProtocols) {
-        this.#transportClients.set(transportScheme, client);
+        this.transportClients.set(transportScheme, client);
       }
     }
   }
 
   get transportProtocols(): string[] {
-    return Array.from(this.#transportClients.keys());
+    return Array.from(this.transportClients.keys());
   }
 
   sendDwnRequest(request: DwnRpcRequest): Promise<DwnRpcResponse> {
     // will throw if url is invalid
     const url = new URL(request.dwnUrl);
 
-    const transportClient = this.#transportClients.get(url.protocol);
+    const transportClient = this.transportClients.get(url.protocol);
     if (!transportClient) {
       const error = new Error(`no ${url.protocol} transport client available`);
       error.name = 'NO_TRANSPORT_CLIENT';

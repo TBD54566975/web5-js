@@ -4,6 +4,7 @@
 **/INDEX/
 **/MESSAGESTORE/
 data
+compiled
 
 **/__tests__/
 **/__TESTDATA__/

@@ -4,8 +4,8 @@ import type { DidState, DidMethodApi, DidResolverCache, DwnServiceEndpoint } fro
 
 import ms from 'ms';
 
-// import  { Web5ProxyAgent } from '@tbd54566975/web5-proxy-agent';
 import { Dwn } from '@tbd54566975/dwn-sdk-js';
+import { MessageStoreLevel, DataStoreLevel, EventLogLevel } from '@tbd54566975/dwn-sdk-js/stores';
 import { Web5UserAgent, ProfileApi, SyncApi } from '@tbd54566975/web5-user-agent';
 import { DidIonApi, DidKeyApi, utils as didUtils } from '@tbd54566975/dids';
 
@@ -51,7 +51,7 @@ export class Web5 {
   appStorage: AppStorage;
   dwn: DwnApi;
   vc: VcApi;
-  #connectedDid: string;
+  private connectedDid: string;
 
   /**
    * Statically available DID functionality. can be used to create and resolve DIDs without calling {@link connect}.
@@ -70,9 +70,9 @@ export class Web5 {
   private static APP_DID_KEY = 'WEB5_APP_DID';
 
   private constructor(options: Web5Options) {
-    this.#connectedDid = options.connectedDid;
-    this.dwn = new DwnApi(options.web5Agent, this.#connectedDid);
-    this.vc = new VcApi(options.web5Agent, this.#connectedDid);
+    this.connectedDid = options.connectedDid;
+    this.dwn = new DwnApi(options.web5Agent, this.connectedDid);
+    this.vc = new VcApi(options.web5Agent, this.connectedDid);
     this.appStorage ||= new AppStorage();
   }
 
@@ -109,7 +109,12 @@ export class Web5 {
       cache         : options.didResolutionCache || new DidResolutionCache()
     });
 
-    const dwn = await Dwn.create();
+    const messageStore = new MessageStoreLevel({ blockstoreLocation: 'data/dwn/message-store', indexLocation: 'data/dwn/message-index' });
+    const dataStore = new DataStoreLevel({ blockstoreLocation: 'data/dwn/data-store' });
+    const eventLog = new EventLogLevel({ location: 'data/dwn/event-log' });
+
+    const dwn = await Dwn.create({ messageStore, dataStore, eventLog });
+
     const syncManager = new SyncApi({
       profileManager : profileApi,
       didResolver    : Web5.did.resolver, // share the same resolver to share the same underlying cache
@@ -141,7 +146,7 @@ export class Web5 {
     const connectedDid = profile.did.id;
     const web5 = new Web5({ appStorage: appStorage, web5Agent: agent, connectedDid });
 
-    Web5.#enqueueNextSync(syncManager, ms('2m'));
+    Web5.enqueueNextSync(syncManager, ms('2m'));
 
     return { web5, did: connectedDid };
   }
@@ -187,13 +192,13 @@ export class Web5 {
     return Array.from(dwnUrls);
   }
 
-  static #enqueueNextSync(syncManager: SyncManager, delay = 1_000) {
+  private static enqueueNextSync(syncManager: SyncManager, delay = 1_000) {
     setTimeout(async () => {
       try {
         await syncManager.push();
         await syncManager.pull();
 
-        return this.#enqueueNextSync(syncManager, delay);
+        return this.enqueueNextSync(syncManager, delay);
       } catch(e) {
         console.error('Sync failed due to error: ', e);
       }

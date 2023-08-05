@@ -9,30 +9,30 @@ type ProtocolMetadata = {
 };
 
 export class Protocol {
-  #metadata: ProtocolMetadata;
-  #web5Agent: Web5Agent;
-  #protocolsConfigureMessage: ProtocolsConfigureMessage;
+  private metadata: ProtocolMetadata;
+  private web5Agent: Web5Agent;
+  private protocolsConfigureMessage: ProtocolsConfigureMessage;
 
   get definition() {
-    return this.#protocolsConfigureMessage.descriptor.definition;
+    return this.protocolsConfigureMessage.descriptor.definition;
   }
 
   constructor(web5Agent: Web5Agent, protocolsConfigureMessage: ProtocolsConfigureMessage, metadata: ProtocolMetadata) {
-    this.#metadata = metadata;
-    this.#web5Agent = web5Agent;
-    this.#protocolsConfigureMessage = protocolsConfigureMessage;
+    this.metadata = metadata;
+    this.web5Agent = web5Agent;
+    this.protocolsConfigureMessage = protocolsConfigureMessage;
   }
 
   toJSON() {
-    return this.#protocolsConfigureMessage;
+    return this.protocolsConfigureMessage;
   }
 
   async send(target: string) {
-    const { reply } = await this.#web5Agent.sendDwnRequest({
+    const { reply } = await this.web5Agent.sendDwnRequest({
       messageType : 'ProtocolsConfigure',
-      author      : this.#metadata.author,
+      author      : this.metadata.author,
       target      : target,
-      messageCid  : this.#metadata.messageCid
+      messageCid  : this.metadata.messageCid
     });
 
     return { status: reply.status };
