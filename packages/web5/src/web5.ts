@@ -36,7 +36,11 @@ export type Web5ConnectOptions = {
   didResolutionCache?: DidResolverCache;
   /** overrides to defaults configured for technical preview phase. See {@link TechPreviewOptions} */
   techPreview?: TechPreviewOptions;
+
+  /** overrides to defaults configured for dwn. See {@link Dwn} */
+  dwn?: Dwn;
 }
+
 
 /**
  * @see {@link Web5ConnectOptions}
@@ -99,26 +103,30 @@ export class Web5 {
 
     // fall back to instantiating local agent
     const profileApi = new ProfileApi();
-    let [ profile ] = await profileApi.listProfiles();
+    let [profile] = await profileApi.listProfiles();
 
     options.didMethodApis ??= [];
 
     // override default cache used by `Web5.did`
     Web5.did = new DidApi({
-      didMethodApis : [new DidIonApi(), new DidKeyApi(), ...options.didMethodApis],
-      cache         : options.didResolutionCache || new DidResolutionCache()
+      didMethodApis: [new DidIonApi(), new DidKeyApi(), ...options.didMethodApis],
+      cache: options.didResolutionCache || new DidResolutionCache()
     });
 
-    const messageStore = new MessageStoreLevel({ blockstoreLocation: 'data/dwn/message-store', indexLocation: 'data/dwn/message-index' });
-    const dataStore = new DataStoreLevel({ blockstoreLocation: 'data/dwn/data-store' });
-    const eventLog = new EventLogLevel({ location: 'data/dwn/event-log' });
-
-    const dwn = await Dwn.create({ messageStore, dataStore, eventLog });
+    let dwn: Dwn
+    if (!options.dwn) {
+      const messageStore = new MessageStoreLevel({ blockstoreLocation: 'data/dwn/message-store', indexLocation: 'data/dwn/message-index' });
+      const dataStore = new DataStoreLevel({ blockstoreLocation: 'data/dwn/data-store' });
+      const eventLog = new EventLogLevel({ location: 'data/dwn/event-log' });
+      dwn = await Dwn.create({ messageStore, dataStore, eventLog });
+    } else {
+      dwn = options.dwn
+    }
 
     const syncManager = new SyncApi({
-      profileManager : profileApi,
-      didResolver    : Web5.did.resolver, // share the same resolver to share the same underlying cache
-      dwn            : dwn
+      profileManager: profileApi,
+      didResolver: Web5.did.resolver, // share the same resolver to share the same underlying cache
+      dwn: dwn
     });
 
     if (!profile) {
@@ -128,19 +136,19 @@ export class Web5 {
 
       // setting id & name as the app's did to make migration easier
       profile = await profileApi.createProfile({
-        name        : appDidState.id,
-        did         : defaultProfileDid,
-        connections : [appDidState.id],
+        name: appDidState.id,
+        did: defaultProfileDid,
+        connections: [appDidState.id],
       });
 
       await syncManager.registerProfile(profile.did.id);
     }
 
     const agent = await Web5UserAgent.create({
-      profileManager : profileApi,
-      didResolver    : Web5.did.resolver, // share the same resolver to share the same underlying cache
-      syncManager    : syncManager,
-      dwn            : dwn,
+      profileManager: profileApi,
+      didResolver: Web5.did.resolver, // share the same resolver to share the same underlying cache
+      syncManager: syncManager,
+      dwn: dwn,
     });
 
     const connectedDid = profile.did.id;
@@ -162,13 +170,13 @@ export class Web5 {
       if (!response.ok) {
         throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
       }
-    } catch(e) {
+    } catch (e) {
       console.warn('failed to get tech preview dwn endpoints:', e.message);
       return [];
     }
 
     const didDoc = await response.json();
-    const [ service ] = didUtils.getServices(didDoc, { id: '#dwn', type: 'DecentralizedWebNode' });
+    const [service] = didUtils.getServices(didDoc, { id: '#dwn', type: 'DecentralizedWebNode' });
     const { nodes } = <DwnServiceEndpoint>service.serviceEndpoint;
 
     // allocate up to 2 nodes for a user.
@@ -184,7 +192,7 @@ export class Web5 {
         if (healthCheck.ok) {
           dwnUrls.add(dwnUrl);
         }
-      } catch(e: unknown) {
+      } catch (e: unknown) {
         // Ignore healthcheck failures and try the next node.
       }
     }
@@ -199,7 +207,7 @@ export class Web5 {
         await syncManager.pull();
 
         return this.enqueueNextSync(syncManager, delay);
-      } catch(e) {
+      } catch (e) {
         console.error('Sync failed due to error: ', e);
       }
     }, delay);
