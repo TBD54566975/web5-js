@@ -24,9 +24,9 @@ describe('PresentationExchange', () => {
   });
 
   describe('Full Presentation Exchange', () => {
-    let aliceSignatureMaterial;
-    let btcCredentialJwt;
-    let aliceDid;
+    let aliceSignatureMaterial : SignatureInput;
+    let btcCredentialJwt: string;
+    let aliceDid: string;
     let presentationDefinition: PresentationDefinition;
     let presentationResult: PresentationResult;
 
@@ -112,7 +112,7 @@ type CreateJwtOpts = {
   signatureMaterial: SignatureInput
 }
 
-async function getSignatureMaterial(web5, did) {
+async function getSignatureMaterial(web5: Web5, did: string): Promise<SignatureInput> {
   const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.keys();
   const { did: newDid } = await testAgent.createProfile(testProfileOptions);
 
@@ -129,12 +129,12 @@ async function getSignatureMaterial(web5, did) {
   const kid = key.id;
 
   return {
-    privateJwk      : privateKeyJwk,
-    protectedHeader : { alg: privateKeyJwk.crv, kid, typ: 'JWT' }
+    privateJwk      : privateKeyJwk as any,
+    protectedHeader : { alg: privateKeyJwk.crv, kid }
   };
 }
 
-async function createBtcCredentialJwt(aliceDid, aliceSignatureMaterial) {
+async function createBtcCredentialJwt(aliceDid: string, aliceSignatureMaterial: SignatureInput) {
   const btcCredential: VerifiableCredential = {
     '@context'          : ['https://www.w3.org/2018/credentials/v1'],
     'id'                : 'btc-credential',
@@ -150,7 +150,7 @@ async function createBtcCredentialJwt(aliceDid, aliceSignatureMaterial) {
     payload           : { vc: btcCredential },
     issuer            : aliceDid,
     subject           : aliceDid,
-    signatureMaterial : aliceSignatureMaterial as any
+    signatureMaterial : aliceSignatureMaterial
   });
 }
 
@@ -177,7 +177,7 @@ function createPresentationDefinition() {
   };
 }
 
-function decodeJwt(jwt) {
+function decodeJwt(jwt: string) {
   const [encodedHeader, encodedPayload, encodedSignature] = jwt.split('.');
 
   return {

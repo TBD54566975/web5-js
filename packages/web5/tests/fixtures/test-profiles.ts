@@ -1,6 +1,7 @@
 import type { DidIonCreateOptions, KeyOption } from '@tbd54566975/dids';
 import type { TestProfileOptions } from '../test-utils/test-user-agent.js';
 
+// @ts-ignore
 import { generateKeyPair } from '@decentralized-identity/ion-tools';
 
 const dwnNodes = ['https://dwn.tbddev.org/dwn0'];
