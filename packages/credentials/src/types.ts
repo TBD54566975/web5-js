@@ -1,9 +1,9 @@
-
-import { PEXv2, EvaluationResults as ER} from '@sphereon/pex';
-import type { ICredential, IIssuer, ICredentialSubject, ICredentialSchemaType} from '@sphereon/ssi-types';
+import type { ICredential, IIssuer, ICredentialSubject, ICredentialSchemaType } from '@sphereon/ssi-types';
 import type { PresentationDefinitionV2 } from '@sphereon/pex-models';
 import type { IPresentation, PresentationSubmission as PexPresentationSubmission, Descriptor, JwtDecodedVerifiableCredential as PexJwtDecodedVc, JwtDecodedVerifiablePresentation as PexJwtDecodedPres } from '@sphereon/ssi-types';
 import type { PresentationResult as PexPR } from '@sphereon/pex/dist/main/lib/signing';
+
+import { PEXv2, EvaluationResults as ER } from '@sphereon/pex';
 
 const pex = new PEXv2();
 
