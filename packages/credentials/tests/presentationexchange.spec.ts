@@ -18,7 +18,7 @@ if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 let testAgent: TestAgent;
 
-describe('PresentationExchange', () => {
+describe('Presentation Exchange Types', () => {
   before(async () => {
     testAgent = await TestAgent.create();
   });
