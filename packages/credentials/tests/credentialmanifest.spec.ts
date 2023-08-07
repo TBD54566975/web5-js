@@ -40,7 +40,7 @@ describe('Credential Manifest Types', () => {
     expect(outputDescriptor.display).to.have.property('fallback');
   });
 
-  it('creates a Credential Manifest', () => {
+  it('creates a credential manifest', () => {
     const issuer: Issuer = {
       id: 'did:example:123456'
     };
@@ -87,7 +87,7 @@ describe('Credential Manifest Types', () => {
     expect(credentialManifest.presentation_definition!.input_descriptors[0]).to.have.property('id');
   });
 
-  it('creates a Credential Manifest with a single Input Descriptor', () => {
+  it('creates a driver license credential manifest', () => {
     const outputDescriptor: OutputDescriptor = {
       'id'          : 'driver_license_output',
       'schema'      : 'https://schema.org/EducationalOccupationalCredential',
