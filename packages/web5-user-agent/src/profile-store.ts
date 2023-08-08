@@ -9,14 +9,14 @@ import { ProfileIndex } from './profile-index.js';
 export type ProfileStoreOptions = {
   location?: string;
   indexLocation?: string;
-};
+}
 export class ProfileStore implements QueryStore<Profile> {
   private db: Level;
   private index: ProfileIndex;
 
   private static _defaultOptions = {
-    location      : 'data/agent/profiles',
-    indexLocation : 'data/agent/profiles-index'
+    location: 'data/agent/profiles',
+    indexLocation: 'data/agent/profiles-index'
   };
 
   constructor(options: ProfileStoreOptions = {}) {
@@ -41,7 +41,7 @@ export class ProfileStore implements QueryStore<Profile> {
       const value = await this.db.get(key);
 
       return JSON.parse(value);
-    } catch(e: any) {
+    } catch (e: any) {
       if (e.code === 'LEVEL_NOT_FOUND') {
         return undefined;
       }

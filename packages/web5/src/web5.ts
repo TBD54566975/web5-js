@@ -15,6 +15,7 @@ import { DidApi } from './did-api.js';
 import { AppStorage } from './app-storage.js';
 import { getRandomInt } from './utils.js';
 import { DidResolutionCache } from './did-resolution-cache.js';
+import { ProfileStore } from '@tbd54566975/web5-user-agent';
 
 /**
  * overrides to defaults configured for technical preview phase
@@ -39,6 +40,10 @@ export type Web5ConnectOptions = {
 
   /** overrides to defaults configured for dwn. See {@link Dwn} */
   dwn?: Dwn;
+
+  /** overrides app storage */
+  appStorage?: AppStorage;
+  storageLocation?: string;
 }
 
 
@@ -49,12 +54,15 @@ type Web5Options = {
   web5Agent: Web5Agent;
   appStorage?: AppStorage;
   connectedDid: string;
+  storageLocation?: string;
 };
 
 export class Web5 {
   appStorage: AppStorage;
   dwn: DwnApi;
   vc: VcApi;
+  storageLocation?: string;
+
   private connectedDid: string;
 
   /**
@@ -77,7 +85,8 @@ export class Web5 {
     this.connectedDid = options.connectedDid;
     this.dwn = new DwnApi(options.web5Agent, this.connectedDid);
     this.vc = new VcApi(options.web5Agent, this.connectedDid);
-    this.appStorage ||= new AppStorage();
+    this.appStorage = options.appStorage || new AppStorage();
+    this.storageLocation = options.storageLocation || 'data/app/storage';
   }
 
   /**
@@ -86,8 +95,9 @@ export class Web5 {
    * @returns
    */
   static async connect(options: Web5ConnectOptions = {}) {
+
     // load app's did
-    const appStorage = new AppStorage();
+    const appStorage = options.appStorage ? options.appStorage : new AppStorage();
     const cachedAppDidState = await appStorage.get(Web5.APP_DID_KEY);
     let appDidState: DidState;
 
@@ -102,7 +112,11 @@ export class Web5 {
     // TODO: if available,connect to remote agent using Web5ProxyAgent
 
     // fall back to instantiating local agent
-    const profileApi = new ProfileApi();
+    // const profileApi = new ProfileApi(new ProfileStore({ location: options.storageLocation + "/profiles", indexLocation: options.storageLocation + "profiles/index" }))
+    const store = new ProfileStore({ location: options.storageLocation + "/profiles", indexLocation: options.storageLocation + "/profiles/index" })
+    const profileApi = new ProfileApi(store)
+
+
     let [profile] = await profileApi.listProfiles();
 
     options.didMethodApis ??= [];
@@ -112,6 +126,7 @@ export class Web5 {
       didMethodApis: [new DidIonApi(), new DidKeyApi(), ...options.didMethodApis],
       cache: options.didResolutionCache || new DidResolutionCache()
     });
+
 
     let dwn: Dwn
     if (!options.dwn) {
@@ -133,14 +148,12 @@ export class Web5 {
       const dwnUrls = options.techPreview?.dwnEndpoints || await Web5.getTechPreviewDwnEndpoints();
       const ionCreateOptions = await DidIonApi.generateDwnConfiguration(dwnUrls);
       const defaultProfileDid = await this.did.create('ion', ionCreateOptions);
-
       // setting id & name as the app's did to make migration easier
       profile = await profileApi.createProfile({
         name: appDidState.id,
         did: defaultProfileDid,
         connections: [appDidState.id],
       });
-
       await syncManager.registerProfile(profile.did.id);
     }
 
@@ -153,9 +166,7 @@ export class Web5 {
 
     const connectedDid = profile.did.id;
     const web5 = new Web5({ appStorage: appStorage, web5Agent: agent, connectedDid });
-
     Web5.enqueueNextSync(syncManager, ms('2m'));
-
     return { web5, did: connectedDid };
   }
 

@@ -12,7 +12,7 @@ export class AppStorage {
   async get(key: string): Promise<string | undefined> {
     try {
       return await this.store.get(key);
-    } catch(e: any) {
+    } catch (e: any) {
       if (e.code === 'LEVEL_NOT_FOUND') {
         return;
       } else {
