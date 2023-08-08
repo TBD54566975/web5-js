@@ -2,7 +2,6 @@ import { webcrypto } from 'node:crypto';
 import { expect } from 'chai';
 import { Encoder } from '@tbd54566975/dwn-sdk-js';
 import { sha256 } from '@noble/hashes/sha256';
-import { Web5 } from '@tbd54566975/web5';
 import * as secp256k1 from '@noble/secp256k1';
 
 import { PresentationDefinition, PresentationResult, VerifiableCredential, evaluateCredentials, evaluatePresentation, presentationFrom } from '../src/types.js';
@@ -24,16 +23,18 @@ describe('Presentation Exchange Types', () => {
   });
 
   describe('Full Presentation Exchange', () => {
+    let aliceDid: string;
     let aliceSignatureMaterial : SignatureInput;
     let btcCredentialJwt: string;
-    let aliceDid: string;
     let presentationDefinition: PresentationDefinition;
     let presentationResult: PresentationResult;
 
     before(async () => {
-      const { web5, did } = await Web5.connect();
-      aliceDid = did;
-      aliceSignatureMaterial = await getSignatureMaterial(web5, aliceDid);
+      const profileResult = await createProfileWithKeySignatureMaterial();
+
+      aliceDid = profileResult.did;
+      aliceSignatureMaterial = profileResult.signatureMaterial;
+
       btcCredentialJwt = await createBtcCredentialJwt(aliceDid, aliceSignatureMaterial);
       presentationDefinition = createPresentationDefinition();
     });
@@ -112,11 +113,10 @@ type CreateJwtOpts = {
   signatureMaterial: SignatureInput
 }
 
-async function getSignatureMaterial(web5: Web5, did: string): Promise<SignatureInput> {
+async function createProfileWithKeySignatureMaterial(): Promise<{ did: string, signatureMaterial: SignatureInput }>{
   const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.keys();
-  const { did: newDid } = await testAgent.createProfile(testProfileOptions);
-
-  const profile = await testAgent.getProfile(newDid || did);
+  const { did: profileDid } = await testAgent.createProfile(testProfileOptions);
+  const profile = await testAgent.getProfile(profileDid);
 
   if (!profile) {
     throw new Error('profile not found for author.');
@@ -128,10 +128,12 @@ async function getSignatureMaterial(web5: Web5, did: string): Promise<SignatureI
 
   const kid = key.id;
 
-  return {
+  const signatureMaterial =  {
     privateJwk      : privateKeyJwk as any,
-    protectedHeader : { alg: privateKeyJwk.crv, kid }
+    protectedHeader : { alg: 'ES256K', kid }
   };
+
+  return { did: profile.did.id, signatureMaterial: signatureMaterial };
 }
 
 async function createBtcCredentialJwt(aliceDid: string, aliceSignatureMaterial: SignatureInput) {
