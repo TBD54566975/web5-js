@@ -1,6 +1,6 @@
 {
   "name": "@web5/api",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "SDK for accessing the features and capabilities of Web5",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -71,10 +71,10 @@
   },
   "dependencies": {
     "@tbd54566975/dwn-sdk-js": "0.2.1",
-    "@web5/agent": "0.1.7",
-    "@web5/crypto": "0.1.6",
-    "@web5/dids": "0.1.9",
-    "@web5/user-agent": "0.1.10",
+    "@web5/agent": "0.2.0",
+    "@web5/crypto": "0.2.0",
+    "@web5/dids": "0.2.0",
+    "@web5/user-agent": "0.2.0",
     "level": "8.0.0",
     "ms": "2.1.3",
     "readable-stream": "4.4.2",
