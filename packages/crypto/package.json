@@ -1,6 +1,6 @@
 {
   "name": "@web5/crypto",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "TBD crypto library",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -71,7 +71,7 @@
     "@noble/ciphers": "0.1.4",
     "@noble/curves": "1.1.0",
     "@noble/hashes": "1.3.1",
-    "@web5/common": "0.1.1"
+    "@web5/common": "0.2.0"
   },
   "devDependencies": {
     "@playwright/test": "1.36.2",

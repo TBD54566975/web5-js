@@ -1,9 +1,9 @@
 # Web5 JS SDK
 
-[![NPM](https://img.shields.io/npm/v/@web5/web5.svg?style=flat-square&logo=npm&logoColor=FFFFFF&color=FFEC19&santize=true)](https://www.npmjs.com/package/@web5/web5)
+[![NPM](https://img.shields.io/npm/v/@web5/api.svg?style=flat-square&logo=npm&logoColor=FFFFFF&color=FFEC19&santize=true)](https://www.npmjs.com/package/@web5/api)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/TBD54566975/web5-js/tests-ci.yml?branch=main&logo=github&label=ci&logoColor=FFFFFF&style=flat-square)](https://github.com/TBD54566975/web5-js/actions/workflows/tests-ci.yml)
-[![Coverage](https://img.shields.io/codecov/c/gh/frankhinek/test-web5-js/main?logo=codecov&logoColor=FFFFFF&style=flat-square&token=YI87CKF1LI)](https://codecov.io/github/TBD54566975/web5-js)
-[![License](https://img.shields.io/npm/l/@web5/web5.svg?style=flat-square&color=24f2ff&logo=apache&logoColor=FFFFFF&santize=true)](https://github.com/TBD54566975/web5-js/blob/main/LICENSE)
+[![Coverage](https://img.shields.io/codecov/c/gh/TBD54566975/web5-js/main?logo=codecov&logoColor=FFFFFF&style=flat-square&token=YI87CKF1LI)](https://codecov.io/github/TBD54566975/web5-js)
+[![License](https://img.shields.io/npm/l/@web5/api.svg?style=flat-square&color=24f2ff&logo=apache&logoColor=FFFFFF&santize=true)](https://github.com/TBD54566975/web5-js/blob/main/LICENSE)
 [![Chat](https://img.shields.io/badge/chat-on%20discord-7289da.svg?style=flat-square&color=9a1aff&logo=discord&logoColor=FFFFFF&sanitize=true)](https://discord.com/channels/937858703112155166/969272658501976117)
 
 Making developing with Web5 components at least 5 times easier to work with.
@@ -52,11 +52,11 @@ npm install @web5/api
 _CDNs_
 
 ```yaml
-https://unpkg.com/@web5/api@0.7.11/dist/browser.js
+https://unpkg.com/0.8.1/dist/browser.js
 ```
 
 ```yaml
-https://cdn.jsdelivr.net/npm/@web5/api@0.7.11/dist/browser.mjs
+https://cdn.jsdelivr.net/npm/@web5/api@0.8.1/dist/browser.mjs
 ```
 
 ## Usage
