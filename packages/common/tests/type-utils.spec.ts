@@ -26,6 +26,10 @@ describe('universalTypeOf()', () => {
     expect(universalTypeOf(new ArrayBuffer(2))).to.equal('ArrayBuffer');
   });
 
+  it('should correctly identify Blob', () => {
+    expect(universalTypeOf(new Blob(['foo']))).to.equal('Blob');
+  });
+
   it('should correctly identify Boolean', () => {
     expect(universalTypeOf(true)).to.equal('Boolean');
   });

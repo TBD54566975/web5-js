@@ -5,13 +5,12 @@
     ".js"
   ],
   "include": [
-    "tests/compiled/**"
+    "tests/compiled/src/**"
   ],
   "exclude": [
-    "tests/compiled/tests/**",
-    "tests/compiled/src/main.js",
-    "tests/compiled/src/types/**",
-    "tests/compiled/types/**"
+    "tests/compiled/src/index.js",
+    "tests/compiled/src/types.js",
+    "tests/compiled/src/types/**"
   ],
   "reporter": [
     "cobertura",

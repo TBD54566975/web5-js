@@ -6,7 +6,7 @@ import { crypto } from '@noble/hashes/crypto';
  * operations. The class uses the Web Crypto API for cryptographic operations.
  *
  * All methods of this class are asynchronous and return Promises. They all
- * use the ArrayBuffer type for keys and data, providing a consistent
+ * use the Uint8Array type for keys and data, providing a consistent
  * interface for working with binary data.
  *
  * Example usage:
@@ -39,25 +39,28 @@ export class AesCtr {
    * @param options.data - The data to decrypt.
    * @param options.key - The key to use for decryption.
    * @param options.length - The length of the counter block in bits.
-   * @returns A Promise that resolves to the decrypted data as an ArrayBuffer.
+   * @returns A Promise that resolves to the decrypted data as a Uint8Array.
    */
   public static async decrypt(options: {
-    counter: BufferSource,
-    data: BufferSource,
-    key: ArrayBuffer,
+    counter: Uint8Array,
+    data: Uint8Array,
+    key: Uint8Array,
     length: number
-  }): Promise<ArrayBuffer> {
+  }): Promise<Uint8Array> {
     const { counter, data, key, length } = options;
 
     const webCryptoKey = await this.importKey(key);
 
-    const ciphertext = await crypto.subtle.decrypt(
+    const plaintextBuffer = await crypto.subtle.decrypt(
       { name: 'AES-CTR', counter, length },
       webCryptoKey,
       data
     );
 
-    return ciphertext;
+    // Convert from ArrayBuffer to Uint8Array.
+    const plaintext = new Uint8Array(plaintextBuffer);
+
+    return plaintext;
   }
 
   /**
@@ -68,43 +71,46 @@ export class AesCtr {
    * @param options.data - The data to encrypt.
    * @param options.key - The key to use for encryption.
    * @param options.length - The length of the counter block in bits.
-   * @returns A Promise that resolves to the encrypted data as an ArrayBuffer.
+   * @returns A Promise that resolves to the encrypted data as a Uint8Array.
    */
   public static async encrypt(options: {
-    counter: BufferSource,
-    data: BufferSource,
-    key: ArrayBuffer,
+    counter: Uint8Array,
+    data: Uint8Array,
+    key: Uint8Array,
     length: number
-  }): Promise<ArrayBuffer> {
+  }): Promise<Uint8Array> {
     const { counter, data, key, length } = options;
 
     const webCryptoKey = await this.importKey(key);
 
-    const plaintext = await crypto.subtle.encrypt(
+    const ciphertextBuffer = await crypto.subtle.encrypt(
       { name: 'AES-CTR', counter, length },
       webCryptoKey,
       data
     );
 
-    return plaintext;
+    // Convert from ArrayBuffer to Uint8Array.
+    const ciphertext = new Uint8Array(ciphertextBuffer);
+
+    return ciphertext;
   }
 
   /**
    * Generates an AES key of a given length.
    *
    * @param length - The length of the key in bits.
-   * @returns A Promise that resolves to the generated key as an ArrayBuffer.
+   * @returns A Promise that resolves to the generated key as a Uint8Array.
    */
   public static async generateKey(options: {
     length: number
-  }): Promise<ArrayBuffer> {
+  }): Promise<Uint8Array> {
     const { length } = options;
 
     // Generate the secret key.
     const lengthInBytes = length / 8;
     const secretKey = crypto.getRandomValues(new Uint8Array(lengthInBytes));
 
-    return secretKey.buffer;
+    return secretKey;
   }
 
   /**
@@ -113,10 +119,10 @@ export class AesCtr {
    * @param key - The raw key material.
    * @returns A Promise that resolves to a CryptoKey.
    */
-  private static async importKey(key: ArrayBuffer): Promise<CryptoKey> {
+  private static async importKey(key: Uint8Array): Promise<CryptoKey> {
     return crypto.subtle.importKey(
       'raw',
-      key,
+      key.buffer,
       { name: 'AES-CTR', length: key.byteLength * 8 },
       true,
       ['encrypt', 'decrypt']

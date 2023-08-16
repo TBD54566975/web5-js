@@ -1,6 +1,6 @@
 /** @type {import('esbuild').BuildOptions} */
 module.exports = {
-  entryPoints : ['./src/main.ts'],
+  entryPoints : ['./src/index.ts'],
   bundle      : true,
   format      : 'esm',
   sourcemap   : true,

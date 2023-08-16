@@ -11,6 +11,6 @@ esbuild.build({
 esbuild.build({
   ...browserConfig,
   format     : 'iife',
-  globalName : 'Web5Ssi',
+  globalName : 'Web5Credentials',
   outfile    : 'dist/browser.js',
 });

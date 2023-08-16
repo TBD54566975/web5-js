@@ -1,8 +1,8 @@
-import type { Web5Crypto } from '../../types/index.js';
+import type { Web5Crypto } from '../../types/web5-crypto.js';
 
 import { InvalidAccessError } from '../errors.js';
 import { BaseEllipticCurveAlgorithm } from './base.js';
-import { checkValidProperty, checkRequiredProperty } from '../../utils-new.js';
+import { checkValidProperty, checkRequiredProperty } from '../../utils.js';
 
 export abstract class BaseEcdsaAlgorithm extends BaseEllipticCurveAlgorithm {
 
@@ -27,11 +27,11 @@ export abstract class BaseEcdsaAlgorithm extends BaseEllipticCurveAlgorithm {
     checkValidProperty({ property: algorithm.hash, allowedProperties: this.hashAlgorithms });
   }
 
-  public override async deriveBits(): Promise<ArrayBuffer> {
+  public override async deriveBits(): Promise<Uint8Array> {
     throw new InvalidAccessError(`Requested operation 'deriveBits' is not valid for ${this.name} keys.`);
   }
 
-  public abstract sign(options: { algorithm: Web5Crypto.EcdsaOptions; key: Web5Crypto.CryptoKey; data: BufferSource; }): Promise<ArrayBuffer>;
+  public abstract sign(options: { algorithm: Web5Crypto.EcdsaOptions; key: Web5Crypto.CryptoKey; data: Uint8Array; }): Promise<Uint8Array>;
 
-  public abstract verify(options: { algorithm: Web5Crypto.EcdsaOptions; key: Web5Crypto.CryptoKey; signature: ArrayBuffer; data: BufferSource; }): Promise<boolean>;
+  public abstract verify(options: { algorithm: Web5Crypto.EcdsaOptions; key: Web5Crypto.CryptoKey; signature: Uint8Array; data: Uint8Array; }): Promise<boolean>;
 }

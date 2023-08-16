@@ -1,11 +1,25 @@
-import type { BufferKeyPair } from '../src/types/index.js';
+import type { BytesKeyPair } from '../src/types/crypto-key.js';
 
-import { expect } from 'chai';
-import { Convert } from '@tbd54566975/common';
+import chai, { expect } from 'chai';
+import { Convert } from '@web5/common';
+import chaiAsPromised from 'chai-as-promised';
 
-import { aesCtrTestVectors, aesGcmTestVectors } from './fixtures/test-vectors/aes.js';
 import { NotSupportedError } from '../src/algorithms-api/errors.js';
-import { AesCtr, AesGcm, ConcatKdf, Ed25519, Secp256k1, X25519, XChaCha20 } from '../src/crypto-primitives/index.js';
+import { ed25519TestVectors } from './fixtures/test-vectors/ed25519.js';
+import { secp256k1TestVectors } from './fixtures/test-vectors/secp256k1.js';
+import { aesCtrTestVectors, aesGcmTestVectors } from './fixtures/test-vectors/aes.js';
+import {
+  AesCtr,
+  AesGcm,
+  ConcatKdf,
+  Ed25519,
+  Secp256k1,
+  X25519,
+  XChaCha20,
+  XChaCha20Poly1305
+} from '../src/crypto-primitives/index.js';
+
+chai.use(chaiAsPromised);
 
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
@@ -22,41 +36,21 @@ describe('Cryptographic Primitive Implementations', () => {
           const plaintext = await AesCtr.decrypt({
             counter : Convert.hex(vector.counter).toUint8Array(),
             data    : Convert.hex(vector.ciphertext).toUint8Array(),
-            key     : Convert.hex(vector.key).toArrayBuffer(),
+            key     : Convert.hex(vector.key).toUint8Array(),
             length  : vector.length
           });
-          expect(Convert.arrayBuffer(plaintext).toHex()).to.deep.equal(vector.data);
+          expect(Convert.uint8Array(plaintext).toHex()).to.deep.equal(vector.data);
         });
       }
 
-      it('accepts ciphertext input as ArrayBuffer, DataView, and TypedArray', async () => {
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+      it('accepts ciphertext input as Uint8Array', async () => {
+        const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         const secretKey = await AesCtr.generateKey({ length: 256 });
-        let ciphertext: ArrayBuffer;
-
-        // ArrayBuffer
-        const dataArrayBuffer = dataU8A.buffer;
-        ciphertext = await AesCtr.decrypt({ counter: new ArrayBuffer(16), data: dataArrayBuffer, key: secretKey, length: 128 });
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
-
-        // DataView
-        const dataView = new DataView(dataArrayBuffer);
-        ciphertext = await AesCtr.decrypt({ counter: new ArrayBuffer(16), data: dataView, key: secretKey, length: 128 });
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+        let ciphertext: Uint8Array;
 
         // TypedArray - Uint8Array
-        ciphertext = await AesCtr.decrypt({ counter: new ArrayBuffer(16), data: dataU8A, key: secretKey, length: 128 });
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
-
-        // TypedArray - Int32Array
-        const dataI32A = new Int32Array([10, 20, 30, 40]);
-        ciphertext = await AesCtr.decrypt({ counter: new ArrayBuffer(16), data: dataI32A, key: secretKey, length: 128 });
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
-
-        // TypedArray - Uint32Array
-        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
-        ciphertext = await AesCtr.decrypt({ counter: new ArrayBuffer(16), data: dataU32A, key: secretKey, length: 128 });
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+        ciphertext = await AesCtr.decrypt({ counter: new Uint8Array(16), data, key: secretKey, length: 128 });
+        expect(ciphertext).to.be.instanceOf(Uint8Array);
       });
     });
 
@@ -66,52 +60,32 @@ describe('Cryptographic Primitive Implementations', () => {
           const ciphertext = await AesCtr.encrypt({
             counter : Convert.hex(vector.counter).toUint8Array(),
             data    : Convert.hex(vector.data).toUint8Array(),
-            key     : Convert.hex(vector.key).toArrayBuffer(),
+            key     : Convert.hex(vector.key).toUint8Array(),
             length  : vector.length
           });
-          expect(Convert.arrayBuffer(ciphertext).toHex()).to.deep.equal(vector.ciphertext);
+          expect(Convert.uint8Array(ciphertext).toHex()).to.deep.equal(vector.ciphertext);
         });
       }
 
-      it('accepts plaintext input as ArrayBuffer, DataView, and TypedArray', async () => {
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+      it('accepts plaintext input as Uint8Array', async () => {
+        const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         const secretKey = await AesCtr.generateKey({ length: 256 });
-        let ciphertext: ArrayBuffer;
+        let ciphertext: Uint8Array;
 
-        // ArrayBuffer
-        const dataArrayBuffer = dataU8A.buffer;
-        ciphertext = await AesCtr.encrypt({ counter: new ArrayBuffer(16), data: dataArrayBuffer, key: secretKey, length: 128 });
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
-
-        // DataView
-        const dataView = new DataView(dataArrayBuffer);
-        ciphertext = await AesCtr.encrypt({ counter: new ArrayBuffer(16), data: dataView, key: secretKey, length: 128 });
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
-
-        // TypedArray - Uint8Array
-        ciphertext = await AesCtr.encrypt({ counter: new ArrayBuffer(16), data: dataU8A, key: secretKey, length: 128 });
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
-
-        // TypedArray - Int32Array
-        const dataI32A = new Int32Array([10, 20, 30, 40]);
-        ciphertext = await AesCtr.encrypt({ counter: new ArrayBuffer(16), data: dataI32A, key: secretKey, length: 128 });
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
-
-        // TypedArray - Uint32Array
-        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
-        ciphertext = await AesCtr.encrypt({ counter: new ArrayBuffer(16), data: dataU32A, key: secretKey, length: 128 });
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+        // Uint8Array
+        ciphertext = await AesCtr.encrypt({ counter: new Uint8Array(16), data, key: secretKey, length: 128 });
+        expect(ciphertext).to.be.instanceOf(Uint8Array);
       });
     });
 
     describe('generateKey()', () => {
-      it('returns a secret key of type ArrayBuffer', async () => {
+      it('returns a secret key of type Uint8Array', async () => {
         const secretKey = await AesCtr.generateKey({ length: 256 });
-        expect(secretKey).to.be.instanceOf(ArrayBuffer);
+        expect(secretKey).to.be.instanceOf(Uint8Array);
       });
 
       it('returns a secret key of the specified length', async () => {
-        let secretKey: ArrayBuffer;
+        let secretKey: Uint8Array;
 
         // 128 bits
         secretKey= await AesCtr.generateKey({ length: 128 });
@@ -136,26 +110,21 @@ describe('Cryptographic Primitive Implementations', () => {
             additionalData : Convert.hex(vector.aad).toUint8Array(),
             iv             : Convert.hex(vector.iv).toUint8Array(),
             data           : Convert.hex(vector.ciphertext + vector.tag).toUint8Array(),
-            key            : Convert.hex(vector.key).toArrayBuffer(),
+            key            : Convert.hex(vector.key).toUint8Array(),
             tagLength      : vector.tagLength
           });
-          expect(Convert.arrayBuffer(plaintext).toHex()).to.deep.equal(vector.data);
+          expect(Convert.uint8Array(plaintext).toHex()).to.deep.equal(vector.data);
         });
       }
 
-      it('accepts ciphertext input as ArrayBuffer and TypedArray', async () => {
+      it('accepts ciphertext input as Uint8Array', async () => {
         const secretKey = new Uint8Array([222, 78, 162, 222, 38, 146, 151, 191, 191, 75, 227, 71, 220, 221, 70, 49]);
-        let plaintext: ArrayBuffer;
-
-        // ArrayBuffer
-        const ciphertextArrayBuffer = (new Uint8Array([242, 126, 129, 170, 99, 195, 21, 165, 205, 3, 226, 171, 203, 198, 42, 86, 101])).buffer;
-        plaintext = await AesGcm.decrypt({ data: ciphertextArrayBuffer, iv: new ArrayBuffer(12), key: secretKey, tagLength: 128 });
-        expect(plaintext).to.be.instanceOf(ArrayBuffer);
+        let plaintext: Uint8Array;
 
         // TypedArray - Uint8Array
-        const ciphertextU8A = new Uint8Array([242, 126, 129, 170, 99, 195, 21, 165, 205, 3, 226, 171, 203, 198, 42, 86, 101]);
-        plaintext = await AesGcm.decrypt({ data: ciphertextU8A, iv: new ArrayBuffer(12), key: secretKey, tagLength: 128 });
-        expect(plaintext).to.be.instanceOf(ArrayBuffer);
+        const ciphertext = new Uint8Array([242, 126, 129, 170, 99, 195, 21, 165, 205, 3, 226, 171, 203, 198, 42, 86, 101]);
+        plaintext = await AesGcm.decrypt({ data: ciphertext, iv: new Uint8Array(12), key: secretKey, tagLength: 128 });
+        expect(plaintext).to.be.instanceOf(Uint8Array);
       });
     });
 
@@ -166,52 +135,32 @@ describe('Cryptographic Primitive Implementations', () => {
             additionalData : Convert.hex(vector.aad).toUint8Array(),
             iv             : Convert.hex(vector.iv).toUint8Array(),
             data           : Convert.hex(vector.data).toUint8Array(),
-            key            : Convert.hex(vector.key).toArrayBuffer(),
+            key            : Convert.hex(vector.key).toUint8Array(),
             tagLength      : vector.tagLength
           });
-          expect(Convert.arrayBuffer(ciphertext).toHex()).to.deep.equal(vector.ciphertext + vector.tag);
+          expect(Convert.uint8Array(ciphertext).toHex()).to.deep.equal(vector.ciphertext + vector.tag);
         });
       }
 
-      it('accepts plaintext input as ArrayBuffer, DataView, and TypedArray', async () => {
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+      it('accepts plaintext input as Uint8Array', async () => {
+        const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         const secretKey = await AesGcm.generateKey({ length: 256 });
-        let ciphertext: ArrayBuffer;
-
-        // ArrayBuffer
-        const dataArrayBuffer = dataU8A.buffer;
-        ciphertext = await AesGcm.encrypt({ data: dataArrayBuffer, iv: new ArrayBuffer(12), key: secretKey, tagLength: 128 });
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
-
-        // DataView
-        const dataView = new DataView(dataArrayBuffer);
-        ciphertext = await AesGcm.encrypt({ data: dataView, iv: new ArrayBuffer(12), key: secretKey, tagLength: 128 });
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+        let ciphertext: Uint8Array;
 
         // TypedArray - Uint8Array
-        ciphertext = await AesGcm.encrypt({ data: dataU8A, iv: new ArrayBuffer(12), key: secretKey, tagLength: 128 });
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
-
-        // TypedArray - Int32Array
-        const dataI32A = new Int32Array([10, 20, 30, 40]);
-        ciphertext = await AesGcm.encrypt({ data: dataI32A, iv: new ArrayBuffer(12), key: secretKey, tagLength: 128 });
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
-
-        // TypedArray - Uint32Array
-        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
-        ciphertext = await AesGcm.encrypt({ data: dataU32A, iv: new ArrayBuffer(12), key: secretKey, tagLength: 128 });
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+        ciphertext = await AesGcm.encrypt({ data, iv: new Uint8Array(12), key: secretKey, tagLength: 128 });
+        expect(ciphertext).to.be.instanceOf(Uint8Array);
       });
     });
 
     describe('generateKey()', () => {
-      it('returns a secret key of type ArrayBuffer', async () => {
+      it('returns a secret key of type Uint8Array', async () => {
         const secretKey = await AesGcm.generateKey({ length: 256 });
-        expect(secretKey).to.be.instanceOf(ArrayBuffer);
+        expect(secretKey).to.be.instanceOf(Uint8Array);
       });
 
       it('returns a secret key of the specified length', async () => {
-        let secretKey: ArrayBuffer;
+        let secretKey: Uint8Array;
 
         // 128 bits
         secretKey= await AesGcm.generateKey({ length: 128 });
@@ -247,28 +196,17 @@ describe('Cryptographic Primitive Implementations', () => {
 
         const derivedKeyingMaterial = await ConcatKdf.deriveKey(input);
 
-        const expectedResult = Convert.base64Url(output).toArrayBuffer();
+        const expectedResult = Convert.base64Url(output).toUint8Array();
         expect(derivedKeyingMaterial).to.deep.equal(expectedResult);
         expect(derivedKeyingMaterial.byteLength).to.equal(16);
       });
 
-      it('accepts other info as ArrayBuffer, String, and TypedArray', async () => {
+      it('accepts other info as String and TypedArray', async () => {
         const inputBase = {
           sharedSecret : new Uint8Array([1, 2, 3]),
           keyDataLen   : 256,
           otherInfo    : {}
         };
-
-        // ArrayBuffer input.
-        const inputArrayBuffer = { ...inputBase, otherInfo: {
-          algorithmId : 'A128GCM',
-          partyUInfo  : Convert.string('Alice').toArrayBuffer(),
-          partyVInfo  : Convert.string('Bob').toArrayBuffer(),
-          suppPubInfo : 128
-        }};
-        let derivedKeyingMaterial = await ConcatKdf.deriveKey(inputArrayBuffer);
-        expect(derivedKeyingMaterial).to.be.an('ArrayBuffer');
-        expect(derivedKeyingMaterial.byteLength).to.equal(32);
 
         // String input.
         const inputString = { ...inputBase, otherInfo: {
@@ -277,8 +215,8 @@ describe('Cryptographic Primitive Implementations', () => {
           partyVInfo  : 'Bob',
           suppPubInfo : 128
         }};
-        derivedKeyingMaterial = await ConcatKdf.deriveKey(inputString);
-        expect(derivedKeyingMaterial).to.be.an('ArrayBuffer');
+        let derivedKeyingMaterial = await ConcatKdf.deriveKey(inputString);
+        expect(derivedKeyingMaterial).to.be.an('Uint8Array');
         expect(derivedKeyingMaterial.byteLength).to.equal(32);
 
         // TypedArray input.
@@ -289,7 +227,7 @@ describe('Cryptographic Primitive Implementations', () => {
           suppPubInfo : 128
         }};
         derivedKeyingMaterial = await ConcatKdf.deriveKey(inputTypedArray);
-        expect(derivedKeyingMaterial).to.be.an('ArrayBuffer');
+        expect(derivedKeyingMaterial).to.be.an('Uint8Array');
         expect(derivedKeyingMaterial.byteLength).to.equal(32);
       });
 
@@ -317,7 +255,7 @@ describe('Cryptographic Primitive Implementations', () => {
       });
     });
 
-    describe('#computeOtherInfo()', () => {
+    describe('computeOtherInfo()', () => {
       it('returns concatenated and formatted Uint8Array', () => {
         const input = {
           algorithmId  : 'A128GCM',
@@ -355,13 +293,80 @@ describe('Cryptographic Primitive Implementations', () => {
   });
 
   describe('Ed25519', () => {
+    describe('convertPrivateKeyToX25519()', () => {
+      let validEd25519PrivateKey: Uint8Array;
+
+      // This is a setup step. Before each test, generate a new Ed25519 key pair
+      // and use the private key in tests. This ensures that we work with fresh keys for every test.
+      beforeEach(async () => {
+        const keyPair = await Ed25519.generateKeyPair();
+        validEd25519PrivateKey = keyPair.publicKey;
+      });
+
+      it('converts a valid Ed25519 private key to X25519 format', async () => {
+        const x25519PrivateKey = await Ed25519.convertPrivateKeyToX25519({ privateKey: validEd25519PrivateKey });
+
+        expect(x25519PrivateKey).to.be.instanceOf(Uint8Array);
+        expect(x25519PrivateKey.length).to.equal(32);
+      });
+
+      it('accepts any Uint8Array value as a private key', async () => {
+        /** For Ed25519 the private key is a random string of bytes that is
+         * hashed, which means many possible values can serve as a valid
+         * private key. */
+        const key0Bytes = new Uint8Array(0);
+        const key33Bytes = Convert.hex('02fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f').toUint8Array();
+
+        let x25519PrivateKey = await Ed25519.convertPrivateKeyToX25519({ privateKey: key0Bytes });
+        expect(x25519PrivateKey.length).to.equal(32);
+        x25519PrivateKey = await Ed25519.convertPrivateKeyToX25519({ privateKey: key33Bytes });
+        expect(x25519PrivateKey.length).to.equal(32);
+      });
+    });
+
+    describe('convertPublicKeyToX25519()', () => {
+      let validEd25519PublicKey: Uint8Array;
+
+      // This is a setup step. Before each test, generate a new Ed25519 key pair
+      // and use the public key in tests. This ensures that we work with fresh keys for every test.
+      beforeEach(async () => {
+        const keyPair = await Ed25519.generateKeyPair();
+        validEd25519PublicKey = keyPair.publicKey;
+      });
+
+      it('converts a valid Ed25519 public key to X25519 format', async () => {
+        const x25519PublicKey = await Ed25519.convertPublicKeyToX25519({ publicKey: validEd25519PublicKey });
+
+        expect(x25519PublicKey).to.be.instanceOf(Uint8Array);
+        expect(x25519PublicKey.length).to.equal(32);
+      });
+
+      it('throws an error when provided an invalid Ed25519 public key', async () => {
+        const invalidEd25519PublicKey = Convert.hex('02fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f').toUint8Array();
+
+        await expect(
+          Ed25519.convertPublicKeyToX25519({ publicKey: invalidEd25519PublicKey })
+        ).to.eventually.be.rejectedWith(Error, 'Invalid public key');
+      });
+
+      it('throws an error when provided an Ed25519 private key', async () => {
+        for (const vector of ed25519TestVectors) {
+          const validEd25519PrivateKey = Convert.hex(vector.privateKey.encoded).toUint8Array();
+
+          await expect(
+            Ed25519.convertPublicKeyToX25519({ publicKey: validEd25519PrivateKey })
+          ).to.eventually.be.rejectedWith(Error, 'Invalid public key');
+        }
+      });
+    });
+
     describe('generateKeyPair()', () => {
-      it('returns a pair of keys of type ArrayBuffer', async () => {
+      it('returns a pair of keys of type Uint8Array', async () => {
         const keyPair = await Ed25519.generateKeyPair();
         expect(keyPair).to.have.property('privateKey');
         expect(keyPair).to.have.property('publicKey');
-        expect(keyPair.privateKey).to.be.instanceOf(ArrayBuffer);
-        expect(keyPair.publicKey).to.be.instanceOf(ArrayBuffer);
+        expect(keyPair.privateKey).to.be.instanceOf(Uint8Array);
+        expect(keyPair.publicKey).to.be.instanceOf(Uint8Array);
       });
 
       it('returns a 32-byte private key', async () => {
@@ -376,7 +381,7 @@ describe('Cryptographic Primitive Implementations', () => {
     });
 
     describe('getPublicKey()', () => {
-      let keyPair: BufferKeyPair;
+      let keyPair: BytesKeyPair;
 
       before(async () => {
         keyPair = await Ed25519.generateKeyPair();
@@ -384,169 +389,213 @@ describe('Cryptographic Primitive Implementations', () => {
 
       it('returns a 32-byte compressed public key', async () => {
         const publicKey = await Ed25519.getPublicKey({ privateKey: keyPair.privateKey });
+        expect(publicKey).to.be.instanceOf(Uint8Array);
         expect(publicKey.byteLength).to.equal(32);
       });
     });
 
     describe('sign()', () => {
-      let keyPair: BufferKeyPair;
+      let keyPair: BytesKeyPair;
 
       before(async () => {
         keyPair = await Ed25519.generateKeyPair();
       });
 
-      it('returns a 64-byte signature of type ArrayBuffer', async () => {
-        const dataU8A = new Uint8Array([51, 52, 53]);
-        const signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
+      it('returns a 64-byte signature of type Uint8Array', async () => {
+        const data = new Uint8Array([51, 52, 53]);
+        const signature = await Ed25519.sign({ key: keyPair.privateKey, data });
+        expect(signature).to.be.instanceOf(Uint8Array);
         expect(signature.byteLength).to.equal(64);
       });
 
-      it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+      it('accepts input data as Uint8Array', async () => {
+        const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         const key = keyPair.privateKey;
-        let signature: ArrayBuffer;
-
-        // ArrayBuffer
-        const dataArrayBuffer = dataU8A.buffer;
-        signature = await Ed25519.sign({ key, data: dataArrayBuffer });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
-
-        // DataView
-        const dataView = new DataView(dataArrayBuffer);
-        signature = await Ed25519.sign({ key, data: dataView });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
+        let signature: Uint8Array;
 
         // TypedArray - Uint8Array
-        signature = await Ed25519.sign({ key, data: dataU8A });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
+        signature = await Ed25519.sign({ key, data: data });
+        expect(signature).to.be.instanceOf(Uint8Array);
+      });
+    });
 
-        // TypedArray - Int32Array
-        const dataI32A = new Int32Array([10, 20, 30, 40]);
-        signature = await Ed25519.sign({ key, data: dataI32A });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
+    describe('validatePublicKey()', () => {
+      it('returns true for valid public keys', async () => {
+        for (const vector of ed25519TestVectors) {
+          const key = Convert.hex(vector.publicKey.encoded).toUint8Array();
+          const isValid = await Ed25519.validatePublicKey({ key });
+          expect(isValid).to.be.true;
+        }
+      });
 
-        // TypedArray - Uint32Array
-        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
-        signature = await Ed25519.sign({ key, data: dataU32A });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
+      it('returns false for invalid public keys', async () => {
+        const key = Convert.hex('02fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f').toUint8Array();
+        const isValid = await Ed25519.validatePublicKey({ key });
+        expect(isValid).to.be.false;
+      });
+
+      it('returns false if a private key is given', async () => {
+        for (const vector of ed25519TestVectors) {
+          const key = Convert.hex(vector.privateKey.encoded).toUint8Array();
+          const isValid = await Ed25519.validatePublicKey({ key });
+          expect(isValid).to.be.false;
+        }
       });
     });
 
     describe('verify()', () => {
-      let keyPair: BufferKeyPair;
+      let keyPair: BytesKeyPair;
 
       before(async () => {
         keyPair = await Ed25519.generateKeyPair();
       });
 
       it('returns a boolean result', async () => {
-        const dataU8A = new Uint8Array([51, 52, 53]);
-        const signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
+        const data = new Uint8Array([51, 52, 53]);
+        const signature = await Ed25519.sign({ key: keyPair.privateKey, data });
 
-        const isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataU8A });
+        const isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data });
         expect(isValid).to.exist;
         expect(isValid).to.be.true;
       });
 
-      it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+      it('accepts input data as Uint8Array', async () => {
+        const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         let isValid: boolean;
-        let signature: ArrayBuffer;
-
-        // ArrayBuffer
-        const dataArrayBuffer = dataU8A.buffer;
-        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataArrayBuffer });
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataArrayBuffer });
-        expect(isValid).to.be.true;
-
-        // DataView
-        const dataView = new DataView(dataArrayBuffer);
-        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataView });
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataView });
-        expect(isValid).to.be.true;
+        let signature: Uint8Array;
 
         // TypedArray - Uint8Array
-        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataU8A });
-        expect(isValid).to.be.true;
-
-        // TypedArray - Int32Array
-        const dataI32A = new Int32Array([10, 20, 30, 40]);
-        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataI32A });
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataI32A });
-        expect(isValid).to.be.true;
-
-        // TypedArray - Uint32Array
-        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
-        signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU32A });
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataU32A });
+        signature = await Ed25519.sign({ key: keyPair.privateKey, data });
+        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data });
         expect(isValid).to.be.true;
       });
 
       it('returns false if the signed data was mutated', async () => {
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         let isValid: boolean;
 
         // Generate signature using the private key.
-        const signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
+        const signature = await Ed25519.sign({ key: keyPair.privateKey, data });
 
         // Verification should return true with the data used to generate the signature.
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: dataU8A });
+        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data });
         expect(isValid).to.be.true;
 
         // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
-        const mutatedDataU8A = new Uint8Array(dataU8A);
-        mutatedDataU8A[0] ^= 1 << 0;
+        const mutatedData = new Uint8Array(data);
+        mutatedData[0] ^= 1 << 0;
 
         // Verification should return false if the given data does not match the data used to generate the signature.
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: mutatedDataU8A });
+        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: mutatedData });
         expect(isValid).to.be.false;
       });
 
       it('returns false if the signature was mutated', async () => {
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         let isValid: boolean;
 
         // Generate a new key pair.
         keyPair = await Ed25519.generateKeyPair();
 
         // Generate signature using the private key.
-        const signature = await Ed25519.sign({ key: keyPair.privateKey, data: dataU8A });
+        const signature = await Ed25519.sign({ key: keyPair.privateKey, data });
 
         // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
         const mutatedSignature = new Uint8Array(signature);
         mutatedSignature[0] ^= 1 << 0;
 
         // Verification should return false if the signature was modified.
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature: signature, data: mutatedSignature.buffer });
+        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature: signature, data: mutatedSignature });
         expect(isValid).to.be.false;
       });
 
       it('returns false with a signature generated using a different private key', async () => {
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         const keyPairA = await Ed25519.generateKeyPair();
         const keyPairB = await Ed25519.generateKeyPair();
         let isValid: boolean;
 
         // Generate a signature using the private key from key pair B.
-        const signatureB = await Ed25519.sign({ key: keyPairB.privateKey, data: dataU8A });
+        const signatureB = await Ed25519.sign({ key: keyPairB.privateKey, data });
 
         // Verification should return false with the public key from key pair A.
-        isValid = await Ed25519.verify({ key: keyPairA.publicKey, signature: signatureB, data: dataU8A.buffer });
+        isValid = await Ed25519.verify({ key: keyPairA.publicKey, signature: signatureB, data });
         expect(isValid).to.be.false;
       });
     });
   });
 
   describe('Secp256k1', () => {
+    describe('convertPublicKey method', () => {
+      it('converts an uncompressed public key to a compressed format', async () => {
+        // Generate the uncompressed public key.
+        const keyPair = await Secp256k1.generateKeyPair({ compressedPublicKey: false });
+        const uncompressedPublicKey = keyPair.publicKey;
+
+        // Attempt to convert to compressed format.
+        const compressedKey = await Secp256k1.convertPublicKey({
+          publicKey           : uncompressedPublicKey,
+          compressedPublicKey : true
+        });
+
+        // Confirm the length of the resulting public key is 33 bytes
+        expect(compressedKey.byteLength).to.equal(33);
+      });
+
+      it('converts a compressed public key to an uncompressed format', async () => {
+        // Generate the uncompressed public key.
+        const keyPair = await Secp256k1.generateKeyPair({ compressedPublicKey: true });
+        const compressedPublicKey = keyPair.publicKey;
+
+        const uncompressedKey = await Secp256k1.convertPublicKey({
+          publicKey           : compressedPublicKey,
+          compressedPublicKey : false
+        });
+
+        // Confirm the length of the resulting public key is 65 bytes
+        expect(uncompressedKey.byteLength).to.equal(65);
+      });
+
+      it('throws an error for an invalid compressed public key', async () => {
+        // Invalid compressed public key.
+        const invalidPublicKey = Convert.hex('fef0b998921eafb58f49efdeb0adc47123aa28a4042924236f08274d50c72fe7b0').toUint8Array();
+
+        try {
+          await Secp256k1.convertPublicKey({
+            publicKey           : invalidPublicKey,
+            compressedPublicKey : false
+          });
+          expect.fail('Expected method to throw an error.');
+        } catch (error) {
+          expect(error).to.be.instanceOf(Error);
+          expect((error as Error).message).to.include('Point of length 33 was invalid');
+        }
+      });
+
+      it('throws an error for an invalid uncompressed public key', async () => {
+        // Here, generating a random byte array of size 65. It's unlikely to be a valid public key.
+        const invalidPublicKey = Convert.hex('dfebc16793a5737ac51f606a43524df8373c063e41d5a99b2f1530afd987284bd1c7cde1658a9a756e71f44a97b4783ea9dee5ccb7f1447eb4836d8de9bd4f81fd').toUint8Array();
+
+        try {
+          await Secp256k1.convertPublicKey({
+            publicKey           : invalidPublicKey,
+            compressedPublicKey : true
+          });
+          expect.fail('Expected method to throw an error.');
+        } catch (error) {
+          expect(error).to.be.instanceOf(Error);
+          expect((error as Error).message).to.include('Point of length 65 was invalid');
+        }
+      });
+    });
+
     describe('generateKeyPair()', () => {
-      it('returns a pair of keys of type ArrayBuffer', async () => {
+      it('returns a pair of keys of type Uint8Array', async () => {
         const keyPair = await Secp256k1.generateKeyPair();
         expect(keyPair).to.have.property('privateKey');
         expect(keyPair).to.have.property('publicKey');
-        expect(keyPair.privateKey).to.be.instanceOf(ArrayBuffer);
-        expect(keyPair.publicKey).to.be.instanceOf(ArrayBuffer);
+        expect(keyPair.privateKey).to.be.instanceOf(Uint8Array);
+        expect(keyPair.publicKey).to.be.instanceOf(Uint8Array);
       });
 
       it('returns a 32-byte private key', async () => {
@@ -565,8 +614,54 @@ describe('Cryptographic Primitive Implementations', () => {
       });
     });
 
+    describe('getCurvePoints()', () => {
+      it('returns public key x and y coordinates given a public key', async () => {
+        for (const vector of secp256k1TestVectors) {
+          const key = Convert.hex(vector.publicKey.encoded).toUint8Array();
+          const points = await Secp256k1.getCurvePoints({ key });
+          expect(points.x).to.deep.equal(Convert.hex(vector.publicKey.x).toUint8Array());
+          expect(points.y).to.deep.equal(Convert.hex(vector.publicKey.y).toUint8Array());
+        }
+      });
+
+      it('returns public key x and y coordinates given a private key', async () => {
+        for (const vector of secp256k1TestVectors) {
+          const key = Convert.hex(vector.privateKey.encoded).toUint8Array();
+          const points = await Secp256k1.getCurvePoints({ key });
+          expect(points.x).to.deep.equal(Convert.hex(vector.publicKey.x).toUint8Array());
+          expect(points.y).to.deep.equal(Convert.hex(vector.publicKey.y).toUint8Array());
+        }
+      });
+
+      it('handles keys that require padded x-coordinate when converting from BigInt to bytes', async () => {
+        const key = Convert.hex('0206a1f9628c5bcd31f3bbc2f160ec98f99960147e04ea192f56c53a0086c5432d').toUint8Array();
+        const points = await Secp256k1.getCurvePoints({ key });
+
+        const expectedX = Convert.hex('06a1f9628c5bcd31f3bbc2f160ec98f99960147e04ea192f56c53a0086c5432d').toUint8Array();
+        const expectedY = Convert.hex('bf2efab7943be51219a283c0979ccba0fbe03f571e75b0eb338cc2ec01e70552').toUint8Array();
+        expect(points.x).to.deep.equal(expectedX);
+        expect(points.y).to.deep.equal(expectedY);
+      });
+
+      it('handles keys that require padded y-coordinate when converting from BigInt to bytes', async () => {
+        const key = Convert.hex('032ff752fb8fc6af85c8682b0ca9d48901b2b9ac130f558bd1a9092240d42c4682').toUint8Array();
+        const points = await Secp256k1.getCurvePoints({ key });
+
+        const expectedX = Convert.hex('2ff752fb8fc6af85c8682b0ca9d48901b2b9ac130f558bd1a9092240d42c4682').toUint8Array();
+        const expectedY = Convert.hex('048c39d9ebdc1fd98bda38b7f00b93de1d2af5bb3ba8cb532ad47c1f36e19501').toUint8Array();
+        expect(points.x).to.deep.equal(expectedX);
+        expect(points.y).to.deep.equal(expectedY);
+      });
+
+      it('throws error with invalid input key length', async () => {
+        await expect(
+          Secp256k1.getCurvePoints({ key: new Uint8Array(16) })
+        ).to.eventually.be.rejectedWith(Error, 'Point of length 16 was invalid. Expected 33 compressed bytes or 65 uncompressed bytes');
+      });
+    });
+
     describe('getPublicKey()', () => {
-      let keyPair: BufferKeyPair;
+      let keyPair: BytesKeyPair;
 
       before(async () => {
         keyPair = await Secp256k1.generateKeyPair();
@@ -574,18 +669,20 @@ describe('Cryptographic Primitive Implementations', () => {
 
       it('returns a 33-byte compressed public key, by default', async () => {
         const publicKey = await Secp256k1.getPublicKey({ privateKey: keyPair.privateKey });
+        expect(publicKey).to.be.instanceOf(Uint8Array);
         expect(publicKey.byteLength).to.equal(33);
       });
 
       it('returns a 65-byte uncompressed public key, if specified', async () => {
         const publicKey = await Secp256k1.getPublicKey({ privateKey: keyPair.privateKey, compressedPublicKey: false });
+        expect(publicKey).to.be.instanceOf(Uint8Array);
         expect(publicKey.byteLength).to.equal(65);
       });
     });
 
     describe('sharedSecret()', () => {
-      let otherPartyKeyPair: BufferKeyPair;
-      let ownKeyPair: BufferKeyPair;
+      let otherPartyKeyPair: BytesKeyPair;
+      let ownKeyPair: BytesKeyPair;
 
       beforeEach(async () => {
         otherPartyKeyPair = await Secp256k1.generateKeyPair();
@@ -597,7 +694,7 @@ describe('Cryptographic Primitive Implementations', () => {
           privateKey : ownKeyPair.privateKey,
           publicKey  : otherPartyKeyPair.publicKey
         });
-        expect(sharedSecret).to.be.instanceOf(ArrayBuffer);
+        expect(sharedSecret).to.be.instanceOf(Uint8Array);
         expect(sharedSecret.byteLength).to.equal(32);
       });
 
@@ -617,155 +714,159 @@ describe('Cryptographic Primitive Implementations', () => {
     });
 
     describe('sign()', () => {
-      let keyPair: BufferKeyPair;
+      let keyPair: BytesKeyPair;
 
       before(async () => {
         keyPair = await Secp256k1.generateKeyPair();
       });
 
-      it('returns a 64-byte signature of type ArrayBuffer', async () => {
+      it('returns a 64-byte signature of type Uint8Array', async () => {
         const hash = 'SHA-256';
-        const dataU8A = new Uint8Array([51, 52, 53]);
-        const signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataU8A });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
+        const data = new Uint8Array([51, 52, 53]);
+        const signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data });
+        expect(signature).to.be.instanceOf(Uint8Array);
         expect(signature.byteLength).to.equal(64);
       });
 
-      it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+      it('accepts input data as Uint8Array', async () => {
+        const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         const hash = 'SHA-256';
         const key = keyPair.privateKey;
-        let signature: ArrayBuffer;
-
-        // ArrayBuffer
-        const dataArrayBuffer = dataU8A.buffer;
-        signature = await Secp256k1.sign({ hash, key, data: dataArrayBuffer });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
-
-        // DataView
-        const dataView = new DataView(dataArrayBuffer);
-        signature = await Secp256k1.sign({ hash, key, data: dataView });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
+        let signature: Uint8Array;
 
         // TypedArray - Uint8Array
-        signature = await Secp256k1.sign({ hash, key, data: dataU8A });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
+        signature = await Secp256k1.sign({ hash, key, data });
+        expect(signature).to.be.instanceOf(Uint8Array);
+      });
+    });
 
-        // TypedArray - Int32Array
-        const dataI32A = new Int32Array([10, 20, 30, 40]);
-        signature = await Secp256k1.sign({ hash, key, data: dataI32A });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
+    describe('validatePrivateKey()', () => {
+      it('returns true for valid private keys', async () => {
+        for (const vector of secp256k1TestVectors) {
+          const key = Convert.hex(vector.privateKey.encoded).toUint8Array();
+          const isValid = await Secp256k1.validatePrivateKey({ key });
+          expect(isValid).to.be.true;
+        }
+      });
 
-        // TypedArray - Uint32Array
-        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
-        signature = await Secp256k1.sign({ hash, key, data: dataU32A });
-        expect(signature).to.be.instanceOf(ArrayBuffer);
+      it('returns false for invalid private keys', async () => {
+        const key = Convert.hex('02fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f').toUint8Array();
+        const isValid = await Secp256k1.validatePrivateKey({ key });
+        expect(isValid).to.be.false;
+      });
+
+      it('returns false if a public key is given', async () => {
+        for (const vector of secp256k1TestVectors) {
+          const key = Convert.hex(vector.publicKey.encoded).toUint8Array();
+          const isValid = await Secp256k1.validatePrivateKey({ key });
+          expect(isValid).to.be.false;
+        }
+      });
+    });
+
+    describe('validatePublicKey()', () => {
+      it('returns true for valid public keys', async () => {
+        for (const vector of secp256k1TestVectors) {
+          const key = Convert.hex(vector.publicKey.encoded).toUint8Array();
+          const isValid = await Secp256k1.validatePublicKey({ key });
+          expect(isValid).to.be.true;
+        }
+      });
+
+      it('returns false for invalid public keys', async () => {
+        const key = Convert.hex('02fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f').toUint8Array();
+        const isValid = await Secp256k1.validatePublicKey({ key });
+        expect(isValid).to.be.false;
+      });
+
+      it('returns false if a private key is given', async () => {
+        for (const vector of secp256k1TestVectors) {
+          const key = Convert.hex(vector.privateKey.encoded).toUint8Array();
+          const isValid = await Secp256k1.validatePublicKey({ key });
+          expect(isValid).to.be.false;
+        }
       });
     });
 
     describe('verify()', () => {
-      let keyPair: BufferKeyPair;
+      let keyPair: BytesKeyPair;
 
       before(async () => {
         keyPair = await Secp256k1.generateKeyPair();
       });
 
       it('returns a boolean result', async () => {
-        const dataU8A = new Uint8Array([51, 52, 53]);
-        const signature = await Secp256k1.sign({ hash: 'SHA-256', key: keyPair.privateKey, data: dataU8A });
+        const data = new Uint8Array([51, 52, 53]);
+        const signature = await Secp256k1.sign({ hash: 'SHA-256', key: keyPair.privateKey, data });
 
-        const isValid = await Secp256k1.verify({ hash: 'SHA-256', key: keyPair.publicKey, signature, data: dataU8A });
+        const isValid = await Secp256k1.verify({ hash: 'SHA-256', key: keyPair.publicKey, signature, data });
         expect(isValid).to.exist;
         expect(isValid).to.be.true;
       });
 
-      it('accepts input data as ArrayBuffer, DataView, and TypedArray', async () => {
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+      it('accepts input data as Uint8Array', async () => {
+        const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         const hash = 'SHA-256';
         let isValid: boolean;
-        let signature: ArrayBuffer;
-
-        // ArrayBuffer
-        const dataArrayBuffer = dataU8A.buffer;
-        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataArrayBuffer });
-        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataArrayBuffer });
-        expect(isValid).to.be.true;
-
-        // DataView
-        const dataView = new DataView(dataArrayBuffer);
-        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataView });
-        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataView });
-        expect(isValid).to.be.true;
+        let signature: Uint8Array;
 
         // TypedArray - Uint8Array
-        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataU8A });
-        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataU8A });
-        expect(isValid).to.be.true;
-
-        // TypedArray - Int32Array
-        const dataI32A = new Int32Array([10, 20, 30, 40]);
-        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataI32A });
-        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataI32A });
-        expect(isValid).to.be.true;
-
-        // TypedArray - Uint32Array
-        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
-        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataU32A });
-        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataU32A });
+        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data });
+        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data });
         expect(isValid).to.be.true;
       });
 
       it('accepts both compressed and uncompressed public keys', async () => {
-        let signature: ArrayBuffer;
+        let signature: Uint8Array;
         let isValid: boolean;
         const hash = 'SHA-256';
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
 
         // Generate signature using the private key.
-        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataU8A });
+        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data });
 
         // Attempt to verify the signature using a compressed public key.
         const compressedPublicKey = await Secp256k1.getPublicKey({ privateKey: keyPair.privateKey, compressedPublicKey: true });
-        isValid = await Secp256k1.verify({ hash, key: compressedPublicKey, signature, data: dataU8A });
+        isValid = await Secp256k1.verify({ hash, key: compressedPublicKey, signature, data });
         expect(isValid).to.be.true;
 
         // Attempt to verify the signature using an uncompressed public key.
         const uncompressedPublicKey = await Secp256k1.getPublicKey({ privateKey: keyPair.privateKey, compressedPublicKey: false });
-        isValid = await Secp256k1.verify({ hash, key: uncompressedPublicKey, signature, data: dataU8A });
+        isValid = await Secp256k1.verify({ hash, key: uncompressedPublicKey, signature, data });
         expect(isValid).to.be.true;
       });
 
       it('returns false if the signed data was mutated', async () => {
         const hash = 'SHA-256';
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         let isValid: boolean;
 
         // Generate signature using the private key.
-        const signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataU8A });
+        const signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data });
 
         // Verification should return true with the data used to generate the signature.
-        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataU8A });
+        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data });
         expect(isValid).to.be.true;
 
         // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
-        const mutatedDataU8A = new Uint8Array(dataU8A);
-        mutatedDataU8A[0] ^= 1 << 0;
+        const mutatedData = new Uint8Array(data);
+        mutatedData[0] ^= 1 << 0;
 
         // Verification should return false if the given data does not match the data used to generate the signature.
-        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: mutatedDataU8A });
+        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: mutatedData });
         expect(isValid).to.be.false;
       });
 
       it('returns false if the signature was mutated', async () => {
         const hash = 'SHA-256';
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         let isValid: boolean;
 
         // Generate signature using the private key.
-        const signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data: dataU8A });
+        const signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data });
 
         // Verification should return true with the data used to generate the signature.
-        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: dataU8A });
+        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data });
         expect(isValid).to.be.true;
 
         // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
@@ -773,22 +874,22 @@ describe('Cryptographic Primitive Implementations', () => {
         mutatedSignature[0] ^= 1 << 0;
 
         // Verification should return false if the signature was modified.
-        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature: signature, data: mutatedSignature.buffer });
+        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature: signature, data: mutatedSignature });
         expect(isValid).to.be.false;
       });
 
       it('returns false with a signature generated using a different private key', async () => {
         const hash = 'SHA-256';
-        const dataU8A = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         const keyPairA = await Secp256k1.generateKeyPair();
         const keyPairB = await Secp256k1.generateKeyPair();
         let isValid: boolean;
 
         // Generate a signature using the private key from key pair B.
-        const signatureB = await Secp256k1.sign({ hash, key: keyPairB.privateKey, data: dataU8A });
+        const signatureB = await Secp256k1.sign({ hash, key: keyPairB.privateKey, data });
 
         // Verification should return false with the public key from key pair A.
-        isValid = await Secp256k1.verify({ hash, key: keyPairA.publicKey, signature: signatureB, data: dataU8A.buffer });
+        isValid = await Secp256k1.verify({ hash, key: keyPairA.publicKey, signature: signatureB, data });
         expect(isValid).to.be.false;
       });
     });
@@ -796,12 +897,12 @@ describe('Cryptographic Primitive Implementations', () => {
 
   describe('X25519', () => {
     describe('generateKeyPair()', () => {
-      it('returns a pair of keys of type ArrayBuffer', async () => {
+      it('returns a pair of keys of type Uint8Array', async () => {
         const keyPair = await X25519.generateKeyPair();
         expect(keyPair).to.have.property('privateKey');
         expect(keyPair).to.have.property('publicKey');
-        expect(keyPair.privateKey).to.be.instanceOf(ArrayBuffer);
-        expect(keyPair.publicKey).to.be.instanceOf(ArrayBuffer);
+        expect(keyPair.privateKey).to.be.instanceOf(Uint8Array);
+        expect(keyPair.publicKey).to.be.instanceOf(Uint8Array);
       });
 
       it('returns a 32-byte private key', async () => {
@@ -816,7 +917,7 @@ describe('Cryptographic Primitive Implementations', () => {
     });
 
     describe('getPublicKey()', () => {
-      let keyPair: BufferKeyPair;
+      let keyPair: BytesKeyPair;
 
       before(async () => {
         keyPair = await X25519.generateKeyPair();
@@ -824,65 +925,72 @@ describe('Cryptographic Primitive Implementations', () => {
 
       it('returns a 32-byte compressed public key', async () => {
         const publicKey = await X25519.getPublicKey({ privateKey: keyPair.privateKey });
+        expect(publicKey).to.be.instanceOf(Uint8Array);
         expect(publicKey.byteLength).to.equal(32);
       });
     });
 
     describe('sharedSecret()', () => {
-      describe('sharedSecret()', () => {
-        let otherPartyKeyPair: BufferKeyPair;
-        let ownKeyPair: BufferKeyPair;
+      let otherPartyKeyPair: BytesKeyPair;
+      let ownKeyPair: BytesKeyPair;
 
-        beforeEach(async () => {
-          otherPartyKeyPair = await X25519.generateKeyPair();
-          ownKeyPair = await X25519.generateKeyPair();
+      beforeEach(async () => {
+        otherPartyKeyPair = await X25519.generateKeyPair();
+        ownKeyPair = await X25519.generateKeyPair();
+      });
+
+      it('generates a 32-byte compressed secret', async () => {
+        const sharedSecret = await X25519.sharedSecret({
+          privateKey : ownKeyPair.privateKey,
+          publicKey  : otherPartyKeyPair.publicKey
+        });
+        expect(sharedSecret).to.be.instanceOf(Uint8Array);
+        expect(sharedSecret.byteLength).to.equal(32);
+      });
+
+      it('generates identical output if keypairs are swapped', async () => {
+        const sharedSecretOwnOther = await X25519.sharedSecret({
+          privateKey : ownKeyPair.privateKey,
+          publicKey  : otherPartyKeyPair.publicKey
         });
 
-        it('generates a 32-byte compressed secret, by default', async () => {
-          const sharedSecret = await X25519.sharedSecret({
-            privateKey : ownKeyPair.privateKey,
-            publicKey  : otherPartyKeyPair.publicKey
-          });
-          expect(sharedSecret).to.be.instanceOf(ArrayBuffer);
-          expect(sharedSecret.byteLength).to.equal(32);
+        const sharedSecretOtherOwn = await X25519.sharedSecret({
+          privateKey : otherPartyKeyPair.privateKey,
+          publicKey  : ownKeyPair.publicKey
         });
 
-        it('generates identical output if keypairs are swapped', async () => {
-          const sharedSecretOwnOther = await X25519.sharedSecret({
-            privateKey : ownKeyPair.privateKey,
-            publicKey  : otherPartyKeyPair.publicKey
-          });
+        expect(sharedSecretOwnOther).to.deep.equal(sharedSecretOtherOwn);
+      });
+    });
 
-          const sharedSecretOtherOwn = await X25519.sharedSecret({
-            privateKey : otherPartyKeyPair.privateKey,
-            publicKey  : ownKeyPair.publicKey
-          });
-
-          expect(sharedSecretOwnOther).to.deep.equal(sharedSecretOtherOwn);
-        });
+    describe('validatePublicKey()', () => {
+      it('throws a not implemented error', async () => {
+        await expect(
+          X25519.validatePublicKey({ key: new Uint8Array(32) })
+        ).to.eventually.be.rejectedWith(Error, 'Not implemented');
       });
     });
   });
 
   describe('XChaCha20', () => {
     describe('decrypt()', () => {
-      it('returns ArrayBuffer plaintext with length matching input', async () => {
+      it('returns Uint8Array plaintext with length matching input', async () => {
         const plaintext = await XChaCha20.decrypt({
           data  : new Uint8Array(10),
-          key   : new ArrayBuffer(32),
+          key   : new Uint8Array(32),
           nonce : new Uint8Array(24)
         });
-        expect(plaintext).to.be.an('ArrayBuffer');
+        expect(plaintext).to.be.an('Uint8Array');
         expect(plaintext.byteLength).to.equal(10);
       });
 
       it('passes test vectors', async () => {
         const input = {
-          data  : Convert.hex('879b10a139674fe65087f59577ee2c1ab54655d900697fd02d953f53ddcc1ae476e8').toArrayBuffer(),
-          key   : Convert.hex('79c99798ac67300bbb2704c95c341e3245f3dcb21761b98e52ff45b24f304fc4').toArrayBuffer(),
-          nonce : Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toArrayBuffer()
+          data  : Convert.hex('879b10a139674fe65087f59577ee2c1ab54655d900697fd02d953f53ddcc1ae476e8').toUint8Array(),
+          key   : Convert.hex('79c99798ac67300bbb2704c95c341e3245f3dcb21761b98e52ff45b24f304fc4').toUint8Array(),
+          nonce : Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toUint8Array()
         };
-        const output = Convert.string(`Are You There Bob? It's Me, Alice.`).toArrayBuffer();
+        const output = Convert.string(`Are You There Bob? It's Me, Alice.`).toUint8Array();
 
         const ciphertext = await XChaCha20.decrypt({
           data  : input.data,
@@ -892,63 +1000,26 @@ describe('Cryptographic Primitive Implementations', () => {
 
         expect(ciphertext).to.deep.equal(output);
       });
-
-      it('accepts plaintext input as ArrayBuffer, DataView, and TypedArray', async () => {
-        const input = {
-          data  : Convert.hex('879b10a139674fe65087f59577ee2c1ab54655d900697fd02d953f53ddcc1ae476e8').toUint8Array(),
-          key   : Convert.hex('79c99798ac67300bbb2704c95c341e3245f3dcb21761b98e52ff45b24f304fc4').toArrayBuffer(),
-          nonce : Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toArrayBuffer()
-        };
-        let ciphertext: ArrayBuffer;
-        let output: ArrayBuffer;
-        output = Convert.string(`Are You There Bob? It's Me, Alice.`).toArrayBuffer();
-
-        // ArrayBuffer
-        const dataArrayBuffer = input.data.buffer;
-        ciphertext = await XChaCha20.decrypt({ data: dataArrayBuffer, key: input.key, nonce: input.nonce });
-        expect(ciphertext).to.deep.equal(output);
-
-        // DataView
-        const dataView = new DataView(dataArrayBuffer);
-        ciphertext = await XChaCha20.decrypt({ data: dataView, key: input.key, nonce: input.nonce });
-        expect(ciphertext).to.deep.equal(output);
-
-        // TypedArray - Uint8Array
-        ciphertext = await XChaCha20.decrypt({ data: input.data, key: input.key,nonce: input.nonce });
-        expect(ciphertext).to.deep.equal(output);
-
-        // TypedArray - Int32Array
-        const dataI32A = new Int32Array(Convert.hex('cce9758174083ac61aef90e73ace6e75').toArrayBuffer());
-        ciphertext = await XChaCha20.decrypt({ data: dataI32A, key: input.key, nonce: input.nonce });
-        output = (new Int32Array([10, 20, 30, 40])).buffer;
-        expect(ciphertext).to.deep.equal(output);
-
-        // TypedArray - Uint32Array
-        const dataU32A = new Uint32Array(Convert.hex('cee9758167083ac602ef90e717ce6e75d3797590774e0cf062f013739da07387').toArrayBuffer());
-        ciphertext = await XChaCha20.decrypt({ data: dataU32A, key: input.key, nonce: input.nonce });
-        output = (new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1])).buffer;
-        expect(ciphertext).to.deep.equal(output);
-      });
     });
 
     describe('encrypt()', () => {
-      it('returns ArrayBuffer ciphertext with length matching input', async () => {
+      it('returns Uint8Array ciphertext with length matching input', async () => {
         const ciphertext = await XChaCha20.encrypt({
           data  : new Uint8Array(10),
-          key   : new ArrayBuffer(32),
+          key   : new Uint8Array(32),
           nonce : new Uint8Array(24)
         });
-        expect(ciphertext).to.be.an('ArrayBuffer');
+        expect(ciphertext).to.be.an('Uint8Array');
         expect(ciphertext.byteLength).to.equal(10);
       });
 
       it('passes test vectors', async () => {
         const input = {
-          data  : Convert.string(`Are You There Bob? It's Me, Alice.`).toArrayBuffer(),
-          key   : Convert.hex('79c99798ac67300bbb2704c95c341e3245f3dcb21761b98e52ff45b24f304fc4').toArrayBuffer(),
-          nonce : Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toArrayBuffer()
+          data  : Convert.string(`Are You There Bob? It's Me, Alice.`).toUint8Array(),
+          key   : Convert.hex('79c99798ac67300bbb2704c95c341e3245f3dcb21761b98e52ff45b24f304fc4').toUint8Array(),
+          nonce : Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toUint8Array()
         };
-        const output = Convert.hex('879b10a139674fe65087f59577ee2c1ab54655d900697fd02d953f53ddcc1ae476e8').toArrayBuffer();
+        const output = Convert.hex('879b10a139674fe65087f59577ee2c1ab54655d900697fd02d953f53ddcc1ae476e8').toUint8Array();
 
         const ciphertext = await XChaCha20.encrypt({
           data  : input.data,
@@ -958,49 +1029,120 @@ describe('Cryptographic Primitive Implementations', () => {
 
         expect(ciphertext).to.deep.equal(output);
       });
+    });
 
-      it('accepts plaintext input as ArrayBuffer, DataView, and TypedArray', async () => {
+    describe('generateKey()', () => {
+      it('returns a 32-byte secret key of type Uint8Array', async () => {
+        const secretKey = await XChaCha20.generateKey();
+        expect(secretKey).to.be.instanceOf(Uint8Array);
+        expect(secretKey.byteLength).to.equal(32);
+      });
+    });
+  });
+
+  describe('XChaCha20Poly1305', () => {
+    describe('decrypt()', () => {
+      it('returns Uint8Array plaintext with length matching input', async () => {
+        const plaintext = await XChaCha20Poly1305.decrypt({
+          data  : Convert.hex('789e9689e5208d7fd9e1').toUint8Array(),
+          key   : new Uint8Array(32),
+          nonce : new Uint8Array(24),
+          tag   : Convert.hex('09701fb9f36ab77a0f136ca539229a34').toUint8Array()
+        });
+        expect(plaintext).to.be.an('Uint8Array');
+        expect(plaintext.byteLength).to.equal(10);
+      });
+
+      it('passes test vectors', async () => {
+        const input = {
+          data  : Convert.hex('80246ca517c0fb5860c19090a7e7a2b030dde4882520102cbc64fad937916596ca9d').toUint8Array(),
+          key   : Convert.hex('79c99798ac67300bbb2704c95c341e3245f3dcb21761b98e52ff45b24f304fc4').toUint8Array(),
+          nonce : Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toUint8Array(),
+          tag   : Convert.hex('9e10a121d990e6a290f6b534516aa32f').toUint8Array()
+        };
+        const output = Convert.string(`Are You There Bob? It's Me, Alice.`).toUint8Array();
+
+        const plaintext = await XChaCha20Poly1305.decrypt({
+          data  : input.data,
+          key   : input.key,
+          nonce : input.nonce,
+          tag   : input.tag
+        });
+
+        expect(plaintext).to.deep.equal(output);
+      });
+
+      it('throws an error if the wrong tag is given', async () => {
+        await expect(
+          XChaCha20Poly1305.decrypt({
+            data  : new Uint8Array(10),
+            key   : new Uint8Array(32),
+            nonce : new Uint8Array(24),
+            tag   : new Uint8Array(16)
+          })
+        ).to.eventually.be.rejectedWith(Error, 'Wrong tag');
+      });
+    });
+
+    describe('encrypt()', () => {
+      it('returns Uint8Array ciphertext and tag', async () => {
+        const { ciphertext, tag } = await XChaCha20Poly1305.encrypt({
+          data  : new Uint8Array(10),
+          key   : new Uint8Array(32),
+          nonce : new Uint8Array(24)
+        });
+        expect(ciphertext).to.be.an('Uint8Array');
+        expect(ciphertext.byteLength).to.equal(10);
+        expect(tag).to.be.an('Uint8Array');
+        expect(tag.byteLength).to.equal(16);
+      });
+
+      it('accepts additional authenticated data', async () => {
+        const { ciphertext: ciphertextAad, tag: tagAad } = await XChaCha20Poly1305.encrypt({
+          additionalData : new Uint8Array(64),
+          data           : new Uint8Array(10),
+          key            : new Uint8Array(32),
+          nonce          : new Uint8Array(24)
+        });
+
+        const { ciphertext, tag } = await XChaCha20Poly1305.encrypt({
+          data  : new Uint8Array(10),
+          key   : new Uint8Array(32),
+          nonce : new Uint8Array(24)
+        });
+
+        expect(ciphertextAad.byteLength).to.equal(10);
+        expect(ciphertext.byteLength).to.equal(10);
+        expect(ciphertextAad).to.deep.equal(ciphertext);
+        expect(tagAad).to.not.deep.equal(tag);
+      });
+
+      it('passes test vectors', async () => {
         const input = {
           data  : Convert.string(`Are You There Bob? It's Me, Alice.`).toUint8Array(),
-          key   : Convert.hex('79c99798ac67300bbb2704c95c341e3245f3dcb21761b98e52ff45b24f304fc4').toArrayBuffer(),
-          nonce : Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toArrayBuffer()
+          key   : Convert.hex('79c99798ac67300bbb2704c95c341e3245f3dcb21761b98e52ff45b24f304fc4').toUint8Array(),
+          nonce : Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toUint8Array()
         };
-        let ciphertext: ArrayBuffer;
-        let output: ArrayBuffer;
-        output = Convert.hex('879b10a139674fe65087f59577ee2c1ab54655d900697fd02d953f53ddcc1ae476e8').toArrayBuffer();
+        const output = {
+          ciphertext : Convert.hex('80246ca517c0fb5860c19090a7e7a2b030dde4882520102cbc64fad937916596ca9d').toUint8Array(),
+          tag        : Convert.hex('9e10a121d990e6a290f6b534516aa32f').toUint8Array()
+        };
 
-        // ArrayBuffer
-        const dataArrayBuffer = input.data.buffer;
-        ciphertext = await XChaCha20.encrypt({ data: dataArrayBuffer, key: input.key, nonce: input.nonce });
-        expect(ciphertext).to.deep.equal(output);
+        const { ciphertext, tag } = await XChaCha20Poly1305.encrypt({
+          data  : input.data,
+          key   : input.key,
+          nonce : input.nonce
+        });
 
-        // DataView
-        const dataView = new DataView(dataArrayBuffer);
-        ciphertext = await XChaCha20.encrypt({ data: dataView, key: input.key, nonce: input.nonce });
-        expect(ciphertext).to.deep.equal(output);
-
-        // TypedArray - Uint8Array
-        ciphertext = await XChaCha20.encrypt({ data: input.data, key: input.key,nonce: input.nonce });
-        expect(ciphertext).to.deep.equal(output);
-
-        // TypedArray - Int32Array
-        const dataI32A = new Int32Array([10, 20, 30, 40]);
-        ciphertext = await XChaCha20.encrypt({ data: dataI32A, key: input.key, nonce: input.nonce });
-        output = Convert.hex('cce9758174083ac61aef90e73ace6e75').toArrayBuffer();
-        expect(ciphertext).to.deep.equal(output);
-
-        // TypedArray - Uint32Array
-        const dataU32A = new Uint32Array([8, 7, 6, 5, 4, 3, 2, 1]);
-        ciphertext = await XChaCha20.encrypt({ data: dataU32A, key: input.key, nonce: input.nonce });
-        output = Convert.hex('cee9758167083ac602ef90e717ce6e75d3797590774e0cf062f013739da07387').toArrayBuffer();
-        expect(ciphertext).to.deep.equal(output);
+        expect(ciphertext).to.deep.equal(output.ciphertext);
+        expect(tag).to.deep.equal(output.tag);
       });
     });
 
     describe('generateKey()', () => {
-      it('returns a 32-byte secret key of type ArrayBuffer', async () => {
-        const secretKey = await XChaCha20.generateKey();
-        expect(secretKey).to.be.instanceOf(ArrayBuffer);
+      it('returns a 32-byte secret key of type Uint8Array', async () => {
+        const secretKey = await XChaCha20Poly1305.generateKey();
+        expect(secretKey).to.be.instanceOf(Uint8Array);
         expect(secretKey.byteLength).to.equal(32);
       });
     });

@@ -1,6 +1,6 @@
 export namespace Web5Crypto {
   export interface AesCtrOptions extends Algorithm {
-    counter: BufferSource;
+    counter: Uint8Array;
     length: number;
   }
 
@@ -9,8 +9,8 @@ export namespace Web5Crypto {
   }
 
   export interface AesGcmOptions extends Algorithm {
-    additionalData?: BufferSource;
-    iv: BufferSource;
+    additionalData?: Uint8Array;
+    iv: Uint8Array;
     tagLength?: number;
   }
 
@@ -23,7 +23,7 @@ export namespace Web5Crypto {
   export interface CryptoKey {
     algorithm: Web5Crypto.GenerateKeyOptions;
     extractable: boolean;
-    handle: ArrayBuffer;
+    material: Uint8Array;
     type: KeyType;
     usages: KeyUsage[];
   }
@@ -53,7 +53,12 @@ export namespace Web5Crypto {
 
   export type EdDsaOptions = Algorithm
 
-  export type GenerateKeyOptions = AesGenerateKeyOptions | EcGenerateKeyOptions;
+  export type GenerateKeyOptions = AesGenerateKeyOptions | EcGenerateKeyOptions | HmacGenerateKeyOptions;
+
+  export interface HmacGenerateKeyOptions extends Algorithm {
+    hash: AlgorithmIdentifier;
+    length?: number;
+  }
 
   export interface KeyAlgorithm {
     name: string;
@@ -67,8 +72,8 @@ export namespace Web5Crypto {
   /**
    * KeyType
    *
-   * The read-only `type` property of the `ManagedKey` interface indicates which
-   * kind of key is represented by the object.
+   * The read-only `type` property indicates which kind of key
+   * is represented by the object.
    *
    * It can have the following string values:
    *
@@ -81,8 +86,7 @@ export namespace Web5Crypto {
   /**
    * KeyUsage
    *
-   * The read-only usage property of the CryptoKey interface indicates what can be
-   * done with the key.
+   * The read-only usage property indicates what can be done with the key.
    *
    * An Array of strings from the following list:
    *

@@ -1,6 +1,6 @@
 import { sha256 } from '@noble/hashes/sha256';
+import { Convert, universalTypeOf } from '@web5/common';
 import { TypedArray, concatBytes } from '@noble/hashes/utils';
-import { Convert, universalTypeOf } from '@tbd54566975/common';
 
 import { NotSupportedError } from '../algorithms-api/errors.js';
 
@@ -14,14 +14,14 @@ export type ConcatKdfOtherInfo = {
    * Information related to party U (initiator) involved in the key agreement
    * transaction. It could be a public key, identifier, or any other data.
    */
-  partyUInfo: ArrayBuffer | string | TypedArray;
+  partyUInfo: string | TypedArray;
 
   /**
    * Information related to party V (receiver) involved in the key
    * agreement transaction. Similar to partyUInfo, it could be a
    * public key, identifier, etc.
    */
-  partyVInfo: ArrayBuffer | string | TypedArray;
+  partyVInfo: string | TypedArray;
 
   /**
    * Optional field. It is usually used to ensure the uniqueness of the
@@ -37,7 +37,7 @@ export type ConcatKdfOtherInfo = {
    * It is a secret value agreed upon by the entities who are party
    * to the key agreement.
    */
-  suppPrivInfo?: ArrayBuffer | string | TypedArray;
+  suppPrivInfo?: string | TypedArray;
 }
 
 /**
@@ -79,15 +79,15 @@ export class ConcatKdf {
    * @param options.keyDataLen - The desired length of the derived key in bits.
    * @param options.sharedSecret - The shared secret key to derive from.
    * @param options.otherInfo - Additional public information to use in key derivation.
-   * @returns The derived key as an ArrayBuffer.
+   * @returns The derived key as a Uint8Array.
    *
    * @throws {NotSupportedError} If the keyDataLen would require multiple rounds.
    */
   public static async deriveKey(options: {
     keyDataLen: number;
     otherInfo: ConcatKdfOtherInfo,
-    sharedSecret: ArrayBuffer,
-  }): Promise<ArrayBuffer> {
+    sharedSecret: Uint8Array,
+  }): Promise<Uint8Array> {
     const { keyDataLen, sharedSecret } = options;
 
     // RFC 7518 Section 4.6.2 specifies using SHA-256 for ECDH key agreement:
@@ -106,18 +106,15 @@ export class ConcatKdf {
     const counter = new Uint8Array(4);
     new DataView(counter.buffer).setUint32(0, roundCount);
 
-    // Specify input parameter Z, which is the shared secret output of ECDH.
-    const sharedSecretU8A = new Uint8Array(sharedSecret);
-
     // Compute the OtherInfo bit-string.
     const otherInfo = ConcatKdf.computeOtherInfo(options.otherInfo);
 
     // Compute K(i) = H(counter || Z || OtherInfo)
-    // return concatBytes(counter, sharedSecretU8A, otherInfo);
-    const derivedKeyingMaterial = sha256(concatBytes(counter, sharedSecretU8A, otherInfo));
+    // return concatBytes(counter, sharedSecretZ, otherInfo);
+    const derivedKeyingMaterial = sha256(concatBytes(counter, sharedSecret, otherInfo));
 
     // Return the bit string of derived keying material of length keyDataLen bits.
-    return derivedKeyingMaterial.buffer.slice(0, keyDataLen / 8);
+    return derivedKeyingMaterial.slice(0, keyDataLen / 8);
   }
 
   /**
