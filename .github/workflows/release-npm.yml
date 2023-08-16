@@ -24,13 +24,15 @@ jobs:
       matrix:
         package:
           [
+            "agent",
+            "api",
             "common",
+            "credentials",
             "crypto",
             "dids",
-            "web5",
-            "web5-agent",
-            "web5-proxy-agent",
-            "web5-user-agent",
+            "identity-agent",
+            "proxy-agent",
+            "user-agent",
           ]
 
     steps:
@@ -62,7 +64,7 @@ jobs:
           cd packages/${{ matrix.package }}
 
           # Fetch the published version on NPMjs.com.
-          PUBLISHED_VERSION=$(npm view @tbd54566975/${{ matrix.package }} version 2>/dev/null || echo "0.0.0")
+          PUBLISHED_VERSION=$(npm view @web5/${{ matrix.package }} version 2>/dev/null || echo "0.0.0")
           echo "Published Version: $PUBLISHED_VERSION"
 
           # Fetch the version in the GitHub repo's package.json file.
@@ -73,10 +75,10 @@ jobs:
           # Compare the repo and NPMjs.com package versions.
           IS_GREATER=$(semver --range ">$PUBLISHED_VERSION" $REPO_VERSION || true)
           if [ -n "$IS_GREATER" ] ; then
-            echo "@tbd54566975/${{ matrix.package }}@$REPO_VERSION is latest"
+            echo "@web5/${{ matrix.package }}@$REPO_VERSION is latest"
             echo "IS_LATEST=true" >> $GITHUB_ENV
           else
-            echo "@tbd54566975/${{ matrix.package }}@$REPO_VERSION is already published or repo version is lower"
+            echo "@web5/${{ matrix.package }}@$REPO_VERSION is already published or repo version is lower"
             echo "IS_LATEST=false" >> $GITHUB_ENV
           fi
         shell: bash
@@ -89,7 +91,7 @@ jobs:
         if: env.IS_LATEST == 'true'
         run: npm run build
 
-      - name: Publish @tbd54566975/${{ matrix.package }}@${{ env.REPO_VERSION }}
+      - name: Publish @web5/${{ matrix.package }}@${{ env.REPO_VERSION }}
         if: env.IS_LATEST == 'true'
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}

@@ -1,8 +1,8 @@
-import type { BufferKeyPair } from '../types/index.js';
+import type { BytesKeyPair } from '../types/crypto-key.js';
 
-import { Convert } from '@tbd54566975/common';
 import { sha256 } from '@noble/hashes/sha256';
 import { secp256k1 } from '@noble/curves/secp256k1';
+import { numberToBytesBE } from '@noble/curves/abstract/utils';
 
 export type HashFunction = (data: Uint8Array) => Uint8Array;
 
@@ -16,7 +16,7 @@ export type HashFunction = (data: Uint8Array) => Uint8Array;
  * for the signing and verification operations.
  *
  * The methods of this class are all asynchronous and return Promises. They all use
- * the ArrayBuffer type for keys, signatures, and data, providing a consistent
+ * the Uint8Array type for keys, signatures, and data, providing a consistent
  * interface for working with binary data.
  *
  * Example usage:
@@ -49,15 +49,49 @@ export class Secp256k1 {
   };
 
   /**
+   * Converts a public key between its compressed and uncompressed forms.
+   *
+   * Given a public key, this method can either compress or decompress it
+   * depending on the provided `compressedPublicKey` option. The conversion
+   * process involves decoding the Weierstrass points from the key bytes
+   * and then returning the key in the desired format.
+   *
+   * This is useful in scenarios where space is a consideration or when
+   * interfacing with systems that expect a specific public key format.
+   *
+   * @param options - The options for the public key conversion.
+   * @param options.publicKey - The original public key, represented as a Uint8Array.
+   * @param options.compressedPublicKey - A boolean indicating whether the output
+   *                                      should be in compressed form. If true, the
+   *                                      method returns the compressed form of the
+   *                                      provided public key. If false, it returns
+   *                                      the uncompressed form.
+   *
+   * @returns A Promise that resolves to the converted public key as a Uint8Array.
+   */
+  public static async convertPublicKey(options: {
+    publicKey: Uint8Array,
+    compressedPublicKey: boolean
+  }): Promise<Uint8Array> {
+    let { publicKey, compressedPublicKey } = options;
+
+    // Decode Weierstrass points from key bytes.
+    const point = secp256k1.ProjectivePoint.fromHex(publicKey);
+
+    // Return either the compressed or uncompressed form of hte public key.
+    return point.toRawBytes(compressedPublicKey);
+  }
+
+  /**
    * Generates a secp256k1 key pair.
    *
    * @param options - Optional parameters for the key generation.
    * @param options.compressedPublicKey - If true, generates a compressed public key. Defaults to true.
-   * @returns A Promise that resolves to an object containing the private and public keys as ArrayBuffers.
+   * @returns A Promise that resolves to an object containing the private and public keys as Uint8Array.
    */
-  public static async generateKeyPair(
-    options?: { compressedPublicKey?: boolean }
-  ): Promise<BufferKeyPair> {
+  public static async generateKeyPair(options?: {
+    compressedPublicKey?: boolean
+  }): Promise<BytesKeyPair> {
     let { compressedPublicKey } = options ?? { };
 
     compressedPublicKey ??= true; // Default to compressed public key, matching the default of @noble/secp256k1.
@@ -67,11 +101,51 @@ export class Secp256k1 {
     const publicKey  = secp256k1.getPublicKey(privateKey, compressedPublicKey);
 
     const keyPair = {
-      privateKey : privateKey.buffer,
-      publicKey  : publicKey.buffer
+      privateKey : privateKey,
+      publicKey  : publicKey
     };
 
     return keyPair;
+  }
+
+  /**
+   * Returns the elliptic curve points (x and y coordinates) for a given secp256k1 key.
+   *
+   * In the case of a private key, the public key is first computed from the private key,
+   * then the x and y coordinates of the public key point on the elliptic curve are returned.
+   *
+   * In the case of a public key, the x and y coordinates of the key point on the elliptic
+   * curve are returned directly.
+   *
+   * The returned coordinates can be used to perform various operations on the elliptic curve,
+   * such as addition and multiplication of points, which can be used in various cryptographic
+   * schemes and protocols.
+   *
+   * @param options - The options for the operation.
+   * @param options.key - The key for which to get the elliptic curve points.
+   *                      Can be either a private key or a public key.
+   *                      The key should be passed as a Uint8Array.
+   * @returns A Promise that resolves to an object with properties 'x' and 'y',
+   *          each being a Uint8Array representing the x and y coordinates of the key point on the elliptic curve.
+   */
+  public static async getCurvePoints(options: {
+    key: Uint8Array
+  }): Promise<{ x: Uint8Array, y: Uint8Array }> {
+    let { key } = options;
+
+    // If key is a private key, first compute the public key.
+    if (key.byteLength === 32) {
+      key = await Secp256k1.getPublicKey({ privateKey: key });
+    }
+
+    // Decode Weierstrass points from key bytes.
+    const point = secp256k1.ProjectivePoint.fromHex(key);
+
+    // Get x- and y-coordinate values and convert to Uint8Array.
+    const x = numberToBytesBE(point.x, 32);
+    const y = numberToBytesBE(point.y, 32);
+
+    return { x, y };
   }
 
   /**
@@ -82,20 +156,18 @@ export class Secp256k1 {
    * @param options - The options for the public key computation.
    * @param options.privateKey - The 32-byte private key from which to compute the public key.
    * @param options.compressedPublicKey - If true, returns a compressed public key. Defaults to true.
-   * @returns A Promise that resolves to the computed public key as an ArrayBuffer.
+   * @returns A Promise that resolves to the computed public key as a Uint8Array.
    */
-  public static async getPublicKey(
-    options: { privateKey: ArrayBuffer, compressedPublicKey?: boolean }
-  ): Promise<ArrayBuffer> {
+  public static async getPublicKey(options: {
+    privateKey: Uint8Array,
+    compressedPublicKey?: boolean
+  }): Promise<Uint8Array> {
     let { privateKey, compressedPublicKey } = options;
 
     compressedPublicKey ??= true; // Default to compressed public key, matching the default of @noble/secp256k1.
 
-    // Convert key material from ArrayBuffer to Uint8Array.
-    const privateKeyU8A = Convert.arrayBuffer(privateKey).toUint8Array();
-
     // Compute public key.
-    const publicKey  = secp256k1.getPublicKey(privateKeyU8A, compressedPublicKey);
+    const publicKey  = secp256k1.getPublicKey(privateKey, compressedPublicKey);
 
     return publicKey;
   }
@@ -116,21 +188,17 @@ export class Secp256k1 {
    */
   public static async sharedSecret(options: {
     compressedSecret?: boolean,
-    privateKey: ArrayBuffer,
-    publicKey: ArrayBuffer
-  }): Promise<ArrayBuffer> {
+    privateKey: Uint8Array,
+    publicKey: Uint8Array
+  }): Promise<Uint8Array> {
     let { privateKey, publicKey } = options;
 
-    // Convert private and public key material from ArrayBuffer to Uint8Array.
-    const privateKeyU8A = Convert.arrayBuffer(privateKey).toUint8Array();
-    const publicKeyU8A = Convert.arrayBuffer(publicKey).toUint8Array();
-
     // Compute the shared secret between the public and private keys.
-    const sharedSecret = secp256k1.getSharedSecret(privateKeyU8A, publicKeyU8A);
+    const sharedSecret = secp256k1.getSharedSecret(privateKey, publicKey);
 
     // Remove the leading byte that indicates the sign of the y-coordinate
     // of the point on the elliptic curve.  See note above.
-    return sharedSecret.slice(1).buffer;
+    return sharedSecret.slice(1);
   }
 
   /**
@@ -140,32 +208,85 @@ export class Secp256k1 {
    * @param options.data - The data to sign.
    * @param options.hash - The hash algorithm to use to generate a digest of the data.
    * @param options.key - The private key to use for signing.
-   * @returns A Promise that resolves to the signature as an ArrayBuffer.
+   * @returns A Promise that resolves to the signature as a Uint8Array.
    */
   public static async sign(options: {
-    data: BufferSource,
+    data: Uint8Array,
     hash: string,
-    key: ArrayBuffer
-  }): Promise<ArrayBuffer> {
+    key: Uint8Array
+  }): Promise<Uint8Array> {
     const { data, hash, key } = options;
-
-    // Convert data from BufferSource to Uint8Array.
-    const dataU8A = Convert.bufferSource(data).toUint8Array();
 
     // Generate a digest of the data using the specified hash function.
     const hashFunction = this.hashAlgorithms[hash];
-    const digest = hashFunction(dataU8A);
-
-    // Convert private key material from ArrayBuffer to Uint8Array.
-    const privateKeyU8A = Convert.arrayBuffer(key).toUint8Array();
+    const digest = hashFunction(data);
 
     // Signature operation returns a Signature instance with { r, s, recovery } properties.
-    const signatureObject = secp256k1.sign(digest, privateKeyU8A);
+    const signatureObject = secp256k1.sign(digest, key);
 
     // Convert Signature object to Uint8Array.
-    const signatureU8A = signatureObject.toCompactRawBytes();
+    const signature = signatureObject.toCompactRawBytes();
 
-    return signatureU8A.buffer;
+    return signature;
+  }
+
+  /**
+   * Validates a given private key to ensure that it's a valid 32-byte number
+   * that is less than the secp256k1 curve's order.
+   *
+   * This method checks the byte length of the key and its numerical validity
+   * according to the secp256k1 curve's parameters. It doesn't verify whether
+   * the key corresponds to a known or authorized entity or whether it has
+   * been compromised.
+   *
+   * @param options - The options for the key validation.
+   * @param options.key - The private key to validate, represented as a Uint8Array.
+   * @returns A Promise that resolves to a boolean indicating whether the private
+   *          key is a valid 32-byte number less than the secp256k1 curve's order.
+   */
+  public static async validatePrivateKey(options: {
+    key: Uint8Array
+  }): Promise<boolean> {
+    const { key } = options;
+
+    return secp256k1.utils.isValidPrivateKey(key);
+  }
+
+  /**
+   * Validates a given public key to ensure that it corresponds to a
+   * valid point on the secp256k1 elliptic curve.
+   *
+   * This method decodes the Weierstrass points from the key bytes and
+   * asserts their validity on the curve. If the points are not valid,
+   * the method returns false. If the points are valid, the method
+   * returns true.
+   *
+   * Note: This method does not check whether the key corresponds to a
+   * known or authorized entity, or whether it has been compromised.
+   * It only checks the mathematical validity of the key.
+   *
+   * @param options - The options for the key validation.
+   * @param options.key - The key to validate, represented as a Uint8Array.
+   * @returns A Promise that resolves to a boolean indicating whether the key
+   *          corresponds to a valid point on the secp256k1 elliptic curve.
+   */
+  public static async validatePublicKey(options: {
+    key: Uint8Array
+  }): Promise<boolean> {
+    const { key } = options;
+
+    try {
+      // Decode Weierstrass points from key bytes.
+      const point = secp256k1.ProjectivePoint.fromHex(key);
+
+      // Check if points are on the Short Weierstrass curve.
+      point.assertValidity();
+
+    } catch(error: any) {
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -179,28 +300,19 @@ export class Secp256k1 {
    * @returns A Promise that resolves to a boolean indicating whether the signature is valid.
    */
   public static async verify(options: {
-    data: BufferSource,
+    data: Uint8Array,
     hash: string,
-    key: ArrayBuffer,
-    signature: ArrayBuffer
+    key: Uint8Array,
+    signature: Uint8Array
   }): Promise<boolean> {
     const { data, hash, key, signature } = options;
 
-    // Convert public key material from ArrayBuffer to Uint8Array.
-    const publicKeyU8A = Convert.arrayBuffer(key).toUint8Array();
-
-    // Convert signature from ArrayBuffer to Uint8Array.
-    const signatureU8A = Convert.arrayBuffer(signature).toUint8Array();
-
-    // Convert data from BufferSource to Uint8Array.
-    const dataU8A = Convert.bufferSource(data).toUint8Array();
-
     // Generate a digest of the data using the specified hash function.
     const hashFunction = this.hashAlgorithms[hash];
-    const digest = hashFunction(dataU8A);
+    const digest = hashFunction(data);
 
     // Verify operation.
-    const isValid = secp256k1.verify(signatureU8A, digest, publicKeyU8A);
+    const isValid = secp256k1.verify(signature, digest, key);
 
     return isValid;
   }

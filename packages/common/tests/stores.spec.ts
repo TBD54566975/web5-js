@@ -25,10 +25,10 @@ describe('MemoryStore', () => {
   });
 
   describe('close()', () => {
-    it('should throw an error when trying to close the store', async () => {
+    it('should no-op when trying to close the store', async () => {
       await expect(
         memoryStore.close()
-      ).to.be.rejectedWith('MemoryStore does not support the close() method.');
+      ).to.be.fulfilled;
     });
   });
 

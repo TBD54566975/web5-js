@@ -96,6 +96,14 @@ describe('Convert', () =>{
       expect(result).to.deep.equal(output);
     });
 
+    it('to: Hex', () => {
+      // Test Vector 1.
+      let input = 'eyJmb28iOiJiYXIifQ';
+      let output = '7b22666f6f223a22626172227d';
+      const result = Convert.base64Url(input).toHex();
+      expect(result).to.deep.equal(output);
+    });
+
     it('to: Object', () => {
       // Test Vector 1.
       let input = 'eyJmb28iOiJiYXIifQ';
@@ -176,6 +184,43 @@ describe('Convert', () =>{
       let inputT8 = 'not BufferSource type';
       // @ts-expect-error because incorrect input data type is intentionally being used to trigger error.
       expect (() => Convert.bufferSource(inputT8).toArrayBuffer()).to.throw(TypeError, 'value is not of type');
+    });
+
+    it('to: Base64Url', () => {
+      // Test Vector 1 - BufferSource is Uint8Array.
+      let inputT1 = new Uint8Array([102, 111, 111]);
+      let outputT1 = 'Zm9v';
+      let resultT1 = Convert.bufferSource(inputT1).toBase64Url();
+      expect(resultT1).to.deep.equal(outputT1);
+
+      // Test Vector 2 - BufferSource is ArrayBuffer.
+      let inputT2 = (new Uint8Array([50, 51, 52, 53])).buffer;
+      let outputT2 = 'MjM0NQ';
+      let resultT2 = Convert.bufferSource(inputT2).toBase64Url();
+      expect(resultT2).to.deep.equal(outputT2);
+
+      // Test Vector 3 - BufferSource is DataView.
+      let inputT3 = new DataView((new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 0])).buffer);
+      let outputT3 = 'AQIDBAUGBwgJAA';
+      let resultT3 = Convert.bufferSource(inputT3).toBase64Url();
+      expect(resultT3).to.deep.equal(outputT3);
+
+      // Test Vector 4 - BufferSource is an unsigned, 16-bit Typed Array.
+      let inputT4 = new Uint16Array([299, 298, 297]);
+      let outputT4 = 'KwEqASkB';
+      let resultT4 = Convert.bufferSource(inputT4).toBase64Url();
+      expect(resultT4).to.deep.equal(outputT4);
+
+      // Test Vector 5 - BufferSource is a signed, 32-bit Typed Array.
+      let inputT5 = new Int32Array([1111, 1000, 2000]);
+      let outputT5 = 'VwQAAOgDAADQBwAA';
+      let resultT5 = Convert.bufferSource(inputT5).toBase64Url();
+      expect(resultT5).to.deep.equal(outputT5);
+
+      // Test Vector 6 - BufferSource is Uint8Array.
+      let inputT6 = 'not BufferSource type';
+      // @ts-expect-error because incorrect input data type is intentionally being used to trigger error.
+      expect (() => Convert.bufferSource(inputT6).toBase64Url()).to.throw(TypeError, 'value is not of type');
     });
 
     it('to: Uint8Array', () => {

@@ -23,13 +23,15 @@ jobs:
       matrix:
         package:
           [
+            "agent",
+            "api",
             "common",
+            "credentials",
             "crypto",
             "dids",
-            "web5",
-            "web5-agent",
-            "web5-proxy-agent",
-            "web5-user-agent",
+            "identity-agent",
+            "proxy-agent",
+            "user-agent",
           ]
 
     steps:
@@ -79,7 +81,7 @@ jobs:
       - name: Build all workspace packages
         run: npm run build
 
-      - name: Publish @tbd54566975/${{ matrix.package }}@${{ env.ALPHA_VERSION }}
+      - name: Publish @web5/${{ matrix.package }}@${{ env.ALPHA_VERSION }}
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: |

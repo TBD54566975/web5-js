@@ -1,11 +1,11 @@
 {
-  "name": "@tbd54566975/dids",
-  "version": "0.8.0",
+  "name": "@web5/dids",
+  "version": "0.1.9",
   "description": "TBD DIDs library",
   "type": "module",
-  "main": "./dist/cjs/main.js",
-  "module": "./dist/esm/main.js",
-  "types": "./dist/types/main.d.ts",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
   "scripts": {
     "clean": "rimraf dist coverage tests/compiled",
     "build:esm": "rimraf dist/esm dist/types && npx tsc -p tsconfig.json",
@@ -46,12 +46,12 @@
   ],
   "exports": {
     ".": {
-      "import": "./dist/esm/main.js",
-      "require": "./dist/cjs/main.js",
-      "types": "./dist/types/main.d.ts"
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/types/index.d.ts"
     }
   },
-  "react-native": "./dist/esm/main.js",
+  "react-native": "./dist/esm/index.js",
   "keywords": [
     "decentralized",
     "decentralized-identity",
@@ -69,13 +69,15 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@decentralized-identity/ion-tools": "1.1.4",
-    "@tbd54566975/common": "0.8.0",
-    "@tbd54566975/crypto": "0.8.0",
-    "@tbd54566975/dwn-sdk-js": "0.2.1",
-    "cross-fetch": "4.0.0"
+    "@decentralized-identity/ion-pow-sdk": "1.0.17",
+    "@decentralized-identity/ion-sdk": "1.0.1",
+    "@web5/common": "0.1.1",
+    "@web5/crypto": "0.1.6",
+    "canonicalize": "2.0.0",
+    "did-resolver": "4.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.36.2",
     "@types/chai": "4.3.0",
     "@types/chai-as-promised": "7.1.5",
     "@types/eslint": "8.37.0",
@@ -98,7 +100,6 @@
     "karma-mocha-reporter": "2.2.5",
     "karma-webkit-launcher": "2.1.0",
     "mocha": "10.2.0",
-    "node-stdlib-browser": "1.2.0",
     "playwright": "1.36.2",
     "rimraf": "4.4.0",
     "sinon": "15.0.2",

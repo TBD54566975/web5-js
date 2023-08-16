@@ -1,6 +1,6 @@
-import type { Web5Crypto } from '../types/index.js';
+import { universalTypeOf } from '@web5/common';
 
-import { universalTypeOf } from '@tbd54566975/common';
+import type { Web5Crypto } from '../types/web5-crypto.js';
 
 import { AesCtr } from '../crypto-primitives/index.js';
 import { BaseAesCtrAlgorithm, CryptoKey } from '../algorithms-api/index.js';
@@ -9,8 +9,8 @@ export class AesCtrAlgorithm extends BaseAesCtrAlgorithm {
   public async decrypt(options: {
     algorithm: Web5Crypto.AesCtrOptions,
     key: Web5Crypto.CryptoKey,
-    data: BufferSource
-  }): Promise<ArrayBuffer> {
+    data: Uint8Array
+  }): Promise<Uint8Array> {
     const { algorithm, key, data } = options;
 
     this.checkAlgorithmOptions({ algorithm, key });
@@ -20,7 +20,7 @@ export class AesCtrAlgorithm extends BaseAesCtrAlgorithm {
     const plaintext = AesCtr.decrypt({
       counter : algorithm.counter,
       data    : data,
-      key     : key.handle,
+      key     : key.material,
       length  : algorithm.length
     });
 
@@ -30,8 +30,8 @@ export class AesCtrAlgorithm extends BaseAesCtrAlgorithm {
   public async encrypt(options: {
     algorithm: Web5Crypto.AesCtrOptions,
     key: Web5Crypto.CryptoKey,
-    data: BufferSource
-  }): Promise<ArrayBuffer> {
+    data: Uint8Array
+  }): Promise<Uint8Array> {
     const { algorithm, key, data } = options;
 
     this.checkAlgorithmOptions({ algorithm, key });
@@ -41,7 +41,7 @@ export class AesCtrAlgorithm extends BaseAesCtrAlgorithm {
     const ciphertext = AesCtr.encrypt({
       counter : algorithm.counter,
       data    : data,
-      key     : key.handle,
+      key     : key.material,
       length  : algorithm.length
     });
 
@@ -59,7 +59,7 @@ export class AesCtrAlgorithm extends BaseAesCtrAlgorithm {
 
     const secretKey = await AesCtr.generateKey({ length: algorithm.length });
 
-    if (universalTypeOf(secretKey) !== 'ArrayBuffer') {
+    if (universalTypeOf(secretKey) !== 'Uint8Array') {
       throw new Error('Operation failed to generate key.');
     }
 

@@ -1,10 +1,10 @@
-import type { Web5Crypto } from '../../types/index.js';
+import { universalTypeOf } from '@web5/common';
 
-import { universalTypeOf } from '@tbd54566975/common';
+import type { Web5Crypto } from '../../types/web5-crypto.js';
 
 import { BaseAesAlgorithm } from './base.js';
 import { OperationError } from '../errors.js';
-import { checkRequiredProperty } from '../../utils-new.js';
+import { checkRequiredProperty } from '../../utils.js';
 
 export abstract class BaseAesCtrAlgorithm extends BaseAesAlgorithm {
 
@@ -21,9 +21,9 @@ export abstract class BaseAesCtrAlgorithm extends BaseAesAlgorithm {
     this.checkAlgorithmName({ algorithmName: algorithm.name });
     // The algorithm object must contain a counter property.
     checkRequiredProperty({ property: 'counter', inObject: algorithm });
-    // The counter must an ArrayBuffer, DataView, or TypedArray.
-    if (!(universalTypeOf(algorithm.counter) === 'ArrayBuffer' || ArrayBuffer.isView(algorithm.counter))) {
-      throw new TypeError(`Algorithm 'counter' is not of type: ArrayBuffer, DataView, or TypedArray.`);
+    // The counter must a Uint8Array.
+    if (!(universalTypeOf(algorithm.counter) === 'Uint8Array')) {
+      throw new TypeError(`Algorithm 'counter' is not of type: Uint8Array.`);
     }
     // The initial value of the counter block must be 16 bytes long (the AES block size).
     if (algorithm.counter.byteLength !== 16) {

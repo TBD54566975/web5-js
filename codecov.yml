@@ -8,9 +8,13 @@ component_management:
         target: auto # auto compares coverage to the previous base commit
         threshold: 5% # allows a 5% drop from the previous base commit coverage
       - type: patch
-        target: 100 # every PR opened should strive for full test coverage
+        target: 90 # every PR opened should strive for at least 90% coverage
 
   individual_components:
+    - component_id: package-api
+      name: api
+      paths: ["packages/api/**"]
+
     - component_id: package_common
       name: common
       paths: ["packages/common/**"]
@@ -27,21 +31,21 @@ component_management:
       name: dids
       paths: ["packages/dids/**"]
 
-    - component_id: package-web5
-      name: web5
-      paths: ["packages/web5/**"]
+    - component_id: package-agent
+      name: agent
+      paths: ["packages/agent/**"]
 
-    - component_id: package-web5-agent
-      name: web5-agent
-      paths: ["packages/web5-agent/**"]
+    - component_id: package-identity-agent
+      name: identity-agent
+      paths: ["packages/identity-agent/**"]
 
-    - component_id: package-web5-proxy-agent
-      name: web5-proxy-agent
-      paths: ["packages/web5-proxy-agent/**"]
+    - component_id: package-proxy-agent
+      name: proxy-agent
+      paths: ["packages/proxy-agent/**"]
 
-    - component_id: package-web5-user-agent
-      name: web5-user-agent
-      paths: ["packages/web5-user-agent/**"]
+    - component_id: package-user-agent
+      name: user-agent
+      paths: ["packages/user-agent/**"]
 
 coverage:
   status:

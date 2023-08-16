@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
 describe('example', () => {
-  it('needs more tests', () => {
+  it('tests needed', () => {
     expect(true).to.be.true;
   });
 });

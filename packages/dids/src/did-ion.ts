@@ -1,187 +1,548 @@
-import type { PublicKeyJwk, PrivateKeyJwk } from '@tbd54566975/crypto';
-import type { DidResolutionResult, DidMethodResolver, DidMethodCreator, DidState, DwnServiceEndpoint, DidDocument } from './types.js';
+import type { JwkKeyPair, PrivateKeyJwk, PublicKeyJwk, Web5Crypto } from '@web5/crypto';
+import type { IonDocumentModel, IonPublicKeyModel, JwkEd25519, JwkEs256k } from '@decentralized-identity/ion-sdk';
 
-import { DID, generateKeyPair } from '@decentralized-identity/ion-tools';
+import { Convert, universalTypeOf } from '@web5/common';
+import IonProofOfWork from '@decentralized-identity/ion-pow-sdk';
+// import { IonProofOfWork } from '@decentralized-identity/ion-pow-sdk';
+import { EcdsaAlgorithm, EdDsaAlgorithm, Jose } from '@web5/crypto';
+import { IonDid, IonPublicKeyPurpose, IonRequest } from '@decentralized-identity/ion-sdk';
+
+import type { DidDocument, DidKeySetVerificationMethodKey, DidMethod, DidResolutionOptions, DidResolutionResult, DidService, PortableDid } from './types.js';
+
+import { getServices, isDwnServiceEndpoint, parseDid } from './utils.js';
+
+export type DidIonAnchorOptions = {
+  challengeEnabled?: boolean;
+  challengeEndpoint?: string;
+  operationsEndpoint?: string;
+  keySet: DidIonKeySet;
+  services: DidService[];
+}
 
 export type DidIonCreateOptions = {
-  keys?: KeyOption[];
-  services?: ServiceOption[];
+  anchor?: boolean;
+  keyAlgorithm?: typeof SupportedCryptoAlgorithms[number];
+  keySet?: DidIonKeySet;
+  services?: DidService[];
+}
+
+export type DidIonKeySet = {
+  recoveryKey?: JwkKeyPair;
+  updateKey?: JwkKeyPair;
+  verificationMethodKeys?: DidKeySetVerificationMethodKey[];
+}
+
+enum OperationType {
+  Create = 'create',
+  Update = 'update',
+  Deactivate = 'deactivate',
+  Recover = 'recover'
+}
+
+/**
+ * Data model representing a public key in the DID Document.
+ */
+export interface IonCreateRequestModel {
+  type: OperationType;
+  suffixData: {
+    deltaHash: string;
+    recoveryCommitment: string;
+  };
+  delta: {
+    updateCommitment: string;
+    patches: {
+      action: string;
+      document: IonDocumentModel;
+    }[];
+  }
+}
+
+const SupportedCryptoAlgorithms = [
+  'Ed25519',
+  'secp256k1'
+] as const;
+
+const VerificationRelationshipToIonPublicKeyPurpose = {
+  assertionMethod      : IonPublicKeyPurpose.AssertionMethod,
+  authentication       : IonPublicKeyPurpose.Authentication,
+  capabilityDelegation : IonPublicKeyPurpose.CapabilityDelegation,
+  capabilityInvocation : IonPublicKeyPurpose.CapabilityInvocation,
+  keyAgreement         : IonPublicKeyPurpose.KeyAgreement
 };
 
-export type ServiceOption = {
-  id: string;
-  type: string;
-  serviceEndpoint: string | DwnServiceEndpoint;
-}
-
-export type KeyOption = {
-  id: string;
-  type: string;
-  keyPair: {
-    publicJwk: PublicKeyJwk;
-    privateJwk: PrivateKeyJwk;
-  },
-  purposes: string[];
-}
-
-export class DidIonApi implements DidMethodResolver, DidMethodCreator {
+export class DidIonMethod implements DidMethod {
   /**
-   * @param resolutionEndpoint optional custom URL to send DID resolution request to
-   */
-  constructor (private resolutionEndpoint: string = 'https://discover.did.msidentity.com/1.0/identifiers/') {}
+   * Name of the DID method
+  */
+  public static methodName = 'ion';
 
-  get methodName() {
-    return 'ion';
+  public static async anchor(options: {
+    services: DidService[],
+    keySet: DidIonKeySet,
+    challengeEnabled?: boolean,
+    challengeEndpoint?: string,
+    operationsEndpoint?: string
+  }): Promise<DidResolutionResult | undefined> {
+    const {
+      challengeEnabled = true,
+      challengeEndpoint = 'https://beta.ion.msidentity.com/api/v1.0/proof-of-work-challenge',
+      keySet,
+      services,
+      operationsEndpoint = 'https://beta.ion.msidentity.com/api/v1.0/operations'
+    } = options;
+
+    // Create ION Document.
+    const ionDocument = await DidIonMethod.createIonDocument({
+      keySet: keySet,
+      services
+    });
+
+    const createRequest = await DidIonMethod.getIonCreateRequest({
+      ionDocument,
+      recoveryPublicKeyJwk : keySet.recoveryKey.publicKeyJwk,
+      updatePublicKeyJwk   : keySet.updateKey.publicKeyJwk
+    });
+
+    let resolutionResult: DidResolutionResult;
+
+    if (challengeEnabled) {
+      const response = await IonProofOfWork.submitIonRequest(
+        challengeEndpoint,
+        operationsEndpoint,
+        JSON.stringify(createRequest)
+      );
+
+      if (response !== undefined && universalTypeOf(response) === 'String') {
+        resolutionResult = JSON.parse(response);
+      }
+
+    } else {
+      const response = await fetch(operationsEndpoint, {
+        method  : 'POST',
+        mode    : 'cors',
+        body    : JSON.stringify(createRequest),
+        headers : {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        resolutionResult = await response.json();
+      }
+    }
+
+    return resolutionResult;
   }
 
-  // TODO: discuss. need to normalize what's returned from `create`. DidIon.create and DidKey.create return different things.
-  async create(options: DidIonCreateOptions = {}): Promise<DidState> {
-    options.keys ||= [
-      {
-        id       : 'dwn',
-        type     : 'JsonWebKey2020',
-        keyPair  : await generateKeyPair(),
-        purposes : ['authentication'],
-      },
-    ];
+  public static async create(options?: DidIonCreateOptions): Promise<PortableDid> {
+    let { anchor, keyAlgorithm, keySet, services } = options ?? { };
 
-    const didOptions: any = { publicKeys: [] };
-    if (options.services) {
-      didOptions.services = options.services;
+    // Begin constructing a PortableDid.
+    const did: Partial<PortableDid> = {};
+
+    // If any member of the key set is missing, generate the keys.
+    did.keySet = await DidIonMethod.generateKeySet({ keyAlgorithm, keySet });
+
+    // Generate Long Form DID URI.
+    did.did = await DidIonMethod.getLongFormDid({
+      keySet: did.keySet,
+      services
+    });
+
+    // Get short form DID.
+    did.canonicalId = await DidIonMethod.getShortFormDid({ didUrl: did.did });
+
+    let didResolutionResult: DidResolutionResult | undefined;
+    if (anchor) {
+      // Attempt to anchor the DID.
+      didResolutionResult = await DidIonMethod.anchor({
+        keySet: did.keySet,
+        services
+      });
+
+    } else {
+      // If anchoring was not requested, then resolve the long form DID.
+      didResolutionResult = await DidIonMethod.resolve({ didUrl: did.did });
     }
 
-    for (let key of options.keys) {
-      const publicKey: any = { ...key };
+    // Store the DID Document.
+    did.document = didResolutionResult.didDocument;
 
-      publicKey.publicKeyJwk = key.keyPair.publicJwk;
-      delete publicKey.keyPair;
+    return did as PortableDid;
+  }
 
-      didOptions.publicKeys.push(publicKey);
+  public static async decodeLongFormDid(options: {
+    didUrl: string
+  }): Promise<IonCreateRequestModel> {
+    const { didUrl } = options;
+
+    const parsedDid = parseDid({ didUrl });
+
+    if (!parsedDid) {
+      throw new Error(`DidIonMethod: Unable to parse DID: ${didUrl}`);
     }
 
-    const did = new DID({ content: didOptions });
-    const didState = {
-      id         : await did.getURI(),
-      internalId : await did.getURI('short'),
-      methodData : await did.getAllOperations(),
+    const decodedLongFormDid = Convert.base64Url(
+      parsedDid.id.split(':').pop()
+    ).toObject() as Pick<IonCreateRequestModel, 'delta' | 'suffixData'>;
+
+    const createRequest: IonCreateRequestModel = {
+      ...decodedLongFormDid,
+      type: OperationType.Create
     };
 
-    // TODO: Migrate this to a utility function that generates a DID document given DidState.
-    // TODO: Add tests to DID Document generation function to ensure that it produces results identical to DidResolver.
-    // TODO: Ensure both DID ION and KEY do this consistently.
-    const didDocument: DidDocument = {
-      '@context'         : 'https://www.w3.org/ns/did/v1',
-      id                 : didState.id,
-      verificationMethod : [],
-    };
+    return createRequest;
+  }
 
-    for (let key of didState.methodData[0].content.publicKeys) {
-      const verificationMethod = {
-        id           : `#${key.id}`,
-        controller   : didState.id,
-        type         : key.type,
-        publicKeyJwk : key.publicKeyJwk
-      };
-      didDocument.verificationMethod.push(verificationMethod);
+  public static async generateKeySet(options?: {
+    keyAlgorithm?: typeof SupportedCryptoAlgorithms[number],
+    keySet?: DidIonKeySet
+  }): Promise<DidIonKeySet> {
+    // Generate Ed25519 authentication key pair, by default.
+    let { keyAlgorithm = 'Ed25519', keySet = {} } = options ?? {};
 
-      for (let purpose of key.purposes) {
-        if (didDocument[purpose]) {
-          didDocument[purpose].push(key.id);
-        } else {
-          didDocument[purpose] = [`#${key.id}`];
+    // If keySet lacks verification method keys, generate one.
+    if (keySet.verificationMethodKeys === undefined) {
+      const authenticationkeyPair = await DidIonMethod.generateJwkKeyPair({
+        keyAlgorithm,
+        keyId: 'dwn-sig'
+      });
+      keySet.verificationMethodKeys = [{
+        ...authenticationkeyPair,
+        relationships: ['authentication']
+      }];
+    }
+
+    // If keySet lacks recovery key, generate one.
+    if (keySet.recoveryKey === undefined) {
+      // Note: ION/Sidetree only supports secp256k1 recovery keys.
+      keySet.recoveryKey = await DidIonMethod.generateJwkKeyPair({
+        keyAlgorithm : 'secp256k1',
+        keyId        : 'ion-recovery-1'
+      });
+    }
+
+    // If keySet lacks update key, generate one.
+    if (keySet.updateKey === undefined) {
+      // Note: ION/Sidetree only supports secp256k1 update keys.
+      keySet.updateKey = await DidIonMethod.generateJwkKeyPair({
+        keyAlgorithm : 'secp256k1',
+        keyId        : 'ion-update-1'
+      });
+    }
+
+    // Generate RFC 7638 JWK thumbprints if `kid` is missing from any key.
+    for (const key of [...keySet.verificationMethodKeys, keySet.recoveryKey, keySet.updateKey]) {
+      if ('publicKeyJwk' in key) key.publicKeyJwk.kid ??= await Jose.jwkThumbprint({ key: key.publicKeyJwk });
+      if ('privateKeyJwk' in key) key.privateKeyJwk.kid ??= await Jose.jwkThumbprint({ key: key.privateKeyJwk });
+    }
+
+    return keySet;
+  }
+
+  /**
+   * Given the W3C DID Document of a `did:ion` DID, return the identifier of
+   * the verification method key that will be used for signing messages and
+   * credentials, by default.
+   *
+   * @param document = DID Document to get the default signing key from.
+   * @returns Verification method identifier for the default signing key.
+   */
+  public static async getDefaultSigningKey(options: {
+      didDocument: DidDocument
+    }): Promise<string | undefined> {
+    const { didDocument } = options;
+
+    if (!didDocument.id) {
+      throw new Error(`DidIonMethod: DID document is missing 'id' property`);
+    }
+
+    /** If the DID document contains a DWN service endpoint in the expected
+     * format, return the first entry in the `signingKeys` array. */
+    const [dwnService] = getServices({ didDocument, type: 'DecentralizedWebNode' });
+    if (isDwnServiceEndpoint(dwnService?.serviceEndpoint)) {
+      const [verificationMethodId] = dwnService.serviceEndpoint.signingKeys;
+      // const did = await DidIonMethod.getShortFormDid({ didUrl: didDocument.id });
+      const did = didDocument.id;
+      const signingKeyId = `${did}${verificationMethodId}`;
+      return signingKeyId;
+    }
+
+    /** Otherwise, fallback to a naive approach of returning the first key ID
+     * in the `authentication` verification relationships array. */
+    if (didDocument.authentication
+        && Array.isArray(didDocument.authentication)
+        && didDocument.authentication.length > 0
+        && typeof didDocument.authentication[0] === 'string') {
+      const [verificationMethodId] = didDocument.authentication;
+      // const did = await DidIonMethod.getShortFormDid({ didUrl: didDocument.id });
+      const did = didDocument.id;
+      const signingKeyId = `${did}${verificationMethodId}`;
+      return signingKeyId;
+    }
+
+    // if (didDocument.id &&
+    //       didDocument.service &&
+    //       didDocument.service[0] &&
+    //       didDocument.service[0].serviceEndpoint &&
+    //       typeof didDocument.service[0].serviceEndpoint !== 'string' &&
+    //       !Array.isArray(didDocument.service[0].serviceEndpoint) &&
+    //       didDocument.service[0].serviceEndpoint.signingKeys &&
+    //       typeof didDocument.service[0].serviceEndpoint.signingKeys[0] === 'string') {
+
+    //   const verificationMethodId = didDocument.service[0].serviceEndpoint.signingKeys[0];
+    //   const did = await DidIonMethod.getShortFormDid({ didUrl: didDocument.id });
+    //   const signingKeyId = `${did}${verificationMethodId}`;
+
+    //   return signingKeyId;
+    // }
+  }
+
+  public static async getLongFormDid(options: {
+    services: DidService[],
+    keySet: DidIonKeySet
+  }): Promise<string> {
+    const { services = [], keySet } = options;
+
+    // Create ION Document.
+    const ionDocument = await DidIonMethod.createIonDocument({
+      keySet: keySet,
+      services
+    });
+
+    // Filter JWK to only those properties expected by ION/Sidetree.
+    const recoveryKey = DidIonMethod.jwkToIonJwk({ key: keySet.recoveryKey.publicKeyJwk }) as JwkEs256k;
+    const updateKey = DidIonMethod.jwkToIonJwk({ key: keySet.updateKey.publicKeyJwk }) as JwkEs256k;
+
+    // Create an ION DID create request operation.
+    const did = await IonDid.createLongFormDid({
+      document: ionDocument,
+      recoveryKey,
+      updateKey
+    });
+
+    return did;
+  }
+
+  public static async getShortFormDid(options: {
+    didUrl: string
+  }): Promise<string> {
+    const { didUrl } = options;
+
+    const parsedDid = parseDid({ didUrl });
+
+    if (!parsedDid) {
+      throw new Error(`DidIonMethod: Unable to parse DID: ${didUrl}`);
+    }
+
+    const shortFormDid = parsedDid.did.split(':', 3).join(':');
+
+    return shortFormDid;
+  }
+
+  public static async resolve(options: {
+    didUrl: string,
+    resolutionOptions?: DidResolutionOptions
+  }): Promise<DidResolutionResult> {
+    // TODO: Implement resolutionOptions as defined in https://www.w3.org/TR/did-core/#did-resolution
+    const { didUrl, resolutionOptions = {} } = options;
+
+    const parsedDid = parseDid({ didUrl });
+    if (!parsedDid) {
+      return {
+        '@context'            : 'https://w3id.org/did-resolution/v1',
+        didDocument           : undefined,
+        didDocumentMetadata   : {},
+        didResolutionMetadata : {
+          contentType  : 'application/did+ld+json',
+          error        : 'invalidDid',
+          errorMessage : `Cannot parse DID: ${didUrl}`
         }
-      }
+      };
     }
 
-    for (let service of didState.methodData[0]?.content?.services || []) {
-      const serviceEntry = {
-        id              : `#${service.id}`,
-        type            : service.type,
-        serviceEndpoint : { ...service.serviceEndpoint }
+    if (parsedDid.method !== 'ion') {
+      return {
+        '@context'            : 'https://w3id.org/did-resolution/v1',
+        didDocument           : undefined,
+        didDocumentMetadata   : {},
+        didResolutionMetadata : {
+          contentType  : 'application/did+ld+json',
+          error        : 'methodNotSupported',
+          errorMessage : `Method not supported: ${parsedDid.method}`
+        }
       };
-      if (didDocument.service) {
-        didDocument.service.push(serviceEntry);
-      } else {
-        didDocument.service = [serviceEntry];
-      }
     }
 
-    const keys = [];
-    for (let keyOption of options.keys) {
-      const key = {
-        id            : `${didState.id}#${keyOption.id}`,
-        type          : keyOption.type,
-        controller    : didState.id,
-        publicKeyJwk  : keyOption.keyPair.publicJwk,
-        privateKeyJwk : keyOption.keyPair.privateJwk
-      };
+    const { resolutionEndpoint = 'https://discover.did.msidentity.com/1.0/identifiers/' } = resolutionOptions;
+    const normalizeUrl = (url: string): string => url.endsWith('/') ? url : url + '/';
+    const resolutionUrl = `${normalizeUrl(resolutionEndpoint)}${parsedDid.did}`;
 
-      keys.push(key);
+    const response = await fetch(resolutionUrl);
+
+    let resolutionResult: DidResolutionResult | object;
+    try {
+      resolutionResult = await response.json();
+    } catch (error) {
+      resolutionResult = {};
+    }
+
+    if (response.ok) {
+      return resolutionResult as DidResolutionResult;
+    }
+
+    // Return valid DID Resolution Results.
+    if ('didResolutionMetadata' in resolutionResult) {
+      return resolutionResult;
+    }
+
+    // Set default error code and message.
+    let error = 'internalError';
+    let errorMessage = `DID resolver responded with HTTP status code: ${response.status}`;
+
+    /** The Microsoft resolution endpoint does not return a valid DidResolutionResult
+       * when an ION DID is "not found" so normalization is needed. */
+    if ('error' in resolutionResult &&
+        typeof resolutionResult.error === 'object' &&
+        'code' in resolutionResult.error &&
+        typeof resolutionResult.error.code === 'string' &&
+        'message' in resolutionResult.error &&
+        typeof resolutionResult.error.message === 'string') {
+      error = resolutionResult.error.code.includes('not_found') ? 'notFound' : error;
+      errorMessage = resolutionResult.error.message ?? errorMessage;
     }
 
     return {
-      id          : didState.id,
-      internalId  : didState.internalId,
-      didDocument : didDocument,
-      methodData  : didState.methodData,
-      keys        : keys  // TODO: Remove keys once KeyManager/KeyStore implemented since everything BUT privateKeyJwk is already in the returned didDocument.
+      '@context'            : 'https://w3id.org/did-resolution/v1',
+      didDocument           : undefined,
+      didDocumentMetadata   : {},
+      didResolutionMetadata : {
+        contentType: 'application/did+ld+json',
+        error,
+        errorMessage
+      }
     };
   }
 
-  async resolve(did: string): Promise<DidResolutionResult> {
-    // TODO: Support resolutionOptions as defined in https://www.w3.org/TR/did-core/#did-resolution
-    // using `URL` constructor to handle both existence and absence of trailing slash '/' in resolution endpoint
-    // appending './' to DID so 'did' in 'did:ion:abc' doesn't get interpreted as a URL scheme (e.g. like 'http') due to the colon
-    // TODO: Add tests to ensure that the scenarios this contemplated are checked.
-    const resolutionUrl = new URL('./' + did, this.resolutionEndpoint).toString();
-    const response = await fetch(resolutionUrl);
+  private static async generateJwkKeyPair(options: {
+    keyAlgorithm: typeof SupportedCryptoAlgorithms[number],
+    keyId?: string
+  }): Promise<JwkKeyPair> {
+    const { keyAlgorithm, keyId } = options;
 
-    // TODO: Replace with check of resonse.ok to catch other 2XX codes.
-    if (response.status !== 200) {
-      throw new Error(`unable to resolve ${did}, got http status ${response.status}`);
+    let cryptoKeyPair: Web5Crypto.CryptoKeyPair;
+
+    switch (keyAlgorithm) {
+      case 'Ed25519': {
+        cryptoKeyPair = await new EdDsaAlgorithm().generateKey({
+          algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
+          extractable : true,
+          keyUsages   : ['sign', 'verify']
+        });
+        break;
+      }
+
+      case 'secp256k1': {
+        cryptoKeyPair = await new EcdsaAlgorithm().generateKey({
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : true,
+          keyUsages   : ['sign', 'verify']
+        });
+        break;
+      }
+
+      default: {
+        throw new Error(`Unsupported crypto algorithm: '${keyAlgorithm}'`);
+      }
     }
 
-    const didResolutionResult = await response.json();
-    return didResolutionResult;
+    // Convert the CryptoKeyPair to JwkKeyPair.
+    const jwkKeyPair = await Jose.cryptoKeyToJwkPair({ keyPair: cryptoKeyPair });
+
+    // Set kid values.
+    if (keyId) {
+      jwkKeyPair.privateKeyJwk.kid = keyId;
+      jwkKeyPair.publicKeyJwk.kid = keyId;
+    } else {
+      // If a key ID is not specified, generate RFC 7638 JWK thumbprint.
+      const jwkThumbprint = await Jose.jwkThumbprint({ key: jwkKeyPair.publicKeyJwk });
+      jwkKeyPair.privateKeyJwk.kid = jwkThumbprint;
+      jwkKeyPair.publicKeyJwk.kid = jwkThumbprint;
+    }
+
+    return jwkKeyPair;
   }
 
-  /**
-   * Generates two key pairs used for authorization and encryption purposes
-   * when interfacing with DWNs. The IDs of these keys are referenced in the
-   * service object that includes the dwnUrls provided.
-   */
-  async generateDwnConfiguration(dwnUrls: string[]): Promise<DidIonCreateOptions> {
-    return DidIonApi.generateDwnConfiguration(dwnUrls);
-  }
+  private static async createIonDocument(options: {
+    keySet: DidIonKeySet,
+    services?: DidService[]
+  }): Promise<IonDocumentModel> {
+    const { services = [], keySet } = options;
 
-  /**
-   * Generates two key pairs used for authorization and encryption purposes
-   * when interfacing with DWNs. The IDs of these keys are referenced in the
-   * service object that includes the dwnUrls provided.
-   */
-  static async generateDwnConfiguration(dwnUrls: string[]): Promise<DidIonCreateOptions> {
-    const keys = [{
-      id       : 'authz',
-      type     : 'JsonWebKey2020',
-      keyPair  : await generateKeyPair('secp256k1'),
-      purposes : ['authentication'],
-    }, {
-      id       : 'enc',
-      type     : 'JsonWebKey2020',
-      keyPair  : await generateKeyPair('secp256k1'),
-      purposes : ['keyAgreement'],
-    }];
+    const ionPublicKeys: IonPublicKeyModel[] = [];
 
-    const services = [{
-      'id'              : 'dwn',
-      'type'            : 'DecentralizedWebNode',
-      'serviceEndpoint' : {
-        'nodes'                    : dwnUrls,
-        'messageAuthorizationKeys' : ['#authz'],
-        'recordEncryptionKeys'     : ['#enc']
+    for (const key of keySet.verificationMethodKeys) {
+      // Map W3C DID verification relationship names to ION public key purposes.
+      const ionPurposes: IonPublicKeyPurpose[] = [];
+      for (const relationship of key.relationships) {
+        ionPurposes.push(
+          VerificationRelationshipToIonPublicKeyPurpose[relationship]
+        );
       }
-    }];
 
-    return { keys, services };
+      // Convert public key JWK to ION format.
+      const publicKey: IonPublicKeyModel = {
+        id           : key.publicKeyJwk.kid,
+        publicKeyJwk : DidIonMethod.jwkToIonJwk({ key: key.publicKeyJwk }),
+        purposes     : ionPurposes,
+        type         : 'JsonWebKey2020'
+      };
+
+      ionPublicKeys.push(publicKey);
+    }
+
+    const ionDocumentModel: IonDocumentModel = {
+      publicKeys: ionPublicKeys,
+      services
+    };
+
+    return ionDocumentModel;
+  }
+
+  private static async getIonCreateRequest(options: {
+    ionDocument: IonDocumentModel,
+    recoveryPublicKeyJwk: PublicKeyJwk,
+    updatePublicKeyJwk: PublicKeyJwk
+  }): Promise<IonCreateRequestModel> {
+    const { ionDocument, recoveryPublicKeyJwk, updatePublicKeyJwk } = options;
+
+    // Create an ION DID create request operation.
+    const createRequest = await IonRequest.createCreateRequest({
+      document    : ionDocument,
+      recoveryKey : DidIonMethod.jwkToIonJwk({ key: recoveryPublicKeyJwk }) as JwkEs256k,
+      updateKey   : DidIonMethod.jwkToIonJwk({ key: updatePublicKeyJwk }) as JwkEs256k
+    });
+
+    return createRequest;
+  }
+
+  private static jwkToIonJwk({ key }: { key: PrivateKeyJwk | PublicKeyJwk }): JwkEd25519 | JwkEs256k {
+    let ionJwk: Partial<JwkEd25519 | JwkEs256k> = { };
+
+    if ('crv' in key) {
+      ionJwk.crv = key.crv;
+      ionJwk.kty = key.kty;
+      ionJwk.x = key.x;
+      if ('d' in key) ionJwk.d = key.d;
+
+      if ('y' in key && key.y) {
+        // secp256k1 JWK.
+        return { ...ionJwk, y: key.y} as JwkEs256k;
+      }
+      // Ed25519 JWK.
+      return { ...ionJwk } as JwkEd25519;
+    }
+
+    throw new Error(`jwkToIonJwk: Unsupported key algorithm.`);
   }
 }

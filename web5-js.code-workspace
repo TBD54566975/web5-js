@@ -1,104 +1,110 @@
 {
-	"folders": [
-		{
-			// Source root
-			"name": "root",
-			"path": "."
-		},
-		{
-			// @tbd54566975/common
-			"name": "common",
-			"path": "packages/common",
-		},
-		{
-			// @tbd54566975/credentials
-			"name": "credentials",
-			"path": "packages/credentials",
-		},
-		{
-			// @tbd54566975/crypto
-			"name": "crypto",
-			"path": "packages/crypto",
-		},
-		{
-			// @tbd54566975/dids
-			"name": "dids",
-			"path": "packages/dids",
-		},
-		{
-			// @tbd54566975/web5
-			"name": "web5",
-			"path": "packages/web5",
-		},
-		{
-			// @tbd54566975/web5-agent
-			"name": "web5-agent",
-			"path": "packages/web5-agent",
-		},
-		{
-			// @tbd54566975/web5-proxy-agent
-			"name": "web5-proxy-agent",
-			"path": "packages/web5-proxy-agent",
-		},
-		{
-			// @tbd54566975/web5-user-agent
-			"name": "web5-user-agent",
-			"path": "packages/web5-user-agent",
-		},
-	],
-	"settings": {
-		"eslint.workingDirectories": [
-			{
-				"mode": "auto"
-			}
-		],
-	},
-	"launch": {
-		"version": "0.2.0",
-		"configurations": [
-			{
-				"type": "node",
-				"request": "launch",
-				"name": "Test All - Node",
-				"runtimeExecutable": "${workspaceFolder:root}/node_modules/.bin/mocha",
-				"runtimeArgs": [
-					"${workspaceFolder:root}/packages/**/tests/compiled/**/*.spec.js"
-				],
-				"preLaunchTask": "build tests",
-				"console": "internalConsole",
-				"internalConsoleOptions": "openOnSessionStart",
-			}
-		]
-	},
-	"tasks": {
-		"version": "2.0.0",
-		"tasks": [
-			{
-				"label": "Build All",
-				"type": "shell",
-				"command": "npm run build",
-				"problemMatcher": [],
-				"group": {
-					"kind": "build",
-					"isDefault": true
-				}
-			},
-			{
-				"label": "build tests",
-				"type": "shell",
-				"command": "npm",
-				"args": [
-					"run",
-					"build:tests:node",
-					"--ws"
-				],
-				"problemMatcher": [
-					"$tsc"
-				],
-				"options": {
-					"cwd": "${workspaceFolder:root}"
-				}
-			},
-		]
-	}
+  "folders": [
+    {
+      // Source root
+      "name": "root",
+      "path": "."
+    },
+    {
+      // @web5/agent
+      "name": "agent",
+      "path": "packages/agent",
+    },
+    {
+      // @web5/api
+      "name": "api",
+      "path": "packages/api",
+    },
+    {
+      // @web5/common
+      "name": "common",
+      "path": "packages/common",
+    },
+    {
+      // @web5/credentials
+      "name": "credentials",
+      "path": "packages/credentials",
+    },
+    {
+      // @web5/crypto
+      "name": "crypto",
+      "path": "packages/crypto",
+    },
+    {
+      // @web5/dids
+      "name": "dids",
+      "path": "packages/dids",
+    },
+    {
+      // @web5/identity-agent
+      "name": "identity-agent",
+      "path": "packages/identity-agent",
+    },
+    {
+      // @web5/proxy-agent
+      "name": "proxy-agent",
+      "path": "packages/proxy-agent",
+    },
+    {
+      // @web5/user-agent
+      "name": "user-agent",
+      "path": "packages/user-agent",
+    },
+  ],
+  "settings": {
+    "eslint.workingDirectories": [
+      {
+        "mode": "auto"
+      }
+    ],
+    "npm.packageManager": "npm"
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "Test All - Node",
+        "runtimeExecutable": "${workspaceFolder:root}/node_modules/.bin/mocha",
+        "runtimeArgs": [
+          "${workspaceFolder:root}/packages/**/tests/compiled/**/*.spec.js"
+        ],
+        "preLaunchTask": "build tests",
+        "console": "internalConsole",
+        "internalConsoleOptions": "openOnSessionStart",
+      }
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Build All",
+        "type": "shell",
+        "command": "npm run build",
+        "problemMatcher": [],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        }
+      },
+      {
+        "label": "build tests",
+        "type": "shell",
+        "command": "npm",
+        "args": [
+          "run",
+          "build:tests:node",
+          "--ws"
+        ],
+        "problemMatcher": [
+          "$tsc"
+        ],
+        "options": {
+          "cwd": "${workspaceFolder:root}"
+        }
+      },
+    ]
+  }
 }

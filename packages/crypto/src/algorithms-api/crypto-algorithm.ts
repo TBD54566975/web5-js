@@ -1,4 +1,4 @@
-import type { Web5Crypto } from '../types/index.js';
+import type { Web5Crypto } from '../types/web5-crypto.js';
 
 import { InvalidAccessError, NotSupportedError } from './errors.js';
 
@@ -19,7 +19,7 @@ export abstract class CryptoAlgorithm {
   }): void {
     const { algorithmName } = options;
     if (algorithmName === undefined) {
-      throw new TypeError(`Required argument missing: 'algorithmName'`);
+      throw new TypeError(`Required parameter missing: 'algorithmName'`);
     }
     if (algorithmName !== this.name) {
       throw new NotSupportedError(`Algorithm not supported: '${algorithmName}'`);
@@ -40,7 +40,7 @@ export abstract class CryptoAlgorithm {
   }): void {
     const { keyAlgorithmName } = options;
     if (keyAlgorithmName === undefined) {
-      throw new TypeError(`Required argument missing: 'keyAlgorithmName'`);
+      throw new TypeError(`Required parameter missing: 'keyAlgorithmName'`);
     }
     if (keyAlgorithmName && keyAlgorithmName !== this.name) {
       throw new InvalidAccessError(`Algorithm '${this.name}' does not match the provided '${keyAlgorithmName}' key.`);
@@ -53,7 +53,7 @@ export abstract class CryptoAlgorithm {
   }): void {
     const { keyType, allowedKeyType } = options;
     if (keyType === undefined || allowedKeyType === undefined) {
-      throw new TypeError(`One or more required arguments missing: 'keyType, allowedKeyType'`);
+      throw new TypeError(`One or more required parameters missing: 'keyType, allowedKeyType'`);
     }
     if (keyType && keyType !== allowedKeyType) {
       throw new InvalidAccessError(`Requested operation is not valid for the provided '${keyType}' key.`);
@@ -66,7 +66,7 @@ export abstract class CryptoAlgorithm {
   }): void {
     const { keyUsages, allowedKeyUsages } = options;
     if (!(keyUsages && keyUsages.length > 0)) {
-      throw new TypeError(`required parameter was missing or empty: 'keyUsages'`);
+      throw new TypeError(`Required parameter missing or empty: 'keyUsages'`);
     }
     const allowedUsages = (Array.isArray(allowedKeyUsages)) ? allowedKeyUsages : [...allowedKeyUsages.privateKey, ...allowedKeyUsages.publicKey];
     if (!keyUsages.every(usage => allowedUsages.includes(usage))) {
@@ -91,20 +91,20 @@ export abstract class CryptoAlgorithm {
   public abstract decrypt(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions,
     key: Web5Crypto.CryptoKey,
-    data: BufferSource
-  }): Promise<ArrayBuffer>;
+    data: Uint8Array
+  }): Promise<Uint8Array>;
 
   public abstract deriveBits(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdhDeriveKeyOptions,
     baseKey: Web5Crypto.CryptoKey,
     length: number | null
-  }): Promise<ArrayBuffer>;
+  }): Promise<Uint8Array>;
 
   public abstract encrypt(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions,
     key: Web5Crypto.CryptoKey,
-    data: BufferSource
-  }): Promise<ArrayBuffer>;
+    data: Uint8Array
+  }): Promise<Uint8Array>;
 
   public abstract generateKey(options: {
     algorithm: Partial<Web5Crypto.GenerateKeyOptions>,
@@ -115,13 +115,13 @@ export abstract class CryptoAlgorithm {
   public abstract sign(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdsaOptions | Web5Crypto.EdDsaOptions,
     key: Web5Crypto.CryptoKey,
-    data: BufferSource
-  }): Promise<ArrayBuffer>;
+    data: Uint8Array
+  }): Promise<Uint8Array>;
 
   public abstract verify(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdsaOptions | Web5Crypto.EdDsaOptions,
     key: Web5Crypto.CryptoKey,
-    signature: ArrayBuffer,
-    data: BufferSource
+    signature: Uint8Array,
+    data: Uint8Array
   }): Promise<boolean>;
 }

@@ -1,9 +1,9 @@
-import type { Web5Crypto } from '../src/types/index.js';
+import type { Web5Crypto } from '../src/types/web5-crypto.js';
 
 import sinon from 'sinon';
 import chai, { expect } from 'chai';
+import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
-import { Convert } from '@tbd54566975/common';
 
 import { aesCtrTestVectors } from './fixtures/test-vectors/aes.js';
 import { AesCtr, Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
@@ -37,18 +37,18 @@ describe('Default Crypto Algorithm Implementations', () => {
         });
       });
 
-      it('returns plaintext as an ArrayBuffer', async () => {
+      it('returns plaintext as a Uint8Array', async () => {
         const plaintext = await aesCtr.decrypt({
           algorithm: {
             name    : 'AES-CTR',
-            counter : new ArrayBuffer(16),
+            counter : new Uint8Array(16),
             length  : 128
           },
           key  : secretCryptoKey,
           data : new Uint8Array([1, 2, 3, 4])
         });
 
-        expect(plaintext).to.be.instanceOf(ArrayBuffer);
+        expect(plaintext).to.be.instanceOf(Uint8Array);
         expect(plaintext.byteLength).to.equal(4);
       });
 
@@ -59,7 +59,7 @@ describe('Default Crypto Algorithm Implementations', () => {
           secretCryptoKey = new CryptoKey(
             { name: 'AES-CTR', length: 128 },
             false,
-            Convert.hex(vector.key).toArrayBuffer(),
+            Convert.hex(vector.key).toUint8Array(),
             'secret',
             ['encrypt', 'decrypt']
           );
@@ -72,7 +72,7 @@ describe('Default Crypto Algorithm Implementations', () => {
             key  : secretCryptoKey,
             data : Convert.hex(vector.ciphertext).toUint8Array()
           });
-          expect(Convert.arrayBuffer(plaintext).toHex()).to.deep.equal(vector.data);
+          expect(Convert.uint8Array(plaintext).toHex()).to.deep.equal(vector.data);
         }
       });
 
@@ -80,28 +80,28 @@ describe('Default Crypto Algorithm Implementations', () => {
         const secretCryptoKey: Web5Crypto.CryptoKey = new CryptoKey(
           { name: 'AES-CTR', length: 128 },
           false,
-          new ArrayBuffer(16),
+          new Uint8Array(16),
           'secret',
           ['encrypt', 'decrypt']
         );
 
         // Invalid (algorithm name, counter, length) result in algorithm name check failing first.
         await expect(aesCtr.decrypt({
-          algorithm : { name: 'foo', counter: new ArrayBuffer(64), length: 512 },
+          algorithm : { name: 'foo', counter: new Uint8Array(64), length: 512 },
           key       : secretCryptoKey,
           data      : new Uint8Array([1, 2, 3, 4])
         })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
 
         // Valid (algorithm name) + Invalid (counter, length) result counter check failing first.
         await expect(aesCtr.decrypt({
-          algorithm : { name: 'AES-CTR', counter: new ArrayBuffer(64), length: 512 },
+          algorithm : { name: 'AES-CTR', counter: new Uint8Array(64), length: 512 },
           key       : secretCryptoKey,
           data      : new Uint8Array([1, 2, 3, 4])
         })).to.eventually.be.rejectedWith(OperationError, `'counter' must have length`);
 
         // Valid (algorithm name, counter) + Invalid (length) result length check failing first.
         await expect(aesCtr.decrypt({
-          algorithm : { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 512 },
+          algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 512 },
           key       : secretCryptoKey,
           data      : new Uint8Array([1, 2, 3, 4])
         })).to.eventually.be.rejectedWith(OperationError, `'length' should be in the range`);
@@ -112,7 +112,7 @@ describe('Default Crypto Algorithm Implementations', () => {
         secretCryptoKey.usages = ['encrypt'];
 
         await expect(aesCtr.decrypt({
-          algorithm : { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 128 },
+          algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 128 },
           key       : secretCryptoKey,
           data      : new Uint8Array([1, 2, 3, 4])
         })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
@@ -130,18 +130,18 @@ describe('Default Crypto Algorithm Implementations', () => {
         });
       });
 
-      it('returns ciphertext as an ArrayBuffer', async () => {
+      it('returns ciphertext as a Uint8Array', async () => {
         const ciphertext = await aesCtr.encrypt({
           algorithm: {
             name    : 'AES-CTR',
-            counter : new ArrayBuffer(16),
+            counter : new Uint8Array(16),
             length  : 128
           },
           key  : secretCryptoKey,
           data : new Uint8Array([1, 2, 3, 4])
         });
 
-        expect(ciphertext).to.be.instanceOf(ArrayBuffer);
+        expect(ciphertext).to.be.instanceOf(Uint8Array);
         expect(ciphertext.byteLength).to.equal(4);
       });
 
@@ -151,7 +151,7 @@ describe('Default Crypto Algorithm Implementations', () => {
           secretCryptoKey = new CryptoKey(
             { name: 'AES-CTR', length: 128 },
             false,
-            Convert.hex(vector.key).toArrayBuffer(),
+            Convert.hex(vector.key).toUint8Array(),
             'secret',
             ['encrypt', 'decrypt']
           );
@@ -164,7 +164,7 @@ describe('Default Crypto Algorithm Implementations', () => {
             key  : secretCryptoKey,
             data : Convert.hex(vector.data).toUint8Array()
           });
-          expect(Convert.arrayBuffer(ciphertext).toHex()).to.deep.equal(vector.ciphertext);
+          expect(Convert.uint8Array(ciphertext).toHex()).to.deep.equal(vector.ciphertext);
         }
       });
 
@@ -172,28 +172,28 @@ describe('Default Crypto Algorithm Implementations', () => {
         const secretCryptoKey: Web5Crypto.CryptoKey = new CryptoKey(
           { name: 'AES-CTR', length: 128 },
           false,
-          new ArrayBuffer(16),
+          new Uint8Array(16),
           'secret',
           ['encrypt', 'decrypt']
         );
 
         // Invalid (algorithm name, counter, length) result in algorithm name check failing first.
         await expect(aesCtr.encrypt({
-          algorithm : { name: 'foo', counter: new ArrayBuffer(64), length: 512 },
+          algorithm : { name: 'foo', counter: new Uint8Array(64), length: 512 },
           key       : secretCryptoKey,
           data      : new Uint8Array([1, 2, 3, 4])
         })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
 
         // Valid (algorithm name) + Invalid (counter, length) result counter check failing first.
         await expect(aesCtr.encrypt({
-          algorithm : { name: 'AES-CTR', counter: new ArrayBuffer(64), length: 512 },
+          algorithm : { name: 'AES-CTR', counter: new Uint8Array(64), length: 512 },
           key       : secretCryptoKey,
           data      : new Uint8Array([1, 2, 3, 4])
         })).to.eventually.be.rejectedWith(OperationError, `'counter' must have length`);
 
         // Valid (algorithm name, counter) + Invalid (length) result length check failing first.
         await expect(aesCtr.encrypt({
-          algorithm : { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 512 },
+          algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 512 },
           key       : secretCryptoKey,
           data      : new Uint8Array([1, 2, 3, 4])
         })).to.eventually.be.rejectedWith(OperationError, `'length' should be in the range`);
@@ -204,7 +204,7 @@ describe('Default Crypto Algorithm Implementations', () => {
         secretCryptoKey.usages = ['decrypt'];
 
         await expect(aesCtr.encrypt({
-          algorithm : { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 128 },
+          algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 128 },
           key       : secretCryptoKey,
           data      : new Uint8Array([1, 2, 3, 4])
         })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
@@ -221,7 +221,7 @@ describe('Default Crypto Algorithm Implementations', () => {
 
         expect(key.algorithm.name).to.equal('AES-CTR');
         expect(key.usages).to.deep.equal(['encrypt', 'decrypt', 'wrapKey', 'unwrapKey']);
-        expect(key.handle.byteLength).to.equal(128 / 8);
+        expect(key.material.byteLength).to.equal(128 / 8);
       });
 
       it('secret key is selectively extractable', async () => {
@@ -415,7 +415,7 @@ describe('Default Crypto Algorithm Implementations', () => {
           baseKey   : ownPrivateKey,
           length    : null
         });
-        expect(sharedSecret).to.be.instanceOf(ArrayBuffer);
+        expect(sharedSecret).to.be.instanceOf(Uint8Array);
         expect(sharedSecret.byteLength).to.equal(32);
       });
 
@@ -440,7 +440,7 @@ describe('Default Crypto Algorithm Implementations', () => {
           length    : null
         });
 
-        expect(sharedSecret).to.be.instanceOf(ArrayBuffer);
+        expect(sharedSecret).to.be.instanceOf(Uint8Array);
         expect(sharedSecret.byteLength).to.equal(32);
       });
 
@@ -839,7 +839,7 @@ describe('Default Crypto Algorithm Implementations', () => {
     describe('sign()', () => {
 
       let keyPair: Web5Crypto.CryptoKeyPair;
-      let dataU8A = new Uint8Array([51, 52, 53]);
+      let data = new Uint8Array([51, 52, 53]);
 
       beforeEach(async () => {
         keyPair = await ecdsa.generateKey({
@@ -853,10 +853,10 @@ describe('Default Crypto Algorithm Implementations', () => {
         const signature = await ecdsa.sign({
           algorithm : { name: 'ECDSA', hash: 'SHA-256' },
           key       : keyPair.privateKey,
-          data      : dataU8A
+          data      : data
         });
 
-        expect(signature).to.be.instanceOf(ArrayBuffer);
+        expect(signature).to.be.instanceOf(Uint8Array);
         expect(signature.byteLength).to.equal(64);
       });
 
@@ -894,7 +894,7 @@ describe('Default Crypto Algorithm Implementations', () => {
         await expect(ecdsa.sign({
           algorithm : { name: 'ECDSA', hash: 'SHA-256' },
           key       : keyPair.publicKey,
-          data      : dataU8A
+          data      : data
         })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation is not valid');
       });
 
@@ -905,7 +905,7 @@ describe('Default Crypto Algorithm Implementations', () => {
         await expect(ecdsa.sign({
           algorithm : { name: 'ECDSA', hash: 'SHA-256' },
           key       : keyPair.privateKey,
-          data      : dataU8A
+          data      : data
         })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
       });
 
@@ -917,15 +917,15 @@ describe('Default Crypto Algorithm Implementations', () => {
         await expect(ecdsa.sign({
           algorithm : { name: 'ECDSA', hash: 'SHA-256' },
           key       : keyPair.privateKey,
-          data      : dataU8A
+          data      : data
         })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
       });
     });
 
     describe('verify()', () => {
       let keyPair: Web5Crypto.CryptoKeyPair;
-      let signature: ArrayBuffer;
-      let dataU8A = new Uint8Array([51, 52, 53]);
+      let signature: Uint8Array;
+      let data = new Uint8Array([51, 52, 53]);
 
       beforeEach(async () => {
         keyPair = await ecdsa.generateKey({
@@ -937,7 +937,7 @@ describe('Default Crypto Algorithm Implementations', () => {
         signature = await ecdsa.sign({
           algorithm : { name: 'ECDSA', hash: 'SHA-256' },
           key       : keyPair.privateKey,
-          data      : dataU8A
+          data      : data
         });
       });
 
@@ -946,7 +946,7 @@ describe('Default Crypto Algorithm Implementations', () => {
           algorithm : { name: 'ECDSA', hash: 'SHA-256' },
           key       : keyPair.publicKey,
           signature : signature,
-          data      : dataU8A
+          data      : data
         });
 
         expect(isValid).to.be.a('boolean');
@@ -994,7 +994,7 @@ describe('Default Crypto Algorithm Implementations', () => {
           algorithm : { name: 'ECDSA', hash: 'SHA-256' },
           key       : keyPair.privateKey,
           signature : signature,
-          data      : dataU8A
+          data      : data
         })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation is not valid');
       });
 
@@ -1006,7 +1006,7 @@ describe('Default Crypto Algorithm Implementations', () => {
           algorithm : { name: 'ECDSA', hash: 'SHA-256' },
           key       : keyPair.publicKey,
           signature : signature,
-          data      : dataU8A
+          data      : data
         })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
       });
 
@@ -1019,7 +1019,7 @@ describe('Default Crypto Algorithm Implementations', () => {
           algorithm : { name: 'ECDSA', hash: 'SHA-256' },
           key       : keyPair.publicKey,
           signature : signature,
-          data      : dataU8A
+          data      : data
         })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
       });
     });
@@ -1166,7 +1166,7 @@ describe('Default Crypto Algorithm Implementations', () => {
     describe('sign()', () => {
 
       let keyPair: Web5Crypto.CryptoKeyPair;
-      let dataU8A = new Uint8Array([51, 52, 53]);
+      let data = new Uint8Array([51, 52, 53]);
 
       beforeEach(async () => {
         keyPair = await eddsa.generateKey({
@@ -1180,10 +1180,10 @@ describe('Default Crypto Algorithm Implementations', () => {
         const signature = await eddsa.sign({
           algorithm : { name: 'EdDSA' },
           key       : keyPair.privateKey,
-          data      : dataU8A
+          data      : data
         });
 
-        expect(signature).to.be.instanceOf(ArrayBuffer);
+        expect(signature).to.be.instanceOf(Uint8Array);
         expect(signature.byteLength).to.equal(64);
       });
 
@@ -1212,7 +1212,7 @@ describe('Default Crypto Algorithm Implementations', () => {
         await expect(eddsa.sign({
           algorithm : { name: 'EdDSA' },
           key       : keyPair.publicKey,
-          data      : dataU8A
+          data      : data
         })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation is not valid');
       });
 
@@ -1223,7 +1223,7 @@ describe('Default Crypto Algorithm Implementations', () => {
         await expect(eddsa.sign({
           algorithm : { name: 'EdDSA' },
           key       : keyPair.privateKey,
-          data      : dataU8A
+          data      : data
         })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
       });
 
@@ -1235,15 +1235,15 @@ describe('Default Crypto Algorithm Implementations', () => {
         await expect(eddsa.sign({
           algorithm : { name: 'EdDSA' },
           key       : keyPair.privateKey,
-          data      : dataU8A
+          data      : data
         })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
       });
     });
 
     describe('verify()', () => {
       let keyPair: Web5Crypto.CryptoKeyPair;
-      let signature: ArrayBuffer;
-      let dataU8A = new Uint8Array([51, 52, 53]);
+      let signature: Uint8Array;
+      let data = new Uint8Array([51, 52, 53]);
 
       beforeEach(async () => {
         keyPair = await eddsa.generateKey({
@@ -1255,7 +1255,7 @@ describe('Default Crypto Algorithm Implementations', () => {
         signature = await eddsa.sign({
           algorithm : { name: 'EdDSA' },
           key       : keyPair.privateKey,
-          data      : dataU8A
+          data      : data
         });
       });
 
@@ -1264,7 +1264,7 @@ describe('Default Crypto Algorithm Implementations', () => {
           algorithm : { name: 'EdDSA' },
           key       : keyPair.publicKey,
           signature : signature,
-          data      : dataU8A
+          data      : data
         });
 
         expect(isValid).to.be.a('boolean');
@@ -1301,7 +1301,7 @@ describe('Default Crypto Algorithm Implementations', () => {
           algorithm : { name: 'EdDSA' },
           key       : keyPair.privateKey,
           signature : signature,
-          data      : dataU8A
+          data      : data
         })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation is not valid');
       });
 
@@ -1313,7 +1313,7 @@ describe('Default Crypto Algorithm Implementations', () => {
           algorithm : { name: 'EdDSA' },
           key       : keyPair.publicKey,
           signature : signature,
-          data      : dataU8A
+          data      : data
         })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
       });
 
@@ -1326,7 +1326,7 @@ describe('Default Crypto Algorithm Implementations', () => {
           algorithm : { name: 'EdDSA' },
           key       : keyPair.publicKey,
           signature : signature,
-          data      : dataU8A
+          data      : data
         })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
       });
     });

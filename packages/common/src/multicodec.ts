@@ -54,9 +54,8 @@ export class Multicodec {
   }): Uint8Array {
     let { code, data, name } = options;
 
-    // Either code or name must be specified, but not both.
     if (!(name ? !code : code)) {
-      throw new Error(`Exactly one of 'name' or 'code' must be defined.`);
+      throw new Error(`Either 'name' or 'code' must be defined, but not both.`);
     }
 
     // If code was given, confirm it exists, or lookup code by name.
@@ -64,7 +63,7 @@ export class Multicodec {
 
     // Throw error if a registered Codec wasn't found.
     if (code === undefined) {
-      throw new Error(`Multicodec not found: ${name ?? code}`);
+      throw new Error(`Unsupported multicodec: ${options.name ?? options.code}`);
     }
 
     // Create a new array to store the prefix and input data.
@@ -95,6 +94,48 @@ export class Multicodec {
   }
 
   /**
+   * Get the Multicodec code from given Multicodec name.
+   *
+   * @param options - The options for getting the codec code.
+   * @param options.name - The name to lookup.
+   * @returns - The Multicodec code as a number.
+   */
+  public static getCodeFromName(options: {
+    name: string
+  }): MulticodecCode {
+    const { name } = options;
+
+    // Throw error if a registered Codec wasn't found.
+    const code = Multicodec.nameToCode.get(name);
+    if (code === undefined) {
+      throw new Error(`Unsupported multicodec: ${name}`);
+    }
+
+    return code;
+  }
+
+  /**
+   * Get the Multicodec name from given Multicodec code.
+   *
+   * @param options - The options for getting the codec name.
+   * @param options.name - The code to lookup.
+   * @returns - The Multicodec name as a string.
+   */
+  public static getNameFromCode(options: {
+    code: MulticodecCode
+  }): string {
+    const { code } = options;
+
+    // Throw error if a registered Codec wasn't found.
+    const name = Multicodec.codeToName.get(code);
+    if (name === undefined) {
+      throw new Error(`Unsupported multicodec: ${code}`);
+    }
+
+    return name;
+  }
+
+  /**
    * Registers a new codec in the Multicodec class.
    *
    * @param codec - The codec to be registered.
@@ -112,10 +153,17 @@ export class Multicodec {
    */
   public static removePrefix(options: {
     prefixedData: Uint8Array
-  }): Uint8Array {
+  }): { code: MulticodecCode, name: string, data: Uint8Array } {
     const { prefixedData } = options;
-    const [_, codeByteLength] = varint.decode(prefixedData);
-    return prefixedData.slice(codeByteLength);
+    const [code, codeByteLength] = varint.decode(prefixedData);
+
+    // Throw error if a registered Codec wasn't found.
+    const name = Multicodec.codeToName.get(code);
+    if (name === undefined) {
+      throw new Error(`Unsupported multicodec: ${code}`);
+    }
+
+    return { code, data: prefixedData.slice(codeByteLength), name };
   }
 }
 

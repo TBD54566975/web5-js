@@ -1,6 +1,7 @@
-import type { BufferKeyPair, Web5Crypto } from '../types/index.js';
+import type { Web5Crypto } from '../types/web5-crypto.js';
+import type { BytesKeyPair } from '../types/crypto-key.js';
 
-import { isBufferKeyPair } from '../utils-new.js';
+import { isBytesKeyPair } from '../utils.js';
 import { Secp256k1, X25519 } from '../crypto-primitives/index.js';
 import { CryptoKey, BaseEcdhAlgorithm, OperationError } from '../algorithms-api/index.js';
 
@@ -11,7 +12,7 @@ export class EcdhAlgorithm extends BaseEcdhAlgorithm {
     algorithm: Web5Crypto.EcdhDeriveKeyOptions,
     baseKey: Web5Crypto.CryptoKey,
     length: number | null
-  }): Promise<ArrayBuffer> {
+  }): Promise<Uint8Array> {
     const { algorithm, baseKey, length } = options;
 
     this.checkAlgorithmOptions({ algorithm, baseKey });
@@ -20,15 +21,15 @@ export class EcdhAlgorithm extends BaseEcdhAlgorithm {
     // The public key must be allowed to be used for deriveBits operations.
     this.checkKeyUsages({ keyUsages: ['deriveBits'], allowedKeyUsages: algorithm.publicKey.usages });
 
-    let sharedSecret: ArrayBuffer;
+    let sharedSecret: Uint8Array;
 
     const ownKeyAlgorithm = baseKey.algorithm as Web5Crypto.EcGenerateKeyOptions; // Type guard.
 
     switch (ownKeyAlgorithm.namedCurve) {
 
       case 'secp256k1': {
-        const ownPrivateKey = baseKey.handle;
-        const otherPartyPublicKey = algorithm.publicKey.handle;
+        const ownPrivateKey = baseKey.material;
+        const otherPartyPublicKey = algorithm.publicKey.material;
         sharedSecret = await Secp256k1.sharedSecret({
           privateKey : ownPrivateKey,
           publicKey  : otherPartyPublicKey
@@ -37,8 +38,8 @@ export class EcdhAlgorithm extends BaseEcdhAlgorithm {
       }
 
       case 'X25519': {
-        const ownPrivateKey = baseKey.handle;
-        const otherPartyPublicKey = algorithm.publicKey.handle;
+        const ownPrivateKey = baseKey.material;
+        const otherPartyPublicKey = algorithm.publicKey.material;
         sharedSecret = await X25519.sharedSecret({
           privateKey : ownPrivateKey,
           publicKey  : otherPartyPublicKey
@@ -80,7 +81,7 @@ export class EcdhAlgorithm extends BaseEcdhAlgorithm {
 
     this.checkGenerateKey({ algorithm, keyUsages });
 
-    let keyPair: BufferKeyPair | undefined;
+    let keyPair: BytesKeyPair | undefined;
     let cryptoKeyPair: Web5Crypto.CryptoKeyPair;
 
     switch (algorithm.namedCurve) {
@@ -100,7 +101,7 @@ export class EcdhAlgorithm extends BaseEcdhAlgorithm {
       // Default case not needed because checkGenerateKey() already validates the specified namedCurve is supported.
     }
 
-    if (!isBufferKeyPair(keyPair)) {
+    if (!isBytesKeyPair(keyPair)) {
       throw new Error('Operation failed to generate key pair.');
     }
 

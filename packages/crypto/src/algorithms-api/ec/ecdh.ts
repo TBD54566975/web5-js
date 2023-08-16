@@ -1,8 +1,8 @@
-import type { Web5Crypto } from '../../types/index.js';
+import type { Web5Crypto } from '../../types/web5-crypto.js';
 
 import { InvalidAccessError } from '../errors.js';
 import { BaseEllipticCurveAlgorithm } from './base.js';
-import { checkRequiredProperty } from '../../utils-new.js';
+import { checkRequiredProperty } from '../../utils.js';
 
 export abstract class BaseEcdhAlgorithm extends BaseEllipticCurveAlgorithm {
 
@@ -43,7 +43,7 @@ export abstract class BaseEcdhAlgorithm extends BaseEllipticCurveAlgorithm {
     }
   }
 
-  public override async sign(): Promise<ArrayBuffer> {
+  public override async sign(): Promise<Uint8Array> {
     throw new InvalidAccessError(`Requested operation 'sign' is not valid for ${this.name} keys.`);
   }
 

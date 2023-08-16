@@ -15,12 +15,12 @@ for (const dependency in packageJson.dependencies) {
 }
 
 esbuild.build({
-  entryPoints    : [ './src/main.ts' ],
+  entryPoints    : [ './src/index.ts' ],
   bundle         : true,
   external       : excludeList,
   format         : 'cjs',
   sourcemap      : true,
   platform       : 'node',
-  outfile        : 'dist/cjs/main.js',
+  outfile        : 'dist/cjs/index.js',
   allowOverwrite : true
 });
