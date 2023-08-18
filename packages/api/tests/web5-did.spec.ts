@@ -1,3 +1,4 @@
+import { expect } from 'chai';
 import { TestManagedAgent } from '@web5/agent';
 
 import { DidApi } from '../src/did-api.js';
@@ -34,5 +35,9 @@ describe('web5.did', () => {
   after(async () => {
     await testAgent.clearStorage();
     await testAgent.closeStorage();
+  });
+
+  it('needs tests', () => {
+    expect(did).to.exist;
   });
 });
