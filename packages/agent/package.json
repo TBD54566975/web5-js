@@ -50,7 +50,7 @@
       "require": "./dist/cjs/index.js"
     }
   },
-  "react-native": "./dist/esm/index.mjs",
+  "react-native": "./dist/esm/index.js",
   "keywords": [
     "decentralized",
     "decentralized-applications",

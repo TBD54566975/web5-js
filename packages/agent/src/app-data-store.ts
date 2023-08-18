@@ -1,18 +1,14 @@
-import type { Web5Crypto } from '@web5/crypto';
+import type { DidKeySet } from '@web5/dids';
 import type { KeyValueStore } from '@web5/common';
+import type { JweHeaderParams, PublicKeyJwk, Web5Crypto } from '@web5/crypto';
 
+import { DidKeyMethod } from '@web5/dids';
 import { hkdf } from '@noble/hashes/hkdf';
 import { sha256 } from '@noble/hashes/sha256';
 import { sha512 } from '@noble/hashes/sha512';
 import { pbkdf2Async } from '@noble/hashes/pbkdf2';
 import { Convert, MemoryStore } from '@web5/common';
-import { CryptoKey, randomBytes, XChaCha20Poly1305 } from '@web5/crypto';
-
-import type { DidKeySet } from '@web5/dids';
-import type { JweHeaderParams, PublicKeyJwk } from '@web5/crypto';
-
-import { Jose } from '@web5/crypto';
-import { DidKeyMethod } from '@web5/dids';
+import { CryptoKey, Jose, randomBytes, XChaCha20Poly1305 } from '@web5/crypto';
 
 export type AppDataBackup = {
   /**
@@ -132,14 +128,12 @@ export class AppDataVault implements AppDataStore {
     this._store = options?.store ?? new MemoryStore();
   }
 
-  async backup(options: { passphrase: string }): Promise<AppDataBackup> {
-    console.log(options);
-    return null as any;
+  async backup(_options: { passphrase: string }): Promise<AppDataBackup> {
+    throw new Error ('Not implemented');
   }
 
-  async changePassphrase(options: { oldPassphrase: string, newPassphrase: string }): Promise<boolean> {
-    console.log(options);
-    return null as any;
+  async changePassphrase(_options: { oldPassphrase: string, newPassphrase: string }): Promise<boolean> {
+    throw new Error ('Not implemented');
   }
 
   private async generateVaultUnlockKey(options: {
@@ -333,9 +327,8 @@ export class AppDataVault implements AppDataStore {
     this._vaultUnlockKey = new Uint8Array();
   }
 
-  async restore(options: { backup: AppDataBackup, passphrase: string }): Promise<boolean> {
-    console.log(options);
-    return null as any;
+  async restore(_options: { backup: AppDataBackup, passphrase: string }): Promise<boolean> {
+    throw new Error ('Not implemented');
   }
 
   async setStatus(options: Partial<AppDataStatus>): Promise<boolean> {
