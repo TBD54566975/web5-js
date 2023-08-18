@@ -155,8 +155,7 @@ export class DidStoreDwn implements ManagedDidStore {
     // Encode the ManagedDid as bytes.
     const importDidU8A = Convert.object(importDid).toUint8Array();
 
-    const writeReply = await agent.dwnManager.processRequest({
-    // const { reply: { status } } = await agent.dwnManager.processRequest({
+    const { reply: { status } } = await agent.dwnManager.processRequest({
       author         : authorDid,
       target         : authorDid,
       messageType    : 'RecordsWrite',
@@ -165,11 +164,7 @@ export class DidStoreDwn implements ManagedDidStore {
     });
 
     // If the write fails, throw an error.
-    if (writeReply.reply.status.code !== 202) {
-    // if (status.code !== 202) {
-      console.log('AUTHOR:', authorDid);
-      console.log(JSON.stringify(writeReply.message, null, 2));
-      console.log(JSON.stringify(writeReply.reply, null, 2));
+    if (status.code !== 202) {
       throw new Error('DidStoreDwn: Failed to write imported DID to store.');
     }
   }
