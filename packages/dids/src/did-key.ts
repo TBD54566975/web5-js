@@ -1,14 +1,13 @@
 import type { PrivateKeyJwk, PublicKeyJwk, Web5Crypto } from '@web5/crypto';
 
 import { universalTypeOf } from '@web5/common';
+import {   keyToMultibaseId, multibaseIdToKey } from '@web5/crypto/utils';
 import {
   Jose,
   Ed25519,
   Secp256k1,
   EcdsaAlgorithm,
   EdDsaAlgorithm,
-  keyToMultibaseId,
-  multibaseIdToKey,
 } from '@web5/crypto';
 
 import type { DidDocument, DidMethod, DidResolutionOptions, DidResolutionResult, PortableDid, VerificationMethod } from './types.js';

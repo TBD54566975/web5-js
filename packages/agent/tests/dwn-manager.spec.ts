@@ -1,6 +1,6 @@
 import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
 import { Convert } from '@web5/common';
+import chaiAsPromised from 'chai-as-promised';
 import {
   Dwn,
   RecordsRead,

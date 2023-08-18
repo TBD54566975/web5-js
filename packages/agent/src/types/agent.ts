@@ -124,6 +124,7 @@ export type VcResponse = { /** empty */ }
  */
 export interface Web5Agent {
   agentDid: string | undefined;
+
   processDidRequest(request: ProcessDidRequest): Promise<DidResponse>
   sendDidRequest(request: SendDidRequest): Promise<DidResponse>;
   processDwnRequest(request: ProcessDwnRequest): Promise<DwnResponse>

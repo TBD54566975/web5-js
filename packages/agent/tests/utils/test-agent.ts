@@ -1,8 +1,10 @@
 import { Dwn } from '@tbd54566975/dwn-sdk-js';
+import { DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
 import { MessageStoreLevel, DataStoreLevel, EventLogLevel } from '@tbd54566975/dwn-sdk-js/stores';
 
 import type { AppDataStore } from '../../src/app-data-store.js';
 import type {
+  DwnRpc,
   VcResponse,
   DidResponse,
   DwnResponse,
@@ -13,10 +15,7 @@ import type {
   Web5ManagedAgent,
   ProcessDidRequest,
   ProcessDwnRequest,
-  DwnRpc,
 } from '../../src/types/agent.js';
-
-import { DidKeyMethod, DidResolver } from '@web5/dids';
 
 import { LocalKms } from '../../src/kms-local.js';
 import { DidManager } from '../../src/did-manager.js';
@@ -122,7 +121,7 @@ export class TestAgent implements Web5ManagedAgent {
     const keyManager = new KeyManager({ kms });
 
     // Instantiate DID resolver.
-    const didMethodApis = [DidKeyMethod];
+    const didMethodApis = [DidIonMethod, DidKeyMethod];
     const didResolver = new DidResolver({ didResolvers: didMethodApis });
 
     // Instantiate custom DWN instance.

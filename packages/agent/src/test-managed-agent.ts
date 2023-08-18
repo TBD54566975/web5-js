@@ -1,8 +1,10 @@
+import type { KeyValueStore } from '@web5/common';
+import type { DidResolutionResult, DidResolverCache } from '@web5/dids';
 
 import { Jose } from '@web5/crypto';
 import { Dwn } from '@tbd54566975/dwn-sdk-js';
-import { DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
-import { KeyValueStore, LevelStore, MemoryStore } from '@web5/common';
+import { DidIonMethod, DidKeyMethod, DidResolver, DidResolverCacheLevel } from '@web5/dids';
+import { LevelStore, MemoryStore } from '@web5/common';
 import { MessageStoreLevel, DataStoreLevel, EventLogLevel } from '@tbd54566975/dwn-sdk-js/stores';
 
 import type { Web5ManagedAgent } from './types/agent.js';
@@ -11,13 +13,13 @@ import { LocalKms } from './kms-local.js';
 import { DidManager } from './did-manager.js';
 import { DwnManager } from './dwn-manager.js';
 import { KeyManager } from './key-manager.js';
+import { Web5RpcClient } from './rpc-client.js';
 import { AppDataVault } from './app-data-store.js';
 import { cryptoToPortableKeyPair } from './utils.js';
 import { IdentityManager } from './identity-manager.js';
 import { DidStoreDwn, DidStoreMemory } from './store-managed-did.js';
 import { IdentityStoreDwn, IdentityStoreMemory } from './store-managed-identity.js';
 import { KeyStoreDwn, KeyStoreMemory, PrivateKeyStoreDwn, PrivateKeyStoreMemory } from './store-managed-key.js';
-import { Web5RpcClient } from './rpc-client.js';
 
 type CreateMethodOptions = {
   agentClass: new (options: any) => Web5ManagedAgent
@@ -30,6 +32,7 @@ type TestManagedAgentOptions = {
 
   agentStores: 'dwn' | 'memory';
   appDataStore: KeyValueStore<string, any>;
+  didResolverCache: DidResolverCache;
   dwn: Dwn;
   dwnDataStore: DataStoreLevel;
   dwnEventLog: EventLogLevel;
@@ -41,6 +44,7 @@ export class TestManagedAgent {
 
   agentStores: 'dwn' | 'memory';
   appDataStore: KeyValueStore<string, any>;
+  didResolverCache: DidResolverCache;
   dwn: Dwn;
   dwnDataStore: DataStoreLevel;
   dwnEventLog: EventLogLevel;
@@ -50,6 +54,7 @@ export class TestManagedAgent {
     this.agent = options.agent;
     this.agentStores = options.agentStores;
     this.appDataStore = options.appDataStore;
+    this.didResolverCache = options.didResolverCache;
     this.dwn = options.dwn;
     this.dwnDataStore = options.dwnDataStore;
     this.dwnEventLog = options.dwnEventLog;
@@ -59,6 +64,7 @@ export class TestManagedAgent {
   async clearStorage(): Promise<void> {
     this.agent.agentDid = undefined;
     await this.appDataStore.clear();
+    await this.didResolverCache.clear();
     await this.dwnDataStore.clear();
     await this.dwnEventLog.clear();
     await this.dwnMessageStore.clear();
@@ -75,6 +81,7 @@ export class TestManagedAgent {
 
   async closeStorage(): Promise<void> {
     await this.appDataStore.close();
+    await this.didResolverCache.close();
     await this.dwnDataStore.close();
     await this.dwnEventLog.close();
     await this.dwnMessageStore.close();
@@ -87,20 +94,23 @@ export class TestManagedAgent {
     testDataLocation ??= '__TESTDATA__';
     const testDataPath = (path: string) => `${testDataLocation}/${path}`;
 
-    const { appData, appDataStore, didManager, identityManager, keyManager } = (agentStores === 'memory')
+    const { appData, appDataStore, didManager, didResolverCache, identityManager, keyManager } = (agentStores === 'memory')
       ? TestManagedAgent.useMemoryStorage()
       : TestManagedAgent.useDiskStorage({ testDataLocation });
 
     // Instantiate DID resolver.
     const didMethodApis = [DidIonMethod, DidKeyMethod];
-    const didResolver = new DidResolver({ didResolvers: didMethodApis });
+    const didResolver = new DidResolver({
+      cache        : didResolverCache,
+      didResolvers : didMethodApis
+    });
 
     // Instantiate custom stores to use with DWN instance.
-    const dwnDataStore = new DataStoreLevel({ blockstoreLocation: testDataPath('DATASTORE') });
-    const dwnEventLog = new EventLogLevel({ location: testDataPath('EVENTLOG') });
+    const dwnDataStore = new DataStoreLevel({ blockstoreLocation: testDataPath('DWN_DATASTORE') });
+    const dwnEventLog = new EventLogLevel({ location: testDataPath('DWN_EVENTLOG') });
     const dwnMessageStore = new MessageStoreLevel({
-      blockstoreLocation : testDataPath('MESSAGESTORE'),
-      indexLocation      : testDataPath('INDEX')
+      blockstoreLocation : testDataPath('DWN_MESSAGESTORE'),
+      indexLocation      : testDataPath('DWN_MESSAGEINDEX')
     });
 
     // Instantiate custom DWN instance.
@@ -133,6 +143,7 @@ export class TestManagedAgent {
       agent,
       agentStores,
       appDataStore,
+      didResolverCache,
       dwn,
       dwnDataStore,
       dwnEventLog,
@@ -172,6 +183,10 @@ export class TestManagedAgent {
       store      : new DidStoreDwn()
     });
 
+    const didResolverCache = new DidResolverCacheLevel({
+      location: testDataPath('DID_RESOLVERCACHE')
+    });
+
     const identityManager = new IdentityManager({
       agent,
       store: new IdentityStoreDwn()
@@ -196,13 +211,13 @@ export class TestManagedAgent {
       store: new KeyStoreDwn({ schema: 'https://identity.foundation/schemas/web5/managed-key' })
     });
 
-    return { appData, appDataStore, didManager, identityManager, keyManager };
+    return { appData, appDataStore, didManager, didResolverCache, identityManager, keyManager };
   }
 
   private static useMemoryStorage(options?: { agent: Web5ManagedAgent }) {
     const { agent } = options ?? {};
 
-    const appDataStore = new MemoryStore();
+    const appDataStore = new MemoryStore<string, any>();
     const appData = new AppDataVault({
       keyDerivationWorkFactor : 1,
       store                   : appDataStore
@@ -213,6 +228,8 @@ export class TestManagedAgent {
       didMethods : [DidIonMethod, DidKeyMethod],
       store      : new DidStoreMemory()
     });
+
+    const didResolverCache = new MemoryStore<string, DidResolutionResult | void>();
 
     const identityManager = new IdentityManager({
       agent,
@@ -238,6 +255,6 @@ export class TestManagedAgent {
       store: new KeyStoreMemory()
     });
 
-    return { appData, appDataStore, didManager, identityManager, keyManager };
+    return { appData, appDataStore, didManager, didResolverCache, identityManager, keyManager };
   }
 }

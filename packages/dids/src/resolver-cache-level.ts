@@ -1,9 +1,9 @@
-import type { DidResolutionResult, DidResolverCache } from '@web5/dids';
+import type { DidResolutionResult, DidResolverCache } from './types.js';
 
 import ms from 'ms';
 import { Level } from 'level';
 
-export type DidResolutionCacheOptions = {
+export type DidResolverCacheOptions = {
   location?: string;
   ttl?: string;
 }
@@ -14,24 +14,27 @@ type CacheWrapper = {
 }
 
 /**
- * naive level-based cache for did resolution results. It just so happens that level aggressively keeps as much as it
+ * Naive level-based cache for did resolution results. It just so happens that level aggressively keeps as much as it
  * can in memory when possible while also writing to the filesystem (in node runtime) and indexedDB (in browser runtime).
  * the persistent aspect is especially useful across page refreshes.
  */
-export class DidResolutionCache implements DidResolverCache {
+export class DidResolverCacheLevel implements DidResolverCache {
   private cache: Level<string, string>;
   private ttl: number;
 
-  private static defaultOptions = {
-    location : 'data/did-res-cache',
+  private static defaultOptions: Required<DidResolverCacheOptions> = {
+    location : 'DATA/AGENT/DID_RESOLVERCACHE',
     ttl      : '15m'
   };
 
-  constructor(options: DidResolutionCacheOptions = {}) {
-    options = { ...DidResolutionCache.defaultOptions, ...options };
+  constructor(options: DidResolverCacheOptions = {}) {
+    let { location, ttl } = options;
 
-    this.cache = new Level(options.location!);
-    this.ttl = ms(options.ttl!);
+    location ??= DidResolverCacheLevel.defaultOptions.location;
+    ttl ??= DidResolverCacheLevel.defaultOptions.ttl;
+
+    this.cache = new Level(location);
+    this.ttl = ms(ttl);
   }
 
   async get(did: string): Promise<DidResolutionResult | void> {
@@ -48,30 +51,32 @@ export class DidResolutionCache implements DidResolverCache {
         return cacheWrapper.value;
       }
 
-
-    } catch(e: any) {
-      // thrown when a key wasn't found
-      if (e.code === 'LEVEL_NOT_FOUND') {
+    } catch(error: any) {
+      // Don't throw when a key wasn't found.
+      if (error.code === 'LEVEL_NOT_FOUND') {
         return;
       }
 
-      throw e;
+      throw error;
     }
   }
+
   set(did: string, value: DidResolutionResult): Promise<void> {
     const cacheWrapper: CacheWrapper = { ttlMillis: Date.now() + this.ttl, value };
     const str = JSON.stringify(cacheWrapper);
 
     return this.cache.put(did, str);
   }
+
   delete(did: string): Promise<void> {
     return this.cache.del(did);
   }
+
   clear(): Promise<void> {
     return this.cache.clear();
   }
+
   close(): Promise<void> {
     return this.cache.close();
   }
-
 }

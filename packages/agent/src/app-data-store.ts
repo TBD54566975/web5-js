@@ -6,9 +6,10 @@ import { DidKeyMethod } from '@web5/dids';
 import { hkdf } from '@noble/hashes/hkdf';
 import { sha256 } from '@noble/hashes/sha256';
 import { sha512 } from '@noble/hashes/sha512';
+import { randomBytes } from '@web5/crypto/utils';
 import { pbkdf2Async } from '@noble/hashes/pbkdf2';
 import { Convert, MemoryStore } from '@web5/common';
-import { CryptoKey, Jose, randomBytes, XChaCha20Poly1305 } from '@web5/crypto';
+import { CryptoKey, Jose, XChaCha20Poly1305 } from '@web5/crypto';
 
 export type AppDataBackup = {
   /**

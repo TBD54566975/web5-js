@@ -6,7 +6,7 @@ import type { DidResolutionResult, DidResolverCache } from './types.js';
  * the desire to maximize the potential for this library to be used
  * in as many JS runtimes as possible
  */
-export const noopCache: DidResolverCache = {
+export const DidResolverCacheNoop: DidResolverCache = {
   get: function (_key: string): Promise<DidResolutionResult> {
     return null as any;
   },

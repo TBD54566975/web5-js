@@ -1,6 +1,6 @@
 import type { RecordsWriteMessage, RecordsWriteOptions } from '@tbd54566975/dwn-sdk-js';
 
-import { randomUuid } from '@web5/crypto';
+import { randomUuid } from '@web5/crypto/utils';
 import { Convert, removeEmptyObjects, removeUndefinedProperties } from '@web5/common';
 
 import type { ManagedKeyPair, ManagedKeyStore, ManagedPrivateKey } from './types/managed-key.js';

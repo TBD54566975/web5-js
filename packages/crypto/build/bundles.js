@@ -14,3 +14,9 @@ esbuild.build({
   globalName : 'Web5Crypto',
   outfile    : 'dist/browser.js',
 });
+
+esbuild.build({
+  ...browserConfig,
+  entryPoints : ['./src/utils.ts'],
+  outfile     : 'dist/utils.js'
+});

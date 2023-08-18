@@ -181,14 +181,16 @@ describe('DidIonMethod', () => {
       expect(keySet.verificationMethodKeys?.[0].publicKeyJwk?.kid).to.equal('OAPj7ObrEJFgVNA2rrkPM5A-vYVsH_lyz4LgOUdJBa8');
     });
 
-    it('specified key IDs are prefixed with hash symbol (#) in DID Document', async () => {
+    it('given key IDs are automatically prefixed with hash symbol (#) in DID document', async () => {
+      testVerificationMethodKeys[0].publicKeyJwk!.kid = 'noPrefixInput';
+
       const portableDid = await DidIonMethod.create({
         keyAlgorithm : 'Ed25519',
         keySet       : testKeySet
       });
 
-      expect(portableDid.document.authentication).includes(`#test-kid`);
-      expect(portableDid.document.verificationMethod![0].id).to.equal(`#test-kid`);
+      expect(portableDid.document.authentication).includes(`#noPrefixInput`);
+      expect(portableDid.document.verificationMethod![0].id).to.equal(`#noPrefixInput`);
     });
 
     it('accepts recovery and update key IDs that include a hash symbol (#)', async () => {
@@ -207,8 +209,20 @@ describe('DidIonMethod', () => {
       ).to.eventually.eventually.be.fulfilled;
     });
 
-    it('throws an error if verification method key IDs include a hash symbol (#)', async () => {
-      testVerificationMethodKeys[0].publicKeyJwk!.kid = '#test-kid';
+    it('accepts verification method key IDs that start with a hash symbol (#)', async () => {
+      testVerificationMethodKeys[0].publicKeyJwk!.kid = '#prefixedKid';
+
+      const portableDid = await DidIonMethod.create({
+        keyAlgorithm : 'Ed25519',
+        keySet       : testKeySet
+      });
+
+      expect(portableDid.document.authentication).includes(`#prefixedKid`);
+      expect(portableDid.document.verificationMethod![0].id).to.equal(`#prefixedKid`);
+    });
+
+    it('throws an error if verification method key IDs contain a hash symbol (#)', async () => {
+      testVerificationMethodKeys[0].publicKeyJwk!.kid = 'test#kid';
 
       await expect(
         DidIonMethod.create({ keySet: { verificationMethodKeys: testVerificationMethodKeys } })
@@ -240,7 +254,7 @@ describe('DidIonMethod', () => {
       expect(dwnService?.serviceEndpoint).to.have.property('encryptionKeys');
     });
 
-    it('specified service IDs are prefixed with hash symbol (#) in DID Document', async () => {
+    it('given service IDs are automatically prefixed with hash symbol (#) in DID document', async () => {
       const dwnEndpoints = ['https://dwn.tbddev.test/dwn0'];
 
       const services: DidService[] = [{
@@ -257,18 +271,21 @@ describe('DidIonMethod', () => {
       expect(dwnService).to.have.property('id', '#dwn');
     });
 
-    it('throws an error if service IDs include a hash symbol (#)', async () => {
-      let services: DidService[] = [{
+    it('accepts service IDs that start with a hash symbol (#)', async () => {
+      const services: DidService[] = [{
         'id'              : '#dwn',
         'type'            : 'DecentralizedWebNode',
         'serviceEndpoint' : { }
       }];
 
-      await expect(
-        DidIonMethod.create({ services })
-      ).to.eventually.eventually.be.rejectedWith(Error, 'IdNotUsingBase64UrlCharacterSet');
+      const portableDid = await DidIonMethod.create({ services });
 
-      services = [{
+      const dwnService = portableDid.document.service?.[0];
+      expect(dwnService).to.have.property('id', '#dwn');
+    });
+
+    it('throws an error if verification method key IDs contain a hash symbol (#)', async () => {
+      const services = [{
         'id'              : 'foo#bar',
         'type'            : 'DecentralizedWebNode',
         'serviceEndpoint' : { }
@@ -343,6 +360,44 @@ describe('DidIonMethod', () => {
       const decodedLongFormDid = await DidIonMethod.decodeLongFormDid({ didUrl: did });
 
       expect(decodedLongFormDid).to.deep.equal(createRequest);
+    });
+  });
+
+  describe('generateJwkKeyPair()', () => {
+    it('generates an Ed25519 JwkKeyPair', async () => {
+      const jwkKeyPair = await DidIonMethod.generateJwkKeyPair({ keyAlgorithm: 'Ed25519' });
+      expect(jwkKeyPair).to.be.an('object');
+      expect(jwkKeyPair.privateKeyJwk.kty).to.equal('OKP');
+      if (!('crv' in jwkKeyPair.privateKeyJwk)) throw new Error('Type guard');
+      expect(jwkKeyPair.privateKeyJwk.crv).to.equal('Ed25519');
+      if (!('crv' in jwkKeyPair.publicKeyJwk)) throw new Error('Type guard');
+      expect(jwkKeyPair.publicKeyJwk.kty).to.equal('OKP');
+      expect(jwkKeyPair.publicKeyJwk.crv).to.equal('Ed25519');
+    });
+
+    it('generates a secp256k1 JwkKeyPair', async () => {
+      const jwkKeyPair = await DidIonMethod.generateJwkKeyPair({ keyAlgorithm: 'secp256k1' });
+      expect(jwkKeyPair).to.be.an('object');
+      expect(jwkKeyPair.privateKeyJwk.kty).to.equal('EC');
+      if (!('crv' in jwkKeyPair.privateKeyJwk)) throw new Error('Type guard');
+      expect(jwkKeyPair.privateKeyJwk.crv).to.equal('secp256k1');
+      expect(jwkKeyPair.publicKeyJwk.kty).to.equal('EC');
+      if (!('crv' in jwkKeyPair.publicKeyJwk)) throw new Error('Type guard');
+      expect(jwkKeyPair.publicKeyJwk.crv).to.equal('secp256k1');
+    });
+
+    it('generates a JwkKeyPair with a custom key ID', async () => {
+      const keyId = 'custom-key-id';
+      const jwkKeyPair = await DidIonMethod.generateJwkKeyPair({ keyAlgorithm: 'Ed25519', keyId });
+      expect(jwkKeyPair.privateKeyJwk.kid).to.equal(keyId);
+      expect(jwkKeyPair.publicKeyJwk.kid).to.equal(keyId);
+    });
+
+    it('throws an error for unsupported key algorithm', async () => {
+      await expect(
+        // @ts-expect-error because an invalid algorithm is being intentionally specified.
+        DidIonMethod.generateJwkKeyPair({ keyAlgorithm: 'unsupported-algorithm' })
+      ).to.eventually.be.rejectedWith(Error, 'Unsupported crypto algorithm');
     });
   });
 
@@ -633,29 +688,47 @@ describe('DidIonMethod', () => {
     });
 
     it('accepts custom DID resolver with trailing slash', async () => {
+      const mockResult = { mock: 'data' };
+      const fetchStub = sinon.stub(global, 'fetch');
+      // @ts-expect-error because we're only mocking ok and json() from global.fetch().
+      fetchStub.returns(Promise.resolve({
+        ok   : true,
+        json : () => Promise.resolve(mockResult)
+      }));
+
       const did = 'did:ion:EiCab9QRUcUTKKIM-W2SMCwnOPxa4y0q7emoWJDSOSz3HQ';
       const resolutionResult = await DidIonMethod.resolve({
         didUrl            : did,
         resolutionOptions : { resolutionEndpoint: 'https://dev.uniresolver.io/1.0/identifiers/' }
       });
-      expect(resolutionResult).to.have.property('@context');
-      expect(resolutionResult).to.have.property('didDocument');
-      expect(resolutionResult).to.have.property('didDocumentMetadata');
+      fetchStub.restore();
 
-      expect(resolutionResult.didDocument).to.have.property('id', did);
+      expect(resolutionResult).to.deep.equal(mockResult);
+      expect(fetchStub.calledOnceWith(
+        `https://dev.uniresolver.io/1.0/identifiers/${did}`
+      )).to.be.true;
     });
 
     it('accepts custom DID resolver without trailing slash', async () => {
+      const mockResult = { mock: 'data' };
+      const fetchStub = sinon.stub(global, 'fetch');
+      // @ts-expect-error because we're only mocking ok and json() from global.fetch().
+      fetchStub.returns(Promise.resolve({
+        ok   : true,
+        json : () => Promise.resolve(mockResult)
+      }));
+
       const did = 'did:ion:EiCab9QRUcUTKKIM-W2SMCwnOPxa4y0q7emoWJDSOSz3HQ';
       const resolutionResult = await DidIonMethod.resolve({
         didUrl            : did,
         resolutionOptions : { resolutionEndpoint: 'https://dev.uniresolver.io/1.0/identifiers' }
       });
-      expect(resolutionResult).to.have.property('@context');
-      expect(resolutionResult).to.have.property('didDocument');
-      expect(resolutionResult).to.have.property('didDocumentMetadata');
+      fetchStub.restore();
 
-      expect(resolutionResult.didDocument).to.have.property('id', did);
+      expect(resolutionResult).to.deep.equal(mockResult);
+      expect(fetchStub.calledOnceWith(
+        `https://dev.uniresolver.io/1.0/identifiers/${did}`
+      )).to.be.true;
     });
   });
 });
