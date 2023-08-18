@@ -194,6 +194,55 @@ export class DidIonMethod implements DidMethod {
     return createRequest;
   }
 
+  public static async generateJwkKeyPair(options: {
+    keyAlgorithm: typeof SupportedCryptoAlgorithms[number],
+    keyId?: string
+  }): Promise<JwkKeyPair> {
+    const { keyAlgorithm, keyId } = options;
+
+    let cryptoKeyPair: Web5Crypto.CryptoKeyPair;
+
+    switch (keyAlgorithm) {
+      case 'Ed25519': {
+        cryptoKeyPair = await new EdDsaAlgorithm().generateKey({
+          algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
+          extractable : true,
+          keyUsages   : ['sign', 'verify']
+        });
+        break;
+      }
+
+      case 'secp256k1': {
+        cryptoKeyPair = await new EcdsaAlgorithm().generateKey({
+          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+          extractable : true,
+          keyUsages   : ['sign', 'verify']
+        });
+        break;
+      }
+
+      default: {
+        throw new Error(`Unsupported crypto algorithm: '${keyAlgorithm}'`);
+      }
+    }
+
+    // Convert the CryptoKeyPair to JwkKeyPair.
+    const jwkKeyPair = await Jose.cryptoKeyToJwkPair({ keyPair: cryptoKeyPair });
+
+    // Set kid values.
+    if (keyId) {
+      jwkKeyPair.privateKeyJwk.kid = keyId;
+      jwkKeyPair.publicKeyJwk.kid = keyId;
+    } else {
+      // If a key ID is not specified, generate RFC 7638 JWK thumbprint.
+      const jwkThumbprint = await Jose.jwkThumbprint({ key: jwkKeyPair.publicKeyJwk });
+      jwkKeyPair.privateKeyJwk.kid = jwkThumbprint;
+      jwkKeyPair.publicKeyJwk.kid = jwkThumbprint;
+    }
+
+    return jwkKeyPair;
+  }
+
   public static async generateKeySet(options?: {
     keyAlgorithm?: typeof SupportedCryptoAlgorithms[number],
     keySet?: DidIonKeySet
@@ -262,7 +311,6 @@ export class DidIonMethod implements DidMethod {
     const [dwnService] = getServices({ didDocument, type: 'DecentralizedWebNode' });
     if (isDwnServiceEndpoint(dwnService?.serviceEndpoint)) {
       const [verificationMethodId] = dwnService.serviceEndpoint.signingKeys;
-      // const did = await DidIonMethod.getShortFormDid({ didUrl: didDocument.id });
       const did = didDocument.id;
       const signingKeyId = `${did}${verificationMethodId}`;
       return signingKeyId;
@@ -275,27 +323,10 @@ export class DidIonMethod implements DidMethod {
         && didDocument.authentication.length > 0
         && typeof didDocument.authentication[0] === 'string') {
       const [verificationMethodId] = didDocument.authentication;
-      // const did = await DidIonMethod.getShortFormDid({ didUrl: didDocument.id });
       const did = didDocument.id;
       const signingKeyId = `${did}${verificationMethodId}`;
       return signingKeyId;
     }
-
-    // if (didDocument.id &&
-    //       didDocument.service &&
-    //       didDocument.service[0] &&
-    //       didDocument.service[0].serviceEndpoint &&
-    //       typeof didDocument.service[0].serviceEndpoint !== 'string' &&
-    //       !Array.isArray(didDocument.service[0].serviceEndpoint) &&
-    //       didDocument.service[0].serviceEndpoint.signingKeys &&
-    //       typeof didDocument.service[0].serviceEndpoint.signingKeys[0] === 'string') {
-
-    //   const verificationMethodId = didDocument.service[0].serviceEndpoint.signingKeys[0];
-    //   const did = await DidIonMethod.getShortFormDid({ didUrl: didDocument.id });
-    //   const signingKeyId = `${did}${verificationMethodId}`;
-
-    //   return signingKeyId;
-    // }
   }
 
   public static async getLongFormDid(options: {
@@ -391,7 +422,9 @@ export class DidIonMethod implements DidMethod {
       return resolutionResult as DidResolutionResult;
     }
 
-    // Return valid DID Resolution Results.
+    // Response was not "OK" (HTTP 4xx-5xx status code)
+
+    // Return result if it contains DID resolution metadata.
     if ('didResolutionMetadata' in resolutionResult) {
       return resolutionResult;
     }
@@ -424,60 +457,15 @@ export class DidIonMethod implements DidMethod {
     };
   }
 
-  private static async generateJwkKeyPair(options: {
-    keyAlgorithm: typeof SupportedCryptoAlgorithms[number],
-    keyId?: string
-  }): Promise<JwkKeyPair> {
-    const { keyAlgorithm, keyId } = options;
-
-    let cryptoKeyPair: Web5Crypto.CryptoKeyPair;
-
-    switch (keyAlgorithm) {
-      case 'Ed25519': {
-        cryptoKeyPair = await new EdDsaAlgorithm().generateKey({
-          algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
-          extractable : true,
-          keyUsages   : ['sign', 'verify']
-        });
-        break;
-      }
-
-      case 'secp256k1': {
-        cryptoKeyPair = await new EcdsaAlgorithm().generateKey({
-          algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-          extractable : true,
-          keyUsages   : ['sign', 'verify']
-        });
-        break;
-      }
-
-      default: {
-        throw new Error(`Unsupported crypto algorithm: '${keyAlgorithm}'`);
-      }
-    }
-
-    // Convert the CryptoKeyPair to JwkKeyPair.
-    const jwkKeyPair = await Jose.cryptoKeyToJwkPair({ keyPair: cryptoKeyPair });
-
-    // Set kid values.
-    if (keyId) {
-      jwkKeyPair.privateKeyJwk.kid = keyId;
-      jwkKeyPair.publicKeyJwk.kid = keyId;
-    } else {
-      // If a key ID is not specified, generate RFC 7638 JWK thumbprint.
-      const jwkThumbprint = await Jose.jwkThumbprint({ key: jwkKeyPair.publicKeyJwk });
-      jwkKeyPair.privateKeyJwk.kid = jwkThumbprint;
-      jwkKeyPair.publicKeyJwk.kid = jwkThumbprint;
-    }
-
-    return jwkKeyPair;
-  }
-
   private static async createIonDocument(options: {
     keySet: DidIonKeySet,
     services?: DidService[]
   }): Promise<IonDocumentModel> {
     const { services = [], keySet } = options;
+
+    /**
+     * STEP 1: Convert key set verification method keys to ION SDK format.
+     */
 
     const ionPublicKeys: IonPublicKeyModel[] = [];
 
@@ -490,9 +478,20 @@ export class DidIonMethod implements DidMethod {
         );
       }
 
+      /** During certain ION operations, JWK validation will throw an error
+       * if key IDs provided as input are prefixed with `#`. ION operation
+       * outputs and DID document resolution always include the `#` prefix
+       * for key IDs resulting in a confusing mismatch between inputs and
+       * outputs.  To improve the developer experience, this inconsistency
+       * is addressed by normalizing input key IDs before being passed
+       * to ION SDK methods. */
+      const publicKeyId = (key.publicKeyJwk.kid.startsWith('#'))
+        ? key.publicKeyJwk.kid.substring(1)
+        : key.publicKeyJwk.kid;
+
       // Convert public key JWK to ION format.
       const publicKey: IonPublicKeyModel = {
-        id           : key.publicKeyJwk.kid,
+        id           : publicKeyId,
         publicKeyJwk : DidIonMethod.jwkToIonJwk({ key: key.publicKeyJwk }),
         purposes     : ionPurposes,
         type         : 'JsonWebKey2020'
@@ -501,9 +500,21 @@ export class DidIonMethod implements DidMethod {
       ionPublicKeys.push(publicKey);
     }
 
+    /**
+     * STEP 2: Convert service entries, if any, to ION SDK format.
+     */
+    const ionServices = services.map(service => ({
+      ...service,
+      id: service.id.startsWith('#') ? service.id.substring(1) : service.id
+    }));
+
+    /**
+     * STEP 3: Format as ION document.
+     */
+
     const ionDocumentModel: IonDocumentModel = {
-      publicKeys: ionPublicKeys,
-      services
+      publicKeys : ionPublicKeys,
+      services   : ionServices
     };
 
     return ionDocumentModel;

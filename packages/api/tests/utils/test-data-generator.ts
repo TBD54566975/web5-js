@@ -1,4 +1,4 @@
-import { randomBytes } from '@web5/crypto';
+import { randomBytes } from '@web5/crypto/utils';
 
 export class TestDataGenerator {
   /**

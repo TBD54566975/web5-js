@@ -1,7 +1,12 @@
-import type { DidResolutionOptions, DidResolutionResult, DidMethodResolver, DidResolverCache } from './types.js';
+import type {
+  DidResolverCache,
+  DidMethodResolver,
+  DidResolutionResult,
+  DidResolutionOptions,
+} from './types.js';
 
 import { parseDid } from './utils.js';
-import { noopCache } from './noop-cache.js';
+import { DidResolverCacheNoop } from './resolver-cache-noop.js';
 
 export type DidResolverOptions = {
   didResolvers: DidMethodResolver[];
@@ -32,7 +37,7 @@ export class DidResolver {
    * @param options.cache - Optional. A cache for storing resolved DID documents. If not provided, a no-operation cache is used.
    */
   constructor(options: DidResolverOptions) {
-    this.cache = options.cache || noopCache;
+    this.cache = options.cache || DidResolverCacheNoop;
 
     for (const resolver of options.didResolvers) {
       this.didResolvers.set(resolver.methodName, resolver);
@@ -55,7 +60,8 @@ export class DidResolver {
    * @param didUrl - The DID or DID URL to resolve.
    * @returns A promise that resolves to the DID Resolution Result.
    */
-  async resolve(didUrl: string, options?: DidResolutionOptions): Promise<DidResolutionResult> {
+  async resolve(didUrl: string, resolutionOptions?: DidResolutionOptions): Promise<DidResolutionResult> {
+
     const parsedDid = parseDid({ didUrl });
     if (!parsedDid) {
       return {
@@ -90,8 +96,8 @@ export class DidResolver {
       return cachedResolutionResult;
     } else {
       const resolutionResult = await resolver.resolve({
-        didUrl            : parsedDid.did,
-        resolutionOptions : options ?? {}
+        didUrl: parsedDid.did,
+        resolutionOptions
       });
       await this.cache.set(parsedDid.did, resolutionResult);
 

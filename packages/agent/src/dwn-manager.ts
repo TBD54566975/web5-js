@@ -11,8 +11,9 @@ import type {
 } from '@tbd54566975/dwn-sdk-js';
 
 import { Jose } from '@web5/crypto';
+import { DidResolver } from '@web5/dids';
 import { Readable } from 'readable-stream';
-import { DidResolver, utils as didUtils } from '@web5/dids';
+import * as didUtils from '@web5/dids/utils';
 import { Convert, removeUndefinedProperties } from '@web5/common';
 
 import {
@@ -78,8 +79,14 @@ const dwnMessageCreators = {
 
 export type DwnManagerOptions = {
   agent?: Web5ManagedAgent;
-  didResolver?: DidResolver;
   dwn: Dwn;
+}
+
+export type DwnManagerCreateOptions = {
+  agent?: Web5ManagedAgent;
+  dataPath?: string;
+  didResolver?: DidResolver;
+  dwn?: Dwn;
 }
 
 export class DwnManager {
@@ -123,24 +130,33 @@ export class DwnManager {
     return this._dwn;
   }
 
-  public static async create(options?: Partial<DwnManagerOptions>) {
-    options ??= { };
+  public static async create(options?: DwnManagerCreateOptions) {
+    let { agent, dataPath, didResolver, dwn } = options ?? { };
 
-    if (options.dwn === undefined) {
-      const messageStore = new MessageStoreLevel();
-      const dataStore = new DataStoreLevel();
-      const eventLog = new EventLogLevel();
+    dataPath ??= 'DATA/AGENT';
 
-      options.dwn = await Dwn.create({
+    if (dwn === undefined) {
+      const dataStore = new DataStoreLevel({
+        blockstoreLocation: `${dataPath}/DWN_DATASTORE`
+      });
+      const eventLog = new EventLogLevel({
+        location: `${dataPath}/DWN_EVENTLOG`
+      });
+      const messageStore = new MessageStoreLevel(({
+        blockstoreLocation : `${dataPath}/DWN_MESSAGESTORE`,
+        indexLocation      : `${dataPath}/DWN_MESSAGEINDEX`
+      }));
+
+      dwn = await Dwn.create({
         dataStore,
-        // @ts-expect-error because `dwn-sdk-js` has a incompatible DidResolver declaration.
-        didResolver: options.didResolver,
+        // @ts-expect-error because `dwn-sdk-js` expects its internal DidResolver implementation.
+        didResolver,
         eventLog,
         messageStore,
       });
     }
 
-    return new DwnManager(options as DwnManagerOptions);
+    return new DwnManager({ agent, dwn });
   }
 
   public async processRequest(request: ProcessDwnRequest): Promise<DwnResponse> {

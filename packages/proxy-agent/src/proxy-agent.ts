@@ -15,7 +15,7 @@ import type {
 
 import { LevelStore } from '@web5/common';
 import { EdDsaAlgorithm } from '@web5/crypto';
-import { DidKeyMethod, DidResolver } from '@web5/dids';
+import { DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
 import {
   LocalKms,
   DidManager,
@@ -89,7 +89,7 @@ export class Web5ProxyAgent implements Web5ManagedAgent {
       // A custom DidManager implementation was not specified, so
       // instantiate a default with in-memory store.
       didManager = new DidManager({
-        didMethods : [DidKeyMethod],
+        didMethods : [DidIonMethod, DidKeyMethod],
         store      : new DidStoreDwn()
       });
     }
@@ -97,7 +97,7 @@ export class Web5ProxyAgent implements Web5ManagedAgent {
     if (didResolver === undefined) {
       // A custom DidManager implementation was not specified, so
       // instantiate a default with in-memory store.
-      didResolver = new DidResolver({ didResolvers: [DidKeyMethod] });
+      didResolver = new DidResolver({ didResolvers: [DidIonMethod, DidKeyMethod] });
     }
 
     if (dwnManager === undefined) {

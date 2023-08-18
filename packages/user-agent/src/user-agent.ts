@@ -15,7 +15,7 @@ import type {
 
 import { LevelStore } from '@web5/common';
 import { EdDsaAlgorithm } from '@web5/crypto';
-import { DidKeyMethod, DidResolver } from '@web5/dids';
+import { DidIonMethod, DidKeyMethod, DidResolverCacheLevel, DidResolver } from '@web5/dids';
 import {
   LocalKms,
   DidManager,
@@ -78,45 +78,49 @@ export class Web5UserAgent implements Web5ManagedAgent {
     }
 
     if (appData === undefined) {
-      // A custom AppDataStore implementation was not specified, so
-      // instantiate a LevelDB backed secure AppDataVault.
+      /** A custom AppDataStore implementation was not specified, so
+       * instantiate a LevelDB backed secure AppDataVault. */
       appData = new AppDataVault({
-        store: new LevelStore('data/agent/vault')
+        store: new LevelStore('DATA/AGENT/APPDATA')
       });
     }
 
     if (didManager === undefined) {
-      // A custom DidManager implementation was not specified, so
-      // instantiate a default with in-memory store.
+      /** A custom DidManager implementation was not specified, so
+       * instantiate a default that uses a DWN-backed store. */
       didManager = new DidManager({
-        didMethods : [DidKeyMethod],
+        didMethods : [DidIonMethod, DidKeyMethod],
         store      : new DidStoreDwn()
       });
     }
 
     if (didResolver === undefined) {
-      // A custom DidManager implementation was not specified, so
-      // instantiate a default with in-memory store.
-      didResolver = new DidResolver({ didResolvers: [DidKeyMethod] });
+      /** A custom DidManager implementation was not specified, so
+       * instantiate a default that uses a DWN-backed store and
+       * LevelDB-backed resolution cache. */
+      didResolver = new DidResolver({
+        cache        : new DidResolverCacheLevel(),
+        didResolvers : [DidIonMethod, DidKeyMethod]
+      });
     }
 
     if (dwnManager === undefined) {
-      // A custom DwnManager implementation was not specified, so
-      // instantiate a default.
+      /** A custom DwnManager implementation was not specified, so
+       * instantiate a default. */
       dwnManager = await DwnManager.create({ didResolver });
     }
 
     if (identityManager === undefined) {
-      // A custom IdentityManager implementation was not specified, so
-      // instantiate a default that uses a DWN store.
+      /** A custom IdentityManager implementation was not specified, so
+       * instantiate a default that uses a DWN-backed store. */
       identityManager = new IdentityManager({
         store: new IdentityStoreDwn()
       });
     }
 
     if (keyManager === undefined) {
-      // A custom KeyManager implementation was not specified, so
-      // instantiate a default with KMSs.
+      /** A custom KeyManager implementation was not specified, so
+       * instantiate a default with KMSs that use a DWN-backed store. */
       const localKmsDwn = new LocalKms({
         kmsName         : 'local',
         keyStore        : new KeyStoreDwn({ schema: 'https://identity.foundation/schemas/web5/kms-key' }),
@@ -140,7 +144,7 @@ export class Web5UserAgent implements Web5ManagedAgent {
       rpcClient = new Web5RpcClient();
     }
 
-    // Instantiate the Identity Agent.
+    // Instantiate the Agent.
     const agent = new Web5UserAgent({
       agentDid,
       appData,
@@ -161,22 +165,20 @@ export class Web5UserAgent implements Web5ManagedAgent {
     return initialized === false;
   }
 
-  /**
-   * Executed once the first time the Identity Agent is launched.
-   * The passphrase should be input by the end-user.
-   * */
+  /** Executed once the first time the Agent is launched.
+   * The passphrase should be input by the end-user. */
   async initialize(options: { passphrase: string }) {
     const { passphrase } = options;
 
-    // Generate an Ed25519 key pair for the Identity Agent.
+    // Generate an Ed25519 key pair for the Agent.
     const agentKeyPair = await new EdDsaAlgorithm().generateKey({
       algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
       extractable : true,
       keyUsages   : ['sign', 'verify']
     });
 
-    /** Initialize the AppDataStore with the Identity Agent's
-       * private key and passphrase, which also unlocks the data vault. */
+    /** Initialize the AppDataStore with the Agent's
+     * private key and passphrase, which also unlocks the data vault. */
     await this.appData.initialize({
       passphrase : passphrase,
       keyPair    : agentKeyPair,
@@ -219,10 +221,10 @@ export class Web5UserAgent implements Web5ManagedAgent {
       await this.appData.unlock({ passphrase });
     }
 
-    // 2. Set the Identity Agent's root did:key identifier.
+    // 2. Set the Agent's root did:key identifier.
     this.agentDid = await this.appData.getDid();
 
-    // 3. Import the Identity Agent's private key into the KeyManager.
+    // 3. Import the Agent's private key into the KeyManager.
     const defaultSigningKey = cryptoToPortableKeyPair({
       cryptoKeyPair: {
         privateKey : await this.appData.getPrivateKey(),

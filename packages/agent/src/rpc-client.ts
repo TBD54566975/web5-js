@@ -1,7 +1,8 @@
 import type { JsonRpcResponse } from './json-rpc.js';
 import type { DwnRpc, DwnRpcRequest, DwnRpcResponse } from './types/agent.js';
 
-import { randomUuid } from '@web5/crypto';
+import { randomUuid } from '@web5/crypto/utils';
+
 import { createJsonRpcRequest, parseJson } from './json-rpc.js';
 
 /**

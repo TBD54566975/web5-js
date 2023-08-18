@@ -49,6 +49,11 @@
       "types": "./dist/types/index.d.ts",
       "import": "./dist/esm/index.js",
       "require": "./dist/cjs/index.js"
+    },
+    "./utils": {
+      "types": "./dist/types/utils.d.ts",
+      "import": "./dist/esm/utils.js",
+      "require": "./dist/cjs/utils.js"
     }
   },
   "react-native": "./dist/esm/index.js",
@@ -74,7 +79,8 @@
     "@web5/common": "0.2.0",
     "@web5/crypto": "0.2.0",
     "canonicalize": "2.0.0",
-    "did-resolver": "4.1.0"
+    "did-resolver": "4.1.0",
+    "level": "8.0.0"
   },
   "devDependencies": {
     "@playwright/test": "1.36.2",

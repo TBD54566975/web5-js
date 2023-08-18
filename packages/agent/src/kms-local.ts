@@ -1,14 +1,13 @@
 import type { Web5Crypto } from '@web5/crypto';
 import type { RequireOnly } from '@web5/common';
 
+import { isCryptoKeyPair, checkRequiredProperty } from '@web5/crypto/utils';
 import {
   EcdhAlgorithm,
   EcdsaAlgorithm,
   EdDsaAlgorithm,
   AesCtrAlgorithm,
   CryptoAlgorithm,
-  isCryptoKeyPair,
-  checkRequiredProperty,
 } from '@web5/crypto';
 
 import {

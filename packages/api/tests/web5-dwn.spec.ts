@@ -42,12 +42,6 @@ describe('web5.dwn', () => {
       didOptions : { services },
       kms        : 'local'
     });
-    // Create a new Identity to author DWN messages.
-    // const identity = await testAgent.agent.identityManager.create({
-    //   name      : 'Test',
-    //   didMethod : 'ion',
-    //   kms       : 'local'
-    // });
 
     // Instantiate DwnApi.
     dwn = new DwnApi({ agent: testAgent.agent, connectedDid: identity.did });
