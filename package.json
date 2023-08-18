@@ -14,12 +14,5 @@
     "clean": "npx npkill -d $(pwd) -t node_modules && npx npkill -d $(pwd)/packages -t dist",
     "build": "npm run build --ws"
   },
-  "private": true,
-  "overrides": {
-    "c8": {
-      "istanbul-lib-report": {
-        "make-dir": "^4.0.0"
-      }
-    }
-  }
+  "private": true
 }
