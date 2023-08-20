@@ -2,11 +2,11 @@ import { expect } from 'chai';
 import { TestManagedAgent } from '@web5/agent';
 
 import { DwnApi } from '../src/dwn-api.js';
+import { testDwnUrl } from './test-config.js';
 import { TestUserAgent } from './utils/test-user-agent.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
 
-// let dwnNodes: string[] = ['https://dwn.tbddev.org/dwn0'];
-let dwnNodes: string[] = ['http://localhost:3000'];
+let testDwnUrls: string[] = [testDwnUrl];
 
 describe('web5.dwn', () => {
   let dwn: DwnApi;
@@ -30,7 +30,7 @@ describe('web5.dwn', () => {
       type            : 'DecentralizedWebNode',
       serviceEndpoint : {
         encryptionKeys : ['#dwn-enc'],
-        nodes          : dwnNodes,
+        nodes          : testDwnUrls,
         signingKeys    : ['#dwn-sig']
       }
     }];
