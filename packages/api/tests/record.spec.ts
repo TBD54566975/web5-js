@@ -12,6 +12,7 @@ import { ManagedIdentity, TestManagedAgent } from '@web5/agent';
 import { Record } from '../src/record.js';
 import { DwnApi } from '../src/dwn-api.js';
 import { dataToBlob } from '../src/utils.js';
+import { testDwnUrl } from './test-config.js';
 import { TestUserAgent } from './utils/test-user-agent.js';
 import { TestDataGenerator } from './utils/test-data-generator.js';
 
@@ -27,6 +28,8 @@ if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 // TODO: Come up with a better way of resolving the TS errors.
 type RecordsWriteTest = RecordsWrite & RecordsWriteMessage;
+
+let testDwnUrls: string[] = [testDwnUrl];
 
 describe('Record', () => {
   let dataText: string;

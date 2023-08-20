@@ -12,6 +12,7 @@ import {
   RecordsDeleteMessage,
 } from '@tbd54566975/dwn-sdk-js';
 
+import { testDwnUrl } from './test-config.js';
 import { TestAgent } from './utils/test-agent.js';
 import { DwnManager } from '../src/dwn-manager.js';
 import { ManagedIdentity } from '../src/identity-manager.js';
@@ -26,8 +27,7 @@ if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 chai.use(chaiAsPromised);
 
-// let dwnNodes: string[] = ['https://dwn.tbddev.org/dwn0'];
-let dwnNodes: string[] = ['http://localhost:3000'];
+let testDwnUrls: string[] = [testDwnUrl];
 
 describe('DwnManager', () => {
 
@@ -279,7 +279,7 @@ describe('DwnManager', () => {
           type            : 'DecentralizedWebNode',
           serviceEndpoint : {
             encryptionKeys : ['#dwn-enc'],
-            nodes          : dwnNodes,
+            nodes          : testDwnUrls,
             signingKeys    : ['#dwn-sig']
           }
         }];

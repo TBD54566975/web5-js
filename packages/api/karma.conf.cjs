@@ -30,23 +30,23 @@ module.exports = function (config) {
     // available frameworks: https://www.npmjs.com/search?q=keywords:karma-adapter
     frameworks: ['mocha'],
 
-    // Increase Mocha's default timeout of 2 seconds to prevent timeouts during GitHub CI runs.
     client: {
+      // Increase Mocha's default timeout of 2 seconds to prevent timeouts during GitHub CI runs.
       mocha: {
         timeout: 10000 // 10 seconds
-      }
+      },
+      // If an environment variable is defined, override the default test DWN URL.
+      testDwnUrl: process.env.TEST_DWN_URL,
     },
 
     // list of files / patterns to load in the browser
     files: [
-      // { pattern: 'tests/test-user-agent.ts', watched: false },
       { pattern: 'tests/**/*.spec.ts', watched: false },
     ],
 
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://www.npmjs.com/search?q=keywords:karma-preprocessor
     preprocessors: {
-      // 'tests/test-user-agent.ts' : ['esbuild'],
       'tests/**/*.spec.ts': ['esbuild'],
     },
 
@@ -68,7 +68,7 @@ module.exports = function (config) {
     // level of logging
     // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN ||
     // config.LOG_INFO || config.LOG_DEBUG
-    logLevel: config.INFO,
+    logLevel: config.LOG_INFO,
 
     concurrency: 1,
 
