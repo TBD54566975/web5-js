@@ -24,6 +24,9 @@ export type Web5ConnectOptions = {
    * {@link Web5UserAgent} if one isn't provided */
   agent?: Web5Agent;
 
+  /** Specify an existing DID to connect to. */
+  connectedDid?: string;
+
   /** Provide an instance of a {@link AppDataStore} implementation. Defaults to
    * a LevelDB-backed store with an insecure, static unlock passphrase if one
    * isn't provided. To allow the app user to enter a secure passphrase of
@@ -44,6 +47,7 @@ type Web5Options = {
 };
 
 export class Web5 {
+  agent: Web5Agent;
   did: DidApi;
   dwn: DwnApi;
   vc: VcApi;
@@ -51,6 +55,7 @@ export class Web5 {
 
   constructor(options: Web5Options) {
     const { agent, connectedDid } = options;
+    this.agent = agent;
     this.connectedDid = connectedDid;
     this.did = new DidApi({ agent, connectedDid });
     this.dwn = new DwnApi({ agent, connectedDid });
@@ -65,7 +70,7 @@ export class Web5 {
    * @returns
    */
   static async connect(options: Web5ConnectOptions = {}) {
-    let { agent, appData, techPreview } = options;
+    let { agent, appData, connectedDid, techPreview } = options;
 
     if (agent === undefined) {
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
@@ -90,18 +95,19 @@ export class Web5 {
         if (identities.length === 0) {
           const serviceEndpointNodes = techPreview?.dwnEndpoints ?? await getTechPreviewDwnEndpoints();
           const didOptions = await DidIonMethod.generateDwnOptions({ serviceEndpointNodes });
-          await userAgent.identityManager.create({
+          const identity = await userAgent.identityManager.create({
             name      : 'Default',
             didMethod : 'ion',
             didOptions,
             kms       : 'local'
           });
+          connectedDid = identity.did;
         }
       }
     }
 
-    const web5 = new Web5({ agent, connectedDid: agent.agentDid });
+    const web5 = new Web5({ agent, connectedDid });
 
-    return { web5, did: agent.agentDid };
+    return { web5, did: connectedDid };
   }
 }

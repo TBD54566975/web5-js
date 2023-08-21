@@ -4,8 +4,10 @@ import { AppDataVault, TestManagedAgent } from '@web5/agent';
 import { Web5 } from '../src/web5.js';
 import { TestUserAgent } from './utils/test-user-agent.js';
 import { MemoryStore } from '@web5/common';
+import { DidIonMethod } from '@web5/dids';
+import { Web5UserAgent } from '@web5/user-agent';
 
-describe('Web5', () => {
+describe.only('Web5', () => {
   describe('using TestManagedAgent', () => {
     let testAgent: TestManagedAgent;
 
@@ -24,6 +26,32 @@ describe('Web5', () => {
     after(async () => {
       await testAgent.clearStorage();
       await testAgent.closeStorage();
+    });
+
+    describe('connect()', () => {
+      it('accepts an externally created ION DID', async () => {
+        // Create an ION DID.
+        const didOptions = await DidIonMethod.generateDwnOptions({
+          serviceEndpointNodes: ['https://dwn.example.com']
+        });
+        const portableDid = await DidIonMethod.create({ ...didOptions });
+
+        // Import the previously created DID.
+        await testAgent.agent.identityManager.import({
+          identity : { name: 'Test', did: portableDid.did },
+          did      : portableDid,
+          kms      : 'local'
+        });
+
+        // Call connect() with the custom agent.
+        const { web5, did } = await Web5.connect({
+          agent        : testAgent.agent,
+          connectedDid : portableDid.did
+        });
+
+        expect(did).to.exist;
+        expect(web5).to.exist;
+      }).timeout(5000);
     });
 
     describe('constructor', () => {
