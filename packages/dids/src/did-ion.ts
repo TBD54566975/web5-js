@@ -7,7 +7,7 @@ import IonProofOfWork from '@decentralized-identity/ion-pow-sdk';
 import { EcdsaAlgorithm, EdDsaAlgorithm, Jose } from '@web5/crypto';
 import { IonDid, IonPublicKeyPurpose, IonRequest } from '@decentralized-identity/ion-sdk';
 
-import type { DidDocument, DidKeySetVerificationMethodKey, DidMethod, DidResolutionOptions, DidResolutionResult, DidService, PortableDid } from './types.js';
+import type { DidDocument, DidKeySetVerificationMethodKey, DidMethod, DidResolutionOptions, DidResolutionResult, DidService, DwnServiceEndpoint, PortableDid } from './types.js';
 
 import { getServices, isDwnServiceEndpoint, parseDid } from './utils.js';
 
@@ -192,6 +192,61 @@ export class DidIonMethod implements DidMethod {
     };
 
     return createRequest;
+  }
+
+  /**
+   * Generates two key pairs used for authorization and encryption purposes
+   * when interfacing with DWNs. The IDs of these keys are referenced in the
+   * service object that includes the dwnUrls provided.
+   */
+  public static async generateDwnOptions(options: {
+    encryptionKeyId?: string,
+    serviceEndpointNodes: string[],
+    serviceId?: string,
+    signingKeyAlgorithm?: typeof SupportedCryptoAlgorithms[number]
+    signingKeyId?: string,
+  }): Promise<DidIonCreateOptions> {
+    const {
+      signingKeyAlgorithm = 'Ed25519', // Generate Ed25519 key pairs, by default.
+      serviceId = '#dwn', // Use default ID value, unless overridden.
+      signingKeyId = '#dwn-sig', // Use default key ID value, unless overridden.
+      encryptionKeyId = '#dwn-enc', // Use default key ID value, unless overridden.
+      serviceEndpointNodes } = options;
+
+    const signingKeyPair = await DidIonMethod.generateJwkKeyPair({
+      keyAlgorithm : signingKeyAlgorithm,
+      keyId        : signingKeyId
+    });
+
+    /** Currently, `dwn-sdk-js` has only implemented support for record
+     * encryption using the `ECIES-ES256K` crypto algorithm. Until the
+     * DWN SDK supports ECIES with EdDSA, the encryption key pair must
+     * use secp256k1. */
+    const encryptionKeyPair = await DidIonMethod.generateJwkKeyPair({
+      keyAlgorithm : 'secp256k1',
+      keyId        : encryptionKeyId
+    });
+
+    const keySet: DidIonKeySet = {
+      verificationMethodKeys: [
+        { ...signingKeyPair, relationships: ['authentication'] },
+        { ...encryptionKeyPair, relationships: ['keyAgreement'] }
+      ]
+    };
+
+    const serviceEndpoint: DwnServiceEndpoint = {
+      encryptionKeys : [encryptionKeyId],
+      nodes          : serviceEndpointNodes,
+      signingKeys    : [signingKeyId]
+    };
+
+    const services: DidService[] = [{
+      id   : serviceId,
+      serviceEndpoint,
+      type : 'DecentralizedWebNode',
+    }];
+
+    return { keySet, services };
   }
 
   public static async generateJwkKeyPair(options: {

@@ -29,10 +29,10 @@ export class Protocol {
 
   async send(target: string) {
     const { reply } = await this._agent.sendDwnRequest({
-      messageType : 'ProtocolsConfigure',
       author      : this._metadata.author,
+      messageCid  : this._metadata.messageCid,
+      messageType : 'ProtocolsConfigure',
       target      : target,
-      messageCid  : this._metadata.messageCid
     });
 
     return { status: reply.status };

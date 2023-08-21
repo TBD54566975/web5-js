@@ -3,7 +3,7 @@
   "published": false,
   "types": {
     "email": {
-      "schema": "email",
+      "schema": "http://email-protocol.xyz/schema/email",
       "dataFormats": ["text/plain"]
     }
   },

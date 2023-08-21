@@ -1,4 +1,4 @@
-import type { Web5Agent } from '@web5/agent';
+import type { DwnResponse, Web5Agent } from '@web5/agent';
 import type {
   UnionMessageReply,
   RecordsReadOptions,
@@ -139,15 +139,22 @@ export class DwnApi {
        * TODO: Document method.
        */
       query: async (request: ProtocolsQueryRequest): Promise<ProtocolsQueryResponse> => {
-        const agentResponse = await this.agent.processDwnRequest({
+        const agentRequest = {
           author         : this.connectedDid,
           messageOptions : request.message,
           messageType    : DwnInterfaceName.Protocols + DwnMethodName.Query,
-          target         : this.connectedDid
-        });
+          target         : request.from || this.connectedDid
+        };
 
-        const { reply: { entries, status } } = agentResponse;
-        // const protocols = entries as ProtocolsQueryReplyEntry[];
+        let agentResponse: DwnResponse;
+
+        if (request.from) {
+          agentResponse = await this.agent.sendDwnRequest(agentRequest);
+        } else {
+          agentResponse = await this.agent.processDwnRequest(agentRequest);
+        }
+
+        const { reply: { entries = [], status } } = agentResponse;
 
         const protocols = entries.map((entry: ProtocolsQueryReplyEntry) => {
           const metadata = { author: this.connectedDid, };

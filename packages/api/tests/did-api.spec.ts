@@ -1,11 +1,11 @@
 import { expect } from 'chai';
 import { TestManagedAgent } from '@web5/agent';
 
-import { VcApi } from '../src/vc-api.js';
+import { DidApi } from '../src/did-api.js';
 import { TestUserAgent } from './utils/test-user-agent.js';
 
-describe('web5.vc', () => {
-  let vc: VcApi;
+describe('DidApi', () => {
+  let did: DidApi;
   let testAgent: TestManagedAgent;
 
   before(async () => {
@@ -28,8 +28,8 @@ describe('web5.vc', () => {
       kms       : 'local'
     });
 
-    // Instantiate VcApi.
-    vc = new VcApi({ agent: testAgent.agent, connectedDid: identity.did });
+    // Instantiate DwnApi.
+    did = new DidApi({ agent: testAgent.agent, connectedDid: identity.did });
   });
 
   after(async () => {
@@ -37,14 +37,7 @@ describe('web5.vc', () => {
     await testAgent.closeStorage();
   });
 
-  describe('create()', () => {
-    it('is not implemented', async () => {
-      try {
-        await vc.create();
-        expect.fail('Expected method to throw, but it did not.');
-      } catch(e) {
-        expect(e.message).to.include('Not implemented.');
-      }
-    });
+  it('needs tests', () => {
+    expect(did).to.exist;
   });
 });

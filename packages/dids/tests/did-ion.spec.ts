@@ -6,7 +6,13 @@ import chaiAsPromised from 'chai-as-promised';
 
 chai.use(chaiAsPromised);
 
-import { DidDocument, DidKeySetVerificationMethodKey, DidService } from '../src/types.js';
+import type {
+  DidService,
+  DidDocument,
+  DwnServiceEndpoint,
+  DidKeySetVerificationMethodKey,
+} from '../src/types.js';
+
 import { didIonCreateTestVectors } from './fixtures/test-vectors/did-ion.js';
 import { DidIonCreateOptions, DidIonKeySet, DidIonMethod } from '../src/did-ion.js';
 
@@ -360,6 +366,69 @@ describe('DidIonMethod', () => {
       const decodedLongFormDid = await DidIonMethod.decodeLongFormDid({ didUrl: did });
 
       expect(decodedLongFormDid).to.deep.equal(createRequest);
+    });
+  });
+
+  describe('generateDwnOptions()', () => {
+    it('returns keys and services with two DWN URLs', async () => {
+      const ionCreateOptions = await DidIonMethod.generateDwnOptions({
+        serviceEndpointNodes: [
+          'https://dwn.tbddev.test/dwn0',
+          'https://dwn.tbddev.test/dwn1'
+        ]});
+
+      expect(ionCreateOptions).to.have.property('keySet');
+      expect(ionCreateOptions.keySet.verificationMethodKeys).to.have.length(2);
+      const authorizationKey = ionCreateOptions.keySet.verificationMethodKeys.find(key => key.privateKeyJwk.kid === '#dwn-sig');
+      expect(authorizationKey).to.exist;
+      const encryptionKey = ionCreateOptions.keySet.verificationMethodKeys.find(key => key.privateKeyJwk.kid === '#dwn-enc');
+      expect(encryptionKey).to.exist;
+
+      expect(ionCreateOptions).to.have.property('services');
+      expect(ionCreateOptions.services).to.have.length(1);
+
+      const [ service ] = ionCreateOptions.services;
+      expect(service.id).to.equal('#dwn');
+      expect(service).to.have.property('serviceEndpoint');
+
+      const serviceEndpoint = service.serviceEndpoint as DwnServiceEndpoint;
+      expect(serviceEndpoint).to.have.property('nodes');
+      expect(serviceEndpoint.nodes).to.have.length(2);
+      expect(serviceEndpoint).to.have.property('signingKeys');
+      expect(serviceEndpoint.signingKeys[0]).to.equal(authorizationKey.publicKeyJwk.kid);
+      expect(serviceEndpoint).to.have.property('encryptionKeys');
+      expect(serviceEndpoint.encryptionKeys[0]).to.equal(encryptionKey.publicKeyJwk.kid);
+    });
+
+    it('returns keys and services with one DWN URLs', async () => {
+      const ionCreateOptions = await DidIonMethod.generateDwnOptions({
+        serviceEndpointNodes: [
+          'https://dwn.tbddev.test/dwn0'
+        ]});
+
+      const [ service ] = ionCreateOptions.services!;
+      expect(service.id).to.equal('#dwn');
+      expect(service).to.have.property('serviceEndpoint');
+
+      const serviceEndpoint = service.serviceEndpoint as DwnServiceEndpoint;
+      expect(serviceEndpoint).to.have.property('nodes');
+      expect(serviceEndpoint.nodes).to.have.length(1);
+      expect(serviceEndpoint).to.have.property('signingKeys');
+      expect(serviceEndpoint).to.have.property('encryptionKeys');
+    });
+
+    it('returns keys and services with 0 DWN URLs', async () => {
+      const ionCreateOptions = await DidIonMethod.generateDwnOptions({ serviceEndpointNodes: [] });
+
+      const [ service ] = ionCreateOptions.services!;
+      expect(service.id).to.equal('#dwn');
+      expect(service).to.have.property('serviceEndpoint');
+
+      const serviceEndpoint = service.serviceEndpoint as DwnServiceEndpoint;
+      expect(serviceEndpoint).to.have.property('nodes');
+      expect(serviceEndpoint.nodes).to.have.length(0);
+      expect(serviceEndpoint).to.have.property('signingKeys');
+      expect(serviceEndpoint).to.have.property('encryptionKeys');
     });
   });
 
