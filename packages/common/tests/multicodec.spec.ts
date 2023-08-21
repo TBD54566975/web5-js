@@ -53,23 +53,23 @@ describe('Multicodec', () => {
     it('throws an error when code and name input data missing', () => {
       expect(
         () => Multicodec.addPrefix({ data: new Uint8Array(0) })
-      ).to.throw(Error, `Exactly one of 'name' or 'code' must be defined.`);
+      ).to.throw(Error, `Either 'name' or 'code' must be defined, but not both.`);
     });
 
     it('throws an error when both code and name specified', () => {
       expect(
         () => Multicodec.addPrefix({ code: 0x99999, name: 'non-existent', data: new Uint8Array(0) })
-      ).to.throw(Error, `Exactly one of 'name' or 'code' must be defined.`);
+      ).to.throw(Error, `Either 'name' or 'code' must be defined, but not both.`);
     });
 
     it('throws an error when codec not found', () => {
       expect(
         () => Multicodec.addPrefix({ code: 0x99999, data: new Uint8Array(0) })
-      ).to.throw(Error, 'Multicodec not found');
+      ).to.throw(Error, 'Unsupported multicodec: 629145');
 
       expect(
         () => Multicodec.addPrefix({ name: 'non-existent', data: new Uint8Array(0) })
-      ).to.throw(Error, 'Multicodec not found');
+      ).to.throw(Error, 'Unsupported multicodec: non-existent');
     });
   });
 
@@ -86,17 +86,30 @@ describe('Multicodec', () => {
   });
 
   describe('removePrefix()', () => {
-    it('returns Uint8Array with prefixed codec removed', () => {
+    it('returns code, name, and data', () => {
+      const input = new Uint8Array([0xed, 0x01, 0, 1, 2, 3]);
+
+      const { code, data, name } = Multicodec.removePrefix({ prefixedData: input });
+
+      expect(code).to.be.a('Number');
+      expect(data).to.be.a('Uint8Array');
+      expect(name).to.be.a('String');
+    });
+
+    it('returns data as Uint8Array with prefixed codec removed', () => {
       const input = new Uint8Array([0xed, 0x01, 0, 1, 2, 3]);
       const output = new Uint8Array([0, 1, 2, 3]);
 
-      const data = Multicodec.removePrefix({ prefixedData: input });
+      const { data } = Multicodec.removePrefix({ prefixedData: input });
 
       expect(data).to.be.a('Uint8Array');
       expect(data).to.deep.equal(output);
     });
 
     it('passes Multicodec test vectors', () => {
+      Multicodec.registerCodec({ code: 0x3ffff, name: 'test-vector-3' });
+      Multicodec.registerCodec({ code: 0x3fffff, name: 'test-vector-4' });
+
       // Test vectors.
       const testVectors: [ArrayLike<number>, ArrayLike<number>][] = [
         [[0xed, 0x01, 0, 1], [0, 1]],
@@ -108,10 +121,22 @@ describe('Multicodec', () => {
       testVectors.forEach(([input, output]) => {
         const prefixedData = new Uint8Array(input);
         const [_, codeByteLength] = varint.decode(prefixedData);
-        const data = Multicodec.removePrefix({ prefixedData });
+        const { data } = Multicodec.removePrefix({ prefixedData });
         expect(data.byteLength).to.equal(prefixedData.byteLength - codeByteLength);
         expect(data).to.deep.equal(new Uint8Array(output));
       });
+    });
+
+    it('throws an error when codec not found', () => {
+      const prefix = new Uint8Array([100, 100]);
+      const data = new Uint8Array([1, 2, 3, 4, 5]);
+      const dataWithPrefix = new Uint8Array(prefix.byteLength + data.byteLength);
+      dataWithPrefix.set(prefix, 0);
+      dataWithPrefix.set(data, prefix.length);
+
+      expect(
+        () => Multicodec.removePrefix({ prefixedData: dataWithPrefix })
+      ).to.throw(Error, 'Unsupported multicodec: 100');
     });
   });
 });

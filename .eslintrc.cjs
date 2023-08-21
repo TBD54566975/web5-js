@@ -15,7 +15,7 @@ module.exports = {
   },
   'ignorePatterns': [
     'dist',
-    '__tests__'
+    '**/tests/compiled'
   ],
   rules: {
     'key-spacing': [

@@ -1,0 +1,107 @@
+{
+  "name": "@web5/agent",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "scripts": {
+    "clean": "rimraf dist coverage tests/compiled",
+    "build:esm": "rimraf dist/esm dist/types && npx tsc -p tsconfig.json",
+    "build:cjs": "rimraf dist/cjs && tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
+    "build:browser": "rimraf dist/browser.mjs dist/browser.js && node build/bundles.js",
+    "build:tests:node": "rimraf tests/compiled && tsc -p tests/tsconfig.json",
+    "build": "npm run clean && npm run build:esm && npm run build:cjs && npm run build:browser",
+    "lint": "eslint . --ext .ts --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "test:node": "npm run build:tests:node && c8 mocha",
+    "test:browser": "karma start karma.conf.cjs"
+  },
+  "homepage": "https://github.com/TBD54566975/web5-js/tree/main/packages/agent#readme",
+  "bugs": "https://github.com/TBD54566975/web5-js/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TBD54566975/web5-js",
+    "directory": "packages/agent"
+  },
+  "license": "Apache-2.0",
+  "contributors": [
+    {
+      "name": "Daniel Buchner",
+      "url": "https://github.com/csuwildcat"
+    },
+    {
+      "name": "Frank Hinek",
+      "url": "https://github.com/frankhinek"
+    },
+    {
+      "name": "Moe Jangda",
+      "url": "https://github.com/mistermoe"
+    }
+  ],
+  "files": [
+    "dist",
+    "src"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    }
+  },
+  "react-native": "./dist/esm/index.js",
+  "keywords": [
+    "decentralized",
+    "decentralized-applications",
+    "decentralized-identity",
+    "decentralized-web",
+    "vcs",
+    "verifiable credentials",
+    "web5"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@tbd54566975/dwn-sdk-js": "0.2.1",
+    "@web5/common": "0.2.0",
+    "@web5/crypto": "0.2.0",
+    "@web5/dids": "0.2.0",
+    "level": "8.0.0",
+    "readable-stream": "4.4.2",
+    "readable-web-to-node-stream": "3.0.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.36.2",
+    "@types/chai": "4.3.5",
+    "@types/chai-as-promised": "7.1.5",
+    "@types/eslint": "8.44.2",
+    "@types/mocha": "10.0.1",
+    "@types/readable-stream": "4.0.0",
+    "@typescript-eslint/eslint-plugin": "6.4.0",
+    "@typescript-eslint/parser": "6.4.0",
+    "c8": "8.0.1",
+    "chai": "4.3.7",
+    "chai-as-promised": "7.1.1",
+    "esbuild": "0.16.17",
+    "eslint": "8.47.0",
+    "eslint-plugin-mocha": "10.1.0",
+    "karma": "6.4.1",
+    "karma-chai": "0.1.0",
+    "karma-chrome-launcher": "3.1.1",
+    "karma-esbuild": "2.2.5",
+    "karma-firefox-launcher": "2.1.2",
+    "karma-mocha": "2.0.1",
+    "karma-mocha-reporter": "2.2.5",
+    "karma-webkit-launcher": "2.1.0",
+    "mocha": "10.2.0",
+    "node-stdlib-browser": "1.2.0",
+    "playwright": "1.36.2",
+    "rimraf": "4.4.0",
+    "typescript": "5.1.6"
+  }
+}

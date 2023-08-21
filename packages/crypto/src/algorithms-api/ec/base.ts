@@ -1,8 +1,8 @@
-import type { Web5Crypto } from '../../types/index.js';
+import type { Web5Crypto } from '../../types/web5-crypto.js';
 
 import { InvalidAccessError } from '../errors.js';
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
-import { checkValidProperty, checkRequiredProperty } from '../../utils-new.js';
+import { checkValidProperty, checkRequiredProperty } from '../../utils.js';
 
 export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
 
@@ -23,11 +23,11 @@ export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
     this.checkKeyUsages({ keyUsages, allowedKeyUsages: this.keyUsages });
   }
 
-  public override async decrypt(): Promise<ArrayBuffer> {
+  public override async decrypt(): Promise<Uint8Array> {
     throw new InvalidAccessError(`Requested operation 'decrypt' is not valid for ${this.name} keys.`);
   }
 
-  public override async encrypt(): Promise<ArrayBuffer> {
+  public override async encrypt(): Promise<Uint8Array> {
     throw new InvalidAccessError(`Requested operation 'encrypt' is not valid for ${this.name} keys.`);
   }
 

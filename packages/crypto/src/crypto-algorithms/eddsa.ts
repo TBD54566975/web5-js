@@ -1,6 +1,7 @@
-import type { BufferKeyPair, Web5Crypto } from '../types/index.js';
+import type { Web5Crypto } from '../types/web5-crypto.js';
+import type { BytesKeyPair } from '../types/crypto-key.js';
 
-import { isBufferKeyPair } from '../utils-new.js';
+import { isBytesKeyPair } from '../utils.js';
 import { Ed25519 } from '../crypto-primitives/index.js';
 import { CryptoKey, BaseEdDsaAlgorithm } from '../algorithms-api/index.js';
 
@@ -16,7 +17,7 @@ export class EdDsaAlgorithm extends BaseEdDsaAlgorithm {
 
     this.checkGenerateKey({ algorithm, keyUsages });
 
-    let keyPair: BufferKeyPair | undefined;
+    let keyPair: BytesKeyPair | undefined;
     let cryptoKeyPair: Web5Crypto.CryptoKeyPair;
 
     switch (algorithm.namedCurve) {
@@ -28,7 +29,7 @@ export class EdDsaAlgorithm extends BaseEdDsaAlgorithm {
       // Default case not needed because checkGenerateKey() already validates the specified namedCurve is supported.
     }
 
-    if (!isBufferKeyPair(keyPair)) {
+    if (!isBytesKeyPair(keyPair)) {
       throw new Error('Operation failed to generate key pair.');
     }
 
@@ -43,8 +44,8 @@ export class EdDsaAlgorithm extends BaseEdDsaAlgorithm {
   public async sign(options: {
     algorithm: Web5Crypto.EdDsaOptions,
     key: Web5Crypto.CryptoKey,
-    data: BufferSource
-  }): Promise<ArrayBuffer> {
+    data: Uint8Array
+  }): Promise<Uint8Array> {
     const { algorithm, key, data } = options;
 
     this.checkAlgorithmOptions({ algorithm });
@@ -55,14 +56,14 @@ export class EdDsaAlgorithm extends BaseEdDsaAlgorithm {
     // The key must be allowed to be used for sign operations.
     this.checkKeyUsages({ keyUsages: ['sign'], allowedKeyUsages: key.usages });
 
-    let signature: ArrayBuffer;
+    let signature: Uint8Array;
 
     const keyAlgorithm = key.algorithm as Web5Crypto.EdDsaGenerateKeyOptions; // Type guard.
 
     switch (keyAlgorithm.namedCurve) {
 
       case 'Ed25519': {
-        signature = await Ed25519.sign({ key: key.handle, data });
+        signature = await Ed25519.sign({ key: key.material, data });
         break;
       }
 
@@ -76,8 +77,8 @@ export class EdDsaAlgorithm extends BaseEdDsaAlgorithm {
   public async verify(options: {
     algorithm: Web5Crypto.EdDsaOptions;
     key: Web5Crypto.CryptoKey;
-    signature: ArrayBuffer;
-    data: BufferSource;
+    signature: Uint8Array;
+    data: Uint8Array;
   }): Promise<boolean> {
     const { algorithm, key, signature, data } = options;
 
@@ -96,7 +97,7 @@ export class EdDsaAlgorithm extends BaseEdDsaAlgorithm {
     switch (keyAlgorithm.namedCurve) {
 
       case 'Ed25519': {
-        isValid = await Ed25519.verify({ key: key.handle, signature, data });
+        isValid = await Ed25519.verify({ key: key.material, signature, data });
         break;
       }
 

@@ -7,7 +7,7 @@ import { crypto } from '@noble/hashes/crypto';
  * cryptographic operations.
  *
  * All methods of this class are asynchronous and return Promises. They all
- * use the ArrayBuffer type for keys and data, providing a consistent
+ * use the Uint8Array type for keys and data, providing a consistent
  * interface for working with binary data.
  *
  * Example usage:
@@ -41,26 +41,30 @@ export class AesGcm {
    * @param options.iv - A unique initialization vector.
    * @param options.key - The key to use for decryption.
    * @param options.tagLength - This size of the authentication tag generated in bits.
-   * @returns A Promise that resolves to the decrypted data as an ArrayBuffer.
+   * @returns A Promise that resolves to the decrypted data as a Uint8Array.
    */
   public static async decrypt(options: {
-    additionalData?: BufferSource,
-    data: BufferSource,
-    iv: BufferSource,
-    key: ArrayBuffer,
+    additionalData?: Uint8Array,
+    data: Uint8Array,
+    iv: Uint8Array,
+    key: Uint8Array,
     tagLength?: number
-  }): Promise<ArrayBuffer> {
+  }): Promise<Uint8Array> {
     const { additionalData, data, iv, key, tagLength } = options;
 
     const webCryptoKey = await this.importKey(key);
 
+    // Web browsers throw an error if additionalData is undefined.
     const algorithm = (additionalData === undefined)
       ? { name: 'AES-GCM', iv, tagLength }
       : { name: 'AES-GCM', additionalData, iv, tagLength };
 
-    const ciphertext = await crypto.subtle.decrypt(algorithm, webCryptoKey, data);
+    const plaintextBuffer = await crypto.subtle.decrypt(algorithm, webCryptoKey, data);
 
-    return ciphertext;
+    // Convert from ArrayBuffer to Uint8Array.
+    const plaintext = new Uint8Array(plaintextBuffer);
+
+    return plaintext;
   }
 
   /**
@@ -72,44 +76,48 @@ export class AesGcm {
    * @param options.iv - A unique initialization vector.
    * @param options.key - The key to use for decryption.
    * @param options.tagLength - This size of the authentication tag generated in bits.
-   * @returns A Promise that resolves to the encrypted data as an ArrayBuffer.
+   * @returns A Promise that resolves to the encrypted data as a Uint8Array.
    */
   public static async encrypt(options: {
-    additionalData?: BufferSource,
-    data: BufferSource,
-    iv: BufferSource,
-    key: ArrayBuffer,
+    additionalData?: Uint8Array,
+    data: Uint8Array,
+    iv: Uint8Array,
+    key: Uint8Array,
     tagLength?: number
-  }): Promise<ArrayBuffer> {
+  }): Promise<Uint8Array> {
     const { additionalData, data, iv, key, tagLength } = options;
 
     const webCryptoKey = await this.importKey(key);
 
+    // Web browsers throw an error if additionalData is undefined.
     const algorithm = (additionalData === undefined)
       ? { name: 'AES-GCM', iv, tagLength }
       : { name: 'AES-GCM', additionalData, iv, tagLength };
 
-    const plaintext = await crypto.subtle.encrypt(algorithm, webCryptoKey, data);
+    const ciphertextBuffer = await crypto.subtle.encrypt(algorithm, webCryptoKey, data);
 
-    return plaintext;
+    // Convert from ArrayBuffer to Uint8Array.
+    const ciphertext = new Uint8Array(ciphertextBuffer);
+
+    return ciphertext;
   }
 
   /**
    * Generates an AES key of a given length.
    *
    * @param length - The length of the key in bits.
-   * @returns A Promise that resolves to the generated key as an ArrayBuffer.
+   * @returns A Promise that resolves to the generated key as a Uint8Array.
    */
   public static async generateKey(options: {
     length: number
-  }): Promise<ArrayBuffer> {
+  }): Promise<Uint8Array> {
     const { length } = options;
 
     // Generate the secret key.
     const lengthInBytes = length / 8;
     const secretKey = crypto.getRandomValues(new Uint8Array(lengthInBytes));
 
-    return secretKey.buffer;
+    return secretKey;
   }
 
   /**
@@ -118,10 +126,10 @@ export class AesGcm {
    * @param key - The raw key material.
    * @returns A Promise that resolves to a CryptoKey.
    */
-  private static async importKey(key: ArrayBuffer): Promise<CryptoKey> {
+  private static async importKey(key: Uint8Array): Promise<CryptoKey> {
     return crypto.subtle.importKey(
       'raw',
-      key,
+      key.buffer,
       { name: 'AES-GCM', length: key.byteLength * 8 },
       true,
       ['encrypt', 'decrypt']

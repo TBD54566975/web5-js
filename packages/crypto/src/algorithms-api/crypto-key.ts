@@ -1,16 +1,16 @@
-import type { Web5Crypto } from '../types/index.js';
+import type { Web5Crypto } from '../types/web5-crypto.js';
 
 export class CryptoKey implements Web5Crypto.CryptoKey {
   public algorithm: Web5Crypto.GenerateKeyOptions;
   public extractable: boolean;
-  public handle: ArrayBuffer;
+  public material: Uint8Array;
   public type: Web5Crypto.KeyType;
   public usages: Web5Crypto.KeyUsage[];
 
-  constructor (algorithm: Web5Crypto.GenerateKeyOptions, extractable: boolean, handle: ArrayBuffer, type: Web5Crypto.KeyType, usages: Web5Crypto.KeyUsage[]) {
+  constructor (algorithm: Web5Crypto.GenerateKeyOptions, extractable: boolean, material: Uint8Array, type: Web5Crypto.KeyType, usages: Web5Crypto.KeyUsage[]) {
     this.algorithm = algorithm;
     this.extractable = extractable;
-    this.handle = handle;
+    this.material = material;
     this.type = type;
     this.usages = usages;
 
@@ -46,10 +46,10 @@ export class CryptoKey implements Web5Crypto.CryptoKey {
       // this is the "key material" used internally
       // it is not enumerable, but we need it to be
       // accessible by algorithm implementations
-      handle: {
+      material: {
         enumerable : false,
         writable   : false,
-        value      : handle
+        value      : material
       }
     });
   }

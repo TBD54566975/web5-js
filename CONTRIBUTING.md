@@ -172,7 +172,7 @@ After one or more PRs have been approved and merged by project maintainers, a Gi
 version tag. The act of creating the GitHub release triggers automated publication of the package to the
 [NPM Registry](https://npmjs.com) which will be tagged as _latest_.
 
-The next time someone runs `npm install @tbd54566975/<package_name>` the newly published release will be installed.
+The next time someone runs `npm install @web5/<package_name>` the newly published release will be installed.
 
 #### Alpha Releases
 
@@ -198,5 +198,5 @@ the [NPM Registry](https://npmjs.com) within a few minutes.
 > **Note**
 > Alpha version will never be tagged as _latest_.
 
-To install an `alpha` tagged release use either the `npm install @tbd54566975/<package>@alpha` or
-`npm install @tbd5456975/<package>@x.y.z-alpha-YYYYMMDD-commithash` syntax.
+To install an `alpha` tagged release use either the `npm install @web5/<package>@alpha` or
+`npm install @web5/<package>@x.y.z-alpha-YYYYMMDD-commithash` syntax.

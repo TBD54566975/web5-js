@@ -96,11 +96,11 @@ export class Convert {
       }
 
       case 'Hex': {
-        return Convert.hex(this.data).toUint8Array().buffer;
+        return this.toUint8Array().buffer;
       }
 
       case 'String': {
-        return Convert.string(this.data).toUint8Array().buffer;
+        return this.toUint8Array().buffer;
       }
 
       case 'Uint8Array': {
@@ -141,6 +141,11 @@ export class Convert {
         return base64url.baseEncode(u8a);
       }
 
+      case 'BufferSource': {
+        const u8a = this.toUint8Array();
+        return base64url.baseEncode(u8a);
+      }
+
       case 'Object': {
         const string = JSON.stringify(this.data);
         const u8a = textEncoder.encode(string);
@@ -168,7 +173,12 @@ export class Convert {
     switch (this.format) {
 
       case 'ArrayBuffer': {
-        const u8a = new Uint8Array(this.data);
+        const u8a = this.toUint8Array();
+        return Convert.uint8Array(u8a).toHex();
+      }
+
+      case 'Base64Url': {
+        const u8a = this.toUint8Array();
         return Convert.uint8Array(u8a).toHex();
       }
 
@@ -181,7 +191,7 @@ export class Convert {
       }
 
       default:
-        throw new TypeError(`Conversion from ${this.format} to Object is not supported.`);
+        throw new TypeError(`Conversion from ${this.format} to Hex is not supported.`);
     }
   }
 

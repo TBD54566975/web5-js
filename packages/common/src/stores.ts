@@ -1,4 +1,35 @@
+import { Level } from 'level';
+
 import type { KeyValueStore } from './types.js';
+
+export class LevelStore implements KeyValueStore<string, any> {
+  private store: Level<string, string>;
+
+  constructor(location = 'DATASTORE') {
+    this.store = new Level(location);
+  }
+
+  async clear(): Promise<void> {
+    await this.store.clear();
+  }
+
+  async close(): Promise<void> {
+    await this.store.close();
+  }
+
+  async delete(key: string): Promise<boolean> {
+    await this.store.del(key);
+    return true;
+  }
+
+  async get(key: string): Promise<any> {
+    return await this.store.get(key);
+  }
+
+  async set(key: string, value: any): Promise<void> {
+    await this.store.put(key, value);
+  }
+}
 
 /**
  * The `MemoryStore` class is an implementation of
@@ -35,11 +66,11 @@ export class MemoryStore<K, V> implements KeyValueStore<K, V> {
   }
 
   /**
-   * This operation is not supported by `MemoryStore`
-   * and will throw an error if called.
+   * This operation is no-op for `MemoryStore`
+   * and will log a warning if called.
    */
   async close(): Promise<void> {
-    throw new Error('MemoryStore does not support the close() method.');
+    /** no-op */
   }
 
   /**

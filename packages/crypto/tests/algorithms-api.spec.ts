@@ -1,6 +1,7 @@
-import type { Web5Crypto } from '../src/types/index.js';
+import type { Web5Crypto } from '../src/types/web5-crypto.js';
 
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 
 import {
   CryptoKey,
@@ -16,25 +17,27 @@ import {
   BaseEllipticCurveAlgorithm,
 } from '../src/algorithms-api/index.js';
 
+chai.use(chaiAsPromised);
+
 describe('Algorithms API', () => {
   describe('CryptoAlgorithm', () => {
 
     class TestCryptoAlgorithm extends CryptoAlgorithm {
       public name = 'TestAlgorithm';
       public keyUsages: KeyUsage[] = ['decrypt', 'deriveBits', 'deriveKey', 'encrypt', 'sign', 'unwrapKey', 'verify', 'wrapKey'];
-      public async decrypt(): Promise<ArrayBuffer> {
+      public async decrypt(): Promise<Uint8Array> {
         return null as any;
       }
-      public async deriveBits(): Promise<ArrayBuffer> {
+      public async deriveBits(): Promise<Uint8Array> {
         return null as any;
       }
-      public async encrypt(): Promise<ArrayBuffer> {
+      public async encrypt(): Promise<Uint8Array> {
         return null as any;
       }
       public async generateKey(): Promise<Web5Crypto.CryptoKeyPair> {
         return { publicKey: {} as any, privateKey: {} as any };
       }
-      public async sign(): Promise<ArrayBuffer> {
+      public async sign(): Promise<Uint8Array> {
         return null as any;
       }
       public async verify(): Promise<boolean> {
@@ -62,7 +65,7 @@ describe('Algorithms API', () => {
       });
 
       it('throws an error if the algorithm name is missing', () => {
-        expect(() => alg.checkAlgorithmName({} as any)).to.throw(TypeError, 'Required argument missing');
+        expect(() => alg.checkAlgorithmName({} as any)).to.throw(TypeError, 'Required parameter missing');
       });
     });
 
@@ -75,7 +78,7 @@ describe('Algorithms API', () => {
           usages      : null
         };
         expect(() => alg.checkCryptoKey({
-          // @ts-expect-error because 'handle' property is intentionally omitted to support WebCrypto API CryptoKeys.
+          // @ts-expect-error because 'material' property is intentionally omitted to support WebCrypto API CryptoKeys.
           key: mockCryptoKey
         })).to.not.throw();
       });
@@ -95,7 +98,7 @@ describe('Algorithms API', () => {
 
     describe('checkKeyAlgorithm()', () => {
       it('throws an error when keyAlgorithmName is undefined', async () => {
-        expect(() => alg.checkKeyAlgorithm({} as any)).to.throw(TypeError, 'Required argument missing');
+        expect(() => alg.checkKeyAlgorithm({} as any)).to.throw(TypeError, 'Required parameter missing');
       });
 
       it('throws an error when keyAlgorithmName does not match', async () => {
@@ -111,9 +114,9 @@ describe('Algorithms API', () => {
 
     describe('checkKeyType()', () => {
       it('throws an error when keyType or allowedKeyType is undefined', async () => {
-        expect(() => alg.checkKeyType({} as any)).to.throw(TypeError, 'One or more required arguments missing');
-        expect(() => alg.checkKeyType({ keyType: 'public' } as any)).to.throw(TypeError, 'One or more required arguments missing');
-        expect(() => alg.checkKeyType({ allowedKeyType: 'public' } as any)).to.throw(TypeError, 'One or more required arguments missing');
+        expect(() => alg.checkKeyType({} as any)).to.throw(TypeError, 'One or more required parameters missing');
+        expect(() => alg.checkKeyType({ keyType: 'public' } as any)).to.throw(TypeError, 'One or more required parameters missing');
+        expect(() => alg.checkKeyType({ allowedKeyType: 'public' } as any)).to.throw(TypeError, 'One or more required parameters missing');
       });
 
       it('throws an error when keyType does not match allowedKeyType', async () => {
@@ -131,8 +134,8 @@ describe('Algorithms API', () => {
 
     describe('checkKeyUsages()', () => {
       it('throws an error when keyUsages is undefined or empty', async () => {
-        expect(() => alg.checkKeyUsages({ allowedKeyUsages: ['sign'] } as any)).to.throw(TypeError, 'required parameter was missing or empty');
-        expect(() => alg.checkKeyUsages({ keyUsages: [], allowedKeyUsages: ['sign'] })).to.throw(TypeError, 'required parameter was missing or empty');
+        expect(() => alg.checkKeyUsages({ allowedKeyUsages: ['sign'] } as any)).to.throw(TypeError, 'Required parameter missing or empty');
+        expect(() => alg.checkKeyUsages({ keyUsages: [], allowedKeyUsages: ['sign'] })).to.throw(TypeError, 'Required parameter missing or empty');
       });
 
       it('throws an error when keyUsages are not in allowedKeyUsages', async () => {
@@ -159,10 +162,10 @@ describe('Algorithms API', () => {
     class TestAesAlgorithm extends BaseAesAlgorithm {
       public name = 'TestAlgorithm';
       public keyUsages: KeyUsage[] = ['decrypt', 'encrypt'];
-      public async decrypt(): Promise<ArrayBuffer> {
+      public async decrypt(): Promise<Uint8Array> {
         return null as any;
       }
-      public async encrypt(): Promise<ArrayBuffer> {
+      public async encrypt(): Promise<Uint8Array> {
         return null as any;
       }
       public async generateKey(): Promise<Web5Crypto.CryptoKey> {
@@ -196,7 +199,7 @@ describe('Algorithms API', () => {
           // @ts-expect-error because length was intentionally omitted.
           algorithm : { name: 'TestAlgorithm' },
           keyUsages : ['encrypt']
-        })).to.throw(TypeError, 'Required parameter was missing');
+        })).to.throw(TypeError, 'Required parameter missing');
       });
 
       it('throws an error when the specified length is not a Number', () => {
@@ -257,7 +260,7 @@ describe('Algorithms API', () => {
       let dataEncryptionKey: Web5Crypto.CryptoKey;
 
       beforeEach(() => {
-        dataEncryptionKey = new CryptoKey({ name: 'AES-CTR', length: 128 }, false, new ArrayBuffer(32), 'secret', ['encrypt', 'decrypt']);
+        dataEncryptionKey = new CryptoKey({ name: 'AES-CTR', length: 128 }, false, new Uint8Array(32), 'secret', ['encrypt', 'decrypt']);
       });
 
       describe('checkAlgorithmOptions()', () => {
@@ -265,7 +268,7 @@ describe('Algorithms API', () => {
           expect(() => alg.checkAlgorithmOptions({
             algorithm: {
               name    : 'AES-CTR',
-              counter : new ArrayBuffer(16),
+              counter : new Uint8Array(16),
               length  : 128
             },
             key: dataEncryptionKey
@@ -276,7 +279,7 @@ describe('Algorithms API', () => {
           expect(() => alg.checkAlgorithmOptions({
             algorithm: {
               name    : 'invalid-name',
-              counter : new ArrayBuffer(16),
+              counter : new Uint8Array(16),
               length  : 128
             },
             key: dataEncryptionKey
@@ -288,38 +291,17 @@ describe('Algorithms API', () => {
           expect(() => alg.checkAlgorithmOptions({ algorithm: {
             name   : 'AES-CTR',
             length : 128
-          }})).to.throw(TypeError, 'Required parameter was missing');
+          }})).to.throw(TypeError, 'Required parameter missing');
         });
 
-        it('accepts counter as ArrayBuffer, DataView, and TypedArray', () => {
-          const dataU8A = new Uint8Array(16);
+        it('accepts counter as Uint8Array', () => {
+          const data = new Uint8Array(16);
           const algorithm: { name?: string, counter?: any, length?: number } = {};
           algorithm.name = 'AES-CTR';
           algorithm.length = 128;
 
-          // ArrayBuffer
-          algorithm.counter = dataU8A.buffer;
-          expect(() => alg.checkAlgorithmOptions({
-            algorithm : algorithm as Web5Crypto.AesCtrOptions,
-            key       : dataEncryptionKey
-          })).to.not.throw();
-
-          // DataView
-          algorithm.counter = new DataView(dataU8A.buffer);
-          expect(() => alg.checkAlgorithmOptions({
-            algorithm : algorithm as Web5Crypto.AesCtrOptions,
-            key       : dataEncryptionKey
-          })).to.not.throw();
-
           // TypedArray - Uint8Array
-          algorithm.counter = dataU8A;
-          expect(() => alg.checkAlgorithmOptions({
-            algorithm : algorithm as Web5Crypto.AesCtrOptions,
-            key       : dataEncryptionKey
-          })).to.not.throw();
-
-          // TypedArray - Int8Array
-          algorithm.counter = new Int8Array(16);
+          algorithm.counter = data;
           expect(() => alg.checkAlgorithmOptions({
             algorithm : algorithm as Web5Crypto.AesCtrOptions,
             key       : dataEncryptionKey
@@ -342,7 +324,7 @@ describe('Algorithms API', () => {
           expect(() => alg.checkAlgorithmOptions({
             algorithm: {
               name    : 'AES-CTR',
-              counter : new ArrayBuffer(128),
+              counter : new Uint8Array(128),
               length  : 128
             },
             key: dataEncryptionKey
@@ -353,14 +335,14 @@ describe('Algorithms API', () => {
           // @ts-expect-error because lengthy property was intentionally omitted.
           expect(() => alg.checkAlgorithmOptions({ algorithm: {
             name    : 'AES-CTR',
-            counter : new ArrayBuffer(16)
-          }})).to.throw(TypeError, `Required parameter was missing: 'length'`);
+            counter : new Uint8Array(16)
+          }})).to.throw(TypeError, `Required parameter missing: 'length'`);
         });
 
         it('throws an error if length is not a Number', () => {
           expect(() => alg.checkAlgorithmOptions({ algorithm: {
             name    : 'AES-CTR',
-            counter : new ArrayBuffer(16),
+            counter : new Uint8Array(16),
             // @ts-expect-error because length is being intentionally specified as a string instead of a number.
             length  : '128'
           }})).to.throw(TypeError, 'is not of type');
@@ -370,7 +352,7 @@ describe('Algorithms API', () => {
           expect(() => alg.checkAlgorithmOptions({
             algorithm: {
               name    : 'AES-CTR',
-              counter : new ArrayBuffer(16),
+              counter : new Uint8Array(16),
               length  : 0
             },
             key: dataEncryptionKey
@@ -379,7 +361,7 @@ describe('Algorithms API', () => {
           expect(() => alg.checkAlgorithmOptions({
             algorithm: {
               name    : 'AES-CTR',
-              counter : new ArrayBuffer(16),
+              counter : new Uint8Array(16),
               length  : 256
             },
             key: dataEncryptionKey
@@ -390,40 +372,40 @@ describe('Algorithms API', () => {
           // @ts-expect-error because keyy property was intentionally omitted.
           expect(() => alg.checkAlgorithmOptions({ algorithm: {
             name    : 'AES-CTR',
-            counter : new ArrayBuffer(16),
+            counter : new Uint8Array(16),
             length  : 64
-          }})).to.throw(TypeError, `Required parameter was missing: 'key'`);
+          }})).to.throw(TypeError, `Required parameter missing: 'key'`);
         });
 
         it('throws an error if the given key is not valid', () => {
           // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
           delete dataEncryptionKey.extractable;
           expect(() => alg.checkAlgorithmOptions({
-            algorithm : { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 64 },
+            algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 64 },
             key       : dataEncryptionKey
           })).to.throw(TypeError, 'Object is not a CryptoKey');
         });
 
         it('throws an error if the algorithm of the key does not match', () => {
-          const dataEncryptionKey = new CryptoKey({ name: 'non-existent-algorithm', length: 128 }, false, new ArrayBuffer(32), 'secret', ['encrypt', 'decrypt']);
+          const dataEncryptionKey = new CryptoKey({ name: 'non-existent-algorithm', length: 128 }, false, new Uint8Array(32), 'secret', ['encrypt', 'decrypt']);
           expect(() => alg.checkAlgorithmOptions({
-            algorithm : { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 64 },
+            algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 64 },
             key       : dataEncryptionKey
           })).to.throw(InvalidAccessError, 'does not match');
         });
 
         it('throws an error if a private key is specified as the key', () => {
-          const dataEncryptionKey = new CryptoKey({ name: 'AES-CTR', length: 128 }, false, new ArrayBuffer(32), 'private', ['encrypt', 'decrypt']);
+          const dataEncryptionKey = new CryptoKey({ name: 'AES-CTR', length: 128 }, false, new Uint8Array(32), 'private', ['encrypt', 'decrypt']);
           expect(() => alg.checkAlgorithmOptions({
-            algorithm : { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 64 },
+            algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 64 },
             key       : dataEncryptionKey
           })).to.throw(InvalidAccessError, 'Requested operation is not valid');
         });
 
         it('throws an error if a public key is specified as the key', () => {
-          const dataEncryptionKey = new CryptoKey({ name: 'AES-CTR', length: 128 }, false, new ArrayBuffer(32), 'public', ['encrypt', 'decrypt']);
+          const dataEncryptionKey = new CryptoKey({ name: 'AES-CTR', length: 128 }, false, new Uint8Array(32), 'public', ['encrypt', 'decrypt']);
           expect(() => alg.checkAlgorithmOptions({
-            algorithm : { name: 'AES-CTR', counter: new ArrayBuffer(16), length: 64 },
+            algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 64 },
             key       : dataEncryptionKey
           })).to.throw(InvalidAccessError, 'Requested operation is not valid');
         });
@@ -436,13 +418,13 @@ describe('Algorithms API', () => {
       public name = 'TestAlgorithm';
       public namedCurves = ['curveA'];
       public keyUsages: KeyUsage[] = ['decrypt'];
-      public async deriveBits(): Promise<ArrayBuffer> {
+      public async deriveBits(): Promise<Uint8Array> {
         return null as any;
       }
       public async generateKey(): Promise<Web5Crypto.CryptoKeyPair> {
         return { publicKey: {} as any, privateKey: {} as any };
       }
-      public async sign(): Promise<ArrayBuffer> {
+      public async sign(): Promise<Uint8Array> {
         return null as any;
       }
       public async verify(): Promise<boolean> {
@@ -515,8 +497,8 @@ describe('Algorithms API', () => {
         let ownPrivateKey: Web5Crypto.CryptoKey;
 
         beforeEach(() => {
-          otherPartyPublicKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'public', ['deriveBits', 'deriveKey']);
-          ownPrivateKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'private', ['deriveBits', 'deriveKey']);
+          otherPartyPublicKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new Uint8Array(32), 'public', ['deriveBits', 'deriveKey']);
+          ownPrivateKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new Uint8Array(32), 'private', ['deriveBits', 'deriveKey']);
         });
 
         it('does not throw with matching algorithm name and valid publicKey and baseKey', () => {
@@ -538,7 +520,7 @@ describe('Algorithms API', () => {
             // @ts-expect-error because `publicKey` property is intentionally omitted.
             algorithm : { name: 'ECDH' },
             baseKey   : ownPrivateKey
-          })).to.throw(TypeError, `Required parameter was missing: 'publicKey'`);
+          })).to.throw(TypeError, `Required parameter missing: 'publicKey'`);
         });
 
         it('throws an error if the given publicKey is not valid', () => {
@@ -551,7 +533,7 @@ describe('Algorithms API', () => {
         });
 
         it('throws an error if the algorithm of the publicKey does not match', () => {
-          const otherPartyPublicKey = new CryptoKey({ name: 'Nope', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'public', ['deriveBits', 'deriveKey']);
+          const otherPartyPublicKey = new CryptoKey({ name: 'Nope', namedCurve: 'X25519' }, false, new Uint8Array(32), 'public', ['deriveBits', 'deriveKey']);
           expect(() => alg.checkAlgorithmOptions({
             algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
             baseKey   : ownPrivateKey
@@ -559,7 +541,7 @@ describe('Algorithms API', () => {
         });
 
         it('throws an error if a private key is specified as the publicKey', () => {
-          const ecdhPrivateKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'private', ['deriveBits', 'deriveKey']);
+          const ecdhPrivateKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new Uint8Array(32), 'private', ['deriveBits', 'deriveKey']);
           expect(() => alg.checkAlgorithmOptions({
             algorithm : { name: 'ECDH', publicKey: ecdhPrivateKey },
             baseKey   : ownPrivateKey
@@ -570,7 +552,7 @@ describe('Algorithms API', () => {
           // @ts-expect-error because `baseKey` property is intentionally omitted.
           expect(() => alg.checkAlgorithmOptions({
             algorithm: { name: 'ECDH', publicKey: otherPartyPublicKey  }
-          })).to.throw(TypeError, `Required parameter was missing: 'baseKey'`);
+          })).to.throw(TypeError, `Required parameter missing: 'baseKey'`);
         });
 
         it('throws an error if the given baseKey is not valid', () => {
@@ -583,7 +565,7 @@ describe('Algorithms API', () => {
         });
 
         it('throws an error if the algorithm of the baseKey does not match', () => {
-          const ownPrivateKey = new CryptoKey({ name: 'non-existent-algorithm', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'private', ['deriveBits', 'deriveKey']);
+          const ownPrivateKey = new CryptoKey({ name: 'non-existent-algorithm', namedCurve: 'X25519' }, false, new Uint8Array(32), 'private', ['deriveBits', 'deriveKey']);
           expect(() => alg.checkAlgorithmOptions({
             algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
             baseKey   : ownPrivateKey
@@ -591,7 +573,7 @@ describe('Algorithms API', () => {
         });
 
         it('throws an error if a public key is specified as the baseKey', () => {
-          const ownPrivateKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'public', ['deriveBits', 'deriveKey']);
+          const ownPrivateKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new Uint8Array(32), 'public', ['deriveBits', 'deriveKey']);
           expect(() => alg.checkAlgorithmOptions({
             algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
             baseKey   : ownPrivateKey
@@ -599,7 +581,7 @@ describe('Algorithms API', () => {
         });
 
         it('throws an error if the named curve of the public and base keys does not match', () => {
-          const ownPrivateKey = new CryptoKey({ name: 'ECDH', namedCurve: 'secp256k1' }, false, new ArrayBuffer(32), 'private', ['deriveBits', 'deriveKey']);
+          const ownPrivateKey = new CryptoKey({ name: 'ECDH', namedCurve: 'secp256k1' }, false, new Uint8Array(32), 'private', ['deriveBits', 'deriveKey']);
           expect(() => alg.checkAlgorithmOptions({
             algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
             baseKey   : ownPrivateKey
@@ -648,11 +630,11 @@ describe('Algorithms API', () => {
           // @ts-expect-error because `hash` property is intentionally omitted.
           expect(() => alg.checkAlgorithmOptions({ algorithm: {
             name: 'ECDSA',
-          }})).to.throw(TypeError, 'Required parameter was missing');
+          }})).to.throw(TypeError, 'Required parameter missing');
         });
 
         it('throws an error if the given hash algorithm is not supported', () => {
-          const ecdhPublicKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new ArrayBuffer(32), 'public', ['deriveBits', 'deriveKey']);
+          const ecdhPublicKey = new CryptoKey({ name: 'ECDH', namedCurve: 'X25519' }, false, new Uint8Array(32), 'public', ['deriveBits', 'deriveKey']);
           // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
           delete ecdhPublicKey.extractable;
           expect(() => alg.checkAlgorithmOptions({ algorithm: {
