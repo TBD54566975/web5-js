@@ -1,77 +1,12 @@
-import type { DwnServiceEndpoint } from '@web5/dids';
-
 import sinon from 'sinon';
 import chai, { expect } from 'chai';
 
 import { chaiUrl } from './utils/chai-plugins.js';
-import { generateDwnConfiguration, getTechPreviewDwnEndpoints } from '../src/tech-preview.js';
+import { getTechPreviewDwnEndpoints } from '../src/tech-preview.js';
 
 chai.use(chaiUrl);
 
 describe('Tech Preview', () => {
-  describe('generateDwnConfiguration()', () => {
-    it('returns keys and services with two DWN URLs', async () => {
-      const ionCreateOptions = await generateDwnConfiguration({
-        dwnUrls: [
-          'https://dwn.tbddev.test/dwn0',
-          'https://dwn.tbddev.test/dwn1'
-        ]});
-
-      expect(ionCreateOptions).to.have.property('keySet');
-      expect(ionCreateOptions.keySet.verificationMethodKeys).to.have.length(2);
-      const authorizationKey = ionCreateOptions.keySet.verificationMethodKeys.find(key => key.privateKeyJwk.kid === '#dwn-sig');
-      expect(authorizationKey).to.exist;
-      const encryptionKey = ionCreateOptions.keySet.verificationMethodKeys.find(key => key.privateKeyJwk.kid === '#dwn-enc');
-      expect(encryptionKey).to.exist;
-
-      expect(ionCreateOptions).to.have.property('services');
-      expect(ionCreateOptions.services).to.have.length(1);
-
-      const [ service ] = ionCreateOptions.services;
-      expect(service.id).to.equal('#dwn');
-      expect(service).to.have.property('serviceEndpoint');
-
-      const serviceEndpoint = service.serviceEndpoint as DwnServiceEndpoint;
-      expect(serviceEndpoint).to.have.property('nodes');
-      expect(serviceEndpoint.nodes).to.have.length(2);
-      expect(serviceEndpoint).to.have.property('signingKeys');
-      expect(serviceEndpoint.signingKeys[0]).to.equal(authorizationKey.publicKeyJwk.kid);
-      expect(serviceEndpoint).to.have.property('encryptionKeys');
-      expect(serviceEndpoint.encryptionKeys[0]).to.equal(encryptionKey.publicKeyJwk.kid);
-    });
-
-    it('returns keys and services with one DWN URLs', async () => {
-      const ionCreateOptions = await generateDwnConfiguration({
-        dwnUrls: [
-          'https://dwn.tbddev.test/dwn0'
-        ]});
-
-      const [ service ] = ionCreateOptions.services!;
-      expect(service.id).to.equal('#dwn');
-      expect(service).to.have.property('serviceEndpoint');
-
-      const serviceEndpoint = service.serviceEndpoint as DwnServiceEndpoint;
-      expect(serviceEndpoint).to.have.property('nodes');
-      expect(serviceEndpoint.nodes).to.have.length(1);
-      expect(serviceEndpoint).to.have.property('signingKeys');
-      expect(serviceEndpoint).to.have.property('encryptionKeys');
-    });
-
-    it('returns keys and services with 0 DWN URLs', async () => {
-      const ionCreateOptions = await generateDwnConfiguration({ dwnUrls: [] });
-
-      const [ service ] = ionCreateOptions.services!;
-      expect(service.id).to.equal('#dwn');
-      expect(service).to.have.property('serviceEndpoint');
-
-      const serviceEndpoint = service.serviceEndpoint as DwnServiceEndpoint;
-      expect(serviceEndpoint).to.have.property('nodes');
-      expect(serviceEndpoint.nodes).to.have.length(0);
-      expect(serviceEndpoint).to.have.property('signingKeys');
-      expect(serviceEndpoint).to.have.property('encryptionKeys');
-    });
-  });
-
   describe('getTechPreviewDwnEndpoints()', () => {
     let fetchStub: sinon.SinonStub;
     let mockDwnEndpoints: Array<string>;

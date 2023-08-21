@@ -275,7 +275,7 @@ describe('DwnManager', () => {
         await testAgent.createAgentDid();
 
         const services = [{
-          id              : 'dwn',
+          id              : '#dwn',
           type            : 'DecentralizedWebNode',
           serviceEndpoint : {
             encryptionKeys : ['#dwn-enc'],

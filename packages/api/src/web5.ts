@@ -5,7 +5,8 @@ import { Web5UserAgent } from '@web5/user-agent';
 import { VcApi } from './vc-api.js';
 import { DwnApi } from './dwn-api.js';
 import { DidApi } from './did-api.js';
-import { generateDwnConfiguration, getTechPreviewDwnEndpoints } from './tech-preview.js';
+import { getTechPreviewDwnEndpoints } from './tech-preview.js';
+import { DidIonMethod } from '@web5/dids';
 
 /**
  * Override defaults configured during the technical preview phase.
@@ -87,8 +88,8 @@ export class Web5 {
 
         // If an existing identity is not found found, create a new one.
         if (identities.length === 0) {
-          const dwnUrls = techPreview?.dwnEndpoints ?? await getTechPreviewDwnEndpoints();
-          const didOptions = await generateDwnConfiguration({ dwnUrls });
+          const serviceEndpointNodes = techPreview?.dwnEndpoints ?? await getTechPreviewDwnEndpoints();
+          const didOptions = await DidIonMethod.generateDwnOptions({ serviceEndpointNodes });
           await userAgent.identityManager.create({
             name      : 'Default',
             didMethod : 'ion',

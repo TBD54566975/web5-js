@@ -1,10 +1,10 @@
 import type { KeyValueStore } from '@web5/common';
-import type { DidResolutionResult, DidResolverCache } from '@web5/dids';
+import type { DidResolutionResult, DidResolverCache, PortableDid } from '@web5/dids';
 
 import { Jose } from '@web5/crypto';
 import { Dwn } from '@tbd54566975/dwn-sdk-js';
-import { DidIonMethod, DidKeyMethod, DidResolver, DidResolverCacheLevel } from '@web5/dids';
 import { LevelStore, MemoryStore } from '@web5/common';
+import { DidIonMethod, DidKeyMethod, DidResolver, DidResolverCacheLevel } from '@web5/dids';
 import { MessageStoreLevel, DataStoreLevel, EventLogLevel } from '@tbd54566975/dwn-sdk-js/stores';
 
 import type { Web5ManagedAgent } from './types/agent.js';
@@ -16,8 +16,8 @@ import { KeyManager } from './key-manager.js';
 import { Web5RpcClient } from './rpc-client.js';
 import { AppDataVault } from './app-data-store.js';
 import { cryptoToPortableKeyPair } from './utils.js';
-import { IdentityManager } from './identity-manager.js';
 import { DidStoreDwn, DidStoreMemory } from './store-managed-did.js';
+import { IdentityManager, ManagedIdentity } from './identity-manager.js';
 import { IdentityStoreDwn, IdentityStoreMemory } from './store-managed-identity.js';
 import { KeyStoreDwn, KeyStoreMemory, PrivateKeyStoreDwn, PrivateKeyStoreMemory } from './store-managed-key.js';
 
@@ -165,6 +165,33 @@ export class TestManagedAgent {
 
     // Set the DID as the Agent's DID.
     this.agent.agentDid = agentDid.did;
+  }
+
+  public async createIdentity(options: {
+    keyAlgorithm?: 'Ed25519' | 'secp256k1';
+    testDwnUrls: string[]
+  }): Promise<{ did: PortableDid, identity: ManagedIdentity }> {
+    // Default to generating Ed25519 keys.
+    const { keyAlgorithm, testDwnUrls } = options;
+
+    const didOptions = await DidIonMethod.generateDwnOptions({
+      signingKeyAlgorithm  : keyAlgorithm,
+      serviceEndpointNodes : testDwnUrls
+    });
+
+    // Create a PortableDid.
+    const did = await DidIonMethod.create({
+      anchor: false,
+      ...didOptions
+    });
+
+    // Create a ManagedIdentity.
+    const identity: ManagedIdentity = {
+      did  : did.did,
+      name : 'Test'
+    };
+
+    return { did, identity };
   }
 
   private static useDiskStorage(options: { agent?: Web5ManagedAgent, testDataLocation: string }) {

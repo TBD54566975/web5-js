@@ -1,46 +1,4 @@
-import type { DidIonCreateOptions, DidIonKeySet, DidService } from '@web5/dids';
-
-import { DidIonMethod, utils as didUtils } from '@web5/dids';
-
-/**
- * Generates two key pairs used for authorization and encryption purposes
- * when interfacing with DWNs. The IDs of these keys are referenced in the
- * service object that includes the dwnUrls provided.
- */
-export async function generateDwnConfiguration(options: {
-  dwnUrls: string[]
-}): Promise<DidIonCreateOptions> {
-  const { dwnUrls } = options;
-
-  const signingKeyPair = await DidIonMethod.generateJwkKeyPair({
-    keyAlgorithm : 'Ed25519',
-    keyId        : '#dwn-sig'
-  });
-
-  const encryptionKeyPair = await DidIonMethod.generateJwkKeyPair({
-    keyAlgorithm : 'Ed25519',
-    keyId        : '#dwn-enc'
-  });
-
-  const keySet: DidIonKeySet = {
-    verificationMethodKeys: [
-      { ...signingKeyPair, relationships: ['authentication'] },
-      { ...encryptionKeyPair, relationships: ['keyAgreement'] }
-    ]
-  };
-
-  const services: DidService[] = [{
-    'id'              : '#dwn',
-    'type'            : 'DecentralizedWebNode',
-    'serviceEndpoint' : {
-      'nodes'          : dwnUrls,
-      'signingKeys'    : ['#dwn-sig'],
-      'encryptionKeys' : ['#dwn-enc']
-    }
-  }];
-
-  return { keySet, services };
-}
+import * as didUtils from '@web5/dids/utils';
 
 /**
  * Dynamically selects up to 2 DWN endpoints that are provided
