@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { Issuer, CredentialManifest, OutputDescriptor, InputDescriptor } from '../src/types.js';
 
-describe('Credential Manifest Types', () => {
+describe('CredentialManifest', () => {
   it('creates an Output Descriptor', () => {
     const outputDescriptor: OutputDescriptor = {
       id          : 'example-id',

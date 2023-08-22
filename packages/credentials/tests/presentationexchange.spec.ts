@@ -6,14 +6,14 @@ import { TestManagedAgent } from '../../agent/src/test-managed-agent.js';
 
 let testAgent: TestManagedAgent;
 
-describe('Presentation Exchange Unit Tests', () => {
+describe('PresentationExchange', () => {
   before(async () => {
     testAgent = await TestManagedAgent.create({
       agentClass  : TestAgent,
       agentStores : 'dwn'
     });
 
-    testAgent.createAgentDid();
+    await testAgent.createAgentDid();
   });
 
   describe('Full Presentation Exchange', () => {
@@ -27,6 +27,11 @@ describe('Presentation Exchange Unit Tests', () => {
 
       btcCredentialJwt = await createBtcCredentialJwt(aliceDid);
       presentationDefinition = createPresentationDefinition();
+    });
+
+    after(async () => {
+      await testAgent.clearStorage();
+      await testAgent.closeStorage();
     });
 
     it('should evaluate credentials without any errors or warnings', async () => {
