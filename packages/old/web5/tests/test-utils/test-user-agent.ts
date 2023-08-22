@@ -1,7 +1,7 @@
 import type { DidIonCreateOptions } from '@tbd54566975/dids';
 
 import { DidIonApi, DidKeyApi, DidResolver } from '@tbd54566975/dids';
-import { Web5UserAgent, ProfileApi, ProfileStore} from '@tbd54566975/web5-user-agent';
+import { Web5UserAgent, ProfileApi, ProfileStore } from '@tbd54566975/web5-user-agent';
 import { Dwn, DataStoreLevel, EventLogLevel, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
 
 import { AppStorage } from '../../src/app-storage.js';
