@@ -1,45 +1,35 @@
-import { webcrypto } from 'node:crypto';
 import { expect } from 'chai';
 import { Encoder } from '@tbd54566975/dwn-sdk-js';
-import { sha256 } from '@noble/hashes/sha256';
-import * as secp256k1 from '@noble/secp256k1';
-
 import { PresentationDefinition, PresentationResult, VerifiableCredential, evaluateCredentials, evaluatePresentation, presentationFrom } from '../src/types.js';
-import * as testProfile from '../../web5/tests/fixtures/test-profiles.js';
-import { TestAgent } from '../../web5/tests/test-utils/test-user-agent.js';
+import { TestAgent } from '../../agent/tests/utils/test-agent.js';
+import { TestManagedAgent } from '../../agent/src/test-managed-agent.js';
 
-import { SignatureInput } from '@tbd54566975/dwn-sdk-js';
+let testAgent: TestManagedAgent;
 
-// NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
-// Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
-// @ts-ignore
-if (!globalThis.crypto) globalThis.crypto = webcrypto;
-
-let testAgent: TestAgent;
-
-describe('Presentation Exchange Types', () => {
+describe('Presentation Exchange Unit Tests', () => {
   before(async () => {
-    testAgent = await TestAgent.create();
+    testAgent = await TestManagedAgent.create({
+      agentClass  : TestAgent,
+      agentStores : 'dwn'
+    });
+
+    testAgent.createAgentDid();
   });
 
   describe('Full Presentation Exchange', () => {
     let aliceDid: string;
-    let aliceSignatureMaterial : SignatureInput;
     let btcCredentialJwt: string;
     let presentationDefinition: PresentationDefinition;
     let presentationResult: PresentationResult;
 
     before(async () => {
-      const profileResult = await createProfileWithKeySignatureMaterial();
+      aliceDid = testAgent.agent.agentDid!      
 
-      aliceDid = profileResult.did;
-      aliceSignatureMaterial = profileResult.signatureMaterial;
-
-      btcCredentialJwt = await createBtcCredentialJwt(aliceDid, aliceSignatureMaterial);
+      btcCredentialJwt = await createBtcCredentialJwt(aliceDid);
       presentationDefinition = createPresentationDefinition();
     });
 
-    it('evaluateCredentials should not return any errors', async () => {
+    it('should evaluate credentials without any errors or warnings', async () => {
       const evaluationResults = evaluateCredentials(presentationDefinition, [btcCredentialJwt]);
 
       expect(evaluationResults.errors).to.be.an('array');
@@ -48,19 +38,18 @@ describe('Presentation Exchange Types', () => {
       expect(evaluationResults.warnings?.length).to.equal(0);
     });
 
-    it('presentationFrom should return a valid PresentationResult', () => {
+    it('should successfully create a presentation from the given definition and credentials', () => {
       presentationResult = presentationFrom(presentationDefinition, [btcCredentialJwt]);
 
       expect(presentationResult).to.exist;
       expect(presentationResult.presentationSubmission.definition_id).to.equal(presentationDefinition.id);
     });
 
-    it('evaluatePresentation should not return any warnings or errors', async () => {
+    it('should evaluate the presentation without any errors or warnings', async () => {
       const vpJwt = await createJwt({
         payload           : { vp: presentationResult.presentation },
         issuer            : aliceDid,
-        subject           : aliceDid,
-        signatureMaterial : aliceSignatureMaterial
+        subject           : aliceDid
       });
 
       const presentation = decodeJwt(vpJwt).payload.vp;
@@ -74,7 +63,7 @@ describe('Presentation Exchange Types', () => {
       expect(warnings?.length).to.equal(0);
     });
 
-    it('does a full presentation exchange', async () => {
+    it('should successfully execute the complete presentation exchange flow', async () => {
       const evaluationResults = evaluateCredentials(presentationDefinition, [btcCredentialJwt]);
 
       expect(evaluationResults.errors).to.be.an('array');
@@ -90,8 +79,7 @@ describe('Presentation Exchange Types', () => {
       const vpJwt = await createJwt({
         payload           : { vp: presentationResult.presentation },
         issuer            : aliceDid,
-        subject           : aliceDid,
-        signatureMaterial : aliceSignatureMaterial
+        subject           : aliceDid
       });
 
       const presentation = decodeJwt(vpJwt).payload.vp;
@@ -106,37 +94,14 @@ describe('Presentation Exchange Types', () => {
     });
   });
 });
+
 type CreateJwtOpts = {
   payload: any,
   subject: string
   issuer: string
-  signatureMaterial: SignatureInput
 }
 
-async function createProfileWithKeySignatureMaterial(): Promise<{ did: string, signatureMaterial: SignatureInput }>{
-  const testProfileOptions = await testProfile.ion.with.dwn.service.and.authorization.keys();
-  const { did: profileDid } = await testAgent.createProfile(testProfileOptions);
-  const profile = await testAgent.getProfile(profileDid);
-
-  if (!profile) {
-    throw new Error('profile not found for author.');
-  }
-
-  const { keys } = profile.did;
-  const [ key ] = keys;
-  const { privateKeyJwk } = key;
-
-  const kid = key.id;
-
-  const signatureMaterial =  {
-    privateJwk      : privateKeyJwk as any,
-    protectedHeader : { alg: 'ES256K', kid }
-  };
-
-  return { did: profile.did.id, signatureMaterial: signatureMaterial };
-}
-
-async function createBtcCredentialJwt(aliceDid: string, aliceSignatureMaterial: SignatureInput) {
+async function createBtcCredentialJwt(aliceDid: string) {
   const btcCredential: VerifiableCredential = {
     '@context'          : ['https://www.w3.org/2018/credentials/v1'],
     'id'                : 'btc-credential',
@@ -151,8 +116,7 @@ async function createBtcCredentialJwt(aliceDid: string, aliceSignatureMaterial: 
   return await createJwt({
     payload           : { vc: btcCredential },
     issuer            : aliceDid,
-    subject           : aliceDid,
-    signatureMaterial : aliceSignatureMaterial
+    subject           : aliceDid
   });
 }
 
@@ -189,33 +153,32 @@ function decodeJwt(jwt: string) {
   };
 }
 
-export async function createJwt(opts: CreateJwtOpts) {
+async function createJwt(opts: CreateJwtOpts) {
+  const keyRef = await testAgent.agent.didManager.getDefaultSigningKey({ did: testAgent.agent.agentDid! })
+  const header = { alg: 'EdDSA', kid: keyRef }
+
   const jwtPayload = {
     iss : opts.issuer,
     sub : opts.subject,
     ...opts.payload,
   };
 
-  const signatureMaterial = opts.signatureMaterial;
+  const headerBytes = Encoder.objectToBytes(header);
+  const encodedHeader = Encoder.bytesToBase64Url(headerBytes);
 
   const payloadBytes = Encoder.objectToBytes(jwtPayload);
-  const payloadBase64url = Encoder.bytesToBase64Url(payloadBytes);
+  const encodedPayload = Encoder.bytesToBase64Url(payloadBytes);
 
-  const headerBytes = Encoder.objectToBytes(signatureMaterial.protectedHeader);
-  const headerBase64url = Encoder.bytesToBase64Url(headerBytes);
+  const message = encodedHeader + '.' + encodedPayload;
 
-  const signatureInput = `${headerBase64url}.${payloadBase64url}`;
-  const signatureInputBytes = Encoder.stringToBytes(signatureInput);
+  const signature = await testAgent.agent.keyManager.sign({
+      algorithm: { name: 'EdDSA', hash: 'SHA-256' },
+      keyRef: keyRef!,
+      data: Encoder.stringToBytes(message)
+  });
 
-  const hashedSignatureInputBytes = sha256(signatureInputBytes);
-  const hashedSignatureInputHex = secp256k1.etc.bytesToHex(hashedSignatureInputBytes);
+  const encodedSignature = Encoder.bytesToBase64Url(signature);
+  const jwt = message + '.' + encodedSignature;
 
-  const privateKeyBytes = Encoder.base64UrlToBytes(signatureMaterial.privateJwk.d);
-  const privateKeyHex = secp256k1.etc.bytesToHex(privateKeyBytes);
-
-  const signature = await secp256k1.signAsync(hashedSignatureInputHex, privateKeyHex);
-  const signatureBytes = signature.toCompactRawBytes();
-  const signatureBase64url = Encoder.bytesToBase64Url(signatureBytes);
-
-  return `${headerBase64url}.${payloadBase64url}.${signatureBase64url}`;
+  return jwt;
 }
