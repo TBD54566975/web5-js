@@ -126,8 +126,8 @@ export const evaluateCredentials = (
  * @returns {EvaluationResults} The result of the evaluation process.
  */
 export const evaluatePresentation = (
-  presentationDefinition: PresentationDefinitionV2,
-  presentation: JwtDecodedVerifiablePresentation
+  presentationDefinition: PresentationDefinition,
+  presentation: VerifiablePresentation
 ): EvaluationResults  => {
   return pex.evaluatePresentation(presentationDefinition, presentation);
 };
@@ -137,7 +137,7 @@ export const evaluatePresentation = (
  * @returns {PresentationResult} The constructed presentation.
  */
 export const presentationFrom = (
-  presentationDefinition: PresentationDefinitionV2,
+  presentationDefinition: PresentationDefinition,
   verifiableCredentials: string[]
 ): PresentationResult => {
   return pex.presentationFrom(presentationDefinition, verifiableCredentials);

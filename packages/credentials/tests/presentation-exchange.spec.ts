@@ -1,7 +1,9 @@
-import type { PresentationDefinition, PresentationResult } from '../src/types.js';
+import type { JwsHeaderParams } from '@web5/crypto';
 
 import { expect } from 'chai';
-import { Encoder } from '@tbd54566975/dwn-sdk-js';
+import { Convert } from '@web5/common';
+
+import type { JwtDecodedVerifiablePresentation, PresentationDefinition, PresentationResult } from '../src/types.js';
 
 import { TestAgent } from '../../agent/tests/utils/test-agent.js';
 import { TestManagedAgent } from '../../agent/src/test-managed-agent.js';
@@ -155,9 +157,9 @@ function decodeJwt(jwt: string) {
   const [encodedHeader, encodedPayload, encodedSignature] = jwt.split('.');
 
   return {
-    header  : Encoder.base64UrlToObject(encodedHeader),
-    payload : Encoder.base64UrlToObject(encodedPayload),
-    encodedSignature
+    header    : Convert.base64Url(encodedHeader).toObject() as JwsHeaderParams & { alg: string },
+    payload   : Convert.base64Url(encodedPayload).toObject() as JwtDecodedVerifiablePresentation,
+    signature : encodedSignature
   };
 }
 
@@ -171,21 +173,21 @@ async function createJwt(opts: CreateJwtOpts) {
     ...opts.payload,
   };
 
-  const headerBytes = Encoder.objectToBytes(header);
-  const encodedHeader = Encoder.bytesToBase64Url(headerBytes);
+  const headerBytes = Convert.object(header).toUint8Array();
+  const encodedHeader = Convert.uint8Array(headerBytes).toBase64Url();
 
-  const payloadBytes = Encoder.objectToBytes(jwtPayload);
-  const encodedPayload = Encoder.bytesToBase64Url(payloadBytes);
+  const payloadBytes = Convert.object(jwtPayload).toUint8Array();
+  const encodedPayload = Convert.uint8Array(payloadBytes).toBase64Url();
 
   const message = encodedHeader + '.' + encodedPayload;
 
   const signature = await testAgent.agent.keyManager.sign({
     algorithm : { name: 'EdDSA', hash: 'SHA-256' },
     keyRef    : keyRef!,
-    data      : Encoder.stringToBytes(message)
+    data      : Convert.string(message).toUint8Array()
   });
 
-  const encodedSignature = Encoder.bytesToBase64Url(signature);
+  const encodedSignature = Convert.uint8Array(signature).toBase64Url();
   const jwt = message + '.' + encodedSignature;
 
   return jwt;
