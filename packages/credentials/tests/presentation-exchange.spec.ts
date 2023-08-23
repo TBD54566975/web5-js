@@ -1,42 +1,58 @@
+import type { PortableDid } from '@web5/dids';
 import type { JwsHeaderParams } from '@web5/crypto';
 
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
+import { DidKeyMethod } from '@web5/dids';
+import { Ed25519, Jose } from '@web5/crypto';
 
-import type { JwtDecodedVerifiablePresentation, PresentationDefinition, PresentationResult } from '../src/types.js';
+import type {
+  PresentationResult,
+  VerifiableCredential,
+  PresentationDefinition,
+  JwtDecodedVerifiablePresentation,
+} from '../src/types.js';
 
-import { TestAgent } from '../../agent/tests/utils/test-agent.js';
-import { TestManagedAgent } from '../../agent/src/test-managed-agent.js';
-import { VerifiableCredential, evaluateCredentials, evaluatePresentation, presentationFrom } from '../src/types.js';
+import { evaluateCredentials, evaluatePresentation, presentationFrom } from '../src/types.js';
 
-let testAgent: TestManagedAgent;
+/**
+ * Local types used only in this test specification.
+ */
+type CreateJwtOpts = {
+  header: JwtHeaderParams;
+  payload: any;
+  subject: string;
+  issuer: string;
+  signer: Signer;
+}
+
+type JwtHeaderParams = JwsHeaderParams & {
+  alg: string;
+  typ: 'JWT'
+};
+
+type Signer = (data: Uint8Array) => Promise<Uint8Array>;
 
 describe('PresentationExchange', () => {
-  before(async () => {
-    testAgent = await TestManagedAgent.create({
-      agentClass  : TestAgent,
-      agentStores : 'dwn'
-    });
-
-    await testAgent.createAgentDid();
-  });
-
   describe('Full Presentation Exchange', () => {
-    let aliceDid: string;
+    let alice: PortableDid;
+    let header: JwtHeaderParams;
+    let signer: Signer;
     let btcCredentialJwt: string;
     let presentationDefinition: PresentationDefinition;
     let presentationResult: PresentationResult;
 
     before(async () => {
-      aliceDid = testAgent.agent.agentDid!;
+      alice = await DidKeyMethod.create();
 
-      btcCredentialJwt = await createBtcCredentialJwt(aliceDid);
+      const [ signingKeyPair ] = alice.keySet.verificationMethodKeys!;
+      const { keyMaterial: privateKey } = await Jose.jwkToKey({ key: signingKeyPair.privateKeyJwk! });
+      signer = EdDsaSigner(privateKey);
+
+      header = { alg: 'EdDSA', typ: 'JWT', kid: signingKeyPair.privateKeyJwk!.kid };
+
+      btcCredentialJwt = await createBtcCredentialJwt(alice.did, header, signer);
       presentationDefinition = createPresentationDefinition();
-    });
-
-    after(async () => {
-      await testAgent.clearStorage();
-      await testAgent.closeStorage();
     });
 
     it('should evaluate credentials without any errors or warnings', async () => {
@@ -57,9 +73,11 @@ describe('PresentationExchange', () => {
 
     it('should evaluate the presentation without any errors or warnings', async () => {
       const vpJwt = await createJwt({
+        header,
+        issuer  : alice.did,
         payload : { vp: presentationResult.presentation },
-        issuer  : aliceDid,
-        subject : aliceDid
+        signer,
+        subject : alice.did,
       });
 
       const presentation = decodeJwt(vpJwt).payload.vp;
@@ -87,9 +105,11 @@ describe('PresentationExchange', () => {
       expect(presentationResult.presentationSubmission.definition_id).to.equal(presentationDefinition.id);
 
       const vpJwt = await createJwt({
+        header,
+        issuer  : alice.did,
         payload : { vp: presentationResult.presentation },
-        issuer  : aliceDid,
-        subject : aliceDid
+        signer,
+        subject : alice.did,
       });
 
       const presentation = decodeJwt(vpJwt).payload.vp;
@@ -105,13 +125,7 @@ describe('PresentationExchange', () => {
   });
 });
 
-type CreateJwtOpts = {
-  payload: any,
-  subject: string
-  issuer: string
-}
-
-async function createBtcCredentialJwt(aliceDid: string) {
+async function createBtcCredentialJwt(aliceDid: string, header: JwtHeaderParams, signer: Signer) {
   const btcCredential: VerifiableCredential = {
     '@context'          : ['https://www.w3.org/2018/credentials/v1'],
     'id'                : 'btc-credential',
@@ -124,10 +138,34 @@ async function createBtcCredentialJwt(aliceDid: string) {
   };
 
   return await createJwt({
-    payload : { vc: btcCredential },
+    header,
     issuer  : aliceDid,
-    subject : aliceDid
+    payload : { vc: btcCredential },
+    signer,
+    subject : aliceDid,
   });
+}
+
+async function createJwt(options: CreateJwtOpts) {
+  const { header, issuer, subject, payload, signer } = options;
+
+  const jwtPayload = {
+    iss : issuer,
+    sub : subject,
+    ...payload,
+  };
+
+  const encodedHeader = Convert.object(header).toBase64Url();
+  const encodedPayload = Convert.object(jwtPayload).toBase64Url();
+  const message = encodedHeader + '.' + encodedPayload;
+  const messageBytes = Convert.string(message).toUint8Array();
+
+  const signature = await signer(messageBytes);
+
+  const encodedSignature = Convert.uint8Array(signature).toBase64Url();
+  const jwt = message + '.' + encodedSignature;
+
+  return jwt;
 }
 
 function createPresentationDefinition() {
@@ -157,38 +195,15 @@ function decodeJwt(jwt: string) {
   const [encodedHeader, encodedPayload, encodedSignature] = jwt.split('.');
 
   return {
-    header    : Convert.base64Url(encodedHeader).toObject() as JwsHeaderParams & { alg: string },
+    header    : Convert.base64Url(encodedHeader).toObject() as JwtHeaderParams,
     payload   : Convert.base64Url(encodedPayload).toObject() as JwtDecodedVerifiablePresentation,
     signature : encodedSignature
   };
 }
 
-async function createJwt(opts: CreateJwtOpts) {
-  const keyRef = await testAgent.agent.didManager.getDefaultSigningKey({ did: testAgent.agent.agentDid! });
-  const header = { alg: 'EdDSA', kid: keyRef };
-
-  const jwtPayload = {
-    iss : opts.issuer,
-    sub : opts.subject,
-    ...opts.payload,
+function EdDsaSigner(privateKey: Uint8Array): Signer {
+  return async (data: Uint8Array): Promise<Uint8Array> => {
+    const signature = await Ed25519.sign({ data, key: privateKey});
+    return signature;
   };
-
-  const headerBytes = Convert.object(header).toUint8Array();
-  const encodedHeader = Convert.uint8Array(headerBytes).toBase64Url();
-
-  const payloadBytes = Convert.object(jwtPayload).toUint8Array();
-  const encodedPayload = Convert.uint8Array(payloadBytes).toBase64Url();
-
-  const message = encodedHeader + '.' + encodedPayload;
-
-  const signature = await testAgent.agent.keyManager.sign({
-    algorithm : { name: 'EdDSA', hash: 'SHA-256' },
-    keyRef    : keyRef!,
-    data      : Convert.string(message).toUint8Array()
-  });
-
-  const encodedSignature = Convert.uint8Array(signature).toBase64Url();
-  const jwt = message + '.' + encodedSignature;
-
-  return jwt;
 }
