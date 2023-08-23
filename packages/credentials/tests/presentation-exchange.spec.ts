@@ -1,8 +1,11 @@
+import type { PresentationDefinition, PresentationResult } from '../src/types.js';
+
 import { expect } from 'chai';
 import { Encoder } from '@tbd54566975/dwn-sdk-js';
-import { PresentationDefinition, PresentationResult, VerifiableCredential, evaluateCredentials, evaluatePresentation, presentationFrom } from '../src/types.js';
+
 import { TestAgent } from '../../agent/tests/utils/test-agent.js';
 import { TestManagedAgent } from '../../agent/src/test-managed-agent.js';
+import { VerifiableCredential, evaluateCredentials, evaluatePresentation, presentationFrom } from '../src/types.js';
 
 let testAgent: TestManagedAgent;
 

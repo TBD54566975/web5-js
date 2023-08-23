@@ -1,5 +1,11 @@
+import type {
+  Issuer,
+  InputDescriptor,
+  OutputDescriptor,
+  CredentialManifest,
+} from '../src/types.js';
+
 import { expect } from 'chai';
-import { Issuer, CredentialManifest, OutputDescriptor, InputDescriptor } from '../src/types.js';
 
 describe('CredentialManifest', () => {
   it('creates an Output Descriptor', () => {

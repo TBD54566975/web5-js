@@ -1,12 +1,23 @@
-import type { ICredential, IIssuer, ICredentialSubject, ICredentialSchemaType, ICredentialStatus} from '@sphereon/ssi-types';
 import type { PresentationDefinitionV2, InputDescriptorV2 } from '@sphereon/pex-models';
-import type { IPresentation, PresentationSubmission as PexPresentationSubmission, Descriptor, JwtDecodedVerifiableCredential as PexJwtDecodedVc, JwtDecodedVerifiablePresentation as PexJwtDecodedPres } from '@sphereon/ssi-types';
-import type { PresentationResult as PexPR } from '@sphereon/pex/dist/main/lib/signing';
+import type { EvaluationResults as ER, PresentationResult as PexPR } from '@sphereon/pex';
+import type {
+  IIssuer,
+  ICredential,
+  ICredentialStatus,
+  ICredentialSubject,
+  ICredentialSchemaType,
+} from '@sphereon/ssi-types';
+import type {
+  Descriptor,
+  IPresentation,
+  JwtDecodedVerifiableCredential as PexJwtDecodedVc,
+  PresentationSubmission as PexPresentationSubmission,
+  JwtDecodedVerifiablePresentation as PexJwtDecodedPres,
+} from '@sphereon/ssi-types';
 
-import { PEXv2, EvaluationResults as ER } from '@sphereon/pex';
+import { PEXv2 } from '@sphereon/pex';
 
 const pex = new PEXv2();
-
 
 /** Presentation Exchange */
 
@@ -23,29 +34,32 @@ export type VerifiableCredential = ICredential;
 export type JwtDecodedVerifiableCredential = PexJwtDecodedVc;
 
 /**
- * Credential Schema Types are useful when enforcing a specific structure on a given collection of data.
+ * Credential Schema Types are useful when enforcing a specific structure on a given collection of
+ * data.
  *
  * @see {@link https://www.w3.org/TR/vc-data-model/#data-schemas | Data Schemas}
  */
 export type CredentialSchemaType = ICredentialSchemaType;
 
 /**
- * Issuer: The acting Entity issuing a Verifiable Credential. The value of the issuer property must be either a URI or an object containing an `id` property.
+ * Issuer: The acting Entity issuing a Verifiable Credential. The value of the issuer property must
+ * be either a URI or an object containing an `id` property.
  *
  * @see {@link https://www.w3.org/TR/vc-data-model/#issuer | Issuer Data Model}
  */
 export type Issuer = IIssuer;
 
 /**
- * Credential Subject: Entity that the Verifiable Credential is about. This includes one or more properties related to the subject.
+ * Credential Subject: Entity that the Verifiable Credential is about. This includes one or more
+ * properties related to the subject.
  *
  * @see {@link https://www.w3.org/TR/vc-data-model/#credential-subject | Credential Subject}
  */
 export type CredentialSubject = ICredentialSubject;
 
 /**
- * Used for the discovery of information about the current status of a verifiable credential, such as whether it is
- * suspended or revoked.
+ * Used for the discovery of information about the current status of a verifiable credential, such
+ * as whether it is suspended or revoked.
  *
  *  @see {@link https://www.w3.org/TR/vc-data-model/#status | Credential Status}
  */
@@ -59,21 +73,25 @@ export type CredentialStatus = ICredentialStatus;
 export type PresentationDefinition = PresentationDefinitionV2;
 
 /**
- * Presentation Submissions are objects embedded within target Claim negotiation formats that express how the inputs presented as proofs to a Verifier are provided in accordance with the requirements specified in a Presentation Definition.
+ * Presentation Submissions are objects embedded within target Claim negotiation formats that
+ * express how the inputs presented as proofs to a Verifier are provided in accordance with the
+ * requirements specified in a Presentation Definition.
  *
  * @see {@link https://identity.foundation/presentation-exchange/#presentation-submission | Presentation Submission}
  */
 export type PresentationSubmission = PexPresentationSubmission;
 
 /**
- * A Verifiable Presentation expresses data from one or more verifiable credentials, and is packaged in such a way that the authorship of the data is verifiable.
+ * A Verifiable Presentation expresses data from one or more verifiable credentials, and is packaged
+ * n such a way that the authorship of the data is verifiable.
  *
  * @see {@link https://www.w3.org/TR/vc-data-model/#dfn-verifiable-presentations | Verifiable Presentation}
  */
 export type VerifiablePresentation = IPresentation;
 
 /**
- * JWT-decoded version of a Verifiable Presentation, offering a structured format for presentation data.
+ * JWT-decoded version of a Verifiable Presentation, offering a structured format for presentation
+ * data.
  */
 export type JwtDecodedVerifiablePresentation = PexJwtDecodedPres;
 
@@ -96,23 +114,32 @@ export type EvaluationResults = ER;
  * Evaluates given credentials against a presentation definition.
  * @returns {EvaluationResults} The result of the evaluation process.
  */
-export const evaluateCredentials = (presentationDefinition: PresentationDefinition, verifiableCredentials: string[]): EvaluationResults => {
+export const evaluateCredentials = (
+  presentationDefinition: PresentationDefinition,
+  verifiableCredentials: string[]
+): EvaluationResults => {
   return pex.evaluateCredentials(presentationDefinition, verifiableCredentials);
 };
 
 /**
-   * Evaluates a presentation against a presentation definition.
-   * @returns {EvaluationResults} The result of the evaluation process.
-   */
-export const evaluatePresentation = (presentationDefinition: PresentationDefinitionV2, presentation: JwtDecodedVerifiablePresentation): EvaluationResults  => {
+ * Evaluates a presentation against a presentation definition.
+ * @returns {EvaluationResults} The result of the evaluation process.
+ */
+export const evaluatePresentation = (
+  presentationDefinition: PresentationDefinitionV2,
+  presentation: JwtDecodedVerifiablePresentation
+): EvaluationResults  => {
   return pex.evaluatePresentation(presentationDefinition, presentation);
 };
 
 /**
-   * Constructs a presentation from a presentation definition and set of credentials.
-   * @returns {PresentationResult} The constructed presentation.
-   */
-export const presentationFrom = (presentationDefinition: PresentationDefinitionV2, verifiableCredentials: string[]): PresentationResult => {
+ * Constructs a presentation from a presentation definition and set of credentials.
+ * @returns {PresentationResult} The constructed presentation.
+ */
+export const presentationFrom = (
+  presentationDefinition: PresentationDefinitionV2,
+  verifiableCredentials: string[]
+): PresentationResult => {
   return pex.presentationFrom(presentationDefinition, verifiableCredentials);
 };
 
@@ -120,11 +147,12 @@ export const presentationFrom = (presentationDefinition: PresentationDefinitionV
 /** Credential Manifest */
 
 /**
- * Input Descriptors are objects used to describe the information a Verifier requires of a Holder. All Input Descriptors MUST be satisfied, unless otherwise specified by a Feature.
+ * Input Descriptors are objects used to describe the information a Verifier requires of a Holder.
+ * All Input Descriptors MUST be satisfied, unless otherwise specified by a Feature.
  *
  * See {@link https://identity.foundation/presentation-exchange/#input-descriptor-object | Input Descriptor}
  */
-export type InputDescriptor = InputDescriptorV2
+export type InputDescriptor = InputDescriptorV2;
 
 /**
  * See {@link https://identity.foundation/wallet-rendering/v0.0.1/#entity-styles | Entity Styles}
@@ -145,14 +173,15 @@ export type Image = {
 
 export type Colorable = {
   /** HEX string color value */
-  color?: string
+  color?: string;
 }
 
 /**
  * See {@link https://identity.foundation/credential-manifest/#output-descriptor | Output Descriptor}
  */
 export type OutputDescriptor = {
-  /** String that does not conflict with the `id` of another OutputDescriptor in the same CredentialManifest */
+  /** String that does not conflict with the `id` of another OutputDescriptor in the same
+   * CredentialManifest */
   id: string;
   /** String specifying the schema of the credential to be issued */
   schema: string;
@@ -195,8 +224,9 @@ export type Filter = {
 }
 
 /**
- * Credential Manifests are a resource format that defines preconditional requirements, Issuer style preferences, and other facets User Agents
- * utilize to help articulate and select the inputs necessary for processing and issuance of a specified credential.
+ * Credential Manifests are a resource format that defines preconditional requirements, Issuer style
+ * preferences, and other facets User Agents utilize to help articulate and select the inputs
+ * necessary for processing and issuance of a specified credential.
  *
  * See {@link https://identity.foundation/credential-manifest/#credential-manifest | Credential Manifest}
  */
@@ -208,16 +238,19 @@ export type CredentialManifest = {
   /**
    * String explaining what the CredentialManifest is generally offering for meeting
    * its requirements
-  */
+   */
   description?: string;
   spec_version?: string;
   issuer: Issuer;
-  /** Output Descriptors are used by an Issuer to describe the credentials they are offering to a Holder. See Output Descriptor */
+  /** Output Descriptors are used by an Issuer to describe the credentials they are offering to a
+   * Holder. See Output Descriptor */
   output_descriptors: OutputDescriptor[];
-  format?: Format
+  format?: Format;
   /**
-   * Presentation Exchange is a specification codifying a Presentation Definition data format Verifiers can use to articulate proof
-   * requirements in a Presentation Request, and a Presentation Submission data format Holders can use to describe proofs submitted in accordance with them.
+   * Presentation Exchange is a specification codifying a Presentation Definition data format
+   * Verifiers can use to articulate proof requirements in a Presentation Request, and a
+   * Presentation Submission data format Holders can use to describe proofs submitted in accordance
+   * with them.
   */
   presentation_definition?: PresentationDefinition;
 }

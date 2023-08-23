@@ -1,5 +1,10 @@
 import { expect } from 'chai';
-import {getCurrentXmlSchema112Timestamp, getFutureXmlSchema112Timestamp, isValidXmlSchema112Timestamp} from '../src/utils.js';
+
+import {
+  isValidXmlSchema112Timestamp,
+  getFutureXmlSchema112Timestamp,
+  getCurrentXmlSchema112Timestamp,
+} from '../src/utils.js';
 
 describe('CredentialsUtils', () => {
 
@@ -11,6 +16,7 @@ describe('CredentialsUtils', () => {
 
     });
   });
+
   describe('getFutureXmlSchema112Timestamp', () => {
     it('gets correct time', () => {
       const timestamp = getFutureXmlSchema112Timestamp(123);

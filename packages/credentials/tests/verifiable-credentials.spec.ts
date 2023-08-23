@@ -1,6 +1,8 @@
 import { expect } from 'chai';
-import {getCurrentXmlSchema112Timestamp, getFutureXmlSchema112Timestamp} from '../src/utils.js';
-import {VerifiableCredential, CredentialSubject, Issuer } from '../src/types.js';
+
+import type { VerifiableCredential, CredentialSubject, Issuer } from '../src/types.js';
+
+import { getCurrentXmlSchema112Timestamp, getFutureXmlSchema112Timestamp} from '../src/utils.js';
 
 describe('VerifiableCredentials', () => {
   it('creates a vc', () => {
