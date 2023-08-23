@@ -19,20 +19,9 @@ jobs:
     name: NPM Publish
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        package:
-          [
-            "agent",
-            "api",
-            "common",
-            "credentials",
-            "crypto",
-            "dids",
-            "identity-agent",
-            "proxy-agent",
-            "user-agent",
-          ]
+    env:
+      # Packages not listed here will be excluded from publishing
+      PACKAGES: "agent api common credentials crypto dids identity-agent proxy-agent user-agent"
 
     steps:
       - name: Checkout source
@@ -47,33 +36,30 @@ jobs:
       - name: Install latest npm
         run: npm install -g npm@latest
 
-      # Note - this is not required but it gives a clean failure prior to attempting a release if the GH workflow runner is not authenticated with NPMjs.com
+      # Note - this is not required but it gives a clean failure prior to attempting a release if
+      # the GH workflow runner is not authenticated with NPMjs.com
       - name: Verify NPM token is authenticated with NPMjs.com
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: npm whoami
 
-      - name: Fetch the version in the GitHub repo's package.json file
+      - name: Generate alpha version string and modify packages
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: |
-          cd packages/${{ matrix.package }}
-          REPO_VERSION=$(node -p "require('./package.json').version")
-          echo "REPO_VERSION=$REPO_VERSION" >> $GITHUB_ENV
-          echo "Repo Version: $REPO_VERSION"
-        shell: bash
-
-      - name: Generate the alpha version string
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-        run: |
-          cd packages/${{ matrix.package }}
           SHORT_COMMIT_SHA=$(git rev-parse --short HEAD)
           YYYYMMDD=$(date +'%Y%m%d')
-          ALPHA_VERSION="${{ env.REPO_VERSION }}-alpha-$YYYYMMDD-$SHORT_COMMIT_SHA"
-          echo "ALPHA_VERSION=$ALPHA_VERSION" >> $GITHUB_ENV
-          echo "Alpha Version: $ALPHA_VERSION"
+          for dir in packages/*; do
+            cd $dir
+            REPO_VERSION=$(node -p "require('./package.json').version")
+            ALPHA_VERSION="${REPO_VERSION}-alpha-$YYYYMMDD-$SHORT_COMMIT_SHA"
+            npm version $ALPHA_VERSION --no-git-tag-version
+            cd ../..
+          done
         shell: bash
+
+      - name: Bump package.json @web5/* dependency versions
+        run: node ./scripts/bump-workspace.mjs
 
       - name: Install dependencies
         run: npm ci
@@ -81,11 +67,13 @@ jobs:
       - name: Build all workspace packages
         run: npm run build
 
-      - name: Publish @web5/${{ matrix.package }}@${{ env.ALPHA_VERSION }}
+      - name: Publish selected @web5/* packages
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: |
-          cd packages/${{ matrix.package }}
-          npm version ${{ env.ALPHA_VERSION }} --no-git-tag-version
-          npm publish --tag alpha --no-git-tag-version --access public --provenance
+          for package in $PACKAGES; do
+            cd packages/$package
+            npm publish --tag alpha --no-git-tag-version --access public --provenance
+            cd ../..
+          done
         shell: bash
