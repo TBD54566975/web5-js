@@ -1,4 +1,7 @@
 {
+  "name": "web5-sdk-js",
+  "private": true,
+  "type": "module",
   "workspaces": [
     "packages/common",
     "packages/crypto",
@@ -14,5 +17,12 @@
     "clean": "npx npkill -d $(pwd) -t node_modules && npx npkill -d $(pwd)/packages -t dist",
     "build": "npm run build --ws"
   },
-  "private": true
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TBD54566975/web5-js"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@npmcli/package-json": "5.0.0"
+  }
 }
