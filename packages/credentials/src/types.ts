@@ -96,6 +96,16 @@ export type VerifiablePresentation = IPresentation;
 export type JwtDecodedVerifiablePresentation = PexJwtDecodedPres;
 
 /**
+ * Represents a Json Web Token in compact form.
+ */
+export type VcJwt = string;
+
+/**
+ * Represents a Json Web Token in compact form.
+ */
+export type VpJwt = string;
+
+/**
  * Descriptor Map: Maps descriptors in a presentation exchange context.
  */
 export type DescriptorMap = Descriptor;
