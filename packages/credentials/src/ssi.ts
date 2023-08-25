@@ -1,56 +1,117 @@
-import { v4 as uuidv4 } from 'uuid';
 import type { JwsHeaderParams } from '@web5/crypto';
-import { VerifiableCredential, evaluateCredentials, evaluatePresentation, presentationFrom, VcJwt, VpJwt, JwtDecodedVerifiablePresentation, CredentialSubject, VerifiablePresentation, PresentationResult, EvaluationResults, PresentationDefinition, JwtDecodedVerifiableCredential, Issuer, CredentialSchemaType, CredentialStatus } from './types.js';
-import { getCurrentXmlSchema112Timestamp, isValidXmlSchema112Timestamp } from './utils.js';
+import type { Resolvable, DIDResolutionResult } from 'did-resolver';
+import type {
+  VerifiableCredential,
+  JwtDecodedVerifiableCredential,
+  CredentialSubject,
+  VerifiablePresentation,
+  PresentationResult,
+  EvaluationResults,
+  PresentationDefinition,
+  JwtDecodedVerifiablePresentation,
+  Issuer,
+  CredentialSchemaType,
+  CredentialStatus
+} from './types.js';
+
+import { v4 as uuidv4 } from 'uuid';
+import { evaluateCredentials, evaluatePresentation, presentationFrom, VcJwt, VpJwt } from './types.js';
+import { getCurrentXmlSchema112Timestamp } from './utils.js';
 import { Convert } from '@web5/common';
+import { verifyJWT } from 'did-jwt';
+import { DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
+import { SsiValidator } from './validators.js';
 
-export interface DecodedVcJwt {
-    header: JwsHeaderParams & { alg: string },
-    payload: JwtDecodedVerifiableCredential,
-    signature: string
+export type CreateVcOptions = {
+  credentialSubject: CredentialSubject,
+  issuer: Issuer,
+  credentialSchema?: CredentialSchemaType,
+  expirationDate?: string,
+  credentialStatus?: CredentialStatus,
 }
 
-export interface DecodedVpJwt {
-    header: JwsHeaderParams & { alg: string },
-    payload: JwtDecodedVerifiablePresentation,
-    signature: string
+export type CreateVpOptions = {
+  presentationDefinition: PresentationDefinition,
+  verifiableCredentialJwts: string[]
 }
 
-export interface CreateVcOptions {
-    credentialSubject: CredentialSubject,
-    issuer: Issuer,
-    credentialSchema?: CredentialSchemaType,
-    expirationDate?: string,
-    credentialStatus?: CredentialStatus,
-    signer: any,
+export type SignOptions = {
+  kid: string;
+  issuerDid: string;
+  subjectDid: string;
+  signer: Signer,
 }
+
+export type DecodedVcJwt = {
+  header: JwtHeaderParams
+  payload: JwtDecodedVerifiableCredential,
+  signature: string
+}
+
+export type DecodedVpJwt = {
+  header: JwtHeaderParams
+  payload: JwtDecodedVerifiablePresentation,
+  signature: string
+}
+
+type CreateJwtOpts = {
+  payload: any;
+  subject: string;
+  issuer: string;
+  kid: string;
+  signer: Signer;
+}
+
+type JwtHeaderParams = JwsHeaderParams & {
+  alg: string;
+  typ: 'JWT'
+};
+
+type Signer = (data: Uint8Array) => Promise<Uint8Array>;
+
+class TbdResolver implements Resolvable {
+  async resolve(didUrl: string): Promise<DIDResolutionResult> {
+    return await didResolver.resolve(didUrl) as DIDResolutionResult;
+  }
+}
+
+const didResolver = new DidResolver({ didResolvers: [DidIonMethod, DidKeyMethod] });
 
 export class VC {
   /**
    * Creates a Verifiable Credential (VC) JWT.
    *
-   * @param options - Options for creating the VC including the subject, issuer, signer, and other optional parameters.
+   * @param createVcOptions - Options for creating the VC including the subject, issuer, signer, and other optional parameters.
    * @returns A promise that resolves to a VC JWT.
    */
-  public static async createVerifiableCredentialJwt(options: CreateVcOptions): Promise<VcJwt> {
-    if (options && options.expirationDate && !isValidXmlSchema112Timestamp(options.expirationDate)) {
-      throw new Error('Invalid expirationDate');
+  public static async createVerifiableCredentialJwt(createVcSignOptions: SignOptions, createVcOptions?: CreateVcOptions, verifiableCredential?: VerifiableCredential): Promise<VcJwt> {
+    if (createVcOptions && verifiableCredential) {
+      throw new Error('options and verifiableCredential are mutually exclusive, either include the full verifiableCredential or the options to create one');
     }
 
-    const vc: VerifiableCredential = {
-      id                : uuidv4(),
-      '@context'        : ['https://www.w3.org/2018/credentials/v1'],
-      credentialSubject : options.credentialSubject,
-      type              : ['VerifiableCredential'],
-      issuer            : options.issuer,
-      issuanceDate      : getCurrentXmlSchema112Timestamp(),
-      credentialSchema  : options?.credentialSchema,
-      expirationDate    : options?.expirationDate,
-      credentialStatus  : options?.credentialStatus,
-    };
+    if (!createVcOptions && !verifiableCredential) {
+      throw new Error('options or verifiableCredential must be provided');
+    }
 
-    const vcJwt: VcJwt = await createJwt({ payload: { vc: vc }, subject: options.credentialSubject.id!, issuer: options.issuer.id, signer: options.signer });
+    let vc: VerifiableCredential;
 
+    if (verifiableCredential) {
+      vc = verifiableCredential;
+    } else {
+      vc = {
+        id                : uuidv4(),
+        '@context'        : ['https://www.w3.org/2018/credentials/v1'],
+        credentialSubject : createVcOptions!.credentialSubject,
+        type              : ['VerifiableCredential'],
+        issuer            : createVcOptions!.issuer,
+        issuanceDate      : getCurrentXmlSchema112Timestamp(),
+        credentialSchema  : createVcOptions?.credentialSchema,
+        expirationDate    : createVcOptions?.expirationDate,
+      };
+    }
+
+    this.validateVerifiableCredentialPayload(vc);
+    const vcJwt: VcJwt = await createJwt({ payload: { vc: vc }, subject: createVcSignOptions.subjectDid, issuer: createVcSignOptions.issuerDid, kid: createVcSignOptions.kid, signer: createVcSignOptions.signer });
     return vcJwt;
   }
 
@@ -60,11 +121,11 @@ export class VC {
    * @param jwt - The JWT string to decode.
    * @returns An object containing the decoded header, payload, and signature.
    */
-  public static decodeJwt(jwt: string): DecodedVcJwt {
+  public static decodeVerifiableCredentialJwt(jwt: string): DecodedVcJwt {
     const [encodedHeader, encodedPayload, encodedSignature] = jwt.split('.');
 
     return {
-      header    : Convert.base64Url(encodedHeader).toObject() as JwsHeaderParams & { alg: string },
+      header    : Convert.base64Url(encodedHeader).toObject() as JwtHeaderParams,
       payload   : Convert.base64Url(encodedPayload).toObject() as JwtDecodedVerifiableCredential,
       signature : encodedSignature
     };
@@ -76,8 +137,33 @@ export class VC {
    * @param vcJwt - The VC JWT to verify.
    * @returns A boolean or errors indicating whether the JWT is valid.
    */
-  public static verify(vcJwt: VcJwt): boolean {
-    return verifyJwtIntegrity(vcJwt);
+  public static async verifyVerifiableCredentialJwt(vcJwt: VcJwt): Promise<void> {
+    let resolver = new TbdResolver();
+
+    let verificationResponse = await verifyJWT(vcJwt, {
+      resolver
+    });
+
+    if (!verificationResponse.verified) {
+      throw new Error('VC JWT could not be verified. Reason: ' + JSON.stringify(verificationResponse));
+    }
+
+    const vcDecoded = VC.decodeVerifiableCredentialJwt(vcJwt).payload.vc;
+    this.validateVerifiableCredentialPayload(vcDecoded);
+  }
+
+  /**
+ * Validates the structure and integrity of a Verifiable Credential payload.
+ *
+ * @param vc - The Verifiable Credential object to validate.
+ * @throws Error if any validation check fails.
+ */
+  public static validateVerifiableCredentialPayload(vc: VerifiableCredential): void {
+    SsiValidator.validateContext(vc['@context']);
+    SsiValidator.validateVcType(vc.type);
+    SsiValidator.validateCredentialSubject(vc.credentialSubject);
+    if (vc.issuanceDate) SsiValidator.validateTimestamp(vc.issuanceDate);
+    if (vc.expirationDate) SsiValidator.validateTimestamp(vc.expirationDate);
   }
 
   /**
@@ -94,12 +180,6 @@ export class VC {
   }
 }
 
-export interface CreateVpOptions {
-    presentationDefinition: PresentationDefinition,
-    verifiableCredentialJwts: string[]
-    signer: any,
-}
-
 export class VP {
   /**
    * Creates a Verifiable Presentation (VP) JWT from a presentation definition and set of credentials.
@@ -107,9 +187,9 @@ export class VP {
    * @param options - Options for creating the VP including presentationDefinition, verifiableCredentialJwts, and signer
    * @returns A promise that resolves to a VP JWT.
    */
-  public static async createVerifiablePresentationJwt(options: CreateVpOptions): Promise<VpJwt> {
-    const evaluationResults = VC.evaluateCredentials(options.presentationDefinition, options.verifiableCredentialJwts);
-    // Check for errors or warnings in the evaluation results
+  public static async createVerifiablePresentationJwt(createVpOptions: CreateVpOptions, createVpSignOptions: SignOptions): Promise<VpJwt> {
+    const evaluationResults = VC.evaluateCredentials(createVpOptions.presentationDefinition, createVpOptions.verifiableCredentialJwts);
+
     if (evaluationResults.errors?.length || evaluationResults.warnings?.length) {
       let errorMessage = 'Failed to create Verifiable Presentation JWT due to: ';
 
@@ -124,9 +204,9 @@ export class VP {
       throw new Error(errorMessage);
     }
 
-    const presentationResult: PresentationResult = presentationFrom(options.presentationDefinition, options.verifiableCredentialJwts);
+    const presentationResult: PresentationResult = presentationFrom(createVpOptions.presentationDefinition, createVpOptions.verifiableCredentialJwts);
     const verifiablePresentation: VerifiablePresentation = presentationResult.presentation;
-    const vpJwt: VpJwt = await createJwt({ payload: { vp: verifiablePresentation }, subject: options.signer.subject, issuer: options.signer.issuer, signer: options.signer });
+    const vpJwt: VpJwt = await createJwt({ payload: { vp: verifiablePresentation }, subject: createVpSignOptions.subjectDid, issuer: createVpSignOptions.issuerDid, kid: createVpSignOptions.kid, signer: createVpSignOptions.signer });
 
     return vpJwt;
   }
@@ -137,11 +217,11 @@ export class VP {
    * @param jwt - The JWT string to decode.
    * @returns An object containing the decoded header, payload, and signature.
    */
-  public static decodeJwt(jwt: string): DecodedVpJwt {
+  public static decodeVerifiablePresentationJwt(jwt: string): DecodedVpJwt {
     const [encodedHeader, encodedPayload, encodedSignature] = jwt.split('.');
 
     return {
-      header    : Convert.base64Url(encodedHeader).toObject() as JwsHeaderParams & { alg: string },
+      header    : Convert.base64Url(encodedHeader).toObject() as JwtHeaderParams,
       payload   : Convert.base64Url(encodedPayload).toObject() as JwtDecodedVerifiablePresentation,
       signature : encodedSignature
     };
@@ -153,8 +233,41 @@ export class VP {
    * @param vpJwt - The VP JWT to verify.
    * @returns A boolean or errors indicating whether the JWT is valid.
    */
-  public static verify(vpJwt: VpJwt) {
-    return verifyJwtIntegrity(vpJwt);
+  public static async verifyVerifiablePresentationJwt(vpJwt: VpJwt): Promise<void> {
+    let resolver = new TbdResolver();
+
+    let verificationResponse = await verifyJWT(vpJwt, {
+      resolver
+    });
+
+    if (!verificationResponse.verified) {
+      throw new Error('VP JWT could not be verified. Reason: ' + JSON.stringify(verificationResponse));
+    }
+
+    const vpDecoded: VerifiablePresentation = VP.decodeVerifiablePresentationJwt(vpJwt).payload.vp;
+    VP.validateVerifiablePresentationPayload(vpDecoded);
+  }
+
+  /**
+ * Validates the structure and integrity of a Verifiable Presentation payload.
+ *
+ * @param vp - The Verifiable Presentation object to validate.
+ * @throws Error if any validation check fails.
+ */
+  public static validateVerifiablePresentationPayload(vp: VerifiablePresentation): void {
+    SsiValidator.validateContext(vp['@context']);
+    if (vp.type) SsiValidator.validateVpType(vp.type);
+    // empty credential array is allowed
+    if (vp.verifiableCredential && vp.verifiableCredential.length >= 1) {
+      for (const vc of vp.verifiableCredential) {
+        if (typeof vc === 'string') {
+          VC.verifyVerifiableCredentialJwt(vc);
+        } else {
+          SsiValidator.validateCredentialPayload(vc);
+        }
+      }
+    }
+    if (vp.expirationDate) SsiValidator.validateTimestamp(vp.expirationDate);
   }
 
   /**
@@ -166,62 +279,30 @@ export class VP {
    * @param presentation - The Verifiable Presentation to evaluate.
    * @returns {EvaluationResults} The result of the evaluation process, indicating whether the presentation meets the criteria.
    */
-  public static evaluatePresentation = (presentationDefinition: PresentationDefinition, presentation: VerifiablePresentation): EvaluationResults => {
+  public static evaluatePresentation(presentationDefinition: PresentationDefinition, presentation: VerifiablePresentation): EvaluationResults {
     return evaluatePresentation(presentationDefinition, presentation);
-  };
+  }
 }
 
-type CreateJwtOpts = {
-    payload: any,
-    subject: string
-    issuer: string
-    signer: any
-}
-
-async function createJwt(opts: CreateJwtOpts): Promise<string> {
-  const header = { alg: 'EdDSA', kid: opts.signer.kid };
+async function createJwt(options: CreateJwtOpts) {
+  const header: JwtHeaderParams = { alg: 'EdDSA', typ: 'JWT', kid: options.kid };
+  const { issuer, subject, payload, signer } = options;
 
   const jwtPayload = {
-    iss : opts.issuer,
-    sub : opts.subject,
-    ...opts.payload,
+    iss : issuer,
+    sub : subject,
+    ...payload,
   };
 
-  const headerBytes = Convert.object(header).toUint8Array();
-  const encodedHeader = Convert.uint8Array(headerBytes).toBase64Url();
-
-  const payloadBytes = Convert.object(jwtPayload).toUint8Array();
-  const encodedPayload = Convert.uint8Array(payloadBytes).toBase64Url();
-
+  const encodedHeader = Convert.object(header).toBase64Url();
+  const encodedPayload = Convert.object(jwtPayload).toBase64Url();
   const message = encodedHeader + '.' + encodedPayload;
+  const messageBytes = Convert.string(message).toUint8Array();
 
-  const signature = await opts.signer.sign(message);
+  const signature = await signer(messageBytes);
 
   const encodedSignature = Convert.uint8Array(signature).toBase64Url();
   const jwt = message + '.' + encodedSignature;
 
   return jwt;
-}
-
-function verifyJwtIntegrity(jwt: VcJwt | VpJwt): boolean {
-  if (!jwt || jwt == '') {
-    throw new Error('VC JWT cannot be empty');
-  }
-
-  const decodedJwt = VC.decodeJwt(jwt);
-  if (!decodedJwt || !decodedJwt.header || !decodedJwt.payload || !decodedJwt.signature) {
-    throw new Error('VC JWT cannot be decoded');
-  }
-
-  const issuerKid = decodedJwt.header.kid;
-  if (!issuerKid || issuerKid == '') {
-    throw new Error('Missing kid in header of credential');
-  }
-
-  const issuer = decodedJwt.payload.iss;
-  if (!issuer || issuer == '') {
-    throw new Error('Missing issuer in payload of credential');
-  }
-
-  return true;
 }

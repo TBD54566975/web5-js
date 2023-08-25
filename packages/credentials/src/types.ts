@@ -6,6 +6,8 @@ import type {
   ICredentialStatus,
   ICredentialSubject,
   ICredentialSchemaType,
+  ICredentialContextType,
+  AdditionalClaims,
 } from '@sphereon/ssi-types';
 import type {
   Descriptor,
@@ -19,6 +21,10 @@ import { PEXv2 } from '@sphereon/pex';
 
 const pex = new PEXv2();
 
+export const DEFAULT_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
+export const DEFAULT_VC_TYPE = 'VerifiableCredential';
+export const DEFAULT_VP_TYPE = 'VerifiablePresentation';
+
 /** Presentation Exchange */
 
 /**
@@ -27,6 +33,13 @@ const pex = new PEXv2();
  * @see {@link https://www.w3.org/TR/vc-data-model/#credentials | VC Data Model}
  */
 export type VerifiableCredential = ICredential;
+
+/**
+ * A Credential Context is to convey the meaning of the data and term definitions of the data in a verifiable credential.
+ *
+ * @see {@link https://www.w3.org/TR/vc-data-model/#credentials | VC Data Model}
+ */
+export type CredentialContextType = ICredentialContextType;
 
 /**
  * JWT-decoded version of a Verifiable Credential, offering a structured format for credential data.
@@ -55,7 +68,7 @@ export type Issuer = IIssuer;
  *
  * @see {@link https://www.w3.org/TR/vc-data-model/#credential-subject | Credential Subject}
  */
-export type CredentialSubject = ICredentialSubject;
+export type CredentialSubject = (ICredentialSubject & AdditionalClaims) | (ICredentialSubject & AdditionalClaims)[]
 
 /**
  * Used for the discovery of information about the current status of a verifiable credential, such
