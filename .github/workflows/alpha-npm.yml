@@ -46,26 +46,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build all workspace packages
-        run: npm run build
-
-      - name: Generate alpha version string and modify packages
+      - name: Generate alpha prerelease and bump package.json @web5/* versions
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: |
           SHORT_COMMIT_SHA=$(git rev-parse --short HEAD)
           YYYYMMDD=$(date +'%Y%m%d')
-          for package in $PACKAGES; do
-            cd packages/$package
-            REPO_VERSION=$(node -p "require('./package.json').version")
-            ALPHA_VERSION="${REPO_VERSION}-alpha-$YYYYMMDD-$SHORT_COMMIT_SHA"
-            npm version $ALPHA_VERSION --no-git-tag-version
-            cd ../..
-          done
+          ALPHA_PRERELEASE="alpha-$YYYYMMDD-$SHORT_COMMIT_SHA"
+          node ./scripts/bump-workspace.mjs --prerelease=$ALPHA_PRERELEASE
         shell: bash
 
-      - name: Bump package.json @web5/* dependency versions
-        run: node ./scripts/bump-workspace.mjs
+      - name: Build all workspace packages
+        run: npm run build
 
       - name: Publish selected @web5/* packages
         env:
@@ -73,7 +65,6 @@ jobs:
         run: |
           for package in $PACKAGES; do
             cd packages/$package
-            cat package.json
             npm publish --tag alpha --no-git-tag-version --access public
             cd ../..
           done
