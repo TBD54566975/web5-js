@@ -49,8 +49,8 @@ jobs:
         run: |
           SHORT_COMMIT_SHA=$(git rev-parse --short HEAD)
           YYYYMMDD=$(date +'%Y%m%d')
-          for dir in packages/*; do
-            cd $dir
+          for package in $PACKAGES; do
+            cd packages/$package
             REPO_VERSION=$(node -p "require('./package.json').version")
             ALPHA_VERSION="${REPO_VERSION}-alpha-$YYYYMMDD-$SHORT_COMMIT_SHA"
             npm version $ALPHA_VERSION --no-git-tag-version
