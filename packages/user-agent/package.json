@@ -21,7 +21,7 @@
   "bugs": "https://github.com/TBD54566975/web5-js/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TBD54566975/web5-js",
+    "url": "git+https://github.com/TBD54566975/web5-js.git",
     "directory": "packages/user-agent"
   },
   "license": "Apache-2.0",
