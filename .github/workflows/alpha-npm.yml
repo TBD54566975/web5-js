@@ -65,7 +65,7 @@ jobs:
         run: |
           for package in $PACKAGES; do
             cd packages/$package
-            npm publish --tag alpha --no-git-tag-version --access public
+            npm publish --tag alpha --no-git-tag-version --access public --provenance
             cd ../..
           done
         shell: bash
