@@ -314,7 +314,9 @@ export interface JwsHeaderParams extends JoseHeaderParams {
     // ECDSA using P-384 and SHA-384
     | 'ES384'
     // ECDSA using P-521 and SHA-512
-    | 'ES512';
+    | 'ES512'
+    // EdDSA using subtype Ed25519 or Ed448
+    | 'EdDSA';
 
   // Indicates that extensions to JOSE RFCs are being used
   // that MUST be understood and processed.
