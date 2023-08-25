@@ -43,6 +43,12 @@ jobs:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: npm whoami
 
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build all workspace packages
+        run: npm run build
+
       - name: Generate alpha version string and modify packages
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
@@ -61,18 +67,13 @@ jobs:
       - name: Bump package.json @web5/* dependency versions
         run: node ./scripts/bump-workspace.mjs
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build all workspace packages
-        run: npm run build
-
       - name: Publish selected @web5/* packages
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: |
           for package in $PACKAGES; do
             cd packages/$package
+            cat package.json
             npm publish --tag alpha --no-git-tag-version --access public --provenance
             cd ../..
           done
