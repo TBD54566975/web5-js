@@ -33,8 +33,8 @@ jobs:
           node-version: 18
           registry-url: https://registry.npmjs.org/
 
-      # - name: Install latest npm
-      #   run: npm install -g npm@latest
+      - name: Install latest npm
+        run: npm install -g npm@latest
 
       # Note - this is not required but it gives a clean failure prior to attempting a release if
       # the GH workflow runner is not authenticated with NPMjs.com
@@ -74,7 +74,7 @@ jobs:
           for package in $PACKAGES; do
             cd packages/$package
             cat package.json
-            npm publish --tag alpha --no-git-tag-version --access public --provenance
+            npm publish --tag alpha --no-git-tag-version --access public
             cd ../..
           done
         shell: bash
