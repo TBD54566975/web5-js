@@ -3,13 +3,19 @@ import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 import {
   Dwn,
+  Message,
   RecordsRead,
+  EventsGetReply,
+  EventsGetMessage,
   RecordsReadReply,
   RecordsQueryReply,
   UnionMessageReply,
+  MessagesGetMessage,
   RecordsQueryMessage,
   RecordsWriteMessage,
   RecordsDeleteMessage,
+  MessagesGetReply,
+  ProtocolsConfigureMessage,
 } from '@tbd54566975/dwn-sdk-js';
 
 import { testDwnUrl } from './test-config.js';
@@ -17,6 +23,7 @@ import { TestAgent } from './utils/test-agent.js';
 import { DwnManager } from '../src/dwn-manager.js';
 import { ManagedIdentity } from '../src/identity-manager.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
+import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
 
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
@@ -95,10 +102,143 @@ describe('DwnManager', () => {
         });
       });
 
-      xit('handles EventsGet');
-      xit('handles MessagesGet');
-      xit('handles ProtocolsConfigure');
-      xit('handles ProtocolsQuery');
+      it('handles EventsGet', async () => {
+        const testWatermarkName = 'foo';
+
+        // Attempt to process the EventsGet.
+        let eventsGetResponse = await testAgent.agent.dwnManager.processRequest({
+          author         : identity.did,
+          target         : identity.did,
+          messageType    : 'EventsGet',
+          messageOptions : {
+            watermark: testWatermarkName
+          }
+        });
+
+        expect(eventsGetResponse).to.have.property('message');
+        expect(eventsGetResponse).to.have.property('messageCid');
+        expect(eventsGetResponse).to.have.property('reply');
+
+        const eventsGetMessage = eventsGetResponse.message as EventsGetMessage;
+        expect(eventsGetMessage.descriptor).to.have.property('watermark', testWatermarkName);
+
+        const eventsGetReply = eventsGetResponse.reply as EventsGetReply;
+        expect(eventsGetReply).to.have.property('status');
+        expect(eventsGetReply.status.code).to.equal(200);
+        expect(eventsGetReply.events).to.have.length(0);
+      });
+
+      it('handles MessagesGet', async () => {
+        // Create test data to write.
+        const dataBytes = Convert.string('Hello, world!').toUint8Array();
+
+        // Write a record to use for the MessagesGet test.
+        let { message, reply: { status: writeStatus } } = await testAgent.agent.dwnManager.processRequest({
+          author         : identity.did,
+          target         : identity.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            dataFormat : 'text/plain',
+            schema     : 'https://schemas.xyz/example'
+          },
+          dataStream: new Blob([dataBytes])
+        });
+        expect(writeStatus.code).to.equal(202);
+        const writeMessage = message as RecordsWriteMessage;
+
+        // Get the message CID to attempt to get.
+        const messageCid = await Message.getCid(writeMessage);
+
+        // Attempt to process the MessagesGet.
+        let messagesGetResponse = await testAgent.agent.dwnManager.processRequest({
+          author         : identity.did,
+          target         : identity.did,
+          messageType    : 'MessagesGet',
+          messageOptions : {
+            messageCids: [messageCid]
+          }
+        });
+
+        expect(messagesGetResponse).to.have.property('message');
+        expect(messagesGetResponse).to.have.property('messageCid');
+        expect(messagesGetResponse).to.have.property('reply');
+
+        const messagesGetMessage = messagesGetResponse.message as MessagesGetMessage;
+        expect(messagesGetMessage.descriptor).to.have.property('messageCids');
+        expect(messagesGetMessage.descriptor.messageCids).to.have.length(1);
+        expect(messagesGetMessage.descriptor.messageCids).to.include(messageCid);
+
+        const messagesGetReply = messagesGetResponse.reply as MessagesGetReply;
+        expect(messagesGetReply).to.have.property('status');
+        expect(messagesGetReply.status.code).to.equal(200);
+        expect(messagesGetReply.messages).to.have.length(1);
+
+        if (!Array.isArray(messagesGetReply.messages)) throw new Error('Type guard');
+        if (messagesGetReply.messages.length !== 1) throw new Error('Type guard');
+        const [ retrievedRecordsWrite ] = messagesGetReply.messages;
+        expect(retrievedRecordsWrite.message).to.have.property('recordId', writeMessage.recordId);
+      });
+
+      it('handles ProtocolsConfigure', async () => {
+        let protocolsConfigureResponse = await testAgent.agent.dwnManager.processRequest({
+          author         : identity.did,
+          target         : identity.did,
+          messageType    : 'ProtocolsConfigure',
+          messageOptions : {
+            definition: emailProtocolDefinition
+          }
+        });
+
+        expect(protocolsConfigureResponse).to.have.property('message');
+        expect(protocolsConfigureResponse).to.have.property('messageCid');
+        expect(protocolsConfigureResponse).to.have.property('reply');
+
+        const configureMessage = protocolsConfigureResponse.message as ProtocolsConfigureMessage;
+        expect(configureMessage.descriptor).to.have.property('definition');
+        expect(configureMessage.descriptor.definition).to.deep.equal(emailProtocolDefinition);
+
+        const configureReply = protocolsConfigureResponse.reply;
+        expect(configureReply).to.have.property('status');
+        expect(configureReply.status.code).to.equal(202);
+      });
+
+      it('handles ProtocolsQuery', async () => {
+        // Configure a protocol to use for the ProtocolsQuery test.
+        let protocolsConfigureResponse = await testAgent.agent.dwnManager.processRequest({
+          author         : identity.did,
+          target         : identity.did,
+          messageType    : 'ProtocolsConfigure',
+          messageOptions : {
+            definition: emailProtocolDefinition
+          }
+        });
+        expect(protocolsConfigureResponse.reply.status.code).to.equal(202);
+
+        // Attempt to query for the protocol that was just configured.
+        let protocolsQueryResponse = await testAgent.agent.dwnManager.processRequest({
+          author         : identity.did,
+          target         : identity.did,
+          messageType    : 'ProtocolsQuery',
+          messageOptions : {
+            filter: { protocol: emailProtocolDefinition.protocol },
+          }
+        });
+
+        expect(protocolsQueryResponse).to.have.property('message');
+        expect(protocolsQueryResponse).to.have.property('messageCid');
+        expect(protocolsQueryResponse).to.have.property('reply');
+
+        const queryReply = protocolsQueryResponse.reply;
+        expect(queryReply).to.have.property('status');
+        expect(queryReply.status.code).to.equal(200);
+        expect(queryReply).to.have.property('entries');
+        expect(queryReply.entries).to.have.length(1);
+
+        if (!Array.isArray(queryReply.entries)) throw new Error('Type guard');
+        if (queryReply.entries.length !== 1) throw new Error('Type guard');
+        const protocolsConfigure = queryReply.entries[0] as ProtocolsConfigureMessage;
+        expect(protocolsConfigure.descriptor.definition).to.deep.equal(emailProtocolDefinition);
+      });
 
       it('handles RecordsDelete messages', async () => {
       // Create test data to write.
