@@ -112,7 +112,7 @@ export interface DidServiceEndpoint {
 }
 
 export interface DwnServiceEndpoint extends DidServiceEndpoint {
-  encryptionKeys: string[];
+  encryptionKeys?: string[];
   nodes: string[];
   signingKeys: string[];
 }

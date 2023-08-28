@@ -532,4 +532,118 @@ export class DwnManager {
 
     return jws;
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  /**
+   * ADDED TO GET SYNC WORKING
+   * - createMessage()
+   * - processMessage()
+   * - writePrunedRecord()
+   */
+
+  public async createMessage(options: {
+    author: string,
+    messageOptions: unknown,
+    messageType: string
+  }): Promise<EventsGet | MessagesGet | RecordsRead | RecordsQuery | RecordsWrite | RecordsDelete | ProtocolsQuery | ProtocolsConfigure> {
+    const { author, messageOptions, messageType } = options;
+
+    const signingKeyId = await this.getAuthorSigningKeyId({ did: author });
+
+    // ! TODO: Remove this once DWN SDK supports external signers.
+    const dwnSignatureInput = this.getTempSignatureInput({ signingKeyId });
+
+    // TODO: Figure out how to narrow this type.
+    const messageCreateInput = {
+      ...<any>messageOptions,
+      authorizationSignatureInput: dwnSignatureInput
+    };
+
+    const messageCreator = dwnMessageCreators[messageType];
+
+    // ! TODO: START Remove this monkey patch (MP) as soon as the DWN SDK supports external signers.
+    // MP Step 1: Store the original methods.
+    const originalCreateAuthorization = RecordsWrite.createAuthorization;
+    const originalSignAsAuthorization = Message.signAsAuthorization;
+    // MP Step 2: Replace the methods.
+    RecordsWrite.createAuthorization = (
+      recordId: string,
+      contextId: string | undefined,
+      descriptorCid: string,
+      attestation: GeneralJws | undefined,
+      encryption: EncryptionProperty | undefined,
+    ) => this.createAuthorization(recordId, contextId, descriptorCid, attestation, encryption, signingKeyId);
+    Message.signAsAuthorization = (
+      descriptor: GenericMessage['descriptor'],
+      signatureInput: SignatureInput,
+      permissionsGrantId?: string,
+    ) => this.signAsAuthorization(descriptor, signingKeyId, permissionsGrantId);
+    // MP Step 3: Call the method that required monkey patching.
+    const dwnMessage = await messageCreator.create(messageCreateInput as any);
+    // MP Step 4: Restore the original methods.
+    RecordsWrite.createAuthorization = originalCreateAuthorization;
+    Message.signAsAuthorization = originalSignAsAuthorization;
+    // ! TODO: END Remove this monkey patch (MP) as soon as the DWN SDK supports external signers.
+
+    return dwnMessage;
+  }
+
+  /**
+   * Writes a pruned initial `RecordsWrite` to a DWN without needing to supply associated data.
+   * Note: This method should ONLY be used by a {@link SyncManager} implementation.
+   *
+   * @param options.targetDid - DID of the DWN tenant to write the pruned RecordsWrite to.
+   * @returns DWN reply containing the status of processing request.
+   */
+  public async writePrunedRecord(options: {
+    targetDid: string,
+    message: RecordsWriteMessage
+  }): Promise<GenericMessageReply> {
+    const { targetDid, message } = options;
+
+    return await this._dwn.synchronizePrunedInitialRecordsWrite(targetDid, message);
+  }
+
+  public async processMessage(options: {
+    targetDid: string,
+    message: GenericMessage,
+    dataStream?: Readable
+  }): Promise<UnionMessageReply> {
+    const { dataStream, message, targetDid } = options;
+
+    return await this._dwn.processMessage(targetDid, message, dataStream);
+  }
 }
+
+type GenericMessageReply = {
+  status: Status;
+};
+
+type Status = {
+  code: number
+  detail: string
+};
