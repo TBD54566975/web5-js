@@ -1,10 +1,10 @@
 import type { JwsHeaderParams } from '@web5/crypto';
 import type { Resolvable, DIDResolutionResult } from 'did-resolver';
 import type {
-  VerifiableCredential,
+  VerifiableCredentialV1,
   JwtDecodedVerifiableCredential,
   CredentialSubject,
-  VerifiablePresentation,
+  VerifiablePresentationV1,
   PresentationResult,
   EvaluationResults,
   PresentationDefinition,
@@ -21,7 +21,6 @@ import { Convert } from '@web5/common';
 import { verifyJWT } from 'did-jwt';
 import { DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
 import { SsiValidator } from './validators.js';
-import { Status } from '@sphereon/pex';
 
 export type CreateVcOptions = {
   credentialSubject: CredentialSubject,
@@ -79,23 +78,25 @@ class TbdResolver implements Resolvable {
 
 const tbdResolver = new TbdResolver();
 
-export class VC {
+export class VerifiableCredential {
   /**
    * Creates a Verifiable Credential (VC) JWT.
    *
-   * @param createVcOptions - Options for creating the VC including the subject, issuer, signer, and other optional parameters.
+   * @param signOptions - Options for creating the signature including the kid, issuerDid, subjectDid, and signer function.
+   * @param createVcOptions - Optional. Options for creating the VC including the subject, issuer and other optional parameters.
+   * @param verifiableCredential - Optional. Actual VC object to be signed.
    * @returns A promise that resolves to a VC JWT.
    */
-  public static async createVerifiableCredentialJwt(createVcSignOptions: SignOptions, createVcOptions?: CreateVcOptions, verifiableCredential?: VerifiableCredential): Promise<VcJwt> {
+  public static async create(signOptions: SignOptions, createVcOptions?: CreateVcOptions, verifiableCredential?: VerifiableCredentialV1): Promise<VcJwt> {
     if (createVcOptions && verifiableCredential) {
-      throw new Error('options and verifiableCredential are mutually exclusive, either include the full verifiableCredential or the options to create one');
+      throw new Error('options and verifiableCredentials are mutually exclusive, either include the full verifiableCredential or the options to create one');
     }
 
     if (!createVcOptions && !verifiableCredential) {
       throw new Error('options or verifiableCredential must be provided');
     }
 
-    let vc: VerifiableCredential;
+    let vc: VerifiableCredentialV1;
 
     if (verifiableCredential) {
       vc = verifiableCredential;
@@ -112,25 +113,23 @@ export class VC {
       };
     }
 
-    this.validateVerifiableCredentialPayload(vc);
-    const vcJwt: VcJwt = await createJwt({ payload: { vc: vc }, subject: createVcSignOptions.subjectDid, issuer: createVcSignOptions.issuerDid, kid: createVcSignOptions.kid, signer: createVcSignOptions.signer });
+    this.validatePayload(vc);
+    const vcJwt: VcJwt = await createJwt({ payload: { vc: vc }, subject: signOptions.subjectDid, issuer: signOptions.issuerDid, kid: signOptions.kid, signer: signOptions.signer });
     return vcJwt;
   }
 
   /**
-   * Decodes a VC JWT into its constituent parts: header, payload, and signature.
+   * Validates the structure and integrity of a Verifiable Credential payload.
    *
-   * @param jwt - The JWT string to decode.
-   * @returns An object containing the decoded header, payload, and signature.
+   * @param vc - The Verifiable Credential object to validate.
+   * @throws Error if any validation check fails.
    */
-  public static decodeVerifiableCredentialJwt(jwt: string): DecodedVcJwt {
-    const [encodedHeader, encodedPayload, encodedSignature] = jwt.split('.');
-
-    return {
-      header    : Convert.base64Url(encodedHeader).toObject() as JwtHeaderParams,
-      payload   : Convert.base64Url(encodedPayload).toObject() as JwtDecodedVerifiableCredential,
-      signature : encodedSignature
-    };
+  public static validatePayload(vc: VerifiableCredentialV1): void {
+    SsiValidator.validateContext(vc['@context']);
+    SsiValidator.validateVcType(vc.type);
+    SsiValidator.validateCredentialSubject(vc.credentialSubject);
+    if (vc.issuanceDate) SsiValidator.validateTimestamp(vc.issuanceDate);
+    if (vc.expirationDate) SsiValidator.validateTimestamp(vc.expirationDate);
   }
 
   /**
@@ -139,7 +138,7 @@ export class VC {
    * @param vcJwt - The VC JWT to verify.
    * @returns A boolean or errors indicating whether the JWT is valid.
    */
-  public static async verifyVerifiableCredentialJwt(vcJwt: VcJwt): Promise<void> {
+  public static async verify(vcJwt: VcJwt): Promise<void> {
     const verificationResponse = await verifyJWT(vcJwt, {
       resolver: tbdResolver
     });
@@ -148,22 +147,24 @@ export class VC {
       throw new Error('VC JWT could not be verified. Reason: ' + JSON.stringify(verificationResponse));
     }
 
-    const vcDecoded = VC.decodeVerifiableCredentialJwt(vcJwt).payload.vc;
-    this.validateVerifiableCredentialPayload(vcDecoded);
+    const vcDecoded = VerifiableCredential.decode(vcJwt).payload.vc;
+    this.validatePayload(vcDecoded);
   }
 
   /**
- * Validates the structure and integrity of a Verifiable Credential payload.
- *
- * @param vc - The Verifiable Credential object to validate.
- * @throws Error if any validation check fails.
- */
-  public static validateVerifiableCredentialPayload(vc: VerifiableCredential): void {
-    SsiValidator.validateContext(vc['@context']);
-    SsiValidator.validateVcType(vc.type);
-    SsiValidator.validateCredentialSubject(vc.credentialSubject);
-    if (vc.issuanceDate) SsiValidator.validateTimestamp(vc.issuanceDate);
-    if (vc.expirationDate) SsiValidator.validateTimestamp(vc.expirationDate);
+   * Decodes a VC JWT into its constituent parts: header, payload, and signature.
+   *
+   * @param jwt - The JWT string to decode.
+   * @returns An object containing the decoded header, payload, and signature.
+   */
+  public static decode(jwt: string): DecodedVcJwt {
+    const [encodedHeader, encodedPayload, encodedSignature] = jwt.split('.');
+
+    return {
+      header    : Convert.base64Url(encodedHeader).toObject() as JwtHeaderParams,
+      payload   : Convert.base64Url(encodedPayload).toObject() as JwtDecodedVerifiableCredential,
+      signature : encodedSignature
+    };
   }
 
   /**
@@ -180,21 +181,21 @@ export class VC {
   }
 }
 
-export class VP {
+export class VerifiablePresentation {
   /**
    * Creates a Verifiable Presentation (VP) JWT from a presentation definition and set of credentials.
-   *
-   * @param options - Options for creating the VP including presentationDefinition, verifiableCredentialJwts, and signer
+   * @param signOptions - Options for creating the VP including subjectDid, issuerDid, kid, and the sign function.
+   * @param createVpOptions - Options for creating the VP including presentationDefinition, verifiableCredentialJwts.
    * @returns A promise that resolves to a VP JWT.
    */
-  public static async createVerifiablePresentationJwt(createVpOptions: CreateVpOptions, createVpSignOptions: SignOptions): Promise<VpJwt> {
-    const evaluationResults = VC.evaluateCredentials(createVpOptions.presentationDefinition, createVpOptions.verifiableCredentialJwts);
+  public static async create(signOptions: SignOptions, createVpOptions: CreateVpOptions,): Promise<VpJwt> {
+    const evaluationResults: EvaluationResults = VerifiableCredential.evaluateCredentials(createVpOptions.presentationDefinition, createVpOptions.verifiableCredentialJwts);
 
     if (evaluationResults.warnings?.length) {
       console.warn('Warnings were generated during the evaluation process: ' + JSON.stringify(evaluationResults.warnings));
     }
 
-    if (evaluationResults.areRequiredCredentialsPresent != Status.INFO || evaluationResults.errors?.length) {
+    if (evaluationResults.areRequiredCredentialsPresent.toString() !== 'info' || evaluationResults.errors?.length) {
       let errorMessage = 'Failed to create Verifiable Presentation JWT due to: ';
       if(evaluationResults.areRequiredCredentialsPresent) {
         errorMessage += 'Required Credentials Not Present: ' + JSON.stringify(evaluationResults.areRequiredCredentialsPresent);
@@ -208,26 +209,32 @@ export class VP {
     }
 
     const presentationResult: PresentationResult = presentationFrom(createVpOptions.presentationDefinition, createVpOptions.verifiableCredentialJwts);
-    const verifiablePresentation: VerifiablePresentation = presentationResult.presentation;
-    const vpJwt: VpJwt = await createJwt({ payload: { vp: verifiablePresentation }, subject: createVpSignOptions.subjectDid, issuer: createVpSignOptions.issuerDid, kid: createVpSignOptions.kid, signer: createVpSignOptions.signer });
+    const verifiablePresentation: VerifiablePresentationV1 = presentationResult.presentation;
+    const vpJwt: VpJwt = await createJwt({ payload: { vp: verifiablePresentation }, subject: signOptions.subjectDid, issuer: signOptions.issuerDid, kid: signOptions.kid, signer: signOptions.signer });
 
     return vpJwt;
   }
 
   /**
-   * Decodes a VP JWT into its constituent parts: header, payload, and signature.
+   * Validates the structure and integrity of a Verifiable Presentation payload.
    *
-   * @param jwt - The JWT string to decode.
-   * @returns An object containing the decoded header, payload, and signature.
+   * @param vp - The Verifiable Presentation object to validate.
+   * @throws Error if any validation check fails.
    */
-  public static decodeVerifiablePresentationJwt(jwt: string): DecodedVpJwt {
-    const [encodedHeader, encodedPayload, encodedSignature] = jwt.split('.');
-
-    return {
-      header    : Convert.base64Url(encodedHeader).toObject() as JwtHeaderParams,
-      payload   : Convert.base64Url(encodedPayload).toObject() as JwtDecodedVerifiablePresentation,
-      signature : encodedSignature
-    };
+  public static validatePayload(vp: VerifiablePresentationV1): void {
+    SsiValidator.validateContext(vp['@context']);
+    if (vp.type) SsiValidator.validateVpType(vp.type);
+    // empty credential array is allowed
+    if (vp.verifiableCredential && vp.verifiableCredential.length >= 1) {
+      for (const vc of vp.verifiableCredential) {
+        if (typeof vc === 'string') {
+          VerifiableCredential.verify(vc);
+        } else {
+          SsiValidator.validateCredentialPayload(vc);
+        }
+      }
+    }
+    if (vp.expirationDate) SsiValidator.validateTimestamp(vp.expirationDate);
   }
 
   /**
@@ -236,41 +243,33 @@ export class VP {
    * @param vpJwt - The VP JWT to verify.
    * @returns A boolean or errors indicating whether the JWT is valid.
    */
-  public static async verifyVerifiablePresentationJwt(vpJwt: VpJwt): Promise<void> {
-    let resolver = new TbdResolver();
-
-    let verificationResponse = await verifyJWT(vpJwt, {
-      resolver
+  public static async verify(vpJwt: VpJwt): Promise<void> {
+    const verificationResponse = await verifyJWT(vpJwt, {
+      resolver: tbdResolver
     });
 
     if (!verificationResponse.verified) {
       throw new Error('VP JWT could not be verified. Reason: ' + JSON.stringify(verificationResponse));
     }
 
-    const vpDecoded: VerifiablePresentation = VP.decodeVerifiablePresentationJwt(vpJwt).payload.vp;
-    VP.validateVerifiablePresentationPayload(vpDecoded);
+    const vpDecoded: VerifiablePresentationV1 = VerifiablePresentation.decode(vpJwt).payload.vp;
+    VerifiablePresentation.validatePayload(vpDecoded);
   }
 
   /**
- * Validates the structure and integrity of a Verifiable Presentation payload.
- *
- * @param vp - The Verifiable Presentation object to validate.
- * @throws Error if any validation check fails.
- */
-  public static validateVerifiablePresentationPayload(vp: VerifiablePresentation): void {
-    SsiValidator.validateContext(vp['@context']);
-    if (vp.type) SsiValidator.validateVpType(vp.type);
-    // empty credential array is allowed
-    if (vp.verifiableCredential && vp.verifiableCredential.length >= 1) {
-      for (const vc of vp.verifiableCredential) {
-        if (typeof vc === 'string') {
-          VC.verifyVerifiableCredentialJwt(vc);
-        } else {
-          SsiValidator.validateCredentialPayload(vc);
-        }
-      }
-    }
-    if (vp.expirationDate) SsiValidator.validateTimestamp(vp.expirationDate);
+   * Decodes a VP JWT into its constituent parts: header, payload, and signature.
+   *
+   * @param jwt - The JWT string to decode.
+   * @returns An object containing the decoded header, payload, and signature.
+   */
+  public static decode(jwt: string): DecodedVpJwt {
+    const [encodedHeader, encodedPayload, encodedSignature] = jwt.split('.');
+
+    return {
+      header    : Convert.base64Url(encodedHeader).toObject() as JwtHeaderParams,
+      payload   : Convert.base64Url(encodedPayload).toObject() as JwtDecodedVerifiablePresentation,
+      signature : encodedSignature
+    };
   }
 
   /**
@@ -282,7 +281,7 @@ export class VP {
    * @param presentation - The Verifiable Presentation to evaluate.
    * @returns {EvaluationResults} The result of the evaluation process, indicating whether the presentation meets the criteria.
    */
-  public static evaluatePresentation(presentationDefinition: PresentationDefinition, presentation: VerifiablePresentation): EvaluationResults {
+  public static evaluatePresentation(presentationDefinition: PresentationDefinition, presentation: VerifiablePresentationV1): EvaluationResults {
     return evaluatePresentation(presentationDefinition, presentation);
   }
 }

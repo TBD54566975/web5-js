@@ -1,5 +1,5 @@
 import type {
-  VerifiableCredential,
+  VerifiableCredentialV1,
   CredentialSubject,
   CredentialContextType,
 } from './types.js';
@@ -13,7 +13,7 @@ import {
 import { isValidXmlSchema112Timestamp } from './utils.js';
 
 export class SsiValidator {
-  static validateCredentialPayload(vc: VerifiableCredential): void {
+  static validateCredentialPayload(vc: VerifiableCredentialV1): void {
     this.validateContext(vc['@context']);
     this.validateVcType(vc.type);
     this.validateCredentialSubject(vc.credentialSubject);

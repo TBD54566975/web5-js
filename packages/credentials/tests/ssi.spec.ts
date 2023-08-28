@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { VcJwt, VpJwt, EvaluationResults, VerifiableCredential} from '../src/types.js';
-import {VC, VP, CreateVcOptions, CreateVpOptions, SignOptions} from '../src/ssi.js';
+import { VcJwt, VpJwt, EvaluationResults, VerifiableCredentialV1, PresentationDefinition} from '../src/types.js';
+import {VerifiableCredential, VerifiablePresentation, CreateVcOptions, CreateVpOptions, SignOptions} from '../src/ssi.js';
 import { Ed25519, Jose } from '@web5/crypto';
 import { DidKeyMethod } from '@web5/dids';
 import { getCurrentXmlSchema112Timestamp } from '../src/utils.js';
@@ -14,6 +14,7 @@ describe('SSI Tests', () => {
   let kid: string;
   let subjectIssuerDid: string;
   let signer: Signer;
+  let signOptions: SignOptions;
 
   beforeEach(async () => {
     alice = await DidKeyMethod.create();
@@ -22,6 +23,12 @@ describe('SSI Tests', () => {
     kid = signingKeyPair.privateKeyJwk!.kid!;
     subjectIssuerDid = alice.did;
     signer = EdDsaSigner(privateKey);
+    signOptions = {
+      issuerDid  : alice.did,
+      subjectDid : alice.did,
+      kid        : kid,
+      signer     : signer
+    };
   });
 
   describe('Verifiable Credential (VC)', () => {
@@ -30,19 +37,27 @@ describe('SSI Tests', () => {
         credentialSubject : { id: subjectIssuerDid, btcAddress: 'abc123' },
         issuer            : { id: subjectIssuerDid }
       };
-      const vcSignOptions: SignOptions = {
-        issuerDid  : alice.did,
-        subjectDid : alice.did,
-        kid        : kid,
-        signer     : signer
+
+      const vcJwt: VcJwt = await VerifiableCredential.create(signOptions, vcCreateOptions);
+      expect(async () => await VerifiableCredential.verify(vcJwt)).to.not.throw();
+    });
+
+    it('creates a VC JWT with VerifiableCredentialV1 type', async () => {
+      const vc:VerifiableCredentialV1 = {
+        id                : 'id123',
+        '@context'        : ['https://www.w3.org/2018/credentials/v1'],
+        credentialSubject : { id: subjectIssuerDid, btcAddress: 'abc123' },
+        type              : ['VerifiableCredential'],
+        issuer            : { id: subjectIssuerDid },
+        issuanceDate      : getCurrentXmlSchema112Timestamp(),
       };
 
-      const vcJwt: VcJwt = await VC.createVerifiableCredentialJwt(vcSignOptions, vcCreateOptions);
-      expect(async () => await VC.verifyVerifiableCredentialJwt(vcJwt)).to.not.throw();
+      const vcJwt: VcJwt = await VerifiableCredential.create(signOptions, undefined, vc);
+      expect(async () => await VerifiableCredential.verify(vcJwt)).to.not.throw();
     });
 
     it('creates a VC JWT with a VC', async () => {
-      const btcCredential: VerifiableCredential = {
+      const btcCredential: VerifiableCredentialV1 = {
         '@context'          : ['https://www.w3.org/2018/credentials/v1'],
         'id'                : 'btc-credential',
         'type'              : ['VerifiableCredential'],
@@ -53,15 +68,8 @@ describe('SSI Tests', () => {
         }
       };
 
-      const vcSignOptions: SignOptions = {
-        issuerDid  : alice.did,
-        subjectDid : alice.did,
-        kid        : kid,
-        signer     : signer
-      };
-
-      const vcJwt: VcJwt = await VC.createVerifiableCredentialJwt(vcSignOptions, undefined, btcCredential);
-      expect(async () => await VC.verifyVerifiableCredentialJwt(vcJwt)).to.not.throw();
+      const vcJwt: VcJwt = await VerifiableCredential.create(signOptions, undefined, btcCredential);
+      expect(async () => await VerifiableCredential.verify(vcJwt)).to.not.throw();
     });
 
     it('decodes a VC JWT', async () => {
@@ -70,15 +78,8 @@ describe('SSI Tests', () => {
         issuer            : { id: subjectIssuerDid }
       };
 
-      const vcSignOptions: SignOptions = {
-        issuerDid  : alice.did,
-        subjectDid : alice.did,
-        kid        : kid,
-        signer     : signer
-      };
-
-      const vcJwt: VcJwt = await VC.createVerifiableCredentialJwt(vcSignOptions, vcCreateOptions);
-      const vcPayload = VC.decodeVerifiableCredentialJwt(vcJwt).payload.vc;
+      const vcJwt: VcJwt = await VerifiableCredential.create(signOptions, vcCreateOptions);
+      const vcPayload = VerifiableCredential.decode(vcJwt).payload.vc;
 
       expect(vcPayload).to.exist;
       expect(vcPayload.issuer).to.deep.equal({ id: alice.did });
@@ -92,17 +93,28 @@ describe('SSI Tests', () => {
         credentialSubject : { id: subjectIssuerDid, btcAddress: 'abc123' },
         issuer            : { id: subjectIssuerDid }
       };
+
+      const vcJwt: VcJwt = await VerifiableCredential.create(signOptions, vcCreateOptions);
+      const vcPayload = VerifiableCredential.decode(vcJwt).payload.vc;
+
+      expect(() => VerifiableCredential.validatePayload(vcPayload)).to.not.throw();
+    });
+
+    it('detects invalid issuer sign options', async () => {
+      const vcCreateOptions: CreateVcOptions = {
+        credentialSubject : { id: subjectIssuerDid, btcAddress: 'abc123' },
+        issuer            : { id: subjectIssuerDid }
+      };
+
       const vcSignOptions: SignOptions = {
-        issuerDid  : alice.did,
+        issuerDid  : 'bad:did',
         subjectDid : alice.did,
         kid        : kid,
         signer     : signer
       };
 
-      const vcJwt: VcJwt = await VC.createVerifiableCredentialJwt(vcSignOptions, vcCreateOptions);
-      const vcPayload = VC.decodeVerifiableCredentialJwt(vcJwt).payload.vc;
-
-      expect(() => VC.validateVerifiableCredentialPayload(vcPayload)).to.not.throw();
+      const vcJwt: VcJwt = await VerifiableCredential.create(vcSignOptions, vcCreateOptions);
+      await expectThrowsAsync(() =>  VerifiableCredential.verify(vcJwt), 'resolver_error: Unable to resolve DID document for bad:did: invalidDid');
     });
   });
 
@@ -114,7 +126,7 @@ describe('SSI Tests', () => {
     beforeEach(async () => {
       vcCreateOptions = {credentialSubject: {id: subjectIssuerDid, btcAddress: 'abc123'}, issuer: {id: subjectIssuerDid}};
       signOptions = {issuerDid: alice.did, subjectDid: alice.did, kid: kid, signer: signer};
-      vcJwt = await VC.createVerifiableCredentialJwt(signOptions, vcCreateOptions);
+      vcJwt = await VerifiableCredential.create(signOptions, vcCreateOptions);
     });
 
     it('creates a VP JWT', async () => {
@@ -123,10 +135,10 @@ describe('SSI Tests', () => {
         verifiableCredentialJwts : [vcJwt]
       };
 
-      const vpJwt: VpJwt = await VP.createVerifiablePresentationJwt(vpCreateOptions, signOptions);
+      const vpJwt: VpJwt = await VerifiablePresentation.create(signOptions, vpCreateOptions);
       expect(vpJwt).to.exist;
 
-      const decodedVp = VP.decodeVerifiablePresentationJwt(vpJwt);
+      const decodedVp = VerifiablePresentation.decode(vpJwt);
       expect(decodedVp).to.have.property('header');
       expect(decodedVp).to.have.property('payload');
       expect(decodedVp).to.have.property('signature');
@@ -138,8 +150,8 @@ describe('SSI Tests', () => {
         verifiableCredentialJwts : [vcJwt],
       };
 
-      const vpJwt: VpJwt = await VP.createVerifiablePresentationJwt(vpCreateOptions, signOptions);
-      expect(async () => await VP.verifyVerifiablePresentationJwt(vpJwt)).to.not.throw();
+      const vpJwt: VpJwt = await VerifiablePresentation.create(signOptions, vpCreateOptions);
+      expect(async () => await VerifiablePresentation.verify(vpJwt)).to.not.throw();
     });
 
     it('evaluates a VP', async () => {
@@ -148,8 +160,8 @@ describe('SSI Tests', () => {
         verifiableCredentialJwts : [vcJwt]
       };
 
-      const vpJwt: VpJwt = await VP.createVerifiablePresentationJwt(vpCreateOptions, signOptions);
-      const result: EvaluationResults = VP.evaluatePresentation(getPresentationDefinition(), VP.decodeVerifiablePresentationJwt(vpJwt).payload.vp);
+      const vpJwt: VpJwt = await VerifiablePresentation.create(signOptions, vpCreateOptions, );
+      const result: EvaluationResults = VerifiablePresentation.evaluatePresentation(getPresentationDefinition(), VerifiablePresentation.decode(vpJwt).payload.vp);
 
       expect(result.warnings).to.be.an('array');
       expect(result.warnings!.length).to.equal(0);
@@ -164,7 +176,7 @@ describe('SSI Tests', () => {
       };
 
       try {
-        await VP.createVerifiablePresentationJwt(vpCreateOptions, signOptions);
+        await VerifiablePresentation.create(signOptions, vpCreateOptions);
       } catch (err: any) {
         expect(err).instanceOf(Error);
         expect(err!.message).to.equal('Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present: "error"');
@@ -174,7 +186,7 @@ describe('SSI Tests', () => {
     it('evaluates an invalid VP with invalid subject', async () => {
       vcCreateOptions = {credentialSubject: {id: subjectIssuerDid, badSubject: 'abc123'}, issuer: {id: subjectIssuerDid}};
       signOptions = {issuerDid: alice.did, subjectDid: alice.did, kid: kid, signer: signer};
-      vcJwt = await VC.createVerifiableCredentialJwt(signOptions, vcCreateOptions);
+      vcJwt = await VerifiableCredential.create(signOptions, vcCreateOptions);
 
       const vpCreateOptions: CreateVpOptions = {
         presentationDefinition   : getPresentationDefinition(),
@@ -182,7 +194,7 @@ describe('SSI Tests', () => {
       };
 
       try {
-        await VP.createVerifiablePresentationJwt(vpCreateOptions, signOptions);
+        await VerifiablePresentation.create(signOptions, vpCreateOptions);
       } catch (err: any) {
         expect(err).instanceOf(Error);
         expect(err!.message).to.equal('Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present: "error"Errors: [{"tag":"FilterEvaluation","status":"error","message":"Input candidate does not contain property: $.input_descriptors[0]: $.verifiableCredential[0]"},{"tag":"MarkForSubmissionEvaluation","status":"error","message":"The input candidate is not eligible for submission: $.input_descriptors[0]: $.verifiableCredential[0]"}]');
@@ -199,7 +211,7 @@ describe('SSI Tests', () => {
       };
 
       try {
-        await VP.createVerifiablePresentationJwt(vpCreateOptions, signOptions);
+        await VerifiablePresentation.create(signOptions, vpCreateOptions);
       } catch (err: any) {
         expect(err).instanceOf(Error);
         expect(err!.message).to.equal('Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present: "error"Errors: [{"tag":"FilterEvaluation","status":"error","message":"Input candidate does not contain property: $.input_descriptors[0]: $.verifiableCredential[0]"},{"tag":"MarkForSubmissionEvaluation","status":"error","message":"The input candidate is not eligible for submission: $.input_descriptors[0]: $.verifiableCredential[0]"}]');
@@ -208,7 +220,21 @@ describe('SSI Tests', () => {
   });
 });
 
-function getPresentationDefinition() {
+const expectThrowsAsync = async (method: any, errorMessage: string) => {
+  let error: any = null;
+  try {
+    await method();
+  }
+  catch (err) {
+    error = err;
+  }
+  expect(error).to.be.an('Error');
+  if (errorMessage) {
+    expect(error.message).to.contain(errorMessage);
+  }
+};
+
+function getPresentationDefinition(): PresentationDefinition {
   return {
     'id'                : 'test-pd-id',
     'name'              : 'simple PD',

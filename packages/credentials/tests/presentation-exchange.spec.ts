@@ -8,7 +8,7 @@ import { Ed25519, Jose } from '@web5/crypto';
 
 import type {
   PresentationResult,
-  VerifiableCredential,
+  VerifiableCredentialV1,
   PresentationDefinition,
   JwtDecodedVerifiablePresentation,
 } from '../src/types.js';
@@ -126,7 +126,7 @@ describe('PresentationExchange', () => {
 });
 
 async function createBtcCredentialJwt(aliceDid: string, header: JwtHeaderParams, signer: Signer) {
-  const btcCredential: VerifiableCredential = {
+  const btcCredential: VerifiableCredentialV1 = {
     '@context'          : ['https://www.w3.org/2018/credentials/v1'],
     'id'                : 'btc-credential',
     'type'              : ['VerifiableCredential'],

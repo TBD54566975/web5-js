@@ -32,7 +32,7 @@ export const DEFAULT_VP_TYPE = 'VerifiablePresentation';
  *
  * @see {@link https://www.w3.org/TR/vc-data-model/#credentials | VC Data Model}
  */
-export type VerifiableCredential = ICredential;
+export type VerifiableCredentialV1 = ICredential;
 
 /**
  * A Credential Context is to convey the meaning of the data and term definitions of the data in a verifiable credential.
@@ -100,7 +100,7 @@ export type PresentationSubmission = PexPresentationSubmission;
  *
  * @see {@link https://www.w3.org/TR/vc-data-model/#dfn-verifiable-presentations | Verifiable Presentation}
  */
-export type VerifiablePresentation = IPresentation;
+export type VerifiablePresentationV1 = IPresentation;
 
 /**
  * JWT-decoded version of a Verifiable Presentation, offering a structured format for presentation
@@ -150,7 +150,7 @@ export const evaluateCredentials = (
  */
 export const evaluatePresentation = (
   presentationDefinition: PresentationDefinition,
-  presentation: VerifiablePresentation
+  presentation: VerifiablePresentationV1
 ): EvaluationResults  => {
   return pex.evaluatePresentation(presentationDefinition, presentation);
 };
