@@ -1,11 +1,9 @@
 import type { BatchOperation } from 'level';
 import type {
   EventsGetReply,
-  SignatureInput,
   MessagesGetReply,
   RecordsReadReply,
   RecordsWriteMessage,
-  PrivateJwk as DwnPrivateKeyJwk,
 } from '@tbd54566975/dwn-sdk-js';
 
 import { Level } from 'level';
@@ -14,6 +12,8 @@ import { utils as didUtils } from '@web5/dids';
 import { DataStream } from '@tbd54566975/dwn-sdk-js';
 
 import type { Web5ManagedAgent } from './types/agent.js';
+
+import { webReadableToIsomorphicNodeReadable } from './utils.js';
 
 export interface SyncManager {
   registerIdentity(options: { did: string }): Promise<void>;
@@ -88,12 +88,22 @@ export class SyncManagerLevel implements SyncManager {
     await this._db.clear();
   }
 
-  public async enqueuePush(): Promise<void> {
+  private async getSyncPeerState(options: {
+    syncDirection: 'pull' | 'push'
+  }): Promise<SyncState[]> {
+    const { syncDirection } = options;
+
+    // Get a list of the DIDs of all registered identities.
     const registeredIdentities = await this._db.sublevel('registeredIdentities').keys().all();
-    const syncStates: SyncState[] = [];
+
+    // Array to accumulate the list of sync peers for each DID.
+    const syncPeerState: SyncState[] = [];
 
     for (let did of registeredIdentities) {
+      // Resolve the DID to its DID document.
       const { didDocument, didResolutionMetadata } = await this.agent.didResolver.resolve(did);
+
+      // If DID resolution fails, throw an error.
       if (!didDocument) {
         const errorCode = `${didResolutionMetadata?.error}: ` ?? '';
         const defaultMessage = `Unable to resolve DID: ${did}`;
@@ -101,6 +111,7 @@ export class SyncManagerLevel implements SyncManager {
         throw new Error(`SyncManager: ${errorCode}${errorMessage}`);
       }
 
+      // Attempt to get the `#dwn` service entry from the DID document.
       const [ service ] = didUtils.getServices({ didDocument, id: '#dwn' });
 
       /** Silently ignore and do not try to perform Sync for any DID that does not have a DWN
@@ -113,83 +124,276 @@ export class SyncManagerLevel implements SyncManager {
         throw new Error(`SyncManager: Malformed '#dwn' service endpoint. Expected array of node addresses.`);
       }
 
-      const dwnEndpointUrls = service.serviceEndpoint.nodes;
-
-      for (let dwnUrl of dwnEndpointUrls) {
-        const watermark = await this.getWatermark(did, dwnUrl, 'push');
-        syncStates.push({ did, dwnUrl, watermark });
+      for (let dwnUrl of service.serviceEndpoint.nodes) {
+        const watermark = await this.getWatermark(did, dwnUrl, syncDirection);
+        syncPeerState.push({ did, dwnUrl, watermark });
       }
     }
 
-    for (let syncState of syncStates) {
-      let agentResponse = await this.agent.dwnManager.processRequest({
-        author         : syncState.did,
-        target         : syncState.did,
-        messageType    : 'EventsGet',
-        messageOptions : {
-          watermark: syncState.watermark
-        }
+    return syncPeerState;
+  }
+
+  private async enqueueOperations(options: {
+    syncDirection: 'pull' | 'push',
+    syncPeerState: SyncState[]
+  }) {
+    const { syncDirection, syncPeerState } = options;
+
+    for (let syncState of syncPeerState) {
+      // Get the event log from the remote DWN if pull sync, or local DWN if push sync.
+      const eventLog = await this.getDwnEventLog({
+        did       : syncState.did,
+        dwnUrl    : syncState.dwnUrl,
+        syncDirection,
+        watermark : syncState.watermark
       });
 
-      const eventsReply = agentResponse.reply as EventsGetReply;
-      const putOps: DbBatchOperation[] = [];
+      const syncOperations: DbBatchOperation[] = [];
 
-      for (let event of eventsReply.events ?? []) {
-        const pushKey = `${syncState.did}~${syncState.dwnUrl}~${event.messageCid}`;
-        const putOp: DbBatchOperation = { type: 'put', key: pushKey, value: event.watermark };
+      for (let event of eventLog) {
+        const operationKey = `${syncState.did}~${syncState.dwnUrl}~${event.messageCid}`;
+        const operation: DbBatchOperation = {
+          type  : 'put',
+          key   : operationKey,
+          value : event.watermark
+        };
 
-        putOps.push(putOp);
+        syncOperations.push(operation);
       }
 
-      const pushQueue = this.getPushQueue();
-      await pushQueue.batch(putOps as any);
+      if (syncOperations.length > 0) {
+        const syncQueue = (syncDirection === 'pull')
+          ? this.getPullQueue()
+          : this.getPushQueue();
+        await syncQueue.batch(syncOperations as any);
+      }
     }
   }
 
-  // async getEvents(did: string, watermark: string | undefined, dwnUrl: string) {
-  //   const signatureInput = await this.getAuthorSignatureInput(did);
-  //   const eventsGet = await EventsGet.create({
-  //     watermark                   : watermark,
-  //     authorizationSignatureInput : signatureInput
-  //   });
+  private async getDwnEventLog(options: {
+    did: string,
+    dwnUrl: string,
+    syncDirection: 'pull' | 'push',
+    watermark?: string
+  }) {
+    const { did, dwnUrl, syncDirection, watermark } = options;
 
-  //   let events: Event[];
-  //   if (dwnUrl === 'local') {
-  //     const reply = await this.dwn.processMessage(did, eventsGet.toJSON()) as EventsGetReply;
-  //     ({ events } = reply);
-  //   } else {
-  //     const reply = await this.dwnRpcClient.sendDwnRequest({
-  //       dwnUrl,
-  //       targetDid : did,
-  //       message   : eventsGet
-  //     }) as EventsGetReply;
+    let eventsReply = {} as EventsGetReply;
 
-  //     ({ events } = reply);
-  //   }
+    if (syncDirection === 'pull') {
+      // When sync is a pull, get the event log from the remote DWN.
+      const eventsGetMessage = await this.agent.dwnManager.createMessage({
+        author         : did,
+        messageType    : 'EventsGet',
+        messageOptions : { watermark }
+      });
 
-  //   return events;
-  // }
+      try {
+        eventsReply = await this.agent.rpcClient.sendDwnRequest({
+          dwnUrl    : dwnUrl,
+          targetDid : did,
+          message   : eventsGetMessage
+        });
+      } catch {
+        // If a particular DWN service endpoint is unreachable, silently ignore.
+      }
+
+    } else if (syncDirection === 'push') {
+      // When sync is a push, get the event log from the local DWN.
+      ({ reply: eventsReply } = await this.agent.dwnManager.processRequest({
+        author         : did,
+        target         : did,
+        messageType    : 'EventsGet',
+        messageOptions : { watermark }
+      }));
+    }
+
+    const eventLog = eventsReply.events ?? [];
+
+    return eventLog;
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  public async pull(): Promise<void> {
+    const syncPeerState = await this.getSyncPeerState({ syncDirection: 'pull' });
+    await this.enqueueOperations({ syncDirection: 'pull', syncPeerState });
+    // await this.enqueuePull();
+
+    const pullQueue = this.getPullQueue();
+    const pullJobs = await pullQueue.iterator().all();
+
+    const deleteOperations: DbBatchOperation[] = [];
+    const errored: Set<string> = new Set();
+
+    for (let job of pullJobs) {
+      const [key, watermark] = job;
+      const [did, dwnUrl, messageCid] = key.split('~');
+
+      // If a particular DWN service endpoint is unreachable, skip subsequent pull operations.
+      if (errored.has(dwnUrl)) {
+        continue;
+      }
+
+      const messageExists = await this.messageExists(did, messageCid);
+      if (messageExists) {
+        await this.setWatermark(did, dwnUrl, 'pull', watermark);
+        deleteOperations.push({ type: 'del', key });
+
+        continue;
+      }
+
+      const messagesGet = await this.agent.dwnManager.createMessage({
+        author         : did,
+        messageType    : 'MessagesGet',
+        messageOptions : {
+          messageCids: [messageCid]
+        }
+      });
+
+      let reply: MessagesGetReply;
+
+      try {
+        reply = await this.agent.rpcClient.sendDwnRequest({
+          dwnUrl,
+          targetDid : did,
+          message   : messagesGet
+        }) as MessagesGetReply;
+      } catch(e) {
+        errored.add(dwnUrl);
+        continue;
+      }
+
+      // TODO
+      /** Per Moe, this loop exists because the original intent was to pass multiple messageCid
+       * values to batch network requests for record messages rather than one at a time, as it
+       * is currently implemented.  Either the pull() method should be refactored to batch
+       * getting messages OR this loop should be removed. */
+      for (let entry of reply.messages ?? []) {
+        if (entry.error || !entry.message) {
+          console.warn(`SyncManager: Message '${messageCid}' not found. Ignorning entry: ${JSON.stringify(entry, null, 2)}`);
+
+          await this.setWatermark(did, dwnUrl, 'pull', watermark);
+          await this.addMessage(did, messageCid);
+          deleteOperations.push({ type: 'del', key });
+
+          continue;
+        }
+
+        const messageType = this.getDwnMessageType(entry.message);
+        let dataStream;
+
+        if (messageType === 'RecordsWrite') {
+          const { encodedData } = entry;
+          const message = entry.message as RecordsWriteMessage;
+
+          if (encodedData) {
+            const dataBytes = Convert.base64Url(encodedData).toUint8Array();
+            dataStream = DataStream.fromBytes(dataBytes);
+          } else {
+            const recordsRead = await this.agent.dwnManager.createMessage({
+              author         : did,
+              messageType    : 'RecordsRead',
+              messageOptions : {
+                recordId: message['recordId']
+              }
+            });
+
+            const recordsReadReply = await this.agent.rpcClient.sendDwnRequest({
+              dwnUrl,
+              targetDid : did,
+              message   : recordsRead
+            }) as RecordsReadReply;
+
+            const { record, status: readStatus } = recordsReadReply;
+
+            if (is2xx(readStatus.code) && record) {
+              /** If the read was successful, convert the data stream from web ReadableStream
+                 * to Node.js Readable so that the DWN can process it.*/
+              dataStream = webReadableToIsomorphicNodeReadable(record.data as any);
+
+            } else if (readStatus.code >= 400) {
+              const pruneReply = await this.agent.dwnManager.writePrunedRecord({
+                targetDid: did,
+                message
+              });
+
+              if (pruneReply.status.code === 202 || pruneReply.status.code === 409) {
+                await this.setWatermark(did, dwnUrl, 'pull', watermark);
+                await this.addMessage(did, messageCid);
+                deleteOperations.push({ type: 'del', key });
+
+                continue;
+              } else {
+                throw new Error(`SyncManager: Failed to sync tombstone for message '${messageCid}'`);
+              }
+            }
+          }
+        }
+
+        const pullReply = await this.agent.dwnManager.processMessage({
+          targetDid : did,
+          message   : entry.message,
+          dataStream
+        });
+
+        if (pullReply.status.code === 202 || pullReply.status.code === 409) {
+          await this.setWatermark(did, dwnUrl, 'pull', watermark);
+          await this.addMessage(did, messageCid);
+          deleteOperations.push({ type: 'del', key });
+        }
+      }
+    }
+
+    await pullQueue.batch(deleteOperations as any);
+  }
 
   public async push(): Promise<void> {
-    await this.enqueuePush();
+    const syncPeerState = await this.getSyncPeerState({ syncDirection: 'push' });
+    await this.enqueueOperations({ syncDirection: 'push', syncPeerState });
+    // await this.enqueuePush();
 
     const pushQueue = this.getPushQueue();
     const pushJobs = await pushQueue.iterator().all();
-    const errored: Set<string> = new Set();
 
-    const delOps: DbBatchOperation[] = [];
+    const deleteOperations: DbBatchOperation[] = [];
+    const errored: Set<string> = new Set();
 
     for (let job of pushJobs) {
       const [key, watermark] = job;
       const [did, dwnUrl, messageCid] = key.split('~');
 
+      // If a particular DWN service endpoint is unreachable, skip subsequent push operations.
       if (errored.has(dwnUrl)) {
         continue;
       }
 
       const dwnMessage = await this.getDwnMessage(did, messageCid);
       if (!dwnMessage) {
-        delOps.push({ type: 'del', key: key });
+        deleteOperations.push({ type: 'del', key: key });
         await this.setWatermark(did, dwnUrl, 'push', watermark);
         await this.addMessage(did, messageCid);
 
@@ -205,9 +409,9 @@ export class SyncManagerLevel implements SyncManager {
         });
 
         if (reply.status.code === 202 || reply.status.code === 409) {
-          delOps.push({ type: 'del', key: key });
           await this.setWatermark(did, dwnUrl, 'push', watermark);
           await this.addMessage(did, messageCid);
+          deleteOperations.push({ type: 'del', key: key });
         }
       } catch {
         // Error is intentionally ignored; 'errored' set is updated with 'dwnUrl'.
@@ -215,172 +419,7 @@ export class SyncManagerLevel implements SyncManager {
       }
     }
 
-    await pushQueue.batch(delOps as any);
-  }
-
-  // async enqueuePull() {
-  //   const registeredIdentities = await this._db.sublevel('registeredIdentities').keys().all();
-  //   const syncStates: SyncState[] = [];
-
-  //   for (let did of registeredIdentities) {
-  //     // TODO: try/catch
-  //     const { didDocument } = await this.didResolver.resolve(did);
-  //     const [ service ] = didUtils.getServices(didDocument, { id: '#dwn', type: 'DecentralizedWebNode' });
-
-  //     if (!didUtils.isDwnServiceEndpoint(didDwnService.serviceEndpoint)) throw Error('Type guard');
-
-  //     // did has no dwn service endpoints listed in DID Doc. ignore
-  //     if (!service) {
-  //       continue;
-  //     }
-
-  //     const { nodes } = <DwnServiceEndpoint>service.serviceEndpoint;
-  //     for (let node of nodes) {
-  //       const watermark = await this.getWatermark(did, node, 'pull');
-  //       syncStates.push({ did, dwnUrl: node, watermark });
-  //     }
-  //   }
-
-  //   const pullOps: DbBatchOperation[] = [];
-
-  //   for (let syncState of syncStates) {
-  //     const signatureInput = await this.getAuthorSignatureInput(syncState.did);
-  //     const eventsGet = await EventsGet.create({
-  //       watermark                   : syncState.watermark,
-  //       authorizationSignatureInput : signatureInput
-  //     });
-
-  //     let reply: EventsGetReply;
-
-  //     try {
-  //       reply = await this.dwnRpcClient.sendDwnRequest({
-  //         dwnUrl    : syncState.dwnUrl,
-  //         targetDid : syncState.did,
-  //         message   : eventsGet
-  //       }) as EventsGetReply;
-  //     } catch(e) {
-  //       continue;
-  //     }
-
-  //     for (let event of reply.events) {
-  //       const pullKey = `${syncState.did}~${syncState.dwnUrl}~${event.messageCid}`;
-  //       const pullOp: DbBatchOperation = { type: 'put', key: pullKey, value: event.watermark };
-
-  //       pullOps.push(pullOp);
-  //     }
-
-  //     if (pullOps.length > 0) {
-  //       const pullQueue = this.getPullQueue();
-  //       pullQueue.batch(pullOps as any);
-  //     }
-  //   }
-  // }
-
-  async pull() {
-  //   await this.enqueuePull();
-
-    //   const pullQueue = this.getPullQueue();
-    //   const pullJobs = await pullQueue.iterator().all();
-    //   const delOps: DbBatchOperation[] = [];
-    //   const errored: Set<string> = new Set();
-
-    //   for (let job of pullJobs) {
-    //     const [key, watermark] = job;
-    //     const [did, dwnUrl, messageCid] = key.split('~');
-
-    //     if (errored.has(dwnUrl)) {
-    //       continue;
-    //     }
-
-    //     const messageExists = await this.messageExists(did, messageCid);
-    //     if (messageExists) {
-    //       await this.setWatermark(did, dwnUrl, 'pull', watermark);
-    //       delOps.push({ type: 'del', key });
-
-    //       continue;
-    //     }
-
-    //     const signatureInput = await this.getAuthorSignatureInput(did);
-    //     const messagesGet = await MessagesGet.create({
-    //       messageCids                 : [messageCid],
-    //       authorizationSignatureInput : signatureInput
-    //     });
-
-    //     let reply: MessagesGetReply;
-
-    //     try {
-    //       reply = await this.dwnRpcClient.sendDwnRequest({
-    //         dwnUrl,
-    //         targetDid : did,
-    //         message   : messagesGet
-    //       }) as MessagesGetReply;
-    //     } catch(e) {
-    //       errored.add(dwnUrl);
-    //       continue;
-    //     }
-
-    //     for (let entry of reply.messages) {
-    //       if (entry.error || !entry.message) {
-    //         console.warn(`message ${messageCid} not found. entry: ${JSON.stringify(entry, null, 2)} ignoring..`);
-
-    //         await this.setWatermark(did, dwnUrl, 'pull', watermark);
-    //         await this.addMessage(did, messageCid);
-    //         delOps.push({ type: 'del', key });
-
-    //         continue;
-    //       }
-
-    //       const messageType = this.getDwnMessageType(entry.message);
-    //       let dataStream;
-
-    //       if (messageType === 'RecordsWrite') {
-    //         const { encodedData } = entry;
-    //         const message = entry.message as RecordsWriteMessage;
-
-    //         if (encodedData) {
-    //           const dataBytes = Encoder.base64UrlToBytes(encodedData);
-    //           dataStream = DataStream.fromBytes(dataBytes);
-    //         } else {
-    //           const recordsRead = await RecordsRead.create({
-    //             authorizationSignatureInput : signatureInput,
-    //             recordId                    : message['recordId']
-    //           });
-
-    //           const recordsReadReply = await this.dwnRpcClient.sendDwnRequest({
-    //             targetDid : did,
-    //             dwnUrl,
-    //             message   : recordsRead
-    //           }) as RecordsReadReply;
-
-    //           if (recordsReadReply.status.code >= 400) {
-    //             const pruneReply = await this.dwn.synchronizePrunedInitialRecordsWrite(did, message);
-
-    //             if (pruneReply.status.code === 202 || pruneReply.status.code === 409) {
-    //               await this.setWatermark(did, dwnUrl, 'pull', watermark);
-    //               await this.addMessage(did, messageCid);
-    //               delOps.push({ type: 'del', key });
-
-    //               continue;
-    //             } else {
-    //               throw new Error(`Failed to sync tombstone. message cid: ${messageCid}`);
-    //             }
-    //           } else {
-    //             dataStream = webReadableToIsomorphicNodeReadable(recordsReadReply.record.data as any);
-    //           }
-    //         }
-    //       }
-
-    //       const pullReply = await this.dwn.processMessage(did, entry.message, dataStream);
-
-    //       if (pullReply.status.code === 202 || pullReply.status.code === 409) {
-    //         await this.setWatermark(did, dwnUrl, 'pull', watermark);
-    //         await this.addMessage(did, messageCid);
-    //         delOps.push({ type: 'del', key });
-    //       }
-    //     }
-    //   }
-
-  //   await pullQueue.batch(delOps as any);
+    await pushQueue.batch(deleteOperations as any);
   }
 
   public async registerIdentity(options: {
@@ -467,34 +506,6 @@ export class SyncManagerLevel implements SyncManager {
     return dwnMessage;
   }
 
-  // /**
-  //  * constructs signature input required to sign DWeb Messages
-  //  * @param authorDid
-  //  * @returns {SignatureInput}
-  //  */
-  // async getAuthorSignatureInput(authorDid: string): Promise<SignatureInput> {
-  //   const profile = await this.profileManager.getProfile(authorDid);
-
-  //   if (!profile) {
-  //     throw new Error('profile not found for author.');
-  //   }
-
-  //   const { keys } = profile.did;
-  //   const [ key ] = keys;
-  //   const { privateKeyJwk } = key;
-
-  //   // TODO: make far less naive
-  //   const kidFragment = privateKeyJwk.kid || key.id;
-  //   const kid = `${profile.did.id}#${kidFragment}`;
-
-  //   const dwnSignatureInput: SignatureInput = {
-  //     privateJwk      : <DwnPrivateKeyJwk>privateKeyJwk,
-  //     protectedHeader : { alg: privateKeyJwk.crv, kid }
-  //   };
-
-  //   return dwnSignatureInput;
-  // }
-
   private async getWatermark(did: string, dwnUrl: string, direction: SyncDirection) {
     const wmKey = `${did}~${dwnUrl}~${direction}`;
     const watermarkStore = this.getWatermarkStore();
@@ -555,59 +566,5 @@ export class SyncManagerLevel implements SyncManager {
   // TODO: export BaseMessage from dwn-sdk.
   private getDwnMessageType(message: any) {
     return `${message.descriptor.interface}${message.descriptor.method}`;
-  }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  /**
-   * TEMPORARY
-   * REMOVE ONCE SYNC MANAGER IS REFACTORED TO USE DWNMANAGER
-   */
-  private async getAuthorSigningKeyId(options: {
-    did: string
-  }): Promise<string> {
-    const { did } = options;
-
-    // Get the agent instance.
-    const agent = this.agent;
-
-    // Get the method-specific default signing key.
-    const signingKeyId = await agent.didManager.getDefaultSigningKey({ did });
-
-    if (!signingKeyId) {
-      throw new Error (`DwnManager: Unable to determine signing key for author: '${did}'`);
-    }
-
-    return signingKeyId;
-  }
-
-  private getTempSignatureInput({ signingKeyId }: { signingKeyId: string }): SignatureInput {
-    const privateJwk: DwnPrivateKeyJwk = {
-      alg : 'placeholder',
-      d   : 'placeholder',
-      crv : 'Ed25519',
-      kty : 'placeholder',
-      x   : 'placeholder'
-    };
-
-    const protectedHeader = {
-      alg : 'placeholder',
-      kid : signingKeyId
-    };
-
-    const dwnSignatureInput: SignatureInput = { privateJwk, protectedHeader };
-
-    return dwnSignatureInput;
   }
 }
