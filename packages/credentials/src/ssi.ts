@@ -21,6 +21,7 @@ import { Convert } from '@web5/common';
 import { verifyJWT } from 'did-jwt';
 import { DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
 import { SsiValidator } from './validators.js';
+import { Status } from '@sphereon/pex';
 
 export type CreateVcOptions = {
   credentialSubject: CredentialSubject,
@@ -69,13 +70,14 @@ type JwtHeaderParams = JwsHeaderParams & {
 
 type Signer = (data: Uint8Array) => Promise<Uint8Array>;
 
+const didResolver = new DidResolver({ didResolvers: [DidIonMethod, DidKeyMethod] });
 class TbdResolver implements Resolvable {
   async resolve(didUrl: string): Promise<DIDResolutionResult> {
     return await didResolver.resolve(didUrl) as DIDResolutionResult;
   }
 }
 
-const didResolver = new DidResolver({ didResolvers: [DidIonMethod, DidKeyMethod] });
+const tbdResolver = new TbdResolver();
 
 export class VC {
   /**
@@ -138,10 +140,8 @@ export class VC {
    * @returns A boolean or errors indicating whether the JWT is valid.
    */
   public static async verifyVerifiableCredentialJwt(vcJwt: VcJwt): Promise<void> {
-    let resolver = new TbdResolver();
-
-    let verificationResponse = await verifyJWT(vcJwt, {
-      resolver
+    const verificationResponse = await verifyJWT(vcJwt, {
+      resolver: tbdResolver
     });
 
     if (!verificationResponse.verified) {
@@ -190,15 +190,18 @@ export class VP {
   public static async createVerifiablePresentationJwt(createVpOptions: CreateVpOptions, createVpSignOptions: SignOptions): Promise<VpJwt> {
     const evaluationResults = VC.evaluateCredentials(createVpOptions.presentationDefinition, createVpOptions.verifiableCredentialJwts);
 
-    if (evaluationResults.errors?.length || evaluationResults.warnings?.length) {
+    if (evaluationResults.warnings?.length) {
+      console.warn('Warnings were generated during the evaluation process: ' + JSON.stringify(evaluationResults.warnings));
+    }
+
+    if (evaluationResults.areRequiredCredentialsPresent != Status.INFO || evaluationResults.errors?.length) {
       let errorMessage = 'Failed to create Verifiable Presentation JWT due to: ';
+      if(evaluationResults.areRequiredCredentialsPresent) {
+        errorMessage += 'Required Credentials Not Present: ' + JSON.stringify(evaluationResults.areRequiredCredentialsPresent);
+      }
 
       if (evaluationResults.errors?.length) {
         errorMessage += 'Errors: ' + JSON.stringify(evaluationResults.errors);
-      }
-
-      if (evaluationResults.warnings?.length) {
-        errorMessage += 'Warnings: ' + JSON.stringify(evaluationResults.warnings) + '. ';
       }
 
       throw new Error(errorMessage);

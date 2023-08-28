@@ -107,21 +107,25 @@ describe('SSI Tests', () => {
   });
 
   describe('Verifiable Presentation (VP)', () => {
+    let vcCreateOptions: CreateVcOptions;
+    let signOptions: SignOptions;
+    let vcJwt: VcJwt;
+
+    beforeEach(async () => {
+      vcCreateOptions = {credentialSubject: {id: subjectIssuerDid, btcAddress: 'abc123'}, issuer: {id: subjectIssuerDid}};
+      signOptions = {issuerDid: alice.did, subjectDid: alice.did, kid: kid, signer: signer};
+      vcJwt = await VC.createVerifiableCredentialJwt(signOptions, vcCreateOptions);
+    });
+
     it('creates a VP JWT', async () => {
-      const vcCreateOptions: CreateVcOptions = {credentialSubject: {id: subjectIssuerDid, btcAddress: 'abc123'}, issuer: {id: subjectIssuerDid}};
-      const signOptions: SignOptions = {issuerDid: alice.did, subjectDid: alice.did, kid: kid, signer: signer};
-
-      const vcJwt:VcJwt = await VC.createVerifiableCredentialJwt(signOptions, vcCreateOptions);
-
-      const vpCreateOptions = {
+      const vpCreateOptions: CreateVpOptions = {
         presentationDefinition   : getPresentationDefinition(),
-        verifiableCredentialJwts : [vcJwt],
-        kid                      : kid,
-        signer                   : signer
-      } as CreateVpOptions;
+        verifiableCredentialJwts : [vcJwt]
+      };
 
       const vpJwt: VpJwt = await VP.createVerifiablePresentationJwt(vpCreateOptions, signOptions);
       expect(vpJwt).to.exist;
+
       const decodedVp = VP.decodeVerifiablePresentationJwt(vpJwt);
       expect(decodedVp).to.have.property('header');
       expect(decodedVp).to.have.property('payload');
@@ -129,32 +133,20 @@ describe('SSI Tests', () => {
     });
 
     it('verifies a VP JWT', async () => {
-      const vcCreateOptions: CreateVcOptions = {credentialSubject: {id: subjectIssuerDid, btcAddress: 'abc123'}, issuer: {id: subjectIssuerDid}};
-      const signOptions: SignOptions = {issuerDid: alice.did, subjectDid: alice.did, kid: kid, signer: signer};
-
-      const vcJwt:VcJwt = await VC.createVerifiableCredentialJwt(signOptions, vcCreateOptions);
-
       const vpCreateOptions: CreateVpOptions = {
         presentationDefinition   : getPresentationDefinition(),
         verifiableCredentialJwts : [vcJwt],
       };
 
       const vpJwt: VpJwt = await VP.createVerifiablePresentationJwt(vpCreateOptions, signOptions);
-      expect(async () => await VC.verifyVerifiableCredentialJwt(vpJwt)).to.not.throw();
+      expect(async () => await VP.verifyVerifiablePresentationJwt(vpJwt)).to.not.throw();
     });
 
     it('evaluates a VP', async () => {
-      const vcCreateOptions: CreateVcOptions = {credentialSubject: {id: subjectIssuerDid, btcAddress: 'abc123'}, issuer: {id: subjectIssuerDid}};
-      const signOptions: SignOptions = {issuerDid: alice.did, subjectDid: alice.did, kid: kid, signer: signer};
-
-      const vcJwt:VcJwt = await VC.createVerifiableCredentialJwt(signOptions, vcCreateOptions);
-
-      const vpCreateOptions = {
+      const vpCreateOptions: CreateVpOptions = {
         presentationDefinition   : getPresentationDefinition(),
-        verifiableCredentialJwts : [vcJwt],
-        kid                      : kid,
-        signer                   : signer
-      } as CreateVpOptions;
+        verifiableCredentialJwts : [vcJwt]
+      };
 
       const vpJwt: VpJwt = await VP.createVerifiablePresentationJwt(vpCreateOptions, signOptions);
       const result: EvaluationResults = VP.evaluatePresentation(getPresentationDefinition(), VP.decodeVerifiablePresentationJwt(vpJwt).payload.vp);
@@ -163,6 +155,55 @@ describe('SSI Tests', () => {
       expect(result.warnings!.length).to.equal(0);
       expect(result.errors).to.be.an('array');
       expect(result.errors!.length).to.equal(0);
+    });
+
+    it('evaluates an invalid VP with empty VCs', async () => {
+      const vpCreateOptions: CreateVpOptions = {
+        presentationDefinition   : getPresentationDefinition(),
+        verifiableCredentialJwts : []
+      };
+
+      try {
+        await VP.createVerifiablePresentationJwt(vpCreateOptions, signOptions);
+      } catch (err: any) {
+        expect(err).instanceOf(Error);
+        expect(err!.message).to.equal('Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present: "error"');
+      }
+    });
+
+    it('evaluates an invalid VP with invalid subject', async () => {
+      vcCreateOptions = {credentialSubject: {id: subjectIssuerDid, badSubject: 'abc123'}, issuer: {id: subjectIssuerDid}};
+      signOptions = {issuerDid: alice.did, subjectDid: alice.did, kid: kid, signer: signer};
+      vcJwt = await VC.createVerifiableCredentialJwt(signOptions, vcCreateOptions);
+
+      const vpCreateOptions: CreateVpOptions = {
+        presentationDefinition   : getPresentationDefinition(),
+        verifiableCredentialJwts : [vcJwt]
+      };
+
+      try {
+        await VP.createVerifiablePresentationJwt(vpCreateOptions, signOptions);
+      } catch (err: any) {
+        expect(err).instanceOf(Error);
+        expect(err!.message).to.equal('Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present: "error"Errors: [{"tag":"FilterEvaluation","status":"error","message":"Input candidate does not contain property: $.input_descriptors[0]: $.verifiableCredential[0]"},{"tag":"MarkForSubmissionEvaluation","status":"error","message":"The input candidate is not eligible for submission: $.input_descriptors[0]: $.verifiableCredential[0]"}]');
+      }
+    });
+
+    it('evaluates an invalid VP with bad presentation definition', async () => {
+      const presentationDefinition = getPresentationDefinition();
+      presentationDefinition.input_descriptors[0].constraints!.fields![0].path = ['$.credentialSubject.badSubject'];
+
+      const vpCreateOptions: CreateVpOptions = {
+        presentationDefinition   : presentationDefinition,
+        verifiableCredentialJwts : [vcJwt]
+      };
+
+      try {
+        await VP.createVerifiablePresentationJwt(vpCreateOptions, signOptions);
+      } catch (err: any) {
+        expect(err).instanceOf(Error);
+        expect(err!.message).to.equal('Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present: "error"Errors: [{"tag":"FilterEvaluation","status":"error","message":"Input candidate does not contain property: $.input_descriptors[0]: $.verifiableCredential[0]"},{"tag":"MarkForSubmissionEvaluation","status":"error","message":"The input candidate is not eligible for submission: $.input_descriptors[0]: $.verifiableCredential[0]"}]');
+      }
     });
   });
 });
