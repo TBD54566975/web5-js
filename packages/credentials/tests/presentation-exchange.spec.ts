@@ -1,11 +1,5 @@
 import type { PortableDid } from '@web5/dids';
 import type { JwsHeaderParams } from '@web5/crypto';
-
-import { expect } from 'chai';
-import { Convert } from '@web5/common';
-import { DidKeyMethod } from '@web5/dids';
-import { Ed25519, Jose } from '@web5/crypto';
-
 import type {
   PresentationResult,
   VerifiableCredentialV1,
@@ -14,6 +8,12 @@ import type {
 } from '../src/types.js';
 
 import { evaluateCredentials, evaluatePresentation, presentationFrom } from '../src/types.js';
+
+import { expect } from 'chai';
+import { Convert } from '@web5/common';
+import { DidKeyMethod } from '@web5/dids';
+import { Ed25519, Jose } from '@web5/crypto';
+
 
 /**
  * Local types used only in this test specification.
