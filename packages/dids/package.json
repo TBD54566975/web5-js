@@ -80,7 +80,8 @@
     "@web5/crypto": "0.1.6",
     "canonicalize": "2.0.0",
     "did-resolver": "4.1.0",
-    "level": "8.0.0"
+    "level": "8.0.0",
+    "ms": "2.1.3"
   },
   "devDependencies": {
     "@playwright/test": "1.36.2",
