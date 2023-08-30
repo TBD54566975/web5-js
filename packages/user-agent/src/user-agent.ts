@@ -3,6 +3,7 @@ import type {
   VcResponse,
   DidResponse,
   DwnResponse,
+  SyncManager,
   AppDataStore,
   SendVcRequest,
   SendDidRequest,
@@ -27,6 +28,7 @@ import {
   Web5RpcClient,
   IdentityManager,
   IdentityStoreDwn,
+  SyncManagerLevel,
   PrivateKeyStoreDwn,
   cryptoToPortableKeyPair,
 } from '@web5/agent';
@@ -40,6 +42,7 @@ export type Web5UserAgentOptions = {
   identityManager: IdentityManager;
   keyManager: KeyManager;
   rpcClient: DwnRpc;
+  syncManager: SyncManager;
 }
 
 export class Web5UserAgent implements Web5ManagedAgent {
@@ -51,6 +54,7 @@ export class Web5UserAgent implements Web5ManagedAgent {
   identityManager: IdentityManager;
   keyManager: KeyManager;
   rpcClient: DwnRpc;
+  syncManager: SyncManager;
 
   constructor(options: Web5UserAgentOptions) {
     this.agentDid = options.agentDid;
@@ -61,16 +65,21 @@ export class Web5UserAgent implements Web5ManagedAgent {
     this.dwnManager = options.dwnManager;
     this.identityManager = options.identityManager;
     this.rpcClient = options.rpcClient;
+    this.syncManager = options.syncManager;
 
     // Set this agent to be the default agent.
     this.didManager.agent = this;
     this.dwnManager.agent = this;
     this.identityManager.agent = this;
     this.keyManager.agent = this;
+    this.syncManager.agent = this;
   }
 
   static async create(options: Partial<Web5UserAgentOptions> = {}): Promise<Web5UserAgent> {
-    let { agentDid, appData, didManager, didResolver, dwnManager, identityManager, keyManager, rpcClient } = options;
+    let {
+      agentDid, appData, didManager, didResolver, dwnManager,
+      identityManager, keyManager, rpcClient, syncManager
+    } = options;
 
     if (agentDid === undefined) {
       // An Agent DID was not specified, so set to empty string.
@@ -144,6 +153,12 @@ export class Web5UserAgent implements Web5ManagedAgent {
       rpcClient = new Web5RpcClient();
     }
 
+    if (syncManager === undefined) {
+      // A custom SyncManager implementation was not specified, so
+      // instantiate a LevelDB-backed default.
+      syncManager = new SyncManagerLevel();
+    }
+
     // Instantiate the Agent.
     const agent = new Web5UserAgent({
       agentDid,
@@ -153,7 +168,8 @@ export class Web5UserAgent implements Web5ManagedAgent {
       dwnManager,
       keyManager,
       identityManager,
-      rpcClient
+      rpcClient,
+      syncManager
     });
 
     return agent;

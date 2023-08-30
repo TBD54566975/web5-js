@@ -11,6 +11,7 @@ import type {
   Web5ManagedAgent,
   ProcessDidRequest,
   ProcessDwnRequest,
+  SyncManager,
 } from '@web5/agent';
 
 import { Dwn } from '@tbd54566975/dwn-sdk-js';
@@ -31,6 +32,7 @@ import {
   AppDataVault,
   Web5RpcClient,
   IdentityManager,
+  SyncManagerLevel,
 } from '@web5/agent';
 
 type CreateMethodOptions = {
@@ -45,6 +47,7 @@ type TestUserAgentOptions = {
   identityManager: IdentityManager;
   keyManager: KeyManager;
   rpcClient: DwnRpc;
+  syncManager: SyncManager;
 
   dwn: Dwn;
   dwnDataStore: DataStoreLevel;
@@ -61,6 +64,7 @@ export class TestUserAgent implements Web5ManagedAgent {
   identityManager: IdentityManager;
   keyManager: KeyManager;
   rpcClient: DwnRpc;
+  syncManager: SyncManager;
 
   /**
    * DWN-related properties.
@@ -78,12 +82,14 @@ export class TestUserAgent implements Web5ManagedAgent {
     this.identityManager = options.identityManager;
     this.keyManager = options.keyManager;
     this.rpcClient = options.rpcClient;
+    this.syncManager = options.syncManager;
 
     // Set this agent to be the default agent for each component.
     this.didManager.agent = this;
     this.dwnManager.agent = this;
     this.identityManager.agent = this;
     this.keyManager.agent = this;
+    this.syncManager.agent = this;
 
     // TestUserAgent-specific properties.
     this.dwn = options.dwn;
@@ -143,6 +149,9 @@ export class TestUserAgent implements Web5ManagedAgent {
     // Instantiate an RPC Client.
     const rpcClient = new Web5RpcClient();
 
+    // Instantiate a SyncManager.
+    const syncManager = new SyncManagerLevel({ dataPath: testDataPath('SYNC_STORE')});
+
     return new TestUserAgent({
       appData,
       didManager,
@@ -155,6 +164,7 @@ export class TestUserAgent implements Web5ManagedAgent {
       identityManager,
       keyManager,
       rpcClient,
+      syncManager,
     });
   }
 

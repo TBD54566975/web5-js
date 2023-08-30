@@ -21,24 +21,29 @@ describe('SyncManagerLevel', () => {
       const mockAgent: Web5ManagedAgent = {
         agentDid: 'did:method:abc123'
       };
-      const syncManager = new SyncManagerLevel({ agent: mockAgent });
+      const syncManager = new SyncManagerLevel({
+        agent    : mockAgent,
+        dataPath : '__TESTDATA__/SYNC_STORE4'
+      });
       const agent = syncManager.agent;
       expect(agent).to.exist;
       expect(agent.agentDid).to.equal('did:method:abc123');
     });
 
     it(`throws an error if the 'agent' instance property is undefined`, () => {
-      const syncManager = new SyncManagerLevel();
+      const syncManager = new SyncManagerLevel({
+        dataPath: '__TESTDATA__/SYNC_STORE4'
+      });
       expect(() =>
         syncManager.agent
       ).to.throw(Error, 'Unable to determine agent execution context');
     });
   });
 
-  {
+  describe('with Web5ManagedAgent', () => {
     let alice: ManagedIdentity;
     let aliceDid: PortableDid;
-    let syncManager: SyncManagerLevel;
+    // let syncManager: SyncManagerLevel;
     let testAgent: TestManagedAgent;
 
     before(async () => {
@@ -46,17 +51,10 @@ describe('SyncManagerLevel', () => {
         agentClass  : TestAgent,
         agentStores : 'dwn'
       });
-
-      syncManager = new SyncManagerLevel({
-        agent    : testAgent.agent,
-        dataPath : '__TESTDATA__/SYNC_STORE'
-      });
     });
 
     beforeEach(async () => {
       await testAgent.clearStorage();
-      // @ts-ignore
-      await syncManager._db.clear();
       await testAgent.createAgentDid();
 
       // Create a new Identity to author the DWN messages.
@@ -70,16 +68,10 @@ describe('SyncManagerLevel', () => {
 
     afterEach(async () => {
       await testAgent.clearStorage();
-      // @ts-ignore
-      await syncManager._db.clear();
     });
 
     after(async () => {
       await testAgent.clearStorage();
-      // @ts-ignore
-      await syncManager._db.clear();
-      // @ts-ignore
-      await syncManager._db.close();
       await testAgent.closeStorage();
     });
 
@@ -88,8 +80,7 @@ describe('SyncManagerLevel', () => {
         const didResolveSpy = sinon.spy(testAgent.agent.didResolver, 'resolve');
         const sendDwnRequestSpy = sinon.spy(testAgent.agent.rpcClient, 'sendDwnRequest');
 
-
-        await syncManager.pull();
+        await testAgent.agent.syncManager.pull();
 
         // Verify DID resolution and DWN requests did not occur.
         expect(didResolveSpy.notCalled).to.be.true;
@@ -126,12 +117,12 @@ describe('SyncManagerLevel', () => {
         expect(localDwnQueryReply.entries).to.have.length(0); // Record doesn't exist on local DWN.
 
         // Register Alice's DID to be synchronized.
-        await syncManager.registerIdentity({
+        await testAgent.agent.syncManager.registerIdentity({
           did: alice.did
         });
 
         // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
-        await syncManager.pull();
+        await testAgent.agent.syncManager.pull();
 
         // Confirm the record now DOES exist on Alice's local DWN.
         queryResponse = await testAgent.agent.dwnManager.processRequest({
@@ -184,17 +175,17 @@ describe('SyncManagerLevel', () => {
         const testRecordIdBob = (writeResponse.message as RecordsWriteMessage).recordId;
 
         // Register Alice's DID to be synchronized.
-        await syncManager.registerIdentity({
+        await testAgent.agent.syncManager.registerIdentity({
           did: alice.did
         });
 
         // Register Bob's DID to be synchronized.
-        await syncManager.registerIdentity({
+        await testAgent.agent.syncManager.registerIdentity({
           did: bob.did
         });
 
         // Execute Sync to pull all records from Alice's and Bob's remove DWNs to their local DWNs.
-        await syncManager.pull();
+        await testAgent.agent.syncManager.pull();
 
         // Confirm the Alice test record exist on Alice's local DWN.
         let queryResponse = await testAgent.agent.dwnManager.processRequest({
@@ -225,7 +216,7 @@ describe('SyncManagerLevel', () => {
         const didResolveSpy = sinon.spy(testAgent.agent.didResolver, 'resolve');
         const processRequestSpy = sinon.spy(testAgent.agent.dwnManager, 'processRequest');
 
-        await syncManager.push();
+        await testAgent.agent.syncManager.push();
 
         // Verify DID resolution and DWN requests did not occur.
         expect(didResolveSpy.notCalled).to.be.true;
@@ -262,12 +253,12 @@ describe('SyncManagerLevel', () => {
         expect(remoteDwnQueryReply.entries).to.have.length(0); // Record doesn't exist on remote DWN.
 
         // Register Alice's DID to be synchronized.
-        await syncManager.registerIdentity({
+        await testAgent.agent.syncManager.registerIdentity({
           did: alice.did
         });
 
         // Execute Sync to push all records from Alice's local DWN to Alice's remote DWN.
-        await syncManager.push();
+        await testAgent.agent.syncManager.push();
 
         // Confirm the record now DOES exist on Alice's remote DWN.
         queryResponse = await testAgent.agent.dwnManager.sendRequest({
@@ -319,17 +310,17 @@ describe('SyncManagerLevel', () => {
         const testRecordIdBob = (writeResponse.message as RecordsWriteMessage).recordId;
 
         // Register Alice's DID to be synchronized.
-        await syncManager.registerIdentity({
+        await testAgent.agent.syncManager.registerIdentity({
           did: alice.did
         });
 
         // Register Bob's DID to be synchronized.
-        await syncManager.registerIdentity({
+        await testAgent.agent.syncManager.registerIdentity({
           did: bob.did
         });
 
         // Execute Sync to push all records from Alice's and Bob's local DWNs to their remote DWNs.
-        await syncManager.push();
+        await testAgent.agent.syncManager.push();
 
         // Confirm the Alice test record exist on Alice's remote DWN.
         let queryResponse = await testAgent.agent.dwnManager.sendRequest({
@@ -354,5 +345,5 @@ describe('SyncManagerLevel', () => {
         expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
       });
     });
-  }
+  });
 });

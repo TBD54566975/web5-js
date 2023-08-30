@@ -15,6 +15,7 @@ import { DidResolver } from '@web5/dids';
 import { DidManager } from '../did-manager.js';
 import { DwnManager } from '../dwn-manager.js';
 import { KeyManager } from '../key-manager.js';
+import { SyncManager } from '../sync-manager.js';
 import { AppDataStore } from '../app-data-store.js';
 import { IdentityManager } from '../identity-manager.js';
 
@@ -141,6 +142,7 @@ export interface Web5ManagedAgent extends Web5Agent {
   identityManager: IdentityManager;
   keyManager: KeyManager;
   rpcClient: DwnRpc;
+  syncManager: SyncManager;
 
   firstLaunch(): Promise<boolean>;
   initialize(options: { passphrase: string }): Promise<void>;

@@ -1,6 +1,7 @@
 import type { BatchOperation } from 'level';
 import type {
   EventsGetReply,
+  GenericMessage,
   MessagesGetReply,
   RecordsReadReply,
   RecordsWriteMessage,
@@ -103,8 +104,8 @@ export class SyncManagerLevel implements SyncManager {
     const errored: Set<string> = new Set();
 
     for (let job of pullJobs) {
-      const [key, watermark] = job;
-      const [did, dwnUrl, messageCid] = key.split('~');
+      const [key] = job;
+      const [did, dwnUrl, watermark, messageCid] = key.split('~');
 
       // If a particular DWN service endpoint is unreachable, skip subsequent pull operations.
       if (errored.has(dwnUrl)) {
@@ -114,7 +115,7 @@ export class SyncManagerLevel implements SyncManager {
       const messageExists = await this.messageExists(did, messageCid);
       if (messageExists) {
         await this.setWatermark(did, dwnUrl, 'pull', watermark);
-        deleteOperations.push({ type: 'del', key });
+        deleteOperations.push({ type: 'del', key: key });
 
         continue;
       }
@@ -147,11 +148,10 @@ export class SyncManagerLevel implements SyncManager {
        * getting messages OR this loop should be removed. */
       for (let entry of reply.messages ?? []) {
         if (entry.error || !entry.message) {
-          console.warn(`SyncManager: Message '${messageCid}' not found. Ignorning entry: ${JSON.stringify(entry, null, 2)}`);
 
           await this.setWatermark(did, dwnUrl, 'pull', watermark);
           await this.addMessage(did, messageCid);
-          deleteOperations.push({ type: 'del', key });
+          deleteOperations.push({ type: 'del', key: key });
 
           continue;
         }
@@ -197,7 +197,7 @@ export class SyncManagerLevel implements SyncManager {
               if (pruneReply.status.code === 202 || pruneReply.status.code === 409) {
                 await this.setWatermark(did, dwnUrl, 'pull', watermark);
                 await this.addMessage(did, messageCid);
-                deleteOperations.push({ type: 'del', key });
+                deleteOperations.push({ type: 'del', key: key });
 
                 continue;
               } else {
@@ -216,7 +216,7 @@ export class SyncManagerLevel implements SyncManager {
         if (pullReply.status.code === 202 || pullReply.status.code === 409) {
           await this.setWatermark(did, dwnUrl, 'pull', watermark);
           await this.addMessage(did, messageCid);
-          deleteOperations.push({ type: 'del', key });
+          deleteOperations.push({ type: 'del', key: key });
         }
       }
     }
@@ -235,8 +235,8 @@ export class SyncManagerLevel implements SyncManager {
     const errored: Set<string> = new Set();
 
     for (let job of pushJobs) {
-      const [key, watermark] = job;
-      const [did, dwnUrl, messageCid] = key.split('~');
+      const [key] = job;
+      const [did, dwnUrl, watermark, messageCid] = key.split('~');
 
       // If a particular DWN service endpoint is unreachable, skip subsequent push operations.
       if (errored.has(dwnUrl)) {
@@ -323,15 +323,12 @@ export class SyncManagerLevel implements SyncManager {
   }
 
   private async enqueueOperations(options: {
-    syncDirection: 'pull' | 'push',
+    syncDirection: SyncDirection,
     syncPeerState: SyncState[]
   }) {
-    console.group('enqueueOperations()');
     const { syncDirection, syncPeerState } = options;
 
     for (let syncState of syncPeerState) {
-      console.group(syncState.dwnUrl);
-      console.log(`Watermark: ${syncState.watermark}`);
       // Get the event log from the remote DWN if pull sync, or local DWN if push sync.
       const eventLog = await this.getDwnEventLog({
         did       : syncState.did,
@@ -343,14 +340,19 @@ export class SyncManagerLevel implements SyncManager {
       const syncOperations: DbBatchOperation[] = [];
 
       for (let event of eventLog) {
-        const operationKey = `${syncState.did}~${syncState.dwnUrl}~${event.messageCid}`;
-        const operation: DbBatchOperation = {
-          type  : 'put',
-          key   : operationKey,
-          value : event.watermark
-        };
+        /** Use "did~dwnUrl~watermark~messageCid" as the key in the sync queue.
+         * Note: It is critical that `watermark` precedes `messageCid` to
+         * ensure that when the sync jobs are pulled off the queue, they
+         * are lexographically sorted oldest to newest. */
+        const operationKey = [
+          syncState.did,
+          syncState.dwnUrl,
+          event.watermark,
+          event.messageCid
+        ].join('~');
 
-        console.log(`Add Op: put - CID ${event.messageCid} - WM ${event.watermark}`);
+        const operation: DbBatchOperation = { type: 'put', key: operationKey, value: '' };
+
         syncOperations.push(operation);
       }
 
@@ -360,15 +362,13 @@ export class SyncManagerLevel implements SyncManager {
           : this.getPushQueue();
         await syncQueue.batch(syncOperations as any);
       }
-      console.groupEnd();
     }
-    console.groupEnd();
   }
 
   private async getDwnEventLog(options: {
     did: string,
     dwnUrl: string,
-    syncDirection: 'pull' | 'push',
+    syncDirection: SyncDirection,
     watermark?: string
   }) {
     const { did, dwnUrl, syncDirection, watermark } = options;
@@ -483,7 +483,7 @@ export class SyncManagerLevel implements SyncManager {
   }
 
   private async getSyncPeerState(options: {
-    syncDirection: 'pull' | 'push'
+    syncDirection: SyncDirection
   }): Promise<SyncState[]> {
     const { syncDirection } = options;
 
@@ -518,6 +518,8 @@ export class SyncManagerLevel implements SyncManager {
         throw new Error(`SyncManager: Malformed '#dwn' service endpoint. Expected array of node addresses.`);
       }
 
+      /** Get the watermark (or undefined) for each (DID, DWN service endpoint, sync direction)
+       * combination and add it to the sync peer state array. */
       for (let dwnUrl of service.serviceEndpoint.nodes) {
         const watermark = await this.getWatermark(did, dwnUrl, syncDirection);
         syncPeerState.push({ did, dwnUrl, watermark });
@@ -535,7 +537,7 @@ export class SyncManagerLevel implements SyncManager {
       return await watermarkStore.get(wmKey);
     } catch(error: any) {
       // Don't throw when a key wasn't found.
-      if (error.code === 'LEVEL_NOT_FOUND') {
+      if (error.notFound) {
         return undefined;
       }
     }
@@ -545,23 +547,16 @@ export class SyncManagerLevel implements SyncManager {
     const wmKey = `${did}~${dwnUrl}~${direction}`;
     const watermarkStore = this.getWatermarkStore();
 
-    /** TEMP START */
-    console.group('setWatermark()');
-    console.log(`${dwnUrl} - ${direction}`);
-    try {
-      console.log('was:', await watermarkStore.get(wmKey));
-
-    } catch { /* silently ignore */ }
-    console.log('set to:', watermark);
-    console.groupEnd();
-    /** TEMP END */
-
-    return await watermarkStore.put(wmKey, watermark);
+    await watermarkStore.put(wmKey, watermark);
   }
 
+  /**
+   * The message store is used to prevent "echoes" that occur during a sync pull operation.
+   * After a message is confirmed to already be synchronized on the local DWN, its CID is added
+   * to the message store to ensure that any subsequent pull attempts are skipped.
+   */
   private async messageExists(did: string, messageCid: string) {
     const messageStore = this.getMessageStore(did);
-    // const hashedKey = new Set([messageCid]);
 
     // If the `messageCid` exists in this DID's store, return true. Otherwise, return false.
     try {
@@ -573,15 +568,6 @@ export class SyncManagerLevel implements SyncManager {
       }
       throw error;
     }
-
-    // const itr = messageStore.keys({ lte: messageCid, limit: 1 });
-    // for await (let key of itr) {
-    //   if (hashedKey.has(key)) {
-    //     return true;
-    //   } else {
-    //     return false;
-    //   }
-    // }
   }
 
   private async addMessage(did: string, messageCid: string) {
@@ -606,8 +592,7 @@ export class SyncManagerLevel implements SyncManager {
     return this._db.sublevel('pullQueue');
   }
 
-  // TODO: export BaseMessage from dwn-sdk.
-  private getDwnMessageType(message: any) {
+  private getDwnMessageType(message: GenericMessage) {
     return `${message.descriptor.interface}${message.descriptor.method}`;
   }
 }

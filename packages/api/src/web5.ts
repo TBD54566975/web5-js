@@ -1,5 +1,6 @@
 import type { AppDataStore, Web5Agent } from '@web5/agent';
 
+import ms from 'ms';
 import { Web5UserAgent } from '@web5/user-agent';
 
 import { VcApi } from './vc-api.js';
@@ -24,14 +25,19 @@ export type Web5ConnectOptions = {
    * {@link Web5UserAgent} if one isn't provided */
   agent?: Web5Agent;
 
-  /** Specify an existing DID to connect to. */
-  connectedDid?: string;
-
   /** Provide an instance of a {@link AppDataStore} implementation. Defaults to
    * a LevelDB-backed store with an insecure, static unlock passphrase if one
    * isn't provided. To allow the app user to enter a secure passphrase of
    * their choosing, provide an initialized {@link AppDataStore} instance. */
   appData?: AppDataStore;
+
+  // Specify an existing DID to connect to.
+  connectedDid?: string;
+
+  /** Enable synchronization of DWN records between local and remote DWNs.
+   * Sync defaults to running every 2 minutes and get be set to any value accepted by `ms()`.
+   * To disable sync set to 'off'. */
+  sync?: string;
 
   /** Override defaults configured during the technical preview phase.
    * See {@link TechPreviewOptions} for available options. */
@@ -70,7 +76,7 @@ export class Web5 {
    * @returns
    */
   static async connect(options: Web5ConnectOptions = {}) {
-    let { agent, appData, connectedDid, techPreview } = options;
+    let { agent, appData, connectedDid, sync, techPreview } = options;
 
     if (agent === undefined) {
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
@@ -90,19 +96,48 @@ export class Web5 {
 
         // Query the Agent's DWN tenant for identity records.
         const identities = await userAgent.identityManager.list();
+        const storedIdentities = identities.length;
 
         // If an existing identity is not found found, create a new one.
-        if (identities.length === 0) {
+        if (storedIdentities === 0) {
+          // Use the specified DWN endpoints or get default tech preview hosted nodes.
           const serviceEndpointNodes = techPreview?.dwnEndpoints ?? await getTechPreviewDwnEndpoints();
+          // Generate ION DID service and key set.
           const didOptions = await DidIonMethod.generateDwnOptions({ serviceEndpointNodes });
+          // Generate a new Identity for the end-user.
           const identity = await userAgent.identityManager.create({
             name      : 'Default',
             didMethod : 'ion',
             didOptions,
             kms       : 'local'
           });
+          /** Import the Identity metadata to the User Agent's tenant so that it can be restored
+           * on subsequent launches or page reloads. */
+          await userAgent.identityManager.import({ identity, context: userAgent.agentDid });
+          // Set the newly created identity as the connected DID.
           connectedDid = identity.did;
+
+        } else if (storedIdentities === 1) {
+          // An existing identity was found in the User Agent's tenant.
+          const [ identity ] = identities;
+          // Set the stored identity as the connected DID.
+          connectedDid = identity.did;
+        } else {
+          throw new Error('connect() failed due to unexpected state: ${storedIdentities} stored identities');
         }
+      }
+
+      // Enable sync, unless disabled.
+      if (sync !== 'off') {
+        // First, register the user identity for sync.
+        await userAgent.syncManager.registerIdentity({ did: connectedDid });
+
+        // Enable sync using the specified interval or default.
+        sync ??= '2m';
+        userAgent.syncManager.startSync({ interval: ms(sync) })
+          .catch((error: any) => {
+            console.error(`Sync failed: ${error}`);
+          });
       }
     }
 
