@@ -22,7 +22,7 @@
   "bugs": "https://github.com/TBD54566975/web5-js/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TBD54566975/web5-js",
+    "url": "git+https://github.com/TBD54566975/web5-js.git",
     "directory": "packages/api"
   },
   "license": "Apache-2.0",
@@ -49,6 +49,11 @@
       "types": "./dist/types/index.d.ts",
       "import": "./dist/esm/index.js",
       "require": "./dist/cjs/index.js"
+    },
+    "./browser": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/browser.mjs",
+      "require": "./dist/browser.js"
     }
   },
   "react-native": "./dist/esm/index.js",
