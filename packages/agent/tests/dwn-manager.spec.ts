@@ -7,6 +7,7 @@ import {
   RecordsRead,
   EventsGetReply,
   EventsGetMessage,
+  MessagesGetReply,
   RecordsReadReply,
   RecordsQueryReply,
   UnionMessageReply,
@@ -14,7 +15,6 @@ import {
   RecordsQueryMessage,
   RecordsWriteMessage,
   RecordsDeleteMessage,
-  MessagesGetReply,
   ProtocolsConfigureMessage,
 } from '@tbd54566975/dwn-sdk-js';
 

@@ -1,3 +1,4 @@
+import { Level } from 'level';
 import { Dwn } from '@tbd54566975/dwn-sdk-js';
 import { DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
 import { MessageStoreLevel, DataStoreLevel, EventLogLevel } from '@tbd54566975/dwn-sdk-js/stores';
@@ -44,6 +45,7 @@ type TestAgentOptions = {
   dwnDataStore: DataStoreLevel;
   dwnEventLog: EventLogLevel;
   dwnMessageStore: MessageStoreLevel;
+  syncStore: Level;
 }
 
 export class TestAgent implements Web5ManagedAgent {
@@ -58,12 +60,13 @@ export class TestAgent implements Web5ManagedAgent {
   syncManager: SyncManager;
 
   /**
-   * DWN-related properties.
+   * Store-related properties.
    */
   dwn: Dwn;
   dwnDataStore: DataStoreLevel;
   dwnEventLog: EventLogLevel;
   dwnMessageStore: MessageStoreLevel;
+  syncStore: Level;
 
   constructor(options: TestAgentOptions) {
     this.appData = options.appData;
@@ -87,6 +90,7 @@ export class TestAgent implements Web5ManagedAgent {
     this.dwnDataStore = options.dwnDataStore;
     this.dwnEventLog = options.dwnEventLog;
     this.dwnMessageStore = options.dwnMessageStore;
+    this.syncStore = options.syncStore;
   }
 
   async clearStorage(): Promise<void> {
@@ -94,12 +98,14 @@ export class TestAgent implements Web5ManagedAgent {
     await this.dwnDataStore.clear();
     await this.dwnEventLog.clear();
     await this.dwnMessageStore.clear();
+    await this.syncStore.clear();
   }
 
   async closeStorage(): Promise<void> {
     await this.dwnDataStore.close();
     await this.dwnEventLog.close();
     await this.dwnMessageStore.close();
+    await this.syncStore.close();
   }
 
   static async create(options: CreateMethodOptions = {}): Promise<TestAgent> {
@@ -142,8 +148,9 @@ export class TestAgent implements Web5ManagedAgent {
     // Instantiate an RPC Client.
     const rpcClient = new Web5RpcClient();
 
-    // Instantiate a SyncManager.
-    const syncManager = new SyncManagerLevel({ dataPath: testDataPath('SYNC_STORE') });
+    // Instantiate a custom SyncManager and LevelDB-backed store.
+    const syncStore = new Level(testDataPath('SYNC_STORE'));
+    const syncManager = new SyncManagerLevel({ db: syncStore });
 
     return new TestAgent({
       appData,
@@ -157,7 +164,8 @@ export class TestAgent implements Web5ManagedAgent {
       identityManager,
       keyManager,
       rpcClient,
-      syncManager
+      syncManager,
+      syncStore
     });
   }
 

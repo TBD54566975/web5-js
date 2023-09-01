@@ -16,12 +16,12 @@ import { DwnManager } from './dwn-manager.js';
 import { KeyManager } from './key-manager.js';
 import { Web5RpcClient } from './rpc-client.js';
 import { AppDataVault } from './app-data-store.js';
+import { SyncManagerLevel } from './sync-manager.js';
 import { cryptoToPortableKeyPair } from './utils.js';
 import { DidStoreDwn, DidStoreMemory } from './store-managed-did.js';
 import { IdentityManager, ManagedIdentity } from './identity-manager.js';
 import { IdentityStoreDwn, IdentityStoreMemory } from './store-managed-identity.js';
 import { KeyStoreDwn, KeyStoreMemory, PrivateKeyStoreDwn, PrivateKeyStoreMemory } from './store-managed-key.js';
-import { SyncManagerLevel } from './sync-manager.js';
 
 type CreateMethodOptions = {
   agentClass: new (options: any) => Web5ManagedAgent
