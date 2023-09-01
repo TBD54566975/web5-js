@@ -43,7 +43,6 @@ describe('SyncManagerLevel', () => {
   describe('with Web5ManagedAgent', () => {
     let alice: ManagedIdentity;
     let aliceDid: PortableDid;
-    // let syncManager: SyncManagerLevel;
     let testAgent: TestManagedAgent;
 
     before(async () => {
