@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 
-import type { VerifiableCredentialV1, CredentialSubject, Issuer } from '../src/types.js';
+import type { VerifiableCredentialTypeV1, CredentialSubject, Issuer } from '../src/types.js';
 
 import { getCurrentXmlSchema112Timestamp, getFutureXmlSchema112Timestamp} from '../src/utils.js';
 
@@ -16,7 +16,7 @@ describe('VerifiableCredentials', () => {
     };
 
     // Create the credential
-    const credential: VerifiableCredentialV1 = {
+    const credential: VerifiableCredentialTypeV1 = {
       '@context'        : ['https://www.w3.org/2018/credentials/v1'],
       type              : ['VerifiableCredential'],
       issuer            : issuer,
@@ -45,7 +45,7 @@ describe('VerifiableCredentials', () => {
   });
 
   it('creates a minimum viable vc', () => {
-    const credential: VerifiableCredentialV1 = {
+    const credential: VerifiableCredentialTypeV1 = {
       '@context'        : ['https://www.w3.org/2018/credentials/v1'],
       type              : ['VerifiableCredential'],
       issuer            : { id: 'did:example:123456' },

@@ -1,7 +1,7 @@
 import type { JwsHeaderParams } from '@web5/crypto';
 import type { Resolvable, DIDResolutionResult } from 'did-resolver';
-import type {
-  VerifiableCredentialV1,
+import {
+  VerifiableCredentialTypeV1,
   JwtDecodedVerifiableCredential,
   CredentialSubject,
   VerifiablePresentationV1,
@@ -11,11 +11,15 @@ import type {
   JwtDecodedVerifiablePresentation,
   Issuer,
   CredentialSchemaType,
-  CredentialStatus
+  CredentialStatus,
+  validateDefinition,
+  validateSubmission,
+  Validated,
+  resetPex
 } from './types.js';
 
 import { v4 as uuidv4 } from 'uuid';
-import { evaluateCredentials, evaluatePresentation, presentationFrom, VcJwt, VpJwt } from './types.js';
+import { evaluateCredentials, presentationFrom, VcJwt, VpJwt } from './types.js';
 import { getCurrentXmlSchema112Timestamp } from './utils.js';
 import { Convert } from '@web5/common';
 import { verifyJWT } from 'did-jwt';
@@ -87,7 +91,7 @@ export class VerifiableCredential {
    * @param verifiableCredential - Optional. Actual VC object to be signed.
    * @returns A promise that resolves to a VC JWT.
    */
-  public static async create(signOptions: SignOptions, createVcOptions?: CreateVcOptions, verifiableCredential?: VerifiableCredentialV1): Promise<VcJwt> {
+  public static async create(signOptions: SignOptions, createVcOptions?: CreateVcOptions, verifiableCredential?: VerifiableCredentialTypeV1): Promise<VcJwt> {
     if (createVcOptions && verifiableCredential) {
       throw new Error('options and verifiableCredentials are mutually exclusive, either include the full verifiableCredential or the options to create one');
     }
@@ -96,7 +100,7 @@ export class VerifiableCredential {
       throw new Error('options or verifiableCredential must be provided');
     }
 
-    let vc: VerifiableCredentialV1;
+    let vc: VerifiableCredentialTypeV1;
 
     if (verifiableCredential) {
       vc = verifiableCredential;
@@ -124,7 +128,7 @@ export class VerifiableCredential {
    * @param vc - The Verifiable Credential object to validate.
    * @throws Error if any validation check fails.
    */
-  public static validatePayload(vc: VerifiableCredentialV1): void {
+  public static validatePayload(vc: VerifiableCredentialTypeV1): void {
     SsiValidator.validateContext(vc['@context']);
     SsiValidator.validateVcType(vc.type);
     SsiValidator.validateCredentialSubject(vc.credentialSubject);
@@ -166,19 +170,6 @@ export class VerifiableCredential {
       signature : encodedSignature
     };
   }
-
-  /**
-   * Evaluates a set of verifiable credentials against a specified presentation definition.
-   *
-   * This method checks if the provided credentials meet the criteria defined in the presentation definition.
-   *
-   * @param presentationDefinition - The definition that specifies the criteria for the credentials.
-   * @param verifiableCredentialJwts - An array of JWT strings representing the verifiable credentials to be evaluated.
-   * @returns {EvaluationResults} The result of the evaluation process, indicating whether each credential meets the criteria.
-   */
-  public static evaluateCredentials(presentationDefinition: PresentationDefinition, verifiableCredentialJwts: string[]): EvaluationResults {
-    return evaluateCredentials(presentationDefinition, verifiableCredentialJwts);
-  }
 }
 
 export class VerifiablePresentation {
@@ -189,7 +180,12 @@ export class VerifiablePresentation {
    * @returns A promise that resolves to a VP JWT.
    */
   public static async create(signOptions: SignOptions, createVpOptions: CreateVpOptions,): Promise<VpJwt> {
-    const evaluationResults: EvaluationResults = VerifiableCredential.evaluateCredentials(createVpOptions.presentationDefinition, createVpOptions.verifiableCredentialJwts);
+    resetPex();
+
+    const pdValidated: Validated = validateDefinition(createVpOptions.presentationDefinition);
+    isValid(pdValidated);
+
+    const evaluationResults: EvaluationResults = evaluateCredentials(createVpOptions.presentationDefinition, createVpOptions.verifiableCredentialJwts);
 
     if (evaluationResults.warnings?.length) {
       console.warn('Warnings were generated during the evaluation process: ' + JSON.stringify(evaluationResults.warnings));
@@ -209,6 +205,10 @@ export class VerifiablePresentation {
     }
 
     const presentationResult: PresentationResult = presentationFrom(createVpOptions.presentationDefinition, createVpOptions.verifiableCredentialJwts);
+
+    const submissionValidated: Validated = validateSubmission(presentationResult.presentationSubmission);
+    isValid(submissionValidated);
+
     const verifiablePresentation: VerifiablePresentationV1 = presentationResult.presentation;
     const vpJwt: VpJwt = await createJwt({ payload: { vp: verifiablePresentation }, subject: signOptions.subjectDid, issuer: signOptions.issuerDid, kid: signOptions.kid, signer: signOptions.signer });
 
@@ -271,19 +271,6 @@ export class VerifiablePresentation {
       signature : encodedSignature
     };
   }
-
-  /**
-   * Evaluates a given Verifiable Presentation against a specified presentation definition.
-   *
-   * This method checks if the presentation meets the criteria defined in the presentation definition.
-   *
-   * @param presentationDefinition - The definition that specifies the criteria for the presentation.
-   * @param presentation - The Verifiable Presentation to evaluate.
-   * @returns {EvaluationResults} The result of the evaluation process, indicating whether the presentation meets the criteria.
-   */
-  public static evaluatePresentation(presentationDefinition: PresentationDefinition, presentation: VerifiablePresentationV1): EvaluationResults {
-    return evaluatePresentation(presentationDefinition, presentation);
-  }
 }
 
 async function createJwt(options: CreateJwtOpts) {
@@ -307,4 +294,19 @@ async function createJwt(options: CreateJwtOpts) {
   const jwt = message + '.' + encodedSignature;
 
   return jwt;
+}
+
+function isValid(validated: Validated) {
+  let errorMessage = 'Failed to pass validation check due to: ';
+  if (Array.isArray(validated)) {
+    if (!validated.every(item => item.status === 'info')) {
+      errorMessage += 'Validation Errors: ' + JSON.stringify(validated);
+      throw new Error(errorMessage);
+    }
+  } else {
+    if (validated.status !== 'info') {
+      errorMessage += 'Validation Errors: ' + JSON.stringify(validated);
+      throw new Error(errorMessage);
+    }
+  }
 }

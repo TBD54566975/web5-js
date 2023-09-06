@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { VcJwt, VpJwt, EvaluationResults, VerifiableCredentialV1, PresentationDefinition} from '../src/types.js';
+import { VcJwt, VpJwt, VerifiableCredentialTypeV1, PresentationDefinition} from '../src/types.js';
 import {VerifiableCredential, VerifiablePresentation, CreateVcOptions, CreateVpOptions, SignOptions} from '../src/ssi.js';
 import { Ed25519, Jose } from '@web5/crypto';
 import { DidKeyMethod } from '@web5/dids';
@@ -43,7 +43,7 @@ describe('SSI Tests', () => {
     });
 
     it('creates a VC JWT with VerifiableCredentialV1 type', async () => {
-      const vc:VerifiableCredentialV1 = {
+      const vc:VerifiableCredentialTypeV1 = {
         id                : 'id123',
         '@context'        : ['https://www.w3.org/2018/credentials/v1'],
         credentialSubject : { id: subjectIssuerDid, btcAddress: 'abc123' },
@@ -57,7 +57,7 @@ describe('SSI Tests', () => {
     });
 
     it('creates a VC JWT with a VC', async () => {
-      const btcCredential: VerifiableCredentialV1 = {
+      const btcCredential: VerifiableCredentialTypeV1 = {
         '@context'          : ['https://www.w3.org/2018/credentials/v1'],
         'id'                : 'btc-credential',
         'type'              : ['VerifiableCredential'],
@@ -154,21 +154,6 @@ describe('SSI Tests', () => {
       expect(async () => await VerifiablePresentation.verify(vpJwt)).to.not.throw();
     });
 
-    it('evaluates a VP', async () => {
-      const vpCreateOptions: CreateVpOptions = {
-        presentationDefinition   : getPresentationDefinition(),
-        verifiableCredentialJwts : [vcJwt]
-      };
-
-      const vpJwt: VpJwt = await VerifiablePresentation.create(signOptions, vpCreateOptions, );
-      const result: EvaluationResults = VerifiablePresentation.evaluatePresentation(getPresentationDefinition(), VerifiablePresentation.decode(vpJwt).payload.vp);
-
-      expect(result.warnings).to.be.an('array');
-      expect(result.warnings!.length).to.equal(0);
-      expect(result.errors).to.be.an('array');
-      expect(result.errors!.length).to.equal(0);
-    });
-
     it('evaluates an invalid VP with empty VCs', async () => {
       const vpCreateOptions: CreateVpOptions = {
         presentationDefinition   : getPresentationDefinition(),
@@ -215,6 +200,23 @@ describe('SSI Tests', () => {
       } catch (err: any) {
         expect(err).instanceOf(Error);
         expect(err!.message).to.equal('Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present: "error"Errors: [{"tag":"FilterEvaluation","status":"error","message":"Input candidate does not contain property: $.input_descriptors[0]: $.verifiableCredential[0]"},{"tag":"MarkForSubmissionEvaluation","status":"error","message":"The input candidate is not eligible for submission: $.input_descriptors[0]: $.verifiableCredential[0]"}]');
+      }
+    });
+
+    it('evaluates an invalid VP with an invalid presentation definition', async () => {
+      const presentationDefinition = getPresentationDefinition();
+      presentationDefinition.frame = { '@id': 'this is not valid' };
+
+      const vpCreateOptions: CreateVpOptions = {
+        presentationDefinition   : presentationDefinition,
+        verifiableCredentialJwts : [vcJwt]
+      };
+
+      try {
+        await VerifiablePresentation.create(signOptions, vpCreateOptions);
+      } catch (err: any) {
+        expect(err).instanceOf(Error);
+        expect(err!.message).to.equal('Failed to pass validation check due to: Validation Errors: [{"tag":"presentation_definition.frame","status":"error","message":"frame value is not valid"}]');
       }
     });
   });

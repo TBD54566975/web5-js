@@ -1,13 +1,13 @@
 import type { PortableDid } from '@web5/dids';
 import type { JwsHeaderParams } from '@web5/crypto';
 import type {
-  PresentationResult,
-  VerifiableCredentialV1,
+  VerifiableCredentialTypeV1,
   PresentationDefinition,
   JwtDecodedVerifiablePresentation,
+  Validated,
 } from '../src/types.js';
 
-import { evaluateCredentials, evaluatePresentation, presentationFrom } from '../src/types.js';
+import { evaluateCredentials, evaluatePresentation, presentationFrom, validateDefinition, validateSubmission, resetPex } from '../src/types.js';
 
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
@@ -40,7 +40,6 @@ describe('PresentationExchange', () => {
     let signer: Signer;
     let btcCredentialJwt: string;
     let presentationDefinition: PresentationDefinition;
-    let presentationResult: PresentationResult;
 
     before(async () => {
       alice = await DidKeyMethod.create();
@@ -55,23 +54,47 @@ describe('PresentationExchange', () => {
       presentationDefinition = createPresentationDefinition();
     });
 
+    beforeEach(() => {
+      resetPex();
+    });
+
     it('should evaluate credentials without any errors or warnings', async () => {
       const evaluationResults = evaluateCredentials(presentationDefinition, [btcCredentialJwt]);
 
-      expect(evaluationResults.errors).to.be.an('array');
-      expect(evaluationResults.errors?.length).to.equal(0);
-      expect(evaluationResults.warnings).to.be.an('array');
-      expect(evaluationResults.warnings?.length).to.equal(0);
+      expect(evaluationResults.errors).to.deep.equal([]);
+      expect(evaluationResults.warnings).to.deep.equal([]);
     });
 
     it('should successfully create a presentation from the given definition and credentials', () => {
-      presentationResult = presentationFrom(presentationDefinition, [btcCredentialJwt]);
+      evaluateCredentials(presentationDefinition, [btcCredentialJwt]);
+      const presentationResult = presentationFrom(presentationDefinition, [btcCredentialJwt]);
 
       expect(presentationResult).to.exist;
       expect(presentationResult.presentationSubmission.definition_id).to.equal(presentationDefinition.id);
     });
 
+    it('should successfully validate a presentation definition', () => {
+      const result:Validated = validateDefinition(presentationDefinition);
+      expect(result).to.deep.equal([{ tag: 'root', status: 'info', message: 'ok' }]);
+    });
+
+    it('should successfully validate a submission', () => {
+      const evaluationResults = evaluateCredentials(presentationDefinition, [btcCredentialJwt]);
+      expect(evaluationResults.errors).to.deep.equal([]);
+      expect(evaluationResults.warnings).to.deep.equal([]);
+
+      const presentationResult = presentationFrom(presentationDefinition, [btcCredentialJwt]);
+
+      const result:Validated = validateSubmission(presentationResult.presentationSubmission);
+      expect(result).to.deep.equal([{ tag: 'root', status: 'info', message: 'ok' }]);
+    });
+
     it('should evaluate the presentation without any errors or warnings', async () => {
+      const credEvaluationResults = evaluateCredentials(presentationDefinition, [btcCredentialJwt]);
+      expect(credEvaluationResults.errors).to.deep.equal([]);
+      expect(credEvaluationResults.warnings).to.deep.equal([]);
+
+      const presentationResult = presentationFrom(presentationDefinition, [btcCredentialJwt]);
       const vpJwt = await createJwt({
         header,
         issuer  : alice.did,
@@ -82,13 +105,12 @@ describe('PresentationExchange', () => {
 
       const presentation = decodeJwt(vpJwt).payload.vp;
 
-      const { warnings, errors } = evaluatePresentation(presentationDefinition,  presentation );
+      const presentationEvaluationResults = evaluatePresentation(presentationDefinition,  presentation );
+      expect(presentationEvaluationResults.errors).to.deep.equal([]);
+      expect(presentationEvaluationResults.warnings).to.deep.equal([]);
 
-      expect(errors).to.be.an('array');
-      expect(errors?.length).to.equal(0);
-
-      expect(warnings).to.be.an('array');
-      expect(warnings?.length).to.equal(0);
+      const result:Validated = validateSubmission(presentationResult.presentationSubmission);
+      expect(result).to.deep.equal([{ tag: 'root', status: 'info', message: 'ok' }]);
     });
 
     it('should successfully execute the complete presentation exchange flow', async () => {
@@ -99,7 +121,7 @@ describe('PresentationExchange', () => {
       expect(evaluationResults.warnings).to.be.an('array');
       expect(evaluationResults.warnings?.length).to.equal(0);
 
-      presentationResult = presentationFrom(presentationDefinition, [btcCredentialJwt]);
+      const presentationResult = presentationFrom(presentationDefinition, [btcCredentialJwt]);
 
       expect(presentationResult).to.exist;
       expect(presentationResult.presentationSubmission.definition_id).to.equal(presentationDefinition.id);
@@ -126,7 +148,7 @@ describe('PresentationExchange', () => {
 });
 
 async function createBtcCredentialJwt(aliceDid: string, header: JwtHeaderParams, signer: Signer) {
-  const btcCredential: VerifiableCredentialV1 = {
+  const btcCredential: VerifiableCredentialTypeV1 = {
     '@context'          : ['https://www.w3.org/2018/credentials/v1'],
     'id'                : 'btc-credential',
     'type'              : ['VerifiableCredential'],

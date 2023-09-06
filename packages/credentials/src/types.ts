@@ -1,5 +1,5 @@
-import type { PresentationDefinitionV2, InputDescriptorV2 } from '@sphereon/pex-models';
-import type { EvaluationResults as ER, PresentationResult as PexPR } from '@sphereon/pex';
+import type { PresentationDefinitionV2, PresentationDefinitionV1 as PexPresDefV1, InputDescriptorV2 } from '@sphereon/pex-models';
+import type { EvaluationResults as ER, PresentationResult as PexPR, SelectResults as PexSR, Validated as PexValidated } from '@sphereon/pex';
 import type {
   IIssuer,
   ICredential,
@@ -17,13 +17,21 @@ import type {
   JwtDecodedVerifiablePresentation as PexJwtDecodedPres,
 } from '@sphereon/ssi-types';
 
-import { PEXv2 } from '@sphereon/pex';
+import { PEX } from '@sphereon/pex';
 
-const pex = new PEXv2();
+let pex = new PEX();
 
 export const DEFAULT_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
 export const DEFAULT_VC_TYPE = 'VerifiableCredential';
 export const DEFAULT_VP_TYPE = 'VerifiablePresentation';
+
+/**
+ * Resets the state for PEX lib, needed for every fresh Presentation Exchange flow.
+ */
+export const resetPex = () => {
+  pex = new PEX();
+};
+
 
 /** Presentation Exchange */
 
@@ -32,7 +40,7 @@ export const DEFAULT_VP_TYPE = 'VerifiablePresentation';
  *
  * @see {@link https://www.w3.org/TR/vc-data-model/#credentials | VC Data Model}
  */
-export type VerifiableCredentialV1 = ICredential;
+export type VerifiableCredentialTypeV1 = ICredential;
 
 /**
  * A Credential Context is to convey the meaning of the data and term definitions of the data in a verifiable credential.
@@ -77,6 +85,13 @@ export type CredentialSubject = (ICredentialSubject & AdditionalClaims) | (ICred
  *  @see {@link https://www.w3.org/TR/vc-data-model/#status | Credential Status}
  */
 export type CredentialStatus = ICredentialStatus;
+
+/**
+ * Presentation Definition: Outlines the requirements Verifiers have for Proofs.
+ *
+ * @see {@link https://identity.foundation/presentation-exchange/#presentation-definition | Presentation Definition}
+ */
+export type PresentationDefinitionType = PexPresDefV1;
 
 /**
  * Presentation Definition: Outlines the requirements Verifiers have for Proofs.
@@ -133,6 +148,17 @@ export type PresentationResult = PexPR;
  */
 export type EvaluationResults = ER;
 
+
+/**
+ * Search Result: The outcome of the select results process.
+ */
+export type SelectResults = PexSR;
+
+/**
+ * Validated: The outcome of the validation process.
+ */
+export type Validated = PexValidated;
+
 /**
  * Evaluates given credentials against a presentation definition.
  * @returns {EvaluationResults} The result of the evaluation process.
@@ -166,6 +192,40 @@ export const presentationFrom = (
   return pex.presentationFrom(presentationDefinition, verifiableCredentials);
 };
 
+/**
+ * The selectFrom method is a helper function that helps filter out the verifiable credentials which can not be selected and returns
+ * the selectable credentials.
+ *
+ * @param presentationDefinition the definition of what is expected in the presentation.
+ * @param verifiableCredentials verifiable credentials are the credentials from wallet provided to the library to find selectable credentials.
+ *
+ * @return the selectable credentials.
+ */
+export const selectFrom = (presentationDefinition: PresentationDefinition, verifiableCredentials: VcJwt[]): SelectResults => {
+  return pex.selectFrom(presentationDefinition, verifiableCredentials);
+};
+
+/**
+ * This method validates whether an object is usable as a presentation definition or not.
+ *
+ * @param presentationDefinition: presentationDefinition to be validated.
+ *
+ * @return the validation results to reveal what is acceptable/unacceptable about the passed object to be considered a valid presentation definition
+ */
+export const validateDefinition = (presentationDefinition: PresentationDefinition): Validated => {
+  return PEX.validateDefinition(presentationDefinition);
+};
+
+/**
+ * This method validates whether an object is usable as a presentation submission or not.
+ *
+ * @param presentationSubmission the object to be validated.
+ *
+ * @return the validation results to reveal what is acceptable/unacceptable about the passed object to be considered a valid presentation submission
+ */
+export const validateSubmission = (presentationSubmission: PresentationSubmission): Validated => {
+  return PEX.validateSubmission(presentationSubmission);
+};
 
 /** Credential Manifest */
 
