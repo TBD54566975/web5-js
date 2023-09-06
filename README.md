@@ -121,6 +121,14 @@ const { web5, did: myDid } = await Web5.connect();
 
 An object which may specify any of the following properties:
 
+- **`agent`** - _`Web5Agent instance`_ _(optional)_: an instance of a `Web5Agent` implementation. Defaults to creating a local `Web5UserAgent` if not provided.
+
+- **`appData`** - _`AppDataStore instance`_ _(optional)_: an instance of an `AppDataStore` implementation. Defaults to a LevelDB-backed store with an insecure, static unlock passphrase if not provided. To allow the end user to enter a secure passphrase of their choosing, provide an initialized `AppDataVault`.
+
+- **`connectedDid`** - _`string`_ _(optional)_: an existing DID to connect to.
+
+- **`sync`** - _`string`_ _(optional)_: enable or disable synchronization of DWN records between local and remote DWNs. Sync defaults to running every 2 minutes and can be set to any value accepted by [`ms`](https://www.npmjs.com/package/ms). To disable sync set to `'off'`.
+
 - **`techPreview`** - _`object`_ _(optional)_: an object that specifies configuration parameters that are relevant during the Tech Preview period of Web5 JS and may be deprecated in the future with advance notice.
 
   - **`dwnEndpoints`** - _`array`_ _(optional)_: a list of DWeb Node endpoints to define in the DID created and returned by `Web5.connect()`. If this property is omitted, during the Tech Preview two nodes will be included by default (e.g., `['https://dwn.tbddev.org/dwn0', 'https://dwn.tbddev.org/dwn3']`).

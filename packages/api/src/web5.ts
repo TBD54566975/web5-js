@@ -35,7 +35,7 @@ export type Web5ConnectOptions = {
   connectedDid?: string;
 
   /** Enable synchronization of DWN records between local and remote DWNs.
-   * Sync defaults to running every 2 minutes and get be set to any value accepted by `ms()`.
+   * Sync defaults to running every 2 minutes and can be set to any value accepted by `ms()`.
    * To disable sync set to 'off'. */
   sync?: string;
 
