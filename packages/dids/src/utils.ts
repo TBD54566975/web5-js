@@ -113,7 +113,6 @@ export function isDwnServiceEndpoint(endpoint: string | DidServiceEndpoint | Did
   return endpoint !== undefined &&
     typeof endpoint !== 'string' &&
     !Array.isArray(endpoint) &&
-    'encryptionKeys' in endpoint &&
     'nodes' in endpoint &&
     'signingKeys' in endpoint;
 }

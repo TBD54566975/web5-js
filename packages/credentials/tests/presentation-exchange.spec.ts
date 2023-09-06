@@ -1,5 +1,4 @@
 import type { PortableDid } from '@web5/dids';
-import type { JwsHeaderParams } from '@web5/crypto';
 import type {
   VerifiableCredentialTypeV1,
   PresentationDefinition,
@@ -26,9 +25,10 @@ type CreateJwtOpts = {
   signer: Signer;
 }
 
-type JwtHeaderParams = JwsHeaderParams & {
+type JwtHeaderParams = {
   alg: string;
   typ: 'JWT'
+  kid: string;
 };
 
 type Signer = (data: Uint8Array) => Promise<Uint8Array>;
@@ -48,7 +48,7 @@ describe('PresentationExchange', () => {
       const { keyMaterial: privateKey } = await Jose.jwkToKey({ key: signingKeyPair.privateKeyJwk! });
       signer = EdDsaSigner(privateKey);
 
-      header = { alg: 'EdDSA', typ: 'JWT', kid: signingKeyPair.privateKeyJwk!.kid };
+      header = { alg: 'EdDSA', typ: 'JWT', kid: signingKeyPair.privateKeyJwk!.kid! };
 
       btcCredentialJwt = await createBtcCredentialJwt(alice.did, header, signer);
       presentationDefinition = createPresentationDefinition();

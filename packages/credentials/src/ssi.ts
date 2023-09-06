@@ -1,4 +1,3 @@
-import type { JwsHeaderParams } from '@web5/crypto';
 import type { Resolvable, DIDResolutionResult } from 'did-resolver';
 import {
   VerifiableCredentialTypeV1,
@@ -66,9 +65,10 @@ type CreateJwtOpts = {
   signer: Signer;
 }
 
-type JwtHeaderParams = JwsHeaderParams & {
+type JwtHeaderParams = {
   alg: string;
   typ: 'JWT'
+  kid: string;
 };
 
 type Signer = (data: Uint8Array) => Promise<Uint8Array>;

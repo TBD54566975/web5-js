@@ -1,6 +1,7 @@
 import type { KeyValueStore } from '@web5/common';
 import type { DidResolutionResult, DidResolverCache, PortableDid } from '@web5/dids';
 
+import { Level } from 'level';
 import { Jose } from '@web5/crypto';
 import { Dwn } from '@tbd54566975/dwn-sdk-js';
 import { LevelStore, MemoryStore } from '@web5/common';
@@ -15,6 +16,7 @@ import { DwnManager } from './dwn-manager.js';
 import { KeyManager } from './key-manager.js';
 import { Web5RpcClient } from './rpc-client.js';
 import { AppDataVault } from './app-data-store.js';
+import { SyncManagerLevel } from './sync-manager.js';
 import { cryptoToPortableKeyPair } from './utils.js';
 import { DidStoreDwn, DidStoreMemory } from './store-managed-did.js';
 import { IdentityManager, ManagedIdentity } from './identity-manager.js';
@@ -37,6 +39,7 @@ type TestManagedAgentOptions = {
   dwnDataStore: DataStoreLevel;
   dwnEventLog: EventLogLevel;
   dwnMessageStore: MessageStoreLevel;
+  syncStore: Level;
 }
 
 export class TestManagedAgent {
@@ -49,6 +52,7 @@ export class TestManagedAgent {
   dwnDataStore: DataStoreLevel;
   dwnEventLog: EventLogLevel;
   dwnMessageStore: MessageStoreLevel;
+  syncStore: Level;
 
   constructor(options: TestManagedAgentOptions) {
     this.agent = options.agent;
@@ -59,6 +63,7 @@ export class TestManagedAgent {
     this.dwnDataStore = options.dwnDataStore;
     this.dwnEventLog = options.dwnEventLog;
     this.dwnMessageStore = options.dwnMessageStore;
+    this.syncStore = options.syncStore;
   }
 
   async clearStorage(): Promise<void> {
@@ -68,6 +73,7 @@ export class TestManagedAgent {
     await this.dwnDataStore.clear();
     await this.dwnEventLog.clear();
     await this.dwnMessageStore.clear();
+    await this.syncStore.clear();
 
     /** Easiest way to start with fresh in-memory stores is to
      * re-instantiate all of the managed agent components */
@@ -85,6 +91,7 @@ export class TestManagedAgent {
     await this.dwnDataStore.close();
     await this.dwnEventLog.close();
     await this.dwnMessageStore.close();
+    await this.syncStore.close();
   }
 
   static async create(options: CreateMethodOptions): Promise<TestManagedAgent> {
@@ -128,6 +135,10 @@ export class TestManagedAgent {
     // Instantiate an RPC Client.
     const rpcClient = new Web5RpcClient();
 
+    // Instantiate a custom SyncManager and LevelDB-backed store.
+    const syncStore = new Level(testDataPath('SYNC_STORE'));
+    const syncManager = new SyncManagerLevel({ db: syncStore });
+
     const agent = new agentClass({
       agentDid: '',
       appData,
@@ -137,6 +148,7 @@ export class TestManagedAgent {
       identityManager,
       keyManager,
       rpcClient,
+      syncManager
     });
 
     return new TestManagedAgent({
@@ -148,6 +160,7 @@ export class TestManagedAgent {
       dwnDataStore,
       dwnEventLog,
       dwnMessageStore,
+      syncStore,
     });
   }
 

@@ -4,6 +4,7 @@
     "outDir": "compiled",
     "declarationDir": "compiled/types",
     "sourceMap": true,
+    "resolveJsonModule": true
   },
   "include": [
     "../src",
