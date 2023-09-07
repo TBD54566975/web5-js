@@ -75,6 +75,10 @@ export class Web5 {
     this.appStorage ||= new AppStorage();
   }
 
+  static activateDomFeatures() {
+    activateDomFeatures(this);
+  }
+
   /**
    * Connects to a {@link Web5Agent}. defaults to creating an embedded {@link Web5UserAgent} if one isn't provided
    * @param options - optional overrides
@@ -143,6 +147,10 @@ export class Web5 {
     Web5.#enqueueNextSync(syncManager, 1_000);
 
     return { web5, did: connectedDid };
+  }
+
+  static deactivateDomFeatures() {
+    deactivateDomFeatures();
   }
 
   /**
