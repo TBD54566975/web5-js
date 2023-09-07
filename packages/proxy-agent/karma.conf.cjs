@@ -36,7 +36,7 @@ module.exports = function (config) {
         timeout: 10000 // 10 seconds
       },
       // If an environment variable is defined, override the default test DWN URL.
-      testDwnUrl: process.env.TEST_DWN_URL,
+      testDwnUrls: process.env.TEST_DWN_URLS
     },
 
     // list of files / patterns to load in the browser

@@ -5,7 +5,7 @@ import * as sinon from 'sinon';
 
 import type { ManagedIdentity } from '../../src/identity-manager.js'
 
-import { testDwnUrl } from '../test-config.js'
+import { testDwnUrls } from '../test-config.js'
 import { TestAgent } from '../utils/test-agent.js';
 import { TestManagedAgent } from '../../src/test-managed-agent.js';
 
@@ -13,8 +13,6 @@ import { randomUuid } from '@web5/crypto/utils';
 import { DwnRequest, DwnResponse, ProcessDwnRequest, SendDwnRequest } from '../../src/index.js';
 import { DataStream, RecordsDeleteMessage, RecordsWrite, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 import _Readable from 'readable-stream';
-
-const testDwnUrls = [ testDwnUrl ];
 
 const checkChaos = (): boolean => {
   return process.env.CHAOS_ENV === 'true'

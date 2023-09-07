@@ -6,7 +6,7 @@ import chaiAsPromised from 'chai-as-promised';
 import { TestManagedAgent } from '@web5/agent';
 
 import { DwnApi } from '../src/dwn-api.js';
-import { testDwnUrl } from './test-config.js';
+import { testDwnUrls } from './test-config.js';
 import { TestUserAgent } from './utils/test-user-agent.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
 
@@ -21,8 +21,6 @@ import { webcrypto } from 'node:crypto';
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 // TODO: Come up with a better way of resolving the TS errors.
-let testDwnUrls: string[] = [testDwnUrl];
-
 describe('Protocol', () => {
   let dwn: DwnApi;
   let alice: ManagedIdentity;

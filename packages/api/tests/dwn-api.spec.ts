@@ -5,11 +5,9 @@ import { expect } from 'chai';
 import { TestManagedAgent } from '@web5/agent';
 
 import { DwnApi } from '../src/dwn-api.js';
-import { testDwnUrl } from './test-config.js';
+import { testDwnUrls } from './test-config.js';
 import { TestUserAgent } from './utils/test-user-agent.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
-
-let testDwnUrls: string[] = [testDwnUrl];
 
 describe('DwnApi', () => {
   let alice: ManagedIdentity;

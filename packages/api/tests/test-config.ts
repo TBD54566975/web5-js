@@ -1,8 +1,8 @@
 declare const __karma__: { config?: { testDwnUrl?: string; } };
 
-const DEFAULT_TEST_DWN_URL = 'https://dwn.tbddev.org/dwn0';
+const DEFAULT_TEST_DWN_URLS = 'https://dwn.tbddev.org/dwn0';
 
-function getTestDwnUrl(): string {
+function getTestDwnUrl(): string[] {
   // Check to see if we're running in a Karma browser test environment.
   const browserTestEnvironment = typeof __karma__ !== 'undefined' && __karma__?.config?.testDwnUrl !== undefined;
 
@@ -14,11 +14,11 @@ function getTestDwnUrl(): string {
   const envTestDwnUrl = (browserTestEnvironment)
     ? __karma__.config!.testDwnUrl
     : (nodeTestEnvironment)
-      ? process.env.TEST_DWN_URL
+      ? process.env.TEST_DWN_URLS
       : undefined;
 
   // If defined, return the test environment DWN URL. Otherwise, return the default.
-  return envTestDwnUrl || DEFAULT_TEST_DWN_URL;
+  return (envTestDwnUrl || DEFAULT_TEST_DWN_URLS).split(',');
 }
 
-export const testDwnUrl = getTestDwnUrl();
+export const testDwnUrls = getTestDwnUrl();
