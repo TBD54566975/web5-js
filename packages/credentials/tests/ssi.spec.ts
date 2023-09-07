@@ -56,6 +56,28 @@ describe('SSI Tests', () => {
       expect(async () => await VerifiableCredential.verify(vcJwt)).to.not.throw();
     });
 
+    it('fails to create a VC JWT with CreateVCOptions and VC', async () => {
+      const vc:VerifiableCredentialTypeV1 = {
+        id                : 'id123',
+        '@context'        : ['https://www.w3.org/2018/credentials/v1'],
+        credentialSubject : { id: subjectIssuerDid, btcAddress: 'abc123' },
+        type              : ['VerifiableCredential'],
+        issuer            : { id: subjectIssuerDid },
+        issuanceDate      : getCurrentXmlSchema112Timestamp(),
+      };
+
+      const vcCreateOptions: CreateVcOptions = {
+        credentialSubject : { id: subjectIssuerDid, btcAddress: 'abc123' },
+        issuer            : { id: subjectIssuerDid }
+      };
+
+      await expectThrowsAsync(() =>  VerifiableCredential.create(signOptions, vcCreateOptions, vc), 'options and verifiableCredentials are mutually exclusive, either include the full verifiableCredential or the options to create one');
+    });
+
+    it('fails to create a VC JWT with no CreateVCOptions and no VC', async () => {
+      await expectThrowsAsync(() =>  VerifiableCredential.create(signOptions, undefined, undefined), 'options or verifiableCredential must be provided');
+    });
+
     it('creates a VC JWT with a VC', async () => {
       const btcCredential: VerifiableCredentialTypeV1 = {
         '@context'          : ['https://www.w3.org/2018/credentials/v1'],
@@ -70,6 +92,10 @@ describe('SSI Tests', () => {
 
       const vcJwt: VcJwt = await VerifiableCredential.create(signOptions, undefined, btcCredential);
       expect(async () => await VerifiableCredential.verify(vcJwt)).to.not.throw();
+    });
+
+    it('fails to verify an invalid VC JWT', async () => {
+      await expectThrowsAsync(() =>  VerifiableCredential.verify('invalid-jwt'), 'Incorrect format JWT');
     });
 
     it('decodes a VC JWT', async () => {

@@ -147,17 +147,44 @@ describe('PresentationExchange', () => {
   });
 });
 
-async function createBtcCredentialJwt(aliceDid: string, header: JwtHeaderParams, signer: Signer) {
-  const btcCredential: VerifiableCredentialTypeV1 = {
+function createPresentationDefinition(): PresentationDefinition {
+  return {
+    'id'                : 'test-pd-id',
+    'name'              : 'simple PD',
+    'purpose'           : 'pd for testing',
+    'input_descriptors' : [
+      {
+        'id'          : 'whatever',
+        'purpose'     : 'id for testing',
+        'constraints' : {
+          'fields': [
+            {
+              'path': [
+                '$.credentialSubject.btcAddress',
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  };
+}
+
+function createVerifiableCredential(did:string): VerifiableCredentialTypeV1 {
+  return {
     '@context'          : ['https://www.w3.org/2018/credentials/v1'],
     'id'                : 'btc-credential',
     'type'              : ['VerifiableCredential'],
-    'issuer'            : aliceDid,
+    'issuer'            : did,
     'issuanceDate'      : new Date().toISOString(),
     'credentialSubject' : {
       'btcAddress': 'btcAddress123'
     }
   };
+}
+
+async function createBtcCredentialJwt(aliceDid: string, header: JwtHeaderParams, signer: Signer) {
+  const btcCredential: VerifiableCredentialTypeV1 = createVerifiableCredential(aliceDid);
 
   return await createJwt({
     header,
@@ -190,28 +217,6 @@ async function createJwt(options: CreateJwtOpts) {
   return jwt;
 }
 
-function createPresentationDefinition() {
-  return {
-    'id'                : 'test-pd-id',
-    'name'              : 'simple PD',
-    'purpose'           : 'pd for testing',
-    'input_descriptors' : [
-      {
-        'id'          : 'whatever',
-        'purpose'     : 'id for testing',
-        'constraints' : {
-          'fields': [
-            {
-              'path': [
-                '$.credentialSubject.btcAddress',
-              ]
-            }
-          ]
-        }
-      }
-    ]
-  };
-}
 
 function decodeJwt(jwt: string) {
   const [encodedHeader, encodedPayload, encodedSignature] = jwt.split('.');
