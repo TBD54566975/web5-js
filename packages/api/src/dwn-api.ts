@@ -11,6 +11,9 @@ import type {
   ProtocolsConfigureMessage,
   ProtocolsConfigureOptions,
   ProtocolsConfigureDescriptor,
+  PermissionsRequestMessage,
+  PermissionsGrantMessage,
+  PermissionsRevokeMessage,
 } from '@tbd54566975/dwn-sdk-js';
 
 import { isEmptyObject } from '@web5/common';
@@ -19,6 +22,7 @@ import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 import { Record } from './record.js';
 import { Protocol } from './protocol.js';
 import { dataToBlob } from './utils.js';
+import { Grant, GrantOptions } from './grant.js';
 
 export type ProtocolsConfigureRequest = {
   message: Omit<ProtocolsConfigureOptions, 'authorizationSignatureInput'>;
@@ -97,7 +101,7 @@ export type RecordsWriteResponse = {
 };
 
 /**
- * TODO: Document class.
+ * API for Decentralized Web Node (DWN)
  */
 export class DwnApi {
   private agent: Web5Agent;
@@ -109,8 +113,9 @@ export class DwnApi {
   }
 
   /**
- * TODO: Document namespace.
- */
+   * APIs to configure and query DWN `Protocols`, which define structures of
+   * DWN records and authorization for applications.
+   */
   get protocols() {
     return {
       /**
@@ -168,7 +173,7 @@ export class DwnApi {
   }
 
   /**
-   * TODO: Document namespace.
+   * APIs to interact with individual data blobs called Records in the DWN.
    */
   get records() {
     return {
@@ -371,6 +376,67 @@ export class DwnApi {
         }
 
         return { record, status };
+      },
+    };
+  }
+
+  /**
+   * APIs to grant and revoke permission to certain DWN objects to specific DIDs.
+   */
+  get permissions() {
+    return {
+      /**
+       * Grant permission to perform specified actions on the message author's DWN.
+       */
+      grant: async (request: { message: Omit<PermissionsGrantMessage, 'authorizationSignatureInput'> })
+        : Promise<{ grant: Grant, status: UnionMessageReply['status'] }> => {
+        const author = this.connectedDid;
+        const target = this.connectedDid;
+
+        const agentRequest = {
+          author,
+          messageOptions : request.message,
+          messageType    : DwnInterfaceName.Permissions + DwnMethodName.Grant,
+          target
+        };
+
+        const { message, reply: { status } } = await this.agent.processDwnRequest(agentRequest);
+
+        let grant: Grant;
+        if (200 <= status.code && status.code <= 299) {
+          const grantOptions: GrantOptions = {
+            author,
+            target,
+            permissionsGrantMessage: message as PermissionsGrantMessage,
+          };
+          grant = new Grant(this.agent, grantOptions);
+        }
+
+        return {
+          grant,
+          status
+        };
+      },
+
+      /**
+       * Revoke an existing grant, removing the grantee's ability to perform specified actions on the author's DWN.
+       */
+      revoke: async (request: { message: Omit<PermissionsRevokeMessage, 'authorizationSignatureInput'> })
+        : Promise<{ permissionsRevokeMessage?: PermissionsRevokeMessage, status: UnionMessageReply['status'] }> => {
+
+        const agentRequest = {
+          author         : this.connectedDid,
+          messageOptions : request.message,
+          messageType    : DwnInterfaceName.Permissions + DwnMethodName.Grant,
+          target         : this.connectedDid
+        };
+
+        const agentResponse: DwnResponse = await this.agent.processDwnRequest(agentRequest);
+
+        return {
+          permissionsRevokeMessage : agentResponse.message as PermissionsRevokeMessage | undefined,
+          status                   : agentResponse.reply.status,
+        };
       },
     };
   }
