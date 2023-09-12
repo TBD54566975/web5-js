@@ -7,7 +7,7 @@ import type { ManagedIdentity } from '../src/identity-manager.js';
 
 import { randomUuid } from '@web5/crypto/utils';
 import { testDwnUrls } from './test-config.js';
-import { TestAgent } from './utils/test-agent.js';
+import { TestAgent, sleep } from './utils/test-agent.js';
 import { SyncManagerLevel } from '../src/sync-manager.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
 
@@ -74,12 +74,12 @@ describe('SyncManagerLevel', () => {
       await testAgent.closeStorage();
     });
 
-    describe('pull()', () => {
+    describe('startSync()', () => {
       it('takes no action if no identities are registered', async () => {
         const didResolveSpy = sinon.spy(testAgent.agent.didResolver, 'resolve');
         const sendDwnRequestSpy = sinon.spy(testAgent.agent.rpcClient, 'sendDwnRequest');
 
-        await testAgent.agent.syncManager.pull();
+        await testAgent.agent.syncManager.startSync({ interval: 0 });
 
         // Verify DID resolution and DWN requests did not occur.
         expect(didResolveSpy.notCalled).to.be.true;
@@ -121,7 +121,7 @@ describe('SyncManagerLevel', () => {
         });
 
         // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
-        await testAgent.agent.syncManager.pull();
+        await testAgent.agent.syncManager.startSync({ interval: 0 });
 
         // Confirm the record now DOES exist on Alice's local DWN.
         queryResponse = await testAgent.agent.dwnManager.processRequest({
@@ -184,7 +184,7 @@ describe('SyncManagerLevel', () => {
         });
 
         // Execute Sync to pull all records from Alice's and Bob's remove DWNs to their local DWNs.
-        await testAgent.agent.syncManager.pull();
+        await testAgent.agent.syncManager.startSync({ interval: 0 });
 
         // Confirm the Alice test record exist on Alice's local DWN.
         let queryResponse = await testAgent.agent.dwnManager.processRequest({
@@ -208,14 +208,12 @@ describe('SyncManagerLevel', () => {
         expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
       }).timeout(5000);
-    });
 
-    describe('push()', () => {
       it('takes no action if no identities are registered', async () => {
         const didResolveSpy = sinon.spy(testAgent.agent.didResolver, 'resolve');
         const processRequestSpy = sinon.spy(testAgent.agent.dwnManager, 'processRequest');
 
-        await testAgent.agent.syncManager.push();
+        await testAgent.agent.syncManager.startSync({ interval: 0 });
 
         // Verify DID resolution and DWN requests did not occur.
         expect(didResolveSpy.notCalled).to.be.true;
@@ -257,7 +255,7 @@ describe('SyncManagerLevel', () => {
         });
 
         // Execute Sync to push all records from Alice's local DWN to Alice's remote DWN.
-        await testAgent.agent.syncManager.push();
+        await testAgent.agent.syncManager.startSync({ interval: 0 });
 
         // Confirm the record now DOES exist on Alice's remote DWN.
         queryResponse = await testAgent.agent.dwnManager.sendRequest({
@@ -319,7 +317,7 @@ describe('SyncManagerLevel', () => {
         });
 
         // Execute Sync to push all records from Alice's and Bob's local DWNs to their remote DWNs.
-        await testAgent.agent.syncManager.push();
+        await testAgent.agent.syncManager.startSync({ interval: 0 });
 
         // Confirm the Alice test record exist on Alice's remote DWN.
         let queryResponse = await testAgent.agent.dwnManager.sendRequest({
@@ -392,8 +390,7 @@ describe('SyncManagerLevel', () => {
         expect(remoteReply.entries?.length).to.equal(remoteRecords.size);
         expect(remoteReply.entries?.every(e => remoteRecords.has((e as RecordsWriteMessage).recordId))).to.be.true;
 
-        await testAgent.agent.syncManager.push();
-        await testAgent.agent.syncManager.pull();
+        await testAgent.agent.syncManager.startSync({ interval: 0 });
 
         const records = new Set([...remoteRecords, ...localRecords]);
         const { reply: allRemoteReply } = await testAgent.agent.dwnManager.sendRequest(everythingQuery());

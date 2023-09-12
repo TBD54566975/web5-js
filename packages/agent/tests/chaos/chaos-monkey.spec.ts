@@ -194,8 +194,7 @@ describe('Chaos Monkey', () => {
             let { reply: replyRemote } = await testAgent.agent.dwnManager.sendRequest(testQuery);
 
             const startSync = Date.now();
-            await testAgent.agent.syncManager.push();
-            await testAgent.agent.syncManager.pull();
+            await testAgent.agent.syncManager.startSync({ interval: 0 });
             const endSync = Date.now();
 
             const remoteEntries = (replyRemote.entries || []).filter(e => (reply.entries || []).findIndex(le => (le as RecordsWriteMessage).recordId === (e as RecordsWriteMessage).recordId) < 0);

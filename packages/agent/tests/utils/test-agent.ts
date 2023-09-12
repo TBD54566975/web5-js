@@ -204,3 +204,7 @@ export class TestAgent implements Web5ManagedAgent {
     throw new Error('Not implemented');
   }
 }
+
+export async function sleep(duration: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, duration));
+}
