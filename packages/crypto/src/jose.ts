@@ -863,7 +863,7 @@ export class Jose {
     const jose = multicodecToJoseMapping[lookupKey];
 
     if (jose === undefined) {
-      throw new Error(`Unsupported Multicodec to JOSE conversion: '${options.name ?? options.code}'`);
+      throw new Error(`Unsupported Multicodec to JOSE conversion: '${options.name}'`);
     }
 
     return { ...jose };
