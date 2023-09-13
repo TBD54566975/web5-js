@@ -1,4 +1,4 @@
-import type { PresentationDefinitionV2, PresentationDefinitionV1 as PexPresDefV1, InputDescriptorV2 } from '@sphereon/pex-models';
+import type { PresentationDefinitionV2 as PDV2, InputDescriptorV2 } from '@sphereon/pex-models';
 import type { EvaluationResults as ER, PresentationResult as PexPR, SelectResults as PexSR, Validated as PexValidated } from '@sphereon/pex';
 import type {
   IIssuer,
@@ -91,14 +91,7 @@ export type CredentialStatus = ICredentialStatus;
  *
  * @see {@link https://identity.foundation/presentation-exchange/#presentation-definition | Presentation Definition}
  */
-export type PresentationDefinitionType = PexPresDefV1;
-
-/**
- * Presentation Definition: Outlines the requirements Verifiers have for Proofs.
- *
- * @see {@link https://identity.foundation/presentation-exchange/#presentation-definition | Presentation Definition}
- */
-export type PresentationDefinition = PresentationDefinitionV2;
+export type PresentationDefinition = PDV2;
 
 /**
  * Presentation Submissions are objects embedded within target Claim negotiation formats that

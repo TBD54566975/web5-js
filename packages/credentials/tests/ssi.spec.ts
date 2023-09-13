@@ -245,6 +245,92 @@ describe('SSI Tests', () => {
         expect(err!.message).to.equal('Failed to pass validation check due to: Validation Errors: [{"tag":"presentation_definition.frame","status":"error","message":"frame value is not valid"}]');
       }
     });
+
+    it('PresentationDefinition Path Credential Test With Invalid VC', async () => {
+
+      const vcTest: VerifiableCredentialTypeV1 = {
+        '@context'          : ['https://www.w3.org/2018/credentials/v1'],
+        'id'                : '1694618623573',
+        'issuer'            : alice.did,
+        'issuanceDate'      : getCurrentXmlSchema112Timestamp(),
+        'type'              : ['VerifiableCredential'],
+        'credentialSubject' : {
+          'id'   : alice.did,
+          'beep' : 'boop'
+        }
+      };
+
+      const pdTest: PresentationDefinition = {
+        'id'                : 'first simple example',
+        'input_descriptors' : [{
+          'id'          : 'A specific type of VC',
+          'name'        : 'A specific type of VC',
+          'purpose'     : 'We want a VC of this type',
+          'constraints' : {
+            'fields': [      {
+              'path'   : ['$.type[*]'],
+              'filter' : {
+                'type'    : 'string',
+                'pattern' : 'SanctionsCredential'
+              }
+            }],
+          }
+        }]
+      };
+
+      let vcJwt: VcJwt = await VerifiableCredential.create(signOptions, undefined, vcTest);
+
+      const vpCreateOptions: CreateVpOptions = {
+        presentationDefinition   : pdTest,
+        verifiableCredentialJwts : [vcJwt],
+      };
+
+      await expectThrowsAsync(() =>  VerifiablePresentation.create(signOptions, vpCreateOptions), 'Required Credentials Not Present:');
+    });
+
+    it('PresentationDefinition Path Credential Test With Valid VC', async () => {
+
+      const vcTest: VerifiableCredentialTypeV1 = {
+        '@context'          : ['https://www.w3.org/2018/credentials/v1'],
+        'id'                : '1694618623573',
+        'issuer'            : alice.did,
+        'issuanceDate'      : getCurrentXmlSchema112Timestamp(),
+        'type'              : ['VerifiableCredential', 'SanctionsCredential'],
+        'credentialSubject' : {
+          'id'   : alice.did,
+          'beep' : 'boop'
+        }
+      };
+
+      const pdTest: PresentationDefinition = {
+        'id'                : 'first simple example',
+        'input_descriptors' : [{
+          'id'          : 'A specific type of VC',
+          'name'        : 'A specific type of VC',
+          'purpose'     : 'We want a VC of this type',
+          'constraints' : {
+            'fields': [      {
+              'path'   : ['$.type[*]'],
+              'filter' : {
+                'type'    : 'string',
+                'pattern' : 'SanctionsCredential'
+              }
+            }],
+          }
+        }]
+      };
+
+      const vcJwt: VcJwt = await VerifiableCredential.create(signOptions, undefined, vcTest);
+
+      const vpCreateOptions: CreateVpOptions = {
+        presentationDefinition   : pdTest,
+        verifiableCredentialJwts : [vcJwt],
+      };
+
+      const vpJwt: VpJwt = await VerifiablePresentation.create(signOptions, vpCreateOptions);
+
+      expect(async () => await VerifiablePresentation.verify(vpJwt)).to.not.throw();
+    });
   });
 });
 
