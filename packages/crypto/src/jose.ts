@@ -1,5 +1,5 @@
 import { sha256 } from '@noble/hashes/sha256';
-import { Convert, Multicodec, MulticodecCode, removeUndefinedProperties } from '@web5/common';
+import { Convert, Multicodec, MulticodecCode, MulticodecDefinition, removeUndefinedProperties } from '@web5/common';
 
 import type { Web5Crypto } from './types/web5-crypto.js';
 
@@ -507,7 +507,7 @@ export class Jose {
 
   public static async joseToMulticodec(options: {
     key: JsonWebKey
-  }): Promise<{ code?: MulticodecCode, name?: string }> {
+  }): Promise<MulticodecDefinition<MulticodecCode>> {
     const jsonWebKey = options.key;
 
     const params: string[] = [];
@@ -610,7 +610,7 @@ export class Jose {
    * const thumbprint = jwkThumbprint(jwk);
    * console.log(`JWK thumbprint: ${thumbprint}`);
    *
-   * @see {@link https://datatracker.ietf.org/doc/html/rfc7638|RFC 7638} for
+   * @see {@link https://datatracker.ietf.org/doc/html/rfc7638 | RFC7638} for
    * the specification of JWK thumbprint computation.
    */
   public static async jwkThumbprint(options: {
@@ -863,7 +863,7 @@ export class Jose {
     const jose = multicodecToJoseMapping[lookupKey];
 
     if (jose === undefined) {
-      throw new Error(`Unsupported Multicodec to JOSE conversion: '${options.name ?? options.code}'`);
+      throw new Error(`Unsupported Multicodec to JOSE conversion: '${options.name}'`);
     }
 
     return { ...jose };

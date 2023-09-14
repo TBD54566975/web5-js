@@ -312,6 +312,66 @@ export const joseToWebCryptoTestVectors = [
   },
 ];
 
+export const joseToMulticodecTestVectors = [
+  {
+    output : { code: 237, name: 'ed25519-pub' },
+    input  : {
+      alg : 'EdDSA',
+      crv : 'Ed25519',
+      kty : 'OKP',
+      x   : 'cuY-fEu_V1s4b8HbGzy_9VOaNtxiUPzLn6KOATdz0ks',
+    },
+  },
+  {
+    output : { code: 4864, name: 'ed25519-priv' },
+    input  : {
+      d   : '',
+      alg : 'EdDSA',
+      crv : 'Ed25519',
+      kty : 'OKP',
+      x   : 'c5UR1q2r1lOT_ygDhSkU3paf5Bmukg-jX-1t4kIKJvA',
+    },
+  },
+  {
+    output : { code: 231, name: 'secp256k1-pub' },
+    input  : {
+      alg : 'ES256K',
+      crv : 'secp256k1',
+      kty : 'EC',
+      x   : '_TihFv5t24hjWsRcdZBeEJa65hQB5aiOYmG6mMu1RZA',
+      y   : 'UfiOGckhJuh9f3-Yi7g-jTILYP6vEWOSF1drwjBHebA',
+    },
+  },
+  {
+    output : { code: 4865, name: 'secp256k1-priv' },
+    input  : {
+      d   : '',
+      alg : 'ES256K',
+      crv : 'secp256k1',
+      kty : 'EC',
+      x   : '_TihFv5t24hjWsRcdZBeEJa65hQB5aiOYmG6mMu1RZA',
+      y   : 'UfiOGckhJuh9f3-Yi7g-jTILYP6vEWOSF1drwjBHebA',
+    },
+  },
+  {
+    output : { code: 236, name: 'x25519-pub' },
+    input  : {
+      crv : 'X25519',
+      kty : 'OKP',
+      x   : 'cuY-fEu_V1s4b8HbGzy_9VOaNtxiUPzLn6KOATdz0ks',
+    },
+  },
+  {
+    output : { code: 4866, name: 'x25519-priv' },
+    input  : {
+      d   : '',
+      crv : 'X25519',
+      kty : 'OKP',
+      x   : 'MBZd77wAy5932AEP7MHXOevv_MLzzD9OP_fZAOlnIWM',
+    },
+  },
+];
+
 export const keyToJwkTestVectorsKeyMaterial = '72e63e7c4bbf575b386fc1db1b3cbff5539a36dc6250fccb9fa28e013773d24b';
 export const keyToJwkMulticodecTestVectors = [
   {
@@ -372,6 +432,7 @@ export const keyToJwkMulticodecTestVectors = [
     }
   }
 ];
+
 export const keyToJwkWebCryptoTestVectors = [
   {
     input  : { namedCurve: 'Ed25519', name: 'EdDSA' },
@@ -380,6 +441,16 @@ export const keyToJwkWebCryptoTestVectors = [
       crv : 'Ed25519',
       kty : 'OKP',
       x   : 'cuY-fEu_V1s4b8HbGzy_9VOaNtxiUPzLn6KOATdz0ks'
+    }
+  },
+  {
+    input  : { namedCurve: 'secp256k1', name: 'ECDSA' },
+    output : {
+      alg : 'ES256K',
+      crv : 'secp256k1',
+      kty : 'EC',
+      x   : '_TihFv5t24hjWsRcdZBeEJa65hQB5aiOYmG6mMu1RZA',
+      y   : 'UfiOGckhJuh9f3-Yi7g-jTILYP6vEWOSF1drwjBHebA',
     }
   },
   {
@@ -425,4 +496,256 @@ export const keyToJwkWebCryptoTestVectors = [
       k   : 'cuY-fEu_V1s4b8HbGzy_9VOaNtxiUPzLn6KOATdz0ks'
     }
   }
+];
+
+export const keyToJwkWebCryptoWithNullKTYTestVectors = [
+  {
+    input  : { namedCurve: 'Ed25519', name: 'EdDSA' },
+    output : {
+      alg : 'EdDSA',
+      crv : 'Ed25519',
+      kty : 'OKP',
+      x   : 'cuY-fEu_V1s4b8HbGzy_9VOaNtxiUPzLn6KOATdz0ks'
+    }
+  },
+  {
+    input  : { namedCurve: 'secp256k1', name: 'ECDSA' },
+    output : {
+      alg : 'ES256K',
+      crv : 'secp256k1',
+      kty : 'EC',
+      x   : '_TihFv5t24hjWsRcdZBeEJa65hQB5aiOYmG6mMu1RZA',
+      y   : 'UfiOGckhJuh9f3-Yi7g-jTILYP6vEWOSF1drwjBHebA',
+    }
+  },
+  {
+    input  : { namedCurve: 'X25519', name: 'ECDH' },
+    output : {
+      crv : 'X25519',
+      kty : 'OKP',
+      x   : 'cuY-fEu_V1s4b8HbGzy_9VOaNtxiUPzLn6KOATdz0ks'
+    }
+  },
+  {
+    input  : { namedCurve: 'secp256k1', name: 'ECDSA' },
+    output : {
+      alg : 'ES256K',
+      crv : 'secp256k1',
+      kty : 'EC',
+      x   : '_TihFv5t24hjWsRcdZBeEJa65hQB5aiOYmG6mMu1RZA',
+      y   : 'UfiOGckhJuh9f3-Yi7g-jTILYP6vEWOSF1drwjBHebA'
+    }
+  },
+  {
+    input  : { namedCurve: 'secp256k1', name: 'ECDH' },
+    output : {
+      crv : 'secp256k1',
+      kty : 'EC',
+      x   : '_TihFv5t24hjWsRcdZBeEJa65hQB5aiOYmG6mMu1RZA',
+      y   : 'UfiOGckhJuh9f3-Yi7g-jTILYP6vEWOSF1drwjBHebA'
+    }
+  },
+  {
+    input  : { name: 'AES-CBC', length: 128 },
+    output : {
+      alg : 'A128CBC',
+      kty : null,
+    }
+  },
+  {
+    input  : { name: 'HMAC', hash: { name: 'SHA-256' } },
+    output : {
+      alg : 'HS256',
+      kty : null,
+    }
+  }
+];
+
+export const jwkToKeyTestVectors = [
+  {
+    output: {
+      keyMaterial : keyToJwkTestVectorsKeyMaterial,
+      keyType     : 'public',
+    },
+    input: {
+      alg : 'EdDSA',
+      crv : 'Ed25519',
+      kty : 'OKP',
+      x   : 'cuY-fEu_V1s4b8HbGzy_9VOaNtxiUPzLn6KOATdz0ks'
+    }
+  },
+  {
+    output: {
+      keyMaterial : '04fd38a116fe6ddb88635ac45c75905e1096bae61401e5a88e6261ba98cbb5459051f88e19c92126e87d7f7f988bb83e8d320b60feaf11639217576bc2304779b0',
+      keyType     : 'public',
+    },
+    input: {
+      alg : 'ES256K',
+      crv : 'secp256k1',
+      kty : 'EC',
+      x   : '_TihFv5t24hjWsRcdZBeEJa65hQB5aiOYmG6mMu1RZA',
+      y   : 'UfiOGckhJuh9f3-Yi7g-jTILYP6vEWOSF1drwjBHebA'
+    }
+  },
+  {
+    output: {
+      keyMaterial : keyToJwkTestVectorsKeyMaterial,
+      keyType     : 'private',
+    },
+    input: {
+      alg : 'A128CBC',
+      kty : 'oct',
+      k   : 'cuY-fEu_V1s4b8HbGzy_9VOaNtxiUPzLn6KOATdz0ks'
+    }
+  },
+  {
+    output: {
+      keyMaterial : keyToJwkTestVectorsKeyMaterial,
+      keyType     : 'private',
+    },
+    input: {
+      alg : 'HS256',
+      kty : 'oct',
+      k   : 'cuY-fEu_V1s4b8HbGzy_9VOaNtxiUPzLn6KOATdz0ks'
+    }
+  },
+  {
+    output: {
+      keyMaterial : '',
+      keyType     : 'private',
+    },
+    input: {
+      d   : '',
+      alg : 'EdDSA',
+      crv : 'Ed25519',
+      kty : 'OKP',
+      x   : 'c5UR1q2r1lOT_ygDhSkU3paf5Bmukg-jX-1t4kIKJvA',
+    },
+  }
+];
+
+export const jwkToThumbprintTestVectors = [
+  {
+    output : 'NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs',
+    input  : {
+      kty : 'RSA',
+      n   : '0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw',
+      e   : 'AQAB',
+      alg : 'RS256',
+      kid : '2011-04-29',
+    },
+  },
+  {
+    output : 'legaImFEtXYAJYZ8_ZGbZnx-bhc_9nN53pxGpOum3Io',
+    input  : {
+      alg : 'A128CBC',
+      kty : 'oct',
+      k   : 'cuY-fEu_V1s4b8HbGzy_9VOaNtxiUPzLn6KOATdz0ks',
+    },
+  },
+  {
+    output : 'dwzDb6KNsqS3QMTqH0jfBHcoHJzYZBc5scB5n5VLe1E',
+    input  : {
+      alg : 'ES256K',
+      crv : 'secp256k1',
+      kty : 'EC',
+      x   : '_TihFv5t24hjWsRcdZBeEJa65hQB5aiOYmG6mMu1RZA',
+      y   : 'UfiOGckhJuh9f3-Yi7g-jTILYP6vEWOSF1drwjBHebA',
+    },
+  },
+  {
+    output : 'KCfBQ0EA2cWr1Kbt-mnlj8LQ9C2AJfcuEm8mtgOe7wQ',
+    input  : {
+      crv : 'X25519',
+      kty : 'OKP',
+      x   : 'cuY-fEu_V1s4b8HbGzy_9VOaNtxiUPzLn6KOATdz0ks',
+    },
+  },
+  {
+    output : 'TQdUBtR3MvnNE-7p5sotzCGgZNyQC7EgsiKQz1Erzc4',
+    input  : {
+      d   : '',
+      crv : 'X25519',
+      kty : 'OKP',
+      x   : 'MBZd77wAy5932AEP7MHXOevv_MLzzD9OP_fZAOlnIWM',
+    },
+  },
+];
+
+export const jwkToCryptoKeyTestVectors = [
+  {
+    cryptoKey: {
+      algorithm   : { name: 'AES-CTR', length: 256 },
+      extractable : true,
+      type        : 'private',
+      usages      : ['encrypt', 'decrypt'],
+    },
+    jsonWebKey: {
+      'alg'     : 'A256CTR',
+      'ext'     : 'true',
+      'key_ops' : ['encrypt', 'decrypt'],
+      'k'       : 'UQtIAS-rmWB-vgNgG4lPrnTS2tNvwDPKl9rs0L9ICnU', // Base64url
+      'kty'     : 'oct',
+    }
+  },
+  {
+    cryptoKey: {
+      algorithm   : { name: 'AES-GCM', length: 256 },
+      extractable : false,
+      type        : 'private',
+      usages      : ['encrypt', 'decrypt'],
+    },
+    jsonWebKey: {
+      'alg'     : 'A256GCM',
+      'ext'     : 'false',
+      'key_ops' : ['encrypt', 'decrypt'],
+      'k'       : '-pGdALDtxmxz78wjJQc__4FzvTCVYXTNULM4H0OKVqw', // Base64url
+      'kty'     : 'oct',
+    }
+  },
+  {
+    cryptoKey: {
+      algorithm   : { name: 'HMAC', hash: { name: 'SHA-256' } },
+      extractable : true,
+      type        : 'private',
+      usages      : ['sign', 'verify'],
+    },
+    jsonWebKey: {
+      'alg'     : 'HS256',
+      'ext'     : 'true',
+      'key_ops' : ['sign', 'verify'],
+      'k'       : '3HOae-P_wVKvabxF37Atgc_jE8fLB0xkMUSpwVWI2HRouvoC2iCrf8j3SYkWsYRFm4Sv8nc2vpzI9g5Jyg0Bxw', // Base64url
+      'kty'     : 'oct',
+    }
+  },
+];
+
+export const jwkToMultibaseIdTestVectors = [
+  {
+    output : 'zQ3sheTFzDvGpXAc9AXtwGF3MW1CusKovnwM4pSsUamqKCyLB',
+    input  : {
+      alg : 'ES256K',
+      crv : 'secp256k1',
+      kty : 'EC',
+      x   : '_TihFv5t24hjWsRcdZBeEJa65hQB5aiOYmG6mMu1RZA',
+      y   : 'UfiOGckhJuh9f3-Yi7g-jTILYP6vEWOSF1drwjBHebA',
+    },
+  },
+  {
+    output : 'z6LSjQhGhqqYgrFsNFoZL9wzuKpS1xQ7YNE6fnLgSyW2hUt2',
+    input  : {
+      crv : 'X25519',
+      kty : 'OKP',
+      x   : 'cuY-fEu_V1s4b8HbGzy_9VOaNtxiUPzLn6KOATdz0ks',
+    },
+  },
+  {
+    output : 'zAuT',
+    input  : {
+      d   : '',
+      crv : 'X25519',
+      kty : 'OKP',
+      x   : 'MBZd77wAy5932AEP7MHXOevv_MLzzD9OP_fZAOlnIWM',
+    },
+  },
 ];
