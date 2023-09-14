@@ -1,5 +1,5 @@
 import chai, { expect } from 'chai';
-import { Convert } from '@web5/common';
+import { Convert, MulticodecCode, MulticodecDefinition } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
 import type { JsonWebKey } from '../src/jose.js';
@@ -12,7 +12,13 @@ import {
   joseToWebCryptoTestVectors,
   keyToJwkWebCryptoTestVectors,
   keyToJwkMulticodecTestVectors,
-  keyToJwkTestVectorsKeyMaterial
+  keyToJwkTestVectorsKeyMaterial,
+  joseToMulticodecTestVectors,
+  jwkToThumbprintTestVectors,
+  jwkToCryptoKeyTestVectors,
+  jwkToKeyTestVectors,
+  jwkToMultibaseIdTestVectors,
+  keyToJwkWebCryptoWithNullKTYTestVectors,
 } from './fixtures/test-vectors/jose.js';
 
 chai.use(chaiAsPromised);
@@ -145,20 +151,116 @@ describe('Jose', () => {
     });
   });
 
-  describe('jwkThumbprint()', () => {
-    it('passes RFC 7638 test vector', async () => {
-      // @see {@link https://datatracker.ietf.org/doc/html/rfc7638#section-3.1 | Example JWK Thumbprint Computation}
-      const jwk: JsonWebKey =   {
-        'kty' : 'RSA',
-        'n'   : '0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw',
-        'e'   : 'AQAB',
-        'alg' : 'RS256',
-        'kid' : '2011-04-29'
-      };
-
-      const jwkThumbprint = await Jose.jwkThumbprint({ key: jwk });
-      expect(jwkThumbprint).to.equal('NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs');
+  describe('joseToMulticodec()', () => {
+    it('converts JOSE to Multicodec', async () => {
+      let multicoded: MulticodecDefinition<MulticodecCode>;
+      for (const vector of joseToMulticodecTestVectors) {
+        multicoded = await Jose.joseToMulticodec({
+          key: vector.input as JsonWebKey,
+        });
+        expect(multicoded).to.deep.equal(vector.output);
+      }
     });
+
+    it('throws an error if unsupported JOSE has been passed', async () => {
+      await expect(
+        // @ts-expect-error because parameters are intentionally omitted to trigger an error.
+        Jose.joseToMulticodec({key: { crv: '123'}})
+      ).to.eventually.be.rejectedWith(Error, `Unsupported JOSE to Multicodec conversion: '123:public'`);
+    });
+  });
+
+  describe('jwkThumbprint()', () => {
+    it('passes all test vectors', async () => {
+      let jwkThumbprint: string;
+
+      for (const vector of jwkToThumbprintTestVectors) {
+        jwkThumbprint = await Jose.jwkThumbprint({ key: vector.input as JsonWebKey});
+        expect(jwkThumbprint).to.equal(vector.output);
+      }
+    });
+
+    it('throws an error if unsupported key type has been passed', async () => {
+      await expect(
+        // @ts-expect-error because parameters are intentionally omitted to trigger an error.
+        Jose.jwkThumbprint({key: { crv: 'X25519', kty: 'unsupported' }})
+      ).to.eventually.be.rejectedWith(Error, `Unsupported key type: unsupported`);
+    });
+  });
+
+  describe('jwkToCryptoKey()', () => {
+    it('passes all test vectors', async () => {
+      let cryptoKey: Web5Crypto.CryptoKey;
+
+      for (const vector of jwkToCryptoKeyTestVectors) {
+        cryptoKey = await Jose.jwkToCryptoKey({ key: vector.jsonWebKey as JsonWebKey});
+        expect(cryptoKey).to.deep.equal(vector.cryptoKey);
+      }
+    });
+
+    it('throws an error when ext parameter is missing', async () => {
+      await expect(
+        Jose.jwkToCryptoKey({key: {
+          'alg'     : 'A256CTR',
+          'key_ops' : ['encrypt', 'decrypt'],
+          'k'       : 'UQtIAS-rmWB-vgNgG4lPrnTS2tNvwDPKl9rs0L9ICnU',
+          'kty'     : 'oct',
+        }})
+      ).to.eventually.be.rejectedWith(Error, `Conversion from JWK to CryptoKey failed. Required parameter missing: 'ext'`);
+    });
+
+    it('throws an error when key_ops parameter is missing', async () => {
+      await expect(
+        Jose.jwkToCryptoKey({key: {
+          'alg' : 'A256CTR',
+          'ext' : 'true',
+          'k'   : 'UQtIAS-rmWB-vgNgG4lPrnTS2tNvwDPKl9rs0L9ICnU',
+          'kty' : 'oct',
+        }})
+      ).to.eventually.be.rejectedWith(Error, `Conversion from JWK to CryptoKey failed. Required parameter missing: 'key_ops'`);
+    });
+  });
+
+  describe('jwkToKey()', () => {
+    it('converts JWK into Jose parameters', async () => {
+      let jwk: { keyMaterial: Uint8Array; keyType: Web5Crypto.KeyType };
+
+      for (const vector of jwkToKeyTestVectors) {
+        jwk = await Jose.jwkToKey({ key: vector.input as JsonWebKey});
+        const hexKeyMaterial = Convert.uint8Array(jwk.keyMaterial).toHex();
+
+        expect({...jwk, keyMaterial: hexKeyMaterial}).to.deep.equal(vector.output);
+      }
+    });
+
+    it('throws an error if unsupported JOSE has been passed', async () => {
+      await expect(
+        // @ts-expect-error because parameters are intentionally omitted to trigger an error.
+        Jose.jwkToKey({ key: { alg: 'HS256', kty: 'oct' }})
+      ).to.eventually.be.rejectedWith(Error, `Jose: Unknown JSON Web Key format.`);
+    });
+  });
+
+  describe('jwkToMultibaseId()', () => {
+    it('passes all test vectors', async () => {
+      let multibaseId: string;
+
+      for (const vector of jwkToMultibaseIdTestVectors) {
+        multibaseId = await Jose.jwkToMultibaseId({ key: vector.input as JsonWebKey});
+        expect(multibaseId).to.equal(vector.output);
+      }
+    });
+
+    // it('throws an error when ext parameter is missing', async () => {
+    //   await expect(
+    //     Jose.jwkToCryptoKey({key: {
+    //       'alg'     : 'A256CTR',
+    //       'key_ops' : ['encrypt', 'decrypt'],
+    //       'k'       : 'UQtIAS-rmWB-vgNgG4lPrnTS2tNvwDPKl9rs0L9ICnU',
+    //       'kty'     : 'oct',
+    //     }})
+    //   ).to.eventually.be.rejectedWith(Error, `Conversion from JWK to CryptoKey failed. Required parameter missing: 'ext'`);
+    // });
   });
 
   describe('keyToJwk()', () => {
@@ -183,6 +285,35 @@ describe('Jose', () => {
         const jwk = await Jose.keyToJwk({ keyMaterial, keyType, ...jwkParams });
         expect(jwk).to.deep.equal(vector.output);
       }
+    });
+
+    it('coverts when kty equals to null', async () => {
+      let jwkParams: Partial<JsonWebKey>;
+      const keyMaterial = Convert.hex(keyToJwkTestVectorsKeyMaterial).toUint8Array();
+
+      for (const vector of keyToJwkWebCryptoWithNullKTYTestVectors) {
+        jwkParams = Jose.webCryptoToJose(vector.input);
+        // @ts-expect-error because parameters are intentionally omitted to trigger an error.
+        const jwk = await Jose.keyToJwk({ keyMaterial, keyType: 'public', ...jwkParams, kty: null });
+        expect(jwk).to.deep.equal(vector.output);
+      }
+    });
+
+    it('throws an error for wrong arguments', async () => {
+      await expect(
+        Jose.multicodecToJose({ name: 'intentionally-wrong-name', code: 12345 })
+      ).to.eventually.be.rejectedWith(Error, `Either 'name' or 'code' must be defined, but not both.`);
+    });
+
+    it('handles undefined name', async () => {
+      const jwkParams = await Jose.multicodecToJose({ name: undefined, code: 0xed });
+      expect(jwkParams).to.deep.equal({ alg: 'EdDSA', crv: 'Ed25519', kty: 'OKP', x: '' });
+    });
+
+    it('throws an error for unsupported multicodec conversion', async () => {
+      await expect(
+        Jose.multicodecToJose({ name: 'intentionally-wrong-name' })
+      ).to.eventually.be.rejectedWith(Error, `Unsupported Multicodec to JOSE conversion: 'intentionally-wrong-name'`);
     });
 
     it('throws an error for unsupported conversion', async () => {
@@ -231,6 +362,31 @@ describe('Jose', () => {
       expect(
         () => Jose.webCryptoToJose({ name: 'non-existent', hash: { name: 'SHA-1' } })
       ).to.throw(Error, `Unsupported WebCrypto to JOSE conversion: 'non-existent:SHA-1'`);
+    });
+  });
+
+  describe('cryptoKeyToJwkPair()', () => {
+    it('converts CryptoKeys to JWK Pair', async () => {
+      for (const vector of cryptoKeyPairToJsonWebKeyTestVectors) {
+        const privateKey = {
+          ...vector.cryptoKey.privateKey,
+          material: Convert.hex(
+            vector.cryptoKey.privateKey.material
+          ).toUint8Array(),
+        } as Web5Crypto.CryptoKey;
+        const publicKey = {
+          ...vector.cryptoKey.publicKey,
+          material: Convert.hex(
+            vector.cryptoKey.publicKey.material
+          ).toUint8Array(),
+        } as Web5Crypto.CryptoKey;
+
+        const jwkKeyPair = await Jose.cryptoKeyToJwkPair({
+          keyPair: { publicKey, privateKey },
+        });
+
+        expect(jwkKeyPair).to.deep.equal(vector.jsonWebKey);
+      }
     });
   });
 });
