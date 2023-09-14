@@ -47,6 +47,7 @@ export interface IonCreateRequestModel {
   suffixData: {
     deltaHash: string;
     recoveryCommitment: string;
+    type?: string;
   };
   delta: {
     updateCommitment: string;
