@@ -352,6 +352,7 @@ const { protocol } = await web5.dwn.protocols.configure({
   message: {
     definition: {
       protocol: "https://photos.org/protocol",
+      published: true,
       types: {
         album: {
           schema: "https://photos.org/protocol/album",
