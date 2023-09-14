@@ -107,9 +107,9 @@ export class VerifiableCredential {
     } else {
       vc = {
         id                : uuidv4(),
-        '@context'        : ['https://www.w3.org/2018/credentials/v1'],
+        '@context'        : ['https://www.w3.org/2018/credentials/v1'], // should this be set to DEFAULT_CONTEXT from ./types.ts?
         credentialSubject : createVcOptions!.credentialSubject,
-        type              : ['VerifiableCredential'],
+        type              : ['VerifiableCredential'], // should this be set to DEFAULT_VC_TYPE from ./types.ts?
         issuer            : createVcOptions!.issuer,
         issuanceDate      : getCurrentXmlSchema112Timestamp(),
         credentialSchema  : createVcOptions?.credentialSchema,
