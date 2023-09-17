@@ -87,8 +87,8 @@ describe('web5.dwn', () => {
 
           // Query for the protocol just configured.
           const response = await dwn.protocols.query({
-            from    : bobDid,
-            message : {
+            from: bobDid,
+            message: {
               filter: {
                 protocol: 'https://doesnotexist.com/protocol'
               }
@@ -109,10 +109,10 @@ describe('web5.dwn', () => {
         it('writes a record with string data', async () => {
           const dataString = 'Hello, world!';
           const result = await dwn.records.write({
-            data    : dataString,
-            message : {
-              schema     : 'foo/bar',
-              dataFormat : 'text/plain'
+            data: dataString,
+            message: {
+              schema: 'foo/bar',
+              dataFormat: 'text/plain'
             }
           });
 
@@ -123,12 +123,12 @@ describe('web5.dwn', () => {
         });
 
         it('writes a record with JSON data', async () => {
-          const dataJson = { hello: 'world!'};
+          const dataJson = { hello: 'world!' };
           const result = await dwn.records.write({
-            data    : dataJson,
-            message : {
-              schema     : 'foo/bar',
-              dataFormat : 'application/json'
+            data: dataJson,
+            message: {
+              schema: 'foo/bar',
+              dataFormat: 'application/json'
             }
           });
 
@@ -143,11 +143,11 @@ describe('web5.dwn', () => {
         it('does not persist record to agent DWN', async () => {
           const dataString = 'Hello, world!';
           const writeResult = await dwn.records.write({
-            store   : false,
-            data    : dataString,
-            message : {
-              schema     : 'foo/bar',
-              dataFormat : 'text/plain'
+            store: false,
+            data: dataString,
+            message: {
+              schema: 'foo/bar',
+              dataFormat: 'text/plain'
             }
           });
 
@@ -172,11 +172,11 @@ describe('web5.dwn', () => {
         it('has no effect if `store: true`', async () => {
           const dataString = 'Hello, world!';
           const writeResult = await dwn.records.write({
-            store   : true,
-            data    : dataString,
-            message : {
-              schema     : 'foo/bar',
-              dataFormat : 'text/plain'
+            store: true,
+            data: dataString,
+            message: {
+              schema: 'foo/bar',
+              dataFormat: 'text/plain'
             }
           });
 
@@ -206,10 +206,10 @@ describe('web5.dwn', () => {
       describe('agent', () => {
         it('returns an array of records that match the filter provided', async () => {
           const writeResult = await dwn.records.write({
-            data    : 'Hello, world!',
-            message : {
-              schema     : 'foo/bar',
-              dataFormat : 'text/plain'
+            data: 'Hello, world!',
+            message: {
+              schema: 'foo/bar',
+              dataFormat: 'text/plain'
             }
           });
 
@@ -234,9 +234,9 @@ describe('web5.dwn', () => {
 
       describe('from: did', () => {
         it('returns empty records array when no records match the filter provided', async () => {
-        // // Write the record to the connected agent's DWN.
-        //   const { record, status } = await dwn.records.write({ data: 'hi' });
-        //   expect(status.code).to.equal(202);
+          // // Write the record to the connected agent's DWN.
+          //   const { record, status } = await dwn.records.write({ data: 'hi' });
+          //   expect(status.code).to.equal(202);
 
           // Create a new DID to represent an external entity who has a remote DWN server defined in their DID document.
           const ionCreateOptions = await testProfile.ionCreateOptions.services.dwn.authorization.keys();
@@ -244,8 +244,8 @@ describe('web5.dwn', () => {
 
           // Attempt to query Bob's DWN using the ID of a record that does not exist.
           const result = await dwn.records.query({
-            from    : bobDid,
-            message : {
+            from: bobDid,
+            message: {
               filter: {
                 recordId: 'abcd1234'
               }
@@ -264,10 +264,10 @@ describe('web5.dwn', () => {
       describe('agent', () => {
         it('returns a record', async () => {
           const writeResult = await dwn.records.write({
-            data    : 'Hello, world!',
-            message : {
-              schema     : 'foo/bar',
-              dataFormat : 'text/plain'
+            data: 'Hello, world!',
+            message: {
+              schema: 'foo/bar',
+              dataFormat: 'text/plain'
             }
           });
 
@@ -287,10 +287,10 @@ describe('web5.dwn', () => {
 
         it('returns a 404 when a record cannot be found', async () => {
           const writeResult = await dwn.records.write({
-            data    : 'Hello, world!',
-            message : {
-              schema     : 'foo/bar',
-              dataFormat : 'text/plain'
+            data: 'Hello, world!',
+            message: {
+              schema: 'foo/bar',
+              dataFormat: 'text/plain'
             }
           });
 
@@ -313,7 +313,7 @@ describe('web5.dwn', () => {
 
       describe('from: did', () => {
         it('returns undefined record when requested record does not exit', async () => {
-        // Generate a recordId that will not be present on the did endpoint being read from.
+          // Generate a recordId that will not be present on the did endpoint being read from.
           const { record, status } = await dwn.records.write({ data: 'hi' });
           expect(status.code).to.equal(202);
 
@@ -323,8 +323,8 @@ describe('web5.dwn', () => {
 
           // Attempt to read a record from Bob's DWN using the ID of a record that only exists in the connected agent's DWN.
           const result = await dwn.records.read({
-            from    : bobDid,
-            message : {
+            from: bobDid,
+            message: {
               recordId: record!.id
             }
           });
@@ -340,10 +340,10 @@ describe('web5.dwn', () => {
       describe('agent', () => {
         it('deletes a record', async () => {
           const writeResult = await dwn.records.write({
-            data    : 'Hello, world!',
-            message : {
-              schema     : 'foo/bar',
-              dataFormat : 'text/plain'
+            data: 'Hello, world!',
+            message: {
+              schema: 'foo/bar',
+              dataFormat: 'text/plain'
             }
           });
 
@@ -377,8 +377,8 @@ describe('web5.dwn', () => {
 
           // Attempt to delete a record from Bob's DWN specifying a recordId that does not exist.
           const deleteResult = await dwn.records.delete({
-            from    : bobDid,
-            message : {
+            from: bobDid,
+            message: {
               recordId: 'abcd1234'
             }
           });
@@ -390,4 +390,107 @@ describe('web5.dwn', () => {
       });
     });
   });
-});
+
+  describe('subscription', () => {
+    describe('create', () => {
+      describe('agent', () => {
+        it('create a subscription', async () => {
+          const dataString = 'Hello, world!';
+          const result = await dwn.records.write({
+            data: dataString,
+            message: {
+              schema: 'foo/bar',
+              dataFormat: 'text/plain'
+            }
+          });
+
+          expect(result.status.code).to.equal(202);
+          expect(result.status.detail).to.equal('Accepted');
+          expect(result.record).to.exist;
+          expect(await result.record?.data.text()).to.equal(dataString);
+        });
+      });
+
+      describe('agent store: false', () => {
+        it('does not persist subscription to agent DWN', async () => {
+          const dataString = 'Hello, world!';
+          const writeResult = await dwn.records.write({
+            store: false,
+            data: dataString,
+            message: {
+              schema: 'foo/bar',
+              dataFormat: 'text/plain'
+            }
+          });
+
+          expect(writeResult.status.code).to.equal(202);
+          expect(writeResult.status.detail).to.equal('Accepted');
+          expect(writeResult.record).to.exist;
+          expect(await writeResult.record?.data.text()).to.equal(dataString);
+
+          const queryResult = await dwn.records.query({
+            message: {
+              filter: {
+                schema: 'foo/bar'
+              }
+            }
+          });
+
+          expect(queryResult.status.code).to.equal(200);
+          expect(queryResult.records).to.exist;
+          expect(queryResult.records!.length).to.equal(0);
+        });
+      });
+    });
+
+    describe('query', () => {
+      describe('agent', () => {
+        it('returns subscriptions installed', async () => {
+        });
+      });
+
+      describe('read', () => {
+        describe('agent', () => {
+          it('returns a subscription record', async () => {
+            console.log('TODO')
+          });
+
+          it('returns a 404 when a subscription record cannot be found', async () => {
+            const writeResult = await dwn.records.write({
+              data: 'Hello, world!',
+              message: {
+                schema: 'foo/bar',
+                dataFormat: 'text/plain'
+              }
+            });
+
+            expect(writeResult.status.code).to.equal(202);
+            expect(writeResult.status.detail).to.equal('Accepted');
+            expect(writeResult.record).to.exist;
+
+            await writeResult.record!.delete();
+
+            const result = await dwn.records.read({
+              message: {
+                recordId: writeResult.record!.id
+              }
+            });
+
+            expect(result.status.code).to.equal(404);
+            expect(result.record).to.not.exist;
+          });
+        });
+      });
+
+      describe('delete', () => {
+        describe('agent', () => {
+          it('deletes a subscription record', async () => {
+            // TODO: 200
+          });
+
+          it('returns a 404 when the specified subscription record does not exist', async () => {
+            // TODO: 404
+          });
+        });
+      })
+    });
