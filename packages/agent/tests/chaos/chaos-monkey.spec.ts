@@ -3,18 +3,22 @@ import type { PortableDid } from '@web5/dids';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 
-import type { ManagedIdentity } from '../src/identity-manager.js';
+import type { ManagedIdentity } from '../../src/identity-manager.js'
 
-import { testDwnUrl } from './test-config.js';
-import { TestAgent } from './utils/test-agent.js';
-import { TestManagedAgent } from '../src/test-managed-agent.js';
+import { testDwnUrl } from '../test-config.js'
+import { TestAgent } from '../utils/test-agent.js';
+import { TestManagedAgent } from '../../src/test-managed-agent.js';
 
 import { randomUuid } from '@web5/crypto/utils';
-import { DwnRequest, DwnResponse, ProcessDwnRequest, SendDwnRequest } from '../src/index.js';
+import { DwnRequest, DwnResponse, ProcessDwnRequest, SendDwnRequest } from '../../src/index.js';
 import { DataStream, RecordsDeleteMessage, RecordsWrite, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 import _Readable from 'readable-stream';
 
 const testDwnUrls = [ testDwnUrl ];
+
+const checkChaos = (): boolean => {
+  return process.env.CHAOS_ENV === 'true'
+}
 
 describe('Chaos Monkey', () => {
   describe('Sync Manager', function () {
@@ -179,32 +183,34 @@ describe('Chaos Monkey', () => {
     });
 
     describe(`startSync() ${rounds} runs`, () => {
-      for ( const _ of Array(rounds).fill({})) {
-        it('sync a lot of records', async () => {
-          await testAgent.agent.syncManager.registerIdentity({
-            did: alice.did
-          });
+      if (checkChaos()) {
+        for ( const _ of Array(rounds).fill({})) {
+          it('sync a lot of records', async () => {
+            await testAgent.agent.syncManager.registerIdentity({
+              did: alice.did
+            });
 
-          // get remote and local before sync;
-          const testQuery = testQueryMessage(alice.did);
-          let { reply } = await testAgent.agent.dwnManager.processRequest(testQuery);
-          let { reply: replyRemote } = await testAgent.agent.dwnManager.sendRequest(testQuery);
+            // get remote and local before sync;
+            const testQuery = testQueryMessage(alice.did);
+            let { reply } = await testAgent.agent.dwnManager.processRequest(testQuery);
+            let { reply: replyRemote } = await testAgent.agent.dwnManager.sendRequest(testQuery);
 
-          const startSync = Date.now();
-          await testAgent.agent.syncManager.push();
-          await testAgent.agent.syncManager.pull();
-          const endSync = Date.now();
+            const startSync = Date.now();
+            await testAgent.agent.syncManager.push();
+            await testAgent.agent.syncManager.pull();
+            const endSync = Date.now();
 
-          const remoteEntries = (replyRemote.entries || []).filter(e => (reply.entries || []).findIndex(le => (le as RecordsWriteMessage).recordId === (e as RecordsWriteMessage).recordId) < 0);
-          const localEntries = (reply.entries || []).filter(e => (replyRemote.entries || []).findIndex(re => (re as RecordsWriteMessage).recordId === (e as RecordsWriteMessage).recordId) < 0)
-          const commonItemsLength = (reply.entries!.length + replyRemote.entries!.length) - records.length;
+            const remoteEntries = (replyRemote.entries || []).filter(e => (reply.entries || []).findIndex(le => (le as RecordsWriteMessage).recordId === (e as RecordsWriteMessage).recordId) < 0);
+            const localEntries = (reply.entries || []).filter(e => (replyRemote.entries || []).findIndex(re => (re as RecordsWriteMessage).recordId === (e as RecordsWriteMessage).recordId) < 0)
+            const commonItemsLength = (reply.entries!.length + replyRemote.entries!.length) - records.length;
 
-          console.log(`sync time:\t\t${endSync-startSync} for ${records.length} records\nlocal records:\t\t${reply.entries!.length}/${localEntries.length} unique\nremote records:\t\t${replyRemote.entries!.length}/${remoteEntries.length} unique\ncommon records:\t\t${commonItemsLength}\n\n`)
-          expect(endSync-startSync).to.be.lt(60_000);
-          ({ reply } = await testAgent.agent.dwnManager.processRequest(testQuery));
-          expect(reply.status.code).to.equal(200);
-          expect(reply.entries!.length).to.equal(records.length);
-        }).timeout(100_000);
+            console.log(`sync time:\t\t${endSync-startSync} for ${records.length} records\nlocal records:\t\t${reply.entries!.length}/${localEntries.length} unique\nremote records:\t\t${replyRemote.entries!.length}/${remoteEntries.length} unique\ncommon records:\t\t${commonItemsLength}\n\n`)
+            expect(endSync-startSync).to.be.lt(60_000);
+            ({ reply } = await testAgent.agent.dwnManager.processRequest(testQuery));
+            expect(reply.status.code).to.equal(200);
+            expect(reply.entries!.length).to.equal(records.length);
+          }).timeout(100_000);
+        }
       }
     });
   });
