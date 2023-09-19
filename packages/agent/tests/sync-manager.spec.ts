@@ -5,12 +5,14 @@ import * as sinon from 'sinon';
 
 import type { ManagedIdentity } from '../src/identity-manager.js';
 
+import { randomUuid } from '@web5/crypto/utils';
 import { testDwnUrl } from './test-config.js';
 import { TestAgent } from './utils/test-agent.js';
 import { SyncManagerLevel } from '../src/sync-manager.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
 
 import { RecordsQueryReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import { ProcessDwnRequest } from '../src/index.js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -342,6 +344,70 @@ describe('SyncManagerLevel', () => {
         remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
         expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
+      }).timeout(5000);
+
+      it('synchronizes data in both directions for a single identity', async () => {
+
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+
+        const testWriteMessage = (id: string): ProcessDwnRequest => {
+          return {
+            author         : alice.did,
+            target         : alice.did,
+            messageType    : 'RecordsWrite',
+            messageOptions : {
+              schema     : 'testSchema',
+              dataFormat : 'text/plain'
+            },
+            dataStream: new Blob([`Hello, ${id}`])
+          };
+        };
+
+        const everythingQuery = (): ProcessDwnRequest => {
+          return {
+            author         : alice.did,
+            target         : alice.did,
+            messageType    : 'RecordsQuery',
+            messageOptions : { filter: { schema: 'testSchema' } }
+          };
+        };
+
+        const localRecords = new Set(
+          (await Promise.all(Array(5).fill({}).map(_ => testAgent.agent.dwnManager.processRequest(testWriteMessage(randomUuid())))))
+            .map(r => (r.message as RecordsWriteMessage).recordId)
+        );
+
+        const remoteRecords = new Set(
+          (await Promise.all(Array(5).fill({}).map(_ => testAgent.agent.dwnManager.sendRequest(testWriteMessage(randomUuid())))))
+            .map(r => (r.message as RecordsWriteMessage).recordId)
+        );
+
+        const { reply: localReply } = await testAgent.agent.dwnManager.processRequest(everythingQuery());
+        expect(localReply.status.code).to.equal(200);
+        expect(localReply.entries?.length).to.equal(localRecords.size);
+        expect(localReply.entries?.every(e => localRecords.has((e as RecordsWriteMessage).recordId))).to.be.true;
+
+        const { reply: remoteReply } = await testAgent.agent.dwnManager.sendRequest(everythingQuery());
+        expect(remoteReply.status.code).to.equal(200);
+        expect(remoteReply.entries?.length).to.equal(remoteRecords.size);
+        expect(remoteReply.entries?.every(e => remoteRecords.has((e as RecordsWriteMessage).recordId))).to.be.true;
+
+        await testAgent.agent.syncManager.push();
+        await testAgent.agent.syncManager.pull();
+
+        const records = new Set([...remoteRecords, ...localRecords]);
+        const { reply: allRemoteReply } = await testAgent.agent.dwnManager.sendRequest(everythingQuery());
+        expect(allRemoteReply.status.code).to.equal(200);
+        expect(allRemoteReply.entries?.length).to.equal(records.size);
+        expect(allRemoteReply.entries?.every(e => records.has((e as RecordsWriteMessage).recordId))).to.be.true;
+
+        const { reply: allLocalReply } = await testAgent.agent.dwnManager.sendRequest(everythingQuery());
+        expect(allLocalReply.status.code).to.equal(200);
+        expect(allLocalReply.entries?.length).to.equal(records.size);
+        expect(allLocalReply.entries?.every(e => records.has((e as RecordsWriteMessage).recordId))).to.be.true;
+
       }).timeout(5000);
     });
   });
