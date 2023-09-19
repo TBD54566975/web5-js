@@ -49,12 +49,11 @@ export type SyncManagerOptions = {
   db?: Level;
 };
 
-
 type SyncState = {
   did: string;
   dwnUrl: string;
-  pullWatermark: string | undefined;
-  pushWatermark: string | undefined;
+  pullWatermark?: string;
+  pushWatermark?: string;
 }
 
 type DwnMessage = {
@@ -532,57 +531,47 @@ export class SyncManagerLevel implements SyncManager {
       /** Get the watermark (or undefined) for each (DID, DWN service endpoint, sync direction)
        * combination and add it to the sync peer state array. */
       for (let dwnUrl of service.serviceEndpoint.nodes) {
-        const watermark = await this.getWatermark(did, dwnUrl);
-        syncPeerState.push({ did, dwnUrl, pullWatermark: watermark.pull, pushWatermark: watermark.push });
+        const syncState = await this.getSyncState(did, dwnUrl);
+        syncPeerState.push(syncState);
       }
     }
 
     return syncPeerState;
   }
 
-  private async getWatermark(did: string, dwnUrl: string): Promise<{ pull?:string, push?: string }> {
-    const wmKey = `${did}~${dwnUrl}`;
+  private async getWatermark(did: string, dwnUrl: string, direction: SyncDirection): Promise<string|undefined> {
+    const wmKey = `${did}~${dwnUrl}~${direction}`;
     const watermarkStore = this.getWatermarkStore();
-
     try {
       const wm = await watermarkStore.get(wmKey);
-      const split = wm.split('~');
-      if (split.length !== 2) {
-        return {};
-      }
-
-      let pull;
-      let push;
-      if (split[0] !== '0') {
-        pull = split[0];
-      }
-      if (split[1] !== '0') {
-        push = split[1];
-      }
-
-      return { pull, push };
+      return wm;
     } catch(error: any) {
       // Don't throw when a key wasn't found.
       if (error.notFound) {
-        return {};
+        return undefined;
       }
-      throw new Error('invalid watermark');
+      throw new Error('SyncManager: invalid watermark store');
     }
   }
 
-  private async setWatermark(did: string, dwnUrl: string, pullWatermark?: string, pushWatermark?: string) {
-    const wmKey = `${did}~${dwnUrl}`;
+  private async setWatermark(did: string, dwnUrl: string, direction: SyncDirection, watermark: string) {
+    const wmKey = `${did}~${dwnUrl}~${direction}`;
     const watermarkStore = this.getWatermarkStore();
+    await watermarkStore.put(wmKey, watermark);
+  }
 
-    if (pullWatermark === undefined) {
-      pullWatermark = '0';
+  private async getSyncState(did: string, dwnUrl: string): Promise<SyncState> {
+    try {
+      const pullWatermark = await this.getWatermark(did, dwnUrl, 'pull');
+      const pushWatermark = await this.getWatermark(did, dwnUrl, 'push');
+      return { did, dwnUrl, pullWatermark, pushWatermark };
+    } catch(error: any) {
+      // Don't throw when a key wasn't found.
+      if (error.notFound) {
+        return { did, dwnUrl };
+      }
+      throw new Error('SyncManager: invalid watermark store');
     }
-
-    if (pushWatermark === undefined) {
-      pushWatermark = '0';
-    }
-
-    await watermarkStore.put(wmKey, `${pullWatermark}~${pushWatermark}`);
   }
 
   /**

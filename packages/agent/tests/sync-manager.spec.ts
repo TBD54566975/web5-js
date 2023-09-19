@@ -212,6 +212,15 @@ describe('SyncManagerLevel', () => {
           expect(batchOperationsSpy.args.filter(arg => arg.includes('push')).length).to.equal(testDwnUrls.length, `args must include one push ${batchOperationsSpy.args}`);
         });
       });
+
+      describe('watermarks', async () =>{
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+        testAgent.agent.syncManager.startSync({ });
+        await sleep(500);
+      });
+
       describe('pull', () => {
         it('synchronizes records for 1 identity from remote DWN to local DWN', async () => {
           // Write a test record to Alice's remote DWN.
