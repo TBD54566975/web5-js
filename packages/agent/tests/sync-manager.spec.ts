@@ -11,8 +11,8 @@ import { TestAgent, sleep } from './utils/test-agent.js';
 import { SyncManagerLevel } from '../src/sync-manager.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
 
-import { RecordsQueryReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 import { ProcessDwnRequest } from '../src/index.js';
+import { RecordsQueryReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 describe('SyncManagerLevel', () => {
   describe('get agent', () => {
@@ -74,12 +74,12 @@ describe('SyncManagerLevel', () => {
       await testAgent.closeStorage();
     });
 
-    describe('startSync()', () => {
+    describe('sync()', () => {
       it('takes no action if no identities are registered', async () => {
         const didResolveSpy = sinon.spy(testAgent.agent.didResolver, 'resolve');
         const sendDwnRequestSpy = sinon.spy(testAgent.agent.rpcClient, 'sendDwnRequest');
 
-        await testAgent.agent.syncManager.startSync({ interval: 0 });
+        await testAgent.agent.syncManager.sync();
 
         // Verify DID resolution and DWN requests did not occur.
         expect(didResolveSpy.notCalled).to.be.true;
@@ -88,259 +88,6 @@ describe('SyncManagerLevel', () => {
         didResolveSpy.restore();
         sendDwnRequestSpy.restore();
       });
-
-      it('synchronizes records for 1 identity from remove DWN to local DWN', async () => {
-        // Write a test record to Alice's remote DWN.
-        let writeResponse = await testAgent.agent.dwnManager.sendRequest({
-          author         : alice.did,
-          target         : alice.did,
-          messageType    : 'RecordsWrite',
-          messageOptions : {
-            dataFormat: 'text/plain'
-          },
-          dataStream: new Blob(['Hello, world!'])
-        });
-
-        // Get the record ID of the test record.
-        const testRecordId = (writeResponse.message as RecordsWriteMessage).recordId;
-
-        // Confirm the record does NOT exist on Alice's local DWN.
-        let queryResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : alice.did,
-          target         : alice.did,
-          messageType    : 'RecordsQuery',
-          messageOptions : { filter: { recordId: testRecordId } }
-        });
-        let localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
-        expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
-        expect(localDwnQueryReply.entries).to.have.length(0); // Record doesn't exist on local DWN.
-
-        // Register Alice's DID to be synchronized.
-        await testAgent.agent.syncManager.registerIdentity({
-          did: alice.did
-        });
-
-        // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
-        await testAgent.agent.syncManager.startSync({ interval: 0 });
-
-        // Confirm the record now DOES exist on Alice's local DWN.
-        queryResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : alice.did,
-          target         : alice.did,
-          messageType    : 'RecordsQuery',
-          messageOptions : { filter: { recordId: testRecordId } }
-        });
-        localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
-        expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
-        expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
-      });
-
-
-      it('synchronizes records for multiple identities from remote DWN to local DWN', async () => {
-        // Create a second Identity to author the DWN messages.
-        const { did: bobDid } = await testAgent.createIdentity({ testDwnUrls });
-        const bob = await testAgent.agent.identityManager.import({
-          did      : bobDid,
-          identity : { name: 'Bob', did: bobDid.did },
-          kms      : 'local'
-        });
-
-        // Write a test record to Alice's remote DWN.
-        let writeResponse = await testAgent.agent.dwnManager.sendRequest({
-          author         : alice.did,
-          target         : alice.did,
-          messageType    : 'RecordsWrite',
-          messageOptions : {
-            dataFormat: 'text/plain'
-          },
-          dataStream: new Blob(['Hello, Bob!'])
-        });
-
-        // Get the record ID of Alice's test record.
-        const testRecordIdAlice = (writeResponse.message as RecordsWriteMessage).recordId;
-
-        // Write a test record to Bob's remote DWN.
-        writeResponse = await testAgent.agent.dwnManager.sendRequest({
-          author         : bob.did,
-          target         : bob.did,
-          messageType    : 'RecordsWrite',
-          messageOptions : {
-            dataFormat: 'text/plain'
-          },
-          dataStream: new Blob(['Hello, Alice!'])
-        });
-
-        // Get the record ID of Bob's test record.
-        const testRecordIdBob = (writeResponse.message as RecordsWriteMessage).recordId;
-
-        // Register Alice's DID to be synchronized.
-        await testAgent.agent.syncManager.registerIdentity({
-          did: alice.did
-        });
-
-        // Register Bob's DID to be synchronized.
-        await testAgent.agent.syncManager.registerIdentity({
-          did: bob.did
-        });
-
-        // Execute Sync to pull all records from Alice's and Bob's remove DWNs to their local DWNs.
-        await testAgent.agent.syncManager.startSync({ interval: 0 });
-
-        // Confirm the Alice test record exist on Alice's local DWN.
-        let queryResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : alice.did,
-          target         : alice.did,
-          messageType    : 'RecordsQuery',
-          messageOptions : { filter: { recordId: testRecordIdAlice } }
-        });
-        let localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
-        expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
-        expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
-
-        // Confirm the Bob test record exist on Bob's local DWN.
-        queryResponse = await testAgent.agent.dwnManager.sendRequest({
-          author         : bob.did,
-          target         : bob.did,
-          messageType    : 'RecordsQuery',
-          messageOptions : { filter: { recordId: testRecordIdBob } }
-        });
-        localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
-        expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
-        expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
-      }).timeout(5000);
-
-      it('takes no action if no identities are registered', async () => {
-        const didResolveSpy = sinon.spy(testAgent.agent.didResolver, 'resolve');
-        const processRequestSpy = sinon.spy(testAgent.agent.dwnManager, 'processRequest');
-
-        await testAgent.agent.syncManager.startSync({ interval: 0 });
-
-        // Verify DID resolution and DWN requests did not occur.
-        expect(didResolveSpy.notCalled).to.be.true;
-        expect(processRequestSpy.notCalled).to.be.true;
-
-        didResolveSpy.restore();
-        processRequestSpy.restore();
-      });
-
-      it('synchronizes records for 1 identity from local DWN to remote DWN', async () => {
-        // Write a record that we can use for this test.
-        let writeResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : alice.did,
-          target         : alice.did,
-          messageType    : 'RecordsWrite',
-          messageOptions : {
-            dataFormat: 'text/plain'
-          },
-          dataStream: new Blob(['Hello, world!'])
-        });
-
-        // Get the record ID of the test record.
-        const testRecordId = (writeResponse.message as RecordsWriteMessage).recordId;
-
-        // Confirm the record does NOT exist on Alice's remote DWN.
-        let queryResponse = await testAgent.agent.dwnManager.sendRequest({
-          author         : alice.did,
-          target         : alice.did,
-          messageType    : 'RecordsQuery',
-          messageOptions : { filter: { recordId: testRecordId } }
-        });
-        let remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
-        expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
-        expect(remoteDwnQueryReply.entries).to.have.length(0); // Record doesn't exist on remote DWN.
-
-        // Register Alice's DID to be synchronized.
-        await testAgent.agent.syncManager.registerIdentity({
-          did: alice.did
-        });
-
-        // Execute Sync to push all records from Alice's local DWN to Alice's remote DWN.
-        await testAgent.agent.syncManager.startSync({ interval: 0 });
-
-        // Confirm the record now DOES exist on Alice's remote DWN.
-        queryResponse = await testAgent.agent.dwnManager.sendRequest({
-          author         : alice.did,
-          target         : alice.did,
-          messageType    : 'RecordsQuery',
-          messageOptions : { filter: { recordId: testRecordId } }
-        });
-        remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
-        expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
-        expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
-      });
-
-      it('synchronizes records for multiple identities from local DWN to remote DWN', async () => {
-        // Create a second Identity to author the DWN messages.
-        const { did: bobDid } = await testAgent.createIdentity({ testDwnUrls });
-        const bob = await testAgent.agent.identityManager.import({
-          did      : bobDid,
-          identity : { name: 'Bob', did: bobDid.did },
-          kms      : 'local'
-        });
-
-        // Write a test record to Alice's local DWN.
-        let writeResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : alice.did,
-          target         : alice.did,
-          messageType    : 'RecordsWrite',
-          messageOptions : {
-            dataFormat: 'text/plain'
-          },
-          dataStream: new Blob(['Hello, Bob!'])
-        });
-
-        // Get the record ID of Alice's test record.
-        const testRecordIdAlice = (writeResponse.message as RecordsWriteMessage).recordId;
-
-        // Write a test record to Bob's local DWN.
-        writeResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : bob.did,
-          target         : bob.did,
-          messageType    : 'RecordsWrite',
-          messageOptions : {
-            dataFormat: 'text/plain'
-          },
-          dataStream: new Blob(['Hello, Alice!'])
-        });
-
-        // Get the record ID of Bob's test record.
-        const testRecordIdBob = (writeResponse.message as RecordsWriteMessage).recordId;
-
-        // Register Alice's DID to be synchronized.
-        await testAgent.agent.syncManager.registerIdentity({
-          did: alice.did
-        });
-
-        // Register Bob's DID to be synchronized.
-        await testAgent.agent.syncManager.registerIdentity({
-          did: bob.did
-        });
-
-        // Execute Sync to push all records from Alice's and Bob's local DWNs to their remote DWNs.
-        await testAgent.agent.syncManager.startSync({ interval: 0 });
-
-        // Confirm the Alice test record exist on Alice's remote DWN.
-        let queryResponse = await testAgent.agent.dwnManager.sendRequest({
-          author         : alice.did,
-          target         : alice.did,
-          messageType    : 'RecordsQuery',
-          messageOptions : { filter: { recordId: testRecordIdAlice } }
-        });
-        let remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
-        expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
-        expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
-
-        // Confirm the Bob test record exist on Bob's remote DWN.
-        queryResponse = await testAgent.agent.dwnManager.sendRequest({
-          author         : bob.did,
-          target         : bob.did,
-          messageType    : 'RecordsQuery',
-          messageOptions : { filter: { recordId: testRecordIdBob } }
-        });
-        remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
-        expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
-        expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
-      }).timeout(5000);
 
       it('synchronizes data in both directions for a single identity', async () => {
 
@@ -390,7 +137,7 @@ describe('SyncManagerLevel', () => {
         expect(remoteReply.entries?.length).to.equal(remoteRecords.size);
         expect(remoteReply.entries?.every(e => remoteRecords.has((e as RecordsWriteMessage).recordId))).to.be.true;
 
-        await testAgent.agent.syncManager.startSync({ interval: 0 });
+        await testAgent.agent.syncManager.sync();
 
         const records = new Set([...remoteRecords, ...localRecords]);
         const { reply: allRemoteReply } = await testAgent.agent.dwnManager.sendRequest(everythingQuery());
@@ -403,7 +150,309 @@ describe('SyncManagerLevel', () => {
         expect(allLocalReply.entries?.length).to.equal(records.size);
         expect(allLocalReply.entries?.every(e => records.has((e as RecordsWriteMessage).recordId))).to.be.true;
 
-      }).timeout(5000);
+      }).timeout(10_000);
+
+      // tests must be run with a low MIN_SYNC_INTERVAL
+      it('check sync interval input', async () => {
+        const syncSpy = sinon.spy(testAgent.agent.syncManager, 'sync');
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+        testAgent.agent.syncManager.startSync({ interval: 300 });
+        await sleep(1000);
+        expect(syncSpy.callCount).to.equal(3);
+        syncSpy.restore();
+      });
+
+      // test must be run with MIN_SYNC_INTERVAL=100
+      it('check sync default value passed', async () => {
+        const setIntervalSpy = sinon.spy(global, 'setInterval');
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+        testAgent.agent.syncManager.startSync({ });
+        await sleep(500);
+        expect(setIntervalSpy.calledOnce).to.be.true;
+        expect(setIntervalSpy.getCall(0).args.at(1)).to.equal(100);
+        setIntervalSpy.restore();
+      });
+
+      describe('batchOperations()', () => {
+        it('should only call once per remote DWN if pull direction is passed', async () => {
+          const batchOperationsSpy = sinon.spy(testAgent.agent.syncManager as any, 'batchOperations');
+          await testAgent.agent.syncManager.registerIdentity({
+            did: alice.did
+          });
+          await testAgent.agent.syncManager.sync('pull');
+          expect(batchOperationsSpy.callCount).to.equal(testDwnUrls.length, 'pull direction is passed');
+          expect(batchOperationsSpy.args.filter(arg => arg.includes('pull')).length).to.equal(1, `args must include pull ${batchOperationsSpy.args[0]}`);
+          batchOperationsSpy.restore();
+        });
+
+        it('should only call once if push direction is passed', async () => {
+          const batchOperationsSpy = sinon.spy(testAgent.agent.syncManager as any, 'batchOperations');
+          await testAgent.agent.syncManager.registerIdentity({
+            did: alice.did
+          });
+          await testAgent.agent.syncManager.sync('push');
+          expect(batchOperationsSpy.callCount).to.equal(1, 'push direction is passed');
+          expect(batchOperationsSpy.args.filter(arg => arg.includes('push')).length).to.equal(1, `args must include push ${batchOperationsSpy.args[0]}`);
+          batchOperationsSpy.restore();
+        });
+
+        it('should be called twice if no direction is passed', async () => {
+          const batchOperationsSpy = sinon.spy(testAgent.agent.syncManager as any, 'batchOperations');
+          await testAgent.agent.syncManager.registerIdentity({
+            did: alice.did
+          });
+          await testAgent.agent.syncManager.sync();
+          expect(batchOperationsSpy.callCount).to.equal(2, 'no direction is passed');
+          expect(batchOperationsSpy.args.filter(arg => arg.includes('pull')).length).to.equal(1, `args must include one pull ${batchOperationsSpy.args}`);
+          expect(batchOperationsSpy.args.filter(arg => arg.includes('push')).length).to.equal(1, `args must include one push ${batchOperationsSpy.args}`);
+          batchOperationsSpy.restore();
+        });
+      });
+      describe('pull', () => {
+        it('synchronizes records for 1 identity from remote DWN to local DWN', async () => {
+          // Write a test record to Alice's remote DWN.
+          let writeResponse = await testAgent.agent.dwnManager.sendRequest({
+            author         : alice.did,
+            target         : alice.did,
+            messageType    : 'RecordsWrite',
+            messageOptions : {
+              dataFormat: 'text/plain'
+            },
+            dataStream: new Blob(['Hello, world!'])
+          });
+
+          // Get the record ID of the test record.
+          const testRecordId = (writeResponse.message as RecordsWriteMessage).recordId;
+
+          // Confirm the record does NOT exist on Alice's local DWN.
+          let queryResponse = await testAgent.agent.dwnManager.processRequest({
+            author         : alice.did,
+            target         : alice.did,
+            messageType    : 'RecordsQuery',
+            messageOptions : { filter: { recordId: testRecordId } }
+          });
+          let localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+          expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+          expect(localDwnQueryReply.entries).to.have.length(0); // Record doesn't exist on local DWN.
+
+          // Register Alice's DID to be synchronized.
+          await testAgent.agent.syncManager.registerIdentity({
+            did: alice.did
+          });
+
+          // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
+          await testAgent.agent.syncManager.sync('pull');
+
+          // Confirm the record now DOES exist on Alice's local DWN.
+          queryResponse = await testAgent.agent.dwnManager.processRequest({
+            author         : alice.did,
+            target         : alice.did,
+            messageType    : 'RecordsQuery',
+            messageOptions : { filter: { recordId: testRecordId } }
+          });
+          localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+          expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+          expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
+        });
+
+        it('synchronizes records for multiple identities from remote DWN to local DWN', async () => {
+          // Create a second Identity to author the DWN messages.
+          const { did: bobDid } = await testAgent.createIdentity({ testDwnUrls });
+          const bob = await testAgent.agent.identityManager.import({
+            did      : bobDid,
+            identity : { name: 'Bob', did: bobDid.did },
+            kms      : 'local'
+          });
+
+          // Write a test record to Alice's remote DWN.
+          let writeResponse = await testAgent.agent.dwnManager.sendRequest({
+            author         : alice.did,
+            target         : alice.did,
+            messageType    : 'RecordsWrite',
+            messageOptions : {
+              dataFormat: 'text/plain'
+            },
+            dataStream: new Blob(['Hello, Bob!'])
+          });
+
+          // Get the record ID of Alice's test record.
+          const testRecordIdAlice = (writeResponse.message as RecordsWriteMessage).recordId;
+
+          // Write a test record to Bob's remote DWN.
+          writeResponse = await testAgent.agent.dwnManager.sendRequest({
+            author         : bob.did,
+            target         : bob.did,
+            messageType    : 'RecordsWrite',
+            messageOptions : {
+              dataFormat: 'text/plain'
+            },
+            dataStream: new Blob(['Hello, Alice!'])
+          });
+
+          // Get the record ID of Bob's test record.
+          const testRecordIdBob = (writeResponse.message as RecordsWriteMessage).recordId;
+
+          // Register Alice's DID to be synchronized.
+          await testAgent.agent.syncManager.registerIdentity({
+            did: alice.did
+          });
+
+          // Register Bob's DID to be synchronized.
+          await testAgent.agent.syncManager.registerIdentity({
+            did: bob.did
+          });
+
+          // Execute Sync to pull all records from Alice's and Bob's remote DWNs to their local DWNs.
+          await testAgent.agent.syncManager.sync('pull');
+
+          // Confirm the Alice test record exist on Alice's local DWN.
+          let queryResponse = await testAgent.agent.dwnManager.processRequest({
+            author         : alice.did,
+            target         : alice.did,
+            messageType    : 'RecordsQuery',
+            messageOptions : { filter: { recordId: testRecordIdAlice } }
+          });
+          let localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+          expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+          expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
+
+          // Confirm the Bob test record exist on Bob's local DWN.
+          queryResponse = await testAgent.agent.dwnManager.sendRequest({
+            author         : bob.did,
+            target         : bob.did,
+            messageType    : 'RecordsQuery',
+            messageOptions : { filter: { recordId: testRecordIdBob } }
+          });
+          localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+          expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+          expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
+        }).timeout(5000);
+      });
+
+      describe('push', () => {
+        it('synchronizes records for 1 identity from local DWN to remote DWN', async () => {
+          // Write a record that we can use for this test.
+          let writeResponse = await testAgent.agent.dwnManager.processRequest({
+            author         : alice.did,
+            target         : alice.did,
+            messageType    : 'RecordsWrite',
+            messageOptions : {
+              dataFormat: 'text/plain'
+            },
+            dataStream: new Blob(['Hello, world!'])
+          });
+
+          // Get the record ID of the test record.
+          const testRecordId = (writeResponse.message as RecordsWriteMessage).recordId;
+
+          // Confirm the record does NOT exist on Alice's remote DWN.
+          let queryResponse = await testAgent.agent.dwnManager.sendRequest({
+            author         : alice.did,
+            target         : alice.did,
+            messageType    : 'RecordsQuery',
+            messageOptions : { filter: { recordId: testRecordId } }
+          });
+          let remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+          expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+          expect(remoteDwnQueryReply.entries).to.have.length(0); // Record doesn't exist on remote DWN.
+
+          // Register Alice's DID to be synchronized.
+          await testAgent.agent.syncManager.registerIdentity({
+            did: alice.did
+          });
+
+          // Execute Sync to push all records from Alice's local DWN to Alice's remote DWN.
+          await testAgent.agent.syncManager.sync('push');
+
+          // Confirm the record now DOES exist on Alice's remote DWN.
+          queryResponse = await testAgent.agent.dwnManager.sendRequest({
+            author         : alice.did,
+            target         : alice.did,
+            messageType    : 'RecordsQuery',
+            messageOptions : { filter: { recordId: testRecordId } }
+          });
+          remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+          expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+          expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
+        });
+
+        it('synchronizes records for multiple identities from local DWN to remote DWN', async () => {
+          // Create a second Identity to author the DWN messages.
+          const { did: bobDid } = await testAgent.createIdentity({ testDwnUrls });
+          const bob = await testAgent.agent.identityManager.import({
+            did      : bobDid,
+            identity : { name: 'Bob', did: bobDid.did },
+            kms      : 'local'
+          });
+
+          // Write a test record to Alice's local DWN.
+          let writeResponse = await testAgent.agent.dwnManager.processRequest({
+            author         : alice.did,
+            target         : alice.did,
+            messageType    : 'RecordsWrite',
+            messageOptions : {
+              dataFormat: 'text/plain'
+            },
+            dataStream: new Blob(['Hello, Bob!'])
+          });
+
+          // Get the record ID of Alice's test record.
+          const testRecordIdAlice = (writeResponse.message as RecordsWriteMessage).recordId;
+
+          // Write a test record to Bob's local DWN.
+          writeResponse = await testAgent.agent.dwnManager.processRequest({
+            author         : bob.did,
+            target         : bob.did,
+            messageType    : 'RecordsWrite',
+            messageOptions : {
+              dataFormat: 'text/plain'
+            },
+            dataStream: new Blob(['Hello, Alice!'])
+          });
+
+          // Get the record ID of Bob's test record.
+          const testRecordIdBob = (writeResponse.message as RecordsWriteMessage).recordId;
+
+          // Register Alice's DID to be synchronized.
+          await testAgent.agent.syncManager.registerIdentity({
+            did: alice.did
+          });
+
+          // Register Bob's DID to be synchronized.
+          await testAgent.agent.syncManager.registerIdentity({
+            did: bob.did
+          });
+
+          // Execute Sync to push all records from Alice's and Bob's local DWNs to their remote DWNs.
+          await testAgent.agent.syncManager.sync('push');
+
+          // Confirm the Alice test record exist on Alice's remote DWN.
+          let queryResponse = await testAgent.agent.dwnManager.sendRequest({
+            author         : alice.did,
+            target         : alice.did,
+            messageType    : 'RecordsQuery',
+            messageOptions : { filter: { recordId: testRecordIdAlice } }
+          });
+          let remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+          expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+          expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
+
+          // Confirm the Bob test record exist on Bob's remote DWN.
+          queryResponse = await testAgent.agent.dwnManager.sendRequest({
+            author         : bob.did,
+            target         : bob.did,
+            messageType    : 'RecordsQuery',
+            messageOptions : { filter: { recordId: testRecordIdBob } }
+          });
+          remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+          expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+          expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
+        }).timeout(5000);
+      });
     });
   });
 });

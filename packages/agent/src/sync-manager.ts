@@ -1,5 +1,6 @@
 import type { BatchOperation } from 'level';
 import type {
+  Event,
   EventsGetReply,
   GenericMessage,
   MessagesGetReply,
@@ -16,10 +17,29 @@ import type { Web5ManagedAgent } from './types/agent.js';
 
 import { webReadableToIsomorphicNodeReadable } from './utils.js';
 
+const checkNumber = (n?: string) => isNaN(parseInt(n || '')) ? undefined : parseInt(n || '');
+// arbitrary number for now, but we should enforce some sane minimum
+// allow for environment to set a minimum
+const MIN_SYNC_INTERVAL = checkNumber(process?.env.MIN_SYNC_INTERVAL) ?? 5000;
+
+type SyncDirection = 'pull' | 'push';
+
+interface SyncOptions {
+  interval?: number
+  direction?: SyncDirection
+}
+
 export interface SyncManager {
   agent: Web5ManagedAgent;
   registerIdentity(options: { did: string }): Promise<void>;
-  startSync(options: { interval: number }): Promise<void>;
+
+  // sync will run the sync operation once.
+  // if a direction is passed, it will only sync in that direction.
+  sync(direction?: SyncDirection): Promise<void>;
+
+  // startSync will run sync on an interval
+  // if a direction is provided, it will only sync in that direction.
+  startSync(options?: SyncOptions): Promise<void>;
   stopSync(): void;
 }
 
@@ -91,7 +111,7 @@ export class SyncManagerLevel implements SyncManager {
     await this._db.clear();
   }
 
-  public async pull(): Promise<void> {
+  private async pull(): Promise<void> {
     const pullQueue = this.getPullQueue();
     const pullJobs = await pullQueue.iterator().all();
 
@@ -219,7 +239,7 @@ export class SyncManagerLevel implements SyncManager {
     await pullQueue.batch(deleteOperations as any);
   }
 
-  public async push(): Promise<void> {
+  private async push(): Promise<void> {
     const pushQueue = this.getPushQueue();
     const pushJobs = await pushQueue.iterator().all();
 
@@ -285,24 +305,8 @@ export class SyncManagerLevel implements SyncManager {
     await registeredIdentities.put(did, '');
   }
 
-  public startSync(options: {
-    interval: number
-  }): Promise<void> {
-    const { interval } = options;
-
-    // interval 0 means start instantly and don't repeat.
-    if (interval === 0) {
-      return new Promise( async (resolve,reject) => {
-        try {
-          await this.sync();
-          resolve();
-
-        } catch(error) {
-          reject(error);
-        }
-      })
-    }
-
+  public startSync(options: SyncOptions = {}): Promise<void> {
+    const { interval = MIN_SYNC_INTERVAL, direction } = options;
     return new Promise((resolve, reject) => {
       if (this._syncIntervalId) {
         clearInterval(this._syncIntervalId);
@@ -310,12 +314,12 @@ export class SyncManagerLevel implements SyncManager {
 
       this._syncIntervalId = setInterval(async () => {
         try {
-          await this.sync();
+          await this.sync(direction);
         } catch (error) {
           this.stopSync();
           reject(error);
         }
-      }, interval);
+      }, interval >= MIN_SYNC_INTERVAL ? interval : MIN_SYNC_INTERVAL);
     });
   }
 
@@ -326,10 +330,13 @@ export class SyncManagerLevel implements SyncManager {
     }
   }
 
-  private async sync(): Promise<void> {
-    await this.enqueueOperations();
-    await this.push();
-    await this.pull();
+  public async sync(direction?: SyncDirection): Promise<void> {
+    await this.enqueueOperations(direction);
+    // enqueue operations handles the direction logic.
+    // we can just run both operations and only enqueued events will sync.
+    await Promise.all([
+      this.push(), this.pull()
+    ]);
   }
 
   private createOperationKey(did: string, dwnUrl: string, watermark: string, messageCid: string): string {
@@ -338,45 +345,45 @@ export class SyncManagerLevel implements SyncManager {
 
   private dbBatchOperationPut(did: string, dwnUrl: string, watermark: string, messageCid: string): DbBatchOperation {
     const key = this.createOperationKey(did, dwnUrl, watermark, messageCid);
-    return { type: 'put', key, value: '' }
+    return { type: 'put', key, value: '' };
   }
 
-  async enqueueOperations(direction?: 'pull' | 'push') {
+  /**
+   *  Enqueues the operations needed for sync based on the supplied direction.
+   *
+   * @param direction the optional direction in which you would like to enqueue sync events for.
+   * If no direction is supplied it will sync in both directions.
+   */
+  async enqueueOperations(direction?: SyncDirection) {
     const syncPeerState = await this.getSyncPeerState();
+
     for (let syncState of syncPeerState) {
-      const localEvents = await this.getLocalDwnEvents({
-        did: syncState.did,
-        watermark: syncState.pushWatermark,
-      });
-      const remoteEvents = await this.getRemoteEvents({
-        did: syncState.did,
-        dwnUrl: syncState.dwnUrl,
-        watermark: syncState.pullWatermark,
-      });
-
-      const pullOperations: DbBatchOperation[] = [];
-      if (direction === undefined || direction === 'pull') {
-        remoteEvents.forEach(remoteEvent => {
-          if (localEvents.findIndex(localEvent => localEvent.messageCid === remoteEvent.messageCid) < 0) {
-            const operation = this.dbBatchOperationPut(syncState.did, syncState.dwnUrl, remoteEvent.watermark, remoteEvent.messageCid);
-            pullOperations.push(operation);
-          }
-        });
-      }
-
-      const pushOperations: DbBatchOperation[] = [];
+      const batchPromises = [];
       if (direction === undefined || direction === 'push') {
-        localEvents.forEach(localEvent => {
-          if(remoteEvents.findIndex(remoteEvent => remoteEvent.messageCid === localEvent.messageCid) < 0) {
-            const operation = this.dbBatchOperationPut(syncState.did, syncState.dwnUrl, localEvent.watermark, localEvent.messageCid);
-            pushOperations.push(operation);
-          }
+        const localEventsPromise = this.getLocalDwnEvents({
+          did       : syncState.did,
+          watermark : syncState.pushWatermark,
         });
+        batchPromises.push(this.batchOperations('push', localEventsPromise, syncState));
       }
 
-      await this.getPullQueue().batch(pullOperations as any);
-      await this.getPushQueue().batch(pushOperations as any);
+      if(direction === undefined || direction === 'pull') {
+        const remoteEventsPromise = this.getRemoteEvents({
+          did       : syncState.did,
+          dwnUrl    : syncState.dwnUrl,
+          watermark : syncState.pullWatermark,
+        });
+        batchPromises.push(this.batchOperations('pull', remoteEventsPromise, syncState));
+      }
+      await Promise.all(batchPromises);
     }
+  }
+
+  private async batchOperations(direction: SyncDirection, eventsPromise: Promise<Event[]>, syncState: SyncState): Promise<void> {
+    const { did, dwnUrl } = syncState;
+    const operations: DbBatchOperation[] = [];
+    (await eventsPromise).forEach(e => operations.push(this.dbBatchOperationPut(did, dwnUrl, e.watermark, e.messageCid)));
+    return direction === 'pull' ? this.getPullQueue().batch(operations as any) : this.getPushQueue().batch(operations as any);
   }
 
   private async getLocalDwnEvents(options:{ did: string, watermark?: string }) {
@@ -394,6 +401,7 @@ export class SyncManagerLevel implements SyncManager {
 
   private async getRemoteEvents(options: { did: string, dwnUrl: string, watermark?: string }) {
     const { did, dwnUrl, watermark } = options;
+
     let eventsReply = {} as EventsGetReply;
 
     const eventsGetMessage = await this.agent.dwnManager.createMessage({
@@ -419,7 +427,7 @@ export class SyncManagerLevel implements SyncManager {
     author: string,
     messageCid: string
   ): Promise<DwnMessage | undefined> {
-    let messagesGetResponse = await this.agent.dwnManager.processRequest({
+    const messagesGetResponse = await this.agent.dwnManager.processRequest({
       author         : author,
       target         : author,
       messageType    : 'MessagesGet',
@@ -540,16 +548,16 @@ export class SyncManagerLevel implements SyncManager {
       const wm = await watermarkStore.get(wmKey);
       const split = wm.split('~');
       if (split.length !== 2) {
-        return {}
+        return {};
       }
 
       let pull;
       let push;
       if (split[0] !== '0') {
-        pull = split[0]
+        pull = split[0];
       }
       if (split[1] !== '0') {
-        push = split[1]
+        push = split[1];
       }
 
       return { pull, push };
@@ -567,11 +575,11 @@ export class SyncManagerLevel implements SyncManager {
     const watermarkStore = this.getWatermarkStore();
 
     if (pullWatermark === undefined) {
-      pullWatermark = '0' 
+      pullWatermark = '0';
     }
 
     if (pushWatermark === undefined) {
-      pushWatermark = '0'
+      pushWatermark = '0';
     }
 
     await watermarkStore.put(wmKey, `${pullWatermark}~${pushWatermark}`);

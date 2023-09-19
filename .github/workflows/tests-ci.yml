@@ -63,6 +63,7 @@ jobs:
         run: npm run test:node --ws -- --color
         env:
           TEST_DWN_URLS: http://localhost:3000,http://localhost:3001
+          MIN_SYNC_INTERVAL: 100 
 
       - name: Upload test coverage to Codecov
         uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
@@ -113,3 +114,4 @@ jobs:
         run: npm run test:browser --ws -- --color
         env:
           TEST_DWN_URLS: http://localhost:3000,http://localhost:3001
+          MIN_SYNC_INTERVAL: 100
