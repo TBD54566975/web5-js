@@ -184,32 +184,32 @@ describe('SyncManagerLevel', () => {
             did: alice.did
           });
           await testAgent.agent.syncManager.sync('pull');
+          batchOperationsSpy.restore(); // restore before assertions to avoid failures in other tests
           expect(batchOperationsSpy.callCount).to.equal(testDwnUrls.length, 'pull direction is passed');
-          expect(batchOperationsSpy.args.filter(arg => arg.includes('pull')).length).to.equal(1, `args must include pull ${batchOperationsSpy.args[0]}`);
-          batchOperationsSpy.restore();
+          expect(batchOperationsSpy.args.filter(arg => arg.includes('pull')).length).to.equal(testDwnUrls.length, `args must include pull ${batchOperationsSpy.args[0]}`);
         });
 
-        it('should only call once if push direction is passed', async () => {
+        it('should only call once per remote DWN if push direction is passed', async () => {
           const batchOperationsSpy = sinon.spy(testAgent.agent.syncManager as any, 'batchOperations');
           await testAgent.agent.syncManager.registerIdentity({
             did: alice.did
           });
           await testAgent.agent.syncManager.sync('push');
-          expect(batchOperationsSpy.callCount).to.equal(1, 'push direction is passed');
-          expect(batchOperationsSpy.args.filter(arg => arg.includes('push')).length).to.equal(1, `args must include push ${batchOperationsSpy.args[0]}`);
-          batchOperationsSpy.restore();
+          batchOperationsSpy.restore(); // restore before assertions to avoid failures in other tests
+          expect(batchOperationsSpy.callCount).to.equal(testDwnUrls.length, 'push direction is passed');
+          expect(batchOperationsSpy.args.filter(arg => arg.includes('push')).length).to.equal(testDwnUrls.length, `args must include push ${batchOperationsSpy.args[0]}`);
         });
 
-        it('should be called twice if no direction is passed', async () => {
+        it('should be called twice per remote DWN if no direction is passed', async () => {
           const batchOperationsSpy = sinon.spy(testAgent.agent.syncManager as any, 'batchOperations');
           await testAgent.agent.syncManager.registerIdentity({
             did: alice.did
           });
           await testAgent.agent.syncManager.sync();
-          expect(batchOperationsSpy.callCount).to.equal(2, 'no direction is passed');
-          expect(batchOperationsSpy.args.filter(arg => arg.includes('pull')).length).to.equal(1, `args must include one pull ${batchOperationsSpy.args}`);
-          expect(batchOperationsSpy.args.filter(arg => arg.includes('push')).length).to.equal(1, `args must include one push ${batchOperationsSpy.args}`);
-          batchOperationsSpy.restore();
+          batchOperationsSpy.restore(); // restore before assertions to avoid failures in other tests
+          expect(batchOperationsSpy.callCount).to.equal((2 * testDwnUrls.length), 'no direction is passed');
+          expect(batchOperationsSpy.args.filter(arg => arg.includes('pull')).length).to.equal(testDwnUrls.length, `args must include one pull ${batchOperationsSpy.args}`);
+          expect(batchOperationsSpy.args.filter(arg => arg.includes('push')).length).to.equal(testDwnUrls.length, `args must include one push ${batchOperationsSpy.args}`);
         });
       });
       describe('pull', () => {
