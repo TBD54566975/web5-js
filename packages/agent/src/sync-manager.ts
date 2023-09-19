@@ -531,8 +531,12 @@ export class SyncManagerLevel implements SyncManager {
       /** Get the watermark (or undefined) for each (DID, DWN service endpoint, sync direction)
        * combination and add it to the sync peer state array. */
       for (let dwnUrl of service.serviceEndpoint.nodes) {
-        const syncState = await this.getSyncState(did, dwnUrl);
-        syncPeerState.push(syncState);
+        try {
+          const syncState = await this.getSyncState(did, dwnUrl);
+          syncPeerState.push(syncState);
+        } catch(error) {
+          // go onto next peer if this fails
+        }
       }
     }
 
@@ -543,8 +547,7 @@ export class SyncManagerLevel implements SyncManager {
     const wmKey = `${did}~${dwnUrl}~${direction}`;
     const watermarkStore = this.getWatermarkStore();
     try {
-      const wm = await watermarkStore.get(wmKey);
-      return wm;
+      return await watermarkStore.get(wmKey);
     } catch(error: any) {
       // Don't throw when a key wasn't found.
       if (error.notFound) {
@@ -561,17 +564,9 @@ export class SyncManagerLevel implements SyncManager {
   }
 
   private async getSyncState(did: string, dwnUrl: string): Promise<SyncState> {
-    try {
-      const pullWatermark = await this.getWatermark(did, dwnUrl, 'pull');
-      const pushWatermark = await this.getWatermark(did, dwnUrl, 'push');
-      return { did, dwnUrl, pullWatermark, pushWatermark };
-    } catch(error: any) {
-      // Don't throw when a key wasn't found.
-      if (error.notFound) {
-        return { did, dwnUrl };
-      }
-      throw new Error('SyncManager: invalid watermark store');
-    }
+    const pullWatermark = await this.getWatermark(did, dwnUrl, 'pull');
+    const pushWatermark = await this.getWatermark(did, dwnUrl, 'push');
+    return { did, dwnUrl, pullWatermark, pushWatermark };
   }
 
   /**
