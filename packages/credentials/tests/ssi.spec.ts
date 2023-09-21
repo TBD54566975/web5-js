@@ -11,7 +11,6 @@ describe('SSI Tests', () => {
   let alice: any;
   let signingKeyPair: any;
   let privateKey: any;
-  let kid: string;
   let subjectIssuerDid: string;
   let signer: Signer;
   let signOptions: SignOptions;
@@ -20,13 +19,12 @@ describe('SSI Tests', () => {
     alice = await DidKeyMethod.create();
     [signingKeyPair] = alice.keySet.verificationMethodKeys!;
     privateKey = (await Jose.jwkToKey({ key: signingKeyPair.privateKeyJwk!})).keyMaterial;
-    kid = signingKeyPair.privateKeyJwk!.kid!;
     subjectIssuerDid = alice.did;
     signer = EdDsaSigner(privateKey);
     signOptions = {
       issuerDid  : alice.did,
       subjectDid : alice.did,
-      kid        : kid,
+      kid        : '#' + alice.did.split(':')[2],
       signer     : signer
     };
   });
@@ -135,7 +133,7 @@ describe('SSI Tests', () => {
       const vcSignOptions: SignOptions = {
         issuerDid  : 'bad:did',
         subjectDid : alice.did,
-        kid        : kid,
+        kid        : '#' + alice.did.split(':')[2],
         signer     : signer
       };
 
@@ -151,7 +149,7 @@ describe('SSI Tests', () => {
 
     beforeEach(async () => {
       vcCreateOptions = {credentialSubject: {id: subjectIssuerDid, btcAddress: 'abc123'}, issuer: {id: subjectIssuerDid}};
-      signOptions = {issuerDid: alice.did, subjectDid: alice.did, kid: kid, signer: signer};
+      signOptions = {issuerDid: alice.did, subjectDid: alice.did, kid: '#' + alice.did.split(':')[2], signer: signer};
       vcJwt = await VerifiableCredential.create(signOptions, vcCreateOptions);
     });
 
@@ -196,7 +194,7 @@ describe('SSI Tests', () => {
 
     it('evaluates an invalid VP with invalid subject', async () => {
       vcCreateOptions = {credentialSubject: {id: subjectIssuerDid, badSubject: 'abc123'}, issuer: {id: subjectIssuerDid}};
-      signOptions = {issuerDid: alice.did, subjectDid: alice.did, kid: kid, signer: signer};
+      signOptions = {issuerDid: alice.did, subjectDid: alice.did, kid: '#' + alice.did.split(':')[2], signer: signer};
       vcJwt = await VerifiableCredential.create(signOptions, vcCreateOptions);
 
       const vpCreateOptions: CreateVpOptions = {
@@ -214,19 +212,19 @@ describe('SSI Tests', () => {
 
     it('evaluates an invalid VP with bad presentation definition', async () => {
       const presentationDefinition = getPresentationDefinition();
-      presentationDefinition.input_descriptors[0].constraints!.fields![0].path = ['$.credentialSubject.badSubject'];
+        presentationDefinition.input_descriptors[0].constraints!.fields![0].path = ['$.credentialSubject.badSubject'];
 
-      const vpCreateOptions: CreateVpOptions = {
-        presentationDefinition   : presentationDefinition,
-        verifiableCredentialJwts : [vcJwt]
-      };
+        const vpCreateOptions: CreateVpOptions = {
+          presentationDefinition   : presentationDefinition,
+          verifiableCredentialJwts : [vcJwt]
+        };
 
-      try {
-        await VerifiablePresentation.create(signOptions, vpCreateOptions);
-      } catch (err: any) {
-        expect(err).instanceOf(Error);
-        expect(err!.message).to.equal('Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present: "error"Errors: [{"tag":"FilterEvaluation","status":"error","message":"Input candidate does not contain property: $.input_descriptors[0]: $.verifiableCredential[0]"},{"tag":"MarkForSubmissionEvaluation","status":"error","message":"The input candidate is not eligible for submission: $.input_descriptors[0]: $.verifiableCredential[0]"}]');
-      }
+        try {
+          await VerifiablePresentation.create(signOptions, vpCreateOptions);
+        } catch (err: any) {
+          expect(err).instanceOf(Error);
+          expect(err!.message).to.equal('Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present: "error"Errors: [{"tag":"FilterEvaluation","status":"error","message":"Input candidate does not contain property: $.input_descriptors[0]: $.verifiableCredential[0]"},{"tag":"MarkForSubmissionEvaluation","status":"error","message":"The input candidate is not eligible for submission: $.input_descriptors[0]: $.verifiableCredential[0]"}]');
+        }
     });
 
     it('evaluates an invalid VP with an invalid presentation definition', async () => {
