@@ -289,24 +289,28 @@ export type JwkKeyPair = {
 export type JsonWebKey = PrivateKeyJwk | PublicKeyJwk;
 
 export interface JoseHeaderParams {
+  // Content Type
   cty?: string;
+  // JWK Set URL
   jku?: string;
+  // JSON Web Key
   jwk?: PublicKeyJwk;
+  // Key ID
   kid?: string;
+  // Type
   typ?: string;
+  // X.509 Certificate Chain
   x5c?: string[];
+  // X.509 Certificate SHA-1 Thumbprint
   x5t?: string;
+  // X.509 URL
   x5u?: string;
 }
 
 export interface JwsHeaderParams extends JoseHeaderParams {
   alg:
-    // HMAC using SHA-256
-    | 'HS256'
-    // HMAC using SHA-384
-    | 'HS384'
-    // HMAC using SHA-512
-    | 'HS512'
+    // Edwards curve digital signature algorithm (e.g., Ed25519)
+    | 'EdDSA'
     // ECDSA using P-256 and SHA-256
     | 'ES256'
     // ECDSA using secp256k1 curve and SHA-256
@@ -314,7 +318,13 @@ export interface JwsHeaderParams extends JoseHeaderParams {
     // ECDSA using P-384 and SHA-384
     | 'ES384'
     // ECDSA using P-521 and SHA-512
-    | 'ES512';
+    | 'ES512'
+    // HMAC using SHA-256
+    | 'HS256'
+    // HMAC using SHA-384
+    | 'HS384'
+    // HMAC using SHA-512
+    | 'HS512';
 
   // Indicates that extensions to JOSE RFCs are being used
   // that MUST be understood and processed.
