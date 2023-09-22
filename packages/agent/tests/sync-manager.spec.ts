@@ -1,14 +1,14 @@
 import type { PortableDid } from '@web5/dids';
 
 import { expect } from 'chai';
-import * as sinon from 'sinon';
+import sinon from 'sinon';
 
 import type { ManagedIdentity } from '../src/identity-manager.js';
 
 import { randomUuid } from '@web5/crypto/utils';
 import { testDwnUrls } from './test-config.js';
-import { TestAgent, sleep } from './utils/test-agent.js';
-import { SyncManagerLevel } from '../src/sync-manager.js';
+import { TestAgent } from './utils/test-agent.js';
+import { MIN_SYNC_INTERVAL, SyncManagerLevel } from '../src/sync-manager.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
 
 import { ProcessDwnRequest } from '../src/index.js';
@@ -72,6 +72,45 @@ describe('SyncManagerLevel', () => {
     after(async () => {
       await testAgent.clearStorage();
       await testAgent.closeStorage();
+    });
+
+    describe('startSync()', () => {
+      let clock: sinon.SinonFakeTimers;
+
+      beforeEach(() => {
+        clock = sinon.useFakeTimers();
+      });
+
+      afterEach(() => {
+        clock.restore();
+      });
+
+      it('check sync interval input', async () => {
+        const syncSpy = sinon.spy(testAgent.agent.syncManager, 'sync');
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+        testAgent.agent.syncManager.startSync({ interval: 5000 });
+
+        clock.tick(3 * 5000);
+
+        expect(syncSpy.callCount).to.equal(3);
+        syncSpy.restore();
+      });
+
+      it('check sync default value passed', async () => {
+        const setIntervalSpy = sinon.spy(global, 'setInterval');
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+        testAgent.agent.syncManager.startSync();
+
+        clock.tick( 1 * MIN_SYNC_INTERVAL);
+
+        expect(setIntervalSpy.calledOnce).to.be.true;
+        expect(setIntervalSpy.getCall(0).args.at(1)).to.equal(MIN_SYNC_INTERVAL);
+        setIntervalSpy.restore();
+      });
     });
 
     describe('sync()', () => {
@@ -152,31 +191,6 @@ describe('SyncManagerLevel', () => {
 
       }).timeout(10_000);
 
-      // tests must be run with a low MIN_SYNC_INTERVAL
-      it('check sync interval input', async () => {
-        const syncSpy = sinon.spy(testAgent.agent.syncManager, 'sync');
-        await testAgent.agent.syncManager.registerIdentity({
-          did: alice.did
-        });
-        testAgent.agent.syncManager.startSync({ interval: 300 });
-        await sleep(1000);
-        expect(syncSpy.callCount).to.equal(3);
-        syncSpy.restore();
-      });
-
-      // test must be run with MIN_SYNC_INTERVAL=100
-      it('check sync default value passed', async () => {
-        const setIntervalSpy = sinon.spy(global, 'setInterval');
-        await testAgent.agent.syncManager.registerIdentity({
-          did: alice.did
-        });
-        testAgent.agent.syncManager.startSync({ });
-        await sleep(500);
-        expect(setIntervalSpy.calledOnce).to.be.true;
-        expect(setIntervalSpy.getCall(0).args.at(1)).to.equal(100);
-        setIntervalSpy.restore();
-      });
-
       describe('batchOperations()', () => {
         it('should only call once per remote DWN if pull direction is passed', async () => {
           const batchOperationsSpy = sinon.spy(testAgent.agent.syncManager as any, 'batchOperations');
@@ -211,14 +225,6 @@ describe('SyncManagerLevel', () => {
           expect(batchOperationsSpy.args.filter(arg => arg.includes('pull')).length).to.equal(testDwnUrls.length, `args must include one pull ${batchOperationsSpy.args}`);
           expect(batchOperationsSpy.args.filter(arg => arg.includes('push')).length).to.equal(testDwnUrls.length, `args must include one push ${batchOperationsSpy.args}`);
         });
-      });
-
-      describe('watermarks', async () =>{
-        await testAgent.agent.syncManager.registerIdentity({
-          did: alice.did
-        });
-        testAgent.agent.syncManager.startSync({ });
-        await sleep(500);
       });
 
       describe('pull', () => {

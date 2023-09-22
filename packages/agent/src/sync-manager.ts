@@ -17,10 +17,8 @@ import type { Web5ManagedAgent } from './types/agent.js';
 
 import { webReadableToIsomorphicNodeReadable } from './utils.js';
 
-const checkNumber = (n?: string) => isNaN(parseInt(n || '')) ? undefined : parseInt(n || '');
 // arbitrary number for now, but we should enforce some sane minimum
-// allow for environment to set a minimum
-const MIN_SYNC_INTERVAL = checkNumber(process?.env.MIN_SYNC_INTERVAL) ?? 5000;
+export const MIN_SYNC_INTERVAL = 3000;
 
 type SyncDirection = 'pull' | 'push';
 
