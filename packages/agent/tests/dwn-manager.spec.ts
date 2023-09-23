@@ -355,7 +355,9 @@ describe('DwnManager', () => {
           target         : identity.did,
           messageType    : 'RecordsRead',
           messageOptions : {
-            recordId: writeMessage.recordId
+            filter: {
+              recordId: writeMessage.recordId
+            }
           }
         });
 
@@ -530,7 +532,9 @@ describe('DwnManager', () => {
           target         : identity.did,
           messageType    : 'RecordsRead',
           messageOptions : {
-            recordId: message.recordId
+            filter: {
+              recordId: message.recordId
+            }
           }
         });
 
