@@ -5,9 +5,7 @@ import type { JweHeaderParams, PublicKeyJwk, Web5Crypto } from '@web5/crypto';
 import { DidKeyMethod } from '@web5/dids';
 import { hkdf } from '@noble/hashes/hkdf';
 import { sha256 } from '@noble/hashes/sha256';
-import { sha512 } from '@noble/hashes/sha512';
 import { randomBytes } from '@web5/crypto/utils';
-import { pbkdf2Async } from '@noble/hashes/pbkdf2';
 import { Convert, MemoryStore } from '@web5/common';
 import { CryptoKey, Jose, XChaCha20Poly1305 } from '@web5/crypto';
 
@@ -143,20 +141,33 @@ export class AppDataVault implements AppDataStore {
   }): Promise<Uint8Array> {
     const { passphrase, salt } = options;
 
-    /** The salt value derived in Step 3 and the passphrase entered by the
-     * end-user are inputs to the PBKDF2 algorithm to derive a 32-byte secret
-     * key that will be referred to as the Vault Unlock Key (VUK). */
-    const vaultUnlockKey = await pbkdf2Async(
-      sha512,                // hash function
-      passphrase,            // password
-      salt,                  // salt
-      {
-        c     : this._keyDerivationWorkFactor, // key derivation work factor
-        dkLen : 32           // derived key length, in bytes
-      }
+    const passwordBuffer = new TextEncoder().encode(passphrase);
+
+    const importedKey = await crypto.subtle.importKey(
+      'raw',
+      passwordBuffer,
+      'PBKDF2',
+      false,
+      ['deriveBits']
     );
 
-    return vaultUnlockKey;
+    /**
+     * The salt value derived in Step 3 and the passphrase entered by the
+     * end-user are inputs to the PBKDF2 algorithm to derive a 32-byte secret
+     * key that will be referred to as the Vault Unlock Key (VUK).
+     */
+    const vaultUnlockKey = await crypto.subtle.deriveBits(
+      {
+        name       : 'PBKDF2',
+        hash       : 'SHA-512',
+        salt       : salt,
+        iterations : this._keyDerivationWorkFactor,
+      },
+      importedKey,
+      32 * 8, // 32 bytes
+    );
+
+    return new Uint8Array(vaultUnlockKey);
   }
 
   async getDid(): Promise<string> {
