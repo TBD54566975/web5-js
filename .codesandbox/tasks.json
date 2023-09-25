@@ -12,7 +12,9 @@
       "command": "npm run build",
       "runAtStart": true,
       "restartOn": {
-        "files": ["package-lock.json"]
+        "files": [
+          "package-lock.json"
+        ]
       }
     },
     "tests": {
