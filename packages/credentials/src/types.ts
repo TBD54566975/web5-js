@@ -173,7 +173,7 @@ export type Validated = PexValidated;
  */
 export const evaluateCredentials = (
   presentationDefinition: PresentationDefinition,
-  verifiableCredentials: OriginVerifiableCredential[]
+  verifiableCredentials: OriginalVerifiableCredential[]
 ): EvaluationResults => {
   return pex.evaluateCredentials(presentationDefinition, verifiableCredentials);
 };
