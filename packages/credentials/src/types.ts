@@ -8,6 +8,7 @@ import type {
   ICredentialSchemaType,
   ICredentialContextType,
   AdditionalClaims,
+  OriginalVerifiableCredential
 } from '@sphereon/ssi-types';
 import type {
   Descriptor,
@@ -177,7 +178,7 @@ export const evaluateCredentials = (
 export const evaluatePresentation = (
   presentationDefinition: PresentationDefinition,
   presentation: VerifiablePresentationV1
-): EvaluationResults  => {
+): EvaluationResults => {
   return pex.evaluatePresentation(presentationDefinition, presentation);
 };
 
@@ -187,7 +188,7 @@ export const evaluatePresentation = (
  */
 export const presentationFrom = (
   presentationDefinition: PresentationDefinition,
-  verifiableCredentials: string[]
+  verifiableCredentials: OriginalVerifiableCredential[]
 ): PresentationResult => {
   return pex.presentationFrom(presentationDefinition, verifiableCredentials);
 };
@@ -287,7 +288,7 @@ export type DisplayMapping = {
     type: 'string' | 'boolean' | 'number' | 'integer';
     /** If the `type` property is "string", this property is used to format the string in any rendered UI */
     format?: 'date-time' | 'time' | 'date' | 'email' | 'idn-email' | 'hostname' | 'idn-hostname' |
-     'ipv4' | 'ipv6' | 'uri' | 'uri-reference' | 'iri' | 'iri-reference';
+    'ipv4' | 'ipv6' | 'uri' | 'uri-reference' | 'iri' | 'iri-reference';
   }
   /**
    * String to be rendered into the UI if all the `path` property's item's value is
