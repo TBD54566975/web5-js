@@ -8,7 +8,7 @@ import type {
   ICredentialSchemaType,
   ICredentialContextType,
   AdditionalClaims,
-  OriginalVerifiableCredential
+  OriginalVerifiableCredential as OriginVerifiableCredential
 } from '@sphereon/ssi-types';
 import type {
   Descriptor,
@@ -42,6 +42,13 @@ export const resetPex = () => {
  * @see {@link https://www.w3.org/TR/vc-data-model/#credentials | VC Data Model}
  */
 export type VerifiableCredentialTypeV1 = ICredential;
+
+/**
+ * An Original Verifiable Credential is used in a Verifiable Presentation.
+ *
+ * @see {@link https://www.w3.org/TR/vc-data-model/#credentials | VC Data Model}
+ */
+export type OriginalVerifiableCredential = OriginVerifiableCredential;
 
 /**
  * A Credential Context is to convey the meaning of the data and term definitions of the data in a verifiable credential.
@@ -166,7 +173,7 @@ export type Validated = PexValidated;
  */
 export const evaluateCredentials = (
   presentationDefinition: PresentationDefinition,
-  verifiableCredentials: string[]
+  verifiableCredentials: OriginVerifiableCredential[]
 ): EvaluationResults => {
   return pex.evaluateCredentials(presentationDefinition, verifiableCredentials);
 };

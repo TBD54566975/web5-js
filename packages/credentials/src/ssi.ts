@@ -14,6 +14,7 @@ import {
   validateDefinition,
   validateSubmission,
   Validated,
+  OriginalVerifiableCredential,
   resetPex
 } from './types.js';
 
@@ -35,7 +36,7 @@ export type CreateVcOptions = {
 
 export type CreateVpOptions = {
   presentationDefinition: PresentationDefinition,
-  verifiableCredentialJwts: string[]
+  verifiableCredentials: OriginalVerifiableCredential[]
 }
 
 export type SignOptions = {
@@ -176,7 +177,7 @@ export class VerifiablePresentation {
   /**
    * Creates a Verifiable Presentation (VP) JWT from a presentation definition and set of credentials.
    * @param signOptions - Options for creating the VP including subjectDid, issuerDid, kid, and the sign function.
-   * @param createVpOptions - Options for creating the VP including presentationDefinition, verifiableCredentialJwts.
+   * @param createVpOptions - Options for creating the VP including presentationDefinition, verifiableCredentials.
    * @returns A promise that resolves to a VP JWT.
    */
   public static async create(signOptions: SignOptions, createVpOptions: CreateVpOptions,): Promise<VpJwt> {
@@ -185,7 +186,7 @@ export class VerifiablePresentation {
     const pdValidated: Validated = validateDefinition(createVpOptions.presentationDefinition);
     isValid(pdValidated);
 
-    const evaluationResults: EvaluationResults = evaluateCredentials(createVpOptions.presentationDefinition, createVpOptions.verifiableCredentialJwts);
+    const evaluationResults: EvaluationResults = evaluateCredentials(createVpOptions.presentationDefinition, createVpOptions.verifiableCredentials);
 
     if (evaluationResults.warnings?.length) {
       console.warn('Warnings were generated during the evaluation process: ' + JSON.stringify(evaluationResults.warnings));
@@ -193,7 +194,7 @@ export class VerifiablePresentation {
 
     if (evaluationResults.areRequiredCredentialsPresent.toString() !== 'info' || evaluationResults.errors?.length) {
       let errorMessage = 'Failed to create Verifiable Presentation JWT due to: ';
-      if(evaluationResults.areRequiredCredentialsPresent) {
+      if (evaluationResults.areRequiredCredentialsPresent) {
         errorMessage += 'Required Credentials Not Present: ' + JSON.stringify(evaluationResults.areRequiredCredentialsPresent);
       }
 
@@ -204,7 +205,7 @@ export class VerifiablePresentation {
       throw new Error(errorMessage);
     }
 
-    const presentationResult: PresentationResult = presentationFrom(createVpOptions.presentationDefinition, createVpOptions.verifiableCredentialJwts);
+    const presentationResult: PresentationResult = presentationFrom(createVpOptions.presentationDefinition, createVpOptions.verifiableCredentials);
 
     const submissionValidated: Validated = validateSubmission(presentationResult.presentationSubmission);
     isValid(submissionValidated);

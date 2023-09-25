@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { VcJwt, VpJwt, VerifiableCredentialTypeV1, PresentationDefinition} from '../src/types.js';
-import {VerifiableCredential, VerifiablePresentation, CreateVcOptions, CreateVpOptions, SignOptions} from '../src/ssi.js';
+import { VcJwt, VpJwt, VerifiableCredentialTypeV1, PresentationDefinition } from '../src/types.js';
+import { VerifiableCredential, VerifiablePresentation, CreateVcOptions, CreateVpOptions, SignOptions } from '../src/ssi.js';
 import { Ed25519, Jose } from '@web5/crypto';
 import { DidKeyMethod } from '@web5/dids';
 import { getCurrentXmlSchema112Timestamp } from '../src/utils.js';
@@ -18,7 +18,7 @@ describe('SSI Tests', () => {
   beforeEach(async () => {
     alice = await DidKeyMethod.create();
     [signingKeyPair] = alice.keySet.verificationMethodKeys!;
-    privateKey = (await Jose.jwkToKey({ key: signingKeyPair.privateKeyJwk!})).keyMaterial;
+    privateKey = (await Jose.jwkToKey({ key: signingKeyPair.privateKeyJwk! })).keyMaterial;
     subjectIssuerDid = alice.did;
     signer = EdDsaSigner(privateKey);
     signOptions = {
@@ -41,7 +41,7 @@ describe('SSI Tests', () => {
     });
 
     it('creates a VC JWT with VerifiableCredentialV1 type', async () => {
-      const vc:VerifiableCredentialTypeV1 = {
+      const vc: VerifiableCredentialTypeV1 = {
         id                : 'id123',
         '@context'        : ['https://www.w3.org/2018/credentials/v1'],
         credentialSubject : { id: subjectIssuerDid, btcAddress: 'abc123' },
@@ -55,7 +55,7 @@ describe('SSI Tests', () => {
     });
 
     it('fails to create a VC JWT with CreateVCOptions and VC', async () => {
-      const vc:VerifiableCredentialTypeV1 = {
+      const vc: VerifiableCredentialTypeV1 = {
         id                : 'id123',
         '@context'        : ['https://www.w3.org/2018/credentials/v1'],
         credentialSubject : { id: subjectIssuerDid, btcAddress: 'abc123' },
@@ -69,11 +69,11 @@ describe('SSI Tests', () => {
         issuer            : { id: subjectIssuerDid }
       };
 
-      await expectThrowsAsync(() =>  VerifiableCredential.create(signOptions, vcCreateOptions, vc), 'options and verifiableCredentials are mutually exclusive, either include the full verifiableCredential or the options to create one');
+      await expectThrowsAsync(() => VerifiableCredential.create(signOptions, vcCreateOptions, vc), 'options and verifiableCredentials are mutually exclusive, either include the full verifiableCredential or the options to create one');
     });
 
     it('fails to create a VC JWT with no CreateVCOptions and no VC', async () => {
-      await expectThrowsAsync(() =>  VerifiableCredential.create(signOptions, undefined, undefined), 'options or verifiableCredential must be provided');
+      await expectThrowsAsync(() => VerifiableCredential.create(signOptions, undefined, undefined), 'options or verifiableCredential must be provided');
     });
 
     it('creates a VC JWT with a VC', async () => {
@@ -93,7 +93,7 @@ describe('SSI Tests', () => {
     });
 
     it('fails to verify an invalid VC JWT', async () => {
-      await expectThrowsAsync(() =>  VerifiableCredential.verify('invalid-jwt'), 'Incorrect format JWT');
+      await expectThrowsAsync(() => VerifiableCredential.verify('invalid-jwt'), 'Incorrect format JWT');
     });
 
     it('decodes a VC JWT', async () => {
@@ -138,7 +138,7 @@ describe('SSI Tests', () => {
       };
 
       const vcJwt: VcJwt = await VerifiableCredential.create(vcSignOptions, vcCreateOptions);
-      await expectThrowsAsync(() =>  VerifiableCredential.verify(vcJwt), 'resolver_error: Unable to resolve DID document for bad:did: invalidDid');
+      await expectThrowsAsync(() => VerifiableCredential.verify(vcJwt), 'resolver_error: Unable to resolve DID document for bad:did: invalidDid');
     });
   });
 
@@ -148,15 +148,15 @@ describe('SSI Tests', () => {
     let vcJwt: VcJwt;
 
     beforeEach(async () => {
-      vcCreateOptions = {credentialSubject: {id: subjectIssuerDid, btcAddress: 'abc123'}, issuer: {id: subjectIssuerDid}};
-      signOptions = {issuerDid: alice.did, subjectDid: alice.did, kid: '#' + alice.did.split(':')[2], signer: signer};
+      vcCreateOptions = { credentialSubject: { id: subjectIssuerDid, btcAddress: 'abc123' }, issuer: { id: subjectIssuerDid } };
+      signOptions = { issuerDid: alice.did, subjectDid: alice.did, kid: '#' + alice.did.split(':')[2], signer: signer };
       vcJwt = await VerifiableCredential.create(signOptions, vcCreateOptions);
     });
 
     it('creates a VP JWT', async () => {
       const vpCreateOptions: CreateVpOptions = {
-        presentationDefinition   : getPresentationDefinition(),
-        verifiableCredentialJwts : [vcJwt]
+        presentationDefinition : getPresentationDefinition(),
+        verifiableCredentials  : [vcJwt]
       };
 
       const vpJwt: VpJwt = await VerifiablePresentation.create(signOptions, vpCreateOptions);
@@ -170,8 +170,8 @@ describe('SSI Tests', () => {
 
     it('verifies a VP JWT', async () => {
       const vpCreateOptions: CreateVpOptions = {
-        presentationDefinition   : getPresentationDefinition(),
-        verifiableCredentialJwts : [vcJwt],
+        presentationDefinition : getPresentationDefinition(),
+        verifiableCredentials  : [vcJwt],
       };
 
       const vpJwt: VpJwt = await VerifiablePresentation.create(signOptions, vpCreateOptions);
@@ -180,8 +180,8 @@ describe('SSI Tests', () => {
 
     it('evaluates an invalid VP with empty VCs', async () => {
       const vpCreateOptions: CreateVpOptions = {
-        presentationDefinition   : getPresentationDefinition(),
-        verifiableCredentialJwts : []
+        presentationDefinition : getPresentationDefinition(),
+        verifiableCredentials  : []
       };
 
       try {
@@ -193,13 +193,13 @@ describe('SSI Tests', () => {
     });
 
     it('evaluates an invalid VP with invalid subject', async () => {
-      vcCreateOptions = {credentialSubject: {id: subjectIssuerDid, badSubject: 'abc123'}, issuer: {id: subjectIssuerDid}};
-      signOptions = {issuerDid: alice.did, subjectDid: alice.did, kid: '#' + alice.did.split(':')[2], signer: signer};
+      vcCreateOptions = { credentialSubject: { id: subjectIssuerDid, badSubject: 'abc123' }, issuer: { id: subjectIssuerDid } };
+      signOptions = { issuerDid: alice.did, subjectDid: alice.did, kid: '#' + alice.did.split(':')[2], signer: signer };
       vcJwt = await VerifiableCredential.create(signOptions, vcCreateOptions);
 
       const vpCreateOptions: CreateVpOptions = {
-        presentationDefinition   : getPresentationDefinition(),
-        verifiableCredentialJwts : [vcJwt]
+        presentationDefinition : getPresentationDefinition(),
+        verifiableCredentials  : [vcJwt]
       };
 
       try {
@@ -212,19 +212,19 @@ describe('SSI Tests', () => {
 
     it('evaluates an invalid VP with bad presentation definition', async () => {
       const presentationDefinition = getPresentationDefinition();
-        presentationDefinition.input_descriptors[0].constraints!.fields![0].path = ['$.credentialSubject.badSubject'];
+      presentationDefinition.input_descriptors[0].constraints!.fields![0].path = ['$.credentialSubject.badSubject'];
 
-        const vpCreateOptions: CreateVpOptions = {
-          presentationDefinition   : presentationDefinition,
-          verifiableCredentialJwts : [vcJwt]
-        };
+      const vpCreateOptions: CreateVpOptions = {
+        presentationDefinition : presentationDefinition,
+        verifiableCredentials  : [vcJwt]
+      };
 
-        try {
-          await VerifiablePresentation.create(signOptions, vpCreateOptions);
-        } catch (err: any) {
-          expect(err).instanceOf(Error);
-          expect(err!.message).to.equal('Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present: "error"Errors: [{"tag":"FilterEvaluation","status":"error","message":"Input candidate does not contain property: $.input_descriptors[0]: $.verifiableCredential[0]"},{"tag":"MarkForSubmissionEvaluation","status":"error","message":"The input candidate is not eligible for submission: $.input_descriptors[0]: $.verifiableCredential[0]"}]');
-        }
+      try {
+        await VerifiablePresentation.create(signOptions, vpCreateOptions);
+      } catch (err: any) {
+        expect(err).instanceOf(Error);
+        expect(err!.message).to.equal('Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present: "error"Errors: [{"tag":"FilterEvaluation","status":"error","message":"Input candidate does not contain property: $.input_descriptors[0]: $.verifiableCredential[0]"},{"tag":"MarkForSubmissionEvaluation","status":"error","message":"The input candidate is not eligible for submission: $.input_descriptors[0]: $.verifiableCredential[0]"}]');
+      }
     });
 
     it('evaluates an invalid VP with an invalid presentation definition', async () => {
@@ -232,8 +232,8 @@ describe('SSI Tests', () => {
       presentationDefinition.frame = { '@id': 'this is not valid' };
 
       const vpCreateOptions: CreateVpOptions = {
-        presentationDefinition   : presentationDefinition,
-        verifiableCredentialJwts : [vcJwt]
+        presentationDefinition : presentationDefinition,
+        verifiableCredentials  : [vcJwt]
       };
 
       try {
@@ -285,7 +285,7 @@ function getPresentationDefinition(): PresentationDefinition {
 
 function EdDsaSigner(privateKey: Uint8Array): Signer {
   return async (data: Uint8Array): Promise<Uint8Array> => {
-    const signature = await Ed25519.sign({ data, key: privateKey});
+    const signature = await Ed25519.sign({ data, key: privateKey });
     return signature;
   };
 }
