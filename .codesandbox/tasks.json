@@ -1,0 +1,25 @@
+{
+  "$schema": "https://codesandbox.io/schemas/tasks.json",
+  "setupTasks": [
+    {
+      "name": "Installing Dependencies",
+      "command": "npm install"
+    }
+  ],
+  "tasks": {
+    "dev": {
+      "name": "Build Web5 SDK",
+      "command": "npm run build",
+      "runAtStart": true,
+      "restartOn": {
+        "files": [
+          "package-lock.json"
+        ]
+      }
+    },
+    "tests": {
+      "name": "Run tests",
+      "command": "npm run test:node --ws"
+    }
+  }
+}
