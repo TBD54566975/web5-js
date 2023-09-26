@@ -25,7 +25,6 @@ import { Web5RpcClient } from '../../src/rpc-client.js';
 import { AppDataVault } from '../../src/app-data-store.js';
 import { IdentityManager } from '../../src/identity-manager.js';
 import { SyncManager, SyncManagerLevel } from '../../src/sync-manager.js';
-import { Readable } from 'readable-stream';
 
 type CreateMethodOptions = {
   testDataLocation?: string;
@@ -216,20 +215,4 @@ export function randomBytes(length: number): Uint8Array {
   }
 
   return randomBytes;
-};
-
-/**
- *  Generates a `RecordsWrite` ProcessDwnRequest for testing.
- */
-export function TestRecordsWriteMessage(target: string, author: string, dataStream: Blob | ReadableStream | Readable ): ProcessDwnRequest {
-  return {
-    author         : author, 
-    target         : target,
-    messageType    : 'RecordsWrite',
-    messageOptions : {
-      schema     : 'testSchema',
-      dataFormat : 'text/plain'
-    },
-    dataStream,
-  };
-};
+}

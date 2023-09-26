@@ -5,14 +5,13 @@ import sinon from 'sinon';
 
 import type { ManagedIdentity } from '../src/identity-manager.js';
 
-import { randomUuid } from '@web5/crypto/utils';
 import { testDwnUrls } from './test-config.js';
 import { TestAgent, randomBytes } from './utils/test-agent.js';
 import { MIN_SYNC_INTERVAL, SyncManagerLevel } from '../src/sync-manager.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
 
 import { ProcessDwnRequest } from '../src/index.js';
-import { DataStream, RecordsQueryReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import { RecordsQueryReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 import { Readable } from 'readable-stream';
 
 /**
@@ -20,7 +19,7 @@ import { Readable } from 'readable-stream';
  */
 export function TestRecordsWriteMessage(target: string, author: string, dataStream: Blob | ReadableStream | Readable ): ProcessDwnRequest {
   return {
-    author         : author, 
+    author         : author,
     target         : target,
     messageType    : 'RecordsWrite',
     messageOptions : {
@@ -29,7 +28,7 @@ export function TestRecordsWriteMessage(target: string, author: string, dataStre
     },
     dataStream,
   };
-};
+}
 
 describe('SyncManagerLevel', () => {
   describe('get agent', () => {
