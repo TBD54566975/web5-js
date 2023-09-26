@@ -7,12 +7,29 @@ import type { ManagedIdentity } from '../src/identity-manager.js';
 
 import { randomUuid } from '@web5/crypto/utils';
 import { testDwnUrls } from './test-config.js';
-import { TestAgent } from './utils/test-agent.js';
+import { TestAgent, randomBytes } from './utils/test-agent.js';
 import { MIN_SYNC_INTERVAL, SyncManagerLevel } from '../src/sync-manager.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
 
 import { ProcessDwnRequest } from '../src/index.js';
-import { RecordsQueryReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import { DataStream, RecordsQueryReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import { Readable } from 'readable-stream';
+
+/**
+ *  Generates a `RecordsWrite` ProcessDwnRequest for testing.
+ */
+export function TestRecordsWriteMessage(target: string, author: string, dataStream: Blob | ReadableStream | Readable ): ProcessDwnRequest {
+  return {
+    author         : author, 
+    target         : target,
+    messageType    : 'RecordsWrite',
+    messageOptions : {
+      schema     : 'testSchema',
+      dataFormat : 'text/plain'
+    },
+    dataStream,
+  };
+};
 
 describe('SyncManagerLevel', () => {
   describe('get agent', () => {
@@ -98,6 +115,32 @@ describe('SyncManagerLevel', () => {
         syncSpy.restore();
       });
 
+      it('subsequent startSync should cancel the old sync and start a new sync interval', async () => {
+        const syncSpy = sinon.spy(testAgent.agent.syncManager, 'sync');
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+
+        // start sync with default timeout
+        testAgent.agent.syncManager.startSync();
+
+        // go through 3 intervals
+        clock.tick(3 * MIN_SYNC_INTERVAL);
+
+        expect(syncSpy.callCount).to.equal(3);
+
+        // start sync with a higher interval. Should cancel the old sync and set a new interval.
+        testAgent.agent.syncManager.startSync({ interval: 10_000 });
+
+        // go through 3 intervals with the new timeout
+        clock.tick( 3 * 10_000);
+
+        // should be called a total of 6 times.
+        expect(syncSpy.callCount).to.equal(6);
+
+        syncSpy.restore();
+      });
+
       it('check sync default value passed', async () => {
         const setIntervalSpy = sinon.spy(global, 'setInterval');
         await testAgent.agent.syncManager.registerIdentity({
@@ -128,24 +171,43 @@ describe('SyncManagerLevel', () => {
         sendDwnRequestSpy.restore();
       });
 
+      it('silently ignore when a particular DWN service endpoint is unreachable', async () => {
+        // Write a test record to Alice's remote DWN.
+        let writeResponse = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob(['Hello, world!'])
+        });
+        expect(writeResponse.reply.status.code).to.equal(202);
+
+        const getRemoteEventsSpy = sinon.spy(testAgent.agent.syncManager as any, 'getRemoteEvents');
+        const sendDwnRequestStub = sinon.stub(testAgent.agent.rpcClient, 'sendDwnRequest').rejects('some failure');
+
+        // Register Alice's DID to be synchronized.
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+
+        // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
+        await testAgent.agent.syncManager.sync();
+
+        //restore sinon stubs and spys
+        getRemoteEventsSpy.restore();
+        sendDwnRequestStub.restore();
+
+        expect(getRemoteEventsSpy.called).to.be.true;
+        expect(getRemoteEventsSpy.threw()).to.be.false;
+      });
+
       it('synchronizes data in both directions for a single identity', async () => {
 
         await testAgent.agent.syncManager.registerIdentity({
           did: alice.did
         });
-
-        const testWriteMessage = (id: string): ProcessDwnRequest => {
-          return {
-            author         : alice.did,
-            target         : alice.did,
-            messageType    : 'RecordsWrite',
-            messageOptions : {
-              schema     : 'testSchema',
-              dataFormat : 'text/plain'
-            },
-            dataStream: new Blob([`Hello, ${id}`])
-          };
-        };
 
         const everythingQuery = (): ProcessDwnRequest => {
           return {
@@ -157,13 +219,19 @@ describe('SyncManagerLevel', () => {
         };
 
         const localRecords = new Set(
-          (await Promise.all(Array(5).fill({}).map(_ => testAgent.agent.dwnManager.processRequest(testWriteMessage(randomUuid())))))
-            .map(r => (r.message as RecordsWriteMessage).recordId)
+          (await Promise.all(Array(5).fill({}).map(_ => testAgent.agent.dwnManager.processRequest(TestRecordsWriteMessage(
+            alice.did,
+            alice.did,
+            new Blob([randomBytes(256)]),
+          ))))).map(r => (r.message as RecordsWriteMessage).recordId)
         );
 
         const remoteRecords = new Set(
-          (await Promise.all(Array(5).fill({}).map(_ => testAgent.agent.dwnManager.sendRequest(testWriteMessage(randomUuid())))))
-            .map(r => (r.message as RecordsWriteMessage).recordId)
+          (await Promise.all(Array(5).fill({}).map(_ => testAgent.agent.dwnManager.sendRequest(TestRecordsWriteMessage(
+            alice.did,
+            alice.did,
+            new Blob([randomBytes(256)]),
+          ))))).map(r => (r.message as RecordsWriteMessage).recordId)
         );
 
         const { reply: localReply } = await testAgent.agent.dwnManager.processRequest(everythingQuery());
