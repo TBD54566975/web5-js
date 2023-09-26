@@ -114,6 +114,19 @@ describe('SyncManagerLevel', () => {
         syncSpy.restore();
       });
 
+      it('sync interval below minimum allowed threshold will sync at the minimum interval', async () => {
+        const syncSpy = sinon.spy(testAgent.agent.syncManager, 'sync');
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+        testAgent.agent.syncManager.startSync({ interval: 100 });
+
+        clock.tick(3 * MIN_SYNC_INTERVAL);
+
+        expect(syncSpy.callCount).to.equal(3);
+        syncSpy.restore();
+      });
+
       it('subsequent startSync should cancel the old sync and start a new sync interval', async () => {
         const syncSpy = sinon.spy(testAgent.agent.syncManager, 'sync');
         await testAgent.agent.syncManager.registerIdentity({
@@ -257,6 +270,22 @@ describe('SyncManagerLevel', () => {
         expect(allLocalReply.entries?.every(e => records.has((e as RecordsWriteMessage).recordId))).to.be.true;
 
       }).timeout(10_000);
+
+      it('should skip dwn if there a failure getting syncState', async () => {
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        }); 
+
+        const getWatermarkStub = sinon.stub(testAgent.agent.syncManager as any, 'getSyncState').rejects('rejected');
+        const getSyncPeerState = sinon.spy(testAgent.agent.syncManager as any, 'getSyncPeerState');
+
+        await testAgent.agent.syncManager.sync();
+        getWatermarkStub.restore();
+        getSyncPeerState.restore();
+
+        expect(getSyncPeerState.called).to.be.true;
+        expect(getWatermarkStub.called).to.be.true;
+      });
 
       describe('batchOperations()', () => {
         it('should only call once per remote DWN if pull direction is passed', async () => {
