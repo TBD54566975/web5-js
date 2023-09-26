@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { VcJwt, VpJwt, VerifiableCredentialTypeV1, PresentationDefinition } from '../src/types.js';
+import { VcJwt, VpJwt, VerifiableCredentialTypeV1, PresentationDefinition, OriginalVerifiableCredential } from '../src/types.js';
 import { VerifiableCredential, VerifiablePresentation, CreateVcOptions, CreateVpOptions, SignOptions } from '../src/ssi.js';
 import { Ed25519, Jose } from '@web5/crypto';
 import { DidKeyMethod } from '@web5/dids';
@@ -243,6 +243,23 @@ describe('SSI Tests', () => {
         expect(err!.message).to.equal('Failed to pass validation check due to: Validation Errors: [{"tag":"presentation_definition.frame","status":"error","message":"frame value is not valid"}]');
       }
     });
+
+    it('accepts JSON-LD VC for presentation', async () => {
+      const presentationDefinition = getPresentationDefinition2();
+
+      const vpCreateOptions: CreateVpOptions = {
+        presentationDefinition : presentationDefinition,
+        verifiableCredentials  : [getExampleAlumniVC()]
+      };
+
+      const vpJwt: VpJwt = await VerifiablePresentation.create(signOptions, vpCreateOptions);
+      expect(vpJwt).to.exist;
+
+      const decodedVp = VerifiablePresentation.decode(vpJwt);
+      expect(decodedVp).to.have.property('header');
+      expect(decodedVp).to.have.property('payload');
+      expect(decodedVp).to.have.property('signature');
+    });
   });
 });
 
@@ -280,6 +297,57 @@ function getPresentationDefinition(): PresentationDefinition {
         }
       }
     ]
+  };
+}
+
+function getPresentationDefinition2(): PresentationDefinition {
+  return {
+    'id'                : 'test-pd-id',
+    'name'              : 'simple PD',
+    'purpose'           : 'pd for testing',
+    'input_descriptors' : [
+      {
+        'id'          : 'whatever',
+        'purpose'     : 'id for testing',
+        'constraints' : {
+          'fields': [
+            {
+              'path': [
+                '$.credentialSubject.alumniOf',
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  };
+}
+
+function getExampleAlumniVC(): OriginalVerifiableCredential {
+  return {
+    '@context': [
+      'https://www.w3.org/2018/credentials/v1',
+      'https://www.w3.org/2018/credentials/examples/v1',
+      'https://w3id.org/security/suites/ed25519-2020/v1'
+    ],
+    'id'   : 'https://example.com/credentials/1872',
+    'type' : [
+      'VerifiableCredential',
+      'AlumniCredential'
+    ],
+    'issuer'            : 'https://example.edu/issuers/565049',
+    'issuanceDate'      : '2010-01-01T19:23:24Z',
+    'credentialSubject' : {
+      'id'       : 'did:example:ebfeb1f712ebc6f1c276e12ec21',
+      'alumniOf' : 'Example University'
+    },
+    'proof': {
+      'type'               : 'Ed25519Signature2020',
+      'created'            : '2010-01-01T19:23:24Z',
+      'proofPurpose'       : 'assertionMethod',
+      'proofValue'         : 'zXLdRHYXUXAFtoD7LXcMfT4oNWg52SGFSYux3HdPnM7GLwcivi7PKXA5YJiqQQfiXp1tygzfzLj3i7fTLouEEuFr',
+      'verificationMethod' : 'https://example.edu/issuers/565049#key-1',
+    }
   };
 }
 

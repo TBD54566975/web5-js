@@ -8,7 +8,7 @@ import type {
   ICredentialSchemaType,
   ICredentialContextType,
   AdditionalClaims,
-  OriginalVerifiableCredential as OriginVerifiableCredential
+  OriginalVerifiableCredential as OriginVerifiableCredential,
 } from '@sphereon/ssi-types';
 import type {
   Descriptor,
