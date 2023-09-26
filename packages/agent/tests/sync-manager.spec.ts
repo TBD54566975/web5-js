@@ -274,7 +274,7 @@ describe('SyncManagerLevel', () => {
       it('should skip dwn if there a failure getting syncState', async () => {
         await testAgent.agent.syncManager.registerIdentity({
           did: alice.did
-        }); 
+        });
 
         const getWatermarkStub = sinon.stub(testAgent.agent.syncManager as any, 'getSyncState').rejects('rejected');
         const getSyncPeerState = sinon.spy(testAgent.agent.syncManager as any, 'getSyncPeerState');
