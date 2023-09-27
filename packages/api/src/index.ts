@@ -5,3 +5,4 @@ export * from './record.js';
 export * as utils from './utils.js';
 export * from './vc-api.js';
 export * from './web5.js';
+export * from './tech-preview.js';
