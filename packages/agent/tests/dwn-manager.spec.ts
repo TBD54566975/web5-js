@@ -407,6 +407,52 @@ describe('DwnManager', () => {
         expect(writeReply).to.have.property('status');
         expect(writeReply.status.code).to.equal(202);
       });
+
+      it('handles RecordsWrite and RecordRead with large payload', async () => {
+        // Create test data to write.
+        const dataBytes = Array(10_000).fill('d').join('');
+
+        // Attempt to process the RecordsWrite
+        let writeResponse = await testAgent.agent.dwnManager.processRequest({
+          author         : identity.did,
+          target         : identity.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob([dataBytes])
+        });
+
+        // Verify the response.
+        expect(writeResponse).to.have.property('message');
+        expect(writeResponse).to.have.property('messageCid');
+        expect(writeResponse).to.have.property('reply');
+
+        const writeMessage = writeResponse.message as RecordsWriteMessage;
+        expect(writeMessage).to.have.property('authorization');
+        expect(writeMessage).to.have.property('descriptor');
+        expect(writeMessage).to.have.property('recordId');
+
+        const writeReply = writeResponse.reply;
+        expect(writeReply).to.have.property('status');
+        expect(writeReply.status.code).to.equal(202);
+
+
+        const readResponse = await testAgent.agent.dwnManager.processRequest({
+          author : identity.did,
+          target : identity.did,
+          messageType: 'RecordsRead',
+          messageOptions: { recordId: writeMessage.recordId }
+        });
+        expect(readResponse.reply.status.code).to.equal(200);
+        const reply = readResponse.reply as RecordsReadReply;
+        expect(reply.record).to.not.be.undefined;
+        expect(reply.record!.data).to.not.be.undefined;
+        const value = await DataStream.toBytes(reply.record!.data);
+        const data = new TextDecoder().decode(value);
+        expect(data).to.eq(dataBytes);
+
+      });
     });
 
     describe('sendDwnRequest()', () => {
@@ -595,7 +641,9 @@ describe('DwnManager', () => {
         const reply = readResponse.reply as RecordsReadReply;
         expect(reply.record).to.not.be.undefined;
         expect(reply.record!.data).to.not.be.undefined;
-        const data = await DataStream.toBytes(reply.record!.data);
+        const record = reply.record as unknown as RecordsWriteMessage & { data: ReadableStream };
+        const { value } = await record.data.getReader().read();
+        const data = new TextDecoder().decode(value);
         expect(data).to.eq(dataBytes);
 
       });
