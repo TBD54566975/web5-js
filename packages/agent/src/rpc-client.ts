@@ -4,6 +4,7 @@ import type { DwnRpc, DwnRpcRequest, DwnRpcResponse } from './types/agent.js';
 import { randomUuid } from '@web5/crypto/utils';
 
 import { createJsonRpcRequest, parseJson } from './json-rpc.js';
+import { webReadableToIsomorphicNodeReadable } from './utils.js';
 
 /**
  * Client used to communicate with Dwn Servers
@@ -88,7 +89,7 @@ class HttpDwnRpcClient implements DwnRpc {
         throw new Error(`failed to parse json rpc response. dwn url: ${request.dwnUrl}`);
       }
 
-      dataStream = resp.body;
+      dataStream = resp.body !== null ? webReadableToIsomorphicNodeReadable(resp.body) : resp.body;
       dwnRpcResponse = jsonRpcResponse;
     } else {
       // TODO: wonder if i need to try/catch this?
