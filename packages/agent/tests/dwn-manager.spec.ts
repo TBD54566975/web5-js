@@ -73,6 +73,13 @@ describe('DwnManager', () => {
     });
   });
 
+  describe('#create', () => {
+    it('works with no options provided', async () => {
+      const dwnManager = await DwnManager.create();
+      expect(dwnManager).to.not.be.undefined;
+    });
+  });
+
   describe(`with dwn data stores`, () => {
     let testAgent: TestManagedAgent;
 
