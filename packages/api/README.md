@@ -367,6 +367,7 @@ Request follows the following format:
     - `type?`: An optional event type. If not specified, assumes a `Records` event type.
     - `recordsFilter`: Mirrors the `RecordFilter` object in the dwn-sdk-js and has filters around records path. It may NOT be applied to other event types.
     - `protocolsFilter`: Mirrors the `ProtocolsFilter` object in the dwn-sdk-js and has filters around protocols path. It may NOT be applied to other event types.
+- **`options`** - Optional subscription configuration such as retry policies for the socket connection.
 - **`callback`** - The callback function you wish to apply on the incoming event. It takes in an `EventMessage` and returns a Promise.
 
 #### Response

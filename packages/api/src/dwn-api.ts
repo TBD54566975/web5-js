@@ -56,6 +56,22 @@ export type RecordsCreateFromRequest = {
   record: Record;
 }
 
+export type SocketOptions = {
+  retryPolicy: string;
+  retryParams: {
+    interval: number;
+    decay: boolean;
+    maxRetries: number;
+  };
+}
+
+export type SubscribeOptions = {
+  callback: (e: EventMessage) => Promise<void>;
+  target: string;
+  request: SubscriptionRequestMessage;
+  socketOptions?: SocketOptions 
+}
+
 export type RecordsDeleteRequest = {
   from?: string;
   message: Omit<RecordsDeleteOptions, 'authorizationSignatureInput'>;
@@ -149,14 +165,14 @@ export class DwnApi {
        * Callback will run over the returned event type. 
        * Alternatively, you may request the actual pipe
        */
-      create: async (target: string, request: SubscriptionRequestMessage, callback?: (e: EventMessage) => Promise<void>) : Promise<SubscriptionRequestReply> => {
+      create: async (options: SubscribeOptions) : Promise<SubscriptionRequestReply> => {
         let reply: SubscriptionRequestReply
-        if (this.connectedDid === target) {
+        if (this.connectedDid === options.target) {
           // Form a request object
           const agentResponse = await this.agent.processDwnRequest({
             target: this.connectedDid,
             author: this.connectedDid,
-            messageOptions: request.message,
+            messageOptions: options.request.message,
             messageType: DwnInterfaceName.Subscriptions + DwnMethodName.Request
           });
   
@@ -167,8 +183,8 @@ export class DwnApi {
             const metadata = { author: this.connectedDid, messageCid };
             // response.subscription = new Subscription(this.agent, message as SubscriptionRequestMessage, metadata);
           }
-           if (callback) {
-            reply.subscription.emitter.on(callback);
+           if (options.callback) {
+            reply.subscription.emitter.on(options.callback);
           }
           return response;
         } else {
