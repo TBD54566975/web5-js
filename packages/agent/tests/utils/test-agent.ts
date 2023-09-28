@@ -216,3 +216,18 @@ export function randomBytes(length: number): Uint8Array {
 
   return randomBytes;
 }
+
+/**
+ * Generates a random alpha-numeric string.
+ */
+export function randomString(length: number): string {
+  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+  // pick characters randomly
+  let randomString = '';
+  for (let i = 0; i < length; i++) {
+    randomString += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+
+  return randomString;
+}

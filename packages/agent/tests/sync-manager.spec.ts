@@ -6,13 +6,14 @@ import sinon from 'sinon';
 import type { ManagedIdentity } from '../src/identity-manager.js';
 
 import { testDwnUrls } from './test-config.js';
-import { TestAgent, randomBytes } from './utils/test-agent.js';
+import { TestAgent, randomString } from './utils/test-agent.js';
 import { MIN_SYNC_INTERVAL, SyncManagerLevel } from '../src/sync-manager.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
 
 import { ProcessDwnRequest } from '../src/index.js';
 import { DataStream, RecordsQueryReply, RecordsReadReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 import { Readable } from 'readable-stream';
+import { randomUuid } from '@web5/crypto/utils';
 
 /**
  *  Generates a `RecordsWrite` ProcessDwnRequest for testing.
@@ -234,7 +235,7 @@ describe('SyncManagerLevel', () => {
           (await Promise.all(Array(5).fill({}).map(_ => testAgent.agent.dwnManager.processRequest(TestRecordsWriteMessage(
             alice.did,
             alice.did,
-            new Blob([randomBytes(256)]),
+            new Blob([randomString(256)]),
           ))))).map(r => (r.message as RecordsWriteMessage).recordId)
         );
 
@@ -242,7 +243,7 @@ describe('SyncManagerLevel', () => {
           (await Promise.all(Array(5).fill({}).map(_ => testAgent.agent.dwnManager.sendRequest(TestRecordsWriteMessage(
             alice.did,
             alice.did,
-            new Blob([randomBytes(256)]),
+            new Blob([randomString(256)]),
           ))))).map(r => (r.message as RecordsWriteMessage).recordId)
         );
 
@@ -460,26 +461,41 @@ describe('SyncManagerLevel', () => {
             did: alice.did
           });
 
-          // create remote records to sync locally
-          const remoteRecords = new Set(
-            (await Promise.all(Array(2).fill({}).map(i => testAgent.agent.dwnManager.sendRequest(TestRecordsWriteMessage(
-              alice.did,
-              alice.did,
-              new Blob([randomBytes(i % 2 === 0 ? 256 : LARGE_DATA_SIZE )]), // create some small and large records
-            ))))));
+          const dataObject = {
+            id: randomUuid(),
+            randomString: randomString(LARGE_DATA_SIZE)
+          }
+
+          const dataString = JSON.stringify(dataObject);
+
+          // create remote record
+          const record = await testAgent.agent.dwnManager.processRequest(TestRecordsWriteMessage(
+            alice.did,
+            alice.did,
+            new Blob([ dataString ]),
+          ));
 
           // check that records don't exist locally
-          const { reply: localReply } = await testAgent.agent.dwnManager.processRequest(everythingQuery());
+          const { reply: localReply } = await testAgent.agent.dwnManager.processRequest({
+            author: alice.did, target: alice.did,
+            messageType: 'RecordsQuery',
+            messageOptions: { filter: { recordId: (record.message as RecordsWriteMessage).recordId }}
+          });
+
           expect(localReply.status.code).to.equal(200);
-          expect(localReply.entries?.length).to.equal(0);
+          expect(localReply.entries?.length).to.equal(1);
 
           // initiate sync
           await testAgent.agent.syncManager.sync();
 
           // query for local records
-          const { reply: localReply2 } = await testAgent.agent.dwnManager.processRequest(everythingQuery());
+          const { reply: localReply2 } = await testAgent.agent.dwnManager.processRequest({
+            author: alice.did, target: alice.did,
+            messageType: 'RecordsQuery',
+            messageOptions: { filter: { recordId: (record.message as RecordsWriteMessage).recordId }}
+          });
           expect(localReply2.status.code).to.equal(200);
-          expect(localReply2.entries?.length).to.equal(remoteRecords.size);
+          expect(localReply2.entries?.length).to.equal(1);
 
           // check for response encodedData if it doesn't exist issue a RecordsRead
           for (const entry of localReply2.entries!) {
@@ -497,7 +513,10 @@ describe('SyncManagerLevel', () => {
               expect(reply.record).to.not.be.undefined;
               expect(reply.record!.data).to.not.be.undefined;
               const data = await DataStream.toBytes(reply.record!.data);
-              expect(data.length).to.equal(LARGE_DATA_SIZE);
+              const newObj = JSON.parse(new TextDecoder().decode(data));
+              expect(data.length).to.equal(dataString.length);
+              expect(newObj.id).to.equal(dataObject.id);
+              expect(newObj.randomString).to.equal(dataObject.randomString);
             }
           }
         }).timeout(5_000);
@@ -626,6 +645,7 @@ describe('SyncManagerLevel', () => {
         it('synchronizes records with data larger than the `encodedData` limit within the `RecordsQuery` response', async () => {
           // larger than the size of data returned in a RecordsQuery
           const LARGE_DATA_SIZE = 70_000;
+
           const everythingQuery = (): ProcessDwnRequest => {
             return {
               author         : alice.did,
@@ -640,29 +660,36 @@ describe('SyncManagerLevel', () => {
             did: alice.did
           });
 
-          // create remote local records to sync to remote
-          const remoteRecords = new Set(
-            (await Promise.all(Array(2).fill({}).map(i => testAgent.agent.dwnManager.processRequest(TestRecordsWriteMessage(
-              alice.did,
-              alice.did,
-              new Blob([randomBytes(i % 2 === 0 ? 256 : LARGE_DATA_SIZE )]), // create some small and large records
-            ))))));
+          const dataObject = {
+            id: randomUuid(),
+            randomString: randomString(LARGE_DATA_SIZE)
+          }
+
+          const dataString = JSON.stringify(dataObject);
+
+          // create remote local record to sync to remote
+          const remoteRecord = await testAgent.agent.dwnManager.processRequest(TestRecordsWriteMessage(
+            alice.did,
+            alice.did,
+            new Blob([ dataString ])
+          ));
+          expect(remoteRecord.reply.status.code).to.equal(202);
 
           // check that records don't exist on remote
-          const { reply: localReply } = await testAgent.agent.dwnManager.sendRequest(everythingQuery());
-          expect(localReply.status.code).to.equal(200);
-          expect(localReply.entries?.length).to.equal(0);
+          const { reply: remoteReply } = await testAgent.agent.dwnManager.sendRequest(everythingQuery());
+          expect(remoteReply.status.code).to.equal(200);
+          expect(remoteReply.entries?.length).to.equal(0);
 
           // initiate sync
           await testAgent.agent.syncManager.sync();
 
           // query for for remote records that now exist
-          const { reply: localReply2 } = await testAgent.agent.dwnManager.sendRequest(everythingQuery());
-          expect(localReply2.status.code).to.equal(200);
-          expect(localReply2.entries?.length).to.equal(remoteRecords.size);
+          const { reply: remoteReply2 } = await testAgent.agent.dwnManager.sendRequest(everythingQuery());
+          expect(remoteReply2.status.code).to.equal(200);
+          expect(remoteReply2.entries?.length).to.equal(1);
 
           // check for response encodedData if it doesn't exist issue a RecordsRead
-          for (const entry of localReply2.entries!) {
+          for (const entry of remoteReply2.entries!) {
             if (entry.encodedData === undefined) {
               const recordId = (entry as RecordsWriteMessage).recordId;
               // get individual records without encodedData to check that data exists
@@ -676,8 +703,14 @@ describe('SyncManagerLevel', () => {
               expect(reply.status.code).to.equal(200);
               expect(reply.record).to.not.be.undefined;
               expect(reply.record!.data).to.not.be.undefined;
-              const data = await DataStream.toBytes(reply.record!.data);
-              expect(data.length).to.equal(LARGE_DATA_SIZE);
+
+              const replyRecord = reply.record as unknown as RecordsWriteMessage & { data: ReadableStream };
+              expect(replyRecord.data).to.exist;
+              expect(replyRecord.data instanceof ReadableStream).to.be.true;
+      
+              const { value } = await replyRecord.data.getReader().read();
+              const replyDataString = new TextDecoder().decode(value);
+              expect(replyDataString.length).to.eq(dataString.length);
             }
           }
         }).timeout(5_000);
