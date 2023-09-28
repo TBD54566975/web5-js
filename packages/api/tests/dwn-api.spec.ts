@@ -478,7 +478,9 @@ describe('DwnApi', () => {
 
         const result = await dwn.records.read({
           message: {
-            recordId: writeResult.record!.id
+            filter: {
+              recordId: writeResult.record!.id
+            }
           }
         });
 
@@ -503,7 +505,9 @@ describe('DwnApi', () => {
 
         const result = await dwn.records.read({
           message: {
-            recordId: writeResult.record!.id
+            filter: {
+              recordId: writeResult.record!.id
+            }
           }
         });
 
@@ -534,7 +538,9 @@ describe('DwnApi', () => {
         const result = await dwn.records.read({
           from    : alice.did,
           message : {
-            recordId: writeResult.record!.id
+            filter: {
+              recordId: writeResult.record!.id
+            }
           }
         });
 
@@ -551,7 +557,9 @@ describe('DwnApi', () => {
         const result = await dwn.records.read({
           from    : bob.did,
           message : {
-            recordId: 'non-existent-id'
+            filter: {
+              recordId: 'non-existent-id'
+            }
           }
         });
 
