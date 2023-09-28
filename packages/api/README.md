@@ -319,6 +319,42 @@ The `delete` request object is composed as follows:
 - **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
   - **`recordId`** - _`string`_: the required record ID string that identifies the record being deleted.
 
+### **`web5.dwn.subscription.create(request)`**
+
+Method for subscribing to an event stream of a local or remote note. 
+Note: for remote servers, only a `WebSocket` connection is available.
+
+You MUST request a permission using the `Permissions` interface with a `SubscriptionRequest` 
+before getting access to a subscription. 
+
+The `subscription` request object is composed as follows:
+
+- **`target`** - _`DID string`_ (_optional_): The target DWN you want to sync with.
+- **`filter`** - The filtered scope that you wish to get. It MUST be scoped to a permission that has been scoped in the initial Permission scope.
+- **`callback`** - The callback function you wish to apply on the incoming event.
+
+```javascript
+const subscription = await web5.dwn.subscription.create(
+    target: "did:example:12345",
+    filter: {
+     "request": {
+        "filter": {
+           "type": "record",
+           "recordFilters": {
+                "protocolPath": "/my/protocol/path"
+             }
+         }
+      }
+   },
+   callback: (e: EventMessage) => {
+     console.log("I got a message!");
+   }
+})
+```
+
+Note, the `subscription` object also returns an event stream and a socket connection. 
+You may use that directly if that is your preference.
+
 ### **`web5.dwn.protocols.configure(request)`**
 
 Method for configuring a protocol definition in the DWeb Node of the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted).
