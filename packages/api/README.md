@@ -337,14 +337,10 @@ The `subscription` request object is composed as follows:
 const subscription = await web5.dwn.subscription.create({
     target: "did:example:12345",
     filter: {
-     "request": {
-        "filter": {
-           "type": "record",
-           "recordFilters": {
-                "protocolPath": "/my/protocol/path"
-             }
-         }
-      }
+      "type": "record",
+      "recordFilters": {
+           "protocolPath": "/my/protocol/path"
+       }
    },
    callback: (e: EventMessage) => {
      console.log(`Received message: ${JSON.stringify(e)}`)
