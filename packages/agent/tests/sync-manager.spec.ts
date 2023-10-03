@@ -255,13 +255,13 @@ describe('SyncManagerLevel', () => {
           };
         };
 
-        const localRecords = (await Promise.all(Array(5).fill({}).map(_ => testAgent.agent.dwnManager.processRequest(TestRecordsWriteMessage(
+        const localRecords = (await Promise.all(Array(3).fill({}).map(_ => testAgent.agent.dwnManager.processRequest(TestRecordsWriteMessage(
           alice.did,
           alice.did,
           new Blob([randomString(256)]),
         ))))).map(r => (r.message as RecordsWriteMessage).recordId);
 
-        const remoteRecords = (await Promise.all(Array(5).fill({}).map(_ => testAgent.agent.dwnManager.sendRequest(TestRecordsWriteMessage(
+        const remoteRecords = (await Promise.all(Array(3).fill({}).map(_ => testAgent.agent.dwnManager.sendRequest(TestRecordsWriteMessage(
           alice.did,
           alice.did,
           new Blob([randomString(256)]),
@@ -290,7 +290,7 @@ describe('SyncManagerLevel', () => {
         expect(allLocalReply.entries?.length).to.equal(records.size);
         expect(allLocalReply.entries?.every(e => records.has((e as RecordsWriteMessage).recordId))).to.be.true;
 
-      }).timeout(10_000);
+      }).timeout(5_000);
 
       it('should skip dwn if there a failure getting syncState', async () => {
         await testAgent.agent.syncManager.registerIdentity({
@@ -526,7 +526,7 @@ describe('SyncManagerLevel', () => {
             expect(replyDataString.length).to.equal(dataString.length);
             expect(replyDataString).to.equal(dataString);
           }
-        }).timeout(5_000);
+        });
       });
 
       describe('push', () => {
@@ -715,7 +715,7 @@ describe('SyncManagerLevel', () => {
             expect(replyDataString.length).to.eq(dataString.length);
             expect(replyDataString).to.equal(dataString);
           }
-        }).timeout(5_000);
+        });
       });
     });
   });
