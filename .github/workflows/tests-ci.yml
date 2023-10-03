@@ -94,12 +94,6 @@ jobs:
       - name: Install docker
         run: brew install docker && brew install docker-compose # && colima start
 
-      - name: Update qemu to work around https://github.com/actions/runner-images/issues/8104
-        run: |
-          brew remove --ignore-dependencies qemu &&
-          curl -o ./qemu.rb https://raw.githubusercontent.com/Homebrew/homebrew-core/dc0669eca9479e9eeb495397ba3a7480aaa45c2e/Formula/qemu.rb &&
-          brew install ./qemu.rb
-
       - name: Start docker
         run: colima start
 

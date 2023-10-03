@@ -73,6 +73,13 @@ describe('DwnManager', () => {
     });
   });
 
+  describe('#create', () => {
+    it('works with no options provided', async () => {
+      const dwnManager = await DwnManager.create();
+      expect(dwnManager).to.not.be.undefined;
+    });
+  });
+
   describe(`with dwn data stores`, () => {
     let testAgent: TestManagedAgent;
 
@@ -355,7 +362,9 @@ describe('DwnManager', () => {
           target         : identity.did,
           messageType    : 'RecordsRead',
           messageOptions : {
-            recordId: writeMessage.recordId
+            filter: {
+              recordId: writeMessage.recordId
+            }
           }
         });
 
@@ -530,7 +539,9 @@ describe('DwnManager', () => {
           target         : identity.did,
           messageType    : 'RecordsRead',
           messageOptions : {
-            recordId: message.recordId
+            filter: {
+              recordId: message.recordId
+            }
           }
         });
 

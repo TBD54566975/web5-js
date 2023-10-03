@@ -3,10 +3,9 @@ import type { DidResolutionResult, DidResolverCache, PortableDid } from '@web5/d
 
 import { Level } from 'level';
 import { Jose } from '@web5/crypto';
-import { Dwn } from '@tbd54566975/dwn-sdk-js';
+import { Dwn, MessageStoreLevel, DataStoreLevel, EventLogLevel } from '@tbd54566975/dwn-sdk-js';
 import { LevelStore, MemoryStore } from '@web5/common';
 import { DidIonMethod, DidKeyMethod, DidResolver, DidResolverCacheLevel } from '@web5/dids';
-import { MessageStoreLevel, DataStoreLevel, EventLogLevel } from '@tbd54566975/dwn-sdk-js/stores';
 
 import type { Web5ManagedAgent } from './types/agent.js';
 

@@ -21,7 +21,7 @@ import { Protocol } from './protocol.js';
 import { dataToBlob } from './utils.js';
 
 export type ProtocolsConfigureRequest = {
-  message: Omit<ProtocolsConfigureOptions, 'authorizationSignatureInput'>;
+  message: Omit<ProtocolsConfigureOptions, 'authorizationSigner'>;
 }
 
 export type ProtocolsConfigureResponse = {
@@ -35,7 +35,7 @@ export type ProtocolsQueryReplyEntry = {
 
 export type ProtocolsQueryRequest = {
   from?: string;
-  message: Omit<ProtocolsQueryOptions, 'authorizationSignatureInput'>
+  message: Omit<ProtocolsQueryOptions, 'authorizationSigner'>
 }
 
 export type ProtocolsQueryResponse = {
@@ -50,13 +50,13 @@ export type RecordsCreateResponse = RecordsWriteResponse;
 export type RecordsCreateFromRequest = {
   author: string;
   data: unknown;
-  message?: Omit<RecordsWriteOptions, 'authorizationSignatureInput'>;
+  message?: Omit<RecordsWriteOptions, 'authorizationSigner'>;
   record: Record;
 }
 
 export type RecordsDeleteRequest = {
   from?: string;
-  message: Omit<RecordsDeleteOptions, 'authorizationSignatureInput'>;
+  message: Omit<RecordsDeleteOptions, 'authorizationSigner'>;
 }
 
 export type RecordsDeleteResponse = {
@@ -66,7 +66,7 @@ export type RecordsDeleteResponse = {
 export type RecordsQueryRequest = {
   /** The from property indicates the DID to query from and return results. */
   from?: string;
-  message: Omit<RecordsQueryOptions, 'authorizationSignatureInput'>;
+  message: Omit<RecordsQueryOptions, 'authorizationSigner'>;
 }
 
 export type RecordsQueryResponse = {
@@ -77,7 +77,7 @@ export type RecordsQueryResponse = {
 export type RecordsReadRequest = {
   /** The from property indicates the DID to read from and return results fro. */
   from?: string;
-  message: Omit<RecordsReadOptions, 'authorizationSignatureInput'>;
+  message: Omit<RecordsReadOptions, 'authorizationSigner'>;
 }
 
 export type RecordsReadResponse = {
@@ -87,7 +87,7 @@ export type RecordsReadResponse = {
 
 export type RecordsWriteRequest = {
   data: unknown;
-  message?: Omit<Partial<RecordsWriteOptions>, 'authorizationSignatureInput'>;
+  message?: Omit<Partial<RecordsWriteOptions>, 'authorizationSigner'>;
   store?: boolean;
 }
 

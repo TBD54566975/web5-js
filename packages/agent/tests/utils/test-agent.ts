@@ -1,7 +1,6 @@
 import { Level } from 'level';
-import { Dwn } from '@tbd54566975/dwn-sdk-js';
+import { Dwn, MessageStoreLevel, DataStoreLevel, EventLogLevel } from '@tbd54566975/dwn-sdk-js';
 import { DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
-import { MessageStoreLevel, DataStoreLevel, EventLogLevel } from '@tbd54566975/dwn-sdk-js/stores';
 
 import type { AppDataStore } from '../../src/app-data-store.js';
 import type {

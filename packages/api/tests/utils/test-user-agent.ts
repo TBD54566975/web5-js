@@ -14,16 +14,13 @@ import type {
   SyncManager,
 } from '@web5/agent';
 
-import { Dwn } from '@tbd54566975/dwn-sdk-js';
+import { Dwn, EventLogLevel,
+  DataStoreLevel,
+  MessageStoreLevel, } from '@tbd54566975/dwn-sdk-js';
 import {
   DidResolver,
   DidKeyMethod,
 } from '@web5/dids';
-import {
-  EventLogLevel,
-  DataStoreLevel,
-  MessageStoreLevel,
-} from '@tbd54566975/dwn-sdk-js/stores';
 import {
   LocalKms,
   DidManager,

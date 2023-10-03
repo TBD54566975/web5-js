@@ -34,6 +34,7 @@ chai.use(chaiAsPromised);
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
 import { webcrypto } from 'node:crypto';
+import { PrivateKeySigner } from '@tbd54566975/dwn-sdk-js';
 // @ts-ignore
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
@@ -105,21 +106,17 @@ describe('Record', () => {
     const encryptionPublicKeyJwk = aliceDid.keySet.verificationMethodKeys!.find(keyPair => keyPair.publicKeyJwk.kid === encryptionKeyIdFragment)!.publicKeyJwk;
 
     // RecordsWriteMessage properties that can be pre-defined
-    const attestation = [{
-      privateJwk      : signingPrivateKeyJwk as DwnPrivateKeyJwk,
-      protectedHeader : {
-        alg : signingPrivateKeyJwk.alg as string,
-        kid : signingKeyId
-      }
-    }];
+    const attestation = [new PrivateKeySigner({
+      privateJwk : signingPrivateKeyJwk as DwnPrivateKeyJwk,
+      algorithm  : signingPrivateKeyJwk.alg as string,
+      keyId      : signingKeyId,
+    })];
 
-    const authorization = {
-      privateJwk      : signingPrivateKeyJwk as DwnPrivateKeyJwk,
-      protectedHeader : {
-        alg : signingPrivateKeyJwk.alg as string,
-        kid : signingKeyId
-      }
-    };
+    const authorization = new PrivateKeySigner({
+      privateJwk : signingPrivateKeyJwk as DwnPrivateKeyJwk,
+      algorithm  : signingPrivateKeyJwk.alg as string,
+      keyId      : signingKeyId,
+    });
 
     const encryptionInput: EncryptionInput = {
       algorithm            : EncryptionAlgorithm.Aes256Ctr,
@@ -149,8 +146,8 @@ describe('Record', () => {
 
     // Create a parent record to reference in the RecordsWriteMessage used for validation
     const parentRecorsWrite = await RecordsWrite.create({
-      authorizationSignatureInput : authorization,
-      data                        : new Uint8Array(await dataBlob.arrayBuffer()),
+      authorizationSigner : authorization,
+      data                : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       protocol,
       protocolPath,
@@ -159,12 +156,12 @@ describe('Record', () => {
 
     // Create a RecordsWriteMessage
     const recordsWrite = await RecordsWrite.create({
-      attestationSignatureInputs  : attestation,
-      authorizationSignatureInput : authorization,
-      data                        : new Uint8Array(await dataBlob.arrayBuffer()),
+      attestationSigners  : attestation,
+      authorizationSigner : authorization,
+      data                : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       encryptionInput,
-      parentId                    : parentRecorsWrite.recordId,
+      parentId            : parentRecorsWrite.recordId,
       protocol,
       protocolPath,
       published,
@@ -241,7 +238,7 @@ describe('Record', () => {
       expect(status.code).to.equal(202);
 
       // Read the record that was just created.
-      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { recordId: record!.id }});
+      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: { recordId: record!.id }}});
 
       expect(readRecordStatus.code).to.equal(200);
 
@@ -286,7 +283,7 @@ describe('Record', () => {
       expect(status.code).to.equal(202);
 
       // Read the record that was just created.
-      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { recordId: record!.id }});
+      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: { recordId: record!.id }}});
 
       expect(readRecordStatus.code).to.equal(200);
 
@@ -333,7 +330,7 @@ describe('Record', () => {
       expect(status.code).to.equal(202);
 
       // Read the record that was just created.
-      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { recordId: record!.id }});
+      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: { recordId: record!.id }}});
 
       expect(readRecordStatus.code).to.equal(200);
 
@@ -378,7 +375,7 @@ describe('Record', () => {
       expect(status.code).to.equal(202);
 
       // Read the record that was just created.
-      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { recordId: record!.id }});
+      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: { recordId: record!.id }}});
 
       expect(readRecordStatus.code).to.equal(200);
 
@@ -422,7 +419,7 @@ describe('Record', () => {
       expect(status.code).to.equal(202);
 
       // Read the record that was just created.
-      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { recordId: record!.id }});
+      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: { recordId: record!.id }}});
 
       expect(readRecordStatus.code).to.equal(200);
 
@@ -463,7 +460,7 @@ describe('Record', () => {
       expect(status.code).to.equal(202);
 
       // Read the record that was just created.
-      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { recordId: record!.id }});
+      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: { recordId: record!.id }}});
 
       expect(readRecordStatus.code).to.equal(200);
 
@@ -871,21 +868,17 @@ describe('Record', () => {
       const encryptionPublicKeyJwk = aliceDid.keySet.verificationMethodKeys!.find(keyPair => keyPair.publicKeyJwk.kid === encryptionKeyIdFragment)!.publicKeyJwk;
 
       // RecordsWriteMessage properties that can be pre-defined
-      const attestation = [{
-        privateJwk      : signingPrivateKeyJwk as DwnPrivateKeyJwk,
-        protectedHeader : {
-          alg : signingPrivateKeyJwk.alg as string,
-          kid : signingKeyId
-        }
-      }];
+      const attestation = [new PrivateKeySigner({
+        privateJwk : signingPrivateKeyJwk as DwnPrivateKeyJwk,
+        algorithm  : signingPrivateKeyJwk.alg as string,
+        keyId      : signingKeyId,
+      })];
 
-      const authorization = {
-        privateJwk      : signingPrivateKeyJwk as DwnPrivateKeyJwk,
-        protectedHeader : {
-          alg : signingPrivateKeyJwk.alg as string,
-          kid : signingKeyId
-        }
-      };
+      const authorization = new PrivateKeySigner({
+        privateJwk : signingPrivateKeyJwk as DwnPrivateKeyJwk,
+        algorithm  : signingPrivateKeyJwk.alg as string,
+        keyId      : signingKeyId,
+      });
 
       const encryptionInput: EncryptionInput = {
         algorithm            : EncryptionAlgorithm.Aes256Ctr,
@@ -915,8 +908,8 @@ describe('Record', () => {
 
       // Create a parent record to reference in the RecordsWriteMessage used for validation
       const parentRecorsWrite = await RecordsWrite.create({
-        authorizationSignatureInput : authorization,
-        data                        : new Uint8Array(await dataBlob.arrayBuffer()),
+        authorizationSigner : authorization,
+        data                : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         protocol,
         protocolPath,
@@ -925,12 +918,12 @@ describe('Record', () => {
 
       // Create a RecordsWriteMessage
       const recordsWrite = await RecordsWrite.create({
-        attestationSignatureInputs  : attestation,
-        authorizationSignatureInput : authorization,
-        data                        : new Uint8Array(await dataBlob.arrayBuffer()),
+        attestationSigners  : attestation,
+        authorizationSigner : authorization,
+        data                : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         encryptionInput,
-        parentId                    : parentRecorsWrite.recordId,
+        parentId            : parentRecorsWrite.recordId,
         protocol,
         protocolPath,
         published,
@@ -1000,7 +993,9 @@ describe('Record', () => {
 
       const readResult = await dwn.records.read({
         message: {
-          recordId: record!.id
+          filter: {
+            recordId: record!.id
+          }
         }
       });
 
