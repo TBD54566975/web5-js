@@ -515,7 +515,7 @@ describe('SyncManagerLevel', () => {
               author         : alice.did,
               target         : alice.did,
               messageType    : 'RecordsRead',
-              messageOptions : { recordId }
+              messageOptions : { filter: { recordId } }
             });
             const reply = record.reply as RecordsReadReply;
             expect(reply.status.code).to.equal(200);
@@ -701,7 +701,7 @@ describe('SyncManagerLevel', () => {
               author         : alice.did,
               target         : alice.did,
               messageType    : 'RecordsRead',
-              messageOptions : { recordId }
+              messageOptions : { filter: { recordId } }
             });
             const reply = record.reply as RecordsReadReply;
             expect(reply.status.code).to.equal(200);

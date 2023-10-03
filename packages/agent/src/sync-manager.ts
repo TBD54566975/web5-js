@@ -183,7 +183,9 @@ export class SyncManagerLevel implements SyncManager {
               author         : did,
               messageType    : 'RecordsRead',
               messageOptions : {
-                recordId: message['recordId']
+                filter: {
+                  recordId: message['recordId']
+                }
               }
             });
 
@@ -467,7 +469,9 @@ export class SyncManagerLevel implements SyncManager {
           target         : author,
           messageType    : 'RecordsRead',
           messageOptions : {
-            recordId: writeMessage.recordId
+            filter: {
+              recordId: writeMessage.recordId
+            }
           }
         });
         const reply = readResponse.reply as RecordsReadReply;
