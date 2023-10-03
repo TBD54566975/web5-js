@@ -255,31 +255,27 @@ describe('SyncManagerLevel', () => {
           };
         };
 
-        const localRecords = new Set(
-          (await Promise.all(Array(5).fill({}).map(_ => testAgent.agent.dwnManager.processRequest(TestRecordsWriteMessage(
-            alice.did,
-            alice.did,
-            new Blob([randomString(256)]),
-          ))))).map(r => (r.message as RecordsWriteMessage).recordId)
-        );
+        const localRecords = (await Promise.all(Array(5).fill({}).map(_ => testAgent.agent.dwnManager.processRequest(TestRecordsWriteMessage(
+          alice.did,
+          alice.did,
+          new Blob([randomString(256)]),
+        ))))).map(r => (r.message as RecordsWriteMessage).recordId);
 
-        const remoteRecords = new Set(
-          (await Promise.all(Array(5).fill({}).map(_ => testAgent.agent.dwnManager.sendRequest(TestRecordsWriteMessage(
-            alice.did,
-            alice.did,
-            new Blob([randomString(256)]),
-          ))))).map(r => (r.message as RecordsWriteMessage).recordId)
-        );
+        const remoteRecords = (await Promise.all(Array(5).fill({}).map(_ => testAgent.agent.dwnManager.sendRequest(TestRecordsWriteMessage(
+          alice.did,
+          alice.did,
+          new Blob([randomString(256)]),
+        ))))).map(r => (r.message as RecordsWriteMessage).recordId);
 
         const { reply: localReply } = await testAgent.agent.dwnManager.processRequest(everythingQuery());
         expect(localReply.status.code).to.equal(200);
-        expect(localReply.entries?.length).to.equal(localRecords.size);
-        expect(localReply.entries?.every(e => localRecords.has((e as RecordsWriteMessage).recordId))).to.be.true;
+        expect(localReply.entries?.length).to.equal(localRecords.length);
+        expect(localReply.entries?.every(e => localRecords.includes((e as RecordsWriteMessage).recordId))).to.be.true;
 
         const { reply: remoteReply } = await testAgent.agent.dwnManager.sendRequest(everythingQuery());
         expect(remoteReply.status.code).to.equal(200);
-        expect(remoteReply.entries?.length).to.equal(remoteRecords.size);
-        expect(remoteReply.entries?.every(e => remoteRecords.has((e as RecordsWriteMessage).recordId))).to.be.true;
+        expect(remoteReply.entries?.length).to.equal(remoteRecords.length);
+        expect(remoteReply.entries?.every(e => remoteRecords.includes((e as RecordsWriteMessage).recordId))).to.be.true;
 
         await testAgent.agent.syncManager.sync();
 
