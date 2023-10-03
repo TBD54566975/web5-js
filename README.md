@@ -261,7 +261,12 @@ The query `request` contains the following properties:
 - **`from`** - _`DID string`_ (_optional_): the decentralized identifier of the DWeb Node the query will fetch results from.
 - **`message`** - _`object`_: the properties of the DWeb Node Message Descriptor that will be used to construct a valid record query:
   - **`filter`** - _`object`_: properties against which results of the query will be filtered:
+    - **`recordId`** - _`string`_ (_optional_): the record ID string that identifies the record data you are fetching.
     - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol bucket in which to query.
+    - **`protocolPath`** - _`string`_ (_optional_): the path to the record in the protocol configuration.
+    - **`contextId`** _`string`_ (_optional_): the `recordId` of a root record of a protocol.
+    - **`parentId`** _`string`_ (_optional_): the `recordId` of a the parent of a protocol record.
+    - **`recipient`** - _`string`_ (_optional_): the DID in the `recipient` field of the record.
     - **`schema`** - _`URI string`_ (_optional_): the URI of the schema bucket in which to query.
     - **`dataFormat`** - _`Media Type string`_ (_optional_): the IANA string corresponding with the format of the data to filter for. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
 
@@ -311,13 +316,15 @@ The `create()` method is an alias for `write()` and both can take the same reque
 
 ### **`web5.dwn.records.read(request)`**
 
-Method for reading a record stored in the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted).
+Method for reading a record stored in the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted). The request takes a filter; if there is exactly one record matching the filter, the record and its data are returned. The most common filter is by `recordId`, but it is also useful to filter by `protocol`, `contextId`, and `protocolPath`.
 
 ```javascript
 // Reads the indicated record from the user's DWeb Nodes
 const { record } = await web5.dwn.records.read({
   message: {
-    recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
+    filter: {
+      recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
+    }
   },
 });
 
@@ -327,7 +334,9 @@ console.log(await record.data.text()); // assuming the record is a text payload,
 const { record } = await web5.dwn.records.read({
   from: "did:example:bob",
   message: {
-    recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
+    filter: {
+      recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
+    }
   },
 });
 
@@ -340,7 +349,15 @@ The `read` request object is composed as follows:
 
 - **`from`** - _`DID string`_ (_optional_): The DID of the DWeb Node the read request will fetch the indicated record from.
 - **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
-  - **`recordId`** - _`string`_: the required record ID string that identifies the record data you are fetching.
+  - **`filter`** - _`object`_: properties against which results of the query will be filtered:
+    - **`recordId`** - _`string`_ (_optional_): the record ID string that identifies the record data you are fetching.
+    - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol bucket in which to query.
+    - **`protocolPath`** - _`string`_ (_optional_): the path to the record in the protocol configuration.
+    - **`contextId`** _`string`_ (_optional_): the `recordId` of a root record of a protocol.
+    - **`parentId`** _`string`_ (_optional_): the `recordId` of a the parent of a protocol record.
+    - **`recipient`** - _`string`_ (_optional_): the DID in the `recipient` field of the record.
+    - **`schema`** - _`URI string`_ (_optional_): the URI of the schema bucket in which to query.
+    - **`dataFormat`** - _`Media Type string`_ (_optional_): the IANA string corresponding with the format of the data to filter for. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
 
 ### **`web5.dwn.records.delete(request)`**
 
