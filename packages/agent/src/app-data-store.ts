@@ -135,7 +135,23 @@ export class AppDataVault implements AppDataStore {
     throw new Error ('Not implemented');
   }
 
-  private async generateVaultUnlockKey(options: {
+  /**
+   * The salt value derived in Step 3 and the passphrase entered by the
+   * end-user are inputs to the PBKDF2 algorithm to derive a 32-byte secret
+   * key that will be referred to as the Vault Unlock Key (VUK).
+   */
+  private generateVaultUnlockKey(options: {
+    passphrase: string,
+    salt: Uint8Array
+  }): Promise<Uint8Array> {
+    if (crypto && typeof crypto.subtle === 'object' && crypto.subtle != null) {
+      return this.generateVaultUnlockKeyWithSubtleCrypto(options);
+    } else {
+      return this.generateVaultUnlockKeyWithNoble(options);
+    }
+  }
+
+  private async generateVaultUnlockKeyWithSubtleCrypto(options: {
     passphrase: string,
     salt: Uint8Array
   }): Promise<Uint8Array> {
@@ -151,11 +167,36 @@ export class AppDataVault implements AppDataStore {
       ['deriveBits']
     );
 
-    /**
-     * The salt value derived in Step 3 and the passphrase entered by the
-     * end-user are inputs to the PBKDF2 algorithm to derive a 32-byte secret
-     * key that will be referred to as the Vault Unlock Key (VUK).
-     */
+    const vaultUnlockKey = await crypto.subtle.deriveBits(
+      {
+        name       : 'PBKDF2',
+        hash       : 'SHA-512',
+        salt       : salt,
+        iterations : this._keyDerivationWorkFactor,
+      },
+      importedKey,
+      32 * 8, // 32 bytes
+    );
+
+    return new Uint8Array(vaultUnlockKey);
+  }
+
+  private async generateVaultUnlockKeyWithNoble(options: {
+    passphrase: string,
+    salt: Uint8Array
+  }): Promise<Uint8Array> {
+    const { passphrase, salt } = options;
+
+    const passwordBuffer = new TextEncoder().encode(passphrase);
+
+    const importedKey = await crypto.subtle.importKey(
+      'raw',
+      passwordBuffer,
+      'PBKDF2',
+      false,
+      ['deriveBits']
+    );
+
     const vaultUnlockKey = await crypto.subtle.deriveBits(
       {
         name       : 'PBKDF2',
