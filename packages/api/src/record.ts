@@ -16,7 +16,7 @@ export type RecordOptions = RecordsWriteMessage & {
 };
 
 export type RecordModel = RecordsWriteDescriptor
-  & Omit<RecordsWriteMessage, 'descriptor' | 'recordId'>
+  & Omit<RecordsWriteMessage, 'descriptor' | 'recordId' | 'authorization'>
   & {
     author: string;
     recordId?: string;
