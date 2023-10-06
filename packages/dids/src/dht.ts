@@ -3,7 +3,7 @@ import DHT from 'bittorrent-dht';
 import ed from 'bittorrent-dht-sodium';
 import brotli from 'brotli-compress';
 import b4a from 'b4a';
-import {DidDocument} from "./types.js";
+import {DidDocument} from './types.js';
 
 
 const DEFAULT_BOOTSTRAP = [
