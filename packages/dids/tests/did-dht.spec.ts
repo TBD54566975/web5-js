@@ -2,7 +2,7 @@ import chai from 'chai';
 import {expect} from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import {DidDhtKeySet, DidDhtMethod} from '../src/did-dht.js';
-import {DidKeySetVerificationMethodKey, DidService} from '@web5/dids';
+import {DidKeySetVerificationMethodKey, DidService} from "../src/index.js";
 
 chai.use(chaiAsPromised);
 
