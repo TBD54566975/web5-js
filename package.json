@@ -24,5 +24,10 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@npmcli/package-json": "5.0.0"
+  },
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.7.4",
+    "@typescript-eslint/parser": "^6.7.4",
+    "eslint-plugin-mocha": "^10.2.0"
   }
 }
