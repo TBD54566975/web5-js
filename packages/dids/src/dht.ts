@@ -1,10 +1,10 @@
 import DHT from 'bittorrent-dht';
 import ed from 'bittorrent-dht-sodium';
-import type {DidDocument} from './types.js';
-import dns, {AUTHORITATIVE_ANSWER, Packet, TxtAnswer} from 'dns-packet';
+import dns, { AUTHORITATIVE_ANSWER, Packet, TxtAnswer } from 'dns-packet';
 import Encoder from '@decentralized-identity/ion-sdk/dist/lib/Encoder.js';
-import type {PublicKeyJwk, Web5Crypto} from '@web5/crypto';
-import {Jose} from '@web5/crypto';
+import type { PublicKeyJwk, Web5Crypto } from '@web5/crypto';
+import { Jose } from '@web5/crypto';
+import type { DidDocument } from './types.js';
 
 const DEFAULT_BOOTSTRAP = [
     'router.magnets.im:6881',

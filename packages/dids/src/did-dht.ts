@@ -1,6 +1,6 @@
 import z32 from 'z32';
 import { sha1 } from '@noble/hashes/sha1';
-import {EcdsaAlgorithm, EdDsaAlgorithm, Jose, JwkKeyPair, PublicKeyJwk, Web5Crypto} from '@web5/crypto';
+import { EcdsaAlgorithm, EdDsaAlgorithm, Jose, JwkKeyPair, PublicKeyJwk, Web5Crypto } from '@web5/crypto';
 import {
   DidDocument,
   DidKeySetVerificationMethodKey,
@@ -9,7 +9,7 @@ import {
   DidService, PortableDid,
   VerificationRelationship
 } from './types.js';
-import {DidDht} from './dht.js';
+import { DidDht } from './dht.js';
 
 const SupportedCryptoKeyTypes = [
   'Ed25519',
