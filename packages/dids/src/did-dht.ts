@@ -61,8 +61,8 @@ export class DidDhtMethod implements DidMethod {
 
     // add did identifier to the service ids
     services?.map(service => {
-        service.id = `${id}#${service.id}`;
-    })
+      service.id = `${id}#${service.id}`;
+    });
     const document: DidDocument = {
       id,
       verificationMethod: [...verificationMethods],
