@@ -51,22 +51,14 @@ describe('Codec', async () => {
     const keySet = {
       verificationMethodKeys : [vm],
     }
-    const {document} = await DidDhtMethod.create({services: services, keySet: keySet});
-    const ck = await Jose.jwkToCryptoKey({key: document.verificationMethod[0].publicKeyJwk})
-    const hexKey =  Buffer.from(ck.material).toString('hex');
-    console.log('hexKey', document.verificationMethod[0].id, hexKey);
-
-    const ck2 = await Jose.jwkToCryptoKey({key: document.verificationMethod[1].publicKeyJwk})
-    const hexKey2 =  Buffer.from(ck2.material).toString('hex');
-    console.log('hexKey2', document.verificationMethod[1].id, hexKey2);
-
+    const {did, document} = await DidDhtMethod.create({services: services, keySet: keySet});
 
     console.log('document', JSON.stringify(document));
     const encoded = await DidDht.toEncodedDnsPacket(document);
 
-    await DidDht.printEncodedDnsPacket(encoded);
-    // expect(decoded).to.deep.equal(decoded);
+    const decoded = await DidDht.fromEncodedDnsPacket(did, encoded);
+    expect(decoded).to.deep.equal(decoded);
 
-    // console.log('decoded', JSON.stringify(decoded));
+    console.log('decoded', JSON.stringify(decoded));
   });
 });

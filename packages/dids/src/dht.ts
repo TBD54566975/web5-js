@@ -1,4 +1,4 @@
-import {Jose, Web5Crypto} from '@web5/crypto';
+import {Jose, PublicKeyJwk, Web5Crypto} from '@web5/crypto';
 import DHT from 'bittorrent-dht';
 import ed from 'bittorrent-dht-sodium';
 import brotli from 'brotli-compress';
@@ -210,12 +210,89 @@ export class DidDht {
     }
 
     /**
+     * @param did The DID of the document
      * @param encodedPacket A Uint8Array containing the encoded DNS packet
      */
-    public static async fromEncodedDnsPacket(encodedPacket: Buffer): Promise<DidDocument> {
+    public static async fromEncodedDnsPacket(did: string, encodedPacket: Buffer): Promise<DidDocument> {
         const packet = dns.decode(encodedPacket);
+        const document: Partial<DidDocument> = {
+            id: did,
+            verificationMethod: [],
+            service: []
+        };
 
-        return null;
+        const keyLookup = new Map<string, string>();
+
+        for (const answer of packet.answers) {
+            if (answer.type !== 'TXT') continue;
+
+            const dataStr = answer.data?.toString();
+            // Extracts 'k' or 's' from "_k0._did" or "_s0._did"
+            const recordType = answer.name?.split('.')[0].substring(1, 2);
+
+            switch (recordType) {
+                case 'k':
+                    const {id, t, k} = DidDht.parseTxtData(dataStr);
+                    const crv = t === '0' ? 'Ed25519' : 'secp256k1'; // Map back the key type
+                    const publicKeyJwk = await Jose.keyToJwk({
+                        crv: crv,
+                        // kty: crv === 'Ed25519' ? 'EC' : 'OKP',
+                        // alg: crv === 'Ed25519' ? 'EdDSA' : 'ES256K',
+                        keyMaterial: Encoder.decodeAsBytes(k, "key"),
+                        keyType: 'public'
+                    }) as PublicKeyJwk;
+                    document.verificationMethod.push({
+                        id: `${did}#${id}`,
+                        type: 'JsonWebKey2020',
+                        controller: did,
+                        publicKeyJwk: publicKeyJwk,
+                    });
+                    keyLookup.set(id, answer.name);
+                    break;
+                case 's':
+                    const {id: sId, t: sType, uri} = DidDht.parseTxtData(dataStr);
+                    document.service.push({
+                        id: `${did}#${sId}`,
+                        type: sType,
+                        serviceEndpoint: uri
+                    });
+                    break;
+            }
+        }
+
+        // Extract relationships from root record
+        const rootRecord = packet.answers.find(answer => answer.name === '_did')?.toString().split(';');
+        rootRecord?.forEach(record => {
+            const [type, ids] = record.split('=');
+            const idList = ids?.split(',').map(id => keyLookup.get(`_${id}._did`));
+            switch (type) {
+                case 'auth':
+                    document.authentication = idList;
+                    break;
+                case 'asm':
+                    document.assertionMethod = idList;
+                    break;
+                case 'agm':
+                    document.keyAgreement = idList;
+                    break;
+                case 'inv':
+                    document.capabilityInvocation = idList;
+                    break;
+                case 'del':
+                    document.capabilityDelegation = idList;
+                    break;
+            }
+        });
+
+        return document as DidDocument;
+    }
+
+    public static parseTxtData(data: string): { [key: string]: string } {
+        return data.split(',').reduce((acc, pair) => {
+            const [key, value] = pair.split('=');
+            acc[key] = value;
+            return acc;
+        }, {} as { [key: string]: string });
     }
 
     public static async printEncodedDnsPacket(encodedPacket: Buffer) {
