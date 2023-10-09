@@ -110,7 +110,7 @@ export class DidDhtMethod implements DidMethod {
     const decoded = z32.decode(hash);
     const identifier = this.hash(decoded);
     const retrievedValue = await dht.get(identifier.toString('hex'));
-    return await dht.parseGetDidResponse(did.split('did:dht:')[1], retrievedValue).finally(() => dht.destroy());
+    return await dht.parseGetDidResponse(did, retrievedValue).finally(() => dht.destroy());
   }
 
   private static hash(input: crypto.BinaryLike) {

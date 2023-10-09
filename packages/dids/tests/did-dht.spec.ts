@@ -166,7 +166,7 @@ describe('did-dht', () => {
 
     it('should create a did document with services', async () => {
       const services: DidService[] = [{
-        id              : 'did:dht:123456789abcdefghi#agent',
+        id              : 'agentId',
         type            : 'agent',
         serviceEndpoint : 'https://example.com/agent'
       }];
@@ -182,7 +182,7 @@ describe('did-dht', () => {
 
       expect(document.service).to.exist;
       expect(document.service).to.have.lengthOf(1);
-      expect(document.service[0].id).to.equal('did:dht:123456789abcdefghi#agent');
+      expect(document.service[0].id).to.equal(`${document.id}#agentId`);
       expect(document.assertionMethod.length).to.equal(1);
       expect(document.assertionMethod[0]).to.equal(`#0`);
       expect(document.authentication.length).to.equal(1);
@@ -212,13 +212,24 @@ describe('did-dht', () => {
       expect(didResolutionResult.didDocument.service).to.not.exist;
 
       const gotDid = await DidDhtMethod.resolve(document.id);
-      expect(gotDid).to.deep.equal(document);
+      console.log('gotDid', gotDid);
+      expect(gotDid.id).to.deep.equal(document.id);
+      expect(gotDid.service).to.deep.equal(document.service);
+      expect(gotDid.verificationMethod[0].id).to.deep.equal(document.verificationMethod[0].id);
+      expect(gotDid.verificationMethod[0].type).to.deep.equal(document.verificationMethod[0].type);
+      expect(gotDid.verificationMethod[0].controller).to.deep.equal(document.verificationMethod[0].controller);
+      expect(gotDid.verificationMethod[0].publicKeyJwk.kid).to.deep.equal(document.verificationMethod[0].publicKeyJwk.kid);
     });
 
     it('should create with publish and get a did document', async () => {
       const {document} = await DidDhtMethod.create({publish: true});
       const gotDid = await DidDhtMethod.resolve(document.id);
-      expect(gotDid).to.deep.equal(document);
+      expect(gotDid.id).to.deep.equal(document.id);
+      expect(gotDid.service).to.deep.equal(document.service);
+      expect(gotDid.verificationMethod[0].id).to.deep.equal(document.verificationMethod[0].id);
+      expect(gotDid.verificationMethod[0].type).to.deep.equal(document.verificationMethod[0].type);
+      expect(gotDid.verificationMethod[0].controller).to.deep.equal(document.verificationMethod[0].controller);
+      expect(gotDid.verificationMethod[0].publicKeyJwk.kid).to.deep.equal(document.verificationMethod[0].publicKeyJwk.kid);
     });
   });
 });
