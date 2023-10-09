@@ -212,7 +212,6 @@ describe('did-dht', () => {
       expect(didResolutionResult.didDocument.service).to.not.exist;
 
       const gotDid = await DidDhtMethod.resolve(document.id);
-      console.log('gotDid', gotDid);
       expect(gotDid.id).to.deep.equal(document.id);
       expect(gotDid.service).to.deep.equal(document.service);
       expect(gotDid.verificationMethod[0].id).to.deep.equal(document.verificationMethod[0].id);

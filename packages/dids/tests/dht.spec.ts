@@ -1,7 +1,7 @@
 import {expect} from 'chai';
+import {Jose} from '@web5/crypto';
 import {DidDht} from '../src/dht.js';
 import {DidDhtKeySet, DidDhtMethod} from '../src/did-dht.js';
-import {Jose} from '@web5/crypto';
 import {DidKeySetVerificationMethodKey, DidService} from '../src/index.js';
 
 describe('DHT', function () {

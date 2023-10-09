@@ -1,5 +1,6 @@
 import z32 from 'z32';
-import crypto from 'crypto';
+import { sha1 } from '@noble/hashes/sha1';
+import {EcdsaAlgorithm, EdDsaAlgorithm, Jose, JwkKeyPair, PublicKeyJwk, Web5Crypto} from '@web5/crypto';
 import {
   DidDocument,
   DidKeySetVerificationMethodKey,
@@ -8,7 +9,6 @@ import {
   DidService, PortableDid,
   VerificationRelationship
 } from './types.js';
-import {EcdsaAlgorithm, EdDsaAlgorithm, Jose, JwkKeyPair, PublicKeyJwk, Web5Crypto} from '@web5/crypto';
 import {DidDht} from './dht.js';
 
 const SupportedCryptoKeyTypes = [
@@ -109,12 +109,12 @@ export class DidDhtMethod implements DidMethod {
     const hash = did.replace('did:dht:', '');
     const decoded = z32.decode(hash);
     const identifier = this.hash(decoded);
-    const retrievedValue = await dht.get(identifier.toString('hex'));
+    const retrievedValue = await dht.get(Buffer.from(identifier).toString('hex'));
     return await dht.parseGetDidResponse(did, retrievedValue).finally(() => dht.destroy());
   }
 
-  private static hash(input: crypto.BinaryLike) {
-    return crypto.createHash('sha1').update(input).digest();
+  private static hash(input: Uint8Array) {
+    return sha1(input);
   }
 
   public static async getDidIdentifier(options: {
