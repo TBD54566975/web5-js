@@ -1,7 +1,15 @@
 import { expect } from 'chai';
 
 import { CryptoKey } from '../src/algorithms-api/crypto-key.js';
-import { checkValidProperty, checkRequiredProperty, isCryptoKeyPair, randomUuid, multibaseIdToKey, keyToMultibaseId } from '../src/utils.js';
+import {
+  randomPin,
+  randomUuid,
+  isCryptoKeyPair,
+  keyToMultibaseId,
+  multibaseIdToKey,
+  checkValidProperty,
+  checkRequiredProperty,
+} from '../src/utils.js';
 
 describe('Crypto Utils', () => {
   describe('checkValidProperty()', () => {
@@ -168,6 +176,60 @@ describe('Crypto Utils', () => {
       expect(multicodecCode).to.equal(236);
       expect(multicodecName).to.exist;
       expect(multicodecName).to.equal('x25519-pub');
+    });
+  });
+
+  describe('randomPin', () => {
+    it('generates a 3-digit PIN', () => {
+      const pin = randomPin({ length: 3 });
+      expect(pin).to.match(/^\d{3}$/);
+    });
+
+    it('generates a 4-digit PIN', () => {
+      const pin = randomPin({ length: 4 });
+      expect(pin).to.match(/^\d{4}$/);
+    });
+
+    it('generates a 5-digit PIN', () => {
+      const pin = randomPin({ length: 5 });
+      expect(pin).to.match(/^\d{5}$/);
+    });
+
+    it('generates a 6-digit PIN', () => {
+      const pin = randomPin({ length: 6 });
+      expect(pin).to.match(/^\d{6}$/);
+    });
+
+    it('generates a 7-digit PIN', () => {
+      const pin = randomPin({ length: 7 });
+      expect(pin).to.match(/^\d{7}$/);
+    });
+
+    it('generates an 8-digit PIN', () => {
+      const pin = randomPin({ length: 8 });
+      expect(pin).to.match(/^\d{8}$/);
+    });
+
+    it('generates an 9-digit PIN', () => {
+      const pin = randomPin({ length: 8 });
+      expect(pin).to.match(/^\d{8}$/);
+    });
+
+    it('generates an 10-digit PIN', () => {
+      const pin = randomPin({ length: 8 });
+      expect(pin).to.match(/^\d{8}$/);
+    });
+
+    it('throws an error for a PIN length less than 3', () => {
+      expect(
+        () => randomPin({ length: 2 })
+      ).to.throw(Error, 'generatePin() can securely generate a PIN between 3 to 10 digits.');
+    });
+
+    it('throws an error for a PIN length greater than 10', () => {
+      expect(
+        () => randomPin({ length: 11 })
+      ).to.throw(Error, 'generatePin() can securely generate a PIN between 3 to 10 digits.');
     });
   });
 
