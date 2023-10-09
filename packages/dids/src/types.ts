@@ -3,7 +3,7 @@ import type { PrivateKeyJwk, PublicKeyJwk } from '@web5/crypto';
 
 import { DidKeyKeySet } from './did-key.js';
 import { DidIonKeySet } from './did-ion.js';
-import {DidDhtKeySet} from './did-dht.js';
+import { DidDhtKeySet } from './did-dht.js';
 
 export type DidDocument = {
   '@context'?: 'https://www.w3.org/ns/did/v1' | string | string[];

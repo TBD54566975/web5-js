@@ -26,5 +26,5 @@
     "@npmcli/package-json": "5.0.0",
     "@typescript-eslint/eslint-plugin": "^6.7.5",
     "eslint-plugin-mocha": "^10.2.0"
-  }
+  },
 }
