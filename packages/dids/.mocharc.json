@@ -1,5 +1,9 @@
 {
   "enable-source-maps": true,
   "exit": true,
-  "spec": ["tests/compiled/**/*.spec.js"]
+  "spec": ["tests/compiled/**/*.spec.js"],
+  "node-option": [
+    "experimental-specifier-resolution=node",
+    "loader=ts-node/esm"
+  ]
 }

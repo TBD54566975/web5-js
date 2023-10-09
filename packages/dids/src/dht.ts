@@ -1,21 +1,24 @@
-import {Web5Crypto} from '@web5/crypto';
+import {Jose, Web5Crypto} from '@web5/crypto';
 import DHT from 'bittorrent-dht';
 import ed from 'bittorrent-dht-sodium';
 import brotli from 'brotli-compress';
 import b4a from 'b4a';
 import {DidDocument} from './types.js';
-
+import dns, {AUTHORITATIVE_ANSWER, Packet, TxtAnswer} from 'dns-packet'
+import Encoder from "@decentralized-identity/ion-sdk/dist/lib/Encoder.js";
 
 const DEFAULT_BOOTSTRAP = [
-  'router.magnets.im:6881',
-  'router.bittorrent.com:6881',
-  'router.utorrent.com:6881',
-  'dht.transmissionbt.com:6881',
-  'router.nuh.dev:6881'
+    'router.magnets.im:6881',
+    'router.bittorrent.com:6881',
+    'router.utorrent.com:6881',
+    'dht.transmissionbt.com:6881',
+    'router.nuh.dev:6881'
 ].map(addr => {
-  const [host, port] = addr.split(':');
-  return {host, port: Number(port)};
+    const [host, port] = addr.split(':');
+    return {host, port: Number(port)};
 });
+
+const TTL = 7200;
 
 export type PutRequest = {
     // sequence number of the request
@@ -29,85 +32,203 @@ export type PutRequest = {
 };
 
 export class DidDht {
-  private dht: DHT;
+    private dht: DHT;
 
-  constructor() {
-    this.dht = new DHT({bootstrap: DEFAULT_BOOTSTRAP, verify: ed.verify});
+    constructor() {
+        this.dht = new DHT({bootstrap: DEFAULT_BOOTSTRAP, verify: ed.verify});
 
-    this.dht.listen(0, () => {
-      console.debug('DHT is listening...');
-    });
-  }
-
-  public async createPutDidRequest(keypair: Web5Crypto.CryptoKeyPair, did: DidDocument): Promise<PutRequest> {
-    const seq = Math.ceil(Date.now() / 1000);
-    const records: string[][] = [['did', JSON.stringify(did)]];
-    const v = await DidDht.compress(records);
-    return {
-      seq : seq,
-      v   : Buffer.from(v),
-      k   : Buffer.from(keypair.publicKey.material),
-      sk  : Buffer.concat([keypair.privateKey.material, keypair.publicKey.material])
-    };
-  }
-
-  public async put(request: PutRequest): Promise<string> {
-    const opts = {
-      k    : request.k,
-      v    : request.v,
-      seq  : request.seq,
-      sign : function (buf: Buffer) {
-        return ed.sign(buf, request.sk);
-      }
-    };
-    return new Promise((resolve, reject) => {
-      this.dht.put(opts, (err, hash) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(hash.toString('hex'));
-        }
-      });
-    });
-  }
-
-  public async parseGetDidResponse(response: Buffer): Promise<DidDocument> {
-    const records = await DidDht.decompress(response);
-    const didRecord = records.find(record => record[0] === 'did');
-    if (!didRecord) {
-      throw new Error('No DID record found');
+        this.dht.listen(0, () => {
+            console.debug('DHT is listening...');
+        });
     }
-    return JSON.parse(didRecord[1]);
-  }
 
-  public async get(keyHash: string): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      this.dht.get(keyHash, (err, res) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(res.v);
+    public async createPutDidRequest(keypair: Web5Crypto.CryptoKeyPair, did: DidDocument): Promise<PutRequest> {
+        const seq = Math.ceil(Date.now() / 1000);
+        const v = await DidDht.toEncodedDnsPacket(did);
+        return {
+            seq: seq,
+            v: Buffer.from(v),
+            k: Buffer.from(keypair.publicKey.material),
+            sk: Buffer.concat([keypair.privateKey.material, keypair.publicKey.material])
+        };
+    }
+
+    public async put(request: PutRequest): Promise<string> {
+        const opts = {
+            k: request.k,
+            v: request.v,
+            seq: request.seq,
+            sign: function (buf: Buffer) {
+                return ed.sign(buf, request.sk);
+            }
+        };
+        return new Promise((resolve, reject) => {
+            this.dht.put(opts, (err, hash) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(hash.toString('hex'));
+                }
+            });
+        });
+    }
+
+    public async parseGetDidResponse(response: Buffer): Promise<DidDocument> {
+        return {id: "test"}; //DidDht.fromEncodedDnsPacket(response);
+    }
+
+    public async get(keyHash: string): Promise<Buffer> {
+        return new Promise((resolve, reject) => {
+            this.dht.get(keyHash, (err, res) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(res.v);
+                }
+            });
+        });
+    }
+
+    public static async toEncodedDnsPacket(document: DidDocument): Promise<Buffer> {
+        const packet: Partial<Packet> = {
+            id: 0,
+            type: 'response',
+            flags: AUTHORITATIVE_ANSWER,
+            answers: []
+        };
+
+        const rootRecord: string[] = [];
+        const keyLookup = new Map<string, string>();
+
+        // Add key records for each verification method
+        for (const vm of document.verificationMethod) {
+            const index = document.verificationMethod.indexOf(vm);
+            const recordIdentifier = `k${index}`;
+            let vmId = DidDht.identifierFragment(vm.id);
+            keyLookup.set(vmId, recordIdentifier);
+
+            let keyType: number;
+            switch (vm.publicKeyJwk.alg) {
+                case 'EdDSA':
+                    keyType = 0;
+                    break;
+                case 'ES256K':
+                    keyType = 1;
+                    break;
+                default:
+                    keyType = 0; // Default value or throw an error if needed
+            }
+
+            const cryptoKey = await Jose.jwkToCryptoKey({key: vm.publicKeyJwk});
+            const keyBase64Url = Encoder.encode(cryptoKey.material);
+            const keyRecord: TxtAnswer = {
+                type: 'TXT',
+                name: `_${recordIdentifier}._did`,
+                ttl: TTL,
+                data: Buffer.from(`id=${vmId},t=${keyType},k=${keyBase64Url}`)
+            };
+
+            packet.answers.push(keyRecord);
+            rootRecord.push(`vm=${recordIdentifier}`);
         }
-      });
-    });
-  }
 
-  public static async compress(records: string[][]): Promise<Uint8Array> {
-    const string = JSON.stringify(records);
-    const toCompress = b4a.from(string);
-    return await brotli.compress(toCompress);
-  }
+        // Add service records
+        document.service?.forEach((service, index) => {
+            const recordIdentifier = `s${index}`;
+            let sId = DidDht.identifierFragment(service.id);
+            const serviceRecord: TxtAnswer = {
+                type: 'TXT',
+                name: `_${recordIdentifier}._did`,
+                ttl: TTL,
+                data: Buffer.from(`id=${sId},t=${service.type},uri=${service.serviceEndpoint}`)
+            };
 
-  /**
-     * @param compressed A Uint8Array containing the compressed data
+            packet.answers.push(serviceRecord);
+            rootRecord.push(`srv=${recordIdentifier}`);
+        });
+
+        // add verification relationships
+        if (document.authentication) {
+            const authIds: string[] = document.authentication
+                .map(id => DidDht.identifierFragment(id))
+                .filter(id => keyLookup.has(id))
+                .map(id => keyLookup.get(id) as string);
+            if (authIds.length) {
+                rootRecord.push(`auth=${authIds.join(",")}`);
+            }
+        }
+        if (document.assertionMethod) {
+            const authIds: string[] = document.assertionMethod
+                .map(id => DidDht.identifierFragment(id))
+                .filter(id => keyLookup.has(id))
+                .map(id => keyLookup.get(id) as string);
+            if (authIds.length) {
+                rootRecord.push(`asm=${authIds.join(",")}`);
+            }
+        }
+        if (document.keyAgreement) {
+            const authIds: string[] = document.keyAgreement
+                .map(id => DidDht.identifierFragment(id))
+                .filter(id => keyLookup.has(id))
+                .map(id => keyLookup.get(id) as string);
+            if (authIds.length) {
+                rootRecord.push(`agm=${authIds.join(",")}`);
+            }
+        }
+        if (document.capabilityInvocation) {
+            const authIds: string[] = document.capabilityInvocation
+                .map(id => DidDht.identifierFragment(id))
+                .filter(id => keyLookup.has(id))
+                .map(id => keyLookup.get(id) as string);
+            if (authIds.length) {
+                rootRecord.push(`inv=${authIds.join(",")}`);
+            }
+        }
+        if (document.capabilityDelegation) {
+            const authIds: string[] = document.capabilityDelegation
+                .map(id => DidDht.identifierFragment(id))
+                .filter(id => keyLookup.has(id))
+                .map(id => keyLookup.get(id) as string);
+            if (authIds.length) {
+                rootRecord.push(`del=${authIds.join(",")}`);
+            }
+        }
+
+        // Add root record
+        packet.answers.push({
+            type: 'TXT',
+            name: '_did',
+            ttl: TTL,
+            data: Buffer.from(rootRecord.join(";"))
+        });
+
+        return dns.encode(packet);
+    }
+
+    private static identifierFragment(identifier: string): string {
+        return identifier.includes("#") ? identifier.substring(identifier.indexOf("#") + 1) : identifier;
+    }
+
+    /**
+     * @param encodedPacket A Uint8Array containing the encoded DNS packet
      */
-  public static async decompress(compressed: Uint8Array): Promise<string[][]> {
-    const decompressed = await brotli.decompress(compressed);
-    const string = b4a.toString(b4a.from(decompressed));
-    return JSON.parse(string);
-  }
+    public static async fromEncodedDnsPacket(encodedPacket: Buffer): Promise<DidDocument> {
+        const packet = dns.decode(encodedPacket);
 
-  public destroy(): void {
-    this.dht.destroy();
-  }
+        return null;
+    }
+
+    public static async printEncodedDnsPacket(encodedPacket: Buffer) {
+        const packet = dns.decode(encodedPacket);
+        packet.answers.forEach(answer => {
+            if (answer.type === 'TXT') {
+                const data = answer.data.toString();
+                console.log(answer.name, data);
+            }
+        })
+    }
+
+    public destroy(): void {
+        this.dht.destroy();
+    }
 }
