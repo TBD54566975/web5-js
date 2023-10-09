@@ -1,7 +1,7 @@
 import {Jose, PublicKeyJwk, Web5Crypto} from '@web5/crypto';
 import DHT from 'bittorrent-dht';
 import ed from 'bittorrent-dht-sodium';
-import {DidDocument} from './types.js';
+import type {DidDocument} from './types.js';
 import dns, {AUTHORITATIVE_ANSWER, Packet, TxtAnswer} from 'dns-packet';
 import Encoder from '@decentralized-identity/ion-sdk/dist/lib/Encoder.js';
 
