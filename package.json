@@ -24,6 +24,5 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@npmcli/package-json": "5.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.7.5"
   }
 }
