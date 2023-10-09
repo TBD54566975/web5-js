@@ -1,7 +1,7 @@
-import type { PrivateKeyJwk, PublicKeyJwk, Web5Crypto } from '@web5/crypto';
+import type { JsonWebKey, PrivateKeyJwk, PublicKeyJwk, Web5Crypto } from '@web5/crypto';
 
 import { universalTypeOf } from '@web5/common';
-import {   keyToMultibaseId, multibaseIdToKey } from '@web5/crypto/utils';
+import { keyToMultibaseId, multibaseIdToKey } from '@web5/crypto/utils';
 import {
   Jose,
   Ed25519,
@@ -89,11 +89,11 @@ export class DidKeyMethod implements DidMethod {
       keyAlgorithm,
       keySet,
       publicKeyFormat = 'JsonWebKey2020'
-    } = options ?? { };
+    } = options ?? {};
 
     // If keySet not given, generate a default key set.
     if (keySet === undefined) {
-      keySet = await DidKeyMethod.generateKeySet({ keyAlgorithm });
+      keySet = await DidKeyMethod.generateKeySet({ enableEncryptionKeyDerivation, keyAlgorithm });
     }
 
     const portableDid: Partial<PortableDid> = {};
@@ -634,10 +634,15 @@ export class DidKeyMethod implements DidMethod {
   }
 
   public static async generateKeySet(options?: {
+    enableEncryptionKeyDerivation?: boolean,
     keyAlgorithm?: typeof SupportedCryptoAlgorithms[number]
   }): Promise<DidKeyKeySet> {
-    // Generate Ed25519 keys, by default.
-    const { keyAlgorithm = 'Ed25519' } = options ?? {};
+    const {
+      // Do not derive an encryption key by default.
+      enableEncryptionKeyDerivation = false,
+      // Generate Ed25519 keys, by default.
+      keyAlgorithm = 'Ed25519'
+    } = options ?? {};
 
     let keyPair: Web5Crypto.CryptoKeyPair;
 
@@ -665,9 +670,11 @@ export class DidKeyMethod implements DidMethod {
       }
     }
 
+    // Convert the key pair to JWK format.
     const publicKeyJwk = await Jose.cryptoKeyToJwk({ key: keyPair.publicKey }) as PublicKeyJwk;
     const privateKeyJwk = await Jose.cryptoKeyToJwk({ key: keyPair.privateKey }) as PrivateKeyJwk;
 
+    // Create the key set.
     const keySet: DidKeyKeySet = {
       verificationMethodKeys: [{
         publicKeyJwk,
@@ -675,6 +682,42 @@ export class DidKeyMethod implements DidMethod {
         relationships: ['authentication']
       }]
     };
+
+    // Deriving an X25519 encryption key is only supported for Ed25519 keys.
+    if (enableEncryptionKeyDerivation === true && keyAlgorithm === 'Ed25519') {
+      // Derive the X25519 key pair from the Ed25519 key pair.
+      const encryptionPrivateKey = await Ed25519.convertPrivateKeyToX25519({ privateKey: keyPair.privateKey.material });
+      const encryptionPublicKey = await Ed25519.convertPublicKeyToX25519({ publicKey: keyPair.publicKey.material });
+
+      // Set the parameters for the X25519 JWKs.
+      const encryptionJwkParams: Partial<JsonWebKey> = {
+        crv     : 'X25519',
+        ext     : 'true',
+        key_ops : ['deriveKey', 'deriveBits'],
+        kty     : 'OKP'
+      };
+
+      // Convert the X25519 private key to JWK format.
+      const encryptionPrivateKeyJwk = await Jose.keyToJwk({
+        keyMaterial : encryptionPrivateKey,
+        keyType     : 'private',
+        ...encryptionJwkParams
+      }) as PrivateKeyJwk;
+
+      // Convert the X25519 public key to JWK format.
+      const encryptionPublicKeyJwk = await Jose.keyToJwk({
+        keyMaterial : encryptionPublicKey,
+        keyType     : 'public',
+        ...encryptionJwkParams
+      }) as PublicKeyJwk;
+
+      // Add the X25519 key pair to the key set.
+      keySet.verificationMethodKeys.push({
+        publicKeyJwk  : encryptionPublicKeyJwk,
+        privateKeyJwk : encryptionPrivateKeyJwk,
+        relationships : ['keyAgreement']
+      });
+    }
 
     return keySet;
   }
