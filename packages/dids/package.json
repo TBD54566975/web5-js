@@ -90,7 +90,6 @@
   },
   "devDependencies": {
     "@playwright/test": "1.36.2",
-    "@types/b4a": "^1.6.1",
     "@types/chai": "4.3.6",
     "@types/chai-as-promised": "7.1.5",
     "@types/dns-packet": "^5.6.1",
@@ -118,7 +117,6 @@
     "rimraf": "4.4.0",
     "sinon": "15.0.2",
     "source-map-loader": "4.0.1",
-    "ts-node": "^10.9.1",
     "typescript": "5.1.6"
   }
 }

@@ -59,6 +59,10 @@ export class DidDhtMethod implements DidMethod {
       };
     });
 
+    // add did identifier to the service ids
+    services?.map(service => {
+        service.id = `${id}#${service.id}`;
+    })
     const document: DidDocument = {
       id,
       verificationMethod: [...verificationMethods],
@@ -106,7 +110,7 @@ export class DidDhtMethod implements DidMethod {
     const decoded = z32.decode(hash);
     const identifier = this.hash(decoded);
     const retrievedValue = await dht.get(identifier.toString('hex'));
-    return await dht.parseGetDidResponse(retrievedValue).finally(() => dht.destroy());
+    return await dht.parseGetDidResponse(did.split('did:dht:')[1], retrievedValue).finally(() => dht.destroy());
   }
 
   private static hash(input: crypto.BinaryLike) {
@@ -121,6 +125,14 @@ export class DidDhtMethod implements DidMethod {
     const cryptoKey = await Jose.jwkToCryptoKey({key});
     const identifier = z32.encode(cryptoKey.material);
     return 'did:dht:' + identifier;
+  }
+
+  public static async getDidIdentifierFragment(options: {
+    key: PublicKeyJwk
+  }): Promise<string> {
+    const {key} = options;
+    const cryptoKey = await Jose.jwkToCryptoKey({key});
+    return z32.encode(cryptoKey.material);
   }
 
   public static async generateJwkKeyPair(options: {

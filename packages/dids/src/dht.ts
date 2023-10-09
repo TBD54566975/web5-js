@@ -1,8 +1,6 @@
 import {Jose, PublicKeyJwk, Web5Crypto} from '@web5/crypto';
 import DHT from 'bittorrent-dht';
 import ed from 'bittorrent-dht-sodium';
-import brotli from 'brotli-compress';
-import b4a from 'b4a';
 import {DidDocument} from './types.js';
 import dns, {AUTHORITATIVE_ANSWER, Packet, TxtAnswer} from 'dns-packet'
 import Encoder from "@decentralized-identity/ion-sdk/dist/lib/Encoder.js";
@@ -73,8 +71,8 @@ export class DidDht {
         });
     }
 
-    public async parseGetDidResponse(response: Buffer): Promise<DidDocument> {
-        return {id: "test"}; //DidDht.fromEncodedDnsPacket(response);
+    public async parseGetDidResponse(id: string, response: Buffer): Promise<DidDocument> {
+        return await DidDht.fromEncodedDnsPacket(id, response);
     }
 
     public async get(keyHash: string): Promise<Buffer> {
@@ -217,8 +215,6 @@ export class DidDht {
         const packet = dns.decode(encodedPacket);
         const document: Partial<DidDocument> = {
             id: did,
-            verificationMethod: [],
-            service: []
         };
 
         const keyLookup = new Map<string, string>();
@@ -233,24 +229,47 @@ export class DidDht {
             switch (recordType) {
                 case 'k':
                     const {id, t, k} = DidDht.parseTxtData(dataStr);
-                    const crv = t === '0' ? 'Ed25519' : 'secp256k1'; // Map back the key type
+                    const keyConfigurations: { [keyType: string]: Partial<PublicKeyJwk> } = {
+                        '0': {
+                            crv: 'Ed25519',
+                            kty: 'OKP',
+                            alg: 'EdDSA'
+                        },
+                        '1': {
+                            crv: 'secp256k1',
+                            kty: 'EC',
+                            alg: 'ES256K'
+                        }
+                    };
+                    const keyConfig = keyConfigurations[t];
+                    if (!keyConfig) {
+                        throw new Error('Unsupported key type');
+                    }
+
                     const publicKeyJwk = await Jose.keyToJwk({
-                        crv: crv,
-                        // kty: crv === 'Ed25519' ? 'EC' : 'OKP',
-                        // alg: crv === 'Ed25519' ? 'EdDSA' : 'ES256K',
+                        ...keyConfig,
+                        kid: id,
                         keyMaterial: Encoder.decodeAsBytes(k, "key"),
                         keyType: 'public'
                     }) as PublicKeyJwk;
+
+                    if (!document.verificationMethod) {
+                        document.verificationMethod = [];
+                    }
                     document.verificationMethod.push({
                         id: `${did}#${id}`,
                         type: 'JsonWebKey2020',
                         controller: did,
                         publicKeyJwk: publicKeyJwk,
                     });
-                    keyLookup.set(id, answer.name);
+                    keyLookup.set(answer.name, id);
                     break;
                 case 's':
                     const {id: sId, t: sType, uri} = DidDht.parseTxtData(dataStr);
+
+                    if (!document.service) {
+                        document.service = [];
+                    }
                     document.service.push({
                         id: `${did}#${sId}`,
                         type: sType,
@@ -261,10 +280,18 @@ export class DidDht {
         }
 
         // Extract relationships from root record
-        const rootRecord = packet.answers.find(answer => answer.name === '_did')?.toString().split(';');
+        const root = packet.answers.filter(answer => answer.name === '_did');
+        if (!root.length) {
+            throw new Error('No root record found');
+        }
+        if (root.length > 1) {
+            throw new Error('Multiple root records found');
+        }
+        const singleRoot = root[0] as dns.TxtAnswer;
+        const rootRecord = singleRoot.data?.toString().split(';');
         rootRecord?.forEach(record => {
             const [type, ids] = record.split('=');
-            const idList = ids?.split(',').map(id => keyLookup.get(`_${id}._did`));
+            const idList = ids?.split(',').map(id => `#${keyLookup.get(`_${id}._did`)}`);
             switch (type) {
                 case 'auth':
                     document.authentication = idList;
