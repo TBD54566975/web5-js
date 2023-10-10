@@ -74,7 +74,6 @@ export class X25519 {
   }): Promise<Uint8Array> {
     let { privateKey, publicKey } = options;
 
-
     const sharedSecret = x25519.getSharedSecret(privateKey, publicKey);
 
     return sharedSecret;
