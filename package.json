@@ -23,6 +23,8 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "@npmcli/package-json": "5.0.0"
+    "@npmcli/package-json": "5.0.0",
+    "@typescript-eslint/eslint-plugin": "6.4.0",
+    "eslint-plugin-mocha": "10.1.0"
   }
 }
