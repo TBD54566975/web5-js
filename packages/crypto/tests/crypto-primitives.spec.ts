@@ -6,6 +6,7 @@ import chaiAsPromised from 'chai-as-promised';
 
 import { NotSupportedError } from '../src/algorithms-api/errors.js';
 import { ed25519TestVectors } from './fixtures/test-vectors/ed25519.js';
+import { hkdfTestVectors } from './fixtures/test-vectors/hkdf.js';
 import { secp256k1TestVectors } from './fixtures/test-vectors/secp256k1.js';
 import { aesCtrTestVectors, aesGcmTestVectors } from './fixtures/test-vectors/aes.js';
 import {
@@ -13,6 +14,7 @@ import {
   AesGcm,
   ConcatKdf,
   Ed25519,
+  Hkdf,
   Secp256k1,
   X25519,
   XChaCha20,
@@ -522,6 +524,68 @@ describe('Cryptographic Primitive Implementations', () => {
         isValid = await Ed25519.verify({ key: keyPairA.publicKey, signature: signatureB, data });
         expect(isValid).to.be.false;
       });
+    });
+  });
+
+  describe('Hkdf', () => {
+    describe('deriveKey', () => {
+      it('should derive a key using SHA-256', async () => {
+        const inputKeyingMaterial = new Uint8Array([1, 2, 3]);
+        const salt = new Uint8Array([4, 5, 6]);
+        const info = new Uint8Array([7, 8, 9]);
+        const derivedKey = await Hkdf.deriveKey({
+          hash   : 'SHA-256',
+          inputKeyingMaterial,
+          length : 32,
+          salt,
+          info,
+        });
+        expect(derivedKey).to.be.instanceOf(Uint8Array);
+        expect(derivedKey.length).to.equal(32);
+      });
+
+      it('should derive a key using SHA-384', async () => {
+        const inputKeyingMaterial = new Uint8Array([1, 2, 3]);
+        const salt = new Uint8Array([4, 5, 6]);
+        const info = new Uint8Array([7, 8, 9]);
+        const derivedKey = await Hkdf.deriveKey({
+          hash   : 'SHA-384',
+          inputKeyingMaterial,
+          length : 48,
+          salt,
+          info,
+        });
+        expect(derivedKey).to.be.instanceOf(Uint8Array);
+        expect(derivedKey.length).to.equal(48);
+      });
+
+      it('should derive a key using SHA-512', async () => {
+        const inputKeyingMaterial = new Uint8Array([1, 2, 3]);
+        const salt = new Uint8Array([4, 5, 6]);
+        const info = new Uint8Array([7, 8, 9]);
+        const derivedKey = await Hkdf.deriveKey({
+          hash   : 'SHA-512',
+          inputKeyingMaterial,
+          length : 64,
+          salt,
+          info,
+        });
+        expect(derivedKey).to.be.instanceOf(Uint8Array);
+        expect(derivedKey.length).to.equal(64);
+      });
+
+      for (const vector of hkdfTestVectors) {
+        it(`passes test vector ${vector.id}`, async () => {
+          const outputKeyingMaterial = await Hkdf.deriveKey({
+            hash                : vector.hash,
+            inputKeyingMaterial : Convert.hex(vector.inputKeyingMaterial).toUint8Array(),
+            info                : Convert.hex(vector.info).toUint8Array(),
+            salt                : Convert.hex(vector.salt).toUint8Array(),
+            length              : vector.length
+          });
+          expect(Convert.uint8Array(outputKeyingMaterial).toHex()).to.deep.equal(vector.output);
+        });
+      }
     });
   });
 

@@ -1,10 +1,10 @@
-import type { BytesKeyPair } from '../types/crypto-key.js';
+import type { CHash } from '@noble/hashes/utils';
 
 import { sha256 } from '@noble/hashes/sha256';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { numberToBytesBE } from '@noble/curves/abstract/utils';
 
-export type HashFunction = (data: Uint8Array) => Uint8Array;
+import type { BytesKeyPair } from '../types/crypto-key.js';
 
 /**
  * The `Secp256k1` class provides an interface for generating secp256k1 key pairs,
@@ -44,9 +44,9 @@ export class Secp256k1 {
    * corresponding hash functions.  The map is used in the 'sign' and 'verify'
    * methods to get the specified hash function.
    */
-  private static hashAlgorithms: Record<string, HashFunction> = {
+  private static readonly hashAlgorithms: Record<string, CHash> = {
     'SHA-256': sha256
-  };
+  } as const;
 
   /**
    * Converts a public key between its compressed and uncompressed forms.
