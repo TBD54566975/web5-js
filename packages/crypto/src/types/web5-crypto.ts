@@ -9,7 +9,7 @@ export namespace Web5Crypto {
   }
 
   export interface AesGcmOptions extends Algorithm {
-    additionalData?: Uint8Array;
+    associatedData?: Uint8Array;
     iv: Uint8Array;
     tagLength?: number;
   }

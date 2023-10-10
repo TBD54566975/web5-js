@@ -36,7 +36,7 @@ export class AesGcm {
    * Decrypts the provided data using AES-GCM.
    *
    * @param options - The options for the decryption operation.
-   * @param options.additionalData - Data that will be authenticated along with the encrypted data.
+   * @param options.associatedData - Data that will be authenticated along with the encrypted data.
    * @param options.data - The data to decrypt.
    * @param options.iv - A unique initialization vector.
    * @param options.key - The key to use for decryption.
@@ -44,20 +44,20 @@ export class AesGcm {
    * @returns A Promise that resolves to the decrypted data as a Uint8Array.
    */
   public static async decrypt(options: {
-    additionalData?: Uint8Array,
+    associatedData?: Uint8Array,
     data: Uint8Array,
     iv: Uint8Array,
     key: Uint8Array,
     tagLength?: number
   }): Promise<Uint8Array> {
-    const { additionalData, data, iv, key, tagLength } = options;
+    const { associatedData, data, iv, key, tagLength } = options;
 
     const webCryptoKey = await this.importKey(key);
 
     // Web browsers throw an error if additionalData is undefined.
-    const algorithm = (additionalData === undefined)
+    const algorithm = (associatedData === undefined)
       ? { name: 'AES-GCM', iv, tagLength }
-      : { name: 'AES-GCM', additionalData, iv, tagLength };
+      : { name: 'AES-GCM', additionalData: associatedData, iv, tagLength };
 
     const plaintextBuffer = await crypto.subtle.decrypt(algorithm, webCryptoKey, data);
 
@@ -71,7 +71,7 @@ export class AesGcm {
    * Encrypts the provided data using AES-GCM.
    *
    * @param options - The options for the encryption operation.
-   * @param options.additionalData - Data that will be authenticated along with the encrypted data.
+   * @param options.associatedData - Data that will be authenticated along with the encrypted data.
    * @param options.data - The data to decrypt.
    * @param options.iv - A unique initialization vector.
    * @param options.key - The key to use for decryption.
@@ -79,20 +79,20 @@ export class AesGcm {
    * @returns A Promise that resolves to the encrypted data as a Uint8Array.
    */
   public static async encrypt(options: {
-    additionalData?: Uint8Array,
+    associatedData?: Uint8Array,
     data: Uint8Array,
     iv: Uint8Array,
     key: Uint8Array,
     tagLength?: number
   }): Promise<Uint8Array> {
-    const { additionalData, data, iv, key, tagLength } = options;
+    const { associatedData, data, iv, key, tagLength } = options;
 
     const webCryptoKey = await this.importKey(key);
 
     // Web browsers throw an error if additionalData is undefined.
-    const algorithm = (additionalData === undefined)
+    const algorithm = (associatedData === undefined)
       ? { name: 'AES-GCM', iv, tagLength }
-      : { name: 'AES-GCM', additionalData, iv, tagLength };
+      : { name: 'AES-GCM', additionalData: associatedData, iv, tagLength };
 
     const ciphertextBuffer = await crypto.subtle.encrypt(algorithm, webCryptoKey, data);
 
@@ -127,7 +127,7 @@ export class AesGcm {
    * @returns A Promise that resolves to a CryptoKey.
    */
   private static async importKey(key: Uint8Array): Promise<CryptoKey> {
-    return crypto.subtle.importKey(
+    return await crypto.subtle.importKey(
       'raw',
       key.buffer,
       { name: 'AES-GCM', length: key.byteLength * 8 },

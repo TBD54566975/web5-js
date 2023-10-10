@@ -204,12 +204,12 @@ export class AppDataVault implements AppDataStore {
     const tag = Convert.base64Url(tagB64U).toUint8Array();
 
     // Decrypt the Identity Agent's private key material.
+    const ciphertext = new Uint8Array([...encryptedKey, ...tag]);
     const privateKeyMaterial = await XChaCha20Poly1305.decrypt({
-      additionalData : Convert.object(protectedHeader).toUint8Array(),
-      data           : encryptedKey,
+      associatedData : Convert.object(protectedHeader).toUint8Array(),
+      data           : ciphertext,
       key            : this._vaultUnlockKey,
-      nonce          : nonce,
-      tag            : tag
+      nonce          : nonce
     });
 
     // Get the public key.
@@ -297,10 +297,8 @@ export class AppDataVault implements AppDataStore {
      *  using XChaCha20-Poly1305 */
     const nonce = randomBytes(24);
     const privateKey = keyPair.privateKey.material;
-    const {
-      ciphertext: privateKeyCiphertext,
-      tag: privateKeyTag } = await XChaCha20Poly1305.encrypt({
-      additionalData : Convert.object(protectedHeader).toUint8Array(),
+    const privateKeyCipherTextAndTag = XChaCha20Poly1305.encrypt({
+      associatedData : Convert.object(protectedHeader).toUint8Array(),
       data           : privateKey,
       key            : this._vaultUnlockKey,
       nonce          : nonce
@@ -308,6 +306,8 @@ export class AppDataVault implements AppDataStore {
 
     /** 7. Serialize the Identity Agent's vault key set to a compact JWE, which
      * includes the VUK salt and encrypted VUK (nonce, tag, and ciphertext). */
+    const privateKeyCiphertext = privateKeyCipherTextAndTag.subarray(0, -XChaCha20Poly1305.TAG_LENGTH);
+    const privateKeyTag = privateKeyCipherTextAndTag.subarray(-XChaCha20Poly1305.TAG_LENGTH);
     const vaultKeySet =
       Convert.object(protectedHeader).toBase64Url() + '.' +
       Convert.uint8Array(privateKeyCiphertext).toBase64Url() + '.' +
