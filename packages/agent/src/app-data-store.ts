@@ -147,7 +147,7 @@ export class AppDataVault implements AppDataStore {
     if (crypto && typeof crypto.subtle === 'object' && crypto.subtle != null) {
       return this.generateVaultUnlockKeyWithSubtleCrypto(options);
     } else {
-      return this.generateVaultUnlockKeyWithNoble(options);
+      return this.generateVaultUnlockKeyWithNodeCrypto(options);
     }
   }
 
@@ -181,34 +181,28 @@ export class AppDataVault implements AppDataStore {
     return new Uint8Array(vaultUnlockKey);
   }
 
-  private async generateVaultUnlockKeyWithNoble(options: {
-    passphrase: string,
-    salt: Uint8Array
-  }): Promise<Uint8Array> {
+  private async generateVaultUnlockKeyWithNodeCrypto(
+    options: { passphrase: string; salt: Uint8Array }
+  ): Promise<Uint8Array> {
     const { passphrase, salt } = options;
+    const { pbkdf2 } = await import('node:crypto');
 
-    const passwordBuffer = new TextEncoder().encode(passphrase);
-
-    const importedKey = await crypto.subtle.importKey(
-      'raw',
-      passwordBuffer,
-      'PBKDF2',
-      false,
-      ['deriveBits']
-    );
-
-    const vaultUnlockKey = await crypto.subtle.deriveBits(
-      {
-        name       : 'PBKDF2',
-        hash       : 'SHA-512',
-        salt       : salt,
-        iterations : this._keyDerivationWorkFactor,
-      },
-      importedKey,
-      32 * 8, // 32 bytes
-    );
-
-    return new Uint8Array(vaultUnlockKey);
+    return new Promise((resolve, reject) => {
+      pbkdf2(
+        passphrase,
+        salt,
+        this._keyDerivationWorkFactor,
+        32,
+        'sha512',
+        (err, derivedKey) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(new Uint8Array(derivedKey));
+          }
+        }
+      );
+    });
   }
 
   async getDid(): Promise<string> {
