@@ -1,6 +1,5 @@
 import z32 from 'z32';
-import { sha1 } from '@noble/hashes/sha1';
-import { EcdsaAlgorithm, EdDsaAlgorithm, Jose, JwkKeyPair, PublicKeyJwk, Web5Crypto } from '@web5/crypto';
+import {EcdsaAlgorithm, EdDsaAlgorithm, Jose, JwkKeyPair, PublicKeyJwk, Web5Crypto} from '@web5/crypto';
 import {
   DidDocument,
   DidKeySetVerificationMethodKey,
@@ -9,7 +8,7 @@ import {
   DidService, PortableDid,
   VerificationRelationship
 } from './types.js';
-import { DidDht } from './dht.js';
+import {DidDht} from './dht.js';
 
 const SupportedCryptoKeyTypes = [
   'Ed25519',
@@ -81,40 +80,25 @@ export class DidDhtMethod implements DidMethod {
   }
 
   public static async publish(keySet: DidDhtKeySet, didDocument: DidDocument): Promise<DidResolutionResult> {
-    const dht = new DidDht();
     const publicCryptoKey = await Jose.jwkToCryptoKey({key: keySet.identityKey.publicKeyJwk});
     const privateCryptoKey = await Jose.jwkToCryptoKey({key: keySet.identityKey.privateKeyJwk});
 
-    const request = await dht.createPutDidRequest({
+    await DidDht.publishDidDocument({
       publicKey  : publicCryptoKey,
       privateKey : privateCryptoKey
     }, didDocument);
 
-    const hash = await dht.put(request);
-    if (hash) {
-      return {
-        didDocumentMetadata   : undefined,
-        didDocument,
-        didResolutionMetadata : {
-          contentType: 'application/json'
-        }
-      };
-    } else {
-      throw new Error('Failed to publish to DHT');
-    }
+    return {
+      didDocumentMetadata   : undefined,
+      didDocument,
+      didResolutionMetadata : {
+        contentType: 'application/json'
+      }
+    };
   }
 
   public static async resolve(did: string): Promise<DidDocument> {
-    const dht = new DidDht();
-    const hash = did.replace('did:dht:', '');
-    const decoded = z32.decode(hash);
-    const identifier = this.hash(decoded);
-    const retrievedValue = await dht.get(Buffer.from(identifier).toString('hex'));
-    return await dht.parseGetDidResponse(did, retrievedValue).finally(() => dht.destroy());
-  }
-
-  private static hash(input: Uint8Array) {
-    return sha1(input);
+    return await DidDht.getDidDocument(did);
   }
 
   public static async getDidIdentifier(options: {
@@ -128,8 +112,8 @@ export class DidDhtMethod implements DidMethod {
   }
 
   public static async getDidIdentifierFragment(options: {
-    key: PublicKeyJwk
-  }): Promise<string> {
+        key: PublicKeyJwk
+    }): Promise<string> {
     const {key} = options;
     const cryptoKey = await Jose.jwkToCryptoKey({key});
     return z32.encode(cryptoKey.material);

@@ -5,28 +5,21 @@ import {DidDhtKeySet, DidDhtMethod} from '../src/did-dht.js';
 import {DidKeySetVerificationMethodKey, DidService} from '../src/index.js';
 
 describe('DHT', function () {
-  this.timeout(20000); // 20 seconds
 
-  const dht = new DidDht();
-  after(() => {
-    dht.destroy();
-  });
-
-  it('should put and get data from DHT', async () => {
+  it('should create a put and parse a get request', async () => {
     const {document, keySet} = await DidDhtMethod.create();
     const ks = keySet as DidDhtKeySet;
     const publicCryptoKey = await Jose.jwkToCryptoKey({key: ks.identityKey.publicKeyJwk});
     const privateCryptoKey = await Jose.jwkToCryptoKey({key: ks.identityKey.privateKeyJwk});
 
-    const request = await dht.createPutDidRequest({
+    const published = await DidDht.publishDidDocument({
       publicKey  : publicCryptoKey,
       privateKey : privateCryptoKey
     }, document);
 
-    const hash = await dht.put(request);
-    const retrievedValue = await dht.get(hash);
+    expect(published).to.be.true;
 
-    const gotDid = await dht.parseGetDidResponse(document.id, retrievedValue);
+    const gotDid = await DidDht.getDidDocument(document.id);
     expect(gotDid.id).to.deep.equal(document.id);
     expect(gotDid.capabilityDelegation).to.deep.equal(document.capabilityDelegation);
     expect(gotDid.capabilityInvocation).to.deep.equal(document.capabilityInvocation);
@@ -58,8 +51,8 @@ describe('Codec', async () => {
       verificationMethodKeys: [vm],
     };
     const {did, document} = await DidDhtMethod.create({services: services, keySet: keySet});
-    const encoded = await DidDht.toEncodedDnsPacket(document);
-    const decoded = await DidDht.fromEncodedDnsPacket(did, encoded);
+    const encoded = await DidDht.toDnsPacket(document);
+    const decoded = await DidDht.fromDnsPacket(did, encoded);
 
     expect(document.id).to.deep.equal(decoded.id);
     expect(document.capabilityDelegation).to.deep.equal(decoded.capabilityDelegation);
