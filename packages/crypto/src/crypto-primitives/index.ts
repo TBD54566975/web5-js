@@ -5,5 +5,6 @@ export * from './ed25519.js';
 export * from './concat-kdf.js';
 export * from './hkdf.js';
 export * from './secp256k1.js';
+export * from './sha256.js';
 export * from './xchacha20.js';
 export * from './xchacha20-poly1305.js';

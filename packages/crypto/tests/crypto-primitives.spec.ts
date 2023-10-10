@@ -4,9 +4,10 @@ import chai, { expect } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
+import { hkdfTestVectors } from './fixtures/test-vectors/hkdf.js';
+import { sha256TestVectors } from './fixtures/test-vectors/sha.js';
 import { NotSupportedError } from '../src/algorithms-api/errors.js';
 import { ed25519TestVectors } from './fixtures/test-vectors/ed25519.js';
-import { hkdfTestVectors } from './fixtures/test-vectors/hkdf.js';
 import { secp256k1TestVectors } from './fixtures/test-vectors/secp256k1.js';
 import { aesCtrTestVectors, aesGcmTestVectors } from './fixtures/test-vectors/aes.js';
 import {
@@ -16,6 +17,7 @@ import {
   Ed25519,
   Hkdf,
   Secp256k1,
+  Sha256,
   X25519,
   XChaCha20,
   XChaCha20Poly1305
@@ -956,6 +958,31 @@ describe('Cryptographic Primitive Implementations', () => {
         isValid = await Secp256k1.verify({ hash, key: keyPairA.publicKey, signature: signatureB, data });
         expect(isValid).to.be.false;
       });
+    });
+  });
+
+  describe('Sha256', () => {
+    describe('digest()', () => {
+      it('returns a Uint8Array digest of length 32', async () => {
+        const digest = await Sha256.digest({
+          data: new Uint8Array(10)
+        });
+
+        expect(digest).to.be.an('Uint8Array');
+        expect(digest.byteLength).to.equal(32);
+      });
+
+      for (const vector of sha256TestVectors) {
+        it(`passes test vector ${vector.id}`, async () => {
+          const digest = await Sha256.digest({
+            data: Convert.string(vector.input).toUint8Array()
+          });
+
+          expect(digest).to.deep.equal(
+            Convert.hex(vector.output.replace(/ /g, '')).toUint8Array()
+          );
+        });
+      }
     });
   });
 

@@ -297,7 +297,7 @@ export class AppDataVault implements AppDataStore {
      *  using XChaCha20-Poly1305 */
     const nonce = randomBytes(24);
     const privateKey = keyPair.privateKey.material;
-    const privateKeyCipherTextAndTag = XChaCha20Poly1305.encrypt({
+    const privateKeyCipherTextAndTag = await XChaCha20Poly1305.encrypt({
       associatedData : Convert.object(protectedHeader).toUint8Array(),
       data           : privateKey,
       key            : this._vaultUnlockKey,
