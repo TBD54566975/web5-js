@@ -5,8 +5,10 @@ import {DidDhtKeySet, DidDhtMethod} from '../src/did-dht.js';
 import {DidKeySetVerificationMethodKey, DidService} from '../src/index.js';
 
 describe('DHT', function () {
+  this.timeout('15000'); // 15 seconds
 
   it('should create a put and parse a get request', async () => {
+
     const {document, keySet} = await DidDhtMethod.create();
     const ks = keySet as DidDhtKeySet;
     const publicCryptoKey = await Jose.jwkToCryptoKey({key: ks.identityKey.publicKeyJwk});

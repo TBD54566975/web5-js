@@ -1,11 +1,11 @@
 import dns, {AUTHORITATIVE_ANSWER, Packet, TxtAnswer} from 'dns-packet';
 import Encoder from '@decentralized-identity/ion-sdk/dist/lib/Encoder.js';
-import Pkarr from 'pkarr/relayed.js';
+import {Pkarr, SignedPacket, z32} from 'pkarr';
 import type {PublicKeyJwk, Web5Crypto} from '@web5/crypto';
 import {Jose} from '@web5/crypto';
 import type {DidDocument} from './types.js';
 
-const PKARR_RELAYS = ['relay.pkarr.org'];
+const PKARR_RELAYS = ['https://relay.pkarr.org'];
 const TTL = 7200;
 
 export class DidDht {
@@ -15,7 +15,10 @@ export class DidDht {
       publicKey : Buffer.from(keypair.publicKey.material),
       secretKey : Buffer.concat([keypair.privateKey.material, keypair.publicKey.material])
     };
-    return await Pkarr.publish(pkarrKeypair, packet, PKARR_RELAYS);
+    const signedPacket = SignedPacket.fromPacket(pkarrKeypair, packet);
+    const results = await Promise.all(PKARR_RELAYS.map(relay => Pkarr.relayPut(relay, signedPacket)));
+    const successfulCount = results.filter(Boolean).length;
+    return successfulCount > 0;
   }
 
   static async toDnsPacket(document: DidDocument): Promise<Packet> {
@@ -140,17 +143,19 @@ export class DidDht {
 
   public static async getDidDocument(did: string): Promise<DidDocument> {
     const didFragment = did.replace('did:dht:', '');
-    console.log('didFragment', didFragment);
-    const packet = await Pkarr.resolve(didFragment, PKARR_RELAYS);
-    if (!packet) {
-      throw new Error('No packet found');
+    const publicKeyBytes = new Uint8Array(z32.decode(didFragment));
+    for (const relay of PKARR_RELAYS) {
+      const resolved = await Pkarr.relayGet(relay, publicKeyBytes);
+      if (resolved) {
+        return await DidDht.fromDnsPacket(did, resolved.packet());
+      }
     }
-    return await DidDht.fromDnsPacket(did, packet);
+    throw new Error('No packet found');
   }
 
   /**
      * @param did The DID of the document
-     * @param encodedPacket A Uint8Array containing the encoded DNS packet
+     * @param packet A DNS packet to parse into a DID Document
      */
   static async fromDnsPacket(did: string, packet: Packet): Promise<DidDocument> {
     const document: Partial<DidDocument> = {
@@ -221,10 +226,23 @@ export class DidDht {
     }
 
     // Extract relationships from root record
-    const root = packet.answers.filter(answer => answer.name === '_did');
-    if (!root.length) {
+    const didSuffix = did.split('did:dht:')[1];
+    const potentialRootNames = ['_did', `_did.${didSuffix}`];
+
+    let actualRootName = null;
+    const root = packet.answers
+      .filter(answer => {
+        if (potentialRootNames.includes(answer.name)) {
+          actualRootName = answer.name;
+          return true;
+        }
+        return false;
+      }) as dns.TxtAnswer[];
+
+    if (root.length === 0) {
       throw new Error('No root record found');
     }
+
     if (root.length > 1) {
       throw new Error('Multiple root records found');
     }
@@ -232,7 +250,7 @@ export class DidDht {
     const rootRecord = singleRoot.data?.toString().split(';');
     rootRecord?.forEach(record => {
       const [type, ids] = record.split('=');
-      const idList = ids?.split(',').map(id => `#${keyLookup.get(`_${id}._did`)}`);
+      let idList = ids?.split(',').map(id => `#${keyLookup.get(`_${id}.${actualRootName}`)}`);
       switch (type) {
         case 'auth':
           document.authentication = idList;
