@@ -1,4 +1,4 @@
-import type { AppDataStore, Web5Agent } from '@web5/agent';
+import type { AppDataStore, Web5ManagedAgent } from '@web5/agent';
 
 import ms from 'ms';
 import { Web5UserAgent } from '@web5/user-agent';
@@ -23,7 +23,7 @@ export type TechPreviewOptions = {
 export type Web5ConnectOptions = {
   /** Provide a {@link Web5Agent} implementation. Defaults to creating a local
    * {@link Web5UserAgent} if one isn't provided */
-  agent?: Web5Agent;
+  agent?: Web5ManagedAgent;
 
   /** Provide an instance of a {@link AppDataStore} implementation. Defaults to
    * a LevelDB-backed store with an insecure, static unlock passphrase if one
@@ -48,12 +48,12 @@ export type Web5ConnectOptions = {
  * @see {@link Web5ConnectOptions}
  */
 type Web5Options = {
-  agent: Web5Agent;
+  agent: Web5ManagedAgent;
   connectedDid: string;
 };
 
 export class Web5 {
-  agent: Web5Agent;
+  agent: Web5ManagedAgent;
   did: DidApi;
   dwn: DwnApi;
   vc: VcApi;
