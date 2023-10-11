@@ -8,6 +8,7 @@ import { sha256 } from '@noble/hashes/sha256';
 import { randomBytes } from '@web5/crypto/utils';
 import { Convert, MemoryStore } from '@web5/common';
 import { CryptoKey, Jose, XChaCha20Poly1305 } from '@web5/crypto';
+import { generateVaultUnlockKey } from './vuk-generator.js';
 
 export type AppDataBackup = {
   /**
@@ -135,76 +136,6 @@ export class AppDataVault implements AppDataStore {
     throw new Error ('Not implemented');
   }
 
-  /**
-   * The salt value derived in Step 3 and the passphrase entered by the
-   * end-user are inputs to the PBKDF2 algorithm to derive a 32-byte secret
-   * key that will be referred to as the Vault Unlock Key (VUK).
-   */
-  private generateVaultUnlockKey(options: {
-    passphrase: string,
-    salt: Uint8Array
-  }): Promise<Uint8Array> {
-    if (crypto && typeof crypto.subtle === 'object' && crypto.subtle != null) {
-      return this.generateVaultUnlockKeyWithSubtleCrypto(options);
-    } else {
-      return this.generateVaultUnlockKeyWithNodeCrypto(options);
-    }
-  }
-
-  private async generateVaultUnlockKeyWithSubtleCrypto(options: {
-    passphrase: string,
-    salt: Uint8Array
-  }): Promise<Uint8Array> {
-    const { passphrase, salt } = options;
-
-    const passwordBuffer = new TextEncoder().encode(passphrase);
-
-    const importedKey = await crypto.subtle.importKey(
-      'raw',
-      passwordBuffer,
-      'PBKDF2',
-      false,
-      ['deriveBits']
-    );
-
-    const vaultUnlockKey = await crypto.subtle.deriveBits(
-      {
-        name       : 'PBKDF2',
-        hash       : 'SHA-512',
-        salt       : salt,
-        iterations : this._keyDerivationWorkFactor,
-      },
-      importedKey,
-      32 * 8, // 32 bytes
-    );
-
-    return new Uint8Array(vaultUnlockKey);
-  }
-
-  private async generateVaultUnlockKeyWithNodeCrypto(
-    options: { passphrase: string; salt: Uint8Array }
-  ): Promise<Uint8Array> {
-    const { passphrase, salt } = options;
-    const { pbkdf2 } = await import('node:crypto');
-
-    return new Promise((resolve, reject) => {
-      pbkdf2(
-        passphrase,
-        salt,
-        this._keyDerivationWorkFactor,
-        32,
-        'sha512',
-        (err, derivedKey) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(new Uint8Array(derivedKey));
-          }
-        }
-      );
-    });
-  }
-
   async getDid(): Promise<string> {
     // Get the Vault Key Set JWE from the data store.
     const vaultKeySet = await this._store.get('vaultKeySet');
@@ -323,8 +254,17 @@ export class AppDataVault implements AppDataStore {
 
     /**
      * Generate a vault unlock key (VUK), which will be used as a
-     * key encryption key (KEK) for wrapping the private key */
-    this._vaultUnlockKey = await this.generateVaultUnlockKey({ passphrase, salt });
+     * key encryption key (KEK) for wrapping the private key.
+     *
+     * The salt value derived in Step 3 and the passphrase entered by the
+     * end-user are inputs to the PBKDF2 algorithm to derive a 32-byte secret
+     * key that will be referred to as the Vault Unlock Key (VUK).
+     */
+    this._vaultUnlockKey = await generateVaultUnlockKey({
+      passphrase,
+      salt,
+      keyDerivationWorkFactor: this._keyDerivationWorkFactor,
+    });
 
     /** Convert the public crypto key to JWK format to store within the JWE. */
     const wrappedKey = await Jose.cryptoKeyToJwk({ key: keyPair.publicKey });
@@ -406,7 +346,11 @@ export class AppDataVault implements AppDataStore {
     // Derive the Vault Unlock Key (VUK).
     if (protectedHeader.p2s !== undefined) {
       const salt = Convert.base64Url(protectedHeader.p2s).toUint8Array();
-      this._vaultUnlockKey = await this.generateVaultUnlockKey({ passphrase, salt });
+      this._vaultUnlockKey = await generateVaultUnlockKey({
+        passphrase,
+        salt,
+        keyDerivationWorkFactor: this._keyDerivationWorkFactor
+      });
     }
 
     return true;
