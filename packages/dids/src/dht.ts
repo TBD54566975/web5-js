@@ -12,8 +12,8 @@ export class DidDht {
   public static async publishDidDocument(keypair: Web5Crypto.CryptoKeyPair, did: DidDocument): Promise<boolean> {
     const packet = await DidDht.toDnsPacket(did);
     const pkarrKeypair = {
-      publicKey : Buffer.from(keypair.publicKey.material),
-      secretKey : Buffer.concat([keypair.privateKey.material, keypair.publicKey.material])
+      publicKey : keypair.publicKey.material,
+      secretKey : new Uint8Array([...keypair.privateKey.material, ...keypair.publicKey.material])
     };
     const signedPacket = SignedPacket.fromPacket(pkarrKeypair, packet);
     const results = await Promise.all(PKARR_RELAYS.map(relay => Pkarr.relayPut(relay, signedPacket)));
@@ -57,7 +57,7 @@ export class DidDht {
         type : 'TXT',
         name : `_${recordIdentifier}._did`,
         ttl  : TTL,
-        data : Buffer.from(`id=${vmId},t=${keyType},k=${keyBase64Url}`)
+        data : `id=${vmId},t=${keyType},k=${keyBase64Url}`
       };
 
       packet.answers.push(keyRecord);
@@ -72,7 +72,7 @@ export class DidDht {
         type : 'TXT',
         name : `_${recordIdentifier}._did`,
         ttl  : TTL,
-        data : Buffer.from(`id=${sId},t=${service.type},uri=${service.serviceEndpoint}`)
+        data : `id=${sId},t=${service.type},uri=${service.serviceEndpoint}`
       };
 
       packet.answers.push(serviceRecord);
@@ -131,7 +131,7 @@ export class DidDht {
       type : 'TXT',
       name : '_did',
       ttl  : TTL,
-      data : Buffer.from(rootRecord.join(';'))
+      data : rootRecord.join(';')
     });
 
     return packet as Packet;
@@ -279,15 +279,5 @@ export class DidDht {
       acc[key] = value;
       return acc;
     }, {} as { [key: string]: string });
-  }
-
-  public static async printEncodedDnsPacket(encodedPacket: Buffer) {
-    const packet = dns.decode(encodedPacket);
-    packet.answers.forEach(answer => {
-      if (answer.type === 'TXT') {
-        const data = answer.data.toString();
-        console.log(answer.name, data);
-      }
-    });
   }
 }
