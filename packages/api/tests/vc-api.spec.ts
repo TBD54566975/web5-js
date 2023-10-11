@@ -53,9 +53,27 @@ describe('VcApi', () => {
       };
 
       const jwt = await vc.create({ verifiableCredential, subjectDid: '' });
-
       expect(jwt).to.be.a('string');
 
+      const verified = await vc.verify(jwt);
+      expect(verified).to.be.true;
+    });
+  });
+
+  describe('verify', () => {
+    it('should verify a valid JWT', async () => {
+      const jwt = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImRpZDprZXk6ejZNa3J3TUZLSGFlTDZGTEJMRWo4VlV0S2o1YVZFZ2p2cEg3VjQ0UmI4UTlVd3NYI3o2TWtyd01GS0hhZUw2RkxCTEVqOFZVdEtqNWFWRWdqdnBIN1Y0NFJiOFE5VXdzWCJ9.eyJpc3MiOiJkaWQ6a2V5Ono2TWtyd01GS0hhZUw2RkxCTEVqOFZVdEtqNWFWRWdqdnBIN1Y0NFJiOFE5VXdzWCIsInN1YiI6IiIsInZjIjp7IkBjb250ZXh0IjpbImh0dHBzOi8vd3d3LnczLm9yZy8yMDE4L2NyZWRlbnRpYWxzL3YxIl0sImlkIjoidGVzdC1pZCIsInR5cGUiOlsiVmVyaWZpYWJsZUNyZWRlbnRpYWwiLCJUZXN0Q3JlZGVudGlhbCJdLCJpc3N1ZXIiOiJkaWQ6a2V5Ono2TWtyd01GS0hhZUw2RkxCTEVqOFZVdEtqNWFWRWdqdnBIN1Y0NFJiOFE5VXdzWCIsImlzc3VhbmNlRGF0ZSI6IjIwMjMtMTAtMTFUMjE6MjI6MzRaIiwiY3JlZGVudGlhbFN1YmplY3QiOnsidGVzdCI6dHJ1ZX19fQ.YFwgFxhLIUza9hBOiEk-rgFUaLHupsdgbPPRDv1oK2OuUDPTuNgf0GbnBOuHMb2gnucuFJNvcpgEr0p4G_eyCA';
+
+      const verified = await vc.verify(jwt);
+      expect(verified).to.be.true;
+    });
+
+    it('should not verify an invalid JWT', async () => {
+      const badJWT = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImRpZDprZXk6ejZNa3J3TUZLSGFlTDZGTEJMRWo4VlV0S2o1YVZFZ2p2cEg3VjQ0UmI4UTlVd3NYI3o2TWtyd01GS0hhZUw2RkxCTEVqOFZVdEtqNWFWRWdqdnBIN1Y0NFJiOFE5VXdzWCJ9.eyJpc3MiOiJkaWQ6a2V5Ono2TWtyd01GS0hhZUw2RkxCTEVqOFZVdEtqNWFWRWdqdnBIN1Y0NFJiOFE5VXdzWCIsInN1YiI6IiIsInZjIjp7IkBjb250ZXh0IjpbImh0dHBzOi8vd3d3LnczLm9yZy8yMDE4L2NyZWRlbnRpYWxzL3YxIl0sImlkIjoidGVzdC1pZCIsInR5cGUiOlsiVmVyaWZpYWJsZUNyZWRlbnRpYWwiLCJUZXN0Q3JlZGVudGlhbCJdLCJpc3N1ZXIiOiJkaWQ6a2V5Ono2TWtyd01GS0hhZUw2RkxCTEVqOFZVdEtqNWFWRWdqdnBIN1Y0NFJiOFE5VXdzWCIsImlzc3VhbmNlRGF0ZSI6IjIwMjMtMTAtMTFUMjE6MjI6MzRaIiwiY3JlZGVudGlhbFN1YmplY3QiOnsidGVzdCI6dHJ1ZX19fQ.YFwgFxhLIUza9hBOiEk-rgFUaLHupsdgbPPRDv1oK2OuUDPTuNgf0GbnBOuHMb2gnucuFJNvcpgEr0p4G_eyCB';
+
+      const verified = await vc.verify(badJWT);
+      expect(verified).to.be.false;
     });
   });
 });
+

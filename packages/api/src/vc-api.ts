@@ -43,4 +43,13 @@ export class VcApi {
 
     return verifiableCredentialJWT;
   }
+
+  async verify(verifiableCredentialJWT: string) {
+    try {
+      await VerifiableCredential.verify(verifiableCredentialJWT);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 }
