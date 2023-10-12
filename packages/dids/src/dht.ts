@@ -9,6 +9,12 @@ const PKARR_RELAYS = ['https://relay.pkarr.org'];
 const TTL = 7200;
 
 export class DidDht {
+
+  /**
+     * Publishes a DID Document to the DHT
+     * @param keypair The keypair to sign the document with
+     * @param did The DID Document to publish
+     */
   public static async publishDidDocument(keypair: Web5Crypto.CryptoKeyPair, did: DidDocument): Promise<boolean> {
     const packet = await DidDht.toDnsPacket(did);
     const pkarrKeypair = {
@@ -21,7 +27,11 @@ export class DidDht {
     return successfulCount > 0;
   }
 
-  static async toDnsPacket(document: DidDocument): Promise<Packet> {
+  /**
+     * Converts a DID Document to a DNS packet according to the did:dht spec
+     * @param document The DID Document to convert
+     */
+  private static async toDnsPacket(document: DidDocument): Promise<Packet> {
     const packet: Partial<Packet> = {
       id      : 0,
       type    : 'response',
@@ -137,10 +147,18 @@ export class DidDht {
     return packet as Packet;
   }
 
+  /**
+     * Extracts the fragment from a DID
+     * @param identifier The DID to extract the fragment from
+     */
   private static identifierFragment(identifier: string): string {
     return identifier.includes('#') ? identifier.substring(identifier.indexOf('#') + 1) : identifier;
   }
 
+  /**
+     * Retrieves a DID Document from the DHT
+     * @param did The DID of the document to retrieve
+     */
   public static async getDidDocument(did: string): Promise<DidDocument> {
     const didFragment = did.replace('did:dht:', '');
     const publicKeyBytes = new Uint8Array(z32.decode(didFragment));
@@ -154,10 +172,11 @@ export class DidDht {
   }
 
   /**
+     * Parses a DNS packet into a DID Document
      * @param did The DID of the document
      * @param packet A DNS packet to parse into a DID Document
      */
-  static async fromDnsPacket(did: string, packet: Packet): Promise<DidDocument> {
+  private static async fromDnsPacket(did: string, packet: Packet): Promise<DidDocument> {
     const document: Partial<DidDocument> = {
       id: did,
     };

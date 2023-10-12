@@ -7,6 +7,7 @@ module.exports = {
   minify      : true,
   platform    : 'browser',
   target      : ['chrome101', 'firefox108', 'safari16'],
+  inject      : ['./build/buffer-polyfill.cjs'],
   define      : {
     'global': 'globalThis',
   },

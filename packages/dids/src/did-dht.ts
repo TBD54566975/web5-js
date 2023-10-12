@@ -30,6 +30,10 @@ export class DidDhtMethod implements DidMethod {
 
   public static methodName = 'dht';
 
+  /**
+   * Creates a new DID Document according to the did:dht spec
+   * @param options The options to use when creating the DID Document, including whether to publish it
+   */
   public static async create(options?: DidDhtCreateOptions): Promise<PortableDid> {
     const {publish, keySet: initialKeySet, services} = options ?? {};
 
@@ -79,6 +83,11 @@ export class DidDhtMethod implements DidMethod {
     };
   }
 
+  /**
+   * Publishes a DID Document to the DHT
+   * @param keySet The key set to use to sign the DHT payload
+   * @param didDocument The DID Document to publish
+   */
   public static async publish(keySet: DidDhtKeySet, didDocument: DidDocument): Promise<DidResolutionResult> {
     const publicCryptoKey = await Jose.jwkToCryptoKey({key: keySet.identityKey.publicKeyJwk});
     const privateCryptoKey = await Jose.jwkToCryptoKey({key: keySet.identityKey.privateKeyJwk});
@@ -97,10 +106,18 @@ export class DidDhtMethod implements DidMethod {
     };
   }
 
+  /**
+   * Resolves a DID Document from the DHT
+   * @param did The DID to resolve
+   */
   public static async resolve(did: string): Promise<DidDocument> {
     return await DidDht.getDidDocument(did);
   }
 
+  /**
+   * Gets the identifier fragment from a DID
+   * @param options The key to get the identifier fragment from
+   */
   public static async getDidIdentifier(options: {
         key: PublicKeyJwk
     }): Promise<string> {
@@ -111,6 +128,10 @@ export class DidDhtMethod implements DidMethod {
     return 'did:dht:' + identifier;
   }
 
+  /**
+   * Gets the identifier fragment from a DID
+   * @param options The key to get the identifier fragment from
+   */
   public static async getDidIdentifierFragment(options: {
         key: PublicKeyJwk
     }): Promise<string> {
@@ -119,6 +140,10 @@ export class DidDhtMethod implements DidMethod {
     return z32.encode(cryptoKey.material);
   }
 
+  /**
+   * Generates a JWK key pair
+   * @param options the key algorithm and key ID to use
+   */
   public static async generateJwkKeyPair(options: {
         keyAlgorithm: typeof SupportedCryptoKeyTypes[number],
         keyId?: string
@@ -168,6 +193,10 @@ export class DidDhtMethod implements DidMethod {
     return jwkKeyPair;
   }
 
+  /**
+   * Generates a key set for a DID Document
+   * @param options The key set to use when generating the key set
+   */
   public static async generateKeySet(options?: {
         keySet?: DidDhtKeySet
     }): Promise<DidDhtKeySet> {
