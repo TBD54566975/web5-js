@@ -31,7 +31,7 @@ export class DidDht {
      * Converts a DID Document to a DNS packet according to the did:dht spec
      * @param document The DID Document to convert
      */
-  private static async toDnsPacket(document: DidDocument): Promise<Packet> {
+  public static async toDnsPacket(document: DidDocument): Promise<Packet> {
     const packet: Partial<Packet> = {
       id      : 0,
       type    : 'response',
@@ -176,7 +176,7 @@ export class DidDht {
      * @param did The DID of the document
      * @param packet A DNS packet to parse into a DID Document
      */
-  private static async fromDnsPacket(did: string, packet: Packet): Promise<DidDocument> {
+  public static async fromDnsPacket(did: string, packet: Packet): Promise<DidDocument> {
     const document: Partial<DidDocument> = {
       id: did,
     };
