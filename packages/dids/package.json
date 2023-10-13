@@ -95,6 +95,7 @@
     "@types/dns-packet": "^5.6.1",
     "@types/mocha": "10.0.1",
     "@types/sinon": "10.0.15",
+    "buffer": "6.0.3",
     "c8": "8.0.1",
     "chai": "4.3.10",
     "chai-as-promised": "7.1.1",
