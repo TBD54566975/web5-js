@@ -5,7 +5,7 @@ import {DidDhtKeySet, DidDhtMethod} from '../src/did-dht.js';
 import {DidKeySetVerificationMethodKey, DidService} from '../src/index.js';
 
 describe('DHT', function () {
-  this.timeout('20000'); // 20 seconds
+  this.timeout('15000'); // 15 seconds
 
   it('should create a put and parse a get request', async () => {
 
