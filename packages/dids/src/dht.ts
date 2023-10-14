@@ -39,6 +39,8 @@ export class DidDht {
       answers : []
     };
 
+    const vmIds: string[] = [];
+    const svcIds : string[]= [];
     const rootRecord: string[] = [];
     const keyLookup = new Map<string, string>();
 
@@ -71,7 +73,7 @@ export class DidDht {
       };
 
       packet.answers.push(keyRecord);
-      rootRecord.push(`vm=${recordIdentifier}`);
+      vmIds.push(recordIdentifier);
     }
 
     // Add service records
@@ -86,8 +88,16 @@ export class DidDht {
       };
 
       packet.answers.push(serviceRecord);
-      rootRecord.push(`srv=${recordIdentifier}`);
+      svcIds.push(recordIdentifier);
     });
+
+    // add root record for vms and svcs
+    if (vmIds.length) {
+      rootRecord.push(`vm=${vmIds.join(',')}`);
+    }
+    if (svcIds.length) {
+      rootRecord.push(`svc=${svcIds.join(',')}`);
+    }
 
     // add verification relationships
     if (document.authentication) {
