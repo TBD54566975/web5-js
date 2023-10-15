@@ -1178,7 +1178,7 @@ describe('Cryptographic Primitive Implementations', () => {
             key   : new Uint8Array(32),
             nonce : new Uint8Array(24)
           })
-        ).to.eventually.be.rejectedWith(Error, 'Wrong tag');
+        ).to.eventually.be.rejectedWith(Error, 'invalid tag');
       });
     });
 

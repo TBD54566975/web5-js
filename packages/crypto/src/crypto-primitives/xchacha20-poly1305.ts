@@ -1,4 +1,4 @@
-import { xchacha20_poly1305 } from '@noble/ciphers/chacha';
+import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 
 export class XChaCha20Poly1305 {
 
@@ -12,7 +12,7 @@ export class XChaCha20Poly1305 {
   }): Promise<Uint8Array> {
     const { associatedData, data, key, nonce } = options;
 
-    const xc20p = xchacha20_poly1305(key, nonce, associatedData);
+    const xc20p = xchacha20poly1305(key, nonce, associatedData);
     const plaintext = xc20p.decrypt(data);
 
     return plaintext;
@@ -26,7 +26,7 @@ export class XChaCha20Poly1305 {
   }): Promise<Uint8Array> {
     const { associatedData, data, key, nonce } = options;
 
-    const xc20p = xchacha20_poly1305(key, nonce, associatedData);
+    const xc20p = xchacha20poly1305(key, nonce, associatedData);
     const ciphertext = xc20p.encrypt(data);
 
     return ciphertext;
