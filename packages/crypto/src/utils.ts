@@ -136,7 +136,7 @@ export function randomBytes(bytesLength: number): Uint8Array {
  * Example usage:
  *
  * ```ts
- * const pin = randomPin({ length: 4 });
+ * const pin = generatePin({ length: 4 });
  * console.log(pin); // Outputs a 4-digit PIN, e.g., "0231"
  * ```
  *
@@ -151,7 +151,7 @@ export function randomBytes(bytesLength: number): Uint8Array {
  */
 export function randomPin({ length }: { length: number }): string {
   if (3 > length || length > 10) {
-    throw new Error('randomPin() can securely generate a PIN between 3 to 10 digits.');
+    throw new Error('generatePin() can securely generate a PIN between 3 to 10 digits.');
   }
 
   const max = Math.pow(10, length) - 1;

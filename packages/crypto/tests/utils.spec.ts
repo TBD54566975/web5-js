@@ -223,13 +223,13 @@ describe('Crypto Utils', () => {
     it('throws an error for a PIN length less than 3', () => {
       expect(
         () => randomPin({ length: 2 })
-      ).to.throw(Error, 'randomPin() can securely generate a PIN between 3 to 10 digits.');
+      ).to.throw(Error, 'generatePin() can securely generate a PIN between 3 to 10 digits.');
     });
 
     it('throws an error for a PIN length greater than 10', () => {
       expect(
         () => randomPin({ length: 11 })
-      ).to.throw(Error, 'randomPin() can securely generate a PIN between 3 to 10 digits.');
+      ).to.throw(Error, 'generatePin() can securely generate a PIN between 3 to 10 digits.');
     });
   });
 
