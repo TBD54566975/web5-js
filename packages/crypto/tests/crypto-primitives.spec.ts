@@ -364,6 +364,54 @@ describe('Cryptographic Primitive Implementations', () => {
       });
     });
 
+    describe('derivePrivateKey()', () => {
+      let validEd25519PrivateKey: Uint8Array;
+
+      // This is a setup step. Before each test, generate a new Ed25519 key pair
+      // and use the private key in tests. This ensures that we work with fresh keys for every test.
+      beforeEach(async () => {
+        const keyPair = await Ed25519.generateKeyPair();
+        validEd25519PrivateKey = keyPair.privateKey;
+      });
+
+      it('derives a new private key based on the provided private key and info', async () => {
+        const info = 'additional-information';
+        const derivedPrivateKey = await Ed25519.derivePrivateKey({ privateKey: validEd25519PrivateKey, info });
+
+        expect(derivedPrivateKey).to.be.instanceOf(Uint8Array);
+        expect(derivedPrivateKey.length).to.equal(32);
+        expect(derivedPrivateKey).not.to.equal(validEd25519PrivateKey);
+      });
+
+      it('produces different derived keys with different info', async () => {
+        const info1 = 'info-1';
+        const info2 = 'info-2';
+
+        const derivedPrivateKey1 = await Ed25519.derivePrivateKey({ privateKey: validEd25519PrivateKey, info: info1 });
+        const derivedPrivateKey2 = await Ed25519.derivePrivateKey({ privateKey: validEd25519PrivateKey, info: info2 });
+
+        expect(derivedPrivateKey1).not.to.eql(derivedPrivateKey2);
+      });
+
+      it('produces the same derived key with the same info and original private key', async () => {
+        const info = 'consistent-info';
+        const derivedPrivateKey1 = await Ed25519.derivePrivateKey({ privateKey: validEd25519PrivateKey, info });
+        const derivedPrivateKey2 = await Ed25519.derivePrivateKey({ privateKey: validEd25519PrivateKey, info });
+
+        expect(derivedPrivateKey1).to.eql(derivedPrivateKey2);
+      });
+
+      it('accepts info as a string or a Uint8Array', async () => {
+        const infoString = 'info-string';
+        const infoUint8Array = new TextEncoder().encode(infoString);
+
+        const derivedPrivateKey1 = await Ed25519.derivePrivateKey({ privateKey: validEd25519PrivateKey, info: infoString });
+        const derivedPrivateKey2 = await Ed25519.derivePrivateKey({ privateKey: validEd25519PrivateKey, info: infoUint8Array });
+
+        expect(derivedPrivateKey1).to.eql(derivedPrivateKey2);
+      });
+    });
+
     describe('generateKeyPair()', () => {
       it('returns a pair of keys of type Uint8Array', async () => {
         const keyPair = await Ed25519.generateKeyPair();
@@ -652,6 +700,54 @@ describe('Cryptographic Primitive Implementations', () => {
           expect(error).to.be.instanceOf(Error);
           expect((error as Error).message).to.include('Point of length 65 was invalid');
         }
+      });
+    });
+
+    describe('derivePrivateKey()', () => {
+      let validSecp256k1PrivateKey: Uint8Array;
+
+      // This is a setup step. Before each test, generate a new secp256k1 key pair
+      // and use the private key in tests. This ensures that we work with fresh keys for every test.
+      beforeEach(async () => {
+        const keyPair = await Secp256k1.generateKeyPair();
+        validSecp256k1PrivateKey = keyPair.privateKey;
+      });
+
+      it('derives a new private key based on the provided private key and info', async () => {
+        const info = 'additional-information';
+        const derivedPrivateKey = await Secp256k1.derivePrivateKey({ privateKey: validSecp256k1PrivateKey, info });
+
+        expect(derivedPrivateKey).to.be.instanceOf(Uint8Array);
+        expect(derivedPrivateKey.length).to.equal(32);
+        expect(derivedPrivateKey).not.to.equal(validSecp256k1PrivateKey);
+      });
+
+      it('produces different derived keys with different info', async () => {
+        const info1 = 'info-1';
+        const info2 = 'info-2';
+
+        const derivedPrivateKey1 = await Secp256k1.derivePrivateKey({ privateKey: validSecp256k1PrivateKey, info: info1 });
+        const derivedPrivateKey2 = await Secp256k1.derivePrivateKey({ privateKey: validSecp256k1PrivateKey, info: info2 });
+
+        expect(derivedPrivateKey1).not.to.eql(derivedPrivateKey2);
+      });
+
+      it('produces the same derived key with the same info and original private key', async () => {
+        const info = 'consistent-info';
+        const derivedPrivateKey1 = await Secp256k1.derivePrivateKey({ privateKey: validSecp256k1PrivateKey, info });
+        const derivedPrivateKey2 = await Secp256k1.derivePrivateKey({ privateKey: validSecp256k1PrivateKey, info });
+
+        expect(derivedPrivateKey1).to.eql(derivedPrivateKey2);
+      });
+
+      it('accepts info as a string or a Uint8Array', async () => {
+        const infoString = 'info-string';
+        const infoUint8Array = new TextEncoder().encode(infoString);
+
+        const derivedPrivateKey1 = await Secp256k1.derivePrivateKey({ privateKey: validSecp256k1PrivateKey, info: infoString });
+        const derivedPrivateKey2 = await Secp256k1.derivePrivateKey({ privateKey: validSecp256k1PrivateKey, info: infoUint8Array });
+
+        expect(derivedPrivateKey1).to.eql(derivedPrivateKey2);
       });
     });
 

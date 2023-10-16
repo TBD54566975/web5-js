@@ -1,6 +1,13 @@
 import type { BytesKeyPair } from '../types/crypto-key.js';
 
-import { ed25519, edwardsToMontgomeryPub, edwardsToMontgomeryPriv } from '@noble/curves/ed25519';
+import { hkdf } from '@noble/hashes/hkdf';
+import { sha256 } from '@noble/hashes/sha256';
+import { mapHashToField } from '@noble/curves/abstract/modular';
+import {
+  ed25519,
+  edwardsToMontgomeryPub,
+  edwardsToMontgomeryPriv,
+} from '@noble/curves/ed25519';
 
 /**
  * The `Ed25519` class provides an interface for generating Ed25519 key pairs,
@@ -82,6 +89,45 @@ export class Ed25519 {
     const montgomeryPublicKey = edwardsToMontgomeryPub(publicKey);
 
     return montgomeryPublicKey;
+  }
+
+  /**
+   * Derives a new Ed25519 private key based on the provided private key and
+   * additional information, following the RFC 9380 guidance for hashing to
+   * elliptic curves.
+   *
+   * This method first utilizes the HKDF (HMAC-based Extract-and-Expand Key
+   * Derivation Function) to derive 48-bytes of uniform output from the given
+   * private key and information. The derived value is converted into a private
+   * scalar, with the modulo bias being negligible.
+   *
+   * This derivation method ensures that the derived private key retains
+   * cryptographic strength and is suitable for use in subsequent Ed25519
+   * digital signature operations.
+   *
+   * @param options - The options for the key derivation.
+   * @param options.privateKey - The original Ed25519 private key, represented
+   *                             as a Uint8Array, from which to derive the new
+   *                             private key.
+   * @param options.info - Additional information as a string or Uint8Array that
+   *                       is used in the HKDF to derive the new private key.
+   * @returns A Promise that resolves to the derived Ed25519 private key as a
+   *          Uint8Array.
+   */
+  public static async derivePrivateKey(options: {
+    privateKey: Uint8Array,
+    info: string | Uint8Array
+   }): Promise<Uint8Array> {
+    const { privateKey, info } = options;
+
+    /** To control bias, RFC 9830 recommends a 48-byte length for the derived
+     * hash value to match the secp256k1 curve's target security level. */
+    const derivedBytes = hkdf(sha256, privateKey, undefined, info, 48);
+
+    // Convert the derived bytes into a private scalar.
+    const derivedPrivateKey = mapHashToField(derivedBytes, ed25519.CURVE.n);
+
+    return derivedPrivateKey;
   }
 
   /**
