@@ -131,7 +131,7 @@ export class DidKeyMethod implements DidMethod {
    * Reference: https://w3c-ccg.github.io/did-method-key/#document-creation-algorithm
    *
    * @param options
-   * @returns - A DID dodcument.
+   * @returns - A DID document.
    */
   public static async createDocument(options: DidKeyCreateDocumentOptions): Promise<DidDocument> {
     const {
