@@ -11,6 +11,8 @@ import { DidIonMethod } from '@web5/dids';
 
 /**
  * Override defaults configured during the technical preview phase.
+ *
+ * @beta
  */
 export type TechPreviewOptions = {
   // Override default dwnEndpoints provided for technical preview.
@@ -19,16 +21,18 @@ export type TechPreviewOptions = {
 
 /**
  * Optional overrides that can be provided when calling {@link Web5.connect}.
+ *
+ * @beta
  */
 export type Web5ConnectOptions = {
   /** Provide a {@link Web5Agent} implementation. Defaults to creating a local
-   * {@link Web5UserAgent} if one isn't provided */
+   * {@link @web5/user-agent#Web5UserAgent} if one isn't provided */
   agent?: Web5Agent;
 
   /** Provide an instance of a {@link AppDataStore} implementation. Defaults to
    * a LevelDB-backed store with an insecure, static unlock passphrase if one
    * isn't provided. To allow the app user to enter a secure passphrase of
-   * their choosing, provide an initialized {@link AppDataStore} instance. */
+   * their choosing, provide an initialized {@link @web5/agent#AppDataStore} instance. */
   appData?: AppDataStore;
 
   // Specify an existing DID to connect to.
@@ -45,18 +49,39 @@ export type Web5ConnectOptions = {
 }
 
 /**
+ * Options that are passed to Web5 constructor.
+ *
  * @see {@link Web5ConnectOptions}
+ * @beta
  */
 type Web5Options = {
   agent: Web5Agent;
   connectedDid: string;
 };
 
+/**
+ * The main Web5 API interface. It manages the creation of a DID if needed, the
+ * connection to the local DWN and all the web5 main foundational APIs such as VC,
+ * syncing, etc.
+ *
+ * @beta
+ */
 export class Web5 {
+  /**
+   * Web5 Agent knows how to handle DIDs, DWNs and VCs requests. The agent manages the
+   * user keys and identities, and is responsible to sign and verify messages.
+   */
   agent: Web5Agent;
+
+  /** Exposed instance to the DID APIs, allow users to create and resolve DIDs  */
   did: DidApi;
+
+  /** Exposed instance to the DWN APIs, allow users to read/write records */
   dwn: DwnApi;
+
+  /** Exposed instance to the VC APIs, allow users to issue, present and verify VCs */
   vc: VcApi;
+
   private connectedDid: string;
 
   constructor(options: Web5Options) {
@@ -69,7 +94,7 @@ export class Web5 {
   }
 
   /**
-   * Connects to a {@link Web5Agent}. Defaults to creating a local {@link Web5UserAgent}
+   * Connects to a {@link @web5/agent#Web5Agent}. Defaults to creating a local {@link @web5/user-agent#Web5UserAgent}
    * if one isn't provided.
    *
    * @param options - optional overrides

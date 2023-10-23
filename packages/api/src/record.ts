@@ -33,19 +33,27 @@ export type RecordUpdateOptions = {
 }
 
 /**
-   * TODO: Document class.
-   *
-   * Note: The `messageTimestamp` of the most recent RecordsWrite message is
-   *       logically equivalent to the date/time at which a Record was most
-   *       recently modified.  Since this Record class implementation is
-   *       intended to simplify the developer experience of working with
-   *       logical records (and not individual DWN messages) the
-   *       `messageTimestamp` is mapped to `dateModified`.
-   */
+ * TODO: Document class.
+ *
+ * Note: The `messageTimestamp` of the most recent RecordsWrite message is
+ *       logically equivalent to the date/time at which a Record was most
+ *       recently modified.  Since this Record class implementation is
+ *       intended to simplify the developer experience of working with
+ *       logical records (and not individual DWN messages) the
+ *       `messageTimestamp` is mapped to `dateModified`.
+ *
+ * @beta
+ */
 export class Record implements RecordModel {
   // mutable properties
+
+  /** Record's author */
   author: string;
+
+  /** Record's target (for sent records) */
   target: string;
+
+  /** Record deleted status */
   isDeleted = false;
 
   private _agent: Web5Agent;
@@ -107,7 +115,11 @@ export class Record implements RecordModel {
   }
 
   /**
-   * TODO: Document method.
+   * Returns the data of the current record.
+   * If the record data is null, it attempts to fetch the data from the DWN.
+   * @returns a data stream with convenience methods such as `blob()`, `json()`, `text()`, and `stream()`, similar to the fetch API response
+   * @throws `Error` if the record has already been deleted.
+   *
    */
   get data() {
     if (this.isDeleted) throw new Error('Operation failed: Attempted to access `data` of a record that has already been deleted.');
@@ -172,7 +184,9 @@ export class Record implements RecordModel {
   }
 
   /**
-   * TODO: Document method.
+   * Delete the current record from the DWN.
+   * @returns the status of the delete request
+   * @throws `Error` if the record has already been deleted.
    */
   async delete(): Promise<RecordsDeleteResponse> {
     if (this.isDeleted) throw new Error('Operation failed: Attempted to call `delete()` on a record that has already been deleted.');
@@ -196,7 +210,11 @@ export class Record implements RecordModel {
   }
 
   /**
-   * TODO: Document method.
+   * Send the current record to a remote DWN by specifying their DID
+   * (vs waiting for the regular DWN sync)
+   * @param target - the DID to send the record to
+   * @returns the status of the send record request
+   * @throws `Error` if the record has already been deleted.
    */
   async send(target: string): Promise<any> {
     if (this.isDeleted) throw new Error('Operation failed: Attempted to call `send()` on a record that has already been deleted.');
@@ -213,9 +231,8 @@ export class Record implements RecordModel {
   }
 
   /**
-   * TODO: Document method.
-   *
-   * Called by `JSON.stringify(...)` automatically.
+   * Returns a JSON representation of the Record instance.
+   * It's called by `JSON.stringify(...)` automatically.
    */
   toJSON(): RecordModel {
     return {
@@ -243,8 +260,7 @@ export class Record implements RecordModel {
   }
 
   /**
-   * TODO: Document method.
-   *
+   * Convenience method to return the string representation of the Record instance.
    * Called automatically in string concatenation, String() type conversion, and template literals.
    */
   toString() {
@@ -263,7 +279,10 @@ export class Record implements RecordModel {
   }
 
   /**
-   * TODO: Document method.
+   * Update the current record on the DWN.
+   * @param options - options to update the record, including the new data
+   * @returns the status of the update request
+   * @throws `Error` if the record has already been deleted.
    */
   async update(options: RecordUpdateOptions = {}) {
     if (this.isDeleted) throw new Error('Operation failed: Attempted to call `update()` on a record that has already been deleted.');
