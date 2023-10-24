@@ -196,6 +196,7 @@ describe('DidIonMethod', () => {
       });
 
       expect(portableDid.document.authentication).includes(`#noPrefixInput`);
+      expect(portableDid.document.assertionMethod).includes(`#noPrefixInput`);
       expect(portableDid.document.verificationMethod![0].id).to.equal(`#noPrefixInput`);
     });
 
@@ -224,6 +225,7 @@ describe('DidIonMethod', () => {
       });
 
       expect(portableDid.document.authentication).includes(`#prefixedKid`);
+      expect(portableDid.document.assertionMethod).includes(`#prefixedKid`);
       expect(portableDid.document.verificationMethod![0].id).to.equal(`#prefixedKid`);
     });
 

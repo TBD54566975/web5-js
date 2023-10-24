@@ -57,27 +57,27 @@ export const didIonCreateTestVectors = [
             kty : 'OKP',
             x   : 'rpKnDP8F4_jwvQ7xDkkuKx165OSwcyrQvmEWl2eigIU'
           },
-          relationships: ['authentication']
+          relationships: ['authentication', 'assertionMethod']
         }],
       },
       keyAlgorithm: 'Ed25519'
     },
     output: {
-      canonicalId : 'did:ion:EiAO3IAedMSHaGOZIuIVwLEBHd0SEuWwt2h00dbiGD7Hww',
-      did         : 'did:ion:EiAO3IAedMSHaGOZIuIVwLEBHd0SEuWwt2h00dbiGD7Hww:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJkd24tc2lnIiwicHVibGljS2V5SndrIjp7ImNydiI6IkVkMjU1MTkiLCJrdHkiOiJPS1AiLCJ4IjoicnBLbkRQOEY0X2p3dlE3eERra3VLeDE2NU9Td2N5clF2bUVXbDJlaWdJVSJ9LCJwdXJwb3NlcyI6WyJhdXRoZW50aWNhdGlvbiJdLCJ0eXBlIjoiSnNvbldlYktleTIwMjAifV0sInNlcnZpY2VzIjpbXX19XSwidXBkYXRlQ29tbWl0bWVudCI6IkVpRFZyOHUzVWxvOGtNVUx3WEh6VUdSMFdGdy1ROU14el8zRGQyQXEwVF9KR3cifSwic3VmZml4RGF0YSI6eyJkZWx0YUhhc2giOiJFaUJOX1JaeXZka1lmb2tkRlV5MTNiWnFwR2gzdmhZU3IxVnh3MmVieE5uQzZRIiwicmVjb3ZlcnlDb21taXRtZW50IjoiRWlEOEQtdjlsVjdqTzZ3ajVjSXVsRXRwZEFqaHE5NEFnTm54SlozWThVUnlrZyJ9fQ',
+      canonicalId : 'did:ion:EiBQ2C_wJSZsraZWjktLfUNKlSP0nnm_Jqay5h_0GRvb1Q',
+      did         : 'did:ion:EiBQ2C_wJSZsraZWjktLfUNKlSP0nnm_Jqay5h_0GRvb1Q:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJkd24tc2lnIiwicHVibGljS2V5SndrIjp7ImNydiI6IkVkMjU1MTkiLCJrdHkiOiJPS1AiLCJ4IjoicnBLbkRQOEY0X2p3dlE3eERra3VLeDE2NU9Td2N5clF2bUVXbDJlaWdJVSJ9LCJwdXJwb3NlcyI6WyJhdXRoZW50aWNhdGlvbiIsImFzc2VydGlvbk1ldGhvZCJdLCJ0eXBlIjoiSnNvbldlYktleTIwMjAifV0sInNlcnZpY2VzIjpbXX19XSwidXBkYXRlQ29tbWl0bWVudCI6IkVpRFZyOHUzVWxvOGtNVUx3WEh6VUdSMFdGdy1ROU14el8zRGQyQXEwVF9KR3cifSwic3VmZml4RGF0YSI6eyJkZWx0YUhhc2giOiJFaUNULVcyM0VZcFN1RDhBcG9qbTUyODFPLWF2OFlXVmRNUExvTGNBYU9LWDV3IiwicmVjb3ZlcnlDb21taXRtZW50IjoiRWlEOEQtdjlsVjdqTzZ3ajVjSXVsRXRwZEFqaHE5NEFnTm54SlozWThVUnlrZyJ9fQ',
       document    : {
         '@context': [
           'https://www.w3.org/ns/did/v1',
           {
-            '@base': 'did:ion:EiAO3IAedMSHaGOZIuIVwLEBHd0SEuWwt2h00dbiGD7Hww:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJkd24tc2lnIiwicHVibGljS2V5SndrIjp7ImNydiI6IkVkMjU1MTkiLCJrdHkiOiJPS1AiLCJ4IjoicnBLbkRQOEY0X2p3dlE3eERra3VLeDE2NU9Td2N5clF2bUVXbDJlaWdJVSJ9LCJwdXJwb3NlcyI6WyJhdXRoZW50aWNhdGlvbiJdLCJ0eXBlIjoiSnNvbldlYktleTIwMjAifV0sInNlcnZpY2VzIjpbXX19XSwidXBkYXRlQ29tbWl0bWVudCI6IkVpRFZyOHUzVWxvOGtNVUx3WEh6VUdSMFdGdy1ROU14el8zRGQyQXEwVF9KR3cifSwic3VmZml4RGF0YSI6eyJkZWx0YUhhc2giOiJFaUJOX1JaeXZka1lmb2tkRlV5MTNiWnFwR2gzdmhZU3IxVnh3MmVieE5uQzZRIiwicmVjb3ZlcnlDb21taXRtZW50IjoiRWlEOEQtdjlsVjdqTzZ3ajVjSXVsRXRwZEFqaHE5NEFnTm54SlozWThVUnlrZyJ9fQ'
+            '@base': 'did:ion:EiBQ2C_wJSZsraZWjktLfUNKlSP0nnm_Jqay5h_0GRvb1Q:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJkd24tc2lnIiwicHVibGljS2V5SndrIjp7ImNydiI6IkVkMjU1MTkiLCJrdHkiOiJPS1AiLCJ4IjoicnBLbkRQOEY0X2p3dlE3eERra3VLeDE2NU9Td2N5clF2bUVXbDJlaWdJVSJ9LCJwdXJwb3NlcyI6WyJhdXRoZW50aWNhdGlvbiIsImFzc2VydGlvbk1ldGhvZCJdLCJ0eXBlIjoiSnNvbldlYktleTIwMjAifV0sInNlcnZpY2VzIjpbXX19XSwidXBkYXRlQ29tbWl0bWVudCI6IkVpRFZyOHUzVWxvOGtNVUx3WEh6VUdSMFdGdy1ROU14el8zRGQyQXEwVF9KR3cifSwic3VmZml4RGF0YSI6eyJkZWx0YUhhc2giOiJFaUNULVcyM0VZcFN1RDhBcG9qbTUyODFPLWF2OFlXVmRNUExvTGNBYU9LWDV3IiwicmVjb3ZlcnlDb21taXRtZW50IjoiRWlEOEQtdjlsVjdqTzZ3ajVjSXVsRXRwZEFqaHE5NEFnTm54SlozWThVUnlrZyJ9fQ'
           },
         ],
-        id                   : 'did:ion:EiAO3IAedMSHaGOZIuIVwLEBHd0SEuWwt2h00dbiGD7Hww:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJkd24tc2lnIiwicHVibGljS2V5SndrIjp7ImNydiI6IkVkMjU1MTkiLCJrdHkiOiJPS1AiLCJ4IjoicnBLbkRQOEY0X2p3dlE3eERra3VLeDE2NU9Td2N5clF2bUVXbDJlaWdJVSJ9LCJwdXJwb3NlcyI6WyJhdXRoZW50aWNhdGlvbiJdLCJ0eXBlIjoiSnNvbldlYktleTIwMjAifV0sInNlcnZpY2VzIjpbXX19XSwidXBkYXRlQ29tbWl0bWVudCI6IkVpRFZyOHUzVWxvOGtNVUx3WEh6VUdSMFdGdy1ROU14el8zRGQyQXEwVF9KR3cifSwic3VmZml4RGF0YSI6eyJkZWx0YUhhc2giOiJFaUJOX1JaeXZka1lmb2tkRlV5MTNiWnFwR2gzdmhZU3IxVnh3MmVieE5uQzZRIiwicmVjb3ZlcnlDb21taXRtZW50IjoiRWlEOEQtdjlsVjdqTzZ3ajVjSXVsRXRwZEFqaHE5NEFnTm54SlozWThVUnlrZyJ9fQ',
+        id                   : 'did:ion:EiBQ2C_wJSZsraZWjktLfUNKlSP0nnm_Jqay5h_0GRvb1Q:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJkd24tc2lnIiwicHVibGljS2V5SndrIjp7ImNydiI6IkVkMjU1MTkiLCJrdHkiOiJPS1AiLCJ4IjoicnBLbkRQOEY0X2p3dlE3eERra3VLeDE2NU9Td2N5clF2bUVXbDJlaWdJVSJ9LCJwdXJwb3NlcyI6WyJhdXRoZW50aWNhdGlvbiIsImFzc2VydGlvbk1ldGhvZCJdLCJ0eXBlIjoiSnNvbldlYktleTIwMjAifV0sInNlcnZpY2VzIjpbXX19XSwidXBkYXRlQ29tbWl0bWVudCI6IkVpRFZyOHUzVWxvOGtNVUx3WEh6VUdSMFdGdy1ROU14el8zRGQyQXEwVF9KR3cifSwic3VmZml4RGF0YSI6eyJkZWx0YUhhc2giOiJFaUNULVcyM0VZcFN1RDhBcG9qbTUyODFPLWF2OFlXVmRNUExvTGNBYU9LWDV3IiwicmVjb3ZlcnlDb21taXRtZW50IjoiRWlEOEQtdjlsVjdqTzZ3ajVjSXVsRXRwZEFqaHE5NEFnTm54SlozWThVUnlrZyJ9fQ',
         'verificationMethod' : [
           {
             id           : '#dwn-sig',
             type         : 'JsonWebKey2020',
-            controller   : 'did:ion:EiAO3IAedMSHaGOZIuIVwLEBHd0SEuWwt2h00dbiGD7Hww:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJkd24tc2lnIiwicHVibGljS2V5SndrIjp7ImNydiI6IkVkMjU1MTkiLCJrdHkiOiJPS1AiLCJ4IjoicnBLbkRQOEY0X2p3dlE3eERra3VLeDE2NU9Td2N5clF2bUVXbDJlaWdJVSJ9LCJwdXJwb3NlcyI6WyJhdXRoZW50aWNhdGlvbiJdLCJ0eXBlIjoiSnNvbldlYktleTIwMjAifV0sInNlcnZpY2VzIjpbXX19XSwidXBkYXRlQ29tbWl0bWVudCI6IkVpRFZyOHUzVWxvOGtNVUx3WEh6VUdSMFdGdy1ROU14el8zRGQyQXEwVF9KR3cifSwic3VmZml4RGF0YSI6eyJkZWx0YUhhc2giOiJFaUJOX1JaeXZka1lmb2tkRlV5MTNiWnFwR2gzdmhZU3IxVnh3MmVieE5uQzZRIiwicmVjb3ZlcnlDb21taXRtZW50IjoiRWlEOEQtdjlsVjdqTzZ3ajVjSXVsRXRwZEFqaHE5NEFnTm54SlozWThVUnlrZyJ9fQ',
+            controller   : 'did:ion:EiBQ2C_wJSZsraZWjktLfUNKlSP0nnm_Jqay5h_0GRvb1Q:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJkd24tc2lnIiwicHVibGljS2V5SndrIjp7ImNydiI6IkVkMjU1MTkiLCJrdHkiOiJPS1AiLCJ4IjoicnBLbkRQOEY0X2p3dlE3eERra3VLeDE2NU9Td2N5clF2bUVXbDJlaWdJVSJ9LCJwdXJwb3NlcyI6WyJhdXRoZW50aWNhdGlvbiIsImFzc2VydGlvbk1ldGhvZCJdLCJ0eXBlIjoiSnNvbldlYktleTIwMjAifV0sInNlcnZpY2VzIjpbXX19XSwidXBkYXRlQ29tbWl0bWVudCI6IkVpRFZyOHUzVWxvOGtNVUx3WEh6VUdSMFdGdy1ROU14el8zRGQyQXEwVF9KR3cifSwic3VmZml4RGF0YSI6eyJkZWx0YUhhc2giOiJFaUNULVcyM0VZcFN1RDhBcG9qbTUyODFPLWF2OFlXVmRNUExvTGNBYU9LWDV3IiwicmVjb3ZlcnlDb21taXRtZW50IjoiRWlEOEQtdjlsVjdqTzZ3ajVjSXVsRXRwZEFqaHE5NEFnTm54SlozWThVUnlrZyJ9fQ',
             publicKeyJwk : {
               crv : 'Ed25519',
               kty : 'OKP',
@@ -86,6 +86,9 @@ export const didIonCreateTestVectors = [
           }
         ],
         authentication: [
+          '#dwn-sig'
+        ],
+        assertionMethod: [
           '#dwn-sig'
         ],
         service: []
@@ -145,7 +148,7 @@ export const didIonCreateTestVectors = [
             kty : 'OKP',
             x   : 'rpKnDP8F4_jwvQ7xDkkuKx165OSwcyrQvmEWl2eigIU'
           },
-          relationships: ['authentication']
+          relationships: ['authentication', 'assertionMethod']
         }],
       },
     }

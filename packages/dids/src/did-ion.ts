@@ -313,7 +313,7 @@ export class DidIonMethod implements DidMethod {
       });
       keySet.verificationMethodKeys = [{
         ...authenticationkeyPair,
-        relationships: ['authentication']
+        relationships: ['authentication', 'assertionMethod']
       }];
     }
 
