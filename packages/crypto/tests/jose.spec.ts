@@ -124,6 +124,69 @@ describe('CryptoKeyWithJwk()', () => {
 });
 
 describe('Jose', () => {
+  describe('canonicalize', () => {
+    it('returns the stringified version of an object with its keys sorted alphabetically', () => {
+      const obj = { banana: 1, apple: 2, cherry: 3 };
+      const expectedResult = '{"apple":2,"banana":1,"cherry":3}';
+      expect(Jose.canonicalize(obj)).to.equal(expectedResult);
+    });
+
+    it('handles an empty object', () => {
+      const obj = {};
+      const expectedResult = '{}';
+      expect(Jose.canonicalize(obj)).to.equal(expectedResult);
+    });
+
+    it('handles an object with nested properties', () => {
+      const obj = { c: 3, a: { z: 1, b: 2 } };
+      const expectedResult = '{"a":{"b":2,"z":1},"c":3}';
+      expect(Jose.canonicalize(obj)).to.equal(expectedResult);
+    });
+
+    it('handles an object with array values', () => {
+      const obj = { b: [3, 2, 1], a: [1, 2, 3] };
+      const expectedResult = '{"a":[1,2,3],"b":[3,2,1]}';
+      expect(Jose.canonicalize(obj)).to.equal(expectedResult);
+    });
+
+    it('handles an object with null values', () => {
+      const obj = { b: null, a: 1 };
+      const expectedResult = '{"a":1,"b":null}';
+      expect(Jose.canonicalize(obj)).to.equal(expectedResult);
+    });
+
+    it('handles an object with undefined values', () => {
+      const obj = { b: undefined, a: 1 };
+      const expectedResult = '{"a":1}';
+      expect(Jose.canonicalize(obj)).to.equal(expectedResult);
+    });
+  });
+
+  describe('cryptoKeyToJwkPair()', () => {
+    it('converts CryptoKeys to JWK Pair', async () => {
+      for (const vector of cryptoKeyPairToJsonWebKeyTestVectors) {
+        const privateKey = {
+          ...vector.cryptoKey.privateKey,
+          material: Convert.hex(
+            vector.cryptoKey.privateKey.material
+          ).toUint8Array(),
+        } as Web5Crypto.CryptoKey;
+        const publicKey = {
+          ...vector.cryptoKey.publicKey,
+          material: Convert.hex(
+            vector.cryptoKey.publicKey.material
+          ).toUint8Array(),
+        } as Web5Crypto.CryptoKey;
+
+        const jwkKeyPair = await Jose.cryptoKeyToJwkPair({
+          keyPair: { publicKey, privateKey },
+        });
+
+        expect(jwkKeyPair).to.deep.equal(vector.jsonWebKey);
+      }
+    });
+  });
+
   describe('joseToWebCrypto()', () => {
     it('translates algorithm format from JOSE to WebCrypto', () => {
       let webCrypto: Web5Crypto.GenerateKeyOptions;
@@ -251,16 +314,16 @@ describe('Jose', () => {
       }
     });
 
-    // it('throws an error when ext parameter is missing', async () => {
-    //   await expect(
-    //     Jose.jwkToCryptoKey({key: {
-    //       'alg'     : 'A256CTR',
-    //       'key_ops' : ['encrypt', 'decrypt'],
-    //       'k'       : 'UQtIAS-rmWB-vgNgG4lPrnTS2tNvwDPKl9rs0L9ICnU',
-    //       'kty'     : 'oct',
-    //     }})
-    //   ).to.eventually.be.rejectedWith(Error, `Conversion from JWK to CryptoKey failed. Required parameter missing: 'ext'`);
-    // });
+    it('throws an error when ext parameter is missing', async () => {
+      await expect(
+        Jose.jwkToCryptoKey({key: {
+          'alg'     : 'A256CTR',
+          'key_ops' : ['encrypt', 'decrypt'],
+          'k'       : 'UQtIAS-rmWB-vgNgG4lPrnTS2tNvwDPKl9rs0L9ICnU',
+          'kty'     : 'oct',
+        }})
+      ).to.eventually.be.rejectedWith(Error, `Conversion from JWK to CryptoKey failed. Required parameter missing: 'ext'`);
+    });
   });
 
   describe('keyToJwk()', () => {
@@ -362,31 +425,6 @@ describe('Jose', () => {
       expect(
         () => Jose.webCryptoToJose({ name: 'non-existent', hash: { name: 'SHA-1' } })
       ).to.throw(Error, `Unsupported WebCrypto to JOSE conversion: 'non-existent:SHA-1'`);
-    });
-  });
-
-  describe('cryptoKeyToJwkPair()', () => {
-    it('converts CryptoKeys to JWK Pair', async () => {
-      for (const vector of cryptoKeyPairToJsonWebKeyTestVectors) {
-        const privateKey = {
-          ...vector.cryptoKey.privateKey,
-          material: Convert.hex(
-            vector.cryptoKey.privateKey.material
-          ).toUint8Array(),
-        } as Web5Crypto.CryptoKey;
-        const publicKey = {
-          ...vector.cryptoKey.publicKey,
-          material: Convert.hex(
-            vector.cryptoKey.publicKey.material
-          ).toUint8Array(),
-        } as Web5Crypto.CryptoKey;
-
-        const jwkKeyPair = await Jose.cryptoKeyToJwkPair({
-          keyPair: { publicKey, privateKey },
-        });
-
-        expect(jwkKeyPair).to.deep.equal(vector.jsonWebKey);
-      }
     });
   });
 });
