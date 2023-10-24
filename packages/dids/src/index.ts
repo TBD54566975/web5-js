@@ -1,4 +1,5 @@
 export * from './did-ion.js';
+export * from './did-jwk.js';
 export * from './did-key.js';
 export * from './did-resolver.js';
 export * from './resolver-cache-level.js';
