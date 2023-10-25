@@ -334,6 +334,68 @@ The `delete` request object is composed as follows:
 - **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
   - **`recordId`** - _`string`_: the required record ID string that identifies the record being deleted.
 
+### **`web5.dwn.subscription.create(request)`**
+
+Method for subscribing to an event stream of a local or remote note. 
+Note: for remote servers, only a `WebSocket` connection is available.
+
+You MUST request a permission using the `Permissions` interface with a `SubscriptionRequest` 
+before getting access to a subscription. 
+
+The `subscription` request object is composed as follows:
+
+- **`target`** - _`DID string`_ (_optional_): The target DWN you want to sync with.
+- **`filter`** - The filtered scope that you wish to get. It MUST be scoped to a permission that has been scoped in the initial Permission scope.
+- **`callback`** - The callback function you wish to apply on the incoming event.
+
+```javascript
+const subscription = await web5.dwn.subscription.create({
+    target: "did:example:12345",
+    filter: {
+      "type": "record",
+      "recordFilters": {
+           "protocolPath": "/my/protocol/path"
+       }
+   },
+   callback: (e: EventMessage) => {
+     console.log(`Received message: ${JSON.stringify(e)}`)
+   }
+})
+```
+
+Note, the `subscription` object also returns an event stream and a socket connection. 
+You may use that directly if that is your preference.
+
+A **`SubscriptionCreateResponse`** is returned, which contains an event stream associated with it. 
+You can listen in on the subscription, or perform additional operations (like sync) on it if needed.
+
+#### Request
+
+Request follows the following format:
+
+- **`target`** - _`DID string`_ (_optional_): The target DWN you want to sync with.
+- **`filter`** - The filtered scope that you wish to get. It MUST be scoped to a permission that has been scoped in the initial Permission scope. Filers MAY support many different filtration mechanisms depending on the event tyep provided.
+    - `type?`: An optional event type. If not specified, assumes a `Records` event type.
+    - `recordsFilter`: Mirrors the `RecordFilter` object in the dwn-sdk-js and has filters around records path. It may NOT be applied to other event types.
+    - `protocolsFilter`: Mirrors the `ProtocolsFilter` object in the dwn-sdk-js and has filters around protocols path. It may NOT be applied to other event types.
+- **`options`** - Optional subscription configuration such as retry policies for the socket connection.
+- **`callback`** - The callback function you wish to apply on the incoming event. It takes in an `EventMessage` and returns a Promise.
+
+#### Response
+
+As a response, an SubscriptionCreateResponse is provided:
+
+- **`socket`** - _`DID string`_ (_optional_): The socket connection used for the subscription. You can call it directly if you need to close it out. `socket.close()`.
+- **`stream`** - The event stream of the messages. You can listen in on them with the `.on((e: EventMessage) => Promise<void>)` callback.
+- **`subscriptionId`** - An Optional subscription ID from the request returned by the dwn you are subscribing to over a server.
+- **`grantedFrom`** - The did of the source of the subscription
+- **`grantedTo`** - The did of the sink of the subscription 
+- **`attestation`** - The JWS attestation of the message.
+- **`filter`** - The filters applied to the subscription
+- **`error`**: - If not successful, a subscription error is provided as a boolean.
+- **`code`** - If not successful, a subscription error code is provided. Otherwise, 200 is returned.
+- **`message`** - If not successful, a subscription error message is provided.
+
 ### **`web5.dwn.protocols.configure(request)`**
 
 Method for configuring a protocol definition in the DWeb Node of the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted).
