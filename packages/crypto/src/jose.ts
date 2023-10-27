@@ -932,10 +932,10 @@ export class Jose {
       params.push(options.namedCurve);
 
     /**
-     * All symmetric encryption (AES) WebCrypto algorithms
+     * AES symmetric encryption WebCrypto algorithms
      * set a value for the "length" parameter.
      */
-    } else if (options.length !== undefined) {
+    } else if ('length' in options && options.length) {
       params.push(options.length.toString());
 
     /**

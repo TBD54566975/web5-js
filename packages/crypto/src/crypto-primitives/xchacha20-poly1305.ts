@@ -5,28 +5,28 @@ export class XChaCha20Poly1305 {
   public static readonly TAG_LENGTH = 16;
 
   public static async decrypt(options: {
-    associatedData?: Uint8Array,
+    additionalData?: Uint8Array,
     data: Uint8Array,
     key: Uint8Array,
     nonce: Uint8Array
   }): Promise<Uint8Array> {
-    const { associatedData, data, key, nonce } = options;
+    const { additionalData, data, key, nonce } = options;
 
-    const xc20p = xchacha20poly1305(key, nonce, associatedData);
+    const xc20p = xchacha20poly1305(key, nonce, additionalData);
     const plaintext = xc20p.decrypt(data);
 
     return plaintext;
   }
 
   public static async encrypt(options: {
-    associatedData?: Uint8Array,
+    additionalData?: Uint8Array,
     data: Uint8Array,
     key: Uint8Array,
     nonce: Uint8Array
   }): Promise<Uint8Array> {
-    const { associatedData, data, key, nonce } = options;
+    const { additionalData, data, key, nonce } = options;
 
-    const xc20p = xchacha20poly1305(key, nonce, associatedData);
+    const xc20p = xchacha20poly1305(key, nonce, additionalData);
     const ciphertext = xc20p.encrypt(data);
 
     return ciphertext;

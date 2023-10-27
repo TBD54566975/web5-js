@@ -47,7 +47,7 @@ export type DecryptOptions = {
   /**
    * An object defining the cipher algorithm to use and its parameters.
    */
-  algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions;
+  algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions | Web5Crypto.XChaCha20Options | Web5Crypto.XChaCha20Poly1305Options;
 
   /**
    * A Uint8Array object containing the data to be decrypted
@@ -102,7 +102,7 @@ export type EncryptOptions = {
   /**
    * An object defining the cipher algorithm to use and its parameters.
    */
-  algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions;
+  algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions | Web5Crypto.XChaCha20Options | Web5Crypto.XChaCha20Poly1305Options;
 
   /**
    * An Uint8Array object containing the data to be encrypted
@@ -127,10 +127,11 @@ export type GenerateKeyOptions<T extends GenerateKeyOptionTypes> = {
 
 export type GenerateKeyOptionTypes =
   | Web5Crypto.AlgorithmIdentifier
-  // | RsaHashedGenerateKeyOptions
   | Web5Crypto.AesGenerateKeyOptions
+  | Web5Crypto.ChaChaGenerateKeyOptions
   | Web5Crypto.EcdsaGenerateKeyOptions
   | Web5Crypto.EdDsaGenerateKeyOptions
+  // | RsaHashedGenerateKeyOptions
   // | HmacGenerateKeyOptions
   // | Pbkdf2Params;
 

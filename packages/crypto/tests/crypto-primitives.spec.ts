@@ -111,7 +111,7 @@ describe('Cryptographic Primitive Implementations', () => {
       for (const vector of aesGcmTestVectors) {
         it(`passes test vector ${vector.id}`, async () => {
           const plaintext = await AesGcm.decrypt({
-            associatedData : Convert.hex(vector.aad).toUint8Array(),
+            additionalData : Convert.hex(vector.aad).toUint8Array(),
             iv             : Convert.hex(vector.iv).toUint8Array(),
             data           : Convert.hex(vector.ciphertext + vector.tag).toUint8Array(),
             key            : Convert.hex(vector.key).toUint8Array(),
@@ -136,7 +136,7 @@ describe('Cryptographic Primitive Implementations', () => {
       for (const vector of aesGcmTestVectors) {
         it(`passes test vector ${vector.id}`, async () => {
           const ciphertext = await AesGcm.encrypt({
-            associatedData : Convert.hex(vector.aad).toUint8Array(),
+            additionalData : Convert.hex(vector.aad).toUint8Array(),
             iv             : Convert.hex(vector.iv).toUint8Array(),
             data           : Convert.hex(vector.data).toUint8Array(),
             key            : Convert.hex(vector.key).toUint8Array(),
@@ -1291,7 +1291,7 @@ describe('Cryptographic Primitive Implementations', () => {
 
       it('accepts additional authenticated data', async () => {
         const ciphertextAadAndTag = await XChaCha20Poly1305.encrypt({
-          associatedData : new Uint8Array(64),
+          additionalData : new Uint8Array(64),
           data           : new Uint8Array(10),
           key            : new Uint8Array(32),
           nonce          : new Uint8Array(24)

@@ -9,7 +9,7 @@ export namespace Web5Crypto {
   }
 
   export interface AesGcmOptions extends Algorithm {
-    associatedData?: Uint8Array;
+    additionalData?: Uint8Array;
     iv: Uint8Array;
     tagLength?: number;
   }
@@ -19,6 +19,16 @@ export namespace Web5Crypto {
   }
 
   export type AlgorithmIdentifier = Algorithm;
+
+  export type ChaChaGenerateKeyOptions = Algorithm;
+
+  export interface XChaCha20Options extends Algorithm {
+    nonce: Uint8Array;
+  }
+
+  export interface XChaCha20Poly1305Options extends XChaCha20Options {
+    additionalData?: Uint8Array;
+  }
 
   export interface CryptoKey {
     algorithm: Web5Crypto.GenerateKeyOptions;
@@ -53,7 +63,7 @@ export namespace Web5Crypto {
 
   export type EdDsaOptions = Algorithm
 
-  export type GenerateKeyOptions = AesGenerateKeyOptions | EcGenerateKeyOptions | HmacGenerateKeyOptions;
+  export type GenerateKeyOptions = AesGenerateKeyOptions | ChaChaGenerateKeyOptions | EcGenerateKeyOptions | HmacGenerateKeyOptions;
 
   export interface HmacGenerateKeyOptions extends Algorithm {
     hash: AlgorithmIdentifier;

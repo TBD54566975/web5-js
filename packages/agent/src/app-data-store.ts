@@ -205,7 +205,7 @@ export class AppDataVault implements AppDataStore {
     // Decrypt the Identity Agent's private key material.
     const ciphertext = new Uint8Array([...encryptedKey, ...tag]);
     const privateKeyMaterial = await XChaCha20Poly1305.decrypt({
-      associatedData : Convert.object(protectedHeader).toUint8Array(),
+      additionalData : Convert.object(protectedHeader).toUint8Array(),
       data           : ciphertext,
       key            : this._vaultUnlockKey,
       nonce          : nonce
@@ -297,7 +297,7 @@ export class AppDataVault implements AppDataStore {
     const nonce = cryptoUtils.randomBytes({ length: 24 });
     const privateKey = keyPair.privateKey.material;
     const privateKeyCipherTextAndTag = await XChaCha20Poly1305.encrypt({
-      associatedData : Convert.object(protectedHeader).toUint8Array(),
+      additionalData : Convert.object(protectedHeader).toUint8Array(),
       data           : privateKey,
       key            : this._vaultUnlockKey,
       nonce          : nonce
