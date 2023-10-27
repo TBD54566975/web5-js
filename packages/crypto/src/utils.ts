@@ -88,11 +88,9 @@ export function keyToMultibaseId(options: {
   return multibaseKeyId;
 }
 
-export function multibaseIdToKey(options: {
+export function multibaseIdToKey({ multibaseKeyId }: {
   multibaseKeyId: string
 }): { key: Uint8Array, multicodecCode: number, multicodecName: string } {
-  const { multibaseKeyId } = options;
-
   const prefixedKeyB58 = Convert.multibase(multibaseKeyId).toBase58Btc();
   const prefixedKey = Convert.base58Btc(prefixedKeyB58).toUint8Array();
   const { code, data, name } = Multicodec.removePrefix({ prefixedData: prefixedKey });
@@ -112,13 +110,13 @@ export function multibaseIdToKey(options: {
  * @returns A Uint8Array containing the generated random bytes.
  *
  * @example
- * const bytes = randomBytes(32); // Generates 32 random bytes
+ * const bytes = randomBytes({ length: 32 }); // Generates 32 random bytes
  *
  * @see {@link https://www.npmjs.com/package/@noble/hashes | @noble/hashes on NPM}
  * for more information about the underlying implementation.
  */
-export function randomBytes(bytesLength: number): Uint8Array {
-  return nobleRandomBytes(bytesLength);
+export function randomBytes({ length }: { length: number }): Uint8Array {
+  return nobleRandomBytes(length);
 }
 
 /**
@@ -162,7 +160,7 @@ export function randomPin({ length }: { length: number }): string {
     const rejectionRange = Math.pow(10, length);
     do {
       // Adjust the byte generation based on length.
-      const randomBuffer = randomBytes(Math.ceil(length / 2));  // 2 digits per byte.
+      const randomBuffer = randomBytes({ length: Math.ceil(length / 2) });  // 2 digits per byte.
       const view = new DataView(randomBuffer.buffer);
       // Convert the buffer to integer and take modulus based on length.
       pin = view.getUint16(0, false) % rejectionRange;
@@ -171,7 +169,7 @@ export function randomPin({ length }: { length: number }): string {
     const rejectionRange = Math.pow(10, 10); // For max 10 digit number.
     do {
     // Generates 4 random bytes.
-      const randomBuffer = randomBytes(4);
+      const randomBuffer = randomBytes({ length: 4 });
       // Create a DataView to read from the randomBuffer.
       const view = new DataView(randomBuffer.buffer);
       // Transform bytes to number (big endian).
@@ -207,7 +205,7 @@ export function randomPin({ length }: { length: number }): string {
  * @returns A UUID string in version 4 format.
  */
 export function randomUuid(): string {
-  const bytes = randomBytes(16);
+  const bytes = randomBytes({ length: 16 });
   bytes[6] = (bytes[6] & 0x0f) | 0x40; // set version 4
   bytes[8] = (bytes[8] & 0x3f) | 0x80; // set variant 1
   const hex = bytesToHex(bytes);

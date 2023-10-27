@@ -11,7 +11,7 @@ import {
 import { Jose } from '@web5/crypto';
 import { DidResolver } from '@web5/dids';
 import { Readable } from 'readable-stream';
-import * as didUtils from '@web5/dids/utils';
+import { utils as didUtils } from '@web5/dids';
 import { Convert } from '@web5/common';
 
 import {

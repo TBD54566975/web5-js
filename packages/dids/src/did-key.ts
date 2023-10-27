@@ -1,7 +1,7 @@
 import type { JsonWebKey, PrivateKeyJwk, PublicKeyJwk, Web5Crypto } from '@web5/crypto';
 
 import { universalTypeOf } from '@web5/common';
-import { keyToMultibaseId, multibaseIdToKey } from '@web5/crypto/utils';
+import { utils as cryptoUtils } from '@web5/crypto';
 import {
   Jose,
   Ed25519,
@@ -333,7 +333,7 @@ export class DidKeyMethod implements DidMethod {
      * base58-btc encoding of the concatenation of the multicodecValue and
      * the rawPublicKeyBytes.
      */
-    const kemMultibaseValue = keyToMultibaseId({
+    const kemMultibaseValue = cryptoUtils.keyToMultibaseId({
       key            : rawPublicKeyBytes,
       multicodecCode : multicodecValue
     });
@@ -450,7 +450,7 @@ export class DidKeyMethod implements DidMethod {
     const {
       key: rawPublicKeyBytes,
       multicodecCode: multicodecValue
-    } = multibaseIdToKey({ multibaseKeyId: multibaseValue });
+    } = cryptoUtils.multibaseIdToKey({ multibaseKeyId: multibaseValue });
 
     /**
      * 4. If the multicodecValue is 0xed, derive a public X25519 encryption key
@@ -509,7 +509,7 @@ export class DidKeyMethod implements DidMethod {
       key: rawPublicKeyBytes,
       multicodecCode: multicodecValue,
       multicodecName
-    } = multibaseIdToKey({ multibaseKeyId: multibaseValue });
+    } = cryptoUtils.multibaseIdToKey({ multibaseKeyId: multibaseValue });
 
     /**
      * 3. Ensure the proper key length of rawPublicKeyBytes based on the
