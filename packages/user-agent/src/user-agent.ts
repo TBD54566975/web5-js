@@ -226,7 +226,19 @@ export class Web5UserAgent implements Web5ManagedAgent {
   }
 
   async start(options: { passphrase: string }) {
-    const { passphrase } = options;
+    let { passphrase } = options;
+
+    // Warn the developer and application user of the security risks of using a static passphrase.
+    if (passphrase === undefined) {
+      passphrase = 'insecure-static-phrase';
+      console.warn(
+        '%cSECURITY WARNING:%c ' +
+              'You are using a static, insecure passphrase. ' +
+              'Please change it to a value chosen by the application user.',
+        'font-weight: bold; color: red;',
+        'font-weight: normal; color: inherit;'
+      );
+    }
 
     if (await this.firstLaunch()) {
       // 1A. Agent's first launch so initialize.

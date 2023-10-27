@@ -258,7 +258,7 @@ export class Convert {
     switch (this.format) {
 
       case 'ArrayBuffer': {
-        // Çreate Uint8Array as a view on the ArrayBuffer.
+        // Create Uint8Array as a view on the ArrayBuffer.
         // Note: The Uint8Array shares the same memory as the ArrayBuffer, so this operation is very efficient.
         return new Uint8Array(this.data);
       }

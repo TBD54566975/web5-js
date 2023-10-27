@@ -1,3 +1,4 @@
+import sinon from 'sinon';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import { TestManagedAgent } from '@web5/agent';
@@ -48,6 +49,40 @@ describe('Web5UserAgent', () => {
 
           await testAgent.agent.initialize({ passphrase: 'test' });
           await expect(testAgent.agent.firstLaunch()).to.eventually.be.false;
+        });
+      });
+
+      describe('start()', () => {
+        it('should log a security warning if passphrase is not specified', async () => {
+          // Stub the console.warn method
+          const warnStub = sinon.stub(console, 'warn');
+
+          // Call the function being tested.
+          // @ts-expect-error because passphrase is intentionally undefined to trigger warning.
+          await testAgent.agent.start({ passphrase: undefined });
+
+          // Assert that console.warn was called
+          expect(warnStub.called).to.be.true;
+
+          // Assert that console.warn was called with a message containing "SECURITY WARNING"
+          expect(warnStub.calledWithMatch(/SECURITY WARNING/)).to.be.true;
+
+          // Restore the original console.warn method
+          warnStub.restore();
+        });
+
+        it('should not log a security warning if passphrase is specified', async () => {
+          // Stub the console.warn method
+          const warnStub = sinon.stub(console, 'warn');
+
+          // Call the function being tested.
+          await testAgent.agent.start({ passphrase: 'cambridge-grafted-produce' });
+
+          // Assert that console.warn was called
+          expect(warnStub.called).to.be.false;
+
+          // Restore the original console.warn method
+          warnStub.restore();
         });
       });
 
