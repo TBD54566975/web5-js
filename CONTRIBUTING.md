@@ -26,7 +26,7 @@ As we work our way towards a beta release and beyond, we'll be creating more foc
 
 These issues are excellent canditates for contribution and we'd be thrilled to get all the help we can get! You can
 take a look at all of the Issues that match the labels above
-[here](https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+label%3A%22help+wanted%22%2C%22good+first+issue%22%2C%22documentation%22%2C%22bug%22+).
+[on the Issues tab](https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+label%3A%22help+wanted%22%2C%22good+first+issue%22%2C%22documentation%22%2C%22bug%22+).
 
 We suggest the following process when picking up one of these issues:
 
@@ -40,7 +40,7 @@ We suggest the following process when picking up one of these issues:
 
 ### Discussions
 
-Design discussions and proposals take place on our Web5 [discord](https://discord.com/channels/937858703112155166/969272658501976117) channel.
+Design discussions and proposals take place on our Web5 [Discord](https://discord.com/channels/937858703112155166/969272658501976117) channel.
 
 We advocate an asynchronous, written debate model - so write up your thoughts and invite the community to join in!
 
@@ -94,7 +94,7 @@ to your valuable work:
   rebase atop the upstream `main` branch. This will limit the potential for merge
   conflicts during review, and helps keep the audit trail clean. A good writeup for
   how this is done is
-  [here](https://medium.com/@slamflipstrom/a-beginners-guide-to-squashing-commits-with-git-rebase-8185cf6e62ec), and if you're
+  [written up our beginners' guide to squashing commits tutorial](https://medium.com/@slamflipstrom/a-beginners-guide-to-squashing-commits-with-git-rebase-8185cf6e62ec), and if you're
   having trouble - feel free to ask a member or the community for help or leave the commits as-is, and flag that you'd like
   rebasing assistance in your PR! We're here to support you.
 - Open a PR in the project to bring in the code from your feature branch.
