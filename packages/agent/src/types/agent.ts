@@ -8,6 +8,7 @@ import type {
   RecordsDeleteMessage,
   ProtocolsQueryMessage,
   ProtocolsConfigureMessage,
+  GenericMessage,
 } from '@tbd54566975/dwn-sdk-js';
 
 import { DidResolver } from '@web5/dids';
@@ -57,7 +58,9 @@ export type ProcessDwnRequest = DwnRequest & {
   store?: boolean;
 };
 
-export type SendDwnRequest = DwnRequest & (ProcessDwnRequest | { messageCid: string })
+export type SendDwnRequest = DwnRequest & (
+  ProcessDwnRequest | { messageCid: string } | { message: GenericMessage, dataStream?: Blob | ReadableStream | Readable }
+);
 
 /**
  * TODO: add JSDoc

@@ -1,5 +1,6 @@
 import type { PortableDid } from '@web5/dids';
 import type { ManagedIdentity } from '@web5/agent';
+import { Temporal } from '@js-temporal/polyfill';
 
 import { expect } from 'chai';
 import { TestManagedAgent } from '@web5/agent';
@@ -8,6 +9,7 @@ import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './test-config.js';
 import { TestUserAgent } from './utils/test-user-agent.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
+import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -567,6 +569,39 @@ describe('DwnApi', () => {
         expect(result.status.code).to.equal(404);
         expect(result.record).to.be.undefined;
       });
+    });
+  });
+
+  describe('permissions.grant()', () => {
+    describe('agent', () => {
+      it('returns a PermissionsGrant that can be invoked', async () => {
+        const { did: bobDid } = await testAgent.createIdentity({ testDwnUrls });
+
+        const { status, permissionsGrant } = await dwn.permissions.grant({
+          message: {
+            dateExpires : Temporal.Now.instant().toString({ smallestUnit: 'microseconds' }),
+            grantedBy   : aliceDid.did,
+            grantedFor  : aliceDid.did,
+            grantedTo   : bobDid.did,
+            scope       : {
+              interface : DwnInterfaceName.Records,
+              method    : DwnMethodName.Read,
+            }
+          },
+        });
+
+        expect(status.code).to.eq(202);
+        expect(permissionsGrant).not.to.be.undefined;
+
+        // send to Alice's remote DWN
+        const { status: statusSend } = await dwn.permissions.send(aliceDid.did, permissionsGrant);
+
+        expect(statusSend.code).to.eq(202);
+      });
+    });
+
+    describe('target: did', () => {
+
     });
   });
 });

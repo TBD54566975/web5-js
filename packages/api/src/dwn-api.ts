@@ -1,5 +1,5 @@
 import type { DwnResponse, Web5Agent } from '@web5/agent';
-import type {
+import {
   UnionMessageReply,
   RecordsReadOptions,
   RecordsQueryOptions,
@@ -11,6 +11,7 @@ import type {
   ProtocolsConfigureMessage,
   ProtocolsConfigureOptions,
   ProtocolsConfigureDescriptor,
+  Message,
 } from '@tbd54566975/dwn-sdk-js';
 
 import { isEmptyObject } from '@web5/common';
@@ -19,6 +20,14 @@ import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 import { Record } from './record.js';
 import { Protocol } from './protocol.js';
 import { dataToBlob } from './utils.js';
+import { PermissionsGrant } from '@tbd54566975/dwn-sdk-js';
+import { PermissionsGrantMessage } from '@tbd54566975/dwn-sdk-js';
+import { PermissionsGrantOptions } from '@tbd54566975/dwn-sdk-js';
+
+export type PermissionsGrantRequest = {
+  target?: string;
+  message: Omit<PermissionsGrantOptions, 'authorizationSigner'>;
+}
 
 export type ProtocolsConfigureRequest = {
   message: Omit<ProtocolsConfigureOptions, 'authorizationSigner'>;
@@ -89,6 +98,10 @@ export type RecordsWriteRequest = {
   data: unknown;
   message?: Omit<Partial<RecordsWriteOptions>, 'authorizationSigner'>;
   store?: boolean;
+}
+
+export type PermissionGrantRequest = {
+  message?: Omit<Partial<PermissionsGrantOptions>, 'authorizationSigner'>;
 }
 
 export type RecordsWriteResponse = {
@@ -374,6 +387,50 @@ export class DwnApi {
         }
 
         return { record, status };
+      },
+    };
+  }
+
+  get permissions() {
+    return {
+      grant: async (request: PermissionsGrantRequest): Promise<{ permissionsGrant: PermissionsGrant, status: UnionMessageReply['status'] }> => {
+        const agentRequest = {
+          author         : this.connectedDid,
+          messageOptions : request.message,
+          messageType    : DwnInterfaceName.Permissions + DwnMethodName.Grant,
+          target         : request.target || this.connectedDid
+        };
+
+        let agentResponse: DwnResponse;
+
+        if (request.target) {
+          agentResponse = await this.agent.sendDwnRequest(agentRequest);
+        } else {
+          agentResponse = await this.agent.processDwnRequest(agentRequest);
+        }
+
+        const { message, reply: { status } } = agentResponse;
+
+        let permissionsGrant: PermissionsGrant | undefined;
+        if (200 <= status.code && status.code <= 299) {
+          permissionsGrant = await PermissionsGrant.parse(message as PermissionsGrantMessage);
+        }
+
+        return {
+          permissionsGrant,
+          status,
+        };
+      },
+
+      send: async (target: string, message: PermissionsGrant): Promise<{ status: UnionMessageReply['status'] }> => {
+        const { reply: { status } } = await this.agent.sendDwnRequest({
+          messageType : message.message.descriptor.interface + message.message.descriptor.method,
+          author      : message.author,
+          target      : target,
+          message     : message.message,
+        });
+
+        return { status };
       },
     };
   }

@@ -6,6 +6,7 @@ import {
   RecordsWriteMessage,
   RecordsWriteOptions,
   Signer,
+  PermissionsGrant,
 } from '@tbd54566975/dwn-sdk-js';
 
 import { Jose } from '@web5/crypto';
@@ -69,6 +70,9 @@ const dwnMessageCreators = {
   [DwnInterfaceName.Records + DwnMethodName.Query]       : RecordsQuery,
   [DwnInterfaceName.Records + DwnMethodName.Write]       : RecordsWrite,
   [DwnInterfaceName.Records + DwnMethodName.Delete]      : RecordsDelete,
+  [DwnInterfaceName.Permissions + DwnMethodName.Grant]   : PermissionsGrant,
+  [DwnInterfaceName.Permissions + DwnMethodName.Request] : PermissionsGrant,
+  [DwnInterfaceName.Permissions + DwnMethodName.Revoke]  : PermissionsGrant,
   [DwnInterfaceName.Protocols + DwnMethodName.Query]     : ProtocolsQuery,
   [DwnInterfaceName.Protocols + DwnMethodName.Configure] : ProtocolsConfigure,
 };
@@ -184,8 +188,11 @@ export class DwnManager {
       });
       dwnRpcRequest.message = message;
       messageData = data;
-
+    } else if ('message' in request) {
+      dwnRpcRequest.message = request.message;
+      messageData = request.dataStream;
     } else {
+      // construct message from messageOptions
       const { message } = await this.constructDwnMessage({ request });
       dwnRpcRequest.message = message;
       messageData = request.dataStream;
@@ -224,7 +231,7 @@ export class DwnManager {
         dwnReply = await this.agent.rpcClient.sendDwnRequest(dwnRpcRequest as DwnRpcRequest);
         break;
       } catch(error: unknown) {
-        const message = (error instanceof Error) ? error.message : 'Uknown error';
+        const message = (error instanceof Error) ? error.message : 'Unknown error';
         errorMessages.push({ url: dwnUrl, message });
       }
     }
@@ -405,7 +412,7 @@ export class DwnManager {
     author: string,
     messageOptions: unknown,
     messageType: string
-  }): Promise<EventsGet | MessagesGet | RecordsRead | RecordsQuery | RecordsWrite | RecordsDelete | ProtocolsQuery | ProtocolsConfigure> {
+  }): Promise<Message<GenericMessage>> {
     const { author, messageOptions, messageType } = options;
 
     const dwnAuthorizationSigner = await this.constructDwnAuthorizationSigner(author);
