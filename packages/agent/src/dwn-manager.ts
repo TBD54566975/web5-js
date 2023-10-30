@@ -1,26 +1,19 @@
-import type {
+import {
   GenericMessage,
-  SignatureInput,
   MessagesGetReply,
   RecordsReadReply,
   UnionMessageReply,
-  EncryptionProperty,
   RecordsWriteMessage,
   RecordsWriteOptions,
-  PrivateJwk as DwnPrivateKeyJwk,
+  Signer,
 } from '@tbd54566975/dwn-sdk-js';
 
 import { Jose } from '@web5/crypto';
 import { DidResolver } from '@web5/dids';
 import { Readable } from 'readable-stream';
 import * as didUtils from '@web5/dids/utils';
-import { Convert, removeUndefinedProperties } from '@web5/common';
+import { Convert } from '@web5/common';
 
-import {
-  EventLogLevel,
-  DataStoreLevel,
-  MessageStoreLevel,
-} from '@tbd54566975/dwn-sdk-js/stores';
 import {
   Cid,
   Dwn,
@@ -36,6 +29,9 @@ import {
   ProtocolsQuery,
   DwnInterfaceName,
   ProtocolsConfigure,
+  EventLogLevel,
+  DataStoreLevel,
+  MessageStoreLevel,
 } from '@tbd54566975/dwn-sdk-js';
 
 import type { DwnRpcRequest, DwnResponse,ProcessDwnRequest, SendDwnRequest, Web5ManagedAgent } from './types/agent.js';
@@ -276,42 +272,13 @@ export class DwnManager {
       }
     }
 
-    const signingKeyId = await this.getAuthorSigningKeyId({ did: request.author });
-
-    // ! TODO: Remove this once DWN SDK supports external signers.
-    const dwnSignatureInput = this.getTempSignatureInput({ signingKeyId });
-
-    // TODO: Figure out how to narrow this type.
-    const messageCreateInput = {
-      ...<any>request.messageOptions,
-      authorizationSignatureInput: dwnSignatureInput
-    };
+    const dwnAuthorizationSigner = await this.constructDwnAuthorizationSigner(request.author);
 
     const messageCreator = dwnMessageCreators[request.messageType];
-
-    // ! TODO: START Remove this monkey patch (MP) as soon as the DWN SDK supports external signers.
-    // MP Step 1: Store the original methods.
-    const originalCreateAuthorization = RecordsWrite.createAuthorization;
-    const originalSignAsAuthorization = Message.signAsAuthorization;
-    // MP Step 2: Replace the methods.
-    RecordsWrite.createAuthorization = (
-      recordId: string,
-      contextId: string | undefined,
-      descriptorCid: string,
-      attestation: GeneralJws | undefined,
-      encryption: EncryptionProperty | undefined,
-    ) => this.createAuthorization(recordId, contextId, descriptorCid, attestation, encryption, signingKeyId);
-    Message.signAsAuthorization = (
-      descriptor: GenericMessage['descriptor'],
-      signatureInput: SignatureInput,
-      permissionsGrantId?: string,
-    ) => this.signAsAuthorization(descriptor, signingKeyId, permissionsGrantId);
-    // MP Step 3: Call the method that required monkey patching.
-    const dwnMessage = await messageCreator.create(messageCreateInput as any);
-    // MP Step 4: Restore the original methods.
-    RecordsWrite.createAuthorization = originalCreateAuthorization;
-    Message.signAsAuthorization = originalSignAsAuthorization;
-    // ! TODO: END Remove this monkey patch (MP) as soon as the DWN SDK supports external signers.
+    const dwnMessage = await messageCreator.create({
+      ...<any>request.messageOptions,
+      authorizationSigner: dwnAuthorizationSigner
+    });
 
     return { message: dwnMessage.toJSON(), dataStream: readableStream };
   }
@@ -321,17 +288,49 @@ export class DwnManager {
   }): Promise<string> {
     const { did } = options;
 
-    // Get the agent instance.
-    const agent = this.agent;
-
     // Get the method-specific default signing key.
-    const signingKeyId = await agent.didManager.getDefaultSigningKey({ did });
+    const signingKeyId = await this.agent.didManager.getDefaultSigningKey({ did });
 
     if (!signingKeyId) {
       throw new Error (`DwnManager: Unable to determine signing key for author: '${did}'`);
     }
 
     return signingKeyId;
+  }
+
+  private async constructDwnAuthorizationSigner(author: string): Promise<Signer> {
+    const signingKeyId = await this.getAuthorSigningKeyId({ did: author });
+
+    /**
+     * DID keys stored in KeyManager use the canonicalId as an alias, so
+     * normalize the signing key ID before attempting to retrieve the key.
+     */
+    const parsedDid = didUtils.parseDid({ didUrl: signingKeyId });
+    if (!parsedDid) throw new Error(`DidIonMethod: Unable to parse DID: ${signingKeyId}`);
+    const normalizedDid = parsedDid.did.split(':', 3).join(':');
+    const normalizedSigningKeyId = `${normalizedDid}#${parsedDid.fragment}`;
+
+    const signingKey = await this.agent.keyManager.getKey({ keyRef: normalizedSigningKeyId });
+    if (!isManagedKeyPair(signingKey)) {
+      throw new Error(`DwnManager: Signing key not found for author: '${author}'`);
+    }
+
+    const { alg } = Jose.webCryptoToJose(signingKey.privateKey.algorithm);
+    if (alg === undefined) {
+      throw Error(`No algorithm provided to sign with key ID ${signingKeyId}`);
+    }
+
+    return {
+      keyId     : signingKeyId,
+      algorithm : alg,
+      sign      : async (content: Uint8Array): Promise<Uint8Array> => {
+        return await this.agent.keyManager.sign({
+          algorithm : signingKey.privateKey.algorithm,
+          data      : content,
+          keyRef    : normalizedSigningKeyId
+        });
+      }
+    };
   }
 
   private async getDwnMessage(options: {
@@ -341,28 +340,14 @@ export class DwnManager {
   }): Promise<DwnMessage> {
     const { author, messageType, messageCid } = options;
 
-    const signingKeyId = await this.getAuthorSigningKeyId({ did: author });
+    const dwnAuthorizationSigner = await this.constructDwnAuthorizationSigner(author);
 
-    // ! TODO: START Remove this monkey patch (MP) as soon as the DWN SDK supports external signers.
-    const dwnSignatureInput = this.getTempSignatureInput({ signingKeyId });
-    // MP Step 1: Store the original methods.
-    const originalSignAsAuthorization = Message.signAsAuthorization;
-    // MP Step 2: Replace the methods.
-    Message.signAsAuthorization = (
-      descriptor: GenericMessage['descriptor'],
-      signatureInput: SignatureInput,
-      permissionsGrantId?: string,
-    ) => this.signAsAuthorization(descriptor, signingKeyId, permissionsGrantId);
-    // MP Step 3: Call the method that required monkey patching.
     const messagesGet = await MessagesGet.create({
-      authorizationSignatureInput : dwnSignatureInput,
-      messageCids                 : [messageCid]
+      authorizationSigner : dwnAuthorizationSigner,
+      messageCids         : [messageCid]
     });
-    // MP Step 4: Restore the original methods.
-    Message.signAsAuthorization = originalSignAsAuthorization;
-    // ! TODO: END Remove this monkey patch (MP) as soon as the DWN SDK supports external signers.
 
-    const result: MessagesGetReply = await this._dwn.processMessage(author, messagesGet.toJSON());
+    const result: MessagesGetReply = await this._dwn.processMessage(author, messagesGet.message);
 
     if (!(result.messages && result.messages.length === 1)) {
       throw new Error('TODO: figure out error message');
@@ -388,8 +373,10 @@ export class DwnManager {
         dwnMessage.data = new Blob([dataBytes]);
       } else {
         const recordsRead = await RecordsRead.create({
-          authorizationSignatureInput : dwnSignatureInput,
-          recordId                    : writeMessage.recordId
+          authorizationSigner : dwnAuthorizationSigner,
+          filter              : {
+            recordId: writeMessage.recordId
+          }
         });
 
         const reply = await this._dwn.processMessage(author, recordsRead.toJSON()) as RecordsReadReply;
@@ -408,157 +395,6 @@ export class DwnManager {
   }
 
   /**
-   * The following methods are a temporary workaround that should be removed
-   * once DWN SDK implements support for an external signer.
-   *
-   * - createAuthorization()
-   * - createJws()
-   * - getTempSignatureInput()
-   * - signAsAuthorization()
-   */
-
-  private async createAuthorization(
-    recordId: string,
-    contextId: string | undefined,
-    descriptorCid: string,
-    attestation: GeneralJws | undefined,
-    encryption: EncryptionProperty | undefined,
-    signingKeyId: string,
-  ): Promise<GeneralJws> {
-    const authorizationPayload: RecordsWriteAuthorizationPayload = {
-      recordId,
-      descriptorCid
-    };
-
-    const attestationCid = attestation ? await Cid.computeCid(attestation) : undefined;
-    const encryptionCid = encryption ? await Cid.computeCid(encryption) : undefined;
-
-    if (contextId !== undefined) { authorizationPayload.contextId = contextId; } // assign `contextId` only if it is defined
-    if (attestationCid !== undefined) { authorizationPayload.attestationCid = attestationCid; } // assign `attestationCid` only if it is defined
-    if (encryptionCid !== undefined) { authorizationPayload.encryptionCid = encryptionCid; } // assign `encryptionCid` only if it is defined
-
-    const authorizationPayloadU8A = Convert.object(authorizationPayload).toUint8Array();
-
-    const jws = await this.createJws(authorizationPayloadU8A, [signingKeyId]);
-
-    return jws;
-  }
-
-  private async createJws(payload: Uint8Array, signingKeyIds: string[] = []): Promise<GeneralJws> {
-    // Get the agent instance.
-    const agent = this.agent;
-
-    // Begin constructing a JWS.
-    const jws: GeneralJws = {
-      payload    : Convert.uint8Array(payload).toBase64Url(),
-      signatures : []
-    };
-
-    for (const signingKeyId of signingKeyIds) {
-
-      /** DID keys stored in KeyManager use the canonicalId as an alias, so
-       * normalize the signing key ID before attempting to retrieve the key. **/
-      const parsedDid = didUtils.parseDid({ didUrl: signingKeyId });
-      if (!parsedDid) throw new Error(`DidIonMethod: Unable to parse DID: ${signingKeyId}`);
-      const normalizedDid = parsedDid.did.split(':', 3).join(':');
-      const normalizedSigningKeyId = `${normalizedDid}#${parsedDid.fragment}`;
-
-      // Attempt to retrieve the signing key.
-      const signingKey = await agent.keyManager.getKey({ keyRef: normalizedSigningKeyId });
-
-      if (!isManagedKeyPair(signingKey)) {
-        throw new Error (`DwnManager: Signing key not found for author: '${normalizedDid}'`);
-      }
-
-      // Get the JWS alg parameter given the key pair.
-      const { alg } = Jose.webCryptoToJose(signingKey.privateKey.algorithm);
-
-      // Construct the JWS protected header.
-      const protectedHeader = Convert.object(
-        { alg, kid: signingKeyId }
-      ).toBase64Url();
-
-      // Concatenate the dot-separated header and payload and convert to bytes.
-      const headerAndPayload = Convert.string(
-        `${protectedHeader}.${jws.payload}`
-      ).toUint8Array();
-
-      // Sign the JWS.
-      const signatureBytes = await agent.keyManager.sign({
-        algorithm : signingKey.privateKey.algorithm,
-        data      : headerAndPayload,
-        keyRef    : signingKey.privateKey.id
-      });
-      const signature = Convert.uint8Array(signatureBytes).toBase64Url();
-
-      jws.signatures.push({ protected: protectedHeader, signature });
-    }
-
-    return jws;
-  }
-
-  private getTempSignatureInput({ signingKeyId }: { signingKeyId: string }): SignatureInput {
-    const privateJwk: DwnPrivateKeyJwk = {
-      alg : 'placeholder',
-      d   : 'placeholder',
-      crv : 'Ed25519',
-      kty : 'placeholder',
-      x   : 'placeholder'
-    };
-
-    const protectedHeader = {
-      alg : 'placeholder',
-      kid : signingKeyId
-    };
-
-    const dwnSignatureInput: SignatureInput = { privateJwk, protectedHeader };
-
-    return dwnSignatureInput;
-  }
-
-  private async signAsAuthorization(
-    descriptor: GenericMessage['descriptor'],
-    signingKeyId: string,
-    permissionsGrantId?: string
-  ): Promise<GeneralJws> {
-    const descriptorCid = await Cid.computeCid(descriptor);
-
-    const authorizationPayload = { descriptorCid, permissionsGrantId };
-    removeUndefinedProperties(authorizationPayload);
-
-    const authorizationPayloadU8A = Convert.object(authorizationPayload).toUint8Array();
-
-    const jws = await this.createJws(authorizationPayloadU8A, [signingKeyId]);
-
-    return jws;
-  }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  /**
    * ADDED TO GET SYNC WORKING
    * - createMessage()
    * - processMessage()
@@ -572,42 +408,14 @@ export class DwnManager {
   }): Promise<EventsGet | MessagesGet | RecordsRead | RecordsQuery | RecordsWrite | RecordsDelete | ProtocolsQuery | ProtocolsConfigure> {
     const { author, messageOptions, messageType } = options;
 
-    const signingKeyId = await this.getAuthorSigningKeyId({ did: author });
-
-    // ! TODO: Remove this once DWN SDK supports external signers.
-    const dwnSignatureInput = this.getTempSignatureInput({ signingKeyId });
-
-    // TODO: Figure out how to narrow this type.
-    const messageCreateInput = {
-      ...<any>messageOptions,
-      authorizationSignatureInput: dwnSignatureInput
-    };
+    const dwnAuthorizationSigner = await this.constructDwnAuthorizationSigner(author);
 
     const messageCreator = dwnMessageCreators[messageType];
 
-    // ! TODO: START Remove this monkey patch (MP) as soon as the DWN SDK supports external signers.
-    // MP Step 1: Store the original methods.
-    const originalCreateAuthorization = RecordsWrite.createAuthorization;
-    const originalSignAsAuthorization = Message.signAsAuthorization;
-    // MP Step 2: Replace the methods.
-    RecordsWrite.createAuthorization = (
-      recordId: string,
-      contextId: string | undefined,
-      descriptorCid: string,
-      attestation: GeneralJws | undefined,
-      encryption: EncryptionProperty | undefined,
-    ) => this.createAuthorization(recordId, contextId, descriptorCid, attestation, encryption, signingKeyId);
-    Message.signAsAuthorization = (
-      descriptor: GenericMessage['descriptor'],
-      signatureInput: SignatureInput,
-      permissionsGrantId?: string,
-    ) => this.signAsAuthorization(descriptor, signingKeyId, permissionsGrantId);
-    // MP Step 3: Call the method that required monkey patching.
-    const dwnMessage = await messageCreator.create(messageCreateInput as any);
-    // MP Step 4: Restore the original methods.
-    RecordsWrite.createAuthorization = originalCreateAuthorization;
-    Message.signAsAuthorization = originalSignAsAuthorization;
-    // ! TODO: END Remove this monkey patch (MP) as soon as the DWN SDK supports external signers.
+    const dwnMessage = await messageCreator.create({
+      ...<any>messageOptions,
+      authorizationSigner: dwnAuthorizationSigner
+    });
 
     return dwnMessage;
   }

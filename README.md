@@ -2,7 +2,7 @@
 
 Want to contribute during Hacktoberfest? We'd love to have you! Dive in, and your contributions could earn you some exclusive rewards.
 
-The **first 20 contributors** to succesfully merge a PR will secure exclusive swag of their choosing from our [TBD shop](https://www.tbd.shop/) — we're in the midst of uploading new swag!  Keep an eye on our [leaderboard issue](https://github.com/TBD54566975/developer.tbd.website/issues/721) to see where you rank! ⭐️
+The **first 20 contributors** to successfully merge a PR will secure exclusive swag of their choosing from our [TBD shop](https://www.tbd.shop/) — we're in the midst of uploading new swag!  Keep an eye on our [leaderboard issue](https://github.com/TBD54566975/developer.tbd.website/issues/721) to see where you rank! ⭐️
 
 🚀 **Gear up for a month packed with exciting events!** 🎉
 
@@ -34,7 +34,7 @@ We wholeheartedly embrace new contributors to our community. Remember, every exp
 - **Join Our Discord Channel**:
   - Once inside, check out the [`Hacktoberfest`](https://discord.com/channels/937858703112155166/1151216855957123104) section. This has all you need: resources, guidelines, and a checklist to help you make your first hacktoberfest contribution.
 - **Feeling Anxious or Unsure? Find a Buddy!**:
-  - Head over to our [`hack-together`](https://discord.com/channels/937858703112155166/1151519449837482044) section on Discord. It's perfectly normal to feel a tad overwhelmed or even the imposter syndrome on your first go. In this space, you can partner with someone to collaborate, share thoughts, or jointly tackle an issue. You know what they say, two heads are better than one!
+  - Head over to our [`hack-together`](https://discord.com/channels/937858703112155166/1151519449837482044) section on Discord. It's perfectly normal to feel a tad overwhelmed or even the impostor syndrome on your first go. In this space, you can partner with someone to collaborate, share thoughts, or jointly tackle an issue. You know what they say, two heads are better than one!
 - **Dive In**:
   - Skim through our [open issues](https://github.com/TBD54566975/developer.tbd.website/edit/main/README.md#hacktoberfest-guidelines) and pick one you vibe with. And if you're on the fence about anything, don't hesitate to ask. Your new community is here to assist and walk with you every step of the way.
   - Mark your calendars for our **Hacktoberfest Launch event on [October 2nd](https://discord.com/events/937858703112155166/1154126364484583465)**.
@@ -261,7 +261,12 @@ The query `request` contains the following properties:
 - **`from`** - _`DID string`_ (_optional_): the decentralized identifier of the DWeb Node the query will fetch results from.
 - **`message`** - _`object`_: the properties of the DWeb Node Message Descriptor that will be used to construct a valid record query:
   - **`filter`** - _`object`_: properties against which results of the query will be filtered:
+    - **`recordId`** - _`string`_ (_optional_): the record ID string that identifies the record data you are fetching.
     - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol bucket in which to query.
+    - **`protocolPath`** - _`string`_ (_optional_): the path to the record in the protocol configuration.
+    - **`contextId`** _`string`_ (_optional_): the `recordId` of a root record of a protocol.
+    - **`parentId`** _`string`_ (_optional_): the `recordId` of a the parent of a protocol record.
+    - **`recipient`** - _`string`_ (_optional_): the DID in the `recipient` field of the record.
     - **`schema`** - _`URI string`_ (_optional_): the URI of the schema bucket in which to query.
     - **`dataFormat`** - _`Media Type string`_ (_optional_): the IANA string corresponding with the format of the data to filter for. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
 
@@ -311,13 +316,15 @@ The `create()` method is an alias for `write()` and both can take the same reque
 
 ### **`web5.dwn.records.read(request)`**
 
-Method for reading a record stored in the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted).
+Method for reading a record stored in the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted). The request takes a filter; if there is exactly one record matching the filter, the record and its data are returned. The most common filter is by `recordId`, but it is also useful to filter by `protocol`, `contextId`, and `protocolPath`.
 
 ```javascript
 // Reads the indicated record from the user's DWeb Nodes
 const { record } = await web5.dwn.records.read({
   message: {
-    recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
+    filter: {
+      recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
+    }
   },
 });
 
@@ -327,7 +334,9 @@ console.log(await record.data.text()); // assuming the record is a text payload,
 const { record } = await web5.dwn.records.read({
   from: "did:example:bob",
   message: {
-    recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
+    filter: {
+      recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
+    }
   },
 });
 
@@ -340,7 +349,15 @@ The `read` request object is composed as follows:
 
 - **`from`** - _`DID string`_ (_optional_): The DID of the DWeb Node the read request will fetch the indicated record from.
 - **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
-  - **`recordId`** - _`string`_: the required record ID string that identifies the record data you are fetching.
+  - **`filter`** - _`object`_: properties against which results of the query will be filtered:
+    - **`recordId`** - _`string`_ (_optional_): the record ID string that identifies the record data you are fetching.
+    - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol bucket in which to query.
+    - **`protocolPath`** - _`string`_ (_optional_): the path to the record in the protocol configuration.
+    - **`contextId`** _`string`_ (_optional_): the `recordId` of a root record of a protocol.
+    - **`parentId`** _`string`_ (_optional_): the `recordId` of a the parent of a protocol record.
+    - **`recipient`** - _`string`_ (_optional_): the DID in the `recipient` field of the record.
+    - **`schema`** - _`URI string`_ (_optional_): the URI of the schema bucket in which to query.
+    - **`dataFormat`** - _`Media Type string`_ (_optional_): the IANA string corresponding with the format of the data to filter for. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
 
 ### **`web5.dwn.records.delete(request)`**
 

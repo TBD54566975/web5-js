@@ -65,7 +65,7 @@ describe('Web5ProxyAgent', () => {
             });
 
             // Simulate terminating and restarting an app.
-            testAgent.closeStorage();
+            await testAgent.closeStorage();
             testAgent = await TestManagedAgent.create({
               agentClass  : Web5ProxyAgent,
               agentStores : 'dwn'

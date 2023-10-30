@@ -1,6 +1,6 @@
 {
   "name": "@web5/agent",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -67,10 +67,10 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@tbd54566975/dwn-sdk-js": "0.2.1",
-    "@web5/common": "0.2.0",
-    "@web5/crypto": "0.2.0",
-    "@web5/dids": "0.2.0",
+    "@tbd54566975/dwn-sdk-js": "0.2.3",
+    "@web5/common": "0.2.1",
+    "@web5/crypto": "0.2.1",
+    "@web5/dids": "0.2.1",
     "level": "8.0.0",
     "readable-stream": "4.4.2",
     "readable-web-to-node-stream": "3.0.2"
