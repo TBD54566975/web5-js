@@ -5,7 +5,7 @@ import type {PublicKeyJwk, Web5Crypto} from '@web5/crypto';
 import {Jose} from '@web5/crypto';
 import type {DidDocument} from './types.js';
 
-const PKARR_RELAYS = ['https://relay.pkarr.org'];
+const PKARR_RELAYS = ['https://diddht.tbddev.org'];
 const TTL = 7200;
 
 export class DidDht {
