@@ -4,6 +4,7 @@ import {DidDht} from '../src/dht.js';
 import {DidDhtKeySet, DidDhtMethod} from '../src/did-dht.js';
 import {DidKeySetVerificationMethodKey, DidService} from '../src/index.js';
 
+
 describe('DHT', function () {
   this.timeout('15000'); // 15 seconds
 
@@ -20,6 +21,10 @@ describe('DHT', function () {
     }, document);
 
     expect(published).to.be.true;
+
+    // wait for propagation
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+    await wait(1000*10);
 
     const gotDid = await DidDht.getDidDocument(document.id);
     expect(gotDid.id).to.deep.equal(document.id);
