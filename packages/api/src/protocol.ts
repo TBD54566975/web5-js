@@ -2,7 +2,19 @@ import type { Web5Agent } from '@web5/agent';
 import type { ProtocolsConfigure } from '@tbd54566975/dwn-sdk-js';
 
 // TODO: export ProtocolsConfigureMessage from dwn-sdk-js
+/**
+ * The protocol configure message carries the protocol definition and is used
+ * to setup the protocol.
+ *
+ * @beta
+ */
 export type ProtocolsConfigureMessage = ProtocolsConfigure['message'];
+
+/**
+ * Metadata of the protocol
+ *
+ * @beta
+ */
 type ProtocolMetadata = {
   author: string;
   messageCid?: string;
@@ -10,7 +22,7 @@ type ProtocolMetadata = {
 
 /**
  * The Protocol API abstraction class. It's used to represent and retrieve a protocol and
- * also to send (install) protocols to other DIDs.
+ * also to install (send) protocols to other DIDs.
  *
  * @beta
  */

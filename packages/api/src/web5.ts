@@ -25,14 +25,18 @@ export type TechPreviewOptions = {
  * @beta
  */
 export type Web5ConnectOptions = {
-  /** Provide a {@link Web5Agent} implementation. Defaults to creating a local
-   * {@link @web5/user-agent#Web5UserAgent} if one isn't provided */
+  /**
+   * Provide a {@link @web5/agent#Web5Agent} implementation. Defaults to creating a local
+   * {@link @web5/user-agent#Web5UserAgent} if one isn't provided
+   **/
   agent?: Web5Agent;
 
-  /** Provide an instance of a {@link AppDataStore} implementation. Defaults to
+  /**
+   * Provide an instance of a {@link @web5/agent#AppDataStore} implementation. Defaults to
    * a LevelDB-backed store with an insecure, static unlock passphrase if one
    * isn't provided. To allow the app user to enter a secure passphrase of
-   * their choosing, provide an initialized {@link @web5/agent#AppDataStore} instance. */
+   * their choosing, provide an initialized {@link @web5/agent#AppDataStore} instance.
+   **/
   appData?: AppDataStore;
 
   // Specify an existing DID to connect to.

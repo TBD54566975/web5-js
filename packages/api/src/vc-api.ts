@@ -14,6 +14,9 @@ export class VcApi {
     this.connectedDid = options.connectedDid;
   }
 
+  /**
+   * Issues a VC (Not implemented yet)
+   */
   async create() {
     // TODO: implement
     throw new Error('Not implemented.');

@@ -8,6 +8,11 @@ import { DataStream, DwnInterfaceName, DwnMethodName, Encoder } from '@tbd545669
 import { dataToBlob } from './utils.js';
 import type { RecordsDeleteResponse } from './dwn-api.js';
 
+/**
+ * Options that are passed to Record constructor.
+ *
+ * @beta
+ */
 export type RecordOptions = RecordsWriteMessage & {
   author: string;
   target: string;
@@ -15,6 +20,12 @@ export type RecordOptions = RecordsWriteMessage & {
   data?: Readable | ReadableStream;
 };
 
+/**
+ * Represents the record data model, without the auxiliary properties such as
+ * the `descriptor` and the `authorization`
+ *
+ * @beta
+ */
 export type RecordModel = RecordsWriteDescriptor
   & Omit<RecordsWriteMessage, 'descriptor' | 'recordId' | 'authorization'>
   & {
@@ -23,6 +34,11 @@ export type RecordModel = RecordsWriteDescriptor
     target: string;
   }
 
+/**
+ * Options that are passed to update the record on the DWN
+ *
+ * @beta
+ */
 export type RecordUpdateOptions = {
   data?: unknown;
   dataCid?: RecordsWriteDescriptor['dataCid'];
@@ -33,7 +49,8 @@ export type RecordUpdateOptions = {
 }
 
 /**
- * TODO: Document class.
+ * Record wrapper class with convenience methods to send, update,
+ * and delete itself, aside from manipulating and reading the record data.
  *
  * Note: The `messageTimestamp` of the most recent RecordsWrite message is
  *       logically equivalent to the date/time at which a Record was most
@@ -66,26 +83,64 @@ export class Record implements RecordModel {
   private _recordId: string;
 
   // Immutable DWN Record properties.
+
+  /** Record's signatures attestation */
   get attestation(): RecordsWriteMessage['attestation'] { return this._attestation; }
+
+  /** Record's context ID */
   get contextId() { return this._contextId; }
+
+  /** Record's data format */
   get dataFormat() { return this._descriptor.dataFormat; }
+
+  /** Record's creation date */
   get dateCreated() { return this._descriptor.dateCreated; }
+
+  /** Record's encryption */
   get encryption(): RecordsWriteMessage['encryption'] { return this._encryption; }
+
+  /** Record's ID */
   get id() { return this._recordId; }
+
+  /** Interface is always `Records` */
   get interface() { return this._descriptor.interface; }
+
+  /** Method is always `Write` */
   get method() { return this._descriptor.method; }
+
+  /** Record's parent ID */
   get parentId() { return this._descriptor.parentId; }
+
+  /** Record's protocol */
   get protocol() { return this._descriptor.protocol; }
+
+  /** Record's protocol path */
   get protocolPath() { return this._descriptor.protocolPath; }
+
+  /** Record's recipient */
   get recipient() { return this._descriptor.recipient; }
+
+  /** Record's schema */
   get schema() { return this._descriptor.schema; }
 
   // Mutable DWN Record properties.
+
+  /** Record's CID */
   get dataCid() { return this._descriptor.dataCid; }
+
+  /** Record's data size */
   get dataSize() { return this._descriptor.dataSize; }
+
+  /** Record's modified date */
   get dateModified() { return this._descriptor.messageTimestamp; }
+
+  /** Record's published date */
   get datePublished() { return this._descriptor.datePublished; }
+
+  /** Record's published status */
   get messageTimestamp() { return this._descriptor.messageTimestamp; }
+
+  /** Record's published status (true/false) */
   get published() { return this._descriptor.published; }
 
   constructor(agent: Web5Agent, options: RecordOptions) {
