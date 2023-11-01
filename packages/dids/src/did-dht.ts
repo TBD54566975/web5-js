@@ -154,7 +154,7 @@ export class DidDhtMethod implements DidMethod {
   public static async generateKeySet(options?: {
     keySet?: DidDhtKeySet
   }): Promise<DidDhtKeySet> {
-    let {keySet = {}} = options ?? {};
+    let { keySet = {} } = options ?? {};
 
     if (!keySet.identityKey) {
       keySet.identityKey = await this.generateJwkKeyPair({

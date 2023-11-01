@@ -10,7 +10,7 @@ chai.use(chaiAsPromised);
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-describe.only('DidDhtMethod', () => {
+describe('DidDhtMethod', () => {
   describe('keypairs', () => {
     it('should generate a key pair', async () => {
       const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({ keyAlgorithm: 'Ed25519' });

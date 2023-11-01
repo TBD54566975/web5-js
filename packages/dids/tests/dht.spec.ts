@@ -7,7 +7,7 @@ import type { DidKeySetVerificationMethodKey, DidService } from '../src/types.js
 import { DidDht } from '../src/dht.js';
 import { DidDhtMethod } from '../src/did-dht.js';
 
-describe.only('DidDht', () => {
+describe('DidDht', () => {
   it('should create a put and parse a get request', async () => {
 
     const { document, keySet } = await DidDhtMethod.create();
