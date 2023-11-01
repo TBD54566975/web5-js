@@ -51,9 +51,9 @@ describe('DidDhtMethod', () => {
     it('should generate a keyset with an identity keyset passed in (wrong kid)', async () => {
       const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({ keyAlgorithm: 'Ed25519' });
 
-      expect(DidDhtMethod.generateKeySet({
+      await expect(DidDhtMethod.generateKeySet({
         keySet: { identityKey: ed25519KeyPair }
-      })).to.be.rejectedWith('The identity key must have a kid of 0');
+      })).to.eventually.be.rejectedWith('The identity key must have a kid of 0');
     });
 
     it('should generate a keyset with an identity keyset passed in (correct kid)', async () => {
@@ -106,7 +106,7 @@ describe('DidDhtMethod', () => {
     });
 
     it('should create a did document without options', async () => {
-      const {document, keySet} = await DidDhtMethod.create();
+      const { document, keySet } = await DidDhtMethod.create();
 
       expect(document).to.exist;
       expect(document.id).to.contain('did:dht:');
@@ -143,7 +143,7 @@ describe('DidDhtMethod', () => {
       };
 
       const keySet = await DidDhtMethod.generateKeySet({ keySet: { verificationMethodKeys: [vm] }});
-      const {document} = await DidDhtMethod.create({keySet});
+      const { document } = await DidDhtMethod.create({ keySet });
 
       expect(document).to.exist;
       expect(document.id).to.contain('did:dht:');
@@ -176,7 +176,7 @@ describe('DidDhtMethod', () => {
         type            : 'agent',
         serviceEndpoint : 'https://example.com/agent'
       }];
-      const {document} = await DidDhtMethod.create({ services });
+      const { document } = await DidDhtMethod.create({ services });
 
       expect(document).to.exist;
       expect(document.id).to.contain('did:dht:');
