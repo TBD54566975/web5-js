@@ -29,6 +29,12 @@ export type PermissionsGrantRequest = {
   message: Omit<PermissionsGrantOptions, 'authorizationSigner'>;
 }
 
+export type PermissionsGrantResponse = {
+  permissionsGrant: PermissionsGrant | undefined;
+  permissionsGrantId: string | undefined;
+  status: UnionMessageReply['status']
+};
+
 export type ProtocolsConfigureRequest = {
   message: Omit<ProtocolsConfigureOptions, 'authorizationSigner'>;
 }
@@ -101,6 +107,7 @@ export type RecordsWriteRequest = {
 }
 
 export type PermissionGrantRequest = {
+  target?: string;
   message?: Omit<Partial<PermissionsGrantOptions>, 'authorizationSigner'>;
 }
 
@@ -393,7 +400,14 @@ export class DwnApi {
 
   get permissions() {
     return {
-      grant: async (request: PermissionsGrantRequest): Promise<{ permissionsGrant: PermissionsGrant, status: UnionMessageReply['status'] }> => {
+      /**
+       * Create and store a PermissionsGrant DWN message
+       * @param request.target The DID whose DWN the PermissionsGrant message will be sent to. If undefined,
+       *                       the message will be stored in the local DWN of the connectedDid.
+       * @param request.message The message options used to create the PermissionsGrant messsage.
+       * @returns {PermissionsGrantResponse}
+       */
+      grant: async (request: PermissionsGrantRequest): Promise<PermissionsGrantResponse> => {
         const agentRequest = {
           author         : this.connectedDid,
           messageOptions : request.message,
@@ -412,16 +426,25 @@ export class DwnApi {
         const { message, reply: { status } } = agentResponse;
 
         let permissionsGrant: PermissionsGrant | undefined;
+        let permissionsGrantId: string | undefined;
         if (200 <= status.code && status.code <= 299) {
           permissionsGrant = await PermissionsGrant.parse(message as PermissionsGrantMessage);
+          permissionsGrantId = await Message.getCid(permissionsGrant.message);
         }
 
         return {
           permissionsGrant,
+          permissionsGrantId,
           status,
         };
       },
 
+      /**
+       * Send an existing PermissionsGrant message to a remote DWN.
+       * @param target DID whose remote DWN the Permissions message will be sent to.
+       * @param message The PermissionsGrant message that will be sent.
+       * @returns {UnionMessageReply['status']}
+       */
       send: async (target: string, message: PermissionsGrant): Promise<{ status: UnionMessageReply['status'] }> => {
         const { reply: { status } } = await this.agent.sendDwnRequest({
           messageType : message.message.descriptor.interface + message.message.descriptor.method,

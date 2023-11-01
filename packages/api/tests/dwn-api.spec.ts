@@ -577,7 +577,7 @@ describe('DwnApi', () => {
       it('returns a PermissionsGrant that can be invoked', async () => {
         const { did: bobDid } = await testAgent.createIdentity({ testDwnUrls });
 
-        const { status, permissionsGrant } = await dwn.permissions.grant({
+        const { status, permissionsGrant, permissionsGrantId } = await dwn.permissions.grant({
           message: {
             dateExpires : Temporal.Now.instant().toString({ smallestUnit: 'microseconds' }),
             grantedBy   : aliceDid.did,
@@ -585,13 +585,14 @@ describe('DwnApi', () => {
             grantedTo   : bobDid.did,
             scope       : {
               interface : DwnInterfaceName.Records,
-              method    : DwnMethodName.Read,
+              method    : DwnMethodName.Write,
             }
           },
         });
 
         expect(status.code).to.eq(202);
         expect(permissionsGrant).not.to.be.undefined;
+        expect(permissionsGrantId).not.to.be.undefined;
 
         // send to Alice's remote DWN
         const { status: statusSend } = await dwn.permissions.send(aliceDid.did, permissionsGrant);
@@ -600,8 +601,27 @@ describe('DwnApi', () => {
       });
     });
 
-    describe('target: did', () => {
+    describe('target: did', async () => {
+      it('returns a PermissionsGrant that can be invoked', async () => {
+        const { did: bobDid } = await testAgent.createIdentity({ testDwnUrls });
 
+        const { status, permissionsGrant } = await dwn.permissions.grant({
+          target  : bobDid.did,
+          message : {
+            dateExpires : Temporal.Now.instant().toString({ smallestUnit: 'microseconds' }),
+            grantedBy   : aliceDid.did,
+            grantedFor  : aliceDid.did,
+            grantedTo   : bobDid.did,
+            scope       : {
+              interface : DwnInterfaceName.Records,
+              method    : DwnMethodName.Write,
+            }
+          },
+        });
+
+        expect(status.code).to.eq(202);
+        expect(permissionsGrant).not.to.be.undefined;
+      });
     });
   });
 });
