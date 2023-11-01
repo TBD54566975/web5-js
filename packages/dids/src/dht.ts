@@ -5,7 +5,7 @@ import type {PublicKeyJwk, Web5Crypto} from '@web5/crypto';
 import {Jose} from '@web5/crypto';
 import type {DidDocument} from './types.js';
 
-const PKARR_RELAYS = ['https://diddht.tbddev.org'];
+const PKARR_RELAY = 'https://diddht.tbddev.org';
 const TTL = 7200;
 
 export class DidDht {
@@ -14,17 +14,17 @@ export class DidDht {
      * Publishes a DID Document to the DHT
      * @param keypair The keypair to sign the document with
      * @param did The DID Document to publish
+     * @param relay The relay to use to retrieve the document; defaults to PKARR_RELAY
      */
-  public static async publishDidDocument(keypair: Web5Crypto.CryptoKeyPair, did: DidDocument): Promise<boolean> {
+  public static async publishDidDocument(keypair: Web5Crypto.CryptoKeyPair, did: DidDocument, relay: string=PKARR_RELAY): Promise<boolean> {
     const packet = await DidDht.toDnsPacket(did);
     const pkarrKeypair = {
       publicKey : keypair.publicKey.material,
       secretKey : new Uint8Array([...keypair.privateKey.material, ...keypair.publicKey.material])
     };
     const signedPacket = SignedPacket.fromPacket(pkarrKeypair, packet);
-    const results = await Promise.all(PKARR_RELAYS.map(relay => Pkarr.relayPut(relay, signedPacket)));
-    const successfulCount = results.filter(Boolean).length;
-    return successfulCount > 0;
+    const results = await Pkarr.relayPut(relay, signedPacket);
+    return results.ok;
   }
 
   /**
@@ -40,7 +40,7 @@ export class DidDht {
     };
 
     const vmIds: string[] = [];
-    const svcIds : string[]= [];
+    const svcIds: string[] = [];
     const rootRecord: string[] = [];
     const keyLookup = new Map<string, string>();
 
@@ -166,17 +166,16 @@ export class DidDht {
   }
 
   /**
-     * Retrieves a DID Document from the DHT
-     * @param did The DID of the document to retrieve
-     */
-  public static async getDidDocument(did: string): Promise<DidDocument> {
+   * Retrieves a DID Document from the DHT
+   * @param did The DID of the document to retrieve
+   * @param relay The relay to use to retrieve the document; defaults to PKARR_RELAY
+   */
+  public static async getDidDocument(did: string, relay: string=PKARR_RELAY): Promise<DidDocument> {
     const didFragment = did.replace('did:dht:', '');
     const publicKeyBytes = new Uint8Array(z32.decode(didFragment));
-    for (const relay of PKARR_RELAYS) {
-      const resolved = await Pkarr.relayGet(relay, publicKeyBytes);
-      if (resolved) {
-        return await DidDht.fromDnsPacket(did, resolved.packet());
-      }
+    const resolved = await Pkarr.relayGet(relay, publicKeyBytes);
+    if (resolved) {
+      return await DidDht.fromDnsPacket(did, resolved.packet());
     }
     throw new Error('No packet found');
   }
