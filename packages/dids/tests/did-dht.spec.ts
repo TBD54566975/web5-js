@@ -6,6 +6,8 @@ import {DidKeySetVerificationMethodKey, DidService} from '../src/index.js';
 
 chai.use(chaiAsPromised);
 
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 describe('did-dht', () => {
   describe('keypairs', () => {
     it('should generate a keypair', async () => {
@@ -212,7 +214,6 @@ describe('did-dht', () => {
       expect(didResolutionResult.didDocument.service).to.not.exist;
 
       // wait for propagation
-      const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
       await wait(1000*10);
 
       const gotDid = await DidDhtMethod.resolve(document.id);
@@ -228,7 +229,6 @@ describe('did-dht', () => {
       const {document} = await DidDhtMethod.create({publish: true});
 
       // wait for propagation
-      const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
       await wait(1000*10);
 
       const gotDid = await DidDhtMethod.resolve(document.id);
