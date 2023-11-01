@@ -211,6 +211,10 @@ describe('did-dht', () => {
       expect(didResolutionResult.didDocument.verificationMethod[0].publicKeyJwk.kid).to.equal('0');
       expect(didResolutionResult.didDocument.service).to.not.exist;
 
+      // wait for propagation
+      const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+      await wait(1000*10);
+
       const gotDid = await DidDhtMethod.resolve(document.id);
       expect(gotDid.id).to.deep.equal(document.id);
       expect(gotDid.service).to.deep.equal(document.service);
@@ -222,6 +226,11 @@ describe('did-dht', () => {
 
     it('should create with publish and get a did document', async () => {
       const {document} = await DidDhtMethod.create({publish: true});
+
+      // wait for propagation
+      const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+      await wait(1000*10);
+
       const gotDid = await DidDhtMethod.resolve(document.id);
       expect(gotDid.id).to.deep.equal(document.id);
       expect(gotDid.service).to.deep.equal(document.service);
