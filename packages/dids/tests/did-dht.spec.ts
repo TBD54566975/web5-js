@@ -1,17 +1,19 @@
-import chai from 'chai';
-import {expect} from 'chai';
+import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import {DidDhtKeySet, DidDhtMethod} from '../src/did-dht.js';
-import {DidKeySetVerificationMethodKey, DidService} from '../src/index.js';
+
+import type { DidDhtKeySet } from '../src/did-dht.js';
+import type { DidKeySetVerificationMethodKey, DidService } from '../src/types.js';
+
+import { DidDhtMethod } from '../src/did-dht.js';
 
 chai.use(chaiAsPromised);
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-describe('did-dht', () => {
+describe.only('DidDhtMethod', () => {
   describe('keypairs', () => {
-    it('should generate a keypair', async () => {
-      const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({keyAlgorithm: 'Ed25519'});
+    it('should generate a key pair', async () => {
+      const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({ keyAlgorithm: 'Ed25519' });
 
       expect(ed25519KeyPair).to.exist;
       expect(ed25519KeyPair).to.have.property('privateKeyJwk');
@@ -20,7 +22,7 @@ describe('did-dht', () => {
       expect(ed25519KeyPair.publicKeyJwk.alg).to.equal('EdDSA');
       expect(ed25519KeyPair.publicKeyJwk.kty).to.equal('OKP');
 
-      const secp256k1KeyPair = await DidDhtMethod.generateJwkKeyPair({keyAlgorithm: 'secp256k1'});
+      const secp256k1KeyPair = await DidDhtMethod.generateJwkKeyPair({ keyAlgorithm: 'secp256k1' });
 
       expect(secp256k1KeyPair).to.exist;
       expect(secp256k1KeyPair).to.have.property('privateKeyJwk');
@@ -47,14 +49,16 @@ describe('did-dht', () => {
     });
 
     it('should generate a keyset with an identity keyset passed in (wrong kid)', async () => {
-      const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({keyAlgorithm: 'Ed25519'});
+      const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({ keyAlgorithm: 'Ed25519' });
 
-      expect(DidDhtMethod.generateKeySet({keySet: {identityKey: ed25519KeyPair}})).to.be.rejectedWith('The identity key must have a kid of 0');
+      expect(DidDhtMethod.generateKeySet({
+        keySet: { identityKey: ed25519KeyPair }
+      })).to.be.rejectedWith('The identity key must have a kid of 0');
     });
 
     it('should generate a keyset with an identity keyset passed in (correct kid)', async () => {
-      const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({keyId: '0', keyAlgorithm: 'Ed25519'});
-      const keySet = await DidDhtMethod.generateKeySet({keySet: {identityKey: ed25519KeyPair}});
+      const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({ keyId: '0', keyAlgorithm: 'Ed25519' });
+      const keySet = await DidDhtMethod.generateKeySet({ keySet: { identityKey: ed25519KeyPair } });
 
       expect(keySet).to.exist;
       expect(keySet).to.have.property('identityKey');
@@ -67,14 +71,14 @@ describe('did-dht', () => {
     });
 
     it('should generate a keyset with a non identity keyset passed in', async () => {
-      const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({keyAlgorithm: 'Ed25519'});
+      const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({ keyAlgorithm: 'Ed25519' });
       const vm: DidKeySetVerificationMethodKey = {
         publicKeyJwk  : ed25519KeyPair.publicKeyJwk,
         privateKeyJwk : ed25519KeyPair.privateKeyJwk,
         relationships : ['authentication', 'assertionMethod', 'capabilityInvocation', 'capabilityDelegation']
       };
 
-      const keySet = await DidDhtMethod.generateKeySet({keySet: {verificationMethodKeys: [vm]}});
+      const keySet = await DidDhtMethod.generateKeySet({ keySet: { verificationMethodKeys: [vm] } });
 
       expect(keySet).to.exist;
       expect(keySet).to.have.property('identityKey');
@@ -94,8 +98,8 @@ describe('did-dht', () => {
 
   describe('dids', () => {
     it('should generate a did identifier given a public key jwk', async () => {
-      const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({keyAlgorithm: 'Ed25519'});
-      const did = await DidDhtMethod.getDidIdentifier({key: ed25519KeyPair.publicKeyJwk});
+      const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({ keyAlgorithm: 'Ed25519' });
+      const did = await DidDhtMethod.getDidIdentifier({ key: ed25519KeyPair.publicKeyJwk });
 
       expect(did).to.exist;
       expect(did).to.contain('did:dht:');
@@ -131,14 +135,14 @@ describe('did-dht', () => {
     });
 
     it('should create a did document with a non identity key option', async () => {
-      const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({keyAlgorithm: 'Ed25519'});
+      const ed25519KeyPair = await DidDhtMethod.generateJwkKeyPair({ keyAlgorithm: 'Ed25519' });
       const vm: DidKeySetVerificationMethodKey = {
         publicKeyJwk  : ed25519KeyPair.publicKeyJwk,
         privateKeyJwk : ed25519KeyPair.privateKeyJwk,
         relationships : ['authentication', 'assertionMethod', 'capabilityInvocation', 'capabilityDelegation']
       };
 
-      const keySet = await DidDhtMethod.generateKeySet({keySet: {verificationMethodKeys: [vm]}});
+      const keySet = await DidDhtMethod.generateKeySet({ keySet: { verificationMethodKeys: [vm] }});
       const {document} = await DidDhtMethod.create({keySet});
 
       expect(document).to.exist;
@@ -172,7 +176,7 @@ describe('did-dht', () => {
         type            : 'agent',
         serviceEndpoint : 'https://example.com/agent'
       }];
-      const {document} = await DidDhtMethod.create({services});
+      const {document} = await DidDhtMethod.create({ services });
 
       expect(document).to.exist;
       expect(document.id).to.contain('did:dht:');
@@ -200,44 +204,39 @@ describe('did-dht', () => {
     this.timeout(20000); // 20 seconds
 
     it('should publish and get a did document', async () => {
-      const {document, keySet} = await DidDhtMethod.create();
-      const didResolutionResult = await DidDhtMethod.publish(keySet, document);
+      const { document, keySet } = await DidDhtMethod.create();
+      const isPublished = await DidDhtMethod.publish({ keySet, didDocument: document });
 
-      expect(didResolutionResult).to.exist;
-      expect(didResolutionResult.didDocument).to.exist;
-      expect(didResolutionResult.didDocument.id).to.equal(document.id);
-      expect(didResolutionResult.didDocument.verificationMethod).to.exist;
-      expect(didResolutionResult.didDocument.verificationMethod).to.have.lengthOf(1);
-      expect(didResolutionResult.didDocument.verificationMethod[0].id).to.equal(`${document.id}#0`);
-      expect(didResolutionResult.didDocument.verificationMethod[0].publicKeyJwk).to.exist;
-      expect(didResolutionResult.didDocument.verificationMethod[0].publicKeyJwk.kid).to.equal('0');
-      expect(didResolutionResult.didDocument.service).to.not.exist;
+      expect(isPublished).to.be.true;
 
       // wait for propagation
       await wait(1000*10);
 
-      const gotDid = await DidDhtMethod.resolve(document.id);
-      expect(gotDid.id).to.deep.equal(document.id);
-      expect(gotDid.service).to.deep.equal(document.service);
-      expect(gotDid.verificationMethod[0].id).to.deep.equal(document.verificationMethod[0].id);
-      expect(gotDid.verificationMethod[0].type).to.deep.equal(document.verificationMethod[0].type);
-      expect(gotDid.verificationMethod[0].controller).to.deep.equal(document.verificationMethod[0].controller);
-      expect(gotDid.verificationMethod[0].publicKeyJwk.kid).to.deep.equal(document.verificationMethod[0].publicKeyJwk.kid);
+      const didResolutionResult = await DidDhtMethod.resolve({ didUrl: document.id });
+      const didDocument = didResolutionResult.didDocument;
+      expect(didDocument.id).to.deep.equal(document.id);
+      expect(didDocument.service).to.deep.equal(document.service);
+      expect(didDocument.verificationMethod[0].id).to.deep.equal(document.verificationMethod[0].id);
+      expect(didDocument.verificationMethod[0].type).to.deep.equal(document.verificationMethod[0].type);
+      expect(didDocument.verificationMethod[0].controller).to.deep.equal(document.verificationMethod[0].controller);
+      expect(didDocument.verificationMethod[0].publicKeyJwk.kid).to.deep.equal(document.verificationMethod[0].publicKeyJwk.kid);
     });
 
     it('should create with publish and get a did document', async () => {
-      const {document} = await DidDhtMethod.create({publish: true});
+      const { document } = await DidDhtMethod.create({ publish: true });
+      const did = document.id;
 
       // wait for propagation
       await wait(1000*10);
 
-      const gotDid = await DidDhtMethod.resolve(document.id);
-      expect(gotDid.id).to.deep.equal(document.id);
-      expect(gotDid.service).to.deep.equal(document.service);
-      expect(gotDid.verificationMethod[0].id).to.deep.equal(document.verificationMethod[0].id);
-      expect(gotDid.verificationMethod[0].type).to.deep.equal(document.verificationMethod[0].type);
-      expect(gotDid.verificationMethod[0].controller).to.deep.equal(document.verificationMethod[0].controller);
-      expect(gotDid.verificationMethod[0].publicKeyJwk.kid).to.deep.equal(document.verificationMethod[0].publicKeyJwk.kid);
+      const didResolutionResult = await DidDhtMethod.resolve({ didUrl: did });
+      const resolvedDocument = didResolutionResult.didDocument;
+      expect(resolvedDocument.id).to.deep.equal(document.id);
+      expect(resolvedDocument.service).to.deep.equal(document.service);
+      expect(resolvedDocument.verificationMethod[0].id).to.deep.equal(document.verificationMethod[0].id);
+      expect(resolvedDocument.verificationMethod[0].type).to.deep.equal(document.verificationMethod[0].type);
+      expect(resolvedDocument.verificationMethod[0].controller).to.deep.equal(document.verificationMethod[0].controller);
+      expect(resolvedDocument.verificationMethod[0].publicKeyJwk.kid).to.deep.equal(document.verificationMethod[0].publicKeyJwk.kid);
     });
   });
 });

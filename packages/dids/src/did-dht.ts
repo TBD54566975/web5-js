@@ -1,14 +1,21 @@
+import type { JwkKeyPair, PublicKeyJwk, Web5Crypto } from '@web5/crypto';
+
 import z32 from 'z32';
-import {EcdsaAlgorithm, EdDsaAlgorithm, Jose, JwkKeyPair, PublicKeyJwk, Web5Crypto} from '@web5/crypto';
-import {
-  DidDocument,
-  DidKeySetVerificationMethodKey,
+import { EcdsaAlgorithm, EdDsaAlgorithm, Jose } from '@web5/crypto';
+
+import type {
   DidMethod,
+  DidService,
+  DidDocument,
+  PortableDid,
   DidResolutionResult,
-  DidService, PortableDid,
-  VerificationRelationship
+  DidResolutionOptions,
+  VerificationRelationship,
+  DidKeySetVerificationMethodKey,
 } from './types.js';
-import {DidDht} from './dht.js';
+
+import { DidDht } from './dht.js';
+import { parseDid } from './utils.js';
 
 const SupportedCryptoKeyTypes = [
   'Ed25519',
@@ -16,14 +23,14 @@ const SupportedCryptoKeyTypes = [
 ] as const;
 
 export type DidDhtCreateOptions = {
-    publish?: boolean;
-    keySet?: DidDhtKeySet;
-    services?: DidService[];
+  publish?: boolean;
+  keySet?: DidDhtKeySet;
+  services?: DidService[];
 }
 
 export type DidDhtKeySet = {
-    identityKey?: JwkKeyPair;
-    verificationMethodKeys?: DidKeySetVerificationMethodKey[];
+  identityKey?: JwkKeyPair;
+  verificationMethodKeys?: DidKeySetVerificationMethodKey[];
 }
 
 export class DidDhtMethod implements DidMethod {
@@ -31,19 +38,20 @@ export class DidDhtMethod implements DidMethod {
   public static methodName = 'dht';
 
   /**
-   * Creates a new DID Document according to the did:dht spec
-   * @param options The options to use when creating the DID Document, including whether to publish it
+   * Creates a new DID Document according to the did:dht spec.
+   * @param options The options to use when creating the DID Document, including whether to publish it.
+   * @returns A promise that resolves to a PortableDid object.
    */
   public static async create(options?: DidDhtCreateOptions): Promise<PortableDid> {
-    const {publish, keySet: initialKeySet, services} = options ?? {};
+    const { publish, keySet: initialKeySet, services } = options ?? {};
 
-    // Generate missing keys if not provided in the options
-    const keySet = await this.generateKeySet({keySet: initialKeySet});
+    // Generate missing keys, if not provided in the options.
+    const keySet = await this.generateKeySet({ keySet: initialKeySet });
 
-    // Get the identifier and set it
-    const id = await this.getDidIdentifier({key: keySet.identityKey.publicKeyJwk});
+    // Get the identifier and set it.
+    const id = await this.getDidIdentifier({ key: keySet.identityKey.publicKeyJwk });
 
-    // add all other keys to the verificationMethod and relationship arrays
+    // Add all other keys to the verificationMethod and relationship arrays.
     const relationshipsMap: Partial<Record<VerificationRelationship, string[]>> = {};
     const verificationMethods = keySet.verificationMethodKeys.map(key => {
       for (const relationship of key.relationships) {
@@ -62,7 +70,7 @@ export class DidDhtMethod implements DidMethod {
       };
     });
 
-    // add did identifier to the service ids
+    // Add DID identifier to the service IDs.
     services?.map(service => {
       service.id = `${id}#${service.id}`;
     });
@@ -74,7 +82,7 @@ export class DidDhtMethod implements DidMethod {
     };
 
     if (publish) {
-      await this.publish(keySet, document);
+      await this.publish({ keySet, didDocument: document });
     }
     return {
       did      : document.id,
@@ -83,71 +91,16 @@ export class DidDhtMethod implements DidMethod {
     };
   }
 
-  /**
-   * Publishes a DID Document to the DHT
-   * @param keySet The key set to use to sign the DHT payload
-   * @param didDocument The DID Document to publish
-   */
-  public static async publish(keySet: DidDhtKeySet, didDocument: DidDocument): Promise<DidResolutionResult> {
-    const publicCryptoKey = await Jose.jwkToCryptoKey({key: keySet.identityKey.publicKeyJwk});
-    const privateCryptoKey = await Jose.jwkToCryptoKey({key: keySet.identityKey.privateKeyJwk});
-
-    await DidDht.publishDidDocument({
-      publicKey  : publicCryptoKey,
-      privateKey : privateCryptoKey
-    }, didDocument);
-
-    return {
-      didDocumentMetadata   : undefined,
-      didDocument,
-      didResolutionMetadata : {
-        contentType: 'application/json'
-      }
-    };
-  }
 
   /**
-   * Resolves a DID Document from the DHT
-   * @param did The DID to resolve
-   */
-  public static async resolve(did: string): Promise<DidDocument> {
-    return await DidDht.getDidDocument(did);
-  }
-
-  /**
-   * Gets the identifier fragment from a DID
-   * @param options The key to get the identifier fragment from
-   */
-  public static async getDidIdentifier(options: {
-        key: PublicKeyJwk
-    }): Promise<string> {
-    const {key} = options;
-
-    const cryptoKey = await Jose.jwkToCryptoKey({key});
-    const identifier = z32.encode(cryptoKey.material);
-    return 'did:dht:' + identifier;
-  }
-
-  /**
-   * Gets the identifier fragment from a DID
-   * @param options The key to get the identifier fragment from
-   */
-  public static async getDidIdentifierFragment(options: {
-        key: PublicKeyJwk
-    }): Promise<string> {
-    const {key} = options;
-    const cryptoKey = await Jose.jwkToCryptoKey({key});
-    return z32.encode(cryptoKey.material);
-  }
-
-  /**
-   * Generates a JWK key pair
-   * @param options the key algorithm and key ID to use
+   * Generates a JWK key pair.
+   * @param options The key algorithm and key ID to use.
+   * @returns A promise that resolves to a JwkKeyPair object.
    */
   public static async generateJwkKeyPair(options: {
-        keyAlgorithm: typeof SupportedCryptoKeyTypes[number],
-        keyId?: string
-    }): Promise<JwkKeyPair> {
+    keyAlgorithm: typeof SupportedCryptoKeyTypes[number],
+    keyId?: string
+  }): Promise<JwkKeyPair> {
     const {keyAlgorithm, keyId} = options;
 
     let cryptoKeyPair: Web5Crypto.CryptoKeyPair;
@@ -184,7 +137,7 @@ export class DidDhtMethod implements DidMethod {
       jwkKeyPair.privateKeyJwk.kid = keyId;
       jwkKeyPair.publicKeyJwk.kid = keyId;
     } else {
-      // If a key ID is not specified, generate RFC 7638 JWK thumbprint.
+    // If a key ID is not specified, generate RFC 7638 JWK thumbprint.
       const jwkThumbprint = await Jose.jwkThumbprint({key: jwkKeyPair.publicKeyJwk});
       jwkKeyPair.privateKeyJwk.kid = jwkThumbprint;
       jwkKeyPair.publicKeyJwk.kid = jwkThumbprint;
@@ -194,12 +147,13 @@ export class DidDhtMethod implements DidMethod {
   }
 
   /**
-   * Generates a key set for a DID Document
-   * @param options The key set to use when generating the key set
+   * Generates a key set for a DID Document.
+   * @param options The key set to use when generating the key set.
+   * @returns A promise that resolves to a DidDhtKeySet object.
    */
   public static async generateKeySet(options?: {
-        keySet?: DidDhtKeySet
-    }): Promise<DidDhtKeySet> {
+    keySet?: DidDhtKeySet
+  }): Promise<DidDhtKeySet> {
     let {keySet = {}} = options ?? {};
 
     if (!keySet.identityKey) {
@@ -234,5 +188,116 @@ export class DidDhtMethod implements DidMethod {
     }
 
     return keySet;
+  }
+
+  /**
+   * Gets the identifier fragment from a DID.
+   * @param options The key to get the identifier fragment from.
+   * @returns A promise that resolves to a string containing the identifier.
+   */
+  public static async getDidIdentifier(options: {
+    key: PublicKeyJwk
+  }): Promise<string> {
+    const {key} = options;
+
+    const cryptoKey = await Jose.jwkToCryptoKey({key});
+    const identifier = z32.encode(cryptoKey.material);
+    return 'did:dht:' + identifier;
+  }
+
+  /**
+   * Gets the identifier fragment from a DID.
+   * @param options The key to get the identifier fragment from.
+   * @returns A promise that resolves to a string containing the identifier fragment.
+   */
+  public static async getDidIdentifierFragment(options: {
+    key: PublicKeyJwk
+  }): Promise<string> {
+    const {key} = options;
+    const cryptoKey = await Jose.jwkToCryptoKey({key});
+    return z32.encode(cryptoKey.material);
+  }
+
+  /**
+   * Publishes a DID Document to the DHT.
+   * @param keySet The key set to use to sign the DHT payload.
+   * @param didDocument The DID Document to publish.
+   * @returns A boolean indicating the success of the publishing operation.
+   */
+  public static async publish({ didDocument, keySet }: {
+    didDocument: DidDocument,
+    keySet: DidDhtKeySet
+  }): Promise<boolean> {
+    const publicCryptoKey = await Jose.jwkToCryptoKey({key: keySet.identityKey.publicKeyJwk});
+    const privateCryptoKey = await Jose.jwkToCryptoKey({key: keySet.identityKey.privateKeyJwk});
+
+    const isPublished = await DidDht.publishDidDocument({
+      keyPair: {
+        publicKey  : publicCryptoKey,
+        privateKey : privateCryptoKey
+      },
+      didDocument
+    });
+
+    return isPublished;
+  }
+
+  /**
+   * Resolves a DID Document based on the specified options.
+   *
+   * @param options - Configuration for resolving a DID Document.
+   * @param options.didUrl - The DID URL to resolve.
+   * @param options.resolutionOptions - Optional settings for the DID resolution process as defined in the DID Core specification.
+   * @returns A Promise that resolves to a `DidResolutionResult`, containing the resolved DID Document and associated metadata.
+   */
+  public static async resolve(options: {
+    didUrl: string,
+    resolutionOptions?: DidResolutionOptions
+  }): Promise<DidResolutionResult> {
+    const { didUrl, resolutionOptions: _ } = options;
+    // TODO: Implement resolutionOptions as defined in https://www.w3.org/TR/did-core/#did-resolution
+
+    const parsedDid = parseDid({ didUrl });
+    if (!parsedDid) {
+      return {
+        '@context'            : 'https://w3id.org/did-resolution/v1',
+        didDocument           : undefined,
+        didDocumentMetadata   : {},
+        didResolutionMetadata : {
+          contentType  : 'application/did+ld+json',
+          error        : 'invalidDid',
+          errorMessage : `Cannot parse DID: ${didUrl}`
+        }
+      };
+    }
+
+    if (parsedDid.method !== 'dht') {
+      return {
+        '@context'            : 'https://w3id.org/did-resolution/v1',
+        didDocument           : undefined,
+        didDocumentMetadata   : {},
+        didResolutionMetadata : {
+          contentType  : 'application/did+ld+json',
+          error        : 'methodNotSupported',
+          errorMessage : `Method not supported: ${parsedDid.method}`
+        }
+      };
+    }
+
+    const didDocument = await DidDht.getDidDocument({ did: parsedDid.did });
+
+    return {
+      '@context'            : 'https://w3id.org/did-resolution/v1',
+      didDocument,
+      didDocumentMetadata   : {},
+      didResolutionMetadata : {
+        contentType : 'application/did+ld+json',
+        did         : {
+          didString        : parsedDid.did,
+          methodSpecificId : parsedDid.id,
+          method           : parsedDid.method
+        }
+      }
+    };
   }
 }
