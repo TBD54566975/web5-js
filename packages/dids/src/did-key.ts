@@ -1,7 +1,7 @@
 import type { PrivateKeyJwk, PublicKeyJwk, Web5Crypto } from '@web5/crypto';
 
 import { universalTypeOf } from '@web5/common';
-import {   keyToMultibaseId, multibaseIdToKey } from '@web5/crypto/utils';
+import { keyToMultibaseId, multibaseIdToKey } from '@web5/crypto/utils';
 import {
   Jose,
   Ed25519,
@@ -10,7 +10,14 @@ import {
   EdDsaAlgorithm,
 } from '@web5/crypto';
 
-import type { DidDocument, DidMethod, DidResolutionOptions, DidResolutionResult, PortableDid, VerificationMethod } from './types.js';
+import type {
+  DidMethod,
+  DidDocument,
+  PortableDid,
+  VerificationMethod,
+  DidResolutionResult,
+  DidResolutionOptions,
+} from './types.js';
 
 import { DidKeySetVerificationMethodKey } from './types.js';
 import { getVerificationMethodTypes, parseDid } from './utils.js';
