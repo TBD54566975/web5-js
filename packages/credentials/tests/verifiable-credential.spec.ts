@@ -48,9 +48,48 @@ describe('Verifiable Credential Tests', () => {
       expect(vc.type).to.equal('StreetCred');
       expect(vc.vcDataModel.issuanceDate).to.not.be.undefined;
       expect(vc.vcDataModel.credentialSubject).to.deep.equal({ id: subjectDid, localRespect: 'high', legit: true });
-
     });
 
+    it('should throw an error if data is not parseable into a JSON object', () => {
+      const issuerDid = 'did:example:issuer';
+      const subjectDid = 'did:example:subject';
+
+      const invalidData = 'NotAJSONObject';
+
+      expect(() => {
+        VerifiableCredential.create(
+          'InvalidDataTest',
+          issuerDid,
+          subjectDid,
+          invalidData
+        );
+      }).to.throw('Expected data to be parseable into a JSON object');
+    });
+
+    it('should throw an error if issuer or subject is not defined', () => {
+      const issuerDid = 'did:example:issuer';
+      const subjectDid = 'did:example:subject';
+      const validData = new StreetCredibility('high', true);
+
+      expect(() => {
+        VerifiableCredential.create(
+          'IssuerUndefinedTest',
+          '',
+          subjectDid,
+          validData
+        );
+      }).to.throw('Issuer and subject must be defined');
+
+      expect(() => {
+        VerifiableCredential.create(
+          'SubjectUndefinedTest',
+          issuerDid,
+          '',
+          validData
+        );
+      }).to.throw('Issuer and subject must be defined');
+
+    });
 
     it('signing vc works', async () => {
       const issuerDid = signOptions.issuerDid;
@@ -97,6 +136,10 @@ describe('Verifiable Credential Tests', () => {
       await expectThrowsAsync(() =>  VerifiableCredential.verify(vcJwt), 'Unable to resolve DID');
     });
 
+    it('parseJwt checks if missing vc property', async () => {
+      await expectThrowsAsync(() =>  VerifiableCredential.parseJwt('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'), 'Jwt payload missing vc property');
+    });
+
     it('parseJwt returns an instance of VerifiableCredential on success', async () => {
       const vc = VerifiableCredential.create(
         'StreetCred',
@@ -118,6 +161,12 @@ describe('Verifiable Credential Tests', () => {
 
     it('fails to verify an invalid VC JWT', async () => {
       await expectThrowsAsync(() =>  VerifiableCredential.verify('invalid-jwt'), 'Not a valid jwt');
+    });
+
+    it('should throw an error if JWS header does not contain alg and kid', async () => {
+      const invalidJwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+
+      await expectThrowsAsync(() =>  VerifiableCredential.verify(invalidJwt), 'Signature verification failed: Expected JWS header to contain alg and kid');
     });
 
     it('verify does not throw an exception with vaild vc', async () => {

@@ -12,6 +12,12 @@ class BitcoinCredential {
   ) {}
 }
 
+class OtherCredential {
+  constructor(
+    public otherthing: string
+  ) {}
+}
+
 describe('PresentationExchange', () => {
   describe('Full Presentation Exchange', () => {
     let signOptions: SignOptions;
@@ -45,8 +51,27 @@ describe('PresentationExchange', () => {
       PresentationExchange.satisfiesPresentationDefinition([btcCredentialJwt], presentationDefinition);
     });
 
+    it('should return the selected verifiable credentials', () => {
+      const actualSelectedVcJwts = PresentationExchange.selectCredentials([btcCredentialJwt], presentationDefinition);
+      expect(actualSelectedVcJwts).to.deep.equal([btcCredentialJwt]);
+    });
+
+    it('should return the only one verifiable credential', async () => {
+      const vc = VerifiableCredential.create(
+        'StreetCred',
+        signOptions.issuerDid,
+        signOptions.subjectDid,
+        new OtherCredential('otherstuff'),
+      );
+
+      const otherCredJwt = await vc.sign(signOptions);
+
+      const actualSelectedVcJwts = PresentationExchange.selectCredentials([btcCredentialJwt, otherCredJwt], presentationDefinition);
+      expect(actualSelectedVcJwts).to.deep.equal([btcCredentialJwt]);
+    });
+
     it('should evaluate that the credential does not satisfy the presentation definition', async () => {
-      const incorrectPresentationDefinition = {
+      const otherPresentationDefinition = {
         'id'                : 'test-pd-id',
         'name'              : 'simple PD',
         'purpose'           : 'pd for testing',
@@ -67,13 +92,50 @@ describe('PresentationExchange', () => {
         ]
       };
 
-      await expectThrowsAsync(() =>  PresentationExchange.satisfiesPresentationDefinition([btcCredentialJwt], incorrectPresentationDefinition), 'Input candidate does not contain property');
+      await expectThrowsAsync(() =>  PresentationExchange.satisfiesPresentationDefinition([btcCredentialJwt], otherPresentationDefinition), 'Input candidate does not contain property');
     });
 
     it('should successfully create a presentation from the given definition and credentials', () => {
       const presentationResult = PresentationExchange.createPresentationFromCredentials([btcCredentialJwt], presentationDefinition);
       expect(presentationResult).to.exist;
       expect(presentationResult.presentationSubmission.definition_id).to.equal(presentationDefinition.id);
+    });
+
+    it('should throw error for invalid presentation definition', async () => {
+      const invalidPresentationDefinition = {
+        'id'                : 'test-pd-id',
+        'name'              : 'simple PD',
+        'purpose'           : 'pd for testing',
+        'input_descriptors' : [
+          {
+            'id'          : 'whatever',
+            'purpose'     : 'id for testing',
+            'constraints' : {
+              'fields': [
+                {
+                  'path': [
+                    'not a valid path',
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      };
+
+      await expectThrowsAsync(() =>  PresentationExchange.createPresentationFromCredentials([btcCredentialJwt], invalidPresentationDefinition), 'Failed to pass validation check');
+    });
+
+    it('should fail to create a presentation with vc that does not match presentation definition', async() => {
+      const vc = VerifiableCredential.create(
+        'StreetCred',
+        signOptions.issuerDid,
+        signOptions.subjectDid,
+        new OtherCredential('otherstuff'),
+      );
+
+      const otherCredJwt = await vc.sign(signOptions);
+      await expectThrowsAsync(() =>  PresentationExchange.createPresentationFromCredentials([otherCredJwt], presentationDefinition), 'Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present');
     });
 
     it('should successfully validate a presentation definition', () => {

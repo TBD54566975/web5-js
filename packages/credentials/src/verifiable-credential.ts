@@ -198,63 +198,6 @@ export class VerifiableCredential {
       throw new Error('Signature verification failed: Expected JWS header to contain alg and kid');
     }
 
-    const parsedDidUrl = DidDocument.getDidFromKeyId(jwt.header.kid);
-    const fragment = jwt.header.kid.split('#')[1];
-
-    if(!fragment || ! parsedDidUrl) {
-      throw new Error('Signature verification failed: Expected kid in JWS header to be a DID URL');
-    }
-
-    const didResolutionResult: DIDResolutionResult = await tbdResolver.resolve(parsedDidUrl);
-    if (didResolutionResult.didResolutionMetadata.error) {
-      throw new Error(
-        `Signature verification failed: Failed to resolve DID ${parsedDidUrl}. ` +
-        `Error: ${didResolutionResult.didResolutionMetadata.error}`
-      );
-    }
-
-    const verificationMethodIds = new Set([`${parsedDidUrl}#${fragment}`, `#${fragment}`]);
-
-    if (!didResolutionResult.didDocument?.assertionMethod || !didResolutionResult.didDocument?.verificationMethod) {
-      throw new Error(
-        'Signature verification failed: Expected kid in JWS header to dereference ' +
-          'a DID Document Verification Method with an Assertion verification relationship'
-      );
-    }
-
-    const assertionMethods = didResolutionResult.didDocument?.assertionMethod;
-
-    let assertionMethod: VerificationMethod | undefined;
-
-    for (const element of assertionMethods) {
-      if (typeof element === 'string') {
-        if (verificationMethodIds.has(element)) {
-          assertionMethod = didResolutionResult.didDocument?.verificationMethod.find(vm => vm.id === element);
-          break;
-        }
-      } else {
-        if (verificationMethodIds.has(element.id)) {
-          assertionMethod = didResolutionResult.didDocument?.verificationMethod.find(vm => vm.id === element.id);
-          break;
-        }
-      }
-    }
-
-    if (!assertionMethod) {
-      throw new Error(
-        'Signature verification failed: Expected kid in JWS header to dereference ' +
-          'a DID Document Verification Method with an Assertion verification relationship'
-      );
-    }
-
-    if (assertionMethod.type !== 'JsonWebKey2020' || !assertionMethod.publicKeyJwk) {
-      throw new Error(
-        'Signature verification failed: Expected kid in JWS header to dereference ' +
-        'a DID Document Verification Method of type JsonWebKey2020 with a publicKeyJwk'
-      );
-    }
-
-    // Perform the signature verification
     const verificationResponse = await verifyJWT(vcJwt, {
       resolver: tbdResolver
     });
