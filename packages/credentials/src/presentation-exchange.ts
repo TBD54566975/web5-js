@@ -67,7 +67,7 @@ export class PresentationExchange {
    * @param {PresentationDefinitionV2} presentationDefinition The Presentation Definition V2 to match the VCs against.
    * @returns {PresentationResult} The result of the presentation creation process, containing a presentation submission
    *                               that satisfies the presentation definition criteria.
-   * @throws {Error} If the evaluation results in warnings or errors, or if the required credentials are not present, 
+   * @throws {Error} If the evaluation results in warnings or errors, or if the required credentials are not present,
    *                 an error is thrown with a descriptive message.
    */
   public static createPresentationFromCredentials(
