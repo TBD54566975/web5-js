@@ -1,5 +1,4 @@
 import type { Resolvable, DIDResolutionResult} from 'did-resolver';
-import {VerificationMethod} from 'did-resolver';
 import type {
   ICredential,
   ICredentialSubject,
@@ -11,8 +10,6 @@ import { Convert } from '@web5/common';
 import { verifyJWT } from 'did-jwt';
 import { DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
 import { SsiValidator } from './validators.js';
-
-import { DidDocument } from '@decentralized-identity/did-common-typescript';
 
 export const DEFAULT_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
 export const DEFAULT_VC_TYPE = 'VerifiableCredential';
