@@ -3,6 +3,7 @@ import type { PrivateKeyJwk, PublicKeyJwk } from '@web5/crypto';
 
 import { DidKeyKeySet } from './did-key.js';
 import { DidIonKeySet } from './did-ion.js';
+import { DidDhtKeySet } from './did-dht.js';
 
 export type DidDocument = {
   '@context'?: 'https://www.w3.org/ns/did/v1' | string | string[];
@@ -43,7 +44,7 @@ export type DidDocumentMetadata = {
   [key: string]: any
 };
 
-export type DidKeySet = DidKeyKeySet | DidIonKeySet;
+export type DidKeySet = DidKeyKeySet | DidIonKeySet | DidDhtKeySet;
 
 export type DidKeySetVerificationMethodKey = {
   /** Unique identifier for the key in the KeyManager store. */

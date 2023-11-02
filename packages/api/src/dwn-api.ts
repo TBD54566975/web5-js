@@ -159,7 +159,10 @@ export class DwnApi {
         const protocols = entries.map((entry: ProtocolsQueryReplyEntry) => {
           const metadata = { author: this.connectedDid, };
 
-          return new Protocol(this.agent, entry, metadata);
+          // FIXME: dwn-sdk-js actually returns the entire ProtocolsConfigure message,
+          //        but the type claims that it returns the message without authorization.
+          //        When dwn-sdk-js fixes the type, we should remove `as ProtocolsConfigureMessage`
+          return new Protocol(this.agent, entry as ProtocolsConfigureMessage, metadata);
         });
 
         return { protocols, status };

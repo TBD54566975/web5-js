@@ -153,4 +153,8 @@ dist
 # SvelteKit build / generate output
 .svelte-kit
 
+# MacOS
 .DS_STORE
+
+# IntelliJ
+.idea

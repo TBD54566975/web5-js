@@ -1,1 +1,0 @@
-export { X25519Xsalsa20Poly1305 } from './x25519-xsalsa20-poly1305.js';

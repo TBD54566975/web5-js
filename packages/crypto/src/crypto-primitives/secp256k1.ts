@@ -311,8 +311,11 @@ export class Secp256k1 {
     const hashFunction = this.hashAlgorithms[hash];
     const digest = hashFunction(data);
 
-    // Verify operation.
-    const isValid = secp256k1.verify(signature, digest, key);
+    // Verify operation with malleability check disabled. Guaranteed support for low-s
+    // signatures across languages is unlikely especially in the context of SSI.
+    // Notable Cloud KMS providers do not natively support it either.
+    // low-s signatures are a requirement for Bitcoin
+    const isValid = secp256k1.verify(signature, digest, key, { lowS: false });
 
     return isValid;
   }
