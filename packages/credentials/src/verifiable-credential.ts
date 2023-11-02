@@ -95,7 +95,7 @@ export class VerifiableCredential {
    *
    * Example:
    * ```
-   * val signedVc = verifiableCredential.sign(signOptions)
+   * const signedVc = verifiableCredential.sign(signOptions)
    * ```
    */
   // TODO: Refactor to look like: sign(did: Did, assertionMethodId?: string)
