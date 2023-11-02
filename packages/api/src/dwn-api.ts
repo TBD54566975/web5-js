@@ -1,6 +1,9 @@
 import type { DwnResponse, Web5Agent } from '@web5/agent';
 import {
   UnionMessageReply,
+  PermissionsGrant,
+  PermissionsGrantMessage,
+  PermissionsGrantOptions,
   RecordsReadOptions,
   RecordsQueryOptions,
   RecordsWriteMessage,
@@ -20,9 +23,6 @@ import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 import { Record } from './record.js';
 import { Protocol } from './protocol.js';
 import { dataToBlob } from './utils.js';
-import { PermissionsGrant } from '@tbd54566975/dwn-sdk-js';
-import { PermissionsGrantMessage } from '@tbd54566975/dwn-sdk-js';
-import { PermissionsGrantOptions } from '@tbd54566975/dwn-sdk-js';
 
 export type PermissionsGrantRequest = {
   target?: string;
@@ -104,11 +104,6 @@ export type RecordsWriteRequest = {
   data: unknown;
   message?: Omit<Partial<RecordsWriteOptions>, 'authorizationSigner'>;
   store?: boolean;
-}
-
-export type PermissionGrantRequest = {
-  target?: string;
-  message?: Omit<Partial<PermissionsGrantOptions>, 'authorizationSigner'>;
 }
 
 export type RecordsWriteResponse = {
