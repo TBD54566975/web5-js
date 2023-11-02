@@ -1,10 +1,7 @@
 import { expect } from 'chai';
-// import { VcJwt, VpJwt, VerifiableCredentialTypeV1, PresentationDefinition} from '../src/types.js';
-// import {VerifiableCredential, VerifiablePresentation, CreateVcOptions, CreateVpOptions, SignOptions} from '../src/ssi.js';
 import { VerifiableCredential, SignOptions } from '../src/verifiable-credential.js';
 import { Ed25519, Jose } from '@web5/crypto';
 import { DidKeyMethod } from '@web5/dids';
-// import { getCurrentXmlSchema112Timestamp } from '../src/utils.js';
 
 type Signer = (data: Uint8Array) => Promise<Uint8Array>;
 
