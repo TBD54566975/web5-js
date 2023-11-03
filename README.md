@@ -1,4 +1,3 @@
-
 - **Join Our Discord Channel**:
   - Once inside, check out the [`Hacktoberfest`](https://discord.com/channels/937858703112155166/1151216855957123104) section. This has all you need: resources, guidelines, and a checklist to help you make your first hacktoberfest contribution.
 - **Feeling Anxious or Unsure? Find a Buddy!**:
