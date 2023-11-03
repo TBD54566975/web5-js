@@ -1,7 +1,7 @@
 import type { Web5Crypto } from '@web5/crypto';
 import type { RequireOnly } from '@web5/common';
 
-import { isCryptoKeyPair, checkRequiredProperty } from '@web5/crypto/utils';
+import { utils as cryptoUtils } from '@web5/crypto';
 import {
   EcdhAlgorithm,
   EcdsaAlgorithm,
@@ -196,7 +196,7 @@ export class LocalKms implements KeyManagementSystem {
 
     // Create a ManagedKey or ManagedKeyPair using the generated key and store the private key material.
     let managedKeyOrKeyPair: GenerateKeyType<T>;
-    if (isCryptoKeyPair(cryptoKey)) {
+    if (cryptoUtils.isCryptoKeyPair(cryptoKey)) {
       const privateKeyType = cryptoKey.privateKey.type as Web5Crypto.PrivateKeyType;
       const id = await this._privateKeyStore.importKey({
         key   : { material: cryptoKey.privateKey.material, type: privateKeyType},
@@ -360,7 +360,7 @@ export class LocalKms implements KeyManagementSystem {
   }
 
   private getAlgorithm(algorithmIdentifier: Web5Crypto.AlgorithmIdentifier): CryptoAlgorithm {
-    checkRequiredProperty({ property: 'name', inObject: algorithmIdentifier });
+    cryptoUtils.checkRequiredProperty({ property: 'name', inObject: algorithmIdentifier });
     const algorithm = this._supportedAlgorithms.get(algorithmIdentifier.name.toUpperCase());
 
     if (algorithm === undefined) {

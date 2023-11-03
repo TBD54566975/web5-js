@@ -1,7 +1,7 @@
+import { utils as cryptoUtils } from '@web5/crypto';
+
 import type { JsonRpcResponse } from './json-rpc.js';
 import type { DwnRpc, DwnRpcRequest, DwnRpcResponse } from './types/agent.js';
-
-import { randomUuid } from '@web5/crypto/utils';
 
 import { createJsonRpcRequest, parseJson } from './json-rpc.js';
 
@@ -54,7 +54,7 @@ class HttpDwnRpcClient implements DwnRpc {
   get transportProtocols() { return ['http:', 'https:']; }
 
   async sendDwnRequest(request: DwnRpcRequest): Promise<DwnRpcResponse> {
-    const requestId = randomUuid();
+    const requestId = cryptoUtils.randomUuid();
     const jsonRpcRequest = createJsonRpcRequest(requestId, 'dwn.processMessage', {
       target  : request.targetDid,
       message : request.message
