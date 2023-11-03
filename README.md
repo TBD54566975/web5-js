@@ -5,13 +5,6 @@ Want to contribute during Hacktoberfest? We'd love to have you! Dive in, and you
 
 🚀 **Gear up for a month packed with exciting events!** :tada:
 
-- Mark your calendars for our **Hacktoberfest Launch event on [October 2nd on Discord](https://discord.com/events/937858703112155166/1154126364484583465)**.
-- Stay in the loop - keep an eye on our Discord calendar and pop into our [events-and-updates channel](https://discord.com/channels/937858703112155166/1151972299814215701) regularly! You won't want to miss out!
-
-## **Hacktoberfest Guidelines:**
-
-- Ensure your contribution is meaningful and fits within the scope of our project, by reading an open issue in its entirety before diving in.
-- Check out our `good-first-issue` and `hacktoberfest` labels in the issues section.
 - Join our Discord: Connect with the community, stay up to date with Hacktoberfest events/prizes, and discuss Hacktoberfest contributions on our Discord server. Click [to join our Discord server](https://discord.com/channels/937858703112155166/1151216855957123104).
 - Always be respectful and follow our [code of conduct](https://developer.tbd.website/open-source/code-of-conduct).
 - If in doubt about what to contribute, reach out to maintainers by raising a question in the relevant issue or specified discord channel.
