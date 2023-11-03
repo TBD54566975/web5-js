@@ -3,8 +3,6 @@
 Want to contribute during Hacktoberfest? We'd love to have you! Dive in, and your contributions could earn you some exclusive rewards.
 
 
-🚀 **Gear up for a month packed with exciting events!** :tada:
-
 - Always be respectful and follow our [code of conduct](https://developer.tbd.website/open-source/code-of-conduct).
 - If in doubt about what to contribute, reach out to maintainers by raising a question in the relevant issue or specified discord channel.
 - **Other participating TBD Repos:**
