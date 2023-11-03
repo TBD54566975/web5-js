@@ -9,7 +9,7 @@
 
 Making developing with Web5 components at least 5 times easier to work with.
 
-> ⚠️ WEB5 JS SDK IS CURRENTLY IN TECH PREVIEW ⚠️
+> :warning: WEB5 JS SDK IS CURRENTLY IN TECH PREVIEW :warning:
 
 The SDK is currently still under active development, but having entered the Tech Preview phase there is now a drive to avoid unnecessary changes unless backwards compatibility is provided. Additional functionality will be added in the lead up to 1.0 final, and modifications will be made to address issues and community feedback.
 
@@ -46,7 +46,7 @@ possible.
 
 Interested in contributing instantly? You can make your updates directly without cloning in the running CodeSandbox environment.
 
-[![Edit in CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/github/TBD54566975/web5-js/main)
+[![Button to click and edit code in CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/github/TBD54566975/web5-js/main)
 
 ## Installation
 
