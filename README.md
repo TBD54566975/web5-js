@@ -5,7 +5,6 @@ Want to contribute during Hacktoberfest? We'd love to have you! Dive in, and you
 
 🚀 **Gear up for a month packed with exciting events!** :tada:
 
-- Join our Discord: Connect with the community, stay up to date with Hacktoberfest events/prizes, and discuss Hacktoberfest contributions on our Discord server. Click [to join our Discord server](https://discord.com/channels/937858703112155166/1151216855957123104).
 - Always be respectful and follow our [code of conduct](https://developer.tbd.website/open-source/code-of-conduct).
 - If in doubt about what to contribute, reach out to maintainers by raising a question in the relevant issue or specified discord channel.
 - **Other participating TBD Repos:**
