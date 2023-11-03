@@ -13,8 +13,6 @@
   - Mark your calendars for our **Hacktoberfest Launch event on [October 2nd](https://discord.com/events/937858703112155166/1154126364484583465)**.
   - Stay in the loop - keep an eye on our Discord calendar and pop into our [#events-and-updates channel](https://discord.com/channels/937858703112155166/1151972299814215701) regularly! You won't want to miss out!
 
-Your contribution, be it big or minuscule, carries immense value. We eagerly await to see the waves you'll make in our community! :rocket:
-
 Here's to a thrilling Hacktoberfest voyage with us! :tada:
 
 # Web5 JS SDK
