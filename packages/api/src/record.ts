@@ -171,7 +171,7 @@ export class Record implements RecordModel {
 
   /**
    * Returns the data of the current record.
-   * If the record data is null, it attempts to fetch the data from the DWN.
+   * If the record data is not available, it attempts to fetch the data from the DWN.
    * @returns a data stream with convenience methods such as `blob()`, `json()`, `text()`, and `stream()`, similar to the fetch API response
    * @throws `Error` if the record has already been deleted.
    *
