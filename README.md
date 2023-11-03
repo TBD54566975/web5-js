@@ -8,10 +8,6 @@ Want to contribute during Hacktoberfest? We'd love to have you! Dive in, and you
   - [developer.tbd.website](https://github.com/TBD54566975/developer.tbd.website/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
 
 ## **What is Hacktoberfest?**
-## **New Contributor? Welcome!** :star2:
-
-We wholeheartedly embrace new contributors to our community. Remember, every expert was once a beginner, and we understand the initial hurdles you might feel. Here’s how you can dive in:
-
 - **Join Our Discord Channel**:
   - Once inside, check out the [`Hacktoberfest`](https://discord.com/channels/937858703112155166/1151216855957123104) section. This has all you need: resources, guidelines, and a checklist to help you make your first hacktoberfest contribution.
 - **Feeling Anxious or Unsure? Find a Buddy!**:
