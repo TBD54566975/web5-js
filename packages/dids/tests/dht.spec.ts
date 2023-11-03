@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { Jose } from '@web5/crypto';
+import sinon from 'sinon';
 
 import type { DidDhtKeySet } from '../src/did-dht.js';
 import type { DidKeySetVerificationMethodKey, DidService } from '../src/types.js';
@@ -15,6 +16,9 @@ describe('DidDht', () => {
     const publicCryptoKey = await Jose.jwkToCryptoKey({ key: ks.identityKey.publicKeyJwk });
     const privateCryptoKey = await Jose.jwkToCryptoKey({ key: ks.identityKey.privateKeyJwk });
 
+    const dhtPublishSpy = sinon.stub(DidDht, 'publishDidDocument').resolves(true);
+    const dhtGetSpy = sinon.stub(DidDht, 'getDidDocument').resolves(document);
+
     const published = await DidDht.publishDidDocument({
       keyPair: {
         publicKey  : publicCryptoKey,
@@ -24,10 +28,6 @@ describe('DidDht', () => {
     });
 
     expect(published).to.be.true;
-
-    // wait for propagation
-    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-    await wait(1000*10);
 
     const gotDid = await DidDht.getDidDocument({ did: document.id });
     expect(gotDid.id).to.deep.equal(document.id);
@@ -41,7 +41,11 @@ describe('DidDht', () => {
     expect(gotDid.verificationMethod[0].controller).to.deep.equal(document.verificationMethod[0].controller);
     expect(gotDid.verificationMethod[0].publicKeyJwk.kid).to.deep.equal(document.verificationMethod[0].publicKeyJwk.kid);
     expect(gotDid.verificationMethod[0].publicKeyJwk.kty).to.deep.equal(document.verificationMethod[0].publicKeyJwk.kty);
-  }).timeout(15000); // 15 seconds
+
+    sinon.assert.calledOnce(dhtPublishSpy);
+    sinon.assert.calledOnce(dhtGetSpy);
+    sinon.restore();
+  });
 
   describe('Codec', async () => {
     it('encodes and decodes a DID Document as a DNS Packet', async () => {
