@@ -8,9 +8,6 @@ Want to contribute during Hacktoberfest? We'd love to have you! Dive in, and you
   - [developer.tbd.website](https://github.com/TBD54566975/developer.tbd.website/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
 
 ## **What is Hacktoberfest?**
-
-Celebrate the 10th anniversary of Hacktoberfest this year! Hosted annually every October, Hacktoberfest is a month-long event sponsored by DigitalOcean, GitHub, and various other partners, championing open-source contributions. 
-
 > :star: If you're new to Hacktoberfest, you can learn more and register to participate [on the Hacktoberfest website](https://hacktoberfest.com/participation/). Registration is from **September 26th- October 31st**.
 
 ## **New Contributor? Welcome!** :star2:
