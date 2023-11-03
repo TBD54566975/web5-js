@@ -94,7 +94,7 @@ to your valuable work:
   rebase atop the upstream `main` branch. This will limit the potential for merge
   conflicts during review, and helps keep the audit trail clean. A good writeup for
   how this is done is
-  [written up in our beginners' guide to squashing commits tutorial](https://medium.com/@slamflipstrom/a-beginners-guide-to-squashing-commits-with-git-rebase-8185cf6e62ec), and if you're
+ [this beginner's guide to squashing commits](https://medium.com/@slamflipstrom/a-beginners-guide-to-squashing-commits-with-git-rebase-8185cf6e62ec)
   having trouble - feel free to ask a member or the community for help or leave the commits as-is, and flag that you'd like
   rebasing assistance in your PR! We're here to support you.
 - Open a PR in the project to bring in the code from your feature branch.
