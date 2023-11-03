@@ -191,7 +191,7 @@ export class DwnApi {
   }
 
   /**
-   * API to to interact with DWN protocols (e.g., `dwn.protocols.configure()`).
+   * API to interact with DWN protocols (e.g., `dwn.protocols.configure()`).
    */
   get protocols() {
     return {
@@ -253,7 +253,7 @@ export class DwnApi {
   }
 
   /**
-   * API to to interact with DWN records (e.g., `dwn.records.create()`).
+   * API to interact with DWN records (e.g., `dwn.records.create()`).
    */
   get records() {
     return {
