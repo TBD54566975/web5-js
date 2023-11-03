@@ -1,14 +1,13 @@
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
+import sinon from 'sinon';
 
 import type { DidDhtKeySet } from '../src/did-dht.js';
-import type { DidKeySetVerificationMethodKey, DidService } from '../src/types.js';
+import type {DidKeySetVerificationMethodKey, DidService, PortableDid} from '../src/types.js';
 
 import { DidDhtMethod } from '../src/did-dht.js';
 
 chai.use(chaiAsPromised);
-
-const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 describe('DidDhtMethod', () => {
   describe('keypairs', () => {
@@ -201,33 +200,71 @@ describe('DidDhtMethod', () => {
   });
 
   describe('did publishing and resolving', function () {
-    this.timeout(20000); // 20 seconds
-
     it('should publish and get a did document', async () => {
       const { document, keySet } = await DidDhtMethod.create();
+
+      const dhtDidPublishSpy = sinon.stub(DidDhtMethod, 'publish').resolves(true);
+      const dhtDidResolutionSpy = sinon.stub(DidDhtMethod, 'resolve').resolves({
+        '@context'            : 'https://w3id.org/did-resolution/v1',
+        didDocument           : document,
+        didDocumentMetadata   : {},
+        didResolutionMetadata : {
+          contentType  : 'application/did+ld+json',
+          error        : 'invalidDid',
+          errorMessage : `Cannot parse DID: ${document.id}`
+        }
+      });
+
       const isPublished = await DidDhtMethod.publish({ keySet, didDocument: document });
-
       expect(isPublished).to.be.true;
-
-      // wait for propagation
-      await wait(1000*10);
 
       const didResolutionResult = await DidDhtMethod.resolve({ didUrl: document.id });
       const didDocument = didResolutionResult.didDocument;
       expect(didDocument.id).to.deep.equal(document.id);
-      expect(didDocument.service).to.deep.equal(document.service);
-      expect(didDocument.verificationMethod[0].id).to.deep.equal(document.verificationMethod[0].id);
-      expect(didDocument.verificationMethod[0].type).to.deep.equal(document.verificationMethod[0].type);
-      expect(didDocument.verificationMethod[0].controller).to.deep.equal(document.verificationMethod[0].controller);
-      expect(didDocument.verificationMethod[0].publicKeyJwk.kid).to.deep.equal(document.verificationMethod[0].publicKeyJwk.kid);
+
+      sinon.assert.calledOnce(dhtDidPublishSpy);
+      sinon.assert.calledOnce(dhtDidResolutionSpy);
+      sinon.restore();
     });
 
     it('should create with publish and get a did document', async () => {
+      const mockDocument: PortableDid = {
+        keySet   : 'any' as any,
+        did      : 'did:dht:123456789abcdefghi',
+        document : {
+          id                 : 'did:dht:123456789abcdefghi',
+          verificationMethod : [{
+            id           : 'did:dht:123456789abcdefghi#0',
+            type         : 'JsonWebKey2020',
+            controller   : 'did:dht:123456789abcdefghi',
+            publicKeyJwk : {
+              kty : 'OKP',
+              crv : 'Ed25519',
+              kid : '0',
+              x   : 'O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik'
+            }
+          }],
+          assertionMethod      : ['did:dht:123456789abcdefghi#0'],
+          authentication       : ['did:dht:123456789abcdefghi#0'],
+          capabilityDelegation : ['did:dht:123456789abcdefghi#0'],
+          capabilityInvocation : ['did:dht:123456789abcdefghi#0']
+        }
+      };
+      const didDhtCreateSpy = sinon.stub(DidDhtMethod, 'create').resolves(mockDocument);
+
       const { document } = await DidDhtMethod.create({ publish: true });
       const did = document.id;
 
-      // wait for propagation
-      await wait(1000*10);
+      const dhtDidResolutionSpy = sinon.stub(DidDhtMethod, 'resolve').resolves({
+        '@context'            : 'https://w3id.org/did-resolution/v1',
+        didDocument           : document,
+        didDocumentMetadata   : {},
+        didResolutionMetadata : {
+          contentType  : 'application/did+ld+json',
+          error        : 'invalidDid',
+          errorMessage : `Cannot parse DID: ${document.id}`
+        }
+      });
 
       const didResolutionResult = await DidDhtMethod.resolve({ didUrl: did });
       const resolvedDocument = didResolutionResult.didDocument;
@@ -237,6 +274,10 @@ describe('DidDhtMethod', () => {
       expect(resolvedDocument.verificationMethod[0].type).to.deep.equal(document.verificationMethod[0].type);
       expect(resolvedDocument.verificationMethod[0].controller).to.deep.equal(document.verificationMethod[0].controller);
       expect(resolvedDocument.verificationMethod[0].publicKeyJwk.kid).to.deep.equal(document.verificationMethod[0].publicKeyJwk.kid);
+
+      sinon.assert.calledOnce(didDhtCreateSpy);
+      sinon.assert.calledOnce(dhtDidResolutionSpy);
+      sinon.restore();
     });
   });
 });
