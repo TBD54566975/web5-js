@@ -30,8 +30,7 @@ import type { Web5Agent } from '@web5/agent';
 // }
 
 /**
- * The DID API is used to create and resolve DIDs. It is the primary interface
- * for interacting with DIDs.
+ * The DID API is used to create and resolve DIDs.
  *
  * @beta
  */

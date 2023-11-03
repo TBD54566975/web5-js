@@ -191,7 +191,7 @@ export class DwnApi {
   }
 
   /**
-   * Retrieves the protocols manager, used to configure and query them
+   * API to to interact with DWN protocols (e.g., `dwn.protocols.configure()`).
    */
   get protocols() {
     return {
@@ -253,7 +253,7 @@ export class DwnApi {
   }
 
   /**
-   * Records manager, used to read, write, query and delete records
+   * API to to interact with DWN records (e.g., `dwn.records.create()`).
    */
   get records() {
     return {
