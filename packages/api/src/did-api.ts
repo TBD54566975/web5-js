@@ -28,6 +28,12 @@ import type { Web5Agent } from '@web5/agent';
 //   didMethodApis: DidMethodApi[];
 //   cache?: DidResolverCache;
 // }
+
+/**
+ * The DID API is used to create and resolve DIDs.
+ *
+ * @beta
+ */
 export class DidApi {
   // private didResolver: DidResolver;
   // private methodCreatorMap: Map<string, DidMethodCreator> = new Map();

@@ -8,6 +8,11 @@ import { DataStream, DwnInterfaceName, DwnMethodName, Encoder } from '@tbd545669
 import { dataToBlob } from './utils.js';
 import type { RecordsDeleteResponse } from './dwn-api.js';
 
+/**
+ * Options that are passed to Record constructor.
+ *
+ * @beta
+ */
 export type RecordOptions = RecordsWriteMessage & {
   author: string;
   target: string;
@@ -15,6 +20,12 @@ export type RecordOptions = RecordsWriteMessage & {
   data?: Readable | ReadableStream;
 };
 
+/**
+ * Represents the record data model, without the auxiliary properties such as
+ * the `descriptor` and the `authorization`
+ *
+ * @beta
+ */
 export type RecordModel = RecordsWriteDescriptor
   & Omit<RecordsWriteMessage, 'descriptor' | 'recordId' | 'authorization'>
   & {
@@ -23,6 +34,11 @@ export type RecordModel = RecordsWriteDescriptor
     target: string;
   }
 
+/**
+ * Options that are passed to update the record on the DWN
+ *
+ * @beta
+ */
 export type RecordUpdateOptions = {
   data?: unknown;
   dataCid?: RecordsWriteDescriptor['dataCid'];
@@ -33,19 +49,28 @@ export type RecordUpdateOptions = {
 }
 
 /**
-   * TODO: Document class.
-   *
-   * Note: The `messageTimestamp` of the most recent RecordsWrite message is
-   *       logically equivalent to the date/time at which a Record was most
-   *       recently modified.  Since this Record class implementation is
-   *       intended to simplify the developer experience of working with
-   *       logical records (and not individual DWN messages) the
-   *       `messageTimestamp` is mapped to `dateModified`.
-   */
+ * Record wrapper class with convenience methods to send, update,
+ * and delete itself, aside from manipulating and reading the record data.
+ *
+ * Note: The `messageTimestamp` of the most recent RecordsWrite message is
+ *       logically equivalent to the date/time at which a Record was most
+ *       recently modified.  Since this Record class implementation is
+ *       intended to simplify the developer experience of working with
+ *       logical records (and not individual DWN messages) the
+ *       `messageTimestamp` is mapped to `dateModified`.
+ *
+ * @beta
+ */
 export class Record implements RecordModel {
   // mutable properties
+
+  /** Record's author */
   author: string;
+
+  /** Record's target (for sent records) */
   target: string;
+
+  /** Record deleted status */
   isDeleted = false;
 
   private _agent: Web5Agent;
@@ -58,26 +83,64 @@ export class Record implements RecordModel {
   private _recordId: string;
 
   // Immutable DWN Record properties.
+
+  /** Record's signatures attestation */
   get attestation(): RecordsWriteMessage['attestation'] { return this._attestation; }
+
+  /** Record's context ID */
   get contextId() { return this._contextId; }
+
+  /** Record's data format */
   get dataFormat() { return this._descriptor.dataFormat; }
+
+  /** Record's creation date */
   get dateCreated() { return this._descriptor.dateCreated; }
+
+  /** Record's encryption */
   get encryption(): RecordsWriteMessage['encryption'] { return this._encryption; }
+
+  /** Record's ID */
   get id() { return this._recordId; }
+
+  /** Interface is always `Records` */
   get interface() { return this._descriptor.interface; }
+
+  /** Method is always `Write` */
   get method() { return this._descriptor.method; }
+
+  /** Record's parent ID */
   get parentId() { return this._descriptor.parentId; }
+
+  /** Record's protocol */
   get protocol() { return this._descriptor.protocol; }
+
+  /** Record's protocol path */
   get protocolPath() { return this._descriptor.protocolPath; }
+
+  /** Record's recipient */
   get recipient() { return this._descriptor.recipient; }
+
+  /** Record's schema */
   get schema() { return this._descriptor.schema; }
 
   // Mutable DWN Record properties.
+
+  /** Record's CID */
   get dataCid() { return this._descriptor.dataCid; }
+
+  /** Record's data size */
   get dataSize() { return this._descriptor.dataSize; }
+
+  /** Record's modified date */
   get dateModified() { return this._descriptor.messageTimestamp; }
+
+  /** Record's published date */
   get datePublished() { return this._descriptor.datePublished; }
+
+  /** Record's published status */
   get messageTimestamp() { return this._descriptor.messageTimestamp; }
+
+  /** Record's published status (true/false) */
   get published() { return this._descriptor.published; }
 
   constructor(agent: Web5Agent, options: RecordOptions) {
@@ -107,7 +170,11 @@ export class Record implements RecordModel {
   }
 
   /**
-   * TODO: Document method.
+   * Returns the data of the current record.
+   * If the record data is not available, it attempts to fetch the data from the DWN.
+   * @returns a data stream with convenience methods such as `blob()`, `json()`, `text()`, and `stream()`, similar to the fetch API response
+   * @throws `Error` if the record has already been deleted.
+   *
    */
   get data() {
     if (this.isDeleted) throw new Error('Operation failed: Attempted to access `data` of a record that has already been deleted.');
@@ -172,7 +239,9 @@ export class Record implements RecordModel {
   }
 
   /**
-   * TODO: Document method.
+   * Delete the current record from the DWN.
+   * @returns the status of the delete request
+   * @throws `Error` if the record has already been deleted.
    */
   async delete(): Promise<RecordsDeleteResponse> {
     if (this.isDeleted) throw new Error('Operation failed: Attempted to call `delete()` on a record that has already been deleted.');
@@ -196,7 +265,11 @@ export class Record implements RecordModel {
   }
 
   /**
-   * TODO: Document method.
+   * Send the current record to a remote DWN by specifying their DID
+   * (vs waiting for the regular DWN sync)
+   * @param target - the DID to send the record to
+   * @returns the status of the send record request
+   * @throws `Error` if the record has already been deleted.
    */
   async send(target: string): Promise<any> {
     if (this.isDeleted) throw new Error('Operation failed: Attempted to call `send()` on a record that has already been deleted.');
@@ -213,9 +286,8 @@ export class Record implements RecordModel {
   }
 
   /**
-   * TODO: Document method.
-   *
-   * Called by `JSON.stringify(...)` automatically.
+   * Returns a JSON representation of the Record instance.
+   * It's called by `JSON.stringify(...)` automatically.
    */
   toJSON(): RecordModel {
     return {
@@ -243,8 +315,7 @@ export class Record implements RecordModel {
   }
 
   /**
-   * TODO: Document method.
-   *
+   * Convenience method to return the string representation of the Record instance.
    * Called automatically in string concatenation, String() type conversion, and template literals.
    */
   toString() {
@@ -263,7 +334,10 @@ export class Record implements RecordModel {
   }
 
   /**
-   * TODO: Document method.
+   * Update the current record on the DWN.
+   * @param options - options to update the record, including the new data
+   * @returns the status of the update request
+   * @throws `Error` if the record has already been deleted.
    */
   async update(options: RecordUpdateOptions = {}) {
     if (this.isDeleted) throw new Error('Operation failed: Attempted to call `update()` on a record that has already been deleted.');

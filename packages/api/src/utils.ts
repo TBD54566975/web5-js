@@ -2,6 +2,8 @@ import { Convert, universalTypeOf } from '@web5/common';
 
 /**
  * Set/detect the media type and return the data as bytes.
+ *
+ * @beta
  */
 export const dataToBlob = (data: any, dataFormat?: string) => {
   let dataBlob: Blob;
