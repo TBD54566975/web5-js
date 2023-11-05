@@ -21,7 +21,7 @@ export namespace Web5Crypto {
   export type AlgorithmIdentifier = Algorithm;
 
   export interface CryptoKey {
-    algorithm: Web5Crypto.GenerateKeyOptions;
+    algorithm: Web5Crypto.Algorithm;
     extractable: boolean;
     material: Uint8Array;
     type: KeyType;
@@ -64,6 +64,8 @@ export namespace Web5Crypto {
     name: string;
   }
 
+  export type KeyFormat = 'jwk' | 'pkcs8' | 'raw' | 'spki';
+
   export interface KeyPairUsage {
     privateKey: KeyUsage[];
     publicKey: KeyUsage[];
@@ -105,6 +107,12 @@ export namespace Web5Crypto {
   export type KeyUsage = 'encrypt' | 'decrypt' | 'sign' | 'verify' | 'deriveKey' | 'deriveBits' | 'wrapKey' | 'unwrapKey';
 
   export type NamedCurve = string;
+
+  export interface Pbkdf2Options extends Algorithm {
+    hash: string;
+    iterations: number;
+    salt: Uint8Array;
+  }
 
   export type PrivateKeyType = 'private' | 'secret';
 }

@@ -73,7 +73,7 @@ export type DeriveBitsOptions = {
   /**
    * An object defining the derivation algorithm to use and its parameters.
    */
-  algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdhDeriveKeyOptions;
+  algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdhDeriveKeyOptions | Web5Crypto.Pbkdf2Options;
 
   /**
    * An identifier of the ManagedKey that will be the input to the
@@ -228,7 +228,7 @@ export interface ManagedKey {
    * An object detailing the algorithm for which the key can be used along
    * with additional algorithm-specific parameters.
    */
-  algorithm: Web5Crypto.GenerateKeyOptions;
+  algorithm: Web5Crypto.KeyAlgorithm | Web5Crypto.GenerateKeyOptions;
 
   /**
    * An alternate identifier used to identify the key in a KMS.

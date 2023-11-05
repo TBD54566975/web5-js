@@ -88,6 +88,25 @@ export function keyToMultibaseId(options: {
   return multibaseKeyId;
 }
 
+export function isWebCryptoSupported(): boolean {
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
+    // Web browser environment.
+    return true;
+  } else if (typeof global !== 'undefined' && global.crypto && global.crypto.subtle) {
+    // Node.js environment.
+    return true;
+  } else if (typeof self !== 'undefined' && self.crypto && self.crypto.subtle) {
+    // React Native environment.
+    return true;
+  } else if (typeof crypto !== 'undefined' && crypto.subtle) {
+    // Other environment (e.g. Web Worker).
+    return true;
+  } else {
+    // Web Crypto API is not supported.
+    return false;
+  }
+}
+
 export function multibaseIdToKey(options: {
   multibaseKeyId: string
 }): { key: Uint8Array, multicodecCode: number, multicodecName: string } {
