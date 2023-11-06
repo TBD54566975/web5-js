@@ -33,10 +33,10 @@ export class Pbkdf2 {
     // Convert length from bits to bytes.
     const length = options.length / 8;
 
-    // Dynamically import node:crypto.
+    // Dynamically import the `crypto` package.
     const { pbkdf2 } = await import('node:crypto');
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       pbkdf2(
         password,
         salt,
@@ -44,9 +44,7 @@ export class Pbkdf2 {
         length,
         hash,
         (err, derivedKey) => {
-          if (err) {
-            reject(err);
-          } else {
+          if (!err) {
             resolve(new Uint8Array(derivedKey));
           }
         }
