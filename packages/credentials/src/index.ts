@@ -1,3 +1,3 @@
-export * from './types.js';
+export * from './verifiable-credential.js';
+export * from './presentation-exchange.js';
 export * as utils from './utils.js';
-export * from './ssi.js';

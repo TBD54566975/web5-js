@@ -1,27 +1,26 @@
-import type {
-  VerifiableCredentialTypeV1,
-  CredentialSubject,
-  CredentialContextType,
-} from './types.js';
-
 import {
   DEFAULT_CONTEXT,
   DEFAULT_VC_TYPE,
-  DEFAULT_VP_TYPE,
-} from './types.js';
+  VerifiableCredential
+} from './verifiable-credential.js';
 
 import { isValidXmlSchema112Timestamp } from './utils.js';
 
+import type {
+  ICredentialContextType,
+  ICredentialSubject
+} from '@sphereon/ssi-types';
+
 export class SsiValidator {
-  static validateCredentialPayload(vc: VerifiableCredentialTypeV1): void {
-    this.validateContext(vc['@context']);
+  static validateCredentialPayload(vc: VerifiableCredential): void {
+    this.validateContext(vc.vcDataModel['@context']);
     this.validateVcType(vc.type);
-    this.validateCredentialSubject(vc.credentialSubject);
-    if (vc.issuanceDate) this.validateTimestamp(vc.issuanceDate);
-    if (vc.expirationDate) this.validateTimestamp(vc.expirationDate);
+    this.validateCredentialSubject(vc.vcDataModel.credentialSubject);
+    if (vc.vcDataModel.issuanceDate) this.validateTimestamp(vc.vcDataModel.issuanceDate);
+    if (vc.vcDataModel.expirationDate) this.validateTimestamp(vc.vcDataModel.expirationDate);
   }
 
-  static validateContext(value: CredentialContextType | CredentialContextType[]): void {
+  static validateContext(value: ICredentialContextType | ICredentialContextType[]): void {
     const input = this.asArray(value);
     if (input.length < 1 || input.indexOf(DEFAULT_CONTEXT) === -1) {
       throw new Error(`@context is missing default context "${DEFAULT_CONTEXT}"`);
@@ -35,7 +34,7 @@ export class SsiValidator {
     }
   }
 
-  static validateCredentialSubject(value: CredentialSubject | CredentialSubject[]): void {
+  static validateCredentialSubject(value: ICredentialSubject | ICredentialSubject[]): void {
     if (Object.keys(value).length === 0) {
       throw new Error(`credentialSubject must not be empty`);
     }
@@ -44,13 +43,6 @@ export class SsiValidator {
   static validateTimestamp(timestamp: string) {
     if(!isValidXmlSchema112Timestamp(timestamp)){
       throw new Error(`timestamp is not valid xml schema 112 timestamp`);
-    }
-  }
-
-  static validateVpType(value: string | string[]): void {
-    const input = this.asArray(value);
-    if (input.length < 1 || input.indexOf(DEFAULT_VP_TYPE) === -1) {
-      throw new TypeError(`type is missing default "${DEFAULT_VP_TYPE}"`);
     }
   }
 
