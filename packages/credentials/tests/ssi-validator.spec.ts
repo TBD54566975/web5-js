@@ -1,6 +1,7 @@
 import { SsiValidator } from '../src/validators.js';
-import { DEFAULT_CONTEXT, DEFAULT_VC_TYPE, DEFAULT_VP_TYPE } from '../src/types.js';
 import { expect } from 'chai';
+
+import { DEFAULT_CONTEXT, DEFAULT_VC_TYPE } from '../src/verifiable-credential.js';
 
 describe('SsiValidator', () => {
 
@@ -44,15 +45,4 @@ describe('SsiValidator', () => {
       expect(() => SsiValidator.validateTimestamp(validTimestamp)).not.throw();
     });
   });
-
-  describe('validateVpType', () => {
-    it('should throw an error if the default VP type is missing', () => {
-      expect(() => SsiValidator.validateVpType(['CustomType'])).throw(`type is missing default "${DEFAULT_VP_TYPE}"`);
-    });
-
-    it('should not throw an error if the default VP type is present', () => {
-      expect(() => SsiValidator.validateVpType([DEFAULT_VP_TYPE, 'CustomType'])).not.throw();
-    });
-  });
-
 });
