@@ -10,4 +10,5 @@ module.exports = {
   define      : {
     'global': 'globalThis',
   },
+  external: ['crypto'] // Exclude Node crypto from the browser bundle
 };
