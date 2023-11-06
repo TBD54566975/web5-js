@@ -20,9 +20,9 @@ export class PresentationExchange {
   /**
    * Selects credentials that satisfy a given presentation definition.
    *
-   * @param vcJwts The list of Verifiable Credentials to select from.
-   * @param presentationDefinition The Presentation Definition to match against.
-   * @return A list of Verifiable Credentials that satisfy the Presentation Definition.
+   * @param {string[]} vcJwts The list of Verifiable Credentials to select from.
+   * @param {PresentationDefinitionV2} presentationDefinition The Presentation Definition to match against.
+   * @return {string[]} selectedVcJwts A list of Verifiable Credentials that satisfy the Presentation Definition.
    */
   public static selectCredentials(
     vcJwts: string[],
@@ -33,6 +33,13 @@ export class PresentationExchange {
     return selectResults.verifiableCredential as string[] ?? [];
   }
 
+  /**
+   * Validates if a list of VC JWTs satisfies the given presentation definition.
+   *
+   * @param {string[]} vcJwts An array of VC JWTs as strings.
+   * @param {PresentationDefinitionV2} presentationDefinition The criteria to validate against.
+   * @throws {Error} If the evaluation results in warnings or errors.
+   */
   public static satisfiesPresentationDefinition(
     vcJwts: string[],
     presentationDefinition: PresentationDefinitionV2
@@ -109,9 +116,9 @@ export class PresentationExchange {
   /**
    * This method validates whether an object is usable as a presentation definition or not.
    *
-   * @param presentationDefinition: presentationDefinition to be validated.
+   * @param {PresentationDefinitionV2} presentationDefinition: presentationDefinition to be validated.
    *
-   * @return the validation results to reveal what is acceptable/unacceptable about the passed object to be considered a valid presentation definition
+   * @return {Validated} the validation results to reveal what is acceptable/unacceptable about the passed object to be considered a valid presentation definition
    */
   public static validateDefinition(presentationDefinition: PresentationDefinitionV2): Validated {
     return PEX.validateDefinition(presentationDefinition);
@@ -120,9 +127,9 @@ export class PresentationExchange {
   /**
    * This method validates whether an object is usable as a presentation submission or not.
    *
-   * @param presentationSubmission the object to be validated.
+   * @param {PresentationSubmission} presentationSubmission the object to be validated.
    *
-   * @return the validation results to reveal what is acceptable/unacceptable about the passed object to be considered a valid presentation submission
+   * @return {Validated} the validation results to reveal what is acceptable/unacceptable about the passed object to be considered a valid presentation submission
    */
   public static validateSubmission(presentationSubmission: PresentationSubmission): Validated {
     return PEX.validateSubmission(presentationSubmission);
