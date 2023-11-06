@@ -20,33 +20,73 @@ import { Record } from './record.js';
 import { Protocol } from './protocol.js';
 import { dataToBlob } from './utils.js';
 
+/**
+ * Request to setup a protocol with its definitions
+ *
+ * @beta
+ */
 export type ProtocolsConfigureRequest = {
   message: Omit<ProtocolsConfigureOptions, 'authorizationSigner'>;
 }
 
+/**
+ * Response for the protocol configure request
+ *
+ * @beta
+ */
 export type ProtocolsConfigureResponse = {
   status: UnionMessageReply['status'];
   protocol?: Protocol;
 }
 
+/**
+ * Represents each entry on the protocols query reply
+ *
+ * @beta
+ */
 export type ProtocolsQueryReplyEntry = {
   descriptor: ProtocolsConfigureDescriptor;
 };
 
+/**
+ * Request to query protocols
+ *
+ * @beta
+ */
 export type ProtocolsQueryRequest = {
   from?: string;
   message: Omit<ProtocolsQueryOptions, 'authorizationSigner'>
 }
 
+/**
+ * Response with the retrieved protocols
+ *
+ * @beta
+ */
 export type ProtocolsQueryResponse = {
   protocols: Protocol[];
   status: UnionMessageReply['status'];
 }
 
+/**
+ * Type alias for {@link RecordsWriteRequest}
+ *
+ * @beta
+ */
 export type RecordsCreateRequest = RecordsWriteRequest;
 
+/**
+ * Type alias for {@link RecordsWriteResponse}
+ *
+ * @beta
+ */
 export type RecordsCreateResponse = RecordsWriteResponse;
 
+/**
+ * Request to create a record from an existing one (useful for updating an existing record)
+ *
+ * @beta
+ */
 export type RecordsCreateFromRequest = {
   author: string;
   data: unknown;
@@ -54,50 +94,92 @@ export type RecordsCreateFromRequest = {
   record: Record;
 }
 
+/**
+ * Request to delete a record from the DWN
+ *
+ * @beta
+ */
 export type RecordsDeleteRequest = {
   from?: string;
   message: Omit<RecordsDeleteOptions, 'authorizationSigner'>;
 }
 
+/**
+ * Response for the delete request
+ *
+ * @beta
+ */
 export type RecordsDeleteResponse = {
   status: UnionMessageReply['status'];
 };
 
+/**
+ * Request to query records from the DWN
+ *
+ * @beta
+ */
 export type RecordsQueryRequest = {
   /** The from property indicates the DID to query from and return results. */
   from?: string;
   message: Omit<RecordsQueryOptions, 'authorizationSigner'>;
 }
 
+/**
+ * Response for the query request
+ *
+ * @beta
+ */
 export type RecordsQueryResponse = {
   status: UnionMessageReply['status'];
   records?: Record[]
 };
 
+/**
+ * Request to read a record from the DWN
+ *
+ * @beta
+ */
 export type RecordsReadRequest = {
   /** The from property indicates the DID to read from and return results fro. */
   from?: string;
   message: Omit<RecordsReadOptions, 'authorizationSigner'>;
 }
 
+/**
+ * Response for the read request
+ *
+ * @beta
+ */
 export type RecordsReadResponse = {
   status: UnionMessageReply['status'];
   record: Record;
 };
 
+/**
+ * Request to write a record to the DWN
+ *
+ * @beta
+ */
 export type RecordsWriteRequest = {
   data: unknown;
   message?: Omit<Partial<RecordsWriteOptions>, 'authorizationSigner'>;
   store?: boolean;
 }
 
+/**
+ * Response for the write request
+ *
+ * @beta
+ */
 export type RecordsWriteResponse = {
   status: UnionMessageReply['status'];
   record?: Record
 };
 
 /**
- * TODO: Document class.
+ * Interface to interact with DWN Records and Protocols
+ *
+ * @beta
  */
 export class DwnApi {
   private agent: Web5Agent;
@@ -109,12 +191,12 @@ export class DwnApi {
   }
 
   /**
- * TODO: Document namespace.
- */
+   * API to interact with DWN protocols (e.g., `dwn.protocols.configure()`).
+   */
   get protocols() {
     return {
       /**
-       * TODO: Document method.
+       * Configure method, used to setup a new protocol (or update) with the passed definitions
        */
       configure: async (request: ProtocolsConfigureRequest): Promise<ProtocolsConfigureResponse> => {
         const agentResponse = await this.agent.processDwnRequest({
@@ -136,7 +218,7 @@ export class DwnApi {
       },
 
       /**
-       * TODO: Document method.
+       * Query the available protocols
        */
       query: async (request: ProtocolsQueryRequest): Promise<ProtocolsQueryResponse> => {
         const agentRequest = {
@@ -171,19 +253,19 @@ export class DwnApi {
   }
 
   /**
-   * TODO: Document namespace.
+   * API to interact with DWN records (e.g., `dwn.records.create()`).
    */
   get records() {
     return {
       /**
-       * TODO: Document method.
+       * Alias for the `write` method
        */
       create: async (request: RecordsCreateRequest): Promise<RecordsCreateResponse> => {
         return this.records.write(request);
       },
 
       /**
-       * TODO: Document method.
+       * Write a record based on an existing one (useful for updating an existing record)
        */
       createFrom: async (request: RecordsCreateFromRequest): Promise<RecordsWriteResponse> => {
         const { author: inheritedAuthor, ...inheritedProperties } = request.record.toJSON();
@@ -221,7 +303,7 @@ export class DwnApi {
       },
 
       /**
-       * TODO: Document method.
+       * Delete a record
        */
       delete: async (request: RecordsDeleteRequest): Promise<RecordsDeleteResponse> => {
         const agentRequest = {
@@ -253,7 +335,7 @@ export class DwnApi {
       },
 
       /**
-       * TODO: Document method.
+       * Query a single or multiple records based on the given filter
        */
       query: async (request: RecordsQueryRequest): Promise<RecordsQueryResponse> => {
         const agentRequest = {
@@ -287,7 +369,7 @@ export class DwnApi {
       },
 
       /**
-       * TODO: Document method.
+       * Read a single record based on the given filter
        */
       read: async (request: RecordsReadRequest): Promise<RecordsReadResponse> => {
         const agentRequest = {
@@ -331,7 +413,7 @@ export class DwnApi {
       },
 
       /**
-       * TODO: Document method.
+       * Writes a record to the DWN
        *
        * As a convenience, the Record instance returned will cache a copy of the data if the
        * data size, in bytes, is less than the DWN 'max data size allowed to be encoded'

@@ -9,7 +9,7 @@ import type {
 
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import * as didUtils from '@web5/dids/utils';
+import { utils as didUtils } from '@web5/dids';
 import { TestManagedAgent } from '@web5/agent';
 import {
   RecordsWrite,

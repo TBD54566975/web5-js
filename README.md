@@ -5,10 +5,11 @@
 [![Coverage](https://img.shields.io/codecov/c/gh/TBD54566975/web5-js/main?logo=codecov&logoColor=FFFFFF&style=flat-square&token=YI87CKF1LI)](https://codecov.io/github/TBD54566975/web5-js)
 [![License](https://img.shields.io/npm/l/@web5/api.svg?style=flat-square&color=24f2ff&logo=apache&logoColor=FFFFFF&santize=true)](https://github.com/TBD54566975/web5-js/blob/main/LICENSE)
 [![Chat](https://img.shields.io/badge/chat-on%20discord-7289da.svg?style=flat-square&color=9a1aff&logo=discord&logoColor=FFFFFF&sanitize=true)](https://discord.com/channels/937858703112155166/969272658501976117)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/TBD54566975/web5-js/badge)](https://securityscorecards.dev/viewer/?uri=github.com/TBD54566975/web5-js)
 
 Making developing with Web5 components at least 5 times easier to work with.
 
-> ⚠️ WEB5 JS SDK IS CURRENTLY IN TECH PREVIEW ⚠️
+> :warning: WEB5 JS SDK IS CURRENTLY IN TECH PREVIEW :warning:
 
 The SDK is currently still under active development, but having entered the Tech Preview phase there is now a drive to avoid unnecessary changes unless backwards compatibility is provided. Additional functionality will be added in the lead up to 1.0 final, and modifications will be made to address issues and community feedback.
 
@@ -45,7 +46,7 @@ possible.
 
 Interested in contributing instantly? You can make your updates directly without cloning in the running CodeSandbox environment.
 
-[![Edit in CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/github/TBD54566975/web5-js/main)
+[![Button to click and edit code in CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/github/TBD54566975/web5-js/main)
 
 ## Installation
 
@@ -351,6 +352,7 @@ const { protocol } = await web5.dwn.protocols.configure({
   message: {
     definition: {
       protocol: "https://photos.org/protocol",
+      published: true,
       types: {
         album: {
           schema: "https://photos.org/protocol/album",

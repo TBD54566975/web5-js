@@ -1,8 +1,10 @@
-import * as didUtils from '@web5/dids/utils';
+import { utils as didUtils } from '@web5/dids';
 
 /**
  * Dynamically selects up to 2 DWN endpoints that are provided
  * by default during the Tech Preview period.
+ *
+ * @beta
  */
 export async function getTechPreviewDwnEndpoints(): Promise<string[]> {
   let response: Response;

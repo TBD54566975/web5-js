@@ -9,10 +9,10 @@ import {
 } from '@tbd54566975/dwn-sdk-js';
 
 import { Jose } from '@web5/crypto';
+import { Convert } from '@web5/common';
 import { DidResolver } from '@web5/dids';
 import { Readable } from 'readable-stream';
-import * as didUtils from '@web5/dids/utils';
-import { Convert } from '@web5/common';
+import { utils as didUtils } from '@web5/dids';
 
 import {
   Cid,

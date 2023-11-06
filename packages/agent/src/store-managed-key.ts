@@ -1,13 +1,17 @@
 import type { RecordsWriteMessage, RecordsWriteOptions } from '@tbd54566975/dwn-sdk-js';
 
-import { randomUuid } from '@web5/crypto/utils';
+import { utils as cryptoUtils } from '@web5/crypto';
 import { Convert, removeEmptyObjects, removeUndefinedProperties } from '@web5/common';
 
-import type { ManagedKeyPair, ManagedKeyStore, ManagedPrivateKey } from './types/managed-key.js';
+import type { DwnResponse, Web5ManagedAgent } from './types/agent.js';
+import type {
+  ManagedKey,
+  ManagedKeyPair,
+  ManagedKeyStore,
+  ManagedPrivateKey
+} from './types/managed-key.js';
 
-import { DwnResponse, Web5ManagedAgent } from './types/agent.js';
 import { isManagedKeyPair } from './utils.js';
-import { ManagedKey } from './types/managed-key.js';
 
 type EncodedPrivateKey = Omit<ManagedPrivateKey, 'material'> & {
   // Key material, encoded as Base64Url.
@@ -152,7 +156,7 @@ export class KeyStoreDwn implements ManagedKeyStore<string, ManagedKey | Managed
     } else {
       // If an ID wasn't specified, generate one.
       if (!key.id) {
-        key.id = randomUuid();
+        key.id = cryptoUtils.randomUuid();
       }
       keyId = key.id;
     }
@@ -430,7 +434,7 @@ export class KeyStoreMemory implements ManagedKeyStore<string, ManagedKey | Mana
     } else {
       // If an ID wasn't specified, generate one.
       if (!key.id) {
-        key.id = randomUuid();
+        key.id = cryptoUtils.randomUuid();
       }
       id = key.id;
     }
@@ -584,7 +588,7 @@ export class PrivateKeyStoreDwn implements ManagedKeyStore<string, ManagedPrivat
     const authorDid = await this.getAuthor({ agent, context });
 
     // Encode the managed key or key pair as bytes.
-    const id = randomUuid(); // Generate a random ID.
+    const id = cryptoUtils.randomUuid(); // Generate a random ID.
     const encodedPrivateKey = this.encodeKey({...key, id });
 
     const { reply: { status } } = await agent.dwnManager.processRequest({
@@ -723,7 +727,7 @@ export class PrivateKeyStoreMemory implements ManagedKeyStore<string, ManagedPri
     // The private key material is transferred to the new object, making the original obj.material unusable.
     const clonedKey = structuredClone(key, { transfer: [key.material.buffer] }) as ManagedPrivateKey;
 
-    clonedKey.id = randomUuid();
+    clonedKey.id = cryptoUtils.randomUuid();
     this.store.set(clonedKey.id, clonedKey);
 
     return clonedKey.id;
