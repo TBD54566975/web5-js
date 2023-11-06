@@ -95,9 +95,6 @@ export function isWebCryptoSupported(): boolean {
   } else if (typeof global !== 'undefined' && global.crypto && global.crypto.subtle) {
     // Node.js environment.
     return true;
-  } else if (typeof self !== 'undefined' && self.crypto && self.crypto.subtle) {
-    // React Native environment.
-    return true;
   } else if (typeof crypto !== 'undefined' && crypto.subtle) {
     // Other environment (e.g. Web Worker).
     return true;
