@@ -1,22 +1,83 @@
 import { utils as cryptoUtils } from '@web5/crypto';
+import { UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 
 import type { JsonRpcResponse } from './json-rpc.js';
-import type { DwnRpc, DwnRpcRequest, DwnRpcResponse } from './types/agent.js';
+import type { SerializableDwnMessage } from './types/agent.js';
 
 import { createJsonRpcRequest, parseJson } from './json-rpc.js';
+
+export interface DidRpc {
+  get transportProtocols(): string[]
+  sendDidRequest(request: DidRpcRequest): Promise<DidRpcResponse>
+}
+
+export enum DidRpcMethod {
+  Create = 'did.create',
+  Resolve = 'did.resolve'
+}
+
+export type DidRpcRequest = {
+  data: string;
+  method: DidRpcMethod;
+  url: string;
+}
+
+export type DidRpcResponse = {
+  data?: string;
+  ok: boolean;
+  status: RpcStatus;
+}
+
+/**
+ * interface that can be implemented to communicate with Dwn Servers
+ */
+export interface DwnRpc {
+  /**
+   * TODO: add jsdoc
+   */
+  get transportProtocols(): string[]
+
+  /**
+   * TODO: add jsdoc
+   * @param request
+   */
+  sendDwnRequest(request: DwnRpcRequest): Promise<DwnRpcResponse>
+}
+
+/**
+ * TODO: add jsdoc
+ */
+export type DwnRpcRequest = {
+  data?: any;
+  dwnUrl: string;
+  message: SerializableDwnMessage | any;
+  targetDid: string;
+}
+
+/**
+ * TODO: add jsdoc
+ */
+export type DwnRpcResponse = UnionMessageReply;
+
+export type RpcStatus = {
+  code: number;
+  message: string;
+};
+
+export interface Web5Rpc extends DwnRpc, DidRpc {}
 
 /**
  * Client used to communicate with Dwn Servers
  */
-export class Web5RpcClient implements DwnRpc {
-  private transportClients: Map<string, DwnRpc>;
+export class Web5RpcClient implements Web5Rpc {
+  private transportClients: Map<string, Web5Rpc>;
 
-  constructor(clients: DwnRpc[] = []) {
+  constructor(clients: Web5Rpc[] = []) {
     this.transportClients = new Map();
 
     // include http client as default. can be overwritten for 'http:' or 'https:' if instantiator provides
     // their own.
-    clients = [new HttpDwnRpcClient(), ...clients];
+    clients = [new HttpWeb5RpcClient(), ...clients];
 
     for (let client of clients) {
       for (let transportScheme of client.transportProtocols) {
@@ -27,6 +88,21 @@ export class Web5RpcClient implements DwnRpc {
 
   get transportProtocols(): string[] {
     return Array.from(this.transportClients.keys());
+  }
+
+  async sendDidRequest(request: DidRpcRequest): Promise<DidRpcResponse> {
+    // URL() will throw if provided `url` is invalid.
+    const url = new URL(request.url);
+
+    const transportClient = this.transportClients.get(url.protocol);
+    if (!transportClient) {
+      const error = new Error(`no ${url.protocol} transport client available`);
+      error.name = 'NO_TRANSPORT_CLIENT';
+
+      throw error;
+    }
+
+    return transportClient.sendDidRequest(request);
   }
 
   sendDwnRequest(request: DwnRpcRequest): Promise<DwnRpcResponse> {
@@ -48,7 +124,7 @@ export class Web5RpcClient implements DwnRpc {
 // TODO: move to dwn-server repo. i wrote this here for expediency
 
 /**
- * Http client that can be used to communicate with Dwn Servers
+ * HTTP client that can be used to communicate with Dwn Servers
  */
 class HttpDwnRpcClient implements DwnRpc {
   get transportProtocols() { return ['http:', 'https:']; }
@@ -107,5 +183,44 @@ class HttpDwnRpcClient implements DwnRpc {
     }
 
     return reply as DwnRpcResponse;
+  }
+}
+
+class HttpWeb5RpcClient extends HttpDwnRpcClient implements Web5Rpc {
+  async sendDidRequest(request: DidRpcRequest): Promise<DidRpcResponse> {
+    const requestId = cryptoUtils.randomUuid();
+    const jsonRpcRequest = createJsonRpcRequest(requestId, request.method, {
+      data: request.data
+    });
+
+    const httpRequest = new Request(request.url, {
+      method  : 'POST',
+      headers : {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(jsonRpcRequest),
+    });
+
+    let jsonRpcResponse: JsonRpcResponse;
+
+    try {
+      const response = await fetch(httpRequest);
+
+      if (response.ok) {
+        jsonRpcResponse = await response.json();
+
+        // If the response is an error, throw an error.
+        if (jsonRpcResponse.error) {
+          const { code, message } = jsonRpcResponse.error;
+          throw new Error(`JSON RPC (${code}) - ${message}`);
+        }
+      } else {
+        throw new Error(`HTTP (${response.status}) - ${response.statusText}`);
+      }
+    } catch (error: any) {
+      throw new Error(`Error encountered while processing response from ${request.url}: ${error.message}`);
+    }
+
+    return jsonRpcResponse.result as DidRpcResponse;
   }
 }

@@ -1,51 +1,14 @@
 import type { Web5Agent } from '@web5/agent';
+import type { DidResolutionOptions, DidResolutionResult } from '@web5/dids';
 
-// import type {
-//   DidKeyOptions,
-//   DidIonCreateOptions,
-//   DidMethodApi,
-//   DidMethodCreator,
-//   DidMethodResolver,
-//   DidResolverCache,
-//   DidResolutionResult,
-//   DidState
-// } from '@web5/dids';
-
-
-
-// import { DidResolver } from '@web5/dids';
-
-// // Map method names to option types
-// type CreateMethodOptions = {
-//   ion: DidIonCreateOptions;
-//   key: DidKeyOptions;
-// };
-
-// // A conditional type for inferring options based on the method name
-// type CreateOptions<M extends keyof CreateMethodOptions> = CreateMethodOptions[M];
-
-// export type DidApiOptions = {
-//   didMethodApis: DidMethodApi[];
-//   cache?: DidResolverCache;
-// }
+import { DidMessage } from '@web5/agent';
 
 /**
- * The DID API is used to create and resolve DIDs.
+ * The DID API is used to resolve DIDs.
  *
  * @beta
  */
 export class DidApi {
-  // private didResolver: DidResolver;
-  // private methodCreatorMap: Map<string, DidMethodCreator> = new Map();
-
-  // /**
-  //  * returns the DID resolver created by this api. useful in scenarios where you want to pass around
-  //  * the same resolver so that you can leverage the resolver's cache
-  //  */
-  // get resolver() {
-  //   return this.didResolver;
-  // }
-
   private agent: Web5Agent;
   private connectedDid: string;
 
@@ -54,54 +17,20 @@ export class DidApi {
     this.connectedDid = options.connectedDid;
   }
 
-  // constructor(options: DidApiOptions) {
-  //   const { didMethodApis, cache } = options;
+  /**
+   * Resolves a DID to a DID Resolution Result.
+   *
+   * @param didUrl - The DID or DID URL to resolve.
+   * @returns A promise that resolves to the DID Resolution Result.
+   */
+  async resolve(didUrl: string, resolutionOptions?: DidResolutionOptions): Promise<DidResolutionResult> {
+    const agentResponse = await this.agent.processDidRequest({
+      messageOptions : { didUrl, resolutionOptions },
+      messageType    : DidMessage.Resolve
+    });
 
-  //   this.didResolver = new DidResolver({ methodResolvers: options.didMethodApis, cache });
+    const { result } = agentResponse;
 
-  //   for (let methodApi of didMethodApis) {
-  //     this.methodCreatorMap.set(methodApi.methodName, methodApi);
-  //   }
-  // }
-
-  // /**
-  //  * Creates a DID of the method provided
-  //  * @param method - the method of DID to create
-  //  * @param options - method-specific options
-  //  * @returns the created DID
-  //  */
-  // create<M extends keyof CreateMethodOptions>(method: M, options?: CreateOptions<M>): Promise<DidState> {
-  //   const didMethodCreator = this.methodCreatorMap.get(method);
-  //   if (!didMethodCreator) {
-  //     throw new Error(`no creator available for ${method}`);
-  //   }
-
-  //   return didMethodCreator.create(options);
-  // }
-
-  // /**
-  //  * Resolves the provided DID
-  //  * @param did - the did to resolve
-  //  * @see {@link https://www.w3.org/TR/did-core/#did-resolution | DID Resolution}
-  //  * @returns DID Resolution Result
-  //  */
-  // resolve(did: string): Promise<DidResolutionResult> {
-  //   return this.didResolver.resolve(did);
-  // }
-
-  // /**
-  //  * can be used to add different did method resolvers
-  //  * @param _resolver
-  //  */
-  // addMethodResolver(_resolver: DidMethodResolver) {
-  //   throw new Error('not yet implemented');
-  // }
-
-  // /**
-  //  * can be used to add differed did method creators
-  //  * @param _creator
-  //  */
-  // addMethodCreator(_creator: DidMethodCreator) {
-  //   throw new Error('not yet implemented');
-  // }
+    return result as DidResolutionResult;
+  }
 }

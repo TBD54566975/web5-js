@@ -1,15 +1,14 @@
 import type {
-  DwnRpc,
+  Web5Rpc,
+  DidRequest,
   VcResponse,
   DidResponse,
   DwnResponse,
   AppDataStore,
   SendVcRequest,
-  SendDidRequest,
   SendDwnRequest,
   ProcessVcRequest,
   Web5ManagedAgent,
-  ProcessDidRequest,
   ProcessDwnRequest,
   SyncManager,
 } from '@web5/agent';
@@ -24,6 +23,7 @@ import {
 import {
   LocalKms,
   DidManager,
+  DidMessage,
   DwnManager,
   KeyManager,
   AppDataVault,
@@ -43,7 +43,7 @@ type TestUserAgentOptions = {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
-  rpcClient: DwnRpc;
+  rpcClient: Web5Rpc;
   syncManager: SyncManager;
 
   dwn: Dwn;
@@ -60,7 +60,7 @@ export class TestUserAgent implements Web5ManagedAgent {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
-  rpcClient: DwnRpc;
+  rpcClient: Web5Rpc;
   syncManager: SyncManager;
 
   /**
@@ -173,8 +173,18 @@ export class TestUserAgent implements Web5ManagedAgent {
     throw new Error('Not implemented');
   }
 
-  async processDidRequest(_request: ProcessDidRequest): Promise<DidResponse> {
-    throw new Error('Not implemented');
+  async processDidRequest(request: DidRequest): Promise<DidResponse> {
+    switch (request.messageType) {
+      case DidMessage.Resolve: {
+        const { didUrl, resolutionOptions } = request.messageOptions;
+        const result = await this.didResolver.resolve(didUrl, resolutionOptions);
+        return { result };
+      }
+
+      default: {
+        return this.didManager.processRequest(request);
+      }
+    }
   }
 
   async processDwnRequest(request: ProcessDwnRequest): Promise<DwnResponse> {
@@ -185,7 +195,7 @@ export class TestUserAgent implements Web5ManagedAgent {
     throw new Error('Not implemented');
   }
 
-  async sendDidRequest(_request: SendDidRequest): Promise<DidResponse> {
+  async sendDidRequest(_request: DidRequest): Promise<DidResponse> {
     throw new Error('Not implemented');
   }
 
