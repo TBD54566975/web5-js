@@ -132,7 +132,7 @@ export type RecordsQueryRequest = {
 export type RecordsQueryResponse = ResponseStatus & {
   records?: Record[]
 
-  /** If there are additional results, the messageCid of the last item will be returned as a pagination cursor. */
+  /** If there are additional results, the messageCid of the last record will be returned as a pagination cursor. */
   paginationMessageCid?: string;
 };
 
