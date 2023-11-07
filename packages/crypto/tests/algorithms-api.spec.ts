@@ -14,6 +14,7 @@ import {
   BaseEdDsaAlgorithm,
   InvalidAccessError,
   BaseAesCtrAlgorithm,
+  BasePbkdf2Algorithm,
   BaseEllipticCurveAlgorithm,
 } from '../src/algorithms-api/index.js';
 
@@ -369,7 +370,7 @@ describe('Algorithms API', () => {
         });
 
         it('throws an error if the key property is missing', () => {
-          // @ts-expect-error because keyy property was intentionally omitted.
+          // @ts-expect-error because key property was intentionally omitted.
           expect(() => alg.checkAlgorithmOptions({ algorithm: {
             name    : 'AES-CTR',
             counter : new Uint8Array(16),
@@ -680,5 +681,253 @@ describe('Algorithms API', () => {
         });
       });
     });
+  });
+
+  describe('BasePbkdf2Algorithm', () => {
+    let alg: BasePbkdf2Algorithm;
+
+    before(() => {
+      alg = Reflect.construct(BasePbkdf2Algorithm, []) as BasePbkdf2Algorithm;
+      // @ts-expect-error because `hashAlgorithms` is a read-only property.
+      alg.hashAlgorithms = ['SHA-256'];
+    });
+
+    describe('checkAlgorithmOptions()', () => {
+
+      let baseKey: Web5Crypto.CryptoKey;
+
+      beforeEach(() => {
+        baseKey = new CryptoKey({ name: 'PBKDF2' }, false, new Uint8Array(32), 'secret', ['deriveBits', 'deriveKey']);
+      });
+
+      it('does not throw with matching algorithm name and valid hash, iterations, and salt', () => {
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: {
+            name       : 'PBKDF2',
+            hash       : 'SHA-256',
+            iterations : 1000,
+            salt       : new Uint8Array(16)
+          },
+          baseKey
+        })).to.not.throw();
+      });
+
+      it('throws an error when unsupported algorithm specified', () => {
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: {
+            name       : 'invalid-name',
+            hash       : 'SHA-256',
+            iterations : 1000,
+            salt       : new Uint8Array(16)
+          },
+          baseKey
+        })).to.throw(NotSupportedError, 'Algorithm not supported');
+      });
+
+      it('throws an error if the hash property is missing', () => {
+        expect(() => alg.checkAlgorithmOptions({
+          // @ts-expect-error because `hash` property is intentionally omitted.
+          algorithm: {
+            name       : 'PBKDF2',
+            iterations : 1000,
+            salt       : new Uint8Array(16)
+          },
+          baseKey
+        })).to.throw(TypeError, 'Required parameter missing');
+      });
+
+      it('throws an error if the given hash algorithm is not supported', () => {
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: {
+            name       : 'PBKDF2',
+            hash       : 'SHA-1',
+            iterations : 1000,
+            salt       : new Uint8Array(16)
+          },
+          baseKey
+        })).to.throw(TypeError, 'Out of range');
+      });
+
+      it('throws an error if the iterations property is missing', () => {
+        expect(() => alg.checkAlgorithmOptions({
+          // @ts-expect-error because `iterations` property is intentionally omitted.
+          algorithm: {
+            name : 'PBKDF2',
+            hash : 'SHA-256',
+            salt : new Uint8Array(16)
+          },
+          baseKey
+        })).to.throw(TypeError, 'Required parameter missing');
+      });
+
+      it('throws error if iterations is not a number', () => {
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: {
+            name       : 'PBKDF2',
+            hash       : 'SHA-256',
+            // @ts-expect-error because `iterations` is intentionally defined as a string instead of a number.
+            iterations : '1000',
+            salt       : new Uint8Array(16)
+          },
+          baseKey
+        })).to.throw(TypeError, 'is not of type');
+      });
+
+      it('throws error if iterations is not 1 or greater', () => {
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: {
+            name       : 'PBKDF2',
+            hash       : 'SHA-256',
+            iterations : 0,
+            salt       : new Uint8Array(16)
+          },
+          baseKey
+        })).to.throw(OperationError, 'must be > 0');
+      });
+
+      it('throws an error if the salt property is missing', () => {
+        expect(() => alg.checkAlgorithmOptions({
+          // @ts-expect-error because `salt` property is intentionally omitted.
+          algorithm: {
+            name : 'PBKDF2',
+            hash : 'SHA-256',
+
+          },
+          baseKey
+        })).to.throw(TypeError, 'Required parameter missing');
+      });
+
+      it('throws error if salt is not a Uint8Array', () => {
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: {
+            name       : 'PBKDF2',
+            hash       : 'SHA-256',
+            iterations : 1000,
+            // @ts-expect-error because counter is being intentionally set to the wrong data type to trigger an error.
+            salt       : new Set([...Array(16).keys()].map(n => n.toString(16)))
+          },
+          baseKey
+        })).to.throw(TypeError, 'is not of type');
+      });
+
+      it('throws an error if the baseKey property is missing', () => {
+        // @ts-expect-error because baseKey property was intentionally omitted.
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: {
+            name       : 'PBKDF2',
+            hash       : 'SHA-256',
+            iterations : 1000,
+            salt       : new Uint8Array(16)
+          },
+        })).to.throw(TypeError, `Required parameter missing: 'baseKey'`);
+      });
+
+      it('throws an error if the given key is not valid', () => {
+        // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
+        delete baseKey.extractable;
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: {
+            name       : 'PBKDF2',
+            hash       : 'SHA-256',
+            iterations : 1000,
+            salt       : new Uint8Array(16)
+          },
+          baseKey
+        })).to.throw(TypeError, 'Object is not a CryptoKey');
+      });
+
+      it('throws an error if the algorithm of the key does not match', () => {
+        const baseKey = new CryptoKey({ name: 'wrong-algorithm' }, false, new Uint8Array(32), 'secret', ['deriveBits', 'deriveKey']);
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: {
+            name       : 'PBKDF2',
+            hash       : 'SHA-256',
+            iterations : 1000,
+            salt       : new Uint8Array(16)
+          },
+          baseKey
+        })).to.throw(InvalidAccessError, 'does not match');
+      });
+    });
+
+    describe('checkImportKey()', () => {
+      it('should not throw when all options are valid', () => {
+        expect(() => alg.checkImportKey({
+          algorithm   : { name: 'PBKDF2' },
+          format      : 'raw',
+          extractable : false,
+          keyUsages   : ['deriveBits']
+        })).to.not.throw();
+      });
+
+      it('throws an error when unsupported algorithm specified', () => {
+        expect(() => alg.checkImportKey({
+          algorithm   : { name: 'ECDH' },
+          format      : 'raw',
+          extractable : false,
+          keyUsages   : ['deriveBits']
+        })).to.throw(NotSupportedError, 'Algorithm not supported');
+      });
+
+      it('throws an error if the format is not raw', () => {
+        expect(() => alg.checkImportKey({
+          algorithm   : { name: 'PBKDF2' },
+          format      : 'pkcs8', // Invalid, only 'raw' is supported
+          extractable : false,
+          keyUsages   : ['deriveBits']
+        })).to.throw(SyntaxError, `Only 'raw' is supported`);
+      });
+
+      it('throws an error if extractable is not false', () => {
+        expect(() => alg.checkImportKey({
+          algorithm   : { name: 'PBKDF2' },
+          format      : 'raw',
+          extractable : true,
+          keyUsages   : ['deriveBits']
+        })).to.throw(SyntaxError, `Only 'false' is supported`);
+      });
+
+      it('throws an error when the requested operation is not valid', () => {
+        ['sign', 'verify'].forEach((operation) => {
+          expect(() => alg.checkImportKey({
+            algorithm   : { name: 'PBKDF2' },
+            format      : 'raw',
+            extractable : false,
+            keyUsages   : [operation as KeyUsage]
+          })).to.throw(InvalidAccessError, 'Requested operation');
+        });
+      });
+    });
+
+    describe('decrypt()', () => {
+      it(`throws an error because 'decrypt' operation is valid for PBKDF2 keys`, async () => {
+        await expect(alg.decrypt()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
+      });
+    });
+
+    describe('encrypt()', () => {
+      it(`throws an error because 'encrypt' operation is valid for PBKDF2 keys`, async () => {
+        await expect(alg.encrypt()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
+      });
+    });
+
+    describe('generateKey()', () => {
+      it(`throws an error because 'generateKey' operation is valid for PBKDF2 keys`, async () => {
+        await expect(alg.generateKey()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
+      });
+    });
+
+    describe('sign()', () => {
+      it(`throws an error because 'sign' operation is valid for PBKDF2 keys`, async () => {
+        await expect(alg.sign()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
+      });
+    });
+
+    describe('verify()', () => {
+      it(`throws an error because 'verify' operation is valid for PBKDF2 keys`, async () => {
+        await expect(alg.verify()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
+      });
+    });
+
   });
 });

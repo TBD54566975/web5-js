@@ -11,10 +11,7 @@ export abstract class BasePbkdf2Algorithm extends CryptoAlgorithm {
 
   public readonly abstract hashAlgorithms: string[];
 
-  public keyUsages: Web5Crypto.KeyPairUsage = {
-    privateKey : ['deriveBits', 'deriveKey'],
-    publicKey  : ['deriveBits', 'deriveKey'],
-  };
+  public readonly keyUsages: Web5Crypto.KeyUsage[] = ['deriveBits', 'deriveKey'];
 
   public checkAlgorithmOptions(options: {
     algorithm: Web5Crypto.Pbkdf2Options,
@@ -30,8 +27,8 @@ export abstract class BasePbkdf2Algorithm extends CryptoAlgorithm {
     // The algorithm object must contain a iterations property.
     checkRequiredProperty({ property: 'iterations', inObject: algorithm });
     // The iterations value must a number.
-    if (!(universalTypeOf(algorithm.salt) === 'Number')) {
-      throw new TypeError(`Algorithm 'salt' is not of type: Number.`);
+    if (!(universalTypeOf(algorithm.iterations) === 'Number')) {
+      throw new TypeError(`Algorithm 'iterations' is not of type: Number.`);
     }
     // The iterations value must be greater than 0.
     if (algorithm.iterations < 1) {

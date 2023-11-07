@@ -16,6 +16,10 @@ export class Pbkdf2Algorithm extends BasePbkdf2Algorithm {
     this.checkAlgorithmOptions({ algorithm, baseKey });
     // The base key must be allowed to be used for deriveBits operations.
     this.checkKeyUsages({ keyUsages: ['deriveBits'], allowedKeyUsages: baseKey.usages });
+    // If the length is 0, throw.
+    if (typeof length !== 'undefined' && length === 0) {
+      throw new OperationError(`The value of 'length' cannot be zero.`);
+    }
     // If the length is not a multiple of 8, throw.
     if (length && length % 8 !== 0) {
       throw new OperationError(`To be compatible with all browsers, 'length' must be a multiple of 8.`);

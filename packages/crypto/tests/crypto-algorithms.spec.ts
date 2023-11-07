@@ -13,6 +13,7 @@ import {
   EcdsaAlgorithm,
   EdDsaAlgorithm,
   AesCtrAlgorithm,
+  Pbkdf2Algorithm,
 } from '../src/crypto-algorithms/index.js';
 
 chai.use(chaiAsPromised);
@@ -1328,6 +1329,148 @@ describe('Default Crypto Algorithm Implementations', () => {
           signature : signature,
           data      : data
         })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
+      });
+    });
+  });
+
+  describe('Pbkdf2Algorithm', () => {
+    let pbkdf2: Pbkdf2Algorithm;
+
+    before(() => {
+      pbkdf2 = Pbkdf2Algorithm.create();
+    });
+
+    describe('deriveBits()', () => {
+      let inputKey: Web5Crypto.CryptoKey;
+
+      beforeEach(async () => {
+        inputKey = await pbkdf2.importKey({
+          format      : 'raw',
+          keyData     : new Uint8Array([51, 52, 53]),
+          algorithm   : { name: 'PBKDF2' },
+          extractable : false,
+          keyUsages   : ['deriveBits']
+        });
+      });
+
+      it('returns derived key as a Uint8Array', async () => {
+        const derivedKey = await pbkdf2.deriveBits({
+          algorithm : { name: 'PBKDF2', hash: 'SHA-256', salt: new Uint8Array([54, 55, 56]), iterations: 1 },
+          baseKey   : inputKey,
+          length    : 256
+        });
+
+        expect(derivedKey).to.be.instanceOf(Uint8Array);
+        expect(derivedKey.byteLength).to.equal(256 / 8);
+      });
+
+      it('returns derived key with specified length, if possible', async () => {
+        let derivedKey = await pbkdf2.deriveBits({
+          algorithm : { name: 'PBKDF2', hash: 'SHA-256', salt: new Uint8Array([54, 55, 56]), iterations: 1 },
+          baseKey   : inputKey,
+          length    : 16
+        });
+        expect(derivedKey.byteLength).to.equal(16 / 8);
+
+        derivedKey = await pbkdf2.deriveBits({
+          algorithm : { name: 'PBKDF2', hash: 'SHA-256', salt: new Uint8Array([54, 55, 56]), iterations: 1 },
+          baseKey   : inputKey,
+          length    : 512
+        });
+        expect(derivedKey.byteLength).to.equal(512 / 8);
+
+        derivedKey = await pbkdf2.deriveBits({
+          algorithm : { name: 'PBKDF2', hash: 'SHA-256', salt: new Uint8Array([54, 55, 56]), iterations: 1 },
+          baseKey   : inputKey,
+          length    : 1024
+        });
+        expect(derivedKey.byteLength).to.equal(1024 / 8);
+      });
+
+      it('throws error if requested length is 0', async () => {
+        await expect(pbkdf2.deriveBits({
+          algorithm : { name: 'PBKDF2', hash: 'SHA-256', salt: new Uint8Array([54, 55, 56]), iterations: 1 },
+          baseKey   : inputKey,
+          length    : 0
+        })).to.eventually.be.rejectedWith(OperationError, `cannot be zero`);
+      });
+
+      it('throws an error if the given length is not a multiple of 8', async () => {
+        await expect(pbkdf2.deriveBits({
+          algorithm : { name: 'PBKDF2', hash: 'SHA-256', salt: new Uint8Array([54, 55, 56]), iterations: 1 },
+          baseKey   : inputKey,
+          length    : 12
+        })).to.eventually.be.rejectedWith(OperationError, `'length' must be a multiple of 8`);
+      });
+
+      it(`supports 'SHA-256' hash function`, async () => {
+        const derivedKey = await pbkdf2.deriveBits({
+          algorithm : { name: 'PBKDF2', hash: 'SHA-256', salt: new Uint8Array([54, 55, 56]), iterations: 1 },
+          baseKey   : inputKey,
+          length    : 256
+        });
+        expect(derivedKey).to.be.instanceOf(Uint8Array);
+        expect(derivedKey.byteLength).to.equal(32);
+      });
+
+      it(`supports 'SHA-384' hash function`, async () => {
+        const derivedKey = await pbkdf2.deriveBits({
+          algorithm : { name: 'PBKDF2', hash: 'SHA-384', salt: new Uint8Array([54, 55, 56]), iterations: 1 },
+          baseKey   : inputKey,
+          length    : 256
+        });
+        expect(derivedKey).to.be.instanceOf(Uint8Array);
+        expect(derivedKey.byteLength).to.equal(32);
+      });
+
+      it(`supports 'SHA-512' hash function`, async () => {
+        const derivedKey = await pbkdf2.deriveBits({
+          algorithm : { name: 'PBKDF2', hash: 'SHA-512', salt: new Uint8Array([54, 55, 56]), iterations: 1 },
+          baseKey   : inputKey,
+          length    : 256
+        });
+        expect(derivedKey).to.be.instanceOf(Uint8Array);
+        expect(derivedKey.byteLength).to.equal(32);
+      });
+
+      it(`throws an error for 'SHA-1' hash function`, async () => {
+        await expect(pbkdf2.deriveBits({
+          algorithm : { name: 'PBKDF2', hash: 'SHA-1', salt: new Uint8Array([54, 55, 56]), iterations: 1 },
+          baseKey   : inputKey,
+          length    : 256
+        })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
+      });
+    });
+
+    describe('importKey()', () => {
+      it('should import a key when all parameters are valid', async () => {
+        const key = await pbkdf2.importKey({
+          format      : 'raw',
+          keyData     : new Uint8Array(16),
+          algorithm   : { name: 'PBKDF2' },
+          extractable : false,
+          keyUsages   : ['deriveBits']
+        });
+
+        expect(key).to.exist;
+      });
+
+      it('should return a Web5Crypto.CryptoKey object', async () => {
+        const key = await pbkdf2.importKey({
+          format      : 'raw',
+          keyData     : new Uint8Array(16),
+          algorithm   : { name: 'PBKDF2' },
+          extractable : false,
+          keyUsages   : ['deriveBits']
+        });
+
+        expect(key).to.be.an('object');
+        expect(key).to.have.property('algorithm').that.is.an('object');
+        expect(key.algorithm).to.have.property('name', 'PBKDF2');
+        expect(key).to.have.property('extractable', false);
+        expect(key).to.have.property('type', 'secret');
+        expect(key).to.have.property('usages').that.includes.members(['deriveBits']);
+        expect(key).to.have.property('material').that.is.instanceOf(Uint8Array);
       });
     });
   });
