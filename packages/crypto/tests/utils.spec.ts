@@ -1,7 +1,16 @@
 import { expect } from 'chai';
+import * as sinon from 'sinon';
 
 import { CryptoKey } from '../src/algorithms-api/crypto-key.js';
-import { checkValidProperty, checkRequiredProperty, isCryptoKeyPair, randomUuid, multibaseIdToKey, keyToMultibaseId } from '../src/utils.js';
+import {
+  randomUuid,
+  isCryptoKeyPair,
+  keyToMultibaseId,
+  multibaseIdToKey,
+  checkValidProperty,
+  isWebCryptoSupported,
+  checkRequiredProperty,
+} from '../src/utils.js';
 
 describe('Crypto Utils', () => {
   describe('checkValidProperty()', () => {
@@ -78,6 +87,24 @@ describe('Crypto Utils', () => {
 
       const result = isCryptoKeyPair(cryptoKey);
       expect(result).to.be.false;
+    });
+  });
+
+  describe('isWebCryptoSupported()', () => {
+    afterEach(() => {
+      // Restore the original state after each test
+      sinon.restore();
+    });
+
+    it('returns true if the Web Crypto API is supported', () => {
+      expect(isWebCryptoSupported()).to.be.true;
+    });
+
+    it('returns false if Web Crypto API is not supported', function () {
+      // Mock an unsupported environment
+      sinon.stub(globalThis, 'crypto').value({});
+
+      expect(isWebCryptoSupported()).to.be.false;
     });
   });
 
