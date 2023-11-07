@@ -5,10 +5,8 @@ import type { JweHeaderParams, PublicKeyJwk, Web5Crypto } from '@web5/crypto';
 import { DidKeyMethod } from '@web5/dids';
 import { hkdf } from '@noble/hashes/hkdf';
 import { sha256 } from '@noble/hashes/sha256';
-import { sha512 } from '@noble/hashes/sha512';
-import { pbkdf2Async } from '@noble/hashes/pbkdf2';
 import { Convert, MemoryStore } from '@web5/common';
-import { CryptoKey, Jose, utils as cryptoUtils, XChaCha20Poly1305 } from '@web5/crypto';
+import { CryptoKey, Jose, Pbkdf2, utils as cryptoUtils, XChaCha20Poly1305 } from '@web5/crypto';
 
 export type AppDataBackup = {
   /**
@@ -145,15 +143,13 @@ export class AppDataVault implements AppDataStore {
     /** The salt value derived in Step 3 and the passphrase entered by the
      * end-user are inputs to the PBKDF2 algorithm to derive a 32-byte secret
      * key that will be referred to as the Vault Unlock Key (VUK). */
-    const vaultUnlockKey = await pbkdf2Async(
-      sha512,                // hash function
-      passphrase,            // password
-      salt,                  // salt
-      {
-        c     : this._keyDerivationWorkFactor, // key derivation work factor
-        dkLen : 32           // derived key length, in bytes
-      }
-    );
+    const vaultUnlockKey = await Pbkdf2.deriveKey({
+      hash       : 'SHA-512',
+      iterations : this._keyDerivationWorkFactor,
+      length     : 256,
+      password   : Convert.string(passphrase).toUint8Array(),
+      salt       : salt
+    });
 
     return vaultUnlockKey;
   }

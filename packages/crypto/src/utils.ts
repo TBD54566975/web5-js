@@ -88,6 +88,41 @@ export function keyToMultibaseId(options: {
   return multibaseKeyId;
 }
 
+/**
+ * Checks if the Web Crypto API is supported in the current runtime environment.
+ *
+ * The function uses `globalThis` to provide a universal reference to the global
+ * scope, regardless of the environment. `globalThis` is a standard feature introduced
+ * in ECMAScript 2020 that is agnostic to the underlying JavaScript environment, making
+ * the code portable across browser, Node.js, and Web Workers environments.
+ *
+ * In a web browser, `globalThis` is equivalent to the `window` object. In Node.js, it
+ * is equivalent to the `global` object, and in Web Workers, it corresponds to `self`.
+ *
+ * This method checks for the `crypto` object and its `subtle` property on the global scope
+ * to determine the availability of the Web Crypto API. If both are present, the API is
+ * supported; otherwise, it is not.
+ *
+ * @returns A boolean indicating whether the Web Crypto API is supported in the current environment.
+ *
+ * Example usage:
+ *
+ * ```ts
+ * if (isWebCryptoSupported()) {
+ *   console.log('Crypto operations can be performed');
+ * } else {
+ *   console.log('Crypto operations are not supported in this environment');
+ * }
+ * ```
+ */
+export function isWebCryptoSupported(): boolean {
+  if (globalThis.crypto && globalThis.crypto.subtle) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 export function multibaseIdToKey(options: {
   multibaseKeyId: string
 }): { key: Uint8Array, multicodecCode: number, multicodecName: string } {

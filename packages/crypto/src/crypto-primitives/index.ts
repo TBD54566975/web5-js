@@ -1,3 +1,4 @@
+export * from './pbkdf2.js';
 export * from './x25519.js';
 export * from './aes-ctr.js';
 export * from './aes-gcm.js';

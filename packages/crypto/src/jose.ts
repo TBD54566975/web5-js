@@ -880,7 +880,7 @@ export class Jose {
   }
 
   public static webCryptoToJose(options:
-    Web5Crypto.GenerateKeyOptions
+    Web5Crypto.Algorithm | Web5Crypto.GenerateKeyOptions
   ): Partial<JsonWebKey> {
     const params: string[] = [];
 
@@ -900,7 +900,7 @@ export class Jose {
      * All symmetric encryption (AES) WebCrypto algorithms
      * set a value for the "length" parameter.
      */
-    } else if (options.length !== undefined) {
+    } else if ('length' in options && options.length !== undefined) {
       params.push(options.length.toString());
 
     /**
