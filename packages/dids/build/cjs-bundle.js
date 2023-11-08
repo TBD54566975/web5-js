@@ -3,7 +3,8 @@ import packageJson from '../package.json' assert { type: 'json' };
 
 // list of dependencies that _dont_ ship cjs
 const includeList = new Set([
-  '@decentralized-identity/ion-sdk'
+  '@decentralized-identity/ion-sdk',
+  'pkarr'
 ]);
 
 // create list of dependencies that we _do not_ want to include in our bundle
