@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    // "strict": true,
+    "lib": [
+      "DOM",
+      "ES6"
+    ],
+    "allowJs": true,
+    "target": "es6",
+    "module": "NodeNext",
+    "declaration": true,
+    "declarationMap": true,
+    "declarationDir": "dist/types",
+    "outDir": "dist",
+    // `NodeNext` will throw compilation errors if relative import paths are missing file extension
+    // reference: https://devblogs.microsoft.com/typescript/announcing-typescript-4-7/#ecmascript-module-support-in-node-js
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "main.ts",
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
