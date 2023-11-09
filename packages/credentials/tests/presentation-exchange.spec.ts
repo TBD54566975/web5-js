@@ -33,6 +33,7 @@ describe('PresentationExchange', () => {
         issuerDid  : alice.did,
         subjectDid : alice.did,
         kid        : alice.did + '#' + alice.did.split(':')[2],
+        alg        : 'EdDSA',
         signer     : signer
       };
 

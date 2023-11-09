@@ -26,6 +26,7 @@ describe('Verifiable Credential Tests', () => {
       issuerDid  : alice.did,
       subjectDid : alice.did,
       kid        : alice.did + '#' + alice.did.split(':')[2],
+      alg        : 'EdDSA',
       signer     : signer
     };
   });
@@ -128,6 +129,7 @@ describe('Verifiable Credential Tests', () => {
         issuerDid  : 'bad:did: invalidDid',
         subjectDid : signOptions.subjectDid,
         kid        : signOptions.issuerDid + '#' + signOptions.issuerDid.split(':')[2],
+        alg        : 'EdDSA',
         signer     : signer
       };
 

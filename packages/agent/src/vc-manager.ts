@@ -57,7 +57,8 @@ export class VcManager {
     const vcSignOptions = {
       issuerDid  : issuer,
       subjectDid : subject,
-      kid        : issuer + '#' + issuer.split(':')[2],
+      kid        : vcSigner.keyId,
+      alg        : vcSigner.algorithm,
       signer     : vcSigner.sign
     };
 
