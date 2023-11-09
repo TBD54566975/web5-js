@@ -1,0 +1,8 @@
+on: [push]
+jobs:
+  web5-component-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - uses: TBD54566975/web5-spec@v0.2.2
