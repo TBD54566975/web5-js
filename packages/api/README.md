@@ -52,11 +52,11 @@ npm install @web5/api
 _CDNs_
 
 ```yaml
-https://unpkg.com/0.8.1/dist/browser.js
+https://unpkg.com/0.8.2/dist/browser.js
 ```
 
 ```yaml
-https://cdn.jsdelivr.net/npm/@web5/api@0.8.1/dist/browser.mjs
+https://cdn.jsdelivr.net/npm/@web5/api@0.8.2/dist/browser.mjs
 ```
 
 ## Usage
@@ -263,6 +263,7 @@ The `create` request object is composed as follows:
 The `create()` method is an alias for `write()` and both can take the same request object properties.
 
 ### **`web5.dwn.records.read(request)`**
+
 Method for reading a record stored in the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted). The request takes a filter; if there is exactly one record matching the filter, the record and its data are returned. The most common filter is by `recordId`, but it is also useful to filter by `protocol`, `contextId`, and `protocolPath`.
 
 ```javascript
@@ -271,7 +272,7 @@ const { record } = await web5.dwn.records.read({
   message: {
     filter: {
       recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
-    }
+    },
   },
 });
 
@@ -283,7 +284,7 @@ const { record } = await web5.dwn.records.read({
   message: {
     filter: {
       recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
-    }
+    },
   },
 });
 
@@ -305,6 +306,7 @@ The `read` request object is composed as follows:
     - **`recipient`** - _`string`_ (_optional_): the DID in the `recipient` field of the record.
     - **`schema`** - _`URI string`_ (_optional_): the URI of the schema bucket in which to query.
     - **`dataFormat`** - _`Media Type string`_ (_optional_): the IANA string corresponding with the format of the data to filter for. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
+
 ### **`web5.dwn.records.delete(request)`**
 
 Method for deleting a record stored in the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted).

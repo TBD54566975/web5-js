@@ -59,11 +59,11 @@ npm install @web5/api
 _CDNs_
 
 ```yaml
-https://unpkg.com/@web5/api@0.8.1/dist/browser.js
+https://unpkg.com/@web5/api@0.8.2/dist/browser.js
 ```
 
 ```yaml
-https://cdn.jsdelivr.net/npm/@web5/api@0.8.1/dist/browser.mjs
+https://cdn.jsdelivr.net/npm/@web5/api@0.8.2/dist/browser.mjs
 ```
 
 ## Usage
@@ -279,7 +279,7 @@ const { record } = await web5.dwn.records.read({
   message: {
     filter: {
       recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
-    }
+    },
   },
 });
 
@@ -291,7 +291,7 @@ const { record } = await web5.dwn.records.read({
   message: {
     filter: {
       recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
-    }
+    },
   },
 });
 
