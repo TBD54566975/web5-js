@@ -230,8 +230,8 @@ export class Web5UserAgent implements Web5ManagedAgent {
     throw new Error('Not implemented');
   }
 
-  async sendDwnRequest(_request: SendDwnRequest): Promise<DwnResponse> {
-    return this.dwnManager.sendRequest(_request);
+  async sendDwnRequest(request: SendDwnRequest): Promise<DwnResponse> {
+    return this.dwnManager.sendRequest(request);
   }
 
   async sendVcRequest(_request: SendVcRequest): Promise<VcResponse> {

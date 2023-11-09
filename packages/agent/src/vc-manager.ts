@@ -11,7 +11,7 @@ export type VcManagerOptions = { agent?: Web5ManagedAgent; }
 export class VcManager {
   /**
    * Holds the instance of a `Web5ManagedAgent` that represents the current
-   * execution context for the `KeyManager`. This agent is utilized
+   * execution context for the `VcManager`. This agent is utilized
    * to interact with other Web5 agent components. It's vital
    * to ensure this instance is set to correctly contextualize
    * operations within the broader Web5 agent framework.
@@ -66,7 +66,6 @@ export class VcManager {
   }
 
   private async constructVcSigner(author: string): Promise<Signer> {
-    // const signingKeyId = await this.getAuthorSigningKeyId({ did: author });
     const signingKeyId = await this.agent.didManager.getDefaultSigningKey({ did: author });
 
     if (!signingKeyId) {
