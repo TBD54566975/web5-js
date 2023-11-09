@@ -12,8 +12,8 @@ import type {
 import { Jose} from '@web5/crypto';
 import { utils } from '@web5/dids';
 
-import type { Web5ManagedAgent } from './types/agent.js';
 import type { ManagedDidStore } from './store-managed-did.js';
+import type { DidRequest, DidResponse, Web5ManagedAgent } from './types/agent.js';
 
 import { DidStoreMemory } from './store-managed-did.js';
 
@@ -28,6 +28,11 @@ export type CreateDidOptions<M extends keyof CreateDidMethodOptions> = CreateDid
   context?: string;
   kms?: string;
   metadata?: DidMetadata;
+}
+
+export enum DidMessage {
+  Create  = 'Create',
+  Resolve = 'Resolve',
 }
 
 export type ImportDidOptions = {
@@ -318,6 +323,21 @@ export class DidManager {
     }
 
     return keySet;
+  }
+
+  public async processRequest(request: DidRequest): Promise<DidResponse> {
+    const { messageOptions, messageType, store: _ } = request;
+
+    switch (messageType) {
+      case DidMessage.Create: {
+        const result = await this.create(messageOptions);
+        return { result };
+        break;
+      }
+      default: {
+        throw new Error(`DidManager: Unsupported request type: ${messageType}`);
+      }
+    }
   }
 
   /**

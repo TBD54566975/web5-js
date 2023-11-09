@@ -77,7 +77,7 @@
     "@decentralized-identity/ion-pow-sdk": "1.0.17",
     "@decentralized-identity/ion-sdk": "1.0.1",
     "@web5/common": "0.2.1",
-    "@web5/crypto": "0.2.1",
+    "@web5/crypto": "0.2.2",
     "did-resolver": "4.1.0",
     "dns-packet": "5.6.1",
     "level": "8.0.0",
