@@ -116,9 +116,25 @@ export type DwnRpcResponse = UnionMessageReply;
  * Verifiable Credential Types
  */
 
-export type ProcessVcRequest = { /** empty */ }
+/**
+ * Type definition for a request to process a Verifiable Credential (VC).
+ *
+ * @param issuer The issuer URI of the credential, as a [String].
+ * @param subject The subject URI of the credential, as a [String].
+ * @param dataType The type of the credential, as a [String].
+ * @param data The credential data, as a generic type [T].
+ * @param expirationDate The expiration date.
+ */
+export type ProcessVcRequest = {
+  issuer: string;
+  subject: string;
+  dataType: string,
+  data: any,
+  expirationDate?: string
+}
+
 export type SendVcRequest = { /** empty */ }
-export type VcResponse = { /** empty */ }
+export type VcResponse = { vcJwt: string }
 
 /**
  * Web5 Agent Types

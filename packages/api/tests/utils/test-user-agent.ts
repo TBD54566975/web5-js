@@ -26,6 +26,7 @@ import {
   DidManager,
   DwnManager,
   KeyManager,
+  VcManager,
   AppDataVault,
   Web5RpcClient,
   IdentityManager,
@@ -43,6 +44,7 @@ type TestUserAgentOptions = {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
+  vcManager: VcManager,
   rpcClient: DwnRpc;
   syncManager: SyncManager;
 
@@ -60,6 +62,7 @@ export class TestUserAgent implements Web5ManagedAgent {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
+  vcManager: VcManager;
   rpcClient: DwnRpc;
   syncManager: SyncManager;
 
@@ -78,6 +81,7 @@ export class TestUserAgent implements Web5ManagedAgent {
     this.dwnManager = options.dwnManager;
     this.identityManager = options.identityManager;
     this.keyManager = options.keyManager;
+    this.vcManager = options.vcManager;
     this.rpcClient = options.rpcClient;
     this.syncManager = options.syncManager;
 
@@ -86,6 +90,7 @@ export class TestUserAgent implements Web5ManagedAgent {
     this.dwnManager.agent = this;
     this.identityManager.agent = this;
     this.keyManager.agent = this;
+    this.vcManager.agent = this;
     this.syncManager.agent = this;
 
     // TestUserAgent-specific properties.
@@ -128,6 +133,7 @@ export class TestUserAgent implements Web5ManagedAgent {
       memory: new LocalKms({ kmsName: 'memory' })
     };
     const keyManager = new KeyManager({ kms });
+    const vcManager = new VcManager({});
 
     // Instantiate DID resolver.
     const didMethodApis = [DidKeyMethod];
@@ -160,6 +166,7 @@ export class TestUserAgent implements Web5ManagedAgent {
       dwnManager,
       identityManager,
       keyManager,
+      vcManager,
       rpcClient,
       syncManager,
     });
@@ -181,8 +188,8 @@ export class TestUserAgent implements Web5ManagedAgent {
     return this.dwnManager.processRequest(request);
   }
 
-  async processVcRequest(_request: ProcessVcRequest): Promise<VcResponse> {
-    throw new Error('Not implemented');
+  async processVcRequest(request: ProcessVcRequest): Promise<VcResponse> {
+    return this.vcManager.processRequest(request);
   }
 
   async sendDidRequest(_request: SendDidRequest): Promise<DidResponse> {

@@ -21,6 +21,7 @@ import { DidStoreDwn, DidStoreMemory } from './store-managed-did.js';
 import { IdentityManager, ManagedIdentity } from './identity-manager.js';
 import { IdentityStoreDwn, IdentityStoreMemory } from './store-managed-identity.js';
 import { KeyStoreDwn, KeyStoreMemory, PrivateKeyStoreDwn, PrivateKeyStoreMemory } from './store-managed-key.js';
+import {VcManager} from './vc-manager.js';
 
 type CreateMethodOptions = {
   agentClass: new (options: any) => Web5ManagedAgent
@@ -131,6 +132,9 @@ export class TestManagedAgent {
     // Instantiate a DwnManager using the custom DWN instance.
     const dwnManager = new DwnManager({ dwn });
 
+    // Instantiate a VcManager.
+    const vcManager = new VcManager({});
+
     // Instantiate an RPC Client.
     const rpcClient = new Web5RpcClient();
 
@@ -146,6 +150,7 @@ export class TestManagedAgent {
       dwnManager,
       identityManager,
       keyManager,
+      vcManager,
       rpcClient,
       syncManager
     });

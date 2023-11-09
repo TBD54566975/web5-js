@@ -22,6 +22,7 @@ import {
   DidManager,
   DwnManager,
   KeyManager,
+  VcManager,
   DidStoreDwn,
   KeyStoreDwn,
   AppDataVault,
@@ -41,6 +42,7 @@ export type IdentityAgentOptions = {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
+  vcManager: VcManager;
   rpcClient: DwnRpc;
   syncManager: SyncManager;
 }
@@ -53,6 +55,7 @@ export class IdentityAgent implements Web5ManagedAgent {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
+  vcManager: VcManager;
   rpcClient: DwnRpc;
   syncManager: SyncManager;
 
@@ -64,6 +67,7 @@ export class IdentityAgent implements Web5ManagedAgent {
     this.dwnManager = options.dwnManager;
     this.identityManager = options.identityManager;
     this.keyManager = options.keyManager;
+    this.vcManager = options.vcManager;
     this.rpcClient = options.rpcClient;
     this.syncManager = options.syncManager;
 
@@ -72,13 +76,14 @@ export class IdentityAgent implements Web5ManagedAgent {
     this.dwnManager.agent = this;
     this.identityManager.agent = this;
     this.keyManager.agent = this;
+    this.vcManager.agent = this;
     this.syncManager.agent = this;
   }
 
   static async create(options: Partial<IdentityAgentOptions> = {}): Promise<IdentityAgent> {
     let {
       agentDid, appData, didManager, didResolver, dwnManager,
-      identityManager, keyManager, rpcClient, syncManager
+      identityManager, keyManager, vcManager, rpcClient, syncManager
     } = options;
 
     if (agentDid === undefined) {
@@ -143,6 +148,12 @@ export class IdentityAgent implements Web5ManagedAgent {
       });
     }
 
+    if (vcManager === undefined) {
+      // A custom VcManager implementation was not specified, so
+      // instantiate a default.
+      vcManager = new VcManager({});
+    }
+
     if (rpcClient === undefined) {
       // A custom RPC Client implementation was not specified, so
       // instantiate a default.
@@ -164,6 +175,7 @@ export class IdentityAgent implements Web5ManagedAgent {
       dwnManager,
       identityManager,
       keyManager,
+      vcManager,
       rpcClient,
       syncManager
     });
@@ -207,8 +219,8 @@ export class IdentityAgent implements Web5ManagedAgent {
     return this.dwnManager.processRequest(request);
   }
 
-  async processVcRequest(_request: ProcessVcRequest): Promise<VcResponse> {
-    throw new Error('Not implemented');
+  async processVcRequest(request: ProcessVcRequest): Promise<VcResponse> {
+    return this.vcManager.processRequest(request);
   }
 
   async sendDidRequest(_request: SendDidRequest): Promise<DidResponse> {
