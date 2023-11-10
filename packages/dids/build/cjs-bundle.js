@@ -29,14 +29,14 @@ const baseConfig = {
 
 const indexConfig = {
   ...baseConfig,
-  entryPoints : ['./dist/esm/index.js'],
-  outfile     : './dist/cjs/index.js',
+  entryPoints : ['./dist/esm/src/index.js'],
+  outfile     : './dist/cjs/src/index.js',
 };
 esbuild.buildSync(indexConfig);
 
 const utilsConfig = {
   ...baseConfig,
-  entryPoints : ['./dist/esm/utils.js'],
-  outfile     : './dist/cjs/utils.js',
+  entryPoints : ['./dist/esm/src/utils.js'],
+  outfile     : './dist/cjs/src/utils.js',
 };
 esbuild.buildSync(utilsConfig);
