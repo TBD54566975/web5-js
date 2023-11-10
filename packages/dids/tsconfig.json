@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "rootDir": "./",
     "lib": [
       "DOM",
       "ES6"

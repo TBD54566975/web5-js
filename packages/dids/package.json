@@ -3,9 +3,9 @@
   "version": "0.2.2",
   "description": "TBD DIDs library",
   "type": "module",
-  "main": "./dist/cjs/src/index.js",
-  "module": "./dist/esm/src/index.js",
-  "types": "./dist/types/src/index.d.ts",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
   "scripts": {
     "clean": "rimraf dist coverage tests/compiled",
     "build:esm": "rimraf dist/esm dist/types && npx tsc -p tsconfig.json",
@@ -46,17 +46,17 @@
   ],
   "exports": {
     ".": {
-      "types": "./dist/types/src/index.d.ts",
-      "import": "./dist/esm/src/index.js",
-      "require": "./dist/cjs/src/index.js"
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
     },
     "./utils": {
-      "types": "./dist/types/src/utils.d.ts",
-      "import": "./dist/esm/src/utils.js",
-      "require": "./dist/cjs/src/utils.js"
+      "types": "./dist/types/utils.d.ts",
+      "import": "./dist/esm/utils.js",
+      "require": "./dist/cjs/utils.js"
     }
   },
-  "react-native": "./dist/esm/src/index.js",
+  "react-native": "./dist/esm/index.js",
   "keywords": [
     "decentralized",
     "decentralized-identity",
