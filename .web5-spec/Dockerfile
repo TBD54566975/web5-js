@@ -5,6 +5,7 @@ WORKDIR /web5-js
 RUN ls
 RUN npm ci --ws
 RUN npm install --no-save express express-openapi
-RUN ls
+RUN ls -a
+RUN ls .web5-spec/
 RUN npx tsc -p .web5-spec/tsconfig.json
 CMD ["node", ".web5-spec/dist/main.js"]
