@@ -273,12 +273,12 @@ export class DwnManager {
       }
     }
 
-    const dwnAuthorizationSigner = await this.constructDwnAuthorizationSigner(request.author);
+    const dwnsigner = await this.constructDwnsigner(request.author);
 
     const messageCreator = dwnMessageCreators[request.messageType];
     const dwnMessage = await messageCreator.create({
       ...<any>request.messageOptions,
-      authorizationSigner: dwnAuthorizationSigner
+      signer: dwnsigner
     });
 
     return { message: dwnMessage.toJSON(), dataStream: readableStream };
@@ -299,7 +299,7 @@ export class DwnManager {
     return signingKeyId;
   }
 
-  private async constructDwnAuthorizationSigner(author: string): Promise<Signer> {
+  private async constructDwnsigner(author: string): Promise<Signer> {
     const signingKeyId = await this.getAuthorSigningKeyId({ did: author });
 
     /**
@@ -341,11 +341,11 @@ export class DwnManager {
   }): Promise<DwnMessage> {
     const { author, messageType, messageCid } = options;
 
-    const dwnAuthorizationSigner = await this.constructDwnAuthorizationSigner(author);
+    const dwnsigner = await this.constructDwnsigner(author);
 
     const messagesGet = await MessagesGet.create({
-      authorizationSigner : dwnAuthorizationSigner,
-      messageCids         : [messageCid]
+      signer      : dwnsigner,
+      messageCids : [messageCid]
     });
 
     const result: MessagesGetReply = await this._dwn.processMessage(author, messagesGet.message);
@@ -374,8 +374,8 @@ export class DwnManager {
         dwnMessage.data = new Blob([dataBytes]);
       } else {
         const recordsRead = await RecordsRead.create({
-          authorizationSigner : dwnAuthorizationSigner,
-          filter              : {
+          signer : dwnsigner,
+          filter : {
             recordId: writeMessage.recordId
           }
         });
@@ -409,13 +409,13 @@ export class DwnManager {
   }): Promise<EventsGet | MessagesGet | RecordsRead | RecordsQuery | RecordsWrite | RecordsDelete | ProtocolsQuery | ProtocolsConfigure> {
     const { author, messageOptions, messageType } = options;
 
-    const dwnAuthorizationSigner = await this.constructDwnAuthorizationSigner(author);
+    const dwnsigner = await this.constructDwnsigner(author);
 
     const messageCreator = dwnMessageCreators[messageType];
 
     const dwnMessage = await messageCreator.create({
       ...<any>messageOptions,
-      authorizationSigner: dwnAuthorizationSigner
+      signer: dwnsigner
     });
 
     return dwnMessage;

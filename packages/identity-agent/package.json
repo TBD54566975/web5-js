@@ -1,6 +1,6 @@
 {
   "name": "@web5/identity-agent",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -67,7 +67,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@web5/agent": "0.2.3",
+    "@web5/agent": "0.2.4",
     "@web5/api": "0.8.2"
   },
   "devDependencies": {

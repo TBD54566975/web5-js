@@ -26,7 +26,7 @@ import { dataToBlob } from './utils.js';
  * @beta
  */
 export type ProtocolsConfigureRequest = {
-  message: Omit<ProtocolsConfigureOptions, 'authorizationSigner'>;
+  message: Omit<ProtocolsConfigureOptions, 'signer'>;
 }
 
 /**
@@ -55,7 +55,7 @@ export type ProtocolsQueryReplyEntry = {
  */
 export type ProtocolsQueryRequest = {
   from?: string;
-  message: Omit<ProtocolsQueryOptions, 'authorizationSigner'>
+  message: Omit<ProtocolsQueryOptions, 'signer'>
 }
 
 /**
@@ -90,7 +90,7 @@ export type RecordsCreateResponse = RecordsWriteResponse;
 export type RecordsCreateFromRequest = {
   author: string;
   data: unknown;
-  message?: Omit<RecordsWriteOptions, 'authorizationSigner'>;
+  message?: Omit<RecordsWriteOptions, 'signer'>;
   record: Record;
 }
 
@@ -101,7 +101,7 @@ export type RecordsCreateFromRequest = {
  */
 export type RecordsDeleteRequest = {
   from?: string;
-  message: Omit<RecordsDeleteOptions, 'authorizationSigner'>;
+  message: Omit<RecordsDeleteOptions, 'signer'>;
 }
 
 /**
@@ -121,7 +121,7 @@ export type RecordsDeleteResponse = {
 export type RecordsQueryRequest = {
   /** The from property indicates the DID to query from and return results. */
   from?: string;
-  message: Omit<RecordsQueryOptions, 'authorizationSigner'>;
+  message: Omit<RecordsQueryOptions, 'signer'>;
 }
 
 /**
@@ -142,7 +142,7 @@ export type RecordsQueryResponse = {
 export type RecordsReadRequest = {
   /** The from property indicates the DID to read from and return results fro. */
   from?: string;
-  message: Omit<RecordsReadOptions, 'authorizationSigner'>;
+  message: Omit<RecordsReadOptions, 'signer'>;
 }
 
 /**
@@ -162,7 +162,7 @@ export type RecordsReadResponse = {
  */
 export type RecordsWriteRequest = {
   data: unknown;
-  message?: Omit<Partial<RecordsWriteOptions>, 'authorizationSigner'>;
+  message?: Omit<Partial<RecordsWriteOptions>, 'signer'>;
   store?: boolean;
 }
 

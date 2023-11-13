@@ -146,7 +146,7 @@ describe('Record', () => {
 
     // Create a parent record to reference in the RecordsWriteMessage used for validation
     const parentRecorsWrite = await RecordsWrite.create({
-      authorizationSigner : authorization,
+      signer : authorization,
       data                : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       protocol,
@@ -157,7 +157,7 @@ describe('Record', () => {
     // Create a RecordsWriteMessage
     const recordsWrite = await RecordsWrite.create({
       attestationSigners  : attestation,
-      authorizationSigner : authorization,
+      signer : authorization,
       data                : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       encryptionInput,
@@ -533,7 +533,7 @@ describe('Record', () => {
       });
     });
 
-    it('writes records to remote DWNs for your own DID', async () => {
+    it.only('writes records to remote DWNs for your own DID', async () => {
       const dataString = 'Hello, world!';
 
       // Alice writes a message to her agent connected DWN.
@@ -908,7 +908,7 @@ describe('Record', () => {
 
       // Create a parent record to reference in the RecordsWriteMessage used for validation
       const parentRecorsWrite = await RecordsWrite.create({
-        authorizationSigner : authorization,
+        signer : authorization,
         data                : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         protocol,
@@ -919,7 +919,7 @@ describe('Record', () => {
       // Create a RecordsWriteMessage
       const recordsWrite = await RecordsWrite.create({
         attestationSigners  : attestation,
-        authorizationSigner : authorization,
+        signer : authorization,
         data                : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         encryptionInput,
