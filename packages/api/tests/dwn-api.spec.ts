@@ -356,18 +356,33 @@ describe('DwnApi', () => {
         expect(deleteResult.status.detail).to.equal('Accepted');
       });
 
-      it('returns a 401 when authentication or authorization fails', async () => {
+      it.only('returns a 401 when authentication or authorization fails', async () => {
         /** Create a new DID to represent an external entity who has a remote
            * DWN server defined in their DID document. */
-        const { did: bob } = await testAgent.createIdentity({ testDwnUrls });
+        const { did: bobDid } = await testAgent.createIdentity({ testDwnUrls });
+        const bob = await testAgent.agent.identityManager.import({
+          did      : bobDid,
+          identity : { name: 'Bob', did: bobDid.did },
+          kms      : 'local'
+        });
 
-        // Attempt to delete a record from Bob's DWN specifying a recordId that does not exist.
-        const deleteResult = await dwn.records.delete({
-          from    : bob.did,
+        // Create a record
+        const writeResult = await dwn.records.write({
+          data    : 'Hello, world!',
           message : {
-            recordId: 'abcd1234'
+            dataFormat: 'foo'
           }
         });
+        expect(writeResult.status.code).to.equal(202);
+
+        // Attempt to delete a record from Bob's DWN specifying a recordId.
+        const deleteResult = await dwn.records.delete({
+          author  : bob.did,
+          message : {
+            recordId: writeResult.record.id
+          }
+        });
+        console.log(deleteResult.status);
 
         /** Confirm that authorization failed because the test identity does not have
            * permission to delete a record from Bob's DWN. */

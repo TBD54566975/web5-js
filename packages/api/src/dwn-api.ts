@@ -100,6 +100,7 @@ export type RecordsCreateFromRequest = {
  * @beta
  */
 export type RecordsDeleteRequest = {
+  author?: string,
   from?: string;
   message: Omit<RecordsDeleteOptions, 'signer'>;
 }
@@ -161,6 +162,14 @@ export type RecordsReadResponse = {
  * @beta
  */
 export type RecordsWriteRequest = {
+  /**
+   * DID of the author/signer of the RecordsWrite message
+   */
+  author?: string;
+  /**
+   * DID of the DWN that the record will be written to
+   */
+  target?: string;
   data: unknown;
   message?: Omit<Partial<RecordsWriteOptions>, 'signer'>;
   store?: boolean;
@@ -307,7 +316,7 @@ export class DwnApi {
        */
       delete: async (request: RecordsDeleteRequest): Promise<RecordsDeleteResponse> => {
         const agentRequest = {
-          author         : this.connectedDid,
+          author         : request.author || this.connectedDid,
           messageOptions : request.message,
           messageType    : DwnInterfaceName.Records + DwnMethodName.Delete,
           target         : request.from || this.connectedDid
@@ -432,12 +441,12 @@ export class DwnApi {
         messageOptions.dataFormat = dataFormat;
 
         const agentResponse = await this.agent.processDwnRequest({
-          author      : this.connectedDid,
+          author      : request.author || this.connectedDid,
           dataStream  : dataBlob,
           messageOptions,
           messageType : DwnInterfaceName.Records + DwnMethodName.Write,
           store       : request.store,
-          target      : this.connectedDid
+          target      : request.target || this.connectedDid
         });
 
         const { message, reply: { status } } = agentResponse;
