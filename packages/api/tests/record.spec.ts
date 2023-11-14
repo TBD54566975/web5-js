@@ -147,7 +147,7 @@ describe('Record', () => {
     // Create a parent record to reference in the RecordsWriteMessage used for validation
     const parentRecorsWrite = await RecordsWrite.create({
       signer : authorization,
-      data                : new Uint8Array(await dataBlob.arrayBuffer()),
+      data   : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       protocol,
       protocolPath,
@@ -156,12 +156,12 @@ describe('Record', () => {
 
     // Create a RecordsWriteMessage
     const recordsWrite = await RecordsWrite.create({
-      attestationSigners  : attestation,
-      signer : authorization,
-      data                : new Uint8Array(await dataBlob.arrayBuffer()),
+      attestationSigners : attestation,
+      signer             : authorization,
+      data               : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       encryptionInput,
-      parentId            : parentRecorsWrite.recordId,
+      parentId           : parentRecorsWrite.recordId,
       protocol,
       protocolPath,
       published,
@@ -533,7 +533,7 @@ describe('Record', () => {
       });
     });
 
-    it.only('writes records to remote DWNs for your own DID', async () => {
+    it('writes records to remote DWNs for your own DID', async () => {
       const dataString = 'Hello, world!';
 
       // Alice writes a message to her agent connected DWN.
@@ -909,7 +909,7 @@ describe('Record', () => {
       // Create a parent record to reference in the RecordsWriteMessage used for validation
       const parentRecorsWrite = await RecordsWrite.create({
         signer : authorization,
-        data                : new Uint8Array(await dataBlob.arrayBuffer()),
+        data   : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         protocol,
         protocolPath,
@@ -918,12 +918,12 @@ describe('Record', () => {
 
       // Create a RecordsWriteMessage
       const recordsWrite = await RecordsWrite.create({
-        attestationSigners  : attestation,
-        signer : authorization,
-        data                : new Uint8Array(await dataBlob.arrayBuffer()),
+        attestationSigners : attestation,
+        signer             : authorization,
+        data               : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         encryptionInput,
-        parentId            : parentRecorsWrite.recordId,
+        parentId           : parentRecorsWrite.recordId,
         protocol,
         protocolPath,
         published,
