@@ -356,7 +356,7 @@ describe('DwnApi', () => {
         expect(deleteResult.status.detail).to.equal('Accepted');
       });
 
-      it.only('returns a 401 when authentication or authorization fails', async () => {
+      it('returns a 401 when authentication or authorization fails', async () => {
         /** Create a new DID to represent an external entity who has a remote
            * DWN server defined in their DID document. */
         const { did: bobDid } = await testAgent.createIdentity({ testDwnUrls });
