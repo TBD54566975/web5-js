@@ -1,6 +1,6 @@
 {
   "name": "@web5/crypto",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "TBD crypto library",
   "type": "module",
   "main": "./dist/cjs/index.js",

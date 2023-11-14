@@ -37,7 +37,39 @@ describe('DidApi', () => {
     await testAgent.closeStorage();
   });
 
-  it('needs tests', () => {
-    expect(did).to.exist;
+  describe('resolve()', async () => {
+    it('resolves a DID and returns a resolution result', async () => {
+      const testDid = 'did:key:z6MkmNvXGmVuux5W63nXKEM8zoxFmDLNfe7siCKG2GM7Kd8D';
+      const didResolutionResult = await did.resolve(testDid);
+
+      expect(didResolutionResult).to.exist;
+      expect(didResolutionResult).to.have.property('didDocument');
+      expect(didResolutionResult.didDocument).to.have.property('id', testDid);
+      expect(didResolutionResult).to.have.property('didDocument');
+      expect(didResolutionResult).to.have.property('didDocumentMetadata');
+      expect(didResolutionResult).to.have.property('didResolutionMetadata');
+    });
+
+    it('returns an invalidDid error if the DID cannot be parsed', async () => {
+      const didResolutionResult = await did.resolve('unparseable:did');
+
+      expect(didResolutionResult).to.exist;
+      expect(didResolutionResult).to.have.property('@context');
+      expect(didResolutionResult).to.have.property('didDocument');
+      expect(didResolutionResult).to.have.property('didDocumentMetadata');
+      expect(didResolutionResult).to.have.property('didResolutionMetadata');
+      expect(didResolutionResult.didResolutionMetadata).to.have.property('error', 'invalidDid');
+    });
+
+    it('returns a methodNotSupported error if the DID method is not supported', async () => {
+      const didResolutionResult = await did.resolve('did:unknown:abc123');
+
+      expect(didResolutionResult).to.exist;
+      expect(didResolutionResult).to.have.property('@context');
+      expect(didResolutionResult).to.have.property('didDocument');
+      expect(didResolutionResult).to.have.property('didDocumentMetadata');
+      expect(didResolutionResult).to.have.property('didResolutionMetadata');
+      expect(didResolutionResult.didResolutionMetadata).to.have.property('error', 'methodNotSupported');
+    });
   });
 });

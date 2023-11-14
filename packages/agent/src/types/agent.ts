@@ -1,4 +1,5 @@
 import type { Readable } from 'readable-stream';
+import type { DidResolutionOptions, DidResolutionResult, PortableDid } from '@web5/dids';
 import type {
   EventsGetMessage,
   UnionMessageReply,
@@ -12,20 +13,40 @@ import type {
 
 import { DidResolver } from '@web5/dids';
 
-import { DidManager } from '../did-manager.js';
+import type { SyncManager } from '../sync-manager.js';
+import type { AppDataStore } from '../app-data-store.js';
+import type { DwnRpcResponse, Web5Rpc } from '../rpc-client.js';
+
+import { DidManager, DidMessage } from '../did-manager.js';
 import { DwnManager } from '../dwn-manager.js';
 import { KeyManager } from '../key-manager.js';
-import { SyncManager } from '../sync-manager.js';
-import { AppDataStore } from '../app-data-store.js';
 import { IdentityManager } from '../identity-manager.js';
 
 /**
  * DID Types
  */
 
-export type ProcessDidRequest = { /** empty */ }
-export type SendDidRequest = { /** empty */ }
-export type DidResponse = { /** empty */ }
+export type DidMessageType = keyof typeof DidMessage;
+
+export type DidRequest = {
+  messageType: DidMessageType;
+  messageOptions: any;
+  store?: boolean;
+}
+
+export type DidCreateMessage = {
+  didMethod: string;
+  didOptions?: any;
+}
+
+export type DidResolveMessage = {
+  didUrl: string;
+  resolutionOptions?: DidResolutionOptions;
+}
+
+export type DidResponse = {
+  result?: DidResolutionResult | PortableDid
+};
 
 /**
  * DWN Types
@@ -77,41 +98,6 @@ export interface SerializableDwnMessage {
   toJSON(): string;
 }
 
-
-// TODO: move what's below to dwn-server repo. i wrote this here for expediency
-
-/**
- * interface that can be implemented to communicate with Dwn Servers
- */
-export interface DwnRpc {
-  /**
-   * TODO: add jsdoc
-   */
-  get transportProtocols(): string[]
-
-  /**
-   * TODO: add jsdoc
-   * @param request
-   */
-  sendDwnRequest(request: DwnRpcRequest): Promise<DwnRpcResponse>
-}
-
-/**
- * TODO: add jsdoc
- */
-export type DwnRpcRequest = {
-  data?: any;
-  dwnUrl: string;
-  message: SerializableDwnMessage | any;
-  targetDid: string;
-}
-
-/**
- * TODO: add jsdoc
- */
-export type DwnRpcResponse = UnionMessageReply;
-
-
 /**
  * Verifiable Credential Types
  */
@@ -142,8 +128,8 @@ export type VcResponse = { vcJwt: string }
 export interface Web5Agent {
   agentDid: string | undefined;
 
-  processDidRequest(request: ProcessDidRequest): Promise<DidResponse>
-  sendDidRequest(request: SendDidRequest): Promise<DidResponse>;
+  processDidRequest(request: DidRequest): Promise<DidResponse>
+  sendDidRequest(request: DidRequest): Promise<DidResponse>;
   processDwnRequest(request: ProcessDwnRequest): Promise<DwnResponse>
   sendDwnRequest(request: SendDwnRequest): Promise<DwnResponse>;
   processVcRequest(request: ProcessVcRequest): Promise<VcResponse>
@@ -157,7 +143,7 @@ export interface Web5ManagedAgent extends Web5Agent {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
-  rpcClient: DwnRpc;
+  rpcClient: Web5Rpc;
   syncManager: SyncManager;
 
   firstLaunch(): Promise<boolean>;

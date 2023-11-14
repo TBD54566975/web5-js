@@ -1,17 +1,16 @@
 import type {
-  DwnRpc,
+  Web5Rpc,
+  DidRequest,
   VcResponse,
   DidResponse,
   DwnResponse,
   SyncManager,
   AppDataStore,
   SendVcRequest,
-  SendDidRequest,
   SendDwnRequest,
   ProcessVcRequest,
   Web5ManagedAgent,
   ProcessDwnRequest,
-  ProcessDidRequest,
 } from '@web5/agent';
 
 import { LevelStore } from '@web5/common';
@@ -32,6 +31,7 @@ import {
   SyncManagerLevel,
   PrivateKeyStoreDwn,
   cryptoToPortableKeyPair,
+  DidMessage,
 } from '@web5/agent';
 
 export type Web5UserAgentOptions = {
@@ -43,7 +43,7 @@ export type Web5UserAgentOptions = {
   identityManager: IdentityManager;
   keyManager: KeyManager;
   vcManager: VcManager;
-  rpcClient: DwnRpc;
+  rpcClient: Web5Rpc;
   syncManager: SyncManager;
 }
 
@@ -56,7 +56,7 @@ export class Web5UserAgent implements Web5ManagedAgent {
   identityManager: IdentityManager;
   keyManager: KeyManager;
   vcManager: VcManager;
-  rpcClient: DwnRpc;
+  rpcClient: Web5Rpc;
   syncManager: SyncManager;
 
   constructor(options: Web5UserAgentOptions) {
@@ -214,8 +214,18 @@ export class Web5UserAgent implements Web5ManagedAgent {
     });
   }
 
-  async processDidRequest(_request: ProcessDidRequest): Promise<DidResponse> {
-    throw new Error('Not implemented');
+  async processDidRequest(request: DidRequest): Promise<DidResponse> {
+    switch (request.messageType) {
+      case DidMessage.Resolve: {
+        const { didUrl, resolutionOptions } = request.messageOptions;
+        const result = await this.didResolver.resolve(didUrl, resolutionOptions);
+        return { result };
+      }
+
+      default: {
+        return this.didManager.processRequest(request);
+      }
+    }
   }
 
   async processDwnRequest(request: ProcessDwnRequest): Promise<DwnResponse> {
@@ -226,7 +236,7 @@ export class Web5UserAgent implements Web5ManagedAgent {
     return this.vcManager.processRequest(request);
   }
 
-  async sendDidRequest(_request: SendDidRequest): Promise<DidResponse> {
+  async sendDidRequest(_request: DidRequest): Promise<DidResponse> {
     throw new Error('Not implemented');
   }
 

@@ -1,17 +1,16 @@
 import type {
-  DwnRpc,
+  Web5Rpc,
+  DidRequest,
   VcResponse,
   DidResponse,
   DwnResponse,
   SyncManager,
   AppDataStore,
   SendVcRequest,
-  SendDidRequest,
   SendDwnRequest,
   ProcessVcRequest,
   Web5ManagedAgent,
   ProcessDwnRequest,
-  ProcessDidRequest,
 } from '@web5/agent';
 
 import { LevelStore } from '@web5/common';
@@ -41,7 +40,7 @@ export type Web5ProxyAgentOptions = {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
-  rpcClient: DwnRpc;
+  rpcClient: Web5Rpc;
   syncManager: SyncManager;
 }
 
@@ -53,7 +52,7 @@ export class Web5ProxyAgent implements Web5ManagedAgent {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
-  rpcClient: DwnRpc;
+  rpcClient: Web5Rpc;
   syncManager: SyncManager;
 
   constructor(options: Web5ProxyAgentOptions) {
@@ -199,7 +198,7 @@ export class Web5ProxyAgent implements Web5ManagedAgent {
     });
   }
 
-  async processDidRequest(_request: ProcessDidRequest): Promise<DidResponse> {
+  async processDidRequest(_request: DidRequest): Promise<DidResponse> {
     throw new Error('Not implemented');
   }
 
@@ -211,7 +210,7 @@ export class Web5ProxyAgent implements Web5ManagedAgent {
     throw new Error('Not implemented');
   }
 
-  async sendDidRequest(_request: SendDidRequest): Promise<DidResponse> {
+  async sendDidRequest(_request: DidRequest): Promise<DidResponse> {
     throw new Error('Not implemented');
   }
 
