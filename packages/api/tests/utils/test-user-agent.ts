@@ -14,9 +14,15 @@ import type {
   SyncManager,
 } from '@web5/agent';
 
-import { Dwn, EventLogLevel,
+import {
+  Dwn,
+  EventLogLevel,
   DataStoreLevel,
-  MessageStoreLevel, } from '@tbd54566975/dwn-sdk-js';
+  MessageStoreLevel,
+  // RecordsWriteOptions,
+  // DwnInterfaceName,
+  // DwnMethodName,
+} from '@tbd54566975/dwn-sdk-js';
 import {
   DidResolver,
   DidKeyMethod,
@@ -189,7 +195,31 @@ export class TestUserAgent implements Web5ManagedAgent {
   }
 
   async processVcRequest(request: ProcessVcRequest): Promise<VcResponse> {
-    return this.vcManager.processRequest(request);
+    const vcResponse = await this.vcManager.processRequest(request);
+
+    // TODO: Write to DWN and Update VcResponse Object with optional dwnResponse
+    // const messageOptions: Partial<RecordsWriteOptions> = {
+    //   schema     : request.dataType,
+    //   dataFormat : 'application/vc+jwt',
+    // };
+    //
+    // const vcDataBlob = new Blob([vcResponse.vcJwt], { type: 'text/plain' });
+    //
+    // const dwnProcessOptions = {
+    //   author      : request.issuer,
+    //   dataStream  : vcDataBlob,
+    //   messageOptions,
+    //   messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+    //   store       : true,
+    //   target      : request.issuer
+    // };
+    //
+    // const dwnResponse = await this.processDwnRequest(dwnProcessOptions);
+    //
+    // console.log('DWN RESPONSE:');
+    // console.log(dwnResponse);
+
+    return vcResponse;
   }
 
   async sendDidRequest(_request: SendDidRequest): Promise<DidResponse> {
