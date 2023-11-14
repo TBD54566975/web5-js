@@ -140,6 +140,7 @@ jobs:
             - file: packages/api/src/index.ts
               docsReporter: api-extractor
               docsGenerator: typedoc-markdown
+
   web5-spec:
     runs-on: ubuntu-latest
     steps:
