@@ -1,12 +1,18 @@
 import type { Web5Agent } from '@web5/agent';
 import type { Readable } from 'readable-stream';
-import type { RecordsReadReply, RecordsWriteDescriptor, RecordsWriteMessage, RecordsWriteOptions } from '@tbd54566975/dwn-sdk-js';
+import type {
+  RecordsReadReply,
+  RecordsWriteMessage,
+  RecordsWriteOptions,
+  RecordsWriteDescriptor,
+} from '@tbd54566975/dwn-sdk-js';
 
 import { ReadableWebToNodeStream } from 'readable-web-to-node-stream';
 import { DataStream, DwnInterfaceName, DwnMethodName, Encoder } from '@tbd54566975/dwn-sdk-js';
 
+import type { ResponseStatus } from './dwn-api.js';
+
 import { dataToBlob } from './utils.js';
-import type { RecordsDeleteResponse } from './dwn-api.js';
 
 /**
  * Options that are passed to Record constructor.
@@ -243,7 +249,7 @@ export class Record implements RecordModel {
    * @returns the status of the delete request
    * @throws `Error` if the record has already been deleted.
    */
-  async delete(): Promise<RecordsDeleteResponse> {
+  async delete(): Promise<ResponseStatus> {
     if (this.isDeleted) throw new Error('Operation failed: Attempted to call `delete()` on a record that has already been deleted.');
 
     // Attempt to delete the record from the DWN.
@@ -271,7 +277,7 @@ export class Record implements RecordModel {
    * @returns the status of the send record request
    * @throws `Error` if the record has already been deleted.
    */
-  async send(target: string): Promise<any> {
+  async send(target: string): Promise<ResponseStatus> {
     if (this.isDeleted) throw new Error('Operation failed: Attempted to call `send()` on a record that has already been deleted.');
 
     const { reply: { status } } = await this._agent.sendDwnRequest({
@@ -339,7 +345,7 @@ export class Record implements RecordModel {
    * @returns the status of the update request
    * @throws `Error` if the record has already been deleted.
    */
-  async update(options: RecordUpdateOptions = {}) {
+  async update(options: RecordUpdateOptions = {}): Promise<ResponseStatus> {
     if (this.isDeleted) throw new Error('Operation failed: Attempted to call `update()` on a record that has already been deleted.');
 
     // Map Record class `dateModified`  property to DWN SDK `messageTimestamp`.

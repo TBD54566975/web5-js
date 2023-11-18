@@ -1,6 +1,5 @@
 import type { DwnResponse, Web5Agent } from '@web5/agent';
 import type {
-  UnionMessageReply,
   RecordsReadOptions,
   RecordsQueryOptions,
   RecordsWriteMessage,
@@ -21,6 +20,18 @@ import { Protocol } from './protocol.js';
 import { dataToBlob } from './utils.js';
 
 /**
+ * Status code and detailed message for a response.
+ *
+ * @beta
+ */
+export type ResponseStatus = {
+  status: {
+    code: number;
+    detail: string;
+  };
+};
+
+/**
  * Request to setup a protocol with its definitions
  *
  * @beta
@@ -34,8 +45,7 @@ export type ProtocolsConfigureRequest = {
  *
  * @beta
  */
-export type ProtocolsConfigureResponse = {
-  status: UnionMessageReply['status'];
+export type ProtocolsConfigureResponse = ResponseStatus & {
   protocol?: Protocol;
 }
 
@@ -63,9 +73,8 @@ export type ProtocolsQueryRequest = {
  *
  * @beta
  */
-export type ProtocolsQueryResponse = {
+export type ProtocolsQueryResponse = ResponseStatus & {
   protocols: Protocol[];
-  status: UnionMessageReply['status'];
 }
 
 /**
@@ -106,15 +115,6 @@ export type RecordsDeleteRequest = {
 }
 
 /**
- * Response for the delete request
- *
- * @beta
- */
-export type RecordsDeleteResponse = {
-  status: UnionMessageReply['status'];
-};
-
-/**
  * Request to query records from the DWN
  *
  * @beta
@@ -130,8 +130,7 @@ export type RecordsQueryRequest = {
  *
  * @beta
  */
-export type RecordsQueryResponse = {
-  status: UnionMessageReply['status'];
+export type RecordsQueryResponse = ResponseStatus & {
   records?: Record[]
 };
 
@@ -151,8 +150,7 @@ export type RecordsReadRequest = {
  *
  * @beta
  */
-export type RecordsReadResponse = {
-  status: UnionMessageReply['status'];
+export type RecordsReadResponse = ResponseStatus & {
   record: Record;
 };
 
@@ -180,8 +178,7 @@ export type RecordsWriteRequest = {
  *
  * @beta
  */
-export type RecordsWriteResponse = {
-  status: UnionMessageReply['status'];
+export type RecordsWriteResponse = ResponseStatus & {
   record?: Record
 };
 
@@ -314,7 +311,7 @@ export class DwnApi {
       /**
        * Delete a record
        */
-      delete: async (request: RecordsDeleteRequest): Promise<RecordsDeleteResponse> => {
+      delete: async (request: RecordsDeleteRequest): Promise<ResponseStatus> => {
         const agentRequest = {
           author         : request.author || this.connectedDid,
           messageOptions : request.message,
