@@ -327,15 +327,7 @@ export class DwnApi {
           agentResponse = await this.agent.processDwnRequest(agentRequest);
         }
 
-        //! TODO: (Frank -> Moe): This quirk is the result of how 4XX errors are being returned by `dwn-server`
-        //!                       When DWN SDK returns 404, agentResponse is { status: { code: 404 }} and that's it.
-        //!                       Need to decide how to resolve.
-        let status;
-        if (agentResponse.reply) {
-          ({ reply: { status } } = agentResponse);
-        } else {
-          ({ status } = agentResponse);
-        }
+        const { reply: { status } } = agentResponse;
 
         return { status };
       },
@@ -393,16 +385,7 @@ export class DwnApi {
           agentResponse = await this.agent.processDwnRequest(agentRequest);
         }
 
-        //! TODO: (Frank -> Moe): This quirk is the result of how 4XX errors are being returned by `dwn-server`
-        //!                       When DWN SDK returns 404, agentResponse is { status: { code: 404 }} and that's it.
-        //!                       Need to decide how to resolve.
-        let responseRecord;
-        let status;
-        if (agentResponse.reply) {
-          ({ reply: { record: responseRecord, status } } = agentResponse);
-        } else {
-          ({ status } = agentResponse);
-        }
+        const { reply: { record: responseRecord, status } } = agentResponse;
 
         let record: Record;
         if (200 <= status.code && status.code <= 299) {
