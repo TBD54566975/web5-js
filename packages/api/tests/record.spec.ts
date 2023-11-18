@@ -12,6 +12,7 @@ import chaiAsPromised from 'chai-as-promised';
 import { utils as didUtils } from '@web5/dids';
 import { TestManagedAgent } from '@web5/agent';
 import {
+  DwnConstant,
   RecordsWrite,
   DwnMethodName,
   DwnInterfaceName,
@@ -254,10 +255,10 @@ describe('Record', () => {
     it('returns large data payloads after dwn.records.write()', async () => {
       // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
       // with a RecordsRead when record.data.blob() is executed.
-      const dataJson = TestDataGenerator.randomJson(11_000);
+      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
-      // Write the 11KB record to agent-connected DWN.
+      // Write the large record to agent-connected DWN.
       const { record, status } = await dwn.records.write({ data: dataJson });
 
       expect(status.code).to.equal(202);
@@ -274,10 +275,10 @@ describe('Record', () => {
     it('returns large data payloads after dwn.records.read()', async () => {
       // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
       // with a RecordsRead when record.data.blob() is executed.
-      const dataJson = TestDataGenerator.randomJson(11_000);
+      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
-      // Write the 11KB record to agent-connected DWN.
+      // Write the large record to agent-connected DWN.
       const { record, status } = await dwn.records.write({ data: dataJson });
 
       expect(status.code).to.equal(202);
@@ -346,10 +347,10 @@ describe('Record', () => {
     it('returns large data payloads after dwn.records.write()', async () => {
       // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
       // with a RecordsRead when record.data.json() is executed.
-      const dataJson = TestDataGenerator.randomJson(11_000);
+      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
-      // Write the 11KB record to agent-connected DWN.
+      // Write the large record to agent-connected DWN.
       const { record, status } = await dwn.records.write({ data: dataJson });
 
       expect(status.code).to.equal(202);
@@ -366,10 +367,10 @@ describe('Record', () => {
     it('returns large data payloads after dwn.records.read()', async () => {
       // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
       // with a RecordsRead when record.data.json() is executed.
-      const dataJson = TestDataGenerator.randomJson(11_000);
+      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
-      // Write the 11KB record to agent-connected DWN.
+      // Write the large record to agent-connected DWN.
       const { record, status } = await dwn.records.write({ data: dataJson });
 
       expect(status.code).to.equal(202);
@@ -434,9 +435,9 @@ describe('Record', () => {
     it('returns large data payloads after dwn.records.write()', async () => {
       // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
       // with a RecordsRead when record.data.text() is executed.
-      const dataText = TestDataGenerator.randomString(11_000);
+      const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
-      // Write the 11KB record to agent-connected DWN.
+      // Write the large record to agent-connected DWN.
       const { record, status } = await dwn.records.write({ data: dataText });
 
       expect(status.code).to.equal(202);
@@ -452,9 +453,9 @@ describe('Record', () => {
     it('returns large data payloads after dwn.records.read()', async () => {
       // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
       // with a RecordsRead when record.data.text() is executed.
-      const dataText = TestDataGenerator.randomString(11_000);
+      const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
-      // Write the 11KB record to agent-connected DWN.
+      // Write the large record to agent-connected DWN.
       const { record, status } = await dwn.records.write({ data: dataText });
 
       expect(status.code).to.equal(202);
