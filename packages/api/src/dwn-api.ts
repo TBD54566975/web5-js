@@ -319,7 +319,7 @@ export class DwnApi {
           target         : request.from || this.connectedDid
         };
 
-        let agentResponse;
+        let agentResponse: DwnResponse;
 
         if (request.from) {
           agentResponse = await this.agent.sendDwnRequest(agentRequest);
@@ -351,7 +351,7 @@ export class DwnApi {
           target         : request.from || this.connectedDid
         };
 
-        let agentResponse;
+        let agentResponse: DwnResponse;
 
         if (request.from) {
           agentResponse = await this.agent.sendDwnRequest(agentRequest);
@@ -385,7 +385,7 @@ export class DwnApi {
           target         : request.from || this.connectedDid
         };
 
-        let agentResponse;
+        let agentResponse: DwnResponse;
 
         if (request.from) {
           agentResponse = await this.agent.sendDwnRequest(agentRequest);
