@@ -1,11 +1,15 @@
 import { utils as cryptoUtils } from '@web5/crypto';
-import { UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
+import { RecordsReadReply, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 
 import type { JsonRpcResponse } from './json-rpc.js';
 import type { SerializableDwnMessage } from './types/agent.js';
 
 import { createJsonRpcRequest, parseJson } from './json-rpc.js';
 
+/**
+ * Interface that can be implemented to communicate with {@link Web5Agent | Web5 Agent}
+ * implementations via JSON-RPC.
+ */
 export interface DidRpc {
   get transportProtocols(): string[]
   sendDidRequest(request: DidRpcRequest): Promise<DidRpcResponse>
@@ -29,7 +33,8 @@ export type DidRpcResponse = {
 }
 
 /**
- * interface that can be implemented to communicate with Dwn Servers
+ * Interface that can be implemented to communicate with
+ * {@link https://github.com/TBD54566975/dwn-server | DWN Servers} via JSON-RPC.
  */
 export interface DwnRpc {
   /**
@@ -57,7 +62,7 @@ export type DwnRpcRequest = {
 /**
  * TODO: add jsdoc
  */
-export type DwnRpcResponse = UnionMessageReply;
+export type DwnRpcResponse = UnionMessageReply & RecordsReadReply;
 
 export type RpcStatus = {
   code: number;
