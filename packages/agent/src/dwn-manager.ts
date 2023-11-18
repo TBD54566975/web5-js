@@ -344,8 +344,8 @@ export class DwnManager {
     const dwnSigner = await this.constructDwnSigner(author);
 
     const messagesGet = await MessagesGet.create({
-      signer      : dwnSigner,
-      messageCids : [messageCid]
+      messageCids : [messageCid],
+      signer      : dwnSigner
     });
 
     const result: MessagesGetReply = await this._dwn.processMessage(author, messagesGet.message);
@@ -374,10 +374,10 @@ export class DwnManager {
         dwnMessage.data = new Blob([dataBytes]);
       } else {
         const recordsRead = await RecordsRead.create({
-          signer : dwnSigner,
-          filter : {
+          filter: {
             recordId: writeMessage.recordId
-          }
+          },
+          signer: dwnSigner
         });
 
         const reply = await this._dwn.processMessage(author, recordsRead.toJSON()) as RecordsReadReply;

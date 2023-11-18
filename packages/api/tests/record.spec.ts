@@ -146,18 +146,17 @@ describe('Record', () => {
 
     // Create a parent record to reference in the RecordsWriteMessage used for validation
     const parentRecorsWrite = await RecordsWrite.create({
-      signer : authorization,
       data   : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       protocol,
       protocolPath,
       schema,
+      signer : authorization,
     }) as RecordsWriteTest;
 
     // Create a RecordsWriteMessage
     const recordsWrite = await RecordsWrite.create({
       attestationSigners : attestation,
-      signer             : authorization,
       data               : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       encryptionInput,
@@ -167,6 +166,7 @@ describe('Record', () => {
       published,
       recipient,
       schema,
+      signer             : authorization,
     }) as RecordsWriteTest;
 
     // Create record using test RecordsWriteMessage.
@@ -908,18 +908,17 @@ describe('Record', () => {
 
       // Create a parent record to reference in the RecordsWriteMessage used for validation
       const parentRecorsWrite = await RecordsWrite.create({
-        signer : authorization,
         data   : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         protocol,
         protocolPath,
         schema,
+        signer : authorization,
       }) as RecordsWriteTest;
 
       // Create a RecordsWriteMessage
       const recordsWrite = await RecordsWrite.create({
         attestationSigners : attestation,
-        signer             : authorization,
         data               : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         encryptionInput,
@@ -929,6 +928,7 @@ describe('Record', () => {
         published,
         recipient,
         schema,
+        signer             : authorization,
       }) as RecordsWriteTest;
 
       // Create record using test RecordsWriteMessage.
