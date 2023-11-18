@@ -142,7 +142,7 @@ describe('DwnApi', () => {
 
       it('returns a 401 when authorization fails', async () => {
         /** Create a new DID to represent an external entity who has a remote
-           * DWN server defined in their DID document. */
+         * DWN server defined in their DID document. */
         const { did: bob } = await testAgent.createIdentity({ testDwnUrls });
 
         // Attempt to query for a protocol on Bob's DWN.
@@ -156,7 +156,7 @@ describe('DwnApi', () => {
         });
 
         /** Confirm that authorization failed because the test identity does not have
-           * permission to delete a record from Bob's DWN. */
+         * permission to delete a record from Bob's DWN. */
         expect(response.status.code).to.equal(401);
         expect(response.status.detail).to.include('ProtocolsQuery failed authorization');
         expect(response.protocols).to.exist;
@@ -358,7 +358,7 @@ describe('DwnApi', () => {
 
       it('returns a 401 when authentication or authorization fails', async () => {
         /** Create a new DID to represent an external entity who has a remote
-           * DWN server defined in their DID document. */
+         * DWN server defined in their DID document. */
         const { did: bobDid } = await testAgent.createIdentity({ testDwnUrls });
         const bob = await testAgent.agent.identityManager.import({
           did      : bobDid,
@@ -382,10 +382,9 @@ describe('DwnApi', () => {
             recordId: writeResult.record.id
           }
         });
-        console.log(deleteResult.status);
 
         /** Confirm that authorization failed because the test identity does not have
-           * permission to delete a record from Bob's DWN. */
+         * permission to delete a record from Bob's DWN. */
         expect(deleteResult.status.code).to.equal(401);
         expect(deleteResult.status.detail).to.include('message failed authorization');
       });
@@ -455,7 +454,7 @@ describe('DwnApi', () => {
 
       it('returns empty records array when no records match the filter provided', async () => {
         /** Create a new DID to represent an external entity who has a remote
-           * DWN server defined in their DID document. */
+         * DWN server defined in their DID document. */
         const { did: bob } = await testAgent.createIdentity({ testDwnUrls });
 
         // Attempt to query Bob's DWN using the ID of a record that does not exist.
@@ -565,7 +564,7 @@ describe('DwnApi', () => {
 
       it('returns undefined record when requested record does not exit', async () => {
         /** Create a new DID to represent an external entity who has a remote
-           * DWN server defined in their DID document. */
+         * DWN server defined in their DID document. */
         const { did: bob } = await testAgent.createIdentity({ testDwnUrls });
 
         // Attempt to read a record from Bob's DWN using the ID of a record that only exists in the connected agent's DWN.
