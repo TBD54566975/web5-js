@@ -357,17 +357,23 @@ describe('DwnApi', () => {
       });
 
       it('returns a 401 when authentication or authorization fails', async () => {
-        /** Create a new DID to represent an external entity who has a remote
+        /** Create a new DID to represent a second entity, Bob, who has a remote
          * DWN server defined in their DID document. */
         const { did: bobDid } = await testAgent.createIdentity({ testDwnUrls });
-        const bob = await testAgent.agent.identityManager.import({
+
+        // Import the DID and keys so that the test agent can sign messages on behalf of Bob.
+        await testAgent.agent.identityManager.import({
           did      : bobDid,
           identity : { name: 'Bob', did: bobDid.did },
           kms      : 'local'
         });
 
-        // Create a record
-        const writeResult = await dwn.records.write({
+        // Instantiate DwnApi instance connected to Bob's DID.
+        const aliceDwn = dwn;
+        const bobDwn = new DwnApi({ agent: testAgent.agent, connectedDid: bobDid.did });
+
+        // Create a record on Bob's local DWN.
+        const writeResult = await bobDwn.records.write({
           data    : 'Hello, world!',
           message : {
             dataFormat: 'foo'
@@ -375,15 +381,19 @@ describe('DwnApi', () => {
         });
         expect(writeResult.status.code).to.equal(202);
 
-        // Attempt to delete a record from Bob's DWN specifying a recordId.
-        const deleteResult = await dwn.records.delete({
-          author  : bob.did,
+        // Write the record to Bob's remote DWN.
+        const sendResult = await writeResult.record.send(bobDid.did);
+        expect(sendResult.status.code).to.equal(202);
+
+        // Alice attempts to delete a record from Bob's remote DWN specifying a recordId.
+        const deleteResult = await aliceDwn.records.delete({
+          from    : bobDid.did,
           message : {
             recordId: writeResult.record.id
           }
         });
 
-        /** Confirm that authorization failed because the test identity does not have
+        /** Confirm that authorization failed because the Alice identity does not have
          * permission to delete a record from Bob's DWN. */
         expect(deleteResult.status.code).to.equal(401);
         expect(deleteResult.status.detail).to.include('message failed authorization');
