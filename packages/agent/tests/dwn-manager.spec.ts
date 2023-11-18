@@ -8,7 +8,6 @@ import {
   EventsGetReply,
   EventsGetMessage,
   MessagesGetReply,
-  RecordsReadReply,
   RecordsQueryReply,
   UnionMessageReply,
   MessagesGetMessage,
@@ -377,7 +376,7 @@ describe('DwnManager', () => {
         expect(readMessage).to.have.property('authorization');
         expect(readMessage).to.have.property('descriptor');
 
-        const readReply = readResponse.reply as RecordsReadReply;
+        const readReply = readResponse.reply;
         expect(readReply).to.have.property('status');
         expect(readReply.status.code).to.equal(200);
         expect(readReply).to.have.property('record');
@@ -552,7 +551,7 @@ describe('DwnManager', () => {
         expect(readMessage.descriptor.method).to.equal('Read');
         expect(readMessage.descriptor.interface).to.equal('Records');
 
-        const readReply = response.reply as RecordsReadReply;
+        const readReply = response.reply;
         expect(readReply.record).to.exist;
 
         const record = readReply.record as unknown as RecordsWriteMessage & { data: ReadableStream };
