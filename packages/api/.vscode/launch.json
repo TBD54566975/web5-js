@@ -12,7 +12,6 @@
       "webRoot": "${workspaceFolder:web5}"
     },
     {
-      "runtimeVersion": "20",
       "type": "node",
       "request": "launch",
       "name": "test:node",
