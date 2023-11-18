@@ -190,7 +190,7 @@ export class Record implements RecordModel {
       // If neither of the above are true, then the record must be fetched from the DWN.
       this._readableStream = this._agent.processDwnRequest({
         author         : this.author,
-        messageOptions : { recordId: this.id },
+        messageOptions : { filter: { recordId: this.id } },
         messageType    : DwnInterfaceName.Records + DwnMethodName.Read,
         target         : this.target,
       })
