@@ -68,7 +68,7 @@
   },
   "dependencies": {
     "@web5/agent": "0.2.4",
-    "@web5/api": "0.8.2"
+    "@web5/api": "0.8.3"
   },
   "devDependencies": {
     "@playwright/test": "1.36.2",
