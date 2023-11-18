@@ -13,7 +13,7 @@ import type {
 } from '@tbd54566975/dwn-sdk-js';
 
 import { isEmptyObject } from '@web5/common';
-import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
+import { DwnInterfaceName, DwnMethodName, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 
 import { Record } from './record.js';
 import { Protocol } from './protocol.js';
@@ -304,9 +304,18 @@ export class DwnApi {
        */
       delete: async (request: RecordsDeleteRequest): Promise<ResponseStatus> => {
         const agentRequest = {
+          /**
+           * The `author` is the DID that will sign the message and must be the DID the Web5 app is
+           * connected with and is authorized to access the signing private key of.
+           */
           author         : this.connectedDid,
           messageOptions : request.message,
           messageType    : DwnInterfaceName.Records + DwnMethodName.Delete,
+          /**
+           * The `target` is the DID of the DWN tenant under which the delete will be executed.
+           * If `from` is provided, the delete operation will be executed on a remote DWN.
+           * Otherwise, the record will be deleted on the local DWN.
+           */
           target         : request.from || this.connectedDid
         };
 
@@ -328,9 +337,18 @@ export class DwnApi {
        */
       query: async (request: RecordsQueryRequest): Promise<RecordsQueryResponse> => {
         const agentRequest = {
+          /**
+           * The `author` is the DID that will sign the message and must be the DID the Web5 app is
+           * connected with and is authorized to access the signing private key of.
+           */
           author         : this.connectedDid,
           messageOptions : request.message,
           messageType    : DwnInterfaceName.Records + DwnMethodName.Query,
+          /**
+           * The `target` is the DID of the DWN tenant under which the query will be executed.
+           * If `from` is provided, the query operation will be executed on a remote DWN.
+           * Otherwise, the local DWN will be queried.
+           */
           target         : request.from || this.connectedDid
         };
 
@@ -346,7 +364,16 @@ export class DwnApi {
 
         const records = entries.map((entry: RecordsQueryReplyEntry) => {
           const recordOptions = {
-            author : this.connectedDid,
+            /**
+             * Extract the `author` DID from the record entry since records may be signed by the
+             * tenant owner or any other entity.
+             */
+            author : RecordsWrite.getAuthor(entry),
+            /**
+             * Set the `target` DID to currently connected DID so that subsequent calls to
+             * {@link Record} instance methods, such as `record.update()` are executed on the
+             * local DWN even if the record was returned by a query of a remote DWN.
+             */
             target : this.connectedDid,
             ...entry as RecordsWriteMessage
           };
@@ -362,9 +389,18 @@ export class DwnApi {
        */
       read: async (request: RecordsReadRequest): Promise<RecordsReadResponse> => {
         const agentRequest = {
+          /**
+           * The `author` is the DID that will sign the message and must be the DID the Web5 app is
+           * connected with and is authorized to access the signing private key of.
+           */
           author         : this.connectedDid,
           messageOptions : request.message,
           messageType    : DwnInterfaceName.Records + DwnMethodName.Read,
+          /**
+           * The `target` is the DID of the DWN tenant under which the read will be executed.
+           * If `from` is provided, the read operation will be executed on a remote DWN.
+           * Otherwise, the read will occur on the local DWN.
+           */
           target         : request.from || this.connectedDid
         };
 
@@ -381,7 +417,16 @@ export class DwnApi {
         let record: Record;
         if (200 <= status.code && status.code <= 299) {
           const recordOptions = {
-            author : this.connectedDid,
+            /**
+             * Extract the `author` DID from the record since records may be signed by the
+             * tenant owner or any other entity.
+             */
+            author : RecordsWrite.getAuthor(responseRecord),
+            /**
+             * Set the `target` DID to currently connected DID so that subsequent calls to
+             * {@link Record} instance methods, such as `record.update()` are executed on the
+             * local DWN even if the record was read from a remote DWN.
+             */
             target : this.connectedDid,
             ...responseRecord,
           };
@@ -426,8 +471,17 @@ export class DwnApi {
         let record: Record;
         if (200 <= status.code && status.code <= 299) {
           const recordOptions = {
+            /**
+             * Assume the author is the connected DID since the record was just written to the
+             * local DWN.
+             */
             author      : this.connectedDid,
             encodedData : dataBlob,
+            /**
+             * Set the `target` DID to currently connected DID so that subsequent calls to
+             * {@link Record} instance methods, such as `record.update()` are executed on the
+             * local DWN.
+             */
             target      : this.connectedDid,
             ...responseMessage,
           };
