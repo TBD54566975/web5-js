@@ -146,27 +146,27 @@ describe('Record', () => {
 
     // Create a parent record to reference in the RecordsWriteMessage used for validation
     const parentRecorsWrite = await RecordsWrite.create({
-      authorizationSigner : authorization,
-      data                : new Uint8Array(await dataBlob.arrayBuffer()),
+      data   : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       protocol,
       protocolPath,
       schema,
+      signer : authorization,
     }) as RecordsWriteTest;
 
     // Create a RecordsWriteMessage
     const recordsWrite = await RecordsWrite.create({
-      attestationSigners  : attestation,
-      authorizationSigner : authorization,
-      data                : new Uint8Array(await dataBlob.arrayBuffer()),
+      attestationSigners : attestation,
+      data               : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       encryptionInput,
-      parentId            : parentRecorsWrite.recordId,
+      parentId           : parentRecorsWrite.recordId,
       protocol,
       protocolPath,
       published,
       recipient,
       schema,
+      signer             : authorization,
     }) as RecordsWriteTest;
 
     // Create record using test RecordsWriteMessage.
@@ -908,27 +908,27 @@ describe('Record', () => {
 
       // Create a parent record to reference in the RecordsWriteMessage used for validation
       const parentRecorsWrite = await RecordsWrite.create({
-        authorizationSigner : authorization,
-        data                : new Uint8Array(await dataBlob.arrayBuffer()),
+        data   : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         protocol,
         protocolPath,
         schema,
+        signer : authorization,
       }) as RecordsWriteTest;
 
       // Create a RecordsWriteMessage
       const recordsWrite = await RecordsWrite.create({
-        attestationSigners  : attestation,
-        authorizationSigner : authorization,
-        data                : new Uint8Array(await dataBlob.arrayBuffer()),
+        attestationSigners : attestation,
+        data               : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         encryptionInput,
-        parentId            : parentRecorsWrite.recordId,
+        parentId           : parentRecorsWrite.recordId,
         protocol,
         protocolPath,
         published,
         recipient,
         schema,
+        signer             : authorization,
       }) as RecordsWriteTest;
 
       // Create record using test RecordsWriteMessage.

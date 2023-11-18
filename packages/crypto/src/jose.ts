@@ -630,7 +630,7 @@ export class Jose {
 
     /** Step 1 - Normalization: The JWK is normalized to include only specific
      * members and in lexicographic order.
-     * */
+     */
     const keyType = key.kty;
     let normalizedJwk: Partial<JsonWebKey>;
     if (keyType === 'EC') {

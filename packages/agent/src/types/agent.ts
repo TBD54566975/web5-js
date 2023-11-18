@@ -2,6 +2,7 @@ import type { Readable } from 'readable-stream';
 import type { DidResolutionOptions, DidResolutionResult, PortableDid } from '@web5/dids';
 import type {
   EventsGetMessage,
+  RecordsReadReply,
   UnionMessageReply,
   MessagesGetMessage,
   RecordsQueryMessage,
@@ -86,7 +87,7 @@ export type SendDwnRequest = DwnRequest & (ProcessDwnRequest | { messageCid: str
 export type DwnResponse = {
   message?: unknown;
   messageCid?: string;
-  reply: UnionMessageReply;
+  reply: UnionMessageReply & RecordsReadReply;
 };
 
 /**

@@ -180,7 +180,7 @@ export class IdentityAgent implements Web5ManagedAgent {
   /**
    * Executed once the first time the Identity Agent is launched.
    * The passphrase should be input by the end-user.
-   * */
+   */
   async initialize(options: { passphrase: string }) {
     const { passphrase } = options;
 
