@@ -273,12 +273,12 @@ export class DwnManager {
       }
     }
 
-    const dwnsigner = await this.constructDwnsigner(request.author);
+    const dwnSigner = await this.constructDwnSigner(request.author);
 
     const messageCreator = dwnMessageCreators[request.messageType];
     const dwnMessage = await messageCreator.create({
       ...<any>request.messageOptions,
-      signer: dwnsigner
+      signer: dwnSigner
     });
 
     return { message: dwnMessage.toJSON(), dataStream: readableStream };
@@ -299,7 +299,7 @@ export class DwnManager {
     return signingKeyId;
   }
 
-  private async constructDwnsigner(author: string): Promise<Signer> {
+  private async constructDwnSigner(author: string): Promise<Signer> {
     const signingKeyId = await this.getAuthorSigningKeyId({ did: author });
 
     /**
@@ -341,10 +341,10 @@ export class DwnManager {
   }): Promise<DwnMessage> {
     const { author, messageType, messageCid } = options;
 
-    const dwnsigner = await this.constructDwnsigner(author);
+    const dwnSigner = await this.constructDwnSigner(author);
 
     const messagesGet = await MessagesGet.create({
-      signer      : dwnsigner,
+      signer      : dwnSigner,
       messageCids : [messageCid]
     });
 
@@ -374,7 +374,7 @@ export class DwnManager {
         dwnMessage.data = new Blob([dataBytes]);
       } else {
         const recordsRead = await RecordsRead.create({
-          signer : dwnsigner,
+          signer : dwnSigner,
           filter : {
             recordId: writeMessage.recordId
           }
@@ -409,13 +409,13 @@ export class DwnManager {
   }): Promise<EventsGet | MessagesGet | RecordsRead | RecordsQuery | RecordsWrite | RecordsDelete | ProtocolsQuery | ProtocolsConfigure> {
     const { author, messageOptions, messageType } = options;
 
-    const dwnsigner = await this.constructDwnsigner(author);
+    const dwnSigner = await this.constructDwnSigner(author);
 
     const messageCreator = dwnMessageCreators[messageType];
 
     const dwnMessage = await messageCreator.create({
       ...<any>messageOptions,
-      signer: dwnsigner
+      signer: dwnSigner
     });
 
     return dwnMessage;
