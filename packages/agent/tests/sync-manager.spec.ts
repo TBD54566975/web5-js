@@ -2,6 +2,7 @@ import type { PortableDid } from '@web5/dids';
 
 import { expect } from 'chai';
 import * as sinon from 'sinon';
+import { RecordsQueryReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import type { ManagedIdentity } from '../src/identity-manager.js';
 
@@ -9,8 +10,6 @@ import { testDwnUrl } from './test-config.js';
 import { TestAgent } from './utils/test-agent.js';
 import { SyncManagerLevel } from '../src/sync-manager.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
-
-import { RecordsQueryReply, RecordsWriteMessage, RecordsReadReply } from '@tbd54566975/dwn-sdk-js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -192,7 +191,7 @@ describe('SyncManagerLevel', () => {
           messageType    : 'RecordsRead',
           messageOptions : { filter: { recordId } }
         });
-        const reply = readRecord.reply as RecordsReadReply;
+        const reply = readRecord.reply;
         expect(reply.status.code).to.equal(200);
         expect(reply.record).to.not.be.undefined;
         expect(reply.record!.data).to.not.be.undefined; // record data exists
@@ -388,7 +387,7 @@ describe('SyncManagerLevel', () => {
           messageType    : 'RecordsRead',
           messageOptions : { filter: { recordId } }
         });
-        const reply = readRecord.reply as RecordsReadReply;
+        const reply = readRecord.reply;
         expect(reply.status.code).to.equal(200);
         expect(reply.record).to.not.be.undefined;
         expect(reply.record!.data).to.not.be.undefined;

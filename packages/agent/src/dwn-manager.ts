@@ -2,7 +2,6 @@ import {
   Signer,
   GenericMessage,
   MessagesGetReply,
-  RecordsReadReply,
   UnionMessageReply,
   RecordsWriteMessage,
   RecordsWriteOptions,
@@ -281,7 +280,7 @@ export class DwnManager {
       signer: dwnSigner
     });
 
-    return { message: dwnMessage.toJSON(), dataStream: readableStream };
+    return { message: dwnMessage.message, dataStream: readableStream };
   }
 
   private async getAuthorSigningKeyId(options: {
@@ -380,7 +379,7 @@ export class DwnManager {
           signer: dwnSigner
         });
 
-        const reply = await this._dwn.processMessage(author, recordsRead.toJSON()) as RecordsReadReply;
+        const reply = await this._dwn.processMessage(author, recordsRead.message);
 
         if (reply.status.code >= 400) {
           const { status: { code, detail } } = reply;
