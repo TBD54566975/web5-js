@@ -92,7 +92,7 @@
     "@types/eslint": "8.44.2",
     "@types/mocha": "10.0.1",
     "@types/ms": "0.7.31",
-    "@types/readable-stream": "4.0.0",
+    "@types/readable-stream": "4.0.6",
     "@types/sinon": "10.0.15",
     "@typescript-eslint/eslint-plugin": "6.4.0",
     "@typescript-eslint/parser": "6.4.0",
