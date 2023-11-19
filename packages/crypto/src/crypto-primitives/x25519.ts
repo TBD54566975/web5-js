@@ -1,9 +1,7 @@
-import type { BytesKeyPair } from '../types/crypto-key.js';
-
 import { x25519 } from '@noble/curves/ed25519';
 
 /**
- * The `X25519` class provides an interface for X25519 (Curve25519) key pair
+ * The `X25519` class provides an interface for X25519 (Curve25519) private key
  * generation, public key computation, and shared secret computation. The class
  * uses the '@noble/curves/ed25519' package for the cryptographic operations.
  *
@@ -14,11 +12,14 @@ import { x25519 } from '@noble/curves/ed25519';
  * Example usage:
  *
  * ```ts
- * const ownKeyPair = await X25519.generateKeyPair();
- * const otherPartyKeyPair = await X25519.generateKeyPair();
+ * const ownPrivateKey = await X25519.generateKey();
+ * const otherPartyPrivateKey = await X25519.generateKey();
+ * const otherPartyPublicKey = await X25519.getPublicKey({
+ *   privateKey: otherPartyPrivateKey
+ * });
  * const sharedSecret = await X25519.sharedSecret({
- *   privateKey : ownKeyPair.privateKey,
- *   publicKey  : otherPartyKeyPair.publicKey
+ *   privateKey : ownPrivateKey,
+ *   publicKey  :otherPartyPublicKey
  * });
  * ```
  */
@@ -26,19 +27,13 @@ export class X25519 {
   /**
    * Generates a key pair for X25519 (private and public key).
    *
-   * @returns A Promise that resolves to a BytesKeyPair object.
+   * @returns A Promise that resolves to a Uint8Array object.
    */
-  public static async generateKeyPair(): Promise<BytesKeyPair> {
-    // Generate the private key and compute its public key.
+  public static async generateKey(): Promise<Uint8Array> {
+    // Generate a random private key.
     const privateKey = x25519.utils.randomPrivateKey();
-    const publicKey  = x25519.getPublicKey(privateKey);
 
-    const keyPair = {
-      privateKey : privateKey,
-      publicKey  : publicKey
-    };
-
-    return keyPair;
+    return privateKey;
   }
 
   /**

@@ -1,5 +1,3 @@
-import type { BytesKeyPair } from '../src/types/crypto-key.js';
-
 import sinon from 'sinon';
 import chai, { expect } from 'chai';
 import { Convert } from '@web5/common';
@@ -1006,53 +1004,49 @@ describe('Cryptographic Primitive Implementations', () => {
   });
 
   describe('X25519', () => {
-    describe('generateKeyPair()', () => {
-      it('returns a pair of keys of type Uint8Array', async () => {
-        const keyPair = await X25519.generateKeyPair();
-        expect(keyPair).to.have.property('privateKey');
-        expect(keyPair).to.have.property('publicKey');
-        expect(keyPair.privateKey).to.be.instanceOf(Uint8Array);
-        expect(keyPair.publicKey).to.be.instanceOf(Uint8Array);
+    describe('generateKey()', () => {
+      it('returns a private key of type Uint8Array', async () => {
+        const privateKey = await X25519.generateKey();
+        expect(privateKey).to.be.instanceOf(Uint8Array);
       });
 
       it('returns a 32-byte private key', async () => {
-        const keyPair = await X25519.generateKeyPair();
-        expect(keyPair.privateKey.byteLength).to.equal(32);
-      });
-
-      it('returns a 32-byte compressed public key', async () => {
-        const keyPair = await X25519.generateKeyPair();
-        expect(keyPair.publicKey.byteLength).to.equal(32);
+        const privateKey = await X25519.generateKey();
+        expect(privateKey.byteLength).to.equal(32);
       });
     });
 
     describe('getPublicKey()', () => {
-      let keyPair: BytesKeyPair;
+      let privateKey: Uint8Array;
 
       before(async () => {
-        keyPair = await X25519.generateKeyPair();
+        privateKey = await X25519.generateKey();
       });
 
       it('returns a 32-byte compressed public key', async () => {
-        const publicKey = await X25519.getPublicKey({ privateKey: keyPair.privateKey });
+        const publicKey = await X25519.getPublicKey({ privateKey });
         expect(publicKey).to.be.instanceOf(Uint8Array);
         expect(publicKey.byteLength).to.equal(32);
       });
     });
 
     describe('sharedSecret()', () => {
-      let otherPartyKeyPair: BytesKeyPair;
-      let ownKeyPair: BytesKeyPair;
+      let ownPrivateKey: Uint8Array;
+      let ownPublicKey: Uint8Array;
+      let otherPartyPrivateKey: Uint8Array;
+      let otherPartyPublicKey: Uint8Array;
 
       beforeEach(async () => {
-        otherPartyKeyPair = await X25519.generateKeyPair();
-        ownKeyPair = await X25519.generateKeyPair();
+        ownPrivateKey = await X25519.generateKey();
+        ownPublicKey = await X25519.getPublicKey({ privateKey: ownPrivateKey });
+        otherPartyPrivateKey = await X25519.generateKey();
+        otherPartyPublicKey = await X25519.getPublicKey({ privateKey: otherPartyPrivateKey });
       });
 
       it('generates a 32-byte compressed secret', async () => {
         const sharedSecret = await X25519.sharedSecret({
-          privateKey : ownKeyPair.privateKey,
-          publicKey  : otherPartyKeyPair.publicKey
+          privateKey : ownPrivateKey,
+          publicKey  : otherPartyPublicKey
         });
         expect(sharedSecret).to.be.instanceOf(Uint8Array);
         expect(sharedSecret.byteLength).to.equal(32);
@@ -1060,13 +1054,13 @@ describe('Cryptographic Primitive Implementations', () => {
 
       it('generates identical output if keypairs are swapped', async () => {
         const sharedSecretOwnOther = await X25519.sharedSecret({
-          privateKey : ownKeyPair.privateKey,
-          publicKey  : otherPartyKeyPair.publicKey
+          privateKey : ownPrivateKey,
+          publicKey  : otherPartyPublicKey
         });
 
         const sharedSecretOtherOwn = await X25519.sharedSecret({
-          privateKey : otherPartyKeyPair.privateKey,
-          publicKey  : ownKeyPair.publicKey
+          privateKey : otherPartyPrivateKey,
+          publicKey  : ownPublicKey
         });
 
         expect(sharedSecretOwnOther).to.deep.equal(sharedSecretOtherOwn);
