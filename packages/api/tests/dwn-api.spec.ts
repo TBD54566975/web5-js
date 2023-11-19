@@ -392,6 +392,59 @@ describe('DwnApi', () => {
         expect(deleteResult.status.code).to.equal(401);
         expect(deleteResult.status.detail).to.include('message failed authorization');
       });
+
+      it('deletes records that were authored/signed by another DID', async () => {
+        /**
+         * WHAT IS BEING TESTED?
+         *
+         * We are testing whether a record authored/signed by one party (Alice) can be written to
+         * another party's DWN (Bob), and that recipient (Bob) is able to delete the record.
+         *
+         * TEST SETUP STEPS:
+         *   1. Configure the email protocol on Bob's local DWN.
+         */
+        const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
+          message: {
+            definition: emailProtocolDefinition
+          }
+        });
+        expect(bobProtocolStatus.code).to.equal(202);
+        /**
+         *   2. Configure the email protocol on Bob's remote DWN.
+         */
+        const { status: bobRemoteProtocolStatus } = await bobProtocol.send(bobDid.did);
+        expect(bobRemoteProtocolStatus.code).to.equal(202);
+        /**
+         *   3. Alice creates a record, but doesn't store it locally.
+         */
+        const { status: createStatus, record: testRecord} = await dwnAlice.records.create({
+          store   : false,
+          data    : 'test',
+          message : {
+            protocol     : 'http://email-protocol.xyz',
+            protocolPath : 'email',
+            schema       : 'http://email-protocol.xyz/schema/email',
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(createStatus.code).to.equal(202);
+        expect(testRecord.author).to.equal(aliceDid.did);
+        /**
+         *   4. Alice writes the record to Bob's remote DWN.
+         */
+        const { status: sendStatus } = await testRecord.send(bobDid.did);
+        expect(sendStatus.code).to.equal(202);
+        /**
+         *   5. Bob deletes the record from his remote DWN.
+         */
+        const deleteResult = await dwnBob.records.delete({
+          from    : bobDid.did,
+          message : {
+            recordId: testRecord.id
+          }
+        });
+        expect(deleteResult.status.code).to.equal(202);
+      });
     });
   });
 
