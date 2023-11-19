@@ -440,13 +440,11 @@ export class DwnApi {
       /**
        * Writes a record to the DWN
        *
-       * As a convenience, the Record instance returned will cache a copy of the data if the
-       * data size, in bytes, is less than the DWN 'max data size allowed to be encoded'
-       * parameter of 10KB. This is done to maintain consistency with other DWN methods,
-       * like RecordsQuery, that include relatively small data payloads when returning
-       * RecordsWrite message properties. Regardless of data size, methods such as
-       * `record.data.stream()` will return the data when called even if it requires fetching
-       * from the DWN datastore.
+       * As a convenience, the Record instance returned will cache a copy of the data.  This is done
+       * to maintain consistency with other DWN methods, like RecordsQuery, that include relatively
+       * small data payloads when returning RecordsWrite message properties. Regardless of data
+       * size, methods such as `record.data.stream()` will return the data when called even if it
+       * requires fetching from the DWN datastore.
        */
       write: async (request: RecordsWriteRequest): Promise<RecordsWriteResponse> => {
         const messageOptions: Partial<RecordsWriteOptions> = {

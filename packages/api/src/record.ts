@@ -1,7 +1,6 @@
 import type { Web5Agent } from '@web5/agent';
 import type { Readable } from 'readable-stream';
 import type {
-  RecordsReadReply,
   RecordsWriteMessage,
   RecordsWriteOptions,
   RecordsWriteDescriptor,
@@ -191,12 +190,12 @@ export class Record implements RecordModel {
       // If neither of the above are true, then the record must be fetched from the DWN.
       this._readableStream = this._agent.processDwnRequest({
         author         : this.author,
-        messageOptions : { recordId: this.id },
+        messageOptions : { filter: { recordId: this.id } },
         messageType    : DwnInterfaceName.Records + DwnMethodName.Read,
         target         : this.target,
       })
-        .then(response => response.reply as RecordsReadReply)
-        .then(reply => reply.record.data as Readable)
+        .then(response => response.reply)
+        .then(reply => reply.record.data)
         .catch(error => { throw new Error(`Error encountered while attempting to read data: ${error.message}`); });
     }
 
