@@ -298,24 +298,25 @@ describe('Cryptographic Primitive Implementations', () => {
     describe('convertPrivateKeyToX25519()', () => {
       let validEd25519PrivateKey: Uint8Array;
 
-      // This is a setup step. Before each test, generate a new Ed25519 key pair
-      // and use the private key in tests. This ensures that we work with fresh keys for every test.
+      /** This is a setup step. Before each test, generate a new Ed25519 private key and use the
+       * key in tests. This ensures that we work with fresh keys for every test. */
       beforeEach(async () => {
-        const keyPair = await Ed25519.generateKeyPair();
-        validEd25519PrivateKey = keyPair.publicKey;
+        const privateKey = await Ed25519.generateKey();
+        validEd25519PrivateKey = privateKey;
       });
 
       it('converts a valid Ed25519 private key to X25519 format', async () => {
-        const x25519PrivateKey = await Ed25519.convertPrivateKeyToX25519({ privateKey: validEd25519PrivateKey });
+        const x25519PrivateKey = await Ed25519.convertPrivateKeyToX25519({
+          privateKey: validEd25519PrivateKey
+        });
 
         expect(x25519PrivateKey).to.be.instanceOf(Uint8Array);
         expect(x25519PrivateKey.length).to.equal(32);
       });
 
       it('accepts any Uint8Array value as a private key', async () => {
-        /** For Ed25519 the private key is a random string of bytes that is
-         * hashed, which means many possible values can serve as a valid
-         * private key. */
+        /** For Ed25519 the private key is a random string of bytes that is hashed, which means many
+         * possible values can serve as a valid private key. */
         const key0Bytes = new Uint8Array(0);
         const key33Bytes = Convert.hex('02fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f').toUint8Array();
 
@@ -329,15 +330,18 @@ describe('Cryptographic Primitive Implementations', () => {
     describe('convertPublicKeyToX25519()', () => {
       let validEd25519PublicKey: Uint8Array;
 
-      // This is a setup step. Before each test, generate a new Ed25519 key pair
-      // and use the public key in tests. This ensures that we work with fresh keys for every test.
+      // This is a setup step. Before each test, generate a new Ed25519 private key and use its
+      // public key in tests. This ensures that we work with fresh keys for every test.
       beforeEach(async () => {
-        const keyPair = await Ed25519.generateKeyPair();
-        validEd25519PublicKey = keyPair.publicKey;
+        const privateKey = await Ed25519.generateKey();
+        const publicKey = await Ed25519.getPublicKey({ privateKey });
+        validEd25519PublicKey = publicKey;
       });
 
       it('converts a valid Ed25519 public key to X25519 format', async () => {
-        const x25519PublicKey = await Ed25519.convertPublicKeyToX25519({ publicKey: validEd25519PublicKey });
+        const x25519PublicKey = await Ed25519.convertPublicKeyToX25519({
+          publicKey: validEd25519PublicKey
+        });
 
         expect(x25519PublicKey).to.be.instanceOf(Uint8Array);
         expect(x25519PublicKey.length).to.equal(32);
@@ -362,61 +366,51 @@ describe('Cryptographic Primitive Implementations', () => {
       });
     });
 
-    describe('generateKeyPair()', () => {
-      it('returns a pair of keys of type Uint8Array', async () => {
-        const keyPair = await Ed25519.generateKeyPair();
-        expect(keyPair).to.have.property('privateKey');
-        expect(keyPair).to.have.property('publicKey');
-        expect(keyPair.privateKey).to.be.instanceOf(Uint8Array);
-        expect(keyPair.publicKey).to.be.instanceOf(Uint8Array);
+    describe('generateKey()', () => {
+      it('returns a private key of type Uint8Array', async () => {
+        const privateKey = await Ed25519.generateKey();
+        expect(privateKey).to.be.instanceOf(Uint8Array);
       });
 
       it('returns a 32-byte private key', async () => {
-        const keyPair = await Ed25519.generateKeyPair();
-        expect(keyPair.privateKey.byteLength).to.equal(32);
-      });
-
-      it('returns a 32-byte compressed public key', async () => {
-        const keyPair = await Ed25519.generateKeyPair();
-        expect(keyPair.publicKey.byteLength).to.equal(32);
+        const privateKey = await Ed25519.generateKey();
+        expect(privateKey.byteLength).to.equal(32);
       });
     });
 
     describe('getPublicKey()', () => {
-      let keyPair: BytesKeyPair;
+      let privateKey: Uint8Array;
 
       before(async () => {
-        keyPair = await Ed25519.generateKeyPair();
+        privateKey = await Ed25519.generateKey();
       });
 
       it('returns a 32-byte compressed public key', async () => {
-        const publicKey = await Ed25519.getPublicKey({ privateKey: keyPair.privateKey });
+        const publicKey = await Ed25519.getPublicKey({ privateKey });
         expect(publicKey).to.be.instanceOf(Uint8Array);
         expect(publicKey.byteLength).to.equal(32);
       });
     });
 
     describe('sign()', () => {
-      let keyPair: BytesKeyPair;
+      let privateKey: Uint8Array;
 
       before(async () => {
-        keyPair = await Ed25519.generateKeyPair();
+        privateKey = await Ed25519.generateKey();
       });
 
       it('returns a 64-byte signature of type Uint8Array', async () => {
         const data = new Uint8Array([51, 52, 53]);
-        const signature = await Ed25519.sign({ key: keyPair.privateKey, data });
+        const signature = await Ed25519.sign({ key: privateKey, data });
         expect(signature).to.be.instanceOf(Uint8Array);
         expect(signature.byteLength).to.equal(64);
       });
 
       it('accepts input data as Uint8Array', async () => {
         const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        const key = keyPair.privateKey;
         let signature: Uint8Array;
 
-        // TypedArray - Uint8Array
-        signature = await Ed25519.sign({ key, data: data });
+        signature = await Ed25519.sign({ key: privateKey, data: data });
         expect(signature).to.be.instanceOf(Uint8Array);
       });
     });
@@ -446,29 +440,28 @@ describe('Cryptographic Primitive Implementations', () => {
     });
 
     describe('verify()', () => {
-      let keyPair: BytesKeyPair;
+      let privateKey: Uint8Array;
+      let publicKey: Uint8Array;
 
       before(async () => {
-        keyPair = await Ed25519.generateKeyPair();
+        privateKey = await Ed25519.generateKey();
+        publicKey = await Ed25519.getPublicKey({ privateKey });
       });
 
       it('returns a boolean result', async () => {
         const data = new Uint8Array([51, 52, 53]);
-        const signature = await Ed25519.sign({ key: keyPair.privateKey, data });
+        const signature = await Ed25519.sign({ key: privateKey, data });
 
-        const isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data });
+        const isValid = await Ed25519.verify({ key: publicKey, signature, data });
         expect(isValid).to.exist;
         expect(isValid).to.be.true;
       });
 
       it('accepts input data as Uint8Array', async () => {
         const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        let isValid: boolean;
-        let signature: Uint8Array;
+        const signature = await Ed25519.sign({ key: privateKey, data });
 
-        // TypedArray - Uint8Array
-        signature = await Ed25519.sign({ key: keyPair.privateKey, data });
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data });
+        const isValid = await Ed25519.verify({ key: publicKey, signature, data });
         expect(isValid).to.be.true;
       });
 
@@ -477,10 +470,10 @@ describe('Cryptographic Primitive Implementations', () => {
         let isValid: boolean;
 
         // Generate signature using the private key.
-        const signature = await Ed25519.sign({ key: keyPair.privateKey, data });
+        const signature = await Ed25519.sign({ key: privateKey, data });
 
         // Verification should return true with the data used to generate the signature.
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data });
+        isValid = await Ed25519.verify({ key: publicKey, signature, data });
         expect(isValid).to.be.true;
 
         // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
@@ -488,7 +481,7 @@ describe('Cryptographic Primitive Implementations', () => {
         mutatedData[0] ^= 1 << 0;
 
         // Verification should return false if the given data does not match the data used to generate the signature.
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature, data: mutatedData });
+        isValid = await Ed25519.verify({ key: publicKey, signature, data: mutatedData });
         expect(isValid).to.be.false;
       });
 
@@ -496,32 +489,34 @@ describe('Cryptographic Primitive Implementations', () => {
         const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         let isValid: boolean;
 
-        // Generate a new key pair.
-        keyPair = await Ed25519.generateKeyPair();
+        // Generate a new private key and get its public key.
+        privateKey = await Ed25519.generateKey();
+        publicKey = await Ed25519.getPublicKey({ privateKey });
 
         // Generate signature using the private key.
-        const signature = await Ed25519.sign({ key: keyPair.privateKey, data });
+        const signature = await Ed25519.sign({ key: privateKey, data });
 
         // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
         const mutatedSignature = new Uint8Array(signature);
         mutatedSignature[0] ^= 1 << 0;
 
         // Verification should return false if the signature was modified.
-        isValid = await Ed25519.verify({ key: keyPair.publicKey, signature: signature, data: mutatedSignature });
+        isValid = await Ed25519.verify({ key: publicKey, signature: signature, data: mutatedSignature });
         expect(isValid).to.be.false;
       });
 
       it('returns false with a signature generated using a different private key', async () => {
         const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        const keyPairA = await Ed25519.generateKeyPair();
-        const keyPairB = await Ed25519.generateKeyPair();
+        const privateKeyA = await Ed25519.generateKey();
+        const publicKeyA = await Ed25519.getPublicKey({ privateKey: privateKeyA });
+        const privateKeyB = await Ed25519.generateKey();
         let isValid: boolean;
 
-        // Generate a signature using the private key from key pair B.
-        const signatureB = await Ed25519.sign({ key: keyPairB.privateKey, data });
+        // Generate a signature using private key B.
+        const signatureB = await Ed25519.sign({ key: privateKeyB, data });
 
-        // Verification should return false with the public key from key pair A.
-        isValid = await Ed25519.verify({ key: keyPairA.publicKey, signature: signatureB, data });
+        // Verification should return false with the public key from private key A.
+        isValid = await Ed25519.verify({ key: publicKeyA, signature: signatureB, data });
         expect(isValid).to.be.false;
       });
     });

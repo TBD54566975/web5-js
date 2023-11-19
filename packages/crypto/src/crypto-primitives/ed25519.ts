@@ -1,28 +1,28 @@
-import type { BytesKeyPair } from '../types/crypto-key.js';
-
 import { ed25519, edwardsToMontgomeryPub, edwardsToMontgomeryPriv } from '@noble/curves/ed25519';
 
 /**
- * The `Ed25519` class provides an interface for generating Ed25519 key pairs,
- * computing public keys from private keys, and signing and verifying messages.
+ * The `Ed25519` class provides an interface for generating Ed25519 private
+ * keys, computing public keys from private keys, and signing and verifying
+ * messages.
  *
  * The class uses the '@noble/curves' package for the cryptographic operations.
  *
- * The methods of this class are all asynchronous and return Promises. They all use
- * the Uint8Array type for keys, signatures, and data, providing a consistent
- * interface for working with binary data.
+ * The methods of this class are all asynchronous and return Promises. They all
+ * use the Uint8Array type for keys, signatures, and data, providing a
+ * consistent interface for working with binary data.
  *
  * Example usage:
  *
  * ```ts
- * const keyPair = await Ed25519.generateKeyPair();
+ * const privateKey = await Ed25519.generateKey();
  * const message = new TextEncoder().encode('Hello, world!');
  * const signature = await Ed25519.sign({
- *   key: keyPair.privateKey,
+ *   key: privateKey,
  *   data: message
  * });
+ * const publicKey = await Ed25519.getPublicKey({ privateKey });
  * const isValid = await Ed25519.verify({
- *   key: keyPair.publicKey,
+ *   key: publicKey,
  *   signature,
  *   data: message
  * });
@@ -89,17 +89,11 @@ export class Ed25519 {
    *
    * @returns A Promise that resolves to an object containing the private and public keys as Uint8Array.
    */
-  public static async generateKeyPair(): Promise<BytesKeyPair> {
-    // Generate the private key and compute its public key.
+  public static async generateKey(): Promise<Uint8Array> {
+    // Generate a random private key.
     const privateKey = ed25519.utils.randomPrivateKey();
-    const publicKey  = ed25519.getPublicKey(privateKey);
 
-    const keyPair = {
-      privateKey : privateKey,
-      publicKey  : publicKey
-    };
-
-    return keyPair;
+    return privateKey;
   }
 
   /**
