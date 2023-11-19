@@ -643,10 +643,13 @@ describe('Cryptographic Primitive Implementations', () => {
 
   describe('Secp256k1', () => {
     describe('convertPublicKey method', () => {
-      it('converts an uncompressed public key to a compressed format', async () => {
+      it('converts an uncompressed public key to compressed format', async () => {
         // Generate the uncompressed public key.
-        const keyPair = await Secp256k1.generateKeyPair({ compressedPublicKey: false });
-        const uncompressedPublicKey = keyPair.publicKey;
+        const privateKey = await Secp256k1.generateKey();
+        const uncompressedPublicKey = await Secp256k1.getPublicKey({
+          privateKey,
+          compressedPublicKey: false
+        });
 
         // Attempt to convert to compressed format.
         const compressedKey = await Secp256k1.convertPublicKey({
@@ -660,8 +663,11 @@ describe('Cryptographic Primitive Implementations', () => {
 
       it('converts a compressed public key to an uncompressed format', async () => {
         // Generate the uncompressed public key.
-        const keyPair = await Secp256k1.generateKeyPair({ compressedPublicKey: true });
-        const compressedPublicKey = keyPair.publicKey;
+        const privateKey = await Secp256k1.generateKey();
+        const compressedPublicKey = await Secp256k1.getPublicKey({
+          privateKey,
+          compressedPublicKey: true
+        });
 
         const uncompressedKey = await Secp256k1.convertPublicKey({
           publicKey           : compressedPublicKey,
@@ -705,28 +711,15 @@ describe('Cryptographic Primitive Implementations', () => {
       });
     });
 
-    describe('generateKeyPair()', () => {
-      it('returns a pair of keys of type Uint8Array', async () => {
-        const keyPair = await Secp256k1.generateKeyPair();
-        expect(keyPair).to.have.property('privateKey');
-        expect(keyPair).to.have.property('publicKey');
-        expect(keyPair.privateKey).to.be.instanceOf(Uint8Array);
-        expect(keyPair.publicKey).to.be.instanceOf(Uint8Array);
+    describe('generateKey()', () => {
+      it('returns a private key of type Uint8Array', async () => {
+        const privateKey = await Secp256k1.generateKey();
+        expect(privateKey).to.be.instanceOf(Uint8Array);
       });
 
       it('returns a 32-byte private key', async () => {
-        const keyPair = await Secp256k1.generateKeyPair();
-        expect(keyPair.privateKey.byteLength).to.equal(32);
-      });
-
-      it('returns a 33-byte compressed public key, by default', async () => {
-        const keyPair = await Secp256k1.generateKeyPair();
-        expect(keyPair.publicKey.byteLength).to.equal(33);
-      });
-
-      it('returns a 65-byte uncompressed public key, if specified', async () => {
-        const keyPair = await Secp256k1.generateKeyPair({ compressedPublicKey: false });
-        expect(keyPair.publicKey.byteLength).to.equal(65);
+        const privateKey = await Secp256k1.generateKey();
+        expect(privateKey.byteLength).to.equal(32);
       });
     });
 
@@ -777,38 +770,43 @@ describe('Cryptographic Primitive Implementations', () => {
     });
 
     describe('getPublicKey()', () => {
-      let keyPair: BytesKeyPair;
+      let privateKey: Uint8Array;
 
       before(async () => {
-        keyPair = await Secp256k1.generateKeyPair();
+        privateKey = await Secp256k1.generateKey();
       });
 
       it('returns a 33-byte compressed public key, by default', async () => {
-        const publicKey = await Secp256k1.getPublicKey({ privateKey: keyPair.privateKey });
+        const publicKey = await Secp256k1.getPublicKey({ privateKey });
         expect(publicKey).to.be.instanceOf(Uint8Array);
         expect(publicKey.byteLength).to.equal(33);
       });
 
       it('returns a 65-byte uncompressed public key, if specified', async () => {
-        const publicKey = await Secp256k1.getPublicKey({ privateKey: keyPair.privateKey, compressedPublicKey: false });
+        const publicKey = await Secp256k1.getPublicKey({ privateKey, compressedPublicKey: false });
         expect(publicKey).to.be.instanceOf(Uint8Array);
         expect(publicKey.byteLength).to.equal(65);
       });
     });
 
     describe('sharedSecret()', () => {
-      let otherPartyKeyPair: BytesKeyPair;
-      let ownKeyPair: BytesKeyPair;
+      let ownPrivateKey: Uint8Array;
+      let ownPublicKey: Uint8Array;
+      let otherPartyPrivateKey: Uint8Array;
+      let otherPartyPublicKey: Uint8Array;
 
       beforeEach(async () => {
-        otherPartyKeyPair = await Secp256k1.generateKeyPair();
-        ownKeyPair = await Secp256k1.generateKeyPair();
+        ownPrivateKey = await Secp256k1.generateKey();
+        ownPublicKey = await Secp256k1.getPublicKey({ privateKey: ownPrivateKey });
+
+        otherPartyPrivateKey = await Secp256k1.generateKey();
+        otherPartyPublicKey = await Secp256k1.getPublicKey({ privateKey: otherPartyPrivateKey });
       });
 
       it('generates a 32-byte shared secret', async () => {
         const sharedSecret = await Secp256k1.sharedSecret({
-          privateKey : ownKeyPair.privateKey,
-          publicKey  : otherPartyKeyPair.publicKey
+          privateKey : ownPrivateKey,
+          publicKey  : otherPartyPublicKey
         });
         expect(sharedSecret).to.be.instanceOf(Uint8Array);
         expect(sharedSecret.byteLength).to.equal(32);
@@ -816,13 +814,13 @@ describe('Cryptographic Primitive Implementations', () => {
 
       it('generates identical output if keypairs are swapped', async () => {
         const sharedSecretOwnOther = await Secp256k1.sharedSecret({
-          privateKey : ownKeyPair.privateKey,
-          publicKey  : otherPartyKeyPair.publicKey
+          privateKey : ownPrivateKey,
+          publicKey  : otherPartyPublicKey
         });
 
         const sharedSecretOtherOwn = await Secp256k1.sharedSecret({
-          privateKey : otherPartyKeyPair.privateKey,
-          publicKey  : ownKeyPair.publicKey
+          privateKey : otherPartyPrivateKey,
+          publicKey  : ownPublicKey
         });
 
         expect(sharedSecretOwnOther).to.deep.equal(sharedSecretOtherOwn);
@@ -830,28 +828,26 @@ describe('Cryptographic Primitive Implementations', () => {
     });
 
     describe('sign()', () => {
-      let keyPair: BytesKeyPair;
+      let privateKey: Uint8Array;
 
       before(async () => {
-        keyPair = await Secp256k1.generateKeyPair();
+        privateKey = await Secp256k1.generateKey();
       });
 
       it('returns a 64-byte signature of type Uint8Array', async () => {
-        const hash = 'SHA-256';
         const data = new Uint8Array([51, 52, 53]);
-        const signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data });
+        const signature = await Secp256k1.sign({ key: privateKey, data });
         expect(signature).to.be.instanceOf(Uint8Array);
         expect(signature.byteLength).to.equal(64);
       });
 
       it('accepts input data as Uint8Array', async () => {
         const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        const hash = 'SHA-256';
-        const key = keyPair.privateKey;
+        const key = privateKey;
         let signature: Uint8Array;
 
         // TypedArray - Uint8Array
-        signature = await Secp256k1.sign({ hash, key, data });
+        signature = await Secp256k1.sign({ key, data });
         expect(signature).to.be.instanceOf(Uint8Array);
       });
     });
@@ -905,63 +901,62 @@ describe('Cryptographic Primitive Implementations', () => {
     });
 
     describe('verify()', () => {
-      let keyPair: BytesKeyPair;
+      let privateKey: Uint8Array;
+      let publicKey: Uint8Array;
 
       before(async () => {
-        keyPair = await Secp256k1.generateKeyPair();
+        privateKey = await Secp256k1.generateKey();
+        publicKey = await Secp256k1.getPublicKey({ privateKey });
       });
 
       it('returns a boolean result', async () => {
         const data = new Uint8Array([51, 52, 53]);
-        const signature = await Secp256k1.sign({ hash: 'SHA-256', key: keyPair.privateKey, data });
+        const signature = await Secp256k1.sign({ key: privateKey, data });
 
-        const isValid = await Secp256k1.verify({ hash: 'SHA-256', key: keyPair.publicKey, signature, data });
+        const isValid = await Secp256k1.verify({ key: publicKey, signature, data });
         expect(isValid).to.exist;
         expect(isValid).to.be.true;
       });
 
       it('accepts input data as Uint8Array', async () => {
         const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        const hash = 'SHA-256';
         let isValid: boolean;
         let signature: Uint8Array;
 
         // TypedArray - Uint8Array
-        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data });
-        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data });
+        signature = await Secp256k1.sign({ key: privateKey, data });
+        isValid = await Secp256k1.verify({ key: publicKey, signature, data });
         expect(isValid).to.be.true;
       });
 
       it('accepts both compressed and uncompressed public keys', async () => {
         let signature: Uint8Array;
         let isValid: boolean;
-        const hash = 'SHA-256';
         const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
 
         // Generate signature using the private key.
-        signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data });
+        signature = await Secp256k1.sign({ key: privateKey, data });
 
         // Attempt to verify the signature using a compressed public key.
-        const compressedPublicKey = await Secp256k1.getPublicKey({ privateKey: keyPair.privateKey, compressedPublicKey: true });
-        isValid = await Secp256k1.verify({ hash, key: compressedPublicKey, signature, data });
+        const compressedPublicKey = await Secp256k1.getPublicKey({ privateKey: privateKey, compressedPublicKey: true });
+        isValid = await Secp256k1.verify({ key: compressedPublicKey, signature, data });
         expect(isValid).to.be.true;
 
         // Attempt to verify the signature using an uncompressed public key.
-        const uncompressedPublicKey = await Secp256k1.getPublicKey({ privateKey: keyPair.privateKey, compressedPublicKey: false });
-        isValid = await Secp256k1.verify({ hash, key: uncompressedPublicKey, signature, data });
+        const uncompressedPublicKey = await Secp256k1.getPublicKey({ privateKey: privateKey, compressedPublicKey: false });
+        isValid = await Secp256k1.verify({ key: uncompressedPublicKey, signature, data });
         expect(isValid).to.be.true;
       });
 
       it('returns false if the signed data was mutated', async () => {
-        const hash = 'SHA-256';
         const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         let isValid: boolean;
 
         // Generate signature using the private key.
-        const signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data });
+        const signature = await Secp256k1.sign({ key: privateKey, data });
 
         // Verification should return true with the data used to generate the signature.
-        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data });
+        isValid = await Secp256k1.verify({ key: publicKey, signature, data });
         expect(isValid).to.be.true;
 
         // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
@@ -969,20 +964,19 @@ describe('Cryptographic Primitive Implementations', () => {
         mutatedData[0] ^= 1 << 0;
 
         // Verification should return false if the given data does not match the data used to generate the signature.
-        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data: mutatedData });
+        isValid = await Secp256k1.verify({ key: publicKey, signature, data: mutatedData });
         expect(isValid).to.be.false;
       });
 
       it('returns false if the signature was mutated', async () => {
-        const hash = 'SHA-256';
         const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
         let isValid: boolean;
 
         // Generate signature using the private key.
-        const signature = await Secp256k1.sign({ hash, key: keyPair.privateKey, data });
+        const signature = await Secp256k1.sign({ key: privateKey, data });
 
         // Verification should return true with the data used to generate the signature.
-        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature, data });
+        isValid = await Secp256k1.verify({ key: publicKey, signature, data });
         expect(isValid).to.be.true;
 
         // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
@@ -990,22 +984,22 @@ describe('Cryptographic Primitive Implementations', () => {
         mutatedSignature[0] ^= 1 << 0;
 
         // Verification should return false if the signature was modified.
-        isValid = await Secp256k1.verify({ hash, key: keyPair.publicKey, signature: signature, data: mutatedSignature });
+        isValid = await Secp256k1.verify({ key: publicKey, signature: signature, data: mutatedSignature });
         expect(isValid).to.be.false;
       });
 
       it('returns false with a signature generated using a different private key', async () => {
-        const hash = 'SHA-256';
         const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-        const keyPairA = await Secp256k1.generateKeyPair();
-        const keyPairB = await Secp256k1.generateKeyPair();
+        const privateKeyA = await Secp256k1.generateKey();
+        const publicKeyA = await Secp256k1.getPublicKey({ privateKey: privateKeyA });
+        const privateKeyB = await Secp256k1.generateKey();
         let isValid: boolean;
 
-        // Generate a signature using the private key from key pair B.
-        const signatureB = await Secp256k1.sign({ hash, key: keyPairB.privateKey, data });
+        // Generate a signature using private key B.
+        const signatureB = await Secp256k1.sign({ key: privateKeyB, data });
 
-        // Verification should return false with the public key from key pair A.
-        isValid = await Secp256k1.verify({ hash, key: keyPairA.publicKey, signature: signatureB, data });
+        // Verification should return false with public key A.
+        isValid = await Secp256k1.verify({ key: publicKeyA, signature: signatureB, data });
         expect(isValid).to.be.false;
       });
     });

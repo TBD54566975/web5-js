@@ -1,14 +1,10 @@
-import type { BytesKeyPair } from '../types/crypto-key.js';
-
 import { sha256 } from '@noble/hashes/sha256';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { numberToBytesBE } from '@noble/curves/abstract/utils';
 
-export type HashFunction = (data: Uint8Array) => Uint8Array;
-
 /**
- * The `Secp256k1` class provides an interface for generating secp256k1 key pairs,
- * computing public keys from private keys, generating shaerd secrets, and
+ * The `Secp256k1` class provides an interface for generating secp256k1 private keys,
+ * computing public keys from private keys, generating shared secrets, and
  * signing and verifying messages.
  *
  * The class uses the '@noble/secp256k1' package for the cryptographic operations,
@@ -22,16 +18,17 @@ export type HashFunction = (data: Uint8Array) => Uint8Array;
  * Example usage:
  *
  * ```ts
- * const keyPair = await Secp256k1.generateKeyPair();
+ * const privateKey = await Secp256k1.generateKey();
  * const message = new TextEncoder().encode('Hello, world!');
  * const signature = await Secp256k1.sign({
  *   algorithm: { hash: 'SHA-256' },
- *   key: keyPair.privateKey,
+ *   key: privateKey,
  *   data: message
  * });
+ * const publicKey = await Secp256k1.getPublicKey({ privateKey });
  * const isValid = await Secp256k1.verify({
  *   algorithm: { hash: 'SHA-256' },
- *   key: keyPair.publicKey,
+ *   key: publicKey,
  *   signature,
  *   data: message
  * });
@@ -39,15 +36,6 @@ export type HashFunction = (data: Uint8Array) => Uint8Array;
  * ```
  */
 export class Secp256k1 {
-  /**
-   * A private static field containing a map of hash algorithm names to their
-   * corresponding hash functions.  The map is used in the 'sign' and 'verify'
-   * methods to get the specified hash function.
-   */
-  private static hashAlgorithms: Record<string, HashFunction> = {
-    'SHA-256': sha256
-  };
-
   /**
    * Converts a public key between its compressed and uncompressed forms.
    *
@@ -83,29 +71,15 @@ export class Secp256k1 {
   }
 
   /**
-   * Generates a secp256k1 key pair.
+   * Generates a secp256k1 private key.
    *
-   * @param options - Optional parameters for the key generation.
-   * @param options.compressedPublicKey - If true, generates a compressed public key. Defaults to true.
-   * @returns A Promise that resolves to an object containing the private and public keys as Uint8Array.
+   * @returns A Promise that resolves to an object containing the private key as a Uint8Array.
    */
-  public static async generateKeyPair(options?: {
-    compressedPublicKey?: boolean
-  }): Promise<BytesKeyPair> {
-    let { compressedPublicKey } = options ?? { };
-
-    compressedPublicKey ??= true; // Default to compressed public key, matching the default of @noble/secp256k1.
-
-    // Generate the private key and compute its public key.
+  public static async generateKey(): Promise<Uint8Array> {
+    // Generate a random private key.
     const privateKey = secp256k1.utils.randomPrivateKey();
-    const publicKey  = secp256k1.getPublicKey(privateKey, compressedPublicKey);
 
-    const keyPair = {
-      privateKey : privateKey,
-      publicKey  : publicKey
-    };
-
-    return keyPair;
+    return privateKey;
   }
 
   /**
@@ -185,9 +159,13 @@ export class Secp256k1 {
    * the y-coordinate does not add to the entropy of the key, and both parties
    * can independently compute the x-coordinate, so using just the x-coordinate
    * simplifies matters.
+   *
+   * @param options - The options for the shared secret computation operation.
+   * @param options.privateKey - The private key of one party.
+   * @param options.publicKey - The public key of the other party.
+   * @returns A Promise that resolves to the computed shared secret as a Uint8Array.
    */
   public static async sharedSecret(options: {
-    compressedSecret?: boolean,
     privateKey: Uint8Array,
     publicKey: Uint8Array
   }): Promise<Uint8Array> {
@@ -206,20 +184,17 @@ export class Secp256k1 {
    *
    * @param options - The options for the signing operation.
    * @param options.data - The data to sign.
-   * @param options.hash - The hash algorithm to use to generate a digest of the data.
    * @param options.key - The private key to use for signing.
    * @returns A Promise that resolves to the signature as a Uint8Array.
    */
   public static async sign(options: {
     data: Uint8Array,
-    hash: string,
     key: Uint8Array
   }): Promise<Uint8Array> {
-    const { data, hash, key } = options;
+    const { data, key } = options;
 
-    // Generate a digest of the data using the specified hash function.
-    const hashFunction = this.hashAlgorithms[hash];
-    const digest = hashFunction(data);
+    // Generate a digest of the data using the SHA-256 hash function.
+    const digest = sha256(data);
 
     // Signature operation returns a Signature instance with { r, s, recovery } properties.
     const signatureObject = secp256k1.sign(digest, key);
@@ -301,20 +276,18 @@ export class Secp256k1 {
    */
   public static async verify(options: {
     data: Uint8Array,
-    hash: string,
     key: Uint8Array,
     signature: Uint8Array
   }): Promise<boolean> {
-    const { data, hash, key, signature } = options;
+    const { data, key, signature } = options;
 
-    // Generate a digest of the data using the specified hash function.
-    const hashFunction = this.hashAlgorithms[hash];
-    const digest = hashFunction(data);
+    // Generate a digest of the data using the SHA-256 hash function.
+    const digest = sha256(data);
 
-    // Verify operation with malleability check disabled. Guaranteed support for low-s
-    // signatures across languages is unlikely especially in the context of SSI.
-    // Notable Cloud KMS providers do not natively support it either.
-    // low-s signatures are a requirement for Bitcoin
+    /** Verify operation with malleability check disabled. Guaranteed support for
+     * low-s signatures across languages is unlikely especially in the context of
+     * SSI. Notable Cloud KMS providers do not natively support it either. It is
+     * also worth noting that low-s signatures are a requirement for Bitcoin. */
     const isValid = secp256k1.verify(signature, digest, key, { lowS: false });
 
     return isValid;
