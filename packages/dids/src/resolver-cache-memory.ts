@@ -32,7 +32,6 @@ export class DidResolverCacheMemory implements DidResolverCache {
 
     if (Date.now() >= cacheWrapper.ttlMillis) {
       this.cache.delete(did);
-      // this.cache.nextTick(() => this.cache.del(did));
       return;
     } else {
       return cacheWrapper.value;
