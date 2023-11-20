@@ -1,4 +1,5 @@
 import type { Web5Crypto } from '../types/web5-crypto.js';
+import type { JsonWebKey, JwkOperation, JwkType } from '../jose.js';
 
 import { InvalidAccessError, NotSupportedError } from './errors.js';
 
@@ -35,6 +36,15 @@ export abstract class CryptoAlgorithm {
     }
   }
 
+  public checkJwk(options: {
+    key: JsonWebKey
+  }): void {
+    const { key } = options;
+    if (!('kty' in key)) {
+      throw new TypeError('Object is not a JSON Web Key (JWK)');
+    }
+  }
+
   public checkKeyAlgorithm(options: {
     keyAlgorithmName: string
   }): void {
@@ -48,28 +58,27 @@ export abstract class CryptoAlgorithm {
   }
 
   public checkKeyType(options: {
-    keyType: Web5Crypto.KeyType,
-    allowedKeyType: Web5Crypto.KeyType
+    keyType: JwkType,
+    allowedKeyType: JwkType
   }): void {
     const { keyType, allowedKeyType } = options;
     if (keyType === undefined || allowedKeyType === undefined) {
       throw new TypeError(`One or more required parameters missing: 'keyType, allowedKeyType'`);
     }
     if (keyType && keyType !== allowedKeyType) {
-      throw new InvalidAccessError(`Requested operation is not valid for the provided '${keyType}' key.`);
+      throw new InvalidAccessError(`Key type of the provided key must be '${allowedKeyType}' but '${keyType}' was specified.`);
     }
   }
 
   public checkKeyUsages(options: {
-    keyUsages: Web5Crypto.KeyUsage[],
-    allowedKeyUsages: Web5Crypto.KeyUsage[] | Web5Crypto.KeyPairUsage
+    keyUsages: JwkOperation[],
+    allowedKeyUsages: JwkOperation[]
   }): void {
     const { keyUsages, allowedKeyUsages } = options;
     if (!(keyUsages && keyUsages.length > 0)) {
       throw new TypeError(`Required parameter missing or empty: 'keyUsages'`);
     }
-    const allowedUsages = (Array.isArray(allowedKeyUsages)) ? allowedKeyUsages : [...allowedKeyUsages.privateKey, ...allowedKeyUsages.publicKey];
-    if (!keyUsages.every(usage => allowedUsages.includes(usage))) {
+    if (!keyUsages.every(usage => allowedKeyUsages.includes(usage))) {
       throw new InvalidAccessError(`Requested operation(s) '${keyUsages.join(', ')}' is not valid for the provided key.`);
     }
   }
@@ -95,8 +104,8 @@ export abstract class CryptoAlgorithm {
   }): Promise<Uint8Array>;
 
   public abstract deriveBits(options: {
-    algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdhDeriveKeyOptions,
-    baseKey: Web5Crypto.CryptoKey,
+    algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdhDeriveKeyOptions | Web5Crypto.Pbkdf2Options,
+    baseKey: JsonWebKey,
     length: number | null
   }): Promise<Uint8Array>;
 

@@ -1,8 +1,10 @@
-import type { Web5Crypto } from '../src/types/web5-crypto.js';
-
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
+import type { Web5Crypto } from '../src/types/web5-crypto.js';
+import type { JsonWebKey, JwkOperation, JwkType } from '../src/jose.js';
+
+import { Convert } from '@web5/common';
 import {
   CryptoKey,
   OperationError,
@@ -121,14 +123,14 @@ describe('Algorithms API', () => {
       });
 
       it('throws an error when keyType does not match allowedKeyType', async () => {
-        const keyType = 'public';
-        const allowedKeyType = 'private';
-        expect(() => alg.checkKeyType({ keyType, allowedKeyType })).to.throw(InvalidAccessError, 'Requested operation is not valid');
+        const keyType: JwkType = 'oct';
+        const allowedKeyType: JwkType = 'OKP';
+        expect(() => alg.checkKeyType({ keyType, allowedKeyType })).to.throw(InvalidAccessError, 'Key type of the provided key must be');
       });
 
       it('does not throw an error when keyType matches allowedKeyType', async () => {
-        const keyType = 'public';
-        const allowedKeyType = 'public';
+        const keyType = 'EC';
+        const allowedKeyType = 'EC';
         expect(() => alg.checkKeyType({ keyType, allowedKeyType })).not.to.throw();
       });
     });
@@ -140,21 +142,15 @@ describe('Algorithms API', () => {
       });
 
       it('throws an error when keyUsages are not in allowedKeyUsages', async () => {
-        const keyUsages: Web5Crypto.KeyUsage[] = ['encrypt', 'decrypt'];
-        const allowedKeyUsages: Web5Crypto.KeyUsage[] = ['sign', 'verify'];
+        const keyUsages: JwkOperation[] = ['encrypt', 'decrypt'];
+        const allowedKeyUsages: JwkOperation[] = ['sign', 'verify'];
         expect(() => alg.checkKeyUsages({ keyUsages, allowedKeyUsages })).to.throw(InvalidAccessError, 'is not valid for the provided key');
-
-        const keyPairUsages: Web5Crypto.KeyPairUsage = { privateKey: ['sign'], publicKey: ['verify'] };
-        expect(() => alg.checkKeyUsages({ keyUsages, allowedKeyUsages: keyPairUsages })).to.throw(InvalidAccessError, 'is not valid for the provided key');
       });
 
       it('does not throw an error when keyUsages are in allowedKeyUsages', async () => {
-        const keyUsages: Web5Crypto.KeyUsage[] = ['sign', 'verify'];
-        const allowedKeyUsages: Web5Crypto.KeyUsage[] = ['sign', 'verify', 'encrypt', 'decrypt'];
+        const keyUsages: JwkOperation[] = ['sign', 'verify'];
+        const allowedKeyUsages: JwkOperation[] = ['sign', 'verify', 'encrypt', 'decrypt'];
         expect(() => alg.checkKeyUsages({ keyUsages, allowedKeyUsages })).not.to.throw();
-
-        const keyPairUsages: Web5Crypto.KeyPairUsage = { privateKey: ['sign'], publicKey: ['verify'] };
-        expect(() => alg.checkKeyUsages({ keyUsages, allowedKeyUsages: keyPairUsages })).to.not.throw();
       });
     });
   });
@@ -694,10 +690,14 @@ describe('Algorithms API', () => {
 
     describe('checkAlgorithmOptions()', () => {
 
-      let baseKey: Web5Crypto.CryptoKey;
+      let baseKey: JsonWebKey;
 
       beforeEach(() => {
-        baseKey = new CryptoKey({ name: 'PBKDF2' }, false, new Uint8Array(32), 'secret', ['deriveBits', 'deriveKey']);
+        baseKey = {
+          kty     : 'oct',
+          k       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          key_ops : ['deriveBits', 'deriveKey']
+        };
       });
 
       it('does not throw with matching algorithm name and valid hash, iterations, and salt', () => {
@@ -824,7 +824,7 @@ describe('Algorithms API', () => {
 
       it('throws an error if the given key is not valid', () => {
         // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
-        delete baseKey.extractable;
+        delete baseKey.kty;
         expect(() => alg.checkAlgorithmOptions({
           algorithm: {
             name       : 'PBKDF2',
@@ -833,11 +833,15 @@ describe('Algorithms API', () => {
             salt       : new Uint8Array(16)
           },
           baseKey
-        })).to.throw(TypeError, 'Object is not a CryptoKey');
+        })).to.throw(TypeError, 'Object is not a JSON Web Key');
       });
 
-      it('throws an error if the algorithm of the key does not match', () => {
-        const baseKey = new CryptoKey({ name: 'wrong-algorithm' }, false, new Uint8Array(32), 'secret', ['deriveBits', 'deriveKey']);
+      it('throws an error if the key type of the key is not valid', () => {
+        const baseKey: JsonWebKey = {
+          kty : 'OKP',
+          // @ts-expect-error because OKP JWKs don't have a k parameter.
+          k   : Convert.uint8Array(new Uint8Array(32)).toBase64Url()
+        };
         expect(() => alg.checkAlgorithmOptions({
           algorithm: {
             name       : 'PBKDF2',
@@ -846,56 +850,7 @@ describe('Algorithms API', () => {
             salt       : new Uint8Array(16)
           },
           baseKey
-        })).to.throw(InvalidAccessError, 'does not match');
-      });
-    });
-
-    describe('checkImportKey()', () => {
-      it('should not throw when all options are valid', () => {
-        expect(() => alg.checkImportKey({
-          algorithm   : { name: 'PBKDF2' },
-          format      : 'raw',
-          extractable : false,
-          keyUsages   : ['deriveBits']
-        })).to.not.throw();
-      });
-
-      it('throws an error when unsupported algorithm specified', () => {
-        expect(() => alg.checkImportKey({
-          algorithm   : { name: 'ECDH' },
-          format      : 'raw',
-          extractable : false,
-          keyUsages   : ['deriveBits']
-        })).to.throw(NotSupportedError, 'Algorithm not supported');
-      });
-
-      it('throws an error if the format is not raw', () => {
-        expect(() => alg.checkImportKey({
-          algorithm   : { name: 'PBKDF2' },
-          format      : 'pkcs8', // Invalid, only 'raw' is supported
-          extractable : false,
-          keyUsages   : ['deriveBits']
-        })).to.throw(SyntaxError, `Only 'raw' is supported`);
-      });
-
-      it('throws an error if extractable is not false', () => {
-        expect(() => alg.checkImportKey({
-          algorithm   : { name: 'PBKDF2' },
-          format      : 'raw',
-          extractable : true,
-          keyUsages   : ['deriveBits']
-        })).to.throw(SyntaxError, `Only 'false' is supported`);
-      });
-
-      it('throws an error when the requested operation is not valid', () => {
-        ['sign', 'verify'].forEach((operation) => {
-          expect(() => alg.checkImportKey({
-            algorithm   : { name: 'PBKDF2' },
-            format      : 'raw',
-            extractable : false,
-            keyUsages   : [operation as KeyUsage]
-          })).to.throw(InvalidAccessError, 'Requested operation');
-        });
+        })).to.throw(InvalidAccessError, 'Key type of the provided key must be');
       });
     });
 

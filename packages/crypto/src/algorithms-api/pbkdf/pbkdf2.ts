@@ -1,9 +1,11 @@
+import { universalTypeOf } from '@web5/common';
+
+import type { JsonWebKey } from '../../jose.js';
 import type { Web5Crypto } from '../../types/web5-crypto.js';
 
-import { InvalidAccessError, OperationError } from '../errors.js';
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
+import { InvalidAccessError, OperationError } from '../errors.js';
 import { checkRequiredProperty, checkValidProperty } from '../../utils.js';
-import { universalTypeOf } from '@web5/common';
 
 export abstract class BasePbkdf2Algorithm extends CryptoAlgorithm {
 
@@ -15,7 +17,7 @@ export abstract class BasePbkdf2Algorithm extends CryptoAlgorithm {
 
   public checkAlgorithmOptions(options: {
     algorithm: Web5Crypto.Pbkdf2Options,
-    baseKey: Web5Crypto.CryptoKey
+    baseKey: JsonWebKey
   }): void {
     const { algorithm, baseKey } = options;
     // Algorithm specified in the operation must match the algorithm implementation processing the operation.
@@ -42,31 +44,10 @@ export abstract class BasePbkdf2Algorithm extends CryptoAlgorithm {
     }
     // The options object must contain a baseKey property.
     checkRequiredProperty({ property: 'baseKey', inObject: options });
-    // The baseKey object must be a CryptoKey.
-    this.checkCryptoKey({ key: baseKey });
-    // The baseKey algorithm must match the algorithm implementation processing the operation.
-    this.checkKeyAlgorithm({ keyAlgorithmName: baseKey.algorithm.name });
-  }
-
-  public checkImportKey(options: {
-    algorithm: Web5Crypto.Algorithm,
-    format: Web5Crypto.KeyFormat,
-    extractable: boolean,
-    keyUsages: Web5Crypto.KeyUsage[]
-  }): void {
-    const { algorithm, format, extractable, keyUsages } = options;
-    // Algorithm specified in the operation must match the algorithm implementation processing the operation.
-    this.checkAlgorithmName({ algorithmName: algorithm.name });
-    // The format specified must be 'raw'.
-    if (format !== 'raw') {
-      throw new SyntaxError(`Format '${format}' not supported. Only 'raw' is supported.`);
-    }
-    // The extractable value specified must be false.
-    if (extractable !== false) {
-      throw new SyntaxError(`Extractable '${extractable}' not supported. Only 'false' is supported.`);
-    }
-    // The key usages specified must be permitted by the algorithm implementation processing the operation.
-    this.checkKeyUsages({ keyUsages, allowedKeyUsages: this.keyUsages });
+    // The baseKey object must be a JSON Web Key (JWK).
+    this.checkJwk({ key: baseKey });
+    // The baseKey must be of type 'oct' (octet sequence).
+    this.checkKeyType({ keyType: baseKey.kty, allowedKeyType: 'oct' });
   }
 
   public override async decrypt(): Promise<Uint8Array> {

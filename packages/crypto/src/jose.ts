@@ -19,7 +19,7 @@ import { Ed25519, Secp256k1, X25519 } from './crypto-primitives/index.js';
  * verify     : Verify digital signature or MAC
  * wrapKey    : Encrypt key
  */
-export type JwkOperation = Web5Crypto.KeyUsage[] | string[];
+export type JwkOperation = 'encrypt' | 'decrypt' | 'sign' | 'verify' | 'deriveKey' | 'deriveBits' | 'wrapKey' | 'unwrapKey';
 
 /**
  * JSON Web Key Use
@@ -90,8 +90,8 @@ export type JwkParamsAnyKeyType = {
   // Extractable
   ext?: 'true' | 'false';
   // Key Operations
-  key_ops?: JwkOperation;
-  // Key ID
+  key_ops?: JwkOperation[];
+  //'encrypt' | 'decrypt' | 'sign' | 'verify' | 'deriveKey' | 'deriveBits' | 'wrapKey' | 'unwrapKey';D
   kid?: string;
   // Key Type
   kty: JwkType;
@@ -660,6 +660,45 @@ export class Jose {
     const thumbprint = Convert.uint8Array(digest).toBase64Url();
 
     return thumbprint;
+  }
+
+  public static async jwkToBytes(options: {
+    key: JsonWebKey
+  }): Promise<Uint8Array> {
+    const jsonWebKey = options.key;
+
+    let keyMaterial: Uint8Array;
+
+    // Asymmetric private key ("EC" or "OKP" - Curve25519 or SECG curves).
+    if ('d' in jsonWebKey) {
+      keyMaterial = Convert.base64Url(jsonWebKey.d).toUint8Array();
+    }
+
+    // Asymmetric public key ("EC" - secp256k1, secp256r1, secp384r1, secp521r1).
+    else if ('y' in jsonWebKey && jsonWebKey.y) {
+      const prefix = new Uint8Array([0x04]); // Designates an uncompressed key.
+      const x = Convert.base64Url(jsonWebKey.x).toUint8Array();
+      const y = Convert.base64Url(jsonWebKey.y).toUint8Array();
+
+      const publicKey = new Uint8Array([...prefix, ...x, ...y]);
+      keyMaterial = publicKey;
+    }
+
+    // Asymmetric public key ("OKP" - Ed25519, X25519).
+    else if ('x' in jsonWebKey) {
+      keyMaterial = Convert.base64Url(jsonWebKey.x).toUint8Array();
+    }
+
+    // Symmetric encryption or signature key ("oct" - AES, HMAC)
+    else if ('k' in jsonWebKey) {
+      keyMaterial = Convert.base64Url(jsonWebKey.k).toUint8Array();
+    }
+
+    else {
+      throw new Error('Jose: Unknown JSON Web Key format.');
+    }
+
+    return keyMaterial;
   }
 
   public static async jwkToCryptoKey(options: {

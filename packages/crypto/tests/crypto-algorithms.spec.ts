@@ -5,6 +5,9 @@ import chai, { expect } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
+import type { JsonWebKey } from '../src/jose.js';
+import type { Web5Crypto } from '../src/types/web5-crypto.js';
+
 import { aesCtrTestVectors } from './fixtures/test-vectors/aes.js';
 import { AesCtr, Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
 import { CryptoKey, InvalidAccessError, NotSupportedError, OperationError } from '../src/algorithms-api/index.js';
@@ -1341,16 +1344,13 @@ describe('Default Crypto Algorithm Implementations', () => {
     });
 
     describe('deriveBits()', () => {
-      let inputKey: Web5Crypto.CryptoKey;
+      let inputKey: JsonWebKey;
 
       beforeEach(async () => {
-        inputKey = await pbkdf2.importKey({
-          format      : 'raw',
-          keyData     : new Uint8Array([51, 52, 53]),
-          algorithm   : { name: 'PBKDF2' },
-          extractable : false,
-          keyUsages   : ['deriveBits']
-        });
+        inputKey = {
+          kty : 'oct',
+          k   : Convert.uint8Array(new Uint8Array([51, 52, 53])).toBase64Url()
+        };
       });
 
       it('returns derived key as a Uint8Array', async () => {
@@ -1439,38 +1439,6 @@ describe('Default Crypto Algorithm Implementations', () => {
           baseKey   : inputKey,
           length    : 256
         })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
-      });
-    });
-
-    describe('importKey()', () => {
-      it('should import a key when all parameters are valid', async () => {
-        const key = await pbkdf2.importKey({
-          format      : 'raw',
-          keyData     : new Uint8Array(16),
-          algorithm   : { name: 'PBKDF2' },
-          extractable : false,
-          keyUsages   : ['deriveBits']
-        });
-
-        expect(key).to.exist;
-      });
-
-      it('should return a Web5Crypto.CryptoKey object', async () => {
-        const key = await pbkdf2.importKey({
-          format      : 'raw',
-          keyData     : new Uint8Array(16),
-          algorithm   : { name: 'PBKDF2' },
-          extractable : false,
-          keyUsages   : ['deriveBits']
-        });
-
-        expect(key).to.be.an('object');
-        expect(key).to.have.property('algorithm').that.is.an('object');
-        expect(key.algorithm).to.have.property('name', 'PBKDF2');
-        expect(key).to.have.property('extractable', false);
-        expect(key).to.have.property('type', 'secret');
-        expect(key).to.have.property('usages').that.includes.members(['deriveBits']);
-        expect(key).to.have.property('material').that.is.instanceOf(Uint8Array);
       });
     });
   });
