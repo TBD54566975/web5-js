@@ -152,7 +152,7 @@ export class Web5 {
           // Set the stored identity as the connected DID.
           connectedDid = identity.did;
         } else {
-          throw new Error('connect() failed due to unexpected state: ${storedIdentities} stored identities');
+          throw new Error(`connect() failed due to unexpected state: ${storedIdentities} stored identities`);
         }
       }
 
