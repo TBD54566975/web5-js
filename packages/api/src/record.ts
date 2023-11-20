@@ -1,12 +1,17 @@
 import type { Web5Agent } from '@web5/agent';
 import type { Readable } from 'readable-stream';
-import type { RecordsReadReply, RecordsWriteDescriptor, RecordsWriteMessage, RecordsWriteOptions } from '@tbd54566975/dwn-sdk-js';
+import type {
+  RecordsWriteMessage,
+  RecordsWriteOptions,
+  RecordsWriteDescriptor,
+} from '@tbd54566975/dwn-sdk-js';
 
 import { ReadableWebToNodeStream } from 'readable-web-to-node-stream';
 import { DataStream, DwnInterfaceName, DwnMethodName, Encoder } from '@tbd54566975/dwn-sdk-js';
 
+import type { ResponseStatus } from './dwn-api.js';
+
 import { dataToBlob } from './utils.js';
-import type { RecordsDeleteResponse } from './dwn-api.js';
 
 /**
  * Options that are passed to Record constructor.
@@ -185,12 +190,12 @@ export class Record implements RecordModel {
       // If neither of the above are true, then the record must be fetched from the DWN.
       this._readableStream = this._agent.processDwnRequest({
         author         : this.author,
-        messageOptions : { recordId: this.id },
+        messageOptions : { filter: { recordId: this.id } },
         messageType    : DwnInterfaceName.Records + DwnMethodName.Read,
         target         : this.target,
       })
-        .then(response => response.reply as RecordsReadReply)
-        .then(reply => reply.record.data as Readable)
+        .then(response => response.reply)
+        .then(reply => reply.record.data)
         .catch(error => { throw new Error(`Error encountered while attempting to read data: ${error.message}`); });
     }
 
@@ -243,7 +248,7 @@ export class Record implements RecordModel {
    * @returns the status of the delete request
    * @throws `Error` if the record has already been deleted.
    */
-  async delete(): Promise<RecordsDeleteResponse> {
+  async delete(): Promise<ResponseStatus> {
     if (this.isDeleted) throw new Error('Operation failed: Attempted to call `delete()` on a record that has already been deleted.');
 
     // Attempt to delete the record from the DWN.
@@ -271,7 +276,7 @@ export class Record implements RecordModel {
    * @returns the status of the send record request
    * @throws `Error` if the record has already been deleted.
    */
-  async send(target: string): Promise<any> {
+  async send(target: string): Promise<ResponseStatus> {
     if (this.isDeleted) throw new Error('Operation failed: Attempted to call `send()` on a record that has already been deleted.');
 
     const { reply: { status } } = await this._agent.sendDwnRequest({
@@ -339,7 +344,7 @@ export class Record implements RecordModel {
    * @returns the status of the update request
    * @throws `Error` if the record has already been deleted.
    */
-  async update(options: RecordUpdateOptions = {}) {
+  async update(options: RecordUpdateOptions = {}): Promise<ResponseStatus> {
     if (this.isDeleted) throw new Error('Operation failed: Attempted to call `update()` on a record that has already been deleted.');
 
     // Map Record class `dateModified`  property to DWN SDK `messageTimestamp`.
@@ -361,7 +366,7 @@ export class Record implements RecordModel {
     }
 
     // Throw an error if an attempt is made to modify immutable properties. `data` has already been handled.
-    const mutableDescriptorProperties = new Set(['data', 'dataCid', 'dataSize', 'dateModified', 'datePublished', 'published']);
+    const mutableDescriptorProperties = new Set(['data', 'dataCid', 'dataSize', 'datePublished', 'messageTimestamp', 'published']);
     Record.verifyPermittedMutation(Object.keys(options), mutableDescriptorProperties);
 
     // If a new `dateModified` was not provided, remove the equivalent `messageTimestamp` property from from the

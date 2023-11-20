@@ -3,7 +3,6 @@ import type {
   EventsGetReply,
   GenericMessage,
   MessagesGetReply,
-  RecordsReadReply,
   RecordsWriteMessage,
 } from '@tbd54566975/dwn-sdk-js';
 
@@ -171,15 +170,17 @@ export class SyncManagerLevel implements SyncManager {
               author         : did,
               messageType    : 'RecordsRead',
               messageOptions : {
-                recordId: message['recordId']
+                filter: {
+                  recordId: message.recordId
+                }
               }
             });
 
             const recordsReadReply = await this.agent.rpcClient.sendDwnRequest({
               dwnUrl,
               targetDid : did,
-              message   : recordsRead
-            }) as RecordsReadReply;
+              message   : recordsRead.message
+            });
 
             const { record, status: readStatus } = recordsReadReply;
 
@@ -455,10 +456,12 @@ export class SyncManagerLevel implements SyncManager {
           target         : author,
           messageType    : 'RecordsRead',
           messageOptions : {
-            recordId: writeMessage.recordId
+            filter: {
+              recordId: writeMessage.recordId
+            }
           }
         });
-        const reply = readResponse.reply as RecordsReadReply;
+        const reply = readResponse.reply;
 
         if (is2xx(reply.status.code) && reply.record) {
           // If status code is 200-299, return the data.

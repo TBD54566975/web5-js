@@ -1,6 +1,5 @@
 import type { DwnResponse, Web5Agent } from '@web5/agent';
 import type {
-  UnionMessageReply,
   RecordsReadOptions,
   RecordsQueryOptions,
   RecordsWriteMessage,
@@ -14,11 +13,23 @@ import type {
 } from '@tbd54566975/dwn-sdk-js';
 
 import { isEmptyObject } from '@web5/common';
-import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
+import { DwnInterfaceName, DwnMethodName, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 
 import { Record } from './record.js';
 import { Protocol } from './protocol.js';
 import { dataToBlob } from './utils.js';
+
+/**
+ * Status code and detailed message for a response.
+ *
+ * @beta
+ */
+export type ResponseStatus = {
+  status: {
+    code: number;
+    detail: string;
+  };
+};
 
 /**
  * Request to setup a protocol with its definitions
@@ -26,7 +37,7 @@ import { dataToBlob } from './utils.js';
  * @beta
  */
 export type ProtocolsConfigureRequest = {
-  message: Omit<ProtocolsConfigureOptions, 'authorizationSigner'>;
+  message: Omit<ProtocolsConfigureOptions, 'signer'>;
 }
 
 /**
@@ -34,8 +45,7 @@ export type ProtocolsConfigureRequest = {
  *
  * @beta
  */
-export type ProtocolsConfigureResponse = {
-  status: UnionMessageReply['status'];
+export type ProtocolsConfigureResponse = ResponseStatus & {
   protocol?: Protocol;
 }
 
@@ -55,7 +65,7 @@ export type ProtocolsQueryReplyEntry = {
  */
 export type ProtocolsQueryRequest = {
   from?: string;
-  message: Omit<ProtocolsQueryOptions, 'authorizationSigner'>
+  message: Omit<ProtocolsQueryOptions, 'signer'>
 }
 
 /**
@@ -63,9 +73,8 @@ export type ProtocolsQueryRequest = {
  *
  * @beta
  */
-export type ProtocolsQueryResponse = {
+export type ProtocolsQueryResponse = ResponseStatus & {
   protocols: Protocol[];
-  status: UnionMessageReply['status'];
 }
 
 /**
@@ -90,7 +99,7 @@ export type RecordsCreateResponse = RecordsWriteResponse;
 export type RecordsCreateFromRequest = {
   author: string;
   data: unknown;
-  message?: Omit<RecordsWriteOptions, 'authorizationSigner'>;
+  message?: Omit<RecordsWriteOptions, 'signer'>;
   record: Record;
 }
 
@@ -101,17 +110,8 @@ export type RecordsCreateFromRequest = {
  */
 export type RecordsDeleteRequest = {
   from?: string;
-  message: Omit<RecordsDeleteOptions, 'authorizationSigner'>;
+  message: Omit<RecordsDeleteOptions, 'signer'>;
 }
-
-/**
- * Response for the delete request
- *
- * @beta
- */
-export type RecordsDeleteResponse = {
-  status: UnionMessageReply['status'];
-};
 
 /**
  * Request to query records from the DWN
@@ -121,7 +121,7 @@ export type RecordsDeleteResponse = {
 export type RecordsQueryRequest = {
   /** The from property indicates the DID to query from and return results. */
   from?: string;
-  message: Omit<RecordsQueryOptions, 'authorizationSigner'>;
+  message: Omit<RecordsQueryOptions, 'signer'>;
 }
 
 /**
@@ -129,8 +129,7 @@ export type RecordsQueryRequest = {
  *
  * @beta
  */
-export type RecordsQueryResponse = {
-  status: UnionMessageReply['status'];
+export type RecordsQueryResponse = ResponseStatus & {
   records?: Record[]
 };
 
@@ -142,7 +141,7 @@ export type RecordsQueryResponse = {
 export type RecordsReadRequest = {
   /** The from property indicates the DID to read from and return results fro. */
   from?: string;
-  message: Omit<RecordsReadOptions, 'authorizationSigner'>;
+  message: Omit<RecordsReadOptions, 'signer'>;
 }
 
 /**
@@ -150,8 +149,7 @@ export type RecordsReadRequest = {
  *
  * @beta
  */
-export type RecordsReadResponse = {
-  status: UnionMessageReply['status'];
+export type RecordsReadResponse = ResponseStatus & {
   record: Record;
 };
 
@@ -162,7 +160,7 @@ export type RecordsReadResponse = {
  */
 export type RecordsWriteRequest = {
   data: unknown;
-  message?: Omit<Partial<RecordsWriteOptions>, 'authorizationSigner'>;
+  message?: Omit<Partial<RecordsWriteOptions>, 'signer'>;
   store?: boolean;
 }
 
@@ -171,8 +169,7 @@ export type RecordsWriteRequest = {
  *
  * @beta
  */
-export type RecordsWriteResponse = {
-  status: UnionMessageReply['status'];
+export type RecordsWriteResponse = ResponseStatus & {
   record?: Record
 };
 
@@ -305,15 +302,24 @@ export class DwnApi {
       /**
        * Delete a record
        */
-      delete: async (request: RecordsDeleteRequest): Promise<RecordsDeleteResponse> => {
+      delete: async (request: RecordsDeleteRequest): Promise<ResponseStatus> => {
         const agentRequest = {
+          /**
+           * The `author` is the DID that will sign the message and must be the DID the Web5 app is
+           * connected with and is authorized to access the signing private key of.
+           */
           author         : this.connectedDid,
           messageOptions : request.message,
           messageType    : DwnInterfaceName.Records + DwnMethodName.Delete,
+          /**
+           * The `target` is the DID of the DWN tenant under which the delete will be executed.
+           * If `from` is provided, the delete operation will be executed on a remote DWN.
+           * Otherwise, the record will be deleted on the local DWN.
+           */
           target         : request.from || this.connectedDid
         };
 
-        let agentResponse;
+        let agentResponse: DwnResponse;
 
         if (request.from) {
           agentResponse = await this.agent.sendDwnRequest(agentRequest);
@@ -321,15 +327,7 @@ export class DwnApi {
           agentResponse = await this.agent.processDwnRequest(agentRequest);
         }
 
-        //! TODO: (Frank -> Moe): This quirk is the result of how 4XX errors are being returned by `dwn-server`
-        //!                       When DWN SDK returns 404, agentResponse is { status: { code: 404 }} and that's it.
-        //!                       Need to decide how to resolve.
-        let status;
-        if (agentResponse.reply) {
-          ({ reply: { status } } = agentResponse);
-        } else {
-          ({ status } = agentResponse);
-        }
+        const { reply: { status } } = agentResponse;
 
         return { status };
       },
@@ -339,13 +337,22 @@ export class DwnApi {
        */
       query: async (request: RecordsQueryRequest): Promise<RecordsQueryResponse> => {
         const agentRequest = {
+          /**
+           * The `author` is the DID that will sign the message and must be the DID the Web5 app is
+           * connected with and is authorized to access the signing private key of.
+           */
           author         : this.connectedDid,
           messageOptions : request.message,
           messageType    : DwnInterfaceName.Records + DwnMethodName.Query,
+          /**
+           * The `target` is the DID of the DWN tenant under which the query will be executed.
+           * If `from` is provided, the query operation will be executed on a remote DWN.
+           * Otherwise, the local DWN will be queried.
+           */
           target         : request.from || this.connectedDid
         };
 
-        let agentResponse;
+        let agentResponse: DwnResponse;
 
         if (request.from) {
           agentResponse = await this.agent.sendDwnRequest(agentRequest);
@@ -357,7 +364,16 @@ export class DwnApi {
 
         const records = entries.map((entry: RecordsQueryReplyEntry) => {
           const recordOptions = {
-            author : this.connectedDid,
+            /**
+             * Extract the `author` DID from the record entry since records may be signed by the
+             * tenant owner or any other entity.
+             */
+            author : RecordsWrite.getAuthor(entry),
+            /**
+             * Set the `target` DID to currently connected DID so that subsequent calls to
+             * {@link Record} instance methods, such as `record.update()` are executed on the
+             * local DWN even if the record was returned by a query of a remote DWN.
+             */
             target : this.connectedDid,
             ...entry as RecordsWriteMessage
           };
@@ -373,13 +389,22 @@ export class DwnApi {
        */
       read: async (request: RecordsReadRequest): Promise<RecordsReadResponse> => {
         const agentRequest = {
+          /**
+           * The `author` is the DID that will sign the message and must be the DID the Web5 app is
+           * connected with and is authorized to access the signing private key of.
+           */
           author         : this.connectedDid,
           messageOptions : request.message,
           messageType    : DwnInterfaceName.Records + DwnMethodName.Read,
+          /**
+           * The `target` is the DID of the DWN tenant under which the read will be executed.
+           * If `from` is provided, the read operation will be executed on a remote DWN.
+           * Otherwise, the read will occur on the local DWN.
+           */
           target         : request.from || this.connectedDid
         };
 
-        let agentResponse;
+        let agentResponse: DwnResponse;
 
         if (request.from) {
           agentResponse = await this.agent.sendDwnRequest(agentRequest);
@@ -387,21 +412,21 @@ export class DwnApi {
           agentResponse = await this.agent.processDwnRequest(agentRequest);
         }
 
-        //! TODO: (Frank -> Moe): This quirk is the result of how 4XX errors are being returned by `dwn-server`
-        //!                       When DWN SDK returns 404, agentResponse is { status: { code: 404 }} and that's it.
-        //!                       Need to decide how to resolve.
-        let responseRecord;
-        let status;
-        if (agentResponse.reply) {
-          ({ reply: { record: responseRecord, status } } = agentResponse);
-        } else {
-          ({ status } = agentResponse);
-        }
+        const { reply: { record: responseRecord, status } } = agentResponse;
 
         let record: Record;
         if (200 <= status.code && status.code <= 299) {
           const recordOptions = {
-            author : this.connectedDid,
+            /**
+             * Extract the `author` DID from the record since records may be signed by the
+             * tenant owner or any other entity.
+             */
+            author : RecordsWrite.getAuthor(responseRecord),
+            /**
+             * Set the `target` DID to currently connected DID so that subsequent calls to
+             * {@link Record} instance methods, such as `record.update()` are executed on the
+             * local DWN even if the record was read from a remote DWN.
+             */
             target : this.connectedDid,
             ...responseRecord,
           };
@@ -415,13 +440,11 @@ export class DwnApi {
       /**
        * Writes a record to the DWN
        *
-       * As a convenience, the Record instance returned will cache a copy of the data if the
-       * data size, in bytes, is less than the DWN 'max data size allowed to be encoded'
-       * parameter of 10KB. This is done to maintain consistency with other DWN methods,
-       * like RecordsQuery, that include relatively small data payloads when returning
-       * RecordsWrite message properties. Regardless of data size, methods such as
-       * `record.data.stream()` will return the data when called even if it requires fetching
-       * from the DWN datastore.
+       * As a convenience, the Record instance returned will cache a copy of the data.  This is done
+       * to maintain consistency with other DWN methods, like RecordsQuery, that include relatively
+       * small data payloads when returning RecordsWrite message properties. Regardless of data
+       * size, methods such as `record.data.stream()` will return the data when called even if it
+       * requires fetching from the DWN datastore.
        */
       write: async (request: RecordsWriteRequest): Promise<RecordsWriteResponse> => {
         const messageOptions: Partial<RecordsWriteOptions> = {
@@ -446,8 +469,17 @@ export class DwnApi {
         let record: Record;
         if (200 <= status.code && status.code <= 299) {
           const recordOptions = {
+            /**
+             * Assume the author is the connected DID since the record was just written to the
+             * local DWN.
+             */
             author      : this.connectedDid,
             encodedData : dataBlob,
+            /**
+             * Set the `target` DID to currently connected DID so that subsequent calls to
+             * {@link Record} instance methods, such as `record.update()` are executed on the
+             * local DWN.
+             */
             target      : this.connectedDid,
             ...responseMessage,
           };

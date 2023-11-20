@@ -12,6 +12,7 @@ import chaiAsPromised from 'chai-as-promised';
 import { utils as didUtils } from '@web5/dids';
 import { TestManagedAgent } from '@web5/agent';
 import {
+  DwnConstant,
   RecordsWrite,
   DwnMethodName,
   DwnInterfaceName,
@@ -146,27 +147,27 @@ describe('Record', () => {
 
     // Create a parent record to reference in the RecordsWriteMessage used for validation
     const parentRecorsWrite = await RecordsWrite.create({
-      authorizationSigner : authorization,
-      data                : new Uint8Array(await dataBlob.arrayBuffer()),
+      data   : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       protocol,
       protocolPath,
       schema,
+      signer : authorization,
     }) as RecordsWriteTest;
 
     // Create a RecordsWriteMessage
     const recordsWrite = await RecordsWrite.create({
-      attestationSigners  : attestation,
-      authorizationSigner : authorization,
-      data                : new Uint8Array(await dataBlob.arrayBuffer()),
+      attestationSigners : attestation,
+      data               : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       encryptionInput,
-      parentId            : parentRecorsWrite.recordId,
+      parentId           : parentRecorsWrite.recordId,
       protocol,
       protocolPath,
       published,
       recipient,
       schema,
+      signer             : authorization,
     }) as RecordsWriteTest;
 
     // Create record using test RecordsWriteMessage.
@@ -254,10 +255,10 @@ describe('Record', () => {
     it('returns large data payloads after dwn.records.write()', async () => {
       // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
       // with a RecordsRead when record.data.blob() is executed.
-      const dataJson = TestDataGenerator.randomJson(11_000);
+      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
-      // Write the 11KB record to agent-connected DWN.
+      // Write the large record to agent-connected DWN.
       const { record, status } = await dwn.records.write({ data: dataJson });
 
       expect(status.code).to.equal(202);
@@ -271,13 +272,39 @@ describe('Record', () => {
       expect(readDataBytes).to.deep.equal(inputDataBytes);
     });
 
+    it('returns large data payloads after dwn.records.query()', async () => {
+      /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
+       * be fetched with a RecordsRead when record.data.blob() is executed. */
+      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
+      const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
+
+      // Write the large record to agent-connected DWN.
+      const { record, status } = await dwn.records.write({ data: dataJson });
+      expect(status.code).to.equal(202);
+
+      // Query for the record that was just created.
+      const { records: queryRecords, status: queryRecordStatus } = await dwn.records.query({
+        message: { filter: { recordId: record!.id }}
+      });
+      expect(queryRecordStatus.code).to.equal(200);
+
+      // Confirm that the size, in bytes, of the data read as a Blob matches the original input data.
+      const [ queryRecord ] = queryRecords;
+      const queriedDataBlob = await queryRecord.data.blob();
+      expect(queriedDataBlob.size).to.equal(inputDataBytes.length);
+
+      // Convert the Blob into an array and ensure it matches the input data, byte for byte.
+      const queriedDataBytes = new Uint8Array(await queriedDataBlob.arrayBuffer());
+      expect(queriedDataBytes).to.deep.equal(inputDataBytes);
+    });
+
     it('returns large data payloads after dwn.records.read()', async () => {
       // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
       // with a RecordsRead when record.data.blob() is executed.
-      const dataJson = TestDataGenerator.randomJson(11_000);
+      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
-      // Write the 11KB record to agent-connected DWN.
+      // Write the large record to agent-connected DWN.
       const { record, status } = await dwn.records.write({ data: dataJson });
 
       expect(status.code).to.equal(202);
@@ -346,10 +373,10 @@ describe('Record', () => {
     it('returns large data payloads after dwn.records.write()', async () => {
       // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
       // with a RecordsRead when record.data.json() is executed.
-      const dataJson = TestDataGenerator.randomJson(11_000);
+      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
-      // Write the 11KB record to agent-connected DWN.
+      // Write the large record to agent-connected DWN.
       const { record, status } = await dwn.records.write({ data: dataJson });
 
       expect(status.code).to.equal(202);
@@ -363,13 +390,39 @@ describe('Record', () => {
       expect(readDataBytes).to.deep.equal(inputDataBytes);
     });
 
+    it('returns large data payloads after dwn.records.query()', async () => {
+      /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
+       * be fetched with a RecordsRead when record.data.json() is executed. */
+      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
+      const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
+
+      // Write the large record to agent-connected DWN.
+      const { record, status } = await dwn.records.write({ data: dataJson });
+      expect(status.code).to.equal(202);
+
+      // Query for the record that was just created.
+      const { records: queryRecords, status: queryRecordStatus } = await dwn.records.query({
+        message: { filter: { recordId: record!.id }}
+      });
+      expect(queryRecordStatus.code).to.equal(200);
+
+      // Confirm that the size, in bytes, of the data read as JSON matches the original input data.
+      const [ queryRecord ] = queryRecords;
+      const queriedDataBlob = await queryRecord!.data.json();
+
+      // Convert the JSON to bytes and ensure it matches the input data, byte for byte.
+      const queriedDataBytes = new TextEncoder().encode(JSON.stringify(queriedDataBlob));
+      expect(queriedDataBytes.length).to.equal(inputDataBytes.length);
+      expect(queriedDataBytes).to.deep.equal(inputDataBytes);
+    });
+
     it('returns large data payloads after dwn.records.read()', async () => {
       // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
       // with a RecordsRead when record.data.json() is executed.
-      const dataJson = TestDataGenerator.randomJson(11_000);
+      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
-      // Write the 11KB record to agent-connected DWN.
+      // Write the large record to agent-connected DWN.
       const { record, status } = await dwn.records.write({ data: dataJson });
 
       expect(status.code).to.equal(202);
@@ -434,9 +487,9 @@ describe('Record', () => {
     it('returns large data payloads after dwn.records.write()', async () => {
       // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
       // with a RecordsRead when record.data.text() is executed.
-      const dataText = TestDataGenerator.randomString(11_000);
+      const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
-      // Write the 11KB record to agent-connected DWN.
+      // Write the large record to agent-connected DWN.
       const { record, status } = await dwn.records.write({ data: dataText });
 
       expect(status.code).to.equal(202);
@@ -449,12 +502,36 @@ describe('Record', () => {
       expect(readDataText).to.deep.equal(dataText);
     });
 
+    it('returns large data payloads after dwn.records.query()', async () => {
+      /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
+       * be fetched with a RecordsRead when record.data.blob() is executed. */
+      const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
+
+      // Write the large record to agent-connected DWN.
+      const { record, status } = await dwn.records.write({ data: dataText });
+      expect(status.code).to.equal(202);
+
+      // Query for the record that was just created.
+      const { records: queryRecords, status: queryRecordStatus } = await dwn.records.query({
+        message: { filter: { recordId: record!.id }}
+      });
+      expect(queryRecordStatus.code).to.equal(200);
+
+      // Confirm that the length of the data read as text matches the original input data.
+      const [ queryRecord ] = queryRecords;
+      const queriedDataText = await queryRecord!.data.text();
+      expect(queriedDataText.length).to.equal(dataText.length);
+
+      // Ensure the text returned matches the input data, char for char.
+      expect(queriedDataText).to.deep.equal(dataText);
+    });
+
     it('returns large data payloads after dwn.records.read()', async () => {
       // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
       // with a RecordsRead when record.data.text() is executed.
-      const dataText = TestDataGenerator.randomString(11_000);
+      const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
-      // Write the 11KB record to agent-connected DWN.
+      // Write the large record to agent-connected DWN.
       const { record, status } = await dwn.records.write({ data: dataText });
 
       expect(status.code).to.equal(202);
@@ -580,6 +657,46 @@ describe('Record', () => {
       expect(aliceRemoteQueryResult.records!.length).to.equal(1);
       const [ aliceRemoteEmailRecord ] = aliceAgentQueryResult!.records!;
       expect(await aliceRemoteEmailRecord.data.text()).to.equal(dataString);
+    });
+
+    it('writes updated records to a remote DWN', async () => {
+      /**
+       * NOTE: The issue that this test was added to cover was intermittently failing the first
+       * time the updated record is sent to the remote DWN. However, it always failed on the second
+       * attempt to send the updated record to the remote DWN. As a result, this test was written
+       * to update the record twice and send it to the remote DWN after each update to ensure that
+       * the issue is covered.
+       */
+
+      // Alice writes a message to her agent connected DWN.
+      const { status, record } = await dwn.records.write({
+        data    : 'Hello, world!',
+        message : {
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202);
+
+      // Write the record to Alice's remote DWN.
+      let sendResult = await record.send(alice.did);
+      expect(sendResult.status.code).to.equal(202);
+
+      // Update the record by mutating the data property.
+      let updateResult = await record!.update({ data: 'hi' });
+      expect(updateResult.status.code).to.equal(202);
+
+      // Write the updated record to Alice's remote DWN a second time.
+      sendResult = await record!.send(alice.did);
+      expect(sendResult.status.code).to.equal(202);
+
+      // Update the record again.
+      updateResult = await record!.update({ data: 'bye' });
+      expect(updateResult.status.code).to.equal(202);
+
+      // Write the updated record to Alice's remote DWN a third time.
+      sendResult = await record!.send(alice.did);
+      expect(sendResult.status.code).to.equal(202);
     });
 
     it(`writes records to remote DWNs for someone else's DID`, async () => {
@@ -908,27 +1025,27 @@ describe('Record', () => {
 
       // Create a parent record to reference in the RecordsWriteMessage used for validation
       const parentRecorsWrite = await RecordsWrite.create({
-        authorizationSigner : authorization,
-        data                : new Uint8Array(await dataBlob.arrayBuffer()),
+        data   : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         protocol,
         protocolPath,
         schema,
+        signer : authorization,
       }) as RecordsWriteTest;
 
       // Create a RecordsWriteMessage
       const recordsWrite = await RecordsWrite.create({
-        attestationSigners  : attestation,
-        authorizationSigner : authorization,
-        data                : new Uint8Array(await dataBlob.arrayBuffer()),
+        attestationSigners : attestation,
+        data               : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         encryptionInput,
-        parentId            : parentRecorsWrite.recordId,
+        parentId           : parentRecorsWrite.recordId,
         protocol,
         protocolPath,
         published,
         recipient,
         schema,
+        signer             : authorization,
       }) as RecordsWriteTest;
 
       // Create record using test RecordsWriteMessage.
@@ -1009,6 +1126,35 @@ describe('Record', () => {
       expect(updatedData).to.equal('bye');
     });
 
+    it('returns new dateModified after each update', async () => {
+      // Initial write of the record.
+      const { status, record } = await dwn.records.write({
+        data    : 'Hello, world!',
+        message : {
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      const initialDateModified = record.dateModified;
+      expect(status.code).to.equal(202);
+
+      // First update of the record.
+      let updateResult = await record!.update({ data: 'hi' });
+      expect(updateResult.status.code).to.equal(202);
+
+      // Verify that the dateModified was updated.
+      const firstUpdateDateModified = record.dateModified;
+      expect(initialDateModified).to.not.equal(firstUpdateDateModified);
+
+      //  Second update of the record.
+      updateResult = await record!.update({ data: 'bye' });
+      expect(updateResult.status.code).to.equal(202);
+
+      // Verify that the dateModified was updated.
+      const secondUpdateDateModified = record.dateModified;
+      expect(firstUpdateDateModified).to.not.equal(secondUpdateDateModified);
+    });
+
     it('throws an exception when an immutable property is modified', async () => {
       const { status, record } = await dwn.records.write({
         data    : 'Hello, world!',
@@ -1021,8 +1167,10 @@ describe('Record', () => {
       expect(status.code).to.equal(202);
       expect(record).to.not.be.undefined;
 
-      // @ts-expect-error because this test intentionally specifies an immutable property that is not present in RecordUpdateOptions.
-      await expect(record!.update({ dataFormat: 'application/json' })).to.eventually.be.rejectedWith('is an immutable property. Its value cannot be changed.');
+      await expect(
+        // @ts-expect-error because this test intentionally specifies an immutable property that is not present in RecordUpdateOptions.
+        record!.update({ dataFormat: 'application/json' })
+      ).to.eventually.be.rejectedWith('is an immutable property. Its value cannot be changed.');
     });
   });
 });

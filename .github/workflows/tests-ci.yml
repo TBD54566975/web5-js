@@ -23,8 +23,28 @@ jobs:
         with:
           node-version: 18
 
+      - name: Install latest npm
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Snyk
+        uses: snyk/actions/setup@3e2680e8df93a24b52d119b1305fb7cedc60ceae # latest master (no released tag)
+
+      - name: Snyk VULN and License Check Test
+        run: snyk test --all-projects --sarif-file-output=snyk.sarif
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
       - name: Report known vulnerabilities
         run: npm audit
+
+      - name: Upload SARIF result to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@74483a38d39275f33fcff5f35b679b5ca4a26a99 # v2.22.5
+        if: always()
+        with:
+          sarif_file: snyk.sarif
 
   test-with-node:
     runs-on: ubuntu-latest
@@ -140,3 +160,10 @@ jobs:
             - file: packages/api/src/index.ts
               docsReporter: api-extractor
               docsGenerator: typedoc-markdown
+
+  web5-spec:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: TBD54566975/sdk-development@v0.2.3

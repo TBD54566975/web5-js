@@ -1,6 +1,6 @@
 declare const __karma__: { config?: { testDwnUrl?: string; } };
 
-const DEFAULT_TEST_DWN_URL = 'https://dwn.tbddev.org/dwn0';
+const DEFAULT_TEST_DWN_URL = 'http://localhost:3000';
 
 function getTestDwnUrl(): string {
   // Check to see if we're running in a Karma browser test environment.
