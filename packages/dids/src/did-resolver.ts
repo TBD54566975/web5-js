@@ -1,3 +1,4 @@
+
 import type {
   DidResolverCache,
   DidMethodResolver,
@@ -6,7 +7,7 @@ import type {
 } from './types.js';
 
 import { parseDid } from './utils.js';
-import { DidResolverCacheNoop } from './resolver-cache-noop.js';
+import { DidResolverCacheMemory } from './resolver-cache-memory.js';
 
 export type DidResolverOptions = {
   didResolvers: DidMethodResolver[];
@@ -37,7 +38,7 @@ export class DidResolver {
    * @param options.cache - Optional. A cache for storing resolved DID documents. If not provided, a no-operation cache is used.
    */
   constructor(options: DidResolverOptions) {
-    this.cache = options.cache || DidResolverCacheNoop;
+    this.cache = options.cache ?? new DidResolverCacheMemory();
 
     for (const resolver of options.didResolvers) {
       this.didResolvers.set(resolver.methodName, resolver);
