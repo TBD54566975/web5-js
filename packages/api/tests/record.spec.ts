@@ -659,6 +659,46 @@ describe('Record', () => {
       expect(await aliceRemoteEmailRecord.data.text()).to.equal(dataString);
     });
 
+    it('writes updated records to a remote DWN', async () => {
+      /**
+       * NOTE: The issue that this test was added to cover was intermittently failing the first
+       * time the updated record is sent to the remote DWN. However, it always failed on the second
+       * attempt to send the updated record to the remote DWN. As a result, this test was written
+       * to update the record twice and send it to the remote DWN after each update to ensure that
+       * the issue is covered.
+       */
+
+      // Alice writes a message to her agent connected DWN.
+      const { status, record } = await dwn.records.write({
+        data    : 'Hello, world!',
+        message : {
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202);
+
+      // Write the record to Alice's remote DWN.
+      let sendResult = await record.send(alice.did);
+      expect(sendResult.status.code).to.equal(202);
+
+      // Update the record by mutating the data property.
+      let updateResult = await record!.update({ data: 'hi' });
+      expect(updateResult.status.code).to.equal(202);
+
+      // Write the updated record to Alice's remote DWN a second time.
+      sendResult = await record!.send(alice.did);
+      expect(sendResult.status.code).to.equal(202);
+
+      // Update the record again.
+      updateResult = await record!.update({ data: 'bye' });
+      expect(updateResult.status.code).to.equal(202);
+
+      // Write the updated record to Alice's remote DWN a third time.
+      sendResult = await record!.send(alice.did);
+      expect(sendResult.status.code).to.equal(202);
+    });
+
     it(`writes records to remote DWNs for someone else's DID`, async () => {
       const dataString = 'Hello, world!';
 
@@ -1086,6 +1126,35 @@ describe('Record', () => {
       expect(updatedData).to.equal('bye');
     });
 
+    it('returns new dateModified after each update', async () => {
+      // Initial write of the record.
+      const { status, record } = await dwn.records.write({
+        data    : 'Hello, world!',
+        message : {
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      const initialDateModified = record.dateModified;
+      expect(status.code).to.equal(202);
+
+      // First update of the record.
+      let updateResult = await record!.update({ data: 'hi' });
+      expect(updateResult.status.code).to.equal(202);
+
+      // Verify that the dateModified was updated.
+      const firstUpdateDateModified = record.dateModified;
+      expect(initialDateModified).to.not.equal(firstUpdateDateModified);
+
+      //  Second update of the record.
+      updateResult = await record!.update({ data: 'bye' });
+      expect(updateResult.status.code).to.equal(202);
+
+      // Verify that the dateModified was updated.
+      const secondUpdateDateModified = record.dateModified;
+      expect(firstUpdateDateModified).to.not.equal(secondUpdateDateModified);
+    });
+
     it('throws an exception when an immutable property is modified', async () => {
       const { status, record } = await dwn.records.write({
         data    : 'Hello, world!',
@@ -1098,8 +1167,10 @@ describe('Record', () => {
       expect(status.code).to.equal(202);
       expect(record).to.not.be.undefined;
 
-      // @ts-expect-error because this test intentionally specifies an immutable property that is not present in RecordUpdateOptions.
-      await expect(record!.update({ dataFormat: 'application/json' })).to.eventually.be.rejectedWith('is an immutable property. Its value cannot be changed.');
+      await expect(
+        // @ts-expect-error because this test intentionally specifies an immutable property that is not present in RecordUpdateOptions.
+        record!.update({ dataFormat: 'application/json' })
+      ).to.eventually.be.rejectedWith('is an immutable property. Its value cannot be changed.');
     });
   });
 });

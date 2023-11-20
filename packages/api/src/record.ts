@@ -366,7 +366,7 @@ export class Record implements RecordModel {
     }
 
     // Throw an error if an attempt is made to modify immutable properties. `data` has already been handled.
-    const mutableDescriptorProperties = new Set(['data', 'dataCid', 'dataSize', 'dateModified', 'datePublished', 'published']);
+    const mutableDescriptorProperties = new Set(['data', 'dataCid', 'dataSize', 'datePublished', 'messageTimestamp', 'published']);
     Record.verifyPermittedMutation(Object.keys(options), mutableDescriptorProperties);
 
     // If a new `dateModified` was not provided, remove the equivalent `messageTimestamp` property from from the
