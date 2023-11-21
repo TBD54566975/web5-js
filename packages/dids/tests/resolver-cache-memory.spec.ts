@@ -25,7 +25,7 @@ describe('DidResolverCacheMemory', () => {
     clock.restore();
   });
 
-  describe('get', () => {
+  describe('get / set', () => {
     it('should return undefined for non-existent keys', async () => {
       const result = await cache.get('nonexistent');
       expect(result).to.be.undefined;
@@ -55,20 +55,6 @@ describe('DidResolverCacheMemory', () => {
       clock.tick(16 * 60 * 1000); // Advance time to past the TTL
       const result = await cache.get(testDid);
       expect(result).to.be.undefined;
-    });
-  });
-
-  describe('set', () => {
-    it('should store a value', async () => {
-      const testDidResolutionResult = {
-        didResolutionMetadata : {},
-        didDocument           : { id: 'abc123' },
-        didDocumentMetadata   : {}
-      };
-      const testDid = 'did:example:alice';
-      await cache.set(testDid, testDidResolutionResult);
-      const result = await cache.get(testDid);
-      expect(result).to.deep.equal(testDidResolutionResult);
     });
   });
 
