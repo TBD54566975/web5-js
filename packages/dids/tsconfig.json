@@ -2,10 +2,10 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "strict": false,
-    "outDir": "dist/esm",
     "declaration": true,
     "declarationMap": true,
     "declarationDir": "dist/types",
+    "outDir": "dist/esm"
   },
   "include": [
     "src",
