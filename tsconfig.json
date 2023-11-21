@@ -6,6 +6,8 @@
     ],
     "allowJs": true,
     "strict": true,
+    "declaration": true,
+    "declarationMap": true,
     "target": "ESNext",
     "module": "NodeNext", // Required for enabling JavaScript import assertion support
     "sourceMap": true,
