@@ -8,7 +8,7 @@
     "strict": true,
     "declaration": true,
     "declarationMap": true,
-    "target": "ESNext",
+    "target": "ES6",
     "module": "NodeNext", // Required for enabling JavaScript import assertion support
     "sourceMap": true,
     // `NodeNext` will throw compilation errors if relative import paths are missing file extension
