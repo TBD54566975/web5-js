@@ -22,7 +22,7 @@ export interface SyncManager {
   pull(): Promise<void>;
 }
 
-type LevelDatabase = AbstractLevel<string | Buffer | Uint8Array, string, Uint8Array>;
+type LevelDatabase = AbstractLevel<string | Buffer | Uint8Array, string, string>;
 
 export type SyncManagerOptions = {
   agent?: Web5ManagedAgent;
