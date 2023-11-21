@@ -5,7 +5,7 @@ import chaiAsPromised from 'chai-as-promised';
 import type { JsonWebKey } from '../src/jose.js';
 import type { Web5Crypto } from '../src/types/web5-crypto.js';
 
-import { CryptoKeyWithJwk, Jose } from '../src/jose.js';
+import { Jose } from '../src/jose.js';
 import {
   cryptoKeyToJwkTestVectors,
   cryptoKeyPairToJsonWebKeyTestVectors,
@@ -22,106 +22,6 @@ import {
 } from './fixtures/test-vectors/jose.js';
 
 chai.use(chaiAsPromised);
-
-describe('CryptoKeyWithJwk()', () => {
-  it('converts private CryptoKeys to JWK', async () => {
-    for (const vector of cryptoKeyPairToJsonWebKeyTestVectors) {
-      const privateKey = {
-        ...vector.cryptoKey.privateKey,
-        material: Convert.hex(vector.cryptoKey.privateKey.material).toUint8Array()
-      } as Web5Crypto.CryptoKey;
-
-      const cryptoKey = new CryptoKeyWithJwk(
-        privateKey.algorithm,
-        privateKey.extractable,
-        privateKey.material,
-        privateKey.type,
-        privateKey.usages
-      );
-
-      const jsonWebKey = await cryptoKey.toJwk();
-
-      expect(jsonWebKey).to.deep.equal(vector.jsonWebKey.privateKeyJwk);
-    }
-  });
-
-  it('converts public CryptoKeys to JWK', async () => {
-    for (const vector of cryptoKeyPairToJsonWebKeyTestVectors) {
-      const publicKey = {
-        ...vector.cryptoKey.publicKey,
-        material: Convert.hex(vector.cryptoKey.publicKey.material).toUint8Array()
-      } as Web5Crypto.CryptoKey;
-
-      const cryptoKey = new CryptoKeyWithJwk(
-        publicKey.algorithm,
-        publicKey.extractable,
-        publicKey.material,
-        publicKey.type,
-        publicKey.usages
-      );
-
-      const jsonWebKey = await cryptoKey.toJwk();
-
-      expect(jsonWebKey).to.deep.equal(vector.jsonWebKey.publicKeyJwk);
-    }
-  });
-
-  it('converts secret CryptoKeys to JWK', async () => {
-    for (const vector of cryptoKeyToJwkTestVectors) {
-      const secretKey = {
-        ...vector.cryptoKey,
-        material: Convert.hex(vector.cryptoKey.material).toUint8Array()
-      } as Web5Crypto.CryptoKey;
-
-      const cryptoKey = new CryptoKeyWithJwk(
-        secretKey.algorithm,
-        secretKey.extractable,
-        secretKey.material,
-        secretKey.type,
-        secretKey.usages
-      );
-
-      const jsonWebKey = await cryptoKey.toJwk();
-
-      expect(jsonWebKey).to.deep.equal(vector.jsonWebKey);
-    }
-  });
-
-  it('converts public CryptoKeys with extractable=false', async () => {
-    for (const vector of cryptoKeyPairToJsonWebKeyTestVectors) {
-      const publicKey = {
-        ...vector.cryptoKey.publicKey,
-        material: Convert.hex(vector.cryptoKey.publicKey.material).toUint8Array()
-      } as Web5Crypto.CryptoKey;
-
-      const cryptoKey = new CryptoKeyWithJwk(
-        publicKey.algorithm,
-        false, // override extractable to false
-        publicKey.material,
-        publicKey.type,
-        publicKey.usages
-      );
-
-      const jsonWebKey = await cryptoKey.toJwk();
-
-      expect(jsonWebKey).to.deep.equal({ ...vector.jsonWebKey.publicKeyJwk, ext: 'false' });
-    }
-  });
-
-  it('throws an error with unsupported algorithms', async () => {
-    const cryptoKey = new CryptoKeyWithJwk(
-      { name: 'ECDSA', namedCurve: 'P-256' }, // algorithm identifier
-      false, // extractable
-      new Uint8Array(32), // material aka key material
-      'private', // key type
-      ['sign', 'verify'] // key usages
-    );
-
-    await expect(
-      cryptoKey.toJwk()
-    ).to.eventually.be.rejectedWith(Error, 'Unsupported key to JWK conversion: P-256');
-  });
-});
 
 describe('Jose', () => {
   describe('joseToWebCrypto()', () => {

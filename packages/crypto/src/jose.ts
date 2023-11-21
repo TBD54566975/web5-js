@@ -972,16 +972,3 @@ export class Jose {
     return JSON.stringify(sortedObj);
   }
 }
-
-type Constructable = new (...args: any[]) => object;
-
-export function CryptoKeyToJwkMixin<T extends Constructable>(Base: T) {
-  return class extends Base {
-    public async toJwk(): Promise<JsonWebKey> {
-      const jwk = Jose.cryptoKeyToJwk({ key: (this as unknown) as CryptoKey });
-      return jwk;
-    }
-  };
-}
-
-export const CryptoKeyWithJwk = CryptoKeyToJwkMixin(CryptoKey);
