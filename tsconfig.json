@@ -2,7 +2,7 @@
   "compilerOptions": {
     "lib": [
       "DOM",
-      "ESNext"
+      "ES6"
     ],
     "allowJs": true,
     "strict": true,
