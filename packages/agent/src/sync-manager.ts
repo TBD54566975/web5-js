@@ -1,16 +1,14 @@
-import type { BatchOperation } from 'level';
+import { Level } from 'level';
+import type { AbstractLevel, AbstractBatchOperation } from 'abstract-level';
 import type {
   EventsGetReply,
   GenericMessage,
   MessagesGetReply,
   RecordsWriteMessage,
 } from '@tbd54566975/dwn-sdk-js';
-
-import { Level } from 'level';
 import { Convert } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { DataStream } from '@tbd54566975/dwn-sdk-js';
-
 import type { Web5ManagedAgent } from './types/agent.js';
 
 import { webReadableToIsomorphicNodeReadable } from './utils.js';
@@ -24,10 +22,12 @@ export interface SyncManager {
   pull(): Promise<void>;
 }
 
+type LevelDatabase = AbstractLevel<string | Buffer | Uint8Array, string, Uint8Array>;
+
 export type SyncManagerOptions = {
   agent?: Web5ManagedAgent;
   dataPath?: string;
-  db?: Level;
+  db?: LevelDatabase;
 };
 
 type SyncDirection = 'push' | 'pull';
@@ -43,7 +43,7 @@ type DwnMessage = {
   data?: Blob;
 }
 
-type DbBatchOperation = BatchOperation<Level, string, string>;
+type DbBatchOperation = AbstractBatchOperation<LevelDatabase, string, string>;
 
 const is2xx = (code: number) => code >= 200 && code <= 299;
 const is4xx = (code: number) => code >= 400 && code <= 499;
@@ -57,7 +57,7 @@ export class SyncManagerLevel implements SyncManager {
    * operations within the broader Web5 agent framework.
    */
   private _agent?: Web5ManagedAgent;
-  private _db: Level;
+  private _db: LevelDatabase;
   private _syncIntervalId?: ReturnType<typeof setInterval>;
 
   constructor(options?: SyncManagerOptions) {
