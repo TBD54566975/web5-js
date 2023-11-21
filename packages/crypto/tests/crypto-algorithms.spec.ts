@@ -1387,6 +1387,15 @@ describe('Default Crypto Algorithm Implementations', () => {
         expect(derivedKey.byteLength).to.equal(1024 / 8);
       });
 
+      it('does not throw if the specified key operations are valid', async () => {
+        inputKey.key_ops = ['deriveBits'];
+        await expect(pbkdf2.deriveBits({
+          algorithm : { name: 'PBKDF2', hash: 'SHA-256', salt: new Uint8Array([54, 55, 56]), iterations: 1 },
+          baseKey   : inputKey,
+          length    : 256
+        })).to.eventually.be.fulfilled;
+      });
+
       it('throws error if requested length is 0', async () => {
         await expect(pbkdf2.deriveBits({
           algorithm : { name: 'PBKDF2', hash: 'SHA-256', salt: new Uint8Array([54, 55, 56]), iterations: 1 },
@@ -1401,6 +1410,15 @@ describe('Default Crypto Algorithm Implementations', () => {
           baseKey   : inputKey,
           length    : 12
         })).to.eventually.be.rejectedWith(OperationError, `'length' must be a multiple of 8`);
+      });
+
+      it('throws an error if the specified key operations are invalid', async () => {
+        inputKey.key_ops = ['encrypt', 'sign'];
+        await expect(pbkdf2.deriveBits({
+          algorithm : { name: 'PBKDF2', hash: 'SHA-256', salt: new Uint8Array([54, 55, 56]), iterations: 1 },
+          baseKey   : inputKey,
+          length    : 256
+        })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
       });
 
       it(`supports 'SHA-256' hash function`, async () => {
