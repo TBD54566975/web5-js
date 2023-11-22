@@ -219,7 +219,6 @@ describe('DwnApi', () => {
         });
 
         expect(response.status.code).to.equal(401);
-        console.log(response.status.detail);
         expect(response.status.detail).to.include('GrantAuthorizationGrantMissing');
         expect(response.protocols).to.exist;
         expect(response.protocols.length).to.equal(0);
