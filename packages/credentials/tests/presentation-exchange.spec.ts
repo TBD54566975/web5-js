@@ -36,12 +36,12 @@ describe('PresentationExchange', () => {
         signer     : signer
       };
 
-      const vc = VerifiableCredential.create(
-        'StreetCred',
-        alice.did,
-        alice.did,
-        new BitcoinCredential('btcAddress123'),
-      );
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : alice.did,
+        subject : alice.did,
+        data    : new BitcoinCredential('btcAddress123'),
+      });
 
       btcCredentialJwt = await vc.sign(signOptions);
       presentationDefinition = createPresentationDefinition();
@@ -57,12 +57,12 @@ describe('PresentationExchange', () => {
     });
 
     it('should return the only one verifiable credential', async () => {
-      const vc = VerifiableCredential.create(
-        'StreetCred',
-        signOptions.issuerDid,
-        signOptions.subjectDid,
-        new OtherCredential('otherstuff'),
-      );
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : signOptions.issuerDid,
+        subject : signOptions.subjectDid,
+        data    : new OtherCredential('otherstuff'),
+      });
 
       const otherCredJwt = await vc.sign(signOptions);
 
@@ -127,12 +127,12 @@ describe('PresentationExchange', () => {
     });
 
     it('should fail to create a presentation with vc that does not match presentation definition', async() => {
-      const vc = VerifiableCredential.create(
-        'StreetCred',
-        signOptions.issuerDid,
-        signOptions.subjectDid,
-        new OtherCredential('otherstuff'),
-      );
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : signOptions.issuerDid,
+        subject : signOptions.subjectDid,
+        data    : new OtherCredential('otherstuff'),
+      });
 
       const otherCredJwt = await vc.sign(signOptions);
       await expectThrowsAsync(() =>  PresentationExchange.createPresentationFromCredentials([otherCredJwt], presentationDefinition), 'Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present');
