@@ -532,7 +532,7 @@ describe('DwnApi', () => {
         expect(result.records![0].id).to.equal(writeResult.record!.id);
       });
 
-      it('returns paginationMessageCid when there are additional results', async () => {
+      it('returns cursor when there are additional results', async () => {
         for(let i = 0; i < 3; i++ ) {
           const writeResult = await dwnAlice.records.write({
             data    : `Hello, world ${i + 1}!`,
@@ -559,20 +559,20 @@ describe('DwnApi', () => {
         expect(results.status.code).to.equal(200);
         expect(results.records).to.exist;
         expect(results.records!.length).to.equal(2);
-        expect(results.paginationMessageCid).to.exist;
+        expect(results.cursor).to.exist;
 
         const additionalResults = await dwnAlice.records.query({
           message: {
             filter: {
               schema: 'foo/bar'
             },
-            pagination: { limit: 2, messageCid: results.paginationMessageCid }
+            pagination: { limit: 2, cursor: results.cursor}
           }
         });
         expect(additionalResults.status.code).to.equal(200);
         expect(additionalResults.records).to.exist;
         expect(additionalResults.records!.length).to.equal(1);
-        expect(additionalResults.paginationMessageCid).to.not.exist;
+        expect(additionalResults.cursor).to.not.exist;
       });
 
       it('sorts results based on provided query sort parameter', async () => {

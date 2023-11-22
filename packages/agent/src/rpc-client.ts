@@ -62,7 +62,7 @@ export type DwnRpcRequest = {
 /**
  * TODO: add jsdoc
  */
-export type DwnRpcResponse = UnionMessageReply & RecordsReadReply & { paginationMessageCid?: string };
+export type DwnRpcResponse = UnionMessageReply & RecordsReadReply;
 
 export type RpcStatus = {
   code: number;

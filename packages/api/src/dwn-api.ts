@@ -133,7 +133,7 @@ export type RecordsQueryResponse = ResponseStatus & {
   records?: Record[]
 
   /** If there are additional results, the messageCid of the last record will be returned as a pagination cursor. */
-  paginationMessageCid?: string;
+  cursor?: string;
 };
 
 /**
@@ -363,7 +363,7 @@ export class DwnApi {
           agentResponse = await this.agent.processDwnRequest(agentRequest);
         }
 
-        const { reply: { entries, status, paginationMessageCid } } = agentResponse;
+        const { reply: { entries, status, cursor } } = agentResponse;
 
         const records = entries.map((entry: RecordsQueryReplyEntry) => {
           const recordOptions = {
@@ -384,7 +384,7 @@ export class DwnApi {
           return record;
         });
 
-        return { records, status, paginationMessageCid };
+        return { records, status, cursor };
       },
 
       /**
