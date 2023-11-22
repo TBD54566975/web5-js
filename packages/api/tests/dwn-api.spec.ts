@@ -149,25 +149,77 @@ describe('DwnApi', () => {
         expect(response.protocols.length).to.equal(0);
       });
 
-      it('returns a 401 when authorization fails', async () => {
-        /** Create a new DID to represent an external entity who has a remote
-         * DWN server defined in their DID document. */
-        const { did: bob } = await testAgent.createIdentity({ testDwnUrls });
+      it('returns published protocol definitions for requests from external DID', async () => {
+        // Configure a published protocol on Alice's local DWN.
+        const publicProtocol = await dwnAlice.protocols.configure({
+          message: {
+            definition: { ...emailProtocolDefinition, protocol: 'http://proto-published', published: true }
+          }
+        });
+        expect(publicProtocol.status.code).to.equal(202);
 
-        // Attempt to query for a protocol using Bob's DWN tenant.
-        const response = await dwnAlice.protocols.query({
-          from    : bob.did,
+        // Configure the published protocol on Alice's remote DWN.
+        const sendPublic = await publicProtocol.protocol.send(aliceDid.did);
+        expect(sendPublic.status.code).to.equal(202);
+
+        // Attempt to query for the published protocol on Alice's remote DWN authored by Bob.
+        const publishedResponse = await dwnBob.protocols.query({
+          from    : aliceDid.did,
           message : {
             filter: {
+              protocol: 'http://proto-published'
+            }
+          }
+        });
+
+        // Verify that one query result is returned.
+        expect(publishedResponse.status.code).to.equal(200);
+        expect(publishedResponse.protocols.length).to.equal(1);
+        expect(publishedResponse.protocols[0].definition.protocol).to.equal('http://proto-published');
+      });
+
+      it('does not return unpublished protocol definitions for requests from external DID', async () => {
+        // Configure an unpublished protocol on Alice's DWN.
+        const notPublicProtocol = await dwnAlice.protocols.configure({
+          message: {
+            definition: { ...emailProtocolDefinition, protocol: 'http://proto-not-published', published: false }
+          }
+        });
+        expect(notPublicProtocol.status.code).to.equal(202);
+
+        // Configure the unpublished protocol on Alice's remote DWN.
+        const sendNotPublic = await notPublicProtocol.protocol.send(aliceDid.did);
+        expect(sendNotPublic.status.code).to.equal(202);
+
+        // Attempt to query for the unpublished protocol on Alice's remote DWN authored by Bob.
+        const nonPublishedResponse = await dwnBob.protocols.query({
+          from    : aliceDid.did,
+          message : {
+            filter: {
+              protocol: 'http://proto-not-published'
+            }
+          }
+        });
+
+        // Verify that no query results are returned.
+        expect(nonPublishedResponse.status.code).to.equal(200);
+        expect(nonPublishedResponse.protocols.length).to.equal(0);
+      });
+
+      it('returns a 401 with an invalid permissions grant', async () => {
+        // Attempt to query for a record using Bob's DWN tenant with an invalid grant.
+        const response = await dwnAlice.protocols.query({
+          from    : bobDid.did,
+          message : {
+            permissionsGrantId : 'bafyreiduimprbncdo2oruvjrvmfmwuyz4xx3d5biegqd2qntlryvuuosem',
+            filter             : {
               protocol: 'https://doesnotexist.com/protocol'
             }
           }
         });
 
-        /** Confirm that authorization failed because the test identity does not have
-         * permission to delete a record from Bob's DWN. */
         expect(response.status.code).to.equal(401);
-        expect(response.status.detail).to.include('ProtocolsQuery failed authorization');
+        expect(response.status.detail).to.include('GrantAuthorizationGrantMissing');
         expect(response.protocols).to.exist;
         expect(response.protocols.length).to.equal(0);
       });

@@ -75,7 +75,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@tbd54566975/dwn-sdk-js": "0.2.6",
+    "@tbd54566975/dwn-sdk-js": "0.2.8",
     "@web5/agent": "0.2.4",
     "@web5/crypto": "0.2.2",
     "@web5/dids": "0.2.2",
