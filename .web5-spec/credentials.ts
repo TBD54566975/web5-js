@@ -34,7 +34,13 @@ export async function credentialIssue(req: Request, res: Response) {
         signer     : signer
     };
 
-  const vc: VerifiableCredential = VerifiableCredential.create(body.credential.type[body.credential.type.length - 1], body.credential.issuer, subjectIssuerDid, body.credential.credentialSubject);
+  const vc: VerifiableCredential = VerifiableCredential.create({
+    type: body.credential.type[body.credential.type.length - 1],
+    issuer: body.credential.issuer,
+    subject: subjectIssuerDid,
+    data: body.credential.credentialSubject
+  });
+
   const vcJwt: string = await vc.sign(signOptions);
 
   const resp: paths["/credentials/issue"]["post"]["responses"]["200"]["content"]["application/json"] =
