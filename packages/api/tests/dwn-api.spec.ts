@@ -534,7 +534,7 @@ describe('DwnApi', () => {
 
       it('returns paginationMessageCid when there are additional results', async () => {
         for(let i = 0; i < 3; i++ ) {
-          const writeResult = await dwn.records.write({
+          const writeResult = await dwnAlice.records.write({
             data    : `Hello, world ${i + 1}!`,
             message : {
               schema     : 'foo/bar',
@@ -547,7 +547,7 @@ describe('DwnApi', () => {
           expect(writeResult.record).to.exist;
         }
 
-        const results = await dwn.records.query({
+        const results = await dwnAlice.records.query({
           message: {
             filter: {
               schema: 'foo/bar'
@@ -561,7 +561,7 @@ describe('DwnApi', () => {
         expect(results.records!.length).to.equal(2);
         expect(results.paginationMessageCid).to.exist;
 
-        const additionalResults = await dwn.records.query({
+        const additionalResults = await dwnAlice.records.query({
           message: {
             filter: {
               schema: 'foo/bar'
@@ -581,7 +581,7 @@ describe('DwnApi', () => {
         const items = [];
         const publishedItems = [];
         for(let i = 0; i < 6; i++ ) {
-          const writeResult = await dwn.records.write({
+          const writeResult = await dwnAlice.records.write({
             data    : `Hello, world ${i + 1}!`,
             message : {
               published  : i % 2 == 0 ? true : false,
@@ -604,7 +604,7 @@ describe('DwnApi', () => {
         clock.restore();
 
         // query in ascending order by the dateCreated field
-        const createdAscResults = await dwn.records.query({
+        const createdAscResults = await dwnAlice.records.query({
           message: {
             filter: {
               schema: 'foo/bar'
@@ -618,7 +618,7 @@ describe('DwnApi', () => {
         expect(createdAscResults.records.map(r => r.id)).to.eql(items);
 
         // query in descending order by the dateCreated field
-        const createdDescResults = await dwn.records.query({
+        const createdDescResults = await dwnAlice.records.query({
           message: {
             filter: {
               schema: 'foo/bar'
@@ -632,7 +632,7 @@ describe('DwnApi', () => {
         expect(createdDescResults.records.map(r => r.id)).to.eql([...items].reverse());
 
         // query in ascending order by the datePublished field, this will only return published records
-        const publishedAscResults = await dwn.records.query({
+        const publishedAscResults = await dwnAlice.records.query({
           message: {
             filter: {
               schema: 'foo/bar'
@@ -646,7 +646,7 @@ describe('DwnApi', () => {
         expect(publishedAscResults.records.map(r => r.id)).to.eql(publishedItems);
 
         // query in desscending order by the datePublished field, this will only return published records
-        const publishedDescResults = await dwn.records.query({
+        const publishedDescResults = await dwnAlice.records.query({
           message: {
             filter: {
               schema: 'foo/bar'

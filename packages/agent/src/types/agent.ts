@@ -87,7 +87,7 @@ export type SendDwnRequest = DwnRequest & (ProcessDwnRequest | { messageCid: str
 export type DwnResponse = {
   message?: unknown;
   messageCid?: string;
-  reply: UnionMessageReply & RecordsReadReply;
+  reply: UnionMessageReply & RecordsReadReply & { paginationMessageCid?: string };
 };
 
 /**
