@@ -25,7 +25,7 @@ export type VcDataModel = ICredential;
  * @param type Optional. The type of the credential, can be a string or an array of strings.
  * @param issuer The issuer URI of the credential, as a string.
  * @param subject The subject URI of the credential, as a string.
- * @param data The credential data, as a generic type T.
+ * @param data The credential data, as a generic type any.
  * @param issuanceDate Optional. The issuance date of the credential, as a string.
  *               Defaults to the current date if not specified.
  * @param expirationDate Optional. The expiration date of the credential, as a string.
