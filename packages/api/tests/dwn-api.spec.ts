@@ -149,31 +149,20 @@ describe('DwnApi', () => {
         expect(response.protocols.length).to.equal(0);
       });
 
-      it('returns published protocol definitions for requests from external did', async () => {
-
-        // configure a non-published protocol on alice's DWN
-        const notPublicProtocol = await dwnAlice.protocols.configure({
-          message: {
-            definition: { ...emailProtocolDefinition, protocol: 'http://proto-not-published', published: false }
-          }
-        });
-        expect(notPublicProtocol.status.code).to.equal(202);
-        const sendNotPublic = await notPublicProtocol.protocol.send(aliceDid.did);
-        expect(sendNotPublic.status.code).to.equal(202);
-        expect(sendNotPublic.status.detail).to.equal('Accepted');
-
-        // configure a published protocol on alice's DWN
+      it('returns published protocol definitions for requests from external DID', async () => {
+        // Configure a published protocol on Alice's local DWN.
         const publicProtocol = await dwnAlice.protocols.configure({
           message: {
             definition: { ...emailProtocolDefinition, protocol: 'http://proto-published', published: true }
           }
         });
         expect(publicProtocol.status.code).to.equal(202);
+
+        // Configure the published protocol on Alice's remote DWN.
         const sendPublic = await publicProtocol.protocol.send(aliceDid.did);
         expect(sendPublic.status.code).to.equal(202);
-        expect(sendPublic.status.detail).to.equal('Accepted');
 
-        // Attempt to query for a published protocol using Bob's DWN tenant from Alice.
+        // Attempt to query for the published protocol on Alice's remote DWN authored by Bob.
         const publishedResponse = await dwnBob.protocols.query({
           from    : aliceDid.did,
           message : {
@@ -183,11 +172,26 @@ describe('DwnApi', () => {
           }
         });
 
+        // Verify that one query result is returned.
         expect(publishedResponse.status.code).to.equal(200);
         expect(publishedResponse.protocols.length).to.equal(1);
         expect(publishedResponse.protocols[0].definition.protocol).to.equal('http://proto-published');
+      });
 
-        // Attempt to query for a non-published protocol using Bob's DWN tenant from Alice.
+      it('does not return unpublished protocol definitions for requests from external DID', async () => {
+        // Configure an unpublished protocol on Alice's DWN.
+        const notPublicProtocol = await dwnAlice.protocols.configure({
+          message: {
+            definition: { ...emailProtocolDefinition, protocol: 'http://proto-not-published', published: false }
+          }
+        });
+        expect(notPublicProtocol.status.code).to.equal(202);
+
+        // Configure the unpublished protocol on Alice's remote DWN.
+        const sendNotPublic = await notPublicProtocol.protocol.send(aliceDid.did);
+        expect(sendNotPublic.status.code).to.equal(202);
+
+        // Attempt to query for the unpublished protocol on Alice's remote DWN authored by Bob.
         const nonPublishedResponse = await dwnBob.protocols.query({
           from    : aliceDid.did,
           message : {
@@ -196,16 +200,18 @@ describe('DwnApi', () => {
             }
           }
         });
+
+        // Verify that no query results are returned.
         expect(nonPublishedResponse.status.code).to.equal(200);
         expect(nonPublishedResponse.protocols.length).to.equal(0);
       });
 
-      it('returns a 401 when making an unauthorized ProtocolsQuery', async () => {
+      it('returns a 401 with an invalid permissions grant', async () => {
         // Attempt to query for a record using Bob's DWN tenant with an invalid grant.
         const response = await dwnAlice.protocols.query({
           from    : bobDid.did,
           message : {
-            permissionsGrantId : 'invalid-grant-id',
+            permissionsGrantId : 'bafyreiduimprbncdo2oruvjrvmfmwuyz4xx3d5biegqd2qntlryvuuosem',
             filter             : {
               protocol: 'https://doesnotexist.com/protocol'
             }
@@ -213,6 +219,8 @@ describe('DwnApi', () => {
         });
 
         expect(response.status.code).to.equal(401);
+        console.log(response.status.detail);
+        expect(response.status.detail).to.include('GrantAuthorizationGrantMissing');
         expect(response.protocols).to.exist;
         expect(response.protocols.length).to.equal(0);
       });
