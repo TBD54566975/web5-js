@@ -21,6 +21,24 @@ export const DEFAULT_VC_TYPE = 'VerifiableCredential';
  */
 export type VcDataModel = ICredential;
 
+/**
+ * @param type Optional. The type of the credential, can be a string or an array of strings.
+ * @param issuer The issuer URI of the credential, as a string.
+ * @param subject The subject URI of the credential, as a string.
+ * @param data The credential data, as a generic type T.
+ * @param issuanceDate Optional. The issuance date of the credential, as a string.
+ *               Defaults to the current date if not specified.
+ * @param expirationDate Optional. The expiration date of the credential, as a string.
+ */
+export type VerifiableCredentialCreateOptions = {
+  type?: string | string[];
+  issuer: string;
+  subject: string;
+  data: any;
+  issuanceDate?: string;
+  expirationDate?: string;
+};
+
 export type SignOptions = {
   kid: string;
   issuerDid: string;
@@ -113,24 +131,22 @@ export class VerifiableCredential {
   /**
    * Create a [VerifiableCredential] based on the provided parameters.
    *
-   * @param type The type of the credential, as a [String].
-   * @param issuer The issuer URI of the credential, as a [String].
-   * @param subject The subject URI of the credential, as a [String].
-   * @param data The credential data, as a generic type [T].
+   * @param vcCreateOptions The options to use when creating the Verifiable Credential.
    * @return A [VerifiableCredential] instance.
    *
    * Example:
    * ```
-   * const vc = VerifiableCredential.create("ExampleCredential", "http://example.com/issuers/1", "http://example.com/subjects/1", myData)
+   * const vc = VerifiableCredential.create({
+   *     type: 'StreetCredibility',
+   *     issuer: 'did:ex:issuer',
+   *     subject: 'did:ex:subject',
+   *     data: { 'arbitrary': 'data' }
+   *   })
    * ```
    */
-  public static create<T>(
-    type: string,
-    issuer: string,
-    subject: string,
-    data: T,
-    expirationDate?: string
-  ): VerifiableCredential {
+  public static create(vcCreateOptions: VerifiableCredentialCreateOptions): VerifiableCredential {
+    const { type, issuer, subject, data, issuanceDate, expirationDate } = vcCreateOptions;
+
     const jsonData = JSON.parse(JSON.stringify(data));
 
     if (typeof jsonData !== 'object') {
@@ -147,11 +163,13 @@ export class VerifiableCredential {
     };
 
     const vcDataModel: VcDataModel = {
-      '@context'        : [DEFAULT_CONTEXT],
-      type              : [DEFAULT_VC_TYPE, type],
+      '@context' : [DEFAULT_CONTEXT],
+      type       : Array.isArray(type)
+        ? [DEFAULT_VC_TYPE, ...type]
+        : (type ? [DEFAULT_VC_TYPE, type] : [DEFAULT_VC_TYPE]),
       id                : `urn:uuid:${uuidv4()}`,
       issuer            : issuer,
-      issuanceDate      : getCurrentXmlSchema112Timestamp(),
+      issuanceDate      : issuanceDate || getCurrentXmlSchema112Timestamp(), // use default if undefined
       credentialSubject : credentialSubject,
       ...(expirationDate && { expirationDate }), // optional property
     };

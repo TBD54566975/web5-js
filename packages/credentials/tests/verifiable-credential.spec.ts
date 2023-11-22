@@ -36,12 +36,12 @@ describe('Verifiable Credential Tests', () => {
       const issuerDid = signOptions.issuerDid;
       const subjectDid = signOptions.subjectDid;
 
-      const vc = VerifiableCredential.create(
-        'StreetCred',
-        issuerDid,
-        subjectDid,
-        new StreetCredibility('high', true),
-      );
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : issuerDid,
+        subject : subjectDid,
+        data    : new StreetCredibility('high', true),
+      });
 
       expect(vc.issuer).to.equal(issuerDid);
       expect(vc.subject).to.equal(subjectDid);
@@ -57,12 +57,12 @@ describe('Verifiable Credential Tests', () => {
       const invalidData = 'NotAJSONObject';
 
       expect(() => {
-        VerifiableCredential.create(
-          'InvalidDataTest',
-          issuerDid,
-          subjectDid,
-          invalidData
-        );
+        VerifiableCredential.create({
+          type    : 'InvalidDataTest',
+          issuer  : issuerDid,
+          subject : subjectDid,
+          data    : invalidData
+        });
       }).to.throw('Expected data to be parseable into a JSON object');
     });
 
@@ -72,21 +72,21 @@ describe('Verifiable Credential Tests', () => {
       const validData = new StreetCredibility('high', true);
 
       expect(() => {
-        VerifiableCredential.create(
-          'IssuerUndefinedTest',
-          '',
-          subjectDid,
-          validData
-        );
+        VerifiableCredential.create({
+          type    : 'IssuerUndefinedTest',
+          issuer  : '',
+          subject : subjectDid,
+          data    : validData
+        });
       }).to.throw('Issuer and subject must be defined');
 
       expect(() => {
-        VerifiableCredential.create(
-          'SubjectUndefinedTest',
-          issuerDid,
-          '',
-          validData
-        );
+        VerifiableCredential.create({
+          type    : 'SubjectUndefinedTest',
+          issuer  : issuerDid,
+          subject : '',
+          data    : validData
+        });
       }).to.throw('Issuer and subject must be defined');
 
     });
@@ -95,12 +95,12 @@ describe('Verifiable Credential Tests', () => {
       const issuerDid = signOptions.issuerDid;
       const subjectDid = signOptions.subjectDid;
 
-      const vc = VerifiableCredential.create(
-        'StreetCred',
-        issuerDid,
-        subjectDid,
-        new StreetCredibility('high', true),
-      );
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : issuerDid,
+        subject : subjectDid,
+        data    : new StreetCredibility('high', true),
+      });
 
       const vcJwt = await vc.sign(signOptions);
       expect(vcJwt).to.not.be.null;
@@ -117,12 +117,12 @@ describe('Verifiable Credential Tests', () => {
     });
 
     it('verify fails with bad issuer did', async () => {
-      const vc = VerifiableCredential.create(
-        'StreetCred',
-        'bad:did: invalidDid',
-        signOptions.subjectDid,
-        new StreetCredibility('high', true)
-      );
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : 'bad:did: invalidDid',
+        subject : signOptions.subjectDid,
+        data    : new StreetCredibility('high', true)
+      });
 
       const badSignOptions = {
         issuerDid  : 'bad:did: invalidDid',
@@ -141,12 +141,12 @@ describe('Verifiable Credential Tests', () => {
     });
 
     it('parseJwt returns an instance of VerifiableCredential on success', async () => {
-      const vc = VerifiableCredential.create(
-        'StreetCred',
-        signOptions.issuerDid,
-        signOptions.subjectDid,
-        new StreetCredibility('high', true)
-      );
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : signOptions.issuerDid,
+        subject : signOptions.subjectDid,
+        data    : new StreetCredibility('high', true),
+      });
 
       const vcJwt = await vc.sign(signOptions);
       const parsedVc = VerifiableCredential.parseJwt(vcJwt);
@@ -170,12 +170,12 @@ describe('Verifiable Credential Tests', () => {
     });
 
     it('verify does not throw an exception with vaild vc', async () => {
-      const vc = VerifiableCredential.create(
-        'StreetCred',
-        signOptions.issuerDid,
-        signOptions.subjectDid,
-        new StreetCredibility('high', true)
-      );
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : signOptions.issuerDid,
+        subject : signOptions.subjectDid,
+        data    : new StreetCredibility('high', true),
+      });
 
       const vcJwt = await vc.sign(signOptions);
 
