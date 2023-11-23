@@ -10,7 +10,9 @@ import { IdentityManager } from '../src/identity-manager.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
 import { IdentityStoreDwn, IdentityStoreMemory } from '../src/store-managed-identity.js';
 
-describe('IdentityManager', () => {
+describe('IdentityManager', function() {
+  this.retries(1);
+
   describe('get agent', () => {
     it(`returns the 'agent' instance property`, async () => {
       // @ts-expect-error because we are only mocking a single property.

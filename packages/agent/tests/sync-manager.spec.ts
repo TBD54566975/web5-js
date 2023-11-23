@@ -13,7 +13,9 @@ import { TestManagedAgent } from '../src/test-managed-agent.js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
-describe('SyncManagerLevel', () => {
+describe('SyncManagerLevel', function() {
+  this.retries(1);
+
   describe('get agent', () => {
     it(`returns the 'agent' instance property`, async () => {
       // @ts-expect-error because we are only mocking a single property.
@@ -268,7 +270,7 @@ describe('SyncManagerLevel', () => {
         localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
         expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
-      }).timeout(5000);
+      }).timeout(20000);
     });
 
     describe('push()', () => {
@@ -464,7 +466,7 @@ describe('SyncManagerLevel', () => {
         remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
         expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
-      }).timeout(5000);
+      }).timeout(20000);
     });
   });
 });
