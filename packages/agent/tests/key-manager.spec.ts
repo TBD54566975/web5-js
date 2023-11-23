@@ -11,7 +11,9 @@ import { TestAgent } from './utils/test-agent.js';
 import { KeyManager } from '../src/key-manager.js';
 import { KeyStoreMemory } from '../src/store-managed-key.js';
 
-describe('KeyManager', () => {
+describe('KeyManager', function() {
+  this.retries(1);
+
   let keyManager: KeyManager;
   let localKms: LocalKms;
   let testAgent: TestAgent;

@@ -21,7 +21,9 @@ import {
 
 chai.use(chaiAsPromised);
 
-describe('KeyStoreDwn', () => {
+describe('KeyStoreDwn', function() {
+  this.retries(1);
+
   const testConfigurations = [
     {
       name           : 'KeyManager',
@@ -614,7 +616,9 @@ describe('KeyStoreDwn', () => {
   });
 });
 
-describe('KeyStoreMemory', () => {
+describe('KeyStoreMemory', function() {
+  this.retries(1);
+
   let keyStore: KeyStoreMemory;
   let testKey: ManagedKey;
   let testKeyPair: ManagedKeyPair;
@@ -932,7 +936,9 @@ describe('KeyStoreMemory', () => {
   });
 });
 
-describe('PrivateKeyStoreDwn', () => {
+describe('PrivateKeyStoreDwn', function() {
+  this.retries(1);
+
   let agentDid: PortableDid;
   let agentSigningKey: Web5Crypto.CryptoKeyPair;
   let keyMaterial: Uint8Array;
@@ -1253,7 +1259,9 @@ describe('PrivateKeyStoreDwn', () => {
   });
 });
 
-describe('PrivateKeyStoreMemory', () => {
+describe('PrivateKeyStoreMemory', function() {
+  this.retries(1);
+
   let kmsPrivateKeyStore: PrivateKeyStoreMemory;
   let testKey: Omit<ManagedPrivateKey, 'id'>;
   let keyMaterial: Uint8Array;

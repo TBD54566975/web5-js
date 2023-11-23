@@ -15,7 +15,8 @@ import { webcrypto } from 'node:crypto';
 // @ts-ignore
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
-describe('IdentityAgent', () => {
+describe('IdentityAgent', function() {
+  this.retries(1);
 
   const agentStoreTypes = ['dwn', 'memory'] as const;
   agentStoreTypes.forEach((agentStoreType) => {

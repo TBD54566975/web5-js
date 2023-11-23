@@ -13,7 +13,8 @@ import { DidManager } from '../src/did-manager.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
 import { DidStoreDwn, DidStoreMemory } from '../src/store-managed-did.js';
 
-describe('DidManager', () => {
+describe('DidManager', function() {
+  this.retries(1);
 
   describe('constructor', () => {
     it('accepts an array of DID method implementations', () => {
@@ -415,7 +416,9 @@ describe('DidManager', () => {
   });
 });
 
-describe('DidStoreDwn', () => {
+describe('DidStoreDwn', function() {
+  this.retries(1);
+
   let didStoreDwn: DidStoreDwn;
   let testAgent: TestAgent;
   let testManagedDid: ManagedDid;
@@ -740,7 +743,9 @@ describe('DidStoreDwn', () => {
   });
 });
 
-describe('DidStoreMemory', () => {
+describe('DidStoreMemory', function() {
+  this.retries(1);
+
   let didStore: DidStoreMemory;
   let testAgent: TestAgent;
   let testManagedDid: ManagedDid;

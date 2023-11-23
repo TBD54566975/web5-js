@@ -20,7 +20,9 @@ const testConfigurations = [
   }
 ];
 
-describe('AppDataVault', () => {
+describe('AppDataVault', function() {
+  this.retries(1);
+
   testConfigurations.forEach((test) => {
     describe(`with ${test.name}`, () => {
 

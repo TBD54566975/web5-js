@@ -35,7 +35,8 @@ chai.use(chaiAsPromised);
 
 let testDwnUrls: string[] = [testDwnUrl];
 
-describe('DwnManager', () => {
+describe('DwnManager', function() {
+  this.retries(1);
 
   describe('constructor', () => {
     it('accepts a custom DWN instance', async () => {

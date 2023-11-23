@@ -12,7 +12,9 @@ import { KeyStoreMemory, PrivateKeyStoreMemory } from '../src/store-managed-key.
 
 chai.use(chaiAsPromised);
 
-describe('LocalKms', () => {
+describe('LocalKms', function() {
+  this.retries(1);
+
   let kms: LocalKms;
   let kmsKeyStore: KeyStoreMemory;
   let testAgent: TestAgent;

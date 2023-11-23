@@ -31,12 +31,18 @@ module.exports = function (config) {
     frameworks: ['mocha'],
 
     client: {
+      captureConsole : true,
       // Increase Mocha's default timeout of 2 seconds to prevent timeouts during GitHub CI runs.
-      mocha: {
+      mocha          : {
         timeout: 10000 // 10 seconds
       },
       // If an environment variable is defined, override the default test DWN URL.
       testDwnUrl: process.env.TEST_DWN_URL,
+    },
+
+    mochaReporter: {
+      output   : 'minimal',
+      showDiff : true
     },
 
     // list of files / patterns to load in the browser
@@ -68,7 +74,7 @@ module.exports = function (config) {
     // level of logging
     // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN ||
     // config.LOG_INFO || config.LOG_DEBUG
-    logLevel: config.LOG_DEBUG,
+    logLevel: config.LOG_INFO,
 
     concurrency: 1,
 
