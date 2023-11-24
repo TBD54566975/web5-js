@@ -1,17 +1,16 @@
+import { DataStream } from '@tbd54566975/dwn-sdk-js';
+import { Convert } from '@web5/common';
+import { utils as didUtils } from '@web5/dids';
 import { Level } from 'level';
-import type { AbstractLevel, AbstractBatchOperation } from 'abstract-level';
+import { webReadableToIsomorphicNodeReadable } from './utils.js';
 import type {
   EventsGetReply,
   GenericMessage,
   MessagesGetReply,
   RecordsWriteMessage,
 } from '@tbd54566975/dwn-sdk-js';
-import { Convert } from '@web5/common';
-import { utils as didUtils } from '@web5/dids';
-import { DataStream } from '@tbd54566975/dwn-sdk-js';
+import type { AbstractBatchOperation, AbstractLevel } from 'abstract-level';
 import type { Web5ManagedAgent } from './types/agent.js';
-
-import { webReadableToIsomorphicNodeReadable } from './utils.js';
 
 export interface SyncManager {
   agent: Web5ManagedAgent;
