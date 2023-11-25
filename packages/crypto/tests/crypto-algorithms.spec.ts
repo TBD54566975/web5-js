@@ -1,5 +1,3 @@
-import type { Web5Crypto } from '../src/types/web5-crypto.js';
-
 import sinon from 'sinon';
 import chai, { expect } from 'chai';
 import { Convert } from '@web5/common';

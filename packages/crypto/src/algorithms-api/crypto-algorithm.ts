@@ -1,5 +1,5 @@
 import type { Web5Crypto } from '../types/web5-crypto.js';
-import type { JsonWebKey, JwkOperation, JwkType } from '../jose.js';
+import type { JsonWebKey, JwkOperation, JwkType, PrivateKeyJwk, PublicKeyJwk } from '../jose.js';
 
 import { InvalidAccessError, NotSupportedError } from './errors.js';
 
@@ -13,7 +13,7 @@ export abstract class CryptoAlgorithm {
   /**
    * Indicates which cryptographic operations are permissible to be used with this algorithm.
    */
-  public abstract readonly keyUsages: Web5Crypto.KeyUsage[] | Web5Crypto.KeyPairUsage;
+  public abstract readonly keyUsages: JwkOperation[];
 
   public checkAlgorithmName(options: {
     algorithmName: string
@@ -59,14 +59,17 @@ export abstract class CryptoAlgorithm {
 
   public checkKeyType(options: {
     keyType: JwkType,
-    allowedKeyType: JwkType
+    allowedKeyTypes: JwkType[]
   }): void {
-    const { keyType, allowedKeyType } = options;
-    if (keyType === undefined || allowedKeyType === undefined) {
-      throw new TypeError(`One or more required parameters missing: 'keyType, allowedKeyType'`);
+    const { keyType, allowedKeyTypes } = options;
+    if (keyType === undefined || allowedKeyTypes === undefined) {
+      throw new TypeError(`One or more required parameters missing: 'keyType, allowedKeyTypes'`);
     }
-    if (keyType && keyType !== allowedKeyType) {
-      throw new InvalidAccessError(`Key type of the provided key must be '${allowedKeyType}' but '${keyType}' was specified.`);
+    if (!Array.isArray(allowedKeyTypes)) {
+      throw new TypeError(`The provided 'allowedKeyTypes' is not of type Array.`);
+    }
+    if (keyType && !allowedKeyTypes.includes(keyType)) {
+      throw new InvalidAccessError(`Key type of the provided key must be '${allowedKeyTypes.join(', ')}' but '${keyType}' was specified.`);
     }
   }
 
@@ -117,19 +120,18 @@ export abstract class CryptoAlgorithm {
 
   public abstract generateKey(options: {
     algorithm: Partial<Web5Crypto.GenerateKeyOptions>,
-    extractable: boolean,
-    keyUsages: Web5Crypto.KeyUsage[],
-  }): Promise<Web5Crypto.CryptoKey | Web5Crypto.CryptoKeyPair>;
+    keyUsages?: JwkOperation[],
+  }): Promise<PrivateKeyJwk>;
 
   public abstract sign(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdsaOptions | Web5Crypto.EdDsaOptions,
-    key: Web5Crypto.CryptoKey,
+    key: PrivateKeyJwk,
     data: Uint8Array
   }): Promise<Uint8Array>;
 
   public abstract verify(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdsaOptions | Web5Crypto.EdDsaOptions,
-    key: Web5Crypto.CryptoKey,
+    key: PublicKeyJwk,
     signature: Uint8Array,
     data: Uint8Array
   }): Promise<boolean>;

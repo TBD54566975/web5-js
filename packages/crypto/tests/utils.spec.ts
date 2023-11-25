@@ -57,14 +57,14 @@ describe('Crypto Utils', () => {
   describe('isCryptoKeyPair()', () => {
     it('returns true with a CryptoKeyPair object', () => {
       const publicKey = new CryptoKey(
-        { name: 'EdDSA', namedCurve: 'Ed25519' },
+        { name: 'EdDSA', curve: 'Ed25519' },
         true,
         new Uint8Array(32),
         'public',
         ['verify']
       );
       const privateKey = new CryptoKey(
-        { name: 'EdDSA', namedCurve: 'Ed25519' },
+        { name: 'EdDSA', curve: 'Ed25519' },
         true,
         new Uint8Array(32),
         'private',
@@ -78,7 +78,7 @@ describe('Crypto Utils', () => {
 
     it('returns false for a CryptoKey', () => {
       const cryptoKey = new CryptoKey(
-        { name: 'EdDSA', namedCurve: 'Ed25519' },
+        { name: 'EdDSA', curve: 'Ed25519' },
         true,
         new Uint8Array(32),
         'secret',

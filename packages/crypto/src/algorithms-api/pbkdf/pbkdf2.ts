@@ -1,6 +1,6 @@
 import { universalTypeOf } from '@web5/common';
 
-import type { JsonWebKey } from '../../jose.js';
+import type { JwkOperation, PrivateKeyJwk } from '../../jose.js';
 import type { Web5Crypto } from '../../types/web5-crypto.js';
 
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
@@ -13,11 +13,11 @@ export abstract class BasePbkdf2Algorithm extends CryptoAlgorithm {
 
   public readonly abstract hashAlgorithms: string[];
 
-  public readonly keyUsages: Web5Crypto.KeyUsage[] = ['deriveBits', 'deriveKey'];
+  public readonly keyUsages: JwkOperation[] = ['deriveBits', 'deriveKey'];
 
   public checkAlgorithmOptions(options: {
     algorithm: Web5Crypto.Pbkdf2Options,
-    baseKey: JsonWebKey
+    baseKey: PrivateKeyJwk
   }): void {
     const { algorithm, baseKey } = options;
     // Algorithm specified in the operation must match the algorithm implementation processing the operation.
@@ -47,7 +47,7 @@ export abstract class BasePbkdf2Algorithm extends CryptoAlgorithm {
     // The baseKey object must be a JSON Web Key (JWK).
     this.checkJwk({ key: baseKey });
     // The baseKey must be of type 'oct' (octet sequence).
-    this.checkKeyType({ keyType: baseKey.kty, allowedKeyType: 'oct' });
+    this.checkKeyType({ keyType: baseKey.kty, allowedKeyTypes: ['oct'] });
   }
 
   public override async decrypt(): Promise<Uint8Array> {
@@ -58,7 +58,7 @@ export abstract class BasePbkdf2Algorithm extends CryptoAlgorithm {
     throw new InvalidAccessError(`Requested operation 'encrypt' is not valid for ${this.name} keys.`);
   }
 
-  public override async generateKey(): Promise<Web5Crypto.CryptoKey> {
+  public override async generateKey(): Promise<PrivateKeyJwk> {
     throw new InvalidAccessError(`Requested operation 'generateKey' is not valid for ${this.name} keys.`);
   }
 

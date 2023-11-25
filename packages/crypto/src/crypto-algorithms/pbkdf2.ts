@@ -1,4 +1,4 @@
-import type { JsonWebKey } from '../jose.js';
+import type { PrivateKeyJwk } from '../jose.js';
 import type { Web5Crypto } from '../types/web5-crypto.js';
 
 import { Jose } from '../jose.js';
@@ -10,7 +10,7 @@ export class Pbkdf2Algorithm extends BasePbkdf2Algorithm {
 
   public async deriveBits(options: {
     algorithm: Web5Crypto.Pbkdf2Options,
-    baseKey: JsonWebKey,
+    baseKey: PrivateKeyJwk,
     length: number
   }): Promise<Uint8Array> {
     const { algorithm, baseKey, length } = options;

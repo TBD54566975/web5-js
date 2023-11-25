@@ -412,14 +412,14 @@ export interface JweHeaderParams extends JoseHeaderParams {
 }
 
 const joseToWebCryptoMapping: { [key: string]: Web5Crypto.GenerateKeyOptions } = {
-  'Ed25519'          : { name: 'EdDSA', namedCurve: 'Ed25519' },
-  'Ed448'            : { name: 'EdDSA', namedCurve: 'Ed448' },
-  'X25519'           : { name: 'ECDH', namedCurve: 'X25519' },
-  'secp256k1:ES256K' : { name: 'ECDSA', namedCurve: 'secp256k1' },
-  'secp256k1'        : { name: 'ECDH', namedCurve: 'secp256k1' },
-  'P-256'            : { name: 'ECDSA', namedCurve: 'P-256' },
-  'P-384'            : { name: 'ECDSA', namedCurve: 'P-384' },
-  'P-521'            : { name: 'ECDSA', namedCurve: 'P-521' },
+  'Ed25519'          : { name: 'EdDSA', curve: 'Ed25519' },
+  'Ed448'            : { name: 'EdDSA', curve: 'Ed448' },
+  'X25519'           : { name: 'ECDH', curve: 'X25519' },
+  'secp256k1:ES256K' : { name: 'ECDSA', curve: 'secp256k1' },
+  'secp256k1'        : { name: 'ECDH', curve: 'secp256k1' },
+  'P-256'            : { name: 'ECDSA', curve: 'P-256' },
+  'P-384'            : { name: 'ECDSA', curve: 'P-384' },
+  'P-521'            : { name: 'ECDSA', curve: 'P-521' },
   'A128CBC'          : { name: 'AES-CBC', length: 128 },
   'A192CBC'          : { name: 'AES-CBC', length: 192 },
   'A256CBC'          : { name: 'AES-CBC', length: 256 },
@@ -513,6 +513,46 @@ export class Jose {
     const jwkKeyPair: JwkKeyPair = { privateKeyJwk, publicKeyJwk };
 
     return { ...jwkKeyPair };
+  }
+
+  public static isEcPrivateKeyJwk(obj: unknown): obj is JwkParamsEcPrivate {
+    if (!obj || typeof obj !== 'object') return false;
+    if (!('kty' in obj && 'crv' in obj && 'x' in obj && 'd' in obj)) return false;
+    if (obj.kty !== 'EC') return false;
+    if (typeof obj.d !== 'string') return false;
+    if (typeof obj.x !== 'string') return false;
+
+    return true;
+  }
+
+  public static isEcPublicKeyJwk(obj: unknown): obj is JwkParamsEcPublic {
+    if (!obj || typeof obj !== 'object') return false;
+    if (!('kty' in obj && 'crv' in obj && 'x' in obj)) return false;
+    if ('d' in obj) return false;
+    console.log('isEcPublicKeyJwk fails kty=EC check');
+    if (obj.kty !== 'EC') return false;
+    if (typeof obj.x !== 'string') return false;
+    return true;
+  }
+
+  public static isOkpPrivateKeyJwk(obj: unknown): obj is JwkParamsOkpPrivate {
+    if (!obj || typeof obj !== 'object') return false;
+    if (!('kty' in obj && 'crv' in obj && 'x' in obj && 'd' in obj)) return false;
+    if (obj.kty !== 'OKP') return false;
+    if (typeof obj.d !== 'string') return false;
+    if (typeof obj.x !== 'string') return false;
+
+    return true;
+  }
+
+  public static isOkpPublicKeyJwk(obj: unknown): obj is JwkParamsOkpPublic {
+    console.log('isOkpPublicKeyJwk is passing');
+    if (!obj || typeof obj !== 'object') return false;
+    if ('d' in obj) return false;
+    if (!('kty' in obj && 'crv' in obj && 'x' in obj)) return false;
+    if (obj.kty !== 'OKP') return false;
+    if (typeof obj.x !== 'string') return false;
+    return true;
   }
 
   public static async joseToMulticodec(options: {
@@ -932,8 +972,8 @@ export class Jose {
      * All Elliptic Curve (EC) WebCrypto algorithms
      * set a value for the "namedCurve" parameter.
      */
-    if ('namedCurve' in options) {
-      params.push(options.namedCurve);
+    if ('curve' in options) {
+      params.push(options.curve);
 
     /**
      * All symmetric encryption (AES) WebCrypto algorithms
@@ -950,7 +990,7 @@ export class Jose {
       params.push(options.hash.name);
 
     } else {
-      throw new TypeError(`One or more parameters missing: 'name', 'namedCurve', 'length', or 'hash'`);
+      throw new TypeError(`One or more parameters missing: 'curve', 'name', 'length', or 'hash'`);
     }
 
     const lookupKey = params.join(':');

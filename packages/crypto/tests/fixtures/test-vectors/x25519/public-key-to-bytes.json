@@ -1,0 +1,41 @@
+{
+  "description" : "X25519 publicKeyToBytes test vectors",
+  "vectors"     : [
+    {
+      "description" : "converts wycheproof vector 1 to the expected byte array",
+      "input"       : {
+        "publicKey": {
+          "crv" : "X25519",
+          "kid" : "tzkgHF2KJ5d1ir5OaJi9VdNtwKrvnDUPUagtedeyyNE",
+          "kty" : "OKP",
+          "x" : "X2S0HM6Kaz1qOHYwiPYVpJd9QiKIrkK0mrOlfi_Nb20"
+        }
+      },
+      "output": "5f64b41cce8a6b3d6a38763088f615a4977d422288ae42b49ab3a57e2fcd6f6d"
+    },
+    {
+      "description" : "converts wycheproof vector 2 to the expected byte array",
+      "input"       : {
+        "publicKey": {
+          "crv" : "X25519",
+          "kid" : "0FSNmN_cVErHxsnoRtFHANkAQyklGgA7crsE-HiFPwg",
+          "kty" : "OKP",
+          "x" : "qQMfm22ifgIOV-IEKfLitbg0jEkoIQbCpbI2WnI_DSA"
+        }
+      },
+      "output": "a9031f9b6da27e020e57e20429f2e2b5b8348c49282106c2a5b2365a723f0d20"
+    },
+    {
+      "description" : "converts wycheproof vector 3 to the expected byte array",
+      "input"       : {
+        "publicKey": {
+          "crv" : "X25519",
+          "kid" : "OaJSSSZ5RBIGtsE8-ah1lWjcXrk5Fk4TYpuu_AgQKJs",
+          "kty" : "OKP",
+          "x" : "_s8qHPERyRymPqNATkQbqkB7-jpudS-30g-VRmkN00M"
+        }
+      },
+      "output": "fecf2a1cf111c91ca63ea3404e441baa407bfa3a6e752fb7d20f9546690dd343"
+    }
+  ]
+}
