@@ -529,7 +529,6 @@ export class Jose {
     if (!obj || typeof obj !== 'object') return false;
     if (!('kty' in obj && 'crv' in obj && 'x' in obj)) return false;
     if ('d' in obj) return false;
-    console.log('isEcPublicKeyJwk fails kty=EC check');
     if (obj.kty !== 'EC') return false;
     if (typeof obj.x !== 'string') return false;
     return true;
@@ -546,7 +545,6 @@ export class Jose {
   }
 
   public static isOkpPublicKeyJwk(obj: unknown): obj is JwkParamsOkpPublic {
-    console.log('isOkpPublicKeyJwk is passing');
     if (!obj || typeof obj !== 'object') return false;
     if ('d' in obj) return false;
     if (!('kty' in obj && 'crv' in obj && 'x' in obj)) return false;

@@ -20,7 +20,7 @@ export class Pbkdf2Algorithm extends BasePbkdf2Algorithm {
 
     // If specified, the base key's `key_ops` must include the 'deriveBits' operation.
     if (baseKey.key_ops) {
-      this.checkKeyUsages({ keyUsages: ['deriveBits'], allowedKeyUsages: baseKey.key_ops });
+      this.checkKeyOperations({ keyOperations: ['deriveBits'], allowedKeyOperations: baseKey.key_ops });
     }
 
     // If the length is 0, throw.

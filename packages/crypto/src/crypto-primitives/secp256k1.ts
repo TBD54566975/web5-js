@@ -466,6 +466,11 @@ export class Secp256k1 {
   }): Promise<Uint8Array> {
     let { privateKeyA, publicKeyB } = options;
 
+    // Ensure that keys from the same key pair are not specified.
+    if ('x' in privateKeyA && 'x' in publicKeyB && privateKeyA.x === publicKeyB.x) {
+      throw new Error(`Secp256k1: ECDH shared secret cannot be computed from a single key pair's public and private keys.`);
+    }
+
     // Convert the provided private and public keys to bytes.
     const privateKeyABytes = await Secp256k1.privateKeyToBytes({ privateKey: privateKeyA });
     const publicKeyBBytes = await Secp256k1.publicKeyToBytes({ publicKey: publicKeyB });

@@ -1,26 +1,50 @@
 import type { Web5Crypto } from '../../types/web5-crypto.js';
+import type { JwkOperation, PrivateKeyJwk, PublicKeyJwk } from '../../jose.js';
 
+import { Jose } from '../../jose.js';
 import { InvalidAccessError } from '../errors.js';
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
 import { checkValidProperty, checkRequiredProperty } from '../../utils.js';
 
 export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
 
-  public abstract namedCurves: string[];
+  public abstract curves: string[];
 
   public checkGenerateKey(options: {
     algorithm: Web5Crypto.EcGenerateKeyOptions,
-    keyUsages: Web5Crypto.KeyUsage[]
+    keyOperations?: JwkOperation[]
   }): void {
-    const { algorithm, keyUsages } = options;
+    const { algorithm, keyOperations } = options;
     // Algorithm specified in the operation must match the algorithm implementation processing the operation.
     this.checkAlgorithmName({ algorithmName: algorithm.name });
-    // The algorithm object must contain a namedCurve property.
-    checkRequiredProperty({ property: 'namedCurve', inObject: algorithm });
-    // The named curve specified must be supported by the algorithm implementation processing the operation.
-    checkValidProperty({ property: algorithm.namedCurve, allowedProperties: this.namedCurves });
-    // The key usages specified must be permitted by the algorithm implementation processing the operation.
-    this.checkKeyUsages({ keyUsages, allowedKeyUsages: this.keyUsages });
+    // The algorithm object must contain a curve property.
+    checkRequiredProperty({ property: 'curve', inObject: algorithm });
+    // The curve specified must be supported by the algorithm implementation processing the operation.
+    checkValidProperty({ property: algorithm.curve, allowedProperties: this.curves });
+    // If specified, key operations must be permitted by the algorithm implementation processing the operation.
+    if (keyOperations) {
+      this.checkKeyOperations({ keyOperations, allowedKeyOperations: this.keyOperations });
+    }
+  }
+
+  public checkPrivateKey(options: {
+    key: PrivateKeyJwk
+  }) {
+    const { key } = options;
+    // Verify key is an Elliptic Curve (EC) or Octet Key Pair (OKP) private key in JWK format.
+    if (!(Jose.isEcPrivateKeyJwk(key) || Jose.isOkpPrivateKeyJwk(key))) {
+      throw new InvalidAccessError('Requested operation is only valid for private keys.');
+    }
+  }
+
+  public checkPublicKey(options: {
+    key: PublicKeyJwk
+  }) {
+    const { key } = options;
+    // Verify key is an Elliptic Curve (EC) or Octet Key Pair (OKP) public key in JWK format.
+    if (!(Jose.isEcPublicKeyJwk(key) || Jose.isOkpPublicKeyJwk(key))) {
+      throw new InvalidAccessError(`Requested operation is only valid for public keys.`);
+    }
   }
 
   public override async decrypt(): Promise<Uint8Array> {
@@ -33,7 +57,6 @@ export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
 
   public abstract generateKey(options: {
     algorithm: Web5Crypto.EcGenerateKeyOptions,
-    extractable: boolean,
-    keyUsages: Web5Crypto.KeyUsage[]
-  }): Promise<Web5Crypto.CryptoKeyPair>;
+    keyOperations?: JwkOperation[]
+  }): Promise<PrivateKeyJwk>;
 }

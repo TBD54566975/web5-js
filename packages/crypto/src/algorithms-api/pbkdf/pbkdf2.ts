@@ -13,7 +13,7 @@ export abstract class BasePbkdf2Algorithm extends CryptoAlgorithm {
 
   public readonly abstract hashAlgorithms: string[];
 
-  public readonly keyUsages: JwkOperation[] = ['deriveBits', 'deriveKey'];
+  public readonly keyOperations: JwkOperation[] = ['deriveBits', 'deriveKey'];
 
   public checkAlgorithmOptions(options: {
     algorithm: Web5Crypto.Pbkdf2Options,

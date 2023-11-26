@@ -3,14 +3,14 @@ export const cryptoKeyPairToJsonWebKeyTestVectors = [
     id        : 'ckp.jwk.1',
     cryptoKey : {
       publicKey: {
-        algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+        algorithm   : { name: 'ECDSA', curve: 'secp256k1' },
         extractable : true,
         material    : '02c6cf53ccfc13fbdfb25d827636839d9874df3148eba88c07f07601645ca5a006', // Hex, compressed
         type        : 'public',
         usages      : ['verify'],
       },
       privateKey: {
-        algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+        algorithm   : { name: 'ECDSA', curve: 'secp256k1' },
         extractable : true,
         material    : '1d70915381c9bcb940752c3892b6c3b4476a6906b6aee839227f3f38eaf91190', // Hex
         type        : 'private',
@@ -43,14 +43,14 @@ export const cryptoKeyPairToJsonWebKeyTestVectors = [
     id        : 'ckp.jwk.2',
     cryptoKey : {
       publicKey: {
-        algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+        algorithm   : { name: 'ECDSA', curve: 'secp256k1' },
         extractable : true,
         material    : '045d67b538b1f3dc38326a975b17c4312b7620c39b656b3012dc9205c5804870c7ab53846c0b4c6f6c0267f08b9ac7075fe1f0b617d013630d92a3c760908b71e3', // Hex, uncompressed
         type        : 'public',
         usages      : ['verify'],
       },
       privateKey: {
-        algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
+        algorithm   : { name: 'ECDSA', curve: 'secp256k1' },
         extractable : true,
         material    : 'c1f488e4919027f1da827a3f25c8121f9092f5d940c0da9a52cb36e192fa1610', // Hex
         type        : 'private',
@@ -83,14 +83,14 @@ export const cryptoKeyPairToJsonWebKeyTestVectors = [
     id        : 'ckp.jwk.3',
     cryptoKey : {
       publicKey: {
-        algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
+        algorithm   : { name: 'EdDSA', curve: 'Ed25519' },
         extractable : true,
         material    : 'ae92a70cff05e3f8f0bd0ef10e492e2b1d7ae4e4b0732ad0be61169767a28085', // Hex
         type        : 'public',
         usages      : ['verify'],
       },
       privateKey: {
-        algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
+        algorithm   : { name: 'EdDSA', curve: 'Ed25519' },
         extractable : true,
         material    : 'f69e3da1db3fc8b7474224e3271099dab537807212477ad034ae52f3e39d8782', // Hex
         type        : 'private',
@@ -121,14 +121,14 @@ export const cryptoKeyPairToJsonWebKeyTestVectors = [
     id        : 'ckp.jwk.4',
     cryptoKey : {
       publicKey: {
-        algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+        algorithm   : { name: 'ECDH', curve: 'X25519' },
         extractable : true,
         material    : '796037a1434a9b79d9374bea882fed0a53c2901ce737947463d3687c99286973', // Hex
         type        : 'public',
         usages      : ['deriveBits', 'deriveKey'],
       },
       privateKey: {
-        algorithm   : { name: 'ECDH', namedCurve: 'X25519' },
+        algorithm   : { name: 'ECDH', curve: 'X25519' },
         extractable : true,
         material    : '20a6d2ab343efc5d8718af1afb3157984b63712edc5f5c1c77bcf8f732f8b545', // Hex
         type        : 'private',
@@ -213,42 +213,42 @@ export const joseToWebCryptoTestVectors = [
   {
     id        : 'jose.wc.1',
     jose      : { crv: 'Ed25519', alg: 'EdDSA', kty: 'OKP' },
-    webCrypto : { namedCurve: 'Ed25519', name: 'EdDSA' }
+    webCrypto : { curve: 'Ed25519', name: 'EdDSA' }
   },
   {
     id        : 'jose.wc.2',
     jose      : { crv: 'Ed448', alg: 'EdDSA', kty: 'OKP' },
-    webCrypto : { namedCurve: 'Ed448', name: 'EdDSA' }
+    webCrypto : { curve: 'Ed448', name: 'EdDSA' }
   },
   {
     id        : 'jose.wc.3',
     jose      : { crv: 'X25519', kty: 'OKP' },
-    webCrypto : { namedCurve: 'X25519', name: 'ECDH' }
+    webCrypto : { curve: 'X25519', name: 'ECDH' }
   },
   {
     id        : 'jose.wc.4',
     jose      : { crv: 'secp256k1', alg: 'ES256K', kty: 'EC' },
-    webCrypto : { namedCurve: 'secp256k1', name: 'ECDSA' }
+    webCrypto : { curve: 'secp256k1', name: 'ECDSA' }
   },
   {
     id        : 'jose.wc.5',
     jose      : { crv: 'secp256k1', kty: 'EC' },
-    webCrypto : { namedCurve: 'secp256k1', name: 'ECDH' }
+    webCrypto : { curve: 'secp256k1', name: 'ECDH' }
   },
   {
     id        : 'jose.wc.6',
     jose      : { crv: 'P-256', alg: 'ES256', kty: 'EC' },
-    webCrypto : { namedCurve: 'P-256', name: 'ECDSA' }
+    webCrypto : { curve: 'P-256', name: 'ECDSA' }
   },
   {
     id        : 'jose.wc.7',
     jose      : { crv: 'P-384', alg: 'ES384', kty: 'EC' },
-    webCrypto : { namedCurve: 'P-384', name: 'ECDSA' }
+    webCrypto : { curve: 'P-384', name: 'ECDSA' }
   },
   {
     id        : 'jose.wc.8',
     jose      : { crv: 'P-521', alg: 'ES512', kty: 'EC' },
-    webCrypto : { namedCurve: 'P-521', name: 'ECDSA' }
+    webCrypto : { curve: 'P-521', name: 'ECDSA' }
   },
   {
     id        : 'jose.wc.9',
@@ -435,7 +435,7 @@ export const keyToJwkMulticodecTestVectors = [
 
 export const keyToJwkWebCryptoTestVectors = [
   {
-    input  : { namedCurve: 'Ed25519', name: 'EdDSA' },
+    input  : { curve: 'Ed25519', name: 'EdDSA' },
     output : {
       alg : 'EdDSA',
       crv : 'Ed25519',
@@ -444,7 +444,7 @@ export const keyToJwkWebCryptoTestVectors = [
     }
   },
   {
-    input  : { namedCurve: 'secp256k1', name: 'ECDSA' },
+    input  : { curve: 'secp256k1', name: 'ECDSA' },
     output : {
       alg : 'ES256K',
       crv : 'secp256k1',
@@ -454,7 +454,7 @@ export const keyToJwkWebCryptoTestVectors = [
     }
   },
   {
-    input  : { namedCurve: 'X25519', name: 'ECDH' },
+    input  : { curve: 'X25519', name: 'ECDH' },
     output : {
       crv : 'X25519',
       kty : 'OKP',
@@ -462,7 +462,7 @@ export const keyToJwkWebCryptoTestVectors = [
     }
   },
   {
-    input  : { namedCurve: 'secp256k1', name: 'ECDSA' },
+    input  : { curve: 'secp256k1', name: 'ECDSA' },
     output : {
       alg : 'ES256K',
       crv : 'secp256k1',
@@ -472,7 +472,7 @@ export const keyToJwkWebCryptoTestVectors = [
     }
   },
   {
-    input  : { namedCurve: 'secp256k1', name: 'ECDH' },
+    input  : { curve: 'secp256k1', name: 'ECDH' },
     output : {
       crv : 'secp256k1',
       kty : 'EC',
@@ -500,7 +500,7 @@ export const keyToJwkWebCryptoTestVectors = [
 
 export const keyToJwkWebCryptoWithNullKTYTestVectors = [
   {
-    input  : { namedCurve: 'Ed25519', name: 'EdDSA' },
+    input  : { curve: 'Ed25519', name: 'EdDSA' },
     output : {
       alg : 'EdDSA',
       crv : 'Ed25519',
@@ -509,7 +509,7 @@ export const keyToJwkWebCryptoWithNullKTYTestVectors = [
     }
   },
   {
-    input  : { namedCurve: 'secp256k1', name: 'ECDSA' },
+    input  : { curve: 'secp256k1', name: 'ECDSA' },
     output : {
       alg : 'ES256K',
       crv : 'secp256k1',
@@ -519,7 +519,7 @@ export const keyToJwkWebCryptoWithNullKTYTestVectors = [
     }
   },
   {
-    input  : { namedCurve: 'X25519', name: 'ECDH' },
+    input  : { curve: 'X25519', name: 'ECDH' },
     output : {
       crv : 'X25519',
       kty : 'OKP',
@@ -527,7 +527,7 @@ export const keyToJwkWebCryptoWithNullKTYTestVectors = [
     }
   },
   {
-    input  : { namedCurve: 'secp256k1', name: 'ECDSA' },
+    input  : { curve: 'secp256k1', name: 'ECDSA' },
     output : {
       alg : 'ES256K',
       crv : 'secp256k1',
@@ -537,7 +537,7 @@ export const keyToJwkWebCryptoWithNullKTYTestVectors = [
     }
   },
   {
-    input  : { namedCurve: 'secp256k1', name: 'ECDH' },
+    input  : { curve: 'secp256k1', name: 'ECDH' },
     output : {
       crv : 'secp256k1',
       kty : 'EC',

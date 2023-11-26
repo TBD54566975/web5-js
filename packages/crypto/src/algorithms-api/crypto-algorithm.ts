@@ -13,7 +13,7 @@ export abstract class CryptoAlgorithm {
   /**
    * Indicates which cryptographic operations are permissible to be used with this algorithm.
    */
-  public abstract readonly keyUsages: JwkOperation[];
+  public abstract readonly keyOperations: JwkOperation[];
 
   public checkAlgorithmName(options: {
     algorithmName: string
@@ -73,16 +73,16 @@ export abstract class CryptoAlgorithm {
     }
   }
 
-  public checkKeyUsages(options: {
-    keyUsages: JwkOperation[],
-    allowedKeyUsages: JwkOperation[]
+  public checkKeyOperations(options: {
+    keyOperations: JwkOperation[],
+    allowedKeyOperations: JwkOperation[]
   }): void {
-    const { keyUsages, allowedKeyUsages } = options;
-    if (!(keyUsages && keyUsages.length > 0)) {
-      throw new TypeError(`Required parameter missing or empty: 'keyUsages'`);
+    const { keyOperations, allowedKeyOperations } = options;
+    if (!(keyOperations && keyOperations.length > 0)) {
+      throw new TypeError(`Required parameter missing or empty: 'keyOperations'`);
     }
-    if (!keyUsages.every(usage => allowedKeyUsages.includes(usage))) {
-      throw new InvalidAccessError(`Requested operation(s) '${keyUsages.join(', ')}' is not valid for the provided key.`);
+    if (!keyOperations.every(operation => allowedKeyOperations.includes(operation))) {
+      throw new InvalidAccessError(`Requested operation(s) '${keyOperations.join(', ')}' is not valid for the provided key.`);
     }
   }
 
@@ -120,7 +120,7 @@ export abstract class CryptoAlgorithm {
 
   public abstract generateKey(options: {
     algorithm: Partial<Web5Crypto.GenerateKeyOptions>,
-    keyUsages?: JwkOperation[],
+    keyOperations?: JwkOperation[],
   }): Promise<PrivateKeyJwk>;
 
   public abstract sign(options: {

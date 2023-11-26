@@ -353,6 +353,11 @@ export class X25519 {
   }): Promise<Uint8Array> {
     let { privateKeyA, publicKeyB } = options;
 
+    // Ensure that keys from the same key pair are not specified.
+    if ('x' in privateKeyA && 'x' in publicKeyB && privateKeyA.x === publicKeyB.x) {
+      throw new Error(`X25519: ECDH shared secret cannot be computed from a single key pair's public and private keys.`);
+    }
+
     // Convert the provided private and public keys to bytes.
     const privateKeyABytes = await X25519.privateKeyToBytes({ privateKey: privateKeyA });
     const publicKeyBBytes = await X25519.publicKeyToBytes({ publicKey: publicKeyB });
@@ -380,6 +385,6 @@ export class X25519 {
   }): Promise<void> {
     // TODO: Implement once/if @noble/curves library implements checking
     // proper points on the Montgomery curve.
-    throw new Error(`Not implemented: 'validatePublicKey()'`);
+    throw new Error(`X25519: Not implemented: 'validatePublicKey()'`);
   }
 }

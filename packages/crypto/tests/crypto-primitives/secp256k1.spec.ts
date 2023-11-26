@@ -312,6 +312,15 @@ describe('Secp256k1', () => {
 
       expect(sharedSecretOwnOther).to.deep.equal(sharedSecretOtherOwn);
     });
+
+    it('throws an error if the public/private keys from the same key pair are specified', async () => {
+      await expect(
+        Secp256k1.sharedSecret({
+          privateKeyA : ownPrivateKey,
+          publicKeyB  : ownPublicKey
+        })
+      ).to.eventually.be.rejectedWith(Error, 'shared secret cannot be computed from a single key pair');
+    });
   });
 
   describe('sign()', () => {

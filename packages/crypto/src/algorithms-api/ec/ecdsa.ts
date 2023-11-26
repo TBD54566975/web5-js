@@ -10,7 +10,7 @@ export abstract class BaseEcdsaAlgorithm extends BaseEllipticCurveAlgorithm {
 
   public readonly abstract hashAlgorithms: string[];
 
-  public readonly keyUsages: Web5Crypto.KeyPairUsage = {
+  public readonly keyOperations: Web5Crypto.KeyPairUsage = {
     privateKey : ['sign'],
     publicKey  : ['verify'],
   };
