@@ -128,7 +128,7 @@ jobs:
         env:
           TEST_DWN_URL: http://localhost:3000
 
-      - name: Run karma to WTR poc for agent
+      - name: Run WTR poc for agent
         run: npm run test:wtr -w @web5/agent
 
   tbdocs-reporter:
