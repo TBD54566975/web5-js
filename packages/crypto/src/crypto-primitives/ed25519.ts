@@ -13,7 +13,7 @@ import { Jose } from '../jose.js';
  * The class uses the '@noble/curves' package for the cryptographic operations.
  *
  * The methods of this class are all asynchronous and return Promises. They all
- * use the Uint8Array type for keys, signatures, and data, providing a
+ * use the Uint8Array type for signatures and data, providing a
  * consistent interface for working with binary data.
  *
  * Example usage:
@@ -48,10 +48,6 @@ export class Ed25519 {
    * - `crv`: Curve Name, set to 'Ed25519'.
    * - `d`: The private key component, base64url-encoded.
    * - `x`: The computed public key, base64url-encoded.
-   *
-   * This method is useful for converting raw public keys into a standardized
-   * JSON format, facilitating their use in cryptographic operations and making
-   * them easy to share and store.
    *
    * Example usage:
    *
@@ -98,10 +94,6 @@ export class Ed25519 {
    * - `kty`: Key Type, set to 'OKP' for Octet Key Pair.
    * - `crv`: Curve Name, set to 'X25519'.
    * - `x`: The public key, base64url-encoded.
-   *
-   * This method is useful for converting raw public keys into a standardized
-   * JSON format, facilitating their use in cryptographic operations and making
-   * them easy to share and store.
    *
    * Example usage:
    *
@@ -243,11 +235,6 @@ export class Ed25519 {
    * Twisted Edwards form. The public key is then encoded into base64url format to construct
    * a JWK representation.
    *
-   * The process ensures that the derived public key correctly corresponds to the given private key,
-   * adhering to the Curve25519 elliptic curve standards. This method is useful in cryptographic
-   * operations where a public key is necessary for tasks like key agreement, but only the
-   * private key is available.
-   *
    * Example usage:
    *
    * ```ts
@@ -299,8 +286,6 @@ export class Ed25519 {
    * - `d`: The private key component, base64url-encoded.
    * - `x`: The derived public key, base64url-encoded.
    *
-   * The key is returned in a format suitable for direct use in signing operations.
-   *
    * Example usage:
    *
    * ```ts
@@ -330,10 +315,6 @@ export class Ed25519 {
    * This method accepts a public key in JWK format and converts it into its raw binary
    * form. The conversion process involves decoding the 'd' parameter of the JWK
    * from base64url format into a byte array.
-   *
-   * This conversion is essential for operations that require the private key in its raw
-   * binary form, such as certain low-level cryptographic operations or when interfacing
-   * with systems and libraries that expect keys in a byte array format.
    *
    * Example usage:
    *
@@ -369,10 +350,6 @@ export class Ed25519 {
    * This method accepts a public key in JWK format and converts it into its raw binary form.
    * The conversion process involves decoding the 'x' parameter of the JWK (which represent the
    * x coordinate of the elliptic curve point) from base64url format into a byte array.
-   *
-   * This conversion is essential for operations that require the public key in its raw
-   * binary form, such as certain low-level cryptographic operations or when interfacing
-   * with systems and libraries that expect keys in a byte array format.
    *
    * Example usage:
    *
@@ -412,11 +389,6 @@ export class Ed25519 {
    * of a Uint8Array, uniquely corresponding to both the data and the private key used for
    * signing.
    *
-   * This method is commonly used in cryptographic applications to ensure data integrity and
-   * authenticity. The signature can later be verified by parties with access to the corresponding
-   * public key, ensuring that the data has not been tampered with and was indeed signed by the
-   * holder of the private key.
-   *
    * Example usage:
    *
    * ```ts
@@ -450,12 +422,31 @@ export class Ed25519 {
   }
 
   /**
-   * Verifies a RFC8032 EdDSA signature of given data with a given public key.
+   * Verifies an RFC8032-compliant EdDSA signature against given data using an Ed25519 public key.
+   *
+   * This method validates a digital signature to ensure its authenticity and integrity.
+   * It uses the EdDSA (Edwards-curve Digital Signature Algorithm) as specified in RFC8032.
+   * The verification process involves converting the public key from JWK format to a raw
+   * byte array and using the Ed25519 algorithm to validate the signature against the provided data.
+   *
+   * Example usage:
+   *
+   * ```ts
+   * const data = new TextEncoder().encode('Hello, world!'); // Data that was signed
+   * const publicKey = { ... }; // A PublicKeyJwk object representing an Ed25519 public key
+   * const signature = new Uint8Array([...]); // Signature to verify
+   * const isValid = await Ed25519.verify({
+   *   data,
+   *   key: publicKey,
+   *   signature
+   * });
+   * console.log(isValid); // true if the signature is valid, false otherwise
+   * ```
    *
    * @param options - The options for the verification operation.
-   * @param options.key - The public key to use for verification.
-   * @param options.signature - The signature to verify.
-   * @param options.data - The data that was signed.
+   * @param options.data - The data that was signed, represented as a Uint8Array.
+   * @param options.key - The public key in JWK format used for verification.
+   * @param options.signature - The signature to verify, represented as a Uint8Array.
    *
    * @returns A Promise that resolves to a boolean indicating whether the signature is valid.
    */

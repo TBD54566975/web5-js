@@ -24,7 +24,7 @@ import { Jose } from '../jose.js';
  * - Decryption: Decrypt data encrypted with AES-CTR using the corresponding symmetric key.
  *
  * The methods in this class are asynchronous, returning Promises to accommodate various
- * JavaScript environments and asynchronous cryptographic operations.
+ * JavaScript environments.
  *
  * Usage Examples:
  *
@@ -69,9 +69,6 @@ export class AesCtr {
    * - `k`: The symmetric key, base64url-encoded.
    * - `kid`: Key ID, generated based on the JWK thumbprint.
    *
-   * This method is useful for transforming symmetric keys into a standardized
-   * format suitable for cryptographic operations and JSON-based data exchange.
-   *
    * Example usage:
    *
    * ```ts
@@ -108,10 +105,6 @@ export class AesCtr {
    * Similar to the encryption process, it requires an initial counter block and the length
    * of the counter block, along with the encrypted data and the decryption key. The method
    * returns the decrypted data as a Uint8Array.
-   *
-   * AES-CTR is a symmetric encryption algorithm, meaning the same key is used for both
-   * encryption and decryption. It is well-suited for scenarios where fast and parallel
-   * processing of data is required.
    *
    * Example usage:
    *
@@ -164,10 +157,6 @@ export class AesCtr {
    * It requires the initial counter block and the length of the counter block, alongside
    * the data and key. The method is designed to work asynchronously and returns the
    * encrypted data as a Uint8Array.
-   *
-   * AES-CTR mode provides the benefits of a stream cipher but uses a block cipher
-   * (AES) under the hood. It is suitable for applications where parallel processing
-   * is advantageous and where the same key needs to encrypt multiple blocks of data.
    *
    * Example usage:
    *
@@ -227,9 +216,6 @@ export class AesCtr {
    * - `k`: The symmetric key component, base64url-encoded.
    * - `kid`: Key ID, generated based on the JWK thumbprint.
    *
-   * The key is returned in a format suitable for direct use in encryption or decryption
-   * operations.
-   *
    * Example usage:
    *
    * ```ts
@@ -264,12 +250,8 @@ export class AesCtr {
    * Converts a private key from JSON Web Key (JWK) format to a raw byte array (Uint8Array).
    *
    * This method takes a symmetric key in JWK format and extracts its raw byte representation.
-   * It specifically focuses on the 'k' parameter of the JWK, which represents the symmetric
-   * key component in base64url encoding. The method decodes this value into a byte array.
-   *
-   * This conversion is essential for operations that require the symmetric key in its raw
-   * binary form, such as certain low-level cryptographic operations or when interfacing
-   * with systems and libraries that expect keys in a byte array format.
+   * It decodes the 'k' parameter of the JWK value, which represents the symmetric key in base64url
+   * encoding, into a byte array.
    *
    * Example usage:
    *

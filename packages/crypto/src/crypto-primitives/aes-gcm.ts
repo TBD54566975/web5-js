@@ -6,37 +6,80 @@ import type { PrivateKeyJwk } from '../jose.js';
 import { Jose } from '../jose.js';
 
 /**
- * The `AesGcm` class provides an interface for AES-GCM
- * (Advanced Encryption Standard - Galois/Counter Mode) encryption and
- * decryption operations. The class uses the Web Crypto API for
- * cryptographic operations.
+ * The `AesGcm` class provides a comprehensive set of utilities for cryptographic operations
+ * using the Advanced Encryption Standard (AES) in Galois/Counter Mode (GCM). This class includes
+ * methods for key generation, encryption, decryption, and conversions between raw byte arrays
+ * and JSON Web Key (JWK) formats. It is designed to support AES-GCM, a symmetric key algorithm
+ * that is widely used for its efficiency, security, and provision of authenticated encryption.
  *
- * All methods of this class are asynchronous and return Promises. They all
- * use the Uint8Array type for keys and data, providing a consistent
- * interface for working with binary data.
+ * AES-GCM is particularly favored for scenarios that require both confidentiality and integrity
+ * of data. It integrates the counter mode of encryption with the Galois mode of authentication,
+ * offering high performance and parallel processing capabilities.
+ *
+ * Key Features:
+ * - Key Generation: Generate AES symmetric keys in JWK format.
+ * - Key Conversion: Transform keys between raw byte arrays and JWK formats.
+ * - Encryption: Encrypt data using AES-GCM with the provided symmetric key.
+ * - Decryption: Decrypt data encrypted with AES-GCM using the corresponding symmetric key.
+ *
+ * The methods in this class are asynchronous, returning Promises to accommodate various
+ * JavaScript environments.
+ *
+ * Usage Examples:
+ *
+ * ```ts
+ * // Key Generation
+ * const length = 256; // Length of the key in bits (e.g., 128, 192, 256)
+ * const privateKey = await AesGcm.generateKey({ length });
+ *
+ * // Encryption
+ * const data = new TextEncoder().encode('Hello, world!');
+ * const iv = new Uint8Array(12); // 12-byte initialization vector
+ * const encryptedData = await AesGcm.encrypt({
+ *   data,
+ *   iv,
+ *   key: privateKey,
+ *   tagLength: 128 // Length of the authentication tag in bits
+ * });
+ *
+ * // Decryption
+ * const decryptedData = await AesGcm.decrypt({
+ *   data: encryptedData,
+ *   iv,
+ *   key: privateKey,
+ *   tagLength: 128 // Length of the authentication tag in bits
+ * });
+ *
+ * // Key Conversion
+ * const privateKeyBytes = await AesGcm.privateKeyToBytes({ privateKey });
+ * ```
+ */
+export class AesGcm {
+  /**
+ * Converts a raw private key in bytes to its corresponding JSON Web Key (JWK) format.
+ *
+ * This method accepts a symmetric key represented as a byte array (Uint8Array) and
+ * converts it into a JWK object for use with AES-GCM (Advanced Encryption Standard -
+ * Galois/Counter Mode). The conversion process involves encoding the key into
+ * base64url format and setting the appropriate JWK parameters.
+ *
+ * The resulting JWK object includes the following properties:
+ * - `kty`: Key Type, set to 'oct' for Octet Sequence (representing a symmetric key).
+ * - `k`: The symmetric key, base64url-encoded.
+ * - `kid`: Key ID, generated based on the JWK thumbprint.
  *
  * Example usage:
  *
  * ```ts
- * const key = await AesGcm.generateKey({ length: 128 });
- * const iv = new Uint8Array(12); // generate a 12-byte initialization vector
- * const message = new TextEncoder().encode('Hello, world!');
- * const ciphertext = await AesGcm.encrypt({
- *   data: message,
- *   iv,
- *   key,
- *   tagLength: 128
- * });
- * const plaintext = await AesGcm.decrypt({
- *   data: ciphertext,
- *   iv,
- *   key,
- *   tagLength: 128
- * });
- * console.log(new TextDecoder().decode(plaintext)); // 'Hello, world!'
+ * const privateKeyBytes = new Uint8Array([...]); // Replace with actual symmetric key bytes
+ * const privateKey = await AesGcm.bytesToPrivateKey({ privateKeyBytes });
  * ```
+ *
+ * @param options - The options for the symmetric key conversion.
+ * @param options.privateKeyBytes - The raw symmetric key as a Uint8Array.
+ *
+ * @returns A Promise that resolves to the symmetric key in JWK format.
  */
-export class AesGcm {
   public static async bytesToPrivateKey(options: {
     privateKeyBytes: Uint8Array
   }): Promise<PrivateKeyJwk> {
@@ -57,12 +100,36 @@ export class AesGcm {
   /**
    * Decrypts the provided data using AES-GCM.
    *
+   * This method performs AES-GCM decryption on the given encrypted data using the specified key.
+   * It requires an initialization vector (IV), the encrypted data along with the decryption key,
+   * and optionally, additional authenticated data (AAD). The method returns the decrypted data as a
+   * Uint8Array. The optional `tagLength` parameter specifies the size in bits of the authentication
+   * tag used when encrypting the data. If not specified, the default tag length of 128 bits is
+   * used.
+   *
+   * Example usage:
+   *
+   * ```ts
+   * const encryptedData = new Uint8Array([...]); // Encrypted data
+   * const iv = new Uint8Array([...]); // Initialization vector used during encryption
+   * const additionalData = new Uint8Array([...]); // Optional additional authenticated data
+   * const key = { ... }; // A PrivateKeyJwk object representing the AES key
+   * const decryptedData = await AesGcm.decrypt({
+   *   data: encryptedData,
+   *   iv,
+   *   additionalData,
+   *   key,
+   *   tagLength: 128 // Optional tag length in bits
+   * });
+   * ```
+   *
    * @param options - The options for the decryption operation.
-   * @param options.additionalData - Data that will be authenticated along with the encrypted data.
-   * @param options.data - The data to decrypt.
-   * @param options.iv - A unique initialization vector.
-   * @param options.key - The key to use for decryption.
-   * @param options.tagLength - This size of the authentication tag generated in bits.
+   * @param options.data - The encrypted data to decrypt, represented as a Uint8Array.
+   * @param options.iv - The initialization vector, represented as a Uint8Array.
+   * @param options.additionalData - Optional additional authenticated data.
+   * @param options.key - The key to use for decryption, represented in JWK format.
+   * @param options.tagLength - The length of the authentication tag in bits.
+   *
    * @returns A Promise that resolves to the decrypted data as a Uint8Array.
    */
   public static async decrypt(options: {
@@ -92,12 +159,36 @@ export class AesGcm {
   /**
    * Encrypts the provided data using AES-GCM.
    *
+   * This method performs AES-GCM encryption on the given data using the specified key.
+   * It requires an initialization vector (IV), the encrypted data along with the decryption key,
+   * and optionally, additional authenticated data (AAD). The method returns the encrypted data as a
+   * Uint8Array. The optional `tagLength` parameter specifies the size in bits of the authentication
+   * tag generated in the encryption operation and used for authentication in the corresponding
+   * decryption. If not specified, the default tag length of 128 bits is used.
+   *
+   * Example usage:
+   *
+   * ```ts
+   * const data = new TextEncoder().encode('Hello, world!');
+   * const iv = new Uint8Array([...]); // Initialization vector
+   * const additionalData = new Uint8Array([...]); // Optional additional authenticated data
+   * const key = { ... }; // A PrivateKeyJwk object representing an AES key
+   * const encryptedData = await AesGcm.encrypt({
+   *   data,
+   *   iv,
+   *   additionalData,
+   *   key,
+   *   tagLength: 128 // Optional tag length in bits
+   * });
+   * ```
+   *
    * @param options - The options for the encryption operation.
-   * @param options.additionalData - Data that will be authenticated along with the encrypted data.
-   * @param options.data - The data to decrypt.
-   * @param options.iv - A unique initialization vector.
-   * @param options.key - The key to use for decryption.
-   * @param options.tagLength - This size of the authentication tag generated in bits.
+   * @param options.data - The data to encrypt, represented as a Uint8Array.
+   * @param options.iv - The initialization vector, represented as a Uint8Array.
+   * @param options.additionalData - Optional additional authenticated data.
+   * @param options.key - The key to use for encryption, represented in JWK format.
+   * @param options.tagLength - The length of the authentication tag in bits.
+   *
    * @returns A Promise that resolves to the encrypted data as a Uint8Array.
    */
   public static async encrypt(options: {
@@ -125,10 +216,30 @@ export class AesGcm {
   }
 
   /**
-   * Generates an AES key of a given length.
+   * Generates a symmetric key for AES in Galois/Counter Mode (GCM) in JSON Web Key (JWK) format.
    *
-   * @param length - The length of the key in bits.
-   * @returns A Promise that resolves to the generated key as a Uint8Array.
+   * This method creates a new symmetric key of a specified length suitable for use with
+   * AES-GCM encryption. It leverages cryptographically secure random number generation
+   * to ensure the uniqueness and security of the key. The generated key adheres to the JWK
+   * format, facilitating compatibility with common cryptographic standards and ease of use
+   * in various cryptographic applications.
+   *
+   * The generated key includes these components:
+   * - `kty`: Key Type, set to 'oct' for Octet Sequence, indicating a symmetric key.
+   * - `k`: The symmetric key component, base64url-encoded.
+   * - `kid`: Key ID, generated based on the JWK thumbprint, providing a unique identifier.
+   *
+   * Example usage:
+   *
+   * ```ts
+   * const length = 256; // Length of the key in bits (e.g., 128, 192, 256)
+   * const privateKey = await AesGcm.generateKey({ length });
+   * ```
+   *
+   * @param options - The options for the key generation.
+   * @param options.length - The length of the key in bits. Common lengths are 128, 192, and 256 bits.
+   *
+   * @returns A Promise that resolves to the generated symmetric key in JWK format.
    */
   public static async generateKey(options: {
     length: number
@@ -148,6 +259,26 @@ export class AesGcm {
     return privateKey;
   }
 
+  /**
+   * Converts a private key from JSON Web Key (JWK) format to a raw byte array (Uint8Array).
+   *
+   * This method takes a symmetric key in JWK format and extracts its raw byte representation.
+   * It focuses on the 'k' parameter of the JWK, which represents the symmetric key component
+   * in base64url encoding. The method decodes this value into a byte array, providing
+   * the symmetric key in its raw binary form.
+   *
+   * Example usage:
+   *
+   * ```ts
+   * const privateKey = { ... }; // A symmetric key in JWK format
+   * const privateKeyBytes = await AesGcm.privateKeyToBytes({ privateKey });
+   * ```
+   *
+   * @param options - The options for the symmetric key conversion.
+   * @param options.privateKey - The symmetric key in JWK format.
+   *
+   * @returns A Promise that resolves to the symmetric key as a Uint8Array.
+   */
   public static async privateKeyToBytes(options: {
     privateKey: PrivateKeyJwk
   }): Promise<Uint8Array> {
