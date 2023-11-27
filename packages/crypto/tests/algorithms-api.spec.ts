@@ -1,15 +1,17 @@
+import * as sinon from 'sinon';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
 import type { Web5Crypto } from '../src/types/web5-crypto.js';
-import type {
-  JwkType,
-  JwkOperation,
-  PublicKeyJwk,
-  PrivateKeyJwk,
-  JwkParamsEcPublic,
-  JwkParamsEcPrivate,
-  JwkParamsOkpPublic,
+import {
+  type JwkType,
+  type JwkOperation,
+  type PublicKeyJwk,
+  type PrivateKeyJwk,
+  type JwkParamsEcPublic,
+  type JwkParamsEcPrivate,
+  type JwkParamsOkpPublic,
+  Jose,
 } from '../src/jose.js';
 
 import { Convert } from '@web5/common';
@@ -20,7 +22,7 @@ import {
   // BaseAesAlgorithm,
   BaseEcdhAlgorithm,
   NotSupportedError,
-  // BaseEcdsaAlgorithm,
+  BaseEcdsaAlgorithm,
   // BaseEdDsaAlgorithm,
   InvalidAccessError,
   // BaseAesCtrAlgorithm,
@@ -34,7 +36,7 @@ describe('Algorithms API', () => {
   describe('CryptoAlgorithm', () => {
 
     class TestCryptoAlgorithm extends CryptoAlgorithm {
-      public name = 'TestAlgorithm';
+      public names = ['TestAlgorithm' as const];
       public keyOperations: JwkOperation[] = ['decrypt', 'deriveBits', 'deriveKey', 'encrypt', 'sign', 'unwrapKey', 'verify', 'wrapKey'];
       public async decrypt(): Promise<Uint8Array> {
         return null as any;
@@ -114,11 +116,11 @@ describe('Algorithms API', () => {
 
       it('throws an error when keyAlgorithmName does not match', async () => {
         const wrongName = 'wrongName';
-        expect(() => alg.checkKeyAlgorithm({ keyAlgorithmName: wrongName })).to.throw(InvalidAccessError, `Algorithm '${alg.name}' does not match the provided '${wrongName}' key.`);
+        expect(() => alg.checkKeyAlgorithm({ keyAlgorithmName: wrongName })).to.throw(InvalidAccessError, `Algorithm '${alg.names.join(', ')}' does not match the provided '${wrongName}' key.`);
       });
 
       it('does not throw an error when keyAlgorithmName matches', async () => {
-        const correctName = alg.name;
+        const [ correctName ] = alg.names;
         expect(() => alg.checkKeyAlgorithm({ keyAlgorithmName: correctName })).not.to.throw();
       });
     });
@@ -136,6 +138,15 @@ describe('Algorithms API', () => {
         expect(() => alg.checkKeyType({ keyType, allowedKeyTypes })).to.throw(InvalidAccessError, 'Key type of the provided key must be');
       });
 
+      it('throws an error when allowedKeyTypes is not an array', () => {
+        expect(
+          () => alg.checkKeyType({
+            keyType         : 'oct',
+            allowedKeyTypes : {} as any // Intentionally incorrect type
+          })
+        ).to.throw(TypeError, `'allowedKeyTypes' is not of type Array.`);
+      });
+
       it('does not throw an error when keyType matches allowedKeyType', async () => {
         const keyType: JwkType = 'EC';
         const allowedKeyTypes: JwkType[] = ['EC'];
@@ -144,6 +155,12 @@ describe('Algorithms API', () => {
     });
 
     describe('checkKeyOperations()', () => {
+      it('does not throw an error when keyOperations are in allowedKeyOperations', async () => {
+        const keyOperations: JwkOperation[] = ['sign', 'verify'];
+        const allowedKeyOperations: JwkOperation[] = ['sign', 'verify', 'encrypt', 'decrypt'];
+        expect(() => alg.checkKeyOperations({ keyOperations, allowedKeyOperations })).not.to.throw();
+      });
+
       it('throws an error when keyOperations is undefined or empty', async () => {
         expect(() => alg.checkKeyOperations({ allowedKeyOperations: ['sign'] } as any)).to.throw(TypeError, 'Required parameter missing or empty');
         expect(() => alg.checkKeyOperations({ keyOperations: [], allowedKeyOperations: ['sign'] })).to.throw(TypeError, 'Required parameter missing or empty');
@@ -155,10 +172,10 @@ describe('Algorithms API', () => {
         expect(() => alg.checkKeyOperations({ keyOperations, allowedKeyOperations })).to.throw(InvalidAccessError, 'is not valid for the provided key');
       });
 
-      it('does not throw an error when keyOperations are in allowedKeyOperations', async () => {
-        const keyOperations: JwkOperation[] = ['sign', 'verify'];
-        const allowedKeyOperations: JwkOperation[] = ['sign', 'verify', 'encrypt', 'decrypt'];
-        expect(() => alg.checkKeyOperations({ keyOperations, allowedKeyOperations })).not.to.throw();
+      it('throws an error when allowedKeyOperations is not an Array', async () => {
+        const keyOperations: JwkOperation[] = ['encrypt', 'decrypt'];
+        const allowedKeyOperations = 'sign' as any; // Intentionally incorrect type';
+        expect(() => alg.checkKeyOperations({ keyOperations, allowedKeyOperations })).to.throw(TypeError, 'is not of type Array');
       });
     });
   });
@@ -178,7 +195,7 @@ describe('Algorithms API', () => {
   //     }
   //   }
 
-  //   describe('checkGenerateKey()', () => {
+  //   describe('checkGenerateKeyOptions()', () => {
   //     let alg: TestAesAlgorithm;
 
   //     beforeEach(() => {
@@ -186,21 +203,21 @@ describe('Algorithms API', () => {
   //     });
 
   //     it('does not throw with supported algorithm, length, and key operation', () => {
-  //       expect(() => alg.checkGenerateKey({
+  //       expect(() => alg.checkGenerateKeyOptions({
   //         algorithm : { name: 'TestAlgorithm', length: 128 },
   //         keyOperations : ['encrypt']
   //       })).to.not.throw();
   //     });
 
   //     it('throws an error when unsupported algorithm specified', () => {
-  //       expect(() => alg.checkGenerateKey({
+  //       expect(() => alg.checkGenerateKeyOptions({
   //         algorithm : { name: 'ECDSA', length: 128 },
   //         keyOperations : ['encrypt']
   //       })).to.throw(NotSupportedError, 'Algorithm not supported');
   //     });
 
   //     it('throws an error when the length property is missing', () => {
-  //       expect(() => alg.checkGenerateKey({
+  //       expect(() => alg.checkGenerateKeyOptions({
   //         // @ts-expect-error because length was intentionally omitted.
   //         algorithm : { name: 'TestAlgorithm' },
   //         keyOperations : ['encrypt']
@@ -208,7 +225,7 @@ describe('Algorithms API', () => {
   //     });
 
   //     it('throws an error when the specified length is not a Number', () => {
-  //       expect(() => alg.checkGenerateKey({
+  //       expect(() => alg.checkGenerateKeyOptions({
   //         // @ts-expect-error because length is intentionally set as a string instead of number.
   //         algorithm : { name: 'TestAlgorithm', length: '256' },
   //         keyOperations : ['encrypt']
@@ -217,7 +234,7 @@ describe('Algorithms API', () => {
 
   //     it('throws an error when the specified length is not valid', () => {
   //       [64, 96, 160, 224, 512].forEach((length) => {
-  //         expect(() => alg.checkGenerateKey({
+  //         expect(() => alg.checkGenerateKeyOptions({
   //           algorithm : { name: 'TestAlgorithm', length },
   //           keyOperations : ['encrypt']
   //         })).to.throw(OperationError, `Algorithm 'length' must be 128, 192, or 256`);
@@ -226,7 +243,7 @@ describe('Algorithms API', () => {
 
   //     it('throws an error when the requested operation is not valid', () => {
   //       ['sign', 'verify'].forEach((operation) => {
-  //         expect(() => alg.checkGenerateKey({
+  //         expect(() => alg.checkGenerateKeyOptions({
   //           algorithm : { name: 'TestAlgorithm', length: 128 },
   //           keyOperations : [operation as JwkOperation]
   //         })).to.throw(InvalidAccessError, 'Requested operation');
@@ -420,7 +437,7 @@ describe('Algorithms API', () => {
 
   describe('BaseEllipticCurveAlgorithm', () => {
     class TestEllipticCurveAlgorithm extends BaseEllipticCurveAlgorithm {
-      public name = 'TestAlgorithm';
+      public names = ['TestAlgorithm' as const];
       public curves = ['curveA'];
       public keyOperations: JwkOperation[] = ['decrypt'];
       public async deriveBits(): Promise<Uint8Array> {
@@ -437,7 +454,7 @@ describe('Algorithms API', () => {
       }
     }
 
-    describe('checkGenerateKey()', () => {
+    describe('checkGenerateKeyOptions()', () => {
       let alg: TestEllipticCurveAlgorithm;
 
       beforeEach(() => {
@@ -445,21 +462,21 @@ describe('Algorithms API', () => {
       });
 
       it('does not throw with supported algorithm, named curve, and key operation', () => {
-        expect(() => alg.checkGenerateKey({
+        expect(() => alg.checkGenerateKeyOptions({
           algorithm     : { name: 'TestAlgorithm', curve: 'curveA' },
           keyOperations : ['decrypt']
         })).to.not.throw();
       });
 
       it('throws an error when unsupported algorithm specified', () => {
-        expect(() => alg.checkGenerateKey({
+        expect(() => alg.checkGenerateKeyOptions({
           algorithm     : { name: 'ECDH', curve: 'X25519' },
           keyOperations : ['sign']
         })).to.throw(NotSupportedError, 'Algorithm not supported');
       });
 
       it('throws an error when unsupported named curve specified', () => {
-        expect(() => alg.checkGenerateKey({
+        expect(() => alg.checkGenerateKeyOptions({
           algorithm     : { name: 'TestAlgorithm', curve: 'X25519' },
           keyOperations : ['sign']
         })).to.throw(TypeError, 'Out of range');
@@ -467,7 +484,7 @@ describe('Algorithms API', () => {
 
       it('throws an error when the requested operation is not valid', () => {
         ['sign', 'verify'].forEach((operation) => {
-          expect(() => alg.checkGenerateKey({
+          expect(() => alg.checkGenerateKeyOptions({
             algorithm     : { name: 'TestAlgorithm', curve: 'curveA' },
             keyOperations : [operation as JwkOperation]
           })).to.throw(InvalidAccessError, 'Requested operation');
@@ -495,44 +512,44 @@ describe('Algorithms API', () => {
 
     before(() => {
       alg = Reflect.construct(BaseEcdhAlgorithm, []) as BaseEcdhAlgorithm;
+      // @ts-expect-error because the `names` property is readonly.
+      alg.names = ['ECDH' as const];
     });
 
-    describe('checkAlgorithmOptions()', () => {
+    describe('checkDeriveBitsOptions()', () => {
       let otherPartyPublicKey: PublicKeyJwk;
       let ownPrivateKey: PrivateKeyJwk;
 
       beforeEach(() => {
         otherPartyPublicKey = {
-          kty     : 'OKP',
-          crv     : 'X25519',
-          x       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
-          key_ops : ['deriveBits', 'deriveKey']
+          kty : 'OKP',
+          crv : 'X25519',
+          x   : Convert.uint8Array(new Uint8Array(32)).toBase64Url()
         };
         ownPrivateKey = {
-          kty     : 'OKP',
-          crv     : 'X25519',
-          x       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
-          d       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
-          key_ops : ['deriveBits', 'deriveKey']
+          kty : 'OKP',
+          crv : 'X25519',
+          x   : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          d   : Convert.uint8Array(new Uint8Array(32)).toBase64Url()
         };
       });
 
       it('does not throw with matching algorithm name and valid publicKey and baseKey', () => {
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
           baseKey   : ownPrivateKey
         })).to.not.throw();
       });
 
       it('throws an error when unsupported algorithm specified', () => {
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           algorithm : { name: 'non-existent-algorithm', publicKey: otherPartyPublicKey },
           baseKey   : ownPrivateKey
         })).to.throw(NotSupportedError, 'Algorithm not supported');
       });
 
       it('throws an error if the publicKey property is missing', () => {
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           // @ts-expect-error because `publicKey` property is intentionally omitted.
           algorithm : { name: 'ECDH' },
           baseKey   : ownPrivateKey
@@ -541,21 +558,21 @@ describe('Algorithms API', () => {
 
       it('throws an error if the given publicKey is not valid', () => {
         const { kty, ...otherPartyPublicKeyMissingKeyType } = otherPartyPublicKey as JwkParamsEcPublic;
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
           algorithm : { name: 'ECDH', publicKey: otherPartyPublicKeyMissingKeyType },
           baseKey   : ownPrivateKey
         })).to.throw(TypeError, 'Object is not a JSON Web Key');
 
         const { crv, ...otherPartyPublicKeyMissingCurve } = otherPartyPublicKey as JwkParamsEcPublic;
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
           algorithm : { name: 'ECDH', publicKey: otherPartyPublicKeyMissingCurve },
           baseKey   : ownPrivateKey
         })).to.throw(InvalidAccessError, 'Requested operation is only valid for public keys');
 
         const { x, ...otherPartyPublicKeyMissingX } = otherPartyPublicKey as JwkParamsEcPublic;
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
           algorithm : { name: 'ECDH', publicKey: otherPartyPublicKeyMissingX },
           baseKey   : ownPrivateKey
@@ -564,14 +581,22 @@ describe('Algorithms API', () => {
 
       it('throws an error if the key type of the publicKey is not EC or OKP', () => {
         otherPartyPublicKey.kty = 'RSA';
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
           baseKey   : ownPrivateKey
         })).to.throw(InvalidAccessError, 'Key type of the provided key must be');
       });
 
+      it(`does not throw if publicKey 'key_ops' is undefined`, async () => {
+        delete otherPartyPublicKey.key_ops;
+        expect(() => alg.checkDeriveBitsOptions({
+          algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+          baseKey   : ownPrivateKey
+        })).to.not.throw();
+      });
+
       it('throws an error if a private key is specified as the publicKey', () => {
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           // @ts-expect-error since a private key is being intentionally provided to trigger the error.
           algorithm : { name: 'ECDH', publicKey: ownPrivateKey },
           baseKey   : ownPrivateKey
@@ -580,35 +605,35 @@ describe('Algorithms API', () => {
 
       it('throws an error if the baseKey property is missing', () => {
         // @ts-expect-error because `baseKey` property is intentionally omitted.
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           algorithm: { name: 'ECDH', publicKey: otherPartyPublicKey  }
         })).to.throw(TypeError, `Required parameter missing: 'baseKey'`);
       });
 
       it('throws an error if the given baseKey is not valid', () => {
         const { kty, ...ownPrivateKeyMissingKeyType } = ownPrivateKey as JwkParamsEcPrivate;
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
           // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
           baseKey   : ownPrivateKeyMissingKeyType
         })).to.throw(TypeError, 'Object is not a JSON Web Key');
 
         const { crv, ...ownPrivateKeyMissingCurve } = ownPrivateKey as JwkParamsEcPrivate;
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
           // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
           baseKey   : ownPrivateKeyMissingCurve
         })).to.throw(InvalidAccessError, 'Requested operation is only valid for private keys');
 
         const { x, ...ownPrivateKeyMissingX } = ownPrivateKey as JwkParamsEcPrivate;
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
           // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
           baseKey   : ownPrivateKeyMissingX
         })).to.throw(InvalidAccessError, 'Requested operation is only valid for private keys');
 
         const { d, ...ownPrivateKeyMissingD } = ownPrivateKey as JwkParamsEcPrivate;
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
           // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
           baseKey   : ownPrivateKeyMissingD
@@ -617,14 +642,22 @@ describe('Algorithms API', () => {
 
       it('throws an error if the key type of the baseKey is not EC or OKP', () => {
         ownPrivateKey.kty = 'RSA';
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
           baseKey   : ownPrivateKey
         })).to.throw(InvalidAccessError, 'Key type of the provided key must be');
       });
 
+      it(`does not throw if baseKey 'key_ops' is undefined`, async () => {
+        delete ownPrivateKey.key_ops;
+        expect(() => alg.checkDeriveBitsOptions({
+          algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+          baseKey   : ownPrivateKey
+        })).to.not.throw();
+      });
+
       it('throws an error if a public key is specified as the baseKey', () => {
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
           // @ts-expect-error because public key is being provided instead of private key.
           baseKey   : otherPartyPublicKey
@@ -634,7 +667,7 @@ describe('Algorithms API', () => {
       it('throws an error if the key type of the public and base keys does not match', () => {
         ownPrivateKey.kty = 'EC';
         otherPartyPublicKey.kty = 'OKP';
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
           baseKey   : ownPrivateKey
         })).to.throw(InvalidAccessError, `key type of the publicKey and baseKey must match`);
@@ -643,74 +676,325 @@ describe('Algorithms API', () => {
       it('throws an error if the curve of the public and base keys does not match', () => {
         (ownPrivateKey as JwkParamsEcPrivate).crv = 'secp256k1';
         (otherPartyPublicKey as JwkParamsOkpPublic).crv = 'X25519';
-        expect(() => alg.checkAlgorithmOptions({
+        expect(() => alg.checkDeriveBitsOptions({
           algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
           baseKey   : ownPrivateKey
         })).to.throw(InvalidAccessError, `curve of the publicKey and baseKey must match`);
       });
+
+      ['baseKey', 'publicKey'].forEach(keyType => {
+        describe(`if ${keyType} 'key_ops' is specified`, () => {
+          it(`does not throw if 'key_ops' is valid`, () => {
+            const key = keyType === 'baseKey' ? ownPrivateKey : otherPartyPublicKey;
+            key.key_ops = ['deriveBits'];
+            expect(() => alg.checkDeriveBitsOptions({
+              algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+              baseKey   : ownPrivateKey
+            })).to.not.throw();
+          });
+
+          it(`throws an error if 'key_ops' property is an empty array`, () => {
+            const key = keyType === 'baseKey' ? ownPrivateKey : otherPartyPublicKey;
+            key.key_ops = [];
+            expect(() => alg.checkDeriveBitsOptions({
+              algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+              baseKey   : ownPrivateKey
+            })).to.throw(InvalidAccessError, `is not valid for the provided key`);
+          });
+
+          it(`throws an error if the 'key_ops' property is not an array`, () => {
+            const key = keyType === 'baseKey' ? ownPrivateKey : otherPartyPublicKey;
+            key.key_ops = 'deriveBits' as any; // Intentionally incorrect type
+            expect(() => alg.checkDeriveBitsOptions({
+              algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+              baseKey   : ownPrivateKey
+            })).to.throw(TypeError, `is not of type Array.`);
+          });
+
+          it(`throws an error if the 'key_ops' property contains an invalid operation`, () => {
+            const key = keyType === 'baseKey' ? ownPrivateKey : otherPartyPublicKey;
+            key.key_ops = ['sign'];
+            expect(() => alg.checkDeriveBitsOptions({
+              algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
+              baseKey   : ownPrivateKey,
+            })).to.throw(InvalidAccessError, `is not valid for the provided key`);
+          });
+        });
+      });
     });
 
     describe('sign()', () => {
-      it(`throws an error because 'sign' operation is valid for ECDH keys`, async () => {
-        await expect(alg.sign()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for ECDH');
+      it(`throws an error because 'sign' operation is not valid for ECDH keys`, async () => {
+        await expect(alg.sign()).to.eventually.be.rejectedWith(InvalidAccessError, `is not valid for 'ECDH'`);
       });
     });
 
     describe('verify()', () => {
-      it(`throws an error because 'verify' operation is valid for ECDH keys`, async () => {
-        await expect(alg.verify()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for ECDH');
+      it(`throws an error because 'verify' operation is not valid for ECDH keys`, async () => {
+        await expect(alg.verify()).to.eventually.be.rejectedWith(InvalidAccessError, `is not valid for 'ECDH'`);
       });
     });
   });
 
-  //   describe('BaseEcdsaAlgorithm', () => {
-  //     let alg: BaseEcdsaAlgorithm;
+  describe('BaseEcdsaAlgorithm', () => {
+    let alg: BaseEcdsaAlgorithm;
 
-  //     before(() => {
-  //       alg = Reflect.construct(BaseEcdsaAlgorithm, []) as BaseEcdsaAlgorithm;
-  //       // @ts-expect-error because `hashAlgorithms` is a read-only property.
-  //       alg.hashAlgorithms = ['SHA-256'];
-  //     });
+    before(() => {
+      alg = Reflect.construct(BaseEcdsaAlgorithm, []) as BaseEcdsaAlgorithm;
+      // @ts-expect-error because the `names` property is readonly.
+      alg.names = ['ES256K' as const];
+      // @ts-expect-error because the `curves` property is readonly.
+      alg.curves = ['secp256k1' as const];
+    });
 
-  //     describe('checkAlgorithmOptions()', () => {
-  //       it('does not throw with matching algorithm name and valid hash algorithm', () => {
-  //         expect(() => alg.checkAlgorithmOptions({ algorithm: {
-  //           name : 'ECDSA',
-  //           hash : 'SHA-256'
-  //         }})).to.not.throw();
-  //       });
+    describe('checkPrivateKey', () => {
+      it('should throw InvalidAccessError if key is not EC private key', () => {
+        sinon.stub(Jose, 'isEcPrivateKeyJwk').returns(false);
+        expect(() => alg.checkPrivateKey({ key: {} as any })).to.throw(InvalidAccessError);
+        sinon.restore();
+      });
 
-  //       it('throws an error when unsupported algorithm specified', () => {
-  //         expect(() => alg.checkAlgorithmOptions({ algorithm: {
-  //           name : 'Nope',
-  //           hash : 'SHA-256'
-  //         }})).to.throw(NotSupportedError, 'Algorithm not supported');
-  //       });
+      it('should not throw if key is EC private key', () => {
+        sinon.stub(Jose, 'isEcPrivateKeyJwk').returns(true);
+        expect(() => alg.checkPrivateKey({ key: {} as any })).to.not.throw();
+        sinon.restore();
+      });
+    });
 
-  //       it('throws an error if the hash property is missing', () => {
-  //         // @ts-expect-error because `hash` property is intentionally omitted.
-  //         expect(() => alg.checkAlgorithmOptions({ algorithm: {
-  //           name: 'ECDSA',
-  //         }})).to.throw(TypeError, 'Required parameter missing');
-  //       });
+    describe('checkPublicKey', () => {
+      it('should throw InvalidAccessError if key is not EC public key', () => {
+        sinon.stub(Jose, 'isEcPublicKeyJwk').returns(false);
+        expect(() => alg.checkPublicKey({ key: {} as any })).to.throw(InvalidAccessError);
+        sinon.restore();
+      });
 
-  //       it('throws an error if the given hash algorithm is not supported', () => {
-  //         const ecdhPublicKey = new CryptoKey({ name: 'ECDH', curve: 'X25519' }, false, new Uint8Array(32), 'public', ['deriveBits', 'deriveKey']);
-  //         // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
-  //         delete ecdhPublicKey.extractable;
-  //         expect(() => alg.checkAlgorithmOptions({ algorithm: {
-  //           name : 'ECDSA',
-  //           hash : 'SHA-1234'
-  //         }})).to.throw(TypeError, 'Out of range');
-  //       });
-  //     });
+      it('should not throw if key is EC public key', () => {
+        sinon.stub(Jose, 'isEcPublicKeyJwk').returns(true);
+        expect(() => alg.checkPublicKey({ key: {} as any })).to.not.throw();
+        sinon.restore();
+      });
+    });
 
-  //     describe('deriveBits()', () => {
-  //       it(`throws an error because 'deriveBits' operation is valid for ECDSA keys`, async () => {
-  //         await expect(alg.deriveBits()).to.eventually.be.rejectedWith(InvalidAccessError, `is not valid for ECDSA`);
-  //       });
-  //     });
-  //   });
+    describe('checkSignOptions()', () => {
+      it('validates algorithm name and key algorithm name', async () => {
+        // Invalid (algorithm name, private key) result in algorithm name check failing first.
+        expect(() => alg.checkSignOptions({
+          algorithm : { name: 'invalid-name' },
+          // @ts-expect-error because invalid key intentionally specified.
+          key       : { foo: 'bar '},
+          data      : new Uint8Array([1, 2, 3, 4])
+        })).to.throw(NotSupportedError, 'Algorithm not supported');
+
+        // Valid (algorithm name) + Invalid (private key) result in private key check failing first.
+        expect(() => alg.checkSignOptions({
+          algorithm : { name: 'ES256K' },
+          // @ts-expect-error because invalid key intentionally specified.
+          key       : { foo: 'bar '},
+          data      : new Uint8Array([1, 2, 3, 4])
+        })).to.throw(InvalidAccessError, 'operation is only valid for private keys');
+
+        // Valid (algorithm name) + Invalid (private key alg) result in private key algorithm check failing first.
+        expect(() => alg.checkSignOptions({
+          algorithm : { name: 'ES256K' },
+          // @ts-expect-error because invalid key algorithm intentionally specified.
+          key       : { kty: 'EC', crv: 'secp256k1', d: '', x: '', y: '', alg: 'invalid-alg' },
+          data      : new Uint8Array([1, 2, 3, 4])
+        })).to.throw(InvalidAccessError, `does not match the provided 'invalid-alg' key`);
+      });
+
+      it('validates that data is a Uint8Array', async () => {
+        const privateKey: PrivateKeyJwk = {
+          kty : 'EC',
+          crv : 'secp256k1',
+          d   : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          x   : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          y   : Convert.uint8Array(new Uint8Array(32)).toBase64Url()
+        };
+
+        // Valid (algorithm name, private key) + Invalid (data) result in the data check failing first.
+        expect(() => alg.checkSignOptions({
+          algorithm : { name: 'ES256K' },
+          key       : privateKey,
+          // @ts-expect-error because invalid data type intentionally specified.
+          data      : 'baz'
+        })).to.throw(TypeError, `data must be of type Uint8Array`);
+      });
+
+      it('validates that key is not a public key', async () => {
+        const publicKey: PublicKeyJwk = {
+          kty : 'EC',
+          crv : 'secp256k1',
+          x   : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          y   : Convert.uint8Array(new Uint8Array(32)).toBase64Url()
+        };
+
+        // Valid (algorithm name, data) + Invalid (private key) result in key type check failing first.
+        expect(() => alg.checkSignOptions({
+          algorithm : { name: 'ES256K' },
+          // @ts-expect-error because invalid key intentionally specified.
+          key       : publicKey,
+          data      : new Uint8Array([1, 2, 3, 4])
+        })).to.throw(InvalidAccessError, 'operation is only valid for private keys');
+      });
+
+      it(`if specified, validates that key operations is 'sign'`, async () => {
+        // Exclude the 'sign' operation.
+        const privateKey: PrivateKeyJwk = {
+          kty     : 'EC',
+          crv     : 'secp256k1',
+          d       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          x       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          y       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          key_ops : ['verify']
+        };
+
+        expect(() => alg.checkSignOptions({
+          algorithm : { name: 'ES256K' },
+          key       : privateKey,
+          data      : new Uint8Array([1, 2, 3, 4])
+        })).to.throw(InvalidAccessError, 'is not valid for the provided key');
+      });
+
+      it('throws an error when key is an unsupported curve', async () => {
+        const privateKey: PrivateKeyJwk = {
+          kty     : 'EC',
+          // @ts-expect-error because an invalid curve is being intentionally specified.
+          crv     : 'invalid-curve',
+          d       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          x       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          y       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          key_ops : ['verify']
+        };
+
+        expect(() => alg.checkSignOptions({
+          algorithm : { name: 'ES256K' },
+          key       : privateKey,
+          data      : new Uint8Array([1, 2, 3, 4])
+        })).to.throw(TypeError, 'Out of range');
+      });
+    });
+
+    describe('checkVerifyOptions()', () => {
+      let privateKey: PrivateKeyJwk;
+      let publicKey: PublicKeyJwk;
+      let signature: Uint8Array;
+      let data = new Uint8Array([51, 52, 53]);
+
+      beforeEach(() => {
+        privateKey = {
+          kty     : 'EC',
+          crv     : 'secp256k1',
+          d       : 'XwsSwwmtfxgooR2XsWsvZxeacO1W4koDw3iXxmUivcE',
+          x       : 'Ldwc5EnadPCf-pXe_qWmM7i2-qfYrQXkSCm4aOJ09UQ',
+          y       : 'vL7LbN7q072aRJ5TSpz63cOetIzEDmBR_LwKciPfHZE',
+          kid     : 'ukuZTjeoTyhQk5pScZwj3PDHLUmMffmV5Fey4cS2sMk',
+          alg     : 'ES256K',
+          key_ops : [ 'sign' ]
+        };
+        publicKey = {
+          kty     : 'EC',
+          crv     : 'secp256k1',
+          x       : 'Ldwc5EnadPCf-pXe_qWmM7i2-qfYrQXkSCm4aOJ09UQ',
+          y       : 'vL7LbN7q072aRJ5TSpz63cOetIzEDmBR_LwKciPfHZE',
+          kid     : 'ukuZTjeoTyhQk5pScZwj3PDHLUmMffmV5Fey4cS2sMk',
+          alg     : 'ES256K',
+          key_ops : [ 'sign' ]
+        };
+        signature = Convert.base64Url('jikTSNWducZQBBDCjonE-OnQaUc3A0oFnCcWWF5N2OV2AYID4iGSTrdPw9jgXISBhojZ1kYeeu4_6YvV26A6GQ').toUint8Array();
+      });
+
+      it('validates algorithm name and key algorithm name', async () => {
+        // Invalid (algorithm name, public key) result in algorithm name check failing first.
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'invalid-name' },
+          // @ts-expect-error because invalid key intentionally specified.
+          key       : { foo: 'bar '},
+          signature,
+          data
+        })).to.throw(NotSupportedError, 'Algorithm not supported');
+
+        // Valid (algorithm name) + Invalid (public key) result in public key check failing first.
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'ES256K' },
+          // @ts-expect-error because invalid key intentionally specified.
+          key       : { foo: 'bar '},
+          signature,
+          data
+        })).to.throw(InvalidAccessError, 'operation is only valid for public keys');
+
+        // Valid (algorithm name) + Invalid (public key alg) result in public key algorithm check failing first.
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'ES256K' },
+          // @ts-expect-error because invalid key intentionally specified.
+          key       : { ...publicKey, alg: 'invalid-alg' },
+          signature,
+          data
+        })).to.throw(InvalidAccessError, `does not match the provided 'invalid-alg' key`);
+      });
+
+      it('validates that key is not a private key', async () => {
+        // Valid (algorithm name, hash algorithm, signature, data) + Invalid (public key) result in key type check failing first.
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'ES256K' },
+          // @ts-expect-error because invalid key intentionally specified.
+          key       : privateKey,
+          signature : signature,
+          data      : data
+        })).to.throw(InvalidAccessError, 'operation is only valid for public keys');
+      });
+
+      it(`if specified, validates that key usage is 'verify'`, async () => {
+        // Manually specify the public key operations to exclude the 'verify' operation.
+        const key: PublicKeyJwk = { ...publicKey, key_ops: ['sign'] };
+
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'ES256K' },
+          key,
+          signature : signature,
+          data      : data
+        })).to.throw(InvalidAccessError, 'is not valid for the provided key');
+      });
+
+      it('throws an error when key is an unsupported curve', async () => {
+        // Manually change the key's curve to trigger an error.
+        // @ts-expect-error because an invalid curve is being intentionally specified.
+        const key: PublicKeyJwk = { ...publicKey, crv: 'invalid-curve' };
+
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'ES256K' },
+          data      : data,
+          key,
+          signature
+        })).to.throw(TypeError, 'Out of range');
+      });
+
+      it('validates that data is a Uint8Array', async () => {
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'ES256K' },
+          key       : publicKey,
+          // @ts-expect-error because invalid data type intentionally specified.
+          data      : 'baz',
+          signature
+        })).to.throw(TypeError, `data must be of type Uint8Array`);
+      });
+
+      it('validates that signature is a Uint8Array', async () => {
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'ES256K' },
+          key       : publicKey,
+          data,
+          // @ts-expect-error because invalid data type intentionally specified.
+          signature : 'baz'
+        })).to.throw(TypeError, `signature must be of type Uint8Array`);
+      });
+    });
+
+    describe('deriveBits()', () => {
+      it(`throws an error because 'deriveBits' operation is not valid for ECDSA keys`, async () => {
+        await expect(alg.deriveBits()).to.eventually.be.rejectedWith(InvalidAccessError, `is not valid for 'ES256K'`);
+      });
+    });
+  });
 
   //   describe('BaseEdDsaAlgorithm', () => {
   //     let alg: BaseEdDsaAlgorithm;
@@ -748,6 +1032,8 @@ describe('Algorithms API', () => {
 
     before(() => {
       alg = Reflect.construct(BasePbkdf2Algorithm, []) as BasePbkdf2Algorithm;
+      // @ts-expect-error because the `names` property is readonly.
+      alg.names = ['PBKDF2' as const];
       // @ts-expect-error because `hashAlgorithms` is a read-only property.
       alg.hashAlgorithms = ['SHA-256'];
     });

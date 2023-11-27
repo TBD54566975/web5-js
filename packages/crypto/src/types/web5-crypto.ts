@@ -35,9 +35,7 @@ export namespace Web5Crypto {
     publicKey: CryptoKey;
   }
 
-  export interface EcdsaOptions extends Algorithm {
-    hash: string;
-  }
+  export interface EcdsaOptions extends Algorithm {}
 
   export interface EcGenerateKeyOptions extends Algorithm {
     curve: NamedCurve;
@@ -47,9 +45,7 @@ export namespace Web5Crypto {
     publicKey: PublicKeyJwk;
   }
 
-  export interface EcdsaGenerateKeyOptions extends EcGenerateKeyOptions {
-    compressedPublicKey?: boolean;
-  }
+  export interface EcdsaGenerateKeyOptions extends EcGenerateKeyOptions { }
 
   export type EdDsaGenerateKeyOptions = EcGenerateKeyOptions
 

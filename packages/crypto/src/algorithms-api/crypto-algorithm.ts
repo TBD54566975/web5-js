@@ -6,9 +6,9 @@ import { InvalidAccessError, NotSupportedError } from './errors.js';
 export abstract class CryptoAlgorithm {
 
   /**
-   * Name of the algorithm
+   * Name(s) of the algorithm supported by the implementation.
    */
-  public abstract readonly name: string;
+  public abstract readonly names: ReadonlyArray<string>;
 
   /**
    * Indicates which cryptographic operations are permissible to be used with this algorithm.
@@ -22,7 +22,7 @@ export abstract class CryptoAlgorithm {
     if (algorithmName === undefined) {
       throw new TypeError(`Required parameter missing: 'algorithmName'`);
     }
-    if (algorithmName !== this.name) {
+    if (!this.names.includes(algorithmName)) {
       throw new NotSupportedError(`Algorithm not supported: '${algorithmName}'`);
     }
   }
@@ -52,8 +52,8 @@ export abstract class CryptoAlgorithm {
     if (keyAlgorithmName === undefined) {
       throw new TypeError(`Required parameter missing: 'keyAlgorithmName'`);
     }
-    if (keyAlgorithmName && keyAlgorithmName !== this.name) {
-      throw new InvalidAccessError(`Algorithm '${this.name}' does not match the provided '${keyAlgorithmName}' key.`);
+    if (keyAlgorithmName && !this.names.includes(keyAlgorithmName)) {
+      throw new InvalidAccessError(`Algorithm '${this.names.join(', ')}' does not match the provided '${keyAlgorithmName}' key.`);
     }
   }
 
@@ -80,6 +80,9 @@ export abstract class CryptoAlgorithm {
     const { keyOperations, allowedKeyOperations } = options;
     if (!(keyOperations && keyOperations.length > 0)) {
       throw new TypeError(`Required parameter missing or empty: 'keyOperations'`);
+    }
+    if (!Array.isArray(allowedKeyOperations)) {
+      throw new TypeError(`The provided 'allowedKeyOperations' is not of type Array.`);
     }
     if (!keyOperations.every(operation => allowedKeyOperations.includes(operation))) {
       throw new InvalidAccessError(`Requested operation(s) '${keyOperations.join(', ')}' is not valid for the provided key.`);
@@ -109,7 +112,7 @@ export abstract class CryptoAlgorithm {
   public abstract deriveBits(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdhDeriveKeyOptions | Web5Crypto.Pbkdf2Options,
     baseKey: JsonWebKey,
-    length: number | null
+    length?: number
   }): Promise<Uint8Array>;
 
   public abstract encrypt(options: {

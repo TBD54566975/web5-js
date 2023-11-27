@@ -6,7 +6,8 @@ import { Pbkdf2 } from '../crypto-primitives/pbkdf2.js';
 import { BasePbkdf2Algorithm, OperationError } from '../algorithms-api/index.js';
 
 export class Pbkdf2Algorithm extends BasePbkdf2Algorithm {
-  public readonly hashAlgorithms = ['SHA-256', 'SHA-384', 'SHA-512'];
+  public readonly names = ['PBKDF2'] as const;
+  public readonly hashAlgorithms = ['SHA-256', 'SHA-384', 'SHA-512'] as const;
 
   public async deriveBits(options: {
     algorithm: Web5Crypto.Pbkdf2Options,

@@ -8,9 +8,9 @@ import { checkValidProperty, checkRequiredProperty } from '../../utils.js';
 
 export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
 
-  public abstract curves: string[];
+  public abstract readonly curves: ReadonlyArray<string>;
 
-  public checkGenerateKey(options: {
+  public checkGenerateKeyOptions(options: {
     algorithm: Web5Crypto.EcGenerateKeyOptions,
     keyOperations?: JwkOperation[]
   }): void {
@@ -48,11 +48,11 @@ export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
   }
 
   public override async decrypt(): Promise<Uint8Array> {
-    throw new InvalidAccessError(`Requested operation 'decrypt' is not valid for ${this.name} keys.`);
+    throw new InvalidAccessError(`Requested operation 'decrypt' is not valid for '${this.names.join(', ')}' keys.`);
   }
 
   public override async encrypt(): Promise<Uint8Array> {
-    throw new InvalidAccessError(`Requested operation 'encrypt' is not valid for ${this.name} keys.`);
+    throw new InvalidAccessError(`Requested operation 'encrypt' is not valid for '${this.names.join(', ')}' keys.`);
   }
 
   public abstract generateKey(options: {

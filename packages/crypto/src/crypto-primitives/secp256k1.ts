@@ -294,6 +294,9 @@ export class Secp256k1 {
       y   : Convert.uint8Array(points.y).toBase64Url()
     };
 
+    // Compute the JWK thumbprint and set as the key ID.
+    publicKey.kid = await Jose.jwkThumbprint({ key: publicKey });
+
     return publicKey;
   }
 

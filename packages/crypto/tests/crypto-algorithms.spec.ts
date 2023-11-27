@@ -3,15 +3,15 @@ import chai, { expect } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
-import type { JsonWebKey, PrivateKeyJwk, PublicKeyJwk } from '../src/jose.js';
 import type { Web5Crypto } from '../src/types/web5-crypto.js';
+import type { JsonWebKey, PrivateKeyJwk, PublicKeyJwk } from '../src/jose.js';
 
 import { aesCtrTestVectors } from './fixtures/test-vectors/aes.js';
 import { AesCtr, Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
 import { CryptoKey, InvalidAccessError, NotSupportedError, OperationError } from '../src/algorithms-api/index.js';
 import {
   EcdhAlgorithm,
-  // EcdsaAlgorithm,
+  EcdsaAlgorithm,
   // EdDsaAlgorithm,
   // AesCtrAlgorithm,
   Pbkdf2Algorithm,
@@ -335,8 +335,7 @@ describe('Default Crypto Algorithm Implementations', () => {
       it(`supports 'secp256k1' curve`, async () => {
         const sharedSecret = await ecdh.deriveBits({
           algorithm : { name: 'ECDH', publicKey: secp256k1PublicKeyB },
-          baseKey   : secp256k1PrivateKeyA,
-          length    : null
+          baseKey   : secp256k1PrivateKeyA
         });
         expect(sharedSecret).to.be.instanceOf(Uint8Array);
         expect(sharedSecret.byteLength).to.equal(32);
@@ -345,8 +344,7 @@ describe('Default Crypto Algorithm Implementations', () => {
       it(`supports 'X25519' curve`, async () => {
         const sharedSecret = await ecdh.deriveBits({
           algorithm : { name: 'ECDH', publicKey: x25519PublicKeyB },
-          baseKey   : x25519PrivateKeyA,
-          length    : null
+          baseKey   : x25519PrivateKeyA
         });
         expect(sharedSecret).to.be.instanceOf(Uint8Array);
         expect(sharedSecret.byteLength).to.equal(32);
@@ -369,8 +367,7 @@ describe('Default Crypto Algorithm Implementations', () => {
       it('returns shared secret with maximum bit length when length is null', async () => {
         const sharedSecretSecp256k1 = await ecdh.deriveBits({
           algorithm : { name: 'ECDH', publicKey: secp256k1PublicKeyB },
-          baseKey   : secp256k1PrivateKeyA,
-          length    : null
+          baseKey   : secp256k1PrivateKeyA
         });
         expect(sharedSecretSecp256k1.byteLength).to.equal(32);
       });
@@ -389,25 +386,21 @@ describe('Default Crypto Algorithm Implementations', () => {
       it('is commutative', async () => {
         const sharedSecretSecp256k1 = await ecdh.deriveBits({
           algorithm : { name: 'ECDH', publicKey: secp256k1PublicKeyB },
-          baseKey   : secp256k1PrivateKeyA,
-          length    : null
+          baseKey   : secp256k1PrivateKeyA
         });
         const sharedSecretSecp256k1Reversed = await ecdh.deriveBits({
           algorithm : { name: 'ECDH', publicKey: secp256k1PublicKeyA },
-          baseKey   : secp256k1PrivateKeyB,
-          length    : null
+          baseKey   : secp256k1PrivateKeyB
         });
         expect(sharedSecretSecp256k1).to.deep.equal(sharedSecretSecp256k1Reversed);
 
         const sharedSecretX25519 = await ecdh.deriveBits({
           algorithm : { name: 'ECDH', publicKey: x25519PublicKeyB },
-          baseKey   : x25519PrivateKeyA,
-          length    : null
+          baseKey   : x25519PrivateKeyA
         });
         const sharedSecretX25519Reversed = await ecdh.deriveBits({
           algorithm : { name: 'ECDH', publicKey: x25519PublicKeyA },
-          baseKey   : x25519PrivateKeyB,
-          length    : null
+          baseKey   : x25519PrivateKeyB
         });
         expect(sharedSecretX25519).to.deep.equal(sharedSecretX25519Reversed);
       });
@@ -434,9 +427,8 @@ describe('Default Crypto Algorithm Implementations', () => {
         const baseKey = { ...secp256k1PrivateKeyA, key_ops: undefined } as PrivateKeyJwk;
 
         await expect(ecdh.deriveBits({
-          algorithm : { name: 'ECDH', publicKey: secp256k1PublicKeyB },
-          baseKey,
-          length    : null
+          algorithm: { name: 'ECDH', publicKey: secp256k1PublicKeyB },
+          baseKey
         })).to.eventually.be.fulfilled;
       });
 
@@ -445,8 +437,7 @@ describe('Default Crypto Algorithm Implementations', () => {
 
         await expect(ecdh.deriveBits({
           algorithm : { name: 'ECDH', publicKey },
-          baseKey   : secp256k1PrivateKeyA,
-          length    : null
+          baseKey   : secp256k1PrivateKeyA
         })).to.eventually.be.fulfilled;
       });
 
@@ -455,9 +446,8 @@ describe('Default Crypto Algorithm Implementations', () => {
         const baseKey = { ...secp256k1PrivateKeyA, key_ops: ['sign'] } as PrivateKeyJwk;
 
         await expect(ecdh.deriveBits({
-          algorithm : { name: 'ECDH', publicKey: secp256k1PublicKeyB },
-          baseKey,
-          length    : null
+          algorithm: { name: 'ECDH', publicKey: secp256k1PublicKeyB },
+          baseKey
         })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
       });
 
@@ -468,8 +458,7 @@ describe('Default Crypto Algorithm Implementations', () => {
         await expect(
           ecdh.deriveBits({
             algorithm : { name: 'ECDH', publicKey },
-            baseKey   : secp256k1PrivateKeyA,
-            length    : null
+            baseKey   : secp256k1PrivateKeyA
           })
         ).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
       });
@@ -478,8 +467,7 @@ describe('Default Crypto Algorithm Implementations', () => {
         await expect(
           ecdh.deriveBits({
             algorithm : { name: 'ECDH', publicKey: secp256k1PublicKeyA },
-            baseKey   : secp256k1PrivateKeyA,
-            length    : null
+            baseKey   : secp256k1PrivateKeyA
           })
         ).to.eventually.be.rejectedWith(Error, 'shared secret cannot be computed from a single key pair');
       });
@@ -569,7 +557,7 @@ describe('Default Crypto Algorithm Implementations', () => {
         })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation');
       });
 
-      it(`throws an error if 'secp256k1' key pair generation fails`, async function() {
+      it(`throws an error if 'secp256k1' key generation fails`, async function() {
         // @ts-ignore because the method is being intentionally stubbed to return undefined.
         const secp256k1Stub = sinon.stub(Secp256k1, 'generateKey').returns(Promise.resolve(undefined));
 
@@ -581,13 +569,13 @@ describe('Default Crypto Algorithm Implementations', () => {
           expect.fail('Expected ecdh.generateKey() to throw an error');
         } catch (error) {
           expect(error).to.be.an('error');
-          expect((error as Error).message).to.include('failed to generate key');
+          expect((error as Error).message).to.include('Operation failed: generateKey');
         } finally {
           secp256k1Stub.restore();
         }
       });
 
-      it(`should throw an error if 'X25519' key pair generation fails`, async function() {
+      it(`throws an error if 'X25519' key generation fails`, async function() {
         // @ts-ignore because the method is being intentionally stubbed to return undefined.
         const x25519Stub = sinon.stub(X25519, 'generateKey').returns(Promise.resolve(undefined));
 
@@ -599,7 +587,7 @@ describe('Default Crypto Algorithm Implementations', () => {
           expect.fail('Expected ecdh.generateKey() to throw an error');
         } catch (error) {
           expect(error).to.be.an('error');
-          expect((error as Error).message).to.include('failed to generate key');
+          expect((error as Error).message).to.include('Operation failed: generateKey');
         } finally {
           x25519Stub.restore();
         }
@@ -607,364 +595,203 @@ describe('Default Crypto Algorithm Implementations', () => {
     });
   });
 
-  // describe('EcdsaAlgorithm', () => {
-  //   let ecdsa: EcdsaAlgorithm;
+  describe('EcdsaAlgorithm', () => {
+    let ecdsa: EcdsaAlgorithm;
 
-  //   before(() => {
-  //     ecdsa = EcdsaAlgorithm.create();
-  //   });
+    before(() => {
+      ecdsa = EcdsaAlgorithm.create();
+    });
 
-  //   describe('generateKey()', () => {
-  //     it('returns a key pair', async () => {
-  //       const keys = await ecdsa.generateKey({
-  //         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
+    describe('generateKey()', () => {
+      it('returns a private key in JWK format', async () => {
+        const privateKey = await ecdsa.generateKey({
+          algorithm     : { name: 'ES256K', curve: 'secp256k1' },
+          keyOperations : ['sign']
+        });
 
-  //       expect(keys).to.have.property('privateKey');
-  //       expect(keys.privateKey.type).to.equal('private');
-  //       expect(keys.privateKey.usages).to.deep.equal(['sign']);
+        expect(privateKey).to.have.property('crv', 'secp256k1');
+        expect(privateKey).to.have.property('d');
+        expect(privateKey).to.have.property('kid');
+        expect(privateKey).to.have.property('kty', 'EC');
+        expect(privateKey).to.have.property('x');
 
-  //       expect(keys).to.have.property('publicKey');
-  //       expect(keys.publicKey.type).to.equal('public');
-  //       expect(keys.publicKey.usages).to.deep.equal(['verify']);
-  //     });
+        expect(privateKey.key_ops).to.deep.equal(['sign']);
+      });
 
-  //     it('public key is always extractable', async () => {
-  //       let keys: CryptoKeyPair;
-  //       // publicKey is extractable if generateKey() called with extractable = false
-  //       keys = await ecdsa.generateKey({
-  //         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1'  },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
-  //       expect(keys.publicKey.extractable).to.be.true;
+      it(`supports 'secp256k1' curve`, async () => {
+        const privateKey = await ecdsa.generateKey({
+          algorithm     : { name: 'ES256K', curve: 'secp256k1' },
+          keyOperations : ['sign']
+        });
 
-  //       // publicKey is extractable if generateKey() called with extractable = true
-  //       keys = await ecdsa.generateKey({
-  //         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1'  },
-  //         extractable : true,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
-  //       expect(keys.publicKey.extractable).to.be.true;
-  //     });
+        if (!('crv' in privateKey)) throw new Error; // TS type guard
+        expect(privateKey.crv).to.equal('secp256k1');
+      });
 
-  //     it('private key is selectively extractable', async () => {
-  //       let keys: CryptoKeyPair;
-  //       // privateKey is NOT extractable if generateKey() called with extractable = false
-  //       keys = await ecdsa.generateKey({
-  //         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1'  },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
-  //       expect(keys.privateKey.extractable).to.be.false;
+      it(`supports 'sign' and/or 'verify' key operations`, async () => {
+        await expect(ecdsa.generateKey({
+          algorithm     : { name: 'ES256K', curve: 'secp256k1' },
+          keyOperations : ['sign']
+        })).to.eventually.be.fulfilled;
 
-  //       // privateKey is extractable if generateKey() called with extractable = true
-  //       keys = await ecdsa.generateKey({
-  //         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1'  },
-  //         extractable : true,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
-  //       expect(keys.privateKey.extractable).to.be.true;
-  //     });
+        await expect(ecdsa.generateKey({
+          algorithm     : { name: 'ES256K', curve: 'secp256k1' },
+          keyOperations : ['verify']
+        })).to.eventually.be.fulfilled;
 
-  //     it(`supports 'secp256k1' curve with compressed public keys, by default`, async () => {
-  //       const keys = await ecdsa.generateKey({
-  //         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
+        await expect(ecdsa.generateKey({
+          algorithm     : { name: 'ES256K', curve: 'secp256k1' },
+          keyOperations : ['sign', 'verify']
+        })).to.eventually.be.fulfilled;
+      });
 
-  //       if (!('namedCurve' in keys.privateKey.algorithm)) throw new Error; // type guard
-  //       expect(keys.privateKey.algorithm.namedCurve).to.equal('secp256k1');
-  //       if (!('namedCurve' in keys.publicKey.algorithm)) throw new Error; // type guard
-  //       expect(keys.publicKey.algorithm.namedCurve).to.equal('secp256k1');
-  //       if (!('compressedPublicKey' in keys.publicKey.algorithm)) throw new Error; // type guard
-  //       expect(keys.publicKey.algorithm.compressedPublicKey).to.be.true;
-  //     });
+      it('validates algorithm name and curve', async () => {
+        // Invalid (algorithm name, curve) results in algorithm name check failing first.
+        await expect(ecdsa.generateKey({
+          algorithm     : { name: 'foo', curve: 'bar' },
+          keyOperations : ['deriveBits']
+        })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
 
-  //     it(`supports 'secp256k1' curve with compressed public keys`, async () => {
-  //       const keys = await ecdsa.generateKey({
-  //         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1', compressedPublicKey: true },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
+        // Valid (algorithm name) + Invalid (curve) results in curve check failing first.
+        await expect(ecdsa.generateKey({
+          algorithm     : { name: 'ES256K', curve: 'bar' },
+          keyOperations : ['deriveBits']
+        })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
 
-  //       if (!('namedCurve' in keys.privateKey.algorithm)) throw new Error; // type guard
-  //       expect(keys.privateKey.algorithm.namedCurve).to.equal('secp256k1');
-  //       if (!('namedCurve' in keys.publicKey.algorithm)) throw new Error; // type guard
-  //       expect(keys.publicKey.algorithm.namedCurve).to.equal('secp256k1');
-  //       if (!('compressedPublicKey' in keys.publicKey.algorithm)) throw new Error; // type guard
-  //       expect(keys.publicKey.algorithm.compressedPublicKey).to.be.true;
-  //     });
+        // Valid (algorithm name, named curve) + Invalid (key operations) results in key operations check failing first.
+        await expect(ecdsa.generateKey({
+          algorithm     : { name: 'ES256K', curve: 'secp256k1' },
+          keyOperations : ['encrypt']
+        })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation');
+      });
 
-  //     it(`supports 'secp256k1' curve with uncompressed public keys`, async () => {
-  //       const keys = await ecdsa.generateKey({
-  //         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1', compressedPublicKey: false },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
+      it(`accepts 'keyOperations' as undefined`, async () => {
+        const privateKey = await ecdsa.generateKey({
+          algorithm: { name: 'ES256K', curve: 'secp256k1' },
+        });
 
-  //       if (!('namedCurve' in keys.privateKey.algorithm)) throw new Error; // type guard
-  //       expect(keys.privateKey.algorithm.namedCurve).to.equal('secp256k1');
-  //       if (!('namedCurve' in keys.publicKey.algorithm)) throw new Error; // type guard
-  //       expect(keys.publicKey.algorithm.namedCurve).to.equal('secp256k1');
-  //       if (!('compressedPublicKey' in keys.publicKey.algorithm)) throw new Error; // type guard
-  //       expect(keys.publicKey.algorithm.compressedPublicKey).to.be.false;
-  //     });
+        expect(privateKey).to.exist;
+        expect(privateKey.key_ops).to.be.undefined;
+        expect(privateKey).to.have.property('kty', 'EC');
+        expect(privateKey).to.have.property('crv', 'secp256k1');
+      });
 
-  //     it(`supports 'sign' and/or 'verify' key usages`, async () => {
-  //       await expect(ecdsa.generateKey({
-  //         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-  //         extractable : false,
-  //         keyOperations   : ['sign']
-  //       })).to.eventually.be.fulfilled;
+      it(`throws an error if operation fails`, async function() {
+        // @ts-ignore because the method is being intentionally stubbed to return undefined.
+        const checkSignOptionsStub = sinon.stub(ecdsa, 'checkGenerateKeyOptions').returns(undefined);
 
-  //       await expect(ecdsa.generateKey({
-  //         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-  //         extractable : false,
-  //         keyOperations   : ['verify']
-  //       })).to.eventually.be.fulfilled;
+        try {
+          // @ts-expect-error because no sign operations are defined.
+          await ecdsa.generateKey({ algorithm: {} });
+          expect.fail('Expected ecdsa.generateKey() to throw an error');
+        } catch (error) {
+          expect(error).to.be.an('error');
+          expect((error as Error).message).to.include('Operation failed: generateKey');
+        } finally {
+          checkSignOptionsStub.restore();
+        }
+      });
+    });
 
-  //       await expect(ecdsa.generateKey({
-  //         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       })).to.eventually.be.fulfilled;
-  //     });
+    describe('sign()', () => {
+      let privateKey: PrivateKeyJwk;
+      let data = new Uint8Array([51, 52, 53]);
 
-  //     it('validates algorithm, named curve, and key usages', async () => {
-  //       // Invalid (algorithm name, named curve, and key usages) result in algorithm name check failing first.
-  //       await expect(ecdsa.generateKey({
-  //         algorithm   : { name: 'foo', namedCurve: 'bar' },
-  //         extractable : false,
-  //         keyOperations   : ['encrypt']
-  //       })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
+      beforeEach(async () => {
+        privateKey = await ecdsa.generateKey({
+          algorithm     : { name: 'ES256K', curve: 'secp256k1' },
+          keyOperations : ['sign', 'verify']
+        });
+      });
 
-  //       // Valid (algorithm name) + Invalid (named curve, key usages) result named curve check failing first.
-  //       await expect(ecdsa.generateKey({
-  //         algorithm   : { name: 'ECDSA', namedCurve: 'bar' },
-  //         extractable : false,
-  //         keyOperations   : ['encrypt']
-  //       })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
+      it(`returns a signature for 'secp256k1' keys`, async () => {
+        const signature = await ecdsa.sign({
+          algorithm : { name: 'ES256K' },
+          key       : privateKey,
+          data      : data
+        });
 
-  //       // Valid (algorithm name, named curve) + Invalid (key usages) result key usages check failing first.
-  //       await expect(ecdsa.generateKey({
-  //         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-  //         extractable : false,
-  //         keyOperations   : ['encrypt']
-  //       })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation');
-  //     });
+        expect(signature).to.be.instanceOf(Uint8Array);
+        expect(signature.byteLength).to.equal(64);
+      });
 
-  //     it(`should throw an error if 'secp256k1' key pair generation fails`, async function() {
-  //       // @ts-ignore because the method is being intentionally stubbed to return null.
-  //       const secp256k1Stub = sinon.stub(Secp256k1, 'generateKeyPair').returns(Promise.resolve(null));
+      it(`throws an error if sign operation fails`, async function() {
+        // @ts-ignore because the method is being intentionally stubbed to return undefined.
+        const checkSignOptionsStub = sinon.stub(ecdsa, 'checkSignOptions').returns(undefined);
 
-  //       try {
-  //         await ecdsa.generateKey({
-  //           algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-  //           extractable : true,
-  //           keyOperations   : ['sign']
-  //         });
-  //         secp256k1Stub.restore();
-  //         expect.fail('Expect generateKey() to throw an error');
-  //       } catch (error) {
-  //         secp256k1Stub.restore();
-  //         expect(error).to.be.an('error');
-  //         expect((error as Error).message).to.equal('Operation failed to generate key pair.');
-  //       }
-  //     });
-  //   });
+        try {
+          // @ts-expect-error because no sign operations are defined.
+          await ecdsa.sign({ algorithm: {}, key: {}, data: undefined });
+          expect.fail('Expected ecdsa.sign() to throw an error');
+        } catch (error) {
+          expect(error).to.be.an('error');
+          expect((error as Error).message).to.include('Operation failed: sign');
+        } finally {
+          checkSignOptionsStub.restore();
+        }
+      });
+    });
 
-  //   describe('sign()', () => {
+    describe('verify()', () => {
+      let privateKey: PrivateKeyJwk;
+      let publicKey: PublicKeyJwk;
+      let signature: Uint8Array;
+      let data = new Uint8Array([51, 52, 53]);
 
-  //     let keyPair: Web5Crypto.CryptoKeyPair;
-  //     let data = new Uint8Array([51, 52, 53]);
+      beforeEach(async () => {
+        privateKey = await ecdsa.generateKey({
+          algorithm     : { name: 'ES256K', curve: 'secp256k1' },
+          keyOperations : ['sign']
+        });
 
-  //     beforeEach(async () => {
-  //       keyPair = await ecdsa.generateKey({
-  //         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
-  //     });
+        publicKey = await Secp256k1.computePublicKey({ privateKey });
 
-  //     it(`returns a signature for 'secp256k1' keys`, async () => {
-  //       const signature = await ecdsa.sign({
-  //         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
-  //         key       : keyPair.privateKey,
-  //         data      : data
-  //       });
+        signature = await ecdsa.sign({
+          algorithm : { name: 'ES256K' },
+          key       : privateKey,
+          data      : data
+        });
+      });
 
-  //       expect(signature).to.be.instanceOf(Uint8Array);
-  //       expect(signature.byteLength).to.equal(64);
-  //     });
+      it(`returns a boolean verification result`, async () => {
+        const isValid = await ecdsa.verify({
+          algorithm : { name: 'ES256K' },
+          key       : publicKey,
+          signature : signature,
+          data      : data
+        });
 
-  //     it('validates algorithm name and key algorithm name', async () => {
-  //       // Invalid (algorithm name, hash algorithm, private key, and data) result in algorithm name check failing first.
-  //       await expect(ecdsa.sign({
-  //         algorithm : { name: 'Nope', hash: 'nope' },
-  //         // @ts-expect-error because invalid key intentionally specified.
-  //         key       : { foo: 'bar '},
-  //         // @ts-expect-error because invalid data type intentionally specified.
-  //         data      : 'baz'
-  //       })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
+        expect(isValid).to.be.a('boolean');
+      });
 
-  //       // Valid (algorithm name) + Invalid (hash algorithm, private key, and data) result in hash algorithm check failing first.
-  //       await expect(ecdsa.sign({
-  //         algorithm : { name: 'ECDSA', hash: 'nope' },
-  //         // @ts-expect-error because invalid key intentionally specified.
-  //         key       : { foo: 'bar '},
-  //         // @ts-expect-error because invalid data type intentionally specified.
-  //         data      : 'baz'
-  //       })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
+      it(`validates 'secp256k1' signatures`, async () => {
+        const isValid = await ecdsa.verify({
+          algorithm : { name: 'ES256K' },
+          key       : publicKey,
+          signature : signature,
+          data      : data
+        });
 
-  //       // Valid (algorithm name, hash algorithm) + Invalid (private key, and data) result in key algorithm name check failing first.
-  //       await expect(ecdsa.sign({
-  //         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
-  //         // @ts-expect-error because invalid key intentionally specified.
-  //         key       : { algorithm: { name: 'bar '} },
-  //         // @ts-expect-error because invalid data type intentionally specified.
-  //         data      : 'baz'
-  //       })).to.eventually.be.rejectedWith(InvalidAccessError, 'does not match');
-  //     });
+        expect(isValid).to.be.true;
+      });
 
-  //     it('validates that key is not a public key', async () => {
-  //       // Valid (algorithm name, hash algorithm, data) + Invalid (private key) result in key type check failing first.
-  //       await expect(ecdsa.sign({
-  //         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
-  //         key       : keyPair.publicKey,
-  //         data      : data
-  //       })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation is not valid');
-  //     });
+      it(`throws an error if verify operation fails`, async function() {
+        // @ts-ignore because the method is being intentionally stubbed to return undefined.
+        const checkVerifyOptionsStub = sinon.stub(ecdsa, 'checkVerifyOptions').returns(undefined);
 
-  //     it(`validates that key usage is 'sign'`, async () => {
-  //       // Manually specify the private key usages to exclude the 'sign' operation.
-  //       keyPair.privateKey.usages = ['verify'];
-
-  //       await expect(ecdsa.sign({
-  //         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
-  //         key       : keyPair.privateKey,
-  //         data      : data
-  //       })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
-  //     });
-
-  //     it('throws an error when key is an unsupported curve', async () => {
-  //       // Manually change the key's named curve to trigger an error.
-  //       // @ts-expect-error because TS can't determine the type of key.
-  //       keyPair.privateKey.algorithm.namedCurve = 'nope';
-
-  //       await expect(ecdsa.sign({
-  //         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
-  //         key       : keyPair.privateKey,
-  //         data      : data
-  //       })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
-  //     });
-  //   });
-
-  //   describe('verify()', () => {
-  //     let keyPair: Web5Crypto.CryptoKeyPair;
-  //     let signature: Uint8Array;
-  //     let data = new Uint8Array([51, 52, 53]);
-
-  //     beforeEach(async () => {
-  //       keyPair = await ecdsa.generateKey({
-  //         algorithm   : { name: 'ECDSA', namedCurve: 'secp256k1' },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
-
-  //       signature = await ecdsa.sign({
-  //         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
-  //         key       : keyPair.privateKey,
-  //         data      : data
-  //       });
-  //     });
-
-  //     it(`returns a verification result for 'secp256k1' keys`, async () => {
-  //       const isValid = await ecdsa.verify({
-  //         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
-  //         key       : keyPair.publicKey,
-  //         signature : signature,
-  //         data      : data
-  //       });
-
-  //       expect(isValid).to.be.a('boolean');
-  //       expect(isValid).to.be.true;
-  //     });
-
-  //     it('validates algorithm name and key algorithm name', async () => {
-  //       // Invalid (algorithm name, hash algorithm, public key, signature, and data) result in algorithm name check failing first.
-  //       await expect(ecdsa.verify({
-  //         algorithm : { name: 'Nope', hash: 'nope' },
-  //         // @ts-expect-error because invalid key intentionally specified.
-  //         key       : { foo: 'bar '},
-  //         // @ts-expect-error because invalid signature intentionally specified.
-  //         signature : 57,
-  //         // @ts-expect-error because invalid data type intentionally specified.
-  //         data      : 'baz'
-  //       })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
-
-  //       // Valid (algorithm name) + Invalid (hash algorithm, public key, signature and data) result in hash algorithm check failing first.
-  //       await expect(ecdsa.verify({
-  //         algorithm : { name: 'ECDSA', hash: 'nope' },
-  //         // @ts-expect-error because invalid key intentionally specified.
-  //         key       : { foo: 'bar '},
-  //         // @ts-expect-error because invalid signature intentionally specified.
-  //         signature : 57,
-  //         // @ts-expect-error because invalid data type intentionally specified.
-  //         data      : 'baz'
-  //       })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
-
-  //       // Valid (algorithm name, hash algorithm) + Invalid (public key, signature, and data) result in key algorithm name check failing first.
-  //       await expect(ecdsa.verify({
-  //         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
-  //         // @ts-expect-error because invalid key intentionally specified.
-  //         key       : { algorithm: { name: 'bar '} },
-  //         // @ts-expect-error because invalid signature intentionally specified.
-  //         signature : 57,
-  //         // @ts-expect-error because invalid data type intentionally specified.
-  //         data      : 'baz'
-  //       })).to.eventually.be.rejectedWith(InvalidAccessError, 'does not match');
-  //     });
-
-  //     it('validates that key is not a private key', async () => {
-  //       // Valid (algorithm name, hash algorithm, signature, data) + Invalid (public key) result in key type check failing first.
-  //       await expect(ecdsa.verify({
-  //         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
-  //         key       : keyPair.privateKey,
-  //         signature : signature,
-  //         data      : data
-  //       })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation is not valid');
-  //     });
-
-  //     it(`validates that key usage is 'verify'`, async () => {
-  //       // Manually specify the private key usages to exclude the 'verify' operation.
-  //       keyPair.publicKey.usages = ['sign'];
-
-  //       await expect(ecdsa.verify({
-  //         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
-  //         key       : keyPair.publicKey,
-  //         signature : signature,
-  //         data      : data
-  //       })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
-  //     });
-
-  //     it('throws an error when key is an unsupported curve', async () => {
-  //       // Manually change the key's named curve to trigger an error.
-  //       // @ts-expect-error because TS can't determine the type of key.
-  //       keyPair.publicKey.algorithm.namedCurve = 'nope';
-
-  //       await expect(ecdsa.verify({
-  //         algorithm : { name: 'ECDSA', hash: 'SHA-256' },
-  //         key       : keyPair.publicKey,
-  //         signature : signature,
-  //         data      : data
-  //       })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
-  //     });
-  //   });
-  // });
+        try {
+          // @ts-expect-error because no verify operations are defined.
+          await ecdsa.verify({ algorithm: {}, key: {}, data: undefined, signature: undefined });
+          expect.fail('Expected ecdsa.verify() to throw an error');
+        } catch (error) {
+          expect(error).to.be.an('error');
+          expect((error as Error).message).to.include('Operation failed: verify');
+        } finally {
+          checkVerifyOptionsStub.restore();
+        }
+      });
+    });
+  });
 
   // describe('EdDsaAlgorithm', () => {
   //   let eddsa: EdDsaAlgorithm;

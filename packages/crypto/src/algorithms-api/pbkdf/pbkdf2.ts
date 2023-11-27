@@ -9,9 +9,7 @@ import { checkRequiredProperty, checkValidProperty } from '../../utils.js';
 
 export abstract class BasePbkdf2Algorithm extends CryptoAlgorithm {
 
-  public readonly name: string = 'PBKDF2';
-
-  public readonly abstract hashAlgorithms: string[];
+  public readonly abstract hashAlgorithms: ReadonlyArray<string>;
 
   public readonly keyOperations: JwkOperation[] = ['deriveBits', 'deriveKey'];
 
@@ -51,22 +49,22 @@ export abstract class BasePbkdf2Algorithm extends CryptoAlgorithm {
   }
 
   public override async decrypt(): Promise<Uint8Array> {
-    throw new InvalidAccessError(`Requested operation 'decrypt' is not valid for ${this.name} keys.`);
+    throw new InvalidAccessError(`Requested operation 'decrypt' is not valid for '${this.names.join(', ')}' keys.`);
   }
 
   public override async encrypt(): Promise<Uint8Array> {
-    throw new InvalidAccessError(`Requested operation 'encrypt' is not valid for ${this.name} keys.`);
+    throw new InvalidAccessError(`Requested operation 'encrypt' is not valid for '${this.names.join(', ')}' keys.`);
   }
 
   public override async generateKey(): Promise<PrivateKeyJwk> {
-    throw new InvalidAccessError(`Requested operation 'generateKey' is not valid for ${this.name} keys.`);
+    throw new InvalidAccessError(`Requested operation 'generateKey' is not valid for '${this.names.join(', ')}' keys.`);
   }
 
   public override async sign(): Promise<Uint8Array> {
-    throw new InvalidAccessError(`Requested operation 'sign' is not valid for ${this.name} keys.`);
+    throw new InvalidAccessError(`Requested operation 'sign' is not valid for '${this.names.join(', ')}' keys.`);
   }
 
   public override async verify(): Promise<boolean> {
-    throw new InvalidAccessError(`Requested operation 'verify' is not valid for ${this.name} keys.`);
+    throw new InvalidAccessError(`Requested operation 'verify' is not valid for '${this.names.join(', ')}' keys.`);
   }
 }

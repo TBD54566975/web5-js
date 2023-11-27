@@ -82,11 +82,12 @@ describe('Secp256k1', () => {
     it('returns a public key in JWK format', async () => {
       publicKey = await Secp256k1.computePublicKey({ privateKey });
 
-      expect(publicKey).to.have.property('kty', 'EC');
       expect(publicKey).to.have.property('crv', 'secp256k1');
+      expect(publicKey).to.not.have.property('d');
+      expect(publicKey).to.have.property('kid');
+      expect(publicKey).to.have.property('kty', 'EC');
       expect(publicKey).to.have.property('x');
       expect(publicKey).to.have.property('y');
-      expect(publicKey).to.not.have.property('d');
     });
   });
 
