@@ -1,4 +1,3 @@
-import * as sinon from 'sinon';
 import chai, { expect } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
@@ -12,20 +11,19 @@ import type {
   JwkParamsEcPublic,
   JwkParamsEcPrivate,
   JwkParamsOkpPublic,
+  JwkParamsOctPrivate,
 } from '../src/jose.js';
 
-import { Jose } from '../src/jose.js';
 import {
-  CryptoKey,
   OperationError,
   CryptoAlgorithm,
-  // BaseAesAlgorithm,
+  BaseAesAlgorithm,
   BaseEcdhAlgorithm,
   NotSupportedError,
   BaseEcdsaAlgorithm,
   BaseEdDsaAlgorithm,
   InvalidAccessError,
-  // BaseAesCtrAlgorithm,
+  BaseAesCtrAlgorithm,
   BasePbkdf2Algorithm,
   BaseEllipticCurveAlgorithm,
 } from '../src/algorithms-api/index.js';
@@ -36,7 +34,7 @@ describe('Algorithms API', () => {
   describe('CryptoAlgorithm', () => {
 
     class TestCryptoAlgorithm extends CryptoAlgorithm {
-      public names = ['TestAlgorithm' as const];
+      public names = ['TestAlgorithm'] as const;
       public keyOperations: JwkOperation[] = ['decrypt', 'deriveBits', 'deriveKey', 'encrypt', 'sign', 'unwrapKey', 'verify', 'wrapKey'];
       public async decrypt(): Promise<Uint8Array> {
         return null as any;
@@ -180,260 +178,328 @@ describe('Algorithms API', () => {
     });
   });
 
-  // describe.skip('BaseAesAlgorithm', () => {
-  //   class TestAesAlgorithm extends BaseAesAlgorithm {
-  //     public name = 'TestAlgorithm';
-  //     public keyOperations: JwkOperation[] = ['decrypt', 'encrypt'];
-  //     public async decrypt(): Promise<Uint8Array> {
-  //       return null as any;
-  //     }
-  //     public async encrypt(): Promise<Uint8Array> {
-  //       return null as any;
-  //     }
-  //     public async generateKey(): Promise<Web5Crypto.CryptoKey> {
-  //       return null as any;
-  //     }
-  //   }
+  describe('BaseAesAlgorithm', () => {
+    class TestAesAlgorithm extends BaseAesAlgorithm {
+      public names = ['TestAlgorithm'] as const;
+      public keyOperations: JwkOperation[] = ['decrypt', 'encrypt'];
+      public async decrypt(): Promise<Uint8Array> {
+        return null as any;
+      }
+      public async encrypt(): Promise<Uint8Array> {
+        return null as any;
+      }
+      public async generateKey(): Promise<PrivateKeyJwk> {
+        return null as any;
+      }
+    }
 
-  //   describe('checkGenerateKeyOptions()', () => {
-  //     let alg: TestAesAlgorithm;
+    let alg: TestAesAlgorithm;
 
-  //     beforeEach(() => {
-  //       alg = TestAesAlgorithm.create();
-  //     });
+    beforeEach(() => {
+      alg = TestAesAlgorithm.create();
+    });
 
-  //     it('does not throw with supported algorithm, length, and key operation', () => {
-  //       expect(() => alg.checkGenerateKeyOptions({
-  //         algorithm : { name: 'TestAlgorithm', length: 128 },
-  //         keyOperations : ['encrypt']
-  //       })).to.not.throw();
-  //     });
+    describe('checkGenerateKeyOptions()', () => {
+      it('does not throw with supported algorithm, length, and key operation', () => {
+        expect(() => alg.checkGenerateKeyOptions({
+          algorithm     : { name: 'TestAlgorithm', length: 128 },
+          keyOperations : ['encrypt']
+        })).to.not.throw();
+      });
 
-  //     it('throws an error when unsupported algorithm specified', () => {
-  //       expect(() => alg.checkGenerateKeyOptions({
-  //         algorithm : { name: 'ECDSA', length: 128 },
-  //         keyOperations : ['encrypt']
-  //       })).to.throw(NotSupportedError, 'Algorithm not supported');
-  //     });
+      it('throws an error when unsupported algorithm specified', () => {
+        expect(() => alg.checkGenerateKeyOptions({
+          algorithm     : { name: 'ECDSA', length: 128 },
+          keyOperations : ['encrypt']
+        })).to.throw(NotSupportedError, 'Algorithm not supported');
+      });
 
-  //     it('throws an error when the length property is missing', () => {
-  //       expect(() => alg.checkGenerateKeyOptions({
-  //         // @ts-expect-error because length was intentionally omitted.
-  //         algorithm : { name: 'TestAlgorithm' },
-  //         keyOperations : ['encrypt']
-  //       })).to.throw(TypeError, 'Required parameter missing');
-  //     });
+      it('throws an error when the length property is missing', () => {
+        expect(() => alg.checkGenerateKeyOptions({
+          // @ts-expect-error because length was intentionally omitted.
+          algorithm     : { name: 'TestAlgorithm' },
+          keyOperations : ['encrypt']
+        })).to.throw(TypeError, 'Required parameter missing');
+      });
 
-  //     it('throws an error when the specified length is not a Number', () => {
-  //       expect(() => alg.checkGenerateKeyOptions({
-  //         // @ts-expect-error because length is intentionally set as a string instead of number.
-  //         algorithm : { name: 'TestAlgorithm', length: '256' },
-  //         keyOperations : ['encrypt']
-  //       })).to.throw(TypeError, `is not of type: Number`);
-  //     });
+      it('throws an error when the specified length is not a Number', () => {
+        expect(() => alg.checkGenerateKeyOptions({
+          // @ts-expect-error because length is intentionally set as a string instead of number.
+          algorithm     : { name: 'TestAlgorithm', length: '256' },
+          keyOperations : ['encrypt']
+        })).to.throw(TypeError, `is not of type: Number`);
+      });
 
-  //     it('throws an error when the specified length is not valid', () => {
-  //       [64, 96, 160, 224, 512].forEach((length) => {
-  //         expect(() => alg.checkGenerateKeyOptions({
-  //           algorithm : { name: 'TestAlgorithm', length },
-  //           keyOperations : ['encrypt']
-  //         })).to.throw(OperationError, `Algorithm 'length' must be 128, 192, or 256`);
-  //       });
-  //     });
+      it('throws an error when the specified length is not valid', () => {
+        [64, 96, 160, 224, 512].forEach((length) => {
+          expect(() => alg.checkGenerateKeyOptions({
+            algorithm     : { name: 'TestAlgorithm', length },
+            keyOperations : ['encrypt']
+          })).to.throw(OperationError, `Algorithm 'length' must be 128, 192, or 256`);
+        });
+      });
 
-  //     it('throws an error when the requested operation is not valid', () => {
-  //       ['sign', 'verify'].forEach((operation) => {
-  //         expect(() => alg.checkGenerateKeyOptions({
-  //           algorithm : { name: 'TestAlgorithm', length: 128 },
-  //           keyOperations : [operation as JwkOperation]
-  //         })).to.throw(InvalidAccessError, 'Requested operation');
-  //       });
-  //     });
-  //   });
+      it('throws an error when the requested operation is not valid', () => {
+        ['sign', 'verify'].forEach((operation) => {
+          expect(() => alg.checkGenerateKeyOptions({
+            algorithm     : { name: 'TestAlgorithm', length: 128 },
+            keyOperations : [operation as JwkOperation]
+          })).to.throw(InvalidAccessError, 'Requested operation');
+        });
+      });
+    });
 
-  //   describe('deriveBits()', () => {
-  //     it(`throws an error because 'deriveBits' operation is valid for AES-CTR keys`, async () => {
-  //       const alg = TestAesAlgorithm.create();
-  //       await expect(alg.deriveBits()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
-  //     });
-  //   });
+    describe('checkSecretKey()', () => {
+      let dataEncryptionKey: PrivateKeyJwk;
 
-  //   describe('sign()', () => {
-  //     it(`throws an error because 'sign' operation is valid for AES-CTR keys`, async () => {
-  //       const alg = TestAesAlgorithm.create();
-  //       await expect(alg.sign()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
-  //     });
-  //   });
+      beforeEach(() => {
+        dataEncryptionKey = { kty: 'oct', k: Convert.uint8Array(new Uint8Array(16)).toBase64Url() };
+      });
 
-  //   describe('verify()', () => {
-  //     it(`throws an error because 'verify' operation is valid for AES-CTR keys`, async () => {
-  //       const alg = TestAesAlgorithm.create();
-  //       await expect(alg.verify()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
-  //     });
-  //   });
+      it('does not throw with a valid secret key', () => {
+        const key: PrivateKeyJwk = {
+          kty : 'oct',
+          k   : Convert.uint8Array(new Uint8Array(16)).toBase64Url()
+        };
+        expect(() => alg.checkSecretKey({ key })).to.not.throw();
+      });
 
-  //   describe('BaseAesCtrAlgorithm', () => {
-  //     let alg: BaseAesCtrAlgorithm;
+      it('throws an error when the key is not a JWK', () => {
+        const key = 'foo' as any; // Intentionally incorrect type.
+        expect(() => alg.checkSecretKey({ key })).to.throw(TypeError, 'is not a JSON Web Key');
+      });
 
-  //     before(() => {
-  //       alg = Reflect.construct(BaseAesCtrAlgorithm, []) as BaseAesCtrAlgorithm;
-  //     });
+      it('throws an error if the key property is missing', () => {
+        // @ts-expect-error because key property was intentionally omitted.
+        expect(() => alg.checkSecretKey({})).to.throw(TypeError, `Required parameter missing: 'key'`);
+      });
 
-  //     let dataEncryptionKey: Web5Crypto.CryptoKey;
+      it('throws an error if the given key is not valid', () => {
+        const { kty, ...keyMissingKeyType } = dataEncryptionKey as JwkParamsOctPrivate;
+        expect(() => alg.checkSecretKey({
+          // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
+          key: keyMissingKeyType
+        })).to.throw(TypeError, 'Object is not a JSON Web Key');
 
-  //     beforeEach(() => {
-  //       dataEncryptionKey = new CryptoKey({ name: 'AES-CTR', length: 128 }, false, new Uint8Array(32), 'secret', ['encrypt', 'decrypt']);
-  //     });
+        const { k, ...keyMissingK } = dataEncryptionKey as JwkParamsOctPrivate;
+        expect(() => alg.checkSecretKey({
+          // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
+          key: keyMissingK
+        })).to.throw(InvalidAccessError, 'Requested operation is only valid for oct private keys');
+      });
 
-  //     describe('checkAlgorithmOptions()', () => {
-  //       it('does not throw with matching algorithm name and valid counter and length', () => {
-  //         expect(() => alg.checkAlgorithmOptions({
-  //           algorithm: {
-  //             name    : 'AES-CTR',
-  //             counter : new Uint8Array(16),
-  //             length  : 128
-  //           },
-  //           key: dataEncryptionKey
-  //         })).to.not.throw();
-  //       });
+      it('if specified, throws an error if the algorithm of the key does not match', () => {
+        // @ts-expect-error because alg property is intentionally set to an invalid value.
+        const key: PrivateKeyJwk = { ...dataEncryptionKey, alg: 'invalid-alg' };
+        expect(() => alg.checkSecretKey({
+          key
+        })).to.throw(InvalidAccessError, 'does not match');
+      });
 
-  //       it('throws an error when unsupported algorithm specified', () => {
-  //         expect(() => alg.checkAlgorithmOptions({
-  //           algorithm: {
-  //             name    : 'invalid-name',
-  //             counter : new Uint8Array(16),
-  //             length  : 128
-  //           },
-  //           key: dataEncryptionKey
-  //         })).to.throw(NotSupportedError, 'Algorithm not supported');
-  //       });
+      it('throws an error if an EC private key is specified as the key', () => {
+        const secp256k1PrivateKey: PrivateKeyJwk = { kty: 'EC', crv: 'secp256k1', d: '', x: '', y: '' };
+        expect(() => alg.checkSecretKey({
+          key: secp256k1PrivateKey
+        })).to.throw(InvalidAccessError, 'operation is only valid');
+      });
 
-  //       it('throws an error if the counter property is missing', () => {
-  //       // @ts-expect-error because `counter` property is intentionally omitted.
-  //         expect(() => alg.checkAlgorithmOptions({ algorithm: {
-  //           name   : 'AES-CTR',
-  //           length : 128
-  //         }})).to.throw(TypeError, 'Required parameter missing');
-  //       });
+      it('throws an error if a public key is specified as the key', () => {
+        const secp256k1PublicKey: PublicKeyJwk = { kty: 'EC', crv: 'secp256k1', x: '', y: '' };
+        expect(() => alg.checkSecretKey({
+          // @ts-expect-error because a public key is being intentionally specified as the key.
+          key: secp256k1PublicKey
+        })).to.throw(InvalidAccessError, 'operation is only valid');
+      });
+    });
 
-  //       it('accepts counter as Uint8Array', () => {
-  //         const data = new Uint8Array(16);
-  //         const algorithm: { name?: string, counter?: any, length?: number } = {};
-  //         algorithm.name = 'AES-CTR';
-  //         algorithm.length = 128;
+    describe('deriveBits()', () => {
+      it(`throws an error because 'deriveBits' operation is valid for AES-CTR keys`, async () => {
+        const alg = TestAesAlgorithm.create();
+        await expect(alg.deriveBits()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
+      });
+    });
 
-  //         // TypedArray - Uint8Array
-  //         algorithm.counter = data;
-  //         expect(() => alg.checkAlgorithmOptions({
-  //           algorithm : algorithm as Web5Crypto.AesCtrOptions,
-  //           key       : dataEncryptionKey
-  //         })).to.not.throw();
-  //       });
+    describe('sign()', () => {
+      it(`throws an error because 'sign' operation is valid for AES-CTR keys`, async () => {
+        await expect(alg.sign()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
+      });
+    });
 
-  //       it('throws error if counter is not acceptable data type', () => {
-  //         expect(() => alg.checkAlgorithmOptions({
-  //           algorithm: {
-  //             name    : 'AES-CTR',
-  //             // @ts-expect-error because counter is being intentionally set to the wrong data type to trigger an error.
-  //             counter : new Set([...Array(16).keys()].map(n => n.toString(16))),
-  //             length  : 128
-  //           },
-  //           key: dataEncryptionKey
-  //         })).to.throw(TypeError, 'is not of type');
-  //       });
+    describe('verify()', () => {
+      it(`throws an error because 'verify' operation is valid for AES-CTR keys`, async () => {
+        await expect(alg.verify()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
+      });
+    });
+  });
 
-  //       it('throws error if initial value of the counter block is not 16 bytes', () => {
-  //         expect(() => alg.checkAlgorithmOptions({
-  //           algorithm: {
-  //             name    : 'AES-CTR',
-  //             counter : new Uint8Array(128),
-  //             length  : 128
-  //           },
-  //           key: dataEncryptionKey
-  //         })).to.throw(OperationError, 'must have length');
-  //       });
+  describe('BaseAesCtrAlgorithm', () => {
+    let alg: BaseAesCtrAlgorithm;
 
-  //       it('throws an error if the length property is missing', () => {
-  //         // @ts-expect-error because lengthy property was intentionally omitted.
-  //         expect(() => alg.checkAlgorithmOptions({ algorithm: {
-  //           name    : 'AES-CTR',
-  //           counter : new Uint8Array(16)
-  //         }})).to.throw(TypeError, `Required parameter missing: 'length'`);
-  //       });
+    before(() => {
+      alg = Reflect.construct(BaseAesCtrAlgorithm, []) as BaseAesCtrAlgorithm;
+      // @ts-expect-error because the `names` property is readonly.
+      alg.names = ['A128CTR', 'A192CTR', 'A256CTR'] as const;
+    });
 
-  //       it('throws an error if length is not a Number', () => {
-  //         expect(() => alg.checkAlgorithmOptions({ algorithm: {
-  //           name    : 'AES-CTR',
-  //           counter : new Uint8Array(16),
-  //           // @ts-expect-error because length is being intentionally specified as a string instead of a number.
-  //           length  : '128'
-  //         }})).to.throw(TypeError, 'is not of type');
-  //       });
+    describe('checkAlgorithmOptions()', () => {
+      it('does not throw with matching algorithm name and valid counter and length', () => {
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: {
+            name    : 'A128CTR',
+            counter : new Uint8Array(16),
+            length  : 128
+          }
+        })).to.not.throw();
+      });
 
-  //       it('throws an error if length is not between 1 and 128', () => {
-  //         expect(() => alg.checkAlgorithmOptions({
-  //           algorithm: {
-  //             name    : 'AES-CTR',
-  //             counter : new Uint8Array(16),
-  //             length  : 0
-  //           },
-  //           key: dataEncryptionKey
-  //         })).to.throw(OperationError, 'should be in the range');
+      it('throws an error when unsupported algorithm specified', () => {
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: {
+            name    : 'invalid-name',
+            counter : new Uint8Array(16),
+            length  : 128
+          }
+        })).to.throw(NotSupportedError, 'Algorithm not supported');
+      });
 
-  //         expect(() => alg.checkAlgorithmOptions({
-  //           algorithm: {
-  //             name    : 'AES-CTR',
-  //             counter : new Uint8Array(16),
-  //             length  : 256
-  //           },
-  //           key: dataEncryptionKey
-  //         })).to.throw(OperationError, 'should be in the range');
-  //       });
+      it('throws an error if the counter property is missing', () => {
+        // @ts-expect-error because `counter` property is intentionally omitted.
+        expect(() => alg.checkAlgorithmOptions({ algorithm: {
+          name   : 'A128CTR',
+          length : 128
+        }})).to.throw(TypeError, 'Required parameter missing');
+      });
 
-  //       it('throws an error if the key property is missing', () => {
-  //         // @ts-expect-error because key property was intentionally omitted.
-  //         expect(() => alg.checkAlgorithmOptions({ algorithm: {
-  //           name    : 'AES-CTR',
-  //           counter : new Uint8Array(16),
-  //           length  : 64
-  //         }})).to.throw(TypeError, `Required parameter missing: 'key'`);
-  //       });
+      it('accepts counter as Uint8Array', () => {
+        const data = new Uint8Array(16);
+        const algorithm: { name?: string, counter?: any, length?: number } = {};
+        algorithm.name = 'A128CTR';
+        algorithm.length = 128;
 
-  //       it('throws an error if the given key is not valid', () => {
-  //         // @ts-ignore-error because a required property is being intentionally deleted to trigger the check to throw.
-  //         delete dataEncryptionKey.extractable;
-  //         expect(() => alg.checkAlgorithmOptions({
-  //           algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 64 },
-  //           key       : dataEncryptionKey
-  //         })).to.throw(TypeError, 'Object is not a CryptoKey');
-  //       });
+        // TypedArray - Uint8Array
+        algorithm.counter = data;
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: algorithm as Web5Crypto.AesCtrOptions,
+        })).to.not.throw();
+      });
 
-  //       it('throws an error if the algorithm of the key does not match', () => {
-  //         const dataEncryptionKey = new CryptoKey({ name: 'non-existent-algorithm', length: 128 }, false, new Uint8Array(32), 'secret', ['encrypt', 'decrypt']);
-  //         expect(() => alg.checkAlgorithmOptions({
-  //           algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 64 },
-  //           key       : dataEncryptionKey
-  //         })).to.throw(InvalidAccessError, 'does not match');
-  //       });
+      it('throws error if counter is not acceptable data type', () => {
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: {
+            name    : 'A128CTR',
+            // @ts-expect-error because counter is being intentionally set to the wrong data type to trigger an error.
+            counter : new Set([...Array(16).keys()].map(n => n.toString(16))),
+            length  : 128
+          },
+        })).to.throw(TypeError, 'is not of type');
+      });
 
-  //       it('throws an error if a private key is specified as the key', () => {
-  //         const dataEncryptionKey = new CryptoKey({ name: 'AES-CTR', length: 128 }, false, new Uint8Array(32), 'private', ['encrypt', 'decrypt']);
-  //         expect(() => alg.checkAlgorithmOptions({
-  //           algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 64 },
-  //           key       : dataEncryptionKey
-  //         })).to.throw(InvalidAccessError, 'Requested operation is not valid');
-  //       });
+      it('throws error if initial value of the counter block is not 16 bytes', () => {
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: {
+            name    : 'A128CTR',
+            counter : new Uint8Array(128),
+            length  : 128
+          }
+        })).to.throw(OperationError, 'must have length');
+      });
 
-  //       it('throws an error if a public key is specified as the key', () => {
-  //         const dataEncryptionKey = new CryptoKey({ name: 'AES-CTR', length: 128 }, false, new Uint8Array(32), 'public', ['encrypt', 'decrypt']);
-  //         expect(() => alg.checkAlgorithmOptions({
-  //           algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 64 },
-  //           key       : dataEncryptionKey
-  //         })).to.throw(InvalidAccessError, 'Requested operation is not valid');
-  //       });
-  //     });
-  //   });
-  // });
+      it('throws an error if the length property is missing', () => {
+        // @ts-expect-error because lengthy property was intentionally omitted.
+        expect(() => alg.checkAlgorithmOptions({ algorithm: {
+          name    : 'A128CTR',
+          counter : new Uint8Array(16)
+        }})).to.throw(TypeError, `Required parameter missing: 'length'`);
+      });
+
+      it('throws an error if length is not a Number', () => {
+        expect(() => alg.checkAlgorithmOptions({ algorithm: {
+          name    : 'A128CTR',
+          counter : new Uint8Array(16),
+          // @ts-expect-error because length is being intentionally specified as a string instead of a number.
+          length  : '128'
+        }})).to.throw(TypeError, 'is not of type');
+      });
+
+      it('throws an error if length is not between 1 and 128', () => {
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: {
+            name    : 'A128CTR',
+            counter : new Uint8Array(16),
+            length  : 0
+          }
+        })).to.throw(OperationError, 'should be in the range');
+
+        expect(() => alg.checkAlgorithmOptions({
+          algorithm: {
+            name    : 'A128CTR',
+            counter : new Uint8Array(16),
+            length  : 256
+          }
+        })).to.throw(OperationError, 'should be in the range');
+      });
+    });
+
+    describe('checkDecryptOptions()', () => {
+      let algorithm: Web5Crypto.AesCtrOptions;
+      let dataEncryptionKey: PrivateKeyJwk;
+
+      beforeEach(() => {
+        algorithm = { name: 'A128CTR', counter: new Uint8Array(16), length: 128 };
+        dataEncryptionKey = { kty: 'oct', k: Convert.uint8Array(new Uint8Array(16)).toBase64Url() };
+      });
+
+      it('validates that data is a Uint8Array', async () => {
+        expect(() => alg.checkDecryptOptions({
+          algorithm,
+          key  : dataEncryptionKey,
+          // @ts-expect-error because invalid data type intentionally specified.
+          data : 'baz'
+        })).to.throw(TypeError, `data must be of type Uint8Array`);
+      });
+
+      it(`if specified, validates that 'key_opts' includes 'decrypt'`, async () => {
+        // Exclude the 'decrypt' operation.
+        dataEncryptionKey.key_ops = ['encrypt'];
+
+        expect(() => alg.checkDecryptOptions({
+          algorithm,
+          key  : dataEncryptionKey,
+          data : new Uint8Array([1, 2, 3, 4])
+        })).to.throw(InvalidAccessError, 'is not valid for the provided key');
+      });
+    });
+
+    describe('checkEncryptOptions()', () => {
+      let algorithm: Web5Crypto.AesCtrOptions;
+      let dataEncryptionKey: PrivateKeyJwk;
+
+      beforeEach(() => {
+        algorithm = { name: 'A128CTR', counter: new Uint8Array(16), length: 128 };
+        dataEncryptionKey = { kty: 'oct', k: Convert.uint8Array(new Uint8Array(16)).toBase64Url() };
+      });
+
+      it('validates that data is a Uint8Array', async () => {
+        expect(() => alg.checkEncryptOptions({
+          algorithm,
+          key  : dataEncryptionKey,
+          // @ts-expect-error because invalid data type intentionally specified.
+          data : 'baz'
+        })).to.throw(TypeError, `data must be of type Uint8Array`);
+      });
+
+      it(`if specified, validates that 'key_opts' includes 'encrypt'`, async () => {
+        // Exclude the 'encrypt' operation.
+        dataEncryptionKey.key_ops = ['decrypt'];
+
+        expect(() => alg.checkEncryptOptions({
+          algorithm,
+          key  : dataEncryptionKey,
+          data : new Uint8Array([1, 2, 3, 4])
+        })).to.throw(InvalidAccessError, 'is not valid for the provided key');
+      });
+    });
+  });
 
   describe('BaseEllipticCurveAlgorithm', () => {
     class TestEllipticCurveAlgorithm extends BaseEllipticCurveAlgorithm {
@@ -714,14 +780,14 @@ describe('Algorithms API', () => {
     });
 
     describe('decrypt()', () => {
-      it(`throws an error because 'decrypt' operation is valid for AES-CTR keys`, async () => {
+      it(`throws an error because 'decrypt' operation is valid for Elliptic Curve algorithms`, async () => {
         const alg = TestEllipticCurveAlgorithm.create();
         await expect(alg.decrypt()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
       });
     });
 
     describe('encrypt()', () => {
-      it(`throws an error because 'encrypt' operation is valid for AES-CTR keys`, async () => {
+      it(`throws an error because 'encrypt' operation is valid for Elliptic Curve algorithms`, async () => {
         const alg = TestEllipticCurveAlgorithm.create();
         await expect(alg.encrypt()).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for');
       });
@@ -734,7 +800,7 @@ describe('Algorithms API', () => {
     before(() => {
       alg = Reflect.construct(BaseEcdhAlgorithm, []) as BaseEcdhAlgorithm;
       // @ts-expect-error because the `names` property is readonly.
-      alg.names = ['ECDH' as const];
+      alg.names = ['ECDH'] as const;
     });
 
     describe('checkDeriveBitsOptions()', () => {
@@ -945,14 +1011,14 @@ describe('Algorithms API', () => {
     });
 
     describe('sign()', () => {
-      it(`throws an error because 'sign' operation is not valid for ECDH keys`, async () => {
-        await expect(alg.sign()).to.eventually.be.rejectedWith(InvalidAccessError, `is not valid for 'ECDH'`);
+      it(`throws an error because 'sign' operation is not valid for ECDH`, async () => {
+        await expect(alg.sign()).to.eventually.be.rejectedWith(InvalidAccessError, `is not valid for ECDH`);
       });
     });
 
     describe('verify()', () => {
-      it(`throws an error because 'verify' operation is not valid for ECDH keys`, async () => {
-        await expect(alg.verify()).to.eventually.be.rejectedWith(InvalidAccessError, `is not valid for 'ECDH'`);
+      it(`throws an error because 'verify' operation is not valid for ECDH`, async () => {
+        await expect(alg.verify()).to.eventually.be.rejectedWith(InvalidAccessError, `is not valid for ECDH`);
       });
     });
   });
@@ -963,9 +1029,9 @@ describe('Algorithms API', () => {
     before(() => {
       alg = Reflect.construct(BaseEcdsaAlgorithm, []) as BaseEcdsaAlgorithm;
       // @ts-expect-error because the `names` property is readonly.
-      alg.names = ['ES256K' as const];
+      alg.names = ['ES256K'] as const;
       // @ts-expect-error because the `curves` property is readonly.
-      alg.curves = ['secp256k1' as const];
+      alg.curves = ['secp256k1'] as const;
     });
 
     describe('checkSignOptions()', () => {

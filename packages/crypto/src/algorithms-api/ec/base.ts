@@ -17,12 +17,16 @@ export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
     keyOperations?: JwkOperation[]
   }): void {
     const { algorithm, keyOperations } = options;
+
     // Algorithm specified in the operation must match the algorithm implementation processing the operation.
     this.checkAlgorithmName({ algorithmName: algorithm.name });
+
     // The algorithm object must contain a curve property.
     checkRequiredProperty({ property: 'curve', inObject: algorithm });
+
     // The curve specified must be supported by the algorithm implementation processing the operation.
     checkValidProperty({ property: algorithm.curve, allowedProperties: this.curves });
+
     // If specified, key operations must be permitted by the algorithm implementation processing the operation.
     if (keyOperations) {
       this.checkKeyOperations({ keyOperations, allowedKeyOperations: this.keyOperations });
@@ -44,7 +48,7 @@ export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
       throw new InvalidAccessError('Requested operation is only valid for private keys.');
     }
 
-    // The key's curve must be supported by the algorithm implementation processing the operation.
+    // The curve specified must be supported by the algorithm implementation processing the operation.
     checkValidProperty({ property: key.crv, allowedProperties: this.curves });
 
     // The data must be a Uint8Array.
@@ -104,11 +108,11 @@ export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
   }
 
   public override async decrypt(): Promise<Uint8Array> {
-    throw new InvalidAccessError(`Requested operation 'decrypt' is not valid for '${this.names.join(', ')}' keys.`);
+    throw new InvalidAccessError(`Requested operation 'decrypt' is not valid for Elliptic Curve algorithms.`);
   }
 
   public override async encrypt(): Promise<Uint8Array> {
-    throw new InvalidAccessError(`Requested operation 'encrypt' is not valid for '${this.names.join(', ')}' keys.`);
+    throw new InvalidAccessError(`Requested operation 'encrypt' is not valid for Elliptic Curve algorithms.`);
   }
 
   public abstract generateKey(options: {

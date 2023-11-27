@@ -40,7 +40,7 @@ export abstract class CryptoAlgorithm {
     key: JsonWebKey
   }): void {
     const { key } = options;
-    if (!('kty' in key)) {
+    if (typeof key !== 'object' || !('kty' in key)) {
       throw new TypeError('Object is not a JSON Web Key (JWK)');
     }
   }
@@ -105,7 +105,7 @@ export abstract class CryptoAlgorithm {
 
   public abstract decrypt(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions,
-    key: Web5Crypto.CryptoKey,
+    key: PrivateKeyJwk,
     data: Uint8Array
   }): Promise<Uint8Array>;
 
@@ -117,7 +117,7 @@ export abstract class CryptoAlgorithm {
 
   public abstract encrypt(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions,
-    key: Web5Crypto.CryptoKey,
+    key: PrivateKeyJwk,
     data: Uint8Array
   }): Promise<Uint8Array>;
 

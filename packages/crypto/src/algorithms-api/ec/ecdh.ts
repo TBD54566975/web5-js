@@ -59,10 +59,10 @@ export abstract class BaseEcdhAlgorithm extends BaseEllipticCurveAlgorithm {
   }
 
   public override async sign(): Promise<Uint8Array> {
-    throw new InvalidAccessError(`Requested operation 'sign' is not valid for '${this.names.join(', ')}' keys.`);
+    throw new InvalidAccessError(`Requested operation 'sign' is not valid for ECDH algorithm.`);
   }
 
   public override async verify(): Promise<boolean> {
-    throw new InvalidAccessError(`Requested operation 'verify' is not valid for '${this.names.join(', ')}' keys.`);
+    throw new InvalidAccessError(`Requested operation 'verify' is not valid for ECDH algorithm.`);
   }
 }
