@@ -12,7 +12,7 @@ import { CryptoKey, InvalidAccessError, NotSupportedError, OperationError } from
 import {
   EcdhAlgorithm,
   EcdsaAlgorithm,
-  // EdDsaAlgorithm,
+  EdDsaAlgorithm,
   // AesCtrAlgorithm,
   Pbkdf2Algorithm,
 } from '../src/crypto-algorithms/index.js';
@@ -648,21 +648,13 @@ describe('Default Crypto Algorithm Implementations', () => {
       it('validates algorithm name and curve', async () => {
         // Invalid (algorithm name, curve) results in algorithm name check failing first.
         await expect(ecdsa.generateKey({
-          algorithm     : { name: 'foo', curve: 'bar' },
-          keyOperations : ['deriveBits']
+          algorithm: { name: 'foo', curve: 'bar' }
         })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
 
         // Valid (algorithm name) + Invalid (curve) results in curve check failing first.
         await expect(ecdsa.generateKey({
-          algorithm     : { name: 'ES256K', curve: 'bar' },
-          keyOperations : ['deriveBits']
+          algorithm: { name: 'ES256K', curve: 'bar' }
         })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
-
-        // Valid (algorithm name, named curve) + Invalid (key operations) results in key operations check failing first.
-        await expect(ecdsa.generateKey({
-          algorithm     : { name: 'ES256K', curve: 'secp256k1' },
-          keyOperations : ['encrypt']
-        })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation');
       });
 
       it(`accepts 'keyOperations' as undefined`, async () => {
@@ -793,312 +785,195 @@ describe('Default Crypto Algorithm Implementations', () => {
     });
   });
 
-  // describe('EdDsaAlgorithm', () => {
-  //   let eddsa: EdDsaAlgorithm;
+  describe('EdDsaAlgorithm', () => {
+    let eddsa: EdDsaAlgorithm;
 
-  //   before(() => {
-  //     eddsa = EdDsaAlgorithm.create();
-  //   });
+    before(() => {
+      eddsa = EdDsaAlgorithm.create();
+    });
 
-  //   describe('generateKey()', () => {
-  //     it('returns a key pair', async () => {
-  //       const keys = await eddsa.generateKey({
-  //         algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
+    describe('generateKey()', () => {
+      it('returns a private key in JWK format', async () => {
+        const privateKey = await eddsa.generateKey({
+          algorithm     : { name: 'EdDSA', curve: 'Ed25519' },
+          keyOperations : ['sign']
+        });
 
-  //       expect(keys).to.have.property('privateKey');
-  //       expect(keys.privateKey.type).to.equal('private');
-  //       expect(keys.privateKey.usages).to.deep.equal(['sign']);
+        expect(privateKey).to.have.property('crv', 'Ed25519');
+        expect(privateKey).to.have.property('d');
+        expect(privateKey).to.have.property('kid');
+        expect(privateKey).to.have.property('kty', 'OKP');
+        expect(privateKey).to.have.property('x');
 
-  //       expect(keys).to.have.property('publicKey');
-  //       expect(keys.publicKey.type).to.equal('public');
-  //       expect(keys.publicKey.usages).to.deep.equal(['verify']);
-  //     });
+        expect(privateKey.key_ops).to.deep.equal(['sign']);
+      });
 
-  //     it('public key is always extractable', async () => {
-  //       let keys: CryptoKeyPair;
-  //       // publicKey is extractable if generateKey() called with extractable = false
-  //       keys = await eddsa.generateKey({
-  //         algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519'  },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
-  //       expect(keys.publicKey.extractable).to.be.true;
+      it(`supports 'Ed25519' curve`, async () => {
+        const privateKey = await eddsa.generateKey({
+          algorithm     : { name: 'EdDSA', curve: 'Ed25519' },
+          keyOperations : ['sign']
+        });
 
-  //       // publicKey is extractable if generateKey() called with extractable = true
-  //       keys = await eddsa.generateKey({
-  //         algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519'  },
-  //         extractable : true,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
-  //       expect(keys.publicKey.extractable).to.be.true;
-  //     });
+        if (!('crv' in privateKey)) throw new Error; // TS type guard
+        expect(privateKey.crv).to.equal('Ed25519');
+      });
 
-  //     it('private key is selectively extractable', async () => {
-  //       let keys: CryptoKeyPair;
-  //       // privateKey is NOT extractable if generateKey() called with extractable = false
-  //       keys = await eddsa.generateKey({
-  //         algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519'  },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
-  //       expect(keys.privateKey.extractable).to.be.false;
+      it(`supports 'sign' and/or 'verify' key operations`, async () => {
+        await expect(eddsa.generateKey({
+          algorithm     : { name: 'EdDSA', curve: 'Ed25519' },
+          keyOperations : ['sign']
+        })).to.eventually.be.fulfilled;
 
-  //       // privateKey is extractable if generateKey() called with extractable = true
-  //       keys = await eddsa.generateKey({
-  //         algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519'  },
-  //         extractable : true,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
-  //       expect(keys.privateKey.extractable).to.be.true;
-  //     });
+        await expect(eddsa.generateKey({
+          algorithm     : { name: 'EdDSA', curve: 'Ed25519' },
+          keyOperations : ['verify']
+        })).to.eventually.be.fulfilled;
 
-  //     it(`supports 'Ed25519' curve`, async () => {
-  //       const keys = await eddsa.generateKey({
-  //         algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
+        await expect(eddsa.generateKey({
+          algorithm     : { name: 'EdDSA', curve: 'Ed25519' },
+          keyOperations : ['sign', 'verify']
+        })).to.eventually.be.fulfilled;
+      });
 
-  //       if (!('namedCurve' in keys.privateKey.algorithm)) throw new Error; // type guard
-  //       expect(keys.privateKey.algorithm.namedCurve).to.equal('Ed25519');
-  //       if (!('namedCurve' in keys.publicKey.algorithm)) throw new Error; // type guard
-  //       expect(keys.publicKey.algorithm.namedCurve).to.equal('Ed25519');
-  //     });
+      it('validates algorithm name and curve', async () => {
+        // Invalid (algorithm name, curve) results in algorithm name check failing first.
+        await expect(eddsa.generateKey({
+          algorithm: { name: 'foo', curve: 'bar' }
+        })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
 
-  //     it(`supports 'sign' and/or 'verify' key usages`, async () => {
-  //       await expect(eddsa.generateKey({
-  //         algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
-  //         extractable : false,
-  //         keyOperations   : ['sign']
-  //       })).to.eventually.be.fulfilled;
+        // Valid (algorithm name) + Invalid (curve) results in curve check failing first.
+        await expect(eddsa.generateKey({
+          algorithm: { name: 'EdDSA', curve: 'bar' }
+        })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
+      });
 
-  //       await expect(eddsa.generateKey({
-  //         algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
-  //         extractable : false,
-  //         keyOperations   : ['verify']
-  //       })).to.eventually.be.fulfilled;
+      it(`accepts 'keyOperations' as undefined`, async () => {
+        const privateKey = await eddsa.generateKey({
+          algorithm: { name: 'EdDSA', curve: 'Ed25519' },
+        });
 
-  //       await expect(eddsa.generateKey({
-  //         algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       })).to.eventually.be.fulfilled;
-  //     });
+        expect(privateKey).to.exist;
+        expect(privateKey.key_ops).to.be.undefined;
+        expect(privateKey).to.have.property('kty', 'OKP');
+        expect(privateKey).to.have.property('crv', 'Ed25519');
+      });
 
-  //     it('validates algorithm, named curve, and key usages', async () => {
-  //       // Invalid (algorithm name, named curve, and key usages) result in algorithm name check failing first.
-  //       await expect(eddsa.generateKey({
-  //         algorithm   : { name: 'foo', namedCurve: 'bar' },
-  //         extractable : false,
-  //         keyOperations   : ['encrypt']
-  //       })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
+      it(`throws an error if operation fails`, async function() {
+        // @ts-ignore because the method is being intentionally stubbed to return undefined.
+        const checkSignOptionsStub = sinon.stub(eddsa, 'checkGenerateKeyOptions').returns(undefined);
 
-  //       // Valid (algorithm name) + Invalid (named curve, key usages) result named curve check failing first.
-  //       await expect(eddsa.generateKey({
-  //         algorithm   : { name: 'EdDSA', namedCurve: 'bar' },
-  //         extractable : false,
-  //         keyOperations   : ['encrypt']
-  //       })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
+        try {
+          // @ts-expect-error because no sign operations are defined.
+          await eddsa.generateKey({ algorithm: {} });
+          expect.fail('Expected eddsa.generateKey() to throw an error');
+        } catch (error) {
+          expect(error).to.be.an('error');
+          expect((error as Error).message).to.include('Operation failed: generateKey');
+        } finally {
+          checkSignOptionsStub.restore();
+        }
+      });
+    });
 
-  //       // Valid (algorithm name, named curve) + Invalid (key usages) result key usages check failing first.
-  //       await expect(eddsa.generateKey({
-  //         algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
-  //         extractable : false,
-  //         keyOperations   : ['encrypt']
-  //       })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation');
-  //     });
+    describe('sign()', () => {
+      let privateKey: PrivateKeyJwk;
+      let data = new Uint8Array([51, 52, 53]);
 
-  //     it(`should throw an error if 'Ed25519' key pair generation fails`, async function() {
-  //       // @ts-ignore because the method is being intentionally stubbed to return null.
-  //       const ed25519Stub = sinon.stub(Ed25519, 'generateKeyPair').returns(Promise.resolve(null));
+      beforeEach(async () => {
+        privateKey = await eddsa.generateKey({
+          algorithm     : { name: 'EdDSA', curve: 'Ed25519' },
+          keyOperations : ['sign', 'verify']
+        });
+      });
 
-  //       try {
-  //         await eddsa.generateKey({
-  //           algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
-  //           extractable : false,
-  //           keyOperations   : ['sign', 'verify']
-  //         });
-  //         ed25519Stub.restore();
-  //         expect.fail('Expect generateKey() to throw an error');
-  //       } catch (error) {
-  //         ed25519Stub.restore();
-  //         expect(error).to.be.an('error');
-  //         expect((error as Error).message).to.equal('Operation failed to generate key pair.');
-  //       }
-  //     });
-  //   });
+      it(`returns a signature for 'Ed25519' keys`, async () => {
+        const signature = await eddsa.sign({
+          algorithm : { name: 'EdDSA' },
+          key       : privateKey,
+          data      : data
+        });
 
-  //   describe('sign()', () => {
+        expect(signature).to.be.instanceOf(Uint8Array);
+        expect(signature.byteLength).to.equal(64);
+      });
 
-  //     let keyPair: Web5Crypto.CryptoKeyPair;
-  //     let data = new Uint8Array([51, 52, 53]);
+      it(`throws an error if sign operation fails`, async function() {
+        // @ts-ignore because the method is being intentionally stubbed to return undefined.
+        const checkSignOptionsStub = sinon.stub(eddsa, 'checkSignOptions').returns(undefined);
 
-  //     beforeEach(async () => {
-  //       keyPair = await eddsa.generateKey({
-  //         algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
-  //     });
+        try {
+          // @ts-expect-error because no sign operations are defined.
+          await eddsa.sign({ algorithm: {}, key: {}, data: undefined });
+          expect.fail('Expected eddsa.sign() to throw an error');
+        } catch (error) {
+          expect(error).to.be.an('error');
+          expect((error as Error).message).to.include('Operation failed: sign');
+        } finally {
+          checkSignOptionsStub.restore();
+        }
+      });
+    });
 
-  //     it(`returns a signature for 'Ed25519' keys`, async () => {
-  //       const signature = await eddsa.sign({
-  //         algorithm : { name: 'EdDSA' },
-  //         key       : keyPair.privateKey,
-  //         data      : data
-  //       });
+    describe('verify()', () => {
+      let privateKey: PrivateKeyJwk;
+      let publicKey: PublicKeyJwk;
+      let signature: Uint8Array;
+      let data = new Uint8Array([51, 52, 53]);
 
-  //       expect(signature).to.be.instanceOf(Uint8Array);
-  //       expect(signature.byteLength).to.equal(64);
-  //     });
+      beforeEach(async () => {
+        privateKey = await eddsa.generateKey({
+          algorithm     : { name: 'EdDSA', curve: 'Ed25519' },
+          keyOperations : ['sign']
+        });
 
-  //     it('validates algorithm name and key algorithm name', async () => {
-  //       // Invalid (algorithm name, private key, and data) result in algorithm name check failing first.
-  //       await expect(eddsa.sign({
-  //         algorithm : { name: 'Nope' },
-  //         // @ts-expect-error because invalid key intentionally specified.
-  //         key       : { foo: 'bar '},
-  //         // @ts-expect-error because invalid data type intentionally specified.
-  //         data      : 'baz'
-  //       })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
+        publicKey = await Ed25519.computePublicKey({ privateKey });
 
-  //       // Valid (algorithm name) + Invalid (private key, and data) result in key algorithm name check failing first.
-  //       await expect(eddsa.sign({
-  //         algorithm : { name: 'EdDSA' },
-  //         // @ts-expect-error because invalid key intentionally specified.
-  //         key       : { algorithm: { name: 'bar '} },
-  //         // @ts-expect-error because invalid data type intentionally specified.
-  //         data      : 'baz'
-  //       })).to.eventually.be.rejectedWith(InvalidAccessError, 'does not match');
-  //     });
+        signature = await eddsa.sign({
+          algorithm : { name: 'EdDSA' },
+          key       : privateKey,
+          data      : data
+        });
+      });
 
-  //     it('validates that key is not a public key', async () => {
-  //       // Valid (algorithm name, data) + Invalid (private key) result in key type check failing first.
-  //       await expect(eddsa.sign({
-  //         algorithm : { name: 'EdDSA' },
-  //         key       : keyPair.publicKey,
-  //         data      : data
-  //       })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation is not valid');
-  //     });
+      it(`returns a boolean verification result`, async () => {
+        const isValid = await eddsa.verify({
+          algorithm : { name: 'EdDSA' },
+          key       : publicKey,
+          signature : signature,
+          data      : data
+        });
 
-  //     it(`validates that key usage is 'sign'`, async () => {
-  //       // Manually specify the private key usages to exclude the 'sign' operation.
-  //       keyPair.privateKey.usages = ['verify'];
+        expect(isValid).to.be.a('boolean');
+      });
 
-  //       await expect(eddsa.sign({
-  //         algorithm : { name: 'EdDSA' },
-  //         key       : keyPair.privateKey,
-  //         data      : data
-  //       })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
-  //     });
+      it(`validates 'secp256k1' signatures`, async () => {
+        const isValid = await eddsa.verify({
+          algorithm : { name: 'EdDSA' },
+          key       : publicKey,
+          signature : signature,
+          data      : data
+        });
 
-  //     it('throws an error when key is an unsupported curve', async () => {
-  //       // Manually change the key's named curve to trigger an error.
-  //       // @ts-expect-error because TS can't determine the type of key.
-  //       keyPair.privateKey.algorithm.namedCurve = 'nope';
+        expect(isValid).to.be.true;
+      });
 
-  //       await expect(eddsa.sign({
-  //         algorithm : { name: 'EdDSA' },
-  //         key       : keyPair.privateKey,
-  //         data      : data
-  //       })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
-  //     });
-  //   });
+      it(`throws an error if verify operation fails`, async function() {
+        // @ts-ignore because the method is being intentionally stubbed to return undefined.
+        const checkVerifyOptionsStub = sinon.stub(eddsa, 'checkVerifyOptions').returns(undefined);
 
-  //   describe('verify()', () => {
-  //     let keyPair: Web5Crypto.CryptoKeyPair;
-  //     let signature: Uint8Array;
-  //     let data = new Uint8Array([51, 52, 53]);
-
-  //     beforeEach(async () => {
-  //       keyPair = await eddsa.generateKey({
-  //         algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
-  //         extractable : false,
-  //         keyOperations   : ['sign', 'verify']
-  //       });
-
-  //       signature = await eddsa.sign({
-  //         algorithm : { name: 'EdDSA' },
-  //         key       : keyPair.privateKey,
-  //         data      : data
-  //       });
-  //     });
-
-  //     it(`returns a verification result for 'Ed25519' keys`, async () => {
-  //       const isValid = await eddsa.verify({
-  //         algorithm : { name: 'EdDSA' },
-  //         key       : keyPair.publicKey,
-  //         signature : signature,
-  //         data      : data
-  //       });
-
-  //       expect(isValid).to.be.a('boolean');
-  //       expect(isValid).to.be.true;
-  //     });
-
-  //     it('validates algorithm name and key algorithm name', async () => {
-  //       // Invalid (algorithm name, public key, signature, and data) result in algorithm name check failing first.
-  //       await expect(eddsa.verify({
-  //         algorithm : { name: 'Nope' },
-  //         // @ts-expect-error because invalid key intentionally specified.
-  //         key       : { foo: 'bar '},
-  //         // @ts-expect-error because invalid signature intentionally specified.
-  //         signature : 57,
-  //         // @ts-expect-error because invalid data type intentionally specified.
-  //         data      : 'baz'
-  //       })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
-
-  //       // Valid (algorithm name) + Invalid (public key, signature, and data) result in key algorithm name check failing first.
-  //       await expect(eddsa.verify({
-  //         algorithm : { name: 'EdDSA' },
-  //         // @ts-expect-error because invalid key intentionally specified.
-  //         key       : { algorithm: { name: 'bar '} },
-  //         // @ts-expect-error because invalid signature intentionally specified.
-  //         signature : 57,
-  //         // @ts-expect-error because invalid data type intentionally specified.
-  //         data      : 'baz'
-  //       })).to.eventually.be.rejectedWith(InvalidAccessError, 'does not match');
-  //     });
-
-  //     it('validates that key is not a private key', async () => {
-  //       // Valid (algorithm name, signature, data) + Invalid (public key) result in key type check failing first.
-  //       await expect(eddsa.verify({
-  //         algorithm : { name: 'EdDSA' },
-  //         key       : keyPair.privateKey,
-  //         signature : signature,
-  //         data      : data
-  //       })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation is not valid');
-  //     });
-
-  //     it(`validates that key usage is 'verify'`, async () => {
-  //       // Manually specify the private key usages to exclude the 'verify' operation.
-  //       keyPair.publicKey.usages = ['sign'];
-
-  //       await expect(eddsa.verify({
-  //         algorithm : { name: 'EdDSA' },
-  //         key       : keyPair.publicKey,
-  //         signature : signature,
-  //         data      : data
-  //       })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
-  //     });
-
-  //     it('throws an error when key is an unsupported curve', async () => {
-  //       // Manually change the key's named curve to trigger an error.
-  //       // @ts-expect-error because TS can't determine the type of key.
-  //       keyPair.publicKey.algorithm.namedCurve = 'nope';
-
-  //       await expect(eddsa.verify({
-  //         algorithm : { name: 'EdDSA' },
-  //         key       : keyPair.publicKey,
-  //         signature : signature,
-  //         data      : data
-  //       })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
-  //     });
-  //   });
-  // });
+        try {
+          // @ts-expect-error because no verify operations are defined.
+          await eddsa.verify({ algorithm: {}, key: {}, data: undefined, signature: undefined });
+          expect.fail('Expected eddsa.verify() to throw an error');
+        } catch (error) {
+          expect(error).to.be.an('error');
+          expect((error as Error).message).to.include('Operation failed: verify');
+        } finally {
+          checkVerifyOptionsStub.restore();
+        }
+      });
+    });
+  });
 
   describe('Pbkdf2Algorithm', () => {
     let pbkdf2: Pbkdf2Algorithm;

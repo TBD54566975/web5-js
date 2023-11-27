@@ -1,20 +1,20 @@
 import * as sinon from 'sinon';
 import chai, { expect } from 'chai';
+import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
 import type { Web5Crypto } from '../src/types/web5-crypto.js';
-import {
-  type JwkType,
-  type JwkOperation,
-  type PublicKeyJwk,
-  type PrivateKeyJwk,
-  type JwkParamsEcPublic,
-  type JwkParamsEcPrivate,
-  type JwkParamsOkpPublic,
-  Jose,
+import type {
+  JwkType,
+  JwkOperation,
+  PublicKeyJwk,
+  PrivateKeyJwk,
+  JwkParamsEcPublic,
+  JwkParamsEcPrivate,
+  JwkParamsOkpPublic,
 } from '../src/jose.js';
 
-import { Convert } from '@web5/common';
+import { Jose } from '../src/jose.js';
 import {
   CryptoKey,
   OperationError,
@@ -23,7 +23,7 @@ import {
   BaseEcdhAlgorithm,
   NotSupportedError,
   BaseEcdsaAlgorithm,
-  // BaseEdDsaAlgorithm,
+  BaseEdDsaAlgorithm,
   InvalidAccessError,
   // BaseAesCtrAlgorithm,
   BasePbkdf2Algorithm,
@@ -437,8 +437,8 @@ describe('Algorithms API', () => {
 
   describe('BaseEllipticCurveAlgorithm', () => {
     class TestEllipticCurveAlgorithm extends BaseEllipticCurveAlgorithm {
-      public names = ['TestAlgorithm' as const];
-      public curves = ['curveA'];
+      public names = ['TestAlgorithm'] as const;
+      public curves = ['secp256k1'] as const;
       public keyOperations: JwkOperation[] = ['decrypt'];
       public async deriveBits(): Promise<Uint8Array> {
         return null as any;
@@ -463,21 +463,21 @@ describe('Algorithms API', () => {
 
       it('does not throw with supported algorithm, named curve, and key operation', () => {
         expect(() => alg.checkGenerateKeyOptions({
-          algorithm     : { name: 'TestAlgorithm', curve: 'curveA' },
+          algorithm     : { name: 'TestAlgorithm', curve: 'secp256k1' },
           keyOperations : ['decrypt']
         })).to.not.throw();
       });
 
       it('throws an error when unsupported algorithm specified', () => {
         expect(() => alg.checkGenerateKeyOptions({
-          algorithm     : { name: 'ECDH', curve: 'X25519' },
+          algorithm     : { name: 'invalid-algorithm', curve: 'secp256k1' },
           keyOperations : ['sign']
         })).to.throw(NotSupportedError, 'Algorithm not supported');
       });
 
       it('throws an error when unsupported named curve specified', () => {
         expect(() => alg.checkGenerateKeyOptions({
-          algorithm     : { name: 'TestAlgorithm', curve: 'X25519' },
+          algorithm     : { name: 'TestAlgorithm', curve: 'invalid-curve' },
           keyOperations : ['sign']
         })).to.throw(TypeError, 'Out of range');
       });
@@ -485,10 +485,231 @@ describe('Algorithms API', () => {
       it('throws an error when the requested operation is not valid', () => {
         ['sign', 'verify'].forEach((operation) => {
           expect(() => alg.checkGenerateKeyOptions({
-            algorithm     : { name: 'TestAlgorithm', curve: 'curveA' },
+            algorithm     : { name: 'TestAlgorithm', curve: 'secp256k1' },
             keyOperations : [operation as JwkOperation]
           })).to.throw(InvalidAccessError, 'Requested operation');
         });
+      });
+    });
+
+    describe('checkSignOptions()', () => {
+      let alg: TestEllipticCurveAlgorithm;
+
+      beforeEach(() => {
+        alg = TestEllipticCurveAlgorithm.create();
+      });
+
+      it('validates algorithm name and key algorithm name', async () => {
+        // Invalid (algorithm name, private key) result in algorithm name check failing first.
+        expect(() => alg.checkSignOptions({
+          algorithm : { name: 'invalid-name' },
+          // @ts-expect-error because invalid key intentionally specified.
+          key       : { foo: 'bar '},
+          data      : new Uint8Array([1, 2, 3, 4])
+        })).to.throw(NotSupportedError, 'Algorithm not supported');
+
+        // Valid (algorithm name) + Invalid (private key) result in private key check failing first.
+        expect(() => alg.checkSignOptions({
+          algorithm : { name: 'TestAlgorithm' },
+          // @ts-expect-error because invalid key intentionally specified.
+          key       : { foo: 'bar '},
+          data      : new Uint8Array([1, 2, 3, 4])
+        })).to.throw(InvalidAccessError, 'operation is only valid for private keys');
+
+        // Valid (algorithm name) + Invalid (private key alg) result in private key algorithm check failing first.
+        expect(() => alg.checkSignOptions({
+          algorithm : { name: 'TestAlgorithm' },
+          // @ts-expect-error because invalid key algorithm intentionally specified.
+          key       : { kty: 'EC', crv: 'secp256k1', d: '', x: '', y: '', alg: 'invalid-alg' },
+          data      : new Uint8Array([1, 2, 3, 4])
+        })).to.throw(InvalidAccessError, `does not match the provided 'invalid-alg' key`);
+      });
+
+      it('validates that data is a Uint8Array', async () => {
+        const privateKey: PrivateKeyJwk = {
+          kty : 'EC',
+          crv : 'secp256k1',
+          d   : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          x   : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          y   : Convert.uint8Array(new Uint8Array(32)).toBase64Url()
+        };
+
+        // Valid (algorithm name, private key) + Invalid (data) result in the data check failing first.
+        expect(() => alg.checkSignOptions({
+          algorithm : { name: 'TestAlgorithm' },
+          key       : privateKey,
+          // @ts-expect-error because invalid data type intentionally specified.
+          data      : 'baz'
+        })).to.throw(TypeError, `data must be of type Uint8Array`);
+      });
+
+      it('validates that key is not a public key', async () => {
+        const publicKey: PublicKeyJwk = {
+          kty : 'EC',
+          crv : 'secp256k1',
+          x   : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          y   : Convert.uint8Array(new Uint8Array(32)).toBase64Url()
+        };
+
+        // Valid (algorithm name, data) + Invalid (private key) result in key type check failing first.
+        expect(() => alg.checkSignOptions({
+          algorithm : { name: 'TestAlgorithm' },
+          // @ts-expect-error because invalid key intentionally specified.
+          key       : publicKey,
+          data      : new Uint8Array([1, 2, 3, 4])
+        })).to.throw(InvalidAccessError, 'operation is only valid for private keys');
+      });
+
+      it(`if specified, validates that 'key_opts' includes 'sign'`, async () => {
+        // Exclude the 'sign' operation.
+        const privateKey: PrivateKeyJwk = {
+          kty     : 'EC',
+          crv     : 'secp256k1',
+          d       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          x       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          y       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          key_ops : ['verify']
+        };
+
+        expect(() => alg.checkSignOptions({
+          algorithm : { name: 'TestAlgorithm' },
+          key       : privateKey,
+          data      : new Uint8Array([1, 2, 3, 4])
+        })).to.throw(InvalidAccessError, 'is not valid for the provided key');
+      });
+
+      it('throws an error when key is an unsupported curve', async () => {
+        const privateKey: PrivateKeyJwk = {
+          kty     : 'EC',
+          // @ts-expect-error because an invalid curve is being intentionally specified.
+          crv     : 'invalid-curve',
+          d       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          x       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          y       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
+          key_ops : ['verify']
+        };
+
+        expect(() => alg.checkSignOptions({
+          algorithm : { name: 'TestAlgorithm' },
+          key       : privateKey,
+          data      : new Uint8Array([1, 2, 3, 4])
+        })).to.throw(TypeError, 'Out of range');
+      });
+    });
+
+    describe('checkVerifyOptions()', () => {
+      let alg: TestEllipticCurveAlgorithm;
+      let privateKey: PrivateKeyJwk;
+      let publicKey: PublicKeyJwk;
+      let signature: Uint8Array;
+      let data = new Uint8Array([51, 52, 53]);
+
+      beforeEach(() => {
+        alg = TestEllipticCurveAlgorithm.create();
+
+        privateKey = {
+          kty     : 'EC',
+          crv     : 'secp256k1',
+          d       : 'XwsSwwmtfxgooR2XsWsvZxeacO1W4koDw3iXxmUivcE',
+          x       : 'Ldwc5EnadPCf-pXe_qWmM7i2-qfYrQXkSCm4aOJ09UQ',
+          y       : 'vL7LbN7q072aRJ5TSpz63cOetIzEDmBR_LwKciPfHZE',
+          kid     : 'ukuZTjeoTyhQk5pScZwj3PDHLUmMffmV5Fey4cS2sMk',
+          key_ops : [ 'sign' ]
+        };
+        publicKey = {
+          kty     : 'EC',
+          crv     : 'secp256k1',
+          x       : 'Ldwc5EnadPCf-pXe_qWmM7i2-qfYrQXkSCm4aOJ09UQ',
+          y       : 'vL7LbN7q072aRJ5TSpz63cOetIzEDmBR_LwKciPfHZE',
+          kid     : 'ukuZTjeoTyhQk5pScZwj3PDHLUmMffmV5Fey4cS2sMk',
+          key_ops : [ 'sign' ]
+        };
+        signature = Convert.base64Url('jikTSNWducZQBBDCjonE-OnQaUc3A0oFnCcWWF5N2OV2AYID4iGSTrdPw9jgXISBhojZ1kYeeu4_6YvV26A6GQ').toUint8Array();
+      });
+
+      it('validates algorithm name and key algorithm name', async () => {
+        // Invalid (algorithm name, public key) result in algorithm name check failing first.
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'invalid-name' },
+          // @ts-expect-error because invalid key intentionally specified.
+          key       : { foo: 'bar '},
+          signature,
+          data
+        })).to.throw(NotSupportedError, 'Algorithm not supported');
+
+        // Valid (algorithm name) + Invalid (public key) result in public key check failing first.
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'TestAlgorithm' },
+          // @ts-expect-error because invalid key intentionally specified.
+          key       : { foo: 'bar '},
+          signature,
+          data
+        })).to.throw(InvalidAccessError, 'operation is only valid for public keys');
+
+        // Valid (algorithm name) + Invalid (public key alg) result in public key algorithm check failing first.
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'TestAlgorithm' },
+          // @ts-expect-error because invalid key intentionally specified.
+          key       : { ...publicKey, alg: 'invalid-alg' },
+          signature,
+          data
+        })).to.throw(InvalidAccessError, `does not match the provided 'invalid-alg' key`);
+      });
+
+      it('validates that key is not a private key', async () => {
+        // Valid (algorithm name, hash algorithm, signature, data) + Invalid (public key) result in key type check failing first.
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'TestAlgorithm' },
+          // @ts-expect-error because invalid key intentionally specified.
+          key       : privateKey,
+          signature : signature,
+          data      : data
+        })).to.throw(InvalidAccessError, 'operation is only valid for public keys');
+      });
+
+      it(`if specified, validates that 'key_ops' includes 'verify'`, async () => {
+        // Manually specify the public key operations to exclude the 'verify' operation.
+        const key: PublicKeyJwk = { ...publicKey, key_ops: ['sign'] };
+
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'TestAlgorithm' },
+          key,
+          signature : signature,
+          data      : data
+        })).to.throw(InvalidAccessError, 'is not valid for the provided key');
+      });
+
+      it('throws an error when key is an unsupported curve', async () => {
+        // Manually change the key's curve to trigger an error.
+        // @ts-expect-error because an invalid curve is being intentionally specified.
+        const key: PublicKeyJwk = { ...publicKey, crv: 'invalid-curve' };
+
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'TestAlgorithm' },
+          data      : data,
+          key,
+          signature
+        })).to.throw(TypeError, 'Out of range');
+      });
+
+      it('validates that data is a Uint8Array', async () => {
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'TestAlgorithm' },
+          key       : publicKey,
+          // @ts-expect-error because invalid data type intentionally specified.
+          data      : 'baz',
+          signature
+        })).to.throw(TypeError, `data must be of type Uint8Array`);
+      });
+
+      it('validates that signature is a Uint8Array', async () => {
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'TestAlgorithm' },
+          key       : publicKey,
+          data,
+          // @ts-expect-error because invalid data type intentionally specified.
+          signature : 'baz'
+        })).to.throw(TypeError, `signature must be of type Uint8Array`);
       });
     });
 
@@ -747,285 +968,100 @@ describe('Algorithms API', () => {
       alg.curves = ['secp256k1' as const];
     });
 
-    describe('checkPrivateKey', () => {
-      it('should throw InvalidAccessError if key is not EC private key', () => {
-        sinon.stub(Jose, 'isEcPrivateKeyJwk').returns(false);
-        expect(() => alg.checkPrivateKey({ key: {} as any })).to.throw(InvalidAccessError);
-        sinon.restore();
-      });
-
-      it('should not throw if key is EC private key', () => {
-        sinon.stub(Jose, 'isEcPrivateKeyJwk').returns(true);
-        expect(() => alg.checkPrivateKey({ key: {} as any })).to.not.throw();
-        sinon.restore();
-      });
-    });
-
-    describe('checkPublicKey', () => {
-      it('should throw InvalidAccessError if key is not EC public key', () => {
-        sinon.stub(Jose, 'isEcPublicKeyJwk').returns(false);
-        expect(() => alg.checkPublicKey({ key: {} as any })).to.throw(InvalidAccessError);
-        sinon.restore();
-      });
-
-      it('should not throw if key is EC public key', () => {
-        sinon.stub(Jose, 'isEcPublicKeyJwk').returns(true);
-        expect(() => alg.checkPublicKey({ key: {} as any })).to.not.throw();
-        sinon.restore();
-      });
-    });
-
     describe('checkSignOptions()', () => {
-      it('validates algorithm name and key algorithm name', async () => {
-        // Invalid (algorithm name, private key) result in algorithm name check failing first.
-        expect(() => alg.checkSignOptions({
-          algorithm : { name: 'invalid-name' },
-          // @ts-expect-error because invalid key intentionally specified.
-          key       : { foo: 'bar '},
-          data      : new Uint8Array([1, 2, 3, 4])
-        })).to.throw(NotSupportedError, 'Algorithm not supported');
-
-        // Valid (algorithm name) + Invalid (private key) result in private key check failing first.
-        expect(() => alg.checkSignOptions({
-          algorithm : { name: 'ES256K' },
-          // @ts-expect-error because invalid key intentionally specified.
-          key       : { foo: 'bar '},
-          data      : new Uint8Array([1, 2, 3, 4])
-        })).to.throw(InvalidAccessError, 'operation is only valid for private keys');
-
-        // Valid (algorithm name) + Invalid (private key alg) result in private key algorithm check failing first.
-        expect(() => alg.checkSignOptions({
-          algorithm : { name: 'ES256K' },
-          // @ts-expect-error because invalid key algorithm intentionally specified.
-          key       : { kty: 'EC', crv: 'secp256k1', d: '', x: '', y: '', alg: 'invalid-alg' },
-          data      : new Uint8Array([1, 2, 3, 4])
-        })).to.throw(InvalidAccessError, `does not match the provided 'invalid-alg' key`);
-      });
-
-      it('validates that data is a Uint8Array', async () => {
-        const privateKey: PrivateKeyJwk = {
-          kty : 'EC',
-          crv : 'secp256k1',
-          d   : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
-          x   : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
-          y   : Convert.uint8Array(new Uint8Array(32)).toBase64Url()
-        };
-
-        // Valid (algorithm name, private key) + Invalid (data) result in the data check failing first.
-        expect(() => alg.checkSignOptions({
-          algorithm : { name: 'ES256K' },
-          key       : privateKey,
-          // @ts-expect-error because invalid data type intentionally specified.
-          data      : 'baz'
-        })).to.throw(TypeError, `data must be of type Uint8Array`);
-      });
-
-      it('validates that key is not a public key', async () => {
-        const publicKey: PublicKeyJwk = {
-          kty : 'EC',
-          crv : 'secp256k1',
-          x   : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
-          y   : Convert.uint8Array(new Uint8Array(32)).toBase64Url()
-        };
-
-        // Valid (algorithm name, data) + Invalid (private key) result in key type check failing first.
-        expect(() => alg.checkSignOptions({
-          algorithm : { name: 'ES256K' },
-          // @ts-expect-error because invalid key intentionally specified.
-          key       : publicKey,
-          data      : new Uint8Array([1, 2, 3, 4])
-        })).to.throw(InvalidAccessError, 'operation is only valid for private keys');
-      });
-
-      it(`if specified, validates that key operations is 'sign'`, async () => {
-        // Exclude the 'sign' operation.
-        const privateKey: PrivateKeyJwk = {
-          kty     : 'EC',
-          crv     : 'secp256k1',
-          d       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
-          x       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
-          y       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
-          key_ops : ['verify']
+      it('validates that key is an EC private key', async () => {
+        const ed25519PrivateKey: PrivateKeyJwk = {
+          kty : 'OKP',
+          crv : 'Ed25519',
+          x   : 'k-DgyL6dBSdblokVYrYfJhSAEbf3gx68YSTwtqAaMis',
+          d   : 'VF2v7AbPoDwuuTcV-M6mB_C7SYIDB4E0ImvGM3t0VAE'
         };
 
         expect(() => alg.checkSignOptions({
           algorithm : { name: 'ES256K' },
-          key       : privateKey,
-          data      : new Uint8Array([1, 2, 3, 4])
-        })).to.throw(InvalidAccessError, 'is not valid for the provided key');
-      });
-
-      it('throws an error when key is an unsupported curve', async () => {
-        const privateKey: PrivateKeyJwk = {
-          kty     : 'EC',
-          // @ts-expect-error because an invalid curve is being intentionally specified.
-          crv     : 'invalid-curve',
-          d       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
-          x       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
-          y       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
-          key_ops : ['verify']
-        };
-
-        expect(() => alg.checkSignOptions({
-          algorithm : { name: 'ES256K' },
-          key       : privateKey,
-          data      : new Uint8Array([1, 2, 3, 4])
-        })).to.throw(TypeError, 'Out of range');
+          key       : ed25519PrivateKey,
+          data      : new Uint8Array([51, 52, 53])
+        })).to.throw(InvalidAccessError, 'operation is only valid for EC private keys');
       });
     });
 
     describe('checkVerifyOptions()', () => {
-      let privateKey: PrivateKeyJwk;
-      let publicKey: PublicKeyJwk;
-      let signature: Uint8Array;
-      let data = new Uint8Array([51, 52, 53]);
-
-      beforeEach(() => {
-        privateKey = {
-          kty     : 'EC',
-          crv     : 'secp256k1',
-          d       : 'XwsSwwmtfxgooR2XsWsvZxeacO1W4koDw3iXxmUivcE',
-          x       : 'Ldwc5EnadPCf-pXe_qWmM7i2-qfYrQXkSCm4aOJ09UQ',
-          y       : 'vL7LbN7q072aRJ5TSpz63cOetIzEDmBR_LwKciPfHZE',
-          kid     : 'ukuZTjeoTyhQk5pScZwj3PDHLUmMffmV5Fey4cS2sMk',
-          alg     : 'ES256K',
-          key_ops : [ 'sign' ]
+      it('validates that key is an EC public key', async () => {
+        const ed25519PublicKey: PublicKeyJwk = {
+          kty : 'OKP',
+          crv : 'Ed25519',
+          x   : 'k-DgyL6dBSdblokVYrYfJhSAEbf3gx68YSTwtqAaMis',
         };
-        publicKey = {
-          kty     : 'EC',
-          crv     : 'secp256k1',
-          x       : 'Ldwc5EnadPCf-pXe_qWmM7i2-qfYrQXkSCm4aOJ09UQ',
-          y       : 'vL7LbN7q072aRJ5TSpz63cOetIzEDmBR_LwKciPfHZE',
-          kid     : 'ukuZTjeoTyhQk5pScZwj3PDHLUmMffmV5Fey4cS2sMk',
-          alg     : 'ES256K',
-          key_ops : [ 'sign' ]
-        };
-        signature = Convert.base64Url('jikTSNWducZQBBDCjonE-OnQaUc3A0oFnCcWWF5N2OV2AYID4iGSTrdPw9jgXISBhojZ1kYeeu4_6YvV26A6GQ').toUint8Array();
-      });
-
-      it('validates algorithm name and key algorithm name', async () => {
-        // Invalid (algorithm name, public key) result in algorithm name check failing first.
-        expect(() => alg.checkVerifyOptions({
-          algorithm : { name: 'invalid-name' },
-          // @ts-expect-error because invalid key intentionally specified.
-          key       : { foo: 'bar '},
-          signature,
-          data
-        })).to.throw(NotSupportedError, 'Algorithm not supported');
-
-        // Valid (algorithm name) + Invalid (public key) result in public key check failing first.
-        expect(() => alg.checkVerifyOptions({
-          algorithm : { name: 'ES256K' },
-          // @ts-expect-error because invalid key intentionally specified.
-          key       : { foo: 'bar '},
-          signature,
-          data
-        })).to.throw(InvalidAccessError, 'operation is only valid for public keys');
-
-        // Valid (algorithm name) + Invalid (public key alg) result in public key algorithm check failing first.
-        expect(() => alg.checkVerifyOptions({
-          algorithm : { name: 'ES256K' },
-          // @ts-expect-error because invalid key intentionally specified.
-          key       : { ...publicKey, alg: 'invalid-alg' },
-          signature,
-          data
-        })).to.throw(InvalidAccessError, `does not match the provided 'invalid-alg' key`);
-      });
-
-      it('validates that key is not a private key', async () => {
-        // Valid (algorithm name, hash algorithm, signature, data) + Invalid (public key) result in key type check failing first.
-        expect(() => alg.checkVerifyOptions({
-          algorithm : { name: 'ES256K' },
-          // @ts-expect-error because invalid key intentionally specified.
-          key       : privateKey,
-          signature : signature,
-          data      : data
-        })).to.throw(InvalidAccessError, 'operation is only valid for public keys');
-      });
-
-      it(`if specified, validates that key usage is 'verify'`, async () => {
-        // Manually specify the public key operations to exclude the 'verify' operation.
-        const key: PublicKeyJwk = { ...publicKey, key_ops: ['sign'] };
 
         expect(() => alg.checkVerifyOptions({
           algorithm : { name: 'ES256K' },
-          key,
-          signature : signature,
-          data      : data
-        })).to.throw(InvalidAccessError, 'is not valid for the provided key');
-      });
-
-      it('throws an error when key is an unsupported curve', async () => {
-        // Manually change the key's curve to trigger an error.
-        // @ts-expect-error because an invalid curve is being intentionally specified.
-        const key: PublicKeyJwk = { ...publicKey, crv: 'invalid-curve' };
-
-        expect(() => alg.checkVerifyOptions({
-          algorithm : { name: 'ES256K' },
-          data      : data,
-          key,
-          signature
-        })).to.throw(TypeError, 'Out of range');
-      });
-
-      it('validates that data is a Uint8Array', async () => {
-        expect(() => alg.checkVerifyOptions({
-          algorithm : { name: 'ES256K' },
-          key       : publicKey,
-          // @ts-expect-error because invalid data type intentionally specified.
-          data      : 'baz',
-          signature
-        })).to.throw(TypeError, `data must be of type Uint8Array`);
-      });
-
-      it('validates that signature is a Uint8Array', async () => {
-        expect(() => alg.checkVerifyOptions({
-          algorithm : { name: 'ES256K' },
-          key       : publicKey,
-          data,
-          // @ts-expect-error because invalid data type intentionally specified.
-          signature : 'baz'
-        })).to.throw(TypeError, `signature must be of type Uint8Array`);
+          key       : ed25519PublicKey,
+          data      : new Uint8Array(),
+          signature : new Uint8Array()
+        })).to.throw(InvalidAccessError, 'operation is only valid for EC public keys');
       });
     });
 
     describe('deriveBits()', () => {
-      it(`throws an error because 'deriveBits' operation is not valid for ECDSA keys`, async () => {
-        await expect(alg.deriveBits()).to.eventually.be.rejectedWith(InvalidAccessError, `is not valid for 'ES256K'`);
+      it(`throws an error because 'deriveBits' operation is not valid for ECDSA algorithm`, async () => {
+        await expect(alg.deriveBits()).to.eventually.be.rejectedWith(InvalidAccessError, `is not valid for ECDSA`);
       });
     });
   });
 
-  //   describe('BaseEdDsaAlgorithm', () => {
-  //     let alg: BaseEdDsaAlgorithm;
+  describe('BaseEdDsaAlgorithm', () => {
+    let alg: BaseEdDsaAlgorithm;
 
-  //     before(() => {
-  //       alg = Reflect.construct(BaseEdDsaAlgorithm, []) as BaseEdDsaAlgorithm;
-  //     });
+    before(() => {
+      alg = Reflect.construct(BaseEdDsaAlgorithm, []) as BaseEdDsaAlgorithm;
+      // @ts-expect-error because the `names` property is readonly.
+      alg.names = ['EdDSA'] as const;
+      // @ts-expect-error because the `curves` property is readonly.
+      alg.curves = ['Ed25519'] as const;
+    });
 
-  //     describe('checkAlgorithmOptions()', () => {
-  //       const testEdDsaAlgorithm = Reflect.construct(BaseEdDsaAlgorithm, []) as BaseEdDsaAlgorithm;
+    describe('checkSignOptions()', () => {
+      it('validates that key is an OKP private key', async () => {
+        const secp256k1PrivateKey: PrivateKeyJwk = {
+          kty : 'EC',
+          crv : 'secp256k1',
+          x   : 'UxYbeCQo17viyn9Bb5frn80_icQ0dHaRNsjfjZDaxDo',
+          y   : '5vg_APq25qhV1wkbEqT3Z1H8vt57iHDhQqsw9TN0M1E',
+          d   : 'O2-jjd6m16BXjxTp-UudzZNIkRHQwUYN0KJg3i5Ndko'
+        };
 
-  //       it('does not throw with matching algorithm name', () => {
-  //         expect(() => testEdDsaAlgorithm.checkAlgorithmOptions({ algorithm: {
-  //           name: 'EdDSA'
-  //         }})).to.not.throw();
-  //       });
+        expect(() => alg.checkSignOptions({
+          algorithm : { name: 'EdDSA' },
+          key       : secp256k1PrivateKey,
+          data      : new Uint8Array([51, 52, 53])
+        })).to.throw(InvalidAccessError, 'operation is only valid for OKP private keys');
+      });
+    });
 
-  //       it('throws an error when unsupported algorithm specified', () => {
-  //         expect(() => testEdDsaAlgorithm.checkAlgorithmOptions({ algorithm: {
-  //           name: 'Nope'
-  //         }})).to.throw(NotSupportedError, 'Algorithm not supported');
-  //       });
-  //     });
+    describe('checkVerifyOptions()', () => {
+      it('validates that key is an OKP public key', async () => {
+        const secp256k1PublicKey: PublicKeyJwk = {
+          kty : 'EC',
+          crv : 'secp256k1',
+          x   : 'UxYbeCQo17viyn9Bb5frn80_icQ0dHaRNsjfjZDaxDo',
+          y   : '5vg_APq25qhV1wkbEqT3Z1H8vt57iHDhQqsw9TN0M1E'
+        };
 
-  //     describe('deriveBits()', () => {
-  //       it(`throws an error because 'deriveBits' operation is valid for EdDSA keys`, async () => {
-  //         await expect(alg.deriveBits()).to.eventually.be.rejectedWith(InvalidAccessError, `is not valid for EdDSA`);
-  //       });
-  //     });
-  //   });
-  // });
+        expect(() => alg.checkVerifyOptions({
+          algorithm : { name: 'EdDSA' },
+          key       : secp256k1PublicKey,
+          data      : new Uint8Array(),
+          signature : new Uint8Array()
+        })).to.throw(InvalidAccessError, 'operation is only valid for OKP public keys');
+      });
+    });
+
+    describe('deriveBits()', () => {
+      it(`throws an error because 'deriveBits' operation is not valid for EdDSA keys`, async () => {
+        await expect(alg.deriveBits()).to.eventually.be.rejectedWith(InvalidAccessError, `is not valid for EdDSA`);
+      });
+    });
+  });
 
   describe('BasePbkdf2Algorithm', () => {
     let alg: BasePbkdf2Algorithm;

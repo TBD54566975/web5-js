@@ -35,7 +35,7 @@ export function checkRequiredProperty(options: {
  * @throws {SyntaxError} If the property is not a member of the allowedProperties Array, Map, or Set.
  */
 export function checkValidProperty(options: {
-  property: string, allowedProperties: Array<string> | Map<string, unknown> | Set<string>
+  property: string, allowedProperties: ReadonlyArray<string> | Array<string> | Map<string, unknown> | Set<string>
 }): void {
   if (!options || options.property === undefined || options.allowedProperties === undefined) {
     throw new TypeError(`One or more required parameters missing: 'property, allowedProperties'`);

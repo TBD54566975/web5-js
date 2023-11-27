@@ -3,6 +3,7 @@ import type { JwkOperation, JwkParamsEcPrivate, JwkParamsEcPublic, PrivateKeyJwk
 
 import { Secp256k1 } from '../crypto-primitives/index.js';
 import { BaseEcdsaAlgorithm } from '../algorithms-api/index.js';
+
 export class EcdsaAlgorithm extends BaseEcdsaAlgorithm {
   public readonly names = ['ES256K'] as const;
   public readonly curves = ['secp256k1'] as const;
@@ -25,7 +26,7 @@ export class EcdsaAlgorithm extends BaseEcdsaAlgorithm {
         privateKey.alg = 'ES256K';
         break;
       }
-      // Default case unnecessary because checkSignOptions() validates the input parameters.
+      // Default case unnecessary because checkGenerateKeyOptions() validates the input parameters.
     }
 
     if (privateKey) {
@@ -77,7 +78,7 @@ export class EcdsaAlgorithm extends BaseEcdsaAlgorithm {
       case 'secp256k1': {
         return await Secp256k1.verify({ key, signature, data });
       }
-      // Default case unnecessary because checkSignOptions() validates the input parameters.
+      // Default case unnecessary because checkVerifyOptions() validates the input parameters.
     }
 
     throw new Error('Operation failed: verify');
