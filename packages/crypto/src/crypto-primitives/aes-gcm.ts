@@ -1,4 +1,9 @@
+import { Convert } from '@web5/common';
 import { crypto } from '@noble/hashes/crypto';
+
+import type { PrivateKeyJwk } from '../jose.js';
+
+import { Jose } from '../jose.js';
 
 /**
  * The `AesGcm` class provides an interface for AES-GCM
@@ -32,6 +37,23 @@ import { crypto } from '@noble/hashes/crypto';
  * ```
  */
 export class AesGcm {
+  public static async bytesToPrivateKey(options: {
+    privateKeyBytes: Uint8Array
+  }): Promise<PrivateKeyJwk> {
+    const { privateKeyBytes } = options;
+
+    // Construct the private key in JWK format.
+    const privateKey: PrivateKeyJwk = {
+      k   : Convert.uint8Array(privateKeyBytes).toBase64Url(),
+      kty : 'oct',
+    };
+
+    // Compute the JWK thumbprint and set as the key ID.
+    privateKey.kid = await Jose.jwkThumbprint({ key: privateKey });
+
+    return privateKey;
+  }
+
   /**
    * Decrypts the provided data using AES-GCM.
    *
@@ -47,7 +69,7 @@ export class AesGcm {
     additionalData?: Uint8Array,
     data: Uint8Array,
     iv: Uint8Array,
-    key: Uint8Array,
+    key: PrivateKeyJwk,
     tagLength?: number
   }): Promise<Uint8Array> {
     const { additionalData, data, iv, key, tagLength } = options;
@@ -82,7 +104,7 @@ export class AesGcm {
     additionalData?: Uint8Array,
     data: Uint8Array,
     iv: Uint8Array,
-    key: Uint8Array,
+    key: PrivateKeyJwk,
     tagLength?: number
   }): Promise<Uint8Array> {
     const { additionalData, data, iv, key, tagLength } = options;
@@ -110,29 +132,51 @@ export class AesGcm {
    */
   public static async generateKey(options: {
     length: number
-  }): Promise<Uint8Array> {
+  }): Promise<PrivateKeyJwk> {
     const { length } = options;
 
     // Generate the secret key.
     const lengthInBytes = length / 8;
-    const secretKey = crypto.getRandomValues(new Uint8Array(lengthInBytes));
+    const privateKeyBytes = crypto.getRandomValues(new Uint8Array(lengthInBytes));
 
-    return secretKey;
+    // Convert private key from bytes to JWK format.
+    const privateKey = await AesGcm.bytesToPrivateKey({ privateKeyBytes });
+
+    // Compute the JWK thumbprint and set as the key ID.
+    privateKey.kid = await Jose.jwkThumbprint({ key: privateKey });
+
+    return privateKey;
+  }
+
+  public static async privateKeyToBytes(options: {
+    privateKey: PrivateKeyJwk
+  }): Promise<Uint8Array> {
+    const { privateKey } = options;
+
+    // Verify the provided JWK represents a valid oct private key.
+    if (!Jose.isOctPrivateKeyJwk(privateKey)) {
+      throw new Error(`AesGcm: The provided key is not a valid oct private key.`);
+    }
+
+    // Decode the provided private key to bytes.
+    const privateKeyBytes = Convert.base64Url(privateKey.k).toUint8Array();
+
+    return privateKeyBytes;
   }
 
   /**
-   * A private method to import a raw key for use with the Web Crypto API.
+   * A private method to import a key in JWK format for use with the Web Crypto API.
    *
-   * @param key - The raw key material.
+   * @param key - The key in JWK format.
    * @returns A Promise that resolves to a CryptoKey.
    */
-  private static async importKey(key: Uint8Array): Promise<CryptoKey> {
+  private static async importKey(key: PrivateKeyJwk): Promise<CryptoKey> {
     return crypto.subtle.importKey(
-      'raw',
-      key.buffer,
-      { name: 'AES-GCM', length: key.byteLength * 8 },
-      true,
-      ['encrypt', 'decrypt']
+      'jwk', // format
+      key, // keyData
+      { name: 'AES-GCM' }, // algorithm
+      true, // extractable
+      ['encrypt', 'decrypt'] // usages
     );
   }
 }

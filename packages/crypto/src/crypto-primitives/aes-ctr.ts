@@ -1,9 +1,9 @@
 import { Convert } from '@web5/common';
+import { crypto } from '@noble/hashes/crypto';
 
 import type { PrivateKeyJwk } from '../jose.js';
 
 import { Jose } from '../jose.js';
-import { crypto } from '@noble/hashes/crypto';
 
 /**
  * The `AesCtr` class provides a comprehensive set of utilities for cryptographic operations

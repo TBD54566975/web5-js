@@ -56,10 +56,8 @@ describe('AesCtr', () => {
     it('accepts ciphertext input as Uint8Array', async () => {
       const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
       const privateKey = await AesCtr.generateKey({ length: 256 });
-      let ciphertext: Uint8Array;
 
-      // TypedArray - Uint8Array
-      ciphertext = await AesCtr.decrypt({ counter: new Uint8Array(16), data, key: privateKey, length: 128 });
+      const ciphertext = await AesCtr.decrypt({ counter: new Uint8Array(16), data, key: privateKey, length: 128 });
       expect(ciphertext).to.be.instanceOf(Uint8Array);
     });
   });
@@ -89,7 +87,7 @@ describe('AesCtr', () => {
   });
 
   describe('generateKey()', () => {
-    it('returns a secret key in JWK format', async () => {
+    it('returns a private key in JWK format', async () => {
       const privateKey = await AesCtr.generateKey({ length: 256 });
 
       expect(privateKey).to.have.property('k');
@@ -97,7 +95,7 @@ describe('AesCtr', () => {
       expect(privateKey).to.have.property('kty', 'oct');
     });
 
-    it('returns a secret key of the specified length', async () => {
+    it('returns a private key of the specified length', async () => {
       let privateKey: JwkParamsOctPrivate;
       let privateKeyBytes: Uint8Array;
 
