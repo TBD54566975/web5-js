@@ -1,12 +1,10 @@
-import { universalTypeOf } from '@web5/common';
-
 import type { Web5Crypto } from '../../types/web5-crypto.js';
 import type { JwkOperation, PrivateKeyJwk } from '../../../src/jose.js';
 
 import { Jose } from '../../../src/jose.js';
 import { checkRequiredProperty } from '../../utils.js';
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
-import { InvalidAccessError, OperationError } from '../errors.js';
+import { InvalidAccessError } from '../errors.js';
 
 export abstract class BaseAesAlgorithm extends CryptoAlgorithm {
 
@@ -18,19 +16,6 @@ export abstract class BaseAesAlgorithm extends CryptoAlgorithm {
 
     // Algorithm specified in the operation must match the algorithm implementation processing the operation.
     this.checkAlgorithmName({ algorithmName: algorithm.name });
-
-    // The algorithm object must contain a length property.
-    checkRequiredProperty({ property: 'length', inObject: algorithm });
-
-    // The length specified must be a number.
-    if (universalTypeOf(algorithm.length) !== 'Number') {
-      throw new TypeError(`Algorithm 'length' is not of type: Number.`);
-    }
-
-    // The length specified must be one of the allowed bit lengths for AES.
-    if (![128, 192, 256].includes(algorithm.length)) {
-      throw new OperationError(`Algorithm 'length' must be 128, 192, or 256.`);
-    }
 
     // If specified, key operations must be permitted by the algorithm implementation processing the operation.
     if (keyOperations) {

@@ -14,6 +14,7 @@ export class EdDsaAlgorithm extends BaseEdDsaAlgorithm {
   }): Promise<PrivateKeyJwk> {
     const { algorithm, keyOperations } = options;
 
+    // Validate the input parameters.
     this.checkGenerateKeyOptions({ algorithm, keyOperations });
 
     let privateKey: PrivateKeyJwk | undefined;

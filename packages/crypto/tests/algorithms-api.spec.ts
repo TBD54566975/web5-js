@@ -200,49 +200,24 @@ describe('Algorithms API', () => {
     });
 
     describe('checkGenerateKeyOptions()', () => {
-      it('does not throw with supported algorithm, length, and key operation', () => {
+      it('does not throw with supported algorithm and key operation', () => {
         expect(() => alg.checkGenerateKeyOptions({
-          algorithm     : { name: 'TestAlgorithm', length: 128 },
+          algorithm     : { name: 'TestAlgorithm' },
           keyOperations : ['encrypt']
         })).to.not.throw();
       });
 
       it('throws an error when unsupported algorithm specified', () => {
         expect(() => alg.checkGenerateKeyOptions({
-          algorithm     : { name: 'ECDSA', length: 128 },
+          algorithm     : { name: 'ECDSA' },
           keyOperations : ['encrypt']
         })).to.throw(NotSupportedError, 'Algorithm not supported');
-      });
-
-      it('throws an error when the length property is missing', () => {
-        expect(() => alg.checkGenerateKeyOptions({
-          // @ts-expect-error because length was intentionally omitted.
-          algorithm     : { name: 'TestAlgorithm' },
-          keyOperations : ['encrypt']
-        })).to.throw(TypeError, 'Required parameter missing');
-      });
-
-      it('throws an error when the specified length is not a Number', () => {
-        expect(() => alg.checkGenerateKeyOptions({
-          // @ts-expect-error because length is intentionally set as a string instead of number.
-          algorithm     : { name: 'TestAlgorithm', length: '256' },
-          keyOperations : ['encrypt']
-        })).to.throw(TypeError, `is not of type: Number`);
-      });
-
-      it('throws an error when the specified length is not valid', () => {
-        [64, 96, 160, 224, 512].forEach((length) => {
-          expect(() => alg.checkGenerateKeyOptions({
-            algorithm     : { name: 'TestAlgorithm', length },
-            keyOperations : ['encrypt']
-          })).to.throw(OperationError, `Algorithm 'length' must be 128, 192, or 256`);
-        });
       });
 
       it('throws an error when the requested operation is not valid', () => {
         ['sign', 'verify'].forEach((operation) => {
           expect(() => alg.checkGenerateKeyOptions({
-            algorithm     : { name: 'TestAlgorithm', length: 128 },
+            algorithm     : { name: 'TestAlgorithm' },
             keyOperations : [operation as JwkOperation]
           })).to.throw(InvalidAccessError, 'Requested operation');
         });

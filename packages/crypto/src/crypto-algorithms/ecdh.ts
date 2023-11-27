@@ -78,6 +78,7 @@ export class EcdhAlgorithm extends BaseEcdhAlgorithm {
   }): Promise<PrivateKeyJwk> {
     const { algorithm, keyOperations } = options;
 
+    // Validate the input parameters.
     this.checkGenerateKeyOptions({ algorithm, keyOperations });
 
     let privateKey: PrivateKeyJwk | undefined;

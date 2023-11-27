@@ -6,9 +6,7 @@ export namespace Web5Crypto {
     length: number;
   }
 
-  export interface AesGenerateKeyOptions extends Algorithm {
-    length: number;
-  }
+  export interface AesGenerateKeyOptions extends Algorithm { }
 
   export interface AesGcmOptions extends Algorithm {
     additionalData?: Uint8Array;
