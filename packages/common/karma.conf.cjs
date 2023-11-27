@@ -20,7 +20,6 @@ module.exports = function (config) {
     plugins: [
       'karma-chrome-launcher',
       'karma-firefox-launcher',
-      'karma-webkit-launcher',
       'karma-esbuild',
       'karma-mocha',
       'karma-mocha-reporter',
@@ -74,7 +73,7 @@ module.exports = function (config) {
 
     // start these browsers
     // available browser launchers: https://www.npmjs.com/search?q=keywords:karma-launcher
-    browsers: ['ChromeHeadless', 'FirefoxHeadless', 'WebkitHeadless'],
+    browsers: ['ChromeHeadless', 'FirefoxHeadless'],
 
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits

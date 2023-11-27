@@ -16,11 +16,8 @@ module.exports = {
     playwrightLauncher({
       product: 'firefox',
     }),
-    playwrightLauncher({
-      product: 'webkit',
-    }),
   ],
-  concurrentBrowsers : 3,
+  concurrentBrowsers : 2,
   testFramework      : {
     config: {
       timeout: '15000',
