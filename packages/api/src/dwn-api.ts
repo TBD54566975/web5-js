@@ -16,8 +16,8 @@ import { isEmptyObject } from '@web5/common';
 import { DwnInterfaceName, DwnMethodName, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 
 import { Record } from './record.js';
-import { Protocol } from './protocol.js';
 import { dataToBlob } from './utils.js';
+import { Protocol } from './protocol.js';
 
 /**
  * Status code and detailed message for a response.
