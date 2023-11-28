@@ -1,26 +1,26 @@
-import { universalTypeOf } from '@web5/common';
-
 import type { Web5Crypto } from '../types/web5-crypto.js';
+import type{ JwkOperation, PrivateKeyJwk } from '../jose.js';
 
 import { AesCtr } from '../crypto-primitives/index.js';
-import { BaseAesCtrAlgorithm, CryptoKey } from '../algorithms-api/index.js';
+import { BaseAesCtrAlgorithm } from '../algorithms-api/index.js';
 
 export class AesCtrAlgorithm extends BaseAesCtrAlgorithm {
+  public readonly names = ['A128CTR', 'A192CTR', 'A256CTR'] as const;
+
   public async decrypt(options: {
     algorithm: Web5Crypto.AesCtrOptions,
-    key: Web5Crypto.CryptoKey,
+    key: PrivateKeyJwk,
     data: Uint8Array
   }): Promise<Uint8Array> {
     const { algorithm, key, data } = options;
 
-    this.checkAlgorithmOptions({ algorithm, key });
-    // The secret key must be allowed to be used for 'decrypt' operations.
-    this.checkKeyUsages({ keyUsages: ['decrypt'], allowedKeyUsages: key.usages });
+    // Validate the input parameters.
+    this.checkDecryptOptions(options);
 
     const plaintext = AesCtr.decrypt({
       counter : algorithm.counter,
       data    : data,
-      key     : key.material,
+      key     : key,
       length  : algorithm.length
     });
 
@@ -29,19 +29,18 @@ export class AesCtrAlgorithm extends BaseAesCtrAlgorithm {
 
   public async encrypt(options: {
     algorithm: Web5Crypto.AesCtrOptions,
-    key: Web5Crypto.CryptoKey,
+    key: PrivateKeyJwk,
     data: Uint8Array
   }): Promise<Uint8Array> {
     const { algorithm, key, data } = options;
 
-    this.checkAlgorithmOptions({ algorithm, key });
-    // The secret key must be allowed to be used for 'encrypt' operations.
-    this.checkKeyUsages({ keyUsages: ['encrypt'], allowedKeyUsages: key.usages });
+    // Validate the input parameters.
+    this.checkEncryptOptions(options);
 
     const ciphertext = AesCtr.encrypt({
       counter : algorithm.counter,
       data    : data,
-      key     : key.material,
+      key     : key,
       length  : algorithm.length
     });
 
@@ -50,21 +49,28 @@ export class AesCtrAlgorithm extends BaseAesCtrAlgorithm {
 
   public async generateKey(options: {
     algorithm: Web5Crypto.AesGenerateKeyOptions,
-    extractable: boolean,
-    keyUsages: Web5Crypto.KeyUsage[]
-  }): Promise<Web5Crypto.CryptoKey> {
-    const { algorithm, extractable, keyUsages } = options;
+    keyOperations: JwkOperation[]
+  }): Promise<PrivateKeyJwk> {
+    const { algorithm, keyOperations } = options;
 
-    this.checkGenerateKey({ algorithm, keyUsages });
+    // Validate the input parameters.
+    this.checkGenerateKeyOptions({ algorithm, keyOperations });
 
-    const secretKey = await AesCtr.generateKey({ length: algorithm.length });
+    // Map algorithm name to key length.
+    const algorithmNameToLength: Record<string, number> = {
+      A128CTR : 128,
+      A192CTR : 192,
+      A256CTR : 256
+    };
 
-    if (universalTypeOf(secretKey) !== 'Uint8Array') {
-      throw new Error('Operation failed to generate key.');
+    const secretKey = await AesCtr.generateKey({ length: algorithmNameToLength[algorithm.name] });
+
+    if (secretKey) {
+      secretKey.alg = algorithm.name;
+      if (keyOperations) secretKey.key_ops = keyOperations;
+      return secretKey;
     }
 
-    const secretCryptoKey = new CryptoKey(algorithm, extractable, secretKey, 'secret', this.keyUsages);
-
-    return secretCryptoKey;
+    throw new Error('Operation failed: generateKey');
   }
 }

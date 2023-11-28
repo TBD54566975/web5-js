@@ -1,0 +1,57 @@
+{
+  "description" : "Secp256k1 bytesToPublicKey test vectors",
+  "vectors"     : [
+    {
+      "description" : "converts wycheproof vector 1 to the expected public key",
+      "input"       : {
+        "publicKeyBytes": "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8"
+      },
+      "output": {
+        "crv" : "secp256k1",
+        "kid" : "2JF8vg9etJzjFwZwmkvhBLLZ0bfMVVOPivYR5lFtcec",
+        "kty" : "EC",
+        "x" : "eb5mfvncu6xVoGKVzocLBwKb_NstzijZWfKBWxb4F5g",
+        "y": "SDradyajxGVdpPv8DhEIqP0XtEimhVQZnEfQj_sQ1Lg"
+      }
+    },
+    {
+      "description" : "converts wycheproof vector 2 to the expected public key",
+      "input"       : {
+        "publicKeyBytes": "0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798b7c52588d95c3b9aa25b0403f1eef75702e84bb7597aabe663b82f6f04ef2777"
+      },
+      "output": {
+        "crv" : "secp256k1",
+        "kid" : "A5kvmZN8g_rnvmmIfgTaV8S8KUnA6plB3cCmCMUZPyQ",
+        "kty" : "EC",
+        "x" : "eb5mfvncu6xVoGKVzocLBwKb_NstzijZWfKBWxb4F5g",
+        "y": "t8UliNlcO5qiWwQD8e73VwLoS7dZeqvmY7gvbwTvJ3c"
+      }
+    },
+    {
+      "description" : "converts wycheproof vector 3 to the expected public key",
+      "input"       : {
+        "publicKeyBytes": "04b482d9656a4e99a15cfdab5e8b487cb07206df1cb83afb076c6f7ba890a4368183ebe04029d5c03300c401db65aa6a9dbd479b4e60bdd190a19ce5b5532013d2"
+      },
+      "output": {
+        "crv" : "secp256k1",
+        "kid" : "IJxfsScP6p4G8L9Yf8mYI8WIS87ulINKi0oUbS670KQ",
+        "kty" : "EC",
+        "x" : "tILZZWpOmaFc_atei0h8sHIG3xy4OvsHbG97qJCkNoE",
+        "y": "g-vgQCnVwDMAxAHbZapqnb1Hm05gvdGQoZzltVMgE9I"
+      }
+    },
+    {
+      "description" : "converts public key bytes to the expected public key JWK",
+      "input"       : {
+        "publicKeyBytes": "04f735424dd331a4dcb2dd6d65d157cb764a50c857645ef0c0d09a71dd34e7d68894db17050ce172bac6adff57658ae2fcb2cdd41c9ee0f75f4daa076c2e8f2062"
+      },
+      "output": {
+        "crv" : "secp256k1",
+        "kid" : "ikH9Jgh0U90gMJQ1txhlaST6VOdP_ygPJNN0JPaAwTI",
+        "kty" : "EC",
+        "x" : "9zVCTdMxpNyy3W1l0VfLdkpQyFdkXvDA0Jpx3TTn1og",
+        "y": "lNsXBQzhcrrGrf9XZYri_LLN1Bye4PdfTaoHbC6PIGI"
+      }
+    }
+  ]
+}

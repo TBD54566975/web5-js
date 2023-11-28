@@ -1,0 +1,45 @@
+{
+  "description" : "Secp256k1 getCurvePoints test vectors",
+  "vectors"     : [
+    {
+      "description" : "returns public key x and y coordinates given a public key",
+      "input"       : {
+        "key": "043752951274023296c8a74b0ffe42f82ff4b4d4bba4326477422703f761f59258c26a7465b9a77ac0c3f1cedb139c428b0b1fbb5516867b527636f3286f705553"
+      },
+      "output": {
+        "x": "3752951274023296c8a74b0ffe42f82ff4b4d4bba4326477422703f761f59258",
+        "y": "c26a7465b9a77ac0c3f1cedb139c428b0b1fbb5516867b527636f3286f705553"
+      }
+    },
+    {
+      "description" : "returns public key x and y coordinates given a private key",
+      "input"       : {
+        "key": "740ec69810de9ad1b8f298f1d2c0e6a52dd1e958dc2afc85764bec169c222e88"
+      },
+      "output": {
+        "x": "3752951274023296c8a74b0ffe42f82ff4b4d4bba4326477422703f761f59258",
+        "y": "c26a7465b9a77ac0c3f1cedb139c428b0b1fbb5516867b527636f3286f705553"
+      }
+    },
+    {
+      "description" : "handles private keys that require padded x-coordinate when converting from BigInt to bytes",
+      "input"       : {
+        "key": "0206a1f9628c5bcd31f3bbc2f160ec98f99960147e04ea192f56c53a0086c5432d"
+      },
+      "output": {
+        "x": "06a1f9628c5bcd31f3bbc2f160ec98f99960147e04ea192f56c53a0086c5432d",
+        "y": "bf2efab7943be51219a283c0979ccba0fbe03f571e75b0eb338cc2ec01e70552"
+      }
+    },
+    {
+      "description" : "handles private keys that require padded y-coordinate when converting from BigInt to bytes",
+      "input"       : {
+        "key": "032ff752fb8fc6af85c8682b0ca9d48901b2b9ac130f558bd1a9092240d42c4682"
+      },
+      "output": {
+        "x": "2ff752fb8fc6af85c8682b0ca9d48901b2b9ac130f558bd1a9092240d42c4682",
+        "y": "048c39d9ebdc1fd98bda38b7f00b93de1d2af5bb3ba8cb532ad47c1f36e19501"
+      }
+    }
+  ]
+}
