@@ -1,10 +1,10 @@
 import type { Web5Crypto } from '../../types/web5-crypto.js';
-import type { JwkOperation, PrivateKeyJwk } from '../../../src/jose.js';
+import type { JwkOperation, PrivateKeyJwk } from '../../jose.js';
 
-import { Jose } from '../../../src/jose.js';
+import { Jose } from '../../jose.js';
+import { InvalidAccessError } from '../errors.js';
 import { checkRequiredProperty } from '../../utils.js';
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
-import { InvalidAccessError } from '../errors.js';
 
 export abstract class BaseAesAlgorithm extends CryptoAlgorithm {
 

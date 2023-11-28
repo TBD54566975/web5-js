@@ -1,7 +1,7 @@
 import { universalTypeOf } from '@web5/common';
 
 import type { Web5Crypto } from '../../types/web5-crypto.js';
-import type { JwkOperation, PrivateKeyJwk } from '../../../src/jose.js';
+import type { JwkOperation, PrivateKeyJwk } from '../../jose.js';
 
 import { BaseAesAlgorithm } from './base.js';
 import { OperationError } from '../errors.js';
