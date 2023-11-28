@@ -1,10 +1,8 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 
-import { CryptoKey } from '../src/algorithms-api/crypto-key.js';
 import {
   randomUuid,
-  isCryptoKeyPair,
   keyToMultibaseId,
   multibaseIdToKey,
   checkValidProperty,
@@ -51,42 +49,6 @@ describe('Crypto Utils', () => {
     it('does not throw an error if the property is present', () => {
       const propertiesCollection = { foo: 'bar', baz: 'qux' };
       expect(() => checkRequiredProperty({ property: 'foo', inObject: propertiesCollection })).to.not.throw();
-    });
-  });
-
-  describe('isCryptoKeyPair()', () => {
-    it('returns true with a CryptoKeyPair object', () => {
-      const publicKey = new CryptoKey(
-        { name: 'EdDSA', curve: 'Ed25519' },
-        true,
-        new Uint8Array(32),
-        'public',
-        ['verify']
-      );
-      const privateKey = new CryptoKey(
-        { name: 'EdDSA', curve: 'Ed25519' },
-        true,
-        new Uint8Array(32),
-        'private',
-        ['sign']
-      );
-      const validCryptoKeyPair = { publicKey, privateKey };
-
-      const result = isCryptoKeyPair(validCryptoKeyPair);
-      expect(result).to.be.true;
-    });
-
-    it('returns false for a CryptoKey', () => {
-      const cryptoKey = new CryptoKey(
-        { name: 'EdDSA', curve: 'Ed25519' },
-        true,
-        new Uint8Array(32),
-        'secret',
-        ['decrypt', 'encrypt']
-      );
-
-      const result = isCryptoKeyPair(cryptoKey);
-      expect(result).to.be.false;
     });
   });
 

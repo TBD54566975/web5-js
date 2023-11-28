@@ -1,31 +1,68 @@
 import { sha256 } from '@noble/hashes/sha256';
 import { Convert, Multicodec, MulticodecCode, MulticodecDefinition, removeUndefinedProperties } from '@web5/common';
 
-import type { Web5Crypto } from './types/web5-crypto.js';
-
 import { keyToMultibaseId } from './utils.js';
-import { CryptoKey } from './algorithms-api/index.js';
 import { Ed25519, Secp256k1, X25519 } from './crypto-primitives/index.js';
 
 /**
  * JSON Web Key Operations
  *
- * decrypt    : Decrypt content and validate decryption, if applicable
- * deriveBits : Derive bits not to be used as a key
- * deriveKey  : Derive key
- * encrypt    : Encrypt content
- * sign       : Compute digital signature or MAC
- * unwrapKey  : Decrypt key and validate decryption, if applicable
- * verify     : Verify digital signature or MAC
- * wrapKey    : Encrypt key
+ * The "key_ops" (key operations) parameter identifies the operation(s)
+ * for which the key is intended to be used.  The "key_ops" parameter is
+ * intended for use cases in which public, private, or symmetric keys
+ * may be present.
+ *
+ * Its value is an array of key operation values.  Values defined by
+ * {@link https://www.rfc-editor.org/rfc/rfc7517.html#section-4.3 | RFC 7517 Section 4.3} are:
+ *
+ * - "decrypt"    : Decrypt content and validate decryption, if applicable
+ * - "deriveBits" : Derive bits not to be used as a key
+ * - "deriveKey"  : Derive key
+ * - "encrypt"    : Encrypt content
+ * - "sign"       : Compute digital signature or MAC
+ * - "unwrapKey"  : Decrypt key and validate decryption, if applicable
+ * - "verify"     : Verify digital signature or MAC
+ * - "wrapKey"    : Encrypt key
+ *
+ * Other values MAY be used.  The key operation values are case-
+ * sensitive strings.  Duplicate key operation values MUST NOT be
+ * present in the array.  Use of the "key_ops" member is OPTIONAL,
+ * unless the application requires its presence.
+ *
+ * The "use" and "key_ops" JWK members SHOULD NOT be used together;
+ * however, if both are used, the information they convey MUST be
+ * consistent.  Applications should specify which of these members they
+ * use, if either is to be used by the application.
  */
 export type JwkOperation = 'encrypt' | 'decrypt' | 'sign' | 'verify' | 'deriveKey' | 'deriveBits' | 'wrapKey' | 'unwrapKey';
 
 /**
  * JSON Web Key Use
  *
- * sig : Digital Signature or MAC
- * enc : Encryption
+ * The "use" (public key use) parameter identifies the intended use of
+ * the public key.  The "use" parameter is employed to indicate whether
+ * a public key is used for encrypting data or verifying the signature
+ * on data.
+ *
+ * Values defined by {@link https://datatracker.ietf.org/doc/html/rfc7517#section-4.2 | RFC 7517 Section 4.2} are:
+ *
+ * - "sig" (signature)
+ * - "enc" (encryption)
+ *
+ * Other values MAY be used.  The "use" value is a case-sensitive
+ * string.  Use of the "use" member is OPTIONAL, unless the application
+ * requires its presence.
+ *
+ * The "use" and "key_ops" JWK members SHOULD NOT be used together;
+ * however, if both are used, the information they convey MUST be
+ * consistent.  Applications should specify which of these members they
+ * use, if either is to be used by the application.
+ *
+ * When a key is used to wrap another key and a public key use
+ * designation for the first key is desired, the "enc" (encryption) key
+ * use value is used, since key wrapping is a kind of encryption.  The
+ * "enc" value is also to be used for public keys used for key agreement
+ * operations.
  */
 export type JwkUse = 'sig' | 'enc' | string;
 
@@ -411,59 +448,13 @@ export interface JweHeaderParams extends JoseHeaderParams {
   [key: string]: unknown
 }
 
-const joseToWebCryptoMapping: { [key: string]: Web5Crypto.GenerateKeyOptions } = {
-  'Ed25519'          : { name: 'EdDSA', curve: 'Ed25519' },
-  'Ed448'            : { name: 'EdDSA', curve: 'Ed448' },
-  'X25519'           : { name: 'ECDH', curve: 'X25519' },
-  'secp256k1:ES256K' : { name: 'ECDSA', curve: 'secp256k1' },
-  'secp256k1'        : { name: 'ECDH', curve: 'secp256k1' },
-  'P-256'            : { name: 'ECDSA', curve: 'P-256' },
-  'P-384'            : { name: 'ECDSA', curve: 'P-384' },
-  'P-521'            : { name: 'ECDSA', curve: 'P-521' },
-  'A128CBC'          : { name: 'AES-CBC', length: 128 },
-  'A192CBC'          : { name: 'AES-CBC', length: 192 },
-  'A256CBC'          : { name: 'AES-CBC', length: 256 },
-  'A128CTR'          : { name: 'AES-CTR', length: 128 },
-  'A192CTR'          : { name: 'AES-CTR', length: 192 },
-  'A256CTR'          : { name: 'AES-CTR', length: 256 },
-  'A128GCM'          : { name: 'AES-GCM', length: 128 },
-  'A192GCM'          : { name: 'AES-GCM', length: 192 },
-  'A256GCM'          : { name: 'AES-GCM', length: 256 },
-  'HS256'            : { name: 'HMAC', hash: { name: 'SHA-256' } },
-  'HS384'            : { name: 'HMAC', hash: { name: 'SHA-384' } },
-  'HS512'            : { name: 'HMAC', hash: { name: 'SHA-512' } },
-};
-
-const webCryptoToJoseMapping: { [key: string]: Partial<JsonWebKey> } = {
-  'EdDSA:Ed25519'   : { alg: 'EdDSA',   crv: 'Ed25519',   kty: 'OKP' },
-  'EdDSA:Ed448'     : { alg: 'EdDSA',   crv: 'Ed448',     kty: 'OKP' },
-  'ECDH:X25519'     : {                 crv: 'X25519',    kty: 'OKP' },
-  'ECDSA:secp256k1' : { alg: 'ES256K',  crv: 'secp256k1', kty: 'EC' },
-  'ECDH:secp256k1'  : {                 crv: 'secp256k1', kty: 'EC' },
-  'ECDSA:P-256'     : { alg: 'ES256',   crv: 'P-256',     kty: 'EC' },
-  'ECDSA:P-384'     : { alg: 'ES384',   crv: 'P-384',     kty: 'EC' },
-  'ECDSA:P-521'     : { alg: 'ES512',   crv: 'P-521',     kty: 'EC' },
-  'AES-CBC:128'     : { alg: 'A128CBC',                   kty: 'oct' },
-  'AES-CBC:192'     : { alg: 'A192CBC',                   kty: 'oct' },
-  'AES-CBC:256'     : { alg: 'A256CBC',                   kty: 'oct' },
-  'AES-CTR:128'     : { alg: 'A128CTR',                   kty: 'oct' },
-  'AES-CTR:192'     : { alg: 'A192CTR',                   kty: 'oct' },
-  'AES-CTR:256'     : { alg: 'A256CTR',                   kty: 'oct' },
-  'AES-GCM:128'     : { alg: 'A128GCM',                   kty: 'oct' },
-  'AES-GCM:192'     : { alg: 'A192GCM',                   kty: 'oct' },
-  'AES-GCM:256'     : { alg: 'A256GCM',                   kty: 'oct' },
-  'HMAC:SHA-256'    : { alg: 'HS256',                     kty: 'oct' },
-  'HMAC:SHA-384'    : { alg: 'HS384',                     kty: 'oct' },
-  'HMAC:SHA-512'    : { alg: 'HS512',                     kty: 'oct' },
-};
-
 const multicodecToJoseMapping: { [key: string]: JsonWebKey } = {
-  'ed25519-pub'    : { alg: 'EdDSA',  crv: 'Ed25519',   kty: 'OKP', x: '' },
-  'ed25519-priv'   : { alg: 'EdDSA',  crv: 'Ed25519',   kty: 'OKP', x: '',        d: '' },
-  'secp256k1-pub'  : { alg: 'ES256K', crv: 'secp256k1', kty: 'EC',  x: '', y: ''},
-  'secp256k1-priv' : { alg: 'ES256K', crv: 'secp256k1', kty: 'EC',  x: '', y: '', d: '' },
-  'x25519-pub'     : {                crv: 'X25519',    kty: 'OKP', x: '' },
-  'x25519-priv'    : {                crv: 'X25519',    kty: 'OKP', x: '',        d: '' },
+  'ed25519-pub'    : { crv: 'Ed25519',   kty: 'OKP', x: '' },
+  'ed25519-priv'   : { crv: 'Ed25519',   kty: 'OKP', x: '',        d: '' },
+  'secp256k1-pub'  : { crv: 'secp256k1', kty: 'EC',  x: '', y: ''},
+  'secp256k1-priv' : { crv: 'secp256k1', kty: 'EC',  x: '', y: '', d: '' },
+  'x25519-pub'     : { crv: 'X25519',    kty: 'OKP', x: '' },
+  'x25519-priv'    : { crv: 'X25519',    kty: 'OKP', x: '',        d: '' },
 };
 
 const joseToMulticodecMapping: { [key: string]: string } = {
@@ -476,45 +467,6 @@ const joseToMulticodecMapping: { [key: string]: string } = {
 };
 
 export class Jose {
-
-  public static async cryptoKeyToJwk(options: {
-    key: Web5Crypto.CryptoKey,
-  }): Promise<JsonWebKey> {
-    const { algorithm, extractable, material, type, usages } = options.key;
-
-    // Translate WebCrypto algorithm to JOSE format.
-    let jsonWebKey = Jose.webCryptoToJose(algorithm) as JsonWebKey;
-
-    // Set extractable parameter.
-    jsonWebKey.ext = extractable ? 'true' : 'false';
-
-    // Set key use parameter.
-    jsonWebKey.key_ops = usages;
-
-    jsonWebKey = await Jose.keyToJwk({
-      keyMaterial : material,
-      keyType     : type,
-      ...jsonWebKey
-    });
-
-    return { ...jsonWebKey };
-  }
-
-  public static async cryptoKeyToJwkPair(options: {
-    keyPair: Web5Crypto.CryptoKeyPair,
-  }): Promise<JwkKeyPair> {
-    const { keyPair } = options;
-
-    // Convert public and private keys into JSON Web Key format.
-    const privateKeyJwk = await Jose.cryptoKeyToJwk({ key: keyPair.privateKey }) as PrivateKeyJwk;
-    const publicKeyJwk = await Jose.cryptoKeyToJwk({ key: keyPair.publicKey }) as PublicKeyJwk;
-
-    // Assemble as a JWK key pair
-    const jwkKeyPair: JwkKeyPair = { privateKeyJwk, publicKeyJwk };
-
-    return { ...jwkKeyPair };
-  }
-
   public static isEcPrivateKeyJwk(obj: unknown): obj is JwkParamsEcPrivate {
     if (!obj || typeof obj !== 'object') return false;
     if (!('kty' in obj && 'crv' in obj && 'x' in obj && 'd' in obj)) return false;
@@ -531,6 +483,15 @@ export class Jose {
     if ('d' in obj) return false;
     if (obj.kty !== 'EC') return false;
     if (typeof obj.x !== 'string') return false;
+    return true;
+  }
+
+  public static isOctPrivateKeyJwk(obj: unknown): obj is JwkParamsOctPrivate {
+    if (!obj || typeof obj !== 'object') return false;
+    if (!('kty' in obj && 'k' in obj)) return false;
+    if (obj.kty !== 'oct') return false;
+    if (typeof obj.k !== 'string') return false;
+
     return true;
   }
 
@@ -579,43 +540,6 @@ export class Jose {
     const code = Multicodec.getCodeFromName({ name });
 
     return { code, name };
-  }
-
-  public static joseToWebCrypto(options:
-    Partial<JsonWebKey>
-  ): Web5Crypto.GenerateKeyOptions {
-    const params: string[] = [];
-
-    /**
-     * All Elliptic Curve (EC) and Octet Key Pair (OKP) JSON Web Keys
-     * set a value for the "crv" parameter.
-     */
-    if ('crv' in options && options.crv) {
-      params.push(options.crv);
-      // Special case for secp256k1. If alg is "ES256K", then ECDSA. Else ECDH.
-      if (options.crv === 'secp256k1' && options.alg === 'ES256K') {
-        params.push(options.alg);
-      }
-
-    /**
-     * All Octet Sequence (oct) JSON Web Keys omit "crv" and
-     * set a value for the "alg" parameter.
-     */
-    } else if (options.alg !== undefined) {
-      params.push(options.alg);
-
-    } else {
-      throw new TypeError(`One or more parameters missing: 'alg' or 'crv'`);
-    }
-
-    const lookupKey = params.join(':');
-    const webCrypto = joseToWebCryptoMapping[lookupKey];
-
-    if (webCrypto === undefined) {
-      throw new Error(`Unsupported JOSE to WebCrypto conversion: '${lookupKey}'`);
-    }
-
-    return { ...webCrypto };
   }
 
   /**
@@ -700,236 +624,62 @@ export class Jose {
     return thumbprint;
   }
 
-  public static async jwkToBytes(options: {
-    key: JsonWebKey
-  }): Promise<Uint8Array> {
-    const jsonWebKey = options.key;
-
-    let keyMaterial: Uint8Array;
-
-    // Asymmetric private key ("EC" or "OKP" - Curve25519 or SECG curves).
-    if ('d' in jsonWebKey) {
-      keyMaterial = Convert.base64Url(jsonWebKey.d).toUint8Array();
-    }
-
-    // Asymmetric public key ("EC" - secp256k1, secp256r1, secp384r1, secp521r1).
-    else if ('y' in jsonWebKey && jsonWebKey.y) {
-      const prefix = new Uint8Array([0x04]); // Designates an uncompressed key.
-      const x = Convert.base64Url(jsonWebKey.x).toUint8Array();
-      const y = Convert.base64Url(jsonWebKey.y).toUint8Array();
-
-      const publicKey = new Uint8Array([...prefix, ...x, ...y]);
-      keyMaterial = publicKey;
-    }
-
-    // Asymmetric public key ("OKP" - Ed25519, X25519).
-    else if ('x' in jsonWebKey) {
-      keyMaterial = Convert.base64Url(jsonWebKey.x).toUint8Array();
-    }
-
-    // Symmetric encryption or signature key ("oct" - AES, HMAC)
-    else if ('k' in jsonWebKey) {
-      keyMaterial = Convert.base64Url(jsonWebKey.k).toUint8Array();
-    }
-
-    else {
-      throw new Error('Jose: Unknown JSON Web Key format.');
-    }
-
-    return keyMaterial;
-  }
-
-  public static async jwkToCryptoKey(options: {
-    key: JsonWebKey
-  }): Promise<Web5Crypto.CryptoKey> {
-    const jsonWebKey = options.key;
-
-    const { keyMaterial, keyType } = await Jose.jwkToKey({ key: jsonWebKey });
-
-    // Translate JOSE format to WebCrypto algorithm.
-    let algorithm = Jose.joseToWebCrypto(jsonWebKey) as Web5Crypto.GenerateKeyOptions;
-
-    // Set extractable parameter.
-    let extractable: boolean;
-    if ('ext' in jsonWebKey && jsonWebKey.ext !== undefined) {
-      extractable = jsonWebKey.ext === 'true' ? true : false;
-    } else {
-      throw new Error(`Conversion from JWK to CryptoKey failed. Required parameter missing: 'ext'`);
-    }
-
-    // Set key use parameter.
-    let keyUsage: Web5Crypto.KeyUsage[];
-    if ('key_ops' in jsonWebKey && jsonWebKey.key_ops !== undefined) {
-      keyUsage = jsonWebKey.key_ops as Web5Crypto.KeyUsage[];
-    } else {
-      throw new Error(`Conversion from JWK to CryptoKey failed. Required parameter missing: 'key_ops'`);
-    }
-
-    const cryptoKey = new CryptoKey(
-      algorithm,
-      extractable,
-      keyMaterial,
-      keyType,
-      keyUsage
-    );
-
-    return cryptoKey;
-  }
-
-  public static async jwkToKey(options: {
-    key: JsonWebKey
-  }): Promise<{ keyMaterial: Uint8Array, keyType: Web5Crypto.KeyType }> {
-    const jsonWebKey = options.key;
-
-    let keyMaterial: Uint8Array;
-    let keyType: Web5Crypto.KeyType;
-
-    // Asymmetric private key ("EC" or "OKP" - Curve25519 or SECG curves).
-    if ('d' in jsonWebKey) {
-      keyMaterial = Convert.base64Url(jsonWebKey.d).toUint8Array();
-      keyType = 'private';
-    }
-
-    // Asymmetric public key ("EC" - secp256k1, secp256r1, secp384r1, secp521r1).
-    else if ('y' in jsonWebKey && jsonWebKey.y) {
-      const prefix = new Uint8Array([0x04]); // Designates an uncompressed key.
-      const x = Convert.base64Url(jsonWebKey.x).toUint8Array();
-      const y = Convert.base64Url(jsonWebKey.y).toUint8Array();
-
-      const publicKey = new Uint8Array([...prefix, ...x, ...y]);
-      keyMaterial = publicKey;
-      keyType = 'public';
-    }
-
-    // Asymmetric public key ("OKP" - Ed25519, X25519).
-    else if ('x' in jsonWebKey) {
-      keyMaterial = Convert.base64Url(jsonWebKey.x).toUint8Array();
-      keyType = 'public';
-    }
-
-    // Symmetric encryption or signature key ("oct" - AES, HMAC)
-    else if ('k' in jsonWebKey) {
-      keyMaterial = Convert.base64Url(jsonWebKey.k).toUint8Array();
-      keyType = 'private';
-    }
-
-    else {
-      throw new Error('Jose: Unknown JSON Web Key format.');
-    }
-
-    return { keyMaterial, keyType };
-  }
-
   /**
-  * Note: All secp public keys are converted to compressed point encoding
-  *    before the multibase identifier is computed.
-  *
-  * Per {@link https://github.com/multiformats/multicodec/blob/master/table.csv | Multicodec table}:
-  *    public keys for Elliptic Curve cryptography algorithms (e.g., secp256k1,
-  *    secp256k1r1, secp384r1, etc.) are always represented with compressed point
-  *    encoding (e.g., secp256k1-pub, p256-pub, p384-pub, etc.).
-  *
-  * Per {@link https://datatracker.ietf.org/doc/html/rfc8812#name-jose-and-cose-secp256k1-cur | RFC 8812}:
-  *    "As a compressed point encoding representation is not defined for JWK
-  *    elliptic curve points, the uncompressed point encoding defined there
-  *    MUST be used. The x and y values represented MUST both be exactly
-  *    256 bits, with any leading zeros preserved.
-  *
-  */
-  public static async jwkToMultibaseId(options: {
-    key: JsonWebKey
+   * Note: All secp public keys are converted to compressed point encoding
+   *       before the multibase identifier is computed.
+   *
+   * Per {@link https://github.com/multiformats/multicodec/blob/master/table.csv | Multicodec table}:
+   *    Public keys for Elliptic Curve cryptography algorithms (e.g., secp256k1,
+   *    secp256k1r1, secp384r1, etc.) are always represented with compressed point
+   *    encoding (e.g., secp256k1-pub, p256-pub, p384-pub, etc.).
+   *
+   * Per {@link https://datatracker.ietf.org/doc/html/rfc8812#name-jose-and-cose-secp256k1-cur | RFC 8812}:
+   *    "As a compressed point encoding representation is not defined for JWK
+   *    elliptic curve points, the uncompressed point encoding defined there
+   *    MUST be used. The x and y values represented MUST both be exactly
+   *    256 bits, with any leading zeros preserved."
+   */
+  public static async publicKeyToMultibaseId(options: {
+    publicKey: PublicKeyJwk
   }): Promise<string> {
-    const jsonWebKey = options.key;
+    const { publicKey } = options;
 
-    // Convert the algorithm into Multicodec name format.
-    const { name: multicodecName } = await Jose.joseToMulticodec({ key: jsonWebKey });
+    if (!('crv' in publicKey)) {
+      throw new Error(`Jose: Unsupported public key type: ${publicKey.kty}`);
+    }
 
-    // Decode the key as a raw binary data from the JWK.
-    let { keyMaterial } = await Jose.jwkToKey({ key: jsonWebKey });
+    let publicKeyBytes: Uint8Array;
 
-    // Convert secp256k1 public keys to compressed format.
-    if ('crv' in jsonWebKey && !('d' in jsonWebKey)) {
-      switch (jsonWebKey.crv) {
-        case 'secp256k1': {
-          keyMaterial = await Secp256k1.convertPublicKey({
-            publicKey           : keyMaterial,
-            compressedPublicKey : true
-          });
-          break;
-        }
+    switch (publicKey.crv) {
+      case 'Ed25519': {
+        publicKeyBytes = await Ed25519.publicKeyToBytes({ publicKey });
+        break;
+      }
+
+      case 'secp256k1': {
+        publicKeyBytes = await Secp256k1.publicKeyToBytes({ publicKey });
+        // Convert secp256k1 public keys to compressed format.
+        publicKeyBytes = await Secp256k1.compressPublicKey({ publicKeyBytes });
+        break;
+      }
+
+      case 'X25519': {
+        publicKeyBytes = await X25519.publicKeyToBytes({ publicKey });
+        break;
+      }
+
+      default: {
+        throw new Error(`Jose: Unsupported public key curve: ${publicKey.crv}`);
       }
     }
+
+    // Convert the JSON Web Key (JWK) parameters to a Multicodec name.
+    const { name: multicodecName } = await Jose.joseToMulticodec({ key: publicKey });
 
     // Compute the multibase identifier based on the provided key.
-    const multibaseId = keyToMultibaseId({ key: keyMaterial, multicodecName });
+    const multibaseId = keyToMultibaseId({ key: publicKeyBytes, multicodecName });
 
     return multibaseId;
-  }
-
-  public static async keyToJwk(options:
-    Partial<JsonWebKey> & {
-    keyMaterial: Uint8Array,
-    keyType: Web5Crypto.KeyType,
-  }): Promise<JsonWebKey> {
-    const { keyMaterial, keyType, ...jsonWebKeyOptions } = options;
-
-    let jsonWebKey = { ...jsonWebKeyOptions } as JsonWebKey;
-
-    /**
-     * All Elliptic Curve (EC) and Octet Key Pair (OKP) keys
-     * specify a "crv" (named curve) parameter.
-     */
-    if ('crv' in jsonWebKey) {
-      switch (jsonWebKey.crv) {
-
-        case 'Ed25519': {
-          const publicKey = (keyType === 'private')
-            ? await Ed25519.getPublicKey({ privateKey: keyMaterial })
-            : keyMaterial;
-          jsonWebKey.x = Convert.uint8Array(publicKey).toBase64Url();
-          jsonWebKey.kty ??= 'OKP';
-          break;
-        }
-
-        case 'X25519': {
-          const publicKey = (keyType === 'private')
-            ? await X25519.getPublicKey({ privateKey: keyMaterial })
-            : keyMaterial;
-          jsonWebKey.x = Convert.uint8Array(publicKey).toBase64Url();
-          jsonWebKey.kty ??= 'OKP';
-          break;
-        }
-
-        case 'secp256k1': {
-          const points = await Secp256k1.getCurvePoints({ key: keyMaterial });
-          jsonWebKey.x = Convert.uint8Array(points.x).toBase64Url();
-          jsonWebKey.y = Convert.uint8Array(points.y).toBase64Url();
-          jsonWebKey.kty ??= 'EC';
-          break;
-        }
-
-        default: {
-          throw new Error(`Unsupported key to JWK conversion: ${jsonWebKey.crv}`);
-        }
-      }
-
-      if (keyType === 'private') {
-        jsonWebKey = {
-          d: Convert.uint8Array(keyMaterial).toBase64Url(),
-          ...jsonWebKey
-        };
-      }
-    }
-
-    /**
-     * All Octet Sequence (oct) symmetric encryption and signature keys
-     * specify only an "alg" parameter.
-     */
-    if (!('crv' in jsonWebKey) && jsonWebKey.kty === 'oct') {
-      jsonWebKey.k = Convert.uint8Array(keyMaterial).toBase64Url();
-    }
-
-    return { ...jsonWebKey };
   }
 
   public static async multicodecToJose(options: {
@@ -951,51 +701,6 @@ export class Jose {
 
     if (jose === undefined) {
       throw new Error(`Unsupported Multicodec to JOSE conversion: '${options.name}'`);
-    }
-
-    return { ...jose };
-  }
-
-  public static webCryptoToJose(options:
-    Web5Crypto.Algorithm | Web5Crypto.GenerateKeyOptions
-  ): Partial<JsonWebKey> {
-    const params: string[] = [];
-
-    /**
-     * All WebCrypto algorithms have the "named" parameter.
-     */
-    params.push(options.name);
-
-    /**
-     * All Elliptic Curve (EC) WebCrypto algorithms
-     * set a value for the "namedCurve" parameter.
-     */
-    if ('curve' in options) {
-      params.push(options.curve);
-
-    /**
-     * All symmetric encryption (AES) WebCrypto algorithms
-     * set a value for the "length" parameter.
-     */
-    } else if ('length' in options && options.length !== undefined) {
-      params.push(options.length.toString());
-
-    /**
-     * All symmetric signature (HMAC) WebCrypto algorithms
-     * set a value for the "hash" parameter.
-     */
-    } else if ('hash' in options) {
-      params.push(options.hash.name);
-
-    } else {
-      throw new TypeError(`One or more parameters missing: 'curve', 'name', 'length', or 'hash'`);
-    }
-
-    const lookupKey = params.join(':');
-    const jose = webCryptoToJoseMapping[lookupKey];
-
-    if (jose === undefined) {
-      throw new Error(`Unsupported WebCrypto to JOSE conversion: '${lookupKey}'`);
     }
 
     return { ...jose };

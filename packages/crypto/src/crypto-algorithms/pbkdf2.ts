@@ -1,7 +1,8 @@
-import type { PrivateKeyJwk } from '../jose.js';
+import { Convert } from '@web5/common';
+
+import type { JwkParamsOctPrivate, PrivateKeyJwk } from '../jose.js';
 import type { Web5Crypto } from '../types/web5-crypto.js';
 
-import { Jose } from '../jose.js';
 import { Pbkdf2 } from '../crypto-primitives/pbkdf2.js';
 import { BasePbkdf2Algorithm, OperationError } from '../algorithms-api/index.js';
 
@@ -35,7 +36,7 @@ export class Pbkdf2Algorithm extends BasePbkdf2Algorithm {
     }
 
     // Convert the base key to bytes.
-    const baseKeyBytes = await Jose.jwkToBytes({ key: baseKey });
+    const baseKeyBytes = Convert.base64Url((baseKey as JwkParamsOctPrivate).k).toUint8Array();
 
     const derivedBits = Pbkdf2.deriveKey({
       hash       : algorithm.hash as 'SHA-256' | 'SHA-384' | 'SHA-512',

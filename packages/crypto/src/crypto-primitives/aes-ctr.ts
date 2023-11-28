@@ -89,7 +89,7 @@ export class AesCtr {
     // Construct the private key in JWK format.
     const privateKey: PrivateKeyJwk = {
       k   : Convert.uint8Array(privateKeyBytes).toBase64Url(),
-      kty : 'oct',
+      kty : 'oct'
     };
 
     // Compute the JWK thumbprint and set as the key ID.

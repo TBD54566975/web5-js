@@ -80,33 +80,6 @@ describe('Algorithms API', () => {
       });
     });
 
-    describe('checkCryptoKey()', () => {
-      it('does not throw with a valid CryptoKey object', () => {
-        const mockCryptoKey = {
-          algorithm   : null,
-          extractable : null,
-          type        : null,
-          usages      : null
-        };
-        expect(() => alg.checkCryptoKey({
-          // @ts-expect-error because 'material' property is intentionally omitted to support WebCrypto API CryptoKeys.
-          key: mockCryptoKey
-        })).to.not.throw();
-      });
-
-      it('throws an error if the algorithm name does not match', () => {
-        const mockCryptoKey = {
-          algorithm : null,
-          type      : null,
-          usages    : null
-        };
-        expect(() => alg.checkCryptoKey({
-          // @ts-expect-error because 'extractable' property is intentionally ommitted to trigger check to throw.
-          key: mockCryptoKey
-        })).to.throw(TypeError, 'Object is not a CryptoKey');
-      });
-    });
-
     describe('checkKeyAlgorithm()', () => {
       it('throws an error when keyAlgorithmName is undefined', async () => {
         expect(() => alg.checkKeyAlgorithm({} as any)).to.throw(TypeError, 'Required parameter missing');

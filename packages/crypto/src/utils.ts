@@ -1,8 +1,4 @@
-// import type { BytesKeyPair, Web5Crypto } from './types/index.js';
-import type { Web5Crypto } from './types/web5-crypto.js';
-import type { BytesKeyPair } from './types/crypto-key.js';
-
-import { Convert, Multicodec, universalTypeOf } from '@web5/common';
+import { Convert, Multicodec } from '@web5/common';
 import { bytesToHex, randomBytes as nobleRandomBytes } from '@noble/hashes/utils';
 
 /**
@@ -49,30 +45,6 @@ export function checkValidProperty(options: {
     const validProperties = Array.from((allowedProperties instanceof Map) ? allowedProperties.keys() : allowedProperties).join(', ');
     throw new TypeError(`Out of range: '${property}'. Must be one of '${validProperties}'`);
   }
-}
-
-/**
- * Type guard function to check if the given key is a raw key pair
- * of Uint8Array typed arrays.
- *
- * @param key The key to check.
- * @returns True if the key is a pair of Uint8Array typed arrays, false otherwise.
- */
-export function isBytesKeyPair(key: BytesKeyPair | undefined): key is BytesKeyPair {
-  return (key && 'privateKey' in key && 'publicKey' in key &&
-    universalTypeOf(key.privateKey) === 'Uint8Array' &&
-    universalTypeOf(key.publicKey) === 'Uint8Array') ? true : false;
-}
-
-/**
- * Type guard function to check if the given key is a
- * Web5Crypto.CryptoKeyPair.
- *
- * @param key The key to check.
- * @returns True if the key is a CryptoKeyPair, false otherwise.
- */
-export function isCryptoKeyPair(key: Web5Crypto.CryptoKey | Web5Crypto.CryptoKeyPair): key is Web5Crypto.CryptoKeyPair {
-  return key && 'privateKey' in key && 'publicKey' in key;
 }
 
 export function keyToMultibaseId(options: {

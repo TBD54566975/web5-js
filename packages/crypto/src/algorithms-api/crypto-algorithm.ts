@@ -27,15 +27,6 @@ export abstract class CryptoAlgorithm {
     }
   }
 
-  public checkCryptoKey(options: {
-    key: Web5Crypto.CryptoKey
-  }): void {
-    const { key } = options;
-    if (!('algorithm' in key && 'extractable' in key && 'type' in key && 'usages' in key)) {
-      throw new TypeError('Object is not a CryptoKey');
-    }
-  }
-
   public checkJwk(options: {
     key: JsonWebKey
   }): void {
