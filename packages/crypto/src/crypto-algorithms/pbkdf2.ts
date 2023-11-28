@@ -1,54 +1,51 @@
+import { Convert } from '@web5/common';
+
+import type { JwkParamsOctPrivate, PrivateKeyJwk } from '../jose.js';
 import type { Web5Crypto } from '../types/web5-crypto.js';
 
-import { BasePbkdf2Algorithm, CryptoKey, OperationError } from '../algorithms-api/index.js';
 import { Pbkdf2 } from '../crypto-primitives/pbkdf2.js';
+import { BasePbkdf2Algorithm, OperationError } from '../algorithms-api/index.js';
 
 export class Pbkdf2Algorithm extends BasePbkdf2Algorithm {
-  public readonly hashAlgorithms = ['SHA-256', 'SHA-384', 'SHA-512'];
+  public readonly names = ['PBKDF2'] as const;
+  public readonly hashAlgorithms = ['SHA-256', 'SHA-384', 'SHA-512'] as const;
 
   public async deriveBits(options: {
     algorithm: Web5Crypto.Pbkdf2Options,
-    baseKey: Web5Crypto.CryptoKey,
+    baseKey: PrivateKeyJwk,
     length: number
   }): Promise<Uint8Array> {
     const { algorithm, baseKey, length } = options;
 
+    // Check the `algorithm` and `baseKey` values for PBKDF2 requirements.
     this.checkAlgorithmOptions({ algorithm, baseKey });
-    // The base key must be allowed to be used for deriveBits operations.
-    this.checkKeyUsages({ keyUsages: ['deriveBits'], allowedKeyUsages: baseKey.usages });
+
+    // If specified, the base key's `key_ops` must include the 'deriveBits' operation.
+    if (baseKey.key_ops) {
+      this.checkKeyOperations({ keyOperations: ['deriveBits'], allowedKeyOperations: baseKey.key_ops });
+    }
+
     // If the length is 0, throw.
     if (typeof length !== 'undefined' && length === 0) {
       throw new OperationError(`The value of 'length' cannot be zero.`);
     }
+
     // If the length is not a multiple of 8, throw.
     if (length && length % 8 !== 0) {
       throw new OperationError(`To be compatible with all browsers, 'length' must be a multiple of 8.`);
     }
 
+    // Convert the base key to bytes.
+    const baseKeyBytes = Convert.base64Url((baseKey as JwkParamsOctPrivate).k).toUint8Array();
+
     const derivedBits = Pbkdf2.deriveKey({
       hash       : algorithm.hash as 'SHA-256' | 'SHA-384' | 'SHA-512',
       iterations : algorithm.iterations,
       length     : length,
-      password   : baseKey.material,
+      password   : baseKeyBytes,
       salt       : algorithm.salt
     });
 
     return derivedBits;
-  }
-
-  public async importKey(options: {
-    format: Web5Crypto.KeyFormat,
-    keyData: Uint8Array,
-    algorithm: Web5Crypto.Algorithm,
-    extractable: boolean,
-    keyUsages: Web5Crypto.KeyUsage[]
-  }): Promise<Web5Crypto.CryptoKey> {
-    const { format, keyData, algorithm, extractable, keyUsages } = options;
-
-    this.checkImportKey({ algorithm, format, extractable, keyUsages });
-
-    const cryptoKey = new CryptoKey(algorithm, extractable, keyData, 'secret', keyUsages);
-
-    return cryptoKey;
   }
 }

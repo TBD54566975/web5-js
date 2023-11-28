@@ -1,0 +1,44 @@
+{
+  "description" : "X25519 bytesToPrivateKey test vectors",
+  "vectors"     : [
+    {
+      "description" : "converts wycheproof vector 1 to the expected private key",
+      "input"       : {
+        "privateKeyBytes": "c8a9d5a91091ad851c668b0736c1c9a02936c0d3ad62670858088047ba057475"
+      },
+      "output": {
+        "crv" : "X25519",
+        "d" : "yKnVqRCRrYUcZosHNsHJoCk2wNOtYmcIWAiAR7oFdHU",
+        "kid" : "tzkgHF2KJ5d1ir5OaJi9VdNtwKrvnDUPUagtedeyyNE",
+        "kty" : "OKP",
+        "x" : "X2S0HM6Kaz1qOHYwiPYVpJd9QiKIrkK0mrOlfi_Nb20"
+      }
+    },
+    {
+      "description" : "converts wycheproof vector 2 to the expected private key",
+      "input"       : {
+        "privateKeyBytes": "d85d8c061a50804ac488ad774ac716c3f5ba714b2712e048491379a500211958"
+      },
+      "output": {
+        "crv" : "X25519",
+        "d" : "2F2MBhpQgErEiK13SscWw_W6cUsnEuBISRN5pQAhGVg",
+        "kid" : "0FSNmN_cVErHxsnoRtFHANkAQyklGgA7crsE-HiFPwg",
+        "kty" : "OKP",
+        "x" : "qQMfm22ifgIOV-IEKfLitbg0jEkoIQbCpbI2WnI_DSA"
+      }
+    },
+    {
+      "description" : "converts wycheproof vector 3 to the expected private key",
+      "input"       : {
+        "privateKeyBytes": "c8b45bfd32e55325d9fd648cb302848039000b390e44d521e58aab3b29a6964b"
+      },
+      "output": {
+        "crv" : "X25519",
+        "d" : "yLRb_TLlUyXZ_WSMswKEgDkACzkORNUh5YqrOymmlks",
+        "kid" : "OaJSSSZ5RBIGtsE8-ah1lWjcXrk5Fk4TYpuu_AgQKJs",
+        "kty" : "OKP",
+        "x" : "_s8qHPERyRymPqNATkQbqkB7-jpudS-30g-VRmkN00M"
+      }
+    }
+  ]
+}

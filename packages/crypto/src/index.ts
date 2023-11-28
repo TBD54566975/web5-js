@@ -1,4 +1,3 @@
-export type * from './types/crypto-key.js';
 export type * from './types/web5-crypto.js';
 
 export * from './algorithms-api/index.js';
