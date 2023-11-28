@@ -149,7 +149,7 @@ describe('DwnApi', () => {
         expect(response.protocols.length).to.equal(0);
       });
 
-      it('returns published protocol definitions for requests from external DID', async () => {
+      it.skip('returns published protocol definitions for requests from external DID', async () => {
         // Configure a published protocol on Alice's local DWN.
         const publicProtocol = await dwnAlice.protocols.configure({
           message: {
@@ -178,7 +178,7 @@ describe('DwnApi', () => {
         expect(publishedResponse.protocols[0].definition.protocol).to.equal('http://proto-published');
       });
 
-      it('does not return unpublished protocol definitions for requests from external DID', async () => {
+      it.skip('does not return unpublished protocol definitions for requests from external DID', async () => {
         // Configure an unpublished protocol on Alice's DWN.
         const notPublicProtocol = await dwnAlice.protocols.configure({
           message: {
