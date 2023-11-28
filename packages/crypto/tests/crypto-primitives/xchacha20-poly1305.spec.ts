@@ -73,7 +73,7 @@ describe('XChaCha20Poly1305', () => {
       expect(plaintext).to.deep.equal(output);
     });
 
-    it('throws an error if the wrong tag is given', async () => {
+    it('throws an error if an invalid tag is given', async () => {
       await expect(
         XChaCha20Poly1305.decrypt({
           data  : new Uint8Array(10),
@@ -81,7 +81,7 @@ describe('XChaCha20Poly1305', () => {
           nonce : new Uint8Array(24),
           tag   : new Uint8Array(16)
         })
-      ).to.eventually.be.rejectedWith(Error, 'Wrong tag');
+      ).to.eventually.be.rejectedWith(Error, 'invalid tag');
     });
   });
 

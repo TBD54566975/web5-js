@@ -1,5 +1,5 @@
 import { Convert } from '@web5/common';
-import { xchacha20_poly1305 } from '@noble/ciphers/chacha';
+import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 
 import type { PrivateKeyJwk } from '../jose.js';
 
@@ -145,7 +145,7 @@ export class XChaCha20Poly1305 {
     // Convert the private key from JWK format to bytes.
     const privateKeyBytes = await XChaCha20Poly1305.privateKeyToBytes({ privateKey: key });
 
-    const xc20p = xchacha20_poly1305(privateKeyBytes, nonce, additionalData);
+    const xc20p = xchacha20poly1305(privateKeyBytes, nonce, additionalData);
     const ciphertext = new Uint8Array([...data, ...tag]);
     const plaintext = xc20p.decrypt(ciphertext);
 
@@ -196,7 +196,7 @@ export class XChaCha20Poly1305 {
     // Convert the private key from JWK format to bytes.
     const privateKeyBytes = await XChaCha20Poly1305.privateKeyToBytes({ privateKey: key });
 
-    const xc20p = xchacha20_poly1305(privateKeyBytes, nonce, additionalData);
+    const xc20p = xchacha20poly1305(privateKeyBytes, nonce, additionalData);
     const cipherOutput = xc20p.encrypt(data);
 
     const ciphertext = cipherOutput.subarray(0, -TAG_LENGTH);
