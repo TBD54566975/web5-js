@@ -213,13 +213,9 @@ export class VerifiableCredential {
       throw new Error('Signature verification failed: Expected JWS header to contain alg and kid');
     }
 
-
     const verificationResponse = await verifyJWT(vcJwt, {
       resolver: tbdResolver
     });
-
-    console.log('hiii');
-
 
     if (!verificationResponse.verified) {
       throw new Error('VC JWT could not be verified. Reason: ' + JSON.stringify(verificationResponse));

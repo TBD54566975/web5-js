@@ -16,7 +16,6 @@ describe('Verifiable Credential Tests', () => {
     ) {}
   }
 
-
   beforeEach(async () => {
     const alice = await DidKeyMethod.create();
     const [signingKeyPair] = alice.keySet.verificationMethodKeys!;
