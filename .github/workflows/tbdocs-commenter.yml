@@ -2,7 +2,7 @@ name: TBDocs Commenter
 
 on:
   workflow_run:
-    workflows: ["Continuous Integration"]
+    workflows: ["Docs Continuous Integration"]
     types:
       - completed
 
@@ -25,7 +25,7 @@ jobs:
         run: |
           report_file='.tbdocs/docs-report.md'
           head_sha="${{ github.event.workflow_run.pull_requests[0].head.sha }}"
-          short_sha=${head_sha:0:7} 
+          short_sha=${head_sha:0:7}
           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           repo="${{ github.repository }}"
           sha_link="https://github.com/$repo/commit/$head_sha"
@@ -43,7 +43,6 @@ jobs:
           comment-author: "github-actions[bot]"
           body-includes: TBDocs Report
 
-      # Comment content of the report.md file on the PR
       - name: Comment on PR
         uses: peter-evans/create-or-update-comment@v3
         with:
