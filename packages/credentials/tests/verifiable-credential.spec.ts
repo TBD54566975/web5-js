@@ -1,7 +1,8 @@
 import { expect } from 'chai';
 import { VerifiableCredential, SignOptions } from '../src/verifiable-credential.js';
 import { Ed25519, Jose } from '@web5/crypto';
-import { DidKeyMethod } from '@web5/dids';
+import { DidDhtMethod, DidKeyMethod, PortableDid } from '@web5/dids';
+import sinon from 'sinon';
 
 type Signer = (data: Uint8Array) => Promise<Uint8Array>;
 
@@ -179,6 +180,172 @@ describe('Verifiable Credential Tests', () => {
       const vcJwt = await vc.sign(signOptions);
 
       await VerifiableCredential.verify(vcJwt);
+    });
+
+    it('verify does not throw an exception with vaild vc signed by did:dht', async () => {
+      const mockDocument: PortableDid = {
+        keySet: {
+          identityKey: {
+            privateKeyJwk: {
+              d       : '_8gihSI-m8aOCCM6jHg33d8kxdImPBN4C5_bZIu10XU',
+              alg     : 'EdDSA',
+              crv     : 'Ed25519',
+              kty     : 'OKP',
+              ext     : 'true',
+              key_ops : [
+                'sign'
+              ],
+              x   : 'Qm88q6jAN9tfnrLt5V2zAiZs7wD_jnewHp7HIvM3dGo',
+              kid : '0'
+            },
+            publicKeyJwk: {
+              alg     : 'EdDSA',
+              crv     : 'Ed25519',
+              kty     : 'OKP',
+              ext     : 'true',
+              key_ops : [
+                'verify'
+              ],
+              x   : 'Qm88q6jAN9tfnrLt5V2zAiZs7wD_jnewHp7HIvM3dGo',
+              kid : '0'
+            }
+          },
+          verificationMethodKeys: [
+            {
+              privateKeyJwk: {
+                d       : '_8gihSI-m8aOCCM6jHg33d8kxdImPBN4C5_bZIu10XU',
+                alg     : 'EdDSA',
+                crv     : 'Ed25519',
+                kty     : 'OKP',
+                ext     : 'true',
+                key_ops : [
+                  'sign'
+                ],
+                x   : 'Qm88q6jAN9tfnrLt5V2zAiZs7wD_jnewHp7HIvM3dGo',
+                kid : '0'
+              },
+              publicKeyJwk: {
+                alg     : 'EdDSA',
+                crv     : 'Ed25519',
+                kty     : 'OKP',
+                ext     : 'true',
+                key_ops : [
+                  'verify'
+                ],
+                x   : 'Qm88q6jAN9tfnrLt5V2zAiZs7wD_jnewHp7HIvM3dGo',
+                kid : '0'
+              },
+              relationships: [
+                'authentication',
+                'assertionMethod',
+                'capabilityInvocation',
+                'capabilityDelegation'
+              ]
+            }
+          ]
+
+        },
+        did      : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
+        document : {
+          id                 : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
+          verificationMethod : [
+            {
+              id           : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy#0',
+              type         : 'JsonWebKey2020',
+              controller   : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                alg : 'EdDSA',
+                kid : '0',
+                x   : 'Qm88q6jAN9tfnrLt5V2zAiZs7wD_jnewHp7HIvM3dGo'
+              }
+            }
+          ],
+          authentication: [
+            '#0'
+          ],
+          assertionMethod: [
+            '#0'
+          ],
+          capabilityInvocation: [
+            '#0'
+          ],
+          capabilityDelegation: [
+            '#0'
+          ]
+        }
+      };
+      const didDhtCreateSpy = sinon.stub(DidDhtMethod, 'create').resolves(mockDocument);
+
+      const alice = await DidDhtMethod.create({ publish: true });
+
+      const [signingKeyPair] = alice.keySet.verificationMethodKeys!;
+      const privateKey = (await Jose.jwkToKey({ key: signingKeyPair.privateKeyJwk!})).keyMaterial;
+      signer = EdDsaSigner(privateKey);
+      signOptions = {
+        issuerDid  : alice.did,
+        subjectDid : alice.did,
+        kid        : alice.did + '#' + alice.did.split(':')[2],
+        signer     : signer
+      };
+
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : signOptions.issuerDid,
+        subject : signOptions.subjectDid,
+        data    : new StreetCredibility('high', true),
+      });
+
+      const dhtDidResolutionSpy = sinon.stub(DidDhtMethod, 'resolve').resolves({
+        '@context'  : 'https://w3id.org/did-resolution/v1',
+        didDocument : {
+          id                 : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
+          verificationMethod : [
+            {
+              id           : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy#0',
+              type         : 'JsonWebKey2020',
+              controller   : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                alg : 'EdDSA',
+                kid : '0',
+                x   : 'Qm88q6jAN9tfnrLt5V2zAiZs7wD_jnewHp7HIvM3dGo'
+              }
+            }
+          ],
+          authentication: [
+            '#0'
+          ],
+          assertionMethod: [
+            '#0'
+          ],
+          capabilityInvocation: [
+            '#0'
+          ],
+          capabilityDelegation: [
+            '#0'
+          ]
+        },
+        didDocumentMetadata   : {},
+        didResolutionMetadata : {
+          contentType : 'application/did+ld+json',
+          did         : {
+            didString        : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
+            methodSpecificId : 'ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
+            method           : 'dht'
+          }
+        }
+      });
+
+      const vcJwt = await vc.sign(signOptions);
+
+      await VerifiableCredential.verify(vcJwt);
+
+      sinon.assert.calledOnce(didDhtCreateSpy);
+      sinon.assert.calledOnce(dhtDidResolutionSpy);
+      sinon.restore();
     });
   });
 });
