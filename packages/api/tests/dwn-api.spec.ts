@@ -1,7 +1,9 @@
 import type { PortableDid } from '@web5/dids';
 
+import sinon from 'sinon';
 import { expect } from 'chai';
 import { TestManagedAgent } from '@web5/agent';
+import { DateSort } from '@tbd54566975/dwn-sdk-js';
 
 import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './test-config.js';
@@ -527,6 +529,134 @@ describe('DwnApi', () => {
         expect(result.records).to.exist;
         expect(result.records!.length).to.equal(1);
         expect(result.records![0].id).to.equal(writeResult.record!.id);
+      });
+
+      it('returns cursor when there are additional results', async () => {
+        for(let i = 0; i < 3; i++ ) {
+          const writeResult = await dwnAlice.records.write({
+            data    : `Hello, world ${i + 1}!`,
+            message : {
+              schema     : 'foo/bar',
+              dataFormat : 'text/plain'
+            }
+          });
+
+          expect(writeResult.status.code).to.equal(202);
+          expect(writeResult.status.detail).to.equal('Accepted');
+          expect(writeResult.record).to.exist;
+        }
+
+        const results = await dwnAlice.records.query({
+          message: {
+            filter: {
+              schema: 'foo/bar'
+            },
+            pagination: { limit: 2 } // set a limit of 2
+          }
+        });
+
+        expect(results.status.code).to.equal(200);
+        expect(results.records).to.exist;
+        expect(results.records!.length).to.equal(2);
+        expect(results.cursor).to.exist;
+
+        const additionalResults = await dwnAlice.records.query({
+          message: {
+            filter: {
+              schema: 'foo/bar'
+            },
+            pagination: { limit: 2, cursor: results.cursor}
+          }
+        });
+        expect(additionalResults.status.code).to.equal(200);
+        expect(additionalResults.records).to.exist;
+        expect(additionalResults.records!.length).to.equal(1);
+        expect(additionalResults.cursor).to.not.exist;
+      });
+
+      it('sorts results based on provided query sort parameter', async () => {
+        const clock = sinon.useFakeTimers();
+
+        const items = [];
+        const publishedItems = [];
+        for(let i = 0; i < 6; i++ ) {
+          const writeResult = await dwnAlice.records.write({
+            data    : `Hello, world ${i + 1}!`,
+            message : {
+              published  : i % 2 == 0 ? true : false,
+              schema     : 'foo/bar',
+              dataFormat : 'text/plain'
+            }
+          });
+
+          expect(writeResult.status.code).to.equal(202);
+          expect(writeResult.status.detail).to.equal('Accepted');
+          expect(writeResult.record).to.exist;
+
+          items.push(writeResult.record.id); // add id to list in the order it was inserted
+          if (writeResult.record.published === true) {
+            publishedItems.push(writeResult.record.id); // add published records separately
+          }
+
+          clock.tick(1000 * 1); // travel forward one second
+        }
+        clock.restore();
+
+        // query in ascending order by the dateCreated field
+        const createdAscResults = await dwnAlice.records.query({
+          message: {
+            filter: {
+              schema: 'foo/bar'
+            },
+            dateSort: DateSort.CreatedAscending // same as default
+          }
+        });
+        expect(createdAscResults.status.code).to.equal(200);
+        expect(createdAscResults.records).to.exist;
+        expect(createdAscResults.records!.length).to.equal(6);
+        expect(createdAscResults.records.map(r => r.id)).to.eql(items);
+
+        // query in descending order by the dateCreated field
+        const createdDescResults = await dwnAlice.records.query({
+          message: {
+            filter: {
+              schema: 'foo/bar'
+            },
+            dateSort: DateSort.CreatedDescending
+          }
+        });
+        expect(createdDescResults.status.code).to.equal(200);
+        expect(createdDescResults.records).to.exist;
+        expect(createdDescResults.records!.length).to.equal(6);
+        expect(createdDescResults.records.map(r => r.id)).to.eql([...items].reverse());
+
+        // query in ascending order by the datePublished field, this will only return published records
+        const publishedAscResults = await dwnAlice.records.query({
+          message: {
+            filter: {
+              schema: 'foo/bar'
+            },
+            dateSort: DateSort.PublishedAscending
+          }
+        });
+        expect(publishedAscResults.status.code).to.equal(200);
+        expect(publishedAscResults.records).to.exist;
+        expect(publishedAscResults.records!.length).to.equal(3);
+        expect(publishedAscResults.records.map(r => r.id)).to.eql(publishedItems);
+
+        // query in desscending order by the datePublished field, this will only return published records
+        const publishedDescResults = await dwnAlice.records.query({
+          message: {
+            filter: {
+              schema: 'foo/bar'
+            },
+            dateSort: DateSort.PublishedDescending
+          }
+        });
+        expect(publishedDescResults.status.code).to.equal(200);
+        expect(publishedDescResults.records).to.exist;
+        expect(publishedDescResults.records!.length).to.equal(3);
+        expect(publishedDescResults.records.map(r => r.id)).to.eql([...publishedItems].reverse());
       });
     });
 
