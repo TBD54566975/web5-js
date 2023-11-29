@@ -281,7 +281,7 @@ describe('Verifiable Credential Tests', () => {
       const alice = await DidDhtMethod.create({ publish: true });
 
       const [signingKeyPair] = alice.keySet.verificationMethodKeys!;
-      const privateKey = (await Jose.jwkToKey({ key: signingKeyPair.privateKeyJwk!})).keyMaterial;
+      const privateKey = (await Jose.jwkToKey({ key: signingKeyPair.privateKeyJwk! })).keyMaterial;
       signer = EdDsaSigner(privateKey);
       signOptions = {
         issuerDid  : alice.did,
