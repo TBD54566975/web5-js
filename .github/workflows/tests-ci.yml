@@ -151,7 +151,7 @@ jobs:
 
       - name: TBDocs Reporter
         id: tbdocs-reporter-protocol
-        uses: TBD54566975/tbdocs@main
+        uses: TBD54566975/tbdocs@b38d87d0c0dca088d3a82e99beea921586c67f67
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           report_changed_scope_only: false
