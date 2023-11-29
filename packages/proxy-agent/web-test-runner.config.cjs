@@ -17,7 +17,8 @@ module.exports = {
       product: 'firefox',
     }),
   ],
-  concurrentBrowsers : 1,
+  testsFinishTimeout : 300000,
+  concurrentBrowsers : 2,
   testFramework      : {
     config: {
       timeout: '15000',

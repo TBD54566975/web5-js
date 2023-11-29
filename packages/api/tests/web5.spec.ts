@@ -83,6 +83,6 @@ describe('Web5', () => {
 
       expect(did).to.exist;
       expect(web5).to.exist;
-    }).timeout(10000);
+    });
   });
 });
