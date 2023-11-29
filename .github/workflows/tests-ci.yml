@@ -161,6 +161,13 @@ jobs:
               docsReporter: api-extractor
               docsGenerator: typedoc-markdown
 
+      - name: Save Artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: tbdocs-reporter-output
+          path: ./.tbdocs
+
   web5-spec:
     runs-on: ubuntu-latest
     steps:
