@@ -1,21 +1,21 @@
+import { universalTypeOf } from '@web5/common';
+
+import type { JwkOperation, PrivateKeyJwk } from '../../jose.js';
 import type { Web5Crypto } from '../../types/web5-crypto.js';
 
-import { InvalidAccessError, OperationError } from '../errors.js';
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
+import { InvalidAccessError, OperationError } from '../errors.js';
 import { checkRequiredProperty, checkValidProperty } from '../../utils.js';
-import { universalTypeOf } from '@web5/common';
 
 export abstract class BasePbkdf2Algorithm extends CryptoAlgorithm {
 
-  public readonly name: string = 'PBKDF2';
+  public readonly abstract hashAlgorithms: ReadonlyArray<string>;
 
-  public readonly abstract hashAlgorithms: string[];
-
-  public readonly keyUsages: Web5Crypto.KeyUsage[] = ['deriveBits', 'deriveKey'];
+  public readonly keyOperations: JwkOperation[] = ['deriveBits', 'deriveKey'];
 
   public checkAlgorithmOptions(options: {
     algorithm: Web5Crypto.Pbkdf2Options,
-    baseKey: Web5Crypto.CryptoKey
+    baseKey: PrivateKeyJwk
   }): void {
     const { algorithm, baseKey } = options;
     // Algorithm specified in the operation must match the algorithm implementation processing the operation.
@@ -42,50 +42,29 @@ export abstract class BasePbkdf2Algorithm extends CryptoAlgorithm {
     }
     // The options object must contain a baseKey property.
     checkRequiredProperty({ property: 'baseKey', inObject: options });
-    // The baseKey object must be a CryptoKey.
-    this.checkCryptoKey({ key: baseKey });
-    // The baseKey algorithm must match the algorithm implementation processing the operation.
-    this.checkKeyAlgorithm({ keyAlgorithmName: baseKey.algorithm.name });
-  }
-
-  public checkImportKey(options: {
-    algorithm: Web5Crypto.Algorithm,
-    format: Web5Crypto.KeyFormat,
-    extractable: boolean,
-    keyUsages: Web5Crypto.KeyUsage[]
-  }): void {
-    const { algorithm, format, extractable, keyUsages } = options;
-    // Algorithm specified in the operation must match the algorithm implementation processing the operation.
-    this.checkAlgorithmName({ algorithmName: algorithm.name });
-    // The format specified must be 'raw'.
-    if (format !== 'raw') {
-      throw new SyntaxError(`Format '${format}' not supported. Only 'raw' is supported.`);
-    }
-    // The extractable value specified must be false.
-    if (extractable !== false) {
-      throw new SyntaxError(`Extractable '${extractable}' not supported. Only 'false' is supported.`);
-    }
-    // The key usages specified must be permitted by the algorithm implementation processing the operation.
-    this.checkKeyUsages({ keyUsages, allowedKeyUsages: this.keyUsages });
+    // The baseKey object must be a JSON Web Key (JWK).
+    this.checkJwk({ key: baseKey });
+    // The baseKey must be of type 'oct' (octet sequence).
+    this.checkKeyType({ keyType: baseKey.kty, allowedKeyTypes: ['oct'] });
   }
 
   public override async decrypt(): Promise<Uint8Array> {
-    throw new InvalidAccessError(`Requested operation 'decrypt' is not valid for ${this.name} keys.`);
+    throw new InvalidAccessError(`Requested operation 'decrypt' is not valid for '${this.names.join(', ')}' keys.`);
   }
 
   public override async encrypt(): Promise<Uint8Array> {
-    throw new InvalidAccessError(`Requested operation 'encrypt' is not valid for ${this.name} keys.`);
+    throw new InvalidAccessError(`Requested operation 'encrypt' is not valid for '${this.names.join(', ')}' keys.`);
   }
 
-  public override async generateKey(): Promise<Web5Crypto.CryptoKey> {
-    throw new InvalidAccessError(`Requested operation 'generateKey' is not valid for ${this.name} keys.`);
+  public override async generateKey(): Promise<PrivateKeyJwk> {
+    throw new InvalidAccessError(`Requested operation 'generateKey' is not valid for '${this.names.join(', ')}' keys.`);
   }
 
   public override async sign(): Promise<Uint8Array> {
-    throw new InvalidAccessError(`Requested operation 'sign' is not valid for ${this.name} keys.`);
+    throw new InvalidAccessError(`Requested operation 'sign' is not valid for '${this.names.join(', ')}' keys.`);
   }
 
   public override async verify(): Promise<boolean> {
-    throw new InvalidAccessError(`Requested operation 'verify' is not valid for ${this.name} keys.`);
+    throw new InvalidAccessError(`Requested operation 'verify' is not valid for '${this.names.join(', ')}' keys.`);
   }
 }

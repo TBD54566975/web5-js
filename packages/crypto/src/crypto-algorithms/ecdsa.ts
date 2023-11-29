@@ -1,111 +1,86 @@
 import type { Web5Crypto } from '../types/web5-crypto.js';
-import type { BytesKeyPair } from '../types/crypto-key.js';
+import type { JwkOperation, JwkParamsEcPrivate, JwkParamsEcPublic, PrivateKeyJwk, PublicKeyJwk } from '../jose.js';
 
-import { isBytesKeyPair } from '../utils.js';
 import { Secp256k1 } from '../crypto-primitives/index.js';
-import { CryptoKey, BaseEcdsaAlgorithm } from '../algorithms-api/index.js';
+import { BaseEcdsaAlgorithm } from '../algorithms-api/index.js';
+
 export class EcdsaAlgorithm extends BaseEcdsaAlgorithm {
-  public readonly hashAlgorithms = ['SHA-256'];
-  public readonly namedCurves = ['secp256k1'];
+  public readonly names = ['ES256K'] as const;
+  public readonly curves = ['secp256k1'] as const;
 
   public async generateKey(options: {
     algorithm: Web5Crypto.EcdsaGenerateKeyOptions,
-    extractable: boolean,
-    keyUsages: Web5Crypto.KeyUsage[]
-  }): Promise<Web5Crypto.CryptoKeyPair> {
-    const { algorithm, extractable, keyUsages } = options;
+    keyOperations?: JwkOperation[]
+  }): Promise<PrivateKeyJwk> {
+    const { algorithm, keyOperations } = options;
 
-    this.checkGenerateKey({ algorithm, keyUsages });
+    // Validate the input parameters.
+    this.checkGenerateKeyOptions({ algorithm, keyOperations });
 
-    let keyPair: BytesKeyPair | undefined;
-    let cryptoKeyPair: Web5Crypto.CryptoKeyPair;
+    let privateKey: PrivateKeyJwk | undefined;
 
-    switch (algorithm.namedCurve) {
+    switch (algorithm.curve) {
 
       case 'secp256k1': {
-        algorithm.compressedPublicKey ??= true;
-        keyPair = await Secp256k1.generateKeyPair({ compressedPublicKey: algorithm.compressedPublicKey });
+        privateKey = await Secp256k1.generateKey();
+        privateKey.alg = 'ES256K';
         break;
       }
-      // Default case not needed because checkGenerateKey() already validates the specified namedCurve is supported.
+      // Default case unnecessary because checkGenerateKeyOptions() validates the input parameters.
     }
 
-    if (!isBytesKeyPair(keyPair)) {
-      throw new Error('Operation failed to generate key pair.');
+    if (privateKey) {
+      if (keyOperations) privateKey.key_ops = keyOperations;
+      return privateKey;
     }
 
-    cryptoKeyPair = {
-      privateKey : new CryptoKey(algorithm, extractable, keyPair.privateKey, 'private', this.keyUsages.privateKey),
-      publicKey  : new CryptoKey(algorithm, true, keyPair.publicKey, 'public', this.keyUsages.publicKey)
-    };
-
-    return cryptoKeyPair;
+    throw new Error('Operation failed: generateKey');
   }
 
   public async sign(options: {
     algorithm: Web5Crypto.EcdsaOptions,
-    key: Web5Crypto.CryptoKey,
+    key: PrivateKeyJwk,
     data: Uint8Array
   }): Promise<Uint8Array> {
-    const { algorithm, key, data } = options;
+    const { key, data } = options;
 
-    this.checkAlgorithmOptions({ algorithm });
-    // The key's algorithm must match the algorithm implementation processing the operation.
-    this.checkKeyAlgorithm({ keyAlgorithmName: key.algorithm.name });
-    // The key must be a private key.
-    this.checkKeyType({ keyType: key.type, allowedKeyType: 'private' });
-    // The key must be allowed to be used for sign operations.
-    this.checkKeyUsages({ keyUsages: ['sign'], allowedKeyUsages: key.usages });
+    // Validate the input parameters.
+    this.checkSignOptions(options);
 
-    let signature: Uint8Array;
+    const curve = (key as JwkParamsEcPrivate).crv;  // checkSignOptions verifies that the key is an EC private key.
 
-    const keyAlgorithm = key.algorithm as Web5Crypto.EcdsaGenerateKeyOptions; // Type guard.
-
-    switch (keyAlgorithm.namedCurve) {
+    switch (curve) {
 
       case 'secp256k1': {
-        signature = await Secp256k1.sign({ hash: algorithm.hash, key: key.material, data });
-        break;
+        return await Secp256k1.sign({ key, data });
       }
-
-      default:
-        throw new TypeError(`Out of range: '${keyAlgorithm.namedCurve}'. Must be one of '${this.namedCurves.join(', ')}'`);
+      // Default case unnecessary because checkSignOptions() validates the input parameters.
     }
 
-    return signature;
+    throw new Error('Operation failed: sign');
   }
 
   public async verify(options: {
     algorithm: Web5Crypto.EcdsaOptions;
-    key: Web5Crypto.CryptoKey;
+    key: PublicKeyJwk;
     signature: Uint8Array;
     data: Uint8Array;
   }): Promise<boolean> {
-    const { algorithm, key, signature, data } = options;
+    const { key, signature, data } = options;
 
-    this.checkAlgorithmOptions({ algorithm });
-    // The key's algorithm must match the algorithm implementation processing the operation.
-    this.checkKeyAlgorithm({ keyAlgorithmName: key.algorithm.name });
-    // The key must be a public key.
-    this.checkKeyType({ keyType: key.type, allowedKeyType: 'public' });
-    // The key must be allowed to be used for verify operations.
-    this.checkKeyUsages({ keyUsages: ['verify'], allowedKeyUsages: key.usages });
+    // Validate the input parameters.
+    this.checkVerifyOptions(options);
 
-    let isValid: boolean;
+    const curve = (key as JwkParamsEcPublic).crv;  // checkVerifyOptions verifies that the key is an EC public key.
 
-    const keyAlgorithm = key.algorithm as Web5Crypto.EcdsaGenerateKeyOptions; // Type guard.
-
-    switch (keyAlgorithm.namedCurve) {
+    switch (curve) {
 
       case 'secp256k1': {
-        isValid = await Secp256k1.verify({ hash: algorithm.hash, key: key.material, signature, data });
-        break;
+        return await Secp256k1.verify({ key, signature, data });
       }
-
-      default:
-        throw new TypeError(`Out of range: '${keyAlgorithm.namedCurve}'. Must be one of '${this.namedCurves.join(', ')}'`);
+      // Default case unnecessary because checkVerifyOptions() validates the input parameters.
     }
 
-    return isValid;
+    throw new Error('Operation failed: verify');
   }
 }

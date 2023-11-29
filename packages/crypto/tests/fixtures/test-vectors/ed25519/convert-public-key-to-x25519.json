@@ -1,0 +1,37 @@
+{
+  "description" : "Ed25519 convertPublicKeyToX25519 test vectors",
+  "vectors"     : [
+    {
+      "description" : "converts Ed25519 public key to expected X25519 public key 1",
+      "input"       : {
+        "publicKey": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "0KTOwPi1C6HpNuxWFUVKqX37J4ZPXxdgivLLsQVI8bM"
+        }
+      },
+      "output": {
+        "crv": "X25519",
+        "kid": "xtsuKULPh6VN9fuJMRwj66cDfQyLaxuXHkMlmAe_v6I",
+        "kty": "OKP",
+        "x": "7XdJtNmJ9pV_O_3mxWdn6YjiHJ-HhNkdYQARzVU_mwY"
+      }
+    },
+    {
+      "description" : "converts Ed25519 public key to expected X25519 public key 2",
+      "input"       : {
+        "publicKey": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "kZoyeYylO0RwCTgPuX-MG0V2YcqXOBVWL5TwCsWhkzU"
+        }
+      },
+      "output": {
+        "crv": "X25519",
+        "kid": "O7xmoK9ptzlG6ewnl1cQ-6DbVgzIeMhP4nHUM8oD_M8",
+        "kty": "OKP",
+        "x": "cz3yKnz6Wfc1GchUbCDR-Pp2jZeXLTehnzPTsBJ_J14"
+      }
+    }
+  ]
+}

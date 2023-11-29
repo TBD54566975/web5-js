@@ -1,37 +1,52 @@
 import type { Web5Crypto } from '../../types/web5-crypto.js';
+import type { JwkOperation, PrivateKeyJwk, PublicKeyJwk } from '../../jose.js';
 
+import { Jose } from '../../jose.js';
 import { InvalidAccessError } from '../errors.js';
 import { BaseEllipticCurveAlgorithm } from './base.js';
-import { checkValidProperty, checkRequiredProperty } from '../../utils.js';
 
 export abstract class BaseEcdsaAlgorithm extends BaseEllipticCurveAlgorithm {
 
-  public readonly name: string = 'ECDSA';
+  public readonly keyOperations: JwkOperation[] = ['sign', 'verify'];
 
-  public readonly abstract hashAlgorithms: string[];
-
-  public readonly keyUsages: Web5Crypto.KeyPairUsage = {
-    privateKey : ['sign'],
-    publicKey  : ['verify'],
-  };
-
-  public checkAlgorithmOptions(options: {
-    algorithm: Web5Crypto.EcdsaOptions
+  public checkSignOptions(options: {
+    algorithm: Web5Crypto.EcdsaOptions,
+    key: PrivateKeyJwk,
+    data: Uint8Array
   }): void {
-    const { algorithm } = options;
-    // Algorithm specified in the operation must match the algorithm implementation processing the operation.
-    this.checkAlgorithmName({ algorithmName: algorithm.name });
-    // The algorithm object must contain a hash property.
-    checkRequiredProperty({ property: 'hash', inObject: algorithm });
-    // The hash algorithm specified must be supported by the algorithm implementation processing the operation.
-    checkValidProperty({ property: algorithm.hash, allowedProperties: this.hashAlgorithms });
+    const { key } = options;
+
+    // Input parameter validation that is specified to ECDSA.
+    if (!Jose.isEcPrivateKeyJwk(key)) {
+      throw new InvalidAccessError('Requested operation is only valid for EC private keys.');
+    }
+
+    // Input parameter validation that is common to all Elliptic Curve (EC) signature algorithms.
+    super.checkSignOptions(options);
+  }
+
+  public checkVerifyOptions(options: {
+    algorithm: Web5Crypto.EcdsaOptions;
+    key: PublicKeyJwk;
+    signature: Uint8Array;
+    data: Uint8Array;
+  }): void {
+    const { key } = options;
+
+    // Input parameter validation that is specified to ECDSA.
+    if (!Jose.isEcPublicKeyJwk(key)) {
+      throw new InvalidAccessError('Requested operation is only valid for EC public keys.');
+    }
+
+    // Input parameter validation that is common to all Elliptic Curve (EC) signature algorithms.
+    super.checkVerifyOptions(options);
   }
 
   public override async deriveBits(): Promise<Uint8Array> {
-    throw new InvalidAccessError(`Requested operation 'deriveBits' is not valid for ${this.name} keys.`);
+    throw new InvalidAccessError(`Requested operation 'deriveBits' is not valid for ECDSA algorithm.`);
   }
 
-  public abstract sign(options: { algorithm: Web5Crypto.EcdsaOptions; key: Web5Crypto.CryptoKey; data: Uint8Array; }): Promise<Uint8Array>;
+  public abstract sign(options: { algorithm: Web5Crypto.EcdsaOptions; key: PrivateKeyJwk; data: Uint8Array; }): Promise<Uint8Array>;
 
-  public abstract verify(options: { algorithm: Web5Crypto.EcdsaOptions; key: Web5Crypto.CryptoKey; signature: Uint8Array; data: Uint8Array; }): Promise<boolean>;
+  public abstract verify(options: { algorithm: Web5Crypto.EcdsaOptions; key: PublicKeyJwk; signature: Uint8Array; data: Uint8Array; }): Promise<boolean>;
 }
