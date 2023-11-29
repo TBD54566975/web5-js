@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getCurrentXmlSchema112Timestamp } from './utils.js';
 import { Convert } from '@web5/common';
 import { verifyJWT } from 'did-jwt';
-import { DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
+import { DidDhtMethod, DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
 import { SsiValidator } from './validators.js';
 
 export const DEFAULT_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
@@ -62,7 +62,7 @@ type DecodedVcJwt = {
   signature: string
 }
 
-const didResolver = new DidResolver({ didResolvers: [DidIonMethod, DidKeyMethod] });
+const didResolver = new DidResolver({ didResolvers: [DidIonMethod, DidKeyMethod, DidDhtMethod] });
 
 class TbdResolver implements Resolvable {
   async resolve(didUrl: string): Promise<DIDResolutionResult> {
