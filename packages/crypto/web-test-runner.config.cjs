@@ -16,6 +16,9 @@ module.exports = {
     playwrightLauncher({
       product: 'firefox',
     }),
+    playwrightLauncher({
+      product: 'webkit',
+    }),
   ],
   testsFinishTimeout : 300000,
   concurrentBrowsers : 2,
