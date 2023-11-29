@@ -286,7 +286,7 @@ describe('Verifiable Credential Tests', () => {
       signOptions = {
         issuerDid  : alice.did,
         subjectDid : alice.did,
-        kid        : alice.did + '#' + alice.did.split(':')[2],
+        kid        : alice.did + '#0',
         signer     : signer
       };
 
