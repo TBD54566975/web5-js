@@ -85,6 +85,7 @@
     "@web/test-runner": "0.18.0",
     "@web/test-runner-mocha": "0.9.0",
     "@web/test-runner-playwright": "0.11.0",
+    "@web5/api": "0.8.2",
     "c8": "8.0.1",
     "chai": "4.3.10",
     "chai-as-promised": "7.1.1",
