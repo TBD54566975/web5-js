@@ -16,8 +16,7 @@
     "lint": "eslint . --ext .ts --max-warnings 0",
     "lint:fix": "eslint . --ext .ts --fix",
     "test:node": "npm run build:tests:node && c8 mocha",
-    "test:browser": "karma start karma.conf.cjs",
-    "test:wtr": "npm run build:tests:wtr && web-test-runner"
+    "test:browser": "npm run build:tests:wtr && web-test-runner"
   },
   "homepage": "https://github.com/TBD54566975/web5-js/tree/main/packages/identity-agent#readme",
   "bugs": "https://github.com/TBD54566975/web5-js/issues",
