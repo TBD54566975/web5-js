@@ -16,8 +16,8 @@ import { isEmptyObject } from '@web5/common';
 import { DwnInterfaceName, DwnMethodName, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 
 import { Record } from './record.js';
-import { Protocol } from './protocol.js';
 import { dataToBlob } from './utils.js';
+import { Protocol } from './protocol.js';
 
 /**
  * Status code and detailed message for a response.
@@ -131,6 +131,9 @@ export type RecordsQueryRequest = {
  */
 export type RecordsQueryResponse = ResponseStatus & {
   records?: Record[]
+
+  /** If there are additional results, the messageCid of the last record will be returned as a pagination cursor. */
+  cursor?: string;
 };
 
 /**
@@ -360,7 +363,7 @@ export class DwnApi {
           agentResponse = await this.agent.processDwnRequest(agentRequest);
         }
 
-        const { reply: { entries, status } } = agentResponse;
+        const { reply: { entries, status, cursor } } = agentResponse;
 
         const records = entries.map((entry: RecordsQueryReplyEntry) => {
           const recordOptions = {
@@ -381,7 +384,7 @@ export class DwnApi {
           return record;
         });
 
-        return { records, status };
+        return { records, status, cursor };
       },
 
       /**

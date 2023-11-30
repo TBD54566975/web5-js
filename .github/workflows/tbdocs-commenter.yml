@@ -1,0 +1,52 @@
+name: TBDocs Commenter
+
+on:
+  workflow_run:
+    workflows: ["Docs Continuous Integration"]
+    types:
+      - completed
+
+jobs:
+  comment-action:
+    name: TBDocs PR Comment
+    runs-on: ubuntu-latest
+    # runs only if it's triggered from a PR
+    if: github.event.workflow_run.pull_requests[0].number != null
+
+    steps:
+      - name: Download TBDocs Report
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          run_id: ${{ github.event.workflow_run.id }}
+          name: tbdocs-reporter-output
+          path: ./.tbdocs
+
+      - name: Add footer to markdown report
+        run: |
+          report_file='.tbdocs/docs-report.md'
+          head_sha="${{ github.event.workflow_run.pull_requests[0].head.sha }}"
+          short_sha=${head_sha:0:7}
+          timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          repo="${{ github.repository }}"
+          sha_link="https://github.com/$repo/commit/$head_sha"
+
+          footer_line="_TBDocs Report Updated at $timestamp [\`$short_sha\`]($sha_link)_"
+
+          echo "---" >> $report_file
+          echo $footer_line >> $report_file
+
+      - name: Find Comment
+        uses: peter-evans/find-comment@v2
+        id: fc
+        with:
+          issue-number: ${{ github.event.workflow_run.pull_requests[0].number }}
+          comment-author: "github-actions[bot]"
+          body-includes: TBDocs Report
+
+      - name: Comment on PR
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.workflow_run.pull_requests[0].number }}
+          edit-mode: replace
+          body-path: .tbdocs/docs-report.md
