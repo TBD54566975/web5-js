@@ -13,9 +13,15 @@ import type {
   SyncManager,
 } from '@web5/agent';
 
-import { Dwn, EventLogLevel,
+import {
+  Dwn,
+  EventLogLevel,
   DataStoreLevel,
-  MessageStoreLevel, } from '@tbd54566975/dwn-sdk-js';
+  MessageStoreLevel,
+  // RecordsWriteOptions,
+  // DwnInterfaceName,
+  // DwnMethodName,
+} from '@tbd54566975/dwn-sdk-js';
 import {
   DidResolver,
   DidKeyMethod,
@@ -26,6 +32,7 @@ import {
   DidMessage,
   DwnManager,
   KeyManager,
+  VcManager,
   AppDataVault,
   Web5RpcClient,
   IdentityManager,
@@ -43,6 +50,7 @@ type TestUserAgentOptions = {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
+  vcManager: VcManager,
   rpcClient: Web5Rpc;
   syncManager: SyncManager;
 
@@ -60,6 +68,7 @@ export class TestUserAgent implements Web5ManagedAgent {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
+  vcManager: VcManager;
   rpcClient: Web5Rpc;
   syncManager: SyncManager;
 
@@ -78,6 +87,7 @@ export class TestUserAgent implements Web5ManagedAgent {
     this.dwnManager = options.dwnManager;
     this.identityManager = options.identityManager;
     this.keyManager = options.keyManager;
+    this.vcManager = options.vcManager;
     this.rpcClient = options.rpcClient;
     this.syncManager = options.syncManager;
 
@@ -86,6 +96,7 @@ export class TestUserAgent implements Web5ManagedAgent {
     this.dwnManager.agent = this;
     this.identityManager.agent = this;
     this.keyManager.agent = this;
+    this.vcManager.agent = this;
     this.syncManager.agent = this;
 
     // TestUserAgent-specific properties.
@@ -128,6 +139,7 @@ export class TestUserAgent implements Web5ManagedAgent {
       memory: new LocalKms({ kmsName: 'memory' })
     };
     const keyManager = new KeyManager({ kms });
+    const vcManager = new VcManager({});
 
     // Instantiate DID resolver.
     const didMethodApis = [DidKeyMethod];
@@ -160,6 +172,7 @@ export class TestUserAgent implements Web5ManagedAgent {
       dwnManager,
       identityManager,
       keyManager,
+      vcManager,
       rpcClient,
       syncManager,
     });
@@ -191,8 +204,32 @@ export class TestUserAgent implements Web5ManagedAgent {
     return this.dwnManager.processRequest(request);
   }
 
-  async processVcRequest(_request: ProcessVcRequest): Promise<VcResponse> {
-    throw new Error('Not implemented');
+  async processVcRequest(request: ProcessVcRequest): Promise<VcResponse> {
+    const vcResponse = await this.vcManager.processRequest(request);
+
+    // TODO: Write to DWN and Update VcResponse Object with optional dwnResponse
+    // const messageOptions: Partial<RecordsWriteOptions> = {
+    //   schema     : request.dataType,
+    //   dataFormat : 'application/vc+jwt',
+    // };
+    //
+    // const vcDataBlob = new Blob([vcResponse.vcJwt], { type: 'text/plain' });
+    //
+    // const dwnProcessOptions = {
+    //   author      : request.issuer,
+    //   dataStream  : vcDataBlob,
+    //   messageOptions,
+    //   messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+    //   store       : true,
+    //   target      : request.issuer
+    // };
+    //
+    // const dwnResponse = await this.processDwnRequest(dwnProcessOptions);
+    //
+    // console.log('DWN RESPONSE:');
+    // console.log(dwnResponse);
+
+    return vcResponse;
   }
 
   async sendDidRequest(_request: DidRequest): Promise<DidResponse> {

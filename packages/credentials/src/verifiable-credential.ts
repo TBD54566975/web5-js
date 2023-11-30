@@ -40,9 +40,10 @@ export type VerifiableCredentialCreateOptions = {
 };
 
 export type SignOptions = {
-  kid: string;
   issuerDid: string;
   subjectDid: string;
+  kid: string;
+  alg: string;
   signer: Signer,
 }
 
@@ -280,9 +281,9 @@ function decode(jwt: string): DecodedVcJwt {
 }
 
 async function createJwt(payload: any, signOptions: SignOptions) {
-  const { issuerDid, subjectDid, signer, kid } = signOptions;
+  const { issuerDid, subjectDid, signer, kid, alg } = signOptions;
 
-  const header: JwtHeaderParams = { alg: 'EdDSA', typ: 'JWT', kid: kid };
+  const header: JwtHeaderParams = { alg: alg, typ: 'JWT', kid: kid };
 
   const jwtPayload = {
     iss : issuerDid,

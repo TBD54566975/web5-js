@@ -3,10 +3,12 @@ import { TestManagedAgent } from '@web5/agent';
 
 import { VcApi } from '../src/vc-api.js';
 import { TestUserAgent } from './utils/test-user-agent.js';
+import { VerifiableCredential } from '@web5/credentials';
 
 describe('VcApi', () => {
   let vc: VcApi;
   let testAgent: TestManagedAgent;
+  let identityDid: string;
 
   before(async () => {
     testAgent = await TestManagedAgent.create({
@@ -28,8 +30,9 @@ describe('VcApi', () => {
       kms       : 'local'
     });
 
+    identityDid = identity.did;
     // Instantiate VcApi.
-    vc = new VcApi({ agent: testAgent.agent, connectedDid: identity.did });
+    vc = new VcApi({ agent: testAgent.agent, connectedDid: identityDid });
   });
 
   after(async () => {
@@ -38,13 +41,13 @@ describe('VcApi', () => {
   });
 
   describe('create()', () => {
-    it('is not implemented', async () => {
-      try {
-        await vc.create();
-        expect.fail('Expected method to throw, but it did not.');
-      } catch(e) {
-        expect(e.message).to.include('Not implemented.');
-      }
+    it('returns a self signed vc', async () => {
+      const vcJwt = await vc.create(identityDid, identityDid, 'ExampleDataType', {example: 'goodStuff'});
+
+      expect(vcJwt).to.not.be.null;
+      expect(vcJwt.split('.').length).to.equal(3);
+
+      await expect(VerifiableCredential.verify(vcJwt)).to.be.fulfilled;
     });
   });
 });
