@@ -23,6 +23,7 @@ export type RecordOptions = RecordsWriteMessage & {
   target: string;
   encodedData?: string | Blob;
   data?: Readable | ReadableStream;
+  remoteTarget?: string;
 };
 
 /**
@@ -54,8 +55,8 @@ export type RecordUpdateOptions = {
 }
 
 /**
- * Record wrapper class with convenience methods to send, update,
- * and delete itself, aside from manipulating and reading the record data.
+ * Record wrapper class with convenience methods to send and update,
+ * aside from manipulating and reading the record data.
  *
  * Note: The `messageTimestamp` of the most recent RecordsWrite message is
  *       logically equivalent to the date/time at which a Record was most
@@ -69,14 +70,11 @@ export type RecordUpdateOptions = {
 export class Record implements RecordModel {
   // mutable properties
 
-  /** Record's author */
+  /** Record's author DID */
   author: string;
 
-  /** Record's target (for sent records) */
+  /** Record's target DID */
   target: string;
-
-  /** Record deleted status */
-  isDeleted = false;
 
   private _agent: Web5Agent;
   private _attestation?: RecordsWriteMessage['attestation'];
@@ -86,6 +84,7 @@ export class Record implements RecordModel {
   private _encryption?: RecordsWriteMessage['encryption'];
   private _readableStream?: Readable | Promise<Readable>;
   private _recordId: string;
+  private _remoteTarget?: string;
 
   // Immutable DWN Record properties.
 
@@ -151,9 +150,15 @@ export class Record implements RecordModel {
   constructor(agent: Web5Agent, options: RecordOptions) {
     this._agent = agent;
 
-    // Store the target and author DIDs that were used to create the message to use for subsequent reads, etc.
+    /** Store the target and author DIDs that were used to create the message to use for subsequent
+     * updates, reads, etc. */
     this.author = options.author;
     this.target = options.target;
+
+    /** If the record was queried from a remote DWN, the `remoteTarget` DID will be defined. This
+     * value is used to send subsequent read requests to the same remote DWN in the event the
+     * record's data payload was too large to be returned in query results. */
+    this._remoteTarget = options.remoteTarget;
 
     // RecordsWriteMessage properties.
     this._attestation = options.attestation;
@@ -162,9 +167,8 @@ export class Record implements RecordModel {
     this._encryption = options.encryption;
     this._recordId = options.recordId;
 
-
-    // options.encodedData will either be a base64url encoded string (in the case of RecordsQuery)
-    // OR a Blob in the case of a RecordsWrite.
+    /** options.encodedData will either be a base64url encoded string (in the case of RecordsQuery)
+     * OR a Blob in the case of a RecordsWrite. */
     this._encodedData = options.encodedData ?? null;
 
     // If the record was created from a RecordsRead reply then it will have a `data` property.
@@ -182,21 +186,15 @@ export class Record implements RecordModel {
    *
    */
   get data() {
-    if (this.isDeleted) throw new Error('Operation failed: Attempted to access `data` of a record that has already been deleted.');
-
     if (!this._encodedData && !this._readableStream) {
-      // `encodedData` will be set if the Record was instantiated by dwn.records.create()/write().
-      // `readableStream` will be set if Record was instantiated by dwn.records.read().
-      // If neither of the above are true, then the record must be fetched from the DWN.
-      this._readableStream = this._agent.processDwnRequest({
-        author         : this.author,
-        messageOptions : { filter: { recordId: this.id } },
-        messageType    : DwnInterfaceName.Records + DwnMethodName.Read,
-        target         : this.target,
-      })
-        .then(response => response.reply)
-        .then(reply => reply.record.data)
-        .catch(error => { throw new Error(`Error encountered while attempting to read data: ${error.message}`); });
+      /** `encodedData` will be set if the Record was instantiated by dwn.records.create()/write().
+       * `readableStream` will be set if Record was instantiated by dwn.records.read().
+       * If neither of the above are true, then the record must be fetched from either: */
+      this._readableStream = this._remoteTarget ?
+        // 1. ...a remote DWN if the record was queried from a remote DWN.
+        this.readRecordData({ target: this._remoteTarget, isRemote: true }) :
+        // 2. ...a local DWN if the record was queried from the local DWN.
+        this.readRecordData({ target: this.target, isRemote: false });
     }
 
     if (typeof this._encodedData === 'string') {
@@ -244,32 +242,6 @@ export class Record implements RecordModel {
   }
 
   /**
-   * Delete the current record from the DWN.
-   * @returns the status of the delete request
-   * @throws `Error` if the record has already been deleted.
-   */
-  async delete(): Promise<ResponseStatus> {
-    if (this.isDeleted) throw new Error('Operation failed: Attempted to call `delete()` on a record that has already been deleted.');
-
-    // Attempt to delete the record from the DWN.
-    const agentResponse = await this._agent.processDwnRequest({
-      author         : this.author,
-      messageOptions : { recordId: this.id },
-      messageType    : DwnInterfaceName.Records + DwnMethodName.Delete,
-      target         : this.target,
-    });
-
-    const { reply: { status } } = agentResponse;
-
-    if (status.code === 202) {
-      // If the record was successfully deleted, mark the instance as deleted to prevent further modifications.
-      this.setDeletedStatus(true);
-    }
-
-    return { status };
-  }
-
-  /**
    * Send the current record to a remote DWN by specifying their DID
    * (vs waiting for the regular DWN sync)
    * @param target - the DID to send the record to
@@ -277,8 +249,6 @@ export class Record implements RecordModel {
    * @throws `Error` if the record has already been deleted.
    */
   async send(target: string): Promise<ResponseStatus> {
-    if (this.isDeleted) throw new Error('Operation failed: Attempted to call `send()` on a record that has already been deleted.');
-
     const { reply: { status } } = await this._agent.sendDwnRequest({
       messageType    : DwnInterfaceName.Records + DwnMethodName.Write,
       author         : this.author,
@@ -345,8 +315,6 @@ export class Record implements RecordModel {
    * @throws `Error` if the record has already been deleted.
    */
   async update(options: RecordUpdateOptions = {}): Promise<ResponseStatus> {
-    if (this.isDeleted) throw new Error('Operation failed: Attempted to call `update()` on a record that has already been deleted.');
-
     // Map Record class `dateModified`  property to DWN SDK `messageTimestamp`.
     const { dateModified, ...updateOptions } = options as Partial<RecordsWriteOptions> & RecordUpdateOptions;
     updateOptions.messageTimestamp = dateModified;
@@ -415,17 +383,36 @@ export class Record implements RecordModel {
     return { status };
   }
 
-  /**
-   * TODO: Document method.
-   */
-  private setDeletedStatus(status: boolean): void {
-    this.isDeleted = status;
+  private async readRecordData({ target, isRemote }: { target: string, isRemote: boolean }) {
+    const readRequest = {
+      author         : this.author,
+      messageOptions : { filter: { recordId: this.id } },
+      messageType    : DwnInterfaceName.Records + DwnMethodName.Read,
+      target,
+    };
+
+    const agentResponsePromise = isRemote ?
+      this._agent.sendDwnRequest(readRequest) :
+      this._agent.processDwnRequest(readRequest);
+
+    try {
+      const response = await agentResponsePromise;
+      const reply = response.reply;
+
+      const data: ReadableStream | Readable = reply.record.data;
+      const nodeReadable = Record.isReadableWebStream(data) ?
+        new ReadableWebToNodeStream(<ReadableStream>data) as Readable : data as Readable;
+      return nodeReadable;
+
+    } catch (error) {
+      throw new Error(`Error encountered while attempting to read data: ${error.message}`);
+    }
   }
 
   /**
    * TODO: Document method.
    */
-  private static isReadableWebStream(stream) {
+  private static isReadableWebStream(stream): stream is ReadableStream {
     // TODO: Improve robustness of the check modeled after node:stream.
     return typeof stream._read !== 'function';
   }
