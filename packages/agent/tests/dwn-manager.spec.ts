@@ -17,6 +17,7 @@ import {
   ProtocolsConfigureMessage,
 } from '@tbd54566975/dwn-sdk-js';
 
+import { testDwnUrl } from './test-config.js';
 import { TestAgent } from './utils/test-agent.js';
 import { DwnManager } from '../src/dwn-manager.js';
 import { ManagedIdentity } from '../src/identity-manager.js';
@@ -32,7 +33,7 @@ if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 chai.use(chaiAsPromised);
 
-let testDwnUrls: string[] = [ 'http://localhost:3000' ];
+let testDwnUrls: string[] = [testDwnUrl];
 
 describe('DwnManager', () => {
 
