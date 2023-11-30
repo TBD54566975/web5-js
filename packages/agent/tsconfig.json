@@ -5,9 +5,9 @@
     "outDir": "dist/esm"
   },
   "include": [
-    "src",
+    "src"
   ],
   "exclude": [
     "node_modules"
-  ],
+  ]
 }
