@@ -82,7 +82,7 @@ export class Record implements RecordModel {
   private _descriptor: RecordsWriteDescriptor;
   private _encodedData?: string | Blob | null;
   private _encryption?: RecordsWriteMessage['encryption'];
-  private _readableStream?: Readable | Promise<Readable>;
+  private _readableStream?: ReadableStream | Promise<ReadableStream>;
   private _recordId: string;
   private _remoteTarget?: string;
 
@@ -174,7 +174,7 @@ export class Record implements RecordModel {
     // If the record was created from a RecordsRead reply then it will have a `data` property.
     if (options.data) {
       this._readableStream = Record.isReadableWebStream(options.data) ?
-        new ReadableWebToNodeStream(<ReadableStream>options.data) as Readable : options.data as Readable;
+        options.data as ReadableStream : nodeToWebReadable(options.data);
     }
   }
 
@@ -214,7 +214,7 @@ export class Record implements RecordModel {
     const dataObj = {
       async blob(): Promise<Blob> {
         if (dataBlob) return dataBlob;
-        if (self._readableStream) return new Blob([await this.stream().then(DataStream.toBytes)], { type: self.dataFormat });
+        if (self._readableStream) return new Blob([await this.stream().then(streamToBytes)], { type: self.dataFormat });
       },
       async json() {
         if (dataBlob) return this.text().then(JSON.parse);
@@ -223,11 +223,11 @@ export class Record implements RecordModel {
       },
       async text() {
         if (dataBlob) return dataBlob.text();
-        if (self._readableStream) return this.stream().then(DataStream.toBytes).then(Encoder.bytesToString);
+        if (self._readableStream) return this.stream().then(streamToBytes).then(Encoder.bytesToString);
         return null;
       },
       async stream() {
-        if (dataBlob) return new ReadableWebToNodeStream(dataBlob.stream());
+        if (dataBlob) return dataBlob.stream();
         if (self._readableStream) return self._readableStream;
         return null;
       },
@@ -383,7 +383,7 @@ export class Record implements RecordModel {
     return { status };
   }
 
-  private async readRecordData({ target, isRemote }: { target: string, isRemote: boolean }) {
+  private async readRecordData({ target, isRemote }: { target: string, isRemote: boolean }): Promise<ReadableStream> {
     const readRequest = {
       author         : this.author,
       messageOptions : { filter: { recordId: this.id } },
@@ -400,9 +400,10 @@ export class Record implements RecordModel {
       const reply = response.reply;
 
       const data: ReadableStream | Readable = reply.record.data;
-      const nodeReadable = Record.isReadableWebStream(data) ?
-        new ReadableWebToNodeStream(<ReadableStream>data) as Readable : data as Readable;
-      return nodeReadable;
+      const webReadable = Record.isReadableWebStream(data) ?
+        data as ReadableStream :
+        nodeToWebReadable(data) ;
+      return webReadable;
 
     } catch (error) {
       throw new Error(`Error encountered while attempting to read data: ${error.message}`);
@@ -426,5 +427,225 @@ export class Record implements RecordModel {
         throw new Error(`${property} is an immutable property. Its value cannot be changed.`);
       }
     }
+  }
+}
+
+// function newReadableStreamFromStreamReadable(streamReadable: Readable, options = { strategy: null }): ReadableStream {
+//   if (typeof streamReadable?._readableState !== 'object') {
+//     throw new TypeError('Provided stream is not a Node.js Readable stream');
+//   }
+
+//   if (isDestroyed(streamReadable) || !isNodeStreamReadable(streamReadable)) {
+//     const readable = new ReadableStream();
+//     readable.cancel();
+//     return readable;
+//   }
+
+//   const objectMode = streamReadable.readableObjectMode;
+//   const highWaterMark = streamReadable.readableHighWaterMark;
+
+//   const evaluateStrategyOrFallback = (strategy) => {
+//     // If there is a strategy available, use it
+//     if (strategy)
+//       return strategy;
+
+//     if (objectMode) {
+//       // When running in objectMode explicitly but no strategy, we just fall
+//       // back to CountQueuingStrategy
+//       return new CountQueuingStrategy({ highWaterMark });
+//     }
+
+//     // When not running in objectMode explicitly, we just fall
+//     // back to a minimal strategy that just specifies the highWaterMark
+//     // and no size algorithm. Using a ByteLengthQueuingStrategy here
+//     // is unnecessary.
+//     return { highWaterMark };
+//   };
+
+//   const strategy = evaluateStrategyOrFallback(options?.strategy);
+
+//   let controller;
+
+//   function onData(chunk) {
+//     // Copy the Buffer to detach it from the pool.
+//     if (Buffer.isBuffer(chunk) && !objectMode)
+//       chunk = new Uint8Array(chunk);
+//     controller.enqueue(chunk);
+//     if (controller.desiredSize <= 0)
+//       streamReadable.pause();
+//   }
+
+//   function destroy(stream: Readable, err) {
+//     if (isDestroyed(stream))
+//       return;
+//     streamReadable.removeListener('data', onData);
+//     // streamReadable.removeListener('end', onEnd);
+//     // streamReadable.removeListener('error', onError);
+//     // streamReadable.removeListener('close', onClose);
+//     // streamReadable.removeListener('readable', onReadable);
+//     if (streamReadable.destroy) streamReadable.destroy(err);
+//   }
+
+//   streamReadable.pause();
+
+//   streamReadable.on('data', onData);
+
+//   return new ReadableStream({
+//     start(c) { controller = c; },
+
+//     pull() { streamReadable.resume(); },
+
+//     cancel(reason) {
+//       destroy(streamReadable, reason);
+//     },
+//   }, strategy);
+// }
+
+function nodeToWebReadable(nodeReadable: Readable): ReadableStream {
+  if (!isNodeStreamReadable(nodeReadable)) {
+    throw new TypeError('Provided stream is not a Node.js Readable stream');
+  }
+
+  if (isDestroyed(nodeReadable)) {
+    const readable = new ReadableStream();
+    readable.cancel();
+    return readable;
+  }
+
+  return new ReadableStream({
+    start(controller) {
+      nodeReadable.on('data', (chunk) => {
+        controller.enqueue(chunk);
+      });
+
+      nodeReadable.on('end', () => {
+        controller.close();
+      });
+
+      nodeReadable.on('error', (err) => {
+        controller.error(err);
+      });
+    },
+    cancel() {
+      nodeReadable.destroy();
+    }
+  });
+}
+
+function isNodeStreamReadable(obj) {
+  return !!(
+    obj &&
+    typeof obj.pipe === 'function' &&
+    typeof obj.on === 'function' &&
+    (!obj._writableState || obj._readableState?.readable !== false) && // Duplex
+    (!obj._writableState || obj._readableState) // Writable has .pipe.
+  );
+}
+
+
+function isWebReadableStream(obj) {
+  return !!(
+    obj &&
+    !isNodeStreamReadable(obj) &&
+    typeof obj.pipeThrough === 'function' &&
+    typeof obj.getReader === 'function' &&
+    typeof obj.cancel === 'function'
+  );
+}
+
+function isDestroyed(stream) {
+  if (!isNodeStreamReadable(stream)) return null;
+  const wState = stream._writableState;
+  const rState = stream._readableState;
+  const state = wState || rState;
+  return !!(stream.destroyed || state?.destroyed);
+}
+
+async function streamToBytes(readableStream: ReadableStream): Promise<Uint8Array> {
+  const reader = readableStream.getReader();
+  const chunks: Uint8Array[] = [];
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    chunks.push(value);
+  }
+
+  const uint8Array = concatenateArrayOfBytes(chunks);
+
+  return uint8Array;
+}
+
+/**
+ * Concatenates the array of bytes given into one Uint8Array.
+ */
+function concatenateArrayOfBytes(arrayOfBytes: Uint8Array[]): Uint8Array {
+  // sum of individual array lengths
+  const totalLength = arrayOfBytes.reduce((accumulatedValue, currentValue) => accumulatedValue + currentValue.length, 0);
+
+  const result = new Uint8Array(totalLength);
+
+  let length = 0;
+  for (const bytes of arrayOfBytes) {
+    result.set(bytes, length);
+    length += bytes.length;
+  }
+
+  return result;
+}
+
+async function arrayBuffer(stream: ReadableStream) {
+  const ret = await blob(stream);
+  return ret.arrayBuffer();
+}
+
+async function uint8Array(stream: ReadableStream) {
+  const dataBuffer = await arrayBuffer(stream);
+  return new Uint8Array(dataBuffer);
+}
+
+async function blob(stream: ReadableStream) {
+  const chunks = [];
+  for await (const chunk of streamAsyncIterator(stream))
+    chunks.push(chunk);
+  return new Blob(chunks);
+}
+
+async function text(stream) {
+  const dec = new TextDecoder();
+  let str = '';
+  for await (const chunk of stream) {
+    if (typeof chunk === 'string')
+      str += chunk;
+    else
+      str += dec.decode(chunk, { stream: true });
+  }
+  // Flush the streaming TextDecoder so that any pending
+  // incomplete multibyte characters are handled.
+  str += dec.decode(undefined, { stream: false });
+  return str;
+}
+
+/**
+ * @param {AsyncIterable|ReadableStream|Readable} stream
+ * @returns {Promise<any>}
+ */
+async function json(stream) {
+  const str = await text(stream);
+  return JSON.parse(str);
+}
+
+async function* streamAsyncIterator<T>(readableStream: ReadableStream<T>): AsyncIterableIterator<T> {
+  const reader = readableStream.getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      yield value;
+    }
+  } finally {
+    reader.releaseLock();
   }
 }
