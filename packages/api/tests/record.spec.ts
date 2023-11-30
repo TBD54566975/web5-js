@@ -207,11 +207,18 @@ describe('Record', () => {
   });
 
   describe('data', () => {
+    let dataText500Bytes: string;
+    let dataTextExceedingMaxSize: string;
+
+    before(async () => {
+      dataText500Bytes = TestDataGenerator.randomString(500);
+      dataTextExceedingMaxSize = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
+    });
 
     describe('data.blob()', () => {
       it('returns small data payloads after dwn.records.write()', async () => {
-      // Generate data that is less than the encoded data limit to ensure that the data will not have to be fetched
-      // with a RecordsRead when record.data.blob() is executed.
+        // Generate data that is less than the encoded data limit to ensure that the data will not have to be fetched
+        // with a RecordsRead when record.data.blob() is executed.
         const dataJson = TestDataGenerator.randomJson(500);
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -230,8 +237,8 @@ describe('Record', () => {
       });
 
       it('returns small data payloads after dwn.records.read()', async () => {
-      // Generate data that is less than the encoded data limit to ensure that the data will not have to be fetched
-      // with a RecordsRead when record.data.blob() is executed.
+        // Generate data that is less than the encoded data limit to ensure that the data will not have to be fetched
+        // with a RecordsRead when record.data.blob() is executed.
         const dataJson = TestDataGenerator.randomJson(500);
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -255,8 +262,8 @@ describe('Record', () => {
       });
 
       it('returns large data payloads after dwn.records.write()', async () => {
-      // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
-      // with a RecordsRead when record.data.blob() is executed.
+        // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
+        // with a RecordsRead when record.data.blob() is executed.
         const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -275,8 +282,8 @@ describe('Record', () => {
       });
 
       it('returns large data payloads after local dwn.records.query()', async () => {
-      /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
-       * be fetched with a RecordsRead when record.data.blob() is executed. */
+        /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
+         * be fetched with a RecordsRead when record.data.blob() is executed. */
         const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -301,8 +308,8 @@ describe('Record', () => {
       });
 
       it('returns large data payloads after local dwn.records.read()', async () => {
-      // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
-      // with a RecordsRead when record.data.blob() is executed.
+        // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
+        // with a RecordsRead when record.data.blob() is executed.
         const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -330,8 +337,8 @@ describe('Record', () => {
 
     describe('data.json()', () => {
       it('returns small data payloads after dwn.records.write()', async () => {
-      // Generate data that is less than the encoded data limit to ensure that the data will not have to be fetched
-      // with a RecordsRead when record.data.json() is executed.
+        // Generate data that is less than the encoded data limit to ensure that the data will not have to be fetched
+        // with a RecordsRead when record.data.json() is executed.
         const dataJson = TestDataGenerator.randomJson(500);
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -375,8 +382,8 @@ describe('Record', () => {
       });
 
       it('returns large data payloads after dwn.records.write()', async () => {
-      // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
-      // with a RecordsRead when record.data.json() is executed.
+        // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
+        // with a RecordsRead when record.data.json() is executed.
         const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -395,8 +402,8 @@ describe('Record', () => {
       });
 
       it('returns large data payloads after local dwn.records.query()', async () => {
-      /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
-       * be fetched with a RecordsRead when record.data.json() is executed. */
+        /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
+         * be fetched with a RecordsRead when record.data.json() is executed. */
         const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -421,8 +428,8 @@ describe('Record', () => {
       });
 
       it('returns large data payloads after local dwn.records.read()', async () => {
-      // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
-      // with a RecordsRead when record.data.json() is executed.
+        // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
+        // with a RecordsRead when record.data.json() is executed.
         const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -448,10 +455,120 @@ describe('Record', () => {
       });
     });
 
+    describe('data.stream()', () => {
+      it('returns small data payloads after dwn.records.write()', async () => {
+        // Use a data payload that is less than the encoded data limit to ensure that the data will
+        // not have to be fetched with a RecordsRead when record.data.text() is executed.
+        const inputDataBytes = new TextEncoder().encode(dataText500Bytes);
+
+        // Write the 500B record to agent-connected DWN.
+        const { record, status } = await dwn.records.write({ data: dataText500Bytes });
+        expect(status.code).to.equal(202);
+
+        // Confirm that the length of the data read as text matches the original input data.
+        const dataStream = await record!.data.stream();
+        const dataStreamBytes = await DataStream.toBytes(dataStream);
+        expect(dataStreamBytes.length).to.equal(dataText500Bytes.length);
+
+        // Ensure the text returned matches the input data, byte for byte.
+        expect(dataStreamBytes).to.deep.equal(inputDataBytes);
+      });
+
+      it('returns small data payloads after dwn.records.read()', async () => {
+        // Use a data payload that is less than the encoded data limit to ensure that the data will
+        // not have to be fetched with a RecordsRead when record.data.text() is executed.
+        const inputDataBytes = new TextEncoder().encode(dataText500Bytes);
+
+        // Write the 500B record to agent-connected DWN.
+        const { record, status } = await dwn.records.write({ data: dataText500Bytes });
+        expect(status.code).to.equal(202);
+
+        // Read the record that was just created.
+        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: { recordId: record!.id }}});
+        expect(readRecordStatus.code).to.equal(200);
+
+        // Confirm that the length of the data read as text matches the original input data.
+        const dataStream = await readRecord!.data.stream();
+        const dataStreamBytes = await DataStream.toBytes(dataStream);
+        expect(dataStreamBytes.length).to.equal(dataText500Bytes.length);
+
+        // Ensure the text returned matches the input data, byte for byte.
+        expect(dataStreamBytes).to.deep.equal(inputDataBytes);
+      });
+
+      it('returns large data payloads after dwn.records.write()', async () => {
+        // Use a data payload that exceeds the DWN encoded data limit to ensure that the data will
+        // have to be fetched with a RecordsRead when record.data.text() is executed.
+        const inputDataBytes = new TextEncoder().encode(dataTextExceedingMaxSize);
+
+        // Write the large record to agent-connected DWN.
+        const { record, status } = await dwn.records.write({ data: dataTextExceedingMaxSize });
+        expect(status.code).to.equal(202);
+
+        // Confirm that the length of the data read as text matches the original input data.
+        const dataStream = await record!.data.stream();
+        const dataStreamBytes = await DataStream.toBytes(dataStream);
+        expect(dataStreamBytes.length).to.equal(dataTextExceedingMaxSize.length);
+
+        // Ensure the text returned matches the input data, byte for byte.
+        expect(dataStreamBytes).to.deep.equal(inputDataBytes);
+      });
+
+      it('returns large data payloads after local dwn.records.query()', async () => {
+        // Use a data payload that exceeds the DWN encoded data limit to ensure that the data will
+        // have to be fetched with a RecordsRead when record.data.text() is executed.
+        const inputDataBytes = new TextEncoder().encode(dataTextExceedingMaxSize);
+
+        // Write the large record to agent-connected DWN.
+        const { record, status } = await dwn.records.write({ data: dataTextExceedingMaxSize });
+        expect(status.code).to.equal(202);
+
+        // Query for the record that was just created.
+        const { records: queryRecords, status: queryRecordStatus } = await dwn.records.query({
+          message: { filter: { recordId: record!.id }}
+        });
+        expect(queryRecordStatus.code).to.equal(200);
+
+        // Confirm that the length of the data read as text matches the original input data.
+        const [ queryRecord ] = queryRecords;
+        const dataStream = await queryRecord!.data.stream();
+        const dataStreamBytes = await DataStream.toBytes(dataStream);
+        expect(dataStreamBytes.length).to.equal(dataTextExceedingMaxSize.length);
+
+        // Ensure the text returned matches the input data, byte for byte.
+        expect(dataStreamBytes).to.deep.equal(inputDataBytes);
+      });
+
+      it('returns large data payloads after local dwn.records.read()', async () => {
+        // Use a data payload that exceeds the DWN encoded data limit to ensure that the data will
+        // have to be fetched with a RecordsRead when record.data.text() is executed.
+        const inputDataBytes = new TextEncoder().encode(dataTextExceedingMaxSize);
+
+        // Write the large record to agent-connected DWN.
+        const { record, status } = await dwn.records.write({ data: dataTextExceedingMaxSize });
+
+        expect(status.code).to.equal(202);
+
+        // Read the record that was just created.
+        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({
+          message: { filter: { recordId: record!.id }}
+        });
+        expect(readRecordStatus.code).to.equal(200);
+
+        // Confirm that the length of the data read as text matches the original input data.
+        const dataStream = await readRecord!.data.stream();
+        const dataStreamBytes = await DataStream.toBytes(dataStream);
+        expect(dataStreamBytes.length).to.equal(dataTextExceedingMaxSize.length);
+
+        // Ensure the text returned matches the input data, byte for byte.
+        expect(dataStreamBytes).to.deep.equal(inputDataBytes);
+      });
+    });
+
     describe('data.text()', () => {
       it('returns small data payloads after dwn.records.write()', async () => {
-      // Generate data that is less than the encoded data limit to ensure that the data will not have to be fetched
-      // with a RecordsRead when record.data.text() is executed.
+        // Generate data that is less than the encoded data limit to ensure that the data will not have to be fetched
+        // with a RecordsRead when record.data.text() is executed.
         const dataText = TestDataGenerator.randomString(500);
 
         // Write the 500B record to agent-connected DWN.
@@ -468,8 +585,8 @@ describe('Record', () => {
       });
 
       it('returns small data payloads after dwn.records.read()', async () => {
-      // Generate data that is less than the encoded data limit to ensure that the data will not have to be fetched
-      // with a RecordsRead when record.data.text() is executed.
+        // Generate data that is less than the encoded data limit to ensure that the data will not have to be fetched
+        // with a RecordsRead when record.data.text() is executed.
         const dataText = TestDataGenerator.randomString(500);
 
         // Write the 500B record to agent-connected DWN.
@@ -491,8 +608,8 @@ describe('Record', () => {
       });
 
       it('returns large data payloads after dwn.records.write()', async () => {
-      // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
-      // with a RecordsRead when record.data.text() is executed.
+        // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
+        // with a RecordsRead when record.data.text() is executed.
         const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
         // Write the large record to agent-connected DWN.
@@ -509,8 +626,8 @@ describe('Record', () => {
       });
 
       it('returns large data payloads after local dwn.records.query()', async () => {
-      /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
-       * be fetched with a RecordsRead when record.data.blob() is executed. */
+        /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
+         * be fetched with a RecordsRead when record.data.blob() is executed. */
         const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
         // Write the large record to agent-connected DWN.
@@ -533,8 +650,8 @@ describe('Record', () => {
       });
 
       it('returns large data payloads after local dwn.records.read()', async () => {
-      // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
-      // with a RecordsRead when record.data.text() is executed.
+        // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
+        // with a RecordsRead when record.data.text() is executed.
         const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
         // Write the large record to agent-connected DWN.
