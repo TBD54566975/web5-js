@@ -6,7 +6,7 @@ import { RecordsQueryReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js'
 
 import type { ManagedIdentity } from '../src/identity-manager.js';
 
-import { testDwnUrl } from './test-config.js';
+import { testDwnUrl } from './utils/test-config.js';
 import { TestAgent } from './utils/test-agent.js';
 import { SyncManagerLevel } from '../src/sync-manager.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
