@@ -175,7 +175,6 @@ Each `Record` instance has the following instance methods:
   - **`stream`** - _`function`_: returns the raw stream of bytes for the data.
 - **`send`** - _`function`_: sends the record the instance represents to the DWeb Node endpoints of a provided DID.
 - **`update`** - _`function`_: takes in a new request object matching the expected method signature of a `write` and overwrites the record. This is a convenience method that allows you to easily overwrite records with less verbosity.
-- **`delete`** - _`function`_: generates a `delete` entry tombstone for the record. This is a convenience method that allows you to easily delete records with less verbosity.
 
 ### **`web5.dwn.records.query(request)`**
 
