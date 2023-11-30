@@ -682,7 +682,12 @@ describe('DwnApi', () => {
         expect(writeResult.status.detail).to.equal('Accepted');
         expect(writeResult.record).to.exist;
 
-        await writeResult.record!.delete();
+        // Delete the record
+        await dwnAlice.records.delete({
+          message: {
+            recordId: writeResult.record!.id
+          }
+        });
 
         const result = await dwnAlice.records.read({
           message: {
