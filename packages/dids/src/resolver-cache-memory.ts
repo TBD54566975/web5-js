@@ -1,5 +1,5 @@
-import { type DidResolutionResult, type DidResolverCache } from '@web5/dids';
 import ms from 'ms';
+import type { DidResolutionResult, DidResolverCache } from './types.js';
 
 type DidResolverCacheOptions = {
   ttl?: string;
