@@ -1,4 +1,4 @@
-import type { BatchOperation } from 'level';
+import type { AbstractBatchOperation, AbstractLevel } from 'abstract-level';
 import type {
   EventsGetReply,
   GenericMessage,
@@ -24,10 +24,12 @@ export interface SyncManager {
   pull(): Promise<void>;
 }
 
+type LevelDatabase = AbstractLevel<string | Buffer | Uint8Array, string, string>;
+
 export type SyncManagerOptions = {
   agent?: Web5ManagedAgent;
   dataPath?: string;
-  db?: Level;
+  db?: LevelDatabase;
 };
 
 type SyncDirection = 'push' | 'pull';
@@ -43,7 +45,7 @@ type DwnMessage = {
   data?: Blob;
 }
 
-type DbBatchOperation = BatchOperation<Level, string, string>;
+type DbBatchOperation = AbstractBatchOperation<LevelDatabase, string, string>;
 
 const is2xx = (code: number) => code >= 200 && code <= 299;
 const is4xx = (code: number) => code >= 400 && code <= 499;
@@ -57,7 +59,7 @@ export class SyncManagerLevel implements SyncManager {
    * operations within the broader Web5 agent framework.
    */
   private _agent?: Web5ManagedAgent;
-  private _db: Level;
+  private _db: LevelDatabase;
   private _syncIntervalId?: ReturnType<typeof setInterval>;
 
   constructor(options?: SyncManagerOptions) {

@@ -1,70 +1,70 @@
 import type { Web5Crypto } from '../types/web5-crypto.js';
-import type { BytesKeyPair } from '../types/crypto-key.js';
+import type {
+  JwkOperation,
+  PrivateKeyJwk,
+  JwkParamsEcPrivate,
+  JwkParamsOkpPrivate,
+} from '../jose.js';
 
-import { isBytesKeyPair } from '../utils.js';
 import { Secp256k1, X25519 } from '../crypto-primitives/index.js';
-import { CryptoKey, BaseEcdhAlgorithm, OperationError } from '../algorithms-api/index.js';
+import { BaseEcdhAlgorithm, OperationError } from '../algorithms-api/index.js';
 
 export class EcdhAlgorithm extends BaseEcdhAlgorithm {
-  public readonly namedCurves = ['secp256k1', 'X25519'];
+  public readonly names = ['ECDH'] as const;
+  public readonly curves = ['secp256k1', 'X25519'] as const;
 
   public async deriveBits(options: {
     algorithm: Web5Crypto.EcdhDeriveKeyOptions,
-    baseKey: Web5Crypto.CryptoKey,
-    length: number | null
+    baseKey: PrivateKeyJwk,
+    length?: number
   }): Promise<Uint8Array> {
     const { algorithm, baseKey, length } = options;
 
-    this.checkAlgorithmOptions({ algorithm, baseKey });
-    // The base key must be allowed to be used for deriveBits operations.
-    this.checkKeyUsages({ keyUsages: ['deriveBits'], allowedKeyUsages: baseKey.usages });
-    // The public key must be allowed to be used for deriveBits operations.
-    this.checkKeyUsages({ keyUsages: ['deriveBits'], allowedKeyUsages: algorithm.publicKey.usages });
+    // Validate the input parameters.
+    this.checkDeriveBitsOptions({ algorithm, baseKey });
 
     let sharedSecret: Uint8Array;
+    const curve = (baseKey as JwkParamsEcPrivate | JwkParamsOkpPrivate).crv;  // checkDeriveBitsOptions verifies that the base key is of type EC or OKP.
 
-    const ownKeyAlgorithm = baseKey.algorithm as Web5Crypto.EcGenerateKeyOptions; // Type guard.
-
-    switch (ownKeyAlgorithm.namedCurve) {
+    switch (curve) {
 
       case 'secp256k1': {
-        const ownPrivateKey = baseKey.material;
-        const otherPartyPublicKey = algorithm.publicKey.material;
         sharedSecret = await Secp256k1.sharedSecret({
-          privateKey : ownPrivateKey,
-          publicKey  : otherPartyPublicKey
+          privateKeyA : baseKey,
+          publicKeyB  : algorithm.publicKey
         });
         break;
       }
 
       case 'X25519': {
-        const ownPrivateKey = baseKey.material;
-        const otherPartyPublicKey = algorithm.publicKey.material;
         sharedSecret = await X25519.sharedSecret({
-          privateKey : ownPrivateKey,
-          publicKey  : otherPartyPublicKey
+          privateKeyA : baseKey,
+          publicKeyB  : algorithm.publicKey
         });
         break;
       }
 
-      default:
-        throw new TypeError(`Out of range: '${ownKeyAlgorithm.namedCurve}'. Must be one of '${this.namedCurves.join(', ')}'`);
+      default: {
+        throw new TypeError(`Out of range: '${curve}'. Must be one of '${this.curves.join(', ')}'`);
+      }
     }
 
-    // Length is null, return the full derived secret.
-    if (length === null)
+    // If 'length' is not specified, return the full derived secret.
+    if (length === undefined)
       return sharedSecret;
 
     // If the length is not a multiple of 8, throw.
-    if (length && length % 8 !== 0)
+    if (length && length % 8 !== 0) {
       throw new OperationError(`To be compatible with all browsers, 'length' must be a multiple of 8.`);
+    }
 
     // Convert length from bits to bytes.
     const lengthInBytes = length / 8;
 
     // If length (converted to bytes) is larger than the derived secret, throw.
-    if (sharedSecret.byteLength < lengthInBytes)
+    if (sharedSecret.byteLength < lengthInBytes) {
       throw new OperationError(`Requested 'length' exceeds the byte length of the derived secret.`);
+    }
 
     // Otherwise, either return the secret or a truncated slice.
     return lengthInBytes === sharedSecret.byteLength ?
@@ -73,43 +73,35 @@ export class EcdhAlgorithm extends BaseEcdhAlgorithm {
   }
 
   public async generateKey(options: {
-    algorithm: Web5Crypto.EcGenerateKeyOptions | Web5Crypto.EcdsaGenerateKeyOptions,
-    extractable: boolean,
-    keyUsages: Web5Crypto.KeyUsage[]
-  }): Promise<Web5Crypto.CryptoKeyPair> {
-    const { algorithm, extractable, keyUsages } = options;
+    algorithm: Web5Crypto.EcGenerateKeyOptions,
+    keyOperations?: JwkOperation[]
+  }): Promise<PrivateKeyJwk> {
+    const { algorithm, keyOperations } = options;
 
-    this.checkGenerateKey({ algorithm, keyUsages });
+    // Validate the input parameters.
+    this.checkGenerateKeyOptions({ algorithm, keyOperations });
 
-    let keyPair: BytesKeyPair | undefined;
-    let cryptoKeyPair: Web5Crypto.CryptoKeyPair;
+    let privateKey: PrivateKeyJwk | undefined;
 
-    switch (algorithm.namedCurve) {
+    switch (algorithm.curve) {
 
       case 'secp256k1': {
-        (algorithm as Web5Crypto.EcdsaGenerateKeyOptions).compressedPublicKey ??= true;
-        keyPair = await Secp256k1.generateKeyPair({
-          compressedPublicKey: (algorithm as Web5Crypto.EcdsaGenerateKeyOptions).compressedPublicKey
-        });
+        privateKey = await Secp256k1.generateKey();
         break;
       }
 
       case 'X25519': {
-        keyPair = await X25519.generateKeyPair();
+        privateKey = await X25519.generateKey();
         break;
       }
-      // Default case not needed because checkGenerateKey() already validates the specified namedCurve is supported.
+      // Default case not needed because checkGenerateKeyOptions() already validates the specified curve is supported.
     }
 
-    if (!isBytesKeyPair(keyPair)) {
-      throw new Error('Operation failed to generate key pair.');
+    if (privateKey) {
+      if (keyOperations) privateKey.key_ops = keyOperations;
+      return privateKey;
     }
 
-    cryptoKeyPair = {
-      privateKey : new CryptoKey(algorithm, extractable, keyPair.privateKey, 'private', this.keyUsages.privateKey),
-      publicKey  : new CryptoKey(algorithm, true, keyPair.publicKey, 'public', this.keyUsages.publicKey)
-    };
-
-    return cryptoKeyPair;
+    throw new Error('Operation failed: generateKey');
   }
 }

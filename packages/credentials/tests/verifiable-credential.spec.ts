@@ -1,7 +1,8 @@
 import { expect } from 'chai';
 import { VerifiableCredential, SignOptions } from '../src/verifiable-credential.js';
 import { Ed25519, Jose } from '@web5/crypto';
-import { DidKeyMethod } from '@web5/dids';
+import { DidDhtMethod, DidKeyMethod, PortableDid } from '@web5/dids';
+import sinon from 'sinon';
 
 type Signer = (data: Uint8Array) => Promise<Uint8Array>;
 
@@ -15,7 +16,6 @@ describe('Verifiable Credential Tests', () => {
       public legit: boolean
     ) {}
   }
-
 
   beforeEach(async () => {
     const alice = await DidKeyMethod.create();
@@ -36,12 +36,12 @@ describe('Verifiable Credential Tests', () => {
       const issuerDid = signOptions.issuerDid;
       const subjectDid = signOptions.subjectDid;
 
-      const vc = VerifiableCredential.create(
-        'StreetCred',
-        issuerDid,
-        subjectDid,
-        new StreetCredibility('high', true),
-      );
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : issuerDid,
+        subject : subjectDid,
+        data    : new StreetCredibility('high', true),
+      });
 
       expect(vc.issuer).to.equal(issuerDid);
       expect(vc.subject).to.equal(subjectDid);
@@ -57,12 +57,12 @@ describe('Verifiable Credential Tests', () => {
       const invalidData = 'NotAJSONObject';
 
       expect(() => {
-        VerifiableCredential.create(
-          'InvalidDataTest',
-          issuerDid,
-          subjectDid,
-          invalidData
-        );
+        VerifiableCredential.create({
+          type    : 'InvalidDataTest',
+          issuer  : issuerDid,
+          subject : subjectDid,
+          data    : invalidData
+        });
       }).to.throw('Expected data to be parseable into a JSON object');
     });
 
@@ -72,21 +72,21 @@ describe('Verifiable Credential Tests', () => {
       const validData = new StreetCredibility('high', true);
 
       expect(() => {
-        VerifiableCredential.create(
-          'IssuerUndefinedTest',
-          '',
-          subjectDid,
-          validData
-        );
+        VerifiableCredential.create({
+          type    : 'IssuerUndefinedTest',
+          issuer  : '',
+          subject : subjectDid,
+          data    : validData
+        });
       }).to.throw('Issuer and subject must be defined');
 
       expect(() => {
-        VerifiableCredential.create(
-          'SubjectUndefinedTest',
-          issuerDid,
-          '',
-          validData
-        );
+        VerifiableCredential.create({
+          type    : 'SubjectUndefinedTest',
+          issuer  : issuerDid,
+          subject : '',
+          data    : validData
+        });
       }).to.throw('Issuer and subject must be defined');
 
     });
@@ -95,12 +95,12 @@ describe('Verifiable Credential Tests', () => {
       const issuerDid = signOptions.issuerDid;
       const subjectDid = signOptions.subjectDid;
 
-      const vc = VerifiableCredential.create(
-        'StreetCred',
-        issuerDid,
-        subjectDid,
-        new StreetCredibility('high', true),
-      );
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : issuerDid,
+        subject : subjectDid,
+        data    : new StreetCredibility('high', true),
+      });
 
       const vcJwt = await vc.sign(signOptions);
       expect(vcJwt).to.not.be.null;
@@ -117,12 +117,12 @@ describe('Verifiable Credential Tests', () => {
     });
 
     it('verify fails with bad issuer did', async () => {
-      const vc = VerifiableCredential.create(
-        'StreetCred',
-        'bad:did: invalidDid',
-        signOptions.subjectDid,
-        new StreetCredibility('high', true)
-      );
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : 'bad:did: invalidDid',
+        subject : signOptions.subjectDid,
+        data    : new StreetCredibility('high', true)
+      });
 
       const badSignOptions = {
         issuerDid  : 'bad:did: invalidDid',
@@ -141,12 +141,12 @@ describe('Verifiable Credential Tests', () => {
     });
 
     it('parseJwt returns an instance of VerifiableCredential on success', async () => {
-      const vc = VerifiableCredential.create(
-        'StreetCred',
-        signOptions.issuerDid,
-        signOptions.subjectDid,
-        new StreetCredibility('high', true)
-      );
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : signOptions.issuerDid,
+        subject : signOptions.subjectDid,
+        data    : new StreetCredibility('high', true),
+      });
 
       const vcJwt = await vc.sign(signOptions);
       const parsedVc = VerifiableCredential.parseJwt(vcJwt);
@@ -170,16 +170,182 @@ describe('Verifiable Credential Tests', () => {
     });
 
     it('verify does not throw an exception with vaild vc', async () => {
-      const vc = VerifiableCredential.create(
-        'StreetCred',
-        signOptions.issuerDid,
-        signOptions.subjectDid,
-        new StreetCredibility('high', true)
-      );
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : signOptions.issuerDid,
+        subject : signOptions.subjectDid,
+        data    : new StreetCredibility('high', true),
+      });
 
       const vcJwt = await vc.sign(signOptions);
 
       await VerifiableCredential.verify(vcJwt);
+    });
+
+    it('verify does not throw an exception with vaild vc signed by did:dht', async () => {
+      const mockDocument: PortableDid = {
+        keySet: {
+          identityKey: {
+            privateKeyJwk: {
+              d       : '_8gihSI-m8aOCCM6jHg33d8kxdImPBN4C5_bZIu10XU',
+              alg     : 'EdDSA',
+              crv     : 'Ed25519',
+              kty     : 'OKP',
+              ext     : 'true',
+              key_ops : [
+                'sign'
+              ],
+              x   : 'Qm88q6jAN9tfnrLt5V2zAiZs7wD_jnewHp7HIvM3dGo',
+              kid : '0'
+            },
+            publicKeyJwk: {
+              alg     : 'EdDSA',
+              crv     : 'Ed25519',
+              kty     : 'OKP',
+              ext     : 'true',
+              key_ops : [
+                'verify'
+              ],
+              x   : 'Qm88q6jAN9tfnrLt5V2zAiZs7wD_jnewHp7HIvM3dGo',
+              kid : '0'
+            }
+          },
+          verificationMethodKeys: [
+            {
+              privateKeyJwk: {
+                d       : '_8gihSI-m8aOCCM6jHg33d8kxdImPBN4C5_bZIu10XU',
+                alg     : 'EdDSA',
+                crv     : 'Ed25519',
+                kty     : 'OKP',
+                ext     : 'true',
+                key_ops : [
+                  'sign'
+                ],
+                x   : 'Qm88q6jAN9tfnrLt5V2zAiZs7wD_jnewHp7HIvM3dGo',
+                kid : '0'
+              },
+              publicKeyJwk: {
+                alg     : 'EdDSA',
+                crv     : 'Ed25519',
+                kty     : 'OKP',
+                ext     : 'true',
+                key_ops : [
+                  'verify'
+                ],
+                x   : 'Qm88q6jAN9tfnrLt5V2zAiZs7wD_jnewHp7HIvM3dGo',
+                kid : '0'
+              },
+              relationships: [
+                'authentication',
+                'assertionMethod',
+                'capabilityInvocation',
+                'capabilityDelegation'
+              ]
+            }
+          ]
+
+        },
+        did      : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
+        document : {
+          id                 : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
+          verificationMethod : [
+            {
+              id           : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy#0',
+              type         : 'JsonWebKey2020',
+              controller   : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                alg : 'EdDSA',
+                kid : '0',
+                x   : 'Qm88q6jAN9tfnrLt5V2zAiZs7wD_jnewHp7HIvM3dGo'
+              }
+            }
+          ],
+          authentication: [
+            '#0'
+          ],
+          assertionMethod: [
+            '#0'
+          ],
+          capabilityInvocation: [
+            '#0'
+          ],
+          capabilityDelegation: [
+            '#0'
+          ]
+        }
+      };
+      const didDhtCreateSpy = sinon.stub(DidDhtMethod, 'create').resolves(mockDocument);
+
+      const alice = await DidDhtMethod.create({ publish: true });
+
+      const [signingKeyPair] = alice.keySet.verificationMethodKeys!;
+      const privateKey = (await Jose.jwkToKey({ key: signingKeyPair.privateKeyJwk! })).keyMaterial;
+      signer = EdDsaSigner(privateKey);
+      signOptions = {
+        issuerDid  : alice.did,
+        subjectDid : alice.did,
+        kid        : alice.did + '#0',
+        signer     : signer
+      };
+
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : signOptions.issuerDid,
+        subject : signOptions.subjectDid,
+        data    : new StreetCredibility('high', true),
+      });
+
+      const dhtDidResolutionSpy = sinon.stub(DidDhtMethod, 'resolve').resolves({
+        '@context'  : 'https://w3id.org/did-resolution/v1',
+        didDocument : {
+          id                 : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
+          verificationMethod : [
+            {
+              id           : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy#0',
+              type         : 'JsonWebKey2020',
+              controller   : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                alg : 'EdDSA',
+                kid : '0',
+                x   : 'Qm88q6jAN9tfnrLt5V2zAiZs7wD_jnewHp7HIvM3dGo'
+              }
+            }
+          ],
+          authentication: [
+            '#0'
+          ],
+          assertionMethod: [
+            '#0'
+          ],
+          capabilityInvocation: [
+            '#0'
+          ],
+          capabilityDelegation: [
+            '#0'
+          ]
+        },
+        didDocumentMetadata   : {},
+        didResolutionMetadata : {
+          contentType : 'application/did+ld+json',
+          did         : {
+            didString        : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
+            methodSpecificId : 'ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
+            method           : 'dht'
+          }
+        }
+      });
+
+      const vcJwt = await vc.sign(signOptions);
+
+      await VerifiableCredential.verify(vcJwt);
+
+      sinon.assert.calledOnce(didDhtCreateSpy);
+      sinon.assert.calledOnce(dhtDidResolutionSpy);
+      sinon.restore();
     });
   });
 });

@@ -3,7 +3,7 @@
   "compilerOptions": {
     "lib": [
       "DOM",
-      "ES5",
+      "ES5"
     ],
     "target": "ES5",
     "module": "CommonJS",

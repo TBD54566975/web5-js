@@ -224,6 +224,20 @@ The query `request` contains the following properties:
     - **`recipient`** - _`string`_ (_optional_): the DID in the `recipient` field of the record.
     - **`schema`** - _`URI string`_ (_optional_): the URI of the schema bucket in which to query.
     - **`dataFormat`** - _`Media Type string`_ (_optional_): the IANA string corresponding with the format of the data to filter for. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
+  - **`dateSort`** - _`DateSort`_ (_optional_): the `DateSort` value of the date field and direction to sort records by. Defaults to `CreatedAscending`.
+  - **`pagination`** - _`object`_ (_optional_): the properties used to paginate results.
+    - **`limit`** - _`number`_ (_optional_): the number of records that should be returned with this query. `undefined` returns all records.
+    - **`cursor`** - _`messageCid string`_ (_optional_): the `messageCid` of the records toc continue paginating from. This value is returned as a `cursor` in the response object of a `query` if there are more results beyond the `limit`.
+
+#### **Response**
+
+The query `response` contains the following properties:
+
+- **`status`** - _`object`_: the status of the `request`:
+  - **`code`** - _`number`_: the `Response Status` code, following the response code patterns for `HTTP Response Status Codes`.
+  - **`detail`** _`string`_: a detailed message describing the response.
+- **`records`** - _`Records array`_ (_optional_): the array of `Records` returned if the request was successful.
+- **`cursor`** - _`messageCid string`_ (_optional_): the `messageCid` of the last message returned in the results if there are exist additional records beyond the specified `limit` in the `query`.
 
 ### **`web5.dwn.records.create(request)`**
 

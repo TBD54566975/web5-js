@@ -1,0 +1,61 @@
+{
+  "description" : "Secp256k1 privateKeyToBytes test vectors",
+  "vectors"     : [
+    {
+      "description" : "converts noble ecdsa vector 1 to the expected byte array",
+      "input"       : {
+        "privateKey": {
+          "crv" : "secp256k1",
+          "d" : "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE",
+          "kid" : "2JF8vg9etJzjFwZwmkvhBLLZ0bfMVVOPivYR5lFtcec",
+          "kty" : "EC",
+          "x" : "eb5mfvncu6xVoGKVzocLBwKb_NstzijZWfKBWxb4F5g",
+          "y": "SDradyajxGVdpPv8DhEIqP0XtEimhVQZnEfQj_sQ1Lg"
+        }
+      },
+      "output": "0000000000000000000000000000000000000000000000000000000000000001"
+    },
+    {
+      "description" : "converts noble ecdsa vector 2 to the expected byte array",
+      "input"       : {
+        "privateKey": {
+          "crv" : "secp256k1",
+          "d" : "_____________________rqu3OavSKA7v9JejNA2QUA",
+          "kid" : "A5kvmZN8g_rnvmmIfgTaV8S8KUnA6plB3cCmCMUZPyQ",
+          "kty" : "EC",
+          "x" : "eb5mfvncu6xVoGKVzocLBwKb_NstzijZWfKBWxb4F5g",
+          "y": "t8UliNlcO5qiWwQD8e73VwLoS7dZeqvmY7gvbwTvJ3c"
+        }
+      },
+      "output": "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140"
+    },
+    {
+      "description" : "converts noble ecdsa vector 3 to the expected byte array",
+      "input"       : {
+        "privateKey": {
+          "crv" : "secp256k1",
+          "d" : "AAAAAAAAAAAAAAAAAAByRhdKsekukUnG5Eb-GU0HJjc",
+          "kid" : "IJxfsScP6p4G8L9Yf8mYI8WIS87ulINKi0oUbS670KQ",
+          "kty" : "EC",
+          "x" : "tILZZWpOmaFc_atei0h8sHIG3xy4OvsHbG97qJCkNoE",
+          "y": "g-vgQCnVwDMAxAHbZapqnb1Hm05gvdGQoZzltVMgE9I"
+        }
+      },
+      "output": "00000000000000000000000000007246174ab1e92e9149c6e446fe194d072637"
+    },
+    {
+      "description" : "converts byte array bytes to the expected byte array JWK",
+      "input"       : {
+        "privateKey": {
+          "crv" : "secp256k1",
+          "d" : "u0IifnKw8mB8eBCoFLZ5baNp6dwiuFtzng65JLdwzVE",
+          "kid" : "ikH9Jgh0U90gMJQ1txhlaST6VOdP_ygPJNN0JPaAwTI",
+          "kty" : "EC",
+          "x" : "9zVCTdMxpNyy3W1l0VfLdkpQyFdkXvDA0Jpx3TTn1og",
+          "y": "lNsXBQzhcrrGrf9XZYri_LLN1Bye4PdfTaoHbC6PIGI"
+        }
+      },
+      "output": "bb42227e72b0f2607c7810a814b6796da369e9dc22b85b739e0eb924b770cd51"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { VerifiableCredential, SignOptions } from '@web5/credentials';
 import { DidKeyMethod, PortableDid } from '@web5/dids';
-import { Ed25519, Jose } from '@web5/crypto';
+import { Ed25519, PrivateKeyJwk } from '@web5/crypto';
 import { paths } from './openapi.js';
 
 type Signer = (data: Uint8Array) => Promise<Uint8Array>;
@@ -24,9 +24,8 @@ export async function credentialIssue(req: Request, res: Response) {
 
     // build signing options
     const [signingKeyPair] = ownDid.keySet.verificationMethodKeys!;
-    const privateKey = (await Jose.jwkToKey({ key: signingKeyPair.privateKeyJwk!})).keyMaterial;
     const subjectIssuerDid = body.credential.credentialSubject["id"] as string;
-    const signer = EdDsaSigner(privateKey);
+    const signer = EdDsaSigner(signingKeyPair.privateKeyJwk as PrivateKeyJwk);
     const signOptions: SignOptions = {
         issuerDid  : ownDid.did,
         subjectDid : subjectIssuerDid,
@@ -34,7 +33,13 @@ export async function credentialIssue(req: Request, res: Response) {
         signer     : signer
     };
 
-  const vc: VerifiableCredential = VerifiableCredential.create(body.credential.type[body.credential.type.length - 1], body.credential.issuer, subjectIssuerDid, body.credential.credentialSubject);
+  const vc: VerifiableCredential = VerifiableCredential.create({
+    type: body.credential.type[body.credential.type.length - 1],
+    issuer: body.credential.issuer,
+    subject: subjectIssuerDid,
+    data: body.credential.credentialSubject
+  });
+
   const vcJwt: string = await vc.sign(signOptions);
 
   const resp: paths["/credentials/issue"]["post"]["responses"]["200"]["content"]["application/json"] =
@@ -45,7 +50,7 @@ export async function credentialIssue(req: Request, res: Response) {
   res.json(resp);
 }
 
-function EdDsaSigner(privateKey: Uint8Array): Signer {
+function EdDsaSigner(privateKey: PrivateKeyJwk): Signer {
     return async (data: Uint8Array): Promise<Uint8Array> => {
         const signature = await Ed25519.sign({ data, key: privateKey});
         return signature;

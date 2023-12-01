@@ -57,7 +57,10 @@
         "mode": "auto"
       }
     ],
-    "npm.packageManager": "npm"
+    "npm.packageManager": "npm",
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "always"
+    }
   },
   "launch": {
     "version": "0.2.0",

@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getCurrentXmlSchema112Timestamp } from './utils.js';
 import { Convert } from '@web5/common';
 import { verifyJWT } from 'did-jwt';
-import { DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
+import { DidDhtMethod, DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
 import { SsiValidator } from './validators.js';
 
 export const DEFAULT_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
@@ -20,6 +20,24 @@ export const DEFAULT_VC_TYPE = 'VerifiableCredential';
  * @see {@link https://www.w3.org/TR/vc-data-model/#credentials | VC Data Model}
  */
 export type VcDataModel = ICredential;
+
+/**
+ * @param type Optional. The type of the credential, can be a string or an array of strings.
+ * @param issuer The issuer URI of the credential, as a string.
+ * @param subject The subject URI of the credential, as a string.
+ * @param data The credential data, as a generic type any.
+ * @param issuanceDate Optional. The issuance date of the credential, as a string.
+ *               Defaults to the current date if not specified.
+ * @param expirationDate Optional. The expiration date of the credential, as a string.
+ */
+export type VerifiableCredentialCreateOptions = {
+  type?: string | string[];
+  issuer: string;
+  subject: string;
+  data: any;
+  issuanceDate?: string;
+  expirationDate?: string;
+};
 
 export type SignOptions = {
   kid: string;
@@ -44,7 +62,7 @@ type DecodedVcJwt = {
   signature: string
 }
 
-const didResolver = new DidResolver({ didResolvers: [DidIonMethod, DidKeyMethod] });
+const didResolver = new DidResolver({ didResolvers: [DidIonMethod, DidKeyMethod, DidDhtMethod] });
 
 class TbdResolver implements Resolvable {
   async resolve(didUrl: string): Promise<DIDResolutionResult> {
@@ -113,24 +131,22 @@ export class VerifiableCredential {
   /**
    * Create a [VerifiableCredential] based on the provided parameters.
    *
-   * @param type The type of the credential, as a [String].
-   * @param issuer The issuer URI of the credential, as a [String].
-   * @param subject The subject URI of the credential, as a [String].
-   * @param data The credential data, as a generic type [T].
+   * @param vcCreateOptions The options to use when creating the Verifiable Credential.
    * @return A [VerifiableCredential] instance.
    *
    * Example:
    * ```
-   * const vc = VerifiableCredential.create("ExampleCredential", "http://example.com/issuers/1", "http://example.com/subjects/1", myData)
+   * const vc = VerifiableCredential.create({
+   *     type: 'StreetCredibility',
+   *     issuer: 'did:ex:issuer',
+   *     subject: 'did:ex:subject',
+   *     data: { 'arbitrary': 'data' }
+   *   })
    * ```
    */
-  public static create<T>(
-    type: string,
-    issuer: string,
-    subject: string,
-    data: T,
-    expirationDate?: string
-  ): VerifiableCredential {
+  public static create(vcCreateOptions: VerifiableCredentialCreateOptions): VerifiableCredential {
+    const { type, issuer, subject, data, issuanceDate, expirationDate } = vcCreateOptions;
+
     const jsonData = JSON.parse(JSON.stringify(data));
 
     if (typeof jsonData !== 'object') {
@@ -147,11 +163,13 @@ export class VerifiableCredential {
     };
 
     const vcDataModel: VcDataModel = {
-      '@context'        : [DEFAULT_CONTEXT],
-      type              : [DEFAULT_VC_TYPE, type],
+      '@context' : [DEFAULT_CONTEXT],
+      type       : Array.isArray(type)
+        ? [DEFAULT_VC_TYPE, ...type]
+        : (type ? [DEFAULT_VC_TYPE, type] : [DEFAULT_VC_TYPE]),
       id                : `urn:uuid:${uuidv4()}`,
       issuer            : issuer,
-      issuanceDate      : getCurrentXmlSchema112Timestamp(),
+      issuanceDate      : issuanceDate || getCurrentXmlSchema112Timestamp(), // use default if undefined
       credentialSubject : credentialSubject,
       ...(expirationDate && { expirationDate }), // optional property
     };

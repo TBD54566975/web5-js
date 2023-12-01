@@ -1,0 +1,41 @@
+{
+  "description" : "Ed25519 convertPrivateKeyToX25519 test vectors",
+  "vectors"     : [
+    {
+      "description" : "converts Ed25519 private key to expected X25519 private key 1",
+      "input"       : {
+        "privateKey": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "d": "dwdtCnMYpX08FsFyUbJmRd9ML4frwJkqsXf7pR25LCo",
+          "x": "0KTOwPi1C6HpNuxWFUVKqX37J4ZPXxdgivLLsQVI8bM"
+        }
+      },
+      "output": {
+        "crv": "X25519",
+        "d": "qM1E646TMZwFcLwRAFwOAYnTT_AvbBd3NBGtGRKTyU8",
+        "kid": "xtsuKULPh6VN9fuJMRwj66cDfQyLaxuXHkMlmAe_v6I",
+        "kty": "OKP",
+        "x": "7XdJtNmJ9pV_O_3mxWdn6YjiHJ-HhNkdYQARzVU_mwY"
+      }
+    },
+    {
+      "description" : "converts Ed25519 private key to expected X25519 private key 2",
+      "input"       : {
+        "privateKey": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "d": "aeJsLIvfKVFAqRpCzldslD-NXtKItqK0jAs2vOxbGcA",
+          "x": "0nQq-UcELyC07P95hpWOOChIzrWhLC5P8I-EtoyBvwI"
+        }
+      },
+      "output": {
+        "crv": "X25519",
+        "d": "oJofguv460IW5L3-7FmN3MttwqHTN3vbn5kJbbqxmGw",
+        "kid": "2o1RtaNsesiPxOTA4nqjKi8tuFPK4goGW5geg8R8YYA",
+        "kty": "OKP",
+        "x": "2gWwpR90WzM8pF6c2u4hVkisC9Z_vibouROB-bRpVhc"
+      }
+    }
+  ]
+}

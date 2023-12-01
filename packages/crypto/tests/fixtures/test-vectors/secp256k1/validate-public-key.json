@@ -1,0 +1,33 @@
+{
+  "description" : "Secp256k1 validatePublicKey test vectors",
+  "vectors"     : [
+    {
+      "description" : "returns true for valid compressed public keys",
+      "input"       : {
+        "key": "026bcdccc644b309921d3b0c266183a20786650c1634d34e8dfa1ed74cd66ce214"
+      },
+      "output": true
+    },
+    {
+      "description" : "returns true for valid uncompressed public keys",
+      "input"       : {
+        "key": "043752951274023296c8a74b0ffe42f82ff4b4d4bba4326477422703f761f59258c26a7465b9a77ac0c3f1cedb139c428b0b1fbb5516867b527636f3286f705553"
+      },
+      "output": true
+    },
+    {
+      "description" : "returns false for invalid public keys",
+      "input"       : {
+        "key": "02fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f"
+      },
+      "output": false
+    },
+    {
+      "description" : "returns false if a private key is given",
+      "input"       : {
+        "key": "740ec69810de9ad1b8f298f1d2c0e6a52dd1e958dc2afc85764bec169c222e88"
+      },
+      "output": false
+    }
+  ]
+}
