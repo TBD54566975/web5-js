@@ -91,6 +91,7 @@
     "eslint-plugin-mocha": "10.1.0",
     "mocha": "10.2.0",
     "node-stdlib-browser": "1.2.0",
+    "playwright": "1.40.1",
     "rimraf": "4.4.0",
     "typescript": "5.1.6"
   }
