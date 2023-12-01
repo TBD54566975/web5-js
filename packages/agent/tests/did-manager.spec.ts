@@ -1,7 +1,8 @@
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 import type { PrivateKeyJwk, PublicKeyJwk, Web5Crypto } from '@web5/crypto';
 import type { DidKeySet, PortableDid } from '@web5/dids';
 
-import { expect } from 'chai';
 import { DidKeyMethod } from '@web5/dids';
 import { Jose, EdDsaAlgorithm } from '@web5/crypto';
 
@@ -13,6 +14,7 @@ import { DidManager } from '../src/did-manager.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
 import { DidStoreDwn, DidStoreMemory } from '../src/store-managed-did.js';
 
+chai.use(chaiAsPromised);
 describe('DidManager', () => {
 
   describe('constructor', () => {

@@ -6,7 +6,7 @@ import { TestManagedAgent } from '@web5/agent';
 import { DateSort } from '@tbd54566975/dwn-sdk-js';
 
 import { DwnApi } from '../src/dwn-api.js';
-import { testDwnUrl } from './test-config.js';
+import { testDwnUrl } from './utils/test-config.js';
 import { TestUserAgent } from './utils/test-user-agent.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
 
