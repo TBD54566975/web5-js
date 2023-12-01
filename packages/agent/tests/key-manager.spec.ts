@@ -1,8 +1,8 @@
 import type { Web5Crypto } from '@web5/crypto';
 
 import sinon from 'sinon';
-import { expect } from 'chai';
-
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 import type { KeyManagerOptions } from '../src/key-manager.js';
 import type { ManagedKey, ManagedKeyPair } from '../src/types/managed-key.js';
 
@@ -10,6 +10,8 @@ import { LocalKms } from '../src/kms-local.js';
 import { TestAgent } from './utils/test-agent.js';
 import { KeyManager } from '../src/key-manager.js';
 import { KeyStoreMemory } from '../src/store-managed-key.js';
+
+chai.use(chaiAsPromised);
 
 describe('KeyManager', () => {
   let keyManager: KeyManager;

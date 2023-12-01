@@ -17,7 +17,7 @@ import {
   ProtocolsConfigureMessage,
 } from '@tbd54566975/dwn-sdk-js';
 
-import { testDwnUrl } from './test-config.js';
+import { testDwnUrl } from './utils/test-config.js';
 import { TestAgent } from './utils/test-agent.js';
 import { DwnManager } from '../src/dwn-manager.js';
 import { ManagedIdentity } from '../src/identity-manager.js';

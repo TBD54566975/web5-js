@@ -1,4 +1,5 @@
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 import { DidKeyMethod } from '@web5/dids';
 
 import type { ManagedDid } from '../src/did-manager.js';
@@ -9,6 +10,8 @@ import { TestAgent } from './utils/test-agent.js';
 import { IdentityManager } from '../src/identity-manager.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
 import { IdentityStoreDwn, IdentityStoreMemory } from '../src/store-managed-identity.js';
+
+chai.use(chaiAsPromised);
 
 describe('IdentityManager', () => {
   describe('get agent', () => {
