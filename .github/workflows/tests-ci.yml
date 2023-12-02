@@ -128,7 +128,7 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
 
       - name: Build all workspace packages
-        run: npm run build
+        run: npm run build build:browser --ws
 
       - name: Run dwn-server (background)
         run: |
