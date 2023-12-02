@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
 const polyfilledBuffer = require('buffer/').Buffer;
 const { Buffer } = require('buffer');
 
