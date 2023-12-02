@@ -25,13 +25,14 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
+        uses: actions/setup-node@v4
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
+          cache: 'npm'
 
       - name: Install dependencies
         run: |
@@ -71,7 +72,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Pages
         uses: actions/configure-pages@v3
