@@ -60,7 +60,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build all workspace packages
+      - name: Build all workspace packages (type check)
         run: npm run build
 
       - name: Run linter for all packages
@@ -127,7 +127,7 @@ jobs:
           path: ~/Library/Caches/ms-playwright
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
 
-      - name: Build all workspace packages
+      - name: Build browser bundles
         run: npm run build build:browser --ws
 
       - name: Run dwn-server (background)
