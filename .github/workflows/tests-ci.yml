@@ -22,7 +22,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -55,7 +55,7 @@ jobs:
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -94,20 +94,41 @@ jobs:
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright Browsers
+      - name: Get Playwright Version (for cache)
+        id: get-playwright-version
+        run: |
+          version=$(npm view @playwright/test version)
+          echo "::set-output name=playwright_version::$version"
+
+      - name: Restore Cached Playwright Browsers
+        id: cache-playwright-restore
+        uses: actions/cache/restore@v3
+        with:
+          path: ~/Library/Caches/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.get-playwright-version.outputs.playwright_version }}
+
+      - name: Install Playwright Browsers (if no cache)
+        if: steps.cache-playwright-browsers.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps
+
+      - name: Save Playwright Cache
+        uses: actions/cache/save@v3
+        id: cache
+        with:
+          path: ~/Library/Caches/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.get-playwright-version.outputs.playwright_version }}
 
       - name: Build all workspace packages
         run: npm run build
 
       - name: Install docker
         run: brew install docker && brew install docker-compose # && colima start
-        
+
       - name: Start docker
         run: colima start
 
