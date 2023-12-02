@@ -18,6 +18,43 @@ export function isArrayBufferSlice(arrayBufferView: ArrayBufferView): boolean {
 }
 
 /**
+ * Checks if the given object is an AsyncIterable.
+ *
+ * An AsyncIterable is an object that implements the AsyncIterable protocol,
+ * which means it has a [Symbol.asyncIterator] method. This function checks
+ * if the provided object conforms to this protocol by verifying the presence
+ * and type of the [Symbol.asyncIterator] method.
+ *
+ * @param obj - The object to be checked for AsyncIterable conformity.
+ * @returns True if the object is an AsyncIterable, false otherwise.
+ *
+ * @example
+ * ```ts
+ * // Returns true for a valid AsyncIterable
+ * const asyncIterable = {
+ *   async *[Symbol.asyncIterator]() {
+ *     yield 1;
+ *     yield 2;
+ *   }
+ * };
+ * console.log(isAsyncIterable(asyncIterable)); // true
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Returns false for a regular object
+ * console.log(isAsyncIterable({ a: 1, b: 2 })); // false
+ * ```
+ */
+export function isAsyncIterable(obj: any): obj is AsyncIterable<any> {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  return typeof obj[Symbol.asyncIterator] === 'function';
+}
+
+/**
  * isDefined
  *
  * Utility function to check if a variable is neither null nor undefined.

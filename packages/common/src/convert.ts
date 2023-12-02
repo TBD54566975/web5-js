@@ -3,7 +3,7 @@ import type { Multibase } from 'multiformats';
 import { base58btc } from 'multiformats/bases/base58';
 import { base64url } from 'multiformats/bases/base64';
 
-import { isArrayBufferSlice, universalTypeOf } from './type-utils.js';
+import { isAsyncIterable, isArrayBufferSlice, universalTypeOf } from './type-utils.js';
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
@@ -19,6 +19,13 @@ export class Convert {
 
   static arrayBuffer(data: ArrayBuffer): Convert {
     return new Convert(data, 'ArrayBuffer');
+  }
+
+  static asyncIterable(data: AsyncIterable<any>): Convert {
+    if (!isAsyncIterable(data)) {
+      throw new TypeError('Input must be of type AsyncIterable.');
+    }
+    return new Convert(data, 'AsyncIterable');
   }
 
   static base58Btc(data: string): Convert {
@@ -112,6 +119,18 @@ export class Convert {
     }
   }
 
+  async toArrayBufferAsync(): Promise<ArrayBuffer> {
+    switch (this.format) {
+      case 'AsyncIterable': {
+        const blob = await this.toBlobAsync();
+        return await blob.arrayBuffer();
+      }
+
+      default:
+        throw new TypeError(`Asynchronous conversion from ${this.format} to ArrayBuffer is not supported.`);
+    }
+  }
+
   toBase58Btc(): string {
     switch (this.format) {
 
@@ -166,6 +185,30 @@ export class Convert {
     }
   }
 
+  async toBlobAsync(): Promise<Blob> {
+    switch (this.format) {
+      case 'AsyncIterable': {
+        // Initialize an array to hold the chunks from the AsyncIterable.
+        const chunks = [];
+
+        // Asynchronously iterate over each chunk in the AsyncIterable.
+        for await (const chunk of (this.data as AsyncIterable<any>)) {
+          // Append each chunk to the chunks array. These chunks can be of any type, typically binary data or text.
+          chunks.push(chunk);
+        }
+
+        // Create a new Blob from the aggregated chunks.
+        // The Blob constructor combines these chunks into a single Blob object.
+        const blob = new Blob(chunks);
+
+        return blob;
+      }
+
+      default:
+        throw new TypeError(`Asynchronous conversion from ${this.format} to Blob is not supported.`);
+    }
+  }
+
   toHex(): string {
     // pre-calculating Hex values improves runtime by 6-10x.
     const hexes = Array.from({ length: 256 }, (v, i) => i.toString(16).padStart(2, '0'));
@@ -211,8 +254,8 @@ export class Convert {
 
       case 'Base64Url': {
         const u8a = base64url.baseDecode(this.data);
-        const string = textDecoder.decode(u8a);
-        return JSON.parse(string);
+        const text = textDecoder.decode(u8a);
+        return JSON.parse(text);
       }
 
       case 'String': {
@@ -220,12 +263,32 @@ export class Convert {
       }
 
       case 'Uint8Array': {
-        const string = textDecoder.decode(this.data);
-        return JSON.parse(string);
+        const text = textDecoder.decode(this.data);
+        return JSON.parse(text);
       }
 
       default:
         throw new TypeError(`Conversion from ${this.format} to Object is not supported.`);
+    }
+  }
+
+  async toObjectAsync(): Promise<any> {
+    switch (this.format) {
+      case 'AsyncIterable': {
+        // Convert the AsyncIterable to a String.
+        const text = await this.toStringAsync();
+
+        // Parse the string as JSON. This step assumes that the string represents a valid JSON structure.
+        // JSON.parse() will convert the string into a corresponding JavaScript object.
+        const json = JSON.parse(text);
+
+        // Return the parsed JavaScript object. The type of this object will depend on the structure
+        // of the JSON in the stream. It could be an object, array, string, number, etc.
+        return json;
+      }
+
+      default:
+        throw new TypeError(`Asynchronous conversion from ${this.format} to Object is not supported.`);
     }
   }
 
@@ -251,6 +314,37 @@ export class Convert {
 
       default:
         throw new TypeError(`Conversion from ${this.format} to String is not supported.`);
+    }
+  }
+
+  async toStringAsync(): Promise<string> {
+    switch (this.format) {
+      case 'AsyncIterable': {
+        // Initialize an empty string to accumulate the decoded text.
+        let str = '';
+
+        // Iterate over the chunks from the AsyncIterable.
+        for await (const chunk of (this.data as AsyncIterable<any>)) {
+          // If the chunk is already a string, concatenate it directly.
+          if (typeof chunk === 'string')
+            str += chunk;
+          else
+          // If the chunk is a Uint8Array or similar, use the decoder to convert it to a string.
+          // The `stream: true` option lets the decoder handle multi-byte characters spanning
+          // multiple chunks.
+            str += textDecoder.decode(chunk, { stream: true });
+        }
+
+        // Finalize the decoding process to handle any remaining bytes and signal the end of the stream.
+        // The `stream: false` option flushes the decoder's internal state.
+        str += textDecoder.decode(undefined, { stream: false });
+
+        // Return the accumulated string.
+        return str;
+      }
+
+      default:
+        throw new TypeError(`Asynchronous conversion from ${this.format} to String is not supported.`);
     }
   }
 
@@ -312,6 +406,18 @@ export class Convert {
 
       default:
         throw new TypeError(`Conversion from ${this.format} to Uint8Array is not supported.`);
+    }
+  }
+
+  async toUint8ArrayAsync(): Promise<Uint8Array> {
+    switch (this.format) {
+      case 'AsyncIterable': {
+        const arrayBuffer = await this.toArrayBufferAsync();
+        return new Uint8Array(arrayBuffer);
+      }
+
+      default:
+        throw new TypeError(`Asynchronous conversion from ${this.format} to Uint8Array is not supported.`);
     }
   }
 }
