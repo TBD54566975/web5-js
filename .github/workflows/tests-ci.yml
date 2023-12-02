@@ -102,15 +102,16 @@ jobs:
       - name: Get Playwright Version (for cache)
         id: get-playwright-version
         run: |
-          version=$(npm view @playwright/test version)
-          echo "::set-output name=playwright_version::$version"
+          PLAYWRIGHT_VERSION=$(npm view @playwright/test version)
+          echo "Playwright Version: $PLAYWRIGHT_VERSION"
+          echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> $GITHUB_ENV
 
       - name: Restore Cached Playwright Browsers
         id: cache-playwright-restore
         uses: actions/cache/restore@v3
         with:
           path: ~/Library/Caches/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ steps.get-playwright-version.outputs.playwright_version }}
+          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
 
       - name: Install Playwright Browsers (if no cache)
         if: steps.cache-playwright-browsers.outputs.cache-hit != 'true'
@@ -121,7 +122,7 @@ jobs:
         id: cache
         with:
           path: ~/Library/Caches/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ steps.get-playwright-version.outputs.playwright_version }}
+          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
 
       - name: Build all workspace packages
         run: npm run build
