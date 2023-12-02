@@ -33,9 +33,6 @@ jobs:
           node-version: 18
           registry-url: https://registry.npmjs.org/
 
-      - name: Install latest npm
-        run: npm install -g npm@latest
-
       # Note - this is not required but it gives a clean failure prior to attempting a release if
       # the GH workflow runner is not authenticated with NPMjs.com
       - name: Verify NPM token is authenticated with NPMjs.com

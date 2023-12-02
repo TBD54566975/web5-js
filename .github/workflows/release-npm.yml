@@ -45,9 +45,6 @@ jobs:
           node-version: 18
           registry-url: https://registry.npmjs.org/
 
-      - name: Install latest npm
-        run: npm install -g npm@latest
-
       - name: Install semver utility
         run: npm install -g semver@7.5.1
 

@@ -23,9 +23,6 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install latest npm
-        run: npm install -g npm@latest
-
       - name: Install dependencies
         run: npm ci
 
@@ -57,9 +54,6 @@ jobs:
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-
-      - name: Install latest npm
-        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: npm ci
@@ -98,9 +92,6 @@ jobs:
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-
-      - name: Install latest npm
-        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: npm ci
