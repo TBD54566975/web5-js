@@ -19,8 +19,6 @@
     "test:browser": "npm run test:browser --ws",
     "test:node": "npm run test:node --ws",
     "dwn-server":"node node_modules/@web5/dwn-server/dist/esm/src/main.js || true",
-    "ci:build:browser:matrix:a": "npm run build:browser --workspace packages/agent",
-    "ci:build:browser:matrix:b": "npm run build:browser --workspace packages/api --workspace packages/common --workspace packages/credentials --workspace packages/crypto --workspace packages/dids --workspace packages/identity-agent --workspace packages/proxy-agent --workspace packages/user-agent",
     "ci:test:browser:matrix:a": "npm run test:browser --workspace packages/agent",
     "ci:test:browser:matrix:b": "npm run test:browser --workspace packages/api --workspace packages/common --workspace packages/credentials --workspace packages/crypto --workspace packages/dids --workspace packages/identity-agent --workspace packages/proxy-agent --workspace packages/user-agent"
   },
