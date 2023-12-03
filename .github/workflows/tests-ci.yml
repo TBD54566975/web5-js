@@ -92,9 +92,9 @@ jobs:
       matrix:
         include:
           - group: "A"
-            packages: "--workspace packages/agent --workspace packages/dids"
+            packages: "--workspace packages/agent"
           - group: "B"
-            packages: "--workspace packages/api --workspace packages/common --workspace packages/credentials --workspace packages/crypto --workspace packages/identity-agent --workspace packages/proxy-agent --workspace packages/user-agent"
+            packages: "--workspace packages/common --workspace packages/crypto --workspace packages/dids --workspace packages/credentials --workspace packages/user-agent --workspace packages/proxy-agent --workspace packages/api --workspace packages/identity-agent"
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
