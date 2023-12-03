@@ -85,6 +85,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   test-with-browsers:
+    name: test-with-browsers (group ${{ matrix.group }})
     # Run browser tests using macOS so that WebKit tests don't fail under a Linux environment
     runs-on: macos-latest
     strategy:
