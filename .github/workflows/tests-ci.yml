@@ -136,7 +136,7 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
 
       - name: Build esm
-        run: npm run build:esm
+        run: npm run build:esm --ws
 
       - name: Build browser for matrix ${{ matrix.group }}
         run: npm run build:browser ${{ matrix.packages }}
