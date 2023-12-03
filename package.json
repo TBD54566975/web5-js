@@ -3,15 +3,15 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/agent",
-    "packages/api",
     "packages/common",
-    "packages/credentials",
     "packages/crypto",
     "packages/dids",
-    "packages/identity-agent",
+    "packages/credentials",
+    "packages/agent",
+    "packages/user-agent",
     "packages/proxy-agent",
-    "packages/user-agent"
+    "packages/api",
+    "packages/identity-agent"
   ],
   "scripts": {
     "clean": "npx npkill -d $(pwd) -t node_modules && npx npkill -d $(pwd)/packages -t dist",
