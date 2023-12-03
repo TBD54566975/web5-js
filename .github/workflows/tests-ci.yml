@@ -87,6 +87,9 @@ jobs:
   test-with-browsers:
     # Run browser tests using macOS so that WebKit tests don't fail under a Linux environment
     runs-on: macos-latest
+    strategy:
+      matrix:
+        group: ['a', 'b']
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -127,16 +130,16 @@ jobs:
           path: ~/Library/Caches/ms-playwright
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
 
-      - name: Build browser bundles
-        run: npm run build build:browser --ws
+      - name: Build browser bundles for matrix ${{ matrix.group }})
+        run: npm run ci:build:browser:matrix:${{ matrix.group }}
 
       - name: Run dwn-server (background)
         run: |
           node node_modules/@web5/dwn-server/dist/esm/src/main.js &
           echo "DWN_SERVER_BACKGROUND_PROCESS=$!" >> $GITHUB_ENV
 
-      - name: Run tests for all packages
-        run: npm run test:browser --ws
+      - name: Run tests for matrix ${{ matrix.group }}
+        run: npm run ci:test:browser:matrix:${{ matrix.group }}
 
       - name: Terminate dwn-server
         run: kill $DWN_SERVER_BACKGROUND_PROCESS || true
