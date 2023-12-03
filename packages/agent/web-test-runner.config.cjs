@@ -6,8 +6,20 @@ const playwrightLauncher =
  * @type {import('@web/test-runner').TestRunnerConfig}
  */
 module.exports = {
-  playwright         : true,
-  nodeResolve        : true,
+  files       : 'tests/compiled/**/*.spec.js',
+  playwright  : true,
+  nodeResolve : true,
+  browsers    : [
+    playwrightLauncher({
+      product: 'chromium',
+    }),
+    playwrightLauncher({
+      product: 'firefox',
+    }),
+    playwrightLauncher({
+      product: 'webkit',
+    }),
+  ],
   testsFinishTimeout : 300000,
   concurrentBrowsers : 2,
   testFramework      : {
@@ -15,33 +27,4 @@ module.exports = {
       timeout: '30000',
     },
   },
-  groups: [
-    {
-      name     : 'chromium',
-      files    : 'tests/compiled/**/*.spec.js',
-      browsers : [
-        playwrightLauncher({
-          product: 'chromium',
-        }),
-      ],
-    },
-    {
-      name     : 'firefox',
-      files    : 'tests/compiled/**/*.spec.js',
-      browsers : [
-        playwrightLauncher({
-          product: 'firefox',
-        }),
-      ],
-    },
-    {
-      name     : 'webkit',
-      files    : 'tests/compiled/**/*.spec.js',
-      browsers : [
-        playwrightLauncher({
-          product: 'webkit',
-        }),
-      ],
-    },
-  ],
 };

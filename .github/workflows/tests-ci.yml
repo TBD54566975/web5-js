@@ -85,12 +85,17 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   test-with-browsers:
-    name: test-with-browsers (${{ matrix.browser }})
+    name: test-with-browsers (group ${{ matrix.group }})
     # Run browser tests using macOS so that WebKit tests don't fail under a Linux environment
     runs-on: macos-latest
     strategy:
+      # parallelism strategy: agent takes as long as roughly all other pkgs combined.
       matrix:
-        browser: ['--group chromium', ' --group firefox', '--group webkit']
+        include:
+          - group: "A"
+            packages: "--workspace packages/agent --workspace packages/dids "
+          - group: "B"
+            packages: "--workspace packages/common --workspace packages/crypto --workspace packages/credentials --workspace packages/user-agent --workspace packages/proxy-agent --workspace packages/api --workspace packages/identity-agent"
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -134,16 +139,16 @@ jobs:
       - name: Build esm
         run: npm run build:esm --ws
 
-      - name: Build browser bundles
-        run: npm run build:browser --ws
+      - name: Build browser for matrix ${{ matrix.group }}
+        run: npm run build:browser ${{ matrix.packages }}
 
       - name: Run dwn-server (background)
         run: |
           node node_modules/@web5/dwn-server/dist/esm/src/main.js &
           echo "DWN_SERVER_BACKGROUND_PROCESS=$!" >> $GITHUB_ENV
 
-      - name: Run tests for matrix ${{ matrix.browser }} 
-        run: npm run test:browser --ws -- ${{ matrix.browser }}
+      - name: Run tests for matrix ${{ matrix.group }}
+        run: npm run test:browser ${{ matrix.packages }}
 
       - name: Terminate dwn-server
         run: kill $DWN_SERVER_BACKGROUND_PROCESS || true
