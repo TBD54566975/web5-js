@@ -203,7 +203,7 @@ export class Record implements RecordModel {
        * Returns the data of the current record as a `Blob`.
        *
        * @returns A promise that resolves to a Blob containing the record's data.
-       * @throws {Error} If the record data is not available or cannot be converted to a `Blob`.
+       * @throws If the record data is not available or cannot be converted to a `Blob`.
        *
        * @beta
        */
@@ -215,7 +215,7 @@ export class Record implements RecordModel {
        * Returns the data of the current record as a `Uint8Array`.
        *
        * @returns A Promise that resolves to a `Uint8Array` containing the record's data bytes.
-       * @throws {Error} If the record data is not available or cannot be converted to a byte array.
+       * @throws If the record data is not available or cannot be converted to a byte array.
        *
        * @beta
        */
@@ -227,7 +227,7 @@ export class Record implements RecordModel {
        * Parses the data of the current record as JSON and returns it as a JavaScript object.
        *
        * @returns A Promise that resolves to a JavaScript object parsed from the record's JSON data.
-       * @throws {Error} If the record data is not available, not in JSON format, or cannot be parsed.
+       * @throws If the record data is not available, not in JSON format, or cannot be parsed.
        *
        * @beta
        */
@@ -239,7 +239,7 @@ export class Record implements RecordModel {
        * Returns the data of the current record as a `string`.
        *
        * @returns A promise that resolves to a `string` containing the record's text data.
-       * @throws {Error} If the record data is not available or cannot be converted to text.
+       * @throws If the record data is not available or cannot be converted to text.
        *
        * @beta
        */
@@ -251,7 +251,7 @@ export class Record implements RecordModel {
        * Provides a `Readable` stream containing the record's data.
        *
        * @returns A promise that resolves to a Node.js `Readable` stream of the record's data.
-       * @throws {Error} If the record data is not available in-memory and cannot be fetched.
+       * @throws If the record data is not available in-memory and cannot be fetched.
        *
        * @beta
        */
@@ -447,13 +447,11 @@ export class Record implements RecordModel {
    * It makes a read request to the specified DWN and processes the response to provide
    * a Node.js `Readable` stream of the record's data.
    *
-   * @param options - The options for fetching the data.
-   * @param options.target - The DID of the DWN to fetch the data from.
-   * @param options.isRemote - Indicates whether the target DWN is a remote node.
+   * @param target - The DID of the DWN to fetch the data from.
+   * @param isRemote - Indicates whether the target DWN is a remote node.
    * @returns A Promise that resolves to a Node.js `Readable` stream of the record's data.
-   * @throws {Error} If there is an error while fetching or processing the data from the DWN.
+   * @throws If there is an error while fetching or processing the data from the DWN.
    *
-   * @private
    * @beta
    */
   private async readRecordData({ target, isRemote }: { target: string, isRemote: boolean }) {
@@ -493,9 +491,8 @@ export class Record implements RecordModel {
    * @param propertiesToMutate - An iterable of property names that are intended to be mutated.
    * @param mutableDescriptorProperties - A set of property names that are allowed to be mutated.
    *
-   * @throws {Error} If any of the properties in `propertiesToMutate` are not in `mutableDescriptorProperties`.
+   * @throws If any of the properties in `propertiesToMutate` are not in `mutableDescriptorProperties`.
    *
-   * @private
    * @beta
    */
   private static verifyPermittedMutation(propertiesToMutate: Iterable<string>, mutableDescriptorProperties: Set<string>) {
