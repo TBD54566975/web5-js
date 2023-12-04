@@ -170,9 +170,11 @@ Each `Record` instance has the following instance properties: `id`, `attestation
 Each `Record` instance has the following instance methods:
 
 - **`data`** - _`object`_: an object with the following convenience methods that read out the data of the record entry in the following formats:
-  - **`text`** - _`function`_: produces a textual representation of the data.
-  - **`json`** - _`function`_: if the value is JSON data, this method will return a parsed JSON object.
-  - **`stream`** - _`function`_: returns the raw stream of bytes for the data.
+  - **`blob`** - _`function`_: returns the data as a [`Blob`](https://developer.mozilla.org/en-US/docs/Web/API/Blob).
+  - **`bytes`** - _`function`_: returns the data as a raw byte array in `Uint8Array` format.
+  - **`json`** - _`function`_: returns a parsed JSON object.
+  - **`stream`** - _`function`_: returns the data as a raw stream of bytes.
+  - **`text`** - _`function`_: returns the data as a string.
 - **`send`** - _`function`_: sends the record the instance represents to the DWeb Node endpoints of a provided DID.
 - **`update`** - _`function`_: takes in a new request object matching the expected method signature of a `write` and overwrites the record. This is a convenience method that allows you to easily overwrite records with less verbosity.
 
