@@ -459,7 +459,7 @@ The `create` method under the `did` object enables generation of DIDs for a supp
 > NOTE: You do not usually need to manually invoke this, as the `Web5.connect()` method already acquires a DID for the user (either by direct creation or connection to an identity agent app).
 
 ```javascript
-const myDid = await Web5.did.create("ion");
+const myDid = await Web5.did.create();
 ```
 
 ## Project Resources
