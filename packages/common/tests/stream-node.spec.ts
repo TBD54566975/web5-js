@@ -278,37 +278,23 @@ describe('NodeStream', () => {
     });
 
     it('throws an error for a stream that errors', async () => {
-      it('throws an error for a stream that errors', async () => {
-        const error = new Error('Stream error');
-        const nodeReadable = new Readable({
-          read() {
-            this.emit('error', error);
-          }
-        });
-
-        try {
-          await NodeStream.consumeToText({ readable: nodeReadable });
-          expect.fail('consumeToText() should have thrown an error');
-        } catch (caughtError) {
-          expect(caughtError).to.equal(error);
+      const error = new Error('Stream error');
+      const nodeReadable = new Readable({
+        read() {
+          this.emit('error', error);
         }
       });
+
+      try {
+        await NodeStream.consumeToText({ readable: nodeReadable });
+        expect.fail('consumeToText() should have thrown an error');
+      } catch (caughtError) {
+        expect(caughtError).to.equal(error);
+      }
     });
   });
 
   describe('fromWebReadable()', () => {
-    // URL of an 11MB video.
-    // const videoUrl = 'https://storage.googleapis.com/media-session/caminandes/short.mp4';
-    // let webStream: ReadableStream;
-
-    // before(async () => {
-    //   // Fetch the video and get the ReadableStream
-    //   const response = await fetch(videoUrl);
-    //   if (response.body !== null) {
-    //     webStream = response.body;
-    //   }
-    // });
-
     it('converts a Web ReadableStream to a Node Readable and reads the data correctly', (done) => {
     // Step 1: Create a Web ReadableStream
       const inputData = ['chunk1', 'chunk2', 'chunk3'];
@@ -339,33 +325,6 @@ describe('NodeStream', () => {
         done(error);
       });
     });
-
-    // it('video', async () => {
-    //   if (!Stream.isReadableStream(webStream)) {
-    //     throw new Error('Fetch response body is null.');
-    //   }
-
-    //   // Step 2: Convert to Node Readable
-    //   // const nodeReadable = Stream.toNodeReadable2({ readableStream: webStream });
-
-    //   // let start = performance.now();
-    //   // const nodeReadable = Stream.toNodeReadable({ readableStream: webStream });
-    //   // // const nodeReadable = new ReadableWebToNodeStream(webStream);
-    //   // let end = performance.now();
-    //   // let totalDuration = end - start;
-    //   // console.log(`Average time taken for ReadableWebToNodeStream: ${totalDuration.toFixed(4)} ms`);
-
-
-    //   // Step 3: Read from the Node Readable and collect the data
-    //   let start = performance.now();
-    //   const videoBytes = await Stream.consumeToBytes({ readableStream: webStream });
-    //   // const videoBytes = await DataStream.toBytes(nodeReadable);
-    //   // const videoBytes = new Uint8Array((await (await blob(nodeReadable)).arrayBuffer()));
-    //   let end = performance.now();
-    //   console.log(videoBytes.length);
-    //   let totalDuration = end - start;
-    //   console.log(`Average time taken for DataStream.toBytes: ${totalDuration.toFixed(4)} ms`);
-    // });
 
     it('handles backpressure properly', async () => {
       // Create a Web ReadableStream with 1MB of data in 100KB chunks.
