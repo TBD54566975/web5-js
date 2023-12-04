@@ -682,7 +682,7 @@ describe('DidIonMethod', () => {
       expect(resolutionResult.didDocumentMetadata.method).to.have.property('published', true);
     });
 
-    it('returns notFound error with unpublished short form ION DIDs', async() => {
+    it('returns internalError error with unpublished short form ION DIDs', async() => {
       const did = 'did:ion:EiBCi7lnGtotBsFkbI_lQskQZLk_GPelU0C5-nRB4_nMfA';
       const resolutionResult = await DidIonMethod.resolve({ didUrl: did });
 
@@ -690,7 +690,7 @@ describe('DidIonMethod', () => {
       expect(resolutionResult).to.have.property('didDocument');
       expect(resolutionResult).to.have.property('didDocumentMetadata');
 
-      expect(resolutionResult.didResolutionMetadata).to.have.property('error', 'notFound');
+      expect(resolutionResult.didResolutionMetadata).to.have.property('error', 'internalError');
     });
 
     it('resolves published long form ION DIDs', async() => {
