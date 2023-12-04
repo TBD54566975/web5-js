@@ -1,13 +1,13 @@
 import type { Web5Agent } from '@web5/agent';
-import type { Readable } from 'readable-stream';
+import type { Readable } from '@web5/common';
 import type {
   RecordsWriteMessage,
   RecordsWriteOptions,
   RecordsWriteDescriptor,
 } from '@tbd54566975/dwn-sdk-js';
 
-import { ReadableWebToNodeStream } from 'readable-web-to-node-stream';
-import { DataStream, DwnInterfaceName, DwnMethodName, Encoder } from '@tbd54566975/dwn-sdk-js';
+import { Convert, NodeStream, Stream } from '@web5/common';
+import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 
 import type { ResponseStatus } from './dwn-api.js';
 
@@ -80,9 +80,9 @@ export class Record implements RecordModel {
   private _attestation?: RecordsWriteMessage['attestation'];
   private _contextId?: string;
   private _descriptor: RecordsWriteDescriptor;
-  private _encodedData?: string | Blob | null;
+  private _encodedData?: Blob;
   private _encryption?: RecordsWriteMessage['encryption'];
-  private _readableStream?: Readable | Promise<Readable>;
+  private _readableStream?: Readable;
   private _recordId: string;
   private _remoteTarget?: string;
 
@@ -167,14 +167,22 @@ export class Record implements RecordModel {
     this._encryption = options.encryption;
     this._recordId = options.recordId;
 
-    /** options.encodedData will either be a base64url encoded string (in the case of RecordsQuery)
-     * OR a Blob in the case of a RecordsWrite. */
-    this._encodedData = options.encodedData ?? null;
+    if (options.encodedData) {
+      // If `encodedData` is set, then it is expected that:
+      // type is Blob if the Record object was instantiated by dwn.records.create()/write().
+      // type is Base64 URL encoded string if the Record object was instantiated by dwn.records.query().
+      // If it is a string, we need to Base64 URL decode to bytes and instantiate a Blob.
+      this._encodedData = (typeof options.encodedData === 'string') ?
+        new Blob([Convert.base64Url(options.encodedData).toUint8Array()], { type: this.dataFormat }) :
+        options.encodedData;
+    }
 
-    // If the record was created from a RecordsRead reply then it will have a `data` property.
     if (options.data) {
-      this._readableStream = Record.isReadableWebStream(options.data) ?
-        new ReadableWebToNodeStream(<ReadableStream>options.data) as Readable : options.data as Readable;
+      // If the record was created from a RecordsRead reply then it will have a `data` property.
+      // If the `data` property is a web ReadableStream, convert it to a Node.js Readable.
+      this._readableStream = Stream.isReadableStream(options.data) ?
+        NodeStream.fromWebReadable({ readableStream: options.data }) :
+        options.data;
     }
   }
 
@@ -184,85 +192,93 @@ export class Record implements RecordModel {
    * @returns a data stream with convenience methods such as `blob()`, `json()`, `text()`, and `stream()`, similar to the fetch API response
    * @throws `Error` if the record has already been deleted.
    *
+   * @beta
    */
   get data() {
-    if (!this._encodedData && !this._readableStream) {
-      /** `encodedData` will be set if the Record was instantiated by dwn.records.create()/write().
-       * `readableStream` will be set if Record was instantiated by dwn.records.read().
-       * If neither of the above are true, then the record must be fetched from either: */
-      this._readableStream = this._remoteTarget ?
-        // 1. ...a remote DWN if the record was queried from a remote DWN.
-        this.readRecordData({ target: this._remoteTarget, isRemote: true }) :
-        // 2. ...a local DWN if the record was queried from the local DWN.
-        this.readRecordData({ target: this.target, isRemote: false });
-    }
-
-    if (typeof this._encodedData === 'string') {
-      // If `encodedData` is set, then it is expected that:
-      // type is Blob if the Record object was instantiated by dwn.records.create()/write().
-      // type is Base64 URL encoded string if the Record object was instantiated by dwn.records.query().
-      // If it is a string, we need to Base64 URL decode to bytes and instantiate a Blob.
-      const dataBytes = Encoder.base64UrlToBytes(this._encodedData);
-      this._encodedData = new Blob([dataBytes], { type: this.dataFormat });
-    }
-
-    // Explicitly cast `encodedData` as a Blob since, if non-null, it has been converted from string to Blob.
-    const dataBlob = this._encodedData as Blob;
-
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this; // Capture the context of the `Record` instance.
     const dataObj = {
 
       /**
-       * Returns the Blob representation of the record's data.
-       * If the data is already available as a Blob, it returns it directly.
-       * If the data is in a Readable stream, it converts it to a Blob.
-       * @returns A Promise that resolves to a Blob.
+       * Returns the data of the current record as a `Blob`.
+       *
+       * @returns A promise that resolves to a Blob containing the record's data.
+       * @throws {Error} If the record data is not available or cannot be converted to a `Blob`.
+       *
+       * @beta
        */
       async blob(): Promise<Blob> {
-        if (dataBlob) console.log('data.blob(): got the dataBlob locally');
-        if (self._readableStream) console.log('data.blob(): readable stream present');
-
-        if (dataBlob) return dataBlob;
-        if (self._readableStream) return new Blob([await this.stream().then(DataStream.toBytes)], { type: self.dataFormat });
+        return new Blob([await NodeStream.consumeToBytes({ readable: await this.stream() })], { type: self.dataFormat });
       },
 
-      async json() {
-        if (dataBlob) console.log('data.json(): got the dataBlob locally');
-        if (self._readableStream) console.log('data.json(): readable stream present');
-
-        if (dataBlob) return this.text().then(JSON.parse);
-        if (self._readableStream) return this.text().then(JSON.parse);
-        return null;
+      /**
+       * Returns the data of the current record as a `Uint8Array`.
+       *
+       * @returns A Promise that resolves to a `Uint8Array` containing the record's data bytes.
+       * @throws {Error} If the record data is not available or cannot be converted to a byte array.
+       *
+       * @beta
+       */
+      async bytes(): Promise<Uint8Array> {
+        return await NodeStream.consumeToBytes({ readable: await this.stream() });
       },
 
-      async text() {
-        if (dataBlob) console.log('data.text(): got the dataBlob locally');
-        if (self._readableStream) console.log('data.text(): readable stream present');
-
-        if (dataBlob) return dataBlob.text();
-        if (self._readableStream) return this.stream().then(DataStream.toBytes).then(Encoder.bytesToString);
-        return null;
+      /**
+       * Parses the data of the current record as JSON and returns it as a JavaScript object.
+       *
+       * @returns A Promise that resolves to a JavaScript object parsed from the record's JSON data.
+       * @throws {Error} If the record data is not available, not in JSON format, or cannot be parsed.
+       *
+       * @beta
+       */
+      async json(): Promise<any> {
+        return await NodeStream.consumeToJson({ readable: await this.stream() });
       },
 
-      async stream() {
-        if (dataBlob) console.log('data.stream(): got the dataBlob locally');
-        if (self._readableStream) console.log('data.stream(): readable stream present');
+      /**
+       * Returns the data of the current record as a `string`.
+       *
+       * @returns A promise that resolves to a `string` containing the record's text data.
+       * @throws {Error} If the record data is not available or cannot be converted to text.
+       *
+       * @beta
+       */
+      async text(): Promise<string> {
+        return await NodeStream.consumeToText({ readable: await this.stream() });
+      },
 
-        if (dataBlob) return new ReadableWebToNodeStream(dataBlob.stream());
-        if (self._readableStream) {
-          const stream = self._readableStream;
-          /** Clear the `_readableStream` property to prevent future calls to `data.stream()` method
-           * from returning a stream the stream from being returned more than once.
-           * This is necessary because the stream is cached in the `_readableStream` property and the
-           * `data.stream()` method is called multiple times by the `data.blob()`, `data.json()`, and
-           * `data.text()` methods. */
+      /**
+       * Provides a `Readable` stream containing the record's data.
+       *
+       * @returns A promise that resolves to a Node.js `Readable` stream of the record's data.
+       * @throws {Error} If the record data is not available in-memory and cannot be fetched.
+       *
+       * @beta
+       */
+      async stream(): Promise<Readable> {
+        if (self._encodedData) {
+          /** If `encodedData` is set, it indicates that the Record was instantiated by
+           * `dwn.records.create()`/`dwn.records.write()` or the record's data payload was small
+           * enough to be returned in `dwn.records.query()` results. In either case, the data is
+           * already available in-memory and can be returned as a Node.js `Readable` stream. */
+          self._readableStream = NodeStream.fromWebReadable({ readableStream: self._encodedData.stream() });
 
-          // ! TODO - re-write this and instead of clearing the readable stream automatically... add a check at the top of the `data()` getter that checks whether _readableStream has been consumed, and re-reads the data if it has. Make sure I also test for this.
-          self._readableStream = undefined;
-          return stream;
+        } else if (!NodeStream.isReadable({ readable: self._readableStream })) {
+          /** If `encodedData` is not set, then the Record was instantiated by `dwn.records.read()`
+           * or was too large to be returned in `dwn.records.query()` results. In either case, the
+           * data is not available in-memory and must be fetched from either: */
+          self._readableStream = self._remoteTarget ?
+            // 1. ...a remote DWN if the record was queried from a remote DWN.
+            await self.readRecordData({ target: self._remoteTarget, isRemote: true }) :
+            // 2. ...a local DWN if the record was queried from the local DWN.
+            await self.readRecordData({ target: self.target, isRemote: false });
         }
-        return null;
+
+        if (!self._readableStream) {
+          throw new Error('Record data is not available.');
+        }
+
+        return self._readableStream;
       },
 
       then(...callbacks) {
@@ -283,6 +299,8 @@ export class Record implements RecordModel {
    * @param target - the DID to send the record to
    * @returns the status of the send record request
    * @throws `Error` if the record has already been deleted.
+   *
+   * @beta
    */
   async send(target: string): Promise<ResponseStatus> {
     const { reply: { status } } = await this._agent.sendDwnRequest({
@@ -349,6 +367,8 @@ export class Record implements RecordModel {
    * @param options - options to update the record, including the new data
    * @returns the status of the update request
    * @throws `Error` if the record has already been deleted.
+   *
+   * @beta
    */
   async update(options: RecordUpdateOptions = {}): Promise<ResponseStatus> {
     // Map Record class `dateModified`  property to DWN SDK `messageTimestamp`.
@@ -360,8 +380,8 @@ export class Record implements RecordModel {
 
     let dataBlob: Blob;
     if (options.data !== undefined) {
-      // If `data` is being updated then `dataCid` and `dataSize` must be undefined and the `data` property is passed as
-      // a top-level property to `agent.processDwnRequest()`.
+      // If `data` is being updated then `dataCid` and `dataSize` must be undefined and the `data`
+      // property is passed as a top-level property to `agent.processDwnRequest()`.
       delete updateMessage.dataCid;
       delete updateMessage.dataSize;
       delete updateMessage.data;
@@ -419,8 +439,24 @@ export class Record implements RecordModel {
     return { status };
   }
 
+  /**
+   * Fetches the record's data from the source DWN.
+   *
+   * This private method is called when the record data is not available in-memory
+   * and needs to be fetched from either a local or a remote DWN.
+   * It makes a read request to the specified DWN and processes the response to provide
+   * a Node.js `Readable` stream of the record's data.
+   *
+   * @param options - The options for fetching the data.
+   * @param options.target - The DID of the DWN to fetch the data from.
+   * @param options.isRemote - Indicates whether the target DWN is a remote node.
+   * @returns A Promise that resolves to a Node.js `Readable` stream of the record's data.
+   * @throws {Error} If there is an error while fetching or processing the data from the DWN.
+   *
+   * @private
+   * @beta
+   */
   private async readRecordData({ target, isRemote }: { target: string, isRemote: boolean }) {
-    console.log('Fetching from remote');
     const readRequest = {
       author         : this.author,
       messageOptions : { filter: { recordId: this.id } },
@@ -436,25 +472,31 @@ export class Record implements RecordModel {
       const { reply: { record }} = await agentResponsePromise;
       const dataStream: ReadableStream | Readable = record.data;
       // If the data stream is a web ReadableStream, convert it to a Node.js Readable.
-      const nodeReadable = Record.isReadableWebStream(dataStream) ?
-        new ReadableWebToNodeStream(<ReadableStream>dataStream) as Readable :
-        dataStream as Readable;
+      const nodeReadable = Stream.isReadableStream(dataStream) ?
+        NodeStream.fromWebReadable({ readableStream: dataStream }) :
+        dataStream;
       return nodeReadable;
+
     } catch (error) {
       throw new Error(`Error encountered while attempting to read data: ${error.message}`);
     }
   }
 
   /**
-   * TODO: Document method.
-   */
-  private static isReadableWebStream(stream): stream is ReadableStream {
-    // TODO: Improve robustness of the check modeled after node:stream.
-    return typeof stream._read !== 'function';
-  }
-
-  /**
-   * TODO: Document method.
+   * Verifies if the properties to be mutated are mutable.
+   *
+   * This private method is used to ensure that only mutable properties of the `Record` instance
+   * are being changed. It checks whether the properties specified for mutation are among the
+   * set of properties that are allowed to be modified. If any of the properties to be mutated
+   * are not in the set of mutable properties, the method throws an error.
+   *
+   * @param propertiesToMutate - An iterable of property names that are intended to be mutated.
+   * @param mutableDescriptorProperties - A set of property names that are allowed to be mutated.
+   *
+   * @throws {Error} If any of the properties in `propertiesToMutate` are not in `mutableDescriptorProperties`.
+   *
+   * @private
+   * @beta
    */
   private static verifyPermittedMutation(propertiesToMutate: Iterable<string>, mutableDescriptorProperties: Set<string>) {
     for (const property of propertiesToMutate) {
