@@ -212,32 +212,68 @@ export class Record implements RecordModel {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this; // Capture the context of the `Record` instance.
     const dataObj = {
+
+      /**
+       * Returns the Blob representation of the record's data.
+       * If the data is already available as a Blob, it returns it directly.
+       * If the data is in a Readable stream, it converts it to a Blob.
+       * @returns A Promise that resolves to a Blob.
+       */
       async blob(): Promise<Blob> {
+        if (dataBlob) console.log('data.blob(): got the dataBlob locally');
+        if (self._readableStream) console.log('data.blob(): readable stream present');
+
         if (dataBlob) return dataBlob;
         if (self._readableStream) return new Blob([await this.stream().then(DataStream.toBytes)], { type: self.dataFormat });
       },
+
       async json() {
+        if (dataBlob) console.log('data.json(): got the dataBlob locally');
+        if (self._readableStream) console.log('data.json(): readable stream present');
+
         if (dataBlob) return this.text().then(JSON.parse);
         if (self._readableStream) return this.text().then(JSON.parse);
         return null;
       },
+
       async text() {
+        if (dataBlob) console.log('data.text(): got the dataBlob locally');
+        if (self._readableStream) console.log('data.text(): readable stream present');
+
         if (dataBlob) return dataBlob.text();
         if (self._readableStream) return this.stream().then(DataStream.toBytes).then(Encoder.bytesToString);
         return null;
       },
+
       async stream() {
+        if (dataBlob) console.log('data.stream(): got the dataBlob locally');
+        if (self._readableStream) console.log('data.stream(): readable stream present');
+
         if (dataBlob) return new ReadableWebToNodeStream(dataBlob.stream());
-        if (self._readableStream) return self._readableStream;
+        if (self._readableStream) {
+          const stream = self._readableStream;
+          /** Clear the `_readableStream` property to prevent future calls to `data.stream()` method
+           * from returning a stream the stream from being returned more than once.
+           * This is necessary because the stream is cached in the `_readableStream` property and the
+           * `data.stream()` method is called multiple times by the `data.blob()`, `data.json()`, and
+           * `data.text()` methods. */
+
+          // ! TODO - re-write this and instead of clearing the readable stream automatically... add a check at the top of the `data()` getter that checks whether _readableStream has been consumed, and re-reads the data if it has. Make sure I also test for this.
+          self._readableStream = undefined;
+          return stream;
+        }
         return null;
       },
+
       then(...callbacks) {
         return this.stream().then(...callbacks);
       },
+
       catch(callback) {
         return dataObj.then().catch(callback);
       },
     };
+
     return dataObj;
   }
 
@@ -384,6 +420,7 @@ export class Record implements RecordModel {
   }
 
   private async readRecordData({ target, isRemote }: { target: string, isRemote: boolean }) {
+    console.log('Fetching from remote');
     const readRequest = {
       author         : this.author,
       messageOptions : { filter: { recordId: this.id } },
@@ -396,14 +433,13 @@ export class Record implements RecordModel {
       this._agent.processDwnRequest(readRequest);
 
     try {
-      const response = await agentResponsePromise;
-      const reply = response.reply;
-
-      const data: ReadableStream | Readable = reply.record.data;
-      const nodeReadable = Record.isReadableWebStream(data) ?
-        new ReadableWebToNodeStream(<ReadableStream>data) as Readable : data as Readable;
+      const { reply: { record }} = await agentResponsePromise;
+      const dataStream: ReadableStream | Readable = record.data;
+      // If the data stream is a web ReadableStream, convert it to a Node.js Readable.
+      const nodeReadable = Record.isReadableWebStream(dataStream) ?
+        new ReadableWebToNodeStream(<ReadableStream>dataStream) as Readable :
+        dataStream as Readable;
       return nodeReadable;
-
     } catch (error) {
       throw new Error(`Error encountered while attempting to read data: ${error.message}`);
     }
