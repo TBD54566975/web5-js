@@ -8,6 +8,7 @@ import type {
 } from '@tbd54566975/dwn-sdk-js';
 
 import chai, { expect } from 'chai';
+import { NodeStream } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 import { utils as didUtils } from '@web5/dids';
 import { TestManagedAgent } from '@web5/agent';
@@ -17,6 +18,7 @@ import {
   RecordsWrite,
   DwnMethodName,
   DwnInterfaceName,
+  PrivateKeySigner,
   EncryptionAlgorithm,
   KeyDerivationScheme,
 } from '@tbd54566975/dwn-sdk-js';
@@ -36,7 +38,6 @@ chai.use(chaiAsPromised);
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
 import { webcrypto } from 'node:crypto';
-import { PrivateKeySigner } from '@tbd54566975/dwn-sdk-js';
 // @ts-ignore
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
@@ -45,7 +46,7 @@ type RecordsWriteTest = RecordsWrite & RecordsWriteMessage;
 
 let testDwnUrls: string[] = [testDwnUrl];
 
-describe.only('Record', () => {
+describe('Record', () => {
   let dataText: string;
   let dataBlob: Blob;
   let dataFormat: string;
@@ -678,7 +679,7 @@ describe.only('Record', () => {
 
     it('returns large data payloads after remote dwn.records.query()', async () => {
       /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
-       * be fetched with a RecordsRead when record.data.blob() is executed. */
+       * be fetched with a RecordsRead when record.data.* is executed. */
       const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -701,15 +702,11 @@ describe.only('Record', () => {
       const [ queryRecord ] = queryRecords;
       const queriedDataBlob = await queryRecord.data.blob();
       expect(queriedDataBlob.size).to.equal(inputDataBytes.length);
-
-      // Convert the Blob into an array and ensure it matches the input data, byte for byte.
-      // const queriedDataBytes = new Uint8Array(await queriedDataBlob.arrayBuffer());
-      // expect(queriedDataBytes).to.deep.equal(inputDataBytes);
     });
 
     it('returns large data payloads after remote dwn.records.read()', async () => {
-      // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
-      // with a RecordsRead when record.data.blob() is executed.
+      /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
+       * be fetched with a RecordsRead when record.data.* is executed. */
       const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -737,23 +734,9 @@ describe.only('Record', () => {
       expect(readDataBytes).to.deep.equal(inputDataBytes);
     });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    it('NEW returns small JSON payloads repeatedly after dwn.records.write()', async () => {
-      // Generate data that is less than the encoded data limit to ensure that the data will not have to be fetched
-      // with a RecordsRead when record.data.json() is executed.
+    it('returns small data payloads repeatedly after dwn.records.write()', async () => {
+      /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
+       * be fetched with a RecordsRead when record.data.* is executed. */
       const dataJson = TestDataGenerator.randomJson(100_000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -761,40 +744,25 @@ describe.only('Record', () => {
       const { record, status } = await dwn.records.write({ data: dataJson });
       expect(status.code).to.equal(202);
 
-      let readDataStream = await record!.data.blob();
-      let chunks = [];
-      for await (const chunk of streamAsyncIterator(readDataStream.stream()))
-        chunks.push(chunk);
-      console.log(chunks.length);
+      // Read the data payload as bytes.
+      let readDataBytes = await record!.data.bytes();
+      // Ensure the JSON returned matches the input data, byte for byte.
+      expect(inputDataBytes).to.deep.equal(readDataBytes);
 
-      readDataStream = await record!.data.blob();
-      chunks = [];
-      for await (const chunk of streamAsyncIterator(readDataStream.stream()))
-        chunks.push(chunk);
-      console.log(chunks.length);
+      // Read the data payload a second time.
+      readDataBytes = await record!.data.bytes();
+      // Ensure the JSON returned matches the input data, byte for byte.
+      expect(inputDataBytes).to.deep.equal(readDataBytes);
 
-      readDataStream = await record!.data.blob();
-      chunks = [];
-      for await (const chunk of streamAsyncIterator(readDataStream.stream()))
-        chunks.push(chunk);
-      console.log(chunks.length);
+      // Read the data payload a third time.
+      readDataBytes = await record!.data.bytes();
+      // Ensure the JSON returned matches the input data, byte for byte.
+      expect(inputDataBytes).to.deep.equal(readDataBytes);
     });
 
-
-
-
-
-
-
-
-
-
-
-
-
-    it('throws an error after attempting to read large data twice', async () => {
-      // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
-      // with a RecordsRead when record.data.json() is executed.
+    it('returns large data payloads repeatedly after dwn.records.write()', async () => {
+      /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
+       * be fetched with a RecordsRead when record.data.* is executed. */
       const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 25000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -827,134 +795,9 @@ describe.only('Record', () => {
       expect(readDataBytes).to.deep.equal(inputDataBytes);
     });
 
-    it('throws an error after attempting to read large data again', async () => {
-      // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
-      // with a RecordsRead when record.data.json() is executed.
-      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 25000);
-      const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
-
-      // Write the large record to agent-connected DWN.
-      const { record, status } = await dwn.records.write({ data: dataJson });
-      expect(status.code).to.equal(202);
-
-      // Confirm that the size, in bytes, of the data read as JSON matches the original input data.
-      let readDataStream = await record!.data.stream();
-      let readDataBytes = await DataStream.toBytes(readDataStream);
-      console.log(readDataBytes.length);
-
-      readDataStream = await record!.data.stream();
-      readDataBytes = await DataStream.toBytes(readDataStream);
-      console.log(readDataBytes.length);
-    });
-
-    it.only('throws an error after attempting to read large data many times', async () => {
-      // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
-      // with a RecordsRead when record.data.json() is executed.
-      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 25000);
-      const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
-
-      // Create a large record but do NOT store it on the local, agent-connected DWN.
-      const { record, status } = await dwn.records.write({ data: dataJson, store: false });
-      expect(status.code).to.equal(202);
-
-      // Write the large record to a remote DWN.
-      console.log('BEFORE record.send()');
-      const { status: sendStatus } = await record!.send(alice.did);
-      console.log('AFTER record.send()');
-      expect(sendStatus.code).to.equal(202);
-
-      // Read the record that was just created on the remote DWN.
-      console.log('BEFORE dwn.records.read');
-      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({
-        from    : alice.did,
-        message : { filter: { recordId: record!.id }}
-      });
-      console.log('AFTER dwn.records.read');
-      expect(readRecordStatus.code).to.equal(200);
-
-      // Confirm that the size, in bytes, of the data read as a Blob matches the original input data.
-      console.log('BEFORE readRecord.data.stream()');
-      // const readDataBlob = await readRecord.data.blob();
-      let readDataStream = await readRecord!.data.stream();
-
-      const originalProperties = deepCopy(readDataStream);
-      console.log('ooooooooo=> PROPS', originalProperties);
-
-
-      console.log('AFTER readRecord.data.stream()');
-      let readDataBytes = await DataStream.toBytes(readDataStream);
-      console.log('AFTER DataStream.toBytes');
-      expect(readDataBytes.length).to.equal(inputDataBytes.length);
-      // expect(readDataBlob.size).to.equal(inputDataBytes.length);
-
-      const modProperties = deepCopy(readDataStream);
-      console.log('ooooooooo=> PROPS', modProperties);
-      // This should fail.  Only using to understand what has changed before and after reading the stream.
-      // expect(modProperties).to.deep.equal(originalProperties);
-
-      // Confirm that the size, in bytes, of the data read as JSON matches the original input data.
-      console.log('BEFORE readRecord.data.stream()');
-      readDataStream = await readRecord!.data.stream();
-      console.log('AFTER readRecord.data.stream()');
-      readDataBytes = await DataStream.toBytes(readDataStream);
-      console.log('AFTER DataStream.toBytes');
-      console.log(readDataBytes.length);
-
-      console.log('BEFORE readRecord.data.stream()');
-      readDataStream = await readRecord!.data.stream();
-      console.log('AFTER readRecord.data.stream()');
-      readDataBytes = await DataStream.toBytes(readDataStream);
-      console.log(readDataBytes.length);
-    });
-
-    it.only('throws an error after attempting to query large data many times', async () => {
-      // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
-      // with a RecordsRead when record.data.json() is executed.
-      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 25000);
-      const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
-
-      // Create a large record but do NOT store it on the local, agent-connected DWN.
-      const { record, status } = await dwn.records.write({ data: dataJson, store: false });
-      expect(status.code).to.equal(202);
-
-      // Write the large record to a remote DWN.
-      const { status: sendStatus } = await record!.send(alice.did);
-      expect(sendStatus.code).to.equal(202);
-
-      // Read the record that was just created on the remote DWN.
-      const { records: readRecords, status: readRecordStatus } = await dwn.records.query({
-        from    : alice.did,
-        message : { filter: { recordId: record!.id }}
-      });
-      expect(readRecordStatus.code).to.equal(200);
-
-      const [ readRecord ] = readRecords;
-
-      // Confirm that the size, in bytes, of the data read as a Blob matches the original input data.
-      const readDataBlob = await readRecord.data.blob();
-      expect(readDataBlob.size).to.equal(inputDataBytes.length);
-
-      // Confirm that the size, in bytes, of the data read as JSON matches the original input data.
-      let readDataStream = await readRecord!.data.stream();
-      let readDataBytes = await DataStream.toBytes(readDataStream);
-      console.log(readDataBytes.length);
-
-      readDataStream = await readRecord!.data.stream();
-      readDataBytes = await DataStream.toBytes(readDataStream);
-      console.log(readDataBytes.length);
-    });
-
-
-
-
-
-
-
-
-
-    it.only('throws an error after attempting to read small data twice', async () => {
-      // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
-      // with a RecordsRead when record.data.json() is executed.
+    it('allows small data payloads written locally to be consumed as a stream repeatedly', async () => {
+      /** Generate data that is less than the encoded data limit to ensure that the data will not
+       * have to be fetched with a RecordsRead when record.data.blob() is executed. */
       const dataJson = TestDataGenerator.randomJson(1000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -962,54 +805,41 @@ describe.only('Record', () => {
       const { record, status } = await dwn.records.write({ data: dataJson });
       expect(status.code).to.equal(202);
 
-      // Confirm that the size, in bytes, of the data read as JSON matches the original input data.
-      let readDataJson = await record!.data.json();
-      let readDataBytes = new TextEncoder().encode(JSON.stringify(readDataJson));
+      // Consume the data stream as bytes.
+      let readDataStream = await record!.data.stream();
+      let readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
       expect(readDataBytes.length).to.equal(inputDataBytes.length);
 
-      // Ensure the JSON returned matches the input data, byte for byte.
-      expect(readDataBytes).to.deep.equal(inputDataBytes);
-
-      // Attempt to read the record again.
-      readDataJson = await record!.data.json();
-      readDataBytes = new TextEncoder().encode(JSON.stringify(readDataJson));
+      // Consume the data stream as bytes a second time.
+      readDataStream = await record!.data.stream();
+      readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
       expect(readDataBytes.length).to.equal(inputDataBytes.length);
-
-      // Ensure the JSON returned matches the input data, byte for byte.
-      expect(readDataBytes).to.deep.equal(inputDataBytes);
-
-      // Attempt to read the record again.
-      readDataJson = await record!.data.json();
-      readDataBytes = new TextEncoder().encode(JSON.stringify(readDataJson));
-      expect(readDataBytes.length).to.equal(inputDataBytes.length);
-
-      // Ensure the JSON returned matches the input data, byte for byte.
-      expect(readDataBytes).to.deep.equal(inputDataBytes);
     });
 
-    it.only('throws an error after attempting to read small data again', async () => {
-      // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
-      // with a RecordsRead when record.data.json() is executed.
-      const dataJson = TestDataGenerator.randomJson(1000);
+    it('allows large data payloads written locally to be consumed as a stream repeatedly', async () => {
+      /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
+       * be fetched with a RecordsRead when record.data.* is executed. */
+      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
       // Write the large record to agent-connected DWN.
       const { record, status } = await dwn.records.write({ data: dataJson });
       expect(status.code).to.equal(202);
 
-      // Confirm that the size, in bytes, of the data read as JSON matches the original input data.
+      // Consume the data stream as bytes.
       let readDataStream = await record!.data.stream();
-      let readDataBytes = await DataStream.toBytes(readDataStream);
-      console.log(readDataBytes.length);
+      let readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
+      expect(readDataBytes.length).to.equal(inputDataBytes.length);
 
+      // Consume the data stream as bytes a second time.
       readDataStream = await record!.data.stream();
-      readDataBytes = await DataStream.toBytes(readDataStream);
-      console.log(readDataBytes.length);
+      readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
+      expect(readDataBytes.length).to.equal(inputDataBytes.length);
     });
 
-    it.only('throws an error after attempting to read small data many times', async () => {
-      // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
-      // with a RecordsRead when record.data.json() is executed.
+    it('allows small data payloads read from a remote to be consumed as a stream repeatedly', async () => {
+      /** Generate data that is less than the encoded data limit to ensure that the data will not
+       * have to be fetched with a RecordsRead when record.data.blob() is executed. */
       const dataJson = TestDataGenerator.randomJson(1000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -1035,16 +865,54 @@ describe.only('Record', () => {
       // Confirm that the size, in bytes, of the data read as JSON matches the original input data.
       let readDataStream = await readRecord!.data.stream();
       let readDataBytes = await DataStream.toBytes(readDataStream);
-      console.log(readDataBytes.length);
+      expect(readDataBytes.length).to.equal(inputDataBytes.length);
 
+      // Consume the data stream as bytes a third time.
       readDataStream = await readRecord!.data.stream();
       readDataBytes = await DataStream.toBytes(readDataStream);
-      console.log(readDataBytes.length);
+      expect(readDataBytes.length).to.equal(inputDataBytes.length);
     });
 
-    it.only('throws an error after attempting to query small data many times', async () => {
-      // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
-      // with a RecordsRead when record.data.json() is executed.
+    it('allows large data payloads read from a remote to be consumed as a stream repeatedly', async () => {
+      /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
+       * be fetched with a RecordsRead when record.data.* is executed. */
+      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
+      const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
+
+      // Create a large record but do NOT store it on the local, agent-connected DWN.
+      const { record, status } = await dwn.records.write({ data: dataJson, store: false });
+      expect(status.code).to.equal(202);
+
+      // Write the large record to a remote DWN.
+      const { status: sendStatus } = await record!.send(alice.did);
+      expect(sendStatus.code).to.equal(202);
+
+      // Read the record that was just created on the remote DWN.
+      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({
+        from    : alice.did,
+        message : { filter: { recordId: record!.id }}
+      });
+      expect(readRecordStatus.code).to.equal(200);
+
+      // Consume the data stream as bytes.
+      let readDataStream = await readRecord!.data.stream();
+      let readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
+      expect(readDataBytes.length).to.equal(inputDataBytes.length);
+
+      // Consume the data stream as bytes a second time.
+      readDataStream = await record!.data.stream();
+      readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
+      expect(readDataBytes.length).to.equal(inputDataBytes.length);
+
+      // Consume the data stream as bytes a third time.
+      readDataStream = await record!.data.stream();
+      readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
+      expect(readDataBytes.length).to.equal(inputDataBytes.length);
+    });
+
+    it('allows small data payloads queried from a remote to be consumed as a stream repeatedly', async () => {
+      /** Generate data that is less than the encoded data limit to ensure that the data will not
+       * have to be fetched with a RecordsRead when record.data.blob() is executed. */
       const dataJson = TestDataGenerator.randomJson(1000);
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
@@ -1057,26 +925,67 @@ describe.only('Record', () => {
       expect(sendStatus.code).to.equal(202);
 
       // Read the record that was just created on the remote DWN.
-      const { records: queriedRecords, status: readRecordStatus } = await dwn.records.query({
+      const { records: queriedRecords, status: queriedRecordStatus } = await dwn.records.query({
         from    : alice.did,
         message : { filter: { recordId: record!.id }}
       });
-      expect(readRecordStatus.code).to.equal(200);
+      expect(queriedRecordStatus.code).to.equal(200);
 
       const [ queriedRecord ] = queriedRecords;
 
-      // Confirm that the size, in bytes, of the data read as a Blob matches the original input data.
-      const readDataBlob = await queriedRecord.data.blob();
-      expect(readDataBlob.size).to.equal(inputDataBytes.length);
-
-      // Confirm that the size, in bytes, of the data read as JSON matches the original input data.
+      // Consume the data stream as bytes.
       let readDataStream = await queriedRecord!.data.stream();
-      let readDataBytes = await DataStream.toBytes(readDataStream);
-      console.log(readDataBytes.length);
+      let readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
+      expect(readDataBytes.length).to.equal(inputDataBytes.length);
 
+      // Consume the data stream as bytes a second time.
       readDataStream = await queriedRecord!.data.stream();
-      readDataBytes = await DataStream.toBytes(readDataStream);
-      console.log(readDataBytes.length);
+      readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
+      expect(readDataBytes.length).to.equal(inputDataBytes.length);
+
+      // Consume the data stream as bytes a third time.
+      readDataStream = await queriedRecord!.data.stream();
+      readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
+      expect(readDataBytes.length).to.equal(inputDataBytes.length);
+    });
+
+    it('allows large data payloads queried from a remote to be consumed as a stream repeatedly', async () => {
+      /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
+       * be fetched with a RecordsRead when record.data.* is executed. */
+      const dataJson = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
+      const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
+
+      // Create a large record but do NOT store it on the local, agent-connected DWN.
+      const { record, status } = await dwn.records.write({ data: dataJson, store: false });
+      expect(status.code).to.equal(202);
+
+      // Write the large record to a remote DWN.
+      const { status: sendStatus } = await record!.send(alice.did);
+      expect(sendStatus.code).to.equal(202);
+
+      // Query for the record that was just created on the remote DWN.
+      const { records: queriedRecords, status: queriedRecordStatus } = await dwn.records.query({
+        from    : alice.did,
+        message : { filter: { recordId: record!.id }}
+      });
+      expect(queriedRecordStatus.code).to.equal(200);
+
+      const [ queriedRecord ] = queriedRecords;
+
+      // Consume the data stream as bytes.
+      let readDataStream = await queriedRecord!.data.stream();
+      let readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
+      expect(readDataBytes.length).to.equal(inputDataBytes.length);
+
+      // Consume the data stream as bytes a second time.
+      readDataStream = await queriedRecord!.data.stream();
+      readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
+      expect(readDataBytes.length).to.equal(inputDataBytes.length);
+
+      // Consume the data stream as bytes a third time.
+      readDataStream = await queriedRecord!.data.stream();
+      readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
+      expect(readDataBytes.length).to.equal(inputDataBytes.length);
     });
   });
 
@@ -2068,24 +1977,3 @@ describe.only('Record', () => {
     });
   });
 });
-
-
-
-
-async function* streamAsyncIterator<T>(readableStream: ReadableStream<T>): AsyncIterableIterator<T> {
-  const reader = readableStream.getReader();
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      yield value;
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
-
-
-function deepCopy<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj));
-}
