@@ -431,13 +431,20 @@ export class DwnApi {
              * Extract the `author` DID from the record since records may be signed by the
              * tenant owner or any other entity.
              */
-            author : RecordsWrite.getAuthor(responseRecord),
+            author       : RecordsWrite.getAuthor(responseRecord),
             /**
              * Set the `target` DID to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
              * local DWN even if the record was read from a remote DWN.
              */
-            target : this.connectedDid,
+            target       : this.connectedDid,
+            /**
+             * If the record was returned by a query of a remote DWN, set the `remoteTarget` to
+             * the DID of the DWN that returned the record. The `remoteTarget` will be used to
+             * determine which DWN to send subsequent read requests to in the event the data payload
+             * exceeds the threshold for being returned with queries.
+             */
+            remoteTarget : request.from,
             ...responseRecord,
           };
 
