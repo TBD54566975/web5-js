@@ -1,9 +1,10 @@
 import type { Duplex, ReadableStateOptions, Transform, Writable } from 'readable-stream';
 
 import { Readable } from 'readable-stream';
-
 import { Stream } from './stream.js';
 import { Convert } from './convert.js';
+
+export { Readable } from 'readable-stream';
 
 export class NodeStream {
   /**
