@@ -84,11 +84,11 @@ export class DidIonMethod implements DidMethod {
     operationsEndpoint?: string
   }): Promise<DidResolutionResult | undefined> {
     const {
-      challengeEnabled = true,
+      challengeEnabled = false,
       challengeEndpoint = 'https://beta.ion.msidentity.com/api/v1.0/proof-of-work-challenge',
       keySet,
       services,
-      operationsEndpoint = 'https://beta.ion.msidentity.com/api/v1.0/operations'
+      operationsEndpoint = 'https://ion.tbd.engineering/operations'
     } = options;
 
     // Create ION Document.
@@ -460,7 +460,7 @@ export class DidIonMethod implements DidMethod {
       };
     }
 
-    const { resolutionEndpoint = 'https://discover.did.msidentity.com/1.0/identifiers/' } = resolutionOptions;
+    const { resolutionEndpoint = 'https://ion.tbd.engineering/identifiers/' } = resolutionOptions;
     const normalizeUrl = (url: string): string => url.endsWith('/') ? url : url + '/';
     const resolutionUrl = `${normalizeUrl(resolutionEndpoint)}${parsedDid.did}`;
 
