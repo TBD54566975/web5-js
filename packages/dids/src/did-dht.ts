@@ -29,7 +29,6 @@ export type DidDhtCreateOptions = {
 }
 
 export type DidDhtKeySet = {
-  identityKey?: JwkKeyPair;
   verificationMethodKeys?: DidKeySetVerificationMethodKey[];
 }
 
@@ -43,13 +42,14 @@ export class DidDhtMethod implements DidMethod {
    * @returns A promise that resolves to a PortableDid object.
    */
   public static async create(options?: DidDhtCreateOptions): Promise<PortableDid> {
-    const { publish, keySet: initialKeySet, services } = options ?? {};
+    const { publish = false, keySet: initialKeySet, services } = options ?? {};
 
     // Generate missing keys, if not provided in the options.
     const keySet = await this.generateKeySet({ keySet: initialKeySet });
 
     // Get the identifier and set it.
-    const id = await this.getDidIdentifier({ key: keySet.identityKey.publicKeyJwk });
+    const identityKey = keySet.verificationMethodKeys.find(key => key.publicKeyJwk.kid === '0');
+    const id = await this.getDidIdentifier({ key: identityKey.publicKeyJwk });
 
     // Add all other keys to the verificationMethod and relationship arrays.
     const relationshipsMap: Partial<Record<VerificationRelationship, string[]>> = {};
@@ -74,16 +74,20 @@ export class DidDhtMethod implements DidMethod {
     services?.map(service => {
       service.id = `${id}#${service.id}`;
     });
+
+    // Assemble the DID Document.
     const document: DidDocument = {
       id,
       verificationMethod: [...verificationMethods],
       ...relationshipsMap,
-      ...services && {service: services}
+      ...services && { service: services }
     };
 
+    // If the publish flag is set, publish the DID Document to the DHT.
     if (publish) {
-      await this.publish({ keySet, didDocument: document });
+      await this.publish({ identityKey, didDocument: document });
     }
+
     return {
       did      : document.id,
       document : document,
@@ -156,35 +160,25 @@ export class DidDhtMethod implements DidMethod {
   }): Promise<DidDhtKeySet> {
     let { keySet = {} } = options ?? {};
 
-    if (!keySet.identityKey) {
-      keySet.identityKey = await this.generateJwkKeyPair({
+    // If the key set is missing a `verificationMethodKeys` array, create one.
+    if (!keySet.verificationMethodKeys) keySet.verificationMethodKeys = [];
+
+    // If the key set lacks an identity key (`kid: 0`), generate one.
+    if (!keySet.verificationMethodKeys.some(key => key.publicKeyJwk.kid === '0')) {
+      const identityKey = await this.generateJwkKeyPair({
         keyAlgorithm : 'Ed25519',
         keyId        : '0'
       });
-
-
-    } else if (keySet.identityKey.publicKeyJwk.kid !== '0') {
-      throw new Error('The identity key must have a kid of 0');
-    }
-
-    // add verificationMethodKeys for the identity key
-    const identityKeySetVerificationMethod: DidKeySetVerificationMethodKey = {
-      ...keySet.identityKey,
-      relationships: ['authentication', 'assertionMethod', 'capabilityInvocation', 'capabilityDelegation']
-    };
-
-    if (!keySet.verificationMethodKeys) {
-      keySet.verificationMethodKeys = [identityKeySetVerificationMethod];
-    } else if (keySet.verificationMethodKeys.filter(key => key.publicKeyJwk.kid === '0').length === 0) {
-      keySet.verificationMethodKeys.push(identityKeySetVerificationMethod);
+      keySet.verificationMethodKeys.push({
+        ...identityKey,
+        relationships: ['authentication', 'assertionMethod', 'capabilityInvocation', 'capabilityDelegation']
+      });
     }
 
     // Generate RFC 7638 JWK thumbprints if `kid` is missing from any key.
-    if (keySet.verificationMethodKeys) {
-      for (const key of keySet.verificationMethodKeys) {
-        if (key.publicKeyJwk) key.publicKeyJwk.kid ??= await Jose.jwkThumbprint({key: key.publicKeyJwk});
-        if (key.privateKeyJwk) key.privateKeyJwk.kid ??= await Jose.jwkThumbprint({key: key.privateKeyJwk});
-      }
+    for (const key of keySet.verificationMethodKeys) {
+      if (key.publicKeyJwk) key.publicKeyJwk.kid ??= await Jose.jwkThumbprint({key: key.publicKeyJwk});
+      if (key.privateKeyJwk) key.privateKeyJwk.kid ??= await Jose.jwkThumbprint({key: key.privateKeyJwk});
     }
 
     return keySet;
@@ -198,9 +192,9 @@ export class DidDhtMethod implements DidMethod {
   public static async getDidIdentifier(options: {
     key: PublicKeyJwk
   }): Promise<string> {
-    const {key} = options;
+    const { key } = options;
 
-    const cryptoKey = await Jose.jwkToCryptoKey({key});
+    const cryptoKey = await Jose.jwkToCryptoKey({ key });
     const identifier = z32.encode(cryptoKey.material);
     return 'did:dht:' + identifier;
   }
@@ -213,8 +207,8 @@ export class DidDhtMethod implements DidMethod {
   public static async getDidIdentifierFragment(options: {
     key: PublicKeyJwk
   }): Promise<string> {
-    const {key} = options;
-    const cryptoKey = await Jose.jwkToCryptoKey({key});
+    const { key } = options;
+    const cryptoKey = await Jose.jwkToCryptoKey({ key });
     return z32.encode(cryptoKey.material);
   }
 
@@ -224,12 +218,12 @@ export class DidDhtMethod implements DidMethod {
    * @param didDocument The DID Document to publish.
    * @returns A boolean indicating the success of the publishing operation.
    */
-  public static async publish({ didDocument, keySet }: {
+  public static async publish({ didDocument, identityKey }: {
     didDocument: DidDocument,
-    keySet: DidDhtKeySet
+    identityKey: DidKeySetVerificationMethodKey
   }): Promise<boolean> {
-    const publicCryptoKey = await Jose.jwkToCryptoKey({key: keySet.identityKey.publicKeyJwk});
-    const privateCryptoKey = await Jose.jwkToCryptoKey({key: keySet.identityKey.privateKeyJwk});
+    const publicCryptoKey = await Jose.jwkToCryptoKey({key: identityKey.publicKeyJwk});
+    const privateCryptoKey = await Jose.jwkToCryptoKey({key: identityKey.privateKeyJwk});
 
     const isPublished = await DidDht.publishDidDocument({
       keyPair: {
@@ -261,7 +255,7 @@ export class DidDhtMethod implements DidMethod {
     if (!parsedDid) {
       return {
         '@context'            : 'https://w3id.org/did-resolution/v1',
-        didDocument           : undefined,
+        didDocument           : null,
         didDocumentMetadata   : {},
         didResolutionMetadata : {
           contentType  : 'application/did+ld+json',
@@ -274,7 +268,7 @@ export class DidDhtMethod implements DidMethod {
     if (parsedDid.method !== 'dht') {
       return {
         '@context'            : 'https://w3id.org/did-resolution/v1',
-        didDocument           : undefined,
+        didDocument           : null,
         didDocumentMetadata   : {},
         didResolutionMetadata : {
           contentType  : 'application/did+ld+json',
@@ -284,7 +278,28 @@ export class DidDhtMethod implements DidMethod {
       };
     }
 
-    const didDocument = await DidDht.getDidDocument({ did: parsedDid.did });
+    let didDocument: DidDocument;
+
+    /**
+     * TODO: This is a temporary workaround for the following issue:  https://github.com/TBD54566975/web5-js/issues/331
+     * As of 5 Dec 2023, the `pkarr` library throws an error if the DID is not found. Until a
+     * better solution is found, catch the error and return a DID Resolution Result with an
+     * error message.
+     */
+    try {
+      didDocument = await DidDht.getDidDocument({ did: parsedDid.did });
+    } catch (error: any) {
+      return {
+        '@context'            : 'https://w3id.org/did-resolution/v1',
+        didDocument           : null,
+        didDocumentMetadata   : {},
+        didResolutionMetadata : {
+          contentType  : 'application/did+ld+json',
+          error        : 'internalError',
+          errorMessage : `An unexpected error occurred while resolving DID: ${parsedDid.did}`
+        }
+      };
+    }
 
     return {
       '@context'            : 'https://w3id.org/did-resolution/v1',

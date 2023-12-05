@@ -276,7 +276,7 @@ describe('Verifiable Credential Tests', () => {
           ]
         }
       };
-      const didDhtCreateSpy = sinon.stub(DidDhtMethod, 'create').resolves(mockDocument);
+      const didDhtCreateStub = sinon.stub(DidDhtMethod, 'create').resolves(mockDocument);
 
       const alice = await DidDhtMethod.create({ publish: true });
 
@@ -343,8 +343,8 @@ describe('Verifiable Credential Tests', () => {
 
       await VerifiableCredential.verify(vcJwt);
 
-      sinon.assert.calledOnce(didDhtCreateSpy);
-      sinon.assert.calledOnce(dhtDidResolutionSpy);
+      expect(didDhtCreateStub.calledOnce).to.be.true;
+      expect(dhtDidResolutionSpy.calledOnce).to.be.true;
       sinon.restore();
     });
   });

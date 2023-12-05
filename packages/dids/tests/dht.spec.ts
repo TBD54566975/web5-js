@@ -1,8 +1,7 @@
+import sinon from 'sinon';
 import { expect } from 'chai';
 import { Jose } from '@web5/crypto';
-import sinon from 'sinon';
 
-import type { DidDhtKeySet } from '../src/did-dht.js';
 import type { DidKeySetVerificationMethodKey, DidService } from '../src/types.js';
 
 import { DidDht } from '../src/dht.js';
@@ -12,12 +11,12 @@ describe('DidDht', () => {
   it('should create a put and parse a get request', async () => {
 
     const { document, keySet } = await DidDhtMethod.create();
-    const ks = keySet as DidDhtKeySet;
-    const publicCryptoKey = await Jose.jwkToCryptoKey({ key: ks.identityKey.publicKeyJwk });
-    const privateCryptoKey = await Jose.jwkToCryptoKey({ key: ks.identityKey.privateKeyJwk });
+    const identityKey = keySet.verificationMethodKeys.find(key => key.publicKeyJwk.kid === '0');
+    const publicCryptoKey = await Jose.jwkToCryptoKey({ key: identityKey.publicKeyJwk });
+    const privateCryptoKey = await Jose.jwkToCryptoKey({ key: identityKey.privateKeyJwk });
 
-    const dhtPublishSpy = sinon.stub(DidDht, 'publishDidDocument').resolves(true);
-    const dhtGetSpy = sinon.stub(DidDht, 'getDidDocument').resolves(document);
+    const dhtPublishStub = sinon.stub(DidDht, 'publishDidDocument').resolves(true);
+    const dhtGetStub = sinon.stub(DidDht, 'getDidDocument').resolves(document);
 
     const published = await DidDht.publishDidDocument({
       keyPair: {
@@ -42,8 +41,8 @@ describe('DidDht', () => {
     expect(gotDid.verificationMethod[0].publicKeyJwk.kid).to.deep.equal(document.verificationMethod[0].publicKeyJwk.kid);
     expect(gotDid.verificationMethod[0].publicKeyJwk.kty).to.deep.equal(document.verificationMethod[0].publicKeyJwk.kty);
 
-    sinon.assert.calledOnce(dhtPublishSpy);
-    sinon.assert.calledOnce(dhtGetSpy);
+    expect(dhtPublishStub.calledOnce).to.be.true;
+    expect(dhtGetStub.calledOnce).to.be.true;
     sinon.restore();
   });
 
