@@ -17,8 +17,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  security-action:
-    name: Security Analysis
+  snyk:
     runs-on: ubuntu-latest
 
     steps:
@@ -35,6 +34,21 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
+      - name: Upload SARIF result to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: snyk.sarif
+
+  fossa:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
       - name: Run FOSSA Scan
         uses: fossas/fossa-action@main
         with:
@@ -45,9 +59,3 @@ jobs:
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
           run-tests: true
-
-      - name: Upload SARIF result to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v2
-        if: always()
-        with:
-          sarif_file: snyk.sarif
