@@ -59,11 +59,11 @@ npm install @web5/api
 _CDNs_
 
 ```yaml
-https://unpkg.com/@web5/api@0.8.2/dist/browser.js
+https://unpkg.com/@web5/api@0.8.3/dist/browser.js
 ```
 
 ```yaml
-https://cdn.jsdelivr.net/npm/@web5/api@0.8.2/dist/browser.mjs
+https://cdn.jsdelivr.net/npm/@web5/api@0.8.3/dist/browser.mjs
 ```
 
 ## Usage
