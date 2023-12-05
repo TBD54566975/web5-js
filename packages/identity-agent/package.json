@@ -1,6 +1,6 @@
 {
   "name": "@web5/identity-agent",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -68,10 +68,10 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@web5/agent": "0.2.4",
-    "@web5/common": "0.2.1",
+    "@web5/agent": "0.2.5",
+    "@web5/common": "0.2.2",
     "@web5/crypto": "0.2.2",
-    "@web5/dids": "0.2.2"
+    "@web5/dids": "0.2.3"
   },
   "devDependencies": {
     "@playwright/test": "1.40.1",
@@ -83,7 +83,7 @@
     "@typescript-eslint/parser": "6.4.0",
     "@web/test-runner": "0.18.0",
     "@web/test-runner-playwright": "0.11.0",
-    "@web5/api": "0.8.2",
+    "@web5/api": "0.8.3",
     "c8": "8.0.1",
     "chai": "4.3.10",
     "chai-as-promised": "7.1.1",
