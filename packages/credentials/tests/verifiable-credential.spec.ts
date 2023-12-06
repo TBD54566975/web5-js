@@ -101,7 +101,7 @@ describe('Verifiable Credential Tests', () => {
 
     });
 
-    it('signing vc works', async () => {
+    it('signing with Ed25519 key works', async () => {
       const subjectDid = issuerDid.did;
 
       const vc = VerifiableCredential.create({
@@ -112,6 +112,24 @@ describe('Verifiable Credential Tests', () => {
       });
 
       const vcJwt = await vc.sign({did: issuerDid});
+      expect(vcJwt).to.not.be.null;
+      expect(vcJwt).to.be.a('string');
+
+      const parts = vcJwt.split('.');
+      expect(parts.length).to.equal(3);
+    });
+
+    it('signing with secp256k1 key works', async () => {
+      const did = await DidKeyMethod.create({ keyAlgorithm: 'secp256k1' });
+
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : did.did,
+        subject : did.did,
+        data    : new StreetCredibility('high', true),
+      });
+
+      const vcJwt = await vc.sign({ did });
       expect(vcJwt).to.not.be.null;
       expect(vcJwt).to.be.a('string');
 

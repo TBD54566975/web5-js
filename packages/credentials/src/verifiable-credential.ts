@@ -1,4 +1,6 @@
 import type { Resolvable, DIDResolutionResult} from 'did-resolver';
+import type { CryptoAlgorithm, JwkParamsEcPrivate, JwkParamsOkpPrivate, Web5Crypto } from '@web5/crypto';
+import type { JwtPayload, JwtHeader } from 'jwt-decode';
 import type {
   ICredential,
   ICredentialSubject,
@@ -11,7 +13,7 @@ import { verifyJWT } from 'did-jwt';
 import { DidDhtMethod, DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
 import { SsiValidator } from './validators.js';
 import { PortableDid } from '@web5/dids';
-import { Jose, Ed25519  } from '@web5/crypto';
+import { PrivateKeyJwk, EdDsaAlgorithm, EcdsaAlgorithm  } from '@web5/crypto';
 
 export const DEFAULT_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
 export const DEFAULT_VC_TYPE = 'VerifiableCredential';
@@ -76,6 +78,27 @@ type DecodedVcJwt = {
   signature: string
 }
 
+type Signer<T extends Web5Crypto.Algorithm> = {
+  signer: CryptoAlgorithm,
+  options?: T | undefined
+  alg: string
+  crv: string
+}
+
+const secp256k1Signer: Signer<Web5Crypto.EcdsaOptions> = {
+  signer  : new EcdsaAlgorithm(),
+  options : { name: 'ES256K'},
+  alg     : 'ES256K',
+  crv     : 'secp256k1'
+};
+
+const ed25519Signer: Signer<Web5Crypto.EdDsaOptions> = {
+  signer  : new EdDsaAlgorithm(),
+  options : { name: 'EdDSA' },
+  alg     : 'EdDSA',
+  crv     : 'Ed25519'
+};
+
 const didResolver = new DidResolver({ didResolvers: [DidIonMethod, DidKeyMethod, DidDhtMethod] });
 
 class TbdResolver implements Resolvable {
@@ -98,6 +121,14 @@ const tbdResolver = new TbdResolver();
  */
 export class VerifiableCredential {
   constructor(public vcDataModel: VcDataModel) {}
+
+  /** supported cryptographic algorithms. keys are `${alg}:${crv}`. */
+  static algorithms: { [alg: string]: Signer<Web5Crypto.EcdsaOptions | Web5Crypto.EdDsaOptions> } = {
+    'ES256K:'          : secp256k1Signer,
+    'ES256K:secp256k1' : secp256k1Signer,
+    ':secp256k1'       : secp256k1Signer,
+    'EdDSA:Ed25519'    : ed25519Signer
+  };
 
   get type(): string {
     return this.vcDataModel.type[this.vcDataModel.type.length - 1];
@@ -294,9 +325,9 @@ function decode(jwt: string): DecodedVcJwt {
 
 async function createJwt(createJwtOptions: CreateJwtOptions) {
   const { issuerDid, subjectDid, payload } = createJwtOptions;
-  const privateKeyJwk = issuerDid.keySet.verificationMethodKeys![0].privateKeyJwk!;
+  const privateKeyJwk = issuerDid.keySet.verificationMethodKeys![0].privateKeyJwk! as JwkParamsEcPrivate | JwkParamsOkpPrivate;
 
-  const header: JwtHeaderParams = { typ: 'JWT', alg: privateKeyJwk.alg!, kid: issuerDid.document.verificationMethod![0].id };
+  const header: JwtHeader = { typ: 'JWT', alg: privateKeyJwk.alg, kid: issuerDid.document.verificationMethod![0].id };
   const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
   const jwtPayload = {
@@ -310,9 +341,14 @@ async function createJwt(createJwtOptions: CreateJwtOptions) {
   const toSign = `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}`;
   const toSignBytes = Convert.string(toSign).toUint8Array();
 
-  const { keyMaterial } = await Jose.jwkToKey({ key: privateKeyJwk });
+  const algorithmId = `${header.alg}:${privateKeyJwk['crv'] || ''}`;
+  if (!(algorithmId in VerifiableCredential.algorithms)) {
+    throw new Error(`Signing failed: ${algorithmId} not supported`);
+  }
 
-  const signatureBytes = await Ed25519.sign({ key: keyMaterial, data: toSignBytes });
+  const { signer, options } = VerifiableCredential.algorithms[algorithmId];
+
+  const signatureBytes = await signer.sign({ key: privateKeyJwk as PrivateKeyJwk, data: toSignBytes, algorithm: options! });
   const base64UrlEncodedSignature = Convert.uint8Array(signatureBytes).toBase64Url();
 
   return `${toSign}.${base64UrlEncodedSignature}`;
