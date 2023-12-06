@@ -2,6 +2,8 @@ import { expect } from 'chai';
 
 import { Convert } from '../src/convert.js';
 
+const textEncoder = new TextEncoder();
+
 describe('Convert', () =>{
   describe('from: ArrayBuffer', () => {
     it('to: Base58Btc', () => {
@@ -50,6 +52,105 @@ describe('Convert', () =>{
       let result = Convert.arrayBuffer(input).toUint8Array();
 
       expect(result).to.deep.equal(output);
+    });
+  });
+
+  describe('from: AsyncIterable', () => {
+    let asyncIterableBytes: AsyncIterable<Uint8Array>;
+    let asyncIterableJson: AsyncIterable<any>;
+    let asyncIterableString: AsyncIterable<Uint8Array>;
+
+    // Create a generator function that yields two Uint8Array chunks.
+    async function* generateBytesData() {
+      yield new Uint8Array([1, 2, 3]);
+      yield new Uint8Array([4, 5, 6]);
+    }
+
+    // Create a generator function that yields parts of a JSON string.
+    async function* generateJsonData() {
+      yield '{"foo":';
+      yield '"bar"';
+      yield '}';
+    }
+
+    // Create a generator function that yields Uint8Array chunks of encoded string data.
+    async function* generateStringData() {
+      yield textEncoder.encode('Hello, ');
+      yield textEncoder.encode('world!');
+    }
+
+    beforeEach(() => {
+      asyncIterableBytes = generateBytesData();
+      asyncIterableJson = generateJsonData();
+      asyncIterableString = generateStringData();
+    });
+
+    it('to: ArrayBuffer', async () => {
+      const output = await Convert.asyncIterable(asyncIterableBytes).toArrayBufferAsync();
+
+      // The expected ArrayBuffer is a concatenation of the yielded Uint8Arrays
+      const expected = new Uint8Array([1, 2, 3, 4, 5, 6]).buffer;
+
+      // Compare the result with the expected ArrayBuffer
+      expect(new Uint8Array(output)).to.deep.equal(new Uint8Array(expected));
+    });
+
+    it('to: Blob', async () => {
+      const output = await Convert.asyncIterable(asyncIterableBytes).toBlobAsync();
+
+      // Check if the returned object is a Blob
+      expect(output).to.be.an.instanceOf(Blob);
+
+      // Convert Blob to ArrayBuffer to verify contents
+      const arrayBuffer = await output.arrayBuffer();
+      const result = new Uint8Array(arrayBuffer);
+
+      // The expected result is a concatenation of the yielded Uint8Arrays
+      const expected = new Uint8Array([1, 2, 3, 4, 5, 6]);
+
+      // Compare the result with the expected Uint8Array
+      expect(result).to.deep.equal(expected);
+    });
+
+    it('to: Object', async () => {
+      const output = await Convert.asyncIterable(asyncIterableJson).toObjectAsync();
+
+      // The expected result is the object formed by the concatenated JSON string
+      const expected = { foo: 'bar' };
+
+      // Compare the result with the expected object
+      expect(output).to.deep.equal(expected);
+    });
+
+    it('to: String', async () => {
+      const output = await Convert.asyncIterable(asyncIterableString).toStringAsync();
+
+      // The expected result is the concatenated string
+      const expected = 'Hello, world!';
+
+      // Compare the result with the expected string
+      expect(output).to.equal(expected);
+    });
+
+    it('to: Uint8Array', async () => {
+      const output = await Convert.asyncIterable(asyncIterableBytes).toUint8ArrayAsync();
+
+      // The expected result is a Uint8Array that concatenates all chunks
+      const expected = new Uint8Array([1, 2, 3, 4, 5, 6]);
+
+      // Compare the result with the expected Uint8Array
+      expect(output).to.deep.equal(expected);
+    });
+
+    it('throws an error if input is not AsyncIterable', async () => {
+      try {
+        // @ts-expect-error because incorrect input data type is intentionally being used to trigger error.
+        Convert.asyncIterable('unsupported');
+        expect.fail('Should have thrown an error for incorrect type');
+      } catch (error: any) {
+        expect(error).to.be.instanceOf(TypeError);
+        expect(error.message).to.include('must be of type AsyncIterable');
+      }
     });
   });
 
@@ -456,12 +557,32 @@ describe('Convert', () =>{
       expect(() => unsupported.toArrayBuffer()).to.throw(TypeError, 'not supported');
     });
 
+    it('toArrayBufferAsync() throw an error', async () => {
+      try {
+        await unsupported.toArrayBufferAsync();
+        expect.fail('Should have thrown an error for incorrect type');
+      } catch (error: any) {
+        expect(error).to.be.instanceOf(TypeError);
+        expect(error.message).to.include('not supported');
+      }
+    });
+
     it('toBase58Btc() throw an error', () => {
       expect(() => unsupported.toBase58Btc()).to.throw(TypeError, 'not supported');
     });
 
     it('toBase64Url() throw an error', () => {
       expect(() => unsupported.toBase64Url()).to.throw(TypeError, 'not supported');
+    });
+
+    it('toBlobAsync() throw an error', async () => {
+      try {
+        await unsupported.toBlobAsync();
+        expect.fail('Should have thrown an error for incorrect type');
+      } catch (error: any) {
+        expect(error).to.be.instanceOf(TypeError);
+        expect(error.message).to.include('not supported');
+      }
     });
 
     it('toHex() throw an error', () => {
@@ -476,12 +597,42 @@ describe('Convert', () =>{
       expect(() => unsupported.toObject()).to.throw(TypeError, 'not supported');
     });
 
+    it('toObjectAsync() throw an error', async () => {
+      try {
+        await unsupported.toObjectAsync();
+        expect.fail('Should have thrown an error for incorrect type');
+      } catch (error: any) {
+        expect(error).to.be.instanceOf(TypeError);
+        expect(error.message).to.include('not supported');
+      }
+    });
+
     it('toString() throw an error', () => {
       expect(() => unsupported.toString()).to.throw(TypeError, 'not supported');
     });
 
+    it('toStringAsync() throw an error', async () => {
+      try {
+        await unsupported.toStringAsync();
+        expect.fail('Should have thrown an error for incorrect type');
+      } catch (error: any) {
+        expect(error).to.be.instanceOf(TypeError);
+        expect(error.message).to.include('not supported');
+      }
+    });
+
     it('toUint8Array() throw an error', () => {
       expect(() => unsupported.toUint8Array()).to.throw(TypeError, 'not supported');
+    });
+
+    it('toUint8ArrayAsync() throw an error', async () => {
+      try {
+        await unsupported.toUint8ArrayAsync();
+        expect.fail('Should have thrown an error for incorrect type');
+      } catch (error: any) {
+        expect(error).to.be.instanceOf(TypeError);
+        expect(error.message).to.include('not supported');
+      }
     });
   });
 });
