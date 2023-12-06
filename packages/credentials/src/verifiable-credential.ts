@@ -1,6 +1,6 @@
 import type { Resolvable, DIDResolutionResult} from 'did-resolver';
 import type { CryptoAlgorithm, JwkParamsEcPrivate, JwkParamsOkpPrivate, Web5Crypto } from '@web5/crypto';
-import type { JwtPayload, JwtHeader } from 'jwt-decode';
+import type { JwtHeader } from 'jwt-decode';
 import type {
   ICredential,
   ICredentialSubject,
