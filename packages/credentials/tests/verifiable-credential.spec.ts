@@ -185,31 +185,6 @@ describe('Verifiable Credential Tests', () => {
     it('verify does not throw an exception with vaild vc signed by did:dht', async () => {
       const mockDocument: PortableDid = {
         keySet: {
-          identityKey: {
-            privateKeyJwk: {
-              d       : '_8gihSI-m8aOCCM6jHg33d8kxdImPBN4C5_bZIu10XU',
-              alg     : 'EdDSA',
-              crv     : 'Ed25519',
-              kty     : 'OKP',
-              ext     : 'true',
-              key_ops : [
-                'sign'
-              ],
-              x   : 'Qm88q6jAN9tfnrLt5V2zAiZs7wD_jnewHp7HIvM3dGo',
-              kid : '0'
-            },
-            publicKeyJwk: {
-              alg     : 'EdDSA',
-              crv     : 'Ed25519',
-              kty     : 'OKP',
-              ext     : 'true',
-              key_ops : [
-                'verify'
-              ],
-              x   : 'Qm88q6jAN9tfnrLt5V2zAiZs7wD_jnewHp7HIvM3dGo',
-              kid : '0'
-            }
-          },
           verificationMethodKeys: [
             {
               privateKeyJwk: {
@@ -276,7 +251,7 @@ describe('Verifiable Credential Tests', () => {
           ]
         }
       };
-      const didDhtCreateSpy = sinon.stub(DidDhtMethod, 'create').resolves(mockDocument);
+      const didDhtCreateStub = sinon.stub(DidDhtMethod, 'create').resolves(mockDocument);
 
       const alice = await DidDhtMethod.create({ publish: true });
 
@@ -343,8 +318,8 @@ describe('Verifiable Credential Tests', () => {
 
       await VerifiableCredential.verify(vcJwt);
 
-      sinon.assert.calledOnce(didDhtCreateSpy);
-      sinon.assert.calledOnce(dhtDidResolutionSpy);
+      expect(didDhtCreateStub.calledOnce).to.be.true;
+      expect(dhtDidResolutionSpy.calledOnce).to.be.true;
       sinon.restore();
     });
   });
