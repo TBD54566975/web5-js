@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
-import { DidDhtMethod, DidKeyMethod, PortableDid } from '@web5/dids';
+import { DidDhtMethod, DidKeyMethod, DidIonMethod, PortableDid } from '@web5/dids';
 import sinon from 'sinon';
 
 describe('Verifiable Credential Tests', () => {
@@ -37,6 +37,31 @@ describe('Verifiable Credential Tests', () => {
 
     it('create and sign vc with did:key', async () => {
       const did = await DidKeyMethod.create();
+
+      const vc = await VerifiableCredential.create({
+        type    : 'TBDeveloperCredential',
+        subject : did.did,
+        issuer  : did.did,
+        data    : {
+          username: 'nitro'
+        }
+      });
+
+      const vcJwt = await vc.sign({ did });
+
+      await VerifiableCredential.verify(vcJwt);
+
+      for( const currentVc of [vc, VerifiableCredential.parseJwt(vcJwt)]){
+        expect(currentVc.issuer).to.equal(did.did);
+        expect(currentVc.subject).to.equal(did.did);
+        expect(currentVc.type).to.equal('TBDeveloperCredential');
+        expect(currentVc.vcDataModel.issuanceDate).to.not.be.undefined;
+        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: did.did, username: 'nitro'});
+      }
+    });
+
+    it('create and sign vc with did:ion', async () => {
+      const did = await DidIonMethod.create();
 
       const vc = await VerifiableCredential.create({
         type    : 'TBDeveloperCredential',
