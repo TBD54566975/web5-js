@@ -8,8 +8,9 @@ import type {
   PresentationSubmission,
 } from '@sphereon/ssi-types';
 
+export interface PresentationDefinitionV2 extends PexPresDefV2 { }
+
 export type Validated = PexValidated;
-export type PresentationDefinitionV2 = PexPresDefV2
 
 export class PresentationExchange {
   /**
