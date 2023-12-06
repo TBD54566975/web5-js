@@ -16,10 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde6 #v4.1.1
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@5ef044f #v4.0.0
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
@@ -44,7 +44,7 @@ jobs:
               docsGenerator: typedoc-markdown
 
       - name: Save Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@a8a3f3a #v3.1.3
         if: always()
         with:
           name: tbdocs-reporter-output

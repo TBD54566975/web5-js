@@ -37,10 +37,10 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde6 #v4.1.1
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@5ef044f #v4.0.0
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/

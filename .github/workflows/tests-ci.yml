@@ -16,10 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde6 #v4.1.1
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@5ef044f #v4.0.0
         with:
           node-version: 18
           cache: "npm"
@@ -31,10 +31,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde6 #v4.1.1
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@5ef044f #v4.0.0
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
@@ -81,10 +81,10 @@ jobs:
             packages: "--workspace packages/common --workspace packages/crypto --workspace packages/credentials --workspace packages/user-agent --workspace packages/proxy-agent --workspace packages/api --workspace packages/identity-agent"
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde6 #v4.1.1
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@5ef044f #v4.0.0
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
@@ -102,7 +102,7 @@ jobs:
 
       - name: Restore Cached Playwright Browsers
         id: cache-playwright-restore
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@84995e0 #v3.3.2
         with:
           path: ~/Library/Caches/ms-playwright
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
@@ -112,7 +112,7 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Save Playwright Cache (if no cache)
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@e083308 #v3.3.2
         id: cache-playwright-save
         if: steps.cache-playwright-restore.outputs.cache-hit != 'true'
         with:
@@ -140,5 +140,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde6 #v4.1.1
       - uses: TBD54566975/sdk-development@v0.2.3
