@@ -109,7 +109,7 @@ describe('DwnManager', () => {
       });
 
       it('handles EventsGet', async () => {
-        const testWatermarkName = 'foo';
+        const testCursor = 'foo';
 
         // Attempt to process the EventsGet.
         let eventsGetResponse = await testAgent.agent.dwnManager.processRequest({
@@ -117,7 +117,7 @@ describe('DwnManager', () => {
           target         : identity.did,
           messageType    : 'EventsGet',
           messageOptions : {
-            watermark: testWatermarkName
+            cursor: testCursor, 
           }
         });
 
@@ -126,7 +126,7 @@ describe('DwnManager', () => {
         expect(eventsGetResponse).to.have.property('reply');
 
         const eventsGetMessage = eventsGetResponse.message as EventsGetMessage;
-        expect(eventsGetMessage.descriptor).to.have.property('watermark', testWatermarkName);
+        expect(eventsGetMessage.descriptor).to.have.property('cursor', testCursor);
 
         const eventsGetReply = eventsGetResponse.reply as EventsGetReply;
         expect(eventsGetReply).to.have.property('status');
