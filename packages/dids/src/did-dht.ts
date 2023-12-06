@@ -258,7 +258,7 @@ export class DidDhtMethod implements DidMethod {
         didDocument           : null,
         didDocumentMetadata   : {},
         didResolutionMetadata : {
-          contentType  : 'application/did+ld+json',
+          contentType  : 'application/did+json',
           error        : 'invalidDid',
           errorMessage : `Cannot parse DID: ${didUrl}`
         }
@@ -271,7 +271,7 @@ export class DidDhtMethod implements DidMethod {
         didDocument           : null,
         didDocumentMetadata   : {},
         didResolutionMetadata : {
-          contentType  : 'application/did+ld+json',
+          contentType  : 'application/did+json',
           error        : 'methodNotSupported',
           errorMessage : `Method not supported: ${parsedDid.method}`
         }
@@ -294,7 +294,7 @@ export class DidDhtMethod implements DidMethod {
         didDocument           : null,
         didDocumentMetadata   : {},
         didResolutionMetadata : {
-          contentType  : 'application/did+ld+json',
+          contentType  : 'application/did+json',
           error        : 'internalError',
           errorMessage : `An unexpected error occurred while resolving DID: ${parsedDid.did}`
         }
@@ -306,7 +306,7 @@ export class DidDhtMethod implements DidMethod {
       didDocument,
       didDocumentMetadata   : {},
       didResolutionMetadata : {
-        contentType : 'application/did+ld+json',
+        contentType : 'application/did+json',
         did         : {
           didString        : parsedDid.did,
           methodSpecificId : parsedDid.id,
