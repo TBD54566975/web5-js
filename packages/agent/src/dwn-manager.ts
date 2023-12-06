@@ -421,22 +421,6 @@ export class DwnManager {
     return dwnMessage;
   }
 
-  /**
-   * Writes a pruned initial `RecordsWrite` to a DWN without needing to supply associated data.
-   * Note: This method should ONLY be used by a {@link SyncManager} implementation.
-   *
-   * @param options.targetDid - DID of the DWN tenant to write the pruned RecordsWrite to.
-   * @returns DWN reply containing the status of processing request.
-   */
-  public async writePrunedRecord(options: {
-    targetDid: string,
-    message: RecordsWriteMessage
-  }): Promise<GenericMessageReply> {
-    const { targetDid, message } = options;
-
-    return await this._dwn.synchronizePrunedInitialRecordsWrite(targetDid, message);
-  }
-
   public async processMessage(options: {
     targetDid: string,
     message: GenericMessage,
