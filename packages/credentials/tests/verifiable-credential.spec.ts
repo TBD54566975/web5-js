@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import { DidDhtMethod, DidKeyMethod, DidIonMethod, PortableDid } from '@web5/dids';
 import sinon from 'sinon';
+import { CompactJwt } from '../src/compact-jwt.js';
 
 describe('Verifiable Credential Tests', () => {
   let issuerDid: PortableDid;
@@ -165,11 +166,25 @@ describe('Verifiable Credential Tests', () => {
     it('parseJwt throws ParseException if argument is not a valid JWT', () => {
       expect(() => {
         VerifiableCredential.parseJwt('hi');
-      }).to.throw('Not a valid jwt');
+      }).to.throw('Malformed JWT');
     });
 
     it('parseJwt checks if missing vc property', async () => {
-      await expectThrowsAsync(() =>  VerifiableCredential.parseJwt('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'), 'Jwt payload missing vc property');
+      const did = await DidKeyMethod.create();
+      const compactJwt = await CompactJwt.create({
+        signerDid : did,
+        payload   : {
+          iss : did.did,
+          sub : did.did
+        }
+      });
+
+      try {
+        VerifiableCredential.parseJwt(compactJwt);
+        expect.fail();
+      } catch(e: any) {
+        expect(e.message).to.include('Jwt payload missing vc property');
+      }
     });
 
     it('parseJwt returns an instance of VerifiableCredential on success', async () => {
@@ -192,13 +207,23 @@ describe('Verifiable Credential Tests', () => {
     });
 
     it('fails to verify an invalid VC JWT', async () => {
-      await expectThrowsAsync(() =>  VerifiableCredential.verify('invalid-jwt'), 'Not a valid jwt');
+      try {
+        await VerifiableCredential.verify('invalid-jwt');
+        expect.fail();
+      } catch(e: any) {
+        expect(e.message).to.include('Malformed JWT');
+      }
     });
 
     it('should throw an error if JWS header does not contain alg and kid', async () => {
       const invalidJwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
 
-      await expectThrowsAsync(() =>  VerifiableCredential.verify(invalidJwt), 'Signature verification failed: Expected JWS header to contain alg and kid');
+      try {
+        await VerifiableCredential.verify(invalidJwt);
+        expect.fail();
+      } catch(e: any) {
+        expect(e.message).to.include('to contain alg and kid');
+      }
     });
 
     it('verify does not throw an exception with vaild vc', async () => {

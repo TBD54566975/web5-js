@@ -93,10 +93,15 @@ export class CompactJwt {
     const { signerDid, payload } = params;
     const privateKeyJwk = signerDid.keySet.verificationMethodKeys![0].privateKeyJwk! as JwkParamsEcPrivate | JwkParamsOkpPrivate;
 
+    let vmId = signerDid.document.verificationMethod![0].id;
+    if (vmId.charAt(0) === '#') {
+      vmId = `${signerDid.did}${vmId}`;
+    }
+
     const header: JwtHeader = {
       typ : 'JWT',
       alg : privateKeyJwk.alg,
-      kid : signerDid.document.verificationMethod![0].id
+      kid : vmId
     };
 
     const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
