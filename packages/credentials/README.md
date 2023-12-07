@@ -43,7 +43,7 @@ Sign a `VerifiableCredential` with a DID:
 
 - `did`: The did that is signing the VC
 
-First create a Did object as follows:
+First create a `Did` object as follows:
 ```javascript
 import { DidKeyMethod } from '@web5/dids';
 const issuer = await DidKeyMethod.create();
