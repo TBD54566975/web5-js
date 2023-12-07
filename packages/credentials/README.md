@@ -41,27 +41,17 @@ const vc = new VerifiableCredential({
 ### Signing a Verifiable Credential
 Sign a `VerifiableCredential` with a DID:
 
-- `signOptions`: The sign options used to sign the credential.
+- `did`: The did that is signing the VC
 
-First create a SignOptions object as follows:
+First create a Did object as follows:
 ```javascript
-import { Ed25519, Jose } from '@web5/crypto';
 import { DidKeyMethod } from '@web5/dids';
-
 const issuer = await DidKeyMethod.create();
-const privateKey = (await Jose.jwkToKey({ key: issuer.keySet.verificationMethodKeys![0].privateKeyJwk! })).keyMaterial;
-
-const signOptions = {
-  issuerDid: issuer.did,
-  subjectDid: "did:example:subject",
-  kid: `${issuer.did}#${issuer.did.split(':')[2]}`,
-  signer: async (data) => await Ed25519.sign({ data, key: privateKey })
-};
 ```
 
-Then sign the VC using the signoptions object
+Then sign the VC using the did object
 ```javascript
-const vcJwt = vc.sign(signOptions)
+const vcJwt = vc.sign({did:issuer})
 ```
 
 ### Verifying a Verifiable Credential
