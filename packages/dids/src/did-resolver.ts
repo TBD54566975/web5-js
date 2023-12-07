@@ -14,7 +14,7 @@ export type DidResolverOptions = {
   cache?: DidResolverCache;
 }
 
-export type DeferenceParams = {
+export type DereferenceParams = {
   didUrl: string
 }
 
@@ -111,7 +111,7 @@ export class DidResolver {
     }
   }
 
-  async deference(params: DeferenceParams): Promise<DidResource> {
+  async deference(params: DereferenceParams): Promise<DidResource> {
     const { didUrl } = params;
     const { didDocument } = await this.resolve(didUrl);
 
