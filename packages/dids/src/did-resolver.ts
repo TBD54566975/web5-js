@@ -111,7 +111,7 @@ export class DidResolver {
     }
   }
 
-  async deference(params: DereferenceParams): Promise<DidResource> {
+  async dereference(params: DereferenceParams): Promise<DidResource> {
     const { didUrl } = params;
     const { didDocument } = await this.resolve(didUrl);
 
