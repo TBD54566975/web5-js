@@ -111,6 +111,17 @@ export class DidResolver {
     }
   }
 
+  /**
+ * Asynchronously dereferences a DID (Decentralized Identifier) URL to a corresponding DID resource. This method interprets the DID URL's components, which include the DID method, method-specific identifier, path, query, and fragment,
+ * and retrieves the related resource as per the DID Core specifications. The dereferencing process involves resolving the DID contained in the DID URL to a DID document, and then extracting the specific part
+ * of the document identified by the fragment in the DID URL. If no fragment is specified, the entire DID document is returned. This method supports resolution of different components within a DID document such
+ * as service endpoints and verification methods, based on their IDs. It accommodates both full and relative DID URLs as specified in the DID Core specification.
+ *
+ * More information on DID URL dereferencing can be found in the DID Core specification [here](https://www.w3.org/TR/did-core/#did-url-dereferencing)
+ *
+ * @param params - An object of type `DereferenceParams` containing the `didUrl` which needs to be dereferenced.
+ * @returns A `Promise` that resolves to a `DidResource`, which can be the entire DID Document or a specific part of it (like a verification method or service endpoint) depending on the presence and value of the fragment in the DID URL.
+ */
   async dereference(params: DereferenceParams): Promise<DidResource> {
     const { didUrl } = params;
     const { didDocument } = await this.resolve(didUrl);
