@@ -1,4 +1,6 @@
 import type { Resolvable, DIDResolutionResult} from 'did-resolver';
+import type { CryptoAlgorithm, JwkParamsEcPrivate, JwkParamsOkpPrivate, Web5Crypto } from '@web5/crypto';
+import type { JwtHeader } from 'jwt-decode';
 import type {
   ICredential,
   ICredentialSubject,
@@ -10,6 +12,8 @@ import { Convert } from '@web5/common';
 import { verifyJWT } from 'did-jwt';
 import { DidDhtMethod, DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
 import { SsiValidator } from './validators.js';
+import { PortableDid } from '@web5/dids';
+import { PrivateKeyJwk, EdDsaAlgorithm, EcdsaAlgorithm  } from '@web5/crypto';
 
 export const DEFAULT_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
 export const DEFAULT_VC_TYPE = 'VerifiableCredential';
@@ -22,6 +26,7 @@ export const DEFAULT_VC_TYPE = 'VerifiableCredential';
 export type VcDataModel = ICredential;
 
 /**
+ * Options for creating a verifiable credential.
  * @param type Optional. The type of the credential, can be a string or an array of strings.
  * @param issuer The issuer URI of the credential, as a string.
  * @param subject The subject URI of the credential, as a string.
@@ -39,14 +44,25 @@ export type VerifiableCredentialCreateOptions = {
   expirationDate?: string;
 };
 
-export type SignOptions = {
-  kid: string;
-  issuerDid: string;
-  subjectDid: string;
-  signer: Signer,
-}
+/**
+ * Options for signing a verifiable credential.
+ * @param did - The issuer DID of the credential, represented as a PortableDid.
+ */
+export type VerifiableCredentialSignOptions = {
+  did: PortableDid;
+};
 
-type Signer = (data: Uint8Array) => Promise<Uint8Array>;
+/**
+ * Options for `createJwt`
+ * @param issuerDid - The DID to sign with.
+ * @param subjectDid - The subject of the credential.
+ * @param payload - The payload to be signed.
+ */
+export type CreateJwtOptions = {
+  issuerDid: PortableDid,
+  subjectDid: string,
+  payload: any,
+}
 
 type CredentialSubject = ICredentialSubject;
 
@@ -61,6 +77,27 @@ type DecodedVcJwt = {
   payload: JwtDecodedVerifiableCredential,
   signature: string
 }
+
+type Signer<T extends Web5Crypto.Algorithm> = {
+  signer: CryptoAlgorithm,
+  options?: T | undefined
+  alg: string
+  crv: string
+}
+
+const secp256k1Signer: Signer<Web5Crypto.EcdsaOptions> = {
+  signer  : new EcdsaAlgorithm(),
+  options : { name: 'ES256K'},
+  alg     : 'ES256K',
+  crv     : 'secp256k1'
+};
+
+const ed25519Signer: Signer<Web5Crypto.EdDsaOptions> = {
+  signer  : new EdDsaAlgorithm(),
+  options : { name: 'EdDSA' },
+  alg     : 'EdDSA',
+  crv     : 'Ed25519'
+};
 
 const didResolver = new DidResolver({ didResolvers: [DidIonMethod, DidKeyMethod, DidDhtMethod] });
 
@@ -85,6 +122,14 @@ const tbdResolver = new TbdResolver();
 export class VerifiableCredential {
   constructor(public vcDataModel: VcDataModel) {}
 
+  /** supported cryptographic algorithms. keys are `${alg}:${crv}`. */
+  static algorithms: { [alg: string]: Signer<Web5Crypto.EcdsaOptions | Web5Crypto.EdDsaOptions> } = {
+    'ES256K:'          : secp256k1Signer,
+    'ES256K:secp256k1' : secp256k1Signer,
+    ':secp256k1'       : secp256k1Signer,
+    'EdDSA:Ed25519'    : ed25519Signer
+  };
+
   get type(): string {
     return this.vcDataModel.type[this.vcDataModel.type.length - 1];
   }
@@ -105,17 +150,16 @@ export class VerifiableCredential {
    * Sign a verifiable credential using [signOptions]
    *
    *
-   * @param signOptions The sign options used to sign the credential.
+   * @param vcSignOptions The sign options used to sign the credential.
    * @return The JWT representing the signed verifiable credential.
    *
    * Example:
    * ```
-   * const signedVc = verifiableCredential.sign(signOptions)
+   * const vcJwt = verifiableCredential.sign(vcSignOptions)
    * ```
    */
-  // TODO: Refactor to look like: sign(did: Did, assertionMethodId?: string)
-  public async sign(signOptions: SignOptions): Promise<string> {
-    const vcJwt: string = await createJwt({ vc: this.vcDataModel }, signOptions);
+  public async sign(vcSignOptions: VerifiableCredentialSignOptions): Promise<string> {
+    const vcJwt: string = await createJwt({issuerDid: vcSignOptions.did, subjectDid: this.subject, payload: { vc: this.vcDataModel }});
     return vcJwt;
   }
 
@@ -179,32 +223,32 @@ export class VerifiableCredential {
   }
 
   /**
-     * Verifies the integrity and authenticity of a Verifiable Credential (VC) encoded as a JSON Web Token (JWT).
-     *
-     * This function performs several crucial validation steps to ensure the trustworthiness of the provided VC:
-     * - Parses and validates the structure of the JWT.
-     * - Ensures the presence of critical header elements `alg` and `kid` in the JWT header.
-     * - Resolves the Decentralized Identifier (DID) and retrieves the associated DID Document.
-     * - Validates the DID and establishes a set of valid verification method IDs.
-     * - Identifies the correct Verification Method from the DID Document based on the `kid` parameter.
-     * - Verifies the JWT's signature using the public key associated with the Verification Method.
-     *
-     * If any of these steps fail, the function will throw a [Error] with a message indicating the nature of the failure.
-     *
-     * @param vcJwt The Verifiable Credential in JWT format as a [string].
-     * @throws Error if the verification fails at any step, providing a message with failure details.
-     * @throws Error if critical JWT header elements are absent.
-     *
-     * ### Example:
-     * ```
-     * try {
-     *     VerifiableCredential.verify(signedVcJwt)
-     *     console.log("VC Verification successful!")
-     * } catch (e: Error) {
-     *     console.log("VC Verification failed: ${e.message}")
-     * }
-     * ```
-     */
+   * Verifies the integrity and authenticity of a Verifiable Credential (VC) encoded as a JSON Web Token (JWT).
+   *
+   * This function performs several crucial validation steps to ensure the trustworthiness of the provided VC:
+   * - Parses and validates the structure of the JWT.
+   * - Ensures the presence of critical header elements `alg` and `kid` in the JWT header.
+   * - Resolves the Decentralized Identifier (DID) and retrieves the associated DID Document.
+   * - Validates the DID and establishes a set of valid verification method IDs.
+   * - Identifies the correct Verification Method from the DID Document based on the `kid` parameter.
+   * - Verifies the JWT's signature using the public key associated with the Verification Method.
+   *
+   * If any of these steps fail, the function will throw a [Error] with a message indicating the nature of the failure.
+   *
+   * @param vcJwt The Verifiable Credential in JWT format as a [string].
+   * @throws Error if the verification fails at any step, providing a message with failure details.
+   * @throws Error if critical JWT header elements are absent.
+   *
+   * ### Example:
+   * ```
+   * try {
+   *     VerifiableCredential.verify(signedVcJwt)
+   *     console.log("VC Verification successful!")
+   * } catch (e: Error) {
+   *     console.log("VC Verification failed: ${e.message}")
+   * }
+   * ```
+   */
   public static async verify(vcJwt: string): Promise<void> {
     const jwt = decode(vcJwt); // Parse and validate JWT
 
@@ -279,26 +323,33 @@ function decode(jwt: string): DecodedVcJwt {
   };
 }
 
-async function createJwt(payload: any, signOptions: SignOptions) {
-  const { issuerDid, subjectDid, signer, kid } = signOptions;
+async function createJwt(createJwtOptions: CreateJwtOptions) {
+  const { issuerDid, subjectDid, payload } = createJwtOptions;
+  const privateKeyJwk = issuerDid.keySet.verificationMethodKeys![0].privateKeyJwk! as JwkParamsEcPrivate | JwkParamsOkpPrivate;
 
-  const header: JwtHeaderParams = { alg: 'EdDSA', typ: 'JWT', kid: kid };
+  const header: JwtHeader = { typ: 'JWT', alg: privateKeyJwk.alg, kid: issuerDid.document.verificationMethod![0].id };
+  const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
   const jwtPayload = {
-    iss : issuerDid,
+    iss : issuerDid.did,
     sub : subjectDid,
     ...payload,
   };
 
-  const encodedHeader = Convert.object(header).toBase64Url();
-  const encodedPayload = Convert.object(jwtPayload).toBase64Url();
-  const message = encodedHeader + '.' + encodedPayload;
-  const messageBytes = Convert.string(message).toUint8Array();
+  const base64UrlEncodedPayload = Convert.object(jwtPayload).toBase64Url();
 
-  const signature = await signer(messageBytes);
+  const toSign = `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}`;
+  const toSignBytes = Convert.string(toSign).toUint8Array();
 
-  const encodedSignature = Convert.uint8Array(signature).toBase64Url();
-  const jwt = message + '.' + encodedSignature;
+  const algorithmId = `${header.alg}:${privateKeyJwk['crv'] || ''}`;
+  if (!(algorithmId in VerifiableCredential.algorithms)) {
+    throw new Error(`Signing failed: ${algorithmId} not supported`);
+  }
 
-  return jwt;
+  const { signer, options } = VerifiableCredential.algorithms[algorithmId];
+
+  const signatureBytes = await signer.sign({ key: privateKeyJwk as PrivateKeyJwk, data: toSignBytes, algorithm: options! });
+  const base64UrlEncodedSignature = Convert.uint8Array(signatureBytes).toBase64Url();
+
+  return `${toSign}.${base64UrlEncodedSignature}`;
 }
