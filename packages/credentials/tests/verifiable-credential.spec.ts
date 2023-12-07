@@ -1,14 +1,10 @@
 import { expect } from 'chai';
-import { VerifiableCredential, SignOptions } from '../src/verifiable-credential.js';
-import { Ed25519, Jose } from '@web5/crypto';
-import { DidDhtMethod, DidKeyMethod, PortableDid } from '@web5/dids';
+import { VerifiableCredential } from '../src/verifiable-credential.js';
+import { DidDhtMethod, DidKeyMethod, DidIonMethod, PortableDid } from '@web5/dids';
 import sinon from 'sinon';
 
-type Signer = (data: Uint8Array) => Promise<Uint8Array>;
-
 describe('Verifiable Credential Tests', () => {
-  let signer: Signer;
-  let signOptions: SignOptions;
+  let issuerDid: PortableDid;
 
   class StreetCredibility {
     constructor(
@@ -18,36 +14,75 @@ describe('Verifiable Credential Tests', () => {
   }
 
   beforeEach(async () => {
-    const alice = await DidKeyMethod.create();
-    const [signingKeyPair] = alice.keySet.verificationMethodKeys!;
-    const privateKey = (await Jose.jwkToKey({ key: signingKeyPair.privateKeyJwk!})).keyMaterial;
-    signer = EdDsaSigner(privateKey);
-    signOptions = {
-      issuerDid  : alice.did,
-      subjectDid : alice.did,
-      kid        : alice.did + '#' + alice.did.split(':')[2],
-      signer     : signer
-    };
+    issuerDid = await DidKeyMethod.create();
   });
 
   describe('Verifiable Credential (VC)', () => {
     it('create vc works', async () => {
-      // const keyManager = new InMemoryKeyManager();
-      const issuerDid = signOptions.issuerDid;
-      const subjectDid = signOptions.subjectDid;
+      const subjectDid = issuerDid.did;
 
       const vc = VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid,
+        issuer  : issuerDid.did,
         subject : subjectDid,
         data    : new StreetCredibility('high', true),
       });
 
-      expect(vc.issuer).to.equal(issuerDid);
+      expect(vc.issuer).to.equal(issuerDid.did);
       expect(vc.subject).to.equal(subjectDid);
       expect(vc.type).to.equal('StreetCred');
       expect(vc.vcDataModel.issuanceDate).to.not.be.undefined;
       expect(vc.vcDataModel.credentialSubject).to.deep.equal({ id: subjectDid, localRespect: 'high', legit: true });
+    });
+
+    it('create and sign vc with did:key', async () => {
+      const did = await DidKeyMethod.create();
+
+      const vc = await VerifiableCredential.create({
+        type    : 'TBDeveloperCredential',
+        subject : did.did,
+        issuer  : did.did,
+        data    : {
+          username: 'nitro'
+        }
+      });
+
+      const vcJwt = await vc.sign({ did });
+
+      await VerifiableCredential.verify(vcJwt);
+
+      for( const currentVc of [vc, VerifiableCredential.parseJwt(vcJwt)]){
+        expect(currentVc.issuer).to.equal(did.did);
+        expect(currentVc.subject).to.equal(did.did);
+        expect(currentVc.type).to.equal('TBDeveloperCredential');
+        expect(currentVc.vcDataModel.issuanceDate).to.not.be.undefined;
+        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: did.did, username: 'nitro'});
+      }
+    });
+
+    it('create and sign vc with did:ion', async () => {
+      const did = await DidIonMethod.create();
+
+      const vc = await VerifiableCredential.create({
+        type    : 'TBDeveloperCredential',
+        subject : did.did,
+        issuer  : did.did,
+        data    : {
+          username: 'nitro'
+        }
+      });
+
+      const vcJwt = await vc.sign({ did });
+
+      await VerifiableCredential.verify(vcJwt);
+
+      for( const currentVc of [vc, VerifiableCredential.parseJwt(vcJwt)]){
+        expect(currentVc.issuer).to.equal(did.did);
+        expect(currentVc.subject).to.equal(did.did);
+        expect(currentVc.type).to.equal('TBDeveloperCredential');
+        expect(currentVc.vcDataModel.issuanceDate).to.not.be.undefined;
+        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: did.did, username: 'nitro'});
+      }
     });
 
     it('should throw an error if data is not parseable into a JSON object', () => {
@@ -91,18 +126,35 @@ describe('Verifiable Credential Tests', () => {
 
     });
 
-    it('signing vc works', async () => {
-      const issuerDid = signOptions.issuerDid;
-      const subjectDid = signOptions.subjectDid;
+    it('signing with Ed25519 key works', async () => {
+      const subjectDid = issuerDid.did;
 
       const vc = VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid,
+        issuer  : issuerDid.did,
         subject : subjectDid,
         data    : new StreetCredibility('high', true),
       });
 
-      const vcJwt = await vc.sign(signOptions);
+      const vcJwt = await vc.sign({did: issuerDid});
+      expect(vcJwt).to.not.be.null;
+      expect(vcJwt).to.be.a('string');
+
+      const parts = vcJwt.split('.');
+      expect(parts.length).to.equal(3);
+    });
+
+    it('signing with secp256k1 key works', async () => {
+      const did = await DidKeyMethod.create({ keyAlgorithm: 'secp256k1' });
+
+      const vc = VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : did.did,
+        subject : did.did,
+        data    : new StreetCredibility('high', true),
+      });
+
+      const vcJwt = await vc.sign({ did });
       expect(vcJwt).to.not.be.null;
       expect(vcJwt).to.be.a('string');
 
@@ -116,26 +168,6 @@ describe('Verifiable Credential Tests', () => {
       }).to.throw('Not a valid jwt');
     });
 
-    it('verify fails with bad issuer did', async () => {
-      const vc = VerifiableCredential.create({
-        type    : 'StreetCred',
-        issuer  : 'bad:did: invalidDid',
-        subject : signOptions.subjectDid,
-        data    : new StreetCredibility('high', true)
-      });
-
-      const badSignOptions = {
-        issuerDid  : 'bad:did: invalidDid',
-        subjectDid : signOptions.subjectDid,
-        kid        : signOptions.issuerDid + '#' + signOptions.issuerDid.split(':')[2],
-        signer     : signer
-      };
-
-      const vcJwt = await vc.sign(badSignOptions);
-
-      await expectThrowsAsync(() =>  VerifiableCredential.verify(vcJwt), 'Unable to resolve DID');
-    });
-
     it('parseJwt checks if missing vc property', async () => {
       await expectThrowsAsync(() =>  VerifiableCredential.parseJwt('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'), 'Jwt payload missing vc property');
     });
@@ -143,12 +175,12 @@ describe('Verifiable Credential Tests', () => {
     it('parseJwt returns an instance of VerifiableCredential on success', async () => {
       const vc = VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : signOptions.issuerDid,
-        subject : signOptions.subjectDid,
+        issuer  : issuerDid.did,
+        subject : issuerDid.did,
         data    : new StreetCredibility('high', true),
       });
 
-      const vcJwt = await vc.sign(signOptions);
+      const vcJwt = await vc.sign({did: issuerDid});
       const parsedVc = VerifiableCredential.parseJwt(vcJwt);
 
       expect(parsedVc).to.not.be.null;
@@ -172,12 +204,12 @@ describe('Verifiable Credential Tests', () => {
     it('verify does not throw an exception with vaild vc', async () => {
       const vc = VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : signOptions.issuerDid,
-        subject : signOptions.subjectDid,
+        issuer  : issuerDid.did,
+        subject : issuerDid.did,
         data    : new StreetCredibility('high', true),
       });
 
-      const vcJwt = await vc.sign(signOptions);
+      const vcJwt = await vc.sign({did: issuerDid});
 
       await VerifiableCredential.verify(vcJwt);
     });
@@ -255,20 +287,10 @@ describe('Verifiable Credential Tests', () => {
 
       const alice = await DidDhtMethod.create({ publish: true });
 
-      const [signingKeyPair] = alice.keySet.verificationMethodKeys!;
-      const privateKey = (await Jose.jwkToKey({ key: signingKeyPair.privateKeyJwk! })).keyMaterial;
-      signer = EdDsaSigner(privateKey);
-      signOptions = {
-        issuerDid  : alice.did,
-        subjectDid : alice.did,
-        kid        : alice.did + '#0',
-        signer     : signer
-      };
-
       const vc = VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : signOptions.issuerDid,
-        subject : signOptions.subjectDid,
+        issuer  : alice.did,
+        subject : alice.did,
         data    : new StreetCredibility('high', true),
       });
 
@@ -314,7 +336,7 @@ describe('Verifiable Credential Tests', () => {
         }
       });
 
-      const vcJwt = await vc.sign(signOptions);
+      const vcJwt = await vc.sign({did: alice});
 
       await VerifiableCredential.verify(vcJwt);
 
@@ -324,13 +346,6 @@ describe('Verifiable Credential Tests', () => {
     });
   });
 });
-
-function EdDsaSigner(privateKey: Uint8Array): Signer {
-  return async (data: Uint8Array): Promise<Uint8Array> => {
-    const signature = await Ed25519.sign({ data, key: privateKey});
-    return signature;
-  };
-}
 
 const expectThrowsAsync = async (method: any, errorMessage: string) => {
   let error: any = null;
