@@ -269,6 +269,249 @@ describe('SyncManagerLevel', () => {
         expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
       });
+
+      it('sync protocol messages', async () => {
+        // scenario:
+        //    Alice installs a protocol and writes a post, both to a remote DWN
+        //    A sync is initiated to pull the messages down from the remote
+        //    The original message is available on the local node.
+
+        // register to sync
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+
+        const proto1Def = {
+          "protocol": "http://free-for-all-protocol.xyz",
+          "published": true,
+          "types": {
+            "post": {
+              "schema": "eph",
+              "dataFormats": [
+                "application/json"
+              ]
+            }
+          },
+          "structure": {
+            "post": {
+              "$actions": [
+                {
+                  "who": "anyone",
+                  "can": "write"
+                },
+                {
+                  "who": "anyone",
+                  "can": "delete"
+                },
+                {
+                  "who": "anyone",
+                  "can": "read"
+                }
+              ]
+            }
+          }
+        }
+
+        // write a protocol configure
+        const proto1Config = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'ProtocolsConfigure',
+          messageOptions : {
+            definition: proto1Def
+          },
+        });
+        expect(proto1Config.reply.status.code).to.equal(202);
+
+        const recordsWrite = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            protocol     : proto1Def.protocol,
+            protocolPath : 'post',
+            schema       : 'eph',
+            dataFormat   : 'application/json'
+          },
+          dataStream: new Blob(['Hello protocol 1'])
+        });
+        expect(recordsWrite.reply.status.code).to.equal(202);
+
+        const remoteQuery = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { protocol: proto1Def.protocol } }
+        });
+        const remoteQueryReply = remoteQuery.reply as RecordsQueryReply;
+        expect(remoteQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(remoteQueryReply.entries).to.have.length(1); // Record exists on remote node
+
+        let localQuery = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { protocol: proto1Def.protocol } }
+        });
+        let localQueryReply = localQuery.reply as RecordsQueryReply;
+        expect(localQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(localQueryReply.entries).to.have.length(0); // Record does exist on local DWN.
+
+        await testAgent.agent.syncManager.pull();
+
+        localQuery = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { protocol: proto1Def.protocol } }
+        });
+        localQueryReply = localQuery.reply as RecordsQueryReply;
+        expect(localQueryReply.status.code).to.equal(200);
+        expect(localQueryReply.entries).to.have.length(1);// Records exist on local DWN.
+      });
+
+      xit('sync protocol messages after an update to the protocol', async () => {
+        // scenario:
+        //    Alice installs a protocol and writes a post, both to a remote DWN
+        //    Alice updates the protocol which changes the schema of a post, also on the remote DWN
+        //    A sync is initiated to pull the messages down from the remote
+        //    The original message is available on the local node.
+
+        // Create a second Identity to author the DWN messages.
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+
+        const proto1Def = {
+          "protocol": "http://free-for-all-protocol.xyz",
+          "published": true,
+          "types": {
+            "post": {
+              "schema": "eph",
+              "dataFormats": [
+                "application/json"
+              ]
+            }
+          },
+          "structure": {
+            "post": {
+              "$actions": [
+                {
+                  "who": "anyone",
+                  "can": "write"
+                },
+                {
+                  "who": "anyone",
+                  "can": "delete"
+                },
+                {
+                  "who": "anyone",
+                  "can": "read"
+                }
+              ]
+            }
+          }
+        }
+
+        // write a protocol configure
+        const proto1Config = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'ProtocolsConfigure',
+          messageOptions : {
+            definition: proto1Def
+          },
+        });
+        expect(proto1Config.reply.status.code).to.equal(202);
+
+        const recordsWrite = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            protocol     : proto1Def.protocol,
+            protocolPath : 'post',
+            schema       : 'eph',
+            dataFormat   : 'application/json'
+          },
+          dataStream: new Blob(['Hello protocol 1'])
+        });
+        expect(recordsWrite.reply.status.code).to.equal(202);
+
+        let queryResponse = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { protocol: proto1Def.protocol } }
+        });
+        let localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+        expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(localDwnQueryReply.entries).to.have.length(0); // Record does exist on local DWN.
+
+        // update protocol and change 'post' to 'yeet'
+        const proto1DefUpdate = {
+          "protocol": "http://free-for-all-protocol.xyz",
+          "published": true,
+          "types": {
+            "post": {
+              "schema": "longFormPost",
+              "dataFormats": [
+                "application/json"
+              ]
+            }
+          },
+          "structure": {
+            "post": {
+              "$actions": [
+                {
+                  "who": "anyone",
+                  "can": "write"
+                },
+                {
+                  "who": "anyone",
+                  "can": "delete"
+                },
+                {
+                  "who": "anyone",
+                  "can": "read"
+                }
+              ]
+            }
+          }
+        }
+        const proto1Update = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'ProtocolsConfigure',
+          messageOptions : {
+            definition: proto1DefUpdate
+          },
+        });
+        expect(proto1Update.reply.status.code).to.equal(202);
+
+        // make sure the original message can still be queried from the remote
+        const remoteQuery = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { protocol: proto1Def.protocol } }
+        });
+        const remoteQueryReply = remoteQuery.reply as RecordsQueryReply;
+        expect(remoteQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(remoteQueryReply.entries).to.have.length(1, 'remote'); // Record exists on remote node
+
+        await testAgent.agent.syncManager.pull();
+
+        queryResponse = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { protocol: proto1Def.protocol } }
+        });
+        localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+        expect(localDwnQueryReply.status.code).to.equal(200);
+        expect(localDwnQueryReply.entries).to.have.length(1, 'local'); // Records exist on local DWN.
+      });
     });
 
     describe('push()', () => {
@@ -464,6 +707,249 @@ describe('SyncManagerLevel', () => {
         remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
         expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
+      });
+
+      it('sync protocol messages', async () => {
+        // scenario:
+        //    Alice installs a protocol and writes a post, both to a remote DWN
+        //    A sync is initiated to pull the messages down from the remote
+        //    The original message is available on the local node.
+
+        // register to sync
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+
+        const proto1Def = {
+          "protocol": "http://free-for-all-protocol.xyz",
+          "published": true,
+          "types": {
+            "post": {
+              "schema": "eph",
+              "dataFormats": [
+                "application/json"
+              ]
+            }
+          },
+          "structure": {
+            "post": {
+              "$actions": [
+                {
+                  "who": "anyone",
+                  "can": "write"
+                },
+                {
+                  "who": "anyone",
+                  "can": "delete"
+                },
+                {
+                  "who": "anyone",
+                  "can": "read"
+                }
+              ]
+            }
+          }
+        }
+
+        // write a protocol configure
+        const proto1Config = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'ProtocolsConfigure',
+          messageOptions : {
+            definition: proto1Def
+          },
+        });
+        expect(proto1Config.reply.status.code).to.equal(202);
+
+        const recordsWrite = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            protocol     : proto1Def.protocol,
+            protocolPath : 'post',
+            schema       : 'eph',
+            dataFormat   : 'application/json'
+          },
+          dataStream: new Blob(['Hello protocol 1'])
+        });
+        expect(recordsWrite.reply.status.code).to.equal(202);
+
+        const remoteQuery = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { protocol: proto1Def.protocol } }
+        });
+        const remoteQueryReply = remoteQuery.reply as RecordsQueryReply;
+        expect(remoteQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(remoteQueryReply.entries).to.have.length(1); // Record exists on remote node
+
+        let localQuery = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { protocol: proto1Def.protocol } }
+        });
+        let localQueryReply = localQuery.reply as RecordsQueryReply;
+        expect(localQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(localQueryReply.entries).to.have.length(0); // Record does exist on local DWN.
+
+        await testAgent.agent.syncManager.push();
+
+        localQuery = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { protocol: proto1Def.protocol } }
+        });
+        localQueryReply = localQuery.reply as RecordsQueryReply;
+        expect(localQueryReply.status.code).to.equal(200);
+        expect(localQueryReply.entries).to.have.length(1);// Records exist on local DWN.
+      });
+
+      xit('sync protocol messages after an update to the protocol', async () => {
+        // scenario:
+        //    Alice installs a protocol and writes a post, both to a remote DWN
+        //    Alice updates the protocol which changes the schema of a post, also on the remote DWN
+        //    A sync is initiated to pull the messages down from the remote
+        //    The original message is available on the local node.
+
+        // Create a second Identity to author the DWN messages.
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+
+        const proto1Def = {
+          "protocol": "http://free-for-all-protocol.xyz",
+          "published": true,
+          "types": {
+            "post": {
+              "schema": "eph",
+              "dataFormats": [
+                "application/json"
+              ]
+            }
+          },
+          "structure": {
+            "post": {
+              "$actions": [
+                {
+                  "who": "anyone",
+                  "can": "write"
+                },
+                {
+                  "who": "anyone",
+                  "can": "delete"
+                },
+                {
+                  "who": "anyone",
+                  "can": "read"
+                }
+              ]
+            }
+          }
+        }
+
+        // write a protocol configure
+        const proto1Config = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'ProtocolsConfigure',
+          messageOptions : {
+            definition: proto1Def
+          },
+        });
+        expect(proto1Config.reply.status.code).to.equal(202);
+
+        const recordsWrite = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            protocol     : proto1Def.protocol,
+            protocolPath : 'post',
+            schema       : 'eph',
+            dataFormat   : 'application/json'
+          },
+          dataStream: new Blob(['Hello protocol 1'])
+        });
+        expect(recordsWrite.reply.status.code).to.equal(202);
+
+        let queryResponse = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { protocol: proto1Def.protocol } }
+        });
+        let localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+        expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(localDwnQueryReply.entries).to.have.length(0); // Record does not exist on remote DWN.
+
+        // update protocol and change 'post' to 'yeet'
+        const proto1DefUpdate = {
+          "protocol": "http://free-for-all-protocol.xyz",
+          "published": true,
+          "types": {
+            "post": {
+              "schema": "longFormPost",
+              "dataFormats": [
+                "application/json"
+              ]
+            }
+          },
+          "structure": {
+            "post": {
+              "$actions": [
+                {
+                  "who": "anyone",
+                  "can": "write"
+                },
+                {
+                  "who": "anyone",
+                  "can": "delete"
+                },
+                {
+                  "who": "anyone",
+                  "can": "read"
+                }
+              ]
+            }
+          }
+        }
+        const proto1Update = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'ProtocolsConfigure',
+          messageOptions : {
+            definition: proto1DefUpdate
+          },
+        });
+        expect(proto1Update.reply.status.code).to.equal(202);
+
+        // make sure the original message can still be queried from the local DWN
+        const remoteQuery = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { protocol: proto1Def.protocol } }
+        });
+        const remoteQueryReply = remoteQuery.reply as RecordsQueryReply;
+        expect(remoteQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(remoteQueryReply.entries).to.have.length(1, 'remote'); // Record exists on local node
+
+        await testAgent.agent.syncManager.push();
+
+        queryResponse = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { protocol: proto1Def.protocol } }
+        });
+        localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+        expect(localDwnQueryReply.status.code).to.equal(200);
+        expect(localDwnQueryReply.entries).to.have.length(1, 'local'); // Records exist on remote DWN.
       });
     });
   });
