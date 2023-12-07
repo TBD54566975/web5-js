@@ -68,7 +68,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@tbd54566975/dwn-sdk-js": "0.2.9-unstable-2023-12-06-56-58-a2b40b5",
+    "@tbd54566975/dwn-sdk-js": "0.2.8-unstable-2023-12-06-13-34-52324d6",
     "@web5/common": "0.2.2",
     "@web5/crypto": "0.2.2",
     "@web5/dids": "0.2.3",
