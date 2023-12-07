@@ -49,7 +49,7 @@ import { DidKeyMethod } from '@web5/dids';
 const issuer = await DidKeyMethod.create();
 ```
 
-Then sign the VC using the did object
+Then sign the VC using the `did` object
 ```javascript
 const vcJwt = vc.sign({ did:issuer });
 ```
