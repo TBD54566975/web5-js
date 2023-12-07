@@ -3,6 +3,7 @@ import type {
   DidMethodResolver,
   DidResolutionResult,
   DidResolutionOptions,
+  DidResource
 } from './types.js';
 
 import { parseDid } from './utils.js';
@@ -11,6 +12,10 @@ import { DidResolverCacheNoop } from './resolver-cache-noop.js';
 export type DidResolverOptions = {
   didResolvers: DidMethodResolver[];
   cache?: DidResolverCache;
+}
+
+export type DeferenceParams = {
+  didUrl: string
 }
 
 /**
@@ -99,9 +104,41 @@ export class DidResolver {
         didUrl: parsedDid.did,
         resolutionOptions
       });
+
       await this.cache.set(parsedDid.did, resolutionResult);
 
       return resolutionResult;
+    }
+  }
+
+  async deference(params: DeferenceParams): Promise<DidResource> {
+    const { didUrl } = params;
+    const { didDocument } = await this.resolve(didUrl);
+
+    const parsedDid = parseDid(params);
+
+    // return the entire DID Document if no fragment is present on the did url
+    if (!parsedDid.fragment) {
+      return didDocument;
+    }
+
+    const { service, verificationMethod } = didDocument;
+
+    // create a set of possible id matches. the DID spec allows for an id to be the entire did#fragment or just #fragment.
+    // See: https://www.w3.org/TR/did-core/#relative-did-urls
+    // using a set for fast string comparison. DIDs can be lonnng.
+    const idSet = new Set([didUrl, parsedDid.fragment, `#${parsedDid.fragment}`]);
+
+    for (let vm of verificationMethod) {
+      if (idSet.has(vm.id)) {
+        return vm;
+      }
+    }
+
+    for (let svc of service) {
+      if (idSet.has(svc.id)) {
+        return svc;
+      }
     }
   }
 }

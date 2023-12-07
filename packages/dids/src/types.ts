@@ -91,6 +91,11 @@ export interface DidMethodOperator {
 }
 
 /**
+ * A DID Resource is either a DID Document, a DID Verification method or a DID Service
+ */
+export type DidResource = DidDocument | VerificationMethod | DidService
+
+/**
  * Services are used in DID documents to express ways of communicating with the DID subject or associated entities.
  * A service can be any type of service the DID subject wants to advertise.
  *
