@@ -2,25 +2,38 @@ name: Publish Documentation
 
 on:
   push:
+    branches:
+      - main
     tags:
       - '*'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      security-events: write
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
 
     - name: Set up Node.js
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
       with:
-        node-version: '14' 
+        node-version: '18'
 
-    - name: Install Dependencies
-      run: npm install
+    - name: Install dependencies for documentation
+      run: |
+        npm ci
+        npm install typedoc@0.25.4
+        npm install jsdoc
+        npm install clean-jsdoc-theme
 
     - name: Generate Documentation
       run: npx typedoc
@@ -28,5 +41,5 @@ jobs:
     - name: Deploy to GitHub Pages
       uses: JamesIves/github-pages-deploy-action@4.1.4
       with:
-        branch: gh-pages # The branch the action should deploy to.
-        folder: docs # The folder the action should deploy.
+        branch: gh-pages 
+        folder: docs 
