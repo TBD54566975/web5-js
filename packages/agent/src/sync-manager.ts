@@ -298,28 +298,26 @@ export class SyncManagerLevel implements SyncManager {
   }): Promise<void> {
     const { interval = 120_000 } = options;
 
-    return new Promise((resolve, reject) => {
+    const syncInterval = async () => {
       if (this._syncIntervalId) {
         clearInterval(this._syncIntervalId);
       }
 
-      this._syncIntervalId = setInterval(async () => {
-        try {
+        await this.push();
+        await this.pull();
 
-          // we stop the sync interval in case the push/pull process does not finish before the next interval
-          this.stopSync();
+        // then we start sync again
+        this._syncIntervalId = setInterval(syncInterval, interval);
+    }
 
-          await this.push();
-          await this.pull();
 
-          // then we start sync again
-          this.startSync({ interval });
-
-        } catch (error) {
-          this.stopSync();
-          reject(error);
-        }
-      }, interval);
+    return new Promise((resolve, reject) => {
+      try {
+        this._syncIntervalId = setInterval(syncInterval, interval);
+      } catch(error) {
+        this.stopSync();
+        reject(error);
+      }
     });
   }
 
@@ -533,7 +531,7 @@ export class SyncManagerLevel implements SyncManager {
         throw new Error(`SyncManager: Malformed '#dwn' service endpoint. Expected array of node addresses.`);
       }
 
-      /** Get the watermark (or undefined) for each (DID, DWN service endpoint, sync direction)
+      /** Get the cursor (or undefined) for each (DID, DWN service endpoint, sync direction)
        * combination and add it to the sync peer state array. */
       for (let dwnUrl of service.serviceEndpoint.nodes) {
         const cursor = await this.getCursor(did, dwnUrl, syncDirection);
