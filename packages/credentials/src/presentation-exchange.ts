@@ -31,7 +31,8 @@ export class PresentationExchange {
   ): string[] {
     this.resetPex();
     const selectResults: SelectResults = this.pex.selectFrom(presentationDefinition, vcJwts);
-    return selectResults.verifiableCredential as string[] ?? [];
+    const selectedCredentials =  selectResults.verifiableCredential as string[] ?? [];
+    return [...new Set(selectedCredentials)];
   }
 
   /**

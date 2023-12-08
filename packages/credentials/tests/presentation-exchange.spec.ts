@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { expect } from 'chai';
 import { DidKeyMethod, PortableDid } from '@web5/dids';
 import { PresentationExchange, Validated, PresentationDefinitionV2 } from '../src/presentation-exchange.js';
@@ -161,6 +162,22 @@ describe('PresentationExchange', () => {
 
       expect(warnings).to.be.an('array');
       expect(warnings?.length).to.equal(0);
+    });
+  });
+
+  describe('Presentation Exchange Spec', () => {
+    it('select_credentials_v1', async () => {
+      const jsonString = fs.readFileSync('../../test-vectors/presentation-exchange/select-credentials-v1.json', 'utf8');
+      const vectors = JSON.parse(jsonString).vectors;
+
+      for (let i = 0; i < vectors.length; i++) {
+        const input = vectors[i].input;
+        const expectedOutput = vectors[i].output.selectedCredentials;
+
+        const selectedCreds = await PresentationExchange.selectCredentials(input.credentialJwts, input.presentationDefinition);
+
+        expect(selectedCreds).to.deep.equals(expectedOutput);
+      }
     });
   });
 });
