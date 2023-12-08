@@ -158,3 +158,5 @@ dist
 
 # IntelliJ
 .idea
+
+results.xml
