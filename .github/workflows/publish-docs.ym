@@ -1,0 +1,32 @@
+name: Publish Documentation
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14' 
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Generate Documentation
+      run: npx typedoc
+
+    - name: Deploy to GitHub Pages
+      uses: JamesIves/github-pages-deploy-action@4.1.4
+      with:
+        branch: gh-pages # The branch the action should deploy to.
+        folder: docs # The folder the action should deploy.
