@@ -202,7 +202,7 @@ export class VerifiableCredential {
    * ```
    */
   public static parseJwt(vcJwt: string): VerifiableCredential {
-    const parsedJwt = CompactJwt.decode({ compactJwt: vcJwt });
+    const parsedJwt = CompactJwt.parse({ compactJwt: vcJwt });
     const vcDataModel: VcDataModel = parsedJwt.decoded.payload['vc'];
 
     if(!vcDataModel) {

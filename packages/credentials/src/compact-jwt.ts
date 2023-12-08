@@ -22,9 +22,10 @@ export type VerifyJwtParams = {
 }
 
 /**
- * Parameters for decoding a JWT.
+ * Parameters for parsing a JWT.
+ * used in {@link CompactJwt.parse}
  */
-export type DecodeJwtParams = {
+export type ParseJwtParams = {
   compactJwt: string
 }
 
@@ -65,6 +66,7 @@ const ed25519Signer: Signer<Web5Crypto.EdDsaOptions> = {
 /**
  * Class for handling Compact JSON Web Tokens (JWTs).
  * This class provides methods to create, verify, and decode JWTs using various cryptographic algorithms.
+ * More information on JWTs can be found [here](https://datatracker.ietf.org/doc/html/rfc7519)
  */
 export class CompactJwt {
   /** supported cryptographic algorithms. keys are `${alg}:${crv}`. */
@@ -133,7 +135,7 @@ export class CompactJwt {
    * ```
    */
   static async verify(params: VerifyJwtParams) {
-    const { decoded: decodedJwt, encoded: encodedJwt } = CompactJwt.decode({ compactJwt: params.compactJwt });
+    const { decoded: decodedJwt, encoded: encodedJwt } = CompactJwt.parse({ compactJwt: params.compactJwt });
     // TODO: should really be looking for verificationMethod with authentication verification relationship
     const verificationMethod = await CompactJwt.didResolver.dereference({ didUrl: decodedJwt.header.kid! });
     if (!utils.isVerificationMethod(verificationMethod)) { // ensure that appropriate verification method was found
@@ -177,13 +179,13 @@ export class CompactJwt {
   }
 
   /**
-   * Decodes a JWT without verifying its signature.
+   * Parses a JWT without verifying its signature.
    * @param params - Parameters for JWT decoding, including the JWT string.
-   * @returns Decoded JWT parts, including header and payload.
+   * @returns both encoded and decoded JWT parts
    * @example
-   * const decodedJwt = CompactJwt.decode({ compactJwt: myJwt });
+   * const { encoded: encodedJwt, decoded: decodedJwt } = CompactJwt.parse({ compactJwt: myJwt });
    */
-  static decode(params: DecodeJwtParams) {
+  static parse(params: ParseJwtParams) {
     const splitJwt = params.compactJwt.split('.');
     if (splitJwt.length !== 3) {
       throw new Error(`Verification failed: Malformed JWT. expected 3 parts. got ${splitJwt.length}`);
