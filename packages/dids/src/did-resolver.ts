@@ -3,7 +3,8 @@ import type {
   DidMethodResolver,
   DidResolutionResult,
   DidResolutionOptions,
-  DidResource
+  DidResource,
+  DidDereferenceResult
 } from './types.js';
 
 import { parseDid } from './utils.js';
@@ -14,6 +15,9 @@ export type DidResolverOptions = {
   cache?: DidResolverCache;
 }
 
+/**
+ * argument passed to {@link DidResolver.resolve}
+ */
 export type DereferenceParams = {
   didUrl: string
 }
@@ -112,44 +116,80 @@ export class DidResolver {
   }
 
   /**
- * Asynchronously dereferences a DID (Decentralized Identifier) URL to a corresponding DID resource. This method interprets the DID URL's components, which include the DID method, method-specific identifier, path, query, and fragment,
- * and retrieves the related resource as per the DID Core specifications. The dereferencing process involves resolving the DID contained in the DID URL to a DID document, and then extracting the specific part
- * of the document identified by the fragment in the DID URL. If no fragment is specified, the entire DID document is returned. This method supports resolution of different components within a DID document such
- * as service endpoints and verification methods, based on their IDs. It accommodates both full and relative DID URLs as specified in the DID Core specification.
+ * dereferences a DID (Decentralized Identifier) URL to a corresponding DID resource. This method interprets
+ * the DID URL's components, which include the DID method, method-specific identifier, path, query, and fragment,
+ * and retrieves the related resource as per the DID Core specifications. The dereferencing process involves resolving
+ * the DID contained in the DID URL to a DID document, and then extracting the specific part of the document identified
+ * by the fragment in the DID URL. If no fragment is specified, the entire DID document is returned.
  *
- * More information on DID URL dereferencing can be found in the DID Core specification [here](https://www.w3.org/TR/did-core/#did-url-dereferencing)
+ * This method supports resolution of different components within a DID document such as
+ * service endpoints and verification methods, based on their IDs. It accommodates both full and relative DID URLs
+ * as specified in the DID Core specification.
+ *
+ * More information on DID URL dereferencing can be found in the DID Core specification
+ * [here](https://www.w3.org/TR/did-core/#did-url-dereferencing)
  *
  * @param params - An object of type `DereferenceParams` containing the `didUrl` which needs to be dereferenced.
- * @returns A `Promise` that resolves to a `DidResource`, which can be the entire DID Document or a specific part of it (like a verification method or service endpoint) depending on the presence and value of the fragment in the DID URL.
+ * @returns a {@link DidDereferenceResult}
  */
-  async dereference(params: DereferenceParams): Promise<DidResource> {
+  async dereference(params: DereferenceParams): Promise<DidDereferenceResult> {
     const { didUrl } = params;
-    const { didDocument } = await this.resolve(didUrl);
+    const { didDocument, didResolutionMetadata, didDocumentMetadata } = await this.resolve(didUrl);
+
+    if (didResolutionMetadata.error) {
+      return {
+        dereferencingMetadata : didResolutionMetadata,
+        contentStream         : null,
+        contentMetadata       : didDocumentMetadata
+      };
+    }
 
     const parsedDid = parseDid(params);
 
     // return the entire DID Document if no fragment is present on the did url
     if (!parsedDid.fragment) {
-      return didDocument;
+      return {
+        dereferencingMetadata : didResolutionMetadata,
+        contentStream         : didDocument,
+        contentMetadata       : didDocumentMetadata
+      };
     }
 
-    const { service, verificationMethod } = didDocument;
+    const { service = [], verificationMethod = [] } = didDocument;
 
     // create a set of possible id matches. the DID spec allows for an id to be the entire did#fragment or just #fragment.
     // See: https://www.w3.org/TR/did-core/#relative-did-urls
     // using a set for fast string comparison. DIDs can be lonnng.
     const idSet = new Set([didUrl, parsedDid.fragment, `#${parsedDid.fragment}`]);
 
+    let didResource: DidResource;
     for (let vm of verificationMethod) {
       if (idSet.has(vm.id)) {
-        return vm;
+        didResource = vm;
+        break;
       }
     }
 
     for (let svc of service) {
       if (idSet.has(svc.id)) {
-        return svc;
+        didResource = svc;
+        break;
       }
+    }
+    if (didResource) {
+      return {
+        dereferencingMetadata : didResolutionMetadata,
+        contentStream         : didResource,
+        contentMetadata       : didResolutionMetadata
+      };
+    } else {
+      return {
+        dereferencingMetadata: {
+          error: 'notFound'
+        },
+        contentStream   : null,
+        contentMetadata : {},
+      };
     }
   }
 }
