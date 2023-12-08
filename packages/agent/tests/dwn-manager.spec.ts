@@ -117,7 +117,7 @@ describe('DwnManager', () => {
           target         : identity.did,
           messageType    : 'EventsGet',
           messageOptions : {
-            cursor: testCursor, 
+            cursor: testCursor,
           }
         });
 
