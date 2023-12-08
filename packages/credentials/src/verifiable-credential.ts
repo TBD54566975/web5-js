@@ -193,7 +193,7 @@ export class VerifiableCredential {
       throw new Error('vc property missing.');
     }
 
-    validatePayload(payload['vc']);
+    validatePayload(vc);
 
     return {
       issuer  : signerDid,
