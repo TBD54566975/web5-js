@@ -186,8 +186,20 @@ export class VerifiableCredential {
    * }
    * ```
    */
-  public static async verify(vcJwt: string): Promise<void> {
-    await CompactJwt.verify({ compactJwt: vcJwt });
+  public static async verify(vcJwt: string) {
+    const { signerDid, payload } = await CompactJwt.verify({ compactJwt: vcJwt });
+    const vc = payload['vc'] as VcDataModel;
+    if (!vc) {
+      throw new Error('vc property missing.');
+    }
+
+    validatePayload(payload['vc']);
+
+    return {
+      issuer  : signerDid,
+      subject : payload.sub!,
+      vc      : payload['vc'] as VcDataModel
+    };
   }
 
   /**

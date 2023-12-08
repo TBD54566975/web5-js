@@ -170,8 +170,8 @@ export class CompactJwt {
 
     return {
       signerDid : verificationMethod.controller,
-      header    : encodedJwt.header,
-      payload   : encodedJwt.payload,
+      header    : decodedJwt.header,
+      payload   : decodedJwt.payload,
     };
   }
 

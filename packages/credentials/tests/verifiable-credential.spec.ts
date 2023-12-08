@@ -226,7 +226,7 @@ describe('Verifiable Credential Tests', () => {
       }
     });
 
-    it('verify does not throw an exception with vaild vc', async () => {
+    it('verify does not throw an exception with valid vc', async () => {
       const vc = VerifiableCredential.create({
         type    : 'StreetCred',
         issuer  : issuerDid.did,
@@ -236,7 +236,39 @@ describe('Verifiable Credential Tests', () => {
 
       const vcJwt = await vc.sign({did: issuerDid});
 
-      await VerifiableCredential.verify(vcJwt);
+      const { issuer, subject, vc: credential } = await VerifiableCredential.verify(vcJwt);
+      expect(issuer).to.equal(issuerDid.did);
+      expect(subject).to.equal(issuerDid.did);
+      expect(credential).to.not.be.null;
+    });
+
+    it('verify throws exception if vc property does not exist', async () => {
+      const did = await DidKeyMethod.create();
+      const compactJwt = await CompactJwt.create({
+        payload   : { jti: 'hi' },
+        signerDid : did
+      });
+
+      try {
+        await VerifiableCredential.verify(compactJwt);
+      } catch(e: any) {
+        expect(e.message).to.include('vc property missing');
+      }
+    });
+
+    it('verify throws exception if vc property is invalid', async () => {
+      const did = await DidKeyMethod.create();
+      const compactJwt = await CompactJwt.create({
+        payload   : { vc: 'hi' },
+        signerDid : did
+      });
+
+      try {
+        await VerifiableCredential.verify(compactJwt);
+        expect.fail();
+      } catch(e: any) {
+        expect(e).to.not.be.null;
+      }
     });
 
     it('verify does not throw an exception with vaild vc signed by did:dht', async () => {
