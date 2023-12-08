@@ -305,8 +305,16 @@ export class SyncManagerLevel implements SyncManager {
 
       this._syncIntervalId = setInterval(async () => {
         try {
+
+          // we stop the sync interval in case the push/pull process does not finish before the next interval
+          this.stopSync();
+
           await this.push();
           await this.pull();
+
+          // then we start sync again
+          this.startSync({ interval });
+
         } catch (error) {
           this.stopSync();
           reject(error);
@@ -331,12 +339,12 @@ export class SyncManagerLevel implements SyncManager {
     for (let syncState of syncPeerState) {
       // Get the event log from the remote DWN if pull sync, or local DWN if push sync.
       const eventLog = await this.getDwnEventLog({
-        did       : syncState.did,
-        dwnUrl    : syncState.dwnUrl,
-        cursor: syncState.cursor, 
-        syncDirection,
+        did    : syncState.did,
+        dwnUrl : syncState.dwnUrl,
+        cursor : syncState.cursor,
+        syncDirection
       });
-      
+
 
       const syncOperations: DbBatchOperation[] = [];
 
@@ -370,7 +378,7 @@ export class SyncManagerLevel implements SyncManager {
     did: string,
     dwnUrl: string,
     syncDirection: SyncDirection,
-    cursor?: string,
+    cursor?: string
   }) {
     const { did, dwnUrl, syncDirection, cursor } = options;
 
@@ -407,7 +415,7 @@ export class SyncManagerLevel implements SyncManager {
     const eventLog = eventsReply.events ?? [];
     if (eventLog.length > 0) {
       const cursorItem = eventLog.at(-1)!;
-      this.setCursor(did, dwnUrl, syncDirection, cursorItem)
+      this.setCursor(did, dwnUrl, syncDirection, cursorItem);
     }
 
     return eventLog;

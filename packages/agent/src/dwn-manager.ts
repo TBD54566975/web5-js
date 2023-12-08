@@ -431,12 +431,3 @@ export class DwnManager {
     return await this._dwn.processMessage(targetDid, message, dataStream);
   }
 }
-
-type GenericMessageReply = {
-  status: Status;
-};
-
-type Status = {
-  code: number
-  detail: string
-};
