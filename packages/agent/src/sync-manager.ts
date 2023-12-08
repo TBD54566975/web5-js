@@ -303,12 +303,12 @@ export class SyncManagerLevel implements SyncManager {
         clearInterval(this._syncIntervalId);
       }
 
-        await this.push();
-        await this.pull();
+      await this.push();
+      await this.pull();
 
-        // then we start sync again
-        this._syncIntervalId = setInterval(syncInterval, interval);
-    }
+      // then we start sync again
+      this._syncIntervalId = setInterval(syncInterval, interval);
+    };
 
 
     return new Promise((resolve, reject) => {
