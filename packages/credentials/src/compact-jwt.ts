@@ -30,15 +30,6 @@ export type ParseJwtParams = {
 }
 
 /**
- * Represents a verified JWT with signer information, header, and payload.
- */
-export type VerifiedJwt = {
-  signerDid: string
-  header: JwtHeader
-  payload: JwtPayload & Record<string, any>
-}
-
-/**
  * Represents a signer with a specific cryptographic algorithm and options.
  * @template T - The type of cryptographic options.
  */
