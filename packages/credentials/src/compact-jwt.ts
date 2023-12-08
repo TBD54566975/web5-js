@@ -127,9 +127,15 @@ export class CompactJwt {
    */
   static async verify(params: VerifyJwtParams) {
     const { decoded: decodedJwt, encoded: encodedJwt } = CompactJwt.parse({ compactJwt: params.compactJwt });
+
     // TODO: should really be looking for verificationMethod with authentication verification relationship
-    const verificationMethod = await CompactJwt.didResolver.dereference({ didUrl: decodedJwt.header.kid! });
-    if (!utils.isVerificationMethod(verificationMethod)) { // ensure that appropriate verification method was found
+    const dereferenceResult = await CompactJwt.didResolver.dereference({ didUrl: decodedJwt.header.kid! });
+    if (dereferenceResult.dereferencingMetadata.error) {
+      throw new Error(`Failed to resolve ${decodedJwt.header.kid}`);
+    }
+
+    const verificationMethod = dereferenceResult.contentStream;
+    if (!verificationMethod || !utils.isVerificationMethod(verificationMethod)) { // ensure that appropriate verification method was found
       throw new Error('Verification failed: Expected kid in JWT header to dereference a DID Document Verification Method');
     }
 

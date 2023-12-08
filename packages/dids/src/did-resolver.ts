@@ -134,8 +134,7 @@ export class DidResolver {
  */
   async dereference(params: DereferenceParams): Promise<DidDereferenceResult> {
     const { didUrl } = params;
-    const { didDocument, didResolutionMetadata, didDocumentMetadata } = await this.resolve(didUrl);
-
+    const { didDocument, didResolutionMetadata = {}, didDocumentMetadata = {} } = await this.resolve(didUrl);
     if (didResolutionMetadata.error) {
       return {
         dereferencingMetadata : didResolutionMetadata,
