@@ -45,7 +45,7 @@ type RecordsWriteTest = RecordsWrite & RecordsWriteMessage;
 
 let testDwnUrls: string[] = [testDwnUrl];
 
-describe.only('Record', () => {
+describe('Record', () => {
   let dataText: string;
   let dataBlob: Blob;
   let dataFormat: string;
@@ -100,7 +100,6 @@ describe.only('Record', () => {
   it('should retain all defined properties', async () => {
     // RecordOptions properties
     const author = aliceDid.did;
-    const target = aliceDid.did;
 
     // Retrieve `#dwn` service entry.
     const [ didDwnService ] = didUtils.getServices({ didDocument: aliceDid.document, id: '#dwn' });
@@ -184,14 +183,13 @@ describe.only('Record', () => {
     // Create record using test RecordsWriteMessage.
     const record = new Record(testAgent.agent, {
       ...recordsWrite.message,
-      encodedData: dataBlob,
-      target,
-      author,
+      encodedData  : dataBlob,
+      author       : aliceDid.did,
+      connectedDid : aliceDid.did
     });
 
     // Retained Record properties
     expect(record.author).to.equal(author);
-    expect(record.target).to.equal(target);
 
     // Retained RecordsWriteMessage top-level properties
     expect(record.contextId).to.equal(recordsWrite.message.contextId);
@@ -713,231 +711,6 @@ describe.only('Record', () => {
       expect(queriedDataBlob.size).to.equal(inputDataBytes.length);
     });
 
-
-
-
-
-
-
-
-
-
-
-    it('returns large data payloads of records signed by another entity after remote dwn.records.query()', async () => {
-      /**
-       * WHAT IS BEING TESTED?
-       *
-       * We are testing whether a large (> `DwnConstant.maxDataSizeAllowedToBeEncoded`) record
-       * authored/signed by one party (Alice) can be written to another party's DWN (Bob), and that
-       * recipient (Bob) is able to access the data payload. This test was added to reveal a bug
-       * that only surfaces when accessing the data (`record.data.*`) of a record signed by a
-       * different entity  a `Record` instance's data, which requires fetching the data from a
-       * remote DWN. Since the large (> `DwnConstant.maxDataSizeAllowedToBeEncoded`) data was not
-       * returned with the query as `encodedData`, the `Record` instance's data is not available and
-       * must be fetched from the remote DWN using a `RecordsRead` message.
-       *
-       * What made this bug particularly difficult to track down is that the bug only surfaces when
-       * keys used to sign the record are different than the keys used to fetch the record AND both
-       * sets of keys are unavailable to the test Agent used by the entity that is attempting to
-       * fetch the record. In all of the other tests, the same test agent is used to store the keys
-       * for all entities (e.g., "Alice", "Bob", etc.) so the bug never surfaced.
-       *
-       * In this test, Alice is the author of the record and Bob is the recipient. Alice and Bob
-       * each have their own Agents, DWNs, DIDs, and keys. Alice's DWN is configured to use
-       * Alice's DID/keys, and Bob's DWN is configured to use Bob's DID/keys. When Alice writes a
-       * record to Bob's DWN, the record is signed by Alice's keys. When Bob fetches the record from
-       * his DWN, this test validates that the `RecordsRead` is signed by Bob's keys.
-       *
-       * SETUP STEPS:
-       *   S1. Create a second `TestManagedAgent` that only Bob will use.
-       */
-      const testAgentBob = await TestManagedAgent.create({
-        agentClass       : TestUserAgent,
-        agentStores      : 'memory',
-        testDataLocation : '__TESTDATA__/AGENT_BOB'
-      });
-      await testAgentBob.createAgentDid();
-      /**
-       *   S2. Create a "bob" Identity to author the DWN messages.
-       */
-      ({ did: bobDid } = await testAgentBob.createIdentity({ testDwnUrls }));
-      await testAgentBob.agent.identityManager.import({
-        did      : bobDid,
-        identity : { name: 'Bob', did: bobDid.did },
-        kms      : 'local'
-      });
-      /**
-       *   S3. Instantiate a new `DwnApi` using Bob's test agent.
-       */
-      dwnBob = new DwnApi({ agent: testAgentBob.agent, connectedDid: bobDid.did });
-      /**
-       *   S4. Install the email protocol to both Alice's and Bob's DWNs.
-       */
-      let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
-        message: { definition: emailProtocolDefinition }
-      });
-      expect(aliceStatus.code).to.equal(202);
-      const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.did);
-      expect(alicePushStatus.code).to.equal(202);
-      const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
-        message: {
-          definition: emailProtocolDefinition
-        }
-      });
-      expect(bobStatus.code).to.equal(202);
-      const { status: bobPushStatus } = await bobProtocol!.send(bobDid.did);
-      expect(bobPushStatus.code).to.equal(202);
-
-      /**
-       * TEST STEPS:
-       *
-       *   1. Alice creates a record but does NOT store it her local, agent-connected DWN.
-       */
-      const { record, status } = await dwnAlice.records.write({
-        data    : dataTextExceedingMaxSize,
-        store   : false,
-        message : {
-          protocol     : emailProtocolDefinition.protocol,
-          protocolPath : 'email',
-          schema       : emailProtocolDefinition.types.email.schema
-        }
-      });
-      expect(status.code).to.equal(202);
-      /**
-       *   2. Alice writes the record to Bob's remote DWN.
-       */
-      const { status: sendStatus } = await record!.send(bobDid.did);
-      expect(sendStatus.code).to.equal(202);
-      /**
-       *   3. Bob queries his remote DWN for the record that Alice just wrote.
-       */
-      const { records: queryRecordsFrom, status: queryRecordStatusFrom } = await dwnBob.records.query({
-        from    : bobDid.did,
-        message : { filter: { recordId: record!.id }}
-      });
-      expect(queryRecordStatusFrom.code).to.equal(200);
-      /**
-       *   4. Validate that Bob is able to access the data payload.
-       */
-      const recordData = await queryRecordsFrom[0].data.blob();
-      expect(recordData.size).to.equal(dataTextExceedingMaxSize.length);
-
-      // Test clean-up.
-      await testAgentBob.clearStorage();
-    });
-
-    it.only('returns large data payloads of records signed by another entity after remote dwn.records.query()', async () => {
-      /**
-       * WHAT IS BEING TESTED?
-       *
-       * We are testing whether a large (> `DwnConstant.maxDataSizeAllowedToBeEncoded`) record
-       * authored/signed by one party (Alice) can be written to another party's DWN (Bob), and that
-       * recipient (Bob) is able to access the data payload. This test was added to reveal a bug
-       * that only surfaces when accessing the data (`record.data.*`) of a record signed by a
-       * different entity  a `Record` instance's data, which requires fetching the data from a
-       * remote DWN. Since the large (> `DwnConstant.maxDataSizeAllowedToBeEncoded`) data was not
-       * returned with the query as `encodedData`, the `Record` instance's data is not available and
-       * must be fetched from the remote DWN using a `RecordsRead` message.
-       *
-       * What made this bug particularly difficult to track down is that the bug only surfaces when
-       * keys used to sign the record are different than the keys used to fetch the record AND both
-       * sets of keys are unavailable to the test Agent used by the entity that is attempting to
-       * fetch the record. In all of the other tests, the same test agent is used to store the keys
-       * for all entities (e.g., "Alice", "Bob", etc.) so the bug never surfaced.
-       *
-       * In this test, Alice is the author of the record and Bob is the recipient. Alice and Bob
-       * each have their own Agents, DWNs, DIDs, and keys. Alice's DWN is configured to use
-       * Alice's DID/keys, and Bob's DWN is configured to use Bob's DID/keys. When Alice writes a
-       * record to Bob's DWN, the record is signed by Alice's keys. When Bob fetches the record from
-       * his DWN, this test validates that the `RecordsRead` is signed by Bob's keys.
-       *
-       * SETUP STEPS:
-       *   S1. Create a second `TestManagedAgent` that only Bob will use.
-       */
-      const testAgentBob = await TestManagedAgent.create({
-        agentClass       : TestUserAgent,
-        agentStores      : 'memory',
-        testDataLocation : '__TESTDATA__/AGENT_BOB'
-      });
-      await testAgentBob.createAgentDid();
-      /**
-       *   S2. Create a "bob" Identity to author the DWN messages.
-       */
-      ({ did: bobDid } = await testAgentBob.createIdentity({ testDwnUrls }));
-      await testAgentBob.agent.identityManager.import({
-        did      : bobDid,
-        identity : { name: 'Bob', did: bobDid.did },
-        kms      : 'local'
-      });
-      /**
-       *   S3. Instantiate a new `DwnApi` using Bob's test agent.
-       */
-      dwnBob = new DwnApi({ agent: testAgentBob.agent, connectedDid: bobDid.did });
-      /**
-       *   S4. Install the email protocol to both Alice's and Bob's DWNs.
-       */
-      let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
-        message: { definition: emailProtocolDefinition }
-      });
-      expect(aliceStatus.code).to.equal(202);
-      const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.did);
-      expect(alicePushStatus.code).to.equal(202);
-      const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
-        message: {
-          definition: emailProtocolDefinition
-        }
-      });
-      expect(bobStatus.code).to.equal(202);
-      const { status: bobPushStatus } = await bobProtocol!.send(bobDid.did);
-      expect(bobPushStatus.code).to.equal(202);
-
-      /**
-       * TEST STEPS:
-       *
-       *   1. Alice creates a record but does NOT store it her local, agent-connected DWN.
-       */
-      const { record, status } = await dwnAlice.records.write({
-        data    : dataTextExceedingMaxSize,
-        store   : false,
-        message : {
-          protocol     : emailProtocolDefinition.protocol,
-          protocolPath : 'email',
-          schema       : emailProtocolDefinition.types.email.schema
-        }
-      });
-      expect(status.code).to.equal(202);
-      /**
-       *   2. Alice writes the record to Bob's remote DWN.
-       */
-      const { status: sendStatus } = await record!.send(bobDid.did);
-      expect(sendStatus.code).to.equal(202);
-      /**
-       *   3. Bob queries his remote DWN for the record that Alice just wrote.
-       */
-      const { records: queryRecordsFrom, status: queryRecordStatusFrom } = await dwnBob.records.query({
-        from    : bobDid.did,
-        message : { filter: { recordId: record!.id }}
-      });
-      expect(queryRecordStatusFrom.code).to.equal(200);
-      /**
-       *   4. Validate that Bob is write the record to Alice's remote DWN.
-       */
-      const { status: sendStatusToAlice } = await queryRecordsFrom[0]!.send(aliceDid.did);
-      expect(sendStatusToAlice.code).to.equal(202);
-
-      // Test clean-up.
-      await testAgentBob.clearStorage();
-    });
-
-
-
-
-
-
-
-
-
-
     it('returns large data payloads after remote dwn.records.read()', async () => {
       /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
        * be fetched with a RecordsRead when record.data.* is executed. */
@@ -1220,6 +993,201 @@ describe.only('Record', () => {
       readDataStream = await queriedRecord!.data.stream();
       readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
       expect(readDataBytes.length).to.equal(inputDataBytes.length);
+    });
+
+    describe('with two Agents', () => {
+      let testAgentBob: TestManagedAgent;
+
+      before(async () => {
+        // Create a second `TestManagedAgent` that only Bob will use.
+        testAgentBob = await TestManagedAgent.create({
+          agentClass       : TestUserAgent,
+          agentStores      : 'memory',
+          testDataLocation : '__TESTDATA__/AGENT_BOB'
+        });
+      });
+
+      beforeEach(async () => {
+        await testAgentBob.clearStorage();
+
+        // Create an Agent DID.
+        await testAgent.createAgentDid();
+
+        // Create a new "bob" Identity to author the DWN messages.
+        ({ did: bobDid } = await testAgentBob.createIdentity({ testDwnUrls }));
+        await testAgentBob.agent.identityManager.import({
+          did      : bobDid,
+          identity : { name: 'Bob', did: bobDid.did },
+          kms      : 'local'
+        });
+
+        // Instantiate a new `DwnApi` using Bob's test agent.
+        dwnBob = new DwnApi({ agent: testAgentBob.agent, connectedDid: bobDid.did });
+      });
+
+      after(async () => {
+        await testAgentBob.clearStorage();
+        await testAgentBob.closeStorage();
+      });
+
+      it('returns large data payloads of records signed by another entity after remote dwn.records.query()', async () => {
+        /**
+         * WHAT IS BEING TESTED?
+         *
+         * We are testing whether a large (> `DwnConstant.maxDataSizeAllowedToBeEncoded`) record
+         * authored/signed by one party (Alice) can be written to another party's DWN (Bob), and that
+         * recipient (Bob) is able to access the data payload. This test was added to reveal a bug
+         * that only surfaces when accessing the data (`record.data.*`) of a record signed by a
+         * different entity  a `Record` instance's data, which requires fetching the data from a
+         * remote DWN. Since the large (> `DwnConstant.maxDataSizeAllowedToBeEncoded`) data was not
+         * returned with the query as `encodedData`, the `Record` instance's data is not available and
+         * must be fetched from the remote DWN using a `RecordsRead` message.
+         *
+         * What made this bug particularly difficult to track down is that the bug only surfaces when
+         * keys used to sign the record are different than the keys used to fetch the record AND both
+         * sets of keys are unavailable to the test Agent used by the entity that is attempting to
+         * fetch the record. In all of the other tests, the same test agent is used to store the keys
+         * for all entities (e.g., "Alice", "Bob", etc.) so the bug never surfaced.
+         *
+         * In this test, Alice is the author of the record and Bob is the recipient. Alice and Bob
+         * each have their own Agents, DWNs, DIDs, and keys. Alice's DWN is configured to use
+         * Alice's DID/keys, and Bob's DWN is configured to use Bob's DID/keys. When Alice writes a
+         * record to Bob's DWN, the record is signed by Alice's keys. When Bob fetches the record from
+         * his DWN, this test validates that the `RecordsRead` is signed by Bob's keys.
+         *
+         * SETUP STEPS:
+         *   S1. Install the email protocol to both Alice's and Bob's DWNs.
+         */
+        let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
+          message: { definition: emailProtocolDefinition }
+        });
+        expect(aliceStatus.code).to.equal(202);
+        const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.did);
+        expect(alicePushStatus.code).to.equal(202);
+        const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
+          message: {
+            definition: emailProtocolDefinition
+          }
+        });
+        expect(bobStatus.code).to.equal(202);
+        const { status: bobPushStatus } = await bobProtocol!.send(bobDid.did);
+        expect(bobPushStatus.code).to.equal(202);
+
+        /**
+         * TEST STEPS:
+         *
+         *   1. Alice creates a record but does NOT store it her local, agent-connected DWN.
+         */
+        const { record, status } = await dwnAlice.records.write({
+          data    : dataTextExceedingMaxSize,
+          store   : false,
+          message : {
+            protocol     : emailProtocolDefinition.protocol,
+            protocolPath : 'email',
+            schema       : emailProtocolDefinition.types.email.schema
+          }
+        });
+        expect(status.code).to.equal(202);
+        /**
+         *   2. Alice writes the record to Bob's remote DWN.
+         */
+        const { status: sendStatus } = await record!.send(bobDid.did);
+        expect(sendStatus.code).to.equal(202);
+        /**
+         *   3. Bob queries his remote DWN for the record that Alice just wrote.
+         */
+        const { records: queryRecordsFrom, status: queryRecordStatusFrom } = await dwnBob.records.query({
+          from    : bobDid.did,
+          message : { filter: { recordId: record!.id }}
+        });
+        expect(queryRecordStatusFrom.code).to.equal(200);
+        /**
+         *   4. Validate that Bob is able to access the data payload.
+         */
+        const recordData = await queryRecordsFrom[0].data.blob();
+        expect(recordData.size).to.equal(dataTextExceedingMaxSize.length);
+      });
+
+      it('fails to return large data payloads of records signed by another entity after remote dwn.records.query()', async () => {
+        /**
+         * ! TODO: Fix this once the bug in `dwn-sdk-js` is resolved.
+         *
+         * WHAT IS BEING TESTED?
+         *
+         * We are testing whether a large (> `DwnConstant.maxDataSizeAllowedToBeEncoded`) record
+         * authored/signed by one party (Alice) can be written to another party's DWN (Bob), and that
+         * recipient (Bob) is able to access the data payload. This test was added to reveal a bug
+         * that only surfaces when accessing the data (`record.data.*`) of a record signed by a
+         * different entity  a `Record` instance's data, which requires fetching the data from a
+         * remote DWN. Since the large (> `DwnConstant.maxDataSizeAllowedToBeEncoded`) data was not
+         * returned with the query as `encodedData`, the `Record` instance's data is not available and
+         * must be fetched from the remote DWN using a `RecordsRead` message.
+         *
+         * What made this bug particularly difficult to track down is that the bug only surfaces when
+         * keys used to sign the record are different than the keys used to fetch the record AND both
+         * sets of keys are unavailable to the test Agent used by the entity that is attempting to
+         * fetch the record. In all of the other tests, the same test agent is used to store the keys
+         * for all entities (e.g., "Alice", "Bob", etc.) so the bug never surfaced.
+         *
+         * In this test, Alice is the author of the record and Bob is the recipient. Alice and Bob
+         * each have their own Agents, DWNs, DIDs, and keys. Alice's DWN is configured to use
+         * Alice's DID/keys, and Bob's DWN is configured to use Bob's DID/keys. When Alice writes a
+         * record to Bob's DWN, the record is signed by Alice's keys. When Bob fetches the record from
+         * his DWN, this test validates that the `RecordsRead` is signed by Bob's keys.
+         *
+         * SETUP STEPS:
+         *   S1. Install the email protocol to both Alice's and Bob's DWNs.
+         */
+        let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
+          message: { definition: emailProtocolDefinition }
+        });
+        expect(aliceStatus.code).to.equal(202);
+        const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.did);
+        expect(alicePushStatus.code).to.equal(202);
+        const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
+          message: {
+            definition: emailProtocolDefinition
+          }
+        });
+        expect(bobStatus.code).to.equal(202);
+        const { status: bobPushStatus } = await bobProtocol!.send(bobDid.did);
+        expect(bobPushStatus.code).to.equal(202);
+
+        /**
+         * TEST STEPS:
+         *
+         *   1. Alice creates a record but does NOT store it her local, agent-connected DWN.
+         */
+        const { record, status } = await dwnAlice.records.write({
+          data    : dataTextExceedingMaxSize,
+          store   : false,
+          message : {
+            protocol     : emailProtocolDefinition.protocol,
+            protocolPath : 'email',
+            schema       : emailProtocolDefinition.types.email.schema
+          }
+        });
+        expect(status.code).to.equal(202);
+        /**
+         *   2. Alice writes the record to Bob's remote DWN.
+         */
+        const { status: sendStatus } = await record!.send(bobDid.did);
+        expect(sendStatus.code).to.equal(202);
+        /**
+         *   3. Bob queries his remote DWN for the record that Alice just wrote.
+         */
+        const { records: queryRecordsFrom, status: queryRecordStatusFrom } = await dwnBob.records.query({
+          from    : bobDid.did,
+          message : { filter: { recordId: record!.id }}
+        });
+        expect(queryRecordStatusFrom.code).to.equal(200);
+        /**
+         *   4. Validate that Bob is able to write the record to Alice's remote DWN.
+         */
+        const { status: sendStatusToAlice } = await queryRecordsFrom[0]!.send(aliceDid.did);
+        expect(sendStatusToAlice.code).to.equal(401);
+        expect(sendStatusToAlice.detail).to.equal(`Cannot read properties of undefined (reading 'authorization')`);
+      });
     });
   });
 
@@ -1806,7 +1774,6 @@ describe.only('Record', () => {
     it('should return all defined properties', async () => {
       // RecordOptions properties
       const author = aliceDid.did;
-      const target = aliceDid.did;
 
       // Retrieve `#dwn` service entry.
       const [ didDwnService ] = didUtils.getServices({ didDocument: aliceDid.document, id: '#dwn' });
@@ -1890,9 +1857,9 @@ describe.only('Record', () => {
       // Create record using test RecordsWriteMessage.
       const record = new Record(testAgent.agent, {
         ...recordsWrite.message,
-        encodedData: dataBlob,
-        target,
-        author,
+        encodedData  : dataBlob,
+        author       : aliceDid.did,
+        connectedDid : aliceDid.did,
       });
 
       // Call toJSON() method.
@@ -1900,7 +1867,6 @@ describe.only('Record', () => {
 
       // Retained Record properties.
       expect(recordJson.author).to.equal(author);
-      expect(recordJson.target).to.equal(target);
 
       // Retained RecordsWriteMessage top-level properties.
       expect(record.contextId).to.equal(recordsWrite.message.contextId);
