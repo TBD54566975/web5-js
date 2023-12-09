@@ -23,7 +23,7 @@ export type RecordOptions = RecordsWriteMessage & {
   target: string;
   encodedData?: string | Blob;
   data?: Readable | ReadableStream;
-  remoteTarget?: string;
+  remoteOrigin?: string;
 };
 
 /**
@@ -84,7 +84,7 @@ export class Record implements RecordModel {
   private _encryption?: RecordsWriteMessage['encryption'];
   private _readableStream?: Readable;
   private _recordId: string;
-  private _remoteTarget?: string;
+  private _remoteOrigin?: string;
 
   // Immutable DWN Record properties.
 
@@ -155,10 +155,11 @@ export class Record implements RecordModel {
     this.author = options.author;
     this.target = options.target;
 
-    /** If the record was queried from a remote DWN, the `remoteTarget` DID will be defined. This
-     * value is used to send subsequent read requests to the same remote DWN in the event the
-     * record's data payload was too large to be returned in query results. */
-    this._remoteTarget = options.remoteTarget;
+    /** If the record was queried or read from a remote DWN, the `remoteOrigin` DID will be
+     * defined. This value is used to send subsequent read requests to the same remote DWN in the
+     * event the record's data payload was too large to be returned in query results. or must be
+     * read again (e.g., if the data stream is consumed). */
+    this._remoteOrigin = options.remoteOrigin;
 
     // RecordsWriteMessage properties.
     this._attestation = options.attestation;
@@ -264,13 +265,12 @@ export class Record implements RecordModel {
           self._readableStream = NodeStream.fromWebReadable({ readableStream: self._encodedData.stream() });
 
         } else if (!NodeStream.isReadable({ readable: self._readableStream })) {
-          /** If `encodedData` is not set, then the Record was instantiated by `dwn.records.read()`
-           * or was too large to be returned in `dwn.records.query()` results. In either case, the
-           * data is not available in-memory and must be fetched from either: */
-          self._readableStream = self._remoteTarget ?
-            // 1. ...a remote DWN if the record was queried from a remote DWN.
-            await self.readRecordData({ target: self._remoteTarget, isRemote: true }) :
-            // 2. ...a local DWN if the record was queried from the local DWN.
+          /** If the data stream for this `Record` instance has already been partially or fully
+           * consumed, then the data must be fetched again from either: */
+          self._readableStream = self._remoteOrigin ?
+            // A. ...a remote DWN if the record was originally queried from a remote DWN.
+            await self.readRecordData({ target: self._remoteOrigin, isRemote: true }) :
+            // B. ...a local DWN if the record was originally queried from the local DWN.
             await self.readRecordData({ target: self.target, isRemote: false });
         }
 
@@ -440,7 +440,7 @@ export class Record implements RecordModel {
   }
 
   /**
-   * Fetches the record's data from the source DWN.
+   * Fetches the record's data from the specified DWN.
    *
    * This private method is called when the record data is not available in-memory
    * and needs to be fetched from either a local or a remote DWN.

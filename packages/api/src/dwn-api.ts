@@ -273,7 +273,6 @@ export class DwnApi {
         // Remove target from inherited properties since target is being explicitly defined in method parameters.
         delete inheritedProperties.target;
 
-
         // If `data` is being updated then `dataCid` and `dataSize` must not be present.
         if (request.data !== undefined) {
           delete inheritedProperties.dataCid;
@@ -379,12 +378,12 @@ export class DwnApi {
              */
             target       : this.connectedDid,
             /**
-             * If the record was returned by a query of a remote DWN, set the `remoteTarget` to
-             * the DID of the DWN that returned the record. The `remoteTarget` will be used to
-             * determine which DWN to send subsequent read requests to in the event the data payload
-             * exceeds the threshold for being returned with queries.
+             * If the record was returned by a query of a remote DWN, set the `remoteOrigin` to
+             * the DID of the DWN that returned the record. The `remoteOrigin` property will be used
+             * to determine which DWN to send subsequent read requests to in the event the data
+             * payload exceeds the threshold for being returned with queries.
              */
-            remoteTarget : request.from,
+            remoteOrigin : request.from,
             ...entry as RecordsWriteMessage
           };
           const record = new Record(this.agent, recordOptions);
@@ -439,12 +438,12 @@ export class DwnApi {
              */
             target       : this.connectedDid,
             /**
-             * If the record was returned by a query of a remote DWN, set the `remoteTarget` to
-             * the DID of the DWN that returned the record. The `remoteTarget` will be used to
-             * determine which DWN to send subsequent read requests to in the event the data payload
-             * exceeds the threshold for being returned with queries.
+             * If the record was returned by reading from a remote DWN, set the `remoteOrigin` to
+             * the DID of the DWN that returned the record. The `remoteOrigin` property will be used
+             * to determine which DWN to send subsequent read requests to in the event the data
+             * payload must be read again (e.g., if the data stream is consumed).
              */
-            remoteTarget : request.from,
+            remoteOrigin : request.from,
             ...responseRecord,
           };
 
