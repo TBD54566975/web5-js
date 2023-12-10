@@ -473,8 +473,26 @@ The `create` method under the `did` object enables generation of DIDs for a supp
 
 > NOTE: You do not usually need to manually invoke this, as the `Web5.connect()` method already acquires a DID for the user (either by direct creation or connection to an identity agent app).
 
+## Usage
+
+### Creating a DID with Web5
+
+The `Web5.did.create("ion")` method is intended to facilitate the creation of ION DIDs. However, users may encounter issues due to ongoing development and updates. If you face any errors with this method, please refer to the latest documentation or consider the following alternatives.
+
+#### Troubleshooting
+
+- Ensure you are using the latest version of the `@web5/api` package.
+- Check the [Web5 documentation](link-to-web5-documentation) for any recent changes or updates in the DID creation process.
+- If the issue persists, please report it on the GitHub issues page for further assistance.
+
+#### Alternative Method
+
+As an interim solution, you can use the `DidDhtMethod` from the `@web5/dids` package:
+
 ```javascript
-const myDid = await Web5.did.create("ion");
+import { DidDhtMethod } from '@web5/dids';
+const myDidDht = await DidDhtMethod.create('dht');
+console.log(myDidDht);
 ```
 
 ## Project Resources
