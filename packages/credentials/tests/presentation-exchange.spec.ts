@@ -1,7 +1,10 @@
 import { expect } from 'chai';
 import { DidKeyMethod, PortableDid } from '@web5/dids';
-import { PresentationExchange, Validated, PresentationDefinitionV2 } from '../src/presentation-exchange.js';
+
+import type { Validated, PresentationDefinitionV2 } from '../src/presentation-exchange.js';
+
 import { VerifiableCredential } from '../src/verifiable-credential.js';
+import { PresentationExchange } from '../src/presentation-exchange.js';
 
 class BitcoinCredential {
   constructor(

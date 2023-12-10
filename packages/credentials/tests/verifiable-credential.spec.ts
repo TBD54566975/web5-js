@@ -1,8 +1,11 @@
-import { expect } from 'chai';
-import { VerifiableCredential } from '../src/verifiable-credential.js';
-import { DidDhtMethod, DidKeyMethod, DidIonMethod, PortableDid } from '@web5/dids';
+import type { PortableDid } from '@web5/dids';
+
 import sinon from 'sinon';
+import { expect } from 'chai';
+import { DidDhtMethod, DidKeyMethod, DidIonMethod } from '@web5/dids';
+
 import { CompactJwt } from '../src/compact-jwt.js';
+import { VerifiableCredential } from '../src/verifiable-credential.js';
 
 describe('Verifiable Credential Tests', () => {
   let issuerDid: PortableDid;
@@ -64,7 +67,7 @@ describe('Verifiable Credential Tests', () => {
     it('create and sign vc with did:ion', async () => {
       const did = await DidIonMethod.create();
 
-      const vc = await VerifiableCredential.create({
+      const vc = VerifiableCredential.create({
         type    : 'TBDeveloperCredential',
         subject : did.did,
         issuer  : did.did,
@@ -77,7 +80,7 @@ describe('Verifiable Credential Tests', () => {
 
       await VerifiableCredential.verify(vcJwt);
 
-      for( const currentVc of [vc, VerifiableCredential.parseJwt(vcJwt)]){
+      for (const currentVc of [vc, VerifiableCredential.parseJwt(vcJwt)]){
         expect(currentVc.issuer).to.equal(did.did);
         expect(currentVc.subject).to.equal(did.did);
         expect(currentVc.type).to.equal('TBDeveloperCredential');

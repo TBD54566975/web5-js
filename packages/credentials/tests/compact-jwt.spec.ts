@@ -1,9 +1,12 @@
-import { PrivateKeyJwk, Secp256k1 } from '@web5/crypto';
-import { CompactJwt } from '../src/index.js';
-import { Convert } from '@web5/common';
-import { DidKeyMethod } from '@web5/dids';
+import type { PrivateKeyJwk } from '@web5/crypto';
+import type { JwtHeader, JwtPayload } from 'jwt-decode';
+
 import { expect } from 'chai';
-import { JwtHeader, JwtPayload } from 'jwt-decode';
+import { Convert } from '@web5/common';
+import { Secp256k1 } from '@web5/crypto';
+import { DidKeyMethod } from '@web5/dids';
+
+import { CompactJwt } from '../src/index.js';
 
 describe('CompactJwt', () => {
   describe('parse', () => {
