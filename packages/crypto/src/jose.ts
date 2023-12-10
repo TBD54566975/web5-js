@@ -361,7 +361,9 @@ export interface JwsHeaderParams extends JoseHeaderParams {
     // HMAC using SHA-384
     | 'HS384'
     // HMAC using SHA-512
-    | 'HS512';
+    | 'HS512'
+    // an unregistered, case-sensitive, collision-resistant string
+    | string;
 
   // Indicates that extensions to JOSE RFCs are being used
   // that MUST be understood and processed.
@@ -402,7 +404,9 @@ export interface JweHeaderParams extends JoseHeaderParams {
     // PBES2 with HMAC SHA-512 and "A256KW" wrapping
     | 'PBES2-HS512+A256KW'
     // PBES2 with HMAC SHA-512 and "XC20PKW" wrapping
-    | 'PBES2-HS512+XC20PKW';
+    | 'PBES2-HS512+XC20PKW'
+    // an unregistered, case-sensitive, collision-resistant string
+    | string;
 
   apu?: Uint8Array;
 
