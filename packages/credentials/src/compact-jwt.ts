@@ -1,10 +1,17 @@
-import type { CryptoAlgorithm, JwkParamsEcPrivate, JwkParamsOkpPrivate, PublicKeyJwk, Web5Crypto } from '@web5/crypto';
 import type { PortableDid } from '@web5/dids';
+import type { JwtHeader, JwtPayload } from 'jwt-decode';
+import type {
+  Web5Crypto,
+  PublicKeyJwk,
+  PrivateKeyJwk,
+  CryptoAlgorithm,
+  JwkParamsEcPrivate,
+  JwkParamsOkpPrivate,
+} from '@web5/crypto';
 
-import { PrivateKeyJwk, EdDsaAlgorithm, EcdsaAlgorithm  } from '@web5/crypto';
-import { DidDhtMethod, DidIonMethod, DidKeyMethod, DidResolver, utils } from '@web5/dids';
-import { JwtHeader, JwtPayload } from 'jwt-decode';
 import { Convert } from '@web5/common';
+import { EdDsaAlgorithm, EcdsaAlgorithm  } from '@web5/crypto';
+import { DidDhtMethod, DidIonMethod, DidKeyMethod, DidResolver, utils as didUtils } from '@web5/dids';
 
 /**
  * Parameters for creating a JWT.
@@ -78,7 +85,7 @@ export class CompactJwt {
    * @param params - Parameters for JWT creation including signer DID and payload.
    * @returns The compact JWT as a string.
    * @example
-   * ```
+   * ```ts
    * const jwt = await CompactJwt.create({ signerDid: myDid, payload: myPayload });
    * ```
    */
@@ -135,7 +142,7 @@ export class CompactJwt {
     }
 
     const verificationMethod = dereferenceResult.contentStream;
-    if (!verificationMethod || !utils.isVerificationMethod(verificationMethod)) { // ensure that appropriate verification method was found
+    if (!verificationMethod || !didUtils.isVerificationMethod(verificationMethod)) { // ensure that appropriate verification method was found
       throw new Error('Verification failed: Expected kid in JWT header to dereference a DID Document Verification Method');
     }
 

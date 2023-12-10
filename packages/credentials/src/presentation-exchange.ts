@@ -1,12 +1,13 @@
-import type { EvaluationResults, PresentationResult, SelectResults, Validated as PexValidated } from '@sphereon/pex';
-import { PEX } from '@sphereon/pex';
-
+import type { IPresentation, PresentationSubmission } from '@sphereon/ssi-types';
 import type { PresentationDefinitionV2 as PexPresDefV2 } from '@sphereon/pex-models';
-
 import type {
-  IPresentation,
-  PresentationSubmission,
-} from '@sphereon/ssi-types';
+  SelectResults,
+  EvaluationResults,
+  PresentationResult,
+  Validated as PexValidated,
+} from '@sphereon/pex';
+
+import { PEX } from '@sphereon/pex';
 
 export interface PresentationDefinitionV2 extends PexPresDefV2 { }
 

@@ -1,10 +1,11 @@
+import type { PortableDid } from '@web5/dids';
 import type { ICredential, ICredentialSubject} from '@sphereon/ssi-types';
 
-import { getCurrentXmlSchema112Timestamp } from './utils.js';
 import { v4 as uuidv4 } from 'uuid';
-import { SsiValidator } from './validators.js';
-import { PortableDid } from '@web5/dids';
+
 import { CompactJwt } from './compact-jwt.js';
+import { SsiValidator } from './validators.js';
+import { getCurrentXmlSchema112Timestamp } from './utils.js';
 
 export const DEFAULT_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
 export const DEFAULT_VC_TYPE = 'VerifiableCredential';
@@ -15,7 +16,6 @@ export const DEFAULT_VC_TYPE = 'VerifiableCredential';
  * @see {@link https://www.w3.org/TR/vc-data-model/#credentials | VC Data Model}
  */
 export type VcDataModel = ICredential;
-
 
 /**
  * Options for creating a verifiable credential.

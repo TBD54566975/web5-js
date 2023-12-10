@@ -55,4 +55,3 @@ export function isValidXmlSchema112Timestamp(timestamp: string): boolean {
 
   return !isNaN(date.getTime());
 }
-
