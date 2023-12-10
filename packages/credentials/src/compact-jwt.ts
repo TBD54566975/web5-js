@@ -164,14 +164,14 @@ export class CompactJwt {
 
     const { signer, options } = CompactJwt.algorithms[algorithmId];
 
-    const isLegit = await signer.verify({
+    const isSignatureValid = await signer.verify({
       algorithm : options!,
       key       : publicKeyJwk as PublicKeyJwk,
       data      : signedDataBytes,
       signature : signatureBytes
     });
 
-    if (!isLegit) {
+    if (!isSignatureValid) {
       throw new Error('Signature verification failed: Integrity mismatch');
     }
 
