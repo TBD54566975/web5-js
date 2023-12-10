@@ -1,5 +1,6 @@
+import { crypto } from '@noble/hashes/crypto';
 import { Convert, Multicodec } from '@web5/common';
-import { bytesToHex, randomBytes as nobleRandomBytes } from '@noble/hashes/utils';
+import { randomBytes as nobleRandomBytes } from '@noble/hashes/utils';
 
 /**
  * Checks whether the properties object provided contains the specified property.
@@ -145,27 +146,10 @@ export function randomBytes(bytesLength: number): Uint8Array {
  * practically unique" given the large number of possible UUIDs and
  * the randomness of generation.
  *
- * After generating the UUID, the function securely wipes the memory
- * areas used to hold temporary values to prevent any possibility of
- * the random values being unintentionally leaked or retained in memory.
- *
- * @returns A UUID string in version 4 format.
+ * @returns A string containing a randomly generated, 36 character long v4 UUID.
  */
 export function randomUuid(): string {
-  const bytes = randomBytes(16);
-  bytes[6] = (bytes[6] & 0x0f) | 0x40; // set version 4
-  bytes[8] = (bytes[8] & 0x3f) | 0x80; // set variant 1
-  const hex = bytesToHex(bytes);
-  bytes.fill(0); // wipe the random values array
-  const segments = [
-    hex.slice(0, 8),
-    hex.slice(8, 12),
-    hex.slice(12, 16),
-    hex.slice(16, 20),
-    hex.slice(20, 32)
-  ];
-  const uuid = segments.join('-');
-  segments.fill('0'); // wipe the segments array
+  const uuid = crypto.randomUUID();
 
   return uuid;
 }
