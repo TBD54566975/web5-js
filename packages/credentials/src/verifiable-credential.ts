@@ -1,7 +1,7 @@
 import type { PortableDid } from '@web5/dids';
 import type { ICredential, ICredentialSubject} from '@sphereon/ssi-types';
 
-import { v4 as uuidv4 } from 'uuid';
+import { utils as cryptoUtils } from '@web5/crypto';
 
 import { CompactJwt } from './compact-jwt.js';
 import { SsiValidator } from './validators.js';
@@ -148,7 +148,7 @@ export class VerifiableCredential {
       type       : Array.isArray(type)
         ? [DEFAULT_VC_TYPE, ...type]
         : (type ? [DEFAULT_VC_TYPE, type] : [DEFAULT_VC_TYPE]),
-      id                : `urn:uuid:${uuidv4()}`,
+      id                : `urn:uuid:${cryptoUtils.randomUuid()}`,
       issuer            : issuer,
       issuanceDate      : issuanceDate || getCurrentXmlSchema112Timestamp(), // use default if undefined
       credentialSubject : credentialSubject,
