@@ -1,7 +1,7 @@
 import type { PublicKeyJwk } from '@web5/crypto';
 import { parse, type ParsedDID } from 'did-resolver';
 
-import type { DidDocument, DidService, DidServiceEndpoint, DwnServiceEndpoint } from './types.js';
+import type { DidDocument, DidResource, VerificationMethod, DidService, DidServiceEndpoint, DwnServiceEndpoint } from './types.js';
 
 export interface ParsedDid {
   did: string
@@ -121,4 +121,13 @@ export function parseDid({ didUrl }: { didUrl: string }): ParsedDid | undefined 
   const parsedDid: ParsedDid = parse(didUrl);
 
   return parsedDid;
+}
+
+/**
+ * type guard for {@link VerificationMethod}
+ * @param didResource - the resource to check
+ * @returns true if the didResource is a `VerificationMethod`
+ */
+export function isVerificationMethod(didResource: DidResource): didResource is VerificationMethod {
+  return didResource && 'id' in didResource && 'type' in didResource && 'controller' in didResource;
 }
