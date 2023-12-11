@@ -9,7 +9,7 @@ export async function credentialIssue(req: Request, res: Response) {
 
   const ownDid = await DidKeyMethod.create();
 
-  const vc: VerifiableCredential = VerifiableCredential.create({
+  const vc: VerifiableCredential = await VerifiableCredential.create({
     type: body.credential.type[body.credential.type.length - 1],
     issuer: body.credential.issuer,
     subject: body.credential.credentialSubject["id"] as string,

@@ -1,3 +1,8 @@
+import type {
+  ICredentialContextType,
+  ICredentialSubject
+} from '@sphereon/ssi-types';
+
 import {
   DEFAULT_CONTEXT,
   DEFAULT_VC_TYPE,
@@ -5,11 +10,6 @@ import {
 } from './verifiable-credential.js';
 
 import { isValidXmlSchema112Timestamp } from './utils.js';
-
-import type {
-  ICredentialContextType,
-  ICredentialSubject
-} from '@sphereon/ssi-types';
 
 export class SsiValidator {
   static validateCredentialPayload(vc: VerifiableCredential): void {

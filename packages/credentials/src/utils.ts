@@ -4,10 +4,12 @@
  * This function omits the milliseconds part from the ISO 8601 timestamp, returning a date-time
  * string in the format "yyyy-MM-ddTHH:mm:ssZ".
  *
- * @returns The current timestamp in XML Schema 1.1.2 format.
- *
  * @example
+ * ```ts
  * const currentTimestamp = getCurrentXmlSchema112Timestamp(); // "2023-08-23T12:34:56Z"
+ * ```
+ *
+ * @returns The current timestamp in XML Schema 1.1.2 format.
  */
 export function getCurrentXmlSchema112Timestamp(): string {
   // Omit the milliseconds part from toISOString() output
@@ -21,11 +23,13 @@ export function getCurrentXmlSchema112Timestamp(): string {
  * This function takes a number of seconds and adds it to the current timestamp, returning a
  * date-time string in the format "yyyy-MM-ddTHH:mm:ssZ" without milliseconds.
  *
+ * @example
+ * ```ts
+ * const futureTimestamp = getFutureXmlSchema112Timestamp(60); // "2023-08-23T12:35:56Z"
+ * ```
+ *
  * @param secondsInFuture - The number of seconds to project into the future.
  * @returns The future timestamp in XML Schema 1.1.2 format.
- *
- * @example
- * const futureTimestamp = getFutureXmlSchema112Timestamp(60); // "2023-08-23T12:35:56Z"
  */
 export function getFutureXmlSchema112Timestamp(secondsInFuture: number): string {
   const futureDate = new Date(Date.now() + secondsInFuture * 1000);
@@ -38,11 +42,13 @@ export function getFutureXmlSchema112Timestamp(secondsInFuture: number): string 
  * This function checks whether the provided timestamp string conforms to the
  * format "yyyy-MM-ddTHH:mm:ssZ", without milliseconds, as defined in XML Schema 1.1.2.
  *
+ * @example
+ * ```ts
+ * const isValid = isValidXmlSchema112Timestamp('2023-08-23T12:34:56Z'); // true
+ * ```
+ *
  * @param timestamp - The timestamp string to validate.
  * @returns `true` if the timestamp is valid, `false` otherwise.
- *
- * @example
- * const isValid = isValidXmlSchema112Timestamp('2023-08-23T12:34:56Z'); // true
  */
 export function isValidXmlSchema112Timestamp(timestamp: string): boolean {
   // Format: yyyy-MM-ddTHH:mm:ssZ
@@ -55,4 +61,3 @@ export function isValidXmlSchema112Timestamp(timestamp: string): boolean {
 
   return !isNaN(date.getTime());
 }
-

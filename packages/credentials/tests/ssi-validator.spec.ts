@@ -1,6 +1,6 @@
-import { SsiValidator } from '../src/validators.js';
 import { expect } from 'chai';
 
+import { SsiValidator } from '../src/validators.js';
 import { DEFAULT_CONTEXT, DEFAULT_VC_TYPE } from '../src/verifiable-credential.js';
 
 describe('SsiValidator', () => {
