@@ -220,7 +220,7 @@ describe('PresentationExchange', () => {
         const input = vectors[i].input;
         const expectedOutput = vectors[i].output.selectedCredentials;
 
-        const selectedCreds = await PresentationExchange.selectCredentials(input.credentialJwts, input.presentationDefinition);
+        const selectedCreds = await PresentationExchange.selectCredentials({ vcJwts: input.credentialJwts, presentationDefinition: input.presentationDefinition});
 
         expect(selectedCreds).to.deep.equals(expectedOutput);
       }
