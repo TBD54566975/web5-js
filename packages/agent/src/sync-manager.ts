@@ -298,7 +298,7 @@ export class SyncManagerLevel implements SyncManager {
   }): Promise<void> {
     const { interval = 120_000 } = options;
 
-    const syncInterval = async () => {
+    const intervalSync = async () => {
       if (this._syncIntervalId) {
         clearInterval(this._syncIntervalId);
       }
@@ -307,13 +307,12 @@ export class SyncManagerLevel implements SyncManager {
       await this.pull();
 
       // then we start sync again
-      this._syncIntervalId = setInterval(syncInterval, interval);
+      this._syncIntervalId = setInterval(intervalSync, interval);
     };
-
 
     return new Promise((resolve, reject) => {
       try {
-        this._syncIntervalId = setInterval(syncInterval, interval);
+        this._syncIntervalId = setInterval(intervalSync, interval);
       } catch(error) {
         this.stopSync();
         reject(error);

@@ -1,15 +1,19 @@
-import type { PortableDid } from '@web5/dids';
 
-import { expect } from 'chai';
-import * as sinon from 'sinon';
-import { RecordsQueryReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import sinon from 'sinon';
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 
 import type { ManagedIdentity } from '../src/identity-manager.js';
+import type { PortableDid } from '@web5/dids';
+
+import { RecordsQueryReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import { testDwnUrl } from './utils/test-config.js';
 import { TestAgent } from './utils/test-agent.js';
 import { SyncManagerLevel } from '../src/sync-manager.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
+
+chai.use(chaiAsPromised);
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -463,6 +467,65 @@ describe('SyncManagerLevel', () => {
         remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
         expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
+      });
+    });
+
+    describe('startSync()', () => {
+      it('calls push/pull in each interval', async () => {
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+
+        const pushSpy = sinon.stub(SyncManagerLevel.prototype, 'push');
+        pushSpy.resolves();
+
+        const pullSpy = sinon.stub(SyncManagerLevel.prototype, 'pull');
+        pullSpy.resolves();
+
+        const clock = sinon.useFakeTimers();
+
+        testAgent.agent.syncManager.startSync({ interval: 500 });
+
+        await clock.tickAsync(1_400); // just under 3 intervals
+        pushSpy.restore();
+        pullSpy.restore();
+        clock.restore();
+
+        expect(pushSpy.callCount).to.equal(2, 'push');
+        expect(pullSpy.callCount).to.equal(2, 'pull');
+      });
+
+      it('does not call push/pull again until a push/pull finishes', async () => {
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+
+        const clock = sinon.useFakeTimers();
+
+        const pushSpy = sinon.stub(SyncManagerLevel.prototype, 'push');
+        pushSpy.returns(new Promise((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 1_500); // more than the interval
+        }));
+
+        const pullSpy = sinon.stub(SyncManagerLevel.prototype, 'pull');
+        pullSpy.resolves();
+
+        testAgent.agent.syncManager.startSync({ interval: 500 });
+
+        await clock.tickAsync(1_400); // less time than the push
+
+        expect(pushSpy.callCount).to.equal(1, 'push');
+        expect(pullSpy.callCount).to.equal(0, 'pull'); // not called yet
+
+        await clock.tickAsync(100); //remaining time for pull to be called
+
+        expect(pullSpy.callCount).to.equal(1, 'pull');
+
+        pushSpy.restore();
+        pullSpy.restore();
+        clock.restore();
       });
     });
   });
