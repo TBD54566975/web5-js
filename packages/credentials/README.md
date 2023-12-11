@@ -30,7 +30,7 @@ class StreetCredibility {
   }
 }
 
-const vc = new VerifiableCredential({
+const vc = await VerifiableCredential.create({
   type: "StreetCred",
   issuer: "did:example:issuer",
   subject: "did:example:subject",
@@ -51,7 +51,7 @@ const issuer = await DidKeyMethod.create();
 
 Then sign the VC using the `did` object
 ```javascript
-const vcJwt = vc.sign({ did: issuer });
+const vcJwt = await vc.sign({ did: issuer });
 ```
 
 ### Verifying a Verifiable Credential

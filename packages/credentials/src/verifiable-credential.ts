@@ -113,7 +113,7 @@ export class VerifiableCredential {
    *
    * @example
    * ```ts
-   * const vc = VerifiableCredential.create({
+   * const vc = await VerifiableCredential.create({
    *     type: 'StreetCredibility',
    *     issuer: 'did:ex:issuer',
    *     subject: 'did:ex:subject',
