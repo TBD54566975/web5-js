@@ -1,5 +1,4 @@
-import type { PrivateKeyJwk } from '@web5/crypto';
-import type { JwtHeader, JwtPayload } from 'jwt-decode';
+import type { JwtHeaderParams, JwtPayload, PrivateKeyJwk } from '@web5/crypto';
 
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
@@ -23,7 +22,7 @@ describe('Jwt', () => {
     });
 
     it('throws error if JWT header is missing typ property', async () => {
-      const header: JwtHeader = { alg: 'ES256K', kid: 'whateva' };
+      const header: JwtHeaderParams = { alg: 'ES256K', kid: 'whateva' };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       expect(() =>
@@ -32,7 +31,7 @@ describe('Jwt', () => {
     });
 
     it('throws error if JWT header typ property is not set to JWT', async () => {
-      const header: JwtHeader = { typ: 'hehe', alg: 'ES256K', kid: 'whateva' };
+      const header: JwtHeaderParams = { typ: 'hehe', alg: 'ES256K', kid: 'whateva' };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       expect(() =>
@@ -41,7 +40,8 @@ describe('Jwt', () => {
     });
 
     it('throws error if JWT header alg property is missing', async () => {
-      const header: JwtHeader = { typ: 'JWT', kid: 'whateva' };
+      // @ts-expect-error because alg is intentionally missing to trigger error.
+      const header: JwtHeaderParams = { typ: 'JWT', kid: 'whateva' };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       expect(() =>
@@ -50,7 +50,7 @@ describe('Jwt', () => {
     });
 
     it('throws error if JWT header kid property is missing', async () => {
-      const header: JwtHeader = { typ: 'JWT', alg: 'ES256K' };
+      const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K' };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       expect(() =>
@@ -59,7 +59,7 @@ describe('Jwt', () => {
     });
 
     it('throws error if JWT payload is not properly base64url encoded', async () => {
-      const header: JwtHeader = { typ: 'JWT', alg: 'ES256K', kid: 'whateva' };
+      const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: 'whateva' };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       expect(() =>
@@ -71,7 +71,7 @@ describe('Jwt', () => {
   describe('verify()', () => {
     it('throws error if JWT header kid does not dereference a verification method', async () => {
       const did = await DidKeyMethod.create({ keyAlgorithm: 'secp256k1' });
-      const header: JwtHeader = { typ: 'JWT', alg: 'ES256K', kid: did.did };
+      const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: did.did };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000) };
@@ -87,7 +87,7 @@ describe('Jwt', () => {
 
     it('throws error if alg is not supported', async () => {
       const did = await DidKeyMethod.create({ keyAlgorithm: 'secp256k1' });
-      const header: JwtHeader = { typ: 'JWT', alg: 'RS256', kid: did.document.verificationMethod![0].id };
+      const header: JwtHeaderParams = { typ: 'JWT', alg: 'RS256', kid: did.document.verificationMethod![0].id };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000) };
@@ -103,7 +103,7 @@ describe('Jwt', () => {
 
     it('returns signer DID if verification succeeds', async () => {
       const did = await DidKeyMethod.create({ keyAlgorithm: 'secp256k1' });
-      const header: JwtHeader = { typ: 'JWT', alg: 'ES256K', kid: did.document.verificationMethod![0].id };
+      const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: did.document.verificationMethod![0].id };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000) };
