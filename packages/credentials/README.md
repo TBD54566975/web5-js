@@ -55,12 +55,12 @@ const vcJwt = vc.sign({ did: issuer });
 ```
 
 ### Verifying a Verifiable Credential
-Verify the integrity and authenticity of a VC JWT
+Verify the integrity and authenticity of a Verifiable Credential
 
 - `vcJwt`: The VC in JWT format as a String.
 ```javascript
 try {
-  await VerifiableCredential.verify(vcJwt)
+  await VerifiableCredential.verify({ vcJwt: signedVcJwt })
   console.log("VC Verification successful!")
 } catch (e: Error) {
   console.log("VC Verification failed: ${e.message}")
@@ -73,7 +73,7 @@ Parse a JWT into a `VerifiableCredential` instance
 `vcJwt`: The VC JWT as a String.
 
 ```javascript
-const vc = VerifiableCredential.parseJwt(vcJwt)
+const vc = VerifiableCredential.parseJwt({ vcJwt: signedVcJwt })
 ```
 
 ## Presentation Exchange
@@ -97,10 +97,10 @@ Select Verifiable Credentials that meet the criteria of a given presentation def
 
 This returns a list of the vcJwts that are acceptable in the presentation definition.
 ```javascript
-const selectedCredentials = PresentationExchange.selectCredentials(
-    vcJwts,
-    presentationDefinition
-)
+const selectedCredentials = PresentationExchange.selectCredentials({
+    vcJwts: signedVcJwts,
+    presentationDefinition: presentationDefinition
+})
 ```
 
 ### Satisfying a Presentation Definition
@@ -111,13 +111,11 @@ Validate if a Verifiable Credential JWT satisfies the given presentation definit
 
 ```javascript 
 try {
-  PresentationExchange.satisfiesPresentationDefinition(vcJwts, presentationDefinition)
+  PresentationExchange.satisfiesPresentationDefinition({vcJwts: signedVcJwts, presentationDefinition: presentationDefinition})
   console.log("vcJwts satisfies Presentation Definition!")
 } catch (e: Error) {
   console.log("Verification failed: ${e.message}")
 }
-
-
 ```
 
 ### Create Presentation From Credentials
@@ -127,26 +125,33 @@ Creates a presentation from a list of Verifiable Credentials that satisfy a give
 - `presentationDefinition` The Presentation Definition to match against.
 
 ```javascript
-const presentationResult = PresentationExchange.createPresentationFromCredentials(vcJwts, presentationDefinition)
+const presentationResult = PresentationExchange.createPresentationFromCredentials({vcJwts: signedVcJwts, presentationDefinition: presentationDefinition})
 ```
 
 ### Validate Definition
 This method validates whether an object is usable as a presentation definition or not.
 
+- `presentationDefinition` The Presentation Definition to validate
+
 ```javascript
-const valid = PresentationExchange.validateDefinition(presentationDefinition)
+const valid = PresentationExchange.validateDefinition({presentationDefinition})
 ```
 
 ### Validate Submission
 This method validates whether an object is usable as a presentation submission or not.
 
+- `presentationSubmission` The Presentation Submission to validate 
+
 ```javascript
-const valid = PresentationExchange.validateSubmission(presentationSubmission)
+const valid = PresentationExchange.validateSubmission({presentationSubmission})
 ```
 
 ### Validate Presentation
 Evaluates a presentation against a presentation definition.
 
+- `presentationDefinition` The Presentation Definition to validate
+- `presentation` The Presentation
+
 ```javascript
-const evaluationResults = PresentationExchange.evaluatePresentation(presentationDefinition, presentation)
+const evaluationResults = PresentationExchange.evaluatePresentation({presentationDefinition, presentation})
 ```
