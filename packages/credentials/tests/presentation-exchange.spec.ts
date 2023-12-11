@@ -39,11 +39,17 @@ describe('PresentationExchange', () => {
     });
 
     it('should evaluate credentials without any errors or warnings', async () => {
-      PresentationExchange.satisfiesPresentationDefinition([btcCredentialJwt], presentationDefinition);
+      PresentationExchange.satisfiesPresentationDefinition({
+        vcJwts: [btcCredentialJwt],
+        presentationDefinition
+      });
     });
 
     it('should return the selected verifiable credentials', () => {
-      const actualSelectedVcJwts = PresentationExchange.selectCredentials([btcCredentialJwt], presentationDefinition);
+      const actualSelectedVcJwts = PresentationExchange.selectCredentials({
+        vcJwts: [btcCredentialJwt],
+        presentationDefinition
+      });
       expect(actualSelectedVcJwts).to.deep.equal([btcCredentialJwt]);
     });
 
@@ -57,7 +63,10 @@ describe('PresentationExchange', () => {
 
       const otherCredJwt = await vc.sign({did: issuerDid});
 
-      const actualSelectedVcJwts = PresentationExchange.selectCredentials([btcCredentialJwt, otherCredJwt], presentationDefinition);
+      const actualSelectedVcJwts = PresentationExchange.selectCredentials({
+        vcJwts: [btcCredentialJwt, otherCredJwt],
+        presentationDefinition
+      });
       expect(actualSelectedVcJwts).to.deep.equal([btcCredentialJwt]);
     });
 
@@ -84,12 +93,18 @@ describe('PresentationExchange', () => {
       };
 
       expect(() =>
-        PresentationExchange.satisfiesPresentationDefinition([btcCredentialJwt], otherPresentationDefinition)
+        PresentationExchange.satisfiesPresentationDefinition({
+          vcJwts                 : [btcCredentialJwt],
+          presentationDefinition : otherPresentationDefinition
+        })
       ).to.throw('Input candidate does not contain property');
     });
 
     it('should successfully create a presentation from the given definition and credentials', async () => {
-      const presentationResult = PresentationExchange.createPresentationFromCredentials([btcCredentialJwt], presentationDefinition);
+      const presentationResult = PresentationExchange.createPresentationFromCredentials({
+        vcJwts: [btcCredentialJwt],
+        presentationDefinition
+      });
       expect(presentationResult).to.exist;
       expect(presentationResult.presentationSubmission.definition_id).to.equal(presentationDefinition.id);
     });
@@ -117,7 +132,10 @@ describe('PresentationExchange', () => {
       };
 
       expect(() =>
-        PresentationExchange.createPresentationFromCredentials([btcCredentialJwt], invalidPresentationDefinition)
+        PresentationExchange.createPresentationFromCredentials({
+          vcJwts                 : [btcCredentialJwt],
+          presentationDefinition : invalidPresentationDefinition
+        })
       ).to.throw('Failed to pass validation check');
     });
 
@@ -132,25 +150,37 @@ describe('PresentationExchange', () => {
       const otherCredJwt = await vc.sign({did: issuerDid});
 
       expect(() =>
-        PresentationExchange.createPresentationFromCredentials([otherCredJwt], presentationDefinition)
+        PresentationExchange.createPresentationFromCredentials({
+          vcJwts: [otherCredJwt],
+          presentationDefinition
+        })
       ).to.throw('Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present');
     });
 
     it('should successfully validate a presentation definition', () => {
-      const result:Validated = PresentationExchange.validateDefinition(presentationDefinition);
+      const result:Validated = PresentationExchange.validateDefinition({ presentationDefinition });
       expect(result).to.deep.equal([{ tag: 'root', status: 'info', message: 'ok' }]);
     });
 
     it('should successfully validate a submission', () => {
-      const presentationResult = PresentationExchange.createPresentationFromCredentials([btcCredentialJwt], presentationDefinition);
+      const presentationResult = PresentationExchange.createPresentationFromCredentials({
+        vcJwts: [btcCredentialJwt],
+        presentationDefinition
+      });
       const result = PresentationExchange.validateSubmission(presentationResult.presentationSubmission);
       expect(result).to.deep.equal([{ tag: 'root', status: 'info', message: 'ok' }]);
     });
 
     it('should evaluate the presentation without any errors or warnings', () => {
-      const presentationResult = PresentationExchange.createPresentationFromCredentials([btcCredentialJwt], presentationDefinition);
+      const presentationResult = PresentationExchange.createPresentationFromCredentials({
+        vcJwts: [btcCredentialJwt],
+        presentationDefinition
+      });
 
-      const presentationEvaluationResults = PresentationExchange.evaluatePresentation(presentationDefinition,  presentationResult.presentation );
+      const presentationEvaluationResults = PresentationExchange.evaluatePresentation({
+        presentationDefinition,
+        presentation: presentationResult.presentation
+      });
       expect(presentationEvaluationResults.errors).to.deep.equal([]);
       expect(presentationEvaluationResults.warnings).to.deep.equal([]);
 
@@ -159,12 +189,18 @@ describe('PresentationExchange', () => {
     });
 
     it('should successfully execute the complete presentation exchange flow', () => {
-      const presentationResult = PresentationExchange.createPresentationFromCredentials([btcCredentialJwt], presentationDefinition);
+      const presentationResult = PresentationExchange.createPresentationFromCredentials({
+        vcJwts: [btcCredentialJwt],
+        presentationDefinition
+      });
 
       expect(presentationResult).to.exist;
       expect(presentationResult.presentationSubmission.definition_id).to.equal(presentationDefinition.id);
 
-      const { warnings, errors } = PresentationExchange.evaluatePresentation(presentationDefinition,  presentationResult.presentation );
+      const { warnings, errors } = PresentationExchange.evaluatePresentation({
+        presentationDefinition,
+        presentation: presentationResult.presentation
+      });
 
       expect(errors).to.be.an('array');
       expect(errors?.length).to.equal(0);

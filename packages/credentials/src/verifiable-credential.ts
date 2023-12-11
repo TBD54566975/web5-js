@@ -76,19 +76,19 @@ export class VerifiableCredential {
   }
 
   /**
-   * Sign a verifiable credential using [signOptions]
+   * Signs the verifiable credential and returns it as a signed JWT.
    *
    * @example
    * ```ts
-   * const vcJwt = verifiableCredential.sign(vcSignOptions)
+   * const vcJwt = verifiableCredential.sign({ did: myDid });
    * ```
    *
-   * @param vcSignOptions The sign options used to sign the credential.
-   * @return The JWT representing the signed verifiable credential.
+   * @param options - The sign options used to sign the credential.
+   * @returns The JWT representing the signed verifiable credential.
    */
-  public async sign(vcSignOptions: VerifiableCredentialSignOptions): Promise<string> {
+  public async sign(options: VerifiableCredentialSignOptions): Promise<string> {
     const vcJwt: string = await Jwt.sign({
-      signerDid : vcSignOptions.did,
+      signerDid : options.did,
       payload   : {
         vc  : this.vcDataModel,
         iss : this.issuer,
@@ -102,7 +102,7 @@ export class VerifiableCredential {
   /**
    * Converts the current object to its JSON representation.
    *
-   * @return The JSON representation of the object.
+   * @returns The JSON representation of the object.
    */
   public toString(): string {
     return JSON.stringify(this.vcDataModel);
@@ -121,11 +121,11 @@ export class VerifiableCredential {
    *   })
    * ```
    *
-   * @param vcCreateOptions The options to use when creating the Verifiable Credential.
-   * @return A [VerifiableCredential] instance.
+   * @param options - The options to use when creating the Verifiable Credential.
+   * @returns A [VerifiableCredential] instance.
    */
-  public static async create(vcCreateOptions: VerifiableCredentialCreateOptions): Promise<VerifiableCredential> {
-    const { type, issuer, subject, data, issuanceDate, expirationDate } = vcCreateOptions;
+  public static async create(options: VerifiableCredentialCreateOptions): Promise<VerifiableCredential> {
+    const { type, issuer, subject, data, issuanceDate, expirationDate } = options;
 
     const jsonData = JSON.parse(JSON.stringify(data));
 
@@ -175,7 +175,7 @@ export class VerifiableCredential {
    * @example
    * ```ts
    * try {
-   *     VerifiableCredential.verify(signedVcJwt)
+   *     VerifiableCredential.verify({ vcJwt: signedVcJwt })
    *     console.log("VC Verification successful!")
    * } catch (e: Error) {
    *     console.log("VC Verification failed: ${e.message}")
@@ -186,7 +186,9 @@ export class VerifiableCredential {
    * @throws Error if the verification fails at any step, providing a message with failure details.
    * @throws Error if critical JWT header elements are absent.
    */
-  public static async verify(vcJwt: string) {
+  public static async verify({ vcJwt }: {
+    vcJwt: string
+  }) {
     const { payload } = await Jwt.verify({ jwt: vcJwt });
     const vc = payload['vc'] as VcDataModel;
     if (!vc) {
@@ -207,13 +209,13 @@ export class VerifiableCredential {
    *
    * @example
    * ```ts
-   * val vc = VerifiableCredential.parseJwt(signedVcJwt)
+   * val vc = VerifiableCredential.parseJwt({ vcJwt: signedVcJwt })
    * ```
    *
    * @param vcJwt The verifiable credential JWT as a [String].
-   * @return A [VerifiableCredential] instance derived from the JWT.
+   * @returns A [VerifiableCredential] instance derived from the JWT.
    */
-  public static parseJwt(vcJwt: string): VerifiableCredential {
+  public static parseJwt({ vcJwt }: { vcJwt: string }): VerifiableCredential {
     const parsedJwt = Jwt.parse({ jwt: vcJwt });
     const vcDataModel: VcDataModel = parsedJwt.decoded.payload['vc'] as VcDataModel;
 

@@ -53,9 +53,9 @@ describe('Verifiable Credential Tests', () => {
 
       const vcJwt = await vc.sign({ did });
 
-      await VerifiableCredential.verify(vcJwt);
+      await VerifiableCredential.verify({ vcJwt });
 
-      for( const currentVc of [vc, VerifiableCredential.parseJwt(vcJwt)]){
+      for( const currentVc of [vc, VerifiableCredential.parseJwt({ vcJwt })]){
         expect(currentVc.issuer).to.equal(did.did);
         expect(currentVc.subject).to.equal(did.did);
         expect(currentVc.type).to.equal('TBDeveloperCredential');
@@ -78,9 +78,9 @@ describe('Verifiable Credential Tests', () => {
 
       const vcJwt = await vc.sign({ did });
 
-      await VerifiableCredential.verify(vcJwt);
+      await VerifiableCredential.verify({ vcJwt });
 
-      for (const currentVc of [vc, VerifiableCredential.parseJwt(vcJwt)]){
+      for (const currentVc of [vc, VerifiableCredential.parseJwt({ vcJwt })]){
         expect(currentVc.issuer).to.equal(did.did);
         expect(currentVc.subject).to.equal(did.did);
         expect(currentVc.type).to.equal('TBDeveloperCredential');
@@ -176,7 +176,7 @@ describe('Verifiable Credential Tests', () => {
 
     it('parseJwt throws ParseException if argument is not a valid JWT', async () => {
       expect(() =>
-        VerifiableCredential.parseJwt('hi')
+        VerifiableCredential.parseJwt({ vcJwt: 'hi' })
       ).to.throw('Malformed JWT');
     });
 
@@ -191,7 +191,7 @@ describe('Verifiable Credential Tests', () => {
       });
 
       expect(() =>
-        VerifiableCredential.parseJwt(jwt)
+        VerifiableCredential.parseJwt({ vcJwt: jwt })
       ).to.throw('Jwt payload missing vc property');
     });
 
@@ -204,7 +204,7 @@ describe('Verifiable Credential Tests', () => {
       });
 
       const vcJwt = await vc.sign({did: issuerDid});
-      const parsedVc = VerifiableCredential.parseJwt(vcJwt);
+      const parsedVc = VerifiableCredential.parseJwt({ vcJwt });
 
       expect(parsedVc).to.not.be.null;
       expect(parsedVc.type).to.equal(vc.type);
@@ -216,7 +216,7 @@ describe('Verifiable Credential Tests', () => {
 
     it('fails to verify an invalid VC JWT', async () => {
       try {
-        await VerifiableCredential.verify('invalid-jwt');
+        await VerifiableCredential.verify({ vcJwt: 'invalid-jwt' });
         expect.fail();
       } catch(e: any) {
         expect(e.message).to.include('Malformed JWT');
@@ -227,7 +227,7 @@ describe('Verifiable Credential Tests', () => {
       const invalidJwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
 
       try {
-        await VerifiableCredential.verify(invalidJwt);
+        await VerifiableCredential.verify({ vcJwt: invalidJwt });
         expect.fail();
       } catch(e: any) {
         expect(e.message).to.include('to contain alg and kid');
@@ -244,7 +244,7 @@ describe('Verifiable Credential Tests', () => {
 
       const vcJwt = await vc.sign({did: issuerDid});
 
-      const { issuer, subject, vc: credential } = await VerifiableCredential.verify(vcJwt);
+      const { issuer, subject, vc: credential } = await VerifiableCredential.verify({ vcJwt });
       expect(issuer).to.equal(issuerDid.did);
       expect(subject).to.equal(issuerDid.did);
       expect(credential).to.not.be.null;
@@ -258,7 +258,7 @@ describe('Verifiable Credential Tests', () => {
       });
 
       try {
-        await VerifiableCredential.verify(jwt);
+        await VerifiableCredential.verify({ vcJwt: jwt });
       } catch(e: any) {
         expect(e.message).to.include('vc property missing');
       }
@@ -272,7 +272,7 @@ describe('Verifiable Credential Tests', () => {
       });
 
       try {
-        await VerifiableCredential.verify(jwt);
+        await VerifiableCredential.verify({ vcJwt: jwt });
         expect.fail();
       } catch(e: any) {
         expect(e).to.not.be.null;
@@ -403,7 +403,7 @@ describe('Verifiable Credential Tests', () => {
 
       const vcJwt = await vc.sign({did: alice});
 
-      await VerifiableCredential.verify(vcJwt);
+      await VerifiableCredential.verify({ vcJwt });
 
       expect(didDhtCreateStub.calledOnce).to.be.true;
       expect(dhtDidResolutionSpy.calledOnce).to.be.true;
