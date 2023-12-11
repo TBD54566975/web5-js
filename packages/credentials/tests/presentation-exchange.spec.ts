@@ -27,7 +27,7 @@ describe('PresentationExchange', () => {
     before(async () => {
       issuerDid = await DidKeyMethod.create();
 
-      const vc = VerifiableCredential.create({
+      const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
         issuer  : issuerDid.did,
         subject : issuerDid.did,
@@ -48,7 +48,7 @@ describe('PresentationExchange', () => {
     });
 
     it('should return the only one verifiable credential', async () => {
-      const vc = VerifiableCredential.create({
+      const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
         issuer  : issuerDid.did,
         subject : issuerDid.did,
@@ -61,7 +61,7 @@ describe('PresentationExchange', () => {
       expect(actualSelectedVcJwts).to.deep.equal([btcCredentialJwt]);
     });
 
-    it('should evaluate that the credential does not satisfy the presentation definition', async () => {
+    it('should throw error for a credential that does not satisfy the presentation definition', async () => {
       const otherPresentationDefinition = {
         'id'                : 'test-pd-id',
         'name'              : 'simple PD',
@@ -83,10 +83,12 @@ describe('PresentationExchange', () => {
         ]
       };
 
-      await expectThrowsAsync(() =>  PresentationExchange.satisfiesPresentationDefinition([btcCredentialJwt], otherPresentationDefinition), 'Input candidate does not contain property');
+      expect(() =>
+        PresentationExchange.satisfiesPresentationDefinition([btcCredentialJwt], otherPresentationDefinition)
+      ).to.throw('Input candidate does not contain property');
     });
 
-    it('should successfully create a presentation from the given definition and credentials', () => {
+    it('should successfully create a presentation from the given definition and credentials', async () => {
       const presentationResult = PresentationExchange.createPresentationFromCredentials([btcCredentialJwt], presentationDefinition);
       expect(presentationResult).to.exist;
       expect(presentationResult.presentationSubmission.definition_id).to.equal(presentationDefinition.id);
@@ -114,11 +116,13 @@ describe('PresentationExchange', () => {
         ]
       };
 
-      await expectThrowsAsync(() =>  PresentationExchange.createPresentationFromCredentials([btcCredentialJwt], invalidPresentationDefinition), 'Failed to pass validation check');
+      expect(() =>
+        PresentationExchange.createPresentationFromCredentials([btcCredentialJwt], invalidPresentationDefinition)
+      ).to.throw('Failed to pass validation check');
     });
 
-    it('should fail to create a presentation with vc that does not match presentation definition', async() => {
-      const vc = VerifiableCredential.create({
+    it('should fail to create a presentation with vc that does not match presentation definition', async () => {
+      const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
         issuer  : issuerDid.did,
         subject : issuerDid.did,
@@ -126,7 +130,10 @@ describe('PresentationExchange', () => {
       });
 
       const otherCredJwt = await vc.sign({did: issuerDid});
-      await expectThrowsAsync(() =>  PresentationExchange.createPresentationFromCredentials([otherCredJwt], presentationDefinition), 'Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present');
+
+      expect(() =>
+        PresentationExchange.createPresentationFromCredentials([otherCredJwt], presentationDefinition)
+      ).to.throw('Failed to create Verifiable Presentation JWT due to: Required Credentials Not Present');
     });
 
     it('should successfully validate a presentation definition', () => {
@@ -136,22 +143,22 @@ describe('PresentationExchange', () => {
 
     it('should successfully validate a submission', () => {
       const presentationResult = PresentationExchange.createPresentationFromCredentials([btcCredentialJwt], presentationDefinition);
-      const result:Validated = PresentationExchange.validateSubmission(presentationResult.presentationSubmission);
+      const result = PresentationExchange.validateSubmission(presentationResult.presentationSubmission);
       expect(result).to.deep.equal([{ tag: 'root', status: 'info', message: 'ok' }]);
     });
 
-    it('should evaluate the presentation without any errors or warnings', async () => {
+    it('should evaluate the presentation without any errors or warnings', () => {
       const presentationResult = PresentationExchange.createPresentationFromCredentials([btcCredentialJwt], presentationDefinition);
 
       const presentationEvaluationResults = PresentationExchange.evaluatePresentation(presentationDefinition,  presentationResult.presentation );
       expect(presentationEvaluationResults.errors).to.deep.equal([]);
       expect(presentationEvaluationResults.warnings).to.deep.equal([]);
 
-      const result:Validated = PresentationExchange.validateSubmission(presentationResult.presentationSubmission);
+      const result = PresentationExchange.validateSubmission(presentationResult.presentationSubmission);
       expect(result).to.deep.equal([{ tag: 'root', status: 'info', message: 'ok' }]);
     });
 
-    it('should successfully execute the complete presentation exchange flow', async () => {
+    it('should successfully execute the complete presentation exchange flow', () => {
       const presentationResult = PresentationExchange.createPresentationFromCredentials([btcCredentialJwt], presentationDefinition);
 
       expect(presentationResult).to.exist;
@@ -190,17 +197,3 @@ function createPresentationDefinition(): PresentationDefinitionV2 {
     ]
   };
 }
-
-const expectThrowsAsync = async (method: any, errorMessage: string) => {
-  let error: any = null;
-  try {
-    await method();
-  }
-  catch (err) {
-    error = err;
-  }
-  expect(error).to.be.an('Error');
-  if (errorMessage) {
-    expect(error.message).to.contain(errorMessage);
-  }
-};

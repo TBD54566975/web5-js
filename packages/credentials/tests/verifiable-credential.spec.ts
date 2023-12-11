@@ -25,7 +25,7 @@ describe('Verifiable Credential Tests', () => {
     it('create vc works', async () => {
       const subjectDid = issuerDid.did;
 
-      const vc = VerifiableCredential.create({
+      const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
         issuer  : issuerDid.did,
         subject : subjectDid,
@@ -67,7 +67,7 @@ describe('Verifiable Credential Tests', () => {
     it('create and sign vc with did:ion', async () => {
       const did = await DidIonMethod.create();
 
-      const vc = VerifiableCredential.create({
+      const vc = await VerifiableCredential.create({
         type    : 'TBDeveloperCredential',
         subject : did.did,
         issuer  : did.did,
@@ -89,51 +89,59 @@ describe('Verifiable Credential Tests', () => {
       }
     });
 
-    it('should throw an error if data is not parseable into a JSON object', () => {
+    it('should throw an error if data is not parseable into a JSON object', async () => {
       const issuerDid = 'did:example:issuer';
       const subjectDid = 'did:example:subject';
 
       const invalidData = 'NotAJSONObject';
 
-      expect(() => {
-        VerifiableCredential.create({
+      try {
+        await VerifiableCredential.create({
           type    : 'InvalidDataTest',
           issuer  : issuerDid,
           subject : subjectDid,
           data    : invalidData
         });
-      }).to.throw('Expected data to be parseable into a JSON object');
+        expect.fail();
+      } catch(e: any) {
+        expect(e.message).to.include('Expected data to be parseable into a JSON object');
+      }
     });
 
-    it('should throw an error if issuer or subject is not defined', () => {
+    it('should throw an error if issuer or subject is not defined', async () => {
       const issuerDid = 'did:example:issuer';
       const subjectDid = 'did:example:subject';
       const validData = new StreetCredibility('high', true);
 
-      expect(() => {
-        VerifiableCredential.create({
+      try {
+        await VerifiableCredential.create({
           type    : 'IssuerUndefinedTest',
           issuer  : '',
           subject : subjectDid,
           data    : validData
         });
-      }).to.throw('Issuer and subject must be defined');
+        expect.fail();
+      } catch(e: any) {
+        expect(e.message).to.include('Issuer and subject must be defined');
+      }
 
-      expect(() => {
-        VerifiableCredential.create({
+      try {
+        await VerifiableCredential.create({
           type    : 'SubjectUndefinedTest',
           issuer  : issuerDid,
           subject : '',
           data    : validData
         });
-      }).to.throw('Issuer and subject must be defined');
-
+        expect.fail();
+      } catch(e: any) {
+        expect(e.message).to.include('Issuer and subject must be defined');
+      }
     });
 
     it('signing with Ed25519 key works', async () => {
       const subjectDid = issuerDid.did;
 
-      const vc = VerifiableCredential.create({
+      const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
         issuer  : issuerDid.did,
         subject : subjectDid,
@@ -151,7 +159,7 @@ describe('Verifiable Credential Tests', () => {
     it('signing with secp256k1 key works', async () => {
       const did = await DidKeyMethod.create({ keyAlgorithm: 'secp256k1' });
 
-      const vc = VerifiableCredential.create({
+      const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
         issuer  : did.did,
         subject : did.did,
@@ -166,10 +174,10 @@ describe('Verifiable Credential Tests', () => {
       expect(parts.length).to.equal(3);
     });
 
-    it('parseJwt throws ParseException if argument is not a valid JWT', () => {
-      expect(() => {
-        VerifiableCredential.parseJwt('hi');
-      }).to.throw('Malformed JWT');
+    it('parseJwt throws ParseException if argument is not a valid JWT', async () => {
+      expect(() =>
+        VerifiableCredential.parseJwt('hi')
+      ).to.throw('Malformed JWT');
     });
 
     it('parseJwt checks if missing vc property', async () => {
@@ -182,16 +190,13 @@ describe('Verifiable Credential Tests', () => {
         }
       });
 
-      try {
-        VerifiableCredential.parseJwt(compactJwt);
-        expect.fail();
-      } catch(e: any) {
-        expect(e.message).to.include('Jwt payload missing vc property');
-      }
+      expect(() =>
+        VerifiableCredential.parseJwt(compactJwt)
+      ).to.throw('Jwt payload missing vc property');
     });
 
     it('parseJwt returns an instance of VerifiableCredential on success', async () => {
-      const vc = VerifiableCredential.create({
+      const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
         issuer  : issuerDid.did,
         subject : issuerDid.did,
@@ -230,7 +235,7 @@ describe('Verifiable Credential Tests', () => {
     });
 
     it('verify does not throw an exception with valid vc', async () => {
-      const vc = VerifiableCredential.create({
+      const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
         issuer  : issuerDid.did,
         subject : issuerDid.did,
@@ -347,7 +352,7 @@ describe('Verifiable Credential Tests', () => {
 
       const alice = await DidDhtMethod.create({ publish: true });
 
-      const vc = VerifiableCredential.create({
+      const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
         issuer  : alice.did,
         subject : alice.did,

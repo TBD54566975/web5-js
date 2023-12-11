@@ -9,86 +9,66 @@ import { DidKeyMethod } from '@web5/dids';
 import { CompactJwt } from '../src/index.js';
 
 describe('CompactJwt', () => {
-  describe('parse', () => {
+  describe('parse()', () => {
     it('throws error if JWT doesnt contain 3 parts', async () => {
-      try {
-        await CompactJwt.parse({ compactJwt: 'abcd123' });
-        expect.fail();
-      } catch(e: any) {
-        expect(e.message).to.include('Malformed JWT. expected 3 parts');
-      }
+      expect(() =>
+        CompactJwt.parse({ compactJwt: 'abcd123' })
+      ).to.throw('Malformed JWT. expected 3 parts');
     });
 
     it('throws error if JWT header is not properly base64url encoded', async () => {
-      try {
-        await CompactJwt.parse({ compactJwt: 'abcd123.efgh.hijk' });
-        expect.fail();
-      } catch(e: any) {
-        expect(e.message).to.include('Invalid base64url encoding for JWT header');
-      }
+      expect(() =>
+        CompactJwt.parse({ compactJwt: 'abcd123.efgh.hijk' })
+      ).to.throw('Invalid base64url encoding for JWT header');
     });
 
     it('throws error if JWT header is missing typ property', async () => {
       const header: JwtHeader = { alg: 'ES256K', kid: 'whateva' };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
-      try {
-        await CompactJwt.parse({ compactJwt: `${base64UrlEncodedHeader}.efgh.hijk` });
-        expect.fail();
-      } catch(e: any) {
-        expect(e.message).to.include('typ property set to JWT');
-      }
+      expect(() =>
+        CompactJwt.parse({ compactJwt: `${base64UrlEncodedHeader}.efgh.hijk` })
+      ).to.throw('typ property set to JWT');
     });
 
     it('throws error if JWT header typ property is not set to JWT', async () => {
       const header: JwtHeader = { typ: 'hehe', alg: 'ES256K', kid: 'whateva' };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
-      try {
-        await CompactJwt.parse({ compactJwt: `${base64UrlEncodedHeader}.efgh.hijk` });
-        expect.fail();
-      } catch(e: any) {
-        expect(e.message).to.include('typ property set to JWT');
-      }
+      expect(() =>
+        CompactJwt.parse({ compactJwt: `${base64UrlEncodedHeader}.efgh.hijk` })
+      ).to.throw('typ property set to JWT');
     });
 
     it('throws error if JWT header alg property is missing', async () => {
       const header: JwtHeader = { typ: 'JWT', kid: 'whateva' };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
-      try {
-        await CompactJwt.parse({ compactJwt: `${base64UrlEncodedHeader}.efgh.hijk` });
-        expect.fail();
-      } catch(e: any) {
-        expect(e.message).to.include('to contain alg and kid');
-      }
+      expect(() =>
+        CompactJwt.parse({ compactJwt: `${base64UrlEncodedHeader}.efgh.hijk` })
+      ).to.throw('to contain alg and kid');
     });
 
     it('throws error if JWT header kid property is missing', async () => {
       const header: JwtHeader = { typ: 'JWT', alg: 'ES256K' };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
-      try {
-        await CompactJwt.parse({ compactJwt: `${base64UrlEncodedHeader}.efgh.hijk` });
-        expect.fail();
-      } catch(e: any) {
-        expect(e.message).to.include('to contain alg and kid');
-      }
+      expect(() =>
+        CompactJwt.parse({ compactJwt: `${base64UrlEncodedHeader}.efgh.hijk` })
+      ).to.throw('to contain alg and kid');
     });
 
     it('throws error if JWT payload is not properly base64url encoded', async () => {
       const header: JwtHeader = { typ: 'JWT', alg: 'ES256K', kid: 'whateva' };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
-      try {
-        await CompactJwt.parse({ compactJwt: `${base64UrlEncodedHeader}.efgh.hijk` });
-        expect.fail();
-      } catch(e: any) {
-        expect(e.message).to.include('Invalid base64url encoding for JWT payload');
-      }
+      expect(() =>
+        CompactJwt.parse({ compactJwt: `${base64UrlEncodedHeader}.efgh.hijk` })
+      ).to.throw('Invalid base64url encoding for JWT payload');
     });
   });
-  describe('verify', () => {
+
+  describe('verify()', () => {
     it('throws error if JWT header kid does not dereference a verification method', async () => {
       const did = await DidKeyMethod.create({ keyAlgorithm: 'secp256k1' });
       const header: JwtHeader = { typ: 'JWT', alg: 'ES256K', kid: did.did };

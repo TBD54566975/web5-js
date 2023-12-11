@@ -125,7 +125,7 @@ export class VerifiableCredential {
    *   })
    * ```
    */
-  public static create(vcCreateOptions: VerifiableCredentialCreateOptions): VerifiableCredential {
+  public static async create(vcCreateOptions: VerifiableCredentialCreateOptions): Promise<VerifiableCredential> {
     const { type, issuer, subject, data, issuanceDate, expirationDate } = vcCreateOptions;
 
     const jsonData = JSON.parse(JSON.stringify(data));
@@ -156,6 +156,7 @@ export class VerifiableCredential {
     };
 
     validatePayload(vcDataModel);
+
     return new VerifiableCredential(vcDataModel);
   }
 
