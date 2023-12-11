@@ -82,12 +82,14 @@ export class CompactJwt {
 
   /**
    * Creates a JWT.
-   * @param params - Parameters for JWT creation including signer DID and payload.
-   * @returns The compact JWT as a string.
+   *
    * @example
    * ```ts
    * const jwt = await CompactJwt.create({ signerDid: myDid, payload: myPayload });
    * ```
+   *
+   * @param params - Parameters for JWT creation including signer DID and payload.
+   * @returns The compact JWT as a string.
    */
   static async create(params: CreateJwtParams) {
     const { signerDid, payload } = params;
@@ -125,12 +127,14 @@ export class CompactJwt {
 
   /**
    * Verifies a JWT.
-   * @param params - Parameters for JWT verification
-   * @returns Verified JWT information including signer DID, header, and payload.
+   *
    * @example
-   * ```
+   * ```ts
    * const verifiedJwt = await CompactJwt.verify({ compactJwt: myJwt });
    * ```
+   *
+   * @param params - Parameters for JWT verification
+   * @returns Verified JWT information including signer DID, header, and payload.
    */
   static async verify(params: VerifyJwtParams) {
     const { decoded: decodedJwt, encoded: encodedJwt } = CompactJwt.parse({ compactJwt: params.compactJwt });
@@ -184,10 +188,14 @@ export class CompactJwt {
 
   /**
    * Parses a JWT without verifying its signature.
+   *
+   * @example
+   * ```ts
+   * const { encoded: encodedJwt, decoded: decodedJwt } = CompactJwt.parse({ compactJwt: myJwt });
+   * ```
+   *
    * @param params - Parameters for JWT decoding, including the JWT string.
    * @returns both encoded and decoded JWT parts
-   * @example
-   * const { encoded: encodedJwt, decoded: decodedJwt } = CompactJwt.parse({ compactJwt: myJwt });
    */
   static parse(params: ParseJwtParams) {
     const splitJwt = params.compactJwt.split('.');

@@ -119,7 +119,6 @@ export class PresentationExchange {
    * This method validates whether an object is usable as a presentation definition or not.
    *
    * @param {PresentationDefinitionV2} presentationDefinition: presentationDefinition to be validated.
-   *
    * @return {Validated} the validation results to reveal what is acceptable/unacceptable about the passed object to be considered a valid presentation definition
    */
   public static validateDefinition(presentationDefinition: PresentationDefinitionV2): Validated {
@@ -130,7 +129,6 @@ export class PresentationExchange {
    * This method validates whether an object is usable as a presentation submission or not.
    *
    * @param {PresentationSubmission} presentationSubmission the object to be validated.
-   *
    * @return {Validated} the validation results to reveal what is acceptable/unacceptable about the passed object to be considered a valid presentation submission
    */
   public static validateSubmission(presentationSubmission: PresentationSubmission): Validated {
@@ -139,6 +137,7 @@ export class PresentationExchange {
 
   /**
    * Evaluates a presentation against a presentation definition.
+   *
    * @returns {EvaluationResults} The result of the evaluation process.
    */
   public static evaluatePresentation(

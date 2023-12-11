@@ -78,14 +78,13 @@ export class VerifiableCredential {
   /**
    * Sign a verifiable credential using [signOptions]
    *
+   * @example
+   * ```ts
+   * const vcJwt = verifiableCredential.sign(vcSignOptions)
+   * ```
    *
    * @param vcSignOptions The sign options used to sign the credential.
    * @return The JWT representing the signed verifiable credential.
-   *
-   * Example:
-   * ```
-   * const vcJwt = verifiableCredential.sign(vcSignOptions)
-   * ```
    */
   public async sign(vcSignOptions: VerifiableCredentialSignOptions): Promise<string> {
     const vcJwt: string = await CompactJwt.create({
@@ -112,11 +111,8 @@ export class VerifiableCredential {
   /**
    * Create a [VerifiableCredential] based on the provided parameters.
    *
-   * @param vcCreateOptions The options to use when creating the Verifiable Credential.
-   * @return A [VerifiableCredential] instance.
-   *
-   * Example:
-   * ```
+   * @example
+   * ```ts
    * const vc = VerifiableCredential.create({
    *     type: 'StreetCredibility',
    *     issuer: 'did:ex:issuer',
@@ -124,6 +120,9 @@ export class VerifiableCredential {
    *     data: { 'arbitrary': 'data' }
    *   })
    * ```
+   *
+   * @param vcCreateOptions The options to use when creating the Verifiable Credential.
+   * @return A [VerifiableCredential] instance.
    */
   public static async create(vcCreateOptions: VerifiableCredentialCreateOptions): Promise<VerifiableCredential> {
     const { type, issuer, subject, data, issuanceDate, expirationDate } = vcCreateOptions;
@@ -173,12 +172,8 @@ export class VerifiableCredential {
    *
    * If any of these steps fail, the function will throw a [Error] with a message indicating the nature of the failure.
    *
-   * @param vcJwt The Verifiable Credential in JWT format as a [string].
-   * @throws Error if the verification fails at any step, providing a message with failure details.
-   * @throws Error if critical JWT header elements are absent.
-   *
-   * ### Example:
-   * ```
+   * @example
+   * ```ts
    * try {
    *     VerifiableCredential.verify(signedVcJwt)
    *     console.log("VC Verification successful!")
@@ -186,6 +181,10 @@ export class VerifiableCredential {
    *     console.log("VC Verification failed: ${e.message}")
    * }
    * ```
+   *
+   * @param vcJwt The Verifiable Credential in JWT format as a [string].
+   * @throws Error if the verification fails at any step, providing a message with failure details.
+   * @throws Error if critical JWT header elements are absent.
    */
   public static async verify(vcJwt: string) {
     const { signerDid, payload } = await CompactJwt.verify({ compactJwt: vcJwt });
@@ -206,13 +205,13 @@ export class VerifiableCredential {
   /**
    * Parses a JWT into a [VerifiableCredential] instance.
    *
-   * @param vcJwt The verifiable credential JWT as a [String].
-   * @return A [VerifiableCredential] instance derived from the JWT.
-   *
-   * Example:
-   * ```
+   * @example
+   * ```ts
    * val vc = VerifiableCredential.parseJwt(signedVcJwt)
    * ```
+   *
+   * @param vcJwt The verifiable credential JWT as a [String].
+   * @return A [VerifiableCredential] instance derived from the JWT.
    */
   public static parseJwt(vcJwt: string): VerifiableCredential {
     const parsedJwt = CompactJwt.parse({ compactJwt: vcJwt });
