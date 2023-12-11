@@ -6,19 +6,19 @@ import { Convert } from '@web5/common';
 import { Secp256k1 } from '@web5/crypto';
 import { DidKeyMethod } from '@web5/dids';
 
-import { CompactJwt } from '../src/index.js';
+import { Jwt } from '../src/jwt.js';
 
-describe('CompactJwt', () => {
+describe('Jwt', () => {
   describe('parse()', () => {
     it('throws error if JWT doesnt contain 3 parts', async () => {
       expect(() =>
-        CompactJwt.parse({ compactJwt: 'abcd123' })
+        Jwt.parse({ jwt: 'abcd123' })
       ).to.throw('Malformed JWT. expected 3 parts');
     });
 
     it('throws error if JWT header is not properly base64url encoded', async () => {
       expect(() =>
-        CompactJwt.parse({ compactJwt: 'abcd123.efgh.hijk' })
+        Jwt.parse({ jwt: 'abcd123.efgh.hijk' })
       ).to.throw('Invalid base64url encoding for JWT header');
     });
 
@@ -27,7 +27,7 @@ describe('CompactJwt', () => {
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       expect(() =>
-        CompactJwt.parse({ compactJwt: `${base64UrlEncodedHeader}.efgh.hijk` })
+        Jwt.parse({ jwt: `${base64UrlEncodedHeader}.efgh.hijk` })
       ).to.throw('typ property set to JWT');
     });
 
@@ -36,7 +36,7 @@ describe('CompactJwt', () => {
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       expect(() =>
-        CompactJwt.parse({ compactJwt: `${base64UrlEncodedHeader}.efgh.hijk` })
+        Jwt.parse({ jwt: `${base64UrlEncodedHeader}.efgh.hijk` })
       ).to.throw('typ property set to JWT');
     });
 
@@ -45,7 +45,7 @@ describe('CompactJwt', () => {
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       expect(() =>
-        CompactJwt.parse({ compactJwt: `${base64UrlEncodedHeader}.efgh.hijk` })
+        Jwt.parse({ jwt: `${base64UrlEncodedHeader}.efgh.hijk` })
       ).to.throw('to contain alg and kid');
     });
 
@@ -54,7 +54,7 @@ describe('CompactJwt', () => {
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       expect(() =>
-        CompactJwt.parse({ compactJwt: `${base64UrlEncodedHeader}.efgh.hijk` })
+        Jwt.parse({ jwt: `${base64UrlEncodedHeader}.efgh.hijk` })
       ).to.throw('to contain alg and kid');
     });
 
@@ -63,7 +63,7 @@ describe('CompactJwt', () => {
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       expect(() =>
-        CompactJwt.parse({ compactJwt: `${base64UrlEncodedHeader}.efgh.hijk` })
+        Jwt.parse({ jwt: `${base64UrlEncodedHeader}.efgh.hijk` })
       ).to.throw('Invalid base64url encoding for JWT payload');
     });
   });
@@ -78,7 +78,7 @@ describe('CompactJwt', () => {
       const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
 
       try {
-        await CompactJwt.verify({ compactJwt: `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}.hijk` });
+        await Jwt.verify({ jwt: `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}.hijk` });
         expect.fail();
       } catch(e: any) {
         expect(e.message).to.include('dereference a DID Document Verification Method');
@@ -94,7 +94,7 @@ describe('CompactJwt', () => {
       const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
 
       try {
-        await CompactJwt.verify({ compactJwt: `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}.hijk` });
+        await Jwt.verify({ jwt: `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}.hijk` });
         expect.fail();
       } catch(e: any) {
         expect(e.message).to.include('not supported');
@@ -117,10 +117,11 @@ describe('CompactJwt', () => {
       const signatureBytes = await Secp256k1.sign({ key: privateKeyJwk as PrivateKeyJwk, data: toSignBytes });
       const base64UrlEncodedSignature = Convert.uint8Array(signatureBytes).toBase64Url();
 
-      const compactJwt = `${toSign}.${base64UrlEncodedSignature}`;
-      const { signerDid } = await CompactJwt.verify({ compactJwt });
+      const jwt = `${toSign}.${base64UrlEncodedSignature}`;
+      const verifyResult = await Jwt.verify({ jwt });
 
-      expect(signerDid).to.equal(did.did);
+      expect(verifyResult.header).to.deep.equal(header);
+      expect(verifyResult.payload).to.deep.equal(payload);
     });
   });
 });

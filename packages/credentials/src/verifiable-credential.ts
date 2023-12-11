@@ -3,7 +3,7 @@ import type { ICredential, ICredentialSubject} from '@sphereon/ssi-types';
 
 import { utils as cryptoUtils } from '@web5/crypto';
 
-import { CompactJwt } from './compact-jwt.js';
+import { Jwt } from './jwt.js';
 import { SsiValidator } from './validators.js';
 import { getCurrentXmlSchema112Timestamp } from './utils.js';
 
@@ -87,7 +87,7 @@ export class VerifiableCredential {
    * @return The JWT representing the signed verifiable credential.
    */
   public async sign(vcSignOptions: VerifiableCredentialSignOptions): Promise<string> {
-    const vcJwt: string = await CompactJwt.create({
+    const vcJwt: string = await Jwt.sign({
       signerDid : vcSignOptions.did,
       payload   : {
         vc  : this.vcDataModel,
@@ -187,7 +187,7 @@ export class VerifiableCredential {
    * @throws Error if critical JWT header elements are absent.
    */
   public static async verify(vcJwt: string) {
-    const { signerDid, payload } = await CompactJwt.verify({ compactJwt: vcJwt });
+    const { payload } = await Jwt.verify({ jwt: vcJwt });
     const vc = payload['vc'] as VcDataModel;
     if (!vc) {
       throw new Error('vc property missing.');
@@ -196,7 +196,7 @@ export class VerifiableCredential {
     validatePayload(vc);
 
     return {
-      issuer  : signerDid,
+      issuer  : payload.iss!,
       subject : payload.sub!,
       vc      : payload['vc'] as VcDataModel
     };
@@ -214,8 +214,8 @@ export class VerifiableCredential {
    * @return A [VerifiableCredential] instance derived from the JWT.
    */
   public static parseJwt(vcJwt: string): VerifiableCredential {
-    const parsedJwt = CompactJwt.parse({ compactJwt: vcJwt });
-    const vcDataModel: VcDataModel = parsedJwt.decoded.payload['vc'];
+    const parsedJwt = Jwt.parse({ jwt: vcJwt });
+    const vcDataModel: VcDataModel = parsedJwt.decoded.payload['vc'] as VcDataModel;
 
     if(!vcDataModel) {
       throw Error('Jwt payload missing vc property');

@@ -4,7 +4,7 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { DidDhtMethod, DidKeyMethod, DidIonMethod } from '@web5/dids';
 
-import { CompactJwt } from '../src/compact-jwt.js';
+import { Jwt } from '../src/jwt.js';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 
 describe('Verifiable Credential Tests', () => {
@@ -182,7 +182,7 @@ describe('Verifiable Credential Tests', () => {
 
     it('parseJwt checks if missing vc property', async () => {
       const did = await DidKeyMethod.create();
-      const compactJwt = await CompactJwt.create({
+      const jwt = await Jwt.sign({
         signerDid : did,
         payload   : {
           iss : did.did,
@@ -191,7 +191,7 @@ describe('Verifiable Credential Tests', () => {
       });
 
       expect(() =>
-        VerifiableCredential.parseJwt(compactJwt)
+        VerifiableCredential.parseJwt(jwt)
       ).to.throw('Jwt payload missing vc property');
     });
 
@@ -252,13 +252,13 @@ describe('Verifiable Credential Tests', () => {
 
     it('verify throws exception if vc property does not exist', async () => {
       const did = await DidKeyMethod.create();
-      const compactJwt = await CompactJwt.create({
+      const jwt = await Jwt.sign({
         payload   : { jti: 'hi' },
         signerDid : did
       });
 
       try {
-        await VerifiableCredential.verify(compactJwt);
+        await VerifiableCredential.verify(jwt);
       } catch(e: any) {
         expect(e.message).to.include('vc property missing');
       }
@@ -266,13 +266,13 @@ describe('Verifiable Credential Tests', () => {
 
     it('verify throws exception if vc property is invalid', async () => {
       const did = await DidKeyMethod.create();
-      const compactJwt = await CompactJwt.create({
+      const jwt = await Jwt.sign({
         payload   : { vc: 'hi' },
         signerDid : did
       });
 
       try {
-        await VerifiableCredential.verify(compactJwt);
+        await VerifiableCredential.verify(jwt);
         expect.fail();
       } catch(e: any) {
         expect(e).to.not.be.null;

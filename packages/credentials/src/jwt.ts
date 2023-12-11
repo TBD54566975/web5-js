@@ -1,12 +1,13 @@
 import type { PortableDid } from '@web5/dids';
-import type { JwtHeader, JwtPayload } from 'jwt-decode';
 import type {
+  JwtPayload,
   Web5Crypto,
-  PublicKeyJwk,
-  PrivateKeyJwk,
   CryptoAlgorithm,
+  JwtHeaderParams,
   JwkParamsEcPrivate,
   JwkParamsOkpPrivate,
+  JwkParamsEcPublic,
+  JwkParamsOkpPublic,
 } from '@web5/crypto';
 
 import { Convert } from '@web5/common';
@@ -14,26 +15,49 @@ import { EdDsaAlgorithm, EcdsaAlgorithm  } from '@web5/crypto';
 import { DidDhtMethod, DidIonMethod, DidKeyMethod, DidResolver, utils as didUtils } from '@web5/dids';
 
 /**
- * Parameters for creating a JWT.
+ * Result of parsing a JWT.
  */
-export type CreateJwtParams = {
+export type JwtParseResult = {
+  decoded: JwtVerifyResult
+  encoded: {
+    header: string
+    payload: string
+    signature: string
+  }
+}
+
+/**
+ * Result of verifying a JWT.
+ */
+export interface JwtVerifyResult {
+  /** JWT Protected Header */
+  header: JwtHeaderParams;
+
+  /** JWT Claims Set */
+  payload: JwtPayload;
+}
+
+/**
+ * Parameters for parsing a JWT.
+ * used in {@link Jwt.parse}
+ */
+export type ParseJwtOptions = {
+  jwt: string
+}
+
+/**
+ * Parameters for signing a JWT.
+ */
+export type SignJwtOptions = {
   signerDid: PortableDid
-  payload: JwtPayload & Record<string, any>
+  payload: JwtPayload
 }
 
 /**
  * Parameters for verifying a JWT.
  */
-export type VerifyJwtParams = {
-  compactJwt: string
-}
-
-/**
- * Parameters for parsing a JWT.
- * used in {@link CompactJwt.parse}
- */
-export type ParseJwtParams = {
-  compactJwt: string
+export type VerifyJwtOptions = {
+  jwt: string
 }
 
 /**
@@ -66,7 +90,7 @@ const ed25519Signer: Signer<Web5Crypto.EdDsaOptions> = {
  * This class provides methods to create, verify, and decode JWTs using various cryptographic algorithms.
  * More information on JWTs can be found [here](https://datatracker.ietf.org/doc/html/rfc7519)
  */
-export class CompactJwt {
+export class Jwt {
   /** supported cryptographic algorithms. keys are `${alg}:${crv}`. */
   static algorithms: { [alg: string]: Signer<Web5Crypto.EcdsaOptions | Web5Crypto.EdDsaOptions> } = {
     'ES256K:'          : secp256k1Signer,
@@ -81,18 +105,18 @@ export class CompactJwt {
   static didResolver: DidResolver = new DidResolver({ didResolvers: [DidIonMethod, DidKeyMethod, DidDhtMethod] });
 
   /**
-   * Creates a JWT.
+   * Creates a signed JWT.
    *
    * @example
    * ```ts
-   * const jwt = await CompactJwt.create({ signerDid: myDid, payload: myPayload });
+   * const jwt = await Jwt.sign({ signerDid: myDid, payload: myPayload });
    * ```
    *
-   * @param params - Parameters for JWT creation including signer DID and payload.
+   * @param options - Parameters for JWT creation including signer DID and payload.
    * @returns The compact JWT as a string.
    */
-  static async create(params: CreateJwtParams) {
-    const { signerDid, payload } = params;
+  static async sign(options: SignJwtOptions): Promise<string> {
+    const { signerDid, payload } = options;
     const privateKeyJwk = signerDid.keySet.verificationMethodKeys![0].privateKeyJwk! as JwkParamsEcPrivate | JwkParamsOkpPrivate;
 
     let vmId = signerDid.document.verificationMethod![0].id;
@@ -100,9 +124,9 @@ export class CompactJwt {
       vmId = `${signerDid.did}${vmId}`;
     }
 
-    const header: JwtHeader = {
+    const header: JwtHeaderParams = {
       typ : 'JWT',
-      alg : privateKeyJwk.alg,
+      alg : privateKeyJwk.alg!,
       kid : vmId
     };
 
@@ -113,13 +137,13 @@ export class CompactJwt {
     const toSignBytes = Convert.string(toSign).toUint8Array();
 
     const algorithmId = `${header.alg}:${privateKeyJwk['crv'] || ''}`;
-    if (!(algorithmId in CompactJwt.algorithms)) {
+    if (!(algorithmId in Jwt.algorithms)) {
       throw new Error(`Signing failed: ${algorithmId} not supported`);
     }
 
-    const { signer, options } = CompactJwt.algorithms[algorithmId];
+    const { signer, options: signatureAlgorithm } = Jwt.algorithms[algorithmId];
 
-    const signatureBytes = await signer.sign({ key: privateKeyJwk as PrivateKeyJwk, data: toSignBytes, algorithm: options! });
+    const signatureBytes = await signer.sign({ key: privateKeyJwk, data: toSignBytes, algorithm: signatureAlgorithm! });
     const base64UrlEncodedSignature = Convert.uint8Array(signatureBytes).toBase64Url();
 
     return `${toSign}.${base64UrlEncodedSignature}`;
@@ -130,17 +154,17 @@ export class CompactJwt {
    *
    * @example
    * ```ts
-   * const verifiedJwt = await CompactJwt.verify({ compactJwt: myJwt });
+   * const verifiedJwt = await Jwt.verify({ jwt: myJwt });
    * ```
    *
-   * @param params - Parameters for JWT verification
+   * @param options - Parameters for JWT verification
    * @returns Verified JWT information including signer DID, header, and payload.
    */
-  static async verify(params: VerifyJwtParams) {
-    const { decoded: decodedJwt, encoded: encodedJwt } = CompactJwt.parse({ compactJwt: params.compactJwt });
+  static async verify(options: VerifyJwtOptions): Promise<JwtVerifyResult> {
+    const { decoded: decodedJwt, encoded: encodedJwt } = Jwt.parse({ jwt: options.jwt });
 
     // TODO: should really be looking for verificationMethod with authentication verification relationship
-    const dereferenceResult = await CompactJwt.didResolver.dereference({ didUrl: decodedJwt.header.kid! });
+    const dereferenceResult = await Jwt.didResolver.dereference({ didUrl: decodedJwt.header.kid! });
     if (dereferenceResult.dereferencingMetadata.error) {
       throw new Error(`Failed to resolve ${decodedJwt.header.kid}`);
     }
@@ -151,7 +175,7 @@ export class CompactJwt {
     }
 
     // will be used to verify signature
-    const publicKeyJwk = verificationMethod.publicKeyJwk as JwkParamsEcPrivate | JwkParamsOkpPrivate;
+    const publicKeyJwk = verificationMethod.publicKeyJwk as JwkParamsEcPublic | JwkParamsOkpPublic;
     if (!publicKeyJwk) { // ensure that Verification Method includes public key as a JWK.
       throw new Error('Verification failed: Expected kid in JWT header to dereference to a DID Document Verification Method with publicKeyJwk');
     }
@@ -162,15 +186,15 @@ export class CompactJwt {
     const signatureBytes = Convert.base64Url(encodedJwt.signature).toUint8Array();
 
     const algorithmId = `${decodedJwt.header.alg}:${publicKeyJwk['crv'] || ''}`;
-    if (!(algorithmId in CompactJwt.algorithms)) {
+    if (!(algorithmId in Jwt.algorithms)) {
       throw new Error(`Verification failed: ${algorithmId} not supported`);
     }
 
-    const { signer, options } = CompactJwt.algorithms[algorithmId];
+    const { signer, options: signatureAlgorithm } = Jwt.algorithms[algorithmId];
 
     const isSignatureValid = await signer.verify({
-      algorithm : options!,
-      key       : publicKeyJwk as PublicKeyJwk,
+      algorithm : signatureAlgorithm!,
+      key       : publicKeyJwk,
       data      : signedDataBytes,
       signature : signatureBytes
     });
@@ -179,11 +203,7 @@ export class CompactJwt {
       throw new Error('Signature verification failed: Integrity mismatch');
     }
 
-    return {
-      signerDid : verificationMethod.controller,
-      header    : decodedJwt.header,
-      payload   : decodedJwt.payload,
-    };
+    return decodedJwt;
   }
 
   /**
@@ -191,24 +211,24 @@ export class CompactJwt {
    *
    * @example
    * ```ts
-   * const { encoded: encodedJwt, decoded: decodedJwt } = CompactJwt.parse({ compactJwt: myJwt });
+   * const { encoded: encodedJwt, decoded: decodedJwt } = Jwt.parse({ jwt: myJwt });
    * ```
    *
-   * @param params - Parameters for JWT decoding, including the JWT string.
+   * @param options - Parameters for JWT decoding, including the JWT string.
    * @returns both encoded and decoded JWT parts
    */
-  static parse(params: ParseJwtParams) {
-    const splitJwt = params.compactJwt.split('.');
+  static parse(options: ParseJwtOptions): JwtParseResult {
+    const splitJwt = options.jwt.split('.');
     if (splitJwt.length !== 3) {
       throw new Error(`Verification failed: Malformed JWT. expected 3 parts. got ${splitJwt.length}`);
     }
 
     const [base64urlEncodedJwtHeader, base64urlEncodedJwtPayload, base64urlEncodedSignature] = splitJwt;
-    let jwtHeader: JwtHeader;
+    let jwtHeader: JwtHeaderParams;
     let jwtPayload: JwtPayload;
 
     try {
-      jwtHeader = Convert.base64Url(base64urlEncodedJwtHeader).toObject();
+      jwtHeader = Convert.base64Url(base64urlEncodedJwtHeader).toObject() as JwtHeaderParams;
     } catch(e) {
       throw new Error('Verification failed: Malformed JWT. Invalid base64url encoding for JWT header');
     }
@@ -223,7 +243,7 @@ export class CompactJwt {
 
     // TODO: validate optional payload fields: https://datatracker.ietf.org/doc/html/rfc7519#section-4.1
     try {
-      jwtPayload = Convert.base64Url(base64urlEncodedJwtPayload).toObject();
+      jwtPayload = Convert.base64Url(base64urlEncodedJwtPayload).toObject() as JwtPayload;
     } catch(e) {
       throw new Error('Verification failed: Malformed JWT. Invalid base64url encoding for JWT payload');
     }
@@ -231,7 +251,7 @@ export class CompactJwt {
     return {
       decoded: {
         header  : jwtHeader,
-        payload : jwtPayload as JwtPayload & Record<string, any>,
+        payload : jwtPayload,
       },
       encoded: {
         header    : base64urlEncodedJwtHeader,
