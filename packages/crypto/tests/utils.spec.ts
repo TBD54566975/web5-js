@@ -3,6 +3,7 @@ import * as sinon from 'sinon';
 
 import {
   randomUuid,
+  randomBytes,
   keyToMultibaseId,
   multibaseIdToKey,
   checkValidProperty,
@@ -117,7 +118,7 @@ describe('Crypto Utils', () => {
   });
 
   describe('multibaseIdToKey()', () => {
-    it('Converts secp256k1-pub multibase identifiers', () => {
+    it('converts secp256k1-pub multibase identifiers', () => {
       const multibaseKeyId = 'zQ3shMrXA3Ah8h5asMM69USP8qRDnPaCLRV3nPmitAXVfWhgp';
 
       const { key, multicodecCode, multicodecName } = multibaseIdToKey({ multibaseKeyId });
@@ -131,7 +132,7 @@ describe('Crypto Utils', () => {
       expect(multicodecName).to.equal('secp256k1-pub');
     });
 
-    it('Converts ed25519-pub multibase identifiers', () => {
+    it('converts ed25519-pub multibase identifiers', () => {
       const multibaseKeyId = 'z6MkizSHspkM891CAnYZis1TJkB4fWwuyVjt4pV93rWPGYwW';
 
       const { key, multicodecCode, multicodecName } = multibaseIdToKey({ multibaseKeyId });
@@ -145,7 +146,7 @@ describe('Crypto Utils', () => {
       expect(multicodecName).to.equal('ed25519-pub');
     });
 
-    it('Converts x25519-pub multibase identifiers', () => {
+    it('converts x25519-pub multibase identifiers', () => {
       const multibaseKeyId = 'z6LSfsF6tQA7j56WSzNPT4yrzZprzGEK8137DMeAVLgGBJEz';
 
       const { key, multicodecCode, multicodecName } = multibaseIdToKey({ multibaseKeyId });
@@ -160,17 +161,42 @@ describe('Crypto Utils', () => {
     });
   });
 
+  describe('randomBytes()', () => {
+    it('returns a Uint8Array of the specified length', () => {
+      const length = 16;
+      const result = randomBytes(length);
+
+      expect(result).to.be.instanceof(Uint8Array);
+      expect(result).to.have.length(length);
+    });
+
+    it('handles invalid input gracefully', () => {
+      expect(() => randomBytes(-1)).to.throw(RangeError, 'length'); // Length cannot be negative.
+      expect(() => randomBytes(1e9)).to.throw(Error, 'exceed'); // Extremely large number that exceeds the available entropy.
+    });
+
+    it('produces unique values on each call', () => {
+      const set = new Set();
+      for (let i = 0; i < 100; i++) {
+        set.add(randomBytes(10).toString());
+      }
+      expect(set.size).to.equal(100);
+    });
+  });
+
   describe('randomUuid()', () => {
-    it('should generate a valid v4 UUID', () => {
+    it('generates a valid v4 UUID', () => {
       const id = randomUuid();
       expect(id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
       expect(id).to.have.length(36);
     });
 
-    it('should generate different UUIDs', () => {
-      const id1 = randomUuid();
-      const id2 = randomUuid();
-      expect(id1).to.not.equal(id2);
+    it('produces unique values on each call', () => {
+      const set = new Set();
+      for (let i = 0; i < 100; i++) {
+        set.add(randomUuid());
+      }
+      expect(set.size).to.equal(100);
     });
   });
 });
