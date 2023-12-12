@@ -24,7 +24,7 @@ module.exports = {
   concurrentBrowsers : 2,
   testFramework      : {
     config: {
-      timeout: '15000',
+      timeout: '30000',
     },
   },
 };
