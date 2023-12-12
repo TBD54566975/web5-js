@@ -270,10 +270,6 @@ export class DwnApi {
       createFrom: async (request: RecordsCreateFromRequest): Promise<RecordsWriteResponse> => {
         const { author: inheritedAuthor, ...inheritedProperties } = request.record.toJSON();
 
-        // Remove target from inherited properties since target is being explicitly defined in method parameters.
-        delete inheritedProperties.target;
-
-
         // If `data` is being updated then `dataCid` and `dataSize` must not be present.
         if (request.data !== undefined) {
           delete inheritedProperties.dataCid;
@@ -373,18 +369,18 @@ export class DwnApi {
              */
             author       : RecordsWrite.getAuthor(entry),
             /**
-             * Set the `target` DID to currently connected DID so that subsequent calls to
+             * Set the `connectedDid` to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
              * local DWN even if the record was returned by a query of a remote DWN.
              */
-            target       : this.connectedDid,
+            connectedDid : this.connectedDid,
             /**
-             * If the record was returned by a query of a remote DWN, set the `remoteTarget` to
-             * the DID of the DWN that returned the record. The `remoteTarget` will be used to
-             * determine which DWN to send subsequent read requests to in the event the data payload
-             * exceeds the threshold for being returned with queries.
+             * If the record was returned by a query of a remote DWN, set the `remoteOrigin` to
+             * the DID of the DWN that returned the record. The `remoteOrigin` property will be used
+             * to determine which DWN to send subsequent read requests to in the event the data
+             * payload exceeds the threshold for being returned with queries.
              */
-            remoteTarget : request.from,
+            remoteOrigin : request.from,
             ...entry as RecordsWriteMessage
           };
           const record = new Record(this.agent, recordOptions);
@@ -433,18 +429,18 @@ export class DwnApi {
              */
             author       : RecordsWrite.getAuthor(responseRecord),
             /**
-             * Set the `target` DID to currently connected DID so that subsequent calls to
+             * Set the `connectedDid` to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
              * local DWN even if the record was read from a remote DWN.
              */
-            target       : this.connectedDid,
+            connectedDid : this.connectedDid,
             /**
-             * If the record was returned by a query of a remote DWN, set the `remoteTarget` to
-             * the DID of the DWN that returned the record. The `remoteTarget` will be used to
-             * determine which DWN to send subsequent read requests to in the event the data payload
-             * exceeds the threshold for being returned with queries.
+             * If the record was returned by reading from a remote DWN, set the `remoteOrigin` to
+             * the DID of the DWN that returned the record. The `remoteOrigin` property will be used
+             * to determine which DWN to send subsequent read requests to in the event the data
+             * payload must be read again (e.g., if the data stream is consumed).
              */
-            remoteTarget : request.from,
+            remoteOrigin : request.from,
             ...responseRecord,
           };
 
@@ -490,14 +486,14 @@ export class DwnApi {
              * Assume the author is the connected DID since the record was just written to the
              * local DWN.
              */
-            author      : this.connectedDid,
-            encodedData : dataBlob,
+            author       : this.connectedDid,
             /**
-             * Set the `target` DID to currently connected DID so that subsequent calls to
+             * Set the `connectedDid` to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
              * local DWN.
              */
-            target      : this.connectedDid,
+            connectedDid : this.connectedDid,
+            encodedData  : dataBlob,
             ...responseMessage,
           };
 

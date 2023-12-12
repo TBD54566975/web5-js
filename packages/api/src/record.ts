@@ -20,10 +20,10 @@ import { dataToBlob } from './utils.js';
  */
 export type RecordOptions = RecordsWriteMessage & {
   author: string;
-  target: string;
+  connectedDid: string;
   encodedData?: string | Blob;
   data?: Readable | ReadableStream;
-  remoteTarget?: string;
+  remoteOrigin?: string;
 };
 
 /**
@@ -37,7 +37,6 @@ export type RecordModel = RecordsWriteDescriptor
   & {
     author: string;
     recordId?: string;
-    target: string;
   }
 
 /**
@@ -68,28 +67,28 @@ export type RecordUpdateOptions = {
  * @beta
  */
 export class Record implements RecordModel {
-  // mutable properties
-
-  /** Record's author DID */
-  author: string;
-
-  /** Record's target DID */
-  target: string;
-
+  // Record instance metadata.
   private _agent: Web5Agent;
+  private _connectedDid: string;
+  private _encodedData?: Blob;
+  private _readableStream?: Readable;
+  private _remoteOrigin?: string;
+
+  // Private variables for DWN `RecordsWrite` message properties.
+  private _author: string;
   private _attestation?: RecordsWriteMessage['attestation'];
   private _contextId?: string;
   private _descriptor: RecordsWriteDescriptor;
-  private _encodedData?: Blob;
   private _encryption?: RecordsWriteMessage['encryption'];
-  private _readableStream?: Readable;
   private _recordId: string;
-  private _remoteTarget?: string;
 
-  // Immutable DWN Record properties.
+  // Getters for immutable DWN Record properties.
 
   /** Record's signatures attestation */
   get attestation(): RecordsWriteMessage['attestation'] { return this._attestation; }
+
+  /** DID that signed the record. */
+  get author(): string { return this._author; }
 
   /** Record's context ID */
   get contextId() { return this._contextId; }
@@ -127,7 +126,7 @@ export class Record implements RecordModel {
   /** Record's schema */
   get schema() { return this._descriptor.schema; }
 
-  // Mutable DWN Record properties.
+  // Getters for mutable DWN Record properties.
 
   /** Record's CID */
   get dataCid() { return this._descriptor.dataCid; }
@@ -150,15 +149,19 @@ export class Record implements RecordModel {
   constructor(agent: Web5Agent, options: RecordOptions) {
     this._agent = agent;
 
-    /** Store the target and author DIDs that were used to create the message to use for subsequent
-     * updates, reads, etc. */
-    this.author = options.author;
-    this.target = options.target;
+    /** Store the author DID that originally signed the message as a convenience for developers, so
+     * that they don't have to decode the signer's DID from the JWS. */
+    this._author = options.author;
 
-    /** If the record was queried from a remote DWN, the `remoteTarget` DID will be defined. This
-     * value is used to send subsequent read requests to the same remote DWN in the event the
-     * record's data payload was too large to be returned in query results. */
-    this._remoteTarget = options.remoteTarget;
+    /** Store the currently `connectedDid` so that subsequent message signing is done with the
+     * connected DID's keys and DWN requests target the connected DID's DWN. */
+    this._connectedDid = options.connectedDid;
+
+    /** If the record was queried or read from a remote DWN, the `remoteOrigin` DID will be
+     * defined. This value is used to send subsequent read requests to the same remote DWN in the
+     * event the record's data payload was too large to be returned in query results. or must be
+     * read again (e.g., if the data stream is consumed). */
+    this._remoteOrigin = options.remoteOrigin;
 
     // RecordsWriteMessage properties.
     this._attestation = options.attestation;
@@ -264,14 +267,13 @@ export class Record implements RecordModel {
           self._readableStream = NodeStream.fromWebReadable({ readableStream: self._encodedData.stream() });
 
         } else if (!NodeStream.isReadable({ readable: self._readableStream })) {
-          /** If `encodedData` is not set, then the Record was instantiated by `dwn.records.read()`
-           * or was too large to be returned in `dwn.records.query()` results. In either case, the
-           * data is not available in-memory and must be fetched from either: */
-          self._readableStream = self._remoteTarget ?
-            // 1. ...a remote DWN if the record was queried from a remote DWN.
-            await self.readRecordData({ target: self._remoteTarget, isRemote: true }) :
-            // 2. ...a local DWN if the record was queried from the local DWN.
-            await self.readRecordData({ target: self.target, isRemote: false });
+          /** If the data stream for this `Record` instance has already been partially or fully
+           * consumed, then the data must be fetched again from either: */
+          self._readableStream = self._remoteOrigin ?
+            // A. ...a remote DWN if the record was originally queried from a remote DWN.
+            await self.readRecordData({ target: self._remoteOrigin, isRemote: true }) :
+            // B. ...a local DWN if the record was originally queried from the local DWN.
+            await self.readRecordData({ target: self._connectedDid, isRemote: false });
         }
 
         if (!self._readableStream) {
@@ -305,7 +307,7 @@ export class Record implements RecordModel {
   async send(target: string): Promise<ResponseStatus> {
     const { reply: { status } } = await this._agent.sendDwnRequest({
       messageType    : DwnInterfaceName.Records + DwnMethodName.Write,
-      author         : this.author,
+      author         : this._connectedDid,
       dataStream     : await this.data.blob(),
       target         : target,
       messageOptions : this.toJSON(),
@@ -338,8 +340,7 @@ export class Record implements RecordModel {
       published        : this.published,
       recipient        : this.recipient,
       recordId         : this.id,
-      schema           : this.schema,
-      target           : this.target,
+      schema           : this.schema
     };
   }
 
@@ -415,11 +416,11 @@ export class Record implements RecordModel {
     };
 
     const agentResponse = await this._agent.processDwnRequest({
-      author      : this.author,
+      author      : this._connectedDid,
       dataStream  : dataBlob,
       messageOptions,
       messageType : DwnInterfaceName.Records + DwnMethodName.Write,
-      target      : this.target,
+      target      : this._connectedDid,
     });
 
     const { message, reply: { status } } = agentResponse;
@@ -440,7 +441,7 @@ export class Record implements RecordModel {
   }
 
   /**
-   * Fetches the record's data from the source DWN.
+   * Fetches the record's data from the specified DWN.
    *
    * This private method is called when the record data is not available in-memory
    * and needs to be fetched from either a local or a remote DWN.
@@ -456,7 +457,7 @@ export class Record implements RecordModel {
    */
   private async readRecordData({ target, isRemote }: { target: string, isRemote: boolean }) {
     const readRequest = {
-      author         : this.author,
+      author         : this._connectedDid,
       messageOptions : { filter: { recordId: this.id } },
       messageType    : DwnInterfaceName.Records + DwnMethodName.Read,
       target,

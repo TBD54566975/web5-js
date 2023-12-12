@@ -1,5 +1,4 @@
 import type { PortableDid } from '@web5/dids';
-import type { ManagedIdentity } from '@web5/agent';
 import type {
   RecordsWriteMessage,
   PublicJwk as DwnPublicKeyJwk,
@@ -50,9 +49,10 @@ describe('Record', () => {
   let dataText: string;
   let dataBlob: Blob;
   let dataFormat: string;
-  let dwn: DwnApi;
-  let alice: ManagedIdentity;
   let aliceDid: PortableDid;
+  let bobDid: PortableDid;
+  let dwnAlice: DwnApi;
+  let dwnBob: DwnApi;
   let testAgent: TestManagedAgent;
 
   before(async () => {
@@ -71,16 +71,25 @@ describe('Record', () => {
     // Create an Agent DID.
     await testAgent.createAgentDid();
 
-    // Create a new Identity to author the DWN messages.
+    // Create an "alice" Identity to author the DWN messages.
     ({ did: aliceDid } = await testAgent.createIdentity({ testDwnUrls }));
-    alice = await testAgent.agent.identityManager.import({
+    await testAgent.agent.identityManager.import({
       did      : aliceDid,
       identity : { name: 'Alice', did: aliceDid.did },
       kms      : 'local'
     });
 
-    // Instantiate DwnApi.
-    dwn = new DwnApi({ agent: testAgent.agent, connectedDid: alice.did });
+    // Create a "bob" Identity to author the DWN messages.
+    ({ did: bobDid } = await testAgent.createIdentity({ testDwnUrls }));
+    await testAgent.agent.identityManager.import({
+      did      : bobDid,
+      identity : { name: 'Bob', did: bobDid.did },
+      kms      : 'local'
+    });
+
+    // Instantiate DwnApi for both test identities.
+    dwnAlice = new DwnApi({ agent: testAgent.agent, connectedDid: aliceDid.did });
+    dwnBob = new DwnApi({ agent: testAgent.agent, connectedDid: bobDid.did });
   });
 
   after(async () => {
@@ -90,8 +99,7 @@ describe('Record', () => {
 
   it('should retain all defined properties', async () => {
     // RecordOptions properties
-    const author = alice.did;
-    const target = alice.did;
+    const author = aliceDid.did;
 
     // Retrieve `#dwn` service entry.
     const [ didDwnService ] = didUtils.getServices({ didDocument: aliceDid.document, id: '#dwn' });
@@ -101,11 +109,11 @@ describe('Record', () => {
     const [ signingKeyIdFragment ] = didDwnService!.serviceEndpoint!.signingKeys;
     const [ encryptionKeyIdFragment ] = didDwnService!.serviceEndpoint!.encryptionKeys;
 
-    const signingKeyId = `${alice.did}${signingKeyIdFragment}`;
+    const signingKeyId = `${aliceDid.did}${signingKeyIdFragment}`;
     const signingKeyPair = aliceDid.keySet.verificationMethodKeys!.find(keyPair => keyPair.publicKeyJwk.kid === signingKeyIdFragment);
     const signingPrivateKeyJwk = signingKeyPair.privateKeyJwk;
 
-    const encryptionKeyId = `${alice.did}${encryptionKeyIdFragment}`;
+    const encryptionKeyId = `${aliceDid.did}${encryptionKeyIdFragment}`;
     const encryptionPublicKeyJwk = aliceDid.keySet.verificationMethodKeys!.find(keyPair => keyPair.publicKeyJwk.kid === encryptionKeyIdFragment)!.publicKeyJwk;
 
     // RecordsWriteMessage properties that can be pre-defined
@@ -137,11 +145,11 @@ describe('Record', () => {
     const protocol = emailProtocolDefinition.protocol;
     const protocolPath = 'email';
     const schema = emailProtocolDefinition.types.email.schema;
-    const recipient = alice.did;
+    const recipient = aliceDid.did;
     const published = true;
 
     // Install a protocol on Alice's agent connected DWN.
-    await dwn.protocols.configure({
+    await dwnAlice.protocols.configure({
       message: {
         definition: emailProtocolDefinition
       }
@@ -175,14 +183,13 @@ describe('Record', () => {
     // Create record using test RecordsWriteMessage.
     const record = new Record(testAgent.agent, {
       ...recordsWrite.message,
-      encodedData: dataBlob,
-      target,
-      author,
+      encodedData  : dataBlob,
+      author       : aliceDid.did,
+      connectedDid : aliceDid.did
     });
 
     // Retained Record properties
     expect(record.author).to.equal(author);
-    expect(record.target).to.equal(target);
 
     // Retained RecordsWriteMessage top-level properties
     expect(record.contextId).to.equal(recordsWrite.message.contextId);
@@ -225,7 +232,7 @@ describe('Record', () => {
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
         // Write the 500B record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataJson });
+        const { record, status } = await dwnAlice.records.write({ data: dataJson });
 
         expect(status.code).to.equal(202);
 
@@ -245,12 +252,12 @@ describe('Record', () => {
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
         // Write the 500B record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataJson });
+        const { record, status } = await dwnAlice.records.write({ data: dataJson });
 
         expect(status.code).to.equal(202);
 
         // Read the record that was just created.
-        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: { recordId: record!.id }}});
+        const { record: readRecord, status: readRecordStatus } = await dwnAlice.records.read({ message: { filter: { recordId: record!.id }}});
 
         expect(readRecordStatus.code).to.equal(200);
 
@@ -270,7 +277,7 @@ describe('Record', () => {
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
         // Write the large record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataJson });
+        const { record, status } = await dwnAlice.records.write({ data: dataJson });
 
         expect(status.code).to.equal(202);
 
@@ -290,11 +297,11 @@ describe('Record', () => {
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
         // Write the large record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataJson });
+        const { record, status } = await dwnAlice.records.write({ data: dataJson });
         expect(status.code).to.equal(202);
 
         // Query for the record that was just created.
-        const { records: queryRecords, status: queryRecordStatus } = await dwn.records.query({
+        const { records: queryRecords, status: queryRecordStatus } = await dwnAlice.records.query({
           message: { filter: { recordId: record!.id }}
         });
         expect(queryRecordStatus.code).to.equal(200);
@@ -316,12 +323,12 @@ describe('Record', () => {
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
         // Write the large record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataJson });
+        const { record, status } = await dwnAlice.records.write({ data: dataJson });
 
         expect(status.code).to.equal(202);
 
         // Read the record that was just created.
-        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({
+        const { record: readRecord, status: readRecordStatus } = await dwnAlice.records.read({
           message: { filter: { recordId: record!.id }}
         });
 
@@ -345,7 +352,7 @@ describe('Record', () => {
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
         // Write the 500B record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataJson });
+        const { record, status } = await dwnAlice.records.write({ data: dataJson });
 
         expect(status.code).to.equal(202);
 
@@ -358,19 +365,19 @@ describe('Record', () => {
         expect(readDataBytes).to.deep.equal(inputDataBytes);
       });
 
-      it('returns small data payloads after dwn.records.read()', async () => {
+      it('returns small data payloads after dwnAlice.records.read()', async () => {
       // Generate data that is less than the encoded data limit to ensure that the data will not have to be fetched
       // with a RecordsRead when record.data.json() is executed.
         const dataJson = TestDataGenerator.randomJson(500);
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
         // Write the 500B record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataJson });
+        const { record, status } = await dwnAlice.records.write({ data: dataJson });
 
         expect(status.code).to.equal(202);
 
         // Read the record that was just created.
-        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: { recordId: record!.id }}});
+        const { record: readRecord, status: readRecordStatus } = await dwnAlice.records.read({ message: { filter: { recordId: record!.id }}});
 
         expect(readRecordStatus.code).to.equal(200);
 
@@ -390,7 +397,7 @@ describe('Record', () => {
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
         // Write the large record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataJson });
+        const { record, status } = await dwnAlice.records.write({ data: dataJson });
 
         expect(status.code).to.equal(202);
 
@@ -410,11 +417,11 @@ describe('Record', () => {
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
         // Write the large record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataJson });
+        const { record, status } = await dwnAlice.records.write({ data: dataJson });
         expect(status.code).to.equal(202);
 
         // Query for the record that was just created.
-        const { records: queryRecords, status: queryRecordStatus } = await dwn.records.query({
+        const { records: queryRecords, status: queryRecordStatus } = await dwnAlice.records.query({
           message: { filter: { recordId: record!.id }}
         });
         expect(queryRecordStatus.code).to.equal(200);
@@ -436,12 +443,12 @@ describe('Record', () => {
         const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
         // Write the large record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataJson });
+        const { record, status } = await dwnAlice.records.write({ data: dataJson });
 
         expect(status.code).to.equal(202);
 
         // Read the record that was just created.
-        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({
+        const { record: readRecord, status: readRecordStatus } = await dwnAlice.records.read({
           message: { filter: { recordId: record!.id }}
         });
 
@@ -458,13 +465,13 @@ describe('Record', () => {
     });
 
     describe('data.stream()', () => {
-      it('returns small data payloads after dwn.records.write()', async () => {
+      it('returns small data payloads after dwnAlice.records.write()', async () => {
         // Use a data payload that is less than the encoded data limit to ensure that the data will
         // not have to be fetched with a RecordsRead when record.data.text() is executed.
         const inputDataBytes = new TextEncoder().encode(dataText500Bytes);
 
         // Write the 500B record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataText500Bytes });
+        const { record, status } = await dwnAlice.records.write({ data: dataText500Bytes });
         expect(status.code).to.equal(202);
 
         // Confirm that the length of the data read as text matches the original input data.
@@ -482,11 +489,11 @@ describe('Record', () => {
         const inputDataBytes = new TextEncoder().encode(dataText500Bytes);
 
         // Write the 500B record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataText500Bytes });
+        const { record, status } = await dwnAlice.records.write({ data: dataText500Bytes });
         expect(status.code).to.equal(202);
 
         // Read the record that was just created.
-        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: { recordId: record!.id }}});
+        const { record: readRecord, status: readRecordStatus } = await dwnAlice.records.read({ message: { filter: { recordId: record!.id }}});
         expect(readRecordStatus.code).to.equal(200);
 
         // Confirm that the length of the data read as text matches the original input data.
@@ -504,7 +511,7 @@ describe('Record', () => {
         const inputDataBytes = new TextEncoder().encode(dataTextExceedingMaxSize);
 
         // Write the large record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataTextExceedingMaxSize });
+        const { record, status } = await dwnAlice.records.write({ data: dataTextExceedingMaxSize });
         expect(status.code).to.equal(202);
 
         // Confirm that the length of the data read as text matches the original input data.
@@ -522,11 +529,11 @@ describe('Record', () => {
         const inputDataBytes = new TextEncoder().encode(dataTextExceedingMaxSize);
 
         // Write the large record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataTextExceedingMaxSize });
+        const { record, status } = await dwnAlice.records.write({ data: dataTextExceedingMaxSize });
         expect(status.code).to.equal(202);
 
         // Query for the record that was just created.
-        const { records: queryRecords, status: queryRecordStatus } = await dwn.records.query({
+        const { records: queryRecords, status: queryRecordStatus } = await dwnAlice.records.query({
           message: { filter: { recordId: record!.id }}
         });
         expect(queryRecordStatus.code).to.equal(200);
@@ -547,12 +554,12 @@ describe('Record', () => {
         const inputDataBytes = new TextEncoder().encode(dataTextExceedingMaxSize);
 
         // Write the large record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataTextExceedingMaxSize });
+        const { record, status } = await dwnAlice.records.write({ data: dataTextExceedingMaxSize });
 
         expect(status.code).to.equal(202);
 
         // Read the record that was just created.
-        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({
+        const { record: readRecord, status: readRecordStatus } = await dwnAlice.records.read({
           message: { filter: { recordId: record!.id }}
         });
         expect(readRecordStatus.code).to.equal(200);
@@ -568,13 +575,13 @@ describe('Record', () => {
     });
 
     describe('data.text()', () => {
-      it('returns small data payloads after dwn.records.write()', async () => {
+      it('returns small data payloads after dwnAlice.records.write()', async () => {
         // Generate data that is less than the encoded data limit to ensure that the data will not have to be fetched
         // with a RecordsRead when record.data.text() is executed.
         const dataText = TestDataGenerator.randomString(500);
 
         // Write the 500B record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataText });
+        const { record, status } = await dwnAlice.records.write({ data: dataText });
 
         expect(status.code).to.equal(202);
 
@@ -592,12 +599,12 @@ describe('Record', () => {
         const dataText = TestDataGenerator.randomString(500);
 
         // Write the 500B record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataText });
+        const { record, status } = await dwnAlice.records.write({ data: dataText });
 
         expect(status.code).to.equal(202);
 
         // Read the record that was just created.
-        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({ message: { filter: { recordId: record!.id }}});
+        const { record: readRecord, status: readRecordStatus } = await dwnAlice.records.read({ message: { filter: { recordId: record!.id }}});
 
         expect(readRecordStatus.code).to.equal(200);
 
@@ -609,13 +616,13 @@ describe('Record', () => {
         expect(readDataText).to.deep.equal(dataText);
       });
 
-      it('returns large data payloads after dwn.records.write()', async () => {
+      it('returns large data payloads after dwnAlice.records.write()', async () => {
         // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
         // with a RecordsRead when record.data.text() is executed.
         const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
         // Write the large record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataText });
+        const { record, status } = await dwnAlice.records.write({ data: dataText });
 
         expect(status.code).to.equal(202);
 
@@ -633,11 +640,11 @@ describe('Record', () => {
         const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
         // Write the large record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataText });
+        const { record, status } = await dwnAlice.records.write({ data: dataText });
         expect(status.code).to.equal(202);
 
         // Query for the record that was just created.
-        const { records: queryRecords, status: queryRecordStatus } = await dwn.records.query({
+        const { records: queryRecords, status: queryRecordStatus } = await dwnAlice.records.query({
           message: { filter: { recordId: record!.id }}
         });
         expect(queryRecordStatus.code).to.equal(200);
@@ -657,12 +664,12 @@ describe('Record', () => {
         const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
         // Write the large record to agent-connected DWN.
-        const { record, status } = await dwn.records.write({ data: dataText });
+        const { record, status } = await dwnAlice.records.write({ data: dataText });
 
         expect(status.code).to.equal(202);
 
         // Read the record that was just created.
-        const { record: readRecord, status: readRecordStatus } = await dwn.records.read({
+        const { record: readRecord, status: readRecordStatus } = await dwnAlice.records.read({
           message: { filter: { recordId: record!.id }}
         });
 
@@ -684,16 +691,16 @@ describe('Record', () => {
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
       // Create a large record but do NOT store it on the local, agent-connected DWN.
-      const { record, status } = await dwn.records.write({ data: dataJson, store: false });
+      const { record, status } = await dwnAlice.records.write({ data: dataJson, store: false });
       expect(status.code).to.equal(202);
 
       // Write the large record to a remote DWN.
-      const { status: sendStatus } = await record!.send(alice.did);
+      const { status: sendStatus } = await record!.send(aliceDid.did);
       expect(sendStatus.code).to.equal(202);
 
       // Query for the record that was just created on the remote DWN.
-      const { records: queryRecords, status: queryRecordStatus } = await dwn.records.query({
-        from    : alice.did,
+      const { records: queryRecords, status: queryRecordStatus } = await dwnAlice.records.query({
+        from    : aliceDid.did,
         message : { filter: { recordId: record!.id }}
       });
       expect(queryRecordStatus.code).to.equal(200);
@@ -711,16 +718,16 @@ describe('Record', () => {
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
       // Create a large record but do NOT store it on the local, agent-connected DWN.
-      const { record, status } = await dwn.records.write({ data: dataJson, store: false });
+      const { record, status } = await dwnAlice.records.write({ data: dataJson, store: false });
       expect(status.code).to.equal(202);
 
       // Write the large record to a remote DWN.
-      const { status: sendStatus } = await record!.send(alice.did);
+      const { status: sendStatus } = await record!.send(aliceDid.did);
       expect(sendStatus.code).to.equal(202);
 
       // Read the record that was just created on the remote DWN.
-      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({
-        from    : alice.did,
+      const { record: readRecord, status: readRecordStatus } = await dwnAlice.records.read({
+        from    : aliceDid.did,
         message : { filter: { recordId: record!.id }}
       });
       expect(readRecordStatus.code).to.equal(200);
@@ -741,7 +748,7 @@ describe('Record', () => {
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
       // Write the 500B record to agent-connected DWN.
-      const { record, status } = await dwn.records.write({ data: dataJson });
+      const { record, status } = await dwnAlice.records.write({ data: dataJson });
       expect(status.code).to.equal(202);
 
       // Read the data payload as bytes.
@@ -767,7 +774,7 @@ describe('Record', () => {
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
       // Write the large record to agent-connected DWN.
-      const { record, status } = await dwn.records.write({ data: dataJson });
+      const { record, status } = await dwnAlice.records.write({ data: dataJson });
       expect(status.code).to.equal(202);
 
       // Confirm that the size, in bytes, of the data read as JSON matches the original input data.
@@ -802,7 +809,7 @@ describe('Record', () => {
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
       // Write the large record to agent-connected DWN.
-      const { record, status } = await dwn.records.write({ data: dataJson });
+      const { record, status } = await dwnAlice.records.write({ data: dataJson });
       expect(status.code).to.equal(202);
 
       // Consume the data stream as bytes.
@@ -823,7 +830,7 @@ describe('Record', () => {
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
       // Write the large record to agent-connected DWN.
-      const { record, status } = await dwn.records.write({ data: dataJson });
+      const { record, status } = await dwnAlice.records.write({ data: dataJson });
       expect(status.code).to.equal(202);
 
       // Consume the data stream as bytes.
@@ -844,16 +851,16 @@ describe('Record', () => {
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
       // Create a large record but do NOT store it on the local, agent-connected DWN.
-      const { record, status } = await dwn.records.write({ data: dataJson, store: false });
+      const { record, status } = await dwnAlice.records.write({ data: dataJson, store: false });
       expect(status.code).to.equal(202);
 
       // Write the large record to a remote DWN.
-      const { status: sendStatus } = await record!.send(alice.did);
+      const { status: sendStatus } = await record!.send(aliceDid.did);
       expect(sendStatus.code).to.equal(202);
 
       // Read the record that was just created on the remote DWN.
-      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({
-        from    : alice.did,
+      const { record: readRecord, status: readRecordStatus } = await dwnAlice.records.read({
+        from    : aliceDid.did,
         message : { filter: { recordId: record!.id }}
       });
       expect(readRecordStatus.code).to.equal(200);
@@ -880,16 +887,16 @@ describe('Record', () => {
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
       // Create a large record but do NOT store it on the local, agent-connected DWN.
-      const { record, status } = await dwn.records.write({ data: dataJson, store: false });
+      const { record, status } = await dwnAlice.records.write({ data: dataJson, store: false });
       expect(status.code).to.equal(202);
 
       // Write the large record to a remote DWN.
-      const { status: sendStatus } = await record!.send(alice.did);
+      const { status: sendStatus } = await record!.send(aliceDid.did);
       expect(sendStatus.code).to.equal(202);
 
       // Read the record that was just created on the remote DWN.
-      const { record: readRecord, status: readRecordStatus } = await dwn.records.read({
-        from    : alice.did,
+      const { record: readRecord, status: readRecordStatus } = await dwnAlice.records.read({
+        from    : aliceDid.did,
         message : { filter: { recordId: record!.id }}
       });
       expect(readRecordStatus.code).to.equal(200);
@@ -917,16 +924,16 @@ describe('Record', () => {
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
       // Create a large record but do NOT store it on the local, agent-connected DWN.
-      const { record, status } = await dwn.records.write({ data: dataJson, store: false });
+      const { record, status } = await dwnAlice.records.write({ data: dataJson, store: false });
       expect(status.code).to.equal(202);
 
       // Write the large record to a remote DWN.
-      const { status: sendStatus } = await record!.send(alice.did);
+      const { status: sendStatus } = await record!.send(aliceDid.did);
       expect(sendStatus.code).to.equal(202);
 
       // Read the record that was just created on the remote DWN.
-      const { records: queriedRecords, status: queriedRecordStatus } = await dwn.records.query({
-        from    : alice.did,
+      const { records: queriedRecords, status: queriedRecordStatus } = await dwnAlice.records.query({
+        from    : aliceDid.did,
         message : { filter: { recordId: record!.id }}
       });
       expect(queriedRecordStatus.code).to.equal(200);
@@ -956,16 +963,16 @@ describe('Record', () => {
       const inputDataBytes = new TextEncoder().encode(JSON.stringify(dataJson));
 
       // Create a large record but do NOT store it on the local, agent-connected DWN.
-      const { record, status } = await dwn.records.write({ data: dataJson, store: false });
+      const { record, status } = await dwnAlice.records.write({ data: dataJson, store: false });
       expect(status.code).to.equal(202);
 
       // Write the large record to a remote DWN.
-      const { status: sendStatus } = await record!.send(alice.did);
+      const { status: sendStatus } = await record!.send(aliceDid.did);
       expect(sendStatus.code).to.equal(202);
 
       // Query for the record that was just created on the remote DWN.
-      const { records: queriedRecords, status: queriedRecordStatus } = await dwn.records.query({
-        from    : alice.did,
+      const { records: queriedRecords, status: queriedRecordStatus } = await dwnAlice.records.query({
+        from    : aliceDid.did,
         message : { filter: { recordId: record!.id }}
       });
       expect(queriedRecordStatus.code).to.equal(200);
@@ -987,26 +994,209 @@ describe('Record', () => {
       readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
       expect(readDataBytes.length).to.equal(inputDataBytes.length);
     });
+
+    describe('with two Agents', () => {
+      let testAgentBob: TestManagedAgent;
+
+      before(async () => {
+        // Create a second `TestManagedAgent` that only Bob will use.
+        testAgentBob = await TestManagedAgent.create({
+          agentClass       : TestUserAgent,
+          agentStores      : 'memory',
+          testDataLocation : '__TESTDATA__/AGENT_BOB'
+        });
+      });
+
+      beforeEach(async () => {
+        await testAgentBob.clearStorage();
+
+        // Create an Agent DID.
+        await testAgent.createAgentDid();
+
+        // Create a new "bob" Identity to author the DWN messages.
+        ({ did: bobDid } = await testAgentBob.createIdentity({ testDwnUrls }));
+        await testAgentBob.agent.identityManager.import({
+          did      : bobDid,
+          identity : { name: 'Bob', did: bobDid.did },
+          kms      : 'local'
+        });
+
+        // Instantiate a new `DwnApi` using Bob's test agent.
+        dwnBob = new DwnApi({ agent: testAgentBob.agent, connectedDid: bobDid.did });
+      });
+
+      after(async () => {
+        await testAgentBob.clearStorage();
+        await testAgentBob.closeStorage();
+      });
+
+      it('returns large data payloads of records signed by another entity after remote dwn.records.query()', async () => {
+        /**
+         * WHAT IS BEING TESTED?
+         *
+         * We are testing whether a large (> `DwnConstant.maxDataSizeAllowedToBeEncoded`) record
+         * authored/signed by one party (Alice) can be written to another party's DWN (Bob), and that
+         * recipient (Bob) is able to access the data payload. This test was added to reveal a bug
+         * that only surfaces when accessing the data (`record.data.*`) of a record signed by a
+         * different entity  a `Record` instance's data, which requires fetching the data from a
+         * remote DWN. Since the large (> `DwnConstant.maxDataSizeAllowedToBeEncoded`) data was not
+         * returned with the query as `encodedData`, the `Record` instance's data is not available and
+         * must be fetched from the remote DWN using a `RecordsRead` message.
+         *
+         * What made this bug particularly difficult to track down is that the bug only surfaces when
+         * keys used to sign the record are different than the keys used to fetch the record AND both
+         * sets of keys are unavailable to the test Agent used by the entity that is attempting to
+         * fetch the record. In all of the other tests, the same test agent is used to store the keys
+         * for all entities (e.g., "Alice", "Bob", etc.) so the bug never surfaced.
+         *
+         * In this test, Alice is the author of the record and Bob is the recipient. Alice and Bob
+         * each have their own Agents, DWNs, DIDs, and keys. Alice's DWN is configured to use
+         * Alice's DID/keys, and Bob's DWN is configured to use Bob's DID/keys. When Alice writes a
+         * record to Bob's DWN, the record is signed by Alice's keys. When Bob fetches the record from
+         * his DWN, this test validates that the `RecordsRead` is signed by Bob's keys.
+         *
+         * SETUP STEPS:
+         *   S1. Install the email protocol to both Alice's and Bob's DWNs.
+         */
+        let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
+          message: { definition: emailProtocolDefinition }
+        });
+        expect(aliceStatus.code).to.equal(202);
+        const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.did);
+        expect(alicePushStatus.code).to.equal(202);
+        const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
+          message: {
+            definition: emailProtocolDefinition
+          }
+        });
+        expect(bobStatus.code).to.equal(202);
+        const { status: bobPushStatus } = await bobProtocol!.send(bobDid.did);
+        expect(bobPushStatus.code).to.equal(202);
+
+        /**
+         * TEST STEPS:
+         *
+         *   1. Alice creates a record but does NOT store it her local, agent-connected DWN.
+         */
+        const { record, status } = await dwnAlice.records.write({
+          data    : dataTextExceedingMaxSize,
+          store   : false,
+          message : {
+            protocol     : emailProtocolDefinition.protocol,
+            protocolPath : 'email',
+            schema       : emailProtocolDefinition.types.email.schema
+          }
+        });
+        expect(status.code).to.equal(202);
+        /**
+         *   2. Alice writes the record to Bob's remote DWN.
+         */
+        const { status: sendStatus } = await record!.send(bobDid.did);
+        expect(sendStatus.code).to.equal(202);
+        /**
+         *   3. Bob queries his remote DWN for the record that Alice just wrote.
+         */
+        const { records: queryRecordsFrom, status: queryRecordStatusFrom } = await dwnBob.records.query({
+          from    : bobDid.did,
+          message : { filter: { recordId: record!.id }}
+        });
+        expect(queryRecordStatusFrom.code).to.equal(200);
+        /**
+         *   4. Validate that Bob is able to access the data payload.
+         */
+        const recordData = await queryRecordsFrom[0].data.blob();
+        expect(recordData.size).to.equal(dataTextExceedingMaxSize.length);
+      });
+
+      it('fails to return large data payloads of records signed by another entity after remote dwn.records.query()', async () => {
+        /**
+         * ! TODO: Fix this once the bug in `dwn-sdk-js` is resolved.
+         *
+         * WHAT IS BEING TESTED?
+         *
+         * We are testing whether a large (> `DwnConstant.maxDataSizeAllowedToBeEncoded`) record
+         * authored/signed by one party (Alice) can be written to another party's DWN (Bob), and that
+         * recipient (Bob) is able to access the data payload. This test was added to reveal a bug
+         * that only surfaces when accessing the data (`record.data.*`) of a record signed by a
+         * different entity  a `Record` instance's data, which requires fetching the data from a
+         * remote DWN. Since the large (> `DwnConstant.maxDataSizeAllowedToBeEncoded`) data was not
+         * returned with the query as `encodedData`, the `Record` instance's data is not available and
+         * must be fetched from the remote DWN using a `RecordsRead` message.
+         *
+         * What made this bug particularly difficult to track down is that the bug only surfaces when
+         * keys used to sign the record are different than the keys used to fetch the record AND both
+         * sets of keys are unavailable to the test Agent used by the entity that is attempting to
+         * fetch the record. In all of the other tests, the same test agent is used to store the keys
+         * for all entities (e.g., "Alice", "Bob", etc.) so the bug never surfaced.
+         *
+         * In this test, Alice is the author of the record and Bob is the recipient. Alice and Bob
+         * each have their own Agents, DWNs, DIDs, and keys. Alice's DWN is configured to use
+         * Alice's DID/keys, and Bob's DWN is configured to use Bob's DID/keys. When Alice writes a
+         * record to Bob's DWN, the record is signed by Alice's keys. When Bob fetches the record from
+         * his DWN, this test validates that the `RecordsRead` is signed by Bob's keys.
+         *
+         * SETUP STEPS:
+         *   S1. Install the email protocol to both Alice's and Bob's DWNs.
+         */
+        let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
+          message: { definition: emailProtocolDefinition }
+        });
+        expect(aliceStatus.code).to.equal(202);
+        const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.did);
+        expect(alicePushStatus.code).to.equal(202);
+        const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
+          message: {
+            definition: emailProtocolDefinition
+          }
+        });
+        expect(bobStatus.code).to.equal(202);
+        const { status: bobPushStatus } = await bobProtocol!.send(bobDid.did);
+        expect(bobPushStatus.code).to.equal(202);
+
+        /**
+         * TEST STEPS:
+         *
+         *   1. Alice creates a record but does NOT store it her local, agent-connected DWN.
+         */
+        const { record, status } = await dwnAlice.records.write({
+          data    : dataTextExceedingMaxSize,
+          store   : false,
+          message : {
+            protocol     : emailProtocolDefinition.protocol,
+            protocolPath : 'email',
+            schema       : emailProtocolDefinition.types.email.schema
+          }
+        });
+        expect(status.code).to.equal(202);
+        /**
+         *   2. Alice writes the record to Bob's remote DWN.
+         */
+        const { status: sendStatus } = await record!.send(bobDid.did);
+        expect(sendStatus.code).to.equal(202);
+        /**
+         *   3. Bob queries his remote DWN for the record that Alice just wrote.
+         */
+        const { records: queryRecordsFrom, status: queryRecordStatusFrom } = await dwnBob.records.query({
+          from    : bobDid.did,
+          message : { filter: { recordId: record!.id }}
+        });
+        expect(queryRecordStatusFrom.code).to.equal(200);
+        /**
+         *   4. Validate that Bob is able to write the record to Alice's remote DWN.
+         */
+        const { status: sendStatusToAlice } = await queryRecordsFrom[0]!.send(aliceDid.did);
+        expect(sendStatusToAlice.code).to.equal(401);
+        expect(sendStatusToAlice.detail).to.equal(`Cannot read properties of undefined (reading 'authorization')`);
+      });
+    });
   });
 
   describe('send()', () => {
-    let bob: ManagedIdentity;
-
-    beforeEach(async () => {
-    // Create a new Identity to author the DWN messages.
-      const { did: bobDid } = await testAgent.createIdentity({ testDwnUrls });
-      bob = await testAgent.agent.identityManager.import({
-        did      : bobDid,
-        identity : { name: 'Bob', did: bobDid.did },
-        kms      : 'local'
-      });
-    });
-
     it('writes small records to remote DWNs for your own DID', async () => {
       const dataString = 'Hello, world!';
 
       // Alice writes a message to her agent connected DWN.
-      const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwn.records.write({
+      const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwnAlice.records.write({
         data    : dataString,
         message : {
           schema: 'email',
@@ -1017,7 +1207,7 @@ describe('Record', () => {
       expect(await aliceEmailRecord?.data.text()).to.equal(dataString);
 
       // Query Alice's agent connected DWN for `email` schema records.
-      const aliceAgentQueryResult = await dwn.records.query({
+      const aliceAgentQueryResult = await dwnAlice.records.query({
         message: {
           filter: {
             schema: 'email'
@@ -1031,12 +1221,12 @@ describe('Record', () => {
       expect(await aliceAgentEmailRecord.data.text()).to.equal(dataString);
 
       // Attempt to write the record to Alice's remote DWN.
-      const { status } = await aliceEmailRecord!.send(alice.did);
+      const { status } = await aliceEmailRecord!.send(aliceDid.did);
       expect(status.code).to.equal(202);
 
       // Query Alices's remote DWN for `email` schema records.
-      const aliceRemoteQueryResult = await dwn.records.query({
-        from    : alice.did,
+      const aliceRemoteQueryResult = await dwnAlice.records.query({
+        from    : aliceDid.did,
         message : {
           filter: {
             schema: 'email'
@@ -1057,7 +1247,7 @@ describe('Record', () => {
       const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
       // Alice writes a message to her agent connected DWN.
-      const { status: aliceEmailStatus } = await dwn.records.write({
+      const { status: aliceEmailStatus } = await dwnAlice.records.write({
         data    : dataText,
         message : {
           schema: 'email',
@@ -1066,7 +1256,7 @@ describe('Record', () => {
       expect(aliceEmailStatus.code).to.equal(202);
 
       // Query Alice's local, agent connected DWN for `email` schema records.
-      const aliceAgentQueryResult = await dwn.records.query({
+      const aliceAgentQueryResult = await dwnAlice.records.query({
         message: {
           filter: {
             schema: 'email'
@@ -1079,7 +1269,7 @@ describe('Record', () => {
       const [ aliceAgentEmailRecord ] = aliceAgentQueryResult!.records!;
 
       // Attempt to write the record to Alice's remote DWN.
-      const { status } = await aliceAgentEmailRecord!.send(alice.did);
+      const { status } = await aliceAgentEmailRecord!.send(aliceDid.did);
       expect(status.code).to.equal(202);
     });
 
@@ -1089,7 +1279,7 @@ describe('Record', () => {
       const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
       // Alice writes a message to her agent connected DWN.
-      const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwn.records.write({
+      const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwnAlice.records.write({
         data    : dataText,
         message : {
           schema: 'email',
@@ -1098,7 +1288,7 @@ describe('Record', () => {
       expect(aliceEmailStatus.code).to.equal(202);
 
       // Read from Alice's local, agent connected DWN for the record that was just created.
-      const aliceAgentReadResult = await dwn.records.read({
+      const aliceAgentReadResult = await dwnAlice.records.read({
         message: {
           filter: {
             recordId: aliceEmailRecord.id
@@ -1110,7 +1300,7 @@ describe('Record', () => {
       expect(aliceAgentReadResult.record).to.exist;
 
       // Attempt to write the record to Alice's remote DWN.
-      const { status } = await aliceAgentReadResult.record.send(alice.did);
+      const { status } = await aliceAgentReadResult.record.send(aliceDid.did);
       expect(status.code).to.equal(202);
     });
 
@@ -1124,7 +1314,7 @@ describe('Record', () => {
        */
 
       // Alice writes a message to her agent connected DWN.
-      const { status, record } = await dwn.records.write({
+      const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
           schema     : 'foo/bar',
@@ -1134,7 +1324,7 @@ describe('Record', () => {
       expect(status.code).to.equal(202);
 
       // Write the record to Alice's remote DWN.
-      let sendResult = await record.send(alice.did);
+      let sendResult = await record.send(aliceDid.did);
       expect(sendResult.status.code).to.equal(202);
 
       // Update the record by mutating the data property.
@@ -1142,7 +1332,7 @@ describe('Record', () => {
       expect(updateResult.status.code).to.equal(202);
 
       // Write the updated record to Alice's remote DWN a second time.
-      sendResult = await record!.send(alice.did);
+      sendResult = await record!.send(aliceDid.did);
       expect(sendResult.status.code).to.equal(202);
 
       // Update the record again.
@@ -1150,14 +1340,14 @@ describe('Record', () => {
       expect(updateResult.status.code).to.equal(202);
 
       // Write the updated record to Alice's remote DWN a third time.
-      sendResult = await record!.send(alice.did);
+      sendResult = await record!.send(aliceDid.did);
       expect(sendResult.status.code).to.equal(202);
     });
 
     // TODO: Fix after changes are made to dwn-sdk-js to include the initial write in every query/read response.
     it('fails to write updated records to a remote DWN that is missing the initial write', async () => {
       // Alice writes a message to her agent connected DWN.
-      const { status, record } = await dwn.records.write({
+      const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
           schema     : 'foo/bar',
@@ -1171,7 +1361,7 @@ describe('Record', () => {
       expect(updateResult.status.code).to.equal(202);
 
       // Write the updated record to Alice's remote DWN a second time.
-      const sendResult = await record!.send(alice.did);
+      const sendResult = await record!.send(aliceDid.did);
       expect(sendResult.status.code).to.equal(400);
       expect(sendResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: initial write is not found');
 
@@ -1185,21 +1375,18 @@ describe('Record', () => {
       const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
       // Install the email protocol for Alice's local DWN.
-      let { protocol: aliceProtocol, status: aliceStatus } = await dwn.protocols.configure({
+      let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
         message: { definition: emailProtocolDefinition }
       });
       expect(aliceStatus.code).to.equal(202);
       expect(aliceProtocol).to.exist;
 
       // Install the email protocol for Alice's remote DWN.
-      const { status: alicePushStatus } = await aliceProtocol!.send(alice.did);
+      const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.did);
       expect(alicePushStatus.code).to.equal(202);
 
-      // Instantiate DwnApi instance for Bob.
-      const bobDwn = new DwnApi({ agent: testAgent.agent, connectedDid: bob.did });
-
       // Install the email protocol for Bob's local DWN.
-      const { protocol: bobProtocol, status: bobStatus } = await bobDwn.protocols.configure({
+      const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
         message: {
           definition: emailProtocolDefinition
         }
@@ -1209,11 +1396,11 @@ describe('Record', () => {
       expect(bobProtocol).to.exist;
 
       // Install the email protocol for Bob's remote DWN.
-      const { status: bobPushStatus } = await bobProtocol!.send(bob.did);
+      const { status: bobPushStatus } = await bobProtocol!.send(bobDid.did);
       expect(bobPushStatus.code).to.equal(202);
 
       // Alice creates a new large record but does not store it in her local DWN.
-      const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwn.records.write({
+      const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwnAlice.records.write({
         store   : false,
         data    : dataText,
         message : {
@@ -1225,24 +1412,24 @@ describe('Record', () => {
       expect(aliceEmailStatus.code).to.equal(202);
 
       // Alice writes the large record to her own remote DWN.
-      const { status: sendStatus } = await aliceEmailRecord!.send(alice.did);
+      const { status: sendStatus } = await aliceEmailRecord!.send(aliceDid.did);
       expect(sendStatus.code).to.equal(202);
 
       // Alice queries for the record that was just created on her remote DWN.
-      const { records: queryRecords, status: queryRecordStatus } = await dwn.records.query({
-        from    : alice.did,
+      const { records: queryRecords, status: queryRecordStatus } = await dwnAlice.records.query({
+        from    : aliceDid.did,
         message : { filter: { recordId: aliceEmailRecord!.id }}
       });
       expect(queryRecordStatus.code).to.equal(200);
 
       // Attempt to write the record to Bob's DWN.
       const [ queryRecord ] = queryRecords;
-      const { status } = await queryRecord!.send(bob.did);
+      const { status } = await queryRecord!.send(bobDid.did);
       expect(status.code).to.equal(202);
 
       // Confirm Bob can query his own remote DWN for the created record.
-      const bobQueryResult = await bobDwn.records.query({
-        from    : bob.did,
+      const bobQueryResult = await dwnBob.records.query({
+        from    : bobDid.did,
         message : {
           filter: {
             schema: 'http://email-protocol.xyz/schema/email'
@@ -1260,21 +1447,18 @@ describe('Record', () => {
       const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
       // Install the email protocol for Alice's local DWN.
-      let { protocol: aliceProtocol, status: aliceStatus } = await dwn.protocols.configure({
+      let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
         message: { definition: emailProtocolDefinition }
       });
       expect(aliceStatus.code).to.equal(202);
       expect(aliceProtocol).to.exist;
 
       // Install the email protocol for Alice's remote DWN.
-      const { status: alicePushStatus } = await aliceProtocol!.send(alice.did);
+      const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.did);
       expect(alicePushStatus.code).to.equal(202);
 
-      // Instantiate DwnApi instance for Bob.
-      const bobDwn = new DwnApi({ agent: testAgent.agent, connectedDid: bob.did });
-
       // Install the email protocol for Bob's local DWN.
-      const { protocol: bobProtocol, status: bobStatus } = await bobDwn.protocols.configure({
+      const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
         message: {
           definition: emailProtocolDefinition
         }
@@ -1284,11 +1468,11 @@ describe('Record', () => {
       expect(bobProtocol).to.exist;
 
       // Install the email protocol for Bob's remote DWN.
-      const { status: bobPushStatus } = await bobProtocol!.send(bob.did);
+      const { status: bobPushStatus } = await bobProtocol!.send(bobDid.did);
       expect(bobPushStatus.code).to.equal(202);
 
       // Alice creates a new large record but does not store it in her local DWN.
-      const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwn.records.write({
+      const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwnAlice.records.write({
         store   : false,
         data    : dataText,
         message : {
@@ -1300,23 +1484,23 @@ describe('Record', () => {
       expect(aliceEmailStatus.code).to.equal(202);
 
       // Alice writes the large record to her own remote DWN.
-      const { status: sendStatus } = await aliceEmailRecord!.send(alice.did);
+      const { status: sendStatus } = await aliceEmailRecord!.send(aliceDid.did);
       expect(sendStatus.code).to.equal(202);
 
       // Alice queries for the record that was just created on her remote DWN.
-      const { record: queryRecord, status: queryRecordStatus } = await dwn.records.read({
-        from    : alice.did,
+      const { record: queryRecord, status: queryRecordStatus } = await dwnAlice.records.read({
+        from    : aliceDid.did,
         message : { filter: { recordId: aliceEmailRecord!.id }}
       });
       expect(queryRecordStatus.code).to.equal(200);
 
       // Attempt to write the record to Bob's DWN.
-      const { status } = await queryRecord!.send(bob.did);
+      const { status } = await queryRecord!.send(bobDid.did);
       expect(status.code).to.equal(202);
 
       // Confirm Bob can query his own remote DWN for the created record.
-      const bobQueryResult = await bobDwn.records.query({
-        from    : bob.did,
+      const bobQueryResult = await dwnBob.records.query({
+        from    : bobDid.did,
         message : {
           filter: {
             schema: 'http://email-protocol.xyz/schema/email'
@@ -1332,7 +1516,7 @@ describe('Record', () => {
       const dataString = 'Hello, world!';
 
       // Install the email protocol for Alice's local DWN.
-      let { protocol: aliceProtocol, status: aliceStatus } = await dwn.protocols.configure({
+      let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
         message: {
           definition: emailProtocolDefinition
         }
@@ -1342,14 +1526,11 @@ describe('Record', () => {
       expect(aliceProtocol).to.exist;
 
       // Install the email protocol for Alice's remote DWN.
-      const { status: alicePushStatus } = await aliceProtocol!.send(alice.did);
+      const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.did);
       expect(alicePushStatus.code).to.equal(202);
 
-      // Instantiate DwnApi instance for Bob.
-      const bobDwn = new DwnApi({ agent: testAgent.agent, connectedDid: bob.did });
-
       // Install the email protocol for Bob's local DWN.
-      const { protocol: bobProtocol, status: bobStatus } = await bobDwn.protocols.configure({
+      const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
         message: {
           definition: emailProtocolDefinition
         }
@@ -1359,11 +1540,11 @@ describe('Record', () => {
       expect(bobProtocol).to.exist;
 
       // Install the email protocol for Bob's remote DWN.
-      const { status: bobPushStatus } = await bobProtocol!.send(bob.did);
+      const { status: bobPushStatus } = await bobProtocol!.send(bobDid.did);
       expect(bobPushStatus.code).to.equal(202);
 
       // Alice writes a message to her own DWN.
-      const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwn.records.write({
+      const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwnAlice.records.write({
         data    : dataString,
         message : {
           protocol     : emailProtocolDefinition.protocol,
@@ -1375,12 +1556,12 @@ describe('Record', () => {
       expect(aliceEmailStatus.code).to.equal(202);
 
       // Attempt to write the message to Bob's DWN.
-      const { status } = await aliceEmailRecord!.send(bob.did);
+      const { status } = await aliceEmailRecord!.send(bobDid.did);
       expect(status.code).to.equal(202);
 
       // Query Bob's remote DWN for `email` schema records.
-      const bobQueryResult = await bobDwn.records.query({
-        from    : bob.did,
+      const bobQueryResult = await dwnBob.records.query({
+        from    : bobDid.did,
         message : {
           filter: {
             schema: 'http://email-protocol.xyz/schema/email'
@@ -1399,7 +1580,7 @@ describe('Record', () => {
       it('writes records to your own remote DWN but not your local DWN', async () => {
         // Alice creates a record but does not store it on her local DWN with `store: false`.
         const dataString = 'Hello, world!';
-        const writeResult = await dwn.records.write({
+        const writeResult = await dwnAlice.records.write({
           store   : false,
           data    : dataString,
           message : {
@@ -1414,7 +1595,7 @@ describe('Record', () => {
         expect(await writeResult.record?.data.text()).to.equal(dataString);
 
         // Query Alice's agent DWN for `text/plain` records.
-        const queryResult = await dwn.records.query({
+        const queryResult = await dwnAlice.records.query({
           message: {
             filter: {
               dataFormat: 'text/plain'
@@ -1428,12 +1609,12 @@ describe('Record', () => {
         expect(queryResult.records!.length).to.equal(0);
 
         // Alice writes the message to her remote DWN.
-        const { status } = await writeResult.record!.send(alice.did);
+        const { status } = await writeResult.record!.send(aliceDid.did);
         expect(status.code).to.equal(202);
 
         // Query Alice's remote DWN for `plain/text` records.
-        const aliceRemoteQueryResult = await dwn.records.query({
-          from    : alice.did,
+        const aliceRemoteQueryResult = await dwnAlice.records.query({
+          from    : aliceDid.did,
           message : {
             filter: {
               dataFormat: 'text/plain'
@@ -1451,7 +1632,7 @@ describe('Record', () => {
 
       it(`writes records to someone else's remote DWN but not your agent DWN`, async () => {
         // Install a protocol on Alice's agent connected DWN.
-        let { protocol: aliceProtocol, status: aliceStatus } = await dwn.protocols.configure({
+        let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
           message: {
             definition: emailProtocolDefinition
           }
@@ -1461,14 +1642,11 @@ describe('Record', () => {
         expect(aliceProtocol).to.exist;
 
         // Install the protocol on Alice's remote DWN.
-        const { status: alicePushStatus } = await aliceProtocol!.send(alice.did);
+        const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.did);
         expect(alicePushStatus.code).to.equal(202);
 
-        // Instantiate DwnApi instance for Bob.
-        const bobDwn = new DwnApi({ agent: testAgent.agent, connectedDid: bob.did });
-
         // Install the email protocol for Bob's local DWN.
-        const { protocol: bobProtocol, status: bobStatus } = await bobDwn.protocols.configure({
+        const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
           message: {
             definition: emailProtocolDefinition
           }
@@ -1478,12 +1656,12 @@ describe('Record', () => {
         expect(bobProtocol).to.exist;
 
         // Install the email protocol for Bob's remote DWN.
-        const { status: bobPushStatus } = await bobProtocol!.send(bob.did);
+        const { status: bobPushStatus } = await bobProtocol!.send(bobDid.did);
         expect(bobPushStatus.code).to.equal(202);
 
         // Alice writes a message to her agent DWN with `store: false`.
         const dataString = 'Hello, world!';
-        const writeResult = await dwn.records.write({
+        const writeResult = await dwnAlice.records.write({
           store   : false,
           data    : dataString,
           message : {
@@ -1500,7 +1678,7 @@ describe('Record', () => {
         expect(await writeResult.record?.data.text()).to.equal(dataString);
 
         // Query Alice's agent DWN for `email` schema records.
-        const queryResult = await dwn.records.query({
+        const queryResult = await dwnAlice.records.query({
           message: {
             filter: {
               schema: 'http://email-protocol.xyz/schema/email'
@@ -1514,12 +1692,12 @@ describe('Record', () => {
         expect(queryResult.records!.length).to.equal(0);
 
         // Alice writes the message to Bob's remote DWN.
-        const { status } = await writeResult.record!.send(bob.did);
+        const { status } = await writeResult.record!.send(bobDid.did);
         expect(status.code).to.equal(202);
 
         // Query Bobs's remote DWN for `email` schema records.
-        const bobQueryResult = await bobDwn.records.query({
-          from    : bob.did,
+        const bobQueryResult = await dwnBob.records.query({
+          from    : bobDid.did,
           message : {
             filter: {
               dataFormat: 'text/plain'
@@ -1538,7 +1716,7 @@ describe('Record', () => {
       it('has no effect if `store: true`', async () => {
         // Alice writes a message to her agent DWN with `store: true`.
         const dataString = 'Hello, world!';
-        const writeResult = await dwn.records.write({
+        const writeResult = await dwnAlice.records.write({
           store   : true,
           data    : dataString,
           message : {
@@ -1553,7 +1731,7 @@ describe('Record', () => {
         expect(await writeResult.record?.data.text()).to.equal(dataString);
 
         // Query Alice's agent DWN for `text/plain` records.
-        const queryResult = await dwn.records.query({
+        const queryResult = await dwnAlice.records.query({
           message: {
             filter: {
               dataFormat: 'text/plain'
@@ -1569,12 +1747,12 @@ describe('Record', () => {
         expect(await aliceAgentRecord.data.text()).to.equal(dataString);
 
         // Alice writes the message to her remote DWN.
-        const { status } = await writeResult.record!.send(alice.did);
+        const { status } = await writeResult.record!.send(aliceDid.did);
         expect(status.code).to.equal(202);
 
         // Query Alice's remote DWN for `plain/text` records.
-        const aliceRemoteQueryResult = await dwn.records.query({
-          from    : alice.did,
+        const aliceRemoteQueryResult = await dwnAlice.records.query({
+          from    : aliceDid.did,
           message : {
             filter: {
               dataFormat: 'text/plain'
@@ -1595,8 +1773,7 @@ describe('Record', () => {
   describe('toJSON()', () => {
     it('should return all defined properties', async () => {
       // RecordOptions properties
-      const author = alice.did;
-      const target = alice.did;
+      const author = aliceDid.did;
 
       // Retrieve `#dwn` service entry.
       const [ didDwnService ] = didUtils.getServices({ didDocument: aliceDid.document, id: '#dwn' });
@@ -1606,11 +1783,11 @@ describe('Record', () => {
       const [ signingKeyIdFragment ] = didDwnService!.serviceEndpoint!.signingKeys;
       const [ encryptionKeyIdFragment ] = didDwnService!.serviceEndpoint!.encryptionKeys;
 
-      const signingKeyId = `${alice.did}${signingKeyIdFragment}`;
+      const signingKeyId = `${aliceDid.did}${signingKeyIdFragment}`;
       const signingKeyPair = aliceDid.keySet.verificationMethodKeys!.find(keyPair => keyPair.publicKeyJwk.kid === signingKeyIdFragment);
       const signingPrivateKeyJwk = signingKeyPair.privateKeyJwk;
 
-      const encryptionKeyId = `${alice.did}${encryptionKeyIdFragment}`;
+      const encryptionKeyId = `${aliceDid.did}${encryptionKeyIdFragment}`;
       const encryptionPublicKeyJwk = aliceDid.keySet.verificationMethodKeys!.find(keyPair => keyPair.publicKeyJwk.kid === encryptionKeyIdFragment)!.publicKeyJwk;
 
       // RecordsWriteMessage properties that can be pre-defined
@@ -1642,11 +1819,11 @@ describe('Record', () => {
       const protocol = emailProtocolDefinition.protocol;
       const protocolPath = 'email';
       const schema = emailProtocolDefinition.types.email.schema;
-      const recipient = alice.did;
+      const recipient = aliceDid.did;
       const published = true;
 
       // Install a protocol on Alice's agent connected DWN.
-      await dwn.protocols.configure({
+      await dwnAlice.protocols.configure({
         message: {
           definition: emailProtocolDefinition
         }
@@ -1680,9 +1857,9 @@ describe('Record', () => {
       // Create record using test RecordsWriteMessage.
       const record = new Record(testAgent.agent, {
         ...recordsWrite.message,
-        encodedData: dataBlob,
-        target,
-        author,
+        encodedData  : dataBlob,
+        author       : aliceDid.did,
+        connectedDid : aliceDid.did,
       });
 
       // Call toJSON() method.
@@ -1690,7 +1867,6 @@ describe('Record', () => {
 
       // Retained Record properties.
       expect(recordJson.author).to.equal(author);
-      expect(recordJson.target).to.equal(target);
 
       // Retained RecordsWriteMessage top-level properties.
       expect(record.contextId).to.equal(recordsWrite.message.contextId);
@@ -1721,7 +1897,7 @@ describe('Record', () => {
 
   describe('update()', () => {
     it('updates a local record on the local DWN', async () => {
-      const { status, record } = await dwn.records.write({
+      const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
           schema     : 'foo/bar',
@@ -1737,7 +1913,7 @@ describe('Record', () => {
       const updateResult = await record!.update({ data: 'bye' });
       expect(updateResult.status.code).to.equal(202);
 
-      const readResult = await dwn.records.read({
+      const readResult = await dwnAlice.records.read({
         message: {
           filter: {
             recordId: record!.id
@@ -1758,7 +1934,7 @@ describe('Record', () => {
     // TODO: Fix after changes are made to dwn-sdk-js to include the initial write in every query/read response.
     it('fails to update a record locally that only written to a remote DWN', async () => {
       // Create a record but do not store it on the local DWN.
-      const { status, record } = await dwn.records.write({
+      const { status, record } = await dwnAlice.records.write({
         store   : false,
         data    : 'Hello, world!',
         message : {
@@ -1773,7 +1949,7 @@ describe('Record', () => {
       // const dataCidBeforeDataUpdate = record!.dataCid;
 
       // Write the record to a remote DWN.
-      const { status: sendStatus } = await record!.send(alice.did);
+      const { status: sendStatus } = await record!.send(aliceDid.did);
       expect(sendStatus.code).to.equal(202);
 
       /** Attempt to update the record, which should write the updated record the local DWN but
@@ -1786,7 +1962,7 @@ describe('Record', () => {
       // expect(updateResult.status.code).to.equal(202);
 
       // Confirm that the record was written to the local DWN.
-      // const readResult = await dwn.records.read({
+      // const readResult = await dwnAlice.records.read({
       //   message: {
       //     filter: {
       //       recordId: record!.id
@@ -1808,7 +1984,7 @@ describe('Record', () => {
     // TODO: Fix after changes are made to dwn-sdk-js to include the initial write in every query/read response.
     it('fails to update a record locally that was initially read from a remote DWN', async () => {
       // Create a record but do not store it on the local DWN.
-      const { status, record } = await dwn.records.write({
+      const { status, record } = await dwnAlice.records.write({
         store   : false,
         data    : 'Hello, world!',
         message : {
@@ -1823,12 +1999,12 @@ describe('Record', () => {
       // const dataCidBeforeDataUpdate = record!.dataCid;
 
       // Write the record to a remote DWN.
-      const { status: sendStatus } = await record!.send(alice.did);
+      const { status: sendStatus } = await record!.send(aliceDid.did);
       expect(sendStatus.code).to.equal(202);
 
       // Read the record from the remote DWN.
-      const readResult = await dwn.records.read({
-        from    : alice.did,
+      const readResult = await dwnAlice.records.read({
+        from    : aliceDid.did,
         message : {
           filter: {
             recordId: record!.id
@@ -1847,7 +2023,7 @@ describe('Record', () => {
       // expect(updateResult.status.code).to.equal(202);
 
       // Confirm that the record was written to the local DWN.
-      // const readResult = await dwn.records.read({
+      // const readResult = await dwnAlice.records.read({
       //   message: {
       //     filter: {
       //       recordId: record!.id
@@ -1869,7 +2045,7 @@ describe('Record', () => {
     // TODO: Fix after changes are made to dwn-sdk-js to include the initial write in every query/read response.
     it('fails to update a record locally that was initially queried from a remote DWN', async () => {
       // Create a record but do not store it on the local DWN.
-      const { status, record } = await dwn.records.write({
+      const { status, record } = await dwnAlice.records.write({
         store   : false,
         data    : 'Hello, world!',
         message : {
@@ -1884,12 +2060,12 @@ describe('Record', () => {
       // const dataCidBeforeDataUpdate = record!.dataCid;
 
       // Write the record to a remote DWN.
-      const { status: sendStatus } = await record!.send(alice.did);
+      const { status: sendStatus } = await record!.send(aliceDid.did);
       expect(sendStatus.code).to.equal(202);
 
       // Query the record from the remote DWN.
-      const queryResult = await dwn.records.query({
-        from    : alice.did,
+      const queryResult = await dwnAlice.records.query({
+        from    : aliceDid.did,
         message : {
           filter: {
             recordId: record!.id
@@ -1910,7 +2086,7 @@ describe('Record', () => {
       // expect(updateResult.status.code).to.equal(202);
 
       // Confirm that the record was written to the local DWN.
-      // const readResult = await dwn.records.read({
+      // const readResult = await dwnAlice.records.read({
       //   message: {
       //     filter: {
       //       recordId: record!.id
@@ -1931,7 +2107,7 @@ describe('Record', () => {
 
     it('returns new dateModified after each update', async () => {
       // Initial write of the record.
-      const { status, record } = await dwn.records.write({
+      const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
           schema     : 'foo/bar',
@@ -1959,7 +2135,7 @@ describe('Record', () => {
     });
 
     it('throws an exception when an immutable property is modified', async () => {
-      const { status, record } = await dwn.records.write({
+      const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
           schema     : 'foo/bar',

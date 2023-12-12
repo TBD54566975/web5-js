@@ -225,7 +225,7 @@ export class DwnManager {
         dwnReply = await this.agent.rpcClient.sendDwnRequest(dwnRpcRequest as DwnRpcRequest);
         break;
       } catch(error: unknown) {
-        const message = (error instanceof Error) ? error.message : 'Uknown error';
+        const message = (error instanceof Error) ? error.message : 'Unknown error';
         errorMessages.push({ url: dwnUrl, message });
       }
     }
