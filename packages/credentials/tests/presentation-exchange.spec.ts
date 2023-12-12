@@ -1,4 +1,3 @@
-import fs from 'fs';
 import { expect } from 'chai';
 import { DidKeyMethod, PortableDid } from '@web5/dids';
 
