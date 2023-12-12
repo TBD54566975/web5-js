@@ -6,6 +6,8 @@ import type { Validated, PresentationDefinitionV2 } from '../src/presentation-ex
 
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import { PresentationExchange } from '../src/presentation-exchange.js';
+import PresentationExchangeSelectCredentialsSpec from '../../../test-vectors/presentation_exchange/select_credentials.json' assert { type: 'json' };
+
 
 class BitcoinCredential {
   constructor(
@@ -213,8 +215,7 @@ describe('PresentationExchange', () => {
 
   describe('Web5TestVectorsPresentationExchangeSpec', () => {
     it('select_credentials', async () => {
-      const jsonString = fs.readFileSync('../../test-vectors/presentation_exchange/select_credentials.json', 'utf8');
-      const vectors = JSON.parse(jsonString).vectors;
+      const vectors = PresentationExchangeSelectCredentialsSpec.vectors;
 
       for (let i = 0; i < vectors.length; i++) {
         const input = vectors[i].input;
