@@ -61,7 +61,7 @@ jobs:
         env:
           TEST_DWN_URL: http://localhost:3000
 
-      - name: upload test results
+      - name: Upload test results to update SDK reports
         uses: actions/upload-artifact@v3
         with:
           name: junit-results
