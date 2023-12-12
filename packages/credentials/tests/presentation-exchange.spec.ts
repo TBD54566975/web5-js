@@ -5,6 +5,8 @@ import type { Validated, PresentationDefinitionV2 } from '../src/presentation-ex
 
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import { PresentationExchange } from '../src/presentation-exchange.js';
+import PresentationExchangeSelectCredentialsSpec from '../../../test-vectors/presentation_exchange/select_credentials.json' assert { type: 'json' };
+
 
 class BitcoinCredential {
   constructor(
@@ -207,6 +209,21 @@ describe('PresentationExchange', () => {
 
       expect(warnings).to.be.an('array');
       expect(warnings?.length).to.equal(0);
+    });
+  });
+
+  describe('Web5TestVectorsPresentationExchangeSpec', () => {
+    it('select_credentials', async () => {
+      const vectors = PresentationExchangeSelectCredentialsSpec.vectors;
+
+      for (let i = 0; i < vectors.length; i++) {
+        const input = vectors[i].input;
+        const expectedOutput = vectors[i].output.selectedCredentials;
+
+        const selectedCreds = PresentationExchange.selectCredentials({ vcJwts: input.credentialJwts, presentationDefinition: input.presentationDefinition});
+
+        expect(selectedCreds).to.deep.equals(expectedOutput);
+      }
     });
   });
 });
