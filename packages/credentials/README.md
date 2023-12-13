@@ -134,7 +134,7 @@ This method validates whether an object is usable as a presentation definition o
 - `presentationDefinition` The Presentation Definition to validate
 
 ```javascript
-const valid = PresentationExchange.validateDefinition({presentationDefinition})
+const valid = PresentationExchange.validateDefinition({ presentationDefinition })
 ```
 
 ### Validate Submission
