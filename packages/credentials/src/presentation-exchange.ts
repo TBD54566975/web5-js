@@ -133,7 +133,9 @@ export class PresentationExchange {
    * @param {PresentationSubmission} presentationSubmission the object to be validated.
    * @returns {Validated} the validation results to reveal what is acceptable/unacceptable about the passed object to be considered a valid presentation submission
    */
-  public static validateSubmission(presentationSubmission: PresentationSubmission): Validated {
+  public static validateSubmission({ presentationSubmission }: {
+    presentationSubmission: PresentationSubmission
+  }): Validated {
     return PEX.validateSubmission(presentationSubmission);
   }
 

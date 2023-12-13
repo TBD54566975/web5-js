@@ -113,7 +113,7 @@ export class VerifiableCredential {
    *
    * @example
    * ```ts
-   * const vc = VerifiableCredential.create({
+   * const vc = await VerifiableCredential.create({
    *     type: 'StreetCredibility',
    *     issuer: 'did:ex:issuer',
    *     subject: 'did:ex:subject',
@@ -209,7 +209,7 @@ export class VerifiableCredential {
    *
    * @example
    * ```ts
-   * val vc = VerifiableCredential.parseJwt({ vcJwt: signedVcJwt })
+   * const vc = VerifiableCredential.parseJwt({ vcJwt: signedVcJwt })
    * ```
    *
    * @param vcJwt The verifiable credential JWT as a [String].
