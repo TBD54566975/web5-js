@@ -111,7 +111,7 @@ Validate if a Verifiable Credential JWT satisfies the given presentation definit
 
 ```javascript 
 try {
-  PresentationExchange.satisfiesPresentationDefinition({vcJwts: signedVcJwts, presentationDefinition: presentationDefinition})
+  PresentationExchange.satisfiesPresentationDefinition({ vcJwts: signedVcJwts, presentationDefinition: presentationDefinition })
   console.log("vcJwts satisfies Presentation Definition!")
 } catch (e: Error) {
   console.log("Verification failed: ${e.message}")
