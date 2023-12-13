@@ -125,7 +125,7 @@ Creates a presentation from a list of Verifiable Credentials that satisfy a give
 - `presentationDefinition` The Presentation Definition to match against.
 
 ```javascript
-const presentationResult = PresentationExchange.createPresentationFromCredentials({vcJwts: signedVcJwts, presentationDefinition: presentationDefinition})
+const presentationResult = PresentationExchange.createPresentationFromCredentials({ vcJwts: signedVcJwts, presentationDefinition: presentationDefinition })
 ```
 
 ### Validate Definition
