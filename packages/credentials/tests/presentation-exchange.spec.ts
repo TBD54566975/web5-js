@@ -169,7 +169,9 @@ describe('PresentationExchange', () => {
         vcJwts: [btcCredentialJwt],
         presentationDefinition
       });
-      const result = PresentationExchange.validateSubmission(presentationResult.presentationSubmission);
+
+      const presentationSubmission = presentationResult.presentationSubmission;
+      const result = PresentationExchange.validateSubmission({ presentationSubmission });
       expect(result).to.deep.equal([{ tag: 'root', status: 'info', message: 'ok' }]);
     });
 
@@ -186,7 +188,8 @@ describe('PresentationExchange', () => {
       expect(presentationEvaluationResults.errors).to.deep.equal([]);
       expect(presentationEvaluationResults.warnings).to.deep.equal([]);
 
-      const result = PresentationExchange.validateSubmission(presentationResult.presentationSubmission);
+      const presentationSubmission = presentationResult.presentationSubmission;
+      const result = PresentationExchange.validateSubmission({ presentationSubmission });
       expect(result).to.deep.equal([{ tag: 'root', status: 'info', message: 'ok' }]);
     });
 
