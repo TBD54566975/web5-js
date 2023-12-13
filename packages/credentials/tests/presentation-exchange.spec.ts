@@ -187,7 +187,7 @@ describe('PresentationExchange', () => {
       expect(presentationEvaluationResults.warnings).to.deep.equal([]);
 
       const presentationSubmission = presentationResult.presentationSubmission;
-      const result = PresentationExchange.validateSubmission({presentationSubmission});
+      const result = PresentationExchange.validateSubmission({ presentationSubmission });
       expect(result).to.deep.equal([{ tag: 'root', status: 'info', message: 'ok' }]);
     });
 
