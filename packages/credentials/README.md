@@ -153,5 +153,5 @@ Evaluates a presentation against a presentation definition.
 - `presentation` The Presentation
 
 ```javascript
-const evaluationResults = PresentationExchange.evaluatePresentation({presentationDefinition, presentation})
+const evaluationResults = PresentationExchange.evaluatePresentation({ presentationDefinition, presentation })
 ```
