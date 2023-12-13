@@ -1,17 +1,40 @@
-# Credentials
+# `@web5/credentials` <!-- omit in toc -->
 
-The Credentials package enables the creation, signing, verification, and general processing of `Verifiable Credentials` (VCs). It also has full `Presentation Exchange` support.
+The `@web5/credentials` package provides the following functionality:
+* creation, signing, verification, and general processing of [Verifiable Credentials (VCs)](https://www.google.com/search?q=w3c+verifiable+credentials&rlz=1C5GCEM_enPK1033PK1033&oq=w3c+verifiable+credentials&gs_lcrp=EgZjaHJvbWUyBggAEEUYOTIGCAEQRRg7MgYIAhBFGDvSAQgzMTIwajBqN6gCALACAA&sourceid=chrome&ie=UTF-8). 
+* [Presentation Exchange](https://identity.foundation/presentation-exchange/) evaluation
 
-## Verifiable Credential
+# Table of Contents <!-- omit in toc -->
 
-### Features
+- [`VerifiableCredential`](#verifiablecredential)
+  - [Features](#features)
+  - [Usage](#usage)
+    - [Creating a Verifiable Credential](#creating-a-verifiable-credential)
+    - [Signing a Verifiable Credential](#signing-a-verifiable-credential)
+    - [Verifying a Verifiable Credential](#verifying-a-verifiable-credential)
+    - [Parsing a JWT into a Verifiable Credential](#parsing-a-jwt-into-a-verifiable-credential)
+  - [`PresentationExchange`](#presentationexchange)
+    - [Features](#features-1)
+    - [Usage](#usage-1)
+    - [Selecting Credentials](#selecting-credentials)
+    - [Satisfying a Presentation Definition](#satisfying-a-presentation-definition)
+    - [Create Presentation From Credentials](#create-presentation-from-credentials)
+    - [Validate Definition](#validate-definition)
+    - [Validate Submission](#validate-submission)
+    - [Validate Presentation](#validate-presentation)
 
-- Create Verifiable Credentials with flexible data types.
-- Sign credentials using decentralized identifiers (DIDs).
-- Verify the integrity and authenticity of VCs encoded as JSON Web Tokens (JWTs).
-- Parse JWT representations of VCs into `VerifiableCredential` instances.
 
-### Usage:
+# `VerifiableCredential`
+
+## Features
+
+* Create Verifiable Credentials with flexible data types.
+* Sign credentials using decentralized identifiers (DIDs).
+* Verify the integrity and authenticity of VCs encoded as JSON Web Tokens (JWTs).
+* Parse JWT representations of VCs into VerifiableCredential instances.
+
+## Usage
+
 ### Creating a Verifiable Credential
 
 Create a new `VerifiableCredential` with the following parameters:
@@ -44,6 +67,7 @@ Sign a `VerifiableCredential` with a DID:
 - `did`: The did that is signing the VC
 
 First create a `Did` object as follows:
+
 ```javascript
 import { DidKeyMethod } from '@web5/dids';
 const issuer = await DidKeyMethod.create();
@@ -58,6 +82,7 @@ const vcJwt = await vc.sign({ did: issuer });
 Verify the integrity and authenticity of a Verifiable Credential
 
 - `vcJwt`: The VC in JWT format as a String.
+
 ```javascript
 try {
   await VerifiableCredential.verify({ vcJwt: signedVcJwt })
@@ -76,7 +101,7 @@ Parse a JWT into a `VerifiableCredential` instance
 const vc = VerifiableCredential.parseJwt({ vcJwt: signedVcJwt })
 ```
 
-## Presentation Exchange
+## `PresentationExchange`
 
 `PresentationExchange` is designed to facilitate the creation of a Verifiable Presentation by providing tools to select and validate Verifiable Credentials against defined criteria.
 
@@ -84,7 +109,7 @@ const vc = VerifiableCredential.parseJwt({ vcJwt: signedVcJwt })
 
 - Select credentials that satisfy a given presentation definition.
 - Validate if a Verifiable Credential JWT satisfies a Presentation Definition.
-- Validate input descriptors within Verifiable Credentials.
+- Validate input descriptors within Presentation Definitions.
 
 
 ### Usage
