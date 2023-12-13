@@ -143,7 +143,7 @@ This method validates whether an object is usable as a presentation submission o
 - `presentationSubmission` The Presentation Submission to validate 
 
 ```javascript
-const valid = PresentationExchange.validateSubmission({presentationSubmission})
+const valid = PresentationExchange.validateSubmission({ presentationSubmission })
 ```
 
 ### Validate Presentation
