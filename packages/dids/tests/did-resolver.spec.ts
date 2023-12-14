@@ -128,11 +128,10 @@ describe('DidResolver', () => {
       const result = await didResolver.dereference({ didUrl: 'abcd123;;;' });
       expect(result.contentStream).to.be.null;
       expect(result.dereferencingMetadata.error).to.exist;
-      expect(result.dereferencingMetadata.error).to.equal('invalidDid');
-
+      expect(result.dereferencingMetadata.error).to.equal('invalidDidUrl');
     });
 
-    it('returns the appropriate DID resource as the value of contentStream if found', async () => {
+    it('returns a DID verification method resource as the value of contentStream if found', async () => {
       const did = await DidKeyMethod.create();
 
       const result = await didResolver.dereference({ didUrl: did.document.verificationMethod[0].id });
@@ -143,7 +142,42 @@ describe('DidResolver', () => {
       expect(isVerificationMethod(didResource)).to.be.true;
     });
 
-    it('returns the entire did document as the value of contentStream if the did url contains no fragment', async () => {
+    it('returns a DID service resource as the value of contentStream if found', async () => {
+      // Create an instance of DidResolver
+      const resolver = new DidResolver({ didResolvers: [] });
+
+      // Stub the resolve method
+      const mockDidResolutionResult = {
+        '@context'  : 'https://w3id.org/did-resolution/v1',
+        didDocument : {
+          id      : 'did:example:123456789abcdefghi',
+          service : [
+            {
+              id              : '#dwn',
+              type            : 'DecentralizedWebNode',
+              serviceEndpoint : {
+                nodes: [ 'https://dwn.tbddev.test/dwn0' ]
+              }
+            }
+          ],
+        },
+        didDocumentMetadata   : {},
+        didResolutionMetadata : {}
+      };
+
+      const resolveStub = sinon.stub(resolver, 'resolve').resolves(mockDidResolutionResult);
+
+      const testDidUrl = 'did:example:123456789abcdefghi#dwn';
+      const result = await resolver.dereference({ didUrl: testDidUrl });
+
+      expect(resolveStub.calledOnce).to.be.true;
+      expect(result.contentStream).to.deep.equal(mockDidResolutionResult.didDocument.service[0]);
+
+      // Restore the original resolve method
+      resolveStub.restore();
+    });
+
+    it('returns the entire DID document as the value of contentStream if the DID URL contains no fragment', async () => {
       const did = await DidKeyMethod.create();
 
       const result = await didResolver.dereference({ didUrl: did.did });
