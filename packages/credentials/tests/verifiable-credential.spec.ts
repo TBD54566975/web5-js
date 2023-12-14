@@ -392,8 +392,7 @@ describe('Verifiable Credential Tests', () => {
         },
         didDocumentMetadata   : {},
         didResolutionMetadata : {
-          contentType : 'application/did+ld+json',
-          did         : {
+          did: {
             didString        : 'did:dht:ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
             methodSpecificId : 'ejzu3k7eay57szh6sms6kzpuyeug35ay9688xcy6u5d1fh3zqtiy',
             method           : 'dht'
