@@ -2,10 +2,11 @@
 name: Build and Deploy Docs
 
 on:
-  # Runs on pushes targeting the default branch
-  # push:
-  #   branches:
-  #     - main
+  # TODO: uncomment before merging
+  # Runs on new released versions
+  # release:
+  #   types:
+  #     - published
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -57,41 +58,42 @@ jobs:
           name: web5-api-docs
           path: ./packages/api/.tbdocs/docs
 
-  # deploy:
-  #   # Add a dependency to the build job
-  #   needs: build
+  deploy:
+    # Add a dependency to the build job
+    needs: build
 
-  #   # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
-  #   permissions:
-  #     contents: read # to read from project repo
-  #     pages: write # to deploy to Pages
-  #     id-token: write # to verify the deployment originates from an appropriate source
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      contents: read # to read from project repo
+      pages: write # to deploy to Pages
+      id-token: write # to verify the deployment originates from an appropriate source
 
-  #   # Deploy to the github-pages environment
-  #   environment:
-  #     name: github-pages
-  #     url: ${{ steps.deployment.outputs.page_url }}
+    # Deploy to the github-pages environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
-  #   runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
 
-  #     - name: Setup Pages
-  #       uses: actions/configure-pages@v3
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
 
-  #     - name: Download JSDoc artifacts
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: jsdoc
-  #         path: ./docs
+      - name: Download JSDoc artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: web5-api-docs
+          path: ./web5-api-docs
 
-  #     - name: Upload artifact
-  #       uses: actions/upload-pages-artifact@v1
-  #       with:
-  #         path: "./docs"
+      # TODO: uncomment and adjust path before merging
+      # - name: Upload artifact
+      #   uses: actions/upload-pages-artifact@v1
+      #   with:
+      #     path: "./docs"
 
-  #     - name: Deploy to GitHub Pages
-  #       id: deployment
-  #       uses: actions/deploy-pages@v2
+      # - name: Deploy to GitHub Pages
+      #   id: deployment
+      #   uses: actions/deploy-pages@v2
