@@ -271,8 +271,7 @@ describe('DidDhtMethod', () => {
         didDocument           : document,
         didDocumentMetadata   : {},
         didResolutionMetadata : {
-          contentType : 'application/did+json',
-          did         : {
+          did: {
             didString        : document.id,
             methodSpecificId : parseDid({ didUrl: document.id }).id,
             method           : 'dht'
@@ -325,8 +324,7 @@ describe('DidDhtMethod', () => {
         didDocument           : document,
         didDocumentMetadata   : {},
         didResolutionMetadata : {
-          contentType : 'application/did+json',
-          did         : {
+          did: {
             didString        : 'did:dht:123456789abcdefgh',
             methodSpecificId : '123456789abcdefgh',
             method           : 'dht'
@@ -423,8 +421,7 @@ describe('DidDhtMethod', () => {
         didDocument,
         didDocumentMetadata   : {},
         didResolutionMetadata : {
-          contentType : 'application/did+json',
-          did         : {
+          did: {
             didString        : 'did:dht:h4d3ixkwt6q5a455tucw7j14jmqyghdtbr6cpiz6on5oxj5bpr3o',
             methodSpecificId : 'h4d3ixkwt6q5a455tucw7j14jmqyghdtbr6cpiz6on5oxj5bpr3o',
             method           : 'dht'
