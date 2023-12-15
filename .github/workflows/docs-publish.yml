@@ -2,11 +2,10 @@
 name: Build and Deploy Docs
 
 on:
-  # TODO: uncomment before merging
   # Runs on new released versions
-  # release:
-  #   types:
-  #     - published
+  release:
+    types:
+      - published
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -51,12 +50,18 @@ jobs:
             - file: packages/api/src/index.ts
               docsReporter: api-extractor
               docsGenerator: typedoc-html
+            - file: packages/crypto/src/index.ts
+              docsReporter: api-extractor
+              docsGenerator: typedoc-html
+            - file: packages/dids/src/index.ts
+              docsReporter: api-extractor
+              docsGenerator: typedoc-html
 
       - name: Upload documentation artifacts
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 #v3.1.3
         with:
-          name: web5-api-docs
-          path: ./packages/api/.tbdocs/docs
+          name: tbdocs-output
+          path: ./.tbdocs
 
   deploy:
     # Add a dependency to the build job
@@ -82,18 +87,17 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v3
 
-      - name: Download JSDoc artifacts
+      - name: Download TBDocs Artifacts
         uses: actions/download-artifact@v3
         with:
-          name: web5-api-docs
-          path: ./web5-api-docs
+          name: tbdocs-output
+          path: ./tbdocs
 
-      # TODO: uncomment and adjust path before merging
-      # - name: Upload artifact
-      #   uses: actions/upload-pages-artifact@v1
-      #   with:
-      #     path: "./docs"
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: "./.tbdocs/docs"
 
-      # - name: Deploy to GitHub Pages
-      #   id: deployment
-      #   uses: actions/deploy-pages@v2
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
