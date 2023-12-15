@@ -440,7 +440,6 @@ export class DidIonMethod implements DidMethod {
         didDocument           : undefined,
         didDocumentMetadata   : {},
         didResolutionMetadata : {
-          contentType  : 'application/did+ld+json',
           error        : 'invalidDid',
           errorMessage : `Cannot parse DID: ${didUrl}`
         }
@@ -453,7 +452,6 @@ export class DidIonMethod implements DidMethod {
         didDocument           : undefined,
         didDocumentMetadata   : {},
         didResolutionMetadata : {
-          contentType  : 'application/did+ld+json',
           error        : 'methodNotSupported',
           errorMessage : `Method not supported: ${parsedDid.method}`
         }
@@ -505,7 +503,6 @@ export class DidIonMethod implements DidMethod {
       didDocument           : undefined,
       didDocumentMetadata   : {},
       didResolutionMetadata : {
-        contentType: 'application/did+ld+json',
         error,
         errorMessage
       }

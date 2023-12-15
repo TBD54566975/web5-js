@@ -71,7 +71,7 @@
     "@tbd54566975/dwn-sdk-js": "0.2.8",
     "@web5/common": "0.2.2",
     "@web5/crypto": "0.2.2",
-    "@web5/dids": "0.2.3",
+    "@web5/dids": "0.2.4",
     "level": "8.0.0",
     "readable-stream": "4.4.2",
     "readable-web-to-node-stream": "3.0.2"

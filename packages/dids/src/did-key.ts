@@ -725,7 +725,6 @@ export class DidKeyMethod implements DidMethod {
         didDocument           : undefined,
         didDocumentMetadata   : {},
         didResolutionMetadata : {
-          contentType  : 'application/did+ld+json',
           error        : 'invalidDid',
           errorMessage : `Cannot parse DID: ${didUrl}`
         }
@@ -738,7 +737,6 @@ export class DidKeyMethod implements DidMethod {
         didDocument           : undefined,
         didDocumentMetadata   : {},
         didResolutionMetadata : {
-          contentType  : 'application/did+ld+json',
           error        : 'methodNotSupported',
           errorMessage : `Method not supported: ${parsedDid.method}`
         }
@@ -752,8 +750,7 @@ export class DidKeyMethod implements DidMethod {
       didDocument,
       didDocumentMetadata   : {},
       didResolutionMetadata : {
-        contentType : 'application/did+ld+json',
-        did         : {
+        did: {
           didString        : parsedDid.did,
           methodSpecificId : parsedDid.id,
           method           : parsedDid.method

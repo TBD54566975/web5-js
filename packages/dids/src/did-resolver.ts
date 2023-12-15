@@ -1,10 +1,11 @@
 import type {
+  DidResource,
   DidResolverCache,
   DidMethodResolver,
   DidResolutionResult,
   DidResolutionOptions,
-  DidResource,
-  DidDereferenceResult
+  DidDereferencingResult,
+  DidDereferencingOptions,
 } from './types.js';
 
 import { parseDid } from './utils.js';
@@ -16,16 +17,28 @@ export type DidResolverOptions = {
 }
 
 /**
- * argument passed to {@link DidResolver.resolve}
- */
-export type DereferenceParams = {
-  didUrl: string
-}
-
-/**
- * The `DidResolver` class is responsible for resolving DIDs to DID documents.
- * It uses method resolvers to resolve DIDs of different methods and a cache
- * to store resolved DID documents.
+ * The `DidResolver` class provides mechanisms for resolving Decentralized Identifiers (DIDs) to
+ * their corresponding DID documents.
+ *
+ * The class is designed to handle various DID methods by utilizing an array of `DidMethodResolver`
+ * instances, each responsible for a specific DID method. It also employs a caching mechanism to
+ * store and retrieve previously resolved DID documents for efficiency.
+ *
+ * Usage:
+ * - Construct the `DidResolver` with an array of `DidMethodResolver` instances and an optional cache.
+ * - Use `resolve` to resolve a DID to its DID Resolution Result.
+ * - Use `dereference` to extract specific resources from a DID URL, like service endpoints or verification methods.
+ *
+ * @example
+ * ```ts
+ * const resolver = new DidResolver({
+ *   didResolvers: [<array of DidMethodResolver instances>],
+ *   cache: new DidResolverCacheNoop()
+ * });
+ *
+ * const resolutionResult = await resolver.resolve('did:example:123456');
+ * const dereferenceResult = await resolver.dereference({ didUrl: 'did:example:123456#key-1' });
+ * ```
  */
 export class DidResolver {
   /**
@@ -78,7 +91,6 @@ export class DidResolver {
         didDocument           : undefined,
         didDocumentMetadata   : {},
         didResolutionMetadata : {
-          contentType  : 'application/did+ld+json',
           error        : 'invalidDid',
           errorMessage : `Cannot parse DID: ${didUrl}`
         }
@@ -92,7 +104,6 @@ export class DidResolver {
         didDocument           : undefined,
         didDocumentMetadata   : {},
         didResolutionMetadata : {
-          contentType  : 'application/did+ld+json',
           error        : 'methodNotSupported',
           errorMessage : `Method not supported: ${parsedDid.method}`
         }
@@ -116,39 +127,43 @@ export class DidResolver {
   }
 
   /**
- * dereferences a DID (Decentralized Identifier) URL to a corresponding DID resource. This method interprets
- * the DID URL's components, which include the DID method, method-specific identifier, path, query, and fragment,
- * and retrieves the related resource as per the DID Core specifications. The dereferencing process involves resolving
- * the DID contained in the DID URL to a DID document, and then extracting the specific part of the document identified
- * by the fragment in the DID URL. If no fragment is specified, the entire DID document is returned.
- *
- * This method supports resolution of different components within a DID document such as
- * service endpoints and verification methods, based on their IDs. It accommodates both full and relative DID URLs
- * as specified in the DID Core specification.
- *
- * More information on DID URL dereferencing can be found in the DID Core specification
- * [here](https://www.w3.org/TR/did-core/#did-url-dereferencing)
- *
- * @param params - An object of type `DereferenceParams` containing the `didUrl` which needs to be dereferenced.
- * @returns a {@link DidDereferenceResult}
- */
-  async dereference(params: DereferenceParams): Promise<DidDereferenceResult> {
-    const { didUrl } = params;
+   * Dereferences a DID (Decentralized Identifier) URL to a corresponding DID resource. This method
+   * interprets the DID URL's components, which include the DID method, method-specific identifier,
+   * path, query, and fragment, and retrieves the related resource as per the DID Core specifications.
+   * The dereferencing process involves resolving the DID contained in the DID URL to a DID document,
+   * and then extracting the specific part of the document identified by the fragment in the DID URL.
+   * If no fragment is specified, the entire DID document is returned.
+   *
+   * This method supports resolution of different components within a DID document such as service
+   * endpoints and verification methods, based on their IDs. It accommodates both full and
+   * DID URLs as specified in the DID Core specification.
+   *
+   * More information on DID URL dereferencing can be found in the
+   * {@link https://www.w3.org/TR/did-core/#did-url-dereferencing | DID Core specification}.
+   *
+   * @param didUrl - The DID URL string to dereference.
+   * @param [dereferenceOptions] - Input options to the dereference function. Optional.
+   * @returns a {@link DidDereferencingResult}
+   */
+  async dereference({ didUrl }: {
+    didUrl: string,
+    dereferenceOptions?: DidDereferencingOptions
+  }): Promise<DidDereferencingResult> {
     const { didDocument, didResolutionMetadata = {}, didDocumentMetadata = {} } = await this.resolve(didUrl);
     if (didResolutionMetadata.error) {
       return {
-        dereferencingMetadata : didResolutionMetadata,
+        dereferencingMetadata : { error: 'invalidDidUrl' },
         contentStream         : null,
-        contentMetadata       : didDocumentMetadata
+        contentMetadata       : {}
       };
     }
 
-    const parsedDid = parseDid(params);
+    const parsedDid = parseDid({ didUrl });
 
-    // return the entire DID Document if no fragment is present on the did url
+    // Return the entire DID Document if no fragment is present on the did url
     if (!parsedDid.fragment) {
       return {
-        dereferencingMetadata : didResolutionMetadata,
+        dereferencingMetadata : { contentType: 'application/did+json' },
         contentStream         : didDocument,
         contentMetadata       : didDocumentMetadata
       };
@@ -156,9 +171,10 @@ export class DidResolver {
 
     const { service = [], verificationMethod = [] } = didDocument;
 
-    // create a set of possible id matches. the DID spec allows for an id to be the entire did#fragment or just #fragment.
-    // See: https://www.w3.org/TR/did-core/#relative-did-urls
-    // using a set for fast string comparison. DIDs can be lonnng.
+    // Create a set of possible id matches. The DID spec allows for an id to be the entire
+    // did#fragment or just #fragment.
+    // @see {@link }https://www.w3.org/TR/did-core/#relative-did-urls | Section 3.2.2, Relative DID URLs}.
+    // Using a Set for fast string comparison since some DID methods have long identifiers.
     const idSet = new Set([didUrl, parsedDid.fragment, `#${parsedDid.fragment}`]);
 
     let didResource: DidResource;
@@ -177,17 +193,15 @@ export class DidResolver {
     }
     if (didResource) {
       return {
-        dereferencingMetadata : didResolutionMetadata,
+        dereferencingMetadata : { contentType: 'application/did+json' },
         contentStream         : didResource,
         contentMetadata       : didResolutionMetadata
       };
     } else {
       return {
-        dereferencingMetadata: {
-          error: 'notFound'
-        },
-        contentStream   : null,
-        contentMetadata : {},
+        dereferencingMetadata : { error: 'notFound' },
+        contentStream         : null,
+        contentMetadata       : {},
       };
     }
   }
