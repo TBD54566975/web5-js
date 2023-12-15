@@ -1,6 +1,7 @@
 export * from './jose.js';
 export * from './local-kms-crypto.js';
-export * as utils from './utils.js';
+import * as utils from './utils.js';
+export { utils };
 
 export * from './algorithms/aes-ctr.js';
 export * from './algorithms/aes-gcm.js';
