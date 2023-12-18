@@ -1,8 +1,8 @@
+import type { Jwk, JwkOperation } from '../../jose/jwk.js';
 import type { Web5Crypto } from '../../types/web5-crypto.js';
-import type { JwkOperation, PrivateKeyJwk } from '../../jose.js';
 
-import { Jose } from '../../jose.js';
 import { InvalidAccessError } from '../errors.js';
+import { isOctPrivateJwk } from '../../jose/jwk.js';
 import { checkRequiredProperty } from '../../utils.js';
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
 
@@ -24,7 +24,7 @@ export abstract class BaseAesAlgorithm extends CryptoAlgorithm {
   }
 
   public checkSecretKey(options: {
-    key: PrivateKeyJwk
+    key: Jwk
   }): void {
     const { key } = options;
 
@@ -35,7 +35,7 @@ export abstract class BaseAesAlgorithm extends CryptoAlgorithm {
     this.checkJwk({ key });
 
     // The key object must be an octet sequence (oct) private key in JWK format.
-    if (!Jose.isOctPrivateKeyJwk(key)) {
+    if (!isOctPrivateJwk(key)) {
       throw new InvalidAccessError('Requested operation is only valid for oct private keys.');
     }
 
@@ -48,7 +48,7 @@ export abstract class BaseAesAlgorithm extends CryptoAlgorithm {
   public abstract generateKey(options: {
     algorithm: Web5Crypto.AesGenerateKeyOptions,
     keyOperations: JwkOperation[]
-  }): Promise<PrivateKeyJwk>;
+  }): Promise<Jwk>;
 
   public override async deriveBits(): Promise<Uint8Array> {
     throw new InvalidAccessError(`Requested operation 'deriveBits' is not valid for AES algorithm.`);

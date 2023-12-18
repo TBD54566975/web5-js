@@ -1,7 +1,7 @@
 import { universalTypeOf } from '@web5/common';
 
+import type { Jwk, JwkOperation } from '../../jose/jwk.js';
 import type { Web5Crypto } from '../../types/web5-crypto.js';
-import type { JwkOperation, PrivateKeyJwk } from '../../jose.js';
 
 import { BaseAesAlgorithm } from './base.js';
 import { OperationError } from '../errors.js';
@@ -48,7 +48,7 @@ export abstract class BaseAesCtrAlgorithm extends BaseAesAlgorithm {
 
   public checkDecryptOptions(options: {
     algorithm: Web5Crypto.AesCtrOptions,
-    key: PrivateKeyJwk,
+    key: Jwk,
     data: Uint8Array
   }): void {
     const { algorithm, key, data } = options;
@@ -72,7 +72,7 @@ export abstract class BaseAesCtrAlgorithm extends BaseAesAlgorithm {
 
   public checkEncryptOptions(options: {
     algorithm: Web5Crypto.AesCtrOptions,
-    key: PrivateKeyJwk,
+    key: Jwk,
     data: Uint8Array
   }): void {
     const { algorithm, key, data } = options;

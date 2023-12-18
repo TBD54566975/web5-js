@@ -1,9 +1,9 @@
 import { Convert } from '@web5/common';
 import { x25519 } from '@noble/curves/ed25519';
 
-import type { PrivateKeyJwk, PublicKeyJwk } from '../jose.js';
+import type { Jwk } from '../jose/jwk.js';
 
-import { Jose } from '../jose.js';
+import { computeJwkThumbprint, isOkpPrivateJwk, isOkpPublicJwk } from '../jose/jwk.js';
 
 /**
  * The `X25519` class provides a comprehensive suite of utilities for working with the X25519
@@ -76,14 +76,14 @@ export class X25519 {
    */
   public static async bytesToPrivateKey(options: {
     privateKeyBytes: Uint8Array
-  }): Promise<PrivateKeyJwk> {
+  }): Promise<Jwk> {
     const { privateKeyBytes } = options;
 
     // Derive the public key from the private key.
     const publicKeyBytes  = x25519.getPublicKey(privateKeyBytes);
 
     // Construct the private key in JWK format.
-    const privateKey: PrivateKeyJwk = {
+    const privateKey: Jwk = {
       kty : 'OKP',
       crv : 'X25519',
       d   : Convert.uint8Array(privateKeyBytes).toBase64Url(),
@@ -91,7 +91,7 @@ export class X25519 {
     };
 
     // Compute the JWK thumbprint and set as the key ID.
-    privateKey.kid = await Jose.jwkThumbprint({ key: privateKey });
+    privateKey.kid = await computeJwkThumbprint({ jwk: privateKey });
 
     return privateKey;
   }
@@ -126,18 +126,18 @@ export class X25519 {
    */
   public static async bytesToPublicKey(options: {
     publicKeyBytes: Uint8Array
-  }): Promise<PublicKeyJwk> {
+  }): Promise<Jwk> {
     const { publicKeyBytes } = options;
 
     // Construct the public key in JWK format.
-    const publicKey: PublicKeyJwk = {
+    const publicKey: Jwk = {
       kty : 'OKP',
       crv : 'X25519',
       x   : Convert.uint8Array(publicKeyBytes).toBase64Url(),
     };
 
     // Compute the JWK thumbprint and set as the key ID.
-    publicKey.kid = await Jose.jwkThumbprint({ key: publicKey });
+    publicKey.kid = await computeJwkThumbprint({ jwk: publicKey });
 
     return publicKey;
   }
@@ -168,8 +168,8 @@ export class X25519 {
    * @returns A Promise that resolves to the derived public key in JWK format.
    */
   public static async computePublicKey(options: {
-    privateKey: PrivateKeyJwk
-  }): Promise<PublicKeyJwk> {
+    privateKey: Jwk
+  }): Promise<Jwk> {
     let { privateKey } = options;
 
     // Convert the provided private key to a byte array.
@@ -179,14 +179,14 @@ export class X25519 {
     const publicKeyBytes = x25519.getPublicKey(privateKeyBytes);
 
     // Construct the public key in JWK format.
-    const publicKey: PublicKeyJwk = {
+    const publicKey: Jwk = {
       kty : 'OKP',
       crv : 'X25519',
       x   : Convert.uint8Array(publicKeyBytes).toBase64Url()
     };
 
     // Compute the JWK thumbprint and set as the key ID.
-    publicKey.kid = await Jose.jwkThumbprint({ key: publicKey });
+    publicKey.kid = await computeJwkThumbprint({ jwk: publicKey });
 
     return publicKey;
   }
@@ -216,7 +216,7 @@ export class X25519 {
    *
    * @returns A Promise that resolves to the generated private key in JWK format.
    */
-  public static async generateKey(): Promise<PrivateKeyJwk> {
+  public static async generateKey(): Promise<Jwk> {
     // Generate a random private key.
     const privateKeyBytes = x25519.utils.randomPrivateKey();
 
@@ -224,7 +224,7 @@ export class X25519 {
     const privateKey = await X25519.bytesToPrivateKey({ privateKeyBytes });
 
     // Compute the JWK thumbprint and set as the key ID.
-    privateKey.kid = await Jose.jwkThumbprint({ key: privateKey });
+    privateKey.kid = await computeJwkThumbprint({ jwk: privateKey });
 
     return privateKey;
   }
@@ -255,12 +255,12 @@ export class X25519 {
    * @returns A Promise that resolves to the private key as a Uint8Array.
    */
   public static async privateKeyToBytes(options: {
-    privateKey: PrivateKeyJwk
+    privateKey: Jwk
   }): Promise<Uint8Array> {
     const { privateKey } = options;
 
     // Verify the provided JWK represents a valid OKP private key.
-    if (!Jose.isOkpPrivateKeyJwk(privateKey)) {
+    if (!isOkpPrivateJwk(privateKey)) {
       throw new Error(`X25519: The provided key is not a valid OKP private key.`);
     }
 
@@ -294,12 +294,12 @@ export class X25519 {
    * @returns A Promise that resolves to the public key as a Uint8Array.
    */
   public static async publicKeyToBytes(options: {
-    publicKey: PublicKeyJwk
+    publicKey: Jwk
   }): Promise<Uint8Array> {
     const { publicKey } = options;
 
     // Verify the provided JWK represents a valid OKP public key.
-    if (!Jose.isOkpPublicKeyJwk(publicKey)) {
+    if (!isOkpPublicJwk(publicKey)) {
       throw new Error(`X25519: The provided key is not a valid OKP public key.`);
     }
 
@@ -348,8 +348,8 @@ export class X25519 {
    * @returns A Promise that resolves to the computed shared secret as a Uint8Array.
    */
   public static async sharedSecret(options: {
-    privateKeyA: PrivateKeyJwk,
-    publicKeyB: PublicKeyJwk
+    privateKeyA: Jwk,
+    publicKeyB: Jwk
   }): Promise<Uint8Array> {
     let { privateKeyA, publicKeyB } = options;
 

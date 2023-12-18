@@ -4,15 +4,14 @@ import chaiAsPromised from 'chai-as-promised';
 
 import type { Web5Crypto } from '../src/types/web5-crypto.js';
 import type {
+  Jwk,
   JwkType,
   JwkOperation,
-  PublicKeyJwk,
-  PrivateKeyJwk,
   JwkParamsEcPublic,
   JwkParamsEcPrivate,
   JwkParamsOkpPublic,
   JwkParamsOctPrivate,
-} from '../src/jose.js';
+} from '../src/jose/jwk.js';
 
 import {
   OperationError,
@@ -45,7 +44,7 @@ describe('Algorithms API', () => {
       public async encrypt(): Promise<Uint8Array> {
         return null as any;
       }
-      public async generateKey(): Promise<PrivateKeyJwk> {
+      public async generateKey(): Promise<Jwk> {
         return null as any;
       }
       public async sign(): Promise<Uint8Array> {
@@ -161,7 +160,7 @@ describe('Algorithms API', () => {
       public async encrypt(): Promise<Uint8Array> {
         return null as any;
       }
-      public async generateKey(): Promise<PrivateKeyJwk> {
+      public async generateKey(): Promise<Jwk> {
         return null as any;
       }
     }
@@ -198,14 +197,14 @@ describe('Algorithms API', () => {
     });
 
     describe('checkSecretKey()', () => {
-      let dataEncryptionKey: PrivateKeyJwk;
+      let dataEncryptionKey: Jwk;
 
       beforeEach(() => {
         dataEncryptionKey = { kty: 'oct', k: Convert.uint8Array(new Uint8Array(16)).toBase64Url() };
       });
 
       it('does not throw with a valid secret key', () => {
-        const key: PrivateKeyJwk = {
+        const key: Jwk = {
           kty : 'oct',
           k   : Convert.uint8Array(new Uint8Array(16)).toBase64Url()
         };
@@ -238,23 +237,22 @@ describe('Algorithms API', () => {
 
       it('if specified, throws an error if the algorithm of the key does not match', () => {
         // @ts-expect-error because alg property is intentionally set to an invalid value.
-        const key: PrivateKeyJwk = { ...dataEncryptionKey, alg: 'invalid-alg' };
+        const key: Jwk = { ...dataEncryptionKey, alg: 'invalid-alg' };
         expect(() => alg.checkSecretKey({
           key
         })).to.throw(InvalidAccessError, 'does not match');
       });
 
       it('throws an error if an EC private key is specified as the key', () => {
-        const secp256k1PrivateKey: PrivateKeyJwk = { kty: 'EC', crv: 'secp256k1', d: '', x: '', y: '' };
+        const secp256k1PrivateKey: Jwk = { kty: 'EC', crv: 'secp256k1', d: '', x: '', y: '' };
         expect(() => alg.checkSecretKey({
           key: secp256k1PrivateKey
         })).to.throw(InvalidAccessError, 'operation is only valid');
       });
 
       it('throws an error if a public key is specified as the key', () => {
-        const secp256k1PublicKey: PublicKeyJwk = { kty: 'EC', crv: 'secp256k1', x: '', y: '' };
+        const secp256k1PublicKey: Jwk = { kty: 'EC', crv: 'secp256k1', x: '', y: '' };
         expect(() => alg.checkSecretKey({
-          // @ts-expect-error because a public key is being intentionally specified as the key.
           key: secp256k1PublicKey
         })).to.throw(InvalidAccessError, 'operation is only valid');
       });
@@ -390,7 +388,7 @@ describe('Algorithms API', () => {
 
     describe('checkDecryptOptions()', () => {
       let algorithm: Web5Crypto.AesCtrOptions;
-      let dataEncryptionKey: PrivateKeyJwk;
+      let dataEncryptionKey: Jwk;
 
       beforeEach(() => {
         algorithm = { name: 'A128CTR', counter: new Uint8Array(16), length: 128 };
@@ -420,7 +418,7 @@ describe('Algorithms API', () => {
 
     describe('checkEncryptOptions()', () => {
       let algorithm: Web5Crypto.AesCtrOptions;
-      let dataEncryptionKey: PrivateKeyJwk;
+      let dataEncryptionKey: Jwk;
 
       beforeEach(() => {
         algorithm = { name: 'A128CTR', counter: new Uint8Array(16), length: 128 };
@@ -457,7 +455,7 @@ describe('Algorithms API', () => {
       public async deriveBits(): Promise<Uint8Array> {
         return null as any;
       }
-      public async generateKey(): Promise<PrivateKeyJwk> {
+      public async generateKey(): Promise<Jwk> {
         return null as any;
       }
       public async sign(): Promise<Uint8Array> {
@@ -540,7 +538,7 @@ describe('Algorithms API', () => {
       });
 
       it('validates that data is a Uint8Array', async () => {
-        const privateKey: PrivateKeyJwk = {
+        const privateKey: Jwk = {
           kty : 'EC',
           crv : 'secp256k1',
           d   : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
@@ -558,7 +556,7 @@ describe('Algorithms API', () => {
       });
 
       it('validates that key is not a public key', async () => {
-        const publicKey: PublicKeyJwk = {
+        const publicKey: Jwk = {
           kty : 'EC',
           crv : 'secp256k1',
           x   : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
@@ -568,7 +566,6 @@ describe('Algorithms API', () => {
         // Valid (algorithm name, data) + Invalid (private key) result in key type check failing first.
         expect(() => alg.checkSignOptions({
           algorithm : { name: 'TestAlgorithm' },
-          // @ts-expect-error because invalid key intentionally specified.
           key       : publicKey,
           data      : new Uint8Array([1, 2, 3, 4])
         })).to.throw(InvalidAccessError, 'operation is only valid for private keys');
@@ -576,7 +573,7 @@ describe('Algorithms API', () => {
 
       it(`if specified, validates that 'key_opts' includes 'sign'`, async () => {
         // Exclude the 'sign' operation.
-        const privateKey: PrivateKeyJwk = {
+        const privateKey: Jwk = {
           kty     : 'EC',
           crv     : 'secp256k1',
           d       : Convert.uint8Array(new Uint8Array(32)).toBase64Url(),
@@ -593,7 +590,7 @@ describe('Algorithms API', () => {
       });
 
       it('throws an error when key is an unsupported curve', async () => {
-        const privateKey: PrivateKeyJwk = {
+        const privateKey: Jwk = {
           kty     : 'EC',
           // @ts-expect-error because an invalid curve is being intentionally specified.
           crv     : 'invalid-curve',
@@ -613,8 +610,8 @@ describe('Algorithms API', () => {
 
     describe('checkVerifyOptions()', () => {
       let alg: TestEllipticCurveAlgorithm;
-      let privateKey: PrivateKeyJwk;
-      let publicKey: PublicKeyJwk;
+      let privateKey: Jwk;
+      let publicKey: Jwk;
       let signature: Uint8Array;
       let data = new Uint8Array([51, 52, 53]);
 
@@ -674,7 +671,6 @@ describe('Algorithms API', () => {
         // Valid (algorithm name, hash algorithm, signature, data) + Invalid (public key) result in key type check failing first.
         expect(() => alg.checkVerifyOptions({
           algorithm : { name: 'TestAlgorithm' },
-          // @ts-expect-error because invalid key intentionally specified.
           key       : privateKey,
           signature : signature,
           data      : data
@@ -683,7 +679,7 @@ describe('Algorithms API', () => {
 
       it(`if specified, validates that 'key_ops' includes 'verify'`, async () => {
         // Manually specify the public key operations to exclude the 'verify' operation.
-        const key: PublicKeyJwk = { ...publicKey, key_ops: ['sign'] };
+        const key: Jwk = { ...publicKey, key_ops: ['sign'] };
 
         expect(() => alg.checkVerifyOptions({
           algorithm : { name: 'TestAlgorithm' },
@@ -752,8 +748,8 @@ describe('Algorithms API', () => {
     });
 
     describe('checkDeriveBitsOptions()', () => {
-      let otherPartyPublicKey: PublicKeyJwk;
-      let ownPrivateKey: PrivateKeyJwk;
+      let otherPartyPublicKey: Jwk;
+      let ownPrivateKey: Jwk;
 
       beforeEach(() => {
         otherPartyPublicKey = {
@@ -832,7 +828,6 @@ describe('Algorithms API', () => {
 
       it('throws an error if a private key is specified as the publicKey', () => {
         expect(() => alg.checkDeriveBitsOptions({
-          // @ts-expect-error since a private key is being intentionally provided to trigger the error.
           algorithm : { name: 'ECDH', publicKey: ownPrivateKey },
           baseKey   : ownPrivateKey
         })).to.throw(InvalidAccessError, 'Requested operation is only valid');
@@ -894,7 +889,6 @@ describe('Algorithms API', () => {
       it('throws an error if a public key is specified as the baseKey', () => {
         expect(() => alg.checkDeriveBitsOptions({
           algorithm : { name: 'ECDH', publicKey: otherPartyPublicKey },
-          // @ts-expect-error because public key is being provided instead of private key.
           baseKey   : otherPartyPublicKey
         })).to.throw(InvalidAccessError, 'Requested operation is only valid for private keys');
       });
@@ -984,7 +978,7 @@ describe('Algorithms API', () => {
 
     describe('checkSignOptions()', () => {
       it('validates that key is an EC private key', async () => {
-        const ed25519PrivateKey: PrivateKeyJwk = {
+        const ed25519PrivateKey: Jwk = {
           kty : 'OKP',
           crv : 'Ed25519',
           x   : 'k-DgyL6dBSdblokVYrYfJhSAEbf3gx68YSTwtqAaMis',
@@ -1001,7 +995,7 @@ describe('Algorithms API', () => {
 
     describe('checkVerifyOptions()', () => {
       it('validates that key is an EC public key', async () => {
-        const ed25519PublicKey: PublicKeyJwk = {
+        const ed25519PublicKey: Jwk = {
           kty : 'OKP',
           crv : 'Ed25519',
           x   : 'k-DgyL6dBSdblokVYrYfJhSAEbf3gx68YSTwtqAaMis',
@@ -1036,7 +1030,7 @@ describe('Algorithms API', () => {
 
     describe('checkSignOptions()', () => {
       it('validates that key is an OKP private key', async () => {
-        const secp256k1PrivateKey: PrivateKeyJwk = {
+        const secp256k1PrivateKey: Jwk = {
           kty : 'EC',
           crv : 'secp256k1',
           x   : 'UxYbeCQo17viyn9Bb5frn80_icQ0dHaRNsjfjZDaxDo',
@@ -1054,7 +1048,7 @@ describe('Algorithms API', () => {
 
     describe('checkVerifyOptions()', () => {
       it('validates that key is an OKP public key', async () => {
-        const secp256k1PublicKey: PublicKeyJwk = {
+        const secp256k1PublicKey: Jwk = {
           kty : 'EC',
           crv : 'secp256k1',
           x   : 'UxYbeCQo17viyn9Bb5frn80_icQ0dHaRNsjfjZDaxDo',
@@ -1090,7 +1084,7 @@ describe('Algorithms API', () => {
 
     describe('checkAlgorithmOptions()', () => {
 
-      let baseKey: PrivateKeyJwk;
+      let baseKey: Jwk;
 
       beforeEach(() => {
         baseKey = {
@@ -1237,7 +1231,7 @@ describe('Algorithms API', () => {
       });
 
       it('throws an error if the key type of the key is not valid', () => {
-        const baseKey: PrivateKeyJwk = {
+        const baseKey: Jwk = {
           kty : 'OKP',
           // @ts-expect-error because OKP JWKs don't have a k parameter.
           k   : Convert.uint8Array(new Uint8Array(32)).toBase64Url()

@@ -1,9 +1,9 @@
 import { Convert } from '@web5/common';
 import { ed25519, edwardsToMontgomeryPub, edwardsToMontgomeryPriv, x25519 } from '@noble/curves/ed25519';
 
-import type { PrivateKeyJwk, PublicKeyJwk } from '../jose.js';
+import type { Jwk } from '../jose/jwk.js';
 
-import { Jose } from '../jose.js';
+import { computeJwkThumbprint, isOkpPrivateJwk, isOkpPublicJwk } from '../jose/jwk.js';
 
 /**
  * The `Ed25519` class provides an interface for generating Ed25519 private
@@ -63,14 +63,14 @@ export class Ed25519 {
    */
   public static async bytesToPrivateKey(options: {
     privateKeyBytes: Uint8Array
-  }): Promise<PrivateKeyJwk> {
+  }): Promise<Jwk> {
     const { privateKeyBytes } = options;
 
     // Derive the public key from the private key.
     const publicKeyBytes  = ed25519.getPublicKey(privateKeyBytes);
 
     // Construct the private key in JWK format.
-    const privateKey: PrivateKeyJwk = {
+    const privateKey: Jwk = {
       crv : 'Ed25519',
       d   : Convert.uint8Array(privateKeyBytes).toBase64Url(),
       kty : 'OKP',
@@ -78,7 +78,7 @@ export class Ed25519 {
     };
 
     // Compute the JWK thumbprint and set as the key ID.
-    privateKey.kid = await Jose.jwkThumbprint({ key: privateKey });
+    privateKey.kid = await computeJwkThumbprint({ jwk: privateKey });
 
     return privateKey;
   }
@@ -109,18 +109,18 @@ export class Ed25519 {
    */
   public static async bytesToPublicKey(options: {
     publicKeyBytes: Uint8Array
-  }): Promise<PublicKeyJwk> {
+  }): Promise<Jwk> {
     const { publicKeyBytes } = options;
 
     // Construct the public key in JWK format.
-    const publicKey: PublicKeyJwk = {
+    const publicKey: Jwk = {
       kty : 'OKP',
       crv : 'Ed25519',
       x   : Convert.uint8Array(publicKeyBytes).toBase64Url(),
     };
 
     // Compute the JWK thumbprint and set as the key ID.
-    publicKey.kid = await Jose.jwkThumbprint({ key: publicKey });
+    publicKey.kid = await computeJwkThumbprint({ jwk: publicKey });
 
     return publicKey;
   }
@@ -148,8 +148,8 @@ export class Ed25519 {
    * @returns A Promise that resolves to the X25519 private key in JWK format.
    */
   public static async convertPrivateKeyToX25519(options: {
-    privateKey: PrivateKeyJwk
-  }): Promise<PrivateKeyJwk> {
+    privateKey: Jwk
+  }): Promise<Jwk> {
     const { privateKey } = options;
 
     // Convert the provided Ed25519 private key to bytes.
@@ -162,7 +162,7 @@ export class Ed25519 {
     const x25519PublicKeyBytes = x25519.getPublicKey(x25519PrivateKeyBytes);
 
     // Construct the X25519 private key in JWK format.
-    const x25519PrivateKey: PrivateKeyJwk = {
+    const x25519PrivateKey: Jwk = {
       kty : 'OKP',
       crv : 'X25519',
       d   : Convert.uint8Array(x25519PrivateKeyBytes).toBase64Url(),
@@ -170,7 +170,7 @@ export class Ed25519 {
     };
 
     // Compute the JWK thumbprint and set as the key ID.
-    x25519PrivateKey.kid = await Jose.jwkThumbprint({ key: x25519PrivateKey });
+    x25519PrivateKey.kid = await computeJwkThumbprint({ jwk: x25519PrivateKey });
 
     return x25519PrivateKey;
   }
@@ -197,8 +197,8 @@ export class Ed25519 {
    * @returns A Promise that resolves to the X25519 public key in JWK format.
    */
   public static async convertPublicKeyToX25519(options: {
-    publicKey: PublicKeyJwk
-  }): Promise<PublicKeyJwk> {
+    publicKey: Jwk
+  }): Promise<Jwk> {
     const { publicKey } = options;
 
     // Convert the provided private key to a byte array.
@@ -214,14 +214,14 @@ export class Ed25519 {
     const x25519PublicKeyBytes = edwardsToMontgomeryPub(ed25519PublicKeyBytes);
 
     // Construct the X25519 private key in JWK format.
-    const x25519PublicKey: PublicKeyJwk = {
+    const x25519PublicKey: Jwk = {
       kty : 'OKP',
       crv : 'X25519',
       x   : Convert.uint8Array(x25519PublicKeyBytes).toBase64Url(),
     };
 
     // Compute the JWK thumbprint and set as the key ID.
-    x25519PublicKey.kid = await Jose.jwkThumbprint({ key: x25519PublicKey });
+    x25519PublicKey.kid = await computeJwkThumbprint({ jwk: x25519PublicKey });
 
     return x25519PublicKey;
   }
@@ -238,7 +238,7 @@ export class Ed25519 {
    * Example usage:
    *
    * ```ts
-   * const privateKey = { ... }; // A PrivateKeyJwk object representing an Ed25519 private key
+   * const privateKey = { ... }; // A Jwk object representing an Ed25519 private key
    * const publicKey = await Ed25519.computePublicKey({ privateKey });
    * ```
    *
@@ -248,8 +248,8 @@ export class Ed25519 {
    * @returns A Promise that resolves to the computed public key in JWK format.
    */
   public static async computePublicKey(options: {
-    privateKey: PrivateKeyJwk
-  }): Promise<PublicKeyJwk> {
+    privateKey: Jwk
+  }): Promise<Jwk> {
     let { privateKey } = options;
 
     // Convert the provided private key to a byte array.
@@ -259,14 +259,14 @@ export class Ed25519 {
     const publicKeyBytes  = ed25519.getPublicKey(privateKeyBytes);
 
     // Construct the public key in JWK format.
-    const publicKey: PublicKeyJwk = {
+    const publicKey: Jwk = {
       kty : 'OKP',
       crv : 'Ed25519',
       x   : Convert.uint8Array(publicKeyBytes).toBase64Url()
     };
 
     // Compute the JWK thumbprint and set as the key ID.
-    publicKey.kid = await Jose.jwkThumbprint({ key: publicKey });
+    publicKey.kid = await computeJwkThumbprint({ jwk: publicKey });
 
     return publicKey;
   }
@@ -294,7 +294,7 @@ export class Ed25519 {
    *
    * @returns A Promise that resolves to the generated private key in JWK format.
    */
-  public static async generateKey(): Promise<PrivateKeyJwk> {
+  public static async generateKey(): Promise<Jwk> {
     // Generate a random private key.
     const privateKeyBytes = ed25519.utils.randomPrivateKey();
 
@@ -302,7 +302,7 @@ export class Ed25519 {
     const privateKey = await Ed25519.bytesToPrivateKey({ privateKeyBytes });
 
     // Compute the JWK thumbprint and set as the key ID.
-    privateKey.kid = await Jose.jwkThumbprint({ key: privateKey });
+    privateKey.kid = await computeJwkThumbprint({ jwk: privateKey });
 
     return privateKey;
   }
@@ -329,12 +329,12 @@ export class Ed25519 {
    * @returns A Promise that resolves to the private key as a Uint8Array.
    */
   public static async privateKeyToBytes(options: {
-    privateKey: PrivateKeyJwk
+    privateKey: Jwk
   }): Promise<Uint8Array> {
     const { privateKey } = options;
 
     // Verify the provided JWK represents a valid OKP private key.
-    if (!Jose.isOkpPrivateKeyJwk(privateKey)) {
+    if (!isOkpPrivateJwk(privateKey)) {
       throw new Error(`Ed25519: The provided key is not a valid OKP private key.`);
     }
 
@@ -364,12 +364,12 @@ export class Ed25519 {
    * @returns A Promise that resolves to the public key as a Uint8Array.
    */
   public static async publicKeyToBytes(options: {
-    publicKey: PublicKeyJwk
+    publicKey: Jwk
   }): Promise<Uint8Array> {
     const { publicKey } = options;
 
     // Verify the provided JWK represents a valid OKP public key.
-    if (!Jose.isOkpPublicKeyJwk(publicKey)) {
+    if (!isOkpPublicJwk(publicKey)) {
       throw new Error(`Ed25519: The provided key is not a valid OKP public key.`);
     }
 
@@ -393,7 +393,7 @@ export class Ed25519 {
    *
    * ```ts
    * const data = new TextEncoder().encode('Hello, world!'); // Data to be signed
-   * const privateKey = { ... }; // A PrivateKeyJwk object representing an Ed25519 private key
+   * const privateKey = { ... }; // A Jwk object representing an Ed25519 private key
    * const signature = await Ed25519.sign({
    *   data,
    *   key: privateKey
@@ -408,7 +408,7 @@ export class Ed25519 {
    */
   public static async sign(options: {
     data: Uint8Array,
-    key: PrivateKeyJwk
+    key: Jwk
   }): Promise<Uint8Array> {
     const { key, data } = options;
 
@@ -433,7 +433,7 @@ export class Ed25519 {
    *
    * ```ts
    * const data = new TextEncoder().encode('Hello, world!'); // Data that was signed
-   * const publicKey = { ... }; // A PublicKeyJwk object representing an Ed25519 public key
+   * const publicKey = { ... }; // A Jwk object representing an Ed25519 public key
    * const signature = new Uint8Array([...]); // Signature to verify
    * const isValid = await Ed25519.verify({
    *   data,
@@ -452,7 +452,7 @@ export class Ed25519 {
    */
   public static async verify(options: {
     data: Uint8Array,
-    key: PublicKeyJwk,
+    key: Jwk,
     signature: Uint8Array
   }): Promise<boolean> {
     const { key, signature, data } = options;

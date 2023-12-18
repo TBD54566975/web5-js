@@ -2,7 +2,7 @@ import chai, { expect } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
-import type { JwkParamsOkpPrivate, PrivateKeyJwk, PublicKeyJwk } from '../../src/jose.js';
+import type { Jwk, JwkParamsOkpPrivate } from '../../src/jose/jwk.js';
 
 import x25519BytesToPublicKey from '../fixtures/test-vectors/x25519/bytes-to-public-key.json' assert { type: 'json' };
 import x25519BytesToPrivateKey from '../fixtures/test-vectors/x25519/bytes-to-private-key.json' assert { type: 'json' };
@@ -20,8 +20,8 @@ import { webcrypto } from 'node:crypto';
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 describe('X25519', () => {
-  let privateKey: PrivateKeyJwk;
-  let publicKey: PublicKeyJwk;
+  let privateKey: Jwk;
+  let publicKey: Jwk;
 
   before(async () => {
     privateKey = await X25519.generateKey();
@@ -106,7 +106,7 @@ describe('X25519', () => {
 
   describe('privateKeyToBytes()', () => {
     it('returns a private key as a byte array', async () => {
-      const privateKey: PrivateKeyJwk = {
+      const privateKey: Jwk = {
         kty : 'OKP',
         crv : 'X25519',
         d   : 'jxSSX_aM49m6E4MaSd-hcizIM33rXzLltuev9oBw1V8',
@@ -121,7 +121,7 @@ describe('X25519', () => {
     });
 
     it('throws an error when provided an X25519 public key', async () => {
-      const publicKey: PublicKeyJwk = {
+      const publicKey: Jwk = {
         kty : 'OKP',
         crv : 'X25519',
         x   : 'U2kX2FckTAoTAjMBUadwOpftdXk-Kx8pZMeyG3QZsy8',
@@ -129,7 +129,6 @@ describe('X25519', () => {
       };
 
       await expect(
-        // @ts-expect-error because a public key is being passed to a method that expects a private key.
         X25519.privateKeyToBytes({ privateKey: publicKey })
       ).to.eventually.be.rejectedWith(Error, 'provided key is not a valid OKP private key');
     });
@@ -137,7 +136,7 @@ describe('X25519', () => {
     for (const vector of x25519PrivateKeyToBytes.vectors) {
       it(vector.description, async () => {
         const privateKeyBytes = await X25519.privateKeyToBytes({
-          privateKey: vector.input.privateKey as PrivateKeyJwk
+          privateKey: vector.input.privateKey as Jwk
         });
         expect(privateKeyBytes).to.deep.equal(Convert.hex(vector.output).toUint8Array());
       });
@@ -146,7 +145,7 @@ describe('X25519', () => {
 
   describe('publicKeyToBytes()', () => {
     it('returns a public key in JWK format', async () => {
-      const publicKey: PublicKeyJwk = {
+      const publicKey: Jwk = {
         kty : 'OKP',
         crv : 'X25519',
         x   : 'U2kX2FckTAoTAjMBUadwOpftdXk-Kx8pZMeyG3QZsy8',
@@ -161,7 +160,7 @@ describe('X25519', () => {
     });
 
     it('throws an error when provided an X25519 private key', async () => {
-      const privateKey: PrivateKeyJwk = {
+      const privateKey: Jwk = {
         kty : 'OKP',
         crv : 'X25519',
         d   : 'jxSSX_aM49m6E4MaSd-hcizIM33rXzLltuev9oBw1V8',
@@ -177,7 +176,7 @@ describe('X25519', () => {
     for (const vector of x25519PublicKeyToBytes.vectors) {
       it(vector.description, async () => {
         const publicKeyBytes = await X25519.publicKeyToBytes({
-          publicKey: vector.input.publicKey as PublicKeyJwk
+          publicKey: vector.input.publicKey as Jwk
         });
         expect(publicKeyBytes).to.deep.equal(Convert.hex(vector.output).toUint8Array());
       });
@@ -185,10 +184,10 @@ describe('X25519', () => {
   });
 
   describe('sharedSecret()', () => {
-    let ownPrivateKey: PrivateKeyJwk;
-    let ownPublicKey: PublicKeyJwk;
-    let otherPartyPrivateKey: PrivateKeyJwk;
-    let otherPartyPublicKey: PublicKeyJwk;
+    let ownPrivateKey: Jwk;
+    let ownPublicKey: Jwk;
+    let otherPartyPrivateKey: Jwk;
+    let otherPartyPublicKey: Jwk;
 
     before(async () => {
       ownPrivateKey = privateKey;

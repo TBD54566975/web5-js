@@ -1,10 +1,10 @@
 import type { Web5Crypto } from '../types/web5-crypto.js';
 import type {
   JwkOperation,
-  PrivateKeyJwk,
+  Jwk,
   JwkParamsEcPrivate,
   JwkParamsOkpPrivate,
-} from '../jose.js';
+} from '../jose/jwk.js';
 
 import { Secp256k1, X25519 } from '../crypto-primitives/index.js';
 import { BaseEcdhAlgorithm, OperationError } from '../algorithms-api/index.js';
@@ -15,7 +15,7 @@ export class EcdhAlgorithm extends BaseEcdhAlgorithm {
 
   public async deriveBits(options: {
     algorithm: Web5Crypto.EcdhDeriveKeyOptions,
-    baseKey: PrivateKeyJwk,
+    baseKey: Jwk,
     length?: number
   }): Promise<Uint8Array> {
     const { algorithm, baseKey, length } = options;
@@ -75,13 +75,13 @@ export class EcdhAlgorithm extends BaseEcdhAlgorithm {
   public async generateKey(options: {
     algorithm: Web5Crypto.EcGenerateKeyOptions,
     keyOperations?: JwkOperation[]
-  }): Promise<PrivateKeyJwk> {
+  }): Promise<Jwk> {
     const { algorithm, keyOperations } = options;
 
     // Validate the input parameters.
     this.checkGenerateKeyOptions({ algorithm, keyOperations });
 
-    let privateKey: PrivateKeyJwk | undefined;
+    let privateKey: Jwk | undefined;
 
     switch (algorithm.curve) {
 

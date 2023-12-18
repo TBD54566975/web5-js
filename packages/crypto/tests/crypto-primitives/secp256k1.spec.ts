@@ -2,7 +2,7 @@ import chai, { expect } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
-import type { JwkParamsEcPrivate, PrivateKeyJwk, PublicKeyJwk } from '../../src/jose.js';
+import type { Jwk, JwkParamsEcPrivate } from '../../src/jose/jwk.js';
 
 import secp256k1GetCurvePoints from '../fixtures/test-vectors/secp256k1/get-curve-points.json' assert { type: 'json' };
 import secp256k1BytesToPublicKey from '../fixtures/test-vectors/secp256k1/bytes-to-public-key.json' assert { type: 'json' };
@@ -23,8 +23,8 @@ import { webcrypto } from 'node:crypto';
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 describe('Secp256k1', () => {
-  let privateKey: PrivateKeyJwk;
-  let publicKey: PublicKeyJwk;
+  let privateKey: Jwk;
+  let publicKey: Jwk;
 
   before(async () => {
     privateKey = await Secp256k1.generateKey();
@@ -196,7 +196,7 @@ describe('Secp256k1', () => {
 
   describe('privateKeyToBytes()', () => {
     it('returns a private key as a byte array', async () => {
-      const privateKey: PrivateKeyJwk = {
+      const privateKey: Jwk = {
         kty : 'EC',
         crv : 'secp256k1',
         d   : 'dA7GmBDemtG48pjx0sDmpS3R6VjcKvyFdkvsFpwiLog',
@@ -212,7 +212,7 @@ describe('Secp256k1', () => {
     });
 
     it('throws an error when provided a secp256k1 public key', async () => {
-      const publicKey: PublicKeyJwk = {
+      const publicKey: Jwk = {
         kty : 'EC',
         crv : 'secp256k1',
         x   : 'N1KVEnQCMpbIp0sP_kL4L_S01LukMmR3QicD92H1klg',
@@ -220,7 +220,6 @@ describe('Secp256k1', () => {
       };
 
       await expect(
-        // @ts-expect-error because a public key is being passed to a method that expects a private key.
         Secp256k1.privateKeyToBytes({ privateKey: publicKey })
       ).to.eventually.be.rejectedWith(Error, 'provided key is not a valid EC private key');
     });
@@ -228,7 +227,7 @@ describe('Secp256k1', () => {
     for (const vector of secp256k1PrivateKeyToBytes.vectors) {
       it(vector.description, async () => {
         const privateKeyBytes = await Secp256k1.privateKeyToBytes({
-          privateKey: vector.input.privateKey as PrivateKeyJwk
+          privateKey: vector.input.privateKey as Jwk
         });
         expect(privateKeyBytes).to.deep.equal(Convert.hex(vector.output).toUint8Array());
       });
@@ -237,7 +236,7 @@ describe('Secp256k1', () => {
 
   describe('publicKeyToBytes()', () => {
     it('returns a public key in JWK format', async () => {
-      const publicKey: PublicKeyJwk = {
+      const publicKey: Jwk = {
         kty : 'EC',
         crv : 'secp256k1',
         x   : 'N1KVEnQCMpbIp0sP_kL4L_S01LukMmR3QicD92H1klg',
@@ -253,7 +252,7 @@ describe('Secp256k1', () => {
     });
 
     it('throws an error when provided an Ed25519 private key', async () => {
-      const privateKey: PrivateKeyJwk = {
+      const privateKey: Jwk = {
         kty : 'EC',
         crv : 'secp256k1',
         d   : 'dA7GmBDemtG48pjx0sDmpS3R6VjcKvyFdkvsFpwiLog',
@@ -270,7 +269,7 @@ describe('Secp256k1', () => {
     for (const vector of secp256k1PublicKeyToBytes.vectors) {
       it(vector.description, async () => {
         const publicKeyBytes = await Secp256k1.publicKeyToBytes({
-          publicKey: vector.input.publicKey as PublicKeyJwk
+          publicKey: vector.input.publicKey as Jwk
         });
         expect(publicKeyBytes).to.deep.equal(Convert.hex(vector.output).toUint8Array());
       });
@@ -278,10 +277,10 @@ describe('Secp256k1', () => {
   });
 
   describe('sharedSecret()', () => {
-    let ownPrivateKey: PrivateKeyJwk;
-    let ownPublicKey: PublicKeyJwk;
-    let otherPartyPrivateKey: PrivateKeyJwk;
-    let otherPartyPublicKey: PublicKeyJwk;
+    let ownPrivateKey: Jwk;
+    let ownPublicKey: Jwk;
+    let otherPartyPrivateKey: Jwk;
+    let otherPartyPublicKey: Jwk;
 
     beforeEach(async () => {
       ownPrivateKey = privateKey;

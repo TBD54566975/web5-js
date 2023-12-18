@@ -1,5 +1,5 @@
 import type { Web5Crypto } from '../types/web5-crypto.js';
-import type { JwkOperation, JwkParamsEcPrivate, JwkParamsEcPublic, PrivateKeyJwk, PublicKeyJwk } from '../jose.js';
+import type { Jwk, JwkOperation, JwkParamsEcPrivate, JwkParamsEcPublic } from '../jose/jwk.js';
 
 import { Secp256k1 } from '../crypto-primitives/index.js';
 import { BaseEcdsaAlgorithm } from '../algorithms-api/index.js';
@@ -11,13 +11,13 @@ export class EcdsaAlgorithm extends BaseEcdsaAlgorithm {
   public async generateKey(options: {
     algorithm: Web5Crypto.EcdsaGenerateKeyOptions,
     keyOperations?: JwkOperation[]
-  }): Promise<PrivateKeyJwk> {
+  }): Promise<Jwk> {
     const { algorithm, keyOperations } = options;
 
     // Validate the input parameters.
     this.checkGenerateKeyOptions({ algorithm, keyOperations });
 
-    let privateKey: PrivateKeyJwk | undefined;
+    let privateKey: Jwk | undefined;
 
     switch (algorithm.curve) {
 
@@ -39,7 +39,7 @@ export class EcdsaAlgorithm extends BaseEcdsaAlgorithm {
 
   public async sign(options: {
     algorithm: Web5Crypto.EcdsaOptions,
-    key: PrivateKeyJwk,
+    key: Jwk,
     data: Uint8Array
   }): Promise<Uint8Array> {
     const { key, data } = options;
@@ -62,7 +62,7 @@ export class EcdsaAlgorithm extends BaseEcdsaAlgorithm {
 
   public async verify(options: {
     algorithm: Web5Crypto.EcdsaOptions;
-    key: PublicKeyJwk;
+    key: Jwk;
     signature: Uint8Array;
     data: Uint8Array;
   }): Promise<boolean> {

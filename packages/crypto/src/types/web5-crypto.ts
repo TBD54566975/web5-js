@@ -1,4 +1,4 @@
-import type { PublicKeyJwk } from '../jose.js';
+import type { Jwk } from '../jose/jwk.js';
 
 export namespace Web5Crypto {
   export interface AesCtrOptions extends Algorithm {
@@ -26,7 +26,7 @@ export namespace Web5Crypto {
     curve: NamedCurve;
   }
   export interface EcdhDeriveKeyOptions extends Algorithm {
-    publicKey: PublicKeyJwk;
+    publicKey: Jwk;
   }
 
   export interface EcdsaGenerateKeyOptions extends EcGenerateKeyOptions { }

@@ -3,7 +3,7 @@ import chai, { expect } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
-import type { JwkParamsOctPrivate, PrivateKeyJwk, PublicKeyJwk } from '../src/jose.js';
+import type { Jwk, JwkParamsOctPrivate } from '../src/jose/jwk.js';
 
 import { aesCtrTestVectors } from './fixtures/test-vectors/aes.js';
 import { AesCtr, Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
@@ -28,7 +28,7 @@ describe('Default Crypto Algorithm Implementations', () => {
     });
 
     describe('decrypt()', () => {
-      let dataEncryptionKey: PrivateKeyJwk;
+      let dataEncryptionKey: Jwk;
 
       before(async () => {
         dataEncryptionKey = await aesCtr.generateKey({
@@ -53,7 +53,7 @@ describe('Default Crypto Algorithm Implementations', () => {
       });
 
       it('returns expected plaintext given ciphertext input', async () => {
-        let dataEncryptionKey: PrivateKeyJwk;
+        let dataEncryptionKey: Jwk;
 
         for (const vector of aesCtrTestVectors) {
           dataEncryptionKey = await AesCtr.bytesToPrivateKey({ privateKeyBytes: Convert.hex(vector.key).toUint8Array() });
@@ -72,7 +72,7 @@ describe('Default Crypto Algorithm Implementations', () => {
       });
 
       describe('encrypt()', () => {
-        let dataEncryptionKey: PrivateKeyJwk;
+        let dataEncryptionKey: Jwk;
 
         before(async () => {
           dataEncryptionKey = await aesCtr.generateKey({
@@ -181,15 +181,15 @@ describe('Default Crypto Algorithm Implementations', () => {
 
     describe('deriveBits()', () => {
 
-      let secp256k1PrivateKeyA: PrivateKeyJwk;
-      let secp256k1PublicKeyA: PublicKeyJwk;
-      let secp256k1PrivateKeyB: PrivateKeyJwk;
-      let secp256k1PublicKeyB: PublicKeyJwk;
+      let secp256k1PrivateKeyA: Jwk;
+      let secp256k1PublicKeyA: Jwk;
+      let secp256k1PrivateKeyB: Jwk;
+      let secp256k1PublicKeyB: Jwk;
 
-      let x25519PrivateKeyA: PrivateKeyJwk;
-      let x25519PublicKeyA: PublicKeyJwk;
-      let x25519PrivateKeyB: PrivateKeyJwk;
-      let x25519PublicKeyB: PublicKeyJwk;
+      let x25519PrivateKeyA: Jwk;
+      let x25519PublicKeyA: Jwk;
+      let x25519PrivateKeyB: Jwk;
+      let x25519PublicKeyB: Jwk;
 
       before(async () => {
         secp256k1PrivateKeyA = await ecdh.generateKey({ algorithm: { name: 'ECDH', curve: 'secp256k1' } });
@@ -224,7 +224,7 @@ describe('Default Crypto Algorithm Implementations', () => {
       it('throws an error when base or public key is an unsupported curve', async () => {
         // Manually change the key's curve to trigger an error.
         // @ts-expect-error because an unknown 'crv' value is manually set.
-        const baseKey = { ...secp256k1PrivateKeyA, crv: 'non-existent-curve' } as PrivateKeyJwk;
+        const baseKey = { ...secp256k1PrivateKeyA, crv: 'non-existent-curve' } as Jwk;
         // @ts-expect-error because an unknown 'crv' value is manually set.
         const publicKey = { ...secp256k1PublicKeyB, crv: 'non-existent-curve' } as PublicKeyJwk;
 
@@ -295,7 +295,7 @@ describe('Default Crypto Algorithm Implementations', () => {
       });
 
       it(`accepts base key without 'key_ops' set`, async () => {
-        const baseKey = { ...secp256k1PrivateKeyA, key_ops: undefined } as PrivateKeyJwk;
+        const baseKey = { ...secp256k1PrivateKeyA, key_ops: undefined } as Jwk;
 
         await expect(ecdh.deriveBits({
           algorithm: { name: 'ECDH', publicKey: secp256k1PublicKeyB },
@@ -304,7 +304,7 @@ describe('Default Crypto Algorithm Implementations', () => {
       });
 
       it(`accepts public key without 'key_ops' set`, async () => {
-        const publicKey = { ...secp256k1PublicKeyB, key_ops: undefined } as PublicKeyJwk;
+        const publicKey = { ...secp256k1PublicKeyB, key_ops: undefined } as Jwk;
 
         await expect(ecdh.deriveBits({
           algorithm : { name: 'ECDH', publicKey },
@@ -314,7 +314,7 @@ describe('Default Crypto Algorithm Implementations', () => {
 
       it(`if specified, validates base key operations includes 'deriveBits'`, async () => {
         // Manually specify the base key operations array to exclude the 'deriveBits' operation.
-        const baseKey = { ...secp256k1PrivateKeyA, key_ops: ['sign'] } as PrivateKeyJwk;
+        const baseKey = { ...secp256k1PrivateKeyA, key_ops: ['sign'] } as Jwk;
 
         await expect(ecdh.deriveBits({
           algorithm: { name: 'ECDH', publicKey: secp256k1PublicKeyB },
@@ -324,7 +324,7 @@ describe('Default Crypto Algorithm Implementations', () => {
 
       it(`if specified, validates public key operations includes 'deriveBits'`, async () => {
         // Manually specify the private key operations array to exclude the 'deriveBits' operation.
-        const publicKey = { ...secp256k1PublicKeyB, key_ops: ['sign'] } as PublicKeyJwk;
+        const publicKey = { ...secp256k1PublicKeyB, key_ops: ['sign'] } as Jwk;
 
         await expect(
           ecdh.deriveBits({
@@ -556,7 +556,7 @@ describe('Default Crypto Algorithm Implementations', () => {
     });
 
     describe('sign()', () => {
-      let privateKey: PrivateKeyJwk;
+      let privateKey: Jwk;
       let data = new Uint8Array([51, 52, 53]);
 
       beforeEach(async () => {
@@ -595,8 +595,8 @@ describe('Default Crypto Algorithm Implementations', () => {
     });
 
     describe('verify()', () => {
-      let privateKey: PrivateKeyJwk;
-      let publicKey: PublicKeyJwk;
+      let privateKey: Jwk;
+      let publicKey: Jwk;
       let signature: Uint8Array;
       let data = new Uint8Array([51, 52, 53]);
 
@@ -745,7 +745,7 @@ describe('Default Crypto Algorithm Implementations', () => {
     });
 
     describe('sign()', () => {
-      let privateKey: PrivateKeyJwk;
+      let privateKey: Jwk;
       let data = new Uint8Array([51, 52, 53]);
 
       beforeEach(async () => {
@@ -784,8 +784,8 @@ describe('Default Crypto Algorithm Implementations', () => {
     });
 
     describe('verify()', () => {
-      let privateKey: PrivateKeyJwk;
-      let publicKey: PublicKeyJwk;
+      let privateKey: Jwk;
+      let publicKey: Jwk;
       let signature: Uint8Array;
       let data = new Uint8Array([51, 52, 53]);
 
@@ -852,7 +852,7 @@ describe('Default Crypto Algorithm Implementations', () => {
     });
 
     describe('deriveBits()', () => {
-      let inputKey: PrivateKeyJwk;
+      let inputKey: Jwk;
 
       beforeEach(async () => {
         inputKey = {

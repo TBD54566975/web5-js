@@ -3,9 +3,9 @@ import { sha256 } from '@noble/hashes/sha256';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { numberToBytesBE } from '@noble/curves/abstract/utils';
 
-import type { PrivateKeyJwk, PublicKeyJwk } from '../jose.js';
+import type { Jwk } from '../jose/jwk.js';
 
-import { Jose } from '../jose.js';
+import { computeJwkThumbprint, isEcPrivateJwk, isEcPublicJwk } from '../jose/jwk.js';
 
 /**
  * The `Secp256k1` class provides a comprehensive suite of utilities for working with
@@ -108,14 +108,14 @@ export class Secp256k1 {
    */
   public static async bytesToPrivateKey(options: {
     privateKeyBytes: Uint8Array
-  }): Promise<PrivateKeyJwk> {
+  }): Promise<Jwk> {
     const { privateKeyBytes } = options;
 
     // Get the elliptic curve points (x and y coordinates) for the provided private key.
     const points = await Secp256k1.getCurvePoints({ key: privateKeyBytes });
 
     // Construct the private key in JWK format.
-    const privateKey: PrivateKeyJwk = {
+    const privateKey: Jwk = {
       kty : 'EC',
       crv : 'secp256k1',
       d   : Convert.uint8Array(privateKeyBytes).toBase64Url(),
@@ -124,7 +124,7 @@ export class Secp256k1 {
     };
 
     // Compute the JWK thumbprint and set as the key ID.
-    privateKey.kid = await Jose.jwkThumbprint({ key: privateKey });
+    privateKey.kid = await computeJwkThumbprint({ jwk: privateKey });
 
     return privateKey;
   }
@@ -161,14 +161,14 @@ export class Secp256k1 {
    */
   public static async bytesToPublicKey(options: {
     publicKeyBytes: Uint8Array
-  }): Promise<PublicKeyJwk> {
+  }): Promise<Jwk> {
     const { publicKeyBytes } = options;
 
     // Get the elliptic curve points (x and y coordinates) for the provided public key.
     const points = await Secp256k1.getCurvePoints({ key: publicKeyBytes });
 
     // Construct the public key in JWK format.
-    const publicKey: PublicKeyJwk = {
+    const publicKey: Jwk = {
       kty : 'EC',
       crv : 'secp256k1',
       x   : Convert.uint8Array(points.x).toBase64Url(),
@@ -176,7 +176,7 @@ export class Secp256k1 {
     };
 
     // Compute the JWK thumbprint and set as the key ID.
-    publicKey.kid = await Jose.jwkThumbprint({ key: publicKey });
+    publicKey.kid = await computeJwkThumbprint({ jwk: publicKey });
 
     return publicKey;
   }
@@ -276,8 +276,8 @@ export class Secp256k1 {
    * @returns A Promise that resolves to the derived public key in JWK format.
    */
   public static async computePublicKey(options: {
-    privateKey: PrivateKeyJwk
-  }): Promise<PublicKeyJwk> {
+    privateKey: Jwk
+  }): Promise<Jwk> {
     const { privateKey } = options;
 
     // Convert the provided private key to a byte array.
@@ -287,7 +287,7 @@ export class Secp256k1 {
     const points = await Secp256k1.getCurvePoints({ key: privateKeyBytes });
 
     // Construct the public key in JWK format.
-    const publicKey: PublicKeyJwk = {
+    const publicKey: Jwk = {
       kty : 'EC',
       crv : 'secp256k1',
       x   : Convert.uint8Array(points.x).toBase64Url(),
@@ -295,7 +295,7 @@ export class Secp256k1 {
     };
 
     // Compute the JWK thumbprint and set as the key ID.
-    publicKey.kid = await Jose.jwkThumbprint({ key: publicKey });
+    publicKey.kid = await computeJwkThumbprint({ jwk: publicKey });
 
     return publicKey;
   }
@@ -327,7 +327,7 @@ export class Secp256k1 {
    *
    * @returns A Promise that resolves to the generated private key in JWK format.
    */
-  public static async generateKey(): Promise<PrivateKeyJwk> {
+  public static async generateKey(): Promise<Jwk> {
     // Generate a random private key.
     const privateKeyBytes = secp256k1.utils.randomPrivateKey();
 
@@ -335,7 +335,7 @@ export class Secp256k1 {
     const privateKey = await Secp256k1.bytesToPrivateKey({ privateKeyBytes });
 
     // Compute the JWK thumbprint and set as the key ID.
-    privateKey.kid = await Jose.jwkThumbprint({ key: privateKey });
+    privateKey.kid = await computeJwkThumbprint({ jwk: privateKey });
 
     return privateKey;
   }
@@ -364,12 +364,12 @@ export class Secp256k1 {
    * @returns A Promise that resolves to the private key as a Uint8Array.
    */
   public static async privateKeyToBytes(options: {
-    privateKey: PrivateKeyJwk
+    privateKey: Jwk
   }): Promise<Uint8Array> {
     const { privateKey } = options;
 
     // Verify the provided JWK represents a valid EC secp256k1 private key.
-    if (!Jose.isEcPrivateKeyJwk(privateKey)) {
+    if (!isEcPrivateJwk(privateKey)) {
       throw new Error(`Secp256k1: The provided key is not a valid EC private key.`);
     }
 
@@ -405,12 +405,12 @@ export class Secp256k1 {
    * @returns A Promise that resolves to the public key as a Uint8Array.
    */
   public static async publicKeyToBytes(options: {
-    publicKey: PublicKeyJwk
+    publicKey: Jwk
   }): Promise<Uint8Array> {
     const { publicKey } = options;
 
     // Verify the provided JWK represents a valid EC secp256k1 public key, which must have a 'y' value.
-    if (!(Jose.isEcPublicKeyJwk(publicKey) && publicKey.y)) {
+    if (!(isEcPublicJwk(publicKey) && publicKey.y)) {
       throw new Error(`Secp256k1: The provided key is not a valid EC public key.`);
     }
 
@@ -464,8 +464,8 @@ export class Secp256k1 {
    * @returns A Promise that resolves to the computed shared secret as a Uint8Array.
    */
   public static async sharedSecret(options: {
-    privateKeyA: PrivateKeyJwk,
-    publicKeyB: PublicKeyJwk
+    privateKeyA: Jwk,
+    publicKeyB: Jwk
   }): Promise<Uint8Array> {
     let { privateKeyA, publicKeyB } = options;
 
@@ -519,7 +519,7 @@ export class Secp256k1 {
    */
   public static async sign(options: {
     data: Uint8Array,
-    key: PrivateKeyJwk
+    key: Jwk
   }): Promise<Uint8Array> {
     const { data, key } = options;
 
@@ -578,7 +578,7 @@ export class Secp256k1 {
    */
   public static async verify(options: {
     data: Uint8Array,
-    key: PublicKeyJwk,
+    key: Jwk,
     signature: Uint8Array
   }): Promise<boolean> {
     const { data, key, signature } = options;

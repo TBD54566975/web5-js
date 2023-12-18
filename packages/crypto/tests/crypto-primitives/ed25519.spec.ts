@@ -2,7 +2,7 @@ import chai, { expect } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
-import type { JwkParamsOkpPrivate, PrivateKeyJwk, PublicKeyJwk } from '../../src/jose.js';
+import type { Jwk, JwkParamsOkpPrivate } from '../../src/jose/jwk.js';
 
 import ed25519Sign from '../fixtures/test-vectors/ed25519/sign.json' assert { type: 'json' };
 import ed25519Verify from '../fixtures/test-vectors/ed25519/verify.json' assert { type: 'json' };
@@ -25,8 +25,8 @@ import { webcrypto } from 'node:crypto';
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 describe('Ed25519', () => {
-  let privateKey: PrivateKeyJwk;
-  let publicKey: PublicKeyJwk;
+  let privateKey: Jwk;
+  let publicKey: Jwk;
 
   before(async () => {
     privateKey = await Ed25519.generateKey();
@@ -89,7 +89,7 @@ describe('Ed25519', () => {
 
     for (const vector of ed25519ComputePublicKey.vectors) {
       it(vector.description, async () => {
-        const publicKey = await Ed25519.computePublicKey(vector.input as { privateKey: PrivateKeyJwk });
+        const publicKey = await Ed25519.computePublicKey(vector.input as { privateKey: Jwk });
         expect(publicKey).to.deep.equal(vector.output);
       });
     }
@@ -99,7 +99,7 @@ describe('Ed25519', () => {
     for (const vector of ed25519ConvertPrivateKeyToX25519.vectors) {
       it(vector.description, async () => {
         const x25519PrivateKey = await Ed25519.convertPrivateKeyToX25519(
-          vector.input as { privateKey: PrivateKeyJwk }
+          vector.input as { privateKey: Jwk }
         );
         expect(x25519PrivateKey).to.deep.equal(vector.output);
       });
@@ -110,7 +110,7 @@ describe('Ed25519', () => {
     it('throws an error when provided an invalid Ed25519 public key', async () => {
       const invalidEd25519PublicKeyBytes = Convert.hex('02fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f').toUint8Array();
 
-      const invalidEd25519PublicKey: PublicKeyJwk = {
+      const invalidEd25519PublicKey: Jwk = {
         kty : 'OKP',
         crv : 'Ed25519',
         x   : Convert.uint8Array(invalidEd25519PublicKeyBytes).toBase64Url()
@@ -122,7 +122,7 @@ describe('Ed25519', () => {
     });
 
     it('throws an error when provided an Ed25519 private key', async () => {
-      const ed25519PrivateKey: PrivateKeyJwk = {
+      const ed25519PrivateKey: Jwk = {
         kty : 'OKP',
         crv : 'Ed25519',
         d   : 'dwdtCnMYpX08FsFyUbJmRd9ML4frwJkqsXf7pR25LCo',
@@ -137,7 +137,7 @@ describe('Ed25519', () => {
     for (const vector of ed25519ConvertPublicKeyToX25519.vectors) {
       it(vector.description, async () => {
         const x25519PrivateKey = await Ed25519.convertPublicKeyToX25519(
-          vector.input as { publicKey: PublicKeyJwk }
+          vector.input as { publicKey: Jwk }
         );
         expect(x25519PrivateKey).to.deep.equal(vector.output);
       });
@@ -165,7 +165,7 @@ describe('Ed25519', () => {
 
   describe('privateKeyToBytes()', () => {
     it('returns a private key as a byte array', async () => {
-      const privateKey: PrivateKeyJwk = {
+      const privateKey: Jwk = {
         crv : 'Ed25519',
         d   : 'TM0Imyj_ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U-4pvs',
         kty : 'OKP',
@@ -180,14 +180,13 @@ describe('Ed25519', () => {
     });
 
     it('throws an error when provided an Ed25519 public key', async () => {
-      const publicKey: PublicKeyJwk = {
+      const publicKey: Jwk = {
         crv : 'Ed25519',
         kty : 'OKP',
         x   : 'PUAXw-hDiVqStwqnTRt-vJyYLM8uxJaMwM1V8Sr0Zgw',
       };
 
       await expect(
-        // @ts-expect-error because a public key is being passed to a method that expects a private key.
         Ed25519.privateKeyToBytes({ privateKey: publicKey })
       ).to.eventually.be.rejectedWith(Error, 'provided key is not a valid OKP private key');
     });
@@ -195,7 +194,7 @@ describe('Ed25519', () => {
     for (const vector of ed25519PrivateKeyToBytes.vectors) {
       it(vector.description, async () => {
         const privateKeyBytes = await Ed25519.privateKeyToBytes({
-          privateKey: vector.input.privateKey as PrivateKeyJwk
+          privateKey: vector.input.privateKey as Jwk
         });
         expect(privateKeyBytes).to.deep.equal(Convert.hex(vector.output).toUint8Array());
       });
@@ -204,7 +203,7 @@ describe('Ed25519', () => {
 
   describe('publicKeyToBytes()', () => {
     it('returns a public key in JWK format', async () => {
-      const publicKey: PublicKeyJwk = {
+      const publicKey: Jwk = {
         kty : 'OKP',
         crv : 'Ed25519',
         x   : 'PUAXw-hDiVqStwqnTRt-vJyYLM8uxJaMwM1V8Sr0Zgw',
@@ -219,7 +218,7 @@ describe('Ed25519', () => {
     });
 
     it('throws an error when provided an Ed25519 private key', async () => {
-      const privateKey: PrivateKeyJwk = {
+      const privateKey: Jwk = {
         crv : 'Ed25519',
         d   : 'TM0Imyj_ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U-4pvs',
         kty : 'OKP',
@@ -235,7 +234,7 @@ describe('Ed25519', () => {
     for (const vector of ed25519PublicKeyToBytes.vectors) {
       it(vector.description, async () => {
         const publicKeyBytes = await Ed25519.publicKeyToBytes({
-          publicKey: vector.input.publicKey as PublicKeyJwk
+          publicKey: vector.input.publicKey as Jwk
         });
         expect(publicKeyBytes).to.deep.equal(Convert.hex(vector.output).toUint8Array());
       });
@@ -262,7 +261,7 @@ describe('Ed25519', () => {
       it(vector.description, async () => {
         const signature = await Ed25519.sign({
           data : Convert.hex(vector.input.data).toUint8Array(),
-          key  : vector.input.key as PrivateKeyJwk
+          key  : vector.input.key as Jwk
         });
 
         const signatureHex = Convert.uint8Array(signature).toHex();
@@ -371,7 +370,7 @@ describe('Ed25519', () => {
       it(vector.description, async () => {
         const isValid = await Ed25519.verify({
           data      : Convert.hex(vector.input.data).toUint8Array(),
-          key       : vector.input.key as PublicKeyJwk,
+          key       : vector.input.key as Jwk,
           signature : Convert.hex(vector.input.signature).toUint8Array()
         });
         expect(isValid).to.equal(vector.output);

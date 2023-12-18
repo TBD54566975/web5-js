@@ -1,9 +1,10 @@
+import type { Jwk, JwkOperation } from '../../jose/jwk.js';
 import type { Web5Crypto } from '../../types/web5-crypto.js';
-import { Jose, type JwkOperation, type PrivateKeyJwk } from '../../jose.js';
 
 import { InvalidAccessError } from '../errors.js';
 import { BaseEllipticCurveAlgorithm } from './base.js';
 import { checkRequiredProperty } from '../../utils.js';
+import { isEcPrivateJwk, isEcPublicJwk, isOkpPrivateJwk, isOkpPublicJwk } from '../../jose/jwk.js';
 
 export abstract class BaseEcdhAlgorithm extends BaseEllipticCurveAlgorithm {
 
@@ -11,7 +12,7 @@ export abstract class BaseEcdhAlgorithm extends BaseEllipticCurveAlgorithm {
 
   public checkDeriveBitsOptions(options: {
     algorithm: Web5Crypto.EcdhDeriveKeyOptions,
-    baseKey: PrivateKeyJwk
+    baseKey: Jwk
   }): void {
     const { algorithm, baseKey } = options;
     // Algorithm specified in the operation must match the algorithm implementation processing the operation.
@@ -24,7 +25,7 @@ export abstract class BaseEcdhAlgorithm extends BaseEllipticCurveAlgorithm {
     // The publicKey object must be of key type EC or OKP.
     this.checkKeyType({ keyType: algorithm.publicKey.kty, allowedKeyTypes: ['EC', 'OKP'] });
     // The publicKey object must be an Elliptic Curve (EC) or Octet Key Pair (OKP) public key in JWK format.
-    if (!(Jose.isEcPublicKeyJwk(algorithm.publicKey) || Jose.isOkpPublicKeyJwk(algorithm.publicKey))) {
+    if (!(isEcPublicJwk(algorithm.publicKey) || isOkpPublicJwk(algorithm.publicKey))) {
       throw new InvalidAccessError(`Requested operation is only valid for public keys.`);
     }
     // If specified, the public key's `key_ops` must include the 'deriveBits' operation.
@@ -39,7 +40,7 @@ export abstract class BaseEcdhAlgorithm extends BaseEllipticCurveAlgorithm {
     // The baseKey object must be of key type EC or OKP.
     this.checkKeyType({ keyType: baseKey.kty, allowedKeyTypes: ['EC', 'OKP'] });
     // The baseKey object must be an Elliptic Curve (EC) or Octet Key Pair (OKP) private key in JWK format.
-    if (!(Jose.isEcPrivateKeyJwk(baseKey) || Jose.isOkpPrivateKeyJwk(baseKey))) {
+    if (!(isEcPrivateJwk(baseKey) || isOkpPrivateJwk(baseKey))) {
       throw new InvalidAccessError(`Requested operation is only valid for private keys.`);
     }
     // If specified, the base key's `key_ops` must include the 'deriveBits' operation.

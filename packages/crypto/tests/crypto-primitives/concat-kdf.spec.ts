@@ -2,8 +2,8 @@ import chai, { expect } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
-import { NotSupportedError } from '../../src/algorithms-api/errors.js';
 import { ConcatKdf } from '../../src/crypto-primitives/concat-kdf.js';
+import { NotSupportedError } from '../../src/algorithms-api/errors.js';
 
 chai.use(chaiAsPromised);
 

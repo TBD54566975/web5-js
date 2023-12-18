@@ -1,6 +1,6 @@
 import { universalTypeOf } from '@web5/common';
 
-import type { JwkOperation, PrivateKeyJwk } from '../../jose.js';
+import type { Jwk, JwkOperation } from '../../jose/jwk.js';
 import type { Web5Crypto } from '../../types/web5-crypto.js';
 
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
@@ -15,7 +15,7 @@ export abstract class BasePbkdf2Algorithm extends CryptoAlgorithm {
 
   public checkAlgorithmOptions(options: {
     algorithm: Web5Crypto.Pbkdf2Options,
-    baseKey: PrivateKeyJwk
+    baseKey: Jwk
   }): void {
     const { algorithm, baseKey } = options;
     // Algorithm specified in the operation must match the algorithm implementation processing the operation.
@@ -56,7 +56,7 @@ export abstract class BasePbkdf2Algorithm extends CryptoAlgorithm {
     throw new InvalidAccessError(`Requested operation 'encrypt' is not valid for '${this.names.join(', ')}' keys.`);
   }
 
-  public override async generateKey(): Promise<PrivateKeyJwk> {
+  public override async generateKey(): Promise<Jwk> {
     throw new InvalidAccessError(`Requested operation 'generateKey' is not valid for '${this.names.join(', ')}' keys.`);
   }
 

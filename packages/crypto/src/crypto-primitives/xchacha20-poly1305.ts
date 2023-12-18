@@ -1,9 +1,9 @@
 import { Convert } from '@web5/common';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 
-import type { PrivateKeyJwk } from '../jose.js';
+import type { Jwk } from '../jose/jwk.js';
 
-import { Jose } from '../jose.js';
+import { computeJwkThumbprint, isOctPrivateJwk } from '../jose/jwk.js';
 
 const TAG_LENGTH = 16;
 
@@ -84,17 +84,17 @@ export class XChaCha20Poly1305 {
    */
   public static async bytesToPrivateKey(options: {
     privateKeyBytes: Uint8Array
-  }): Promise<PrivateKeyJwk> {
+  }): Promise<Jwk> {
     const { privateKeyBytes } = options;
 
     // Construct the private key in JWK format.
-    const privateKey: PrivateKeyJwk = {
+    const privateKey: Jwk = {
       k   : Convert.uint8Array(privateKeyBytes).toBase64Url(),
       kty : 'oct'
     };
 
     // Compute the JWK thumbprint and set as the key ID.
-    privateKey.kid = await Jose.jwkThumbprint({ key: privateKey });
+    privateKey.kid = await computeJwkThumbprint({ jwk: privateKey });
 
     return privateKey;
   }
@@ -136,7 +136,7 @@ export class XChaCha20Poly1305 {
   public static async decrypt(options: {
     additionalData?: Uint8Array,
     data: Uint8Array,
-    key: PrivateKeyJwk,
+    key: Jwk,
     nonce: Uint8Array,
     tag: Uint8Array
   }): Promise<Uint8Array> {
@@ -188,7 +188,7 @@ export class XChaCha20Poly1305 {
   public static async encrypt(options: {
     additionalData?: Uint8Array,
     data: Uint8Array,
-    key: PrivateKeyJwk,
+    key: Jwk,
     nonce: Uint8Array
   }): Promise<{ ciphertext: Uint8Array, tag: Uint8Array }> {
     const { additionalData, data, key, nonce } = options;
@@ -226,7 +226,7 @@ export class XChaCha20Poly1305 {
    *
    * @returns A Promise that resolves to the generated symmetric key in JWK format.
    */
-  public static async generateKey(): Promise<PrivateKeyJwk> {
+  public static async generateKey(): Promise<Jwk> {
     // Generate a random private key.
     const privateKeyBytes = crypto.getRandomValues(new Uint8Array(32));
 
@@ -234,7 +234,7 @@ export class XChaCha20Poly1305 {
     const privateKey = await XChaCha20Poly1305.bytesToPrivateKey({ privateKeyBytes });
 
     // Compute the JWK thumbprint and set as the key ID.
-    privateKey.kid = await Jose.jwkThumbprint({ key: privateKey });
+    privateKey.kid = await computeJwkThumbprint({ jwk: privateKey });
 
     return privateKey;
   }
@@ -259,12 +259,12 @@ export class XChaCha20Poly1305 {
    * @returns A Promise that resolves to the symmetric key as a Uint8Array.
    */
   public static async privateKeyToBytes(options: {
-    privateKey: PrivateKeyJwk
+    privateKey: Jwk
   }): Promise<Uint8Array> {
     const { privateKey } = options;
 
     // Verify the provided JWK represents a valid oct private key.
-    if (!Jose.isOctPrivateKeyJwk(privateKey)) {
+    if (!isOctPrivateJwk(privateKey)) {
       throw new Error(`XChaCha20Poly1305: The provided key is not a valid oct private key.`);
     }
 

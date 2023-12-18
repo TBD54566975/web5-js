@@ -1,5 +1,5 @@
 import type { Web5Crypto } from '../types/web5-crypto.js';
-import type{ JwkOperation, PrivateKeyJwk } from '../jose.js';
+import type{ JwkOperation, Jwk } from '../jose/jwk.js';
 
 import { AesCtr } from '../crypto-primitives/index.js';
 import { BaseAesCtrAlgorithm } from '../algorithms-api/index.js';
@@ -9,7 +9,7 @@ export class AesCtrAlgorithm extends BaseAesCtrAlgorithm {
 
   public async decrypt(options: {
     algorithm: Web5Crypto.AesCtrOptions,
-    key: PrivateKeyJwk,
+    key: Jwk,
     data: Uint8Array
   }): Promise<Uint8Array> {
     const { algorithm, key, data } = options;
@@ -29,7 +29,7 @@ export class AesCtrAlgorithm extends BaseAesCtrAlgorithm {
 
   public async encrypt(options: {
     algorithm: Web5Crypto.AesCtrOptions,
-    key: PrivateKeyJwk,
+    key: Jwk,
     data: Uint8Array
   }): Promise<Uint8Array> {
     const { algorithm, key, data } = options;
@@ -50,7 +50,7 @@ export class AesCtrAlgorithm extends BaseAesCtrAlgorithm {
   public async generateKey(options: {
     algorithm: Web5Crypto.AesGenerateKeyOptions,
     keyOperations: JwkOperation[]
-  }): Promise<PrivateKeyJwk> {
+  }): Promise<Jwk> {
     const { algorithm, keyOperations } = options;
 
     // Validate the input parameters.

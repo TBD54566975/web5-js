@@ -1,5 +1,5 @@
 import type { Web5Crypto } from '../types/web5-crypto.js';
-import type { JsonWebKey, JwkOperation, JwkType, PrivateKeyJwk, PublicKeyJwk } from '../jose.js';
+import type { Jwk, JwkOperation, JwkType } from '../jose/jwk.js';
 
 import { InvalidAccessError, NotSupportedError } from './errors.js';
 
@@ -28,7 +28,7 @@ export abstract class CryptoAlgorithm {
   }
 
   public checkJwk(options: {
-    key: JsonWebKey
+    key: Jwk
   }): void {
     const { key } = options;
     if (typeof key !== 'object' || !('kty' in key)) {
@@ -96,36 +96,36 @@ export abstract class CryptoAlgorithm {
 
   public abstract decrypt(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions,
-    key: PrivateKeyJwk,
+    key: Jwk,
     data: Uint8Array
   }): Promise<Uint8Array>;
 
   public abstract deriveBits(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdhDeriveKeyOptions | Web5Crypto.Pbkdf2Options,
-    baseKey: JsonWebKey,
+    baseKey: Jwk,
     length?: number
   }): Promise<Uint8Array>;
 
   public abstract encrypt(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.AesCtrOptions | Web5Crypto.AesGcmOptions,
-    key: PrivateKeyJwk,
+    key: Jwk,
     data: Uint8Array
   }): Promise<Uint8Array>;
 
   public abstract generateKey(options: {
     algorithm: Partial<Web5Crypto.GenerateKeyOptions>,
     keyOperations?: JwkOperation[],
-  }): Promise<PrivateKeyJwk>;
+  }): Promise<Jwk>;
 
   public abstract sign(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdsaOptions | Web5Crypto.EdDsaOptions,
-    key: PrivateKeyJwk,
+    key: Jwk,
     data: Uint8Array
   }): Promise<Uint8Array>;
 
   public abstract verify(options: {
     algorithm: Web5Crypto.AlgorithmIdentifier | Web5Crypto.EcdsaOptions | Web5Crypto.EdDsaOptions,
-    key: PublicKeyJwk,
+    key: Jwk,
     signature: Uint8Array,
     data: Uint8Array
   }): Promise<boolean>;

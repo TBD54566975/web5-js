@@ -1,12 +1,12 @@
 import { universalTypeOf } from '@web5/common';
 
+import type { Jwk, JwkOperation } from '../../jose/jwk.js';
 import type { Web5Crypto } from '../../types/web5-crypto.js';
-import type { JwkOperation, PrivateKeyJwk, PublicKeyJwk } from '../../jose.js';
 
-import { Jose } from '../../jose.js';
 import { InvalidAccessError } from '../errors.js';
 import { CryptoAlgorithm } from '../crypto-algorithm.js';
 import { checkValidProperty, checkRequiredProperty } from '../../utils.js';
+import { isEcPrivateJwk, isEcPublicJwk, isOkpPrivateJwk, isOkpPublicJwk } from '../../jose/jwk.js';
 
 export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
 
@@ -35,7 +35,7 @@ export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
 
   public checkSignOptions(options: {
     algorithm: Web5Crypto.EcdsaOptions,
-    key: PrivateKeyJwk,
+    key: Jwk,
     data: Uint8Array
   }): void {
     const { algorithm, data, key } = options;
@@ -44,7 +44,7 @@ export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
     this.checkAlgorithmName({ algorithmName: algorithm.name });
 
     // The key object must be an Elliptic Curve (EC) or Octet Key Pair (OKP) private key in JWK format.
-    if (!(Jose.isEcPrivateKeyJwk(key) || Jose.isOkpPrivateKeyJwk(key))) {
+    if (!(isEcPrivateJwk(key) || isOkpPrivateJwk(key))) {
       throw new InvalidAccessError('Requested operation is only valid for private keys.');
     }
 
@@ -69,7 +69,7 @@ export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
 
   public checkVerifyOptions(options: {
     algorithm: Web5Crypto.EcdsaOptions;
-    key: PublicKeyJwk;
+    key: Jwk;
     signature: Uint8Array;
     data: Uint8Array;
   }): void {
@@ -79,7 +79,7 @@ export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
     this.checkAlgorithmName({ algorithmName: algorithm.name });
 
     // The key object must be an Elliptic Curve (EC) or Octet Key Pair (OKP) public key in JWK format.
-    if (!(Jose.isEcPublicKeyJwk(key) || Jose.isOkpPublicKeyJwk(key))) {
+    if (!(isEcPublicJwk(key) || isOkpPublicJwk(key))) {
       throw new InvalidAccessError('Requested operation is only valid for public keys.');
     }
 
@@ -118,5 +118,5 @@ export abstract class BaseEllipticCurveAlgorithm extends CryptoAlgorithm {
   public abstract generateKey(options: {
     algorithm: Web5Crypto.EcGenerateKeyOptions,
     keyOperations?: JwkOperation[]
-  }): Promise<PrivateKeyJwk>;
+  }): Promise<Jwk>;
 }

@@ -2,7 +2,7 @@ import chai, { expect } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
-import type { PrivateKeyJwk, PublicKeyJwk } from '../../src/jose.js';
+import type { Jwk } from '../../src/jose/jwk.js';
 
 import { XChaCha20 } from '../../src/crypto-primitives/xchacha20.js';
 
@@ -29,7 +29,7 @@ describe('XChaCha20', () => {
       const privateKeyBytes = Convert.hex('2fbd52af5980bd3870cdc3f3634980ae9d15b33440f63f79799eb8ca2329117f').toUint8Array();
       const privateKey = await XChaCha20.bytesToPrivateKey({ privateKeyBytes });
 
-      const expectedOutput: PrivateKeyJwk = {
+      const expectedOutput: Jwk = {
         k   : 'L71Sr1mAvThwzcPzY0mArp0VszRA9j95eZ64yiMpEX8',
         kty : 'oct',
         kid : '6oEQ2tFk2QI4_Lz8uxQpT4_Qce6f9ceS3ZD76nqd_qg'
@@ -125,7 +125,7 @@ describe('XChaCha20', () => {
     });
 
     it('returns the expected byte array for JWK input', async () => {
-      const privateKey: PrivateKeyJwk = {
+      const privateKey: Jwk = {
         k   : 'L71Sr1mAvThwzcPzY0mArp0VszRA9j95eZ64yiMpEX8',
         kty : 'oct',
         kid : '6oEQ2tFk2QI4_Lz8uxQpT4_Qce6f9ceS3ZD76nqd_qg'
@@ -138,14 +138,13 @@ describe('XChaCha20', () => {
     });
 
     it('throws an error when provided an asymmetric public key', async () => {
-      const publicKey: PublicKeyJwk = {
+      const publicKey: Jwk = {
         crv : 'Ed25519',
         kty : 'OKP',
         x   : 'PUAXw-hDiVqStwqnTRt-vJyYLM8uxJaMwM1V8Sr0Zgw',
       };
 
       await expect(
-        // @ts-expect-error because a public key is being passed to a method that expects a private key.
         XChaCha20.privateKeyToBytes({ privateKey: publicKey })
       ).to.eventually.be.rejectedWith(Error, 'provided key is not a valid oct private key');
     });
