@@ -1,7 +1,7 @@
 import { Convert, removeUndefinedProperties } from '@web5/common';
 
 import { canonicalize } from './utils.js';
-import { Sha256 } from '../crypto-primitives/sha256.js';
+import { Sha256 } from '../primitives/sha256.js';
 
 /**
  * JSON Web Key Operations
@@ -225,7 +225,7 @@ export type JwkParamsOkpPrivate = JwkParamsOkpPublic & {
    * representation of the coordinate.
    * MUST be present for all EC private keys.
    */
-    d: string;
+  d: string;
 };
 
 // Used with "oct" (octet sequence) private keys.

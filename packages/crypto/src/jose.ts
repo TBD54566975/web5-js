@@ -1,8 +1,11 @@
 import { Multicodec, MulticodecCode, MulticodecDefinition } from '@web5/common';
 
+import type { Jwk, PublicKeyJwk } from './jose/jwk.js';
+
 import { keyToMultibaseId } from './utils.js';
-import { Ed25519, Secp256k1, X25519 } from './crypto-primitives/index.js';
-import { Jwk, PublicKeyJwk } from './jose/jwk.js';
+import { X25519 } from './primitives/x25519.js';
+import { Ed25519 } from './primitives/ed25519.js';
+import { Secp256k1 } from './primitives/secp256k1.js';
 
 const multicodecToJoseMapping: { [key: string]: Jwk } = {
   'ed25519-pub'    : { crv: 'Ed25519',   kty: 'OKP', x: '' },

@@ -17,7 +17,11 @@ export interface EncryptParams {
   keyUri: KeyIdentifier;
   data: Uint8Array;
 }
-export interface Cipher<EncryptInput = EnclosedEncryptParams, DecryptInput = EnclosedDecryptParams> {
+
+export interface Cipher<
+  EncryptInput = EnclosedEncryptParams,
+  DecryptInput = EnclosedDecryptParams
+> {
   encrypt(params: EncryptInput): Promise<Uint8Array>;
 
   decrypt(params: DecryptInput): Promise<Uint8Array>;

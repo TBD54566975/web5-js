@@ -1,6 +1,6 @@
 import type { KeyIdentifier } from './identifier.js';
-import type { AsymmetricKeyGenerator, ComputePublicKeyParams, GenerateKeyParams } from './key-generator.js';
 import type { SignParams, Signer, VerifyParams } from './signer.js';
+import type { AsymmetricKeyGenerator, ComputePublicKeyParams, GenerateKeyParams } from './key-generator.js';
 
 export interface CryptoApi<
   GenerateKeyInput = GenerateKeyParams,

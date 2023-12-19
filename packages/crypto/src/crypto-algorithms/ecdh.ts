@@ -1,13 +1,10 @@
 import type { Web5Crypto } from '../types/web5-crypto.js';
-import type {
-  JwkOperation,
-  Jwk,
-  JwkParamsEcPrivate,
-  JwkParamsOkpPrivate,
-} from '../jose/jwk.js';
+import type { Jwk, JwkOperation, JwkParamsEcPrivate, JwkParamsOkpPrivate } from '../jose/jwk.js';
 
-import { Secp256k1, X25519 } from '../crypto-primitives/index.js';
-import { BaseEcdhAlgorithm, OperationError } from '../algorithms-api/index.js';
+import { X25519 } from '../primitives/x25519.js';
+import { Secp256k1 } from '../primitives/secp256k1.js';
+import { OperationError } from '../algorithms-api/errors.js';
+import { BaseEcdhAlgorithm } from '../algorithms-api/ec/ecdh.js';
 
 export class EcdhAlgorithm extends BaseEcdhAlgorithm {
   public readonly names = ['ECDH'] as const;

@@ -1,4 +1,4 @@
-import type { Jwk } from './jwk.js';
+import type { Jwk } from '../jose/jwk.js';
 
 export interface JoseHeaderParams {
   // Content Type

@@ -1,5 +1,5 @@
 import type { Jwk } from '../jose/jwk.js';
-import type { EnclosedSignParams, EnclosedVerifyParams } from '../api/signer.js';
+import type { EnclosedSignParams, EnclosedVerifyParams } from './signer.js';
 
 export namespace PrimitiveApi {
   /**
@@ -15,25 +15,28 @@ export namespace PrimitiveApi {
     data: Uint8Array;
   }
 
-  export interface Cipher<EncryptInput = EncryptParams, DecryptInput = DecryptParams> {
-    encrypt(options: EncryptInput): Promise<Uint8Array>;
+  export interface Cipher<
+    EncryptInput = EncryptParams,
+    DecryptInput = DecryptParams
+  > {
+    encrypt(params: EncryptInput): Promise<Uint8Array>;
 
-    decrypt(options: DecryptInput): Promise<Uint8Array>;
+    decrypt(params: DecryptInput): Promise<Uint8Array>;
   }
 
   /**
    * Key Conversion Types
    */
   export interface KeyConverter {
-    bytesToPrivateKey(options: { privateKeyBytes: Uint8Array }): Promise<Jwk>;
+    bytesToPrivateKey(params: { privateKeyBytes: Uint8Array }): Promise<Jwk>;
 
-    privateKeyToBytes(options: { privateKey: Jwk }): Promise<Uint8Array>;
+    privateKeyToBytes(params: { privateKey: Jwk }): Promise<Uint8Array>;
   }
 
   export interface AsymmetricKeyConverter extends KeyConverter {
-    bytesToPublicKey(options: { publicKeyBytes: Uint8Array }): Promise<Jwk>;
+    bytesToPublicKey(params: { publicKeyBytes: Uint8Array }): Promise<Jwk>;
 
-    publicKeyToBytes(options: { publicKey: Jwk }): Promise<Uint8Array>;
+    publicKeyToBytes(params: { publicKey: Jwk }): Promise<Uint8Array>;
   }
 
   /**
@@ -67,7 +70,10 @@ export namespace PrimitiveApi {
     publicKey: Jwk;
   }
 
-  export interface Signer<SignInput = SignParams, VerifyInput = VerifyParams> {
+  export interface Signer<
+    SignInput = SignParams,
+    VerifyInput = VerifyParams
+  > {
     sign(params: SignInput): Promise<Uint8Array>;
 
     verify(params: VerifyInput): Promise<boolean>;

@@ -4,7 +4,7 @@ import chaiAsPromised from 'chai-as-promised';
 
 import type { Jwk, JwkParamsOctPrivate } from '../../src/jose/jwk.js';
 
-import { AesCtr } from '../../src/crypto-primitives/aes-ctr.js';
+import { AesCtr } from '../../src/primitives/aes-ctr.js';
 import { aesCtrTestVectors } from '../fixtures/test-vectors/aes.js';
 
 chai.use(chaiAsPromised);

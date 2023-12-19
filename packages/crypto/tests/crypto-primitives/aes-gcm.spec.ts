@@ -4,7 +4,7 @@ import chaiAsPromised from 'chai-as-promised';
 
 import type { Jwk, JwkParamsOctPrivate } from '../../src/jose/jwk.js';
 
-import { AesGcm } from '../../src/crypto-primitives/aes-gcm.js';
+import { AesGcm } from '../../src/primitives/aes-gcm.js';
 import { aesGcmTestVectors } from '../fixtures/test-vectors/aes.js';
 
 chai.use(chaiAsPromised);

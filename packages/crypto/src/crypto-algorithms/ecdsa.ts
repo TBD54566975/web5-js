@@ -1,8 +1,8 @@
 import type { Web5Crypto } from '../types/web5-crypto.js';
 import type { Jwk, JwkOperation, JwkParamsEcPrivate, JwkParamsEcPublic } from '../jose/jwk.js';
 
-import { Secp256k1 } from '../crypto-primitives/index.js';
-import { BaseEcdsaAlgorithm } from '../algorithms-api/index.js';
+import { Secp256k1 } from '../primitives/secp256k1.js';
+import { BaseEcdsaAlgorithm } from '../algorithms-api/ec/ecdsa.js';
 
 export class EcdsaAlgorithm extends BaseEcdsaAlgorithm {
   public readonly names = ['ES256K'] as const;

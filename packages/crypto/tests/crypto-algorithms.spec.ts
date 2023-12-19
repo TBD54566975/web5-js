@@ -5,16 +5,17 @@ import chaiAsPromised from 'chai-as-promised';
 
 import type { Jwk, JwkParamsOctPrivate } from '../src/jose/jwk.js';
 
+import { X25519 } from '../src/primitives/x25519.js';
+import { AesCtr } from '../src/primitives/aes-ctr.js';
+import { Ed25519 } from '../src/primitives/ed25519.js';
+import { Secp256k1 } from '../src/primitives/secp256k1.js';
+import { EcdhAlgorithm } from '../src/crypto-algorithms/ecdh.js';
 import { aesCtrTestVectors } from './fixtures/test-vectors/aes.js';
-import { AesCtr, Ed25519, Secp256k1, X25519 } from '../src/crypto-primitives/index.js';
-import { InvalidAccessError, NotSupportedError, OperationError } from '../src/algorithms-api/index.js';
-import {
-  EcdhAlgorithm,
-  EcdsaAlgorithm,
-  EdDsaAlgorithm,
-  AesCtrAlgorithm,
-  Pbkdf2Algorithm,
-} from '../src/crypto-algorithms/index.js';
+import { EcdsaAlgorithm } from '../src/crypto-algorithms/ecdsa.js';
+import { EdDsaAlgorithm } from '../src/crypto-algorithms/eddsa.js';
+import { Pbkdf2Algorithm } from '../src/crypto-algorithms/pbkdf2.js';
+import { AesCtrAlgorithm } from '../src/crypto-algorithms/aes-ctr.js';
+import { InvalidAccessError, NotSupportedError, OperationError } from '../src/algorithms-api/errors.js';
 
 chai.use(chaiAsPromised);
 

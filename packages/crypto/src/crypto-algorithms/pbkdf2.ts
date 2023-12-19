@@ -1,10 +1,11 @@
 import { Convert } from '@web5/common';
 
-import type { Jwk, JwkParamsOctPrivate } from '../jose/jwk.js';
 import type { Web5Crypto } from '../types/web5-crypto.js';
+import type { Jwk, JwkParamsOctPrivate } from '../jose/jwk.js';
 
-import { Pbkdf2 } from '../crypto-primitives/pbkdf2.js';
-import { BasePbkdf2Algorithm, OperationError } from '../algorithms-api/index.js';
+import { Pbkdf2 } from '../primitives/pbkdf2.js';
+import { OperationError } from '../algorithms-api/errors.js';
+import { BasePbkdf2Algorithm } from '../algorithms-api/pbkdf/pbkdf2.js';
 
 export class Pbkdf2Algorithm extends BasePbkdf2Algorithm {
   public readonly names = ['PBKDF2'] as const;

@@ -1,8 +1,8 @@
-import type { Web5Crypto } from '../types/web5-crypto.js';
 import type{ JwkOperation, Jwk } from '../jose/jwk.js';
+import type { Web5Crypto } from '../types/web5-crypto.js';
 
-import { AesCtr } from '../crypto-primitives/index.js';
-import { BaseAesCtrAlgorithm } from '../algorithms-api/index.js';
+import { AesCtr } from '../primitives/aes-ctr.js';
+import { BaseAesCtrAlgorithm } from '../algorithms-api/aes/ctr.js';
 
 export class AesCtrAlgorithm extends BaseAesCtrAlgorithm {
   public readonly names = ['A128CTR', 'A192CTR', 'A256CTR'] as const;

@@ -3,7 +3,7 @@ import chai, { expect } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
-import { Pbkdf2 } from '../../src/crypto-primitives/pbkdf2.js';
+import { Pbkdf2 } from '../../src/primitives/pbkdf2.js';
 
 chai.use(chaiAsPromised);
 

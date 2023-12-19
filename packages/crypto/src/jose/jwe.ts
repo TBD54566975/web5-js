@@ -1,4 +1,4 @@
-import type { JoseHeaderParams } from './common.js';
+import type { JoseHeaderParams } from '../types/jose.js';
 
 export interface JweHeaderParams extends JoseHeaderParams {
   /**

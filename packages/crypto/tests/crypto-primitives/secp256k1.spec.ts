@@ -12,7 +12,7 @@ import secp256k1BytesToPrivateKey from '../fixtures/test-vectors/secp256k1/bytes
 import secp256k1PrivateKeyToBytes from '../fixtures/test-vectors/secp256k1/private-key-to-bytes.json' assert { type: 'json' };
 import secp256k1ValidatePrivateKey from '../fixtures/test-vectors/secp256k1/validate-private-key.json' assert { type: 'json' };
 
-import { Secp256k1 } from '../../src/crypto-primitives/secp256k1.js';
+import { Secp256k1 } from '../../src/primitives/secp256k1.js';
 
 chai.use(chaiAsPromised);
 

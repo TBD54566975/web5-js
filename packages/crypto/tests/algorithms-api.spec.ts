@@ -13,19 +13,15 @@ import type {
   JwkParamsOctPrivate,
 } from '../src/jose/jwk.js';
 
-import {
-  OperationError,
-  CryptoAlgorithm,
-  BaseAesAlgorithm,
-  BaseEcdhAlgorithm,
-  NotSupportedError,
-  BaseEcdsaAlgorithm,
-  BaseEdDsaAlgorithm,
-  InvalidAccessError,
-  BaseAesCtrAlgorithm,
-  BasePbkdf2Algorithm,
-  BaseEllipticCurveAlgorithm,
-} from '../src/algorithms-api/index.js';
+import { BaseAesAlgorithm } from '../src/algorithms-api/aes/base.js';
+import { BaseEcdhAlgorithm } from '../src/algorithms-api/ec/ecdh.js';
+import { BaseAesCtrAlgorithm } from '../src/algorithms-api/aes/ctr.js';
+import { BaseEcdsaAlgorithm } from '../src/algorithms-api/ec/ecdsa.js';
+import { BaseEdDsaAlgorithm } from '../src/algorithms-api/ec/eddsa.js';
+import { BasePbkdf2Algorithm } from '../src/algorithms-api/pbkdf/pbkdf2.js';
+import { CryptoAlgorithm } from '../src/algorithms-api/crypto-algorithm.js';
+import { BaseEllipticCurveAlgorithm } from '../src/algorithms-api/ec/base.js';
+import { InvalidAccessError, NotSupportedError, OperationError } from '../src/algorithms-api/errors.js';
 
 chai.use(chaiAsPromised);
 

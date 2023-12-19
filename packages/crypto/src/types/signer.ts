@@ -18,7 +18,10 @@ export interface VerifyParams extends EnclosedVerifyParams {
   publicKey: Jwk;
 }
 
-export interface Signer<SignInput = EnclosedSignParams, VerifyInput = EnclosedVerifyParams> {
+export interface Signer<
+  SignInput = EnclosedSignParams,
+  VerifyInput = EnclosedVerifyParams
+> {
   sign(params: SignInput): Promise<Uint8Array>;
 
   verify(params: VerifyInput): Promise<boolean>;

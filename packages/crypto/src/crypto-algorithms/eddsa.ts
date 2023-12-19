@@ -1,8 +1,8 @@
 import type { Web5Crypto } from '../types/web5-crypto.js';
 import type { Jwk, JwkOperation, JwkParamsOkpPrivate, JwkParamsOkpPublic } from '../jose/jwk.js';
 
-import { Ed25519 } from '../crypto-primitives/index.js';
-import { BaseEdDsaAlgorithm } from '../algorithms-api/index.js';
+import { Ed25519 } from '../primitives/ed25519.js';
+import { BaseEdDsaAlgorithm } from '../algorithms-api/ec/eddsa.js';
 
 export class EdDsaAlgorithm extends BaseEdDsaAlgorithm {
   public readonly names = ['EdDSA'] as const;
@@ -52,7 +52,7 @@ export class EdDsaAlgorithm extends BaseEdDsaAlgorithm {
     switch (curve) {
 
       case 'Ed25519': {
-        return await Ed25519.sign({ key, data });
+        return await Ed25519.sign({ privateKey: key, data });
       }
       // Default case unnecessary because checkSignOptions() validates the input parameters.
     }
@@ -76,7 +76,7 @@ export class EdDsaAlgorithm extends BaseEdDsaAlgorithm {
     switch (curve) {
 
       case 'Ed25519': {
-        return await Ed25519.verify({ key, signature, data });
+        return await Ed25519.verify({ publicKey: key, signature, data });
       }
       // Default case unnecessary because checkVerifyOptions() validates the input parameters.
     }
