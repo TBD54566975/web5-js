@@ -84,9 +84,9 @@ jobs:
           - group: "A"
             packages: "--workspace packages/agent"
           - group: "B"
-            packages: "--workspace packages/crypto --workspace packages/dids --workspace packages/proxy-agent --workspace packages/user-agent"
+            packages: "--workspace packages/crypto --workspace packages/dids --workspace packages/proxy-agent --workspace packages/identity-agent --workspace packages/user-agent"
           - group: "C"
-            packages: "--workspace packages/api --workspace packages/common --workspace packages/credentials --workspace packages/identity-agent"
+            packages: "--workspace packages/api --workspace packages/common --workspace packages/credentials"
     steps:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
