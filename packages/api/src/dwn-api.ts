@@ -4,6 +4,7 @@ import type {
   ProtocolsConfigureMessage,
   ProtocolsConfigureOptions,
   ProtocolsQueryOptions,
+  RecordsDeleteMessage,
   RecordsDeleteOptions,
   RecordsQueryOptions,
   RecordsQueryReplyEntry,
@@ -17,7 +18,7 @@ import type {
 
 import { dataToBlob } from './utils.js';
 import { Protocol } from './protocol.js';
-import { Record } from './record.js';
+import { Record, RecordDelete } from './record.js';
 import { isEmptyObject } from '@web5/common';
 import { DwnInterfaceName, DwnMethodName, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 
@@ -178,6 +179,7 @@ export type RecordsSubscribeRequest = {
   /** The from property indicates the DID to read from and return results fro. */
   from?: string;
   message: Omit<RecordsSubscribeOptions, 'signer'>;
+  callback: (record: RecordDelete | Record) => void;
 }
 
 /**
@@ -186,7 +188,7 @@ export type RecordsSubscribeRequest = {
  * @beta
  */
 export type RecordsSubscribeResponse = ResponseStatus & {
-  subscription?: RecordsSubscription;
+  close?: () => Promise<void>;
 };
 
 /**
@@ -586,14 +588,55 @@ export class DwnApi {
           agentResponse = await this.agent.processDwnRequest(agentRequest);
         }
 
-        const { reply: { subscription, status } } = agentResponse;
-        if(200 <= status.code && status.code <= 299) {
+        const { reply: { status } } = agentResponse;
+        if(status.code !== 200) {
           return { status };
+        }
+        const subscription = agentResponse.reply.subscription as RecordsSubscription;
+
+        const processRecordEvent = async (message: RecordsWriteMessage | RecordsDeleteMessage):Promise<void> => {
+          if (message.descriptor.method === DwnMethodName.Delete) {
+            const deleteMessage = message as RecordsDeleteMessage;
+            request.callback({ id: deleteMessage.descriptor.recordId, delete: true });
+          } else {
+            const writeMessage = message as RecordsWriteMessage;
+            const recordOptions = {
+              /**
+               * Extract the `author` DID from the record since records may be signed by the
+               * tenant owner or any other entity.
+               */
+              author       : RecordsWrite.getAuthor(writeMessage),
+              /**
+               * Set the `connectedDid` to currently connected DID so that subsequent calls to
+               * {@link Record} instance methods, such as `record.update()` are executed on the
+               * local DWN even if the record was read from a remote DWN.
+               */
+              connectedDid : this.connectedDid,
+              /**
+               * If the record was returned by reading from a remote DWN, set the `remoteOrigin` to
+               * the DID of the DWN that returned the record. The `remoteOrigin` property will be used
+               * to determine which DWN to send subsequent read requests to in the event the data
+               * payload must be read again (e.g., if the data stream is consumed).
+               */
+              remoteOrigin : request.from,
+              ...writeMessage,
+            };
+  
+            const record = new Record(this.agent, recordOptions);
+            request.callback(record);
+          }
+        }
+
+        const sub = subscription.on(processRecordEvent);
+
+        const close = async () : Promise<void> => {
+          sub.off();
+          await subscription.close()
         }
 
         return { 
           status,
-          subscription: subscription as RecordsSubscription, 
+          close,
         };
       },
 

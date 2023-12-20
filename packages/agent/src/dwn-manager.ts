@@ -7,6 +7,7 @@ import {
   UnionMessageReply,
   RecordsWriteMessage,
   RecordsWriteOptions,
+  RecordsSubscribe,
 } from '@tbd54566975/dwn-sdk-js';
 
 import { Jose } from '@web5/crypto';
@@ -35,7 +36,7 @@ import {
 } from '@tbd54566975/dwn-sdk-js';
 
 import type { DwnRpcRequest } from './rpc-client.js';
-import type { DwnResponse,ProcessDwnRequest, SendDwnRequest, Web5ManagedAgent } from './types/agent.js';
+import type { DwnResponse, ProcessDwnRequest, SendDwnRequest, Web5ManagedAgent } from './types/agent.js';
 
 import { isManagedKeyPair } from './utils.js';
 import { blobToIsomorphicNodeReadable, webReadableToIsomorphicNodeReadable } from './utils.js';
@@ -69,6 +70,7 @@ const dwnMessageCreators = {
   [DwnInterfaceName.Records + DwnMethodName.Read]        : RecordsRead,
   [DwnInterfaceName.Records + DwnMethodName.Query]       : RecordsQuery,
   [DwnInterfaceName.Records + DwnMethodName.Write]       : RecordsWrite,
+  [DwnInterfaceName.Records + DwnMethodName.Subscribe]   : RecordsSubscribe,
   [DwnInterfaceName.Records + DwnMethodName.Delete]      : RecordsDelete,
   [DwnInterfaceName.Protocols + DwnMethodName.Query]     : ProtocolsQuery,
   [DwnInterfaceName.Protocols + DwnMethodName.Configure] : ProtocolsConfigure,
@@ -406,7 +408,7 @@ export class DwnManager {
     author: string,
     messageOptions: unknown,
     messageType: string
-  }): Promise<EventsGet | MessagesGet | RecordsRead | RecordsQuery | RecordsWrite | RecordsDelete | ProtocolsQuery | ProtocolsConfigure> {
+  }): Promise<EventsGet | MessagesGet | RecordsRead | RecordsQuery | RecordsWrite | RecordsSubscribe | RecordsDelete | ProtocolsQuery | ProtocolsConfigure> {
     const { author, messageOptions, messageType } = options;
 
     const dwnSigner = await this.constructDwnSigner(author);

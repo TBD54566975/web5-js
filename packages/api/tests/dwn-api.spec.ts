@@ -3,13 +3,14 @@ import type { PortableDid } from '@web5/dids';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { TestManagedAgent } from '@web5/agent';
-import { DateSort, DwnMethodName, Message, RecordsDeleteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import { DateSort, DwnConstant, DwnMethodName, Message, RecordsDeleteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';
 import { TestUserAgent } from './utils/test-user-agent.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
-import { Record } from '../src/record.js';
+import { Record, RecordDelete } from '../src/record.js';
+import { TestDataGenerator } from './utils/test-data-generator.js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -947,30 +948,28 @@ describe('DwnApi', () => {
 
   describe('records.subscribe()', () => {
     describe('agent', () => {
-      xit('returns a subscription that emits records which match the filter provided', async () => {
+      it('returns a subscription that emits records which match the filter provided', async () => {
+        const records: Map<string, Record> = new Map();
+
+        const captureRecord = async (record: RecordDelete | Record ) => {
+          if ('delete' in record && records.has(record.id)) {
+            records.delete(record.id);
+          } else {
+            records.set(record.id, record as Record);
+          }
+        };
+
         const recordsSubscription = await dwnAlice.records.subscribe({
           message : {
             filter: {
               schema     : 'foo/bar',
               dataFormat : 'text/plain'
             }
-          }
+          },
+          callback: captureRecord,
         });
         expect(recordsSubscription.status.code).to.equal(200);
-        expect(recordsSubscription.subscription).to.not.be.undefined;
-
-        const records: Map<string, Record>;
-        const captureRecord = async (message: RecordsWriteMessage | RecordsDeleteMessage) => {
-          if (message.descriptor.method === DwnMethodName.Delete) {
-            const deleteMessage = message as RecordsDeleteMessage;
-            records.delete(deleteMessage.descriptor.recordId);
-          } else {
-            const writeMessage = message as RecordsWriteMessage;
-            const record = new Record(testAgent.agent, { ...writeMessage });
-          }
-        };
-
-        const subEvent = recordsSubscription.subscription.on(captureRecord);
+        expect(recordsSubscription.close).to.not.be.undefined;
 
         // write a message
         const writeResult = await dwnAlice.records.write({
@@ -984,6 +983,51 @@ describe('DwnApi', () => {
         expect(writeResult.status.detail).to.equal('Accepted');
         expect(writeResult.record).to.exist;
 
+        expect(records.has(writeResult.record.id)).to.be.true;
+        await recordsSubscription.close();
+      });
+
+      it('records from subscription with large data payload return a stream upon calling data', async () => {
+        const records: Map<string, Record> = new Map();
+
+        const captureRecord = async (record: RecordDelete | Record ) => {
+          if ('delete' in record && records.has(record.id)) {
+            records.delete(record.id);
+          } else {
+            records.set(record.id, record as Record);
+          }
+        };
+
+        const recordsSubscription = await dwnAlice.records.subscribe({
+          message : {
+            filter: {
+              schema     : 'foo/bar',
+              dataFormat : 'text/plain'
+            }
+          },
+          callback: captureRecord,
+        });
+        expect(recordsSubscription.status.code).to.equal(200);
+        expect(recordsSubscription.close).to.not.be.undefined;
+
+        // write a message with large data
+        const largeData = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
+        const writeResult = await dwnAlice.records.write({
+          data    : largeData, 
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+        expect(writeResult.status.code).to.equal(202);
+        expect(writeResult.status.detail).to.equal('Accepted');
+        expect(writeResult.record).to.exist;
+
+        expect(records.has(writeResult.record.id)).to.be.true;
+        const record = records.get(writeResult.record.id);
+        const recordData = await record.data.text()
+        expect(recordData).to.equal(largeData);
+        await recordsSubscription.close();
       });
     });
 

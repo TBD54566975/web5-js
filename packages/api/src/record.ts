@@ -53,6 +53,11 @@ export type RecordUpdateOptions = {
   published?: RecordsWriteDescriptor['published'];
 }
 
+export type RecordDelete = {
+  id: string;
+  delete: true;
+};
+
 /**
  * Record wrapper class with convenience methods to send and update,
  * aside from manipulating and reading the record data.
