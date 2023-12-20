@@ -1,10 +1,11 @@
-import type { KeyIdentifier } from './identifier.js';
-import type { SignParams, Signer, VerifyParams } from './signer.js';
-import type { AsymmetricKeyGenerator, ComputePublicKeyParams, GenerateKeyParams } from './key-generator.js';
+import type { Jwk } from '../jose/jwk.js';
+import type { Signer } from './signer.js';
+import type { AsymmetricKeyGenerator } from './key-generator.js';
+import type { ComputePublicKeyParams, GenerateKeyParams, SignParams, VerifyParams } from './direct-params.js';
 
 export interface CryptoApi<
   GenerateKeyInput = GenerateKeyParams,
-  GenerateKeyResult = KeyIdentifier,
+  GenerateKeyResult = Jwk,
   ComputePublicKeyInput = ComputePublicKeyParams,
   SignInput = SignParams,
   VerifyInput = VerifyParams

@@ -194,9 +194,9 @@ describe('Default Crypto Algorithm Implementations', () => {
 
       before(async () => {
         secp256k1PrivateKeyA = await ecdh.generateKey({ algorithm: { name: 'ECDH', curve: 'secp256k1' } });
-        secp256k1PublicKeyA = await Secp256k1.computePublicKey({ privateKey: secp256k1PrivateKeyA });
+        secp256k1PublicKeyA = await Secp256k1.computePublicKey({ key: secp256k1PrivateKeyA });
         secp256k1PrivateKeyB = await ecdh.generateKey({ algorithm: { name: 'ECDH', curve: 'secp256k1' } });
-        secp256k1PublicKeyB = await Secp256k1.computePublicKey({ privateKey: secp256k1PrivateKeyB });
+        secp256k1PublicKeyB = await Secp256k1.computePublicKey({ key: secp256k1PrivateKeyB });
 
         x25519PrivateKeyA = await ecdh.generateKey({ algorithm: { name: 'ECDH', curve: 'X25519' } });
         x25519PublicKeyA = await X25519.computePublicKey({ privateKey: x25519PrivateKeyA });
@@ -607,7 +607,7 @@ describe('Default Crypto Algorithm Implementations', () => {
           keyOperations : ['sign']
         });
 
-        publicKey = await Secp256k1.computePublicKey({ privateKey });
+        publicKey = await Secp256k1.computePublicKey({ key: privateKey });
 
         signature = await ecdsa.sign({
           algorithm : { name: 'ES256K' },
@@ -796,7 +796,7 @@ describe('Default Crypto Algorithm Implementations', () => {
           keyOperations : ['sign']
         });
 
-        publicKey = await Ed25519.computePublicKey({ privateKey });
+        publicKey = await Ed25519.computePublicKey({ key: privateKey });
 
         signature = await eddsa.sign({
           algorithm : { name: 'EdDSA' },

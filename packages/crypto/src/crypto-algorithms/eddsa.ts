@@ -52,7 +52,7 @@ export class EdDsaAlgorithm extends BaseEdDsaAlgorithm {
     switch (curve) {
 
       case 'Ed25519': {
-        return await Ed25519.sign({ privateKey: key, data });
+        return await Ed25519.sign({ key, data });
       }
       // Default case unnecessary because checkSignOptions() validates the input parameters.
     }
@@ -76,7 +76,7 @@ export class EdDsaAlgorithm extends BaseEdDsaAlgorithm {
     switch (curve) {
 
       case 'Ed25519': {
-        return await Ed25519.verify({ publicKey: key, signature, data });
+        return await Ed25519.verify({ key, signature, data });
       }
       // Default case unnecessary because checkVerifyOptions() validates the input parameters.
     }

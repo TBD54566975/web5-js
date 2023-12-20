@@ -1,10 +1,3 @@
-import { AlgorithmIdentifier } from './identifier.js';
-
-export interface DigestParams {
-  algorithm: AlgorithmIdentifier;
-  data: Uint8Array;
-}
-
-export interface HashFunction {
-  digest(params: DigestParams): Promise<Uint8Array>;
+export interface HashFunction<DigestInput> {
+  digest(params: DigestInput): Promise<Uint8Array>;
 }

@@ -1,22 +1,4 @@
-import type { KeyIdentifier } from './identifier.js';
-
-export interface EnclosedDecryptParams {
-  data: Uint8Array;
-}
-
-export interface EnclosedEncryptParams {
-  data: Uint8Array;
-}
-
-export interface DecryptParams {
-  keyUri: KeyIdentifier;
-  data: Uint8Array;
-}
-
-export interface EncryptParams {
-  keyUri: KeyIdentifier;
-  data: Uint8Array;
-}
+import type { EnclosedEncryptParams, EnclosedDecryptParams } from './enclosed-params.js';
 
 export interface Cipher<
   EncryptInput = EnclosedEncryptParams,

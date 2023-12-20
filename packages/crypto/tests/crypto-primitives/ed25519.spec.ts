@@ -30,7 +30,7 @@ describe('Ed25519', () => {
 
   before(async () => {
     privateKey = await Ed25519.generateKey();
-    publicKey = await Ed25519.computePublicKey({ privateKey });
+    publicKey = await Ed25519.computePublicKey({ key: privateKey });
   });
 
   describe('bytesToPrivateKey()', () => {
@@ -79,7 +79,7 @@ describe('Ed25519', () => {
 
   describe('computePublicKey()', () => {
     it('returns a public key in JWK format', async () => {
-      const publicKey = await Ed25519.computePublicKey({ privateKey });
+      const publicKey = await Ed25519.computePublicKey({ key: privateKey });
 
       expect(publicKey).to.have.property('kty', 'OKP');
       expect(publicKey).to.have.property('crv', 'Ed25519');
@@ -89,7 +89,7 @@ describe('Ed25519', () => {
 
     for (const vector of ed25519ComputePublicKey.vectors) {
       it(vector.description, async () => {
-        const publicKey = await Ed25519.computePublicKey(vector.input as { privateKey: Jwk });
+        const publicKey = await Ed25519.computePublicKey(vector.input as { key: Jwk });
         expect(publicKey).to.deep.equal(vector.output);
       });
     }
@@ -244,7 +244,7 @@ describe('Ed25519', () => {
   describe('sign()', () => {
     it('returns a 64-byte signature of type Uint8Array', async () => {
       const data = new Uint8Array([51, 52, 53]);
-      const signature = await Ed25519.sign({ privateKey: privateKey, data });
+      const signature = await Ed25519.sign({ key: privateKey, data });
       expect(signature).to.be.instanceOf(Uint8Array);
       expect(signature.byteLength).to.equal(64);
     });
@@ -253,15 +253,15 @@ describe('Ed25519', () => {
       const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
       let signature: Uint8Array;
 
-      signature = await Ed25519.sign({ privateKey: privateKey, data: data });
+      signature = await Ed25519.sign({ key: privateKey, data: data });
       expect(signature).to.be.instanceOf(Uint8Array);
     });
 
     for (const vector of ed25519Sign.vectors) {
       it(vector.description, async () => {
         const signature = await Ed25519.sign({
-          data       : Convert.hex(vector.input.data).toUint8Array(),
-          privateKey : vector.input.key as Jwk
+          key  : vector.input.key as Jwk,
+          data : Convert.hex(vector.input.data).toUint8Array()
         });
 
         const signatureHex = Convert.uint8Array(signature).toHex();
@@ -296,18 +296,18 @@ describe('Ed25519', () => {
   describe('verify()', () => {
     it('returns a boolean result', async () => {
       const data = new Uint8Array([51, 52, 53]);
-      const signature = await Ed25519.sign({ privateKey, data });
+      const signature = await Ed25519.sign({ key: privateKey, data });
 
-      const isValid = await Ed25519.verify({ publicKey, signature, data });
+      const isValid = await Ed25519.verify({ key: publicKey, signature, data });
       expect(isValid).to.exist;
       expect(isValid).to.be.a('boolean');
     });
 
     it('accepts input data as Uint8Array', async () => {
       const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-      const signature = await Ed25519.sign({ privateKey, data });
+      const signature = await Ed25519.sign({ key: privateKey, data });
 
-      const isValid = await Ed25519.verify({ publicKey, signature, data });
+      const isValid = await Ed25519.verify({ key: publicKey, signature, data });
       expect(isValid).to.be.true;
     });
 
@@ -316,10 +316,10 @@ describe('Ed25519', () => {
       let isValid: boolean;
 
       // Generate signature using the private key.
-      const signature = await Ed25519.sign({ privateKey: privateKey, data });
+      const signature = await Ed25519.sign({ key: privateKey, data });
 
       // Verification should return true with the data used to generate the signature.
-      isValid = await Ed25519.verify({ publicKey: publicKey, signature, data });
+      isValid = await Ed25519.verify({ key: publicKey, signature, data });
       expect(isValid).to.be.true;
 
       // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
@@ -327,7 +327,7 @@ describe('Ed25519', () => {
       mutatedData[0] ^= 1 << 0;
 
       // Verification should return false if the given data does not match the data used to generate the signature.
-      isValid = await Ed25519.verify({ publicKey: publicKey, signature, data: mutatedData });
+      isValid = await Ed25519.verify({ key: publicKey, signature, data: mutatedData });
       expect(isValid).to.be.false;
     });
 
@@ -337,41 +337,41 @@ describe('Ed25519', () => {
 
       // Generate a new private key and get its public key.
       privateKey = await Ed25519.generateKey();
-      publicKey = await Ed25519.computePublicKey({ privateKey });
+      publicKey = await Ed25519.computePublicKey({ key: privateKey });
 
       // Generate signature using the private key.
-      const signature = await Ed25519.sign({ privateKey: privateKey, data });
+      const signature = await Ed25519.sign({ key: privateKey, data });
 
       // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
       const mutatedSignature = new Uint8Array(signature);
       mutatedSignature[0] ^= 1 << 0;
 
       // Verification should return false if the signature was modified.
-      isValid = await Ed25519.verify({ publicKey: publicKey, signature: signature, data: mutatedSignature });
+      isValid = await Ed25519.verify({ key: publicKey, signature: signature, data: mutatedSignature });
       expect(isValid).to.be.false;
     });
 
     it('returns false with a signature generated using a different private key', async () => {
       const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
       const privateKeyA = await Ed25519.generateKey();
-      const publicKeyA = await Ed25519.computePublicKey({ privateKey: privateKeyA });
+      const publicKeyA = await Ed25519.computePublicKey({ key: privateKeyA });
       const privateKeyB = await Ed25519.generateKey();
       let isValid: boolean;
 
       // Generate a signature using private key B.
-      const signatureB = await Ed25519.sign({ privateKey: privateKeyB, data });
+      const signatureB = await Ed25519.sign({ key: privateKeyB, data });
 
       // Verification should return false with the public key from private key A.
-      isValid = await Ed25519.verify({ publicKey: publicKeyA, signature: signatureB, data });
+      isValid = await Ed25519.verify({ key: publicKeyA, signature: signatureB, data });
       expect(isValid).to.be.false;
     });
 
     for (const vector of ed25519Verify.vectors) {
       it(vector.description, async () => {
         const isValid = await Ed25519.verify({
-          data      : Convert.hex(vector.input.data).toUint8Array(),
-          publicKey : vector.input.key as Jwk,
-          signature : Convert.hex(vector.input.signature).toUint8Array()
+          key       : vector.input.key as Jwk,
+          signature : Convert.hex(vector.input.signature).toUint8Array(),
+          data      : Convert.hex(vector.input.data).toUint8Array()
         });
         expect(isValid).to.equal(vector.output);
       });

@@ -4,6 +4,7 @@ import { secp256k1 } from '@noble/curves/secp256k1';
 import { numberToBytesBE } from '@noble/curves/abstract/utils';
 
 import type { Jwk } from '../jose/jwk.js';
+import type { ComputePublicKeyParams, SignParams, VerifyParams } from '../types/direct-params.js';
 
 import { computeJwkThumbprint, isEcPrivateJwk, isEcPublicJwk } from '../jose/jwk.js';
 
@@ -11,12 +12,10 @@ import { computeJwkThumbprint, isEcPrivateJwk, isEcPublicJwk } from '../jose/jwk
  * The `Secp256k1` class provides a comprehensive suite of utilities for working with
  * the secp256k1 elliptic curve, commonly used in blockchain and cryptographic applications.
  * This class includes methods for key generation, conversion, signing, verification, and
- * Elliptic Curve Diffie-Hellman (ECDH) key agreement, all compliant with relevant cryptographic
- * standards.
+ * Elliptic Curve Diffie-Hellman (ECDH) key agreement.
  *
- * The class supports conversions between raw byte formats and JSON Web Key (JWK) formats,
- * making it versatile for various cryptographic tasks. It adheres to RFC6090 for ECDH and
- * RFC6979 for ECDSA signing and verification, ensuring compatibility and security.
+ * The class supports conversions between raw byte formats and JSON Web Key (JWK) formats. It
+ * adheres to RFC6979 for ECDSA signing and verification and RFC6090 for ECDH.
  *
  * Key Features:
  * - Key Generation: Generate secp256k1 private keys in JWK format.
@@ -27,16 +26,15 @@ import { computeJwkThumbprint, isEcPrivateJwk, isEcPublicJwk } from '../jose/jwk
  * - Key Validation: Validate the mathematical correctness of secp256k1 keys.
  *
  * The methods in this class are asynchronous, returning Promises to accommodate various
- * JavaScript environments.
+ * JavaScript environments, and use `Uint8Array` for binary data handling.
  *
- * Usage Examples:
- *
+ * @example
  * ```ts
  * // Key Generation
  * const privateKey = await Secp256k1.generateKey();
  *
  * // Public Key Derivation
- * const publicKey = await Secp256k1.computePublicKey({ privateKey });
+ * const publicKey = await Secp256k1.computePublicKey({ key: privateKey });
  *
  * // ECDH Shared Secret Computation
  * const sharedSecret = await Secp256k1.sharedSecret({
@@ -46,32 +44,26 @@ import { computeJwkThumbprint, isEcPrivateJwk, isEcPublicJwk } from '../jose/jwk
  *
  * // ECDSA Signing
  * const signature = await Secp256k1.sign({
- *   data: new TextEncoder().encode('Message'),
- *   key: privateKey
+ *   key: privateKey,
+ *   data: new TextEncoder().encode('Message')
  * });
  *
  * // ECDSA Signature Verification
  * const isValid = await Secp256k1.verify({
- *   data: new TextEncoder().encode('Message'),
  *   key: publicKey,
- *   signature: signature
+ *   signature: signature,
+ *   data: new TextEncoder().encode('Message')
  * });
  *
  * // Key Conversion
  * const publicKeyBytes = await Secp256k1.publicKeyToBytes({ publicKey });
  * const privateKeyBytes = await Secp256k1.privateKeyToBytes({ privateKey });
- * const compressedPublicKey = await Secp256k1.convertPublicKey({
- *   publicKey: publicKeyBytes,
- *   compressedPublicKey: true
- * });
- * const uncompressedPublicKey = await Secp256k1.convertPublicKey({
- *   publicKey: publicKeyBytes,
- *   compressedPublicKey: false
- * });
+ * const compressedPublicKey = await Secp256k1.compressPublicKey({ publicKeyBytes });
+ * const uncompressedPublicKey = await Secp256k1.decompressPublicKey({ publicKeyBytes });
  *
  * // Key Validation
- * const isPrivateKeyValid = await Secp256k1.validatePrivateKey({ key: privateKeyBytes });
- * const isPublicKeyValid = await Secp256k1.validatePublicKey({ key: publicKeyBytes });
+ * const isPrivateKeyValid = await Secp256k1.validatePrivateKey({ privateKeyBytes });
+ * const isPublicKeyValid = await Secp256k1.validatePublicKey({ publicKeyBytes });
  * ```
  */
 export class Secp256k1 {
@@ -94,25 +86,22 @@ export class Secp256k1 {
    * JSON format, facilitating their use in cryptographic operations and making
    * them easy to share and store.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const privateKeyBytes = new Uint8Array([...]); // Replace with actual private key bytes
    * const privateKey = await Secp256k1.bytesToPrivateKey({ privateKeyBytes });
    * ```
    *
-   * @param options - The options for the private key conversion.
-   * @param options.privateKeyBytes - The raw private key as a Uint8Array.
+   * @param params - The parameters for the private key conversion.
+   * @param params.privateKeyBytes - The raw private key as a Uint8Array.
    *
    * @returns A Promise that resolves to the private key in JWK format.
    */
-  public static async bytesToPrivateKey(options: {
+  public static async bytesToPrivateKey({ privateKeyBytes }: {
     privateKeyBytes: Uint8Array
   }): Promise<Jwk> {
-    const { privateKeyBytes } = options;
-
     // Get the elliptic curve points (x and y coordinates) for the provided private key.
-    const points = await Secp256k1.getCurvePoints({ key: privateKeyBytes });
+    const points = await Secp256k1.getCurvePoints({ keyBytes: privateKeyBytes });
 
     // Construct the private key in JWK format.
     const privateKey: Jwk = {
@@ -147,25 +136,22 @@ export class Secp256k1 {
    * JSON format, facilitating their use in cryptographic operations and making
    * them easy to share and store.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const publicKeyBytes = new Uint8Array([...]); // Replace with actual public key bytes
    * const publicKey = await Secp256k1.bytesToPublicKey({ publicKeyBytes });
    * ```
    *
-   * @param options - The options for the public key conversion.
-   * @param options.publicKeyBytes - The raw public key as a Uint8Array.
+   * @param params - The parameters for the public key conversion.
+   * @param params.publicKeyBytes - The raw public key as a Uint8Array.
    *
    * @returns A Promise that resolves to the public key in JWK format.
    */
-  public static async bytesToPublicKey(options: {
+  public static async bytesToPublicKey({ publicKeyBytes }: {
     publicKeyBytes: Uint8Array
   }): Promise<Jwk> {
-    const { publicKeyBytes } = options;
-
     // Get the elliptic curve points (x and y coordinates) for the provided public key.
-    const points = await Secp256k1.getCurvePoints({ key: publicKeyBytes });
+    const points = await Secp256k1.getCurvePoints({ keyBytes: publicKeyBytes });
 
     // Construct the public key in JWK format.
     const publicKey: Jwk = {
@@ -189,8 +175,7 @@ export class Secp256k1 {
    * making it more efficient for storage and transmission. The compressed key retains the same
    * level of security as the uncompressed key.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const uncompressedPublicKeyBytes = new Uint8Array([...]); // Replace with actual uncompressed public key bytes
    * const compressedPublicKey = await Secp256k1.compressPublicKey({
@@ -198,16 +183,14 @@ export class Secp256k1 {
    * });
    * ```
    *
-   * @param options - The options for the public key compression.
-   * @param options.publicKeyBytes - The public key as a Uint8Array.
+   * @param params - The parameters for the public key compression.
+   * @param params.publicKeyBytes - The public key as a Uint8Array.
    *
    * @returns A Promise that resolves to the compressed public key as a Uint8Array.
    */
-  public static async compressPublicKey(options: {
+  public static async compressPublicKey({ publicKeyBytes }: {
     publicKeyBytes: Uint8Array
   }): Promise<Uint8Array> {
-    let { publicKeyBytes } = options;
-
     // Decode Weierstrass points from the public key byte array.
     const point = secp256k1.ProjectivePoint.fromHex(publicKeyBytes);
 
@@ -223,8 +206,7 @@ export class Secp256k1 {
    * resulting in the full public key. This method is used when the uncompressed key format is
    * required for certain cryptographic operations or interoperability.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const compressedPublicKeyBytes = new Uint8Array([...]); // Replace with actual compressed public key bytes
    * const decompressedPublicKey = await Secp256k1.decompressPublicKey({
@@ -232,16 +214,14 @@ export class Secp256k1 {
    * });
    * ```
    *
-   * @param options - The options for the public key decompression.
-   * @param options.publicKeyBytes - The public key as a Uint8Array.
+   * @param params - The parameters for the public key decompression.
+   * @param params.publicKeyBytes - The public key as a Uint8Array.
    *
    * @returns A Promise that resolves to the uncompressed public key as a Uint8Array.
    */
-  public static async decompressPublicKey(options: {
+  public static async decompressPublicKey({ publicKeyBytes }: {
     publicKeyBytes: Uint8Array
   }): Promise<Uint8Array> {
-    let { publicKeyBytes } = options;
-
     // Decode Weierstrass points from the public key byte array.
     const point = secp256k1.ProjectivePoint.fromHex(publicKeyBytes);
 
@@ -263,28 +243,25 @@ export class Secp256k1 {
    * operations where a public key is needed for operations like signature verification, but only
    * the private key is available.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
-   * const privateKeyJwk = { ... }; // A PrivateKeyJwk object representing a secp256k1 private key
-   * const publicKeyJwk = await Secp256k1.computePublicKey({ privateKey: privateKeyJwk });
+   * const privateKey = { ... }; // A Jwk object representing a secp256k1 private key
+   * const publicKey = await Secp256k1.computePublicKey({ key: privateKey });
    * ```
    *
-   * @param options - The options for the public key derivation.
-   * @param options.privateKey - The private key in JWK format from which to derive the public key.
+   * @param params - The parameters for the public key derivation.
+   * @param params.key - The private key in JWK format from which to derive the public key.
    *
    * @returns A Promise that resolves to the derived public key in JWK format.
    */
-  public static async computePublicKey(options: {
-    privateKey: Jwk
-  }): Promise<Jwk> {
-    const { privateKey } = options;
-
+  public static async computePublicKey({ key }:
+    ComputePublicKeyParams
+  ): Promise<Jwk> {
     // Convert the provided private key to a byte array.
-    const privateKeyBytes  = await Secp256k1.privateKeyToBytes({ privateKey });
+    const privateKeyBytes  = await Secp256k1.privateKeyToBytes({ privateKey: key });
 
     // Get the elliptic curve points (x and y coordinates) for the provided private key.
-    const points = await Secp256k1.getCurvePoints({ key: privateKeyBytes });
+    const points = await Secp256k1.getCurvePoints({ keyBytes: privateKeyBytes });
 
     // Construct the public key in JWK format.
     const publicKey: Jwk = {
@@ -319,8 +296,7 @@ export class Secp256k1 {
    *
    * The key is returned in a format suitable for direct use in signin and key agreement operations.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const privateKey = await Secp256k1.generateKey();
    * ```
@@ -351,23 +327,20 @@ export class Secp256k1 {
    * binary form, such as certain low-level cryptographic operations or when interfacing
    * with systems and libraries that expect keys in a byte array format.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const privateKey = { ... }; // An X25519 private key in JWK format
    * const privateKeyBytes = await Secp256k1.privateKeyToBytes({ privateKey });
    * ```
    *
-   * @param options - The options for the private key conversion.
-   * @param options.privateKey - The private key in JWK format.
+   * @param params - The parameters for the private key conversion.
+   * @param params.privateKey - The private key in JWK format.
    *
    * @returns A Promise that resolves to the private key as a Uint8Array.
    */
-  public static async privateKeyToBytes(options: {
+  public static async privateKeyToBytes({ privateKey }: {
     privateKey: Jwk
   }): Promise<Uint8Array> {
-    const { privateKey } = options;
-
     // Verify the provided JWK represents a valid EC secp256k1 private key.
     if (!isEcPrivateJwk(privateKey)) {
       throw new Error(`Secp256k1: The provided key is not a valid EC private key.`);
@@ -392,23 +365,20 @@ export class Secp256k1 {
    * in its raw byte format, such as for certain cryptographic operations or when
    * interfacing with systems that require raw key formats.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
-   * const publicKey = { ... }; // A PublicKeyJwk object
+   * const publicKey = { ... }; // A Jwk public key object
    * const publicKeyBytes = await Secp256k1.publicKeyToBytes({ publicKey });
    * ```
    *
-   * @param options - The options for the public key conversion.
-   * @param options.publicKey - The public key in JWK format.
+   * @param params - The parameters for the public key conversion.
+   * @param params.publicKey - The public key in JWK format.
    *
    * @returns A Promise that resolves to the public key as a Uint8Array.
    */
-  public static async publicKeyToBytes(options: {
+  public static async publicKeyToBytes({ publicKey }: {
     publicKey: Jwk
   }): Promise<Uint8Array> {
-    const { publicKey } = options;
-
     // Verify the provided JWK represents a valid EC secp256k1 public key, which must have a 'y' value.
     if (!(isEcPublicJwk(publicKey) && publicKey.y)) {
       throw new Error(`Secp256k1: The provided key is not a valid EC public key.`);
@@ -446,29 +416,26 @@ export class Secp256k1 {
    * can independently compute the x-coordinate.  Consquently, this implementation
    * omits the y-coordinate for simplicity and standard compliance.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
-   * const privateKeyA = { ... }; // A PrivateKeyJwk object for party A
-   * const publicKeyB = { ... }; // A PublicKeyJwk object for party B
+   * const privateKeyA = { ... }; // A Jwk private key object for party A
+   * const publicKeyB = { ... }; // A Jwk public key object for party B
    * const sharedSecret = await Secp256k1.sharedSecret({
    *   privateKeyA,
    *   publicKeyB
    * });
    * ```
    *
-   * @param options - The options for the shared secret computation operation.
-   * @param options.privateKeyA - The private key in JWK format of one party.
-   * @param options.publicKeyB - The public key in JWK format of the other party.
+   * @param params - The parameters for the shared secret computation.
+   * @param params.privateKeyA - The private key in JWK format of one party.
+   * @param params.publicKeyB - The public key in JWK format of the other party.
    *
    * @returns A Promise that resolves to the computed shared secret as a Uint8Array.
    */
-  public static async sharedSecret(options: {
+  public static async sharedSecret({ privateKeyA, publicKeyB }: {
     privateKeyA: Jwk,
     publicKeyB: Jwk
   }): Promise<Uint8Array> {
-    let { privateKeyA, publicKeyB } = options;
-
     // Ensure that keys from the same key pair are not specified.
     if ('x' in privateKeyA && 'x' in publicKeyB && privateKeyA.x === publicKeyB.x) {
       throw new Error(`Secp256k1: ECDH shared secret cannot be computed from a single key pair's public and private keys.`);
@@ -500,29 +467,25 @@ export class Secp256k1 {
    * public key, ensuring that the data has not been tampered with and was indeed signed by the
    * holder of the private key.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const data = new TextEncoder().encode('Hello, world!'); // Data to be signed
-   * const privateKey = { ... }; // A PrivateKeyJwk object representing a secp256k1 private key
+   * const privateKey = { ... }; // A Jwk object representing a secp256k1 private key
    * const signature = await Secp256k1.sign({
-   *   data,
-   *   key: privateKey
+   *   key: privateKey,
+   *   data
    * });
    * ```
    *
-   * @param options - The options for the signing operation.
-   * @param options.data - The data to sign, represented as a Uint8Array.
-   * @param options.key - The private key to use for signing, represented in JWK format.
+   * @param params - The parameters for the signing operation.
+   * @param params.key - The private key to use for signing, represented in JWK format.
+   * @param params.data - The data to sign, represented as a Uint8Array.
    *
    * @returns A Promise that resolves to the signature as a Uint8Array.
    */
-  public static async sign(options: {
-    data: Uint8Array,
-    key: Jwk
-  }): Promise<Uint8Array> {
-    const { data, key } = options;
-
+  public static async sign({ data, key }:
+    SignParams
+  ): Promise<Uint8Array> {
     // Convert the private key from JWK format to bytes.
     const privateKeyBytes = await Secp256k1.privateKeyToBytes({ privateKey: key });
 
@@ -555,34 +518,29 @@ export class Secp256k1 {
    * Note: The verification process does not consider the malleability of low-s signatures, which
    * may be relevant in certain contexts, such as Bitcoin transactions.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const data = new TextEncoder().encode('Hello, world!'); // Data that was signed
    * const publicKey = { ... }; // Public key in JWK format corresponding to the private key that signed the data
    * const signature = new Uint8Array([...]); // Signature to verify
    * const isSignatureValid = await Secp256k1.verify({
-   *   data,
    *   key: publicKey,
-   *   signature
+   *   signature,
+   *   data
    * });
    * console.log(isSignatureValid); // true if the signature is valid, false otherwise
    * ```
    *
-   * @param options - The options for the verification operation.
-   * @param options.data - The data that was signed, represented as a Uint8Array.
-   * @param options.key - The public key used for verification, represented in JWK format.
-   * @param options.signature - The signature to verify, represented as a Uint8Array.
+   * @param params - The parameters for the signature verification.
+   * @param params.key - The public key used for verification, represented in JWK format.
+   * @param params.signature - The signature to verify, represented as a Uint8Array.
+   * @param params.data - The data that was signed, represented as a Uint8Array.
    *
    * @returns A Promise that resolves to a boolean indicating whether the signature is valid.
    */
-  public static async verify(options: {
-    data: Uint8Array,
-    key: Jwk,
-    signature: Uint8Array
-  }): Promise<boolean> {
-    const { data, key, signature } = options;
-
+  public static async verify({ key, signature, data }:
+    VerifyParams
+  ): Promise<boolean> {
     // Convert the public key from JWK format to bytes.
     const publicKeyBytes = await Secp256k1.publicKeyToBytes({ publicKey: key });
 
@@ -611,39 +569,36 @@ export class Secp256k1 {
    * used in various cryptographic operations, such as digital signatures or key agreement
    * protocols.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * // For a private key
    * const privateKey = new Uint8Array([...]); // A 32-byte private key
-   * const { x: xFromPrivateKey, y: yFromPrivateKey } = await Secp256k1.getCurvePoints({ key: privateKey });
+   * const { x: xFromPrivateKey, y: yFromPrivateKey } = await Secp256k1.getCurvePoints({ keyBytes: privateKey });
    *
    * // For a public key
    * const publicKey = new Uint8Array([...]); // A 33-byte or 65-byte public key
-   * const { x: xFromPublicKey, y: yFromPublicKey } = await Secp256k1.getCurvePoints({ key: publicKey });
+   * const { x: xFromPublicKey, y: yFromPublicKey } = await Secp256k1.getCurvePoints({ keyBytes: publicKey });
    * ```
    *
-   * @param options - The options for the operation.
-   * @param options.key - The key for which to get the elliptic curve points.
-   *                      Can be either a private key or a public key.
-   *                      The key should be passed as a Uint8Array.
+   * @param params - The parameters for the curve point decoding operation.
+   * @param params.keyBytes - The key for which to get the elliptic curve points.
+   *                          Can be either a private key or a public key.
+   *                          The key should be passed as a `Uint8Array`.
    *
    * @returns A Promise that resolves to an object with properties 'x' and 'y',
    *          each being a Uint8Array representing the x and y coordinates of the key point on the
    *          elliptic curve.
    */
-  private static async getCurvePoints(options: {
-    key: Uint8Array
+  private static async getCurvePoints({ keyBytes }: {
+    keyBytes: Uint8Array
   }): Promise<{ x: Uint8Array, y: Uint8Array }> {
-    let { key } = options;
-
     // If key is a private key, first compute the public key.
-    if (key.byteLength === 32) {
-      key = secp256k1.getPublicKey(key);
+    if (keyBytes.byteLength === 32) {
+      keyBytes = secp256k1.getPublicKey(keyBytes);
     }
 
     // Decode Weierstrass points from key bytes.
-    const point = secp256k1.ProjectivePoint.fromHex(key);
+    const point = secp256k1.ProjectivePoint.fromHex(keyBytes);
 
     // Get x- and y-coordinate values and convert to Uint8Array.
     const x = numberToBytesBE(point.x, 32);
@@ -663,25 +618,22 @@ export class Secp256k1 {
    * not assess whether the key corresponds to a known entity or its security status (e.g., whether
    * it has been compromised).
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
-   * const privateKey = new Uint8Array([...]); // A 32-byte private key
-   * const isValid = await Secp256k1.validatePrivateKey({ key: privateKey });
+   * const privateKeyBytes = new Uint8Array([...]); // A 32-byte private key
+   * const isValid = await Secp256k1.validatePrivateKey({ privateKeyBytes });
    * console.log(isValid); // true or false based on the key's validity
    * ```
    *
-   * @param options - The options for the key validation.
-   * @param options.key - The private key to validate, represented as a Uint8Array.
+   * @param params - The parameters for the key validation.
+   * @param params.privateKeyBytes - The private key to validate, represented as a Uint8Array.
    *
    * @returns A Promise that resolves to a boolean indicating whether the private key is valid.
    */
-  private static async validatePrivateKey(options: {
-    key: Uint8Array
+  private static async validatePrivateKey({ privateKeyBytes }: {
+    privateKeyBytes: Uint8Array
   }): Promise<boolean> {
-    const { key } = options;
-
-    return secp256k1.utils.isValidPrivateKey(key);
+    return secp256k1.utils.isValidPrivateKey(privateKeyBytes);
   }
 
   /**
@@ -696,28 +648,25 @@ export class Secp256k1 {
    * been compromised; it solely focuses on the key's adherence to the curve's mathematical
    * principles.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
-   * const publicKey = new Uint8Array([...]); // A public key in byte format
-   * const isValid = await Secp256k1.validatePublicKey({ key: publicKey });
+   * const publicKeyBytes = new Uint8Array([...]); // A public key in byte format
+   * const isValid = await Secp256k1.validatePublicKey({ publicKeyBytes });
    * console.log(isValid); // true if the key is valid on the secp256k1 curve, false otherwise
    * ```
    *
-   * @param options - The options for the public key validation.
-   * @param options.key - The public key to validate, represented as a Uint8Array.
+   * @param params - The parameters for the key validation.
+   * @param params.publicKeyBytes - The public key to validate, represented as a Uint8Array.
    *
    * @returns A Promise that resolves to a boolean indicating the public key's validity on
    *          the secp256k1 curve.
    */
-  private static async validatePublicKey(options: {
-    key: Uint8Array
+  private static async validatePublicKey({ publicKeyBytes }: {
+    publicKeyBytes: Uint8Array
   }): Promise<boolean> {
-    const { key } = options;
-
     try {
       // Decode Weierstrass points from key bytes.
-      const point = secp256k1.ProjectivePoint.fromHex(key);
+      const point = secp256k1.ProjectivePoint.fromHex(publicKeyBytes);
 
       // Check if points are on the Short Weierstrass curve.
       point.assertValidity();

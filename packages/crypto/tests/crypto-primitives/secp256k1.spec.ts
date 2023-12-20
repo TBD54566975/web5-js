@@ -28,7 +28,7 @@ describe('Secp256k1', () => {
 
   before(async () => {
     privateKey = await Secp256k1.generateKey();
-    publicKey = await Secp256k1.computePublicKey({ privateKey });
+    publicKey = await Secp256k1.computePublicKey({ key: privateKey });
   });
 
   describe('bytesToPrivateKey()', () => {
@@ -80,7 +80,7 @@ describe('Secp256k1', () => {
 
   describe('computePublicKey()', () => {
     it('returns a public key in JWK format', async () => {
-      publicKey = await Secp256k1.computePublicKey({ privateKey });
+      publicKey = await Secp256k1.computePublicKey({ key: privateKey });
 
       expect(publicKey).to.have.property('crv', 'secp256k1');
       expect(publicKey).to.not.have.property('d');
@@ -287,7 +287,7 @@ describe('Secp256k1', () => {
       ownPublicKey = publicKey;
 
       otherPartyPrivateKey = await Secp256k1.generateKey();
-      otherPartyPublicKey = await Secp256k1.computePublicKey({ privateKey: otherPartyPrivateKey });
+      otherPartyPublicKey = await Secp256k1.computePublicKey({ key: otherPartyPrivateKey });
     });
 
     it('generates a 32-byte shared secret', async () => {
