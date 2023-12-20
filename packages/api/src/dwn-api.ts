@@ -8,11 +8,10 @@ import type {
   RecordsQueryOptions,
   RecordsQueryReplyEntry,
   RecordsReadOptions,
+  RecordsSubscribeOptions,
+  RecordsSubscription,
   RecordsWriteMessage,
   RecordsWriteOptions,
-  // SubscriptionRequestOptions,
-  // SubscriptionRequestReply,
-  UnionMessageReply,
 } from '@tbd54566975/dwn-sdk-js';
 
 
@@ -106,21 +105,21 @@ export type RecordsCreateFromRequest = {
   record: Record;
 }
 
-export type SocketOptions = {
-  retryPolicy: string;
-  retryParams: {
-    interval: number;
-    decay: boolean;
-    maxRetries: number;
-  };
-}
+// export type SocketOptions = {
+//   retryPolicy: string;
+//   retryParams: {
+//     interval: number;
+//     decay: boolean;
+//     maxRetries: number;
+//   };
+// }
 
-export type SubscribeOptions = {
-  // callback: (e: EventMessage) => Promise<void>;
-  target: string;
-  request: SubscriptionRequestMessage;
-  socketOptions?: SocketOptions 
-}
+// export type SubscribeOptions = {
+//   // callback: (e: EventMessage) => Promise<void>;
+//   target: string;
+//   request: SubscriptionRequestMessage;
+//   socketOptions?: SocketOptions 
+// }
 
 export type RecordsDeleteRequest = {
   from?: string;
@@ -171,6 +170,26 @@ export type RecordsReadResponse = ResponseStatus & {
 };
 
 /**
+ * Request to read a record from the DWN
+ *
+ * @beta
+ */
+export type RecordsSubscribeRequest = {
+  /** The from property indicates the DID to read from and return results fro. */
+  from?: string;
+  message: Omit<RecordsSubscribeOptions, 'signer'>;
+}
+
+/**
+ * Response for the read request
+ *
+ * @beta
+ */
+export type RecordsSubscribeResponse = ResponseStatus & {
+  subscription?: RecordsSubscription;
+};
+
+/**
  * Request to write a record to the DWN
  *
  * @beta
@@ -190,20 +209,6 @@ export type RecordsWriteResponse = ResponseStatus & {
   record?: Record
 };
 
-export type SubscriptionRequestMessage = {
-  message: Omit<SubscriptionRequestOptions, 'authorizationSignatureInput'>;
-}
-
-export type SubscriptionRequestResponse = {
-  status: UnionMessageReply['status'];
-  protocol?: Record;
-}
-
-export type Subscription = {
-  stream: EventStreamI;
-  socket?: WebSocket;
-}
-
 /**
  * Interface to interact with DWN Records and Protocols
  *
@@ -218,83 +223,83 @@ export class DwnApi {
     this.connectedDid = options.connectedDid;
   }
 
-  get subscription() {
-    return {
-      /**
-       * Creates a subscription. Note: the appropriate Permissions over SubscriptionRequestPermission 
-       * MUST be set beforehand for authorization to work.
-       * @param {string} target - The DID for the subscription.
-       * @param {SubscriptionRequestMessage} request - The subscription request message.
-       * @param {(e: EventMessage) => Promise<void>} callback - The callback function to handle events. Optional and possibe to chain later.
-       * @returns {Promise<SubscriptionRequestReply>} A promise containing the subscription request reply.
-       * 
-       * Example:
-       * {
-       *   "target": "did:example:12345",
-       *   "request": {
-       *      "filter": {
-       *         "type": "record",
-       *         "recordFilters": {
-       *              "protocolPath": "/my/protocol/path"
-       *           }
-       *       }
-       *    }
-       * }
-       * Callback will run over the returned event type. 
-       * Alternatively, you may request the actual pipe
-       */
-      create: async (options: SubscribeOptions) : Promise<SubscriptionRequestReply> => {
-        let reply: SubscriptionRequestReply
-        if (this.connectedDid === options.target) {
-          // Form a request object
-          const agentResponse = await this.agent.processDwnRequest({
-            target: this.connectedDid,
-            author: this.connectedDid,
-            messageOptions: options.request.message,
-            messageType: DwnInterfaceName.Subscriptions + DwnMethodName.Request
-          });
+  // get subscription() {
+  //   return {
+  //     /**
+  //      * Creates a subscription. Note: the appropriate Permissions over SubscriptionRequestPermission 
+  //      * MUST be set beforehand for authorization to work.
+  //      * @param {string} target - The DID for the subscription.
+  //      * @param {SubscriptionRequestMessage} request - The subscription request message.
+  //      * @param {(e: EventMessage) => Promise<void>} callback - The callback function to handle events. Optional and possibe to chain later.
+  //      * @returns {Promise<SubscriptionRequestReply>} A promise containing the subscription request reply.
+  //      * 
+  //      * Example:
+  //      * {
+  //      *   "target": "did:example:12345",
+  //      *   "request": {
+  //      *      "filter": {
+  //      *         "type": "record",
+  //      *         "recordFilters": {
+  //      *              "protocolPath": "/my/protocol/path"
+  //      *           }
+  //      *       }
+  //      *    }
+  //      * }
+  //      * Callback will run over the returned event type. 
+  //      * Alternatively, you may request the actual pipe
+  //      */
+  //     create: async (options: SubscribeOptions) : Promise<SubscriptionRequestReply> => {
+  //       let reply: SubscriptionRequestReply
+  //       if (this.connectedDid === options.target) {
+  //         // Form a request object
+  //         const agentResponse = await this.agent.processDwnRequest({
+  //           target: this.connectedDid,
+  //           author: this.connectedDid,
+  //           messageOptions: options.request.message,
+  //           messageType: DwnInterfaceName.Subscriptions + DwnMethodName.Request
+  //         });
   
-          const { message, messageCid, reply: { status } } = agentResponse;
-          const response = { status };
+  //         const { message, messageCid, reply: { status } } = agentResponse;
+  //         const response = { status };
   
-          if (status.code < 300) {
-            const metadata = { author: this.connectedDid, messageCid };
-            // response.subscription = new Subscription(this.agent, message as SubscriptionRequestMessage, metadata);
-          }
-           if (options.callback) {
-            reply.subscription.emitter.on(options.callback);
-          }
-          return response;
-        } else {
-          // Create an event stream.
+  //         if (status.code < 300) {
+  //           const metadata = { author: this.connectedDid, messageCid };
+  //           // response.subscription = new Subscription(this.agent, message as SubscriptionRequestMessage, metadata);
+  //         }
+  //          if (options.callback) {
+  //           reply.subscription.emitter.on(options.callback);
+  //         }
+  //         return response;
+  //       } else {
+  //         // Create an event stream.
 
-          const eventStream = new EventStream();
-          reply.subscription.emitter = eventStream;
-          // Step 1: Get address via DID document (To be fixed: resolve DID document)
-          const addr = "127.0.0.1:9002";
+  //         const eventStream = new EventStream();
+  //         reply.subscription.emitter = eventStream;
+  //         // Step 1: Get address via DID document (To be fixed: resolve DID document)
+  //         const addr = "127.0.0.1:9002";
 
-          // Step 2: Create WebSocket
-          const socket = new WebSocket(addr);
+  //         // Step 2: Create WebSocket
+  //         const socket = new WebSocket(addr);
 
-          socket.onopen = () => {
-            // Step 3: Send RPC request to endpoint
-            const request = JSON.stringify(dwnRequest)
-            socket.send(request);
-          };
+  //         socket.onopen = () => {
+  //           // Step 3: Send RPC request to endpoint
+  //           const request = JSON.stringify(dwnRequest)
+  //           socket.send(request);
+  //         };
 
-          socket.onmessage = (event: any) => {
-            // parse EventMessage and push to event stream
-            eventStream.add(event)
-            if (callback) {
-              callback(event);
-            }
-          }
+  //         socket.onmessage = (event: any) => {
+  //           // parse EventMessage and push to event stream
+  //           eventStream.add(event)
+  //           if (callback) {
+  //             callback(event);
+  //           }
+  //         }
 
-          return reply;
-        }
-      }
-    };
-  }
+  //         return reply;
+  //       }
+  //     }
+  //   };
+  // }
 
   /**
    * API to interact with DWN protocols (e.g., `dwn.protocols.configure()`).
@@ -554,6 +559,42 @@ export class DwnApi {
         }
 
         return { record, status };
+      },
+
+      subscribe: async (request: RecordsSubscribeRequest): Promise<RecordsSubscribeResponse> => {
+        const agentRequest = {
+          /**
+           * The `author` is the DID that will sign the message and must be the DID the Web5 app is
+           * connected with and is authorized to access the signing private key of.
+           */
+          author         : this.connectedDid,
+          messageOptions : request.message,
+          messageType    : DwnInterfaceName.Records + DwnMethodName.Subscribe,
+          /**
+           * The `target` is the DID of the DWN tenant under which the query will be executed.
+           * If `from` is provided, the query operation will be executed on a remote DWN.
+           * Otherwise, the local DWN will be queried.
+           */
+          target         : request.from || this.connectedDid
+        };
+
+        let agentResponse: DwnResponse;
+        if (request.from) {
+          // dwn agent should handle web sockets and just return an internal subscription
+          agentResponse = await this.agent.sendDwnRequest(agentRequest);
+        } else {
+          agentResponse = await this.agent.processDwnRequest(agentRequest);
+        }
+
+        const { reply: { subscription, status } } = agentResponse;
+        if(200 <= status.code && status.code <= 299) {
+          return { status };
+        }
+
+        return { 
+          status,
+          subscription: subscription as RecordsSubscription, 
+        };
       },
 
       /**

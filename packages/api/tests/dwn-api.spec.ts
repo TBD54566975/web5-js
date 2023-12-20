@@ -3,12 +3,13 @@ import type { PortableDid } from '@web5/dids';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { TestManagedAgent } from '@web5/agent';
-import { DateSort } from '@tbd54566975/dwn-sdk-js';
+import { DateSort, DwnMethodName, Message, RecordsDeleteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';
 import { TestUserAgent } from './utils/test-user-agent.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
+import { Record } from '../src/record.js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -940,6 +941,55 @@ describe('DwnApi', () => {
         // The record's author should be Alice's DID since Alice was the signer.
         const recordOnBobsDwn = bobQueryResult.record;
         expect(recordOnBobsDwn.author).to.equal(aliceDid.did);
+      });
+    });
+  });
+
+  describe('records.subscribe()', () => {
+    describe('agent', () => {
+      xit('returns a subscription that emits records which match the filter provided', async () => {
+        const recordsSubscription = await dwnAlice.records.subscribe({
+          message : {
+            filter: {
+              schema     : 'foo/bar',
+              dataFormat : 'text/plain'
+            }
+          }
+        });
+        expect(recordsSubscription.status.code).to.equal(200);
+        expect(recordsSubscription.subscription).to.not.be.undefined;
+
+        const records: Map<string, Record>;
+        const captureRecord = async (message: RecordsWriteMessage | RecordsDeleteMessage) => {
+          if (message.descriptor.method === DwnMethodName.Delete) {
+            const deleteMessage = message as RecordsDeleteMessage;
+            records.delete(deleteMessage.descriptor.recordId);
+          } else {
+            const writeMessage = message as RecordsWriteMessage;
+            const record = new Record(testAgent.agent, { ...writeMessage });
+          }
+        };
+
+        const subEvent = recordsSubscription.subscription.on(captureRecord);
+
+        // write a message
+        const writeResult = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+        expect(writeResult.status.code).to.equal(202);
+        expect(writeResult.status.detail).to.equal('Accepted');
+        expect(writeResult.record).to.exist;
+
+      });
+    });
+
+    describe('from: did', () => {
+      xit('returns a websocket subscription that emits records which match the filter provided', async () => {
+
       });
     });
   });
