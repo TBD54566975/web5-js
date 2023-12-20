@@ -110,7 +110,7 @@ jobs:
 
       - name: Restore Cached Playwright Browsers
         id: cache-playwright-restore
-        uses: actions/cache/restore@84995e0d91a927aa8da027221d329f84446b8c9b #v3.3.2
+        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 #v3.3.2
         with:
           path: ~/Library/Caches/ms-playwright
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
@@ -118,14 +118,6 @@ jobs:
       - name: Install Playwright Browsers (if no cache)
         if: steps.cache-playwright-restore.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps
-
-      - name: Save Playwright Cache (if no cache)
-        uses: actions/cache/save@e08330827dd5663b268018076572bea59a734b60 #v3.3.2
-        id: cache-playwright-save
-        if: steps.cache-playwright-restore.outputs.cache-hit != 'true'
-        with:
-          path: ~/Library/Caches/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
 
       - name: Build esm
         run: npm run build:esm --ws
