@@ -76,20 +76,18 @@ export class ConcatKdf {
    * Derives a key of a specified length from the input parameters.
    *
    * @param options - Input parameters for key derivation.
-   * @param options.keyDataLen - The desired length of the derived key in bits.
-   * @param options.sharedSecret - The shared secret key to derive from.
-   * @param options.otherInfo - Additional public information to use in key derivation.
+   * @param params.keyDataLen - The desired length of the derived key in bits.
+   * @param params.sharedSecret - The shared secret key to derive from.
+   * @param params.otherInfo - Additional public information to use in key derivation.
    * @returns The derived key as a Uint8Array.
    *
    * @throws {NotSupportedError} If the keyDataLen would require multiple rounds.
    */
-  public static async deriveKey(options: {
+  public static async deriveKey({ keyDataLen, otherInfo, sharedSecret }: {
     keyDataLen: number;
     otherInfo: ConcatKdfOtherInfo,
     sharedSecret: Uint8Array,
   }): Promise<Uint8Array> {
-    const { keyDataLen, sharedSecret } = options;
-
     // RFC 7518 Section 4.6.2 specifies using SHA-256 for ECDH key agreement:
     // "Key derivation is performed using the Concat KDF, as defined in
     // Section 5.8.1 of [NIST.800-56A], where the Digest Method is SHA-256."
@@ -107,11 +105,11 @@ export class ConcatKdf {
     new DataView(counter.buffer).setUint32(0, roundCount);
 
     // Compute the OtherInfo bit-string.
-    const otherInfo = ConcatKdf.computeOtherInfo(options.otherInfo);
+    const otherInfoBytes = ConcatKdf.computeOtherInfo(otherInfo);
 
     // Compute K(i) = H(counter || Z || OtherInfo)
     // return concatBytes(counter, sharedSecretZ, otherInfo);
-    const derivedKeyingMaterial = sha256(concatBytes(counter, sharedSecret, otherInfo));
+    const derivedKeyingMaterial = sha256(concatBytes(counter, sharedSecret, otherInfoBytes));
 
     // Return the bit string of derived keying material of length keyDataLen bits.
     return derivedKeyingMaterial.slice(0, keyDataLen / 8);
@@ -166,17 +164,16 @@ export class ConcatKdf {
    * fixed-length bit string.
    *
    * @param options - Input data and options for the conversion.
-   * @param options.data - The input data to encode. Must be a type convertible to Uint8Array by the Convert class.
-   * @param options.variableLength - Whether to output the data as variable length. Default is true.
+   * @param params.data - The input data to encode. Must be a type convertible to Uint8Array by the Convert class.
+   * @param params.variableLength - Whether to output the data as variable length. Default is true.
    * @returns The input data encoded as a Uint8Array.
    *
    * @throws {TypeError} If fixed-length data is not a number.
    */
-  private static toDataLenData(options: {
+  private static toDataLenData({ data, variableLength = true }: {
     data: unknown,
     variableLength?: boolean
   }): Uint8Array {
-    const { data, variableLength = true } = options;
     let encodedData: Uint8Array;
     const dataType = universalTypeOf(data);
 

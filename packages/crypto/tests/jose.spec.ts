@@ -17,8 +17,8 @@ describe('Jose', () => {
     it('converts JOSE to Multicodec', async () => {
       let multicoded: MulticodecDefinition<MulticodecCode>;
       for (const vector of joseToMulticodecTestVectors) {
-        multicoded = await Jose.joseToMulticodec({
-          key: vector.input as Jwk,
+        multicoded = await Jose.jwkToMulticodec({
+          jwk: vector.input as Jwk,
         });
         expect(multicoded).to.deep.equal(vector.output);
       }
@@ -27,7 +27,7 @@ describe('Jose', () => {
     it('throws an error if unsupported JOSE has been passed', async () => {
       await expect(
         // @ts-expect-error because parameters are intentionally omitted to trigger an error.
-        Jose.joseToMulticodec({key: { crv: '123'}})
+        Jose.jwkToMulticodec({ jwk: { crv: '123' } })
       ).to.eventually.be.rejectedWith(Error, `Unsupported JOSE to Multicodec conversion: '123:public'`);
     });
   });

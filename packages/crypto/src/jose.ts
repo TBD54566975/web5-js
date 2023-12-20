@@ -1,6 +1,6 @@
 import { Multicodec, MulticodecCode, MulticodecDefinition } from '@web5/common';
 
-import type { Jwk, PublicKeyJwk } from './jose/jwk.js';
+import type { Jwk } from './jose/jwk.js';
 
 import { keyToMultibaseId } from './utils.js';
 import { X25519 } from './primitives/x25519.js';
@@ -26,16 +26,14 @@ const joseToMulticodecMapping: { [key: string]: string } = {
 };
 
 export class Jose {
-  public static async joseToMulticodec(options: {
-    key: Jwk
+  public static async jwkToMulticodec({ jwk }: {
+    jwk: Jwk
   }): Promise<MulticodecDefinition<MulticodecCode>> {
-    const jsonWebKey = options.key;
-
     const params: string[] = [];
 
-    if ('crv' in jsonWebKey) {
-      params.push(jsonWebKey.crv);
-      if ('d' in jsonWebKey) {
+    if ('crv' in jwk) {
+      params.push(jwk.crv);
+      if ('d' in jwk) {
         params.push('private');
       } else {
         params.push('public');
@@ -69,11 +67,9 @@ export class Jose {
    *    MUST be used. The x and y values represented MUST both be exactly
    *    256 bits, with any leading zeros preserved."
    */
-  public static async publicKeyToMultibaseId(options: {
-    publicKey: PublicKeyJwk
+  public static async publicKeyToMultibaseId({ publicKey }: {
+    publicKey: Jwk
   }): Promise<string> {
-    const { publicKey } = options;
-
     if (!('crv' in publicKey)) {
       throw new Error(`Jose: Unsupported public key type: ${publicKey.kty}`);
     }
@@ -104,7 +100,7 @@ export class Jose {
     }
 
     // Convert the JSON Web Key (JWK) parameters to a Multicodec name.
-    const { name: multicodecName } = await Jose.joseToMulticodec({ key: publicKey });
+    const { name: multicodecName } = await Jose.jwkToMulticodec({ jwk: publicKey });
 
     // Compute the multibase identifier based on the provided key.
     const multibaseId = keyToMultibaseId({ key: publicKeyBytes, multicodecName });
@@ -112,12 +108,10 @@ export class Jose {
     return multibaseId;
   }
 
-  public static async multicodecToJose(options: {
+  public static async multicodecToJose({ code, name }: {
     code?: MulticodecCode,
     name?: string
   }): Promise<Jwk> {
-    let { code, name } = options;
-
     // Either code or name must be specified, but not both.
     if (!(name ? !code : code)) {
       throw new Error(`Either 'name' or 'code' must be defined, but not both.`);
@@ -130,7 +124,7 @@ export class Jose {
     const jose = multicodecToJoseMapping[lookupKey];
 
     if (jose === undefined) {
-      throw new Error(`Unsupported Multicodec to JOSE conversion: '${options.name}'`);
+      throw new Error(`Unsupported Multicodec to JOSE conversion`);
     }
 
     return { ...jose };

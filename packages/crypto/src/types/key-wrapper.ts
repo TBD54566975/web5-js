@@ -4,6 +4,6 @@ export interface KeyWrapper<
   WrapKeyInput,
   UnwrapKeyInput
 > {
-  wrapKey(options: WrapKeyInput): Promise<Uint8Array>;
-  unwrapKey(options: UnwrapKeyInput): Promise<Jwk>;
+  wrapKey(params: WrapKeyInput): Promise<Uint8Array>;
+  unwrapKey(params: UnwrapKeyInput): Promise<Jwk>;
 }

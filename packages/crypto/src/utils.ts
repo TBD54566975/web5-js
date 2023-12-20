@@ -5,19 +5,20 @@ import { randomBytes as nobleRandomBytes } from '@noble/hashes/utils';
 /**
  * Checks whether the properties object provided contains the specified property.
  *
- * @param property Property key to check for.
- * @param properties Properties object to check within.
+ * @param params - The parameters for the check.
+ * @param params.property - Property key to check for.
+ * @param params.properties - Properties object to check within.
  * @returns void
- * @throws {SyntaxError} If the property is not a key in the properties object.
+ * @throws {@link SyntaxError} If the property is not a key in the properties object.
  */
-export function checkRequiredProperty(options: {
+export function checkRequiredProperty(params: {
   property: string,
   inObject: object
 }): void {
-  if (!options || options.property === undefined || options.inObject === undefined) {
+  if (!params || params.property === undefined || params.inObject === undefined) {
     throw new TypeError(`One or more required parameters missing: 'property, properties'`);
   }
-  const { property, inObject } = options;
+  const { property, inObject } = params;
   if (!(property in inObject)) {
     throw new TypeError(`Required parameter missing: '${property}'`);
   }
@@ -29,15 +30,15 @@ export function checkRequiredProperty(options: {
  * @param property Property key to check for.
  * @param allowedProperties Properties Array, Map, or Set to check within.
  * @returns void
- * @throws {SyntaxError} If the property is not a member of the allowedProperties Array, Map, or Set.
+ * @throws {@link SyntaxError} If the property is not a member of the allowedProperties Array, Map, or Set.
  */
-export function checkValidProperty(options: {
+export function checkValidProperty(params: {
   property: string, allowedProperties: ReadonlyArray<string> | Array<string> | Map<string, unknown> | Set<string>
 }): void {
-  if (!options || options.property === undefined || options.allowedProperties === undefined) {
+  if (!params || params.property === undefined || params.allowedProperties === undefined) {
     throw new TypeError(`One or more required parameters missing: 'property, allowedProperties'`);
   }
-  const { property, allowedProperties } = options;
+  const { property, allowedProperties } = params;
   if (
     (Array.isArray(allowedProperties) && !allowedProperties.includes(property)) ||
     (allowedProperties instanceof Set && !allowedProperties.has(property)) ||
@@ -48,12 +49,11 @@ export function checkValidProperty(options: {
   }
 }
 
-export function keyToMultibaseId(options: {
+export function keyToMultibaseId({ key, multicodecCode, multicodecName }: {
   key: Uint8Array,
   multicodecCode?: number,
   multicodecName?: string
 }): string {
-  const { key, multicodecCode, multicodecName } = options;
   const prefixedKey = Multicodec.addPrefix({ code: multicodecCode, data: key, name: multicodecName });
   const prefixedKeyB58 = Convert.uint8Array(prefixedKey).toBase58Btc();
   const multibaseKeyId = Convert.base58Btc(prefixedKeyB58).toMultibase();
@@ -95,11 +95,9 @@ export function isWebCryptoSupported(): boolean {
   }
 }
 
-export function multibaseIdToKey(options: {
+export function multibaseIdToKey({ multibaseKeyId }: {
   multibaseKeyId: string
 }): { key: Uint8Array, multicodecCode: number, multicodecName: string } {
-  const { multibaseKeyId } = options;
-
   const prefixedKeyB58 = Convert.multibase(multibaseKeyId).toBase58Btc();
   const prefixedKey = Convert.base58Btc(prefixedKeyB58).toUint8Array();
   const { code, data, name } = Multicodec.removePrefix({ prefixedData: prefixedKey });

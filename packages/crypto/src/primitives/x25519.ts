@@ -67,16 +67,14 @@ export class X25519 {
    * const privateKey = await X25519.bytesToPrivateKey({ privateKeyBytes });
    * ```
    *
-   * @param options - The options for the private key conversion.
-   * @param options.privateKeyBytes - The raw private key as a Uint8Array.
+   * @param params - The parameters for the private key conversion.
+   * @param params.privateKeyBytes - The raw private key as a Uint8Array.
    *
    * @returns A Promise that resolves to the private key in JWK format.
    */
-  public static async bytesToPrivateKey(options: {
+  public static async bytesToPrivateKey({ privateKeyBytes }: {
     privateKeyBytes: Uint8Array
   }): Promise<Jwk> {
-    const { privateKeyBytes } = options;
-
     // Derive the public key from the private key.
     const publicKeyBytes  = x25519.getPublicKey(privateKeyBytes);
 
@@ -116,16 +114,14 @@ export class X25519 {
    * const publicKey = await X25519.bytesToPublicKey({ publicKeyBytes });
    * ```
    *
-   * @param options - The options for the public key conversion.
-   * @param options.publicKeyBytes - The raw public key as a Uint8Array.
+   * @param params - The parameters for the public key conversion.
+   * @param params.publicKeyBytes - The raw public key as a Uint8Array.
    *
    * @returns A Promise that resolves to the public key in JWK format.
    */
-  public static async bytesToPublicKey(options: {
+  public static async bytesToPublicKey({ publicKeyBytes }: {
     publicKeyBytes: Uint8Array
   }): Promise<Jwk> {
-    const { publicKeyBytes } = options;
-
     // Construct the public key in JWK format.
     const publicKey: Jwk = {
       kty : 'OKP',
@@ -158,16 +154,14 @@ export class X25519 {
    * const publicKey = await X25519.computePublicKey({ privateKey });
    * ```
    *
-   * @param options - The options for the public key derivation.
-   * @param options.privateKey - The private key in JWK format from which to derive the public key.
+   * @param params - The parameters for the public key derivation.
+   * @param params.privateKey - The private key in JWK format from which to derive the public key.
    *
    * @returns A Promise that resolves to the derived public key in JWK format.
    */
-  public static async computePublicKey(options: {
+  public static async computePublicKey({ privateKey }: {
     privateKey: Jwk
   }): Promise<Jwk> {
-    let { privateKey } = options;
-
     // Convert the provided private key to a byte array.
     const privateKeyBytes  = await X25519.privateKeyToBytes({ privateKey });
 
@@ -243,16 +237,14 @@ export class X25519 {
    * const privateKeyBytes = await X25519.privateKeyToBytes({ privateKey });
    * ```
    *
-   * @param options - The options for the private key conversion.
-   * @param options.privateKey - The private key in JWK format.
+   * @param params - The parameters for the private key conversion.
+   * @param params.privateKey - The private key in JWK format.
    *
    * @returns A Promise that resolves to the private key as a Uint8Array.
    */
-  public static async privateKeyToBytes(options: {
+  public static async privateKeyToBytes({ privateKey }: {
     privateKey: Jwk
   }): Promise<Uint8Array> {
-    const { privateKey } = options;
-
     // Verify the provided JWK represents a valid OKP private key.
     if (!isOkpPrivateJwk(privateKey)) {
       throw new Error(`X25519: The provided key is not a valid OKP private key.`);
@@ -281,16 +273,14 @@ export class X25519 {
    * const publicKeyBytes = await X25519.publicKeyToBytes({ publicKey });
    * ```
    *
-   * @param options - The options for the public key conversion.
-   * @param options.publicKey - The public key in JWK format.
+   * @param params - The parameters for the public key conversion.
+   * @param params.publicKey - The public key in JWK format.
    *
    * @returns A Promise that resolves to the public key as a Uint8Array.
    */
-  public static async publicKeyToBytes(options: {
+  public static async publicKeyToBytes({ publicKey }: {
     publicKey: Jwk
   }): Promise<Uint8Array> {
-    const { publicKey } = options;
-
     // Verify the provided JWK represents a valid OKP public key.
     if (!isOkpPublicJwk(publicKey)) {
       throw new Error(`X25519: The provided key is not a valid OKP public key.`);
@@ -333,18 +323,16 @@ export class X25519 {
    * });
    * ```
    *
-   * @param options - The options for the shared secret computation operation.
-   * @param options.privateKeyA - The private key in JWK format of one party.
-   * @param options.publicKeyB - The public key in JWK format of the other party.
+   * @param params - The parameters for the shared secret computation.
+   * @param params.privateKeyA - The private key in JWK format of one party.
+   * @param params.publicKeyB - The public key in JWK format of the other party.
    *
    * @returns A Promise that resolves to the computed shared secret as a Uint8Array.
    */
-  public static async sharedSecret(options: {
+  public static async sharedSecret({ privateKeyA, publicKeyB }: {
     privateKeyA: Jwk,
     publicKeyB: Jwk
   }): Promise<Uint8Array> {
-    let { privateKeyA, publicKeyB } = options;
-
     // Ensure that keys from the same key pair are not specified.
     if ('x' in privateKeyA && 'x' in publicKeyB && privateKeyA.x === publicKeyB.x) {
       throw new Error(`X25519: ECDH shared secret cannot be computed from a single key pair's public and private keys.`);
@@ -366,8 +354,8 @@ export class X25519 {
    * belongs to the Curve25519. Therefore, it currently throws an error whenever
    * it is called.
    *
-   * @param options - The options for the key validation operation.
-   * @param options.key - The key to validate.
+   * @param params - The parameters for the key validation.
+   * @param params.key - The key to validate.
    * @throws {Error} If the method is called because it is not yet implemented.
    *
    * @returns A Promise that resolves to void.

@@ -26,14 +26,14 @@ export class Sha256 {
    * is deterministic, meaning the same data will always produce the same hash, but
    * is computationally infeasible to regenerate the original data from the hash.
    *
-   * @param options - The options for the hashing operation.
-   * @param options.data - The data to hash, represented as a Uint8Array.
+   * @param params - The parameters for the hashing operation.
+   * @param params.data - The data to hash, represented as a Uint8Array.
    *
    * @returns A Promise that resolves to the SHA-256 hash digest of the provided data as a Uint8Array.
    */
-  public static async digest(options: { data: Uint8Array }): Promise<Uint8Array> {
-    const { data } = options;
-
+  public static async digest({ data }: {
+    data: Uint8Array
+  }): Promise<Uint8Array> {
     const digest = sha256(data);
 
     return digest;

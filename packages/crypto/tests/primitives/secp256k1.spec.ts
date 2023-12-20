@@ -178,9 +178,9 @@ describe('Secp256k1', () => {
   describe('getCurvePoints()', () => {
     for (const vector of secp256k1GetCurvePoints.vectors) {
       it(vector.description, async () => {
-        const key = Convert.hex(vector.input.key).toUint8Array();
+        const keyBytes = Convert.hex(vector.input.keyBytes).toUint8Array();
         // @ts-expect-error because getCurvePoints() is a private method.
-        const points = await Secp256k1.getCurvePoints({ key });
+        const points = await Secp256k1.getCurvePoints({ keyBytes });
         expect(points.x).to.deep.equal(Convert.hex(vector.output.x).toUint8Array());
         expect(points.y).to.deep.equal(Convert.hex(vector.output.y).toUint8Array());
       });
@@ -189,7 +189,7 @@ describe('Secp256k1', () => {
     it('throws error with invalid input key length', async () => {
       await expect(
         // @ts-expect-error because getCurvePoints() is a private method.
-        Secp256k1.getCurvePoints({ key: new Uint8Array(16) })
+        Secp256k1.getCurvePoints({ keyBytes: new Uint8Array(16) })
       ).to.eventually.be.rejectedWith(Error, 'Point of length 16 was invalid. Expected 33 compressed bytes or 65 uncompressed bytes');
     });
   });
@@ -344,9 +344,9 @@ describe('Secp256k1', () => {
   describe('validatePrivateKey()', () => {
     for (const vector of secp256k1ValidatePrivateKey.vectors) {
       it(vector.description, async () => {
-        const key = Convert.hex(vector.input.key).toUint8Array();
+        const privateKeyBytes = Convert.hex(vector.input.privateKeyBytes).toUint8Array();
         // @ts-expect-error because validatePrivateKey() is a private method.
-        const isValid = await Secp256k1.validatePrivateKey({ key });
+        const isValid = await Secp256k1.validatePrivateKey({ privateKeyBytes });
         expect(isValid).to.equal(vector.output);
       });
     }
@@ -355,9 +355,9 @@ describe('Secp256k1', () => {
   describe('validatePublicKey()', () => {
     for (const vector of secp256k1ValidatePublicKey.vectors) {
       it(vector.description, async () => {
-        const key = Convert.hex(vector.input.key).toUint8Array();
+        const publicKeyBytes = Convert.hex(vector.input.publicKeyBytes).toUint8Array();
         // @ts-expect-error because validatePublicKey() is a private method.
-        const isValid = await Secp256k1.validatePublicKey({ key });
+        const isValid = await Secp256k1.validatePublicKey({ publicKeyBytes });
         expect(isValid).to.equal(vector.output);
       });
     }

@@ -70,16 +70,14 @@ export class XChaCha20 {
    * const privateKey = await XChaCha20.bytesToPrivateKey({ privateKeyBytes });
    * ```
    *
-   * @param options - The options for the symmetric key conversion.
-   * @param options.privateKeyBytes - The raw symmetric key as a Uint8Array.
+   * @param params - The parameters for the symmetric key conversion.
+   * @param params.privateKeyBytes - The raw symmetric key as a Uint8Array.
    *
    * @returns A Promise that resolves to the symmetric key in JWK format.
    */
-  public static async bytesToPrivateKey(options: {
+  public static async bytesToPrivateKey({ privateKeyBytes }: {
     privateKeyBytes: Uint8Array
   }): Promise<Jwk> {
-    const { privateKeyBytes } = options;
-
     // Construct the private key in JWK format.
     const privateKey: Jwk = {
       k   : Convert.uint8Array(privateKeyBytes).toBase64Url(),
@@ -111,20 +109,18 @@ export class XChaCha20 {
    * });
    * ```
    *
-   * @param options - The options for the decryption operation.
-   * @param options.data - The encrypted data to decrypt, represented as a Uint8Array.
-   * @param options.key - The key to use for decryption, represented in JWK format.
-   * @param options.nonce - The nonce used during the encryption process.
+   * @param params - The parameters for the decryption operation.
+   * @param params.data - The encrypted data to decrypt, represented as a Uint8Array.
+   * @param params.key - The key to use for decryption, represented in JWK format.
+   * @param params.nonce - The nonce used during the encryption process.
    *
    * @returns A Promise that resolves to the decrypted data as a Uint8Array.
    */
-  public static async decrypt(options: {
+  public static async decrypt({ data, key, nonce }: {
     data: Uint8Array,
     key: Jwk,
     nonce: Uint8Array
   }): Promise<Uint8Array> {
-    const { data, key, nonce } = options;
-
     // Convert the private key from JWK format to bytes.
     const privateKeyBytes = await XChaCha20.privateKeyToBytes({ privateKey: key });
 
@@ -153,20 +149,18 @@ export class XChaCha20 {
    * });
    * ```
    *
-   * @param options - The options for the encryption operation.
-   * @param options.data - The data to encrypt, represented as a Uint8Array.
-   * @param options.key - The key to use for encryption, represented in JWK format.
-   * @param options.nonce - A 24-byte nonce for the encryption process.
+   * @param params - The parameters for the encryption operation.
+   * @param params.data - The data to encrypt, represented as a Uint8Array.
+   * @param params.key - The key to use for encryption, represented in JWK format.
+   * @param params.nonce - A 24-byte nonce for the encryption process.
    *
    * @returns A Promise that resolves to the encrypted data as a Uint8Array.
    */
-  public static async encrypt(options: {
+  public static async encrypt({ data, key, nonce }: {
     data: Uint8Array,
     key: Jwk,
     nonce: Uint8Array
   }): Promise<Uint8Array> {
-    const { data, key, nonce } = options;
-
     // Convert the private key from JWK format to bytes.
     const privateKeyBytes = await XChaCha20.privateKeyToBytes({ privateKey: key });
 
@@ -221,16 +215,14 @@ export class XChaCha20 {
    * const privateKeyBytes = await XChaCha20.privateKeyToBytes({ privateKey });
    * ```
    *
-   * @param options - The options for the symmetric key conversion.
-   * @param options.privateKey - The symmetric key in JWK format.
+   * @param params - The parameters for the symmetric key conversion.
+   * @param params.privateKey - The symmetric key in JWK format.
    *
    * @returns A Promise that resolves to the symmetric key as a Uint8Array.
    */
-  public static async privateKeyToBytes(options: {
+  public static async privateKeyToBytes({ privateKey }: {
     privateKey: Jwk
   }): Promise<Uint8Array> {
-    const { privateKey } = options;
-
     // Verify the provided JWK represents a valid oct private key.
     if (!isOctPrivateJwk(privateKey)) {
       throw new Error(`XChaCha20: The provided key is not a valid oct private key.`);

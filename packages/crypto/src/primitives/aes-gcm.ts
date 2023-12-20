@@ -73,16 +73,14 @@ export class AesGcm {
  * const privateKey = await AesGcm.bytesToPrivateKey({ privateKeyBytes });
  * ```
  *
- * @param options - The options for the symmetric key conversion.
- * @param options.privateKeyBytes - The raw symmetric key as a Uint8Array.
+ * @param params - The parameters for the symmetric key conversion.
+ * @param params.privateKeyBytes - The raw symmetric key as a Uint8Array.
  *
  * @returns A Promise that resolves to the symmetric key in JWK format.
  */
-  public static async bytesToPrivateKey(options: {
+  public static async bytesToPrivateKey({ privateKeyBytes }: {
     privateKeyBytes: Uint8Array
   }): Promise<Jwk> {
-    const { privateKeyBytes } = options;
-
     // Construct the private key in JWK format.
     const privateKey: Jwk = {
       k   : Convert.uint8Array(privateKeyBytes).toBase64Url(),
@@ -120,24 +118,22 @@ export class AesGcm {
    * });
    * ```
    *
-   * @param options - The options for the decryption operation.
-   * @param options.data - The encrypted data to decrypt, represented as a Uint8Array.
-   * @param options.iv - The initialization vector, represented as a Uint8Array.
-   * @param options.additionalData - Optional additional authenticated data.
-   * @param options.key - The key to use for decryption, represented in JWK format.
-   * @param options.tagLength - The length of the authentication tag in bits.
+   * @param params - The parameters for the decryption operation.
+   * @param params.data - The encrypted data to decrypt, represented as a Uint8Array.
+   * @param params.iv - The initialization vector, represented as a Uint8Array.
+   * @param params.additionalData - Optional additional authenticated data.
+   * @param params.key - The key to use for decryption, represented in JWK format.
+   * @param params.tagLength - The length of the authentication tag in bits.
    *
    * @returns A Promise that resolves to the decrypted data as a Uint8Array.
    */
-  public static async decrypt(options: {
+  public static async decrypt({ data, iv, key, additionalData, tagLength }: {
     additionalData?: Uint8Array,
     data: Uint8Array,
     iv: Uint8Array,
     key: Jwk,
     tagLength?: number
   }): Promise<Uint8Array> {
-    const { additionalData, data, iv, key, tagLength } = options;
-
     const webCryptoKey = await this.importKey(key);
 
     // Web browsers throw an error if additionalData is undefined.
@@ -178,24 +174,22 @@ export class AesGcm {
    * });
    * ```
    *
-   * @param options - The options for the encryption operation.
-   * @param options.data - The data to encrypt, represented as a Uint8Array.
-   * @param options.iv - The initialization vector, represented as a Uint8Array.
-   * @param options.additionalData - Optional additional authenticated data.
-   * @param options.key - The key to use for encryption, represented in JWK format.
-   * @param options.tagLength - The length of the authentication tag in bits.
+   * @param params - The parameters for the encryption operation.
+   * @param params.data - The data to encrypt, represented as a Uint8Array.
+   * @param params.iv - The initialization vector, represented as a Uint8Array.
+   * @param params.additionalData - Optional additional authenticated data.
+   * @param params.key - The key to use for encryption, represented in JWK format.
+   * @param params.tagLength - The length of the authentication tag in bits.
    *
    * @returns A Promise that resolves to the encrypted data as a Uint8Array.
    */
-  public static async encrypt(options: {
+  public static async encrypt({ data, iv, key, additionalData, tagLength }: {
     additionalData?: Uint8Array,
     data: Uint8Array,
     iv: Uint8Array,
     key: Jwk,
     tagLength?: number
   }): Promise<Uint8Array> {
-    const { additionalData, data, iv, key, tagLength } = options;
-
     const webCryptoKey = await this.importKey(key);
 
     // Web browsers throw an error if additionalData is undefined.
@@ -231,16 +225,14 @@ export class AesGcm {
    * const privateKey = await AesGcm.generateKey({ length });
    * ```
    *
-   * @param options - The options for the key generation.
-   * @param options.length - The length of the key in bits. Common lengths are 128, 192, and 256 bits.
+   * @param params - The parameters for the key generation.
+   * @param params.length - The length of the key in bits. Common lengths are 128, 192, and 256 bits.
    *
    * @returns A Promise that resolves to the generated symmetric key in JWK format.
    */
-  public static async generateKey(options: {
+  public static async generateKey({ length }: {
     length: number
   }): Promise<Jwk> {
-    const { length } = options;
-
     // Generate the secret key.
     const lengthInBytes = length / 8;
     const privateKeyBytes = crypto.getRandomValues(new Uint8Array(lengthInBytes));
@@ -268,16 +260,14 @@ export class AesGcm {
    * const privateKeyBytes = await AesGcm.privateKeyToBytes({ privateKey });
    * ```
    *
-   * @param options - The options for the symmetric key conversion.
-   * @param options.privateKey - The symmetric key in JWK format.
+   * @param params - The parameters for the symmetric key conversion.
+   * @param params.privateKey - The symmetric key in JWK format.
    *
    * @returns A Promise that resolves to the symmetric key as a Uint8Array.
    */
-  public static async privateKeyToBytes(options: {
+  public static async privateKeyToBytes({ privateKey }: {
     privateKey: Jwk
   }): Promise<Uint8Array> {
-    const { privateKey } = options;
-
     // Verify the provided JWK represents a valid oct private key.
     if (!isOctPrivateJwk(privateKey)) {
       throw new Error(`AesGcm: The provided key is not a valid oct private key.`);

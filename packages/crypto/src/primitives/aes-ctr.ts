@@ -74,16 +74,14 @@ export class AesCtr {
    * const privateKey = await AesCtr.bytesToPrivateKey({ privateKeyBytes });
    * ```
    *
-   * @param options - The options for the symmetric key conversion.
-   * @param options.privateKeyBytes - The raw symmetric key as a Uint8Array.
+   * @param params - The parameters for the symmetric key conversion.
+   * @param params.privateKeyBytes - The raw symmetric key as a Uint8Array.
    *
    * @returns A Promise that resolves to the symmetric key in JWK format.
    */
-  public static async bytesToPrivateKey(options: {
+  public static async bytesToPrivateKey({ privateKeyBytes }: {
     privateKeyBytes: Uint8Array
   }): Promise<Jwk> {
-    const { privateKeyBytes } = options;
-
     // Construct the private key in JWK format.
     const privateKey: Jwk = {
       k   : Convert.uint8Array(privateKeyBytes).toBase64Url(),
@@ -117,22 +115,20 @@ export class AesCtr {
    * });
    * ```
    *
-   * @param options - The options for the decryption operation.
-   * @param options.counter - The initial value of the counter block.
-   * @param options.data - The encrypted data to decrypt, represented as a Uint8Array.
-   * @param options.key - The key to use for decryption, represented in JWK format.
-   * @param options.length - The length of the counter block in bits.
+   * @param params - The parameters for the decryption operation.
+   * @param params.counter - The initial value of the counter block.
+   * @param params.data - The encrypted data to decrypt, represented as a Uint8Array.
+   * @param params.key - The key to use for decryption, represented in JWK format.
+   * @param params.length - The length of the counter block in bits.
    *
    * @returns A Promise that resolves to the decrypted data as a Uint8Array.
    */
-  public static async decrypt(options: {
+  public static async decrypt({ counter, data, key, length }: {
     counter: Uint8Array,
     data: Uint8Array,
     key: Jwk,
     length: number
   }): Promise<Uint8Array> {
-    const { counter, data, key, length } = options;
-
     const webCryptoKey = await this.importKey(key);
 
     const plaintextBuffer = await crypto.subtle.decrypt(
@@ -168,22 +164,20 @@ export class AesCtr {
    * });
    * ```
    *
-   * @param options - The options for the encryption operation.
-   * @param options.counter - The initial value of the counter block.
-   * @param options.data - The data to encrypt, represented as a Uint8Array.
-   * @param options.key - The key to use for encryption, represented in JWK format.
-   * @param options.length - The length of the counter block in bits.
+   * @param params - The parameters for the encryption operation.
+   * @param params.counter - The initial value of the counter block.
+   * @param params.data - The data to encrypt, represented as a Uint8Array.
+   * @param params.key - The key to use for encryption, represented in JWK format.
+   * @param params.length - The length of the counter block in bits.
    *
    * @returns A Promise that resolves to the encrypted data as a Uint8Array.
    */
-  public static async encrypt(options: {
+  public static async encrypt({ counter, data, key, length }: {
     counter: Uint8Array,
     data: Uint8Array,
     key: Jwk,
     length: number
   }): Promise<Uint8Array> {
-    const { counter, data, key, length } = options;
-
     const webCryptoKey = await this.importKey(key);
 
     const ciphertextBuffer = await crypto.subtle.encrypt(
@@ -218,16 +212,14 @@ export class AesCtr {
    * const privateKey = await AesCtr.generateKey({ length });
    * ```
    *
-   * @param options - The options for the key generation.
-   * @param options.length - The length of the key in bits. Common lengths are 128, 192, and 256 bits.
+   * @param params - The parameters for the key generation.
+   * @param params.length - The length of the key in bits. Common lengths are 128, 192, and 256 bits.
    *
    * @returns A Promise that resolves to the generated symmetric key in JWK format.
    */
-  public static async generateKey(options: {
+  public static async generateKey({ length }: {
     length: number
   }): Promise<Jwk> {
-    const { length } = options;
-
     // Generate a random private key.
     const lengthInBytes = length / 8;
     const privateKeyBytes = crypto.getRandomValues(new Uint8Array(lengthInBytes));
@@ -254,16 +246,14 @@ export class AesCtr {
    * const privateKeyBytes = await AesCtr.privateKeyToBytes({ privateKey });
    * ```
    *
-   * @param options - The options for the symmetric key conversion.
-   * @param options.privateKey - The symmetric key in JWK format.
+   * @param params - The parameters for the symmetric key conversion.
+   * @param params.privateKey - The symmetric key in JWK format.
    *
    * @returns A Promise that resolves to the symmetric key as a Uint8Array.
    */
-  public static async privateKeyToBytes(options: {
+  public static async privateKeyToBytes({ privateKey }: {
     privateKey: Jwk
   }): Promise<Uint8Array> {
-    const { privateKey } = options;
-
     // Verify the provided JWK represents a valid oct private key.
     if (!isOctPrivateJwk(privateKey)) {
       throw new Error(`AesCtr: The provided key is not a valid oct private key.`);
