@@ -25,8 +25,7 @@ import { computeJwkThumbprint, isOctPrivateJwk } from '../jose/jwk.js';
  * The methods in this class are asynchronous, returning Promises to accommodate various
  * JavaScript environments.
  *
- * Usage Examples:
- *
+ * @example
  * ```ts
  * // Key Generation
  * const length = 256; // Length of the key in bits (e.g., 128, 192, 256)
@@ -68,8 +67,7 @@ export class AesGcm {
  * - `k`: The symmetric key, base64url-encoded.
  * - `kid`: Key ID, generated based on the JWK thumbprint.
  *
- * Example usage:
- *
+ * @example
  * ```ts
  * const privateKeyBytes = new Uint8Array([...]); // Replace with actual symmetric key bytes
  * const privateKey = await AesGcm.bytesToPrivateKey({ privateKeyBytes });
@@ -107,8 +105,7 @@ export class AesGcm {
    * tag used when encrypting the data. If not specified, the default tag length of 128 bits is
    * used.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const encryptedData = new Uint8Array([...]); // Encrypted data
    * const iv = new Uint8Array([...]); // Initialization vector used during encryption
@@ -166,8 +163,7 @@ export class AesGcm {
    * tag generated in the encryption operation and used for authentication in the corresponding
    * decryption. If not specified, the default tag length of 128 bits is used.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const data = new TextEncoder().encode('Hello, world!');
    * const iv = new Uint8Array([...]); // Initialization vector
@@ -229,8 +225,7 @@ export class AesGcm {
    * - `k`: The symmetric key component, base64url-encoded.
    * - `kid`: Key ID, generated based on the JWK thumbprint, providing a unique identifier.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const length = 256; // Length of the key in bits (e.g., 128, 192, 256)
    * const privateKey = await AesGcm.generateKey({ length });
@@ -267,8 +262,7 @@ export class AesGcm {
    * in base64url encoding. The method decodes this value into a byte array, providing
    * the symmetric key in its raw binary form.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const privateKey = { ... }; // A symmetric key in JWK format
    * const privateKeyBytes = await AesGcm.privateKeyToBytes({ privateKey });

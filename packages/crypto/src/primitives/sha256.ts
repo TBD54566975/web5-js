@@ -11,8 +11,7 @@ import { sha256 } from '@noble/hashes/sha256';
  * type for input data and the resulting digest, ensuring a consistent interface
  * for binary data processing.
  *
- * Example usage:
- *
+ * @example
  * ```ts
  * const data = new Uint8Array([...]);
  * const hashDigest = await Sha256.digest({ data });

@@ -24,8 +24,7 @@ import { computeJwkThumbprint, isOkpPrivateJwk, isOkpPublicJwk } from '../jose/j
  * The methods in this class are asynchronous, returning Promises to accommodate various
  * JavaScript environments.
  *
- * Usage Examples:
- *
+ * @example
  * ```ts
  * // Key Generation
  * const privateKey = await X25519.generateKey();
@@ -62,8 +61,7 @@ export class X25519 {
    * JSON format, facilitating their use in cryptographic operations and making
    * them easy to share and store.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const privateKeyBytes = new Uint8Array([...]); // Replace with actual private key bytes
    * const privateKey = await X25519.bytesToPrivateKey({ privateKeyBytes });
@@ -112,8 +110,7 @@ export class X25519 {
    * JSON format, facilitating their use in cryptographic operations and making
    * them easy to share and store.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const publicKeyBytes = new Uint8Array([...]); // Replace with actual public key bytes
    * const publicKey = await X25519.bytesToPublicKey({ publicKeyBytes });
@@ -155,8 +152,7 @@ export class X25519 {
    * useful in cryptographic operations where a public key is needed for operations like signature
    * verification, but only the private key is available.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const privateKey = { ... }; // A PrivateKeyJwk object representing an X25519 private key
    * const publicKey = await X25519.computePublicKey({ privateKey });
@@ -208,8 +204,7 @@ export class X25519 {
    *
    * The key is returned in a format suitable for direct use in key agreement operations.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const privateKey = await X25519.generateKey();
    * ```
@@ -242,8 +237,7 @@ export class X25519 {
    * binary form, such as certain low-level cryptographic operations or when interfacing
    * with systems and libraries that expect keys in a byte array format.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const privateKey = { ... }; // An X25519 private key in JWK format
    * const privateKeyBytes = await X25519.privateKeyToBytes({ privateKey });
@@ -281,8 +275,7 @@ export class X25519 {
    * binary form, such as certain low-level cryptographic operations or when interfacing
    * with systems and libraries that expect keys in a byte array format.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const publicKey = { ... }; // An X25519 public key in JWK format
    * const publicKeyBytes = await X25519.publicKeyToBytes({ publicKey });
@@ -330,8 +323,7 @@ export class X25519 {
    * can independently compute the x-coordinate.  Consquently, this implementation
    * omits the y-coordinate for simplicity and standard compliance.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const privateKeyA = { ... }; // A PrivateKeyJwk object for party A
    * const publicKeyB = { ... }; // A PublicKeyJwk object for party B

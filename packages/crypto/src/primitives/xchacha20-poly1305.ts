@@ -27,8 +27,7 @@ const TAG_LENGTH = 16;
  * The methods in this class are asynchronous, returning Promises to accommodate various
  * JavaScript environments.
  *
- * Usage Examples:
- *
+ * @example
  * ```ts
  * // Key Generation
  * const privateKey = await XChaCha20Poly1305.generateKey();
@@ -70,8 +69,7 @@ export class XChaCha20Poly1305 {
    * - `k`: The symmetric key, base64url-encoded.
    * - `kid`: Key ID, generated based on the JWK thumbprint.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const privateKeyBytes = new Uint8Array([...]); // Replace with actual symmetric key bytes
    * const privateKey = await XChaCha20Poly1305.bytesToPrivateKey({ privateKeyBytes });
@@ -107,8 +105,7 @@ export class XChaCha20Poly1305 {
    * data (AAD) for enhanced security. The nonce must be 24 bytes long, consistent with XChaCha20's
    * specifications.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const encryptedData = new Uint8Array([...]); // Encrypted data
    * const nonce = new Uint8Array(24); // 24-byte nonce
@@ -161,8 +158,7 @@ export class XChaCha20Poly1305 {
    * encrypted data along with an authentication tag as a Uint8Array, ensuring both confidentiality
    * and integrity of the data.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const data = new TextEncoder().encode('Hello, world!');
    * const nonce = crypto.getRandomValues(new Uint8Array(24)); // 24-byte nonce
@@ -218,8 +214,7 @@ export class XChaCha20Poly1305 {
    * - `k`: The symmetric key component, base64url-encoded.
    * - `kid`: Key ID, generated based on the JWK thumbprint.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const privateKey = await XChaCha20Poly1305.generateKey();
    * ```
@@ -246,8 +241,7 @@ export class XChaCha20Poly1305 {
    * It decodes the 'k' parameter of the JWK value, which represents the symmetric key in base64url
    * encoding, into a byte array.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const privateKey = { ... }; // A symmetric key in JWK format
    * const privateKeyBytes = await XChaCha20Poly1305.privateKeyToBytes({ privateKey });

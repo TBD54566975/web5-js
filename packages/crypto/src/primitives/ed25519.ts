@@ -25,8 +25,7 @@ import { computeJwkThumbprint, isOkpPrivateJwk, isOkpPublicJwk } from '../jose/j
  * The methods in this class are asynchronous, returning Promises to accommodate various
  * JavaScript environments, and use `Uint8Array` for binary data handling.
  *
- * Usage Examples:
- *
+ * @example
  * ```ts
  * // Key Generation
  * const privateKey = await Ed25519.generateKey();

@@ -26,8 +26,7 @@ import { computeJwkThumbprint, isOctPrivateJwk } from '../jose/jwk.js';
  * The methods in this class are asynchronous, returning Promises to accommodate various
  * JavaScript environments.
  *
- * Usage Examples:
- *
+ * @example
  * ```ts
  * // Key Generation
  * const length = 256; // Length of the key in bits (e.g., 128, 192, 256)
@@ -69,8 +68,7 @@ export class AesCtr {
    * - `k`: The symmetric key, base64url-encoded.
    * - `kid`: Key ID, generated based on the JWK thumbprint.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const privateKeyBytes = new Uint8Array([...]); // Replace with actual symmetric key bytes
    * const privateKey = await AesCtr.bytesToPrivateKey({ privateKeyBytes });
@@ -106,8 +104,7 @@ export class AesCtr {
    * of the counter block, along with the encrypted data and the decryption key. The method
    * returns the decrypted data as a Uint8Array.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const encryptedData = new Uint8Array([...]); // Encrypted data
    * const counter = new Uint8Array(16); // 16-byte (128-bit) counter block used during encryption
@@ -158,8 +155,7 @@ export class AesCtr {
    * the data and key. The method is designed to work asynchronously and returns the
    * encrypted data as a Uint8Array.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const data = new TextEncoder().encode('Hello, world!');
    * const counter = new Uint8Array(16); // 16-byte (128-bit) counter block
@@ -216,8 +212,7 @@ export class AesCtr {
    * - `k`: The symmetric key component, base64url-encoded.
    * - `kid`: Key ID, generated based on the JWK thumbprint.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const length = 256; // Length of the key in bits (e.g., 128, 192, 256)
    * const privateKey = await AesCtr.generateKey({ length });
@@ -253,8 +248,7 @@ export class AesCtr {
    * It decodes the 'k' parameter of the JWK value, which represents the symmetric key in base64url
    * encoding, into a byte array.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const privateKey = { ... }; // A symmetric key in JWK format
    * const privateKeyBytes = await AesCtr.privateKeyToBytes({ privateKey });

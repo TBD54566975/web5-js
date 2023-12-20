@@ -24,8 +24,7 @@ type DeriveKeyOptions = {
  * automatically chooses between Web Crypto and Node.js Crypto based on the runtime
  * environment's support.
  *
- * Usage Examples:
- *
+ * @example
  * ```ts
  * const options = {
  *   hash: 'SHA-256', // The hash function to use ('SHA-256', 'SHA-384', 'SHA-512')
@@ -51,8 +50,7 @@ export class Pbkdf2 {
    * desired length. The method is capable of utilizing either the Web Crypto API
    * or the Node.js Crypto module, depending on the environment's support.
    *
-   * Example usage:
-   *
+   * @example
    * ```ts
    * const options = {
    *   hash: 'SHA-256',

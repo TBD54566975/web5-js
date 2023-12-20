@@ -78,8 +78,7 @@ export function keyToMultibaseId(options: {
  *
  * @returns A boolean indicating whether the Web Crypto API is supported in the current environment.
  *
- * Example usage:
- *
+ * @example
  * ```ts
  * if (isWebCryptoSupported()) {
  *   console.log('Crypto operations can be performed');
