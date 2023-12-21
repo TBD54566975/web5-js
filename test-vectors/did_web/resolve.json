@@ -1,0 +1,92 @@
+{
+  "description": "did:web resolution",
+  "vectors": [
+    {
+      "description": "resolves to a well known URL",
+      "input": {
+        "didUri": "did:web:example.com",
+        "mockServer": {
+          "https://example.com/.well-known/did.json": {
+            "id": "did:web:example.com"
+          }
+        }
+      },
+      "output": {
+        "didResolutionMetadata": {},
+        "didDocument": {
+          "id": "did:web:example.com"
+        }
+      }
+    },
+    {
+      "description": "resolves to a URL with a path",
+      "input": {
+        "didUri": "did:web:w3c-ccg.github.io:user:alice",
+        "mockServer": {
+          "https://w3c-ccg.github.io/user/alice/did.json": {
+            "id": "did:web:w3c-ccg.github.io:user:alice"
+          }
+        }
+      },
+      "output": {
+        "didResolutionMetadata": {},
+        "didDocument": {
+          "id": "did:web:w3c-ccg.github.io:user:alice"
+        }
+      }
+    },
+    {
+      "description": "resolves to a URL with a path and a port",
+      "input": {
+        "didUri": "did:web:example.com%3A3000:user:alice",
+        "mockServer": {
+          "https://example.com:3000/user/alice/did.json": {
+            "id": "did:web:example.com%3A3000:user:alice"
+          }
+        }
+      },
+      "output": {
+        "didResolutionMetadata": {},
+        "didDocument": {
+          "id": "did:web:example.com%3A3000:user:alice"
+        }
+      }
+    },
+    {
+      "description": "methodNotSupported error returned when did method is not web",
+      "input": {
+        "didUri": "did:dht:gb46emk73wkenrut43ii67a3o5qctojcaucebth7r83pst6yeh8o"
+      },
+      "output": {
+        "didResolutionMetadata": {
+          "error": "methodNotSupported"
+        }
+      },
+      "errors": true
+    },
+    {
+      "description": "notFound error returned when domain does not exist",
+      "input": {
+        "didUri": "did:web:doesnotexist.com"
+      },
+      "output": {
+        "didResolutionMetadata": {
+          "error": "notFound"
+        }
+      },
+      "errors": true
+    },
+    {
+      "description": "invalidDid error returned for domain name with invalid character",
+      "input": {
+        "didUri": "did:web:invalidcharø.com"
+      },
+      "output": {
+        "didResolutionMetadata": {
+          "error": "invalidDid"
+        }
+      },
+      "errors": true
+    }
+  ]
+}
