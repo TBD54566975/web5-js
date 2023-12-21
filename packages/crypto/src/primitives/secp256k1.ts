@@ -199,37 +199,6 @@ export class Secp256k1 {
   }
 
   /**
-   * Converts a public key to its uncompressed form.
-   *
-   * This method takes a compressed public key represented as a byte array and decompresses it.
-   * Public key decompression involves reconstructing the y-coordinate from the x-coordinate,
-   * resulting in the full public key. This method is used when the uncompressed key format is
-   * required for certain cryptographic operations or interoperability.
-   *
-   * @example
-   * ```ts
-   * const compressedPublicKeyBytes = new Uint8Array([...]); // Replace with actual compressed public key bytes
-   * const decompressedPublicKey = await Secp256k1.decompressPublicKey({
-   *   publicKeyBytes: compressedPublicKeyBytes
-   * });
-   * ```
-   *
-   * @param params - The parameters for the public key decompression.
-   * @param params.publicKeyBytes - The public key as a Uint8Array.
-   *
-   * @returns A Promise that resolves to the uncompressed public key as a Uint8Array.
-   */
-  public static async decompressPublicKey({ publicKeyBytes }: {
-    publicKeyBytes: Uint8Array
-  }): Promise<Uint8Array> {
-    // Decode Weierstrass points from the public key byte array.
-    const point = secp256k1.ProjectivePoint.fromHex(publicKeyBytes);
-
-    // Return the uncompressed form of the public key.
-    return point.toRawBytes(false);
-  }
-
-  /**
    * Derives the public key in JWK format from a given private key.
    *
    * This method takes a private key in JWK format and derives its corresponding public key,
@@ -275,6 +244,37 @@ export class Secp256k1 {
     publicKey.kid = await computeJwkThumbprint({ jwk: publicKey });
 
     return publicKey;
+  }
+
+  /**
+   * Converts a public key to its uncompressed form.
+   *
+   * This method takes a compressed public key represented as a byte array and decompresses it.
+   * Public key decompression involves reconstructing the y-coordinate from the x-coordinate,
+   * resulting in the full public key. This method is used when the uncompressed key format is
+   * required for certain cryptographic operations or interoperability.
+   *
+   * @example
+   * ```ts
+   * const compressedPublicKeyBytes = new Uint8Array([...]); // Replace with actual compressed public key bytes
+   * const decompressedPublicKey = await Secp256k1.decompressPublicKey({
+   *   publicKeyBytes: compressedPublicKeyBytes
+   * });
+   * ```
+   *
+   * @param params - The parameters for the public key decompression.
+   * @param params.publicKeyBytes - The public key as a Uint8Array.
+   *
+   * @returns A Promise that resolves to the uncompressed public key as a Uint8Array.
+   */
+  public static async decompressPublicKey({ publicKeyBytes }: {
+    publicKeyBytes: Uint8Array
+  }): Promise<Uint8Array> {
+    // Decode Weierstrass points from the public key byte array.
+    const point = secp256k1.ProjectivePoint.fromHex(publicKeyBytes);
+
+    // Return the uncompressed form of the public key.
+    return point.toRawBytes(false);
   }
 
   /**

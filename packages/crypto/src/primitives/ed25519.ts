@@ -140,6 +140,48 @@ export class Ed25519 {
   }
 
   /**
+   * Derives the public key in JWK format from a given Ed25519 private key.
+   *
+   * This method takes a private key in JWK format and derives its corresponding public key,
+   * also in JWK format.  The derivation process involves converting the private key to a
+   * raw byte array and then computing the corresponding public key on the Curve25519 curve in
+   * Twisted Edwards form. The public key is then encoded into base64url format to construct
+   * a JWK representation.
+   *
+   * @example
+   * ```ts
+   * const privateKey = { ... }; // A Jwk object representing an Ed25519 private key
+   * const publicKey = await Ed25519.computePublicKey({ key: privateKey });
+   * ```
+   *
+   * @param params - The parameters for the public key derivation.
+   * @param params.key - The private key in JWK format from which to derive the public key.
+   *
+   * @returns A Promise that resolves to the computed public key in JWK format.
+   */
+  public static async computePublicKey({ key }:
+    ComputePublicKeyParams
+  ): Promise<Jwk> {
+    // Convert the provided private key to a byte array.
+    const privateKeyBytes  = await Ed25519.privateKeyToBytes({ privateKey: key });
+
+    // Derive the public key from the private key.
+    const publicKeyBytes  = ed25519.getPublicKey(privateKeyBytes);
+
+    // Construct the public key in JWK format.
+    const publicKey: Jwk = {
+      kty : 'OKP',
+      crv : 'Ed25519',
+      x   : Convert.uint8Array(publicKeyBytes).toBase64Url()
+    };
+
+    // Compute the JWK thumbprint and set as the key ID.
+    publicKey.kid = await computeJwkThumbprint({ jwk: publicKey });
+
+    return publicKey;
+  }
+
+  /**
    * Converts an Ed25519 private key to its X25519 counterpart.
    *
    * This method enables the use of the same key pair for both digital signature (Ed25519)
@@ -233,48 +275,6 @@ export class Ed25519 {
     x25519PublicKey.kid = await computeJwkThumbprint({ jwk: x25519PublicKey });
 
     return x25519PublicKey;
-  }
-
-  /**
-   * Derives the public key in JWK format from a given Ed25519 private key.
-   *
-   * This method takes a private key in JWK format and derives its corresponding public key,
-   * also in JWK format.  The derivation process involves converting the private key to a
-   * raw byte array and then computing the corresponding public key on the Curve25519 curve in
-   * Twisted Edwards form. The public key is then encoded into base64url format to construct
-   * a JWK representation.
-   *
-   * @example
-   * ```ts
-   * const privateKey = { ... }; // A Jwk object representing an Ed25519 private key
-   * const publicKey = await Ed25519.computePublicKey({ key: privateKey });
-   * ```
-   *
-   * @param params - The parameters for the public key derivation.
-   * @param params.key - The private key in JWK format from which to derive the public key.
-   *
-   * @returns A Promise that resolves to the computed public key in JWK format.
-   */
-  public static async computePublicKey({ key }:
-    ComputePublicKeyParams
-  ): Promise<Jwk> {
-    // Convert the provided private key to a byte array.
-    const privateKeyBytes  = await Ed25519.privateKeyToBytes({ privateKey: key });
-
-    // Derive the public key from the private key.
-    const publicKeyBytes  = ed25519.getPublicKey(privateKeyBytes);
-
-    // Construct the public key in JWK format.
-    const publicKey: Jwk = {
-      kty : 'OKP',
-      crv : 'Ed25519',
-      x   : Convert.uint8Array(publicKeyBytes).toBase64Url()
-    };
-
-    // Compute the JWK thumbprint and set as the key ID.
-    publicKey.kid = await computeJwkThumbprint({ jwk: publicKey });
-
-    return publicKey;
   }
 
   /**
