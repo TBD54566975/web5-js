@@ -349,7 +349,8 @@ export class DwnApi {
           agentResponse = await this.agent.processDwnRequest(agentRequest);
         }
 
-        const { reply: { entries = [], status } } = agentResponse;
+        const { reply: { status } } = agentResponse;
+        const entries = agentResponse.reply.entries as ProtocolsQueryReplyEntry[] || [];
 
         const protocols = entries.map((entry: ProtocolsQueryReplyEntry) => {
           const metadata = { author: this.connectedDid, };
@@ -472,7 +473,8 @@ export class DwnApi {
           agentResponse = await this.agent.processDwnRequest(agentRequest);
         }
 
-        const { reply: { entries, status, cursor } } = agentResponse;
+        const { reply: { status, cursor } } = agentResponse;
+        const entries = agentResponse.reply.entries as RecordsQueryReplyEntry[] || [];
 
         const records = entries.map((entry: RecordsQueryReplyEntry) => {
           const recordOptions = {

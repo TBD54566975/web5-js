@@ -12,6 +12,7 @@ import type {
 } from './types/managed-key.js';
 
 import { isManagedKeyPair } from './utils.js';
+import { QueryResultEntry } from '@tbd54566975/dwn-sdk-js';
 
 type EncodedPrivateKey = Omit<ManagedPrivateKey, 'material'> & {
   // Key material, encoded as Base64Url.
@@ -63,7 +64,7 @@ export class KeyStoreDwn implements ManagedKeyStore<string, ManagedKey | Managed
 
     // Loop through all of the entries and try to find a match.
     let matchingRecordId: string | undefined;
-    for (const record of queryReply.entries ?? []) {
+    for (const record of queryReply.entries as QueryResultEntry[] ?? []) {
       if (record.encodedData) {
         const storedKey = this.decodeKey(record.encodedData);
         const storedKeyId = isManagedKeyPair(storedKey) ? storedKey.publicKey.id : storedKey.id;
@@ -103,7 +104,7 @@ export class KeyStoreDwn implements ManagedKeyStore<string, ManagedKey | Managed
     const { reply: queryReply} = await this.getKeyRecords(agent, context);
 
     // Loop through all of the entries and return a match, if found.
-    for (const record of queryReply.entries ?? []) {
+    for (const record of queryReply.entries as QueryResultEntry[] ?? []) {
       if (record.encodedData) {
         const storedKey = this.decodeKey(record.encodedData);
         if (isManagedKeyPair(storedKey)) {
@@ -131,7 +132,7 @@ export class KeyStoreDwn implements ManagedKeyStore<string, ManagedKey | Managed
     const { reply: queryReply} = await this.getKeyRecords(agent, context);
 
     // Loop through all of the entries and return a match, if found.
-    for (const record of queryReply.entries ?? []) {
+    for (const record of queryReply.entries as QueryResultEntry[] ?? []) {
       if (record.encodedData) {
         const storedKey = this.decodeKey(record.encodedData);
         const storedKeyId = isManagedKeyPair(storedKey) ? storedKey.publicKey.id : storedKey.id;
@@ -200,7 +201,7 @@ export class KeyStoreDwn implements ManagedKeyStore<string, ManagedKey | Managed
 
     // Loop through all of the entries and accumulate the key objects.
     let storedKeys: (ManagedKey | ManagedKeyPair)[] = [];
-    for (const record of queryReply.entries ?? []) {
+    for (const record of queryReply.entries as QueryResultEntry[] ?? []) {
       if (record.encodedData) {
         const storedKey = this.decodeKey(record.encodedData);
         storedKeys.push(storedKey);
@@ -226,7 +227,7 @@ export class KeyStoreDwn implements ManagedKeyStore<string, ManagedKey | Managed
     // Confirm the key being updated is already present in the store.
     let keyToUpdate: ManagedKey | ManagedKeyPair | undefined;
     let recordToUpdate: RecordsWriteMessage | undefined;
-    for (const entry of queryReply.entries ?? []) {
+    for (const entry of queryReply.entries as QueryResultEntry[] ?? []) {
       const { encodedData, ...record } = entry;
       if (encodedData) {
         const storedKey = this.decodeKey(encodedData);
@@ -518,7 +519,7 @@ export class PrivateKeyStoreDwn implements ManagedKeyStore<string, ManagedPrivat
 
     // Loop through all of the entries and try to find a match.
     let matchingRecordId: string | undefined;
-    for (const record of queryReply.entries ?? []) {
+    for (const record of queryReply.entries as QueryResultEntry[] ?? []) {
       if (record.encodedData) {
         const storedKey = this.decodeKey(record.encodedData);
         if (storedKey && storedKey.id === id) {
@@ -563,7 +564,7 @@ export class PrivateKeyStoreDwn implements ManagedKeyStore<string, ManagedPrivat
     const { reply: queryReply} = await this.getKeyRecords(agent, context);
 
     // Loop through all of the entries and return a match, if found.
-    for (const record of queryReply.entries ?? []) {
+    for (const record of queryReply.entries as QueryResultEntry[] ?? []) {
       if (record.encodedData) {
         const storedKey = this.decodeKey(record.encodedData);
         if (storedKey.id === id) return storedKey;
@@ -618,7 +619,7 @@ export class PrivateKeyStoreDwn implements ManagedKeyStore<string, ManagedPrivat
 
     // Loop through all of the entries and accumulate the key objects.
     let storedKeys: ManagedPrivateKey[] = [];
-    for (const record of queryReply.entries ?? []) {
+    for (const record of queryReply.entries as QueryResultEntry[] ?? []) {
       if (record.encodedData) {
         const storedKey = this.decodeKey(record.encodedData);
         storedKeys.push(storedKey);
