@@ -58,6 +58,7 @@ export class AesCtr {
   /**
    * Converts a raw private key in bytes to its corresponding JSON Web Key (JWK) format.
    *
+   * @remarks
    * This method takes a symmetric key represented as a byte array (Uint8Array) and
    * converts it into a JWK object for use with AES (Advanced Encryption Standard)
    * in Counter (CTR) mode. The conversion process involves encoding the key into
@@ -80,7 +81,7 @@ export class AesCtr {
    * @returns A Promise that resolves to the symmetric key in JWK format.
    */
   public static async bytesToPrivateKey({ privateKeyBytes }: {
-    privateKeyBytes: Uint8Array
+    privateKeyBytes: Uint8Array;
   }): Promise<Jwk> {
     // Construct the private key in JWK format.
     const privateKey: Jwk = {
@@ -97,6 +98,7 @@ export class AesCtr {
   /**
    * Decrypts the provided data using AES in Counter (CTR) mode.
    *
+   * @remarks
    * This method performs AES-CTR decryption on the given encrypted data using the specified key.
    * Similar to the encryption process, it requires an initial counter block and the length
    * of the counter block, along with the encrypted data and the decryption key. The method
@@ -124,10 +126,10 @@ export class AesCtr {
    * @returns A Promise that resolves to the decrypted data as a Uint8Array.
    */
   public static async decrypt({ counter, data, key, length }: {
-    counter: Uint8Array,
-    data: Uint8Array,
-    key: Jwk,
-    length: number
+    counter: Uint8Array;
+    data: Uint8Array;
+    key: Jwk;
+    length: number;
   }): Promise<Uint8Array> {
     const webCryptoKey = await this.importKey(key);
 
@@ -146,6 +148,7 @@ export class AesCtr {
   /**
    * Encrypts the provided data using AES in Counter (CTR) mode.
    *
+   * @remarks
    * This method performs AES-CTR encryption on the given data using the specified key.
    * It requires the initial counter block and the length of the counter block, alongside
    * the data and key. The method is designed to work asynchronously and returns the
@@ -173,10 +176,10 @@ export class AesCtr {
    * @returns A Promise that resolves to the encrypted data as a Uint8Array.
    */
   public static async encrypt({ counter, data, key, length }: {
-    counter: Uint8Array,
-    data: Uint8Array,
-    key: Jwk,
-    length: number
+    counter: Uint8Array;
+    data: Uint8Array;
+    key: Jwk;
+    length: number;
   }): Promise<Uint8Array> {
     const webCryptoKey = await this.importKey(key);
 
@@ -195,6 +198,7 @@ export class AesCtr {
   /**
    * Generates a symmetric key for AES in Counter (CTR) mode in JSON Web Key (JWK) format.
    *
+   * @remarks
    * This method creates a new symmetric key of a specified length suitable for use with
    * AES-CTR encryption. It uses cryptographically secure random number generation to
    * ensure the uniqueness and security of the key. The generated key adheres to the JWK
@@ -218,7 +222,7 @@ export class AesCtr {
    * @returns A Promise that resolves to the generated symmetric key in JWK format.
    */
   public static async generateKey({ length }: {
-    length: number
+    length: number;
   }): Promise<Jwk> {
     // Generate a random private key.
     const lengthInBytes = length / 8;
@@ -236,6 +240,7 @@ export class AesCtr {
   /**
    * Converts a private key from JSON Web Key (JWK) format to a raw byte array (Uint8Array).
    *
+   * @remarks
    * This method takes a symmetric key in JWK format and extracts its raw byte representation.
    * It decodes the 'k' parameter of the JWK value, which represents the symmetric key in base64url
    * encoding, into a byte array.
@@ -252,7 +257,7 @@ export class AesCtr {
    * @returns A Promise that resolves to the symmetric key as a Uint8Array.
    */
   public static async privateKeyToBytes({ privateKey }: {
-    privateKey: Jwk
+    privateKey: Jwk;
   }): Promise<Uint8Array> {
     // Verify the provided JWK represents a valid oct private key.
     if (!isOctPrivateJwk(privateKey)) {

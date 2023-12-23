@@ -3,11 +3,11 @@ import { crypto } from '@noble/hashes/crypto';
 import { isWebCryptoSupported } from '../utils.js';
 
 type DeriveKeyParams = {
-  hash: 'SHA-256' | 'SHA-384' | 'SHA-512',
-  password: Uint8Array,
-  salt: Uint8Array,
-  iterations: number,
-  length: number
+  hash: 'SHA-256' | 'SHA-384' | 'SHA-512';
+  password: Uint8Array;
+  salt: Uint8Array;
+  iterations: number;
+  length: number;
 };
 
 /**
@@ -44,6 +44,7 @@ export class Pbkdf2 {
   /**
    * Derives a cryptographic key from a password using the PBKDF2 algorithm.
    *
+   * @remarks
    * This method applies the PBKDF2 algorithm to the provided password along with
    * a salt value and iterates the process a specified number of times. It uses
    * a cryptographic hash function to enhance security and produce a key of the

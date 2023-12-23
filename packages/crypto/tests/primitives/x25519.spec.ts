@@ -25,7 +25,7 @@ describe('X25519', () => {
 
   before(async () => {
     privateKey = await X25519.generateKey();
-    publicKey = await X25519.computePublicKey({ privateKey });
+    publicKey = await X25519.computePublicKey({ key: privateKey });
   });
 
   describe('bytesToPrivateKey()', () => {
@@ -74,6 +74,25 @@ describe('X25519', () => {
     }
   });
 
+  describe('computePublicKey()', () => {
+    it('returns a public key in JWK format', async () => {
+      const publicKey = await X25519.computePublicKey({ key: privateKey });
+
+      expect(publicKey).to.have.property('kty', 'OKP');
+      expect(publicKey).to.have.property('crv', 'X25519');
+      expect(publicKey).to.have.property('kid');
+      expect(publicKey).to.have.property('x');
+      expect(publicKey).to.not.have.property('d');
+    });
+
+    it('computes and adds a kid property, if missing', async () => {
+      const { kid, ...privateKeyWithoutKid } = privateKey;
+      const publicKey = await X25519.computePublicKey({ key: privateKeyWithoutKid });
+
+      expect(publicKey).to.have.property('kid', kid);
+    });
+  });
+
   describe('generateKey()', () => {
     it('returns a private key in JWK format', async () => {
       const privateKey = await X25519.generateKey();
@@ -93,14 +112,60 @@ describe('X25519', () => {
     });
   });
 
-  describe('computePublicKey()', () => {
+  describe('getPublicKey()', () => {
     it('returns a public key in JWK format', async () => {
-      const publicKey = await X25519.computePublicKey({ privateKey });
+      const publicKey = await X25519.getPublicKey({ key: privateKey });
 
       expect(publicKey).to.have.property('kty', 'OKP');
       expect(publicKey).to.have.property('crv', 'X25519');
       expect(publicKey).to.have.property('x');
       expect(publicKey).to.not.have.property('d');
+    });
+
+    it('computes and adds a kid property, if missing', async () => {
+      const { kid, ...privateKeyWithoutKid } = privateKey;
+      const publicKey = await X25519.getPublicKey({ key: privateKeyWithoutKid });
+
+      expect(publicKey).to.have.property('kid', kid);
+    });
+
+    it('returns the same output as computePublicKey()', async () => {
+      const publicKey = await X25519.getPublicKey({ key: privateKey });
+      expect(publicKey).to.deep.equal(await X25519.computePublicKey({ key: privateKey }));
+    });
+
+    it('throws an error when provided an X25519 public key', async () => {
+      await expect(
+        X25519.getPublicKey({ key: publicKey })
+      ).to.eventually.be.rejectedWith(Error, 'key is not an X25519 private JWK');
+    });
+
+    it('throws an error when provided an Ed25519 private key', async () => {
+      const ed25519PrivateKey: Jwk = {
+        crv : 'Ed25519',
+        d   : 'TM0Imyj_ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U-4pvs',
+        kty : 'OKP',
+        x   : 'PUAXw-hDiVqStwqnTRt-vJyYLM8uxJaMwM1V8Sr0Zgw',
+        kid : 'FtIu-VbGrfe_KB6CH7GNwODB72MNxj_ml11dEvO-7kk'
+      };
+
+      await expect(
+        X25519.getPublicKey({ key: ed25519PrivateKey })
+      ).to.eventually.be.rejectedWith(Error, 'key is not an X25519 private JWK');
+    });
+
+    it('throws an error when provided an secp256k1 private key', async () => {
+      const secp256k1PrivateKey: Jwk = {
+        kty : 'EC',
+        crv : 'secp256k1',
+        x   : 'N1KVEnQCMpbIp0sP_kL4L_S01LukMmR3QicD92H1klg',
+        y   : 'wmp0ZbmnesDD8c7bE5xCiwsfu1UWhntSdjbzKG9wVVM',
+        kid : 'iwwOeCqgvREo5xGeBS-obWW9ZGjv0o1M65gUYN6SYh4'
+      };
+
+      await expect(
+        X25519.getPublicKey({ key: secp256k1PrivateKey })
+      ).to.eventually.be.rejectedWith(Error, 'key is not an X25519 private JWK');
     });
   });
 
@@ -193,7 +258,7 @@ describe('X25519', () => {
       ownPrivateKey = privateKey;
       ownPublicKey = publicKey;
       otherPartyPrivateKey = await X25519.generateKey();
-      otherPartyPublicKey = await X25519.computePublicKey({ privateKey: otherPartyPrivateKey });
+      otherPartyPublicKey = await X25519.computePublicKey({ key: otherPartyPrivateKey });
     });
 
     it('generates a 32-byte compressed secret', async () => {

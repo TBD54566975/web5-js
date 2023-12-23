@@ -1,12 +1,5 @@
-import type { Signer } from './signer.js';
 import type { Jwk } from '../jose/jwk.js';
-import type { AsymmetricKeyGenerator } from './key-generator.js';
 import type { AlgorithmIdentifier, KeyIdentifier } from './identifier.js';
-import { KeyImporterExporter } from './key-io.js';
-
-export interface KmsComputePublicKeyParams {
-  keyUri: KeyIdentifier;
-}
 
 export interface KmsDecryptParams {
   keyUri: KeyIdentifier;
@@ -45,6 +38,10 @@ export interface KmsGetKeyUriParams {
   key: Jwk;
 }
 
+export interface KmsGetPublicKeyParams {
+  keyUri: KeyIdentifier;
+}
+
 export interface KmsImportKeyParams {
   key: Jwk;
 }
@@ -70,19 +67,4 @@ export interface KmsUnwrapKeyParams {
   wrappedKey: Uint8Array;
   unwrappingKeyId: KeyIdentifier;
   unwrapAlgorithm: AlgorithmIdentifier;
-}
-
-export interface KmsCryptoApi<
-  GenerateKeyInput = KmsGenerateKeyParams,
-  GenerateKeyResult = KeyIdentifier,
-  ComputePublicKeyInput = KmsComputePublicKeyParams,
-  ImportKeyInput = KmsImportKeyParams,
-  ImportKeyResult = KeyIdentifier,
-  ExportKeyInput = KmsExportKeyParams,
-  SignInput = KmsSignParams,
-  VerifyInput = KmsVerifyParams
-> extends AsymmetricKeyGenerator<GenerateKeyInput, GenerateKeyResult, ComputePublicKeyInput>,
-          KeyImporterExporter<ImportKeyInput, ImportKeyResult, ExportKeyInput>,
-          Signer<SignInput, VerifyInput> {
-  getKeyUri(params: KmsGetKeyUriParams): Promise<KeyIdentifier>;
 }

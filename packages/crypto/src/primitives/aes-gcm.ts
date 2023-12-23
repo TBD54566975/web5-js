@@ -57,6 +57,7 @@ export class AesGcm {
   /**
  * Converts a raw private key in bytes to its corresponding JSON Web Key (JWK) format.
  *
+ * @remarks
  * This method accepts a symmetric key represented as a byte array (Uint8Array) and
  * converts it into a JWK object for use with AES-GCM (Advanced Encryption Standard -
  * Galois/Counter Mode). The conversion process involves encoding the key into
@@ -79,7 +80,7 @@ export class AesGcm {
  * @returns A Promise that resolves to the symmetric key in JWK format.
  */
   public static async bytesToPrivateKey({ privateKeyBytes }: {
-    privateKeyBytes: Uint8Array
+    privateKeyBytes: Uint8Array;
   }): Promise<Jwk> {
     // Construct the private key in JWK format.
     const privateKey: Jwk = {
@@ -96,6 +97,7 @@ export class AesGcm {
   /**
    * Decrypts the provided data using AES-GCM.
    *
+   * @remarks
    * This method performs AES-GCM decryption on the given encrypted data using the specified key.
    * It requires an initialization vector (IV), the encrypted data along with the decryption key,
    * and optionally, additional authenticated data (AAD). The method returns the decrypted data as a
@@ -128,11 +130,11 @@ export class AesGcm {
    * @returns A Promise that resolves to the decrypted data as a Uint8Array.
    */
   public static async decrypt({ data, iv, key, additionalData, tagLength }: {
-    additionalData?: Uint8Array,
-    data: Uint8Array,
-    iv: Uint8Array,
-    key: Jwk,
-    tagLength?: number
+    additionalData?: Uint8Array;
+    data: Uint8Array;
+    iv: Uint8Array;
+    key: Jwk;
+    tagLength?: number;
   }): Promise<Uint8Array> {
     const webCryptoKey = await this.importKey(key);
 
@@ -152,6 +154,7 @@ export class AesGcm {
   /**
    * Encrypts the provided data using AES-GCM.
    *
+   * @remarks
    * This method performs AES-GCM encryption on the given data using the specified key.
    * It requires an initialization vector (IV), the encrypted data along with the decryption key,
    * and optionally, additional authenticated data (AAD). The method returns the encrypted data as a
@@ -184,11 +187,11 @@ export class AesGcm {
    * @returns A Promise that resolves to the encrypted data as a Uint8Array.
    */
   public static async encrypt({ data, iv, key, additionalData, tagLength }: {
-    additionalData?: Uint8Array,
-    data: Uint8Array,
-    iv: Uint8Array,
-    key: Jwk,
-    tagLength?: number
+    additionalData?: Uint8Array;
+    data: Uint8Array;
+    iv: Uint8Array;
+    key: Jwk;
+    tagLength?: number;
   }): Promise<Uint8Array> {
     const webCryptoKey = await this.importKey(key);
 
@@ -208,6 +211,7 @@ export class AesGcm {
   /**
    * Generates a symmetric key for AES in Galois/Counter Mode (GCM) in JSON Web Key (JWK) format.
    *
+   * @remarks
    * This method creates a new symmetric key of a specified length suitable for use with
    * AES-GCM encryption. It leverages cryptographically secure random number generation
    * to ensure the uniqueness and security of the key. The generated key adheres to the JWK
@@ -231,7 +235,7 @@ export class AesGcm {
    * @returns A Promise that resolves to the generated symmetric key in JWK format.
    */
   public static async generateKey({ length }: {
-    length: number
+    length: number;
   }): Promise<Jwk> {
     // Generate the secret key.
     const lengthInBytes = length / 8;
@@ -249,6 +253,7 @@ export class AesGcm {
   /**
    * Converts a private key from JSON Web Key (JWK) format to a raw byte array (Uint8Array).
    *
+   * @remarks
    * This method takes a symmetric key in JWK format and extracts its raw byte representation.
    * It focuses on the 'k' parameter of the JWK, which represents the symmetric key component
    * in base64url encoding. The method decodes this value into a byte array, providing
@@ -266,7 +271,7 @@ export class AesGcm {
    * @returns A Promise that resolves to the symmetric key as a Uint8Array.
    */
   public static async privateKeyToBytes({ privateKey }: {
-    privateKey: Jwk
+    privateKey: Jwk;
   }): Promise<Uint8Array> {
     // Verify the provided JWK represents a valid oct private key.
     if (!isOctPrivateJwk(privateKey)) {

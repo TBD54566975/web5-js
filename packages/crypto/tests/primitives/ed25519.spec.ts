@@ -87,6 +87,13 @@ describe('Ed25519', () => {
       expect(publicKey).to.not.have.property('d');
     });
 
+    it('computes and adds a kid property, if missing', async () => {
+      const { kid, ...privateKeyWithoutKid } = privateKey;
+      const publicKey = await Ed25519.computePublicKey({ key: privateKeyWithoutKid });
+
+      expect(publicKey).to.have.property('kid', kid);
+    });
+
     for (const vector of ed25519ComputePublicKey.vectors) {
       it(vector.description, async () => {
         const publicKey = await Ed25519.computePublicKey(vector.input as { key: Jwk });
@@ -160,6 +167,63 @@ describe('Ed25519', () => {
 
       const privateKeyBytes = Convert.base64Url(privateKey.d).toUint8Array();
       expect(privateKeyBytes.byteLength).to.equal(32);
+    });
+  });
+
+  describe('getPublicKey()', () => {
+    it('returns a public key in JWK format', async () => {
+      const publicKey = await Ed25519.getPublicKey({ key: privateKey });
+
+      expect(publicKey).to.have.property('kty', 'OKP');
+      expect(publicKey).to.have.property('crv', 'Ed25519');
+      expect(publicKey).to.have.property('x');
+      expect(publicKey).to.not.have.property('d');
+    });
+
+    it('computes and adds a kid property, if missing', async () => {
+      const { kid, ...privateKeyWithoutKid } = privateKey;
+      const publicKey = await Ed25519.getPublicKey({ key: privateKeyWithoutKid });
+
+      expect(publicKey).to.have.property('kid', kid);
+    });
+
+    it('returns the same output as computePublicKey()', async () => {
+      const publicKey = await Ed25519.getPublicKey({ key: privateKey });
+      expect(publicKey).to.deep.equal(await Ed25519.computePublicKey({ key: privateKey }));
+    });
+
+    it('throws an error when provided an Ed25519 public key', async () => {
+      await expect(
+        Ed25519.getPublicKey({ key: publicKey })
+      ).to.eventually.be.rejectedWith(Error, 'key is not an Ed25519 private JWK');
+    });
+
+    it('throws an error when provided an secp256k1 private key', async () => {
+      const secp256k1PrivateKey: Jwk = {
+        kty : 'EC',
+        crv : 'secp256k1',
+        x   : 'N1KVEnQCMpbIp0sP_kL4L_S01LukMmR3QicD92H1klg',
+        y   : 'wmp0ZbmnesDD8c7bE5xCiwsfu1UWhntSdjbzKG9wVVM',
+        kid : 'iwwOeCqgvREo5xGeBS-obWW9ZGjv0o1M65gUYN6SYh4'
+      };
+
+      await expect(
+        Ed25519.getPublicKey({ key: secp256k1PrivateKey })
+      ).to.eventually.be.rejectedWith(Error, 'key is not an Ed25519 private JWK');
+    });
+
+    it('throws an error when provided an X25519 private key', async () => {
+      const x25519PrivateKey: Jwk = {
+        kty : 'OKP',
+        crv : 'X25519',
+        d   : 'jxSSX_aM49m6E4MaSd-hcizIM33rXzLltuev9oBw1V8',
+        x   : 'U2kX2FckTAoTAjMBUadwOpftdXk-Kx8pZMeyG3QZsy8',
+        kid : 'PPgSyqA-j9sc9vmsvpSCpy2uLg_CUfGoKHhPzQ5Gkog'
+      };
+
+      await expect(
+        Ed25519.getPublicKey({ key: x25519PrivateKey })
+      ).to.eventually.be.rejectedWith(Error, 'key is not an Ed25519 private JWK');
     });
   });
 

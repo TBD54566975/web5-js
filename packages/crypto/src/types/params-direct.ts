@@ -1,9 +1,7 @@
 import type { Jwk } from '../jose/jwk.js';
 import type { AlgorithmIdentifier } from './identifier.js';
 
-export interface ComputePublicKeyParams {
-  key: Jwk;
-}
+export interface ComputePublicKeyParams extends GetPublicKeyParams { }
 
 export interface DecryptParams {
   key: Jwk;
@@ -32,6 +30,10 @@ export interface EncryptParams {
 
 export interface GenerateKeyParams {
   algorithm: AlgorithmIdentifier;
+}
+
+export interface GetPublicKeyParams {
+  key: Jwk;
 }
 
 export interface SignParams {

@@ -34,8 +34,6 @@ export * from './primitives/xchacha20-poly1305.js';
 
 export type * from './types/cipher.js';
 export type * from './types/crypto-api.js';
-export type * from './types/direct-params.js';
-export type * from './types/enclosed-params.js';
 export type * from './types/hash-function.js';
 export type * from './types/identifier.js';
 export type * from './types/jose.js';
@@ -44,7 +42,9 @@ export type * from './types/key-deriver.js';
 export type * from './types/key-generator.js';
 export type * from './types/key-io.js';
 export type * from './types/key-wrapper.js';
-export type * from './types/kms-api.js';
+export type * from './types/params-direct.js';
+export type * from './types/params-enclosed.js';
+export type * from './types/params-kms.js';
 export type * from './types/signer.js';
 export type * from './types/web5-crypto.js';
 

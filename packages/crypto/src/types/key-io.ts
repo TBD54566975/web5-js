@@ -2,10 +2,10 @@ import type { Jwk } from '../jose/jwk.js';
 
 export interface KeyImporterExporter<
   ImportKeyInput,
-  ImportKeyResult,
+  ImportKeyOutput,
   ExportKeyInput
 > {
   exportKey(params: ExportKeyInput): Promise<Jwk>;
 
-  importKey(params: ImportKeyInput): Promise<ImportKeyResult>;
+  importKey(params: ImportKeyInput): Promise<ImportKeyOutput>;
 }

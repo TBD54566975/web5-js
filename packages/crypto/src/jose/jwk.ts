@@ -4,6 +4,19 @@ import { canonicalize } from './utils.js';
 import { Sha256 } from '../primitives/sha256.js';
 
 /**
+ * Constant defining the prefix for JSON Web Keys (JWK) key URIs in this library.
+ *
+ * The prefix 'urn:jwk:' makes it explicit that a string represents a JWK, referenced by a
+ * {@link https://datatracker.ietf.org/doc/html/rfc3986 | URI} (Uniform Resource Identifier),
+ * which ensures consistent key referencing across all Web5 key management system implementations.
+ *
+ * These key URIs take the form `urn:jwk:<JWK thumbprint>`, where the
+ * {@link https://datatracker.ietf.org/doc/html/rfc7638 | JWK thumbprint}, derived from the JWK, is
+ * unique to the key's material, unaffected by the order or optional properties in the JWK.
+ */
+export const KEY_URI_PREFIX_JWK = 'urn:jwk:';
+
+/**
  * JSON Web Key Operations
  *
  * The "key_ops" (key operations) parameter identifies the operation(s)

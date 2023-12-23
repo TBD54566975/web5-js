@@ -1,4 +1,4 @@
-import type { EnclosedSignParams, EnclosedVerifyParams } from './enclosed-params.js';
+import type { EnclosedSignParams, EnclosedVerifyParams } from './params-enclosed.js';
 
 export interface Signer<
   SignInput = EnclosedSignParams,

@@ -1,9 +1,9 @@
 export interface KeyDeriver<
   DeriveBitsInput,
   DeriveKeyInput,
-  DeriveKeyResult
+  DeriveKeyOutput
 > {
   deriveBits(params: DeriveBitsInput): Promise<Uint8Array>;
 
-  deriveKey(params: DeriveKeyInput): Promise<DeriveKeyResult>;
+  deriveKey(params: DeriveKeyInput): Promise<DeriveKeyOutput>;
 }

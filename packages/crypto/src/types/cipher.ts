@@ -1,4 +1,4 @@
-import type { EnclosedEncryptParams, EnclosedDecryptParams } from './enclosed-params.js';
+import type { EnclosedEncryptParams, EnclosedDecryptParams } from './params-enclosed.js';
 
 export interface Cipher<
   EncryptInput = EnclosedEncryptParams,

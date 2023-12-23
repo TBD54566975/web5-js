@@ -2,7 +2,7 @@ import { Convert } from '@web5/common';
 import { ed25519, edwardsToMontgomeryPub, edwardsToMontgomeryPriv, x25519 } from '@noble/curves/ed25519';
 
 import type { Jwk } from '../jose/jwk.js';
-import type { ComputePublicKeyParams, SignParams, VerifyParams } from '../types/direct-params.js';
+import type { ComputePublicKeyParams, GetPublicKeyParams, SignParams, VerifyParams } from '../types/params-direct.js';
 
 import { computeJwkThumbprint, isOkpPrivateJwk, isOkpPublicJwk } from '../jose/jwk.js';
 
@@ -32,6 +32,7 @@ import { computeJwkThumbprint, isOkpPrivateJwk, isOkpPublicJwk } from '../jose/j
  *
  * // Public Key Derivation
  * const publicKey = await Ed25519.computePublicKey({ key: privateKey });
+ * console.log(publicKey === await Ed25519.getPublicKey({ key: privateKey })); // Output: true
  *
  * // Signing
  * const signature = await Ed25519.sign({
@@ -58,6 +59,7 @@ export class Ed25519 {
   /**
    * Converts a raw private key in bytes to its corresponding JSON Web Key (JWK) format.
    *
+   * @remarks
    * This method accepts a private key as a byte array (Uint8Array) for the Curve25519 curve in
    * Twisted Edwards form and transforms it into a JWK object. The process involves first deriving
    * the public key from the private key, then encoding both the private and public keys into
@@ -81,7 +83,7 @@ export class Ed25519 {
    * @returns A Promise that resolves to the private key in JWK format.
    */
   public static async bytesToPrivateKey({ privateKeyBytes }: {
-    privateKeyBytes: Uint8Array
+    privateKeyBytes: Uint8Array;
   }): Promise<Jwk> {
     // Derive the public key from the private key.
     const publicKeyBytes  = ed25519.getPublicKey(privateKeyBytes);
@@ -103,6 +105,7 @@ export class Ed25519 {
   /**
    * Converts a raw private key in bytes to its corresponding JSON Web Key (JWK) format.
    *
+   * @remarks
    * This method accepts a public key as a byte array (Uint8Array) for the Curve25519 curve in
    * Twisted Edwards form and transforms it into a JWK object. The process involves encoding the
    * public key bytes into base64url format.
@@ -124,7 +127,7 @@ export class Ed25519 {
    * @returns A Promise that resolves to the public key in JWK format.
    */
   public static async bytesToPublicKey({ publicKeyBytes }: {
-    publicKeyBytes: Uint8Array
+    publicKeyBytes: Uint8Array;
   }): Promise<Jwk> {
     // Construct the public key in JWK format.
     const publicKey: Jwk = {
@@ -142,6 +145,7 @@ export class Ed25519 {
   /**
    * Derives the public key in JWK format from a given Ed25519 private key.
    *
+   * @remarks
    * This method takes a private key in JWK format and derives its corresponding public key,
    * also in JWK format.  The derivation process involves converting the private key to a
    * raw byte array and then computing the corresponding public key on the Curve25519 curve in
@@ -184,6 +188,7 @@ export class Ed25519 {
   /**
    * Converts an Ed25519 private key to its X25519 counterpart.
    *
+   * @remarks
    * This method enables the use of the same key pair for both digital signature (Ed25519)
    * and key exchange (X25519) operations. It takes an Ed25519 private key and converts it
    * to the corresponding X25519 format, facilitating interoperability between signing
@@ -203,7 +208,7 @@ export class Ed25519 {
    * @returns A Promise that resolves to the X25519 private key in JWK format.
    */
   public static async convertPrivateKeyToX25519({ privateKey }: {
-    privateKey: Jwk
+    privateKey: Jwk;
   }): Promise<Jwk> {
     // Convert the provided Ed25519 private key to bytes.
     const ed25519PrivateKeyBytes = await Ed25519.privateKeyToBytes({ privateKey });
@@ -231,6 +236,7 @@ export class Ed25519 {
   /**
    * Converts an Ed25519 public key to its X25519 counterpart.
    *
+   * @remarks
    * This method enables the use of the same key pair for both digital signature (Ed25519)
    * and key exchange (X25519) operations. It takes an Ed25519 public key and converts it
    * to the corresponding X25519 format, facilitating interoperability between signing
@@ -250,7 +256,7 @@ export class Ed25519 {
    * @returns A Promise that resolves to the X25519 public key in JWK format.
    */
   public static async convertPublicKeyToX25519({ publicKey }: {
-    publicKey: Jwk
+    publicKey: Jwk;
   }): Promise<Jwk> {
     // Convert the provided private key to a byte array.
     const ed25519PublicKeyBytes = await Ed25519.publicKeyToBytes({ publicKey });
@@ -280,6 +286,7 @@ export class Ed25519 {
   /**
    * Generates an Ed25519 private key in JSON Web Key (JWK) format.
    *
+   * @remarks
    * This method creates a new private key suitable for use with the Curve25519 elliptic curve in
    * Twisted Edwards form. The key generation process involves using cryptographically secure
    * random number generation to ensure the uniqueness and security of the key. The resulting
@@ -313,8 +320,53 @@ export class Ed25519 {
   }
 
   /**
+   * Retrieves the public key properties from a given private key in JWK format.
+   *
+   * @remarks
+   * This method extracts the public key portion from an Ed25519 private key in JWK format. It does
+   * so by removing the private key property 'd' and making a shallow copy, effectively yielding the
+   * public key. The method sets the 'kid' (key ID) property using the JWK thumbprint if it is not
+   * already defined. This approach is used under the assumption that a private key in JWK format
+   * always contains the corresponding public key properties.
+   *
+   * Note: This method offers a significant performance advantage, being about 100 times faster
+   * than `computePublicKey()`. However, it does not mathematically validate the private key, nor
+   * does it derive the public key from the private key. It simply extracts existing public key
+   * properties from the private key object. This makes it suitable for scenarios where speed is
+   * critical and the private key's integrity is already assured.
+   *
+   * @example
+   * ```ts
+   * const privateKey = { ... }; // A Jwk object representing an Ed25519 private key
+   * const publicKey = await Ed25519.getPublicKey({ key: privateKey });
+   * ```
+   *
+   * @param params - The parameters for retrieving the public key properties.
+   * @param params.key - The private key in JWK format.
+   *
+   * @returns A Promise that resolves to the public key in JWK format.
+   */
+  public static async getPublicKey({ key }:
+    GetPublicKeyParams
+  ): Promise<Jwk> {
+  // Verify the provided JWK represents an octet key pair (OKP) Ed25519 private key.
+    if (!(isOkpPrivateJwk(key) && key.crv === 'Ed25519')) {
+      throw new Error(`Ed25519: The provided key is not an Ed25519 private JWK.`);
+    }
+
+    // Remove the private key property ('d') and make a shallow copy of the provided key.
+    let { d, ...publicKey } = key;
+
+    // If the key ID is undefined, set it to the JWK thumbprint.
+    publicKey.kid ??= await computeJwkThumbprint({ jwk: publicKey });
+
+    return publicKey;
+  }
+
+  /**
    * Converts a private key from JSON Web Key (JWK) format to a raw byte array (Uint8Array).
    *
+   * @remarks
    * This method accepts a private key in JWK format and extracts its raw byte representation.
    *
    * This method accepts a public key in JWK format and converts it into its raw binary
@@ -333,7 +385,7 @@ export class Ed25519 {
    * @returns A Promise that resolves to the private key as a Uint8Array.
    */
   public static async privateKeyToBytes({ privateKey }: {
-    privateKey: Jwk
+    privateKey: Jwk;
   }): Promise<Uint8Array> {
     // Verify the provided JWK represents a valid OKP private key.
     if (!isOkpPrivateJwk(privateKey)) {
@@ -349,6 +401,7 @@ export class Ed25519 {
   /**
    * Converts a public key from JSON Web Key (JWK) format to a raw byte array (Uint8Array).
    *
+   * @remarks
    * This method accepts a public key in JWK format and converts it into its raw binary form.
    * The conversion process involves decoding the 'x' parameter of the JWK (which represent the
    * x coordinate of the elliptic curve point) from base64url format into a byte array.
@@ -365,7 +418,7 @@ export class Ed25519 {
    * @returns A Promise that resolves to the public key as a Uint8Array.
    */
   public static async publicKeyToBytes({ publicKey }: {
-    publicKey: Jwk
+    publicKey: Jwk;
   }): Promise<Uint8Array> {
     // Verify the provided JWK represents a valid OKP public key.
     if (!isOkpPublicJwk(publicKey)) {
@@ -381,6 +434,7 @@ export class Ed25519 {
   /**
    * Generates an RFC8032-compliant EdDSA signature of given data using an Ed25519 private key.
    *
+   * @remarks
    * This method signs the provided data with a specified private key using the EdDSA
    * (Edwards-curve Digital Signature Algorithm) as defined in RFC8032. It
    * involves converting the private key from JWK format to a byte array and then employing
@@ -416,6 +470,7 @@ export class Ed25519 {
   /**
    * Verifies an RFC8032-compliant EdDSA signature against given data using an Ed25519 public key.
    *
+   * @remarks
    * This method validates a digital signature to ensure its authenticity and integrity.
    * It uses the EdDSA (Edwards-curve Digital Signature Algorithm) as specified in RFC8032.
    * The verification process involves converting the public key from JWK format to a raw
@@ -452,6 +507,7 @@ export class Ed25519 {
   /**
    * Validates a given public key to confirm its mathematical correctness on the Edwards curve.
    *
+   * @remarks
    * This method decodes the Edwards points from the key bytes and asserts their validity on the
    * Curve25519 curve in Twisted Edwards form. If the points are not valid, the method returns
    * false. If the points are valid, the method returns true.
@@ -474,7 +530,7 @@ export class Ed25519 {
    *          corresponds to a valid point on the Edwards curve.
    */
   private static validatePublicKey({ publicKey }: {
-    publicKey: Uint8Array
+    publicKey: Uint8Array;
   }): boolean {
     try {
     // Decode Edwards points from key bytes.

@@ -2,6 +2,7 @@ import { Convert } from '@web5/common';
 import { x25519 } from '@noble/curves/ed25519';
 
 import type { Jwk } from '../jose/jwk.js';
+import type { ComputePublicKeyParams, GetPublicKeyParams } from '../types/params-direct.js';
 
 import { computeJwkThumbprint, isOkpPrivateJwk, isOkpPublicJwk } from '../jose/jwk.js';
 
@@ -30,7 +31,8 @@ import { computeJwkThumbprint, isOkpPrivateJwk, isOkpPublicJwk } from '../jose/j
  * const privateKey = await X25519.generateKey();
  *
  * // Public Key Derivation
- * const publicKey = await X25519.computePublicKey({ privateKey });
+ * const publicKey = await X25519.computePublicKey({ key: privateKey });
+ * console.log(publicKey === await X25519.getPublicKey({ key: privateKey })); // Output: true
  *
  * // ECDH Shared Secret Computation
  * const sharedSecret = await X25519.sharedSecret({
@@ -47,6 +49,7 @@ export class X25519 {
   /**
    * Converts a raw private key in bytes to its corresponding JSON Web Key (JWK) format.
    *
+   * @remarks
    * This method accepts a private key as a byte array (Uint8Array) for the X25519 elliptic curve
    * and transforms it into a JWK object. The process involves first deriving the public key from
    * the private key, then encoding both the private and public keys into base64url format.
@@ -73,7 +76,7 @@ export class X25519 {
    * @returns A Promise that resolves to the private key in JWK format.
    */
   public static async bytesToPrivateKey({ privateKeyBytes }: {
-    privateKeyBytes: Uint8Array
+    privateKeyBytes: Uint8Array;
   }): Promise<Jwk> {
     // Derive the public key from the private key.
     const publicKeyBytes  = x25519.getPublicKey(privateKeyBytes);
@@ -95,6 +98,7 @@ export class X25519 {
   /**
    * Converts a raw public key in bytes to its corresponding JSON Web Key (JWK) format.
    *
+   * @remarks
    * This method accepts a public key as a byte array (Uint8Array) for the X25519 elliptic curve
    * and transforms it into a JWK object. The conversion process involves encoding the public
    * key bytes into base64url format.
@@ -120,7 +124,7 @@ export class X25519 {
    * @returns A Promise that resolves to the public key in JWK format.
    */
   public static async bytesToPublicKey({ publicKeyBytes }: {
-    publicKeyBytes: Uint8Array
+    publicKeyBytes: Uint8Array;
   }): Promise<Jwk> {
     // Construct the public key in JWK format.
     const publicKey: Jwk = {
@@ -138,6 +142,7 @@ export class X25519 {
   /**
    * Derives the public key in JWK format from a given X25519 private key.
    *
+   * @remarks
    * This method takes a private key in JWK format and derives its corresponding public key,
    * also in JWK format.  The derivation process involves converting the private key to a
    * raw byte array and then computing the corresponding public key on the Curve25519 curve.
@@ -151,19 +156,19 @@ export class X25519 {
    * @example
    * ```ts
    * const privateKey = { ... }; // A PrivateKeyJwk object representing an X25519 private key
-   * const publicKey = await X25519.computePublicKey({ privateKey });
+   * const publicKey = await X25519.computePublicKey({ key: privateKey });
    * ```
    *
    * @param params - The parameters for the public key derivation.
-   * @param params.privateKey - The private key in JWK format from which to derive the public key.
+   * @param params.key - The private key in JWK format from which to derive the public key.
    *
    * @returns A Promise that resolves to the derived public key in JWK format.
    */
-  public static async computePublicKey({ privateKey }: {
-    privateKey: Jwk
-  }): Promise<Jwk> {
+  public static async computePublicKey({ key }:
+    ComputePublicKeyParams
+  ): Promise<Jwk> {
     // Convert the provided private key to a byte array.
-    const privateKeyBytes  = await X25519.privateKeyToBytes({ privateKey });
+    const privateKeyBytes  = await X25519.privateKeyToBytes({ privateKey: key });
 
     // Derive the public key from the private key.
     const publicKeyBytes = x25519.getPublicKey(privateKeyBytes);
@@ -184,6 +189,7 @@ export class X25519 {
   /**
    * Generates an X25519 private key in JSON Web Key (JWK) format.
    *
+   * @remarks
    * This method creates a new private key suitable for use with the X25519 elliptic curve.
    * The key generation process involves using cryptographically secure random number generation
    * to ensure the uniqueness and security of the key. The resulting private key adheres to the
@@ -219,8 +225,53 @@ export class X25519 {
   }
 
   /**
+   * Retrieves the public key properties from a given private key in JWK format.
+   *
+   * @remarks
+   * This method extracts the public key portion from an X25519 private key in JWK format. It does
+   * so by removing the private key property 'd' and making a shallow copy, effectively yielding the
+   * public key. The method sets the 'kid' (key ID) property using the JWK thumbprint if it is not
+   * already defined. This approach is used under the assumption that a private key in JWK format
+   * always contains the corresponding public key properties.
+   *
+   * Note: This method offers a significant performance advantage, being about 500 times faster
+   * than `computePublicKey()`. However, it does not mathematically validate the private key, nor
+   * does it derive the public key from the private key. It simply extracts existing public key
+   * properties from the private key object. This makes it suitable for scenarios where speed is
+   * critical and the private key's integrity is already assured.
+   *
+   * @example
+   * ```ts
+   * const privateKey = { ... }; // A Jwk object representing an X25519 private key
+   * const publicKey = await X25519.getPublicKey({ key: privateKey });
+   * ```
+   *
+   * @param params - The parameters for retrieving the public key properties.
+   * @param params.key - The private key in JWK format.
+   *
+   * @returns A Promise that resolves to the public key in JWK format.
+   */
+  public static async getPublicKey({ key }:
+    GetPublicKeyParams
+  ): Promise<Jwk> {
+  // Verify the provided JWK represents an octet key pair (OKP) X25519 private key.
+    if (!(isOkpPrivateJwk(key) && key.crv === 'X25519')) {
+      throw new Error(`X25519: The provided key is not an X25519 private JWK.`);
+    }
+
+    // Remove the private key property ('d') and make a shallow copy of the provided key.
+    let { d, ...publicKey } = key;
+
+    // If the key ID is undefined, set it to the JWK thumbprint.
+    publicKey.kid ??= await computeJwkThumbprint({ jwk: publicKey });
+
+    return publicKey;
+  }
+
+  /**
    * Converts a private key from JSON Web Key (JWK) format to a raw byte array (Uint8Array).
    *
+   * @remarks
    * This method accepts a private key in JWK format and extracts its raw byte representation.
    *
    * This method accepts a public key in JWK format and converts it into its raw binary
@@ -243,7 +294,7 @@ export class X25519 {
    * @returns A Promise that resolves to the private key as a Uint8Array.
    */
   public static async privateKeyToBytes({ privateKey }: {
-    privateKey: Jwk
+    privateKey: Jwk;
   }): Promise<Uint8Array> {
     // Verify the provided JWK represents a valid OKP private key.
     if (!isOkpPrivateJwk(privateKey)) {
@@ -259,6 +310,7 @@ export class X25519 {
   /**
    * Converts a public key from JSON Web Key (JWK) format to a raw byte array (Uint8Array).
    *
+   * @remarks
    * This method accepts a public key in JWK format and converts it into its raw binary form.
    * The conversion process involves decoding the 'x' parameter of the JWK (which represent the
    * x coordinate of the elliptic curve point) from base64url format into a byte array.
@@ -279,7 +331,7 @@ export class X25519 {
    * @returns A Promise that resolves to the public key as a Uint8Array.
    */
   public static async publicKeyToBytes({ publicKey }: {
-    publicKey: Jwk
+    publicKey: Jwk;
   }): Promise<Uint8Array> {
     // Verify the provided JWK represents a valid OKP public key.
     if (!isOkpPublicJwk(publicKey)) {
@@ -296,6 +348,7 @@ export class X25519 {
    * Computes an RFC6090-compliant Elliptic Curve Diffie-Hellman (ECDH) shared secret
    * using secp256k1 private and public keys in JSON Web Key (JWK) format.
    *
+   * @remarks
    * This method facilitates the ECDH key agreement protocol, which is a method of securely
    * deriving a shared secret between two parties based on their private and public keys.
    * It takes the private key of one party (privateKeyA) and the public key of another
@@ -330,8 +383,8 @@ export class X25519 {
    * @returns A Promise that resolves to the computed shared secret as a Uint8Array.
    */
   public static async sharedSecret({ privateKeyA, publicKeyB }: {
-    privateKeyA: Jwk,
-    publicKeyB: Jwk
+    privateKeyA: Jwk;
+    publicKeyB: Jwk;
   }): Promise<Uint8Array> {
     // Ensure that keys from the same key pair are not specified.
     if ('x' in privateKeyA && 'x' in publicKeyB && privateKeyA.x === publicKeyB.x) {
@@ -346,25 +399,5 @@ export class X25519 {
     const sharedSecret = x25519.getSharedSecret(privateKeyABytes, publicKeyBBytes);
 
     return sharedSecret;
-  }
-
-  /**
-   * Note that this method is currently unimplemented because the @noble/curves
-   * library does not yet provide a mechanism for checking whether a point
-   * belongs to the Curve25519. Therefore, it currently throws an error whenever
-   * it is called.
-   *
-   * @param params - The parameters for the key validation.
-   * @param params.key - The key to validate.
-   * @throws {Error} If the method is called because it is not yet implemented.
-   *
-   * @returns A Promise that resolves to void.
-   */
-  private static async validatePublicKey(_options: {
-    key: Uint8Array
-  }): Promise<void> {
-    // TODO: Implement once/if @noble/curves library implements checking
-    // proper points on the Montgomery curve.
-    throw new Error(`X25519: Not implemented: 'validatePublicKey()'`);
   }
 }

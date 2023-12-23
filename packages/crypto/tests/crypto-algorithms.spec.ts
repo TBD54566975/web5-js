@@ -199,9 +199,9 @@ describe('Default Crypto Algorithm Implementations', () => {
         secp256k1PublicKeyB = await Secp256k1.computePublicKey({ key: secp256k1PrivateKeyB });
 
         x25519PrivateKeyA = await ecdh.generateKey({ algorithm: { name: 'ECDH', curve: 'X25519' } });
-        x25519PublicKeyA = await X25519.computePublicKey({ privateKey: x25519PrivateKeyA });
+        x25519PublicKeyA = await X25519.computePublicKey({ key: x25519PrivateKeyA });
         x25519PrivateKeyB = await ecdh.generateKey({ algorithm: { name: 'ECDH', curve: 'X25519' } });
-        x25519PublicKeyB = await X25519.computePublicKey({ privateKey: x25519PrivateKeyB });
+        x25519PublicKeyB = await X25519.computePublicKey({ key: x25519PrivateKeyB });
       });
 
       it(`supports 'secp256k1' curve`, async () => {

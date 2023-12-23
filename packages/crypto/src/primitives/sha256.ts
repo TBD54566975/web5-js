@@ -22,6 +22,7 @@ export class Sha256 {
   /**
    * Generates a SHA-256 hash digest for the given data.
    *
+   * @remarks
    * This method produces a hash digest using the SHA-256 algorithm. The resultant digest
    * is deterministic, meaning the same data will always produce the same hash, but
    * is computationally infeasible to regenerate the original data from the hash.
@@ -32,7 +33,7 @@ export class Sha256 {
    * @returns A Promise that resolves to the SHA-256 hash digest of the provided data as a Uint8Array.
    */
   public static async digest({ data }: {
-    data: Uint8Array
+    data: Uint8Array;
   }): Promise<Uint8Array> {
     const digest = sha256(data);
 

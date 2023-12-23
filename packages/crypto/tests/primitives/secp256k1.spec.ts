@@ -78,19 +78,6 @@ describe('Secp256k1', () => {
     }
   });
 
-  describe('computePublicKey()', () => {
-    it('returns a public key in JWK format', async () => {
-      publicKey = await Secp256k1.computePublicKey({ key: privateKey });
-
-      expect(publicKey).to.have.property('crv', 'secp256k1');
-      expect(publicKey).to.not.have.property('d');
-      expect(publicKey).to.have.property('kid');
-      expect(publicKey).to.have.property('kty', 'EC');
-      expect(publicKey).to.have.property('x');
-      expect(publicKey).to.have.property('y');
-    });
-  });
-
   describe('compressPublicKey()', () => {
     it('converts an uncompressed public key to compressed format', async () => {
       const compressedPublicKeyBytes = Convert.hex('026bcdccc644b309921d3b0c266183a20786650c1634d34e8dfa1ed74cd66ce214').toUint8Array();
@@ -120,6 +107,26 @@ describe('Secp256k1', () => {
         expect(error).to.be.instanceOf(Error);
         expect((error as Error).message).to.include('Point of length 65 was invalid');
       }
+    });
+  });
+
+  describe('computePublicKey()', () => {
+    it('returns a public key in JWK format', async () => {
+      publicKey = await Secp256k1.computePublicKey({ key: privateKey });
+
+      expect(publicKey).to.have.property('crv', 'secp256k1');
+      expect(publicKey).to.not.have.property('d');
+      expect(publicKey).to.have.property('kid');
+      expect(publicKey).to.have.property('kty', 'EC');
+      expect(publicKey).to.have.property('x');
+      expect(publicKey).to.have.property('y');
+    });
+
+    it('computes and adds a kid property, if missing', async () => {
+      const { kid, ...privateKeyWithoutKid } = privateKey;
+      const publicKey = await Secp256k1.computePublicKey({ key: privateKeyWithoutKid });
+
+      expect(publicKey).to.have.property('kid', kid);
     });
   });
 
@@ -191,6 +198,78 @@ describe('Secp256k1', () => {
         // @ts-expect-error because getCurvePoints() is a private method.
         Secp256k1.getCurvePoints({ keyBytes: new Uint8Array(16) })
       ).to.eventually.be.rejectedWith(Error, 'Point of length 16 was invalid. Expected 33 compressed bytes or 65 uncompressed bytes');
+    });
+  });
+
+  describe('getPublicKey()', () => {
+    it('returns a public key in JWK format', async () => {
+      const publicKey = await Secp256k1.getPublicKey({ key: privateKey });
+
+      expect(publicKey).to.have.property('kty', 'EC');
+      expect(publicKey).to.have.property('crv', 'secp256k1');
+      expect(publicKey).to.have.property('kid');
+      expect(publicKey).to.have.property('x');
+      expect(publicKey).to.have.property('y');
+      expect(publicKey).to.not.have.property('d');
+    });
+
+    it('computes and adds a kid property, if missing', async () => {
+      const { kid, ...privateKeyWithoutKid } = privateKey;
+      const publicKey = await Secp256k1.getPublicKey({ key: privateKeyWithoutKid });
+
+      expect(publicKey).to.have.property('kid', kid);
+    });
+
+    it('returns the same output as computePublicKey()', async () => {
+      const publicKey = await Secp256k1.getPublicKey({ key: privateKey });
+      expect(publicKey).to.deep.equal(await Secp256k1.computePublicKey({ key: privateKey }));
+    });
+
+    it('throws an error when provided a secp256k1 public key', async () => {
+      await expect(
+        Secp256k1.getPublicKey({ key: publicKey })
+      ).to.eventually.be.rejectedWith(Error, 'key is not a secp256k1 private JWK');
+    });
+
+    it('throws an error when provided an Ed25519 private key', async () => {
+      const ed25519PrivateKey: Jwk = {
+        crv : 'Ed25519',
+        d   : 'TM0Imyj_ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U-4pvs',
+        kty : 'OKP',
+        x   : 'PUAXw-hDiVqStwqnTRt-vJyYLM8uxJaMwM1V8Sr0Zgw',
+        kid : 'FtIu-VbGrfe_KB6CH7GNwODB72MNxj_ml11dEvO-7kk'
+      };
+
+      await expect(
+        Secp256k1.getPublicKey({ key: ed25519PrivateKey })
+      ).to.eventually.be.rejectedWith(Error, 'key is not a secp256k1 private JWK');
+    });
+
+    it('throws an error when provided a secp256r1 public key', async () => {
+      const secp256r1PrivateKey: Jwk = {
+        crv : 'P-256',
+        d   : '5MtBQ7qP4Xk_5pfmsNsih9aLV-BXoEospV8LrowDPNY',
+        kty : 'EC',
+        x   : '2zYnEGgGPrSq3FIFkpyEH-0LcBHZiztBN_H2cL_NrzY',
+        y   : 'x6z_PPovAYsOsRBKjohvRbtL5466684OumQQ9xuDCtI'
+      };
+      await expect(
+        Secp256k1.getPublicKey({ key: secp256r1PrivateKey })
+      ).to.eventually.be.rejectedWith(Error, 'key is not a secp256k1 private JWK');
+    });
+
+    it('throws an error when provided an Ed25519 private key', async () => {
+      const ed25519PrivateKey: Jwk = {
+        crv : 'Ed25519',
+        d   : 'TM0Imyj_ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U-4pvs',
+        kty : 'OKP',
+        x   : 'PUAXw-hDiVqStwqnTRt-vJyYLM8uxJaMwM1V8Sr0Zgw',
+        kid : 'FtIu-VbGrfe_KB6CH7GNwODB72MNxj_ml11dEvO-7kk'
+      };
+
+      await expect(
+        Secp256k1.getPublicKey({ key: ed25519PrivateKey })
+      ).to.eventually.be.rejectedWith(Error, 'key is not a secp256k1 private JWK');
     });
   });
 

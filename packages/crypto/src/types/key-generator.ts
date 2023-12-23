@@ -2,15 +2,17 @@ import type { Jwk } from '../jose/jwk.js';
 
 export interface KeyGenerator<
   GenerateKeyInput,
-  GenerateKeyResult
+  GenerateKeyOutput
 > {
-  generateKey(params?: GenerateKeyInput): Promise<GenerateKeyResult>;
+  generateKey(params?: GenerateKeyInput): Promise<GenerateKeyOutput>;
 }
 
 export interface AsymmetricKeyGenerator<
   GenerateKeyInput,
-  GenerateKeyResult,
-  ComputePublicKeyInput
-> extends KeyGenerator<GenerateKeyInput, GenerateKeyResult> {
-  computePublicKey(params: ComputePublicKeyInput): Promise<Jwk>;
+  GenerateKeyOutput,
+  GetPublicKeyInput
+> extends KeyGenerator<GenerateKeyInput, GenerateKeyOutput> {
+  computePublicKey?(params: GetPublicKeyInput): Promise<Jwk>;
+
+  getPublicKey(params: GetPublicKeyInput): Promise<Jwk>;
 }

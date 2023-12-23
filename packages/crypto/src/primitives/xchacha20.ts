@@ -54,6 +54,7 @@ export class XChaCha20 {
   /**
    * Converts a raw private key in bytes to its corresponding JSON Web Key (JWK) format.
    *
+   * @remarks
    * This method takes a symmetric key represented as a byte array (Uint8Array) and
    * converts it into a JWK object for use with the XChaCha20 symmetric encryption algorithm. The
    * conversion process involves encoding the key into base64url format and setting the appropriate
@@ -76,7 +77,7 @@ export class XChaCha20 {
    * @returns A Promise that resolves to the symmetric key in JWK format.
    */
   public static async bytesToPrivateKey({ privateKeyBytes }: {
-    privateKeyBytes: Uint8Array
+    privateKeyBytes: Uint8Array;
   }): Promise<Jwk> {
     // Construct the private key in JWK format.
     const privateKey: Jwk = {
@@ -93,6 +94,7 @@ export class XChaCha20 {
   /**
    * Decrypts the provided data using XChaCha20.
    *
+   * @remarks
    * This method performs XChaCha20 decryption on the given encrypted data using the specified key
    * and nonce. The nonce should be the same as used in the encryption process and must be 24 bytes
    * long. The method returns the decrypted data as a Uint8Array.
@@ -117,9 +119,9 @@ export class XChaCha20 {
    * @returns A Promise that resolves to the decrypted data as a Uint8Array.
    */
   public static async decrypt({ data, key, nonce }: {
-    data: Uint8Array,
-    key: Jwk,
-    nonce: Uint8Array
+    data: Uint8Array;
+    key: Jwk;
+    nonce: Uint8Array;
   }): Promise<Uint8Array> {
     // Convert the private key from JWK format to bytes.
     const privateKeyBytes = await XChaCha20.privateKeyToBytes({ privateKey: key });
@@ -132,6 +134,7 @@ export class XChaCha20 {
   /**
    * Encrypts the provided data using XChaCha20.
    *
+   * @remarks
    * This method performs XChaCha20 encryption on the given data using the specified key and nonce.
    * The nonce must be 24 bytes long, ensuring a high level of security through a vast nonce space,
    * reducing the risks associated with nonce reuse. The method returns the encrypted data as a
@@ -157,9 +160,9 @@ export class XChaCha20 {
    * @returns A Promise that resolves to the encrypted data as a Uint8Array.
    */
   public static async encrypt({ data, key, nonce }: {
-    data: Uint8Array,
-    key: Jwk,
-    nonce: Uint8Array
+    data: Uint8Array;
+    key: Jwk;
+    nonce: Uint8Array;
   }): Promise<Uint8Array> {
     // Convert the private key from JWK format to bytes.
     const privateKeyBytes = await XChaCha20.privateKeyToBytes({ privateKey: key });
@@ -172,6 +175,7 @@ export class XChaCha20 {
   /**
    * Generates a symmetric key for XChaCha20 in JSON Web Key (JWK) format.
    *
+   * @remarks
    * This method creates a new symmetric key suitable for use with the XChaCha20 encryption
    * algorithm. The key is generated using cryptographically secure random number generation
    * to ensure its uniqueness and security. The XChaCha20 algorithm requires a 256-bit key
@@ -205,6 +209,7 @@ export class XChaCha20 {
   /**
    * Converts a private key from JSON Web Key (JWK) format to a raw byte array (Uint8Array).
    *
+   * @remarks
    * This method takes a symmetric key in JWK format and extracts its raw byte representation.
    * It decodes the 'k' parameter of the JWK value, which represents the symmetric key in base64url
    * encoding, into a byte array.
@@ -221,7 +226,7 @@ export class XChaCha20 {
    * @returns A Promise that resolves to the symmetric key as a Uint8Array.
    */
   public static async privateKeyToBytes({ privateKey }: {
-    privateKey: Jwk
+    privateKey: Jwk;
   }): Promise<Uint8Array> {
     // Verify the provided JWK represents a valid oct private key.
     if (!isOctPrivateJwk(privateKey)) {
