@@ -252,6 +252,44 @@ export class Secp256k1 {
   }
 
   /**
+   * Converts an ASN.1 DER encoded ECDSA signature to a compact R+S format.
+   *
+   * @remarks
+   * This method is used for converting an ECDSA signature from the ASN.1 DER encoding to the more
+   * compact R+S format. This conversion is often required when dealing with ECDSA signatures in
+   * certain cryptographic protocols or standards like JWS, where the compact format is preferred
+   * for its efficiency in terms of size.
+   *
+   * The method decodes the DER-encoded signature, extracts the R and S values, and concatenates
+   * them into a single byte array. This process involves handling the ASN.1 structure to correctly
+   * parse the R and S values, considering padding and integer encoding specifics of DER.
+   *
+   * @example
+   * ```ts
+   * const derSignature = new Uint8Array([...]); // Replace with your DER-encoded signature
+   * const signature = await Secp256k1.convertDerToCompactSignature({ derSignature });
+   * ```
+   *
+   * @param params - The parameters for the signature conversion.
+   * @param params.derSignature - The signature in ASN.1 DER format as a `Uint8Array`.
+   *
+   * @returns A Promise that resolves to the signature in compact R+S format as a `Uint8Array`.
+   */
+  public static async convertDerToCompactSignature({ derSignature }: {
+    derSignature: Uint8Array;
+  }): Promise<Uint8Array> {
+    // Convert the DER-encoded signature into a `secp256k1.Signature` object.
+    // This involves parsing the ASN.1 DER structure to extract the R and S components.
+    const signatureObject = secp256k1.Signature.fromDER(derSignature);
+
+    // Convert the signature object into compact R+S format, which concatenates the R and S values
+    // into a single byte array.
+    const compactSignature = signatureObject.toCompactRawBytes();
+
+    return  compactSignature;
+  }
+
+  /**
    * Converts a public key to its uncompressed form.
    *
    * @remarks

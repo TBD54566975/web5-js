@@ -293,13 +293,4 @@ describe('X25519', () => {
       ).to.eventually.be.rejectedWith(Error, 'shared secret cannot be computed from a single key pair');
     });
   });
-
-  describe('validatePublicKey()', () => {
-    it('throws a not implemented error', async () => {
-      await expect(
-        // @ts-expect-error because validatePublicKey is a private method.
-        X25519.validatePublicKey({ key: new Uint8Array(32) })
-      ).to.eventually.be.rejectedWith(Error, 'Not implemented');
-    });
-  });
 });

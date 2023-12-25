@@ -130,6 +130,101 @@ describe('Secp256k1', () => {
     });
   });
 
+  describe('convertDerToCompactSignature()', () => {
+    it('returns compact R+S format signature as a Uint8Array', async () => {
+      const derSignature = Convert.hex('304402203d2f8c3d0f3f7b8b0a9f4d2e8a0f2d4d7a4d2e8a0f2d4d7a4d2e8a0f2d4d7a4d02203d2f8c3d0f3f7b8b0a9f4d2e8a0f2d4d7a4d2e8a0f2d4d7a4d2e8a0f2d4d7a4d').toUint8Array();
+
+      const compactSignature = await Secp256k1.convertDerToCompactSignature({ derSignature });
+
+      expect(compactSignature).to.be.instanceOf(Uint8Array);
+      expect(compactSignature.byteLength).to.equal(64);
+    });
+
+    it('converted ASN.1 DER encoded ECDSA signature matches the expected compact R+S signature', async () => {
+      const derSignature = Convert.hex('3046022100bd856f326c9d52c6ea6b0711831fe706ad4df6f1c2499de3aa2950d27fe89590022100be32e04c6d0d6fe1628b84eacff5bb871cea4138199521b37234da79b63586f8').toUint8Array();
+      const expectedCompactSignature = Convert.hex('bd856f326c9d52c6ea6b0711831fe706ad4df6f1c2499de3aa2950d27fe89590be32e04c6d0d6fe1628b84eacff5bb871cea4138199521b37234da79b63586f8').toUint8Array();
+
+      const compactSignature = await Secp256k1.convertDerToCompactSignature({ derSignature });
+
+      expect(compactSignature).to.deep.equal(expectedCompactSignature);
+    });
+
+    it('converts AWS KMS signatures that can be verified with Secp256k1.verify()', async () => {
+      // Public key generated with AWS KMS.
+      const publicKey: Jwk = {
+        kty : 'EC',
+        x   : 'RZibmDDBkHgq13BrUB7myVzZf_mvgXyesI2eyu4Mbto',
+        y   : 'RGrSYhAEPg2Wl8dOnVWLWvp79A9ueqzhXNaVd-oR7Xo',
+        crv : 'secp256k1',
+        kid : 'm-M694699ruAkBudvKuhXvJ1e_nz7wdksjuPyVShVjo'
+      };
+
+      // Data payload that was used to generate the signature.
+      const message = new Uint8Array([0, 1, 2, 3, 4]);
+
+      // ASN.1 DER encoded ECDSA signature generated with AWS KMS.
+      const derSignature = Convert.hex('3046022100bd856f326c9d52c6ea6b0711831fe706ad4df6f1c2499de3aa2950d27fe89590022100be32e04c6d0d6fe1628b84eacff5bb871cea4138199521b37234da79b63586f8').toUint8Array();
+
+      // Convert the AWS KMS signature to a compact R+S signature.
+      const compactSignature = await Secp256k1.convertDerToCompactSignature({ derSignature });
+
+      // Verify the signature with the public key using Secp256k1.verify().
+      const isValid = await Secp256k1.verify({
+        key       : publicKey,
+        signature : compactSignature,
+        data      : message
+      });
+
+      expect(isValid).to.be.true;
+    });
+
+    it('passes Wycheproof test vector', async () => {
+      // Source: https://github.com/paulmillr/noble-curves/blob/37eab5a28a43c35b87e9e95a12ae6086393ac38b/test/wycheproof/ecdsa_secp256k1_sha256_test.json#L189-L198
+      const publicKeyBytes = Convert.hex('04b838ff44e5bc177bf21189d0766082fc9d843226887fc9760371100b7ee20a6ff0c9d75bfba7b31a6bca1974496eeb56de357071955d83c4b1badaa0b21832e9').toUint8Array();
+      const publicKey = await Secp256k1.bytesToPublicKey({ publicKeyBytes });
+      const message = Convert.hex('313233343030').toUint8Array();
+      const derSignature = Convert.hex('3046022100813ef79ccefa9a56f7ba805f0e478584fe5f0dd5f567bc09b5123ccbc9832365022100900e75ad233fcc908509dbff5922647db37c21f4afd3203ae8dc4ae7794b0f87').toUint8Array();
+
+      const compactSignature = await Secp256k1.convertDerToCompactSignature({ derSignature });
+
+      const isValid = await Secp256k1.verify({
+        key       : publicKey,
+        signature : compactSignature,
+        data      : message
+      });
+
+      expect(isValid).to.be.true;
+    });
+
+    it('throws an error for an invalid ASN.1 DER encoded ECDSA signature due to incorrect length', async () => {
+      // Invalid ASN.1 DER encoded ECDSA signature.
+      // Source: https://github.com/paulmillr/noble-curves/blob/37eab5a28a43c35b87e9e95a12ae6086393ac38b/test/wycheproof/ecdsa_secp256k1_sha256_test.json#L239-L248
+      const invalidDerSignature = Convert.hex('3046022100813ef79ccefa9a56f7ba805f0e478584fe5f0dd5f567bc09b5123ccbc983236502206ff18a52dcc0336f7af62400a6dd9b810732baf1ff758000d6f613a556eb31ba').toUint8Array();
+
+      try {
+        await Secp256k1.convertDerToCompactSignature({ derSignature: invalidDerSignature });
+        expect.fail('Expected method to throw an error.');
+      } catch (error) {
+        expect(error).to.be.instanceOf(Error);
+        expect((error as Error).message).to.include('Invalid signature: incorrect length');
+      }
+    });
+
+    it('throws an error for an invalid ASN.1 DER encoded ECDSA signature due to appending zeros to sequence', async () => {
+      // Invalid ASN.1 DER encoded ECDSA signature.
+      // Source: https://github.com/paulmillr/noble-curves/blob/37eab5a28a43c35b87e9e95a12ae6086393ac38b/test/wycheproof/ecdsa_secp256k1_sha256_test.json#L369-L378
+      const invalidDerSignature = Convert.hex('3047022100813ef79ccefa9a56f7ba805f0e478584fe5f0dd5f567bc09b5123ccbc983236502206ff18a52dcc0336f7af62400a6dd9b810732baf1ff758000d6f613a556eb31ba0000').toUint8Array();
+
+      try {
+        await Secp256k1.convertDerToCompactSignature({ derSignature: invalidDerSignature });
+        expect.fail('Expected method to throw an error.');
+      } catch (error) {
+        expect(error).to.be.instanceOf(Error);
+        expect((error as Error).message).to.include('Invalid signature: left bytes after parsing');
+      }
+    });
+  });
+
   describe('decompressPublicKey()', () => {
     it('converts a compressed public key to an uncompressed format', async () => {
       const compressedPublicKeyBytes = Convert.hex('026bcdccc644b309921d3b0c266183a20786650c1634d34e8dfa1ed74cd66ce214').toUint8Array();
