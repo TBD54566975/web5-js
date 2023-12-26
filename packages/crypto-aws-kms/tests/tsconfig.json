@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "compiled",
+    "declarationDir": "compiled/types",
+    "resolveJsonModule": true,
+    "sourceMap": true
+  },
+  "include": [
+    "../src",
+    ".",
+  ],
+  "exclude": [
+    "./compiled"
+  ]
+}

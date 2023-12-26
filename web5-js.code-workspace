@@ -31,6 +31,11 @@
       "path": "packages/crypto",
     },
     {
+      // @web5/crypto-aws-kms
+      "name": "crypto-aws-kms",
+      "path": "packages/crypto-aws-kms",
+    },
+    {
       // @web5/dids
       "name": "dids",
       "path": "packages/dids",
@@ -60,7 +65,8 @@
     "npm.packageManager": "npm",
     "editor.codeActionsOnSave": {
       "source.fixAll": "always"
-    }
+    },
+    "typescript.tsdk": "root/node_modules/typescript/lib"
   },
   "launch": {
     "version": "0.2.0",
