@@ -8,18 +8,23 @@ export * from './algorithms-api/pbkdf/pbkdf2.js';
 export * from './algorithms-api/crypto-algorithm.js';
 export * from './algorithms-api/errors.js';
 
-export * from './crypto-algorithms/aes-ctr.js';
-export * from './crypto-algorithms/ecdh.js';
-export * from './crypto-algorithms/ecdsa.js';
-export * from './crypto-algorithms/eddsa.js';
-export * from './crypto-algorithms/pbkdf2.js';
+// export * from './crypto-algorithms/aes-ctr.js';
+// export * from './crypto-algorithms/ecdh.js';
+// export * from './crypto-algorithms/ecdsa.js';
+// export * from './crypto-algorithms/eddsa.js';
+// export * from './crypto-algorithms/pbkdf2.js';
 
-export * from './types/jose.js';
 export * from './jose/jwe.js';
 export * from './jose/jwk.js';
 export * from './jose/jws.js';
 export * from './jose/jwt.js';
 export * from './jose/utils.js';
+export * from './types/jose.js';
+
+export * from './kms-local/api.js';
+export * from './kms-local/ecdsa.js';
+export * from './kms-local/eddsa.js';
+export * from './kms-local/sha-2.js';
 
 export * from './primitives/aes-ctr.js';
 export * from './primitives/aes-gcm.js';
