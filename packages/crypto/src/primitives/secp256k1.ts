@@ -257,8 +257,7 @@ export class Secp256k1 {
    * @remarks
    * This method is used for converting an ECDSA signature from the ASN.1 DER encoding to the more
    * compact R+S format. This conversion is often required when dealing with ECDSA signatures in
-   * certain cryptographic protocols or standards like JWS, where the compact format is preferred
-   * for its efficiency in terms of size.
+   * certain cryptographic standards such as JWS (JSON Web Signature).
    *
    * The method decodes the DER-encoded signature, extracts the R and S values, and concatenates
    * them into a single byte array. This process involves handling the ASN.1 structure to correctly
