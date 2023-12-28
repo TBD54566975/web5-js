@@ -3,7 +3,6 @@ import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
 import { ConcatKdf } from '../../src/primitives/concat-kdf.js';
-import { NotSupportedError } from '../../src/algorithms-api/errors.js';
 
 chai.use(chaiAsPromised);
 
@@ -71,7 +70,7 @@ describe('ConcatKdf', () => {
       await expect(
         // @ts-expect-error because only parameters needed to trigger the error are specified.
         ConcatKdf.deriveKey({ keyDataLen: 512 })
-      ).to.eventually.be.rejectedWith(NotSupportedError, 'rounds not supported');
+      ).to.eventually.be.rejectedWith(Error, 'rounds not supported');
     });
 
     it('throws an error if suppPubInfo is not a Number', async () => {

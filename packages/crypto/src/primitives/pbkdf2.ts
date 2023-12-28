@@ -2,11 +2,43 @@ import { crypto } from '@noble/hashes/crypto';
 
 import { isWebCryptoSupported } from '../utils.js';
 
-type DeriveKeyParams = {
+/**
+ * The object that should be passed into `Pbkdf2.deriveKey()`, when using the PBKDF2 algorithm.
+ */
+export type Pbkdf2DeriveKeyParams = {
+  /**
+   * A string representing the digest algorithm to use. This may be one of:
+   * - 'SHA-256'
+   * - 'SHA-384'
+   * - 'SHA-512'
+   */
   hash: 'SHA-256' | 'SHA-384' | 'SHA-512';
+
+  /**
+   * The password from which to derive the key, represented as a Uint8Array.
+   */
   password: Uint8Array;
+
+  /**
+   * The salt value to use in the derivation process, as a Uint8Array. This should be a random or
+   * pseudo-random value of at least 16 bytes. Unlike the `password`, `salt` does not need to be
+   * kept secret.
+   */
   salt: Uint8Array;
+
+  /**
+   * A `Number` representing the number of iterations the hash function will be executed in
+   * `deriveKey()`. This impacts the computational cost of the `deriveKey()` operation, making it
+   * more resistant to dictionary attacks. The higher the number, the more secure, but also slower,
+   * the operation. Choose a value that balances security needs and performance for your
+   * application.
+   */
   iterations: number;
+
+  /**
+   * The desired length of the derived key in bits. To be compatible with all browsers, the number
+   * should be a multiple of 8.
+   */
   length: number;
 };
 
@@ -71,7 +103,7 @@ export class Pbkdf2 {
    *
    * @returns A Promise that resolves to the derived key as a Uint8Array.
    */
-  public static async deriveKey(params: DeriveKeyParams): Promise<Uint8Array> {
+  public static async deriveKey(params: Pbkdf2DeriveKeyParams): Promise<Uint8Array> {
     if (isWebCryptoSupported()) {
       return Pbkdf2.deriveKeyWithWebCrypto(params);
     } else {
@@ -79,8 +111,20 @@ export class Pbkdf2 {
     }
   }
 
+  /**
+   * Derives a cryptographic key from a password using the PBKDF2 algorithm in Node.js.
+   *
+   * @param params - The parameters for key derivation.
+   * @param params.hash - The hash function to use, such as 'SHA-256', 'SHA-384', or 'SHA-512'.
+   * @param params.password - The password from which to derive the key, represented as a Uint8Array.
+   * @param params.salt - The salt value to use in the derivation process, as a Uint8Array.
+   * @param params.iterations - The number of iterations to apply in the PBKDF2 algorithm.
+   * @param params.length - The desired length of the derived key in bits.
+   *
+   * @returns A Promise that resolves to the derived key as a Uint8Array.
+   */
   private static async deriveKeyWithNodeCrypto({ hash, iterations, length, password, salt }:
-    DeriveKeyParams
+    Pbkdf2DeriveKeyParams
   ): Promise<Uint8Array> {
     // Map the hash string to the node:crypto equivalent.
     const hashToNodeCryptoMap = {
@@ -112,8 +156,20 @@ export class Pbkdf2 {
     });
   }
 
+  /**
+   * Derives a cryptographic key from a password using the PBKDF2 algorithm in the Web Crypto API.
+   *
+   * @param params - The parameters for key derivation.
+   * @param params.hash - The hash function to use, such as 'SHA-256', 'SHA-384', or 'SHA-512'.
+   * @param params.password - The password from which to derive the key, represented as a Uint8Array.
+   * @param params.salt - The salt value to use in the derivation process, as a Uint8Array.
+   * @param params.iterations - The number of iterations to apply in the PBKDF2 algorithm.
+   * @param params.length - The desired length of the derived key in bits.
+   *
+   * @returns A Promise that resolves to the derived key as a Uint8Array.
+   */
   private static async deriveKeyWithWebCrypto({ hash, password, salt, iterations, length }:
-    DeriveKeyParams
+    Pbkdf2DeriveKeyParams
   ): Promise<Uint8Array> {
     // Import the password as a raw key for use with the Web Crypto API.
     const webCryptoKey = await crypto.subtle.importKey(

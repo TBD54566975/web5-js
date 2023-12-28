@@ -14,8 +14,7 @@ import { sha256 } from '@noble/hashes/sha256';
  * @example
  * ```ts
  * const data = new Uint8Array([...]);
- * const hashDigest = await Sha256.digest({ data });
- * console.log(hashDigest);
+ * const hash = await Sha256.digest({ data });
  * ```
  */
 export class Sha256 {
@@ -27,6 +26,12 @@ export class Sha256 {
    * is deterministic, meaning the same data will always produce the same hash, but
    * is computationally infeasible to regenerate the original data from the hash.
    *
+   * @example
+   * ```ts
+   * const data = new Uint8Array([...]);
+   * const hash = await Sha256.digest({ data });
+   * ```
+   *
    * @param params - The parameters for the hashing operation.
    * @param params.data - The data to hash, represented as a Uint8Array.
    *
@@ -35,8 +40,8 @@ export class Sha256 {
   public static async digest({ data }: {
     data: Uint8Array;
   }): Promise<Uint8Array> {
-    const digest = sha256(data);
+    const hash = sha256(data);
 
-    return digest;
+    return hash;
   }
 }

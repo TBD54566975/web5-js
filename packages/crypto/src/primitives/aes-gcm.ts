@@ -6,6 +6,53 @@ import type { Jwk } from '../jose/jwk.js';
 import { computeJwkThumbprint, isOctPrivateJwk } from '../jose/jwk.js';
 
 /**
+ * Const defining the AES-GCM initialization vector (IV) length in bits.
+ *
+ * @remarks
+ * NIST Special Publication 800-38D, Section 5.2.1.1 states that the IV length:
+ * > For IVs, it is recommended that implementations restrict support to the length of 96 bits, to
+ * > promote interoperability, efficiency, and simplicity of design.
+ *
+ * This implementation does not support IV lengths that are different from the value defined by
+ * this constant.
+ *
+ * @see {@link https://doi.org/10.6028/NIST.SP.800-38D | NIST SP 800-38D}
+ */
+const AES_GCM_IV_LENGTH = 96;
+
+/**
+ * Constant defining the AES key length values in bits.
+ *
+ * @remarks
+ * NIST publication FIPS 197 states:
+ * > The AES algorithm is capable of using cryptographic keys of 128, 192, and 256 bits to encrypt
+ * > and decrypt data in blocks of 128 bits.
+ *
+ * This implementation does not support key lengths that are different from the three values
+ * defined by this constant.
+ *
+ * @see {@link https://doi.org/10.6028/NIST.FIPS.197-upd1 | NIST FIPS 197}
+ */
+const AES_KEY_LENGTHS = [128, 192, 256] as const;
+
+/**
+ * Constant defining the AES-GCM tag length values in bits.
+ *
+ * @remarks
+ * NIST Special Publication 800-38D, Section 5.2.1.2 states that the tag length:
+ * > may be any one of the following five values: 128, 120, 112, 104, or 96
+ *
+ * Although the NIST specification allows for tag lengths of 32 or 64 bits in certain applications,
+ * the use of shorter tag lengths can be problematic for GCM due to targeted forgery attacks. As a
+ * precaution, this implementation does not support tag lengths that are different from the five
+ * values defined by this constant. See Appendix C of the NIST SP 800-38D specification for
+ * additional guidance and details.
+ *
+ * @see {@link https://doi.org/10.6028/NIST.SP.800-38D | NIST SP 800-38D}
+ */
+export const AES_GCM_TAG_LENGTHS = [96, 104, 112, 120, 128] as const;
+
+/**
  * The `AesGcm` class provides a comprehensive set of utilities for cryptographic operations
  * using the Advanced Encryption Standard (AES) in Galois/Counter Mode (GCM). This class includes
  * methods for key generation, encryption, decryption, and conversions between raw byte arrays
@@ -37,16 +84,14 @@ import { computeJwkThumbprint, isOctPrivateJwk } from '../jose/jwk.js';
  * const encryptedData = await AesGcm.encrypt({
  *   data,
  *   iv,
- *   key: privateKey,
- *   tagLength: 128 // Length of the authentication tag in bits
+ *   key: privateKey
  * });
  *
  * // Decryption
  * const decryptedData = await AesGcm.decrypt({
  *   data: encryptedData,
  *   iv,
- *   key: privateKey,
- *   tagLength: 128 // Length of the authentication tag in bits
+ *   key: privateKey
  * });
  *
  * // Key Conversion
@@ -110,7 +155,7 @@ export class AesGcm {
    * const encryptedData = new Uint8Array([...]); // Encrypted data
    * const iv = new Uint8Array([...]); // Initialization vector used during encryption
    * const additionalData = new Uint8Array([...]); // Optional additional authenticated data
-   * const key = { ... }; // A PrivateKeyJwk object representing the AES key
+   * const key = { ... }; // A Jwk object representing the AES key
    * const decryptedData = await AesGcm.decrypt({
    *   data: encryptedData,
    *   iv,
@@ -121,28 +166,40 @@ export class AesGcm {
    * ```
    *
    * @param params - The parameters for the decryption operation.
+   * @param params.key - The key to use for decryption, represented in JWK format.
    * @param params.data - The encrypted data to decrypt, represented as a Uint8Array.
    * @param params.iv - The initialization vector, represented as a Uint8Array.
-   * @param params.additionalData - Optional additional authenticated data.
-   * @param params.key - The key to use for decryption, represented in JWK format.
-   * @param params.tagLength - The length of the authentication tag in bits.
+   * @param params.additionalData - Optional additional authenticated data. Optional.
+   * @param params.tagLength - The length of the authentication tag in bits. Optional.
    *
    * @returns A Promise that resolves to the decrypted data as a Uint8Array.
    */
-  public static async decrypt({ data, iv, key, additionalData, tagLength }: {
-    additionalData?: Uint8Array;
+  public static async decrypt({ key, data, iv, additionalData, tagLength }: {
+    key: Jwk;
     data: Uint8Array;
     iv: Uint8Array;
-    key: Jwk;
-    tagLength?: number;
+    additionalData?: Uint8Array;
+    tagLength?: typeof AES_GCM_TAG_LENGTHS[number];
   }): Promise<Uint8Array> {
+    // Validate the initialization vector length.
+    if (iv.byteLength !== AES_GCM_IV_LENGTH / 8) {
+      throw new TypeError(`The initialization vector must be ${AES_GCM_IV_LENGTH} bits in length`);
+    }
+
+    // Validate the tag length.
+    if (tagLength && !AES_GCM_TAG_LENGTHS.includes(tagLength as any)) {
+      throw new RangeError(`The tag length is invalid: Must be ${AES_GCM_TAG_LENGTHS.join(', ')} bits`);
+    }
+
+    // Import the JWK into the Web Crypto API to use for the decrypt operation.
     const webCryptoKey = await this.importKey(key);
 
-    // Web browsers throw an error if additionalData is undefined.
+    // Browser implementations of the Web Crypto API throw an error if additionalData is undefined.
     const algorithm = (additionalData === undefined)
       ? { name: 'AES-GCM', iv, tagLength }
       : { name: 'AES-GCM', additionalData, iv, tagLength };
 
+    // Decrypt the data.
     const plaintextBuffer = await crypto.subtle.decrypt(algorithm, webCryptoKey, data);
 
     // Convert from ArrayBuffer to Uint8Array.
@@ -167,7 +224,7 @@ export class AesGcm {
    * const data = new TextEncoder().encode('Hello, world!');
    * const iv = new Uint8Array([...]); // Initialization vector
    * const additionalData = new Uint8Array([...]); // Optional additional authenticated data
-   * const key = { ... }; // A PrivateKeyJwk object representing an AES key
+   * const key = { ... }; // A Jwk object representing an AES key
    * const encryptedData = await AesGcm.encrypt({
    *   data,
    *   iv,
@@ -178,28 +235,40 @@ export class AesGcm {
    * ```
    *
    * @param params - The parameters for the encryption operation.
+   * @param params.key - The key to use for encryption, represented in JWK format.
    * @param params.data - The data to encrypt, represented as a Uint8Array.
    * @param params.iv - The initialization vector, represented as a Uint8Array.
-   * @param params.additionalData - Optional additional authenticated data.
-   * @param params.key - The key to use for encryption, represented in JWK format.
-   * @param params.tagLength - The length of the authentication tag in bits.
+   * @param params.additionalData - Optional additional authenticated data. Optional.
+   * @param params.tagLength - The length of the authentication tag in bits. Optional.
    *
    * @returns A Promise that resolves to the encrypted data as a Uint8Array.
    */
   public static async encrypt({ data, iv, key, additionalData, tagLength }: {
-    additionalData?: Uint8Array;
+    key: Jwk;
     data: Uint8Array;
     iv: Uint8Array;
-    key: Jwk;
-    tagLength?: number;
+    additionalData?: Uint8Array;
+    tagLength?: typeof AES_GCM_TAG_LENGTHS[number];
   }): Promise<Uint8Array> {
+    // Validate the initialization vector length.
+    if (iv.byteLength !== AES_GCM_IV_LENGTH / 8) {
+      throw new TypeError(`The initialization vector must be ${AES_GCM_IV_LENGTH} bits in length`);
+    }
+
+    // Validate the tag length.
+    if (tagLength && !AES_GCM_TAG_LENGTHS.includes(tagLength as any)) {
+      throw new RangeError(`The tag length is invalid: Must be ${AES_GCM_TAG_LENGTHS.join(', ')} bits`);
+    }
+
+    // Import the JWK into the Web Crypto API to use for the encrypt operation.
     const webCryptoKey = await this.importKey(key);
 
-    // Web browsers throw an error if additionalData is undefined.
+    // Browser implementations of the Web Crypto API throw an error if additionalData is undefined.
     const algorithm = (additionalData === undefined)
       ? { name: 'AES-GCM', iv, tagLength }
       : { name: 'AES-GCM', additionalData, iv, tagLength };
 
+    // Encrypt the data.
     const ciphertextBuffer = await crypto.subtle.encrypt(algorithm, webCryptoKey, data);
 
     // Convert from ArrayBuffer to Uint8Array.
@@ -235,8 +304,13 @@ export class AesGcm {
    * @returns A Promise that resolves to the generated symmetric key in JWK format.
    */
   public static async generateKey({ length }: {
-    length: number;
+    length: typeof AES_KEY_LENGTHS[number];
   }): Promise<Jwk> {
+    // Validate the key length.
+    if (!AES_KEY_LENGTHS.includes(length as any)) {
+      throw new RangeError(`The key length is invalid: Must be ${AES_KEY_LENGTHS.join(', ')} bits`);
+    }
+
     // Generate the secret key.
     const lengthInBytes = length / 8;
     const privateKeyBytes = crypto.getRandomValues(new Uint8Array(lengthInBytes));

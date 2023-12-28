@@ -2,8 +2,6 @@ import { sha256 } from '@noble/hashes/sha256';
 import { Convert, universalTypeOf } from '@web5/common';
 import { TypedArray, concatBytes } from '@noble/hashes/utils';
 
-import { NotSupportedError } from '../algorithms-api/errors.js';
-
 export type ConcatKdfOtherInfo = {
   /**
    * The algorithm the derived secret keying material will be used with.
@@ -69,7 +67,7 @@ export type ConcatKdfOtherInfo = {
  *   confidential between the two parties in the key agreement protocol.
  *
  * @see {@link https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-56Ar3.pdf | NIST.800-56A}
- * @see {@link https://datatracker.ietf.org/doc/html/rfc7518#section-4.6.2 | RFC 7518 Section 4.6.2}
+ * @see {@link https://datatracker.ietf.org/doc/html/rfc7518#section-4.6.2 | RFC 7518, Section 4.6.2}
  */
 export class ConcatKdf {
   /**
@@ -81,7 +79,7 @@ export class ConcatKdf {
    * @param params.otherInfo - Additional public information to use in key derivation.
    * @returns The derived key as a Uint8Array.
    *
-   * @throws {NotSupportedError} If the `keyDataLen` would require multiple rounds.
+   * @throws {Error} If the `keyDataLen` would require multiple rounds.
    */
   public static async deriveKey({ keyDataLen, otherInfo, sharedSecret }: {
     keyDataLen: number;
@@ -97,7 +95,7 @@ export class ConcatKdf {
     // This implementation only supports single round Concat KDF.
     const roundCount = Math.ceil(keyDataLen / hashLen);
     if (roundCount !== 1) {
-      throw new NotSupportedError(`Concat KDF with ${roundCount} rounds not supported.`);
+      throw new Error(`Concat KDF with ${roundCount} rounds not supported.`);
     }
 
     // Initialize a 32-bit, big-endian bit string counter as 0x00000001.

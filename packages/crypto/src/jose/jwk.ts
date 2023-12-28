@@ -132,31 +132,31 @@ export type JwkNamedCurves =
  * JSON Web Key Parameters
  */
 
-// Used with any "kty" (key type) value.
+/** Parameters used with any "kty" (key type) value. */
 export type JwkParamsAnyKeyType = {
-  // The algorithm intended for use with the key
+  /** JWK Algorithm Parameter. The algorithm intended for use with the key. */
   alg?: string;
-  // Extractable
+  /** JWK Extractable Parameter */
   ext?: 'true' | 'false';
-  // Key Operations
+  /** JWK Key Operations Parameter */
   key_ops?: JwkOperation[];
-  //'encrypt' | 'decrypt' | 'sign' | 'verify' | 'deriveKey' | 'deriveBits' | 'wrapKey' | 'unwrapKey';D
+  /** JWK Key ID Parameter */
   kid?: string;
-  // Key Type
+  /** JWK Key Type Parameter */
   kty: JwkType;
-  // Public Key Use
+  /** JWK Public Key Use Parameter */
   use?: JwkUse;
-  // X.509 Certificate Chain
+  /** JWK X.509 Certificate Chain Parameter */
   x5c?: string;
-  // X.509 Certificate SHA-1 Thumbprint
+  /** JWK X.509 Certificate SHA-1 Thumbprint Parameter */
   x5t?: string;
-  // X.509 Certificate SHA-256 Thumbprint
+  /** JWK X.509 Certificate SHA-256 Thumbprint Parameter */
   'x5t#S256'?: string;
-  // X.509 URL
+  /** JWK X.509 URL Parameter */
   x5u?: string;
 }
 
-// Used with "EC" (elliptic curve) public keys.
+/** Parameters used with "EC" (elliptic curve) public keys. */
 export type JwkParamsEcPublic = Omit<JwkParamsAnyKeyType, 'alg' | 'kty'> & {
   /**
    * The algorithm intended for use with the key.
@@ -195,7 +195,7 @@ export type JwkParamsEcPublic = Omit<JwkParamsAnyKeyType, 'alg' | 'kty'> & {
   y?: string;
 }
 
-// Used with "EC" (elliptic curve) private keys.
+/** Parameters used with "EC" (elliptic curve) private keys. */
 export type JwkParamsEcPrivate = JwkParamsEcPublic & {
   /**
    * The d-coordinate for the Elliptic Curve point.
@@ -206,7 +206,7 @@ export type JwkParamsEcPrivate = JwkParamsEcPublic & {
   d: string;
 }
 
-// Used with "OKP" (octet key pair) public keys.
+/** Parameters used with "OKP" (octet key pair) public keys. */
 export type JwkParamsOkpPublic =
   Omit<JwkParamsAnyKeyType, 'kty' | 'alg' | 'crv'> &
   Pick<JwkParamsEcPublic, 'x'> & {
@@ -230,7 +230,7 @@ export type JwkParamsOkpPublic =
   kty: 'OKP';
 }
 
-// Used with "OKP" (octet key pair) private keys.
+/** Parameters used with "OKP" (octet key pair) private keys. */
 export type JwkParamsOkpPrivate = JwkParamsOkpPublic & {
   /**
    * The d-coordinate for the Edwards Curve point.
@@ -241,7 +241,7 @@ export type JwkParamsOkpPrivate = JwkParamsOkpPublic & {
   d: string;
 };
 
-// Used with "oct" (octet sequence) private keys.
+/** Parameters used with "oct" (octet sequence) private keys. */
 export type JwkParamsOctPrivate = Omit<JwkParamsAnyKeyType, 'alg' | 'kty'> & {
   /**
    * The algorithm intended for use with the key.
@@ -289,9 +289,9 @@ export type JwkParamsOctPrivate = Omit<JwkParamsAnyKeyType, 'alg' | 'kty'> & {
   kty: 'oct';
 }
 
-// Used with "RSA" public keys.
+/** Parameters Used with "RSA" public keys. */
 export type JwkParamsRsaPublic = Omit<JwkParamsAnyKeyType, 'kty'> & {
-  // Public exponent for RSA
+  /** Public exponent for RSA */
   e: string;
 
   /**
@@ -300,25 +300,25 @@ export type JwkParamsRsaPublic = Omit<JwkParamsAnyKeyType, 'kty'> & {
    */
   kty: 'RSA';
 
-  // Modulus for RSA
+  /** Modulus for RSA */
   n: string;
 };
 
-// Used with "RSA" private keys.
+/** Parameters used with "RSA" private keys. */
 export type JwkParamsRsaPrivate = JwkParamsRsaPublic & {
-  // Private exponent for RSA
+  /** Private exponent for RSA */
   d: string;
-  // First prime factor for RSA
+  /** First prime factor for RSA */
   p?: string;
-  // Second prime factor for RSA
+  /** Second prime factor for RSA */
   q?: string;
-  // First factor's CRT exponent for RSA
+  /** First factor's CRT exponent for RSA */
   dp?: string;
-  // Second factor's CRT exponent for RSA
+  /** Second factor's CRT exponent for RSA */
   dq?: string;
-  // First CRT coefficient for RSA
+  /** First CRT coefficient for RSA */
   qi?: string;
-  // Other primes information (optional in RFC 7518)
+  /** Other primes information (optional in RFC 7518) */
   oth?: {
     r: string;
     d: string;
@@ -326,15 +326,22 @@ export type JwkParamsRsaPrivate = JwkParamsRsaPublic & {
   }[];
 };
 
+/** Parameters used with public keys in JWK format. */
 export type PublicKeyJwk = JwkParamsEcPublic | JwkParamsOkpPublic | JwkParamsRsaPublic;
 
+/** Parameters used with private keys in JWK format. */
 export type PrivateKeyJwk = JwkParamsEcPrivate | JwkParamsOkpPrivate | JwkParamsOctPrivate | JwkParamsRsaPrivate;
 
+/** Object representing an asymmetric key pair in JWK format. */
 export type JwkKeyPair = {
   publicKeyJwk: PublicKeyJwk;
   privateKeyJwk: PrivateKeyJwk;
 }
 
+/**
+ * JSON Web Key ({@link https://datatracker.ietf.org/doc/html/rfc7517 | JWK}).
+ * "RSA", "EC", "OKP", and "oct" key types are supported.
+ */
 export type Jwk = PrivateKeyJwk | PublicKeyJwk;
 
 /**

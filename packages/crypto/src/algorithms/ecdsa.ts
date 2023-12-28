@@ -5,22 +5,28 @@ import type { ComputePublicKeyParams, GenerateKeyParams, GetPublicKeyParams, Sig
 
 import { Secp256k1 } from '../primitives/secp256k1.js';
 import { isEcPrivateJwk, isEcPublicJwk } from '../jose/jwk.js';
+import { CryptoAlgorithm } from './crypto-algorithm.js';
 
-interface EcdsaGenerateKeyParams extends GenerateKeyParams {
+/**
+ * The `EcdsaGenerateKeyParams` interface defines the algorithm-specific parameters that should be
+ * passed into the `generateKey()` method when using the ECDSA algorithm.
+ */
+export interface EcdsaGenerateKeyParams extends GenerateKeyParams {
+  /**
+   * A string defining the type of key to generate. The value must be one of the following:
+   * - `"ES256K"`: ECDSA using the secp256k1 curve and SHA-256.
+   */
   algorithm: 'ES256K';
 }
 
-export class EcdsaAlgorithm implements
-    AsymmetricKeyGenerator<EcdsaGenerateKeyParams, Jwk, GetPublicKeyParams>,
-    Signer<SignParams, VerifyParams> {
-
-  public readonly names = ['ES256K'] as const;
-  public readonly curves = ['secp256k1'] as const;
+export class EcdsaAlgorithm extends CryptoAlgorithm
+  implements AsymmetricKeyGenerator<EcdsaGenerateKeyParams, Jwk, GetPublicKeyParams>,
+             Signer<SignParams, VerifyParams> {
 
   public async computePublicKey({ key }:
     ComputePublicKeyParams
   ): Promise<Jwk> {
-    if (!isEcPrivateJwk(key)) throw new TypeError('Invalid key type');
+    if (!isEcPrivateJwk(key)) throw new TypeError('Invalid key provided. Must be an elliptic curve (EC) private key.');
 
     switch (key.crv) {
 
@@ -52,7 +58,7 @@ export class EcdsaAlgorithm implements
   public async getPublicKey({ key }:
     GetPublicKeyParams
   ): Promise<Jwk> {
-    if (!isEcPrivateJwk(key)) throw new TypeError('Invalid key type');
+    if (!isEcPrivateJwk(key)) throw new TypeError('Invalid key provided. Must be an elliptic curve (EC) private key.');
 
     switch (key.crv) {
 
@@ -71,7 +77,7 @@ export class EcdsaAlgorithm implements
   public async sign({ key, data }:
     SignParams
   ): Promise<Uint8Array> {
-    if (!isEcPrivateJwk(key)) throw new TypeError('Invalid key type');
+    if (!isEcPrivateJwk(key)) throw new TypeError('Invalid key provided. Must be an elliptic curve (EC) private key.');
 
     switch (key.crv) {
 
@@ -88,7 +94,7 @@ export class EcdsaAlgorithm implements
   public async verify({ key, signature, data }:
     VerifyParams
   ): Promise<boolean> {
-    if (!isEcPublicJwk(key)) throw new TypeError('Invalid key type');
+    if (!isEcPublicJwk(key)) throw new TypeError('Invalid key provided. Must be an elliptic curve (EC) public key.');
 
     switch (key.crv) {
 

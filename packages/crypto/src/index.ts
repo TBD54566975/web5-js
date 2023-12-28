@@ -1,30 +1,19 @@
-export * from './algorithms-api/aes/base.js';
-export * from './algorithms-api/aes/ctr.js';
-export * from './algorithms-api/ec/base.js';
-export * from './algorithms-api/ec/ecdh.js';
-export * from './algorithms-api/ec/ecdsa.js';
-export * from './algorithms-api/ec/eddsa.js';
-export * from './algorithms-api/pbkdf/pbkdf2.js';
-export * from './algorithms-api/crypto-algorithm.js';
-export * from './algorithms-api/errors.js';
+export * from './jose.js';
+export * from './local-kms-crypto.js';
+export * as utils from './utils.js';
 
-// export * from './crypto-algorithms/aes-ctr.js';
-// export * from './crypto-algorithms/ecdh.js';
-// export * from './crypto-algorithms/ecdsa.js';
-// export * from './crypto-algorithms/eddsa.js';
-// export * from './crypto-algorithms/pbkdf2.js';
+export * from './algorithms/aes-ctr.js';
+export * from './algorithms/aes-gcm.js';
+export * from './algorithms/crypto-algorithm.js';
+export * from './algorithms/ecdsa.js';
+export * from './algorithms/eddsa.js';
+export * from './algorithms/sha-2.js';
 
 export * from './jose/jwe.js';
 export * from './jose/jwk.js';
 export * from './jose/jws.js';
 export * from './jose/jwt.js';
 export * from './jose/utils.js';
-export * from './types/jose.js';
-
-export * from './kms-local/api.js';
-export * from './kms-local/ecdsa.js';
-export * from './kms-local/eddsa.js';
-export * from './kms-local/sha-2.js';
 
 export * from './primitives/aes-ctr.js';
 export * from './primitives/aes-gcm.js';
@@ -41,7 +30,6 @@ export type * from './types/cipher.js';
 export type * from './types/crypto-api.js';
 export type * from './types/hasher.js';
 export type * from './types/identifier.js';
-export type * from './types/jose.js';
 export type * from './types/key-converter.js';
 export type * from './types/key-deriver.js';
 export type * from './types/key-generator.js';
@@ -51,6 +39,3 @@ export type * from './types/params-direct.js';
 export type * from './types/params-enclosed.js';
 export type * from './types/params-kms.js';
 export type * from './types/signer.js';
-export type * from './types/web5-crypto.js';
-
-export * as utils from './utils.js';

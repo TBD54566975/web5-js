@@ -9,7 +9,7 @@ import { randomBytes as nobleRandomBytes } from '@noble/hashes/utils';
  * @param params.property - Property key to check for.
  * @param params.properties - Properties object to check within.
  * @returns void
- * @throws {@link SyntaxError} If the property is not a key in the properties object.
+ * @throws {TypeError} If the property is not a key in the properties object.
  */
 export function checkRequiredProperty(params: {
   property: string,
@@ -30,7 +30,7 @@ export function checkRequiredProperty(params: {
  * @param property Property key to check for.
  * @param allowedProperties Properties Array, Map, or Set to check within.
  * @returns void
- * @throws {@link SyntaxError} If the property is not a member of the allowedProperties Array, Map, or Set.
+ * @throws {TypeError} If the property is not a member of the allowedProperties Array, Map, or Set.
  */
 export function checkValidProperty(params: {
   property: string, allowedProperties: ReadonlyArray<string> | Array<string> | Map<string, unknown> | Set<string>

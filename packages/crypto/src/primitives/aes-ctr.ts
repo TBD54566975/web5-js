@@ -6,6 +6,47 @@ import type { Jwk } from '../jose/jwk.js';
 import { computeJwkThumbprint, isOctPrivateJwk } from '../jose/jwk.js';
 
 /**
+ * Constant defining the AES block size in bits.
+ *
+ * @remarks
+ * In AES Counter (CTR) mode, the counter length must match the block size of the AES algorithm,
+ * which is 128 bits. NIST publication 800-38A, which provides guidelines for block cipher modes of
+ * operation, specifies this requirement. Maintaining a counter length of 128 bits is essential for
+ * the correct operation and security of AES-CTR.
+ *
+ * This implementation does not support counter lengths that are different from the value defined by
+ * this constant.
+ *
+ * @see {@link https://doi.org/10.6028/NIST.SP.800-38A | NIST SP 800-38A}
+ */
+const AES_BLOCK_SIZE = 128;
+
+/**
+ * Constant defining the AES key length values in bits.
+ *
+ * @remarks
+ * NIST publication FIPS 197 states:
+ * > The AES algorithm is capable of using cryptographic keys of 128, 192, and 256 bits to encrypt
+ * > and decrypt data in blocks of 128 bits.
+ *
+ * This implementation does not support key lengths that are different from the three values
+ * defined by this constant.
+ *
+ * @see {@link https://doi.org/10.6028/NIST.FIPS.197-upd1 | NIST FIPS 197}
+ */
+const AES_KEY_LENGTHS = [128, 192, 256] as const;
+
+/**
+ * Constant defining the maximum length of the counter in bits.
+ *
+ * @remarks
+ * The rightmost bits of the counter block are used as the actual counter value, while the leftmost
+ * bits are used as the nonce. The maximum length of the counter is 128 bits, which is the same as
+ * the AES block size.
+ */
+const COUNTER_MAX_LENGTH = AES_BLOCK_SIZE;
+
+/**
  * The `AesCtr` class provides a comprehensive set of utilities for cryptographic operations
  * using the Advanced Encryption Standard (AES) in Counter (CTR) mode. This class includes
  * methods for key generation, encryption, decryption, and conversions between raw byte arrays
@@ -108,31 +149,43 @@ export class AesCtr {
    * ```ts
    * const encryptedData = new Uint8Array([...]); // Encrypted data
    * const counter = new Uint8Array(16); // 16-byte (128-bit) counter block used during encryption
-   * const key = { ... }; // A PrivateKeyJwk object representing the same AES key used for encryption
+   * const key = { ... }; // A Jwk object representing the same AES key used for encryption
    * const decryptedData = await AesCtr.decrypt({
    *   data: encryptedData,
    *   counter,
    *   key,
-   *   length: 128 // Length of the counter block in bits
+   *   length: 128 // Length of the counter in bits
    * });
    * ```
    *
    * @param params - The parameters for the decryption operation.
-   * @param params.counter - The initial value of the counter block.
-   * @param params.data - The encrypted data to decrypt, represented as a Uint8Array.
    * @param params.key - The key to use for decryption, represented in JWK format.
-   * @param params.length - The length of the counter block in bits.
+   * @param params.data - The encrypted data to decrypt, as a Uint8Array.
+   * @param params.counter - The initial value of the counter block.
+   * @param params.length - The number of bits in the counter block that are used for the actual counter.
    *
    * @returns A Promise that resolves to the decrypted data as a Uint8Array.
    */
-  public static async decrypt({ counter, data, key, length }: {
-    counter: Uint8Array;
-    data: Uint8Array;
+  public static async decrypt({ key, data, counter, length }: {
     key: Jwk;
+    data: Uint8Array;
+    counter: Uint8Array;
     length: number;
   }): Promise<Uint8Array> {
+    // Validate the initial counter block length matches the AES block size.
+    if (counter.byteLength !== AES_BLOCK_SIZE / 8) {
+      throw new TypeError(`The counter must be ${AES_BLOCK_SIZE} bits in length`);
+    }
+
+    // Validate the length of the counter.
+    if (length === 0 || length > COUNTER_MAX_LENGTH) {
+      throw new TypeError(`The 'length' property must be in the range 1 to ${COUNTER_MAX_LENGTH}`);
+    }
+
+    // Import the JWK into the Web Crypto API to use for the decrypt operation.
     const webCryptoKey = await this.importKey(key);
 
+    // Decrypt the data.
     const plaintextBuffer = await crypto.subtle.decrypt(
       { name: 'AES-CTR', counter, length },
       webCryptoKey,
@@ -158,31 +211,43 @@ export class AesCtr {
    * ```ts
    * const data = new TextEncoder().encode('Hello, world!');
    * const counter = new Uint8Array(16); // 16-byte (128-bit) counter block
-   * const key = { ... }; // A PrivateKeyJwk object representing an AES key
+   * const key = { ... }; // A Jwk object representing an AES key
    * const encryptedData = await AesCtr.encrypt({
    *   data,
    *   counter,
    *   key,
-   *   length: 128 // Length of the counter block in bits
+   *   length: 128 // Length of the counter in bits
    * });
    * ```
    *
    * @param params - The parameters for the encryption operation.
-   * @param params.counter - The initial value of the counter block.
-   * @param params.data - The data to encrypt, represented as a Uint8Array.
    * @param params.key - The key to use for encryption, represented in JWK format.
-   * @param params.length - The length of the counter block in bits.
+   * @param params.data - The data to encrypt, represented as a Uint8Array.
+   * @param params.counter - The initial value of the counter block.
+   * @param params.length - The number of bits in the counter block that are used for the actual counter.
    *
    * @returns A Promise that resolves to the encrypted data as a Uint8Array.
    */
-  public static async encrypt({ counter, data, key, length }: {
-    counter: Uint8Array;
-    data: Uint8Array;
+  public static async encrypt({ key, data, counter, length }: {
     key: Jwk;
+    data: Uint8Array;
+    counter: Uint8Array;
     length: number;
   }): Promise<Uint8Array> {
+    // Validate the initial counter block value length.
+    if (counter.byteLength !== AES_BLOCK_SIZE / 8) {
+      throw new TypeError(`The counter must be ${AES_BLOCK_SIZE} bits in length`);
+    }
+
+    // Validate the length of the counter.
+    if (length === 0 || length > COUNTER_MAX_LENGTH) {
+      throw new TypeError(`The 'length' property must be in the range 1 to ${COUNTER_MAX_LENGTH}`);
+    }
+
+    // Import the JWK into the Web Crypto API to use for the encrypt operation.
     const webCryptoKey = await this.importKey(key);
 
+    // Encrypt the data.
     const ciphertextBuffer = await crypto.subtle.encrypt(
       { name: 'AES-CTR', counter, length },
       webCryptoKey,
@@ -222,8 +287,13 @@ export class AesCtr {
    * @returns A Promise that resolves to the generated symmetric key in JWK format.
    */
   public static async generateKey({ length }: {
-    length: number;
+    length: typeof AES_KEY_LENGTHS[number];
   }): Promise<Jwk> {
+    // Validate the key length.
+    if (!AES_KEY_LENGTHS.includes(length as any)) {
+      throw new RangeError(`The key length is invalid: Must be ${AES_KEY_LENGTHS.join(', ')} bits`);
+    }
+
     // Generate a random private key.
     const lengthInBytes = length / 8;
     const privateKeyBytes = crypto.getRandomValues(new Uint8Array(lengthInBytes));

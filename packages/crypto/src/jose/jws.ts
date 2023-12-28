@@ -1,7 +1,35 @@
-import type { JoseHeaderParams } from '../types/jose.js';
+import type { Jwk } from './jwk.js';
+
+export interface JoseHeaderParams {
+  /** Content Type Header Parameter */
+  cty?: string;
+
+  /** JWK Set URL Header Parameter */
+  jku?: string;
+
+  /** JSON Web Key Header Parameter */
+  jwk?: Jwk;
+
+  /** Key ID Header Parameter */
+  kid?: string;
+
+  /** Type Header Parameter */
+  typ?: string;
+
+  /** X.509 Certificate Chain Header Parameter */
+  x5c?: string[];
+
+  /** X.509 Certificate SHA-1 Thumbprint Header Parameter */
+  x5t?: string;
+
+  /** X.509 URL Header Parameter */
+  x5u?: string;
+}
 
 export interface JwsHeaderParams extends JoseHeaderParams {
   /**
+   * Algorithm Header Parameter
+   *
    * Identifies the cryptographic algorithm used to secure the JWS. The JWS Signature value is not
    * valid if the "alg" value does not represent a supported algorithm or if there is not a key for
    * use with that algorithm associated with the party that digitally signed or MACed the content.
@@ -34,6 +62,8 @@ export interface JwsHeaderParams extends JoseHeaderParams {
     | string;
 
   /**
+   * Critical Header Parameter
+   *
    * Indicates that extensions to JOSE RFCs are being used that MUST be understood and processed.
    */
   crit?: string[]

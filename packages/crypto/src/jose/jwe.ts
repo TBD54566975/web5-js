@@ -1,7 +1,9 @@
-import type { JoseHeaderParams } from '../types/jose.js';
+import type { JoseHeaderParams } from './jws.js';
 
 export interface JweHeaderParams extends JoseHeaderParams {
   /**
+   * Algorithm Header Parameter
+   *
    * Identifies the cryptographic algorithm used to encrypt or determine the value of the Content
    * Encryption Key (CEK). The encrypted content is not usable if the "alg" value does not represent
    * a supported algorithm, or if the recipient does not have a key that can be used with that
@@ -53,11 +55,15 @@ export interface JweHeaderParams extends JoseHeaderParams {
   apv?: Uint8Array;
 
   /**
+   * Critical Header Parameter
+   *
    * Indicates that extensions to JOSE RFCs are being used that MUST be understood and processed.
    */
   crit?: string[]
 
   /**
+   * Encryption Algorithm Header Parameter
+   *
    * Identifies the content encryption algorithm used to encrypt and integrity-protect (also
    * known as "authenticated encryption") the plaintext and to integrity-protect the Additional
    * Authenticated Data (AAD), if any.  This algorithm MUST be an AEAD algorithm with a specified

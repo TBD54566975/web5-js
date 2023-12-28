@@ -150,7 +150,7 @@ describe('EcdsaAlgorithm', () => {
         // Validate the result.
         expect(error).to.exist;
         expect(error).to.be.an.instanceOf(Error);
-        expect(error.message).to.include('Invalid key type');
+        expect(error.message).to.include('Invalid key provided');
         expect(kmsClientStub.send.notCalled).to.be.true;
       }
     });

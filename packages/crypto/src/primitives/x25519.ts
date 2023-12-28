@@ -155,7 +155,7 @@ export class X25519 {
    *
    * @example
    * ```ts
-   * const privateKey = { ... }; // A PrivateKeyJwk object representing an X25519 private key
+   * const privateKey = { ... }; // A Jwk object representing an X25519 private key
    * const publicKey = await X25519.computePublicKey({ key: privateKey });
    * ```
    *
@@ -368,7 +368,7 @@ export class X25519 {
    *
    * @example
    * ```ts
-   * const privateKeyA = { ... }; // A PrivateKeyJwk object for party A
+   * const privateKeyA = { ... }; // A Jwk object for party A
    * const publicKeyB = { ... }; // A PublicKeyJwk object for party B
    * const sharedSecret = await Secp256k1.sharedSecret({
    *   privateKeyA,

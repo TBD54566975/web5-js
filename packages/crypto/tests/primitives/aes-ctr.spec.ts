@@ -5,7 +5,8 @@ import chaiAsPromised from 'chai-as-promised';
 import type { Jwk, JwkParamsOctPrivate } from '../../src/jose/jwk.js';
 
 import { AesCtr } from '../../src/primitives/aes-ctr.js';
-import { aesCtrTestVectors } from '../fixtures/test-vectors/aes.js';
+import AesCtrDecryptTestVector from '../fixtures/test-vectors/aes-ctr/decrypt.json' assert { type: 'json' };
+import AesCtrEncryptTestVector from '../fixtures/test-vectors/aes-ctr/encrypt.json' assert { type: 'json' };
 
 chai.use(chaiAsPromised);
 
@@ -41,18 +42,6 @@ describe('AesCtr', () => {
   });
 
   describe('decrypt', () => {
-    for (const vector of aesCtrTestVectors) {
-      it(`passes test vector ${vector.id}`, async () => {
-        const plaintext = await AesCtr.decrypt({
-          counter : Convert.hex(vector.counter).toUint8Array(),
-          data    : Convert.hex(vector.ciphertext).toUint8Array(),
-          key     : await AesCtr.bytesToPrivateKey({ privateKeyBytes: Convert.hex(vector.key).toUint8Array() }),
-          length  : vector.length
-        });
-        expect(Convert.uint8Array(plaintext).toHex()).to.deep.equal(vector.data);
-      });
-    }
-
     it('accepts ciphertext input as Uint8Array', async () => {
       const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
       const privateKey = await AesCtr.generateKey({ length: 256 });
@@ -60,21 +49,64 @@ describe('AesCtr', () => {
       const ciphertext = await AesCtr.decrypt({ counter: new Uint8Array(16), data, key: privateKey, length: 128 });
       expect(ciphertext).to.be.instanceOf(Uint8Array);
     });
-  });
 
-  describe('encrypt', () => {
-    for (const vector of aesCtrTestVectors) {
-      it(`passes test vector ${vector.id}`, async () => {
-        const ciphertext = await AesCtr.encrypt({
-          counter : Convert.hex(vector.counter).toUint8Array(),
-          data    : Convert.hex(vector.data).toUint8Array(),
-          key     : await AesCtr.bytesToPrivateKey({ privateKeyBytes: Convert.hex(vector.key).toUint8Array() }),
-          length  : vector.length
+    for (const vector of AesCtrDecryptTestVector.vectors) {
+      it(vector.description, async () => {
+        const privateKeyBytes = Convert.hex(vector.input.key).toUint8Array();
+        const privateKey = await AesCtr.bytesToPrivateKey({ privateKeyBytes });
+
+        const ciphertext = await AesCtr.decrypt({
+          key     : privateKey,
+          data    : Convert.hex(vector.input.data).toUint8Array(),
+          counter : Convert.hex(vector.input.counter).toUint8Array(),
+          length  : vector.input.length
         });
-        expect(Convert.uint8Array(ciphertext).toHex()).to.deep.equal(vector.ciphertext);
+
+        expect(ciphertext).to.deep.equal(Convert.hex(vector.output).toUint8Array());
       });
     }
 
+    it('throws an error if the initial counter block is not 128 bits in length', async () => {
+      // Setup.
+      const data = new Uint8Array(8);
+      const key: Jwk = { k: 'k', kty: 'oct' };
+
+      for (const counterLength of [64, 192, 256]) {
+        const counter = new Uint8Array(counterLength);
+        try {
+          // Test the method.
+          await AesCtr.decrypt({ key, data, counter, length: 128 });
+          expect.fail('expected an error to be thrown due to invalid counter length');
+
+        } catch (error: any) {
+          // Validate the result.
+          expect(error.message).to.include(`counter must be 128 bits`);
+        }
+      }
+    });
+
+    it('throws an error if the counter length is not in the range 1 to 128 bits', async () => {
+      // Setup.
+      const data = new Uint8Array(8);
+      const counter = new Uint8Array(16);
+      // const key: Jwk = { k: 'k', kty: 'oct' };
+      const key = await AesCtr.generateKey({ length: 256 });
+
+      for (const length of [0, 129, 256]) {
+        try {
+          // Test the method.
+          await AesCtr.decrypt({ key, data, counter, length });
+          expect.fail('expected an error to be thrown due to invalid length property');
+
+        } catch (error: any) {
+          // Validate the result.
+          expect(error.message).to.include(`must be in the range 1 to 128`);
+        }
+      }
+    });
+  });
+
+  describe('encrypt', () => {
     it('accepts plaintext input as Uint8Array', async () => {
       const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
       const privateKey = await AesCtr.generateKey({ length: 256 });
@@ -83,6 +115,61 @@ describe('AesCtr', () => {
       // Uint8Array
       ciphertext = await AesCtr.encrypt({ counter: new Uint8Array(16), data, key: privateKey, length: 128 });
       expect(ciphertext).to.be.instanceOf(Uint8Array);
+    });
+
+    for (const vector of AesCtrEncryptTestVector.vectors) {
+      it(vector.description, async () => {
+        const privateKeyBytes = Convert.hex(vector.input.key).toUint8Array();
+        const privateKey = await AesCtr.bytesToPrivateKey({ privateKeyBytes });
+
+        const ciphertext = await AesCtr.encrypt({
+          key     : privateKey,
+          data    : Convert.hex(vector.input.data).toUint8Array(),
+          counter : Convert.hex(vector.input.counter).toUint8Array(),
+          length  : vector.input.length
+        });
+
+        expect(ciphertext).to.deep.equal(Convert.hex(vector.output).toUint8Array());
+      });
+    }
+
+    it('throws an error if the initial counter block is not 128 bits in length', async () => {
+      // Setup.
+      const data = new Uint8Array(8);
+      const key = await AesCtr.generateKey({ length: 256 });
+
+      for (const counterLength of [64, 192, 256]) {
+        const counter = new Uint8Array(counterLength);
+        try {
+          // Test the method.
+          await AesCtr.encrypt({ key, data, counter, length: 128 });
+          expect.fail('expected an error to be thrown due to invalid counter length');
+
+        } catch (error: any) {
+          // Validate the result.
+          expect(error.message).to.include(`counter must be 128 bits`);
+        }
+      }
+    });
+
+    it('throws an error if the counter length is not in the range 1 to 128 bits', async () => {
+      // Setup.
+      const data = new Uint8Array(8);
+      const counter = new Uint8Array(16);
+      // const key: Jwk = { k: 'k', kty: 'oct' };
+      const key = await AesCtr.generateKey({ length: 256 });
+
+      for (const length of [0, 129, 256]) {
+        try {
+          // Test the method.
+          await AesCtr.encrypt({ key, data, counter, length });
+          expect.fail('expected an error to be thrown due to invalid length property');
+
+        } catch (error: any) {
+          // Validate the result.
+          expect(error.message).to.include(`must be in the range 1 to 128`);
+        }
+      }
     });
   });
 
@@ -95,7 +182,7 @@ describe('AesCtr', () => {
       expect(privateKey).to.have.property('kty', 'oct');
     });
 
-    it('returns a private key of the specified length', async () => {
+    it('supports key lengths of 128, 192, or 256 bits', async () => {
       let privateKey: Jwk;
       let privateKeyBytes: Uint8Array;
 
@@ -113,6 +200,21 @@ describe('AesCtr', () => {
       privateKey = await AesCtr.generateKey({ length: 256 }) as JwkParamsOctPrivate;
       privateKeyBytes = Convert.base64Url(privateKey.k).toUint8Array();
       expect(privateKeyBytes.byteLength).to.equal(32);
+    });
+
+    it('throws an error if the key length is invalid', async () => {
+      for (const length of [32, 64, 100, 512]) {
+        try {
+          // Test the method.
+          // @ts-expect-error because invalid tag lengths are being tested
+          await AesCtr.generateKey({ length });
+          expect.fail('expected an error to be thrown due to invalid key length');
+
+        } catch (error: any) {
+          // Validate the result.
+          expect(error.message).to.include(`key length is invalid`);
+        }
+      }
     });
   });
 

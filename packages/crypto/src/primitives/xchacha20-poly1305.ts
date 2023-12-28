@@ -5,7 +5,16 @@ import type { Jwk } from '../jose/jwk.js';
 
 import { computeJwkThumbprint, isOctPrivateJwk } from '../jose/jwk.js';
 
-const TAG_LENGTH = 16;
+/**
+ * Constant defining the length of the authentication tag in bytes for XChaCha20-Poly1305.
+ *
+ * @remarks
+ * The `POLY1305_TAG_LENGTH` is set to 16 bytes (128 bits), which is the standard size for the
+ * Poly1305 authentication tag in XChaCha20-Poly1305 encryption. This tag length ensures
+ * a strong level of security for message authentication, verifying the integrity and
+ * authenticity of the data during decryption.
+ */
+const POLY1305_TAG_LENGTH = 16;
 
 /**
  * The `XChaCha20Poly1305` class provides a suite of utilities for cryptographic operations
@@ -111,7 +120,7 @@ export class XChaCha20Poly1305 {
    * const nonce = new Uint8Array(24); // 24-byte nonce
    * const tag = new Uint8Array([...]); // Authentication tag
    * const additionalData = new Uint8Array([...]); // Optional AAD
-   * const key = { ... }; // A PrivateKeyJwk object representing the XChaCha20-Poly1305 key
+   * const key = { ... }; // A Jwk object representing the XChaCha20-Poly1305 key
    * const decryptedData = await XChaCha20Poly1305.decrypt({
    *   data: encryptedData,
    *   nonce,
@@ -162,7 +171,7 @@ export class XChaCha20Poly1305 {
    * const data = new TextEncoder().encode('Hello, world!');
    * const nonce = crypto.getRandomValues(new Uint8Array(24)); // 24-byte nonce
    * const additionalData = new TextEncoder().encode('Associated data'); // Optional AAD
-   * const key = { ... }; // A PrivateKeyJwk object representing an XChaCha20-Poly1305 key
+   * const key = { ... }; // A Jwk object representing an XChaCha20-Poly1305 key
    * const { ciphertext, tag } = await XChaCha20Poly1305.encrypt({
    *   data,
    *   nonce,
@@ -192,8 +201,8 @@ export class XChaCha20Poly1305 {
     const xc20p = xchacha20poly1305(privateKeyBytes, nonce, additionalData);
     const cipherOutput = xc20p.encrypt(data);
 
-    const ciphertext = cipherOutput.subarray(0, -TAG_LENGTH);
-    const tag = cipherOutput.subarray(-TAG_LENGTH);
+    const ciphertext = cipherOutput.subarray(0, -POLY1305_TAG_LENGTH);
+    const tag = cipherOutput.subarray(-POLY1305_TAG_LENGTH);
 
     return { ciphertext, tag };
   }
