@@ -108,7 +108,7 @@ jobs:
           - group: "A"
             packages: "--workspace packages/agent --workspace packages/dids"
           - group: "B"
-            packages: "--workspace packages/common --workspace packages/crypto --workspace packages/crypto-aws-kms --workspace packages/credentials --workspace packages/user-agent --workspace packages/proxy-agent --workspace packages/api --workspace packages/identity-agent"
+            packages: "--workspace packages/common --workspace packages/crypto --workspace packages/credentials --workspace packages/user-agent --workspace packages/proxy-agent --workspace packages/api --workspace packages/identity-agent"
     steps:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
