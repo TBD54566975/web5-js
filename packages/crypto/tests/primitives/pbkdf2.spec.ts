@@ -7,6 +7,11 @@ import { Pbkdf2 } from '../../src/primitives/pbkdf2.js';
 
 chai.use(chaiAsPromised);
 
+// Remove this polyfill once Node.js v18 is no longer supported by @web5/crypto.
+import { webcrypto } from 'node:crypto';
+// @ts-ignore
+if (!globalThis.crypto) globalThis.crypto = webcrypto;
+
 describe('Pbkdf2', () => {
   const password = Convert.string('password').toUint8Array();
   const salt = Convert.string('salt').toUint8Array();

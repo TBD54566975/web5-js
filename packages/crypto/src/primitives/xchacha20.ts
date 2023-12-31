@@ -1,4 +1,5 @@
 import { Convert } from '@web5/common';
+import { crypto } from '@noble/hashes/crypto';
 import { xchacha20 } from '@noble/ciphers/chacha';
 
 import type { Jwk } from '../jose/jwk.js';
