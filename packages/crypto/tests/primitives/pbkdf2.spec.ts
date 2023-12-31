@@ -7,12 +7,6 @@ import { Pbkdf2 } from '../../src/primitives/pbkdf2.js';
 
 chai.use(chaiAsPromised);
 
-// NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
-// Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
-import { webcrypto } from 'node:crypto';
-// @ts-ignore
-if (!globalThis.crypto) globalThis.crypto = webcrypto;
-
 describe('Pbkdf2', () => {
   const password = Convert.string('password').toUint8Array();
   const salt = Convert.string('salt').toUint8Array();

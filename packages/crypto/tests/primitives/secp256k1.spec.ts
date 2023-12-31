@@ -16,12 +16,6 @@ import { Secp256k1 } from '../../src/primitives/secp256k1.js';
 
 chai.use(chaiAsPromised);
 
-// NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
-// Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
-import { webcrypto } from 'node:crypto';
-// @ts-ignore
-if (!globalThis.crypto) globalThis.crypto = webcrypto;
-
 describe('Secp256k1', () => {
   let privateKey: Jwk;
   let publicKey: Jwk;
