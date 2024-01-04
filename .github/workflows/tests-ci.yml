@@ -82,7 +82,7 @@ jobs:
           private-key: ${{ secrets.CICD_ROBOT_GITHUB_APP_PRIVATE_KEY }}
           owner: TBD54566975
           repositories: sdk-development
-        
+
       - name: Trigger sdk-development report build
         if: github.ref == 'refs/heads/main'
         run: |
@@ -95,7 +95,6 @@ jobs:
           https://api.github.com/repos/TBD54566975/sdk-development/actions/workflows/build-report.yaml/dispatches
         env:
           APP_TOKEN: ${{ steps.generate_token.outputs.token }}
-
 
   test-with-browsers:
     name: test-with-browsers (group ${{ matrix.group }})
@@ -165,13 +164,3 @@ jobs:
 
       - name: Terminate dwn-server
         run: kill $DWN_SERVER_BACKGROUND_PROCESS || true
-<<<<<<< HEAD
-=======
-
-  web5-spec:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
-      - uses: TBD54566975/sdk-development@v0.2.3
->>>>>>> 93001a1 (AWS KMS initial implementation)
