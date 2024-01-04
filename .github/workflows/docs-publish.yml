@@ -53,7 +53,7 @@ jobs:
             - file: packages/crypto/src/index.ts
               docsReporter: api-extractor
               docsGenerator: typedoc-html
-            - file: packages/dids/src/index.ts
+            - file: packages/crypto-aws-kms/src/index.ts
               docsReporter: api-extractor
               docsGenerator: typedoc-html
 
