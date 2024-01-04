@@ -301,7 +301,7 @@ export class Ed25519 {
    *
    * @example
    * ```ts
-   * const privateKey = await X25519.generateKey();
+   * const privateKey = await Ed25519.generateKey();
    * ```
    *
    * @returns A Promise that resolves to the generated private key in JWK format.
