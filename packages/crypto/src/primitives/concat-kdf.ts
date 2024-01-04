@@ -54,6 +54,21 @@ export type ConcatKdfOtherInfo = {
  *   - `OtherInfo` is a bit string used to ensure that the derived keying material is adequately
  *     "bound" to the key-agreement transaction.
  *
+ * @example
+ * ```ts
+ * // Key Derivation
+ * const derivedKeyingMaterial = await ConcatKdf.deriveKey({
+ *   sharedSecret: utils.randomBytes(32),
+ *   keyDataLen: 128,
+ *   otherInfo: {
+ *     algorithmId: "A128GCM",
+ *     partyUInfo: "Alice",
+ *     partyVInfo: "Bob",
+ *     suppPubInfo: 128,
+ *   },
+ * });
+ * ```
+ *
  * Additional Information:
  *
  * `Z`, or "shared secret":
@@ -63,7 +78,7 @@ export type ConcatKdfOtherInfo = {
  *   key, but as an input to a key derivation function (KDF), such as Concat
  *   KDF, to generate the actual key. This adds an extra layer of security, as
  *   even if the shared secret gets compromised, the actual  encryption or
- *   authentication key stays safe. This shared secret 'Z' value is kept
+ *   authentication key stays safe. This shared secret `Z` value is kept
  *   confidential between the two parties in the key agreement protocol.
  *
  * @see {@link https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-56Ar3.pdf | NIST.800-56A}
@@ -72,6 +87,21 @@ export type ConcatKdfOtherInfo = {
 export class ConcatKdf {
   /**
    * Derives a key of a specified length from the input parameters.
+   *
+   * @example
+   * ```ts
+   * // Key Derivation
+   * const derivedKeyingMaterial = await ConcatKdf.deriveKey({
+   *   sharedSecret: utils.randomBytes(32),
+   *   keyDataLen: 128,
+   *   otherInfo: {
+   *     algorithmId: "A128GCM",
+   *     partyUInfo: "Alice",
+   *     partyVInfo: "Bob",
+   *     suppPubInfo: 128,
+   *   },
+   * });
+   * ```
    *
    * @param params - Input parameters for key derivation.
    * @param params.keyDataLen - The desired length of the derived key in bits.

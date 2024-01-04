@@ -56,10 +56,10 @@ export interface AesGcmParams {
 }
 
 /**
- * The `AesGcmAlgorithm` class provides an interface for cryptographic operations using the AES
- * algorithm in Galois/Counter Mode (GCM). This class implements both {@link Cipher | `Cipher`} and
- * { @link KeyGenerator | `KeyGenerator`} interfaces, providing encryption, decryption, and key
- * generation features.
+ * The `AesGcmAlgorithm` class provides a concrete implementation for cryptographic operations using
+ * the AES algorithm in Galois/Counter Mode (GCM). This class implements both
+ * {@link Cipher | `Cipher`} and { @link KeyGenerator | `KeyGenerator`} interfaces, providing
+ * key generation, encryption, and decryption features.
  *
  * This class is typically accessed through implementations that extend the
  * {@link CryptoApi | `CryptoApi`} interface.
@@ -121,7 +121,7 @@ export class AesGcmAlgorithm extends CryptoAlgorithm
    * @example
    * ```ts
    * const aesGcm = new AesGcmAlgorithm();
-   * const data = new TextEncoder().encode('Hello, world!');
+   * const data = new TextEncoder().encode('Messsage');
    * const iv = new Uint8Array([...]); // Initialization vector
    * const additionalData = new Uint8Array([...]); // Optional additional authenticated data
    * const key = { ... }; // A Jwk object representing an AES key

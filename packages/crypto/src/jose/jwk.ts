@@ -8,7 +8,8 @@ import { Sha256 } from '../primitives/sha256.js';
  *
  * The prefix 'urn:jwk:' makes it explicit that a string represents a JWK, referenced by a
  * {@link https://datatracker.ietf.org/doc/html/rfc3986 | URI} (Uniform Resource Identifier),
- * which ensures consistent key referencing across all Web5 key management system implementations.
+ * which ensures consistent key referencing across all Web5 Key Management System (KMS)
+ * implementations.
  *
  * These key URIs take the form `urn:jwk:<JWK thumbprint>`, where the
  * {@link https://datatracker.ietf.org/doc/html/rfc7638 | JWK thumbprint}, derived from the JWK, is
@@ -368,12 +369,8 @@ export type Jwk = PrivateKeyJwk | PublicKeyJwk;
  * - Secure Comparison: The thumbprint provides a way to securely compare
  *   JWKs to determine if they are equivalent.
  *
- * @param jwk - The JSON Web Key for which the thumbprint will be computed.
- *              This must be an RSA, EC, OKP, or oct key.
- * @returns The thumbprint as a base64url encoded string.
- * @throws {Error} Throws an error if the provided key type is unsupported.
- *
  * @example
+ * ```ts
  * const jwk: PublicKeyJwk = {
  *   'kty': 'EC',
  *   'crv': 'secp256k1',
@@ -383,9 +380,15 @@ export type Jwk = PrivateKeyJwk | PublicKeyJwk;
  *
  * const thumbprint = jwkThumbprint(jwk);
  * console.log(`JWK thumbprint: ${thumbprint}`);
+ * ```
  *
  * @see {@link https://datatracker.ietf.org/doc/html/rfc7638 | RFC7638} for
  * the specification of JWK thumbprint computation.
+ *
+ * @param jwk - The JSON Web Key for which the thumbprint will be computed.
+ *              This must be an RSA, EC, OKP, or oct key.
+ * @returns The thumbprint as a base64url encoded string.
+ * @throws Throws an `Error` if the provided key type is unsupported.
  */
 export async function computeJwkThumbprint({ jwk }: {
   jwk: Jwk
@@ -424,6 +427,12 @@ export async function computeJwkThumbprint({ jwk }: {
   return thumbprint;
 }
 
+/**
+ * Checks if the provided object is a valid elliptic curve private key in JWK format.
+ *
+ * @param obj - The object to check.
+ * @returns True if the object is a valid EC private JWK; otherwise, false.
+ */
 export function isEcPrivateJwk(obj: unknown): obj is JwkParamsEcPrivate {
   if (!obj || typeof obj !== 'object') return false;
   if (!('kty' in obj && 'crv' in obj && 'x' in obj && 'd' in obj)) return false;
@@ -433,6 +442,12 @@ export function isEcPrivateJwk(obj: unknown): obj is JwkParamsEcPrivate {
   return true;
 }
 
+/**
+ * Checks if the provided object is a valid elliptic curve public key in JWK format.
+ *
+ * @param obj - The object to check.
+ * @returns True if the object is a valid EC public JWK; otherwise, false.
+ */
 export function isEcPublicJwk(obj: unknown): obj is JwkParamsEcPublic {
   if (!obj || typeof obj !== 'object') return false;
   if (!('kty' in obj && 'crv' in obj && 'x' in obj)) return false;
@@ -442,6 +457,12 @@ export function isEcPublicJwk(obj: unknown): obj is JwkParamsEcPublic {
   return true;
 }
 
+/**
+ * Checks if the provided object is a valid octet sequence (symmetric key) in JWK format.
+ *
+ * @param obj - The object to check.
+ * @returns True if the object is a valid oct private JWK; otherwise, false.
+ */
 export function isOctPrivateJwk(obj: unknown): obj is JwkParamsOctPrivate {
   if (!obj || typeof obj !== 'object') return false;
   if (!('kty' in obj && 'k' in obj)) return false;
@@ -450,6 +471,12 @@ export function isOctPrivateJwk(obj: unknown): obj is JwkParamsOctPrivate {
   return true;
 }
 
+/**
+ * Checks if the provided object is a valid octet key pair private key in JWK format.
+ *
+ * @param obj - The object to check.
+ * @returns True if the object is a valid OKP private JWK; otherwise, false.
+ */
 export function isOkpPrivateJwk(obj: unknown): obj is JwkParamsOkpPrivate {
   if (!obj || typeof obj !== 'object') return false;
   if (!('kty' in obj && 'crv' in obj && 'x' in obj && 'd' in obj)) return false;
@@ -459,6 +486,12 @@ export function isOkpPrivateJwk(obj: unknown): obj is JwkParamsOkpPrivate {
   return true;
 }
 
+/**
+ * Checks if the provided object is a valid octet key pair public key in JWK format.
+ *
+ * @param obj - The object to check.
+ * @returns True if the object is a valid OKP public JWK; otherwise, false.
+ */
 export function isOkpPublicJwk(obj: unknown): obj is JwkParamsOkpPublic {
   if (!obj || typeof obj !== 'object') return false;
   if ('d' in obj) return false;
@@ -468,6 +501,12 @@ export function isOkpPublicJwk(obj: unknown): obj is JwkParamsOkpPublic {
   return true;
 }
 
+/**
+ * Checks if the provided object is a valid private key in JWK format of any supported type.
+ *
+ * @param obj - The object to check.
+ * @returns True if the object is a valid private JWK; otherwise, false.
+ */
 export function isPrivateJwk(obj: unknown): obj is PrivateKeyJwk {
   if (!obj || typeof obj !== 'object') return false;
 
@@ -485,6 +524,12 @@ export function isPrivateJwk(obj: unknown): obj is PrivateKeyJwk {
   }
 }
 
+/**
+ * Checks if the provided object is a valid public key in JWK format of any supported type.
+ *
+ * @param obj - The object to check.
+ * @returns True if the object is a valid public JWK; otherwise, false.
+ */
 export function isPublicJwk(obj: unknown): obj is PublicKeyJwk {
   if (!obj || typeof obj !== 'object') return false;
 

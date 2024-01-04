@@ -34,13 +34,13 @@ import { computeJwkThumbprint, isOkpPrivateJwk, isOkpPublicJwk } from '../jose/j
  * const publicKey = await Ed25519.computePublicKey({ key: privateKey });
  * console.log(publicKey === await Ed25519.getPublicKey({ key: privateKey })); // Output: true
  *
- * // Signing
+ * // EdDSA Signing
  * const signature = await Ed25519.sign({
  *   key: privateKey,
  *   data: new TextEncoder().encode('Message')
  * });
  *
- * // Signature Verification
+ * // EdDSA Signature Verification
  * const isValid = await Ed25519.verify({
  *   key: publicKey,
  *   signature: signature,
@@ -444,7 +444,7 @@ export class Ed25519 {
    *
    * @example
    * ```ts
-   * const data = new TextEncoder().encode('Hello, world!'); // Data to be signed
+   * const data = new TextEncoder().encode('Messsage'); // Data to be signed
    * const privateKey = { ... }; // A Jwk object representing an Ed25519 private key
    * const signature = await Ed25519.sign({ key: privateKey, data });
    * ```
@@ -478,7 +478,7 @@ export class Ed25519 {
    *
    * @example
    * ```ts
-   * const data = new TextEncoder().encode('Hello, world!'); // Data that was signed
+   * const data = new TextEncoder().encode('Messsage'); // Data that was signed
    * const publicKey = { ... }; // A Jwk object representing an Ed25519 public key
    * const signature = new Uint8Array([...]); // Signature to verify
    * const isValid = await Ed25519.verify({ key: publicKey, signature, data });

@@ -52,14 +52,14 @@ export type Pbkdf2DeriveKeyParams = {
  *
  * @example
  * ```ts
- * const options = {
+ * // Key Derivation
+ * const derivedKey = await Pbkdf2.deriveKey({
  *   hash: 'SHA-256', // The hash function to use ('SHA-256', 'SHA-384', 'SHA-512')
  *   password: new TextEncoder().encode('password'), // The password as a Uint8Array
  *   salt: new Uint8Array([...]), // The salt value
  *   iterations: 1000, // The number of iterations
  *   length: 256 // The length of the derived key in bits
- * };
- * const derivedKey = await Pbkdf2.deriveKey(options);
+ * });
  * ```
  *
  * @remarks

@@ -43,7 +43,7 @@ const POLY1305_TAG_LENGTH = 16;
  * const privateKey = await XChaCha20Poly1305.generateKey();
  *
  * // Encryption
- * const data = new TextEncoder().encode('Hello, world!');
+ * const data = new TextEncoder().encode('Messsage');
  * const nonce = crypto.getRandomValues(new Uint8Array(24)); // 24-byte nonce
  * const additionalData = new TextEncoder().encode('Associated data');
  * const { ciphertext, tag } = await XChaCha20Poly1305.encrypt({
@@ -169,7 +169,7 @@ export class XChaCha20Poly1305 {
    *
    * @example
    * ```ts
-   * const data = new TextEncoder().encode('Hello, world!');
+   * const data = new TextEncoder().encode('Messsage');
    * const nonce = crypto.getRandomValues(new Uint8Array(24)); // 24-byte nonce
    * const additionalData = new TextEncoder().encode('Associated data'); // Optional AAD
    * const key = { ... }; // A Jwk object representing an XChaCha20-Poly1305 key

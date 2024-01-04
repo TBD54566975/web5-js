@@ -15,6 +15,22 @@ describe('LocalKmsCrypto', () => {
     crypto = new LocalKmsCrypto();
   });
 
+  describe('constructor', () => {
+    it('initializes with default parameters', () => {
+      const crypto = new LocalKmsCrypto();
+      expect(crypto).to.exist;
+      expect(crypto).to.be.an.instanceOf(LocalKmsCrypto);
+    });
+
+    it('initializes with a custom in-memory key store', () => {
+      const keyStore = new MemoryStore<KeyIdentifier, Jwk>();
+      const crypto = new LocalKmsCrypto({ keyStore });
+
+      expect(crypto).to.exist;
+      expect(crypto).to.be.an.instanceOf(LocalKmsCrypto);
+    });
+  });
+
   describe('digest()', () => {
     it('computes and returns a digest as a Uint8Array', async () => {
       // Setup.

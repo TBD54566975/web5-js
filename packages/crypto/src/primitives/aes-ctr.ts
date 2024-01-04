@@ -74,13 +74,13 @@ const COUNTER_MAX_LENGTH = AES_BLOCK_SIZE;
  * const privateKey = await AesCtr.generateKey({ length });
  *
  * // Encryption
- * const data = new TextEncoder().encode('Hello, world!');
+ * const data = new TextEncoder().encode('Messsage');
  * const counter = new Uint8Array(16); // 16-byte (128-bit) counter block
  * const encryptedData = await AesCtr.encrypt({
  *   data,
  *   counter,
  *   key: privateKey,
- *   length: 128 // Length of the counter block in bits
+ *   length: 64 // Length of the counter in bits
  * });
  *
  * // Decryption
@@ -88,7 +88,7 @@ const COUNTER_MAX_LENGTH = AES_BLOCK_SIZE;
  *   data: encryptedData,
  *   counter,
  *   key: privateKey,
- *   length: 128 // Length of the counter block in bits
+ *   length: 64 // Length of the counter in bits
  * });
  *
  * // Key Conversion
@@ -154,7 +154,7 @@ export class AesCtr {
    *   data: encryptedData,
    *   counter,
    *   key,
-   *   length: 128 // Length of the counter in bits
+   *   length: 64 // Length of the counter in bits
    * });
    * ```
    *
@@ -209,14 +209,14 @@ export class AesCtr {
    *
    * @example
    * ```ts
-   * const data = new TextEncoder().encode('Hello, world!');
+   * const data = new TextEncoder().encode('Messsage');
    * const counter = new Uint8Array(16); // 16-byte (128-bit) counter block
    * const key = { ... }; // A Jwk object representing an AES key
    * const encryptedData = await AesCtr.encrypt({
    *   data,
    *   counter,
    *   key,
-   *   length: 128 // Length of the counter in bits
+   *   length: 64 // Length of the counter in bits
    * });
    * ```
    *

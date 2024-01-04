@@ -15,12 +15,11 @@
 - [Introduction](#introduction)
   - [Supported Algorithms & Key Types](#supported-algorithms--key-types)
   - [Extensions](#extensions)
-  - [Community](#community)
-  - [Contributing](#contributing)
 - [Getting Started](#getting-started)
   - [Node.js](#nodejs)
   - [Web Browsers](#web-browsers)
   - [React Native](#react-native)
+- [Contributing](#contributing)
 - [Core Concepts](#usage)
   - [Key URIs](#key-uris)
   - [Using a Local KMS](#using-a-local-kms)
@@ -65,16 +64,6 @@ Packages that extend the functionality of the `@web5/crypto` library:
 | Extension         | Repository                                             |
 | ----------------- | ------------------------------------------------------ |
 | AWS KMS extension | [TBD54566975/crypto-aws-kms][crypto-aws-kms-repo-link] |
-
-### Community
-
-For help, discussion about best practices, or to chat with others building on Web5:
-
-Join the Tailwind CSS Discord Server
-
-### Contributing
-
-If you're interested in contributing to Tailwind CSS, please read our contributing docs before submitting a pull request.
 
 ## Getting Started
 
@@ -141,6 +130,20 @@ For React Native, you may need a
 ```js
 import "react-native-get-random-values";
 ```
+
+## Contributing
+
+We welcome you to join our open source community. Whether you're new to open source or a seasoned
+contributor, there's a place for you here. From coding to documentation, every contribution matters.
+Check out our [contribution guide][contributing-link] for ways to get started.
+
+For help, discussion about best practices, or to chat with others building on Web5 join our
+[Discord Server][discord-link]:
+
+[![discord-badge]][discord-link]
+
+Remember, contributing is not just about code; it's about building together. Join us in shaping the
+future of the Web!
 
 ## Core Concepts
 
@@ -632,3 +635,5 @@ const decryptedData = await XChaCha20Poly1305.decrypt({
 [contributing-link]: https://github.com/TBD54566975/web5-js/blob/main/CONTRIBUTING.md
 [governance-link]: https://github.com/TBD54566975/web5-js/blob/main/GOVERNANCE.md
 [license-link]: https://github.com/TBD54566975/web5-js/blob/main/LICENSE
+[discord-badge]: https://img.shields.io/discord/937858703112155166?color=5865F2&logo=discord&logoColor=white
+[discord-link]: https://discord.com/channels/937858703112155166/969272658501976117

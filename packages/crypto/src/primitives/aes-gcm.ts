@@ -79,7 +79,7 @@ export const AES_GCM_TAG_LENGTHS = [96, 104, 112, 120, 128] as const;
  * const privateKey = await AesGcm.generateKey({ length });
  *
  * // Encryption
- * const data = new TextEncoder().encode('Hello, world!');
+ * const data = new TextEncoder().encode('Messsage');
  * const iv = new Uint8Array(12); // 12-byte initialization vector
  * const encryptedData = await AesGcm.encrypt({
  *   data,
@@ -221,7 +221,7 @@ export class AesGcm {
    *
    * @example
    * ```ts
-   * const data = new TextEncoder().encode('Hello, world!');
+   * const data = new TextEncoder().encode('Messsage');
    * const iv = new Uint8Array([...]); // Initialization vector
    * const additionalData = new Uint8Array([...]); // Optional additional authenticated data
    * const key = { ... }; // A Jwk object representing an AES key

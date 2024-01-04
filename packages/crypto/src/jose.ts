@@ -7,6 +7,21 @@ import { X25519 } from './primitives/x25519.js';
 import { Ed25519 } from './primitives/ed25519.js';
 import { Secp256k1 } from './primitives/secp256k1.js';
 
+/**
+ * A mapping from multicodec names to their corresponding JOSE (JSON Object Signing and Encryption)
+ * representations. This mapping facilitates the conversion of multicodec key formats to
+ * JWK (JSON Web Key) formats.
+ *
+ * @example
+ * ```ts
+ * const joseKey = multicodecToJoseMapping['ed25519-pub'];
+ * // Returns a partial JWK for an Ed25519 public key
+ * ```
+ *
+ * @remarks
+ * The keys of this object are multicodec names, such as 'ed25519-pub', 'ed25519-priv', etc.
+ * The values are objects representing the corresponding JWK properties for that key type.
+ */
 const multicodecToJoseMapping: { [key: string]: Jwk } = {
   'ed25519-pub'    : { crv: 'Ed25519',   kty: 'OKP', x: '' },
   'ed25519-priv'   : { crv: 'Ed25519',   kty: 'OKP', x: '',        d: '' },
@@ -16,6 +31,21 @@ const multicodecToJoseMapping: { [key: string]: Jwk } = {
   'x25519-priv'    : { crv: 'X25519',    kty: 'OKP', x: '',        d: '' },
 };
 
+/**
+ * A mapping from JOSE property descriptors to multicodec names.
+ * This mapping is used to convert keys in JWK (JSON Web Key) format to multicodec format.
+ *
+ * @example
+ * ```ts
+ * const multicodecName = joseToMulticodecMapping['Ed25519:public'];
+ * // Returns 'ed25519-pub', the multicodec name for an Ed25519 public key
+ * ```
+ *
+ * @remarks
+ * The keys of this object are strings that describe the JOSE key type and usage,
+ * such as 'Ed25519:public', 'Ed25519:private', etc.
+ * The values are the corresponding multicodec names used to represent these key types.
+ */
 const joseToMulticodecMapping: { [key: string]: string } = {
   'Ed25519:public'    : 'ed25519-pub',
   'Ed25519:private'   : 'ed25519-priv',
@@ -25,7 +55,24 @@ const joseToMulticodecMapping: { [key: string]: string } = {
   'X25519:private'    : 'x25519-priv',
 };
 
+/**
+ * The `Jose` class provides utility functions for converting between JOSE (JSON Object Signing and
+ * Encryption) formats and multicodec representations.
+ */
 export class Jose {
+  /**
+   * Converts a JWK (JSON Web Key) to a Multicodec code and name.
+   *
+   * @example
+   * ```ts
+   * const jwk: Jwk = { crv: 'Ed25519', kty: 'OKP', x: '...' };
+   * const { code, name } = await Jose.jwkToMulticodec({ jwk });
+   * ```
+   *
+   * @param params - The parameters for the conversion.
+   * @param params.jwk - The JSON Web Key to be converted.
+   * @returns A promise that resolves to a Multicodec definition.
+   */
   public static async jwkToMulticodec({ jwk }: {
     jwk: Jwk
   }): Promise<MulticodecDefinition<MulticodecCode>> {
@@ -53,6 +100,9 @@ export class Jose {
   }
 
   /**
+   * Converts a public key in JWK (JSON Web Key) format to a multibase identifier.
+   *
+   * @remarks
    * Note: All secp public keys are converted to compressed point encoding
    *       before the multibase identifier is computed.
    *
@@ -66,6 +116,16 @@ export class Jose {
    *    elliptic curve points, the uncompressed point encoding defined there
    *    MUST be used. The x and y values represented MUST both be exactly
    *    256 bits, with any leading zeros preserved."
+   *
+   * @example
+   * ```ts
+   * const publicKey = { crv: 'Ed25519', kty: 'OKP', x: '...' };
+   * const multibaseId = await Jose.publicKeyToMultibaseId({ publicKey });
+   * ```
+   *
+   * @param params - The parameters for the conversion.
+   * @param params.publicKey - The public key in JWK format.
+   * @returns A promise that resolves to the multibase identifier.
    */
   public static async publicKeyToMultibaseId({ publicKey }: {
     publicKey: Jwk
@@ -108,6 +168,19 @@ export class Jose {
     return multibaseId;
   }
 
+  /**
+   * Converts a Multicodec code or name to parial JWK (JSON Web Key).
+   *
+   * @example
+   * ```ts
+   * const partialJwk = await Jose.multicodecToJose({ name: 'ed25519-pub' });
+   * ```
+   *
+   * @param params - The parameters for the conversion.
+   * @param params.code - Optional Multicodec code to convert.
+   * @param params.name - Optional Multicodec name to convert.
+   * @returns A promise that resolves to a JOSE format key.
+   */
   public static async multicodecToJose({ code, name }: {
     code?: MulticodecCode,
     name?: string

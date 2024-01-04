@@ -561,7 +561,7 @@ export class Secp256k1 {
    *
    * @example
    * ```ts
-   * const data = new TextEncoder().encode('Hello, world!'); // Data to be signed
+   * const data = new TextEncoder().encode('Messsage'); // Data to be signed
    * const privateKey = { ... }; // A Jwk object representing a secp256k1 private key
    * const signature = await Secp256k1.sign({
    *   key: privateKey,
@@ -613,7 +613,7 @@ export class Secp256k1 {
    *
    * @example
    * ```ts
-   * const data = new TextEncoder().encode('Hello, world!'); // Data that was signed
+   * const data = new TextEncoder().encode('Messsage'); // Data that was signed
    * const publicKey = { ... }; // Public key in JWK format corresponding to the private key that signed the data
    * const signature = new Uint8Array([...]); // Signature to verify
    * const isSignatureValid = await Secp256k1.verify({

@@ -16,6 +16,14 @@ export interface Sha2DigestParams extends DigestParams {
   algorithm: 'SHA-256';
 }
 
+/**
+ * The `Sha2Algorithm` class is an implementation of the {@link Hasher | `Hasher`} interface for the
+ * SHA-2 family of cryptographic hash functions. The `digest` method takes the algorithm identifier
+ * of the hash function and arbitrary data as input and returns the hash digest of the data.
+ *
+ * This class is typically accessed through implementations that extend the
+ * {@link CryptoApi | `CryptoApi`} interface.
+ */
 export class Sha2Algorithm extends CryptoAlgorithm
   implements Hasher<Sha2DigestParams> {
 
@@ -30,6 +38,13 @@ export class Sha2Algorithm extends CryptoAlgorithm
    *
    * It takes the algorithm identifier of the hash function and data to digest as input and returns
    * the digest of the data.
+   *
+   * @example
+   * ```ts
+   * const sha2 = new Sha2Algorithm();
+   * const data = new TextEncoder().encode('Messsage');
+   * const digest = await sha2.digest({ data });
+   * ```
    *
    * @param params - The parameters for the digest operation.
    * @param params.algorithm - The name of hash function to use.

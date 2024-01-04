@@ -32,7 +32,7 @@ import { computeJwkThumbprint, isOctPrivateJwk } from '../jose/jwk.js';
  * const privateKey = await XChaCha20.generateKey();
  *
  * // Encryption
- * const data = new TextEncoder().encode('Hello, world!');
+ * const data = new TextEncoder().encode('Messsage');
  * const nonce = crypto.getRandomValues(new Uint8Array(24)); // 24-byte nonce for XChaCha20
  * const encryptedData = await XChaCha20.encrypt({
  *   data,
@@ -143,7 +143,7 @@ export class XChaCha20 {
    *
    * @example
    * ```ts
-   * const data = new TextEncoder().encode('Hello, world!');
+   * const data = new TextEncoder().encode('Messsage');
    * const nonce = crypto.getRandomValues(new Uint8Array(24)); // 24-byte nonce for XChaCha20
    * const key = { ... }; // A Jwk object representing an XChaCha20 key
    * const encryptedData = await XChaCha20.encrypt({

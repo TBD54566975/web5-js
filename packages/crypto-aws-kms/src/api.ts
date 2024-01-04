@@ -236,7 +236,7 @@ export class AwsKmsCrypto implements CryptoApi<AwsKmsGenerateKeyParams> {
    * @example
    * ```ts
    * const crypto = new AwsKmsCrypto();
-   * const keyUri = await crypto.getPublicKey({ algorithm: 'ES256K' });
+   * const keyUri = await crypto.generateKey({ algorithm: 'ES256K' });
    * const publicKey = await crypto.getPublicKey({ keyUri });
    * ```
    *

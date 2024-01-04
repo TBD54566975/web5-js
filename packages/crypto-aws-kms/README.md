@@ -14,11 +14,10 @@
 
 - [Introduction](#introduction)
   - [Supported Algorithms & Key Types](#supported-algorithms--key-types)
-  - [Community](#community)
-  - [Contributing](#contributing)
 - [Getting Started](#getting-started)
   - [Node.js Package](#install-the-nodejs-package)
   - [Configure the AWS SDK](#configure-the-aws-sdk)
+- [Contributing](#contributing)
 - [Core Concepts](#usage)
   - [Key URIs](#key-uris)
   - [Using AWS KMS](#using-a-local-kms)
@@ -48,10 +47,6 @@ as the extension progresses towards a 1.0 release.
 | Signature  | ECDSA     |
 | Hash       | SHA-256   |
 | ECC Curves | secp256k1 |
-
-### Community
-
-### Contributing
 
 ## Getting Started
 
@@ -101,6 +96,20 @@ extension uses for all communication with the AWS KMS API.
 
 - [Shared AWS config and credentials files](https://docs.aws.amazon.com/sdkref/latest/guide/file-format.html)
 - [Environment variables](https://docs.aws.amazon.com/sdkref/latest/guide/environment-variables.html)
+
+## Contributing
+
+We welcome you to join our open source community. Whether you're new to open source or a seasoned
+contributor, there's a place for you here. From coding to documentation, every contribution matters.
+Check out our [contribution guide][contributing-link] for ways to get started.
+
+For help, discussion about best practices, or to chat with others building on Web5 join our
+[Discord Server][discord-link]:
+
+[![discord-badge]][discord-link]
+
+Remember, contributing is not just about code; it's about building together. Join us in shaping the
+future of the Web!
 
 ## Core Concepts
 
@@ -255,6 +264,16 @@ Additional configuration fields of the `KMSClient` class constructor are describ
 [`KMSClientConfig`](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-client-kms/Interface/KMSClientConfig/)
 configuration type.
 
+## Project Resources
+
+| Resource                                | Description                                                                   |
+| --------------------------------------- | ----------------------------------------------------------------------------- |
+| [CODEOWNERS][codeowners-link]           | Outlines the project lead(s)                                                  |
+| [CODE OF CONDUCT][code-of-conduct-link] | Expected behavior for project contributors, promoting a welcoming environment |
+| [CONTRIBUTING][contributing-link]       | Developer guide to build, test, run, access CI, chat, discuss, file issues    |
+| [GOVERNANCE][governance-link]           | Project governance                                                            |
+| [LICENSE][license-link]                 | Apache License, Version 2.0                                                   |
+
 [crypto-aws-kms-npm-badge]: https://img.shields.io/npm/v/@web5/crypto-aws-kms.svg?style=flat&color=blue&santize=true
 [crypto-aws-kms-npm-link]: https://www.npmjs.com/package/@web5/crypto-aws-kms
 [crypto-aws-kms-downloads-badge]: https://img.shields.io/npm/dt/@web5/crypto-aws-kms?&color=blue
@@ -266,3 +285,10 @@ configuration type.
 [crypto-aws-kms-issues-link]: https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+is%3Aissue+label%3A"package%3A+crypto-aws-kms"
 [crypto-repo-link]: https://github.com/TBD54566975/web5-js/tree/main/packages/crypto
 [crypto-aws-kms-repo-link]: https://github.com/TBD54566975/web5-js/tree/main/packages/crypto-aws-kms
+[codeowners-link]: https://github.com/TBD54566975/web5-js/blob/main/CODEOWNERS
+[code-of-conduct-link]: https://github.com/TBD54566975/web5-js/blob/main/CODE_OF_CONDUCT.md
+[contributing-link]: https://github.com/TBD54566975/web5-js/blob/main/CONTRIBUTING.md
+[governance-link]: https://github.com/TBD54566975/web5-js/blob/main/GOVERNANCE.md
+[license-link]: https://github.com/TBD54566975/web5-js/blob/main/LICENSE
+[discord-badge]: https://img.shields.io/discord/937858703112155166?color=5865F2&logo=discord&logoColor=white
+[discord-link]: https://discord.com/channels/937858703112155166/969272658501976117

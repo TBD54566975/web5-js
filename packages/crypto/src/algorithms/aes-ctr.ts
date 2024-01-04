@@ -33,10 +33,10 @@ export interface AesCtrParams {
 }
 
 /**
- * The `AesCtrAlgorithm` class provides an interface for cryptographic operations using the AES
- * algorithm in Counter (CTR) mode. This class implements both {@link Cipher | `Cipher`} and
- * { @link KeyGenerator | `KeyGenerator`} interfaces, providing encryption, decryption, and key
- * generation features.
+ * The `AesCtrAlgorithm` class provides a concrete implementation for cryptographic operations using
+ * the AES algorithm in Counter (CTR) mode. This class implements both {@link Cipher | `Cipher`} and
+ * { @link KeyGenerator | `KeyGenerator`} interfaces, providing key generation, encryption, and
+ * decryption features.
  *
  * This class is typically accessed through implementations that extend the
  * {@link CryptoApi | `CryptoApi`} interface.
@@ -92,7 +92,7 @@ export class AesCtrAlgorithm extends CryptoAlgorithm
    * @example
    * ```ts
    * const aesCtr = new AesCtrAlgorithm();
-   * const data = new TextEncoder().encode('Hello, world!');
+   * const data = new TextEncoder().encode('Messsage');
    * const counter = new Uint8Array(16); // 16-byte (128-bit) counter block
    * const key = { ... }; // A Jwk object representing an AES key
    * const encryptedData = await aesCtr.encrypt({
