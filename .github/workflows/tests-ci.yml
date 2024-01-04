@@ -82,7 +82,7 @@ jobs:
           private-key: ${{ secrets.CICD_ROBOT_GITHUB_APP_PRIVATE_KEY }}
           owner: TBD54566975
           repositories: sdk-development
-        
+
       - name: Trigger sdk-development report build
         if: github.ref == 'refs/heads/main'
         run: |
@@ -96,7 +96,6 @@ jobs:
         env:
           APP_TOKEN: ${{ steps.generate_token.outputs.token }}
 
-
   test-with-browsers:
     name: test-with-browsers (group ${{ matrix.group }})
     # Run browser tests using macOS so that WebKit tests don't fail under a Linux environment
@@ -106,7 +105,7 @@ jobs:
       matrix:
         include:
           - group: "A"
-            packages: "--workspace packages/agent --workspace packages/dids "
+            packages: "--workspace packages/agent --workspace packages/dids"
           - group: "B"
             packages: "--workspace packages/common --workspace packages/crypto --workspace packages/credentials --workspace packages/user-agent --workspace packages/proxy-agent --workspace packages/api --workspace packages/identity-agent"
     steps:

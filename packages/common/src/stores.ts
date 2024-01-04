@@ -1,12 +1,17 @@
+import type { AbstractLevel } from 'abstract-level';
+
 import { Level } from 'level';
 
 import type { KeyValueStore } from './types.js';
 
-export class LevelStore implements KeyValueStore<string, any> {
-  private store: Level<string, string>;
+export class LevelStore<K = string, V = any> implements KeyValueStore<K, V> {
+  private store: AbstractLevel<string | Buffer | Uint8Array, K, V>;
 
-  constructor(location = 'DATASTORE') {
-    this.store = new Level(location);
+  constructor({ db, location = 'DATASTORE' }: {
+    db?: AbstractLevel<string | Buffer | Uint8Array, K, V>;
+    location?: string;
+  } = {}) {
+    this.store = db ?? new Level<K, V>(location);
   }
 
   async clear(): Promise<void> {
@@ -17,16 +22,21 @@ export class LevelStore implements KeyValueStore<string, any> {
     await this.store.close();
   }
 
-  async delete(key: string): Promise<boolean> {
+  async delete(key: K): Promise<void> {
     await this.store.del(key);
-    return true;
   }
 
-  async get(key: string): Promise<any> {
-    return await this.store.get(key);
+  async get(key: K): Promise<V | undefined> {
+    try {
+      return await this.store.get(key);
+    } catch (error: any) {
+      // Don't throw when a key wasn't found.
+      if (error.notFound) return undefined;
+      throw error;
+    }
   }
 
-  async set(key: string, value: any): Promise<void> {
+  async set(key: K, value: V): Promise<void> {
     await this.store.put(key, value);
   }
 }

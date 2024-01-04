@@ -89,7 +89,7 @@ export class Web5ProxyAgent implements Web5ManagedAgent {
       // A custom AppDataStore implementation was not specified, so
       // instantiate a LevelDB backed secure AppDataVault.
       appData = new AppDataVault({
-        store: new LevelStore('data/agent/vault')
+        store: new LevelStore({ location: 'data/agent/vault' })
       });
     }
 
