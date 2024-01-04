@@ -595,6 +595,79 @@ export class Secp256k1 {
   }
 
   /**
+   * Validates a given private key to ensure its compliance with the secp256k1 curve standards.
+   *
+   * @remarks
+   * This method checks whether a provided private key is a valid 32-byte number and falls within
+   * the range defined by the secp256k1 curve's order. It is essential for ensuring the private
+   * key's mathematical correctness in the context of secp256k1-based cryptographic operations.
+   *
+   * Note that this validation strictly pertains to the key's format and numerical validity; it does
+   * not assess whether the key corresponds to a known entity or its security status (e.g., whether
+   * it has been compromised).
+   *
+   * @example
+   * ```ts
+   * const privateKeyBytes = new Uint8Array([...]); // A 32-byte private key
+   * const isValid = await Secp256k1.validatePrivateKey({ privateKeyBytes });
+   * console.log(isValid); // true or false based on the key's validity
+   * ```
+   *
+   * @param params - The parameters for the key validation.
+   * @param params.privateKeyBytes - The private key to validate, represented as a Uint8Array.
+   *
+   * @returns A Promise that resolves to a boolean indicating whether the private key is valid.
+   */
+  public static async validatePrivateKey({ privateKeyBytes }: {
+    privateKeyBytes: Uint8Array;
+  }): Promise<boolean> {
+    return secp256k1.utils.isValidPrivateKey(privateKeyBytes);
+  }
+
+  /**
+   * Validates a given public key to confirm its mathematical correctness on the secp256k1 curve.
+   *
+   * @remarks
+   * This method checks if the provided public key represents a valid point on the secp256k1 curve.
+   * It decodes the key's Weierstrass points (x and y coordinates) and verifies their validity
+   * against the curve's parameters. A valid point must lie on the curve and meet specific
+   * mathematical criteria defined by the curve's equation.
+   *
+   * It's important to note that this method does not verify the key's ownership or whether it has
+   * been compromised; it solely focuses on the key's adherence to the curve's mathematical
+   * principles.
+   *
+   * @example
+   * ```ts
+   * const publicKeyBytes = new Uint8Array([...]); // A public key in byte format
+   * const isValid = await Secp256k1.validatePublicKey({ publicKeyBytes });
+   * console.log(isValid); // true if the key is valid on the secp256k1 curve, false otherwise
+   * ```
+   *
+   * @param params - The parameters for the key validation.
+   * @param params.publicKeyBytes - The public key to validate, represented as a Uint8Array.
+   *
+   * @returns A Promise that resolves to a boolean indicating the public key's validity on
+   *          the secp256k1 curve.
+   */
+  public static async validatePublicKey({ publicKeyBytes }: {
+    publicKeyBytes: Uint8Array;
+  }): Promise<boolean> {
+    try {
+      // Decode Weierstrass points from key bytes.
+      const point = secp256k1.ProjectivePoint.fromHex(publicKeyBytes);
+
+      // Check if points are on the Short Weierstrass curve.
+      point.assertValidity();
+
+    } catch(error: any) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * Verifies an RFC6979-compliant ECDSA signature against given data and a secp256k1 public key.
    *
    * @remarks
@@ -699,78 +772,5 @@ export class Secp256k1 {
     const y = numberToBytesBE(point.y, 32);
 
     return { x, y };
-  }
-
-  /**
-   * Validates a given private key to ensure its compliance with the secp256k1 curve standards.
-   *
-   * @remarks
-   * This method checks whether a provided private key is a valid 32-byte number and falls within
-   * the range defined by the secp256k1 curve's order. It is essential for ensuring the private
-   * key's mathematical correctness in the context of secp256k1-based cryptographic operations.
-   *
-   * Note that this validation strictly pertains to the key's format and numerical validity; it does
-   * not assess whether the key corresponds to a known entity or its security status (e.g., whether
-   * it has been compromised).
-   *
-   * @example
-   * ```ts
-   * const privateKeyBytes = new Uint8Array([...]); // A 32-byte private key
-   * const isValid = await Secp256k1.validatePrivateKey({ privateKeyBytes });
-   * console.log(isValid); // true or false based on the key's validity
-   * ```
-   *
-   * @param params - The parameters for the key validation.
-   * @param params.privateKeyBytes - The private key to validate, represented as a Uint8Array.
-   *
-   * @returns A Promise that resolves to a boolean indicating whether the private key is valid.
-   */
-  private static async validatePrivateKey({ privateKeyBytes }: {
-    privateKeyBytes: Uint8Array;
-  }): Promise<boolean> {
-    return secp256k1.utils.isValidPrivateKey(privateKeyBytes);
-  }
-
-  /**
-   * Validates a given public key to confirm its mathematical correctness on the secp256k1 curve.
-   *
-   * @remarks
-   * This method checks if the provided public key represents a valid point on the secp256k1 curve.
-   * It decodes the key's Weierstrass points (x and y coordinates) and verifies their validity
-   * against the curve's parameters. A valid point must lie on the curve and meet specific
-   * mathematical criteria defined by the curve's equation.
-   *
-   * It's important to note that this method does not verify the key's ownership or whether it has
-   * been compromised; it solely focuses on the key's adherence to the curve's mathematical
-   * principles.
-   *
-   * @example
-   * ```ts
-   * const publicKeyBytes = new Uint8Array([...]); // A public key in byte format
-   * const isValid = await Secp256k1.validatePublicKey({ publicKeyBytes });
-   * console.log(isValid); // true if the key is valid on the secp256k1 curve, false otherwise
-   * ```
-   *
-   * @param params - The parameters for the key validation.
-   * @param params.publicKeyBytes - The public key to validate, represented as a Uint8Array.
-   *
-   * @returns A Promise that resolves to a boolean indicating the public key's validity on
-   *          the secp256k1 curve.
-   */
-  private static async validatePublicKey({ publicKeyBytes }: {
-    publicKeyBytes: Uint8Array;
-  }): Promise<boolean> {
-    try {
-      // Decode Weierstrass points from key bytes.
-      const point = secp256k1.ProjectivePoint.fromHex(publicKeyBytes);
-
-      // Check if points are on the Short Weierstrass curve.
-      point.assertValidity();
-
-    } catch(error: any) {
-      return false;
-    }
-
-    return true;
   }
 }

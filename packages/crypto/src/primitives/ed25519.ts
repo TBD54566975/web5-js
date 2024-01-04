@@ -468,6 +468,48 @@ export class Ed25519 {
   }
 
   /**
+   * Validates a given public key to confirm its mathematical correctness on the Edwards curve.
+   *
+   * @remarks
+   * This method decodes the Edwards points from the key bytes and asserts their validity on the
+   * Curve25519 curve in Twisted Edwards form. If the points are not valid, the method returns
+   * false. If the points are valid, the method returns true.
+   *
+   * Note that this validation strictly pertains to the key's format and numerical validity; it does
+   * not assess whether the key corresponds to a known entity or its security status (e.g., whether
+   * it has been compromised).
+   *
+   * @example
+   * ```ts
+   * const publicKey = new Uint8Array([...]); // A public key in byte format
+   * const isValid = Ed25519.validatePublicKey({ publicKey });
+   * console.log(isValid); // true if the key is valid on the Edwards curve, false otherwise
+   * ```
+   *
+   * @param params - The parameters for the public key validation.
+   * @param params.publicKey - The public key to validate, represented as a Uint8Array.
+   *
+   * @returns A Promise that resolves to a boolean indicating whether the key
+   *          corresponds to a valid point on the Edwards curve.
+   */
+  public static validatePublicKey({ publicKey }: {
+    publicKey: Uint8Array;
+  }): boolean {
+    try {
+    // Decode Edwards points from key bytes.
+      const point = ed25519.ExtendedPoint.fromHex(publicKey);
+
+      // Check if points are on the Twisted Edwards curve.
+      point.assertValidity();
+
+    } catch(error: any) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * Verifies an RFC8032-compliant EdDSA signature against given data using an Ed25519 public key.
    *
    * @remarks
@@ -502,47 +544,5 @@ export class Ed25519 {
     const isValid = ed25519.verify(signature, data, publicKeyBytes);
 
     return isValid;
-  }
-
-  /**
-   * Validates a given public key to confirm its mathematical correctness on the Edwards curve.
-   *
-   * @remarks
-   * This method decodes the Edwards points from the key bytes and asserts their validity on the
-   * Curve25519 curve in Twisted Edwards form. If the points are not valid, the method returns
-   * false. If the points are valid, the method returns true.
-   *
-   * Note that this validation strictly pertains to the key's format and numerical validity; it does
-   * not assess whether the key corresponds to a known entity or its security status (e.g., whether
-   * it has been compromised).
-   *
-   * @example
-   * ```ts
-   * const publicKey = new Uint8Array([...]); // A public key in byte format
-   * const isValid = Ed25519.validatePublicKey({ publicKey });
-   * console.log(isValid); // true if the key is valid on the Edwards curve, false otherwise
-   * ```
-   *
-   * @param params - The parameters for the public key validation.
-   * @param params.publicKey - The public key to validate, represented as a Uint8Array.
-   *
-   * @returns A Promise that resolves to a boolean indicating whether the key
-   *          corresponds to a valid point on the Edwards curve.
-   */
-  private static validatePublicKey({ publicKey }: {
-    publicKey: Uint8Array;
-  }): boolean {
-    try {
-    // Decode Edwards points from key bytes.
-      const point = ed25519.ExtendedPoint.fromHex(publicKey);
-
-      // Check if points are on the Twisted Edwards curve.
-      point.assertValidity();
-
-    } catch(error: any) {
-      return false;
-    }
-
-    return true;
   }
 }

@@ -331,7 +331,6 @@ describe('Ed25519', () => {
   describe('validatePublicKey()', () => {
     it('returns true for valid public keys', async () => {
       const publicKey = Convert.hex('a12c2beb77265f2aac953b5009349d94155a03ada416aad451319480e983ca4c').toUint8Array();
-      // @ts-expect-error because validatePublicKey() is a private method.
       const isValid = await Ed25519.validatePublicKey({ publicKey });
       expect(isValid).to.be.true;
     });
