@@ -4,7 +4,7 @@
     {
       "description" : "computes the expected public key from the RFC8037, Appendex A.1 vector",
       "input"       : {
-        "privateKey": {
+        "key": {
           "crv": "Ed25519",
           "d":"nWGxne_9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A",
           "kty": "OKP",
@@ -21,7 +21,7 @@
     {
       "description" : "computes the expected public key from wycheproof vector 1",
       "input"       : {
-        "privateKey": {
+        "key": {
           "crv": "Ed25519",
           "d": "rdS7gQN4W6-axTQljoqvZfXxrbXvXz3xm7gKuYnE1ks",
           "kty": "OKP",
@@ -38,7 +38,7 @@
     {
       "description" : "computes the expected public key from wycheproof vector 2",
       "input"       : {
-        "privateKey": {
+        "key": {
           "crv": "Ed25519",
           "d": "CiOiAHKJEjeqCGS1dlE5UUkIeHh4zXcTWgBZiB0xPwA",
           "kty": "OKP",
@@ -55,7 +55,7 @@
     {
       "description" : "computes the expected public key from wycheproof vector 3",
       "input"       : {
-        "privateKey": {
+        "key": {
           "crv": "Ed25519",
           "d": "nWGxne_9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A",
           "kty": "OKP",

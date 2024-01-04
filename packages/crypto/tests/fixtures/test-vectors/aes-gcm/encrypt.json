@@ -1,0 +1,27 @@
+{
+  "description": "AES-GCM encrypt test vectors",
+  "vectors": [
+    {
+      "description": "matches Wycheproof tcId 1 output",
+      "input": {
+        "key": "5b9604fe14eadba931b0ccf34843dab9",
+        "data": "001d0c231287c1182784554ca3a21908",
+        "iv": "028318abc1824029138141a2",
+        "additionalData": "",
+        "tagLength": 128
+      },
+      "output": "26073cc1d851beff176384dc9896d5ff0a3ea7a5487cb5f7d70fb6c58d038554"
+    },
+    {
+      "description": "matches Wycheproof tcId 2 output",
+      "input": {
+        "key": "5b9604fe14eadba931b0ccf34843dab9",
+        "data": "001d0c231287c1182784554ca3a21908",
+        "iv": "921d2507fa8007b7bd067d34",
+        "additionalData": "00112233445566778899aabbccddeeff",
+        "tagLength": 128
+      },
+      "output": "49d8b9783e911913d87094d1f63cc7651e348ba07cca2cf04c618cb4d43a5b92"
+    }
+  ]
+}

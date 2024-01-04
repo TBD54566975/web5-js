@@ -4,28 +4,28 @@
     {
       "description" : "returns true for valid private keys",
       "input"       : {
-        "key": "740ec69810de9ad1b8f298f1d2c0e6a52dd1e958dc2afc85764bec169c222e88"
+        "privateKeyBytes": "740ec69810de9ad1b8f298f1d2c0e6a52dd1e958dc2afc85764bec169c222e88"
       },
       "output": true
     },
     {
       "description" : "returns false for invalid private keys",
       "input"       : {
-        "key": "02fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f"
+        "privateKeyBytes": "02fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f"
       },
       "output": false
     },
     {
       "description" : "returns false if an compressed public key is given",
       "input"       : {
-        "key": "026bcdccc644b309921d3b0c266183a20786650c1634d34e8dfa1ed74cd66ce214"
+        "privateKeyBytes": "026bcdccc644b309921d3b0c266183a20786650c1634d34e8dfa1ed74cd66ce214"
       },
       "output": false
     },
     {
       "description" : "returns false if an uncompressed public key is given",
       "input"       : {
-        "key": "043752951274023296c8a74b0ffe42f82ff4b4d4bba4326477422703f761f59258c26a7465b9a77ac0c3f1cedb139c428b0b1fbb5516867b527636f3286f705553"
+        "privateKeyBytes": "043752951274023296c8a74b0ffe42f82ff4b4d4bba4326477422703f761f59258c26a7465b9a77ac0c3f1cedb139c428b0b1fbb5516867b527636f3286f705553"
       },
       "output": false
     }

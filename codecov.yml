@@ -11,6 +11,10 @@ component_management:
         target: 90 # every PR opened should strive for at least 90% coverage
 
   individual_components:
+    - component_id: package-agent
+      name: agent
+      paths: ["packages/agent/**"]
+
     - component_id: package-api
       name: api
       paths: ["packages/api/**"]
@@ -31,13 +35,13 @@ component_management:
       name: dids
       paths: ["packages/dids/**"]
 
-    - component_id: package-agent
-      name: agent
-      paths: ["packages/agent/**"]
-
     - component_id: package-identity-agent
       name: identity-agent
       paths: ["packages/identity-agent/**"]
+
+    - component_id: package-crypto-aws-kms
+      name: crypto-aws-kms
+      paths: ["packages/crypto-aws-kms/**"]
 
     - component_id: package-proxy-agent
       name: proxy-agent

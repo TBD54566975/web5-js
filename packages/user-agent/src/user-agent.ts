@@ -90,7 +90,7 @@ export class Web5UserAgent implements Web5ManagedAgent {
       /** A custom AppDataStore implementation was not specified, so
        * instantiate a LevelDB backed secure AppDataVault. */
       appData = new AppDataVault({
-        store: new LevelStore('DATA/AGENT/APPDATA')
+        store: new LevelStore({ location: 'DATA/AGENT/APPDATA' })
       });
     }
 

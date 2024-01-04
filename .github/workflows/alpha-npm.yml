@@ -21,7 +21,7 @@ jobs:
 
     env:
       # Packages not listed here will be excluded from publishing
-      PACKAGES: "agent api common credentials crypto dids identity-agent proxy-agent user-agent"
+      PACKAGES: "agent api common credentials crypto crypto-aws-kms dids identity-agent proxy-agent user-agent"
 
     steps:
       - name: Checkout source
@@ -32,7 +32,7 @@ jobs:
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-          cache: 'npm'
+          cache: "npm"
 
       # Note - this is not required but it gives a clean failure prior to attempting a release if
       # the GH workflow runner is not authenticated with NPMjs.com
