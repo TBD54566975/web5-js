@@ -25,7 +25,7 @@ import type {
  * Guidelines for implementing this interface:
  * - Must use JSON Web Keys ({@link Jwk | JWK}) as the key format.
  * - Must IANA registered JSON Object Signing and Encryption
- *   {@ link https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms | (JOSE)}
+ *   {@link https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms | (JOSE)}
  *   names for algorithm, curves, etc. whenever possible.
  * - All I/O that interacts with private or secret keys must be done via reference using a
  *   {@link KeyIdentifier | `KeyIdentifier`}. Implementations can use any string as the key

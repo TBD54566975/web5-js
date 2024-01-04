@@ -413,7 +413,7 @@ export class AwsKmsCrypto implements CryptoApi<AwsKmsGenerateKeyParams> {
    *
    * @remarks
    * This method facilitates the identification of the correct algorithm for cryptographic
-   * operations based on the `alg` or `crv` properties of a {@link Jwk | JWK} or a given AWS
+   * operations based on the `alg` or `crv` properties of a {@link @web5/crypto#Jwk | JWK} or a given AWS
    * key specification.
    *
    * @example

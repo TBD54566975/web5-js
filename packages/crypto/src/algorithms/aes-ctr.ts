@@ -35,7 +35,7 @@ export interface AesCtrParams {
 /**
  * The `AesCtrAlgorithm` class provides a concrete implementation for cryptographic operations using
  * the AES algorithm in Counter (CTR) mode. This class implements both {@link Cipher | `Cipher`} and
- * { @link KeyGenerator | `KeyGenerator`} interfaces, providing key generation, encryption, and
+ * {@link KeyGenerator | `KeyGenerator`} interfaces, providing key generation, encryption, and
  * decryption features.
  *
  * This class is typically accessed through implementations that extend the

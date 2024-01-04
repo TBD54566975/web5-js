@@ -58,7 +58,7 @@ export interface AesGcmParams {
 /**
  * The `AesGcmAlgorithm` class provides a concrete implementation for cryptographic operations using
  * the AES algorithm in Galois/Counter Mode (GCM). This class implements both
- * {@link Cipher | `Cipher`} and { @link KeyGenerator | `KeyGenerator`} interfaces, providing
+ * {@link Cipher | `Cipher`} and {@link KeyGenerator | `KeyGenerator`} interfaces, providing
  * key generation, encryption, and decryption features.
  *
  * This class is typically accessed through implementations that extend the

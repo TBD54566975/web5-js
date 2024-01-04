@@ -16,7 +16,7 @@ import { randomBytes as nobleRandomBytes } from '@noble/hashes/utils';
  * @param params.property - Property key to check for.
  * @param params.properties - Properties object to check within.
  * @returns void
- * @throws {TypeError} If the property is not a key in the properties object.
+ * @throws `TypeError` If the property is not a key in the properties object.
  */
 export function checkRequiredProperty(params: {
   property: string,
@@ -42,10 +42,10 @@ export function checkRequiredProperty(params: {
  * checkValidProperty({ property: 'weight', allowedProperties }); // Throws TypeError
  * ```
  *
- * @param property Property key to check for.
- * @param allowedProperties Properties Array, Map, or Set to check within.
+ * @param property - Property key to check for.
+ * @param allowedProperties - Properties Array, Map, or Set to check within.
  * @returns void
- * @throws {TypeError} If the property is not a member of the allowedProperties Array, Map, or Set.
+ * @throws `TypeError` If the property is not a member of the allowedProperties Array, Map, or Set.
  */
 export function checkValidProperty(params: {
   property: string, allowedProperties: ReadonlyArray<string> | Array<string> | Map<string, unknown> | Set<string>
@@ -166,7 +166,7 @@ export function multibaseIdToKey({ multibaseKeyId }: {
  * `crypto.getRandomValues`, which defers to the operating system.
  *
  * @remarks
- * This function is a wrapper around `randomBytes` from the '@noble/hashes'
+ * This function is a wrapper around `randomBytes` from the `\@noble/hashes`
  * package. It's designed to be cryptographically strong, suitable for
  * generating initialization vectors, nonces, and other random values.
  *

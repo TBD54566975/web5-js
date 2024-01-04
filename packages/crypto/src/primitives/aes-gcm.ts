@@ -10,8 +10,8 @@ import { computeJwkThumbprint, isOctPrivateJwk } from '../jose/jwk.js';
  *
  * @remarks
  * NIST Special Publication 800-38D, Section 5.2.1.1 states that the IV length:
- * > For IVs, it is recommended that implementations restrict support to the length of 96 bits, to
- * > promote interoperability, efficiency, and simplicity of design.
+ * \> For IVs, it is recommended that implementations restrict support to the length of 96 bits, to
+ * \> promote interoperability, efficiency, and simplicity of design.
  *
  * This implementation does not support IV lengths that are different from the value defined by
  * this constant.
@@ -25,8 +25,8 @@ const AES_GCM_IV_LENGTH = 96;
  *
  * @remarks
  * NIST publication FIPS 197 states:
- * > The AES algorithm is capable of using cryptographic keys of 128, 192, and 256 bits to encrypt
- * > and decrypt data in blocks of 128 bits.
+ * \> The AES algorithm is capable of using cryptographic keys of 128, 192, and 256 bits to encrypt
+ * \> and decrypt data in blocks of 128 bits.
  *
  * This implementation does not support key lengths that are different from the three values
  * defined by this constant.
@@ -40,7 +40,7 @@ const AES_KEY_LENGTHS = [128, 192, 256] as const;
  *
  * @remarks
  * NIST Special Publication 800-38D, Section 5.2.1.2 states that the tag length:
- * > may be any one of the following five values: 128, 120, 112, 104, or 96
+ * \> may be any one of the following five values: 128, 120, 112, 104, or 96
  *
  * Although the NIST specification allows for tag lengths of 32 or 64 bits in certain applications,
  * the use of shorter tag lengths can be problematic for GCM due to targeted forgery attacks. As a

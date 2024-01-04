@@ -109,7 +109,7 @@ export class ConcatKdf {
    * @param params.otherInfo - Additional public information to use in key derivation.
    * @returns The derived key as a Uint8Array.
    *
-   * @throws {Error} If the `keyDataLen` would require multiple rounds.
+   * @throws `Error` If the `keyDataLen` would require multiple rounds.
    */
   public static async deriveKey({ keyDataLen, otherInfo, sharedSecret }: {
     keyDataLen: number;
@@ -195,7 +195,7 @@ export class ConcatKdf {
    *
    * @returns The input data encoded as a Uint8Array.
    *
-   * @throws {TypeError} If fixed-length data is not a number.
+   * @throws `TypeError` If fixed-length data is not a number.
    */
   private static toDataLenData({ data, variableLength = true }: {
     data: unknown;

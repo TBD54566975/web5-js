@@ -28,7 +28,7 @@ export interface EdDsaGenerateKeyParams extends GenerateKeyParams {
 /**
  * The `EdDsaAlgorithm` class provides a concrete implementation for cryptographic operations using
  * the Edwards-curve Digital Signature Algorithm (EdDSA). This class implements both
- * {@link Signer | `Signer`} and { @link AsymmetricKeyGenerator | `AsymmetricKeyGenerator`}
+ * {@link Signer | `Signer`} and {@link AsymmetricKeyGenerator | `AsymmetricKeyGenerator`}
  * interfaces, providing private key generation, public key derivation, and creation/verification
  * of signatures.
  *

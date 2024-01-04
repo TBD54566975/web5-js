@@ -22,7 +22,7 @@ export interface EcdsaGenerateKeyParams extends GenerateKeyParams {
 /**
  * The `EcdsaAlgorithm` class provides a concrete implementation for cryptographic operations using
  * the Elliptic Curve Digital Signature Algorithm (ECDSA). This class implements both
- * {@link Signer | `Signer`} and { @link AsymmetricKeyGenerator | `AsymmetricKeyGenerator`}
+ * {@link Signer | `Signer`} and {@link AsymmetricKeyGenerator | `AsymmetricKeyGenerator`}
  * interfaces, providing private key generation, public key derivation, and creation/verification
  * of signatures.
  *
