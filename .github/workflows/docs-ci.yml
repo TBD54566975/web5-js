@@ -38,17 +38,18 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           report_changed_scope_only: false
           fail_on_error: false
+          group_docs: true
           entry_points: |
             - file: packages/api/src/index.ts
+              docsGenerator: typedoc-html
               docsReporter: api-extractor
-              docsGenerator: typedoc-markdown
             - file: packages/crypto/src/index.ts
-              docsGenerator: typedoc-markdown
+              docsGenerator: typedoc-html
               docsReporter: api-extractor
               docsReporterIgnore:
               - extractor:ae-missing-release-tag
             - file: packages/crypto-aws-kms/src/index.ts
-              docsGenerator: typedoc-markdown
+              docsGenerator: typedoc-html
               docsReporter: api-extractor
               docsReporterIgnore:
               - extractor:ae-missing-release-tag
