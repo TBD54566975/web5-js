@@ -24,6 +24,7 @@
   - [Key URIs](#key-uris)
   - [Using a Local KMS](#using-a-local-kms)
   - [JSON Web Key (JWK)](#json-web-key-jwk)
+  - [Random Number Generation](#random-number-generation)
 - [Customization](#customization)
   - [Persistent Local KMS Key Store](#persistent-local-kms-key-store)
 - [Cryptographic Primitives](#cryptographic-primitives)
@@ -110,6 +111,8 @@ A polyfilled distribution is published to [jsdelivr.com][crypto-jsdelivr-browser
   </body>
 </html>
 ```
+
+<a id="secure-context"></a>
 
 > [!IMPORTANT]
 > The `@web5/crypto` library depends on the
@@ -334,6 +337,59 @@ isOkpPrivateJwk(publicKey); // false
 isOctPrivateJwk(publicKey); // false
 isEcPublicJwk(publicKey); // false
 isEcPrivateJwk(publicKey); // false
+```
+
+### Random Number Generation
+
+Cryptographically strong random number generation is vital in cryptography. The unpredictability of
+these random numbers is crucial for creating secure cryptographic keys, initialization vectors, and
+nonces (numbers used once). Their strength lies in their resistance to being guessed or replicated,
+making them foundational to maintaining the integrity and confidentiality of cryptographic systems.
+
+The Web5 Crypto API includes two utility functions for random number generation:
+
+#### `randomBytes()`
+
+The `randomBytes()` method generates cryptographically strong random values (CSPRNG) of the
+specified length. The implementation relies on
+[`crypto.getRandomValues`](https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues),
+which defers to the runtime (browser, Node.js, etc.) for entropy. The pseudo-random number
+generator algorithm may vary across runtimes, but is suitable for generating initialization vectors,
+nonces and other random values.
+
+> [!IMPORTANT]
+> Use a cipher algorithm's `generateKey()` method to generate encryption keys rather than
+> `randomBytes()`. This ensures that secrets used for encryption are guaranteed to be generated in a
+> [secure context](#secure-context) and
+> that the runtime uses the best
+> [source of entropy](https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues#usage_notes)
+> available.
+
+```typescript
+import { randomBytes } from "@web5/crypto/utils";
+
+const nonce = randomBytes(24);
+```
+
+#### `randomUuid()`
+
+The `randomUuid()` method generates a UUID (Universally Unique Identifier) using a cryptographically
+strong random number generator (CSPRNG) following the version 4 format, as specified in
+[RFC 4122](https://datatracker.ietf.org/doc/html/rfc4122).
+
+UUIDs are of a fixed size (128 bits), can guarantee uniqueness across space and time, and can be
+generated without a centralized authority to administer them. Since UUIDs are unique and persistent,
+they make excellent Uniform Resource Names ([URN](https://datatracker.ietf.org/doc/html/rfc2141)).
+The following is an example of the string representation of a UUID as a URN:
+`urn:uuid:f81d4fae-7dec-11d0-a765-00a0c91e6bf6`.
+
+> [!NOTE]
+> This function is available only in [secure contexts](#secure-context) (HTTPS and localhost).
+
+```typescript
+import { randomUuid } from "@web5/crypto/utils";
+
+const uuid = randomUuid();
 ```
 
 ## Customization

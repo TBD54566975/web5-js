@@ -1,6 +1,6 @@
 import { Convert } from '@web5/common';
-import { crypto } from '@noble/hashes/crypto';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
+import { getWebcryptoSubtle } from '@noble/ciphers/webcrypto/utils';
 
 import type { Jwk } from '../jose/jwk.js';
 
@@ -44,7 +44,7 @@ const POLY1305_TAG_LENGTH = 16;
  *
  * // Encryption
  * const data = new TextEncoder().encode('Messsage');
- * const nonce = crypto.getRandomValues(new Uint8Array(24)); // 24-byte nonce
+ * const nonce = utils.randomBytes(24); // 24-byte nonce
  * const additionalData = new TextEncoder().encode('Associated data');
  * const { ciphertext, tag } = await XChaCha20Poly1305.encrypt({
  *   data,
@@ -170,7 +170,7 @@ export class XChaCha20Poly1305 {
    * @example
    * ```ts
    * const data = new TextEncoder().encode('Messsage');
-   * const nonce = crypto.getRandomValues(new Uint8Array(24)); // 24-byte nonce
+   * const nonce = utils.randomBytes(24); // 24-byte nonce
    * const additionalData = new TextEncoder().encode('Associated data'); // Optional AAD
    * const key = { ... }; // A Jwk object representing an XChaCha20-Poly1305 key
    * const { ciphertext, tag } = await XChaCha20Poly1305.encrypt({
@@ -230,11 +230,16 @@ export class XChaCha20Poly1305 {
    * @returns A Promise that resolves to the generated symmetric key in JWK format.
    */
   public static async generateKey(): Promise<Jwk> {
-    // Generate a random private key.
-    const privateKeyBytes = crypto.getRandomValues(new Uint8Array(32));
+    // Get the Web Crypto API interface.
+    const webCrypto = getWebcryptoSubtle();
 
-    // Convert private key from bytes to JWK format.
-    const privateKey = await XChaCha20Poly1305.bytesToPrivateKey({ privateKeyBytes });
+    // Generate a random private key.
+    // See https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues#usage_notes for
+    // an explanation for why Web Crypto generateKey() is used instead of getRandomValues().
+    const webCryptoKey = await webCrypto.generateKey( { name: 'AES-CTR', length: 256 }, true, ['encrypt']);
+
+    // Export the private key in JWK format.
+    const { alg, ext, key_ops, ...privateKey } = await webCrypto.exportKey('jwk', webCryptoKey);
 
     // Compute the JWK thumbprint and set as the key ID.
     privateKey.kid = await computeJwkThumbprint({ jwk: privateKey });

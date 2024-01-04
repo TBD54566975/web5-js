@@ -1,5 +1,5 @@
 import { Convert } from '@web5/common';
-import { crypto } from '@noble/hashes/crypto';
+import { getWebcryptoSubtle } from '@noble/ciphers/webcrypto/utils';
 
 import type { Jwk } from '../jose/jwk.js';
 
@@ -182,11 +182,14 @@ export class AesCtr {
       throw new TypeError(`The 'length' property must be in the range 1 to ${COUNTER_MAX_LENGTH}`);
     }
 
+    // Get the Web Crypto API interface.
+    const webCrypto = getWebcryptoSubtle();
+
     // Import the JWK into the Web Crypto API to use for the decrypt operation.
-    const webCryptoKey = await this.importKey(key);
+    const webCryptoKey = await webCrypto.importKey('jwk', key, { name: 'AES-CTR' }, true, ['decrypt']);
 
     // Decrypt the data.
-    const plaintextBuffer = await crypto.subtle.decrypt(
+    const plaintextBuffer = await webCrypto.decrypt(
       { name: 'AES-CTR', counter, length },
       webCryptoKey,
       data
@@ -244,11 +247,14 @@ export class AesCtr {
       throw new TypeError(`The 'length' property must be in the range 1 to ${COUNTER_MAX_LENGTH}`);
     }
 
+    // Get the Web Crypto API interface.
+    const webCrypto = getWebcryptoSubtle();
+
     // Import the JWK into the Web Crypto API to use for the encrypt operation.
-    const webCryptoKey = await this.importKey(key);
+    const webCryptoKey = await webCrypto.importKey('jwk', key, { name: 'AES-CTR' }, true, ['encrypt', 'decrypt']);
 
     // Encrypt the data.
-    const ciphertextBuffer = await crypto.subtle.encrypt(
+    const ciphertextBuffer = await webCrypto.encrypt(
       { name: 'AES-CTR', counter, length },
       webCryptoKey,
       data
@@ -294,12 +300,16 @@ export class AesCtr {
       throw new RangeError(`The key length is invalid: Must be ${AES_KEY_LENGTHS.join(', ')} bits`);
     }
 
-    // Generate a random private key.
-    const lengthInBytes = length / 8;
-    const privateKeyBytes = crypto.getRandomValues(new Uint8Array(lengthInBytes));
+    // Get the Web Crypto API interface.
+    const webCrypto = getWebcryptoSubtle();
 
-    // Convert private key from bytes to JWK format.
-    const privateKey = await AesCtr.bytesToPrivateKey({ privateKeyBytes });
+    // Generate a random private key.
+    // See https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues#usage_notes for
+    // an explanation for why Web Crypto generateKey() is used instead of getRandomValues().
+    const webCryptoKey = await webCrypto.generateKey( { name: 'AES-CTR', length }, true, ['encrypt']);
+
+    // Export the private key in JWK format.
+    const { ext, key_ops, ...privateKey } = await webCrypto.exportKey('jwk', webCryptoKey);
 
     // Compute the JWK thumbprint and set as the key ID.
     privateKey.kid = await computeJwkThumbprint({ jwk: privateKey });
@@ -338,21 +348,5 @@ export class AesCtr {
     const privateKeyBytes = Convert.base64Url(privateKey.k).toUint8Array();
 
     return privateKeyBytes;
-  }
-
-  /**
-   * A private method to import a key in JWK format for use with the Web Crypto API.
-   *
-   * @param key - The key in JWK format.
-   * @returns A Promise that resolves to a CryptoKey.
-   */
-  private static async importKey(key: Jwk): Promise<CryptoKey> {
-    return crypto.subtle.importKey(
-      'jwk', // format
-      key, // keyData
-      { name: 'AES-CTR' }, // algorithm
-      true, // extractable
-      ['encrypt', 'decrypt'] // usages
-    );
   }
 }

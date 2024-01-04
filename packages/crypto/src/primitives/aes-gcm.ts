@@ -1,5 +1,5 @@
 import { Convert } from '@web5/common';
-import { crypto } from '@noble/hashes/crypto';
+import { getWebcryptoSubtle } from '@noble/ciphers/webcrypto/utils';
 
 import type { Jwk } from '../jose/jwk.js';
 
@@ -191,8 +191,11 @@ export class AesGcm {
       throw new RangeError(`The tag length is invalid: Must be ${AES_GCM_TAG_LENGTHS.join(', ')} bits`);
     }
 
+    // Get the Web Crypto API interface.
+    const webCrypto = getWebcryptoSubtle();
+
     // Import the JWK into the Web Crypto API to use for the decrypt operation.
-    const webCryptoKey = await this.importKey(key);
+    const webCryptoKey = await webCrypto.importKey('jwk', key, { name: 'AES-GCM' }, true, ['decrypt']);
 
     // Browser implementations of the Web Crypto API throw an error if additionalData is undefined.
     const algorithm = (additionalData === undefined)
@@ -200,7 +203,7 @@ export class AesGcm {
       : { name: 'AES-GCM', additionalData, iv, tagLength };
 
     // Decrypt the data.
-    const plaintextBuffer = await crypto.subtle.decrypt(algorithm, webCryptoKey, data);
+    const plaintextBuffer = await webCrypto.decrypt(algorithm, webCryptoKey, data);
 
     // Convert from ArrayBuffer to Uint8Array.
     const plaintext = new Uint8Array(plaintextBuffer);
@@ -260,8 +263,11 @@ export class AesGcm {
       throw new RangeError(`The tag length is invalid: Must be ${AES_GCM_TAG_LENGTHS.join(', ')} bits`);
     }
 
+    // Get the Web Crypto API interface.
+    const webCrypto = getWebcryptoSubtle();
+
     // Import the JWK into the Web Crypto API to use for the encrypt operation.
-    const webCryptoKey = await this.importKey(key);
+    const webCryptoKey = await webCrypto.importKey('jwk', key, { name: 'AES-GCM' }, true, ['encrypt']);
 
     // Browser implementations of the Web Crypto API throw an error if additionalData is undefined.
     const algorithm = (additionalData === undefined)
@@ -269,7 +275,7 @@ export class AesGcm {
       : { name: 'AES-GCM', additionalData, iv, tagLength };
 
     // Encrypt the data.
-    const ciphertextBuffer = await crypto.subtle.encrypt(algorithm, webCryptoKey, data);
+    const ciphertextBuffer = await webCrypto.encrypt(algorithm, webCryptoKey, data);
 
     // Convert from ArrayBuffer to Uint8Array.
     const ciphertext = new Uint8Array(ciphertextBuffer);
@@ -311,12 +317,16 @@ export class AesGcm {
       throw new RangeError(`The key length is invalid: Must be ${AES_KEY_LENGTHS.join(', ')} bits`);
     }
 
-    // Generate the secret key.
-    const lengthInBytes = length / 8;
-    const privateKeyBytes = crypto.getRandomValues(new Uint8Array(lengthInBytes));
+    // Get the Web Crypto API interface.
+    const webCrypto = getWebcryptoSubtle();
 
-    // Convert private key from bytes to JWK format.
-    const privateKey = await AesGcm.bytesToPrivateKey({ privateKeyBytes });
+    // Generate a random private key.
+    // See https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues#usage_notes for
+    // an explanation for why Web Crypto generateKey() is used instead of getRandomValues().
+    const webCryptoKey = await webCrypto.generateKey( { name: 'AES-GCM', length }, true, ['encrypt']);
+
+    // Export the private key in JWK format.
+    const { ext, key_ops, ...privateKey } = await webCrypto.exportKey('jwk', webCryptoKey);
 
     // Compute the JWK thumbprint and set as the key ID.
     privateKey.kid = await computeJwkThumbprint({ jwk: privateKey });
@@ -356,21 +366,5 @@ export class AesGcm {
     const privateKeyBytes = Convert.base64Url(privateKey.k).toUint8Array();
 
     return privateKeyBytes;
-  }
-
-  /**
-   * A private method to import a key in JWK format for use with the Web Crypto API.
-   *
-   * @param key - The key in JWK format.
-   * @returns A Promise that resolves to a CryptoKey.
-   */
-  private static async importKey(key: Jwk): Promise<CryptoKey> {
-    return crypto.subtle.importKey(
-      'jwk', // format
-      key, // keyData
-      { name: 'AES-GCM' }, // algorithm
-      true, // extractable
-      ['encrypt', 'decrypt'] // usages
-    );
   }
 }
