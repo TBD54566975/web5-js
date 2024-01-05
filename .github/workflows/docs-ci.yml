@@ -48,11 +48,15 @@ jobs:
               docsReporter: api-extractor
               docsReporterIgnore:
               - extractor:ae-missing-release-tag
+              - docs:tsdoc-escape-greater-than
+              - docs:tsdoc-at-sign-in-word
             - file: packages/crypto-aws-kms/src/index.ts
               docsGenerator: typedoc-html
               docsReporter: api-extractor
               docsReporterIgnore:
               - extractor:ae-missing-release-tag
+              - docs:tsdoc-escape-greater-than
+              - docs:tsdoc-at-sign-in-word
 
       - name: Save Artifacts
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 #v3.1.3

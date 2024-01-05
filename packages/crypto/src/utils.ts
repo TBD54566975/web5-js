@@ -166,7 +166,7 @@ export function multibaseIdToKey({ multibaseKeyId }: {
  * `crypto.getRandomValues`, which defers to the operating system.
  *
  * @remarks
- * This function is a wrapper around `randomBytes` from the `\@noble/hashes`
+ * This function is a wrapper around `randomBytes` from the `@noble/hashes`
  * package. It's designed to be cryptographically strong, suitable for
  * generating initialization vectors, nonces, and other random values.
  *

@@ -26,8 +26,8 @@ const AES_BLOCK_SIZE = 128;
  *
  * @remarks
  * NIST publication FIPS 197 states:
- * \> The AES algorithm is capable of using cryptographic keys of 128, 192, and 256 bits to encrypt
- * \> and decrypt data in blocks of 128 bits.
+ * > The AES algorithm is capable of using cryptographic keys of 128, 192, and 256 bits to encrypt
+ * > and decrypt data in blocks of 128 bits.
  *
  * This implementation does not support key lengths that are different from the three values
  * defined by this constant.
