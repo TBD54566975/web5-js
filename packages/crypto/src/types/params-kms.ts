@@ -75,7 +75,12 @@ export interface KmsGenerateKeyParams {
   algorithm: AlgorithmIdentifier;
 }
 
+/**
+ * Parameters for retrieving the key URI for a public key from a KMS.  Intended for use with a Key
+ * Management System.
+ */
 export interface KmsGetKeyUriParams {
+  /** The {@link Jwk | JWK} for which the URI is being retrieved. */
   key: Jwk;
 }
 
@@ -92,7 +97,7 @@ export interface KmsGetPublicKeyParams {
  * Parameters for importing a private key into a KMS. Intended for use with a Key Management System.
  */
 export interface KmsImportKeyParams {
-  /** A {@link Jwk} containing the key to be imported into the KMS. */
+  /** A {@link Jwk | JWK} containing the key to be imported into the KMS. */
   key: Jwk;
 }
 
@@ -112,7 +117,7 @@ export interface KmsSignParams {
  * Management System.
  */
 export interface KmsVerifyParams {
-  /** A {@link Jwk} containing the public key to be used for verification. */
+  /** A {@link Jwk | JWK} containing the public key to be used for verification. */
   key: Jwk;
 
   /** The signature to verify. */
@@ -126,7 +131,7 @@ export interface KmsVerifyParams {
  * Parameters for wrapping a key using a KMS. Intended for use with a Key Management System.
  */
 export interface KmsWrapKeyParams {
-  /** A {@link Jwk} containing the private key to be wrapped. */
+  /** A {@link Jwk | JWK} containing the private key to be wrapped. */
   key: Jwk;
 
   /** Identifier for the private key in the KMS to be used for the wrapping operation. */

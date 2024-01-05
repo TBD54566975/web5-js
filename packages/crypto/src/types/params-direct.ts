@@ -10,7 +10,7 @@ export interface ComputePublicKeyParams extends GetPublicKeyParams { }
  * Parameters for decrypting data.
  */
 export interface DecryptParams {
-  /** A {@link Jwk} containing the key to be used for decryption. */
+  /** A {@link Jwk | JWK} containing the key to be used for decryption. */
   key: Jwk;
 
   /** Data to be decrypted. */
@@ -21,7 +21,7 @@ export interface DecryptParams {
  * Parameters for deriving bits.
  */
 export interface DeriveBitsParams {
-  /** A {@link Jwk} containing the base key to be used for derivation. */
+  /** A {@link Jwk | JWK} containing the base key to be used for derivation. */
   key: Jwk;
 
   /**
@@ -35,7 +35,7 @@ export interface DeriveBitsParams {
  * Parameters for deriving a key.
  */
 export interface DeriveKeyParams {
-  /** A {@link Jwk} containing the base key to be used for derivation. */
+  /** A {@link Jwk | JWK} containing the base key to be used for derivation. */
   key: Jwk;
 
   /** An object defining the algorithm-specific parameters for the derived key. */
@@ -57,7 +57,7 @@ export interface DigestParams {
  * Parameters for encrypting data.
  */
 export interface EncryptParams {
-  /** A {@link Jwk} containing the key to be used for encryption. */
+  /** A {@link Jwk | JWK} containing the key to be used for encryption. */
   key: Jwk;
 
   /** Data to be encrypted. */
@@ -76,7 +76,7 @@ export interface GenerateKeyParams {
  * Parameters for retrieving a public key.
  */
 export interface GetPublicKeyParams {
-  /** A {@link Jwk} containing the key from which to derive the public key. */
+  /** A {@link Jwk | JWK} containing the key from which to derive the public key. */
   key: Jwk;
 }
 
@@ -84,7 +84,7 @@ export interface GetPublicKeyParams {
  * Parameters for signing data.
  */
 export interface SignParams {
-  /** A {@link Jwk} containing the key used for signing. */
+  /** A {@link Jwk | JWK} containing the key used for signing. */
   key: Jwk;
 
   /** Data to be signed. */
@@ -95,7 +95,7 @@ export interface SignParams {
  * Parameters for verifying a signature.
  */
 export interface VerifyParams {
-  /** A {@link Jwk} containing the key used for verification. */
+  /** A {@link Jwk | JWK} containing the key used for verification. */
   key: Jwk;
 
   /** The signature to verify. */
