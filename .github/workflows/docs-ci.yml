@@ -42,9 +42,11 @@ jobs:
           entry_points: |
             - file: packages/api/src/index.ts
               docsGenerator: typedoc-html
+              readmeFile: packages/api/README.md
               docsReporter: api-extractor
             - file: packages/crypto/src/index.ts
               docsGenerator: typedoc-html
+              readmeFile: packages/crypto/README.md
               docsReporter: api-extractor
               docsReporterIgnore:
               - extractor:ae-missing-release-tag
@@ -52,6 +54,7 @@ jobs:
               - docs:tsdoc-at-sign-in-word
             - file: packages/crypto-aws-kms/src/index.ts
               docsGenerator: typedoc-html
+              readmeFile: packages/crypto-aws-kms/README.md
               docsReporter: api-extractor
               docsReporterIgnore:
               - extractor:ae-missing-release-tag
