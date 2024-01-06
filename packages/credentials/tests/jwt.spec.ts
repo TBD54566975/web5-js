@@ -74,7 +74,7 @@ describe('Jwt', () => {
       const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: did.document.verificationMethod![0].id };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
-      const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000 - 60), exp: Math.floor(Date.now() / 1000 - 1) };
+      const payload: JwtPayload = { exp: Math.floor(Date.now() / 1000 - 1) };
       const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
 
       try {
