@@ -5,6 +5,7 @@
   "workspaces": [
     "packages/common",
     "packages/crypto",
+    "packages/crypto-aws-kms",
     "packages/dids",
     "packages/credentials",
     "packages/agent",

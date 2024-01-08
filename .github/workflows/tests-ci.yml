@@ -62,16 +62,39 @@ jobs:
       - name: Terminate dwn-server
         run: kill $DWN_SERVER_BACKGROUND_PROCESS || true
 
+      - name: Upload test coverage to Codecov
+        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Upload test results to update SDK reports
         uses: actions/upload-artifact@v3
         with:
           name: junit-results
           path: packages/*/results.xml
 
-      - name: Upload test coverage to Codecov
-        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+      - name: Generate an access token to trigger downstream repo
+        uses: actions/create-github-app-token@2986852ad836768dfea7781f31828eb3e17990fa # v1.6.2
+        id: generate_token
+        if: github.ref == 'refs/heads/main'
+        with:
+          app-id: ${{ secrets.CICD_ROBOT_GITHUB_APP_ID }}
+          private-key: ${{ secrets.CICD_ROBOT_GITHUB_APP_PRIVATE_KEY }}
+          owner: TBD54566975
+          repositories: sdk-development
+
+      - name: Trigger sdk-development report build
+        if: github.ref == 'refs/heads/main'
+        run: |
+          curl -L \
+          -H "Authorization: Bearer ${APP_TOKEN}" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          -H "Content-Type: application/json" \
+          --fail \
+          --data '{"ref": "main"}' \
+          https://api.github.com/repos/TBD54566975/sdk-development/actions/workflows/build-report.yaml/dispatches
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          APP_TOKEN: ${{ steps.generate_token.outputs.token }}
 
   test-with-browsers:
     name: test-with-browsers (group ${{ matrix.group }})
@@ -86,7 +109,7 @@ jobs:
           - group: "B"
             packages: "--workspace packages/crypto --workspace packages/dids --workspace packages/proxy-agent --workspace packages/identity-agent --workspace packages/user-agent"
           - group: "C"
-            packages: "--workspace packages/api --workspace packages/common --workspace packages/credentials"
+            packages: "--workspace packages/api --workspace packages/common --workspace packages/credentials --workspace packages/crypto-aws-kms"
     steps:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
@@ -135,10 +158,3 @@ jobs:
 
       - name: Terminate dwn-server
         run: kill $DWN_SERVER_BACKGROUND_PROCESS || true
-
-  web5-spec:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
-      - uses: TBD54566975/sdk-development@v0.2.3
