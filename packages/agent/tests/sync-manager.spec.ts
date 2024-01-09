@@ -77,6 +77,101 @@ describe('SyncManagerLevel', () => {
       await testAgent.closeStorage();
     });
 
+    it('syncs multiple records in both directions', async () => {
+      // create 3 local records. 
+      const localRecords: string[] = [];
+      for (let i = 0; i < 3; i++) {
+        const writeResponse = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob([`Hello, ${i}`])
+        });
+
+        localRecords.push((writeResponse.message as RecordsWriteMessage).recordId);
+      }
+
+      // create 3 remote records
+      const remoteRecords: string[] = [];
+      for (let i = 0; i < 3; i++) {
+        let writeResponse = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob([`Hello, ${i}`])
+        });
+        remoteRecords.push((writeResponse.message as RecordsWriteMessage).recordId);
+      }
+
+      // query local and check for only local records
+      let localQueryResponse = await testAgent.agent.dwnManager.processRequest({
+        author         : alice.did,
+        target         : alice.did,
+        messageType    : 'RecordsQuery',
+        messageOptions : { filter: { dataFormat: 'text/plain' } }
+      });
+      let localDwnQueryReply = localQueryResponse.reply as RecordsQueryReply;
+      expect(localDwnQueryReply.status.code).to.equal(200);
+      expect(localDwnQueryReply.entries).to.have.length(3);
+      let localRecordsFromQuery = localDwnQueryReply.entries?.map(entry => entry.recordId);
+      expect(localRecordsFromQuery).to.have.members(localRecords)
+
+      // query remote and check for only remote records
+      let remoteQueryResponse = await testAgent.agent.dwnManager.sendRequest({
+        author         : alice.did,
+        target         : alice.did,
+        messageType    : 'RecordsQuery',
+        messageOptions : { filter: { dataFormat: 'text/plain' } }
+      });
+      let remoteDwnQueryReply = remoteQueryResponse.reply as RecordsQueryReply;
+      expect(remoteDwnQueryReply.status.code).to.equal(200);
+      expect(remoteDwnQueryReply.entries).to.have.length(3);
+      let remoteRecordsFromQuery = remoteDwnQueryReply.entries?.map(entry => entry.recordId);
+      expect(remoteRecordsFromQuery).to.have.members(remoteRecords);
+
+      // Register Alice's DID to be synchronized.
+      await testAgent.agent.syncManager.registerIdentity({
+        did: alice.did
+      });
+
+      // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
+      await testAgent.agent.syncManager.push();
+      await testAgent.agent.syncManager.pull();
+
+      // query local node to see all records
+      localQueryResponse = await testAgent.agent.dwnManager.processRequest({
+        author         : alice.did,
+        target         : alice.did,
+        messageType    : 'RecordsQuery',
+        messageOptions : { filter: { dataFormat: 'text/plain' } }
+      });
+      localDwnQueryReply = localQueryResponse.reply as RecordsQueryReply;
+      expect(localDwnQueryReply.status.code).to.equal(200);
+      expect(localDwnQueryReply.entries).to.have.length(6);
+      localRecordsFromQuery = localDwnQueryReply.entries?.map(entry => entry.recordId);
+      expect(localRecordsFromQuery).to.have.members([...localRecords, ...remoteRecords]);
+
+      // query remote node to see all results
+      remoteQueryResponse = await testAgent.agent.dwnManager.sendRequest({
+        author         : alice.did,
+        target         : alice.did,
+        messageType    : 'RecordsQuery',
+        messageOptions : { filter: { dataFormat: 'text/plain' } }
+      });
+      remoteDwnQueryReply = remoteQueryResponse.reply as RecordsQueryReply;
+      expect(remoteDwnQueryReply.status.code).to.equal(200);
+      expect(remoteDwnQueryReply.entries).to.have.length(6);
+      remoteRecordsFromQuery = remoteDwnQueryReply.entries?.map(entry => entry.recordId);
+      expect(remoteRecordsFromQuery).to.have.members([...localRecords, ...remoteRecords]);
+
+    });
+
     describe('pull()', () => {
       it('takes no action if no identities are registered', async () => {
         const didResolveSpy = sinon.spy(testAgent.agent.didResolver, 'resolve');
