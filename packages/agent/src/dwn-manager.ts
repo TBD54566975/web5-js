@@ -350,11 +350,11 @@ export class DwnManager {
 
     const result: MessagesGetReply = await this._dwn.processMessage(author, messagesGet.message);
 
-    if (!(result.messages && result.messages.length === 1)) {
+    if (!(result.entries && result.entries.length === 1)) {
       throw new Error('TODO: figure out error message');
     }
 
-    const [ messageEntry ] = result.messages;
+    const [ messageEntry ] = result.entries;
 
     let { message } = messageEntry;
     if (!message) {

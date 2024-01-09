@@ -2,7 +2,7 @@ import { Convert } from '@web5/common';
 
 import type { Web5ManagedAgent } from './types/agent.js';
 import type { ManagedIdentity } from './identity-manager.js';
-import type { RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import type { RecordsQueryReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 export interface ManagedIdentityStore {
   deleteIdentity(options: { did: string, agent?: Web5ManagedAgent, context?: string }): Promise<boolean>
@@ -42,7 +42,7 @@ export class IdentityStoreDwn implements ManagedIdentityStore {
 
     // Loop through all of the entries and try to find a match.
     let matchingRecordId: string | undefined;
-    for (const record of queryReply.entries ?? []) {
+    for (const record of (queryReply as RecordsQueryReply).entries ?? []) {
       if (record.encodedData) {
         const storedIdentity = Convert.base64Url(record.encodedData).toObject() as ManagedIdentity;
         if (storedIdentity && storedIdentity.did === did) {
@@ -91,7 +91,7 @@ export class IdentityStoreDwn implements ManagedIdentityStore {
     });
 
     // Loop through all of the entries and return a match, if found.
-    for (const record of queryReply.entries ?? []) {
+    for (const record of (queryReply as RecordsQueryReply).entries ?? []) {
       if (record.encodedData) {
         const storedIdentity = Convert.base64Url(record.encodedData).toObject() as ManagedIdentity;
         if (storedIdentity && storedIdentity.did === did) return storedIdentity;
@@ -156,7 +156,7 @@ export class IdentityStoreDwn implements ManagedIdentityStore {
 
     // Loop through all of the entries and accumulate the Identity objects.
     let storedIdentities: ManagedIdentity[] = [];
-    for (const record of queryReply.entries ?? []) {
+    for (const record of (queryReply as RecordsQueryReply).entries ?? []) {
       if (record.encodedData) {
         const storedIdentity = Convert.base64Url(record.encodedData).toObject() as ManagedIdentity;
         storedIdentities.push(storedIdentity);

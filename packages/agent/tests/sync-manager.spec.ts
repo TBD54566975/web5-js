@@ -6,7 +6,7 @@ import chaiAsPromised from 'chai-as-promised';
 import type { ManagedIdentity } from '../src/identity-manager.js';
 import type { PortableDid } from '@web5/dids';
 
-import { RecordsQueryReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import { RecordsQueryReply, RecordsQueryReplyEntry, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import { testDwnUrl } from './utils/test-config.js';
 import { TestAgent } from './utils/test-agent.js';
@@ -182,7 +182,7 @@ describe('SyncManagerLevel', () => {
 
         expect(localReply2.status.code).to.equal(200);
         expect(localReply2.entries?.length).to.equal(1);
-        const entry = localReply2.entries![0];
+        const entry = localReply2.entries![0] as RecordsQueryReplyEntry;
         expect(entry.encodedData).to.be.undefined; // encodedData is undefined
 
         // check for response encodedData if it doesn't exist issue a RecordsRead
@@ -379,7 +379,7 @@ describe('SyncManagerLevel', () => {
 
         expect(remoteReply2.status.code).to.equal(200);
         expect(remoteReply2.entries?.length).to.equal(1);
-        const entry = remoteReply2.entries![0];
+        const entry = remoteReply2.entries![0] as RecordsQueryReplyEntry;
         expect(entry.encodedData).to.be.undefined;
         // check for response encodedData if it doesn't exist issue a RecordsRead
         const recordId = (entry as RecordsWriteMessage).recordId;

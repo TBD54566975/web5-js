@@ -1,4 +1,4 @@
-import type { RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import type { RecordsQueryReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import { Convert } from '@web5/common';
 
@@ -45,7 +45,7 @@ export class DidStoreDwn implements ManagedDidStore {
 
     // Loop through all of the entries and try to find a match.
     let matchingRecordId: string | undefined;
-    for (const record of queryReply.entries ?? []) {
+    for (const record of (queryReply as RecordsQueryReply).entries ?? []) {
       if (record.encodedData) {
         const storedDid = Convert.base64Url(record.encodedData).toObject() as ManagedDid;
         if (storedDid && storedDid.did === did) {
@@ -94,7 +94,7 @@ export class DidStoreDwn implements ManagedDidStore {
     });
 
     // Loop through all of the entries and return a match, if found.
-    for (const record of queryReply.entries ?? []) {
+    for (const record of (queryReply as RecordsQueryReply).entries ?? []) {
       if (record.encodedData) {
         const storedDid = Convert.base64Url(record.encodedData).toObject() as ManagedDid;
         if (storedDid && storedDid.did === did) return storedDid;
@@ -125,7 +125,7 @@ export class DidStoreDwn implements ManagedDidStore {
     });
 
     // Loop through all of the entries and return a match, if found.
-    for (const record of queryReply.entries ?? []) {
+    for (const record of (queryReply as RecordsQueryReply).entries ?? []) {
       if (record.encodedData) {
         const storedDid = Convert.base64Url(record.encodedData).toObject() as ManagedDid;
         if (storedDid && storedDid.did === did) return storedDid;
@@ -190,7 +190,7 @@ export class DidStoreDwn implements ManagedDidStore {
 
     // Loop through all of the entries and accumulate the DID objects.
     let storedDids: ManagedDid[] = [];
-    for (const record of queryReply.entries ?? []) {
+    for (const record of (queryReply as RecordsQueryReply).entries ?? []) {
       if (record.encodedData) {
         const storedDid = Convert.base64Url(record.encodedData).toObject() as ManagedDid;
         storedDids.push(storedDid);

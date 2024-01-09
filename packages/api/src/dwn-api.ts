@@ -2,10 +2,12 @@ import type { DwnResponse, Web5Agent } from '@web5/agent';
 import type {
   RecordsReadOptions,
   RecordsQueryOptions,
+  RecordsQueryReply,
   RecordsWriteMessage,
   RecordsWriteOptions,
   RecordsDeleteOptions,
   ProtocolsQueryOptions,
+  ProtocolsQueryReply,
   RecordsQueryReplyEntry,
   ProtocolsConfigureMessage,
   ProtocolsConfigureOptions,
@@ -236,7 +238,8 @@ export class DwnApi {
           agentResponse = await this.agent.processDwnRequest(agentRequest);
         }
 
-        const { reply: { entries = [], status } } = agentResponse;
+        const reply = agentResponse.reply as ProtocolsQueryReply;
+        const { entries = [], status  } = reply;
 
         const protocols = entries.map((entry: ProtocolsQueryReplyEntry) => {
           const metadata = { author: this.connectedDid, };
@@ -359,7 +362,8 @@ export class DwnApi {
           agentResponse = await this.agent.processDwnRequest(agentRequest);
         }
 
-        const { reply: { entries, status, cursor } } = agentResponse;
+        const reply = agentResponse.reply as RecordsQueryReply;
+        const { entries, status, cursor } = reply;
 
         const records = entries.map((entry: RecordsQueryReplyEntry) => {
           const recordOptions = {
