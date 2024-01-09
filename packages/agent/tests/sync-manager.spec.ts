@@ -78,7 +78,7 @@ describe('SyncManagerLevel', () => {
     });
 
     it('syncs multiple records in both directions', async () => {
-      // create 3 local records. 
+      // create 3 local records.
       const localRecords: string[] = [];
       for (let i = 0; i < 3; i++) {
         const writeResponse = await testAgent.agent.dwnManager.processRequest({
@@ -120,7 +120,7 @@ describe('SyncManagerLevel', () => {
       expect(localDwnQueryReply.status.code).to.equal(200);
       expect(localDwnQueryReply.entries).to.have.length(3);
       let localRecordsFromQuery = localDwnQueryReply.entries?.map(entry => entry.recordId);
-      expect(localRecordsFromQuery).to.have.members(localRecords)
+      expect(localRecordsFromQuery).to.have.members(localRecords);
 
       // query remote and check for only remote records
       let remoteQueryResponse = await testAgent.agent.dwnManager.sendRequest({
