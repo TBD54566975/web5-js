@@ -149,7 +149,7 @@ export class SyncManagerLevel implements SyncManager {
        * values to batch network requests for record messages rather than one at a time, as it
        * is currently implemented.  Either the pull() method should be refactored to batch
        * getting messages OR this loop should be removed. */
-      for (let entry of reply.messages ?? []) {
+      for (let entry of reply.entries ?? []) {
         if (entry.error || !entry.message) {
           await this.addMessage(did, messageCid);
           deleteOperations.push({ type: 'del', key: key });
@@ -394,22 +394,23 @@ export class SyncManagerLevel implements SyncManager {
           dwnUrl    : dwnUrl,
           targetDid : did,
           message   : eventsGetMessage
-        });
+        }) as EventsGetReply;
       } catch {
         // If a particular DWN service endpoint is unreachable, silently ignore.
       }
 
     } else if (syncDirection === 'push') {
       // When sync is a push, get the event log from the local DWN.
-      ({ reply: eventsReply } = await this.agent.dwnManager.processRequest({
+      const eventsGetDwnResponse = await this.agent.dwnManager.processRequest({
         author         : did,
         target         : did,
         messageType    : 'EventsGet',
         messageOptions : { cursor }
-      }));
+      });
+      eventsReply = eventsGetDwnResponse.reply as EventsGetReply;
     }
 
-    const eventLog = eventsReply.events ?? [];
+    const eventLog = eventsReply.entries ?? [];
     if (eventLog.length > 0) {
       const cursorItem = eventLog.at(-1)!;
       this.setCursor(did, dwnUrl, syncDirection, cursorItem);
@@ -431,17 +432,17 @@ export class SyncManagerLevel implements SyncManager {
       }
     });
 
-    const reply: MessagesGetReply = messagesGetResponse.reply;
+    const reply = messagesGetResponse.reply as MessagesGetReply;
 
     /** Absence of a messageEntry or message within messageEntry can happen because updating a
      * Record creates another RecordsWrite with the same recordId. Only the first and
      * most recent RecordsWrite messages are kept for a given recordId. Any RecordsWrite messages
      * that aren't the first or most recent are discarded by the DWN. */
-    if (!(reply.messages && reply.messages.length === 1)) {
+    if (!(reply.entries && reply.entries.length === 1)) {
       return undefined;
     }
 
-    const [ messageEntry ] = reply.messages;
+    const [ messageEntry ] = reply.entries;
 
     let { message } = messageEntry;
     if (!message) {

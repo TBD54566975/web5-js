@@ -131,7 +131,7 @@ describe('DwnManager', () => {
         const eventsGetReply = eventsGetResponse.reply as EventsGetReply;
         expect(eventsGetReply).to.have.property('status');
         expect(eventsGetReply.status.code).to.equal(200);
-        expect(eventsGetReply.events).to.have.length(0);
+        expect(eventsGetReply.entries).to.have.length(0);
       });
 
       it('handles MessagesGet', async () => {
@@ -177,11 +177,11 @@ describe('DwnManager', () => {
         const messagesGetReply = messagesGetResponse.reply as MessagesGetReply;
         expect(messagesGetReply).to.have.property('status');
         expect(messagesGetReply.status.code).to.equal(200);
-        expect(messagesGetReply.messages).to.have.length(1);
+        expect(messagesGetReply.entries).to.have.length(1);
 
-        if (!Array.isArray(messagesGetReply.messages)) throw new Error('Type guard');
-        if (messagesGetReply.messages.length !== 1) throw new Error('Type guard');
-        const [ retrievedRecordsWrite ] = messagesGetReply.messages;
+        if (!Array.isArray(messagesGetReply.entries)) throw new Error('Type guard');
+        if (messagesGetReply.entries.length !== 1) throw new Error('Type guard');
+        const [ retrievedRecordsWrite ] = messagesGetReply.entries;
         expect(retrievedRecordsWrite.message).to.have.property('recordId', writeMessage.recordId);
       });
 
