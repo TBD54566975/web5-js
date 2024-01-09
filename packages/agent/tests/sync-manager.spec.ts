@@ -1,17 +1,16 @@
+import type { PortableDid } from '@web5/dids';
+import type { RecordsQueryReply, RecordsQueryReplyEntry, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import sinon from 'sinon';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
 import type { ManagedIdentity } from '../src/identity-manager.js';
-import type { PortableDid } from '@web5/dids';
 
-import { RecordsQueryReply, RecordsQueryReplyEntry, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
-
-import { testDwnUrl } from './utils/test-config.js';
 import { TestAgent } from './utils/test-agent.js';
-import { SyncManagerLevel } from '../src/sync-manager.js';
+import { testDwnUrl } from './utils/test-config.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
+import { SyncManagerLevel } from '../src/sync-manager.js';
 
 chai.use(chaiAsPromised);
 

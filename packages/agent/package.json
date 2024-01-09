@@ -72,10 +72,10 @@
     "@web5/common": "0.2.2",
     "@web5/crypto": "0.2.2",
     "@web5/dids": "0.2.4",
-    "ulidx": "2.1.0",
     "level": "8.0.0",
     "readable-stream": "4.4.2",
-    "readable-web-to-node-stream": "3.0.2"
+    "readable-web-to-node-stream": "3.0.2",
+    "ulidx": "2.1.0"
   },
   "devDependencies": {
     "@playwright/test": "1.40.1",
