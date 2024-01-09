@@ -1,13 +1,13 @@
 import type { DwnResponse, Web5Agent } from '@web5/agent';
 import type {
-  RecordsReadOptions,
-  RecordsQueryOptions,
   RecordsQueryReply,
+  RecordsReadOptions,
+  ProtocolsQueryReply,
+  RecordsQueryOptions,
   RecordsWriteMessage,
   RecordsWriteOptions,
   RecordsDeleteOptions,
   ProtocolsQueryOptions,
-  ProtocolsQueryReply,
   RecordsQueryReplyEntry,
   ProtocolsConfigureMessage,
   ProtocolsConfigureOptions,
