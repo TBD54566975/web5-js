@@ -1,0 +1,40 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Schema for representing test vectors for various features.",
+    "type": "object",
+    "required": ["description", "vectors"],
+    "properties": {
+      "description": {
+        "type": "string",
+        "description": "A general description of the test vectors collection."
+      },
+      "vectors": {
+        "type": "array",
+        "description": "An array of test vectors for testing different features.",
+        "items": {
+          "type": "object",
+          "description": "A single test vector, which includes a description and input, and may optionally include an expected output and an errors indicator.",
+          "required": ["description", "input"],
+          "properties": {
+            "description": {
+              "type": "string",
+              "description": "A description of what this test vector is validating."
+            },
+            "input": {
+              "description": "The input for the test vector, which can be of any type."
+            },
+            "output": {
+              "description": "The expected output for the test vector, which can be of any type."
+            },
+            "errors": {
+              "type": "boolean",
+              "default": false,
+              "description": "Indicates whether the test vector is expected to produce an error. Defaults to false if not present."
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+  
