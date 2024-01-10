@@ -1,3 +1,4 @@
+import type { ULIDFactory } from 'ulidx';
 import type { AbstractBatchOperation, AbstractLevel } from 'abstract-level';
 import type {
   EventsGetReply,
@@ -13,6 +14,7 @@ import { DataStream } from '@tbd54566975/dwn-sdk-js';
 
 import type { Web5ManagedAgent } from './types/agent.js';
 
+import { monotonicFactory } from 'ulidx';
 import { webReadableToIsomorphicNodeReadable } from './utils.js';
 
 export interface SyncManager {
@@ -37,7 +39,7 @@ type SyncDirection = 'push' | 'pull';
 type SyncState = {
   did: string;
   dwnUrl: string;
-  watermark: string | undefined;
+  cursor?: string,
 }
 
 type DwnMessage = {
@@ -61,12 +63,14 @@ export class SyncManagerLevel implements SyncManager {
   private _agent?: Web5ManagedAgent;
   private _db: LevelDatabase;
   private _syncIntervalId?: ReturnType<typeof setInterval>;
+  private _ulidFactory: ULIDFactory;
 
   constructor(options?: SyncManagerOptions) {
     let { agent, dataPath = 'DATA/AGENT/SYNC_STORE', db } = options ?? {};
 
     this._agent = agent;
     this._db = (db) ? db : new Level(dataPath);
+    this._ulidFactory = monotonicFactory();
   }
 
   /**
@@ -106,7 +110,7 @@ export class SyncManagerLevel implements SyncManager {
 
     for (let job of pullJobs) {
       const [key] = job;
-      const [did, dwnUrl, watermark, messageCid] = key.split('~');
+      const [did, dwnUrl, _, messageCid] = key.split('~');
 
       // If a particular DWN service endpoint is unreachable, skip subsequent pull operations.
       if (errored.has(dwnUrl)) {
@@ -115,9 +119,7 @@ export class SyncManagerLevel implements SyncManager {
 
       const messageExists = await this.messageExists(did, messageCid);
       if (messageExists) {
-        await this.setWatermark(did, dwnUrl, 'pull', watermark);
         deleteOperations.push({ type: 'del', key: key });
-
         continue;
       }
 
@@ -147,10 +149,8 @@ export class SyncManagerLevel implements SyncManager {
        * values to batch network requests for record messages rather than one at a time, as it
        * is currently implemented.  Either the pull() method should be refactored to batch
        * getting messages OR this loop should be removed. */
-      for (let entry of reply.messages ?? []) {
+      for (let entry of reply.entries ?? []) {
         if (entry.error || !entry.message) {
-
-          await this.setWatermark(did, dwnUrl, 'pull', watermark);
           await this.addMessage(did, messageCid);
           deleteOperations.push({ type: 'del', key: key });
 
@@ -192,13 +192,13 @@ export class SyncManagerLevel implements SyncManager {
               dataStream = webReadableToIsomorphicNodeReadable(record.data as any);
 
             } else if (readStatus.code >= 400) {
-              const pruneReply = await this.agent.dwnManager.writePrunedRecord({
+              // writes record without data, if this is an initial records write, it will succeed.
+              const pruneReply = await this.agent.dwnManager.processMessage({
                 targetDid: did,
                 message
               });
 
               if (pruneReply.status.code === 202 || pruneReply.status.code === 409) {
-                await this.setWatermark(did, dwnUrl, 'pull', watermark);
                 await this.addMessage(did, messageCid);
                 deleteOperations.push({ type: 'del', key: key });
 
@@ -217,7 +217,6 @@ export class SyncManagerLevel implements SyncManager {
         });
 
         if (pullReply.status.code === 202 || pullReply.status.code === 409) {
-          await this.setWatermark(did, dwnUrl, 'pull', watermark);
           await this.addMessage(did, messageCid);
           deleteOperations.push({ type: 'del', key: key });
         }
@@ -239,7 +238,7 @@ export class SyncManagerLevel implements SyncManager {
 
     for (let job of pushJobs) {
       const [key] = job;
-      const [did, dwnUrl, watermark, messageCid] = key.split('~');
+      const [did, dwnUrl, _, messageCid] = key.split('~');
 
       // If a particular DWN service endpoint is unreachable, skip subsequent push operations.
       if (errored.has(dwnUrl)) {
@@ -254,7 +253,6 @@ export class SyncManagerLevel implements SyncManager {
        * message to the local message store, and continue to the next job. */
       if (!dwnMessage) {
         deleteOperations.push({ type: 'del', key: key });
-        await this.setWatermark(did, dwnUrl, 'push', watermark);
         await this.addMessage(did, messageCid);
 
         continue;
@@ -273,7 +271,6 @@ export class SyncManagerLevel implements SyncManager {
          * - 409: message was already present on the remote DWN
          */
         if (reply.status.code === 202 || reply.status.code === 409) {
-          await this.setWatermark(did, dwnUrl, 'push', watermark);
           await this.addMessage(did, messageCid);
           deleteOperations.push({ type: 'del', key: key });
         }
@@ -302,11 +299,12 @@ export class SyncManagerLevel implements SyncManager {
     const { interval = 120_000 } = options;
 
     return new Promise((resolve, reject) => {
-      if (this._syncIntervalId) {
-        clearInterval(this._syncIntervalId);
-      }
 
-      this._syncIntervalId = setInterval(async () => {
+      const intervalSync = async () => {
+        if (this._syncIntervalId) {
+          clearInterval(this._syncIntervalId);
+        }
+
         try {
           await this.push();
           await this.pull();
@@ -314,7 +312,12 @@ export class SyncManagerLevel implements SyncManager {
           this.stopSync();
           reject(error);
         }
-      }, interval);
+
+        // then we start sync again
+        this._syncIntervalId = setInterval(intervalSync, interval);
+      };
+
+      this._syncIntervalId = setInterval(intervalSync, interval);
     });
   }
 
@@ -334,15 +337,17 @@ export class SyncManagerLevel implements SyncManager {
     for (let syncState of syncPeerState) {
       // Get the event log from the remote DWN if pull sync, or local DWN if push sync.
       const eventLog = await this.getDwnEventLog({
-        did       : syncState.did,
-        dwnUrl    : syncState.dwnUrl,
-        syncDirection,
-        watermark : syncState.watermark
+        did    : syncState.did,
+        dwnUrl : syncState.dwnUrl,
+        cursor : syncState.cursor,
+        syncDirection
       });
+
 
       const syncOperations: DbBatchOperation[] = [];
 
-      for (let event of eventLog) {
+      for (let messageCid of eventLog) {
+        const watermark = this._ulidFactory();
         /** Use "did~dwnUrl~watermark~messageCid" as the key in the sync queue.
          * Note: It is critical that `watermark` precedes `messageCid` to
          * ensure that when the sync jobs are pulled off the queue, they
@@ -350,12 +355,11 @@ export class SyncManagerLevel implements SyncManager {
         const operationKey = [
           syncState.did,
           syncState.dwnUrl,
-          event.watermark,
-          event.messageCid
+          watermark,
+          messageCid
         ].join('~');
 
         const operation: DbBatchOperation = { type: 'put', key: operationKey, value: '' };
-
         syncOperations.push(operation);
       }
 
@@ -372,9 +376,9 @@ export class SyncManagerLevel implements SyncManager {
     did: string,
     dwnUrl: string,
     syncDirection: SyncDirection,
-    watermark?: string
+    cursor?: string
   }) {
-    const { did, dwnUrl, syncDirection, watermark } = options;
+    const { did, dwnUrl, syncDirection, cursor } = options;
 
     let eventsReply = {} as EventsGetReply;
 
@@ -383,7 +387,7 @@ export class SyncManagerLevel implements SyncManager {
       const eventsGetMessage = await this.agent.dwnManager.createMessage({
         author         : did,
         messageType    : 'EventsGet',
-        messageOptions : { watermark }
+        messageOptions : { cursor }
       });
 
       try {
@@ -391,22 +395,27 @@ export class SyncManagerLevel implements SyncManager {
           dwnUrl    : dwnUrl,
           targetDid : did,
           message   : eventsGetMessage
-        });
+        }) as EventsGetReply;
       } catch {
         // If a particular DWN service endpoint is unreachable, silently ignore.
       }
 
     } else if (syncDirection === 'push') {
       // When sync is a push, get the event log from the local DWN.
-      ({ reply: eventsReply } = await this.agent.dwnManager.processRequest({
+      const eventsGetDwnResponse = await this.agent.dwnManager.processRequest({
         author         : did,
         target         : did,
         messageType    : 'EventsGet',
-        messageOptions : { watermark }
-      }));
+        messageOptions : { cursor }
+      });
+      eventsReply = eventsGetDwnResponse.reply as EventsGetReply;
     }
 
-    const eventLog = eventsReply.events ?? [];
+    const eventLog = eventsReply.entries ?? [];
+    if (eventLog.length > 0) {
+      const cursorItem = eventLog.at(-1)!;
+      this.setCursor(did, dwnUrl, syncDirection, cursorItem);
+    }
 
     return eventLog;
   }
@@ -424,17 +433,17 @@ export class SyncManagerLevel implements SyncManager {
       }
     });
 
-    const reply: MessagesGetReply = messagesGetResponse.reply;
+    const reply = messagesGetResponse.reply as MessagesGetReply;
 
     /** Absence of a messageEntry or message within messageEntry can happen because updating a
      * Record creates another RecordsWrite with the same recordId. Only the first and
      * most recent RecordsWrite messages are kept for a given recordId. Any RecordsWrite messages
      * that aren't the first or most recent are discarded by the DWN. */
-    if (!(reply.messages && reply.messages.length === 1)) {
+    if (!(reply.entries && reply.entries.length === 1)) {
       return undefined;
     }
 
-    const [ messageEntry ] = reply.messages;
+    const [ messageEntry ] = reply.entries;
 
     let { message } = messageEntry;
     if (!message) {
@@ -523,23 +532,23 @@ export class SyncManagerLevel implements SyncManager {
         throw new Error(`SyncManager: Malformed '#dwn' service endpoint. Expected array of node addresses.`);
       }
 
-      /** Get the watermark (or undefined) for each (DID, DWN service endpoint, sync direction)
+      /** Get the cursor (or undefined) for each (DID, DWN service endpoint, sync direction)
        * combination and add it to the sync peer state array. */
       for (let dwnUrl of service.serviceEndpoint.nodes) {
-        const watermark = await this.getWatermark(did, dwnUrl, syncDirection);
-        syncPeerState.push({ did, dwnUrl, watermark });
+        const cursor = await this.getCursor(did, dwnUrl, syncDirection);
+        syncPeerState.push({ did, dwnUrl, cursor});
       }
     }
 
     return syncPeerState;
   }
 
-  private async getWatermark(did: string, dwnUrl: string, direction: SyncDirection) {
-    const wmKey = `${did}~${dwnUrl}~${direction}`;
-    const watermarkStore = this.getWatermarkStore();
-
+  private async getCursor(did: string, dwnUrl: string, direction: SyncDirection): Promise<string | undefined> {
+    const cursorKey = `${did}~${dwnUrl}~${direction}`;
+    const cursorsStore = this.getCursorStore();
     try {
-      return await watermarkStore.get(wmKey);
+      const cursorValue = await cursorsStore.get(cursorKey);
+      return cursorValue;
     } catch(error: any) {
       // Don't throw when a key wasn't found.
       if (error.notFound) {
@@ -548,11 +557,10 @@ export class SyncManagerLevel implements SyncManager {
     }
   }
 
-  private async setWatermark(did: string, dwnUrl: string, direction: SyncDirection, watermark: string) {
-    const wmKey = `${did}~${dwnUrl}~${direction}`;
-    const watermarkStore = this.getWatermarkStore();
-
-    await watermarkStore.put(wmKey, watermark);
+  private async setCursor(did: string, dwnUrl: string, direction: SyncDirection, cursor: string) {
+    const cursorKey = `${did}~${dwnUrl}~${direction}`;
+    const cursorsStore = this.getCursorStore();
+    await cursorsStore.put(cursorKey, cursor);
   }
 
   /**
@@ -585,8 +593,8 @@ export class SyncManagerLevel implements SyncManager {
     return this._db.sublevel('history').sublevel(did).sublevel('messages');
   }
 
-  private getWatermarkStore() {
-    return this._db.sublevel('watermarks');
+  private getCursorStore() {
+    return this._db.sublevel('cursors');
   }
 
   private getPushQueue() {

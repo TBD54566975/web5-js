@@ -1,15 +1,18 @@
 import type { PortableDid } from '@web5/dids';
+import type { RecordsQueryReply, RecordsQueryReplyEntry, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
-import { expect } from 'chai';
-import * as sinon from 'sinon';
-import { RecordsQueryReply, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import sinon from 'sinon';
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 
 import type { ManagedIdentity } from '../src/identity-manager.js';
 
-import { testDwnUrl } from './utils/test-config.js';
 import { TestAgent } from './utils/test-agent.js';
-import { SyncManagerLevel } from '../src/sync-manager.js';
+import { testDwnUrl } from './utils/test-config.js';
 import { TestManagedAgent } from '../src/test-managed-agent.js';
+import { SyncManagerLevel } from '../src/sync-manager.js';
+
+chai.use(chaiAsPromised);
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -73,6 +76,101 @@ describe('SyncManagerLevel', () => {
       await testAgent.closeStorage();
     });
 
+    it('syncs multiple records in both directions', async () => {
+      // create 3 local records.
+      const localRecords: string[] = [];
+      for (let i = 0; i < 3; i++) {
+        const writeResponse = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob([`Hello, ${i}`])
+        });
+
+        localRecords.push((writeResponse.message as RecordsWriteMessage).recordId);
+      }
+
+      // create 3 remote records
+      const remoteRecords: string[] = [];
+      for (let i = 0; i < 3; i++) {
+        let writeResponse = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob([`Hello, ${i}`])
+        });
+        remoteRecords.push((writeResponse.message as RecordsWriteMessage).recordId);
+      }
+
+      // query local and check for only local records
+      let localQueryResponse = await testAgent.agent.dwnManager.processRequest({
+        author         : alice.did,
+        target         : alice.did,
+        messageType    : 'RecordsQuery',
+        messageOptions : { filter: { dataFormat: 'text/plain' } }
+      });
+      let localDwnQueryReply = localQueryResponse.reply as RecordsQueryReply;
+      expect(localDwnQueryReply.status.code).to.equal(200);
+      expect(localDwnQueryReply.entries).to.have.length(3);
+      let localRecordsFromQuery = localDwnQueryReply.entries?.map(entry => entry.recordId);
+      expect(localRecordsFromQuery).to.have.members(localRecords);
+
+      // query remote and check for only remote records
+      let remoteQueryResponse = await testAgent.agent.dwnManager.sendRequest({
+        author         : alice.did,
+        target         : alice.did,
+        messageType    : 'RecordsQuery',
+        messageOptions : { filter: { dataFormat: 'text/plain' } }
+      });
+      let remoteDwnQueryReply = remoteQueryResponse.reply as RecordsQueryReply;
+      expect(remoteDwnQueryReply.status.code).to.equal(200);
+      expect(remoteDwnQueryReply.entries).to.have.length(3);
+      let remoteRecordsFromQuery = remoteDwnQueryReply.entries?.map(entry => entry.recordId);
+      expect(remoteRecordsFromQuery).to.have.members(remoteRecords);
+
+      // Register Alice's DID to be synchronized.
+      await testAgent.agent.syncManager.registerIdentity({
+        did: alice.did
+      });
+
+      // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
+      await testAgent.agent.syncManager.push();
+      await testAgent.agent.syncManager.pull();
+
+      // query local node to see all records
+      localQueryResponse = await testAgent.agent.dwnManager.processRequest({
+        author         : alice.did,
+        target         : alice.did,
+        messageType    : 'RecordsQuery',
+        messageOptions : { filter: { dataFormat: 'text/plain' } }
+      });
+      localDwnQueryReply = localQueryResponse.reply as RecordsQueryReply;
+      expect(localDwnQueryReply.status.code).to.equal(200);
+      expect(localDwnQueryReply.entries).to.have.length(6);
+      localRecordsFromQuery = localDwnQueryReply.entries?.map(entry => entry.recordId);
+      expect(localRecordsFromQuery).to.have.members([...localRecords, ...remoteRecords]);
+
+      // query remote node to see all results
+      remoteQueryResponse = await testAgent.agent.dwnManager.sendRequest({
+        author         : alice.did,
+        target         : alice.did,
+        messageType    : 'RecordsQuery',
+        messageOptions : { filter: { dataFormat: 'text/plain' } }
+      });
+      remoteDwnQueryReply = remoteQueryResponse.reply as RecordsQueryReply;
+      expect(remoteDwnQueryReply.status.code).to.equal(200);
+      expect(remoteDwnQueryReply.entries).to.have.length(6);
+      remoteRecordsFromQuery = remoteDwnQueryReply.entries?.map(entry => entry.recordId);
+      expect(remoteRecordsFromQuery).to.have.members([...localRecords, ...remoteRecords]);
+
+    });
+
     describe('pull()', () => {
       it('takes no action if no identities are registered', async () => {
         const didResolveSpy = sinon.spy(testAgent.agent.didResolver, 'resolve');
@@ -118,7 +216,6 @@ describe('SyncManagerLevel', () => {
         await testAgent.agent.syncManager.registerIdentity({
           did: alice.did
         });
-
         // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
         await testAgent.agent.syncManager.pull();
 
@@ -179,7 +276,7 @@ describe('SyncManagerLevel', () => {
 
         expect(localReply2.status.code).to.equal(200);
         expect(localReply2.entries?.length).to.equal(1);
-        const entry = localReply2.entries![0];
+        const entry = localReply2.entries![0] as RecordsQueryReplyEntry;
         expect(entry.encodedData).to.be.undefined; // encodedData is undefined
 
         // check for response encodedData if it doesn't exist issue a RecordsRead
@@ -376,7 +473,7 @@ describe('SyncManagerLevel', () => {
 
         expect(remoteReply2.status.code).to.equal(200);
         expect(remoteReply2.entries?.length).to.equal(1);
-        const entry = remoteReply2.entries![0];
+        const entry = remoteReply2.entries![0] as RecordsQueryReplyEntry;
         expect(entry.encodedData).to.be.undefined;
         // check for response encodedData if it doesn't exist issue a RecordsRead
         const recordId = (entry as RecordsWriteMessage).recordId;
@@ -464,6 +561,65 @@ describe('SyncManagerLevel', () => {
         remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
         expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
+      });
+    });
+
+    describe('startSync()', () => {
+      it('calls push/pull in each interval', async () => {
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+
+        const pushSpy = sinon.stub(SyncManagerLevel.prototype, 'push');
+        pushSpy.resolves();
+
+        const pullSpy = sinon.stub(SyncManagerLevel.prototype, 'pull');
+        pullSpy.resolves();
+
+        const clock = sinon.useFakeTimers();
+
+        testAgent.agent.syncManager.startSync({ interval: 500 });
+
+        await clock.tickAsync(1_400); // just under 3 intervals
+        pushSpy.restore();
+        pullSpy.restore();
+        clock.restore();
+
+        expect(pushSpy.callCount).to.equal(2, 'push');
+        expect(pullSpy.callCount).to.equal(2, 'pull');
+      });
+
+      it('does not call push/pull again until a push/pull finishes', async () => {
+        await testAgent.agent.syncManager.registerIdentity({
+          did: alice.did
+        });
+
+        const clock = sinon.useFakeTimers();
+
+        const pushSpy = sinon.stub(SyncManagerLevel.prototype, 'push');
+        pushSpy.returns(new Promise((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 1_500); // more than the interval
+        }));
+
+        const pullSpy = sinon.stub(SyncManagerLevel.prototype, 'pull');
+        pullSpy.resolves();
+
+        testAgent.agent.syncManager.startSync({ interval: 500 });
+
+        await clock.tickAsync(1_400); // less time than the push
+
+        expect(pushSpy.callCount).to.equal(1, 'push');
+        expect(pullSpy.callCount).to.equal(0, 'pull'); // not called yet
+
+        await clock.tickAsync(100); //remaining time for pull to be called
+
+        expect(pullSpy.callCount).to.equal(1, 'pull');
+
+        pushSpy.restore();
+        pullSpy.restore();
+        clock.restore();
       });
     });
   });

@@ -350,11 +350,11 @@ export class DwnManager {
 
     const result: MessagesGetReply = await this._dwn.processMessage(author, messagesGet.message);
 
-    if (!(result.messages && result.messages.length === 1)) {
+    if (!(result.entries && result.entries.length === 1)) {
       throw new Error('TODO: figure out error message');
     }
 
-    const [ messageEntry ] = result.messages;
+    const [ messageEntry ] = result.entries;
 
     let { message } = messageEntry;
     if (!message) {
@@ -421,22 +421,6 @@ export class DwnManager {
     return dwnMessage;
   }
 
-  /**
-   * Writes a pruned initial `RecordsWrite` to a DWN without needing to supply associated data.
-   * Note: This method should ONLY be used by a {@link SyncManager} implementation.
-   *
-   * @param options.targetDid - DID of the DWN tenant to write the pruned RecordsWrite to.
-   * @returns DWN reply containing the status of processing request.
-   */
-  public async writePrunedRecord(options: {
-    targetDid: string,
-    message: RecordsWriteMessage
-  }): Promise<GenericMessageReply> {
-    const { targetDid, message } = options;
-
-    return await this._dwn.synchronizePrunedInitialRecordsWrite(targetDid, message);
-  }
-
   public async processMessage(options: {
     targetDid: string,
     message: GenericMessage,
@@ -447,12 +431,3 @@ export class DwnManager {
     return await this._dwn.processMessage(targetDid, message, dataStream);
   }
 }
-
-type GenericMessageReply = {
-  status: Status;
-};
-
-type Status = {
-  code: number
-  detail: string
-};
