@@ -84,7 +84,7 @@
     "@web/test-runner": "0.18.0",
     "@web/test-runner-playwright": "0.11.0",
     "@web5/api": "0.8.4",
-    "c8": "8.0.1",
+    "c8": "9.0.0",
     "chai": "4.3.10",
     "chai-as-promised": "7.1.1",
     "esbuild": "0.19.8",
