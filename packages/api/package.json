@@ -1,6 +1,6 @@
 {
   "name": "@web5/api",
-  "version": "0.8.4-rc.0",
+  "version": "0.8.4",
   "description": "SDK for accessing the features and capabilities of Web5",
   "type": "module",
   "main": "./dist/cjs/index.js",
