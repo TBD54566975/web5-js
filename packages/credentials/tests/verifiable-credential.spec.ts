@@ -8,7 +8,7 @@ import { Jwt } from '../src/jwt.js';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import CredentialsVerifyTestVector from '../../../test-vectors/credentials/verify.json' assert { type: 'json' };
 
-describe('Verifiable Credential Tests', () => {
+describe('VerifiableCredentialTests', () => {
   let issuerDid: PortableDid;
 
   class StreetCredibility {
