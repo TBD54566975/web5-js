@@ -6,6 +6,7 @@ import { DidDhtMethod, DidKeyMethod, DidIonMethod } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
+import CredentialsVerifyTestVector from '../../../test-vectors/credentials/verify.json' assert { type: 'json' };
 
 describe('Verifiable Credential Tests', () => {
   let issuerDid: PortableDid;
@@ -407,6 +408,37 @@ describe('Verifiable Credential Tests', () => {
       expect(didDhtCreateStub.calledOnce).to.be.true;
       expect(dhtDidResolutionSpy.calledOnce).to.be.true;
       sinon.restore();
+    });
+  });
+
+  describe('Web5TestVectorsCredentials', () => {
+    it('verify', async () => {
+      const vectors = CredentialsVerifyTestVector.vectors;
+
+      for (const vector of vectors) {
+        const { input, errors, description } = vector;
+
+        // TODO: DID:JWK is not supported yet
+        if (description === 'verify a jwt verifiable credential signed with a did:jwk') {
+          continue;
+        }
+
+        if (errors) {
+          let errorOccurred = false;
+          try {
+            await VerifiableCredential.verify({ vcJwt: input.vcJwt });
+          } catch (e: any) {
+            errorOccurred = true;
+            expect(e.message).to.not.be.null;
+          }
+          if (!errorOccurred) {
+            throw new Error('Verification should have failed but didn\'t.');
+          }
+        } else {
+          // Expecting successful verification
+          await VerifiableCredential.verify({ vcJwt: input.vcJwt });
+        }
+      }
     });
   });
 });
