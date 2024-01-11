@@ -163,6 +163,10 @@ export class Jwt {
   static async verify(options: VerifyJwtOptions): Promise<JwtVerifyResult> {
     const { decoded: decodedJwt, encoded: encodedJwt } = Jwt.parse({ jwt: options.jwt });
 
+    if (decodedJwt.payload.exp && Math.floor(Date.now() / 1000) > decodedJwt.payload.exp) {
+      throw new Error(`Verification failed: JWT is expired`);
+    }
+
     // TODO: should really be looking for verificationMethod with authentication verification relationship
     const dereferenceResult = await Jwt.didResolver.dereference({ didUrl: decodedJwt.header.kid! });
     if (dereferenceResult.dereferencingMetadata.error) {
