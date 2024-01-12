@@ -346,6 +346,22 @@ export type JwkKeyPair = {
 export type Jwk = PrivateKeyJwk | PublicKeyJwk;
 
 /**
+ * JSON Web Key Set ({@link https://datatracker.ietf.org/doc/html/rfc7517 | JWK Set})
+ *
+ * @remarks
+ * A JWK Set is a JSON object that represents a set of JWKs. The JSON object MUST have a "keys"
+ * member, with its value being an array of JWKs.
+ *
+ * Additional members can be present in the JWK Set but member names MUST be unique. If not
+ * understood by implementations encountering them, they MUST be ignored. Parameters for
+ * representing additional properties of JWK Sets should either be registered in the IANA
+ * "JSON Web Key Set Parameters" registry or be a value that contains a Collision-Resistant Name.
+ */
+export interface JwkSet {
+  keys: Jwk[]
+}
+
+/**
  * Computes the thumbprint of a JSON Web Key (JWK) using the method
  * specified in RFC 7638. This function accepts RSA, EC, OKP, and oct keys
  * and returns the thumbprint as a base64url encoded SHA-256 hash of the
