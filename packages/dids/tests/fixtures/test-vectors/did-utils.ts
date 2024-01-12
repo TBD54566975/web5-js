@@ -103,7 +103,7 @@ export const didDocumentIdTestVectors = [
         x   : 'k1GKchkMMp9nbYsShY1R2UVzPsQill6zv2De38ERkfI'
       },
     },
-    output: undefined
+    output: null
   }
 ];
 
@@ -220,29 +220,29 @@ export const didDocumentTypeTestVectors = [
             'id'              : 'did:example:123#key-0',
             'type'            : 'Ed25519VerificationKey2018',
             'controller'      : 'did:example:123',
-            'publicKeyBase58' : '3M5RCDjPTWPkKSN3sxUmmMqHbmRPegYP1tjcKyrDbt9J' // external (property name)
+            'publicKeyBase58' : '3M5RCDjPTWPkKSN3sxUmmMqHbmRPegYP1tjcKyrDbt9J'
           },
           {
             'id'              : 'did:example:123#key-1',
             'type'            : 'X25519KeyAgreementKey2019',
             'controller'      : 'did:example:123',
-            'publicKeyBase58' : 'FbQWLPRhTH95MCkQUeFYdiSoQt8zMwetqfWoxqPgaq7x' // external (property name)
+            'publicKeyBase58' : 'FbQWLPRhTH95MCkQUeFYdiSoQt8zMwetqfWoxqPgaq7x'
           },
           {
             'id'              : 'did:example:123#key-2',
             'type'            : 'EcdsaSecp256k1VerificationKey2019',
             'controller'      : 'did:example:123',
-            'publicKeyBase58' : 'ns2aFDq25fEV1NUd3wZ65sgj5QjFW8JCAHdUJfLwfodt' // external (property name)
+            'publicKeyBase58' : 'ns2aFDq25fEV1NUd3wZ65sgj5QjFW8JCAHdUJfLwfodt'
           },
           {
             'id'           : 'did:example:123#key-3',
             'type'         : 'JsonWebKey2020',
             'controller'   : 'did:example:123',
             'publicKeyJwk' : {
-              'kty' : 'EC', // external (property name)
-              'crv' : 'P-256', // external (property name)
-              'x'   : 'Er6KSSnAjI70ObRWhlaMgqyIOQYrDJTE94ej5hybQ2M', // external (property name)
-              'y'   : 'pPVzCOTJwgikPjuUE6UebfZySqEJ0ZtsWFpj7YSPGEk' // external (property name)
+              'kty' : 'EC',
+              'crv' : 'P-256',
+              'x'   : 'Er6KSSnAjI70ObRWhlaMgqyIOQYrDJTE94ej5hybQ2M',
+              'y'   : 'pPVzCOTJwgikPjuUE6UebfZySqEJ0ZtsWFpj7YSPGEk'
             }
           }
         ]
