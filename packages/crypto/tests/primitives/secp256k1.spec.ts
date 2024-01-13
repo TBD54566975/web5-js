@@ -27,6 +27,59 @@ describe('Secp256k1', () => {
     publicKey = await Secp256k1.computePublicKey({ key: privateKey });
   });
 
+  describe('adjustSignatureToLowS()', () => {
+    it('returns a 64-byte signature of type Uint8Array', async () => {
+      const data = new Uint8Array([51, 52, 53]);
+      const signature = await Secp256k1.sign({ key: privateKey, data });
+
+      const adjustedSignature = await Secp256k1.adjustSignatureToLowS({ signature });
+
+      expect(adjustedSignature).to.be.instanceOf(Uint8Array);
+      expect(adjustedSignature.byteLength).to.equal(64);
+    });
+
+    it('returns the low-S form given a high-S signature', async () => {
+      const signatureHighS = Convert.hex('351757c538d0a13fa9473dabc259be82dba1bd8f44dcba71a7f222655429b470f9f78c954682f4ce451e5f3d353b4c9fcfbb7d702fe9e28bdfe21be648fc618d').toUint8Array();
+
+      const adjustedSignature = await Secp256k1.adjustSignatureToLowS({ signature: signatureHighS });
+
+      expect(adjustedSignature).to.not.deep.equal(signatureHighS);
+    });
+
+    it('returns the signature unmodified if already in low-S form', async () => {
+      const signatureLowS = Convert.hex('351757c538d0a13fa9473dabc259be82dba1bd8f44dcba71a7f222655429b4700608736ab97d0b31bae1a0c2cac4b35eeaf35f767f5ebdafdff042a68739dfb4').toUint8Array();
+
+      const adjustedSignature = await Secp256k1.adjustSignatureToLowS({ signature: signatureLowS });
+
+      expect(adjustedSignature).to.deep.equal(signatureLowS);
+    });
+
+    it('returns signatures that can be verified regardless of low- or high-S form', async () => {
+      const data = new Uint8Array([51, 52, 53]);
+
+      const publicKey: Jwk = {
+        kty : 'EC',
+        crv : 'secp256k1',
+        x   : 'A2ZbCLhod3ltBQ4Mw0zjkcQZ7h7B1FQ3s56ZtWavonQ',
+        y   : 'JBerPwkut8tONfAfcXhNEBERj7jejohqMfbbs2aMMZA',
+        kid : '9l2x1L-iUvyCy4RuqJdoqe7h0IPnCVXPjTHhVYCuLAc'
+      };
+
+      const signatureLowS = Convert.hex('351757c538d0a13fa9473dabc259be82dba1bd8f44dcba71a7f222655429b4700608736ab97d0b31bae1a0c2cac4b35eeaf35f767f5ebdafdff042a68739dfb4').toUint8Array();
+      const signatureHighS = Convert.hex('351757c538d0a13fa9473dabc259be82dba1bd8f44dcba71a7f222655429b470f9f78c954682f4ce451e5f3d353b4c9fcfbb7d702fe9e28bdfe21be648fc618d').toUint8Array();
+
+      // Verify that the returned signature is valid when input in low-S form.
+      let adjustedSignature = await Secp256k1.adjustSignatureToLowS({ signature: signatureLowS });
+      let isValid = await Secp256k1.verify({ key: publicKey, signature: adjustedSignature, data });
+      expect(isValid).to.be.true;
+
+      // Verify that the returned signature is valid when input in high-S form.
+      adjustedSignature = await Secp256k1.adjustSignatureToLowS({ signature: signatureHighS });
+      isValid = await Secp256k1.verify({ key: publicKey, signature: adjustedSignature, data });
+      expect(isValid).to.be.true;
+    });
+  });
+
   describe('bytesToPrivateKey()', () => {
     it('returns a private key in JWK format', async () => {
       const privateKeyBytes = Convert.hex('740ec69810de9ad1b8f298f1d2c0e6a52dd1e958dc2afc85764bec169c222e88').toUint8Array();
