@@ -4,6 +4,8 @@ import chaiAsPromised from 'chai-as-promised';
 
 import type { Jwk, JwkParamsEcPrivate } from '../../src/jose/jwk.js';
 
+import CryptoEs256kSignTestVector from '../../../../test-vectors/crypto_es256k/sign.json' assert { type: 'json' };
+import CryptoEs256kVerifyTestVector from '../../../../test-vectors/crypto_es256k/verify.json' assert { type: 'json' };
 import secp256k1GetCurvePoints from '../fixtures/test-vectors/secp256k1/get-curve-points.json' assert { type: 'json' };
 import secp256k1BytesToPublicKey from '../fixtures/test-vectors/secp256k1/bytes-to-public-key.json' assert { type: 'json' };
 import secp256k1PublicKeyToBytes from '../fixtures/test-vectors/secp256k1/public-key-to-bytes.json' assert { type: 'json' };
@@ -507,6 +509,25 @@ describe('Secp256k1', () => {
       signature = await Secp256k1.sign({ key, data });
       expect(signature).to.be.instanceOf(Uint8Array);
     });
+
+    describe('Web5TestVectorsCryptoEs256k', () => {
+      it('sign', async () => {
+        for (const vector of CryptoEs256kSignTestVector.vectors) {
+          let errorOccurred = false;
+          try {
+            const signature = await Secp256k1.sign({
+              key  : vector.input.key as Jwk,
+              data : Convert.hex(vector.input.data).toUint8Array()
+            });
+
+            const signatureHex = Convert.uint8Array(signature).toHex();
+            expect(signatureHex).to.deep.equal(vector.output);
+
+          } catch { errorOccurred = true; }
+          expect(errorOccurred).to.equal(vector.errors, `Expected '${vector.description}' to${vector.errors ? ' ' : ' not '}throw an error`);
+        }
+      });
+    });
   });
 
   describe('validatePrivateKey()', () => {
@@ -550,58 +571,23 @@ describe('Secp256k1', () => {
       expect(isValid).to.be.true;
     });
 
-    it('returns false if the signed data was mutated', async () => {
-      const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-      let isValid: boolean;
+    describe('Web5TestVectorsCryptoEs256k', () => {
+      it('verify', async () => {
+        for (const vector of CryptoEs256kVerifyTestVector.vectors) {
+          let errorOccurred = false;
+          try {
+            const isValid = await Secp256k1.verify({
+              key       : vector.input.key as Jwk,
+              signature : Convert.hex(vector.input.signature).toUint8Array(),
+              data      : Convert.hex(vector.input.data).toUint8Array()
+            });
 
-      // Generate signature using the private key.
-      const signature = await Secp256k1.sign({ key: privateKey, data });
+            expect(isValid).to.equal(vector.output);
 
-      // Verification should return true with the data used to generate the signature.
-      isValid = await Secp256k1.verify({ key: publicKey, signature, data });
-      expect(isValid).to.be.true;
-
-      // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
-      const mutatedData = new Uint8Array(data);
-      mutatedData[0] ^= 1 << 0;
-
-      // Verification should return false if the given data does not match the data used to generate the signature.
-      isValid = await Secp256k1.verify({ key: publicKey, signature, data: mutatedData });
-      expect(isValid).to.be.false;
-    });
-
-    it('returns false if the signature was mutated', async () => {
-      const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-      let isValid: boolean;
-
-      // Generate signature using the private key.
-      const signature = await Secp256k1.sign({ key: privateKey, data });
-
-      // Verification should return true with the data used to generate the signature.
-      isValid = await Secp256k1.verify({ key: publicKey, signature, data });
-      expect(isValid).to.be.true;
-
-      // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
-      const mutatedSignature = new Uint8Array(signature);
-      mutatedSignature[0] ^= 1 << 0;
-
-      // Verification should return false if the signature was modified.
-      isValid = await Secp256k1.verify({ key: publicKey, signature: signature, data: mutatedSignature });
-      expect(isValid).to.be.false;
-    });
-
-    it('returns false with a signature generated using a different private key', async () => {
-      const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-      const publicKeyA = publicKey;
-      const privateKeyB = await Secp256k1.generateKey();
-      let isValid: boolean;
-
-      // Generate a signature using private key B.
-      const signatureB = await Secp256k1.sign({ key: privateKeyB, data });
-
-      // Verification should return false with public key A.
-      isValid = await Secp256k1.verify({ key: publicKeyA, signature: signatureB, data });
-      expect(isValid).to.be.false;
+          } catch { errorOccurred = true; }
+          expect(errorOccurred).to.equal(vector.errors, `Expected '${vector.description}' to${vector.errors ? ' ' : ' not '}throw an error`);
+        }
+      });
     });
   });
 });
