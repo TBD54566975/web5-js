@@ -2,7 +2,12 @@ import type { Jwk } from '@web5/crypto';
 
 import { computeJwkThumbprint } from '@web5/crypto';
 
-import type { DidDocument, DidService, DidVerificationMethod } from './types/did-core.js';
+import type {
+  DidService,
+  DidDocument,
+  DidVerificationMethod,
+  DidVerificationRelationship,
+} from './types/did-core.js';
 
 /**
  * Represents a Decentralized Web Node (DWN) service in a DID Document.
@@ -43,7 +48,8 @@ export interface DwnDidService extends DidService {
 }
 
 /**
- * Retrieves services from a given DID document based on provided options.
+ * Retrieves services from a given DID document, optionally filtered by `id` or `type`.
+ *
  * If no `id` or `type` filters are provided, all defined services are returned.
  *
  * The given DID Document must adhere to the
@@ -74,51 +80,51 @@ export function getServices({ didDocument, id, type }: {
 }
 
 /**
- * Retrieves the ID of a verification method from a DID document that matches a specified
+ * Retrieves a verification method object from a DID document if there is a match for the given
  * public key.
  *
  * This function searches the verification methods in a given DID document for a match with the
  * provided public key (either in JWK or multibase format). If a matching verification method is
- * found, the function returns the method's ID.
+ * found it is returned. If no match is found `null` is returned.
  *
-*
-* @example
-* ```ts
-* const didDocument = {
-  *   // ... contents of a DID document ...
-  * };
-  * const publicKeyJwk = { kty: 'OKP', crv: 'Ed25519', x: '...' };
-  *
-  * const verificationMethodId = await getVerificationMethodId({
-  *   didDocument,
-  *   publicKeyJwk
-  * });
-  * ```
-  *
+ *
+ * @example
+ * ```ts
+ * const didDocument = {
+ *   // ... contents of a DID document ...
+ * };
+ * const publicKeyJwk = { kty: 'OKP', crv: 'Ed25519', x: '...' };
+ *
+ * const verificationMethod = await getVerificationMethodByKey({
+ *   didDocument,
+ *   publicKeyJwk
+ * });
+ * ```
+ *
  * @param params - An object containing input parameters for retrieving the verification method ID.
  * @param params.didDocument - The DID document to search for the verification method.
  * @param params.publicKeyJwk - The public key in JSON Web Key (JWK) format to match against the verification methods in the DID document.
  * @param params.publicKeyMultibase - The public key as a multibase encoded string to match against the verification methods in the DID document.
- * @returns A promise that resolves with the ID of the matching verification method, or `null` if no match is found.
+ * @returns A promise that resolves with the matching verification method, or `null` if no match is found.
  * @throws Throws an `Error` if the `didDocument` parameter is missing or if the `didDocument` does not contain any verification methods.
  */
-export async function getVerificationMethodId({ didDocument, publicKeyJwk, publicKeyMultibase }: {
+export async function getVerificationMethodByKey({ didDocument, publicKeyJwk, publicKeyMultibase }: {
   didDocument: DidDocument;
   publicKeyJwk?: Jwk;
   publicKeyMultibase?: string;
-}): Promise<string | null> {
-  if (!didDocument) throw new Error(`Required parameter missing: 'didDocument'`);
-  if (!didDocument.verificationMethod) throw new Error('Given `didDocument` is missing `verificationMethod` entries');
+}): Promise<DidVerificationMethod | null> {
+  // Collect all verification methods from the DID document.
+  const verificationMethods = getVerificationMethods({ didDocument });
 
-  for (let method of didDocument.verificationMethod) {
-    if (publicKeyMultibase && method.publicKeyMultibase) {
-      if (publicKeyMultibase === method.publicKeyMultibase) {
-        return method.id;
-      }
-    } else if (publicKeyJwk && method.publicKeyJwk) {
+  for (let method of verificationMethods) {
+    if (publicKeyJwk && method.publicKeyJwk) {
       const publicKeyThumbprint = await computeJwkThumbprint({ jwk: publicKeyJwk });
       if (publicKeyThumbprint === await computeJwkThumbprint({ jwk: method.publicKeyJwk })) {
-        return method.id;
+        return method;
+      }
+    } else if (publicKeyMultibase && method.publicKeyMultibase) {
+      if (publicKeyMultibase === method.publicKeyMultibase) {
+        return method;
       }
     }
   }
@@ -127,7 +133,56 @@ export async function getVerificationMethodId({ didDocument, publicKeyJwk, publi
 }
 
 /**
- * Retrieves DID verification method types from a given DID document.
+ * Retrieves all verification methods from a given DID document, including embedded methods.
+ *
+ * This function consolidates all verification methods into a single array for easy access and
+ * processing. It checks both the primary `verificationMethod` array and the individual verification
+ * relationship properties `authentication`, `assertionMethod`, `keyAgreement`,
+ * `capabilityInvocation`, and `capabilityDelegation` for embedded methods.
+ *
+ * The given DID Document must adhere to the
+ * {@link https://www.w3.org/TR/did-core/ | W3C DID Core Specification}.
+ *
+ * @example
+ * ```ts
+ * const didDocument = { ... }; // W3C DID document
+ * const verificationMethods = getVerificationMethods({ didDocument });
+ * ```
+ *
+ * @param params - An object containing input parameters for retrieving verification methods.
+ * @param params.didDocument - The DID document from which verification methods are retrieved.
+ * @returns An array of `DidVerificationMethod`. If no verification methods are found, an empty array is returned.
+ * @throws Throws an `TypeError` if the `didDocument` parameter is missing.
+ */
+export function getVerificationMethods({ didDocument }: {
+  didDocument: DidDocument;
+}): DidVerificationMethod[] {
+  if (!didDocument) throw new TypeError(`Required parameter missing: 'didDocument'`);
+
+  const verificationMethods: DidVerificationMethod[] = [];
+
+  // Check the 'verificationMethod' array.
+  verificationMethods.push(...didDocument?.verificationMethod?.filter(isDidVerificationMethod) ?? []);
+
+  // Define the verification relationship properties to check.
+  const verificationRelationships: DidVerificationRelationship[] = [
+    'authentication',
+    'assertionMethod',
+    'keyAgreement',
+    'capabilityInvocation',
+    'capabilityDelegation',
+  ];
+
+  // Check verification relationship properties for embedded verification methods.
+  verificationRelationships.forEach((relationship) => {
+    verificationMethods.push(...(didDocument[relationship] as any[])?.filter(isDidVerificationMethod) ?? []);
+  });
+
+  return verificationMethods;
+}
+
+/**
+ * Retrieves all DID verification method types from a given DID document.
  *
  * The given DID Document must adhere to the
  * {@link https://www.w3.org/TR/did-core/ | W3C DID Core Specification}.
@@ -171,22 +226,15 @@ export async function getVerificationMethodId({ didDocument, publicKeyJwk, publi
  * @returns An array of types. If no types were found, an empty array is returned.
  */
 export function getVerificationMethodTypes({ didDocument }: {
-  didDocument: Record<string, any>;
+  didDocument: DidDocument;
 }): string[] {
-  let types: string[] = [];
+  // Collect all verification methods from the DID document.
+  const verificationMethods = getVerificationMethods({ didDocument });
 
-  for (let key in didDocument) {
-    if (typeof didDocument[key] === 'object') {
-      types = types.concat(getVerificationMethodTypes({
-        didDocument: didDocument[key]
-      }));
+  // Map to extract 'type' from each verification method.
+  const types = verificationMethods.map(method => method.type);
 
-    } else if (key === 'type') {
-      types.push(didDocument[key]);
-    }
-  }
-
-  return [...new Set(types)]; // return only unique types
+  return [...new Set(types)]; // Return only unique types.
 }
 
 /**

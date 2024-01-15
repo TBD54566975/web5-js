@@ -7,12 +7,12 @@ import type { DidDocument, DidResolutionOptions, DidResolutionResult, DidVerific
 
 import { DidUri } from '../did-uri.js';
 import { DidMethod } from './did-method.js';
-import { getVerificationMethodId } from '../utils.js';
+import { getVerificationMethodByKey } from '../utils.js';
 import { EMPTY_DID_RESOLUTION_RESULT } from '../did-resolver.js';
 
 /**
- * Specifies options that can be specified when creating a new "did:jwk" Decentralized Identifier
- * (DID).
+ * Defines the set of options available when creating a new Decentralized Identifier (DID) with the
+ * 'did:jwk' method.
  *
  * Either the `algorithm` or `keySet` option must be specified. If both are specified, the `keySet`
  * option takes precedence.
@@ -175,7 +175,7 @@ export class DidJwk extends DidMethod {
       // Get the public key from the key store, which also verifies that the key is present.
       publicKey = await keyManager.getPublicKey({ keyUri });
       // Verify the public key exists in the DID Document.
-      if (!(await getVerificationMethodId({ didDocument, publicKeyJwk: publicKey }))) {
+      if (!(await getVerificationMethodByKey({ didDocument, publicKeyJwk: publicKey }))) {
         throw new Error(`DidJwk: Key referenced by '${keyUri}' is not present in the provided DID Document for '${didDocument.id}'`);
       }
 

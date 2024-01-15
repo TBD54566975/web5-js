@@ -6,14 +6,15 @@ import {
   getServices,
   isDidService,
   isDwnDidService,
-  getVerificationMethodId,
+  getVerificationMethodByKey,
   isDidVerificationMethod,
+  getVerificationMethods,
   getVerificationMethodTypes,
 } from '../src/utils.js';
-import {
-  didDocumentIdTestVectors,
-  didDocumentTypeTestVectors,
-} from './fixtures/test-vectors/did-utils.js';
+
+import DidUtilsgetVerificationMethodsTestVector from './fixtures/test-vectors/utils/get-verification-methods.json' assert { type: 'json' };
+import DidUtilsGetVerificationMethodTypesTestVector from './fixtures/test-vectors/utils/get-verification-method-types.json' assert { type: 'json' };
+import DidUtilsGetVerificationMethodByKeyTestVector from './fixtures/test-vectors/utils/get-verification-method-by-key.json' assert { type: 'json' };
 
 describe('DID Utils', () => {
   describe('getServices()', () => {
@@ -79,20 +80,70 @@ describe('DID Utils', () => {
     });
   });
 
-  describe('getVerificationMethodId()', () => {
-    for (const vector of didDocumentIdTestVectors) {
-      it(`passes test vector ${vector.id}`, async () => {
-        const methodIds = await getVerificationMethodId(vector.input as any);
-        expect(methodIds).to.deep.equal(vector.output);
+  describe('getVerificationMethodByKey()', () => {
+    type TestVector = {
+      description: string;
+      input: Parameters<typeof getVerificationMethodByKey>[0];
+      output: ReturnType<typeof getVerificationMethodByKey>;
+      errors: boolean;
+    };
+
+    for (const vector of DidUtilsGetVerificationMethodByKeyTestVector.vectors as unknown as TestVector[]) {
+      it(vector.description, async () => {
+        let errorOccurred = false;
+        try {
+          const verificationMethods = await getVerificationMethodByKey(vector.input);
+
+          expect(verificationMethods).to.deep.equal(vector.output, vector.description);
+
+        } catch { errorOccurred = true; }
+        expect(errorOccurred).to.equal(vector.errors, `Expected '${vector.description}' to${vector.errors ? ' ' : ' not '}throw an error`);
+      });
+    }
+  });
+
+  describe('getVerificationMethods()', () => {
+    type TestVector = {
+      description: string;
+      input: Parameters<typeof getVerificationMethods>[0];
+      output: ReturnType<typeof getVerificationMethods>;
+      errors: boolean;
+    };
+
+    for (const vector of DidUtilsgetVerificationMethodsTestVector.vectors as unknown as TestVector[]) {
+      it(vector.description, async () => {
+        let errorOccurred = false;
+        try {
+          const verificationMethods = getVerificationMethods({
+            didDocument: vector.input.didDocument as DidDocument
+          });
+
+          expect(verificationMethods).to.deep.equal(vector.output, vector.description);
+
+        } catch { errorOccurred = true; }
+        expect(errorOccurred).to.equal(vector.errors, `Expected '${vector.description}' to${vector.errors ? ' ' : ' not '}throw an error`);
       });
     }
   });
 
   describe('getVerificationMethodTypes()', () => {
-    for (const vector of didDocumentTypeTestVectors) {
-      it(`passes test vector ${vector.id}`, () => {
-        const types = getVerificationMethodTypes(vector.input);
-        expect(types).to.deep.equal(vector.output);
+    type TestVector = {
+      description: string;
+      input: Parameters<typeof getVerificationMethodTypes>[0];
+      output: ReturnType<typeof getVerificationMethodTypes>;
+      errors: boolean;
+    };
+
+    for (const vector of DidUtilsGetVerificationMethodTypesTestVector.vectors as unknown as TestVector[]) {
+      it(vector.description, async () => {
+        let errorOccurred = false;
+        try {
+          const types = getVerificationMethodTypes(vector.input);
+
+          expect(types).to.deep.equal(vector.output, vector.description);
+
+        } catch { errorOccurred = true; }
+        expect(errorOccurred).to.equal(vector.errors, `Expected '${vector.description}' to${vector.errors ? ' ' : ' not '}throw an error`);
       });
     }
 
@@ -105,24 +156,10 @@ describe('DID Utils', () => {
     it('throws an error when didDocument is not provided', async () => {
       try {
         // @ts-expect-error - Testing invalid input
-        await getVerificationMethodId({ });
+        getVerificationMethodTypes({ });
         throw new Error('Test failed - error not thrown');
       } catch (error: any) {
         expect(error.message).to.include('parameter missing');
-      }
-    });
-
-    it('throws an error when didDocument is missing verificationMethod entries', async () => {
-      const didDocumentWithoutVerificationMethod = {
-        id                 : 'did:example:123',
-        verificationMethod : undefined
-      };
-
-      try {
-        await getVerificationMethodId({ didDocument: didDocumentWithoutVerificationMethod, publicKeyJwk: undefined });
-        throw new Error('Test failed - error not thrown');
-      } catch (error: any) {
-        expect(error.message).to.equal('Given `didDocument` is missing `verificationMethod` entries');
       }
     });
   });
