@@ -1,8 +1,27 @@
+import type { UnwrapPromise } from '@web5/common';
+
 import sinon from 'sinon';
 import { expect } from 'chai';
 
 import { DidWeb } from '../src/methods/did-web.js';
 import DidWebResolveTestVector from '../../../test-vectors/did_web/resolve.json' assert { type: 'json' };
+
+// Helper function to create a mocked fetch response that is successful and returns the given
+// response.
+const fetchFailedResponse = () => ({
+  status     : 404,
+  statusText : 'Not Found',
+  ok         : false
+});
+
+// Helper function to create a mocked fetch response that is successful and returns the given
+// response.
+const fetchOkResponse = (response: any) => ({
+  status     : 200,
+  statusText : 'OK',
+  ok         : true,
+  json       : async () => Promise.resolve(response)
+});
 
 describe('DidWeb', () => {
   describe('resolve()', () => {
@@ -21,6 +40,7 @@ describe('DidWeb', () => {
 
   describe('Web5TestVectorsDidJwk', () => {
     let fetchStub: sinon.SinonStub;
+
     beforeEach(() => {
       // Setup stub so that a mocked response is returned rather than calling over the network.
       fetchStub = sinon.stub(globalThis as any, 'fetch');
@@ -31,11 +51,21 @@ describe('DidWeb', () => {
     });
 
     it('resolve', async () => {
-      for (const vector of DidWebResolveTestVector.vectors) {
+      type TestVector = {
+        description: string;
+        input: {
+          didUri: Parameters<typeof DidWeb.resolve>[0];
+          mockServer: { [url: string]: any };
+        };
+        output: UnwrapPromise<ReturnType<typeof DidWeb.resolve>>;
+        errors: boolean;
+      };
+
+      for (const vector of DidWebResolveTestVector.vectors as unknown as TestVector[]) {
 
         // Only mock the response if the test vector contains a `mockServer` property.
         if (vector.input.mockServer) {
-          const mockResponses = vector.input.mockServer as { [url: string]: any };
+          const mockResponses = vector.input.mockServer;
           fetchStub.callsFake((url: string) => {
             if (url in mockResponses) return Promise.resolve(fetchOkResponse(mockResponses[url]));
           });
@@ -49,21 +79,4 @@ describe('DidWeb', () => {
       }
     });
   });
-});
-
-// Helper function to create a mocked fetch response that is successful and returns the given
-// response.
-const fetchFailedResponse = () => ({
-  status     : 404,
-  statusText : 'Not Found',
-  ok         : false
-});
-
-// Helper function to create a mocked fetch response that is successful and returns the given
-// response.
-const fetchOkResponse = (response: any) => ({
-  status     : 200,
-  statusText : 'OK',
-  ok         : true,
-  json       : async () => Promise.resolve(response)
 });

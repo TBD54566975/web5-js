@@ -1,4 +1,5 @@
 import type { Jwk } from '@web5/crypto';
+import type { UnwrapPromise } from '@web5/common';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
@@ -332,7 +333,14 @@ describe('DidJwk', () => {
 
   describe('Web5TestVectorsDidJwk', () => {
     it('resolve', async () => {
-      for (const vector of DidJwkResolveTestVector.vectors) {
+      type TestVector = {
+        description: string;
+        input: Parameters<typeof DidJwk.resolve>[0];
+        output: UnwrapPromise<ReturnType<typeof DidJwk.resolve>>;
+        errors: boolean;
+      };
+
+      for (const vector of DidJwkResolveTestVector.vectors as unknown as TestVector[]) {
         const didResolutionResult = await DidJwk.resolve(vector.input);
 
         expect(didResolutionResult).to.deep.equal(vector.output);

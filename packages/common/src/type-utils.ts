@@ -73,6 +73,34 @@ export function isDefined<T>(arg: T): arg is Exclude<T, null | undefined> {
 }
 
 /**
+ * Utility type that transforms a type `T` to have only certain keys `K` as required, while the
+ * rest remain optional, except for keys specified in `O`, which are omitted entirely.
+ *
+ * This type is useful when you need a variation of a type where only specific properties are
+ * required, and others are either optional or not included at all. It allows for more flexible type
+ * definitions based on existing types without the need to redefine them.
+ *
+ * @template T - The original type to be transformed.
+ * @template K - The keys of `T` that should be required.
+ * @template O - The keys of `T` that should be omitted from the resulting type (optional).
+ *
+ * @example
+ * ```ts
+ * // Given an interface
+ * interface Example {
+ *   requiredProp: string;
+ *   optionalProp?: number;
+ *   anotherOptionalProp?: boolean;
+ * }
+ *
+ * // Making 'optionalProp' required and omitting 'anotherOptionalProp'
+ * type ModifiedExample = RequireOnly<Example, 'optionalProp', 'anotherOptionalProp'>;
+ * // Result: { requiredProp?: string; optionalProp: number; }
+ * ```
+ */
+export type RequireOnly<T, K extends keyof T, O extends keyof T = never> = Required<Pick<T, K>> & Omit<Partial<T>, O>;
+
+/**
  * universalTypeOf
  *
  * Why does this function exist?
@@ -115,3 +143,26 @@ export function universalTypeOf(value: unknown) {
 
   return type;
 }
+
+/**
+ * Utility type to extract the type resolved by a Promise.
+ *
+ * This type unwraps the type `T` from `Promise<T>` if `T` is a Promise, otherwise returns `T` as
+ * is. It's useful in situations where you need to handle the type returned by a promise-based
+ * function in a synchronous context, such as defining types for test vectors or handling return
+ * types in non-async code blocks.
+ *
+ * @template T - The type to unwrap from the Promise.
+ *
+ * @example
+ * ```ts
+ * // For a Promise type, it extracts the resolved type.
+ * type AsyncNumber = Promise<number>;
+ * type UnwrappedNumber = UnwrapPromise<AsyncNumber>; // number
+ *
+ * // For a non-Promise type, it returns the type as is.
+ * type StringValue = string;
+ * type UnwrappedString = UnwrapPromise<StringValue>; // string
+ * ```
+ */
+export type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;
