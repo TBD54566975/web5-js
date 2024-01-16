@@ -4,9 +4,9 @@ import chaiAsPromised from 'chai-as-promised';
 
 import type { Jwk, JwkParamsOkpPrivate } from '../../src/jose/jwk.js';
 
-import ed25519Sign from '../fixtures/test-vectors/ed25519/sign.json' assert { type: 'json' };
-import ed25519Verify from '../fixtures/test-vectors/ed25519/verify.json' assert { type: 'json' };
+import CryptoEd25519SignTestVector from '../../../../test-vectors/crypto_ed25519/sign.json' assert { type: 'json' };
 import ed25519ComputePublicKey from '../fixtures/test-vectors/ed25519/compute-public-key.json' assert { type: 'json' };
+import CryptoEd25519VerifyTestVector from '../../../../test-vectors/crypto_ed25519/verify.json' assert { type: 'json' };
 import ed25519BytesToPublicKey from '../fixtures/test-vectors/ed25519/bytes-to-public-key.json' assert { type: 'json' };
 import ed25519PublicKeyToBytes from '../fixtures/test-vectors/ed25519/public-key-to-bytes.json' assert { type: 'json' };
 import ed25519BytesToPrivateKey from '../fixtures/test-vectors/ed25519/bytes-to-private-key.json' assert { type: 'json' };
@@ -315,17 +315,24 @@ describe('Ed25519', () => {
       expect(signature).to.be.instanceOf(Uint8Array);
     });
 
-    for (const vector of ed25519Sign.vectors) {
-      it(vector.description, async () => {
-        const signature = await Ed25519.sign({
-          key  : vector.input.key as Jwk,
-          data : Convert.hex(vector.input.data).toUint8Array()
-        });
+    describe('Web5TestVectorsCryptoEd25519', () => {
+      it('sign', async () => {
+        for (const vector of CryptoEd25519SignTestVector.vectors) {
+          let errorOccurred = false;
+          try {
+            const signature = await Ed25519.sign({
+              key  : vector.input.key as Jwk,
+              data : Convert.hex(vector.input.data).toUint8Array()
+            });
 
-        const signatureHex = Convert.uint8Array(signature).toHex();
-        expect(signatureHex).to.deep.equal(vector.output);
+            const signatureHex = Convert.uint8Array(signature).toHex();
+            expect(signatureHex).to.deep.equal(vector.output, vector.description);
+
+          } catch { errorOccurred = true; }
+          expect(errorOccurred).to.equal(vector.errors, `Expected '${vector.description}' to${vector.errors ? ' ' : ' not '}throw an error`);
+        }
       });
-    }
+    });
   });
 
   describe('validatePublicKey()', () => {
@@ -368,70 +375,23 @@ describe('Ed25519', () => {
       expect(isValid).to.be.true;
     });
 
-    it('returns false if the signed data was mutated', async () => {
-      const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-      let isValid: boolean;
+    describe('Web5TestVectorsCryptoEd25519', () => {
+      it('verify', async () => {
+        for (const vector of CryptoEd25519VerifyTestVector.vectors) {
+          let errorOccurred = false;
+          try {
+            const isValid = await Ed25519.verify({
+              key       : vector.input.key as Jwk,
+              signature : Convert.hex(vector.input.signature).toUint8Array(),
+              data      : Convert.hex(vector.input.data).toUint8Array()
+            });
 
-      // Generate signature using the private key.
-      const signature = await Ed25519.sign({ key: privateKey, data });
+            expect(isValid).to.equal(vector.output);
 
-      // Verification should return true with the data used to generate the signature.
-      isValid = await Ed25519.verify({ key: publicKey, signature, data });
-      expect(isValid).to.be.true;
-
-      // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
-      const mutatedData = new Uint8Array(data);
-      mutatedData[0] ^= 1 << 0;
-
-      // Verification should return false if the given data does not match the data used to generate the signature.
-      isValid = await Ed25519.verify({ key: publicKey, signature, data: mutatedData });
-      expect(isValid).to.be.false;
-    });
-
-    it('returns false if the signature was mutated', async () => {
-      const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-      let isValid: boolean;
-
-      // Generate a new private key and get its public key.
-      privateKey = await Ed25519.generateKey();
-      publicKey = await Ed25519.computePublicKey({ key: privateKey });
-
-      // Generate signature using the private key.
-      const signature = await Ed25519.sign({ key: privateKey, data });
-
-      // Make a copy and flip the least significant bit (the rightmost bit) in the first byte of the array.
-      const mutatedSignature = new Uint8Array(signature);
-      mutatedSignature[0] ^= 1 << 0;
-
-      // Verification should return false if the signature was modified.
-      isValid = await Ed25519.verify({ key: publicKey, signature: signature, data: mutatedSignature });
-      expect(isValid).to.be.false;
-    });
-
-    it('returns false with a signature generated using a different private key', async () => {
-      const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-      const privateKeyA = await Ed25519.generateKey();
-      const publicKeyA = await Ed25519.computePublicKey({ key: privateKeyA });
-      const privateKeyB = await Ed25519.generateKey();
-      let isValid: boolean;
-
-      // Generate a signature using private key B.
-      const signatureB = await Ed25519.sign({ key: privateKeyB, data });
-
-      // Verification should return false with the public key from private key A.
-      isValid = await Ed25519.verify({ key: publicKeyA, signature: signatureB, data });
-      expect(isValid).to.be.false;
-    });
-
-    for (const vector of ed25519Verify.vectors) {
-      it(vector.description, async () => {
-        const isValid = await Ed25519.verify({
-          key       : vector.input.key as Jwk,
-          signature : Convert.hex(vector.input.signature).toUint8Array(),
-          data      : Convert.hex(vector.input.data).toUint8Array()
-        });
-        expect(isValid).to.equal(vector.output);
+          } catch { errorOccurred = true; }
+          expect(errorOccurred).to.equal(vector.errors, `Expected '${vector.description}' to${vector.errors ? ' ' : ' not '}throw an error`);
+        }
       });
-    }
+    });
   });
 });

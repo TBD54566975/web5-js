@@ -1,0 +1,65 @@
+{
+  "description": "ES256K sign test vectors",
+  "vectors": [
+    {
+      "description": "always generates low-S form signatures",
+      "input": {
+        "data": "333435",
+        "key": {
+          "crv": "secp256k1",
+          "d": "lZqISvM7R1S7zBgZ5JjUuOppZuYKXuCbYWBkqgwX88c",
+          "kid": "JOeO0oJDLMaXibhJBpsHVvskK47qq0k8uaLozxTtNhk",
+          "kty": "EC",
+          "x": "npaD6WyM4AZIxwPmieND_gdnYuROitnyDfskXwpv-J0",
+          "y": "y5_uOFRRNOCWAJPD-Ly1ENJd908lWJ0-0KGnTwxWzNM"
+        }
+      },
+      "output": "95b9c99642a5765b4f5f4648671dbad2ad107f7507f1e538eb4ad365caf76a4d321db3e3682f5124d37c597b6f2b489171c6b7d90e82f67a87a7e4d8783f4d63",
+      "errors": false
+    },
+    {
+      "description": "error when given a public key",
+      "input": {
+        "data": "",
+        "key": {
+          "crv": "secp256k1",
+          "kid": "JOeO0oJDLMaXibhJBpsHVvskK47qq0k8uaLozxTtNhk",
+          "kty": "EC",
+          "x": "npaD6WyM4AZIxwPmieND_gdnYuROitnyDfskXwpv-J0",
+          "y": "y5_uOFRRNOCWAJPD-Ly1ENJd908lWJ0-0KGnTwxWzNM"
+        }
+      },
+      "errors": true
+    },
+    {
+      "description": "error with invalid private key == 0 (not on curve)",
+      "input": {
+        "data": "0000000000000000000000000000000000000000000000000000000000000001",
+        "key": {
+          "kty": "EC",
+          "crv": "secp256k1",
+          "d": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "x": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "y": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "kid": "bBw8BkYm7Aeo-e8Xzbc76irs8TtXtPxvCIZiUuuU-PY"
+        }
+      },
+      "errors": true
+    },
+    {
+      "description": "error with invalid private key >= G (not on curve)",
+      "input": {
+        "data": "0000000000000000000000000000000000000000000000000000000000000001",
+        "key": {
+          "kty": "EC",
+          "crv": "secp256k1",
+          "d": "__________________________________________8",
+          "x": "__________________________________________8",
+          "y": "__________________________________________8",
+          "kid": "W-Oix7HogMrpbP0tj98DA8McTn2MLUEo9LYlbfk3-lA"
+        }
+      },
+      "errors": true
+    }
+  ]
+}
