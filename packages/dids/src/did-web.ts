@@ -282,7 +282,7 @@ export class DidWebMethod implements DidMethod {
   }
 
   /**
-   * Constructs the URL for a DID Document based on the specified DID identifier. 
+   * Constructs the URL for a DID Document based on the specified DID identifier.
    * Specifics can be found here https://w3c-ccg.github.io/did-method-web/#read-resolve
    *
    * @param did - The DID identifier to construct a URL for.
