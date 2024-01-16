@@ -68,7 +68,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload test results to update SDK reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@1eb3cb2b3e0f29609092a73eb033bb759a334595 # v4.1.0
         with:
           name: junit-results
           path: packages/*/results.xml
