@@ -13,7 +13,8 @@
           "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
         }
       },
-      "output": "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b"
+      "output": "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b",
+      "errors": false
     },
     {
       "description": "generates the expected signature given the RFC8032 0x4c... key and 72 message",
@@ -27,7 +28,8 @@
           "x": "PUAXw-hDiVqStwqnTRt-vJyYLM8uxJaMwM1V8Sr0Zgw"
         }
       },
-      "output": "92a009a9f0d4cab8720e820b5f642540a2b27b5416503f8fb3762223ebdb69da085ac1e43e15996e458f3613d0f11d8c387b2eaeb4302aeeb00d291612bb0c00"
+      "output": "92a009a9f0d4cab8720e820b5f642540a2b27b5416503f8fb3762223ebdb69da085ac1e43e15996e458f3613d0f11d8c387b2eaeb4302aeeb00d291612bb0c00",
+      "errors": false
     },
     {
       "description": "generates the expected signature given the RFC8032 0x00... key and 5a... message",
@@ -41,7 +43,8 @@
           "x": "d9HY66zRP04vikDijEpjvJzjv7aXFjNLyyijPrE0CGw"
         }
       },
-      "output": "0df3aa0d0999ad3dc580378f52d152700d5b3b057f56a66f92112e441e1cb9123c66f18712c87efe22d2573777296241216904d7cdd7d5ea433928bd2872fa0c"
+      "output": "0df3aa0d0999ad3dc580378f52d152700d5b3b057f56a66f92112e441e1cb9123c66f18712c87efe22d2573777296241216904d7cdd7d5ea433928bd2872fa0c",
+      "errors": false
     },
     {
       "description": "generates the expected signature given the RFC8032 0xf5... key and long message",
@@ -55,7 +58,21 @@
           "kid": "lZI1vM7tnlYapaF5-cy86ptx0tT_8Av721hhiNB5ti4"
         }
       },
-      "output": "0aab4c900501b3e24d7cdf4663326a3a87df5e4843b2cbdb67cbf6e460fec350aa5371b1508f9f4528ecea23c436d94b5e8fcd4f681e30a6ac00a9704a188a03"
+      "output": "0aab4c900501b3e24d7cdf4663326a3a87df5e4843b2cbdb67cbf6e460fec350aa5371b1508f9f4528ecea23c436d94b5e8fcd4f681e30a6ac00a9704a188a03",
+      "errors": false
+    },
+    {
+      "description": "error when given a public key",
+      "input": {
+        "data": "",
+        "key": {
+          "crv": "Ed25519",
+          "kid": "kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k",
+          "kty": "OKP",
+          "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+        }
+      },
+      "errors": true
     }
   ]
 }
