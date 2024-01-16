@@ -157,6 +157,11 @@ export class EcdsaAlgorithm implements
    * Hashing the data first ensures that the input to the signing operation is within this limit,
    * regardless of the original data size.
    *
+   * Note: The signature returned is normalized to low-S to prevent signature malleability. This
+   * ensures that the signature can be verified by other libraries that enforce strict verification.
+   * More information on signature malleability can be found
+   * {@link @web5/crypto#Secp256k1.adjustSignatureToLowS | here}.
+   *
    * @example
    * ```ts
    * const ecdsa = new EcdsaAlgorithm({ crypto, kmsClient });
@@ -214,7 +219,10 @@ export class EcdsaAlgorithm implements
     const derSignature = response.Signature;
 
     // Convert the DER encoded signature to a compact R+S signature.
-    const signature = await Secp256k1.convertDerToCompactSignature({ derSignature });
+    let signature = await Secp256k1.convertDerToCompactSignature({ derSignature });
+
+    // Ensure the signature is in low-S, normalized form to prevent signature malleability.
+    signature = await Secp256k1.adjustSignatureToLowS({ signature });
 
     return signature;
   }

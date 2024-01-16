@@ -69,6 +69,21 @@ describe('Jwt', () => {
   });
 
   describe('verify()', () => {
+    it('throws error if JWT is expired', async () => {
+      const did = await DidKeyMethod.create({ keyAlgorithm: 'secp256k1' });
+      const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: did.document.verificationMethod![0].id };
+      const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
+
+      const payload: JwtPayload = { exp: Math.floor(Date.now() / 1000 - 1) };
+      const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
+
+      try {
+        await Jwt.verify({ jwt: `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}.hijk` });
+        expect.fail();
+      } catch(e: any) {
+        expect(e.message).to.include('JWT is expired');
+      }
+    });
     it('throws error if JWT header kid does not dereference a verification method', async () => {
       const did = await DidKeyMethod.create({ keyAlgorithm: 'secp256k1' });
       const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: did.did };

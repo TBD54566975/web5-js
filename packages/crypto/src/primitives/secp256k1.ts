@@ -69,6 +69,76 @@ import { computeJwkThumbprint, isEcPrivateJwk, isEcPublicJwk } from '../jose/jwk
  */
 export class Secp256k1 {
   /**
+   * Adjusts an ECDSA signature to a normalized, low-S form.
+   *
+   * @remarks
+   * All ECDSA signatures, regardless of the curve, consist of two components, `r` and `s`, both of
+   * which are integers. The curve's order (the total number of points on the curve) is denoted by
+   * `n`. In a valid ECDSA signature, both `r` and `s` must be in the range [1, n-1]. However, due
+   * to the mathematical properties of ECDSA, if `(r, s)` is a valid signature, then `(r, n - s)` is
+   * also a valid signature for the same message and public key. In other words, for every
+   * signature, there's a "mirror" signature that's equally valid. For these elliptic curves:
+   *
+   * - Low S Signature: A signature where the `s` component is in the lower half of the range,
+   *                    specifically less than or equal to `n/2`.
+   *
+   * - High S Signature: This is where the `s` component is in the upper half of the range, greater
+   *                     than `n/2`.
+   *
+   * The practical implication is that a third-party can forge a second valid signature for the same
+   * message by negating the `s` component of the original signature, without any knowledge of the
+   * private key. This is known as a "signature malleability" attack.
+   *
+   * This type of forgery is not a problem in all systems, but it can be an issue in systems that
+   * rely on digital signature uniqueness to ensure transaction integrity. For example, in Bitcoin,
+   * transaction malleability is an issue because it allows for the modification of transaction
+   * identifiers (and potentially, transactions themselves) after they're signed but before they're
+   * confirmed in a block. By enforcing low `s` values, the Bitcoin network reduces the likelihood of
+   * this occurring, making the system more secure and predictable.
+   *
+   * For this reason, it's common practice to normalize ECDSA signatures to a low-S form. This
+   * form is considered standard and preferable in some systems and is known as the "normalized"
+   * form of the signature.
+   *
+   * This method takes a signature, and if it's high-S, returns the normalized low-S form. If the
+   * signature is already low-S, it's returned unmodified. It's important to note that this
+   * method does not change the validity of the signature but makes it compliant with systems that
+   * enforce low-S signatures.
+   *
+   * @example
+   * ```ts
+   * const signature = new Uint8Array([...]); // Your ECDSA signature
+   * const adjustedSignature = await Secp256k1.adjustSignatureToLowS({ signature });
+   * // Now 'adjustedSignature' is in the low-S form.
+   * ```
+   *
+   * @param params - The parameters for the signature adjustment.
+   * @param params.signature - The ECDSA signature as a `Uint8Array`.
+   *
+   * @returns A Promise that resolves to the adjusted signature in low-S form as a `Uint8Array`.
+   */
+  public static async adjustSignatureToLowS({ signature }: {
+    signature: Uint8Array;
+  }): Promise<Uint8Array> {
+    // Convert the signature to a `secp256k1.Signature` object.
+    const signatureObject = secp256k1.Signature.fromCompact(signature);
+
+    if (signatureObject.hasHighS()) {
+      // Adjust the signature to low-S format if it's high-S.
+      const adjustedSignatureObject = signatureObject.normalizeS();
+
+      // Convert the adjusted signature object back to a byte array.
+      const adjustedSignature = adjustedSignatureObject.toCompactRawBytes();
+
+      return adjustedSignature;
+
+    } else {
+      // Return the unmodified signature if it is already in low-S format.
+      return signature;
+    }
+  }
+
+  /**
    * Converts a raw private key in bytes to its corresponding JSON Web Key (JWK) format.
    *
    * @remarks

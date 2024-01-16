@@ -2,11 +2,12 @@ import type { Jwk } from '@web5/crypto';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
+import { Convert } from '@web5/common';
 import { CreateKeyCommand, DescribeKeyCommand, KMSClient, SignCommand } from '@aws-sdk/client-kms';
 
 import { AwsKmsCrypto } from '../src/api.js';
 import { EcdsaAlgorithm } from '../src/ecdsa.js';
-import { mockEcdsaSecp256k1 } from './fixtures/mock-ecdsa-secp256k1.js';
+import { mockEcdsaSecp256k1, mockSignCommandOutput } from './fixtures/mock-ecdsa-secp256k1.js';
 
 describe('EcdsaAlgorithm', () => {
   let crypto: AwsKmsCrypto;
@@ -83,6 +84,29 @@ describe('EcdsaAlgorithm', () => {
 
       expect(isValid).to.be.true;
       expect(kmsClientStub.send.calledTwice).to.be.true;
+    });
+
+    it('returns normalized, low-s form signatures', async () => {
+      // Setup.
+      const mockHighSSignCommandOutput = {
+        ...mockSignCommandOutput,
+        // Return the DER encoded signature from Wycheproof test case 1, which has a high-s value.
+        signature: Convert.hex('3046022100813ef79ccefa9a56f7ba805f0e478584fe5f0dd5f567bc09b5123ccbc9832365022100900e75ad233fcc908509dbff5922647db37c21f4afd3203ae8dc4ae7794b0f87').toUint8Array()
+      };
+      kmsClientStub.send.withArgs(sinon.match.instanceOf(SignCommand)).resolves(mockHighSSignCommandOutput);
+      kmsClientStub.send.withArgs(sinon.match.instanceOf(DescribeKeyCommand)).resolves(mockEcdsaSecp256k1.getKeySpec.output);
+
+      // Test the method.
+      const signature = await ecdsa.sign({
+        algorithm : 'ES256K',
+        data      : new Uint8Array([0, 1, 2, 3, 4]),
+        keyUri    : 'urn:jwk:U01_M3_A9vMLOWixG-rlfC-_f3LLdurttn7c7d3_upU'
+      });
+
+      // Validate the signature returned by EcdsaAlgorithm.sign() has been adjust to low-s form.
+      expect(signature).to.deep.equal(
+        Convert.hex('8891914c431baae682defc57fe074c8cb700f790d72e2a51474cca0ee00faa8451e462395b70b51ae6b98d3fadc233ae4db15583e9b75ac32d94a697c71aa426').toUint8Array()
+      );
     });
 
     it('throws an error if an unsupported algorithm is specified', async () => {
