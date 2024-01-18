@@ -32,6 +32,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          submodules: true
 
       - name: Set up Node.js
         uses: actions/setup-node@5ef044f9d09786428e6e895be6be17937becee3a #v4.0.0
@@ -113,6 +115,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          submodules: true
 
       - name: Set up Node.js
         uses: actions/setup-node@5ef044f9d09786428e6e895be6be17937becee3a #v4.0.0
