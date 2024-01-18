@@ -5,7 +5,7 @@ import type { Validated, PresentationDefinitionV2 } from '../src/presentation-ex
 
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import { PresentationExchange } from '../src/presentation-exchange.js';
-import PresentationExchangeSelectCredentialsTestVector from '../../../test-vectors/presentation_exchange/select_credentials.json' assert { type: 'json' };
+import PresentationExchangeSelectCredentialsTestVector from '../../../web5-spec/web5-test-vectors/presentation_exchange/select_credentials.json' assert { type: 'json' };
 
 
 class BitcoinCredential {

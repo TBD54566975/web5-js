@@ -6,7 +6,7 @@ import { DidDhtMethod, DidKeyMethod, DidIonMethod } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
-import CredentialsVerifyTestVector from '../../../test-vectors/credentials/verify.json' assert { type: 'json' };
+import CredentialsVerifyTestVector from '../../../web5-spec/web5-test-vectors/credentials/verify.json' assert { type: 'json' };
 
 describe('Verifiable Credential Tests', () => {
   let issuerDid: PortableDid;

@@ -4,9 +4,9 @@ import chaiAsPromised from 'chai-as-promised';
 
 import type { Jwk, JwkParamsOkpPrivate } from '../../src/jose/jwk.js';
 
-import CryptoEd25519SignTestVector from '../../../../test-vectors/crypto_ed25519/sign.json' assert { type: 'json' };
+import CryptoEd25519SignTestVector from '../../../../web5-spec/web5-test-vectors/crypto_ed25519/sign.json' assert { type: 'json' };
 import ed25519ComputePublicKey from '../fixtures/test-vectors/ed25519/compute-public-key.json' assert { type: 'json' };
-import CryptoEd25519VerifyTestVector from '../../../../test-vectors/crypto_ed25519/verify.json' assert { type: 'json' };
+import CryptoEd25519VerifyTestVector from '../../../../web5-spec/web5-test-vectors/crypto_ed25519/verify.json' assert { type: 'json' };
 import ed25519BytesToPublicKey from '../fixtures/test-vectors/ed25519/bytes-to-public-key.json' assert { type: 'json' };
 import ed25519PublicKeyToBytes from '../fixtures/test-vectors/ed25519/public-key-to-bytes.json' assert { type: 'json' };
 import ed25519BytesToPrivateKey from '../fixtures/test-vectors/ed25519/bytes-to-private-key.json' assert { type: 'json' };
