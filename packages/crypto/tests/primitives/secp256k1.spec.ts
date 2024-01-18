@@ -4,8 +4,8 @@ import chaiAsPromised from 'chai-as-promised';
 
 import type { Jwk, JwkParamsEcPrivate } from '../../src/jose/jwk.js';
 
-import CryptoEs256kSignTestVector from '../../../../web5-spec/web5-test-vectors/crypto_es256k/sign.json' assert { type: 'json' };
-import CryptoEs256kVerifyTestVector from '../../../../web5-spec/web5-test-vectors/crypto_es256k/verify.json' assert { type: 'json' };
+import CryptoEs256kSignTestVector from '../../../../web5-spec/test-vectors/crypto_es256k/sign.json' assert { type: 'json' };
+import CryptoEs256kVerifyTestVector from '../../../../web5-spec/test-vectors/crypto_es256k/verify.json' assert { type: 'json' };
 import secp256k1GetCurvePoints from '../fixtures/test-vectors/secp256k1/get-curve-points.json' assert { type: 'json' };
 import secp256k1BytesToPublicKey from '../fixtures/test-vectors/secp256k1/bytes-to-public-key.json' assert { type: 'json' };
 import secp256k1PublicKeyToBytes from '../fixtures/test-vectors/secp256k1/public-key-to-bytes.json' assert { type: 'json' };
