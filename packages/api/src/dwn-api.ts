@@ -12,6 +12,7 @@ import type {
   ProtocolsConfigureMessage,
   ProtocolsConfigureOptions,
   ProtocolsConfigureDescriptor,
+  PaginationCursor,
 } from '@tbd54566975/dwn-sdk-js';
 
 import { isEmptyObject } from '@web5/common';
@@ -135,7 +136,7 @@ export type RecordsQueryResponse = ResponseStatus & {
   records?: Record[]
 
   /** If there are additional results, the messageCid of the last record will be returned as a pagination cursor. */
-  cursor?: string;
+  cursor?: PaginationCursor;
 };
 
 /**
