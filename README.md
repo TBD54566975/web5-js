@@ -48,6 +48,23 @@ Interested in contributing instantly? You can make your updates directly without
 
 [![Button to click and edit code in CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/github/TBD54566975/web5-js/main)
 
+
+## Prerequisites
+
+### Cloning
+This repository uses git submodules. To clone this repo with submodules
+```sh
+git clone --recurse-submodules git@github.com:TBD54566975/tbdex-js.git
+```
+Or to add submodules after cloning
+```sh
+git submodule update --init
+```
+We recommend this config which will only checkout the files relevant to tbdex-js
+```sh
+git -C web5-spec sparse-checkout set hosted
+```
+
 ## Installation
 
 _NPM_
@@ -475,6 +492,24 @@ The `create` method under the `did` object enables generation of DIDs for a supp
 
 ```javascript
 const myDid = await Web5.did.create("ion");
+```
+
+## Working with the `web5-spec` submodule
+
+### Pulling
+You may need to update the `web5-spec` submodule after pulling.
+```sh
+git pull
+git submodule update
+```
+
+### Pushing
+If you have made changes to the `web5-spec` submodule, you should push your changes to the `web5-spec` remote as well as pushing changes to `web5-js`.
+```sh
+cd web5-spec
+git push
+cd ..
+git push
 ```
 
 ## Project Resources
