@@ -62,7 +62,7 @@ git submodule update --init
 ```
 We recommend this config which will only checkout the files relevant to tbdex-js
 ```sh
-git -C web5-spec sparse-checkout set hosted
+git -C web5-spec sparse-checkout set test-vectors
 ```
 
 ## Installation
