@@ -1,0 +1,3 @@
+[submodule "web5-spec"]
+	path = web5-spec
+	url = https://github.com/TBD54566975/web5-spec
