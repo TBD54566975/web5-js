@@ -54,7 +54,7 @@ Interested in contributing instantly? You can make your updates directly without
 ### Cloning
 This repository uses git submodules. To clone this repo with submodules
 ```sh
-git clone --recurse-submodules git@github.com:TBD54566975/tbdex-js.git
+git clone --recurse-submodules git@github.com:TBD54566975/web5-js.git
 ```
 Or to add submodules after cloning
 ```sh
