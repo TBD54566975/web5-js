@@ -1,5 +1,5 @@
 import type { IPresentation, PresentationSubmission } from '@sphereon/ssi-types';
-import type { PresentationDefinitionV2 as PexPresDefV2, PresentationSubmission as PexPresSubmission } from '@sphereon/pex-models';
+import type { PresentationDefinitionV2 as PexPresDefV2 } from '@sphereon/pex-models';
 import type {
   SelectResults,
   EvaluationResults,
