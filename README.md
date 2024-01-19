@@ -60,7 +60,7 @@ Or to add submodules after cloning
 ```sh
 git submodule update --init
 ```
-We recommend this config which will only checkout the files relevant to tbdex-js
+We recommend this config which will only checkout the files relevant to web5-js
 ```sh
 git -C web5-spec sparse-checkout set test-vectors
 ```
