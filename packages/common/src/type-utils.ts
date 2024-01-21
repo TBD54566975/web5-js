@@ -1,4 +1,68 @@
 /**
+ * Represents an array of a fixed length, preventing modifications to its size.
+ *
+ * The `FixedLengthArray` utility type transforms a standard array into a variant where
+ * methods that could alter the length are omitted. It leverages TypeScript's advanced types,
+ * such as conditional types and mapped types, to ensure that the array cannot be resized
+ * through methods like `push`, `pop`, `splice`, `shift`, and `unshift`. The utility type
+ * maintains all other characteristics of a standard array, including indexing, iteration,
+ * and type checking for its elements.
+ *
+ * Note: The type does not prevent direct assignment to indices, even if it would exceed
+ * the original length. However, such actions would lead to TypeScript type errors.
+ *
+ * @example
+ * ```ts
+ * // Declare a variable with a type of fixed-length array of three strings.
+ * let myFixedLengthArray: FixedLengthArray< [string, string, string]>;
+ *
+ * // Array declaration tests
+ * myFixedLengthArray = [ 'a', 'b', 'c' ];  // OK
+ * myFixedLengthArray = [ 'a', 'b', 123 ];  // TYPE ERROR
+ * myFixedLengthArray = [ 'a' ];            // LENGTH ERROR
+ * myFixedLengthArray = [ 'a', 'b' ];       // LENGTH ERROR
+ *
+ * // Index assignment tests
+ * myFixedLengthArray[1] = 'foo';           // OK
+ * myFixedLengthArray[1000] = 'foo';        // INVALID INDEX ERROR
+ *
+ * // Methods that mutate array length
+ * myFixedLengthArray.push('foo');          // MISSING METHOD ERROR
+ * myFixedLengthArray.pop();                // MISSING METHOD ERROR
+ *
+ * // Direct length manipulation
+ * myFixedLengthArray.length = 123;         // READ-ONLY ERROR
+ *
+ * // Destructuring
+ * let [ a ] = myFixedLengthArray;          // OK
+ * let [ a, b ] = myFixedLengthArray;       // OK
+ * let [ a, b, c ] = myFixedLengthArray;    // OK
+ * let [ a, b, c, d ] = myFixedLengthArray; // INVALID INDEX ERROR
+ * ```
+ *
+ * @template T extends any[] - The array type to be transformed.
+ */
+export type FixedLengthArray<T extends any[]> =
+  Pick<T, Exclude<keyof T, ArrayLengthMutationKeys>>
+  & {
+    /**
+     * Custom iterator for the `FixedLengthArray` type.
+     *
+     * This iterator allows the `FixedLengthArray` to be used in standard iteration
+     * contexts, such as `for...of` loops and spread syntax. It ensures that even though
+     * the array is of a fixed length with disabled mutation methods, it still retains
+     * iterable behavior similar to a regular array.
+     *
+     * @returns An IterableIterator for the array items.
+     */
+    [Symbol.iterator]: () => IterableIterator<ArrayItems<T>>
+  };
+
+/** Helper types for {@link FixedLengthArray} */
+type ArrayLengthMutationKeys = 'splice' | 'push' | 'pop' | 'shift' | 'unshift' | number;
+type ArrayItems<T extends Array<any>> = T extends Array<infer TItems> ? TItems : never;
+
+/**
  * isArrayBufferSlice
  *
  * Checks if the ArrayBufferView represents a slice (subarray or a subview)
