@@ -78,9 +78,9 @@ export class Jose {
   }): Promise<MulticodecDefinition<MulticodecCode>> {
     const params: string[] = [];
 
-    if ('crv' in jwk) {
+    if (jwk.crv) {
       params.push(jwk.crv);
-      if ('d' in jwk) {
+      if (jwk.d) {
         params.push('private');
       } else {
         params.push('public');

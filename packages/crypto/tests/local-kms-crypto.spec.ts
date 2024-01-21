@@ -401,7 +401,6 @@ describe('LocalKmsCrypto', () => {
 
     it('throws an error when public key algorithm and curve are unsupported', async () => {
       // Setup.
-      // @ts-expect-error because an unsupported algorithm and currve is being tested.
       const key: Jwk = { kty: 'EC', alg: 'unsupported-algorithm', crv: 'unsupported-curve', x: 'x', y: 'y' };
       const signature = new Uint8Array(64);
       const data = new Uint8Array(0);
