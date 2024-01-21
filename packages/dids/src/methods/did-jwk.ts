@@ -1,9 +1,10 @@
-import type{ AlgorithmIdentifier, CryptoApi, EnclosedSignParams, EnclosedVerifyParams, Jwk, Signer } from '@web5/crypto';
+import type { CryptoApi, EnclosedSignParams, EnclosedVerifyParams, Jwk, Signer, InferKeyGeneratorAlgorithm, KeyImporterExporter, KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams } from '@web5/crypto';
 
 import { Convert } from '@web5/common';
+import { LocalKmsCrypto } from '@web5/crypto';
 
-import type{ Did, DidCreateOptions, DidKeySet, DidMetadata } from './did-method.js';
-import type { DidDocument, DidResolutionOptions, DidResolutionResult, DidVerificationMethod } from '../types/did-core.js';
+import type { Did, DidCreateOptions, DidCreateVerificationMethod, DidKeySet, DidMetadata } from './did-method.js';
+import { DidVerificationRelationship, type DidDocument, type DidResolutionOptions, type DidResolutionResult, type DidVerificationMethod } from '../types/did-core.js';
 
 import { DidUri } from '../did-uri.js';
 import { DidMethod } from './did-method.js';
@@ -14,40 +15,56 @@ import { EMPTY_DID_RESOLUTION_RESULT } from '../did-resolver.js';
  * Defines the set of options available when creating a new Decentralized Identifier (DID) with the
  * 'did:jwk' method.
  *
- * Either the `algorithm` or `keySet` option must be specified. If both are specified, the `keySet`
- * option takes precedence.
- *
- * If given, the `algorithm` must be a valid algorithm identifier supported by the `keyManager`
- * provided.
+ * Either the `algorithm` or `verificationMethods` option can be specified, but not both.
+ * - A new key will be generated using the algorithm identifier specified in either the `algorithm`
+ *   property or the `verificationMethods` object's `algorithm` property.
+ * - If `verificationMethods` is given, it must contain exactly one entry since DID JWK only
+ *   supports a single verification method.
+ * - If neither is given, the default is to generate a new Ed25519 key.
  *
  * @example
  * ```ts
- * const keyManager = new LocalKmsCrypto();
+  * // By default, when no options are given, a new Ed25519 key will be generated.
+ * const did = await DidJwk.create();
+ *
+ * // The algorithm to use for key generation can be specified as a top-level option.
  * const did = await DidJwk.create({
- *   keyManager,
- *   options: { algorithm = 'Ed25519' }
+ *   options: { algorithm = 'ES256K' }
+ * });
+ *
+ * // Or, alternatively as a property of the verification method.
+ * const did = await DidJwk.create({
+ *   options: {
+ *     verificationMethods: [{ algorithm = 'ES256K' }]
+ *   }
  * });
  * ```
  */
-export interface DidJwkCreateOptions extends DidCreateOptions {
+export interface DidJwkCreateOptions<TKms> extends DidCreateOptions<TKms> {
   /**
-   * Optionally specify the algorithm to be used for key creation.
+   * Optionally specify the algorithm to be used for key generation.
    */
-  algorithm?: AlgorithmIdentifier;
+  algorithm?: TKms extends CryptoApi
+    ? InferKeyGeneratorAlgorithm<TKms>
+    : InferKeyGeneratorAlgorithm<LocalKmsCrypto>;
 
   /**
-   * Optionally specify the key set to be used for DID creation.
+   * Alternatively, specify the algorithm to be used for key generation of the single verification
+   * method in the DID Document.
    */
-  keySet?: DidKeySet;
+  verificationMethods?: [DidCreateVerificationMethod<TKms>];
 }
 
 /**
  * The `DidJwk` class provides an implementation of the `did:jwk` DID method.
-*
-* Features:
-* - DID Generation: Create new `did:jwk` DIDs.
-* - DID Resolution: Resolve a `did:jwk` to its corresponding DID Document.
-* - Signature Operations: Sign and verify messages using keys associated with a DID.
+ *
+ * Features:
+ * - DID Creation: Create new `did:jwk` DIDs.
+ * - DID Key Management: Instantiate a DID object from an existing verification method key set or
+ *                       or a key in a Key Management System (KMS). If supported by the KMS, a DID's
+ *                       key can be exported to a key set.
+ * - DID Resolution: Resolve a `did:jwk` to its corresponding DID Document.
+ * - Signature Operations: Sign and verify messages using keys associated with a DID.
  *
  * @remarks
  * The `did:jwk` DID method uses a single JSON Web Key (JWK) to generate a DID and does not rely
@@ -63,7 +80,11 @@ export interface DidJwkCreateOptions extends DidCreateOptions {
  *
  * @example
  * ```ts
- * // DID Generation
+ * // DID Creation
+ * const did = await DidJwk.create();
+ *
+ * // DID Creation with a KMS
+ * const keyManager = new LocalKmsCrypto();
  * const did = await DidJwk.create({ keyManager });
  *
  * // DID Resolution
@@ -73,6 +94,34 @@ export interface DidJwkCreateOptions extends DidCreateOptions {
  * const signer = await did.getSigner();
  * const signature = await signer.sign({ data: new TextEncoder().encode('Message') });
  * const isValid = await signer.verify({ data: new TextEncoder().encode('Message'), signature });
+ *
+ * // Key Management
+*
+ * // Instantiate a DID object from an existing key in a KMS
+ * const did = await DidJwk.fromKeyManager({
+ *  didUri: 'did:jwk:eyJrIjoiT0tQIiwidCI6IkV1c2UyNTYifQ',
+ *  keyManager
+ * });
+ *
+ * // Instantiate a DID object from an existing verification method key
+ * const did = await DidJwk.fromKeys({
+ *   verificationMethods: [{
+ *     publicKeyJwk: {
+ *       kty: 'OKP',
+ *       crv: 'Ed25519',
+ *       x: 'cHs7YMLQ3gCWjkacMURBsnEJBcEsvlsE5DfnsfTNDP4'
+ *     },
+ *     privateKeyJwk: {
+ *       kty: 'OKP',
+ *       crv: 'Ed25519',
+ *       x: 'cHs7YMLQ3gCWjkacMURBsnEJBcEsvlsE5DfnsfTNDP4',
+ *       d: 'bdcGE4KzEaekOwoa-ee3gAm1a991WvNj_Eq3WKyqTnE'
+ *     }
+ *   }]
+ * });
+ *
+ * // Export a DID's key to a key set
+ * const keySet = await DidJwk.toKeys({ did});
  * ```
  */
 export class DidJwk extends DidMethod {
@@ -83,46 +132,39 @@ export class DidJwk extends DidMethod {
   public static methodName = 'jwk';
 
   /**
-   * Creates a new DID using the `did:jwk` method.
+   * Creates a new DID using the `did:jwk` method formed from a newly generated key.
+   *
+   * @remarks
+   * The DID URI is formed by Base64URL-encoding the JWK and prefixing with `did:jwk:`.
+   *
+   * Notes:
+   * - If no `options` are given, by default a new Ed25519 key will be generated.
+   * - The `algorithm` and `verificationMethods` options are mutually exclusive. If both are given,
+   *   an error will be thrown.
    *
    * @param params - The parameters for the create operation.
-   * @param params.keyManager - Key Management System (KMS) used to generate keys and sign data.
-   * @param params.options - Options that can be specified when creating a new DID.
+   * @param params.keyManager - Optionally specify a Key Management System (KMS) used to generate
+   *                            keys and sign data.
+   * @param params.options - Optional parameters that can be specified when creating a new DID.
    * @returns A Promise resolving to a {@link Did} object representing the new DID.
    */
-  public static async create({ keyManager, options = {} }: {
-    keyManager: CryptoApi;
-    options: DidJwkCreateOptions;
-  }): Promise<Did> {
-    // Default to using ES256K for key generation if an algorithm is not given.
-    let { algorithm = 'ES256K', keySet } = options;
-
-    // The public key used to create the DID.
-    let publicKey: Jwk;
-
-    // If a key set is not given, generate a new key using the specified `algorithm`.
-    if (!keySet) {
-      const keyUri = await keyManager.generateKey({ algorithm });
-      publicKey = await keyManager.getPublicKey({ keyUri });
-      // Include the generated key in the key set that is returned in DID metadata.
-      keySet = {
-        keys: [{
-          keyUri,
-          // Since a custom key set was not given, the key is assumed to used for all purposes.
-          purposes: ['assertionMethod', 'authentication', 'capabilityDelegation', 'capabilityInvocation', 'keyAgreement']
-        }]
-      };
-
-    } else {
-      // If a key set is given, it must contain exactly one key.
-      if (!keySet.keys || keySet.keys.length !== 1) {
-        throw new Error(`DidJwk: This DID method requires a key set with exactly one key`);
-      }
-
-      // Retrieve the public key specified in the key set.
-      const publicKeyUri = keySet.keys[0].keyUri;
-      publicKey = await keyManager.getPublicKey({ keyUri: publicKeyUri });
+  public static async create<TKms extends CryptoApi | undefined = undefined>({
+    keyManager = new LocalKmsCrypto(),
+    options = {}
+  }: {
+    keyManager?: TKms;
+    options?: DidJwkCreateOptions<TKms>;
+  } = {}): Promise<Did> {
+    if (options.algorithm && options.verificationMethods) {
+      throw new Error(`DidJwk: The 'algorithm' and 'verificationMethods' options are mutually exclusive`);
     }
+
+    // Default to Ed25519 key generation if an algorithm is not given.
+    const algorithm = options.algorithm ?? options.verificationMethods?.[0]?.algorithm ?? 'Ed25519';
+
+    // Generate a new key using the specified `algorithm`.
+    const keyUri = await keyManager.generateKey({ algorithm });
+    const publicKey = await keyManager.getPublicKey({ keyUri });
 
     // Serialize the public key JWK to a UTF-8 string and encode to Base64URL format.
     const base64UrlEncoded = Convert.object(publicKey).toBase64Url();
@@ -134,8 +176,8 @@ export class DidJwk extends DidMethod {
     const didResolutionResult = await DidJwk.resolve(didUri);
     const didDocument = didResolutionResult.didDocument as DidDocument;
 
-    // DID Metadata contains only the key set for this DID method.
-    const metadata: DidMetadata = { keySet };
+    // DID Metadata is initially empty for this DID method.
+    const metadata: DidMetadata = {};
 
     // Define a function that returns a signer for the DID.
     const getSigner = async (params?: { keyUri?: string }) => await DidJwk.getSigner({
@@ -148,63 +190,144 @@ export class DidJwk extends DidMethod {
   }
 
   /**
-   * Given the W3C DID Document of a `did:jwk` DID, return a {@link Signer} that can be used to
-   * sign messages, credentials, or arbitrary data.
+   * Instantiates a `Did` object for the `did:jwk` method from a given key set.
    *
-   * If given, the `keyUri` parameter is used to select a key from the verification methods present
-   * in the DID Document. For DID JWK, only one verification method can exist so the specified
-   * `keyUri` must refer to the same key.
+   * This method allows for the creation of a `Did` object using pre-existing key material,
+   * encapsulated within the `verificationMethods` array of the `DidKeySet`. This is particularly
+   * useful when the key material is already available and you want to construct a `Did` object
+   * based on these keys, instead of generating new keys.
    *
-   * If `keyUri` is not given, the first (and only) verification method in the DID Document is used.
+   * @remarks
+   * The `verificationMethods` array must contain exactly one key since the `did:jwk` method only
+   * supports a single verification method.
    *
-   * @param params - The parameters for the `getSigner` operation.
-   * @param params.didDocument - DID Document of the DID whose keys will be used to construct the {@link Signer}.
-   * @param params.keyManager - Crypto API used to sign and verify data.
-   * @param params.keyUri - Key URI of the key that will be used for sign and verify operations. Optional.
-   * @returns An instantiated {@link Signer} that can be used to sign and verify data.
+   * The key material (both public and private keys) should be provided in JWK format. The method
+   * handles the inclusion of these keys in the DID Document and sets up the necessary verification
+   * relationships.
+   *
+   * @param params - The parameters for the `fromKeys` operation.
+   * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
+   *                            generate keys and sign data. If not given, a new
+   *                            {@link LocalKmsCrypto} instance will be created and used.
+   * @param params.verificationMethods - An array containing the key material in JWK format.
+   * @returns A Promise resolving to a `Did` object representing the DID formed from the provided keys.
+   * @throws An error if the `verificationMethods` array does not contain exactly one entry.
+   *
+   * @example
+   * ```ts
+   * // Example with an existing key in JWK format.
+   * const verificationMethods = [{
+   *   publicKeyJwk: { // public key in JWK format },
+   *   privateKeyJwk: { // private key in JWK format }
+   * }];
+   * const did = await DidJwk.fromKeys({ verificationMethods });
+   * ```
    */
-  public static async getSigner({ didDocument, keyManager, keyUri }: {
-    didDocument: DidDocument;
+  public static async fromKeys({
+    keyManager = new LocalKmsCrypto(),
+    verificationMethods
+  }: {
+    keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
+  } & DidKeySet): Promise<Did> {
+    if (!verificationMethods || verificationMethods.length !== 1) {
+      throw new Error(`DidJwk: Only one verification method can be specified but ${verificationMethods?.length ?? 0} were given`);
+    }
+
+    if (!(verificationMethods[0].privateKeyJwk && verificationMethods[0].publicKeyJwk)) {
+      throw new Error(`DidJwk: Verification method does not contain a public and private key in JWK format`);
+    }
+
+    // Store the private key in the key manager.
+    await keyManager.importKey({ key: verificationMethods[0].privateKeyJwk });
+
+    // Serialize the public key JWK to a UTF-8 string and encode to Base64URL format.
+    const base64UrlEncoded = Convert.object(verificationMethods[0].publicKeyJwk).toBase64Url();
+
+    // Attach the prefix `did:jwk` to form the complete DID URI.
+    const didUri = `did:${DidJwk.methodName}:${base64UrlEncoded}`;
+
+    // Expand the DID URI string to a DID didDocument.
+    const didResolutionResult = await DidJwk.resolve(didUri);
+    const didDocument = didResolutionResult.didDocument as DidDocument;
+
+    // DID Metadata is initially empty for this DID method.
+    const metadata: DidMetadata = {};
+
+    // Define a function that returns a signer for the DID.
+    const getSigner = async (params?: { keyUri?: string }) => await DidJwk.getSigner({
+      didDocument,
+      keyManager,
+      keyUri: params?.keyUri
+    });
+
+    return { didDocument, getSigner, keyManager, metadata, uri: didUri };
+  }
+
+  /**
+   * Instantiates a `Did` object from an existing DID using keys in an external Key Management
+   * System (KMS).
+   *
+   * This method returns a `Did` object by resolving an existing `did:jwk` DID URI and verifying
+   * that all associated keys are present in the provided key manager.
+   *
+   * @remarks
+   * The method verifies the presence of key material for every verification method in the DID
+   * document within the given KMS. If any key is missing, an error is thrown.
+   *
+   * This approach ensures that the resulting `Did` object is fully operational with the provided
+   * key manager and that all cryptographic operations related to the DID can be performed.
+   *
+   * @param params - The parameters for the `fromKeyManager` operation.
+   * @param params.didUri - The URI of the DID to be instantiated.
+   * @param params.keyManager - The Key Management System to be used for key management operations.
+   * @returns A Promise resolving to the instantiated `Did` object.
+   * @throws An error if any key in the DID document is not present in the provided KMS.
+   *
+   * @example
+   * ```ts
+   * // Assuming keyManager is an instance of a KMS implementation
+   * const didUri = 'did:jwk:example';
+   * const did = await DidJwk.fromKeyManager({ didUri, keyManager });
+   * // The 'did' is now an instance of Did, linked with the provided keyManager.
+   * ```
+   */
+  public static async fromKeyManager({ didUri, keyManager }: {
+    didUri: string;
     keyManager: CryptoApi;
-    keyUri?: string;
-  }): Promise<Signer> {
-    let publicKey: Jwk | undefined;
+  }): Promise<Did> {
+    // Resolve the DID URI to a DID Document.
+    const { didDocument } = await DidJwk.resolve(didUri);
 
-    // If a key URI is given, get the public key, which is needed for verify operations.
-    if (keyUri) {
-      // Get the public key from the key store, which also verifies that the key is present.
-      publicKey = await keyManager.getPublicKey({ keyUri });
-      // Verify the public key exists in the DID Document.
-      if (!(await getVerificationMethodByKey({ didDocument, publicKeyJwk: publicKey }))) {
-        throw new Error(`DidJwk: Key referenced by '${keyUri}' is not present in the provided DID Document for '${didDocument.id}'`);
-      }
-
-    } else {
-      // If a key URI is not given, assume the signing key is the DID's only verification method.
-      ({ publicKeyJwk: publicKey } = await DidJwk.getSigningMethod({ didDocument }) ?? {});
-      if (publicKey === undefined) {
-        throw new Error(`DidJwk: No verification methods found in the provided DID Document for '${didDocument.id}'`);
-      }
-      // Compute the expected key URI of the signing key.
-      keyUri = await keyManager.getKeyUri({ key: publicKey });
+    // Verify the DID Resolution Result includes a DID document containing verification methods.
+    if (!(didDocument && Array.isArray(didDocument.verificationMethod) && didDocument.verificationMethod.length > 0)) {
+      throw new Error(`DidJwk: DID document for '${didUri}' is missing verification methods`);
     }
 
-    // Both the `keyUri` and `publicKey` must be known before returning a signer.
-    if (!(keyUri && publicKey)) {
-      throw new Error(`DidJwk: Failed to determine the keys needed to create a signer`);
+    // Validate that the key material for every verification method in the DID document is present
+    // in the provided key manager.
+    for (let vm of didDocument.verificationMethod) {
+      if (!vm.publicKeyJwk) {
+        throw new Error(`DidJwk: Verification method '${vm.id}' does not contain a public key in JWK format`);
+      }
+
+      // Compute the key URI of the verification method's public key.
+      const keyUri = await keyManager.getKeyUri({ key: vm.publicKeyJwk });
+
+      // Verify that the key is present in the key manager. If not, an error is thrown.
+      await keyManager.getPublicKey({ keyUri });
     }
 
-    return {
-      async sign({ data }: EnclosedSignParams): Promise<Uint8Array> {
-        const signature = await keyManager.sign({ data, keyUri: keyUri! }); // `keyUri` is guaranteed to be defined at this point.
-        return signature;
-      },
+    // DID Metadata is initially empty for this DID method.
+    const metadata: DidMetadata = {};
 
-      async verify({ data, signature }: EnclosedVerifyParams): Promise<boolean> {
-        const isValid = await keyManager.verify({ data, key: publicKey!, signature }); // `publicKey` is guaranteed to be defined at this point.
-        return isValid;
-      }
-    };
+    // Define a function that returns a signer for the DID.
+    const getSigner = async (params?: { keyUri?: string }) => await DidJwk.getSigner({
+      didDocument,
+      keyManager,
+      keyUri: params?.keyUri
+    });
+
+    return { didDocument, getSigner, keyManager, metadata, uri: didUri };
   }
 
   /**
@@ -213,7 +336,7 @@ export class DidJwk extends DidMethod {
    * verification method. If not given, the first verification method in the DID Document is used.
    *
    * Note that for DID JWK, only one verification method can exist so specifying `methodId` could be
-   * considered redundant or unnecessar. The option is provided for consistency with other DID
+   * considered redundant or unnecessary. The option is provided for consistency with other DID
    * method implementations.
    *
    * @param params - The parameters for the `getSigningMethod` operation.
@@ -222,24 +345,19 @@ export class DidJwk extends DidMethod {
    * @returns Verification method to use for signing.
    */
   public static async getSigningMethod({ didDocument, methodId = '#0' }: {
-      didDocument: DidDocument,
-      methodId?: string
-    }): Promise<DidVerificationMethod | undefined> {
-
-    const [, method] = didDocument.id.split(':');
-    if (method !== 'jwk') {
-      throw new Error(`DidJwk: Method not supported: ${method}`);
+    didDocument: DidDocument;
+    methodId?: string;
+  }): Promise<DidVerificationMethod | undefined> {
+    // Verify the DID method is supported.
+    const parsedDid = DidUri.parse(didDocument.id);
+    if (parsedDid && parsedDid.method !== this.methodName) {
+      throw new Error(`DidJwk: Method not supported: ${parsedDid.method}`);
     }
 
-    let didResource: DidVerificationMethod | undefined;
-    for (let vm of didDocument.verificationMethod ?? []) {
-      if (vm.id.includes(methodId)) {
-        didResource = vm;
-        break;
-      }
-    }
+    // Attempt to find the verification method in the DID Document.
+    const verificationMethod = didDocument.verificationMethod?.find(vm => vm.id.endsWith(methodId));
 
-    return didResource;
+    return verificationMethod;
   }
 
   /**

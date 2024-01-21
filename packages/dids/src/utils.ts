@@ -2,7 +2,7 @@ import type { Jwk } from '@web5/crypto';
 
 import { computeJwkThumbprint } from '@web5/crypto';
 
-import type {
+import {
   DidService,
   DidDocument,
   DidVerificationMethod,
@@ -162,20 +162,11 @@ export function getVerificationMethods({ didDocument }: {
   const verificationMethods: DidVerificationMethod[] = [];
 
   // Check the 'verificationMethod' array.
-  verificationMethods.push(...didDocument?.verificationMethod?.filter(isDidVerificationMethod) ?? []);
-
-  // Define the verification relationship properties to check.
-  const verificationRelationships: DidVerificationRelationship[] = [
-    'authentication',
-    'assertionMethod',
-    'keyAgreement',
-    'capabilityInvocation',
-    'capabilityDelegation',
-  ];
+  verificationMethods.push(...didDocument.verificationMethod?.filter(isDidVerificationMethod) ?? []);
 
   // Check verification relationship properties for embedded verification methods.
-  verificationRelationships.forEach((relationship) => {
-    verificationMethods.push(...(didDocument[relationship] as any[])?.filter(isDidVerificationMethod) ?? []);
+  Object.keys(DidVerificationRelationship).forEach((relationship) => {
+    verificationMethods.push(...(didDocument[relationship as keyof DidDocument] as any[])?.filter(isDidVerificationMethod) ?? []);
   });
 
   return verificationMethods;

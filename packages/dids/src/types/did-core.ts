@@ -107,7 +107,7 @@ export type DidDereferencingResult = {
  * A DID Document can be retrieved by resolving a DID, as described in
  * {@link https://www.w3.org/TR/did-core/#did-resolution | DID Core Specification, § DID Resolution}.
  */
-export type DidDocument = {
+export interface DidDocument {
   /**
    * A JSON-LD context link, which provides a JSON-LD processor with the information necessary to
    * interpret the DID document JSON. The default context URL is 'https://www.w3.org/ns/did/v1'.
@@ -133,8 +133,12 @@ export type DidDocument = {
   alsoKnownAs?: string[];
 
   /**
-   * A DID controller is an entity that is authorized to make changes to a DID document. The process
-   * of authorizing a DID controller is defined by the DID method.
+   * A DID controller is an entity that is authorized to make changes to a DID document. Typically,
+   * only the DID Subject (i.e., the value of `id` property in the DID document) is authoritative.
+   * However, another DID can be specified as the DID controller, and when doing so, any
+   * verification methods contained in the DID document for the other DID should be accepted as
+   * authoritative.  In other words, proofs created by the controller DID should be considered
+   * equivalent to proofs created by the DID Subject.
    *
    * @see {@link https://www.w3.org/TR/did-core/#did-controller | DID Core Specification, § DID Controller}
    */
@@ -154,7 +158,7 @@ export type DidDocument = {
    *
    * @see {@link https://www.w3.org/TR/did-core/#assertion | DID Core Specification, § Assertion}
    */
-  assertionMethod?: DidVerificationMethod[] | string[];
+  assertionMethod?: (DidVerificationMethod | string)[];
 
   /**
    * The `authentication` verification relationship is used to specify how the DID subject is expected
@@ -163,7 +167,7 @@ export type DidDocument = {
 
    * @see {@link https://www.w3.org/TR/did-core/#authentication | DID Core Specification, § Authentication}
    */
-  authentication?: DidVerificationMethod[] | string[];
+  authentication?: (DidVerificationMethod | string)[];
 
   /**
    * The `keyAgreement` verification relationship is used to specify how an entity can generate
@@ -173,7 +177,7 @@ export type DidDocument = {
    *
    * @see {@link https://www.w3.org/TR/did-core/#key-agreement | DID Core Specification, § Key Agreement}
    */
-  keyAgreement?: DidVerificationMethod[] | string[];
+  keyAgreement?: (DidVerificationMethod | string)[];
 
   /**
    *  The `capabilityDelegation` verification relationship is used to specify a mechanism that might
@@ -182,14 +186,14 @@ export type DidDocument = {
    *
    * @see {@link https://www.w3.org/TR/did-core/#capability-delegation | DID Core Specification, § Capability Delegation}
    */
-  capabilityDelegation?: DidVerificationMethod[] | string[];
+  capabilityDelegation?: (DidVerificationMethod | string)[];
 
   /**
    * The `capabilityInvocation` verification relationship is used to specify a verification method
    * that might be used by the DID subject to invoke a cryptographic capability, such as the
    * authorization to update the DID Document.
    */
-  capabilityInvocation?: DidVerificationMethod[] | string[];
+  capabilityInvocation?: (DidVerificationMethod | string)[];
 
   /**
    * Services are used in DID documents to express ways of communicating with the DID subject or
@@ -486,7 +490,7 @@ export type DidServiceEndpoint = string | Record<string, any>;
  *
  * @see {@link https://www.w3.org/TR/did-core/#verification-methods | DID Core Specification, § Verification Methods}
  */
-export type DidVerificationMethod = {
+export interface DidVerificationMethod {
   /**
    * The identifier of the verification method, which must be a URI.
    */
@@ -520,9 +524,10 @@ export type DidVerificationMethod = {
   // an encoded (e.g, base58) key with a Multibase-prefix that conforms to
   // https://datatracker.ietf.org/doc/draft-multiformats-multibase/
   publicKeyMultibase?: string;
-};
+}
 
 /**
+ * !TODO: Rewrite this to use the enum below
  * Represents the various verification relationships defined in a DID document.
  *
  * These relationships indicate the intended use of verification methods associated with a DID. Each
@@ -552,9 +557,66 @@ export type DidVerificationMethod = {
  *
  * @see {@link https://www.w3.org/TR/did-core/#verification-relationships | DID Core Specification, § Verification Relationships}
  */
-export type DidVerificationRelationship =
-  | 'assertionMethod'
-  | 'authentication'
-  | 'keyAgreement'
-  | 'capabilityDelegation'
-  | 'capabilityInvocation';
+
+// export type DidVerificationRelationship =
+//   | 'assertionMethod'
+//   | 'authentication'
+//   | 'keyAgreement'
+//   | 'capabilityDelegation'
+//   | 'capabilityInvocation';
+
+/**
+ * An array of constant strings representing the standard verification relationships defined
+ * in the DID Core Specification.
+ *
+ * These verification relationships indicate the intended usage of verification methods within a DID
+ * document. Each relationship signifies a different purpose or context in which a verification
+ * method can be used, such as authentication, assertionMethod, keyAgreement, capabilityDelegation,
+ * and capabilityInvocation. The array provides a standardized set of relationship names for
+ * consistent referencing and implementation across different DID methods.
+ *
+ * @see {@link https://www.w3.org/TR/did-core/#verification-relationships | DID Core Specification, § Verification Relationships}
+ * @example
+ * ```ts
+ * // Example usage of DID_VERIFICATION_RELATIONSHIPS in a DID method implementation
+ * if (didDocument.authentication.includes(someVerificationMethod)) {
+ *   // Handle authentication verification method
+ * }
+ * ```
+ */
+export enum DidVerificationRelationship {
+  /**
+   * Indicates that the verification method is intended to be used for authentication purposes.
+   *
+   * @see {@link https://www.w3.org/TR/did-core/#authentication | DID Core Specification, § Authentication}
+   */
+  authentication = 'authentication',
+
+  /**
+   * Indicates that the verification method is intended to be used for assertion purposes.
+   *
+   * @see {@link hthttps://www.w3.org/TR/did-core/#assertion | DID Core Specification, § Assertion}
+   */
+  assertionMethod = 'assertionMethod',
+
+  /**
+   * Indicates that the verification method is intended to be used for key agreement purposes.
+   *
+   * @see {@link https://www.w3.org/TR/did-core/#key-agreement | DID Core Specification, § Key Agreement}
+   */
+  keyAgreement = 'keyAgreement',
+
+  /**
+   * Indicates that the verification method is intended to be used for capability delegation purposes.
+   *
+   * @see {@link https://www.w3.org/TR/did-core/#capability-delegation | DID Core Specification, § Capability Delegation}
+   */
+  capabilityDelegation = 'capabilityDelegation',
+
+  /**
+   * Indicates that the verification method is intended to be used for capability invocation purposes.
+   *
+   * @see {@link https://www.w3.org/TR/did-core/#capability-invocation | DID Core Specification, § Capability Invocation}
+   */
+  capabilityInvocation = 'capabilityInvocation'
+}

@@ -1,6 +1,22 @@
-import type { CryptoApi, KeyIdentifier, Signer } from '@web5/crypto';
+import type {
+  Jwk,
+  Signer,
+  CryptoApi,
+  LocalKmsCrypto,
+  EnclosedSignParams,
+  EnclosedVerifyParams,
+  InferKeyGeneratorAlgorithm,
+} from '@web5/crypto';
 
-import type { DidDocument, DidResolutionOptions, DidResolutionResult, DidVerificationRelationship } from '../types/did-core.js';
+import type {
+  DidDocument,
+  DidResolutionResult,
+  DidResolutionOptions,
+  DidVerificationMethod,
+} from '../types/did-core.js';
+
+import { getVerificationMethodByKey } from '../utils.js';
+import { DidVerificationRelationship } from '../types/did-core.js';
 
 /**
  * Represents a Decentralized Identifier (DID) along with its convenience functions.
@@ -32,14 +48,10 @@ export interface Did {
    */
   keyManager: CryptoApi;
 
-  /**
-   * @inheritdoc DidMetadata
-   */
+  /** {@inheritDoc DidMetadata} */
   metadata: DidMetadata;
 
-  /**
-   * @inheritdoc DidUri#uri
-   */
+  /** {@inheritDoc DidUri#uri} */
   uri: string;
 }
 
@@ -50,17 +62,62 @@ export interface Did {
  * options or metadata during the DID creation processes following specific DID method
  * specifications.
  */
-export interface DidCreateOptions {}
+export interface DidCreateOptions<TKms> {
+  /**
+   * Optional. An array of verification methods to be included in the DID document.
+   */
+  verificationMethods?: DidCreateVerificationMethod<TKms>[];
+}
+
+/**
+ * Options for additional verification methods added to the DID Document during the creation of a
+ * new Decentralized Identifier (DID).
+ */
+export interface DidCreateVerificationMethod<TKms> extends Pick<Partial<DidVerificationMethod>, 'controller' | 'id' | 'type'> {
+  /**
+   * The name of the cryptographic algorithm to be used for key generation.
+   *
+   * Examples might include `Ed25519` and `ES256K` but will vary depending on the DID method
+   * specification and the key management system in use.
+   *
+   * @example
+   * ```ts
+   * const verificationMethod: DidCreateVerificationMethod = {
+   *   algorithm: 'Ed25519'
+   * };
+   * ```
+   */
+  algorithm: TKms extends CryptoApi
+    ? InferKeyGeneratorAlgorithm<TKms>
+    : InferKeyGeneratorAlgorithm<LocalKmsCrypto>;
+
+  /**
+   * Optionally specify the purposes for which a verification method is intended to be used in a DID
+   * document.
+   *
+   * The `purposes` property defines the specific
+   * {@link DidVerificationRelationship | verification relationships} between the DID subject and
+   * the verification method. This enables the verification method to be utilized for distinct
+   * actions such as authentication, assertion, key agreement, capability delegation, and others. It
+   * is important for verifiers to recognize that a verification method must be associated with the
+   * relevant purpose in the DID document to be valid for that specific use case.
+   *
+   * @example
+   * ```ts
+   * const verificationMethod: DidCreateVerificationMethod = {
+   *   algorithm: 'Ed25519',
+   *   controller: 'did:example:1234',
+   *   purposes: ['authentication', 'assertionMethod']
+   * };
+   * ```
+   */
+  purposes?: (DidVerificationRelationship | keyof typeof DidVerificationRelationship)[];
+}
 
 /**
  * Represents metadata about a DID resulting from create, update, or deactivate operations.
  */
 export type DidMetadata = {
-  /**
-   * The key set associated with the DID.
-   */
-  keySet: DidKeySet;
-
   // Additional properties of any type.
   [key: string]: any;
 }
@@ -71,7 +128,11 @@ export type DidMetadata = {
  * @typeparam T - The type of the DID instance associated with this method.
  * @typeparam O - The type of the options used for creating the DID.
  */
-export interface DidMethodApi<T extends Did, O extends DidCreateOptions> extends DidMethodResolver {
+export interface DidMethodApi<
+    TDid extends Did,
+    TOptions extends DidCreateOptions<TKms>,
+    TKms extends CryptoApi | undefined = undefined
+  > extends DidMethodResolver {
   /**
    * The name of the DID method.
    *
@@ -88,11 +149,11 @@ export interface DidMethodApi<T extends Did, O extends DidCreateOptions> extends
    * implemented, using the provided `keyManager`, and optionally, any provided `options`.
    *
    * @param params - The parameters used to create the DID.
-   * @param params.keyManager - The cryptographic API used for key management.
+   * @param params.keyManager - Optional. The cryptographic API used for key management.
    * @param params.options - Optional. The options used for creating the DID.
    * @returns A promise that resolves to the newly created DID instance.
    */
-  create(params: { keyManager: CryptoApi, options?: O }): Promise<T>;
+  create(params: { keyManager?: TKms, options?: TOptions }): Promise<TDid>;
 }
 
 /**
@@ -127,66 +188,254 @@ export interface DidMethodResolver {
 }
 
 /**
- * A set of keys associated with a DID.
+ * A set of keys associated with the verification methods of a Decentralized Identifier (DID).
  *
- * The keys in this set are expected to be managed by a Key Management System (KMS) which
- * implements the {@link @web5/crypto#CryptoApi | CryptoApi} interface. Examples of such KMS
- * implementations include {@link @web5/crypto#LocalKmsCrypto | LocalKmsCrypto} and
- * {@link @web5/crypto-aws-kms#AwsKmsCrypto | AwsKmsCrypto}.
+ * The keys in this set can be used to instantiate a new {@link Did} object typically using the
+ * `fromKeys()` method of a {@link DidMethod} implementation.
  */
 export interface DidKeySet {
   /**
-   * An optional array of keys that are managed by a Key Management System (KMS).
+   * An optional array of verification methods to be included in the DID document.
+   *
+   * @see {@link https://www.w3.org/TR/did-core/#verification-methods | DID Core Specification, § Verification Methods}
+   *
+   * @example
+   * ```ts
+   * const did = await DidExample.fromKeys({
+   * verificationMethods: [
+   *   {
+   *     publicKeyJwk: {
+   *       kty: "OKP",
+   *       crv: "X25519",
+   *       x: "7XdJtNmJ9pV_O_3mxWdn6YjiHJ-HhNkdYQARzVU_mwY",
+   *       kid: "xtsuKULPh6VN9fuJMRwj66cDfQyLaxuXHkMlmAe_v6I"
+   *     },
+   *     privateKeyJwk: {
+   *       kty: "OKP",
+   *       crv: "X25519",
+   *       d: "qM1E646TMZwFcLwRAFwOAYnTT_AvbBd3NBGtGRKTyU8",
+   *       x: "7XdJtNmJ9pV_O_3mxWdn6YjiHJ-HhNkdYQARzVU_mwY",
+   *       kid: "xtsuKULPh6VN9fuJMRwj66cDfQyLaxuXHkMlmAe_v6I"
+   *     },
+   *     purposes: ['authentication', 'assertionMethod']
+   *   }
+   * ]
+   * ```
    */
-  keys?: DidKmsKey[];
+  verificationMethods?: DidKeySetVerificationMethod[];
 }
 
 /**
- * Represents a key managed by a Key Management System (KMS) within the context of a Decentralized
- * Identifier (DID).
+ * Represents a verification method within a DID Key Set, including both public and private key
+ * components, and specifies the purposes for which the verification method can be used.
  *
- * This interface describes a cryptographic key used in conjunction with DID operations. The key is
- * identified by a `keyUri`, and is associated with one or more verification relationship purposes
- * within the DID document.
- *
- * The key referred to by the `keyUri` is expected to be managed by a Key Management System (KMS)
- * which implements the {@link @web5/crypto#CryptoApi | CryptoApi} interface. Examples of such KMS
- * implementations include {@link @web5/crypto#LocalKmsCrypto | LocalKmsCrypto} and
- * {@link @web5/crypto-aws-kms#AwsKmsCrypto | AwsKmsCrypto}.
- *
- * @example
- * ```ts
- * const didKmsKey: DidKmsKey = {
- *   keyUri: 'urn:jwk:vO8jHDKD8dynDvVp8Ea2szjIRz2V-hCMhtmJYOxO4oY',
- *   purposes: ['assertionMethod', 'authentication']
- * };
- * ```
- *
- * @see {@link DidVerificationRelationship} for the list of possible verification relationships that
- * can be used to specify the purpose(s) of a key.
+ * This interface extends {@link DidVerificationMethod}, providing a structure for a cryptographic
+ * key pair (public and private keys) with optional purposes. It is used in the context of
+ * Decentralized Identifiers (DIDs) where key pairs are associated with specific verification
+ * relationships.
  */
-export interface DidKmsKey {
+export interface DidKeySetVerificationMethod extends Partial<DidVerificationMethod> {
   /**
-   * A unique identifier for the key within the KMS. This URI is used to reference and manage the
-   * key in operations such as signing or encryption.
+   * Express the private key in JWK format.
+   *
+   * (Optional) A JSON Web Key that conforms to {@link https://datatracker.ietf.org/doc/html/rfc7517 | RFC 7517}.
    */
-  keyUri: KeyIdentifier;
+  privateKeyJwk?: Jwk;
 
   /**
-   * An array of {@link DidVerificationRelationship | Verification Relationships} that the key is
-   * intended to be used for. Each relationship type specifies how the key can be used in the
-   * context of the DID, such as for authentication, assertion, key agreement, etc.
+   * Optionally specify the purposes for which a verification method is intended to be used in a DID
+   * document.
+   *
+   * The `purposes` property defines the specific
+   * {@link DidVerificationRelationship | verification relationships} between the DID subject and
+   * the verification method. This enables the verification method to be utilized for distinct
+   * actions such as authentication, assertion, key agreement, capability delegation, and others. It
+   * is important for verifiers to recognize that a verification method must be associated with the
+   * relevant purpose in the DID document to be valid for that specific use case.
+   *
+   * @example
+   * ```ts
+   * const verificationMethod: DidKeySetVerificationMethod = {
+   *   publicKeyJwk: {
+   *     kty: "OKP",
+   *     crv: "X25519",
+   *     x: "7XdJtNmJ9pV_O_3mxWdn6YjiHJ-HhNkdYQARzVU_mwY",
+   *     kid: "xtsuKULPh6VN9fuJMRwj66cDfQyLaxuXHkMlmAe_v6I"
+   *   },
+   *   privateKeyJwk: {
+   *     kty: "OKP",
+   *     crv: "X25519",
+   *     d: "qM1E646TMZwFcLwRAFwOAYnTT_AvbBd3NBGtGRKTyU8",
+   *     x: "7XdJtNmJ9pV_O_3mxWdn6YjiHJ-HhNkdYQARzVU_mwY",
+   *     kid: "xtsuKULPh6VN9fuJMRwj66cDfQyLaxuXHkMlmAe_v6I"
+   *   },
+   *   purposes: ['authentication', 'assertionMethod']
+   * };
+   * ```
    */
-  purposes: DidVerificationRelationship[];
+  purposes?: (DidVerificationRelationship | keyof typeof DidVerificationRelationship)[];
 }
 
 /**
  * Base abstraction for all Decentralized Identifier (DID) method implementations.
  *
- * This abstract class serves as a foundational structure upon which specific DID methods
+ * This base class serves as a foundational structure upon which specific DID methods
  * can be implemented. Subclasses should furnish particular method and data models adherent
- * to various DID methods. taking care to adhere to the
+ * to various DID methods, taking care to adhere to the
  * {@link https://www.w3.org/TR/did-core/ | W3C DID Core specification} and the
  * respective DID method specifications.
  */
-export abstract class DidMethod {}
+export class DidMethod {
+  /**
+   * Given a W3C DID Document, return a {@link Signer} that can be used to sign messages,
+   * credentials, or arbitrary data.
+   *
+   * If given, the `keyUri` parameter is used to select a key from the verification methods present
+   * in the DID Document.
+   *
+   * If `keyUri` is not given, the first (or DID method specific default) verification method in the
+   * DID document is used.
+   *
+   * @param params - The parameters for the `getSigner` operation.
+   * @param params.didDocument - DID Document of the DID whose keys will be used to construct the {@link Signer}.
+   * @param params.keyManager - Web5 Crypto API used to sign and verify data.
+   * @param params.keyUri - Key URI of the key that will be used for sign and verify operations. Optional.
+   * @returns An instantiated {@link Signer} that can be used to sign and verify data.
+   */
+  public static async getSigner({ didDocument, keyManager, keyUri }: {
+    didDocument: DidDocument;
+    keyManager: CryptoApi;
+    keyUri?: string;
+  }): Promise<Signer> {
+    let publicKey: Jwk | undefined;
+
+    // If a key URI is given use the referenced key for sign and verify operations.
+    if (keyUri) {
+      // Get the public key from the key store, which also verifies that the key is present.
+      publicKey = await keyManager.getPublicKey({ keyUri });
+      // Verify the public key exists in the DID Document.
+      if (!(await getVerificationMethodByKey({ didDocument, publicKeyJwk: publicKey }))) {
+        throw new Error(`DidJwk: Key referenced by '${keyUri}' is not present in the provided DID Document for '${didDocument.id}'`);
+      }
+
+    } else {
+      // If a key URI is not given, use the key associated with the verification method that is used
+      // by default for sign and verify operations. The default verification method is determined by
+      // the DID method implementation.
+      ({ publicKeyJwk: publicKey } = await this.getSigningMethod({ didDocument }) ?? {});
+      if (publicKey === undefined) {
+        throw new Error(`DidJwk: No verification methods found in the provided DID Document for '${didDocument.id}'`);
+      }
+      // Compute the expected key URI of the signing key.
+      keyUri = await keyManager.getKeyUri({ key: publicKey });
+    }
+
+    // Both the `keyUri` and `publicKey` must be known before returning a signer.
+    if (!(keyUri && publicKey)) {
+      throw new Error(`DidJwk: Failed to determine the keys needed to create a signer`);
+    }
+
+    return {
+      async sign({ data }: EnclosedSignParams): Promise<Uint8Array> {
+        const signature = await keyManager.sign({ data, keyUri: keyUri! }); // `keyUri` is guaranteed to be defined at this point.
+        return signature;
+      },
+
+      async verify({ data, signature }: EnclosedVerifyParams): Promise<boolean> {
+        const isValid = await keyManager.verify({ data, key: publicKey!, signature }); // `publicKey` is guaranteed to be defined at this point.
+        return isValid;
+      }
+    };
+  }
+
+  /**
+   * MUST be implemented by all DID method implementations that extend {@link DidMethod}.
+   *
+   * Given the W3C DID Document of a DID, return the verification method that will be used for
+   * signing messages and credentials. If given, the `methodId` parameter is used to select the
+   * verification method. If not given, each DID method implementation will select a default
+   * verification method from the DID Document.
+   *
+   * @param params - The parameters for the `getSigningMethod` operation.
+   * @param params.didDocument - DID Document to get the verification method from.
+   * @param params.methodId - ID of the verification method to use for signing.
+   * @returns Verification method to use for signing.
+   */
+  public static async getSigningMethod(_params: {
+    didDocument: DidDocument;
+    methodId?: string;
+  }): Promise<DidVerificationMethod | undefined> {
+    throw new Error(`Not implemented: Classes extending DidMethod must implement getSigningMethod()`);
+  }
+
+  /**
+   * Converts a `Did` object to a `DidKeySet` containing the keys associated with the DID.
+   *
+   * This method is useful when you need to export the key material associated with a DID into a
+   * format that can be used independently of the DID document. It extracts both public and private
+   * keys from the DID's key manager and organizes them into a `DidKeySet` structure.
+   *
+   * @remarks
+   * This method requires that the DID's key manager supports the `exportKey` operation. If the DID
+   * document does not contain any verification methods, or if the key manager does not support key
+   * export, an error is thrown.
+   *
+   * The resulting `DidKeySet` will contain the same number of verification methods as the DID
+   * document, each with its associated public and private keys and the purposes for which the key
+   * can be used.
+   *
+   * @example
+   * ```ts
+   * // Assuming `did` is an instance of Did
+   * const keySet = await DidJwk.toKeys({ did });
+   * // keySet now contains the verification methods and their associated keys.
+   * ```
+   *
+   * @param params - The parameters for the export keys operation.
+   * @param params.did - The `Did` object whose keys are to be exported.
+   * @returns A `DidKeySet` containing the keys associated with the DID.
+   * @throws An error if the key manager does not support key export or if the DID document
+   *         is missing verification methods.
+   */
+  public static async toKeys({ did }: { did: Did }): Promise<DidKeySet> {
+    // First, confirm that the DID's key manager supports exporting keys.
+    if (!('exportKey' in did.keyManager && typeof did.keyManager.exportKey === 'function')) {
+      throw new Error(`${this.name}: The key manager of the given DID does not support exporting keys`);
+    }
+
+    // Verify the DID document contains at least one verification method.
+    if (!(Array.isArray(did.didDocument.verificationMethod) && did.didDocument.verificationMethod.length > 0)) {
+      throw new Error(`${this.name}: DID document for '${did.uri}' is missing verification methods`);
+    }
+
+    let keySet: DidKeySet = { verificationMethods: [] };
+
+    // Retrieve the key material for every verification method in the DID document from the key
+    // manager.
+    for (let vm of did.didDocument.verificationMethod) {
+      if (!vm.publicKeyJwk) {
+        throw new Error(`${this.name}: Verification method '${vm.id}' does not contain a public key in JWK format`);
+      }
+
+      // Compute the key URI of the verification method's public key.
+      const keyUri = await did.keyManager.getKeyUri({ key: vm.publicKeyJwk });
+
+      // Retrieve the public and private keys from the key manager.
+      const privateKey = await did.keyManager.exportKey({ keyUri });
+
+      // Collect the purposes associated with this verification method from the DID document.
+      const purposes = Object
+        .keys(DidVerificationRelationship)
+        .filter((purpose) => (did.didDocument[purpose as keyof DidDocument] as any[])?.includes(vm.id)) as DidVerificationRelationship[];
+
+      // Add the verification method to the key set.
+      keySet.verificationMethods!.push({
+        ...vm,
+        privateKeyJwk: privateKey,
+        purposes
+      });
+    }
+
+    return keySet;
+  }
+}
