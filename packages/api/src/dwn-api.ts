@@ -366,6 +366,7 @@ export class DwnApi {
         const { entries, status, cursor } = reply;
 
         const records = entries.map((entry: RecordsQueryReplyEntry) => {
+
           const recordOptions = {
             /**
              * Extract the `author` DID from the record entry since records may be signed by the

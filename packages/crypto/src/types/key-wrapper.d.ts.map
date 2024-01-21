@@ -1,0 +1,1 @@
+{"version":3,"file":"key-wrapper.d.ts","sourceRoot":"","sources":["key-wrapper.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,GAAG,EAAE,MAAM,gBAAgB,CAAC;AAE1C;;;;;;;GAOG;AACH,MAAM,WAAW,UAAU,CACzB,YAAY,EACZ,cAAc;IAEd;;;;;;;;;;;OAWG;IACH,OAAO,CAAC,MAAM,EAAE,YAAY,GAAG,OAAO,CAAC,UAAU,CAAC,CAAC;IAEnD;;;;;;;;;;;OAWG;IACH,SAAS,CAAC,MAAM,EAAE,cAAc,GAAG,OAAO,CAAC,GAAG,CAAC,CAAC;CACjD"}

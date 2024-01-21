@@ -1,0 +1,1 @@
+{"version":3,"file":"key-io.d.ts","sourceRoot":"","sources":["key-io.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,GAAG,EAAE,MAAM,gBAAgB,CAAC;AAE1C;;;;;;;GAOG;AACH,MAAM,WAAW,mBAAmB,CAClC,cAAc,EACd,eAAe,EACf,cAAc;IAEd;;;;;;;;;;OAUG;IACH,SAAS,CAAC,MAAM,EAAE,cAAc,GAAG,OAAO,CAAC,GAAG,CAAC,CAAC;IAEhD;;;;;;;;;;;OAWG;IACH,SAAS,CAAC,MAAM,EAAE,cAAc,GAAG,OAAO,CAAC,eAAe,CAAC,CAAC;CAC7D"}
