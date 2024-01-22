@@ -367,7 +367,7 @@ export class Record implements RecordModel {
 
       let agentResponse = await this._processMessage({
         import     : _import,
-        store      : store,
+        store      : true,
         rawMessage : {
           contextId: this._contextId,
           ...initialWrite
@@ -385,7 +385,7 @@ export class Record implements RecordModel {
 
     let agentResponse = await this._processMessage({
       import     : !initialWrite && _import,
-      store      : store,
+      store      : store || storeAll,
       dataStream : await this.data.blob(),
       rawMessage : {
         contextId     : this._contextId,
@@ -585,7 +585,6 @@ export class Record implements RecordModel {
 
     if (200 <= status.code && status.code <= 299) {
       if (!this._initialWrite) {
-        console.log('post update', responseMessage);
         this._initialWrite = removeUndefinedProperties({
           contextId     : this._contextId,
           recordId      : this._recordId,
