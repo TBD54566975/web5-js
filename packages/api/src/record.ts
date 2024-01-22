@@ -71,7 +71,7 @@ export type RecordUpdateOptions = {
  * @beta
  */
 
-function removeUndefinedProperties(obj: any): void {
+function removeUndefinedProperties(obj: any): any {
   if (typeof obj !== 'object' || obj === null) return;
   Object.keys(obj).forEach(key => {
     const val = obj[key];
@@ -359,11 +359,11 @@ export class Record implements RecordModel {
 
     // Add check to bail if already imported
 
-    const { store = true, import: _import = false } = options;
+    const { store = true, import: _import = false, storeAll = false } = options;
 
     const initialWrite = this._initialWrite;
 
-    if (initialWrite) {
+    if (initialWrite && storeAll) {
 
       let agentResponse = await this._processMessage({
         import     : _import,
@@ -408,7 +408,7 @@ export class Record implements RecordModel {
 
   async import(options?: any): Promise<any> {
     // Add check to bail if already imported
-    return this.store({ store: options?.store !== false, import: true });
+    return this.store({ store: options?.store !== false, storeAll: true, import: true });
   }
 
   /**
@@ -420,7 +420,7 @@ export class Record implements RecordModel {
    *
    * @beta
    */
-  async send(_options: string | { [key: string]: any }): Promise<ResponseStatus> {
+  async send(_options?: string | { [key: string]: any }): Promise<ResponseStatus> {
 
     const initialWrite = this._initialWrite;
     const options = !_options ? { target: this._connectedDid } : typeof _options === 'string' ? { target: _options } : _options;
@@ -429,11 +429,7 @@ export class Record implements RecordModel {
       options.target = this._connectedDid;
     }
 
-    //console.log(options);
-
     if (options.sendAll && initialWrite){
-
-      console.log(initialWrite);
 
       const initialState = {
         messageType : DwnInterfaceName.Records + DwnMethodName.Write,
@@ -445,9 +441,8 @@ export class Record implements RecordModel {
         })
       } as any;
 
-      const { reply: { status } } = await this._agent.sendDwnRequest(initialState);
+      await this._agent.sendDwnRequest(initialState);
 
-      console.log(status);
     }
 
     const latestState = {
@@ -589,7 +584,19 @@ export class Record implements RecordModel {
     const responseMessage = message as RecordsWriteMessage;
 
     if (200 <= status.code && status.code <= 299) {
+      if (!this._initialWrite) {
+        console.log('post update', responseMessage);
+        this._initialWrite = removeUndefinedProperties({
+          contextId     : this._contextId,
+          recordId      : this._recordId,
+          descriptor    : this._descriptor,
+          attestation   : this._attestation,
+          authorization : this._authorization,
+          encryption    : this._encryption,
+        });
+      }
       // Only update the local Record instance mutable properties if the record was successfully (over)written.
+      this._authorization = responseMessage.authorization;
       mutableDescriptorProperties.forEach(property => {
         this._descriptor[property] = responseMessage.descriptor[property];
       });

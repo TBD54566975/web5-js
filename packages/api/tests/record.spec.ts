@@ -100,9 +100,6 @@ describe('Record', () => {
   // FIRST PASS AT IMPORT
 
   it.only('imports a record that another user wrote', async () => {
-    /** Generate data that exceeds the DWN encoded data limit to ensure that the data will have to
-     * be fetched with a RecordsRead when record.data.blob() is executed. */
-    const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
     // Install the email protocol for Alice's local DWN.
     let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
@@ -133,7 +130,7 @@ describe('Record', () => {
 
     // Alice creates a new large record and stores it
     const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwnAlice.records.write({
-      data    : dataText,
+      data    : TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000),
       message : {
         recipient    : bobDid.did,
         protocol     : emailProtocolDefinition.protocol,
@@ -164,33 +161,50 @@ describe('Record', () => {
     expect(importSendStatus.code).to.equal(202);
 
     // Alice updates her record
-    let dataTextUpdate = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
-    let { status: aliceEmailStatusUpdated } = await aliceEmailRecord.update({ data: dataTextUpdate });
+    let { status: aliceEmailStatusUpdated } = await aliceEmailRecord.update({
+      data: TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000)
+    });
     expect(aliceEmailStatusUpdated.code).to.equal(202);
 
-    const { status: sendStatusUpdate } = await aliceEmailRecord!.send(bobDid.did);
-    console.log(sendStatusUpdate);
-    expect(sendStatusUpdate.code).to.equal(202);
+    const { status: sentToSelfStatus } = await aliceEmailRecord!.send();
+    expect(sentToSelfStatus.code).to.equal(202);
 
-    // expect(queryRecordStatus2.code).to.equal(200);
+    const { status: sentToBobStatus } = await aliceEmailRecord!.send(bobDid.did);
+    expect(sentToBobStatus.code).to.equal(202);
 
-    // let sameImportRecord = queryRecords2[0];
-    // let sameImportRecordStatus = await sameImportRecord.import();
+    // Alice updates her record
 
-    // expect(sameImportRecordStatus.code).to.equal(202);
+    const updatedText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
+    let { status: aliceEmailStatusUpdatedAgain } = await aliceEmailRecord.update({
+      data: updatedText
+    });
+    expect(aliceEmailStatusUpdatedAgain.code).to.equal(202);
 
+    // Sends it to her own remote DWN again
+    const { status: sentToSelfAgainStatus } = await aliceEmailRecord!.send();
+    expect(sentToSelfAgainStatus.code).to.equal(202);
 
-    // const dataTextUpdate2 = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
-    // const { status: aliceEmailStatusUpdated2 } = await aliceEmailRecord.update({ data: dataTextUpdate2 });
-    // expect(aliceEmailStatusUpdated2.code).to.equal(202);
+    const { records: updatedRecords, status: updatedRecordsStatus } = await dwnBob.records.query({
+      from    : aliceDid.did,
+      message : {
+        filter: {
+          protocol     : emailProtocolDefinition.protocol,
+          protocolPath : 'thread',
+        }
+      }
+    });
+    expect(updatedRecordsStatus.code).to.equal(200);
 
-    // const { status: sendStatusUpdate2 } = await aliceEmailRecord!.send(bobDid.did);
+    const updatedRecord = updatedRecords[0];
+    const updatedRecordStoredStatus = await updatedRecord.store();
+    expect(updatedRecordStoredStatus.code).to.equal(202);
 
-    // console.log(sendStatusUpdate2);
-    // expect(sendStatusUpdate2.code).to.equal(202);
+    expect(await updatedRecord.data.text() === updatedText).to.equal(true);
 
+    const { status: updatedRecordToSelfStatus } = await updatedRecord!.send();
+    expect(updatedRecordToSelfStatus.code).to.equal(202);
 
-    // // Confirm Bob can query his own remote DWN for the created record.
+    // Confirm Bob can query his own remote DWN for the created record.
     // const bobQueryResult = await dwnBob.records.query({
     //   from    : bobDid.did,
     //   message : {
