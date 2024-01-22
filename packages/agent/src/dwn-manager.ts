@@ -187,7 +187,6 @@ export class DwnManager {
     let messageData: Blob | Readable | ReadableStream | undefined;
 
     if ('messageCid' in request) {
-      console.log(request);
       const { message, data } =  await this.getDwnMessage({
         author      : request.author,
         messageCid  : request.messageCid,
@@ -197,7 +196,9 @@ export class DwnManager {
       messageData = data;
 
     } else {
+      console.log('start constructDwnMessage');
       const { message } = await this.constructDwnMessage({ request });
+      console.log('passed constructDwnMessage');
       dwnRpcRequest.message = message;
       messageData = request.dataStream;
     }
@@ -257,7 +258,7 @@ export class DwnManager {
     const { request } = options;
     const rawMessage = (request as any).rawMessage;
 
-    // console.log('259', rawMessage);
+    console.log('259', rawMessage);
 
     let readableStream: Readable | undefined;
 
