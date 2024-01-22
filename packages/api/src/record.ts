@@ -402,24 +402,13 @@ export class Record implements RecordModel {
 
     if (_import) this._authorization = responseMessage.authorization;
 
-    // const rawMessage = {
-    //   contextId: this._contextId,
-    //   ...(existingInitialWrite || {
-    //     recordId      : this._recordId,
-    //     descriptor    : this._descriptor,
-    //     attestation   : this._attestation,
-    //     authorization : this._authorization,
-    //     encryption    : this._encryption,
-    //   })
-    // } as Partial<RecordsWriteMessage>;
-
     return status;
 
   }
 
   async import(options?: any): Promise<any> {
     // Add check to bail if already imported
-    return this.store({ store: !!options?.store, import: true });
+    return this.store({ store: options?.store !== false, import: true });
   }
 
   /**
@@ -431,15 +420,58 @@ export class Record implements RecordModel {
    *
    * @beta
    */
-  async send(target: string): Promise<ResponseStatus> {
-    //console.log(this.toJSON());
-    const { reply: { status } } = await this._agent.sendDwnRequest({
-      messageType    : DwnInterfaceName.Records + DwnMethodName.Write,
-      author         : this._connectedDid,
-      dataStream     : await this.data.blob(),
-      target         : target,
-      messageOptions : this.toJSON(),
-    });
+  async send(_options: string | { [key: string]: any }): Promise<ResponseStatus> {
+
+    const initialWrite = this._initialWrite;
+    const options = !_options ? { target: this._connectedDid } : typeof _options === 'string' ? { target: _options } : _options;
+
+    if (!options.target){
+      options.target = this._connectedDid;
+    }
+
+    //console.log(options);
+
+    if (options.sendAll && initialWrite){
+
+      console.log(initialWrite);
+
+      const initialState = {
+        messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+        author      : this._connectedDid,
+        target      : options.target,
+        rawMessage  : removeUndefinedProperties({
+          contextId: this._contextId,
+          ...initialWrite
+        })
+      } as any;
+
+      const { reply: { status } } = await this._agent.sendDwnRequest(initialState);
+
+      console.log(status);
+    }
+
+    const latestState = {
+      messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+      author      : this._connectedDid,
+      dataStream  : await this.data.blob(),
+      target      : options.target
+    } as any;
+
+    if (this._authorization) {
+      latestState.rawMessage = removeUndefinedProperties({
+        contextId     : this._contextId,
+        recordId      : this._recordId,
+        descriptor    : this._descriptor,
+        attestation   : this._attestation,
+        authorization : this._authorization,
+        encryption    : this._encryption,
+      });
+    }
+    else {
+      latestState.messageOptions = this.toJSON();
+    }
+
+    const { reply: { status } } = await this._agent.sendDwnRequest(latestState);
 
     return { status };
   }

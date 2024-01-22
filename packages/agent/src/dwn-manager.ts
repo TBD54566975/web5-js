@@ -187,6 +187,7 @@ export class DwnManager {
     let messageData: Blob | Readable | ReadableStream | undefined;
 
     if ('messageCid' in request) {
+      console.log(request);
       const { message, data } =  await this.getDwnMessage({
         author      : request.author,
         messageCid  : request.messageCid,

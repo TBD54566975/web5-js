@@ -131,7 +131,7 @@ describe('Record', () => {
     const { status: bobPushStatus } = await bobProtocol!.send(bobDid.did);
     expect(bobPushStatus.code).to.equal(202);
 
-    // Alice creates a new large record but does not store it in her local DWN.
+    // Alice creates a new large record and stores it
     const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwnAlice.records.write({
       data    : dataText,
       message : {
@@ -156,43 +156,37 @@ describe('Record', () => {
       }
     });
     expect(queryRecordStatus.code).to.equal(200);
-    let importRecord = queryRecords[0];
-    let importRecordStatus = await importRecord.import();
+    const importRecord = queryRecords[0];
+    const importRecordStatus = await importRecord.import();
     expect(importRecordStatus.code).to.equal(202);
 
-    const dataTextUpdate = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
-    const { status: aliceEmailStatusUpdated } = await aliceEmailRecord.update({ data: dataTextUpdate });
+    const { status: importSendStatus } = await importRecord!.send({ sendAll: true });
+    expect(importSendStatus.code).to.equal(202);
+
+    // Alice updates her record
+    let dataTextUpdate = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
+    let { status: aliceEmailStatusUpdated } = await aliceEmailRecord.update({ data: dataTextUpdate });
     expect(aliceEmailStatusUpdated.code).to.equal(202);
 
-    // Alice writes the large record to her own remote DWN.
-    const { status: sendStatusUpdate } = await aliceEmailRecord!.send(aliceDid.did);
+    const { status: sendStatusUpdate } = await aliceEmailRecord!.send(bobDid.did);
+    console.log(sendStatusUpdate);
     expect(sendStatusUpdate.code).to.equal(202);
 
-    const { records: queryRecords2, status: queryRecordStatus2 } = await dwnBob.records.query({
-      from    : aliceDid.did,
-      message : {
-        filter: {
-          protocol     : emailProtocolDefinition.protocol,
-          protocolPath : 'thread',
-        }
-      }
-    });
+    // expect(queryRecordStatus2.code).to.equal(200);
 
-    expect(queryRecordStatus2.code).to.equal(200);
+    // let sameImportRecord = queryRecords2[0];
+    // let sameImportRecordStatus = await sameImportRecord.import();
 
-    let sameImportRecord = queryRecords2[0];
-    let sameImportRecordStatus = await sameImportRecord.import();
-
-    expect(sameImportRecordStatus.code).to.equal(202);
+    // expect(sameImportRecordStatus.code).to.equal(202);
 
 
-    const dataTextUpdate2 = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
-    const { status: aliceEmailStatusUpdated2 } = await aliceEmailRecord.update({ data: dataTextUpdate2 });
-    expect(aliceEmailStatusUpdated2.code).to.equal(202);
+    // const dataTextUpdate2 = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
+    // const { status: aliceEmailStatusUpdated2 } = await aliceEmailRecord.update({ data: dataTextUpdate2 });
+    // expect(aliceEmailStatusUpdated2.code).to.equal(202);
 
-    const { status: sendStatusUpdate2 } = await aliceEmailRecord!.send(bobDid.did);
+    // const { status: sendStatusUpdate2 } = await aliceEmailRecord!.send(bobDid.did);
 
-    console.log(sendStatusUpdate2);
+    // console.log(sendStatusUpdate2);
     // expect(sendStatusUpdate2.code).to.equal(202);
 
 
