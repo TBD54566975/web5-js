@@ -196,9 +196,7 @@ export class DwnManager {
       messageData = data;
 
     } else {
-      console.log('start constructDwnMessage');
       const { message } = await this.constructDwnMessage({ request });
-      console.log('passed constructDwnMessage');
       dwnRpcRequest.message = message;
       messageData = request.dataStream;
     }
@@ -257,8 +255,6 @@ export class DwnManager {
   }) {
     const { request } = options;
     const rawMessage = (request as any).rawMessage;
-
-    console.log('259', rawMessage);
 
     let readableStream: Readable | undefined;
 
