@@ -63,15 +63,24 @@ type DwnMessage = {
   data?: Blob;
 }
 
-const dwnMessageCreators = {
+const recordsWriteType = DwnInterfaceName.Records + DwnMethodName.Write;
+const dwnMessageConstructors = {
   [DwnInterfaceName.Events + DwnMethodName.Get]          : EventsGet,
   [DwnInterfaceName.Messages + DwnMethodName.Get]        : MessagesGet,
   [DwnInterfaceName.Records + DwnMethodName.Read]        : RecordsRead,
   [DwnInterfaceName.Records + DwnMethodName.Query]       : RecordsQuery,
-  [DwnInterfaceName.Records + DwnMethodName.Write]       : RecordsWrite,
+  [recordsWriteType]                                     : RecordsWrite,
   [DwnInterfaceName.Records + DwnMethodName.Delete]      : RecordsDelete,
   [DwnInterfaceName.Protocols + DwnMethodName.Query]     : ProtocolsQuery,
   [DwnInterfaceName.Protocols + DwnMethodName.Configure] : ProtocolsConfigure,
+};
+
+(RecordsWrite.prototype as any).forceSet = function(prop: string, value: unknown){
+  this[prop] = value;
+};
+
+(RecordsWrite.prototype as any).forceGet = function(prop: string){
+  return this[prop];
 };
 
 export type DwnManagerOptions = {
@@ -187,7 +196,9 @@ export class DwnManager {
       messageData = data;
 
     } else {
+      console.log('start constructDwnMessage');
       const { message } = await this.constructDwnMessage({ request });
+      console.log('passed constructDwnMessage');
       dwnRpcRequest.message = message;
       messageData = request.dataStream;
     }
@@ -242,9 +253,12 @@ export class DwnManager {
   }
 
   private async constructDwnMessage(options: {
-    request: ProcessDwnRequest
+    request : ProcessDwnRequest
   }) {
     const { request } = options;
+    const rawMessage = (request as any).rawMessage;
+
+    console.log('259', rawMessage);
 
     let readableStream: Readable | undefined;
 
@@ -252,7 +266,7 @@ export class DwnManager {
     if (request.messageType === 'RecordsWrite') {
       const messageOptions = request.messageOptions as RecordsWriteOptions;
 
-      if (request.dataStream && !messageOptions.data) {
+      if (request.dataStream && !messageOptions?.data) {
         const { dataStream } = request;
         let isomorphicNodeReadable: Readable;
 
@@ -266,22 +280,29 @@ export class DwnManager {
           readableStream = webReadableToIsomorphicNodeReadable(forProcessMessage);
         }
 
-        // @ts-ignore
-        messageOptions.dataCid = await Cid.computeDagPbCidFromStream(isomorphicNodeReadable);
-        // @ts-ignore
-        messageOptions.dataSize ??= isomorphicNodeReadable['bytesRead'];
+        if (!rawMessage) {
+          // @ts-ignore
+          messageOptions.dataCid = await Cid.computeDagPbCidFromStream(isomorphicNodeReadable);
+          // @ts-ignore
+          messageOptions.dataSize ??= isomorphicNodeReadable['bytesRead'];
+        }
       }
     }
 
     const dwnSigner = await this.constructDwnSigner(request.author);
-
-    const messageCreator = dwnMessageCreators[request.messageType];
-    const dwnMessage = await messageCreator.create({
+    const dwnMessageConstructor = dwnMessageConstructors[request.messageType];
+    const dwnMessage = rawMessage ? await dwnMessageConstructor.parse(rawMessage) : await dwnMessageConstructor.create({
       ...<any>request.messageOptions,
       signer: dwnSigner
     });
 
-    return { message: dwnMessage.message, dataStream: readableStream };
+    if (dwnMessageConstructor === RecordsWrite){
+      if (request.import) {
+        await (dwnMessage as RecordsWrite).signAsOwner(dwnSigner);
+      }
+    }
+
+    return { message: (dwnMessage as any).message, dataStream: readableStream };
   }
 
   private async getAuthorSigningKeyId(options: {
@@ -411,7 +432,7 @@ export class DwnManager {
 
     const dwnSigner = await this.constructDwnSigner(author);
 
-    const messageCreator = dwnMessageCreators[messageType];
+    const messageCreator = dwnMessageConstructors[messageType];
 
     const dwnMessage = await messageCreator.create({
       ...<any>messageOptions,
