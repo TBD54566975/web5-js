@@ -23,6 +23,8 @@ export type RecordOptions = RecordsWriteMessage & {
   connectedDid: string;
   encodedData?: string | Blob;
   data?: Readable | ReadableStream;
+  initialWrite?: RecordsWriteMessage;
+  protocolRole?: string;
   remoteOrigin?: string;
 };
 
@@ -33,9 +35,10 @@ export type RecordOptions = RecordsWriteMessage & {
  * @beta
  */
 export type RecordModel = RecordsWriteDescriptor
-  & Omit<RecordsWriteMessage, 'descriptor' | 'recordId' | 'authorization'>
+  & Omit<RecordsWriteMessage, 'descriptor' | 'recordId'>
   & {
     author: string;
+    protocolRole?: RecordOptions['protocolRole'];
     recordId?: string;
   }
 
@@ -51,6 +54,7 @@ export type RecordUpdateOptions = {
   dateModified?: RecordsWriteDescriptor['messageTimestamp'];
   datePublished?: RecordsWriteDescriptor['datePublished'];
   published?: RecordsWriteDescriptor['published'];
+  protocolRole?: RecordOptions['protocolRole'];
 }
 
 /**
@@ -66,6 +70,20 @@ export type RecordUpdateOptions = {
  *
  * @beta
  */
+
+function removeUndefinedProperties(obj: any): any {
+  if (typeof obj !== 'object' || obj === null) return;
+  Object.keys(obj).forEach(key => {
+    const val = obj[key];
+    if (val === undefined) {
+      delete obj[key];
+    } else if (typeof val === 'object') {
+      removeUndefinedProperties(val);
+    }
+  });
+  return obj;
+}
+
 export class Record implements RecordModel {
   // Record instance metadata.
   private _agent: Web5Agent;
@@ -77,15 +95,20 @@ export class Record implements RecordModel {
   // Private variables for DWN `RecordsWrite` message properties.
   private _author: string;
   private _attestation?: RecordsWriteMessage['attestation'];
+  private _authorization?: RecordsWriteMessage['authorization'];
   private _contextId?: string;
   private _descriptor: RecordsWriteDescriptor;
   private _encryption?: RecordsWriteMessage['encryption'];
+  private _initialWrite: RecordOptions['initialWrite'];
   private _recordId: string;
-
+  private _protocolRole: RecordOptions['protocolRole'];
   // Getters for immutable DWN Record properties.
 
   /** Record's signatures attestation */
   get attestation(): RecordsWriteMessage['attestation'] { return this._attestation; }
+
+  /** Record's signatures attestation */
+  get authorization(): RecordsWriteMessage['authorization'] { return this._authorization; }
 
   /** DID that signed the record. */
   get author(): string { return this._author; }
@@ -101,6 +124,8 @@ export class Record implements RecordModel {
 
   /** Record's encryption */
   get encryption(): RecordsWriteMessage['encryption'] { return this._encryption; }
+
+  get initialWrite(): RecordOptions['initialWrite'] { return this._initialWrite; }
 
   /** Record's ID */
   get id() { return this._recordId; }
@@ -119,6 +144,9 @@ export class Record implements RecordModel {
 
   /** Record's protocol path */
   get protocolPath() { return this._descriptor.protocolPath; }
+
+  /** Role under which the author is writting the record */
+  get protocolRole() { return this._protocolRole; }
 
   /** Record's recipient */
   get recipient() { return this._descriptor.recipient; }
@@ -147,6 +175,7 @@ export class Record implements RecordModel {
   get published() { return this._descriptor.published; }
 
   constructor(agent: Web5Agent, options: RecordOptions) {
+
     this._agent = agent;
 
     /** Store the author DID that originally signed the message as a convenience for developers, so
@@ -165,10 +194,13 @@ export class Record implements RecordModel {
 
     // RecordsWriteMessage properties.
     this._attestation = options.attestation;
+    this._authorization = options.authorization;
     this._contextId = options.contextId;
     this._descriptor = options.descriptor;
     this._encryption = options.encryption;
+    this._initialWrite = options.initialWrite;
     this._recordId = options.recordId;
+    this._protocolRole = options.protocolRole;
 
     if (options.encodedData) {
       // If `encodedData` is set, then it is expected that:
@@ -295,6 +327,90 @@ export class Record implements RecordModel {
     return dataObj;
   }
 
+  private async _processMessage(options: any){
+
+    const { store = true } = options;
+
+    const request = {
+      messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+      author      : this._connectedDid,
+      target      : this._connectedDid,
+      import      : !!options.import,
+      store
+    } as any;
+
+    if (options.rawMessage) {
+      removeUndefinedProperties(options.rawMessage);
+      request.rawMessage = options.rawMessage as Partial<RecordsWriteMessage>;
+    }
+    else {
+      request.messageOptions = options.messageOptions;
+    }
+
+    if (options.dataStream) {
+      request.dataStream = options.dataStream;
+    }
+
+    return this._agent.processDwnRequest(request);
+  }
+
+
+  async store(options: any = {}): Promise<any> {
+
+    // Add check to bail if already imported
+
+    const { store = true, import: _import = false, storeAll = false } = options;
+
+    const initialWrite = this._initialWrite;
+
+    if (initialWrite && storeAll) {
+
+      let agentResponse = await this._processMessage({
+        import     : _import,
+        store      : store,
+        rawMessage : {
+          contextId: this._contextId,
+          ...initialWrite
+        }
+      });
+
+      const { message, reply: { status } } = agentResponse;
+      const responseMessage = message as RecordsWriteMessage;
+
+      if (200 <= status.code && status.code <= 299) {
+        if (_import) initialWrite.authorization = responseMessage.authorization;
+      }
+
+    }
+
+    let agentResponse = await this._processMessage({
+      import     : !initialWrite && _import,
+      store      : store,
+      dataStream : await this.data.blob(),
+      rawMessage : {
+        contextId     : this._contextId,
+        recordId      : this._recordId,
+        descriptor    : this._descriptor,
+        attestation   : this._attestation,
+        authorization : this._authorization,
+        encryption    : this._encryption,
+      }
+    });
+
+    const { message, reply: { status } } = agentResponse;
+    const responseMessage = message as RecordsWriteMessage;
+
+    if (_import) this._authorization = responseMessage.authorization;
+
+    return status;
+
+  }
+
+  async import(options?: any): Promise<any> {
+    // Add check to bail if already imported
+    return this.store({ store: options?.store !== false, storeAll: true, import: true });
+  }
+
   /**
    * Send the current record to a remote DWN by specifying their DID
    * (vs waiting for the regular DWN sync)
@@ -304,14 +420,53 @@ export class Record implements RecordModel {
    *
    * @beta
    */
-  async send(target: string): Promise<ResponseStatus> {
-    const { reply: { status } } = await this._agent.sendDwnRequest({
-      messageType    : DwnInterfaceName.Records + DwnMethodName.Write,
-      author         : this._connectedDid,
-      dataStream     : await this.data.blob(),
-      target         : target,
-      messageOptions : this.toJSON(),
-    });
+  async send(_options?: string | { [key: string]: any }): Promise<ResponseStatus> {
+
+    const initialWrite = this._initialWrite;
+    const options = !_options ? { target: this._connectedDid } : typeof _options === 'string' ? { target: _options } : _options;
+
+    if (!options.target){
+      options.target = this._connectedDid;
+    }
+
+    if (options.sendAll && initialWrite){
+
+      const initialState = {
+        messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+        author      : this._connectedDid,
+        target      : options.target,
+        rawMessage  : removeUndefinedProperties({
+          contextId: this._contextId,
+          ...initialWrite
+        })
+      } as any;
+
+      await this._agent.sendDwnRequest(initialState);
+
+    }
+
+    const latestState = {
+      messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+      author      : this._connectedDid,
+      dataStream  : await this.data.blob(),
+      target      : options.target
+    } as any;
+
+    if (this._authorization) {
+      latestState.rawMessage = removeUndefinedProperties({
+        contextId     : this._contextId,
+        recordId      : this._recordId,
+        descriptor    : this._descriptor,
+        attestation   : this._attestation,
+        authorization : this._authorization,
+        encryption    : this._encryption,
+      });
+    }
+    else {
+      latestState.messageOptions = this.toJSON();
+    }
+
+    const { reply: { status } } = await this._agent.sendDwnRequest(latestState);
 
     return { status };
   }
@@ -324,6 +479,7 @@ export class Record implements RecordModel {
     return {
       attestation      : this.attestation,
       author           : this.author,
+      authorization    : this.authorization,
       contextId        : this.contextId,
       dataCid          : this.dataCid,
       dataFormat       : this.dataFormat,
@@ -337,6 +493,7 @@ export class Record implements RecordModel {
       parentId         : this.parentId,
       protocol         : this.protocol,
       protocolPath     : this.protocolPath,
+      protocolRole     : this.protocolRole,
       published        : this.published,
       recipient        : this.recipient,
       recordId         : this.id,
@@ -427,7 +584,19 @@ export class Record implements RecordModel {
     const responseMessage = message as RecordsWriteMessage;
 
     if (200 <= status.code && status.code <= 299) {
+      if (!this._initialWrite) {
+        console.log('post update', responseMessage);
+        this._initialWrite = removeUndefinedProperties({
+          contextId     : this._contextId,
+          recordId      : this._recordId,
+          descriptor    : this._descriptor,
+          attestation   : this._attestation,
+          authorization : this._authorization,
+          encryption    : this._encryption,
+        });
+      }
       // Only update the local Record instance mutable properties if the record was successfully (over)written.
+      this._authorization = responseMessage.authorization;
       mutableDescriptorProperties.forEach(property => {
         this._descriptor[property] = responseMessage.descriptor[property];
       });
