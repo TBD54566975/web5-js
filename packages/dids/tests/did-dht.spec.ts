@@ -3,8 +3,58 @@ import { expect } from 'chai';
 import { DidDht } from '../src/methods/did-dht.js';
 
 describe.only('DidDht', () => {
+
+  describe('resolve', () => {
+    it.only('resolves a DID', async () => {
+      const did = await DidDht.resolve('did:dht:1wh1ot5daz5rq3dgqngfa45s66aco6y6e6c51gyw8ydtwy9qi7zy');
+      // const response = await fetch('https://diddht.tbddev.org/1wh1ot5daz5rq3dgqngfa45s66aco6y6e6c51gyw8ydtwy9qi7zy');
+      // console.log(response);
+      // console.log(await response.arrayBuffer());
+    }).timeout(10000);
+  });
+
   describe('create', () => {
-    it('', async () => {
+    it('two services', async () => {
+      const did = await DidDht.create({
+        options: {
+          verificationMethods: [
+            {
+              algorithm  : 'Ed25519',
+              id         : '0',
+              controller : 'did:example:1234',
+            },
+            {
+              algorithm : 'Ed25519',
+              id        : 'sig',
+              purposes  : ['authentication', 'assertionMethod']
+            },
+            {
+              algorithm : 'ES256K',
+              id        : 'enc',
+              purposes  : ['keyAgreement']
+            }
+          ],
+          services: [
+            {
+              id              : 'dwn-svc',
+              type            : 'DIDCommMessaging',
+              serviceEndpoint : 'https://example.com/endpoint',
+            },
+            {
+              id              : 'dwn-svc-2',
+              type            : 'DIDCommMessaging',
+              serviceEndpoint : [
+                'https://example.com/endpoint1',
+                'https://example.com/endpoint2'
+              ]
+            }
+          ]
+        }
+      });
+      console.log(did.uri);
+    });
+
+    it('two services', async () => {
       const did = await DidDht.create({
         options: {
           services: [
@@ -16,12 +66,14 @@ describe.only('DidDht', () => {
             {
               id              : 'dwn-svc-2',
               type            : 'DIDCommMessaging',
-              serviceEndpoint : 'https://example.com/endpoint',
+              serviceEndpoint : [
+                'https://example.com/endpoint1',
+                'https://example.com/endpoint2'
+              ]
             }
           ]
         }
       });
-      console.log(did);
     });
 
     it('accepts a custom controller for the Identity Key', async () => {

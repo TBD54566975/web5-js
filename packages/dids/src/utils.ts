@@ -166,7 +166,10 @@ export function getVerificationMethods({ didDocument }: {
 
   // Check verification relationship properties for embedded verification methods.
   Object.keys(DidVerificationRelationship).forEach((relationship) => {
-    verificationMethods.push(...(didDocument[relationship as keyof DidDocument] as any[])?.filter(isDidVerificationMethod) ?? []);
+    verificationMethods.push(
+      ...(didDocument[relationship as keyof DidDocument] as (string | DidVerificationMethod)[])
+        ?.filter(isDidVerificationMethod) ?? []
+    );
   });
 
   return verificationMethods;

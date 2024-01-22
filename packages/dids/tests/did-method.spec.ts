@@ -20,7 +20,7 @@ class DidTest extends DidMethod {
   }
 }
 
-describe.only('DidMethod', () => {
+describe('DidMethod', () => {
   let keyManager: LocalKmsCrypto;
 
   before(() => {

@@ -372,13 +372,13 @@ export class DidJwk extends DidMethod {
     const parsedDid = DidUri.parse(didUri);
 
     // Attempt to decode the Base64URL-encoded JWK.
-    let publicKeyJwk: Jwk | undefined;
+    let publicKey: Jwk | undefined;
     try {
-      publicKeyJwk = Convert.base64Url(parsedDid!.id).toObject() as Jwk;
+      publicKey = Convert.base64Url(parsedDid!.id).toObject() as Jwk;
     } catch { /* Consume the error so that a DID resolution error can be returned later. */ }
 
     // If parsing or decoding failed, the DID is invalid.
-    if (!parsedDid || !publicKeyJwk) {
+    if (!parsedDid || !publicKey) {
       return {
         ...EMPTY_DID_RESOLUTION_RESULT,
         didResolutionMetadata: { error: 'invalidDid' }
@@ -408,7 +408,7 @@ export class DidJwk extends DidMethod {
       id           : keyUri,
       type         : 'JsonWebKey2020',
       controller   : didDocument.id,
-      publicKeyJwk : publicKeyJwk
+      publicKeyJwk : publicKey
     }];
 
     // Set the Verification Relationship properties.
@@ -421,7 +421,7 @@ export class DidJwk extends DidMethod {
     // If the JWK contains a `use` property with the value "sig" then the `keyAgreement` property
     // is not included in the DID Document. If the `use` value is "enc" then only the `keyAgreement`
     // property is included in the DID Document.
-    switch (publicKeyJwk.use) {
+    switch (publicKey.use) {
       case 'sig': {
         delete didDocument.keyAgreement;
         break;

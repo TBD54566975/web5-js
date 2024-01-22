@@ -11,7 +11,7 @@ import type { DidKeySet, DidKeySetVerificationMethod } from '../src/methods/did-
 import { DidJwk } from '../src/methods/did-jwk.js';
 import DidJwkResolveTestVector from '../../../test-vectors/did_jwk/resolve.json' assert { type: 'json' };
 
-describe.only('DidJwk', () => {
+describe('DidJwk', () => {
   let keyManager: LocalKmsCrypto;
 
   before(() => {

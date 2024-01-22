@@ -77,8 +77,10 @@
   "dependencies": {
     "@decentralized-identity/ion-pow-sdk": "1.0.17",
     "@decentralized-identity/ion-sdk": "1.0.1",
+    "@types/bencode": "2.0.4",
     "@web5/common": "0.2.2",
     "@web5/crypto": "0.3.0",
+    "bencode": "4.0.0",
     "dns-packet": "5.6.1",
     "level": "8.0.0",
     "ms": "2.1.3",

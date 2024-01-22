@@ -2,6 +2,7 @@
 // export * from './did-dht.js';
 // export * from './did-ion.js';
 export * from './did-uri.js';
+export * from './did-error.js';
 export * from './methods/did-dht.js';
 export * from './methods/did-jwk.js';
 export * from './methods/did-web.js';
