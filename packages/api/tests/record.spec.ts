@@ -97,6 +97,127 @@ describe('Record', () => {
     await testAgent.closeStorage();
   });
 
+  // FIRST PASS AT IMPORT
+
+  it.only('imports a record that another user wrote', async () => {
+
+    // Install the email protocol for Alice's local DWN.
+    let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
+      message: {
+        definition: emailProtocolDefinition
+      }
+    });
+    expect(aliceStatus.code).to.equal(202);
+    expect(aliceProtocol).to.exist;
+
+    // Install the email protocol for Alice's remote DWN.
+    const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.did);
+    expect(alicePushStatus.code).to.equal(202);
+
+    // Install the email protocol for Bob's local DWN.
+    const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
+      message: {
+        definition: emailProtocolDefinition
+      }
+    });
+
+    expect(bobStatus.code).to.equal(202);
+    expect(bobProtocol).to.exist;
+
+    // Install the email protocol for Bob's remote DWN.
+    const { status: bobPushStatus } = await bobProtocol!.send(bobDid.did);
+    expect(bobPushStatus.code).to.equal(202);
+
+    // Alice creates a new large record and stores it
+    const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwnAlice.records.write({
+      data    : TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000),
+      message : {
+        recipient    : bobDid.did,
+        protocol     : emailProtocolDefinition.protocol,
+        protocolPath : 'thread',
+        schema       : 'http://email-protocol.xyz/schema/thread',
+      }
+    });
+    expect(aliceEmailStatus.code).to.equal(202);
+    const { status: sendStatus } = await aliceEmailRecord!.send(aliceDid.did);
+    expect(sendStatus.code).to.equal(202);
+
+    // Alice queries for the record that was just created on her remote DWN.
+    const { records: queryRecords, status: queryRecordStatus } = await dwnBob.records.query({
+      from    : aliceDid.did,
+      message : {
+        filter: {
+          protocol     : emailProtocolDefinition.protocol,
+          protocolPath : 'thread',
+        }
+      }
+    });
+    expect(queryRecordStatus.code).to.equal(200);
+    const importRecord = queryRecords[0];
+    const importRecordStatus = await importRecord.import();
+    expect(importRecordStatus.code).to.equal(202);
+
+    const { status: importSendStatus } = await importRecord!.send({ sendAll: true });
+    expect(importSendStatus.code).to.equal(202);
+
+    // Alice updates her record
+    let { status: aliceEmailStatusUpdated } = await aliceEmailRecord.update({
+      data: TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000)
+    });
+    expect(aliceEmailStatusUpdated.code).to.equal(202);
+
+    const { status: sentToSelfStatus } = await aliceEmailRecord!.send();
+    expect(sentToSelfStatus.code).to.equal(202);
+
+    const { status: sentToBobStatus } = await aliceEmailRecord!.send(bobDid.did);
+    expect(sentToBobStatus.code).to.equal(202);
+
+    // Alice updates her record
+
+    const updatedText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
+    let { status: aliceEmailStatusUpdatedAgain } = await aliceEmailRecord.update({
+      data: updatedText
+    });
+    expect(aliceEmailStatusUpdatedAgain.code).to.equal(202);
+
+    // Sends it to her own remote DWN again
+    const { status: sentToSelfAgainStatus } = await aliceEmailRecord!.send();
+    expect(sentToSelfAgainStatus.code).to.equal(202);
+
+    const { records: updatedRecords, status: updatedRecordsStatus } = await dwnBob.records.query({
+      from    : aliceDid.did,
+      message : {
+        filter: {
+          protocol     : emailProtocolDefinition.protocol,
+          protocolPath : 'thread',
+        }
+      }
+    });
+    expect(updatedRecordsStatus.code).to.equal(200);
+
+    const updatedRecord = updatedRecords[0];
+    const updatedRecordStoredStatus = await updatedRecord.store();
+    expect(updatedRecordStoredStatus.code).to.equal(202);
+
+    expect(await updatedRecord.data.text() === updatedText).to.equal(true);
+
+    const { status: updatedRecordToSelfStatus } = await updatedRecord!.send();
+    expect(updatedRecordToSelfStatus.code).to.equal(202);
+
+    // Confirm Bob can query his own remote DWN for the created record.
+    // const bobQueryResult = await dwnBob.records.query({
+    //   from    : bobDid.did,
+    //   message : {
+    //     filter: {
+    //       schema: 'http://email-protocol.xyz/schema/email'
+    //     }
+    //   }
+    // });
+    // expect(bobQueryResult.status.code).to.equal(200);
+    // expect(bobQueryResult.records).to.exist;
+    // expect(bobQueryResult.records!.length).to.equal(1);
+  });
+
   it('should retain all defined properties', async () => {
     // RecordOptions properties
     const author = aliceDid.did;
