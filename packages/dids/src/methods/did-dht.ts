@@ -293,44 +293,6 @@ export class DidDht extends DidMethod {
     return did;
   }
 
-  public static async createFromKeys<TKms extends CryptoApi | undefined = undefined>({
-    keyManager = new LocalKmsCrypto(),
-    verificationMethods,
-    options = {}
-  }: {
-    keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
-    options?: DidDhtCreateOptions<TKms>;
-  } & DidKeySet): Promise<Did> {
-    if (!(verificationMethods && Array.isArray(verificationMethods) && verificationMethods.length > 0)) {
-      throw new Error(`${this.name}: At least one verification method is required but 0 were given`);
-    }
-
-    if (!verificationMethods?.some(vm => vm.id?.split('#').pop() === '0')) {
-      throw new Error(`${this.name}: Given verification methods are missing an Identity Key`);
-    }
-
-    if (!verificationMethods?.some(vm => vm.privateKeyJwk && vm.publicKeyJwk)) {
-      throw new Error(`${this.name}: All verification methods must contain a public and private key in JWK format`);
-    }
-
-    // Import the private key material for every verification method into the key manager.
-    for (let vm of verificationMethods) {
-      await keyManager.importKey({ key: vm.privateKeyJwk! });
-    }
-
-    // Create the DID object from the given key material, including DID document, metadata,
-    // signer convenience function, and URI.
-    const did = await DidDht.fromPublicKeys({ keyManager, options, verificationMethods });
-
-    // By default, publish the DID document to a DHT Gateway unless explicitly disabled.
-    if (options.publish ?? true) {
-      const isPublished = await this.publish({ did });
-      did.metadata.published = isPublished;
-    }
-
-    return did;
-  }
-
   public static async fromKeyManager({ didUri, keyManager }: {
     didUri: string;
     keyManager: CryptoApi;
@@ -368,6 +330,44 @@ export class DidDht extends DidMethod {
     });
 
     return { didDocument, getSigner, keyManager, metadata, uri: didUri };
+  }
+
+  public static async fromKeys<TKms extends CryptoApi | undefined = undefined>({
+    keyManager = new LocalKmsCrypto(),
+    verificationMethods,
+    options = {}
+  }: {
+    keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
+    options?: DidDhtCreateOptions<TKms>;
+  } & DidKeySet): Promise<Did> {
+    if (!(verificationMethods && Array.isArray(verificationMethods) && verificationMethods.length > 0)) {
+      throw new Error(`${this.name}: At least one verification method is required but 0 were given`);
+    }
+
+    if (!verificationMethods?.some(vm => vm.id?.split('#').pop() === '0')) {
+      throw new Error(`${this.name}: Given verification methods are missing an Identity Key`);
+    }
+
+    if (!verificationMethods?.some(vm => vm.privateKeyJwk && vm.publicKeyJwk)) {
+      throw new Error(`${this.name}: All verification methods must contain a public and private key in JWK format`);
+    }
+
+    // Import the private key material for every verification method into the key manager.
+    for (let vm of verificationMethods) {
+      await keyManager.importKey({ key: vm.privateKeyJwk! });
+    }
+
+    // Create the DID object from the given key material, including DID document, metadata,
+    // signer convenience function, and URI.
+    const did = await DidDht.fromPublicKeys({ keyManager, verificationMethods, options });
+
+    // By default, the DID document will NOT be published unless explicitly enabled.
+    if (options.publish) {
+      const isPublished = await this.publish({ did });
+      did.metadata.published = isPublished;
+    }
+
+    return did;
   }
 
   public static async getSigningMethod({ didDocument, methodId = '#0' }: {
@@ -557,8 +557,7 @@ export class DidDht extends DidMethod {
 
     // Define DID Metadata.
     const metadata: DidMetadata = {
-      ...options.didTypes && { didTypes: options.didTypes },
-      published: false
+      ...options.didTypes && { didTypes: options.didTypes }
     };
 
     // Define a function that returns a signer for the DID.
@@ -761,7 +760,7 @@ class DidDhtDocument {
     const bencodedData = bencode.encode({ seq: sequenceNumber, v: encodedDnsPacket }).subarray(1, -1);
 
     if (bencodedData.length > 1000) {
-      throw new Error(`${this.name}: DNS packet exceeds the 1000 byte maximum size: ${bencodedData.length} bytes`);
+      throw new DidError(DidErrorCode.InvalidDidDocumentLength, `DNS packet exceeds the 1000 byte maximum size: ${bencodedData.length} bytes`);
     }
 
     // Sign the BEP44 message.
@@ -778,7 +777,7 @@ class DidDhtDocument {
 
     // Verify that the DID URI is valid.
     if (!(parsedDid && parsedDid.method === DidDht.methodName)) {
-      throw new Error(`${this.name}: Invalid DID URI: ${didUri}`);
+      throw new DidError(DidErrorCode.InvalidDid, `Invalid DID URI: ${didUri}`);
     }
 
     // Decode the method-specific identifier from z-base-32 to a byte array.
@@ -787,8 +786,12 @@ class DidDhtDocument {
       identityKeyBytes = Convert.base32Z(parsedDid.id).toUint8Array();
     } catch { /* Capture error */ }
 
-    if (!identityKeyBytes || identityKeyBytes.length !== 32) {
-      throw new Error(`${this.name}: Failed to decode method-specific identifier`);
+    if (!identityKeyBytes) {
+      throw new DidError(DidErrorCode.InvalidPublicKey, `Failed to decode method-specific identifier`);
+    }
+
+    if (identityKeyBytes.length !== 32) {
+      throw new DidError(DidErrorCode.InvalidPublicKeyLength, `Invalid public key length: ${identityKeyBytes.length}`);
     }
 
     return identityKeyBytes;
