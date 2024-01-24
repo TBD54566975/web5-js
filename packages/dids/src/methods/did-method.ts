@@ -315,7 +315,7 @@ export class DidMethod {
       publicKey = await keyManager.getPublicKey({ keyUri });
       // Verify the public key exists in the DID Document.
       if (!(await getVerificationMethodByKey({ didDocument, publicKeyJwk: publicKey }))) {
-        throw new Error(`DidJwk: Key referenced by '${keyUri}' is not present in the provided DID Document for '${didDocument.id}'`);
+        throw new Error(`Key referenced by '${keyUri}' is not present in the provided DID Document for '${didDocument.id}'`);
       }
 
     } else {
@@ -324,7 +324,7 @@ export class DidMethod {
       // the DID method implementation.
       ({ publicKeyJwk: publicKey } = await this.getSigningMethod({ didDocument }) ?? {});
       if (publicKey === undefined) {
-        throw new Error(`DidJwk: No verification methods found in the provided DID Document for '${didDocument.id}'`);
+        throw new Error(`No verification methods found in the provided DID Document for '${didDocument.id}'`);
       }
       // Compute the expected key URI of the signing key.
       keyUri = await keyManager.getKeyUri({ key: publicKey });
@@ -332,7 +332,7 @@ export class DidMethod {
 
     // Both the `keyUri` and `publicKey` must be known before returning a signer.
     if (!(keyUri && publicKey)) {
-      throw new Error(`DidJwk: Failed to determine the keys needed to create a signer`);
+      throw new Error(`Failed to determine the keys needed to create a signer`);
     }
 
     return {
@@ -400,12 +400,12 @@ export class DidMethod {
   public static async toKeys({ did }: { did: Did }): Promise<DidKeySet> {
     // First, confirm that the DID's key manager supports exporting keys.
     if (!('exportKey' in did.keyManager && typeof did.keyManager.exportKey === 'function')) {
-      throw new Error(`${this.name}: The key manager of the given DID does not support exporting keys`);
+      throw new Error(`The key manager of the given DID does not support exporting keys`);
     }
 
     // Verify the DID document contains at least one verification method.
     if (!(Array.isArray(did.didDocument.verificationMethod) && did.didDocument.verificationMethod.length > 0)) {
-      throw new Error(`${this.name}: DID document for '${did.uri}' is missing verification methods`);
+      throw new Error(`DID document for '${did.uri}' is missing verification methods`);
     }
 
     let keySet: DidKeySet = { verificationMethods: [] };
@@ -414,7 +414,7 @@ export class DidMethod {
     // manager.
     for (let vm of did.didDocument.verificationMethod) {
       if (!vm.publicKeyJwk) {
-        throw new Error(`${this.name}: Verification method '${vm.id}' does not contain a public key in JWK format`);
+        throw new Error(`Verification method '${vm.id}' does not contain a public key in JWK format`);
       }
 
       // Compute the key URI of the verification method's public key.

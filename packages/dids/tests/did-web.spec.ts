@@ -6,9 +6,8 @@ import { expect } from 'chai';
 import { DidWeb } from '../src/methods/did-web.js';
 import DidWebResolveTestVector from '../../../test-vectors/did_web/resolve.json' assert { type: 'json' };
 
-// Helper function to create a mocked fetch response that is successful and returns the given
-// response.
-const fetchFailedResponse = () => ({
+// Helper function to create a mocked fetch response that fails and returns a 404 Not Found.
+const fetchNotFoundResponse = () => ({
   status     : 404,
   statusText : 'Not Found',
   ok         : false
@@ -28,7 +27,7 @@ describe('DidWeb', () => {
     it(`returns a 'notFound' error if the HTTP GET response is not status code 200`, async () => {
       // Setup stub so that a mocked response is returned rather than calling over the network.
       let fetchStub = sinon.stub(globalThis as any, 'fetch');
-      fetchStub.callsFake(() => Promise.resolve(fetchFailedResponse()));
+      fetchStub.callsFake(() => Promise.resolve(fetchNotFoundResponse()));
 
       const resolutionResult = await DidWeb.resolve('did:web:non-existent-domain.com');
 

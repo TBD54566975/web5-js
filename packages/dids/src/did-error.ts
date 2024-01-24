@@ -49,6 +49,9 @@ export enum DidErrorCode {
   /** An invalid public key type was detected during a DID operation. */
   InvalidPublicKeyType = 'invalidPublicKeyType',
 
+  /** Verification of a signature failed during a DID operation. */
+  InvalidSignature = 'invalidSignature',
+
   /** The DID resolver was unable to find the DID document resulting from the resolution request. */
   NotFound = 'notFound',
 

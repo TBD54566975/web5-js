@@ -1,18 +1,40 @@
-import type { Packet, TxtAnswer } from 'dns-packet';
-import type { Jwk, KeyIdentifier, KeyImporterExporter, KmsExportKeyParams, KmsImportKeyParams, Signer } from '@web5/crypto';
+import type { Packet, TxtAnswer, TxtData } from '@dnsquery/dns-packet';
+import type {
+  Jwk,
+  Signer,
+  KeyIdentifier,
+  KmsExportKeyParams,
+  KmsImportKeyParams,
+  KeyImporterExporter,
+  AsymmetricKeyConverter,
+} from '@web5/crypto';
 
 import bencode from 'bencode';
 import { Convert } from '@web5/common';
-import dns, { AUTHORITATIVE_ANSWER } from 'dns-packet';
 import { CryptoApi, Ed25519, LocalKmsCrypto, P256, Secp256k1, computeJwkThumbprint } from '@web5/crypto';
+import { AUTHORITATIVE_ANSWER, decode as dnsPacketDecode, encode as dnsPacketEncode } from '@dnsquery/dns-packet';
 
 import type { Did, DidCreateOptions, DidCreateVerificationMethod, DidKeySet, DidMetadata } from './did-method.js';
-import { DidVerificationRelationship, type DidDocument, type DidResolutionOptions, type DidResolutionResult, type DidService, type DidVerificationMethod } from '../types/did-core.js';
+import type {
+  DidService,
+  DidDocument,
+  DidResolutionResult,
+  DidResolutionOptions,
+  DidVerificationMethod,
+} from '../types/did-core.js';
 
 import { DidUri } from '../did-uri.js';
 import { DidMethod } from './did-method.js';
-import { EMPTY_DID_RESOLUTION_RESULT } from '../did-resolver.js';
 import { DidError, DidErrorCode } from '../did-error.js';
+import { EMPTY_DID_RESOLUTION_RESULT } from '../did-resolver.js';
+import { DidVerificationRelationship } from '../types/did-core.js';
+
+interface Bep44Message {
+  k: Uint8Array;
+  seq: number;
+  sig: Uint8Array;
+  v: Uint8Array;
+}
 
 /**
  * Options for creating a Decentralized Identifier (DID) using the DID DHT method.
@@ -68,7 +90,7 @@ export interface DidDhtCreateOptions<TKms> extends DidCreateOptions<TKms> {
    *
    * The registered DID types are published in the {@link https://did-dht.com/registry/index.html#indexed-types | DID DHT Registry}.
    */
-  didTypes?: (DidDhtRegisteredDidType | keyof typeof DidDhtRegisteredDidType)[];
+  types?: (DidDhtRegisteredDidType | keyof typeof DidDhtRegisteredDidType)[];
 
   /**
    * Optional. Determines whether the created DID should be published to the DHT network.
@@ -202,13 +224,13 @@ const VALUE_SEPARATOR = ',';
  * The registered DID types are published in the {@link https://did-dht.com/registry/index.html#indexed-types | DID DHT Registry}.
  */
 export enum DidDhtRegisteredDidType {
-  Discoverable = 0,
-  Organization = 1,
-  Government = 2,
-  Corporation = 3,
-  LocalBusiness = 4,
-  SoftwarePackage = 5,
-  WebApp = 6,
+  Discoverable         = 0,
+  Organization         = 1,
+  Government           = 2,
+  Corporation          = 3,
+  LocalBusiness        = 4,
+  SoftwarePackage      = 5,
+  WebApp               = 6,
   FinancialInstitution = 7
 }
 
@@ -222,19 +244,19 @@ export enum DidDhtRegisteredDidType {
  *
  * The registered key types are published in the {@link https://did-dht.com/registry/index.html#key-type-index | DID DHT Registry}.
  */
-export const DidDhtRegisteredKeyType: Record<string, number> = {
-  Ed25519   : 0,
-  secp256k1 : 1,
-  secp256r1 : 2
-};
+export enum DidDhtRegisteredKeyType {
+  Ed25519   = 0,
+  secp256k1 = 1,
+  secp256r1 = 2
+}
 
-export const DidDhtVerificationRelationship: Record<string, string> = {
-  authentication       : 'auth',
-  assertionMethod      : 'asm',
-  capabilityDelegation : 'del',
-  capabilityInvocation : 'inv',
-  keyAgreement         : 'agm'
-};
+export enum DidDhtVerificationRelationship {
+  authentication       = 'auth',
+  assertionMethod      = 'asm',
+  capabilityDelegation = 'del',
+  capabilityInvocation = 'inv',
+  keyAgreement         = 'agm'
+}
 
 /**
  * Private helper that maps algorithm identifiers to their corresponding DID DHT
@@ -266,16 +288,16 @@ export class DidDht extends DidMethod {
     // Check 1: Validate that the algorithm for any given verification method is supported by the
     // DID DHT specification.
     if (options.verificationMethods?.some(vm => !(vm.algorithm in AlgorithmToKeyTypeMap))) {
-      throw new Error('DidDht: One or more verification method algorithms are not supported');
+      throw new Error('One or more verification method algorithms are not supported');
     }
 
     // Check 2: Validate that the required properties for any given services are present.
     if (options.services?.some(s => !s.id || !s.type || !s.serviceEndpoint)) {
-      throw new Error('DidDht: One or more services are missing required properties');
+      throw new Error('One or more services are missing required properties');
     }
 
     // Generate random key material for the Identity Key and any additional verification methods.
-    const keySet = await DidDht.generateKeySet({
+    const keySet = await DidDht.generateKeys({
       keyManager,
       verificationMethods: options.verificationMethods ?? []
     });
@@ -298,18 +320,23 @@ export class DidDht extends DidMethod {
     keyManager: CryptoApi;
   }): Promise<Did> {
     // Resolve the DID URI to a DID Document.
-    const { didDocument } = await DidDht.resolve(didUri);
+    const { didDocument, didResolutionMetadata } = await DidDht.resolve(didUri);
+
+    // If the given DID isn't "did:dht", throw an error.
+    if (didResolutionMetadata.error === DidErrorCode.MethodNotSupported) {
+      throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported`);
+    }
 
     // Verify the DID Resolution Result includes a DID document containing verification methods.
     if (!(didDocument && Array.isArray(didDocument.verificationMethod) && didDocument.verificationMethod.length > 0)) {
-      throw new Error(`${this.name}: DID document for '${didUri}' is missing verification methods`);
+      throw new Error(`DID document for '${didUri}' is missing verification methods`);
     }
 
     // Validate that the key material for every verification method in the DID document is present
     // in the provided key manager.
     for (let vm of didDocument.verificationMethod) {
       if (!vm.publicKeyJwk) {
-        throw new Error(`${this.name}: Verification method '${vm.id}' does not contain a public key in JWK format`);
+        throw new Error(`Verification method '${vm.id}' does not contain a public key in JWK format`);
       }
 
       // Compute the key URI of the verification method's public key.
@@ -341,15 +368,15 @@ export class DidDht extends DidMethod {
     options?: DidDhtCreateOptions<TKms>;
   } & DidKeySet): Promise<Did> {
     if (!(verificationMethods && Array.isArray(verificationMethods) && verificationMethods.length > 0)) {
-      throw new Error(`${this.name}: At least one verification method is required but 0 were given`);
+      throw new Error(`At least one verification method is required but 0 were given`);
     }
 
     if (!verificationMethods?.some(vm => vm.id?.split('#').pop() === '0')) {
-      throw new Error(`${this.name}: Given verification methods are missing an Identity Key`);
+      throw new Error(`Given verification methods are missing an Identity Key`);
     }
 
     if (!verificationMethods?.some(vm => vm.privateKeyJwk && vm.publicKeyJwk)) {
-      throw new Error(`${this.name}: All verification methods must contain a public and private key in JWK format`);
+      throw new Error(`All verification methods must contain a public and private key in JWK format`);
     }
 
     // Import the private key material for every verification method into the key manager.
@@ -377,7 +404,7 @@ export class DidDht extends DidMethod {
 
     const parsedDid = DidUri.parse(didDocument.id);
     if (parsedDid && parsedDid.method !== this.methodName) {
-      throw new Error(`DidDht: Method not supported: ${parsedDid.method}`);
+      throw new Error(`Method not supported: ${parsedDid.method}`);
     }
 
     const verificationMethod = didDocument.verificationMethod?.find(vm => vm.id.includes(methodId));
@@ -395,103 +422,36 @@ export class DidDht extends DidMethod {
   }
 
   public static async resolve(didUri: string, options: DidResolutionOptions = {}): Promise<DidResolutionResult> {
-    // Attempt to parse the DID URI.
-    const parsedDid = DidUri.parse(didUri);
-
-    // Attempt to decode the z-base-32-encoded identifier.
-    let identityKey: Jwk | undefined;
-    try {
-      identityKey = await DidDht.decodeIdentifier({ didUri });
-    } catch { /* Consume the error so that a DID resolution error can be returned later. */ }
-
-    // If parsing or decoding failed, the DID is invalid.
-    if (!parsedDid || !identityKey) {
-      return {
-        ...EMPTY_DID_RESOLUTION_RESULT,
-        didResolutionMetadata: { error: 'invalidDid' }
-      };
-    }
-
-    // If the DID method is not "dht", return an error.
-    if (parsedDid.method !== DidDht.methodName) {
-      return {
-        ...EMPTY_DID_RESOLUTION_RESULT,
-        didResolutionMetadata: { error: 'methodNotSupported' }
-      };
-    }
-
     // Use the given Pkarr relay or the default.
     const relay = options?.pkarrRelay ?? DEFAULT_PKARR_RELAY;
 
     try {
-      // Attempt to retrieve the DID document from the DHT network.
-      const didDocument = await DidDhtDocument.get({ didUri, relay });
+      // Attempt to decode the z-base-32-encoded identifier.
+      await DidDhtUtils.identifierToIdentityKey({ didUri });
+
+      // Attempt to retrieve the DID document and metadata from the DHT network.
+      const { didDocument, didMetadata } = await DidDhtDocument.get({ didUri, relay });
 
       // If the DID document was retrieved successfully, return it.
       return {
         ...EMPTY_DID_RESOLUTION_RESULT,
-        didDocument
+        didDocument,
+        ...didMetadata && { didDocumentMetadata: didMetadata }
       };
-
 
     } catch (error: any) {
-      // If the DID document could not be retrieved, return an error.
+      // Rethrow any unexpected errors that are not a `DidError`.
+      if (!(error instanceof DidError)) throw new Error(error);
+
+      // Return a DID Resolution Result with the appropriate error code.
       return {
         ...EMPTY_DID_RESOLUTION_RESULT,
-        didResolutionMetadata: { error: 'notFound' }
+        didResolutionMetadata: {
+          error: error.code,
+          ...error.message && { errorMessage: error.message }
+        }
       };
     }
-
-  }
-
-  private static async decodeIdentifier({ didUri }: {
-    didUri: string
-  }): Promise<Jwk> {
-    // Parse the DID URI.
-    const parsedDid = DidUri.parse(didUri);
-
-    // Verify that the DID URI is valid.
-    if (!parsedDid) {
-      throw new DidError(DidErrorCode.InvalidDid, `Invalid DID URI: ${didUri}`);
-    }
-
-    // Decode the method-specific identifier from z-base-32 to a byte array.
-    let identityKeyBytes: Uint8Array | undefined;
-    try {
-      identityKeyBytes = Convert.base32Z(parsedDid.id).toUint8Array();
-    } catch { /* Capture error */ }
-
-    // Verify that the method-specific identifier was decoded successfully.
-    if (!identityKeyBytes || identityKeyBytes.length !== 32) {
-      throw new DidError(DidErrorCode.InvalidDid, `Failed to decode method-specific identifier`);
-    }
-
-    // Convert the byte array to a JWK.
-    const identityKey = await Ed25519.bytesToPublicKey({ publicKeyBytes: identityKeyBytes });
-
-    return identityKey;
-  }
-
-  /**
-   * Encodes a DID DHT Identity Key into a DID identifier.
-   *
-   * This method first z-base-32 encodes the Identity Key. The resulting string is prefixed with
-   * `did:dht:` to form the DID identifier.
-   *
-   * @param params The parameters to use when computing the DID identifier.
-   * @param params.identityKey The Identity Key from which the DID identifier is computed.
-   * @returns A promise that resolves to a string containing the DID identifier.
-   */
-  private static async encodeIdentifier({ identityKey }: {
-    identityKey: Jwk
-  }): Promise<string> {
-    // Convert the key from JWK format to a byte array.
-    const publicKeyBytes = await Ed25519.publicKeyToBytes({ publicKey: identityKey });
-
-    // Encode the byte array as a z-base-32 string.
-    const identifier = Convert.uint8Array(publicKeyBytes).toBase32Z();
-
-    return `did:${DidDht.methodName}:${identifier}`;
   }
 
   private static async fromPublicKeys({
@@ -505,11 +465,11 @@ export class DidDht extends DidMethod {
     // Validate that the given verification methods contain an Identity Key.
     const identityKey = verificationMethods?.find(vm => vm.id?.split('#').pop() === '0')?.publicKeyJwk;
     if (!identityKey) {
-      throw new Error('DidDht: Identity Key not found in verification methods');
+      throw new Error('Identity Key not found in verification methods');
     }
 
     // Compute the DID identifier from the Identity Key.
-    const id = await DidDht.encodeIdentifier({ identityKey });
+    const id = await DidDhtUtils.identityKeyToIdentifier({ identityKey });
 
     // Begin constructing the DID Document.
     const didDocument: DidDocument = {
@@ -521,7 +481,7 @@ export class DidDht extends DidMethod {
     // Add verification methods to the DID document.
     for (const vm of verificationMethods) {
       if (!vm.publicKeyJwk) {
-        throw new Error(`DidJwk: Verification method '${vm.id}' does not contain a public key in JWK format`);
+        throw new Error(`Verification method '${vm.id}' does not contain a public key in JWK format`);
       }
 
       // Use the given ID, the key's ID, or the key's thumbprint as the verification method ID.
@@ -557,7 +517,7 @@ export class DidDht extends DidMethod {
 
     // Define DID Metadata.
     const metadata: DidMetadata = {
-      ...options.didTypes && { didTypes: options.didTypes }
+      ...options.types && { types: options.types }
     };
 
     // Define a function that returns a signer for the DID.
@@ -570,7 +530,7 @@ export class DidDht extends DidMethod {
     return { didDocument, getSigner, keyManager, metadata, uri: id };
   }
 
-  private static async generateKeySet({
+  private static async generateKeys({
     keyManager,
     verificationMethods
   }: {
@@ -578,8 +538,8 @@ export class DidDht extends DidMethod {
     verificationMethods?: DidCreateVerificationMethod<CryptoApi | undefined>[];
   }): Promise<DidKeySet> {
     let keySet: DidKeySet = {};
-    // If `verificationMethodKeys` was not provided, create one.
-    if (!verificationMethods) verificationMethods = [];
+    // If `verificationMethodKeys` was not provided, initialize it as an empty array.
+    verificationMethods ??= [];
 
     // If the given verification methods do not contain an Identity Key, add one.
     if (!verificationMethods?.some(vm => vm.id?.split('#').pop() === '0')) {
@@ -614,34 +574,24 @@ export class DidDht extends DidMethod {
   }
 }
 
-
-
-interface Bep44Message {
-  k: Uint8Array;
-  seq: number;
-  sig: Uint8Array;
-  v: Uint8Array;
-}
-
 class DidDhtDocument {
   public static async get({ didUri, relay }: {
     didUri: string;
     relay: string;
-  }): Promise<DidDocument> {
+  }): Promise<{ didDocument: DidDocument, didMetadata: DidMetadata }> {
     // Decode the z-base-32 DID identifier to public key as a byte array.
-    const publicKeyBytes = DidDhtDocument.identifierToPublicKeyBytes({ didUri });
+    const publicKeyBytes = DidDhtUtils.identifierToIdentityKeyBytes({ didUri });
 
     // Retrieve the signed BEP44 message from a Pkarr relay.
     const bep44Message = await DidDhtDocument.pkarrGet({ relay, publicKeyBytes });
 
-    // // Fetch the DNS packet from the Pkarr relay.
-    // const response = await fetch(url);
-    // const dnsPacket = dns.decode(await response.arrayBuffer());
+    // Verify the signature of the BEP44 message and parse the value to a DNS packet.
+    const dnsPacket = await DidDhtUtils.parseBep44GetMessage({ bep44Message });
 
-    // // Convert the DNS packet to a DID document.
-    // const didDocument = await DidDhtDocument.fromDnsPacket({ didUri, dnsPacket });
+    // Convert the DNS packet to a DID document and DID metadata.
+    const { didDocument, didMetadata } = await DidDhtDocument.fromDnsPacket({ didUri, dnsPacket });
 
-    return null as any;
+    return { didDocument, didMetadata };
   }
 
   /**
@@ -656,16 +606,16 @@ class DidDhtDocument {
     did: Did;
     relay: string;
   }): Promise<boolean> {
-    // Convert the DID document and types (if any) to a DNS packet.
+    // Convert the DID document and DID metadata (such as DID types) to a DNS packet.
     const dnsPacket = await DidDhtDocument.toDnsPacket({
       didDocument : did.didDocument,
-      didTypes    : did.metadata?.didTypes
+      didMetadata : did.metadata
     });
 
     // Create a signed BEP44 put message from the DNS packet.
-    const bep44Message = await DidDhtDocument.createBep44PutMessage({
+    const bep44Message = await DidDhtUtils.createBep44PutMessage({
       dnsPacket,
-      publicKeyBytes : DidDhtDocument.identifierToPublicKeyBytes({ didUri: did.uri }),
+      publicKeyBytes : DidDhtUtils.identifierToIdentityKeyBytes({ didUri: did.uri }),
       signer         : await did.getSigner()
     });
 
@@ -686,10 +636,29 @@ class DidDhtDocument {
     const url = new URL(identifier, relay).href;
 
     // Transmit the Get request to the Pkarr relay and get the response.
-    const response = await fetch(url);
+    let response: Response;
+    try {
+      response = await fetch(url, { method: 'GET' });
+
+      if (!response.ok) {
+        throw new DidError(DidErrorCode.NotFound, `Pkarr record not found for: ${identifier}`);
+      }
+
+    } catch (error: any) {
+      if (error instanceof DidError) throw error;
+      throw new DidError(DidErrorCode.InternalError, `Failed to fetch Pkarr record: ${error.message}`);
+    }
 
     // Read the Fetch Response stream into a byte array.
     const messageBytes = await response.arrayBuffer();
+
+    if (messageBytes.byteLength < 72) {
+      throw new DidError(DidErrorCode.InvalidDidDocumentLength, `Pkarr response must be at least 72 bytes but got: ${messageBytes.byteLength}`);
+    }
+
+    if (messageBytes.byteLength > 1072) {
+      throw new DidError(DidErrorCode.InvalidDidDocumentLength, `Pkarr response exceeds 1000 byte limit: ${messageBytes.byteLength}`);
+    }
 
     // Decode the BEP44 message from the byte array.
     const bep44Message: Bep44Message = {
@@ -699,11 +668,7 @@ class DidDhtDocument {
       v   : new Uint8Array(messageBytes, 72)
     };
 
-    // !TODO need to check that length is not less than 72 bytes, check that length
-    // is not over 1072 bytes
-    // and verify the signature
-
-    return null as any;
+    return bep44Message;
   }
 
   private static async pkarrPut({ relay, bep44Message }: {
@@ -723,136 +688,183 @@ class DidDhtDocument {
     body.set(bep44Message.v, bep44Message.sig.length + 8);
 
     // Transmit the Put request to the Pkarr relay and get the response.
-    const response = await fetch(url, {
-      method  : 'PUT',
-      headers : { 'Content-Type': 'application/octet-stream' },
-      body
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method  : 'PUT',
+        headers : { 'Content-Type': 'application/octet-stream' },
+        body
+      });
+
+    } catch (error: any) {
+      throw new DidError(DidErrorCode.InternalError, `Failed to put Pkarr record: ${error.message}`);
+    }
 
     // Return `true` if the DHT request was successful, otherwise return `false`.
     return response.ok;
   }
 
   /**
+   * Converts a DNS packet to a DID document according to the DID DHT specification.
    *
-   * @param params - The parameters to use when creating the BEP44 put message
-   * @param params.dnsPacket - The DNS packet to encode in the BEP44 message.
-   * @param params.publicKeyBytes - The public key bytes of the Identity Key.
-   * @param params.signer - Signer that can sign and verify data using the Identity Key.
-   * @returns A promise that resolves to a BEP44 put message.
+   * @see {@link https://did-dht.com/#dids-as-dns-records | DID DHT Specification, § DIDs as DNS Records}
+   *
+   * @param params - The parameters to use when converting a DNS packet to a DID document.
+   * @param params.didUri - The DID URI of the DID document.
+   * @param params.dnsPacket - The DNS packet to convert to a DID document.
+   * @returns A promise that resolves to a DID document.
    */
-  private static async createBep44PutMessage({ dnsPacket, publicKeyBytes, signer }: {
-    dnsPacket: Packet;
-    publicKeyBytes: Uint8Array;
-    signer: Signer;
-  }): Promise<Bep44Message> {
-    // BEP44 requires that the sequence number be a monotoically increasing integer, so we use the
-    // current time in seconds since Unix epoch as a simple solution. Higher precision is not
-    // recommended since DID DHT documents are not expected to change frequently and there are
-    // small differences in system clocks that can cause issues if multiple clients are publishing
-    // updates to the same DID document.
-    const sequenceNumber = Math.ceil(Date.now() / 1000);
-
-    // Encode the DNS packet into a buffer containing a UDP payload.
-    const encodedDnsPacket = dns.encode(dnsPacket);
-
-    // Encode the sequence and DNS buffer to bencode format.
-    const bencodedData = bencode.encode({ seq: sequenceNumber, v: encodedDnsPacket }).subarray(1, -1);
-
-    if (bencodedData.length > 1000) {
-      throw new DidError(DidErrorCode.InvalidDidDocumentLength, `DNS packet exceeds the 1000 byte maximum size: ${bencodedData.length} bytes`);
-    }
-
-    // Sign the BEP44 message.
-    const signature = await signer.sign({ data: bencodedData });
-
-    return { k: publicKeyBytes, seq: sequenceNumber, sig: signature, v: encodedDnsPacket };
-  }
-
-  private static identifierToPublicKeyBytes({ didUri }: {
-    didUri: string
-  }): Uint8Array {
-    // Parse the DID URI.
-    const parsedDid = DidUri.parse(didUri);
-
-    // Verify that the DID URI is valid.
-    if (!(parsedDid && parsedDid.method === DidDht.methodName)) {
-      throw new DidError(DidErrorCode.InvalidDid, `Invalid DID URI: ${didUri}`);
-    }
-
-    // Decode the method-specific identifier from z-base-32 to a byte array.
-    let identityKeyBytes: Uint8Array | undefined;
-    try {
-      identityKeyBytes = Convert.base32Z(parsedDid.id).toUint8Array();
-    } catch { /* Capture error */ }
-
-    if (!identityKeyBytes) {
-      throw new DidError(DidErrorCode.InvalidPublicKey, `Failed to decode method-specific identifier`);
-    }
-
-    if (identityKeyBytes.length !== 32) {
-      throw new DidError(DidErrorCode.InvalidPublicKeyLength, `Invalid public key length: ${identityKeyBytes.length}`);
-    }
-
-    return identityKeyBytes;
-  }
-
-
   private static async fromDnsPacket({ didUri, dnsPacket }: {
     didUri: string;
     dnsPacket: Packet;
-  }): Promise<DidDocument> {
+  }): Promise<{ didDocument: DidDocument, didMetadata: DidMetadata }> {
     // Begin constructing the DID Document.
     const didDocument: DidDocument = { id: didUri };
+    const didMetadata: DidMetadata = {};
 
-    const __ = dnsPacket;
-    return null as any;
+    const idLookup = new Map<string, string>();
+
+    for (const answer of dnsPacket?.answers ?? []) {
+      // DID DHT properties are ONLY present in DNS TXT records.
+      if (answer.type !== 'TXT') continue;
+
+      // Get the DID DHT record identifier (e.g., k0, aka, did, etc.) from the DNS resource name.
+      const dnsRecordId = answer.name.split('.')[0].substring(1);
+
+      switch (true) {
+        // Process an also known as record.
+        case dnsRecordId.startsWith('aka'): {
+          // Decode the DNS TXT record data value to a string.
+          const data = DidDhtUtils.parseTxtDataToString(answer.data);
+
+          // Add the 'alsoKnownAs' property to the DID document.
+          didDocument.alsoKnownAs = data.split(VALUE_SEPARATOR);
+
+          break;
+        }
+
+        // Process a controller record.
+        case dnsRecordId.startsWith('cnt'): {
+          // Decode the DNS TXT record data value to a string.
+          const data = DidDhtUtils.parseTxtDataToString(answer.data);
+
+          // Add the 'controller' property to the DID document.
+          didDocument.controller = data.includes(VALUE_SEPARATOR) ? data.split(VALUE_SEPARATOR) : data;
+
+          break;
+        }
+
+        // Process verification methods.
+        case dnsRecordId.startsWith('k'): {
+          // Get the method ID fragment (id), key type (t), Base64URL-encoded public key (k), and
+          // optionally, controller (c) from the decoded TXT record data.
+          const { id, t, k, c } = DidDhtUtils.parseTxtDataToObject(answer.data);
+
+          // Convert the public key from Base64URL format to a byte array.
+          const publicKeyBytes = Convert.base64Url(k).toUint8Array();
+
+          // Use the key type integer to look up the cryptographic curve name.
+          const namedCurve = DidDhtRegisteredKeyType[Number(t)];
+
+          // Convert the public key from a byte array to JWK format.
+          let publicKey = await DidDhtUtils.keyConverter(namedCurve).bytesToPublicKey({ publicKeyBytes });
+
+          // Initialize the `verificationMethod` array if it does not already exist.
+          didDocument.verificationMethod ??= [];
+
+          // Prepend the DID URI to the ID fragment to form the full verification method ID.
+          const methodId = `${didUri}#${id}`;
+
+          // Add the verification method to the DID document.
+          didDocument.verificationMethod.push({
+            id           : methodId,
+            type         : 'JsonWebKey',
+            controller   : c ?? didUri,
+            publicKeyJwk : publicKey,
+          });
+
+          // Add a mapping from the DNS record ID (e.g., 'k0', 'k1', etc.) to the verification
+          // method ID (e.g., 'did:dht:...#0', etc.).
+          idLookup.set(dnsRecordId, methodId);
+
+          break;
+        }
+
+        // Process services.
+        case dnsRecordId.startsWith('s'): {
+          // Get the service ID fragment (id), type (t), service endpoint (se), and optionally,
+          // other properties from the decoded TXT record data.
+          const { id, t, se, ...customProperties } = DidDhtUtils.parseTxtDataToObject(answer.data);
+
+          // The service endpoint can either be a string or an array of strings.
+          const serviceEndpoint = se.includes(VALUE_SEPARATOR) ? se.split(VALUE_SEPARATOR) : se;
+
+          // Initialize the `service` array if it does not already exist.
+          didDocument.service ??= [];
+
+          didDocument.service.push({
+            ...customProperties,
+            id   : `${didUri}#${id}`,
+            type : t,
+            serviceEndpoint
+          });
+
+          break;
+        }
+
+        // Process DID DHT types.
+        case dnsRecordId.startsWith('typ'): {
+          // Decode the DNS TXT record data value to an object.
+          const { id: types } = DidDhtUtils.parseTxtDataToObject(answer.data);
+
+          // ! TODO: Figure out which one of these to support and delete the other.
+          // Map the DID DHT Registered DID Types from integers to names and add to DID metadata.
+          // didMetadata.types = types.split(VALUE_SEPARATOR).map(typeInteger => DidDhtRegisteredDidType[Number(typeInteger)]);
+          // Add the DID DHT Registered DID Types represented as numbers to DID metadata.
+          didMetadata.types = types.split(VALUE_SEPARATOR).map(typeInteger => Number(typeInteger));
+
+          break;
+        }
+
+        // Process root record.
+        case dnsRecordId.startsWith('did'): {
+          // Helper function that maps verification relationship values to verification method IDs.
+          const recordIdsToMethodIds = (data: string): string[] => data
+            .split(VALUE_SEPARATOR)
+            .map(dnsRecordId => idLookup.get(dnsRecordId))
+            .filter((id): id is string => typeof id === 'string');
+
+          // Decode the DNS TXT record data and destructure verification relationship properties.
+          const { auth, asm, del, inv, agm } = DidDhtUtils.parseTxtDataToObject(answer.data);
+
+          // Add the verification relationships, if any, to the DID document.
+          if (auth) didDocument.authentication = recordIdsToMethodIds(auth);
+          if (asm) didDocument.assertionMethod = recordIdsToMethodIds(asm);
+          if (del) didDocument.capabilityDelegation = recordIdsToMethodIds(del);
+          if (inv) didDocument.capabilityInvocation = recordIdsToMethodIds(inv);
+          if (agm) didDocument.keyAgreement = recordIdsToMethodIds(agm);
+
+          break;
+        }
+      }
+    }
+
+    return { didDocument, didMetadata };
   }
 
-  // private static async signDnsPacket({ dnsPacket, keyManager, identityKey }: {
-  //   dnsPacket: Packet;
-  //   keyManager: CryptoApi;
-  //   identityKey: Jwk;
-  // }): Promise<Uint8Array> {
-  // const publicKeyBytes = await Ed25519.publicKeyToBytes({ publicKey: identityKey });
-  // const origin = Convert.uint8Array(publicKeyBytes).toBase32Z();
-
-  // dnsPacket.answers = dnsPacket.answers?.map(answer => {
-  //   answer.name = normalizeName(origin, answer.name);
-  //   return answer;
-  // });
-
-  // // BEP44 requires that the sequence number be a monotoically increasing integer, so we use the
-  // // current time in seconds since Unix epoch as a simple solution. Higher precision is not
-  // // recommended since DID DHT documents are not expected to change frequently and there are
-  // // small differences in system clocks that can cause issues if multiple clients are publishing
-  // // updates to the same DID document.
-  // const sequenceNumber = Math.ceil(Date.now() * 1000);
-  // // const sequenceNumber = Math.ceil(Date.now() / 1000);
-
-  // const encodedDnsPacket = dns.encode(dnsPacket);
-
-  // // Encode the DNS packet as a BEP44 message.
-  // const bencodedData = bencode.encode({ seq: sequenceNumber, v: encodedDnsPacket }).subarray(1, -1);
-
-  // // Get key URI of the Identity Key.
-  // const keyUri = await keyManager.getKeyUri({ key: identityKey });
-
-  // // Sign the BEP44 message.
-  // const signature = await keyManager.sign({ keyUri, data: bencodedData });
-
-  // //
-  // const signedPacket = new Uint8Array(encodedDnsPacket.length + 72);
-  // signedPacket.set(signature, 0);
-  // new DataView(signedPacket.buffer).setBigUint64(signature.length, BigInt(sequenceNumber));
-  // signedPacket.set(encodedDnsPacket, signature.length + 8);
-
-  // return signedPacket;
-  // }
-
-  private static async toDnsPacket({ didDocument, didTypes }: {
+  /**
+   * Converts a DID document to a DNS packet according to the DID DHT specification.
+   *
+   * @see {@link https://did-dht.com/#dids-as-dns-records | DID DHT Specification, § DIDs as DNS Records}
+   *
+   * @param params - The parameters to use when converting a DID document to a DNS packet.
+   * @param params.didDocument - The DID document to convert to a DNS packet.
+   * @param params.didMetadata - The DID metadata to include in the DNS packet.
+   * @returns A promise that resolves to a DNS packet.
+   */
+  private static async toDnsPacket({ didDocument, didMetadata }: {
     didDocument: DidDocument;
-    didTypes?: (DidDhtRegisteredDidType | keyof typeof DidDhtRegisteredDidType)[];
+    didMetadata: DidMetadata;
   }): Promise<Packet> {
     const dnsAnswerRecords: TxtAnswer[] = [];
     const idLookup = new Map<string, string>();
@@ -892,18 +904,14 @@ class DidDhtDocument {
       const publicKey = vm.publicKeyJwk;
 
       if (!(publicKey?.crv && publicKey.crv in DidDhtRegisteredKeyType)) {
-        throw new Error(`DidDht: Verification method '${vm.id}' contains an unsupported key type: ${publicKey?.crv ?? 'undefined'}`);
+        throw new DidError(DidErrorCode.InvalidPublicKeyType, `Verification method '${vm.id}' contains an unsupported key type: ${publicKey?.crv ?? 'undefined'}`);
       }
 
       // Use the public key's `crv` property to get the DID DHT key type.
-      const keyType = DidDhtRegisteredKeyType[publicKey.crv];
+      const keyType = DidDhtRegisteredKeyType[publicKey.crv as keyof typeof DidDhtRegisteredKeyType];
 
       // Convert the public key from JWK format to a byte array.
-      let publicKeyBytes = publicKey.crv === 'Ed25519'
-        ? await Ed25519.publicKeyToBytes({ publicKey})
-        : publicKey.crv === 'secp256k1'
-          ? await Secp256k1.publicKeyToBytes({ publicKey})
-          : await P256.publicKeyToBytes({ publicKey });
+      const publicKeyBytes = await DidDhtUtils.keyConverter(publicKey.crv).publicKeyToBytes({ publicKey });
 
       // Convert the public key from a byte array to Base64URL format.
       const publicKeyBase64Url = Convert.uint8Array(publicKeyBytes).toBase64Url();
@@ -960,7 +968,8 @@ class DidDhtDocument {
 
       // If the relationship includes verification methods, add them to the root record.
       if (dnsRecordIds) {
-        rootRecord.push(`${DidDhtVerificationRelationship[relationship]}=${dnsRecordIds.join(VALUE_SEPARATOR)}`);
+        const recordName = DidDhtVerificationRelationship[relationship as keyof typeof DidDhtVerificationRelationship];
+        rootRecord.push(`${recordName}=${dnsRecordIds.join(VALUE_SEPARATOR)}`);
       }
     });
 
@@ -970,12 +979,17 @@ class DidDhtDocument {
     }
 
     // If defined, add a DNS TXT record for each registered DID type.
-    if (didTypes?.length) {
+    if (didMetadata.types?.length) {
+      // DID types can be specified as either a string or a number, so we need to normalize the
+      // values to integers.
+      const types = didMetadata.types as (DidDhtRegisteredDidType | keyof typeof DidDhtRegisteredDidType)[];
+      const typeIntegers = types.map(type => typeof type === 'string' ? DidDhtRegisteredDidType[type] : type);
+
       dnsAnswerRecords.push({
         type : 'TXT',
         name : '_typ._did.',
         ttl  : DNS_RECORD_TTL,
-        data : `id=${didTypes.join(VALUE_SEPARATOR)}`
+        data : `id=${typeIntegers.join(VALUE_SEPARATOR)}`
       });
     }
 
@@ -1001,5 +1015,193 @@ class DidDhtDocument {
     };
 
     return dnsPacket;
+  }
+}
+
+class DidDhtUtils {
+  /**
+   *
+   * @param params - The parameters to use when creating the BEP44 put message
+   * @param params.dnsPacket - The DNS packet to encode in the BEP44 message.
+   * @param params.publicKeyBytes - The public key bytes of the Identity Key.
+   * @param params.signer - Signer that can sign and verify data using the Identity Key.
+   * @returns A promise that resolves to a BEP44 put message.
+   */
+  public static async createBep44PutMessage({ dnsPacket, publicKeyBytes, signer }: {
+      dnsPacket: Packet;
+      publicKeyBytes: Uint8Array;
+      signer: Signer;
+    }): Promise<Bep44Message> {
+    // BEP44 requires that the sequence number be a monotoically increasing integer, so we use the
+    // current time in seconds since Unix epoch as a simple solution. Higher precision is not
+    // recommended since DID DHT documents are not expected to change frequently and there are
+    // small differences in system clocks that can cause issues if multiple clients are publishing
+    // updates to the same DID document.
+    const sequenceNumber = Math.ceil(Date.now() / 1000);
+
+    // Encode the DNS packet into a byte array containing a UDP payload.
+    const encodedDnsPacket = dnsPacketEncode(dnsPacket);
+
+    // Encode the sequence and DNS byte array to bencode format.
+    const bencodedData = bencode.encode({ seq: sequenceNumber, v: encodedDnsPacket }).subarray(1, -1);
+
+    if (bencodedData.length > 1000) {
+      throw new DidError(DidErrorCode.InvalidDidDocumentLength, `DNS packet exceeds the 1000 byte maximum size: ${bencodedData.length} bytes`);
+    }
+
+    // Sign the BEP44 message.
+    const signature = await signer.sign({ data: bencodedData });
+
+    return { k: publicKeyBytes, seq: sequenceNumber, sig: signature, v: encodedDnsPacket };
+  }
+
+  public static async identifierToIdentityKey({ didUri }: {
+    didUri: string
+  }): Promise<Jwk> {
+    // Parse the DID URI.
+    const parsedDid = DidUri.parse(didUri);
+
+    // Verify that the DID URI is valid.
+    if (!parsedDid) {
+      throw new DidError(DidErrorCode.InvalidDid, `Invalid DID URI: ${didUri}`);
+    }
+
+    // Verify the DID method is supported.
+    if (parsedDid.method !== DidDht.methodName) {
+      throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported: ${parsedDid.method}`);
+    }
+
+    // Decode the method-specific identifier from z-base-32 to a byte array.
+    let identityKeyBytes: Uint8Array | undefined;
+    try {
+      identityKeyBytes = Convert.base32Z(parsedDid.id).toUint8Array();
+    } catch { /* Capture error */ }
+
+    // Verify that the method-specific identifier was decoded successfully.
+    if (!identityKeyBytes || identityKeyBytes.length !== 32) {
+      throw new DidError(DidErrorCode.InvalidDid, `Failed to decode method-specific identifier`);
+    }
+
+    // Convert the byte array to a JWK.
+    const identityKey = await Ed25519.bytesToPublicKey({ publicKeyBytes: identityKeyBytes });
+
+    return identityKey;
+  }
+
+  /**
+   * Encodes a DID DHT Identity Key into a DID identifier.
+   *
+   * This method first z-base-32 encodes the Identity Key. The resulting string is prefixed with
+   * `did:dht:` to form the DID identifier.
+   *
+   * @param params The parameters to use when computing the DID identifier.
+   * @param params.identityKey The Identity Key from which the DID identifier is computed.
+   * @returns A promise that resolves to a string containing the DID identifier.
+   */
+  public static async identityKeyToIdentifier({ identityKey }: {
+    identityKey: Jwk
+  }): Promise<string> {
+    // Convert the key from JWK format to a byte array.
+    const publicKeyBytes = await Ed25519.publicKeyToBytes({ publicKey: identityKey });
+
+    // Encode the byte array as a z-base-32 string.
+    const identifier = Convert.uint8Array(publicKeyBytes).toBase32Z();
+
+    return `did:${DidDht.methodName}:${identifier}`;
+  }
+
+  public static identifierToIdentityKeyBytes({ didUri }: {
+    didUri: string
+  }): Uint8Array {
+    // Parse the DID URI.
+    const parsedDid = DidUri.parse(didUri);
+
+    // Verify that the DID URI is valid.
+    if (!(parsedDid && parsedDid.method === DidDht.methodName)) {
+      throw new DidError(DidErrorCode.InvalidDid, `Invalid DID URI: ${didUri}`);
+    }
+
+    // Decode the method-specific identifier from z-base-32 to a byte array.
+    let identityKeyBytes: Uint8Array | undefined;
+    try {
+      identityKeyBytes = Convert.base32Z(parsedDid.id).toUint8Array();
+    } catch { /* Capture error */ }
+
+    if (!identityKeyBytes) {
+      throw new DidError(DidErrorCode.InvalidPublicKey, `Failed to decode method-specific identifier`);
+    }
+
+    if (identityKeyBytes.length !== 32) {
+      throw new DidError(DidErrorCode.InvalidPublicKeyLength, `Invalid public key length: ${identityKeyBytes.length}`);
+    }
+
+    return identityKeyBytes;
+  }
+
+  public static keyConverter(curve: string): AsymmetricKeyConverter {
+    const converters: Record<string, AsymmetricKeyConverter> = {
+      'Ed25519'   : Ed25519,
+      'secp256k1' : Secp256k1,
+      'secp256r1' : P256
+    };
+
+    const converter = converters[curve];
+
+    if (!converter) throw new DidError(DidErrorCode.InvalidPublicKeyType, `Unsupported curve: ${curve}`);
+
+    return converter;
+  }
+
+  /**
+   *
+   * @param params - The parameters to use when verifying and parsing the BEP44 Get response message.
+   * @param params.bep44Message - The BEP44 message to verify and parse.
+   * @returns A promise that resolves to a DNS packet.
+   */
+  public static async parseBep44GetMessage({ bep44Message }: {
+    bep44Message: Bep44Message;
+  }): Promise<Packet> {
+    // Convert the public key byte array to JWK format.
+    const publicKey = await Ed25519.bytesToPublicKey({ publicKeyBytes: bep44Message.k });
+
+    // Encode the sequence and DNS byte array to bencode format.
+    const bencodedData = bencode.encode({ seq: bep44Message.seq, v: bep44Message.v }).subarray(1, -1);
+
+    // Verify the signature of the BEP44 message.
+    const isValid = await Ed25519.verify({
+      key       : publicKey,
+      signature : bep44Message.sig,
+      data      : bencodedData
+    });
+
+    if (!isValid) {
+      throw new DidError(DidErrorCode.InvalidSignature, `Invalid signature for DHT BEP44 message`);
+    }
+
+    return dnsPacketDecode(bep44Message.v);
+  }
+
+  /**
+   * Helper function to decode and parse the data value of a DNS TXT record.
+   */
+  public static parseTxtDataToObject(txtData: TxtData): Record<string, string> {
+    return this.parseTxtDataToString(txtData).split(PROPERTY_SEPARATOR).reduce((acc, pair) => {
+      const [key, value] = pair.split('=');
+      acc[key] = value;
+      return acc;
+    }, {} as Record<string, string>);
+  }
+
+  // Helper function to convert TXT data property to a string value.
+  public static parseTxtDataToString(txtData: TxtData): string {
+    if (typeof txtData === 'string') {
+      return txtData;
+    } else if (txtData instanceof Uint8Array) {
+      return Convert.uint8Array(txtData).toString();
+    } else if (Array.isArray(txtData)) {
+      return txtData.map(item => this.parseTxtDataToString(item)).join('');
+    } else {
+      throw new DidError(DidErrorCode.InternalError, 'Pkarr returned DNS TXT record with invalid data type');
+    }
   }
 }

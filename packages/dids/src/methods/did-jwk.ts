@@ -1,14 +1,22 @@
-import type { CryptoApi, EnclosedSignParams, EnclosedVerifyParams, Jwk, Signer, InferKeyGeneratorAlgorithm, KeyImporterExporter, KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams } from '@web5/crypto';
+import type {
+  Jwk,
+  CryptoApi,
+  KeyIdentifier,
+  KmsExportKeyParams,
+  KmsImportKeyParams,
+  KeyImporterExporter,
+  InferKeyGeneratorAlgorithm,
+} from '@web5/crypto';
 
 import { Convert } from '@web5/common';
 import { LocalKmsCrypto } from '@web5/crypto';
 
 import type { Did, DidCreateOptions, DidCreateVerificationMethod, DidKeySet, DidMetadata } from './did-method.js';
-import { DidVerificationRelationship, type DidDocument, type DidResolutionOptions, type DidResolutionResult, type DidVerificationMethod } from '../types/did-core.js';
+import type { DidDocument, DidResolutionOptions, DidResolutionResult, DidVerificationMethod } from '../types/did-core.js';
 
 import { DidUri } from '../did-uri.js';
 import { DidMethod } from './did-method.js';
-import { getVerificationMethodByKey } from '../utils.js';
+import { DidError, DidErrorCode } from '../did-error.js';
 import { EMPTY_DID_RESOLUTION_RESULT } from '../did-resolver.js';
 
 /**
@@ -156,7 +164,7 @@ export class DidJwk extends DidMethod {
     options?: DidJwkCreateOptions<TKms>;
   } = {}): Promise<Did> {
     if (options.algorithm && options.verificationMethods) {
-      throw new Error(`DidJwk: The 'algorithm' and 'verificationMethods' options are mutually exclusive`);
+      throw new Error(`The 'algorithm' and 'verificationMethods' options are mutually exclusive`);
     }
 
     // Default to Ed25519 key generation if an algorithm is not given.
@@ -166,27 +174,11 @@ export class DidJwk extends DidMethod {
     const keyUri = await keyManager.generateKey({ algorithm });
     const publicKey = await keyManager.getPublicKey({ keyUri });
 
-    // Serialize the public key JWK to a UTF-8 string and encode to Base64URL format.
-    const base64UrlEncoded = Convert.object(publicKey).toBase64Url();
+    // Create the DID object from the generated key material, including DID document, metadata,
+    // signer convenience function, and URI.
+    const did = await DidJwk.fromPublicKey({ keyManager, publicKey });
 
-    // Attach the prefix `did:jwk` to form the complete DID URI.
-    const didUri = `did:${DidJwk.methodName}:${base64UrlEncoded}`;
-
-    // Expand the DID URI string to a DID didDocument.
-    const didResolutionResult = await DidJwk.resolve(didUri);
-    const didDocument = didResolutionResult.didDocument as DidDocument;
-
-    // DID Metadata is initially empty for this DID method.
-    const metadata: DidMetadata = {};
-
-    // Define a function that returns a signer for the DID.
-    const getSigner = async (params?: { keyUri?: string }) => await DidJwk.getSigner({
-      didDocument,
-      keyManager,
-      keyUri: params?.keyUri
-    });
-
-    return { didDocument, getSigner, keyManager, metadata, uri: didUri };
+    return did;
   }
 
   /**
@@ -230,37 +222,24 @@ export class DidJwk extends DidMethod {
     keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
   } & DidKeySet): Promise<Did> {
     if (!verificationMethods || verificationMethods.length !== 1) {
-      throw new Error(`DidJwk: Only one verification method can be specified but ${verificationMethods?.length ?? 0} were given`);
+      throw new Error(`Only one verification method can be specified but ${verificationMethods?.length ?? 0} were given`);
     }
 
     if (!(verificationMethods[0].privateKeyJwk && verificationMethods[0].publicKeyJwk)) {
-      throw new Error(`DidJwk: Verification method does not contain a public and private key in JWK format`);
+      throw new Error(`Verification method does not contain a public and private key in JWK format`);
     }
 
     // Store the private key in the key manager.
     await keyManager.importKey({ key: verificationMethods[0].privateKeyJwk });
 
-    // Serialize the public key JWK to a UTF-8 string and encode to Base64URL format.
-    const base64UrlEncoded = Convert.object(verificationMethods[0].publicKeyJwk).toBase64Url();
-
-    // Attach the prefix `did:jwk` to form the complete DID URI.
-    const didUri = `did:${DidJwk.methodName}:${base64UrlEncoded}`;
-
-    // Expand the DID URI string to a DID didDocument.
-    const didResolutionResult = await DidJwk.resolve(didUri);
-    const didDocument = didResolutionResult.didDocument as DidDocument;
-
-    // DID Metadata is initially empty for this DID method.
-    const metadata: DidMetadata = {};
-
-    // Define a function that returns a signer for the DID.
-    const getSigner = async (params?: { keyUri?: string }) => await DidJwk.getSigner({
-      didDocument,
+    // Create the DID object from the given key material, including DID document, metadata,
+    // signer convenience function, and URI.
+    const did = await DidJwk.fromPublicKey({
       keyManager,
-      keyUri: params?.keyUri
+      publicKey: verificationMethods[0].publicKeyJwk
     });
 
-    return { didDocument, getSigner, keyManager, metadata, uri: didUri };
+    return did;
   }
 
   /**
@@ -296,18 +275,23 @@ export class DidJwk extends DidMethod {
     keyManager: CryptoApi;
   }): Promise<Did> {
     // Resolve the DID URI to a DID Document.
-    const { didDocument } = await DidJwk.resolve(didUri);
+    const { didDocument, didResolutionMetadata } = await DidJwk.resolve(didUri);
 
-    // Verify the DID Resolution Result includes a DID document containing verification methods.
+    // If the given DID isn't "did:jwk", throw an error.
+    if (didResolutionMetadata.error === DidErrorCode.MethodNotSupported) {
+      throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported`);
+    }
+
+    // Validate that the DID Resolution Result includes a DID document containing verification methods.
     if (!(didDocument && Array.isArray(didDocument.verificationMethod) && didDocument.verificationMethod.length > 0)) {
-      throw new Error(`DidJwk: DID document for '${didUri}' is missing verification methods`);
+      throw new Error(`DID document for '${didUri}' is missing verification methods`);
     }
 
     // Validate that the key material for every verification method in the DID document is present
     // in the provided key manager.
     for (let vm of didDocument.verificationMethod) {
       if (!vm.publicKeyJwk) {
-        throw new Error(`DidJwk: Verification method '${vm.id}' does not contain a public key in JWK format`);
+        throw new Error(`Verification method '${vm.id}' does not contain a public key in JWK format`);
       }
 
       // Compute the key URI of the verification method's public key.
@@ -351,7 +335,7 @@ export class DidJwk extends DidMethod {
     // Verify the DID method is supported.
     const parsedDid = DidUri.parse(didDocument.id);
     if (parsedDid && parsedDid.method !== this.methodName) {
-      throw new Error(`DidJwk: Method not supported: ${parsedDid.method}`);
+      throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported: ${parsedDid.method}`);
     }
 
     // Attempt to find the verification method in the DID Document.
@@ -440,5 +424,44 @@ export class DidJwk extends DidMethod {
       ...EMPTY_DID_RESOLUTION_RESULT,
       didDocument,
     };
+  }
+
+  /**
+   * Instantiates a `Did` object for the `did:jwk` method from a given public key.
+   *
+   * @param params - The parameters for the operation.
+   * @param params.keyManager - A Key Management System (KMS) instance for managing keys and
+   *                            performing cryptographic operations.
+   * @param params.publicKey - The public key of the DID in JWK format.
+   * @returns A Promise resolving to a `Did` object representing the DID formed from the provided public key.
+   */
+  private static async fromPublicKey({
+    keyManager,
+    publicKey
+  }: {
+    keyManager: CryptoApi;
+    publicKey: Jwk;
+  }): Promise<Did> {
+    // Serialize the public key JWK to a UTF-8 string and encode to Base64URL format.
+    const base64UrlEncoded = Convert.object(publicKey).toBase64Url();
+
+    // Attach the prefix `did:jwk` to form the complete DID URI.
+    const didUri = `did:${DidJwk.methodName}:${base64UrlEncoded}`;
+
+    // Expand the DID URI string to a DID didDocument.
+    const didResolutionResult = await DidJwk.resolve(didUri);
+    const didDocument = didResolutionResult.didDocument as DidDocument;
+
+    // DID Metadata is initially empty for this DID method.
+    const metadata: DidMetadata = {};
+
+    // Define a function that returns a signer for the DID.
+    const getSigner = async (params?: { keyUri?: string }) => await DidJwk.getSigner({
+      didDocument,
+      keyManager,
+      keyUri: params?.keyUri
+    });
+
+    return { didDocument, getSigner, keyManager, metadata, uri: didUri };
   }
 }
