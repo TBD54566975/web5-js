@@ -10,7 +10,6 @@ import { Convert, NodeStream, Stream } from '@web5/common';
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 
 import type { ResponseStatus } from './dwn-api.js';
-
 import { dataToBlob } from './utils.js';
 
 /**
@@ -100,6 +99,7 @@ export class Record implements RecordModel {
   private _descriptor: RecordsWriteDescriptor;
   private _encryption?: RecordsWriteMessage['encryption'];
   private _initialWrite: RecordOptions['initialWrite'];
+  private _initialWriteStored: boolean;
   private _recordId: string;
   private _protocolRole: RecordOptions['protocolRole'];
   // Getters for immutable DWN Record properties.
@@ -357,13 +357,11 @@ export class Record implements RecordModel {
 
   async store(options: any = {}): Promise<any> {
 
-    // Add check to bail if already imported
-
-    const { store = true, import: _import = false, storeAll = false } = options;
+    const { store = true, import: _import = false } = options;
 
     const initialWrite = this._initialWrite;
 
-    if (initialWrite && storeAll) {
+    if (initialWrite && !this._initialWriteStored) {
 
       let agentResponse = await this._processMessage({
         import     : _import,
@@ -378,6 +376,7 @@ export class Record implements RecordModel {
       const responseMessage = message as RecordsWriteMessage;
 
       if (200 <= status.code && status.code <= 299) {
+        this._initialWriteStored = true;
         if (_import) initialWrite.authorization = responseMessage.authorization;
       }
 
@@ -385,7 +384,7 @@ export class Record implements RecordModel {
 
     let agentResponse = await this._processMessage({
       import     : !initialWrite && _import,
-      store      : store || storeAll,
+      store      : store,
       dataStream : await this.data.blob(),
       rawMessage : {
         contextId     : this._contextId,
@@ -400,7 +399,9 @@ export class Record implements RecordModel {
     const { message, reply: { status } } = agentResponse;
     const responseMessage = message as RecordsWriteMessage;
 
-    if (_import) this._authorization = responseMessage.authorization;
+    if (200 <= status.code && status.code <= 299) {
+      if (_import) this._authorization = responseMessage.authorization;
+    }
 
     return status;
 
@@ -408,7 +409,7 @@ export class Record implements RecordModel {
 
   async import(options?: any): Promise<any> {
     // Add check to bail if already imported
-    return this.store({ store: options?.store !== false, storeAll: true, import: true });
+    return this.store({ store: options?.store !== false, import: true });
   }
 
   /**
@@ -596,6 +597,7 @@ export class Record implements RecordModel {
       }
       // Only update the local Record instance mutable properties if the record was successfully (over)written.
       this._authorization = responseMessage.authorization;
+      this._protocolRole = messageOptions.protocolRole;
       mutableDescriptorProperties.forEach(property => {
         this._descriptor[property] = responseMessage.descriptor[property];
       });
