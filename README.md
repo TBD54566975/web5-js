@@ -195,7 +195,7 @@ Each `Record` instance has the following instance methods:
 - **`send`** - _`function`_: sends the record the instance represents to the DWeb Node endpoints of a provided DID.
 - **`update`** - _`function`_: takes in a new request object matching the expected method signature of a `write` and overwrites the record. This is a convenience method that allows you to easily overwrite records with less verbosity.
 - **`store`** - _`function`_: stores the record in the local DWN instance, offering the following options:
-    - `storeAll`: stores the initial record state in addition to the latest state. This is required if your local DWN instance does not already contain this record.
+    - `import`: imports the record as with an owner-signed override (still subject to Protocol rules, when a record is Protocol-based)
 - **`import`** - _`function`_: signs a record with an owner override to import the record into the local DWN instance:
     - `store` - _`boolean`_: when false is passed, the record will only be signed with an owner override, not stored in the local DWN instance. Defaults to `true`.
 
