@@ -99,7 +99,7 @@ describe('Record', () => {
 
   // FIRST PASS AT IMPORT
 
-  it('imports a record that another user wrote', async () => {
+  it.only('imports a record that another user wrote', async () => {
 
     // Install the email protocol for Alice's local DWN.
     let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({

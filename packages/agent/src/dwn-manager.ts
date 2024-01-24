@@ -75,14 +75,6 @@ const dwnMessageConstructors = {
   [DwnInterfaceName.Protocols + DwnMethodName.Configure] : ProtocolsConfigure,
 };
 
-(RecordsWrite.prototype as any).forceSet = function(prop: string, value: unknown){
-  this[prop] = value;
-};
-
-(RecordsWrite.prototype as any).forceGet = function(prop: string){
-  return this[prop];
-};
-
 export type DwnManagerOptions = {
   agent?: Web5ManagedAgent;
   dwn: Dwn;
