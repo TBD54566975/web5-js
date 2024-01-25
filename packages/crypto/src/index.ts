@@ -19,7 +19,7 @@ export * from './primitives/aes-ctr.js';
 export * from './primitives/aes-gcm.js';
 export * from './primitives/concat-kdf.js';
 export * from './primitives/ed25519.js';
-export * from './primitives/p256.js';
+export * from './primitives/secp256r1.js';
 export * from './primitives/pbkdf2.js';
 export * from './primitives/secp256k1.js';
 export * from './primitives/sha256.js';

@@ -1,6 +1,6 @@
 import { Convert } from '@web5/common';
 import { sha256 } from '@noble/hashes/sha256';
-import { p256 } from '@noble/curves/p256';
+import { secp256r1 } from '@noble/curves/p256';
 import { numberToBytesBE } from '@noble/curves/abstract/utils';
 
 import type { Jwk } from '../jose/jwk.js';
@@ -9,8 +9,8 @@ import type { ComputePublicKeyParams, GetPublicKeyParams, SignParams, VerifyPara
 import { computeJwkThumbprint, isEcPrivateJwk, isEcPublicJwk } from '../jose/jwk.js';
 
 /**
- * The `P256` class provides a comprehensive suite of utilities for working with
- * the P-256 (aka secp256r1) elliptic curve, commonly used in blockchain and cryptographic
+ * The `Secp256r1` class provides a comprehensive suite of utilities for working with
+ * the secp256r1 (aka P-256) elliptic curve, commonly used in blockchain and cryptographic
  * applications. This class includes methods for key generation, conversion, signing, verification,
  * and Elliptic Curve Diffie-Hellman (ECDH) key agreement.
  *
@@ -18,12 +18,12 @@ import { computeJwkThumbprint, isEcPrivateJwk, isEcPublicJwk } from '../jose/jwk
  * adheres to RFC6979 for ECDSA signing and verification and RFC6090 for ECDH.
  *
  * Key Features:
- * - Key Generation: Generate P-256 private keys in JWK format.
+ * - Key Generation: Generate secp256r1 private keys in JWK format.
  * - Key Conversion: Transform keys between raw byte arrays and JWK formats.
  * - Public Key Derivation: Derive public keys from private keys.
  * - ECDH Shared Secret Computation: Securely derive shared secrets using private and public keys.
- * - ECDSA Signing and Verification: Sign data and verify signatures with P-256 keys.
- * - Key Validation: Validate the mathematical correctness of P-256 keys.
+ * - ECDSA Signing and Verification: Sign data and verify signatures with secp256r1 keys.
+ * - Key Validation: Validate the mathematical correctness of secp256r1 keys.
  *
  * The methods in this class are asynchronous, returning Promises to accommodate various
  * JavaScript environments, and use `Uint8Array` for binary data handling.
@@ -31,43 +31,43 @@ import { computeJwkThumbprint, isEcPrivateJwk, isEcPublicJwk } from '../jose/jwk
  * @example
  * ```ts
  * // Key Generation
- * const privateKey = await P256.generateKey();
+ * const privateKey = await Secp256r1.generateKey();
  *
  * // Public Key Derivation
- * const publicKey = await P256.computePublicKey({ key: privateKey });
- * console.log(publicKey === await P256.getPublicKey({ key: privateKey })); // Output: true
+ * const publicKey = await Secp256r1.computePublicKey({ key: privateKey });
+ * console.log(publicKey === await Secp256r1.getPublicKey({ key: privateKey })); // Output: true
  *
  * // ECDH Shared Secret Computation
- * const sharedSecret = await P256.sharedSecret({
+ * const sharedSecret = await Secp256r1.sharedSecret({
  *   privateKeyA: privateKey,
  *   publicKeyB: anotherPublicKey
  * });
  *
  * // ECDSA Signing
- * const signature = await P256.sign({
+ * const signature = await Secp256r1.sign({
  *   key: privateKey,
  *   data: new TextEncoder().encode('Message')
  * });
  *
  * // ECDSA Signature Verification
- * const isValid = await P256.verify({
+ * const isValid = await Secp256r1.verify({
  *   key: publicKey,
  *   signature: signature,
  *   data: new TextEncoder().encode('Message')
  * });
  *
  * // Key Conversion
- * const publicKeyBytes = await P256.publicKeyToBytes({ publicKey });
- * const privateKeyBytes = await P256.privateKeyToBytes({ privateKey });
- * const compressedPublicKey = await P256.compressPublicKey({ publicKeyBytes });
- * const uncompressedPublicKey = await P256.decompressPublicKey({ publicKeyBytes });
+ * const publicKeyBytes = await Secp256r1.publicKeyToBytes({ publicKey });
+ * const privateKeyBytes = await Secp256r1.privateKeyToBytes({ privateKey });
+ * const compressedPublicKey = await Secp256r1.compressPublicKey({ publicKeyBytes });
+ * const uncompressedPublicKey = await Secp256r1.decompressPublicKey({ publicKeyBytes });
  *
  * // Key Validation
- * const isPrivateKeyValid = await P256.validatePrivateKey({ privateKeyBytes });
- * const isPublicKeyValid = await P256.validatePublicKey({ publicKeyBytes });
+ * const isPrivateKeyValid = await Secp256r1.validatePrivateKey({ privateKeyBytes });
+ * const isPublicKeyValid = await Secp256r1.validatePublicKey({ publicKeyBytes });
  * ```
  */
-export class P256 {
+export class Secp256r1 {
 /**
    * Adjusts an ECDSA signature to a normalized, low-S form.
    *
@@ -108,7 +108,7 @@ export class P256 {
    * @example
    * ```ts
    * const signature = new Uint8Array([...]); // Your ECDSA signature
-   * const adjustedSignature = await P256.adjustSignatureToLowS({ signature });
+   * const adjustedSignature = await Secp256r1.adjustSignatureToLowS({ signature });
    * // Now 'adjustedSignature' is in the low-S form.
    * ```
    *
@@ -120,8 +120,8 @@ export class P256 {
   public static async adjustSignatureToLowS({ signature }: {
     signature: Uint8Array;
   }): Promise<Uint8Array> {
-    // Convert the signature to a `p256.Signature` object.
-    const signatureObject = p256.Signature.fromCompact(signature);
+    // Convert the signature to a `Secp256r1.Signature` object.
+    const signatureObject = secp256r1.Signature.fromCompact(signature);
 
     if (signatureObject.hasHighS()) {
       // Adjust the signature to low-S format if it's high-S.
@@ -161,7 +161,7 @@ export class P256 {
    * @example
    * ```ts
    * const privateKeyBytes = new Uint8Array([...]); // Replace with actual private key bytes
-   * const privateKey = await P256.bytesToPrivateKey({ privateKeyBytes });
+   * const privateKey = await Secp256r1.bytesToPrivateKey({ privateKeyBytes });
    * ```
    *
    * @param params - The parameters for the private key conversion.
@@ -173,7 +173,7 @@ export class P256 {
     privateKeyBytes: Uint8Array;
   }): Promise<Jwk> {
     // Get the elliptic curve points (x and y coordinates) for the provided private key.
-    const points = await P256.getCurvePoints({ keyBytes: privateKeyBytes });
+    const points = await Secp256r1.getCurvePoints({ keyBytes: privateKeyBytes });
 
     // Construct the private key in JWK format.
     const privateKey: Jwk = {
@@ -212,7 +212,7 @@ export class P256 {
    * @example
    * ```ts
    * const publicKeyBytes = new Uint8Array([...]); // Replace with actual public key bytes
-   * const publicKey = await P256.bytesToPublicKey({ publicKeyBytes });
+   * const publicKey = await Secp256r1.bytesToPublicKey({ publicKeyBytes });
    * ```
    *
    * @param params - The parameters for the public key conversion.
@@ -224,7 +224,7 @@ export class P256 {
     publicKeyBytes: Uint8Array;
   }): Promise<Jwk> {
     // Get the elliptic curve points (x and y coordinates) for the provided public key.
-    const points = await P256.getCurvePoints({ keyBytes: publicKeyBytes });
+    const points = await Secp256r1.getCurvePoints({ keyBytes: publicKeyBytes });
 
     // Construct the public key in JWK format.
     const publicKey: Jwk = {
@@ -252,7 +252,7 @@ export class P256 {
    * @example
    * ```ts
    * const uncompressedPublicKeyBytes = new Uint8Array([...]); // Replace with actual uncompressed public key bytes
-   * const compressedPublicKey = await P256.compressPublicKey({
+   * const compressedPublicKey = await Secp256r1.compressPublicKey({
    *   publicKeyBytes: uncompressedPublicKeyBytes
    * });
    * ```
@@ -266,7 +266,7 @@ export class P256 {
     publicKeyBytes: Uint8Array;
   }): Promise<Uint8Array> {
     // Decode Weierstrass points from the public key byte array.
-    const point = p256.ProjectivePoint.fromHex(publicKeyBytes);
+    const point = secp256r1.ProjectivePoint.fromHex(publicKeyBytes);
 
     // Return the compressed form of the public key.
     return point.toRawBytes(true);
@@ -283,14 +283,14 @@ export class P256 {
    * JWK format.
    *
    * The process ensures that the derived public key correctly corresponds to the given private key,
-   * adhering to the P-256 elliptic curve standards. This method is useful in cryptographic
+   * adhering to the secp256r1 elliptic curve standards. This method is useful in cryptographic
    * operations where a public key is needed for operations like signature verification, but only
    * the private key is available.
    *
    * @example
    * ```ts
-   * const privateKey = { ... }; // A Jwk object representing a P-256 private key
-   * const publicKey = await P256.computePublicKey({ key: privateKey });
+   * const privateKey = { ... }; // A Jwk object representing a secp256r1 private key
+   * const publicKey = await Secp256r1.computePublicKey({ key: privateKey });
    * ```
    *
    * @param params - The parameters for the public key derivation.
@@ -302,10 +302,10 @@ export class P256 {
     ComputePublicKeyParams
   ): Promise<Jwk> {
     // Convert the provided private key to a byte array.
-    const privateKeyBytes  = await P256.privateKeyToBytes({ privateKey: key });
+    const privateKeyBytes  = await Secp256r1.privateKeyToBytes({ privateKey: key });
 
     // Get the elliptic curve points (x and y coordinates) for the provided private key.
-    const points = await P256.getCurvePoints({ keyBytes: privateKeyBytes });
+    const points = await Secp256r1.getCurvePoints({ keyBytes: privateKeyBytes });
 
     // Construct the public key in JWK format.
     const publicKey: Jwk = {
@@ -336,7 +336,7 @@ export class P256 {
    * @example
    * ```ts
    * const derSignature = new Uint8Array([...]); // Replace with your DER-encoded signature
-   * const signature = await P256.convertDerToCompactSignature({ derSignature });
+   * const signature = await Secp256r1.convertDerToCompactSignature({ derSignature });
    * ```
    *
    * @param params - The parameters for the signature conversion.
@@ -347,9 +347,9 @@ export class P256 {
   public static async convertDerToCompactSignature({ derSignature }: {
     derSignature: Uint8Array;
   }): Promise<Uint8Array> {
-    // Convert the DER-encoded signature into a `p256.Signature` object.
+    // Convert the DER-encoded signature into a `Secp256r1.Signature` object.
     // This involves parsing the ASN.1 DER structure to extract the R and S components.
-    const signatureObject = p256.Signature.fromDER(derSignature);
+    const signatureObject = secp256r1.Signature.fromDER(derSignature);
 
     // Convert the signature object into compact R+S format, which concatenates the R and S values
     // into a single byte array.
@@ -370,7 +370,7 @@ export class P256 {
    * @example
    * ```ts
    * const compressedPublicKeyBytes = new Uint8Array([...]); // Replace with actual compressed public key bytes
-   * const decompressedPublicKey = await P256.decompressPublicKey({
+   * const decompressedPublicKey = await Secp256r1.decompressPublicKey({
    *   publicKeyBytes: compressedPublicKeyBytes
    * });
    * ```
@@ -384,20 +384,20 @@ export class P256 {
     publicKeyBytes: Uint8Array;
   }): Promise<Uint8Array> {
     // Decode Weierstrass points from the public key byte array.
-    const point = p256.ProjectivePoint.fromHex(publicKeyBytes);
+    const point = secp256r1.ProjectivePoint.fromHex(publicKeyBytes);
 
     // Return the uncompressed form of the public key.
     return point.toRawBytes(false);
   }
 
   /**
-   * Generates a P-256 private key in JSON Web Key (JWK) format.
+   * Generates a secp256r1 private key in JSON Web Key (JWK) format.
    *
    * @remarks
-   * This method creates a new private key suitable for use with the P-256
+   * This method creates a new private key suitable for use with the secp256r1
    * elliptic curve. The key is generated using cryptographically secure random
    * number generation to ensure its uniqueness and security. The resulting
-   * private key adheres to the JWK format, specifically tailored for P-256,
+   * private key adheres to the JWK format, specifically tailored for secp256r1,
    * making it compatible with common cryptographic standards and easy to use in
    * various cryptographic processes.
    *
@@ -412,17 +412,17 @@ export class P256 {
    *
    * @example
    * ```ts
-   * const privateKey = await P256.generateKey();
+   * const privateKey = await Secp256r1.generateKey();
    * ```
    *
    * @returns A Promise that resolves to the generated private key in JWK format.
    */
   public static async generateKey(): Promise<Jwk> {
     // Generate a random private key.
-    const privateKeyBytes = p256.utils.randomPrivateKey();
+    const privateKeyBytes = secp256r1.utils.randomPrivateKey();
 
     // Convert private key from bytes to JWK format.
-    const privateKey = await P256.bytesToPrivateKey({ privateKeyBytes });
+    const privateKey = await Secp256r1.bytesToPrivateKey({ privateKeyBytes });
 
     // Compute the JWK thumbprint and set as the key ID.
     privateKey.kid = await computeJwkThumbprint({ jwk: privateKey });
@@ -434,7 +434,7 @@ export class P256 {
    * Retrieves the public key properties from a given private key in JWK format.
    *
    * @remarks
-   * This method extracts the public key portion from a P-256 private key in JWK format. It does
+   * This method extracts the public key portion from a secp256r1 private key in JWK format. It does
    * so by removing the private key property 'd' and making a shallow copy, effectively yielding the
    * public key. The method sets the 'kid' (key ID) property using the JWK thumbprint if it is not
    * already defined. This approach is used under the assumption that a private key in JWK format
@@ -448,8 +448,8 @@ export class P256 {
    *
    * @example
    * ```ts
-   * const privateKey = { ... }; // A Jwk object representing a P-256 private key
-   * const publicKey = await P256.getPublicKey({ key: privateKey });
+   * const privateKey = { ... }; // A Jwk object representing a secp256r1 private key
+   * const publicKey = await Secp256r1.getPublicKey({ key: privateKey });
    * ```
    *
    * @param params - The parameters for retrieving the public key properties.
@@ -460,9 +460,9 @@ export class P256 {
   public static async getPublicKey({ key }:
     GetPublicKeyParams
   ): Promise<Jwk> {
-    // Verify the provided JWK represents an elliptic curve (EC) P-256 private key.
+    // Verify the provided JWK represents an elliptic curve (EC) secp256r1 private key.
     if (!(isEcPrivateJwk(key) && key.crv === 'P-256')) {
-      throw new Error(`P256: The provided key is not a P-256 private JWK.`);
+      throw new Error(`Secp256r1: The provided key is not a 'P-256' private JWK.`);
     }
 
     // Remove the private key property ('d') and make a shallow copy of the provided key.
@@ -489,7 +489,7 @@ export class P256 {
    * @example
    * ```ts
    * const privateKey = { ... }; // An X25519 private key in JWK format
-   * const privateKeyBytes = await P256.privateKeyToBytes({ privateKey });
+   * const privateKeyBytes = await Secp256r1.privateKeyToBytes({ privateKey });
    * ```
    *
    * @param params - The parameters for the private key conversion.
@@ -502,7 +502,7 @@ export class P256 {
   }): Promise<Uint8Array> {
     // Verify the provided JWK represents a valid EC P-256 private key.
     if (!isEcPrivateJwk(privateKey)) {
-      throw new Error(`P256: The provided key is not a valid EC private key.`);
+      throw new Error(`Secp256r1: The provided key is not a valid EC private key.`);
     }
 
     // Decode the provided private key to bytes.
@@ -528,7 +528,7 @@ export class P256 {
    * @example
    * ```ts
    * const publicKey = { ... }; // A Jwk public key object
-   * const publicKeyBytes = await P256.publicKeyToBytes({ publicKey });
+   * const publicKeyBytes = await Secp256r1.publicKeyToBytes({ publicKey });
    * ```
    *
    * @param params - The parameters for the public key conversion.
@@ -541,7 +541,7 @@ export class P256 {
   }): Promise<Uint8Array> {
     // Verify the provided JWK represents a valid EC P-256 public key, which must have a 'y' value.
     if (!(isEcPublicJwk(publicKey) && publicKey.y)) {
-      throw new Error(`P256: The provided key is not a valid EC public key.`);
+      throw new Error(`Secp256r1: The provided key is not a valid EC public key.`);
     }
 
     // Decode the provided public key to bytes.
@@ -557,7 +557,7 @@ export class P256 {
 
   /**
    * Computes an RFC6090-compliant Elliptic Curve Diffie-Hellman (ECDH) shared secret
-   * using P-256 private and public keys in JSON Web Key (JWK) format.
+   * using secp256r1 private and public keys in JSON Web Key (JWK) format.
    *
    * @remarks
    * This method facilitates the ECDH key agreement protocol, which is a method of securely
@@ -570,7 +570,7 @@ export class P256 {
    * Note: When performing Elliptic Curve Diffie-Hellman (ECDH) key agreement,
    * the resulting shared secret is a point on the elliptic curve, which
    * consists of an x-coordinate and a y-coordinate. With a 256-bit curve like
-   * P-256, each of these coordinates is 32 bytes (256 bits) long. However,
+   * secp256r1, each of these coordinates is 32 bytes (256 bits) long. However,
    * in the ECDH process, it's standard practice to use only the x-coordinate
    * of the shared secret point as the resulting shared key. This is because
    * the y-coordinate does not add to the entropy of the key, and both parties
@@ -581,7 +581,7 @@ export class P256 {
    * ```ts
    * const privateKeyA = { ... }; // A Jwk private key object for party A
    * const publicKeyB = { ... }; // A Jwk public key object for party B
-   * const sharedSecret = await P256.sharedSecret({
+   * const sharedSecret = await Secp256r1.sharedSecret({
    *   privateKeyA,
    *   publicKeyB
    * });
@@ -599,15 +599,15 @@ export class P256 {
   }): Promise<Uint8Array> {
     // Ensure that keys from the same key pair are not specified.
     if ('x' in privateKeyA && 'x' in publicKeyB && privateKeyA.x === publicKeyB.x) {
-      throw new Error(`P256: ECDH shared secret cannot be computed from a single key pair's public and private keys.`);
+      throw new Error(`Secp256r1: ECDH shared secret cannot be computed from a single key pair's public and private keys.`);
     }
 
     // Convert the provided private and public keys to bytes.
-    const privateKeyABytes = await P256.privateKeyToBytes({ privateKey: privateKeyA });
-    const publicKeyBBytes = await P256.publicKeyToBytes({ publicKey: publicKeyB });
+    const privateKeyABytes = await Secp256r1.privateKeyToBytes({ privateKey: privateKeyA });
+    const publicKeyBBytes = await Secp256r1.publicKeyToBytes({ publicKey: publicKeyB });
 
     // Compute the compact representation shared secret between the public and private keys.
-    const sharedSecret = p256.getSharedSecret(privateKeyABytes, publicKeyBBytes, true);
+    const sharedSecret = secp256r1.getSharedSecret(privateKeyABytes, publicKeyBBytes, true);
 
     // Remove the leading byte that indicates the sign of the y-coordinate
     // of the point on the elliptic curve.  See note above.
@@ -615,7 +615,7 @@ export class P256 {
   }
 
   /**
-   * Generates an RFC6979-compliant ECDSA signature of given data using a P-256 private key.
+   * Generates an RFC6979-compliant ECDSA signature of given data using a secp256r1 private key.
    *
    * @remarks
    * This method signs the provided data with a specified private key using the ECDSA
@@ -632,8 +632,8 @@ export class P256 {
    * @example
    * ```ts
    * const data = new TextEncoder().encode('Messsage'); // Data to be signed
-   * const privateKey = { ... }; // A Jwk object representing a P-256 private key
-   * const signature = await P256.sign({
+   * const privateKey = { ... }; // A Jwk object representing a secp256r1 private key
+   * const signature = await Secp256r1.sign({
    *   key: privateKey,
    *   data
    * });
@@ -649,14 +649,14 @@ export class P256 {
     SignParams
   ): Promise<Uint8Array> {
     // Convert the private key from JWK format to bytes.
-    const privateKeyBytes = await P256.privateKeyToBytes({ privateKey: key });
+    const privateKeyBytes = await Secp256r1.privateKeyToBytes({ privateKey: key });
 
     // Generate a digest of the data using the SHA-256 hash function.
     const digest = sha256(data);
 
     // Sign the provided data using the ECDSA algorithm.
-    // The `p256.sign` operation returns a signature object with { r, s, recovery } properties.
-    const signatureObject = p256.sign(digest, privateKeyBytes);
+    // The `Secp256r1.sign` operation returns a signature object with { r, s, recovery } properties.
+    const signatureObject = secp256r1.sign(digest, privateKeyBytes);
 
     // Convert the signature object to Uint8Array.
     const signature = signatureObject.toCompactRawBytes();
@@ -665,12 +665,12 @@ export class P256 {
   }
 
   /**
-   * Validates a given private key to ensure its compliance with the P-256 curve standards.
+   * Validates a given private key to ensure its compliance with the secp256r1 curve standards.
    *
    * @remarks
    * This method checks whether a provided private key is a valid 32-byte number and falls within
-   * the range defined by the P-256 curve's order. It is essential for ensuring the private
-   * key's mathematical correctness in the context of P-256-based cryptographic operations.
+   * the range defined by the secp256r1 curve's order. It is essential for ensuring the private
+   * key's mathematical correctness in the context of secp256r1-based cryptographic operations.
    *
    * Note that this validation strictly pertains to the key's format and numerical validity; it does
    * not assess whether the key corresponds to a known entity or its security status (e.g., whether
@@ -679,7 +679,7 @@ export class P256 {
    * @example
    * ```ts
    * const privateKeyBytes = new Uint8Array([...]); // A 32-byte private key
-   * const isValid = await P256.validatePrivateKey({ privateKeyBytes });
+   * const isValid = await Secp256r1.validatePrivateKey({ privateKeyBytes });
    * console.log(isValid); // true or false based on the key's validity
    * ```
    *
@@ -691,14 +691,14 @@ export class P256 {
   public static async validatePrivateKey({ privateKeyBytes }: {
     privateKeyBytes: Uint8Array;
   }): Promise<boolean> {
-    return p256.utils.isValidPrivateKey(privateKeyBytes);
+    return secp256r1.utils.isValidPrivateKey(privateKeyBytes);
   }
 
   /**
-   * Validates a given public key to confirm its mathematical correctness on the P-256 curve.
+   * Validates a given public key to confirm its mathematical correctness on the secp256r1 curve.
    *
    * @remarks
-   * This method checks if the provided public key represents a valid point on the P-256 curve.
+   * This method checks if the provided public key represents a valid point on the secp256r1 curve.
    * It decodes the key's Weierstrass points (x and y coordinates) and verifies their validity
    * against the curve's parameters. A valid point must lie on the curve and meet specific
    * mathematical criteria defined by the curve's equation.
@@ -710,22 +710,22 @@ export class P256 {
    * @example
    * ```ts
    * const publicKeyBytes = new Uint8Array([...]); // A public key in byte format
-   * const isValid = await P256.validatePublicKey({ publicKeyBytes });
-   * console.log(isValid); // true if the key is valid on the P-256 curve, false otherwise
+   * const isValid = await Secp256r1.validatePublicKey({ publicKeyBytes });
+   * console.log(isValid); // true if the key is valid on the secp256r1 curve, false otherwise
    * ```
    *
    * @param params - The parameters for the key validation.
    * @param params.publicKeyBytes - The public key to validate, represented as a Uint8Array.
    *
    * @returns A Promise that resolves to a boolean indicating the public key's validity on
-   *          the P-256 curve.
+   *          the secp256r1 curve.
    */
   public static async validatePublicKey({ publicKeyBytes }: {
     publicKeyBytes: Uint8Array;
   }): Promise<boolean> {
     try {
       // Decode Weierstrass points from key bytes.
-      const point = p256.ProjectivePoint.fromHex(publicKeyBytes);
+      const point = secp256r1.ProjectivePoint.fromHex(publicKeyBytes);
 
       // Check if points are on the Short Weierstrass curve.
       point.assertValidity();
@@ -738,7 +738,7 @@ export class P256 {
   }
 
   /**
-   * Verifies an RFC6979-compliant ECDSA signature against given data and a P-256 public key.
+   * Verifies an RFC6979-compliant ECDSA signature against given data and a secp256r1 public key.
    *
    * @remarks
    * This method validates a digital signature to ensure that it was generated by the holder of the
@@ -759,7 +759,7 @@ export class P256 {
    * const data = new TextEncoder().encode('Messsage'); // Data that was signed
    * const publicKey = { ... }; // Public key in JWK format corresponding to the private key that signed the data
    * const signature = new Uint8Array([...]); // Signature to verify
-   * const isSignatureValid = await P256.verify({
+   * const isSignatureValid = await Secp256r1.verify({
    *   key: publicKey,
    *   signature,
    *   data
@@ -778,7 +778,7 @@ export class P256 {
     VerifyParams
   ): Promise<boolean> {
     // Convert the public key from JWK format to bytes.
-    const publicKeyBytes = await P256.publicKeyToBytes({ publicKey: key });
+    const publicKeyBytes = await Secp256r1.publicKeyToBytes({ publicKey: key });
 
     // Generate a digest of the data using the SHA-256 hash function.
     const digest = sha256(data);
@@ -788,16 +788,16 @@ export class P256 {
      * for low-s signatures across languages is unlikely especially in the context
      * of SSI. Notable Cloud KMS providers do not natively support it either. It is
      * also worth noting that low-s signatures are a requirement for Bitcoin. */
-    const isValid = p256.verify(signature, digest, publicKeyBytes, { lowS: false });
+    const isValid = secp256r1.verify(signature, digest, publicKeyBytes, { lowS: false });
 
     return isValid;
   }
 
   /**
-   * Returns the elliptic curve points (x and y coordinates) for a given P-256 key.
+   * Returns the elliptic curve points (x and y coordinates) for a given secp256r1 key.
    *
    * @remarks
-   * This method extracts the elliptic curve points from a given P-256 key, whether
+   * This method extracts the elliptic curve points from a given secp256r1 key, whether
    * it's a private or a public key. For a private key, the method first computes the
    * corresponding public key and then extracts the x and y coordinates. For a public key,
    * it directly returns these coordinates. The coordinates are represented as Uint8Array.
@@ -810,11 +810,11 @@ export class P256 {
    * ```ts
    * // For a private key
    * const privateKey = new Uint8Array([...]); // A 32-byte private key
-   * const { x: xFromPrivateKey, y: yFromPrivateKey } = await P256.getCurvePoints({ keyBytes: privateKey });
+   * const { x: xFromPrivateKey, y: yFromPrivateKey } = await Secp256r1.getCurvePoints({ keyBytes: privateKey });
    *
    * // For a public key
    * const publicKey = new Uint8Array([...]); // A 33-byte or 65-byte public key
-   * const { x: xFromPublicKey, y: yFromPublicKey } = await P256.getCurvePoints({ keyBytes: publicKey });
+   * const { x: xFromPublicKey, y: yFromPublicKey } = await Secp256r1.getCurvePoints({ keyBytes: publicKey });
    * ```
    *
    * @param params - The parameters for the curve point decoding operation.
@@ -831,11 +831,11 @@ export class P256 {
   }): Promise<{ x: Uint8Array, y: Uint8Array }> {
     // If key is a private key, first compute the public key.
     if (keyBytes.byteLength === 32) {
-      keyBytes = p256.getPublicKey(keyBytes);
+      keyBytes = secp256r1.getPublicKey(keyBytes);
     }
 
     // Decode Weierstrass points from key bytes.
-    const point = p256.ProjectivePoint.fromHex(keyBytes);
+    const point = secp256r1.ProjectivePoint.fromHex(keyBytes);
 
     // Get x- and y-coordinate values and convert to Uint8Array.
     const x = numberToBytesBE(point.x, 32);
@@ -845,4 +845,4 @@ export class P256 {
   }
 }
 
-export { P256 as Secp256r1 };
+export { Secp256r1 as P256 };
