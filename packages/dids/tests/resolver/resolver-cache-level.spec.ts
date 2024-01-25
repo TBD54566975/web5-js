@@ -2,7 +2,10 @@ import sinon from 'sinon';
 import chai, { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
-import { DidResolverCacheLevel } from '../src/resolver-cache-level.js';
+import { Level } from 'level';
+import { DidJwk } from '../../src/methods/did-jwk.js';
+import { DidResolver, DidResolverCache } from '../../src/resolver/did-resolver.js';
+import { DidResolverCacheLevel } from '../../src/resolver/resolver-cache-level.js';
 
 chai.use(chaiAsPromised);
 
@@ -27,6 +30,13 @@ describe('DidResolverCacheLevel', () => {
     it('uses default options if none are specified', async () => {
       cache = new DidResolverCacheLevel();
       expect(cache).to.exist;
+    });
+
+    it('should initialize with a custom database', async function() {
+      const db = new Level<string, string>('__TESTDATA__/customLocation');
+      const cache = new DidResolverCacheLevel({ db });
+      expect(cache).to.be.an.instanceof(DidResolverCacheLevel);
+      await cache.close();
     });
 
     it('uses a 15 minute TTL, by default', async () => {
@@ -155,12 +165,84 @@ describe('DidResolverCacheLevel', () => {
       cache = new DidResolverCacheLevel({ location: cacheStoreLocation });
 
       await expect(
+        // @ts-expect-error - Test invalid input.
         cache.get(null)
       ).to.eventually.be.rejectedWith(Error, 'Key cannot be null or undefine');
 
       await expect(
+        // @ts-expect-error - Test invalid input.
         cache.get(undefined)
       ).to.eventually.be.rejectedWith(Error, 'Key cannot be null or undefine');
+    });
+  });
+
+  describe('with DidResolver', () => {
+    let cache: DidResolverCache;
+    let didResolver: DidResolver;
+
+    before(() => {
+      cache = new DidResolverCacheLevel();
+    });
+
+    beforeEach(async () => {
+      await cache.clear();
+      const didMethodApis = [DidJwk];
+      didResolver = new DidResolver({ cache, didResolvers: didMethodApis });
+    });
+
+    after(async () => {
+      await cache.clear();
+    });
+
+    it('should cache miss for the first resolution attempt', async () => {
+      const did = 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ';
+      // Create a Sinon spy on the get method of the cache
+      const cacheGetSpy = sinon.spy(cache, 'get');
+
+      await didResolver.resolve(did);
+
+      // Verify that cache.get() was called.
+      expect(cacheGetSpy.called).to.be.true;
+
+      // Verify the cache returned undefined.
+      const getCacheResult = await cacheGetSpy.returnValues[0];
+      expect(getCacheResult).to.be.undefined;
+
+      cacheGetSpy.restore();
+    });
+
+    it('should cache hit for the second resolution attempt', async () => {
+      const did = 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ';
+      // Create a Sinon spy on the get method of the cache
+      const cacheGetSpy = sinon.spy(cache, 'get');
+      const cacheSetSpy = sinon.spy(cache, 'set');
+
+      await didResolver.resolve(did);
+
+      // Verify there was a cache miss.
+      expect(cacheGetSpy.calledOnce).to.be.true;
+      expect(cacheSetSpy.calledOnce).to.be.true;
+
+      // Verify the cache returned undefined.
+      let getCacheResult = await cacheGetSpy.returnValues[0];
+      expect(getCacheResult).to.be.undefined;
+
+      // Resolve the same DID again.
+      await didResolver.resolve(did);
+
+      // Verify that cache.get() was called.
+      expect(cacheGetSpy.called).to.be.true;
+      expect(cacheGetSpy.calledTwice).to.be.true;
+
+      // Verify there was a cache hit this time.
+      getCacheResult = await cacheGetSpy.returnValues[1];
+      expect(getCacheResult).to.not.be.undefined;
+      expect(getCacheResult).to.have.property('@context');
+      expect(getCacheResult).to.have.property('didDocument');
+      expect(getCacheResult).to.have.property('didDocumentMetadata');
+      expect(getCacheResult).to.have.property('didResolutionMetadata');
+
+      cacheGetSpy.restore();
     });
   });
 });

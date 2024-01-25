@@ -1,4 +1,4 @@
-import type { CryptoApi, Jwk } from '@web5/crypto';
+import type { CryptoApi, InferKeyGeneratorAlgorithm, Jwk } from '@web5/crypto';
 
 import { universalTypeOf } from '@web5/common';
 import {
@@ -8,7 +8,7 @@ import {
   LocalKmsCrypto,
 } from '@web5/crypto';
 
-import type { Did, DidCreateOptions, PortableDid } from './did-method.js';
+import type { Did, DidCreateOptions, DidCreateVerificationMethod, PortableDid } from './did-method.js';
 import type { DidDocument, DidResolutionOptions, DidResolutionResult, DidVerificationMethod } from '../types/did-core.js';
 
 import { DidMethod } from './did-method.js';
@@ -18,34 +18,42 @@ import { getVerificationMethodTypes } from '../utils.js';
 
 
 
-
-
-
 /**
  * Defines the set of options available when creating a new Decentralized Identifier (DID) with the
  * 'did:key' method.
  *
- * Either the `algorithm` or `keySet` option must be specified, but not both.
- * - If `algorithm` is given, a new key will be generated using the specified algorithm.
- * - If `keySet` is given, it must contain exactly one key.
+ * Either the `algorithm` or `verificationMethods` option can be specified, but not both.
+ * - A new key will be generated using the algorithm identifier specified in either the `algorithm`
+ *   property or the `verificationMethods` object's `algorithm` property.
+ * - If `verificationMethods` is given, it must contain exactly one entry since DID Key only
+ *   supports a single verification method.
  * - If neither is given, the default is to generate a new Ed25519 key.
  *
  * @example
  * ```ts
- * const keyManager = new LocalKmsCrypto();
+  * // By default, when no options are given, a new Ed25519 key will be generated.
+ * const did = await DidKey.create();
+ *
+ * // The algorithm to use for key generation can be specified as a top-level option.
  * const did = await DidKey.create({
- *   keyManager,
- *   options: { algorithm = 'Ed25519' }
+ *   options: { algorithm = 'secp256k1' }
+ * });
+ *
+ * // Or, alternatively as a property of the verification method.
+ * const did = await DidKey.create({
+ *   options: {
+ *     verificationMethods: [{ algorithm = 'secp256k1' }]
+ *   }
  * });
  * ```
  */
 export interface DidKeyCreateOptions<TKms> extends DidCreateOptions<TKms> {
   /**
    * Optionally specify the algorithm to be used for key generation.
-   *
-   * Note: This option
    */
-  algorithm?: AlgorithmIdentifier;
+  algorithm?: TKms extends CryptoApi
+    ? InferKeyGeneratorAlgorithm<TKms>
+    : InferKeyGeneratorAlgorithm<LocalKmsCrypto>;
 
   /**
    * Optionally enable encryption key derivation during DID creation.
@@ -65,14 +73,15 @@ export interface DidKeyCreateOptions<TKms> extends DidCreateOptions<TKms> {
   enableEncryptionKeyDerivation?: boolean;
 
   /**
-   * Optionally specify an existing set of keys to be used for DID creation.
-   */
-  keySet?: PortableDid;
-
-  /**
    * Optionally specify the format of the public key to be used for DID creation.
    */
   publicKeyFormat?: keyof typeof DidKey.VERIFICATION_METHOD_TYPES;
+
+  /**
+   * Alternatively, specify the algorithm to be used for key generation of the single verification
+   * method in the DID Document.
+   */
+  verificationMethods?: [DidCreateVerificationMethod<TKms>];
 }
 
 /**
