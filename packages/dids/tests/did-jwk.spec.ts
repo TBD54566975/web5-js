@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { LocalKmsCrypto } from '@web5/crypto';
 
 import type { DidDocument } from '../src/types/did-core.js';
-import type { DidKeySet, DidKeySetVerificationMethod } from '../src/methods/did-method.js';
+import type { PortableDid, PortableDidVerificationMethod } from '../src/methods/did-method.js';
 
 import { DidErrorCode } from '../src/did-error.js';
 import { DidJwk } from '../src/methods/did-jwk.js';
@@ -328,16 +328,13 @@ describe('DidJwk', () => {
   });
 
   describe('fromKeys()', () => {
-    let didUri: string;
-    let keySet: DidKeySet;
+    let portableDid: PortableDid;
 
     beforeEach(() => {
       // Define a DID to use for the test.
-      didUri = 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ';
-
-      // Define a key set to use for the test.
-      keySet = {
-        verificationMethods: [{
+      portableDid = {
+        uri                 : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
+        verificationMethods : [{
           publicKeyJwk: {
             kty : 'OKP',
             crv : 'Ed25519',
@@ -355,17 +352,17 @@ describe('DidJwk', () => {
     });
 
     it('returns a DID JWK from the given set of verification method keys', async () => {
-      const did = await DidJwk.fromKeys(keySet);
+      const did = await DidJwk.fromKeys(portableDid);
 
       expect(did).to.have.property('didDocument');
       expect(did).to.have.property('getSigner');
       expect(did).to.have.property('keyManager');
       expect(did).to.have.property('metadata');
-      expect(did).to.have.property('uri', didUri);
+      expect(did).to.have.property('uri', portableDid.uri);
     });
 
     it('returns a DID with a getSigner function that can sign and verify data', async () => {
-      const did = await DidJwk.fromKeys(keySet);
+      const did = await DidJwk.fromKeys(portableDid);
       const signer = await did.getSigner();
       const data = new Uint8Array([1, 2, 3]);
       const signature = await signer.sign({ data });
@@ -376,10 +373,10 @@ describe('DidJwk', () => {
     });
 
     it('returns a DID with a getSigner function that accepts a specific keyUri', async () => {
-      const did = await DidJwk.fromKeys(keySet);
+      const did = await DidJwk.fromKeys(portableDid);
 
       // Retrieve the key URI of the verification method's public key.
-      const keyUri = await did.keyManager.getKeyUri({ key: keySet.verificationMethods![0].publicKeyJwk! });
+      const keyUri = await did.keyManager.getKeyUri({ key: portableDid.verificationMethods![0].publicKeyJwk! });
 
       const signer = await did.getSigner({ keyUri });
       const data = new Uint8Array([1, 2, 3]);
@@ -392,15 +389,15 @@ describe('DidJwk', () => {
 
     it(`does not include the 'keyAgreement' relationship when JWK use is 'sig'`, async () => {
       // Add the `sig` key use property.
-      keySet.verificationMethods![0].privateKeyJwk!.use = 'sig';
-      keySet.verificationMethods![0].publicKeyJwk!.use = 'sig';
+      portableDid.verificationMethods[0].privateKeyJwk!.use = 'sig';
+      portableDid.verificationMethods[0].publicKeyJwk!.use = 'sig';
 
       // Import the private key into a key manager.
       const keyManager = new LocalKmsCrypto();
-      await keyManager.importKey({ key: keySet.verificationMethods![0].privateKeyJwk! });
+      await keyManager.importKey({ key: portableDid.verificationMethods![0].privateKeyJwk! });
 
       // Create the DID using the key set.
-      let did = await DidJwk.fromKeys(keySet);
+      let did = await DidJwk.fromKeys(portableDid);
 
       // Verify the DID document does not contain the `keyAgreement` relationship.
       expect(did.didDocument).to.not.have.property('keyAgreement');
@@ -417,13 +414,13 @@ describe('DidJwk', () => {
       publicKey.use = 'enc';
 
       // Swap the keys in the key set with the newly generated secp256k1 keys.
-      keySet.verificationMethods![0].privateKeyJwk = privateKey;
-      keySet.verificationMethods![0].publicKeyJwk = publicKey;
+      portableDid.verificationMethods[0].privateKeyJwk = privateKey;
+      portableDid.verificationMethods[0].publicKeyJwk = publicKey;
 
       // Create the DID using the key set.
       let did = await DidJwk.fromKeys({
         keyManager,
-        verificationMethods: keySet.verificationMethods!
+        verificationMethods: portableDid.verificationMethods!
       });
 
       // Verrify the DID document does not contain any verification relationships other than
@@ -437,6 +434,7 @@ describe('DidJwk', () => {
 
     it('throws an error if no verification methods are given', async () => {
       try {
+        // @ts-expect-error - Test case where verificationMethods is undefined.
         await DidJwk.fromKeys({});
         expect.fail('Expected an error to be thrown.');
       } catch (error: any) {
@@ -454,10 +452,10 @@ describe('DidJwk', () => {
     });
 
     it('throws an error if the given key set is missing a public key', async () => {
-      delete keySet.verificationMethods![0].publicKeyJwk;
+      delete portableDid.verificationMethods[0].publicKeyJwk;
 
       try {
-        await DidJwk.fromKeys(keySet);
+        await DidJwk.fromKeys(portableDid);
         expect.fail('Expected an error to be thrown.');
       } catch (error: any) {
         expect(error.message).to.include('does not contain a public and private key');
@@ -465,10 +463,10 @@ describe('DidJwk', () => {
     });
 
     it('throws an error if the given key set is missing a private key', async () => {
-      delete keySet.verificationMethods![0].privateKeyJwk;
+      delete portableDid.verificationMethods[0].privateKeyJwk;
 
       try {
-        await DidJwk.fromKeys(keySet);
+        await DidJwk.fromKeys(portableDid);
         expect.fail('Expected an error to be thrown.');
       } catch (error: any) {
         expect(error.message).to.include('does not contain a public and private key');
@@ -476,7 +474,7 @@ describe('DidJwk', () => {
     });
 
     it('throws an error if the key set contains two or more keys', async () => {
-      const verificationMethod: DidKeySetVerificationMethod = {
+      const verificationMethod: PortableDidVerificationMethod = {
         publicKeyJwk: {
           kty : 'OKP',
           crv : 'Ed25519',

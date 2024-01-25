@@ -8,7 +8,7 @@ import {
   LocalKmsCrypto,
 } from '@web5/crypto';
 
-import type { Did, DidCreateOptions, DidKeySet } from './did-method.js';
+import type { Did, DidCreateOptions, PortableDid } from './did-method.js';
 import type { DidDocument, DidResolutionOptions, DidResolutionResult, DidVerificationMethod } from '../types/did-core.js';
 
 import { DidMethod } from './did-method.js';
@@ -67,7 +67,7 @@ export interface DidKeyCreateOptions<TKms> extends DidCreateOptions<TKms> {
   /**
    * Optionally specify an existing set of keys to be used for DID creation.
    */
-  keySet?: DidKeySet;
+  keySet?: PortableDid;
 
   /**
    * Optionally specify the format of the public key to be used for DID creation.

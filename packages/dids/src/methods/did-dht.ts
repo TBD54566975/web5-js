@@ -14,7 +14,7 @@ import { Convert } from '@web5/common';
 import { CryptoApi, Ed25519, LocalKmsCrypto, P256, Secp256k1, computeJwkThumbprint } from '@web5/crypto';
 import { AUTHORITATIVE_ANSWER, decode as dnsPacketDecode, encode as dnsPacketEncode } from '@dnsquery/dns-packet';
 
-import type { Did, DidCreateOptions, DidCreateVerificationMethod, DidKeySet, DidMetadata } from './did-method.js';
+import type { Did, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
 import type {
   DidService,
   DidDocument,
@@ -319,8 +319,8 @@ export class DidDht extends DidMethod {
     didUri: string;
     keyManager: CryptoApi;
   }): Promise<Did> {
-    // Resolve the DID URI to a DID Document.
-    const { didDocument, didResolutionMetadata } = await DidDht.resolve(didUri);
+    // Resolve the DID URI to a DID document and document metadata.
+    const { didDocument, didDocumentMetadata, didResolutionMetadata } = await DidDht.resolve(didUri);
 
     // If the given DID isn't "did:dht", throw an error.
     if (didResolutionMetadata.error === DidErrorCode.MethodNotSupported) {
@@ -346,8 +346,11 @@ export class DidDht extends DidMethod {
       await keyManager.getPublicKey({ keyUri });
     }
 
-    // DID Metadata is initially empty for this DID method.
-    const metadata: DidMetadata = {};
+    // Define DID Metadata, including the registered DID types and published state.
+    const metadata: DidMetadata = {
+      ...didDocumentMetadata?.published && { published: didDocumentMetadata.published },
+      ...didDocumentMetadata?.types && { types: didDocumentMetadata.types }
+    };
 
     // Define a function that returns a signer for the DID.
     const getSigner = async (params?: { keyUri?: string }) => await DidDht.getSigner({
@@ -361,12 +364,13 @@ export class DidDht extends DidMethod {
 
   public static async fromKeys<TKms extends CryptoApi | undefined = undefined>({
     keyManager = new LocalKmsCrypto(),
+    uri,
     verificationMethods,
     options = {}
   }: {
     keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
     options?: DidDhtCreateOptions<TKms>;
-  } & DidKeySet): Promise<Did> {
+  } & PortableDid): Promise<Did> {
     if (!(verificationMethods && Array.isArray(verificationMethods) && verificationMethods.length > 0)) {
       throw new Error(`At least one verification method is required but 0 were given`);
     }
@@ -384,17 +388,19 @@ export class DidDht extends DidMethod {
       await keyManager.importKey({ key: vm.privateKeyJwk! });
     }
 
-    // Create the DID object from the given key material, including DID document, metadata,
-    // signer convenience function, and URI.
-    const did = await DidDht.fromPublicKeys({ keyManager, verificationMethods, options });
+    // If the DID URI is provided, resolve the DID document and metadata from the DHT network and
+    // use it to construct the DID object.
+    if (uri) {
+      return await DidDht.fromKeyManager({ didUri: uri, keyManager });
+    } else {
+      // Otherwise, use the given key material and options to construct the DID object.
+      const did = await DidDht.fromPublicKeys({ keyManager, verificationMethods, options });
 
-    // By default, the DID document will NOT be published unless explicitly enabled.
-    if (options.publish) {
-      const isPublished = await this.publish({ did });
-      did.metadata.published = isPublished;
+      // By default, the DID document will NOT be published unless explicitly enabled.
+      did.metadata.published = options.publish ? await this.publish({ did }) : false;
+
+      return did;
     }
-
-    return did;
   }
 
   public static async getSigningMethod({ didDocument, methodId = '#0' }: {
@@ -407,7 +413,7 @@ export class DidDht extends DidMethod {
       throw new Error(`Method not supported: ${parsedDid.method}`);
     }
 
-    const verificationMethod = didDocument.verificationMethod?.find(vm => vm.id.includes(methodId));
+    const verificationMethod = didDocument.verificationMethod?.find(vm => vm.id.endsWith(methodId));
 
     return verificationMethod;
   }
@@ -436,7 +442,7 @@ export class DidDht extends DidMethod {
       return {
         ...EMPTY_DID_RESOLUTION_RESULT,
         didDocument,
-        ...didMetadata && { didDocumentMetadata: didMetadata }
+        didDocumentMetadata: { published: true, ...didMetadata }
       };
 
     } catch (error: any) {
@@ -461,7 +467,7 @@ export class DidDht extends DidMethod {
   }: {
     keyManager: CryptoApi;
     options: DidDhtCreateOptions<CryptoApi | undefined>;
-  } & DidKeySet): Promise<Did> {
+  } & PortableDid): Promise<Did> {
     // Validate that the given verification methods contain an Identity Key.
     const identityKey = verificationMethods?.find(vm => vm.id?.split('#').pop() === '0')?.publicKeyJwk;
     if (!identityKey) {
@@ -515,7 +521,7 @@ export class DidDht extends DidMethod {
       didDocument.service.push(service);
     });
 
-    // Define DID Metadata.
+    // Define DID Metadata, including the registered DID types (if any).
     const metadata: DidMetadata = {
       ...options.types && { types: options.types }
     };
@@ -536,8 +542,11 @@ export class DidDht extends DidMethod {
   }: {
     keyManager: CryptoApi;
     verificationMethods?: DidCreateVerificationMethod<CryptoApi | undefined>[];
-  }): Promise<DidKeySet> {
-    let keySet: DidKeySet = {};
+  }): Promise<PortableDid> {
+    let portableDid: PortableDid = {
+      verificationMethods: []
+    };
+
     // If `verificationMethodKeys` was not provided, initialize it as an empty array.
     verificationMethods ??= [];
 
@@ -557,11 +566,8 @@ export class DidDht extends DidMethod {
       const keyUri = await keyManager.generateKey({ algorithm: vm.algorithm });
       const publicKey = await keyManager.getPublicKey({ keyUri });
 
-      // Initialize the verification methods array if it does not already exist.
-      keySet.verificationMethods ??= [];
-
-      // Add the verification method to the key set.
-      keySet.verificationMethods.push({
+      // Add the verification method to the `PortableDid`.
+      portableDid.verificationMethods.push({
         id           : vm.id,
         type         : 'JsonWebKey',
         controller   : vm.controller,
@@ -570,7 +576,7 @@ export class DidDht extends DidMethod {
       });
     }
 
-    return keySet;
+    return portableDid;
   }
 }
 
@@ -817,9 +823,6 @@ class DidDhtDocument {
           // Decode the DNS TXT record data value to an object.
           const { id: types } = DidDhtUtils.parseTxtDataToObject(answer.data);
 
-          // ! TODO: Figure out which one of these to support and delete the other.
-          // Map the DID DHT Registered DID Types from integers to names and add to DID metadata.
-          // didMetadata.types = types.split(VALUE_SEPARATOR).map(typeInteger => DidDhtRegisteredDidType[Number(typeInteger)]);
           // Add the DID DHT Registered DID Types represented as numbers to DID metadata.
           didMetadata.types = types.split(VALUE_SEPARATOR).map(typeInteger => Number(typeInteger));
 

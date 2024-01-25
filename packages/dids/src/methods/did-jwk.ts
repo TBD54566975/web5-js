@@ -11,7 +11,7 @@ import type {
 import { Convert } from '@web5/common';
 import { LocalKmsCrypto } from '@web5/crypto';
 
-import type { Did, DidCreateOptions, DidCreateVerificationMethod, DidKeySet, DidMetadata } from './did-method.js';
+import type { Did, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
 import type { DidDocument, DidResolutionOptions, DidResolutionResult, DidVerificationMethod } from '../types/did-core.js';
 
 import { DidUri } from '../did-uri.js';
@@ -185,7 +185,7 @@ export class DidJwk extends DidMethod {
    * Instantiates a `Did` object for the `did:jwk` method from a given key set.
    *
    * This method allows for the creation of a `Did` object using pre-existing key material,
-   * encapsulated within the `verificationMethods` array of the `DidKeySet`. This is particularly
+   * encapsulated within the `verificationMethods` array of the `PortableDid`. This is particularly
    * useful when the key material is already available and you want to construct a `Did` object
    * based on these keys, instead of generating new keys.
    *
@@ -220,7 +220,7 @@ export class DidJwk extends DidMethod {
     verificationMethods
   }: {
     keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
-  } & DidKeySet): Promise<Did> {
+  } & PortableDid): Promise<Did> {
     if (!verificationMethods || verificationMethods.length !== 1) {
       throw new Error(`Only one verification method can be specified but ${verificationMethods?.length ?? 0} were given`);
     }

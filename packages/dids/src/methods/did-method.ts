@@ -188,41 +188,42 @@ export interface DidMethodResolver {
 }
 
 /**
- * A set of keys associated with the verification methods of a Decentralized Identifier (DID).
- *
- * The keys in this set can be used to instantiate a new {@link Did} object typically using the
- * `fromKeys()` method of a {@link DidMethod} implementation.
+ * Format to document a DID identifier, along with its associated data,
+ * which can be exported, saved to a file, or imported. The intent is
+ * bundle all of the necessary metadata to enable usage of the DID in
+ * different contexts.
  */
-export interface DidKeySet {
+/**
+ * Format that documents the metadata of a Decentralized Identifier (DID) to enable usage of the DID
+ * in different contexts.
+ *
+ * @remarks
+ * This format is useful for exporting, saving to a file, or importing a DID.
+ *
+ * @example
+ * ```ts
+ * // Generate a new DID.
+ * const did = await DidExample.create();
+ *
+ * // Export the DID to a PortableDid.
+ * const portableDid = await DidExample.toKeys({ did });
+ *
+ * // Instantiate a `Did` object from the PortableDid metadata.
+ * const didFromKeys = await DidExample.fromKeys({ ...portableDid });
+ * // The `didFromKeys` object should be equivalent to the original `did` object.
+ * ```
+ */
+export interface PortableDid {
+  /** {@inheritDoc DidUri#uri} */
+  uri?: string;
+
   /**
-   * An optional array of verification methods to be included in the DID document.
+   * An array of verification methods, including the key material and key purpose, which are
+   * included in the DID document.
    *
    * @see {@link https://www.w3.org/TR/did-core/#verification-methods | DID Core Specification, § Verification Methods}
-   *
-   * @example
-   * ```ts
-   * const did = await DidExample.fromKeys({
-   * verificationMethods: [
-   *   {
-   *     publicKeyJwk: {
-   *       kty: "OKP",
-   *       crv: "X25519",
-   *       x: "7XdJtNmJ9pV_O_3mxWdn6YjiHJ-HhNkdYQARzVU_mwY",
-   *       kid: "xtsuKULPh6VN9fuJMRwj66cDfQyLaxuXHkMlmAe_v6I"
-   *     },
-   *     privateKeyJwk: {
-   *       kty: "OKP",
-   *       crv: "X25519",
-   *       d: "qM1E646TMZwFcLwRAFwOAYnTT_AvbBd3NBGtGRKTyU8",
-   *       x: "7XdJtNmJ9pV_O_3mxWdn6YjiHJ-HhNkdYQARzVU_mwY",
-   *       kid: "xtsuKULPh6VN9fuJMRwj66cDfQyLaxuXHkMlmAe_v6I"
-   *     },
-   *     purposes: ['authentication', 'assertionMethod']
-   *   }
-   * ]
-   * ```
    */
-  verificationMethods?: DidKeySetVerificationMethod[];
+  verificationMethods: PortableDidVerificationMethod[];
 }
 
 /**
@@ -234,7 +235,7 @@ export interface DidKeySet {
  * Decentralized Identifiers (DIDs) where key pairs are associated with specific verification
  * relationships.
  */
-export interface DidKeySetVerificationMethod extends Partial<DidVerificationMethod> {
+export interface PortableDidVerificationMethod extends Partial<DidVerificationMethod> {
   /**
    * Express the private key in JWK format.
    *
@@ -255,7 +256,7 @@ export interface DidKeySetVerificationMethod extends Partial<DidVerificationMeth
    *
    * @example
    * ```ts
-   * const verificationMethod: DidKeySetVerificationMethod = {
+   * const verificationMethod: PortableDidVerificationMethod = {
    *   publicKeyJwk: {
    *     kty: "OKP",
    *     crv: "X25519",
@@ -369,35 +370,37 @@ export class DidMethod {
   }
 
   /**
-   * Converts a `Did` object to a `DidKeySet` containing the keys associated with the DID.
+   * Converts a `Did` object to a portable format containing the URI and verification methods
+   * associated with the DID.
    *
-   * This method is useful when you need to export the key material associated with a DID into a
-   * format that can be used independently of the DID document. It extracts both public and private
-   * keys from the DID's key manager and organizes them into a `DidKeySet` structure.
+   * This method is useful when you need to represent the key material and metadata associated with
+   * a DID in format that can be used independently of the specific DID method implementation. It
+   * extracts both public and private keys from the DID's key manager and organizes them into a
+   * `PortableDid` structure.
    *
    * @remarks
    * This method requires that the DID's key manager supports the `exportKey` operation. If the DID
    * document does not contain any verification methods, or if the key manager does not support key
    * export, an error is thrown.
    *
-   * The resulting `DidKeySet` will contain the same number of verification methods as the DID
+   * The resulting `PortableDid` will contain the same number of verification methods as the DID
    * document, each with its associated public and private keys and the purposes for which the key
    * can be used.
    *
    * @example
    * ```ts
    * // Assuming `did` is an instance of Did
-   * const keySet = await DidJwk.toKeys({ did });
-   * // keySet now contains the verification methods and their associated keys.
+   * const portableDid = await DidJwk.toKeys({ did });
+   * // portableDid now contains the verification methods and their associated keys.
    * ```
    *
-   * @param params - The parameters for the export keys operation.
-   * @param params.did - The `Did` object whose keys are to be exported.
-   * @returns A `DidKeySet` containing the keys associated with the DID.
+   * @param params - The parameters for the convert operation.
+   * @param params.did - The `Did` object to convert to a portable format.
+   * @returns A `PortableDid` containing the URI and verification methods associated with the DID.
    * @throws An error if the key manager does not support key export or if the DID document
    *         is missing verification methods.
    */
-  public static async toKeys({ did }: { did: Did }): Promise<DidKeySet> {
+  public static async toKeys({ did }: { did: Did }): Promise<PortableDid> {
     // First, confirm that the DID's key manager supports exporting keys.
     if (!('exportKey' in did.keyManager && typeof did.keyManager.exportKey === 'function')) {
       throw new Error(`The key manager of the given DID does not support exporting keys`);
@@ -408,7 +411,10 @@ export class DidMethod {
       throw new Error(`DID document for '${did.uri}' is missing verification methods`);
     }
 
-    let keySet: DidKeySet = { verificationMethods: [] };
+    let portableDid: PortableDid = {
+      uri                 : did.uri,
+      verificationMethods : []
+    };
 
     // Retrieve the key material for every verification method in the DID document from the key
     // manager.
@@ -429,13 +435,13 @@ export class DidMethod {
         .filter((purpose) => (did.didDocument[purpose as keyof DidDocument] as any[])?.includes(vm.id)) as DidVerificationRelationship[];
 
       // Add the verification method to the key set.
-      keySet.verificationMethods!.push({
+      portableDid.verificationMethods.push({
         ...vm,
         privateKeyJwk: privateKey,
         purposes
       });
     }
 
-    return keySet;
+    return portableDid;
   }
 }

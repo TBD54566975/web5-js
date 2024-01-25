@@ -1,25 +1,6 @@
 import type { KeyValueStore } from '@web5/common';
 
-import type { DidKeySet } from './methods/did-method.js';
 import type { DidDocument, DidResolutionResult } from './types/did-core.js';
-
-
-// export interface DidMethodOperator {
-//   new (): DidMethod;
-//   methodName: string;
-
-//   create(options: any): Promise<PortableDid>;
-
-//   generateKeySet(): Promise<DidKeySet>;
-
-//   getDefaultSigningKey(options: { didDocument: DidDocument }): Promise<string | undefined>;
-// }
-
-
-
-
-
-
 
 /**
  * implement this interface to provide your own cache for did resolution results. can be plugged in through Web5 API
@@ -76,3 +57,5 @@ interface PortableDid {
    */
   metadata?: DidMetadata;
 }
+
+interface DidKeySet {}

@@ -1,8 +1,8 @@
 import type { KeyIdentifier } from '@web5/crypto';
 
-import type { DidKeySet } from '../methods/did-method.js';
+import type { PortableDid } from '../methods/did-method.js';
 
-export interface DidIonKeySet extends DidKeySet {
+export interface DidIonKeySet extends PortableDid {
   recoveryKeyUri?: KeyIdentifier;
   updateKeyUri?: KeyIdentifier;
 }

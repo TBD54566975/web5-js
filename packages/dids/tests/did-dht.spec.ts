@@ -1,12 +1,15 @@
+import type { Jwk } from '@web5/crypto';
+
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
+import { LocalKmsCrypto } from '@web5/crypto';
 
-import type { DidKeySet } from '../src/methods/did-method.js';
+import type { DidResolutionResult } from '../src/index.js';
+import type { PortableDid } from '../src/methods/did-method.js';
 
 import { DidErrorCode } from '../src/did-error.js';
 import { DidDht, DidDhtRegisteredDidType } from '../src/methods/did-dht.js';
-import { Jwk, LocalKmsCrypto } from '@web5/crypto';
 
 // Helper function to create a mocked fetch response that fails and returns a 404 Not Found.
 const fetchNotFoundResponse = () => ({
@@ -412,6 +415,148 @@ describe('DidDht', () => {
       expect(did).to.have.property('uri', 'did:dht:cf69rrqpanddbhkqecuwia314hfawfua9yr6zx433jmgm39ez57y');
     });
 
+    it('returns a DID from existing keys present in a key manager, with types', async () => {
+      const portableDid: PortableDid = {
+        uri                 : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+        verificationMethods : [
+          {
+            id           : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0',
+            type         : 'JsonWebKey',
+            controller   : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+            publicKeyJwk : {
+              crv : 'Ed25519',
+              kty : 'OKP',
+              x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
+              kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
+              alg : 'EdDSA',
+            },
+            privateKeyJwk: {
+              crv : 'Ed25519',
+              d   : 'hdSIwbQwVD-fNOVEgt-k3mMl44Ip1iPi58Ex6VDGxqY',
+              kty : 'OKP',
+              x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
+              kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
+              alg : 'EdDSA',
+            },
+            purposes: [
+              'authentication',
+              'assertionMethod',
+              'capabilityDelegation',
+              'capabilityInvocation',
+            ],
+          },
+        ],
+      };
+
+      const mockDidResolutionResult: DidResolutionResult = {
+        didDocument: {
+          id                 : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+          verificationMethod : [
+            {
+              id           : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
+                kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
+                alg : 'EdDSA'
+              },
+            },
+          ],
+          authentication: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+          assertionMethod: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+          capabilityDelegation: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+          capabilityInvocation: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+        },
+        didDocumentMetadata: {
+          types: [6, 7]
+        },
+        didResolutionMetadata: {}
+      };
+
+      // Stub the DID resolve method to return the expected DID document and metadata.
+      const resolveStub = sinon.stub(DidDht, 'resolve').returns(Promise.resolve(mockDidResolutionResult));
+
+      // Import the test DID's keys into the key manager.
+      await keyManager.importKey({ key: portableDid.verificationMethods![0].privateKeyJwk! });
+
+      const did = await DidDht.fromKeyManager({ didUri: portableDid.uri!, keyManager });
+
+      expect(did.uri).to.equal(portableDid.uri);
+      expect(did.didDocument).to.deep.equal(mockDidResolutionResult.didDocument);
+      expect(did.metadata).to.have.property('types');
+      expect(did.metadata.types).to.deep.equal([6, 7]);
+
+      resolveStub.restore();
+    });
+
+    it('returns a DID with a getSigner function that can sign and verify data', async () => {
+      const keyManager = new LocalKmsCrypto();
+
+      // Create a DID to use for the test.
+      const testDid = await DidDht.create({ keyManager });
+
+      // Stub the DID resolve method to return the expected DID document and metadata.
+      const resolveStub = sinon.stub(DidDht, 'resolve').returns(Promise.resolve({
+        didDocument           : testDid.didDocument,
+        didDocumentMetadata   : testDid.metadata,
+        didResolutionMetadata : {}
+      }));
+
+      const did = await DidDht.fromKeyManager({ didUri: testDid.uri, keyManager });
+
+      const signer = await did.getSigner();
+      const data = new Uint8Array([1, 2, 3]);
+      const signature = await signer.sign({ data });
+      const isValid = await signer.verify({ data, signature });
+
+      expect(signature).to.have.length(64);
+      expect(isValid).to.be.true;
+
+      resolveStub.restore();
+    });
+
+    it('returns a DID with a getSigner function that accepts a specific keyUri', async () => {
+      const keyManager = new LocalKmsCrypto();
+
+      // Create a DID to use for the test.
+      const testDid = await DidDht.create({ keyManager });
+
+      // Stub the DID resolve method to return the expected DID document and metadata.
+      const resolveStub = sinon.stub(DidDht, 'resolve').returns(Promise.resolve({
+        didDocument           : testDid.didDocument,
+        didDocumentMetadata   : testDid.metadata,
+        didResolutionMetadata : {}
+      }));
+
+      const did = await DidDht.fromKeyManager({ didUri: testDid.uri, keyManager });
+
+      // Retrieve the key URI of the verification method's public key.
+      const keyUri = await did.keyManager.getKeyUri({
+        key: testDid.didDocument.verificationMethod![0].publicKeyJwk!
+      });
+
+      const signer = await did.getSigner({ keyUri });
+      const data = new Uint8Array([1, 2, 3]);
+      const signature = await signer.sign({ data });
+      const isValid = await signer.verify({ data, signature });
+
+      expect(signature).to.have.length(64);
+      expect(isValid).to.be.true;
+
+      resolveStub.restore();
+    });
+
     it('throws an error if an unsupported DID method is given', async () => {
       try {
         await DidDht.fromKeyManager({ didUri: 'did:example:1234', keyManager });
@@ -485,17 +630,13 @@ describe('DidDht', () => {
   });
 
   describe('fromKeys', () => {
-
-    let didUri: string;
-    let keySet: DidKeySet;
+    let portableDid: PortableDid;
 
     beforeEach(() => {
       // Define a DID to use for the test.
-      didUri = 'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo';
-
-      // Define a key set to use for the test.
-      keySet =  {
-        verificationMethods: [
+      portableDid =  {
+        uri                 : 'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo',
+        verificationMethods : [
           {
             id           : 'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo#0',
             type         : 'JsonWebKey',
@@ -526,18 +667,151 @@ describe('DidDht', () => {
       };
     });
 
-    it('returns a DID given keys for a single verification method', async () => {
-      const did = await DidDht.fromKeys(keySet);
+    it('returns a previously created DID from the URI and imported key material', async () => {
+      const mockDidResolutionResult: DidResolutionResult = {
+        didDocument: {
+          id                 : 'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo',
+          verificationMethod : [
+            {
+              id           : 'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo#0',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                x   : 'mRDzqCLKKBGRLs-gEuSNMdMILu2cjB0wquJygGgfK40',
+                kid : 'FuIkkMgnsq-XRX8gWp3HJpqwoIbyNNsx4Uk-tdDSqbE',
+                alg : 'EdDSA',
+              },
+            },
+          ],
+          authentication: [
+            'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo#0',
+          ],
+          assertionMethod: [
+            'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo#0',
+          ],
+          capabilityDelegation: [
+            'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo#0',
+          ],
+          capabilityInvocation: [
+            'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo#0',
+          ],
+        },
+        didDocumentMetadata   : {},
+        didResolutionMetadata : {}
+      };
+
+      // Stub the DID resolve method to return the expected DID document and metadata.
+      const resolveStub = sinon.stub(DidDht, 'resolve').returns(Promise.resolve(mockDidResolutionResult));
+
+      const did = await DidDht.fromKeys(portableDid);
 
       expect(did).to.have.property('didDocument');
       expect(did).to.have.property('getSigner');
       expect(did).to.have.property('keyManager');
       expect(did).to.have.property('metadata');
-      expect(did).to.have.property('uri', didUri);
+      expect(did).to.have.property('uri', portableDid.uri);
+
+      resolveStub.restore();
+    });
+
+    it('returns a previously created DID from the URI and imported key material, with types', async () => {
+      portableDid = {
+        uri                 : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+        verificationMethods : [
+          {
+            id           : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0',
+            type         : 'JsonWebKey',
+            controller   : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+            publicKeyJwk : {
+              crv : 'Ed25519',
+              kty : 'OKP',
+              x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
+              kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
+              alg : 'EdDSA',
+            },
+            privateKeyJwk: {
+              crv : 'Ed25519',
+              d   : 'hdSIwbQwVD-fNOVEgt-k3mMl44Ip1iPi58Ex6VDGxqY',
+              kty : 'OKP',
+              x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
+              kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
+              alg : 'EdDSA',
+            },
+            purposes: [
+              'authentication',
+              'assertionMethod',
+              'capabilityDelegation',
+              'capabilityInvocation',
+            ],
+          },
+        ],
+      };
+
+      const mockDidResolutionResult: DidResolutionResult = {
+        didDocument: {
+          id                 : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+          verificationMethod : [
+            {
+              id           : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
+                kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
+                alg : 'EdDSA'
+              },
+            },
+          ],
+          authentication: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+          assertionMethod: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+          capabilityDelegation: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+          capabilityInvocation: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+        },
+        didDocumentMetadata: {
+          types: [6, 7]
+        },
+        didResolutionMetadata: {}
+      };
+
+      // Stub the DID resolve method to return the expected DID document and metadata.
+      const resolveStub = sinon.stub(DidDht, 'resolve').returns(Promise.resolve(mockDidResolutionResult));
+
+      const did = await DidDht.fromKeys(portableDid);
+
+      expect(did.metadata).to.deep.equal({ types: [6, 7] });
+
+      resolveStub.restore();
+    });
+
+    it('returns a new DID created from the given verification material', async () => {
+      // Remove the URI from the test portable DID so that fromKeys() creates the DID object
+      // using only the key material.
+      const { uri, ...didWithOnlyKeys } = portableDid;
+
+      const did = await DidDht.fromKeys(didWithOnlyKeys);
+
+      expect(did).to.have.property('didDocument');
+      expect(did).to.have.property('getSigner');
+      expect(did).to.have.property('keyManager');
+      expect(did).to.have.property('metadata');
+      expect(did).to.have.property('uri', uri);
     });
 
     it('throws an error if no verification methods are given', async () => {
       try {
+        // @ts-expect-error - Testing invalid argument.
         await DidDht.fromKeys({});
         expect.fail('Expected an error to be thrown.');
       } catch (error: any) {
@@ -555,10 +829,10 @@ describe('DidDht', () => {
     });
 
     it('throws an error if the given key set is missing a public key', async () => {
-      delete keySet.verificationMethods![0].publicKeyJwk;
+      delete portableDid.verificationMethods![0].publicKeyJwk;
 
       try {
-        await DidDht.fromKeys(keySet);
+        await DidDht.fromKeys(portableDid);
         expect.fail('Expected an error to be thrown.');
       } catch (error: any) {
         expect(error.message).to.include('must contain a public and private key');
@@ -566,10 +840,10 @@ describe('DidDht', () => {
     });
 
     it('throws an error if the given key set is missing a private key', async () => {
-      delete keySet.verificationMethods![0].privateKeyJwk;
+      delete portableDid.verificationMethods![0].privateKeyJwk;
 
       try {
-        await DidDht.fromKeys(keySet);
+        await DidDht.fromKeys(portableDid);
         expect.fail('Expected an error to be thrown.');
       } catch (error: any) {
         expect(error.message).to.include('must contain a public and private key');
@@ -578,10 +852,10 @@ describe('DidDht', () => {
 
     it('throws an error if an Identity Key is not included in the given verification methods', async () => {
       // Change the ID of the verification method to something other than 0.
-      keySet.verificationMethods![0].id = 'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo#1';
+      portableDid.verificationMethods![0].id = 'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo#1';
 
       try {
-        await DidDht.fromKeys(keySet);
+        await DidDht.fromKeys(portableDid);
         expect.fail('Expected an error to be thrown.');
       } catch (error: any) {
         expect(error.message).to.include('missing an Identity Key');
@@ -747,16 +1021,39 @@ describe('DidDht', () => {
       // Create a DID to use for the test.
       const did = await DidDht.create();
 
-      const keySet = await DidDht.toKeys({ did });
+      const portableDid = await DidDht.toKeys({ did });
 
-      expect(keySet).to.have.property('verificationMethods');
-      expect(keySet.verificationMethods).to.have.length(1);
-      expect(keySet.verificationMethods![0]).to.have.property('publicKeyJwk');
-      expect(keySet.verificationMethods![0]).to.have.property('privateKeyJwk');
-      expect(keySet.verificationMethods![0]).to.have.property('purposes');
-      expect(keySet.verificationMethods![0]).to.have.property('type');
-      expect(keySet.verificationMethods![0]).to.have.property('id');
-      expect(keySet.verificationMethods![0]).to.have.property('controller');
+      expect(portableDid).to.have.property('verificationMethods');
+      expect(portableDid.verificationMethods).to.have.length(1);
+      expect(portableDid.verificationMethods[0]).to.have.property('publicKeyJwk');
+      expect(portableDid.verificationMethods[0]).to.have.property('privateKeyJwk');
+      expect(portableDid.verificationMethods[0]).to.have.property('purposes');
+      expect(portableDid.verificationMethods[0]).to.have.property('type');
+      expect(portableDid.verificationMethods[0]).to.have.property('id');
+      expect(portableDid.verificationMethods[0]).to.have.property('controller');
+    });
+
+    it('output can be used to instantiate a DID object', async () => {
+      // Create a DID to use for the test.
+      const did = await DidDht.create();
+
+      // Convert the DID to a portable format.
+      const portableDid = await DidDht.toKeys({ did });
+
+      // Stub the DID resolve method to return the expected DID document and metadata.
+      const resolveStub = sinon.stub(DidDht, 'resolve').returns(Promise.resolve({
+        didDocument           : did.didDocument,
+        didDocumentMetadata   : did.metadata,
+        didResolutionMetadata : {}
+      }));
+
+      // Create a DID object from the portable format.
+      const didFromPortable = await DidDht.fromKeys(portableDid);
+
+      expect(didFromPortable.didDocument).to.deep.equal(did.didDocument);
+      expect(didFromPortable.metadata).to.deep.equal(did.metadata);
+
+      resolveStub.restore();
     });
   });
 });
