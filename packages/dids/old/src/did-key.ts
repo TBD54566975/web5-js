@@ -17,7 +17,7 @@ import type {
   VerificationMethod,
   DidResolutionResult,
   DidResolutionOptions,
-  DidKeySetVerificationMethodKey,
+  PortableDidVerificationMethod,
 } from './types.js';
 
 import { getVerificationMethodTypes, parseDid } from './utils.js';
@@ -81,7 +81,7 @@ export type DidKeyIdentifier = {
 }
 
 export type DidKeyKeySet = {
-  verificationMethodKeys?: DidKeySetVerificationMethodKey[];
+  verificationMethodKeys?: PortableDidVerificationMethod[];
 }
 
 export class DidKeyMethod implements DidMethod {

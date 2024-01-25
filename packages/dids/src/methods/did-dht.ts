@@ -26,8 +26,8 @@ import type {
 import { DidUri } from '../did-uri.js';
 import { DidMethod } from './did-method.js';
 import { DidError, DidErrorCode } from '../did-error.js';
-import { EMPTY_DID_RESOLUTION_RESULT } from '../did-resolver.js';
 import { DidVerificationRelationship } from '../types/did-core.js';
+import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
 
 interface Bep44Message {
   k: Uint8Array;

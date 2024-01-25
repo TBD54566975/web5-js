@@ -17,7 +17,7 @@ import type { DidDocument, DidResolutionOptions, DidResolutionResult, DidVerific
 import { DidUri } from '../did-uri.js';
 import { DidMethod } from './did-method.js';
 import { DidError, DidErrorCode } from '../did-error.js';
-import { EMPTY_DID_RESOLUTION_RESULT } from '../did-resolver.js';
+import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
 
 /**
  * Defines the set of options available when creating a new Decentralized Identifier (DID) with the

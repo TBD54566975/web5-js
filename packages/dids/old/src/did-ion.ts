@@ -7,7 +7,7 @@ import IonProofOfWork from '@decentralized-identity/ion-pow-sdk';
 import { EcdsaAlgorithm, EdDsaAlgorithm, Jose } from '@web5/crypto';
 import { IonDid, IonPublicKeyPurpose, IonRequest } from '@decentralized-identity/ion-sdk';
 
-import type { DidDocument, DidKeySetVerificationMethodKey, DidMethod, DidResolutionOptions, DidResolutionResult, DidService, DwnServiceEndpoint, PortableDid } from './types.js';
+import type { DidDocument, PortableDidVerificationMethod, DidMethod, DidResolutionOptions, DidResolutionResult, DidService, DwnServiceEndpoint, PortableDid } from './types.js';
 
 import { getServices, isDwnServiceEndpoint, parseDid } from './utils.js';
 
@@ -29,7 +29,7 @@ export type DidIonCreateOptions = {
 export type DidIonKeySet = {
   recoveryKey?: JwkKeyPair;
   updateKey?: JwkKeyPair;
-  verificationMethodKeys?: DidKeySetVerificationMethodKey[];
+  verificationMethodKeys?: PortableDidVerificationMethod[];
 }
 
 enum OperationType {

@@ -527,47 +527,7 @@ export interface DidVerificationMethod {
 }
 
 /**
- * !TODO: Rewrite this to use the enum below
  * Represents the various verification relationships defined in a DID document.
- *
- * These relationships indicate the intended use of verification methods associated with a DID. Each
- * type specifies a particular way in which a verification method (such as a public key) can be used
- * by the DID subject.
- *
- * The DID Core Specification defines the following verification relationships:
- * - `assertionMethod`: Specifies how the DID subject is expected to express claims, such as for
- *                      issuing Verifiable Credentials. This relationship is typically used when the
- *                      DID subject is the issuer of a credential.
- *
- * - `authentication`: Specifies how the DID subject is expected to be authenticated. This is
- *                     commonly used for purposes like logging into a website or participating in
- *                     challenge-response protocols.
- *
- * - `keyAgreement`: Specifies how an entity can generate encryption material to communicate
- *                   confidentially with the DID subject. Often used in scenarios requiring secure
- *                   communication channels.
- *
- * - `capabilityDelegation`: Specifies a mechanism used by the DID subject to delegate a
- *                           cryptographic capability to another party. This can include delegating
- *                           access to a specific resource or API.
- *
- * - `capabilityInvocation`: Specifies a verification method used by the DID subject to invoke a
- *                           cryptographic capability. This is frequently associated with
- *                           authorization actions, like updating the DID Document.
- *
- * @see {@link https://www.w3.org/TR/did-core/#verification-relationships | DID Core Specification, § Verification Relationships}
- */
-
-// export type DidVerificationRelationship =
-//   | 'assertionMethod'
-//   | 'authentication'
-//   | 'keyAgreement'
-//   | 'capabilityDelegation'
-//   | 'capabilityInvocation';
-
-/**
- * An array of constant strings representing the standard verification relationships defined
- * in the DID Core Specification.
  *
  * These verification relationships indicate the intended usage of verification methods within a DID
  * document. Each relationship signifies a different purpose or context in which a verification
@@ -576,45 +536,44 @@ export interface DidVerificationMethod {
  * consistent referencing and implementation across different DID methods.
  *
  * @see {@link https://www.w3.org/TR/did-core/#verification-relationships | DID Core Specification, § Verification Relationships}
- * @example
- * ```ts
- * // Example usage of DID_VERIFICATION_RELATIONSHIPS in a DID method implementation
- * if (didDocument.authentication.includes(someVerificationMethod)) {
- *   // Handle authentication verification method
- * }
- * ```
  */
 export enum DidVerificationRelationship {
   /**
-   * Indicates that the verification method is intended to be used for authentication purposes.
+   * Specifies how the DID subject is expected to be authenticated. This is commonly used for
+   * purposes like logging into a website or participating in challenge-response protocols.
    *
    * @see {@link https://www.w3.org/TR/did-core/#authentication | DID Core Specification, § Authentication}
    */
   authentication = 'authentication',
 
   /**
-   * Indicates that the verification method is intended to be used for assertion purposes.
+   * Specifies how the DID subject is expected to express claims, such as for issuing Verifiable
+   * Credentials. This relationship is typically used when the DID subject is the issuer of a
+   * credential.
    *
    * @see {@link hthttps://www.w3.org/TR/did-core/#assertion | DID Core Specification, § Assertion}
    */
   assertionMethod = 'assertionMethod',
 
   /**
-   * Indicates that the verification method is intended to be used for key agreement purposes.
+   * Specifies how an entity can generate encryption material to communicate confidentially with the
+   * DID subject. Often used in scenarios requiring secure communication channels.
    *
    * @see {@link https://www.w3.org/TR/did-core/#key-agreement | DID Core Specification, § Key Agreement}
    */
   keyAgreement = 'keyAgreement',
 
   /**
-   * Indicates that the verification method is intended to be used for capability delegation purposes.
+   * Specifies a mechanism used by the DID subject to delegate a cryptographic capability to another
+   * party. This can include delegating access to a specific resource or API.
    *
    * @see {@link https://www.w3.org/TR/did-core/#capability-delegation | DID Core Specification, § Capability Delegation}
    */
   capabilityDelegation = 'capabilityDelegation',
 
   /**
-   * Indicates that the verification method is intended to be used for capability invocation purposes.
+   * Specifies a verification method used by the DID subject to invoke a cryptographic capability.
+   * This is frequently associated with authorization actions, like updating the DID Document.
    *
    * @see {@link https://www.w3.org/TR/did-core/#capability-invocation | DID Core Specification, § Capability Invocation}
    */

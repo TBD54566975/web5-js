@@ -5,11 +5,11 @@ import { expect } from 'chai';
 import { Convert } from '@web5/common';
 import { LocalKmsCrypto } from '@web5/crypto';
 
-import type { DidResolutionResult } from '../src/index.js';
-import type { PortableDid } from '../src/methods/did-method.js';
+import type { DidResolutionResult } from '../../src/index.js';
+import type { PortableDid } from '../../src/methods/did-method.js';
 
-import { DidErrorCode } from '../src/did-error.js';
-import { DidDht, DidDhtRegisteredDidType } from '../src/methods/did-dht.js';
+import { DidErrorCode } from '../../src/did-error.js';
+import { DidDht, DidDhtRegisteredDidType } from '../../src/methods/did-dht.js';
 
 // Helper function to create a mocked fetch response that fails and returns a 404 Not Found.
 const fetchNotFoundResponse = () => ({

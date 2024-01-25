@@ -188,17 +188,16 @@ export interface DidMethodResolver {
 }
 
 /**
- * Format to document a DID identifier, along with its associated data,
- * which can be exported, saved to a file, or imported. The intent is
- * bundle all of the necessary metadata to enable usage of the DID in
- * different contexts.
+ * Format to document a DID identifier, along with its associated data, which can be exported,
+ * saved to a file, or imported. The intent is bundle all of the necessary metadata to enable usage
+ * of the DID in different contexts.
  */
 /**
- * Format that documents the metadata of a Decentralized Identifier (DID) to enable usage of the DID
- * in different contexts.
+ * Format that documents the key material and metadata of a Decentralized Identifier (DID) to enable
+ * usage of the DID in different contexts.
  *
- * @remarks
- * This format is useful for exporting, saving to a file, or importing a DID.
+ * This format is useful for exporting, saving to a file, or importing a DID across process
+ * boundaries or between different DID method implementations.
  *
  * @example
  * ```ts
@@ -227,13 +226,11 @@ export interface PortableDid {
 }
 
 /**
- * Represents a verification method within a DID Key Set, including both public and private key
- * components, and specifies the purposes for which the verification method can be used.
+ * Represents a verification method within a {@link PortableDid}, including the private key and
+ * the purposes for which the verification method can be used.
  *
- * This interface extends {@link DidVerificationMethod}, providing a structure for a cryptographic
- * key pair (public and private keys) with optional purposes. It is used in the context of
- * Decentralized Identifiers (DIDs) where key pairs are associated with specific verification
- * relationships.
+ * This interface extends {@link DidVerificationMethod}, providing a structure to document the key
+ * material and metadata associated with a DID's verification methods.
  */
 export interface PortableDidVerificationMethod extends Partial<DidVerificationMethod> {
   /**

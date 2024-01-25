@@ -5,12 +5,12 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { LocalKmsCrypto } from '@web5/crypto';
 
-import type { DidDocument } from '../src/types/did-core.js';
-import type { PortableDid, PortableDidVerificationMethod } from '../src/methods/did-method.js';
+import type { DidDocument } from '../../src/types/did-core.js';
+import type { PortableDid, PortableDidVerificationMethod } from '../../src/methods/did-method.js';
 
-import { DidErrorCode } from '../src/did-error.js';
-import { DidJwk } from '../src/methods/did-jwk.js';
-import DidJwkResolveTestVector from '../../../test-vectors/did_jwk/resolve.json' assert { type: 'json' };
+import { DidErrorCode } from '../../src/did-error.js';
+import { DidJwk } from '../../src/methods/did-jwk.js';
+import DidJwkResolveTestVector from '../../../../test-vectors/did_jwk/resolve.json' assert { type: 'json' };
 
 describe('DidJwk', () => {
   let keyManager: LocalKmsCrypto;

@@ -1,11 +1,4 @@
-import type { KeyValueStore } from '@web5/common';
-
-import type { DidDocument, DidResolutionResult } from './types/did-core.js';
-
-/**
- * implement this interface to provide your own cache for did resolution results. can be plugged in through Web5 API
- */
-export type DidResolverCache = KeyValueStore<string, DidResolutionResult | void>;
+import type { DidDocument } from './types/did-core.js';
 
 type DidMetadata = {
   /**

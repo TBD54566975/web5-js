@@ -4,11 +4,11 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { LocalKmsCrypto } from '@web5/crypto';
 
-import type { Did } from '../src/methods/did-method.js';
-import type { DidDocument, DidVerificationMethod } from '../src/types/did-core.js';
+import type { Did } from '../../src/methods/did-method.js';
+import type { DidDocument, DidVerificationMethod } from '../../src/types/did-core.js';
 
-import { DidMethod } from '../src/methods/did-method.js';
-import { DidJwk } from '../src/methods/did-jwk.js';
+import { DidMethod } from '../../src/methods/did-method.js';
+import { DidJwk } from '../../src/methods/did-jwk.js';
 
 class DidTest extends DidMethod {
   public static async getSigningMethod({ didDocument, methodId = '#0' }: {

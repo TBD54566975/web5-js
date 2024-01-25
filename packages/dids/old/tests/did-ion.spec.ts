@@ -10,7 +10,7 @@ import type {
   DidService,
   DidDocument,
   DwnServiceEndpoint,
-  DidKeySetVerificationMethodKey,
+  PortableDidVerificationMethod,
 } from '../src/types.js';
 
 import { didIonCreateTestVectors } from './fixtures/test-vectors/did-ion.js';
@@ -19,7 +19,7 @@ import { DidIonCreateOptions, DidIonKeySet, DidIonMethod } from '../src/did-ion.
 describe('DidIonMethod', () => {
   let testRecoveryKey: JwkKeyPair;
   let testUpdateKey: JwkKeyPair;
-  let testVerificationMethodKeys: DidKeySetVerificationMethodKey[];
+  let testVerificationMethodKeys: PortableDidVerificationMethod[];
   let testKeySet: DidIonKeySet;
 
   beforeEach(() => {
@@ -31,7 +31,7 @@ describe('DidIonMethod', () => {
     testUpdateKey.privateKeyJwk.kid = 'test-update-1';
     testUpdateKey.publicKeyJwk.kid = 'test-update-1';
 
-    testVerificationMethodKeys = structuredClone(didIonCreateTestVectors[0].input.keySet.verificationMethodKeys) as DidKeySetVerificationMethodKey[];
+    testVerificationMethodKeys = structuredClone(didIonCreateTestVectors[0].input.keySet.verificationMethodKeys) as PortableDidVerificationMethod[];
     testVerificationMethodKeys[0].publicKeyJwk!.kid = 'test-kid';
 
     testKeySet = {
