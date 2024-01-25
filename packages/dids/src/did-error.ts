@@ -2,6 +2,12 @@
  * A custom error class for DID-related errors.
  */
 export class DidError extends Error {
+  /**
+   * Constructs an instance of DidError, a custom error class for handling DID-related errors.
+   *
+   * @param code - A {@link DidErrorCode} representing the specific type of error encountered.
+   * @param message - A human-readable description of the error.
+   */
   constructor(public code: DidErrorCode, message: string) {
     super(message);
     this.name = 'DidError';

@@ -11,7 +11,7 @@ import type {
 
 import bencode from 'bencode';
 import { Convert } from '@web5/common';
-import { CryptoApi, Ed25519, LocalKmsCrypto, P256, Secp256k1, computeJwkThumbprint } from '@web5/crypto';
+import { CryptoApi, computeJwkThumbprint, Ed25519, LocalKmsCrypto, Secp256k1, Secp256r1 } from '@web5/crypto';
 import { AUTHORITATIVE_ANSWER, decode as dnsPacketDecode, encode as dnsPacketEncode } from '@dnsquery/dns-packet';
 
 import type { Did, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
@@ -166,6 +166,9 @@ export interface DidDhtCreateOptions<TKms> extends DidCreateOptions<TKms> {
   verificationMethods?: DidCreateVerificationMethod<TKms>[];
 }
 
+/**
+ * The default Pkarr relay server to use when publishing and resolving DID documents.
+ */
 const DEFAULT_PKARR_RELAY = 'https://diddht.tbddev.org';
 
 /**
@@ -224,13 +227,52 @@ const VALUE_SEPARATOR = ',';
  * The registered DID types are published in the {@link https://did-dht.com/registry/index.html#indexed-types | DID DHT Registry}.
  */
 export enum DidDhtRegisteredDidType {
-  Discoverable         = 0,
-  Organization         = 1,
-  Government           = 2,
-  Corporation          = 3,
-  LocalBusiness        = 4,
-  SoftwarePackage      = 5,
-  WebApp               = 6,
+  /**
+   * Type 0 is reserved for DIDs that do not wish to associate themselves with a specific type but
+   * wish to make themselves discoverable.
+   */
+  Discoverable = 0,
+
+  /**
+   * Organization
+   * @see {@link https://schema.org/Organization | schema definition}
+   */
+  Organization = 1,
+
+  /**
+   * Government Organization
+   * @see {@link https://schema.org/GovernmentOrganization | schema definition}
+   */
+  Government = 2,
+
+  /**
+   * Corporation
+   * @see {@link https://schema.org/Corporation | schema definition}
+   */
+  Corporation = 3,
+
+  /**
+   * Corporation
+   * @see {@link https://schema.org/Corporation | schema definition}
+   */
+  LocalBusiness = 4,
+
+  /**
+   * Software Package
+   * @see {@link https://schema.org/SoftwareSourceCode | schema definition}
+   */
+  SoftwarePackage = 5,
+
+  /**
+   * Web App
+   * @see {@link https://schema.org/WebApplication | schema definition}
+   */
+  WebApp = 6,
+
+  /**
+   * Financial Institution
+   * @see {@link https://schema.org/FinancialService | schema definition}
+   */
   FinancialInstitution = 7
 }
 
@@ -245,17 +287,57 @@ export enum DidDhtRegisteredDidType {
  * The registered key types are published in the {@link https://did-dht.com/registry/index.html#key-type-index | DID DHT Registry}.
  */
 export enum DidDhtRegisteredKeyType {
+  /**
+   * Ed25519: A public-key signature system using the EdDSA (Edwards-curve Digital Signature
+   * Algorithm) and Curve25519.
+   */
   Ed25519   = 0,
+
+  /**
+   * secp256k1: A cryptographic curve used for digital signatures in a range of decentralized
+   * systems.
+   */
   secp256k1 = 1,
+
+  /**
+   * secp256r1: Also known as P-256 or prime256v1, this curve is used for cryptographic operations
+   * and is widely supported in various cryptographic libraries and standards.
+   */
   secp256r1 = 2
 }
 
+/**
+ * Maps {@link https://www.w3.org/TR/did-core/#verification-relationships | DID Core Verification Relationship}
+ * values to the corresponding record name in the DNS packet representation of a DHT DID document.
+ */
 export enum DidDhtVerificationRelationship {
-  authentication       = 'auth',
-  assertionMethod      = 'asm',
+  /**
+   * Specifies how the DID subject is expected to be authenticated.
+   */
+  authentication = 'auth',
+
+  /**
+   * Specifies how the DID subject is expected to express claims, such as for issuing Verifiable
+   * Credentials.
+   */
+  assertionMethod = 'asm',
+
+  /**
+   * Specifies a mechanism used by the DID subject to delegate a cryptographic capability to another
+   * party
+   */
   capabilityDelegation = 'del',
+
+  /**
+   * Specifies a verification method used by the DID subject to invoke a cryptographic capability.
+   */
   capabilityInvocation = 'inv',
-  keyAgreement         = 'agm'
+
+  /**
+   * Specifies how an entity can generate encryption material to communicate confidentially with the
+   * DID subject.
+   */
+  keyAgreement = 'agm'
 }
 
 /**
@@ -268,6 +350,81 @@ const AlgorithmToKeyTypeMap = {
   ES256   : DidDhtRegisteredKeyType.secp256r1
 } as const;
 
+/**
+ * The `DidDht` class provides an implementation of the `did:dht` DID method.
+ *
+ * Features:
+ * - DID Creation: Create new `did:dht` DIDs.
+ * - DID Key Management: Instantiate a DID object from an existing verification method keys or
+ *                       or a key in a Key Management System (KMS). If supported by the KMS, a DID's
+ *                       key can be exported to a portable DID format.
+ * - DID Resolution: Resolve a `did:dht` to its corresponding DID Document stored in the DHT network.
+ * - Signature Operations: Sign and verify messages using keys associated with a DID.
+ *
+ * @remarks
+ * The `did:dht` method leverages the distributed nature of the Mainline DHT network for
+ * decentralized identity management. This method allows DIDs to be resolved without relying on
+ * centralized registries or ledgers, enhancing privacy and control for users. The DID Document is
+ * stored and retrieved from the DHT network, and the method includes optional mechanisms for
+ * discovering DIDs by type.
+ *
+ * The DID URI in the `did:dht` method includes a method-specific identifier called the Identity Key
+ * which corresponds to the DID's entry in the DHT network. The Identity Key required to make
+ * changes to the DID Document since Mainline DHT nodes validate the signature of each message
+ * before storing the value in the DHT.
+ *
+ * @see {@link https://did-dht.com | DID DHT Method Specification}
+ *
+ * @example
+ * ```ts
+ * // DID Creation
+ * const did = await DidDht.create();
+ *
+ * // DID Creation with a KMS
+ * const keyManager = new LocalKmsCrypto();
+ * const did = await DidDht.create({ keyManager });
+ *
+ * // DID Resolution
+ * const resolutionResult = await DidDht.resolve({ did: did.uri });
+ *
+ * // Signature Operations
+ * const signer = await did.getSigner();
+ * const signature = await signer.sign({ data: new TextEncoder().encode('Message') });
+ * const isValid = await signer.verify({ data: new TextEncoder().encode('Message'), signature });
+ *
+ * // Key Management
+ *
+ * // Instantiate a DID object for a published DID with existing keys in a KMS
+ * const did = await DidDht.fromKeyManager({
+ *  didUri: 'did:dht:cf69rrqpanddbhkqecuwia314hfawfua9yr6zx433jmgm39ez57y',
+ *  keyManager
+ * });
+ *
+ * // Instantiate a DID object from an existing verification method key
+ * const did = await DidDht.fromKeys({
+ *   verificationMethods: [{
+ *     publicKeyJwk : {
+ *       crv : 'Ed25519',
+ *       kty : 'OKP',
+ *       x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0'
+ *     },
+ *     privateKeyJwk: {
+ *       crv : 'Ed25519',
+ *       d   : 'hdSIwbQwVD-fNOVEgt-k3mMl44Ip1iPi58Ex6VDGxqY',
+ *       kty : 'OKP',
+ *       x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0'
+ *     },
+ *     purposes: ['authentication', 'assertionMethod' ],
+ *   }]
+ * });
+ *
+ * // Convert a DID object to a portable format
+ * const portableDid = await DidDht.toKeys({ did });
+ *
+ * // Reconstruct a DID object from a portable format
+ * const did = await DidDht.fromKeys(portableDid);
+ * ```
+ */
 export class DidDht extends DidMethod {
 
   /**
@@ -275,6 +432,33 @@ export class DidDht extends DidMethod {
    */
   public static methodName = 'dht';
 
+  /**
+   * Creates a new DID using the `did:dht` method formed from a newly generated key.
+   *
+   * @remarks
+   * The DID URI is formed by z-base-32 encoding the Identity Key public key and prefixing with
+   * `did:dht:`.
+   *
+   * Notes:
+   * - If no `options` are given, by default a new Ed25519 key will be generated which serves as the
+   *   Identity Key.
+   *
+   * @example
+   * ```ts
+   * // DID Creation
+   * const did = await DidDht.create();
+   *
+   * // DID Creation with a KMS
+   * const keyManager = new LocalKmsCrypto();
+   * const did = await DidDht.create({ keyManager });
+   * ```
+   *
+   * @param params - The parameters for the create operation.
+   * @param params.keyManager - Optionally specify a Key Management System (KMS) used to generate
+   *                            keys and sign data.
+   * @param params.options - Optional parameters that can be specified when creating a new DID.
+   * @returns A Promise resolving to a {@link Did} object representing the new DID.
+   */
   public static async create<TKms extends CryptoApi | undefined = undefined>({
     keyManager = new LocalKmsCrypto(),
     options = {}
@@ -315,6 +499,34 @@ export class DidDht extends DidMethod {
     return did;
   }
 
+  /**
+   * Instantiates a `Did` object from an existing DID using keys in an external Key Management
+   * System (KMS).
+   *
+   * This method returns a `Did` object by resolving an existing `did:dht` DID URI and verifying
+   * that all associated keys are present in the provided key manager.
+   *
+   * @remarks
+   * The method verifies the presence of key material for every verification method in the DID
+   * document within the given KMS. If any key is missing, an error is thrown.
+   *
+   * This approach ensures that the resulting `Did` object is fully operational with the provided
+   * key manager and that all cryptographic operations related to the DID can be performed.
+   *
+   * @param params - The parameters for the `fromKeyManager` operation.
+   * @param params.didUri - The URI of the DID to be instantiated.
+   * @param params.keyManager - The Key Management System to be used for key management operations.
+   * @returns A Promise resolving to the instantiated `Did` object.
+   * @throws An error if any key in the DID document is not present in the provided KMS.
+   *
+   * @example
+   * ```ts
+   * // Assuming keyManager already contains the key material for the DID.
+   * const didUri = 'did:dht:example';
+   * const did = await DidDht.fromKeyManager({ didUri, keyManager });
+   * // The 'did' is now an instance of Did, linked with the provided keyManager.
+   * ```
+   */
   public static async fromKeyManager({ didUri, keyManager }: {
     didUri: string;
     keyManager: CryptoApi;
@@ -362,6 +574,43 @@ export class DidDht extends DidMethod {
     return { didDocument, getSigner, keyManager, metadata, uri: didUri };
   }
 
+  /**
+   * Instantiates a `Did` object for the `did:dht` method from a given {@link PortableDid}.
+   *
+   * This method allows for the creation of a `Did` object using pre-existing key material,
+   * encapsulated within the `verificationMethods` array of the `PortableDid`. This is particularly
+   * useful when the key material is already available and you want to construct a `Did` object
+   * based on these keys, instead of generating new keys.
+   *
+   * @remarks
+   * The `verificationMethods` array must contain exactly one key since the `did:jwk` method only
+   * supports a single verification method.
+   *
+   * The key material (both public and private keys) should be provided in JWK format. The method
+   * handles the inclusion of these keys in the DID Document and specified verification
+   * relationships.
+   *
+   * @param params - The parameters for the `fromKeys` operation.
+   * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
+   *                            generate keys and sign data. If not given, a new
+   *                            {@link LocalKmsCrypto} instance will be created and used.
+   * @param params.verificationMethods - An array containing the verification method metadata and
+   *                                     key material in JWK format.
+   * @returns A Promise resolving to a `Did` object representing the DID formed from the provided keys.
+   * @throws An error if the `verificationMethods` array does not contain any keys, lacks an
+   *         Identity Key, or any verification method is missing a public or private key.
+   *
+   * @example
+   * ```ts
+   * // Example with an existing key in JWK format.
+   * const verificationMethods = [{
+   *   publicKeyJwk: { id: 0, // public key in JWK format },
+   *   privateKeyJwk: { id: 0, // private key in JWK format },
+   *   purposes: ['authentication']
+   * }];
+   * const did = await DidDht.fromKeys({ verificationMethods });
+   * ```
+   */
   public static async fromKeys<TKms extends CryptoApi | undefined = undefined>({
     keyManager = new LocalKmsCrypto(),
     uri,
@@ -403,6 +652,17 @@ export class DidDht extends DidMethod {
     }
   }
 
+  /**
+   * Given the W3C DID Document of a `did:dht` DID, return the verification method that will be used
+   * for signing messages and credentials. If given, the `methodId` parameter is used to select the
+   * verification method. If not given, the Identity Key's verification method with an ID fragment
+   * of '#0' is used.
+   *
+   * @param params - The parameters for the `getSigningMethod` operation.
+   * @param params.didDocument - DID Document to get the verification method from.
+   * @param params.methodId - ID of the verification method to use for signing.
+   * @returns Verification method to use for signing.
+   */
   public static async getSigningMethod({ didDocument, methodId = '#0' }: {
     didDocument: DidDocument;
     methodId?: string;
@@ -418,6 +678,34 @@ export class DidDht extends DidMethod {
     return verificationMethod;
   }
 
+  /**
+   * Publishes a DID to the DHT, making it publicly discoverable and resolvable.
+   *
+   * This method handles the publication of a DID Document associated with a `did:dht` DID to the
+   * Mainline DHT network. The publication process involves storing the DID Document in Mainline DHT
+   * via a Pkarr relay server.
+   *
+   * @remarks
+   * - This method is typically invoked automatically during the creation of a new DID unless the
+   *   `publish` option is set to `false`.
+   * - For existing, unpublished DIDs, it can be used to publish the DID Document to Mainline DHT.
+   * - The method relies on the specified Pkarr relay server to interface with the DHT network.
+   *
+   * @param params - The parameters for the `publish` operation.
+   * @param params.did - The `Did` object representing the DID to be published.
+   * @param params.relay - Optional. The Pkarr relay server URL to be used for publishing. If not
+   *                       specified, the default relay server is used.
+   * @returns A Promise resolving to a boolean indicating whether the publication was successful.
+   *
+   * @example
+   * ```ts
+   * // Generate a new DID and keys but explicitly disable publishing.
+   * const did = await DidDht.create({ options: { publish: false });
+   * // Publish the DID to the DHT.
+   * const isPublished = await DidDht.publish({ did });
+   * // `isPublished` is true if the DID was successfully published.
+   * ```
+   */
   public static async publish({ did, relay = DEFAULT_PKARR_RELAY }: {
     did: Did;
     relay?: string;
@@ -427,6 +715,27 @@ export class DidDht extends DidMethod {
     return isPublished;
   }
 
+  /**
+   * Resolves a `did:dht` identifier to its corresponding DID document.
+   *
+   * This method performs the resolution of a `did:dht` DID, retrieving its DID Document from the
+   * Mainline DHT network. The process involves querying the DHT network via a Pkarr relay server to
+   * retrieve the DID Document that corresponds to the given DID identifier.
+   *
+   * @remarks
+   * - The method uses the specified or default Pkarr relay server to access the DHT network.
+   * - It decodes the DID identifier and retrieves the associated DID Document and metadata.
+   * - In case of resolution failure, appropriate error information is returned.
+   *
+   * @example
+   * ```ts
+   * const resolutionResult = await DidDht.resolve('did:dht:example');
+   * ```
+   *
+   * @param didUri - The DID to be resolved.
+   * @param _options - Optional parameters for resolving the DID. Unused by this DID method.
+   * @returns A Promise resolving to a {@link DidResolutionResult} object representing the result of the resolution.
+   */
   public static async resolve(didUri: string, options: DidResolutionOptions = {}): Promise<DidResolutionResult> {
     // Use the given Pkarr relay or the default.
     const relay = options?.pkarrRelay ?? DEFAULT_PKARR_RELAY;
@@ -460,6 +769,20 @@ export class DidDht extends DidMethod {
     }
   }
 
+  /**
+   * Instantiates a `Did` object for the `did:dht` method using an array of public keys.
+   *
+   * This method is used to create a `Did` object from a set of public keys, typically after
+   * these keys have been generated or provided. It constructs the DID document, metadata, and
+   * other necessary components for the DID based on the provided public keys and any additional
+   * options specified.
+   *
+   * @param params - The parameters for the DID object creation.
+   * @param params.keyManager - The Key Management System to manage keys.
+   * @param params.verificationMethods - An array of verification methods containing public keys.
+   * @param params.options - Additional options for DID creation.
+   * @returns A Promise resolving to a `Did` object.
+   */
   private static async fromPublicKeys({
     keyManager,
     verificationMethods,
@@ -536,6 +859,17 @@ export class DidDht extends DidMethod {
     return { didDocument, getSigner, keyManager, metadata, uri: id };
   }
 
+  /**
+   * Generates a set of keys for use in creating a `Did` object for the `did:dht` method.
+   *
+   * This method is responsible for generating the cryptographic keys necessary for the DID. It
+   * supports generating keys for the specified verification methods.
+   *
+   * @param params - The parameters for key generation.
+   * @param params.keyManager - The Key Management System used for generating keys.
+   * @param params.verificationMethods - Optional array of methods specifying key generation details.
+   * @returns A Promise resolving to a `PortableDid` object containing the generated keys.
+   */
   private static async generateKeys({
     keyManager,
     verificationMethods
@@ -580,7 +914,22 @@ export class DidDht extends DidMethod {
   }
 }
 
+/**
+ * The `DidDhtDocument` class provides functionality for interacting with the DID document stored in
+ * Mainline DHT in support of DID DHT method create, resolve, update, and deactivate operations.
+ *
+ * This class includes methods for retrieving and publishing DID documents to and from the DHT,
+ * using DNS packet encoding and Pkarr relay servers.
+ */
 class DidDhtDocument {
+  /**
+   * Retrieves a DID document and its metadata from the DHT network.
+   *
+   * @param params - The parameters for the get operation.
+   * @param params.didUri - The DID URI containing the Identity Key.
+   * @param params.relay - The Pkarr relay server URL.
+   * @returns A promise resolving to an object containing the DID document and its metadata.
+   */
   public static async get({ didUri, relay }: {
     didUri: string;
     relay: string;
@@ -601,9 +950,10 @@ class DidDhtDocument {
   }
 
   /**
+   * Publishes a DID document to the DHT network.
    *
    * @param params - The parameters to use when publishing the DID document to the DHT network.
-   * @param params.did - The DID object to publish.
+   * @param params.did - The DID object whose DID document will be published.
    * @param params.relay - The Pkarr relay to use when publishing the DID document.
    * @returns A promise that resolves to `true` if the DID document was published successfully.
    *          If publishing fails, `false` is returned.
@@ -631,6 +981,15 @@ class DidDhtDocument {
     return putResult;
   }
 
+  /**
+   * Retrieves a signed BEP44 message from a Pkarr relay server.
+   *
+   * @see {@link https://github.com/Nuhvi/pkarr/blob/main/design/relays.md | Pkarr Relay design}
+   *
+   * @param relay - The Pkarr relay server URL.
+   * @param publicKeyBytes - The public key bytes of the Identity Key, z-base-32 encoded.
+   * @returns A promise resolving to a BEP44 message containing the signed DNS packet.
+  */
   private static async pkarrGet({ relay, publicKeyBytes }: {
     publicKeyBytes: Uint8Array;
     relay: string;
@@ -677,6 +1036,15 @@ class DidDhtDocument {
     return bep44Message;
   }
 
+  /**
+   * Publishes a signed BEP44 message to a Pkarr relay server.
+   *
+   * @see {@link https://github.com/Nuhvi/pkarr/blob/main/design/relays.md | Pkarr Relay design}
+   *
+   * @param relay - The Pkarr relay server URL.
+   * @param bep44Message - The BEP44 message to be published, containing the signed DNS packet.
+   * @returns A promise resolving to `true` if the message was successfully published, otherwise `false`.
+   */
   private static async pkarrPut({ relay, bep44Message }: {
     bep44Message: Bep44Message;
     relay: string;
@@ -1021,8 +1389,14 @@ class DidDhtDocument {
   }
 }
 
+/**
+ * The `DidDhtUtils` class provides utility functions to support operations in the DID DHT method.
+ * This includes functions for creating and parsing BEP44 messages, handling identity keys, and
+ * converting between different formats and representations.
+ */
 class DidDhtUtils {
   /**
+   * Creates a BEP44 put message, which is used to publish a DID document to the DHT network.
    *
    * @param params - The parameters to use when creating the BEP44 put message
    * @param params.dnsPacket - The DNS packet to encode in the BEP44 message.
@@ -1058,6 +1432,13 @@ class DidDhtUtils {
     return { k: publicKeyBytes, seq: sequenceNumber, sig: signature, v: encodedDnsPacket };
   }
 
+  /**
+   * Converts a DID URI to a JSON Web Key (JWK) representing the Identity Key.
+   *
+   * @param params - The parameters to use for the conversion.
+   * @param params.didUri - The DID URI containing the Identity Key.
+   * @returns A promise that resolves to a JWK representing the Identity Key.
+   */
   public static async identifierToIdentityKey({ didUri }: {
     didUri: string
   }): Promise<Jwk> {
@@ -1097,7 +1478,7 @@ class DidDhtUtils {
    * This method first z-base-32 encodes the Identity Key. The resulting string is prefixed with
    * `did:dht:` to form the DID identifier.
    *
-   * @param params The parameters to use when computing the DID identifier.
+   * @param params - The parameters to use for the conversion.
    * @param params.identityKey The Identity Key from which the DID identifier is computed.
    * @returns A promise that resolves to a string containing the DID identifier.
    */
@@ -1113,6 +1494,13 @@ class DidDhtUtils {
     return `did:${DidDht.methodName}:${identifier}`;
   }
 
+  /**
+   * Converts a DID URI to the byte array representation of the Identity Key.
+   *
+   * @param params - The parameters to use for the conversion.
+   * @param params.didUri - The DID URI containing the Identity Key.
+   * @returns A byte array representation of the Identity Key.
+   */
   public static identifierToIdentityKeyBytes({ didUri }: {
     didUri: string
   }): Uint8Array {
@@ -1141,11 +1529,17 @@ class DidDhtUtils {
     return identityKeyBytes;
   }
 
+  /**
+   * Returns the appropriate key converter for the specified cryptographic curve.
+   *
+   * @param curve - The cryptographic curve to use for the key conversion.
+   * @returns An `AsymmetricKeyConverter` for the specified curve.
+   */
   public static keyConverter(curve: string): AsymmetricKeyConverter {
     const converters: Record<string, AsymmetricKeyConverter> = {
       'Ed25519'   : Ed25519,
       'secp256k1' : Secp256k1,
-      'secp256r1' : P256
+      'secp256r1' : Secp256r1
     };
 
     const converter = converters[curve];
@@ -1156,6 +1550,7 @@ class DidDhtUtils {
   }
 
   /**
+   * Parses and verifies a BEP44 Get message, converting it to a DNS packet.
    *
    * @param params - The parameters to use when verifying and parsing the BEP44 Get response message.
    * @param params.bep44Message - The BEP44 message to verify and parse.
@@ -1185,7 +1580,10 @@ class DidDhtUtils {
   }
 
   /**
-   * Helper function to decode and parse the data value of a DNS TXT record.
+   * Decodes and parses the data value of a DNS TXT record into a key-value object.
+   *
+   * @param txtData - The data value of a DNS TXT record.
+   * @returns An object containing the key/value pairs of the TXT record data.
    */
   public static parseTxtDataToObject(txtData: TxtData): Record<string, string> {
     return this.parseTxtDataToString(txtData).split(PROPERTY_SEPARATOR).reduce((acc, pair) => {
@@ -1195,7 +1593,12 @@ class DidDhtUtils {
     }, {} as Record<string, string>);
   }
 
-  // Helper function to convert TXT data property to a string value.
+  /**
+   * Decodes and parses the data value of a DNS TXT record into a string.
+   *
+   * @param txtData - The data value of a DNS TXT record.
+   * @returns A string representation of the TXT record data.
+   */
   public static parseTxtDataToString(txtData: TxtData): string {
     if (typeof txtData === 'string') {
       return txtData;

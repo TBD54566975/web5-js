@@ -70,7 +70,7 @@ export interface DidJwkCreateOptions<TKms> extends DidCreateOptions<TKms> {
  * - DID Creation: Create new `did:jwk` DIDs.
  * - DID Key Management: Instantiate a DID object from an existing verification method key set or
  *                       or a key in a Key Management System (KMS). If supported by the KMS, a DID's
- *                       key can be exported to a key set.
+ *                       key can be exported to a portable DID format.
  * - DID Resolution: Resolve a `did:jwk` to its corresponding DID Document.
  * - Signature Operations: Sign and verify messages using keys associated with a DID.
  *
@@ -104,7 +104,7 @@ export interface DidJwkCreateOptions<TKms> extends DidCreateOptions<TKms> {
  * const isValid = await signer.verify({ data: new TextEncoder().encode('Message'), signature });
  *
  * // Key Management
-*
+ *
  * // Instantiate a DID object from an existing key in a KMS
  * const did = await DidJwk.fromKeyManager({
  *  didUri: 'did:jwk:eyJrIjoiT0tQIiwidCI6IkV1c2UyNTYifQ',
@@ -129,7 +129,7 @@ export interface DidJwkCreateOptions<TKms> extends DidCreateOptions<TKms> {
  * });
  *
  * // Export a DID's key to a key set
- * const keySet = await DidJwk.toKeys({ did});
+ * const keySet = await DidJwk.toKeys({ did });
  * ```
  */
 export class DidJwk extends DidMethod {
@@ -149,6 +149,16 @@ export class DidJwk extends DidMethod {
    * - If no `options` are given, by default a new Ed25519 key will be generated.
    * - The `algorithm` and `verificationMethods` options are mutually exclusive. If both are given,
    *   an error will be thrown.
+   *
+   * @example
+   * ```ts
+   * // DID Creation
+   * const did = await DidJwk.create();
+   *
+   * // DID Creation with a KMS
+   * const keyManager = new LocalKmsCrypto();
+   * const did = await DidJwk.create({ keyManager });
+   * ```
    *
    * @param params - The parameters for the create operation.
    * @param params.keyManager - Optionally specify a Key Management System (KMS) used to generate
@@ -182,67 +192,6 @@ export class DidJwk extends DidMethod {
   }
 
   /**
-   * Instantiates a `Did` object for the `did:jwk` method from a given key set.
-   *
-   * This method allows for the creation of a `Did` object using pre-existing key material,
-   * encapsulated within the `verificationMethods` array of the `PortableDid`. This is particularly
-   * useful when the key material is already available and you want to construct a `Did` object
-   * based on these keys, instead of generating new keys.
-   *
-   * @remarks
-   * The `verificationMethods` array must contain exactly one key since the `did:jwk` method only
-   * supports a single verification method.
-   *
-   * The key material (both public and private keys) should be provided in JWK format. The method
-   * handles the inclusion of these keys in the DID Document and sets up the necessary verification
-   * relationships.
-   *
-   * @param params - The parameters for the `fromKeys` operation.
-   * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
-   *                            generate keys and sign data. If not given, a new
-   *                            {@link LocalKmsCrypto} instance will be created and used.
-   * @param params.verificationMethods - An array containing the key material in JWK format.
-   * @returns A Promise resolving to a `Did` object representing the DID formed from the provided keys.
-   * @throws An error if the `verificationMethods` array does not contain exactly one entry.
-   *
-   * @example
-   * ```ts
-   * // Example with an existing key in JWK format.
-   * const verificationMethods = [{
-   *   publicKeyJwk: { // public key in JWK format },
-   *   privateKeyJwk: { // private key in JWK format }
-   * }];
-   * const did = await DidJwk.fromKeys({ verificationMethods });
-   * ```
-   */
-  public static async fromKeys({
-    keyManager = new LocalKmsCrypto(),
-    verificationMethods
-  }: {
-    keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
-  } & PortableDid): Promise<Did> {
-    if (!verificationMethods || verificationMethods.length !== 1) {
-      throw new Error(`Only one verification method can be specified but ${verificationMethods?.length ?? 0} were given`);
-    }
-
-    if (!(verificationMethods[0].privateKeyJwk && verificationMethods[0].publicKeyJwk)) {
-      throw new Error(`Verification method does not contain a public and private key in JWK format`);
-    }
-
-    // Store the private key in the key manager.
-    await keyManager.importKey({ key: verificationMethods[0].privateKeyJwk });
-
-    // Create the DID object from the given key material, including DID document, metadata,
-    // signer convenience function, and URI.
-    const did = await DidJwk.fromPublicKey({
-      keyManager,
-      publicKey: verificationMethods[0].publicKeyJwk
-    });
-
-    return did;
-  }
-
-  /**
    * Instantiates a `Did` object from an existing DID using keys in an external Key Management
    * System (KMS).
    *
@@ -256,19 +205,19 @@ export class DidJwk extends DidMethod {
    * This approach ensures that the resulting `Did` object is fully operational with the provided
    * key manager and that all cryptographic operations related to the DID can be performed.
    *
+   * @example
+   * ```ts
+   * // Assuming keyManager already contains the key material for the DID.
+   * const didUri = 'did:jwk:example';
+   * const did = await DidJwk.fromKeyManager({ didUri, keyManager });
+   * // The 'did' is now an instance of Did, linked with the provided keyManager.
+   * ```
+   *
    * @param params - The parameters for the `fromKeyManager` operation.
    * @param params.didUri - The URI of the DID to be instantiated.
    * @param params.keyManager - The Key Management System to be used for key management operations.
    * @returns A Promise resolving to the instantiated `Did` object.
    * @throws An error if any key in the DID document is not present in the provided KMS.
-   *
-   * @example
-   * ```ts
-   * // Assuming keyManager is an instance of a KMS implementation
-   * const didUri = 'did:jwk:example';
-   * const did = await DidJwk.fromKeyManager({ didUri, keyManager });
-   * // The 'did' is now an instance of Did, linked with the provided keyManager.
-   * ```
    */
   public static async fromKeyManager({ didUri, keyManager }: {
     didUri: string;
@@ -312,6 +261,67 @@ export class DidJwk extends DidMethod {
     });
 
     return { didDocument, getSigner, keyManager, metadata, uri: didUri };
+  }
+
+  /**
+   * Instantiates a `Did` object for the `did:dht` method from a given {@link PortableDid}.
+   *
+   * This method allows for the creation of a `Did` object using pre-existing key material,
+   * encapsulated within the `verificationMethods` array of the `PortableDid`. This is particularly
+   * useful when the key material is already available and you want to construct a `Did` object
+   * based on these keys, instead of generating new keys.
+   *
+   * @remarks
+   * The `verificationMethods` array must contain exactly one key since the `did:jwk` method only
+   * supports a single verification method.
+   *
+   * The key material (both public and private keys) should be provided in JWK format. The method
+   * handles the inclusion of these keys in the DID Document and sets up the necessary verification
+   * relationships.
+   *
+   * @example
+   * ```ts
+   * // Example with an existing key in JWK format.
+   * const verificationMethods = [{
+   *   publicKeyJwk: { // public key in JWK format },
+   *   privateKeyJwk: { // private key in JWK format }
+   * }];
+   * const did = await DidJwk.fromKeys({ verificationMethods });
+   * ```
+   *
+   * @param params - The parameters for the `fromKeys` operation.
+   * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
+   *                            generate keys and sign data. If not given, a new
+   *                            {@link LocalKmsCrypto} instance will be created and used.
+   * @param params.verificationMethods - An array containing the key material in JWK format.
+   * @returns A Promise resolving to a `Did` object representing the DID formed from the provided keys.
+   * @throws An error if the `verificationMethods` array does not contain exactly one entry.
+   */
+  public static async fromKeys({
+    keyManager = new LocalKmsCrypto(),
+    verificationMethods
+  }: {
+    keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
+  } & PortableDid): Promise<Did> {
+    if (!verificationMethods || verificationMethods.length !== 1) {
+      throw new Error(`Only one verification method can be specified but ${verificationMethods?.length ?? 0} were given`);
+    }
+
+    if (!(verificationMethods[0].privateKeyJwk && verificationMethods[0].publicKeyJwk)) {
+      throw new Error(`Verification method does not contain a public and private key in JWK format`);
+    }
+
+    // Store the private key in the key manager.
+    await keyManager.importKey({ key: verificationMethods[0].privateKeyJwk });
+
+    // Create the DID object from the given key material, including DID document, metadata,
+    // signer convenience function, and URI.
+    const did = await DidJwk.fromPublicKey({
+      keyManager,
+      publicKey: verificationMethods[0].publicKeyJwk
+    });
+
+    return did;
   }
 
   /**
