@@ -56,7 +56,7 @@ describe('DidDht', () => {
       expect(did.didDocument.verificationMethod).to.have.length(1);
     });
 
-    it('handles creating DIDs with additional verification methods', async () => {
+    it('handles creating DIDs with additional Ed25519 verification methods', async () => {
       const did = await DidDht.create({
         options: {
           verificationMethods: [
@@ -69,6 +69,39 @@ describe('DidDht', () => {
       });
 
       expect(did.didDocument.verificationMethod).to.have.length(2);
+      expect(did.didDocument.verificationMethod?.[1].publicKeyJwk).to.have.property('crv', 'Ed25519');
+    });
+
+    it('handles creating DIDs with additional secp256k1 verification methods', async () => {
+      const did = await DidDht.create({
+        options: {
+          verificationMethods: [
+            {
+              algorithm : 'secp256k1',
+              purposes  : ['authentication', 'assertionMethod']
+            }
+          ]
+        }
+      });
+
+      expect(did.didDocument.verificationMethod).to.have.length(2);
+      expect(did.didDocument.verificationMethod?.[1].publicKeyJwk).to.have.property('crv', 'secp256k1');
+    });
+
+    it('handles creating DIDs with additional secp256r1 verification methods', async () => {
+      const did = await DidDht.create({
+        options: {
+          verificationMethods: [
+            {
+              algorithm : 'secp256r1',
+              purposes  : ['authentication', 'assertionMethod']
+            }
+          ]
+        }
+      });
+
+      expect(did.didDocument.verificationMethod).to.have.length(2);
+      expect(did.didDocument.verificationMethod?.[1].publicKeyJwk).to.have.property('crv', 'P-256');
     });
 
     it('allows one or more DID controller identifiers to be specified', async () => {

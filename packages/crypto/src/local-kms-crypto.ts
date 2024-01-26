@@ -382,7 +382,7 @@ export class LocalKmsCrypto implements
     const privateKey = await this.getPrivateKey({ keyUri });
 
     // Determine the algorithm name based on the JWK's `alg` and `crv` properties.
-    let algorithm = this.getAlgorithmName({ key: privateKey });
+    const algorithm = this.getAlgorithmName({ key: privateKey });
 
     // Get the signature algorithm based on the algorithm name.
     const signer = this.getAlgorithm({ algorithm }) as Signer<SignParams, VerifyParams>;
@@ -422,7 +422,7 @@ export class LocalKmsCrypto implements
     KmsVerifyParams
   ): Promise<boolean> {
     // Determine the algorithm name based on the JWK's `alg` and `crv` properties.
-    let algorithm = this.getAlgorithmName({ key });
+    const algorithm = this.getAlgorithmName({ key });
 
     // Get the signature algorithm based on the algorithm name.
     const signer = this.getAlgorithm({ algorithm }) as Signer<SignParams, VerifyParams>;

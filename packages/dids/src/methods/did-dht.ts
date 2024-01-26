@@ -348,6 +348,7 @@ const AlgorithmToKeyTypeMap = {
   Ed25519   : DidDhtRegisteredKeyType.Ed25519,
   ES256K    : DidDhtRegisteredKeyType.secp256k1,
   ES256     : DidDhtRegisteredKeyType.secp256r1,
+  'P-256'   : DidDhtRegisteredKeyType.secp256r1,
   secp256k1 : DidDhtRegisteredKeyType.secp256k1,
   secp256r1 : DidDhtRegisteredKeyType.secp256r1
 } as const;
@@ -1276,7 +1277,7 @@ class DidDhtDocument {
 
       const publicKey = vm.publicKeyJwk;
 
-      if (!(publicKey?.crv && publicKey.crv in DidDhtRegisteredKeyType)) {
+      if (!(publicKey?.crv && publicKey.crv in AlgorithmToKeyTypeMap)) {
         throw new DidError(DidErrorCode.InvalidPublicKeyType, `Verification method '${vm.id}' contains an unsupported key type: ${publicKey?.crv ?? 'undefined'}`);
       }
 
@@ -1540,8 +1541,8 @@ class DidDhtUtils {
   public static keyConverter(curve: string): AsymmetricKeyConverter {
     const converters: Record<string, AsymmetricKeyConverter> = {
       'Ed25519'   : Ed25519,
-      'secp256k1' : Secp256k1,
-      'secp256r1' : Secp256r1
+      'P-256'     : Secp256r1,
+      'secp256k1' : Secp256k1
     };
 
     const converter = converters[curve];
