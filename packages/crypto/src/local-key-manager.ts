@@ -31,7 +31,7 @@ import { computeJwkThumbprint, isPrivateJwk, KEY_URI_PREFIX_JWK } from './jose/j
  * implementation class and any relevant names or identifiers for the algorithm. This structure
  * allows for easy retrieval and instantiation of algorithm implementations based on the algorithm
  * name or key specification. It facilitates the support of multiple algorithms within the
- * `LocalKmsCrypto` class.
+ * `LocalKeyManager` class.
  */
 const supportedAlgorithms = {
   'Ed25519': {
@@ -64,27 +64,27 @@ type SupportedAlgorithm = keyof typeof supportedAlgorithms;
 type AlgorithmConstructor = typeof supportedAlgorithms[SupportedAlgorithm]['implementation'];
 
 /**
- * The `LocalKmsCryptoParams` interface specifies the parameters for initializing an instance of
- * `LocalKmsCrypto`. It allows the optional inclusion of a `KeyValueStore` instance for key
+ * The `LocalKeyManagerParams` interface specifies the parameters for initializing an instance of
+ * `LocalKeyManager`. It allows the optional inclusion of a `KeyValueStore` instance for key
  * management. If not provided, a default `MemoryStore` instance will be used for storing keys in
  * memory. Note that the `MemoryStore` is not persistent and will be cleared when the application
  * exits.
  */
-export type LocalKmsCryptoParams = {
+export type LocalKeyManagerParams = {
   /**
    * An optional property to specify a custom `KeyValueStore` instance for key management. If not
-   * provided, {@link LocalKmsCrypto | `LocalKmsCrypto`} uses a default `MemoryStore` instance. This
-   * store is responsible for managing cryptographic keys, allowing them to be retrieved, stored,
-   * and managed during cryptographic operations.
+   * provided, {@link LocalKeyManager | `LocalKeyManager`} uses a default `MemoryStore` instance.
+   * This store is responsible for managing cryptographic keys, allowing them to be retrieved,
+   * stored, and managed during cryptographic operations.
    */
   keyStore?: KeyValueStore<KeyIdentifier, Jwk>;
 };
 
 /**
- * The `LocalKmsDigestParams` interface defines the algorithm-specific parameters that should be
- * passed into the {@link LocalKmsCrypto.digest | `LocalKmsCrypto.digest()`} method.
+ * The `LocalKeyManagerDigestParams` interface defines the algorithm-specific parameters that should
+ * be passed into the {@link LocalKeyManager.digest | `LocalKeyManager.digest()`} method.
  */
-export interface LocalKmsDigestParams extends KmsDigestParams {
+export interface LocalKeyManagerDigestParams extends KmsDigestParams {
   /**
    * A string defining the name of hash function to use. The value must be one of the following:
    * - `"SHA-256"`: Generates a 256-bit digest.
@@ -93,11 +93,11 @@ export interface LocalKmsDigestParams extends KmsDigestParams {
 }
 
 /**
- * The `LocalKmsGenerateKeyParams` interface defines the algorithm-specific parameters that should
- * be passed into the {@link LocalKmsCrypto.generateKey | `LocalKmsCrypto.generateKey()`} method
- * when generating a key in the local KMS.
+ * The `LocalKeyManagerGenerateKeyParams` interface defines the algorithm-specific parameters that
+ * should be passed into the {@link LocalKeyManager.generateKey | `LocalKeyManager.generateKey()`}
+ * method when generating a key in the local KMS.
  */
-export interface LocalKmsGenerateKeyParams extends KmsGenerateKeyParams {
+export interface LocalKeyManagerGenerateKeyParams extends KmsGenerateKeyParams {
   /**
    * A string defining the type of key to generate. The value must be one of the following:
    * - `"Ed25519"`
@@ -106,21 +106,21 @@ export interface LocalKmsGenerateKeyParams extends KmsGenerateKeyParams {
   algorithm: 'Ed25519' | 'secp256k1' | 'secp256r1';
 }
 
-export class LocalKmsCrypto implements
+export class LocalKeyManager implements
     CryptoApi,
     KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams> {
 
   /**
-   * A private map that stores instances of cryptographic algorithm implementations. Each key in this
-   * map is an `AlgorithmConstructor`, and its corresponding value is an instance of a class that
-   * implements a specific cryptographic algorithm. This map is used to cache and reuse instances for
-   * performance optimization, ensuring that each algorithm is instantiated only once.
+   * A private map that stores instances of cryptographic algorithm implementations. Each key in
+   * this map is an `AlgorithmConstructor`, and its corresponding value is an instance of a class
+   * that implements a specific cryptographic algorithm. This map is used to cache and reuse
+   * instances for performance optimization, ensuring that each algorithm is instantiated only once.
    */
   private _algorithmInstances: Map<AlgorithmConstructor, InstanceType<typeof CryptoAlgorithm>> = new Map();
 
   /**
-   * The `_keyStore` private variable in `LocalKmsCrypto` is a `KeyValueStore` instance used for
-   * storing and managing cryptographic keys. It allows the `LocalKmsCrypto` class to save,
+   * The `_keyStore` private variable in `LocalKeyManager` is a `KeyValueStore` instance used for
+   * storing and managing cryptographic keys. It allows the `LocalKeyManager` class to save,
    * retrieve, and handle keys efficiently within the local Key Management System (KMS) context.
    * This variable can be configured to use different storage backends, like in-memory storage or
    * persistent storage, providing flexibility in key management according to the application's
@@ -128,7 +128,7 @@ export class LocalKmsCrypto implements
    */
   private _keyStore: KeyValueStore<KeyIdentifier, Jwk>;
 
-  constructor(params?: LocalKmsCryptoParams) {
+  constructor(params?: LocalKeyManagerParams) {
     this._keyStore = params?.keyStore ?? new MemoryStore<KeyIdentifier, Jwk>();
   }
 
@@ -146,9 +146,9 @@ export class LocalKmsCrypto implements
    *
    * @example
    * ```ts
-   * const crypto = new LocalKmsCrypto();
+   * const keyManager = new LocalKeyManager();
    * const data = new Uint8Array([...]);
-   * const digest = await crypto.digest({ algorithm: 'SHA-256', data });
+   * const digest = await keyManager.digest({ algorithm: 'SHA-256', data });
    * ```
    *
    * @param params - The parameters for the digest operation.
@@ -158,7 +158,7 @@ export class LocalKmsCrypto implements
    * @returns A Promise which will be fulfilled with the hash digest.
    */
   public async digest({ algorithm, data }:
-    LocalKmsDigestParams
+    LocalKeyManagerDigestParams
   ): Promise<Uint8Array> {
     // Get the hash function implementation based on the specified `algorithm` parameter.
     const hasher = this.getAlgorithm({ algorithm }) as Hasher<KmsDigestParams>;
@@ -178,9 +178,9 @@ export class LocalKmsCrypto implements
    *
    * @example
    * ```ts
-   * const crypto = new LocalKmsCrypto();
-   * const keyUri = await crypto.generateKey({ algorithm: 'Ed25519' });
-   * const privateKey = await crypto.exportKey({ keyUri });
+   * const keyManager = new LocalKeyManager();
+   * const keyUri = await keyManager.generateKey({ algorithm: 'Ed25519' });
+   * const privateKey = await keyManager.exportKey({ keyUri });
    * ```
    *
    * @param params - Parameters for exporting the key.
@@ -203,8 +203,8 @@ export class LocalKmsCrypto implements
    *
    * @example
    * ```ts
-   * const cryptoApi = new LocalKmsCrypto();
-   * const keyUri = await cryptoApi.generateKey({ algorithm: 'Ed25519' });
+   * const keyManager = new LocalKeyManager();
+   * const keyUri = await keyManager.generateKey({ algorithm: 'Ed25519' });
    * console.log(keyUri); // Outputs the key URI
    * ```
    *
@@ -214,10 +214,10 @@ export class LocalKmsCrypto implements
    * @returns A Promise that resolves to the key URI, a unique identifier for the generated key.
    */
   public async generateKey({ algorithm }:
-    LocalKmsGenerateKeyParams
+    LocalKeyManagerGenerateKeyParams
   ): Promise<KeyIdentifier> {
     // Get the key generator implementation based on the specified `algorithm` parameter.
-    const keyGenerator = this.getAlgorithm({ algorithm }) as KeyGenerator<LocalKmsGenerateKeyParams, Jwk>;
+    const keyGenerator = this.getAlgorithm({ algorithm }) as KeyGenerator<LocalKeyManagerGenerateKeyParams, Jwk>;
 
     // Generate the key.
     const key = await keyGenerator.generateKey({ algorithm });
@@ -250,10 +250,10 @@ export class LocalKmsCrypto implements
    *
    * @example
    * ```ts
-   * const crypto = new LocalKmsCrypto();
-   * const keyUri = await crypto.generateKey({ algorithm: 'Ed25519' });
-   * const publicKey = await crypto.getPublicKey({ keyUri });
-   * const keyUriFromPublicKey = await crypto.getKeyUri({ key: publicKey });
+   * const keyManager = new LocalKeyManager();
+   * const keyUri = await keyManager.generateKey({ algorithm: 'Ed25519' });
+   * const publicKey = await keyManager.getPublicKey({ keyUri });
+   * const keyUriFromPublicKey = await keyManager.getKeyUri({ key: publicKey });
    * console.log(keyUri === keyUriFromPublicKey); // Outputs `true`
    * ```
    *
@@ -280,9 +280,9 @@ export class LocalKmsCrypto implements
    *
    * @example
    * ```ts
-   * const crypto = new LocalKmsCrypto();
-   * const keyUri = await crypto.generateKey({ algorithm: 'Ed25519' });
-   * const publicKey = await crypto.getPublicKey({ keyUri });
+   * const keyManager = new LocalKeyManager();
+   * const keyUri = await keyManager.generateKey({ algorithm: 'Ed25519' });
+   * const publicKey = await keyManager.getPublicKey({ keyUri });
    * ```
    *
    * @param params - The parameters for retrieving the public key.
@@ -300,7 +300,7 @@ export class LocalKmsCrypto implements
     const algorithm = this.getAlgorithmName({ key: privateKey });
 
     // Get the key generator based on the algorithm name.
-    const keyGenerator = this.getAlgorithm({ algorithm }) as AsymmetricKeyGenerator<LocalKmsGenerateKeyParams, Jwk, GetPublicKeyParams>;
+    const keyGenerator = this.getAlgorithm({ algorithm }) as AsymmetricKeyGenerator<LocalKeyManagerGenerateKeyParams, Jwk, GetPublicKeyParams>;
 
     // Get the public key properties from the private JWK.
     const publicKey = await keyGenerator.getPublicKey({ key: privateKey });
@@ -322,9 +322,9 @@ export class LocalKmsCrypto implements
    *
    * @example
    * ```ts
-   * const crypto = new LocalKmsCrypto();
+   * const keyManager = new LocalKeyManager();
    * const privateKey = { ... } // A private key in JWK format
-   * const keyUri = await crypto.importKey({ key: privateKey });
+   * const keyUri = await keyManager.importKey({ key: privateKey });
    * ```
    *
    * @param params - Parameters for importing the key.
@@ -363,10 +363,10 @@ export class LocalKmsCrypto implements
    *
    * @example
    * ```ts
-   * const crypto = new LocalKmsCrypto();
-   * const keyUri = await crypto.generateKey({ algorithm: 'Ed25519' });
+   * const keyManager = new LocalKeyManager();
+   * const keyUri = await keyManager.generateKey({ algorithm: 'Ed25519' });
    * const data = new TextEncoder().encode('Message to sign');
-   * const signature = await crypto.sign({ keyUri, data });
+   * const signature = await keyManager.sign({ keyUri, data });
    * ```
    *
    * @param params - The parameters for the signing operation.
@@ -404,11 +404,11 @@ export class LocalKmsCrypto implements
    *
    * @example
    * ```ts
-   * const crypto = new LocalKmsCrypto();
-   * const keyUri = await crypto.generateKey({ algorithm: 'Ed25519' });
+   * const keyManager = new LocalKeyManager();
+   * const keyUri = await keyManager.generateKey({ algorithm: 'Ed25519' });
    * const data = new TextEncoder().encode('Message to sign');
-   * const signature = await crypto.sign({ keyUri, data });
-   * const isSignatureValid = await crypto.verify({ keyUri, data, signature });
+   * const signature = await keyManager.sign({ keyUri, data });
+   * const isSignatureValid = await keyManager.verify({ keyUri, data, signature });
    * ```
    *
    * @param params - The parameters for the verification operation.

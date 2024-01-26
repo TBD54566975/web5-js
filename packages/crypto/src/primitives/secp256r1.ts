@@ -1,3 +1,5 @@
+import type { AffinePoint } from '@noble/curves/abstract/weierstrass';
+
 import { Convert } from '@web5/common';
 import { sha256 } from '@noble/hashes/sha256';
 import { secp256r1 } from '@noble/curves/p256';
@@ -144,7 +146,7 @@ export class Secp256r1 {
    * @remarks
    * This method takes a private key represented as a byte array (Uint8Array) and
    * converts it into a JWK object. The conversion involves extracting the
-   * elliptic curve points (x and y coordinates) from the private key and encoding
+   * elliptic curve point (x and y coordinates) from the private key and encoding
    * them into base64url format, alongside other JWK parameters.
    *
    * The resulting JWK object includes the following properties:
@@ -173,15 +175,15 @@ export class Secp256r1 {
     privateKeyBytes: Uint8Array;
   }): Promise<Jwk> {
     // Get the elliptic curve points (x and y coordinates) for the provided private key.
-    const points = await Secp256r1.getCurvePoints({ keyBytes: privateKeyBytes });
+    const point = await Secp256r1.getCurvePoint({ keyBytes: privateKeyBytes });
 
     // Construct the private key in JWK format.
     const privateKey: Jwk = {
       kty : 'EC',
       crv : 'P-256',
       d   : Convert.uint8Array(privateKeyBytes).toBase64Url(),
-      x   : Convert.uint8Array(points.x).toBase64Url(),
-      y   : Convert.uint8Array(points.y).toBase64Url()
+      x   : Convert.uint8Array(point.x).toBase64Url(),
+      y   : Convert.uint8Array(point.y).toBase64Url()
     };
 
     // Compute the JWK thumbprint and set as the key ID.
@@ -195,7 +197,7 @@ export class Secp256r1 {
    *
    * @remarks
    * This method accepts a public key in a byte array (Uint8Array) format and
-   * transforms it to a JWK object. It involves decoding the elliptic curve points
+   * transforms it to a JWK object. It involves decoding the elliptic curve point
    * (x and y coordinates) from the raw public key bytes and encoding them into
    * base64url format, along with setting appropriate JWK parameters.
    *
@@ -223,15 +225,15 @@ export class Secp256r1 {
   public static async bytesToPublicKey({ publicKeyBytes }: {
     publicKeyBytes: Uint8Array;
   }): Promise<Jwk> {
-    // Get the elliptic curve points (x and y coordinates) for the provided public key.
-    const points = await Secp256r1.getCurvePoints({ keyBytes: publicKeyBytes });
+    // Get the elliptic curve point (x and y coordinates) for the provided public key.
+    const point = await Secp256r1.getCurvePoint({ keyBytes: publicKeyBytes });
 
     // Construct the public key in JWK format.
     const publicKey: Jwk = {
       kty : 'EC',
       crv : 'P-256',
-      x   : Convert.uint8Array(points.x).toBase64Url(),
-      y   : Convert.uint8Array(points.y).toBase64Url()
+      x   : Convert.uint8Array(point.x).toBase64Url(),
+      y   : Convert.uint8Array(point.y).toBase64Url()
     };
 
     // Compute the JWK thumbprint and set as the key ID.
@@ -278,7 +280,7 @@ export class Secp256r1 {
    * @remarks
    * This method takes a private key in JWK format and derives its corresponding public key,
    * also in JWK format. The derivation process involves converting the private key to a raw
-   * byte array, then computing the elliptic curve points (x and y coordinates) from this private
+   * byte array, then computing the elliptic curve point (x and y coordinates) from this private
    * key. These coordinates are then encoded into base64url format to construct the public key in
    * JWK format.
    *
@@ -304,15 +306,15 @@ export class Secp256r1 {
     // Convert the provided private key to a byte array.
     const privateKeyBytes  = await Secp256r1.privateKeyToBytes({ privateKey: key });
 
-    // Get the elliptic curve points (x and y coordinates) for the provided private key.
-    const points = await Secp256r1.getCurvePoints({ keyBytes: privateKeyBytes });
+    // Get the elliptic curve point (x and y coordinates) for the provided private key.
+    const point = await Secp256r1.getCurvePoint({ keyBytes: privateKeyBytes });
 
     // Construct the public key in JWK format.
     const publicKey: Jwk = {
       kty : 'EC',
       crv : 'P-256',
-      x   : Convert.uint8Array(points.x).toBase64Url(),
-      y   : Convert.uint8Array(points.y).toBase64Url()
+      x   : Convert.uint8Array(point.x).toBase64Url(),
+      y   : Convert.uint8Array(point.y).toBase64Url()
     };
 
     // Compute the JWK thumbprint and set as the key ID.
@@ -794,10 +796,10 @@ export class Secp256r1 {
   }
 
   /**
-   * Returns the elliptic curve points (x and y coordinates) for a given secp256r1 key.
+   * Returns the elliptic curve point (x and y coordinates) for a given secp256r1 key.
    *
    * @remarks
-   * This method extracts the elliptic curve points from a given secp256r1 key, whether
+   * This method extracts the elliptic curve point from a given secp256r1 key, whether
    * it's a private or a public key. For a private key, the method first computes the
    * corresponding public key and then extracts the x and y coordinates. For a public key,
    * it directly returns these coordinates. The coordinates are represented as Uint8Array.
@@ -810,15 +812,15 @@ export class Secp256r1 {
    * ```ts
    * // For a private key
    * const privateKey = new Uint8Array([...]); // A 32-byte private key
-   * const { x: xFromPrivateKey, y: yFromPrivateKey } = await Secp256r1.getCurvePoints({ keyBytes: privateKey });
+   * const { x: xFromPrivateKey, y: yFromPrivateKey } = await Secp256r1.getCurvePoint({ keyBytes: privateKey });
    *
    * // For a public key
    * const publicKey = new Uint8Array([...]); // A 33-byte or 65-byte public key
-   * const { x: xFromPublicKey, y: yFromPublicKey } = await Secp256r1.getCurvePoints({ keyBytes: publicKey });
+   * const { x: xFromPublicKey, y: yFromPublicKey } = await Secp256r1.getCurvePoint({ keyBytes: publicKey });
    * ```
    *
    * @param params - The parameters for the curve point decoding operation.
-   * @param params.keyBytes - The key for which to get the elliptic curve points.
+   * @param params.keyBytes - The key for which to get the elliptic curve point.
    *                          Can be either a private key or a public key.
    *                          The key should be passed as a `Uint8Array`.
    *
@@ -826,15 +828,15 @@ export class Secp256r1 {
    *          each being a Uint8Array representing the x and y coordinates of the key point on the
    *          elliptic curve.
    */
-  private static async getCurvePoints({ keyBytes }: {
+  private static async getCurvePoint({ keyBytes }: {
     keyBytes: Uint8Array;
-  }): Promise<{ x: Uint8Array, y: Uint8Array }> {
+  }): Promise<AffinePoint<Uint8Array>> {
     // If key is a private key, first compute the public key.
     if (keyBytes.byteLength === 32) {
       keyBytes = secp256r1.getPublicKey(keyBytes);
     }
 
-    // Decode Weierstrass points from key bytes.
+    // Decode Weierstrass affine point from key bytes.
     const point = secp256r1.ProjectivePoint.fromHex(keyBytes);
 
     // Get x- and y-coordinate values and convert to Uint8Array.

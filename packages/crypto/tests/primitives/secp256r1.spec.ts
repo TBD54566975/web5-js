@@ -326,12 +326,12 @@ describe('Secp256r1', () => {
     });
   });
 
-  describe('getCurvePoints()', () => {
+  describe('getCurvePoint()', () => {
     // for (const vector of secp256k1GetCurvePoints.vectors) {
     //   it(vector.description, async () => {
     //     const keyBytes = Convert.hex(vector.input.keyBytes).toUint8Array();
-    //     // @ts-expect-error because getCurvePoints() is a private method.
-    //     const points = await Secp256r1.getCurvePoints({ keyBytes });
+    //     // @ts-expect-error because getCurvePoint() is a private method.
+    //     const points = await Secp256r1.getCurvePoint({ keyBytes });
     //     expect(points.x).to.deep.equal(Convert.hex(vector.output.x).toUint8Array());
     //     expect(points.y).to.deep.equal(Convert.hex(vector.output.y).toUint8Array());
     //   });
@@ -339,8 +339,8 @@ describe('Secp256r1', () => {
 
     it('throws error with invalid input key length', async () => {
       await expect(
-        // @ts-expect-error because getCurvePoints() is a private method.
-        Secp256r1.getCurvePoints({ keyBytes: new Uint8Array(16) })
+        // @ts-expect-error because getCurvePoint() is a private method.
+        Secp256r1.getCurvePoint({ keyBytes: new Uint8Array(16) })
       ).to.eventually.be.rejectedWith(Error, 'Point of length 16 was invalid. Expected 33 compressed bytes or 65 uncompressed bytes');
     });
   });

@@ -551,7 +551,7 @@ export enum DidVerificationRelationship {
    * Credentials. This relationship is typically used when the DID subject is the issuer of a
    * credential.
    *
-   * @see {@link hthttps://www.w3.org/TR/did-core/#assertion | DID Core Specification, § Assertion}
+   * @see {@link https://www.w3.org/TR/did-core/#assertion | DID Core Specification, § Assertion}
    */
   assertionMethod = 'assertionMethod',
 

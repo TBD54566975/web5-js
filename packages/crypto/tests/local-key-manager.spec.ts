@@ -6,28 +6,28 @@ import type { Jwk } from '../src/jose/jwk.js';
 import type { KeyIdentifier } from '../src/types/identifier.js';
 
 import { EcdsaAlgorithm } from '../src/algorithms/ecdsa.js';
-import { LocalKmsCrypto } from '../src/local-kms-crypto.js';
+import { LocalKeyManager } from '../src/local-key-manager.js';
 
-describe('LocalKmsCrypto', () => {
-  let crypto: LocalKmsCrypto;
+describe('LocalKeyManager', () => {
+  let keyManager: LocalKeyManager;
 
   beforeEach(() => {
-    crypto = new LocalKmsCrypto();
+    keyManager = new LocalKeyManager();
   });
 
   describe('constructor', () => {
     it('initializes with default parameters', () => {
-      const crypto = new LocalKmsCrypto();
-      expect(crypto).to.exist;
-      expect(crypto).to.be.an.instanceOf(LocalKmsCrypto);
+      const keyManager = new LocalKeyManager();
+      expect(keyManager).to.exist;
+      expect(keyManager).to.be.an.instanceOf(LocalKeyManager);
     });
 
     it('initializes with a custom in-memory key store', () => {
       const keyStore = new MemoryStore<KeyIdentifier, Jwk>();
-      const crypto = new LocalKmsCrypto({ keyStore });
+      const keyManager = new LocalKeyManager({ keyStore });
 
-      expect(crypto).to.exist;
-      expect(crypto).to.be.an.instanceOf(LocalKmsCrypto);
+      expect(keyManager).to.exist;
+      expect(keyManager).to.be.an.instanceOf(LocalKeyManager);
     });
   });
 
@@ -37,7 +37,7 @@ describe('LocalKmsCrypto', () => {
       const data = new Uint8Array([0, 1, 2, 3, 4]);
 
       // Test the method.
-      const digest = await crypto.digest({ algorithm: 'SHA-256', data });
+      const digest = await keyManager.digest({ algorithm: 'SHA-256', data });
 
       // Validate the result.
       expect(digest).to.exist;
@@ -50,7 +50,7 @@ describe('LocalKmsCrypto', () => {
       const expectedOutput = Convert.hex('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad').toUint8Array();
 
       // Test the method.
-      const digest = await crypto.digest({ algorithm: 'SHA-256', data });
+      const digest = await keyManager.digest({ algorithm: 'SHA-256', data });
 
       // Validate the result.
       expect(digest).to.exist;
@@ -62,9 +62,9 @@ describe('LocalKmsCrypto', () => {
 
   describe('exportKey()', () => {
     it('exports a private key as a JWK', async () => {
-      const keyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
+      const keyUri = await keyManager.generateKey({ algorithm: 'secp256k1' });
 
-      const jwk = await crypto.exportKey({ keyUri });
+      const jwk = await keyManager.exportKey({ keyUri });
 
       expect(jwk).to.exist;
       expect(jwk).to.be.an('object');
@@ -76,7 +76,7 @@ describe('LocalKmsCrypto', () => {
       const keyUri = 'urn:jwk:does-not-exist';
 
       try {
-        await crypto.exportKey({ keyUri });
+        await keyManager.exportKey({ keyUri });
         expect.fail('Expected an error to be thrown.');
 
       } catch (error: any) {
@@ -89,7 +89,7 @@ describe('LocalKmsCrypto', () => {
 
   describe('generateKey()', () => {
     it('generates a key and returns a key URI', async () => {
-      const keyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
+      const keyUri = await keyManager.generateKey({ algorithm: 'secp256k1' });
 
       expect(keyUri).to.exist;
       expect(keyUri).to.be.a.string;
@@ -97,7 +97,7 @@ describe('LocalKmsCrypto', () => {
     });
 
     it(`supports generating 'secp256k1' keys`, async () => {
-      const keyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
+      const keyUri = await keyManager.generateKey({ algorithm: 'secp256k1' });
 
       expect(keyUri).to.exist;
       expect(keyUri).to.be.a.string;
@@ -105,7 +105,7 @@ describe('LocalKmsCrypto', () => {
     });
 
     it(`supports generating 'Ed25519' keys`, async () => {
-      const keyUri = await crypto.generateKey({ algorithm: 'Ed25519' });
+      const keyUri = await keyManager.generateKey({ algorithm: 'Ed25519' });
 
       expect(keyUri).to.exist;
       expect(keyUri).to.be.a.string;
@@ -119,7 +119,7 @@ describe('LocalKmsCrypto', () => {
       // Test the method.
       try {
         // @ts-expect-error because an unsupported algorithm is being tested.
-        await crypto.generateKey({ algorithm });
+        await keyManager.generateKey({ algorithm });
         expect.fail('Expected an error to be thrown.');
 
       } catch (error: any) {
@@ -134,11 +134,11 @@ describe('LocalKmsCrypto', () => {
       // Setup.
       const mockKeyGenerator = { generateKey: sinon.stub() };
       // @ts-expect-error because we're accessing a private property.
-      crypto._algorithmInstances.set(EcdsaAlgorithm, mockKeyGenerator); // Replace the algorithm instance with the mock.
+      keyManager._algorithmInstances.set(EcdsaAlgorithm, mockKeyGenerator); // Replace the algorithm instance with the mock.
 
       // Test the method.
       try {
-        await crypto.generateKey({ algorithm: 'secp256k1' });
+        await keyManager.generateKey({ algorithm: 'secp256k1' });
         expect.fail('Expected an error to be thrown.');
 
       } catch (error: any) {
@@ -164,7 +164,7 @@ describe('LocalKmsCrypto', () => {
       };
 
       // Test the method.
-      const keyUri = await crypto.getKeyUri({ key });
+      const keyUri = await keyManager.getKeyUri({ key });
 
       // Validate the result.
       expect(keyUri).to.exist;
@@ -184,7 +184,7 @@ describe('LocalKmsCrypto', () => {
       const expectedKeyUri = 'urn:jwk:' + expectedThumbprint;
 
       // Test the method.
-      const keyUri = await crypto.getKeyUri({ key });
+      const keyUri = await keyManager.getKeyUri({ key });
 
       expect(keyUri).to.equal(expectedKeyUri);
     });
@@ -192,9 +192,9 @@ describe('LocalKmsCrypto', () => {
 
   describe('getPublicKey()', () => {
     it('computes the public key and returns a JWK', async () => {
-      const keyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
+      const keyUri = await keyManager.generateKey({ algorithm: 'secp256k1' });
 
-      const publicKey = await crypto.getPublicKey({ keyUri });
+      const publicKey = await keyManager.getPublicKey({ keyUri });
 
       expect(publicKey).to.exist;
       expect(publicKey).to.be.an('object');
@@ -202,9 +202,9 @@ describe('LocalKmsCrypto', () => {
     });
 
     it('supports ECDSA using secp256k1 curve and SHA-256', async () => {
-      const keyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
+      const keyUri = await keyManager.generateKey({ algorithm: 'secp256k1' });
 
-      const publicKey = await crypto.getPublicKey({ keyUri });
+      const publicKey = await keyManager.getPublicKey({ keyUri });
 
       expect(publicKey).to.exist;
       expect(publicKey).to.be.an('object');
@@ -218,10 +218,10 @@ describe('LocalKmsCrypto', () => {
 
     it('supports EdDSA using Ed25519 curve', async () => {
       // Setup.
-      const keyUri = await crypto.generateKey({ algorithm: 'Ed25519' });
+      const keyUri = await keyManager.generateKey({ algorithm: 'Ed25519' });
 
       // Test the method.
-      const publicKey = await crypto.getPublicKey({ keyUri });
+      const publicKey = await keyManager.getPublicKey({ keyUri });
 
       expect(publicKey).to.exist;
       expect(publicKey).to.be.an('object');
@@ -238,7 +238,7 @@ describe('LocalKmsCrypto', () => {
     it('imports a private key and return a key URI', async () => {
       // Setup.
       const memoryStore = new MemoryStore<KeyIdentifier, Jwk>();
-      const crypto = new LocalKmsCrypto({ keyStore: memoryStore });
+      const keyManager = new LocalKeyManager({ keyStore: memoryStore });
       const privateKey: Jwk = {
         kty : 'EC',
         crv : 'secp256k1',
@@ -251,7 +251,7 @@ describe('LocalKmsCrypto', () => {
       const expectedKeyUri = 'urn:jwk:' + expectedThumbprint;
 
       // Test the method.
-      const keyUri = await crypto.importKey({ key: privateKey });
+      const keyUri = await keyManager.importKey({ key: privateKey });
 
       // Validate the result.
       expect(keyUri).to.equal(expectedKeyUri);
@@ -262,7 +262,7 @@ describe('LocalKmsCrypto', () => {
     it('does not modify the kid property, if provided', async () => {
       // Setup.
       const memoryStore = new MemoryStore<KeyIdentifier, Jwk>();
-      const crypto = new LocalKmsCrypto({ keyStore: memoryStore });
+      const keyManager = new LocalKeyManager({ keyStore: memoryStore });
       const privateKey: Jwk = {
         kty : 'EC',
         crv : 'secp256k1',
@@ -273,7 +273,7 @@ describe('LocalKmsCrypto', () => {
       };
 
       // Test the method.
-      const keyUri = await crypto.importKey({ key: privateKey });
+      const keyUri = await keyManager.importKey({ key: privateKey });
 
       // Validate the result.
       const storedKey = await memoryStore.get(keyUri);
@@ -283,7 +283,7 @@ describe('LocalKmsCrypto', () => {
     it('adds the kid property, if missing', async () => {
       // Setup.
       const memoryStore = new MemoryStore<KeyIdentifier, Jwk>();
-      const crypto = new LocalKmsCrypto({ keyStore: memoryStore });
+      const keyManager = new LocalKeyManager({ keyStore: memoryStore });
       const privateKey: Jwk = {
         kty : 'EC',
         crv : 'secp256k1',
@@ -293,7 +293,7 @@ describe('LocalKmsCrypto', () => {
       };
 
       // Test the method.
-      const keyUri = await crypto.importKey({ key: privateKey });
+      const keyUri = await keyManager.importKey({ key: privateKey });
 
       // Validate the result.
       const storedKey = await memoryStore.get(keyUri);
@@ -312,7 +312,7 @@ describe('LocalKmsCrypto', () => {
       const privateKeyCopy = structuredClone(privateKey);
 
       // Test the method.
-      await crypto.importKey({ key: privateKey });
+      await keyManager.importKey({ key: privateKey });
 
       // Validate the result.
       expect(privateKey).to.deep.equal(privateKeyCopy);
@@ -325,7 +325,7 @@ describe('LocalKmsCrypto', () => {
 
       // Test the method.
       try {
-        await crypto.importKey({ key: invalidJwk });
+        await keyManager.importKey({ key: invalidJwk });
         expect.fail('Should have thrown an error');
 
       } catch (error: any) {
@@ -345,7 +345,7 @@ describe('LocalKmsCrypto', () => {
 
       // Test the method.
       try {
-        await crypto.importKey({ key: publicKey });
+        await keyManager.importKey({ key: publicKey });
         expect.fail('Should have thrown an error');
 
       } catch (error: any) {
@@ -358,11 +358,11 @@ describe('LocalKmsCrypto', () => {
   describe('sign()', () => {
     it('generates signatures as Uint8Array', async () => {
       // Setup.
-      const privateKeyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
+      const privateKeyUri = await keyManager.generateKey({ algorithm: 'secp256k1' });
       const data = new Uint8Array([0, 1, 2, 3, 4]);
 
       // Test the method.
-      const signature = await crypto.sign({ keyUri: privateKeyUri, data });
+      const signature = await keyManager.sign({ keyUri: privateKeyUri, data });
 
       // Validate the result.
       expect(signature).to.be.a('Uint8Array');
@@ -372,13 +372,13 @@ describe('LocalKmsCrypto', () => {
   describe('verify()', () => {
     it('returns true for a valid signature', async () => {
       // Setup.
-      const privateKeyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
-      const publicKey = await crypto.getPublicKey({ keyUri: privateKeyUri });
+      const privateKeyUri = await keyManager.generateKey({ algorithm: 'secp256k1' });
+      const publicKey = await keyManager.getPublicKey({ keyUri: privateKeyUri });
       const data = new Uint8Array([0, 1, 2, 3, 4]);
-      const signature = await crypto.sign({ keyUri: privateKeyUri, data });
+      const signature = await keyManager.sign({ keyUri: privateKeyUri, data });
 
       // Test the method.
-      const isValid = await crypto.verify({ key: publicKey, signature, data });
+      const isValid = await keyManager.verify({ key: publicKey, signature, data });
 
       // Validate the result.
       expect(isValid).to.be.true;
@@ -386,13 +386,13 @@ describe('LocalKmsCrypto', () => {
 
     it('returns false for an invalid signature', async () => {
       // Setup.
-      const privateKeyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
-      const publicKey = await crypto.getPublicKey({ keyUri: privateKeyUri });
+      const privateKeyUri = await keyManager.generateKey({ algorithm: 'secp256k1' });
+      const publicKey = await keyManager.getPublicKey({ keyUri: privateKeyUri });
       const data = new Uint8Array([0, 1, 2, 3, 4]);
       const signature = new Uint8Array(64);
 
       // Test the method.
-      const isValid = await crypto.verify({ key: publicKey, signature, data });
+      const isValid = await keyManager.verify({ key: publicKey, signature, data });
 
       // Validate the result.
       expect(isValid).to.be.false;
@@ -407,7 +407,7 @@ describe('LocalKmsCrypto', () => {
 
       // Test the method.
       try {
-        await crypto.verify({ key, signature, data });
+        await keyManager.verify({ key, signature, data });
         expect.fail('Expected an error to be thrown.');
 
       } catch (error: any) {

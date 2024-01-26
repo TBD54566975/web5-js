@@ -11,7 +11,7 @@ import type {
 
 import bencode from 'bencode';
 import { Convert } from '@web5/common';
-import { CryptoApi, computeJwkThumbprint, Ed25519, LocalKmsCrypto, Secp256k1, Secp256r1 } from '@web5/crypto';
+import { CryptoApi, computeJwkThumbprint, Ed25519, LocalKeyManager, Secp256k1, Secp256r1 } from '@web5/crypto';
 import { AUTHORITATIVE_ANSWER, decode as dnsPacketDecode, encode as dnsPacketEncode } from '@dnsquery/dns-packet';
 
 import type { Did, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
@@ -384,7 +384,7 @@ const AlgorithmToKeyTypeMap = {
  * const did = await DidDht.create();
  *
  * // DID Creation with a KMS
- * const keyManager = new LocalKmsCrypto();
+ * const keyManager = new LocalKeyManager();
  * const did = await DidDht.create({ keyManager });
  *
  * // DID Resolution
@@ -452,7 +452,7 @@ export class DidDht extends DidMethod {
    * const did = await DidDht.create();
    *
    * // DID Creation with a KMS
-   * const keyManager = new LocalKmsCrypto();
+   * const keyManager = new LocalKeyManager();
    * const did = await DidDht.create({ keyManager });
    * ```
    *
@@ -463,7 +463,7 @@ export class DidDht extends DidMethod {
    * @returns A Promise resolving to a {@link Did} object representing the new DID.
    */
   public static async create<TKms extends CryptoApi | undefined = undefined>({
-    keyManager = new LocalKmsCrypto(),
+    keyManager = new LocalKeyManager(),
     options = {}
   }: {
     keyManager?: TKms;
@@ -593,16 +593,6 @@ export class DidDht extends DidMethod {
    * handles the inclusion of these keys in the DID Document and specified verification
    * relationships.
    *
-   * @param params - The parameters for the `fromKeys` operation.
-   * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
-   *                            generate keys and sign data. If not given, a new
-   *                            {@link LocalKmsCrypto} instance will be created and used.
-   * @param params.verificationMethods - An array containing the verification method metadata and
-   *                                     key material in JWK format.
-   * @returns A Promise resolving to a `Did` object representing the DID formed from the provided keys.
-   * @throws An error if the `verificationMethods` array does not contain any keys, lacks an
-   *         Identity Key, or any verification method is missing a public or private key.
-   *
    * @example
    * ```ts
    * // Example with an existing key in JWK format.
@@ -613,9 +603,17 @@ export class DidDht extends DidMethod {
    * }];
    * const did = await DidDht.fromKeys({ verificationMethods });
    * ```
+   *
+   * @param params - The parameters for the `fromKeys` operation.
+   * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
+   *                            generate keys and sign data. If not given, a new
+   *                            {@link @web5/crypto#LocalKeyManager} instance will be created and used.
+   * @returns A Promise resolving to a `Did` object representing the DID formed from the provided keys.
+   * @throws An error if the `verificationMethods` array does not contain any keys, lacks an
+   *         Identity Key, or any verification method is missing a public or private key.
    */
   public static async fromKeys<TKms extends CryptoApi | undefined = undefined>({
-    keyManager = new LocalKmsCrypto(),
+    keyManager = new LocalKeyManager(),
     uri,
     verificationMethods,
     options = {}
@@ -736,7 +734,7 @@ export class DidDht extends DidMethod {
    * ```
    *
    * @param didUri - The DID to be resolved.
-   * @param _options - Optional parameters for resolving the DID. Unused by this DID method.
+   * @param options - Optional parameters for resolving the DID. Unused by this DID method.
    * @returns A Promise resolving to a {@link DidResolutionResult} object representing the result of the resolution.
    */
   public static async resolve(didUri: string, options: DidResolutionOptions = {}): Promise<DidResolutionResult> {
@@ -782,7 +780,6 @@ export class DidDht extends DidMethod {
    *
    * @param params - The parameters for the DID object creation.
    * @param params.keyManager - The Key Management System to manage keys.
-   * @param params.verificationMethods - An array of verification methods containing public keys.
    * @param params.options - Additional options for DID creation.
    * @returns A Promise resolving to a `Did` object.
    */

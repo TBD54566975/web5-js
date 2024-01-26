@@ -2,7 +2,7 @@ import type { CryptoApi, Jwk } from '@web5/crypto';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { LocalKmsCrypto } from '@web5/crypto';
+import { LocalKeyManager } from '@web5/crypto';
 
 import type { Did } from '../../src/methods/did-method.js';
 import type { DidDocument, DidVerificationMethod } from '../../src/types/did-core.js';
@@ -21,10 +21,10 @@ class DidTest extends DidMethod {
 }
 
 describe('DidMethod', () => {
-  let keyManager: LocalKmsCrypto;
+  let keyManager: LocalKeyManager;
 
   before(() => {
-    keyManager = new LocalKmsCrypto();
+    keyManager = new LocalKeyManager();
   });
 
   describe('getSigner()', () => {

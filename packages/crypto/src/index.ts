@@ -1,5 +1,5 @@
 export * from './jose.js';
-export * from './local-kms-crypto.js';
+export * from './local-key-manager.js';
 export * as utils from './utils.js';
 
 export * from './algorithms/aes-ctr.js';

@@ -9,7 +9,7 @@ import type {
 } from '@web5/crypto';
 
 import { Convert } from '@web5/common';
-import { LocalKmsCrypto } from '@web5/crypto';
+import { LocalKeyManager } from '@web5/crypto';
 
 import type { Did, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
 import type { DidDocument, DidResolutionOptions, DidResolutionResult, DidVerificationMethod } from '../types/did-core.js';
@@ -54,7 +54,7 @@ export interface DidJwkCreateOptions<TKms> extends DidCreateOptions<TKms> {
    */
   algorithm?: TKms extends CryptoApi
     ? InferKeyGeneratorAlgorithm<TKms>
-    : InferKeyGeneratorAlgorithm<LocalKmsCrypto>;
+    : InferKeyGeneratorAlgorithm<LocalKeyManager>;
 
   /**
    * Alternatively, specify the algorithm to be used for key generation of the single verification
@@ -92,7 +92,7 @@ export interface DidJwkCreateOptions<TKms> extends DidCreateOptions<TKms> {
  * const did = await DidJwk.create();
  *
  * // DID Creation with a KMS
- * const keyManager = new LocalKmsCrypto();
+ * const keyManager = new LocalKeyManager();
  * const did = await DidJwk.create({ keyManager });
  *
  * // DID Resolution
@@ -156,7 +156,7 @@ export class DidJwk extends DidMethod {
    * const did = await DidJwk.create();
    *
    * // DID Creation with a KMS
-   * const keyManager = new LocalKmsCrypto();
+   * const keyManager = new LocalKeyManager();
    * const did = await DidJwk.create({ keyManager });
    * ```
    *
@@ -167,7 +167,7 @@ export class DidJwk extends DidMethod {
    * @returns A Promise resolving to a {@link Did} object representing the new DID.
    */
   public static async create<TKms extends CryptoApi | undefined = undefined>({
-    keyManager = new LocalKmsCrypto(),
+    keyManager = new LocalKeyManager(),
     options = {}
   }: {
     keyManager?: TKms;
@@ -292,13 +292,12 @@ export class DidJwk extends DidMethod {
    * @param params - The parameters for the `fromKeys` operation.
    * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
    *                            generate keys and sign data. If not given, a new
-   *                            {@link LocalKmsCrypto} instance will be created and used.
-   * @param params.verificationMethods - An array containing the key material in JWK format.
+   *                            {@link @web5/crypto#LocalKeyManager} instance will be created and used.
    * @returns A Promise resolving to a `Did` object representing the DID formed from the provided keys.
    * @throws An error if the `verificationMethods` array does not contain exactly one entry.
    */
   public static async fromKeys({
-    keyManager = new LocalKmsCrypto(),
+    keyManager = new LocalKeyManager(),
     verificationMethods
   }: {
     keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;

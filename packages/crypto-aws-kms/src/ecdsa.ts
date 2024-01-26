@@ -52,13 +52,16 @@ export class EcdsaAlgorithm implements
     Signer<KmsSignParams, KmsVerifyParams> {
 
   /**
-   * The `_crypto` private variable in the `EcdsaAlgorithm` class holds a reference to an instance
-   * of `CryptoApi`. This instance is used for performing various cryptographic operations, such as
-   * computing hash digests and retrieving public keys. By having this reference, `EcdsaAlgorithm`
-   * can leverage the comprehensive cryptographic functionalities provided by `CryptoApi`, enabling
-   * it to focus on ECDSA-specific logic while delegating other cryptographic tasks to `CryptoApi`.
+   * The `_keyManager` private variable in the `EcdsaAlgorithm` class holds a reference to an
+   * `AwsKeyManager` instance, which is an implementation of the `CryptoApi` interface. This
+   * instance is used for performing various cryptographic operations, such as computing hash
+   * digests and retrieving public keys. By having this reference, `EcdsaAlgorithm` focus on
+   * ECDSA-specific logic while delegating other cryptographic tasks to `AwsKeyManager`.
+   *
+   * @remarks
+   * The type is `CrytpoApi` instead of `AwsKeyManager` to avoid a circular dependency.
    */
-  private _crypto: CryptoApi;
+  private _keyManager: CryptoApi;
 
   /**
    * A private instance of `KMSClient` from the AWS SDK. This client is used for all interactions
@@ -71,14 +74,14 @@ export class EcdsaAlgorithm implements
   /**
    *
    * @param params - An object containing the parameters to use when instantiating the algorithm.
-   * @param params.crypto - An instance of `CryptoApi` from the `@web5/crypto` package.
+   * @param params.keyManager - An instance of `AwsKeyManager`.
    * @param params.kmsClient - An instance of `KMSClient` from the AWS SDK.
    */
-  constructor({ crypto, kmsClient }: {
-    crypto: CryptoApi;
+  constructor({ keyManager, kmsClient }: {
+    keyManager: CryptoApi;
     kmsClient: KMSClient;
   }) {
-    this._crypto = crypto;
+    this._keyManager = keyManager;
     this._kmsClient = kmsClient;
   }
 
@@ -88,7 +91,7 @@ export class EcdsaAlgorithm implements
    *
    * @example
    * ```ts
-   * const ecdsa = new EcdsaAlgorithm({ crypto, kmsClient });
+   * const ecdsa = new EcdsaAlgorithm({ keyManager, kmsClient });
    * const keyUri = await ecdsa.generateKey({ algorithm: 'ES256K' });
    * console.log(keyUri); // Outputs the key URI
    * ```
@@ -128,10 +131,10 @@ export class EcdsaAlgorithm implements
     const awsKeyId = response.KeyMetadata.KeyId;
 
     // Retrieve the public key from AWS KMS.
-    const publicKey = await this._crypto.getPublicKey({ keyUri: awsKeyId });
+    const publicKey = await this._keyManager.getPublicKey({ keyUri: awsKeyId });
 
     // Compute the key URI.
-    const keyUri = await this._crypto.getKeyUri({ key: publicKey });
+    const keyUri = await this._keyManager.getKeyUri({ key: publicKey });
 
     // Set the key's alias in AWS KMS to the key URI.
     await createKeyAlias({ awsKeyId, alias: keyUri, kmsClient: this._kmsClient });
@@ -146,7 +149,7 @@ export class EcdsaAlgorithm implements
    * @remarks
    * This method uses the signature algorithm determined by the given `algorithm` to sign the
    * provided data. The `algorithm` is used to avoid another round trip to AWS KMS to determine the
-   * `KeySpec` since it was already retrieved in {@link AwsKmsCrypto.sign | `AwsKmsCrypto.sign()`}.
+   * `KeySpec` since it was already retrieved in {@link AwsKeyManager.sign | `AwsKeyManager.sign()`}.
    *
    * The signature can later be verified by parties with access to the corresponding
    * public key, ensuring that the data has not been tampered with and was indeed signed by the
@@ -164,7 +167,7 @@ export class EcdsaAlgorithm implements
    *
    * @example
    * ```ts
-   * const ecdsa = new EcdsaAlgorithm({ crypto, kmsClient });
+   * const ecdsa = new EcdsaAlgorithm({ keyManager, kmsClient });
    * const data = new TextEncoder().encode('Message to sign');
    * const signature = await ecdsa.sign({
    *   algorithm: 'ES256K',
@@ -191,7 +194,7 @@ export class EcdsaAlgorithm implements
 
       case 'ES256K': {
         // Pre-hash the data to accommodate AWS KMS limitations for signature payloads.s
-        hashedData = await this._crypto.digest({ algorithm: 'SHA-256', data });
+        hashedData = await this._keyManager.digest({ algorithm: 'SHA-256', data });
         signingAlgorithm = SigningAlgorithmSpec.ECDSA_SHA_256;
         break;
       }
@@ -238,7 +241,7 @@ export class EcdsaAlgorithm implements
    *
    * @example
    * ```ts
-   * const ecdsa = new EcdsaAlgorithm({ crypto, kmsClient });
+   * const ecdsa = new EcdsaAlgorithm({ keyManager, kmsClient });
    * const publicKey = { ... }; // Public key in JWK format corresponding to the private key that signed the data
    * const signature = new Uint8Array([...]); // Signature to verify
    * const isValid = await ecdsa.verify({

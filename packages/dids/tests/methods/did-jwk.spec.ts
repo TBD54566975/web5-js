@@ -3,7 +3,7 @@ import type { UnwrapPromise } from '@web5/common';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { LocalKmsCrypto } from '@web5/crypto';
+import { LocalKeyManager } from '@web5/crypto';
 
 import type { DidDocument } from '../../src/types/did-core.js';
 import type { PortableDid, PortableDidVerificationMethod } from '../../src/methods/did-method.js';
@@ -13,10 +13,10 @@ import { DidJwk } from '../../src/methods/did-jwk.js';
 import DidJwkResolveTestVector from '../../../../test-vectors/did_jwk/resolve.json' assert { type: 'json' };
 
 describe('DidJwk', () => {
-  let keyManager: LocalKmsCrypto;
+  let keyManager: LocalKeyManager;
 
   before(() => {
-    keyManager = new LocalKmsCrypto();
+    keyManager = new LocalKeyManager();
   });
 
   describe('create()', () => {
@@ -132,11 +132,11 @@ describe('DidJwk', () => {
 
   describe('fromKeyManager()', () => {
     let didUri: string;
-    let keyManager: LocalKmsCrypto;
+    let keyManager: LocalKeyManager;
     let privateKey: Jwk;
 
     before(() => {
-      keyManager = new LocalKmsCrypto();
+      keyManager = new LocalKeyManager();
     });
 
     beforeEach(() => {
@@ -393,7 +393,7 @@ describe('DidJwk', () => {
       portableDid.verificationMethods[0].publicKeyJwk!.use = 'sig';
 
       // Import the private key into a key manager.
-      const keyManager = new LocalKmsCrypto();
+      const keyManager = new LocalKeyManager();
       await keyManager.importKey({ key: portableDid.verificationMethods![0].privateKeyJwk! });
 
       // Create the DID using the key set.

@@ -26,7 +26,7 @@ import { convertSpkiToPublicKey, getKeySpec } from './utils.js';
  * value is an object that provides the implementation class, the key specification (if applicable),
  * and an array of names associated with the algorithm. This structure allows for easy retrieval
  * and instantiation of algorithm implementations based on the algorithm name or key specification.
- * It facilitates the support of multiple algorithms within the `AwsKmsCrypto` class.
+ * It facilitates the support of multiple algorithms within the `AwsKeyManager` class.
  */
 const supportedAlgorithms = {
   'ES256K': {
@@ -54,17 +54,17 @@ type SupportedAlgorithm = keyof typeof supportedAlgorithms;
 type AlgorithmConstructor = typeof supportedAlgorithms[SupportedAlgorithm]['implementation'];
 
 /**
- * The `AwsKmsCryptoParams` interface specifies the parameters for initializing an instance of
- * `AwsKmsCrypto`, which is an implementation of the `CryptoApi` interface tailored for AWS KMS.
+ * The `AwsKeyManagerParams` interface specifies the parameters for initializing an instance of
+ * `AwsKeyManager`, which is an implementation of the `CryptoApi` interface tailored for AWS KMS.
  *
  * This interface allows the optional inclusion of a `KMSClient` instance, which is used for
  * interacting with AWS KMS. If not provided, a default `KMSClient` instance will be created and
  * used.
  */
-export type AwsKmsCryptoParams = {
+export type AwsKeyManagerParams = {
     /**
    * An optional property to specify a custom `KMSClient` instance. If not provided, the
-   * `AwsKmsCrypto` class will instantiate a default `KMSClient`. This client is used for all
+   * `AwsKeyManager` class will instantiate a default `KMSClient`. This client is used for all
    * interactions with AWS Key Management Service (KMS), such as generating keys and signing data.
    *
    * @param kmsClient - A `KMSClient` instance from the AWS SDK.
@@ -73,10 +73,10 @@ export type AwsKmsCryptoParams = {
 };
 
 /**
- * The `AwsKmsDigestParams` interface defines the algorithm-specific parameters that should be
- * passed into the {@link AwsKmsCrypto.digest | `AwsKmsCrypto.digest()`} method.
+ * The `AwsKeyManagerDigestParams` interface defines the algorithm-specific parameters that should
+ * be passed into the {@link AwsKeyManager.digest | `AwsKeyManager.digest()`} method.
  */
-export interface AwsKmsDigestParams extends KmsDigestParams {
+export interface AwsKeyManagerDigestParams extends KmsDigestParams {
   /**
    * A string defining the name of hash function to use. The value must be one of the following:
    * - `"SHA-256"`: Generates a 256-bit digest.
@@ -85,11 +85,11 @@ export interface AwsKmsDigestParams extends KmsDigestParams {
 }
 
 /**
- * The `AwsKmsGenerateKeyParams` interface defines the algorithm-specific parameters that should be
- * passed into the {@link AwsKmsCrypto.generateKey | `AwsKmsCrypto.generateKey()`} method when
- * generating a key in AWS KMS.
+ * The `AwsKeyManagerGenerateKeyParams` interface defines the algorithm-specific parameters that
+ * should be passed into the {@link AwsKeyManager.generateKey | `AwsKeyManager.generateKey()`}
+ * method when generating a key in AWS KMS.
  */
-export interface AwsKmsGenerateKeyParams extends KmsGenerateKeyParams {
+export interface AwsKeyManagerGenerateKeyParams extends KmsGenerateKeyParams {
   /**
    * A string defining the type of key to generate. The value must be one of the following:
    * - `"ES256K"`: ECDSA using the secp256k1 curve and SHA-256.
@@ -97,12 +97,12 @@ export interface AwsKmsGenerateKeyParams extends KmsGenerateKeyParams {
   algorithm: 'ES256K';
 }
 
-export class AwsKmsCrypto implements CryptoApi<AwsKmsGenerateKeyParams> {
+export class AwsKeyManager implements CryptoApi<AwsKeyManagerGenerateKeyParams> {
   /**
-   * A private map that stores instances of cryptographic algorithm implementations. Each key in this
-   * map is an `AlgorithmConstructor`, and its corresponding value is an instance of a class that
-   * implements a specific cryptographic algorithm. This map is used to cache and reuse instances for
-   * performance optimization, ensuring that each algorithm is instantiated only once.
+   * A private map that stores instances of cryptographic algorithm implementations. Each key in
+   * this map is an `AlgorithmConstructor`, and its corresponding value is an instance of a class
+   * that implements a specific cryptographic algorithm. This map is used to cache and reuse
+   * instances for performance optimization, ensuring that each algorithm is instantiated only once.
    */
   private _algorithmInstances: Map<AlgorithmConstructor, any> = new Map();
 
@@ -114,7 +114,7 @@ export class AwsKmsCrypto implements CryptoApi<AwsKmsGenerateKeyParams> {
    */
   private _kmsClient: KMSClient;
 
-  constructor(params?: AwsKmsCryptoParams) {
+  constructor(params?: AwsKeyManagerParams) {
     this._kmsClient = params?.kmsClient ?? new KMSClient();
   }
 
@@ -132,9 +132,9 @@ export class AwsKmsCrypto implements CryptoApi<AwsKmsGenerateKeyParams> {
    *
    * @example
    * ```ts
-   * const crypto = new AwsKmsCrypto();
+   * const keyManager = new AwsKeyManager();
    * const data = new Uint8Array([...]);
-   * const digest = await crypto.digest({ algorithm: 'SHA-256', data });
+   * const digest = await keyManager.digest({ algorithm: 'SHA-256', data });
    * ```
    *
    * @param params - The parameters for the digest operation.
@@ -144,7 +144,7 @@ export class AwsKmsCrypto implements CryptoApi<AwsKmsGenerateKeyParams> {
    * @returns A Promise which will be fulfilled with the hash digest.
    */
   public async digest({ algorithm, data }:
-    AwsKmsDigestParams
+    AwsKeyManagerDigestParams
   ): Promise<Uint8Array> {
     // Get the hash function implementation based on the specified `algorithm` parameter.
     const hasher = this.getAlgorithm({ algorithm });
@@ -170,8 +170,8 @@ export class AwsKmsCrypto implements CryptoApi<AwsKmsGenerateKeyParams> {
    *
    * @example
    * ```ts
-   * const crypto = new AwsKmsCrypto();
-   * const keyUri = await crypto.generateKey({ algorithm: 'ES256K' });
+   * const keyManager = new AwsKeyManager();
+   * const keyUri = await keyManager.generateKey({ algorithm: 'ES256K' });
    * console.log(keyUri); // Outputs the key URI
    * ```
    *
@@ -181,7 +181,7 @@ export class AwsKmsCrypto implements CryptoApi<AwsKmsGenerateKeyParams> {
    * @returns A Promise that resolves to the key URI, a unique identifier for the generated key.
    */
   public async generateKey({ algorithm }:
-    AwsKmsGenerateKeyParams
+    AwsKeyManagerGenerateKeyParams
   ): Promise<KeyIdentifier> {
     // Get the key generator based on the specified `algorithm` parameter.
     const keyGenerator = this.getAlgorithm({ algorithm });
@@ -207,9 +207,9 @@ export class AwsKmsCrypto implements CryptoApi<AwsKmsGenerateKeyParams> {
    *
    * @example
    * ```ts
-   * const crypto = new AwsKmsCrypto();
+   * const keyManager = new AwsKeyManager();
    * const publicKey = { ... }; // Public key in JWK format
-   * const keyUri = await crypto.getKeyUri({ key: publicKey });
+   * const keyUri = await keyManager.getKeyUri({ key: publicKey });
    * ```
    *
    * @param params - The parameters for getting the key URI.
@@ -235,9 +235,9 @@ export class AwsKmsCrypto implements CryptoApi<AwsKmsGenerateKeyParams> {
    *
    * @example
    * ```ts
-   * const crypto = new AwsKmsCrypto();
-   * const keyUri = await crypto.generateKey({ algorithm: 'ES256K' });
-   * const publicKey = await crypto.getPublicKey({ keyUri });
+   * const keyManager = new AwsKeyManager();
+   * const keyUri = await keyManager.generateKey({ algorithm: 'ES256K' });
+   * const publicKey = await keyManager.getPublicKey({ keyUri });
    * ```
    *
    * @param params - The parameters for retrieving the public key.
@@ -286,9 +286,9 @@ export class AwsKmsCrypto implements CryptoApi<AwsKmsGenerateKeyParams> {
    *
    * @example
    * ```ts
-   * const crypto = new AwsKmsCrypto();
+   * const keyManager = new AwsKeyManager();
    * const data = new TextEncoder().encode('Message to sign');
-   * const signature = await crypto.sign({
+   * const signature = await keyManager.sign({
    *   keyUri: 'urn:jwk:...',
    *   data
    * });
@@ -333,7 +333,7 @@ export class AwsKmsCrypto implements CryptoApi<AwsKmsGenerateKeyParams> {
    *
    * @example
    * ```ts
-   * const crypto = new AwsKmsCrypto();
+   * const keyManager = new AwsKeyManager();
    * const publicKey = { ... }; // Public key in JWK format corresponding to the private key that signed the data
    * const data = new TextEncoder().encode('Message to sign'); // Data that was signed
    * const signature = new Uint8Array([...]); // Signature to verify
@@ -399,8 +399,8 @@ export class AwsKmsCrypto implements CryptoApi<AwsKmsGenerateKeyParams> {
     if (!this._algorithmInstances.has(AlgorithmImplementation)) {
     // If not, create a new instance and store it in the cache
       this._algorithmInstances.set(AlgorithmImplementation, new AlgorithmImplementation({
-        crypto    : this,
-        kmsClient : this._kmsClient
+        keyManager : this,
+        kmsClient  : this._kmsClient
       }));
     }
 

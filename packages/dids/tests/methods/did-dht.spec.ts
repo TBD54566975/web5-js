@@ -3,7 +3,7 @@ import type { Jwk } from '@web5/crypto';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
-import { LocalKmsCrypto } from '@web5/crypto';
+import { LocalKeyManager } from '@web5/crypto';
 
 import type { DidResolutionResult } from '../../src/index.js';
 import type { PortableDid } from '../../src/methods/did-method.js';
@@ -403,11 +403,11 @@ describe('DidDht', () => {
 
   describe('fromKeyManager()', () => {
     let didUri: string;
-    let keyManager: LocalKmsCrypto;
+    let keyManager: LocalKeyManager;
     let privateKey: Jwk;
 
     before(() => {
-      keyManager = new LocalKmsCrypto();
+      keyManager = new LocalKeyManager();
     });
 
     beforeEach(() => {
@@ -534,7 +534,7 @@ describe('DidDht', () => {
     });
 
     it('returns a DID with a getSigner function that can sign and verify data', async () => {
-      const keyManager = new LocalKmsCrypto();
+      const keyManager = new LocalKeyManager();
 
       // Create a DID to use for the test.
       const testDid = await DidDht.create({ keyManager });
@@ -560,7 +560,7 @@ describe('DidDht', () => {
     });
 
     it('returns a DID with a getSigner function that accepts a specific keyUri', async () => {
-      const keyManager = new LocalKmsCrypto();
+      const keyManager = new LocalKeyManager();
 
       // Create a DID to use for the test.
       const testDid = await DidDht.create({ keyManager });

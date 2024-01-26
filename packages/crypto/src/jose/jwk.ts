@@ -321,8 +321,11 @@ export type JwkParamsRsaPrivate = JwkParamsRsaPublic & {
   qi?: string;
   /** Other primes information (optional in RFC 7518) */
   oth?: {
+    /** Other primes' factor */
     r: string;
+    /** Other primes' CRT exponent */
     d: string;
+    /** Other primes' CRT coefficient */
     t: string;
   }[];
 };
@@ -332,12 +335,6 @@ export type PublicKeyJwk = JwkParamsEcPublic | JwkParamsOkpPublic | JwkParamsRsa
 
 /** Parameters used with private keys in JWK format. */
 export type PrivateKeyJwk = JwkParamsEcPrivate | JwkParamsOkpPrivate | JwkParamsOctPrivate | JwkParamsRsaPrivate;
-
-/** Object representing an asymmetric key pair in JWK format. */
-export type JwkKeyPair = {
-  publicKeyJwk: PublicKeyJwk;
-  privateKeyJwk: PrivateKeyJwk;
-}
 
 /**
  * JSON Web Key ({@link https://datatracker.ietf.org/doc/html/rfc7517 | JWK}).
@@ -399,8 +396,11 @@ export interface Jwk {
   qi?: string;
   /** Other primes information (optional in RFC 7518) */
   oth?: {
+    /** Other primes' factor */
     r: string;
+    /** Other primes' CRT exponent */
     d: string;
+    /** Other primes' CRT coefficient */
     t: string;
   }[];
 
@@ -426,6 +426,7 @@ export interface Jwk {
  * "JSON Web Key Set Parameters" registry or be a value that contains a Collision-Resistant Name.
  */
 export interface JwkSet {
+  /** Array of JWKs */
   keys: Jwk[]
 }
 

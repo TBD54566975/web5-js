@@ -2,7 +2,7 @@ import type {
   Jwk,
   Signer,
   CryptoApi,
-  LocalKmsCrypto,
+  LocalKeyManager,
   EnclosedSignParams,
   EnclosedVerifyParams,
   InferKeyGeneratorAlgorithm,
@@ -89,7 +89,7 @@ export interface DidCreateVerificationMethod<TKms> extends Pick<Partial<DidVerif
    */
   algorithm: TKms extends CryptoApi
     ? InferKeyGeneratorAlgorithm<TKms>
-    : InferKeyGeneratorAlgorithm<LocalKmsCrypto>;
+    : InferKeyGeneratorAlgorithm<LocalKeyManager>;
 
   /**
    * Optionally specify the purposes for which a verification method is intended to be used in a DID
@@ -354,9 +354,9 @@ export class DidMethod {
    * verification method. If not given, each DID method implementation will select a default
    * verification method from the DID Document.
    *
-   * @param params - The parameters for the `getSigningMethod` operation.
-   * @param params.didDocument - DID Document to get the verification method from.
-   * @param params.methodId - ID of the verification method to use for signing.
+   * @param _params - The parameters for the `getSigningMethod` operation.
+   * @param _params.didDocument - DID Document to get the verification method from.
+   * @param _params.methodId - ID of the verification method to use for signing.
    * @returns Verification method to use for signing.
    */
   public static async getSigningMethod(_params: {

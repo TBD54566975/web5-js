@@ -5,7 +5,7 @@ import {
   Jose,
   Ed25519,
   utils as cryptoUtils,
-  LocalKmsCrypto,
+  LocalKeyManager,
 } from '@web5/crypto';
 
 import type { Did, DidCreateOptions, DidCreateVerificationMethod, PortableDid } from './did-method.js';
@@ -53,7 +53,7 @@ export interface DidKeyCreateOptions<TKms> extends DidCreateOptions<TKms> {
    */
   algorithm?: TKms extends CryptoApi
     ? InferKeyGeneratorAlgorithm<TKms>
-    : InferKeyGeneratorAlgorithm<LocalKmsCrypto>;
+    : InferKeyGeneratorAlgorithm<LocalKeyManager>;
 
   /**
    * Optionally enable encryption key derivation during DID creation.
@@ -163,7 +163,7 @@ export class DidKey extends DidMethod {
    *         are mutually exclusive.
    */
   public static async create<TKms extends CryptoApi | undefined = undefined>({
-    keyManager = new LocalKmsCrypto(),
+    keyManager = new LocalKeyManager(),
     options = {}
   }: {
     keyManager?: TKms;
