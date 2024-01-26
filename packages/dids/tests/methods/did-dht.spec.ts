@@ -230,7 +230,7 @@ describe('DidDht', () => {
               purposes  : ['authentication', 'assertionMethod']
             },
             {
-              algorithm : 'ES256K',
+              algorithm : 'secp256k1',
               id        : 'enc',
               purposes  : ['keyAgreement']
             }

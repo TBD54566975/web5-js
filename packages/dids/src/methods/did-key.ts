@@ -169,18 +169,17 @@ export class DidKey extends DidMethod {
     keyManager?: TKms;
     options?: DidKeyCreateOptions<TKms>;
   } = {}): Promise<Did> {
-    // Check for mutual exclusivity of 'algorithm' and 'keySet' options.
-    if (options.algorithm && options.keySet) {
-      throw new TypeError(`DidKey: The 'algorithm' and 'keySet' options are mutually exclusive and cannot be used together.`);
+    if (options.algorithm && options.verificationMethods) {
+      throw new Error(`The 'algorithm' and 'verificationMethods' options are mutually exclusive`);
     }
 
     let {
-      // Default to Ed25519 key generation if an algorithm is not given.
-      algorithm = 'Ed25519',
       // Default to not deriving an encryption key.
       enableEncryptionKeyDerivation = false,
-      keySet
     } = options;
+
+    // Default to Ed25519 key generation if an algorithm is not given.
+    const algorithm = options.algorithm ?? options.verificationMethods?.[0]?.algorithm ?? 'Ed25519';
 
     return null as any;
   }

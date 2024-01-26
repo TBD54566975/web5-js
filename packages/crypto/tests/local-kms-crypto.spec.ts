@@ -62,7 +62,7 @@ describe('LocalKmsCrypto', () => {
 
   describe('exportKey()', () => {
     it('exports a private key as a JWK', async () => {
-      const keyUri = await crypto.generateKey({ algorithm: 'ES256K' });
+      const keyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
 
       const jwk = await crypto.exportKey({ keyUri });
 
@@ -89,15 +89,15 @@ describe('LocalKmsCrypto', () => {
 
   describe('generateKey()', () => {
     it('generates a key and returns a key URI', async () => {
-      const keyUri = await crypto.generateKey({ algorithm: 'ES256K' });
+      const keyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
 
       expect(keyUri).to.exist;
       expect(keyUri).to.be.a.string;
       expect(keyUri.indexOf('urn:jwk:')).to.equal(0);
     });
 
-    it(`supports generating 'ES256K' keys`, async () => {
-      const keyUri = await crypto.generateKey({ algorithm: 'ES256K' });
+    it(`supports generating 'secp256k1' keys`, async () => {
+      const keyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
 
       expect(keyUri).to.exist;
       expect(keyUri).to.be.a.string;
@@ -138,7 +138,7 @@ describe('LocalKmsCrypto', () => {
 
       // Test the method.
       try {
-        await crypto.generateKey({ algorithm: 'ES256K' });
+        await crypto.generateKey({ algorithm: 'secp256k1' });
         expect.fail('Expected an error to be thrown.');
 
       } catch (error: any) {
@@ -192,7 +192,7 @@ describe('LocalKmsCrypto', () => {
 
   describe('getPublicKey()', () => {
     it('computes the public key and returns a JWK', async () => {
-      const keyUri = await crypto.generateKey({ algorithm: 'ES256K' });
+      const keyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
 
       const publicKey = await crypto.getPublicKey({ keyUri });
 
@@ -202,7 +202,7 @@ describe('LocalKmsCrypto', () => {
     });
 
     it('supports ECDSA using secp256k1 curve and SHA-256', async () => {
-      const keyUri = await crypto.generateKey({ algorithm: 'ES256K' });
+      const keyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
 
       const publicKey = await crypto.getPublicKey({ keyUri });
 
@@ -358,7 +358,7 @@ describe('LocalKmsCrypto', () => {
   describe('sign()', () => {
     it('generates signatures as Uint8Array', async () => {
       // Setup.
-      const privateKeyUri = await crypto.generateKey({ algorithm: 'ES256K' });
+      const privateKeyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
       const data = new Uint8Array([0, 1, 2, 3, 4]);
 
       // Test the method.
@@ -372,7 +372,7 @@ describe('LocalKmsCrypto', () => {
   describe('verify()', () => {
     it('returns true for a valid signature', async () => {
       // Setup.
-      const privateKeyUri = await crypto.generateKey({ algorithm: 'ES256K' });
+      const privateKeyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
       const publicKey = await crypto.getPublicKey({ keyUri: privateKeyUri });
       const data = new Uint8Array([0, 1, 2, 3, 4]);
       const signature = await crypto.sign({ keyUri: privateKeyUri, data });
@@ -386,7 +386,7 @@ describe('LocalKmsCrypto', () => {
 
     it('returns false for an invalid signature', async () => {
       // Setup.
-      const privateKeyUri = await crypto.generateKey({ algorithm: 'ES256K' });
+      const privateKeyUri = await crypto.generateKey({ algorithm: 'secp256k1' });
       const publicKey = await crypto.getPublicKey({ keyUri: privateKeyUri });
       const data = new Uint8Array([0, 1, 2, 3, 4]);
       const signature = new Uint8Array(64);

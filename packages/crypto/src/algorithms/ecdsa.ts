@@ -15,8 +15,9 @@ export interface EcdsaGenerateKeyParams extends GenerateKeyParams {
   /**
    * A string defining the type of key to generate. The value must be one of the following:
    * - `"ES256K"`: ECDSA using the secp256k1 curve and SHA-256.
+   * - `"secp256k1"`: ECDSA using the secp256k1 curve and SHA-256.
    */
-  algorithm: 'ES256K';
+  algorithm: 'ES256K' | 'secp256k1';
 }
 
 /**
@@ -91,7 +92,8 @@ export class EcdsaAlgorithm extends CryptoAlgorithm
   ): Promise<Jwk> {
     switch (algorithm) {
 
-      case 'ES256K': {
+      case 'ES256K':
+      case 'secp256k1': {
         const privateKey = await Secp256k1.generateKey();
         privateKey.alg = algorithm;
         return privateKey;

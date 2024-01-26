@@ -85,7 +85,7 @@ export interface AsymmetricKeyGenerator<
  * @example
  * ```ts
  * export interface MyKmsGenerateKeyParams extends KmsGenerateKeyParams {
- *  algorithm: 'Ed25519' | 'ES256K';
+ *  algorithm: 'Ed25519' | 'secp256k1';
  * }
  *
  * class MyKms implements KeyGenerator<MyKmsGenerateKeyParams, Jwk> {
@@ -95,7 +95,7 @@ export interface AsymmetricKeyGenerator<
  * }
  *
  * type SupportedAlgorithms = InferKeyGeneratorAlgorithm<MyKms>;
- * // `SupportedAlgorithms` will be inferred as 'Ed25519' | 'ES256K'
+ * // `SupportedAlgorithms` will be inferred as 'Ed25519' | 'secp256k1'
  * ```
  *
  * @template T - The type of the key generator from which to infer the algorithm type.

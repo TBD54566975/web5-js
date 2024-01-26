@@ -47,7 +47,7 @@ describe('DidJwk', () => {
     });
 
     it('creates a DID using the top-level algorithm property, if given', async () => {
-      const did = await DidJwk.create({ keyManager, options: { algorithm: 'ES256K' } });
+      const did = await DidJwk.create({ keyManager, options: { algorithm: 'secp256k1' } });
 
       // Retrieve the public key from the key manager.
       const keyUri = await keyManager.getKeyUri({ key: did.didDocument.verificationMethod![0]!.publicKeyJwk! });
@@ -58,7 +58,7 @@ describe('DidJwk', () => {
     });
 
     it('creates a DID using the verificationMethods algorithm property, if given', async () => {
-      const did = await DidJwk.create({ keyManager, options: { verificationMethods: [{ algorithm: 'ES256K' }] } });
+      const did = await DidJwk.create({ keyManager, options: { verificationMethods: [{ algorithm: 'secp256k1' }] } });
 
       // Retrieve the public key from the key manager.
       const keyUri = await keyManager.getKeyUri({ key: did.didDocument.verificationMethod![0]!.publicKeyJwk! });
@@ -81,7 +81,7 @@ describe('DidJwk', () => {
 
     it('creates a DID using any signature algorithm supported by the provided KMS', async () => {
       expect(
-        await DidJwk.create({ keyManager, options: { algorithm: 'ES256K' } })
+        await DidJwk.create({ keyManager, options: { algorithm: 'secp256k1' } })
       ).to.have.property('uri');
 
       expect(
@@ -405,7 +405,7 @@ describe('DidJwk', () => {
 
     it(`only specifies 'keyAgreement' relationship when JWK use is 'enc'`, async () => {
       // Generate a random secp256k1 private key.
-      const keyUri = await keyManager.generateKey({ algorithm: 'ES256K' });
+      const keyUri = await keyManager.generateKey({ algorithm: 'secp256k1' });
       const publicKey = await keyManager.getPublicKey({ keyUri });
       const privateKey = await keyManager.exportKey({ keyUri });
 

@@ -55,6 +55,19 @@ describe('EcdsaAlgorithm', () => {
       expect(publicKey).to.have.property('crv', 'secp256k1');
     });
 
+    it('accepts secp256k1 as an alias for the ES256K algorithm identifier', async () => {
+      // Setup.
+      const privateKey = await ecdsa.generateKey({ algorithm: 'secp256k1' });
+
+      // Test the method.
+      const publicKey = await ecdsa.computePublicKey({ key: privateKey });
+
+      // Validate the result.
+      expect(publicKey).to.have.property('kty', 'EC');
+      expect(publicKey).to.have.property('alg', 'ES256K');
+      expect(publicKey).to.have.property('crv', 'secp256k1');
+    });
+
     it('throws an error if the key provided is not an EC private key', async () => {
       // Setup.
       const privateKey: Jwk = {

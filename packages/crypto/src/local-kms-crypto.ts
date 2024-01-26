@@ -38,9 +38,13 @@ const supportedAlgorithms = {
     implementation : EdDsaAlgorithm,
     names          : ['Ed25519'],
   },
-  'ES256K': {
+  'secp256k1': {
     implementation : EcdsaAlgorithm,
     names          : ['ES256K', 'secp256k1'],
+  },
+  'secp256r1': {
+    implementation : EcdsaAlgorithm,
+    names          : ['ES256', 'secp256r1'],
   },
   'SHA-256': {
     implementation : Sha2Algorithm,
@@ -96,10 +100,10 @@ export interface LocalKmsDigestParams extends KmsDigestParams {
 export interface LocalKmsGenerateKeyParams extends KmsGenerateKeyParams {
   /**
    * A string defining the type of key to generate. The value must be one of the following:
-   * - `"Ed25519"`: EdDSA using the Ed25519 curve.
-   * - `"ES256K"`: ECDSA using the secp256k1 curve and SHA-256.
+   * - `"Ed25519"`
+   * - `"secp256k1"`
    */
-  algorithm: 'Ed25519' | 'ES256K';
+  algorithm: 'Ed25519' | 'secp256k1' | 'secp256r1';
 }
 
 export class LocalKmsCrypto implements
@@ -175,7 +179,7 @@ export class LocalKmsCrypto implements
    * @example
    * ```ts
    * const crypto = new LocalKmsCrypto();
-   * const keyUri = await crypto.generateKey({ algorithm: 'ES256K' });
+   * const keyUri = await crypto.generateKey({ algorithm: 'Ed25519' });
    * const privateKey = await crypto.exportKey({ keyUri });
    * ```
    *
@@ -200,7 +204,7 @@ export class LocalKmsCrypto implements
    * @example
    * ```ts
    * const cryptoApi = new LocalKmsCrypto();
-   * const keyUri = await cryptoApi.generateKey({ algorithm: 'ES256K' });
+   * const keyUri = await cryptoApi.generateKey({ algorithm: 'Ed25519' });
    * console.log(keyUri); // Outputs the key URI
    * ```
    *
@@ -247,7 +251,7 @@ export class LocalKmsCrypto implements
    * @example
    * ```ts
    * const crypto = new LocalKmsCrypto();
-   * const keyUri = await crypto.generateKey({ algorithm: 'ES256K' });
+   * const keyUri = await crypto.generateKey({ algorithm: 'Ed25519' });
    * const publicKey = await crypto.getPublicKey({ keyUri });
    * const keyUriFromPublicKey = await crypto.getKeyUri({ key: publicKey });
    * console.log(keyUri === keyUriFromPublicKey); // Outputs `true`
@@ -277,7 +281,7 @@ export class LocalKmsCrypto implements
    * @example
    * ```ts
    * const crypto = new LocalKmsCrypto();
-   * const keyUri = await crypto.generateKey({ algorithm: 'ES256K' });
+   * const keyUri = await crypto.generateKey({ algorithm: 'Ed25519' });
    * const publicKey = await crypto.getPublicKey({ keyUri });
    * ```
    *
@@ -360,7 +364,7 @@ export class LocalKmsCrypto implements
    * @example
    * ```ts
    * const crypto = new LocalKmsCrypto();
-   * const keyUri = await crypto.generateKey({ algorithm: 'ES256K' });
+   * const keyUri = await crypto.generateKey({ algorithm: 'Ed25519' });
    * const data = new TextEncoder().encode('Message to sign');
    * const signature = await crypto.sign({ keyUri, data });
    * ```
@@ -401,7 +405,7 @@ export class LocalKmsCrypto implements
    * @example
    * ```ts
    * const crypto = new LocalKmsCrypto();
-   * const keyUri = await crypto.generateKey({ algorithm: 'ES256K' });
+   * const keyUri = await crypto.generateKey({ algorithm: 'Ed25519' });
    * const data = new TextEncoder().encode('Message to sign');
    * const signature = await crypto.sign({ keyUri, data });
    * const isSignatureValid = await crypto.verify({ keyUri, data, signature });
@@ -439,7 +443,7 @@ export class LocalKmsCrypto implements
    *
    * @example
    * ```ts
-   * const signer = this.getAlgorithm({ algorithm: 'ES256K' });
+   * const signer = this.getAlgorithm({ algorithm: 'Ed25519' });
    * ```
    *
    * @param params - The parameters for retrieving the algorithm implementation.

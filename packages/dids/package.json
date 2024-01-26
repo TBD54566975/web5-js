@@ -79,7 +79,7 @@
     "@decentralized-identity/ion-sdk": "1.0.1",
     "@dnsquery/dns-packet": "6.1.1",
     "@web5/common": "0.2.2",
-    "@web5/crypto": "0.3.0",
+    "@web5/crypto": "0.4.0",
     "bencode": "4.0.0",
     "level": "8.0.0",
     "ms": "2.1.3"
