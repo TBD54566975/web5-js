@@ -13,7 +13,7 @@ import {
   isOkpPrivateJwk,
   computeJwkThumbprint,
 } from '../../src/jose/jwk.js';
-import { jwkToThumbprintTestVectors } from '../fixtures/test-vectors/jose.js';
+import { jwkToThumbprintTestVectors } from '../fixtures/test-vectors/jwk.js';
 
 chai.use(chaiAsPromised);
 

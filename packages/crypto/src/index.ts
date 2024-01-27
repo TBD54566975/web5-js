@@ -1,4 +1,3 @@
-export * from './jose.js';
 export * from './local-key-manager.js';
 export * as utils from './utils.js';
 

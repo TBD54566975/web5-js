@@ -783,11 +783,7 @@ export class DidDht extends DidMethod {
    * @param params.options - Additional options for DID creation.
    * @returns A Promise resolving to a `Did` object.
    */
-  private static async fromPublicKeys({
-    keyManager,
-    verificationMethods,
-    options
-  }: {
+  private static async fromPublicKeys({ keyManager, verificationMethods, options }: {
     keyManager: CryptoApi;
     options: DidDhtCreateOptions<CryptoApi | undefined>;
   } & PortableDid): Promise<Did> {

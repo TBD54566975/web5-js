@@ -444,10 +444,7 @@ export class DidJwk extends DidMethod {
    * @param params.publicKey - The public key of the DID in JWK format.
    * @returns A Promise resolving to a `Did` object representing the DID formed from the provided public key.
    */
-  private static async fromPublicKey({
-    keyManager,
-    publicKey
-  }: {
+  private static async fromPublicKey({ keyManager, publicKey }: {
     keyManager: CryptoApi;
     publicKey: Jwk;
   }): Promise<Did> {
