@@ -52,7 +52,7 @@ import { computeJwkThumbprint, isOkpPrivateJwk, isOkpPublicJwk } from '../jose/j
  * const publicKeyBytes = await Ed25519.publicKeyToBytes({ publicKey });
  *
  * // Key Validation
- * const isPublicKeyValid = Ed25519.validatePublicKey({ publicKeyBytes });
+ * const isPublicKeyValid = await Ed25519.validatePublicKey({ publicKeyBytes });
  * ```
  */
 export class Ed25519 {
@@ -262,7 +262,7 @@ export class Ed25519 {
     const ed25519PublicKeyBytes = await Ed25519.publicKeyToBytes({ publicKey });
 
     // Verify Edwards public key is valid.
-    const isValid = Ed25519.validatePublicKey({ publicKey: ed25519PublicKeyBytes });
+    const isValid = await Ed25519.validatePublicKey({ publicKeyBytes: ed25519PublicKeyBytes });
     if (!isValid) {
       throw new Error('Ed25519: Invalid public key.');
     }
@@ -481,23 +481,23 @@ export class Ed25519 {
    *
    * @example
    * ```ts
-   * const publicKey = new Uint8Array([...]); // A public key in byte format
-   * const isValid = Ed25519.validatePublicKey({ publicKey });
+   * const publicKeyBytes = new Uint8Array([...]); // A public key in byte format
+   * const isValid = await Ed25519.validatePublicKey({ publicKeyBytes });
    * console.log(isValid); // true if the key is valid on the Edwards curve, false otherwise
    * ```
    *
    * @param params - The parameters for the public key validation.
-   * @param params.publicKey - The public key to validate, represented as a Uint8Array.
+   * @param params.publicKeyBytes - The public key to validate, represented as a Uint8Array.
    *
    * @returns A Promise that resolves to a boolean indicating whether the key
    *          corresponds to a valid point on the Edwards curve.
    */
-  public static validatePublicKey({ publicKey }: {
-    publicKey: Uint8Array;
-  }): boolean {
+  public static async validatePublicKey({ publicKeyBytes }: {
+    publicKeyBytes: Uint8Array;
+  }): Promise<boolean> {
     try {
     // Decode Edwards points from key bytes.
-      const point = ed25519.ExtendedPoint.fromHex(publicKey);
+      const point = ed25519.ExtendedPoint.fromHex(publicKeyBytes);
 
       // Check if points are on the Twisted Edwards curve.
       point.assertValidity();
