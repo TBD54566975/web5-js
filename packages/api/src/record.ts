@@ -104,6 +104,29 @@ export class Record implements RecordModel {
   private _protocolRole: RecordOptions['protocolRole'];
   // Getters for immutable DWN Record properties.
 
+  static sendCache = new Map();
+  static sendCacheLimit = 100;
+  static setSendCache(recordId, target){
+    const recordCache = Record.sendCache;
+    let targetCache = recordCache.get(recordId) || new Set();
+    recordCache.delete(recordId);
+    recordCache.set(recordId, targetCache);
+    if (recordCache.size > Record.sendCacheLimit) {
+      const firstRecord = recordCache.keys().next().value;
+      recordCache.delete(firstRecord);
+    }
+    targetCache.delete(target);
+    targetCache.add(target);
+    if (targetCache.size > Record.sendCacheLimit) {
+      const firstTarget = targetCache.keys().next().value;
+      targetCache.delete(firstTarget);
+    }
+  }
+  static checkSendCache(recordId, target){
+    let targetCache = Record.sendCache.get(recordId);
+    return target && targetCache ? targetCache.has(target) : targetCache;
+  }
+
   /** Record's signatures attestation */
   get attestation(): RecordsWriteMessage['attestation'] { return this._attestation; }
 
@@ -430,7 +453,7 @@ export class Record implements RecordModel {
       options.target = this._connectedDid;
     }
 
-    if (options.sendAll && initialWrite){
+    if (initialWrite && !Record.checkSendCache(this._recordId, options.target)){
 
       const initialState = {
         messageType : DwnInterfaceName.Records + DwnMethodName.Write,
@@ -443,6 +466,8 @@ export class Record implements RecordModel {
       } as any;
 
       await this._agent.sendDwnRequest(initialState);
+
+      Record.setSendCache(this._recordId, options.target);
 
     }
 
@@ -586,14 +611,14 @@ export class Record implements RecordModel {
 
     if (200 <= status.code && status.code <= 299) {
       if (!this._initialWrite) {
-        this._initialWrite = removeUndefinedProperties({
+        this._initialWrite = JSON.parse(JSON.stringify(removeUndefinedProperties({
           contextId     : this._contextId,
           recordId      : this._recordId,
           descriptor    : this._descriptor,
           attestation   : this._attestation,
           authorization : this._authorization,
           encryption    : this._encryption,
-        });
+        })));
       }
       // Only update the local Record instance mutable properties if the record was successfully (over)written.
       this._authorization = responseMessage.authorization;
