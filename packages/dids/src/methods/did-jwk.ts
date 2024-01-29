@@ -128,8 +128,11 @@ export interface DidJwkCreateOptions<TKms> extends DidCreateOptions<TKms> {
  *   }]
  * });
  *
- * // Export a DID's key to a key set
- * const keySet = await DidJwk.toKeys({ did });
+ * // Convert a DID object to a portable format
+ * const portableDid = await DidJwk.toKeys({ did });
+ *
+ * // Reconstruct a DID object from a portable format
+ * const did = await DidJwk.fromKeys(portableDid);
  * ```
  */
 export class DidJwk extends DidMethod {
@@ -192,79 +195,7 @@ export class DidJwk extends DidMethod {
   }
 
   /**
-   * Instantiates a `Did` object from an existing DID using keys in an external Key Management
-   * System (KMS).
-   *
-   * This method returns a `Did` object by resolving an existing `did:jwk` DID URI and verifying
-   * that all associated keys are present in the provided key manager.
-   *
-   * @remarks
-   * The method verifies the presence of key material for every verification method in the DID
-   * document within the given KMS. If any key is missing, an error is thrown.
-   *
-   * This approach ensures that the resulting `Did` object is fully operational with the provided
-   * key manager and that all cryptographic operations related to the DID can be performed.
-   *
-   * @example
-   * ```ts
-   * // Assuming keyManager already contains the key material for the DID.
-   * const didUri = 'did:jwk:example';
-   * const did = await DidJwk.fromKeyManager({ didUri, keyManager });
-   * // The 'did' is now an instance of Did, linked with the provided keyManager.
-   * ```
-   *
-   * @param params - The parameters for the `fromKeyManager` operation.
-   * @param params.didUri - The URI of the DID to be instantiated.
-   * @param params.keyManager - The Key Management System to be used for key management operations.
-   * @returns A Promise resolving to the instantiated `Did` object.
-   * @throws An error if any key in the DID document is not present in the provided KMS.
-   */
-  public static async fromKeyManager({ didUri, keyManager }: {
-    didUri: string;
-    keyManager: CryptoApi;
-  }): Promise<Did> {
-    // Resolve the DID URI to a DID Document.
-    const { didDocument, didResolutionMetadata } = await DidJwk.resolve(didUri);
-
-    // If the given DID isn't "did:jwk", throw an error.
-    if (didResolutionMetadata.error === DidErrorCode.MethodNotSupported) {
-      throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported`);
-    }
-
-    // Validate that the DID Resolution Result includes a DID document containing verification methods.
-    if (!(didDocument && Array.isArray(didDocument.verificationMethod) && didDocument.verificationMethod.length > 0)) {
-      throw new Error(`DID document for '${didUri}' is missing verification methods`);
-    }
-
-    // Validate that the key material for every verification method in the DID document is present
-    // in the provided key manager.
-    for (let vm of didDocument.verificationMethod) {
-      if (!vm.publicKeyJwk) {
-        throw new Error(`Verification method '${vm.id}' does not contain a public key in JWK format`);
-      }
-
-      // Compute the key URI of the verification method's public key.
-      const keyUri = await keyManager.getKeyUri({ key: vm.publicKeyJwk });
-
-      // Verify that the key is present in the key manager. If not, an error is thrown.
-      await keyManager.getPublicKey({ keyUri });
-    }
-
-    // DID Metadata is initially empty for this DID method.
-    const metadata: DidMetadata = {};
-
-    // Define a function that returns a signer for the DID.
-    const getSigner = async (params?: { keyUri?: string }) => await DidJwk.getSigner({
-      didDocument,
-      keyManager,
-      keyUri: params?.keyUri
-    });
-
-    return { didDocument, getSigner, keyManager, metadata, uri: didUri };
-  }
-
-  /**
-   * Instantiates a `Did` object for the `did:dht` method from a given {@link PortableDid}.
+   * Instantiates a `Did` object for the `did:jwk` method from a given {@link PortableDid}.
    *
    * This method allows for the creation of a `Did` object using pre-existing key material,
    * encapsulated within the `verificationMethods` array of the `PortableDid`. This is particularly
@@ -301,6 +232,7 @@ export class DidJwk extends DidMethod {
     verificationMethods
   }: {
     keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
+    options?: unknown;
   } & PortableDid): Promise<Did> {
     if (!verificationMethods || verificationMethods.length !== 1) {
       throw new Error(`Only one verification method can be specified but ${verificationMethods?.length ?? 0} were given`);

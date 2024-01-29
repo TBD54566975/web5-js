@@ -160,7 +160,7 @@ describe('DidJwk', () => {
       expect(did).to.have.property('getSigner');
       expect(did).to.have.property('keyManager');
       expect(did).to.have.property('metadata');
-      expect(did).to.have.property('uri', 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ');
+      expect(did).to.have.property('uri', didUri);
     });
 
     it('returns a DID with a getSigner function that can sign and verify data', async () => {

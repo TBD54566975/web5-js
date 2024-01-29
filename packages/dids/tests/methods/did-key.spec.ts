@@ -1,11 +1,15 @@
 import type { Jwk } from '@web5/crypto';
 
+import sinon from 'sinon';
 import { expect } from 'chai';
 import { LocalKeyManager } from '@web5/crypto';
 
+import type { PortableDid, PortableDidVerificationMethod } from '../../src/methods/did-method.js';
+
+import { DidErrorCode } from '../../src/did-error.js';
 import { DidKey, DidKeyUtils } from '../../src/methods/did-key.js';
 
-describe.only('DidKey', () => {
+describe('DidKey', () => {
   let keyManager: LocalKeyManager;
 
   before(() => {
@@ -82,6 +86,28 @@ describe.only('DidKey', () => {
       ).to.have.property('uri');
     });
 
+    it('supports multibase and JWK public key format', async () => {
+      let did = await DidKey.create({ keyManager, options: { publicKeyFormat: 'JsonWebKey2020' } });
+      expect(did.didDocument.verificationMethod![0]!.publicKeyJwk).to.exist;
+      expect(did.didDocument.verificationMethod![0]!.publicKeyMultibase).to.not.exist;
+
+      did = await DidKey.create({ keyManager, options: { publicKeyFormat: 'Ed25519VerificationKey2020' } });
+      expect(did.didDocument.verificationMethod![0]!.publicKeyJwk).to.not.exist;
+      expect(did.didDocument.verificationMethod![0]!.publicKeyMultibase).to.exist;
+    });
+
+    it('accepts an alternate default context', async () => {
+      const did = await DidKey.create({
+        options: {
+          defaultContext  : 'https://www.w3.org/ns/did/v99',
+          publicKeyFormat : 'JsonWebKey2020'
+        }
+      });
+
+      expect(did.didDocument['@context']).to.not.include('https://www.w3.org/ns/did/v1');
+      expect(did.didDocument['@context']).to.include('https://www.w3.org/ns/did/v99');
+    });
+
     it('returns a getSigner() function that creates valid signatures that can be verified', async () => {
       const did = await DidKey.create({ keyManager, options: { algorithm: 'Ed25519' } });
 
@@ -120,6 +146,312 @@ describe.only('DidKey', () => {
       } catch (error: any) {
         expect(error.message).to.include('options are mutually exclusive');
       }
+    });
+  });
+
+  describe('fromKeyManager()', () => {
+    let didUri: string;
+    let keyManager: LocalKeyManager;
+    let privateKey: Jwk;
+
+    before(() => {
+      keyManager = new LocalKeyManager();
+    });
+
+    beforeEach(() => {
+      didUri = 'did:key:z6MkqBvAA4RBFFATVs7TXxEf4FcL1QY3JntYvwAYJMptDt5D';
+
+      privateKey = {
+        kty : 'OKP',
+        crv : 'Ed25519',
+        x   : 'n4JbpJYkl77eGav9miqxHJsf-hoZl7GrbcrTmLJ9NBA',
+        d   : 'JZPFC1MVj65ZUnj1HWTUDqvdQU6W2yBdZXMrRxDSqVA'
+      };
+    });
+
+    it('returns a DID Key from existing keys present in a key manager', async () => {
+      // Import the test DID's keys into the key manager.
+      await keyManager.importKey({ key: privateKey });
+
+      const did = await DidKey.fromKeyManager({ didUri, keyManager });
+
+      expect(did).to.have.property('didDocument');
+      expect(did).to.have.property('getSigner');
+      expect(did).to.have.property('keyManager');
+      expect(did).to.have.property('metadata');
+      expect(did).to.have.property('uri', didUri);
+    });
+
+    it('returns a DID with a getSigner function that can sign and verify data', async () => {
+      // Import the test DID's keys into the key manager.
+      await keyManager.importKey({ key: privateKey });
+
+      const did = await DidKey.fromKeyManager({ didUri, keyManager });
+
+      const signer = await did.getSigner();
+      const data = new Uint8Array([1, 2, 3]);
+      const signature = await signer.sign({ data });
+      const isValid = await signer.verify({ data, signature });
+
+      expect(signature).to.have.length(64);
+      expect(isValid).to.be.true;
+    });
+
+    it('returns a DID with a getSigner function that accepts a specific keyUri', async () => {
+      // Import the test DID's keys into the key manager.
+      await keyManager.importKey({ key: privateKey });
+
+      const did = await DidKey.fromKeyManager({ didUri, keyManager });
+
+      // Retrieve the key URI of the verification method's public key.
+      const { d, ...publicKey } = privateKey; // Remove the private key component
+      const keyUri = await did.keyManager.getKeyUri({ key: publicKey });
+
+      const signer = await did.getSigner({ keyUri });
+      const data = new Uint8Array([1, 2, 3]);
+      const signature = await signer.sign({ data });
+      const isValid = await signer.verify({ data, signature });
+
+      expect(signature).to.have.length(64);
+      expect(isValid).to.be.true;
+    });
+
+    it('throws an error if the given DID URI cannot be resolved', async () => {
+      const didUri = 'did:key:...';
+      try {
+        await DidKey.fromKeyManager({ didUri, keyManager });
+        expect.fail('Expected an error to be thrown.');
+      } catch (error: any) {
+        expect(error.message).to.include('missing verification methods');
+      }
+    });
+
+    it('throws an error if an unsupported DID method is given', async () => {
+      try {
+        await DidKey.fromKeyManager({ didUri: 'did:example:z6Mk', keyManager });
+        expect.fail('Expected an error to be thrown.');
+      } catch (error: any) {
+        expect(error.code).to.equal(DidErrorCode.MethodNotSupported);
+      }
+    });
+
+    it('throws an error if the resolved DID document lacks any verification methods', async () => {
+      // Stub the DID resolve method to return a DID document without a verificationMethod property.
+      sinon.stub(DidKey, 'resolve').returns(Promise.resolve({
+        didDocument           : { id: 'did:key:...' },
+        didDocumentMetadata   : {},
+        didResolutionMetadata : {}
+      }));
+
+      const didUri = 'did:key:...';
+      try {
+        await DidKey.fromKeyManager({ didUri, keyManager });
+        expect.fail('Expected an error to be thrown.');
+      } catch (error: any) {
+        expect(error.message).to.include('missing verification methods');
+      } finally {
+        sinon.restore();
+      }
+
+      // Stub the DID resolve method to return a DID document an empty verificationMethod property.
+      sinon.stub(DidKey, 'resolve').returns(Promise.resolve({
+        didDocument           : { id: 'did:key:...', verificationMethod: [] },
+        didDocumentMetadata   : {},
+        didResolutionMetadata : {}
+      }));
+
+      try {
+        await DidKey.fromKeyManager({ didUri, keyManager });
+        expect.fail('Expected an error to be thrown.');
+      } catch (error: any) {
+        expect(error.message).to.include('missing verification methods');
+      } finally {
+        sinon.restore();
+      }
+    });
+
+    it('throws an error if the resolved DID document is missing a public key', async () => {
+      // Stub the DID resolution method to return a DID document with no verification methods.
+      sinon.stub(DidKey, 'resolve').returns(Promise.resolve({
+        didDocument: {
+          id                 : 'did:key:...',
+          verificationMethod : [{
+            id         : 'did:key:...#0',
+            type       : 'JsonWebKey2020',
+            controller : 'did:key:...'
+          }],
+        },
+        didDocumentMetadata   : {},
+        didResolutionMetadata : {}
+      }));
+
+      const didUri = 'did:key:...';
+      try {
+        await DidKey.fromKeyManager({ didUri, keyManager });
+        expect.fail('Expected an error to be thrown.');
+      } catch (error: any) {
+        expect(error.message).to.include('does not contain a public key');
+      } finally {
+        sinon.restore();
+      }
+    });
+  });
+
+  describe('fromKeys()', () => {
+    let portableDid: PortableDid;
+
+    beforeEach(() => {
+      // Define a DID to use for the test.
+      portableDid = {
+        uri                 : 'did:key:z6MkkGkByH7rSY3uxDEPTk1CZzPG5hvf564ABFLQzCFwyYNN',
+        verificationMethods : [{
+          publicKeyJwk: {
+            kty : 'OKP',
+            crv : 'Ed25519',
+            x   : 'VnSOQ-n7kRcYd0XGW2MNCv7DDY5py5XhNcjM7-Y1HVM'
+          },
+          privateKeyJwk: {
+            kty : 'OKP',
+            crv : 'Ed25519',
+            x   : 'VnSOQ-n7kRcYd0XGW2MNCv7DDY5py5XhNcjM7-Y1HVM',
+            d   : 'iTD5DIOKZNkwgzsND-I8CLIXmgTxfQ1HUzl9fpMktAo'
+          },
+          purposes: ['authentication']
+        }]
+      };
+    });
+
+    it('returns a DID Key from the given set of verification method keys', async () => {
+      const did = await DidKey.fromKeys(portableDid);
+
+      expect(did).to.have.property('didDocument');
+      expect(did).to.have.property('getSigner');
+      expect(did).to.have.property('keyManager');
+      expect(did).to.have.property('metadata');
+      expect(did).to.have.property('uri', portableDid.uri);
+    });
+
+    it('returns a DID with a getSigner function that can sign and verify data', async () => {
+      const did = await DidKey.fromKeys(portableDid);
+      const signer = await did.getSigner();
+      const data = new Uint8Array([1, 2, 3]);
+      const signature = await signer.sign({ data });
+      const isValid = await signer.verify({ data, signature });
+
+      expect(signature).to.have.length(64);
+      expect(isValid).to.be.true;
+    });
+
+    it('returns a DID with a getSigner function that accepts a specific keyUri', async () => {
+      const did = await DidKey.fromKeys(portableDid);
+
+      // Retrieve the key URI of the verification method's public key.
+      const keyUri = await did.keyManager.getKeyUri({ key: portableDid.verificationMethods![0].publicKeyJwk! });
+
+      const signer = await did.getSigner({ keyUri });
+      const data = new Uint8Array([1, 2, 3]);
+      const signature = await signer.sign({ data });
+      const isValid = await signer.verify({ data, signature });
+
+      expect(signature).to.have.length(64);
+      expect(isValid).to.be.true;
+    });
+
+    it('throws an error if no verification methods are given', async () => {
+      try {
+        // @ts-expect-error - Test case where verificationMethods is undefined.
+        await DidKey.fromKeys({});
+        expect.fail('Expected an error to be thrown.');
+      } catch (error: any) {
+        expect(error.message).to.include('one verification method');
+      }
+    });
+
+    it('throws an error if the given key set is empty', async () => {
+      try {
+        await DidKey.fromKeys({ verificationMethods: [] });
+        expect.fail('Expected an error to be thrown.');
+      } catch (error: any) {
+        expect(error.message).to.include('one verification method');
+      }
+    });
+
+    it('throws an error if the given key set is missing a public key', async () => {
+      delete portableDid.verificationMethods[0].publicKeyJwk;
+
+      try {
+        await DidKey.fromKeys(portableDid);
+        expect.fail('Expected an error to be thrown.');
+      } catch (error: any) {
+        expect(error.message).to.include('does not contain a public and private key');
+      }
+    });
+
+    it('throws an error if the given key set is missing a private key', async () => {
+      delete portableDid.verificationMethods[0].privateKeyJwk;
+
+      try {
+        await DidKey.fromKeys(portableDid);
+        expect.fail('Expected an error to be thrown.');
+      } catch (error: any) {
+        expect(error.message).to.include('does not contain a public and private key');
+      }
+    });
+
+    it('throws an error if the key set contains two or more keys', async () => {
+      const verificationMethod: PortableDidVerificationMethod = {
+        publicKeyJwk: {
+          kty : 'OKP',
+          crv : 'Ed25519',
+          x   : '3EBa_ELos2alvLojqIVcrbKpirVXj6cjVD5v2VhwLz8'
+        },
+        privateKeyJwk: {
+          kty : 'OKP',
+          crv : 'Ed25519',
+          x   : '3EBa_ELos2alvLojqIVcrbKpirVXj6cjVD5v2VhwLz8',
+          d   : 'hMqv-FAvhVWz2nxobesO7TzI0-GN0kvzkUGYdnZt_TA'
+        },
+        purposes: ['authentication']
+      };
+
+      try {
+        await DidKey.fromKeys({
+          verificationMethods: [verificationMethod, verificationMethod]
+        });
+        expect.fail('Expected an error to be thrown.');
+      } catch (error: any) {
+        expect(error.message).to.include('one verification method');
+      }
+    });
+  });
+
+  describe('resolve()', () => {
+    it('derives a key agreement verification method when enableEncryptionKeyDerivation is true', async function () {
+      const did = 'did:key:z6MkpUzNmYVTGpqhStxK8yRKXWCRNm1bGYz8geAg2zmjYHKX';
+      const resolutionResult = await DidKey.resolve(did, { enableEncryptionKeyDerivation: true });
+
+      expect(resolutionResult.didDocument?.verificationMethod).to.have.length(2);
+      expect(resolutionResult.didDocument?.verificationMethod![0]!.publicKeyJwk).to.have.property('crv', 'Ed25519');
+      expect(resolutionResult.didDocument?.verificationMethod![1]!.publicKeyJwk).to.have.property('crv', 'X25519');
+      expect(resolutionResult.didDocument?.verificationMethod![1]!.id).to.equal(resolutionResult.didDocument?.keyAgreement![0]);
+    });
+
+    it('returns an error due to DID parsing failing', async function () {
+      const invalidDidUri = 'did:invalidFormat';
+      const resolutionResult = await DidKey.resolve(invalidDidUri);
+      expect(resolutionResult.didResolutionMetadata.error).to.equal('invalidDid');
+    });
+
+    it('returns an error due to failing to decode the multibase identifier', async function () {
+      const didUriWithInvalidEncoding = 'did:key:invalidEncoding';
+      const resolutionResult = await DidKey.resolve(didUriWithInvalidEncoding);
+      expect(resolutionResult.didResolutionMetadata.error).to.equal('invalidDid');
+    });
+
+    it('returns an error because the DID method is not "key"', async function () {
+      const didUriWithDifferentMethod = 'did:notkey:eyJmb28iOiJiYXIifQ';
+      const resolutionResult = await DidKey.resolve(didUriWithDifferentMethod);
+      expect(resolutionResult.didResolutionMetadata.error).to.equal(DidErrorCode.MethodNotSupported);
     });
   });
 

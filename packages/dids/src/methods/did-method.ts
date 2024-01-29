@@ -17,6 +17,7 @@ import type {
 
 import { getVerificationMethodByKey } from '../utils.js';
 import { DidVerificationRelationship } from '../types/did-core.js';
+import { DidError, DidErrorCode } from '../did-error.js';
 
 /**
  * Represents a Decentralized Identifier (DID) along with its convenience functions.
@@ -285,6 +286,82 @@ export interface PortableDidVerificationMethod extends Partial<DidVerificationMe
  */
 export class DidMethod {
   /**
+   * Instantiates a `Did` object from an existing DID using keys in an external Key Management
+   * System (KMS).
+   *
+   * This method returns a `Did` object by resolving an existing DID URI and verifying that all
+   * associated keys are present in the provided key manager.
+   *
+   * @remarks
+   * The method verifies the presence of key material for every verification method in the DID
+   * document within the given KMS. If any key is missing, an error is thrown.
+   *
+   * This approach ensures that the resulting `Did` object is fully operational with the provided
+   * key manager and that all cryptographic operations related to the DID can be performed.
+   *
+   * @param params - The parameters for the `fromKeyManager` operation.
+   * @param params.didUri - The URI of the DID to be instantiated.
+   * @param params.keyManager - The Key Management System to be used for key management operations.
+   * @returns A Promise resolving to the instantiated `Did` object.
+   * @throws An error if any key in the DID document is not present in the provided KMS.
+   *
+   * @example
+   * ```ts
+   * // Assuming keyManager already contains the key material for the DID.
+   * const didUri = 'did:method:example';
+   * const did = await DidMethod.fromKeyManager({ didUri, keyManager });
+   * // The 'did' is now an instance of Did, linked with the provided keyManager.
+   * ```
+   */
+  public static async fromKeyManager({ didUri, keyManager }: {
+    didUri: string;
+    keyManager: CryptoApi;
+  }): Promise<Did> {
+    // Resolve the DID URI to a DID document and document metadata.
+    const { didDocument, didDocumentMetadata, didResolutionMetadata } = await this.resolve(didUri);
+
+    // Verify the DID method is supported.
+    if (didResolutionMetadata.error === DidErrorCode.MethodNotSupported) {
+      throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported`);
+    }
+
+    // Verify the DID Resolution Result includes a DID document containing verification methods.
+    if (!(didDocument && Array.isArray(didDocument.verificationMethod) && didDocument.verificationMethod.length > 0)) {
+      throw new Error(`DID document for '${didUri}' is missing verification methods`);
+    }
+
+    // Validate that the key material for every verification method in the DID document is present
+    // in the provided key manager.
+    for (let vm of didDocument.verificationMethod) {
+      if (!vm.publicKeyJwk) {
+        throw new Error(`Verification method '${vm.id}' does not contain a public key in JWK format`);
+      }
+
+      // Compute the key URI of the verification method's public key.
+      const keyUri = await keyManager.getKeyUri({ key: vm.publicKeyJwk });
+
+      // Verify that the key is present in the key manager. If not, an error is thrown.
+      await keyManager.getPublicKey({ keyUri });
+    }
+
+    // Define DID Metadata, including the registered DID types and published state.
+    // const metadata: DidMetadata = {
+    //   ...didDocumentMetadata?.published && { published: didDocumentMetadata.published },
+    //   ...didDocumentMetadata?.types && { types: didDocumentMetadata.types }
+    // };
+    const metadata: DidMetadata = didDocumentMetadata;
+
+    // Define a function that returns a signer for the DID.
+    const getSigner = async (params?: { keyUri?: string }) => await this.getSigner({
+      didDocument,
+      keyManager,
+      keyUri: params?.keyUri
+    });
+
+    return { didDocument, getSigner, keyManager, metadata, uri: didUri };
+  }
+
+  /**
    * Given a W3C DID Document, return a {@link Signer} that can be used to sign messages,
    * credentials, or arbitrary data.
    *
@@ -367,6 +444,19 @@ export class DidMethod {
   }
 
   /**
+   * MUST be implemented by all DID method implementations that extend {@link DidMethod}.
+   *
+   * Resolves a DID URI to a DID Document.
+   *
+   * @param _didUri - The DID to be resolved.
+   * @param _options - Optional parameters for resolving the DID.
+   * @returns A Promise resolving to a {@link DidResolutionResult} object representing the result of the resolution.
+   */
+  public static async resolve(_didUri: string, _options?: DidResolutionOptions): Promise<DidResolutionResult> {
+    throw new Error(`Not implemented: Classes extending DidMethod must implement resolve()`);
+  }
+
+  /**
    * Converts a `Did` object to a portable format containing the URI and verification methods
    * associated with the DID.
    *
@@ -387,7 +477,7 @@ export class DidMethod {
    * @example
    * ```ts
    * // Assuming `did` is an instance of Did
-   * const portableDid = await DidJwk.toKeys({ did });
+   * const portableDid = await DidMethod.toKeys({ did });
    * // portableDid now contains the verification methods and their associated keys.
    * ```
    *

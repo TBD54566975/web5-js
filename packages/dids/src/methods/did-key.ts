@@ -1,5 +1,5 @@
 import type { MulticodecCode, MulticodecDefinition, RequireOnly } from '@web5/common';
-import type { AsymmetricKeyConverter, CryptoApi, InferKeyGeneratorAlgorithm, Jwk } from '@web5/crypto';
+import type { AsymmetricKeyConverter, CryptoApi, InferKeyGeneratorAlgorithm, Jwk, KeyIdentifier, KeyImporterExporter, KmsExportKeyParams, KmsImportKeyParams } from '@web5/crypto';
 
 import { Convert, Multicodec, universalTypeOf } from '@web5/common';
 import {
@@ -169,11 +169,11 @@ export enum DidKeyRegisteredKeyType {
   X25519 = 'X25519'
 }
 
-export const DidKeyVerificationMethodType: Record<string, string> = {
+export const DidKeyVerificationMethodType = {
   Ed25519VerificationKey2020 : 'https://w3id.org/security/suites/ed25519-2020/v1',
   JsonWebKey2020             : 'https://w3id.org/security/suites/jws-2020/v1',
   X25519KeyAgreementKey2020  : 'https://w3id.org/security/suites/x25519-2020/v1',
-};
+} as const;
 
 /**
  * Private helper that maps algorithm identifiers to their corresponding DID Key
@@ -192,7 +192,13 @@ const AlgorithmToKeyTypeMap = {
 /**
  * The `DidKey` class provides an implementation of the 'did:key' DID method.
  *
- * !TODO: Add the rest of the class documentation.
+ * Features:
+ * - DID Creation: Create new `did:key` DIDs.
+ * - DID Key Management: Instantiate a DID object from an existing verification method key set or
+ *                       or a key in a Key Management System (KMS). If supported by the KMS, a DID's
+ *                       key can be exported to a portable DID format.
+ * - DID Resolution: Resolve a `did:key` to its corresponding DID Document.
+ * - Signature Operations: Sign and verify messages using keys associated with a DID.
  *
  * @remarks
  * The `did:key` DID method uses a single public key to generate a DID and does not rely
@@ -221,8 +227,54 @@ const AlgorithmToKeyTypeMap = {
  *
  * @see {@link https://w3c-ccg.github.io/did-method-key/ | DID Key Specification}
  *
- * @example
- * !TODO: Add examples.
+* @example
+ * ```ts
+ * // DID Creation
+ * const did = await DidKey.create();
+ *
+ * // DID Creation with a KMS
+ * const keyManager = new LocalKeyManager();
+ * const did = await DidKey.create({ keyManager });
+ *
+ * // DID Resolution
+ * const resolutionResult = await DidKey.resolve({ did: did.uri });
+ *
+ * // Signature Operations
+ * const signer = await did.getSigner();
+ * const signature = await signer.sign({ data: new TextEncoder().encode('Message') });
+ * const isValid = await signer.verify({ data: new TextEncoder().encode('Message'), signature });
+ *
+ * // Key Management
+ *
+ * // Instantiate a DID object from an existing key in a KMS
+ * const did = await DidKey.fromKeyManager({
+ *  didUri: 'did:key:z6MkpUzNmYVTGpqhStxK8yRKXWCRNm1bGYz8geAg2zmjYHKX',
+ *  keyManager
+ * });
+ *
+ * // Instantiate a DID object from an existing verification method key
+ * const did = await DidKey.fromKeys({
+ *   verificationMethods: [{
+ *     publicKeyJwk: {
+ *       kty: 'OKP',
+ *       crv: 'Ed25519',
+ *       x: 'cHs7YMLQ3gCWjkacMURBsnEJBcEsvlsE5DfnsfTNDP4'
+ *     },
+ *     privateKeyJwk: {
+ *       kty: 'OKP',
+ *       crv: 'Ed25519',
+ *       x: 'cHs7YMLQ3gCWjkacMURBsnEJBcEsvlsE5DfnsfTNDP4',
+ *       d: 'bdcGE4KzEaekOwoa-ee3gAm1a991WvNj_Eq3WKyqTnE'
+ *     }
+ *   }]
+ * });
+ *
+ * // Convert a DID object to a portable format
+ * const portableDid = await DidKey.toKeys({ did });
+ *
+ * // Reconstruct a DID object from a portable format
+ * const did = await DidKey.fromKeys(portableDid);
+ * ```
  */
 export class DidKey extends DidMethod {
 
@@ -232,8 +284,7 @@ export class DidKey extends DidMethod {
   public static methodName = 'key';
 
   /**
-   * Creates a new DID using the `did:key` method formed from either a newly generated key or an
-   * existing key set.
+   * Creates a new DID using the `did:key` method formed from a newly generated key.
    *
    * @remarks
    * The DID URI is formed by
@@ -245,21 +296,28 @@ export class DidKey extends DidMethod {
    * This method can optionally derive an encryption key from the public key used to create the DID
    * if and only if the public key algorithm is `Ed25519`. This feature enables the same DID to be
    * used for encrypted communication, in addition to signature verification. To enable this
-   * feature, first specify an `algorithm` of `Ed25519` or provide a `keySet` referencing an
-   * `Ed25519` key and then set the `enableEncryptionKeyDerivation` option to `true`.
+   * feature, specify an `algorithm` of `Ed25519` as either a top-level option or in a
+   * `verificationMethod` and set the `enableEncryptionKeyDerivation` option to `true`.
    *
    * Notes:
    * - If no `options` are given, by default a new Ed25519 key will be generated.
-   * - The `algorithm` and `keySet` options are mutually exclusive. If both are given, an
-   *   error will be thrown.
-   * - If a `keySet` is given, it must contain exactly one key.
+   * - The `algorithm` and `verificationMethods` options are mutually exclusive. If both are given,
+   *   an error will be thrown.
+   *
+   * @example
+   * ```ts
+   * // DID Creation
+   * const did = await DidKey.create();
+   *
+   * // DID Creation with a KMS
+   * const keyManager = new LocalKeyManager();
+   * const did = await DidKey.create({ keyManager });
+   * ```
    *
    * @param params - The parameters for the create operation.
    * @param params.keyManager - Key Management System (KMS) used to generate keys and sign data.
    * @param params.options - Optional parameters that can be specified when creating a new DID.
    * @returns A Promise resolving to a {@link Did} object representing the new DID.
-   * @throws `TypeError` if both `algorithm` and `keySet` options are provided, as they
-   *         are mutually exclusive.
    */
   public static async create<TKms extends CryptoApi | undefined = undefined>({
     keyManager = new LocalKeyManager(),
@@ -282,6 +340,69 @@ export class DidKey extends DidMethod {
     // Create the DID object from the generated key material, including DID document, metadata,
     // signer convenience function, and URI.
     const did = await DidKey.fromPublicKey({ keyManager, publicKey, options });
+
+    return did;
+  }
+
+  /**
+   * Instantiates a `Did` object for the `did:jwk` method from a given {@link PortableDid}.
+   *
+   * This method allows for the creation of a `Did` object using pre-existing key material,
+   * encapsulated within the `verificationMethods` array of the `PortableDid`. This is particularly
+   * useful when the key material is already available and you want to construct a `Did` object
+   * based on these keys, instead of generating new keys.
+   *
+   * @remarks
+   * The `verificationMethods` array must contain exactly one key since the `did:jwk` method only
+   * supports a single verification method.
+   *
+   * The key material (both public and private keys) should be provided in JWK format. The method
+   * handles the inclusion of these keys in the DID Document and sets up the necessary verification
+   * relationships.
+   *
+   * @example
+   * ```ts
+   * // Example with an existing key in JWK format.
+   * const verificationMethods = [{
+   *   publicKeyJwk: { // public key in JWK format },
+   *   privateKeyJwk: { // private key in JWK format }
+   * }];
+   * const did = await DidKey.fromKeys({ verificationMethods });
+   * ```
+   *
+   * @param params - The parameters for the `fromKeys` operation.
+   * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
+   *                            generate keys and sign data. If not given, a new
+   *                            {@link @web5/crypto#LocalKeyManager} instance will be created and used.
+   * @returns A Promise resolving to a `Did` object representing the DID formed from the provided keys.
+   * @throws An error if the `verificationMethods` array does not contain exactly one entry.
+   */
+  public static async fromKeys<TKms extends CryptoApi | undefined = undefined>({
+    keyManager = new LocalKeyManager(),
+    verificationMethods,
+    options = {}
+  }: {
+    keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
+    options?: DidKeyCreateOptions<TKms>;
+  } & PortableDid): Promise<Did> {
+    if (!verificationMethods || verificationMethods.length !== 1) {
+      throw new Error(`Only one verification method can be specified but ${verificationMethods?.length ?? 0} were given`);
+    }
+
+    if (!(verificationMethods[0].privateKeyJwk && verificationMethods[0].publicKeyJwk)) {
+      throw new Error(`Verification method does not contain a public and private key in JWK format`);
+    }
+
+    // Store the private key in the key manager.
+    await keyManager.importKey({ key: verificationMethods[0].privateKeyJwk });
+
+    // Create the DID object from the given key material, including DID document, metadata,
+    // signer convenience function, and URI.
+    const did = await DidKey.fromPublicKey({
+      keyManager,
+      publicKey: verificationMethods[0].publicKeyJwk,
+      options
+    });
 
     return did;
   }
@@ -395,6 +516,9 @@ export class DidKey extends DidMethod {
      * multibaseValue MUST be a string and begin with the letter z. If any
      * of these requirements fail, an invalidDid error MUST be raised.
      */
+    if (parsedDid.method !== DidKey.methodName) {
+      throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported: ${parsedDid.method}`);
+    }
     if (!DidKey.validateIdentifier(parsedDid)) {
       throw new DidError(DidErrorCode.InvalidDid, `Invalid DID URI: ${didUri}`);
     }
@@ -493,7 +617,7 @@ export class DidKey extends DidMethod {
     // {@link https://w3c-ccg.github.io/did-method-key/#context-creation-algorithm | Context Type URL}
     const verificationMethodTypes = getVerificationMethodTypes({ didDocument });
     verificationMethodTypes.forEach((typeName: string) => {
-      const typeUrl = DidKeyVerificationMethodType[typeName];
+      const typeUrl = DidKeyVerificationMethodType[typeName as keyof typeof DidKeyVerificationMethodType];
       contextArray.push(typeUrl);
     });
     didDocument['@context'] = contextArray;
@@ -866,11 +990,11 @@ export class DidKey extends DidMethod {
     const version = '1';
 
     return (
-      scheme !== 'did' ||
-      method !== 'key' ||
-      Number(version) > 0 ||
-      universalTypeOf(multibaseValue) !== 'String' ||
-      !multibaseValue.startsWith('z')
+      scheme === 'did' &&
+      method === 'key' &&
+      Number(version) > 0 &&
+      universalTypeOf(multibaseValue) === 'String' &&
+      multibaseValue.startsWith('z')
     );
   }
 }
@@ -1071,15 +1195,20 @@ export class DidKeyUtils {
    * @param params - The parameters for the conversion.
    * @param params.multibaseKeyId - The multibase identifier string of the key.
    * @returns An object containing the key as a `Uint8Array` and its multicodec code and name.
+   * @throws `DidError` if the multibase identifier is invalid.
    */
   public static multibaseIdToKeyBytes({ multibaseKeyId }: {
     multibaseKeyId: string
   }): Required<KeyWithMulticodec> {
-    const prefixedKeyB58 = Convert.multibase(multibaseKeyId).toBase58Btc();
-    const prefixedKey = Convert.base58Btc(prefixedKeyB58).toUint8Array();
-    const { code, data, name } = Multicodec.removePrefix({ prefixedData: prefixedKey });
+    try {
+      const prefixedKeyB58 = Convert.multibase(multibaseKeyId).toBase58Btc();
+      const prefixedKey = Convert.base58Btc(prefixedKeyB58).toUint8Array();
+      const { code, data, name } = Multicodec.removePrefix({ prefixedData: prefixedKey });
 
-    return { keyBytes: data, multicodecCode: code, multicodecName: name };
+      return { keyBytes: data, multicodecCode: code, multicodecName: name };
+    } catch (error: any) {
+      throw new DidError(DidErrorCode.InvalidDid, `Invalid multibase identifier: ${multibaseKeyId}`);
+    }
   }
 
   /**

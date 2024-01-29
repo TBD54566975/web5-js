@@ -27,6 +27,19 @@ describe('DidMethod', () => {
     keyManager = new LocalKeyManager();
   });
 
+  describe('fromKeyManager()', () => {
+    it('throws an error if the DID method implementation does not provide a resolve() function', async () => {
+      class DidTest extends DidMethod {}
+
+      try {
+        await DidTest.fromKeyManager({ didUri: 'did:method:example', keyManager });
+        expect.fail('Error should have been thrown');
+      } catch (error: any) {
+        expect(error.message).to.include('must implement resolve()');
+      }
+    });
+  });
+
   describe('getSigner()', () => {
     let keyManagerMock: any;
     let publicKey: Jwk;
