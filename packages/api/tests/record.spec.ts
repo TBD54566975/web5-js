@@ -157,7 +157,7 @@ describe('Record', () => {
     const importRecordStatus = await importRecord.import();
     expect(importRecordStatus.code).to.equal(202);
 
-    const { status: importSendStatus } = await importRecord!.send({ sendAll: true });
+    const { status: importSendStatus } = await importRecord!.send();
     expect(importSendStatus.code).to.equal(202);
 
     // Alice updates her record
@@ -1306,8 +1306,7 @@ describe('Record', () => {
          *   4. Validate that Bob is able to write the record to Alice's remote DWN.
          */
         const { status: sendStatusToAlice } = await queryRecordsFrom[0]!.send(aliceDid.did);
-        expect(sendStatusToAlice.code).to.equal(401);
-        expect(sendStatusToAlice.detail).to.equal(`Cannot read properties of undefined (reading 'authorization')`);
+        expect(sendStatusToAlice.code).to.equal(202);
       });
     });
   });
@@ -1466,7 +1465,7 @@ describe('Record', () => {
     });
 
     // TODO: Fix after changes are made to dwn-sdk-js to include the initial write in every query/read response.
-    it('fails to write updated records to a remote DWN that is missing the initial write', async () => {
+    it('automatically sends the initial write and update of a record to a remote DWN', async () => {
       // Alice writes a message to her agent connected DWN.
       const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
@@ -1483,11 +1482,7 @@ describe('Record', () => {
 
       // Write the updated record to Alice's remote DWN a second time.
       const sendResult = await record!.send(aliceDid.did);
-      expect(sendResult.status.code).to.equal(400);
-      expect(sendResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: initial write is not found');
-
-      // TODO: Uncomment the following line after changes are made to dwn-sdk-js to include the initial write in every query/read response.
-      // expect(sendResult.status.code).to.equal(202);
+      expect(sendResult.status.code).to.equal(202);
     });
 
     it('writes large records to remote DWNs that were initially queried from a remote DWN', async () => {

@@ -63,13 +63,12 @@ type DwnMessage = {
   data?: Blob;
 }
 
-const recordsWriteType = DwnInterfaceName.Records + DwnMethodName.Write;
 const dwnMessageConstructors = {
   [DwnInterfaceName.Events + DwnMethodName.Get]          : EventsGet,
   [DwnInterfaceName.Messages + DwnMethodName.Get]        : MessagesGet,
   [DwnInterfaceName.Records + DwnMethodName.Read]        : RecordsRead,
   [DwnInterfaceName.Records + DwnMethodName.Query]       : RecordsQuery,
-  [recordsWriteType]                                     : RecordsWrite,
+  [DwnInterfaceName.Records + DwnMethodName.Write]       : RecordsWrite,
   [DwnInterfaceName.Records + DwnMethodName.Delete]      : RecordsDelete,
   [DwnInterfaceName.Protocols + DwnMethodName.Query]     : ProtocolsQuery,
   [DwnInterfaceName.Protocols + DwnMethodName.Configure] : ProtocolsConfigure,

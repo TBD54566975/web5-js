@@ -9,6 +9,7 @@ import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';
 import { TestUserAgent } from './utils/test-user-agent.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
+import photosProtocolDefinition from './fixtures/protocol-definitions/photos.json' assert { type: 'json' };
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -260,6 +261,72 @@ describe('DwnApi', () => {
         expect(result.status.detail).to.equal('Accepted');
         expect(result.record).to.exist;
         expect(await result.record?.data.json()).to.deep.equal(dataJson);
+      });
+
+      it('creates a role record for another user that they can use to create role-based records', async () => {
+        /**
+         * WHAT IS BEING TESTED?
+         *
+         * We are testing whether role records can be created for outbound participants
+         * so they can use them to create records corresponding to the roles they are granted.
+         *
+         * TEST SETUP STEPS:
+         *   1. Configure the email protocol on Bob's local DWN.
+         */
+
+        // Configure the email protocol on Alice and Bob's local and remote DWNs.
+        const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
+          message: {
+            definition: photosProtocolDefinition
+          }
+        });
+        expect(bobProtocolStatus.code).to.equal(202);
+        const { status: bobRemoteProtocolStatus } = await bobProtocol.send(bobDid.did);
+        expect(bobRemoteProtocolStatus.code).to.equal(202);
+
+        const { status: aliceProtocolStatus, protocol: aliceProtocol } = await dwnAlice.protocols.configure({
+          message: {
+            definition: photosProtocolDefinition
+          }
+        });
+        expect(aliceProtocolStatus.code).to.equal(202);
+        const { status: aliceRemoteProtocolStatus } = await aliceProtocol.send(aliceDid.did);
+        expect(aliceRemoteProtocolStatus.code).to.equal(202);
+
+        // Alice creates a role-based 'friend' record, and sends it to her remote
+        const { status: friendCreateStatus, record: friendRecord} = await dwnAlice.records.create({
+          data    : 'test',
+          message : {
+            recipient    : bobDid.did,
+            protocol     : photosProtocolDefinition.protocol,
+            protocolPath : 'friend',
+            schema       : photosProtocolDefinition.types.friend.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(friendCreateStatus.code).to.equal(202);
+        const { status: friendRecordUpdateStatus } = await friendRecord.update({ data: 'update' });
+        expect(friendRecordUpdateStatus.code).to.equal(202);
+        const { status: friendSendStatus } = await friendRecord.send(aliceDid.did);
+        expect(friendSendStatus.code).to.equal(202);
+
+        // Bob creates a thread record using the role 'friend' and sends it to Alice
+        const { status: albumCreateStatus, record: albumRecord} = await dwnBob.records.create({
+          data    : 'test',
+          message : {
+            recipient    : aliceDid.did,
+            protocol     : photosProtocolDefinition.protocol,
+            protocolPath : 'album',
+            protocolRole : 'friend',
+            schema       : photosProtocolDefinition.types.album.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(albumCreateStatus.code).to.equal(202);
+        const { status: bobSendStatus } = await albumRecord.send(bobDid.did);
+        expect(bobSendStatus.code).to.equal(202);
+        const { status: aliceSendStatus } = await albumRecord.send(aliceDid.did);
+        expect(aliceSendStatus.code).to.equal(202);
       });
     });
 
@@ -705,7 +772,6 @@ describe('DwnApi', () => {
             }
           }
         });
-
         // Confirm that the record does not currently exist on Bob's DWN.
         expect(result.status.code).to.equal(200);
         expect(result.records).to.exist;
