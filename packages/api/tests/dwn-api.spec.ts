@@ -307,8 +307,8 @@ describe('DwnApi', () => {
         expect(friendCreateStatus.code).to.equal(202);
         const { status: friendRecordUpdateStatus } = await friendRecord.update({ data: 'update' });
         expect(friendRecordUpdateStatus.code).to.equal(202);
-        const { status: friendSendStatus } = await friendRecord.send(aliceDid.did);
-        expect(friendSendStatus.code).to.equal(202);
+        const { status: aliceFriendSendStatus } = await friendRecord.send(aliceDid.did);
+        expect(aliceFriendSendStatus.code).to.equal(202);
 
         // Bob creates a thread record using the role 'friend' and sends it to Alice
         const { status: albumCreateStatus, record: albumRecord} = await dwnBob.records.create({
@@ -323,10 +323,75 @@ describe('DwnApi', () => {
           }
         });
         expect(albumCreateStatus.code).to.equal(202);
-        const { status: bobSendStatus } = await albumRecord.send(bobDid.did);
-        expect(bobSendStatus.code).to.equal(202);
-        const { status: aliceSendStatus } = await albumRecord.send(aliceDid.did);
-        expect(aliceSendStatus.code).to.equal(202);
+        const { status: bobAlbumSendStatus } = await albumRecord.send(bobDid.did);
+        expect(bobAlbumSendStatus.code).to.equal(202);
+        const { status: aliceAlbumSendStatus } = await albumRecord.send(aliceDid.did);
+        expect(aliceAlbumSendStatus.code).to.equal(202);
+
+        // Alice fetches the album record Bob created using his friend role
+        const aliceAlbumReadResult = await dwnAlice.records.read({
+          from    : aliceDid.did,
+          message : {
+            filter: {
+              recordId: albumRecord.id
+            }
+          }
+        });
+        expect(aliceAlbumReadResult.status.code).to.equal(200);
+        expect(aliceAlbumReadResult.record).to.exist;
+        const aliceAlbumReadStoreStatus = await aliceAlbumReadResult.record.store();
+        expect(aliceAlbumReadStoreStatus.code).to.equal(202);
+
+        // Bob makes Alice a participant
+        const { status: participantCreateStatus, record: participantRecord} = await dwnBob.records.create({
+          data    : 'test',
+          message : {
+            contextId    : albumRecord.id,
+            parentId     : albumRecord.id,
+            recipient    : aliceDid.did,
+            protocol     : photosProtocolDefinition.protocol,
+            protocolPath : 'album/participant',
+            schema       : photosProtocolDefinition.types.participant.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(participantCreateStatus.code).to.equal(202);
+        const { status: bobParticipantSendStatus } = await participantRecord.send(bobDid.did);
+        expect(bobParticipantSendStatus.code).to.equal(202);
+        const { status: aliceParticipantSendStatus } = await participantRecord.send(aliceDid.did);
+        expect(aliceParticipantSendStatus.code).to.equal(202);
+
+        const aliceParticipantReadResult = await dwnAlice.records.read({
+          from    : aliceDid.did,
+          message : {
+            filter: {
+              recordId: participantRecord.id
+            }
+          }
+        });
+        expect(aliceParticipantReadResult.status.code).to.equal(200);
+        expect(aliceParticipantReadResult.record).to.exist;
+        const aliceParticipantReadStoreStatus = await aliceParticipantReadResult.record.store();
+        expect(aliceParticipantReadStoreStatus.code).to.equal(202);
+
+        // Alice creates a photo using her participant role
+        const { status: photoCreateStatus, record: photoRecord} = await dwnAlice.records.create({
+          data    : 'test',
+          message : {
+            contextId    : albumRecord.id,
+            parentId     : albumRecord.id,
+            protocol     : photosProtocolDefinition.protocol,
+            protocolPath : 'album/photo',
+            protocolRole : 'album/participant',
+            schema       : photosProtocolDefinition.types.photo.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(photoCreateStatus.code).to.equal(202);
+        const { status:alicePhotoSendStatus } = await photoRecord.send(aliceDid.did);
+        expect(alicePhotoSendStatus.code).to.equal(202);
+        const { status: bobPhotoSendStatus } = await photoRecord.send(bobDid.did);
+        expect(bobPhotoSendStatus.code).to.equal(202);
       });
     });
 
