@@ -112,9 +112,11 @@ export class Record implements RecordModel {
   private _protocolRole: RecordOptions['protocolRole'];
   // Getters for immutable DWN Record properties.
 
+  // Cache to minimize the amount of redundant two-phase commits we do in store() and send()
+  // Retains awareness of the last 100 records stored/sent for up to 100 target DIDs each.
   static sendCache = new Map();
   static sendCacheLimit = 100;
-  static setSendCache(recordId, target){
+  static setSendCache(recordId, target) {
     const recordCache = Record.sendCache;
     let targetCache = recordCache.get(recordId) || new Set();
     recordCache.delete(recordId);
