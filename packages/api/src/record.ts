@@ -377,8 +377,9 @@ export class Record implements RecordModel {
     const { store = true, import: _import = false } = options;
     const initialWrite = this._initialWrite;
 
-    // Is there an initial write? Have we already stored this record?
+    // Is there an initial write? Have we already stored it?
     if (initialWrite && !this._initialWriteStored) {
+      // There is an initial write, and we have not dealt with it before, so prepare to do so
       const requestOptions = this._prepareMessage({
         import     : _import,
         store      : store,
@@ -388,6 +389,7 @@ export class Record implements RecordModel {
         }
       });
 
+      // Process the prepared initial write, with the options set for storing and/or importing with an owner sig.
       const agentResponse = await this._agent.processDwnRequest(requestOptions);
       const { message, reply: { status } } = agentResponse;
       const responseMessage = message as RecordsWriteMessage;
@@ -400,7 +402,7 @@ export class Record implements RecordModel {
     }
 
     const requestOptions = this._prepareMessage({
-      import     : !initialWrite && _import,
+      import     : !initialWrite && _import, // if there is no initial write, this is the initial write (or having a forced import sig), so sign it.
       store      : store,
       dataStream : await this.data.blob(),
       rawMessage : {
@@ -418,6 +420,7 @@ export class Record implements RecordModel {
     const responseMessage = message as RecordsWriteMessage;
 
     if (200 <= status.code && status.code <= 299) {
+      // If we are importing, make sure to update the current record state's authorization, because now it will have the owner's signature on it.
       if (_import) this._authorization = responseMessage.authorization;
     }
 
@@ -452,7 +455,9 @@ export class Record implements RecordModel {
     const initialWrite = this._initialWrite;
     target??= this._connectedDid;
 
+    // Is there an initial write? Do we know if we've already sent it to this target?
     if (initialWrite && !Record.checkSendCache(this._recordId, target)){
+      // We do have an initial write, so prepare it for sending to the target.
       const rawMessage = {
         contextId: this._contextId,
         ...initialWrite
@@ -467,9 +472,11 @@ export class Record implements RecordModel {
       };
       await this._agent.sendDwnRequest(initialState);
 
+      // Set the cache to maintain awareness that we don't need to send the initial write next time.
       Record.setSendCache(this._recordId, target);
     }
 
+    // Prepare the current state for sending to the target
     const latestState: SendDwnRequest = {
       messageType : DwnInterfaceName.Records + DwnMethodName.Write,
       author      : this._connectedDid,
@@ -477,6 +484,7 @@ export class Record implements RecordModel {
       target      : target
     };
 
+    // if there is already an authz payload, just pass along the record
     if (this._authorization) {
       const rawMessage = {
         contextId     : this._contextId,
@@ -489,6 +497,7 @@ export class Record implements RecordModel {
       removeUndefinedProperties(rawMessage);
       latestState.rawMessage = rawMessage;
     } else {
+      // if there is no authz, pass options so the DWN SDK can construct and sign the record
       latestState.messageOptions = this.toJSON();
     }
 
