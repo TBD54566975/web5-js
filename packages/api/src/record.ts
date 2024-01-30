@@ -384,11 +384,12 @@ export class Record implements RecordModel {
 
     const initialWrite = this._initialWrite;
 
+    // Is there an initial write? Have we already stored this record?
     if (initialWrite && !this._initialWriteStored) {
 
       let agentResponse = await this._processMessage({
         import     : _import,
-        store      : true,
+        store      : store,
         rawMessage : {
           contextId: this._contextId,
           ...initialWrite
@@ -398,6 +399,7 @@ export class Record implements RecordModel {
       const { message, reply: { status } } = agentResponse;
       const responseMessage = message as RecordsWriteMessage;
 
+      // If we are importing, make sure to update the initial write's authorization, because now it will have the owner's signature on it
       if (200 <= status.code && status.code <= 299) {
         this._initialWriteStored = true;
         if (_import) initialWrite.authorization = responseMessage.authorization;
