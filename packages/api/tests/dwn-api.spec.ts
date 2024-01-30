@@ -339,7 +339,7 @@ describe('DwnApi', () => {
         });
         expect(aliceAlbumReadResult.status.code).to.equal(200);
         expect(aliceAlbumReadResult.record).to.exist;
-        const aliceAlbumReadStoreStatus = await aliceAlbumReadResult.record.store();
+        const { status: aliceAlbumReadStoreStatus } = await aliceAlbumReadResult.record.store();
         expect(aliceAlbumReadStoreStatus.code).to.equal(202);
 
         // Bob makes Alice a `participant`
@@ -371,7 +371,7 @@ describe('DwnApi', () => {
         });
         expect(aliceParticipantReadResult.status.code).to.equal(200);
         expect(aliceParticipantReadResult.record).to.exist;
-        const aliceParticipantReadStoreStatus = await aliceParticipantReadResult.record.store();
+        const { status: aliceParticipantReadStoreStatus } = await aliceParticipantReadResult.record.store();
         expect(aliceParticipantReadStoreStatus.code).to.equal(202);
 
         // Alice makes Bob an `updater`

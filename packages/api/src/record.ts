@@ -1,4 +1,4 @@
-import type { Web5Agent } from '@web5/agent';
+import type { ProcessDwnRequest, Web5Agent } from '@web5/agent';
 import type { Readable } from '@web5/common';
 import type {
   RecordsWriteMessage,
@@ -11,6 +11,14 @@ import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 
 import type { ResponseStatus } from './dwn-api.js';
 import { dataToBlob } from './utils.js';
+
+export type ProcessRecordRequest = {
+  dataStream?: Blob | ReadableStream | Readable;
+  rawMessage?: Partial<RecordsWriteMessage>;
+  messageOptions?: unknown;
+  store: boolean;
+  import: boolean;
+};
 
 /**
  * Options that are passed to Record constructor.
@@ -350,17 +358,14 @@ export class Record implements RecordModel {
     return dataObj;
   }
 
-  private async _processMessage(options: any){
-
-    const { store = true } = options;
-
-    const request = {
+  private _prepareMessage(options: ProcessRecordRequest): ProcessDwnRequest {
+    const request: ProcessDwnRequest = {
       messageType : DwnInterfaceName.Records + DwnMethodName.Write,
       author      : this._connectedDid,
       target      : this._connectedDid,
-      import      : !!options.import,
-      store
-    } as any;
+      import      : options.import,
+      store       : options.store,
+    };
 
     if (options.rawMessage) {
       removeUndefinedProperties(options.rawMessage);
@@ -374,19 +379,17 @@ export class Record implements RecordModel {
       request.dataStream = options.dataStream;
     }
 
-    return this._agent.processDwnRequest(request);
+    return request;
   }
 
-  async _processRecord(options: { store: boolean, import: boolean }): Promise<any> {
+  private async _processRecord(options: { store: boolean, import: boolean }): Promise<ResponseStatus> {
 
     const { store = true, import: _import = false } = options;
-
     const initialWrite = this._initialWrite;
 
     // Is there an initial write? Have we already stored this record?
     if (initialWrite && !this._initialWriteStored) {
-
-      let agentResponse = await this._processMessage({
+      const requestOptions = this._prepareMessage({
         import     : _import,
         store      : store,
         rawMessage : {
@@ -395,6 +398,7 @@ export class Record implements RecordModel {
         }
       });
 
+      const agentResponse = await this._agent.processDwnRequest(requestOptions);
       const { message, reply: { status } } = agentResponse;
       const responseMessage = message as RecordsWriteMessage;
 
@@ -403,10 +407,9 @@ export class Record implements RecordModel {
         this._initialWriteStored = true;
         if (_import) initialWrite.authorization = responseMessage.authorization;
       }
-
     }
 
-    let agentResponse = await this._processMessage({
+    const requestOptions = this._prepareMessage({
       import     : !initialWrite && _import,
       store      : store,
       dataStream : await this.data.blob(),
@@ -420,6 +423,7 @@ export class Record implements RecordModel {
       }
     });
 
+    const agentResponse = await this._agent.processDwnRequest(requestOptions);
     const { message, reply: { status } } = agentResponse;
     const responseMessage = message as RecordsWriteMessage;
 
@@ -427,16 +431,16 @@ export class Record implements RecordModel {
       if (_import) this._authorization = responseMessage.authorization;
     }
 
-    return status;
-
+    return { status };
   }
 
-  async store(options?: { import: boolean }): Promise<any> {
+  async store(options?: { import: boolean }): Promise<ResponseStatus> {
+    // process the record and always set store to true
     return this._processRecord({ ...options, store: true });
   }
 
-  async import(options?: { store: boolean }): Promise<any> {
-    // Add check to bail if already imported
+  async import(options?: { store: boolean }): Promise<ResponseStatus> {
+    // process the record and always set import to true, only skip storage if explicitly set to false
     return this._processRecord({ store: options?.store !== false, import: true });
   }
 
