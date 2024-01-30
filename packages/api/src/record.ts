@@ -377,8 +377,7 @@ export class Record implements RecordModel {
     return this._agent.processDwnRequest(request);
   }
 
-
-  async store(options: any = {}): Promise<any> {
+  async _processRecord(options: { store: boolean, import: boolean }): Promise<any> {
 
     const { store = true, import: _import = false } = options;
 
@@ -430,9 +429,13 @@ export class Record implements RecordModel {
 
   }
 
-  async import(options?: any): Promise<any> {
+  async store(options?: { import: boolean }): Promise<any> {
+    return this._processRecord({ ...options, store: true });
+  }
+
+  async import(options?: { store: boolean }): Promise<any> {
     // Add check to bail if already imported
-    return this.store({ store: options?.store !== false, import: true });
+    return this._processRecord({ store: options?.store !== false, import: true });
   }
 
   
