@@ -154,7 +154,7 @@ describe('Record', () => {
     });
     expect(queryRecordStatus.code).to.equal(200);
     const importRecord = queryRecords[0];
-    const importRecordStatus = await importRecord.import();
+    const { status: importRecordStatus } = await importRecord.import();
     expect(importRecordStatus.code).to.equal(202);
 
     const { status: importSendStatus } = await importRecord!.send();
@@ -196,7 +196,7 @@ describe('Record', () => {
     expect(updatedRecordsStatus.code).to.equal(200);
 
     const updatedRecord = updatedRecords[0];
-    const updatedRecordStoredStatus = await updatedRecord.store();
+    const { status: updatedRecordStoredStatus } = await updatedRecord.store();
     expect(updatedRecordStoredStatus.code).to.equal(202);
 
     expect(await updatedRecord.data.text() === updatedText).to.equal(true);
