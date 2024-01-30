@@ -440,7 +440,6 @@ export class Record implements RecordModel {
     return this._processRecord({ store: options?.store !== false, import: true });
   }
 
-  
 
   /**
    * Send the current record to a remote DWN by specifying their DID
