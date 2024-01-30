@@ -50,6 +50,11 @@
             "who": "author",
             "of": "album",
             "can": "write"
+          },
+          {
+            "who": "author",
+            "of": "album",
+            "can": "update"
           }
         ]
       }

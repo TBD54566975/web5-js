@@ -263,7 +263,7 @@ describe('DwnApi', () => {
         expect(await result.record?.data.json()).to.deep.equal(dataJson);
       });
 
-      it('creates a role record for another user that they can use to create role-based records', async () => {
+      it.only('creates a role record for another user that they can use to create role-based records', async () => {
         /**
          * WHAT IS BEING TESTED?
          *
@@ -392,6 +392,26 @@ describe('DwnApi', () => {
         expect(alicePhotoSendStatus.code).to.equal(202);
         const { status: bobPhotoSendStatus } = await photoRecord.send(bobDid.did);
         expect(bobPhotoSendStatus.code).to.equal(202);
+
+        const { status: photoUpdateStatus, record: photoUpdateRecord} = await dwnBob.records.write({
+          data    : 'test again',
+          store   : false,
+          message : {
+            contextId    : albumRecord.id,
+            parentId     : albumRecord.id,
+            recordId     : photoRecord.id,
+            dateCreated  : photoRecord.dateCreated,
+            protocol     : photosProtocolDefinition.protocol,
+            protocolPath : 'album/photo',
+            schema       : photosProtocolDefinition.types.photo.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(photoUpdateStatus.code).to.equal(202);
+        const { status:alicePhotoUpdateSendStatus } = await photoUpdateRecord.send(aliceDid.did);
+        expect(alicePhotoUpdateSendStatus.code).to.equal(202);
+        const { status: bobPhotoUpdateSendStatus } = await photoUpdateRecord.send(bobDid.did);
+        expect(bobPhotoUpdateSendStatus.code).to.equal(202);
       });
     });
 
