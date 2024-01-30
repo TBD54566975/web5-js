@@ -17,6 +17,10 @@
     "participant": {
       "schema": "http://photo-protocol.xyz/schema/participant",
       "dataFormats": ["text/plain"]
+    },
+    "updater": {
+      "schema": "http://photo-protocol.xyz/schema/updater",
+      "dataFormats": ["text/plain"]
     }
   },
   "structure": {
@@ -40,6 +44,15 @@
           }
         ]
       },
+      "updater": {
+        "$contextRole": true,
+        "$actions": [
+          {
+            "role": "album/participant",
+            "can": "write"
+          }
+        ]
+      },
       "photo": {
         "$actions": [
           {
@@ -47,14 +60,13 @@
             "can": "write"
           },
           {
-            "who": "author",
-            "of": "album",
-            "can": "write"
+            "role": "album/updater",
+            "can": "update"
           },
           {
             "who": "author",
             "of": "album",
-            "can": "update"
+            "can": "write"
           }
         ]
       }
