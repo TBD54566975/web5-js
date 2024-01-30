@@ -435,30 +435,31 @@ export class Record implements RecordModel {
     return this.store({ store: options?.store !== false, import: true });
   }
 
+  
+
   /**
    * Send the current record to a remote DWN by specifying their DID
+   * If no DID is specified, the target is assumed to be the owner (connectedDID).
    * (vs waiting for the regular DWN sync)
-   * @param target - the DID to send the record to
+   * @param target - the optional DID to send the record to, if none is set it is sent to the connectedDid
    * @returns the status of the send record request
    * @throws `Error` if the record has already been deleted.
    *
    * @beta
    */
-  async send(_options?: string | { [key: string]: any }): Promise<ResponseStatus> {
+  async send(target?: string): Promise<ResponseStatus> {
 
     const initialWrite = this._initialWrite;
-    const options = !_options ? { target: this._connectedDid } : typeof _options === 'string' ? { target: _options } : _options;
-
-    if (!options.target){
-      options.target = this._connectedDid;
+    if (!target) {
+      target = this._connectedDid;
     }
 
-    if (initialWrite && !Record.checkSendCache(this._recordId, options.target)){
+    if (initialWrite && !Record.checkSendCache(this._recordId, target)){
 
       const initialState = {
         messageType : DwnInterfaceName.Records + DwnMethodName.Write,
         author      : this._connectedDid,
-        target      : options.target,
+        target      : target,
         rawMessage  : removeUndefinedProperties({
           contextId: this._contextId,
           ...initialWrite
@@ -467,7 +468,7 @@ export class Record implements RecordModel {
 
       await this._agent.sendDwnRequest(initialState);
 
-      Record.setSendCache(this._recordId, options.target);
+      Record.setSendCache(this._recordId, target);
 
     }
 
@@ -475,7 +476,7 @@ export class Record implements RecordModel {
       messageType : DwnInterfaceName.Records + DwnMethodName.Write,
       author      : this._connectedDid,
       dataStream  : await this.data.blob(),
-      target      : options.target
+      target      : target
     } as any;
 
     if (this._authorization) {
