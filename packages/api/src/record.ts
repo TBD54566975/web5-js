@@ -370,6 +370,8 @@ export class Record implements RecordModel {
     return request;
   }
 
+  // Handles the various conditions around there being an initial write, whether to store initial/current state,
+  // and whether to add an owner signature to the initial write to enable storage when protocol rules require it.
   private async _processRecord(options: { store: boolean, import: boolean }): Promise<ResponseStatus> {
 
     const { store = true, import: _import = false } = options;
@@ -422,11 +424,13 @@ export class Record implements RecordModel {
     return { status };
   }
 
+  // Uses _processRecord to manifest the storage-centric features of committing a foreign record to the local DWN
   async store(options?: { import: boolean }): Promise<ResponseStatus> {
     // process the record and always set store to true
     return this._processRecord({ ...options, store: true });
   }
 
+  // Uses _processRecord to manifest the import-centric features of ingesting and signing a foreign record
   async import(options?: { store: boolean }): Promise<ResponseStatus> {
     // process the record and always set import to true, only skip storage if explicitly set to false
     return this._processRecord({ store: options?.store !== false, import: true });
