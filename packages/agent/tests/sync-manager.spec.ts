@@ -168,7 +168,6 @@ describe('SyncManagerLevel', () => {
       expect(remoteDwnQueryReply.entries).to.have.length(6);
       remoteRecordsFromQuery = remoteDwnQueryReply.entries?.map(entry => entry.recordId);
       expect(remoteRecordsFromQuery).to.have.members([...localRecords, ...remoteRecords]);
-
     });
 
     describe('pull()', () => {

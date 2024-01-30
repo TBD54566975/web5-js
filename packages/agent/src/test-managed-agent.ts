@@ -123,7 +123,6 @@ export class TestManagedAgent {
     const dwn = await Dwn.create({
       eventLog     : dwnEventLog,
       dataStore    : dwnDataStore,
-      // @ts-expect-error because the Web5.js DidResolver implementation doesn't have the dump() method.
       didResolver  : didResolver,
       messageStore : dwnMessageStore
     });
