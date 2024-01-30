@@ -31,7 +31,14 @@
         }
       ],
       "participant": {
-        "$contextRole": true
+        "$contextRole": true,
+        "$actions": [
+          {
+            "who": "author",
+            "of": "album",
+            "can": "write"
+          }
+        ]
       },
       "photo": {
         "$actions": [
@@ -41,7 +48,7 @@
           },
           {
             "who": "author",
-            "of": "thread",
+            "of": "album",
             "can": "write"
           }
         ]
