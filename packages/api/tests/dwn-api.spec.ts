@@ -263,7 +263,7 @@ describe('DwnApi', () => {
         expect(await result.record?.data.json()).to.deep.equal(dataJson);
       });
 
-      it('creates a role record for another user that they can use to create role-based records', async () => {
+      it.only('creates a role record for another user that they can use to create role-based records', async () => {
         /**
          * WHAT IS BEING TESTED?
          *
@@ -342,7 +342,7 @@ describe('DwnApi', () => {
         const aliceAlbumReadStoreStatus = await aliceAlbumReadResult.record.store();
         expect(aliceAlbumReadStoreStatus.code).to.equal(202);
 
-        // Bob makes Alice a participant
+        // Bob makes Alice a `participant`
         const { status: participantCreateStatus, record: participantRecord} = await dwnBob.records.create({
           data    : 'test',
           message : {
@@ -374,6 +374,26 @@ describe('DwnApi', () => {
         const aliceParticipantReadStoreStatus = await aliceParticipantReadResult.record.store();
         expect(aliceParticipantReadStoreStatus.code).to.equal(202);
 
+        // Alice makes Bob an `updater`
+        const { status: updaterCreateStatus, record: updaterRecord} = await dwnAlice.records.create({
+          data    : 'test',
+          message : {
+            contextId    : albumRecord.id,
+            parentId     : albumRecord.id,
+            recipient    : bobDid.did,
+            protocol     : photosProtocolDefinition.protocol,
+            protocolPath : 'album/updater',
+            protocolRole : 'album/participant',
+            schema       : photosProtocolDefinition.types.updater.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(updaterCreateStatus.code).to.equal(202);
+        const { status: bobUpdaterSendStatus } = await updaterRecord.send(bobDid.did);
+        expect(bobUpdaterSendStatus.code).to.equal(202);
+        const { status: aliceUpdaterSendStatus } = await updaterRecord.send(aliceDid.did);
+        expect(aliceUpdaterSendStatus.code).to.equal(202);
+
         // Alice creates a photo using her participant role
         const { status: photoCreateStatus, record: photoRecord} = await dwnAlice.records.create({
           data    : 'test',
@@ -403,6 +423,7 @@ describe('DwnApi', () => {
             dateCreated  : photoRecord.dateCreated,
             protocol     : photosProtocolDefinition.protocol,
             protocolPath : 'album/photo',
+            protocolRole : 'album/updater',
             schema       : photosProtocolDefinition.types.photo.schema,
             dataFormat   : 'text/plain'
           }
