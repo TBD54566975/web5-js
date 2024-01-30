@@ -1464,7 +1464,6 @@ describe('Record', () => {
       expect(sendResult.status.code).to.equal(202);
     });
 
-    // TODO: Fix after changes are made to dwn-sdk-js to include the initial write in every query/read response.
     it('automatically sends the initial write and update of a record to a remote DWN', async () => {
       // Alice writes a message to her agent connected DWN.
       const { status, record } = await dwnAlice.records.write({
