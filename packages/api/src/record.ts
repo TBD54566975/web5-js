@@ -1,4 +1,4 @@
-import type { ProcessDwnRequest, Web5Agent } from '@web5/agent';
+import type { ProcessDwnRequest, SendDwnRequest, Web5Agent } from '@web5/agent';
 import type { Readable } from '@web5/common';
 import type {
   RecordsWriteMessage,
@@ -6,13 +6,13 @@ import type {
   RecordsWriteDescriptor,
 } from '@tbd54566975/dwn-sdk-js';
 
-import { Convert, NodeStream, Stream } from '@web5/common';
+import { Convert, NodeStream, removeUndefinedProperties, Stream } from '@web5/common';
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 
 import type { ResponseStatus } from './dwn-api.js';
 import { dataToBlob } from './utils.js';
 
-export type ProcessRecordRequest = {
+type ProcessRecordRequest = {
   dataStream?: Blob | ReadableStream | Readable;
   rawMessage?: Partial<RecordsWriteMessage>;
   messageOptions?: unknown;
@@ -77,20 +77,6 @@ export type RecordUpdateOptions = {
  *
  * @beta
  */
-
-function removeUndefinedProperties(obj: any): any {
-  if (typeof obj !== 'object' || obj === null) return;
-  Object.keys(obj).forEach(key => {
-    const val = obj[key];
-    if (val === undefined) {
-      delete obj[key];
-    } else if (typeof val === 'object') {
-      removeUndefinedProperties(val);
-    }
-  });
-  return obj;
-}
-
 export class Record implements RecordModel {
   // Record instance metadata.
   private _agent: Web5Agent;
@@ -459,54 +445,51 @@ export class Record implements RecordModel {
    * @beta
    */
   async send(target?: string): Promise<ResponseStatus> {
-
     const initialWrite = this._initialWrite;
-    if (!target) {
-      target = this._connectedDid;
-    }
+    target??= this._connectedDid;
 
     if (initialWrite && !Record.checkSendCache(this._recordId, target)){
+      const rawMessage = {
+        contextId: this._contextId,
+        ...initialWrite
+      };
+      removeUndefinedProperties(rawMessage);
 
-      const initialState = {
+      const initialState: SendDwnRequest = {
         messageType : DwnInterfaceName.Records + DwnMethodName.Write,
         author      : this._connectedDid,
         target      : target,
-        rawMessage  : removeUndefinedProperties({
-          contextId: this._contextId,
-          ...initialWrite
-        })
-      } as any;
-
+        rawMessage
+      };
       await this._agent.sendDwnRequest(initialState);
 
       Record.setSendCache(this._recordId, target);
-
     }
 
-    const latestState = {
+    const latestState: SendDwnRequest = {
       messageType : DwnInterfaceName.Records + DwnMethodName.Write,
       author      : this._connectedDid,
       dataStream  : await this.data.blob(),
       target      : target
-    } as any;
+    };
 
     if (this._authorization) {
-      latestState.rawMessage = removeUndefinedProperties({
+      const rawMessage = {
         contextId     : this._contextId,
         recordId      : this._recordId,
         descriptor    : this._descriptor,
         attestation   : this._attestation,
         authorization : this._authorization,
         encryption    : this._encryption,
-      });
-    }
-    else {
+      };
+      removeUndefinedProperties(rawMessage);
+      latestState.rawMessage = rawMessage;
+    } else {
       latestState.messageOptions = this.toJSON();
     }
 
-    const { reply: { status } } = await this._agent.sendDwnRequest(latestState);
-
-    return { status };
+    const { reply } = await this._agent.sendDwnRequest(latestState);
+    return reply;
   }
 
   /**
@@ -623,14 +606,16 @@ export class Record implements RecordModel {
 
     if (200 <= status.code && status.code <= 299) {
       if (!this._initialWrite) {
-        this._initialWrite = JSON.parse(JSON.stringify(removeUndefinedProperties({
+        const initialWrite: RecordsWriteMessage = {
           contextId     : this._contextId,
           recordId      : this._recordId,
           descriptor    : this._descriptor,
           attestation   : this._attestation,
           authorization : this._authorization,
           encryption    : this._encryption,
-        })));
+        };
+        removeUndefinedProperties(initialWrite);
+        this._initialWrite = JSON.parse(JSON.stringify(initialWrite));
       }
       // Only update the local Record instance mutable properties if the record was successfully (over)written.
       this._authorization = responseMessage.authorization;

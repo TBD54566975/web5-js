@@ -242,11 +242,10 @@ export class DwnManager {
   }
 
   private async constructDwnMessage(options: {
-    request : ProcessDwnRequest
+    request: ProcessDwnRequest
   }) {
     const { request } = options;
-    const rawMessage = (request as any).rawMessage;
-
+    const rawMessage = request.rawMessage as any;
     let readableStream: Readable | undefined;
 
     // TODO: Consider refactoring to move data transformations imposed by fetch() limitations to the HTTP transport-related methods.
@@ -289,7 +288,7 @@ export class DwnManager {
       }
     }
 
-    return { message: (dwnMessage as any).message, dataStream: readableStream };
+    return { message: dwnMessage.message, dataStream: readableStream };
   }
 
   private async getAuthorSigningKeyId(options: {
