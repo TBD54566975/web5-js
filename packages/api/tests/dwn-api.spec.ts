@@ -263,7 +263,7 @@ describe('DwnApi', () => {
         expect(await result.record?.data.json()).to.deep.equal(dataJson);
       });
 
-      it.only('creates a role record for another user that they can use to create role-based records', async () => {
+      it('creates a role record for another user that they can use to create role-based records', async () => {
         /**
          * WHAT IS BEING TESTED?
          *
