@@ -204,18 +204,6 @@ describe('Record', () => {
     const { status: updatedRecordToSelfStatus } = await updatedRecord!.send();
     expect(updatedRecordToSelfStatus.code).to.equal(202);
 
-    // Confirm Bob can query his own remote DWN for the created record.
-    // const bobQueryResult = await dwnBob.records.query({
-    //   from    : bobDid.did,
-    //   message : {
-    //     filter: {
-    //       schema: 'http://email-protocol.xyz/schema/email'
-    //     }
-    //   }
-    // });
-    // expect(bobQueryResult.status.code).to.equal(200);
-    // expect(bobQueryResult.records).to.exist;
-    // expect(bobQueryResult.records!.length).to.equal(1);
   });
 
   it('should retain all defined properties', async () => {
