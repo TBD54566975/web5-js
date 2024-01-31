@@ -116,6 +116,7 @@ export class Record implements RecordModel {
   /** Record's encryption */
   get encryption(): RecordsWriteMessage['encryption'] { return this._encryption; }
 
+  /** Record's initial write if the record has been updated */
   get initialWrite(): RecordOptions['initialWrite'] { return this._initialWrite; }
 
   /** Record's ID */
@@ -136,7 +137,7 @@ export class Record implements RecordModel {
   /** Record's protocol path */
   get protocolPath() { return this._descriptor.protocolPath; }
 
-  /** Role under which the author is writting the record */
+  /** Role under which the author is writing the record */
   get protocolRole() { return this._protocolRole; }
 
   /** Record's recipient */
@@ -552,9 +553,7 @@ export class Record implements RecordModel {
 
   // Handles the various conditions around there being an initial write, whether to store initial/current state,
   // and whether to add an owner signature to the initial write to enable storage when protocol rules require it.
-  private async processRecord(options: { store: boolean, signAsOwner: boolean }): Promise<ResponseStatus> {
-    const { store, signAsOwner } = options;
-
+  private async processRecord({ store, signAsOwner }:{ store: boolean, signAsOwner: boolean }): Promise<ResponseStatus> {
     // if there is an initial write and we haven't already processed it, we first process it and marked it as such.
     if (this._initialWrite && !this._initialWriteProcessed) {
       const initialWriteRequest: ProcessDwnRequest = {
