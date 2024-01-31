@@ -95,14 +95,21 @@ describe('DwnManager', () => {
     });
 
     describe('processRequest()', () => {
-      let identity: ManagedIdentity;
+      let alice: ManagedIdentity;
+      let bob: ManagedIdentity;
 
       beforeEach(async () => {
         await testAgent.clearStorage();
         await testAgent.createAgentDid();
         // Creates a new Identity to author the DWN messages.
-        identity = await testAgent.agent.identityManager.create({
+        alice = await testAgent.agent.identityManager.create({
           name      : 'Alice',
+          didMethod : 'key',
+          kms       : 'local'
+        });
+
+        bob = await testAgent.agent.identityManager.create({
+          name      : 'Bob',
           didMethod : 'key',
           kms       : 'local'
         });
@@ -113,8 +120,8 @@ describe('DwnManager', () => {
 
         // Attempt to process the EventsGet.
         let eventsGetResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : identity.did,
-          target         : identity.did,
+          author         : alice.did,
+          target         : alice.did,
           messageType    : 'EventsGet',
           messageOptions : {
             cursor: testCursor,
@@ -140,8 +147,8 @@ describe('DwnManager', () => {
 
         // Write a record to use for the MessagesGet test.
         let { message, reply: { status: writeStatus } } = await testAgent.agent.dwnManager.processRequest({
-          author         : identity.did,
-          target         : identity.did,
+          author         : alice.did,
+          target         : alice.did,
           messageType    : 'RecordsWrite',
           messageOptions : {
             dataFormat : 'text/plain',
@@ -157,8 +164,8 @@ describe('DwnManager', () => {
 
         // Attempt to process the MessagesGet.
         let messagesGetResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : identity.did,
-          target         : identity.did,
+          author         : alice.did,
+          target         : alice.did,
           messageType    : 'MessagesGet',
           messageOptions : {
             messageCids: [messageCid]
@@ -187,8 +194,8 @@ describe('DwnManager', () => {
 
       it('handles ProtocolsConfigure', async () => {
         let protocolsConfigureResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : identity.did,
-          target         : identity.did,
+          author         : alice.did,
+          target         : alice.did,
           messageType    : 'ProtocolsConfigure',
           messageOptions : {
             definition: emailProtocolDefinition
@@ -211,8 +218,8 @@ describe('DwnManager', () => {
       it('handles ProtocolsQuery', async () => {
         // Configure a protocol to use for the ProtocolsQuery test.
         let protocolsConfigureResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : identity.did,
-          target         : identity.did,
+          author         : alice.did,
+          target         : alice.did,
           messageType    : 'ProtocolsConfigure',
           messageOptions : {
             definition: emailProtocolDefinition
@@ -222,8 +229,8 @@ describe('DwnManager', () => {
 
         // Attempt to query for the protocol that was just configured.
         let protocolsQueryResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : identity.did,
-          target         : identity.did,
+          author         : alice.did,
+          target         : alice.did,
           messageType    : 'ProtocolsQuery',
           messageOptions : {
             filter: { protocol: emailProtocolDefinition.protocol },
@@ -252,8 +259,8 @@ describe('DwnManager', () => {
 
         // Write a record that can be deleted.
         let { message, reply: { status: writeStatus } } = await testAgent.agent.dwnManager.processRequest({
-          author         : identity.did,
-          target         : identity.did,
+          author         : alice.did,
+          target         : alice.did,
           messageType    : 'RecordsWrite',
           messageOptions : {
             dataFormat : 'text/plain',
@@ -266,8 +273,8 @@ describe('DwnManager', () => {
 
         // Attempt to process the RecordsRead.
         const deleteResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : identity.did,
-          target         : identity.did,
+          author         : alice.did,
+          target         : alice.did,
           messageType    : 'RecordsDelete',
           messageOptions : {
             recordId: writeMessage.recordId
@@ -294,8 +301,8 @@ describe('DwnManager', () => {
 
         // Write a record that can be queried for.
         let { message, reply: { status: writeStatus } } = await testAgent.agent.dwnManager.processRequest({
-          author         : identity.did,
-          target         : identity.did,
+          author         : alice.did,
+          target         : alice.did,
           messageType    : 'RecordsWrite',
           messageOptions : {
             dataFormat : 'text/plain',
@@ -308,8 +315,8 @@ describe('DwnManager', () => {
 
         // Attempt to process the RecordsQuery.
         const queryResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : identity.did,
-          target         : identity.did,
+          author         : alice.did,
+          target         : alice.did,
           messageType    : 'RecordsQuery',
           messageOptions : {
             filter: {
@@ -343,8 +350,8 @@ describe('DwnManager', () => {
 
         // Write a record that can be read.
         let { message, reply: { status: writeStatus } } = await testAgent.agent.dwnManager.processRequest({
-          author         : identity.did,
-          target         : identity.did,
+          author         : alice.did,
+          target         : alice.did,
           messageType    : 'RecordsWrite',
           messageOptions : {
             dataFormat : 'text/plain',
@@ -357,8 +364,8 @@ describe('DwnManager', () => {
 
         // Attempt to process the RecordsRead.
         const readResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : identity.did,
-          target         : identity.did,
+          author         : alice.did,
+          target         : alice.did,
           messageType    : 'RecordsRead',
           messageOptions : {
             filter: {
@@ -391,8 +398,8 @@ describe('DwnManager', () => {
 
         // Attempt to process the RecordsWrite
         let writeResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : identity.did,
-          target         : identity.did,
+          author         : alice.did,
+          target         : alice.did,
           messageType    : 'RecordsWrite',
           messageOptions : {
             dataFormat: 'text/plain'
@@ -413,6 +420,86 @@ describe('DwnManager', () => {
         const writeReply = writeResponse.reply;
         expect(writeReply).to.have.property('status');
         expect(writeReply.status.code).to.equal(202);
+      });
+
+      xit('handles RecordsWrite messages to sign as owner', async () => {
+        // bob authors a public record to his dwn
+        const bobWrite = await testAgent.agent.dwnManager.processRequest({
+          author         : bob.did,
+          target         : bob.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            published  : true,
+            dataFormat : 'text/plain'
+          },
+          dataStream: new Blob([ Convert.string('Hello, world!').toUint8Array() ])
+        });
+        expect(bobWrite.reply.status.code).to.equal(202);
+        const message = bobWrite.message as RecordsWriteMessage;
+
+        // alice queries bob's DWN for the record
+        const queryBobResponse = await testAgent.agent.dwnManager.processRequest({
+          messageType    : 'RecordsQuery',
+          author         : alice.did,
+          target         : bob.did,
+          messageOptions : {
+            filter: {
+              recordId: message.recordId
+            }
+          }
+        });
+        let reply = queryBobResponse.reply as RecordsQueryReply;
+        expect(reply.status.code).to.equal(200);
+        expect(reply.entries!.length).to.equal(1);
+        expect(reply.entries![0].recordId).to.equal(message.recordId);
+
+
+        // alice attempts to process the rawMessage as is without signing it, should fail
+        let aliceWrite = await testAgent.agent.dwnManager.processRequest({
+          messageType : 'RecordsWrite',
+          author      : alice.did,
+          target      : alice.did,
+          rawMessage  : message,
+        });
+        expect(aliceWrite.reply.status.code).to.equal(401);
+
+        // alice queries to make sure the record is not saved on her dwn
+        let queryAliceResponse = await testAgent.agent.dwnManager.processRequest({
+          messageType    : 'RecordsQuery',
+          author         : alice.did,
+          target         : alice.did,
+          messageOptions : {
+            filter: {
+              recordId: message.recordId
+            }
+          }
+        });
+        expect(queryAliceResponse.reply.status.code).to.equal(200);
+        expect(queryAliceResponse.reply.entries!.length).to.equal(0);
+
+        // alice attempts to process the rawMessage again this time marking it to be signed as owner
+        aliceWrite = await testAgent.agent.dwnManager.processRequest({
+          messageType : 'RecordsWrite',
+          author      : alice.did,
+          target      : alice.did,
+          rawMessage  : message,
+          signAsOwner : true,
+        });
+        expect(aliceWrite.reply.status.code).to.equal(202);
+
+        // alice now queries for the record, it should be there
+        queryAliceResponse = await testAgent.agent.dwnManager.processRequest({
+          messageType    : 'RecordsQuery',
+          author         : alice.did,
+          target         : alice.did,
+          messageOptions : {
+            filter: {
+              recordId: message.recordId
+            }
+          }
+        });
+        expect(queryAliceResponse.reply.status.code).to.equal(200);
+        expect(queryAliceResponse.reply.entries!.length).to.equal(1);
       });
     });
 
