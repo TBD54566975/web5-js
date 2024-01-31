@@ -142,7 +142,7 @@ describe('Record', () => {
 
 
     // Bob queries for the record on his own DWN (should not find it)
-     let bobQueryBobDwn = await dwnBob.records.query({
+    let bobQueryBobDwn = await dwnBob.records.query({
       from    : bobDid.did,
       message : {
         filter: {
@@ -2327,7 +2327,7 @@ describe('Record', () => {
 
       // Bob queries for the record from his own node, should not return any results
       let queryResult = await dwnBob.records.query({
-        message : {
+        message: {
           filter: {
             recordId: record!.id
           }
@@ -2348,7 +2348,7 @@ describe('Record', () => {
       expect(queryResultFromAlice.status.code).to.equal(200);
       expect(queryResultFromAlice.records.length).to.equal(1);
       const queriedRecord = queryResultFromAlice.records[0];
-      expect(await queriedRecord.data.text()).to.equal(updatedText)
+      expect(await queriedRecord.data.text()).to.equal(updatedText);
 
       // stores the record in Bob's DWN, since import is defaulted to true, it will sign the record as bob
       const { status: storeRecordStatus } = await queriedRecord.store();
@@ -2356,7 +2356,7 @@ describe('Record', () => {
 
       // The record should now exist on bob's node
       queryResult = await dwnBob.records.query({
-        message : {
+        message: {
           filter: {
             recordId: record!.id
           }
