@@ -119,13 +119,11 @@ export class XChaCha20Poly1305 {
    * ```ts
    * const encryptedData = new Uint8Array([...]); // Encrypted data
    * const nonce = new Uint8Array(24); // 24-byte nonce
-   * const tag = new Uint8Array([...]); // Authentication tag
    * const additionalData = new Uint8Array([...]); // Optional AAD
    * const key = { ... }; // A Jwk object representing the XChaCha20-Poly1305 key
    * const decryptedData = await XChaCha20Poly1305.decrypt({
    *   data: encryptedData,
    *   nonce,
-   *   tag,
    *   additionalData,
    *   key
    * });
@@ -171,7 +169,7 @@ export class XChaCha20Poly1305 {
    * const nonce = utils.randomBytes(24); // 24-byte nonce
    * const additionalData = new TextEncoder().encode('Associated data'); // Optional AAD
    * const key = { ... }; // A Jwk object representing an XChaCha20-Poly1305 key
-   * const { ciphertext, tag } = await XChaCha20Poly1305.encrypt({
+   * const encryptedData = await XChaCha20Poly1305.encrypt({
    *   data,
    *   nonce,
    *   additionalData,
@@ -185,8 +183,8 @@ export class XChaCha20Poly1305 {
    * @param params.nonce - A 24-byte nonce for the encryption process.
    * @param params.additionalData - Optional additional authenticated data.
    *
-   * @returns A Promise that resolves to an object containing the encrypted data (`ciphertext`) and
-   *          the authentication tag (`tag`).
+   * @returns A Promise that resolves to a byte array containing the encrypted data and the
+   *          authentication tag.
    */
   public static async encrypt({ data, key, nonce, additionalData}: {
     additionalData?: Uint8Array;
@@ -194,7 +192,6 @@ export class XChaCha20Poly1305 {
     key: Jwk;
     nonce: Uint8Array;
   }): Promise<Uint8Array> {
-  // }): Promise<{ ciphertext: Uint8Array, tag: Uint8Array }> {
     // Convert the private key from JWK format to bytes.
     const privateKeyBytes = await XChaCha20Poly1305.privateKeyToBytes({ privateKey: key });
 
