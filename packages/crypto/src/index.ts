@@ -30,6 +30,7 @@ export type * from './types/cipher.js';
 export type * from './types/crypto-api.js';
 export type * from './types/hasher.js';
 export type * from './types/identifier.js';
+export type * from './types/key-compressor.js';
 export type * from './types/key-converter.js';
 export type * from './types/key-deriver.js';
 export type * from './types/key-generator.js';
