@@ -46,7 +46,7 @@ jobs:
         run: npm ci
 
       - name: Build all workspace packages
-        run: npm run build
+        run: npm run build:esm --ws && npm run build:cjs --ws
 
       - name: Run linter for all packages
         run: npm run lint --ws
