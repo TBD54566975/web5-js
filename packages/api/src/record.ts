@@ -12,11 +12,11 @@ import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 import type { ResponseStatus } from './dwn-api.js';
 import { dataToBlob } from './utils.js';
 
-class SendCache {
-  private static cache = new Map();
+export class SendCache {
+  private static cache = new Map<string, Set<string>>();
   static sendCacheLimit = 100;
 
-  static set(id: string, target: string) {
+  static set(id: string, target: string): void {
     let targetCache = SendCache.cache.get(id) || new Set();
     SendCache.cache.delete(id);
     SendCache.cache.set(id, targetCache);
@@ -32,9 +32,9 @@ class SendCache {
     }
   }
 
-  static check(id: string, target: string){
+  static check(id: string, target: string): boolean {
     let targetCache = SendCache.cache.get(id);
-    return target && targetCache ? targetCache.has(target) : targetCache;
+    return targetCache ? targetCache.has(target) : false;
   }
 }
 
@@ -587,7 +587,7 @@ export class Record implements RecordModel {
         rawMessage  : this.initialWrite,
         author      : this._connectedDid,
         target      : this._connectedDid,
-        signAsOwner : signAsOwner,
+        signAsOwner,
         store,
       };
 
@@ -611,7 +611,7 @@ export class Record implements RecordModel {
       author      : this._connectedDid,
       target      : this._connectedDid,
       dataStream  : await this.data.blob(),
-      signAsOwner : !this.initialWrite && signAsOwner, // we only need to sign this record if it is the initial write and is marked for signing
+      signAsOwner,
       store,
     };
 

@@ -22,7 +22,7 @@ import {
   KeyDerivationScheme,
 } from '@tbd54566975/dwn-sdk-js';
 
-import { Record } from '../src/record.js';
+import { Record, SendCache } from '../src/record.js';
 import { DwnApi } from '../src/dwn-api.js';
 import { dataToBlob } from '../src/utils.js';
 import { testDwnUrl } from './utils/test-config.js';
@@ -97,8 +97,6 @@ describe('Record', () => {
     await testAgent.closeStorage();
   });
 
-  // FIRST PASS AT IMPORT
-
   it('imports a record that another user wrote', async () => {
 
     // Install the email protocol for Alice's local DWN.
@@ -128,7 +126,7 @@ describe('Record', () => {
     const { status: bobPushStatus } = await bobProtocol!.send(bobDid.did);
     expect(bobPushStatus.code).to.equal(202);
 
-    // Alice creates a new large record and stores it
+    // Alice creates a new large record and stores it on her own dwn
     const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwnAlice.records.write({
       data    : TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000),
       message : {
@@ -142,8 +140,22 @@ describe('Record', () => {
     const { status: sendStatus } = await aliceEmailRecord!.send(aliceDid.did);
     expect(sendStatus.code).to.equal(202);
 
-    // Alice queries for the record that was just created on her remote DWN.
-    const { records: queryRecords, status: queryRecordStatus } = await dwnBob.records.query({
+
+    // Bob queries for the record on his own DWN (should not find it)
+     let bobQueryBobDwn = await dwnBob.records.query({
+      from    : bobDid.did,
+      message : {
+        filter: {
+          protocol     : emailProtocolDefinition.protocol,
+          protocolPath : 'thread',
+        }
+      }
+    });
+    expect(bobQueryBobDwn.status.code).to.equal(200);
+    expect(bobQueryBobDwn.records.length).to.equal(0); // no results
+
+    // Bob queries for the record that was just created on Alice's remote DWN.
+    let bobQueryAliceDwn = await dwnBob.records.query({
       from    : aliceDid.did,
       message : {
         filter: {
@@ -152,13 +164,31 @@ describe('Record', () => {
         }
       }
     });
-    expect(queryRecordStatus.code).to.equal(200);
-    const importRecord = queryRecords[0];
+    expect(bobQueryAliceDwn.status.code).to.equal(200);
+    expect(bobQueryAliceDwn.records.length).to.equal(1);
+
+    // bob imports the record
+    const importRecord = bobQueryAliceDwn.records[0];
     const { status: importRecordStatus } = await importRecord.import();
     expect(importRecordStatus.code).to.equal(202);
 
+    // bob sends the record to his remote dwn
     const { status: importSendStatus } = await importRecord!.send();
     expect(importSendStatus.code).to.equal(202);
+
+    // Bob queries for the record on his own DWN (should now return it)
+    bobQueryBobDwn = await dwnBob.records.query({
+      from    : bobDid.did,
+      message : {
+        filter: {
+          protocol     : emailProtocolDefinition.protocol,
+          protocolPath : 'thread',
+        }
+      }
+    });
+    expect(bobQueryBobDwn.status.code).to.equal(200);
+    expect(bobQueryBobDwn.records.length).to.equal(1);
+    expect(bobQueryBobDwn.records[0].id).to.equal(importRecord.id);
 
     // Alice updates her record
     let { status: aliceEmailStatusUpdated } = await aliceEmailRecord.update({
@@ -172,19 +202,17 @@ describe('Record', () => {
     const { status: sentToBobStatus } = await aliceEmailRecord!.send(bobDid.did);
     expect(sentToBobStatus.code).to.equal(202);
 
-    // Alice updates her record
-
+    // Alice updates her record and sends it to her own DWN again
     const updatedText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
     let { status: aliceEmailStatusUpdatedAgain } = await aliceEmailRecord.update({
       data: updatedText
     });
     expect(aliceEmailStatusUpdatedAgain.code).to.equal(202);
-
-    // Sends it to her own remote DWN again
     const { status: sentToSelfAgainStatus } = await aliceEmailRecord!.send();
     expect(sentToSelfAgainStatus.code).to.equal(202);
 
-    const { records: updatedRecords, status: updatedRecordsStatus } = await dwnBob.records.query({
+    // Bob queries for the updated record on alice's DWN
+    bobQueryAliceDwn = await dwnBob.records.query({
       from    : aliceDid.did,
       message : {
         filter: {
@@ -193,17 +221,33 @@ describe('Record', () => {
         }
       }
     });
-    expect(updatedRecordsStatus.code).to.equal(200);
+    expect(bobQueryAliceDwn.status.code).to.equal(200);
+    expect(bobQueryAliceDwn.records.length).to.equal(1);
+    const updatedRecord = bobQueryAliceDwn.records[0];
 
-    const updatedRecord = updatedRecords[0];
+    // stores the record on his own DWN
     const { status: updatedRecordStoredStatus } = await updatedRecord.store();
     expect(updatedRecordStoredStatus.code).to.equal(202);
+    expect(await updatedRecord.data.text()).to.equal(updatedText);
 
-    expect(await updatedRecord.data.text() === updatedText).to.equal(true);
-
+    // sends the record to his own DWN
     const { status: updatedRecordToSelfStatus } = await updatedRecord!.send();
     expect(updatedRecordToSelfStatus.code).to.equal(202);
 
+    // Bob queries for the updated record on his own DWN
+    bobQueryBobDwn = await dwnBob.records.query({
+      from    : bobDid.did,
+      message : {
+        filter: {
+          protocol     : emailProtocolDefinition.protocol,
+          protocolPath : 'thread',
+        }
+      }
+    });
+    expect(bobQueryBobDwn.status.code).to.equal(200);
+    expect(bobQueryBobDwn.records.length).to.equal(1);
+    expect(bobQueryBobDwn.records[0].id).to.equal(importRecord.id);
+    expect(await bobQueryBobDwn.records[0].data.text()).to.equal(updatedText);
   });
 
   it('should retain all defined properties', async () => {
@@ -265,7 +309,7 @@ describe('Record', () => {
     });
 
     // Create a parent record to reference in the RecordsWriteMessage used for validation
-    const parentRecorsWrite = await RecordsWrite.create({
+    const parentRecordsWrite = await RecordsWrite.create({
       data   : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       protocol,
@@ -280,7 +324,7 @@ describe('Record', () => {
       data               : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       encryptionInput,
-      parentId           : parentRecorsWrite.recordId,
+      parentId           : parentRecordsWrite.recordId,
       protocol,
       protocolPath,
       published,
@@ -314,7 +358,7 @@ describe('Record', () => {
     expect(record.protocolPath).to.equal(protocolPath);
     expect(record.recipient).to.equal(recipient);
     expect(record.schema).to.equal(schema);
-    expect(record.parentId).to.equal(parentRecorsWrite.recordId);
+    expect(record.parentId).to.equal(parentRecordsWrite.recordId);
     expect(record.dataCid).to.equal(recordsWrite.message.descriptor.dataCid);
     expect(record.dataSize).to.equal(recordsWrite.message.descriptor.dataSize);
     expect(record.dateCreated).to.equal(recordsWrite.message.descriptor.dateCreated);
@@ -1933,7 +1977,7 @@ describe('Record', () => {
       });
 
       // Create a parent record to reference in the RecordsWriteMessage used for validation
-      const parentRecorsWrite = await RecordsWrite.create({
+      const parentRecordsWrite = await RecordsWrite.create({
         data   : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         protocol,
@@ -1948,7 +1992,7 @@ describe('Record', () => {
         data               : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         encryptionInput,
-        parentId           : parentRecorsWrite.recordId,
+        parentId           : parentRecordsWrite.recordId,
         protocol,
         protocolPath,
         published,
@@ -1987,7 +2031,7 @@ describe('Record', () => {
       expect(recordJson.protocolPath).to.equal(protocolPath);
       expect(recordJson.recipient).to.equal(recipient);
       expect(recordJson.schema).to.equal(schema);
-      expect(recordJson.parentId).to.equal(parentRecorsWrite.recordId);
+      expect(recordJson.parentId).to.equal(parentRecordsWrite.recordId);
       expect(recordJson.dataCid).to.equal(recordsWrite.message.descriptor.dataCid);
       expect(recordJson.dataSize).to.equal(recordsWrite.message.descriptor.dataSize);
       expect(recordJson.dateCreated).to.equal(recordsWrite.message.descriptor.dateCreated);
@@ -2254,5 +2298,114 @@ describe('Record', () => {
         record!.update({ dataFormat: 'application/json' })
       ).to.eventually.be.rejectedWith('is an immutable property. Its value cannot be changed.');
     });
+  });
+
+  describe('store()', () => {
+    it('stores an updated record to the local DWN', async () => {
+      // Scenario: Alice creates a record and then updates it.
+      //           Bob queries for the record from Alice's DWN and then stores the updated record locally.
+
+      // Alice creates a public record then sends it to her remote DWN.
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          published  : true,
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202, status.detail);
+      let sendResponse = await record.send();
+      expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
+
+      // Alice updates the record and once again does not store it.
+      const updatedText = 'updated text';
+      const updateResult = await record!.update({ data: updatedText });
+      expect(updateResult.status.code).to.equal(202, updateResult.status.detail);
+      sendResponse = await record.send();
+      expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
+
+      // Bob queries for the record from his own node, should not return any results
+      let queryResult = await dwnBob.records.query({
+        message : {
+          filter: {
+            recordId: record!.id
+          }
+        }
+      });
+      expect(queryResult.status.code).to.equal(200);
+      expect(queryResult.records.length).to.equal(0);
+
+      // Bob queries for the record from Alice's remote DWN
+      const queryResultFromAlice = await dwnBob.records.query({
+        from    : aliceDid.did,
+        message : {
+          filter: {
+            recordId: record!.id
+          }
+        }
+      });
+      expect(queryResultFromAlice.status.code).to.equal(200);
+      expect(queryResultFromAlice.records.length).to.equal(1);
+      const queriedRecord = queryResultFromAlice.records[0];
+      expect(await queriedRecord.data.text()).to.equal(updatedText)
+
+      // stores the record in Bob's DWN, since import is defaulted to true, it will sign the record as bob
+      const { status: storeRecordStatus } = await queriedRecord.store();
+      expect(storeRecordStatus.code).to.equal(202, storeRecordStatus.detail);
+
+      // The record should now exist on bob's node
+      queryResult = await dwnBob.records.query({
+        message : {
+          filter: {
+            recordId: record!.id
+          }
+        }
+      });
+      expect(queryResult.status.code).to.equal(200);
+      expect(queryResult.records.length).to.equal(1);
+      const storedRecord = queryResult.records[0];
+      expect(storedRecord.id).to.equal(record!.id);
+      expect(await storedRecord.data.text()).to.equal(updatedText);
+    });
+  });
+});
+
+describe('SendCache', () => {
+  it('sets and checks an item in the cache', async () => {
+    // checks for 'id' and 'target', returns false because we have not set them yet
+    expect(SendCache.check('id', 'target')).to.equal(false);
+
+    // set 'id' and 'target, and then check
+    SendCache.set('id', 'target');
+    expect(SendCache.check('id', 'target')).to.equal(true);
+
+    // check for 'id' with a different target
+    expect(SendCache.check('id', 'target2')).to.equal(false);
+  });
+
+  it('purges the first item in teh cache when the cache is full (100 items)', async () => {
+    const recordId = 'id';
+    // set 100 items in the cache to the same id
+    for (let i = 0; i < 100; i++) {
+      SendCache.set(recordId, `target-${i}`);
+    }
+
+    // check that the first item is in the cache
+    expect(SendCache.check(recordId, 'target-0')).to.equal(true);
+
+    // set another item in the cache
+    SendCache.set(recordId, 'target-new');
+
+    // check that the first item is no longer in the cache but the one after it is as well as the new one.
+    expect(SendCache.check(recordId, 'target-0')).to.equal(false);
+    expect(SendCache.check(recordId, 'target-1')).to.equal(true);
+    expect(SendCache.check(recordId, 'target-new')).to.equal(true);
+
+    // add another item
+    SendCache.set(recordId, 'target-new2');
+    expect(SendCache.check(recordId, 'target-1')).to.equal(false);
+    expect(SendCache.check(recordId, 'target-2')).to.equal(true);
+    expect(SendCache.check(recordId, 'target-new2')).to.equal(true);
   });
 });
