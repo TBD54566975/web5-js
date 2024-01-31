@@ -16,8 +16,8 @@ export class DidError extends Error {
     // and that V8 stack traces (like Chrome, Edge, and Node.js) are more readable and relevant.
     Object.setPrototypeOf(this, new.target.prototype);
 
-    // Captures the stack trace in V8 engines (like Chrome, Edge, and Node.js). // In non-V8
-    // environments, the stack trace will still be captured.
+    // Captures the stack trace in V8 engines (like Chrome, Edge, and Node.js).
+    // In non-V8 environments, the stack trace will still be captured.
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, DidError);
     }
