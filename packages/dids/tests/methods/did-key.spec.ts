@@ -4,6 +4,7 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { LocalKeyManager } from '@web5/crypto';
 
+import type { DidDocument } from '../../src/types/did-core.js';
 import type { PortableDid, PortableDidVerificationMethod } from '../../src/methods/did-method.js';
 
 import { DidErrorCode } from '../../src/did-error.js';
@@ -421,6 +422,105 @@ describe('DidKey', () => {
         expect.fail('Expected an error to be thrown.');
       } catch (error: any) {
         expect(error.message).to.include('one verification method');
+      }
+    });
+  });
+
+  describe('getSigningMethod()', () => {
+    it('returns the first authentication verification method', async function () {
+      const verificationMethod = await DidKey.getSigningMethod({
+        didDocument: {
+          id                 : 'did:key:123',
+          verificationMethod : [
+            {
+              id           : 'did:key:123#0',
+              type         : 'JsonWebKey2020',
+              controller   : 'did:key:123',
+              publicKeyJwk : {} as Jwk
+            }
+          ],
+          authentication: ['did:key:123#0']
+        }
+      });
+
+      expect(verificationMethod).to.exist;
+      expect(verificationMethod).to.have.property('id', 'did:key:123#0');
+    });
+
+    it('returns undefined if there is no authentication verification method', async function () {
+      const verificationMethod = await DidKey.getSigningMethod({
+        didDocument: {
+          id                 : 'did:key:123',
+          verificationMethod : [
+            {
+              id           : 'did:key:123#0',
+              type         : 'JsonWebKey2020',
+              controller   : 'did:key:123',
+              publicKeyJwk : {} as Jwk
+            }
+          ],
+          assertionMethod: ['did:key:123#0']
+        }
+      });
+
+      expect(verificationMethod).to.not.exist;
+    });
+
+    it('returns undefined if the only authentication method is embedded', async function () {
+      const verificationMethod = await DidKey.getSigningMethod({
+        didDocument: {
+          id                 : 'did:key:123',
+          verificationMethod : [
+            {
+              id           : 'did:key:123#0',
+              type         : 'JsonWebKey2020',
+              controller   : 'did:key:123',
+              publicKeyJwk : {} as Jwk
+            }
+          ],
+          authentication: [
+            {
+              id           : 'did:key:123#1',
+              type         : 'JsonWebKey2020',
+              controller   : 'did:key:123',
+              publicKeyJwk : {} as Jwk
+            }
+          ],
+          assertionMethod: ['did:key:123#0']
+        }
+      });
+
+      expect(verificationMethod).to.not.exist;
+    });
+
+    it('handles didDocuments missing verification methods', async function () {
+      const result = await DidKey.getSigningMethod({
+        didDocument: { id: 'did:key:123' }
+      });
+
+      expect(result).to.be.undefined;
+    });
+
+    it('throws an error if a non-key method is used', async function () {
+      // Example DID Document with a non-key method
+      const didDocument: DidDocument = {
+        '@context'         : 'https://www.w3.org/ns/did/v1',
+        id                 : 'did:example:123',
+        verificationMethod : [
+          {
+            id           : 'did:example:123#0',
+            type         : 'JsonWebKey2020',
+            controller   : 'did:example:123',
+            publicKeyJwk : {} as Jwk
+          }
+        ],
+      };
+
+      try {
+        await DidKey.getSigningMethod({ didDocument });
+        expect.fail('Error should have been thrown');
+      } catch (error: any) {
+        expect(error.message).to.equal('Method not supported: example');
       }
     });
   });

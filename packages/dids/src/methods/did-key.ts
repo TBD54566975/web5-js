@@ -1,5 +1,15 @@
 import type { MulticodecCode, MulticodecDefinition, RequireOnly } from '@web5/common';
-import type { AsymmetricKeyConverter, CryptoApi, InferKeyGeneratorAlgorithm, Jwk, KeyIdentifier, KeyImporterExporter, KmsExportKeyParams, KmsImportKeyParams } from '@web5/crypto';
+import type {
+  Jwk,
+  CryptoApi,
+  KeyCompressor,
+  KeyIdentifier,
+  KmsExportKeyParams,
+  KmsImportKeyParams,
+  KeyImporterExporter,
+  AsymmetricKeyConverter,
+  InferKeyGeneratorAlgorithm,
+} from '@web5/crypto';
 
 import { Convert, Multicodec, universalTypeOf } from '@web5/common';
 import {
@@ -135,14 +145,11 @@ export interface DidKeyCreateOptions<TKms> extends DidCreateOptions<TKms> {
 }
 
 /**
- * Enumerates the types of keys that can be used in a DID DHT document.
+ * Enumerates the types of keys that can be used in a DID Key document.
  *
- * The DID DHT method supports various cryptographic key types. These key types are essential for
+ * The DID Key method supports various cryptographic key types. These key types are essential for
  * the creation and management of DIDs and their associated cryptographic operations like signing
- * and encryption. The registered key types are published in the DID DHT Registry and each is
- * assigned a unique numerical value for use by client and gateway implementations.
- *
- * The registered key types are published in the {@link https://did-dht.com/registry/index.html#key-type-index | DID DHT Registry}.
+ * and encryption.
  */
 export enum DidKeyRegisteredKeyType {
   /**
@@ -169,10 +176,22 @@ export enum DidKeyRegisteredKeyType {
   X25519 = 'X25519'
 }
 
+/**
+ * Enumerates the verification method types supported by the DID Key method.
+ *
+ * This enum defines the URIs associated with common verification methods used in DID Documents.
+ * These URIs represent cryptographic suites or key types standardized for use across decentralized
+ * identifiers (DIDs).
+ */
 export const DidKeyVerificationMethodType = {
-  Ed25519VerificationKey2020 : 'https://w3id.org/security/suites/ed25519-2020/v1',
-  JsonWebKey2020             : 'https://w3id.org/security/suites/jws-2020/v1',
-  X25519KeyAgreementKey2020  : 'https://w3id.org/security/suites/x25519-2020/v1',
+  /** Represents an Ed25519 public key used for digital signatures. */
+  Ed25519VerificationKey2020: 'https://w3id.org/security/suites/ed25519-2020/v1',
+
+  /** Represents a JSON Web Key (JWK) used for digital signatures and key agreement protocols. */
+  JsonWebKey2020: 'https://w3id.org/security/suites/jws-2020/v1',
+
+  /** Represents an X25519 public key used for key agreement protocols. */
+  X25519KeyAgreementKey2020: 'https://w3id.org/security/suites/x25519-2020/v1',
 } as const;
 
 /**
@@ -409,8 +428,8 @@ export class DidKey extends DidMethod {
 
   /**
    * Given the W3C DID Document of a `did:key` DID, return the verification method that will be used
-   * for signing messages and credentials. With DID Key, the first verification method in the DID
-   * Document is always used.
+   * for signing messages and credentials. With DID Key, the first verification method in the
+   * authentication property in the DID Document is used.
    *
    * Note that for DID Key, only one verification method intended for signing can exist so
    * specifying `methodId` could be considered redundant or unnecessary. The option is provided for
@@ -432,7 +451,7 @@ export class DidKey extends DidMethod {
     }
 
     // Get the ID of the first verification method intended for signing.
-    const [ methodId ] = didDocument.authentication ?? [];
+    const [ methodId ] = didDocument.authentication || [];
 
     // Get the verification method with the specified ID.
     const verificationMethod = didDocument.verificationMethod?.find(vm => vm.id === methodId);
@@ -946,7 +965,7 @@ export class DidKey extends DidMethod {
   }
 
   /**
-   * Creates a new DID using the `did:key` method formed from a public key.
+   * Creates a new DID using the DID Key method formed from a public key.
    *
    */
   private static async fromPublicKey({ keyManager, publicKey, options }: {
@@ -960,7 +979,7 @@ export class DidKey extends DidMethod {
     // Attach the prefix `did:jwk` to form the complete DID URI.
     const didUri = `did:${DidKey.methodName}:${multibaseId}`;
 
-    // Expand the DID URI string to a DID didDocument.
+    // Expand the DID URI string to a DID document.
     const didResolutionResult = await DidKey.resolve(didUri, options);
     const didDocument = didResolutionResult.didDocument as DidDocument;
 
@@ -977,6 +996,14 @@ export class DidKey extends DidMethod {
     return { didDocument, getSigner, keyManager, metadata, uri: didUri };
   }
 
+  /**
+   * Validates the structure and components of a DID URI against the `did:key` method specification.
+   *
+   * @param parsedDid - An object representing the parsed components of a DID URI, including the
+   *                    scheme, method, and method-specific identifier.
+   * @returns `true` if the DID URI meets the `did:key` method's structural requirements, `false` otherwise.
+   *
+   */
   private static validateIdentifier(parsedDid: DidUri): boolean {
     const { method, id: multibaseValue } = parsedDid;
     const [ scheme ] = parsedDid.uri.split(':', 1);
@@ -999,23 +1026,25 @@ export class DidKey extends DidMethod {
   }
 }
 
+/**
+ * The `DidKeyUtils` class provides utility functions to support operations in the DID Key method.
+ */
 export class DidKeyUtils {
-
   /**
    * A mapping from JSON Web Key (JWK) property descriptors to multicodec names.
    *
    * This mapping is used to convert keys in JWK (JSON Web Key) format to multicodec format.
+   *
+   * @remarks
+   * The keys of this object are strings that describe the JOSE key type and usage,
+   * such as 'Ed25519:public', 'Ed25519:private', etc. The values are the corresponding multicodec
+   * names used to represent these key types.
    *
    * @example
    * ```ts
    * const multicodecName = JWK_TO_MULTICODEC['Ed25519:public'];
    * // Returns 'ed25519-pub', the multicodec name for an Ed25519 public key
    * ```
-   *
-   * @remarks
-   * The keys of this object are strings that describe the JOSE key type and usage,
-   * such as 'Ed25519:public', 'Ed25519:private', etc.
-   * The values are the corresponding multicodec names used to represent these key types.
    */
   private static JWK_TO_MULTICODEC: { [key: string]: string } = {
     'Ed25519:public'    : 'ed25519-pub',
@@ -1026,6 +1055,10 @@ export class DidKeyUtils {
     'X25519:private'    : 'x25519-priv',
   };
 
+  /**
+   * Defines the expected byte lengths for public keys associated with different cryptographic
+   * algorithms, indexed by their multicodec code values.
+   */
   public static MULTICODEC_PUBLIC_KEY_LENGTH: Record<number, number> = {
     // secp256k1-pub - Secp256k1 public key (compressed) - 33 bytes
     0xe7: 33,
@@ -1042,15 +1075,15 @@ export class DidKeyUtils {
    * representations. This mapping facilitates the conversion of multicodec key formats to
    * JWK (JSON Web Key) formats.
    *
+   * @remarks
+   * The keys of this object are multicodec names, such as 'ed25519-pub', 'ed25519-priv', etc.
+   * The values are objects representing the corresponding JWK properties for that key type.
+   *
    * @example
    * ```ts
    * const joseKey = MULTICODEC_TO_JWK['ed25519-pub'];
    * // Returns a partial JWK for an Ed25519 public key
    * ```
-   *
-   * @remarks
-   * The keys of this object are multicodec names, such as 'ed25519-pub', 'ed25519-priv', etc.
-   * The values are objects representing the corresponding JWK properties for that key type.
    */
   private static MULTICODEC_TO_JWK: { [key: string]: Jwk } = {
     'ed25519-pub'    : { crv: 'Ed25519',   kty: 'OKP', x: '' },
@@ -1116,9 +1149,6 @@ export class DidKeyUtils {
    * ```
    *
    * @param params - The parameters for the conversion.
-   * @param params.key - The cryptographic key as a Uint8Array.
-   * @param params.multicodecCode - Optional multicodec code to prefix the key with.
-   * @param params.multicodecName - Optional multicodec name corresponding to the code.
    * @returns The multibase identifier as a string.
    */
   public static keyBytesToMultibaseId({ keyBytes, multicodecCode, multicodecName }:
@@ -1143,11 +1173,12 @@ export class DidKeyUtils {
    */
   public static keyCompressor(
     curve: string
-  ): ({ publicKeyBytes }: { publicKeyBytes: Uint8Array }) => Promise<Uint8Array> {
+  ): KeyCompressor['compressPublicKey'] {
+  // ): ({ publicKeyBytes }: { publicKeyBytes: Uint8Array }) => Promise<Uint8Array> {
     const compressors = {
       'P-256'     : Secp256r1.compressPublicKey,
       'secp256k1' : Secp256k1.compressPublicKey
-    } as Record<string, ({ publicKeyBytes }: { publicKeyBytes: Uint8Array }) => Promise<Uint8Array>>;
+    } as Record<string, KeyCompressor['compressPublicKey']>;
 
     const compressor = compressors[curve];
 

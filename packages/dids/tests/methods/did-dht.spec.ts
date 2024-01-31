@@ -305,14 +305,16 @@ describe('DidDht', () => {
     });
 
     it('publishes DIDs, by default', async () => {
-      await DidDht.create();
+      const did = await DidDht.create();
 
+      expect(did.metadata).to.have.property('published', true);
       expect(fetchStub.calledOnce).to.be.true;
     });
 
-    it('allows publishing of DIDs to optionally be disabled', async () => {
-      await DidDht.create({ options: { publish: false } });
+    it('allows DID publishing to optionally be disabled', async () => {
+      const did = await DidDht.create({ options: { publish: false } });
 
+      expect(did.metadata).to.have.property('published', false);
       expect(fetchStub.called).to.be.false;
     });
 

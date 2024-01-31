@@ -6,14 +6,53 @@ import { Level } from 'level';
 import type { DidResolverCache } from './did-resolver.js';
 import type { DidResolutionResult } from '../types/did-core.js';
 
-export type DidResolverCacheLevelOptions = {
+/**
+ * Configuration parameters for creating a LevelDB-based cache for DID resolution results.
+ *
+ * Allows customization of the underlying database instance, storage location, and cache
+ * time-to-live (TTL) settings.
+ */
+export type DidResolverCacheLevelParams = {
+  /**
+   * Optional. An instance of `AbstractLevel` to use as the database. If not provided, a new
+   * LevelDB instance will be created at the specified `location`.
+   */
   db?: AbstractLevel<string | Buffer | Uint8Array, string, string>;
+
+  /**
+   * Optional. The file system path or IndexedDB name where the LevelDB store will be created.
+   * Defaults to 'DATA/DID_RESOLVERCACHE' if not specified.
+   */
   location?: string;
+
+  /**
+   * Optional. The time-to-live for cache entries, expressed as a string (e.g., '1h', '15m').
+   * Determines how long a cache entry should remain valid before being considered expired. Defaults
+   * to '15m' if not specified.
+   */
   ttl?: string;
 }
 
+/**
+ * Encapsulates a DID resolution result along with its expiration information for caching purposes.
+ *
+ * This type is used internally by the `DidResolverCacheLevel` to store DID resolution results
+ * with an associated time-to-live (TTL) value. The TTL is represented in milliseconds and
+ * determines when the cached entry is considered expired and eligible for removal.
+ */
 type CacheWrapper = {
+  /**
+   * The expiration time of the cache entry in milliseconds since the Unix epoch.
+   *
+   * This value is used to calculate whether the cached entry is still valid or has expired.
+   */
   ttlMillis: number;
+
+  /**
+   * The DID resolution result being cached.
+   *
+   * This object contains the resolved DID document and associated metadata.
+   */
   value: DidResolutionResult;
 }
 
@@ -33,14 +72,17 @@ type CacheWrapper = {
  * ```
  */
 export class DidResolverCacheLevel implements DidResolverCache {
+  /** The underlying LevelDB store used for caching. */
   private cache: AbstractLevel<string | Buffer | Uint8Array, string, string>;
+
+  /** The time-to-live for cache entries in milliseconds. */
   private ttl: number;
 
   constructor({
     db,
     location = 'DATA/DID_RESOLVERCACHE',
     ttl = '15m'
-  }: DidResolverCacheLevelOptions = {}) {
+  }: DidResolverCacheLevelParams = {}) {
     this.cache = db ?? new Level<string, string>(location);
     this.ttl = ms(ttl);
   }

@@ -29,10 +29,39 @@ import { DidError, DidErrorCode } from '../did-error.js';
 import { DidVerificationRelationship } from '../types/did-core.js';
 import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
 
+/**
+ * Represents a BEP44 message, which is used for storing and retrieving data in the Mainline DHT
+ * network.
+ *
+ * A BEP44 message is used primarily in the context of the DID DHT method for publishing and
+ * resolving DID documents in the DHT network. This type encapsulates the data structure required
+ * for such operations in accordance with BEP44.
+ *
+ * @see {@link https://www.bittorrent.org/beps/bep_0044.html | BEP44}
+ */
 interface Bep44Message {
+  /**
+   * The public key bytes of the Identity Key, which serves as the identifier in the DHT network for
+   * the corresponding BEP44 message.
+   */
   k: Uint8Array;
+
+  /**
+   * The sequence number of the message, used to ensure the latest version of the data is retrieved
+   * and updated. It's a monotonically increasing number.
+   */
   seq: number;
+
+  /**
+   * The signature of the message, ensuring the authenticity and integrity of the data. It's
+   * computed over the bencoded sequence number and value.
+   */
   sig: Uint8Array;
+
+  /**
+   * The actual data being stored or retrieved from the DHT network, typically encoded in a format
+   * suitable for DNS packet representation of a DID Document.
+   */
   v: Uint8Array;
 }
 
@@ -82,15 +111,11 @@ export interface DidDhtCreateOptions<TKms> extends DidCreateOptions<TKms> {
   controllers?: string | string[];
 
   /**
-   * Optionally specify one or more registered DID DHT types to make the DID discovereable.
-   *
-   * Type indexing is an OPTIONAL feature that enables DIDs to become discoverable. DIDs that wish
-   * to be discoverable and resolveable by type can include one or more types when publishing their
-   * DID document to a DID DHT Gateway.
-   *
-   * The registered DID types are published in the {@link https://did-dht.com/registry/index.html#indexed-types | DID DHT Registry}.
+   * Optional. The URI of a server involved in executing DID method operations. In the context of
+   * DID creation, the endpoint is expected to be a Pkarr relay. If not specified, a default gateway
+   * node is used.
    */
-  types?: (DidDhtRegisteredDidType | keyof typeof DidDhtRegisteredDidType)[];
+  gatewayUri?: string;
 
   /**
    * Optional. Determines whether the created DID should be published to the DHT network.
@@ -135,6 +160,17 @@ export interface DidDhtCreateOptions<TKms> extends DidCreateOptions<TKms> {
    * ```
    */
   services?: DidService[];
+
+  /**
+   * Optionally specify one or more registered DID DHT types to make the DID discovereable.
+   *
+   * Type indexing is an OPTIONAL feature that enables DIDs to become discoverable. DIDs that wish
+   * to be discoverable and resolveable by type can include one or more types when publishing their
+   * DID document to a DID DHT Gateway.
+   *
+   * The registered DID types are published in the {@link https://did-dht.com/registry/index.html#indexed-types | DID DHT Registry}.
+   */
+  types?: (DidDhtRegisteredDidType | keyof typeof DidDhtRegisteredDidType)[];
 
   /**
    * Optional. An array of verification methods to be included in the DID document.
@@ -493,17 +529,16 @@ export class DidDht extends DidMethod {
     // signer convenience function, and URI.
     const did = await DidDht.fromPublicKeys({ keyManager, options, ...keySet });
 
-    // By default, publish the DID document to a DHT Gateway unless explicitly disabled.
-    if (options.publish ?? true) {
-      const isPublished = await this.publish({ did });
-      did.metadata.published = isPublished;
-    }
+    // By default, publish the DID document to a DHT operations endpoint unless explicitly disabled.
+    did.metadata.published = options.publish ?? true
+      ? await this.publish({ did, gatewayUri: options.gatewayUri })
+      : false;
 
     return did;
   }
 
   /**
-   * Instantiates a `Did` object for the `did:dht` method from a given {@link PortableDid}.
+   * Instantiates a `Did` object for the DID DHT method from a given {@link PortableDid}.
    *
    * This method allows for the creation of a `Did` object using pre-existing key material,
    * encapsulated within the `verificationMethods` array of the `PortableDid`. This is particularly
@@ -511,9 +546,6 @@ export class DidDht extends DidMethod {
    * based on these keys, instead of generating new keys.
    *
    * @remarks
-   * The `verificationMethods` array must contain exactly one key since the `did:jwk` method only
-   * supports a single verification method.
-   *
    * The key material (both public and private keys) should be provided in JWK format. The method
    * handles the inclusion of these keys in the DID Document and specified verification
    * relationships.
@@ -572,7 +604,9 @@ export class DidDht extends DidMethod {
       const did = await DidDht.fromPublicKeys({ keyManager, verificationMethods, options });
 
       // By default, the DID document will NOT be published unless explicitly enabled.
-      did.metadata.published = options.publish ? await this.publish({ did }) : false;
+      did.metadata.published = options.publish
+        ? await this.publish({ did, gatewayUri: options.gatewayUri })
+        : false;
 
       return did;
     }
@@ -619,24 +653,26 @@ export class DidDht extends DidMethod {
    *
    * @param params - The parameters for the `publish` operation.
    * @param params.did - The `Did` object representing the DID to be published.
-   * @param params.relay - Optional. The Pkarr relay server URL to be used for publishing. If not
-   *                       specified, the default relay server is used.
+   * @param params.gatewayUri - Optional. The URI of a server involved in executing DID
+   *                                    method operations. In the context of publishing, the
+   *                                    endpoint is expected to be a Pkarr relay. If not specified,
+   *                                    a default relay server is used.
    * @returns A Promise resolving to a boolean indicating whether the publication was successful.
    *
    * @example
    * ```ts
    * // Generate a new DID and keys but explicitly disable publishing.
-   * const did = await DidDht.create({ options: { publish: false });
+   * const did = await DidDht.create({ options: { publish: false } });
    * // Publish the DID to the DHT.
    * const isPublished = await DidDht.publish({ did });
    * // `isPublished` is true if the DID was successfully published.
    * ```
    */
-  public static async publish({ did, relay = DEFAULT_PKARR_RELAY }: {
+  public static async publish({ did, gatewayUri = DEFAULT_PKARR_RELAY }: {
     did: Did;
-    relay?: string;
+    gatewayUri?: string;
   }): Promise<boolean> {
-    const isPublished = await DidDhtDocument.put({ did, relay });
+    const isPublished = await DidDhtDocument.put({ did, relay: gatewayUri });
 
     return isPublished;
   }
@@ -649,7 +685,8 @@ export class DidDht extends DidMethod {
    * retrieve the DID Document that corresponds to the given DID identifier.
    *
    * @remarks
-   * - The method uses the specified or default Pkarr relay server to access the DHT network.
+   * - If a `gatewayUri` option is not specified, a default Pkarr relay is used to access the DHT
+   *   network.
    * - It decodes the DID identifier and retrieves the associated DID Document and metadata.
    * - In case of resolution failure, appropriate error information is returned.
    *
@@ -663,8 +700,8 @@ export class DidDht extends DidMethod {
    * @returns A Promise resolving to a {@link DidResolutionResult} object representing the result of the resolution.
    */
   public static async resolve(didUri: string, options: DidResolutionOptions = {}): Promise<DidResolutionResult> {
-    // Use the given Pkarr relay or the default.
-    const relay = options?.pkarrRelay ?? DEFAULT_PKARR_RELAY;
+    // To execute the read method operation, use the given gateway URI or a default Pkarr relay.
+    const relay = options?.gatewayUri ?? DEFAULT_PKARR_RELAY;
 
     try {
       // Attempt to decode the z-base-32-encoded identifier.
@@ -696,7 +733,7 @@ export class DidDht extends DidMethod {
   }
 
   /**
-   * Instantiates a `Did` object for the `did:dht` method using an array of public keys.
+   * Instantiates a `Did` object for the DID DHT method using an array of public keys.
    *
    * This method is used to create a `Did` object from a set of public keys, typically after
    * these keys have been generated or provided. It constructs the DID document, metadata, and
@@ -731,7 +768,7 @@ export class DidDht extends DidMethod {
     // Add verification methods to the DID document.
     for (const vm of verificationMethods) {
       if (!vm.publicKeyJwk) {
-        throw new Error(`Verification method '${vm.id}' does not contain a public key in JWK format`);
+        throw new Error(`Verification method does not contain a public key in JWK format`);
       }
 
       // Use the given ID, the key's ID, or the key's thumbprint as the verification method ID.
@@ -796,14 +833,11 @@ export class DidDht extends DidMethod {
     verificationMethods
   }: {
     keyManager: CryptoApi;
-    verificationMethods?: DidCreateVerificationMethod<CryptoApi | undefined>[];
+    verificationMethods: DidCreateVerificationMethod<CryptoApi | undefined>[];
   }): Promise<PortableDid> {
     let portableDid: PortableDid = {
       verificationMethods: []
     };
-
-    // If `verificationMethodKeys` was not provided, initialize it as an empty array.
-    verificationMethods ??= [];
 
     // If the given verification methods do not contain an Identity Key, add one.
     if (!verificationMethods?.some(vm => vm.id?.split('#').pop() === '0')) {
@@ -817,7 +851,7 @@ export class DidDht extends DidMethod {
 
     // Generate keys and add verification methods to the key set.
     for (const vm of verificationMethods) {
-      // Generate a new random key for the verification method.
+      // Generate a random key for the verification method.
       const keyUri = await keyManager.generateKey({ algorithm: vm.algorithm });
       const publicKey = await keyManager.getPublicKey({ keyUri });
 

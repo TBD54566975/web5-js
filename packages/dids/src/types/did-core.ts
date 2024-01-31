@@ -112,7 +112,7 @@ export interface DidDocument {
    * A JSON-LD context link, which provides a JSON-LD processor with the information necessary to
    * interpret the DID document JSON. The default context URL is 'https://www.w3.org/ns/did/v1'.
    */
-  '@context'?: 'https://www.w3.org/ns/did/v1' | string | string[];
+  '@context'?: 'https://www.w3.org/ns/did/v1' | string | (string | Record<string, any>)[];
 
   /**
    * The DID Subject to which this DID Document pertains.
@@ -276,7 +276,7 @@ export type DidDocumentMetadata = {
    *
    * @see {@link https://www.w3.org/TR/did-core/#dfn-equivalentid | DID Core Specification, § DID Document Metadata}
   */
- equivalentId?: string;
+ equivalentId?: string[];
 
  /**
   * The `canonicalId` property is identical to the `equivalentId` property except:
@@ -389,7 +389,7 @@ export type DidResolutionResult = {
    * interpret the resolution result JSON. The default context URL is
    * 'https://w3id.org/did-resolution/v1'.
    */
-  '@context'?: 'https://w3id.org/did-resolution/v1' | string | string[];
+  '@context'?: 'https://w3id.org/did-resolution/v1' | string | (string | Record<string, any>)[];
 
   /**
    * A metadata structure consisting of values relating to the results of the DID resolution

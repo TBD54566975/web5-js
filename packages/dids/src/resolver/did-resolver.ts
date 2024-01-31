@@ -12,11 +12,39 @@ import { DidResolverCacheNoop } from './resolver-cache-noop.js';
  */
 export interface DidResolverCache extends KeyValueStore<string, DidResolutionResult | void> {}
 
-export type DidResolverOptions = {
+/**
+ * Parameters for configuring the `DidResolver` class, which is responsible for resolving
+ * decentralized identifiers (DIDs) to their corresponding DID documents.
+ *
+ * This type specifies the essential components required by the `DidResolver` to perform
+ * DID resolution and dereferencing. It includes an array of `DidMethodResolver` instances,
+ * each capable of resolving DIDs for a specific method, and optionally, a cache for storing
+ * resolved DID documents to improve resolution efficiency.
+ */
+export type DidResolverParams = {
+  /**
+   * An array of `DidMethodResolver` instances.
+   *
+   * Each resolver in this array is designed to handle a specific DID method, enabling the
+   * `DidResolver` to support multiple DID methods simultaneously.
+   */
   didResolvers: DidMethodResolver[];
+
+  /**
+   * An optional `DidResolverCache` instance used for caching resolved DID documents.
+   *
+   * Providing a cache implementation can significantly enhance resolution performance by avoiding
+   * redundant resolutions for previously resolved DIDs. If omitted, a no-operation cache is used,
+   * which effectively disables caching.
+   */
   cache?: DidResolverCache;
 }
 
+/**
+ * A constant representing an empty DID Resolution Result. This object is used as the basis for a
+ * result of DID resolution and is typically augmented with additional properties by the
+ * DID method resolver.
+ */
 export const EMPTY_DID_RESOLUTION_RESULT: DidResolutionResult = {
   '@context'            : 'https://w3id.org/did-resolution/v1',
   didResolutionMetadata : {},
@@ -29,8 +57,11 @@ export const EMPTY_DID_RESOLUTION_RESULT: DidResolutionResult = {
  * their corresponding DID documents.
  *
  * The class is designed to handle various DID methods by utilizing an array of `DidMethodResolver`
- * instances, each responsible for a specific DID method. It also employs a caching mechanism to
- * store and retrieve previously resolved DID documents for efficiency.
+ * instances, each responsible for a specific DID method.
+ *
+ * Providing a cache implementation can significantly enhance resolution performance by avoiding
+ * redundant resolutions for previously resolved DIDs. If omitted, a no-operation cache is used,
+ * which effectively disables caching.
  *
  * Usage:
  * - Construct the `DidResolver` with an array of `DidMethodResolver` instances and an optional cache.
@@ -62,30 +93,22 @@ export class DidResolver {
   /**
    * Constructs a new `DidResolver`.
    *
-   * @param options - The options for constructing the `DidResolver`.
-   * @param options.didResolvers - An array of `DidMethodResolver` instances.
-   * @param options.cache - Optional. A cache for storing resolved DID documents. If not provided, a no-operation cache is used.
+   * @param params - The parameters for constructing the `DidResolver`.
    */
-  constructor(options: DidResolverOptions) {
-    this.cache = options.cache || DidResolverCacheNoop;
+  constructor({ cache, didResolvers }: DidResolverParams) {
+    this.cache = cache || DidResolverCacheNoop;
 
-    for (const resolver of options.didResolvers) {
+    for (const resolver of didResolvers) {
       this.didResolvers.set(resolver.methodName, resolver);
     }
   }
 
   /**
    * Resolves a DID to a DID Resolution Result.
-   * If the DID Resolution Result is present in the cache, it returns the cached
-   * result. Otherwise, it uses the appropriate method resolver to resolve
-   * the DID, stores the resolution result in the cache, and returns the
-   * resolultion result.
    *
-   * Note: The method signature for resolve() in this implementation must match
-   * the `DidResolver` implementation in
-   * {@link https://github.com/TBD54566975/dwn-sdk-js | dwn-sdk-js} so that
-   * Web5 apps and the underlying DWN instance can share the same DID
-   * resolution cache.
+   * If the DID Resolution Result is present in the cache, it returns the cached result. Otherwise,
+   * it uses the appropriate method resolver to resolve the DID, stores the resolution result in the
+   * cache, and returns the resolultion result.
    *
    * @param didUri - The DID or DID URL to resolve.
    * @returns A promise that resolves to the DID Resolution Result.
@@ -149,7 +172,7 @@ export class DidResolver {
    * TODO: This is a partial implementation and does not fully implement DID URL dereferencing. (https://github.com/TBD54566975/web5-js/issues/387)
    *
    * @param didUrl - The DID URL string to dereference.
-   * @param [dereferenceOptions] - Input options to the dereference function. Optional.
+   * @param [_options] - Input options to the dereference function. Optional.
    * @returns a {@link DidDereferencingResult}
    */
   async dereference(

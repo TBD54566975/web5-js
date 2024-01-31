@@ -344,11 +344,6 @@ export class DidMethod {
       await keyManager.getPublicKey({ keyUri });
     }
 
-    // Define DID Metadata, including the registered DID types and published state.
-    // const metadata: DidMetadata = {
-    //   ...didDocumentMetadata?.published && { published: didDocumentMetadata.published },
-    //   ...didDocumentMetadata?.types && { types: didDocumentMetadata.types }
-    // };
     const metadata: DidMetadata = didDocumentMetadata;
 
     // Define a function that returns a signer for the DID.

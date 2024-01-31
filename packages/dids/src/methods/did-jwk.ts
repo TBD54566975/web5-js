@@ -368,7 +368,7 @@ export class DidJwk extends DidMethod {
   }
 
   /**
-   * Instantiates a `Did` object for the `did:jwk` method from a given public key.
+   * Instantiates a `Did` object for the DID JWK method from a given public key.
    *
    * @param params - The parameters for the operation.
    * @param params.keyManager - A Key Management System (KMS) instance for managing keys and
@@ -386,7 +386,7 @@ export class DidJwk extends DidMethod {
     // Attach the prefix `did:jwk` to form the complete DID URI.
     const didUri = `did:${DidJwk.methodName}:${base64UrlEncoded}`;
 
-    // Expand the DID URI string to a DID didDocument.
+    // Expand the DID URI string to a DID document.
     const didResolutionResult = await DidJwk.resolve(didUri);
     const didDocument = didResolutionResult.didDocument as DidDocument;
 
