@@ -194,17 +194,17 @@ export class Record implements RecordModel {
    * Returns a copy of the raw `RecordsWriteMessage` that was used to create the current `Record` instance.
    */
   private get rawMessage(): RecordsWriteMessage {
-    const message = {
+    const message = JSON.parse(JSON.stringify({
       contextId     : this._contextId,
       recordId      : this._recordId,
       descriptor    : this._descriptor,
       attestation   : this._attestation,
       authorization : this._authorization,
       encryption    : this._encryption,
-    };
+    }));
 
     removeUndefinedProperties(message);
-    return JSON.parse(JSON.stringify(message));
+    return message;
   }
 
   constructor(agent: Web5Agent, options: RecordOptions) {
@@ -431,9 +431,7 @@ export class Record implements RecordModel {
 
     // if there is already an authz payload, just pass along the record
     if (this._authorization) {
-      const rawMessage = this.rawMessage;
-      removeUndefinedProperties(rawMessage);
-      latestState.rawMessage = rawMessage;
+      latestState.rawMessage = { ...this.rawMessage };
     } else {
       // if there is no authz, pass options so the DWN SDK can construct and sign the record
       latestState.messageOptions = this.toJSON();
