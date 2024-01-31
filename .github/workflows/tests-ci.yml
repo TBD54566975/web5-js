@@ -131,7 +131,7 @@ jobs:
       - name: Get Playwright Version (for cache)
         id: get-playwright-version
         run: |
-          PLAYWRIGHT_VERSION=$(npm view @playwright/test version)
+          PLAYWRIGHT_VERSION=$(npm ls @playwright/test --workspace=./packages/api | grep '@playwright/test' | awk 'NR==1{print $2}')
           echo "Playwright Version: $PLAYWRIGHT_VERSION"
           echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> $GITHUB_ENV
 
