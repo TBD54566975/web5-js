@@ -90,7 +90,8 @@ export class Record implements RecordModel {
   private _descriptor: RecordsWriteDescriptor;
   private _encryption?: RecordsWriteMessage['encryption'];
   private _initialWrite: RecordOptions['initialWrite'];
-  private _initialWriteProcessed: boolean;
+  private _initialWriteStored: boolean;
+  private _initialWriteSigned: boolean;
   private _recordId: string;
   private _protocolRole: RecordOptions['protocolRole'];
   // Getters for immutable DWN Record properties.
@@ -339,12 +340,12 @@ export class Record implements RecordModel {
   /**
    * Stores the current record state as well as any initial write to the owner's DWN.
    *
-   * @param importRecord - if true, the record will signed by the owner before storing it to the owner's DWN. Defaults to true.
+   * @param importRecord - if true, the record will signed by the owner before storing it to the owner's DWN. Defaults to false.
    * @returns the status of the store request
    *
    * @beta
    */
-  async store(importRecord: boolean = true): Promise<ResponseStatus> {
+  async store(importRecord: boolean = false): Promise<ResponseStatus> {
     // if we are importing the record we sign it as the owner
     return this.processRecord({ signAsOwner: importRecord, store: true });
   }
@@ -555,7 +556,7 @@ export class Record implements RecordModel {
   // and whether to add an owner signature to the initial write to enable storage when protocol rules require it.
   private async processRecord({ store, signAsOwner }:{ store: boolean, signAsOwner: boolean }): Promise<ResponseStatus> {
     // if there is an initial write and we haven't already processed it, we first process it and marked it as such.
-    if (this._initialWrite && !this._initialWriteProcessed) {
+    if (this._initialWrite && ((signAsOwner && !this._initialWriteSigned) || (store && !this._initialWriteStored))) {
       const initialWriteRequest: ProcessDwnRequest = {
         messageType : DwnInterfaceName.Records + DwnMethodName.Write,
         rawMessage  : this.initialWrite,
@@ -571,10 +572,13 @@ export class Record implements RecordModel {
       const responseMessage = message as RecordsWriteMessage;
 
       // If we are signing as owner, make sure to update the initial write's authorization, because now it will have the owner's signature on it
-      // set it to processed so that we don't repeat this process again
+      // set the stored or signed status to true so we don't process it again.
       if (200 <= status.code && status.code <= 299) {
-        this._initialWriteProcessed = true;
-        if (signAsOwner) this.initialWrite.authorization = responseMessage.authorization;
+        if (store) this._initialWriteStored = true;
+        if (signAsOwner) {
+          this._initialWriteSigned = true;
+          this.initialWrite.authorization = responseMessage.authorization;
+        }
       }
     }
 

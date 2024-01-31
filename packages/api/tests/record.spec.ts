@@ -2301,11 +2301,11 @@ describe('Record', () => {
   });
 
   describe('store()', () => {
-    it('stores an updated record to the local DWN', async () => {
-      // Scenario: Alice creates a record and then updates it.
-      //           Bob queries for the record from Alice's DWN and then stores the updated record locally.
+    it('should store an external record if it has been imported by the dwn owner', async () => {
+      // Scenario: Alice creates a record.
+      //           Bob queries for the record from Alice's DWN and then stores it to their own DWN.
 
-      // Alice creates a public record then sends it to her remote DWN.
+      // alice creates a record and sends it to their DWN
       const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
@@ -2318,18 +2318,78 @@ describe('Record', () => {
       let sendResponse = await record.send();
       expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
 
-      // Alice updates the record and once again does not store it.
+      // bob queries alice's DWN for the record
+      const aliceQueryResult = await dwnBob.records.query({
+        from    : aliceDid.did,
+        message : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(aliceQueryResult.status.code).to.equal(200);
+      expect(aliceQueryResult.records.length).to.equal(1);
+      const queriedRecord = aliceQueryResult.records[0];
+
+      // bob queries their own DWN for the record, should not return any results
+      let bobQueryResult = await dwnBob.records.query({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(bobQueryResult.status.code).to.equal(200);
+      expect(bobQueryResult.records.length).to.equal(0);
+
+      // attempts to store the record without importing it, should fail
+      let { status: storeRecordStatus } = await queriedRecord.store();
+      expect(storeRecordStatus.code).to.equal(401, storeRecordStatus.detail);
+
+      // attempts to store the record flagging it for import
+      ({ status: storeRecordStatus } = await queriedRecord.store(true));
+      expect(storeRecordStatus.code).to.equal(202, storeRecordStatus.detail);
+
+      // bob queries their own DWN for the record, should return the record
+      bobQueryResult = await dwnBob.records.query({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(bobQueryResult.status.code).to.equal(200);
+      expect(bobQueryResult.records.length).to.equal(1);
+      const storedRecord = bobQueryResult.records[0];
+      expect(storedRecord.id).to.equal(record.id);
+    });
+
+    it('stores an updated record to the local DWN along with the initial write', async () => {
+      // Scenario: Alice creates a record and then updates it.
+      //           Bob queries for the record from Alice's DWN and then stores the updated record along with it's initial write.
+
+      // Alice creates a public record then sends it to her remote DWN.
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          published  : true,
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202, status.detail);
       const updatedText = 'updated text';
       const updateResult = await record!.update({ data: updatedText });
       expect(updateResult.status.code).to.equal(202, updateResult.status.detail);
-      sendResponse = await record.send();
+
+      const sendResponse = await record.send();
       expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
 
       // Bob queries for the record from his own node, should not return any results
       let queryResult = await dwnBob.records.query({
         message: {
           filter: {
-            recordId: record!.id
+            recordId: record.id
           }
         }
       });
@@ -2341,7 +2401,7 @@ describe('Record', () => {
         from    : aliceDid.did,
         message : {
           filter: {
-            recordId: record!.id
+            recordId: record.id
           }
         }
       });
@@ -2350,15 +2410,19 @@ describe('Record', () => {
       const queriedRecord = queryResultFromAlice.records[0];
       expect(await queriedRecord.data.text()).to.equal(updatedText);
 
-      // stores the record in Bob's DWN, since import is defaulted to true, it will sign the record as bob
-      const { status: storeRecordStatus } = await queriedRecord.store();
+      // attempts to store the record without signing it, should fail
+      let { status: storeRecordStatus } = await queriedRecord.store();
+      expect(storeRecordStatus.code).to.equal(401, storeRecordStatus.detail);
+
+      // stores the record in Bob's DWN, the importRecord parameter is set to true so that bob signs the record before storing it
+      ({ status: storeRecordStatus } = await queriedRecord.store(true));
       expect(storeRecordStatus.code).to.equal(202, storeRecordStatus.detail);
 
       // The record should now exist on bob's node
       queryResult = await dwnBob.records.query({
         message: {
           filter: {
-            recordId: record!.id
+            recordId: record.id
           }
         }
       });
@@ -2367,6 +2431,241 @@ describe('Record', () => {
       const storedRecord = queryResult.records[0];
       expect(storedRecord.id).to.equal(record!.id);
       expect(await storedRecord.data.text()).to.equal(updatedText);
+    });
+  });
+
+  describe('import()', () => {
+    it('should import an external record without storing it', async () => {
+      // Scenario: Alice creates a record.
+      //           Bob queries for the record from Alice's DWN and then imports it without storing
+      //           Bob then .stores() it without specifying import explicitly as it's already been imported.
+
+      // alice creates a record and sends it to her DWN
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          published  : true,
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202, status.detail);
+      let sendResponse = await record.send();
+      expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
+
+      // bob queries alice's DWN for the record
+      const aliceQueryResult = await dwnBob.records.query({
+        from    : aliceDid.did,
+        message : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(aliceQueryResult.status.code).to.equal(200);
+      expect(aliceQueryResult.records.length).to.equal(1);
+      const queriedRecord = aliceQueryResult.records[0];
+
+      // imports the record without storing it
+      let { status: importRecordStatus } = await queriedRecord.import();
+      expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
+
+      // bob queries their own DWN for the record, should return the record
+      const bobQueryResult = await dwnBob.records.query({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(bobQueryResult.status.code).to.equal(200);
+      expect(bobQueryResult.records.length).to.equal(1);
+      const storedRecord = bobQueryResult.records[0];
+      expect(storedRecord.id).to.equal(record.id);
+    });
+
+    it('import an external record along with the initial write', async () => {
+      // Scenario: Alice creates a record and then updates it.
+      //           Bob queries for the record from Alice's DWN and then stores the updated record along with it's initial write.
+
+      // Alice creates a public record then sends it to her remote DWN.
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          published  : true,
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202, status.detail);
+      const updatedText = 'updated text';
+      const updateResult = await record!.update({ data: updatedText });
+      expect(updateResult.status.code).to.equal(202, updateResult.status.detail);
+      const sendResponse = await record.send();
+      expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
+
+      // bob queries alice's DWN for the record
+      const aliceQueryResult = await dwnBob.records.query({
+        from    : aliceDid.did,
+        message : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(aliceQueryResult.status.code).to.equal(200);
+      expect(aliceQueryResult.records.length).to.equal(1);
+      const queriedRecord = aliceQueryResult.records[0];
+
+      // imports the record without storing it
+      let { status: importRecordStatus } = await queriedRecord.import();
+      expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
+
+      // bob queries their own DWN for the record, should return the record
+      const bobQueryResult = await dwnBob.records.query({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(bobQueryResult.status.code).to.equal(200);
+      expect(bobQueryResult.records.length).to.equal(1);
+      const storedRecord = bobQueryResult.records[0];
+      expect(storedRecord.id).to.equal(record.id);
+    });
+
+    describe('store: false', () => {
+      it('should import an external record without storing it', async () => {
+        // Scenario: Alice creates a record.
+        //           Bob queries for the record from Alice's DWN and then imports it without storing
+        //           Bob then .stores() it without specifying import explicitly as it's already been imported.
+
+        // alice creates a record and sends it to her DWN
+        const { status, record } = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            published  : true,
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+        expect(status.code).to.equal(202, status.detail);
+        let sendResponse = await record.send();
+        expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
+
+        // bob queries alice's DWN for the record
+        const aliceQueryResult = await dwnBob.records.query({
+          from    : aliceDid.did,
+          message : {
+            filter: {
+              recordId: record.id
+            }
+          }
+        });
+        expect(aliceQueryResult.status.code).to.equal(200);
+        expect(aliceQueryResult.records.length).to.equal(1);
+        const queriedRecord = aliceQueryResult.records[0];
+
+        // imports the record without storing it
+        let { status: importRecordStatus } = await queriedRecord.import(false);
+        expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
+
+        // queries for the record from bob's DWN, should not return any results
+        let bobQueryResult = await dwnBob.records.query({
+          message: {
+            filter: {
+              recordId: record.id
+            }
+          }
+        });
+        expect(bobQueryResult.status.code).to.equal(200);
+        expect(bobQueryResult.records.length).to.equal(0);
+
+        // attempts to store the record without explicitly marking it for import as it's already been imported
+        ({ status: importRecordStatus } = await queriedRecord.store());
+        expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
+
+        // bob queries their own DWN for the record, should return the record
+        bobQueryResult = await dwnBob.records.query({
+          message: {
+            filter: {
+              recordId: record.id
+            }
+          }
+        });
+        expect(bobQueryResult.status.code).to.equal(200);
+        expect(bobQueryResult.records.length).to.equal(1);
+        const storedRecord = bobQueryResult.records[0];
+        expect(storedRecord.id).to.equal(record.id);
+      });
+
+      it('import an external record along with the initial write', async () => {
+        // Scenario: Alice creates a record and then updates it.
+        //           Bob queries for the record from Alice's DWN and then stores the updated record along with it's initial write.
+
+        // Alice creates a public record then sends it to her remote DWN.
+        const { status, record } = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            published  : true,
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+        expect(status.code).to.equal(202, status.detail);
+        const updatedText = 'updated text';
+        const updateResult = await record.update({ data: updatedText });
+        expect(updateResult.status.code).to.equal(202, updateResult.status.detail);
+        const sendResponse = await record.send();
+        expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
+
+        // bob queries alice's DWN for the record
+        const aliceQueryResult = await dwnBob.records.query({
+          from    : aliceDid.did,
+          message : {
+            filter: {
+              recordId: record.id
+            }
+          }
+        });
+        expect(aliceQueryResult.status.code).to.equal(200);
+        expect(aliceQueryResult.records.length).to.equal(1);
+        const queriedRecord = aliceQueryResult.records[0];
+
+        // imports the record without storing it
+        let { status: importRecordStatus } = await queriedRecord.import(false);
+        expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
+
+        // queries for the record from bob's DWN, should not return any results
+        let bobQueryResult = await dwnBob.records.query({
+          message: {
+            filter: {
+              recordId: record.id
+            }
+          }
+        });
+        expect(bobQueryResult.status.code).to.equal(200);
+        expect(bobQueryResult.records.length).to.equal(0);
+
+        // attempts to store the record without explicitly marking it for import as it's already been imported
+        ({ status: importRecordStatus } = await queriedRecord.store());
+        console.log('attempt to store the record', importRecordStatus);
+        expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
+
+        // bob queries their own DWN for the record, should return the record
+        bobQueryResult = await dwnBob.records.query({
+          message: {
+            filter: {
+              recordId: record.id
+            }
+          }
+        });
+        expect(bobQueryResult.status.code).to.equal(200);
+        expect(bobQueryResult.records.length).to.equal(1);
+        const storedRecord = bobQueryResult.records[0];
+        expect(storedRecord.id).to.equal(record.id);
+      });
     });
   });
 });
