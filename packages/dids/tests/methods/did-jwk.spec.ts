@@ -10,7 +10,7 @@ import type { PortableDid, PortableDidVerificationMethod } from '../../src/metho
 
 import { DidErrorCode } from '../../src/did-error.js';
 import { DidJwk } from '../../src/methods/did-jwk.js';
-import DidJwkResolveTestVector from '../../../../test-vectors/did_jwk/resolve.json' assert { type: 'json' };
+import DidJwkResolveTestVector from '../../../../web5-spec/test-vectors/did_jwk/resolve.json' assert { type: 'json' };
 
 describe('DidJwk', () => {
   let keyManager: LocalKeyManager;
