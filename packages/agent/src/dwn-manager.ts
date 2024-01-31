@@ -283,7 +283,7 @@ export class DwnManager {
     });
 
     if (dwnMessageConstructor === RecordsWrite){
-      if (request.import) {
+      if (request.signAsOwner) {
         await (dwnMessage as RecordsWrite).signAsOwner(dwnSigner);
       }
     }

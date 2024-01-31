@@ -362,28 +362,28 @@ export class Record implements RecordModel {
 
   /**
    * Stores the current record state as well as any initial write to the owner's DWN.
-   * @param options - if import is set to true, the record will be signed by the DWN's owner before storing.
+   *
+   * @param importRecord - if true, the record will signed by the owner before storing it to the owner's DWN. Defaults to true.
    * @returns the status of the store request
    *
    * @beta
    */
-  async store(options?: { import: boolean }): Promise<ResponseStatus> {
-    // sets store to true and import depending on the options
-    return this.processRecord({ import: options?.import, store: true });
+  async store(importRecord: boolean = true): Promise<ResponseStatus> {
+    // if we are importing the record we sign it as the owner
+    return this.processRecord({ signAsOwner: importRecord, store: true });
   }
 
   /**
    * Signs the current record state as well as any initial write and optionally stores it to the owner's DWN.
-   * Defaults to storing the record unless explicitly set to false.
+   * This is useful when importing a record that was signed by someone else int your own DWN.
    *
-   * @param options - if store is set to true, the record will be stored on the DWN after signing.
+   * @param store - if true, the record will be stored to the owner's DWN after signing. Defaults to true.
    * @returns the status of the import request
    *
    * @beta
    */
-  async import(options?: { store: boolean }): Promise<ResponseStatus> {
-    // process the record and always set import to true, only skip storage if explicitly set to false
-    return this.processRecord({ store: options?.store !== false, import: true });
+  async import(store: boolean = true): Promise<ResponseStatus> {
+    return this.processRecord({ store, signAsOwner: true });
   }
 
   /**
@@ -579,8 +579,8 @@ export class Record implements RecordModel {
 
   // Handles the various conditions around there being an initial write, whether to store initial/current state,
   // and whether to add an owner signature to the initial write to enable storage when protocol rules require it.
-  private async processRecord(options: { store: boolean, import: boolean }): Promise<ResponseStatus> {
-    const { store = true, import: _import = false } = options;
+  private async processRecord(options: { store: boolean, signAsOwner: boolean }): Promise<ResponseStatus> {
+    const { store, signAsOwner } = options;
 
     // if there is an initial write and we haven't already processed it, we first process it and marked it as such.
     if (this._initialWrite && !this._initialWriteProcessed) {
@@ -589,20 +589,20 @@ export class Record implements RecordModel {
         rawMessage  : this.initialWrite,
         author      : this._connectedDid,
         target      : this._connectedDid,
-        import      : _import,
+        signAsOwner : signAsOwner,
         store,
       };
 
-      // Process the prepared initial write, with the options set for storing and/or importing with an owner sig.
+      // Process the prepared initial write, with the options set for storing and/or signing as the owner.
       const agentResponse = await this._agent.processDwnRequest(initialWriteRequest);
       const { message, reply: { status } } = agentResponse;
       const responseMessage = message as RecordsWriteMessage;
 
-      // If we are importing, make sure to update the initial write's authorization, because now it will have the owner's signature on it
+      // If we are signing as owner, make sure to update the initial write's authorization, because now it will have the owner's signature on it
       // set it to processed so that we don't repeat this process again
       if (200 <= status.code && status.code <= 299) {
         this._initialWriteProcessed = true;
-        if (_import) this.initialWrite.authorization = responseMessage.authorization;
+        if (signAsOwner) this.initialWrite.authorization = responseMessage.authorization;
       }
     }
 
@@ -612,8 +612,8 @@ export class Record implements RecordModel {
       rawMessage  : this.rawMessage,
       author      : this._connectedDid,
       target      : this._connectedDid,
-      import      : !this.initialWrite && _import, // we only need to import this record if it is the initial write itself and is marked for importing
       dataStream  : await this.data.blob(),
+      signAsOwner : !this.initialWrite && signAsOwner, // we only need to sign this record if it is the initial write and is marked for signing
       store,
     };
 
@@ -622,8 +622,8 @@ export class Record implements RecordModel {
     const responseMessage = message as RecordsWriteMessage;
 
     if (200 <= status.code && status.code <= 299) {
-      // If we are importing, make sure to update the current record state's authorization, because now it will have the owner's signature on it.
-      if (_import) this._authorization = responseMessage.authorization;
+      // If we are signing as the owner, make sure to update the current record state's authorization, because now it will have the owner's signature on it.
+      if (signAsOwner) this._authorization = responseMessage.authorization;
     }
 
     return { status };

@@ -78,7 +78,7 @@ export type ProcessDwnRequest = DwnRequest & {
   rawMessage?: unknown;
   messageOptions?: unknown;
   store?: boolean;
-  import?: boolean;
+  signAsOwner?: boolean;
 };
 
 export type SendDwnRequest = DwnRequest & (ProcessDwnRequest | { messageCid: string })

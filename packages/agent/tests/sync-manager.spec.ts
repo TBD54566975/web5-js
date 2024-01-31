@@ -242,7 +242,7 @@ describe('SyncManagerLevel', () => {
 
         // create a remote record
         const record = await testAgent.agent.dwnManager.sendRequest({
-          store          : false,
+          store    : false,
           author         : alice.did,
           target         : alice.did,
           messageType    : 'RecordsWrite',
