@@ -1397,6 +1397,25 @@ class DidDhtUtils {
   public static async identifierToIdentityKey({ didUri }: {
     didUri: string
   }): Promise<Jwk> {
+    // Decode the method-specific identifier from z-base-32 to a byte array.
+    let identityKeyBytes = DidDhtUtils.identifierToIdentityKeyBytes({ didUri });
+
+    // Convert the byte array to a JWK.
+    const identityKey = await Ed25519.bytesToPublicKey({ publicKeyBytes: identityKeyBytes });
+
+    return identityKey;
+  }
+
+  /**
+   * Converts a DID URI to the byte array representation of the Identity Key.
+   *
+   * @param params - The parameters to use for the conversion.
+   * @param params.didUri - The DID URI containing the Identity Key.
+   * @returns A byte array representation of the Identity Key.
+   */
+  public static identifierToIdentityKeyBytes({ didUri }: {
+    didUri: string
+  }): Uint8Array {
     // Parse the DID URI.
     const parsedDid = DidUri.parse(didUri);
 
@@ -1414,17 +1433,15 @@ class DidDhtUtils {
     let identityKeyBytes: Uint8Array | undefined;
     try {
       identityKeyBytes = Convert.base32Z(parsedDid.id).toUint8Array();
-    } catch { /* Capture error */ }
-
-    // Verify that the method-specific identifier was decoded successfully.
-    if (!identityKeyBytes || identityKeyBytes.length !== 32) {
-      throw new DidError(DidErrorCode.InvalidDid, `Failed to decode method-specific identifier`);
+    } catch {
+      throw new DidError(DidErrorCode.InvalidPublicKey, `Failed to decode method-specific identifier`);
     }
 
-    // Convert the byte array to a JWK.
-    const identityKey = await Ed25519.bytesToPublicKey({ publicKeyBytes: identityKeyBytes });
+    if (identityKeyBytes.length !== 32) {
+      throw new DidError(DidErrorCode.InvalidPublicKeyLength, `Invalid public key length: ${identityKeyBytes.length}`);
+    }
 
-    return identityKey;
+    return identityKeyBytes;
   }
 
   /**
@@ -1447,41 +1464,6 @@ class DidDhtUtils {
     const identifier = Convert.uint8Array(publicKeyBytes).toBase32Z();
 
     return `did:${DidDht.methodName}:${identifier}`;
-  }
-
-  /**
-   * Converts a DID URI to the byte array representation of the Identity Key.
-   *
-   * @param params - The parameters to use for the conversion.
-   * @param params.didUri - The DID URI containing the Identity Key.
-   * @returns A byte array representation of the Identity Key.
-   */
-  public static identifierToIdentityKeyBytes({ didUri }: {
-    didUri: string
-  }): Uint8Array {
-    // Parse the DID URI.
-    const parsedDid = DidUri.parse(didUri);
-
-    // Verify that the DID URI is valid.
-    if (!(parsedDid && parsedDid.method === DidDht.methodName)) {
-      throw new DidError(DidErrorCode.InvalidDid, `Invalid DID URI: ${didUri}`);
-    }
-
-    // Decode the method-specific identifier from z-base-32 to a byte array.
-    let identityKeyBytes: Uint8Array | undefined;
-    try {
-      identityKeyBytes = Convert.base32Z(parsedDid.id).toUint8Array();
-    } catch { /* Capture error */ }
-
-    if (!identityKeyBytes) {
-      throw new DidError(DidErrorCode.InvalidPublicKey, `Failed to decode method-specific identifier`);
-    }
-
-    if (identityKeyBytes.length !== 32) {
-      throw new DidError(DidErrorCode.InvalidPublicKeyLength, `Invalid public key length: ${identityKeyBytes.length}`);
-    }
-
-    return identityKeyBytes;
   }
 
   /**
