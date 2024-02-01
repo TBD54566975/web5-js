@@ -15,6 +15,7 @@ import {
   RecordsWriteMessage,
   RecordsDeleteMessage,
   ProtocolsConfigureMessage,
+  RecordsWrite,
 } from '@tbd54566975/dwn-sdk-js';
 
 import { testDwnUrl } from './utils/test-config.js';
@@ -422,17 +423,20 @@ describe('DwnManager', () => {
         expect(writeReply.status.code).to.equal(202);
       });
 
-      xit('handles RecordsWrite messages to sign as owner', async () => {
+      it('handles RecordsWrite messages to sign as owner', async () => {
         // bob authors a public record to his dwn
+        const dataStream = new Blob([ Convert.string('Hello, world!').toUint8Array() ]);
+
         const bobWrite = await testAgent.agent.dwnManager.processRequest({
           author         : bob.did,
           target         : bob.did,
           messageType    : 'RecordsWrite',
           messageOptions : {
             published  : true,
+            schema     : 'foo/bar',
             dataFormat : 'text/plain'
           },
-          dataStream: new Blob([ Convert.string('Hello, world!').toUint8Array() ])
+          dataStream,
         });
         expect(bobWrite.reply.status.code).to.equal(202);
         const message = bobWrite.message as RecordsWriteMessage;
@@ -453,13 +457,13 @@ describe('DwnManager', () => {
         expect(reply.entries!.length).to.equal(1);
         expect(reply.entries![0].recordId).to.equal(message.recordId);
 
-
         // alice attempts to process the rawMessage as is without signing it, should fail
         let aliceWrite = await testAgent.agent.dwnManager.processRequest({
           messageType : 'RecordsWrite',
           author      : alice.did,
           target      : alice.did,
           rawMessage  : message,
+          dataStream,
         });
         expect(aliceWrite.reply.status.code).to.equal(401);
 
@@ -484,6 +488,7 @@ describe('DwnManager', () => {
           target      : alice.did,
           rawMessage  : message,
           signAsOwner : true,
+          dataStream,
         });
         expect(aliceWrite.reply.status.code).to.equal(202);
 
