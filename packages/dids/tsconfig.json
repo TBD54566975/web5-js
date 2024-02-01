@@ -1,13 +1,11 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "strict": false,
     "declarationDir": "dist/types",
     "outDir": "dist/esm"
   },
   "include": [
-    "src",
-    "typings"
+    "src"
   ],
   "exclude": [
     "node_modules"

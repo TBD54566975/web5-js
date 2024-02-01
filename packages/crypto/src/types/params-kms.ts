@@ -75,7 +75,12 @@ export interface KmsGenerateKeyParams {
   algorithm: AlgorithmIdentifier;
 }
 
+/**
+ * Parameters for computing the Key URI of a public key. Intended for use with a Key Management
+ * System.
+ */
 export interface KmsGetKeyUriParams {
+  /** A {@link Jwk} containing the public key for which the Key URI will be computed. */
   key: Jwk;
 }
 
@@ -136,7 +141,9 @@ export interface KmsWrapKeyParams {
   wrapAlgorithm: AlgorithmIdentifier;
 }
 
-
+/**
+ * Parameters for unwrapping a key using a KMS. Intended for use with a Key Management System.
+ */
 export interface KmsUnwrapKeyParams {
   /** The wrapped key in a byte array. */
   wrappedKey: Uint8Array;

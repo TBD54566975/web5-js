@@ -67,13 +67,13 @@ npm install @web5/crypto-aws-kms
 Example ESM import:
 
 ```js
-import { AwsKmsCrypto } from "@web5/crypto-aws-kms";
+import { AwsKeyManager } from "@web5/crypto-aws-kms";
 ```
 
 Example CJS require:
 
 ```js
-const { AwsKmsCrypto } = require("@web5/crypto-aws-kms");
+const { AwsKeyManager } = require("@web5/crypto-aws-kms");
 ```
 
 ### Configure the AWS SDK
@@ -157,9 +157,9 @@ private keys.
 Start by instantiating an AWS KMS implementation of the `CryptoApi` interface:
 
 ```ts
-import { AwsKmsCrypto } from "@web5/crypto-aws-kms";
+import { AwsKeyManager } from "@web5/crypto-aws-kms";
 
-const crypto = new AwsKmsCrypto();
+const kms = new AwsKeyManager();
 ```
 
 If not provided, a default instance of
@@ -172,7 +172,7 @@ client signs and encrypts all communication with the AWS KMS API. See
 Generate a random private key:
 
 ```ts
-const privateKeyUri = await cypto.generateKey({ algorithm: "ES256K" });
+const privateKeyUri = await kms.generateKey({ algorithm: "ES256K" });
 console.log(privateKeyUri);
 // Output: urn:jwk:U01_M3_A9vMLOWixG-rlfC-_f3LLdurttn7c7d3_upU
 ```
@@ -181,7 +181,7 @@ Create an ECDSA signature over arbitrary data using the private key:
 
 ```ts
 const data = new TextEncoder().encode("Message");
-const signature = await crypto.sign({
+const signature = await kms.sign({
   keyUri: privateKeyUri,
   data,
 });
@@ -200,7 +200,7 @@ console.log(signature);
 Get the public key in JWK format:
 
 ```ts
-const publicKey = await crypto.getPublicKey({ keyUri: privateKeyUri });
+const publicKey = await kms.getPublicKey({ keyUri: privateKeyUri });
 console.log(publicKey);
 // Output:
 // {
@@ -216,7 +216,7 @@ console.log(publicKey);
 Verify the signature using the public key:
 
 ```ts
-const isValid = await crypto.verify({
+const isValid = await kms.verify({
   key: publicKey,
   signature,
   data,
@@ -229,7 +229,7 @@ Compute the hash digest of arbitrary data:
 
 ```ts
 const data = new TextEncoder().encode("Message");
-const hash = await crypto.digest({ algorithm: "SHA-256", data });
+const hash = await kms.digest({ algorithm: "SHA-256", data });
 console.log(hash);
 // Output:
 // Uint8Array(32) [
@@ -244,20 +244,20 @@ console.log(hash);
 
 ### Configure the AWS SDK `KMSClient`
 
-By default, `AwsKmsCrypto` creates an instance of
+By default, `AwsKeyManager` creates an instance of
 [`KMSClient`](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/kms/) which uses the
 credential and configuration information supplied in shared AWS `config` and `credentials` files or
 environment variables. To set the region, credentials, and other options used by `KMSClient` at
-runtime, a custom instance can be passed to the `AwsKmsCrypto` constructor.
+runtime, a custom instance can be passed to the `AwsKeyManager` constructor.
 
 For example, to set the AWS region to which the client will send requests:
 
 ```typescript
 import { KMSClient } from "@aws-sdk/client-kms";
-import { AwsKmsCrypto } from "@web5/crypto-aws-kms";
+import { AwsKeyManager } from "@web5/crypto-aws-kms";
 
 const kmsClient = new KMSClient({ region: "us-east-1" });
-const crypto = new AwsKmsCrypto({ kmsClient });
+const kms = new AwsKeyManager({ kmsClient });
 ```
 
 Additional configuration fields of the `KMSClient` class constructor are described in the

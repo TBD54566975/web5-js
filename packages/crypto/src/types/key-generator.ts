@@ -66,3 +66,54 @@ export interface AsymmetricKeyGenerator<
    */
   getPublicKey(params: GetPublicKeyInput): Promise<Jwk>;
 }
+
+/**
+ * Infers the supported algorithm type from the `generateKey` method of a key generator.
+ *
+ * @remarks
+ * The `InferKeyGeneratorAlgorithm` utility type extracts the algorithm type from the input
+ * parameters of the `generateKey` method implemented in a key generator. This type is useful when
+ * working with various cryptographic key generators, as it enables TypeScript to infer the
+ * supported algorithms based on the key generator's implementation. This inference ensures type
+ * safety and improves developer experience by providing relevant suggestions and checks for the
+ * supported algorithms during development.
+ *
+ * This utility type can be particularly advantageous in contexts where the specific key generator
+ * may vary, but the code needs to adapt dynamically based on the supported algorithms of the
+ * provided key generator instance.
+ *
+ * @example
+ * ```ts
+ * export interface MyKmsGenerateKeyParams extends KmsGenerateKeyParams {
+ *  algorithm: 'Ed25519' | 'secp256k1';
+ * }
+ *
+ * class MyKms implements KeyGenerator<MyKmsGenerateKeyParams, Jwk> {
+ *   generateKey(params: MyKmsGenerateKeyParams): Promise<Jwk> {
+ *     // Implementation for generating a key...
+ *   }
+ * }
+ *
+ * type SupportedAlgorithms = InferKeyGeneratorAlgorithm<MyKms>;
+ * // `SupportedAlgorithms` will be inferred as 'Ed25519' | 'secp256k1'
+ * ```
+ *
+ * @template T - The type of the key generator from which to infer the algorithm type.
+ */
+export type InferKeyGeneratorAlgorithm<T> = T extends {
+    /**
+     * The `generateKey` method signature from which the algorithm type is inferred.
+     * This is an internal implementation detail and not part of the public API.
+     */
+    generateKey(params: infer P): any;
+  }
+  ? P extends {
+      /**
+       * The `algorithm` property within the parameters of `generateKey`.
+       * This internal element is used to infer the algorithm type.
+       */
+      algorithm: infer A
+    }
+    ? A
+    : never
+  : never;

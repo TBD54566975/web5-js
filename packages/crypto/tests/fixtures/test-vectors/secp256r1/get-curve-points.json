@@ -1,0 +1,25 @@
+{
+  "description" : "Secp256k1 getCurvePoints test vectors",
+  "vectors"     : [
+    {
+      "description" : "returns public key x and y coordinates given a public key",
+      "input"       : {
+        "keyBytes": "048b542fa180e78bc981e6671374a64413e0323b439d06870dc49cb56e97775d96a0e469310d10a8ff2cb253a08d46fd845ae330e3ac4e41d0d0a85fbeb8e15795"
+      },
+      "output": {
+        "x": "8b542fa180e78bc981e6671374a64413e0323b439d06870dc49cb56e97775d96",
+        "y": "a0e469310d10a8ff2cb253a08d46fd845ae330e3ac4e41d0d0a85fbeb8e15795"
+      }
+    },
+    {
+      "description" : "returns public key x and y coordinates given a private key",
+      "input"       : {
+        "keyBytes": "08169cf81812f2e288a1131de246ebdf29b020c7625a98d098296a30a876d35a"
+      },
+      "output": {
+        "x": "25f61964e7797e36d9c369b752f53e33033c473e6db4697d74950095a1bfbe49",
+        "y": "9c2077c6252c520501e365868a22e3a8a8106bf7be95096394d9095c55239366"
+      }
+    }
+  ]
+}

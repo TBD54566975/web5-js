@@ -15,7 +15,7 @@ import { computeJwkThumbprint, isOctPrivateJwk } from '../jose/jwk.js';
  * a strong level of security for message authentication, verifying the integrity and
  * authenticity of the data during decryption.
  */
-const POLY1305_TAG_LENGTH = 16;
+export const POLY1305_TAG_LENGTH = 16;
 
 /**
  * The `XChaCha20Poly1305` class provides a suite of utilities for cryptographic operations
@@ -119,40 +119,36 @@ export class XChaCha20Poly1305 {
    * ```ts
    * const encryptedData = new Uint8Array([...]); // Encrypted data
    * const nonce = new Uint8Array(24); // 24-byte nonce
-   * const tag = new Uint8Array([...]); // Authentication tag
    * const additionalData = new Uint8Array([...]); // Optional AAD
    * const key = { ... }; // A Jwk object representing the XChaCha20-Poly1305 key
    * const decryptedData = await XChaCha20Poly1305.decrypt({
    *   data: encryptedData,
    *   nonce,
-   *   tag,
    *   additionalData,
    *   key
    * });
    * ```
    *
    * @param params - The parameters for the decryption operation.
-   * @param params.data - The encrypted data to decrypt, represented as a Uint8Array.
+   * @param params.data - The encrypted data to decrypt including the authentication tag,
+   *                      represented as a Uint8Array.
    * @param params.key - The key to use for decryption, represented in JWK format.
    * @param params.nonce - The nonce used during the encryption process.
-   * @param params.tag - The authentication tag generated during encryption.
    * @param params.additionalData - Optional additional authenticated data.
    *
    * @returns A Promise that resolves to the decrypted data as a Uint8Array.
    */
-  public static async decrypt({ data, key, nonce, tag, additionalData }: {
+  public static async decrypt({ data, key, nonce, additionalData }: {
     additionalData?: Uint8Array;
     data: Uint8Array;
     key: Jwk;
     nonce: Uint8Array;
-    tag: Uint8Array;
   }): Promise<Uint8Array> {
     // Convert the private key from JWK format to bytes.
     const privateKeyBytes = await XChaCha20Poly1305.privateKeyToBytes({ privateKey: key });
 
     const xc20p = xchacha20poly1305(privateKeyBytes, nonce, additionalData);
-    const ciphertext = new Uint8Array([...data, ...tag]);
-    const plaintext = xc20p.decrypt(ciphertext);
+    const plaintext = xc20p.decrypt(data);
 
     return plaintext;
   }
@@ -173,7 +169,7 @@ export class XChaCha20Poly1305 {
    * const nonce = utils.randomBytes(24); // 24-byte nonce
    * const additionalData = new TextEncoder().encode('Associated data'); // Optional AAD
    * const key = { ... }; // A Jwk object representing an XChaCha20-Poly1305 key
-   * const { ciphertext, tag } = await XChaCha20Poly1305.encrypt({
+   * const encryptedData = await XChaCha20Poly1305.encrypt({
    *   data,
    *   nonce,
    *   additionalData,
@@ -187,25 +183,22 @@ export class XChaCha20Poly1305 {
    * @param params.nonce - A 24-byte nonce for the encryption process.
    * @param params.additionalData - Optional additional authenticated data.
    *
-   * @returns A Promise that resolves to an object containing the encrypted data (`ciphertext`) and
-   *          the authentication tag (`tag`).
+   * @returns A Promise that resolves to a byte array containing the encrypted data and the
+   *          authentication tag.
    */
   public static async encrypt({ data, key, nonce, additionalData}: {
     additionalData?: Uint8Array;
     data: Uint8Array;
     key: Jwk;
     nonce: Uint8Array;
-  }): Promise<{ ciphertext: Uint8Array, tag: Uint8Array }> {
+  }): Promise<Uint8Array> {
     // Convert the private key from JWK format to bytes.
     const privateKeyBytes = await XChaCha20Poly1305.privateKeyToBytes({ privateKey: key });
 
     const xc20p = xchacha20poly1305(privateKeyBytes, nonce, additionalData);
-    const cipherOutput = xc20p.encrypt(data);
+    const ciphertext = xc20p.encrypt(data);
 
-    const ciphertext = cipherOutput.subarray(0, -POLY1305_TAG_LENGTH);
-    const tag = cipherOutput.subarray(-POLY1305_TAG_LENGTH);
-
-    return { ciphertext, tag };
+    return ciphertext;
   }
 
   /**

@@ -1,5 +1,4 @@
 import { crypto } from '@noble/hashes/crypto';
-import { Convert, Multicodec } from '@web5/common';
 import { randomBytes as nobleRandomBytes } from '@noble/hashes/utils';
 
 /**
@@ -65,39 +64,6 @@ export function checkValidProperty(params: {
 }
 
 /**
- * Converts a cryptographic key to a multibase identifier.
- *
- * @remarks
- * This method provides a way to represent a cryptographic key as a multibase identifier.
- * It takes a `Uint8Array` representing the key, and either the multicodec code or multicodec name
- * as input. The method first adds the multicodec prefix to the key, then encodes it into Base58
- * format. Finally, it converts the Base58 encoded key into a multibase identifier.
- *
- * @example
- * ```ts
- * const key = new Uint8Array([...]); // Cryptographic key as Uint8Array
- * const multibaseId = keyToMultibaseId({ key, multicodecName: 'ed25519-pub' });
- * ```
- *
- * @param params - The parameters for the conversion.
- * @param params.key - The cryptographic key as a Uint8Array.
- * @param params.multicodecCode - Optional multicodec code to prefix the key with.
- * @param params.multicodecName - Optional multicodec name corresponding to the code.
- * @returns The multibase identifier as a string.
- */
-export function keyToMultibaseId({ key, multicodecCode, multicodecName }: {
-  key: Uint8Array,
-  multicodecCode?: number,
-  multicodecName?: string
-}): string {
-  const prefixedKey = Multicodec.addPrefix({ code: multicodecCode, data: key, name: multicodecName });
-  const prefixedKeyB58 = Convert.uint8Array(prefixedKey).toBase58Btc();
-  const multibaseKeyId = Convert.base58Btc(prefixedKeyB58).toMultibase();
-
-  return multibaseKeyId;
-}
-
-/**
  * Checks if the Web Crypto API is supported in the current runtime environment.
  *
  * @remarks
@@ -130,35 +96,6 @@ export function isWebCryptoSupported(): boolean {
   } else {
     return false;
   }
-}
-
-/**
- * Converts a multibase identifier to a cryptographic key.
- *
- * @remarks
- * This function decodes a multibase identifier back into a cryptographic key. It first decodes the
- * identifier from multibase format into Base58 format, and then converts it into a `Uint8Array`.
- * Afterward, it removes the multicodec prefix, extracting the raw key data along with the
- * multicodec code and name.
- *
- * @example
- * ```ts
- * const multibaseKeyId = '...'; // Multibase identifier of the key
- * const { key, multicodecCode, multicodecName } = multibaseIdToKey({ multibaseKeyId });
- * ```
- *
- * @param params - The parameters for the conversion.
- * @param params.multibaseKeyId - The multibase identifier string of the key.
- * @returns An object containing the key as a `Uint8Array` and its multicodec code and name.
- */
-export function multibaseIdToKey({ multibaseKeyId }: {
-  multibaseKeyId: string
-}): { key: Uint8Array, multicodecCode: number, multicodecName: string } {
-  const prefixedKeyB58 = Convert.multibase(multibaseKeyId).toBase58Btc();
-  const prefixedKey = Convert.base58Btc(prefixedKeyB58).toUint8Array();
-  const { code, data, name } = Multicodec.removePrefix({ prefixedData: prefixedKey });
-
-  return { key: data, multicodecCode: code, multicodecName: name };
 }
 
 /**
