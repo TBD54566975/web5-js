@@ -182,17 +182,17 @@ describe('AesCtr', () => {
 
       // 128 bits
       privateKey = await AesCtr.generateKey({ length: 128 }) as JwkParamsOctPrivate;
-      privateKeyBytes = Convert.base64Url(privateKey.k).toUint8Array();
+      privateKeyBytes = Convert.base64Url(privateKey.k!).toUint8Array();
       expect(privateKeyBytes.byteLength).to.equal(16);
 
       // 192 bits
       privateKey = await AesCtr.generateKey({ length: 192 }) as JwkParamsOctPrivate;
-      privateKeyBytes = Convert.base64Url(privateKey.k).toUint8Array();
+      privateKeyBytes = Convert.base64Url(privateKey.k!).toUint8Array();
       expect(privateKeyBytes.byteLength).to.equal(24);
 
       // 256 bits
       privateKey = await AesCtr.generateKey({ length: 256 }) as JwkParamsOctPrivate;
-      privateKeyBytes = Convert.base64Url(privateKey.k).toUint8Array();
+      privateKeyBytes = Convert.base64Url(privateKey.k!).toUint8Array();
       expect(privateKeyBytes.byteLength).to.equal(32);
     });
 

@@ -1,0 +1,169 @@
+{
+  "description": "DID Utils getVerificationMethodTypes test vectors",
+  "vectors": [
+    {
+      "description": "returns expected types from a DID document with only multibase keys",
+      "input": {
+        "didDocument": {
+          "@context": [
+            "https://www.w3.org/ns/did/v1",
+            "https://w3id.org/security/suites/ed25519-2020/v1",
+            "https://w3id.org/security/suites/x25519-2020/v1"
+          ],
+          "id": "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp",
+          "verificationMethod": [
+            {
+              "id": "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp#z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp",
+              "type": "Ed25519VerificationKey2020",
+              "controller": "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp",
+              "publicKeyMultibase": "z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp"
+            },
+            {
+              "id": "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp#z6LShs9GGnqk85isEBzzshkuVWrVKsRp24GnDuHk8QWkARMW",
+              "type": "X25519KeyAgreementKey2020",
+              "controller": "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp",
+              "publicKeyMultibase": "z6LShs9GGnqk85isEBzzshkuVWrVKsRp24GnDuHk8QWkARMW"
+            }
+          ],
+          "authentication": [
+            "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp#z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp",
+            {
+              "id": "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp#zH3C2AVvLMv6gmMNam3uVAjZpfkcJCwDwnZn6z3wXmqPV",
+              "type": "Ed25519VerificationKey2020",
+              "controller": "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp",
+              "publicKeyMultibase": "zH3C2AVvLMv6gmMNam3uVAjZpfkcJCwDwnZn6z3wXmqPV"
+            }
+          ],
+          "assertionMethod": [
+            "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp#z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp",
+            {
+              "id": "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp#z6MknGc3ocHs3zdPiJbnaaqDi58NGb4pk1Sp9WxWufuXSdxf",
+              "type": "Ed25519VerificationKey2020",
+              "controller": "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp",
+              "publicKeyMultibase": "z6MknGc3ocHs3zdPiJbnaaqDi58NGb4pk1Sp9WxWufuXSdxf"
+            }
+          ],
+          "capabilityDelegation": [
+            "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp#z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp"
+          ],
+          "capabilityInvocation": [
+            "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp#z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp"
+          ],
+          "keyAgreement": [
+            "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp#z6LShs9GGnqk85isEBzzshkuVWrVKsRp24GnDuHk8QWkARMW"
+          ]
+        }
+      },
+      "output": [
+        "Ed25519VerificationKey2020",
+        "X25519KeyAgreementKey2020"
+      ],
+      "errors": false
+    },
+    {
+      "description": "returns expected types from a DID document with only JWK keys",
+      "input": {
+        "didDocument": {
+          "@context": [
+            "https://www.w3.org/ns/did/v1",
+            "https://w3id.org/security/suites/jws-2020/v1"
+          ],
+          "id": "did:key:z6MkmNvXGmVuux5W63nXKEM8zoxFmDLNfe7siCKG2GM7Kd8D",
+          "verificationMethod": [
+            {
+              "id": "did:key:z6MkmNvXGmVuux5W63nXKEM8zoxFmDLNfe7siCKG2GM7Kd8D#z6MkmNvXGmVuux5W63nXKEM8zoxFmDLNfe7siCKG2GM7Kd8D",
+              "type": "JsonWebKey2020",
+              "controller": "did:key:z6MkmNvXGmVuux5W63nXKEM8zoxFmDLNfe7siCKG2GM7Kd8D",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "crv": "Ed25519",
+                "kty": "OKP",
+                "x": "ZuVpK6HnahBtV1Y_jhnYK-fqHAz3dXmWXT_h-J7SL6I"
+              }
+            }
+          ],
+          "assertionMethod": [
+            "did:key:z6MkmNvXGmVuux5W63nXKEM8zoxFmDLNfe7siCKG2GM7Kd8D#z6MkmNvXGmVuux5W63nXKEM8zoxFmDLNfe7siCKG2GM7Kd8D"
+          ],
+          "authentication": [
+            "did:key:z6MkmNvXGmVuux5W63nXKEM8zoxFmDLNfe7siCKG2GM7Kd8D#z6MkmNvXGmVuux5W63nXKEM8zoxFmDLNfe7siCKG2GM7Kd8D"
+          ],
+          "capabilityDelegation": [
+            "did:key:z6MkmNvXGmVuux5W63nXKEM8zoxFmDLNfe7siCKG2GM7Kd8D#z6MkmNvXGmVuux5W63nXKEM8zoxFmDLNfe7siCKG2GM7Kd8D"
+          ],
+          "capabilityInvocation": [
+            "did:key:z6MkmNvXGmVuux5W63nXKEM8zoxFmDLNfe7siCKG2GM7Kd8D#z6MkmNvXGmVuux5W63nXKEM8zoxFmDLNfe7siCKG2GM7Kd8D"
+          ]
+        }
+      },
+      "output": [
+        "JsonWebKey2020"
+      ],
+      "errors": false
+    },
+    {
+      "description": "returns expected types from a DID document with a mix of JWK and multibase keys",
+      "input": {
+        "didDocument": {
+          "@context": [
+            "https://www.w3.org/ns/did/v1",
+            "https://w3id.org/security/suites/ed25519-2018/v1",
+            "https://w3id.org/security/suites/x25519-2019/v1",
+            "https://w3id.org/security/suites/secp256k1-2019/v1",
+            "https://w3id.org/security/suites/jws-2020/v1"
+          ],
+          "verificationMethod": [
+            {
+              "id": "did:example:123#key-0",
+              "type": "Ed25519VerificationKey2018",
+              "controller": "did:example:123",
+              "publicKeyBase58": "3M5RCDjPTWPkKSN3sxUmmMqHbmRPegYP1tjcKyrDbt9J"
+            },
+            {
+              "id": "did:example:123#key-1",
+              "type": "X25519KeyAgreementKey2019",
+              "controller": "did:example:123",
+              "publicKeyBase58": "FbQWLPRhTH95MCkQUeFYdiSoQt8zMwetqfWoxqPgaq7x"
+            },
+            {
+              "id": "did:example:123#key-2",
+              "type": "EcdsaSecp256k1VerificationKey2019",
+              "controller": "did:example:123",
+              "publicKeyBase58": "ns2aFDq25fEV1NUd3wZ65sgj5QjFW8JCAHdUJfLwfodt"
+            },
+            {
+              "id": "did:example:123#key-3",
+              "type": "JsonWebKey2020",
+              "controller": "did:example:123",
+              "publicKeyJwk": {
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "Er6KSSnAjI70ObRWhlaMgqyIOQYrDJTE94ej5hybQ2M",
+                "y": "pPVzCOTJwgikPjuUE6UebfZySqEJ0ZtsWFpj7YSPGEk"
+              }
+            }
+          ]
+        }
+      },
+      "output": [
+        "Ed25519VerificationKey2018",
+        "X25519KeyAgreementKey2019",
+        "EcdsaSecp256k1VerificationKey2019",
+        "JsonWebKey2020"
+      ],
+      "errors": false
+    },
+    {
+      "description": "error if didDocument is an empty object",
+      "input": {
+        "didDocument": {}
+      },
+      "errors": true
+    },
+    {
+      "description": "error if didDocument is missing",
+      "input": {},
+      "errors": true
+    }
+  ]
+}

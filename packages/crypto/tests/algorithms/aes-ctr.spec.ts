@@ -79,7 +79,7 @@ describe('AesCtrAlgorithm', () => {
       const algorithms = ['A128CTR', 'A192CTR', 'A256CTR'] as const;
       for (const algorithm of algorithms) {
         const privateKey = await aesCtr.generateKey({ algorithm });
-        if (!('k' in privateKey)) throw new Error('Expected privateKey to have a `k` property'); // TypeScript type guard.
+        if (!privateKey.k) throw new Error('Expected privateKey to have a `k` property'); // TypeScript type guard.
         const privateKeyBytes = Convert.base64Url(privateKey.k).toUint8Array();
         expect(privateKeyBytes.byteLength * 8).to.equal(parseInt(algorithm.slice(1, 4)));
       }

@@ -321,8 +321,11 @@ export type JwkParamsRsaPrivate = JwkParamsRsaPublic & {
   qi?: string;
   /** Other primes information (optional in RFC 7518) */
   oth?: {
+    /** Other primes' factor */
     r: string;
+    /** Other primes' CRT exponent */
     d: string;
+    /** Other primes' CRT coefficient */
     t: string;
   }[];
 };
@@ -333,17 +336,99 @@ export type PublicKeyJwk = JwkParamsEcPublic | JwkParamsOkpPublic | JwkParamsRsa
 /** Parameters used with private keys in JWK format. */
 export type PrivateKeyJwk = JwkParamsEcPrivate | JwkParamsOkpPrivate | JwkParamsOctPrivate | JwkParamsRsaPrivate;
 
-/** Object representing an asymmetric key pair in JWK format. */
-export type JwkKeyPair = {
-  publicKeyJwk: PublicKeyJwk;
-  privateKeyJwk: PrivateKeyJwk;
-}
-
 /**
  * JSON Web Key ({@link https://datatracker.ietf.org/doc/html/rfc7517 | JWK}).
  * "RSA", "EC", "OKP", and "oct" key types are supported.
  */
-export type Jwk = PrivateKeyJwk | PublicKeyJwk;
+export interface Jwk {
+  // Common properties that apply to all key types.
+
+  /** JWK Algorithm Parameter. The algorithm intended for use with the key. */
+  alg?: string;
+  /** JWK Extractable Parameter */
+  ext?: 'true' | 'false';
+  /** JWK Key Operations Parameter */
+  key_ops?: JwkOperation[];
+  /** JWK Key ID Parameter */
+  kid?: string;
+  /** JWK Key Type Parameter */
+  kty: JwkType;
+  /** JWK Public Key Use Parameter */
+  use?: JwkUse;
+  /** JWK X.509 Certificate Chain Parameter */
+  x5c?: string;
+  /** JWK X.509 Certificate SHA-1 Thumbprint Parameter */
+  x5t?: string;
+  /** JWK X.509 Certificate SHA-256 Thumbprint Parameter */
+  'x5t#S256'?: string;
+  /** JWK X.509 URL Parameter */
+  x5u?: string;
+
+  // Elliptic Curve (EC or OKP) public key properties.
+
+  /** The cryptographic curve used with the key. */
+  crv?: string;
+  /** The x-coordinate for the Elliptic Curve point. */
+  x?: string;
+  /** The y-coordinate for the Elliptic Curve point. */
+  y?: string;
+
+  // Symmetric key properties.
+
+  /** The "k" (key value) parameter contains the value of the symmetric (or other single-valued) key. */
+  k?: string;
+
+  // RSA public key properties.
+
+  /** Public exponent for RSA */
+  e?: string;
+  /** Modulus for RSA */
+  n?: string;
+  /** First prime factor for RSA */
+  p?: string;
+  /** Second prime factor for RSA */
+  q?: string;
+  /** First factor's CRT exponent for RSA */
+  dp?: string;
+  /** Second factor's CRT exponent for RSA */
+  dq?: string;
+  /** First CRT coefficient for RSA */
+  qi?: string;
+  /** Other primes information (optional in RFC 7518) */
+  oth?: {
+    /** Other primes' factor */
+    r: string;
+    /** Other primes' CRT exponent */
+    d: string;
+    /** Other primes' CRT coefficient */
+    t: string;
+  }[];
+
+  // Elliptic Curve and RSA private key properties.
+
+  /** Private key component for EC, OKP, or RSA keys. */
+  d?: string;
+
+  // Additional public or private properties.
+  [key: string]: unknown;
+}
+
+/**
+ * JSON Web Key Set ({@link https://datatracker.ietf.org/doc/html/rfc7517 | JWK Set})
+ *
+ * @remarks
+ * A JWK Set is a JSON object that represents a set of JWKs. The JSON object MUST have a "keys"
+ * member, with its value being an array of JWKs.
+ *
+ * Additional members can be present in the JWK Set but member names MUST be unique. If not
+ * understood by implementations encountering them, they MUST be ignored. Parameters for
+ * representing additional properties of JWK Sets should either be registered in the IANA
+ * "JSON Web Key Set Parameters" registry or be a value that contains a Collision-Resistant Name.
+ */
+export interface JwkSet {
+  /** Array of JWKs */
+  keys: Jwk[]
+}
 
 /**
  * Computes the thumbprint of a JSON Web Key (JWK) using the method

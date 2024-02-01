@@ -184,9 +184,9 @@ cloud-based services (e.g., AWS KMS). Extensions that support external KMS servi
 Start by instantiating a local KMS implementation of the `CryptoApi` interface:
 
 ```ts
-import { LocalKmsCrypto } from "@web5/crypto";
+import { LocalKeyManager } from "@web5/crypto";
 
-const crypto = new LocalKmsCrypto();
+const kms = new LocalKeyManager();
 ```
 
 An ephemeral, in-memory key store is used by default but any persistent store that implements the
@@ -197,7 +197,7 @@ for an example.
 Generate a random private key:
 
 ```ts
-const privateKeyUri = await cypto.generateKey({ algorithm: "Ed25519" });
+const privateKeyUri = await kms.generateKey({ algorithm: "Ed25519" });
 console.log(privateKeyUri);
 // Output: urn:jwk:8DaTzHZcvQXUVvl8ezQKgGQHza1hiOZlPkdrB55Vt6Q
 ```
@@ -206,7 +206,7 @@ Create an EdDSA signature over arbitrary data using the private key:
 
 ```ts
 const data = new TextEncoder().encode("Message");
-const signature = await crypto.sign({
+const signature = await kms.sign({
   keyUri: privateKeyUri,
   data,
 });
@@ -225,7 +225,7 @@ console.log(signature);
 Get the public key in JWK format:
 
 ```ts
-const publicKey = await crypto.getPublicKey({ keyUri: privateKeyUri });
+const publicKey = await kms.getPublicKey({ keyUri: privateKeyUri });
 console.log(publicKey);
 // Output:
 // {
@@ -240,7 +240,7 @@ console.log(publicKey);
 Verify the signature using the public key:
 
 ```ts
-const isValid = await crypto.verify({
+const isValid = await kms.verify({
   key: publicKey,
   signature,
   data,
@@ -252,7 +252,7 @@ console.log(isValid);
 Export the private key:
 
 ```ts
-const privateKey = await crypto.exportKey({ keyUri });
+const privateKey = await kms.exportKey({ keyUri });
 console.log(privateKey);
 // Output:
 // {
@@ -277,14 +277,14 @@ const privateKey: Jwk = {
   d: "0xLuQyXFaWjrqp2o0orhwvwhtYhp2Z7KeRcioIs78CY",
 };
 
-const keyUri = await crypto.importKey({ key: privateKey });
+const keyUri = await kms.importKey({ key: privateKey });
 ```
 
 Compute the hash digest of arbitrary data:
 
 ```ts
 const data = new TextEncoder().encode("Message");
-const hash = await crypto.digest({ algorithm: "SHA-256", data });
+const hash = await kms.digest({ algorithm: "SHA-256", data });
 console.log(hash);
 // Output:
 // Uint8Array(32) [
@@ -396,7 +396,7 @@ const uuid = randomUuid();
 
 ### Persistent Local KMS Key Store
 
-By default, `LocalKmsCrypto` uses an in-memory key store to simplify prototyping and testing.
+By default, `LocalKeyManager` uses an in-memory key store to simplify prototyping and testing.
 To persist keys that are generated or imported, an implementation of the
 [`KeyValueStore`](https://github.com/TBD54566975/web5-js/blob/5f364bc0d859e28f1388524ebe8ef152a71727c4/packages/common/src/types.ts#L4-L43)
 interface can be passed.
@@ -412,14 +412,14 @@ const db = new Level<KeyIdentifier, Jwk>("db_location", {
   valueEncoding: "json",
 });
 const keyStore = new LevelStore<KeyIdentifier, Jwk>({ db });
-const crypto = new LocalKmsCrypto({ keyStore });
+const kms = new LocalKeyManager({ keyStore });
 ```
 
 ## Cryptographic Primitives
 
 This library encourages using its capabilities through concrete implementations of the `CryptoApi`
-interface (e.g., [`LocalKmsCrypto`](#using-a-local-kms) or
-[`AwsKmsCrypto`][crypto-aws-kms-repo-link]). These implementations provides high-level,
+interface (e.g., [`LocalKeyManager`](#using-a-local-kms) or
+[`AwsKeyManager`][crypto-aws-kms-repo-link]). These implementations provides high-level,
 user-friendly access to a range of cryptographic functions. However, for developers requiring
 lower-level control or specific customizations, the library also exposes its cryptographic
 primitives directly. These primitives include a variety of cipher, hash, signature, key derivation,

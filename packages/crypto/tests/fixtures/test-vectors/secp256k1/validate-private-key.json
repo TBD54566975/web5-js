@@ -16,7 +16,7 @@
       "output": false
     },
     {
-      "description" : "returns false if an compressed public key is given",
+      "description" : "returns false if a compressed public key is given",
       "input"       : {
         "privateKeyBytes": "026bcdccc644b309921d3b0c266183a20786650c1634d34e8dfa1ed74cd66ce214"
       },

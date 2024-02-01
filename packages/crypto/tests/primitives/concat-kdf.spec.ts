@@ -14,7 +14,7 @@ describe('ConcatKdf', () => {
       const input = {
         sharedSecret : Convert.base64Url(inputSharedSecret).toUint8Array(),
         keyDataLen   : 128,
-        otherInfo    : {
+        fixedInfo    : {
           algorithmId : 'A128GCM',
           partyUInfo  : 'Alice',
           partyVInfo  : 'Bob',
@@ -34,11 +34,11 @@ describe('ConcatKdf', () => {
       const inputBase = {
         sharedSecret : new Uint8Array([1, 2, 3]),
         keyDataLen   : 256,
-        otherInfo    : {}
+        fixedInfo    : {}
       };
 
       // String input.
-      const inputString = { ...inputBase, otherInfo: {
+      const inputString = { ...inputBase, fixedInfo: {
         algorithmId : 'A128GCM',
         partyUInfo  : 'Alice',
         partyVInfo  : 'Bob',
@@ -49,7 +49,7 @@ describe('ConcatKdf', () => {
       expect(derivedKeyingMaterial.byteLength).to.equal(32);
 
       // TypedArray input.
-      const inputTypedArray = { ...inputBase, otherInfo: {
+      const inputTypedArray = { ...inputBase, fixedInfo: {
         algorithmId : 'A128GCM',
         partyUInfo  : Convert.string('Alice').toUint8Array(),
         partyVInfo  : Convert.string('Bob').toUint8Array(),
@@ -72,7 +72,7 @@ describe('ConcatKdf', () => {
         ConcatKdf.deriveKey({
           sharedSecret : new Uint8Array([1, 2, 3]),
           keyDataLen   : 128,
-          otherInfo    : {
+          fixedInfo    : {
             algorithmId : 'A128GCM',
             partyUInfo  : 'Alice',
             partyVInfo  : 'Bob',
@@ -84,7 +84,7 @@ describe('ConcatKdf', () => {
     });
   });
 
-  describe('computeOtherInfo()', () => {
+  describe('computeFixedInfo()', () => {
     it('returns concatenated and formatted Uint8Array', () => {
       const input = {
         algorithmId  : 'A128GCM',
@@ -95,11 +95,11 @@ describe('ConcatKdf', () => {
       };
       const output = 'AAAAB0ExMjhHQ00AAAAFQWxpY2UAAAADQm9iAAAAgAAAACtnSTBHQUlMQmR1N1Q1M2FrckZtTXlHY3NGM241ZE83TW13TkJIS1c1U1Yw';
 
-      // @ts-expect-error because computeOtherInfo() is a private method.
-      const otherInfo = ConcatKdf.computeOtherInfo(input);
+      // @ts-expect-error because computeFixedInfo() is a private method.
+      const fixedInfo = ConcatKdf.computeFixedInfo(input);
 
       const expectedResult = Convert.base64Url(output).toUint8Array();
-      expect(otherInfo).to.deep.equal(expectedResult);
+      expect(fixedInfo).to.deep.equal(expectedResult);
     });
 
     it('matches RFC 7518 ECDH-ES key agreement computation example', async () => {
@@ -112,11 +112,11 @@ describe('ConcatKdf', () => {
       };
       const output = 'AAAAB0ExMjhHQ00AAAAFQWxpY2UAAAADQm9iAAAAgA';
 
-      // @ts-expect-error because computeOtherInfo() is a private method.
-      const otherInfo = ConcatKdf.computeOtherInfo(input);
+      // @ts-expect-error because computeFixedInfo() is a private method.
+      const fixedInfo = ConcatKdf.computeFixedInfo(input);
 
       const expectedResult = Convert.base64Url(output).toUint8Array();
-      expect(otherInfo).to.deep.equal(expectedResult);
+      expect(fixedInfo).to.deep.equal(expectedResult);
     });
   });
 });

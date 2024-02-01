@@ -3,7 +3,6 @@
   "compilerOptions": {
     "outDir": "compiled",
     "declarationDir": "compiled/types",
-    "resolveJsonModule": true,
     "sourceMap": true
   },
   "include": [

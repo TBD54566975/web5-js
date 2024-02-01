@@ -4,7 +4,7 @@ import chaiAsPromised from 'chai-as-promised';
 
 import type { Jwk } from '../../src/jose/jwk.js';
 
-import { XChaCha20Poly1305 } from '../../src/primitives/xchacha20-poly1305.js';
+import { POLY1305_TAG_LENGTH, XChaCha20Poly1305 } from '../../src/primitives/xchacha20-poly1305.js';
 
 chai.use(chaiAsPromised);
 
@@ -35,11 +35,12 @@ describe('XChaCha20Poly1305', () => {
 
   describe('decrypt()', () => {
     it('returns Uint8Array plaintext with length matching input', async () => {
+      const ciphertext = Convert.hex('789e9689e5208d7fd9e1').toUint8Array();
+      const tag = Convert.hex('09701fb9f36ab77a0f136ca539229a34').toUint8Array();
       const plaintext = await XChaCha20Poly1305.decrypt({
-        data  : Convert.hex('789e9689e5208d7fd9e1').toUint8Array(),
+        data  : new Uint8Array([...ciphertext, ...tag]),
         key   : await XChaCha20Poly1305.bytesToPrivateKey({ privateKeyBytes: new Uint8Array(32) }),
         nonce : new Uint8Array(24),
-        tag   : Convert.hex('09701fb9f36ab77a0f136ca539229a34').toUint8Array()
       });
       expect(plaintext).to.be.an('Uint8Array');
       expect(plaintext.byteLength).to.equal(10);
@@ -49,11 +50,14 @@ describe('XChaCha20Poly1305', () => {
       const privateKeyBytes = Convert.hex('79c99798ac67300bbb2704c95c341e3245f3dcb21761b98e52ff45b24f304fc4').toUint8Array();
       const privateKey = await XChaCha20Poly1305.bytesToPrivateKey({ privateKeyBytes });
 
+      const ciphertext = Convert.hex('80246ca517c0fb5860c19090a7e7a2b030dde4882520102cbc64fad937916596ca9d').toUint8Array();
+      const tag = Convert.hex('9e10a121d990e6a290f6b534516aa32f').toUint8Array();
+      const nonce = Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toUint8Array();
+
       const input = {
-        data  : Convert.hex('80246ca517c0fb5860c19090a7e7a2b030dde4882520102cbc64fad937916596ca9d').toUint8Array(),
-        key   : privateKey,
-        nonce : Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toUint8Array(),
-        tag   : Convert.hex('9e10a121d990e6a290f6b534516aa32f').toUint8Array()
+        data : new Uint8Array([...ciphertext, ...tag]),
+        key  : privateKey,
+        nonce
       };
       const output = Convert.string(`Are You There Bob? It's Me, Alice.`).toUint8Array();
 
@@ -61,7 +65,6 @@ describe('XChaCha20Poly1305', () => {
         data  : input.data,
         key   : input.key,
         nonce : input.nonce,
-        tag   : input.tag
       });
 
       expect(plaintext).to.deep.equal(output);
@@ -70,10 +73,9 @@ describe('XChaCha20Poly1305', () => {
     it('throws an error if an invalid tag is given', async () => {
       await expect(
         XChaCha20Poly1305.decrypt({
-          data  : new Uint8Array(10),
+          data  : new Uint8Array([...new Uint8Array(10), ...new Uint8Array(16)]),
           key   : await XChaCha20Poly1305.bytesToPrivateKey({ privateKeyBytes: new Uint8Array(32) }),
-          nonce : new Uint8Array(24),
-          tag   : new Uint8Array(16)
+          nonce : new Uint8Array(24)
         })
       ).to.eventually.be.rejectedWith(Error, 'invalid tag');
     });
@@ -81,35 +83,38 @@ describe('XChaCha20Poly1305', () => {
 
   describe('encrypt()', () => {
     it('returns Uint8Array ciphertext and tag', async () => {
-      const { ciphertext, tag } = await XChaCha20Poly1305.encrypt({
+      const ciphertext = await XChaCha20Poly1305.encrypt({
         data  : new Uint8Array(10),
         key   : await XChaCha20Poly1305.bytesToPrivateKey({ privateKeyBytes: new Uint8Array(32) }),
         nonce : new Uint8Array(24)
       });
       expect(ciphertext).to.be.an('Uint8Array');
-      expect(ciphertext.byteLength).to.equal(10);
-      expect(tag).to.be.an('Uint8Array');
-      expect(tag.byteLength).to.equal(16);
+      expect(ciphertext.byteLength).to.equal(10 + POLY1305_TAG_LENGTH);
     });
 
     it('accepts additional authenticated data', async () => {
-      const { ciphertext: ciphertextAad, tag: tagAad } = await XChaCha20Poly1305.encrypt({
+      const ciphertextAad = await XChaCha20Poly1305.encrypt({
         additionalData : new Uint8Array(64),
         data           : new Uint8Array(10),
         key            : await XChaCha20Poly1305.bytesToPrivateKey({ privateKeyBytes: new Uint8Array(32) }),
         nonce          : new Uint8Array(24)
       });
 
-      const { ciphertext, tag } = await XChaCha20Poly1305.encrypt({
+      const ciphertext = await XChaCha20Poly1305.encrypt({
         data  : new Uint8Array(10),
         key   : await XChaCha20Poly1305.bytesToPrivateKey({ privateKeyBytes: new Uint8Array(32) }),
         nonce : new Uint8Array(24)
       });
 
-      expect(ciphertextAad.byteLength).to.equal(10);
-      expect(ciphertext.byteLength).to.equal(10);
-      expect(ciphertextAad).to.deep.equal(ciphertext);
-      expect(tagAad).to.not.deep.equal(tag);
+      const ciphertextWithAad = ciphertextAad.slice(0, -POLY1305_TAG_LENGTH);
+      const tagWithAad = ciphertextAad.slice(-POLY1305_TAG_LENGTH);
+      const ciphertextWithoutAad = ciphertext.slice(0, -POLY1305_TAG_LENGTH);
+      const tagWithoutAad = ciphertext.slice(-POLY1305_TAG_LENGTH);
+
+      expect(ciphertextWithAad.byteLength).to.equal(10);
+      expect(ciphertextWithoutAad.byteLength).to.equal(10);
+      expect(ciphertextWithAad).to.deep.equal(ciphertextWithoutAad);
+      expect(tagWithAad).to.not.deep.equal(tagWithoutAad);
     });
 
     it('passes test vectors', async () => {
@@ -126,13 +131,16 @@ describe('XChaCha20Poly1305', () => {
         tag        : Convert.hex('9e10a121d990e6a290f6b534516aa32f').toUint8Array()
       };
 
-      const { ciphertext, tag } = await XChaCha20Poly1305.encrypt({
+      const ciphertext = await XChaCha20Poly1305.encrypt({
         data  : input.data,
         key   : input.key,
         nonce : input.nonce
       });
 
-      expect(ciphertext).to.deep.equal(output.ciphertext);
+      const ciphertextOnly = ciphertext.slice(0, -POLY1305_TAG_LENGTH);
+      const tag = ciphertext.slice(-POLY1305_TAG_LENGTH);
+
+      expect(ciphertextOnly).to.deep.equal(output.ciphertext);
       expect(tag).to.deep.equal(output.tag);
     });
   });

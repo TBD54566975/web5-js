@@ -55,6 +55,45 @@ describe('EcdsaAlgorithm', () => {
       expect(publicKey).to.have.property('crv', 'secp256k1');
     });
 
+    it('accepts secp256k1 as an alias for the ES256K algorithm identifier', async () => {
+      // Setup.
+      const privateKey = await ecdsa.generateKey({ algorithm: 'secp256k1' });
+
+      // Test the method.
+      const publicKey = await ecdsa.computePublicKey({ key: privateKey });
+
+      // Validate the result.
+      expect(publicKey).to.have.property('kty', 'EC');
+      expect(publicKey).to.have.property('alg', 'ES256K');
+      expect(publicKey).to.have.property('crv', 'secp256k1');
+    });
+
+    it('supports ECDSA using secp256r1 curve and SHA-256', async () => {
+      // Setup.
+      const privateKey = await ecdsa.generateKey({ algorithm: 'ES256' });
+
+      // Test the method.
+      const publicKey = await ecdsa.computePublicKey({ key: privateKey });
+
+      // Validate the result.
+      expect(publicKey).to.have.property('kty', 'EC');
+      expect(publicKey).to.have.property('alg', 'ES256');
+      expect(publicKey).to.have.property('crv', 'P-256');
+    });
+
+    it('accepts secp256r1 as an alias for the ES256 algorithm identifier', async () => {
+      // Setup.
+      const privateKey = await ecdsa.generateKey({ algorithm: 'secp256r1' });
+
+      // Test the method.
+      const publicKey = await ecdsa.computePublicKey({ key: privateKey });
+
+      // Validate the result.
+      expect(publicKey).to.have.property('kty', 'EC');
+      expect(publicKey).to.have.property('alg', 'ES256');
+      expect(publicKey).to.have.property('crv', 'P-256');
+    });
+
     it('throws an error if the key provided is not an EC private key', async () => {
       // Setup.
       const privateKey: Jwk = {
@@ -80,7 +119,6 @@ describe('EcdsaAlgorithm', () => {
     it('throws an error for an unsupported curve', async () => {
       // Setup.
       const privateKey: Jwk = {
-        // @ts-expect-error because an unsupported curve is intentionally provided.
         crv : 'unsupported-curve',
         d   : 'd',
         kty : 'EC',
@@ -118,6 +156,30 @@ describe('EcdsaAlgorithm', () => {
 
       expect(privateKey).to.have.property('alg', 'ES256K');
       expect(privateKey).to.have.property('crv', 'secp256k1');
+    });
+
+    it('accepts secp256k1 as an alias for the ES256K algorithm identifier', async () => {
+      // Test the method.
+      const privateKey = await ecdsa.generateKey({ algorithm: 'secp256k1' });
+
+      expect(privateKey).to.have.property('alg', 'ES256K');
+      expect(privateKey).to.have.property('crv', 'secp256k1');
+    });
+
+    it('supports ECDSA using secp256r1 curve and SHA-256', async () => {
+      // Test the method.
+      const privateKey = await ecdsa.generateKey({ algorithm: 'ES256' });
+
+      expect(privateKey).to.have.property('alg', 'ES256');
+      expect(privateKey).to.have.property('crv', 'P-256');
+    });
+
+    it('accepts secp256r1 as an alias for the ES256 algorithm identifier', async () => {
+      // Test the method.
+      const privateKey = await ecdsa.generateKey({ algorithm: 'secp256r1' });
+
+      expect(privateKey).to.have.property('alg', 'ES256');
+      expect(privateKey).to.have.property('crv', 'P-256');
     });
   });
 
@@ -158,6 +220,19 @@ describe('EcdsaAlgorithm', () => {
       expect(publicKey).to.have.property('crv', 'secp256k1');
     });
 
+    it('supports ECDSA using secp256r1 curve and SHA-256', async () => {
+      // Setup.
+      const privateKey = await ecdsa.generateKey({ algorithm: 'ES256' });
+
+      // Test the method.
+      const publicKey = await ecdsa.getPublicKey({ key: privateKey });
+
+      // Validate the result.
+      expect(publicKey).to.have.property('kty', 'EC');
+      expect(publicKey).to.have.property('alg', 'ES256');
+      expect(publicKey).to.have.property('crv', 'P-256');
+    });
+
     it('throws an error if the key provided is not an EC private key', async () => {
       // Setup.
       const privateKey: Jwk = {
@@ -183,7 +258,6 @@ describe('EcdsaAlgorithm', () => {
     it('throws an error for an unsupported curve', async () => {
       // Setup.
       const privateKey: Jwk = {
-        // @ts-expect-error because an unsupported curve is intentionally provided.
         crv : 'unsupported-curve',
         d   : 'd',
         kty : 'EC',
@@ -225,6 +299,28 @@ describe('EcdsaAlgorithm', () => {
       expect(signature).to.have.length(64);
     });
 
+    it('supports ECDSA using secp256k1 curve and SHA-256', async () => {
+      // Setup.
+      const privateKey = await ecdsa.generateKey({ algorithm: 'ES256K'});
+
+      // Test the method.
+      const signature = await ecdsa.sign({ key: privateKey, data });
+
+      // Validate the result.
+      expect(signature).to.have.length(64);
+    });
+
+    it('supports ECDSA using secp256r1 curve and SHA-256', async () => {
+      // Setup.
+      const privateKey = await ecdsa.generateKey({ algorithm: 'ES256'});
+
+      // Test the method.
+      const signature = await ecdsa.sign({ key: privateKey, data });
+
+      // Validate the result.
+      expect(signature).to.have.length(64);
+    });
+
     it('throws an error if the key provided is not an EC private key', async () => {
       // Setup.
       const privateKey: Jwk = {
@@ -250,7 +346,6 @@ describe('EcdsaAlgorithm', () => {
     it('throws an error for an unsupported curve', async () => {
       // Setup.
       const privateKey: Jwk = {
-        // @ts-expect-error because an unsupported curve is intentionally provided.
         crv : 'unsupported-curve',
         d   : 'd',
         kty : 'EC',
@@ -310,6 +405,32 @@ describe('EcdsaAlgorithm', () => {
       expect(isValid).to.be.false;
     });
 
+    it('supports ECDSA using secp256k1 curve and SHA-256', async () => {
+      // Setup.
+      privateKey = await ecdsa.generateKey({ algorithm: 'ES256K' });
+      publicKey = await ecdsa.getPublicKey({ key: privateKey });
+      signature = await ecdsa.sign({ key: privateKey, data });
+
+      // Test the method.
+      const isValid = await ecdsa.verify({ key: publicKey, signature, data });
+
+      // Validate the result.
+      expect(isValid).to.be.true;
+    });
+
+    it('supports ECDSA using secp256r1 curve and SHA-256', async () => {
+      // Setup.
+      privateKey = await ecdsa.generateKey({ algorithm: 'ES256' });
+      publicKey = await ecdsa.getPublicKey({ key: privateKey });
+      signature = await ecdsa.sign({ key: privateKey, data });
+
+      // Test the method.
+      const isValid = await ecdsa.verify({ key: publicKey, signature, data });
+
+      // Validate the result.
+      expect(isValid).to.be.true;
+    });
+
     it('throws an error if the key provided is not an EC public key', async () => {
       // Setup.
       const publicKey: Jwk = {
@@ -334,7 +455,6 @@ describe('EcdsaAlgorithm', () => {
     it('throws an error for an unsupported curve', async () => {
       // Setup.
       const publicKey: Jwk = {
-        // @ts-expect-error because an unsupported curve is intentionally provided.
         crv : 'unsupported-curve',
         kty : 'EC',
         x   : 'x',

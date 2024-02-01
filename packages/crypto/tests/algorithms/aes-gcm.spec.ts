@@ -80,7 +80,7 @@ describe('AesGcmAlgorithm', () => {
       const algorithms = ['A128GCM', 'A192GCM', 'A256GCM'] as const;
       for (const algorithm of algorithms) {
         const privateKey = await aesGcm.generateKey({ algorithm });
-        if (!('k' in privateKey)) throw new Error('Expected privateKey to have a `k` property'); // TypeScript type guard.
+        if (!privateKey.k) throw new Error('Expected privateKey to have a `k` property'); // TypeScript type guard.
         const privateKeyBytes = Convert.base64Url(privateKey.k).toUint8Array();
         expect(privateKeyBytes.byteLength * 8).to.equal(parseInt(algorithm.slice(1, 4)));
       }

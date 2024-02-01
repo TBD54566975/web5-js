@@ -1,0 +1,44 @@
+{
+  "description" : "Secp256r1 bytesToPublicKey test vectors",
+  "vectors"     : [
+    {
+      "description" : "converts wycheproof vector 1 to the expected public key",
+      "input"       : {
+        "publicKey": {
+          "crv" : "P-256",
+          "kid" : "UB0bE6ogZhikgZQC5i4LIZIpUDDiJ6AnzpDOzOEwJiA",
+          "kty" : "EC",
+          "x" : "KSexBRK64-3c_kZ4KBKLrSkDJpkZ9whgacjE32xzKDg",
+          "y": "x3h5ZOqsAOWSH7FJimD0YGdms9loUAFVjRqXTnNBUT4"
+        }
+      },
+      "output": "042927b10512bae3eddcfe467828128bad2903269919f7086069c8c4df6c732838c7787964eaac00e5921fb1498a60f4606766b3d9685001558d1a974e7341513e"
+    },
+    {
+      "description" : "converts wycheproof vector 2 to the expected public key",
+      "input"       : {
+        "publicKey": {
+          "crv" : "P-256",
+          "kid" : "rC40rZh4ODQ5Y3RKw0dLQBXkVQbkEpCHEoNyFzeSIMU",
+          "kty" : "EC",
+          "x" : "CtmVACiNRmlAAx1yqfVEWk1DeEZAhVvwpph00t5f4QM",
+          "y": "xQEebvLELc1Q1dPSn5mubrosgMkkT0xUIvCXn_DDul4"
+        }
+      },
+      "output": "040ad99500288d466940031d72a9f5445a4d43784640855bf0a69874d2de5fe103c5011e6ef2c42dcd50d5d3d29f99ae6eba2c80c9244f4c5422f0979ff0c3ba5e"
+    },
+    {
+      "description" : "converts wycheproof vector 3 to the expected public key",
+      "input"       : {
+        "publicKey": {
+          "crv" : "P-256",
+          "kid" : "UnGLajygjRCFie0aEyUb9y6Ec_ZohzbqY7sggZGL6Tk",
+          "kty" : "EC",
+          "x" : "qwX9nQ3ia5zm9IGWUtn8aRk9CqOY8PuoAT4JxYIgRVQ",
+          "y": "GSNScSKMeGdZCV0St1rwaS3UED8Z9qjDL0lDWh6bjUU"
+        }
+      },
+      "output": "04ab05fd9d0de26b9ce6f4819652d9fc69193d0aa398f0fba8013e09c58220455419235271228c786759095d12b75af0692dd4103f19f6a8c32f49435a1e9b8d45"
+    }
+  ]
+}

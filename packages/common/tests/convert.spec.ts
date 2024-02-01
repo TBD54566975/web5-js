@@ -236,6 +236,23 @@ describe('Convert', () =>{
     });
   });
 
+  describe('from: Base64Z', () => {
+    it('to: Uint8Array', () => {
+      // Test Vector 1.
+      let input = '5umembtazeybqcd7grysfp711g1z56wzo8irzhae494hh58zguhy';
+      let output = new Uint8Array([
+        220, 214, 133, 134,  56, 186,   0,  23,
+        48,  125,  49,   1,  98, 183, 178, 145,
+        165, 125, 250, 151, 129, 234,  75, 243,
+        8,   215, 245, 206, 108, 247,  52, 248
+      ]);
+
+      let result = Convert.base32Z(input).toUint8Array();
+
+      expect(result).to.deep.equal(output);
+    });
+  });
+
   describe('from: BufferSource', () => {
     it('to: ArrayBuffer', () => {
       // Test Vector 1 - BufferSource is Uint8Array.
@@ -500,6 +517,21 @@ describe('Convert', () =>{
       expect(result).to.deep.equal(output);
     });
 
+    it('to: Base32Z', () => {
+      // Test Vector 1.
+      let input = new Uint8Array([
+        220, 214, 133, 134,  56, 186,   0,  23,
+        48,  125,  49,   1,  98, 183, 178, 145,
+        165, 125, 250, 151, 129, 234,  75, 243,
+        8,   215, 245, 206, 108, 247,  52, 248
+      ]);
+      let output = '5umembtazeybqcd7grysfp711g1z56wzo8irzhae494hh58zguhy';
+
+      let result = Convert.uint8Array(input).toBase32Z();
+
+      expect(result).to.deep.equal(output);
+    });
+
     it('to: Base58Btc', () => {
       // Test Vector 1.
       let input = new Uint8Array([51, 52, 53]);
@@ -565,6 +597,10 @@ describe('Convert', () =>{
         expect(error).to.be.instanceOf(TypeError);
         expect(error.message).to.include('not supported');
       }
+    });
+
+    it('toBase32Z() throw an error', () => {
+      expect(() => unsupported.toBase32Z()).to.throw(TypeError, 'not supported');
     });
 
     it('toBase58Btc() throw an error', () => {

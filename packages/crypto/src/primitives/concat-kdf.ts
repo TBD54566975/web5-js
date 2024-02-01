@@ -2,7 +2,16 @@ import { sha256 } from '@noble/hashes/sha256';
 import { Convert, universalTypeOf } from '@web5/common';
 import { TypedArray, concatBytes } from '@noble/hashes/utils';
 
-export type ConcatKdfOtherInfo = {
+/**
+ * ConcatKDF FixedInfo Parameters.
+ *
+ * This implementation follows the recommended format for `FixedInfo` specified in section 5.8.2
+ * of the NIST.800-56A publication.
+ *
+ * @see {@link https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-56Ar3.pdf | NIST.800-56A}
+ * @see {@link https://datatracker.ietf.org/doc/html/rfc7518#section-4.6.2 | RFC 7518, Section 4.6.2}
+ */
+export type ConcatKdfFixedInfo = {
   /**
    * The algorithm the derived secret keying material will be used with.
    */
@@ -46,12 +55,12 @@ export type ConcatKdfOtherInfo = {
  * specifically uses SHA-256 as the pseudorandom function (PRF).
  *
  * Note: This implementation allows for only a single round / repetition using the function
- *       `K(1) = H(counter || Z || OtherInfo)`, where:
+ *       `K(1) = H(counter || Z || FixedInfo)`, where:
  *   - `K(1)` is the derived key material after one round
  *   - `H` is the SHA-256 hashing function
  *   - `counter` is a 32-bit, big-endian bit string counter set to 0x00000001
  *   - `Z` is the shared secret value obtained from a key agreement protocol
- *   - `OtherInfo` is a bit string used to ensure that the derived keying material is adequately
+ *   - `FixedInfo` is a bit string used to ensure that the derived keying material is adequately
  *     "bound" to the key-agreement transaction.
  *
  * @example
@@ -60,7 +69,7 @@ export type ConcatKdfOtherInfo = {
  * const derivedKeyingMaterial = await ConcatKdf.deriveKey({
  *   sharedSecret: utils.randomBytes(32),
  *   keyDataLen: 128,
- *   otherInfo: {
+ *   fixedInfo: {
  *     algorithmId: "A128GCM",
  *     partyUInfo: "Alice",
  *     partyVInfo: "Bob",
@@ -94,7 +103,7 @@ export class ConcatKdf {
    * const derivedKeyingMaterial = await ConcatKdf.deriveKey({
    *   sharedSecret: utils.randomBytes(32),
    *   keyDataLen: 128,
-   *   otherInfo: {
+   *   fixedInfo: {
    *     algorithmId: "A128GCM",
    *     partyUInfo: "Alice",
    *     partyVInfo: "Bob",
@@ -106,14 +115,14 @@ export class ConcatKdf {
    * @param params - Input parameters for key derivation.
    * @param params.keyDataLen - The desired length of the derived key in bits.
    * @param params.sharedSecret - The shared secret key to derive from.
-   * @param params.otherInfo - Additional public information to use in key derivation.
+   * @param params.fixedInfo - Additional public information to use in key derivation.
    * @returns The derived key as a Uint8Array.
    *
    * @throws {Error} If the `keyDataLen` would require multiple rounds.
    */
-  public static async deriveKey({ keyDataLen, otherInfo, sharedSecret }: {
+  public static async deriveKey({ keyDataLen, fixedInfo, sharedSecret }: {
     keyDataLen: number;
-    otherInfo: ConcatKdfOtherInfo;
+    fixedInfo: ConcatKdfFixedInfo;
     sharedSecret: Uint8Array;
   }): Promise<Uint8Array> {
     // RFC 7518 Section 4.6.2 specifies using SHA-256 for ECDH key agreement:
@@ -132,36 +141,36 @@ export class ConcatKdf {
     const counter = new Uint8Array(4);
     new DataView(counter.buffer).setUint32(0, roundCount);
 
-    // Compute the OtherInfo bit-string.
-    const otherInfoBytes = ConcatKdf.computeOtherInfo(otherInfo);
+    // Compute the FixedInfo bit-string.
+    const fixedInfoBytes = ConcatKdf.computeFixedInfo(fixedInfo);
 
-    // Compute K(i) = H(counter || Z || OtherInfo)
-    // return concatBytes(counter, sharedSecretZ, otherInfo);
-    const derivedKeyingMaterial = sha256(concatBytes(counter, sharedSecret, otherInfoBytes));
+    // Compute K(i) = H(counter || Z || FixedInfo)
+    // return concatBytes(counter, sharedSecretZ, fixedInfo);
+    const derivedKeyingMaterial = sha256(concatBytes(counter, sharedSecret, fixedInfoBytes));
 
     // Return the bit string of derived keying material of length keyDataLen bits.
     return derivedKeyingMaterial.slice(0, keyDataLen / 8);
   }
 
   /**
-   * Computes the `OtherInfo` parameter for Concat KDF, which binds the derived key material to the
+   * Computes the `FixedInfo` parameter for Concat KDF, which binds the derived key material to the
    * context of the key agreement transaction.
    *
    * @remarks
-   * This implementation follows the recommended format for `OtherInfo` specified in section
+   * This implementation follows the recommended format for `FixedInfo` specified in section
    * 5.8.1.2.1 of the NIST.800-56A publication.
    *
-   * `OtherInfo` is a bit string equal to the following concatenation:
+   * `FixedInfo` is a bit string equal to the following concatenation:
    * `AlgorithmID || PartyUInfo || PartyVInfo {|| SuppPubInfo }{|| SuppPrivInfo }`.
    *
    * `SuppPubInfo` is the key length in bits, big endian encoded as a 32-bit number. For example,
    * 128 would be [0, 0, 0, 128] and 256 would be [0, 0, 1, 0].
    *
-   * @param params - Input data to construct OtherInfo.
-   * @returns OtherInfo as a Uint8Array.
+   * @param params - Input data to construct FixedInfo.
+   * @returns FixedInfo as a Uint8Array.
    */
-  private static computeOtherInfo(params:
-    ConcatKdfOtherInfo
+  private static computeFixedInfo(params:
+    ConcatKdfFixedInfo
   ): Uint8Array {
     // Required sub-fields.
     const algorithmId = ConcatKdf.toDataLenData({ data: params.algorithmId });
@@ -172,9 +181,9 @@ export class ConcatKdf {
     const suppPrivInfo = ConcatKdf.toDataLenData({ data: params.suppPrivInfo });
 
     // Concatenate AlgorithmID || PartyUInfo || PartyVInfo || SuppPubInfo || SuppPrivInfo.
-    const otherInfo = concatBytes(algorithmId, partyUInfo, partyVInfo, suppPubInfo, suppPrivInfo);
+    const fixedInfo = concatBytes(algorithmId, partyUInfo, partyVInfo, suppPubInfo, suppPrivInfo);
 
-    return otherInfo;
+    return fixedInfo;
   }
 
   /**

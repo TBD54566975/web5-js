@@ -5,19 +5,19 @@ import { expect } from 'chai';
 import { Convert } from '@web5/common';
 import { CreateKeyCommand, DescribeKeyCommand, KMSClient, SignCommand } from '@aws-sdk/client-kms';
 
-import { AwsKmsCrypto } from '../src/api.js';
+import { AwsKeyManager } from '../src/key-manager.js';
 import { EcdsaAlgorithm } from '../src/ecdsa.js';
 import { mockEcdsaSecp256k1, mockSignCommandOutput } from './fixtures/mock-ecdsa-secp256k1.js';
 
 describe('EcdsaAlgorithm', () => {
-  let crypto: AwsKmsCrypto;
+  let keyManager: AwsKeyManager;
   let ecdsa: EcdsaAlgorithm;
   let kmsClientStub: sinon.SinonStubbedInstance<KMSClient>;
 
   beforeEach(() => {
     kmsClientStub = sinon.createStubInstance(KMSClient);
-    crypto = new AwsKmsCrypto({ kmsClient: kmsClientStub as unknown as KMSClient });
-    ecdsa = new EcdsaAlgorithm({ crypto, kmsClient: kmsClientStub as unknown as KMSClient });
+    keyManager = new AwsKeyManager({ kmsClient: kmsClientStub as unknown as KMSClient });
+    ecdsa = new EcdsaAlgorithm({ keyManager, kmsClient: kmsClientStub as unknown as KMSClient });
   });
 
   afterEach(() => {
@@ -73,10 +73,10 @@ describe('EcdsaAlgorithm', () => {
       const key = mockEcdsaSecp256k1.verify.input.key as Jwk; // Public key generated with AWS KMS
 
       // Test the method.
-      const signature = await crypto.sign(mockEcdsaSecp256k1.sign.input);
+      const signature = await keyManager.sign(mockEcdsaSecp256k1.sign.input);
 
-      // Validate the signature with crypto.verify() which uses Secp256k1.verify().
-      const isValid = await crypto.verify({
+      // Validate the signature with keyManager.verify() which uses Secp256k1.verify().
+      const isValid = await keyManager.verify({
         key,
         signature,
         data: mockEcdsaSecp256k1.sign.input.data
@@ -183,7 +183,6 @@ describe('EcdsaAlgorithm', () => {
       // Setup.
       const unsupportedEcPublicKey: Jwk = {
         kty : 'EC',
-        // @ts-expect-error because unsupported curve is being tested.
         crv : 'unsupported-curve',
         x   : 'oJDigSHQ3lb1Zg82KB6huToMeGPKDcSG1Z8i7u958M8',
         y   : 'xvkCbFcmo9tbyfphIxOa96dfqt9yJgab77J3qOcMYcE'
