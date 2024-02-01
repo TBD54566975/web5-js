@@ -15,7 +15,6 @@ import {
   RecordsWriteMessage,
   RecordsDeleteMessage,
   ProtocolsConfigureMessage,
-  RecordsWrite,
 } from '@tbd54566975/dwn-sdk-js';
 
 import { testDwnUrl } from './utils/test-config.js';
