@@ -37,7 +37,7 @@ describe('DidWeb', () => {
     });
   });
 
-  describe('Web5TestVectorsDidJwk', () => {
+  describe('Web5TestVectorsDidWeb', () => {
     let fetchStub: sinon.SinonStub;
 
     beforeEach(() => {

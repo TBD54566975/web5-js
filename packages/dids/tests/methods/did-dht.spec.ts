@@ -330,6 +330,20 @@ describe('DidDht', () => {
       expect(isValid).to.be.true;
     });
 
+    it('throws an error if publishing fails', async () => {
+      // Simulate a network error when attempting to publish the DID.
+      fetchStub.rejects(new Error('Network error'));
+
+      try {
+        await DidDht.create();
+
+        expect.fail('Expected an error to be thrown.');
+      } catch (error: any) {
+        expect(error.code).to.equal(DidErrorCode.InternalError);
+        expect(error.message).to.include('Failed to put Pkarr record');
+      }
+    });
+
     it('throws an error if a verification method algorithm is not supported', async () => {
       try {
         await DidDht.create({
