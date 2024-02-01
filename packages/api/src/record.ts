@@ -406,14 +406,7 @@ export class Record implements RecordModel {
       target      : target
     };
 
-    // if there is already an authz payload, just pass along the record
-    if (this._authorization) {
-      latestState.rawMessage = { ...this.rawMessage };
-    } else {
-      // if there is no authz, pass options so the DWN SDK can construct and sign the record
-      latestState.messageOptions = this.toJSON();
-    }
-
+    latestState.rawMessage = { ...this.rawMessage };
     const { reply } = await this._agent.sendDwnRequest(latestState);
     return reply;
   }
