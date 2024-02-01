@@ -1261,10 +1261,8 @@ describe('Record', () => {
         expect(recordData.size).to.equal(dataTextExceedingMaxSize.length);
       });
 
-      it('fails to return large data payloads of records signed by another entity after remote dwn.records.query()', async () => {
+      it('returns large data payloads of records signed by another entity after remote dwn.records.query()', async () => {
         /**
-         * ! TODO: Fix this once the bug in `dwn-sdk-js` is resolved.
-         *
          * WHAT IS BEING TESTED?
          *
          * We are testing whether a large (> `DwnConstant.maxDataSizeAllowedToBeEncoded`) record
@@ -1339,6 +1337,19 @@ describe('Record', () => {
          */
         const { status: sendStatusToAlice } = await queryRecordsFrom[0]!.send(aliceDid.did);
         expect(sendStatusToAlice.code).to.equal(202);
+        /**
+         *  5. Alice queries her remote DWN for the record that Bob just wrote.
+         */
+        const { records: queryRecordsTo, status: queryRecordStatusTo } = await dwnAlice.records.query({
+          from    : aliceDid.did,
+          message : { filter: { recordId: record!.id }}
+        });
+        expect(queryRecordStatusTo.code).to.equal(200);
+        /**
+         *   6. Validate that Alice is able to access the data payload.
+         */
+        const recordData = await queryRecordsTo[0].data.text();
+        expect(recordData).to.deep.equal(dataTextExceedingMaxSize);
       });
     });
   });
@@ -2078,8 +2089,7 @@ describe('Record', () => {
       expect(updatedData).to.equal('bye');
     });
 
-    // TODO: Fix after changes are made to dwn-sdk-js to include the initial write in every query/read response.
-    it('fails to update a record locally that only written to a remote DWN', async () => {
+    it('updates a record locally that only written to a remote DWN', async () => {
       // Create a record but do not store it on the local DWN.
       const { status, record } = await dwnAlice.records.write({
         store   : false,
@@ -2093,43 +2103,45 @@ describe('Record', () => {
       expect(record).to.not.be.undefined;
 
       // Store the data CID of the record before it is updated.
-      // const dataCidBeforeDataUpdate = record!.dataCid;
+      const dataCidBeforeDataUpdate = record!.dataCid;
 
       // Write the record to a remote DWN.
       const { status: sendStatus } = await record!.send(aliceDid.did);
       expect(sendStatus.code).to.equal(202);
 
-      /** Attempt to update the record, which should write the updated record the local DWN but
-       * instead fails due to a missing initial write. */
-      const updateResult = await record!.update({ data: 'bye' });
+      // fails because record has not been stored in the local dwn yet
+      let updateResult = await record!.update({ data: 'bye' });
       expect(updateResult.status.code).to.equal(400);
       expect(updateResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: initial write is not found');
 
-      // TODO: Uncomment these lines after the issue mentioned above is fixed.
-      // expect(updateResult.status.code).to.equal(202);
+      const { status: recordStoreStatus }=  await record.store();
+      expect(recordStoreStatus.code).to.equal(202);
+
+      // now succeeds with the update
+      updateResult = await record!.update({ data: 'bye' });
+      expect(updateResult.status.code).to.equal(202);
 
       // Confirm that the record was written to the local DWN.
-      // const readResult = await dwnAlice.records.read({
-      //   message: {
-      //     filter: {
-      //       recordId: record!.id
-      //     }
-      //   }
-      // });
-      // expect(readResult.status.code).to.equal(200);
-      // expect(readResult.record).to.not.be.undefined;
+      const readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: record!.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200);
+      expect(readResult.record).to.not.be.undefined;
 
       // Confirm that the data CID of the record was updated.
-      // expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
-      // expect(readResult.record.dataCid).to.equal(record!.dataCid);
+      expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
+      expect(readResult.record.dataCid).to.equal(record!.dataCid);
 
       // Confirm that the data payload of the record was modified.
-      // const updatedData = await record!.data.text();
-      // expect(updatedData).to.equal('bye');
+      const updatedData = await record!.data.text();
+      expect(updatedData).to.equal('bye');
     });
 
-    // TODO: Fix after changes are made to dwn-sdk-js to include the initial write in every query/read response.
-    it('fails to update a record locally that was initially read from a remote DWN', async () => {
+    it('allows to update a record locally that was initially read from a remote DWN if store() is issued', async () => {
       // Create a record but do not store it on the local DWN.
       const { status, record } = await dwnAlice.records.write({
         store   : false,
@@ -2143,14 +2155,14 @@ describe('Record', () => {
       expect(record).to.not.be.undefined;
 
       // Store the data CID of the record before it is updated.
-      // const dataCidBeforeDataUpdate = record!.dataCid;
+      const dataCidBeforeDataUpdate = record!.dataCid;
 
       // Write the record to a remote DWN.
       const { status: sendStatus } = await record!.send(aliceDid.did);
       expect(sendStatus.code).to.equal(202);
 
       // Read the record from the remote DWN.
-      const readResult = await dwnAlice.records.read({
+      let readResult = await dwnAlice.records.read({
         from    : aliceDid.did,
         message : {
           filter: {
@@ -2161,36 +2173,37 @@ describe('Record', () => {
       expect(readResult.status.code).to.equal(200);
       expect(readResult.record).to.not.be.undefined;
 
-      // Attempt to update the record, which should write the updated record the local DWN.
-      const updateResult = await readResult.record!.update({ data: 'bye' });
-      expect(updateResult.status.code).to.equal(400);
-      expect(updateResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: initial write is not found');
+      const readRecord = readResult.record;
 
-      // TODO: Uncomment these lines after the issue mentioned above is fixed.
-      // expect(updateResult.status.code).to.equal(202);
+      // Attempt to update the record without storing, should fail
+      let updateResult = await readRecord.update({ data: 'bye' });
+      expect(updateResult.status.code).to.equal(400);
+
+      // store the record locally
+      const { status: storeStatus } = await readRecord.store();
+      expect(storeStatus.code).to.equal(202);
+
+      // Attempt to update the record, which should write the updated record the local DWN.
+      updateResult = await readRecord.update({ data: 'bye' });
+      expect(updateResult.status.code).to.equal(202);
 
       // Confirm that the record was written to the local DWN.
-      // const readResult = await dwnAlice.records.read({
-      //   message: {
-      //     filter: {
-      //       recordId: record!.id
-      //     }
-      //   }
-      // });
-      // expect(readResult.status.code).to.equal(200);
-      // expect(readResult.record).to.not.be.undefined;
+      readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: record!.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200);
+      expect(readResult.record).to.not.be.undefined;
 
       // Confirm that the data CID of the record was updated.
-      // expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
-      // expect(readResult.record.dataCid).to.equal(record!.dataCid);
-
-      // Confirm that the data payload of the record was modified.
-      // const updatedData = await record!.data.text();
-      // expect(updatedData).to.equal('bye');
+      expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
+      expect(readResult.record.dataCid).to.equal(readRecord.dataCid);
     });
 
-    // TODO: Fix after changes are made to dwn-sdk-js to include the initial write in every query/read response.
-    it('fails to update a record locally that was initially queried from a remote DWN', async () => {
+    it('updates a record locally that was initially queried from a remote DWN', async () => {
       // Create a record but do not store it on the local DWN.
       const { status, record } = await dwnAlice.records.write({
         store   : false,
@@ -2204,7 +2217,7 @@ describe('Record', () => {
       expect(record).to.not.be.undefined;
 
       // Store the data CID of the record before it is updated.
-      // const dataCidBeforeDataUpdate = record!.dataCid;
+      const dataCidBeforeDataUpdate = record!.dataCid;
 
       // Write the record to a remote DWN.
       const { status: sendStatus } = await record!.send(aliceDid.did);
@@ -2223,33 +2236,37 @@ describe('Record', () => {
       expect(queryResult.records).to.not.be.undefined;
       expect(queryResult.records.length).to.equal(1);
 
-      // Attempt to update the queried record, which should write the updated record the local DWN.
+      // Attempt to update the queried record, which will fail because we haven't stored the queried record locally yet
       const [ queriedRecord ] = queryResult.records;
-      const updateResult = await queriedRecord!.update({ data: 'bye' });
+      let updateResult = await queriedRecord!.update({ data: 'bye' });
       expect(updateResult.status.code).to.equal(400);
       expect(updateResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: initial write is not found');
 
-      // TODO: Uncomment these lines after the issue mentioned above is fixed.
-      // expect(updateResult.status.code).to.equal(202);
+      // store the queried record
+      const { status: queriedStoreStatus } = await queriedRecord.store();
+      expect(queriedStoreStatus.code).to.equal(202);
+
+      updateResult = await queriedRecord!.update({ data: 'bye' });
+      expect(updateResult.status.code).to.equal(202);
 
       // Confirm that the record was written to the local DWN.
-      // const readResult = await dwnAlice.records.read({
-      //   message: {
-      //     filter: {
-      //       recordId: record!.id
-      //     }
-      //   }
-      // });
-      // expect(readResult.status.code).to.equal(200);
-      // expect(readResult.record).to.not.be.undefined;
+      const readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: record!.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200);
+      expect(readResult.record).to.not.be.undefined;
 
       // Confirm that the data CID of the record was updated.
-      // expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
-      // expect(readResult.record.dataCid).to.equal(record!.dataCid);
+      expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
+      expect(readResult.record.dataCid).to.equal(queriedRecord!.dataCid);
 
       // Confirm that the data payload of the record was modified.
-      // const updatedData = await record!.data.text();
-      // expect(updatedData).to.equal('bye');
+      const updatedData = await queriedRecord!.data.text();
+      expect(updatedData).to.equal('bye');
     });
 
     it('returns new dateModified after each update', async () => {
@@ -2650,7 +2667,6 @@ describe('Record', () => {
 
         // attempts to store the record without explicitly marking it for import as it's already been imported
         ({ status: importRecordStatus } = await queriedRecord.store());
-        console.log('attempt to store the record', importRecordStatus);
         expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
 
         // bob queries their own DWN for the record, should return the record
