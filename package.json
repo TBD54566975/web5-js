@@ -28,8 +28,7 @@
   "devDependencies": {
     "@npmcli/package-json": "5.0.0",
     "@typescript-eslint/eslint-plugin": "6.4.0",
-    "@web5/dwn-server": "0.1.9",
-    "eslint-plugin-mocha": "10.1.0",
-    "npkill": "0.11.3"
+    "@web5/dwn-server": "0.1.10",
+    "eslint-plugin-mocha": "10.1.0"
   }
 }
