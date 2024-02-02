@@ -271,10 +271,17 @@ describe('DwnApi', () => {
          * so they can use them to create records corresponding to the roles they are granted.
          *
          * TEST SETUP STEPS:
-         *   1. Configure the email protocol on Bob's local DWN.
+         *    1. Configure the photos protocol on Bob and Alice's remote and local DWNs.
+         *    2. Alice creates a role-based 'friend' record for Bob, updates it, then sends it to her remote DWN.
+         *    3. Bob creates an album record using the role 'friend', adds Alice as a `participant` of the album and sends the records to Alice.
+         *    4. Alice fetches the album, and the `participant` record to store it on her local DWN.
+         *    5. Alice adds Bob as an `updater` of the album and sends the record to Bob and her own remote node. This allows bob to edit photos in the album.
+         *    6. Alice creates a photo using her participant role and sends it to her own DWN and Bob's DWN.
+         *    7. Bob updates the photo using his updater role and sends it to Alice and his own DWN.
+         *    8. Alice fetches the photo and stores it on her local DWN.
          */
 
-        // Configure the email protocol on Alice and Bob's local and remote DWNs.
+        // Configure the photos protocol on Alice and Bob's local and remote DWNs.
         const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
           message: {
             definition: photosProtocolDefinition
@@ -293,7 +300,7 @@ describe('DwnApi', () => {
         const { status: aliceRemoteProtocolStatus } = await aliceProtocol.send(aliceDid.did);
         expect(aliceRemoteProtocolStatus.code).to.equal(202);
 
-        // Alice creates a role-based 'friend' record, and sends it to her remote
+        // Alice creates a role-based 'friend' record, updates it, then sends it to her remote DWN.
         const { status: friendCreateStatus, record: friendRecord} = await dwnAlice.records.create({
           data    : 'test',
           message : {
@@ -310,7 +317,7 @@ describe('DwnApi', () => {
         const { status: aliceFriendSendStatus } = await friendRecord.send(aliceDid.did);
         expect(aliceFriendSendStatus.code).to.equal(202);
 
-        // Bob creates a thread record using the role 'friend' and sends it to Alice
+        // Bob creates an album record using the role 'friend' and sends it to Alice
         const { status: albumCreateStatus, record: albumRecord} = await dwnBob.records.create({
           data    : 'test',
           message : {
@@ -328,21 +335,7 @@ describe('DwnApi', () => {
         const { status: aliceAlbumSendStatus } = await albumRecord.send(aliceDid.did);
         expect(aliceAlbumSendStatus.code).to.equal(202);
 
-        // Alice fetches the album record Bob created using his friend role
-        const aliceAlbumReadResult = await dwnAlice.records.read({
-          from    : aliceDid.did,
-          message : {
-            filter: {
-              recordId: albumRecord.id
-            }
-          }
-        });
-        expect(aliceAlbumReadResult.status.code).to.equal(200);
-        expect(aliceAlbumReadResult.record).to.exist;
-        const { status: aliceAlbumReadStoreStatus } = await aliceAlbumReadResult.record.store();
-        expect(aliceAlbumReadStoreStatus.code).to.equal(202);
-
-        // Bob makes Alice a `participant`
+        // Bob makes Alice a `participant` and sends the record to her and his own remote node.
         const { status: participantCreateStatus, record: participantRecord} = await dwnBob.records.create({
           data    : 'test',
           message : {
@@ -361,6 +354,20 @@ describe('DwnApi', () => {
         const { status: aliceParticipantSendStatus } = await participantRecord.send(aliceDid.did);
         expect(aliceParticipantSendStatus.code).to.equal(202);
 
+        // Alice fetches the album record as well as the participant record that Bob created and stores it on her local node.
+        const aliceAlbumReadResult = await dwnAlice.records.read({
+          from    : aliceDid.did,
+          message : {
+            filter: {
+              recordId: albumRecord.id
+            }
+          }
+        });
+        expect(aliceAlbumReadResult.status.code).to.equal(200);
+        expect(aliceAlbumReadResult.record).to.exist;
+        const { status: aliceAlbumReadStoreStatus } = await aliceAlbumReadResult.record.store();
+        expect(aliceAlbumReadStoreStatus.code).to.equal(202);
+
         const aliceParticipantReadResult = await dwnAlice.records.read({
           from    : aliceDid.did,
           message : {
@@ -374,7 +381,8 @@ describe('DwnApi', () => {
         const { status: aliceParticipantReadStoreStatus } = await aliceParticipantReadResult.record.store();
         expect(aliceParticipantReadStoreStatus.code).to.equal(202);
 
-        // Alice makes Bob an `updater`
+        // Using the participant role, Alice can make Bob an `updater` and send the record to him and her own remote node.
+        // Only updater roles can update the photo record after it's been created.
         const { status: updaterCreateStatus, record: updaterRecord} = await dwnAlice.records.create({
           data    : 'test',
           message : {
@@ -394,7 +402,7 @@ describe('DwnApi', () => {
         const { status: aliceUpdaterSendStatus } = await updaterRecord.send(aliceDid.did);
         expect(aliceUpdaterSendStatus.code).to.equal(202);
 
-        // Alice creates a photo using her participant role
+        // Alice creates a photo using her participant role and sends it to her own DWN and Bob's DWN.
         const { status: photoCreateStatus, record: photoRecord} = await dwnAlice.records.create({
           data    : 'test',
           message : {
@@ -413,6 +421,7 @@ describe('DwnApi', () => {
         const { status: bobPhotoSendStatus } = await photoRecord.send(bobDid.did);
         expect(bobPhotoSendStatus.code).to.equal(202);
 
+        // Bob updates the photo using his updater role and sends it to Alice and his own DWN.
         const { status: photoUpdateStatus, record: photoUpdateRecord} = await dwnBob.records.write({
           data    : 'test again',
           store   : false,
@@ -433,6 +442,20 @@ describe('DwnApi', () => {
         expect(alicePhotoUpdateSendStatus.code).to.equal(202);
         const { status: bobPhotoUpdateSendStatus } = await photoUpdateRecord.send(bobDid.did);
         expect(bobPhotoUpdateSendStatus.code).to.equal(202);
+
+        // Alice fetches the photo and stores it on her local DWN.
+        const alicePhotoReadResult = await dwnAlice.records.read({
+          from    : aliceDid.did,
+          message : {
+            filter: {
+              recordId: photoRecord.id
+            }
+          }
+        });
+        expect(alicePhotoReadResult.status.code).to.equal(200);
+        expect(alicePhotoReadResult.record).to.exist;
+        const { status: alicePhotoReadStoreStatus } = await alicePhotoReadResult.record.store();
+        expect(alicePhotoReadStoreStatus.code).to.equal(202);
       });
     });
 
