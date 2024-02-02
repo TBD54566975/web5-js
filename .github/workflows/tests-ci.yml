@@ -46,7 +46,7 @@ jobs:
         run: npm ci
 
       - name: Build all workspace packages
-        run: npm run build
+        run: npm run build:esm --ws && npm run build:cjs --ws
 
       - name: Run linter for all packages
         run: npm run lint --ws
@@ -101,7 +101,7 @@ jobs:
   test-with-browsers:
     name: test-with-browsers (group ${{ matrix.group }})
     # Run browser tests using macOS so that WebKit tests don't fail under a Linux environment
-    runs-on: macos-latest
+    runs-on: macos-14
     strategy:
       # parallelism strategy: agent takes as long as roughly all other pkgs combined.
       matrix:
@@ -109,9 +109,9 @@ jobs:
           - group: "A"
             packages: "--workspace packages/agent"
           - group: "B"
-            packages: "--workspace packages/crypto --workspace packages/dids --workspace packages/proxy-agent --workspace packages/identity-agent --workspace packages/user-agent"
+            packages: "--workspace packages/credentials --workspace packages/crypto --workspace packages/dids --workspace packages/proxy-agent --workspace packages/identity-agent --workspace packages/user-agent"
           - group: "C"
-            packages: "--workspace packages/api --workspace packages/common --workspace packages/credentials"
+            packages: "--workspace packages/api --workspace packages/common"
     steps:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
@@ -131,7 +131,7 @@ jobs:
       - name: Get Playwright Version (for cache)
         id: get-playwright-version
         run: |
-          PLAYWRIGHT_VERSION=$(npm view @playwright/test version)
+          PLAYWRIGHT_VERSION=$(npm ls @playwright/test --workspace=./packages/api | grep '@playwright/test' | awk 'NR==1{print $2}')
           echo "Playwright Version: $PLAYWRIGHT_VERSION"
           echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> $GITHUB_ENV
 
