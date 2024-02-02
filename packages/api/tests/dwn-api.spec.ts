@@ -9,6 +9,7 @@ import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';
 import { TestUserAgent } from './utils/test-user-agent.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
+import photosProtocolDefinition from './fixtures/protocol-definitions/photos.json' assert { type: 'json' };
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -260,6 +261,201 @@ describe('DwnApi', () => {
         expect(result.status.detail).to.equal('Accepted');
         expect(result.record).to.exist;
         expect(await result.record?.data.json()).to.deep.equal(dataJson);
+      });
+
+      it('creates a role record for another user that they can use to create role-based records', async () => {
+        /**
+         * WHAT IS BEING TESTED?
+         *
+         * We are testing whether role records can be created for outbound participants
+         * so they can use them to create records corresponding to the roles they are granted.
+         *
+         * TEST SETUP STEPS:
+         *    1. Configure the photos protocol on Bob and Alice's remote and local DWNs.
+         *    2. Alice creates a role-based 'friend' record for Bob, updates it, then sends it to her remote DWN.
+         *    3. Bob creates an album record using the role 'friend', adds Alice as a `participant` of the album and sends the records to Alice.
+         *    4. Alice fetches the album, and the `participant` record to store it on her local DWN.
+         *    5. Alice adds Bob as an `updater` of the album and sends the record to Bob and her own remote node. This allows bob to edit photos in the album.
+         *    6. Alice creates a photo using her participant role and sends it to her own DWN and Bob's DWN.
+         *    7. Bob updates the photo using his updater role and sends it to Alice and his own DWN.
+         *    8. Alice fetches the photo and stores it on her local DWN.
+         */
+
+        // Configure the photos protocol on Alice and Bob's local and remote DWNs.
+        const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
+          message: {
+            definition: photosProtocolDefinition
+          }
+        });
+        expect(bobProtocolStatus.code).to.equal(202);
+        const { status: bobRemoteProtocolStatus } = await bobProtocol.send(bobDid.did);
+        expect(bobRemoteProtocolStatus.code).to.equal(202);
+
+        const { status: aliceProtocolStatus, protocol: aliceProtocol } = await dwnAlice.protocols.configure({
+          message: {
+            definition: photosProtocolDefinition
+          }
+        });
+        expect(aliceProtocolStatus.code).to.equal(202);
+        const { status: aliceRemoteProtocolStatus } = await aliceProtocol.send(aliceDid.did);
+        expect(aliceRemoteProtocolStatus.code).to.equal(202);
+
+        // Alice creates a role-based 'friend' record, updates it, then sends it to her remote DWN.
+        const { status: friendCreateStatus, record: friendRecord} = await dwnAlice.records.create({
+          data    : 'test',
+          message : {
+            recipient    : bobDid.did,
+            protocol     : photosProtocolDefinition.protocol,
+            protocolPath : 'friend',
+            schema       : photosProtocolDefinition.types.friend.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(friendCreateStatus.code).to.equal(202);
+        const { status: friendRecordUpdateStatus } = await friendRecord.update({ data: 'update' });
+        expect(friendRecordUpdateStatus.code).to.equal(202);
+        const { status: aliceFriendSendStatus } = await friendRecord.send(aliceDid.did);
+        expect(aliceFriendSendStatus.code).to.equal(202);
+
+        // Bob creates an album record using the role 'friend' and sends it to Alice
+        const { status: albumCreateStatus, record: albumRecord} = await dwnBob.records.create({
+          data    : 'test',
+          message : {
+            recipient    : aliceDid.did,
+            protocol     : photosProtocolDefinition.protocol,
+            protocolPath : 'album',
+            protocolRole : 'friend',
+            schema       : photosProtocolDefinition.types.album.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(albumCreateStatus.code).to.equal(202);
+        const { status: bobAlbumSendStatus } = await albumRecord.send(bobDid.did);
+        expect(bobAlbumSendStatus.code).to.equal(202);
+        const { status: aliceAlbumSendStatus } = await albumRecord.send(aliceDid.did);
+        expect(aliceAlbumSendStatus.code).to.equal(202);
+
+        // Bob makes Alice a `participant` and sends the record to her and his own remote node.
+        const { status: participantCreateStatus, record: participantRecord} = await dwnBob.records.create({
+          data    : 'test',
+          message : {
+            contextId    : albumRecord.id,
+            parentId     : albumRecord.id,
+            recipient    : aliceDid.did,
+            protocol     : photosProtocolDefinition.protocol,
+            protocolPath : 'album/participant',
+            schema       : photosProtocolDefinition.types.participant.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(participantCreateStatus.code).to.equal(202);
+        const { status: bobParticipantSendStatus } = await participantRecord.send(bobDid.did);
+        expect(bobParticipantSendStatus.code).to.equal(202);
+        const { status: aliceParticipantSendStatus } = await participantRecord.send(aliceDid.did);
+        expect(aliceParticipantSendStatus.code).to.equal(202);
+
+        // Alice fetches the album record as well as the participant record that Bob created and stores it on her local node.
+        const aliceAlbumReadResult = await dwnAlice.records.read({
+          from    : aliceDid.did,
+          message : {
+            filter: {
+              recordId: albumRecord.id
+            }
+          }
+        });
+        expect(aliceAlbumReadResult.status.code).to.equal(200);
+        expect(aliceAlbumReadResult.record).to.exist;
+        const { status: aliceAlbumReadStoreStatus } = await aliceAlbumReadResult.record.store();
+        expect(aliceAlbumReadStoreStatus.code).to.equal(202);
+
+        const aliceParticipantReadResult = await dwnAlice.records.read({
+          from    : aliceDid.did,
+          message : {
+            filter: {
+              recordId: participantRecord.id
+            }
+          }
+        });
+        expect(aliceParticipantReadResult.status.code).to.equal(200);
+        expect(aliceParticipantReadResult.record).to.exist;
+        const { status: aliceParticipantReadStoreStatus } = await aliceParticipantReadResult.record.store();
+        expect(aliceParticipantReadStoreStatus.code).to.equal(202);
+
+        // Using the participant role, Alice can make Bob an `updater` and send the record to him and her own remote node.
+        // Only updater roles can update the photo record after it's been created.
+        const { status: updaterCreateStatus, record: updaterRecord} = await dwnAlice.records.create({
+          data    : 'test',
+          message : {
+            contextId    : albumRecord.id,
+            parentId     : albumRecord.id,
+            recipient    : bobDid.did,
+            protocol     : photosProtocolDefinition.protocol,
+            protocolPath : 'album/updater',
+            protocolRole : 'album/participant',
+            schema       : photosProtocolDefinition.types.updater.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(updaterCreateStatus.code).to.equal(202);
+        const { status: bobUpdaterSendStatus } = await updaterRecord.send(bobDid.did);
+        expect(bobUpdaterSendStatus.code).to.equal(202);
+        const { status: aliceUpdaterSendStatus } = await updaterRecord.send(aliceDid.did);
+        expect(aliceUpdaterSendStatus.code).to.equal(202);
+
+        // Alice creates a photo using her participant role and sends it to her own DWN and Bob's DWN.
+        const { status: photoCreateStatus, record: photoRecord} = await dwnAlice.records.create({
+          data    : 'test',
+          message : {
+            contextId    : albumRecord.id,
+            parentId     : albumRecord.id,
+            protocol     : photosProtocolDefinition.protocol,
+            protocolPath : 'album/photo',
+            protocolRole : 'album/participant',
+            schema       : photosProtocolDefinition.types.photo.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(photoCreateStatus.code).to.equal(202);
+        const { status:alicePhotoSendStatus } = await photoRecord.send(aliceDid.did);
+        expect(alicePhotoSendStatus.code).to.equal(202);
+        const { status: bobPhotoSendStatus } = await photoRecord.send(bobDid.did);
+        expect(bobPhotoSendStatus.code).to.equal(202);
+
+        // Bob updates the photo using his updater role and sends it to Alice and his own DWN.
+        const { status: photoUpdateStatus, record: photoUpdateRecord} = await dwnBob.records.write({
+          data    : 'test again',
+          store   : false,
+          message : {
+            contextId    : albumRecord.id,
+            parentId     : albumRecord.id,
+            recordId     : photoRecord.id,
+            dateCreated  : photoRecord.dateCreated,
+            protocol     : photosProtocolDefinition.protocol,
+            protocolPath : 'album/photo',
+            protocolRole : 'album/updater',
+            schema       : photosProtocolDefinition.types.photo.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(photoUpdateStatus.code).to.equal(202);
+        const { status:alicePhotoUpdateSendStatus } = await photoUpdateRecord.send(aliceDid.did);
+        expect(alicePhotoUpdateSendStatus.code).to.equal(202);
+        const { status: bobPhotoUpdateSendStatus } = await photoUpdateRecord.send(bobDid.did);
+        expect(bobPhotoUpdateSendStatus.code).to.equal(202);
+
+        // Alice fetches the photo and stores it on her local DWN.
+        const alicePhotoReadResult = await dwnAlice.records.read({
+          from    : aliceDid.did,
+          message : {
+            filter: {
+              recordId: photoRecord.id
+            }
+          }
+        });
+        expect(alicePhotoReadResult.status.code).to.equal(200);
+        expect(alicePhotoReadResult.record).to.exist;
+        const { status: alicePhotoReadStoreStatus } = await alicePhotoReadResult.record.store();
+        expect(alicePhotoReadStoreStatus.code).to.equal(202);
       });
     });
 
@@ -705,7 +901,6 @@ describe('DwnApi', () => {
             }
           }
         });
-
         // Confirm that the record does not currently exist on Bob's DWN.
         expect(result.status.code).to.equal(200);
         expect(result.records).to.exist;

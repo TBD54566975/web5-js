@@ -1,4 +1,4 @@
-import type { Web5Agent } from '@web5/agent';
+import type { ProcessDwnRequest, SendDwnRequest, Web5Agent } from '@web5/agent';
 import type { Readable } from '@web5/common';
 import type {
   RecordsWriteMessage,
@@ -6,12 +6,12 @@ import type {
   RecordsWriteDescriptor,
 } from '@tbd54566975/dwn-sdk-js';
 
-import { Convert, NodeStream, Stream } from '@web5/common';
+import { Convert, NodeStream, removeUndefinedProperties, Stream } from '@web5/common';
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 
 import type { ResponseStatus } from './dwn-api.js';
-
 import { dataToBlob } from './utils.js';
+import { SendCache } from './send-cache.js';
 
 /**
  * Options that are passed to Record constructor.
@@ -23,6 +23,8 @@ export type RecordOptions = RecordsWriteMessage & {
   connectedDid: string;
   encodedData?: string | Blob;
   data?: Readable | ReadableStream;
+  initialWrite?: RecordsWriteMessage;
+  protocolRole?: string;
   remoteOrigin?: string;
 };
 
@@ -33,9 +35,10 @@ export type RecordOptions = RecordsWriteMessage & {
  * @beta
  */
 export type RecordModel = RecordsWriteDescriptor
-  & Omit<RecordsWriteMessage, 'descriptor' | 'recordId' | 'authorization'>
+  & Omit<RecordsWriteMessage, 'descriptor' | 'recordId'>
   & {
     author: string;
+    protocolRole?: RecordOptions['protocolRole'];
     recordId?: string;
   }
 
@@ -51,6 +54,7 @@ export type RecordUpdateOptions = {
   dateModified?: RecordsWriteDescriptor['messageTimestamp'];
   datePublished?: RecordsWriteDescriptor['datePublished'];
   published?: RecordsWriteDescriptor['published'];
+  protocolRole?: RecordOptions['protocolRole'];
 }
 
 /**
@@ -67,6 +71,10 @@ export type RecordUpdateOptions = {
  * @beta
  */
 export class Record implements RecordModel {
+  // Cache to minimize the amount of redundant two-phase commits we do in store() and send()
+  // Retains awareness of the last 100 records stored/sent for up to 100 target DIDs each.
+  private static _sendCache = SendCache;
+
   // Record instance metadata.
   private _agent: Web5Agent;
   private _connectedDid: string;
@@ -77,15 +85,22 @@ export class Record implements RecordModel {
   // Private variables for DWN `RecordsWrite` message properties.
   private _author: string;
   private _attestation?: RecordsWriteMessage['attestation'];
+  private _authorization?: RecordsWriteMessage['authorization'];
   private _contextId?: string;
   private _descriptor: RecordsWriteDescriptor;
   private _encryption?: RecordsWriteMessage['encryption'];
+  private _initialWrite: RecordOptions['initialWrite'];
+  private _initialWriteStored: boolean;
+  private _initialWriteSigned: boolean;
   private _recordId: string;
-
+  private _protocolRole: RecordOptions['protocolRole'];
   // Getters for immutable DWN Record properties.
 
   /** Record's signatures attestation */
   get attestation(): RecordsWriteMessage['attestation'] { return this._attestation; }
+
+  /** Record's signatures attestation */
+  get authorization(): RecordsWriteMessage['authorization'] { return this._authorization; }
 
   /** DID that signed the record. */
   get author(): string { return this._author; }
@@ -101,6 +116,9 @@ export class Record implements RecordModel {
 
   /** Record's encryption */
   get encryption(): RecordsWriteMessage['encryption'] { return this._encryption; }
+
+  /** Record's initial write if the record has been updated */
+  get initialWrite(): RecordOptions['initialWrite'] { return this._initialWrite; }
 
   /** Record's ID */
   get id() { return this._recordId; }
@@ -119,6 +137,9 @@ export class Record implements RecordModel {
 
   /** Record's protocol path */
   get protocolPath() { return this._descriptor.protocolPath; }
+
+  /** Role under which the author is writing the record */
+  get protocolRole() { return this._protocolRole; }
 
   /** Record's recipient */
   get recipient() { return this._descriptor.recipient; }
@@ -146,7 +167,25 @@ export class Record implements RecordModel {
   /** Record's published status (true/false) */
   get published() { return this._descriptor.published; }
 
+  /**
+   * Returns a copy of the raw `RecordsWriteMessage` that was used to create the current `Record` instance.
+   */
+  private get rawMessage(): RecordsWriteMessage {
+    const message = JSON.parse(JSON.stringify({
+      contextId     : this._contextId,
+      recordId      : this._recordId,
+      descriptor    : this._descriptor,
+      attestation   : this._attestation,
+      authorization : this._authorization,
+      encryption    : this._encryption,
+    }));
+
+    removeUndefinedProperties(message);
+    return message;
+  }
+
   constructor(agent: Web5Agent, options: RecordOptions) {
+
     this._agent = agent;
 
     /** Store the author DID that originally signed the message as a convenience for developers, so
@@ -165,10 +204,13 @@ export class Record implements RecordModel {
 
     // RecordsWriteMessage properties.
     this._attestation = options.attestation;
+    this._authorization = options.authorization;
     this._contextId = options.contextId;
     this._descriptor = options.descriptor;
     this._encryption = options.encryption;
+    this._initialWrite = options.initialWrite;
     this._recordId = options.recordId;
+    this._protocolRole = options.protocolRole;
 
     if (options.encodedData) {
       // If `encodedData` is set, then it is expected that:
@@ -296,24 +338,77 @@ export class Record implements RecordModel {
   }
 
   /**
+   * Stores the current record state as well as any initial write to the owner's DWN.
+   *
+   * @param importRecord - if true, the record will signed by the owner before storing it to the owner's DWN. Defaults to false.
+   * @returns the status of the store request
+   *
+   * @beta
+   */
+  async store(importRecord: boolean = false): Promise<ResponseStatus> {
+    // if we are importing the record we sign it as the owner
+    return this.processRecord({ signAsOwner: importRecord, store: true });
+  }
+
+  /**
+   * Signs the current record state as well as any initial write and optionally stores it to the owner's DWN.
+   * This is useful when importing a record that was signed by someone else int your own DWN.
+   *
+   * @param store - if true, the record will be stored to the owner's DWN after signing. Defaults to true.
+   * @returns the status of the import request
+   *
+   * @beta
+   */
+  async import(store: boolean = true): Promise<ResponseStatus> {
+    return this.processRecord({ store, signAsOwner: true });
+  }
+
+  /**
    * Send the current record to a remote DWN by specifying their DID
+   * If no DID is specified, the target is assumed to be the owner (connectedDID).
+   * If an initial write is present and the Record class send cache has no awareness of it, the initial write is sent first
    * (vs waiting for the regular DWN sync)
-   * @param target - the DID to send the record to
+   * @param target - the optional DID to send the record to, if none is set it is sent to the connectedDid
    * @returns the status of the send record request
    * @throws `Error` if the record has already been deleted.
    *
    * @beta
    */
-  async send(target: string): Promise<ResponseStatus> {
-    const { reply: { status } } = await this._agent.sendDwnRequest({
-      messageType    : DwnInterfaceName.Records + DwnMethodName.Write,
-      author         : this._connectedDid,
-      dataStream     : await this.data.blob(),
-      target         : target,
-      messageOptions : this.toJSON(),
-    });
+  async send(target?: string): Promise<ResponseStatus> {
+    const initialWrite = this._initialWrite;
+    target??= this._connectedDid;
 
-    return { status };
+    // Is there an initial write? Do we know if we've already sent it to this target?
+    if (initialWrite && !Record._sendCache.check(this._recordId, target)){
+      // We do have an initial write, so prepare it for sending to the target.
+      const rawMessage = {
+        ...initialWrite
+      };
+      removeUndefinedProperties(rawMessage);
+
+      const initialState: SendDwnRequest = {
+        messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+        author      : this._connectedDid,
+        target      : target,
+        rawMessage
+      };
+      await this._agent.sendDwnRequest(initialState);
+
+      // Set the cache to maintain awareness that we don't need to send the initial write next time.
+      Record._sendCache.set(this._recordId, target);
+    }
+
+    // Prepare the current state for sending to the target
+    const latestState: SendDwnRequest = {
+      messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+      author      : this._connectedDid,
+      dataStream  : await this.data.blob(),
+      target      : target
+    };
+
+    latestState.rawMessage = { ...this.rawMessage };
+    const { reply } = await this._agent.sendDwnRequest(latestState);
+    return reply;
   }
 
   /**
@@ -324,6 +419,7 @@ export class Record implements RecordModel {
     return {
       attestation      : this.attestation,
       author           : this.author,
+      authorization    : this.authorization,
       contextId        : this.contextId,
       dataCid          : this.dataCid,
       dataFormat       : this.dataFormat,
@@ -337,6 +433,7 @@ export class Record implements RecordModel {
       parentId         : this.parentId,
       protocol         : this.protocol,
       protocolPath     : this.protocolPath,
+      protocolRole     : this.protocolRole,
       published        : this.published,
       recipient        : this.recipient,
       recordId         : this.id,
@@ -427,14 +524,75 @@ export class Record implements RecordModel {
     const responseMessage = message as RecordsWriteMessage;
 
     if (200 <= status.code && status.code <= 299) {
+      // copy the original raw message to the initial write before we update the values.
+      if (!this._initialWrite) {
+        this._initialWrite = { ...this.rawMessage };
+      }
+
       // Only update the local Record instance mutable properties if the record was successfully (over)written.
+      this._authorization = responseMessage.authorization;
+      this._protocolRole = messageOptions.protocolRole;
       mutableDescriptorProperties.forEach(property => {
         this._descriptor[property] = responseMessage.descriptor[property];
       });
+
       // Cache data.
       if (options.data !== undefined) {
         this._encodedData = dataBlob;
       }
+    }
+
+    return { status };
+  }
+
+  // Handles the various conditions around there being an initial write, whether to store initial/current state,
+  // and whether to add an owner signature to the initial write to enable storage when protocol rules require it.
+  private async processRecord({ store, signAsOwner }:{ store: boolean, signAsOwner: boolean }): Promise<ResponseStatus> {
+    // if there is an initial write and we haven't already processed it, we first process it and marked it as such.
+    if (this._initialWrite && ((signAsOwner && !this._initialWriteSigned) || (store && !this._initialWriteStored))) {
+      const initialWriteRequest: ProcessDwnRequest = {
+        messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+        rawMessage  : this.initialWrite,
+        author      : this._connectedDid,
+        target      : this._connectedDid,
+        signAsOwner,
+        store,
+      };
+
+      // Process the prepared initial write, with the options set for storing and/or signing as the owner.
+      const agentResponse = await this._agent.processDwnRequest(initialWriteRequest);
+      const { message, reply: { status } } = agentResponse;
+      const responseMessage = message as RecordsWriteMessage;
+
+      // If we are signing as owner, make sure to update the initial write's authorization, because now it will have the owner's signature on it
+      // set the stored or signed status to true so we don't process it again.
+      if (200 <= status.code && status.code <= 299) {
+        if (store) this._initialWriteStored = true;
+        if (signAsOwner) {
+          this._initialWriteSigned = true;
+          this.initialWrite.authorization = responseMessage.authorization;
+        }
+      }
+    }
+
+    // Now that we've processed a potential initial write, we can process the current record state.
+    const requestOptions: ProcessDwnRequest = {
+      messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+      rawMessage  : this.rawMessage,
+      author      : this._connectedDid,
+      target      : this._connectedDid,
+      dataStream  : await this.data.blob(),
+      signAsOwner,
+      store,
+    };
+
+    const agentResponse = await this._agent.processDwnRequest(requestOptions);
+    const { message, reply: { status } } = agentResponse;
+    const responseMessage = message as RecordsWriteMessage;
+
+    if (200 <= status.code && status.code <= 299) {
+      // If we are signing as the owner, make sure to update the current record state's authorization, because now it will have the owner's signature on it.
+      if (signAsOwner) this._authorization = responseMessage.authorization;
     }
 
     return { status };

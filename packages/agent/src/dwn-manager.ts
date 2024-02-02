@@ -63,7 +63,7 @@ type DwnMessage = {
   data?: Blob;
 }
 
-const dwnMessageCreators = {
+const dwnMessageConstructors = {
   [DwnInterfaceName.Events + DwnMethodName.Get]          : EventsGet,
   [DwnInterfaceName.Messages + DwnMethodName.Get]        : MessagesGet,
   [DwnInterfaceName.Records + DwnMethodName.Read]        : RecordsRead,
@@ -245,14 +245,14 @@ export class DwnManager {
     request: ProcessDwnRequest
   }) {
     const { request } = options;
-
+    const rawMessage = request.rawMessage as any;
     let readableStream: Readable | undefined;
 
     // TODO: Consider refactoring to move data transformations imposed by fetch() limitations to the HTTP transport-related methods.
     if (request.messageType === 'RecordsWrite') {
       const messageOptions = request.messageOptions as RecordsWriteOptions;
 
-      if (request.dataStream && !messageOptions.data) {
+      if (request.dataStream && !messageOptions?.data) {
         const { dataStream } = request;
         let isomorphicNodeReadable: Readable;
 
@@ -266,20 +266,27 @@ export class DwnManager {
           readableStream = webReadableToIsomorphicNodeReadable(forProcessMessage);
         }
 
-        // @ts-ignore
-        messageOptions.dataCid = await Cid.computeDagPbCidFromStream(isomorphicNodeReadable);
-        // @ts-ignore
-        messageOptions.dataSize ??= isomorphicNodeReadable['bytesRead'];
+        if (!rawMessage) {
+          // @ts-ignore
+          messageOptions.dataCid = await Cid.computeDagPbCidFromStream(isomorphicNodeReadable);
+          // @ts-ignore
+          messageOptions.dataSize ??= isomorphicNodeReadable['bytesRead'];
+        }
       }
     }
 
     const dwnSigner = await this.constructDwnSigner(request.author);
-
-    const messageCreator = dwnMessageCreators[request.messageType];
-    const dwnMessage = await messageCreator.create({
+    const dwnMessageConstructor = dwnMessageConstructors[request.messageType];
+    const dwnMessage = rawMessage ? await dwnMessageConstructor.parse(rawMessage) : await dwnMessageConstructor.create({
       ...<any>request.messageOptions,
       signer: dwnSigner
     });
+
+    if (dwnMessageConstructor === RecordsWrite){
+      if (request.signAsOwner) {
+        await (dwnMessage as RecordsWrite).signAsOwner(dwnSigner);
+      }
+    }
 
     return { message: dwnMessage.message, dataStream: readableStream };
   }
@@ -411,7 +418,7 @@ export class DwnManager {
 
     const dwnSigner = await this.constructDwnSigner(author);
 
-    const messageCreator = dwnMessageCreators[messageType];
+    const messageCreator = dwnMessageConstructors[messageType];
 
     const dwnMessage = await messageCreator.create({
       ...<any>messageOptions,
