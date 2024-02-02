@@ -97,6 +97,159 @@ describe('Record', () => {
     await testAgent.closeStorage();
   });
 
+  it('imports a record that another user wrote', async () => {
+
+    // Install the email protocol for Alice's local DWN.
+    let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
+      message: {
+        definition: emailProtocolDefinition
+      }
+    });
+    expect(aliceStatus.code).to.equal(202);
+    expect(aliceProtocol).to.exist;
+
+    // Install the email protocol for Alice's remote DWN.
+    const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.did);
+    expect(alicePushStatus.code).to.equal(202);
+
+    // Install the email protocol for Bob's local DWN.
+    const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
+      message: {
+        definition: emailProtocolDefinition
+      }
+    });
+
+    expect(bobStatus.code).to.equal(202);
+    expect(bobProtocol).to.exist;
+
+    // Install the email protocol for Bob's remote DWN.
+    const { status: bobPushStatus } = await bobProtocol!.send(bobDid.did);
+    expect(bobPushStatus.code).to.equal(202);
+
+    // Alice creates a new large record and stores it on her own dwn
+    const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwnAlice.records.write({
+      data    : TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000),
+      message : {
+        recipient    : bobDid.did,
+        protocol     : emailProtocolDefinition.protocol,
+        protocolPath : 'thread',
+        schema       : 'http://email-protocol.xyz/schema/thread',
+      }
+    });
+    expect(aliceEmailStatus.code).to.equal(202);
+    const { status: sendStatus } = await aliceEmailRecord!.send(aliceDid.did);
+    expect(sendStatus.code).to.equal(202);
+
+
+    // Bob queries for the record on his own DWN (should not find it)
+    let bobQueryBobDwn = await dwnBob.records.query({
+      from    : bobDid.did,
+      message : {
+        filter: {
+          protocol     : emailProtocolDefinition.protocol,
+          protocolPath : 'thread',
+        }
+      }
+    });
+    expect(bobQueryBobDwn.status.code).to.equal(200);
+    expect(bobQueryBobDwn.records.length).to.equal(0); // no results
+
+    // Bob queries for the record that was just created on Alice's remote DWN.
+    let bobQueryAliceDwn = await dwnBob.records.query({
+      from    : aliceDid.did,
+      message : {
+        filter: {
+          protocol     : emailProtocolDefinition.protocol,
+          protocolPath : 'thread',
+        }
+      }
+    });
+    expect(bobQueryAliceDwn.status.code).to.equal(200);
+    expect(bobQueryAliceDwn.records.length).to.equal(1);
+
+    // bob imports the record
+    const importRecord = bobQueryAliceDwn.records[0];
+    const { status: importRecordStatus } = await importRecord.import();
+    expect(importRecordStatus.code).to.equal(202);
+
+    // bob sends the record to his remote dwn
+    const { status: importSendStatus } = await importRecord!.send();
+    expect(importSendStatus.code).to.equal(202);
+
+    // Bob queries for the record on his own DWN (should now return it)
+    bobQueryBobDwn = await dwnBob.records.query({
+      from    : bobDid.did,
+      message : {
+        filter: {
+          protocol     : emailProtocolDefinition.protocol,
+          protocolPath : 'thread',
+        }
+      }
+    });
+    expect(bobQueryBobDwn.status.code).to.equal(200);
+    expect(bobQueryBobDwn.records.length).to.equal(1);
+    expect(bobQueryBobDwn.records[0].id).to.equal(importRecord.id);
+
+    // Alice updates her record
+    let { status: aliceEmailStatusUpdated } = await aliceEmailRecord.update({
+      data: TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000)
+    });
+    expect(aliceEmailStatusUpdated.code).to.equal(202);
+
+    const { status: sentToSelfStatus } = await aliceEmailRecord!.send();
+    expect(sentToSelfStatus.code).to.equal(202);
+
+    const { status: sentToBobStatus } = await aliceEmailRecord!.send(bobDid.did);
+    expect(sentToBobStatus.code).to.equal(202);
+
+    // Alice updates her record and sends it to her own DWN again
+    const updatedText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
+    let { status: aliceEmailStatusUpdatedAgain } = await aliceEmailRecord.update({
+      data: updatedText
+    });
+    expect(aliceEmailStatusUpdatedAgain.code).to.equal(202);
+    const { status: sentToSelfAgainStatus } = await aliceEmailRecord!.send();
+    expect(sentToSelfAgainStatus.code).to.equal(202);
+
+    // Bob queries for the updated record on alice's DWN
+    bobQueryAliceDwn = await dwnBob.records.query({
+      from    : aliceDid.did,
+      message : {
+        filter: {
+          protocol     : emailProtocolDefinition.protocol,
+          protocolPath : 'thread',
+        }
+      }
+    });
+    expect(bobQueryAliceDwn.status.code).to.equal(200);
+    expect(bobQueryAliceDwn.records.length).to.equal(1);
+    const updatedRecord = bobQueryAliceDwn.records[0];
+
+    // stores the record on his own DWN
+    const { status: updatedRecordStoredStatus } = await updatedRecord.store();
+    expect(updatedRecordStoredStatus.code).to.equal(202);
+    expect(await updatedRecord.data.text()).to.equal(updatedText);
+
+    // sends the record to his own DWN
+    const { status: updatedRecordToSelfStatus } = await updatedRecord!.send();
+    expect(updatedRecordToSelfStatus.code).to.equal(202);
+
+    // Bob queries for the updated record on his own DWN
+    bobQueryBobDwn = await dwnBob.records.query({
+      from    : bobDid.did,
+      message : {
+        filter: {
+          protocol     : emailProtocolDefinition.protocol,
+          protocolPath : 'thread',
+        }
+      }
+    });
+    expect(bobQueryBobDwn.status.code).to.equal(200);
+    expect(bobQueryBobDwn.records.length).to.equal(1);
+    expect(bobQueryBobDwn.records[0].id).to.equal(importRecord.id);
+    expect(await bobQueryBobDwn.records[0].data.text()).to.equal(updatedText);
+  });
+
   it('should retain all defined properties', async () => {
     // RecordOptions properties
     const author = aliceDid.did;
@@ -156,7 +309,7 @@ describe('Record', () => {
     });
 
     // Create a parent record to reference in the RecordsWriteMessage used for validation
-    const parentRecorsWrite = await RecordsWrite.create({
+    const parentRecordsWrite = await RecordsWrite.create({
       data   : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       protocol,
@@ -171,7 +324,7 @@ describe('Record', () => {
       data               : new Uint8Array(await dataBlob.arrayBuffer()),
       dataFormat,
       encryptionInput,
-      parentId           : parentRecorsWrite.recordId,
+      parentId           : parentRecordsWrite.recordId,
       protocol,
       protocolPath,
       published,
@@ -205,7 +358,7 @@ describe('Record', () => {
     expect(record.protocolPath).to.equal(protocolPath);
     expect(record.recipient).to.equal(recipient);
     expect(record.schema).to.equal(schema);
-    expect(record.parentId).to.equal(parentRecorsWrite.recordId);
+    expect(record.parentId).to.equal(parentRecordsWrite.recordId);
     expect(record.dataCid).to.equal(recordsWrite.message.descriptor.dataCid);
     expect(record.dataSize).to.equal(recordsWrite.message.descriptor.dataSize);
     expect(record.dateCreated).to.equal(recordsWrite.message.descriptor.dateCreated);
@@ -1108,10 +1261,8 @@ describe('Record', () => {
         expect(recordData.size).to.equal(dataTextExceedingMaxSize.length);
       });
 
-      it('fails to return large data payloads of records signed by another entity after remote dwn.records.query()', async () => {
+      it('returns large data payloads of records signed by another entity after remote dwn.records.query()', async () => {
         /**
-         * ! TODO: Fix this once the bug in `dwn-sdk-js` is resolved.
-         *
          * WHAT IS BEING TESTED?
          *
          * We are testing whether a large (> `DwnConstant.maxDataSizeAllowedToBeEncoded`) record
@@ -1185,8 +1336,20 @@ describe('Record', () => {
          *   4. Validate that Bob is able to write the record to Alice's remote DWN.
          */
         const { status: sendStatusToAlice } = await queryRecordsFrom[0]!.send(aliceDid.did);
-        expect(sendStatusToAlice.code).to.equal(401);
-        expect(sendStatusToAlice.detail).to.equal(`Cannot read properties of undefined (reading 'authorization')`);
+        expect(sendStatusToAlice.code).to.equal(202);
+        /**
+         *  5. Alice queries her remote DWN for the record that Bob just wrote.
+         */
+        const { records: queryRecordsTo, status: queryRecordStatusTo } = await dwnAlice.records.query({
+          from    : aliceDid.did,
+          message : { filter: { recordId: record!.id }}
+        });
+        expect(queryRecordStatusTo.code).to.equal(200);
+        /**
+         *   6. Validate that Alice is able to access the data payload.
+         */
+        const recordData = await queryRecordsTo[0].data.text();
+        expect(recordData).to.deep.equal(dataTextExceedingMaxSize);
       });
     });
   });
@@ -1344,8 +1507,7 @@ describe('Record', () => {
       expect(sendResult.status.code).to.equal(202);
     });
 
-    // TODO: Fix after changes are made to dwn-sdk-js to include the initial write in every query/read response.
-    it('fails to write updated records to a remote DWN that is missing the initial write', async () => {
+    it('automatically sends the initial write and update of a record to a remote DWN', async () => {
       // Alice writes a message to her agent connected DWN.
       const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
@@ -1362,11 +1524,7 @@ describe('Record', () => {
 
       // Write the updated record to Alice's remote DWN a second time.
       const sendResult = await record!.send(aliceDid.did);
-      expect(sendResult.status.code).to.equal(400);
-      expect(sendResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: initial write is not found');
-
-      // TODO: Uncomment the following line after changes are made to dwn-sdk-js to include the initial write in every query/read response.
-      // expect(sendResult.status.code).to.equal(202);
+      expect(sendResult.status.code).to.equal(202);
     });
 
     it('writes large records to remote DWNs that were initially queried from a remote DWN', async () => {
@@ -1830,7 +1988,7 @@ describe('Record', () => {
       });
 
       // Create a parent record to reference in the RecordsWriteMessage used for validation
-      const parentRecorsWrite = await RecordsWrite.create({
+      const parentRecordsWrite = await RecordsWrite.create({
         data   : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         protocol,
@@ -1845,7 +2003,7 @@ describe('Record', () => {
         data               : new Uint8Array(await dataBlob.arrayBuffer()),
         dataFormat,
         encryptionInput,
-        parentId           : parentRecorsWrite.recordId,
+        parentId           : parentRecordsWrite.recordId,
         protocol,
         protocolPath,
         published,
@@ -1884,7 +2042,7 @@ describe('Record', () => {
       expect(recordJson.protocolPath).to.equal(protocolPath);
       expect(recordJson.recipient).to.equal(recipient);
       expect(recordJson.schema).to.equal(schema);
-      expect(recordJson.parentId).to.equal(parentRecorsWrite.recordId);
+      expect(recordJson.parentId).to.equal(parentRecordsWrite.recordId);
       expect(recordJson.dataCid).to.equal(recordsWrite.message.descriptor.dataCid);
       expect(recordJson.dataSize).to.equal(recordsWrite.message.descriptor.dataSize);
       expect(recordJson.dateCreated).to.equal(recordsWrite.message.descriptor.dateCreated);
@@ -1931,8 +2089,7 @@ describe('Record', () => {
       expect(updatedData).to.equal('bye');
     });
 
-    // TODO: Fix after changes are made to dwn-sdk-js to include the initial write in every query/read response.
-    it('fails to update a record locally that only written to a remote DWN', async () => {
+    it('updates a record locally that only written to a remote DWN', async () => {
       // Create a record but do not store it on the local DWN.
       const { status, record } = await dwnAlice.records.write({
         store   : false,
@@ -1946,43 +2103,45 @@ describe('Record', () => {
       expect(record).to.not.be.undefined;
 
       // Store the data CID of the record before it is updated.
-      // const dataCidBeforeDataUpdate = record!.dataCid;
+      const dataCidBeforeDataUpdate = record!.dataCid;
 
       // Write the record to a remote DWN.
       const { status: sendStatus } = await record!.send(aliceDid.did);
       expect(sendStatus.code).to.equal(202);
 
-      /** Attempt to update the record, which should write the updated record the local DWN but
-       * instead fails due to a missing initial write. */
-      const updateResult = await record!.update({ data: 'bye' });
+      // fails because record has not been stored in the local dwn yet
+      let updateResult = await record!.update({ data: 'bye' });
       expect(updateResult.status.code).to.equal(400);
       expect(updateResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: initial write is not found');
 
-      // TODO: Uncomment these lines after the issue mentioned above is fixed.
-      // expect(updateResult.status.code).to.equal(202);
+      const { status: recordStoreStatus }=  await record.store();
+      expect(recordStoreStatus.code).to.equal(202);
+
+      // now succeeds with the update
+      updateResult = await record!.update({ data: 'bye' });
+      expect(updateResult.status.code).to.equal(202);
 
       // Confirm that the record was written to the local DWN.
-      // const readResult = await dwnAlice.records.read({
-      //   message: {
-      //     filter: {
-      //       recordId: record!.id
-      //     }
-      //   }
-      // });
-      // expect(readResult.status.code).to.equal(200);
-      // expect(readResult.record).to.not.be.undefined;
+      const readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: record!.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200);
+      expect(readResult.record).to.not.be.undefined;
 
       // Confirm that the data CID of the record was updated.
-      // expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
-      // expect(readResult.record.dataCid).to.equal(record!.dataCid);
+      expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
+      expect(readResult.record.dataCid).to.equal(record!.dataCid);
 
       // Confirm that the data payload of the record was modified.
-      // const updatedData = await record!.data.text();
-      // expect(updatedData).to.equal('bye');
+      const updatedData = await record!.data.text();
+      expect(updatedData).to.equal('bye');
     });
 
-    // TODO: Fix after changes are made to dwn-sdk-js to include the initial write in every query/read response.
-    it('fails to update a record locally that was initially read from a remote DWN', async () => {
+    it('allows to update a record locally that was initially read from a remote DWN if store() is issued', async () => {
       // Create a record but do not store it on the local DWN.
       const { status, record } = await dwnAlice.records.write({
         store   : false,
@@ -1996,14 +2155,14 @@ describe('Record', () => {
       expect(record).to.not.be.undefined;
 
       // Store the data CID of the record before it is updated.
-      // const dataCidBeforeDataUpdate = record!.dataCid;
+      const dataCidBeforeDataUpdate = record!.dataCid;
 
       // Write the record to a remote DWN.
       const { status: sendStatus } = await record!.send(aliceDid.did);
       expect(sendStatus.code).to.equal(202);
 
       // Read the record from the remote DWN.
-      const readResult = await dwnAlice.records.read({
+      let readResult = await dwnAlice.records.read({
         from    : aliceDid.did,
         message : {
           filter: {
@@ -2014,36 +2173,37 @@ describe('Record', () => {
       expect(readResult.status.code).to.equal(200);
       expect(readResult.record).to.not.be.undefined;
 
-      // Attempt to update the record, which should write the updated record the local DWN.
-      const updateResult = await readResult.record!.update({ data: 'bye' });
-      expect(updateResult.status.code).to.equal(400);
-      expect(updateResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: initial write is not found');
+      const readRecord = readResult.record;
 
-      // TODO: Uncomment these lines after the issue mentioned above is fixed.
-      // expect(updateResult.status.code).to.equal(202);
+      // Attempt to update the record without storing, should fail
+      let updateResult = await readRecord.update({ data: 'bye' });
+      expect(updateResult.status.code).to.equal(400);
+
+      // store the record locally
+      const { status: storeStatus } = await readRecord.store();
+      expect(storeStatus.code).to.equal(202);
+
+      // Attempt to update the record, which should write the updated record the local DWN.
+      updateResult = await readRecord.update({ data: 'bye' });
+      expect(updateResult.status.code).to.equal(202);
 
       // Confirm that the record was written to the local DWN.
-      // const readResult = await dwnAlice.records.read({
-      //   message: {
-      //     filter: {
-      //       recordId: record!.id
-      //     }
-      //   }
-      // });
-      // expect(readResult.status.code).to.equal(200);
-      // expect(readResult.record).to.not.be.undefined;
+      readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: record!.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200);
+      expect(readResult.record).to.not.be.undefined;
 
       // Confirm that the data CID of the record was updated.
-      // expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
-      // expect(readResult.record.dataCid).to.equal(record!.dataCid);
-
-      // Confirm that the data payload of the record was modified.
-      // const updatedData = await record!.data.text();
-      // expect(updatedData).to.equal('bye');
+      expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
+      expect(readResult.record.dataCid).to.equal(readRecord.dataCid);
     });
 
-    // TODO: Fix after changes are made to dwn-sdk-js to include the initial write in every query/read response.
-    it('fails to update a record locally that was initially queried from a remote DWN', async () => {
+    it('updates a record locally that was initially queried from a remote DWN', async () => {
       // Create a record but do not store it on the local DWN.
       const { status, record } = await dwnAlice.records.write({
         store   : false,
@@ -2057,7 +2217,7 @@ describe('Record', () => {
       expect(record).to.not.be.undefined;
 
       // Store the data CID of the record before it is updated.
-      // const dataCidBeforeDataUpdate = record!.dataCid;
+      const dataCidBeforeDataUpdate = record!.dataCid;
 
       // Write the record to a remote DWN.
       const { status: sendStatus } = await record!.send(aliceDid.did);
@@ -2076,33 +2236,37 @@ describe('Record', () => {
       expect(queryResult.records).to.not.be.undefined;
       expect(queryResult.records.length).to.equal(1);
 
-      // Attempt to update the queried record, which should write the updated record the local DWN.
+      // Attempt to update the queried record, which will fail because we haven't stored the queried record locally yet
       const [ queriedRecord ] = queryResult.records;
-      const updateResult = await queriedRecord!.update({ data: 'bye' });
+      let updateResult = await queriedRecord!.update({ data: 'bye' });
       expect(updateResult.status.code).to.equal(400);
       expect(updateResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: initial write is not found');
 
-      // TODO: Uncomment these lines after the issue mentioned above is fixed.
-      // expect(updateResult.status.code).to.equal(202);
+      // store the queried record
+      const { status: queriedStoreStatus } = await queriedRecord.store();
+      expect(queriedStoreStatus.code).to.equal(202);
+
+      updateResult = await queriedRecord!.update({ data: 'bye' });
+      expect(updateResult.status.code).to.equal(202);
 
       // Confirm that the record was written to the local DWN.
-      // const readResult = await dwnAlice.records.read({
-      //   message: {
-      //     filter: {
-      //       recordId: record!.id
-      //     }
-      //   }
-      // });
-      // expect(readResult.status.code).to.equal(200);
-      // expect(readResult.record).to.not.be.undefined;
+      const readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: record!.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200);
+      expect(readResult.record).to.not.be.undefined;
 
       // Confirm that the data CID of the record was updated.
-      // expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
-      // expect(readResult.record.dataCid).to.equal(record!.dataCid);
+      expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
+      expect(readResult.record.dataCid).to.equal(queriedRecord!.dataCid);
 
       // Confirm that the data payload of the record was modified.
-      // const updatedData = await record!.data.text();
-      // expect(updatedData).to.equal('bye');
+      const updatedData = await queriedRecord!.data.text();
+      expect(updatedData).to.equal('bye');
     });
 
     it('returns new dateModified after each update', async () => {
@@ -2150,6 +2314,374 @@ describe('Record', () => {
         // @ts-expect-error because this test intentionally specifies an immutable property that is not present in RecordUpdateOptions.
         record!.update({ dataFormat: 'application/json' })
       ).to.eventually.be.rejectedWith('is an immutable property. Its value cannot be changed.');
+    });
+  });
+
+  describe('store()', () => {
+    it('should store an external record if it has been imported by the dwn owner', async () => {
+      // Scenario: Alice creates a record.
+      //           Bob queries for the record from Alice's DWN and then stores it to their own DWN.
+
+      // alice creates a record and sends it to their DWN
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          published  : true,
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202, status.detail);
+      let sendResponse = await record.send();
+      expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
+
+      // bob queries alice's DWN for the record
+      const aliceQueryResult = await dwnBob.records.query({
+        from    : aliceDid.did,
+        message : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(aliceQueryResult.status.code).to.equal(200);
+      expect(aliceQueryResult.records.length).to.equal(1);
+      const queriedRecord = aliceQueryResult.records[0];
+
+      // bob queries their own DWN for the record, should not return any results
+      let bobQueryResult = await dwnBob.records.query({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(bobQueryResult.status.code).to.equal(200);
+      expect(bobQueryResult.records.length).to.equal(0);
+
+      // attempts to store the record without importing it, should fail
+      let { status: storeRecordStatus } = await queriedRecord.store();
+      expect(storeRecordStatus.code).to.equal(401, storeRecordStatus.detail);
+
+      // attempts to store the record flagging it for import
+      ({ status: storeRecordStatus } = await queriedRecord.store(true));
+      expect(storeRecordStatus.code).to.equal(202, storeRecordStatus.detail);
+
+      // bob queries their own DWN for the record, should return the record
+      bobQueryResult = await dwnBob.records.query({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(bobQueryResult.status.code).to.equal(200);
+      expect(bobQueryResult.records.length).to.equal(1);
+      const storedRecord = bobQueryResult.records[0];
+      expect(storedRecord.id).to.equal(record.id);
+    });
+
+    it('stores an updated record to the local DWN along with the initial write', async () => {
+      // Scenario: Alice creates a record and then updates it.
+      //           Bob queries for the record from Alice's DWN and then stores the updated record along with it's initial write.
+
+      // Alice creates a public record then sends it to her remote DWN.
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          published  : true,
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202, status.detail);
+      const updatedText = 'updated text';
+      const updateResult = await record!.update({ data: updatedText });
+      expect(updateResult.status.code).to.equal(202, updateResult.status.detail);
+
+      const sendResponse = await record.send();
+      expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
+
+      // Bob queries for the record from his own node, should not return any results
+      let queryResult = await dwnBob.records.query({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(queryResult.status.code).to.equal(200);
+      expect(queryResult.records.length).to.equal(0);
+
+      // Bob queries for the record from Alice's remote DWN
+      const queryResultFromAlice = await dwnBob.records.query({
+        from    : aliceDid.did,
+        message : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(queryResultFromAlice.status.code).to.equal(200);
+      expect(queryResultFromAlice.records.length).to.equal(1);
+      const queriedRecord = queryResultFromAlice.records[0];
+      expect(await queriedRecord.data.text()).to.equal(updatedText);
+
+      // attempts to store the record without signing it, should fail
+      let { status: storeRecordStatus } = await queriedRecord.store();
+      expect(storeRecordStatus.code).to.equal(401, storeRecordStatus.detail);
+
+      // stores the record in Bob's DWN, the importRecord parameter is set to true so that bob signs the record before storing it
+      ({ status: storeRecordStatus } = await queriedRecord.store(true));
+      expect(storeRecordStatus.code).to.equal(202, storeRecordStatus.detail);
+
+      // The record should now exist on bob's node
+      queryResult = await dwnBob.records.query({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(queryResult.status.code).to.equal(200);
+      expect(queryResult.records.length).to.equal(1);
+      const storedRecord = queryResult.records[0];
+      expect(storedRecord.id).to.equal(record!.id);
+      expect(await storedRecord.data.text()).to.equal(updatedText);
+    });
+  });
+
+  describe('import()', () => {
+    it('should import an external record without storing it', async () => {
+      // Scenario: Alice creates a record.
+      //           Bob queries for the record from Alice's DWN and then imports it without storing
+      //           Bob then .stores() it without specifying import explicitly as it's already been imported.
+
+      // alice creates a record and sends it to her DWN
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          published  : true,
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202, status.detail);
+      let sendResponse = await record.send();
+      expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
+
+      // bob queries alice's DWN for the record
+      const aliceQueryResult = await dwnBob.records.query({
+        from    : aliceDid.did,
+        message : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(aliceQueryResult.status.code).to.equal(200);
+      expect(aliceQueryResult.records.length).to.equal(1);
+      const queriedRecord = aliceQueryResult.records[0];
+
+      // imports the record without storing it
+      let { status: importRecordStatus } = await queriedRecord.import();
+      expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
+
+      // bob queries their own DWN for the record, should return the record
+      const bobQueryResult = await dwnBob.records.query({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(bobQueryResult.status.code).to.equal(200);
+      expect(bobQueryResult.records.length).to.equal(1);
+      const storedRecord = bobQueryResult.records[0];
+      expect(storedRecord.id).to.equal(record.id);
+    });
+
+    it('import an external record along with the initial write', async () => {
+      // Scenario: Alice creates a record and then updates it.
+      //           Bob queries for the record from Alice's DWN and then stores the updated record along with it's initial write.
+
+      // Alice creates a public record then sends it to her remote DWN.
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          published  : true,
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202, status.detail);
+      const updatedText = 'updated text';
+      const updateResult = await record!.update({ data: updatedText });
+      expect(updateResult.status.code).to.equal(202, updateResult.status.detail);
+      const sendResponse = await record.send();
+      expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
+
+      // bob queries alice's DWN for the record
+      const aliceQueryResult = await dwnBob.records.query({
+        from    : aliceDid.did,
+        message : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(aliceQueryResult.status.code).to.equal(200);
+      expect(aliceQueryResult.records.length).to.equal(1);
+      const queriedRecord = aliceQueryResult.records[0];
+
+      // imports the record without storing it
+      let { status: importRecordStatus } = await queriedRecord.import();
+      expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
+
+      // bob queries their own DWN for the record, should return the record
+      const bobQueryResult = await dwnBob.records.query({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(bobQueryResult.status.code).to.equal(200);
+      expect(bobQueryResult.records.length).to.equal(1);
+      const storedRecord = bobQueryResult.records[0];
+      expect(storedRecord.id).to.equal(record.id);
+    });
+
+    describe('store: false', () => {
+      it('should import an external record without storing it', async () => {
+        // Scenario: Alice creates a record.
+        //           Bob queries for the record from Alice's DWN and then imports it without storing
+        //           Bob then .stores() it without specifying import explicitly as it's already been imported.
+
+        // alice creates a record and sends it to her DWN
+        const { status, record } = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            published  : true,
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+        expect(status.code).to.equal(202, status.detail);
+        let sendResponse = await record.send();
+        expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
+
+        // bob queries alice's DWN for the record
+        const aliceQueryResult = await dwnBob.records.query({
+          from    : aliceDid.did,
+          message : {
+            filter: {
+              recordId: record.id
+            }
+          }
+        });
+        expect(aliceQueryResult.status.code).to.equal(200);
+        expect(aliceQueryResult.records.length).to.equal(1);
+        const queriedRecord = aliceQueryResult.records[0];
+
+        // imports the record without storing it
+        let { status: importRecordStatus } = await queriedRecord.import(false);
+        expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
+
+        // queries for the record from bob's DWN, should not return any results
+        let bobQueryResult = await dwnBob.records.query({
+          message: {
+            filter: {
+              recordId: record.id
+            }
+          }
+        });
+        expect(bobQueryResult.status.code).to.equal(200);
+        expect(bobQueryResult.records.length).to.equal(0);
+
+        // attempts to store the record without explicitly marking it for import as it's already been imported
+        ({ status: importRecordStatus } = await queriedRecord.store());
+        expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
+
+        // bob queries their own DWN for the record, should return the record
+        bobQueryResult = await dwnBob.records.query({
+          message: {
+            filter: {
+              recordId: record.id
+            }
+          }
+        });
+        expect(bobQueryResult.status.code).to.equal(200);
+        expect(bobQueryResult.records.length).to.equal(1);
+        const storedRecord = bobQueryResult.records[0];
+        expect(storedRecord.id).to.equal(record.id);
+      });
+
+      it('import an external record along with the initial write', async () => {
+        // Scenario: Alice creates a record and then updates it.
+        //           Bob queries for the record from Alice's DWN and then stores the updated record along with it's initial write.
+
+        // Alice creates a public record then sends it to her remote DWN.
+        const { status, record } = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            published  : true,
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+        expect(status.code).to.equal(202, status.detail);
+        const updatedText = 'updated text';
+        const updateResult = await record.update({ data: updatedText });
+        expect(updateResult.status.code).to.equal(202, updateResult.status.detail);
+        const sendResponse = await record.send();
+        expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
+
+        // bob queries alice's DWN for the record
+        const aliceQueryResult = await dwnBob.records.query({
+          from    : aliceDid.did,
+          message : {
+            filter: {
+              recordId: record.id
+            }
+          }
+        });
+        expect(aliceQueryResult.status.code).to.equal(200);
+        expect(aliceQueryResult.records.length).to.equal(1);
+        const queriedRecord = aliceQueryResult.records[0];
+
+        // imports the record without storing it
+        let { status: importRecordStatus } = await queriedRecord.import(false);
+        expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
+
+        // queries for the record from bob's DWN, should not return any results
+        let bobQueryResult = await dwnBob.records.query({
+          message: {
+            filter: {
+              recordId: record.id
+            }
+          }
+        });
+        expect(bobQueryResult.status.code).to.equal(200);
+        expect(bobQueryResult.records.length).to.equal(0);
+
+        // attempts to store the record without explicitly marking it for import as it's already been imported
+        ({ status: importRecordStatus } = await queriedRecord.store());
+        expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
+
+        // bob queries their own DWN for the record, should return the record
+        bobQueryResult = await dwnBob.records.query({
+          message: {
+            filter: {
+              recordId: record.id
+            }
+          }
+        });
+        expect(bobQueryResult.status.code).to.equal(200);
+        expect(bobQueryResult.records.length).to.equal(1);
+        const storedRecord = bobQueryResult.records[0];
+        expect(storedRecord.id).to.equal(record.id);
+      });
     });
   });
 });

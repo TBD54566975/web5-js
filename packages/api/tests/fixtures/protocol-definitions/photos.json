@@ -1,0 +1,75 @@
+{
+  "protocol": "http://photo-protocol.xyz",
+  "published": true,
+  "types": {
+    "album": {
+      "schema": "http://photo-protocol.xyz/schema/album",
+      "dataFormats": ["text/plain"]
+    },
+    "photo": {
+      "schema": "http://photo-protocol.xyz/schema/photo",
+      "dataFormats": ["text/plain"]
+    },
+    "friend": {
+      "schema": "http://photo-protocol.xyz/schema/friend",
+      "dataFormats": ["text/plain"]
+    },
+    "participant": {
+      "schema": "http://photo-protocol.xyz/schema/participant",
+      "dataFormats": ["text/plain"]
+    },
+    "updater": {
+      "schema": "http://photo-protocol.xyz/schema/updater",
+      "dataFormats": ["text/plain"]
+    }
+  },
+  "structure": {
+    "friend": {
+      "$globalRole": true
+    },
+    "album": {
+      "$actions": [
+        {
+          "role": "friend",
+          "can": "write"
+        }
+      ],
+      "participant": {
+        "$contextRole": true,
+        "$actions": [
+          {
+            "who": "author",
+            "of": "album",
+            "can": "write"
+          }
+        ]
+      },
+      "updater": {
+        "$contextRole": true,
+        "$actions": [
+          {
+            "role": "album/participant",
+            "can": "write"
+          }
+        ]
+      },
+      "photo": {
+        "$actions": [
+          {
+            "role": "album/participant",
+            "can": "write"
+          },
+          {
+            "role": "album/updater",
+            "can": "update"
+          },
+          {
+            "who": "author",
+            "of": "album",
+            "can": "write"
+          }
+        ]
+      }
+    }
+  }
+}
