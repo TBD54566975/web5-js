@@ -2,6 +2,7 @@ import type { DwnResponse, Web5Agent } from '@web5/agent';
 import type {
   RecordsQueryReply,
   RecordsReadOptions,
+  PaginationCursor,
   ProtocolsQueryReply,
   RecordsQueryOptions,
   RecordsWriteMessage,
@@ -135,7 +136,7 @@ export type RecordsQueryResponse = ResponseStatus & {
   records?: Record[]
 
   /** If there are additional results, the messageCid of the last record will be returned as a pagination cursor. */
-  cursor?: string;
+  cursor?: PaginationCursor;
 };
 
 /**
