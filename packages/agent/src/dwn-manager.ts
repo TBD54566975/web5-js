@@ -161,7 +161,7 @@ export class DwnManager {
 
     let reply: UnionMessageReply;
     if (request.store !== false) {
-      reply = await this._dwn.processMessage(request.target, message, dataStream);
+      reply = await this._dwn.processMessage(request.target, message, { dataStream });
     } else {
       reply = { status: { code: 202, detail: 'Accepted' }};
     }
@@ -435,6 +435,6 @@ export class DwnManager {
   }): Promise<UnionMessageReply> {
     const { dataStream, message, targetDid } = options;
 
-    return await this._dwn.processMessage(targetDid, message, dataStream);
+    return await this._dwn.processMessage(targetDid, message, { dataStream });
   }
 }

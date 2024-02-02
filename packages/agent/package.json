@@ -1,6 +1,6 @@
 {
   "name": "@web5/agent",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -69,7 +69,7 @@
   },
   "dependencies": {
     "@noble/hashes": "1.3.3",
-    "@tbd54566975/dwn-sdk-js": "0.2.10",
+    "@tbd54566975/dwn-sdk-js": "0.2.16",
     "@web5/common": "0.2.3",
     "@web5/crypto": "0.2.2",
     "@web5/dids": "0.2.4",
