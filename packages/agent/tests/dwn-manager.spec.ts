@@ -116,7 +116,10 @@ describe('DwnManager', () => {
       });
 
       it('handles EventsGet', async () => {
-        const testCursor = 'foo';
+        const testCursor = {
+          messageCid : 'foo',
+          value      : 'bar'
+        };
 
         // Attempt to process the EventsGet.
         let eventsGetResponse = await testAgent.agent.dwnManager.processRequest({
