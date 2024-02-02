@@ -4,7 +4,7 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { LocalKeyManager } from '@web5/crypto';
 
-import type { Did } from '../../src/methods/did-method.js';
+import type { BearerDid } from '../../src/methods/did-method.js';
 import type { DidDocument, DidVerificationMethod } from '../../src/types/did-core.js';
 
 import { DidMethod } from '../../src/methods/did-method.js';
@@ -175,7 +175,7 @@ describe('DidMethod', () => {
   });
 
   describe('toKeys()', () => {
-    let didJwk: Did;
+    let didJwk: BearerDid;
 
     beforeEach(async () => {
       didJwk = {
@@ -289,7 +289,7 @@ describe('DidMethod', () => {
       };
 
       // Create a DID to use for the test.
-      const did: Did = {
+      const did: BearerDid = {
         didDocument : { id: 'did:jwk:123' },
         keyManager  : keyManagerWithoutExport,
         getSigner   : sinon.stub(),

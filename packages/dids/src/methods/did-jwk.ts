@@ -11,7 +11,7 @@ import type {
 import { Convert } from '@web5/common';
 import { LocalKeyManager } from '@web5/crypto';
 
-import type { Did, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
+import type { BearerDid, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
 import type { DidDocument, DidResolutionOptions, DidResolutionResult, DidVerificationMethod } from '../types/did-core.js';
 
 import { DidUri } from '../did-uri.js';
@@ -167,7 +167,7 @@ export class DidJwk extends DidMethod {
    * @param params.keyManager - Optionally specify a Key Management System (KMS) used to generate
    *                            keys and sign data.
    * @param params.options - Optional parameters that can be specified when creating a new DID.
-   * @returns A Promise resolving to a {@link Did} object representing the new DID.
+   * @returns A Promise resolving to a {@link BearerDid} object representing the new DID.
    */
   public static async create<TKms extends CryptoApi | undefined = undefined>({
     keyManager = new LocalKeyManager(),
@@ -175,7 +175,7 @@ export class DidJwk extends DidMethod {
   }: {
     keyManager?: TKms;
     options?: DidJwkCreateOptions<TKms>;
-  } = {}): Promise<Did> {
+  } = {}): Promise<BearerDid> {
     if (options.algorithm && options.verificationMethods) {
       throw new Error(`The 'algorithm' and 'verificationMethods' options are mutually exclusive`);
     }
@@ -195,12 +195,13 @@ export class DidJwk extends DidMethod {
   }
 
   /**
-   * Instantiates a `Did` object for the `did:jwk` method from a given {@link PortableDid}.
+   * Instantiates a {@link BearerDid} object for the `did:jwk` method from a given
+   * {@link PortableDid}.
    *
-   * This method allows for the creation of a `Did` object using pre-existing key material,
+   * This method allows for the creation of a `BearerDid` object using pre-existing key material,
    * encapsulated within the `verificationMethods` array of the `PortableDid`. This is particularly
-   * useful when the key material is already available and you want to construct a `Did` object
-   * based on these keys, instead of generating new keys.
+   * useful when the key material is already available and you want to construct a `BearerDid`
+   * object based on these keys, instead of generating new keys.
    *
    * @remarks
    * The `verificationMethods` array must contain exactly one key since the `did:jwk` method only
@@ -224,7 +225,7 @@ export class DidJwk extends DidMethod {
    * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
    *                            generate keys and sign data. If not given, a new
    *                            {@link @web5/crypto#LocalKeyManager} instance will be created and used.
-   * @returns A Promise resolving to a `Did` object representing the DID formed from the provided keys.
+   * @returns A Promise resolving to a `BearerDid` object representing the DID formed from the provided keys.
    * @throws An error if the `verificationMethods` array does not contain exactly one entry.
    */
   public static async fromKeys({
@@ -233,7 +234,7 @@ export class DidJwk extends DidMethod {
   }: {
     keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
     options?: unknown;
-  } & PortableDid): Promise<Did> {
+  } & PortableDid): Promise<BearerDid> {
     if (!verificationMethods || verificationMethods.length !== 1) {
       throw new Error(`Only one verification method can be specified but ${verificationMethods?.length ?? 0} were given`);
     }
@@ -368,18 +369,18 @@ export class DidJwk extends DidMethod {
   }
 
   /**
-   * Instantiates a `Did` object for the DID JWK method from a given public key.
+   * Instantiates a {@link BearerDid} object for the DID JWK method from a given public key.
    *
    * @param params - The parameters for the operation.
    * @param params.keyManager - A Key Management System (KMS) instance for managing keys and
    *                            performing cryptographic operations.
    * @param params.publicKey - The public key of the DID in JWK format.
-   * @returns A Promise resolving to a `Did` object representing the DID formed from the provided public key.
+   * @returns A Promise resolving to a `BearerDid` object representing the DID formed from the provided public key.
    */
   private static async fromPublicKey({ keyManager, publicKey }: {
     keyManager: CryptoApi;
     publicKey: Jwk;
-  }): Promise<Did> {
+  }): Promise<BearerDid> {
     // Serialize the public key JWK to a UTF-8 string and encode to Base64URL format.
     const base64UrlEncoded = Convert.object(publicKey).toBase64Url();
 
