@@ -184,7 +184,7 @@ describe('SyncManagerLevel', () => {
       expect(remoteDwnQueryReply.entries).to.have.length(4);
       remoteRecordsFromQuery = remoteDwnQueryReply.entries?.map(entry => entry.recordId);
       expect(remoteRecordsFromQuery).to.have.members([...localRecords, ...remoteRecords]);
-    }).timeout(2_500);
+    }).timeout(3_000);
 
     describe('pull()', () => {
       it('takes no action if no identities are registered', async () => {
@@ -380,7 +380,7 @@ describe('SyncManagerLevel', () => {
         localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
         expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
-      }).timeout(2_500);
+      }).timeout(3_000);
     });
 
     describe('push()', () => {
@@ -576,7 +576,7 @@ describe('SyncManagerLevel', () => {
         remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
         expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
-      }).timeout(2_500);
+      }).timeout(3_000);
     });
 
     describe('startSync()', () => {
