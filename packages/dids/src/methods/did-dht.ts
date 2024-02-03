@@ -14,7 +14,7 @@ import { Convert } from '@web5/common';
 import { CryptoApi, computeJwkThumbprint, Ed25519, LocalKeyManager, Secp256k1, Secp256r1 } from '@web5/crypto';
 import { AUTHORITATIVE_ANSWER, decode as dnsPacketDecode, encode as dnsPacketEncode } from '@dnsquery/dns-packet';
 
-import type { Did, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
+import type { BearerDid, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
 import type {
   DidService,
   DidDocument,
@@ -496,7 +496,7 @@ export class DidDht extends DidMethod {
    * @param params.keyManager - Optionally specify a Key Management System (KMS) used to generate
    *                            keys and sign data.
    * @param params.options - Optional parameters that can be specified when creating a new DID.
-   * @returns A Promise resolving to a {@link Did} object representing the new DID.
+   * @returns A Promise resolving to a {@link BearerDid} object representing the new DID.
    */
   public static async create<TKms extends CryptoApi | undefined = undefined>({
     keyManager = new LocalKeyManager(),
@@ -504,7 +504,7 @@ export class DidDht extends DidMethod {
   }: {
     keyManager?: TKms;
     options?: DidDhtCreateOptions<TKms>;
-  } = {}): Promise<Did> {
+  } = {}): Promise<BearerDid> {
     // Before processing the create operation, validate DID-method-specific requirements to prevent
     // keys from being generated unnecessarily.
 
@@ -538,12 +538,12 @@ export class DidDht extends DidMethod {
   }
 
   /**
-   * Instantiates a `Did` object for the DID DHT method from a given {@link PortableDid}.
+   * Instantiates a {@link BearerDid} object for the DID DHT method from a given {@link PortableDid}.
    *
-   * This method allows for the creation of a `Did` object using pre-existing key material,
+   * This method allows for the creation of a `BearerDid` object using pre-existing key material,
    * encapsulated within the `verificationMethods` array of the `PortableDid`. This is particularly
-   * useful when the key material is already available and you want to construct a `Did` object
-   * based on these keys, instead of generating new keys.
+   * useful when the key material is already available and you want to construct a `BearerDid`
+   * object based on these keys, instead of generating new keys.
    *
    * @remarks
    * The key material (both public and private keys) should be provided in JWK format. The method
@@ -565,7 +565,7 @@ export class DidDht extends DidMethod {
    * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
    *                            generate keys and sign data. If not given, a new
    *                            {@link @web5/crypto#LocalKeyManager} instance will be created and used.
-   * @returns A Promise resolving to a `Did` object representing the DID formed from the provided keys.
+   * @returns A Promise resolving to a `BearerDid` object representing the DID formed from the provided keys.
    * @throws An error if the `verificationMethods` array does not contain any keys, lacks an
    *         Identity Key, or any verification method is missing a public or private key.
    */
@@ -577,7 +577,7 @@ export class DidDht extends DidMethod {
   }: {
     keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
     options?: DidDhtCreateOptions<TKms>;
-  } & PortableDid): Promise<Did> {
+  } & PortableDid): Promise<BearerDid> {
     if (!(verificationMethods && Array.isArray(verificationMethods) && verificationMethods.length > 0)) {
       throw new Error(`At least one verification method is required but 0 were given`);
     }
@@ -652,7 +652,7 @@ export class DidDht extends DidMethod {
    * - The method relies on the specified Pkarr relay server to interface with the DHT network.
    *
    * @param params - The parameters for the `publish` operation.
-   * @param params.did - The `Did` object representing the DID to be published.
+   * @param params.did - The `BearerDid` object representing the DID to be published.
    * @param params.gatewayUri - Optional. The URI of a server involved in executing DID
    *                                    method operations. In the context of publishing, the
    *                                    endpoint is expected to be a Pkarr relay. If not specified,
@@ -669,7 +669,7 @@ export class DidDht extends DidMethod {
    * ```
    */
   public static async publish({ did, gatewayUri = DEFAULT_PKARR_RELAY }: {
-    did: Did;
+    did: BearerDid;
     gatewayUri?: string;
   }): Promise<boolean> {
     const isPublished = await DidDhtDocument.put({ did, relay: gatewayUri });
@@ -733,9 +733,9 @@ export class DidDht extends DidMethod {
   }
 
   /**
-   * Instantiates a `Did` object for the DID DHT method using an array of public keys.
+   * Instantiates a `BearerDid` object for the DID DHT method using an array of public keys.
    *
-   * This method is used to create a `Did` object from a set of public keys, typically after
+   * This method is used to create a `BearerDid` object from a set of public keys, typically after
    * these keys have been generated or provided. It constructs the DID document, metadata, and
    * other necessary components for the DID based on the provided public keys and any additional
    * options specified.
@@ -743,12 +743,12 @@ export class DidDht extends DidMethod {
    * @param params - The parameters for the DID object creation.
    * @param params.keyManager - The Key Management System to manage keys.
    * @param params.options - Additional options for DID creation.
-   * @returns A Promise resolving to a `Did` object.
+   * @returns A Promise resolving to a `BearerDid` object.
    */
   private static async fromPublicKeys({ keyManager, verificationMethods, options }: {
     keyManager: CryptoApi;
     options: DidDhtCreateOptions<CryptoApi | undefined>;
-  } & PortableDid): Promise<Did> {
+  } & PortableDid): Promise<BearerDid> {
     // Validate that the given verification methods contain an Identity Key.
     const identityKey = verificationMethods?.find(vm => vm.id?.split('#').pop() === '0')?.publicKeyJwk;
     if (!identityKey) {
@@ -818,7 +818,7 @@ export class DidDht extends DidMethod {
   }
 
   /**
-   * Generates a set of keys for use in creating a `Did` object for the `did:dht` method.
+   * Generates a set of keys for use in creating a `BearerDid` object for the `did:dht` method.
    *
    * This method is responsible for generating the cryptographic keys necessary for the DID. It
    * supports generating keys for the specified verification methods.
@@ -914,7 +914,7 @@ class DidDhtDocument {
    *          If publishing fails, `false` is returned.
    */
   public static async put({ did, relay }: {
-    did: Did;
+    did: BearerDid;
     relay: string;
   }): Promise<boolean> {
     // Convert the DID document and DID metadata (such as DID types) to a DNS packet.

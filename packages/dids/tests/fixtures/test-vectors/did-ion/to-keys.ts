@@ -2,11 +2,11 @@ import type { Jwk, LocalKeyManager } from '@web5/crypto';
 
 import sinon from 'sinon';
 
-import type { Did } from '../../../../src/methods/did-method.js';
+import type { BearerDid } from '../../../../src/methods/did-method.js';
 
 type TestVector = {
   [key: string]: {
-    did: Did;
+    did: BearerDid;
     privateKey: Jwk[];
   };
 };
