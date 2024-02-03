@@ -17,7 +17,7 @@ import type {
   DidVerificationMethod,
 } from '../types/did-core.js';
 import type {
-  Did,
+  BearerDid,
   DidMetadata,
   PortableDid,
   DidCreateOptions,
@@ -282,7 +282,7 @@ export class DidIon extends DidMethod {
    * @param params.keyManager - Optionally specify a Key Management System (KMS) used to generate
    *                            keys and sign data.
    * @param params.options - Optional parameters that can be specified when creating a new DID.
-   * @returns A Promise resolving to a {@link Did} object representing the new DID.
+   * @returns A Promise resolving to a {@link BearerDid} object representing the new DID.
    */
   public static async create<TKms extends CryptoApi | undefined = undefined>({
     keyManager = new LocalKeyManager(),
@@ -290,7 +290,7 @@ export class DidIon extends DidMethod {
   }: {
     keyManager?: TKms;
     options?: DidIonCreateOptions<TKms>;
-  } = {}): Promise<Did> {
+  } = {}): Promise<BearerDid> {
     // Before processing the create operation, validate DID-method-specific requirements to prevent
     // keys from being generated unnecessarily.
 
@@ -369,7 +369,7 @@ export class DidIon extends DidMethod {
    * - The method relies on the specified Sidetree node to interface with the network.
    *
    * @param params - The parameters for the `publish` operation.
-   * @param params.did - The `Did` object representing the DID to be published.
+   * @param params.did - The `BearerDid` object representing the DID to be published.
    * @param params.gatewayUri - Optional. The URI of a server involved in executing DID
    *                                    method operations. In the context of publishing, the
    *                                    endpoint is expected to be a Sidetree node. If not
@@ -386,7 +386,7 @@ export class DidIon extends DidMethod {
    * ```
    */
   public static async publish({ did, gatewayUri = DEFAULT_GATEWAY_URI }: {
-    did: Did;
+    did: BearerDid;
     gatewayUri?: string;
   }): Promise<boolean> {
     // Create the ION document.
@@ -512,9 +512,9 @@ export class DidIon extends DidMethod {
   }
 
   /**
-   * Instantiates a `Did` object for the DID ION method using an array of public keys.
+   * Instantiates a `BearerDid` object for the DID ION method using an array of public keys.
    *
-   * This method is used to create a `Did` object from a set of public keys, typically after
+   * This method is used to create a `BearerDid` object from a set of public keys, typically after
    * these keys have been generated or provided. It constructs the DID document, metadata, and
    * other necessary components for the DID based on the provided public keys and any additional
    * options specified.
@@ -522,12 +522,12 @@ export class DidIon extends DidMethod {
    * @param params - The parameters for the DID object creation.
    * @param params.keyManager - The Key Management System to manage keys.
    * @param params.options - Additional options for DID creation.
-   * @returns A Promise resolving to a `Did` object.
+   * @returns A Promise resolving to a `BearerDid` object.
    */
   private static async fromPublicKeys({ keyManager, recoveryKey, updateKey, verificationMethods, options }: {
     keyManager: CryptoApi;
     options: DidIonCreateOptions<CryptoApi | undefined>;
-  } & IonPortableDid): Promise<Did> {
+  } & IonPortableDid): Promise<BearerDid> {
     // Validate an ION Recovery Key was generated or provided.
     if (!recoveryKey) {
       throw new Error('Missing required input: ION Recovery Key');
@@ -570,7 +570,7 @@ export class DidIon extends DidMethod {
   }
 
   /**
-   * Generates a set of keys for use in creating a `Did` object for the DID ION method.
+   * Generates a set of keys for use in creating a `BearerDid` object for the DID ION method.
    *
    * This method is responsible for generating the cryptographic keys necessary for the DID,
    * including the ION Update and Recovery keys and any verification methods specified in the

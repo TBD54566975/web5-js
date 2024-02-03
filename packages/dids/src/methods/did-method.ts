@@ -20,9 +20,10 @@ import { DidVerificationRelationship } from '../types/did-core.js';
 import { DidError, DidErrorCode } from '../did-error.js';
 
 /**
- * Represents a Decentralized Identifier (DID) along with its convenience functions.
+ * Represents a Decentralized Identifier (DID) along with its DID document, key manager, metadata,
+ * and convenience functions.
  */
-export interface Did {
+export interface BearerDid {
   /**
    * The DID document associated with this DID.
    */
@@ -124,13 +125,14 @@ export type DidMetadata = {
 }
 
 /**
- * Defines the API for a specific DID method. It includes functionalities for creating and resolving DIDs.
+ * Defines the API for a specific DID method. It includes functionalities for creating and resolving
+ * DIDs.
  *
  * @typeparam T - The type of the DID instance associated with this method.
  * @typeparam O - The type of the options used for creating the DID.
  */
 export interface DidMethodApi<
-    TDid extends Did,
+    TDid extends BearerDid,
     TOptions extends DidCreateOptions<TKms>,
     TKms extends CryptoApi | undefined = undefined
   > extends DidMethodResolver {
@@ -208,7 +210,7 @@ export interface DidMethodResolver {
  * // Export the DID to a PortableDid.
  * const portableDid = await DidExample.toKeys({ did });
  *
- * // Instantiate a `Did` object from the PortableDid metadata.
+ * // Instantiate a BearerDid object from a PortableDid.
  * const didFromKeys = await DidExample.fromKeys({ ...portableDid });
  * // The `didFromKeys` object should be equivalent to the original `did` object.
  * ```
@@ -286,23 +288,23 @@ export interface PortableDidVerificationMethod extends Partial<DidVerificationMe
  */
 export class DidMethod {
   /**
-   * Instantiates a `Did` object from an existing DID using keys in an external Key Management
+   * Instantiates a `BearerDid` object from an existing DID using keys in an external Key Management
    * System (KMS).
    *
-   * This method returns a `Did` object by resolving an existing DID URI and verifying that all
-   * associated keys are present in the provided key manager.
+   * This method returns a `BearerDid` object by resolving an existing DID URI and verifying that
+   * all associated keys are present in the provided key manager.
    *
    * @remarks
    * The method verifies the presence of key material for every verification method in the DID
    * document within the given KMS. If any key is missing, an error is thrown.
    *
-   * This approach ensures that the resulting `Did` object is fully operational with the provided
-   * key manager and that all cryptographic operations related to the DID can be performed.
+   * This approach ensures that the resulting `BearerDid` object is fully operational with the
+   * provided key manager and that all cryptographic operations related to the DID can be performed.
    *
    * @param params - The parameters for the `fromKeyManager` operation.
    * @param params.didUri - The URI of the DID to be instantiated.
    * @param params.keyManager - The Key Management System to be used for key management operations.
-   * @returns A Promise resolving to the instantiated `Did` object.
+   * @returns A Promise resolving to the instantiated `BearerDid` object.
    * @throws An error if any key in the DID document is not present in the provided KMS.
    *
    * @example
@@ -310,13 +312,13 @@ export class DidMethod {
    * // Assuming keyManager already contains the key material for the DID.
    * const didUri = 'did:method:example';
    * const did = await DidMethod.fromKeyManager({ didUri, keyManager });
-   * // The 'did' is now an instance of Did, linked with the provided keyManager.
+   * // The 'did' is now an instance of BearerDid, linked with the provided keyManager.
    * ```
    */
   public static async fromKeyManager({ didUri, keyManager }: {
     didUri: string;
     keyManager: CryptoApi;
-  }): Promise<Did> {
+  }): Promise<BearerDid> {
     // Resolve the DID URI to a DID document and document metadata.
     const { didDocument, didDocumentMetadata, didResolutionMetadata } = await this.resolve(didUri);
 
@@ -452,7 +454,7 @@ export class DidMethod {
   }
 
   /**
-   * Converts a `Did` object to a portable format containing the URI and verification methods
+   * Converts a `BearerDid` object to a portable format containing the URI and verification methods
    * associated with the DID.
    *
    * This method is useful when you need to represent the key material and metadata associated with
@@ -471,18 +473,18 @@ export class DidMethod {
    *
    * @example
    * ```ts
-   * // Assuming `did` is an instance of Did
+   * // Assuming `did` is an instance of BearerDid
    * const portableDid = await DidMethod.toKeys({ did });
    * // portableDid now contains the verification methods and their associated keys.
    * ```
    *
    * @param params - The parameters for the convert operation.
-   * @param params.did - The `Did` object to convert to a portable format.
+   * @param params.did - The `BearerDid` object to convert to a portable format.
    * @returns A `PortableDid` containing the URI and verification methods associated with the DID.
    * @throws An error if the key manager does not support key export or if the DID document
    *         is missing verification methods.
    */
-  public static async toKeys({ did }: { did: Did }): Promise<PortableDid> {
+  public static async toKeys({ did }: { did: BearerDid }): Promise<PortableDid> {
     // First, confirm that the DID's key manager supports exporting keys.
     if (!('exportKey' in did.keyManager && typeof did.keyManager.exportKey === 'function')) {
       throw new Error(`The key manager of the given DID does not support exporting keys`);
