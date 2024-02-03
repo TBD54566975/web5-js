@@ -94,7 +94,7 @@ export class Did {
   params?: Record<string, string>;
 
   /**
-   * Constructs a new `DidUri` instance from individual components.
+   * Constructs a new `Did` instance from individual components.
    *
    * @param params - An object containing the parameters to be included in the DID URI.
    * @param params.method - The name of the DID method.
