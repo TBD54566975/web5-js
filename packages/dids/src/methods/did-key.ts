@@ -23,7 +23,7 @@ import {
 import type { BearerDid, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
 import type { DidDocument, DidResolutionOptions, DidResolutionResult, DidVerificationMethod } from '../types/did-core.js';
 
-import { DidUri } from '../did-uri.js';
+import { Did } from '../did.js';
 import { DidMethod } from './did-method.js';
 import { DidError, DidErrorCode } from '../did-error.js';
 import { getVerificationMethodTypes } from '../utils.js';
@@ -446,7 +446,7 @@ export class DidKey extends DidMethod {
     methodId?: string;
   }): Promise<DidVerificationMethod | undefined> {
     // Verify the DID method is supported.
-    const parsedDid = DidUri.parse(didDocument.id);
+    const parsedDid = Did.parse(didDocument.id);
     if (parsedDid && parsedDid.method !== this.methodName) {
       throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported: ${parsedDid.method}`);
     }
@@ -523,7 +523,7 @@ export class DidKey extends DidMethod {
      * If there are only three components set the version to the string
      * value 1 and use the last value as the multibaseValue.
      */
-    const parsedDid = DidUri.parse(didUri);
+    const parsedDid = Did.parse(didUri);
     if (!parsedDid) {
       throw new DidError(DidErrorCode.InvalidDid, `Invalid DID URI: ${didUri}`);
     }
@@ -1005,7 +1005,7 @@ export class DidKey extends DidMethod {
    * @returns `true` if the DID URI meets the `did:key` method's structural requirements, `false` otherwise.
    *
    */
-  private static validateIdentifier(parsedDid: DidUri): boolean {
+  private static validateIdentifier(parsedDid: Did): boolean {
     const { method, id: multibaseValue } = parsedDid;
     const [ scheme ] = parsedDid.uri.split(':', 1);
 

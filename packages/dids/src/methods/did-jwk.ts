@@ -14,7 +14,7 @@ import { LocalKeyManager } from '@web5/crypto';
 import type { BearerDid, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
 import type { DidDocument, DidResolutionOptions, DidResolutionResult, DidVerificationMethod } from '../types/did-core.js';
 
-import { DidUri } from '../did-uri.js';
+import { Did } from '../did.js';
 import { DidMethod } from './did-method.js';
 import { DidError, DidErrorCode } from '../did-error.js';
 import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
@@ -275,7 +275,7 @@ export class DidJwk extends DidMethod {
     methodId?: string;
   }): Promise<DidVerificationMethod | undefined> {
     // Verify the DID method is supported.
-    const parsedDid = DidUri.parse(didDocument.id);
+    const parsedDid = Did.parse(didDocument.id);
     if (parsedDid && parsedDid.method !== this.methodName) {
       throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported: ${parsedDid.method}`);
     }
@@ -295,7 +295,7 @@ export class DidJwk extends DidMethod {
    */
   public static async resolve(didUri: string, _options?: DidResolutionOptions): Promise<DidResolutionResult> {
     // Attempt to parse the DID URI.
-    const parsedDid = DidUri.parse(didUri);
+    const parsedDid = Did.parse(didUri);
 
     // Attempt to decode the Base64URL-encoded JWK.
     let publicKey: Jwk | undefined;
