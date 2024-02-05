@@ -1,4 +1,4 @@
-import type { PortableDid } from '@web5/dids';
+import type { PortableDid, BearerDid } from '@web5/dids';
 import type {
   JwtPayload,
   Web5Crypto,
@@ -12,7 +12,7 @@ import type {
 
 import { Convert } from '@web5/common';
 import { EdDsaAlgorithm, EcdsaAlgorithm  } from '@web5/crypto';
-import { DidDhtMethod, DidIonMethod, DidKeyMethod, DidResolver, utils as didUtils } from '@web5/dids';
+import { DidDht, DidIon, DidKey, DidJwk, DidWeb, DidResolver, utils as didUtils } from '@web5/dids';
 
 /**
  * Result of parsing a JWT.
@@ -49,7 +49,7 @@ export type ParseJwtOptions = {
  * Parameters for signing a JWT.
  */
 export type SignJwtOptions = {
-  signerDid: PortableDid
+  signerDid: PortableDid | BearerDid
   payload: JwtPayload
 }
 
@@ -102,7 +102,7 @@ export class Jwt {
   /**
    * DID Resolver instance for resolving decentralized identifiers.
    */
-  static didResolver: DidResolver = new DidResolver({ didResolvers: [DidIonMethod, DidKeyMethod, DidDhtMethod] });
+  static didResolver: DidResolver = new DidResolver({ didResolvers: [DidDht, DidIon, DidKey, DidJwk, DidWeb] });
 
   /**
    * Creates a signed JWT.
@@ -116,37 +116,80 @@ export class Jwt {
    * @returns The compact JWT as a string.
    */
   static async sign(options: SignJwtOptions): Promise<string> {
-    const { signerDid, payload } = options;
-    const privateKeyJwk = signerDid.keySet.verificationMethodKeys![0].privateKeyJwk! as JwkParamsEcPrivate | JwkParamsOkpPrivate;
+    let { signerDid, payload } = options;
 
-    let vmId = signerDid.document.verificationMethod![0].id;
-    if (vmId.charAt(0) === '#') {
-      vmId = `${signerDid.did}${vmId}`;
+    if (isPortableDid(signerDid)) {
+      signerDid = signerDid as PortableDid;
+
+      const privateKeyJwk = signerDid.verificationMethods![0].privateKeyJwk! as JwkParamsEcPrivate | JwkParamsOkpPrivate;
+
+      let vmId = signerDid.verificationMethods![0].id!;
+      if (vmId.charAt(0) === '#') {
+        vmId = `${signerDid.uri}${vmId}`;
+      }
+
+      const header: JwtHeaderParams = {
+        typ : 'JWT',
+        alg : privateKeyJwk.alg!,
+        kid : vmId
+      };
+
+      const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
+      const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
+
+      const toSign = `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}`;
+      const toSignBytes = Convert.string(toSign).toUint8Array();
+
+      const algorithmId = `${header.alg}:${privateKeyJwk['crv'] || ''}`;
+      if (!(algorithmId in Jwt.algorithms)) {
+        throw new Error(`Signing failed: ${algorithmId} not supported`);
+      }
+
+      const { signer, options: signatureAlgorithm } = Jwt.algorithms[algorithmId];
+
+      const signatureBytes = await signer.sign({ key: privateKeyJwk, data: toSignBytes, algorithm: signatureAlgorithm! });
+      const base64UrlEncodedSignature = Convert.uint8Array(signatureBytes).toBase64Url();
+
+      return `${toSign}.${base64UrlEncodedSignature}`;
+    } else {
+      signerDid = signerDid as BearerDid;
+
+      let vmId = signerDid.didDocument.verificationMethod![0].id!;
+      if (vmId.charAt(0) === '#') {
+        vmId = `${signerDid.uri}${vmId}`;
+      }
+
+      // TODO: Is this correct?
+      let alg;
+      if(signerDid.didDocument.verificationMethod![0].publicKeyJwk?.crv === 'Ed25519') {
+        alg = 'EdDSA';
+      } else if(signerDid.didDocument.verificationMethod![0].publicKeyJwk?.crv === 'secp256k1'){
+        alg = 'ES256K';
+      } else {
+        throw new Error(`Signing failed: alg not supported`);
+      }
+
+      const header: JwtHeaderParams = {
+        typ : 'JWT',
+        alg : alg!,
+        kid : vmId,
+      };
+
+      const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
+      const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
+
+      const toSign = `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}`;
+      const toSignBytes = Convert.string(toSign).toUint8Array();
+
+      const signer = await signerDid.getSigner();
+
+      const signatureBytes = await signer.sign({data: toSignBytes});
+
+      const base64UrlEncodedSignature = Convert.uint8Array(signatureBytes).toBase64Url();
+
+      return `${toSign}.${base64UrlEncodedSignature}`;
     }
 
-    const header: JwtHeaderParams = {
-      typ : 'JWT',
-      alg : privateKeyJwk.alg!,
-      kid : vmId
-    };
-
-    const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
-    const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
-
-    const toSign = `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}`;
-    const toSignBytes = Convert.string(toSign).toUint8Array();
-
-    const algorithmId = `${header.alg}:${privateKeyJwk['crv'] || ''}`;
-    if (!(algorithmId in Jwt.algorithms)) {
-      throw new Error(`Signing failed: ${algorithmId} not supported`);
-    }
-
-    const { signer, options: signatureAlgorithm } = Jwt.algorithms[algorithmId];
-
-    const signatureBytes = await signer.sign({ key: privateKeyJwk, data: toSignBytes, algorithm: signatureAlgorithm! });
-    const base64UrlEncodedSignature = Convert.uint8Array(signatureBytes).toBase64Url();
-
-    return `${toSign}.${base64UrlEncodedSignature}`;
   }
 
   /**
@@ -168,13 +211,13 @@ export class Jwt {
     }
 
     // TODO: should really be looking for verificationMethod with authentication verification relationship
-    const dereferenceResult = await Jwt.didResolver.dereference({ didUrl: decodedJwt.header.kid! });
+    const dereferenceResult = await Jwt.didResolver.dereference( decodedJwt.header.kid! );
     if (dereferenceResult.dereferencingMetadata.error) {
       throw new Error(`Failed to resolve ${decodedJwt.header.kid}`);
     }
 
     const verificationMethod = dereferenceResult.contentStream;
-    if (!verificationMethod || !didUtils.isVerificationMethod(verificationMethod)) { // ensure that appropriate verification method was found
+    if (!verificationMethod || !didUtils.isDidVerificationMethod(verificationMethod)) { // ensure that appropriate verification method was found
       throw new Error('Verification failed: Expected kid in JWT header to dereference a DID Document Verification Method');
     }
 
@@ -264,4 +307,8 @@ export class Jwt {
       }
     };
   }
+}
+
+function isPortableDid(did: PortableDid | BearerDid): did is PortableDid {
+  return (did as PortableDid).verificationMethods !== undefined;
 }
