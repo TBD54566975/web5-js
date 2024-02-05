@@ -1,6 +1,6 @@
 import type { DidDocument, DidResolutionOptions, DidResolutionResult } from '../types/did-core.js';
 
-import { DidUri } from '../did-uri.js';
+import { Did } from '../did.js';
 import { DidMethod } from './did-method.js';
 import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
 
@@ -40,7 +40,7 @@ export class DidWeb extends DidMethod {
    */
   public static async resolve(didUri: string, _options?: DidResolutionOptions): Promise<DidResolutionResult> {
     // Attempt to parse the DID URI.
-    const parsedDid = DidUri.parse(didUri);
+    const parsedDid = Did.parse(didUri);
 
     // If parsing failed, the DID is invalid.
     if (!parsedDid) {

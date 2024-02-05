@@ -3,7 +3,7 @@ import type { KeyValueStore } from '@web5/common';
 import type { DidMethodResolver } from '../methods/did-method.js';
 import type { DidDereferencingOptions, DidDereferencingResult, DidResolutionOptions, DidResolutionResult, DidResource } from '../types/did-core.js';
 
-import { DidUri } from '../did-uri.js';
+import { Did } from '../did.js';
 import { DidErrorCode } from '../did-error.js';
 import { DidResolverCacheNoop } from './resolver-cache-noop.js';
 
@@ -115,7 +115,7 @@ export class DidResolver {
    */
   public async resolve(didUri: string, options?: DidResolutionOptions): Promise<DidResolutionResult> {
 
-    const parsedDid = DidUri.parse(didUri);
+    const parsedDid = Did.parse(didUri);
     if (!parsedDid) {
       return {
         ...EMPTY_DID_RESOLUTION_RESULT,
@@ -181,7 +181,7 @@ export class DidResolver {
   ): Promise<DidDereferencingResult> {
 
     // Validate the given `didUrl` confirms to the DID URL syntax.
-    const parsedDidUrl = DidUri.parse(didUrl);
+    const parsedDidUrl = Did.parse(didUrl);
 
     if (!parsedDidUrl) {
       return {
