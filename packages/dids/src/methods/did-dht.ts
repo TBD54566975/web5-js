@@ -23,7 +23,7 @@ import type {
   DidVerificationMethod,
 } from '../types/did-core.js';
 
-import { DidUri } from '../did-uri.js';
+import { Did } from '../did.js';
 import { DidMethod } from './did-method.js';
 import { DidError, DidErrorCode } from '../did-error.js';
 import { DidVerificationRelationship } from '../types/did-core.js';
@@ -628,7 +628,7 @@ export class DidDht extends DidMethod {
     methodId?: string;
   }): Promise<DidVerificationMethod | undefined> {
 
-    const parsedDid = DidUri.parse(didDocument.id);
+    const parsedDid = Did.parse(didDocument.id);
     if (parsedDid && parsedDid.method !== this.methodName) {
       throw new Error(`Method not supported: ${parsedDid.method}`);
     }
@@ -1417,7 +1417,7 @@ class DidDhtUtils {
     didUri: string
   }): Uint8Array {
     // Parse the DID URI.
-    const parsedDid = DidUri.parse(didUri);
+    const parsedDid = Did.parse(didUri);
 
     // Verify that the DID URI is valid.
     if (!parsedDid) {

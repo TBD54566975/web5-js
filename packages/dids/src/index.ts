@@ -1,5 +1,5 @@
+export * from './did.js';
 export * from './did-error.js';
-export * from './did-uri.js';
 
 export * from './methods/did-dht.js';
 export * from './methods/did-ion.js';

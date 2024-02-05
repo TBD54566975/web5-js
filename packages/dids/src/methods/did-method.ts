@@ -53,7 +53,7 @@ export interface BearerDid {
   /** {@inheritDoc DidMetadata} */
   metadata: DidMetadata;
 
-  /** {@inheritDoc DidUri#uri} */
+  /** {@inheritDoc Did#uri} */
   uri: string;
 }
 
@@ -216,7 +216,7 @@ export interface DidMethodResolver {
  * ```
  */
 export interface PortableDid {
-  /** {@inheritDoc DidUri#uri} */
+  /** {@inheritDoc Did#uri} */
   uri?: string;
 
   /**
