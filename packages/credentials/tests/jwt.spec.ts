@@ -3,9 +3,10 @@ import type { JwtHeaderParams, JwtPayload, PrivateKeyJwk } from '@web5/crypto';
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
 import { Secp256k1 } from '@web5/crypto';
-import { DidKey } from '@web5/dids';
+import { DidKey, PortableDid } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
+import { Ed25519 } from '@web5/crypto';
 
 describe('Jwt', () => {
   describe('parse()', () => {
@@ -116,28 +117,47 @@ describe('Jwt', () => {
       }
     });
 
-    // it('returns signer DID if verification succeeds', async () => {
-    //   // TODO: need to convert to portable did:
-    //   const did = await DidKeyMethod.create({ keyAlgorithm: 'secp256k1' });
-    //   const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: did.document.verificationMethod![0].id };
-    //   const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
+    it('returns signer DID if verification succeeds', async () => {
+      const portabldDid: PortableDid = {
+        uri                 : 'did:key:z6MkkGkByH7rSY3uxDEPTk1CZzPG5hvf564ABFLQzCFwyYNN',
+        verificationMethods : [{
+          publicKeyJwk: {
+            kty : 'OKP',
+            crv : 'Ed25519',
+            x   : 'VnSOQ-n7kRcYd0XGW2MNCv7DDY5py5XhNcjM7-Y1HVM'
+          },
+          privateKeyJwk: {
+            kty : 'OKP',
+            crv : 'Ed25519',
+            x   : 'VnSOQ-n7kRcYd0XGW2MNCv7DDY5py5XhNcjM7-Y1HVM',
+            d   : 'iTD5DIOKZNkwgzsND-I8CLIXmgTxfQ1HUzl9fpMktAo'
+          },
+          purposes: ['authentication']
+        }]
+      };
 
-    //   const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000) };
-    //   const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
+      const did = await DidKey.fromKeys(portabldDid);
 
-    //   const toSign = `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}`;
-    //   const toSignBytes = Convert.string(toSign).toUint8Array();
+      // const did = await DidKey.create({ options: { algorithm: 'secp256k1'} });
+      const header: JwtHeaderParams = { typ: 'JWT', alg: 'EdDSA', kid: did.didDocument.verificationMethod![0].id };
+      const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
-    //   const privateKeyJwk = did.keySet.verificationMethodKeys![0].privateKeyJwk;
+      const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000) };
+      const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
 
-    //   const signatureBytes = await Secp256k1.sign({ key: privateKeyJwk as PrivateKeyJwk, data: toSignBytes });
-    //   const base64UrlEncodedSignature = Convert.uint8Array(signatureBytes).toBase64Url();
+      const toSign = `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}`;
+      const toSignBytes = Convert.string(toSign).toUint8Array();
 
-    //   const jwt = `${toSign}.${base64UrlEncodedSignature}`;
-    //   const verifyResult = await Jwt.verify({ jwt });
+      const privateKeyJwk = portabldDid.verificationMethods![0].privateKeyJwk;
 
-    //   expect(verifyResult.header).to.deep.equal(header);
-    //   expect(verifyResult.payload).to.deep.equal(payload);
-    // });
+      const signatureBytes = await Ed25519.sign({ key: privateKeyJwk as PrivateKeyJwk, data: toSignBytes });
+      const base64UrlEncodedSignature = Convert.uint8Array(signatureBytes).toBase64Url();
+
+      const jwt = `${toSign}.${base64UrlEncodedSignature}`;
+      const verifyResult = await Jwt.verify({ jwt });
+
+      expect(verifyResult.header).to.deep.equal(header);
+      expect(verifyResult.payload).to.deep.equal(payload);
+    });
   });
 });

@@ -1,4 +1,4 @@
-import type { PortableDid, BearerDid } from '@web5/dids';
+import type { BearerDid } from '@web5/dids';
 import type {
   JwtPayload,
   Web5Crypto,
