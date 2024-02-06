@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { DidKey, PortableDid } from '@web5/dids';
+import { BearerDid, DidKey } from '@web5/dids';
 
 import type { Validated, PresentationDefinitionV2 } from '../src/presentation-exchange.js';
 
@@ -22,14 +22,13 @@ class OtherCredential {
 
 describe('PresentationExchange', () => {
   describe('Full Presentation Exchange', () => {
-    let issuerDid: PortableDid;
+    let issuerDid: BearerDid;
     let btcCredentialJwt: string;
     let presentationDefinition: PresentationDefinitionV2;
     let groupPresentationDefinition: PresentationDefinitionV2;
 
     before(async () => {
-      const did = await DidKey.create();
-      issuerDid = await DidKey.toKeys({ did });
+      issuerDid = await DidKey.create();
 
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',

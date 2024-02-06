@@ -4,8 +4,6 @@ import type {
   Web5Crypto,
   CryptoAlgorithm,
   JwtHeaderParams,
-  JwkParamsEcPrivate,
-  JwkParamsOkpPrivate,
   JwkParamsEcPublic,
   JwkParamsOkpPublic,
 } from '@web5/crypto';
@@ -49,7 +47,7 @@ export type ParseJwtOptions = {
  * Parameters for signing a JWT.
  */
 export type SignJwtOptions = {
-  signerDid: PortableDid | BearerDid
+  signerDid: BearerDid
   payload: JwtPayload
 }
 
@@ -116,80 +114,48 @@ export class Jwt {
    * @returns The compact JWT as a string.
    */
   static async sign(options: SignJwtOptions): Promise<string> {
-    let { signerDid, payload } = options;
+    const { signerDid, payload } = options;
 
-    if (isPortableDid(signerDid)) {
-      signerDid = signerDid as PortableDid;
-
-      const privateKeyJwk = signerDid.verificationMethods![0].privateKeyJwk! as JwkParamsEcPrivate | JwkParamsOkpPrivate;
-
-      let vmId = signerDid.verificationMethods![0].id!;
-      if (vmId.charAt(0) === '#') {
-        vmId = `${signerDid.uri}${vmId}`;
-      }
-
-      const header: JwtHeaderParams = {
-        typ : 'JWT',
-        alg : privateKeyJwk.alg!,
-        kid : vmId
-      };
-
-      const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
-      const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
-
-      const toSign = `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}`;
-      const toSignBytes = Convert.string(toSign).toUint8Array();
-
-      const algorithmId = `${header.alg}:${privateKeyJwk['crv'] || ''}`;
-      if (!(algorithmId in Jwt.algorithms)) {
-        throw new Error(`Signing failed: ${algorithmId} not supported`);
-      }
-
-      const { signer, options: signatureAlgorithm } = Jwt.algorithms[algorithmId];
-
-      const signatureBytes = await signer.sign({ key: privateKeyJwk, data: toSignBytes, algorithm: signatureAlgorithm! });
-      const base64UrlEncodedSignature = Convert.uint8Array(signatureBytes).toBase64Url();
-
-      return `${toSign}.${base64UrlEncodedSignature}`;
-    } else {
-      signerDid = signerDid as BearerDid;
-
-      let vmId = signerDid.didDocument.verificationMethod![0].id!;
-      if (vmId.charAt(0) === '#') {
-        vmId = `${signerDid.uri}${vmId}`;
-      }
-
-      // TODO: Is this correct?
-      let alg;
-      if(signerDid.didDocument.verificationMethod![0].publicKeyJwk?.crv === 'Ed25519') {
-        alg = 'EdDSA';
-      } else if(signerDid.didDocument.verificationMethod![0].publicKeyJwk?.crv === 'secp256k1'){
-        alg = 'ES256K';
-      } else {
-        throw new Error(`Signing failed: alg not supported`);
-      }
-
-      const header: JwtHeaderParams = {
-        typ : 'JWT',
-        alg : alg!,
-        kid : vmId,
-      };
-
-      const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
-      const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
-
-      const toSign = `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}`;
-      const toSignBytes = Convert.string(toSign).toUint8Array();
-
-      const signer = await signerDid.getSigner();
-
-      const signatureBytes = await signer.sign({data: toSignBytes});
-
-      const base64UrlEncodedSignature = Convert.uint8Array(signatureBytes).toBase64Url();
-
-      return `${toSign}.${base64UrlEncodedSignature}`;
+    let vmId = signerDid.didDocument.verificationMethod![0].id!;
+    if (vmId.charAt(0) === '#') {
+      vmId = `${signerDid.uri}${vmId}`;
     }
 
+    // TODO: Change once signer has a method to get the alg and kid
+    // const header = {
+    //   typ : 'JWT',
+    //   alg: signer.alg,
+    //   kid: signer.kid
+    // }
+
+    let alg;
+    if(signerDid.didDocument.verificationMethod![0].publicKeyJwk?.crv === 'Ed25519') {
+      alg = 'EdDSA';
+    } else if(signerDid.didDocument.verificationMethod![0].publicKeyJwk?.crv === 'secp256k1'){
+      alg = 'ES256K';
+    } else {
+      throw new Error(`Signing failed: alg not supported`);
+    }
+
+    const header: JwtHeaderParams = {
+      typ : 'JWT',
+      alg : alg!,
+      kid : vmId,
+    };
+
+    const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
+    const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
+
+    const toSign = `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}`;
+    const toSignBytes = Convert.string(toSign).toUint8Array();
+
+    const signer = await signerDid.getSigner();
+
+    const signatureBytes = await signer.sign({data: toSignBytes});
+
+    const base64UrlEncodedSignature = Convert.uint8Array(signatureBytes).toBase64Url();
+
+    return `${toSign}.${base64UrlEncodedSignature}`;
   }
 
   /**
@@ -307,8 +273,4 @@ export class Jwt {
       }
     };
   }
-}
-
-function isPortableDid(did: PortableDid | BearerDid): did is PortableDid {
-  return (did as PortableDid).verificationMethods !== undefined;
 }
