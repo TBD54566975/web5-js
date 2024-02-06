@@ -8,6 +8,8 @@ import type {
   InferKeyGeneratorAlgorithm,
 } from '@web5/crypto';
 
+import type { BearerDid } from '../bearer-did.js';
+import type { DidMetadata, PortableDid } from '../portable-did.js';
 import type {
   DidDocument,
   DidResolutionResult,
@@ -16,46 +18,8 @@ import type {
 } from '../types/did-core.js';
 
 import { getVerificationMethodByKey } from '../utils.js';
-import { DidVerificationRelationship } from '../types/did-core.js';
 import { DidError, DidErrorCode } from '../did-error.js';
-
-/**
- * Represents a Decentralized Identifier (DID) along with its DID document, key manager, metadata,
- * and convenience functions.
- */
-export interface BearerDid {
-  /**
-   * The DID document associated with this DID.
-   */
-  didDocument: DidDocument;
-
-  /**
-   * Returns a {@link @web5/crypto#Signer} that can be used to sign messages, credentials, or
-   * arbitrary data.
-   *
-   * If given, the `keyUri` parameter is used to select a key from the verification methods present
-   * in the DID Document. If `keyUri` is not given, each DID method implementation will select a
-   * default verification method key from the DID Document.
-   *
-   * @param params - The parameters for the `getSigner` operation.
-   * @param params.keyUri - Key URI of the key that will be used for sign and verify operations. Optional.
-   * @returns An instantiated {@link Signer} that can be used to sign and verify data.
-   */
-  getSigner: (params?: { keyUri?: string }) => Promise<Signer>;
-
-  /**
-   * Key Management System (KMS) used to manage a DIDs keys and sign data.
-   *
-   * Each DID method requires at least one key be present in the provided `keyManager`.
-   */
-  keyManager: CryptoApi;
-
-  /** {@inheritDoc DidMetadata} */
-  metadata: DidMetadata;
-
-  /** {@inheritDoc Did#uri} */
-  uri: string;
-}
+import { DidVerificationRelationship } from '../types/did-core.js';
 
 /**
  * Represents options during the creation of a Decentralized Identifier (DID).
@@ -114,14 +78,6 @@ export interface DidCreateVerificationMethod<TKms> extends Pick<Partial<DidVerif
    * ```
    */
   purposes?: (DidVerificationRelationship | keyof typeof DidVerificationRelationship)[];
-}
-
-/**
- * Represents metadata about a DID resulting from create, update, or deactivate operations.
- */
-export type DidMetadata = {
-  // Additional properties of any type.
-  [key: string]: any;
 }
 
 /**
@@ -191,91 +147,75 @@ export interface DidMethodResolver {
 }
 
 /**
- * Format to document a DID identifier, along with its associated data, which can be exported,
- * saved to a file, or imported. The intent is bundle all of the necessary metadata to enable usage
- * of the DID in different contexts.
+ * Represents the result of a Decentralized Identifier (DID) registration operation.
+ *
+ * This type encapsulates the complete outcome of registering a DID, including the registration
+ * metadata, the DID document (if registration is successful), and metadata about the DID document.
  */
-/**
- * Format that documents the key material and metadata of a Decentralized Identifier (DID) to enable
- * usage of the DID in different contexts.
- *
- * This format is useful for exporting, saving to a file, or importing a DID across process
- * boundaries or between different DID method implementations.
- *
- * @example
- * ```ts
- * // Generate a new DID.
- * const did = await DidExample.create();
- *
- * // Export the DID to a PortableDid.
- * const portableDid = await DidExample.toKeys({ did });
- *
- * // Instantiate a BearerDid object from a PortableDid.
- * const didFromKeys = await DidExample.fromKeys({ ...portableDid });
- * // The `didFromKeys` object should be equivalent to the original `did` object.
- * ```
- */
-export interface PortableDid {
-  /** {@inheritDoc Did#uri} */
-  uri?: string;
+export interface DidRegistrationResult {
+  /**
+   * The DID document resulting from the registration process, if successful.
+   *
+   * If the registration operation was successful, this MUST contain a DID document
+   * corresponding to the DID. If the registration is unsuccessful, this value MUST be empty.
+   *
+   * @see {@link https://www.w3.org/TR/did-core/#dfn-diddocument | DID Core Specification, § DID Document}
+   */
+  didDocument: DidDocument | null;
 
   /**
-   * An array of verification methods, including the key material and key purpose, which are
-   * included in the DID document.
+   * Metadata about the DID Document.
    *
-   * @see {@link https://www.w3.org/TR/did-core/#verification-methods | DID Core Specification, § Verification Methods}
+   * This structure contains information about the DID Document like creation and update timestamps,
+   * deactivation status, versioning information, and other details relevant to the DID Document.
+   *
+   * @see {@link https://www.w3.org/TR/did-core/#dfn-diddocumentmetadata | DID Core Specification, § DID Document Metadata}
    */
-  verificationMethods: PortableDidVerificationMethod[];
+  didDocumentMetadata: DidMetadata;
+
+  /**
+   * A metadata structure consisting of values relating to the results of the DID registration
+   * process.
+   *
+   * This structure is REQUIRED, and in the case of an error in the registration process,
+   * this MUST NOT be empty. If the registration is not successful, this structure MUST contain an
+   * `error` property describing the error.
+   */
+  didRegistrationMetadata: DidRegistrationMetadata;
 }
 
 /**
- * Represents a verification method within a {@link PortableDid}, including the private key and
- * the purposes for which the verification method can be used.
+ * Represents metadata related to the result of a DID registration operation.
  *
- * This interface extends {@link DidVerificationMethod}, providing a structure to document the key
- * material and metadata associated with a DID's verification methods.
+ * This type includes fields that provide information about the outcome of a DID registration
+ * process (e.g., create, update, deactivate), including any errors that occurred.
+ *
+ * This metadata typically changes between invocations of the `create`, `update`, and `deactivate`
+ * functions, as it represents data about the registration process itself.
  */
-export interface PortableDidVerificationMethod extends Partial<DidVerificationMethod> {
+export type DidRegistrationMetadata = {
   /**
-   * Express the private key in JWK format.
+   * An error code indicating issues encountered during the DID registration process.
    *
-   * (Optional) A JSON Web Key that conforms to {@link https://datatracker.ietf.org/doc/html/rfc7517 | RFC 7517}.
+   * While the DID Core specification does not define a specific set of error codes for the result
+   * returned by the `create`, `update`, or `deactivate` functions, it is recommended to use the
+   * error codes defined in the DID Specification Registries for
+   * {@link https://www.w3.org/TR/did-spec-registries/#error | DID Resolution Metadata }.
+   *
+   * Recommended error codes include:
+   *   - `internalError`: An unexpected error occurred during DID registration process.
+   *   - `invalidDid`: The provided DID is invalid.
+   *   - `invalidDidDocument`: The provided DID document does not conform to valid syntax.
+   *   - `invalidDidDocumentLength`: The byte length of the provided DID document does not match the expected value.
+   *   - `invalidSignature`: Verification of a signature failed.
+   *   - `methodNotSupported`: The DID method specified is not supported.
+   *   - Custom error codes can also be provided as strings.
    */
-  privateKeyJwk?: Jwk;
+  error?: string;
 
-  /**
-   * Optionally specify the purposes for which a verification method is intended to be used in a DID
-   * document.
-   *
-   * The `purposes` property defines the specific
-   * {@link DidVerificationRelationship | verification relationships} between the DID subject and
-   * the verification method. This enables the verification method to be utilized for distinct
-   * actions such as authentication, assertion, key agreement, capability delegation, and others. It
-   * is important for verifiers to recognize that a verification method must be associated with the
-   * relevant purpose in the DID document to be valid for that specific use case.
-   *
-   * @example
-   * ```ts
-   * const verificationMethod: PortableDidVerificationMethod = {
-   *   publicKeyJwk: {
-   *     kty: "OKP",
-   *     crv: "X25519",
-   *     x: "7XdJtNmJ9pV_O_3mxWdn6YjiHJ-HhNkdYQARzVU_mwY",
-   *     kid: "xtsuKULPh6VN9fuJMRwj66cDfQyLaxuXHkMlmAe_v6I"
-   *   },
-   *   privateKeyJwk: {
-   *     kty: "OKP",
-   *     crv: "X25519",
-   *     d: "qM1E646TMZwFcLwRAFwOAYnTT_AvbBd3NBGtGRKTyU8",
-   *     x: "7XdJtNmJ9pV_O_3mxWdn6YjiHJ-HhNkdYQARzVU_mwY",
-   *     kid: "xtsuKULPh6VN9fuJMRwj66cDfQyLaxuXHkMlmAe_v6I"
-   *   },
-   *   purposes: ['authentication', 'assertionMethod']
-   * };
-   * ```
-   */
-  purposes?: (DidVerificationRelationship | keyof typeof DidVerificationRelationship)[];
-}
+  // Additional output metadata generated during DID registration.
+  [key: string]: any;
+};
 
 /**
  * Base abstraction for all Decentralized Identifier (DID) method implementations.

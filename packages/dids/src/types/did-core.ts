@@ -215,7 +215,7 @@ export interface DidDocument {
  *
  * @see {@link https://www.w3.org/TR/did-core/#did-document-metadata | DID Core Specification, § DID Document Metadata}
  */
-export type DidDocumentMetadata = {
+export interface DidDocumentMetadata {
   /**
    * Timestamp of the Create operation.
    *
@@ -294,7 +294,7 @@ export type DidDocumentMetadata = {
 
   // Additional output metadata generated during DID Resolution.
   [key: string]: any;
-};
+}
 
 /**
  * Represents metadata related to the result of a DID resolution operation.

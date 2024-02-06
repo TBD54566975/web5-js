@@ -4,7 +4,7 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { LocalKeyManager } from '@web5/crypto';
 
-import type { BearerDid } from '../../src/methods/did-method.js';
+import type { BearerDid } from '../../src/bearer-did.js';
 import type { DidDocument, DidVerificationMethod } from '../../src/types/did-core.js';
 
 import { DidMethod } from '../../src/methods/did-method.js';

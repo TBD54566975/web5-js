@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { LocalKeyManager } from '@web5/crypto';
 
 import type { DidDocument } from '../../src/types/did-core.js';
-import type { PortableDid, PortableDidVerificationMethod } from '../../src/methods/did-method.js';
+import type { PortableDid, PortableDidVerificationMethod } from '../../src/portable-did.js';
 
 import { DidErrorCode } from '../../src/did-error.js';
 import { DidJwk } from '../../src/methods/did-jwk.js';

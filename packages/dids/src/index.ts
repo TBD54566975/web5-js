@@ -1,5 +1,7 @@
 export * from './did.js';
 export * from './did-error.js';
+export * from './bearer-did.js';
+export * from './portable-did.js';
 
 export * from './methods/did-dht.js';
 export * from './methods/did-ion.js';

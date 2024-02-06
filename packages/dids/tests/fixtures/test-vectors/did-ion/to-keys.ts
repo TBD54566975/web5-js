@@ -2,7 +2,7 @@ import type { Jwk, LocalKeyManager } from '@web5/crypto';
 
 import sinon from 'sinon';
 
-import type { BearerDid } from '../../../../src/methods/did-method.js';
+import type { BearerDid } from '../../../../src/bearer-did.js';
 
 type TestVector = {
   [key: string]: {

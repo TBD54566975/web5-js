@@ -11,7 +11,9 @@ import type {
 import { Convert } from '@web5/common';
 import { LocalKeyManager } from '@web5/crypto';
 
-import type { BearerDid, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
+import type { BearerDid } from '../bearer-did.js';
+import type { DidMetadata, PortableDid } from '../portable-did.js';
+import type { DidCreateOptions, DidCreateVerificationMethod } from './did-method.js';
 import type { DidDocument, DidResolutionOptions, DidResolutionResult, DidVerificationMethod } from '../types/did-core.js';
 
 import { Did } from '../did.js';

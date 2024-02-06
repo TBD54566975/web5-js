@@ -2,6 +2,7 @@ import type { Packet, TxtAnswer, TxtData } from '@dnsquery/dns-packet';
 import type {
   Jwk,
   Signer,
+  CryptoApi,
   KeyIdentifier,
   KmsExportKeyParams,
   KmsImportKeyParams,
@@ -11,10 +12,12 @@ import type {
 
 import bencode from 'bencode';
 import { Convert } from '@web5/common';
-import { CryptoApi, computeJwkThumbprint, Ed25519, LocalKeyManager, Secp256k1, Secp256r1 } from '@web5/crypto';
+import { computeJwkThumbprint, Ed25519, LocalKeyManager, Secp256k1, Secp256r1 } from '@web5/crypto';
 import { AUTHORITATIVE_ANSWER, decode as dnsPacketDecode, encode as dnsPacketEncode } from '@dnsquery/dns-packet';
 
-import type { BearerDid, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
+import type { BearerDid } from '../bearer-did.js';
+import type { DidMetadata, PortableDid } from '../portable-did.js';
+import type { DidCreateOptions, DidCreateVerificationMethod, DidRegistrationResult } from './did-method.js';
 import type {
   DidService,
   DidDocument,
@@ -39,7 +42,7 @@ import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
  *
  * @see {@link https://www.bittorrent.org/beps/bep_0044.html | BEP44}
  */
-interface Bep44Message {
+export interface Bep44Message {
   /**
    * The public key bytes of the Identity Key, which serves as the identifier in the DHT network for
    * the corresponding BEP44 message.
@@ -112,8 +115,8 @@ export interface DidDhtCreateOptions<TKms> extends DidCreateOptions<TKms> {
 
   /**
    * Optional. The URI of a server involved in executing DID method operations. In the context of
-   * DID creation, the endpoint is expected to be a Pkarr relay. If not specified, a default gateway
-   * node is used.
+   * DID creation, the endpoint is expected to be a DID DHT Gateway or Pkarr relay. If not
+   * specified, a default gateway node is used.
    */
   gatewayUri?: string;
 
@@ -203,9 +206,10 @@ export interface DidDhtCreateOptions<TKms> extends DidCreateOptions<TKms> {
 }
 
 /**
- * The default Pkarr relay server to use when publishing and resolving DID documents.
+ * The default DID DHT Gateway or Pkarr Relay server to use when publishing and resolving DID
+ * documents.
  */
-const DEFAULT_PKARR_RELAY = 'https://diddht.tbddev.org';
+const DEFAULT_GATEWAY_URI = 'https://diddht.tbddev.org';
 
 /**
  * The version of the DID DHT specification that is implemented by this library.
@@ -529,10 +533,11 @@ export class DidDht extends DidMethod {
     // signer convenience function, and URI.
     const did = await DidDht.fromPublicKeys({ keyManager, options, ...keySet });
 
-    // By default, publish the DID document to a DHT operations endpoint unless explicitly disabled.
-    did.metadata.published = options.publish ?? true
-      ? await this.publish({ did, gatewayUri: options.gatewayUri })
-      : false;
+    // By default, publish the DID document to a DHT Gateway unless explicitly disabled.
+    if (options.publish ?? true) {
+      const registrationResult = await DidDht.publish({ did, gatewayUri: options.gatewayUri });
+      did.metadata = registrationResult.didDocumentMetadata;
+    }
 
     return did;
   }
@@ -604,9 +609,10 @@ export class DidDht extends DidMethod {
       const did = await DidDht.fromPublicKeys({ keyManager, verificationMethods, options });
 
       // By default, the DID document will NOT be published unless explicitly enabled.
-      did.metadata.published = options.publish
-        ? await this.publish({ did, gatewayUri: options.gatewayUri })
-        : false;
+      if (options.publish) {
+        const registrationResult = await DidDht.publish({ did, gatewayUri: options.gatewayUri });
+        did.metadata = registrationResult.didDocumentMetadata;
+      }
 
       return did;
     }
@@ -651,30 +657,31 @@ export class DidDht extends DidMethod {
    * - For existing, unpublished DIDs, it can be used to publish the DID Document to Mainline DHT.
    * - The method relies on the specified Pkarr relay server to interface with the DHT network.
    *
-   * @param params - The parameters for the `publish` operation.
-   * @param params.did - The `BearerDid` object representing the DID to be published.
-   * @param params.gatewayUri - Optional. The URI of a server involved in executing DID
-   *                                    method operations. In the context of publishing, the
-   *                                    endpoint is expected to be a Pkarr relay. If not specified,
-   *                                    a default relay server is used.
-   * @returns A Promise resolving to a boolean indicating whether the publication was successful.
-   *
    * @example
    * ```ts
    * // Generate a new DID and keys but explicitly disable publishing.
    * const did = await DidDht.create({ options: { publish: false } });
    * // Publish the DID to the DHT.
-   * const isPublished = await DidDht.publish({ did });
-   * // `isPublished` is true if the DID was successfully published.
+   * const registrationResult = await DidDht.publish({ did });
+   * // `registrationResult.didDocumentMetadata.published` is true if the DID was successfully published.
    * ```
+   *
+   * @param params - The parameters for the `publish` operation.
+   * @param params.did - The `BearerDid` object representing the DID to be published.
+   * @param params.gatewayUri - Optional. The URI of a server involved in executing DID method
+   *                            operations. In the context of publishing, the endpoint is expected
+   *                            to be a DID DHT Gateway or Pkarr Relay. If not specified, a default
+   *                            gateway node is used.
+   * @returns A promise that resolves to a {@link DidRegistrationResult} object that contains
+   *          the result of registering the DID with a DID DHT Gateway or Pkarr relay.
    */
-  public static async publish({ did, gatewayUri = DEFAULT_PKARR_RELAY }: {
+  public static async publish({ did, gatewayUri = DEFAULT_GATEWAY_URI }: {
     did: BearerDid;
     gatewayUri?: string;
-  }): Promise<boolean> {
-    const isPublished = await DidDhtDocument.put({ did, relay: gatewayUri });
+  }): Promise<DidRegistrationResult> {
+    const registrationResult = await DidDhtDocument.put({ did, gatewayUri });
 
-    return isPublished;
+    return registrationResult;
   }
 
   /**
@@ -697,24 +704,25 @@ export class DidDht extends DidMethod {
    *
    * @param didUri - The DID to be resolved.
    * @param options - Optional parameters for resolving the DID. Unused by this DID method.
-   * @returns A Promise resolving to a {@link DidResolutionResult} object representing the result of the resolution.
+   * @returns A Promise resolving to a {@link DidResolutionResult} object representing the result of
+   *          the resolution.
    */
   public static async resolve(didUri: string, options: DidResolutionOptions = {}): Promise<DidResolutionResult> {
-    // To execute the read method operation, use the given gateway URI or a default Pkarr relay.
-    const relay = options?.gatewayUri ?? DEFAULT_PKARR_RELAY;
+    // To execute the read method operation, use the given gateway URI or a default.
+    const gatewayUri = options?.gatewayUri ?? DEFAULT_GATEWAY_URI;
 
     try {
       // Attempt to decode the z-base-32-encoded identifier.
       await DidDhtUtils.identifierToIdentityKey({ didUri });
 
       // Attempt to retrieve the DID document and metadata from the DHT network.
-      const { didDocument, didMetadata } = await DidDhtDocument.get({ didUri, relay });
+      const { didDocument, didDocumentMetadata } = await DidDhtDocument.get({ didUri, gatewayUri });
 
       // If the DID document was retrieved successfully, return it.
       return {
         ...EMPTY_DID_RESOLUTION_RESULT,
         didDocument,
-        didDocumentMetadata: { published: true, ...didMetadata }
+        didDocumentMetadata
       };
 
     } catch (error: any) {
@@ -802,8 +810,10 @@ export class DidDht extends DidMethod {
       didDocument.service.push(service);
     });
 
-    // Define DID Metadata, including the registered DID types (if any).
+    // Define DID Metadata, including the registered DID types (if any) and specify that the DID
+    // has not yet been published.
     const metadata: DidMetadata = {
+      published: false,
       ...options.types && { types: options.types }
     };
 
@@ -874,34 +884,38 @@ export class DidDht extends DidMethod {
  * Mainline DHT in support of DID DHT method create, resolve, update, and deactivate operations.
  *
  * This class includes methods for retrieving and publishing DID documents to and from the DHT,
- * using DNS packet encoding and Pkarr relay servers.
+ * using DNS packet encoding and DID DHT Gateway or Pkarr Relay servers.
  */
-class DidDhtDocument {
+export class DidDhtDocument {
   /**
    * Retrieves a DID document and its metadata from the DHT network.
    *
    * @param params - The parameters for the get operation.
    * @param params.didUri - The DID URI containing the Identity Key.
-   * @param params.relay - The Pkarr relay server URL.
-   * @returns A promise resolving to an object containing the DID document and its metadata.
+   * @param params.gatewayUri - The DID DHT Gateway or Pkarr Relay URI.
+   * @returns A Promise resolving to a {@link DidResolutionResult} object containing the DID
+   *          document and its metadata.
    */
-  public static async get({ didUri, relay }: {
+  public static async get({ didUri, gatewayUri }: {
     didUri: string;
-    relay: string;
-  }): Promise<{ didDocument: DidDocument, didMetadata: DidMetadata }> {
+    gatewayUri: string;
+  }): Promise<DidResolutionResult> {
     // Decode the z-base-32 DID identifier to public key as a byte array.
     const publicKeyBytes = DidDhtUtils.identifierToIdentityKeyBytes({ didUri });
 
-    // Retrieve the signed BEP44 message from a Pkarr relay.
-    const bep44Message = await DidDhtDocument.pkarrGet({ relay, publicKeyBytes });
+    // Retrieve the signed BEP44 message from a DID DHT Gateway or Pkarr relay.
+    const bep44Message = await DidDhtDocument.pkarrGet({ gatewayUri, publicKeyBytes });
 
     // Verify the signature of the BEP44 message and parse the value to a DNS packet.
     const dnsPacket = await DidDhtUtils.parseBep44GetMessage({ bep44Message });
 
-    // Convert the DNS packet to a DID document and DID metadata.
-    const { didDocument, didMetadata } = await DidDhtDocument.fromDnsPacket({ didUri, dnsPacket });
+    // Convert the DNS packet to a DID document and metadata.
+    const resolutionResult = await DidDhtDocument.fromDnsPacket({ didUri, dnsPacket });
 
-    return { didDocument, didMetadata };
+    // Set the version ID of the DID document metadata to the sequence number of the BEP44 message.
+    resolutionResult.didDocumentMetadata.versionId = bep44Message.seq.toString();
+
+    return resolutionResult;
   }
 
   /**
@@ -909,14 +923,14 @@ class DidDhtDocument {
    *
    * @param params - The parameters to use when publishing the DID document to the DHT network.
    * @param params.did - The DID object whose DID document will be published.
-   * @param params.relay - The Pkarr relay to use when publishing the DID document.
-   * @returns A promise that resolves to `true` if the DID document was published successfully.
-   *          If publishing fails, `false` is returned.
+   * @param params.gatewayUri - The DID DHT Gateway or Pkarr Relay URI.
+   * @returns A promise that resolves to a {@link DidRegistrationResult} object that contains
+   *          the result of registering the DID with a DID DHT Gateway or Pkarr relay.
    */
-  public static async put({ did, relay }: {
+  public static async put({ did, gatewayUri }: {
     did: BearerDid;
-    relay: string;
-  }): Promise<boolean> {
+    gatewayUri: string;
+  }): Promise<DidRegistrationResult> {
     // Convert the DID document and DID metadata (such as DID types) to a DNS packet.
     const dnsPacket = await DidDhtDocument.toDnsPacket({
       didDocument : did.didDocument,
@@ -931,31 +945,43 @@ class DidDhtDocument {
     });
 
     // Publish the DNS packet to the DHT network.
-    const putResult = await DidDhtDocument.pkarrPut({ relay, bep44Message });
+    const putResult = await DidDhtDocument.pkarrPut({ gatewayUri, bep44Message });
 
-    return putResult;
+    // Update the DID metadata with the version ID and the publishing result.
+    const didRegistrationResult: DidRegistrationResult = {
+      didDocument         : did.didDocument,
+      didDocumentMetadata : {
+        ...did.metadata,
+        published : putResult,
+        versionId : bep44Message.seq.toString()
+      },
+      didRegistrationMetadata: {}
+    };
+
+    return didRegistrationResult;
   }
 
   /**
-   * Retrieves a signed BEP44 message from a Pkarr relay server.
+   * Retrieves a signed BEP44 message from a DID DHT Gateway or Pkarr Relay server.
    *
    * @see {@link https://github.com/Nuhvi/pkarr/blob/main/design/relays.md | Pkarr Relay design}
    *
-   * @param relay - The Pkarr relay server URL.
-   * @param publicKeyBytes - The public key bytes of the Identity Key, z-base-32 encoded.
+   * @param params
+   * @param params.gatewayUri - The DID DHT Gateway or Pkarr Relay URI.
+   * @param params.publicKeyBytes - The public key bytes of the Identity Key, z-base-32 encoded.
    * @returns A promise resolving to a BEP44 message containing the signed DNS packet.
   */
-  private static async pkarrGet({ relay, publicKeyBytes }: {
+  private static async pkarrGet({ gatewayUri, publicKeyBytes }: {
     publicKeyBytes: Uint8Array;
-    relay: string;
+    gatewayUri: string;
   }): Promise<Bep44Message> {
     // The identifier (key in the DHT) is the z-base-32 encoding of the Identity Key.
     const identifier = Convert.uint8Array(publicKeyBytes).toBase32Z();
 
-    // Concatenate the Pkarr relay URL with the identifier to form the full URL.
-    const url = new URL(identifier, relay).href;
+    // Concatenate the gateway URI with the identifier to form the full URL.
+    const url = new URL(identifier, gatewayUri).href;
 
-    // Transmit the Get request to the Pkarr relay and get the response.
+    // Transmit the Get request to the DID DHT Gateway or Pkarr Relay and get the response.
     let response: Response;
     try {
       response = await fetch(url, { method: 'GET' });
@@ -992,23 +1018,24 @@ class DidDhtDocument {
   }
 
   /**
-   * Publishes a signed BEP44 message to a Pkarr relay server.
+   * Publishes a signed BEP44 message to a DID DHT Gateway or Pkarr Relay server.
    *
    * @see {@link https://github.com/Nuhvi/pkarr/blob/main/design/relays.md | Pkarr Relay design}
    *
-   * @param relay - The Pkarr relay server URL.
-   * @param bep44Message - The BEP44 message to be published, containing the signed DNS packet.
+   * @param params - The parameters to use when publishing a signed BEP44 message to a Pkarr relay server.
+   * @param params.gatewayUri - The DID DHT Gateway or Pkarr Relay URI.
+   * @param params.bep44Message - The BEP44 message to be published, containing the signed DNS packet.
    * @returns A promise resolving to `true` if the message was successfully published, otherwise `false`.
    */
-  private static async pkarrPut({ relay, bep44Message }: {
+  private static async pkarrPut({ gatewayUri, bep44Message }: {
     bep44Message: Bep44Message;
-    relay: string;
+    gatewayUri: string;
   }): Promise<boolean> {
     // The identifier (key in the DHT) is the z-base-32 encoding of the Identity Key.
     const identifier = Convert.uint8Array(bep44Message.k).toBase32Z();
 
-    // Concatenate the Pkarr relay URL with the identifier to form the full URL.
-    const url = new URL(identifier, relay).href;
+    // Concatenate the gateway URI with the identifier to form the full URL.
+    const url = new URL(identifier, gatewayUri).href;
 
     // Construct the body of the request according to the Pkarr relay specification.
     const body = new Uint8Array(bep44Message.v.length + 72);
@@ -1041,15 +1068,20 @@ class DidDhtDocument {
    * @param params - The parameters to use when converting a DNS packet to a DID document.
    * @param params.didUri - The DID URI of the DID document.
    * @param params.dnsPacket - The DNS packet to convert to a DID document.
-   * @returns A promise that resolves to a DID document.
+   * @returns A Promise resolving to a {@link DidResolutionResult} object containing the DID
+   *          document and its metadata.
    */
   private static async fromDnsPacket({ didUri, dnsPacket }: {
     didUri: string;
     dnsPacket: Packet;
-  }): Promise<{ didDocument: DidDocument, didMetadata: DidMetadata }> {
+  }): Promise<DidResolutionResult> {
     // Begin constructing the DID Document.
     const didDocument: DidDocument = { id: didUri };
-    const didMetadata: DidMetadata = {};
+
+    // Since the DID document is being retrieved from the DHT, it is considered published.
+    const didDocumentMetadata: DidMetadata = {
+      published: true
+    };
 
     const idLookup = new Map<string, string>();
 
@@ -1147,7 +1179,7 @@ class DidDhtDocument {
           const { id: types } = DidDhtUtils.parseTxtDataToObject(answer.data);
 
           // Add the DID DHT Registered DID Types represented as numbers to DID metadata.
-          didMetadata.types = types.split(VALUE_SEPARATOR).map(typeInteger => Number(typeInteger));
+          didDocumentMetadata.types = types.split(VALUE_SEPARATOR).map(typeInteger => Number(typeInteger));
 
           break;
         }
@@ -1175,7 +1207,7 @@ class DidDhtDocument {
       }
     }
 
-    return { didDocument, didMetadata };
+    return { didDocument, didDocumentMetadata, didResolutionMetadata: {} };
   }
 
   /**
@@ -1349,7 +1381,7 @@ class DidDhtDocument {
  * This includes functions for creating and parsing BEP44 messages, handling identity keys, and
  * converting between different formats and representations.
  */
-class DidDhtUtils {
+export class DidDhtUtils {
   /**
    * Creates a BEP44 put message, which is used to publish a DID document to the DHT network.
    *

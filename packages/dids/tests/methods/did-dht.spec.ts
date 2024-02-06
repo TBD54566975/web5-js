@@ -5,8 +5,8 @@ import { expect } from 'chai';
 import { Convert } from '@web5/common';
 import { LocalKeyManager } from '@web5/crypto';
 
+import type { PortableDid } from '../../src/portable-did.js';
 import type { DidResolutionResult } from '../../src/index.js';
-import type { PortableDid } from '../../src/methods/did-method.js';
 
 import { DidErrorCode } from '../../src/did-error.js';
 import { DidDht, DidDhtRegisteredDidType } from '../../src/methods/did-dht.js';
@@ -316,6 +316,17 @@ describe('DidDht', () => {
 
       expect(did.metadata).to.have.property('published', false);
       expect(fetchStub.called).to.be.false;
+    });
+
+    it('returns a version ID in DID metadata when published', async () => {
+      const did = await DidDht.create();
+      expect(did.metadata).to.have.property('versionId');
+      expect(did.metadata.versionId).to.be.a.string;
+    });
+
+    it('does not return a version ID in DID metadata when not published', async () => {
+      const did = await DidDht.create({ options: { publish: false } });
+      expect(did.metadata).to.not.have.property('versionId');
     });
 
     it('returns a DID with a getSigner function that can sign and verify data', async () => {
@@ -1028,6 +1039,29 @@ describe('DidDht', () => {
       expect(didResolutionResult.didDocumentMetadata.types).to.have.length(2);
       expect(didResolutionResult.didDocumentMetadata.types).to.include(DidDhtRegisteredDidType.FinancialInstitution);
       expect(didResolutionResult.didDocumentMetadata.types).to.include(DidDhtRegisteredDidType.WebApp);
+    });
+
+    it('returns a version ID in DID document metadata', async () => {
+      // Mock the response from the Pkarr relay rather than calling over the network.
+      fetchStub.resolves(fetchOkResponse(
+        Convert.hex('ea33e704f3a48a3392f54b28744cdfb4e24780699f92ba7df62fd486d2a2cda3f263e1c6bcbd' +
+                    '75d438be7316e5d6e94b13e98151f599cfecefad0b37432bd90a0000000065b0ed1600008400' +
+                    '0000000300000000035f6b30045f6469643439746a6f6f773435656631686b736f6f3936626d' +
+                    '7a6b777779336d686d653935643766736933657a6a796a67686d70373571796f000010000100' +
+                    '001c2000373669643d303b743d303b6b3d5f464d49553174425a63566145502d437536715542' +
+                    '6c66466f5f73665332726c4630675362693239323445045f747970045f6469643439746a6f6f' +
+                    '773435656631686b736f6f3936626d7a6b777779336d686d653935643766736933657a6a796a' +
+                    '67686d70373571796f000010000100001c2000070669643d372c36045f6469643439746a6f6f' +
+                    '773435656631686b736f6f3936626d7a6b777779336d686d653935643766736933657a6a796a' +
+                    '67686d70373571796f000010000100001c20002726763d303b766d3d6b303b617574683d6b30' +
+                    '3b61736d3d6b303b64656c3d6b303b696e763d6b30').toArrayBuffer()
+      ));
+
+      const did = 'did:dht:9tjoow45ef1hksoo96bmzkwwy3mhme95d7fsi3ezjyjghmp75qyo';
+      const didResolutionResult = await DidDht.resolve(did);
+
+      expect(didResolutionResult.didDocumentMetadata).to.have.property('versionId');
+      expect(didResolutionResult.didDocumentMetadata.versionId).to.be.a.string;
     });
 
     it('returns a notFound error if the DID is not published', async () => {

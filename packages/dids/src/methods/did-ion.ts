@@ -9,6 +9,9 @@ import type {
 import { IonDid, IonRequest } from '@decentralized-identity/ion-sdk';
 import { LocalKeyManager, computeJwkThumbprint } from '@web5/crypto';
 
+import type { BearerDid } from '../bearer-did.js';
+import type { DidCreateOptions, DidCreateVerificationMethod } from '../methods/did-method.js';
+import type { DidMetadata, PortableDid, PortableDidVerificationMethod } from '../portable-did.js';
 import type {
   DidService,
   DidDocument,
@@ -16,14 +19,6 @@ import type {
   DidResolutionOptions,
   DidVerificationMethod,
 } from '../types/did-core.js';
-import type {
-  BearerDid,
-  DidMetadata,
-  PortableDid,
-  DidCreateOptions,
-  DidCreateVerificationMethod,
-  PortableDidVerificationMethod,
-} from '../methods/did-method.js';
 
 import { Did } from '../did.js';
 import { DidMethod } from '../methods/did-method.js';
@@ -631,7 +626,7 @@ export class DidIon extends DidMethod {
 /**
  * The `DidIonUtils` class provides utility functions to support operations in the DID ION method.
  */
-class DidIonUtils {
+export class DidIonUtils {
   /**
    * Appends a specified path to a base URL, ensuring proper formatting of the resulting URL.
    *
