@@ -32,8 +32,8 @@ describe('PresentationExchange', () => {
 
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.uri!,
-        subject : issuerDid.uri!,
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
         data    : new BitcoinCredential('btcAddress123'),
       });
 
@@ -60,8 +60,8 @@ describe('PresentationExchange', () => {
     it('should return the only one verifiable credential', async () => {
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.uri!,
-        subject : issuerDid.uri!,
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
         data    : new OtherCredential('otherstuff'),
       });
 
@@ -146,8 +146,8 @@ describe('PresentationExchange', () => {
     it('should fail to create a presentation with vc that does not match presentation definition', async () => {
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.uri!,
-        subject : issuerDid.uri!,
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
         data    : new OtherCredential('otherstuff'),
       });
 

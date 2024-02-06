@@ -2,14 +2,13 @@ import type { BearerDid, PortableDid } from '@web5/dids';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { DidDht, DidKey, DidIon, Did } from '@web5/dids';
+import { DidDht, DidKey, DidIon } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import CredentialsVerifyTestVector from '../../../web5-spec/test-vectors/credentials/verify.json' assert { type: 'json' };
 
 describe('Verifiable Credential Tests', async() => {
-  // const did = await DidKey.create();
   let issuerDid: BearerDid;
 
   class StreetCredibility {
@@ -25,11 +24,11 @@ describe('Verifiable Credential Tests', async() => {
 
   describe('Verifiable Credential (VC)', () => {
     it('create vc works', async () => {
-      const subjectDid = issuerDid.uri!;
+      const subjectDid = issuerDid.uri;
 
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.uri!,
+        issuer  : issuerDid.uri,
         subject : subjectDid,
         data    : new StreetCredibility('high', true),
       });
@@ -46,8 +45,8 @@ describe('Verifiable Credential Tests', async() => {
 
       const vc = await VerifiableCredential.create({
         type    : 'TBDeveloperCredential',
-        subject : did.uri!,
-        issuer  : did.uri!,
+        subject : did.uri,
+        issuer  : did.uri,
         data    : {
           username: 'nitro'
         }
@@ -58,11 +57,11 @@ describe('Verifiable Credential Tests', async() => {
       await VerifiableCredential.verify({ vcJwt });
 
       for( const currentVc of [vc, VerifiableCredential.parseJwt({ vcJwt })]){
-        expect(currentVc.issuer).to.equal(did.uri!);
-        expect(currentVc.subject).to.equal(did.uri!);
+        expect(currentVc.issuer).to.equal(did.uri);
+        expect(currentVc.subject).to.equal(did.uri);
         expect(currentVc.type).to.equal('TBDeveloperCredential');
         expect(currentVc.vcDataModel.issuanceDate).to.not.be.undefined;
-        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: did.uri!, username: 'nitro'});
+        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: did.uri, username: 'nitro'});
       }
     });
 
@@ -71,8 +70,8 @@ describe('Verifiable Credential Tests', async() => {
 
       const vc = await VerifiableCredential.create({
         type    : 'TBDeveloperCredential',
-        subject : did.uri!,
-        issuer  : did.uri!,
+        subject : did.uri,
+        issuer  : did.uri,
         data    : {
           username: 'nitro'
         }
@@ -83,11 +82,11 @@ describe('Verifiable Credential Tests', async() => {
       await VerifiableCredential.verify({ vcJwt });
 
       for (const currentVc of [vc, VerifiableCredential.parseJwt({ vcJwt })]){
-        expect(currentVc.issuer).to.equal(did.uri!);
-        expect(currentVc.subject).to.equal(did.uri!);
+        expect(currentVc.issuer).to.equal(did.uri);
+        expect(currentVc.subject).to.equal(did.uri);
         expect(currentVc.type).to.equal('TBDeveloperCredential');
         expect(currentVc.vcDataModel.issuanceDate).to.not.be.undefined;
-        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: did.uri!, username: 'nitro'});
+        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: did.uri, username: 'nitro'});
       }
     });
 
@@ -141,11 +140,11 @@ describe('Verifiable Credential Tests', async() => {
     });
 
     it('signing with Ed25519 key works', async () => {
-      const subjectDid = issuerDid.uri!;
+      const subjectDid = issuerDid.uri;
 
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.uri!,
+        issuer  : issuerDid.uri,
         subject : subjectDid,
         data    : new StreetCredibility('high', true),
       });
@@ -163,8 +162,8 @@ describe('Verifiable Credential Tests', async() => {
 
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : did.uri!,
-        subject : did.uri!,
+        issuer  : did.uri,
+        subject : did.uri,
         data    : new StreetCredibility('high', true),
       });
 
@@ -184,13 +183,12 @@ describe('Verifiable Credential Tests', async() => {
 
     it('parseJwt checks if missing vc property', async () => {
       const did = await DidKey.create();
-      // const did = await DidKey.toKeys({ did: bearerDid });
 
       const jwt = await Jwt.sign({
         signerDid : did,
         payload   : {
-          iss : did.uri!,
-          sub : did.uri!
+          iss : did.uri,
+          sub : did.uri
         }
       });
 
@@ -202,8 +200,8 @@ describe('Verifiable Credential Tests', async() => {
     it('parseJwt returns an instance of VerifiableCredential on success', async () => {
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.uri!,
-        subject : issuerDid.uri!,
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
         data    : new StreetCredibility('high', true),
       });
 
@@ -241,16 +239,16 @@ describe('Verifiable Credential Tests', async() => {
     it('verify does not throw an exception with valid vc', async () => {
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.uri!,
-        subject : issuerDid.uri!,
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
         data    : new StreetCredibility('high', true),
       });
 
       const vcJwt = await vc.sign({did: issuerDid});
 
       const { issuer, subject, vc: credential } = await VerifiableCredential.verify({ vcJwt });
-      expect(issuer).to.equal(issuerDid.uri!);
-      expect(subject).to.equal(issuerDid.uri!);
+      expect(issuer).to.equal(issuerDid.uri);
+      expect(subject).to.equal(issuerDid.uri);
       expect(credential).to.not.be.null;
     });
 
@@ -387,12 +385,7 @@ describe('Verifiable Credential Tests', async() => {
       const vectors = CredentialsVerifyTestVector.vectors;
 
       for (const vector of vectors) {
-        const { input, errors, description } = vector;
-
-        // TODO: DID:JWK is not supported yet
-        if (description === 'verify a jwt verifiable credential signed with a did:jwk') {
-          continue;
-        }
+        const { input, errors } = vector;
 
         if (errors) {
           let errorOccurred = false;

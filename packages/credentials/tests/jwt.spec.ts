@@ -2,11 +2,10 @@ import type { JwtHeaderParams, JwtPayload, PrivateKeyJwk } from '@web5/crypto';
 
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
-import { Secp256k1 } from '@web5/crypto';
+import { Ed25519 } from '@web5/crypto';
 import { DidKey, PortableDid } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
-import { Ed25519 } from '@web5/crypto';
 
 describe('Jwt', () => {
   describe('parse()', () => {
@@ -138,7 +137,6 @@ describe('Jwt', () => {
 
       const did = await DidKey.fromKeys(portabldDid);
 
-      // const did = await DidKey.create({ options: { algorithm: 'secp256k1'} });
       const header: JwtHeaderParams = { typ: 'JWT', alg: 'EdDSA', kid: did.didDocument.verificationMethod![0].id };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
