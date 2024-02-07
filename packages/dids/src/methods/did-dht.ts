@@ -609,7 +609,7 @@ export class DidDht extends DidMethod {
    * ```
    *
    * @param params - The parameters for the import operation.
-   * @param params.portableDid - The PortableDid object to import.
+   * @param params.portableDid - The {@link PortableDid} object to import.
    * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
    *                            generate keys and sign data. If not given, a new
    *                            {@link LocalKeyManager} instance will be created and

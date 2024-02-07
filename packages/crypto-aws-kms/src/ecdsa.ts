@@ -162,8 +162,8 @@ export class EcdsaAlgorithm implements
    *
    * Note: The signature returned is normalized to low-S to prevent signature malleability. This
    * ensures that the signature can be verified by other libraries that enforce strict verification.
-   * More information on signature malleability can be found
-   * {@link @web5/crypto#Secp256k1.adjustSignatureToLowS | here}.
+   * More information on signature malleability can be found on
+   * {@link Secp256k1.adjustSignatureToLowS | here}.
    *
    * @example
    * ```ts
