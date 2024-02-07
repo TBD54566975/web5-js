@@ -150,7 +150,7 @@ open .tbdocs/docs-report.md
 http-server .tbdocs/docs
 ```
 
-The errors can be found here
+The errors can be found at `./tbdocs/summary.md`
 
 _PS: You need to have docker installed on your computer._
 
