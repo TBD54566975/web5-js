@@ -94,7 +94,7 @@ to your valuable work:
   rebase atop the upstream `main` branch. This will limit the potential for merge
   conflicts during review, and helps keep the audit trail clean. A good writeup for
   how this is done is
- [this beginner's guide to squashing commits](https://medium.com/@slamflipstrom/a-beginners-guide-to-squashing-commits-with-git-rebase-8185cf6e62ec)
+  [this beginner's guide to squashing commits](https://medium.com/@slamflipstrom/a-beginners-guide-to-squashing-commits-with-git-rebase-8185cf6e62ec)
   having trouble - feel free to ask a member or the community for help or leave the commits as-is, and flag that you'd like
   rebasing assistance in your PR! We're here to support you.
 - Open a PR in the project to bring in the code from your feature branch.
@@ -133,6 +133,26 @@ To maintain the robustness and reliability of the codebase, we highly value test
   out for help or guidance in our Web5
   [Discord](https://discord.com/channels/937858703112155166/969272658501976117)
   channel.
+
+### Documentation Generator
+
+We are using [tbdocs](https://github.com/TBD54566975/tbdocs) to check, generate and publish our SDK API Reference docs automatically to GH Pages.
+
+To see if the docs are being generated properly without errors, and to preview the generated docs locally execute the following script:
+
+```sh
+./scripts/tbdocs-check-local.sh
+
+# to see if there are any doc errors
+open .tbdocs/docs-report.md
+
+# to serve the generated docs locally using a static server (e.g. `npm i -g http-server`)
+http-server .tbdocs/docs
+```
+
+The errors can be found here
+
+_PS: You need to have docker installed on your computer._
 
 ### Project Versioning Guidelines
 
