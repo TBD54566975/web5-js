@@ -52,6 +52,10 @@ jobs:
               docsReporter: typedoc
               docsGenerator: typedoc-html
               readmeFile: packages/crypto-aws-kms/README.md
+            - file: packages/dids/src/index.ts
+              docsReporter: typedoc
+              docsGenerator: typedoc-html
+              readmeFile: packages/dids/README.md
 
       - name: Save Artifacts
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 #v3.1.3

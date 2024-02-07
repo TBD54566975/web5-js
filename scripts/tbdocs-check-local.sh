@@ -20,6 +20,10 @@ INPUT_ENTRY_POINTS="
   docsReporter: typedoc
   docsGenerator: typedoc-html
   readmeFile: packages/crypto-aws-kms/README.md
+- file: packages/dids/src/index.ts
+  docsReporter: typedoc
+  docsGenerator: typedoc-html
+  readmeFile: packages/dids/README.md
 "
 
 # Default docker image
