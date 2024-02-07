@@ -266,7 +266,6 @@ describe('PresentationExchange', () => {
 
         expect(presentation.presentationSubmission.definition_id).to.deep.equals(expectedOutput.definition_id);
         expect(presentation.presentationSubmission.descriptor_map).to.deep.equals(expectedOutput.descriptor_map);
-        // expect(presentation.presentationSubmission).to.deep.equals(expectedOutput);
       }
     });
   });
