@@ -70,7 +70,7 @@ import { getVerificationMethodTypes, keyBytesToMultibaseId, multibaseIdToKeyByte
  * const did = await DidJwk.create({ keyManager });
  *
  * // DID Resolution
- * const resolutionResult = await DidJwk.resolve({ did: did.uri });
+ * const resolutionResult = await DidKey.resolve({ did: did.uri });
  *
  * // Signature Operations
  * const signer = await did.getSigner();
