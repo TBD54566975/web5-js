@@ -510,19 +510,18 @@ export interface DidVerificationMethod {
   controller: string;
 
   /**
-   * Express the public key in JWK format.
+   * (Optional) A public key in JWK format.
    *
-   * (Optional) A JSON Web Key that conforms to {@link https://datatracker.ietf.org/doc/html/rfc7517 | RFC 7517}.
+   * A JSON Web Key (JWK) that conforms to {@link https://datatracker.ietf.org/doc/html/rfc7517 | RFC 7517}.
    */
   publicKeyJwk?: Jwk;
 
   /**
-   * (Optional) A public key encoded with a Multibase-prefix, conforming to the draft Multibase
-   * specification (https://datatracker.ietf.org/doc/draft-multiformats-multibase/). Typically used
-   * for expressing keys in formats like base58.
+   * (Optional) A public key in Multibase format.
+   *
+   * A multibase key that conforms to the draft
+   * {@link https://datatracker.ietf.org/doc/draft-multiformats-multibase/ | Multibase specification}.
    */
-  // an encoded (e.g, base58) key with a Multibase-prefix that conforms to
-  // https://datatracker.ietf.org/doc/draft-multiformats-multibase/
   publicKeyMultibase?: string;
 }
 

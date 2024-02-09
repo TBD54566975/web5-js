@@ -1,4 +1,4 @@
-import type { CryptoApi, Jwk } from '@web5/crypto';
+import type { CryptoApi, Jwk, KeyIdentifier, KeyImporterExporter, KmsExportKeyParams, KmsImportKeyParams } from '@web5/crypto';
 import type {
   JwkEs256k,
   IonDocumentModel,
@@ -9,20 +9,22 @@ import type {
 import { IonDid, IonRequest } from '@decentralized-identity/ion-sdk';
 import { LocalKeyManager, computeJwkThumbprint } from '@web5/crypto';
 
-import type { BearerDid } from '../bearer-did.js';
-import type { DidCreateOptions, DidCreateVerificationMethod } from '../methods/did-method.js';
-import type { DidMetadata, PortableDid, PortableDidVerificationMethod } from '../portable-did.js';
+import type { PortableDid } from '../types/portable-did.js';
+import type { DidCreateOptions, DidCreateVerificationMethod, DidRegistrationResult } from '../methods/did-method.js';
 import type {
   DidService,
   DidDocument,
   DidResolutionResult,
   DidResolutionOptions,
   DidVerificationMethod,
+  DidVerificationRelationship,
 } from '../types/did-core.js';
 
 import { Did } from '../did.js';
+import { BearerDid } from '../bearer-did.js';
 import { DidMethod } from '../methods/did-method.js';
 import { DidError, DidErrorCode } from '../did-error.js';
+import { getVerificationRelationshipsById } from '../utils.js';
 import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
 
 /**
@@ -139,6 +141,88 @@ export interface DidIonCreateRequest {
       document: IonDocumentModel;
     }[];
   }
+}
+
+/**
+ * Represents a {@link DidVerificationMethod | DID verification method} in the context of DID ION
+ * create, update, deactivate, and resolve operations.
+ *
+ * Unlike the DID Core standard {@link DidVerificationMethod} interface, this type is specific to
+ * the ION method operations and only includes the `id`, `publicKeyJwk`, and `purposes` properties:
+ * - The `id` property is optional and specifies the identifier fragment of the verification method.
+ * - The `publicKeyJwk` property is required and represents the public key in JWK format.
+ * - The `purposes` property is required and specifies the purposes for which the verification
+ *  method can be used.
+ *
+ * @example
+ * ```ts
+ * const verificationMethod: DidIonVerificationMethod = {
+ *   id           : 'sig',
+ *   publicKeyJwk : {
+ *     kty : 'OKP',
+ *     crv : 'Ed25519',
+ *     x   : 'o40shZrsco-CfEqk6mFsXfcP94ly3Az3gm84PzAUsXo',
+ *     kid : 'BDp0xim82GswlxnPV8TPtBdUw80wkGIF8gjFbw1x5iQ',
+ *   },
+ *   purposes: ['authentication', 'assertionMethod']
+ * };
+ * ```
+ */
+export interface DidIonVerificationMethod {
+  /**
+   * Optionally specify the identifier fragment of the verification method.
+   *
+   * If not specified, the method's ID will be generated from the key's ID or thumbprint.
+   *
+   * @example
+   * ```ts
+   * const verificationMethod: DidIonVerificationMethod = {
+   *   id: 'sig',
+   *   ...
+   * };
+   * ```
+   */
+  id?: string;
+
+  /**
+   * A public key in JWK format.
+   *
+   * A JSON Web Key (JWK) that conforms to {@link https://datatracker.ietf.org/doc/html/rfc7517 | RFC 7517}.
+   *
+   * @example
+   * ```ts
+   * const verificationMethod: DidIonVerificationMethod = {
+   *   publicKeyJwk: {
+   *     kty : "OKP",
+   *     crv : "X25519",
+   *     x   : "7XdJtNmJ9pV_O_3mxWdn6YjiHJ-HhNkdYQARzVU_mwY",
+   *     kid : "xtsuKULPh6VN9fuJMRwj66cDfQyLaxuXHkMlmAe_v6I"
+   *   },
+   *   ...
+   * };
+   * ```
+   */
+  publicKeyJwk: Jwk;
+
+  /**
+   * Specify the purposes for which a verification method is intended to be used in a DID document.
+   *
+   * The `purposes` property defines the specific
+   * {@link DidVerificationRelationship | verification relationships} between the DID subject and
+   * the verification method. This enables the verification method to be utilized for distinct
+   * actions such as authentication, assertion, key agreement, capability delegation, and others. It
+   * is important for verifiers to recognize that a verification method must be associated with the
+   * relevant purpose in the DID document to be valid for that specific use case.
+   *
+   * @example
+   * ```ts
+   * const verificationMethod: DidIonVerificationMethod = {
+   *   purposes: ['authentication', 'assertionMethod'],
+   *   ...
+   * };
+   * ```
+   */
+  purposes: (DidVerificationRelationship | keyof typeof DidVerificationRelationship)[];
 }
 
 /**
@@ -295,26 +379,80 @@ export class DidIon extends DidMethod {
       throw new Error('One or more verification method algorithms are not supported');
     }
 
-    // Check 2: Validate that the required properties for any given services are present.
+    // Check 2: Validate that the ID for any given verification method is unique.
+    const methodIds = options.verificationMethods?.filter(vm => 'id' in vm).map(vm => vm.id);
+    if (methodIds && methodIds.length !== new Set(methodIds).size) {
+      throw new Error('One or more verification method IDs are not unique');
+    }
+
+    // Check 3: Validate that the required properties for any given services are present.
     if (options.services?.some(s => !s.id || !s.type || !s.serviceEndpoint)) {
       throw new Error('One or more services are missing required properties');
     }
 
-    // Generate random key material for the ION Recovery Key, ION Update Key, and any additional
-    // verification methods.
-    const keySet = await DidIon.generateKeys({
-      keyManager,
-      verificationMethods: options.verificationMethods ?? []
+    // If no verification methods were specified, generate a default Ed25519 verification method.
+    const defaultVerificationMethod: DidCreateVerificationMethod<TKms> = {
+      algorithm : 'Ed25519' as any,
+      purposes  : ['authentication', 'assertionMethod', 'capabilityDelegation', 'capabilityInvocation']
+    };
+
+    const verificationMethodsToAdd: DidIonVerificationMethod[] = [];
+
+    // Generate random key material for additional verification methods, if any.
+    for (const vm of options.verificationMethods ?? [defaultVerificationMethod]) {
+      // Generate a random key for the verification method.
+      const keyUri = await keyManager.generateKey({ algorithm: vm.algorithm });
+      const publicKey = await keyManager.getPublicKey({ keyUri });
+
+      // Add the verification method to the DID document.
+      verificationMethodsToAdd.push({
+        id           : vm.id,
+        publicKeyJwk : publicKey,
+        purposes     : vm.purposes ?? ['authentication', 'assertionMethod', 'capabilityDelegation', 'capabilityInvocation']
+      });
+    }
+
+    // Generate a random key for the ION Recovery Key. Sidetree requires secp256k1 recovery keys.
+    const recoveryKeyUri = await keyManager.generateKey({ algorithm: DidIonRegisteredKeyType.secp256k1 });
+    const recoveryKey = await keyManager.getPublicKey({ keyUri: recoveryKeyUri });
+
+    // Generate a random key for the ION Update Key. Sidetree requires secp256k1 update keys.
+    const updateKeyUri = await keyManager.generateKey({ algorithm: DidIonRegisteredKeyType.secp256k1 });
+    const updateKey = await keyManager.getPublicKey({ keyUri: updateKeyUri });
+
+    // Compute the Long Form DID URI from the keys and services, if any.
+    const longFormDidUri = await DidIonUtils.computeLongFormDidUri({
+      recoveryKey,
+      updateKey,
+      services            : options.services ?? [],
+      verificationMethods : verificationMethodsToAdd
     });
 
-    // Create the DID object from the generated key material, including DID document, metadata,
-    // signer convenience function, and URI.
-    const did = await DidIon.fromPublicKeys({ keyManager, options, ...keySet });
+    // Expand the DID URI string to a DID document.
+    const { didDocument, didResolutionMetadata } = await DidIon.resolve(longFormDidUri, { gatewayUri: options.gatewayUri });
+    if (didDocument === null) {
+      throw new Error(`Unable to resolve DID during creation: ${didResolutionMetadata?.error}`);
+    }
+
+    // Create the BearerDid object, including the "Short Form" of the DID URI, the ION update and
+    // recovery keys, and specifying that the DID has not yet been published.
+    const did = new BearerDid({
+      uri      : longFormDidUri,
+      document : didDocument,
+      metadata : {
+        published   : false,
+        canonicalId : longFormDidUri.split(':', 3).join(':'),
+        recoveryKey,
+        updateKey
+      },
+      keyManager
+    });
 
     // By default, publish the DID document to a Sidetree node unless explicitly disabled.
-    did.metadata.published = options.publish ?? true
-      ? await this.publish({ did, gatewayUri: options.gatewayUri })
-      : false;
+    if (options.publish ?? true) {
+      const registrationResult = await DidIon.publish({ did, gatewayUri: options.gatewayUri });
+      did.metadata = registrationResult.didDocumentMetadata;
+    }
 
     return did;
   }
@@ -333,22 +471,63 @@ export class DidIon extends DidMethod {
   public static async getSigningMethod({ didDocument, methodId }: {
     didDocument: DidDocument;
     methodId?: string;
-  }): Promise<DidVerificationMethod | undefined> {
+  }): Promise<DidVerificationMethod> {
     // Verify the DID method is supported.
     const parsedDid = Did.parse(didDocument.id);
     if (parsedDid && parsedDid.method !== this.methodName) {
       throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported: ${parsedDid.method}`);
     }
 
-    // Get the ID of the first verification method intended for signing.
-    const [ firstAuthMethodId ] = didDocument.authentication || [];
-
-    // Get the verification method with either the specified ID or the first authentication method.
+    // Get the verification method with either the specified ID or the first assertion method.
     const verificationMethod = didDocument.verificationMethod?.find(
-      vm => vm.id === (methodId ?? firstAuthMethodId)
+      vm => vm.id === (methodId ?? didDocument.assertionMethod?.[0])
     );
 
+    if (!(verificationMethod && verificationMethod.publicKeyJwk)) {
+      throw new DidError(DidErrorCode.InternalError, 'A verification method intended for signing could not be determined from the DID Document');
+    }
+
     return verificationMethod;
+  }
+
+  /**
+   * Instantiates a {@link BearerDid} object for the DID ION method from a given {@link PortableDid}.
+   *
+   * This method allows for the creation of a `BearerDid` object using a previously created DID's
+   * key material, DID document, and metadata.
+   *
+   * @example
+   * ```ts
+   * // Export an existing BearerDid to PortableDid format.
+   * const portableDid = await did.export();
+   * // Reconstruct a BearerDid object from the PortableDid.
+   * const did = await DidIon.import({ portableDid });
+   * ```
+   *
+   * @param params - The parameters for the import operation.
+   * @param params.portableDid - The PortableDid object to import.
+   * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
+   *                            generate keys and sign data. If not given, a new
+   *                            {@link @web5/crypto#LocalKeyManager} instance will be created and
+   *                            used.
+   * @returns A Promise resolving to a `BearerDid` object representing the DID formed from the
+   *          provided PortableDid.
+   * @throws An error if the DID document does not contain any verification methods or the keys for
+   *         any verification method are missing in the key manager.
+   */
+  public static async import({ portableDid, keyManager = new LocalKeyManager() }: {
+    keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
+    portableDid: PortableDid;
+  }): Promise<BearerDid> {
+    // Verify the DID method is supported.
+    const parsedDid = Did.parse(portableDid.uri);
+    if (parsedDid?.method !== DidIon.methodName) {
+      throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported`);
+    }
+
+    const did = await BearerDid.import({ portableDid, keyManager });
+
+    return did;
   }
 
   /**
@@ -383,11 +562,21 @@ export class DidIon extends DidMethod {
   public static async publish({ did, gatewayUri = DEFAULT_GATEWAY_URI }: {
     did: BearerDid;
     gatewayUri?: string;
-  }): Promise<boolean> {
+  }): Promise<DidRegistrationResult> {
+    // Construct an ION verification method made up of the id, public key, and purposes from each
+    // verification method in the DID document.
+    const verificationMethods: DidIonVerificationMethod[] = did.document.verificationMethod?.map(
+      vm => ({
+        id           : vm.id,
+        publicKeyJwk : vm.publicKeyJwk!,
+        purposes     : getVerificationRelationshipsById({ didDocument: did.document, methodId: vm.id })
+      })
+    ) ?? [];
+
     // Create the ION document.
     const ionDocument = await DidIonUtils.createIonDocument({
-      services            : did.didDocument.service ?? [],
-      verificationMethods : did.didDocument.verificationMethod ?? []
+      services: did.document.service ?? [],
+      verificationMethods
     });
 
     // Construct the ION Create Operation request.
@@ -412,11 +601,28 @@ export class DidIon extends DidMethod {
         body    : JSON.stringify(createOperation)
       });
 
-      // Return true if the Create Operation was processed successfully; false otherwise.
-      return response.ok;
+      // Return the result of processing the Create operation, including the updated DID metadata
+      // with the publishing result.
+      return {
+        didDocument         : did.document,
+        didDocumentMetadata : {
+          ...did.metadata,
+          published: response.ok,
+        },
+        didRegistrationMetadata: {}
+      };
 
     } catch (error: any) {
-      throw new DidError(DidErrorCode.InternalError, `Failed to publish DID document for: ${did.uri}`);
+      return {
+        didDocument         : null,
+        didDocumentMetadata : {
+          published: false,
+        },
+        didRegistrationMetadata: {
+          error        : DidErrorCode.InternalError,
+          errorMessage : `Failed to publish DID document for: ${did.uri}`
+        }
+      };
     }
   }
 
@@ -505,122 +711,6 @@ export class DidIon extends DidMethod {
       };
     }
   }
-
-  /**
-   * Instantiates a `BearerDid` object for the DID ION method using an array of public keys.
-   *
-   * This method is used to create a `BearerDid` object from a set of public keys, typically after
-   * these keys have been generated or provided. It constructs the DID document, metadata, and
-   * other necessary components for the DID based on the provided public keys and any additional
-   * options specified.
-   *
-   * @param params - The parameters for the DID object creation.
-   * @param params.keyManager - The Key Management System to manage keys.
-   * @param params.options - Additional options for DID creation.
-   * @returns A Promise resolving to a `BearerDid` object.
-   */
-  private static async fromPublicKeys({ keyManager, recoveryKey, updateKey, verificationMethods, options }: {
-    keyManager: CryptoApi;
-    options: DidIonCreateOptions<CryptoApi | undefined>;
-  } & IonPortableDid): Promise<BearerDid> {
-    // Validate an ION Recovery Key was generated or provided.
-    if (!recoveryKey) {
-      throw new Error('Missing required input: ION Recovery Key');
-    }
-
-    // Validate an ION Update Key was generated or provided.
-    if (!updateKey) {
-      throw new Error('Missing required input: ION Update Key');
-    }
-
-    // Compute the Long Form DID URI from the keys and services, if any.
-    const id = await DidIonUtils.computeLongFormDidUri({
-      recoveryKey,
-      updateKey,
-      verificationMethods,
-      services: options.services ?? []
-    });
-
-    // Expand the DID URI string to a DID document.
-    const { didDocument, didResolutionMetadata } = await DidIon.resolve(id, { gatewayUri: options.gatewayUri });
-    if (didDocument === null) {
-      throw new Error(`Unable to resolve DID during creation: ${didResolutionMetadata?.error}`);
-    }
-
-    // Define DID Metadata, including the "Short Form" of the DID URI.
-    const metadata: DidMetadata = {
-      canonicalId: id.split(':', 3).join(':'),
-      recoveryKey,
-      updateKey
-    };
-
-    // Define a function that returns a signer for the DID.
-    const getSigner = async (params?: { keyUri?: string }) => await DidIon.getSigner({
-      didDocument,
-      keyManager,
-      keyUri: params?.keyUri
-    });
-
-    return { didDocument, getSigner, keyManager, metadata, uri: id };
-  }
-
-  /**
-   * Generates a set of keys for use in creating a `BearerDid` object for the DID ION method.
-   *
-   * This method is responsible for generating the cryptographic keys necessary for the DID,
-   * including the ION Update and Recovery keys and any verification methods specified in the
-   * `verificationMethods` parameter.
-   *
-   * @param params - The parameters for key generation.
-   * @param params.keyManager - The Key Management System used for generating keys.
-   * @param params.verificationMethods - Optional array of methods specifying key generation details.
-   * @returns A Promise resolving to a `PortableDid` object containing the generated keys.
-   */
-  private static async generateKeys({
-    keyManager,
-    verificationMethods
-  }: {
-    keyManager: CryptoApi;
-    verificationMethods: DidCreateVerificationMethod<CryptoApi | undefined>[];
-  }): Promise<IonPortableDid> {
-    let portableDid: PortableDid = {
-      verificationMethods: []
-    };
-
-    // If no verification methods were specified, generate a default Ed25519 verification method.
-    if (verificationMethods.length === 0) {
-      verificationMethods = [{
-        algorithm : 'Ed25519',
-        purposes  : ['authentication', 'assertionMethod']
-      }];
-    }
-
-    // Generate keys and add verification methods to the key set.
-    for (const vm of verificationMethods) {
-      // Generate a random key for the verification method.
-      const keyUri = await keyManager.generateKey({ algorithm: vm.algorithm });
-      const publicKey = await keyManager.getPublicKey({ keyUri });
-
-      // Add the verification method to the `PortableDid`.
-      portableDid.verificationMethods.push({
-        id           : vm.id,
-        type         : 'JsonWebKey',
-        controller   : vm.controller,
-        publicKeyJwk : publicKey,
-        purposes     : vm.purposes
-      });
-    }
-
-    // Generate a random key for the ION Recovery Key. Sidetree requires secp256k1 recovery keys.
-    const recoveryKeyUri = await keyManager.generateKey({ algorithm: DidIonRegisteredKeyType.secp256k1 });
-    const recoveryKey = await keyManager.getPublicKey({ keyUri: recoveryKeyUri });
-
-    // Generate a random key for the ION Update Key. Sidetree requires secp256k1 update keys.
-    const updateKeyUri = await keyManager.generateKey({ algorithm: DidIonRegisteredKeyType.secp256k1 });
-    const updateKey = await keyManager.getPublicKey({ keyUri: updateKeyUri });
-
-    return { ...portableDid, recoveryKey, updateKey };
-  }
 }
 
 /**
@@ -663,9 +753,9 @@ export class DidIonUtils {
    */
   public static async computeLongFormDidUri({ recoveryKey, updateKey, services, verificationMethods }: {
     recoveryKey: Jwk;
-    services: DidService[];
     updateKey: Jwk;
-    verificationMethods: PortableDidVerificationMethod[];
+    services: DidService[];
+    verificationMethods: DidIonVerificationMethod[];
   }): Promise<string> {
     // Create the ION document.
     const ionDocument = await DidIonUtils.createIonDocument({ services, verificationMethods });
@@ -727,7 +817,7 @@ export class DidIonUtils {
    */
   public static async createIonDocument({ services, verificationMethods }: {
     services: DidService[];
-    verificationMethods: PortableDidVerificationMethod[]
+    verificationMethods: DidIonVerificationMethod[]
   }): Promise<IonDocumentModel> {
     /**
      * STEP 1: Convert verification methods to ION SDK format.
@@ -735,10 +825,6 @@ export class DidIonUtils {
     const ionPublicKeys: IonPublicKeyModel[] = [];
 
     for (const vm of verificationMethods) {
-      if (!vm.publicKeyJwk) {
-        throw new Error(`Verification method does not contain a public key in JWK format`);
-      }
-
       // Use the given ID, the key's ID, or the key's thumbprint as the verification method ID.
       let methodId = vm.id ?? vm.publicKeyJwk.kid ?? await computeJwkThumbprint({ jwk: vm.publicKeyJwk });
       methodId = `${methodId.split('#').pop()}`; // Remove fragment prefix, if any.

@@ -1,12 +1,8 @@
-import type { Jwk } from '@web5/crypto';
-
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
-import { LocalKeyManager } from '@web5/crypto';
 
-import type { PortableDid } from '../../src/portable-did.js';
-import type { DidResolutionResult } from '../../src/index.js';
+import type { PortableDid } from '../../src/types/portable-did.js';
 
 import { DidErrorCode } from '../../src/did-error.js';
 import { DidDht, DidDhtRegisteredDidType } from '../../src/methods/did-dht.js';
@@ -42,18 +38,18 @@ describe('DidDht', () => {
     fetchStub.restore();
   });
 
-  describe('create', () => {
+  describe('create()', () => {
     it('creates a DID with a single verification method, by default', async () => {
       const did = await DidDht.create();
 
-      expect(did).to.have.property('didDocument');
+      expect(did).to.have.property('document');
       expect(did).to.have.property('getSigner');
       expect(did).to.have.property('keyManager');
       expect(did).to.have.property('metadata');
       expect(did).to.have.property('uri');
 
-      expect(did.didDocument).to.have.property('verificationMethod');
-      expect(did.didDocument.verificationMethod).to.have.length(1);
+      expect(did.document).to.have.property('verificationMethod');
+      expect(did.document.verificationMethod).to.have.length(1);
     });
 
     it('handles creating DIDs with additional Ed25519 verification methods', async () => {
@@ -68,8 +64,8 @@ describe('DidDht', () => {
         }
       });
 
-      expect(did.didDocument.verificationMethod).to.have.length(2);
-      expect(did.didDocument.verificationMethod?.[1].publicKeyJwk).to.have.property('crv', 'Ed25519');
+      expect(did.document.verificationMethod).to.have.length(2);
+      expect(did.document.verificationMethod?.[1].publicKeyJwk).to.have.property('crv', 'Ed25519');
     });
 
     it('handles creating DIDs with additional secp256k1 verification methods', async () => {
@@ -84,8 +80,8 @@ describe('DidDht', () => {
         }
       });
 
-      expect(did.didDocument.verificationMethod).to.have.length(2);
-      expect(did.didDocument.verificationMethod?.[1].publicKeyJwk).to.have.property('crv', 'secp256k1');
+      expect(did.document.verificationMethod).to.have.length(2);
+      expect(did.document.verificationMethod?.[1].publicKeyJwk).to.have.property('crv', 'secp256k1');
     });
 
     it('handles creating DIDs with additional secp256r1 verification methods', async () => {
@@ -100,8 +96,8 @@ describe('DidDht', () => {
         }
       });
 
-      expect(did.didDocument.verificationMethod).to.have.length(2);
-      expect(did.didDocument.verificationMethod?.[1].publicKeyJwk).to.have.property('crv', 'P-256');
+      expect(did.document.verificationMethod).to.have.length(2);
+      expect(did.document.verificationMethod?.[1].publicKeyJwk).to.have.property('crv', 'P-256');
     });
 
     it('allows one or more DID controller identifiers to be specified', async () => {
@@ -111,7 +107,7 @@ describe('DidDht', () => {
         }
       });
 
-      expect(did.didDocument).to.have.property('controller', 'did:example:1234');
+      expect(did.document).to.have.property('controller', 'did:example:1234');
 
       did = await DidDht.create({
         options: {
@@ -119,7 +115,7 @@ describe('DidDht', () => {
         }
       });
 
-      expect(did.didDocument.controller).to.deep.equal(['did:example:1234', 'did:example:5678']);
+      expect(did.document.controller).to.deep.equal(['did:example:1234', 'did:example:5678']);
     });
 
     it('allows one or more Also Known As identifiers to be specified', async () => {
@@ -129,7 +125,7 @@ describe('DidDht', () => {
         }
       });
 
-      expect(did.didDocument.alsoKnownAs).to.deep.equal(['did:example:1234']);
+      expect(did.document.alsoKnownAs).to.deep.equal(['did:example:1234']);
 
       did = await DidDht.create({
         options: {
@@ -137,7 +133,7 @@ describe('DidDht', () => {
         }
       });
 
-      expect(did.didDocument.alsoKnownAs).to.deep.equal(['did:example:1234', 'did:example:5678']);
+      expect(did.document.alsoKnownAs).to.deep.equal(['did:example:1234', 'did:example:5678']);
     });
 
     it('handles creating DIDs with additional verification methods', async () => {
@@ -152,13 +148,13 @@ describe('DidDht', () => {
         }
       });
 
-      expect(did.didDocument.verificationMethod).to.have.length(2);
+      expect(did.document.verificationMethod).to.have.length(2);
     });
 
     it('assigns 0 as the ID of the Identity Key verification method ', async () => {
       const did = await DidDht.create();
 
-      expect(did.didDocument.verificationMethod?.[0].id).to.include('#0');
+      expect(did.document.verificationMethod?.[0].id).to.include('#0');
     });
 
     it('uses the JWK thumbprint as the ID for additional verification methods, by default', async () => {
@@ -173,7 +169,7 @@ describe('DidDht', () => {
         }
       });
 
-      expect(did.didDocument.verificationMethod?.[1].id).to.include(`#${did?.didDocument?.verificationMethod?.[1]?.publicKeyJwk?.kid}`);
+      expect(did.document.verificationMethod?.[1].id).to.include(`#${did?.document?.verificationMethod?.[1]?.publicKeyJwk?.kid}`);
     });
 
     it('allows a custom ID to be specified for additional verification methods', async () => {
@@ -189,7 +185,7 @@ describe('DidDht', () => {
         }
       });
 
-      expect(did.didDocument.verificationMethod?.[1]).to.have.property('id', `${did.uri}#1`);
+      expect(did.document.verificationMethod?.[1]).to.have.property('id', `${did.uri}#1`);
     });
 
     it('handles creating DIDs with one service', async () => {
@@ -205,10 +201,10 @@ describe('DidDht', () => {
         }
       });
 
-      expect(did.didDocument.service).to.have.length(1);
-      expect(did.didDocument.service?.[0]).to.have.property('id', `${did.uri}#dwn`);
-      expect(did.didDocument.service?.[0]).to.have.property('type', 'DecentralizedWebNode');
-      expect(did.didDocument.service?.[0]).to.have.property('serviceEndpoint', 'https://example.com/dwn');
+      expect(did.document.service).to.have.length(1);
+      expect(did.document.service?.[0]).to.have.property('id', `${did.uri}#dwn`);
+      expect(did.document.service?.[0]).to.have.property('type', 'DecentralizedWebNode');
+      expect(did.document.service?.[0]).to.have.property('serviceEndpoint', 'https://example.com/dwn');
     });
 
     it('handles creating DIDs with multiple services', async () => {
@@ -229,9 +225,9 @@ describe('DidDht', () => {
         }
       });
 
-      expect(did.didDocument.service).to.have.length(2);
-      expect(did.didDocument.service?.[0]).to.have.property('id', `${did.uri}#dwn`);
-      expect(did.didDocument.service?.[1]).to.have.property('id', `${did.uri}#oid4vci`);
+      expect(did.document.service).to.have.length(2);
+      expect(did.document.service?.[0]).to.have.property('id', `${did.uri}#dwn`);
+      expect(did.document.service?.[1]).to.have.property('id', `${did.uri}#oid4vci`);
     });
 
     it('accepts a custom controller for the Identity Key verification method', async () => {
@@ -247,7 +243,7 @@ describe('DidDht', () => {
         }
       });
 
-      const identityKeyVerificationMethod = did.didDocument?.verificationMethod?.find(
+      const identityKeyVerificationMethod = did.document?.verificationMethod?.find(
         (method) => method.id.endsWith('#0')
       );
       expect(identityKeyVerificationMethod).to.have.property('controller', 'did:example:1234');
@@ -280,15 +276,15 @@ describe('DidDht', () => {
         }
       });
 
-      expect(did.didDocument.verificationMethod).to.have.length(3);
-      expect(did.didDocument.verificationMethod?.[1]).to.have.property('id', `${did.uri}#sig`);
-      expect(did.didDocument.verificationMethod?.[2]).to.have.property('id', `${did.uri}#enc`);
-      expect(did.didDocument.service).to.have.length(1);
-      expect(did.didDocument.service?.[0]).to.have.property('id', `${did.uri}#dwn`);
-      expect(did.didDocument.service?.[0]).to.have.property('type', 'DecentralizedWebNode');
-      expect(did.didDocument.service?.[0]).to.have.property('serviceEndpoint', 'https://example.com/dwn');
-      expect(did.didDocument.service?.[0]).to.have.property('enc', '#enc');
-      expect(did.didDocument.service?.[0]).to.have.property('sig', '#sig');
+      expect(did.document.verificationMethod).to.have.length(3);
+      expect(did.document.verificationMethod?.[1]).to.have.property('id', `${did.uri}#sig`);
+      expect(did.document.verificationMethod?.[2]).to.have.property('id', `${did.uri}#enc`);
+      expect(did.document.service).to.have.length(1);
+      expect(did.document.service?.[0]).to.have.property('id', `${did.uri}#dwn`);
+      expect(did.document.service?.[0]).to.have.property('type', 'DecentralizedWebNode');
+      expect(did.document.service?.[0]).to.have.property('serviceEndpoint', 'https://example.com/dwn');
+      expect(did.document.service?.[0]).to.have.property('enc', '#enc');
+      expect(did.document.service?.[0]).to.have.property('sig', '#sig');
     });
 
     it('accepts one or more DID DHT registered types', async () => {
@@ -339,6 +335,31 @@ describe('DidDht', () => {
 
       expect(signature).to.have.length(64);
       expect(isValid).to.be.true;
+    });
+
+    it('throws an error if duplicate verification method IDs are given', async () => {
+      try {
+        await DidDht.create({
+          options: {
+            verificationMethods: [
+              {
+                algorithm : 'Ed25519',
+                id        : '0',
+                purposes  : ['authentication', 'assertionMethod']
+              },
+              {
+                algorithm : 'secp256k1',
+                id        : '0',
+                purposes  : ['keyAgreement']
+              }
+            ]
+          }
+        });
+
+        expect.fail('Expected an error to be thrown.');
+      } catch (error: any) {
+        expect(error.message).to.include('verification method IDs are not unique');
+      }
     });
 
     it('throws an error if publishing fails', async () => {
@@ -428,308 +449,40 @@ describe('DidDht', () => {
     });
   });
 
-  describe('fromKeyManager()', () => {
-    let didUri: string;
-    let keyManager: LocalKeyManager;
-    let privateKey: Jwk;
-
-    before(() => {
-      keyManager = new LocalKeyManager();
-    });
-
-    beforeEach(() => {
-      didUri = 'did:dht:cf69rrqpanddbhkqecuwia314hfawfua9yr6zx433jmgm39ez57y';
-
-      privateKey = {
-        crv : 'Ed25519',
-        d   : 'PISwJgl1nOlURuaqo144O1eXuGDWggYo7XX1X8oxPJs',
-        kty : 'OKP',
-        x   : 'YX3yEc3AhjDxTkMnSuMy1wuKFnj4Ceu_WcpWZefovvo',
-        kid : 'un6C53LHsjSmjFmZsEKZKwrz0gO_LBg2nSV3a54CNoo'
-      };
-    });
-
-    it('returns a DID from existing keys present in a key manager', async () => {
-      // Mock the response from the Pkarr relay rather than calling over the network.
-      fetchStub.resolves(fetchOkResponse(
-        Convert.hex('28a37dbbf9692e2930696ade738f85a757a508442a9a454946e9a6e11a4ccd6d47e4f1839791' +
-                    'e7085d836e343d71726ed77fbad48760128e8a749cd61fcf3d0d0000000065b14cbe00008400' +
-                    '0000000200000000035f6b30045f646964346366363972727170616e646462686b7165637577' +
-                    '696133313468666177667561397972367a783433336a6d676d3339657a353779000010000100' +
-                    '001c2000373669643d303b743d303b6b3d5958337945633341686a4478546b4d6e53754d7931' +
-                    '77754b466e6a344365755f576370575a65666f76766f045f646964346366363972727170616e' +
-                    '646462686b7165637577696133313468666177667561397972367a783433336a6d676d333965' +
-                    '7a353779000010000100001c20002726763d303b766d3d6b303b617574683d6b303b61736d3d' +
-                    '6b303b64656c3d6b303b696e763d6b30').toArrayBuffer()
-      ));
-
-      // Import the test DID's keys into the key manager.
-      await keyManager.importKey({ key: privateKey });
-
-      const did = await DidDht.fromKeyManager({ didUri, keyManager });
-
-      expect(did).to.have.property('didDocument');
-      expect(did).to.have.property('getSigner');
-      expect(did).to.have.property('keyManager');
-      expect(did).to.have.property('metadata');
-      expect(did).to.have.property('uri', 'did:dht:cf69rrqpanddbhkqecuwia314hfawfua9yr6zx433jmgm39ez57y');
-    });
-
-    it('returns a DID from existing keys present in a key manager, with types', async () => {
-      const portableDid: PortableDid = {
-        uri                 : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
-        verificationMethods : [
-          {
-            id           : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0',
-            type         : 'JsonWebKey',
-            controller   : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
-            publicKeyJwk : {
-              crv : 'Ed25519',
-              kty : 'OKP',
-              x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
-              kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
-              alg : 'EdDSA',
-            },
-            privateKeyJwk: {
-              crv : 'Ed25519',
-              d   : 'hdSIwbQwVD-fNOVEgt-k3mMl44Ip1iPi58Ex6VDGxqY',
-              kty : 'OKP',
-              x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
-              kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
-              alg : 'EdDSA',
-            },
-            purposes: [
-              'authentication',
-              'assertionMethod',
-              'capabilityDelegation',
-              'capabilityInvocation',
-            ],
-          },
-        ],
-      };
-
-      const mockDidResolutionResult: DidResolutionResult = {
-        didDocument: {
-          id                 : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
-          verificationMethod : [
-            {
-              id           : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0',
-              type         : 'JsonWebKey',
-              controller   : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
-              publicKeyJwk : {
-                crv : 'Ed25519',
-                kty : 'OKP',
-                x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
-                kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
-                alg : 'EdDSA'
-              },
-            },
-          ],
-          authentication: [
-            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
-          ],
-          assertionMethod: [
-            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
-          ],
-          capabilityDelegation: [
-            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
-          ],
-          capabilityInvocation: [
-            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
-          ],
-        },
-        didDocumentMetadata: {
-          types: [6, 7]
-        },
-        didResolutionMetadata: {}
-      };
-
-      // Stub the DID resolve method to return the expected DID document and metadata.
-      const resolveStub = sinon.stub(DidDht, 'resolve').returns(Promise.resolve(mockDidResolutionResult));
-
-      // Import the test DID's keys into the key manager.
-      await keyManager.importKey({ key: portableDid.verificationMethods![0].privateKeyJwk! });
-
-      const did = await DidDht.fromKeyManager({ didUri: portableDid.uri!, keyManager });
-
-      expect(did.uri).to.equal(portableDid.uri);
-      expect(did.didDocument).to.deep.equal(mockDidResolutionResult.didDocument);
-      expect(did.metadata).to.have.property('types');
-      expect(did.metadata.types).to.deep.equal([6, 7]);
-
-      resolveStub.restore();
-    });
-
-    it('returns a DID with a getSigner function that can sign and verify data', async () => {
-      const keyManager = new LocalKeyManager();
-
-      // Create a DID to use for the test.
-      const testDid = await DidDht.create({ keyManager });
-
-      // Stub the DID resolve method to return the expected DID document and metadata.
-      const resolveStub = sinon.stub(DidDht, 'resolve').returns(Promise.resolve({
-        didDocument           : testDid.didDocument,
-        didDocumentMetadata   : testDid.metadata,
-        didResolutionMetadata : {}
-      }));
-
-      const did = await DidDht.fromKeyManager({ didUri: testDid.uri, keyManager });
-
-      const signer = await did.getSigner();
-      const data = new Uint8Array([1, 2, 3]);
-      const signature = await signer.sign({ data });
-      const isValid = await signer.verify({ data, signature });
-
-      expect(signature).to.have.length(64);
-      expect(isValid).to.be.true;
-
-      resolveStub.restore();
-    });
-
-    it('returns a DID with a getSigner function that accepts a specific keyUri', async () => {
-      const keyManager = new LocalKeyManager();
-
-      // Create a DID to use for the test.
-      const testDid = await DidDht.create({ keyManager });
-
-      // Stub the DID resolve method to return the expected DID document and metadata.
-      const resolveStub = sinon.stub(DidDht, 'resolve').returns(Promise.resolve({
-        didDocument           : testDid.didDocument,
-        didDocumentMetadata   : testDid.metadata,
-        didResolutionMetadata : {}
-      }));
-
-      const did = await DidDht.fromKeyManager({ didUri: testDid.uri, keyManager });
-
-      // Retrieve the key URI of the verification method's public key.
-      const keyUri = await did.keyManager.getKeyUri({
-        key: testDid.didDocument.verificationMethod![0].publicKeyJwk!
-      });
-
-      const signer = await did.getSigner({ keyUri });
-      const data = new Uint8Array([1, 2, 3]);
-      const signature = await signer.sign({ data });
-      const isValid = await signer.verify({ data, signature });
-
-      expect(signature).to.have.length(64);
-      expect(isValid).to.be.true;
-
-      resolveStub.restore();
-    });
-
-    it('throws an error if an unsupported DID method is given', async () => {
+  describe('getSigningMethod()', () => {
+    it('returns an error if the DID method is not supported', async () => {
       try {
-        await DidDht.fromKeyManager({ didUri: 'did:example:1234', keyManager });
+        await DidDht.getSigningMethod({ didDocument: { id: 'did:method:123' } });
         expect.fail('Expected an error to be thrown.');
       } catch (error: any) {
-        expect(error.message).to.include('Method not supported');
         expect(error.code).to.equal(DidErrorCode.MethodNotSupported);
+        expect(error.message).to.include('Method not supported');
       }
     });
 
-    it('throws an error if the resolved DID document lacks any verification methods', async () => {
-      // Stub the DID resolve method to return a DID document without a verificationMethod property.
-      sinon.stub(DidDht, 'resolve').returns(Promise.resolve({
-        didDocument           : { id: 'did:dht:...' },
-        didDocumentMetadata   : {},
-        didResolutionMetadata : {}
-      }));
-
-      const didUri = 'did:dht:...';
+    it('throws an error if the DID Document does not any verification methods', async () => {
       try {
-        await DidDht.fromKeyManager({ didUri, keyManager });
-        expect.fail('Expected an error to be thrown.');
+        await DidDht.getSigningMethod({
+          didDocument: {
+            id                 : 'did:dht:123',
+            verificationMethod : []
+          }
+        });
+        expect.fail('Error should have been thrown');
       } catch (error: any) {
-        expect(error.message).to.include('missing verification methods');
-      } finally {
-        sinon.restore();
-      }
-
-      // Stub the DID resolve method to return a DID document an empty verificationMethod property.
-      sinon.stub(DidDht, 'resolve').returns(Promise.resolve({
-        didDocument           : { id: 'did:dht:...', verificationMethod: [] },
-        didDocumentMetadata   : {},
-        didResolutionMetadata : {}
-      }));
-
-      try {
-        await DidDht.fromKeyManager({ didUri, keyManager });
-        expect.fail('Expected an error to be thrown.');
-      } catch (error: any) {
-        expect(error.message).to.include('missing verification methods');
-      } finally {
-        sinon.restore();
-      }
-    });
-
-    it('throws an error if the resolved DID document is missing a public key', async () => {
-      // Stub the DID resolution method to return a DID document with no verification methods.
-      sinon.stub(DidDht, 'resolve').returns(Promise.resolve({
-        didDocument: {
-          id                 : 'did:dht:...',
-          verificationMethod : [{
-            id         : 'did:dht:...#0',
-            type       : 'JsonWebKey',
-            controller : 'did:dht:...'
-          }],
-        },
-        didDocumentMetadata   : {},
-        didResolutionMetadata : {}
-      }));
-
-      const didUri = 'did:dht:...';
-      try {
-        await DidDht.fromKeyManager({ didUri, keyManager });
-        expect.fail('Expected an error to be thrown.');
-      } catch (error: any) {
-        expect(error.message).to.include('does not contain a public key');
-      } finally {
-        sinon.restore();
+        expect(error.message).to.include('method intended for signing could not be determined');
       }
     });
   });
 
-  describe('fromKeys', () => {
+  describe('import()', () => {
     let portableDid: PortableDid;
 
     beforeEach(() => {
       // Define a DID to use for the test.
       portableDid =  {
-        uri                 : 'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo',
-        verificationMethods : [
-          {
-            id           : 'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo#0',
-            type         : 'JsonWebKey',
-            controller   : 'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo',
-            publicKeyJwk : {
-              crv : 'Ed25519',
-              kty : 'OKP',
-              x   : 'mRDzqCLKKBGRLs-gEuSNMdMILu2cjB0wquJygGgfK40',
-              kid : 'FuIkkMgnsq-XRX8gWp3HJpqwoIbyNNsx4Uk-tdDSqbE',
-              alg : 'EdDSA'
-            },
-            privateKeyJwk: {
-              crv : 'Ed25519',
-              d   : '3OQkejC7rNiGQSPAugN8CFrIjHGemZh5hbtgD8GXUVw',
-              kty : 'OKP',
-              x   : 'mRDzqCLKKBGRLs-gEuSNMdMILu2cjB0wquJygGgfK40',
-              kid : 'FuIkkMgnsq-XRX8gWp3HJpqwoIbyNNsx4Uk-tdDSqbE',
-              alg : 'EdDSA'
-            },
-            purposes: [
-              'authentication',
-              'assertionMethod',
-              'capabilityDelegation',
-              'capabilityInvocation'
-            ],
-          },
-        ],
-      };
-    });
-
-    it('returns a previously created DID from the URI and imported key material', async () => {
-      const mockDidResolutionResult: DidResolutionResult = {
-        didDocument: {
+        uri      : 'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo',
+        document : {
           id                 : 'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo',
           verificationMethod : [
             {
@@ -758,59 +511,34 @@ describe('DidDht', () => {
             'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo#0',
           ],
         },
-        didDocumentMetadata   : {},
-        didResolutionMetadata : {}
+        metadata    : {},
+        privateKeys : [
+          {
+            crv : 'Ed25519',
+            d   : '3OQkejC7rNiGQSPAugN8CFrIjHGemZh5hbtgD8GXUVw',
+            kty : 'OKP',
+            x   : 'mRDzqCLKKBGRLs-gEuSNMdMILu2cjB0wquJygGgfK40',
+            kid : 'FuIkkMgnsq-XRX8gWp3HJpqwoIbyNNsx4Uk-tdDSqbE',
+            alg : 'EdDSA'
+          }
+        ]
       };
+    });
 
-      // Stub the DID resolve method to return the expected DID document and metadata.
-      const resolveStub = sinon.stub(DidDht, 'resolve').returns(Promise.resolve(mockDidResolutionResult));
+    it('returns a previously created DID from the URI and imported key material', async () => {
+      const did = await DidDht.import({ portableDid });
 
-      const did = await DidDht.fromKeys(portableDid);
-
-      expect(did).to.have.property('didDocument');
+      expect(did).to.have.property('document');
       expect(did).to.have.property('getSigner');
       expect(did).to.have.property('keyManager');
       expect(did).to.have.property('metadata');
       expect(did).to.have.property('uri', portableDid.uri);
-
-      resolveStub.restore();
     });
 
     it('returns a previously created DID from the URI and imported key material, with types', async () => {
       portableDid = {
-        uri                 : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
-        verificationMethods : [
-          {
-            id           : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0',
-            type         : 'JsonWebKey',
-            controller   : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
-            publicKeyJwk : {
-              crv : 'Ed25519',
-              kty : 'OKP',
-              x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
-              kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
-              alg : 'EdDSA',
-            },
-            privateKeyJwk: {
-              crv : 'Ed25519',
-              d   : 'hdSIwbQwVD-fNOVEgt-k3mMl44Ip1iPi58Ex6VDGxqY',
-              kty : 'OKP',
-              x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
-              kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
-              alg : 'EdDSA',
-            },
-            purposes: [
-              'authentication',
-              'assertionMethod',
-              'capabilityDelegation',
-              'capabilityInvocation',
-            ],
-          },
-        ],
-      };
-
-      const mockDidResolutionResult: DidResolutionResult = {
-        didDocument: {
+        uri      : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+        document : {
           id                 : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
           verificationMethod : [
             {
@@ -839,91 +567,67 @@ describe('DidDht', () => {
             'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
           ],
         },
-        didDocumentMetadata: {
+        metadata: {
           types: [6, 7]
         },
-        didResolutionMetadata: {}
+        privateKeys: [
+          {
+            crv : 'Ed25519',
+            d   : 'hdSIwbQwVD-fNOVEgt-k3mMl44Ip1iPi58Ex6VDGxqY',
+            kty : 'OKP',
+            x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
+            kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
+            alg : 'EdDSA',
+          }
+        ]
       };
 
-      // Stub the DID resolve method to return the expected DID document and metadata.
-      const resolveStub = sinon.stub(DidDht, 'resolve').returns(Promise.resolve(mockDidResolutionResult));
-
-      const did = await DidDht.fromKeys(portableDid);
+      const did = await DidDht.import({ portableDid });
 
       expect(did.metadata).to.deep.equal({ types: [6, 7] });
-
-      resolveStub.restore();
     });
 
-    it('returns a new DID created from the given verification material', async () => {
-      // Remove the URI from the test portable DID so that fromKeys() creates the DID object
-      // using only the key material.
-      const { uri, ...didWithOnlyKeys } = portableDid;
+    it('can import exported PortableDid', async () => {
+      // Create a DID to use for the test.
+      const did = await DidDht.create();
 
-      const did = await DidDht.fromKeys(didWithOnlyKeys);
+      // Export the BearerDid to a portable format.
+      const portableDid = await did.export();
 
-      expect(did).to.have.property('didDocument');
-      expect(did).to.have.property('getSigner');
-      expect(did).to.have.property('keyManager');
-      expect(did).to.have.property('metadata');
-      expect(did).to.have.property('uri', uri);
+      // Create a DID object from the portable format.
+      const didFromPortable = await DidDht.import({ portableDid });
+
+      expect(didFromPortable.document).to.deep.equal(did.document);
+      expect(didFromPortable.metadata).to.deep.equal(did.metadata);
     });
 
-    it('throws an error if no verification methods are given', async () => {
-      try {
-        // @ts-expect-error - Testing invalid argument.
-        await DidDht.fromKeys({});
-        expect.fail('Expected an error to be thrown.');
-      } catch (error: any) {
-        expect(error.message).to.include('one verification method');
-      }
-    });
-
-    it('throws an error if the given key set is empty', async () => {
-      try {
-        await DidDht.fromKeys({ verificationMethods: [] });
-        expect.fail('Expected an error to be thrown.');
-      } catch (error: any) {
-        expect(error.message).to.include('one verification method');
-      }
-    });
-
-    it('throws an error if the given key set is missing a public key', async () => {
-      delete portableDid.verificationMethods![0].publicKeyJwk;
+    it('throws an error if the DID method is not supported', async () => {
+      // Change the method to something other than 'dht'.
+      portableDid.uri = 'did:unknown:abc123';
 
       try {
-        await DidDht.fromKeys(portableDid);
+        await DidDht.import({ portableDid });
         expect.fail('Expected an error to be thrown.');
       } catch (error: any) {
-        expect(error.message).to.include('must contain a public and private key');
-      }
-    });
-
-    it('throws an error if the given key set is missing a private key', async () => {
-      delete portableDid.verificationMethods![0].privateKeyJwk;
-
-      try {
-        await DidDht.fromKeys(portableDid);
-        expect.fail('Expected an error to be thrown.');
-      } catch (error: any) {
-        expect(error.message).to.include('must contain a public and private key');
+        expect(error.code).to.equal(DidErrorCode.MethodNotSupported);
+        expect(error.message).to.include('Method not supported');
       }
     });
 
     it('throws an error if an Identity Key is not included in the given verification methods', async () => {
       // Change the ID of the verification method to something other than 0.
-      portableDid.verificationMethods![0].id = 'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo#1';
+      portableDid.document.verificationMethod![0].id = 'did:dht:urex8kbn3ewbdrjq36obf3rpg8joomzpu1gb4cfkhj3ey4y9fqgo#1';
 
       try {
-        await DidDht.fromKeys(portableDid);
+        await DidDht.import({ portableDid });
         expect.fail('Expected an error to be thrown.');
       } catch (error: any) {
-        expect(error.message).to.include('missing an Identity Key');
+        expect(error.message).to.include('must contain an Identity Key');
       }
     });
   });
 
-  describe('resolve', () => {
+  describe('resolve()', () => {
     it('resolves a published DID with a single verification method', async () => {
       // Mock the response from the Pkarr relay rather than calling over the network.
       fetchStub.resolves(fetchOkResponse(
@@ -1096,47 +800,6 @@ describe('DidDht', () => {
       const didResolutionResult = await DidDht.resolve(did);
 
       expect(didResolutionResult.didResolutionMetadata).to.have.property('error', 'invalidDidDocumentLength');
-    });
-  });
-
-  describe('toKeys()', () => {
-    it('returns a single verification method for a DID, by default', async () => {
-      // Create a DID to use for the test.
-      const did = await DidDht.create();
-
-      const portableDid = await DidDht.toKeys({ did });
-
-      expect(portableDid).to.have.property('verificationMethods');
-      expect(portableDid.verificationMethods).to.have.length(1);
-      expect(portableDid.verificationMethods[0]).to.have.property('publicKeyJwk');
-      expect(portableDid.verificationMethods[0]).to.have.property('privateKeyJwk');
-      expect(portableDid.verificationMethods[0]).to.have.property('purposes');
-      expect(portableDid.verificationMethods[0]).to.have.property('type');
-      expect(portableDid.verificationMethods[0]).to.have.property('id');
-      expect(portableDid.verificationMethods[0]).to.have.property('controller');
-    });
-
-    it('output can be used to instantiate a DID object', async () => {
-      // Create a DID to use for the test.
-      const did = await DidDht.create();
-
-      // Convert the DID to a portable format.
-      const portableDid = await DidDht.toKeys({ did });
-
-      // Stub the DID resolve method to return the expected DID document and metadata.
-      const resolveStub = sinon.stub(DidDht, 'resolve').returns(Promise.resolve({
-        didDocument           : did.didDocument,
-        didDocumentMetadata   : did.metadata,
-        didResolutionMetadata : {}
-      }));
-
-      // Create a DID object from the portable format.
-      const didFromPortable = await DidDht.fromKeys(portableDid);
-
-      expect(didFromPortable.didDocument).to.deep.equal(did.didDocument);
-      expect(didFromPortable.metadata).to.deep.equal(did.metadata);
-
-      resolveStub.restore();
     });
   });
 });

@@ -1,15 +1,11 @@
 import type {
-  Jwk,
-  Signer,
   CryptoApi,
   LocalKeyManager,
-  EnclosedSignParams,
-  EnclosedVerifyParams,
   InferKeyGeneratorAlgorithm,
 } from '@web5/crypto';
 
 import type { BearerDid } from '../bearer-did.js';
-import type { DidMetadata, PortableDid } from '../portable-did.js';
+import type { DidMetadata } from '../types/portable-did.js';
 import type {
   DidDocument,
   DidResolutionResult,
@@ -17,8 +13,6 @@ import type {
   DidVerificationMethod,
 } from '../types/did-core.js';
 
-import { getVerificationMethodByKey } from '../utils.js';
-import { DidError, DidErrorCode } from '../did-error.js';
 import { DidVerificationRelationship } from '../types/did-core.js';
 
 /**
@@ -228,139 +222,6 @@ export type DidRegistrationMetadata = {
  */
 export class DidMethod {
   /**
-   * Instantiates a `BearerDid` object from an existing DID using keys in an external Key Management
-   * System (KMS).
-   *
-   * This method returns a `BearerDid` object by resolving an existing DID URI and verifying that
-   * all associated keys are present in the provided key manager.
-   *
-   * @remarks
-   * The method verifies the presence of key material for every verification method in the DID
-   * document within the given KMS. If any key is missing, an error is thrown.
-   *
-   * This approach ensures that the resulting `BearerDid` object is fully operational with the
-   * provided key manager and that all cryptographic operations related to the DID can be performed.
-   *
-   * @param params - The parameters for the `fromKeyManager` operation.
-   * @param params.didUri - The URI of the DID to be instantiated.
-   * @param params.keyManager - The Key Management System to be used for key management operations.
-   * @returns A Promise resolving to the instantiated `BearerDid` object.
-   * @throws An error if any key in the DID document is not present in the provided KMS.
-   *
-   * @example
-   * ```ts
-   * // Assuming keyManager already contains the key material for the DID.
-   * const didUri = 'did:method:example';
-   * const did = await DidMethod.fromKeyManager({ didUri, keyManager });
-   * // The 'did' is now an instance of BearerDid, linked with the provided keyManager.
-   * ```
-   */
-  public static async fromKeyManager({ didUri, keyManager }: {
-    didUri: string;
-    keyManager: CryptoApi;
-  }): Promise<BearerDid> {
-    // Resolve the DID URI to a DID document and document metadata.
-    const { didDocument, didDocumentMetadata, didResolutionMetadata } = await this.resolve(didUri);
-
-    // Verify the DID method is supported.
-    if (didResolutionMetadata.error === DidErrorCode.MethodNotSupported) {
-      throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported`);
-    }
-
-    // Verify the DID Resolution Result includes a DID document containing verification methods.
-    if (!(didDocument && Array.isArray(didDocument.verificationMethod) && didDocument.verificationMethod.length > 0)) {
-      throw new Error(`DID document for '${didUri}' is missing verification methods`);
-    }
-
-    // Validate that the key material for every verification method in the DID document is present
-    // in the provided key manager.
-    for (let vm of didDocument.verificationMethod) {
-      if (!vm.publicKeyJwk) {
-        throw new Error(`Verification method '${vm.id}' does not contain a public key in JWK format`);
-      }
-
-      // Compute the key URI of the verification method's public key.
-      const keyUri = await keyManager.getKeyUri({ key: vm.publicKeyJwk });
-
-      // Verify that the key is present in the key manager. If not, an error is thrown.
-      await keyManager.getPublicKey({ keyUri });
-    }
-
-    const metadata: DidMetadata = didDocumentMetadata;
-
-    // Define a function that returns a signer for the DID.
-    const getSigner = async (params?: { keyUri?: string }) => await this.getSigner({
-      didDocument,
-      keyManager,
-      keyUri: params?.keyUri
-    });
-
-    return { didDocument, getSigner, keyManager, metadata, uri: didUri };
-  }
-
-  /**
-   * Given a W3C DID Document, return a {@link Signer} that can be used to sign messages,
-   * credentials, or arbitrary data.
-   *
-   * If given, the `keyUri` parameter is used to select a key from the verification methods present
-   * in the DID Document.
-   *
-   * If `keyUri` is not given, the first (or DID method specific default) verification method in the
-   * DID document is used.
-   *
-   * @param params - The parameters for the `getSigner` operation.
-   * @param params.didDocument - DID Document of the DID whose keys will be used to construct the {@link Signer}.
-   * @param params.keyManager - Web5 Crypto API used to sign and verify data.
-   * @param params.keyUri - Key URI of the key that will be used for sign and verify operations. Optional.
-   * @returns An instantiated {@link Signer} that can be used to sign and verify data.
-   */
-  public static async getSigner({ didDocument, keyManager, keyUri }: {
-    didDocument: DidDocument;
-    keyManager: CryptoApi;
-    keyUri?: string;
-  }): Promise<Signer> {
-    let publicKey: Jwk | undefined;
-
-    // If a key URI is given use the referenced key for sign and verify operations.
-    if (keyUri) {
-      // Get the public key from the key store, which also verifies that the key is present.
-      publicKey = await keyManager.getPublicKey({ keyUri });
-      // Verify the public key exists in the DID Document.
-      if (!(await getVerificationMethodByKey({ didDocument, publicKeyJwk: publicKey }))) {
-        throw new Error(`Key referenced by '${keyUri}' is not present in the provided DID Document for '${didDocument.id}'`);
-      }
-
-    } else {
-      // If a key URI is not given, use the key associated with the verification method that is used
-      // by default for sign and verify operations. The default verification method is determined by
-      // the DID method implementation.
-      ({ publicKeyJwk: publicKey } = await this.getSigningMethod({ didDocument }) ?? {});
-      if (publicKey === undefined) {
-        throw new Error(`No verification methods found in the provided DID Document for '${didDocument.id}'`);
-      }
-      // Compute the expected key URI of the signing key.
-      keyUri = await keyManager.getKeyUri({ key: publicKey });
-    }
-
-    // Both the `keyUri` and `publicKey` must be known before returning a signer.
-    if (!(keyUri && publicKey)) {
-      throw new Error(`Failed to determine the keys needed to create a signer`);
-    }
-
-    return {
-      async sign({ data }: EnclosedSignParams): Promise<Uint8Array> {
-        const signature = await keyManager.sign({ data, keyUri: keyUri! }); // `keyUri` is guaranteed to be defined at this point.
-        return signature;
-      },
-
-      async verify({ data, signature }: EnclosedVerifyParams): Promise<boolean> {
-        const isValid = await keyManager.verify({ data, key: publicKey!, signature }); // `publicKey` is guaranteed to be defined at this point.
-        return isValid;
-      }
-    };
-  }
-
-  /**
    * MUST be implemented by all DID method implementations that extend {@link DidMethod}.
    *
    * Given the W3C DID Document of a DID, return the verification method that will be used for
@@ -391,81 +252,5 @@ export class DidMethod {
    */
   public static async resolve(_didUri: string, _options?: DidResolutionOptions): Promise<DidResolutionResult> {
     throw new Error(`Not implemented: Classes extending DidMethod must implement resolve()`);
-  }
-
-  /**
-   * Converts a `BearerDid` object to a portable format containing the URI and verification methods
-   * associated with the DID.
-   *
-   * This method is useful when you need to represent the key material and metadata associated with
-   * a DID in format that can be used independently of the specific DID method implementation. It
-   * extracts both public and private keys from the DID's key manager and organizes them into a
-   * `PortableDid` structure.
-   *
-   * @remarks
-   * This method requires that the DID's key manager supports the `exportKey` operation. If the DID
-   * document does not contain any verification methods, or if the key manager does not support key
-   * export, an error is thrown.
-   *
-   * The resulting `PortableDid` will contain the same number of verification methods as the DID
-   * document, each with its associated public and private keys and the purposes for which the key
-   * can be used.
-   *
-   * @example
-   * ```ts
-   * // Assuming `did` is an instance of BearerDid
-   * const portableDid = await DidMethod.toKeys({ did });
-   * // portableDid now contains the verification methods and their associated keys.
-   * ```
-   *
-   * @param params - The parameters for the convert operation.
-   * @param params.did - The `BearerDid` object to convert to a portable format.
-   * @returns A `PortableDid` containing the URI and verification methods associated with the DID.
-   * @throws An error if the key manager does not support key export or if the DID document
-   *         is missing verification methods.
-   */
-  public static async toKeys({ did }: { did: BearerDid }): Promise<PortableDid> {
-    // First, confirm that the DID's key manager supports exporting keys.
-    if (!('exportKey' in did.keyManager && typeof did.keyManager.exportKey === 'function')) {
-      throw new Error(`The key manager of the given DID does not support exporting keys`);
-    }
-
-    // Verify the DID document contains at least one verification method.
-    if (!(Array.isArray(did.didDocument.verificationMethod) && did.didDocument.verificationMethod.length > 0)) {
-      throw new Error(`DID document for '${did.uri}' is missing verification methods`);
-    }
-
-    let portableDid: PortableDid = {
-      uri                 : did.uri,
-      verificationMethods : []
-    };
-
-    // Retrieve the key material for every verification method in the DID document from the key
-    // manager.
-    for (let vm of did.didDocument.verificationMethod) {
-      if (!vm.publicKeyJwk) {
-        throw new Error(`Verification method '${vm.id}' does not contain a public key in JWK format`);
-      }
-
-      // Compute the key URI of the verification method's public key.
-      const keyUri = await did.keyManager.getKeyUri({ key: vm.publicKeyJwk });
-
-      // Retrieve the public and private keys from the key manager.
-      const privateKey = await did.keyManager.exportKey({ keyUri });
-
-      // Collect the purposes associated with this verification method from the DID document.
-      const purposes = Object
-        .keys(DidVerificationRelationship)
-        .filter((purpose) => (did.didDocument[purpose as keyof DidDocument] as any[])?.includes(vm.id)) as DidVerificationRelationship[];
-
-      // Add the verification method to the key set.
-      portableDid.verificationMethods.push({
-        ...vm,
-        privateKeyJwk: privateKey,
-        purposes
-      });
-    }
-
-    return portableDid;
   }
 }
