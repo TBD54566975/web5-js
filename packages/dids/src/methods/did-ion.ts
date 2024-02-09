@@ -298,7 +298,8 @@ const DEFAULT_GATEWAY_URI = 'https://ion.tbd.engineering';
  * - DID Key Management: Instantiate a DID object from an existing key in a Key Management System
  *                       (KMS). If supported by the KMS, a DID's key can be exported to a portable
  *                       DID format.
- * - DID Resolution: Resolve a `did:ion` to its corresponding DID Document stored in the DHT network.
+ * - DID Resolution: Resolve a `did:ion` to its corresponding DID Document stored in the Sidetree
+ *                   network.
  * - Signature Operations: Sign and verify messages using keys associated with a DID.
  *
  * @see {@link https://identity.foundation/sidetree/spec/ | Sidetree Protocol Specification}

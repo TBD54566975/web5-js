@@ -67,7 +67,7 @@ import { getVerificationMethodTypes, keyBytesToMultibaseId, multibaseIdToKeyByte
  *
  * // DID Creation with a KMS
  * const keyManager = new LocalKeyManager();
- * const did = await DidJwk.create({ keyManager });
+ * const did = await DidKey.create({ keyManager });
  *
  * // DID Resolution
  * const resolutionResult = await DidKey.resolve({ did: did.uri });
@@ -83,7 +83,7 @@ import { getVerificationMethodTypes, keyBytesToMultibaseId, multibaseIdToKeyByte
  * const portableDid = await did.export();
  *
  * // Reconstruct a BearerDid object from a PortableDid
- * const did = await DidJwk.import(portableDid);
+ * const did = await DidKey.import(portableDid);
  * ```
  */
 export interface DidKeyCreateOptions<TKms> extends DidCreateOptions<TKms> {
@@ -351,7 +351,7 @@ export class DidKey extends DidMethod {
       throw new Error(`The 'algorithm' and 'verificationMethods' options are mutually exclusive`);
     }
 
-    // Check 2: If `verificationMethods` is given, it must contain exactly one entry since DID JWK
+    // Check 2: If `verificationMethods` is given, it must contain exactly one entry since DID Key
     // only supports a single verification method.
     if (options.verificationMethods && options.verificationMethods.length !== 1) {
       throw new Error(`The 'verificationMethods' option must contain exactly one entry`);
