@@ -443,7 +443,7 @@ export class DidKey extends DidMethod {
    * @param params.portableDid - The PortableDid object to import.
    * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
    *                            generate keys and sign data. If not given, a new
-   *                            {@link @web5/crypto#LocalKeyManager} instance will be created and
+   *                            {@link LocalKeyManager} instance will be created and
    *                            used.
    * @returns A Promise resolving to a `BearerDid` object representing the DID formed from the provided keys.
    * @throws An error if the DID document does not contain exactly one verification method.
