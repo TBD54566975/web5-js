@@ -76,53 +76,37 @@ describe('SyncManagerLevel', () => {
       await testAgent.closeStorage();
     });
 
-    // NOTE: from `dwn-sdk-js` `v0.2.10` to `v0.2.16` this test saw a significant increase in time. TODO: investigate
     it('syncs multiple records in both directions', async () => {
-      // create 2 local records.
+      // create 3 local records.
       const localRecords: string[] = [];
-      const writeResponse1Promise = testAgent.agent.dwnManager.processRequest({
-        author         : alice.did,
-        target         : alice.did,
-        messageType    : 'RecordsWrite',
-        messageOptions : {
-          dataFormat: 'text/plain'
-        },
-        dataStream: new Blob(['Hello, 1'])
-      });
-      const writeResponse2Promise = testAgent.agent.dwnManager.processRequest({
-        author         : alice.did,
-        target         : alice.did,
-        messageType    : 'RecordsWrite',
-        messageOptions : {
-          dataFormat: 'text/plain'
-        },
-        dataStream: new Blob(['Hello, 2'])
-      });
-      localRecords.push(((await writeResponse1Promise).message as RecordsWriteMessage).recordId);
-      localRecords.push(((await writeResponse2Promise).message as RecordsWriteMessage).recordId);
+      for (let i = 0; i < 3; i++) {
+        const writeResponse = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob([`Hello, ${i}`])
+        });
 
-      // create 2 remote records
+        localRecords.push((writeResponse.message as RecordsWriteMessage).recordId);
+      }
+
+      // create 3 remote records
       const remoteRecords: string[] = [];
-      const writeResponse3Promise = testAgent.agent.dwnManager.sendRequest({
-        author         : alice.did,
-        target         : alice.did,
-        messageType    : 'RecordsWrite',
-        messageOptions : {
-          dataFormat: 'text/plain'
-        },
-        dataStream: new Blob(['Hello, 3'])
-      });
-      const writeResponse4Promise = testAgent.agent.dwnManager.sendRequest({
-        author         : alice.did,
-        target         : alice.did,
-        messageType    : 'RecordsWrite',
-        messageOptions : {
-          dataFormat: 'text/plain'
-        },
-        dataStream: new Blob(['Hello, 4'])
-      });
-      remoteRecords.push(((await writeResponse3Promise).message as RecordsWriteMessage).recordId);
-      remoteRecords.push(((await writeResponse4Promise).message as RecordsWriteMessage).recordId);
+      for (let i = 0; i < 3; i++) {
+        let writeResponse = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob([`Hello, ${i}`])
+        });
+        remoteRecords.push((writeResponse.message as RecordsWriteMessage).recordId);
+      }
 
       // query local and check for only local records
       let localQueryResponse = await testAgent.agent.dwnManager.processRequest({
@@ -133,7 +117,7 @@ describe('SyncManagerLevel', () => {
       });
       let localDwnQueryReply = localQueryResponse.reply as RecordsQueryReply;
       expect(localDwnQueryReply.status.code).to.equal(200);
-      expect(localDwnQueryReply.entries).to.have.length(2);
+      expect(localDwnQueryReply.entries).to.have.length(3);
       let localRecordsFromQuery = localDwnQueryReply.entries?.map(entry => entry.recordId);
       expect(localRecordsFromQuery).to.have.members(localRecords);
 
@@ -146,7 +130,7 @@ describe('SyncManagerLevel', () => {
       });
       let remoteDwnQueryReply = remoteQueryResponse.reply as RecordsQueryReply;
       expect(remoteDwnQueryReply.status.code).to.equal(200);
-      expect(remoteDwnQueryReply.entries).to.have.length(2);
+      expect(remoteDwnQueryReply.entries).to.have.length(3);
       let remoteRecordsFromQuery = remoteDwnQueryReply.entries?.map(entry => entry.recordId);
       expect(remoteRecordsFromQuery).to.have.members(remoteRecords);
 
@@ -168,7 +152,7 @@ describe('SyncManagerLevel', () => {
       });
       localDwnQueryReply = localQueryResponse.reply as RecordsQueryReply;
       expect(localDwnQueryReply.status.code).to.equal(200);
-      expect(localDwnQueryReply.entries).to.have.length(4);
+      expect(localDwnQueryReply.entries).to.have.length(6);
       localRecordsFromQuery = localDwnQueryReply.entries?.map(entry => entry.recordId);
       expect(localRecordsFromQuery).to.have.members([...localRecords, ...remoteRecords]);
 
@@ -181,10 +165,11 @@ describe('SyncManagerLevel', () => {
       });
       remoteDwnQueryReply = remoteQueryResponse.reply as RecordsQueryReply;
       expect(remoteDwnQueryReply.status.code).to.equal(200);
-      expect(remoteDwnQueryReply.entries).to.have.length(4);
+      expect(remoteDwnQueryReply.entries).to.have.length(6);
       remoteRecordsFromQuery = remoteDwnQueryReply.entries?.map(entry => entry.recordId);
       expect(remoteRecordsFromQuery).to.have.members([...localRecords, ...remoteRecords]);
-    }).timeout(3_000);
+
+    });
 
     describe('pull()', () => {
       it('takes no action if no identities are registered', async () => {
@@ -380,7 +365,7 @@ describe('SyncManagerLevel', () => {
         localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
         expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
-      }).timeout(3_000);
+      });
     });
 
     describe('push()', () => {
@@ -576,7 +561,7 @@ describe('SyncManagerLevel', () => {
         remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
         expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
-      }).timeout(3_000);
+      });
     });
 
     describe('startSync()', () => {
