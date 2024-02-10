@@ -79,7 +79,7 @@ describe('DidResolver', () => {
     it('returns a DID verification method resource as the value of contentStream if found', async () => {
       const did = await DidJwk.create();
 
-      const result = await didResolver.dereference(did.didDocument!.verificationMethod![0].id);
+      const result = await didResolver.dereference(did.document!.verificationMethod![0].id);
       expect(result.contentStream).to.be.not.be.null;
       expect(result.dereferencingMetadata.error).to.not.exist;
 
