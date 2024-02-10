@@ -1,8 +1,8 @@
 import type { DwnResponse, Web5Agent } from '@web5/agent';
 import type {
+  PaginationCursor,
   RecordsQueryReply,
   RecordsReadOptions,
-  PaginationCursor,
   ProtocolsQueryReply,
   RecordsQueryOptions,
   RecordsWriteMessage,
