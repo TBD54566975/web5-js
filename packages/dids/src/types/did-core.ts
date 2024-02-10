@@ -215,7 +215,7 @@ export interface DidDocument {
  *
  * @see {@link https://www.w3.org/TR/did-core/#did-document-metadata | DID Core Specification, § DID Document Metadata}
  */
-export type DidDocumentMetadata = {
+export interface DidDocumentMetadata {
   /**
    * Timestamp of the Create operation.
    *
@@ -294,7 +294,7 @@ export type DidDocumentMetadata = {
 
   // Additional output metadata generated during DID Resolution.
   [key: string]: any;
-};
+}
 
 /**
  * Represents metadata related to the result of a DID resolution operation.
@@ -510,19 +510,18 @@ export interface DidVerificationMethod {
   controller: string;
 
   /**
-   * Express the public key in JWK format.
+   * (Optional) A public key in JWK format.
    *
-   * (Optional) A JSON Web Key that conforms to {@link https://datatracker.ietf.org/doc/html/rfc7517 | RFC 7517}.
+   * A JSON Web Key (JWK) that conforms to {@link https://datatracker.ietf.org/doc/html/rfc7517 | RFC 7517}.
    */
   publicKeyJwk?: Jwk;
 
   /**
-   * (Optional) A public key encoded with a Multibase-prefix, conforming to the draft Multibase
-   * specification (https://datatracker.ietf.org/doc/draft-multiformats-multibase/). Typically used
-   * for expressing keys in formats like base58.
+   * (Optional) A public key in Multibase format.
+   *
+   * A multibase key that conforms to the draft
+   * {@link https://datatracker.ietf.org/doc/draft-multiformats-multibase/ | Multibase specification}.
    */
-  // an encoded (e.g, base58) key with a Multibase-prefix that conforms to
-  // https://datatracker.ietf.org/doc/draft-multiformats-multibase/
   publicKeyMultibase?: string;
 }
 

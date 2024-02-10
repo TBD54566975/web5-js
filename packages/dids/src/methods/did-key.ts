@@ -11,7 +11,7 @@ import type {
   InferKeyGeneratorAlgorithm,
 } from '@web5/crypto';
 
-import { Convert, Multicodec, universalTypeOf } from '@web5/common';
+import { Multicodec, universalTypeOf } from '@web5/common';
 import {
   X25519,
   Ed25519,
@@ -20,44 +20,22 @@ import {
   LocalKeyManager,
 } from '@web5/crypto';
 
-import type { BearerDid, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
-import type { DidDocument, DidResolutionOptions, DidResolutionResult, DidVerificationMethod } from '../types/did-core.js';
+import type { PortableDid } from '../types/portable-did.js';
+import type { DidCreateOptions, DidCreateVerificationMethod } from './did-method.js';
+import type {
+  DidDocument,
+  DidResolutionOptions,
+  DidResolutionResult,
+  DidVerificationMethod,
+} from '../types/did-core.js';
 
 import { Did } from '../did.js';
 import { DidMethod } from './did-method.js';
+import { BearerDid } from '../bearer-did.js';
 import { DidError, DidErrorCode } from '../did-error.js';
-import { getVerificationMethodTypes } from '../utils.js';
+import { KeyWithMulticodec } from '../types/multibase.js';
 import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
-
-/**
- * Represents a cryptographic key with associated multicodec metadata.
- *
- * The `KeyWithMulticodec` type encapsulates a cryptographic key along with optional multicodec
- * information. It is primarily used in functions that convert between cryptographic keys and their
- * string representations, ensuring that the key's format and encoding are preserved and understood
- * across different systems and applications.
- */
-export type KeyWithMulticodec = {
-  /**
-   * A `Uint8Array` representing the raw bytes of the cryptographic key. This is the primary data of
-   * the type and is essential for cryptographic operations.
-   */
-  keyBytes: Uint8Array,
-
-  /**
-   * An optional number representing the multicodec code. This code uniquely identifies the encoding
-   * format or protocol associated with the key. The presence of this code is crucial for decoding
-   * the key correctly in different contexts.
-   */
-  multicodecCode?: number,
-
-  /**
-   * An optional string representing the human-readable name of the multicodec. This name provides
-   * an easier way to identify the encoding format or protocol of the key, especially when the
-   * numerical code is not immediately recognizable.
-   */
-  multicodecName?: string
-};
+import { getVerificationMethodTypes, keyBytesToMultibaseId, multibaseIdToKeyBytes } from '../utils.js';
 
 /**
  * Defines the set of options available when creating a new Decentralized Identifier (DID) with the
@@ -86,6 +64,26 @@ export type KeyWithMulticodec = {
  *     verificationMethods: [{ algorithm = 'secp256k1' }]
  *   }
  * });
+ *
+ * // DID Creation with a KMS
+ * const keyManager = new LocalKeyManager();
+ * const did = await DidKey.create({ keyManager });
+ *
+ * // DID Resolution
+ * const resolutionResult = await DidKey.resolve({ did: did.uri });
+ *
+ * // Signature Operations
+ * const signer = await did.getSigner();
+ * const signature = await signer.sign({ data: new TextEncoder().encode('Message') });
+ * const isValid = await signer.verify({ data: new TextEncoder().encode('Message'), signature });
+ *
+ * // Import / Export
+ *
+ * // Export a BearerDid object to the PortableDid format.
+ * const portableDid = await did.export();
+ *
+ * // Reconstruct a BearerDid object from a PortableDid
+ * const did = await DidKey.import(portableDid);
  * ```
  */
 export interface DidKeyCreateOptions<TKms> extends DidCreateOptions<TKms> {
@@ -345,8 +343,18 @@ export class DidKey extends DidMethod {
     keyManager?: TKms;
     options?: DidKeyCreateOptions<TKms>;
   } = {}): Promise<BearerDid> {
+    // Before processing the create operation, validate DID-method-specific requirements to prevent
+    // keys from being generated unnecessarily.
+
+    // Check 1: Validate that `algorithm` or `verificationMethods` options are not both given.
     if (options.algorithm && options.verificationMethods) {
       throw new Error(`The 'algorithm' and 'verificationMethods' options are mutually exclusive`);
+    }
+
+    // Check 2: If `verificationMethods` is given, it must contain exactly one entry since DID Key
+    // only supports a single verification method.
+    if (options.verificationMethods && options.verificationMethods.length !== 1) {
+      throw new Error(`The 'verificationMethods' option must contain exactly one entry`);
     }
 
     // Default to Ed25519 key generation if an algorithm is not given.
@@ -356,72 +364,23 @@ export class DidKey extends DidMethod {
     const keyUri = await keyManager.generateKey({ algorithm });
     const publicKey = await keyManager.getPublicKey({ keyUri });
 
-    // Create the DID object from the generated key material, including DID document, metadata,
-    // signer convenience function, and URI.
-    const did = await DidKey.fromPublicKey({ keyManager, publicKey, options });
+    // Compute the DID identifier from the public key by converting the JWK to a multibase-encoded
+    // multicodec value.
+    const identifier = await DidKeyUtils.publicKeyToMultibaseId({ publicKey });
 
-    return did;
-  }
+    // Attach the prefix `did:key` to form the complete DID URI.
+    const didUri = `did:${DidKey.methodName}:${identifier}`;
 
-  /**
-   * Instantiates a {@link BearerDid} object for the `did:jwk` method from a given
-   * {@link PortableDid}.
-   *
-   * This method allows for the creation of a `BearerDid` object using pre-existing key material,
-   * encapsulated within the `verificationMethods` array of the `PortableDid`. This is particularly
-   * useful when the key material is already available and you want to construct a `BearerDid`
-   * object based on these keys, instead of generating new keys.
-   *
-   * @remarks
-   * The `verificationMethods` array must contain exactly one key since the `did:jwk` method only
-   * supports a single verification method.
-   *
-   * The key material (both public and private keys) should be provided in JWK format. The method
-   * handles the inclusion of these keys in the DID Document and sets up the necessary verification
-   * relationships.
-   *
-   * @example
-   * ```ts
-   * // Example with an existing key in JWK format.
-   * const verificationMethods = [{
-   *   publicKeyJwk: { // public key in JWK format },
-   *   privateKeyJwk: { // private key in JWK format }
-   * }];
-   * const did = await DidKey.fromKeys({ verificationMethods });
-   * ```
-   *
-   * @param params - The parameters for the `fromKeys` operation.
-   * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
-   *                            generate keys and sign data. If not given, a new
-   *                            {@link @web5/crypto#LocalKeyManager} instance will be created and used.
-   * @returns A Promise resolving to a `BearerDid` object representing the DID formed from the provided keys.
-   * @throws An error if the `verificationMethods` array does not contain exactly one entry.
-   */
-  public static async fromKeys<TKms extends CryptoApi | undefined = undefined>({
-    keyManager = new LocalKeyManager(),
-    verificationMethods,
-    options = {}
-  }: {
-    keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
-    options?: DidKeyCreateOptions<TKms>;
-  } & PortableDid): Promise<BearerDid> {
-    if (!verificationMethods || verificationMethods.length !== 1) {
-      throw new Error(`Only one verification method can be specified but ${verificationMethods?.length ?? 0} were given`);
-    }
+    // Expand the DID URI string to a DID document.
+    const didResolutionResult = await DidKey.resolve(didUri, options);
+    const document = didResolutionResult.didDocument as DidDocument;
 
-    if (!(verificationMethods[0].privateKeyJwk && verificationMethods[0].publicKeyJwk)) {
-      throw new Error(`Verification method does not contain a public and private key in JWK format`);
-    }
-
-    // Store the private key in the key manager.
-    await keyManager.importKey({ key: verificationMethods[0].privateKeyJwk });
-
-    // Create the DID object from the given key material, including DID document, metadata,
-    // signer convenience function, and URI.
-    const did = await DidKey.fromPublicKey({
-      keyManager,
-      publicKey: verificationMethods[0].publicKeyJwk,
-      options
+    // Create the BearerDid object from the generated key material.
+    const did = new BearerDid({
+      uri      : didUri,
+      document,
+      metadata : {},
+      keyManager
     });
 
     return did;
@@ -444,20 +403,72 @@ export class DidKey extends DidMethod {
   public static async getSigningMethod({ didDocument }: {
     didDocument: DidDocument;
     methodId?: string;
-  }): Promise<DidVerificationMethod | undefined> {
+  }): Promise<DidVerificationMethod> {
     // Verify the DID method is supported.
     const parsedDid = Did.parse(didDocument.id);
     if (parsedDid && parsedDid.method !== this.methodName) {
       throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported: ${parsedDid.method}`);
     }
 
-    // Get the ID of the first verification method intended for signing.
-    const [ methodId ] = didDocument.authentication || [];
-
-    // Get the verification method with the specified ID.
+    // Attempt to ge the first verification method intended for signing claims.
+    const [ methodId ] = didDocument.assertionMethod || [];
     const verificationMethod = didDocument.verificationMethod?.find(vm => vm.id === methodId);
 
+    if (!(verificationMethod && verificationMethod.publicKeyJwk)) {
+      throw new DidError(DidErrorCode.InternalError, 'A verification method intended for signing could not be determined from the DID Document');
+    }
+
     return verificationMethod;
+  }
+
+  /**
+   * Instantiates a {@link BearerDid} object for the DID Key method from a given {@link PortableDid}.
+   *
+   * This method allows for the creation of a `BearerDid` object using a previously created DID's
+   * key material, DID document, and metadata.
+   *
+   * @remarks
+   * The `verificationMethod` array of the DID document must contain exactly one key since the
+   * `did:key` method only supports a single verification method.
+   *
+   * @example
+   * ```ts
+   * // Export an existing BearerDid to PortableDid format.
+   * const portableDid = await did.export();
+   * // Reconstruct a BearerDid object from the PortableDid.
+   * const did = await DidKey.import({ portableDid });
+   * ```
+   *
+   * @param params - The parameters for the import operation.
+   * @param params.portableDid - The PortableDid object to import.
+   * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
+   *                            generate keys and sign data. If not given, a new
+   *                            {@link LocalKeyManager} instance will be created and
+   *                            used.
+   * @returns A Promise resolving to a `BearerDid` object representing the DID formed from the provided keys.
+   * @throws An error if the DID document does not contain exactly one verification method.
+   */
+  public static async import({ portableDid, keyManager = new LocalKeyManager() }: {
+    keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
+    portableDid: PortableDid;
+  }): Promise<BearerDid> {
+    // Verify the DID method is supported.
+    const parsedDid = Did.parse(portableDid.uri);
+    if (parsedDid?.method !== DidKey.methodName) {
+      throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported`);
+    }
+
+    // Use the given PortableDid to construct the BearerDid object.
+    const did = await BearerDid.import({ portableDid, keyManager });
+
+    // Validate that the given DID document contains exactly one verification method.
+    // Note: The non-undefined assertion is necessary because the type system cannot infer that
+    // the `verificationMethod` property is defined -- which is checked by `BearerDid.import()`.
+    if (did.document.verificationMethod!.length !== 1) {
+      throw new DidError(DidErrorCode.InvalidDidDocument, `DID document must contain exactly one verification method`);
+    }
+
+    return did;
   }
 
   /**
@@ -694,7 +705,7 @@ export class DidKey extends DidMethod {
      * base58-btc encoding of the concatenation of the multicodecValue and
      * the raw publicKeyBytes.
      */
-    const kemMultibaseValue = DidKeyUtils.keyBytesToMultibaseId({
+    const kemMultibaseValue = keyBytesToMultibaseId({
       keyBytes       : publicKeyBytes,
       multicodecCode : multicodecValue
     });
@@ -793,7 +804,7 @@ export class DidKey extends DidMethod {
       keyBytes: publicKeyBytes,
       multicodecCode: multicodecValue,
       multicodecName
-    } = DidKeyUtils.multibaseIdToKeyBytes({ multibaseKeyId: multibaseValue });
+    } = multibaseIdToKeyBytes({ multibaseKeyId: multibaseValue });
 
     /**
      * 3. Ensure the proper key length of publicKeyBytes based on the multicodecValue
@@ -929,7 +940,7 @@ export class DidKey extends DidMethod {
     const {
       keyBytes: publicKeyBytes,
       multicodecCode: multicodecValue
-    } = DidKeyUtils.multibaseIdToKeyBytes({ multibaseKeyId: multibaseValue });
+    } = multibaseIdToKeyBytes({ multibaseKeyId: multibaseValue });
 
     /**
      * 4. If the multicodecValue is 0xed (Ed25519 public key), derive a public X25519 encryption key
@@ -963,38 +974,6 @@ export class DidKey extends DidMethod {
      * 7. Return publicEncryptionKey.
      */
     return publicEncryptionKey;
-  }
-
-  /**
-   * Creates a new DID using the DID Key method formed from a public key.
-   *
-   */
-  private static async fromPublicKey({ keyManager, publicKey, options }: {
-    keyManager: CryptoApi;
-    publicKey: Jwk;
-    options: DidKeyCreateOptions<CryptoApi | undefined>;
-  }): Promise<BearerDid> {
-    // Convert the public key to a byte array and encode to Base64URL format.
-    const multibaseId = await DidKeyUtils.publicKeyToMultibaseId({ publicKey });
-
-    // Attach the prefix `did:jwk` to form the complete DID URI.
-    const didUri = `did:${DidKey.methodName}:${multibaseId}`;
-
-    // Expand the DID URI string to a DID document.
-    const didResolutionResult = await DidKey.resolve(didUri, options);
-    const didDocument = didResolutionResult.didDocument as DidDocument;
-
-    // DID Metadata is initially empty for this DID method.
-    const metadata: DidMetadata = {};
-
-    // Define a function that returns a signer for the DID.
-    const getSigner = async (params?: { keyUri?: string }) => await DidKey.getSigner({
-      didDocument,
-      keyManager,
-      keyUri: params?.keyUri
-    });
-
-    return { didDocument, getSigner, keyManager, metadata, uri: didUri };
   }
 
   /**
@@ -1101,7 +1080,7 @@ export class DidKeyUtils {
    * @example
    * ```ts
    * const jwk: Jwk = { crv: 'Ed25519', kty: 'OKP', x: '...' };
-   * const { code, name } = await Jose.jwkToMulticodec({ jwk });
+   * const { code, name } = await DidKeyUtils.jwkToMulticodec({ jwk });
    * ```
    *
    * @param params - The parameters for the conversion.
@@ -1132,38 +1111,6 @@ export class DidKeyUtils {
     const code = Multicodec.getCodeFromName({ name });
 
     return { code, name };
-  }
-
-  /**
-   * Converts a cryptographic key to a multibase identifier.
-   *
-   * @remarks
-   * This method provides a way to represent a cryptographic key as a multibase identifier.
-   * It takes a `Uint8Array` representing the key, and either the multicodec code or multicodec name
-   * as input. The method first adds the multicodec prefix to the key, then encodes it into Base58
-   * format. Finally, it converts the Base58 encoded key into a multibase identifier.
-   *
-   * @example
-   * ```ts
-   * const key = new Uint8Array([...]); // Cryptographic key as Uint8Array
-   * const multibaseId = keyBytesToMultibaseId({ key, multicodecName: 'ed25519-pub' });
-   * ```
-   *
-   * @param params - The parameters for the conversion.
-   * @returns The multibase identifier as a string.
-   */
-  public static keyBytesToMultibaseId({ keyBytes, multicodecCode, multicodecName }:
-    RequireOnly<KeyWithMulticodec, 'keyBytes'>
-  ): string {
-    const prefixedKey = Multicodec.addPrefix({
-      code : multicodecCode,
-      data : keyBytes,
-      name : multicodecName
-    });
-    const prefixedKeyB58 = Convert.uint8Array(prefixedKey).toBase58Btc();
-    const multibaseKeyId = Convert.base58Btc(prefixedKeyB58).toMultibase();
-
-    return multibaseKeyId;
   }
 
   /**
@@ -1210,45 +1157,11 @@ export class DidKeyUtils {
   }
 
   /**
-   * Converts a multibase identifier to a cryptographic key.
-   *
-   * @remarks
-   * This function decodes a multibase identifier back into a cryptographic key. It first decodes the
-   * identifier from multibase format into Base58 format, and then converts it into a `Uint8Array`.
-   * Afterward, it removes the multicodec prefix, extracting the raw key data along with the
-   * multicodec code and name.
-   *
-   * @example
-   * ```ts
-   * const multibaseKeyId = '...'; // Multibase identifier of the key
-   * const { key, multicodecCode, multicodecName } = multibaseIdToKey({ multibaseKeyId });
-   * ```
-   *
-   * @param params - The parameters for the conversion.
-   * @param params.multibaseKeyId - The multibase identifier string of the key.
-   * @returns An object containing the key as a `Uint8Array` and its multicodec code and name.
-   * @throws `DidError` if the multibase identifier is invalid.
-   */
-  public static multibaseIdToKeyBytes({ multibaseKeyId }: {
-    multibaseKeyId: string
-  }): Required<KeyWithMulticodec> {
-    try {
-      const prefixedKeyB58 = Convert.multibase(multibaseKeyId).toBase58Btc();
-      const prefixedKey = Convert.base58Btc(prefixedKeyB58).toUint8Array();
-      const { code, data, name } = Multicodec.removePrefix({ prefixedData: prefixedKey });
-
-      return { keyBytes: data, multicodecCode: code, multicodecName: name };
-    } catch (error: any) {
-      throw new DidError(DidErrorCode.InvalidDid, `Invalid multibase identifier: ${multibaseKeyId}`);
-    }
-  }
-
-  /**
    * Converts a Multicodec code or name to parial JWK (JSON Web Key).
    *
    * @example
    * ```ts
-   * const partialJwk = await Jose.multicodecToJwk({ name: 'ed25519-pub' });
+   * const partialJwk = await DidKeyUtils.multicodecToJwk({ name: 'ed25519-pub' });
    * ```
    *
    * @param params - The parameters for the conversion.
@@ -1299,7 +1212,7 @@ export class DidKeyUtils {
    * @example
    * ```ts
    * const publicKey = { crv: 'Ed25519', kty: 'OKP', x: '...' };
-   * const multibaseId = await Jose.publicKeyToMultibaseId({ publicKey });
+   * const multibaseId = await DidKeyUtils.publicKeyToMultibaseId({ publicKey });
    * ```
    *
    * @param params - The parameters for the conversion.
@@ -1325,7 +1238,7 @@ export class DidKeyUtils {
     const { name: multicodecName } = await DidKeyUtils.jwkToMulticodec({ jwk: publicKey });
 
     // Compute the multibase identifier based on the provided key.
-    const multibaseId = DidKeyUtils.keyBytesToMultibaseId({
+    const multibaseId = keyBytesToMultibaseId({
       keyBytes: publicKeyBytes,
       multicodecName
     });

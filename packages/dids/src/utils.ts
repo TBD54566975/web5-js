@@ -1,7 +1,12 @@
 import type { Jwk } from '@web5/crypto';
+import type { RequireOnly } from '@web5/common';
 
+import { Convert, Multicodec } from '@web5/common';
 import { computeJwkThumbprint } from '@web5/crypto';
 
+import type { KeyWithMulticodec } from './types/multibase.js';
+
+import { DidError, DidErrorCode } from './did-error.js';
 import {
   DidService,
   DidDocument,
@@ -45,6 +50,35 @@ export interface DwnDidService extends DidService {
    * or by another entity to verify signatures created by the DID subject.
    */
   sig: string | string[];
+}
+
+/**
+ * Extracts the fragment part of a Decentralized Identifier (DID) verification method identifier.
+ *
+ * This function takes any input and aims to return only the fragment of a DID identifier,
+ * which comes after the '#' symbol in a DID string. It's designed specifically for handling
+ * DID verification method identifiers. The function returns undefined for non-string inputs, inputs
+ * that do not contain a '#', or complex data structures like objects or arrays, ensuring that only
+ * the fragment part of a DID string is extracted when present.
+ *
+ * @example
+ * ```ts
+ * console.log(extractDidFragment("did:example:123#key-1")); // Output: "key-1"
+ * console.log(extractDidFragment("did:example:123")); // Output: undefined
+ * console.log(extractDidFragment({ id: "did:example:123#0", type: "JsonWebKey" })); // Output: undefined
+ * console.log(extractDidFragment(undefined)); // Output: undefined
+ * ```
+ *
+ * @param input - The input to be processed. Can be of any type, but the function is designed
+ *                to work with strings that represent DID verification method identifiers.
+ * @returns The fragment part of the DID identifier if the input is a string containing a '#'.
+ *          Returns an empty string for all other inputs, including non-string types, strings
+ *          without a '#', and complex data structures.
+ */
+export function extractDidFragment(input: unknown): string | undefined {
+  if (typeof input !== 'string') return undefined;
+  if (input.length === 0) return undefined;
+  return input.split('#').pop();
 }
 
 /**
@@ -232,6 +266,70 @@ export function getVerificationMethodTypes({ didDocument }: {
 }
 
 /**
+ * Retrieves a list of DID verification relationships by a specific method ID from a DID document.
+ *
+ * This function examines the specified DID document to identify any verification relationships
+ * (e.g., `authentication`, `assertionMethod`) that reference a verification method by its method ID
+ * or contain an embedded verification method matching the method ID. The method ID is typically a
+ * fragment of a DID (e.g., `did:example:123#key-1`) that uniquely identifies a verification method
+ * within the DID document.
+ *
+ * The search considers both direct references to verification methods by their IDs and verification
+ * methods embedded within the verification relationship arrays. It returns an array of
+ * `DidVerificationRelationship` enums corresponding to the verification relationships that contain
+ * the specified method ID.
+ *
+ * @param params - An object containing input parameters for retrieving verification relationships.
+ * @param params.didDocument - The DID document to search for verification relationships.
+ * @param params.methodId - The method ID to search for within the verification relationships.
+ * @returns An array of `DidVerificationRelationship` enums representing the types of verification
+ *          relationships that reference the specified method ID.
+ *
+ * @example
+ * ```ts
+ * const didDocument: DidDocument = {
+ *   // ...contents of a DID document...
+ * };
+ *
+ * const relationships = getVerificationRelationshipsById({
+ *   didDocument,
+ *   methodId: 'key-1'
+ * });
+ * console.log(relationships);
+ * // Output might include ['authentication', 'assertionMethod'] if those relationships
+ * // reference or contain the specified method ID.
+ * ```
+ */
+export function getVerificationRelationshipsById({ didDocument, methodId }: {
+  didDocument: DidDocument;
+  methodId: string;
+}): DidVerificationRelationship[] {
+  const relationships: DidVerificationRelationship[] = [];
+
+  Object.keys(DidVerificationRelationship).forEach((relationship) => {
+    if (Array.isArray(didDocument[relationship as keyof DidDocument])) {
+      const relationshipMethods = didDocument[relationship as keyof DidDocument] as (string | DidVerificationMethod)[];
+
+      const methodIdFragment = extractDidFragment(methodId);
+
+      // Check if the verification relationship property contains a matching method ID either
+      // directly referenced or as an embedded verification method.
+      const containsMethodId = relationshipMethods.some(method => {
+        const isByReferenceMatch = extractDidFragment(method) === methodIdFragment;
+        const isEmbeddedMethodMatch = isDidVerificationMethod(method) && extractDidFragment(method.id) === methodIdFragment;
+        return isByReferenceMatch || isEmbeddedMethodMatch;
+      });
+
+      if (containsMethodId) {
+        relationships.push(relationship as DidVerificationRelationship);
+      }
+    }
+  });
+
+  return relationships;
+}
+
+/**
  * Checks if a given object is a {@link DidService}.
  *
  * A {@link DidService} in the context of DID resources must include the properties `id`, `type`,
@@ -365,4 +463,70 @@ export function isDidVerificationMethod(obj: unknown): obj is DidVerificationMet
   if (typeof obj.controller !== 'string') return false;
 
   return true;
+}
+
+/**
+ * Converts a cryptographic key to a multibase identifier.
+ *
+ * @remarks
+ * This method provides a way to represent a cryptographic key as a multibase identifier.
+ * It takes a `Uint8Array` representing the key, and either the multicodec code or multicodec name
+ * as input. The method first adds the multicodec prefix to the key, then encodes it into Base58
+ * format. Finally, it converts the Base58 encoded key into a multibase identifier.
+ *
+ * @example
+ * ```ts
+ * const key = new Uint8Array([...]); // Cryptographic key as Uint8Array
+ * const multibaseId = keyBytesToMultibaseId({ key, multicodecName: 'ed25519-pub' });
+ * ```
+ *
+ * @param params - The parameters for the conversion.
+ * @returns The multibase identifier as a string.
+ */
+export function keyBytesToMultibaseId({ keyBytes, multicodecCode, multicodecName }:
+  RequireOnly<KeyWithMulticodec, 'keyBytes'>
+): string {
+  const prefixedKey = Multicodec.addPrefix({
+    code : multicodecCode,
+    data : keyBytes,
+    name : multicodecName
+  });
+  const prefixedKeyB58 = Convert.uint8Array(prefixedKey).toBase58Btc();
+  const multibaseKeyId = Convert.base58Btc(prefixedKeyB58).toMultibase();
+
+  return multibaseKeyId;
+}
+
+/**
+ * Converts a multibase identifier to a cryptographic key.
+ *
+ * @remarks
+ * This function decodes a multibase identifier back into a cryptographic key. It first decodes the
+ * identifier from multibase format into Base58 format, and then converts it into a `Uint8Array`.
+ * Afterward, it removes the multicodec prefix, extracting the raw key data along with the
+ * multicodec code and name.
+ *
+ * @example
+ * ```ts
+ * const multibaseKeyId = '...'; // Multibase identifier of the key
+ * const { key, multicodecCode, multicodecName } = multibaseIdToKey({ multibaseKeyId });
+ * ```
+ *
+ * @param params - The parameters for the conversion.
+ * @param params.multibaseKeyId - The multibase identifier string of the key.
+ * @returns An object containing the key as a `Uint8Array` and its multicodec code and name.
+ * @throws `DidError` if the multibase identifier is invalid.
+ */
+export function multibaseIdToKeyBytes({ multibaseKeyId }: {
+  multibaseKeyId: string
+}): Required<KeyWithMulticodec> {
+  try {
+    const prefixedKeyB58 = Convert.multibase(multibaseKeyId).toBase58Btc();
+    const prefixedKey = Convert.base58Btc(prefixedKeyB58).toUint8Array();
+    const { code, data, name } = Multicodec.removePrefix({ prefixedData: prefixedKey });
+
+    return { keyBytes: data, multicodecCode: code, multicodecName: name };
+  } catch (error: any) {
+    throw new DidError(DidErrorCode.InvalidDid, `Invalid multibase identifier: ${multibaseKeyId}`);
+  }
 }

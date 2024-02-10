@@ -2,6 +2,7 @@ import type { Packet, TxtAnswer, TxtData } from '@dnsquery/dns-packet';
 import type {
   Jwk,
   Signer,
+  CryptoApi,
   KeyIdentifier,
   KmsExportKeyParams,
   KmsImportKeyParams,
@@ -11,10 +12,11 @@ import type {
 
 import bencode from 'bencode';
 import { Convert } from '@web5/common';
-import { CryptoApi, computeJwkThumbprint, Ed25519, LocalKeyManager, Secp256k1, Secp256r1 } from '@web5/crypto';
+import { computeJwkThumbprint, Ed25519, LocalKeyManager, Secp256k1, Secp256r1 } from '@web5/crypto';
 import { AUTHORITATIVE_ANSWER, decode as dnsPacketDecode, encode as dnsPacketEncode } from '@dnsquery/dns-packet';
 
-import type { BearerDid, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
+import type { DidMetadata, PortableDid } from '../types/portable-did.js';
+import type { DidCreateOptions, DidCreateVerificationMethod, DidRegistrationResult } from './did-method.js';
 import type {
   DidService,
   DidDocument,
@@ -25,6 +27,8 @@ import type {
 
 import { Did } from '../did.js';
 import { DidMethod } from './did-method.js';
+import { BearerDid } from '../bearer-did.js';
+import { extractDidFragment } from '../utils.js';
 import { DidError, DidErrorCode } from '../did-error.js';
 import { DidVerificationRelationship } from '../types/did-core.js';
 import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
@@ -39,7 +43,7 @@ import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
  *
  * @see {@link https://www.bittorrent.org/beps/bep_0044.html | BEP44}
  */
-interface Bep44Message {
+export interface Bep44Message {
   /**
    * The public key bytes of the Identity Key, which serves as the identifier in the DHT network for
    * the corresponding BEP44 message.
@@ -112,8 +116,8 @@ export interface DidDhtCreateOptions<TKms> extends DidCreateOptions<TKms> {
 
   /**
    * Optional. The URI of a server involved in executing DID method operations. In the context of
-   * DID creation, the endpoint is expected to be a Pkarr relay. If not specified, a default gateway
-   * node is used.
+   * DID creation, the endpoint is expected to be a DID DHT Gateway or Pkarr relay. If not
+   * specified, a default gateway node is used.
    */
   gatewayUri?: string;
 
@@ -203,9 +207,10 @@ export interface DidDhtCreateOptions<TKms> extends DidCreateOptions<TKms> {
 }
 
 /**
- * The default Pkarr relay server to use when publishing and resolving DID documents.
+ * The default DID DHT Gateway or Pkarr Relay server to use when publishing and resolving DID
+ * documents.
  */
-const DEFAULT_PKARR_RELAY = 'https://diddht.tbddev.org';
+const DEFAULT_GATEWAY_URI = 'https://diddht.tbddev.org';
 
 /**
  * The version of the DID DHT specification that is implemented by this library.
@@ -431,37 +436,13 @@ const AlgorithmToKeyTypeMap = {
  * const signature = await signer.sign({ data: new TextEncoder().encode('Message') });
  * const isValid = await signer.verify({ data: new TextEncoder().encode('Message'), signature });
  *
- * // Key Management
+ * // Import / Export
  *
- * // Instantiate a DID object for a published DID with existing keys in a KMS
- * const did = await DidDht.fromKeyManager({
- *  didUri: 'did:dht:cf69rrqpanddbhkqecuwia314hfawfua9yr6zx433jmgm39ez57y',
- *  keyManager
- * });
+ * // Export a BearerDid object to the PortableDid format.
+ * const portableDid = await did.export();
  *
- * // Instantiate a DID object from an existing verification method key
- * const did = await DidDht.fromKeys({
- *   verificationMethods: [{
- *     publicKeyJwk : {
- *       crv : 'Ed25519',
- *       kty : 'OKP',
- *       x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0'
- *     },
- *     privateKeyJwk: {
- *       crv : 'Ed25519',
- *       d   : 'hdSIwbQwVD-fNOVEgt-k3mMl44Ip1iPi58Ex6VDGxqY',
- *       kty : 'OKP',
- *       x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0'
- *     },
- *     purposes: ['authentication', 'assertionMethod' ],
- *   }]
- * });
- *
- * // Convert a DID object to a portable format
- * const portableDid = await DidDht.toKeys({ did });
- *
- * // Reconstruct a DID object from a portable format
- * const did = await DidDht.fromKeys(portableDid);
+ * // Reconstruct a BearerDid object from a PortableDid
+ * const did = await DidDht.import(portableDid);
  * ```
  */
 export class DidDht extends DidMethod {
@@ -514,25 +495,101 @@ export class DidDht extends DidMethod {
       throw new Error('One or more verification method algorithms are not supported');
     }
 
-    // Check 2: Validate that the required properties for any given services are present.
+    // Check 2: Validate that the ID for any given verification method is unique.
+    const methodIds = options.verificationMethods?.filter(vm => 'id' in vm).map(vm => vm.id);
+    if (methodIds && methodIds.length !== new Set(methodIds).size) {
+      throw new Error('One or more verification method IDs are not unique');
+    }
+
+    // Check 3: Validate that the required properties for any given services are present.
     if (options.services?.some(s => !s.id || !s.type || !s.serviceEndpoint)) {
       throw new Error('One or more services are missing required properties');
     }
 
+    // Generate random key material for the Identity Key.
+    const identityKeyUri = await keyManager.generateKey({ algorithm: 'Ed25519' });
+    const identityKey = await keyManager.getPublicKey({ keyUri: identityKeyUri });
+
+    // Compute the DID URI from the Identity Key.
+    const didUri = await DidDhtUtils.identityKeyToIdentifier({ identityKey });
+
+    // Begin constructing the DID Document.
+    const document: DidDocument = {
+      id: didUri,
+      ...options.alsoKnownAs && { alsoKnownAs: options.alsoKnownAs },
+      ...options.controllers && { controller: options.controllers }
+    };
+
+    // If the given verification methods do not contain an Identity Key, add one.
+    const verificationMethodsToAdd = [...options.verificationMethods ?? []];
+    if (!verificationMethodsToAdd?.some(vm => vm.id?.split('#').pop() === '0')) {
+      // Add the Identity Key to the beginning of the key set.
+      verificationMethodsToAdd.unshift({
+        algorithm : 'Ed25519' as any,
+        id        : '0',
+        purposes  : ['authentication', 'assertionMethod', 'capabilityDelegation', 'capabilityInvocation']
+      });
+    }
+
     // Generate random key material for the Identity Key and any additional verification methods.
-    const keySet = await DidDht.generateKeys({
-      keyManager,
-      verificationMethods: options.verificationMethods ?? []
+    // Add verification methods to the DID document.
+    for (const vm of verificationMethodsToAdd) {
+      // Generate a random key for the verification method, or if its the Identity Key's
+      // verification method (`id` is 0) use the key previously generated.
+      const keyUri = (vm.id && vm.id.split('#').pop() === '0')
+        ? identityKeyUri
+        : await keyManager.generateKey({ algorithm: vm.algorithm });
+
+      const publicKey = await keyManager.getPublicKey({ keyUri });
+
+      // Use the given ID, the key's ID, or the key's thumbprint as the verification method ID.
+      let methodId = vm.id ?? publicKey.kid ?? await computeJwkThumbprint({ jwk: publicKey });
+      methodId = `${didUri}#${extractDidFragment(methodId)}`; // Remove fragment prefix, if any.
+
+      // Initialize the `verificationMethod` array if it does not already exist.
+      document.verificationMethod ??= [];
+
+      // Add the verification method to the DID document.
+      document.verificationMethod.push({
+        id           : methodId,
+        type         : 'JsonWebKey',
+        controller   : vm.controller ?? didUri,
+        publicKeyJwk : publicKey,
+      });
+
+      // Add the verification method to the specified purpose properties of the DID document.
+      for (const purpose of vm.purposes ?? []) {
+        // Initialize the purpose property if it does not already exist.
+        if (!document[purpose]) document[purpose] = [];
+        // Add the verification method to the purpose property.
+        document[purpose]!.push(methodId);
+      }
+    }
+
+    // Add services, if any, to the DID document.
+    options.services?.forEach(service => {
+      document.service ??= [];
+      service.id = `${didUri}#${service.id.split('#').pop()}`; // Remove fragment prefix, if any.
+      document.service.push(service);
     });
 
-    // Create the DID object from the generated key material, including DID document, metadata,
-    // signer convenience function, and URI.
-    const did = await DidDht.fromPublicKeys({ keyManager, options, ...keySet });
+    // Create the BearerDid object, including the registered DID types (if any), and specify that
+    // the DID has not yet been published.
+    const did = new BearerDid({
+      uri      : didUri,
+      document,
+      metadata : {
+        published: false,
+        ...options.types && { types: options.types }
+      },
+      keyManager
+    });
 
-    // By default, publish the DID document to a DHT operations endpoint unless explicitly disabled.
-    did.metadata.published = options.publish ?? true
-      ? await this.publish({ did, gatewayUri: options.gatewayUri })
-      : false;
+    // By default, publish the DID document to a DHT Gateway unless explicitly disabled.
+    if (options.publish ?? true) {
+      const registrationResult = await DidDht.publish({ did, gatewayUri: options.gatewayUri });
+      did.metadata = registrationResult.didDocumentMetadata;
+    }
 
     return did;
   }
@@ -540,76 +597,47 @@ export class DidDht extends DidMethod {
   /**
    * Instantiates a {@link BearerDid} object for the DID DHT method from a given {@link PortableDid}.
    *
-   * This method allows for the creation of a `BearerDid` object using pre-existing key material,
-   * encapsulated within the `verificationMethods` array of the `PortableDid`. This is particularly
-   * useful when the key material is already available and you want to construct a `BearerDid`
-   * object based on these keys, instead of generating new keys.
-   *
-   * @remarks
-   * The key material (both public and private keys) should be provided in JWK format. The method
-   * handles the inclusion of these keys in the DID Document and specified verification
-   * relationships.
+   * This method allows for the creation of a `BearerDid` object using a previously created DID's
+   * key material, DID document, and metadata.
    *
    * @example
    * ```ts
-   * // Example with an existing key in JWK format.
-   * const verificationMethods = [{
-   *   publicKeyJwk: { id: 0, // public key in JWK format },
-   *   privateKeyJwk: { id: 0, // private key in JWK format },
-   *   purposes: ['authentication']
-   * }];
-   * const did = await DidDht.fromKeys({ verificationMethods });
+   * // Export an existing BearerDid to PortableDid format.
+   * const portableDid = await did.export();
+   * // Reconstruct a BearerDid object from the PortableDid.
+   * const did = await DidDht.import({ portableDid });
    * ```
    *
-   * @param params - The parameters for the `fromKeys` operation.
+   * @param params - The parameters for the import operation.
+   * @param params.portableDid - The PortableDid object to import.
    * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
    *                            generate keys and sign data. If not given, a new
-   *                            {@link @web5/crypto#LocalKeyManager} instance will be created and used.
-   * @returns A Promise resolving to a `BearerDid` object representing the DID formed from the provided keys.
-   * @throws An error if the `verificationMethods` array does not contain any keys, lacks an
-   *         Identity Key, or any verification method is missing a public or private key.
+   *                            {@link LocalKeyManager} instance will be created and
+   *                            used.
+   * @returns A Promise resolving to a `BearerDid` object representing the DID formed from the
+   *          provided PortableDid.
+   * @throws An error if the PortableDid document does not contain any verification methods, lacks
+   *         an Identity Key, or the keys for any verification method are missing in the key
+   *         manager.
    */
-  public static async fromKeys<TKms extends CryptoApi | undefined = undefined>({
-    keyManager = new LocalKeyManager(),
-    uri,
-    verificationMethods,
-    options = {}
-  }: {
+  public static async import({ portableDid, keyManager = new LocalKeyManager() }: {
     keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
-    options?: DidDhtCreateOptions<TKms>;
-  } & PortableDid): Promise<BearerDid> {
-    if (!(verificationMethods && Array.isArray(verificationMethods) && verificationMethods.length > 0)) {
-      throw new Error(`At least one verification method is required but 0 were given`);
+    portableDid: PortableDid;
+  }): Promise<BearerDid> {
+    // Verify the DID method is supported.
+    const parsedDid = Did.parse(portableDid.uri);
+    if (parsedDid?.method !== DidDht.methodName) {
+      throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported`);
     }
 
-    if (!verificationMethods?.some(vm => vm.id?.split('#').pop() === '0')) {
-      throw new Error(`Given verification methods are missing an Identity Key`);
+    const did = await BearerDid.import({ portableDid, keyManager });
+
+    // Validate that the given verification methods contain an Identity Key.
+    if (!did.document.verificationMethod?.some(vm => vm.id?.split('#').pop() === '0')) {
+      throw new DidError(DidErrorCode.InvalidDidDocument, `DID document must contain an Identity Key`);
     }
 
-    if (!verificationMethods?.some(vm => vm.privateKeyJwk && vm.publicKeyJwk)) {
-      throw new Error(`All verification methods must contain a public and private key in JWK format`);
-    }
-
-    // Import the private key material for every verification method into the key manager.
-    for (let vm of verificationMethods) {
-      await keyManager.importKey({ key: vm.privateKeyJwk! });
-    }
-
-    // If the DID URI is provided, resolve the DID document and metadata from the DHT network and
-    // use it to construct the DID object.
-    if (uri) {
-      return await DidDht.fromKeyManager({ didUri: uri, keyManager });
-    } else {
-      // Otherwise, use the given key material and options to construct the DID object.
-      const did = await DidDht.fromPublicKeys({ keyManager, verificationMethods, options });
-
-      // By default, the DID document will NOT be published unless explicitly enabled.
-      did.metadata.published = options.publish
-        ? await this.publish({ did, gatewayUri: options.gatewayUri })
-        : false;
-
-      return did;
-    }
+    return did;
   }
 
   /**
@@ -626,14 +654,22 @@ export class DidDht extends DidMethod {
   public static async getSigningMethod({ didDocument, methodId = '#0' }: {
     didDocument: DidDocument;
     methodId?: string;
-  }): Promise<DidVerificationMethod | undefined> {
-
+  }): Promise<DidVerificationMethod> {
+    // Verify the DID method is supported.
     const parsedDid = Did.parse(didDocument.id);
     if (parsedDid && parsedDid.method !== this.methodName) {
-      throw new Error(`Method not supported: ${parsedDid.method}`);
+      throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported: ${parsedDid.method}`);
     }
 
-    const verificationMethod = didDocument.verificationMethod?.find(vm => vm.id.endsWith(methodId));
+    // Attempt to find a verification method that matches the given method ID, or if not given,
+    // find the first verification method intended for signing claims.
+    const verificationMethod = didDocument.verificationMethod?.find(
+      vm => extractDidFragment(vm.id) === (extractDidFragment(methodId) ?? extractDidFragment(didDocument.assertionMethod?.[0]))
+    );
+
+    if (!(verificationMethod && verificationMethod.publicKeyJwk)) {
+      throw new DidError(DidErrorCode.InternalError, 'A verification method intended for signing could not be determined from the DID Document');
+    }
 
     return verificationMethod;
   }
@@ -651,30 +687,31 @@ export class DidDht extends DidMethod {
    * - For existing, unpublished DIDs, it can be used to publish the DID Document to Mainline DHT.
    * - The method relies on the specified Pkarr relay server to interface with the DHT network.
    *
-   * @param params - The parameters for the `publish` operation.
-   * @param params.did - The `BearerDid` object representing the DID to be published.
-   * @param params.gatewayUri - Optional. The URI of a server involved in executing DID
-   *                                    method operations. In the context of publishing, the
-   *                                    endpoint is expected to be a Pkarr relay. If not specified,
-   *                                    a default relay server is used.
-   * @returns A Promise resolving to a boolean indicating whether the publication was successful.
-   *
    * @example
    * ```ts
    * // Generate a new DID and keys but explicitly disable publishing.
    * const did = await DidDht.create({ options: { publish: false } });
    * // Publish the DID to the DHT.
-   * const isPublished = await DidDht.publish({ did });
-   * // `isPublished` is true if the DID was successfully published.
+   * const registrationResult = await DidDht.publish({ did });
+   * // `registrationResult.didDocumentMetadata.published` is true if the DID was successfully published.
    * ```
+   *
+   * @param params - The parameters for the `publish` operation.
+   * @param params.did - The `BearerDid` object representing the DID to be published.
+   * @param params.gatewayUri - Optional. The URI of a server involved in executing DID method
+   *                            operations. In the context of publishing, the endpoint is expected
+   *                            to be a DID DHT Gateway or Pkarr Relay. If not specified, a default
+   *                            gateway node is used.
+   * @returns A promise that resolves to a {@link DidRegistrationResult} object that contains
+   *          the result of registering the DID with a DID DHT Gateway or Pkarr relay.
    */
-  public static async publish({ did, gatewayUri = DEFAULT_PKARR_RELAY }: {
+  public static async publish({ did, gatewayUri = DEFAULT_GATEWAY_URI }: {
     did: BearerDid;
     gatewayUri?: string;
-  }): Promise<boolean> {
-    const isPublished = await DidDhtDocument.put({ did, relay: gatewayUri });
+  }): Promise<DidRegistrationResult> {
+    const registrationResult = await DidDhtDocument.put({ did, gatewayUri });
 
-    return isPublished;
+    return registrationResult;
   }
 
   /**
@@ -697,24 +734,25 @@ export class DidDht extends DidMethod {
    *
    * @param didUri - The DID to be resolved.
    * @param options - Optional parameters for resolving the DID. Unused by this DID method.
-   * @returns A Promise resolving to a {@link DidResolutionResult} object representing the result of the resolution.
+   * @returns A Promise resolving to a {@link DidResolutionResult} object representing the result of
+   *          the resolution.
    */
   public static async resolve(didUri: string, options: DidResolutionOptions = {}): Promise<DidResolutionResult> {
-    // To execute the read method operation, use the given gateway URI or a default Pkarr relay.
-    const relay = options?.gatewayUri ?? DEFAULT_PKARR_RELAY;
+    // To execute the read method operation, use the given gateway URI or a default.
+    const gatewayUri = options?.gatewayUri ?? DEFAULT_GATEWAY_URI;
 
     try {
       // Attempt to decode the z-base-32-encoded identifier.
       await DidDhtUtils.identifierToIdentityKey({ didUri });
 
       // Attempt to retrieve the DID document and metadata from the DHT network.
-      const { didDocument, didMetadata } = await DidDhtDocument.get({ didUri, relay });
+      const { didDocument, didDocumentMetadata } = await DidDhtDocument.get({ didUri, gatewayUri });
 
       // If the DID document was retrieved successfully, return it.
       return {
         ...EMPTY_DID_RESOLUTION_RESULT,
         didDocument,
-        didDocumentMetadata: { published: true, ...didMetadata }
+        didDocumentMetadata
       };
 
     } catch (error: any) {
@@ -731,142 +769,6 @@ export class DidDht extends DidMethod {
       };
     }
   }
-
-  /**
-   * Instantiates a `BearerDid` object for the DID DHT method using an array of public keys.
-   *
-   * This method is used to create a `BearerDid` object from a set of public keys, typically after
-   * these keys have been generated or provided. It constructs the DID document, metadata, and
-   * other necessary components for the DID based on the provided public keys and any additional
-   * options specified.
-   *
-   * @param params - The parameters for the DID object creation.
-   * @param params.keyManager - The Key Management System to manage keys.
-   * @param params.options - Additional options for DID creation.
-   * @returns A Promise resolving to a `BearerDid` object.
-   */
-  private static async fromPublicKeys({ keyManager, verificationMethods, options }: {
-    keyManager: CryptoApi;
-    options: DidDhtCreateOptions<CryptoApi | undefined>;
-  } & PortableDid): Promise<BearerDid> {
-    // Validate that the given verification methods contain an Identity Key.
-    const identityKey = verificationMethods?.find(vm => vm.id?.split('#').pop() === '0')?.publicKeyJwk;
-    if (!identityKey) {
-      throw new Error('Identity Key not found in verification methods');
-    }
-
-    // Compute the DID identifier from the Identity Key.
-    const id = await DidDhtUtils.identityKeyToIdentifier({ identityKey });
-
-    // Begin constructing the DID Document.
-    const didDocument: DidDocument = {
-      id,
-      ...options.alsoKnownAs && { alsoKnownAs: options.alsoKnownAs },
-      ...options.controllers && { controller: options.controllers }
-    };
-
-    // Add verification methods to the DID document.
-    for (const vm of verificationMethods) {
-      if (!vm.publicKeyJwk) {
-        throw new Error(`Verification method does not contain a public key in JWK format`);
-      }
-
-      // Use the given ID, the key's ID, or the key's thumbprint as the verification method ID.
-      let methodId = vm.id ?? vm.publicKeyJwk.kid ?? await computeJwkThumbprint({ jwk: vm.publicKeyJwk });
-      methodId = `${id}#${methodId.split('#').pop()}`; // Remove fragment prefix, if any.
-
-      // Initialize the `verificationMethod` array if it does not already exist.
-      didDocument.verificationMethod ??= [];
-
-      // Add the verification method to the DID document.
-      didDocument.verificationMethod.push({
-        id           : methodId,
-        type         : 'JsonWebKey',
-        controller   : vm.controller ?? id,
-        publicKeyJwk : vm.publicKeyJwk,
-      });
-
-      // Add the verification method to the specified purpose properties of the DID document.
-      for (const purpose of vm.purposes ?? []) {
-        // Initialize the purpose property if it does not already exist.
-        if (!didDocument[purpose]) didDocument[purpose] = [];
-        // Add the verification method to the purpose property.
-        didDocument[purpose]!.push(methodId);
-      }
-    }
-
-    // Add services, if any, to the DID document.
-    options.services?.forEach(service => {
-      didDocument.service ??= [];
-      service.id = `${id}#${service.id.split('#').pop()}`; // Remove fragment prefix, if any.
-      didDocument.service.push(service);
-    });
-
-    // Define DID Metadata, including the registered DID types (if any).
-    const metadata: DidMetadata = {
-      ...options.types && { types: options.types }
-    };
-
-    // Define a function that returns a signer for the DID.
-    const getSigner = async (params?: { keyUri?: string }) => await DidDht.getSigner({
-      didDocument,
-      keyManager,
-      keyUri: params?.keyUri
-    });
-
-    return { didDocument, getSigner, keyManager, metadata, uri: id };
-  }
-
-  /**
-   * Generates a set of keys for use in creating a `BearerDid` object for the `did:dht` method.
-   *
-   * This method is responsible for generating the cryptographic keys necessary for the DID. It
-   * supports generating keys for the specified verification methods.
-   *
-   * @param params - The parameters for key generation.
-   * @param params.keyManager - The Key Management System used for generating keys.
-   * @param params.verificationMethods - Optional array of methods specifying key generation details.
-   * @returns A Promise resolving to a `PortableDid` object containing the generated keys.
-   */
-  private static async generateKeys({
-    keyManager,
-    verificationMethods
-  }: {
-    keyManager: CryptoApi;
-    verificationMethods: DidCreateVerificationMethod<CryptoApi | undefined>[];
-  }): Promise<PortableDid> {
-    let portableDid: PortableDid = {
-      verificationMethods: []
-    };
-
-    // If the given verification methods do not contain an Identity Key, add one.
-    if (!verificationMethods?.some(vm => vm.id?.split('#').pop() === '0')) {
-      // Add the Identity Key to the beginning of the key set.
-      verificationMethods.unshift({
-        algorithm : 'Ed25519' as any,
-        id        : '0',
-        purposes  : ['authentication', 'assertionMethod', 'capabilityDelegation', 'capabilityInvocation']
-      });
-    }
-
-    // Generate keys and add verification methods to the key set.
-    for (const vm of verificationMethods) {
-      // Generate a random key for the verification method.
-      const keyUri = await keyManager.generateKey({ algorithm: vm.algorithm });
-      const publicKey = await keyManager.getPublicKey({ keyUri });
-
-      // Add the verification method to the `PortableDid`.
-      portableDid.verificationMethods.push({
-        id           : vm.id,
-        type         : 'JsonWebKey',
-        controller   : vm.controller,
-        publicKeyJwk : publicKey,
-        purposes     : vm.purposes
-      });
-    }
-
-    return portableDid;
-  }
 }
 
 /**
@@ -874,34 +776,38 @@ export class DidDht extends DidMethod {
  * Mainline DHT in support of DID DHT method create, resolve, update, and deactivate operations.
  *
  * This class includes methods for retrieving and publishing DID documents to and from the DHT,
- * using DNS packet encoding and Pkarr relay servers.
+ * using DNS packet encoding and DID DHT Gateway or Pkarr Relay servers.
  */
-class DidDhtDocument {
+export class DidDhtDocument {
   /**
    * Retrieves a DID document and its metadata from the DHT network.
    *
    * @param params - The parameters for the get operation.
    * @param params.didUri - The DID URI containing the Identity Key.
-   * @param params.relay - The Pkarr relay server URL.
-   * @returns A promise resolving to an object containing the DID document and its metadata.
+   * @param params.gatewayUri - The DID DHT Gateway or Pkarr Relay URI.
+   * @returns A Promise resolving to a {@link DidResolutionResult} object containing the DID
+   *          document and its metadata.
    */
-  public static async get({ didUri, relay }: {
+  public static async get({ didUri, gatewayUri }: {
     didUri: string;
-    relay: string;
-  }): Promise<{ didDocument: DidDocument, didMetadata: DidMetadata }> {
+    gatewayUri: string;
+  }): Promise<DidResolutionResult> {
     // Decode the z-base-32 DID identifier to public key as a byte array.
     const publicKeyBytes = DidDhtUtils.identifierToIdentityKeyBytes({ didUri });
 
-    // Retrieve the signed BEP44 message from a Pkarr relay.
-    const bep44Message = await DidDhtDocument.pkarrGet({ relay, publicKeyBytes });
+    // Retrieve the signed BEP44 message from a DID DHT Gateway or Pkarr relay.
+    const bep44Message = await DidDhtDocument.pkarrGet({ gatewayUri, publicKeyBytes });
 
     // Verify the signature of the BEP44 message and parse the value to a DNS packet.
     const dnsPacket = await DidDhtUtils.parseBep44GetMessage({ bep44Message });
 
-    // Convert the DNS packet to a DID document and DID metadata.
-    const { didDocument, didMetadata } = await DidDhtDocument.fromDnsPacket({ didUri, dnsPacket });
+    // Convert the DNS packet to a DID document and metadata.
+    const resolutionResult = await DidDhtDocument.fromDnsPacket({ didUri, dnsPacket });
 
-    return { didDocument, didMetadata };
+    // Set the version ID of the DID document metadata to the sequence number of the BEP44 message.
+    resolutionResult.didDocumentMetadata.versionId = bep44Message.seq.toString();
+
+    return resolutionResult;
   }
 
   /**
@@ -909,17 +815,17 @@ class DidDhtDocument {
    *
    * @param params - The parameters to use when publishing the DID document to the DHT network.
    * @param params.did - The DID object whose DID document will be published.
-   * @param params.relay - The Pkarr relay to use when publishing the DID document.
-   * @returns A promise that resolves to `true` if the DID document was published successfully.
-   *          If publishing fails, `false` is returned.
+   * @param params.gatewayUri - The DID DHT Gateway or Pkarr Relay URI.
+   * @returns A promise that resolves to a {@link DidRegistrationResult} object that contains
+   *          the result of registering the DID with a DID DHT Gateway or Pkarr relay.
    */
-  public static async put({ did, relay }: {
+  public static async put({ did, gatewayUri }: {
     did: BearerDid;
-    relay: string;
-  }): Promise<boolean> {
+    gatewayUri: string;
+  }): Promise<DidRegistrationResult> {
     // Convert the DID document and DID metadata (such as DID types) to a DNS packet.
     const dnsPacket = await DidDhtDocument.toDnsPacket({
-      didDocument : did.didDocument,
+      didDocument : did.document,
       didMetadata : did.metadata
     });
 
@@ -927,35 +833,46 @@ class DidDhtDocument {
     const bep44Message = await DidDhtUtils.createBep44PutMessage({
       dnsPacket,
       publicKeyBytes : DidDhtUtils.identifierToIdentityKeyBytes({ didUri: did.uri }),
-      signer         : await did.getSigner()
+      signer         : await did.getSigner({ methodId: '0' })
     });
 
     // Publish the DNS packet to the DHT network.
-    const putResult = await DidDhtDocument.pkarrPut({ relay, bep44Message });
+    const putResult = await DidDhtDocument.pkarrPut({ gatewayUri, bep44Message });
 
-    return putResult;
+    // Return the result of processing the PUT operation, including the updated DID metadata with
+    // the version ID and the publishing result.
+    return {
+      didDocument         : did.document,
+      didDocumentMetadata : {
+        ...did.metadata,
+        published : putResult,
+        versionId : bep44Message.seq.toString()
+      },
+      didRegistrationMetadata: {}
+    };
   }
 
   /**
-   * Retrieves a signed BEP44 message from a Pkarr relay server.
+   * Retrieves a signed BEP44 message from a DID DHT Gateway or Pkarr Relay server.
    *
    * @see {@link https://github.com/Nuhvi/pkarr/blob/main/design/relays.md | Pkarr Relay design}
    *
-   * @param relay - The Pkarr relay server URL.
-   * @param publicKeyBytes - The public key bytes of the Identity Key, z-base-32 encoded.
+   * @param params
+   * @param params.gatewayUri - The DID DHT Gateway or Pkarr Relay URI.
+   * @param params.publicKeyBytes - The public key bytes of the Identity Key, z-base-32 encoded.
    * @returns A promise resolving to a BEP44 message containing the signed DNS packet.
   */
-  private static async pkarrGet({ relay, publicKeyBytes }: {
+  private static async pkarrGet({ gatewayUri, publicKeyBytes }: {
     publicKeyBytes: Uint8Array;
-    relay: string;
+    gatewayUri: string;
   }): Promise<Bep44Message> {
     // The identifier (key in the DHT) is the z-base-32 encoding of the Identity Key.
     const identifier = Convert.uint8Array(publicKeyBytes).toBase32Z();
 
-    // Concatenate the Pkarr relay URL with the identifier to form the full URL.
-    const url = new URL(identifier, relay).href;
+    // Concatenate the gateway URI with the identifier to form the full URL.
+    const url = new URL(identifier, gatewayUri).href;
 
-    // Transmit the Get request to the Pkarr relay and get the response.
+    // Transmit the Get request to the DID DHT Gateway or Pkarr Relay and get the response.
     let response: Response;
     try {
       response = await fetch(url, { method: 'GET' });
@@ -992,23 +909,24 @@ class DidDhtDocument {
   }
 
   /**
-   * Publishes a signed BEP44 message to a Pkarr relay server.
+   * Publishes a signed BEP44 message to a DID DHT Gateway or Pkarr Relay server.
    *
    * @see {@link https://github.com/Nuhvi/pkarr/blob/main/design/relays.md | Pkarr Relay design}
    *
-   * @param relay - The Pkarr relay server URL.
-   * @param bep44Message - The BEP44 message to be published, containing the signed DNS packet.
+   * @param params - The parameters to use when publishing a signed BEP44 message to a Pkarr relay server.
+   * @param params.gatewayUri - The DID DHT Gateway or Pkarr Relay URI.
+   * @param params.bep44Message - The BEP44 message to be published, containing the signed DNS packet.
    * @returns A promise resolving to `true` if the message was successfully published, otherwise `false`.
    */
-  private static async pkarrPut({ relay, bep44Message }: {
+  private static async pkarrPut({ gatewayUri, bep44Message }: {
     bep44Message: Bep44Message;
-    relay: string;
+    gatewayUri: string;
   }): Promise<boolean> {
     // The identifier (key in the DHT) is the z-base-32 encoding of the Identity Key.
     const identifier = Convert.uint8Array(bep44Message.k).toBase32Z();
 
-    // Concatenate the Pkarr relay URL with the identifier to form the full URL.
-    const url = new URL(identifier, relay).href;
+    // Concatenate the gateway URI with the identifier to form the full URL.
+    const url = new URL(identifier, gatewayUri).href;
 
     // Construct the body of the request according to the Pkarr relay specification.
     const body = new Uint8Array(bep44Message.v.length + 72);
@@ -1041,15 +959,20 @@ class DidDhtDocument {
    * @param params - The parameters to use when converting a DNS packet to a DID document.
    * @param params.didUri - The DID URI of the DID document.
    * @param params.dnsPacket - The DNS packet to convert to a DID document.
-   * @returns A promise that resolves to a DID document.
+   * @returns A Promise resolving to a {@link DidResolutionResult} object containing the DID
+   *          document and its metadata.
    */
   private static async fromDnsPacket({ didUri, dnsPacket }: {
     didUri: string;
     dnsPacket: Packet;
-  }): Promise<{ didDocument: DidDocument, didMetadata: DidMetadata }> {
+  }): Promise<DidResolutionResult> {
     // Begin constructing the DID Document.
     const didDocument: DidDocument = { id: didUri };
-    const didMetadata: DidMetadata = {};
+
+    // Since the DID document is being retrieved from the DHT, it is considered published.
+    const didDocumentMetadata: DidMetadata = {
+      published: true
+    };
 
     const idLookup = new Map<string, string>();
 
@@ -1147,7 +1070,7 @@ class DidDhtDocument {
           const { id: types } = DidDhtUtils.parseTxtDataToObject(answer.data);
 
           // Add the DID DHT Registered DID Types represented as numbers to DID metadata.
-          didMetadata.types = types.split(VALUE_SEPARATOR).map(typeInteger => Number(typeInteger));
+          didDocumentMetadata.types = types.split(VALUE_SEPARATOR).map(typeInteger => Number(typeInteger));
 
           break;
         }
@@ -1175,7 +1098,7 @@ class DidDhtDocument {
       }
     }
 
-    return { didDocument, didMetadata };
+    return { didDocument, didDocumentMetadata, didResolutionMetadata: {} };
   }
 
   /**
@@ -1349,7 +1272,7 @@ class DidDhtDocument {
  * This includes functions for creating and parsing BEP44 messages, handling identity keys, and
  * converting between different formats and representations.
  */
-class DidDhtUtils {
+export class DidDhtUtils {
   /**
    * Creates a BEP44 put message, which is used to publish a DID document to the DHT network.
    *
