@@ -47,6 +47,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fail_on_error: true
+          group_docs: true
           entry_points: |
             - file: packages/api/src/index.ts
               docsReporter: typedoc
