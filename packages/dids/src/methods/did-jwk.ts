@@ -11,11 +11,13 @@ import type {
 import { Convert } from '@web5/common';
 import { LocalKeyManager } from '@web5/crypto';
 
-import type { BearerDid, DidCreateOptions, DidCreateVerificationMethod, DidMetadata, PortableDid } from './did-method.js';
+import type { PortableDid } from '../types/portable-did.js';
+import type { DidCreateOptions, DidCreateVerificationMethod } from './did-method.js';
 import type { DidDocument, DidResolutionOptions, DidResolutionResult, DidVerificationMethod } from '../types/did-core.js';
 
 import { Did } from '../did.js';
 import { DidMethod } from './did-method.js';
+import { BearerDid } from '../bearer-did.js';
 import { DidError, DidErrorCode } from '../did-error.js';
 import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
 
@@ -32,7 +34,9 @@ import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
  *
  * @example
  * ```ts
-  * // By default, when no options are given, a new Ed25519 key will be generated.
+ * // DID Creation
+ *
+ * // By default, when no options are given, a new Ed25519 key will be generated.
  * const did = await DidJwk.create();
  *
  * // The algorithm to use for key generation can be specified as a top-level option.
@@ -46,6 +50,26 @@ import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
  *     verificationMethods: [{ algorithm = 'ES256K' }]
  *   }
  * });
+ *
+ * // DID Creation with a KMS
+ * const keyManager = new LocalKeyManager();
+ * const did = await DidJwk.create({ keyManager });
+ *
+ * // DID Resolution
+ * const resolutionResult = await DidJwk.resolve({ did: did.uri });
+ *
+ * // Signature Operations
+ * const signer = await did.getSigner();
+ * const signature = await signer.sign({ data: new TextEncoder().encode('Message') });
+ * const isValid = await signer.verify({ data: new TextEncoder().encode('Message'), signature });
+ *
+ * // Import / Export
+ *
+ * // Export a BearerDid object to the PortableDid format.
+ * const portableDid = await did.export();
+ *
+ * // Reconstruct a BearerDid object from a PortableDid
+ * const did = await DidJwk.import(portableDid);
  * ```
  */
 export interface DidJwkCreateOptions<TKms> extends DidCreateOptions<TKms> {
@@ -176,8 +200,18 @@ export class DidJwk extends DidMethod {
     keyManager?: TKms;
     options?: DidJwkCreateOptions<TKms>;
   } = {}): Promise<BearerDid> {
+    // Before processing the create operation, validate DID-method-specific requirements to prevent
+    // keys from being generated unnecessarily.
+
+    // Check 1: Validate that `algorithm` or `verificationMethods` options are not both given.
     if (options.algorithm && options.verificationMethods) {
       throw new Error(`The 'algorithm' and 'verificationMethods' options are mutually exclusive`);
+    }
+
+    // Check 2: If `verificationMethods` is given, it must contain exactly one entry since DID JWK
+    // only supports a single verification method.
+    if (options.verificationMethods && options.verificationMethods.length !== 1) {
+      throw new Error(`The 'verificationMethods' option must contain exactly one entry`);
     }
 
     // Default to Ed25519 key generation if an algorithm is not given.
@@ -187,70 +221,23 @@ export class DidJwk extends DidMethod {
     const keyUri = await keyManager.generateKey({ algorithm });
     const publicKey = await keyManager.getPublicKey({ keyUri });
 
-    // Create the DID object from the generated key material, including DID document, metadata,
-    // signer convenience function, and URI.
-    const did = await DidJwk.fromPublicKey({ keyManager, publicKey });
+    // Compute the DID identifier from the public key by serializing the JWK to a UTF-8 string and
+    // encoding in Base64URL format.
+    const identifier = Convert.object(publicKey).toBase64Url();
 
-    return did;
-  }
+    // Attach the prefix `did:jwk` to form the complete DID URI.
+    const didUri = `did:${DidJwk.methodName}:${identifier}`;
 
-  /**
-   * Instantiates a {@link BearerDid} object for the `did:jwk` method from a given
-   * {@link PortableDid}.
-   *
-   * This method allows for the creation of a `BearerDid` object using pre-existing key material,
-   * encapsulated within the `verificationMethods` array of the `PortableDid`. This is particularly
-   * useful when the key material is already available and you want to construct a `BearerDid`
-   * object based on these keys, instead of generating new keys.
-   *
-   * @remarks
-   * The `verificationMethods` array must contain exactly one key since the `did:jwk` method only
-   * supports a single verification method.
-   *
-   * The key material (both public and private keys) should be provided in JWK format. The method
-   * handles the inclusion of these keys in the DID Document and sets up the necessary verification
-   * relationships.
-   *
-   * @example
-   * ```ts
-   * // Example with an existing key in JWK format.
-   * const verificationMethods = [{
-   *   publicKeyJwk: { // public key in JWK format },
-   *   privateKeyJwk: { // private key in JWK format }
-   * }];
-   * const did = await DidJwk.fromKeys({ verificationMethods });
-   * ```
-   *
-   * @param params - The parameters for the `fromKeys` operation.
-   * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
-   *                            generate keys and sign data. If not given, a new
-   *                            {@link @web5/crypto#LocalKeyManager} instance will be created and used.
-   * @returns A Promise resolving to a `BearerDid` object representing the DID formed from the provided keys.
-   * @throws An error if the `verificationMethods` array does not contain exactly one entry.
-   */
-  public static async fromKeys({
-    keyManager = new LocalKeyManager(),
-    verificationMethods
-  }: {
-    keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
-    options?: unknown;
-  } & PortableDid): Promise<BearerDid> {
-    if (!verificationMethods || verificationMethods.length !== 1) {
-      throw new Error(`Only one verification method can be specified but ${verificationMethods?.length ?? 0} were given`);
-    }
+    // Expand the DID URI string to a DID document.
+    const didResolutionResult = await DidJwk.resolve(didUri);
+    const document = didResolutionResult.didDocument as DidDocument;
 
-    if (!(verificationMethods[0].privateKeyJwk && verificationMethods[0].publicKeyJwk)) {
-      throw new Error(`Verification method does not contain a public and private key in JWK format`);
-    }
-
-    // Store the private key in the key manager.
-    await keyManager.importKey({ key: verificationMethods[0].privateKeyJwk });
-
-    // Create the DID object from the given key material, including DID document, metadata,
-    // signer convenience function, and URI.
-    const did = await DidJwk.fromPublicKey({
-      keyManager,
-      publicKey: verificationMethods[0].publicKeyJwk
+    // Create the BearerDid object from the generated key material.
+    const did = new BearerDid({
+      uri      : didUri,
+      document,
+      metadata : {},
+      keyManager
     });
 
     return did;
@@ -270,10 +257,10 @@ export class DidJwk extends DidMethod {
    * @param params.methodId - ID of the verification method to use for signing.
    * @returns Verification method to use for signing.
    */
-  public static async getSigningMethod({ didDocument, methodId = '#0' }: {
+  public static async getSigningMethod({ didDocument }: {
     didDocument: DidDocument;
     methodId?: string;
-  }): Promise<DidVerificationMethod | undefined> {
+  }): Promise<DidVerificationMethod> {
     // Verify the DID method is supported.
     const parsedDid = Did.parse(didDocument.id);
     if (parsedDid && parsedDid.method !== this.methodName) {
@@ -281,9 +268,63 @@ export class DidJwk extends DidMethod {
     }
 
     // Attempt to find the verification method in the DID Document.
-    const verificationMethod = didDocument.verificationMethod?.find(vm => vm.id.endsWith(methodId));
+    const [ verificationMethod ] = didDocument.verificationMethod ?? [];
+
+    if (!(verificationMethod && verificationMethod.publicKeyJwk)) {
+      throw new DidError(DidErrorCode.InternalError, 'A verification method intended for signing could not be determined from the DID Document');
+    }
 
     return verificationMethod;
+  }
+
+  /**
+   * Instantiates a {@link BearerDid} object for the DID JWK method from a given {@link PortableDid}.
+   *
+   * This method allows for the creation of a `BearerDid` object using a previously created DID's
+   * key material, DID document, and metadata.
+   *
+   * @remarks
+   * The `verificationMethod` array of the DID document must contain exactly one key since the
+   * `did:jwk` method only supports a single verification method.
+   *
+   * @example
+   * ```ts
+   * // Export an existing BearerDid to PortableDid format.
+   * const portableDid = await did.export();
+   * // Reconstruct a BearerDid object from the PortableDid.
+   * const did = await DidJwk.import({ portableDid });
+   * ```
+   *
+   * @param params - The parameters for the import operation.
+   * @param params.portableDid - The PortableDid object to import.
+   * @param params.keyManager - Optionally specify an external Key Management System (KMS) used to
+   *                            generate keys and sign data. If not given, a new
+   *                            {@link LocalKeyManager} instance will be created and
+   *                            used.
+   * @returns A Promise resolving to a `BearerDid` object representing the DID formed from the provided keys.
+   * @throws An error if the DID document does not contain exactly one verification method.
+   */
+  public static async import({ portableDid, keyManager = new LocalKeyManager() }: {
+    keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
+    portableDid: PortableDid;
+  }): Promise<BearerDid> {
+    // Verify the DID method is supported.
+    const parsedDid = Did.parse(portableDid.uri);
+    if (parsedDid?.method !== DidJwk.methodName) {
+      throw new DidError(DidErrorCode.MethodNotSupported, `Method not supported`);
+    }
+
+    // Use the given PortableDid to construct the BearerDid object.
+    const did = await BearerDid.import({ portableDid, keyManager });
+
+    // Validate that the given DID document contains exactly one verification method.
+    // Note: The non-undefined assertion is necessary because the type system cannot infer that
+    // the `verificationMethod` property is defined -- which is checked by `BearerDid.import()`.
+    if (did.document.verificationMethod!.length !== 1) {
+      throw new DidError(DidErrorCode.InvalidDidDocument, `DID document must contain exactly one verification method`);
+    }
+
+    return did;
   }
 
   /**
@@ -366,41 +407,5 @@ export class DidJwk extends DidMethod {
       ...EMPTY_DID_RESOLUTION_RESULT,
       didDocument,
     };
-  }
-
-  /**
-   * Instantiates a {@link BearerDid} object for the DID JWK method from a given public key.
-   *
-   * @param params - The parameters for the operation.
-   * @param params.keyManager - A Key Management System (KMS) instance for managing keys and
-   *                            performing cryptographic operations.
-   * @param params.publicKey - The public key of the DID in JWK format.
-   * @returns A Promise resolving to a `BearerDid` object representing the DID formed from the provided public key.
-   */
-  private static async fromPublicKey({ keyManager, publicKey }: {
-    keyManager: CryptoApi;
-    publicKey: Jwk;
-  }): Promise<BearerDid> {
-    // Serialize the public key JWK to a UTF-8 string and encode to Base64URL format.
-    const base64UrlEncoded = Convert.object(publicKey).toBase64Url();
-
-    // Attach the prefix `did:jwk` to form the complete DID URI.
-    const didUri = `did:${DidJwk.methodName}:${base64UrlEncoded}`;
-
-    // Expand the DID URI string to a DID document.
-    const didResolutionResult = await DidJwk.resolve(didUri);
-    const didDocument = didResolutionResult.didDocument as DidDocument;
-
-    // DID Metadata is initially empty for this DID method.
-    const metadata: DidMetadata = {};
-
-    // Define a function that returns a signer for the DID.
-    const getSigner = async (params?: { keyUri?: string }) => await DidJwk.getSigner({
-      didDocument,
-      keyManager,
-      keyUri: params?.keyUri
-    });
-
-    return { didDocument, getSigner, keyManager, metadata, uri: didUri };
   }
 }

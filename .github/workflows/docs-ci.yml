@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -38,10 +38,24 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           report_changed_scope_only: false
           fail_on_error: false
+          group_docs: true
           entry_points: |
             - file: packages/api/src/index.ts
-              docsReporter: api-extractor
-              docsGenerator: typedoc-markdown
+              docsReporter: typedoc
+              docsGenerator: typedoc-html
+              readmeFile: packages/api/README.md
+            - file: packages/crypto/src/index.ts
+              docsReporter: typedoc
+              docsGenerator: typedoc-html
+              readmeFile: packages/crypto/README.md
+            - file: packages/crypto-aws-kms/src/index.ts
+              docsReporter: typedoc
+              docsGenerator: typedoc-html
+              readmeFile: packages/crypto-aws-kms/README.md
+            - file: packages/dids/src/index.ts
+              docsReporter: typedoc
+              docsGenerator: typedoc-html
+              readmeFile: packages/dids/README.md
 
       - name: Save Artifacts
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 #v3.1.3
