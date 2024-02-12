@@ -157,7 +157,7 @@ export class Jwt {
     }
 
     // TODO: should really be looking for verificationMethod with authentication verification relationship
-    const dereferenceResult = await Jwt.didResolver.dereference( decodedJwt.header.kid! );
+    const dereferenceResult = await Jwt.didResolver.dereference(decodedJwt.header.kid!);
     if (dereferenceResult.dereferencingMetadata.error) {
       throw new Error(`Failed to resolve ${decodedJwt.header.kid}`);
     }
