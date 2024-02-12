@@ -1,11 +1,10 @@
-import type { BearerDid } from '@web5/dids';
+import { BearerDid } from '@web5/dids';
 import type {
   JwtPayload,
-  Web5Crypto,
-  CryptoAlgorithm,
   JwtHeaderParams,
   JwkParamsEcPublic,
   JwkParamsOkpPublic,
+  CryptoAlgorithm,
 } from '@web5/crypto';
 
 import { Convert } from '@web5/common';
@@ -62,25 +61,23 @@ export type VerifyJwtOptions = {
  * Represents a signer with a specific cryptographic algorithm and options.
  * @template T - The type of cryptographic options.
  */
-type Signer<T extends Web5Crypto.Algorithm> = {
-  signer: CryptoAlgorithm,
+type Signer<T extends CryptoAlgorithm> = {
+  signer: EcdsaAlgorithm | EdDsaAlgorithm,
   options?: T | undefined
   alg: string
   crv: string
 }
 
-const secp256k1Signer: Signer<Web5Crypto.EcdsaOptions> = {
-  signer  : new EcdsaAlgorithm(),
-  options : { name: 'ES256K'},
-  alg     : 'ES256K',
-  crv     : 'secp256k1'
+const secp256k1Signer: Signer<EcdsaAlgorithm> = {
+  signer : new EcdsaAlgorithm(),
+  alg    : 'ES256K',
+  crv    : 'secp256k1'
 };
 
-const ed25519Signer: Signer<Web5Crypto.EdDsaOptions> = {
-  signer  : new EdDsaAlgorithm(),
-  options : { name: 'EdDSA' },
-  alg     : 'EdDSA',
-  crv     : 'Ed25519'
+const ed25519Signer: Signer<EdDsaAlgorithm> = {
+  signer : new EdDsaAlgorithm(),
+  alg    : 'EdDSA',
+  crv    : 'Ed25519'
 };
 
 /**
@@ -90,7 +87,7 @@ const ed25519Signer: Signer<Web5Crypto.EdDsaOptions> = {
  */
 export class Jwt {
   /** supported cryptographic algorithms. keys are `${alg}:${crv}`. */
-  static algorithms: { [alg: string]: Signer<Web5Crypto.EcdsaOptions | Web5Crypto.EdDsaOptions> } = {
+  static algorithms: { [alg: string]: Signer<EcdsaAlgorithm | EdDsaAlgorithm> } = {
     'ES256K:'          : secp256k1Signer,
     'ES256K:secp256k1' : secp256k1Signer,
     ':secp256k1'       : secp256k1Signer,
@@ -115,31 +112,16 @@ export class Jwt {
    */
   static async sign(options: SignJwtOptions): Promise<string> {
     const { signerDid, payload } = options;
+    const signer = await signerDid.getSigner();
 
-    let vmId = signerDid.didDocument.verificationMethod![0].id!;
+    let vmId = signer.keyId;
     if (vmId.charAt(0) === '#') {
       vmId = `${signerDid.uri}${vmId}`;
     }
 
-    // TODO: Change once signer has a method to get the alg and kid
-    // const header = {
-    //   typ : 'JWT',
-    //   alg: signer.alg,
-    //   kid: signer.kid
-    // }
-
-    let alg;
-    if(signerDid.didDocument.verificationMethod![0].publicKeyJwk?.crv === 'Ed25519') {
-      alg = 'EdDSA';
-    } else if(signerDid.didDocument.verificationMethod![0].publicKeyJwk?.crv === 'secp256k1'){
-      alg = 'ES256K';
-    } else {
-      throw new Error(`Signing failed: alg not supported`);
-    }
-
     const header: JwtHeaderParams = {
       typ : 'JWT',
-      alg : alg!,
+      alg : signer.algorithm,
       kid : vmId,
     };
 
@@ -148,8 +130,6 @@ export class Jwt {
 
     const toSign = `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}`;
     const toSignBytes = Convert.string(toSign).toUint8Array();
-
-    const signer = await signerDid.getSigner();
 
     const signatureBytes = await signer.sign({data: toSignBytes});
 
@@ -203,13 +183,12 @@ export class Jwt {
       throw new Error(`Verification failed: ${algorithmId} not supported`);
     }
 
-    const { signer, options: signatureAlgorithm } = Jwt.algorithms[algorithmId];
+    const { signer } = Jwt.algorithms[algorithmId];
 
     const isSignatureValid = await signer.verify({
-      algorithm : signatureAlgorithm!,
       key       : publicKeyJwk,
+      signature : signatureBytes,
       data      : signedDataBytes,
-      signature : signatureBytes
     });
 
     if (!isSignatureValid) {

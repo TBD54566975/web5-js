@@ -71,7 +71,7 @@ describe('Jwt', () => {
   describe('verify()', () => {
     it('throws error if JWT is expired', async () => {
       const did = await DidKey.create({ options: { algorithm: 'secp256k1'} });
-      const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: did.didDocument.verificationMethod![0].id };
+      const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: did.document.verificationMethod![0].id };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       const payload: JwtPayload = { exp: Math.floor(Date.now() / 1000 - 1) };
@@ -102,7 +102,7 @@ describe('Jwt', () => {
 
     it('throws error if alg is not supported', async () => {
       const did = await DidKey.create({ options: { algorithm: 'secp256k1'} });
-      const header: JwtHeaderParams = { typ: 'JWT', alg: 'RS256', kid: did.didDocument.verificationMethod![0].id };
+      const header: JwtHeaderParams = { typ: 'JWT', alg: 'RS256', kid: did.document.verificationMethod![0].id };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000) };
@@ -117,27 +117,42 @@ describe('Jwt', () => {
     });
 
     it('returns signer DID if verification succeeds', async () => {
-      const portabldDid: PortableDid = {
-        uri                 : 'did:key:z6MkkGkByH7rSY3uxDEPTk1CZzPG5hvf564ABFLQzCFwyYNN',
-        verificationMethods : [{
-          publicKeyJwk: {
-            kty : 'OKP',
-            crv : 'Ed25519',
-            x   : 'VnSOQ-n7kRcYd0XGW2MNCv7DDY5py5XhNcjM7-Y1HVM'
-          },
-          privateKeyJwk: {
+      const portableDid: PortableDid = {
+        uri      : 'did:key:z6MkkGkByH7rSY3uxDEPTk1CZzPG5hvf564ABFLQzCFwyYNN',
+        document : {
+          '@context'         : 'https://www.w3.org/ns/did/v1',
+          id                 : 'did:key:z6MkkGkByH7rSY3uxDEPTk1CZzPG5hvf564ABFLQzCFwyYNN',
+          verificationMethod : [
+            {
+              id           : 'did:key:z6MkkGkByH7rSY3uxDEPTk1CZzPG5hvf564ABFLQzCFwyYNN#z6MkkGkByH7rSY3uxDEPTk1CZzPG5hvf564ABFLQzCFwyYNN', // You may need to adjust the ID based on your requirements
+              type         : 'JsonWebKey2020', // Adjust the type according to your needs, assuming JsonWebKey2020
+              controller   : 'did:key:z6MkkGkByH7rSY3uxDEPTk1CZzPG5hvf564ABFLQzCFwyYNN',
+              publicKeyJwk : {
+                kty : 'OKP',
+                crv : 'Ed25519',
+                x   : 'VnSOQ-n7kRcYd0XGW2MNCv7DDY5py5XhNcjM7-Y1HVM',
+              },
+            },
+          ],
+          authentication: [
+            'did:key:z6MkkGkByH7rSY3uxDEPTk1CZzPG5hvf564ABFLQzCFwyYNN#z6MkkGkByH7rSY3uxDEPTk1CZzPG5hvf564ABFLQzCFwyYNN',
+          ],
+          // Add other fields like assertionMethod, capabilityInvocation, etc., as needed
+        },
+        metadata    : {}, // Populate according to DidMetadata interface
+        privateKeys : [
+          {
             kty : 'OKP',
             crv : 'Ed25519',
             x   : 'VnSOQ-n7kRcYd0XGW2MNCv7DDY5py5XhNcjM7-Y1HVM',
-            d   : 'iTD5DIOKZNkwgzsND-I8CLIXmgTxfQ1HUzl9fpMktAo'
+            d   : 'iTD5DIOKZNkwgzsND-I8CLIXmgTxfQ1HUzl9fpMktAo',
           },
-          purposes: ['authentication']
-        }]
+        ],
       };
 
-      const did = await DidKey.fromKeys(portabldDid);
+      const did = await DidKey.import({ portableDid });
 
-      const header: JwtHeaderParams = { typ: 'JWT', alg: 'EdDSA', kid: did.didDocument.verificationMethod![0].id };
+      const header: JwtHeaderParams = { typ: 'JWT', alg: 'EdDSA', kid: did.document.verificationMethod![0].id };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000) };
@@ -146,7 +161,7 @@ describe('Jwt', () => {
       const toSign = `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}`;
       const toSignBytes = Convert.string(toSign).toUint8Array();
 
-      const privateKeyJwk = portabldDid.verificationMethods![0].privateKeyJwk;
+      const privateKeyJwk = portableDid.privateKeys![0];
 
       const signatureBytes = await Ed25519.sign({ key: privateKeyJwk as PrivateKeyJwk, data: toSignBytes });
       const base64UrlEncodedSignature = Convert.uint8Array(signatureBytes).toBase64Url();
