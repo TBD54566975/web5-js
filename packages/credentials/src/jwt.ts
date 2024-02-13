@@ -99,7 +99,7 @@ export class Jwt {
     const toSign = `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}`;
     const toSignBytes = Convert.string(toSign).toUint8Array();
 
-    const signatureBytes = await signer.sign({data: toSignBytes});
+    const signatureBytes = await signer.sign({ data: toSignBytes });
 
     const base64UrlEncodedSignature = Convert.uint8Array(signatureBytes).toBase64Url();
 
