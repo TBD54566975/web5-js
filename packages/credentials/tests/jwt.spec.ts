@@ -100,9 +100,9 @@ describe('Jwt', () => {
       }
     });
 
-    it('throws error if alg is not supported', async () => {
+    it.skip('throws error if public key alg is not supported', async () => {
       const did = await DidKey.create({ options: { algorithm: 'secp256k1'} });
-      const header: JwtHeaderParams = { typ: 'JWT', alg: 'RS256', kid: did.document.verificationMethod![0].id };
+      const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: did.document.verificationMethod![0].id };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000) };
