@@ -3,7 +3,7 @@ import type { JwtHeaderParams, JwtPayload, PrivateKeyJwk } from '@web5/crypto';
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
 import { Ed25519 } from '@web5/crypto';
-import { DidKey, PortableDid } from '@web5/dids';
+import { DidJwk, DidKey, PortableDid } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
 
@@ -100,9 +100,9 @@ describe('Jwt', () => {
       }
     });
 
-    it.skip('throws error if public key alg is not supported', async () => {
-      const did = await DidKey.create({ options: { algorithm: 'secp256k1'} });
-      const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: did.document.verificationMethod![0].id };
+    it('throws error if public key alg is not supported', async () => {
+      const did = await DidJwk.create({ options: { algorithm: 'secp256k1'} });
+      const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256', kid: did.document.verificationMethod![0].id };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
       const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000) };
@@ -112,7 +112,7 @@ describe('Jwt', () => {
         await Jwt.verify({ jwt: `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}.hijk` });
         expect.fail();
       } catch(e: any) {
-        expect(e.message).to.include('not supported');
+        expect(e.message).to.include('Verification failed: Expected alg in JWT header to match DID Document Verification Method alg');
       }
     });
 

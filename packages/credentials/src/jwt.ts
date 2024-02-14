@@ -10,6 +10,8 @@ import { Convert } from '@web5/common';
 import { LocalKeyManager as CryptoApi  } from '@web5/crypto';
 import { DidDht, DidIon, DidKey, DidJwk, DidWeb, DidResolver, utils as didUtils } from '@web5/dids';
 
+const crypto = new CryptoApi();
+
 /**
  * Result of parsing a JWT.
  */
@@ -141,12 +143,15 @@ export class Jwt {
       throw new Error('Verification failed: Expected kid in JWT header to dereference to a DID Document Verification Method with publicKeyJwk');
     }
 
+    if(publicKeyJwk.alg && (publicKeyJwk.alg !== decodedJwt.header.alg)) {
+      throw new Error('Verification failed: Expected alg in JWT header to match DID Document Verification Method alg');
+    }
+
     const signedData = `${encodedJwt.header}.${encodedJwt.payload}`;
     const signedDataBytes = Convert.string(signedData).toUint8Array();
 
     const signatureBytes = Convert.base64Url(encodedJwt.signature).toUint8Array();
 
-    const crypto = new CryptoApi();
     const isSignatureValid = await crypto.verify({
       key       : publicKeyJwk,
       signature : signatureBytes,
