@@ -1,5 +1,17 @@
 import type { Jwk } from './jwk.js';
 
+/**
+ * JSON Object Signing and Encryption (JOSE) Header Parameters
+ *
+ * The Header Parameter names for use in both JWSs and JWEs are registered in the IANA "JSON Web
+ * Signature and Encryption Header Parameters" registry.
+ *
+ * As indicated by the common registry, JWSs and JWEs share a common Header Parameter space; when a
+ * parameter is used by both specifications, its usage must be compatible between the
+ * specifications.
+ *
+ * @see {@link https://datatracker.ietf.org/doc/html/rfc7515#section-4.1 | RFC 7515, Section 4.1}
+ */
 export interface JoseHeaderParams {
   /** Content Type Header Parameter */
   cty?: string;
@@ -26,6 +38,14 @@ export interface JoseHeaderParams {
   x5u?: string;
 }
 
+/**
+ * JSON Web Signature (JWS) Header Parameters
+ *
+ * The Header Parameter names for use in JWSs are registered in the IANA "JSON Web Signature and
+ * Encryption Header Parameters" registry.
+ *
+ * @see {@link https://datatracker.ietf.org/doc/html/rfc7515#section-4.1 | RFC 7515, Section 4.1}
+ */
 export interface JwsHeaderParams extends JoseHeaderParams {
   /**
    * Algorithm Header Parameter

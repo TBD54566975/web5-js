@@ -69,8 +69,8 @@ Sign a `VerifiableCredential` with a DID:
 First create a `Did` object as follows:
 
 ```javascript
-import { DidKeyMethod } from '@web5/dids';
-const issuer = await DidKeyMethod.create();
+import { DidKey } from '@web5/dids';
+const issuer: BearerDid = await DidKey.create();
 ```
 
 Then sign the VC using the `did` object

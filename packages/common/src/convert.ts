@@ -1,5 +1,6 @@
 import type { Multibase } from 'multiformats';
 
+import { base32z } from 'multiformats/bases/base32';
 import { base58btc } from 'multiformats/bases/base58';
 import { base64url } from 'multiformats/bases/base64';
 
@@ -26,6 +27,10 @@ export class Convert {
       throw new TypeError('Input must be of type AsyncIterable.');
     }
     return new Convert(data, 'AsyncIterable');
+  }
+
+  static base32Z(data: string): Convert {
+    return new Convert(data, 'Base32Z');
   }
 
   static base58Btc(data: string): Convert {
@@ -128,6 +133,18 @@ export class Convert {
 
       default:
         throw new TypeError(`Asynchronous conversion from ${this.format} to ArrayBuffer is not supported.`);
+    }
+  }
+
+  toBase32Z(): string {
+    switch (this.format) {
+
+      case 'Uint8Array': {
+        return base32z.baseEncode(this.data);
+      }
+
+      default:
+        throw new TypeError(`Conversion from ${this.format} to Base64Z is not supported.`);
     }
   }
 
@@ -355,6 +372,10 @@ export class Convert {
         // Çreate Uint8Array as a view on the ArrayBuffer.
         // Note: The Uint8Array shares the same memory as the ArrayBuffer, so this operation is very efficient.
         return new Uint8Array(this.data);
+      }
+
+      case 'Base32Z': {
+        return base32z.baseDecode(this.data);
       }
 
       case 'Base58Btc': {

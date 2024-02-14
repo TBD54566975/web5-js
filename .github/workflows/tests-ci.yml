@@ -32,6 +32,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          submodules: true
 
       - name: Set up Node.js
         uses: actions/setup-node@5ef044f9d09786428e6e895be6be17937becee3a #v4.0.0
@@ -44,7 +46,7 @@ jobs:
         run: npm ci
 
       - name: Build all workspace packages
-        run: npm run build
+        run: npm run build:esm --ws && npm run build:cjs --ws
 
       - name: Run linter for all packages
         run: npm run lint --ws
@@ -81,9 +83,9 @@ jobs:
           app-id: ${{ secrets.CICD_ROBOT_GITHUB_APP_ID }}
           private-key: ${{ secrets.CICD_ROBOT_GITHUB_APP_PRIVATE_KEY }}
           owner: TBD54566975
-          repositories: sdk-development
+          repositories: sdk-report-runner
 
-      - name: Trigger sdk-development report build
+      - name: Trigger sdk-report-runner report build
         if: github.ref == 'refs/heads/main'
         run: |
           curl -L \
@@ -92,14 +94,14 @@ jobs:
           -H "Content-Type: application/json" \
           --fail \
           --data '{"ref": "main"}' \
-          https://api.github.com/repos/TBD54566975/sdk-development/actions/workflows/build-report.yaml/dispatches
+          https://api.github.com/repos/TBD54566975/sdk-report-runner/actions/workflows/build-report.yaml/dispatches
         env:
           APP_TOKEN: ${{ steps.generate_token.outputs.token }}
 
   test-with-browsers:
     name: test-with-browsers (group ${{ matrix.group }})
     # Run browser tests using macOS so that WebKit tests don't fail under a Linux environment
-    runs-on: macos-latest
+    runs-on: macos-14
     strategy:
       # parallelism strategy: agent takes as long as roughly all other pkgs combined.
       matrix:
@@ -107,12 +109,14 @@ jobs:
           - group: "A"
             packages: "--workspace packages/agent"
           - group: "B"
-            packages: "--workspace packages/crypto --workspace packages/dids --workspace packages/proxy-agent --workspace packages/identity-agent --workspace packages/user-agent"
+            packages: "--workspace packages/credentials --workspace packages/crypto --workspace packages/dids --workspace packages/proxy-agent --workspace packages/identity-agent --workspace packages/user-agent"
           - group: "C"
-            packages: "--workspace packages/api --workspace packages/common --workspace packages/credentials"
+            packages: "--workspace packages/api --workspace packages/common"
     steps:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          submodules: true
 
       - name: Set up Node.js
         uses: actions/setup-node@5ef044f9d09786428e6e895be6be17937becee3a #v4.0.0
@@ -127,7 +131,7 @@ jobs:
       - name: Get Playwright Version (for cache)
         id: get-playwright-version
         run: |
-          PLAYWRIGHT_VERSION=$(npm view @playwright/test version)
+          PLAYWRIGHT_VERSION=$(npm ls @playwright/test --workspace=./packages/api | grep '@playwright/test' | awk 'NR==1{print $2}')
           echo "Playwright Version: $PLAYWRIGHT_VERSION"
           echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> $GITHUB_ENV
 

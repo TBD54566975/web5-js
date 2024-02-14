@@ -4,8 +4,9 @@ import type { AsymmetricKeyGenerator } from '../types/key-generator.js';
 import type { ComputePublicKeyParams, GenerateKeyParams, GetPublicKeyParams, SignParams, VerifyParams } from '../types/params-direct.js';
 
 import { Secp256k1 } from '../primitives/secp256k1.js';
-import { isEcPrivateJwk, isEcPublicJwk } from '../jose/jwk.js';
+import { Secp256r1 } from '../primitives/secp256r1.js';
 import { CryptoAlgorithm } from './crypto-algorithm.js';
+import { isEcPrivateJwk, isEcPublicJwk } from '../jose/jwk.js';
 
 /**
  * The `EcdsaGenerateKeyParams` interface defines the algorithm-specific parameters that should be
@@ -14,9 +15,12 @@ import { CryptoAlgorithm } from './crypto-algorithm.js';
 export interface EcdsaGenerateKeyParams extends GenerateKeyParams {
   /**
    * A string defining the type of key to generate. The value must be one of the following:
+   * - `"ES256"`: ECDSA using the secp256r1 (P-256) curve and SHA-256.
    * - `"ES256K"`: ECDSA using the secp256k1 curve and SHA-256.
+   * - `"secp256k1"`: ECDSA using the secp256k1 curve and SHA-256.
+   * - `"secp256r1"`: ECDSA using the secp256r1 (P-256) curve and SHA-256.
    */
-  algorithm: 'ES256K';
+  algorithm: 'ES256' | 'ES256K' | 'secp256k1' | 'secp256r1';
 }
 
 /**
@@ -66,6 +70,12 @@ export class EcdsaAlgorithm extends CryptoAlgorithm
         return publicKey;
       }
 
+      case 'P-256': {
+        const publicKey = await Secp256r1.computePublicKey({ key });
+        publicKey.alg = 'ES256';
+        return publicKey;
+      }
+
       default: {
         throw new Error(`Unsupported curve: ${key.crv}`);
       }
@@ -91,9 +101,17 @@ export class EcdsaAlgorithm extends CryptoAlgorithm
   ): Promise<Jwk> {
     switch (algorithm) {
 
-      case 'ES256K': {
+      case 'ES256K':
+      case 'secp256k1': {
         const privateKey = await Secp256k1.generateKey();
-        privateKey.alg = algorithm;
+        privateKey.alg = 'ES256K';
+        return privateKey;
+      }
+
+      case 'ES256':
+      case 'secp256r1': {
+        const privateKey = await Secp256r1.generateKey();
+        privateKey.alg = 'ES256';
         return privateKey;
       }
     }
@@ -135,6 +153,12 @@ export class EcdsaAlgorithm extends CryptoAlgorithm
       case 'secp256k1': {
         const publicKey = await Secp256k1.getPublicKey({ key });
         publicKey.alg = 'ES256K';
+        return publicKey;
+      }
+
+      case 'P-256': {
+        const publicKey = await Secp256r1.getPublicKey({ key });
+        publicKey.alg = 'ES256';
         return publicKey;
       }
 
@@ -183,6 +207,10 @@ export class EcdsaAlgorithm extends CryptoAlgorithm
         return await Secp256k1.sign({ key, data });
       }
 
+      case 'P-256': {
+        return await Secp256r1.sign({ key, data });
+      }
+
       default: {
         throw new Error(`Unsupported curve: ${key.crv}`);
       }
@@ -227,6 +255,10 @@ export class EcdsaAlgorithm extends CryptoAlgorithm
 
       case 'secp256k1': {
         return await Secp256k1.verify({ key, signature, data });
+      }
+
+      case 'P-256': {
+        return await Secp256r1.verify({ key, signature, data });
       }
 
       default: {

@@ -77,11 +77,11 @@
   },
   "dependencies": {
     "@tbd54566975/dwn-sdk-js": "0.2.10",
-    "@web5/agent": "0.2.5",
-    "@web5/common": "0.2.2",
+    "@web5/agent": "0.2.6",
+    "@web5/common": "0.2.3",
     "@web5/crypto": "0.2.2",
     "@web5/dids": "0.2.4",
-    "@web5/user-agent": "0.2.5",
+    "@web5/user-agent": "0.2.6",
     "level": "8.0.0",
     "ms": "2.1.3",
     "readable-stream": "4.4.2",
@@ -100,7 +100,7 @@
     "@typescript-eslint/parser": "6.4.0",
     "@web/test-runner": "0.18.0",
     "@web/test-runner-playwright": "0.11.0",
-    "c8": "8.0.1",
+    "c8": "9.0.0",
     "chai": "4.3.10",
     "chai-as-promised": "7.1.1",
     "esbuild": "0.19.8",
@@ -112,7 +112,7 @@
     "playwright": "1.40.1",
     "rimraf": "4.4.0",
     "sinon": "16.1.3",
-    "source-map-loader": "4.0.1",
+    "source-map-loader": "4.0.2",
     "typescript": "5.1.6"
   }
 }

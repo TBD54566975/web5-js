@@ -1,0 +1,541 @@
+{
+  "description": "DID Utils getVerificationMethodByKey test vectors",
+  "vectors": [
+    {
+      "description": "returns verification method of given key in JWK format",
+      "input": {
+        "didDocument": {
+          "@context": [
+            "https://www.w3.org/ns/did/v1",
+            "https://w3id.org/security/suites/jws-2020/v1"
+          ],
+          "id": "did:jwk:eyJrdHkiOiJFQyIsInVzZSI6InNpZyIsImNydiI6InNlY3AyNTZrMSIsImtpZCI6ImkzU1BSQnRKS292SEZzQmFxTTkydGk2eFFDSkxYM0U3WUNld2lIVjJDU2ciLCJ4IjoidmRyYnoyRU96dmJMRFZfLWtMNGVKdDdWSS04VEZaTm1BOVlnV3p2aGg3VSIsInkiOiJWTEZxUU1aUF9Bc3B1Y1hvV1gyLWJHWHBBTzFmUTVMbjE5VjVSQXhyZ3ZVIiwiYWxnIjoiRVMyNTZLIn0",
+          "verificationMethod": [
+            {
+              "type": "JsonWebKey2020",
+              "id": "did:jwk:eyJrdHkiOiJFQyIsInVzZSI6InNpZyIsImNydiI6InNlY3AyNTZrMSIsImtpZCI6ImkzU1BSQnRKS292SEZzQmFxTTkydGk2eFFDSkxYM0U3WUNld2lIVjJDU2ciLCJ4IjoidmRyYnoyRU96dmJMRFZfLWtMNGVKdDdWSS04VEZaTm1BOVlnV3p2aGg3VSIsInkiOiJWTEZxUU1aUF9Bc3B1Y1hvV1gyLWJHWHBBTzFmUTVMbjE5VjVSQXhyZ3ZVIiwiYWxnIjoiRVMyNTZLIn0#0",
+              "controller": "did:jwk:eyJrdHkiOiJFQyIsInVzZSI6InNpZyIsImNydiI6InNlY3AyNTZrMSIsImtpZCI6ImkzU1BSQnRKS292SEZzQmFxTTkydGk2eFFDSkxYM0U3WUNld2lIVjJDU2ciLCJ4IjoidmRyYnoyRU96dmJMRFZfLWtMNGVKdDdWSS04VEZaTm1BOVlnV3p2aGg3VSIsInkiOiJWTEZxUU1aUF9Bc3B1Y1hvV1gyLWJHWHBBTzFmUTVMbjE5VjVSQXhyZ3ZVIiwiYWxnIjoiRVMyNTZLIn0",
+              "publicKeyJwk": {
+                "kty": "EC",
+                "crv": "secp256k1",
+                "kid": "i3SPRBtJKovHFsBaqM92ti6xQCJLX3E7YCewiHV2CSg",
+                "x": "vdrbz2EOzvbLDV_-kL4eJt7VI-8TFZNmA9YgWzvhh7U",
+                "y": "VLFqQMZP_AspucXoWX2-bGXpAO1fQ5Ln19V5RAxrgvU",
+                "alg": "ES256K"
+              }
+            }
+          ],
+          "authentication": [
+            "did:jwk:eyJrdHkiOiJFQyIsInVzZSI6InNpZyIsImNydiI6InNlY3AyNTZrMSIsImtpZCI6ImkzU1BSQnRKS292SEZzQmFxTTkydGk2eFFDSkxYM0U3WUNld2lIVjJDU2ciLCJ4IjoidmRyYnoyRU96dmJMRFZfLWtMNGVKdDdWSS04VEZaTm1BOVlnV3p2aGg3VSIsInkiOiJWTEZxUU1aUF9Bc3B1Y1hvV1gyLWJHWHBBTzFmUTVMbjE5VjVSQXhyZ3ZVIiwiYWxnIjoiRVMyNTZLIn0#0"
+          ],
+          "assertionMethod": [
+            "did:jwk:eyJrdHkiOiJFQyIsInVzZSI6InNpZyIsImNydiI6InNlY3AyNTZrMSIsImtpZCI6ImkzU1BSQnRKS292SEZzQmFxTTkydGk2eFFDSkxYM0U3WUNld2lIVjJDU2ciLCJ4IjoidmRyYnoyRU96dmJMRFZfLWtMNGVKdDdWSS04VEZaTm1BOVlnV3p2aGg3VSIsInkiOiJWTEZxUU1aUF9Bc3B1Y1hvV1gyLWJHWHBBTzFmUTVMbjE5VjVSQXhyZ3ZVIiwiYWxnIjoiRVMyNTZLIn0#0"
+          ],
+          "capabilityInvocation": [
+            "did:jwk:eyJrdHkiOiJFQyIsInVzZSI6InNpZyIsImNydiI6InNlY3AyNTZrMSIsImtpZCI6ImkzU1BSQnRKS292SEZzQmFxTTkydGk2eFFDSkxYM0U3WUNld2lIVjJDU2ciLCJ4IjoidmRyYnoyRU96dmJMRFZfLWtMNGVKdDdWSS04VEZaTm1BOVlnV3p2aGg3VSIsInkiOiJWTEZxUU1aUF9Bc3B1Y1hvV1gyLWJHWHBBTzFmUTVMbjE5VjVSQXhyZ3ZVIiwiYWxnIjoiRVMyNTZLIn0#0"
+          ],
+          "capabilityDelegation": [
+            "did:jwk:eyJrdHkiOiJFQyIsInVzZSI6InNpZyIsImNydiI6InNlY3AyNTZrMSIsImtpZCI6ImkzU1BSQnRKS292SEZzQmFxTTkydGk2eFFDSkxYM0U3WUNld2lIVjJDU2ciLCJ4IjoidmRyYnoyRU96dmJMRFZfLWtMNGVKdDdWSS04VEZaTm1BOVlnV3p2aGg3VSIsInkiOiJWTEZxUU1aUF9Bc3B1Y1hvV1gyLWJHWHBBTzFmUTVMbjE5VjVSQXhyZ3ZVIiwiYWxnIjoiRVMyNTZLIn0#0"
+          ]
+        },
+        "publicKeyJwk": {
+          "kty": "EC",
+          "crv": "secp256k1",
+          "kid": "i3SPRBtJKovHFsBaqM92ti6xQCJLX3E7YCewiHV2CSg",
+          "x": "vdrbz2EOzvbLDV_-kL4eJt7VI-8TFZNmA9YgWzvhh7U",
+          "y": "VLFqQMZP_AspucXoWX2-bGXpAO1fQ5Ln19V5RAxrgvU",
+          "alg": "ES256K"
+        }
+      },
+      "output": {
+        "type": "JsonWebKey2020",
+        "id": "did:jwk:eyJrdHkiOiJFQyIsInVzZSI6InNpZyIsImNydiI6InNlY3AyNTZrMSIsImtpZCI6ImkzU1BSQnRKS292SEZzQmFxTTkydGk2eFFDSkxYM0U3WUNld2lIVjJDU2ciLCJ4IjoidmRyYnoyRU96dmJMRFZfLWtMNGVKdDdWSS04VEZaTm1BOVlnV3p2aGg3VSIsInkiOiJWTEZxUU1aUF9Bc3B1Y1hvV1gyLWJHWHBBTzFmUTVMbjE5VjVSQXhyZ3ZVIiwiYWxnIjoiRVMyNTZLIn0#0",
+        "controller": "did:jwk:eyJrdHkiOiJFQyIsInVzZSI6InNpZyIsImNydiI6InNlY3AyNTZrMSIsImtpZCI6ImkzU1BSQnRKS292SEZzQmFxTTkydGk2eFFDSkxYM0U3WUNld2lIVjJDU2ciLCJ4IjoidmRyYnoyRU96dmJMRFZfLWtMNGVKdDdWSS04VEZaTm1BOVlnV3p2aGg3VSIsInkiOiJWTEZxUU1aUF9Bc3B1Y1hvV1gyLWJHWHBBTzFmUTVMbjE5VjVSQXhyZ3ZVIiwiYWxnIjoiRVMyNTZLIn0",
+        "publicKeyJwk": {
+          "kty": "EC",
+          "crv": "secp256k1",
+          "kid": "i3SPRBtJKovHFsBaqM92ti6xQCJLX3E7YCewiHV2CSg",
+          "x": "vdrbz2EOzvbLDV_-kL4eJt7VI-8TFZNmA9YgWzvhh7U",
+          "y": "VLFqQMZP_AspucXoWX2-bGXpAO1fQ5Ln19V5RAxrgvU",
+          "alg": "ES256K"
+        }
+      },
+      "errors": false
+    },
+    {
+      "description": "returns verification method of given key in multibase format",
+      "input": {
+        "didDocument": {
+          "@context": [
+            "https://www.w3.org/ns/did/v1",
+            "https://w3id.org/security/suites/jws-2020/v1",
+            "https://w3id.org/security/suites/ed25519-2020/v1",
+            "https://w3id.org/security/suites/x25519-2020/v1"
+          ],
+          "id": "did:method:alice",
+          "verificationMethod": [
+            {
+              "id": "did:method:alice#key-1",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "GM_NcTChsLlfdODKG573OSWGO7wNwzhkHRPHPxdAYfc"
+              }
+            },
+            {
+              "id": "did:method:alice#key-2",
+              "type": "Ed25519VerificationKey2020",
+              "controller": "did:method:alice",
+              "publicKeyMultibase": "z6LSdCnN59MPkRCaVvXczoipz5tMcPpjrCnvqBcHHjCDohYd"
+            }
+          ],
+          "authentication": [
+            "did:method:alice#key-1",
+            {
+              "id": "did:method:alice#key-3",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "k1GKchkMMp9nbYsShY1R2UVzPsQill6zv2De38ERkfI"
+              }
+            }
+          ],
+          "keyAgreement": [
+            {
+              "id": "did:method:alice#key-5",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "X25519",
+                "x": "SOKzporeWqJMJxf1NgPtup3whiBLPLZxgLDORNzbXwA"
+              }
+            },
+            {
+              "id": "did:method:alice#key-6",
+              "type": "X25519KeyAgreementKey2020",
+              "controller": "did:method:alice",
+              "publicKeyMultibase": "z6LSgah1r8rDCT2brDg7Vhh2LYmTkcEVgUHng1Ji68XBy4d"
+            }
+          ]
+        },
+        "publicKeyMultibase": "z6LSdCnN59MPkRCaVvXczoipz5tMcPpjrCnvqBcHHjCDohYd"
+      },
+      "output": {
+        "id": "did:method:alice#key-2",
+        "type": "Ed25519VerificationKey2020",
+        "controller": "did:method:alice",
+        "publicKeyMultibase": "z6LSdCnN59MPkRCaVvXczoipz5tMcPpjrCnvqBcHHjCDohYd"
+      },
+      "errors": false
+    },
+    {
+      "description": "returns embedded verification method of given key in JWK format",
+      "input": {
+        "didDocument": {
+          "@context": [
+            "https://www.w3.org/ns/did/v1",
+            "https://w3id.org/security/suites/jws-2020/v1",
+            "https://w3id.org/security/suites/ed25519-2020/v1",
+            "https://w3id.org/security/suites/x25519-2020/v1"
+          ],
+          "id": "did:method:alice",
+          "verificationMethod": [
+            {
+              "id": "did:method:alice#key-1",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "GM_NcTChsLlfdODKG573OSWGO7wNwzhkHRPHPxdAYfc"
+              }
+            },
+            {
+              "id": "did:method:alice#key-2",
+              "type": "Ed25519VerificationKey2020",
+              "controller": "did:method:alice",
+              "publicKeyMultibase": "z6LSdCnN59MPkRCaVvXczoipz5tMcPpjrCnvqBcHHjCDohYd"
+            }
+          ],
+          "authentication": [
+            "did:method:alice#key-1",
+            {
+              "id": "did:method:alice#key-3",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "k1GKchkMMp9nbYsShY1R2UVzPsQill6zv2De38ERkfI"
+              }
+            }
+          ],
+          "keyAgreement": [
+            {
+              "id": "did:method:alice#key-5",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "X25519",
+                "x": "SOKzporeWqJMJxf1NgPtup3whiBLPLZxgLDORNzbXwA"
+              }
+            },
+            {
+              "id": "did:method:alice#key-6",
+              "type": "X25519KeyAgreementKey2020",
+              "controller": "did:method:alice",
+              "publicKeyMultibase": "z6LSgah1r8rDCT2brDg7Vhh2LYmTkcEVgUHng1Ji68XBy4d"
+            }
+          ]
+        },
+        "publicKeyJwk": {
+          "alg": "EdDSA",
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "k1GKchkMMp9nbYsShY1R2UVzPsQill6zv2De38ERkfI"
+        }
+      },
+      "output": {
+        "id": "did:method:alice#key-3",
+        "type": "JsonWebKey2020",
+        "controller": "did:method:alice",
+        "publicKeyJwk": {
+          "alg": "EdDSA",
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "k1GKchkMMp9nbYsShY1R2UVzPsQill6zv2De38ERkfI"
+        }
+      },
+      "errors": false
+    },
+    {
+      "description": "returns embedded verification method of given key in multibase format",
+      "input": {
+        "didDocument": {
+          "@context": [
+            "https://www.w3.org/ns/did/v1",
+            "https://w3id.org/security/suites/jws-2020/v1",
+            "https://w3id.org/security/suites/ed25519-2020/v1",
+            "https://w3id.org/security/suites/x25519-2020/v1"
+          ],
+          "id": "did:method:alice",
+          "verificationMethod": [
+            {
+              "id": "did:method:alice#key-1",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "GM_NcTChsLlfdODKG573OSWGO7wNwzhkHRPHPxdAYfc"
+              }
+            },
+            {
+              "id": "did:method:alice#key-2",
+              "type": "Ed25519VerificationKey2020",
+              "controller": "did:method:alice",
+              "publicKeyMultibase": "z6LSdCnN59MPkRCaVvXczoipz5tMcPpjrCnvqBcHHjCDohYd"
+            }
+          ],
+          "authentication": [
+            "did:method:alice#key-1",
+            {
+              "id": "did:method:alice#key-3",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "k1GKchkMMp9nbYsShY1R2UVzPsQill6zv2De38ERkfI"
+              }
+            }
+          ],
+          "keyAgreement": [
+            {
+              "id": "did:method:alice#key-5",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "X25519",
+                "x": "SOKzporeWqJMJxf1NgPtup3whiBLPLZxgLDORNzbXwA"
+              }
+            },
+            {
+              "id": "did:method:alice#key-6",
+              "type": "X25519KeyAgreementKey2020",
+              "controller": "did:method:alice",
+              "publicKeyMultibase": "z6LSgah1r8rDCT2brDg7Vhh2LYmTkcEVgUHng1Ji68XBy4d"
+            }
+          ]
+        },
+        "publicKeyMultibase": "z6LSgah1r8rDCT2brDg7Vhh2LYmTkcEVgUHng1Ji68XBy4d"
+      },
+      "output": {
+        "id": "did:method:alice#key-6",
+        "type": "X25519KeyAgreementKey2020",
+        "controller": "did:method:alice",
+        "publicKeyMultibase": "z6LSgah1r8rDCT2brDg7Vhh2LYmTkcEVgUHng1Ji68XBy4d"
+      },
+      "errors": false
+    },
+    {
+      "description": "returns publicKeyJwk match before publicKeyMultibase if both are given",
+      "input": {
+        "didDocument": {
+          "@context": [
+            "https://www.w3.org/ns/did/v1",
+            "https://w3id.org/security/suites/jws-2020/v1",
+            "https://w3id.org/security/suites/ed25519-2020/v1",
+            "https://w3id.org/security/suites/x25519-2020/v1"
+          ],
+          "id": "did:method:alice",
+          "verificationMethod": [
+            {
+              "id": "did:method:alice#key-1",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "GM_NcTChsLlfdODKG573OSWGO7wNwzhkHRPHPxdAYfc"
+              }
+            },
+            {
+              "id": "did:method:alice#key-2",
+              "type": "Ed25519VerificationKey2020",
+              "controller": "did:method:alice",
+              "publicKeyMultibase": "z6LSdCnN59MPkRCaVvXczoipz5tMcPpjrCnvqBcHHjCDohYd"
+            }
+          ],
+          "authentication": [
+            "did:method:alice#key-1",
+            {
+              "id": "did:method:alice#key-3",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "k1GKchkMMp9nbYsShY1R2UVzPsQill6zv2De38ERkfI"
+              }
+            }
+          ],
+          "keyAgreement": [
+            {
+              "id": "did:method:alice#key-5",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "X25519",
+                "x": "SOKzporeWqJMJxf1NgPtup3whiBLPLZxgLDORNzbXwA"
+              }
+            },
+            {
+              "id": "did:method:alice#key-6",
+              "type": "X25519KeyAgreementKey2020",
+              "controller": "did:method:alice",
+              "publicKeyMultibase": "z6LSgah1r8rDCT2brDg7Vhh2LYmTkcEVgUHng1Ji68XBy4d"
+            }
+          ]
+        },
+        "publicKeyJwk": {
+          "alg": "EdDSA",
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "k1GKchkMMp9nbYsShY1R2UVzPsQill6zv2De38ERkfI"
+        },
+        "publicKeyMultibase": "z6LSgah1r8rDCT2brDg7Vhh2LYmTkcEVgUHng1Ji68XBy4d"
+      },
+      "output": {
+        "id": "did:method:alice#key-3",
+        "type": "JsonWebKey2020",
+        "controller": "did:method:alice",
+        "publicKeyJwk": {
+          "alg": "EdDSA",
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "k1GKchkMMp9nbYsShY1R2UVzPsQill6zv2De38ERkfI"
+        }
+      },
+      "errors": false
+    },
+    {
+      "description": "returns null if no match is found",
+      "input": {
+        "didDocument": {
+          "@context": [
+            "https://www.w3.org/ns/did/v1",
+            "https://w3id.org/security/suites/jws-2020/v1",
+            "https://w3id.org/security/suites/ed25519-2020/v1",
+            "https://w3id.org/security/suites/x25519-2020/v1"
+          ],
+          "id": "did:method:alice",
+          "verificationMethod": [
+            {
+              "id": "did:method:alice#key-1",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "GM_NcTChsLlfdODKG573OSWGO7wNwzhkHRPHPxdAYfc"
+              }
+            },
+            {
+              "id": "did:method:alice#key-2",
+              "type": "Ed25519VerificationKey2020",
+              "controller": "did:method:alice",
+              "publicKeyMultibase": "z6LSdCnN59MPkRCaVvXczoipz5tMcPpjrCnvqBcHHjCDohYd"
+            }
+          ],
+          "authentication": [
+            "did:method:alice#key-1",
+            {
+              "id": "did:method:alice#key-3",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "k1GKchkMMp9nbYsShY1R2UVzPsQill6zv2De38ERkfI"
+              }
+            }
+          ],
+          "keyAgreement": [
+            {
+              "id": "did:method:alice#key-5",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "X25519",
+                "x": "SOKzporeWqJMJxf1NgPtup3whiBLPLZxgLDORNzbXwA"
+              }
+            },
+            {
+              "id": "did:method:alice#key-6",
+              "type": "X25519KeyAgreementKey2020",
+              "controller": "did:method:alice",
+              "publicKeyMultibase": "z6LSgah1r8rDCT2brDg7Vhh2LYmTkcEVgUHng1Ji68XBy4d"
+            }
+          ]
+        },
+        "publicKeyJwk": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "WAZghWazRgO-V858h_USUXWIeUZv1DfV_NmS_WIXkgU"
+        }
+      },
+      "output": null,
+      "errors": false
+    },
+    {
+      "description": "returns null if no match is found",
+      "input": {
+        "didDocument": {
+          "@context": [
+            "https://www.w3.org/ns/did/v1",
+            "https://w3id.org/security/suites/jws-2020/v1",
+            "https://w3id.org/security/suites/ed25519-2020/v1",
+            "https://w3id.org/security/suites/x25519-2020/v1"
+          ],
+          "id": "did:method:alice",
+          "verificationMethod": [
+            {
+              "id": "did:method:alice#key-1",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "GM_NcTChsLlfdODKG573OSWGO7wNwzhkHRPHPxdAYfc"
+              }
+            },
+            {
+              "id": "did:method:alice#key-2",
+              "type": "Ed25519VerificationKey2020",
+              "controller": "did:method:alice",
+              "publicKeyMultibase": "z6LSdCnN59MPkRCaVvXczoipz5tMcPpjrCnvqBcHHjCDohYd"
+            }
+          ],
+          "authentication": [
+            "did:method:alice#key-1",
+            {
+              "id": "did:method:alice#key-3",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "Ed25519",
+                "x": "k1GKchkMMp9nbYsShY1R2UVzPsQill6zv2De38ERkfI"
+              }
+            }
+          ],
+          "keyAgreement": [
+            {
+              "id": "did:method:alice#key-5",
+              "type": "JsonWebKey2020",
+              "controller": "did:method:alice",
+              "publicKeyJwk": {
+                "alg": "EdDSA",
+                "kty": "OKP",
+                "crv": "X25519",
+                "x": "SOKzporeWqJMJxf1NgPtup3whiBLPLZxgLDORNzbXwA"
+              }
+            },
+            {
+              "id": "did:method:alice#key-6",
+              "type": "X25519KeyAgreementKey2020",
+              "controller": "did:method:alice",
+              "publicKeyMultibase": "z6LSgah1r8rDCT2brDg7Vhh2LYmTkcEVgUHng1Ji68XBy4d"
+            }
+          ]
+        },
+        "publicKeyJwk": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "WAZghWazRgO-V858h_USUXWIeUZv1DfV_NmS_WIXkgU"
+        }
+      },
+      "output": null,
+      "errors": false
+    },
+    {
+      "description": "error if didDocument is an empty object",
+      "input": {
+        "didDocument": {}
+      },
+      "errors": true
+    },
+    {
+      "description": "error if didDocument is missing",
+      "input": {},
+      "errors": true
+    }
+  ]
+}

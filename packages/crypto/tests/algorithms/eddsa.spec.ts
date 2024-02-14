@@ -81,7 +81,6 @@ describe('EdDsaAlgorithm', () => {
     it('throws an error for an unsupported curve', async () => {
       // Setup.
       const privateKey: Jwk = {
-        // @ts-expect-error because an unsupported curve is intentionally provided.
         crv : 'unsupported-curve',
         d   : 'd',
         kty : 'OKP',
@@ -183,7 +182,6 @@ describe('EdDsaAlgorithm', () => {
     it('throws an error for an unsupported curve', async () => {
       // Setup.
       const privateKey: Jwk = {
-        // @ts-expect-error because an unsupported curve is intentionally provided.
         crv : 'unsupported-curve',
         d   : 'd',
         kty : 'OKP',
@@ -250,7 +248,6 @@ describe('EdDsaAlgorithm', () => {
     it('throws an error for an unsupported curve', async () => {
       // Setup.
       const privateKey: Jwk = {
-        // @ts-expect-error because an unsupported curve is intentionally provided.
         crv : 'unsupported-curve',
         d   : 'd',
         kty : 'OKP',
@@ -334,7 +331,6 @@ describe('EdDsaAlgorithm', () => {
     it('throws an error for an unsupported curve', async () => {
       // Setup.
       const publicKey: Jwk = {
-        // @ts-expect-error because an unsupported curve is intentionally provided.
         crv : 'unsupported-curve',
         kty : 'OKP',
         x   : 'x'

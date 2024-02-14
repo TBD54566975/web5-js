@@ -4,8 +4,8 @@ import chaiAsPromised from 'chai-as-promised';
 
 import type { Jwk, JwkParamsEcPrivate } from '../../src/jose/jwk.js';
 
-import CryptoEs256kSignTestVector from '../../../../test-vectors/crypto_es256k/sign.json' assert { type: 'json' };
-import CryptoEs256kVerifyTestVector from '../../../../test-vectors/crypto_es256k/verify.json' assert { type: 'json' };
+import CryptoEs256kSignTestVector from '../../../../web5-spec/test-vectors/crypto_es256k/sign.json' assert { type: 'json' };
+import CryptoEs256kVerifyTestVector from '../../../../web5-spec/test-vectors/crypto_es256k/verify.json' assert { type: 'json' };
 import secp256k1GetCurvePoints from '../fixtures/test-vectors/secp256k1/get-curve-points.json' assert { type: 'json' };
 import secp256k1BytesToPublicKey from '../fixtures/test-vectors/secp256k1/bytes-to-public-key.json' assert { type: 'json' };
 import secp256k1PublicKeyToBytes from '../fixtures/test-vectors/secp256k1/public-key-to-bytes.json' assert { type: 'json' };
@@ -326,12 +326,12 @@ describe('Secp256k1', () => {
     });
   });
 
-  describe('getCurvePoints()', () => {
+  describe('getCurvePoint()', () => {
     for (const vector of secp256k1GetCurvePoints.vectors) {
       it(vector.description, async () => {
         const keyBytes = Convert.hex(vector.input.keyBytes).toUint8Array();
-        // @ts-expect-error because getCurvePoints() is a private method.
-        const points = await Secp256k1.getCurvePoints({ keyBytes });
+        // @ts-expect-error because getCurvePoint() is a private method.
+        const points = await Secp256k1.getCurvePoint({ keyBytes });
         expect(points.x).to.deep.equal(Convert.hex(vector.output.x).toUint8Array());
         expect(points.y).to.deep.equal(Convert.hex(vector.output.y).toUint8Array());
       });
@@ -339,8 +339,8 @@ describe('Secp256k1', () => {
 
     it('throws error with invalid input key length', async () => {
       await expect(
-        // @ts-expect-error because getCurvePoints() is a private method.
-        Secp256k1.getCurvePoints({ keyBytes: new Uint8Array(16) })
+        // @ts-expect-error because getCurvePoint() is a private method.
+        Secp256k1.getCurvePoint({ keyBytes: new Uint8Array(16) })
       ).to.eventually.be.rejectedWith(Error, 'Point of length 16 was invalid. Expected 33 compressed bytes or 65 uncompressed bytes');
     });
   });

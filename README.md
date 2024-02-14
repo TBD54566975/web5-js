@@ -48,6 +48,23 @@ Interested in contributing instantly? You can make your updates directly without
 
 [![Button to click and edit code in CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/github/TBD54566975/web5-js/main)
 
+
+## Prerequisites
+
+### Cloning
+This repository uses git submodules. To clone this repo with submodules
+```sh
+git clone --recurse-submodules git@github.com:TBD54566975/web5-js.git
+```
+Or to add submodules after cloning
+```sh
+git submodule update --init
+```
+We recommend this config which will only checkout the files relevant to web5-js
+```sh
+git -C web5-spec sparse-checkout set test-vectors
+```
+
 ## Installation
 
 _NPM_
@@ -177,6 +194,10 @@ Each `Record` instance has the following instance methods:
   - **`text`** - _`function`_: returns the data as a string.
 - **`send`** - _`function`_: sends the record the instance represents to the DWeb Node endpoints of a provided DID.
 - **`update`** - _`function`_: takes in a new request object matching the expected method signature of a `write` and overwrites the record. This is a convenience method that allows you to easily overwrite records with less verbosity.
+- **`store`** - _`function`_: stores the record in the local DWN instance, offering the following options:
+    - `import`: imports the record as with an owner-signed override (still subject to Protocol rules, when a record is Protocol-based)
+- **`import`** - _`function`_: signs a record with an owner override to import the record into the local DWN instance:
+    - `store` - _`boolean`_: when false is passed, the record will only be signed with an owner override, not stored in the local DWN instance. Defaults to `true`.
 
 ### **`web5.dwn.records.query(request)`**
 
@@ -475,6 +496,24 @@ The `create` method under the `did` object enables generation of DIDs for a supp
 
 ```javascript
 const myDid = await Web5.did.create("ion");
+```
+
+## Working with the `web5-spec` submodule
+
+### Pulling
+You may need to update the `web5-spec` submodule after pulling.
+```sh
+git pull
+git submodule update
+```
+
+### Pushing
+If you have made changes to the `web5-spec` submodule, you should push your changes to the `web5-spec` remote as well as pushing changes to `web5-js`.
+```sh
+cd web5-spec
+git push
+cd ..
+git push
 ```
 
 ## Project Resources

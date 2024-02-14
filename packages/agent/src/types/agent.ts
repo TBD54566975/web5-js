@@ -75,8 +75,10 @@ export type DwnRequest = {
  */
 export type ProcessDwnRequest = DwnRequest & {
   dataStream?: Blob | ReadableStream | Readable;
-  messageOptions: unknown;
+  rawMessage?: unknown;
+  messageOptions?: unknown;
   store?: boolean;
+  signAsOwner?: boolean;
 };
 
 export type SendDwnRequest = DwnRequest & (ProcessDwnRequest | { messageCid: string })

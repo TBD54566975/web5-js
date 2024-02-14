@@ -1,11 +1,11 @@
 import { expect } from 'chai';
-import { DidKeyMethod, PortableDid } from '@web5/dids';
+import { BearerDid, DidKey } from '@web5/dids';
 
 import type { Validated, PresentationDefinitionV2 } from '../src/presentation-exchange.js';
 
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import { PresentationExchange } from '../src/presentation-exchange.js';
-import PresentationExchangeSelectCredentialsTestVector from '../../../test-vectors/presentation_exchange/select_credentials.json' assert { type: 'json' };
+import PresentationExchangeSelectCredentialsTestVector from '../../../web5-spec/test-vectors/presentation_exchange/select_credentials.json' assert { type: 'json' };
 
 
 class BitcoinCredential {
@@ -22,22 +22,24 @@ class OtherCredential {
 
 describe('PresentationExchange', () => {
   describe('Full Presentation Exchange', () => {
-    let issuerDid: PortableDid;
+    let issuerDid: BearerDid;
     let btcCredentialJwt: string;
     let presentationDefinition: PresentationDefinitionV2;
+    let groupPresentationDefinition: PresentationDefinitionV2;
 
     before(async () => {
-      issuerDid = await DidKeyMethod.create();
+      issuerDid = await DidKey.create();
 
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.did,
-        subject : issuerDid.did,
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
         data    : new BitcoinCredential('btcAddress123'),
       });
 
       btcCredentialJwt = await vc.sign({did: issuerDid});
       presentationDefinition = createPresentationDefinition();
+      groupPresentationDefinition = createGroupPresentationDefinition();
     });
 
     it('should evaluate credentials without any errors or warnings', async () => {
@@ -58,8 +60,8 @@ describe('PresentationExchange', () => {
     it('should return the only one verifiable credential', async () => {
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.did,
-        subject : issuerDid.did,
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
         data    : new OtherCredential('otherstuff'),
       });
 
@@ -144,8 +146,8 @@ describe('PresentationExchange', () => {
     it('should fail to create a presentation with vc that does not match presentation definition', async () => {
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.did,
-        subject : issuerDid.did,
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
         data    : new OtherCredential('otherstuff'),
       });
 
@@ -213,6 +215,27 @@ describe('PresentationExchange', () => {
       expect(warnings).to.be.an('array');
       expect(warnings?.length).to.equal(0);
     });
+
+    it('should successfully execute the complete group presentation exchange flow', () => {
+      const presentationResult = PresentationExchange.createPresentationFromCredentials({
+        vcJwts                 : [btcCredentialJwt],
+        presentationDefinition : groupPresentationDefinition
+      });
+
+      expect(presentationResult).to.exist;
+      expect(presentationResult.presentationSubmission.definition_id).to.equal(groupPresentationDefinition.id);
+
+      const { warnings, errors } = PresentationExchange.evaluatePresentation({
+        presentationDefinition : groupPresentationDefinition,
+        presentation           : presentationResult.presentation
+      });
+
+      expect(errors).to.be.an('array');
+      expect(errors?.length).to.equal(0);
+
+      expect(warnings).to.be.an('array');
+      expect(warnings?.length).to.equal(0);
+    });
   });
 
   describe('Web5TestVectorsPresentationExchange', () => {
@@ -245,6 +268,50 @@ function createPresentationDefinition(): PresentationDefinitionV2 {
             {
               'path': [
                 '$.credentialSubject.btcAddress',
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  };
+}
+
+function createGroupPresentationDefinition(): PresentationDefinitionV2 {
+  return {
+    'id'                      : 'test-pd-group-id',
+    'submission_requirements' : [{
+      'name'  : 'Citizenship Information',
+      'rule'  : 'pick',
+      'count' : 1,
+      'from'  : 'A'
+    }],
+    'name'              : 'group PD',
+    'purpose'           : 'group pd for testing',
+    'input_descriptors' : [
+      {
+        'id'          : 'whatever-1',
+        'purpose'     : 'id for testing',
+        'group'       : ['A'],
+        'constraints' : {
+          'fields': [
+            {
+              'path': [
+                '$.credentialSubject.btcAddress',
+              ]
+            }
+          ]
+        }
+      },
+      {
+        'id'          : 'whatever-2',
+        'purpose'     : 'id for testing',
+        'group'       : ['A'],
+        'constraints' : {
+          'fields': [
+            {
+              'path': [
+                '$.credentialSubject.dob',
               ]
             }
           ]
