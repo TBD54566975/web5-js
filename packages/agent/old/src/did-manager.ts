@@ -7,6 +7,7 @@ import type {
   DidMethodApi,
   DidIonCreateOptions,
   DidKeyCreateOptions,
+  DidVerificationMethod,
 } from '@web5/dids';
 
 import { Jose} from '@web5/crypto';
@@ -179,7 +180,7 @@ export class DidManager {
     return verificationMethodId;
   }
 
-  async get(options: {
+  public async get(options: {
     didRef: string,
     context?: string
   }): Promise<ManagedDid | undefined> {
@@ -197,7 +198,7 @@ export class DidManager {
     return undefined;
   }
 
-  async import(options: ImportDidOptions): Promise<ManagedDid> {
+  public async import(options: ImportDidOptions): Promise<ManagedDid> {
     let { alias, context, did, kms } = options;
 
     if (did.keySet === undefined) {
@@ -332,7 +333,6 @@ export class DidManager {
       case DidMessage.Create: {
         const result = await this.create(messageOptions);
         return { result };
-        break;
       }
       default: {
         throw new Error(`DidManager: Unsupported request type: ${messageType}`);

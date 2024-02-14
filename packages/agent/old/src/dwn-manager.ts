@@ -146,7 +146,6 @@ export class DwnManager {
 
       dwn = await Dwn.create({
         dataStore,
-        // @ts-expect-error because `dwn-sdk-js` expects its internal DidResolver implementation.
         didResolver,
         eventLog,
         messageStore,

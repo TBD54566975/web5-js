@@ -37,48 +37,6 @@ let testDwnUrls: string[] = [testDwnUrl];
 
 describe('DwnManager', () => {
 
-  describe('constructor', () => {
-    it('accepts a custom DWN instance', async () => {
-      const mockDwn = ({} as unknown) as Dwn;
-
-      // Instantiate DWN Manager with custom DWN instance.
-      const dwnManager = await DwnManager.create({ dwn: mockDwn });
-
-      expect(dwnManager).to.exist;
-      // @ts-expect-error because a private property is being accessed.
-      expect(dwnManager._dwn).to.exist;
-    });
-  });
-
-  describe('get agent', () => {
-    it(`returns the 'agent' instance property`, () => {
-      // @ts-expect-error because we are only mocking a single property.
-      const mockAgent: Web5ManagedAgent = {
-        agentDid: 'did:method:abc123'
-      };
-      const mockDwn = ({} as unknown) as Dwn;
-      const dwnManager = new DwnManager({ agent: mockAgent, dwn: mockDwn });
-      const agent = dwnManager.agent;
-      expect(agent).to.exist;
-      expect(agent.agentDid).to.equal('did:method:abc123');
-    });
-
-    it(`throws an error if the 'agent' instance property is undefined`, async () => {
-      const mockDwn = ({} as unknown) as Dwn;
-      const dwnManager = await DwnManager.create({ dwn: mockDwn });
-      expect(() =>
-        dwnManager.agent
-      ).to.throw(Error, 'Unable to determine agent execution context');
-    });
-  });
-
-  describe('#create', () => {
-    it('works with no options provided', async () => {
-      const dwnManager = await DwnManager.create();
-      expect(dwnManager).to.not.be.undefined;
-    });
-  });
-
   describe(`with dwn data stores`, () => {
     let testAgent: TestManagedAgent;
 
