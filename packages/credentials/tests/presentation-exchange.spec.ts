@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { DidKeyMethod, PortableDid } from '@web5/dids';
+import { BearerDid, DidKey } from '@web5/dids';
 
 import type { Validated, PresentationDefinitionV2 } from '../src/presentation-exchange.js';
 
@@ -22,18 +22,18 @@ class OtherCredential {
 
 describe('PresentationExchange', () => {
   describe('Full Presentation Exchange', () => {
-    let issuerDid: PortableDid;
+    let issuerDid: BearerDid;
     let btcCredentialJwt: string;
     let presentationDefinition: PresentationDefinitionV2;
     let groupPresentationDefinition: PresentationDefinitionV2;
 
     before(async () => {
-      issuerDid = await DidKeyMethod.create();
+      issuerDid = await DidKey.create();
 
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.did,
-        subject : issuerDid.did,
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
         data    : new BitcoinCredential('btcAddress123'),
       });
 
@@ -60,8 +60,8 @@ describe('PresentationExchange', () => {
     it('should return the only one verifiable credential', async () => {
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.did,
-        subject : issuerDid.did,
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
         data    : new OtherCredential('otherstuff'),
       });
 
@@ -146,8 +146,8 @@ describe('PresentationExchange', () => {
     it('should fail to create a presentation with vc that does not match presentation definition', async () => {
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.did,
-        subject : issuerDid.did,
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
         data    : new OtherCredential('otherstuff'),
       });
 
