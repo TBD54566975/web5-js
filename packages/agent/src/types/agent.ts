@@ -1,139 +1,45 @@
-import type { Readable } from 'readable-stream';
-import type { DidResolutionOptions, DidResolutionResult, PortableDid } from '@web5/dids';
-import type {
-  EventsGetMessage,
-  RecordsReadReply,
-  UnionMessageReply,
-  MessagesGetMessage,
-  RecordsQueryMessage,
-  RecordsWriteMessage,
-  RecordsDeleteMessage,
-  ProtocolsQueryMessage,
-  ProtocolsConfigureMessage,
-} from '@tbd54566975/dwn-sdk-js';
+import type { CryptoApi } from '@web5/crypto';
+import type { BearerDid } from '@web5/dids';
 
-import { DidResolver } from '@web5/dids';
+import type { AgentCryptoApi } from '../crypto-api.js';
 
-import type { SyncManager } from '../sync-manager.js';
-import type { AppDataStore } from '../app-data-store.js';
-import type { DwnRpcResponse, Web5Rpc } from '../rpc-client.js';
-
-import { DidManager, DidMessage } from '../did-manager.js';
-import { DwnManager } from '../dwn-manager.js';
-import { KeyManager } from '../key-manager.js';
-import { IdentityManager } from '../identity-manager.js';
+import { AgentDwnApi } from '../dwn-api.js';
+import { AgentDidApi, DidInterface, DidRequest, DidResponse } from '../did-api.js';
+import { DwnInterface, DwnResponse, ProcessDwnRequest, SendDwnRequest } from './agent-dwn.js';
+import { ProcessVcRequest, SendVcRequest, VcResponse } from './agent-vc.js';
 
 /**
- * DID Types
+ * Status code and detailed message for a response.
  */
+export type ResponseStatus = {
+  ok: boolean;
 
-export type DidMessageType = keyof typeof DidMessage;
-
-export type DidRequest = {
-  messageType: DidMessageType;
-  messageOptions: any;
-  store?: boolean;
-}
-
-export type DidCreateMessage = {
-  didMethod: string;
-  didOptions?: any;
-}
-
-export type DidResolveMessage = {
-  didUrl: string;
-  resolutionOptions?: DidResolutionOptions;
-}
-
-export type DidResponse = {
-  result?: DidResolutionResult | PortableDid
+  status: {
+    code: number;
+    detail: string;
+  };
 };
-
-/**
- * DWN Types
- */
-export type DwnMessages = {
-  'EventsGet': EventsGetMessage;
-  'MessagesGet': MessagesGetMessage;
-  'RecordsWrite': RecordsWriteMessage;
-  'RecordsQuery': RecordsQueryMessage;
-  'RecordsDelete': RecordsDeleteMessage;
-  'ProtocolsQuery': ProtocolsQueryMessage;
-  'ProtocolsConfigure': ProtocolsConfigureMessage;
-};
-
-export type DwnMessageType = keyof DwnMessages;
-
-export type DwnRequest = {
-  author: string;
-  target: string;
-  messageType: string;
-}
-
-/**
- * TODO: add JSDoc
- */
-export type ProcessDwnRequest = DwnRequest & {
-  dataStream?: Blob | ReadableStream | Readable;
-  rawMessage?: unknown;
-  messageOptions?: unknown;
-  store?: boolean;
-  signAsOwner?: boolean;
-};
-
-export type SendDwnRequest = DwnRequest & (ProcessDwnRequest | { messageCid: string })
-
-/**
- * TODO: add JSDoc
- */
-export type DwnResponse = {
-  message?: unknown;
-  messageCid?: string;
-  reply: UnionMessageReply & RecordsReadReply;
-};
-
-/**
- * TODO: add JSDoc
- */
-export type SendDwnResponse = DwnRpcResponse;
-
-export interface SerializableDwnMessage {
-  toJSON(): string;
-}
-
-/**
- * Verifiable Credential Types
- */
-
-export type ProcessVcRequest = { /** empty */ }
-export type SendVcRequest = { /** empty */ }
-export type VcResponse = { /** empty */ }
 
 /**
  * Web5 Agent Types
  */
 export interface Web5Agent {
-  agentDid: string | undefined;
+  agentDid?: BearerDid;
 
-  processDidRequest(request: DidRequest): Promise<DidResponse>
-  sendDidRequest(request: DidRequest): Promise<DidResponse>;
-  processDwnRequest(request: ProcessDwnRequest): Promise<DwnResponse>
-  sendDwnRequest(request: SendDwnRequest): Promise<DwnResponse>;
+  processDidRequest(request: DidRequest<DidInterface>): Promise<DidResponse<DidInterface>>
+  sendDidRequest(request: DidRequest<DidInterface>): Promise<DidResponse<DidInterface>>;
+  processDwnRequest<T extends DwnInterface>(request: ProcessDwnRequest<T>): Promise<DwnResponse<T>>
+  sendDwnRequest<T extends DwnInterface>(request: SendDwnRequest<T>): Promise<DwnResponse<T>>;
   processVcRequest(request: ProcessVcRequest): Promise<VcResponse>
   sendVcRequest(request: SendVcRequest): Promise<VcResponse>;
 }
 
-export interface Web5ManagedAgent extends Web5Agent {
-  appData: AppDataStore;
-  didManager: DidManager;
-  didResolver: DidResolver;
-  dwnManager: DwnManager;
-  identityManager: IdentityManager;
-  keyManager: KeyManager;
-  rpcClient: Web5Rpc;
-  syncManager: SyncManager;
+export interface Web5ManagedAgent<TCrypto extends CryptoApi = AgentCryptoApi> extends Web5Agent {
+  crypto: TCrypto;
+  did: AgentDidApi<TCrypto>;
+  dwn: AgentDwnApi;
 
   firstLaunch(): Promise<boolean>;
-  initialize(options: { passphrase: string }): Promise<void>;
-  start(options: { passphrase: string }): Promise<void>;
+  initialize(params: { passphrase: string }): Promise<void>;
+  start(params: { passphrase: string }): Promise<void>;
 }
