@@ -1,7 +1,7 @@
-import type { PortableDid } from '@web5/dids';
+import type { BearerDid } from '@web5/dids';
 
 import { expect } from 'chai';
-import { DidKeyMethod } from '@web5/dids';
+import { DidKey } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
 import { VerifiablePresentation } from '../src/verifiable-presentation.js';
@@ -19,10 +19,10 @@ const validVcJwt = 'eyJraWQiOiJkaWQ6a2V5OnpRM3NoZ0NqVmZucldxOUw3cjFRc3oxcmlRUldv
 'BVZaZ9-RqpiAM-fHKrdGUzVyXr77pOl7yGgwIO90g';
 
 describe('Verifiable Credential Tests', () => {
-  let holderDid: PortableDid;
+  let holderDid: BearerDid;
 
   beforeEach(async () => {
-    holderDid = await DidKeyMethod.create();
+    holderDid = await DidKey.create();
   });
 
   describe('Verifiable Presentation (VP)', () => {
@@ -30,11 +30,11 @@ describe('Verifiable Credential Tests', () => {
       const vcJwts = ['vcjwt1'];
 
       const vp = await VerifiablePresentation.create({
-        holder : holderDid.did,
+        holder : holderDid.uri,
         vcJwts : vcJwts
       });
 
-      expect(vp.holder).to.equal(holderDid.did);
+      expect(vp.holder).to.equal(holderDid.uri);
       expect(vp.type).to.equal('VerifiablePresentation');
       expect(vp.vpDataModel.verifiableCredential).to.not.be.undefined;
       expect(vp.vpDataModel.verifiableCredential).to.deep.equal(vcJwts);
@@ -42,7 +42,7 @@ describe('Verifiable Credential Tests', () => {
 
     it('create and sign vp with did:key', async () => {
       const vp = await VerifiablePresentation.create({
-        holder : holderDid.did,
+        holder : holderDid.uri,
         vcJwts : [validVcJwt]
       });
 
@@ -53,7 +53,7 @@ describe('Verifiable Credential Tests', () => {
       const parsedVp = await VerifiablePresentation.parseJwt({ vpJwt });
 
       expect(vpJwt).to.not.be.undefined;
-      expect(parsedVp.holder).to.equal(holderDid.did);
+      expect(parsedVp.holder).to.equal(holderDid.uri);
       expect(parsedVp.type).to.equal('VerifiablePresentation');
       expect(parsedVp.vpDataModel.verifiableCredential).to.not.be.undefined;
       expect(parsedVp.vpDataModel.verifiableCredential).to.deep.equal([validVcJwt]);
@@ -73,7 +73,7 @@ describe('Verifiable Credential Tests', () => {
       };
 
       const vp = await VerifiablePresentation.create({
-        holder         : holderDid.did,
+        holder         : holderDid.uri,
         vcJwts         : [validVcJwt],
         additionalData : {
           presentation_submission: presentationSubmission
@@ -88,7 +88,7 @@ describe('Verifiable Credential Tests', () => {
       const parsedVp = await VerifiablePresentation.parseJwt({ vpJwt });
 
       expect(vpJwt).to.not.be.undefined;
-      expect(parsedVp.holder).to.equal(holderDid.did);
+      expect(parsedVp.holder).to.equal(holderDid.uri);
       expect(parsedVp.type).to.equal('PresentationSubmission');
       expect(parsedVp.vpDataModel.verifiableCredential).to.not.be.undefined;
       expect(parsedVp.vpDataModel.verifiableCredential).to.deep.equal([validVcJwt]);
@@ -101,12 +101,12 @@ describe('Verifiable Credential Tests', () => {
     });
 
     it('parseJwt checks if missing vp property', async () => {
-      const did = await DidKeyMethod.create();
+      const did = await DidKey.create();
       const jwt = await Jwt.sign({
         signerDid : did,
         payload   : {
-          iss : did.did,
-          sub : did.did
+          iss : did.uri,
+          sub : did.uri
         }
       });
 
@@ -125,6 +125,21 @@ describe('Verifiable Credential Tests', () => {
         expect.fail();
       } catch(e: any) {
         expect(e.message).to.include('Holder must be defined');
+      }
+    });
+
+    it('should throw an error if holder is not a string', async () => {
+      const anyTypeHolder: any = DidKey.create();
+
+      try {
+        await VerifiablePresentation.create({
+          holder : anyTypeHolder,
+          vcJwts : [validVcJwt]
+        });
+
+        expect.fail();
+      } catch(e: any) {
+        expect(e.message).to.include('Holder must be of type string');
       }
     });
   });

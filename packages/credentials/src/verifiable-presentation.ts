@@ -1,4 +1,4 @@
-import type { PortableDid } from '@web5/dids';
+import type { BearerDid } from '@web5/dids';
 import type { IPresentation} from '@sphereon/ssi-types';
 
 import { utils as cryptoUtils } from '@web5/crypto';
@@ -35,7 +35,7 @@ export type VerifiablePresentationCreateOptions = {
  * @param did - The holder DID of the presentation, represented as a PortableDid.
  */
 export type VerifiablePresentationSignOptions = {
-  did: PortableDid;
+  did: BearerDid;
 };
 
 /**
@@ -80,8 +80,8 @@ export class VerifiablePresentation {
       signerDid : options.did,
       payload   : {
         vp  : this.vpDataModel,
-        iss : options.did.did,
-        sub : options.did.did,
+        iss : options.did.uri,
+        sub : options.did.uri,
       }
     });
 
@@ -126,6 +126,10 @@ export class VerifiablePresentation {
 
     if(!holder) {
       throw new Error('Holder must be defined');
+    }
+
+    if(typeof holder !== 'string') {
+      throw new Error('Holder must be of type string');
     }
 
     const vpDataModel: VpDataModel = {
