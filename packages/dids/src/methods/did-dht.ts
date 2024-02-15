@@ -889,6 +889,10 @@ export class DidDhtDocument {
     // Read the Fetch Response stream into a byte array.
     const messageBytes = await response.arrayBuffer();
 
+    if(!messageBytes) {
+      throw new DidError(DidErrorCode.NotFound, `Pkarr record not found for: ${identifier}`);
+    }
+
     if (messageBytes.byteLength < 72) {
       throw new DidError(DidErrorCode.InvalidDidDocumentLength, `Pkarr response must be at least 72 bytes but got: ${messageBytes.byteLength}`);
     }
