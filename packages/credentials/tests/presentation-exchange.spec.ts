@@ -167,6 +167,34 @@ describe('PresentationExchange', () => {
       expect(result).to.deep.equal([{ tag: 'root', status: 'info', message: 'ok' }]);
     });
 
+    it('should successfully catch an invalid presentation definition', () => {
+      const invalidPd = {
+        'id'                : '',
+        'input_descriptors' : [
+          {
+            'id'          : '7b928839-f0b1-4237-893d-b27124b57952',
+            'constraints' : {
+              'fields': [
+                {
+                  'path': [
+                    '$.vc.type[*]',
+                    '$.type[*]'
+                  ],
+                  'filter': {
+                    'type'    : 'string',
+                    'pattern' : '.*StreetCred.*'
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      };
+
+      const result:Validated = PresentationExchange.validateDefinition({ presentationDefinition: invalidPd });
+      expect(result).to.deep.equal([{ tag: 'root.presentation_definition', status: 'error', message: 'id should not be empty' }]);
+    });
+
     it('should successfully validate a submission', () => {
       const presentationResult = PresentationExchange.createPresentationFromCredentials({
         vcJwts: [btcCredentialJwt],
