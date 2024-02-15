@@ -140,6 +140,24 @@ describe('Verifiable Credential Tests', async() => {
       }
     });
 
+    it('should throw an error if issuer is not string', async () => {
+      const subjectDid = issuerDid.uri;
+
+      const anyTypeIssuer: any = DidKey.create();
+
+      try {
+        await VerifiableCredential.create({
+          type    : 'StreetCred',
+          issuer  : anyTypeIssuer,
+          subject : subjectDid,
+          data    : new StreetCredibility('high', true),
+        });
+        expect.fail();
+      } catch(e: any) {
+        expect(e.message).to.include('Issuer and subject must be of type string');
+      }
+    });
+
     it('should throw an error if data is not parseable into a JSON object', async () => {
       const issuerDid = 'did:example:issuer';
       const subjectDid = 'did:example:subject';
