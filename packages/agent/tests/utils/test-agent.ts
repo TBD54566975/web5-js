@@ -2,7 +2,7 @@ import type { BearerDid } from '@web5/dids';
 
 import type { Web5ManagedAgent } from '../../src/types/agent.js';
 import type { DidRequest, DidResponse } from '../../src/did-api.js';
-import type {   VcResponse, SendVcRequest, ProcessVcRequest } from '../../src/types/agent-vc.js';
+import type { VcResponse, SendVcRequest, ProcessVcRequest } from '../../src/types/agent-vc.js';
 import type {
   DwnResponse,
   DwnInterface,
@@ -10,14 +10,16 @@ import type {
   ProcessDwnRequest,
 } from '../../src/types/agent-dwn.js';
 
-import { AgentDidApi, DidInterface } from '../../src/did-api.js';
 import { AgentDwnApi } from '../../src/dwn-api.js';
 import { AgentCryptoApi } from '../../src/crypto-api.js';
+import { AgentIdentityApi } from '../../src/identity-api.js';
+import { AgentDidApi, DidInterface } from '../../src/did-api.js';
 
 type TestAgentOptions = {
   cryptoApi: AgentCryptoApi;
   didApi: AgentDidApi;
   dwnApi: AgentDwnApi;
+  identityApi: AgentIdentityApi;
 }
 
 export class TestAgent implements Web5ManagedAgent {
@@ -25,16 +27,19 @@ export class TestAgent implements Web5ManagedAgent {
   crypto: AgentCryptoApi;
   did: AgentDidApi;
   dwn: AgentDwnApi;
+  identity: AgentIdentityApi;
 
   constructor(params: TestAgentOptions) {
     this.crypto = params.cryptoApi;
     this.did = params.didApi;
     this.dwn = params.dwnApi;
+    this.identity = params.identityApi;
 
     // Set this agent to be the default agent.
     this.crypto.agent = this;
     this.did.agent = this;
     this.dwn.agent = this;
+    this.identity.agent = this;
   }
 
   async firstLaunch(): Promise<boolean> {

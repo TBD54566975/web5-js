@@ -1,12 +1,11 @@
-import type { CryptoApi } from '@web5/crypto';
 import type { BearerDid } from '@web5/dids';
 
+import type { AgentDwnApi } from '../dwn-api.js';
 import type { AgentCryptoApi } from '../crypto-api.js';
-
-import { AgentDwnApi } from '../dwn-api.js';
-import { AgentDidApi, DidInterface, DidRequest, DidResponse } from '../did-api.js';
-import { DwnInterface, DwnResponse, ProcessDwnRequest, SendDwnRequest } from './agent-dwn.js';
-import { ProcessVcRequest, SendVcRequest, VcResponse } from './agent-vc.js';
+import type { AgentIdentityApi } from '../identity-api.js';
+import type { ProcessVcRequest, SendVcRequest, VcResponse } from './agent-vc.js';
+import type { AgentDidApi, DidInterface, DidRequest, DidResponse } from '../did-api.js';
+import type { DwnInterface, DwnResponse, ProcessDwnRequest, SendDwnRequest } from './agent-dwn.js';
 
 /**
  * Status code and detailed message for a response.
@@ -34,10 +33,11 @@ export interface Web5Agent {
   sendVcRequest(request: SendVcRequest): Promise<VcResponse>;
 }
 
-export interface Web5ManagedAgent<TCrypto extends CryptoApi = AgentCryptoApi> extends Web5Agent {
+export interface Web5ManagedAgent<TCrypto extends AgentCryptoApi = AgentCryptoApi> extends Web5Agent {
   crypto: TCrypto;
   did: AgentDidApi<TCrypto>;
   dwn: AgentDwnApi;
+  identity: AgentIdentityApi<TCrypto>;
 
   firstLaunch(): Promise<boolean>;
   initialize(params: { passphrase: string }): Promise<void>;

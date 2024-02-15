@@ -9,7 +9,6 @@ import type {
   AsymmetricKeyGenerator,
 } from '@web5/crypto';
 
-
 export interface KeyManagerParams {
   GenerateKeyInput?: unknown;
   GenerateKeyOutput?: unknown;

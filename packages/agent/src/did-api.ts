@@ -4,9 +4,10 @@ import type { DidDhtCreateOptions, DidJwkCreateOptions, DidMethodApi, DidResolve
 import { CryptoApi } from '@web5/crypto';
 import { BearerDid, Did, DidResolver } from '@web5/dids';
 
+import type { DidStore } from './types/did.js';
 import type { ResponseStatus, Web5ManagedAgent } from './types/agent.js';
 
-import { DidStore, InMemoryDidStore } from './store-did.js';
+import { InMemoryDidStore } from './store-did.js';
 import { DidResolverCacheMemory } from './temp/resolver-cache-memory.js';
 
 export enum DidInterface {
@@ -82,7 +83,7 @@ export interface DidApiParams {
    */
   resolverCache?: DidResolverCache;
 
-  store?: DidStore;
+  store?: DidStore<PortableDid>;
 }
 
 export function isDidRequest<T extends DidInterface>(
@@ -102,7 +103,7 @@ export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidR
 
   private _didMethods: Map<string, DidMethodApi> = new Map();
 
-  private _store: DidStore;
+  private _store: DidStore<PortableDid>;
 
   constructor({ agent, didMethods, resolverCache, store }: DidApiParams) {
     if (!didMethods) {
@@ -157,9 +158,9 @@ export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidR
     // Otherwise, the DID record will be stored under the tenant of the specified context.
     context ??= did.uri;
 
-    // Store the DID in the Agent's store, by default, unless the `store` option is set to false.
+    // Persist the DID to the store, by default, unless the `store` option is set to false.
     if (store ?? true) {
-      await this._store.set({ did: await did.export(), agent: this.agent, context });
+      await this._store.set({ didUri: did.uri, value: await did.export(), agent: this.agent, context });
     }
 
     return did;
@@ -234,7 +235,7 @@ export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidR
     context ??= did.uri;
 
     // Store the DID in the agent's DID store.
-    await this._store.set({ did: portableDid, agent: this.agent, context });
+    await this._store.set({ didUri: did.uri, value: portableDid, agent: this.agent, context });
 
     return did;
   }
@@ -272,7 +273,7 @@ export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidR
       const response: DidResponse<typeof request.messageType> = {
         result : resolutionResult,
         ok     : true,
-        status : { code: 201, detail: 'Created' }
+        status : { code: 200, detail: 'OK' }
       };
       return response;
     }

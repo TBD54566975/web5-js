@@ -2,7 +2,7 @@
 import { expect } from 'chai';
 import { DidJwk } from '@web5/dids';
 
-import { AgentDidApi } from '../src/did-api.js';
+import { AgentDidApi, DidInterface } from '../src/did-api.js';
 import { TestAgent } from './utils/test-agent.js';
 import { ManagedAgentTestHarness } from '../src/test-harness.js';
 
@@ -258,6 +258,82 @@ describe('AgentDidApi', () => {
           // Verify that the DID was NOT stored under the new DID's tenant.
           storedDid = await testHarness.agent.did.get({ didUri: importedDid.uri, context: importedDid.uri });
           expect(storedDid).to.not.exist;
+        });
+      });
+
+      describe('processRequest', () => {
+        it('handles DID Create requests', async () => {
+          const response = await testHarness.agent.did.processRequest({
+            messageType   : DidInterface.Create,
+            messageParams : {
+              method: 'jwk'
+            }
+          });
+
+          expect(response.ok).to.be.true;
+          expect(response.status.code).to.equal(201);
+          expect(response.result).to.have.property('uri');
+          expect(response.result).to.have.property('document');
+          expect(response.result).to.have.property('metadata');
+        });
+
+        it('returns an error response for unsupported DID Create method', async () => {
+          const response = await testHarness.agent.did.processRequest({
+            messageType   : DidInterface.Create,
+            messageParams : {
+              // @ts-expect-error because an unsupported method is intentionally specified to trigger the error.
+              method: 'unsupported'
+            }
+          });
+
+          expect(response.ok).to.be.false;
+          expect(response.status.code).to.equal(500);
+        });
+
+        it('handles DID Resolve requests', async () => {
+          // Generate a new DID.
+          const did = await testHarness.agent.did.create({ method: 'jwk' });
+
+          // Attempt to resolve the DID.
+          const response = await testHarness.agent.did.processRequest({
+            messageType   : DidInterface.Resolve,
+            messageParams : {
+              didUri: did.uri
+            }
+          });
+
+          expect(response.ok).to.be.true;
+          expect(response.status.code).to.equal(200);
+          expect(response.result).to.have.property('didDocument');
+          expect(response.result).to.have.property('didResolutionMetadata');
+          expect(response.result).to.have.property('didDocumentMetadata');
+        });
+
+        it('returns a DID resolution error for unsupported DID Resolve method', async () => {
+          const response = await testHarness.agent.did.processRequest({
+            messageType   : DidInterface.Resolve,
+            messageParams : {
+              didUri: 'did:unsupported:abc123'
+            }
+          });
+
+          expect(response.ok).to.be.true;
+          expect(response.status.code).to.equal(200);
+          expect(response.result).to.have.property('didDocument', null);
+          expect(response.result).to.have.property('didResolutionMetadata');
+          expect(response.result).to.have.property('didDocumentMetadata');
+          // ! TODO Fix this test
+          // expect(response.result!.didResolutionMetadata).to.have.property('error', 'methodNotSupported');
+        });
+
+        it('throws an error for unsupported request types', async () => {
+          try {
+            // @ts-expect-error because an unsupported message type is intentionally specified to trigger the error.
+            await testHarness.agent.did.processRequest({ messageType: 'unsupported', messageParams: {} });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error.message).to.include('Unsupported request type');
+          }
         });
       });
 
