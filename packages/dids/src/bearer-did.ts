@@ -198,7 +198,7 @@ export class BearerDid {
   }
 
   /**
-   * Instantiates a {@link BearerDid} object for the DID DHT method from a given {@link PortableDid}.
+   * Instantiates a {@link BearerDid} object from a given {@link PortableDid}.
    *
    * This method allows for the creation of a `BearerDid` object using a previously created DID's
    * key material, DID document, and metadata.
@@ -208,7 +208,7 @@ export class BearerDid {
    * // Export an existing BearerDid to PortableDid format.
    * const portableDid = await did.export();
    * // Reconstruct a BearerDid object from the PortableDid.
-   * const did = await DidDht.import({ portableDid });
+   * const did = await BearerDid.import({ portableDid });
    * ```
    *
    * @param params - The parameters for the import operation.

@@ -139,7 +139,7 @@ export interface DidKeyCreateOptions<TKms> extends DidCreateOptions<TKms> {
    * Alternatively, specify the algorithm to be used for key generation of the single verification
    * method in the DID Document.
    */
-  verificationMethods?: [DidCreateVerificationMethod<TKms>];
+  verificationMethods?: DidCreateVerificationMethod<TKms>[];
 }
 
 /**

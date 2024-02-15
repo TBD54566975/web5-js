@@ -82,9 +82,9 @@ export interface DidCreateVerificationMethod<TKms> extends Pick<Partial<DidVerif
  * @typeparam O - The type of the options used for creating the DID.
  */
 export interface DidMethodApi<
-    TDid extends BearerDid,
-    TOptions extends DidCreateOptions<TKms>,
-    TKms extends CryptoApi | undefined = undefined
+    TKms extends CryptoApi | undefined = CryptoApi,
+    TDid extends BearerDid = BearerDid,
+    TOptions extends DidCreateOptions<TKms> = DidCreateOptions<TKms>
   > extends DidMethodResolver {
   /**
    * The name of the DID method.
@@ -106,7 +106,27 @@ export interface DidMethodApi<
    * @param params.options - Optional. The options used for creating the DID.
    * @returns A promise that resolves to the newly created DID instance.
    */
-  create(params: { keyManager?: TKms, options?: TOptions }): Promise<TDid>;
+  create(params: {
+    keyManager?: TKms;
+    options?: TOptions;
+  }): Promise<TDid>;
+
+  /**
+   * Given a DID Document, return the verification method that will be used for signing messages and
+   * credentials.
+   *
+   * If given, the `methodId` parameter is used to select the verification method. If not given, a
+   * DID method specific approach is taken to selecting the verification method to return.
+   *
+   * @param params - The parameters for the `getSigningMethod` operation.
+   * @param params.didDocument - DID Document to get the verification method from.
+   * @param params.methodId - ID of the verification method to use for signing.
+   * @returns A promise that resolves to the erification method to use for signing.
+   */
+  getSigningMethod(params: {
+    didDocument: DidDocument;
+    methodId?: string;
+  }): Promise<DidVerificationMethod>;
 }
 
 /**

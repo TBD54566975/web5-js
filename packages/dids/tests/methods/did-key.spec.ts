@@ -125,7 +125,6 @@ describe('DidKey', () => {
 
     it('throws an error if zero verificationMethods are given', async () => {
       try {
-        // @ts-expect-error - Test case where verificationMethods is undefined.
         await DidKey.create({ keyManager, options: { verificationMethods: [] } });
         expect.fail('Expected an error to be thrown.');
       } catch (error: any) {
@@ -137,7 +136,6 @@ describe('DidKey', () => {
       try {
         await DidKey.create({
           keyManager,
-          // @ts-expect-error - Test case where verificationMethods has too many entries.
           options: { verificationMethods: [{ algorithm: 'secp256k1' }, { algorithm: 'Ed25519' }] }
         });
         expect.fail('Expected an error to be thrown.');
