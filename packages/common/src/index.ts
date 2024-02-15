@@ -1,5 +1,6 @@
 export type * from './types.js';
 
+export * from './cache.js';
 export * from './convert.js';
 export * from './multicodec.js';
 export * from './object.js';

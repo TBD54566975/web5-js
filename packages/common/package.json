@@ -1,6 +1,6 @@
 {
   "name": "@web5/common",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -68,6 +68,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@isaacs/ttlcache": "1.4.1",
     "level": "8.0.0",
     "multiformats": "11.0.2",
     "readable-stream": "4.4.2"
