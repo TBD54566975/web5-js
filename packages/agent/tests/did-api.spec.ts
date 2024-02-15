@@ -305,6 +305,7 @@ describe('AgentDidApi', () => {
           expect(response.ok).to.be.true;
           expect(response.status.code).to.equal(200);
           expect(response.result).to.have.property('didDocument');
+          expect(response.result!.didDocument).to.have.property('id', did.uri);
           expect(response.result).to.have.property('didResolutionMetadata');
           expect(response.result).to.have.property('didDocumentMetadata');
         });
@@ -322,8 +323,7 @@ describe('AgentDidApi', () => {
           expect(response.result).to.have.property('didDocument', null);
           expect(response.result).to.have.property('didResolutionMetadata');
           expect(response.result).to.have.property('didDocumentMetadata');
-          // ! TODO Fix this test
-          // expect(response.result!.didResolutionMetadata).to.have.property('error', 'methodNotSupported');
+          expect(response.result!.didResolutionMetadata).to.have.property('error', 'methodNotSupported');
         });
 
         it('throws an error for unsupported request types', async () => {

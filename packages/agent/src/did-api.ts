@@ -240,9 +240,9 @@ export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidR
     return did;
   }
 
-  public async processRequest(
-    request: DidRequest<DidInterface>
-  ): Promise<DidResponse<DidInterface>> {
+  public async processRequest<T extends DidInterface>(
+    request: DidRequest<T>
+  ): Promise<DidResponse<T>> {
     // Process Create DID request.
     if (isDidRequest(request, DidInterface.Create)) {
       try {
