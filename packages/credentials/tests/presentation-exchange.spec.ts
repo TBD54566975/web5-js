@@ -1,11 +1,12 @@
 import { expect } from 'chai';
-import { DidKeyMethod, PortableDid } from '@web5/dids';
+import { BearerDid, DidKey } from '@web5/dids';
 
 import type { Validated, PresentationDefinitionV2 } from '../src/presentation-exchange.js';
 
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import { PresentationExchange } from '../src/presentation-exchange.js';
 import PresentationExchangeSelectCredentialsTestVector from '../../../web5-spec/test-vectors/presentation_exchange/select_credentials.json' assert { type: 'json' };
+import PresentationExchangeCreatePresentationFromCredentialsTestVector from '../../../web5-spec/test-vectors/presentation_exchange/create_presentation_from_credentials.json' assert { type: 'json' };
 
 
 class BitcoinCredential {
@@ -22,18 +23,18 @@ class OtherCredential {
 
 describe('PresentationExchange', () => {
   describe('Full Presentation Exchange', () => {
-    let issuerDid: PortableDid;
+    let issuerDid: BearerDid;
     let btcCredentialJwt: string;
     let presentationDefinition: PresentationDefinitionV2;
     let groupPresentationDefinition: PresentationDefinitionV2;
 
     before(async () => {
-      issuerDid = await DidKeyMethod.create();
+      issuerDid = await DidKey.create();
 
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.did,
-        subject : issuerDid.did,
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
         data    : new BitcoinCredential('btcAddress123'),
       });
 
@@ -60,8 +61,8 @@ describe('PresentationExchange', () => {
     it('should return the only one verifiable credential', async () => {
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.did,
-        subject : issuerDid.did,
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
         data    : new OtherCredential('otherstuff'),
       });
 
@@ -146,8 +147,8 @@ describe('PresentationExchange', () => {
     it('should fail to create a presentation with vc that does not match presentation definition', async () => {
       const vc = await VerifiableCredential.create({
         type    : 'StreetCred',
-        issuer  : issuerDid.did,
-        subject : issuerDid.did,
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
         data    : new OtherCredential('otherstuff'),
       });
 
@@ -164,6 +165,34 @@ describe('PresentationExchange', () => {
     it('should successfully validate a presentation definition', () => {
       const result:Validated = PresentationExchange.validateDefinition({ presentationDefinition });
       expect(result).to.deep.equal([{ tag: 'root', status: 'info', message: 'ok' }]);
+    });
+
+    it('should successfully catch an invalid presentation definition', () => {
+      const invalidPd = {
+        'id'                : '',
+        'input_descriptors' : [
+          {
+            'id'          : '7b928839-f0b1-4237-893d-b27124b57952',
+            'constraints' : {
+              'fields': [
+                {
+                  'path': [
+                    '$.vc.type[*]',
+                    '$.type[*]'
+                  ],
+                  'filter': {
+                    'type'    : 'string',
+                    'pattern' : '.*StreetCred.*'
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      };
+
+      const result:Validated = PresentationExchange.validateDefinition({ presentationDefinition: invalidPd });
+      expect(result).to.deep.equal([{ tag: 'root.presentation_definition', status: 'error', message: 'id should not be empty' }]);
     });
 
     it('should successfully validate a submission', () => {
@@ -249,6 +278,22 @@ describe('PresentationExchange', () => {
         const selectedCreds = PresentationExchange.selectCredentials({ vcJwts: input.credentialJwts, presentationDefinition: input.presentationDefinition});
 
         expect(selectedCreds).to.deep.equals(expectedOutput);
+      }
+    });
+  });
+
+  describe('Web5TestVectorsPresentationExchange', () => {
+    it('create_presentation_from_credentials', async () => {
+      const vectors = PresentationExchangeCreatePresentationFromCredentialsTestVector.vectors;
+
+      for (let i = 0; i < vectors.length; i++) {
+        const input = vectors[i].input;
+        const expectedOutput = vectors[i].output.presentationSubmission;
+
+        const presentation = PresentationExchange.createPresentationFromCredentials({ vcJwts: input.credentialJwts, presentationDefinition: input.presentationDefinition});
+
+        expect(presentation.presentationSubmission.definition_id).to.deep.equals(expectedOutput.definition_id);
+        expect(presentation.presentationSubmission.descriptor_map).to.deep.equals(expectedOutput.descriptor_map);
       }
     });
   });

@@ -1,4 +1,4 @@
-import type { PortableDid } from '@web5/dids';
+import type { BearerDid } from '@web5/dids';
 import type { ICredential, ICredentialSubject} from '@sphereon/ssi-types';
 
 import { utils as cryptoUtils } from '@web5/crypto';
@@ -41,7 +41,7 @@ export type VerifiableCredentialCreateOptions = {
  * @param did - The issuer DID of the credential, represented as a PortableDid.
  */
 export type VerifiableCredentialSignOptions = {
-  did: PortableDid;
+  did: BearerDid;
 };
 
 type CredentialSubject = ICredentialSubject;
@@ -135,6 +135,10 @@ export class VerifiableCredential {
 
     if(!issuer || !subject) {
       throw new Error('Issuer and subject must be defined');
+    }
+
+    if(typeof issuer !== 'string' || typeof subject !== 'string') {
+      throw new Error('Issuer and subject must be of type string');
     }
 
     const credentialSubject: CredentialSubject = {
