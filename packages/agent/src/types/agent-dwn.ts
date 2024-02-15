@@ -1,4 +1,4 @@
-import type { Readable } from '@web5/common';
+import type { Readable, RequireOnly } from '@web5/common';
 import type { RecordsReadMessage } from '../temp/dwn-types.js';
 import type {
   // EventsGetMessage,
@@ -41,7 +41,7 @@ export interface DwnMessage {
 }
 
 export interface DwnMessageParams {
-  [DwnInterface.RecordsDelete]: RecordsDeleteOptions;
+  [DwnInterface.RecordsDelete]: RequireOnly<RecordsDeleteOptions, 'recordId'>;
   [DwnInterface.RecordsQuery]: RecordsQueryOptions;
   [DwnInterface.RecordsRead]: RecordsReadOptions;
   [DwnInterface.RecordsWrite]: RecordsWriteOptions;

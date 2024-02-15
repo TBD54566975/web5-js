@@ -89,6 +89,145 @@ describe('AgentDwnApi', () => {
       });
     });
 
+    it('handles RecordsDelete messages', async () => {
+      // Create test data to write.
+      const dataBytes = Convert.string('Hello, world!').toUint8Array();
+
+      // Write a record that can be deleted.
+      let { message, reply: { status: writeStatus } } = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          dataFormat : 'text/plain',
+          schema     : 'https://schemas.xyz/example'
+        },
+        dataStream: new Blob([dataBytes])
+      });
+      expect(writeStatus.code).to.equal(202);
+      const writeMessage = message!;
+
+      // Attempt to process the RecordsRead.
+      const deleteResponse = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsDelete,
+        messageParams : {
+          recordId: writeMessage.recordId
+        }
+      });
+
+      // Verify the response.
+      expect(deleteResponse).to.have.property('message');
+      expect(deleteResponse).to.have.property('messageCid');
+      expect(deleteResponse).to.have.property('reply');
+
+      const deleteMessage = deleteResponse.message;
+      expect(deleteMessage).to.have.property('authorization');
+      expect(deleteMessage).to.have.property('descriptor');
+
+      const deleteReply = deleteResponse.reply;
+      expect(deleteReply).to.have.property('status');
+      expect(deleteReply.status.code).to.equal(202);
+    });
+
+    it('handles RecordsQuery messages', async () => {
+      // Create test data to write.
+      const dataBytes = Convert.string('Hello, world!').toUint8Array();
+
+      // Write a record that can be queried for.
+      let { message, reply: { status: writeStatus } } = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          dataFormat : 'text/plain',
+          schema     : 'https://schemas.xyz/example'
+        },
+        dataStream: new Blob([dataBytes])
+      });
+      expect(writeStatus.code).to.equal(202);
+      const writeMessage = message!;
+
+      // Attempt to process the RecordsQuery.
+      const queryResponse = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsQuery,
+        messageParams : {
+          filter: {
+            schema: 'https://schemas.xyz/example'
+          }
+        }
+      });
+
+      // Verify the response.
+      expect(queryResponse).to.have.property('message');
+      expect(queryResponse).to.have.property('messageCid');
+      expect(queryResponse).to.have.property('reply');
+
+      const queryMessage = queryResponse.message;
+      expect(queryMessage).to.have.property('authorization');
+      expect(queryMessage).to.have.property('descriptor');
+
+      const queryReply = queryResponse.reply;
+      expect(queryReply).to.have.property('status');
+      expect(queryReply.status.code).to.equal(200);
+      expect(queryReply.entries).to.exist;
+      expect(queryReply.entries).to.have.length(1);
+      expect(queryReply.entries?.[0]).to.have.property('descriptor');
+      expect(queryReply.entries?.[0]).to.have.property('encodedData');
+      expect(queryReply.entries?.[0]).to.have.property('recordId', writeMessage.recordId);
+    });
+
+    it('handles RecordsRead messages', async () => {
+      // Create test data to write.
+      const dataBytes = Convert.string('Hello, world!').toUint8Array();
+
+      // Write a record that can be read.
+      let { message, reply: { status: writeStatus } } = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          dataFormat : 'text/plain',
+          schema     : 'https://schemas.xyz/example'
+        },
+        dataStream: new Blob([dataBytes])
+      });
+      expect(writeStatus.code).to.equal(202);
+      const writeMessage = message!;
+
+      // Attempt to process the RecordsRead.
+      const readResponse = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsRead,
+        messageParams : {
+          filter: {
+            recordId: writeMessage.recordId
+          }
+        }
+      });
+
+      // Verify the response.
+      expect(readResponse).to.have.property('message');
+      expect(readResponse).to.have.property('messageCid');
+      expect(readResponse).to.have.property('reply');
+
+      const readMessage = readResponse.message;
+      expect(readMessage).to.have.property('authorization');
+      expect(readMessage).to.have.property('descriptor');
+
+      const readReply = readResponse.reply;
+      expect(readReply).to.have.property('status');
+      expect(readReply.status.code).to.equal(200);
+      expect(readReply).to.have.property('record');
+      expect(readReply.record).to.have.property('data');
+      expect(readReply.record).to.have.property('descriptor');
+      expect(readReply.record).to.have.property('recordId', writeMessage.recordId);
+    });
+
     it('handles RecordsWrite messages', async () => {
       // Create test data to write.
       const dataBytes = Convert.string('Hello, world!').toUint8Array();
@@ -117,6 +256,90 @@ describe('AgentDwnApi', () => {
       const writeReply = writeResponse.reply;
       expect(writeReply).to.have.property('status');
       expect(writeReply.status.code).to.equal(202);
+    });
+
+    it('handles RecordsWrite messages to sign as owner', async () => {
+      // bob authors a public record to his dwn
+      const dataStream = new Blob([ Convert.string('Hello, world!').toUint8Array() ]);
+
+      const bobWrite = await testHarness.agent.dwn.processRequest({
+        author        : bob.did.uri,
+        target        : bob.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          published  : true,
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        },
+        dataStream,
+      });
+      expect(bobWrite.reply.status.code).to.equal(202);
+      const message = bobWrite.message!;
+
+      // alice queries bob's DWN for the record
+      const queryBobResponse = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : bob.did.uri,
+        messageType   : DwnInterface.RecordsQuery,
+        messageParams : {
+          filter: {
+            recordId: message.recordId
+          }
+        }
+      });
+      let reply = queryBobResponse.reply;
+      expect(reply.status.code).to.equal(200);
+      expect(reply.entries!.length).to.equal(1);
+      expect(reply.entries![0].recordId).to.equal(message.recordId);
+
+      // alice attempts to process the rawMessage as is without signing it, should fail
+      let aliceWrite = await testHarness.agent.dwn.processRequest({
+        messageType : DwnInterface.RecordsWrite,
+        author      : alice.did.uri,
+        target      : alice.did.uri,
+        rawMessage  : message,
+        dataStream,
+      });
+      expect(aliceWrite.reply.status.code).to.equal(401);
+
+      // alice queries to make sure the record is not saved on her dwn
+      let queryAliceResponse = await testHarness.agent.dwn.processRequest({
+        messageType   : DwnInterface.RecordsQuery,
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageParams : {
+          filter: {
+            recordId: message.recordId
+          }
+        }
+      });
+      expect(queryAliceResponse.reply.status.code).to.equal(200);
+      expect(queryAliceResponse.reply.entries!.length).to.equal(0);
+
+      // alice attempts to process the rawMessage again this time marking it to be signed as owner
+      aliceWrite = await testHarness.agent.dwn.processRequest({
+        messageType : DwnInterface.RecordsWrite,
+        author      : alice.did.uri,
+        target      : alice.did.uri,
+        rawMessage  : message,
+        signAsOwner : true,
+        dataStream,
+      });
+      expect(aliceWrite.reply.status.code).to.equal(202);
+
+      // alice now queries for the record, it should be there
+      queryAliceResponse = await testHarness.agent.dwn.processRequest({
+        messageType   : DwnInterface.RecordsQuery,
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageParams : {
+          filter: {
+            recordId: message.recordId
+          }
+        }
+      });
+      expect(queryAliceResponse.reply.status.code).to.equal(200);
+      expect(queryAliceResponse.reply.entries!.length).to.equal(1);
     });
   });
 });

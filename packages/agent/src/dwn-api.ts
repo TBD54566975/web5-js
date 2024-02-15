@@ -157,7 +157,8 @@ export class AgentDwnApi {
 
     const dwnMessageConstructor = dwnMessageConstructors[request.messageType];
     const dwnMessage = rawMessage ? await dwnMessageConstructor.parse(rawMessage) : await dwnMessageConstructor.create({
-      ...<any>request.messageParams,
+      // ! TODO: Explore whether 'messageParams' should be required in the ProcessDwnRequest type.
+      ...request.messageParams!,
       signer
     });
 
