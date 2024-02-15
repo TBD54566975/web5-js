@@ -137,6 +137,10 @@ export class VerifiableCredential {
       throw new Error('Issuer and subject must be defined');
     }
 
+    if(typeof issuer !== 'string' || typeof subject !== 'string') {
+      throw new Error('Issuer and subject must be of type string');
+    }
+
     const credentialSubject: CredentialSubject = {
       id: subject,
       ...jsonData

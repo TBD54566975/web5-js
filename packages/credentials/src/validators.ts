@@ -10,6 +10,7 @@ import {
 } from './verifiable-credential.js';
 
 import { isValidXmlSchema112Timestamp } from './utils.js';
+import { DEFAULT_VP_TYPE } from './verifiable-presentation.js';
 
 export class SsiValidator {
   static validateCredentialPayload(vc: VerifiableCredential): void {
@@ -31,6 +32,13 @@ export class SsiValidator {
     const input = this.asArray(value);
     if (input.length < 1 || input.indexOf(DEFAULT_VC_TYPE) === -1) {
       throw new Error(`type is missing default "${DEFAULT_VC_TYPE}"`);
+    }
+  }
+
+  static validateVpType(value: string | string[]): void {
+    const input = this.asArray(value);
+    if (input.length < 1 || input.indexOf(DEFAULT_VP_TYPE) === -1) {
+      throw new Error(`type is missing default "${DEFAULT_VP_TYPE}"`);
     }
   }
 
