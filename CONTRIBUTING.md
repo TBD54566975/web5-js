@@ -163,36 +163,58 @@ remains consistent and well-organized.
 #### Stable Releases
 
 We use semantic versioning for stable releases that have completed testing and are considered reliable enough for
-general use. Project maintainers will follow the steps below to create a new release:
+general use.
 
-1. For each updated package that requires a new release, update the version in `package.json` according to semantic versioning rules (`MAJOR.MINOR.PATCH`).
+This project uses [Changesets](https://github.com/changesets/changesets) for semver management. For motivations, see [full explanation here](https://github.com/changesets/changesets/blob/main/docs/detailed-explanation.md).
 
-1. In a local feature branch, commit the changes:
+Upon opening a Pull Request, the `changeset-bot` will automatically comment ([example](https://github.com/TBD54566975/tbdex-js/pull/30#issuecomment-1732721942)) on the PR with a reminder & recommendations for managing the changeset for the given changes.
 
-   ```
-   git add package.json
-   git commit -m "Bump version to x.y.z"
-   ```
+Prior to merging your branch into main, and given you have relevant semantic versioning changes, then you should run `npx changeset` locally.
 
-1. Create a tag for the new release:
+The CLI tool will walk you through a set of steps for you to define the semantic changes. This will create a randomly-named (and funnily-named) markdown file within the `.changeset/` directory. For example, see the `.changeset/sixty-tables-cheat.md` file on [this PR](https://github.com/TBD54566975/tbdex-js/pull/35/files). There is an analogy to staging a commit (using `git add`) for these markdown files, in that, they exist so that the developer can codify the semantic changes made but they don't actually update the semantic version.
 
-   ```
-   git tag -a vx.y.z -m "Release x.y.z"
-   ```
+**You can stop here!** It is recommended to merge your branch into main with the `.changeset/*.md` files, at which point, the Changeset GitHub Action will automatically pick up those changes and open a PR to automate the `npx changeset version` execution. For example, [see this PR](https://github.com/TBD54566975/tbdex-js/pull/36). This command will do two things: update the version numbers in the relevant `package.json` files & also aggregate Summary notes into the relevant `CHANGELOG.md` files. In keeping with the staged commit analogy, this is akin to the actual commit.
 
-1. Push the changes and the tag to the remote repository:
+**Publishing Releases**
 
-   ```
-   git push --tags
-   ```
+Whenever ready, project maintainers will just merge the [Version Packages PR](https://github.com/TBD54566975/tbdex-js/pulls?q=is%3Apr+author%3Aapp%2Fgithub-actions+%22Version+Packages%22+) when you are ready to publish the new versions!
 
-1. Open a pull request (PR) from your feature branch to begin the review process.
+When these PRs are merged to main we will automatically publish to NPM and create corresponding git tags with the changelog notes, and mirror each tag to a GitHub release per package.
 
-After one or more PRs have been approved and merged by project maintainers, a GitHub Release will be created using the
-version tag. The act of creating the GitHub release triggers automated publication of the package to the
-[NPM Registry](https://npmjs.com) which will be tagged as _latest_.
+> [!NOTE]
+>
+> This is all achieved by the Changesets GitHub action being used in the [Release Workflow](./.github/workflows/release.yml).
 
 The next time someone runs `pnpm install @web5/<package_name>` the newly published release will be installed.
+
+##### Recapping the steps for a new release publish
+
+Recap of the above changesets, plus the release process:
+
+1. Open a PR
+2. `changeset-bot` will automatically [comment on the PR](https://github.com/TBD54566975/tbdex-js/pull/30#issuecomment-1732721942) with a reminder & recommendations for semver
+3. Run `npx changeset` locally and push changes (`.changeset/*.md`)
+4. Merge PR into `main`
+5. Profit from the automated release pipeline:
+   - [Release Workflow](./.github/workflows/release.yml) will create a new Version Package PR, or update the existing one
+   - When maintainers are ready to publish the new changes, they will merge that PR and the very same [Release Workflow](./.github/workflows/release.yml) will automatically publish a [new version to NPM](https://www.npmjs.com/package/@web5/dids?activeTab=versions), and publish the docs to https://tbd54566975.github.io/web5-js/
+
+#### Web5 API Releases
+
+The `@web5/api` package is special because it dictates our release train schedule. Whenever a new Web5 API needs to be released projects maintainers will need to reach out to DevRel team to orchestrate an announcement to the community and follow a set of tests to ensure the Web5 API release is reliable and working ([example here](https://github.com/TBD54566975/developer.tbd.website/issues/1129)).
+
+**Because of that, the changesets of the `@web5/api` are ignored by default.**
+
+To enable the `@web5/api` release in the Changesets Version Package PR, you need two simple steps:
+
+1. Add the `api-release` Label the **Version Package PR**
+2. Manually trigger the [Release workflow](https://github.com/TBD54566975/web5-js/actions/workflows/release.yml).
+
+#### Preview Releases
+
+With the Changesets automation, every push to main with relevant changesets, will publish the corresponding packages to the NPM registry automatically with the tag `next`.
+
+The preview releases are useful for testing and verifying the changes before publishing a stable release.
 
 #### Alpha Releases
 
