@@ -1,14 +1,14 @@
 import { expect } from 'chai';
-import { DidJwk } from '@web5/dids';
+import { Convert } from '@web5/common';
+import { DidJwk, PortableDid } from '@web5/dids';
 
-import type { DidStore } from '../src/store-did.js';
+import type { DidStore } from '../src/types/did.js';
 
 import { AgentDidApi } from '../src/did-api.js';
 import { TestAgent } from './utils/test-agent.js';
+import { DwnInterface } from '../src/types/agent-dwn.js';
 import { ManagedAgentTestHarness } from '../src/test-harness.js';
 import { DwnDidStore, InMemoryDidStore } from '../src/store-did.js';
-import { Convert } from '@web5/common';
-import { DwnInterface } from '../src/types/agent-dwn.js';
 
 describe('DidStore', () => {
   let testHarness: ManagedAgentTestHarness;
@@ -31,7 +31,7 @@ describe('DidStore', () => {
 
   [DwnDidStore, InMemoryDidStore].forEach((DidStore) => {
     describe(DidStore.name, () => {
-      let didStore: DidStore;
+      let didStore: DidStore<PortableDid>;
 
       beforeEach(async () => {
         didStore = new DidStore();
@@ -119,7 +119,7 @@ describe('DidStore', () => {
           // will exist to sign DWN messages.
           if (DidStore.name === 'DwnDidStore') await testHarness.createAgentDid();
 
-          // Test deleting a non-existent DID using the context of the only DID with keys.
+          // Test retrieving a non-existent DID using the context of the only DID with keys.
           const storedDid = await didStore.get({ didUri: 'non-existent', agent: testHarness.agent });
 
           // Verify the result is undefined.
@@ -155,9 +155,9 @@ describe('DidStore', () => {
           const bearerDid3 = await DidJwk.create();
 
           // Import all of the DIDs under the Agent's store.
-          await didStore.set({ did: await bearerDid1.export(), agent: testHarness.agent });
-          await didStore.set({ did: await bearerDid2.export(), agent: testHarness.agent });
-          await didStore.set({ did: await bearerDid3.export(), agent: testHarness.agent });
+          await didStore.set({ didUri: bearerDid1.uri, value: await bearerDid1.export(), agent: testHarness.agent });
+          await didStore.set({ didUri: bearerDid2.uri, value: await bearerDid2.export(), agent: testHarness.agent });
+          await didStore.set({ didUri: bearerDid3.uri, value: await bearerDid3.export(), agent: testHarness.agent });
 
           // List DIDs and verify the result.
           const storedDids = await didStore.list({ agent: testHarness.agent });
@@ -182,9 +182,9 @@ describe('DidStore', () => {
           const bearerDid3 = await DidJwk.create();
 
           // Import all of the DIDs under the custom author context.
-          await didStore.set({ did: await bearerDid1.export(), context: authorDid.uri, agent: testHarness.agent });
-          await didStore.set({ did: await bearerDid2.export(), context: authorDid.uri, agent: testHarness.agent });
-          await didStore.set({ did: await bearerDid3.export(), context: authorDid.uri, agent: testHarness.agent });
+          await didStore.set({ didUri: bearerDid1.uri, value: await bearerDid1.export(), context: authorDid.uri, agent: testHarness.agent });
+          await didStore.set({ didUri: bearerDid2.uri, value: await bearerDid2.export(), context: authorDid.uri, agent: testHarness.agent });
+          await didStore.set({ didUri: bearerDid3.uri, value: await bearerDid3.export(), context: authorDid.uri, agent: testHarness.agent });
 
           // List DIDs and verify the result.
           const storedDids = await didStore.list({ context: authorDid.uri, agent: testHarness.agent });
@@ -250,7 +250,7 @@ describe('DidStore', () => {
           await testHarness.agent.crypto.importKey({ key: portableDid.privateKeys![0] });
 
           // Store the DID in the store.
-          await didStore.set({ did: portableDid, agent: testHarness.agent });
+          await didStore.set({ didUri: portableDid.uri, value: portableDid, agent: testHarness.agent });
 
           // Try to retrieve the DID from the DidManager store to verify it was imported.
           const storedDid = await didStore.get({ didUri: portableDid.uri, agent: testHarness.agent });
@@ -269,8 +269,8 @@ describe('DidStore', () => {
           let bearerDid2 = await DidJwk.create();
 
           // Import the two DIDs.
-          await didStore.set({ did: await bearerDid1.export(), agent: testHarness.agent });
-          await didStore.set({ did: await bearerDid2.export(), agent: testHarness.agent });
+          await didStore.set({ didUri: bearerDid1.uri, value: await bearerDid1.export(), agent: testHarness.agent });
+          await didStore.set({ didUri: bearerDid2.uri, value: await bearerDid2.export(), agent: testHarness.agent });
 
           // Get each DID and verify that they were written under the Agent's DID tenant.
           const storedDid2 = await didStore.get({ didUri: bearerDid1.uri, agent: testHarness.agent });
@@ -293,7 +293,7 @@ describe('DidStore', () => {
 
           // Generate a DID and import it under the custom author context.
           const bearerDid = await DidJwk.create();
-          await didStore.set({ did: await bearerDid.export(), context: authorDid.uri, agent: testHarness.agent });
+          await didStore.set({ didUri: bearerDid.uri, value: await bearerDid.export(), context: authorDid.uri, agent: testHarness.agent });
 
           // Verify the DID was written under the custom author context.
           let storedDid = await didStore.get({ didUri: bearerDid.uri, context: authorDid.uri, agent: testHarness.agent });
@@ -315,11 +315,11 @@ describe('DidStore', () => {
           await testHarness.agent.crypto.importKey({ key: portableDid.privateKeys![0] });
 
           // Store the DID in the store.
-          await didStore.set({ did: portableDid, agent: testHarness.agent });
+          await didStore.set({ didUri: portableDid.uri, value: portableDid, agent: testHarness.agent });
 
           // Try to import the same key again.
           try {
-            await didStore.set({ did: portableDid, agent: testHarness.agent });
+            await didStore.set({ didUri: portableDid.uri, value: portableDid, agent: testHarness.agent });
             expect.fail('Expected an error to be thrown');
 
           } catch (error: any) {
@@ -339,7 +339,7 @@ describe('DidStore', () => {
           const portableDid = await bearerDid.export();
 
           try {
-            await didStore.set({ did: portableDid, agent: testHarness.agent });
+            await didStore.set({ didUri: portableDid.uri, value: portableDid, agent: testHarness.agent });
             expect.fail('Expected an error to be thrown');
 
           } catch (error: any) {
