@@ -1128,7 +1128,7 @@ describe('DidDhtDocument', () => {
               type            : 'DecentralizedWebNode',
               serviceEndpoint : 'https://example.com/dwn',
               enc             : '#enc',
-              sig             : ['#sig', '#sig2'],
+              sig             : ['#sig', '#0'],
             },
           ],
         },
@@ -1143,7 +1143,7 @@ describe('DidDhtDocument', () => {
           expect(record.data).to.include('t=DecentralizedWebNode');
           expect(record.data).to.include('se=https://example.com/dwn');
           expect(record.data).to.include('enc=#enc');
-          expect(record.data).to.include('sig=#sig,#sig2');
+          expect(record.data).to.include('sig=#sig,#0');
         }
       }
     });
