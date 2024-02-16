@@ -51,6 +51,14 @@ module.exports = {
     'no-trailing-spaces'                       : ['error'],
     '@typescript-eslint/no-non-null-assertion' : 'off',
     '@typescript-eslint/ban-ts-comment'        : 'off',
-    'mocha/no-exclusive-tests'                 : 'warn'
-  }
+    'mocha/no-exclusive-tests'                 : 'warn',
+  },
+  overrides: [
+    {
+      files : ['*.cjs'],
+      rules : {
+        '@typescript-eslint/no-var-requires': 'off'
+      }
+    }
+  ]
 };

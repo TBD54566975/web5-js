@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
 const playwrightLauncher =
   require('@web/test-runner-playwright').playwrightLauncher;
 

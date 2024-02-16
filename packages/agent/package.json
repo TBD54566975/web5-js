@@ -12,11 +12,13 @@
     "build:browser": "rimraf dist/browser.mjs dist/browser.js && node build/bundles.js",
     "build:tests:node": "rimraf tests/compiled && tsc -p tests/tsconfig.json",
     "build:tests:browser": "rimraf tests/compiled && node build/esbuild-tests.cjs",
+    "build:tests:browser:watch": "rimraf tests/compiled && node build/esbuild-tests.cjs --watch &",
     "build": "npm run clean && npm run build:esm && npm run build:cjs && npm run build:browser",
     "lint": "eslint . --ext .ts --max-warnings 0",
     "lint:fix": "eslint . --ext .ts --fix",
     "test:node": "npm run build:tests:node && c8 mocha",
-    "test:browser": "npm run build:tests:browser && web-test-runner"
+    "test:browser": "npm run build:tests:browser && web-test-runner",
+    "test:browser:watch": "(npm run build:tests:browser:watch && web-test-runner --watch) || killall esbuild"
   },
   "homepage": "https://github.com/TBD54566975/web5-js/tree/main/packages/agent#readme",
   "bugs": "https://github.com/TBD54566975/web5-js/issues",

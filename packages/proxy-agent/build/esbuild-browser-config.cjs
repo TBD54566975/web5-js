@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
 const polyfillProviderPlugin = require('node-stdlib-browser/helpers/esbuild/plugin');
 const stdLibBrowser = require('node-stdlib-browser');
 
