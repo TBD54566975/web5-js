@@ -966,7 +966,7 @@ export class DidDhtDocument {
    * @returns A Promise resolving to a {@link DidResolutionResult} object containing the DID
    *          document and its metadata.
    */
-  private static async fromDnsPacket({ didUri, dnsPacket }: {
+  public static async fromDnsPacket({ didUri, dnsPacket }: {
     didUri: string;
     dnsPacket: Packet;
   }): Promise<DidResolutionResult> {
@@ -1055,11 +1055,16 @@ export class DidDhtDocument {
           // The service endpoint can either be a string or an array of strings.
           const serviceEndpoint = se.includes(VALUE_SEPARATOR) ? se.split(VALUE_SEPARATOR) : se;
 
+          // Convert custom property values to either a string or an array of strings.
+          const serviceProperties = Object.fromEntries(Object.entries(customProperties).map(
+            ([k, v]) => [k, v.includes(VALUE_SEPARATOR) ? v.split(VALUE_SEPARATOR) : v]
+          ));
+
           // Initialize the `service` array if it does not already exist.
           didDocument.service ??= [];
 
           didDocument.service.push({
-            ...customProperties,
+            ...serviceProperties,
             id   : `${didUri}#${id}`,
             type : t,
             serviceEndpoint
@@ -1115,7 +1120,7 @@ export class DidDhtDocument {
    * @param params.didMetadata - The DID metadata to include in the DNS packet.
    * @returns A promise that resolves to a DNS packet.
    */
-  private static async toDnsPacket({ didDocument, didMetadata }: {
+  public static async toDnsPacket({ didDocument, didMetadata }: {
     didDocument: DidDocument;
     didMetadata: DidMetadata;
   }): Promise<Packet> {
@@ -1188,13 +1193,14 @@ export class DidDhtDocument {
     didDocument.service?.forEach((service, index) => {
       const dnsRecordId = `s${index}`;
       serviceIds.push(dnsRecordId);
-      const serviceId = service.id.split('#').pop()!; // Remove fragment prefix, if any.
-      const serviceEndpoint = Array.isArray(service.serviceEndpoint)
-        ? service.serviceEndpoint.join(',')
-        : service.serviceEndpoint;
+      let { id, type: t, serviceEndpoint: se, ...customProperties } = service;
+      id = extractDidFragment(id)!;
+      se = Array.isArray(se) ? se.join(',') : se;
 
       // Define the data for the DNS TXT record.
-      const txtData = [`id=${serviceId}`, `t=${service.type}`, `se=${serviceEndpoint}`];
+      const txtData = Object.entries({ id, t, se, ...customProperties }).map(
+        ([key, value]) => `${key}=${value}`
+      );
 
       // Add a TXT record for the verification method.
       dnsAnswerRecords.push({
