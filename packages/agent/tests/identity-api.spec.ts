@@ -76,6 +76,36 @@ describe('AgentIdentityApi', () => {
           expect(identity).to.have.property('metadata');
         });
       });
+
+      describe('import()' , () => {
+        it('handles importing only the Identity Metadata to Agent tenant', async () => {
+          // Create a new Identity, which by default is stored under the tenant of the created DID.
+          const identity = await testHarness.agent.identity.create({
+            didMethod : 'jwk',
+            metadata  : { name: 'Test Identity' },
+          });
+
+          // Attempt to import just the Identity Metadata (no PortableDid) to the Agent's tenant.
+          const managedIdentity = await testHarness.agent.identity.manage({
+            portableIdentity: await identity.export()
+          });
+          expect(managedIdentity).to.deep.equal(identity);
+
+          // Verify that the Identity Metadata is stored under the Agent's tenant.
+          let storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri });
+          expect(storedIdentity).to.exist;
+
+          // Verify that the Identity is also stored under the new Identity's tenant.
+          storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri, tenant: identity.did.uri });
+          expect(storedIdentity).to.exist;
+
+          // Verify the DID ONLY exists under the new Identity's tenant.
+          // let storedDidAgent = await testHarness.agent.did.get({ didUri: identity.did.uri });
+          // expect(storedDidAgent).to.not.exist;
+          // let storedDidNewIdentity = await testHarness.agent.did.get({ didUri: identity.did.uri, context: identity.did.uri });
+          // expect(storedDidNewIdentity).to.exist;
+        }).timeout(100_000);
+      });
     });
   });
 });

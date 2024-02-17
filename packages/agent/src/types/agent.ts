@@ -6,6 +6,7 @@ import type { AgentIdentityApi } from '../identity-api.js';
 import type { ProcessVcRequest, SendVcRequest, VcResponse } from './agent-vc.js';
 import type { AgentDidApi, DidInterface, DidRequest, DidResponse } from '../did-api.js';
 import type { DwnInterface, DwnResponse, ProcessDwnRequest, SendDwnRequest } from './agent-dwn.js';
+import { Web5Rpc } from '../rpc-client.js';
 
 /**
  * Status code and detailed message for a response.
@@ -23,7 +24,7 @@ export type ResponseStatus = {
  * Web5 Agent Types
  */
 export interface Web5Agent {
-  agentDid?: BearerDid;
+  agentDid: BearerDid;
 
   processDidRequest(request: DidRequest<DidInterface>): Promise<DidResponse<DidInterface>>
   sendDidRequest(request: DidRequest<DidInterface>): Promise<DidResponse<DidInterface>>;
@@ -38,6 +39,7 @@ export interface Web5ManagedAgent<TCrypto extends AgentCryptoApi = AgentCryptoAp
   did: AgentDidApi<TCrypto>;
   dwn: AgentDwnApi;
   identity: AgentIdentityApi<TCrypto>;
+  rpc: Web5Rpc;
 
   firstLaunch(): Promise<boolean>;
   initialize(params: { passphrase: string }): Promise<void>;

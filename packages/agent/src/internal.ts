@@ -1,22 +1,28 @@
 import type { Web5ManagedAgent } from './types/agent.js';
 
-export async function getDwnStoreAuthor({ agent, context, didUri }: {
+/**
+ * Separator used to join the tenant DID and the DID URI that is used to prefix all lookups in both
+ * the DWN store index and in-memory store.
+ */
+export const TENANT_SEPARATOR = '^';
+
+export async function getDwnStoreTenant({ agent, tenant, didUri }: {
   agent: Web5ManagedAgent;
-  context?: string;
+  tenant?: string;
   didUri?: string;
 }): Promise<string> {
-  // If `context` is specified, DWN messages will be signed by this DID.
-  if (context) return context;
+  // If `tenant` is specified, DWN messages will be signed by this DID.
+  if (tenant) return tenant;
 
   // If Agent has an agentDid, use it to sign DWN messages.
   if (agent.agentDid) return agent.agentDid.uri;
 
-  // If `context`, `agent.agentDid`, and `didUri` are undefined, throw error.
+  // If `tenant`, `agent.agentDid`, and `didUri` are undefined, throw error.
   if (!didUri) {
-    throw new Error(`DidStore: Failed to determine author: 'agent.agentDid', 'context', and 'didUri' are undefined`);
+    throw new Error(`DidStore: Failed to determine author: 'agent.agentDid', 'tenant', and 'didUri' are undefined`);
   }
 
-  // If both `context` and `agent.agentDid` are undefined but `did` is given, assume the
+  // If both `tenant` and `agent.agentDid` are undefined but `did` is given, assume the
   // Agent's KeyManager contains a private key for the given `did` and use it to sign DWN
   // messages.
   //

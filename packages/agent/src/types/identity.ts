@@ -7,12 +7,14 @@ import { DidStore } from './did.js';
  */
 export interface IdentityMetadata {
   name: string;
+  tenant: string;
+  uri: string;
 }
 
-export type IdentityStore = DidStore<PortableIdentity>
+export type IdentityStore = DidStore<IdentityMetadata>
 
 export interface PortableIdentity {
-  did: PortableDid;
+  portableDid: PortableDid;
 
   /** {@inheritDoc IdentityMetadata} */
   metadata: IdentityMetadata;
