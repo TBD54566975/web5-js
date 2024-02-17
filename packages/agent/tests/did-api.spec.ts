@@ -2,8 +2,8 @@
 import { expect } from 'chai';
 import { DidJwk } from '@web5/dids';
 
-import { AgentDidApi, DidInterface } from '../src/did-api.js';
 import { TestAgent } from './utils/test-agent.js';
+import { AgentDidApi, DidInterface } from '../src/did-api.js';
 import { ManagedAgentTestHarness } from '../src/test-harness.js';
 
 describe('AgentDidApi', () => {
@@ -85,6 +85,25 @@ describe('AgentDidApi', () => {
           expect(did).to.have.property('metadata');
         });
 
+        it('supports DID DHT', async () => {
+          // Generate a new DID.
+          const did = await testHarness.agent.did.create({
+            method  : 'dht',
+            options : {
+              verificationMethods: [{
+                algorithm: 'Ed25519'
+              }],
+              publish: false
+            },
+            tenant: testHarness.agent.agentDid.uri
+          });
+
+          // Verify the result.
+          expect(did).to.have.property('uri');
+          expect(did).to.have.property('document');
+          expect(did).to.have.property('metadata');
+        });
+
         it(`adds generated keys to the Agent's KeyManager`, async () => {
           // Generate a new DID.
           const did = await testHarness.agent.did.create({ method: 'jwk' });
@@ -111,15 +130,15 @@ describe('AgentDidApi', () => {
           expect(storedDid).to.not.exist;
 
           // Verify that the DID WAS stored under the new DID's tenant.
-          storedDid = await testHarness.agent.did.get({ didUri: did.uri, context: did.uri });
+          storedDid = await testHarness.agent.did.get({ didUri: did.uri, tenant: did.uri });
           expect(storedDid).to.exist;
         });
 
-        it('creates DIDs under the context of the specified DID', async () => {
+        it('creates DIDs under the tenant of the specified DID', async () => {
           // Generate a new DID.
           const did = await testHarness.agent.did.create({
-            method  : 'jwk',
-            context : testHarness.agent.agentDid!.uri
+            method : 'jwk',
+            tenant : testHarness.agent.agentDid.uri
           });
 
           // Verify that the DID WAS stored under the Agent's tenant.
@@ -127,13 +146,13 @@ describe('AgentDidApi', () => {
           expect(storedDid).to.exist;
 
           // Verify that the DID was NOT stored under the new DID's tenant.
-          storedDid = await testHarness.agent.did.get({ didUri: did.uri, context: did.uri });
+          storedDid = await testHarness.agent.did.get({ didUri: did.uri, tenant: did.uri });
           expect(storedDid).to.not.exist;
         });
 
         it('throws an error if the DID method is an empty string', async () => {
           try {
-            // @ts-expect-error
+            // @ts-expect-error because an empty method is intentionally specified to trigger the error.
             await testHarness.agent.did.create({ method: '' });
             expect.fail('Expected an error to be thrown');
           } catch (error: any) {
@@ -143,7 +162,7 @@ describe('AgentDidApi', () => {
 
         it('throws an error if the DID method is not supported', async () => {
           try {
-            // @ts-expect-error
+            // @ts-expect-error because an unsupported method is intentionally specified to trigger the error.
             await testHarness.agent.did.create({ method: 'not-supported' });
             expect.fail('Expected an error to be thrown');
           } catch (error: any) {
@@ -168,10 +187,10 @@ describe('AgentDidApi', () => {
           // Export the DID to a PortableDid object.
           const portableDid = await did.export();
 
-          // Attempt to import the DID with Agent's DID API under the Agent's context.
+          // Attempt to import the DID with Agent's DID API under the Agent's tenant.
           const importedDid = await testHarness.agent.did.import({
             portableDid,
-            context: testHarness.agent.agentDid!.uri
+            tenant: testHarness.agent.agentDid.uri
           });
 
           // Try to retrieve the DID from the AgentDidApi store to verify it was imported.
@@ -187,14 +206,14 @@ describe('AgentDidApi', () => {
           const did1 = await DidJwk.create();
           const did1Import = await testHarness.agent.did.import({
             portableDid : await did1.export(),
-            context     : testHarness.agent.agentDid!.uri
+            tenant      : testHarness.agent.agentDid.uri
           });
 
           // Create and import a second DID.
           const did2 = await DidJwk.create();
           const did2Import = await testHarness.agent.did.import({
             portableDid : await did2.export(),
-            context     : testHarness.agent.agentDid!.uri
+            tenant      : testHarness.agent.agentDid.uri
           });
 
           // Verify that DID 1 WAS stored under the Agent's tenant.
@@ -237,18 +256,18 @@ describe('AgentDidApi', () => {
           expect(storedDid).to.not.exist;
 
           // Verify that the DID WAS stored under the new DID's tenant.
-          storedDid = await testHarness.agent.did.get({ didUri: importedDid.uri, context: importedDid.uri });
+          storedDid = await testHarness.agent.did.get({ didUri: importedDid.uri, tenant: importedDid.uri });
           expect(storedDid).to.exist;
         });
 
-        it('imports DIDs under the context of the specified DID', async () => {
+        it('imports DIDs under the tenant of the specified DID', async () => {
           // Create did:jwk DID to use to attempt import.
           const did = await DidJwk.create();
 
           // Attempt to import the DID with Agent's DID API.
           const importedDid = await testHarness.agent.did.import({
             portableDid : await did.export(),
-            context     : testHarness.agent.agentDid!.uri
+            tenant      : testHarness.agent.agentDid.uri
           });
 
           // Verify that the DID was stored under the Agent's tenant.
@@ -256,7 +275,7 @@ describe('AgentDidApi', () => {
           expect(storedDid).to.exist;
 
           // Verify that the DID was NOT stored under the new DID's tenant.
-          storedDid = await testHarness.agent.did.get({ didUri: importedDid.uri, context: importedDid.uri });
+          storedDid = await testHarness.agent.did.get({ didUri: importedDid.uri, tenant: importedDid.uri });
           expect(storedDid).to.not.exist;
         });
       });

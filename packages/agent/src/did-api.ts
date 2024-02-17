@@ -59,9 +59,9 @@ export interface DidCreateParams<
   TMethod extends keyof DidMethodCreateOptions<TKeyManager> = keyof DidMethodCreateOptions<TKeyManager>
 > {
   method: TMethod;
-  context?: string;
   options?: DidMethodCreateOptions<TKeyManager>[TMethod];
   store?: boolean;
+  tenant?: string;
 }
 
 export interface DidMethodCreateOptions<TKeyManager> {
@@ -146,51 +146,58 @@ export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidR
   }
 
   public async create({
-    method, context, options, store
+    method, tenant, options, store
   }: DidCreateParams<TKeyManager>): Promise<BearerDid> {
     // Get the DID method implementation, which also verifies the method is supported.
     const didMethod = this.getMethod(method);
 
-    // Create the DID.
-    const did = await didMethod.create({ keyManager: this.agent.crypto, options });
-
-    // If context is undefined, then the DID will be stored under the tenant of the created DID.
-    // Otherwise, the DID record will be stored under the tenant of the specified context.
-    context ??= did.uri;
+    // Create the DID and store the generated keys in the Agent's key manager.
+    const bearerDid = await didMethod.create({ keyManager: this.agent.crypto, options });
 
     // Persist the DID to the store, by default, unless the `store` option is set to false.
     if (store ?? true) {
-      await this._store.set({ didUri: did.uri, value: await did.export(), agent: this.agent, context });
+      // Unless an existing `tenant` is specified, a record that includes the DID's URI, document,
+      // and metadata will be stored under a new tenant controlled by the newly created DID.
+      await this._store.set({
+        didUri : bearerDid.uri,
+        value  : await bearerDid.export(),
+        agent  : this.agent,
+        tenant : tenant ?? bearerDid.uri
+      });
     }
 
-    return did;
+    return bearerDid;
   }
 
-  public async export({ didUri, context }: {
+  public async export({ didUri, tenant }: {
     didUri: string;
-    context?: string;
+    tenant?: string;
   }): Promise<PortableDid> {
     // Attempt to retrieve the DID from the agent's DID store.
-    const bearerDid = await this.get({ didUri, context });
+    const bearerDid = await this.get({ didUri, tenant });
 
     if (!bearerDid) {
       throw new Error(`AgentDidApi: Failed to export due to DID not found: ${didUri}`);
     }
 
-    // If the DID was found, return export the DID, and if supported by the Key Manager, the
-    // private key material.
-    return await bearerDid.export();
+    // If the DID was found, return the DID in a portable format, and if supported by the Agent's
+    // key manager, the private key material.
+    const portableDid = await bearerDid.export();
+
+    return portableDid;
   }
 
-  public async get({ didUri, context }: {
+  public async get({ didUri, tenant }: {
     didUri: string,
-    context?: string
+    tenant?: string
   }): Promise<BearerDid | undefined> {
-    const portableDid = await this._store.get({ didUri, agent: this.agent, context });
+    const portableDid = await this._store.get({ didUri, agent: this.agent, tenant });
 
-    if (portableDid) return await BearerDid.import({ portableDid, keyManager: this.agent.crypto });
+    if (!portableDid) return undefined;
 
-    return undefined;
+    const bearerDid = await BearerDid.import({ portableDid, keyManager: this.agent.crypto });
+
+    return bearerDid;
   }
 
   public async getSigningMethod({ didUri, methodId }: {
@@ -218,26 +225,26 @@ export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidR
     return verificationMethod;
   }
 
-  public async import({
-    portableDid,
-    context
-  }: {
-    context?: string;
+  public async import({ portableDid, tenant }: {
     portableDid: PortableDid;
+    tenant?: string;
   }): Promise<BearerDid> {
     // If private keys are present in the PortableDid, import the key material into the Agent's key
     // manager. Validate that the key material for every verification method in the DID document is
     // present in the key manager.
-    const did = await BearerDid.import({ keyManager: this.agent.crypto, portableDid });
-
-    // If context is undefined, then the DID will be stored under the tenant of the imported DID.
-    // Otherwise, the DID record will be stored under the tenant of the specified context.
-    context ??= did.uri;
+    const bearerDid = await BearerDid.import({ keyManager: this.agent.crypto, portableDid });
 
     // Store the DID in the agent's DID store.
-    await this._store.set({ didUri: did.uri, value: portableDid, agent: this.agent, context });
+    // Unless an existing `tenant` is specified, a record that includes the DID's URI, document,
+    // and metadata will be stored under a new tenant controlled by the imported DID.
+    await this._store.set({
+      didUri : portableDid.uri,
+      value  : portableDid,
+      agent  : this.agent,
+      tenant : tenant ?? portableDid.uri
+    });
 
-    return did;
+    return bearerDid;
   }
 
   public async processRequest<T extends DidInterface>(

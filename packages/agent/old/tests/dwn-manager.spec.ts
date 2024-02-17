@@ -81,43 +81,6 @@ describe('DwnManager', () => {
         await testAgent.clearStorage();
       });
 
-      it('throws an exception if target DID cannot be resolved', async () => {
-        await expect(
-          testAgent.agent.sendDwnRequest({
-            author         : identity.did,
-            target         : 'did:test:abc123',
-            messageType    : 'RecordsQuery',
-            messageOptions : {
-              filter: {
-                schema: 'https://schemas.xyz/example'
-              }
-            }
-          })
-        ).to.eventually.be.rejectedWith(Error, 'DwnManager: methodNotSupported: Method not supported: test');
-      });
-
-      it('throws an exception if target DID has no #dwn service endpoints', async () => {
-        const identity = await testAgent.agent.identityManager.create({
-          name       : 'Alice',
-          didMethod  : 'ion',
-          didOptions : { services: [] },
-          kms        : 'local'
-        });
-
-        await expect(
-          testAgent.agent.sendDwnRequest({
-            author         : identity.did,
-            target         : identity.did,
-            messageType    : 'RecordsQuery',
-            messageOptions : {
-              filter: {
-                schema: 'https://schemas.xyz/example'
-              }
-            }
-          })
-        ).to.eventually.be.rejectedWith(Error, `has no service endpoints with ID '#dwn'`);
-      });
-
       it('handles RecordsDelete Messages', async () => {
         const response = await testAgent.agent.sendDwnRequest({
           author         : identity.did,

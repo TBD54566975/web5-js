@@ -1,10 +1,11 @@
-import { DidDht, DidJwk, DidResolverCache, DidResolverCacheLevel } from '@web5/dids';
 import { DataStoreLevel, Dwn, EventLogLevel, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
+import { DidDht, DidJwk, DidResolutionResult, DidResolverCache, DidResolverCacheLevel } from '@web5/dids';
 
 import type { Web5ManagedAgent } from './types/agent.js';
 
 import { AgentDidApi } from './did-api.js';
 import { AgentDwnApi } from './dwn-api.js';
+import { Web5RpcClient } from './rpc-client.js';
 import { AgentCryptoApi } from './crypto-api.js';
 import { AgentIdentityApi } from './identity-api.js';
 import { DwnDidStore, InMemoryDidStore } from './store-did.js';
@@ -49,6 +50,7 @@ export class ManagedAgentTestHarness {
   }
 
   public async clearStorage(): Promise<void> {
+    // @ts-expect-error since normally this property shouldn't be set to undefined.
     this.agent.agentDid = undefined;
     // await this.appDataStore.clear();
     await this.didResolverCache.clear();
@@ -76,12 +78,19 @@ export class ManagedAgentTestHarness {
     // await this.syncStore.close();
   }
 
-  async createAgentDid(): Promise<void> {
+  public async createAgentDid(): Promise<void> {
     // Create a DID for the Agent.
     this.agent.agentDid = await DidJwk.create({
       keyManager : this.agent.crypto,
       options    : { algorithm: 'Ed25519' }
     });
+  }
+
+  public async preloadResolverCache({ didUri, resolutionResult }: {
+    didUri: string;
+    resolutionResult: DidResolutionResult;
+  }): Promise<void> {
+    await this.didResolverCache.set(didUri, resolutionResult);
   }
 
   public static async setup({ agentClass, agentStores, testDataLocation }:
@@ -121,12 +130,16 @@ export class ManagedAgentTestHarness {
     // Instantiate Agent's DWN API using the custom DWN instance.
     const dwnApi = new AgentDwnApi({ dwn });
 
+    // Instantiate Agent's RPC Client.
+    const rpcClient = new Web5RpcClient();
+
     // Create Web5ManagedAgent instance
     const agent = new agentClass({
       cryptoApi,
       didApi,
       dwnApi,
-      identityApi
+      identityApi,
+      rpcClient
     });
 
     return new ManagedAgentTestHarness({
