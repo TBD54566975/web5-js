@@ -14,26 +14,6 @@ import { IdentityStoreDwn, IdentityStoreMemory } from '../src/store-managed-iden
 chai.use(chaiAsPromised);
 
 describe('IdentityManager', () => {
-  describe('get agent', () => {
-    it(`returns the 'agent' instance property`, async () => {
-      // @ts-expect-error because we are only mocking a single property.
-      const mockAgent: Web5ManagedAgent = {
-        agentDid: 'did:method:abc123'
-      };
-      const identityManager = new IdentityManager({ agent: mockAgent });
-      const agent = identityManager.agent;
-      expect(agent).to.exist;
-      expect(agent.agentDid).to.equal('did:method:abc123');
-    });
-
-    it(`throws an error if the 'agent' instance property is undefined`, () => {
-      const identityManager = new IdentityManager();
-      expect(() =>
-        identityManager.agent
-      ).to.throw(Error, 'Unable to determine agent execution context');
-    });
-  });
-
   const agentStoreTypes = ['dwn', 'memory'] as const;
   agentStoreTypes.forEach((agentStoreType) => {
 
@@ -62,73 +42,6 @@ describe('IdentityManager', () => {
       });
 
       describe('create()', () => {
-        it('creates a ManagedIdentity with new DID and keys', async () => {
-          // Create a ManagedIdentity.
-          const managedIdentity = await testAgent.agent.identityManager.create({
-            didMethod : 'key',
-            name      : 'Alice',
-            kms       : 'local'
-          });
-
-          // Verify the ManagedIdentity was created with the expected properties.
-          expect(managedIdentity).to.have.property('did');
-          expect(managedIdentity).to.have.property('name');
-
-          // Confirm the DID was stored in the DidManager store.
-          const managedDid = await testAgent.agent.didManager.get({
-            didRef  : managedIdentity.did,
-            context : managedIdentity.did
-          });
-          expect(managedDid).to.exist;
-
-          // Confirm the keys were stored in the KeyManager store.
-          if (managedDid === undefined) throw new Error();
-          const signingKeyId = await testAgent.agent.didManager.getDefaultSigningKey({
-            did: managedDid.did
-          });
-          if (!signingKeyId) throw new Error('Type guard');
-          const keyPair = await testAgent.agent.keyManager.getKey({ keyRef: signingKeyId });
-          expect(keyPair).to.exist;
-          expect(keyPair).to.have.property('privateKey');
-          expect(keyPair).to.have.property('publicKey');
-        });
-
-        it('creates a ManagedIdentity using an existing DID and key set', async () => {
-          // Create did:key DID with key set to use to attempt import.
-          const portableDid = await DidKeyMethod.create({ keyAlgorithm: 'Ed25519' });
-
-          // Create a ManagedIdentity.
-          const managedIdentity = await testAgent.agent.identityManager.create({
-            did  : portableDid,
-            name : 'Alice',
-            kms  : 'local'
-          });
-
-          // Verify the ManagedIdentity was created with the expected properties.
-          expect(managedIdentity).to.have.property('did', portableDid.did);
-          expect(managedIdentity).to.have.property('name');
-
-          // Confirm the DID was stored in the DidManager store.
-          const managedDid = await testAgent.agent.didManager.get({
-            didRef  : managedIdentity.did,
-            context : managedIdentity.did
-          });
-          expect(managedDid).to.exist;
-
-          // Confirm the keys were stored in the KeyManager store.
-          if (managedDid === undefined) throw new Error('Type guard unexpectedly threw'); // Type guard.
-          const signingKeyId = await testAgent.agent.didManager.getDefaultSigningKey({
-            did: managedDid.did
-          });
-          if (!signingKeyId) throw new Error('Type guard');
-          const keyPair = await testAgent.agent.keyManager.getKey({
-            keyRef: signingKeyId
-          });
-          expect(keyPair).to.exist;
-          expect(keyPair).to.have.property('privateKey');
-          expect(keyPair).to.have.property('publicKey');
-        });
-
         // Tests that should only run for DWN-backed stores that provide multi-tenancy.
         if (agentStoreType === 'dwn') {
           it('creates Identities under the tenant of the new Identity, by default', async () => {
@@ -476,9 +389,13 @@ describe('IdentityStoreDwn', () => {
       expect(deleteResult).to.be.false;
     });
 
-    it('throws an error if Agent DID is undefined and no keys exist for specified DID', async () => {
+    it('throws an error if no keys exist for specified DID', async () => {
       await expect(
-        identityStore.deleteIdentity({ did: 'did:key:z6Mkt3UrUJXwrMzzBwt6XZ91aZYWk2GKvZbSgkZoEGdrRnB5', agent: testAgent })
+        identityStore.deleteIdentity({
+          did     : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
+          context : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
+          agent   : testAgent
+        })
       ).to.eventually.be.rejectedWith(Error, `Agent property 'agentDid' is undefined and no keys were found for`);
     });
   });

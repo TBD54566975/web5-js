@@ -1,15 +1,16 @@
-import type { Readable } from '@web5/common';
+import { Convert, type Readable } from '@web5/common';
 import type { Signer as DwnSigner, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 
-import { DidResolver } from '@web5/dids';
-import { Cid, Dwn, DwnInterfaceName, DwnMethodName, Message } from '@tbd54566975/dwn-sdk-js';
+import { DidResolver, utils as didUtils } from '@web5/dids';
+import { Cid, DataStream, Dwn, DwnInterfaceName, DwnMethodName, Message } from '@tbd54566975/dwn-sdk-js';
 
+import type { DwnRpcRequest } from './rpc-client.js';
 import type { Web5ManagedAgent } from './types/agent.js';
-import type { DwnMessage, DwnMessageReply, DwnMessageWithData, DwnResponse, ProcessDwnRequest } from './types/agent-dwn.js';
+import type { DwnMessage, DwnMessageReply, DwnMessageWithData, DwnResponse, ProcessDwnRequest, SendDwnRequest } from './types/agent-dwn.js';
 
+import { getSigningAlgorithmFromPublicKey } from './temp/add-to-crypto.js';
 import { DwnInterface, dwnMessageConstructors } from './types/agent-dwn.js';
 import { blobToIsomorphicNodeReadable, webReadableToIsomorphicNodeReadable } from './utils.js';
-import { getSigningAlgorithmFromPublicKey } from './temp/add-to-crypto.js';
 
 export type DwnApiParams = {
   agent?: Web5ManagedAgent;
@@ -119,6 +120,61 @@ export class AgentDwnApi {
     };
   }
 
+  public async sendRequest<T extends DwnInterface>(
+    request: SendDwnRequest<T>
+  ): Promise<DwnResponse<T>> {
+    // First, confirm the target DID can be dereferenced and extract the DWN service endpoint URLs.
+    const dwnEndpointUrls = await getDwnServiceEndpointUrls(request.target, this.agent.did);
+
+    const dwnRpcRequest: Partial<DwnRpcRequest> = { targetDid: request.target };
+    let messageData: Blob | Readable | ReadableStream | undefined;
+
+    if ('messageCid' in request) {
+      const { message, data } =  await this.getDwnMessage({
+        author      : request.author,
+        messageCid  : request.messageCid,
+        messageType : request.messageType
+      });
+      dwnRpcRequest.message = message;
+      messageData = data;
+
+    } else {
+      const { message } = await this.constructDwnMessage({ request });
+      dwnRpcRequest.message = message;
+      messageData = request.dataStream;
+    }
+
+    if (messageData) {
+      dwnRpcRequest.data = messageData;
+    }
+
+    let dwnReply;
+    let errorMessages: { url: string, message: string }[] = [];
+
+    // Try sending to author's publicly addressable DWNs until the first request succeeds.
+    for (let dwnUrl of dwnEndpointUrls) {
+      dwnRpcRequest.dwnUrl = dwnUrl;
+
+      try {
+        dwnReply = await this.agent.rpc.sendDwnRequest(dwnRpcRequest as DwnRpcRequest);
+        break;
+      } catch(error: unknown) {
+        const message = (error instanceof Error) ? error.message : 'Unknown error';
+        errorMessages.push({ url: dwnUrl, message });
+      }
+    }
+
+    if (!dwnReply) {
+      throw new Error(JSON.stringify(errorMessages));
+    }
+
+    return {
+      message    : dwnRpcRequest.message,
+      messageCid : await Message.getCid(dwnRpcRequest.message),
+      reply      : dwnReply,
+    };
+  }
+
   private async constructDwnMessage<T extends DwnInterface>({ request }: {
     request: ProcessDwnRequest<T>
   }): Promise<DwnMessageWithData<T>> {
@@ -171,7 +227,7 @@ export class AgentDwnApi {
 
   private async getSigner(author: string): Promise<DwnSigner> {
     // If the author is the Agent's DID, use the Agent's signer.
-    if (this.agent.agentDid && author === this.agent.agentDid.uri) {
+    if (author === this.agent.agentDid.uri) {
       const signer = await this.agent.agentDid.getSigner();
 
       return {
@@ -212,4 +268,103 @@ export class AgentDwnApi {
       }
     }
   }
+
+
+  /**
+   * FURTHER REFACTORING NEEDED BELOW THIS LINE
+   */
+
+  private async getDwnMessage<T extends DwnInterface>({ author, messageCid }: {
+    author: string;
+    messageType: T;
+    messageCid: string;
+  }): Promise<DwnMessageWithBlob<T>> {
+    const signer = await this.getSigner(author);
+
+    // Construct a MessagesGet message to fetch the message.
+    const messagesGet = await dwnMessageConstructors[DwnInterface.MessagesGet].create({
+      messageCids: [messageCid],
+      signer
+    });
+
+    const result = await this._dwn.processMessage(author, messagesGet.message);
+
+    if (!(result.entries && result.entries.length === 1)) {
+      throw new Error('AgentDwnApi: Expected 1 message entry in the MessagesGet response but received none or more than one.');
+    }
+
+    const [ messageEntry ] = result.entries;
+
+    const message = messageEntry.message as DwnMessage[T];
+    if (!message) {
+      throw new Error(`AgentDwnApi: Message not found with CID: ${messageCid}`);
+    }
+
+    let dwnMessageWithBlob: DwnMessageWithBlob<T> = { message };
+    // isRecordsWrite(message) && (dwnMessage.data = await this.getDataForRecordsWrite({ author, message, messageEntry, messageType, signer }));
+
+    // If the message is a RecordsWrite, either data will be present,
+    // OR we have to fetch it using a RecordsRead.
+    if (isRecordsWrite(messageEntry)) {
+      if (messageEntry.encodedData) {
+        const dataBytes = Convert.base64Url(messageEntry.encodedData).toUint8Array();
+        // ! TODO: test adding the messageEntry.message.descriptor.dataFormat to the Blob constructor.
+        dwnMessageWithBlob.data = new Blob([dataBytes]);
+      } else {
+        const recordsRead = await dwnMessageConstructors[DwnInterface.RecordsRead].create({
+          filter: {
+            recordId: messageEntry.message.recordId
+          },
+          signer
+        });
+
+        const reply = await this._dwn.processMessage(author, recordsRead.message);
+
+        if (reply.status.code >= 400) {
+          const { status: { code, detail } } = reply;
+          throw new Error(`(${code}) Failed to read data associated with record ${messageEntry.message.recordId}. ${detail}}`);
+        } else if (reply.record) {
+          // ! TODO: Switch this to use the @web5/common utility once confirmed working.
+          const dataBytes = await DataStream.toBytes(reply.record.data);
+          dwnMessageWithBlob.data = new Blob([dataBytes]);
+        }
+      }
+    }
+
+    return dwnMessageWithBlob;
+  }
+}
+
+
+export type DwnMessageWithBlob<T extends DwnInterface> = {
+  message: DwnMessage[T];
+  data?: Blob;
+}
+
+
+export async function getDwnServiceEndpointUrls(didUri: string, resolver: DidResolver): Promise<string[]> {
+  // Attempt to dereference the DID service with ID fragment #dwn.
+  const dereferencingResult = await resolver.dereference(`${didUri}#dwn`);
+
+  if (dereferencingResult.dereferencingMetadata.error) {
+    throw new Error(`Failed to dereference '${didUri}#dwn': ${dereferencingResult.dereferencingMetadata.error}`);
+  }
+
+  if (didUtils.isDwnDidService(dereferencingResult.contentStream)) {
+    const { serviceEndpoint } = dereferencingResult.contentStream;
+    const serviceEndpointUrls = typeof serviceEndpoint === 'string'
+    // If the service endpoint is a string, format it as a single-element array.
+      ? [serviceEndpoint]
+      : Array.isArray(serviceEndpoint) && serviceEndpoint.every(endpoint => typeof endpoint === 'string')
+      // If the service endpoint is an array of strings, use it as is.
+        ? serviceEndpoint as string[]
+        // If the service endpoint is neither a string nor an array of strings, return an empty array.
+        : [];
+
+    if (serviceEndpointUrls.length > 0) {
+      return serviceEndpointUrls;
+    }
+  }
+
+  throw new Error(`DID Service is missing or malformed: ${didUri}#dwn`);
 }

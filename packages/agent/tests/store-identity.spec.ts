@@ -22,6 +22,7 @@ describe('IdentityStore', () => {
 
   beforeEach(async () => {
     await testHarness.clearStorage();
+    await testHarness.createAgentDid();
   });
 
   after(async () => {
@@ -60,19 +61,23 @@ describe('IdentityStore', () => {
           });
 
           // Test deleting the Identity and validate the result.
-          const deleteResult = await identityStore.delete({ didUri: identity.did.uri, agent: testHarness.agent });
+          const deleteResult = await identityStore.delete({
+            didUri : identity.did.uri,
+            tenant : identity.did.uri,
+            agent  : testHarness.agent
+          });
           expect(deleteResult).to.be.true;
 
           // Verify the Identity is no longer in the store.
-          const storedIdentity = await identityStore.get({ didUri: identity.did.uri, agent: testHarness.agent });
+          const storedIdentity = await identityStore.get({
+            didUri : identity.did.uri,
+            tenant : identity.did.uri,
+            agent  : testHarness.agent
+          });
           expect(storedIdentity).to.be.undefined;
         });
 
         it('should return false if Identity does not exist', async () => {
-          // If the store being tested is DWN-backed, generate a DID for the Agent so that keys
-          // will exist to sign DWN messages.
-          if (IdentityStore.name === 'DwnIdentityStore') await testHarness.createAgentDid();
-
           // Test deleting a non-existent Identity using the context of the only DID with keys.
           const deleteResult = await identityStore.delete({ didUri: 'non-existent',  agent: testHarness.agent });
 
@@ -80,14 +85,15 @@ describe('IdentityStore', () => {
           expect(deleteResult).to.be.false;
         });
 
-        it('throws an error if Agent DID is undefined and no keys exist for specified DID', async function() {
+        it('throws an error if no keys exist for specified DID', async function() {
           // Skip this test for InMemoryIdentityStore, as checking for keys to sign DWN messages is not
           // relevant given that the store is in-memory.
           if (IdentityStore.name === 'InMemoryIdentityStore') this.skip();
 
           try {
             await identityStore.delete({
-              didUri : 'did:jwk:eyJrdHkiOiJFQyIsInVzZSI6InNpZyIsImNydiI6InNlY3AyNTZrMSIsImtpZCI6ImkzU1BSQnRKS292SEZzQmFxTTkydGk2eFFDSkxYM0U3WUNld2lIVjJDU2ciLCJ4IjoidmRyYnoyRU96dmJMRFZfLWtMNGVKdDdWSS04VEZaTm1BOVlnV3p2aGg3VSIsInkiOiJWTEZxUU1aUF9Bc3B1Y1hvV1gyLWJHWHBBTzFmUTVMbjE5VjVSQXhyZ3ZVIiwiYWxnIjoiRVMyNTZLIn0',
+              didUri : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
+              tenant : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
               agent  : testHarness.agent
             });
             expect.fail('Expected an error to be thrown');
@@ -108,19 +114,15 @@ describe('IdentityStore', () => {
           });
 
           // Test getting the Identity.
-          const storedIdentity = await identityStore.get({ didUri: identity.did.uri, agent: testHarness.agent });
+          const storedIdentity = await identityStore.get({ didUri: identity.did.uri, tenant: identity.did.uri, agent: testHarness.agent });
 
           // Verify the Identity is in the store.
           expect(storedIdentity).to.exist;
-          expect(storedIdentity!.did.uri).to.equal(identity.did.uri);
-          expect(storedIdentity!.metadata).to.deep.equal(identity.metadata);
+          expect(storedIdentity!.uri).to.equal(identity.did.uri);
+          expect(storedIdentity!).to.deep.equal(identity.metadata);
         });
 
         it('should return undefined when attempting to get a non-existent DID', async () => {
-          // If the store being tested is DWN-backed, generate a DID for the Agent so that keys
-          // will exist to sign DWN messages.
-          if (IdentityStore.name === 'DwnIdentityStore') await testHarness.createAgentDid();
-
           // Test retrieving a non-existent Identity using the context of the only DID with keys.
           const storedIdentity = await identityStore.get({ didUri: 'non-existent', agent: testHarness.agent });
 
@@ -128,14 +130,15 @@ describe('IdentityStore', () => {
           expect(storedIdentity).to.be.undefined;
         });
 
-        it('throws an error if Agent DID is undefined and no keys exist for specified DID', async function() {
+        it('throws an error if no keys exist for specified DID', async function() {
           // Skip this test for InMemoryIdentityStore, as checking for keys to sign DWN messages is not
           // relevant given that the store is in-memory.
           if (IdentityStore.name === 'InMemoryIdentityStore') this.skip();
 
           try {
             await identityStore.get({
-              didUri : 'did:jwk:eyJrdHkiOiJFQyIsInVzZSI6InNpZyIsImNydiI6InNlY3AyNTZrMSIsImtpZCI6ImkzU1BSQnRKS292SEZzQmFxTTkydGk2eFFDSkxYM0U3WUNld2lIVjJDU2ciLCJ4IjoidmRyYnoyRU96dmJMRFZfLWtMNGVKdDdWSS04VEZaTm1BOVlnV3p2aGg3VSIsInkiOiJWTEZxUU1aUF9Bc3B1Y1hvV1gyLWJHWHBBTzFmUTVMbjE5VjVSQXhyZ3ZVIiwiYWxnIjoiRVMyNTZLIn0',
+              didUri : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
+              tenant : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
               agent  : testHarness.agent
             });
             expect.fail('Expected an error to be thrown');
@@ -149,25 +152,21 @@ describe('IdentityStore', () => {
 
       describe('list()', () => {
         it('should return an array of all Identities in the store', async () => {
-          await testHarness.createAgentDid();
-
           // Generate three new Identities that are stored under the Agent's context.
-          const bearerIdentity1 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 1' }, context: testHarness.agent.agentDid!.uri });
-          const bearerIdentity2 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 2' }, context: testHarness.agent.agentDid!.uri });
-          const bearerIdentity3 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 3' }, context: testHarness.agent.agentDid!.uri });
+          const bearerIdentity1 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 1' }, tenant: testHarness.agent.agentDid.uri });
+          const bearerIdentity2 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 2' }, tenant: testHarness.agent.agentDid.uri });
+          const bearerIdentity3 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 3' }, tenant: testHarness.agent.agentDid.uri });
 
           // List Identities and verify the result.
           const storedDids = await identityStore.list({ agent: testHarness.agent });
           expect(storedDids).to.have.length(3);
           const importedDids = [bearerIdentity1.did.uri, bearerIdentity2.did.uri, bearerIdentity3.did.uri];
           for (const storedIdentity of storedDids) {
-            expect(importedDids).to.include(storedIdentity.did.uri);
+            expect(importedDids).to.include(storedIdentity.uri);
           }
         });
 
         it('returns an empty array if there are no Identities in the store', async () => {
-          await testHarness.createAgentDid();
-
           // List Identities and verify there are no results.
           const storedDids = await identityStore.list({ agent: testHarness.agent });
           expect(storedDids).to.have.length(0);
@@ -182,26 +181,16 @@ describe('IdentityStore', () => {
           await testHarness.agent.crypto.importKey({ key: authorDid.privateKeys![0] });
 
           // Generate three new Identities that are stored under the custom author context.
-          const bearerIdentity1 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 1' }, context: authorDid.uri });
-          const bearerIdentity2 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 2' }, context: authorDid.uri });
-          const bearerIdentity3 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 3' }, context: authorDid.uri });
+          const bearerIdentity1 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 1' }, tenant: authorDid.uri });
+          const bearerIdentity2 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 2' }, tenant: authorDid.uri });
+          const bearerIdentity3 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 3' }, tenant: authorDid.uri });
 
           // List Identities and verify the result.
-          const storedDids = await identityStore.list({ context: authorDid.uri, agent: testHarness.agent });
+          const storedDids = await identityStore.list({ tenant: authorDid.uri, agent: testHarness.agent });
           expect(storedDids).to.have.length(3);
           const importedDids = [bearerIdentity1.did.uri, bearerIdentity2.did.uri, bearerIdentity3.did.uri];
           for (const storedIdentity of storedDids) {
-            expect(importedDids).to.include(storedIdentity.did.uri);
-          }
-        });
-
-        it('throws an error if Agent DID and context are undefined', async function() {
-          try {
-            await identityStore.list({ agent: testHarness.agent });
-            expect.fail('Expected an error to be thrown');
-
-          } catch (error: any) {
-            expect(error.message).to.include('Failed to determine author');
+            expect(importedDids).to.include(storedIdentity.uri);
           }
         });
 
@@ -210,18 +199,16 @@ describe('IdentityStore', () => {
           // regardless of the size of the data.
           if (IdentityStore.name === 'InMemoryIdentityStore') this.skip();
 
-          await testHarness.createAgentDid();
-
           const identityBytes = Convert.string(new Array(102400 + 1).join('0')).toUint8Array();
 
           // Store the Identity in the DWN.
           const response = await testHarness.agent.dwn.processRequest({
-            author        : testHarness.agent.agentDid!.uri,
-            target        : testHarness.agent.agentDid!.uri,
+            author        : testHarness.agent.agentDid.uri,
+            target        : testHarness.agent.agentDid.uri,
             messageType   : DwnInterface.RecordsWrite,
             messageParams : {
               dataFormat : 'application/json',
-              schema     : 'https://identity.foundation/schemas/web5/portable-identity'
+              schema     : 'https://identity.foundation/schemas/web5/identity-metadata'
             },
             dataStream: new Blob([identityBytes], { type: 'application/json' })
           });
@@ -261,10 +248,7 @@ describe('IdentityStore', () => {
       //   });
 
       //   it('authors multiple entries in the store with the Agent DID', async () => {
-      //     // Create and import the Agent DID which will be used to author all writes to the store.
-      //     await testHarness.createAgentDid();
-
-      //     // Create three did:jwk DIDs to test import.
+      //     // Create two did:jwk DIDs to test import.
       //     let bearerDid1 = await DidJwk.create();
       //     let bearerDid2 = await DidJwk.create();
 
@@ -281,9 +265,6 @@ describe('IdentityStore', () => {
       //   });
 
       //   it('uses the context, if specified', async () => {
-      //     // Generate a DID for the Agent so that we have another DID Store tenant to check.
-      //     await testHarness.createAgentDid();
-
       //     // Generate a new DID to author writes to the store.
       //     const did = await DidJwk.create();
       //     const authorDid = await did.export();
@@ -293,10 +274,10 @@ describe('IdentityStore', () => {
 
       //     // Generate a DID and import it under the custom author context.
       //     const bearerDid = await DidJwk.create();
-      //     await identityStore.set({ didUri: bearerDid.uri, value: await bearerDid.export(), context: authorDid.uri, agent: testHarness.agent });
+      //     await identityStore.set({ didUri: bearerDid.uri, value: await bearerDid.export(), tenant: authorDid.uri, agent: testHarness.agent });
 
       //     // Verify the Identity was written under the custom author context.
-      //     let storedIdentity = await identityStore.get({ didUri: bearerDid.uri, context: authorDid.uri, agent: testHarness.agent });
+      //     let storedIdentity = await identityStore.get({ didUri: bearerDid.uri, tenant: authorDid.uri, agent: testHarness.agent });
       //     expect(storedIdentity!.uri).to.equal(bearerDid.uri);
 
       //     // Verify the Identity was not written under the Agent's DID tenant.

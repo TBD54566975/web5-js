@@ -1,17 +1,14 @@
 import type { CryptoApi } from '@web5/crypto';
+import type { RequireOnly } from '@web5/common';
 
 import type { Web5ManagedAgent } from './types/agent.js';
 import type { IdentityMetadata, IdentityStore, PortableIdentity } from './types/identity.js';
 
-import { BearerDid } from '@web5/dids';
-import { InMemoryIdentityStore } from './store-identity.js';
-import { DidMethodCreateOptions } from './did-api.js';
 import { AgentCryptoApi } from './crypto-api.js';
+import { BearerIdentity } from './bearer-identity.js';
+import { DidMethodCreateOptions } from './did-api.js';
+import { InMemoryIdentityStore } from './store-identity.js';
 
-export interface BearerIdentity {
-  did: BearerDid;
-  metadata: IdentityMetadata;
-}
 
 export interface IdentityApiParams {
   agent?: Web5ManagedAgent;
@@ -23,10 +20,10 @@ export interface IdentityCreateParams<
   TKeyManager = CryptoApi,
   TMethod extends keyof DidMethodCreateOptions<TKeyManager> = keyof DidMethodCreateOptions<TKeyManager>
 > {
-  metadata: IdentityMetadata;
+  metadata: RequireOnly<IdentityMetadata, 'name'>;
   didMethod?: TMethod;
   didOptions?: DidMethodCreateOptions<TKeyManager>[TMethod];
-  context?: string;
+  tenant?: string;
   store?: boolean;
 }
 
@@ -66,24 +63,131 @@ export class AgentIdentityApi<TKeyManager extends AgentCryptoApi = AgentCryptoAp
     this._agent = agent;
   }
 
-  public async create({
-    metadata, didMethod = 'dht', didOptions, context, store
-  }: IdentityCreateParams<TKeyManager>): Promise<BearerIdentity> {
-    // Create the DID.
-    const did = await this.agent.did.create({ method: didMethod, context, options: didOptions, store });
+  public async create({ metadata, didMethod = 'dht', didOptions, store, tenant }:
+    IdentityCreateParams<TKeyManager>
+  ): Promise<BearerIdentity> {
+    // Unless an existing `tenant` is specified, a record that includes the DID's URI, document,
+    // and metadata will be stored under a new tenant controlled by the newly created DID.
+    const bearerDid = await this.agent.did.create({
+      method  : didMethod,
+      options : didOptions,
+      store,
+      tenant
+    });
 
-    // Create the Identity.
-    const identity: BearerIdentity = { did, metadata };
-
-    // If context is undefined, then the Identity will be stored under the tenant of the created Identity.
-    // Otherwise, the Identity record will be stored under the tenant of the specified context.
-    context ??= identity.did.uri;
+    // Create the BearerIdentity object.
+    const identity = new BearerIdentity({
+      did      : bearerDid,
+      metadata : { ...metadata, uri: bearerDid.uri, tenant: tenant ?? bearerDid.uri }
+    });
 
     // Persist the Identity to the store, by default, unless the `store` option is set to false.
     if (store ?? true) {
-      const portableIdentity: PortableIdentity = { did: await identity.did.export(), metadata: identity.metadata };
-      await this._store.set({ didUri: identity.did.uri, value: portableIdentity, agent: this.agent, context });
+      await this._store.set({
+        didUri : identity.did.uri,
+        value  : identity.metadata,
+        agent  : this.agent,
+        tenant : identity.metadata.tenant
+      });
     }
+
+    return identity;
+  }
+
+  public async export({ didUri, tenant }: {
+    didUri: string;
+    tenant?: string;
+  }): Promise<PortableIdentity> {
+    // Attempt to retrieve the Identity from the Agent's Identity store.
+    const bearerIdentity = await this.get({ didUri, tenant });
+
+    if (!bearerIdentity) {
+      throw new Error(`AgentDidApi: Failed to export due to Identity not found: ${didUri}`);
+    }
+
+    // If the Identity was found, return the Identity in a portable format, and if supported by the
+    // Agent's key manager, the private key material.
+    const portableIdentity = await bearerIdentity.export();
+
+    return portableIdentity;
+  }
+
+  public async get({ didUri, tenant }: {
+    didUri: string;
+    tenant?: string;
+  }): Promise<BearerIdentity | undefined> {
+    // Attempt to retrieve the Identity from the Agent's Identity store.
+    const storedIdentity = await this._store.get({ didUri, agent: this.agent, tenant });
+
+    // If the Identity is not found in the store, return undefined.
+    if (!storedIdentity) return undefined;
+
+    // Retrieve the DID from the Agent's DID store using the tenant value from the stored
+    // Identity's metadata.
+    const storedDid = await this.agent.did.get({ didUri, tenant: storedIdentity.tenant });
+
+    // If the Identity is present but the DID is not found, throw an error.
+    if (!storedDid) {
+      throw new Error(`AgentIdentityApi: Identity is present in the store but DID is missing: ${didUri}`);
+    }
+
+    // Create the BearerIdentity object.
+    const identity = new BearerIdentity({ did: storedDid, metadata: storedIdentity });
+
+    return identity;
+  }
+
+  public async import({ portableIdentity }: {
+    portableIdentity: PortableIdentity;
+  }): Promise<BearerIdentity> {
+    // Import the PortableDid to the Agent's DID store.
+    const storedDid = await this.agent.did.import({
+      portableDid : portableIdentity.portableDid,
+      tenant      : portableIdentity.metadata.tenant
+    });
+
+    // Verify the DID is present in the Agent's DID store.
+    if (!storedDid) {
+      throw new Error(`AgentIdentityApi: Failed to import Identity: ${portableIdentity.metadata.uri}`);
+    }
+
+    // Create the BearerIdentity object.
+    const identity = new BearerIdentity({ did: storedDid, metadata: portableIdentity.metadata });
+
+    // Store the Identity metadata in the Agent's Identity store.
+    await this._store.set({
+      didUri : identity.did.uri,
+      value  : identity.metadata,
+      agent  : this.agent,
+      tenant : identity.metadata.tenant
+    });
+
+    return identity;
+  }
+
+  public async manage({ portableIdentity }: {
+    portableIdentity: PortableIdentity;
+  }): Promise<BearerIdentity> {
+    // Retrieve the DID using the `tenant` stored in the given Identity's metadata.
+    const storedDid = await this.agent.did.get({
+      didUri : portableIdentity.metadata.uri,
+      tenant : portableIdentity.metadata.tenant
+    });
+
+    // Verify the DID is present in the DID store.
+    if (!storedDid) {
+      throw new Error(`AgentIdentityApi: Failed to manage Identity: ${portableIdentity.metadata.uri}`);
+    }
+
+    // Create the BearerIdentity object.
+    const identity = new BearerIdentity({ did: storedDid, metadata: portableIdentity.metadata });
+
+    // Store the Identity metadata in the Agent's Identity store.
+    await this._store.set({
+      didUri : identity.did.uri,
+      value  : identity.metadata,
+      agent  : this.agent
+    });
 
     return identity;
   }

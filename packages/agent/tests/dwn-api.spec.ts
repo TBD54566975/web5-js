@@ -1,14 +1,15 @@
+import type { Dwn } from '@tbd54566975/dwn-sdk-js';
+
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
-import { Dwn, Message } from '@tbd54566975/dwn-sdk-js';
+
+import type { PortableIdentity } from '../src/types/identity.js';
 
 import { AgentDwnApi } from '../src/dwn-api.js';
-import { testDwnUrl } from './utils/test-config.js';
-
-import type { BearerIdentity } from '../src/identity-api.js';
-
 import { TestAgent } from './utils/test-agent.js';
+import { testDwnUrl } from './utils/test-config.js';
 import { DwnInterface } from '../src/types/agent-dwn.js';
+import { BearerIdentity } from '../src/bearer-identity.js';
 import { ManagedAgentTestHarness } from '../src/test-harness.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
 
@@ -31,13 +32,7 @@ describe('AgentDwnApi', () => {
     });
   });
 
-  beforeEach(async () => {
-    await testHarness.clearStorage();
-    await testHarness.createAgentDid();
-  });
-
   after(async () => {
-    await testHarness.clearStorage();
     await testHarness.closeStorage();
   });
 
@@ -76,12 +71,14 @@ describe('AgentDwnApi', () => {
     });
   });
 
-  describe('processRequest', () => {
+  describe('processRequest()', () => {
     let alice: BearerIdentity;
     let bob: BearerIdentity;
 
     beforeEach(async () => {
-      // Creates a new Identity to author the DWN messages.
+      await testHarness.clearStorage();
+      await testHarness.createAgentDid();
+
       alice = await testHarness.agent.identity.create({
         metadata  : { name: 'Alice' },
         didMethod : 'jwk'
@@ -91,6 +88,10 @@ describe('AgentDwnApi', () => {
         metadata  : { name: 'Alice' },
         didMethod : 'jwk'
       });
+    });
+
+    after(async () => {
+      await testHarness.clearStorage();
     });
 
     it('handles EventsGet', async () => {
@@ -513,6 +514,237 @@ describe('AgentDwnApi', () => {
       });
       expect(queryAliceResponse.reply.status.code).to.equal(200);
       expect(queryAliceResponse.reply.entries!.length).to.equal(1);
+    });
+  });
+
+  describe.only('sendRequest()', () => {
+    let alice: BearerIdentity;
+
+    before(async () => {
+      await testHarness.clearStorage();
+      await testHarness.createAgentDid();
+
+      const testPortableIdentity: PortableIdentity = {
+        portableDid: {
+          uri      : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy',
+          document : {
+            id                 : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy',
+            verificationMethod : [
+              {
+                id           : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#0',
+                type         : 'JsonWebKey',
+                controller   : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy',
+                publicKeyJwk : {
+                  crv : 'Ed25519',
+                  kty : 'OKP',
+                  x   : 'mZXKvarfofrcrdTYzes2YneEsrbJFc1kE0O-d1cJPEw',
+                  kid : 'EAlW6h08kqdLGEhR_o6hCnZpYpQ8QJavMp3g0BJ35IY',
+                  alg : 'EdDSA',
+                },
+              },
+              {
+                id           : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#sig',
+                type         : 'JsonWebKey',
+                controller   : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy',
+                publicKeyJwk : {
+                  crv : 'Ed25519',
+                  kty : 'OKP',
+                  x   : 'iIWijzQnfb_Jk4yRjISV6ci8EtyHn0fIxg0TVCh7wkE',
+                  kid : '8QSlw4ct9taIgh23EUGLM0ELaukQ1VogIuBGrQ_UIsk',
+                  alg : 'EdDSA',
+                },
+              },
+              {
+                id           : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#enc',
+                type         : 'JsonWebKey',
+                controller   : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy',
+                publicKeyJwk : {
+                  kty : 'EC',
+                  crv : 'secp256k1',
+                  x   : 'P5FoqXk9W11i8FWyTpIvltAjV09FL9Q5o76wEHcxMtI',
+                  y   : 'DgoLVlLKbjlaUja4RTjdxzqAy0ITOEFlCXGKSpu8XQs',
+                  kid : 'hXXhIgfXRVIYqnKiX0DIL7ZGy0CBJrFQFIYxmRkAB-A',
+                  alg : 'ES256K',
+                },
+              },
+            ],
+            authentication: [
+              'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#0',
+              'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#sig',
+            ],
+            assertionMethod: [
+              'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#0',
+              'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#sig',
+            ],
+            capabilityDelegation: [
+              'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#0',
+            ],
+            capabilityInvocation: [
+              'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#0',
+            ],
+            keyAgreement: [
+              'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#enc',
+            ],
+            service: [
+              {
+                id              : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#dwn',
+                type            : 'DecentralizedWebNode',
+                serviceEndpoint : testDwnUrls,
+                enc             : '#enc',
+                sig             : '#sig',
+              },
+            ],
+          },
+          metadata: {
+            published : true,
+            versionId : '1708160454',
+          },
+          privateKeys: [
+            {
+              crv : 'Ed25519',
+              d   : 'gXu7HmJgvZFWgNf_eqF-eDAFegd0OLe8elAIXXGMgoc',
+              kty : 'OKP',
+              x   : 'mZXKvarfofrcrdTYzes2YneEsrbJFc1kE0O-d1cJPEw',
+              kid : 'EAlW6h08kqdLGEhR_o6hCnZpYpQ8QJavMp3g0BJ35IY',
+              alg : 'EdDSA',
+            },
+            {
+              crv : 'Ed25519',
+              d   : 'SiUL1QDp6X2QnvJ1Q7hRlpo3ZhiVjRlvINocOzYPaBU',
+              kty : 'OKP',
+              x   : 'iIWijzQnfb_Jk4yRjISV6ci8EtyHn0fIxg0TVCh7wkE',
+              kid : '8QSlw4ct9taIgh23EUGLM0ELaukQ1VogIuBGrQ_UIsk',
+              alg : 'EdDSA',
+            },
+            {
+              kty : 'EC',
+              crv : 'secp256k1',
+              d   : 'b2gb-OfB5X4G3xd16u19MXNkamDP5lsT6bVsDN4aeuY',
+              x   : 'P5FoqXk9W11i8FWyTpIvltAjV09FL9Q5o76wEHcxMtI',
+              y   : 'DgoLVlLKbjlaUja4RTjdxzqAy0ITOEFlCXGKSpu8XQs',
+              kid : 'hXXhIgfXRVIYqnKiX0DIL7ZGy0CBJrFQFIYxmRkAB-A',
+              alg : 'ES256K',
+            },
+          ],
+        },
+        metadata: {
+          name   : 'Alice',
+          tenant : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy',
+          uri    : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy'
+        }
+      };
+
+      await testHarness.preloadResolverCache({
+        didUri           : testPortableIdentity.portableDid.uri,
+        resolutionResult : {
+          didDocument           : testPortableIdentity.portableDid.document,
+          didDocumentMetadata   : testPortableIdentity.portableDid.metadata,
+          didResolutionMetadata : {}
+        }
+      });
+
+      alice = await testHarness.agent.identity.import({
+        portableIdentity: testPortableIdentity
+      });
+    });
+
+    after(async () => {
+      await testHarness.clearStorage();
+      await testHarness.closeStorage();
+    });
+
+    it('handles RecordsQuery Messages', async () => {
+      const response = await testHarness.agent.dwn.sendRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsQuery,
+        messageParams : {
+          filter: {
+            schema: 'https://schemas.xyz/example'
+          }
+        }
+      });
+
+      expect(response.reply).to.exist;
+      expect(response.message).to.exist;
+      expect(response.messageCid).to.exist;
+      expect(response.reply.status).to.exist;
+      expect(response.reply.entries).to.exist;
+      expect(response.reply.status.code).to.equal(200);
+    });
+
+    it('handles RecordsWrite messages', async () => {
+      const dataBytes = Convert.string('Message').toUint8Array();
+
+      let response = await testHarness.agent.dwn.sendRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          dataFormat : 'text/plain',
+          data       : dataBytes
+        },
+        dataStream: new Blob([dataBytes], { type: 'text/plain' })
+      });
+
+      expect(response).to.exist;
+    });
+
+    it('throws an error if target DID method is not supported by the Agent DID Resolver', async () => {
+      try {
+        await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : 'did:test:abc123',
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            filter: {
+              schema: 'https://schemas.xyz/example'
+            }
+          }
+        });
+        expect.fail('Expected an error to be thrown');
+
+      } catch (error: any) {
+        expect(error.message).to.include('methodNotSupported');
+      }
+    });
+
+    it('throws an error if target DID has no #dwn service endpoints', async () => {
+      // Create a new Identity but don't store or publish the DID DHT document.
+      const identity = await testHarness.agent.identity.create({
+        metadata   : { name: 'Test Identity' },
+        didMethod  : 'dht',
+        didOptions : { services: [], publish: false },
+        store      : false
+      });
+
+      // Since the DID DHT document wasn't published, add the DID DHT document to the resolver
+      // cache so that DID resolution will succeed during the dereferencing operation.
+      await testHarness.preloadResolverCache({
+        didUri           : identity.did.uri,
+        resolutionResult : {
+          didDocument           : identity.did.document,
+          didDocumentMetadata   : identity.did.metadata,
+          didResolutionMetadata : {}
+        }
+      });
+
+      try {
+        await testHarness.agent.dwn.sendRequest({
+          author        : identity.did.uri,
+          target        : identity.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            filter: {
+              schema: 'https://schemas.xyz/example'
+            }
+          }
+        });
+        expect.fail('Expected an error to be thrown');
+
+      } catch (error: any) {
+        expect(error.message).to.include('Failed to dereference');
+      }
     });
   });
 });

@@ -13,7 +13,10 @@
       "preLaunchTask": "build tests",
       "skipFiles": [
         "<node_internals>/**"
-      ]
+      ],
+      "env": {
+        "TEST_DWN_URL": "http://localhost:3016"
+      }
     }
   ]
 }

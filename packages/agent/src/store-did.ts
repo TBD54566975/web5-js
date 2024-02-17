@@ -2,10 +2,11 @@ import type { PortableDid } from '@web5/dids';
 
 import { Convert, NodeStream, TtlCache } from '@web5/common';
 
-import type { DidStore, DidStoreDeleteParams, DidStoreGetParams, DidStoreListParas, DidStoreSetParams } from './types/did.js';
+import type { DidStore, DidStoreDeleteParams, DidStoreGetParams, DidStoreListParams, DidStoreSetParams } from './types/did.js';
 import type { Web5ManagedAgent } from './types/agent.js';
 
-import { getDwnStoreAuthor } from './internal.js';
+import { TENANT_SEPARATOR } from './internal.js';
+import { getDwnStoreTenant } from './internal.js';
 import { DwnInterface } from './types/agent-dwn.js';
 import { isPortableDid } from './temp/add-to-dids.js';
 
@@ -27,20 +28,20 @@ export class DwnDidStore<TStoreObject extends Record<string, any> = PortableDid>
     schema     : 'https://identity.foundation/schemas/web5/portable-did'
   };
 
-  public async delete({ didUri, agent, context }: DidStoreDeleteParams): Promise<boolean> {
+  public async delete({ didUri, agent, tenant }: DidStoreDeleteParams): Promise<boolean> {
     // Determine which DID to use to sign DWN messages.
-    const authorDid = await getDwnStoreAuthor({ agent, context, didUri });
+    const tenantDid = await getDwnStoreTenant({ agent, tenant, didUri });
 
     // Attempt to find the DID in the store.
-    let matchingRecordId = await this.findByDidUri({ didUri, authorDid, agent });
+    let matchingRecordId = await this.findByDidUri({ didUri, tenantDid, agent });
 
     // Return false if the given DID was not found in the store.
     if (!matchingRecordId) return false;
 
     // If a record for the given DID was found, attempt to delete it.
     const { reply: { status } } = await agent.dwn.processRequest({
-      author        : authorDid,
-      target        : authorDid,
+      author        : tenantDid,
+      target        : tenantDid,
       messageType   : DwnInterface.RecordsDelete,
       messageParams : {
         recordId : matchingRecordId,
@@ -55,19 +56,19 @@ export class DwnDidStore<TStoreObject extends Record<string, any> = PortableDid>
     throw new Error(`DwnDidStore: Failed to delete '${didUri}' from store: (${status.code}) ${status.detail}`);
   }
 
-  public async get({ didUri, agent, context }: DidStoreGetParams): Promise<TStoreObject | undefined> {
+  public async get({ didUri, agent, tenant }: DidStoreGetParams): Promise<TStoreObject | undefined> {
     // Determine which DID to use to sign DWN messages.
-    const authorDid = await getDwnStoreAuthor({ agent, context, didUri });
+    const tenantDid = await getDwnStoreTenant({ agent, tenant, didUri });
 
     // Attempt to find the DID in the store.
-    let recordId = await this.findByDidUri({ didUri, authorDid, agent });
+    let recordId = await this.findByDidUri({ didUri, tenantDid, agent });
 
     // If a matching record was found, read and return the DID object.
     if (recordId) {
       // Read the DID object from the store.
       const { reply: readReply } = await agent.dwn.processRequest({
-        author        : authorDid,
-        target        : authorDid,
+        author        : tenantDid,
+        target        : tenantDid,
         messageType   : DwnInterface.RecordsRead,
         messageParams : { filter: { recordId } }
       });
@@ -82,22 +83,22 @@ export class DwnDidStore<TStoreObject extends Record<string, any> = PortableDid>
     return undefined;
   }
 
-  public async list({ agent, context}: DidStoreListParas): Promise<TStoreObject[]> {
+  public async list({ agent, tenant}: DidStoreListParams): Promise<TStoreObject[]> {
     // Determine which DID to use to sign DWN messages.
-    const authorDid = await getDwnStoreAuthor({ context, agent });
+    const tenantDid = await getDwnStoreTenant({ tenant, agent });
 
     // Query the DWN for all stored DID objects.
-    const storedDids = await this.findAll({ agent, authorDid });
+    const storedDids = await this.findAll({ agent, tenantDid });
 
     return storedDids;
   }
 
-  public async set({ didUri, value, context, agent }: DidStoreSetParams<TStoreObject>): Promise<void> {
+  public async set({ didUri, value, tenant, agent }: DidStoreSetParams<TStoreObject>): Promise<void> {
     // Determine which DID to use to sign DWN messages.
-    const authorDid = await getDwnStoreAuthor({ didUri, context, agent });
+    const tenantDid = await getDwnStoreTenant({ didUri, tenant, agent });
 
     // Check if the DID being added is already present in the store.
-    const duplicateFound = await this.findByDidUri({ didUri, authorDid, agent });
+    const duplicateFound = await this.findByDidUri({ didUri, tenantDid, agent });
     if (duplicateFound) {
       throw new Error(`DwnDidStore: Import failed due to duplicate DID for: ${didUri}`);
     }
@@ -107,8 +108,8 @@ export class DwnDidStore<TStoreObject extends Record<string, any> = PortableDid>
 
     // Store the DID in the DWN.
     const { reply: { status } } = await agent.dwn.processRequest({
-      author        : authorDid,
-      target        : authorDid,
+      author        : tenantDid,
+      target        : tenantDid,
       messageType   : DwnInterface.RecordsWrite,
       messageParams : { ...this._recordProperties },
       dataStream    : new Blob([didBytes], { type: 'application/json' })
@@ -120,34 +121,34 @@ export class DwnDidStore<TStoreObject extends Record<string, any> = PortableDid>
     }
   }
 
-  private async findByDidUri({ didUri, authorDid, agent }: {
+  private async findByDidUri({ didUri, tenantDid, agent }: {
     didUri: string;
-    authorDid: string;
+    tenantDid: string;
     agent: Web5ManagedAgent;
   }): Promise<string | undefined> {
     // Check the index for a matching DID and extend the index TTL.
-    let recordId = this._index.get(didUri, { updateAgeOnGet: true });
+    let recordId = this._index.get(`${tenantDid}$${TENANT_SEPARATOR}{didUri}`, { updateAgeOnGet: true });
 
     // If no matching record ID was found in the index...
     if (!recordId) {
       // Query the DWN for all stored DID objects to rebuild the index.
-      await this.findAll({ agent, authorDid });
+      await this.findAll({ agent, tenantDid });
 
       // Check the index again for a matching DID.
-      recordId = this._index.get(didUri);
+      recordId = this._index.get(`${tenantDid}${TENANT_SEPARATOR}${didUri}`);
     }
 
     return recordId;
   }
 
-  protected async findAll({ agent, authorDid }: {
+  protected async findAll({ agent, tenantDid }: {
     agent: Web5ManagedAgent;
-    authorDid: string;
+    tenantDid: string;
   }): Promise<TStoreObject[]> {
     // Query the DWN for all stored DID objects.
     const { reply: queryReply } = await agent.dwn.processRequest({
-      author        : authorDid,
-      target        : authorDid,
+      author        : tenantDid,
+      target        : tenantDid,
       messageType   : DwnInterface.RecordsQuery,
       messageParams : { filter: { ...this._recordProperties } }
     });
@@ -165,7 +166,7 @@ export class DwnDidStore<TStoreObject extends Record<string, any> = PortableDid>
       const storedDid = Convert.base64Url(record.encodedData).toObject() as TStoreObject;
       if (isPortableDid(storedDid)) {
       // Update the index with the matching record ID.
-        this._index.set(storedDid.uri, record.recordId);
+        this._index.set(`${tenantDid}${TENANT_SEPARATOR}${storedDid.uri}`, record.recordId);
         storedDids.push(storedDid);
       }
     }
@@ -176,25 +177,17 @@ export class DwnDidStore<TStoreObject extends Record<string, any> = PortableDid>
 
 export class InMemoryDidStore<TStoreObject extends Record<string, any> = PortableDid> implements DidStore<TStoreObject> {
   /**
-   * A private field that contains the separator used to join the tenant DID and the DID URI.
-   */
-  private separator: string = '^';
-
-  /**
    * A private field that contains the Map used as the in-memory key-value store.
    */
   private store: Map<string, TStoreObject> = new Map();
 
-  public async delete({ didUri, agent, context }: DidStoreDeleteParams): Promise<boolean> {
+  public async delete({ didUri, agent, tenant }: DidStoreDeleteParams): Promise<boolean> {
     // Determine which DID to use as the tenant.
-    const authorDid = await getDwnStoreAuthor({ agent, context, didUri });
+    const tenantDid = await getDwnStoreTenant({ agent, tenant, didUri });
 
-    // Construct the tenant-prefix that will be prepended to lookups in the store.
-    const tenant = `${authorDid}${this.separator}`;
-
-    if (this.store.has(tenant + didUri)) {
+    if (this.store.has(`${tenantDid}${TENANT_SEPARATOR}${didUri}`)) {
       // DID with given identifier exists so proceed with delete.
-      this.store.delete(tenant + didUri);
+      this.store.delete(`${tenantDid}${TENANT_SEPARATOR}${didUri}`);
       return true;
     }
 
@@ -202,40 +195,31 @@ export class InMemoryDidStore<TStoreObject extends Record<string, any> = Portabl
     return false;
   }
 
-  public async get({ didUri, agent, context }: DidStoreGetParams): Promise<TStoreObject | undefined> {
+  public async get({ didUri, agent, tenant }: DidStoreGetParams): Promise<TStoreObject | undefined> {
     // Determine which DID to use to sign DWN messages.
-    const authorDid = await getDwnStoreAuthor({ agent, context, didUri });
+    const tenantDid = await getDwnStoreTenant({ agent, tenant, didUri });
 
-    // Construct the tenant-prefix that will be prepended to lookups in the store.
-    const tenant = `${authorDid}${this.separator}`;
-
-    return this.store.get(tenant + didUri);
+    return this.store.get(`${tenantDid}${TENANT_SEPARATOR}${didUri}`);
   }
 
-  public async list({ agent, context}: DidStoreListParas): Promise<TStoreObject[]> {
+  public async list({ agent, tenant}: DidStoreListParams): Promise<TStoreObject[]> {
     // Determine which DID to use to sign DWN messages.
-    const authorDid = await getDwnStoreAuthor({ context, agent });
-
-    // Construct the tenant-prefix that will be prepended to lookups in the store.
-    const tenant = `${authorDid}${this.separator}`;
+    const tenantDid = await getDwnStoreTenant({ tenant, agent });
 
     const result: TStoreObject[] = [];
     for (const [key, storedDid] of this.store.entries()) {
-      if (key.startsWith(tenant)) {
+      if (key.startsWith(`${tenantDid}${TENANT_SEPARATOR}`)) {
         result.push(storedDid);
       }
     }
     return result;
   }
 
-  public async set({ didUri, value, context, agent }: DidStoreSetParams<TStoreObject>): Promise<void> {
+  public async set({ didUri, value, tenant, agent }: DidStoreSetParams<TStoreObject>): Promise<void> {
     // Determine which DID to use to sign DWN messages.
-    const authorDid = await getDwnStoreAuthor({ didUri, context, agent });
+    const tenantDid = await getDwnStoreTenant({ didUri, tenant, agent });
 
-    // Construct the tenant-prefix that will be prepended to lookups in the store.
-    const tenant = `${authorDid}${this.separator}`;
-
-    const duplicateFound = this.store.has(tenant + didUri);
+    const duplicateFound = this.store.has(`${tenantDid}${TENANT_SEPARATOR}${didUri}`);
     if (duplicateFound) {
       throw new Error(`InMemoryDidStore: Import failed due to duplicate DID entry for: ${didUri}`);
     }
@@ -243,6 +227,6 @@ export class InMemoryDidStore<TStoreObject extends Record<string, any> = Portabl
     // Make a deep copy of the DID so that the object stored does not share the same references as
     // the input.
     const clonedDid = structuredClone(value);
-    this.store.set(tenant + didUri, clonedDid);
+    this.store.set(`${tenantDid}${TENANT_SEPARATOR}${didUri}`, clonedDid);
   }
 }

@@ -10,6 +10,7 @@ import type {
   ProcessDwnRequest,
 } from '../../src/types/agent-dwn.js';
 
+import { Web5Rpc } from '../../src/rpc-client.js';
 import { AgentDwnApi } from '../../src/dwn-api.js';
 import { AgentCryptoApi } from '../../src/crypto-api.js';
 import { AgentIdentityApi } from '../../src/identity-api.js';
@@ -20,26 +21,41 @@ type TestAgentOptions = {
   didApi: AgentDidApi;
   dwnApi: AgentDwnApi;
   identityApi: AgentIdentityApi;
+  rpcClient: Web5Rpc;
 }
 
 export class TestAgent implements Web5ManagedAgent {
-  agentDid?: BearerDid;
-  crypto: AgentCryptoApi;
-  did: AgentDidApi;
-  dwn: AgentDwnApi;
-  identity: AgentIdentityApi;
+  public crypto: AgentCryptoApi;
+  public did: AgentDidApi;
+  public dwn: AgentDwnApi;
+  public identity: AgentIdentityApi;
+  public rpc: Web5Rpc;
+
+  private _agentDid?: BearerDid;
 
   constructor(params: TestAgentOptions) {
     this.crypto = params.cryptoApi;
     this.did = params.didApi;
     this.dwn = params.dwnApi;
     this.identity = params.identityApi;
+    this.rpc = params.rpcClient;
 
     // Set this agent to be the default agent.
     this.crypto.agent = this;
     this.did.agent = this;
     this.dwn.agent = this;
     this.identity.agent = this;
+  }
+
+  get agentDid(): BearerDid {
+    if (this._agentDid === undefined) {
+      throw new Error('TestAgent: Agent DID is not set');
+    }
+    return this._agentDid;
+  }
+
+  set agentDid(did: BearerDid) {
+    this._agentDid = did;
   }
 
   async firstLaunch(): Promise<boolean> {
@@ -73,10 +89,9 @@ export class TestAgent implements Web5ManagedAgent {
   }
 
   async sendDwnRequest<T extends DwnInterface>(
-    _request: SendDwnRequest<T>
+    request: SendDwnRequest<T>
   ): Promise<DwnResponse<T>> {
-    throw new Error('Not implemented');
-    // return this.dwnManager.sendRequest(request);
+    return this.dwn.sendRequest(request);
   }
 
   async sendVcRequest(_request: SendVcRequest): Promise<VcResponse> {

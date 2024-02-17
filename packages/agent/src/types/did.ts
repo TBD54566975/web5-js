@@ -1,22 +1,22 @@
 import type { Web5ManagedAgent } from './agent.js';
 
-export type DidStoreContextParams = {
+export type DidStoreTenantParams = {
   agent: Web5ManagedAgent;
-  context?: string;
+  tenant?: string;
 }
 
-export type DidStoreListParas = DidStoreContextParams;
+export type DidStoreListParams = DidStoreTenantParams;
 
-export type DidStoreGetParams = DidStoreContextParams & {
+export type DidStoreGetParams = DidStoreTenantParams & {
   didUri: string;
 }
 
-export type DidStoreSetParams<TStoreObject> = DidStoreContextParams & {
+export type DidStoreSetParams<TStoreObject> = DidStoreTenantParams & {
   didUri: string;
   value: TStoreObject;
 }
 
-export type DidStoreDeleteParams = DidStoreContextParams & {
+export type DidStoreDeleteParams = DidStoreTenantParams & {
   didUri: string;
 }
 
@@ -25,7 +25,7 @@ export interface DidStore<TStoreObject> {
 
   get(params: DidStoreGetParams): Promise<TStoreObject | undefined>;
 
-  list(params: DidStoreContextParams): Promise<TStoreObject[]>;
+  list(params: DidStoreTenantParams): Promise<TStoreObject[]>;
 
   set(params: DidStoreSetParams<TStoreObject>): Promise<void>;
 }
