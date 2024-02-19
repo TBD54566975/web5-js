@@ -107,7 +107,7 @@ export type SendDwnRequest<T extends DwnInterface> = DwnRequest<T> & (ProcessDwn
 
 export type DwnResponse<T extends DwnInterface> = {
   message?: DwnMessage[T];
-  messageCid?: string;
+  messageCid: string;
   reply: DwnMessageReply[T];
 }
 

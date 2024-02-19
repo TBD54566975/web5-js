@@ -6,7 +6,7 @@ import type { AgentDataStore } from '../src/store-data.js';
 import type { IdentityMetadata } from '../src/types/identity.js';
 
 import { TestAgent } from './utils/test-agent.js';
-import { DwnInterface } from '../src/types/agent-dwn.js';
+import { DwnInterface } from '../src/types/dwn.js';
 import { AgentIdentityApi } from '../src/identity-api.js';
 import { ManagedAgentTestHarness } from '../src/test-harness.js';
 import { DwnIdentityStore, InMemoryIdentityStore } from '../src/store-identity.js';
@@ -225,111 +225,6 @@ describe('IdentityStore', () => {
           }
         });
       });
-
-      // describe('set()', () => {
-      //   it('stores a DID', async () => {
-      //     // Generate a new DID.
-      //     let bearerDid = await DidJwk.create();
-
-      //     // Export the DID including its private key material.
-      //     const portableDid = await bearerDid.export();
-
-      //     // Import the DID's private key material into the Agent's key manager.
-      //     await testHarness.agent.crypto.importKey({ key: portableDid.privateKeys![0] });
-
-      //     // Store the DID in the store.
-      //     await identityStore.set({ didUri: portableDid.uri, value: portableDid, agent: testHarness.agent });
-
-      //     // Try to retrieve the DID from the DidManager store to verify it was imported.
-      //     const storedIdentity = await identityStore.get({ didUri: portableDid.uri, agent: testHarness.agent });
-
-      //     // Verify the Identity in the store matches the DID that was imported.
-      //     expect(storedIdentity!.uri).to.equal(bearerDid.uri);
-      //     expect(storedIdentity!.document).to.deep.equal(bearerDid.document);
-      //   });
-
-      //   it('authors multiple entries in the store with the Agent DID', async () => {
-      //     // Create two did:jwk DIDs to test import.
-      //     let bearerDid1 = await DidJwk.create();
-      //     let bearerDid2 = await DidJwk.create();
-
-      //     // Import the two DIDs.
-      //     await identityStore.set({ didUri: bearerDid1.uri, value: await bearerDid1.export(), agent: testHarness.agent });
-      //     await identityStore.set({ didUri: bearerDid2.uri, value: await bearerDid2.export(), agent: testHarness.agent });
-
-      //     // Get each DID and verify that they were written under the Agent's DID tenant.
-      //     const storedDid2 = await identityStore.get({ didUri: bearerDid1.uri, agent: testHarness.agent });
-      //     const storedDid3 = await identityStore.get({ didUri: bearerDid2.uri, agent: testHarness.agent });
-
-      //     expect(storedDid2!.uri).to.equal(bearerDid1.uri);
-      //     expect(storedDid3!.uri).to.equal(bearerDid2.uri);
-      //   });
-
-      //   it('uses the context, if specified', async () => {
-      //     // Generate a new DID to author writes to the store.
-      //     const did = await DidJwk.create();
-      //     const authorDid = await did.export();
-
-      //     // Import the DID's private key material into the Agent's key manager.
-      //     await testHarness.agent.crypto.importKey({ key: authorDid.privateKeys![0] });
-
-      //     // Generate a DID and import it under the custom author context.
-      //     const bearerDid = await DidJwk.create();
-      //     await identityStore.set({ didUri: bearerDid.uri, value: await bearerDid.export(), tenant: authorDid.uri, agent: testHarness.agent });
-
-      //     // Verify the Identity was written under the custom author context.
-      //     let storedIdentity = await identityStore.get({ didUri: bearerDid.uri, tenant: authorDid.uri, agent: testHarness.agent });
-      //     expect(storedIdentity!.uri).to.equal(bearerDid.uri);
-
-      //     // Verify the Identity was not written under the Agent's DID tenant.
-      //     storedIdentity = await identityStore.get({ didUri: bearerDid.uri, agent: testHarness.agent });
-      //     expect(storedIdentity).to.be.undefined;
-      //   });
-
-      //   it('throws an error when attempting to import a DID that already exists', async () => {
-      //     // Generate a new DID.
-      //     let bearerDid = await DidJwk.create();
-
-      //     // Export the DID including its private key material.
-      //     const portableDid = await bearerDid.export();
-
-      //     // Import the DID's private key material into the Agent's key manager.
-      //     await testHarness.agent.crypto.importKey({ key: portableDid.privateKeys![0] });
-
-      //     // Store the DID in the store.
-      //     await identityStore.set({ didUri: portableDid.uri, value: portableDid, agent: testHarness.agent });
-
-      //     // Try to import the same key again.
-      //     try {
-      //       await identityStore.set({ didUri: portableDid.uri, value: portableDid, agent: testHarness.agent });
-      //       expect.fail('Expected an error to be thrown');
-
-      //     } catch (error: any) {
-      //       expect(error.message).to.include('Import failed due to duplicate DID');
-      //     }
-      //   });
-
-      //   it('throws an error if Agent DID is undefined and no keys exist for specified DID', async function() {
-      //     // Skip this test for InMemoryIdentityStore, as checking for keys to sign DWN messages is not
-      //     // relevant given that the store is in-memory.
-      //     if (IdentityStore.name === 'InMemoryIdentityStore') this.skip();
-
-      //     // Generate a new DID.
-      //     let bearerDid = await DidJwk.create();
-
-      //     // Export the DID including its private key material.
-      //     const portableDid = await bearerDid.export();
-
-      //     try {
-      //       await identityStore.set({ didUri: portableDid.uri, value: portableDid, agent: testHarness.agent });
-      //       expect.fail('Expected an error to be thrown');
-
-      //     } catch (error: any) {
-      //       expect(error.message).to.include('Unable to get signer for author');
-      //       expect(error.message).to.include('Key not found');
-      //     }
-      //   });
-      // });
     });
   });
 });

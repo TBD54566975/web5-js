@@ -6,7 +6,7 @@ import type { AgentDataStore } from '../src/store-data.js';
 
 import { AgentDidApi } from '../src/did-api.js';
 import { TestAgent } from './utils/test-agent.js';
-import { DwnInterface } from '../src/types/agent-dwn.js';
+import { DwnInterface } from '../src/types/dwn.js';
 import { ManagedAgentTestHarness } from '../src/test-harness.js';
 import { DwnDidStore, InMemoryDidStore } from '../src/store-did.js';
 
