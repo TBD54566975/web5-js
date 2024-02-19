@@ -3,14 +3,14 @@ import type { Jwk } from '@web5/crypto';
 import ms from 'ms';
 import { Convert, NodeStream, TtlCache } from '@web5/common';
 
-import type { Web5ManagedAgent } from './types/agent.js';
+import type { Web5PlatformAgent } from './types/agent.js';
 
 import { TENANT_SEPARATOR } from './internal.js';
 import { getDwnStoreTenant } from './internal.js';
 import { DwnInterface } from './types/dwn.js';
 
 export type DataStoreTenantParams = {
-  agent: Web5ManagedAgent;
+  agent: Web5PlatformAgent;
   tenant?: string;
 }
 
@@ -165,7 +165,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   }
 
   protected async getAllRecords(_params: {
-    agent: Web5ManagedAgent;
+    agent: Web5PlatformAgent;
     tenantDid: string;
   }): Promise<TStoreObject[]> {
     throw new Error('Not implemented: Classes extending DwnDataStore must implement getAllRecords()');
@@ -174,7 +174,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   private async getRecord({ recordId, tenantDid, agent, useCache }: {
     recordId: string;
     tenantDid: string;
-    agent: Web5ManagedAgent;
+    agent: Web5PlatformAgent;
     useCache: boolean;
   }): Promise<TStoreObject | undefined> {
     // If caching is enabled, check the cache for the record.
@@ -205,7 +205,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   private async lookupRecordId({ id, tenantDid, agent }: {
     id: string;
     tenantDid: string;
-    agent: Web5ManagedAgent;
+    agent: Web5PlatformAgent;
   }): Promise<string | undefined> {
     // Check the index for a matching ID and extend the index TTL.
     let recordId = this._index.get(`${tenantDid}${TENANT_SEPARATOR}${id}`, { updateAgeOnGet: true });

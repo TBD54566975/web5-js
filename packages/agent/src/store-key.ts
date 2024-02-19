@@ -3,7 +3,7 @@ import type { Jwk } from '@web5/crypto';
 import { KEY_URI_PREFIX_JWK, isPrivateJwk } from '@web5/crypto';
 import { Convert } from '@web5/common';
 
-import type { Web5ManagedAgent } from './types/agent.js';
+import type { Web5PlatformAgent } from './types/agent.js';
 
 import { TENANT_SEPARATOR } from './internal.js';
 import { DwnInterface } from './types/dwn.js';
@@ -37,7 +37,7 @@ export class DwnKeyStore extends DwnDataStore<Jwk> implements AgentDataStore<Jwk
   }
 
   protected async getAllRecords({ agent, tenantDid }: {
-    agent: Web5ManagedAgent;
+    agent: Web5PlatformAgent;
     tenantDid: string;
   }): Promise<Jwk[]> {
     // Clear the index since it will be rebuilt from the query results.

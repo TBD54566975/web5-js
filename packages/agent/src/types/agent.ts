@@ -35,7 +35,7 @@ export interface Web5Agent {
   sendVcRequest(request: SendVcRequest): Promise<VcResponse>;
 }
 
-export interface Web5ManagedAgent<TCrypto extends AgentCryptoApi = AgentCryptoApi> extends Web5Agent {
+export interface Web5PlatformAgent<TCrypto extends AgentCryptoApi = AgentCryptoApi> extends Web5Agent {
   crypto: TCrypto;
   did: AgentDidApi<TCrypto>;
   dwn: AgentDwnApi;

@@ -1,6 +1,6 @@
 import { Convert } from '@web5/common';
 
-import type { Web5ManagedAgent } from './types/agent.js';
+import type { Web5PlatformAgent } from './types/agent.js';
 import type { IdentityMetadata } from './types/identity.js';
 import type { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams } from './store-data.js';
 
@@ -42,7 +42,7 @@ export class DwnIdentityStore extends DwnDataStore<IdentityMetadata> implements 
   }
 
   protected async getAllRecords({ agent, tenantDid }: {
-    agent: Web5ManagedAgent;
+    agent: Web5PlatformAgent;
     tenantDid: string;
   }): Promise<IdentityMetadata[]> {
     // Clear the index since it will be rebuilt from the query results.

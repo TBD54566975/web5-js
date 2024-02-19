@@ -1,6 +1,6 @@
 import { EdDsaAlgorithm, type CryptoApi, type Hasher, type InferKeyGeneratorAlgorithm, type Jwk, type KeyIdentifier, type KeyImporterExporter, type KmsDigestParams, type KmsExportKeyParams, type KmsGetKeyUriParams, type KmsGetPublicKeyParams, type KmsImportKeyParams, type KmsSignParams, type KmsVerifyParams, EcdsaAlgorithm, Sha2Algorithm, CryptoAlgorithm, Signer, SignParams, VerifyParams } from '@web5/crypto';
 
-import type { Web5ManagedAgent } from './types/agent.js';
+import type { Web5PlatformAgent } from './types/agent.js';
 import type { KeyManager } from './types/key-manager.js';
 
 import { LocalKeyManager } from './local-key-manager.js';
@@ -24,7 +24,7 @@ export interface CryptoApiGenerateKeyParams<TKeyManager> {
 }
 
 export type CryptoApiParams<TKeyManager> = {
-  agent?: Web5ManagedAgent;
+  agent?: Web5PlatformAgent;
   keyManager?: TKeyManager;
 }
 
@@ -71,12 +71,12 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
     KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams> {
 
   /**
-   * Holds the instance of a `Web5ManagedAgent` that represents the current execution context for
+   * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
    * the `AgentCryptoApi`. This agent is used to interact with other Web5 agent components. It's
    * vital to ensure this instance is set to correctly contextualize operations within the broader
    * Web5 Agent framework.
    */
-  private _agent?: Web5ManagedAgent;
+  private _agent?: Web5PlatformAgent;
 
   /**
    * A private map that stores instances of cryptographic algorithm implementations. Each key in
@@ -96,12 +96,12 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
   }
 
   /**
-   * Retrieves the `Web5ManagedAgent` execution context.
+   * Retrieves the `Web5PlatformAgent` execution context.
    *
-   * @returns The `Web5ManagedAgent` instance that represents the current execution context.
+   * @returns The `Web5PlatformAgent` instance that represents the current execution context.
    * @throws Will throw an error if the `agent` instance property is undefined.
    */
-  get agent(): Web5ManagedAgent {
+  get agent(): Web5PlatformAgent {
     if (this._agent === undefined) {
       throw new Error('AgentCryptoApi: Unable to determine agent execution context.');
     }
@@ -109,7 +109,7 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
     return this._agent;
   }
 
-  set agent(agent: Web5ManagedAgent) {
+  set agent(agent: Web5PlatformAgent) {
     this._agent = agent;
     this._keyManager.agent = agent;
   }

@@ -26,7 +26,7 @@ describe('AgentDidApi', () => {
   describe('get agent', () => {
     it(`returns the 'agent' instance property`, async () => {
       // @ts-expect-error because we are only mocking a single property.
-      const mockAgent: Web5ManagedAgent = {
+      const mockAgent: Web5PlatformAgent = {
         agentDid: 'did:method:abc123'
       };
       const didApi = new AgentDidApi({ didMethods: [DidJwk], agent: mockAgent });

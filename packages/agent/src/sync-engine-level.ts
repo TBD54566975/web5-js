@@ -15,13 +15,13 @@ import { monotonicFactory } from 'ulidx';
 import { DataStream } from '@tbd54566975/dwn-sdk-js';
 
 import type { SyncEngine } from './types/sync.js';
-import type { Web5ManagedAgent } from './types/agent.js';
+import type { Web5PlatformAgent } from './types/agent.js';
 
 import { DwnInterface } from './types/dwn.js';
 import { getDwnServiceEndpointUrls, isRecordsWrite, webReadableToIsomorphicNodeReadable } from './utils.js';
 
 export type SyncEngineLevelParams = {
-  agent?: Web5ManagedAgent;
+  agent?: Web5PlatformAgent;
   dataPath?: string;
   db?: AbstractLevel<string | Buffer | Uint8Array>;
 }
@@ -41,12 +41,12 @@ const is4xx = (code: number) => code >= 400 && code <= 499;
 
 export class SyncEngineLevel implements SyncEngine {
   /**
-   * Holds the instance of a `Web5ManagedAgent` that represents the current execution context for
+   * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
    * the `AgentDidApi`. This agent is used to interact with other Web5 agent components. It's vital
    * to ensure this instance is set to correctly contextualize operations within the broader Web5
    * Agent framework.
    */
-  private _agent?: Web5ManagedAgent;
+  private _agent?: Web5PlatformAgent;
 
   private _db: AbstractLevel<string | Buffer | Uint8Array>;
   private _syncIntervalId?: ReturnType<typeof setInterval>;
@@ -59,12 +59,12 @@ export class SyncEngineLevel implements SyncEngine {
   }
 
   /**
-   * Retrieves the `Web5ManagedAgent` execution context.
+   * Retrieves the `Web5PlatformAgent` execution context.
    *
-   * @returns The `Web5ManagedAgent` instance that represents the current execution context.
+   * @returns The `Web5PlatformAgent` instance that represents the current execution context.
    * @throws Will throw an error if the `agent` instance property is undefined.
    */
-  get agent(): Web5ManagedAgent {
+  get agent(): Web5PlatformAgent {
     if (this._agent === undefined) {
       throw new Error('SyncEngineLevel: Unable to determine agent execution context.');
     }
@@ -72,7 +72,7 @@ export class SyncEngineLevel implements SyncEngine {
     return this._agent;
   }
 
-  set agent(agent: Web5ManagedAgent) {
+  set agent(agent: Web5PlatformAgent) {
     this._agent = agent;
   }
 

@@ -2,7 +2,7 @@ import type { PortableDid } from '@web5/dids';
 
 import { Convert } from '@web5/common';
 
-import type { Web5ManagedAgent } from './types/agent.js';
+import type { Web5PlatformAgent } from './types/agent.js';
 import type { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams } from './store-data.js';
 
 import { TENANT_SEPARATOR } from './internal.js';
@@ -38,7 +38,7 @@ export class DwnDidStore extends DwnDataStore<PortableDid> implements AgentDataS
   }
 
   protected async getAllRecords({ agent, tenantDid }: {
-    agent: Web5ManagedAgent;
+    agent: Web5PlatformAgent;
     tenantDid: string;
   }): Promise<PortableDid[]> {
     // Clear the index since it will be rebuilt from the query results.

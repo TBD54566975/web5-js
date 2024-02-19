@@ -405,7 +405,6 @@ export class DwnManager {
    * ADDED TO GET SYNC WORKING
    * - createMessage()
    * - processMessage()
-   * - writePrunedRecord()
    */
 
   public async createMessage(options: {
