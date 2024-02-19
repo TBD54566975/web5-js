@@ -1,8 +1,7 @@
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { utils as cryptoUtils } from '@web5/crypto';
-
-import type { PortableIdentity } from '../src/types/identity.js';
+import { DwnConstant } from '@tbd54566975/dwn-sdk-js';
 
 import { AgentSyncApi } from '../src/sync-api.js';
 import { TestAgent } from './utils/test-agent.js';
@@ -62,155 +61,7 @@ describe('SyncEngineLevel', () => {
       const syncApi = new AgentSyncApi({ syncEngine, agent: testHarness.agent });
       testHarness.agent.sync = syncApi;
 
-      const testPortableIdentity: PortableIdentity = {
-        portableDid: {
-          uri      : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy',
-          document : {
-            id                 : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy',
-            verificationMethod : [
-              {
-                id           : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#0',
-                type         : 'JsonWebKey',
-                controller   : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy',
-                publicKeyJwk : {
-                  crv : 'Ed25519',
-                  kty : 'OKP',
-                  x   : 'mZXKvarfofrcrdTYzes2YneEsrbJFc1kE0O-d1cJPEw',
-                  kid : 'EAlW6h08kqdLGEhR_o6hCnZpYpQ8QJavMp3g0BJ35IY',
-                  alg : 'EdDSA',
-                },
-              },
-              {
-                id           : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#sig',
-                type         : 'JsonWebKey',
-                controller   : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy',
-                publicKeyJwk : {
-                  crv : 'Ed25519',
-                  kty : 'OKP',
-                  x   : 'iIWijzQnfb_Jk4yRjISV6ci8EtyHn0fIxg0TVCh7wkE',
-                  kid : '8QSlw4ct9taIgh23EUGLM0ELaukQ1VogIuBGrQ_UIsk',
-                  alg : 'EdDSA',
-                },
-              },
-              {
-                id           : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#enc',
-                type         : 'JsonWebKey',
-                controller   : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy',
-                publicKeyJwk : {
-                  kty : 'EC',
-                  crv : 'secp256k1',
-                  x   : 'P5FoqXk9W11i8FWyTpIvltAjV09FL9Q5o76wEHcxMtI',
-                  y   : 'DgoLVlLKbjlaUja4RTjdxzqAy0ITOEFlCXGKSpu8XQs',
-                  kid : 'hXXhIgfXRVIYqnKiX0DIL7ZGy0CBJrFQFIYxmRkAB-A',
-                  alg : 'ES256K',
-                },
-              },
-            ],
-            authentication: [
-              'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#0',
-              'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#sig',
-            ],
-            assertionMethod: [
-              'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#0',
-              'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#sig',
-            ],
-            capabilityDelegation: [
-              'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#0',
-            ],
-            capabilityInvocation: [
-              'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#0',
-            ],
-            keyAgreement: [
-              'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#enc',
-            ],
-            service: [
-              {
-                id              : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy#dwn',
-                type            : 'DecentralizedWebNode',
-                serviceEndpoint : testDwnUrls,
-                enc             : '#enc',
-                sig             : '#sig',
-              },
-            ],
-          },
-          metadata: {
-            published : true,
-            versionId : '1708160454',
-          },
-          privateKeys: [
-            {
-              crv : 'Ed25519',
-              d   : 'gXu7HmJgvZFWgNf_eqF-eDAFegd0OLe8elAIXXGMgoc',
-              kty : 'OKP',
-              x   : 'mZXKvarfofrcrdTYzes2YneEsrbJFc1kE0O-d1cJPEw',
-              kid : 'EAlW6h08kqdLGEhR_o6hCnZpYpQ8QJavMp3g0BJ35IY',
-              alg : 'EdDSA',
-            },
-            {
-              crv : 'Ed25519',
-              d   : 'SiUL1QDp6X2QnvJ1Q7hRlpo3ZhiVjRlvINocOzYPaBU',
-              kty : 'OKP',
-              x   : 'iIWijzQnfb_Jk4yRjISV6ci8EtyHn0fIxg0TVCh7wkE',
-              kid : '8QSlw4ct9taIgh23EUGLM0ELaukQ1VogIuBGrQ_UIsk',
-              alg : 'EdDSA',
-            },
-            {
-              kty : 'EC',
-              crv : 'secp256k1',
-              d   : 'b2gb-OfB5X4G3xd16u19MXNkamDP5lsT6bVsDN4aeuY',
-              x   : 'P5FoqXk9W11i8FWyTpIvltAjV09FL9Q5o76wEHcxMtI',
-              y   : 'DgoLVlLKbjlaUja4RTjdxzqAy0ITOEFlCXGKSpu8XQs',
-              kid : 'hXXhIgfXRVIYqnKiX0DIL7ZGy0CBJrFQFIYxmRkAB-A',
-              alg : 'ES256K',
-            },
-          ],
-        },
-        metadata: {
-          name   : 'Alice',
-          tenant : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy',
-          uri    : 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy'
-        }
-      };
-
-      await testHarness.preloadResolverCache({
-        didUri           : testPortableIdentity.portableDid.uri,
-        resolutionResult : {
-          didDocument           : testPortableIdentity.portableDid.document,
-          didDocumentMetadata   : testPortableIdentity.portableDid.metadata,
-          didResolutionMetadata : {}
-        }
-      });
-
-      // alice = await testHarness.agent.identity.import({
-      //   portableIdentity: testPortableIdentity
-      // });
-      alice = await testHarness.agent.identity.create({
-        didMethod  : 'dht',
-        didOptions : {
-          services: [
-            {
-              id              : 'dwn',
-              type            : 'DecentralizedWebNode',
-              serviceEndpoint : testDwnUrls,
-              enc             : '#enc',
-              sig             : '#sig',
-            }
-          ],
-          verificationMethods: [
-            {
-              algorithm : 'Ed25519',
-              id        : 'sig',
-              purposes  : ['assertionMethod', 'authentication']
-            },
-            {
-              algorithm : 'secp256k1',
-              id        : 'end',
-              purposes  : ['keyAgreement']
-            }
-          ]
-        },
-        metadata: { name: 'Alice' }
-      });
+      alice = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
     });
 
     beforeEach(async () => {
@@ -408,6 +259,387 @@ describe('SyncEngineLevel', () => {
         expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
       }).slow(300); // Yellow at 150ms, Red at 300ms.
+
+      it('synchronizes records with data larger than the `encodedData` limit within the `RecordsQuery` response', async () => {
+      // larger than the size of data returned in a RecordsQuery
+        const LARGE_DATA_SIZE = 1_000 + DwnConstant.maxDataSizeAllowedToBeEncoded;
+
+        // register alice
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri
+        });
+
+        // create a remote record
+        const writeResponse = await testHarness.agent.dwn.sendRequest({
+          store         : false,
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob(Array(LARGE_DATA_SIZE).fill('a')) //large data
+        });
+
+        // check that the record doesn't exist locally
+        const { reply: localReply } = await testHarness.agent.dwn.processRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : { filter: { recordId: writeResponse.message!.recordId } }
+        });
+
+        expect(localReply.status.code).to.equal(200);
+        expect(localReply.entries?.length).to.equal(0);
+
+        // initiate sync
+        await syncEngine.pull();
+
+        // query that the local record exists
+        const { reply: localReply2 } = await testHarness.agent.dwn.processRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : { filter: { recordId: writeResponse.message!.recordId } }
+        });
+
+        expect(localReply2.status.code).to.equal(200);
+        expect(localReply2.entries?.length).to.equal(1);
+        const [ entry ] = localReply2.entries!;
+        expect(entry.encodedData).to.be.undefined; // encodedData is undefined
+
+        // Execute a RecordsRead to verify the data was synced.
+        // check for response encodedData if it doesn't exist issue a RecordsRead
+        // get individual records without encodedData to check that data exists
+        const readResponse = await testHarness.agent.dwn.processRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsRead,
+          messageParams : { filter: { recordId: writeResponse.message!.recordId } }
+        });
+        expect(readResponse.reply.status.code).to.equal(200);
+        expect(readResponse.reply.record).to.exist;
+        expect(readResponse.reply.record!.data).to.exist;
+        expect(readResponse.reply.record!.descriptor.dataSize).to.equal(LARGE_DATA_SIZE);
+      }).slow(1200); // Yellow at 600ms, Red at 1200ms.
+
+      it('synchronizes records for multiple identities from remote DWN to local DWN', async () => {
+      // Create a second Identity to author the DWN messages.
+        const bob = await testHarness.createIdentity({ name: 'Bob', testDwnUrls });
+
+        // Write a test record to Alice's remote DWN.
+        let writeResponse = await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob(['Hello, Bob!'])
+        });
+
+        // Get the record ID of Alice's test record.
+        const testRecordIdAlice = writeResponse.message!.recordId;
+
+        // Write a test record to Bob's remote DWN.
+        writeResponse = await testHarness.agent.dwn.sendRequest({
+          author        : bob.did.uri,
+          target        : bob.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob(['Hello, Alice!'])
+        });
+
+        // Get the record ID of Bob's test record.
+        const testRecordIdBob = writeResponse.message!.recordId;
+
+        // Register Alice's DID to be synchronized.
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri
+        });
+
+        // Register Bob's DID to be synchronized.
+        await testHarness.agent.sync.registerIdentity({
+          did: bob.did.uri
+        });
+
+        // Execute Sync to pull all records from Alice's and Bob's remove DWNs to their local DWNs.
+        await syncEngine.pull();
+
+        // Confirm the Alice test record exist on Alice's local DWN.
+        let queryResponse = await testHarness.agent.dwn.processRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : { filter: { recordId: testRecordIdAlice } }
+        });
+        let localDwnQueryReply = queryResponse.reply;
+        expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
+
+        // Confirm the Bob test record exist on Bob's local DWN.
+        queryResponse = await testHarness.agent.dwn.sendRequest({
+          author        : bob.did.uri,
+          target        : bob.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : { filter: { recordId: testRecordIdBob } }
+        });
+        localDwnQueryReply = queryResponse.reply;
+        expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
+      }).slow(1000); // Yellow at 500ms, Red at 1000ms.
+    });
+
+    describe('push()', () => {
+      it('takes no action if no identities are registered', async () => {
+        const didResolveSpy = sinon.spy(testHarness.agent.did, 'resolve');
+        const processRequestSpy = sinon.spy(testHarness.agent.dwn, 'processRequest');
+
+        await syncEngine.push();
+
+        // Verify DID resolution and DWN requests did not occur.
+        expect(didResolveSpy.notCalled).to.be.true;
+        expect(processRequestSpy.notCalled).to.be.true;
+
+        didResolveSpy.restore();
+        processRequestSpy.restore();
+      });
+
+      it('synchronizes records for 1 identity from local DWN to remote DWN', async () => {
+        // Write a record that we can use for this test.
+        let writeResponse = await testHarness.agent.dwn.processRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob(['Hello, world!'])
+        });
+
+        // Get the record ID of the test record.
+        const testRecordId = writeResponse.message!.recordId;
+
+        // Confirm the record does NOT exist on Alice's remote DWN.
+        let queryResponse = await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : { filter: { recordId: testRecordId } }
+        });
+        let remoteDwnQueryReply = queryResponse.reply;
+        expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(remoteDwnQueryReply.entries).to.have.length(0); // Record doesn't exist on remote DWN.
+
+        // Register Alice's DID to be synchronized.
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri
+        });
+
+        // Execute Sync to push all records from Alice's local DWN to Alice's remote DWN.
+        await syncEngine.push();
+
+        // Confirm the record now DOES exist on Alice's remote DWN.
+        queryResponse = await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : { filter: { recordId: testRecordId } }
+        });
+        remoteDwnQueryReply = queryResponse.reply;
+        expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
+      });
+
+      it('synchronizes records with data larger than the `encodedData` limit within the `RecordsQuery` response', async () => {
+        // larger than the size of data returned in a RecordsQuery
+        const LARGE_DATA_SIZE = DwnConstant.maxDataSizeAllowedToBeEncoded + 1_000;
+
+        //register alice
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri
+        });
+
+        // create a local record
+        const record = await testHarness.agent.dwn.processRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob(Array(LARGE_DATA_SIZE).fill('a')) //large data
+        });
+
+        // check that record doesn't exist remotely
+        const { reply: remoteReply } = await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : { filter: { recordId: record.message!.recordId }}
+        });
+
+        expect(remoteReply.status.code).to.equal(200);
+        expect(remoteReply.entries?.length).to.equal(0);
+
+        // initiate sync
+        await syncEngine.push();
+
+        // query for remote REcords
+        const { reply: remoteReply2 } = await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : { filter: { recordId: record.message!.recordId }}
+        });
+
+        expect(remoteReply2.status.code).to.equal(200);
+        expect(remoteReply2.entries?.length).to.equal(1);
+        const entry = remoteReply2.entries![0];
+        expect(entry.encodedData).to.be.undefined;
+        // check for response encodedData if it doesn't exist issue a RecordsRead
+        const recordId = entry.recordId;
+        // get individual records without encodedData to check that data exists
+        const readRecord = await testHarness.agent.dwn.processRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsRead,
+          messageParams : { filter: { recordId } }
+        });
+        const reply = readRecord.reply;
+        expect(reply.status.code).to.equal(200);
+        expect(reply.record).to.not.be.undefined;
+        expect(reply.record!.data).to.not.be.undefined;
+      });
+
+      it('synchronizes records for multiple identities from local DWN to remote DWN', async () => {
+        // Create a second Identity to author the DWN messages.
+        const bob  = await testHarness.createIdentity({ name: 'Bob', testDwnUrls });
+
+        // Write a test record to Alice's local DWN.
+        let writeResponse = await testHarness.agent.dwn.processRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob(['Hello, Bob!'])
+        });
+
+        // Get the record ID of Alice's test record.
+        const testRecordIdAlice = writeResponse.message!.recordId;
+
+        // Write a test record to Bob's local DWN.
+        writeResponse = await testHarness.agent.dwn.processRequest({
+          author        : bob.did.uri,
+          target        : bob.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob(['Hello, Alice!'])
+        });
+
+        // Get the record ID of Bob's test record.
+        const testRecordIdBob = writeResponse.message!.recordId;
+
+        // Register Alice's DID to be synchronized.
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri
+        });
+
+        // Register Bob's DID to be synchronized.
+        await testHarness.agent.sync.registerIdentity({
+          did: bob.did.uri
+        });
+
+        // Execute Sync to push all records from Alice's and Bob's local DWNs to their remote DWNs.
+        await syncEngine.push();
+
+        // Confirm the Alice test record exist on Alice's remote DWN.
+        let queryResponse = await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : { filter: { recordId: testRecordIdAlice } }
+        });
+        let remoteDwnQueryReply = queryResponse.reply;
+        expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
+
+        // Confirm the Bob test record exist on Bob's remote DWN.
+        queryResponse = await testHarness.agent.dwn.sendRequest({
+          author        : bob.did.uri,
+          target        : bob.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : { filter: { recordId: testRecordIdBob } }
+        });
+        remoteDwnQueryReply = queryResponse.reply;
+        expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
+      });
+    });
+
+    describe('startSync()', () => {
+      it('calls push/pull in each interval', async () => {
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri
+        });
+
+        const pushSpy = sinon.stub(SyncEngineLevel.prototype, 'push');
+        pushSpy.resolves();
+
+        const pullSpy = sinon.stub(SyncEngineLevel.prototype, 'pull');
+        pullSpy.resolves();
+
+        const clock = sinon.useFakeTimers();
+
+        testHarness.agent.sync.startSync({ interval: '500ms' });
+
+        await clock.tickAsync(1_400); // just under 3 intervals
+        pushSpy.restore();
+        pullSpy.restore();
+        clock.restore();
+
+        expect(pushSpy.callCount).to.equal(2, 'push');
+        expect(pullSpy.callCount).to.equal(2, 'pull');
+      });
+
+      it('does not call push/pull again until a push/pull finishes', async () => {
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri
+        });
+
+        const clock = sinon.useFakeTimers();
+
+        const pushSpy = sinon.stub(SyncEngineLevel.prototype, 'push');
+        pushSpy.returns(new Promise((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 1_500); // more than the interval
+        }));
+
+        const pullSpy = sinon.stub(SyncEngineLevel.prototype, 'pull');
+        pullSpy.resolves();
+
+        testHarness.agent.sync.startSync({ interval: '500ms' });
+
+        await clock.tickAsync(1_400); // less time than the push
+
+        expect(pushSpy.callCount).to.equal(1, 'push');
+        expect(pullSpy.callCount).to.equal(0, 'pull'); // not called yet
+
+        await clock.tickAsync(100); //remaining time for pull to be called
+
+        expect(pullSpy.callCount).to.equal(1, 'pull');
+
+        pushSpy.restore();
+        pullSpy.restore();
+        clock.restore();
+      });
     });
   });
 });
