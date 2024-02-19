@@ -2,7 +2,7 @@ import { utils as cryptoUtils } from '@web5/crypto';
 import { RecordsReadReply, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 
 import type { JsonRpcResponse } from './json-rpc.js';
-import type { SerializableDwnMessage } from './types/agent-dwn.js';
+import type { SerializableDwnMessage } from './types/dwn.js';
 
 import { createJsonRpcRequest, parseJson } from './json-rpc.js';
 
