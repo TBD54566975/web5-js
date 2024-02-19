@@ -101,24 +101,38 @@ export class AgentDwnApi {
   public async processRequest<T extends DwnInterface>(
     request: ProcessDwnRequest<T>
   ): Promise<DwnResponse<T>> {
+    // Constructs a DWN message. and if there is a data payload, transforms the data to a Node
+    // Readable stream.
     const { message, dataStream } = await this.constructDwnMessage({ request });
 
-    let reply: DwnMessageReply[T];
-    if (request.store !== false) {
-      // Assuming _dwn.processMessage can handle the request appropriately
-      // You might need to adjust this part based on your actual implementation
-      reply = await this._dwn.processMessage(request.target, message, { dataStream });
-    } else {
-      // This else block may need adjustment to fit the generic approach
-      reply = { status: { code: 202, detail: 'Accepted' } } as DwnMessageReply[T];
-    }
+    // Conditionally processes the message with the DWN instance:
+    // - If `store` is not explicitly set to false, it sends the message to the DWN node for
+    //   processing, passing along the target DID, the message, and any associated data stream.
+    // - If `store` is set to false, it immediately returns a simulated 'accepted' status without
+    //   storing the message/data in the DWN node.
+    const reply: DwnMessageReply[T] = (request.store !== false)
+      ? await this._dwn.processMessage(request.target, message, { dataStream })
+      : { status: { code: 202, detail: 'Accepted' } };
 
+    // Returns an object containing the reply from processing the message, the original message,
+    // and the content identifier (CID) of the message.
     return {
       reply,
-      message    : message,
-      messageCid : await Message.getCid(message),
+      message,
+      messageCid: await Message.getCid(message),
     };
   }
+
+
+
+
+
+
+
+
+
+
+
 
   public async sendRequest<T extends DwnInterface>(
     request: SendDwnRequest<T>
@@ -156,6 +170,7 @@ export class AgentDwnApi {
       dwnRpcRequest.dwnUrl = dwnUrl;
 
       try {
+        console.log(JSON.stringify(dwnRpcRequest, null, 2));
         dwnReply = await this.agent.rpc.sendDwnRequest(dwnRpcRequest as DwnRpcRequest);
         break;
       } catch(error: unknown) {
@@ -174,6 +189,102 @@ export class AgentDwnApi {
       reply      : dwnReply,
     };
   }
+
+  /**
+   *************************************************************************************************
+   */
+
+
+
+
+
+
+
+
+
+
+
+
+
+  /**
+   *************************************************************************************************
+   */
+
+  public async sendRequest2<T extends DwnInterface>(
+    request: SendDwnRequest<T>
+  ): Promise<DwnResponse<T>> {
+    // First, confirm the target DID can be dereferenced and extract the DWN service endpoint URLs.
+    const dwnEndpointUrls = await getDwnServiceEndpointUrls(request.target, this.agent.did);
+
+    let message: DwnMessage[T];
+    let messageData: Blob | undefined;
+
+    if ('messageCid' in request) {
+      // Retrieve message and optional data if messageCid is provided in the request
+      ({ message, data: messageData } = await this.getDwnMessage({
+        author      : request.author,
+        messageCid  : request.messageCid,
+        messageType : request.messageType
+      }));
+
+    } else {
+      // Construct a new message if no messageCid is provided
+      ({ message } = await this.constructDwnMessage({ request }));
+      if (!(request.dataStream && request.dataStream instanceof Blob)) {
+        throw new Error('AgentDwnApi: DataStream must be provided as a Blob');
+      }
+      messageData = request.dataStream;
+    }
+
+    console.log(JSON.stringify(message, null, 2));
+    const reply = await this.sendDwnRpcRequest(message, dwnEndpointUrls, messageData);
+
+    // Returns an object containing the reply from processing the message, the original message,
+    // and the content identifier (CID) of the message.
+    return {
+      reply,
+      message,
+      messageCid: await Message.getCid(message),
+    };
+  }
+
+  private async sendDwnRpcRequest<T extends DwnInterface>(
+    message: DwnMessage[T],
+    dwnEndpointUrls: string[],
+    messageData?: Blob,
+  ): Promise<DwnMessageReply[T]> {
+    const dwnRpcRequest: Partial<DwnRpcRequest> = {
+      message,
+      data: messageData,
+    };
+
+    const errorMessages: { url: string, message: string }[] = [];
+
+    // Try sending to author's publicly addressable DWNs until the first request succeeds.
+    for (let dwnUrl of dwnEndpointUrls) {
+      dwnRpcRequest.dwnUrl = dwnUrl;
+
+      try {
+        const dwnReply = await this.agent.rpc.sendDwnRequest(dwnRpcRequest as DwnRpcRequest);
+        return dwnReply;
+      } catch(error: any) {
+        errorMessages.push({
+          url     : dwnUrl,
+          message : (error instanceof Error) ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    throw new Error(`Failed to send DWN RPC request: ${JSON.stringify(errorMessages)}`);
+  }
+
+
+
+
+
+
+
+
 
   private async constructDwnMessage<T extends DwnInterface>({ request }: {
     request: ProcessDwnRequest<T>

@@ -62,7 +62,7 @@ describe('IdentityStore', () => {
 
           // Test deleting the Identity and validate the result.
           const deleteResult = await identityStore.delete({
-            didUri : identity.did.uri,
+            id     : identity.did.uri,
             tenant : identity.did.uri,
             agent  : testHarness.agent
           });
@@ -70,7 +70,7 @@ describe('IdentityStore', () => {
 
           // Verify the Identity is no longer in the store.
           const storedIdentity = await identityStore.get({
-            didUri : identity.did.uri,
+            id     : identity.did.uri,
             tenant : identity.did.uri,
             agent  : testHarness.agent
           });
@@ -79,7 +79,7 @@ describe('IdentityStore', () => {
 
         it('should return false if Identity does not exist', async () => {
           // Test deleting a non-existent Identity using the context of the only DID with keys.
-          const deleteResult = await identityStore.delete({ didUri: 'non-existent',  agent: testHarness.agent });
+          const deleteResult = await identityStore.delete({ id: 'non-existent',  agent: testHarness.agent });
 
           // Validate that a delete could not be carried out.
           expect(deleteResult).to.be.false;
@@ -92,7 +92,7 @@ describe('IdentityStore', () => {
 
           try {
             await identityStore.delete({
-              didUri : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
+              id     : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
               tenant : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
               agent  : testHarness.agent
             });
@@ -114,7 +114,7 @@ describe('IdentityStore', () => {
           });
 
           // Test getting the Identity.
-          const storedIdentity = await identityStore.get({ didUri: identity.did.uri, tenant: identity.did.uri, agent: testHarness.agent });
+          const storedIdentity = await identityStore.get({ id: identity.did.uri, tenant: identity.did.uri, agent: testHarness.agent });
 
           // Verify the Identity is in the store.
           expect(storedIdentity).to.exist;
@@ -124,7 +124,7 @@ describe('IdentityStore', () => {
 
         it('should return undefined when attempting to get a non-existent DID', async () => {
           // Test retrieving a non-existent Identity using the context of the only DID with keys.
-          const storedIdentity = await identityStore.get({ didUri: 'non-existent', agent: testHarness.agent });
+          const storedIdentity = await identityStore.get({ id: 'non-existent', agent: testHarness.agent });
 
           // Verify the result is undefined.
           expect(storedIdentity).to.be.undefined;
@@ -137,7 +137,7 @@ describe('IdentityStore', () => {
 
           try {
             await identityStore.get({
-              didUri : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
+              id     : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
               tenant : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
               agent  : testHarness.agent
             });

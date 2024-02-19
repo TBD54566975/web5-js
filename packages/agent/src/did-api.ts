@@ -1,10 +1,20 @@
-import type { DidDocument, DidMetadata, DidResolutionOptions, DidResolutionResult, DidVerificationMethod, PortableDid } from '@web5/dids';
-import type { DidDhtCreateOptions, DidJwkCreateOptions, DidMethodApi, DidResolverCache } from '@web5/dids';
+import type { CryptoApi } from '@web5/crypto';
+import type {
+  DidDocument,
+  DidMetadata,
+  PortableDid,
+  DidMethodApi,
+  DidResolverCache,
+  DidDhtCreateOptions,
+  DidJwkCreateOptions,
+  DidResolutionResult,
+  DidResolutionOptions,
+  DidVerificationMethod,
+} from '@web5/dids';
 
-import { CryptoApi } from '@web5/crypto';
 import { BearerDid, Did, DidResolver } from '@web5/dids';
 
-import type { DidStore } from './types/did.js';
+import type { DataStore } from './store-data.js';
 import type { ResponseStatus, Web5ManagedAgent } from './types/agent.js';
 
 import { InMemoryDidStore } from './store-did.js';
@@ -83,7 +93,7 @@ export interface DidApiParams {
    */
   resolverCache?: DidResolverCache;
 
-  store?: DidStore<PortableDid>;
+  store?: DataStore<PortableDid>;
 }
 
 export function isDidRequest<T extends DidInterface>(
@@ -103,7 +113,7 @@ export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidR
 
   private _didMethods: Map<string, DidMethodApi> = new Map();
 
-  private _store: DidStore<PortableDid>;
+  private _store: DataStore<PortableDid>;
 
   constructor({ agent, didMethods, resolverCache, store }: DidApiParams) {
     if (!didMethods) {
@@ -156,13 +166,19 @@ export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidR
 
     // Persist the DID to the store, by default, unless the `store` option is set to false.
     if (store ?? true) {
+      // Data stored in the Agent's DID store must be in PortableDid format.
+      const { uri, document, metadata } = bearerDid;
+      const portableDid: PortableDid = { uri, document, metadata };
+
       // Unless an existing `tenant` is specified, a record that includes the DID's URI, document,
       // and metadata will be stored under a new tenant controlled by the newly created DID.
       await this._store.set({
-        didUri : bearerDid.uri,
-        value  : await bearerDid.export(),
-        agent  : this.agent,
-        tenant : tenant ?? bearerDid.uri
+        id                : portableDid.uri,
+        data              : portableDid,
+        agent             : this.agent,
+        tenant            : tenant ?? portableDid.uri,
+        preventDuplicates : false,
+        useCache          : true
       });
     }
 
@@ -191,7 +207,7 @@ export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidR
     didUri: string,
     tenant?: string
   }): Promise<BearerDid | undefined> {
-    const portableDid = await this._store.get({ didUri, agent: this.agent, tenant });
+    const portableDid = await this._store.get({ id: didUri, agent: this.agent, tenant, useCache: true });
 
     if (!portableDid) return undefined;
 
@@ -234,14 +250,20 @@ export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidR
     // present in the key manager.
     const bearerDid = await BearerDid.import({ keyManager: this.agent.crypto, portableDid });
 
+    // Only the DID URI, document, and metadata are stored in the Agent's DID store.
+    const { uri, document, metadata } = bearerDid;
+    const portableDidWithoutKeys: PortableDid = { uri, document, metadata };
+
     // Store the DID in the agent's DID store.
     // Unless an existing `tenant` is specified, a record that includes the DID's URI, document,
     // and metadata will be stored under a new tenant controlled by the imported DID.
     await this._store.set({
-      didUri : portableDid.uri,
-      value  : portableDid,
-      agent  : this.agent,
-      tenant : tenant ?? portableDid.uri
+      id                : portableDidWithoutKeys.uri,
+      data              : portableDidWithoutKeys,
+      agent             : this.agent,
+      tenant            : tenant ?? portableDidWithoutKeys.uri,
+      preventDuplicates : true,
+      useCache          : true
     });
 
     return bearerDid;
