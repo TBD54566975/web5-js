@@ -2,7 +2,7 @@ import { Convert, TtlCache } from '@web5/common';
 
 import type { Web5ManagedAgent } from './types/agent.js';
 import type { IdentityMetadata } from './types/identity.js';
-import type { DataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams } from './store-data.js';
+import type { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams } from './store-data.js';
 
 import { TENANT_SEPARATOR } from './internal.js';
 import { DwnInterface } from './types/agent-dwn.js';
@@ -14,7 +14,7 @@ export function isIdentityMetadata(obj: unknown): obj is IdentityMetadata {
     && 'name' in obj;
 }
 
-export class DwnIdentityStore extends DwnDataStore<IdentityMetadata> implements DataStore<IdentityMetadata> {
+export class DwnIdentityStore extends DwnDataStore<IdentityMetadata> implements AgentDataStore<IdentityMetadata> {
   protected name = 'DwnIdentityStore';
 
   /**
@@ -52,6 +52,9 @@ export class DwnIdentityStore extends DwnDataStore<IdentityMetadata> implements 
     agent: Web5ManagedAgent;
     tenantDid: string;
   }): Promise<IdentityMetadata[]> {
+    // Clear the index since it will be rebuilt from the query results.
+    this._index.clear();
+
     // Query the DWN for all stored IdentityMetadata objects.
     const { reply: queryReply } = await agent.dwn.processRequest({
       author        : tenantDid,
@@ -75,6 +78,10 @@ export class DwnIdentityStore extends DwnDataStore<IdentityMetadata> implements 
         // Update the index with the matching record ID.
         const indexKey = `${tenantDid}${TENANT_SEPARATOR}${storedIdentity.uri}`;
         this._index.set(indexKey, record.recordId);
+
+        // Add the stored Identity to the cache.
+        this._cache.set(record.recordId, storedIdentity);
+
         storedIdentities.push(storedIdentity);
       }
     }
@@ -83,7 +90,7 @@ export class DwnIdentityStore extends DwnDataStore<IdentityMetadata> implements 
   }
 }
 
-export class InMemoryIdentityStore extends InMemoryDataStore<IdentityMetadata> implements DataStore<IdentityMetadata> {
+export class InMemoryIdentityStore extends InMemoryDataStore<IdentityMetadata> implements AgentDataStore<IdentityMetadata> {
   protected name = 'InMemoryIdentityStore';
 
   public async delete(params: DataStoreDeleteParams): Promise<boolean> {

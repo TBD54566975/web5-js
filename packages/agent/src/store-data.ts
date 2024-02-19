@@ -1,5 +1,6 @@
 import type { Jwk } from '@web5/crypto';
 
+import ms from 'ms';
 import { Convert, NodeStream, TtlCache } from '@web5/common';
 
 import type { Web5ManagedAgent } from './types/agent.js';
@@ -31,7 +32,7 @@ export type DataStoreDeleteParams = DataStoreTenantParams & {
   id: string;
 }
 
-export interface DataStore<TStoreObject> {
+export interface AgentDataStore<TStoreObject> {
   delete(params: DataStoreDeleteParams): Promise<boolean>;
 
   get(params: DataStoreGetParams): Promise<TStoreObject | undefined>;
@@ -42,22 +43,22 @@ export interface DataStore<TStoreObject> {
 }
 
 
-export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implements DataStore<TStoreObject> {
-  protected name = 'DataStore';
+export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implements AgentDataStore<TStoreObject> {
+  protected name = 'DwnDataStore';
+
+  /**
+     * Index for mappings from DWN record ID to Store Objects.
+     *
+     * Up to 100 entries are retained for 15 minutes.
+     */
+  protected _cache = new TtlCache<string, TStoreObject>({ ttl: ms('15 minutes'), max: 100 });
 
   /**
    * Index for mappings from Store Identifier to DWN record ID.
    *
    * Up to 1,000 entries are retained for 2 hours.
    */
-  protected _index = new TtlCache<string, string>({ ttl: 60000 * 60 * 2, max: 1000 });
-
-  /**
-   * Index for mappings from DWN record ID to Store Objects.
-   *
-   * Up to 100 entries are retained for 2 hours.
-   */
-  private _cache = new TtlCache<string, TStoreObject>({ ttl: 60000 * 60 * 2, max: 100 });
+  protected _index = new TtlCache<string, string>({ ttl: ms('2 hours'), max: 1000 });
 
   /**
    * Properties to use when writing and querying records with the DWN store.
@@ -175,34 +176,30 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
     tenantDid: string;
     agent: Web5ManagedAgent;
     useCache: boolean;
-  }): Promise<TStoreObject> {
-    let data: TStoreObject | undefined;
-
+  }): Promise<TStoreObject | undefined> {
+    // If caching is enabled, check the cache for the record.
     if (useCache) {
-      data = this._cache.get(recordId, { updateAgeOnGet: true });
-
-      if (!data) {
+      const record = this._cache.get(recordId);
+      if (!record) {
         throw new Error(`${this.name}: Failed to read data from cache for: ${recordId}`);
       }
-
-    } else {
-      // Read the record from the store.
-      const { reply: readReply } = await agent.dwn.processRequest({
-        author        : tenantDid,
-        target        : tenantDid,
-        messageType   : DwnInterface.RecordsRead,
-        messageParams : { filter: { recordId } }
-      });
-
-      if (!readReply.record?.data) {
-        throw new Error(`${this.name}: Failed to read data from DWN for: ${recordId}`);
-      }
-
-      // If the record was found, convert back to store object format, and return it.
-      data = await NodeStream.consumeToJson({ readable: readReply.record.data }) as TStoreObject;
+      return record;
     }
 
-    return data;
+    // Read the record from the store.
+    const { reply: readReply } = await agent.dwn.processRequest({
+      author        : tenantDid,
+      target        : tenantDid,
+      messageType   : DwnInterface.RecordsRead,
+      messageParams : { filter: { recordId } }
+    });
+
+    if (!readReply.record?.data) {
+      throw new Error(`${this.name}: Failed to read data from DWN for: ${recordId}`);
+    }
+
+    // If the record was found, convert back to store object format, and return it.
+    return await NodeStream.consumeToJson({ readable: readReply.record.data }) as TStoreObject;
   }
 
   private async lookupRecordId({ id, tenantDid, agent }: {
@@ -215,7 +212,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
 
     // If no matching record ID was found in the index...
     if (!recordId) {
-      // Query the DWN for all stored objects to rebuild the index.
+      // Query the DWN for all stored objects, which rebuilds the index.
       await this.getAllRecords({ agent, tenantDid });
 
       // Check the index again for a matching ID.
@@ -226,7 +223,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   }
 }
 
-export class InMemoryDataStore<TStoreObject extends Record<string, any> = Jwk> implements DataStore<TStoreObject> {
+export class InMemoryDataStore<TStoreObject extends Record<string, any> = Jwk> implements AgentDataStore<TStoreObject> {
   protected name = 'InMemoryDataStore';
 
   /**

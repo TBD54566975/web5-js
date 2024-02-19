@@ -27,7 +27,7 @@ import {
   computeJwkThumbprint,
 } from '@web5/crypto';
 
-import type { DataStore } from './store-data.js';
+import type { AgentDataStore } from './store-data.js';
 import type { KeyManager } from './types/key-manager.js';
 import { InMemoryKeyStore } from './store-key.js';
 import { Web5ManagedAgent } from './types/agent.js';
@@ -72,7 +72,7 @@ type AlgorithmConstructor = typeof supportedAlgorithms[SupportedAlgorithm]['impl
 
 /**
  * The `LocalKmsParams` interface specifies the parameters for initializing an instance of
- * {@link LocalKeyManager}. It allows the optional inclusion of a {@link DataStore} instance
+ * {@link LocalKeyManager}. It allows the optional inclusion of a {@link AgentDataStore} instance
  * for key management. If not provided, a default {@link InMemoryKeyStore} instance will be used for
  * storing keys. Note that the {@link InMemoryKeyStore} is not persistent and will be cleared when
  * the application exits.
@@ -81,12 +81,12 @@ export type LocalKmsParams = {
   agent?: Web5ManagedAgent;
 
   /**
-   * An optional property to specify a custom {@link DataStore} instance for key management. If not
-   * provided, {@link LocalKeyManager} uses a default {@link InMemoryKeyStore} instance. This store
-   * is responsible for managing cryptographic keys, allowing them to be retrieved, stored, and
-   * managed during cryptographic operations.
+   * An optional property to specify a custom {@link AgentDataStore} instance for key management. If
+   * not provided, {@link LocalKeyManager} uses a default {@link InMemoryKeyStore} instance. This
+   * store is responsible for managing cryptographic keys, allowing them to be retrieved, stored,
+   * and managed during cryptographic operations.
    */
-  keyStore?: DataStore<Jwk>;
+  keyStore?: AgentDataStore<Jwk>;
 };
 
 /**
@@ -124,14 +124,14 @@ export class LocalKeyManager implements
   private _algorithmInstances: Map<AlgorithmConstructor, InstanceType<typeof CryptoAlgorithm>> = new Map();
 
   /**
-   * The `_keyStore` private variable in `LocalKeyManager` is a {@link DataStore} instance used for
-   * storing and managing cryptographic keys. It allows the `LocalKeyManager` class to save,
+   * The `_keyStore` private variable in `LocalKeyManager` is a {@link AgentDataStore} instance used
+   * for storing and managing cryptographic keys. It allows the `LocalKeyManager` class to save,
    * retrieve, and handle keys efficiently within the local Key Management System (KMS) context.
    * This variable can be configured to use different storage backends, like in-memory storage or
    * persistent storage, providing flexibility in key management according to the application's
    * requirements.
    */
-  private _keyStore: DataStore<Jwk>;
+  private _keyStore: AgentDataStore<Jwk>;
 
   constructor({ agent, keyStore }: LocalKmsParams = {}) {
     this._agent = agent;

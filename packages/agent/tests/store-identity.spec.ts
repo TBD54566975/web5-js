@@ -1,14 +1,15 @@
 import { expect } from 'chai';
-
-import type { IdentityStore } from '../src/types/identity.js';
-
-import { AgentIdentityApi } from '../src/identity-api.js';
-import { TestAgent } from './utils/test-agent.js';
-import { ManagedAgentTestHarness } from '../src/test-harness.js';
-import { DwnIdentityStore, InMemoryIdentityStore } from '../src/store-identity.js';
 import { DidJwk } from '@web5/dids';
 import { Convert } from '@web5/common';
+
+import type { AgentDataStore } from '../src/store-data.js';
+import type { IdentityMetadata } from '../src/types/identity.js';
+
+import { TestAgent } from './utils/test-agent.js';
 import { DwnInterface } from '../src/types/agent-dwn.js';
+import { AgentIdentityApi } from '../src/identity-api.js';
+import { ManagedAgentTestHarness } from '../src/test-harness.js';
+import { DwnIdentityStore, InMemoryIdentityStore } from '../src/store-identity.js';
 
 describe('IdentityStore', () => {
   let testHarness: ManagedAgentTestHarness;
@@ -32,7 +33,7 @@ describe('IdentityStore', () => {
 
   [DwnIdentityStore, InMemoryIdentityStore].forEach((IdentityStore) => {
     describe(IdentityStore.name, () => {
-      let identityStore: IdentityStore;
+      let identityStore: AgentDataStore<IdentityMetadata>;
 
       beforeEach(async () => {
         identityStore = new IdentityStore();

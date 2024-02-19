@@ -3,14 +3,14 @@ import type { PortableDid } from '@web5/dids';
 import { Convert, TtlCache } from '@web5/common';
 
 import type { Web5ManagedAgent } from './types/agent.js';
-import type { DataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams } from './store-data.js';
+import type { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams } from './store-data.js';
 
 import { TENANT_SEPARATOR } from './internal.js';
 import { DwnInterface } from './types/agent-dwn.js';
 import { isPortableDid } from './temp/add-to-dids.js';
 import { DwnDataStore, InMemoryDataStore } from './store-data.js';
 
-export class DwnDidStore extends DwnDataStore<PortableDid> implements DataStore<PortableDid> {
+export class DwnDidStore extends DwnDataStore<PortableDid> implements AgentDataStore<PortableDid> {
   protected name = 'DwnDidStore';
 
   /**
@@ -48,6 +48,9 @@ export class DwnDidStore extends DwnDataStore<PortableDid> implements DataStore<
     agent: Web5ManagedAgent;
     tenantDid: string;
   }): Promise<PortableDid[]> {
+    // Clear the index since it will be rebuilt from the query results.
+    this._index.clear();
+
     // Query the DWN for all stored PortableDid objects.
     const { reply: queryReply } = await agent.dwn.processRequest({
       author        : tenantDid,
@@ -71,6 +74,10 @@ export class DwnDidStore extends DwnDataStore<PortableDid> implements DataStore<
         // Update the index with the matching record ID.
         const indexKey = `${tenantDid}${TENANT_SEPARATOR}${storedDid.uri}`;
         this._index.set(indexKey, record.recordId);
+
+        // Add the stored DID to the cache.
+        this._cache.set(record.recordId, storedDid);
+
         storedDids.push(storedDid);
       }
     }
@@ -79,7 +86,7 @@ export class DwnDidStore extends DwnDataStore<PortableDid> implements DataStore<
   }
 }
 
-export class InMemoryDidStore extends InMemoryDataStore<PortableDid> implements DataStore<PortableDid> {
+export class InMemoryDidStore extends InMemoryDataStore<PortableDid> implements AgentDataStore<PortableDid> {
   protected name = 'InMemoryDidStore';
 
   public async delete(params: DataStoreDeleteParams): Promise<boolean> {
