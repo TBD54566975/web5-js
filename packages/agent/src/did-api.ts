@@ -14,7 +14,7 @@ import type {
 
 import { BearerDid, Did, DidResolver } from '@web5/dids';
 
-import type { DataStore } from './store-data.js';
+import type { AgentDataStore } from './store-data.js';
 import type { ResponseStatus, Web5ManagedAgent } from './types/agent.js';
 
 import { InMemoryDidStore } from './store-did.js';
@@ -93,7 +93,7 @@ export interface DidApiParams {
    */
   resolverCache?: DidResolverCache;
 
-  store?: DataStore<PortableDid>;
+  store?: AgentDataStore<PortableDid>;
 }
 
 export function isDidRequest<T extends DidInterface>(
@@ -113,7 +113,7 @@ export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidR
 
   private _didMethods: Map<string, DidMethodApi> = new Map();
 
-  private _store: DataStore<PortableDid>;
+  private _store: AgentDataStore<PortableDid>;
 
   constructor({ agent, didMethods, resolverCache, store }: DidApiParams) {
     if (!didMethods) {

@@ -2,18 +2,19 @@ import type { CryptoApi } from '@web5/crypto';
 import type { RequireOnly } from '@web5/common';
 
 import type { Web5ManagedAgent } from './types/agent.js';
-import type { IdentityMetadata, IdentityStore, PortableIdentity } from './types/identity.js';
+import type { IdentityMetadata, PortableIdentity } from './types/identity.js';
 
 import { AgentCryptoApi } from './crypto-api.js';
 import { BearerIdentity } from './bearer-identity.js';
 import { isPortableDid } from './temp/add-to-dids.js';
 import { DidMethodCreateOptions } from './did-api.js';
 import { InMemoryIdentityStore } from './store-identity.js';
+import { AgentDataStore } from './store-data.js';
 
 export interface IdentityApiParams {
   agent?: Web5ManagedAgent;
 
-  store?: IdentityStore;
+  store?: AgentDataStore<IdentityMetadata>;
 }
 
 export interface IdentityCreateParams<
@@ -44,7 +45,7 @@ export class AgentIdentityApi<TKeyManager extends AgentCryptoApi = AgentCryptoAp
    */
   private _agent?: Web5ManagedAgent;
 
-  private _store: IdentityStore;
+  private _store: AgentDataStore<IdentityMetadata>;
 
   constructor({ agent, store }: IdentityApiParams = {}) {
     this._agent = agent;

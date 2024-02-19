@@ -7,9 +7,9 @@ import type { Web5ManagedAgent } from './types/agent.js';
 
 import { TENANT_SEPARATOR } from './internal.js';
 import { DwnInterface } from './types/agent-dwn.js';
-import { DataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams, DwnDataStore, InMemoryDataStore } from './store-data.js';
+import { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams, DwnDataStore, InMemoryDataStore } from './store-data.js';
 
-export class DwnKeyStore extends DwnDataStore<Jwk> implements DataStore<Jwk> {
+export class DwnKeyStore extends DwnDataStore<Jwk> implements AgentDataStore<Jwk> {
   protected name = 'DwnKeyStore';
 
   /**
@@ -47,6 +47,9 @@ export class DwnKeyStore extends DwnDataStore<Jwk> implements DataStore<Jwk> {
     agent: Web5ManagedAgent;
     tenantDid: string;
   }): Promise<Jwk[]> {
+    // Clear the index since it will be rebuilt from the query results.
+    this._index.clear();
+
     // Query the DWN for all stored Jwk objects.
     const { reply: queryReply } = await agent.dwn.processRequest({
       author        : tenantDid,
@@ -70,6 +73,10 @@ export class DwnKeyStore extends DwnDataStore<Jwk> implements DataStore<Jwk> {
         // Update the index with the matching record ID.
         const indexKey = `${tenantDid}${TENANT_SEPARATOR}${KEY_URI_PREFIX_JWK}${storedKey.kid}`;
         this._index.set(indexKey, record.recordId);
+
+        // Add the stored key to the cache.
+        this._cache.set(record.recordId, storedKey);
+
         storedKeys.push(storedKey);
       }
     }
@@ -78,7 +85,7 @@ export class DwnKeyStore extends DwnDataStore<Jwk> implements DataStore<Jwk> {
   }
 }
 
-export class InMemoryKeyStore extends InMemoryDataStore<Jwk> implements DataStore<Jwk> {
+export class InMemoryKeyStore extends InMemoryDataStore<Jwk> implements AgentDataStore<Jwk> {
   protected name = 'InMemoryKeyStore';
 
   public async delete(params: DataStoreDeleteParams): Promise<boolean> {

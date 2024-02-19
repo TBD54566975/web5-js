@@ -4,7 +4,7 @@ import { expect } from 'chai';
 import { DidJwk } from '@web5/dids';
 import { Convert } from '@web5/common';
 
-import type { DataStore } from '../src/store-data.js';
+import type { AgentDataStore } from '../src/store-data.js';
 
 import { TestAgent } from './utils/test-agent.js';
 import { DwnInterface } from '../src/types/agent-dwn.js';
@@ -33,12 +33,12 @@ describe('KeyStore', () => {
     await testHarness.closeStorage();
   });
 
-  [DwnKeyStore, InMemoryKeyStore].forEach((DataStore) => {
-    describe(DataStore.name, () => {
-      let keyStore: DataStore<Jwk>;
+  [DwnKeyStore, InMemoryKeyStore].forEach((AgentDataStore) => {
+    describe(AgentDataStore.name, () => {
+      let keyStore: AgentDataStore<Jwk>;
 
       beforeEach(async () => {
-        keyStore = new DataStore();
+        keyStore = new AgentDataStore();
 
         const keyManager = new LocalKeyManager({ agent: testHarness.agent, keyStore });
 
@@ -51,9 +51,9 @@ describe('KeyStore', () => {
       });
 
       describe('constructor', () => {
-        it(`creates a ${DataStore.name}`, () => {
-          const store = new DataStore();
-          expect(store).to.be.instanceOf(DataStore);
+        it(`creates a ${AgentDataStore.name}`, () => {
+          const store = new AgentDataStore();
+          expect(store).to.be.instanceOf(AgentDataStore);
         });
       });
 
@@ -83,7 +83,7 @@ describe('KeyStore', () => {
       //   it('throws an error if no keys exist for specified DID', async function() {
       //     // Skip this test for InMemoryDidStore, as checking for keys to sign DWN messages is not
       //     // relevant given that the store is in-memory.
-      //     if (DataStore.name === 'InMemoryDidStore') this.skip();
+      //     if (AgentDataStore.name === 'InMemoryDidStore') this.skip();
 
       //     try {
       //       await keyStore.delete({
@@ -126,7 +126,7 @@ describe('KeyStore', () => {
       //   it('throws an error if no keys exist for specified DID', async function() {
       //     // Skip this test for InMemoryDidStore, as checking for keys to sign DWN messages is not
       //     // relevant given that the store is in-memory.
-      //     if (DataStore.name === 'InMemoryDidStore') this.skip();
+      //     if (AgentDataStore.name === 'InMemoryDidStore') this.skip();
 
       //     try {
       //       await keyStore.get({
@@ -199,7 +199,7 @@ describe('KeyStore', () => {
       //   it('throws an error if the DID records exceed the DWN maximum data size for query results', async function() {
       //     // Skip this test for InMemoryDidStore, as the in-memory store returns all records
       //     // regardless of the size of the data.
-      //     if (DataStore.name === 'InMemoryDidStore') this.skip();
+      //     if (AgentDataStore.name === 'InMemoryDidStore') this.skip();
 
       //     const didBytes = Convert.string(new Array(102400 + 1).join('0')).toUint8Array();
 
@@ -313,7 +313,7 @@ describe('KeyStore', () => {
       //   it('throws an error if no keys exist for specified DID', async function() {
       //     // Skip this test for InMemoryDidStore, as checking for keys to sign DWN messages is not
       //     // relevant given that the store is in-memory.
-      //     if (DataStore.name === 'InMemoryDidStore') this.skip();
+      //     if (AgentDataStore.name === 'InMemoryDidStore') this.skip();
 
       //     // Generate a new DID.
       //     let bearerDid = await DidJwk.create();

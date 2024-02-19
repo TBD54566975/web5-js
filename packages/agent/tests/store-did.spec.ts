@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { Convert } from '@web5/common';
 import { DidJwk, PortableDid } from '@web5/dids';
 
-import type { DataStore } from '../src/store-data.js';
+import type { AgentDataStore } from '../src/store-data.js';
 
 import { AgentDidApi } from '../src/did-api.js';
 import { TestAgent } from './utils/test-agent.js';
@@ -32,7 +32,7 @@ describe('DidStore', () => {
 
   [DwnDidStore, InMemoryDidStore].forEach((DidStore) => {
     describe(DidStore.name, () => {
-      let didStore: DataStore<PortableDid>;
+      let didStore: AgentDataStore<PortableDid>;
 
       beforeEach(async () => {
         didStore = new DidStore();
