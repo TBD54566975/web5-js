@@ -1,65 +1,66 @@
 import sinon from 'sinon';
 import { expect } from 'chai';
+import { utils as cryptoUtils } from '@web5/crypto';
 
-import type { SyncEngine } from '../src/types/sync.js';
-import type { BearerIdentity } from '../src/bearer-identity.js';
 import type { PortableIdentity } from '../src/types/identity.js';
 
-import { randomUuid } from '@web5/crypto/utils';
 import { AgentSyncApi } from '../src/sync-api.js';
 import { TestAgent } from './utils/test-agent.js';
 import { DwnInterface } from '../src/types/dwn.js';
 import { testDwnUrl } from './utils/test-config.js';
+import { BearerIdentity } from '../src/bearer-identity.js';
 import { SyncEngineLevel } from '../src/sync-engine-level.js';
 import { ManagedAgentTestHarness } from '../src/test-harness.js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
 describe('SyncEngineLevel', () => {
+  let testHarness: ManagedAgentTestHarness;
 
-  // describe('get agent', () => {
-  //   it(`returns the 'agent' instance property`, async () => {
-  //     // @ts-expect-error because we are only mocking a single property.
-  //     const mockAgent: Web5ManagedAgent = {
-  //       agentDid: 'did:method:abc123'
-  //     };
-  //     const mockSyncEngine: SyncEngine = {} as SyncEngine;
-  //     const syncApi = new AgentSyncApi({ agent: mockAgent, syncEngine: mockSyncEngine });
-  //     const agent = syncApi.agent;
-  //     expect(agent).to.exist;
-  //     expect(agent.agentDid).to.equal('did:method:abc123');
-  //   });
+  before(async () => {
+    testHarness = await ManagedAgentTestHarness.setup({
+      agentClass  : TestAgent,
+      agentStores : 'dwn'
+    });
+  });
 
-  //   it(`throws an error if the 'agent' instance property is undefined`, () => {
-  //     const mockSyncEngine: SyncEngine = {} as SyncEngine;
-  //     const syncApi = new AgentSyncApi({ syncEngine: mockSyncEngine });
-  //     expect(() =>
-  //       syncApi.agent
-  //     ).to.throw(Error, 'Unable to determine agent execution context');
-  //   });
-  // });
+  after(async () => {
+    await testHarness.closeStorage();
+  });
 
-  describe('with Web5ManagedAgent', () => {
-    let testHarness: ManagedAgentTestHarness;
-    let syncEngine: SyncEngineLevel;
+  describe('get agent', () => {
+    it(`returns the 'agent' instance property`, () => {
+      // @ts-expect-error because we are only mocking a single property.
+      const mockAgent: Web5PlatformAgent = {
+        agentDid: 'did:method:abc123'
+      };
+      const syncEngine = new SyncEngineLevel({ agent: mockAgent, db: {} as any });
+      const agent = syncEngine.agent;
+      expect(agent).to.exist;
+      expect(agent.agentDid).to.equal('did:method:abc123');
+    });
+
+    it(`throws an error if the 'agent' instance property is undefined`, async () => {
+      const syncEngine = new SyncEngineLevel({ db: {} as any });
+      expect(() =>
+        syncEngine.agent
+      ).to.throw(Error, 'Unable to determine agent execution context');
+    });
+  });
+
+  describe('with Web5 Platform Agent', () => {
     let alice: BearerIdentity;
     let randomSchema: string;
+    let syncEngine: SyncEngineLevel;
 
     before(async () => {
-      testHarness = await ManagedAgentTestHarness.setup({
-        agentClass  : TestAgent,
-        agentStores : 'dwn'
-      });
+      await testHarness.clearStorage();
+      await testHarness.createAgentDid();
 
       const syncStore = testHarness.syncStore;
       syncEngine = new SyncEngineLevel({ db: syncStore, agent: testHarness.agent });
       const syncApi = new AgentSyncApi({ syncEngine, agent: testHarness.agent });
       testHarness.agent.sync = syncApi;
-    });
-
-    beforeEach(async () => {
-      await testHarness.clearStorage();
-      await testHarness.createAgentDid();
 
       const testPortableIdentity: PortableIdentity = {
         portableDid: {
@@ -180,22 +181,52 @@ describe('SyncEngineLevel', () => {
         }
       });
 
-      alice = await testHarness.agent.identity.import({
-        portableIdentity: testPortableIdentity
+      // alice = await testHarness.agent.identity.import({
+      //   portableIdentity: testPortableIdentity
+      // });
+      alice = await testHarness.agent.identity.create({
+        didMethod  : 'dht',
+        didOptions : {
+          services: [
+            {
+              id              : 'dwn',
+              type            : 'DecentralizedWebNode',
+              serviceEndpoint : testDwnUrls,
+              enc             : '#enc',
+              sig             : '#sig',
+            }
+          ],
+          verificationMethods: [
+            {
+              algorithm : 'Ed25519',
+              id        : 'sig',
+              purposes  : ['assertionMethod', 'authentication']
+            },
+            {
+              algorithm : 'secp256k1',
+              id        : 'end',
+              purposes  : ['keyAgreement']
+            }
+          ]
+        },
+        metadata: { name: 'Alice' }
       });
+    });
 
-      randomSchema = randomUuid();
+    beforeEach(async () => {
+      randomSchema = cryptoUtils.randomUuid();
     });
 
     afterEach(async () => {
-      await testHarness.clearStorage();
+      await testHarness.syncStore.clear();
     });
 
     after(async () => {
+      await testHarness.clearStorage();
       await testHarness.closeStorage();
     });
 
-    it.skip('syncs multiple records in both directions', async () => {
+    it('syncs multiple records in both directions', async () => {
       // create 3 local records.
       const localRecords: string[] = [];
       for (let i = 0; i < 3; i++) {
@@ -309,7 +340,7 @@ describe('SyncEngineLevel', () => {
       expect(remoteDwnQueryReply.entries).to.have.length(6);
       remoteRecordsFromQuery = remoteDwnQueryReply.entries?.map(entry => entry.recordId);
       expect(remoteRecordsFromQuery).to.have.members([...localRecords, ...remoteRecords]);
-    }).slow(600); // Yellow at 300ms, Red at 600ms.
+    }).slow(1000); // Yellow at 500ms, Red at 1000ms.
 
     describe('pull()', () => {
       it('takes no action if no identities are registered', async () => {
@@ -326,7 +357,7 @@ describe('SyncEngineLevel', () => {
         sendDwnRequestSpy.restore();
       });
 
-      it.skip('synchronizes records for 1 identity from remove DWN to local DWN', async () => {
+      it('synchronizes records for 1 identity from remove DWN to local DWN', async () => {
       // Write a test record to Alice's remote DWN.
         let writeResponse = await testHarness.agent.dwn.sendRequest({
           author        : alice.did.uri,
@@ -376,7 +407,7 @@ describe('SyncEngineLevel', () => {
         localDwnQueryReply = queryResponse.reply;
         expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
-      });
+      }).slow(300); // Yellow at 150ms, Red at 300ms.
     });
   });
 });

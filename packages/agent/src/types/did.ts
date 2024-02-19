@@ -1,7 +1,7 @@
-import type { Web5ManagedAgent } from './agent.js';
+import type { Web5PlatformAgent } from './agent.js';
 
 export type DidStoreTenantParams = {
-  agent: Web5ManagedAgent;
+  agent: Web5PlatformAgent;
   tenant?: string;
 }
 

@@ -17,31 +17,6 @@ chai.use(chaiAsPromised);
 let testDwnUrls: string[] = [testDwnUrl];
 
 describe('SyncManagerLevel', () => {
-  describe('get agent', () => {
-    it(`returns the 'agent' instance property`, async () => {
-      // @ts-expect-error because we are only mocking a single property.
-      const mockAgent: Web5ManagedAgent = {
-        agentDid: 'did:method:abc123'
-      };
-      const syncManager = new SyncManagerLevel({
-        agent    : mockAgent,
-        dataPath : '__TESTDATA__/SYNC_STORE4'
-      });
-      const agent = syncManager.agent;
-      expect(agent).to.exist;
-      expect(agent.agentDid).to.equal('did:method:abc123');
-    });
-
-    it(`throws an error if the 'agent' instance property is undefined`, () => {
-      const syncManager = new SyncManagerLevel({
-        dataPath: '__TESTDATA__/SYNC_STORE4'
-      });
-      expect(() =>
-        syncManager.agent
-      ).to.throw(Error, 'Unable to determine agent execution context');
-    });
-  });
-
   describe('with Web5ManagedAgent', () => {
     let alice: ManagedIdentity;
     let aliceDid: PortableDid;
@@ -74,101 +49,6 @@ describe('SyncManagerLevel', () => {
     after(async () => {
       await testAgent.clearStorage();
       await testAgent.closeStorage();
-    });
-
-    it('syncs multiple records in both directions', async () => {
-      // create 3 local records.
-      const localRecords: string[] = [];
-      for (let i = 0; i < 3; i++) {
-        const writeResponse = await testAgent.agent.dwnManager.processRequest({
-          author         : alice.did,
-          target         : alice.did,
-          messageType    : 'RecordsWrite',
-          messageOptions : {
-            dataFormat: 'text/plain'
-          },
-          dataStream: new Blob([`Hello, ${i}`])
-        });
-
-        localRecords.push((writeResponse.message as RecordsWriteMessage).recordId);
-      }
-
-      // create 3 remote records
-      const remoteRecords: string[] = [];
-      for (let i = 0; i < 3; i++) {
-        let writeResponse = await testAgent.agent.dwnManager.sendRequest({
-          author         : alice.did,
-          target         : alice.did,
-          messageType    : 'RecordsWrite',
-          messageOptions : {
-            dataFormat: 'text/plain'
-          },
-          dataStream: new Blob([`Hello, ${i}`])
-        });
-        remoteRecords.push((writeResponse.message as RecordsWriteMessage).recordId);
-      }
-
-      // query local and check for only local records
-      let localQueryResponse = await testAgent.agent.dwnManager.processRequest({
-        author         : alice.did,
-        target         : alice.did,
-        messageType    : 'RecordsQuery',
-        messageOptions : { filter: { dataFormat: 'text/plain' } }
-      });
-      let localDwnQueryReply = localQueryResponse.reply as RecordsQueryReply;
-      expect(localDwnQueryReply.status.code).to.equal(200);
-      expect(localDwnQueryReply.entries).to.have.length(3);
-      let localRecordsFromQuery = localDwnQueryReply.entries?.map(entry => entry.recordId);
-      expect(localRecordsFromQuery).to.have.members(localRecords);
-
-      // query remote and check for only remote records
-      let remoteQueryResponse = await testAgent.agent.dwnManager.sendRequest({
-        author         : alice.did,
-        target         : alice.did,
-        messageType    : 'RecordsQuery',
-        messageOptions : { filter: { dataFormat: 'text/plain' } }
-      });
-      let remoteDwnQueryReply = remoteQueryResponse.reply as RecordsQueryReply;
-      expect(remoteDwnQueryReply.status.code).to.equal(200);
-      expect(remoteDwnQueryReply.entries).to.have.length(3);
-      let remoteRecordsFromQuery = remoteDwnQueryReply.entries?.map(entry => entry.recordId);
-      expect(remoteRecordsFromQuery).to.have.members(remoteRecords);
-
-      // Register Alice's DID to be synchronized.
-      await testAgent.agent.syncManager.registerIdentity({
-        did: alice.did
-      });
-
-      // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
-      await testAgent.agent.syncManager.push();
-      await testAgent.agent.syncManager.pull();
-
-      // query local node to see all records
-      localQueryResponse = await testAgent.agent.dwnManager.processRequest({
-        author         : alice.did,
-        target         : alice.did,
-        messageType    : 'RecordsQuery',
-        messageOptions : { filter: { dataFormat: 'text/plain' } }
-      });
-      localDwnQueryReply = localQueryResponse.reply as RecordsQueryReply;
-      expect(localDwnQueryReply.status.code).to.equal(200);
-      expect(localDwnQueryReply.entries).to.have.length(6);
-      localRecordsFromQuery = localDwnQueryReply.entries?.map(entry => entry.recordId);
-      expect(localRecordsFromQuery).to.have.members([...localRecords, ...remoteRecords]);
-
-      // query remote node to see all results
-      remoteQueryResponse = await testAgent.agent.dwnManager.sendRequest({
-        author         : alice.did,
-        target         : alice.did,
-        messageType    : 'RecordsQuery',
-        messageOptions : { filter: { dataFormat: 'text/plain' } }
-      });
-      remoteDwnQueryReply = remoteQueryResponse.reply as RecordsQueryReply;
-      expect(remoteDwnQueryReply.status.code).to.equal(200);
-      expect(remoteDwnQueryReply.entries).to.have.length(6);
-      remoteRecordsFromQuery = remoteDwnQueryReply.entries?.map(entry => entry.recordId);
-      expect(remoteRecordsFromQuery).to.have.members([...localRecords, ...remoteRecords]);
-
     });
 
     describe('pull()', () => {

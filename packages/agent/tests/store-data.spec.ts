@@ -9,7 +9,7 @@ import { AgentDidApi } from '../src/did-api.js';
 import { TestAgent } from './utils/test-agent.js';
 import { DwnInterface } from '../src/types/dwn.js';
 import { TENANT_SEPARATOR } from '../src/internal.js';
-import { Web5ManagedAgent } from '../src/types/agent.js';
+import { Web5PlatformAgent } from '../src/types/agent.js';
 import { isPortableDid } from '../src/temp/add-to-dids.js';
 import { ManagedAgentTestHarness } from '../src/test-harness.js';
 import { DwnDataStore, InMemoryDataStore } from '../src/store-data.js';
@@ -43,7 +43,7 @@ class DwnTestStore extends DwnDataStore<PortableDid> implements AgentDataStore<P
   }
 
   protected async getAllRecords({ agent, tenantDid }: {
-    agent: Web5ManagedAgent;
+    agent: Web5PlatformAgent;
     tenantDid: string;
   }): Promise<PortableDid[]> {
     // Clear the index since it will be rebuilt from the query results.

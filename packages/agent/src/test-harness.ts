@@ -4,7 +4,7 @@ import { Level } from 'level';
 import { DataStoreLevel, Dwn, EventLogLevel, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
 import { DidDht, DidJwk, DidResolutionResult, DidResolverCache, DidResolverCacheLevel } from '@web5/dids';
 
-import type { Web5ManagedAgent } from './types/agent.js';
+import type { Web5PlatformAgent } from './types/agent.js';
 
 import { AgentDidApi } from './did-api.js';
 import { AgentDwnApi } from './dwn-api.js';
@@ -20,7 +20,7 @@ import { DidResolverCacheMemory } from './temp/resolver-cache-memory.js';
 import { DwnIdentityStore, InMemoryIdentityStore } from './store-identity.js';
 
 type ManagedAgentTestHarnessParams = {
-  agent: Web5ManagedAgent
+  agent: Web5PlatformAgent
 
   agentStores: 'dwn' | 'memory';
   didResolverCache: DidResolverCache;
@@ -32,13 +32,13 @@ type ManagedAgentTestHarnessParams = {
 }
 
 type ManagedAgentTestHarnessSetupParams = {
-  agentClass: new (params: any) => Web5ManagedAgent
+  agentClass: new (params: any) => Web5PlatformAgent
   agentStores?: 'dwn' | 'memory';
   testDataLocation?: string;
 }
 
 export class ManagedAgentTestHarness {
-  public agent: Web5ManagedAgent;
+  public agent: Web5PlatformAgent;
 
   public agentStores: 'dwn' | 'memory';
   public didResolverCache: DidResolverCache;
@@ -155,7 +155,7 @@ export class ManagedAgentTestHarness {
     const syncEngine = new SyncEngineLevel({ db: syncStore });
     const syncApi = new AgentSyncApi({ syncEngine });
 
-    // Create Web5ManagedAgent instance
+    // Create Web5PlatformAgent instance
     const agent = new agentClass({
       cryptoApi,
       didApi,
@@ -178,7 +178,7 @@ export class ManagedAgentTestHarness {
   }
 
   private static useDiskStores({ agent, testDataLocation }: {
-    agent?: Web5ManagedAgent;
+    agent?: Web5PlatformAgent;
     testDataLocation: string;
   }) {
     const testDataPath = (path: string) => `${testDataLocation}/${path}`;
@@ -204,7 +204,7 @@ export class ManagedAgentTestHarness {
     return { cryptoApi, didApi, didResolverCache, identityApi };
   }
 
-  private static useMemoryStores({ agent }: { agent?: Web5ManagedAgent } = {}) {
+  private static useMemoryStores({ agent }: { agent?: Web5PlatformAgent } = {}) {
     // Setup DID Resolver Cache
     const didResolverCache = new DidResolverCacheMemory();
 

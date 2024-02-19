@@ -30,7 +30,7 @@ import {
 import type { AgentDataStore } from './store-data.js';
 import type { KeyManager } from './types/key-manager.js';
 import { InMemoryKeyStore } from './store-key.js';
-import { Web5ManagedAgent } from './types/agent.js';
+import { Web5PlatformAgent } from './types/agent.js';
 
 /**
  * `supportedAlgorithms` is an object mapping algorithm names to their respective implementations
@@ -78,7 +78,7 @@ type AlgorithmConstructor = typeof supportedAlgorithms[SupportedAlgorithm]['impl
  * the application exits.
  */
 export type LocalKmsParams = {
-  agent?: Web5ManagedAgent;
+  agent?: Web5PlatformAgent;
 
   /**
    * An optional property to specify a custom {@link AgentDataStore} instance for key management. If
@@ -108,12 +108,12 @@ export class LocalKeyManager implements
     KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams> {
 
   /**
-   * Holds the instance of a `Web5ManagedAgent` that represents the current execution context for
+   * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
    * the `LocalKeyManager`. This agent is used to interact with other Web5 agent components. It's
    * vital to ensure this instance is set to correctly contextualize operations within the broader
    * Web5 Agent framework.
    */
-  private _agent?: Web5ManagedAgent;
+  private _agent?: Web5PlatformAgent;
 
   /**
    * A private map that stores instances of cryptographic algorithm implementations. Each key in
@@ -140,12 +140,12 @@ export class LocalKeyManager implements
   }
 
   /**
-   * Retrieves the `Web5ManagedAgent` execution context.
+   * Retrieves the `Web5PlatformAgent` execution context.
    *
-   * @returns The `Web5ManagedAgent` instance that represents the current execution context.
+   * @returns The `Web5PlatformAgent` instance that represents the current execution context.
    * @throws Will throw an error if the `agent` instance property is undefined.
    */
-  get agent(): Web5ManagedAgent {
+  get agent(): Web5PlatformAgent {
     if (this._agent === undefined) {
       throw new Error('LocalKeyManager: Unable to determine agent execution context.');
     }
@@ -153,7 +153,7 @@ export class LocalKeyManager implements
     return this._agent;
   }
 
-  set agent(agent: Web5ManagedAgent) {
+  set agent(agent: Web5PlatformAgent) {
     this._agent = agent;
   }
 
