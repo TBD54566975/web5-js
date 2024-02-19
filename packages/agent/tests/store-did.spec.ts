@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { Convert } from '@web5/common';
 import { DidJwk, PortableDid } from '@web5/dids';
 
-import type { DidStore } from '../src/types/did.js';
+import type { DataStore } from '../src/store-data.js';
 
 import { AgentDidApi } from '../src/did-api.js';
 import { TestAgent } from './utils/test-agent.js';
@@ -32,7 +32,7 @@ describe('DidStore', () => {
 
   [DwnDidStore, InMemoryDidStore].forEach((DidStore) => {
     describe(DidStore.name, () => {
-      let didStore: DidStore<PortableDid>;
+      let didStore: DataStore<PortableDid>;
 
       beforeEach(async () => {
         didStore = new DidStore();
@@ -61,17 +61,17 @@ describe('DidStore', () => {
           await testHarness.agent.did.import({ portableDid: await bearerDid.export() });
 
           // Test deleting the DID and validate the result.
-          const deleteResult = await didStore.delete({ didUri: bearerDid.uri, tenant: bearerDid.uri, agent: testHarness.agent });
+          const deleteResult = await didStore.delete({ id: bearerDid.uri, tenant: bearerDid.uri, agent: testHarness.agent });
           expect(deleteResult).to.be.true;
 
           // Verify the DID is no longer in the store.
-          const storedDid = await didStore.get({ didUri: bearerDid.uri, tenant: bearerDid.uri, agent: testHarness.agent });
+          const storedDid = await didStore.get({ id: bearerDid.uri, tenant: bearerDid.uri, agent: testHarness.agent });
           expect(storedDid).to.be.undefined;
         });
 
         it('should return false if DID does not exist', async () => {
-          // Test deleting a non-existent DID using the context of the only DID with keys.
-          const deleteResult = await didStore.delete({ didUri: 'non-existent',  agent: testHarness.agent });
+          // Test deleting a non-existent DID using the tenant of the only DID with keys.
+          const deleteResult = await didStore.delete({ id: 'non-existent',  agent: testHarness.agent });
 
           // Validate that a delete could not be carried out.
           expect(deleteResult).to.be.false;
@@ -84,7 +84,7 @@ describe('DidStore', () => {
 
           try {
             await didStore.delete({
-              didUri : 'did:jwk:eyJrdHkiOiJFQyIsInVzZSI6InNpZyIsImNydiI6InNlY3AyNTZrMSIsImtpZCI6ImkzU1BSQnRKS292SEZzQmFxTTkydGk2eFFDSkxYM0U3WUNld2lIVjJDU2ciLCJ4IjoidmRyYnoyRU96dmJMRFZfLWtMNGVKdDdWSS04VEZaTm1BOVlnV3p2aGg3VSIsInkiOiJWTEZxUU1aUF9Bc3B1Y1hvV1gyLWJHWHBBTzFmUTVMbjE5VjVSQXhyZ3ZVIiwiYWxnIjoiRVMyNTZLIn0',
+              id     : 'did:jwk:eyJrdHkiOiJFQyIsInVzZSI6InNpZyIsImNydiI6InNlY3AyNTZrMSIsImtpZCI6ImkzU1BSQnRKS292SEZzQmFxTTkydGk2eFFDSkxYM0U3WUNld2lIVjJDU2ciLCJ4IjoidmRyYnoyRU96dmJMRFZfLWtMNGVKdDdWSS04VEZaTm1BOVlnV3p2aGg3VSIsInkiOiJWTEZxUU1aUF9Bc3B1Y1hvV1gyLWJHWHBBTzFmUTVMbjE5VjVSQXhyZ3ZVIiwiYWxnIjoiRVMyNTZLIn0',
               agent  : testHarness.agent,
               tenant : 'did:jwk:eyJrdHkiOiJFQyIsInVzZSI6InNpZyIsImNydiI6InNlY3AyNTZrMSIsImtpZCI6ImkzU1BSQnRKS292SEZzQmFxTTkydGk2eFFDSkxYM0U3WUNld2lIVjJDU2ciLCJ4IjoidmRyYnoyRU96dmJMRFZfLWtMNGVKdDdWSS04VEZaTm1BOVlnV3p2aGg3VSIsInkiOiJWTEZxUU1aUF9Bc3B1Y1hvV1gyLWJHWHBBTzFmUTVMbjE5VjVSQXhyZ3ZVIiwiYWxnIjoiRVMyNTZLIn0'
             });
@@ -104,7 +104,7 @@ describe('DidStore', () => {
           const importedDid = await testHarness.agent.did.import({ portableDid: await bearerDid.export() });
 
           // Test getting the DID.
-          const storedDid = await didStore.get({ didUri: bearerDid.uri, tenant: bearerDid.uri, agent: testHarness.agent });
+          const storedDid = await didStore.get({ id: bearerDid.uri, tenant: bearerDid.uri, agent: testHarness.agent });
 
           // Verify the DID is in the store.
           expect(storedDid).to.exist;
@@ -113,8 +113,8 @@ describe('DidStore', () => {
         });
 
         it('should return undefined when attempting to get a non-existent DID', async () => {
-          // Test retrieving a non-existent DID using the context of the only DID with keys.
-          const storedDid = await didStore.get({ didUri: 'non-existent', agent: testHarness.agent });
+          // Test retrieving a non-existent DID using the tenant of the only DID with keys.
+          const storedDid = await didStore.get({ id: 'non-existent', agent: testHarness.agent });
 
           // Verify the result is undefined.
           expect(storedDid).to.be.undefined;
@@ -127,7 +127,7 @@ describe('DidStore', () => {
 
           try {
             await didStore.get({
-              didUri : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
+              id     : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
               tenant : 'did:jwk:eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjNFQmFfRUxvczJhbHZMb2pxSVZjcmJLcGlyVlhqNmNqVkQ1djJWaHdMejgifQ',
               agent  : testHarness.agent
             });
@@ -147,21 +147,26 @@ describe('DidStore', () => {
           const bearerDid2 = await DidJwk.create();
           const bearerDid3 = await DidJwk.create();
 
+          // Create PortableDid versions of each DID to store.
+          const portableDid1: PortableDid = { uri: bearerDid1.uri, document: bearerDid1.document, metadata: bearerDid1.metadata };
+          const portableDid2: PortableDid = { uri: bearerDid2.uri, document: bearerDid2.document, metadata: bearerDid2.metadata };
+          const portableDid3: PortableDid = { uri: bearerDid3.uri, document: bearerDid3.document, metadata: bearerDid3.metadata };
+
           // Import all of the DIDs under the Agent's store.
-          await didStore.set({ didUri: bearerDid1.uri, value: await bearerDid1.export(), agent: testHarness.agent });
-          await didStore.set({ didUri: bearerDid2.uri, value: await bearerDid2.export(), agent: testHarness.agent });
-          await didStore.set({ didUri: bearerDid3.uri, value: await bearerDid3.export(), agent: testHarness.agent });
+          await didStore.set({ id: portableDid1.uri, data: portableDid1, agent: testHarness.agent });
+          await didStore.set({ id: portableDid2.uri, data: portableDid2, agent: testHarness.agent });
+          await didStore.set({ id: portableDid3.uri, data: portableDid3, agent: testHarness.agent });
 
           // List DIDs and verify the result.
           const storedDids = await didStore.list({ agent: testHarness.agent });
           expect(storedDids).to.have.length(3);
-          const importedDids = [bearerDid1.uri, bearerDid2.uri, bearerDid3.uri];
+          const importedDids = [portableDid1.uri, portableDid2.uri, portableDid3.uri];
           for (const storedDid of storedDids) {
             expect(importedDids).to.include(storedDid.uri);
           }
         });
 
-        it('uses the context, if specified', async () => {
+        it('uses the tenant, if specified', async () => {
           // Generate a new DID to author all of the writes to the store.
           const did = await DidJwk.create();
           const authorDid = await did.export();
@@ -174,15 +179,20 @@ describe('DidStore', () => {
           const bearerDid2 = await DidJwk.create();
           const bearerDid3 = await DidJwk.create();
 
-          // Import all of the DIDs under the custom author context.
-          await didStore.set({ didUri: bearerDid1.uri, value: await bearerDid1.export(), tenant: authorDid.uri, agent: testHarness.agent });
-          await didStore.set({ didUri: bearerDid2.uri, value: await bearerDid2.export(), tenant: authorDid.uri, agent: testHarness.agent });
-          await didStore.set({ didUri: bearerDid3.uri, value: await bearerDid3.export(), tenant: authorDid.uri, agent: testHarness.agent });
+          // Create PortableDid versions of each DID to store.
+          const portableDid1: PortableDid = { uri: bearerDid1.uri, document: bearerDid1.document, metadata: bearerDid1.metadata };
+          const portableDid2: PortableDid = { uri: bearerDid2.uri, document: bearerDid2.document, metadata: bearerDid2.metadata };
+          const portableDid3: PortableDid = { uri: bearerDid3.uri, document: bearerDid3.document, metadata: bearerDid3.metadata };
+
+          // Import all of the DIDs under the custom author tenant.
+          await didStore.set({ id: portableDid1.uri, data: portableDid1, tenant: authorDid.uri, agent: testHarness.agent });
+          await didStore.set({ id: portableDid2.uri, data: portableDid2, tenant: authorDid.uri, agent: testHarness.agent });
+          await didStore.set({ id: portableDid3.uri, data: portableDid3, tenant: authorDid.uri, agent: testHarness.agent });
 
           // List DIDs and verify the result.
           const storedDids = await didStore.list({ tenant: authorDid.uri, agent: testHarness.agent });
           expect(storedDids).to.have.length(3);
-          const importedDids = [bearerDid1.uri, bearerDid2.uri, bearerDid3.uri];
+          const importedDids = [portableDid1.uri, portableDid2.uri, portableDid3.uri];
           for (const storedDid of storedDids) {
             expect(importedDids).to.include(storedDid.uri);
           }
@@ -235,11 +245,14 @@ describe('DidStore', () => {
           // Import the DID's private key material into the Agent's key manager.
           await testHarness.agent.crypto.importKey({ key: portableDid.privateKeys![0] });
 
+          // Store only the URI, document, and metadata of the DID in the store.
+          const portableDidWithoutKeys: PortableDid = { uri: portableDid.uri, document: portableDid.document, metadata: portableDid.metadata };
+
           // Store the DID in the store.
-          await didStore.set({ didUri: portableDid.uri, value: portableDid, agent: testHarness.agent });
+          await didStore.set({ id: portableDidWithoutKeys.uri, data: portableDidWithoutKeys, agent: testHarness.agent });
 
           // Try to retrieve the DID from the DidManager store to verify it was imported.
-          const storedDid = await didStore.get({ didUri: portableDid.uri, agent: testHarness.agent });
+          const storedDid = await didStore.get({ id: portableDidWithoutKeys.uri, agent: testHarness.agent });
 
           // Verify the DID in the store matches the DID that was imported.
           expect(storedDid!.uri).to.equal(bearerDid.uri);
@@ -251,19 +264,23 @@ describe('DidStore', () => {
           let bearerDid1 = await DidJwk.create();
           let bearerDid2 = await DidJwk.create();
 
+          // Create PortableDid versions of each DID to store.
+          const portableDid1: PortableDid = { uri: bearerDid1.uri, document: bearerDid1.document, metadata: bearerDid1.metadata };
+          const portableDid2: PortableDid = { uri: bearerDid2.uri, document: bearerDid2.document, metadata: bearerDid2.metadata };
+
           // Import the two DIDs.
-          await didStore.set({ didUri: bearerDid1.uri, value: await bearerDid1.export(), agent: testHarness.agent });
-          await didStore.set({ didUri: bearerDid2.uri, value: await bearerDid2.export(), agent: testHarness.agent });
+          await didStore.set({ id: portableDid1.uri, data: portableDid1, agent: testHarness.agent });
+          await didStore.set({ id: bearerDid2.uri, data: portableDid2, agent: testHarness.agent });
 
           // Get each DID and verify that they were written under the Agent's DID tenant.
-          const storedDid2 = await didStore.get({ didUri: bearerDid1.uri, agent: testHarness.agent });
-          const storedDid3 = await didStore.get({ didUri: bearerDid2.uri, agent: testHarness.agent });
+          const storedDid2 = await didStore.get({ id: portableDid1.uri, agent: testHarness.agent });
+          const storedDid3 = await didStore.get({ id: portableDid2.uri, agent: testHarness.agent });
 
           expect(storedDid2!.uri).to.equal(bearerDid1.uri);
           expect(storedDid3!.uri).to.equal(bearerDid2.uri);
         });
 
-        it('uses the context, if specified', async () => {
+        it('uses the tenant, if specified', async () => {
           // Generate a new DID to author writes to the store.
           const did = await DidJwk.create();
           const authorDid = await did.export();
@@ -271,20 +288,21 @@ describe('DidStore', () => {
           // Import the DID's private key material into the Agent's key manager.
           await testHarness.agent.crypto.importKey({ key: authorDid.privateKeys![0] });
 
-          // Generate a DID and import it under the custom author context.
+          // Generate a DID and import it under the custom author tenant.
           const bearerDid = await DidJwk.create();
-          await didStore.set({ didUri: bearerDid.uri, value: await bearerDid.export(), tenant: authorDid.uri, agent: testHarness.agent });
+          const portableDid: PortableDid = { uri: bearerDid.uri, document: bearerDid.document, metadata: bearerDid.metadata };
+          await didStore.set({ id: portableDid.uri, data: portableDid, tenant: authorDid.uri, agent: testHarness.agent });
 
-          // Verify the DID was written under the custom author context.
-          let storedDid = await didStore.get({ didUri: bearerDid.uri, tenant: authorDid.uri, agent: testHarness.agent });
+          // Verify the DID was written under the custom author tenant.
+          let storedDid = await didStore.get({ id: portableDid.uri, tenant: authorDid.uri, agent: testHarness.agent });
           expect(storedDid!.uri).to.equal(bearerDid.uri);
 
           // Verify the DID was not written under the Agent's DID tenant.
-          storedDid = await didStore.get({ didUri: bearerDid.uri, agent: testHarness.agent });
+          storedDid = await didStore.get({ id: portableDid.uri, agent: testHarness.agent });
           expect(storedDid).to.be.undefined;
         });
 
-        it('throws an error when attempting to import a DID that already exists', async () => {
+        it('throws an error on duplicate DID entry when preventDuplicates=true', async () => {
           // Generate a new DID.
           let bearerDid = await DidJwk.create();
 
@@ -294,16 +312,26 @@ describe('DidStore', () => {
           // Import the DID's private key material into the Agent's key manager.
           await testHarness.agent.crypto.importKey({ key: portableDid.privateKeys![0] });
 
-          // Store the DID in the store.
-          await didStore.set({ didUri: portableDid.uri, value: portableDid, agent: testHarness.agent });
+          // Store the DID in the store without keys.
+          const portableDidWithoutKeys: PortableDid = { uri: portableDid.uri, document: portableDid.document, metadata: portableDid.metadata };
+          await didStore.set({
+            id    : portableDidWithoutKeys.uri,
+            data  : portableDidWithoutKeys,
+            agent : testHarness.agent
+          });
 
           // Try to import the same key again.
           try {
-            await didStore.set({ didUri: portableDid.uri, value: portableDid, agent: testHarness.agent });
+            await didStore.set({
+              id                : portableDidWithoutKeys.uri,
+              data              : portableDidWithoutKeys,
+              agent             : testHarness.agent,
+              preventDuplicates : true
+            });
             expect.fail('Expected an error to be thrown');
 
           } catch (error: any) {
-            expect(error.message).to.include('Import failed due to duplicate DID');
+            expect(error.message).to.include('Import failed due to duplicate entry');
           }
         });
 
@@ -316,12 +344,12 @@ describe('DidStore', () => {
           let bearerDid = await DidJwk.create();
 
           // Export the DID including its private key material.
-          const portableDid = await bearerDid.export();
+          const portableDid: PortableDid = { uri: bearerDid.uri, document: bearerDid.document, metadata: bearerDid.metadata };
 
           try {
             await didStore.set({
-              didUri : portableDid.uri,
-              value  : portableDid,
+              id     : portableDid.uri,
+              data   : portableDid,
               tenant : portableDid.uri,
               agent  : testHarness.agent });
             expect.fail('Expected an error to be thrown');

@@ -6,9 +6,9 @@ import type { IdentityMetadata, IdentityStore, PortableIdentity } from './types/
 
 import { AgentCryptoApi } from './crypto-api.js';
 import { BearerIdentity } from './bearer-identity.js';
+import { isPortableDid } from './temp/add-to-dids.js';
 import { DidMethodCreateOptions } from './did-api.js';
 import { InMemoryIdentityStore } from './store-identity.js';
-
 
 export interface IdentityApiParams {
   agent?: Web5ManagedAgent;
@@ -25,6 +25,14 @@ export interface IdentityCreateParams<
   didOptions?: DidMethodCreateOptions<TKeyManager>[TMethod];
   tenant?: string;
   store?: boolean;
+}
+
+export function isPortableIdentity(obj: unknown): obj is PortableIdentity {
+  // Validate that the given value is an object that has the necessary properties of PortableIdentity.
+  return !(!obj || typeof obj !== 'object' || obj === null)
+    && 'did' in obj
+    && 'metadata' in obj
+    && isPortableDid(obj.did);
 }
 
 export class AgentIdentityApi<TKeyManager extends AgentCryptoApi = AgentCryptoApi> {
@@ -84,10 +92,12 @@ export class AgentIdentityApi<TKeyManager extends AgentCryptoApi = AgentCryptoAp
     // Persist the Identity to the store, by default, unless the `store` option is set to false.
     if (store ?? true) {
       await this._store.set({
-        didUri : identity.did.uri,
-        value  : identity.metadata,
-        agent  : this.agent,
-        tenant : identity.metadata.tenant
+        id                : identity.did.uri,
+        data              : identity.metadata,
+        agent             : this.agent,
+        tenant            : identity.metadata.tenant,
+        preventDuplicates : false,
+        useCache          : true
       });
     }
 
@@ -117,7 +127,7 @@ export class AgentIdentityApi<TKeyManager extends AgentCryptoApi = AgentCryptoAp
     tenant?: string;
   }): Promise<BearerIdentity | undefined> {
     // Attempt to retrieve the Identity from the Agent's Identity store.
-    const storedIdentity = await this._store.get({ didUri, agent: this.agent, tenant });
+    const storedIdentity = await this._store.get({ id: didUri, agent: this.agent, tenant, useCache: true });
 
     // If the Identity is not found in the store, return undefined.
     if (!storedIdentity) return undefined;
@@ -156,10 +166,12 @@ export class AgentIdentityApi<TKeyManager extends AgentCryptoApi = AgentCryptoAp
 
     // Store the Identity metadata in the Agent's Identity store.
     await this._store.set({
-      didUri : identity.did.uri,
-      value  : identity.metadata,
-      agent  : this.agent,
-      tenant : identity.metadata.tenant
+      id                : identity.did.uri,
+      data              : identity.metadata,
+      agent             : this.agent,
+      tenant            : identity.metadata.tenant,
+      preventDuplicates : true,
+      useCache          : true
     });
 
     return identity;
@@ -184,9 +196,11 @@ export class AgentIdentityApi<TKeyManager extends AgentCryptoApi = AgentCryptoAp
 
     // Store the Identity metadata in the Agent's Identity store.
     await this._store.set({
-      didUri : identity.did.uri,
-      value  : identity.metadata,
-      agent  : this.agent
+      id                : identity.did.uri,
+      data              : identity.metadata,
+      agent             : this.agent,
+      preventDuplicates : true,
+      useCache          : true
     });
 
     return identity;

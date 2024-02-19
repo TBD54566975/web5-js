@@ -1,25 +1,12 @@
 import { Convert, TtlCache } from '@web5/common';
 
 import type { Web5ManagedAgent } from './types/agent.js';
-import type { IdentityMetadata, PortableIdentity } from './types/identity.js';
-import type { DidStore, DidStoreDeleteParams, DidStoreGetParams, DidStoreListParams, DidStoreSetParams, DidStoreTenantParams } from './types/did.js';
+import type { IdentityMetadata } from './types/identity.js';
+import type { DataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams } from './store-data.js';
 
 import { TENANT_SEPARATOR } from './internal.js';
 import { DwnInterface } from './types/agent-dwn.js';
-import { isPortableDid } from './temp/add-to-dids.js';
-import { DwnDidStore, InMemoryDidStore } from './store-did.js';
-
-export type IdentityStoreSetParams<TStoreObject> = DidStoreTenantParams & {
-  identity: TStoreObject;
-}
-
-export function isPortableIdentity(obj: unknown): obj is PortableIdentity {
-  // Validate that the given value is an object that has the necessary properties of PortableIdentity.
-  return !(!obj || typeof obj !== 'object' || obj === null)
-    && 'did' in obj
-    && 'metadata' in obj
-    && isPortableDid(obj.did);
-}
+import { DwnDataStore, InMemoryDataStore } from './store-data.js';
 
 export function isIdentityMetadata(obj: unknown): obj is IdentityMetadata {
   // Validate that the given value is an object that has the necessary properties of IdentityMetadata.
@@ -27,7 +14,9 @@ export function isIdentityMetadata(obj: unknown): obj is IdentityMetadata {
     && 'name' in obj;
 }
 
-export class DwnIdentityStore extends DwnDidStore<IdentityMetadata> implements DidStore<IdentityMetadata> {
+export class DwnIdentityStore extends DwnDataStore<IdentityMetadata> implements DataStore<IdentityMetadata> {
+  protected name = 'DwnIdentityStore';
+
   /**
    * Index for mappings from DID URI to DWN record ID.
    *
@@ -43,23 +32,23 @@ export class DwnIdentityStore extends DwnDidStore<IdentityMetadata> implements D
     schema     : 'https://identity.foundation/schemas/web5/identity-metadata'
   };
 
-  public async delete({ didUri, agent, tenant }: DidStoreDeleteParams): Promise<boolean> {
-    return await super.delete({ didUri, agent, tenant });
+  public async delete(params: DataStoreDeleteParams): Promise<boolean> {
+    return await super.delete(params);
   }
 
-  public async get({ didUri, agent, tenant }: DidStoreGetParams): Promise<IdentityMetadata | undefined> {
-    return await super.get({ didUri, agent, tenant });
+  public async get(params: DataStoreGetParams): Promise<IdentityMetadata | undefined> {
+    return await super.get(params);
   }
 
-  public async set({ didUri, value, tenant, agent }: DidStoreSetParams<IdentityMetadata>): Promise<void> {
-    return await super.set({ didUri, value, tenant, agent });
+  public async set(params: DataStoreSetParams<IdentityMetadata>): Promise<void> {
+    return await super.set(params);
   }
 
-  public async list({ agent, tenant }: DidStoreListParams): Promise<IdentityMetadata[]> {
-    return await super.list({ agent, tenant });
+  public async list(params: DataStoreListParams): Promise<IdentityMetadata[]> {
+    return await super.list(params);
   }
 
-  protected async findAll({ agent, tenantDid }: {
+  protected async getAllRecords({ agent, tenantDid }: {
     agent: Web5ManagedAgent;
     tenantDid: string;
   }): Promise<IdentityMetadata[]> {
@@ -78,13 +67,14 @@ export class DwnIdentityStore extends DwnDidStore<IdentityMetadata> implements D
       // with the query results. If a record is returned without `encodedData` this is unexpected so
       // throw an error.
       if (!record.encodedData) {
-        throw new Error(`DwnIdentityStore: Expected 'encodedData' to be present in the DWN query result entry`);
+        throw new Error(`${this.name}: Expected 'encodedData' to be present in the DWN query result entry`);
       }
 
       const storedIdentity = Convert.base64Url(record.encodedData).toObject() as IdentityMetadata;
       if (isIdentityMetadata(storedIdentity)) {
-      // Update the index with the matching record ID.
-        this._index.set(`${tenantDid}${TENANT_SEPARATOR}${storedIdentity.uri}`, record.recordId);
+        // Update the index with the matching record ID.
+        const indexKey = `${tenantDid}${TENANT_SEPARATOR}${storedIdentity.uri}`;
+        this._index.set(indexKey, record.recordId);
         storedIdentities.push(storedIdentity);
       }
     }
@@ -93,20 +83,22 @@ export class DwnIdentityStore extends DwnDidStore<IdentityMetadata> implements D
   }
 }
 
-export class InMemoryIdentityStore extends InMemoryDidStore<IdentityMetadata> implements DidStore<IdentityMetadata> {
-  public async delete({ didUri, agent, tenant }: DidStoreDeleteParams): Promise<boolean> {
-    return await super.delete({ didUri, agent, tenant });
+export class InMemoryIdentityStore extends InMemoryDataStore<IdentityMetadata> implements DataStore<IdentityMetadata> {
+  protected name = 'InMemoryIdentityStore';
+
+  public async delete(params: DataStoreDeleteParams): Promise<boolean> {
+    return await super.delete(params);
   }
 
-  public async get({ didUri, agent, tenant }: DidStoreGetParams): Promise<IdentityMetadata | undefined> {
-    return await super.get({ didUri, agent, tenant });
+  public async get(params: DataStoreGetParams): Promise<IdentityMetadata | undefined> {
+    return await super.get(params);
   }
 
-  public async list({ agent, tenant}: DidStoreListParams): Promise<IdentityMetadata[]> {
-    return await super.list({ agent, tenant });
+  public async list(params: DataStoreListParams): Promise<IdentityMetadata[]> {
+    return await super.list(params);
   }
 
-  public async set({ didUri, value, tenant, agent }: DidStoreSetParams<IdentityMetadata>): Promise<void> {
-    return await super.set({ didUri, value, tenant, agent });
+  public async set(params: DataStoreSetParams<IdentityMetadata>): Promise<void> {
+    return await super.set(params);
   }
 }

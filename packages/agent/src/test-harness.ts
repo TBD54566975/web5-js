@@ -11,6 +11,8 @@ import { AgentIdentityApi } from './identity-api.js';
 import { DwnDidStore, InMemoryDidStore } from './store-did.js';
 import { DidResolverCacheMemory } from './temp/resolver-cache-memory.js';
 import { DwnIdentityStore, InMemoryIdentityStore } from './store-identity.js';
+import { LocalKeyManager } from './local-key-manager.js';
+import { DwnKeyStore, InMemoryKeyStore } from './store-key.js';
 
 type ManagedAgentTestHarnessParams = {
   agent: Web5ManagedAgent
@@ -81,8 +83,7 @@ export class ManagedAgentTestHarness {
   public async createAgentDid(): Promise<void> {
     // Create a DID for the Agent.
     this.agent.agentDid = await DidJwk.create({
-      keyManager : this.agent.crypto,
-      options    : { algorithm: 'Ed25519' }
+      options: { algorithm: 'Ed25519' }
     });
   }
 
@@ -164,7 +165,9 @@ export class ManagedAgentTestHarness {
       location: testDataPath('DID_RESOLVERCACHE')
     });
 
-    const cryptoApi = new AgentCryptoApi({ agent });
+    const keyManager = new LocalKeyManager({ agent, keyStore: new DwnKeyStore() });
+
+    const cryptoApi = new AgentCryptoApi({ agent, keyManager });
 
     const didApi = new AgentDidApi({
       agent         : agent,
@@ -182,7 +185,9 @@ export class ManagedAgentTestHarness {
     // Setup DID Resolver Cache
     const didResolverCache = new DidResolverCacheMemory();
 
-    const cryptoApi = new AgentCryptoApi({ agent });
+    const keyManager = new LocalKeyManager({ agent, keyStore: new InMemoryKeyStore() });
+
+    const cryptoApi = new AgentCryptoApi({ agent, keyManager });
 
     const didApi = new AgentDidApi({
       agent         : agent,

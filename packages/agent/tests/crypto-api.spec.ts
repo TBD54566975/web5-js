@@ -1,202 +1,229 @@
-import type { CryptoApi, Jwk } from '@web5/crypto';
+import type { Jwk } from '@web5/crypto';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
 
+import type { KeyManager } from '../src/types/key-manager.js';
+import type { Web5ManagedAgent } from '../src/types/agent.js';
+
+import { TestAgent } from './utils/test-agent.js';
 import { AgentCryptoApi } from '../src/crypto-api.js';
+import { ManagedAgentTestHarness } from '../src/test-harness.js';
 
 describe('AgentCryptoApi', () => {
-  let cryptoApi: AgentCryptoApi;
+  // Run tests for each supported data store type.
+  const agentStoreTypes = ['dwn', 'memory'] as const;
+  agentStoreTypes.forEach((agentStoreType) => {
 
-  before(() => {
-    cryptoApi = new AgentCryptoApi();
-  });
+    describe(`with ${agentStoreType} key store`, () => {
+      let testHarness: ManagedAgentTestHarness;
 
-  describe('digest()', () => {
-    it('computes and returns a digest as a Uint8Array', async () => {
-      // Setup.
-      const data = new Uint8Array([0, 1, 2, 3, 4]);
+      before(async () => {
+        testHarness = await ManagedAgentTestHarness.setup({
+          agentClass  : TestAgent,
+          agentStores : agentStoreType
+        });
+      });
 
-      // Test the method.
-      const digest = await cryptoApi.digest({ algorithm: 'SHA-256', data });
+      beforeEach(async () => {
+        await testHarness.clearStorage();
+        await testHarness.createAgentDid();
+      });
 
-      // Validate the result.
-      expect(digest).to.exist;
-      expect(digest).to.be.an.instanceOf(Uint8Array);
-    });
+      after(async () => {
+        await testHarness.clearStorage();
+        await testHarness.closeStorage();
+      });
 
-    it('supports SHA-256', async () => {
-      // Setup.
-      const data = Convert.string('abc').toUint8Array();
-      const expectedOutput = Convert.hex('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad').toUint8Array();
+      describe('digest()', () => {
+        it('computes and returns a digest as a Uint8Array', async () => {
+          // Setup.
+          const data = new Uint8Array([0, 1, 2, 3, 4]);
 
-      // Test the method.
-      const digest = await cryptoApi.digest({ algorithm: 'SHA-256', data });
+          // Test the method.
+          const digest = await testHarness.agent.crypto.digest({ algorithm: 'SHA-256', data });
 
-      // Validate the result.
-      expect(digest).to.exist;
-      expect(digest).to.be.an.instanceOf(Uint8Array);
-      expect(digest).to.have.lengthOf(32);
-      expect(digest).to.deep.equal(expectedOutput);
-    });
+          // Validate the result.
+          expect(digest).to.exist;
+          expect(digest).to.be.an.instanceOf(Uint8Array);
+        });
 
-    it('throws an error if the algorithm is not supported', async () => {
-      // Setup.
-      const algorithm = 'unsupported-algorithm';
+        it('supports SHA-256', async () => {
+          // Setup.
+          const data = Convert.string('abc').toUint8Array();
+          const expectedOutput = Convert.hex('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad').toUint8Array();
 
-      // Test the method.
-      try {
-        // @ts-expect-error because an unsupported algorithm is being tested.
-        await cryptoApi.digest({ algorithm });
-        expect.fail('Expected an error to be thrown.');
+          // Test the method.
+          const digest = await testHarness.agent.crypto.digest({ algorithm: 'SHA-256', data });
 
-      } catch (error: any) {
-        // Validate the result.
-        expect(error).to.exist;
-        expect(error).to.be.an.instanceOf(Error);
-        expect(error.message).to.include(`Algorithm not supported: ${algorithm}`);
-      }
-    });
-  });
+          // Validate the result.
+          expect(digest).to.exist;
+          expect(digest).to.be.an.instanceOf(Uint8Array);
+          expect(digest).to.have.lengthOf(32);
+          expect(digest).to.deep.equal(expectedOutput);
+        });
 
-  describe('exportKey()', () => {
-    it('returns a private key given a Key Uri', async () => {
-      const keyUri = await cryptoApi.generateKey({ algorithm: 'Ed25519' });
+        it('throws an error if the algorithm is not supported', async () => {
+          // Setup.
+          const algorithm = 'unsupported-algorithm';
 
-      const privateKey = await cryptoApi.exportKey({ keyUri });
+          // Test the method.
+          try {
+            // @ts-expect-error because an unsupported algorithm is being tested.
+            await testHarness.agent.crypto.digest({ algorithm });
+            expect.fail('Expected an error to be thrown.');
 
-      expect(privateKey).to.have.property('crv');
-      expect(privateKey).to.have.property('kty');
-      expect(privateKey).to.have.property('d');
-      expect(privateKey).to.have.property('x');
-    });
+          } catch (error: any) {
+            // Validate the result.
+            expect(error).to.exist;
+            expect(error).to.be.an.instanceOf(Error);
+            expect(error.message).to.include(`Algorithm not supported: ${algorithm}`);
+          }
+        });
+      });
 
-    it('throws an error if the Key Manager does not support exporting private keys', async () => {
-      const keyManagerMock = {
-        digest       : sinon.stub(),
-        generateKey  : sinon.stub().resolves('urn:jwk:abcd1234'),
-        getKeyUri    : sinon.stub(),
-        getPublicKey : sinon.stub(),
-        importKey    : sinon.stub(),
-        sign         : sinon.stub(),
-        verify       : sinon.stub(),
-      } as CryptoApi;
+      describe('exportKey()', () => {
+        it('returns a private key given a Key Uri', async () => {
+          const keyUri = await testHarness.agent.crypto.generateKey({ algorithm: 'Ed25519' });
 
-      const cryptoApi = new AgentCryptoApi({ keyManager: keyManagerMock });
+          const privateKey = await testHarness.agent.crypto.exportKey({ keyUri });
 
-      const keyUri = await cryptoApi.generateKey({ algorithm: 'Ed25519' });
+          expect(privateKey).to.have.property('crv');
+          expect(privateKey).to.have.property('kty');
+          expect(privateKey).to.have.property('d');
+          expect(privateKey).to.have.property('x');
+        });
 
-      try {
-        await cryptoApi.exportKey({ keyUri });
-        expect.fail('Expected an error to be thrown');
-      } catch (error: any) {
-        expect(error).to.be.an.instanceOf(Error);
-        expect(error.message).to.include('does not support exporting private keys');
-      }
-    });
-  });
+        it('throws an error if the Key Manager does not support exporting private keys', async () => {
+          const keyManagerMock = {
+            agent        : {} as Web5ManagedAgent,
+            digest       : sinon.stub(),
+            generateKey  : sinon.stub().resolves('urn:jwk:abcd1234'),
+            getKeyUri    : sinon.stub(),
+            getPublicKey : sinon.stub(),
+            importKey    : sinon.stub(),
+            sign         : sinon.stub(),
+            verify       : sinon.stub(),
+          } as KeyManager;
 
-  describe('generateKey()', () => {
-    it('returns a Key URI', async () => {
-      const keyUri = await cryptoApi.generateKey({ algorithm: 'Ed25519' });
+          const cryptoApi = new AgentCryptoApi({ keyManager: keyManagerMock });
 
-      expect(keyUri).to.be.a.string;
-    });
-  });
+          const keyUri = await cryptoApi.generateKey({ algorithm: 'Ed25519' });
 
-  describe('importKey()', () => {
-    it('throws an error if the Key Manager does not support importing private keys', async () => {
-      const keyManagerMock = {
-        digest       : sinon.stub(),
-        generateKey  : sinon.stub().resolves('urn:jwk:abcd1234'),
-        getKeyUri    : sinon.stub(),
-        getPublicKey : sinon.stub(),
-        sign         : sinon.stub(),
-        verify       : sinon.stub(),
-      } as CryptoApi;
+          try {
+            await cryptoApi.exportKey({ keyUri });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error).to.be.an.instanceOf(Error);
+            expect(error.message).to.include('does not support exporting private keys');
+          }
+        });
+      });
 
-      const cryptoApi = new AgentCryptoApi({ keyManager: keyManagerMock });
+      describe('generateKey()', () => {
+        it('returns a Key URI', async () => {
+          const keyUri = await testHarness.agent.crypto.generateKey({ algorithm: 'Ed25519' });
 
-      const privateKey: Jwk = {
-        crv : 'Ed25519',
-        kty : 'OKP',
-        d   : 'abc123',
-        x   : 'def456',
-      };
+          expect(keyUri).to.be.a.string;
+        });
+      });
 
-      try {
-        await cryptoApi.importKey({ key: privateKey });
-        expect.fail('Expected an error to be thrown');
-      } catch (error: any) {
-        expect(error).to.be.an.instanceOf(Error);
-        expect(error.message).to.include('does not support importing private keys');
-      }
-    });
-  });
+      describe('importKey()', () => {
+        it('throws an error if the Key Manager does not support importing private keys', async () => {
+          const keyManagerMock = {
+            agent        : {} as Web5ManagedAgent,
+            digest       : sinon.stub(),
+            generateKey  : sinon.stub().resolves('urn:jwk:abcd1234'),
+            getKeyUri    : sinon.stub(),
+            getPublicKey : sinon.stub(),
+            sign         : sinon.stub(),
+            verify       : sinon.stub(),
+          } as KeyManager;
 
-  describe('verify()', () => {
-    it('returns true for a valid signature', async () => {
-      // Setup.
-      const privateKeyUri = await cryptoApi.generateKey({ algorithm: 'secp256k1' });
-      const publicKey = await cryptoApi.getPublicKey({ keyUri: privateKeyUri });
-      const data = new Uint8Array([0, 1, 2, 3, 4]);
-      const signature = await cryptoApi.sign({ keyUri: privateKeyUri, data });
+          const cryptoApi = new AgentCryptoApi({ keyManager: keyManagerMock });
 
-      // Test the method.
-      const isValid = await cryptoApi.verify({ key: publicKey, signature, data });
+          const privateKey: Jwk = {
+            crv : 'Ed25519',
+            kty : 'OKP',
+            d   : 'abc123',
+            x   : 'def456',
+          };
 
-      // Validate the result.
-      expect(isValid).to.be.true;
-    });
+          try {
+            await cryptoApi.importKey({ key: privateKey });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error).to.be.an.instanceOf(Error);
+            expect(error.message).to.include('does not support importing private keys');
+          }
+        });
+      });
 
-    it('returns false for an invalid signature', async () => {
-      // Setup.
-      const privateKeyUri = await cryptoApi.generateKey({ algorithm: 'secp256k1' });
-      const publicKey = await cryptoApi.getPublicKey({ keyUri: privateKeyUri });
-      const data = new Uint8Array([0, 1, 2, 3, 4]);
-      const signature = new Uint8Array(64);
+      describe('verify()', () => {
+        it('returns true for a valid signature', async () => {
+          // Setup.
+          const privateKeyUri = await testHarness.agent.crypto.generateKey({ algorithm: 'secp256k1' });
+          const publicKey = await testHarness.agent.crypto.getPublicKey({ keyUri: privateKeyUri });
+          const data = new Uint8Array([0, 1, 2, 3, 4]);
+          const signature = await testHarness.agent.crypto.sign({ keyUri: privateKeyUri, data });
 
-      // Test the method.
-      const isValid = await cryptoApi.verify({ key: publicKey, signature, data });
+          // Test the method.
+          const isValid = await testHarness.agent.crypto.verify({ key: publicKey, signature, data });
 
-      // Validate the result.
-      expect(isValid).to.be.false;
-    });
+          // Validate the result.
+          expect(isValid).to.be.true;
+        });
 
-    it('handles public keys missing alg property', async () => {
-      // Setup.
-      const privateKeyUri = await cryptoApi.generateKey({ algorithm: 'secp256k1' });
-      const publicKey = await cryptoApi.getPublicKey({ keyUri: privateKeyUri });
-      const data = new Uint8Array([0, 1, 2, 3, 4]);
-      const signature = await cryptoApi.sign({ keyUri: privateKeyUri, data });
-      // Intentionally remove the alg property from the public key.
-      delete publicKey.alg;
+        it('returns false for an invalid signature', async () => {
+          // Setup.
+          const privateKeyUri = await testHarness.agent.crypto.generateKey({ algorithm: 'secp256k1' });
+          const publicKey = await testHarness.agent.crypto.getPublicKey({ keyUri: privateKeyUri });
+          const data = new Uint8Array([0, 1, 2, 3, 4]);
+          const signature = new Uint8Array(64);
 
-      // Test the method.
-      const isValid = await cryptoApi.verify({ key: publicKey, signature, data });
+          // Test the method.
+          const isValid = await testHarness.agent.crypto.verify({ key: publicKey, signature, data });
 
-      // Validate the result.
-      expect(isValid).to.be.true;
-    });
+          // Validate the result.
+          expect(isValid).to.be.false;
+        });
 
-    it('throws an error when public key algorithm and curve are unsupported', async () => {
-      // Setup.
-      const key: Jwk = { kty: 'EC', alg: 'unsupported-algorithm', crv: 'unsupported-curve', x: 'x', y: 'y' };
-      const signature = new Uint8Array(64);
-      const data = new Uint8Array(0);
+        it('handles public keys missing alg property', async () => {
+          // Setup.
+          const privateKeyUri = await testHarness.agent.crypto.generateKey({ algorithm: 'secp256k1' });
+          const publicKey = await testHarness.agent.crypto.getPublicKey({ keyUri: privateKeyUri });
+          const data = new Uint8Array([0, 1, 2, 3, 4]);
+          const signature = await testHarness.agent.crypto.sign({ keyUri: privateKeyUri, data });
+          // Intentionally remove the alg property from the public key.
+          delete publicKey.alg;
 
-      // Test the method.
-      try {
-        await cryptoApi.verify({ key, signature, data });
-        expect.fail('Expected an error to be thrown.');
+          // Test the method.
+          const isValid = await testHarness.agent.crypto.verify({ key: publicKey, signature, data });
 
-      } catch (error: any) {
-        // Validate the result.
-        expect(error).to.exist;
-        expect(error).to.be.an.instanceOf(Error);
-        expect(error.message).to.include('Unable to determine algorithm based on provided input');
-      }
+          // Validate the result.
+          expect(isValid).to.be.true;
+        });
+
+        it('throws an error when public key algorithm and curve are unsupported', async () => {
+          // Setup.
+          const key: Jwk = { kty: 'EC', alg: 'unsupported-algorithm', crv: 'unsupported-curve', x: 'x', y: 'y' };
+          const signature = new Uint8Array(64);
+          const data = new Uint8Array(0);
+
+          // Test the method.
+          try {
+            await testHarness.agent.crypto.verify({ key, signature, data });
+            expect.fail('Expected an error to be thrown.');
+
+          } catch (error: any) {
+            // Validate the result.
+            expect(error).to.exist;
+            expect(error).to.be.an.instanceOf(Error);
+            expect(error.message).to.include('Unable to determine algorithm based on provided input');
+          }
+        });
+      });
     });
   });
 });

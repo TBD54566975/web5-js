@@ -17,7 +17,6 @@ import type {
   AsymmetricKeyGenerator,
 } from '@web5/crypto';
 
-import { KeyValueStore, MemoryStore } from '@web5/common';
 import {
   isPrivateJwk,
   Sha2Algorithm,
@@ -28,7 +27,10 @@ import {
   computeJwkThumbprint,
 } from '@web5/crypto';
 
+import type { DataStore } from './store-data.js';
 import type { KeyManager } from './types/key-manager.js';
+import { InMemoryKeyStore } from './store-key.js';
+import { Web5ManagedAgent } from './types/agent.js';
 
 /**
  * `supportedAlgorithms` is an object mapping algorithm names to their respective implementations
@@ -70,19 +72,21 @@ type AlgorithmConstructor = typeof supportedAlgorithms[SupportedAlgorithm]['impl
 
 /**
  * The `LocalKmsParams` interface specifies the parameters for initializing an instance of
- * `LocalKeyManager`. It allows the optional inclusion of a `KeyValueStore` instance for key
- * management. If not provided, a default `MemoryStore` instance will be used for storing keys in
- * memory. Note that the `MemoryStore` is not persistent and will be cleared when the application
- * exits.
+ * {@link LocalKeyManager}. It allows the optional inclusion of a {@link DataStore} instance
+ * for key management. If not provided, a default {@link InMemoryKeyStore} instance will be used for
+ * storing keys. Note that the {@link InMemoryKeyStore} is not persistent and will be cleared when
+ * the application exits.
  */
 export type LocalKmsParams = {
+  agent?: Web5ManagedAgent;
+
   /**
-   * An optional property to specify a custom `KeyValueStore` instance for key management. If not
-   * provided, {@link LocalKeyManager | `LocalKeyManager`} uses a default `MemoryStore` instance.
-   * This store is responsible for managing cryptographic keys, allowing them to be retrieved,
-   * stored, and managed during cryptographic operations.
+   * An optional property to specify a custom {@link DataStore} instance for key management. If not
+   * provided, {@link LocalKeyManager} uses a default {@link InMemoryKeyStore} instance. This store
+   * is responsible for managing cryptographic keys, allowing them to be retrieved, stored, and
+   * managed during cryptographic operations.
    */
-  keyStore?: KeyValueStore<KeyIdentifier, Jwk>;
+  keyStore?: DataStore<Jwk>;
 };
 
 /**
@@ -104,6 +108,14 @@ export class LocalKeyManager implements
     KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams> {
 
   /**
+   * Holds the instance of a `Web5ManagedAgent` that represents the current execution context for
+   * the `LocalKeyManager`. This agent is used to interact with other Web5 agent components. It's
+   * vital to ensure this instance is set to correctly contextualize operations within the broader
+   * Web5 Agent framework.
+   */
+  private _agent?: Web5ManagedAgent;
+
+  /**
    * A private map that stores instances of cryptographic algorithm implementations. Each key in
    * this map is an `AlgorithmConstructor`, and its corresponding value is an instance of a class
    * that implements a specific cryptographic algorithm. This map is used to cache and reuse
@@ -112,17 +124,37 @@ export class LocalKeyManager implements
   private _algorithmInstances: Map<AlgorithmConstructor, InstanceType<typeof CryptoAlgorithm>> = new Map();
 
   /**
-   * The `_keyStore` private variable in `LocalKeyManager` is a `KeyValueStore` instance used for
+   * The `_keyStore` private variable in `LocalKeyManager` is a {@link DataStore} instance used for
    * storing and managing cryptographic keys. It allows the `LocalKeyManager` class to save,
    * retrieve, and handle keys efficiently within the local Key Management System (KMS) context.
    * This variable can be configured to use different storage backends, like in-memory storage or
    * persistent storage, providing flexibility in key management according to the application's
    * requirements.
    */
-  private _keyStore: KeyValueStore<KeyIdentifier, Jwk>;
+  private _keyStore: DataStore<Jwk>;
 
-  constructor(params?: LocalKmsParams) {
-    this._keyStore = params?.keyStore ?? new MemoryStore<KeyIdentifier, Jwk>();
+  constructor({ agent, keyStore }: LocalKmsParams = {}) {
+    this._agent = agent;
+
+    this._keyStore = keyStore ?? new InMemoryKeyStore();
+  }
+
+  /**
+   * Retrieves the `Web5ManagedAgent` execution context.
+   *
+   * @returns The `Web5ManagedAgent` instance that represents the current execution context.
+   * @throws Will throw an error if the `agent` instance property is undefined.
+   */
+  get agent(): Web5ManagedAgent {
+    if (this._agent === undefined) {
+      throw new Error('LocalKeyManager: Unable to determine agent execution context.');
+    }
+
+    return this._agent;
+  }
+
+  set agent(agent: Web5ManagedAgent) {
+    this._agent = agent;
   }
 
   /**
@@ -176,17 +208,22 @@ export class LocalKeyManager implements
     const keyGenerator = this.getAlgorithm({ algorithm }) as KeyGenerator<LocalKmsGenerateKeyParams, Jwk>;
 
     // Generate the key.
-    const key = await keyGenerator.generateKey({ algorithm });
+    const privateKey = await keyGenerator.generateKey({ algorithm });
 
-    if (key?.kid === undefined) {
-      throw new Error('Generated key is missing a required property: kid');
-    }
+    // If the key ID is undefined, set it to the JWK thumbprint.
+    privateKey.kid ??= await computeJwkThumbprint({ jwk: privateKey });
 
-    // Construct the key URI.
-    const keyUri = `${KEY_URI_PREFIX_JWK}${key.kid}`;
+    // Compute the key URI for the key.
+    const keyUri = await this.getKeyUri({ key: privateKey });
 
     // Store the key in the key store.
-    await this._keyStore.set(keyUri, key);
+    await this._keyStore.set({
+      id                : keyUri,
+      data              : privateKey,
+      agent             : this.agent,
+      preventDuplicates : false,
+      useCache          : true
+    });
 
     return keyUri;
   }
@@ -303,7 +340,13 @@ export class LocalKeyManager implements
     const keyUri = await this.getKeyUri({ key: privateKey });
 
     // Store the key in the key store.
-    await this._keyStore.set(keyUri, privateKey);
+    await this._keyStore.set({
+      id                : keyUri,
+      data              : privateKey,
+      agent             : this.agent,
+      preventDuplicates : true,
+      useCache          : true
+    });
 
     return keyUri;
   }
@@ -485,7 +528,7 @@ export class LocalKeyManager implements
     keyUri: KeyIdentifier;
   }): Promise<Jwk> {
     // Get the private key from the key store.
-    const privateKey = await this._keyStore.get(keyUri);
+    const privateKey = await this._keyStore.get({ id: keyUri, agent: this.agent, useCache: true });
 
     if (!privateKey) {
       throw new Error(`Key not found: ${keyUri}`);

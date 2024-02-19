@@ -72,11 +72,11 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
 
   /**
    * Holds the instance of a `Web5ManagedAgent` that represents the current execution context for
-   * the `KeyManager`. This agent is utilized to interact with other Web5 agent components. It's
+   * the `AgentCryptoApi`. This agent is used to interact with other Web5 agent components. It's
    * vital to ensure this instance is set to correctly contextualize operations within the broader
-   * Web5 agent framework.
+   * Web5 Agent framework.
    */
-  public agent: Web5ManagedAgent;
+  private _agent?: Web5ManagedAgent;
 
   /**
    * A private map that stores instances of cryptographic algorithm implementations. Each key in
@@ -89,13 +89,29 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
   private _keyManager: TKeyManager;
 
   constructor({ agent, keyManager }: CryptoApiParams<TKeyManager> = {}) {
-    // If `agent` is not given, use a type assertion to temporarily set it to an empty object. The
-    // `agent` property MUST be set shortly after instantiation and BEFORE any other methods are
-    // called.
-    this.agent = agent ?? {} as Web5ManagedAgent; // Use type assertion for temporary assignment
+    this._agent = agent;
 
     // If `keyManager` is not given, use a LocalKeyManager that stores keys in memory.
-    this._keyManager = (keyManager ?? new LocalKeyManager()) as TKeyManager;
+    this._keyManager = (keyManager ?? new LocalKeyManager({ agent })) as TKeyManager;
+  }
+
+  /**
+   * Retrieves the `Web5ManagedAgent` execution context.
+   *
+   * @returns The `Web5ManagedAgent` instance that represents the current execution context.
+   * @throws Will throw an error if the `agent` instance property is undefined.
+   */
+  get agent(): Web5ManagedAgent {
+    if (this._agent === undefined) {
+      throw new Error('AgentCryptoApi: Unable to determine agent execution context.');
+    }
+
+    return this._agent;
+  }
+
+  set agent(agent: Web5ManagedAgent) {
+    this._agent = agent;
+    this._keyManager.agent = agent;
   }
 
   /**

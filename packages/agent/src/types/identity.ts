@@ -1,6 +1,6 @@
 import type { PortableDid } from '@web5/dids';
 
-import { DidStore } from './did.js';
+import type { DataStore } from '../store-data.js';
 
 /**
  * Represents metadata about a Web5 Identity.
@@ -11,7 +11,7 @@ export interface IdentityMetadata {
   uri: string;
 }
 
-export type IdentityStore = DidStore<IdentityMetadata>
+export type IdentityStore = DataStore<IdentityMetadata>
 
 export interface PortableIdentity {
   portableDid: PortableDid;

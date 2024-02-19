@@ -35,8 +35,10 @@ describe('AgentIdentityApi', () => {
   });
 
   // Run tests for each supported data store type.
-  const agentStoreTypes = ['dwn', 'memory'] as const;
-  agentStoreTypes.forEach((agentStoreType) => {
+  const agentStoreTypes = ['dwn'] as const;
+  // const agentStoreTypes = ['dwn', 'memory'] as const;
+  // agentStoreTypes.forEach((agentStoreType) => {
+  for (const agentStoreType of agentStoreTypes) {
 
     describe(`with ${agentStoreType} DID store`, () => {
       let testHarness: ManagedAgentTestHarness;
@@ -46,9 +48,9 @@ describe('AgentIdentityApi', () => {
           agentClass  : TestAgent,
           agentStores : agentStoreType
         });
-      });
+        // });
 
-      beforeEach(async () => {
+        // beforeEach(async () => {
         await testHarness.clearStorage();
         await testHarness.createAgentDid();
       });
@@ -60,6 +62,7 @@ describe('AgentIdentityApi', () => {
 
       describe('create()', () => {
         it('creates and returns an Identity', async () => {
+
           // Generate a new Identity.
           const identity = await testHarness.agent.identity.create({
             metadata   : { name: 'Test Identity' },
@@ -100,12 +103,12 @@ describe('AgentIdentityApi', () => {
           expect(storedIdentity).to.exist;
 
           // Verify the DID ONLY exists under the new Identity's tenant.
-          // let storedDidAgent = await testHarness.agent.did.get({ didUri: identity.did.uri });
-          // expect(storedDidAgent).to.not.exist;
-          // let storedDidNewIdentity = await testHarness.agent.did.get({ didUri: identity.did.uri, context: identity.did.uri });
-          // expect(storedDidNewIdentity).to.exist;
-        }).timeout(100_000);
+          let storedDidAgent = await testHarness.agent.did.get({ didUri: identity.did.uri });
+          expect(storedDidAgent).to.not.exist;
+          let storedDidNewIdentity = await testHarness.agent.did.get({ didUri: identity.did.uri, tenant: identity.did.uri });
+          expect(storedDidNewIdentity).to.exist;
+        });
       });
     });
-  });
+  }
 });

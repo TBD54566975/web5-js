@@ -987,6 +987,7 @@ describe('AgentDwnApi', () => {
 
       const writeReply = writeResponse.reply;
       expect(writeReply).to.have.property('status');
+      console.log(writeReply.status.detail);
       expect(writeReply.status.code).to.equal(202);
     });
 
