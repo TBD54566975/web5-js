@@ -185,7 +185,7 @@ describe('SyncManagerLevel', () => {
         sendDwnRequestSpy.restore();
       });
 
-      it('synchronizes records for 1 identity from remove DWN to local DWN', async () => {
+      it('synchronizes records for 1 identity from remote DWN to local DWN', async () => {
         // Write a test record to Alice's remote DWN.
         let writeResponse = await testAgent.agent.dwnManager.sendRequest({
           author         : alice.did,
@@ -228,6 +228,43 @@ describe('SyncManagerLevel', () => {
         localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
         expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
+
+        // Add another record for a subsequent sync.
+        let writeResponse2 = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob(['Hello, world 2!'])
+        });
+        // Get the record ID of the test record.
+        const testRecord2Id = (writeResponse2.message as RecordsWriteMessage).recordId;
+
+        // Confirm the new record does NOT exist on Alice's local DWN.
+        queryResponse = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { recordId: testRecord2Id } } // New RecordId
+        });
+        localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+        expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(localDwnQueryReply.entries).to.have.length(0); // New Record doesn't exist on local DWN. 
+
+        await testAgent.agent.syncManager.pull();
+
+        // Confirm the new record DOES exist on Alice's local DWN.
+        queryResponse = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { recordId: testRecord2Id } } // New RecordId
+        });
+        localDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+        expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(localDwnQueryReply.entries).to.have.length(1); // New Record does exist on local DWN.
       });
 
       it('synchronizes records with data larger than the `encodedData` limit within the `RecordsQuery` response', async () => {
@@ -426,6 +463,43 @@ describe('SyncManagerLevel', () => {
         remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
         expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on remote DWN.
+
+        // Add another record for a subsequent sync.
+        let writeResponse2 = await testAgent.agent.dwnManager.processRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsWrite',
+          messageOptions : {
+            dataFormat: 'text/plain'
+          },
+          dataStream: new Blob(['Hello, world 2!'])
+        });
+        // Get the record ID of the test record.
+        const testRecord2Id = (writeResponse2.message as RecordsWriteMessage).recordId;
+
+        // Confirm the new record does NOT exist on Alice's remote DWN.
+        queryResponse = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { recordId: testRecord2Id } } // New RecordId
+        });
+        remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+        expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(remoteDwnQueryReply.entries).to.have.length(0); // New Record doesn't exist on local DWN. 
+
+        await testAgent.agent.syncManager.push();
+
+        // Confirm the new record DOES exist on Alice's local DWN.
+        queryResponse = await testAgent.agent.dwnManager.sendRequest({
+          author         : alice.did,
+          target         : alice.did,
+          messageType    : 'RecordsQuery',
+          messageOptions : { filter: { recordId: testRecord2Id } } // New RecordId
+        });
+        remoteDwnQueryReply = queryResponse.reply as RecordsQueryReply;
+        expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(remoteDwnQueryReply.entries).to.have.length(1); // New Record does exist on local DWN.
       });
 
       it('synchronizes records with data larger than the `encodedData` limit within the `RecordsQuery` response', async () => {
