@@ -1,23 +1,16 @@
 import type { Jwk } from '@web5/crypto';
 
 import { KEY_URI_PREFIX_JWK, isPrivateJwk } from '@web5/crypto';
-import { Convert, TtlCache } from '@web5/common';
+import { Convert } from '@web5/common';
 
 import type { Web5ManagedAgent } from './types/agent.js';
 
 import { TENANT_SEPARATOR } from './internal.js';
-import { DwnInterface } from './types/agent-dwn.js';
+import { DwnInterface } from './types/dwn.js';
 import { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams, DwnDataStore, InMemoryDataStore } from './store-data.js';
 
 export class DwnKeyStore extends DwnDataStore<Jwk> implements AgentDataStore<Jwk> {
   protected name = 'DwnKeyStore';
-
-  /**
-   * Index for mappings from Key Identifier to DWN record ID.
-   *
-   * Entries expire after 2 hours.
-   */
-  protected _index = new TtlCache<string, string>({ ttl: 60000 * 60 * 2 });
 
   /**
    * Properties to use when writing and querying Private Key records with the DWN store.

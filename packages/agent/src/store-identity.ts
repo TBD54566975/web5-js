@@ -1,11 +1,11 @@
-import { Convert, TtlCache } from '@web5/common';
+import { Convert } from '@web5/common';
 
 import type { Web5ManagedAgent } from './types/agent.js';
 import type { IdentityMetadata } from './types/identity.js';
 import type { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams } from './store-data.js';
 
 import { TENANT_SEPARATOR } from './internal.js';
-import { DwnInterface } from './types/agent-dwn.js';
+import { DwnInterface } from './types/dwn.js';
 import { DwnDataStore, InMemoryDataStore } from './store-data.js';
 
 export function isIdentityMetadata(obj: unknown): obj is IdentityMetadata {
@@ -16,13 +16,6 @@ export function isIdentityMetadata(obj: unknown): obj is IdentityMetadata {
 
 export class DwnIdentityStore extends DwnDataStore<IdentityMetadata> implements AgentDataStore<IdentityMetadata> {
   protected name = 'DwnIdentityStore';
-
-  /**
-   * Index for mappings from DID URI to DWN record ID.
-   *
-   * Entries expire after 2 hours.
-   */
-  protected _index = new TtlCache<string, string>({ ttl: 60000 * 60 * 2 });
 
   /**
    * Properties to use when writing and querying Identity records with the DWN store.

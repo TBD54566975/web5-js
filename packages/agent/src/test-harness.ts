@@ -1,3 +1,6 @@
+import type { AbstractLevel } from 'abstract-level';
+
+import { Level } from 'level';
 import { DataStoreLevel, Dwn, EventLogLevel, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
 import { DidDht, DidJwk, DidResolutionResult, DidResolverCache, DidResolverCacheLevel } from '@web5/dids';
 
@@ -5,14 +8,16 @@ import type { Web5ManagedAgent } from './types/agent.js';
 
 import { AgentDidApi } from './did-api.js';
 import { AgentDwnApi } from './dwn-api.js';
+import { AgentSyncApi } from './sync-api.js';
 import { Web5RpcClient } from './rpc-client.js';
 import { AgentCryptoApi } from './crypto-api.js';
 import { AgentIdentityApi } from './identity-api.js';
+import { LocalKeyManager } from './local-key-manager.js';
+import { SyncEngineLevel } from './sync-engine-level.js';
 import { DwnDidStore, InMemoryDidStore } from './store-did.js';
+import { DwnKeyStore, InMemoryKeyStore } from './store-key.js';
 import { DidResolverCacheMemory } from './temp/resolver-cache-memory.js';
 import { DwnIdentityStore, InMemoryIdentityStore } from './store-identity.js';
-import { LocalKeyManager } from './local-key-manager.js';
-import { DwnKeyStore, InMemoryKeyStore } from './store-key.js';
 
 type ManagedAgentTestHarnessParams = {
   agent: Web5ManagedAgent
@@ -23,6 +28,7 @@ type ManagedAgentTestHarnessParams = {
   dwnDataStore: DataStoreLevel;
   dwnEventLog: EventLogLevel;
   dwnMessageStore: MessageStoreLevel;
+  syncStore: AbstractLevel<string | Buffer | Uint8Array>;
 }
 
 type ManagedAgentTestHarnessSetupParams = {
@@ -40,6 +46,7 @@ export class ManagedAgentTestHarness {
   public dwnDataStore: DataStoreLevel;
   public dwnEventLog: EventLogLevel;
   public dwnMessageStore: MessageStoreLevel;
+  public syncStore: AbstractLevel<string | Buffer | Uint8Array>;
 
   constructor(params: ManagedAgentTestHarnessParams) {
     this.agent = params.agent;
@@ -49,6 +56,7 @@ export class ManagedAgentTestHarness {
     this.dwnDataStore = params.dwnDataStore;
     this.dwnEventLog = params.dwnEventLog;
     this.dwnMessageStore = params.dwnMessageStore;
+    this.syncStore = params.syncStore;
   }
 
   public async clearStorage(): Promise<void> {
@@ -59,7 +67,15 @@ export class ManagedAgentTestHarness {
     await this.dwnDataStore.clear();
     await this.dwnEventLog.clear();
     await this.dwnMessageStore.clear();
-    // await this.syncStore.clear();
+    await this.syncStore.clear();
+
+    // Reset the indexes and caches for the Agent's DWN data stores.
+    // if (this.agentStores === 'dwn') {
+    //   const { cryptoApi, didApi, identityApi } = ManagedAgentTestHarness.useDiskStores({ testDataLocation: '__TESTDATA__', agent: this.agent });
+    //   this.agent.crypto = cryptoApi;
+    //   this.agent.did = didApi;
+    //   this.agent.identity = identityApi;
+    // }
 
     // Easiest way to start with fresh in-memory stores is to re-instantiate all of the managed
     // agent components.
@@ -77,7 +93,7 @@ export class ManagedAgentTestHarness {
     await this.dwnDataStore.close();
     await this.dwnEventLog.close();
     await this.dwnMessageStore.close();
-    // await this.syncStore.close();
+    await this.syncStore.close();
   }
 
   public async createAgentDid(): Promise<void> {
@@ -134,13 +150,19 @@ export class ManagedAgentTestHarness {
     // Instantiate Agent's RPC Client.
     const rpcClient = new Web5RpcClient();
 
+    // Instantiate Agent's Sync API using a custom LevelDB-backed store.
+    const syncStore = new Level(testDataPath('SYNC_STORE'));
+    const syncEngine = new SyncEngineLevel({ db: syncStore });
+    const syncApi = new AgentSyncApi({ syncEngine });
+
     // Create Web5ManagedAgent instance
     const agent = new agentClass({
       cryptoApi,
       didApi,
       dwnApi,
       identityApi,
-      rpcClient
+      rpcClient,
+      syncApi
     });
 
     return new ManagedAgentTestHarness({
@@ -151,6 +173,7 @@ export class ManagedAgentTestHarness {
       dwnDataStore,
       dwnEventLog,
       dwnMessageStore,
+      syncStore
     });
   }
 

@@ -7,7 +7,7 @@ import type { Web5ManagedAgent } from './types/agent.js';
 
 import { TENANT_SEPARATOR } from './internal.js';
 import { getDwnStoreTenant } from './internal.js';
-import { DwnInterface } from './types/agent-dwn.js';
+import { DwnInterface } from './types/dwn.js';
 
 export type DataStoreTenantParams = {
   agent: Web5ManagedAgent;
@@ -168,7 +168,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
     agent: Web5ManagedAgent;
     tenantDid: string;
   }): Promise<TStoreObject[]> {
-    throw new Error(`Not implemented: Classes extending DwnDataStore must implement getAllRecords()`);
+    throw new Error('Not implemented: Classes extending DwnDataStore must implement getAllRecords()');
   }
 
   private async getRecord({ recordId, tenantDid, agent, useCache }: {

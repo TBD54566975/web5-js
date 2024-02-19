@@ -8,7 +8,7 @@ import type { PortableIdentity } from '../src/types/identity.js';
 import { AgentDwnApi } from '../src/dwn-api.js';
 import { TestAgent } from './utils/test-agent.js';
 import { testDwnUrl } from './utils/test-config.js';
-import { DwnInterface } from '../src/types/agent-dwn.js';
+import { DwnInterface } from '../src/types/dwn.js';
 import { BearerIdentity } from '../src/bearer-identity.js';
 import { ManagedAgentTestHarness } from '../src/test-harness.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
@@ -987,7 +987,6 @@ describe('AgentDwnApi', () => {
 
       const writeReply = writeResponse.reply;
       expect(writeReply).to.have.property('status');
-      console.log(writeReply.status.detail);
       expect(writeReply.status.code).to.equal(202);
     });
 

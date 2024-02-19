@@ -1,24 +1,17 @@
 import type { PortableDid } from '@web5/dids';
 
-import { Convert, TtlCache } from '@web5/common';
+import { Convert } from '@web5/common';
 
 import type { Web5ManagedAgent } from './types/agent.js';
 import type { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams } from './store-data.js';
 
 import { TENANT_SEPARATOR } from './internal.js';
-import { DwnInterface } from './types/agent-dwn.js';
+import { DwnInterface } from './types/dwn.js';
 import { isPortableDid } from './temp/add-to-dids.js';
 import { DwnDataStore, InMemoryDataStore } from './store-data.js';
 
 export class DwnDidStore extends DwnDataStore<PortableDid> implements AgentDataStore<PortableDid> {
   protected name = 'DwnDidStore';
-
-  /**
-   * Index for mappings from DID URI to DWN record ID.
-   *
-   * Entries expire after 2 hours.
-   */
-  protected _index = new TtlCache<string, string>({ ttl: 60000 * 60 * 2 });
 
   /**
    * Properties to use when writing and querying DID records with the DWN store.
