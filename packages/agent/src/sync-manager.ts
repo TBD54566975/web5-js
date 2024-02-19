@@ -4,6 +4,7 @@ import type {
   EventsGetReply,
   GenericMessage,
   MessagesGetReply,
+  PaginationCursor,
   RecordsWriteMessage,
 } from '@tbd54566975/dwn-sdk-js';
 
@@ -39,7 +40,7 @@ type SyncDirection = 'push' | 'pull';
 type SyncState = {
   did: string;
   dwnUrl: string;
-  cursor?: string,
+  cursor?: PaginationCursor,
 }
 
 type DwnMessage = {
@@ -376,7 +377,7 @@ export class SyncManagerLevel implements SyncManager {
     did: string,
     dwnUrl: string,
     syncDirection: SyncDirection,
-    cursor?: string
+    cursor?: PaginationCursor
   }) {
     const { did, dwnUrl, syncDirection, cursor } = options;
 
@@ -412,9 +413,8 @@ export class SyncManagerLevel implements SyncManager {
     }
 
     const eventLog = eventsReply.entries ?? [];
-    if (eventLog.length > 0) {
-      const cursorItem = eventLog.at(-1)!;
-      this.setCursor(did, dwnUrl, syncDirection, cursorItem);
+    if (eventsReply.cursor) {
+      this.setCursor(did, dwnUrl, syncDirection, eventsReply.cursor);
     }
 
     return eventLog;
@@ -543,12 +543,14 @@ export class SyncManagerLevel implements SyncManager {
     return syncPeerState;
   }
 
-  private async getCursor(did: string, dwnUrl: string, direction: SyncDirection): Promise<string | undefined> {
+  private async getCursor(did: string, dwnUrl: string, direction: SyncDirection): Promise<PaginationCursor | undefined> {
     const cursorKey = `${did}~${dwnUrl}~${direction}`;
     const cursorsStore = this.getCursorStore();
     try {
       const cursorValue = await cursorsStore.get(cursorKey);
-      return cursorValue;
+      if (cursorValue) {
+        return JSON.parse(cursorValue) as PaginationCursor;
+      }
     } catch(error: any) {
       // Don't throw when a key wasn't found.
       if (error.notFound) {
@@ -557,10 +559,10 @@ export class SyncManagerLevel implements SyncManager {
     }
   }
 
-  private async setCursor(did: string, dwnUrl: string, direction: SyncDirection, cursor: string) {
+  private async setCursor(did: string, dwnUrl: string, direction: SyncDirection, cursor: PaginationCursor) {
     const cursorKey = `${did}~${dwnUrl}~${direction}`;
     const cursorsStore = this.getCursorStore();
-    await cursorsStore.put(cursorKey, cursor);
+    await cursorsStore.put(cursorKey, JSON.stringify(cursor));
   }
 
   /**

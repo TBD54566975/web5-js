@@ -209,7 +209,7 @@ export class TestManagedAgent {
     const { agent, testDataLocation } = options;
     const testDataPath = (path: string) => `${testDataLocation}/${path}`;
 
-    const appDataStore = new LevelStore({ location: testDataPath('APPDATA') });
+    const appDataStore = new LevelStore(testDataPath('APPDATA'));
     const appData = new AppDataVault({
       keyDerivationWorkFactor : 1,
       store                   : appDataStore
