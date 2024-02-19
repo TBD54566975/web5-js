@@ -1,4 +1,4 @@
-import type { Web5ManagedAgent } from './types/agent.js';
+import type { Web5PlatformAgent } from './types/agent.js';
 
 /**
  * Separator used to join the tenant DID and the DID URI that is used to prefix all lookups in both
@@ -7,7 +7,7 @@ import type { Web5ManagedAgent } from './types/agent.js';
 export const TENANT_SEPARATOR = '^';
 
 export async function getDwnStoreTenant({ agent, tenant, didUri }: {
-  agent: Web5ManagedAgent;
+  agent: Web5PlatformAgent;
   tenant?: string;
   didUri?: string;
 }): Promise<string> {

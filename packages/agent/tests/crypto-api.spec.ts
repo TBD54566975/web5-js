@@ -5,7 +5,7 @@ import { expect } from 'chai';
 import { Convert } from '@web5/common';
 
 import type { KeyManager } from '../src/types/key-manager.js';
-import type { Web5ManagedAgent } from '../src/types/agent.js';
+import type { Web5PlatformAgent } from '../src/types/agent.js';
 
 import { TestAgent } from './utils/test-agent.js';
 import { AgentCryptoApi } from '../src/crypto-api.js';
@@ -97,7 +97,7 @@ describe('AgentCryptoApi', () => {
 
         it('throws an error if the Key Manager does not support exporting private keys', async () => {
           const keyManagerMock = {
-            agent        : {} as Web5ManagedAgent,
+            agent        : {} as Web5PlatformAgent,
             digest       : sinon.stub(),
             generateKey  : sinon.stub().resolves('urn:jwk:abcd1234'),
             getKeyUri    : sinon.stub(),
@@ -132,7 +132,7 @@ describe('AgentCryptoApi', () => {
       describe('importKey()', () => {
         it('throws an error if the Key Manager does not support importing private keys', async () => {
           const keyManagerMock = {
-            agent        : {} as Web5ManagedAgent,
+            agent        : {} as Web5PlatformAgent,
             digest       : sinon.stub(),
             generateKey  : sinon.stub().resolves('urn:jwk:abcd1234'),
             getKeyUri    : sinon.stub(),

@@ -1,6 +1,6 @@
 import type { BearerDid } from '@web5/dids';
 
-import type { Web5ManagedAgent } from '../../src/types/agent.js';
+import type { Web5PlatformAgent } from '../../src/types/agent.js';
 import type { DidRequest, DidResponse } from '../../src/did-api.js';
 import type { VcResponse, SendVcRequest, ProcessVcRequest } from '../../src/types/vc.js';
 import type {
@@ -26,7 +26,7 @@ type TestAgentOptions = {
   syncApi: AgentSyncApi;
 }
 
-export class TestAgent implements Web5ManagedAgent {
+export class TestAgent implements Web5PlatformAgent {
   public crypto: AgentCryptoApi;
   public did: AgentDidApi;
   public dwn: AgentDwnApi;
