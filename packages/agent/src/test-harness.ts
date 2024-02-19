@@ -18,6 +18,7 @@ import { DwnDidStore, InMemoryDidStore } from './store-did.js';
 import { DwnKeyStore, InMemoryKeyStore } from './store-key.js';
 import { DidResolverCacheMemory } from './temp/resolver-cache-memory.js';
 import { DwnIdentityStore, InMemoryIdentityStore } from './store-identity.js';
+import { BearerIdentity } from './bearer-identity.js';
 
 type ManagedAgentTestHarnessParams = {
   agent: Web5PlatformAgent
@@ -101,6 +102,41 @@ export class ManagedAgentTestHarness {
     this.agent.agentDid = await DidJwk.create({
       options: { algorithm: 'Ed25519' }
     });
+  }
+
+  public async createIdentity({ name, testDwnUrls }: {
+    name: string;
+    testDwnUrls: string[];
+  }): Promise<BearerIdentity> {
+    const bearerIdentity = await this.agent.identity.create({
+      didMethod  : 'dht',
+      didOptions : {
+        services: [
+          {
+            id              : 'dwn',
+            type            : 'DecentralizedWebNode',
+            serviceEndpoint : testDwnUrls,
+            enc             : '#enc',
+            sig             : '#sig',
+          }
+        ],
+        verificationMethods: [
+          {
+            algorithm : 'Ed25519',
+            id        : 'sig',
+            purposes  : ['assertionMethod', 'authentication']
+          },
+          {
+            algorithm : 'secp256k1',
+            id        : 'end',
+            purposes  : ['keyAgreement']
+          }
+        ]
+      },
+      metadata: { name }
+    });
+
+    return bearerIdentity;
   }
 
   public async preloadResolverCache({ didUri, resolutionResult }: {
