@@ -4,7 +4,7 @@ import type { Web5PlatformAgent } from './types/agent.js';
 import type { IdentityMetadata } from './types/identity.js';
 import type { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams } from './store-data.js';
 
-import { TENANT_SEPARATOR } from './internal.js';
+import { TENANT_SEPARATOR } from './utils-internal.js';
 import { DwnInterface } from './types/dwn.js';
 import { DwnDataStore, InMemoryDataStore } from './store-data.js';
 

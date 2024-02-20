@@ -8,7 +8,7 @@ import type { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataSto
 import { AgentDidApi } from '../src/did-api.js';
 import { TestAgent } from './utils/test-agent.js';
 import { DwnInterface } from '../src/types/dwn.js';
-import { TENANT_SEPARATOR } from '../src/internal.js';
+import { TENANT_SEPARATOR } from '../src/utils-internal.js';
 import { Web5PlatformAgent } from '../src/types/agent.js';
 import { isPortableDid } from '../src/temp/add-to-dids.js';
 import { ManagedAgentTestHarness } from '../src/test-harness.js';
