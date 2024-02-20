@@ -5,7 +5,7 @@ import { Convert } from '@web5/common';
 
 import type { Web5PlatformAgent } from './types/agent.js';
 
-import { TENANT_SEPARATOR } from './internal.js';
+import { TENANT_SEPARATOR } from './utils-internal.js';
 import { DwnInterface } from './types/dwn.js';
 import { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams, DwnDataStore, InMemoryDataStore } from './store-data.js';
 

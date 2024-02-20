@@ -5,8 +5,8 @@ import { Convert, NodeStream, TtlCache } from '@web5/common';
 
 import type { Web5PlatformAgent } from './types/agent.js';
 
-import { TENANT_SEPARATOR } from './internal.js';
-import { getDwnStoreTenant } from './internal.js';
+import { TENANT_SEPARATOR } from './utils-internal.js';
+import { getDataStoreTenant } from './utils-internal.js';
 import { DwnInterface } from './types/dwn.js';
 
 export type DataStoreTenantParams = {
@@ -69,8 +69,8 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   };
 
   public async delete({ id, agent, tenant }: DataStoreDeleteParams): Promise<boolean> {
-    // Determine which DID to use to sign DWN messages.
-    const tenantDid = await getDwnStoreTenant({ agent, tenant, didUri: id });
+    // Determine the tenant identifier (DID) for the delete operation.
+    const tenantDid = await getDataStoreTenant({ agent, tenant, didUri: id });
 
     // Look up the DWN record ID of the object in the store with the given `id`.
     let matchingRecordId = await this.lookupRecordId({ id, tenantDid, agent });
@@ -100,8 +100,8 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   public async get({ id, agent, tenant, useCache = false }:
     DataStoreGetParams
   ): Promise<TStoreObject | undefined> {
-    // Determine which DID to use to sign DWN messages.
-    const tenantDid = await getDwnStoreTenant({ agent, tenant, didUri: id });
+    // Determine the tenant identifier (DID) for the list operation.
+    const tenantDid = await getDataStoreTenant({ agent, tenant, didUri: id });
 
     // Look up the DWN record ID of the object in the store with the given `id`.
     let matchingRecordId = await this.lookupRecordId({ id, tenantDid, agent });
@@ -114,8 +114,8 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   }
 
   public async list({ agent, tenant}: DataStoreListParams): Promise<TStoreObject[]> {
-    // Determine which DID to use to sign DWN messages.
-    const tenantDid = await getDwnStoreTenant({ tenant, agent });
+    // Determine the tenant identifier (DID) for the list operation.
+    const tenantDid = await getDataStoreTenant({ tenant, agent });
 
     // Query the DWN for all stored record objects.
     const storedRecords = await this.getAllRecords({ agent, tenantDid });
@@ -126,8 +126,8 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   public async set({ id, data, tenant, agent, preventDuplicates = true, useCache = false }:
     DataStoreSetParams<TStoreObject>
   ): Promise<void> {
-    // Determine which DID to use to sign DWN messages.
-    const tenantDid = await getDwnStoreTenant({ agent, tenant, didUri: id });
+    // Determine the tenant identifier (DID) for the set operation.
+    const tenantDid = await getDataStoreTenant({ agent, tenant, didUri: id });
 
     // If enabled, check if a record with the given `id` is already present in the store.
     if (preventDuplicates) {
@@ -232,8 +232,8 @@ export class InMemoryDataStore<TStoreObject extends Record<string, any> = Jwk> i
   private store: Map<string, TStoreObject> = new Map();
 
   public async delete({ id, agent, tenant }: DataStoreDeleteParams): Promise<boolean> {
-    // Determine which DID to use as the tenant.
-    const tenantDid = await getDwnStoreTenant({ agent, tenant, didUri: id });
+    // Determine the tenant identifier (DID) for the delete operation.
+    const tenantDid = await getDataStoreTenant({ agent, tenant, didUri: id });
 
     if (this.store.has(`${tenantDid}${TENANT_SEPARATOR}${id}`)) {
       // Record with given identifier exists so proceed with delete.
@@ -246,15 +246,15 @@ export class InMemoryDataStore<TStoreObject extends Record<string, any> = Jwk> i
   }
 
   public async get({ id, agent, tenant }: DataStoreGetParams): Promise<TStoreObject | undefined> {
-    // Determine which DID to use to sign DWN messages.
-    const tenantDid = await getDwnStoreTenant({ agent, tenant, didUri: id });
+    // Determine the tenant identifier (DID) for the get operation.
+    const tenantDid = await getDataStoreTenant({ agent, tenant, didUri: id });
 
     return this.store.get(`${tenantDid}${TENANT_SEPARATOR}${id}`);
   }
 
   public async list({ agent, tenant}: DataStoreListParams): Promise<TStoreObject[]> {
-    // Determine which DID to use to sign DWN messages.
-    const tenantDid = await getDwnStoreTenant({ tenant, agent });
+    // Determine the tenant identifier (DID) for the list operation.
+    const tenantDid = await getDataStoreTenant({ tenant, agent });
 
     const result: TStoreObject[] = [];
     for (const [key, storedRecord] of this.store.entries()) {
@@ -267,8 +267,8 @@ export class InMemoryDataStore<TStoreObject extends Record<string, any> = Jwk> i
   }
 
   public async set({ id, data, tenant, agent, preventDuplicates }: DataStoreSetParams<TStoreObject>): Promise<void> {
-    // Determine which DID to use to sign DWN messages.
-    const tenantDid = await getDwnStoreTenant({ agent, tenant, didUri: id });
+    // Determine the tenant identifier (DID) for the set operation.
+    const tenantDid = await getDataStoreTenant({ agent, tenant, didUri: id });
 
     // If enabled, check if a record with the given `id` is already present in the store.
     if (preventDuplicates) {
