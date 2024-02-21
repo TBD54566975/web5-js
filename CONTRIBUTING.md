@@ -53,18 +53,18 @@ Build and Test cycles are run on every commit to every branch using [GitHub Acti
 | Requirement | Tested Version | Installation Instructions                                                                      |
 | ----------- | -------------- | ---------------------------------------------------------------------------------------------- |
 | Node.js     | 18.16.0        | [Introduction to Node.js](https://nodejs.dev/en/learn/)                                        |
-| NPM         | 9.6.3          | [NPM Package Manager](https://nodejs.dev/en/learn/an-introduction-to-the-npm-package-manager/) |
+| PNPM         | 8.10.5          | [PNPM Package Manager](https://pnpm.io/installation) |
 
 ### TypeScript
 
 This project is written in TypeScript, a strongly typed programming language that builds on JavaScript.
 
-You may verify your `node` and `npm` installation via the terminal:
+You may verify your `node` and `pnpm` installation via the terminal:
 
 ```
 $ node --version
 v18.16.0
-$ npm --version
+$ pnpm --version
 9.6.3
 ```
 
@@ -108,11 +108,11 @@ to your valuable work:
 
 ### Running Tests
 
-- Running the `npm run test:node --ws` command from the root of the project will run all tests using node.
+- Running the `pnpm --recursive test:node` command from the root of the project will run all tests using node.
   - This is run via CI whenever a pull request is opened, or a commit is pushed to a branch that has an open PR
-- Running the `npm run test:browser --ws` command from the root of the project will run the tests in a browser environment
+- Running the `pnpm --recursive test:browser` command from the root of the project will run the tests in a browser environment
   - Please make sure there are no failing tests before switching your PR to ready for review! We hope to have this automated via a github action very soon.
-- You can also run `npm run test:node -w=packages/DIR` or `npm run test:browser -w=packages/DIR` from the root of the project to run tests for a single package. For example, to run the tests only for the `web5` package run `npm run test:node -w=packages/web5`.
+- You can also run `pnpm test:node --filter=packages/DIR` or `pnpm test:browser --filter=packages/DIR` from the root of the project to run tests for a single package. For example, to run the tests only for the `web5` package run `pnpm test:node --filter=packages/web5`.
 
 ### Test Coverage Expectations
 
@@ -146,7 +146,7 @@ To see if the docs are being generated properly without errors, and to preview t
 # to see if there are any doc errors
 open .tbdocs/docs-report.md
 
-# to serve the generated docs locally using a static server (e.g. `npm i -g http-server`)
+# to serve the generated docs locally using a static server (e.g. `pnpm install -g http-server`)
 http-server .tbdocs/docs
 ```
 
@@ -192,7 +192,7 @@ After one or more PRs have been approved and merged by project maintainers, a Gi
 version tag. The act of creating the GitHub release triggers automated publication of the package to the
 [NPM Registry](https://npmjs.com) which will be tagged as _latest_.
 
-The next time someone runs `npm install @web5/<package_name>` the newly published release will be installed.
+The next time someone runs `pnpm install @web5/<package_name>` the newly published release will be installed.
 
 #### Alpha Releases
 
@@ -218,5 +218,5 @@ the [NPM Registry](https://npmjs.com) within a few minutes.
 > **Note**
 > Alpha version will never be tagged as _latest_.
 
-To install an `alpha` tagged release use either the `npm install @web5/<package>@alpha` or
-`npm install @web5/<package>@x.y.z-alpha-YYYYMMDD-commithash` syntax.
+To install an `alpha` tagged release use either the `pnpm install @web5/<package>@alpha` or
+`pnpm install @web5/<package>@x.y.z-alpha-YYYYMMDD-commithash` syntax.

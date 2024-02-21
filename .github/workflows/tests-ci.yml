@@ -46,18 +46,18 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build all workspace packages
-        run: pnpm run --recursive build:esm && pnpm run --recursive build:cjs
+        run: pnpm --recursive --stream build:esm && pnpm --recursive --stream build:cjs
 
       - name: Run linter for all packages
-        run: pnpm run --recursive lint
+        run: pnpm --recursive --stream lint
 
       - name: Run dwn-server (background)
         run: |
-          node node_modules/@web5/dwn-server/dist/esm/src/main.js &
+          pnpm exec node node_modules/@web5/dwn-server/dist/esm/src/main.js &
           echo "DWN_SERVER_BACKGROUND_PROCESS=$!" >> $GITHUB_ENV
 
       - name: Run tests for all packages
-        run: pnpm run --recursive test:node -- --color --reporter mocha-junit-reporter --reporter-options mochaFile=./results.xml
+        run: pnpm --recursive --stream test:node -- --color --reporter mocha-junit-reporter --reporter-options mochaFile=./results.xml
         env:
           TEST_DWN_URL: http://localhost:3000
 
@@ -126,12 +126,12 @@ jobs:
           cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Get Playwright Version (for cache)
         id: get-playwright-version
         run: |
-          PLAYWRIGHT_VERSION=$(pnpm ls @playwright/test --workspace=./packages/api | grep '@playwright/test' | awk 'NR==1{print $2}')
+          PLAYWRIGHT_VERSION=$(pnpm --filter ./packages/agent ls @playwright/test | grep '@playwright/test' | awk 'NR==1{print $2}')
           echo "Playwright Version: $PLAYWRIGHT_VERSION"
           echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> $GITHUB_ENV
 
@@ -147,10 +147,10 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Build esm
-        run: pnpm run --recursive build:esm
+        run: pnpm --recursive --stream build:esm
 
       - name: Build browser for matrix ${{ matrix.group }}
-        run: pnpm run build:browser ${{ matrix.packages }}
+        run: pnpm build:browser ${{ matrix.packages }}
 
       - name: Run dwn-server (background)
         run: |
@@ -158,7 +158,7 @@ jobs:
           echo "DWN_SERVER_BACKGROUND_PROCESS=$!" >> $GITHUB_ENV
 
       - name: Run tests for matrix ${{ matrix.group }}
-        run: pnpm run test:browser ${{ matrix.packages }}
+        run: pnpm test:browser ${{ matrix.packages }}
 
       - name: Terminate dwn-server
         run: kill $DWN_SERVER_BACKGROUND_PROCESS || true
