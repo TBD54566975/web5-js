@@ -53,7 +53,7 @@ Build and Test cycles are run on every commit to every branch using [GitHub Acti
 | Requirement | Tested Version | Installation Instructions                                                                      |
 | ----------- | -------------- | ---------------------------------------------------------------------------------------------- |
 | Node.js     | 18.16.0        | [Introduction to Node.js](https://nodejs.dev/en/learn/)                                        |
-| PNPM         | 8.10.5          | [PNPM Package Manager](https://pnpm.io/installation) |
+| PNPM         | 8.15.3          | [PNPM Package Manager](https://pnpm.io/installation) |
 
 ### TypeScript
 

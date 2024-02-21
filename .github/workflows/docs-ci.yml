@@ -25,6 +25,10 @@ jobs:
           registry-url: https://registry.npmjs.org/
           cache: "pnpm"
 
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+        with:
+          version: 8
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
