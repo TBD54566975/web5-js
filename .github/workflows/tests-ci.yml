@@ -18,15 +18,15 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
 
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+        with:
+          version: 8
+
       - name: Set up Node.js
         uses: actions/setup-node@5ef044f9d09786428e6e895be6be17937becee3a #v4.0.0
         with:
           node-version: 18
           cache: "pnpm"
-
-      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
-        with:
-          version: 8
 
       - name: Report known vulnerabilities
         run: pnpm audit
@@ -38,6 +38,10 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
         with:
           submodules: true
+    
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+        with:
+          version: 8
 
       - name: Set up Node.js
         uses: actions/setup-node@5ef044f9d09786428e6e895be6be17937becee3a #v4.0.0
@@ -45,10 +49,6 @@ jobs:
           node-version: 18
           registry-url: https://registry.npmjs.org/
           cache: "pnpm"
-
-      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
-        with:
-          version: 8
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -125,6 +125,10 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
         with:
           submodules: true
+      
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+        with:
+          version: 8
 
       - name: Set up Node.js
         uses: actions/setup-node@5ef044f9d09786428e6e895be6be17937becee3a #v4.0.0
@@ -132,10 +136,6 @@ jobs:
           node-version: 18
           registry-url: https://registry.npmjs.org/
           cache: "pnpm"
-
-      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
-        with:
-          version: 8
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
