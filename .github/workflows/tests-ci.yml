@@ -156,7 +156,7 @@ jobs:
 
       - name: Install Playwright Browsers (if no cache)
         if: steps.cache-playwright-restore.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
+        run: pnpm playwright install --with-deps
 
       - name: Build esm
         run: pnpm --recursive --stream build:esm
