@@ -715,6 +715,9 @@ importers:
       '@types/node':
         specifier: 20.11.19
         version: 20.11.19
+      '@types/sinon':
+        specifier: 17.0.2
+        version: 17.0.2
       '@typescript-eslint/eslint-plugin':
         specifier: 6.4.0
         version: 6.4.0(@typescript-eslint/parser@6.4.0)(eslint@8.47.0)(typescript@5.1.6)
@@ -763,6 +766,9 @@ importers:
       rimraf:
         specifier: 4.4.0
         version: 4.4.0
+      sinon:
+        specifier: 16.1.3
+        version: 16.1.3
       typescript:
         specifier: 5.1.6
         version: 5.1.6
