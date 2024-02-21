@@ -9,12 +9,12 @@
   "scripts": {
     "clean": "rimraf dist tests/compiled",
     "build:esm": "rimraf dist/esm dist/types && pnpm tsc -p tsconfig.json",
-    "build:cjs": "rimraf dist/cjs && tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
-    "build:tests:node": "rimraf tests/compiled && tsc -p tests/tsconfig.json",
+    "build:cjs": "rimraf dist/cjs && pnpm tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
+    "build:tests:node": "rimraf tests/compiled && pnpm tsc -p tests/tsconfig.json",
     "build": "pnpm clean && pnpm build:esm && pnpm build:cjs",
     "lint": "eslint . --ext .ts --max-warnings 0",
     "lint:fix": "eslint . --ext .ts --fix",
-    "test:node": "pnpm build:tests:node && c8 mocha"
+    "test:node": "pnpm build:tests:node && pnpm c8 mocha"
   },
   "homepage": "https://github.com/TBD54566975/web5-js/tree/main/packages/crypto-aws-kms#readme",
   "bugs": "https://github.com/TBD54566975/web5-js/issues",
