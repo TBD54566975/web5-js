@@ -207,7 +207,7 @@ The `@web5/api` package is special because it dictates our release train schedul
 
 To enable the `@web5/api` release in the Changesets Version Package PR, you need two simple steps:
 
-1. Add the `api-release` Label the **Version Package PR**
+1. Add the `api-release` Label to the current **Version Package PR**
 2. Manually trigger the [Release workflow](https://github.com/TBD54566975/web5-js/actions/workflows/release.yml).
 
 #### Preview Releases
