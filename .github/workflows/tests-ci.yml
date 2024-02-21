@@ -170,7 +170,7 @@ jobs:
           echo "DWN_SERVER_BACKGROUND_PROCESS=$!" >> $GITHUB_ENV
 
       - name: Run tests for matrix ${{ matrix.group }}
-        run: pnpm ${{ matrix.packages }} test:browser
+        run: pnpm ${{ matrix.packages }} --sequential test:browser
 
       - name: Terminate dwn-server
         run: kill $DWN_SERVER_BACKGROUND_PROCESS || true
