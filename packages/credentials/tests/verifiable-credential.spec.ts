@@ -158,6 +158,25 @@ describe('Verifiable Credential Tests', async() => {
       }
     });
 
+    it('should throw and error if wrong issuer', async () => {
+      const issuerDid = await DidKey.create();
+      const vc = await VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : 'did:fakeissuer:123',
+        subject : 'did:subject:123',
+        data    : new StreetCredibility('high', true),
+      });
+
+      const vcJwt = await vc.sign({ did: issuerDid });
+
+      try {
+        await VerifiableCredential.verify({ vcJwt });
+        expect.fail();
+      } catch(e: any) {
+        expect(e.message).to.include('Verification failed: iss claim does not match expected issuer/holder');
+      }
+    });
+
     it('should throw an error if data is not parseable into a JSON object', async () => {
       const issuerDid = 'did:example:issuer';
       const subjectDid = 'did:example:subject';
@@ -324,7 +343,7 @@ describe('Verifiable Credential Tests', async() => {
       const did = await DidKey.create();
 
       const jwt = await Jwt.sign({
-        payload   : { jti: 'hi' },
+        payload   : { jti: 'hi', iss: did.uri, sub: did.uri },
         signerDid : did
       });
 

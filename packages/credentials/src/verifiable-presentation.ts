@@ -82,6 +82,8 @@ export class VerifiablePresentation {
         vp  : this.vpDataModel,
         iss : options.did.uri,
         sub : options.did.uri,
+        jti : this.vpDataModel.id,
+        iat : Math.floor(Date.now() / 1000)
       }
     });
 

@@ -91,8 +91,14 @@ export class VerifiableCredential {
       signerDid : options.did,
       payload   : {
         vc  : this.vcDataModel,
-        iss : this.issuer,
+        nbf : Math.floor(new Date(this.vcDataModel.issuanceDate).getTime() / 1000),
+        jti : this.vcDataModel.id,
+        iss : options.did.uri,
         sub : this.subject,
+        iat : Math.floor(Date.now() / 1000),
+        ...(this.vcDataModel.expirationDate && {
+          exp: Math.floor(new Date(this.vcDataModel.expirationDate).getTime() / 1000),
+        }),
       }
     });
 

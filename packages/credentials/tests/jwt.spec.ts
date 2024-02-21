@@ -89,7 +89,7 @@ describe('Jwt', () => {
       const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: did.uri };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
-      const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000) };
+      const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000), iss: did.uri, sub: did.uri };
       const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
 
       try {
@@ -105,7 +105,7 @@ describe('Jwt', () => {
       const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256', kid: did.document.verificationMethod![0].id };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
-      const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000) };
+      const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000), iss: did.uri, sub: did.uri };
       const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
 
       try {
@@ -155,7 +155,7 @@ describe('Jwt', () => {
       const header: JwtHeaderParams = { typ: 'JWT', alg: 'EdDSA', kid: did.document.verificationMethod![0].id };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
-      const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000) };
+      const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000), iss: did.uri, sub: did.uri };
       const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
 
       const toSign = `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}`;
