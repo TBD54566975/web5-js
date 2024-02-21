@@ -162,7 +162,7 @@ jobs:
         run: pnpm --recursive --stream build:esm
 
       - name: Build browser for matrix ${{ matrix.group }}
-        run: pnpm build:browser ${{ matrix.packages }}
+        run: pnpm ${{ matrix.packages }} build:browser
 
       - name: Run dwn-server (background)
         run: |
