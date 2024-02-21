@@ -115,11 +115,11 @@ jobs:
       matrix:
         include:
           - group: "A"
-            packages: "--filter packages/agent"
+            packages: "--filter agent"
           - group: "B"
-            packages: "--filter packages/credentials --filter packages/crypto --filter packages/dids --filter packages/proxy-agent --filter packages/identity-agent --filter packages/user-agent"
+            packages: "--filter credentials --filter crypto --filter dids --filter proxy-agent --filter identity-agent --filter user-agent"
           - group: "C"
-            packages: "--filter packages/api --filter packages/common"
+            packages: "--filter api --filter common"
     steps:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
@@ -143,7 +143,7 @@ jobs:
       - name: Get Playwright Version (for cache)
         id: get-playwright-version
         run: |
-          PLAYWRIGHT_VERSION=$(pnpm --filter ./packages/agent ls @playwright/test | grep '@playwright/test' | awk 'NR==1{print $2}')
+          PLAYWRIGHT_VERSION=$(pnpm --filter agent ls @playwright/test | grep '@playwright/test' | awk 'NR==1{print $2}')
           echo "Playwright Version: $PLAYWRIGHT_VERSION"
           echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> $GITHUB_ENV
 
@@ -170,7 +170,7 @@ jobs:
           echo "DWN_SERVER_BACKGROUND_PROCESS=$!" >> $GITHUB_ENV
 
       - name: Run tests for matrix ${{ matrix.group }}
-        run: pnpm test:browser ${{ matrix.packages }}
+        run: pnpm ${{ matrix.packages }} test:browser
 
       - name: Terminate dwn-server
         run: kill $DWN_SERVER_BACKGROUND_PROCESS || true
