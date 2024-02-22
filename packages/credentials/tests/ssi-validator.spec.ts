@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
 import { SsiValidator } from '../src/validators.js';
-import { DEFAULT_CONTEXT, DEFAULT_VC_TYPE } from '../src/verifiable-credential.js';
+import { DEFAULT_VC_CONTEXT, DEFAULT_VC_TYPE } from '../src/verifiable-credential.js';
 
 describe('SsiValidator', () => {
 
@@ -11,7 +11,7 @@ describe('SsiValidator', () => {
     });
 
     it('should not throw an error if the default context is present', () => {
-      expect(() => SsiValidator.validateContext([DEFAULT_CONTEXT, 'http://example.com'])).not.throw();
+      expect(() => SsiValidator.validateContext([DEFAULT_VC_CONTEXT, 'http://example.com'])).not.throw();
     });
   });
 
