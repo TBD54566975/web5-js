@@ -143,7 +143,7 @@ jobs:
       - name: Get Playwright Version (for cache)
         id: get-playwright-version
         run: |
-          PLAYWRIGHT_VERSION=$(pnpm --filter agent ls @playwright/test | grep '@playwright/test' | awk 'NR==1{print $2}')
+          PLAYWRIGHT_VERSION=$(pnpm --filter dids ls @playwright/test | grep '@playwright/test' | awk 'NR==1{print $2}')
           echo "Playwright Version: $PLAYWRIGHT_VERSION"
           echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> $GITHUB_ENV
 
@@ -156,7 +156,7 @@ jobs:
 
       - name: Install Playwright Browsers (if no cache)
         if: steps.cache-playwright-restore.outputs.cache-hit != 'true'
-        run: pnpm --filter api exec playwright install --with-deps
+        run: pnpm --filter dids exec playwright install --with-deps
 
       - name: Build esm
         run: pnpm --recursive --stream build:esm
