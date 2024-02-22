@@ -7,7 +7,7 @@ describe('SsiValidator', () => {
 
   describe('validateContext', () => {
     it('should throw an error if the default context is missing', () => {
-      expect(() => SsiValidator.validateContext(['http://example.com'])).throw(`@context is missing default context "${DEFAULT_CONTEXT}"`);
+      expect(() => SsiValidator.validateContext(['http://example.com'])).throw(`@context is missing default context "${DEFAULT_VC_CONTEXT}"`);
     });
 
     it('should not throw an error if the default context is present', () => {
