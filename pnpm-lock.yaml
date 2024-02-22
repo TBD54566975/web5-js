@@ -584,9 +584,6 @@ importers:
       '@dnsquery/dns-packet':
         specifier: 6.1.1
         version: 6.1.1
-      '@types/ms':
-        specifier: 0.7.31
-        version: 0.7.31
       '@web5/common':
         specifier: 0.2.3
         version: 0.2.3
@@ -627,6 +624,9 @@ importers:
       '@types/mocha':
         specifier: 10.0.1
         version: 10.0.1
+      '@types/ms':
+        specifier: 0.7.31
+        version: 0.7.31
       '@types/sinon':
         specifier: 17.0.2
         version: 17.0.2
@@ -2780,6 +2780,7 @@ packages:
 
   /@types/ms@0.7.31:
     resolution: {integrity: sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==}
+    dev: true
 
   /@types/node@20.11.19:
     resolution: {integrity: sha512-7xMnVEcZFu0DikYjWOlRq7NTPETrm7teqUT2WkQjrTIkEgUyyGdWsj/Zg8bEJt5TNklzbPD1X3fqfsHw3SpapQ==}
