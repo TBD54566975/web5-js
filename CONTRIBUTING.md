@@ -65,7 +65,7 @@ You may verify your `node` and `pnpm` installation via the terminal:
 $ node --version
 v18.16.0
 $ pnpm --version
-9.6.3
+8.15.3
 ```
 
 If you do not have Node.js installed, we recommend following the
