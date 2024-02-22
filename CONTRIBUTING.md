@@ -112,7 +112,7 @@ to your valuable work:
   - This is run via CI whenever a pull request is opened, or a commit is pushed to a branch that has an open PR
 - Running the `pnpm --recursive test:browser` command from the root of the project will run the tests in a browser environment
   - Please make sure there are no failing tests before switching your PR to ready for review! We hope to have this automated via a github action very soon.
-- You can also run `pnpm --filter=PACKAGE test:node` or `pnpm --filter=PACKAGE test:browser` from the root of the project to run tests for a single package. For example, to run the tests only for the `web5` package run `pnpm --filter=web5 test:node`.
+- You can also run `pnpm --filter=PACKAGE test:node` or `pnpm --filter=PACKAGE test:browser` from the root of the project to run tests for a single package. For example, to run the tests only for the `dids` package run `pnpm --filter=dids test:node`.
 
 ### Test Coverage Expectations
 
