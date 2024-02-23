@@ -108,6 +108,13 @@ to your valuable work:
 
 ### Running Tests
 
+> [!IMPORTANT]
+> Before running tests ensure you've completed the following steps:
+> 1. Install the [development prerequisites](#development-prerequisites).
+> 2. Follow the [these steps](https://github.com/TBD54566975/web5-js#cloning) to clone this repository and `cd` into the project directory.
+> 3. Install all project dependencies by running `pnpm install` from the root directory of the project.
+> 4. Build all workspace projects by running npm `pnpm build` from the root directory of the project.
+
 - Running the `pnpm --recursive test:node` command from the root of the project will run all tests using node.
   - This is run via CI whenever a pull request is opened, or a commit is pushed to a branch that has an open PR
 - Running the `pnpm --recursive test:browser` command from the root of the project will run the tests in a browser environment
