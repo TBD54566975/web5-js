@@ -72,6 +72,9 @@ importers:
       '@types/mocha':
         specifier: 10.0.1
         version: 10.0.1
+      '@types/node':
+        specifier: 20.11.19
+        version: 20.11.19
       '@types/readable-stream':
         specifier: 4.0.6
         version: 4.0.6
@@ -278,6 +281,9 @@ importers:
       '@types/mocha':
         specifier: 10.0.1
         version: 10.0.1
+      '@types/node':
+        specifier: 20.11.19
+        version: 20.11.19
       '@types/readable-stream':
         specifier: 4.0.9
         version: 4.0.9
@@ -363,6 +369,9 @@ importers:
       '@types/mocha':
         specifier: 10.0.1
         version: 10.0.1
+      '@types/node':
+        specifier: 20.11.19
+        version: 20.11.19
       '@types/sinon':
         specifier: 17.0.2
         version: 17.0.2
@@ -442,6 +451,9 @@ importers:
       '@types/mocha':
         specifier: 10.0.1
         version: 10.0.1
+      '@types/node':
+        specifier: 20.11.19
+        version: 20.11.19
       '@types/sinon':
         specifier: 17.0.2
         version: 17.0.2
@@ -521,6 +533,9 @@ importers:
       '@types/mocha':
         specifier: 10.0.1
         version: 10.0.1
+      '@types/node':
+        specifier: 20.11.19
+        version: 20.11.19
       '@types/sinon':
         specifier: 17.0.2
         version: 17.0.2
@@ -627,6 +642,9 @@ importers:
       '@types/ms':
         specifier: 0.7.31
         version: 0.7.31
+      '@types/node':
+        specifier: 20.11.19
+        version: 20.11.19
       '@types/sinon':
         specifier: 17.0.2
         version: 17.0.2
