@@ -1,4 +1,16 @@
-import { LocalKeyManager, type CryptoApi, type EnclosedSignParams, type EnclosedVerifyParams, type Jwk, type KeyIdentifier, type KeyImporterExporter, type KmsExportKeyParams, type KmsImportKeyParams, type Signer } from '@web5/crypto';
+import type {
+  Jwk,
+  Signer,
+  CryptoApi,
+  KeyIdentifier,
+  EnclosedSignParams,
+  KmsExportKeyParams,
+  KmsImportKeyParams,
+  KeyImporterExporter,
+  EnclosedVerifyParams,
+} from '@web5/crypto';
+
+import { LocalKeyManager, utils as cryptoUtils } from '@web5/crypto';
 
 import type { DidDocument } from './types/did-core.js';
 import type { DidMetadata, PortableDid } from './types/portable-did.js';
@@ -88,13 +100,15 @@ export class BearerDid {
    * `PortableDid` structure.
    *
    * @remarks
-   * This method requires that the DID's key manager supports the `exportKey` operation. If the DID
-   * document does not contain any verification methods, or if the key manager does not support key
-   * export, an error is thrown.
+   * If the DID's key manager does not allow private keys to be exported, the `PortableDid` returned
+   * will not contain a `privateKeys` property. This enables the importing and exporting DIDs that
+   * use the same underlying KMS even if the KMS does not support exporting private keys. Examples
+   * include hardware security modules (HSMs) and cloud-based KMS services like AWS KMS.
    *
-   * The resulting `PortableDid` will contain the same number of verification methods as the DID
-   * document, each with its associated public and private keys and the purposes for which the key
-   * can be used.
+   * If the DID's key manager does support exporting private keys, the resulting `PortableDid` will
+   * include a `privateKeys` property which contains the same number of entries as there are
+   * verification methods as the DID document, each with its associated private key and the
+   * purpose(s) for which the key can be used (e.g., `authentication`, `assertionMethod`, etc.).
    *
    * @example
    * ```ts
@@ -179,7 +193,7 @@ export class BearerDid {
     const keyManager = this.keyManager;
 
     // Determine the signing algorithm.
-    const algorithm = BearerDid.getAlgorithmFromPublicKey(publicKey);
+    const algorithm = cryptoUtils.getJoseSignatureAlgorithmFromPublicKey(publicKey);
 
     return {
       algorithm : algorithm,
@@ -262,46 +276,5 @@ export class BearerDid {
     });
 
     return did;
-  }
-
-  /**
-   * Determines the name of the algorithm based on the key's curve property.
-   *
-   * @remarks
-   * This method facilitates the identification of the correct algorithm for cryptographic
-   * operations based on the `alg` or `crv` properties of a {@link Jwk | JWK}.
-   *
-   * @example
-   * ```ts
-   * const publicKey = { ... }; // Public key in JWK format
-   * const algorithm = BearerDid.getAlgorithmFromPublicKey({ key: publicKey });
-   * ```
-   *
-   * @param publicKey - A JWK containing the `alg` and/or `crv` properties.
-   *
-   * @returns The name of the algorithm associated with the key.
-   *
-   * @throws Error if the algorithm cannot be determined from the provided input.
-   */
-  private static getAlgorithmFromPublicKey(publicKey: Jwk): string {
-    const registeredSigningAlgorithms: Record<string, string> = {
-      'Ed25519'   : 'EdDSA',
-      'P-256'     : 'ES256',
-      'P-384'     : 'ES384',
-      'P-521'     : 'ES512',
-      'secp256k1' : 'ES256K',
-    };
-
-    // If the key contains an `alg` property, return its value.
-    if (publicKey.alg) {
-      return publicKey.alg;
-    }
-
-    // If the key contains a `crv` property, return the corresponding algorithm.
-    if (publicKey.crv && Object.keys(registeredSigningAlgorithms).includes(publicKey.crv)) {
-      return registeredSigningAlgorithms[publicKey.crv];
-    }
-
-    throw new Error(`Unable to determine algorithm based on provided input: alg=${publicKey.alg}, crv=${publicKey.crv}`);
   }
 }
