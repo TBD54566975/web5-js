@@ -61,11 +61,11 @@ jobs:
 
       - name: Run dwn-server (background)
         run: |
-          pnpm exec node node_modules/@web5/dwn-server/dist/esm/src/main.js &
+          node node_modules/@web5/dwn-server/dist/esm/src/main.js &
           echo "DWN_SERVER_BACKGROUND_PROCESS=$!" >> $GITHUB_ENV
 
       - name: Run tests for all packages
-        run: pnpm --recursive --stream test:node -- --color --reporter mocha-junit-reporter --reporter-options mochaFile=./results.xml
+        run: pnpm --recursive --no-stream --sequential test:node -- --color --reporter mocha-junit-reporter --reporter-options mochaFile=./results.xml
         env:
           TEST_DWN_URL: http://localhost:3000
 

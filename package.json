@@ -17,7 +17,7 @@
   "scripts": {
     "clean": "pnpm npkill -d $(pwd) -t node_modules && pnpm npkill -d $(pwd)/packages -t dist",
     "build": "pnpm --recursive --stream build",
-    "dwn-server": "pnpm exec node_modules/@web5/dwn-server/dist/esm/src/main.js || true"
+    "dwn-server": "node node_modules/@web5/dwn-server/dist/esm/src/main.js || true"
   },
   "repository": {
     "type": "git",
