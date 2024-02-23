@@ -49,7 +49,7 @@ jobs:
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-          cache: "pnpm"
+          cache: 'pnpm'
 
       - name: Install semver utility
         run: pnpm install -g semver@7.5.1

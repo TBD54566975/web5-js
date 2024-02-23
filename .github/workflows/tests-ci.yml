@@ -26,7 +26,7 @@ jobs:
         uses: actions/setup-node@5ef044f9d09786428e6e895be6be17937becee3a #v4.0.0
         with:
           node-version: 18
-          cache: "pnpm"
+          cache: 'pnpm'
 
       - name: Report known vulnerabilities
         run: pnpm audit
@@ -48,7 +48,7 @@ jobs:
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-          cache: "pnpm"
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -135,7 +135,7 @@ jobs:
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-          cache: "pnpm"
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
