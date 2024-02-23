@@ -40,21 +40,25 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
 
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d #v3.0.0
+        with:
+          version: 8
+
       - name: Set up Node.js
         uses: actions/setup-node@5ef044f9d09786428e6e895be6be17937becee3a #v4.0.0
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-          cache: "npm"
+          cache: 'pnpm'
 
       - name: Install semver utility
-        run: npm install -g semver@7.5.1
+        run: pnpm install -g semver@7.5.1
 
       # Note - this is not required but it gives a clean failure prior to attempting a release if the GH workflow runner is not authenticated with NPMjs.com
       - name: Verify NPM token is authenticated with NPMjs.com
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-        run: npm whoami
+        run: pnpm whoami
 
       - name: Check if GitHub repo package version is latest
         env:
@@ -84,11 +88,11 @@ jobs:
 
       - name: Install dependencies
         if: env.IS_LATEST == 'true'
-        run: npm ci
+        run: pnpm ci
 
       - name: Build all workspace packages
         if: env.IS_LATEST == 'true'
-        run: npm run build
+        run: pnpm build
 
       - name: Publish @web5/${{ matrix.package }}@${{ env.REPO_VERSION }}
         if: env.IS_LATEST == 'true'
@@ -96,5 +100,5 @@ jobs:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: |
           cd packages/${{ matrix.package }}
-          npm publish --access public --provenance
+          pnpm publish --access public --provenance
         shell: bash

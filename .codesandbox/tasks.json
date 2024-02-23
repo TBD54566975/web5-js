@@ -3,13 +3,13 @@
   "setupTasks": [
     {
       "name": "Installing Dependencies",
-      "command": "npm install"
+      "command": "pnpm install"
     }
   ],
   "tasks": {
     "dev": {
       "name": "Build Web5 SDK",
-      "command": "npm run build",
+      "command": "pnpm build",
       "runAtStart": true,
       "restartOn": {
         "files": [
@@ -19,7 +19,7 @@
     },
     "tests": {
       "name": "Run tests",
-      "command": "npm run test:node --ws"
+      "command": "pnpm --recursive --stream test:node"
     }
   }
 }
