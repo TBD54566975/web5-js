@@ -15,7 +15,7 @@
     "packages/identity-agent"
   ],
   "scripts": {
-    "clean": "pnpm npkill -d $(pwd) -t node_modules && pnpm npkill -d $(pwd)/packages -t dist",
+    "clean": "pnpm npkill -d $(pwd)/packages -t dist && pnpm npkill -d $(pwd) -t node_modules",
     "build": "pnpm --recursive --stream build",
     "dwn-server": "node node_modules/@web5/dwn-server/dist/esm/src/main.js || true"
   },
