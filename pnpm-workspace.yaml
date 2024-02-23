@@ -1,0 +1,11 @@
+packages:
+  - "packages/common"
+  - "packages/crypto"
+  - "packages/crypto-aws-kms"
+  - "packages/dids"
+  - "packages/credentials"
+  - "packages/agent"
+  - "packages/user-agent"
+  - "packages/proxy-agent"
+  - "packages/api"
+  - "packages/identity-agent"

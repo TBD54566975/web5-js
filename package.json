@@ -15,9 +15,9 @@
     "packages/identity-agent"
   ],
   "scripts": {
-    "clean": "npx npkill -d $(pwd) -t node_modules && npx npkill -d $(pwd)/packages -t dist",
-    "build": "npm run build --ws",
-    "dwn-server":"node node_modules/@web5/dwn-server/dist/esm/src/main.js || true"
+    "clean": "pnpm npkill -d $(pwd)/packages -t dist && pnpm npkill -d $(pwd) -t node_modules",
+    "build": "pnpm --recursive --stream build",
+    "dwn-server": "node node_modules/@web5/dwn-server/dist/esm/src/main.js || true"
   },
   "repository": {
     "type": "git",
@@ -28,6 +28,7 @@
     "@npmcli/package-json": "5.0.0",
     "@typescript-eslint/eslint-plugin": "6.4.0",
     "@web5/dwn-server": "0.1.9",
-    "eslint-plugin-mocha": "10.1.0"
+    "eslint-plugin-mocha": "10.1.0",
+    "npkill": "0.11.3"
   }
 }
