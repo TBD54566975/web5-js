@@ -1,3 +1,7 @@
+import type { Jwk, KeyIdentifier, KmsExportKeyParams, KmsGetPublicKeyParams, KmsSignParams } from '@web5/crypto';
+
+import { Ed25519, LocalKeyManager, computeJwkThumbprint } from '@web5/crypto';
+
 import type { Web5PlatformAgent } from './types/agent.js';
 
 /**
@@ -10,6 +14,100 @@ import type { Web5PlatformAgent } from './types/agent.js';
  * Agent data stores, including the DWN-backed store's index and the in-memory store's map.
  */
 export const TENANT_SEPARATOR = '^';
+
+export class DeterministicKeyGenerator extends LocalKeyManager {
+  private _predefinedKeys: Map<KeyIdentifier, Jwk>;
+  private _keyGenerator: IterableIterator<KeyIdentifier>;
+
+  constructor() {
+    super();
+    this._predefinedKeys = new Map();
+    this._keyGenerator = this._predefinedKeys.keys();
+  }
+
+  public async addPredefinedKeys({ privateKeys }: { privateKeys: Jwk[] }): Promise<void> {
+    const predefinedKeys: { [keyUri: KeyIdentifier]: Jwk } = {};
+
+    for (const key of privateKeys) {
+      // If the key ID is undefined, set it to the JWK thumbprint.
+      key.kid ??= await computeJwkThumbprint({ jwk: key });
+
+      // Compute the key URI for the key.
+      const keyUri = await this.getKeyUri({ key });
+
+      // Store the key.
+      predefinedKeys[keyUri] = key;
+    }
+
+    // Store the keys.
+    this._predefinedKeys = new Map(Object.entries(predefinedKeys));
+
+    // Reset the key generator to use the new keys.
+    this._keyGenerator = this._predefinedKeys.keys();
+  }
+
+  public async exportKey({ keyUri }:
+    KmsExportKeyParams
+  ): Promise<Jwk> {
+    // Get the private key from the key store.
+    const privateKey = this._predefinedKeys.get(keyUri);
+
+    // Throw an error if the key is not found.
+    if (!privateKey) {
+      throw new Error(`DeterministicKeyGenerator.exportKey: Key not found: ${keyUri}`);
+    }
+
+    return privateKey;
+  }
+
+  public async generateKey(_params: {
+    algorithm: 'Ed25519' | 'secp256k1' | 'secp256r1'
+  }): Promise<KeyIdentifier> {
+    // Get the next key from the array of predefined keys.
+    const { value: keyUri, done } = this._keyGenerator.next();
+
+    // Throw an error if the generator is empty and there are no more keys to return.
+    if (done) {
+      throw new Error('Ran out of predefined keys');
+    }
+
+    return keyUri;
+  }
+
+  public async getPublicKey({ keyUri }:
+      KmsGetPublicKeyParams
+  ): Promise<Jwk> {
+    // Get the private key from the key store.
+    const privateKey = this._predefinedKeys.get(keyUri);
+
+    // Throw an error if the key is not found.
+    if (!privateKey) {
+      throw new Error(`DeterministicKeyGenerator.getPublicKey: Key not found: ${keyUri}`);
+    }
+
+    // Get the public key properties from the private JWK.
+    const { d, ...publicKey } = privateKey;
+
+    return publicKey;
+  }
+
+  public async sign({ keyUri, data }:
+    KmsSignParams
+  ): Promise<Uint8Array> {
+    // Get the private key from the key store.
+    const privateKey = this._predefinedKeys.get(keyUri);
+
+    // Throw an error if the key is not found.
+    if (!privateKey) {
+      throw new Error(`DeterministicKeyGenerator.sign: Key not found: ${keyUri}`);
+    }
+
+    // Sign the data.
+    const signature = await Ed25519.sign({ data, key: privateKey });
+
+    return signature;
+  }
+}
 
 /**
  * Determines the tenant identifier (DID) for data store operations based on the provided
