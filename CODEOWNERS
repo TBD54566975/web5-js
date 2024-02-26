@@ -1,9 +1,6 @@
 # This CODEOWNERS file denotes the project leads
 # and encodes their responsibilities for code review.
 
-# Instructions: At a minimum, replace the '@GITHUB_USER_NAME_GOES_HERE'
-# here with at least one project lead.
-
 # Lines starting with '#' are comments.
 # Each line is a file pattern followed by one or more owners.
 # The format is described: https://github.blog/2017-07-06-introducing-code-owners/
@@ -11,14 +8,18 @@
 # These owners will be the default owners for everything in the repo.
 * @frankhinek @csuwildcat @mistermoe
 
+# These are owners of any file in the `common`, `crypto`, `crypto-aws-kms`, `dids`, and
+# `credentials` packages and their sub-directories.
+/packages/common         @jiyoontbd @diehuxx @mistermoe @frankhinek
+/packages/crypto         @jiyoontbd @diehuxx @mistermoe @frankhinek
+/packages/crypto-aws-kms @jiyoontbd @diehuxx @mistermoe @frankhinek
+/packages/dids           @jiyoontbd @diehuxx @mistermoe @frankhinek
+/packages/credentials    @jiyoontbd @diehuxx @mistermoe @frankhinek
 
-# -----------------------------------------------
-# BELOW THIS LINE ARE TEMPLATES, UNUSED
-# -----------------------------------------------
-# Order is important. The last matching pattern has the most precedence.
-# So if a pull request only touches javascript files, only these owners
-# will be requested to review.
-# *.js    @octocat @github/js
-
-# You can also use email addresses if you prefer.
-# docs/*  docs@example.com
+# These are owners of any file in the `agent`, `user-agent`, `proxy-agent`, `identity-agent`, and
+# `api` packages and their sub-directories.
+/packages/agent          @lirancohen @thehenrytsai @frankhinek @csuwildcat @mistermoe
+/packages/proxy-agent    @lirancohen @thehenrytsai @frankhinek @csuwildcat @mistermoe
+/packages/user-agent     @lirancohen @thehenrytsai @frankhinek @csuwildcat @mistermoe
+/packages/identity-agent @lirancohen @thehenrytsai @frankhinek @csuwildcat @mistermoe
+/packages/api            @lirancohen @thehenrytsai @frankhinek @csuwildcat @mistermoe

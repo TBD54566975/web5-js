@@ -8,13 +8,13 @@
   "types": "./dist/types/index.d.ts",
   "scripts": {
     "clean": "rimraf dist tests/compiled",
-    "build:esm": "rimraf dist/esm dist/types && npx tsc -p tsconfig.json",
-    "build:cjs": "rimraf dist/cjs && tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
-    "build:tests:node": "rimraf tests/compiled && tsc -p tests/tsconfig.json",
-    "build": "npm run clean && npm run build:esm && npm run build:cjs",
+    "build:esm": "rimraf dist/esm dist/types && pnpm tsc -p tsconfig.json",
+    "build:cjs": "rimraf dist/cjs && pnpm tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
+    "build:tests:node": "rimraf tests/compiled && pnpm tsc -p tests/tsconfig.json",
+    "build": "pnpm clean && pnpm build:esm && pnpm build:cjs",
     "lint": "eslint . --ext .ts --max-warnings 0",
     "lint:fix": "eslint . --ext .ts --fix",
-    "test:node": "npm run build:tests:node && c8 mocha"
+    "test:node": "pnpm build:tests:node && pnpm c8 mocha"
   },
   "homepage": "https://github.com/TBD54566975/web5-js/tree/main/packages/crypto-aws-kms#readme",
   "bugs": "https://github.com/TBD54566975/web5-js/issues",
@@ -78,6 +78,7 @@
     "@types/chai-as-promised": "7.1.5",
     "@types/eslint": "8.44.2",
     "@types/mocha": "10.0.1",
+    "@types/node": "20.11.19",
     "@types/sinon": "17.0.2",
     "@typescript-eslint/eslint-plugin": "6.4.0",
     "@typescript-eslint/parser": "6.4.0",

@@ -62,7 +62,7 @@
         "mode": "auto"
       }
     ],
-    "npm.packageManager": "npm",
+    "npm.packageManager": "pnpm",
     "editor.codeActionsOnSave": {
       "source.fixAll": "always"
     },
@@ -91,7 +91,7 @@
       {
         "label": "Build All",
         "type": "shell",
-        "command": "npm run build",
+        "command": "pnpm build",
         "problemMatcher": [],
         "group": {
           "kind": "build",
@@ -101,11 +101,11 @@
       {
         "label": "build tests",
         "type": "shell",
-        "command": "npm",
+        "command": "pnpm",
         "args": [
-          "run",
-          "build:tests:node",
-          "--ws"
+          "--recursive",
+          "--stream",
+          "build:tests:node"
         ],
         "problemMatcher": [
           "$tsc"
