@@ -1,11 +1,11 @@
 import type { BearerDid } from '@web5/dids';
+import type { PresentationSubmission } from '@sphereon/pex-models';
 
 import { expect } from 'chai';
 import { DidKey } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
 import { VerifiablePresentation } from '../src/verifiable-presentation.js';
-import { PresentationSubmission } from '@sphereon/pex-models';
 
 const validVcJwt = 'eyJraWQiOiJkaWQ6a2V5OnpRM3NoZ0NqVmZucldxOUw3cjFRc3oxcmlRUldvb3pid2dKYkptTGdxRFB2OXNnNGIjelEzc' +
 '2hnQ2pWZm5yV3E5TDdyMVFzejFyaVFSV29vemJ3Z0piSm1MZ3FEUHY5c2c0YiIsInR5cCI6IkpXVCIsImFsZyI6IkVTMjU2SyJ9.eyJpc3Mi' +

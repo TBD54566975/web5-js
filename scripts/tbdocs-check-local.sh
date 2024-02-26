@@ -24,6 +24,10 @@ INPUT_ENTRY_POINTS="
   docsReporter: typedoc
   docsGenerator: typedoc-html
   readmeFile: packages/dids/README.md
+- file: packages/credentials/src/index.ts
+  docsReporter: typedoc
+  docsGenerator: typedoc-html
+  readmeFile: packages/credentials/README.md
 "
 
 # Default docker image

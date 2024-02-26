@@ -18,18 +18,22 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
 
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d #v3.0.0
+        with:
+          version: 8
+
       - name: Set up Node.js
         uses: actions/setup-node@5ef044f9d09786428e6e895be6be17937becee3a #v4.0.0
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-          cache: "npm"
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build all workspace packages
-        run: npm run build
+        run: pnpm --recursive --stream build
 
       - name: TBDocs Reporter
         id: tbdocs-reporter-protocol
@@ -56,6 +60,10 @@ jobs:
               docsReporter: typedoc
               docsGenerator: typedoc-html
               readmeFile: packages/dids/README.md
+            - file: packages/credentials/src/index.ts
+              docsReporter: typedoc
+              docsGenerator: typedoc-html
+              readmeFile: packages/credentials/README.md
 
       - name: Save Artifacts
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 #v3.1.3
