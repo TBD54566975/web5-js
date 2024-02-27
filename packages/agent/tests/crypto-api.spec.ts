@@ -1,4 +1,5 @@
 import type { Jwk } from '@web5/crypto';
+import type { BearerDid } from '@web5/dids';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
@@ -12,6 +13,26 @@ import { AgentCryptoApi } from '../src/crypto-api.js';
 import { ManagedAgentTestHarness } from '../src/test-harness.js';
 
 describe('AgentCryptoApi', () => {
+  describe('get agent', () => {
+    it(`returns the 'agent' instance property`, async () => {
+      // @ts-expect-error because we are only mocking a single property.
+      const mockAgent: Web5PlatformAgent = {
+        agentDid: { uri: 'did:method:abc123' } as BearerDid
+      };
+      const cryptoApi = new AgentCryptoApi({ agent: mockAgent });
+      const agent = cryptoApi.agent;
+      expect(agent).to.exist;
+      expect(agent.agentDid.uri).to.equal('did:method:abc123');
+    });
+
+    it(`throws an error if the 'agent' instance property is undefined`, () => {
+      const cryptoApi = new AgentCryptoApi({});
+      expect(() =>
+        cryptoApi.agent
+      ).to.throw(Error, 'Unable to determine agent execution context');
+    });
+  });
+
   // Run tests for each supported data store type.
   const agentStoreTypes = ['dwn', 'memory'] as const;
   agentStoreTypes.forEach((agentStoreType) => {
@@ -129,6 +150,43 @@ describe('AgentCryptoApi', () => {
         });
       });
 
+      describe('getKeyUri()', () => {
+        it('returns a string with the expected prefix', async () => {
+          // Setup.
+          const key: Jwk = {
+            kty : 'EC',
+            crv : 'secp256k1',
+            x   : '1SRPl0oKoKPFJ5FLSWnvftE13QD9GtYKldOj7GNKe8o',
+            y   : 'EuCLyOvrsp10-rdi1PEiKSCF9DJIN-2PzR7zP14AqIw'
+          };
+
+          // Test the method.
+          const keyUri = await testHarness.agent.crypto.getKeyUri({ key });
+
+          // Validate the result.
+          expect(keyUri).to.exist;
+          expect(keyUri).to.be.a.string;
+          expect(keyUri.indexOf('urn:jwk:')).to.equal(0);
+        });
+
+        it('computes the key URI correctly for a valid JWK', async () => {
+          // Setup.
+          const key: Jwk = {
+            kty : 'EC',
+            crv : 'secp256k1',
+            x   : '1SRPl0oKoKPFJ5FLSWnvftE13QD9GtYKldOj7GNKe8o',
+            y   : 'EuCLyOvrsp10-rdi1PEiKSCF9DJIN-2PzR7zP14AqIw'
+          };
+          const expectedThumbprint = 'vO8jHDKD8dynDvVp8Ea2szjIRz2V-hCMhtmJYOxO4oY';
+          const expectedKeyUri = 'urn:jwk:' + expectedThumbprint;
+
+          // Test the method.
+          const keyUri = await testHarness.agent.crypto.getKeyUri({ key });
+
+          expect(keyUri).to.equal(expectedKeyUri);
+        });
+      });
+
       describe('importKey()', () => {
         it('throws an error if the Key Manager does not support importing private keys', async () => {
           const keyManagerMock = {
@@ -156,6 +214,54 @@ describe('AgentCryptoApi', () => {
           } catch (error: any) {
             expect(error).to.be.an.instanceOf(Error);
             expect(error.message).to.include('does not support importing private keys');
+          }
+        });
+      });
+
+      describe('unwrapKey()', () => {
+        it('returns the expected wrapped key for given input', async () => {
+          const wrappedKeyBytes = Convert.hex('8c55fb6fc4c7bb0b6b483df65ba52bee7ed6e0f861ac8097b2394f61067d1157901295aba72c514b').toUint8Array(); // raw format
+
+          const decryptionKey: Jwk = {
+            kty : 'oct',
+            k   : '47Fn3ZXGbmntoAKErKN5-d7yuwMejCJtOqgAeq_Ojk0',
+            alg : 'A256KW',
+            kid : 'izA6N7g3xmPWStB6Qe6BbGgfrXvrptzuH2eJ1wmdrtk',
+          };
+
+          const decryptionKeyUri = await testHarness.agent.crypto.importKey({ key: decryptionKey });
+
+          const unwrappedKey = await testHarness.agent.crypto.unwrapKey({ wrappedKeyBytes, wrappedKeyAlgorithm: 'A256GCM', decryptionKeyUri });
+
+          const expectedPrivateKey: Jwk = {
+            kty : 'oct',
+            k   : 'hX-1yAAU6aZCwGqViYfAhIiaTyu1PURMswoI4IQmiY4',
+            alg : 'A256GCM',
+            kid : '-TssSnJNgh10-YTwuBtyZTnv0LY6sdT-TQl9WFTSetI',
+          };
+
+          expect(unwrappedKey).to.deep.equal(expectedPrivateKey);
+        });
+
+        it('throws an error if the Key Manager does not support key wrapping', async () => {
+          const keyManagerMock = {
+            agent        : {} as Web5PlatformAgent,
+            digest       : sinon.stub(),
+            generateKey  : sinon.stub(),
+            getKeyUri    : sinon.stub(),
+            getPublicKey : sinon.stub(),
+            sign         : sinon.stub(),
+            verify       : sinon.stub(),
+          } as KeyManager;
+
+          const cryptoApi = new AgentCryptoApi({ keyManager: keyManagerMock });
+
+          try {
+            await cryptoApi.unwrapKey({ decryptionKeyUri: 'urn:jwk:abcd1234', wrappedKeyBytes: new Uint8Array(0), wrappedKeyAlgorithm: 'A256GCM' });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error).to.be.an.instanceOf(Error);
+            expect(error.message).to.include('does not support key wrapping');
           }
         });
       });
@@ -220,7 +326,69 @@ describe('AgentCryptoApi', () => {
             // Validate the result.
             expect(error).to.exist;
             expect(error).to.be.an.instanceOf(Error);
-            expect(error.message).to.include('Unable to determine algorithm based on provided input');
+            expect(error.message).to.include('Algorithm not supported');
+          }
+        });
+      });
+
+      describe('wrapKey()', () => {
+        it('returns a wrapped key as a byte array', async () => {
+          const unwrappedKey: Jwk = {
+            kty : 'oct',
+            k   : 'hX-1yAAU6aZCwGqViYfAhIiaTyu1PURMswoI4IQmiY4',
+            alg : 'A256GCM',
+            kid : '-TssSnJNgh10-YTwuBtyZTnv0LY6sdT-TQl9WFTSetI',
+          };
+          const encryptionKeyUri = await testHarness.agent.crypto.generateKey({ algorithm: 'A256KW' });
+
+          const wrappedKeyBytes = await testHarness.agent.crypto.wrapKey({ unwrappedKey, encryptionKeyUri });
+
+          expect(wrappedKeyBytes).to.be.an.instanceOf(Uint8Array);
+          expect(wrappedKeyBytes.byteLength).to.equal(32 + 8); // 32 bytes for the wrapped private key, 8 bytes for the initialization vector
+        });
+
+        it('returns the expected wrapped key for given input', async () => {
+          const unwrappedKey: Jwk = {
+            kty : 'oct',
+            k   : 'hX-1yAAU6aZCwGqViYfAhIiaTyu1PURMswoI4IQmiY4',
+            alg : 'A256GCM',
+            kid : '-TssSnJNgh10-YTwuBtyZTnv0LY6sdT-TQl9WFTSetI',
+          };
+
+          const encryptionKey: Jwk = {
+            kty : 'oct',
+            k   : '47Fn3ZXGbmntoAKErKN5-d7yuwMejCJtOqgAeq_Ojk0',
+            alg : 'A256KW',
+            kid : 'izA6N7g3xmPWStB6Qe6BbGgfrXvrptzuH2eJ1wmdrtk',
+          };
+
+          const encryptionKeyUri = await testHarness.agent.crypto.importKey({ key: encryptionKey });
+
+          const wrappedKeyBytes = await testHarness.agent.crypto.wrapKey({ encryptionKeyUri, unwrappedKey });
+
+          const expectedOutput = Convert.hex('8c55fb6fc4c7bb0b6b483df65ba52bee7ed6e0f861ac8097b2394f61067d1157901295aba72c514b').toUint8Array(); // raw format
+          expect(wrappedKeyBytes).to.deep.equal(expectedOutput);
+        });
+
+        it('throws an error if the Key Manager does not support key wrapping', async () => {
+          const keyManagerMock = {
+            agent        : {} as Web5PlatformAgent,
+            digest       : sinon.stub(),
+            generateKey  : sinon.stub(),
+            getKeyUri    : sinon.stub(),
+            getPublicKey : sinon.stub(),
+            sign         : sinon.stub(),
+            verify       : sinon.stub(),
+          } as KeyManager;
+
+          const cryptoApi = new AgentCryptoApi({ keyManager: keyManagerMock });
+
+          try {
+            await cryptoApi.wrapKey({ encryptionKeyUri: 'urn:jwk:abcd1234', unwrappedKey: {} as Jwk });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error).to.be.an.instanceOf(Error);
+            expect(error.message).to.include('does not support key wrapping');
           }
         });
       });

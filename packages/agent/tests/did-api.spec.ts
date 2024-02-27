@@ -1,6 +1,8 @@
 
 import { expect } from 'chai';
-import { DidJwk } from '@web5/dids';
+import { BearerDid, DidJwk } from '@web5/dids';
+
+import type { Web5PlatformAgent } from '../src/types/agent.js';
 
 import { TestAgent } from './utils/test-agent.js';
 import { AgentDidApi, DidInterface } from '../src/did-api.js';
@@ -27,12 +29,12 @@ describe('AgentDidApi', () => {
     it(`returns the 'agent' instance property`, async () => {
       // @ts-expect-error because we are only mocking a single property.
       const mockAgent: Web5PlatformAgent = {
-        agentDid: 'did:method:abc123'
+        agentDid: { uri: 'did:method:abc123' } as BearerDid
       };
       const didApi = new AgentDidApi({ didMethods: [DidJwk], agent: mockAgent });
       const agent = didApi.agent;
       expect(agent).to.exist;
-      expect(agent.agentDid).to.equal('did:method:abc123');
+      expect(agent.agentDid.uri).to.equal('did:method:abc123');
     });
 
     it(`throws an error if the 'agent' instance property is undefined`, () => {

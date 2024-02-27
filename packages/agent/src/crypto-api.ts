@@ -1,9 +1,14 @@
-import { EdDsaAlgorithm, type CryptoApi, type Hasher, type InferKeyGeneratorAlgorithm, type Jwk, type KeyIdentifier, type KeyImporterExporter, type KmsDigestParams, type KmsExportKeyParams, type KmsGetKeyUriParams, type KmsGetPublicKeyParams, type KmsImportKeyParams, type KmsSignParams, type KmsVerifyParams, EcdsaAlgorithm, Sha2Algorithm, CryptoAlgorithm, Signer, SignParams, VerifyParams } from '@web5/crypto';
+import type { CryptoApi, Hasher, InferKeyGeneratorAlgorithm, Jwk, KeyIdentifier, KeyImporterExporter, KeyWrapper, KmsDigestParams, KmsExportKeyParams, KmsGetKeyUriParams, KmsGetPublicKeyParams, KmsImportKeyParams, KmsSignParams, KmsVerifyParams, Signer, SignParams, VerifyParams } from '@web5/crypto';
+
+import { EdDsaAlgorithm, EcdsaAlgorithm, Sha2Algorithm, CryptoAlgorithm } from '@web5/crypto';
 
 import type { Web5PlatformAgent } from './types/agent.js';
 import type { KeyManager } from './types/key-manager.js';
 
 import { LocalKeyManager } from './local-key-manager.js';
+import { InferKeyUnwrapAlgorithm } from './prototyping/crypto/types/key-wrapper.js';
+import { KmsUnwrapKeyParams, KmsWrapKeyParams } from './prototyping/crypto/types/params-kms.js';
+import { CryptoError, CryptoErrorCode } from './prototyping/crypto-error.js';
 
 /**
  * The `CryptoApiDigestParams` interface defines the algorithm-specific parameters that should
@@ -21,6 +26,12 @@ export interface CryptoApiGenerateKeyParams<TKeyManager> {
   algorithm: TKeyManager extends CryptoApi
     ? InferKeyGeneratorAlgorithm<TKeyManager>
     : InferKeyGeneratorAlgorithm<LocalKeyManager>;
+}
+
+export interface CryptoApiUnwrapKeyParams<TKeyManager> extends KmsUnwrapKeyParams {
+  wrappedKeyAlgorithm: TKeyManager extends CryptoApi
+    ? InferKeyUnwrapAlgorithm<TKeyManager>
+    : InferKeyUnwrapAlgorithm<LocalKeyManager>;
 }
 
 export type CryptoApiParams<TKeyManager> = {
@@ -68,7 +79,8 @@ type AlgorithmConstructor = typeof supportedAlgorithms[SupportedAlgorithm]['impl
 
 export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> implements
     CryptoApi<CryptoApiGenerateKeyParams<TKeyManager>>,
-    KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams> {
+    KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>,
+    KeyWrapper<KmsWrapKeyParams, KmsUnwrapKeyParams> {
 
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
@@ -162,6 +174,12 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
     }
   }
 
+  public async generateKey(params:
+    CryptoApiGenerateKeyParams<TKeyManager>
+  ): Promise<KeyIdentifier> {
+    return await this._keyManager.generateKey(params);
+  }
+
   public async getKeyUri({ key }:
     KmsGetKeyUriParams
   ): Promise<KeyIdentifier> {
@@ -174,12 +192,6 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
   ): Promise<Jwk> {
     const publicKey = await this._keyManager.getPublicKey({ keyUri });
     return publicKey;
-  }
-
-  public async generateKey(params:
-    CryptoApiGenerateKeyParams<TKeyManager>
-  ): Promise<KeyIdentifier> {
-    return await this._keyManager.generateKey(params);
   }
 
   public async importKey({ key }:
@@ -201,6 +213,18 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
     return signature;
   }
 
+  public async unwrapKey(params:
+    CryptoApiUnwrapKeyParams<TKeyManager>
+  ): Promise<Jwk> {
+    // If the Agent's key manager supports key wrapping, decrypt the key.
+    if ('unwrapKey' in this._keyManager && typeof this._keyManager.unwrapKey === 'function') {
+      const unwrappedKey = await this._keyManager.unwrapKey(params) as Jwk;
+      return unwrappedKey;
+    } else {
+      throw new Error('Key Manager does not support key wrapping');
+    }
+  }
+
   public async verify({ key, signature, data }:
     KmsVerifyParams
   ): Promise<boolean> {
@@ -214,6 +238,16 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
     const isSignatureValid = signer.verify({ key, signature, data });
 
     return isSignatureValid;
+  }
+
+  async wrapKey(params: KmsWrapKeyParams): Promise<Uint8Array> {
+    // If the Agent's key manager supports key wrapping, encrypt the key.
+    if ('wrapKey' in this._keyManager && typeof this._keyManager.wrapKey === 'function') {
+      const wrappedKeyBytes = await this._keyManager.wrapKey(params) as Uint8Array;
+      return wrappedKeyBytes;
+    } else {
+      throw new Error('Key Manager does not support key wrapping');
+    }
   }
 
   /**
@@ -242,7 +276,7 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
     // Check if algorithm is supported.
     const AlgorithmImplementation = supportedAlgorithms[algorithm]?.['implementation'];
     if (!AlgorithmImplementation) {
-      throw new Error(`Algorithm not supported: ${algorithm}`);
+      throw new CryptoError(CryptoErrorCode.AlgorithmNotSupported, `Algorithm not supported: ${algorithm}`);
     }
 
     // Check if instance already exists for the `AlgorithmImplementation`.
@@ -290,6 +324,9 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
       }
     }
 
-    throw new Error(`Unable to determine algorithm based on provided input: alg=${algProperty}, crv=${crvProperty}`);
+    throw new CryptoError(CryptoErrorCode.AlgorithmNotSupported,
+      `Algorithm not supported based on provided input: alg=${algProperty}, crv=${crvProperty}. ` +
+      'Please check the documentation for the list of supported algorithms.'
+    );
   }
 }
