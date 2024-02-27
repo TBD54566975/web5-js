@@ -316,10 +316,10 @@ export class CompactJwe {
 
 import { LocalKeyManager } from '@web5/crypto';
 
-import { hasDuplicateProperties } from '../../add-to-common.js';
-import { CryptoError, CryptoErrorCode } from '../../crypto-error.js';
+import { hasDuplicateProperties } from '../../common/object.js';
+import { CryptoError, CryptoErrorCode } from '../crypto-error.js';
 import { Convert } from '@web5/common';
-import { Pbkdf2 } from '../../crypto-pbkdf2.js';
+import { Pbkdf2 } from '../primitives/pbkdf2.js';
 
 function isValidJweHeader(obj: unknown): obj is JweHeaderParams {
   return typeof obj === 'object' && obj !== null

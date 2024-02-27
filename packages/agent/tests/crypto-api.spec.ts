@@ -4,6 +4,7 @@ import type { BearerDid } from '@web5/dids';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
+import { utils as cryptoUtils } from '@web5/crypto';
 
 import type { KeyManager } from '../src/types/key-manager.js';
 import type { Web5PlatformAgent } from '../src/types/agent.js';
@@ -57,6 +58,55 @@ describe('AgentCryptoApi', () => {
         await testHarness.closeStorage();
       });
 
+      describe('decrypt()', () => {
+        it('accepts a key identifier URI to decrypt the data', async () => {
+          // Setup.
+          const privateKey: Jwk = {
+            alg : 'A128GCM',
+            k   : '3k6i3iaSl7-_S-NH3N1GMQ',
+            kty : 'oct',
+            kid : 'HLYc5oFZYs3OfBfOa-dWL5md__xFUIpx1BJ6ueCPQQQ'
+          };
+          const ciphertext = Convert.hex('f27e81aa63c315a5cd03e2abcbc62a5665').toUint8Array();
+          const decryptionKeyUri = await testHarness.agent.crypto.importKey({ key: privateKey });
+
+          // Test the method.
+          const plaintext = await testHarness.agent.crypto.decrypt({
+            keyUri : decryptionKeyUri,
+            data   : ciphertext,
+            iv     : new Uint8Array(12)
+          });
+
+          // Validate the results.
+          expect(plaintext).to.be.instanceOf(Uint8Array);
+          const expectedPlaintext = Convert.hex('01').toUint8Array();
+          expect(plaintext).to.deep.equal(expectedPlaintext);
+        });
+
+        it('accepts a private JWK to decrypt the data', async () => {
+          // Setup.
+          const privateKey: Jwk = {
+            alg : 'A128GCM',
+            k   : '3k6i3iaSl7-_S-NH3N1GMQ',
+            kty : 'oct',
+            kid : 'HLYc5oFZYs3OfBfOa-dWL5md__xFUIpx1BJ6ueCPQQQ'
+          };
+          const ciphertext = Convert.hex('f27e81aa63c315a5cd03e2abcbc62a5665').toUint8Array();
+
+          // Test the method.
+          const plaintext = await testHarness.agent.crypto.decrypt({
+            key  : privateKey,
+            data : ciphertext,
+            iv   : new Uint8Array(12)
+          });
+
+          // Validate the results.
+          expect(plaintext).to.be.instanceOf(Uint8Array);
+          const expectedPlaintext = Convert.hex('01').toUint8Array();
+          expect(plaintext).to.deep.equal(expectedPlaintext);
+        });
+      });
+
       describe('digest()', () => {
         it('computes and returns a digest as a Uint8Array', async () => {
           // Setup.
@@ -104,6 +154,53 @@ describe('AgentCryptoApi', () => {
         });
       });
 
+      describe('encrypt()', () => {
+        it('accepts a key identifier URI to encrypt the data', async () => {
+          // Setup.
+          const encryptionKeyUri = await testHarness.agent.crypto.generateKey({ algorithm: 'A128GCM' });
+          const plaintext = new Uint8Array([1, 2, 3, 4]);
+          const iv = cryptoUtils.randomBytes(12); // Initialization vector.
+          const tagLength = 128; // Size in bits of the authentication tag.
+
+          // Test the method.
+          const ciphertext = await testHarness.agent.crypto.encrypt({
+            keyUri : encryptionKeyUri,
+            data   : plaintext,
+            iv,
+            tagLength
+          });
+
+          // Validate the results.
+          expect(ciphertext).to.be.instanceOf(Uint8Array);
+          expect(ciphertext.byteLength).to.equal(plaintext.byteLength + tagLength / 8);
+        });
+
+        it('accepts a private JWK to encrypt the data', async () => {
+          // Setup.
+          const privateKey: Jwk = {
+            kty : 'oct',
+            k   : 'n0Q35vyMl-2Dc87Nu6xx9Q',
+            alg : 'A128GCM',
+            kid : 'kpI8W6JS7O5ncakbn5dUOgP7uCuHGtZnkNOX2ZnRiss',
+          };
+          const plaintext = new Uint8Array([1, 2, 3, 4]);
+          const iv = cryptoUtils.randomBytes(12); // Initialization vector.
+          const tagLength = 128; // Size in bits of the authentication tag.
+
+          // Test the method.
+          const ciphertext = await testHarness.agent.crypto.encrypt({
+            key  : privateKey,
+            data : plaintext,
+            iv,
+            tagLength
+          });
+
+          // Validate the results.
+          expect(ciphertext).to.be.instanceOf(Uint8Array);
+          expect(ciphertext.byteLength).to.equal(plaintext.byteLength + tagLength / 8);
+        });
+      });
+
       describe('exportKey()', () => {
         it('returns a private key given a Key Uri', async () => {
           const keyUri = await testHarness.agent.crypto.generateKey({ algorithm: 'Ed25519' });
@@ -119,7 +216,9 @@ describe('AgentCryptoApi', () => {
         it('throws an error if the Key Manager does not support exporting private keys', async () => {
           const keyManagerMock = {
             agent        : {} as Web5PlatformAgent,
+            decrypt      : sinon.stub(),
             digest       : sinon.stub(),
+            encrypt      : sinon.stub(),
             generateKey  : sinon.stub().resolves('urn:jwk:abcd1234'),
             getKeyUri    : sinon.stub(),
             getPublicKey : sinon.stub(),
@@ -191,7 +290,9 @@ describe('AgentCryptoApi', () => {
         it('throws an error if the Key Manager does not support importing private keys', async () => {
           const keyManagerMock = {
             agent        : {} as Web5PlatformAgent,
+            decrypt      : sinon.stub(),
             digest       : sinon.stub(),
+            encrypt      : sinon.stub(),
             generateKey  : sinon.stub().resolves('urn:jwk:abcd1234'),
             getKeyUri    : sinon.stub(),
             getPublicKey : sinon.stub(),
@@ -246,7 +347,9 @@ describe('AgentCryptoApi', () => {
         it('throws an error if the Key Manager does not support key wrapping', async () => {
           const keyManagerMock = {
             agent        : {} as Web5PlatformAgent,
+            decrypt      : sinon.stub(),
             digest       : sinon.stub(),
+            encrypt      : sinon.stub(),
             generateKey  : sinon.stub(),
             getKeyUri    : sinon.stub(),
             getPublicKey : sinon.stub(),
@@ -373,7 +476,9 @@ describe('AgentCryptoApi', () => {
         it('throws an error if the Key Manager does not support key wrapping', async () => {
           const keyManagerMock = {
             agent        : {} as Web5PlatformAgent,
+            decrypt      : sinon.stub(),
             digest       : sinon.stub(),
+            encrypt      : sinon.stub(),
             generateKey  : sinon.stub(),
             getKeyUri    : sinon.stub(),
             getPublicKey : sinon.stub(),

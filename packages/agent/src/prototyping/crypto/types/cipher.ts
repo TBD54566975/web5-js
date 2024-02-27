@@ -1,5 +1,3 @@
-import type { KeyIdentifier } from '@web5/crypto';
-
 export type InferCipherAlgorithm<T> = T extends {
   /**
    * The `encrypt` method signature from which the algorithm type is inferred.
@@ -17,16 +15,3 @@ export type InferCipherAlgorithm<T> = T extends {
   ? A
   : never
 : never;
-
-/**
- * Parameters for KMS-based encryption and decryption operations.
- *
- * Intended for use with a Key Management System.
- */
-export interface KmsCipherParams {
-  /** Identifier for the private key in the KMS. */
-  keyUri: KeyIdentifier;
-
-  /** Data to be encrypted or decrypted. */
-  data: Uint8Array;
-}
