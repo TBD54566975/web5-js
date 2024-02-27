@@ -6,8 +6,8 @@ import type { Jwk } from '@web5/crypto';
 import { Convert } from '@web5/common';
 import { computeJwkThumbprint, isOctPrivateJwk } from '@web5/crypto';
 
-import type { UnwrapKeyParams, WrapKeyParams } from '../../crypto-params-direct.js';
-import { CryptoError, CryptoErrorCode } from '../../crypto-error.js';
+import type { UnwrapKeyParams, WrapKeyParams } from '../types/params-direct.js';
+import { CryptoError, CryptoErrorCode } from '../crypto-error.js';
 
 /**
  * Constant defining the AES key length values in bits.

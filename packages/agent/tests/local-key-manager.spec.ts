@@ -1,18 +1,113 @@
 import type { Jwk } from '@web5/crypto';
+import type { BearerDid } from '@web5/dids';
 
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
+import { utils as cryptoUtils } from '@web5/crypto';
 
 import type { Web5PlatformAgent } from '../src/types/agent.js';
 
 import { LocalKeyManager } from '../src/local-key-manager.js';
-import { CryptoErrorCode } from '../src/prototyping/crypto-error.js';
+import { CryptoErrorCode } from '../src/prototyping/crypto/crypto-error.js';
 
 describe('LocalKeyManager', () => {
   let keyManager: LocalKeyManager;
 
   beforeEach(() => {
     keyManager = new LocalKeyManager({ agent: {} as Web5PlatformAgent });
+  });
+
+  describe('get agent', () => {
+    it(`returns the 'agent' instance property`, async () => {
+      // @ts-expect-error because we are only mocking a single property.
+      const mockAgent: Web5PlatformAgent = {
+        agentDid: { uri: 'did:method:abc123' } as BearerDid
+      };
+      const cryptoApi = new LocalKeyManager({ agent: mockAgent });
+      const agent = cryptoApi.agent;
+      expect(agent).to.exist;
+      expect(agent.agentDid.uri).to.equal('did:method:abc123');
+    });
+
+    it(`throws an error if the 'agent' instance property is undefined`, () => {
+      const cryptoApi = new LocalKeyManager({});
+      expect(() =>
+        cryptoApi.agent
+      ).to.throw(Error, 'Unable to determine agent execution context');
+    });
+  });
+
+  describe('decrypt()', () => {
+    it('returns plaintext as a Uint8Array', async () => {
+      // Setup.
+      const privateKey: Jwk = {
+        alg : 'A128GCM',
+        k   : '3k6i3iaSl7-_S-NH3N1GMQ',
+        kty : 'oct',
+        kid : 'HLYc5oFZYs3OfBfOa-dWL5md__xFUIpx1BJ6ueCPQQQ'
+      };
+      const ciphertext = Convert.hex('f27e81aa63c315a5cd03e2abcbc62a5665').toUint8Array();
+      const decryptionKeyUri = await keyManager.importKey({ key: privateKey });
+
+      // Test the method.
+      const plaintext = await keyManager.decrypt({
+        keyUri : decryptionKeyUri,
+        data   : ciphertext,
+        iv     : new Uint8Array(12)
+      });
+
+      // Validate the results.
+      expect(plaintext).to.be.instanceOf(Uint8Array);
+    });
+  });
+
+  describe('encrypt()', () => {
+    it('returns ciphertext as a Uint8Array', async () => {
+      // Setup.
+      const encryptionKeyUri = await keyManager.generateKey({ algorithm: 'A128GCM' });
+      const plaintext = new Uint8Array([1, 2, 3, 4]);
+      const iv = cryptoUtils.randomBytes(12); // Initialization vector.
+      const tagLength = 128; // Size in bits of the authentication tag.
+
+      // Test the method.
+      const ciphertext = await keyManager.encrypt({
+        keyUri : encryptionKeyUri,
+        data   : plaintext,
+        iv,
+        tagLength
+      });
+
+      // Validate the results.
+      expect(ciphertext).to.be.instanceOf(Uint8Array);
+      expect(ciphertext.byteLength).to.equal(plaintext.byteLength + tagLength / 8);
+    });
+  });
+
+  describe('exportKey()', () => {
+    it('exports a private key as a JWK', async () => {
+      const keyUri = await keyManager.generateKey({ algorithm: 'secp256k1' });
+
+      const jwk = await keyManager.exportKey({ keyUri });
+
+      expect(jwk).to.exist;
+      expect(jwk).to.be.an('object');
+      expect(jwk).to.have.property('kty');
+      expect(jwk).to.have.property('d');
+    });
+
+    it('throws an error if the key does not exist', async () => {
+      const keyUri = 'urn:jwk:does-not-exist';
+
+      try {
+        await keyManager.exportKey({ keyUri });
+        expect.fail('Expected an error to be thrown.');
+
+      } catch (error: any) {
+        expect(error).to.exist;
+        expect(error).to.be.an.instanceOf(Error);
+        expect(error.message).to.include('Key not found');
+      }
+    });
   });
 
   describe('generateKey()', () => {

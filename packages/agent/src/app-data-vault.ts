@@ -13,8 +13,8 @@ import type { JweHeaderParams } from './prototyping/crypto/jose/jwe.js';
 import type { AppDataBackup, AppDataStatus, AppDataStore } from './types/app-data.js';
 
 import { AgentCryptoApi } from './crypto-api.js';
-import { Hkdf } from './prototyping/crypto-hkdf.js';
-import { Pbkdf2 } from './prototyping/crypto-pbkdf2.js';
+import { Hkdf } from './prototyping/crypto/primitives/hkdf.js';
+import { Pbkdf2 } from './prototyping/crypto/primitives/pbkdf2.js';
 import { isPortableDid } from './prototyping/dids/utils.js';
 import { CompactJwe } from './prototyping/crypto/jose/jwe.js';
 import { DeterministicKeyGenerator } from './utils-internal.js';

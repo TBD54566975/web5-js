@@ -1,7 +1,7 @@
 // ! TODO : Make sure I remove `@noble/ciphers` from the Agent package.json once this is moved to the `@web5/crypto` package.
 import { getWebcryptoSubtle } from '@noble/ciphers/webcrypto/utils';
 
-import type { DeriveKeyBytesParams } from './crypto-params-direct.js';
+import type { DeriveKeyBytesParams } from '../types/params-direct.js';
 
 /**
  * The object that should be passed into `Pbkdf2.deriveKeyBytes()`, when using the PBKDF2 algorithm.

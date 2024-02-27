@@ -1,6 +1,19 @@
 import type { Jwk } from '@web5/crypto';
 
 /**
+ * Parameters for encryption and decryption operations.
+ *
+ * Intended for use with a Key Management System.
+ */
+export interface CipherParams {
+  /** A {@link Jwk} containing the key to be used for encryption or decryption. */
+  key: Jwk;
+
+  /** Data to be encrypted or decrypted. */
+  data: Uint8Array;
+}
+
+/**
  * Parameters for deriving bytes.
  */
 export interface DeriveKeyBytesParams {
