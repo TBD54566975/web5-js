@@ -6,7 +6,7 @@ import type { IdentityMetadata, PortableIdentity } from './types/identity.js';
 
 import { AgentCryptoApi } from './crypto-api.js';
 import { BearerIdentity } from './bearer-identity.js';
-import { isPortableDid } from './temp/add-to-dids.js';
+import { isPortableDid } from './prototyping/dids/utils.js';
 import { DidMethodCreateOptions } from './did-api.js';
 import { InMemoryIdentityStore } from './store-identity.js';
 import { AgentDataStore } from './store-data.js';

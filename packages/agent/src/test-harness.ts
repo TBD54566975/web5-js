@@ -16,7 +16,7 @@ import { LocalKeyManager } from './local-key-manager.js';
 import { SyncEngineLevel } from './sync-engine-level.js';
 import { DwnDidStore, InMemoryDidStore } from './store-did.js';
 import { DwnKeyStore, InMemoryKeyStore } from './store-key.js';
-import { DidResolverCacheMemory } from './temp/resolver-cache-memory.js';
+import { DidResolverCacheMemory } from './prototyping/dids/resolver-cache-memory.js';
 import { DwnIdentityStore, InMemoryIdentityStore } from './store-identity.js';
 import { BearerIdentity } from './bearer-identity.js';
 

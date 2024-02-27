@@ -10,7 +10,7 @@ import { TestAgent } from './utils/test-agent.js';
 import { DwnInterface } from '../src/types/dwn.js';
 import { TENANT_SEPARATOR } from '../src/utils-internal.js';
 import { Web5PlatformAgent } from '../src/types/agent.js';
-import { isPortableDid } from '../src/temp/add-to-dids.js';
+import { isPortableDid } from '../src/prototyping/dids/utils.js';
 import { ManagedAgentTestHarness } from '../src/test-harness.js';
 import { DwnDataStore, InMemoryDataStore } from '../src/store-data.js';
 import { RecordsDeleteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';

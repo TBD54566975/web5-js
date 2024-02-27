@@ -18,7 +18,7 @@ import type { AgentDataStore } from './store-data.js';
 import type { ResponseStatus, Web5PlatformAgent } from './types/agent.js';
 
 import { InMemoryDidStore } from './store-did.js';
-import { DidResolverCacheMemory } from './temp/resolver-cache-memory.js';
+import { DidResolverCacheMemory } from './prototyping/dids/resolver-cache-memory.js';
 
 export enum DidInterface {
   Create  = 'Create',
