@@ -5,8 +5,8 @@ import { utils as cryptoUtils } from '@web5/crypto';
 
 import { Jwt } from './jwt.js';
 import { SsiValidator } from './validators.js';
+import { DEFAULT_VC_CONTEXT } from './verifiable-credential.js';
 
-export const DEFAULT_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
 export const DEFAULT_VP_TYPE = 'VerifiablePresentation';
 
 /**
@@ -133,7 +133,7 @@ export class VerifiablePresentation {
     }
 
     const vpDataModel: VpDataModel = {
-      '@context' : [DEFAULT_CONTEXT],
+      '@context' : [DEFAULT_VC_CONTEXT],
       type       : Array.isArray(type)
         ? [DEFAULT_VP_TYPE, ...type]
         : (type ? [DEFAULT_VP_TYPE, type] : [DEFAULT_VP_TYPE]),
