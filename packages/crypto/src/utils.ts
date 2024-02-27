@@ -110,7 +110,11 @@ export function getJoseSignatureAlgorithmFromPublicKey(publicKey: Jwk): string {
     return curveToJoseAlgorithm[publicKey.crv];
   }
 
-  throw new Error(`Unable to determine algorithm based on provided input: alg=${publicKey.alg}, crv=${publicKey.crv}`);
+  throw new Error(
+    `Unable to determine algorithm based on provided input: alg=${publicKey.alg}, crv=${publicKey.crv}. ` +
+    `Supported 'alg' values: ${Object.values(curveToJoseAlgorithm).join(', ')}. ` +
+    `Supported 'crv' values: ${Object.keys(curveToJoseAlgorithm).join(', ')}.`
+  );
 }
 
 /**
