@@ -14,7 +14,7 @@ const testConfigurations = [
   }
 ];
 
-describe.only('AppDataVault', () => {
+describe('AppDataVault', () => {
   testConfigurations.forEach((test) => {
     describe(`with ${test.name}`, () => {
       let dataVault: AppDataVault;

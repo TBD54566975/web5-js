@@ -1,8 +1,10 @@
 import type {
   Jwk,
+  Cipher,
   Signer,
   KeyWrapper,
   SignParams,
+  AesGcmParams,
   KeyGenerator,
   VerifyParams,
   KeyIdentifier,
@@ -32,13 +34,12 @@ import {
 import type { AgentDataStore } from './store-data.js';
 import type { KeyManager } from './types/key-manager.js';
 import type { Web5PlatformAgent } from './types/agent.js';
-import type { KmsCipherParams } from './prototyping/crypto/types/cipher.js';
-import type { KmsUnwrapKeyParams, KmsWrapKeyParams } from './prototyping/crypto/types/params-kms.js';
+import type { CipherParams, UnwrapKeyParams, WrapKeyParams } from './prototyping/crypto/types/params-direct.js';
+import type { KmsCipherParams, KmsUnwrapKeyParams, KmsWrapKeyParams } from './prototyping/crypto/types/params-kms.js';
 
 import { InMemoryKeyStore } from './store-key.js';
 import { AesKwAlgorithm } from './prototyping/crypto/algorithms/aes-kw.js';
-import { CryptoError, CryptoErrorCode } from './prototyping/crypto-error.js';
-import { UnwrapKeyParams, WrapKeyParams } from './prototyping/crypto-params-direct.js';
+import { CryptoError, CryptoErrorCode } from './prototyping/crypto/crypto-error.js';
 
 /**
  * `supportedAlgorithms` is an object mapping algorithm names to their respective implementations
@@ -108,21 +109,6 @@ export type LocalKmsParams = {
    */
   keyStore?: AgentDataStore<Jwk>;
 };
-
-/**
- * The `LocalKmsCipherParams` interface defines the algorithm-specific parameters that
- * should be passed into the {@link LocalKeyManager.encrypt} or {@link LocalKeyManager.decrypt}
- * method when encrypting or decrypting data.
- */
-export interface LocalKmsCipherParams extends KmsCipherParams {
-  /**
-   * A string defining the type of key to generate. The value must be one of the following:
-   * - `"A128GCM"`: AES GCM using a 128-bit key.
-   * - `"A192GCM"`: AES GCM using a 192-bit key.
-   * - `"A256GCM"`: AES GCM using a 256-bit key.
-   */
-  algorithm: 'A128GCM' | 'A192GCM' | 'A256GCM';
-}
 
 /**
  * The `LocalKmsGenerateKeyParams` interface defines the algorithm-specific parameters that
@@ -213,6 +199,42 @@ export class LocalKeyManager implements
 
   set agent(agent: Web5PlatformAgent) {
     this._agent = agent;
+  }
+
+  public async decrypt({ keyUri, ...params }:
+    KmsCipherParams & AesGcmParams
+  ): Promise<Uint8Array> {
+    // Get the private key from the key store.
+    const privateKey = await this.getPrivateKey({ keyUri });
+
+    // Determine the algorithm name based on the JWK's `alg` property.
+    const algorithm = this.getAlgorithmName({ key: privateKey });
+
+    // Get the cipher algorithm based on the algorithm name.
+    const cipher = this.getAlgorithm({ algorithm }) as Cipher<CipherParams, CipherParams>;
+
+    // Encrypt the data.
+    const ciphertext = await cipher.decrypt({ key: privateKey, ...params });
+
+    return ciphertext;
+  }
+
+  public async encrypt({ keyUri, ...params }:
+    KmsCipherParams & AesGcmParams
+  ): Promise<Uint8Array> {
+    // Get the private key from the key store.
+    const privateKey = await this.getPrivateKey({ keyUri });
+
+    // Determine the algorithm name based on the JWK's `alg` property.
+    const algorithm = this.getAlgorithmName({ key: privateKey });
+
+    // Get the cipher algorithm based on the algorithm name.
+    const cipher = this.getAlgorithm({ algorithm }) as Cipher<CipherParams, CipherParams>;
+
+    // Encrypt the data.
+    const ciphertext = await cipher.encrypt({ key: privateKey, ...params });
+
+    return ciphertext;
   }
 
   /**
@@ -560,7 +582,7 @@ export class LocalKeyManager implements
 
     // Check if instance already exists for the `AlgorithmImplementation`.
     if (!this._algorithmInstances.has(AlgorithmImplementation)) {
-    // If not, create a new instance and store it in the cache
+      // If not, create a new instance and store it in the cache
       this._algorithmInstances.set(AlgorithmImplementation, new AlgorithmImplementation());
     }
 
@@ -603,7 +625,10 @@ export class LocalKeyManager implements
       }
     }
 
-    throw new CryptoError(CryptoErrorCode.AlgorithmNotSupported, `Algorithm not supported based on provided input: alg=${algProperty}, crv=${crvProperty}`);
+    throw new CryptoError(CryptoErrorCode.AlgorithmNotSupported,
+      `Algorithm not supported based on provided input: alg=${algProperty}, crv=${crvProperty}. ` +
+      'Please check the documentation for the list of supported algorithms.'
+    );
   }
 
   /**

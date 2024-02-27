@@ -1,6 +1,19 @@
 import type { Jwk, KeyIdentifier } from '@web5/crypto';
 
 /**
+ * Parameters for KMS-based encryption and decryption operations.
+ *
+ * Intended for use with a Key Management System.
+ */
+export interface KmsCipherParams {
+  /** Identifier for the private key in the KMS. */
+  keyUri: KeyIdentifier;
+
+  /** Data to be encrypted or decrypted. */
+  data: Uint8Array;
+}
+
+/**
  * Parameters for unwrapping a key using a KMS. Intended for use with a Key Management System.
  */
 export interface KmsUnwrapKeyParams {

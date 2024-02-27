@@ -2,7 +2,7 @@ import type { GenerateKeyParams, Jwk, KeyGenerator, KeyWrapper } from '@web5/cry
 
 import { CryptoAlgorithm } from '@web5/crypto';
 
-import type { UnwrapKeyParams, WrapKeyParams } from '../../crypto-params-direct.js';
+import type { UnwrapKeyParams, WrapKeyParams } from '../types/params-direct.js';
 
 import { AesKw } from '../primitives/aes-kw.js';
 

@@ -1,4 +1,5 @@
 import type {
+  Cipher,
   Signer,
   KeyIdentifier,
   KmsSignParams,
@@ -8,9 +9,12 @@ import type {
   KmsGetPublicKeyParams,
   AsymmetricKeyGenerator,
 } from '@web5/crypto';
-import { Web5PlatformAgent } from './agent.js';
+
+import type { Web5PlatformAgent } from './agent.js';
+import type { KmsCipherParams } from '../prototyping/crypto/types/params-kms.js';
 
 export interface KeyManagerParams {
+  CipherInput?: unknown;
   GenerateKeyInput?: unknown;
   GenerateKeyOutput?: unknown;
   GetPublicKeyInput?: unknown;
@@ -19,6 +23,7 @@ export interface KeyManagerParams {
 }
 
 export interface DefaultKeyManagerParams {
+  CipherInput: KmsCipherParams;
   GenerateKeyInput: KmsGenerateKeyParams;
   GenerateKeyOutput: KeyIdentifier;
   GetPublicKeyInput: KmsGetPublicKeyParams;
@@ -68,6 +73,7 @@ export interface DefaultKeyManagerParams {
  */
 export interface KeyManager<T extends KeyManagerParams = DefaultKeyManagerParams>
   extends AsymmetricKeyGenerator<T['GenerateKeyInput'], T['GenerateKeyOutput'], T['GetPublicKeyInput']>,
+          Cipher<T['CipherInput'], T['CipherInput']>,
           Signer<T['SignInput'], T['VerifyInput']> {
 
   agent: Web5PlatformAgent;
