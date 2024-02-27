@@ -4,7 +4,7 @@ import type {
 } from '@sphereon/ssi-types';
 
 import {
-  DEFAULT_CONTEXT,
+  DEFAULT_VC_CONTEXT,
   DEFAULT_VC_TYPE,
   VerifiableCredential
 } from './verifiable-credential.js';
@@ -23,8 +23,8 @@ export class SsiValidator {
 
   static validateContext(value: ICredentialContextType | ICredentialContextType[]): void {
     const input = this.asArray(value);
-    if (input.length < 1 || input.indexOf(DEFAULT_CONTEXT) === -1) {
-      throw new Error(`@context is missing default context "${DEFAULT_CONTEXT}"`);
+    if (input.length < 1 || input.indexOf(DEFAULT_VC_CONTEXT) === -1) {
+      throw new Error(`@context is missing default context "${DEFAULT_VC_CONTEXT}"`);
     }
   }
 
