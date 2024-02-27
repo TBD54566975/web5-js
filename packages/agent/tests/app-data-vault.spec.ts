@@ -44,19 +44,25 @@ describe.only('AppDataVault', () => {
           // Initialize the vault.
           await dataVault.initialize({ passphrase: 'dumbbell-krakatoa-ditty' });
 
-          // Backup the vault.
-          const backup = await dataVault.backup({ passphrase: 'dumbbell-krakatoa-ditty' });
+          // The vault should not have been backed up yet.
+          let vaultStatus = await dataVault.getStatus();
+          expect(vaultStatus.lastBackup).to.be.null;
 
-          // Verify that the backup is a string.
-          expect(backup).to.exist;
-          expect(backup).to.have.property('data').is.a.string;
-          expect(backup).to.have.property('dateCreated').is.a.string;
-          expect(backup).to.have.property('size').greaterThan(100);
-        }).slow(1000); // Yellow (>= 500ms), Red (>= 1000ms);
+          // Backup the vault.
+          const encryptedBackup = await dataVault.backup();
+
+          // Verify the results.
+          expect(encryptedBackup).to.exist;
+          expect(encryptedBackup).to.have.property('data').is.a.string;
+          expect(encryptedBackup).to.have.property('dateCreated').is.a.string;
+          expect(encryptedBackup).to.have.property('size').greaterThan(100);
+          vaultStatus = await dataVault.getStatus();
+          expect(vaultStatus.lastBackup).to.be.string;
+        });
 
         it('throws an error if the vault is not initialized', async () => {
           try {
-            await dataVault.backup({ passphrase: 'dumbbell-krakatoa-ditty' });
+            await dataVault.backup();
             expect.fail('Expected an error to be thrown.');
           } catch (error: any) {
             expect(error.message).to.include('data vault has not been initialized');
@@ -95,9 +101,7 @@ describe.only('AppDataVault', () => {
       describe('getAgentDid()', () => {
         it('should return the agent DID for an initialized vault', async () => {
           // Initialize the vault.
-          await dataVault.initialize({
-            passphrase: 'dumbbell-krakatoa-ditty'
-          });
+          await dataVault.initialize({ passphrase: 'dumbbell-krakatoa-ditty' });
 
           const agentDid = await dataVault.getAgentDid();
 
@@ -106,7 +110,7 @@ describe.only('AppDataVault', () => {
           expect(agentDid).to.have.property('document');
           expect(agentDid).to.have.property('metadata');
           expect(agentDid).to.have.property('keyManager');
-        }).slow(1000); // Yellow (>= 500ms), Red (>= 1000ms);
+        });
 
         it('should deterministically return a DID given a mnemonic', async () => {
           // Initialize the vault.
@@ -119,7 +123,7 @@ describe.only('AppDataVault', () => {
 
           // Verify that the expected DID URI is returned given the mnemonic.
           expect(agentDid).to.have.property('uri', 'did:dht:qftx7z968xcpfy1a1diu75pg5meap3gdtg6ezagaw849wdh6oubo');
-        }).slow(1000); // Yellow (>= 500ms), Red (>= 1000ms);
+        });
       });
 
       describe('initialize()', () => {
@@ -137,7 +141,7 @@ describe.only('AppDataVault', () => {
           vaultStatus = await dataVault.getStatus();
           expect(vaultStatus.initialized).to.be.true;
           expect(vaultStatus.locked).to.be.false;
-        }).slow(800); // Yellow (>= 400ms), Red (>= 800ms);
+        });
 
         it('generates and returns a 12-word mnenomic if one is not provided', async () => {
           // Initialize the vault.
@@ -148,7 +152,7 @@ describe.only('AppDataVault', () => {
           // Verify that the vault is initialized and is unlocked.
           expect(generatedMnemonic).to.be.a('string');
           expect(generatedMnemonic.split(' ')).to.have.lengthOf(12);
-        }).slow(300); // Yellow (>= 150ms), Red (>= 300ms);
+        });
 
         it('accepts a mnemonic', async () => {
           const predefinedMnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
@@ -161,7 +165,41 @@ describe.only('AppDataVault', () => {
 
           // Verify that the vault is initialized and is unlocked.
           expect(returnedMnemonic).to.equal(predefinedMnemonic);
-        }).slow(300); // Yellow (>= 150ms), Red (>= 300ms)
+        });
+      });
+
+      describe('restore()', () => {
+        it('should restore the vault from a backup', async () => {
+          const passphrase = 'dumbbell-krakatoa-ditty';
+
+          // Initialize the vault.
+          await dataVault.initialize({ passphrase });
+
+          // Backup the vault.
+          const encryptedBackup = await dataVault.backup();
+
+          // The vault should not have been restored.
+          let vaultStatus = await dataVault.getStatus();
+          expect(vaultStatus.lastRestore).to.be.null;
+
+          // Restore the vault from the backup.
+          await dataVault.restore({ passphrase, backup: encryptedBackup });
+
+          // Verify the results.
+          vaultStatus = await dataVault.getStatus();
+          expect(vaultStatus.lastRestore).to.be.string;
+          expect(vaultStatus.initialized).to.be.true;
+          expect(vaultStatus.locked).to.be.false;
+        });
+
+        it('throws an error if the vault is not initialized', async () => {
+          try {
+            await dataVault.backup();
+            expect.fail('Expected an error to be thrown.');
+          } catch (error: any) {
+            expect(error.message).to.include('data vault has not been initialized');
+          }
+        });
       });
 
       describe('unlock()', () => {
@@ -194,7 +232,7 @@ describe.only('AppDataVault', () => {
           vaultStatus = await dataVault.getStatus();
           expect(vaultStatus.initialized).to.be.true;
           expect(vaultStatus.locked).to.be.false;
-        }).slow(400); // Yellow (>= 200ms), Red (>= 400ms);
+        });
 
         it('returns true immediately if the vault is already unlocked', async () => {
           // Validate that the vault is not initialized and is locked.
@@ -217,7 +255,28 @@ describe.only('AppDataVault', () => {
           vaultStatus = await dataVault.getStatus();
           expect(vaultStatus.initialized).to.be.true;
           expect(vaultStatus.locked).to.be.false;
-        }).slow(400); // Yellow (>= 200ms), Red (>= 400ms);
+        });
+
+        it('throws an error if the vault is not initialized', async () => {
+          try {
+            await dataVault.unlock({ passphrase: 'dumbbell-krakatoa-ditty' });
+            expect.fail('Expected an error to be thrown.');
+          } catch (error: any) {
+            expect(error.message).to.include('vault has not been initialized');
+          }
+        });
+
+        it('throws an error if the passphrase is incorrect', async () => {
+          // Initialize the vault.
+          await dataVault.initialize({ passphrase: 'dumbbell-krakatoa-ditty' });
+
+          try {
+            await dataVault.unlock({ passphrase: 'incorrect-passphrase' });
+            expect.fail('Expected an error to be thrown.');
+          } catch (error: any) {
+            expect(error.message).to.include('incorrect passphrase');
+          }
+        });
       });
     });
   });

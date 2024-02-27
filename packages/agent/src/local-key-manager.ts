@@ -1,6 +1,7 @@
 import type {
   Jwk,
   Signer,
+  KeyWrapper,
   SignParams,
   KeyGenerator,
   VerifyParams,
@@ -22,6 +23,7 @@ import {
   Sha2Algorithm,
   EcdsaAlgorithm,
   EdDsaAlgorithm,
+  AesGcmAlgorithm,
   CryptoAlgorithm,
   KEY_URI_PREFIX_JWK,
   computeJwkThumbprint,
@@ -29,8 +31,14 @@ import {
 
 import type { AgentDataStore } from './store-data.js';
 import type { KeyManager } from './types/key-manager.js';
+import type { Web5PlatformAgent } from './types/agent.js';
+import type { KmsCipherParams } from './prototyping/crypto/types/cipher.js';
+import type { KmsUnwrapKeyParams, KmsWrapKeyParams } from './prototyping/crypto/types/params-kms.js';
+
 import { InMemoryKeyStore } from './store-key.js';
-import { Web5PlatformAgent } from './types/agent.js';
+import { AesKwAlgorithm } from './prototyping/crypto/algorithms/aes-kw.js';
+import { CryptoError, CryptoErrorCode } from './prototyping/crypto-error.js';
+import { UnwrapKeyParams, WrapKeyParams } from './prototyping/crypto-params-direct.js';
 
 /**
  * `supportedAlgorithms` is an object mapping algorithm names to their respective implementations
@@ -41,26 +49,34 @@ import { Web5PlatformAgent } from './types/agent.js';
  * `LocalKeyManager` class.
  */
 const supportedAlgorithms = {
+  'AES-GCM': {
+    implementation : AesGcmAlgorithm,
+    names          : ['A128GCM', 'A192GCM', 'A256GCM'] as const,
+  },
+  'AES-KW': {
+    implementation : AesKwAlgorithm,
+    names          : ['A128KW', 'A192KW', 'A256KW'] as const,
+  },
   'Ed25519': {
     implementation : EdDsaAlgorithm,
-    names          : ['Ed25519'],
+    names          : ['Ed25519'] as const,
   },
   'secp256k1': {
     implementation : EcdsaAlgorithm,
-    names          : ['ES256K', 'secp256k1'],
+    names          : ['ES256K', 'secp256k1'] as const,
   },
   'secp256r1': {
     implementation : EcdsaAlgorithm,
-    names          : ['ES256', 'secp256r1'],
+    names          : ['ES256', 'secp256r1'] as const,
   },
   'SHA-256': {
     implementation : Sha2Algorithm,
-    names          : ['SHA-256']
+    names          : ['SHA-256'] as const
   }
 } satisfies {
   [key: string]: {
     implementation : typeof CryptoAlgorithm;
-    names          : string[];
+    names          : readonly string[];
   }
 };
 
@@ -69,6 +85,10 @@ type SupportedAlgorithm = keyof typeof supportedAlgorithms;
 
 /* Helper type for `supportedAlgorithms` implementations. */
 type AlgorithmConstructor = typeof supportedAlgorithms[SupportedAlgorithm]['implementation'];
+
+// type AlgorithmNames = typeof supportedAlgorithms[SupportedAlgorithm]['names'][number];
+//   ^?
+
 
 /**
  * The `LocalKmsParams` interface specifies the parameters for initializing an instance of
@@ -90,6 +110,21 @@ export type LocalKmsParams = {
 };
 
 /**
+ * The `LocalKmsCipherParams` interface defines the algorithm-specific parameters that
+ * should be passed into the {@link LocalKeyManager.encrypt} or {@link LocalKeyManager.decrypt}
+ * method when encrypting or decrypting data.
+ */
+export interface LocalKmsCipherParams extends KmsCipherParams {
+  /**
+   * A string defining the type of key to generate. The value must be one of the following:
+   * - `"A128GCM"`: AES GCM using a 128-bit key.
+   * - `"A192GCM"`: AES GCM using a 192-bit key.
+   * - `"A256GCM"`: AES GCM using a 256-bit key.
+   */
+  algorithm: 'A128GCM' | 'A192GCM' | 'A256GCM';
+}
+
+/**
  * The `LocalKmsGenerateKeyParams` interface defines the algorithm-specific parameters that
  * should be passed into the {@link LocalKeyManager.generateKey | `LocalKeyManager.generateKey()`}
  * method when generating a key in the local KMS.
@@ -100,12 +135,35 @@ export interface LocalKmsGenerateKeyParams extends KmsGenerateKeyParams {
    * - `"Ed25519"`
    * - `"secp256k1"`
    */
-  algorithm: 'Ed25519' | 'secp256k1' | 'secp256r1';
+  algorithm:
+    | 'Ed25519'                         // Edwards Curve Digital Signature Algorithm (EdDSA)
+    | 'secp256k1' | 'secp256r1'         // Elliptic Curve Digital Signature Algorithm (ECDSA)
+    | 'A128GCM' | 'A192GCM' | 'A256GCM' // AES GCM with a 128-bit, 192-bit, or 256-bit key
+    | 'A128KW' | 'A192KW' | 'A256KW';   // AES Key Wrap with a 128-bit, 192-bit, or 256-bit key
+}
+
+/**
+ * The `LocalKmsUnwrapKeyParams` interface defines the algorithm-specific parameters that
+ * should be passed into the {@link LocalKeyManager.wrapKey} method when wrapping a key using a
+ * key stored in the local KMS to encrypt the key material.
+ */
+export interface LocalKmsUnwrapKeyParams extends KmsUnwrapKeyParams {
+  /**
+   * A string defining the type of wrapped key. The value must be one of the following:
+   * - `"A128GCM"`: AES GCM using a 128-bit key.
+   * - `"A192GCM"`: AES GCM using a 192-bit key.
+   * - `"A256GCM"`: AES GCM using a 256-bit key.
+   * - `"A128KW"`: AES Key Wrap using a 128-bit key.
+   * - `"A192KW"`: AES Key Wrap using a 192-bit key.
+   * - `"A256KW"`: AES Key Wrap using a 256-bit key.
+   */
+  wrappedKeyAlgorithm: 'A128GCM' | 'A192GCM' | 'A256GCM' | 'A128KW' | 'A192KW' | 'A256KW';
 }
 
 export class LocalKeyManager implements
     KeyManager,
-    KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams> {
+    KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>,
+    KeyWrapper<KmsWrapKeyParams, KmsUnwrapKeyParams> {
 
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
@@ -201,14 +259,17 @@ export class LocalKeyManager implements
    *
    * @returns A Promise that resolves to the key URI, a unique identifier for the generated key.
    */
-  public async generateKey({ algorithm }:
+  public async generateKey({ algorithm: algorithmIdentifier }:
     LocalKmsGenerateKeyParams
   ): Promise<KeyIdentifier> {
-    // Get the key generator implementation based on the specified `algorithm` parameter.
+    // Determine the algorithm name based on the given algorithm identifier.
+    const algorithm = this.getAlgorithmName({ key: { alg: algorithmIdentifier } });
+
+    // Get the key generator implementation based on the algorithm.
     const keyGenerator = this.getAlgorithm({ algorithm }) as KeyGenerator<LocalKmsGenerateKeyParams, Jwk>;
 
     // Generate the key.
-    const privateKey = await keyGenerator.generateKey({ algorithm });
+    const privateKey = await keyGenerator.generateKey({ algorithm: algorithmIdentifier });
 
     // If the key ID is undefined, set it to the JWK thumbprint.
     privateKey.kid ??= await computeJwkThumbprint({ jwk: privateKey });
@@ -392,6 +453,24 @@ export class LocalKeyManager implements
     return signature;
   }
 
+  public async unwrapKey({ wrappedKeyBytes, wrappedKeyAlgorithm, decryptionKeyUri }:
+    LocalKmsUnwrapKeyParams
+  ): Promise<Jwk> {
+    // Get the private key from the key store.
+    const decryptionKey = await this.getPrivateKey({ keyUri: decryptionKeyUri });
+
+    // Determine the algorithm name based on the JWK's `alg` property.
+    const algorithm = this.getAlgorithmName({ key: decryptionKey });
+
+    // Get the key wrapping algorithm based on the algorithm name.
+    const keyWrapper = this.getAlgorithm({ algorithm }) as KeyWrapper<WrapKeyParams, UnwrapKeyParams>;
+
+    // Decrypt the key.
+    const unwrappedKey = await keyWrapper.unwrapKey({ wrappedKeyBytes, wrappedKeyAlgorithm, decryptionKey });
+
+    return unwrappedKey;
+  }
+
   /**
    * Verifies a digital signature associated the provided data using the provided key.
    *
@@ -432,6 +511,24 @@ export class LocalKeyManager implements
     return isSignatureValid;
   }
 
+  public async wrapKey({ unwrappedKey, encryptionKeyUri }:
+    KmsWrapKeyParams
+  ): Promise<Uint8Array> {
+    // Get the private key from the key store.
+    const encryptionKey = await this.getPrivateKey({ keyUri: encryptionKeyUri });
+
+    // Determine the algorithm name based on the JWK's `alg` property.
+    const algorithm = this.getAlgorithmName({ key: encryptionKey });
+
+    // Get the key wrapping algorithm based on the algorithm name.
+    const keyWrapper = this.getAlgorithm({ algorithm }) as KeyWrapper<WrapKeyParams, UnwrapKeyParams>;
+
+    // Encrypt the key.
+    const wrappedKeyBytes = await keyWrapper.wrapKey({ unwrappedKey, encryptionKey });
+
+    return wrappedKeyBytes;
+  }
+
   /**
    * Retrieves an algorithm implementation instance based on the provided algorithm name.
    *
@@ -458,7 +555,7 @@ export class LocalKeyManager implements
     // Check if algorithm is supported.
     const AlgorithmImplementation = supportedAlgorithms[algorithm]?.['implementation'];
     if (!AlgorithmImplementation) {
-      throw new Error(`Algorithm not supported: ${algorithm}`);
+      throw new CryptoError(CryptoErrorCode.AlgorithmNotSupported, `Algorithm not supported: ${algorithm}`);
     }
 
     // Check if instance already exists for the `AlgorithmImplementation`.
@@ -472,7 +569,7 @@ export class LocalKeyManager implements
   }
 
   /**
-   * Determines the name of the algorithm based on the key's properties.
+   * Determines the algorithm name based on the key's properties.
    *
    * @remarks
    * This method facilitates the identification of the correct algorithm for cryptographic
@@ -487,9 +584,9 @@ export class LocalKeyManager implements
    * @param params - The parameters for determining the algorithm name.
    * @param params.key - A JWK containing the `alg` or `crv` properties.
    *
-   * @returns The name of the algorithm associated with the key.
+   * @returns The algorithm name associated with the key.
    *
-   * @throws Error if the algorithm cannot be determined from the provided input.
+   * @throws Error if the algorithm name cannot be determined from the provided input.
    */
   private getAlgorithmName({ key }: {
     key: { alg?: string, crv?: string };
@@ -497,16 +594,16 @@ export class LocalKeyManager implements
     const algProperty = key.alg;
     const crvProperty = key.crv;
 
-    for (const algName in supportedAlgorithms) {
-      const algorithmInfo = supportedAlgorithms[algName as SupportedAlgorithm];
-      if (algProperty && algorithmInfo.names.includes(algProperty)) {
-        return algName as SupportedAlgorithm;
-      } else if (crvProperty && algorithmInfo.names.includes(crvProperty)) {
-        return algName as SupportedAlgorithm;
+    for (const algorithmIdentifier of Object.keys(supportedAlgorithms) as SupportedAlgorithm[]) {
+      const algorithmNames = supportedAlgorithms[algorithmIdentifier].names as readonly string[];
+      if (algProperty && algorithmNames.includes(algProperty)) {
+        return algorithmIdentifier;
+      } else if (crvProperty && algorithmNames.includes(crvProperty)) {
+        return algorithmIdentifier;
       }
     }
 
-    throw new Error(`Unable to determine algorithm based on provided input: alg=${algProperty}, crv=${crvProperty}`);
+    throw new CryptoError(CryptoErrorCode.AlgorithmNotSupported, `Algorithm not supported based on provided input: alg=${algProperty}, crv=${crvProperty}`);
   }
 
   /**

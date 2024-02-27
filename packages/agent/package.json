@@ -68,6 +68,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@noble/ciphers": "0.4.1",
     "@scure/bip39": "1.2.2",
     "@tbd54566975/dwn-sdk-js": "0.2.18",
     "@web5/common": "0.2.4",
@@ -88,6 +89,7 @@
     "@types/dns-packet": "5.6.4",
     "@types/eslint": "8.44.2",
     "@types/mocha": "10.0.1",
+    "@types/ms": "0.7.31",
     "@types/node": "20.11.19",
     "@types/readable-stream": "4.0.6",
     "@types/sinon": "17.0.2",

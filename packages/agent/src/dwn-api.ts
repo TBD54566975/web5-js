@@ -8,8 +8,8 @@ import { Cid, DataStream, Dwn, Message } from '@tbd54566975/dwn-sdk-js';
 import type { Web5PlatformAgent } from './types/agent.js';
 import type { DwnMessage, DwnMessageInstance, DwnMessageParams, DwnMessageReply, DwnMessageWithData, DwnResponse, ProcessDwnRequest, SendDwnRequest } from './types/dwn.js';
 
-import { getSigningAlgorithmFromPublicKey } from './temp/add-to-crypto.js';
 import { DwnInterface, dwnMessageConstructors } from './types/dwn.js';
+import { getJoseSignatureAlgorithmFromPublicKey } from './prototyping/crypto-utils.js';
 import { blobToIsomorphicNodeReadable, getDwnServiceEndpointUrls, isRecordsWrite, webReadableToIsomorphicNodeReadable } from './utils.js';
 
 export type DwnMessageWithBlob<T extends DwnInterface> = {
@@ -284,7 +284,7 @@ export class AgentDwnApi {
         const crypto = this.agent.crypto;
 
         return {
-          algorithm : getSigningAlgorithmFromPublicKey(publicKey),
+          algorithm : getJoseSignatureAlgorithmFromPublicKey(publicKey),
           keyId     : signingMethod.id,
           sign      : async (data: Uint8Array) => {
             return await crypto.sign({ data, keyUri: keyUri! });

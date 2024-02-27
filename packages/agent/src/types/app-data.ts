@@ -38,17 +38,16 @@ export interface AppDataStore<T extends Record<string, any> = { InitializeResult
    * Creates a backup of the current state of the AppDataStore instance returning an
    * {@link AppDataBackup} object.
    *
-   * The `passphrase` must be correct or the backup operation will fail.
+   * The AppDataStore must be initialized and unlocked or the backup operation will fail.
    */
-  backup(params: { passphrase: string }): Promise<AppDataBackup>;
+  backup(): Promise<AppDataBackup>;
 
   /**
    * Restores the AppDataStore instance to the state in the provided {@link AppDataBackup} object.
    *
-   * The provided `passphrase` is used for the AppDataStore instance and a boolean is returned
-   * indicating whether the restore was successful.
+   * @throws An error if the backup is invalid or the passphrase is incorrect.
    */
-  restore(params: { backup: AppDataBackup, passphrase: string }): Promise<boolean>;
+  restore(params: { backup: AppDataBackup, passphrase: string }): Promise<void>;
 
   /**
    * Locks the AppDataStore, secured by a passphrase that must be entered to unlock.
@@ -58,9 +57,9 @@ export interface AppDataStore<T extends Record<string, any> = { InitializeResult
   /**
    * Attempts to unlock the AppDataStore with the provided passphrase.
    *
-   * A boolean is returned indicating whether the unlock was successful.
+   * @throws An error if the passphrase is incorrect.
    */
-  unlock(params: { passphrase: string }): Promise<boolean>;
+  unlock(params: { passphrase: string }): Promise<void>;
 
   /**
    * Attempts to change the passphrase of the AppDataStore.
@@ -76,6 +75,11 @@ export type AppDataStatus = {
    * Boolean indicating whether the AppDataStore has been initialized.
    */
   initialized: boolean;
+
+  /**
+   * Boolean indicating whether the AppDataStore is currently locked.
+   */
+  locked: boolean;
 
   /**
    * The timestamp of the last backup.

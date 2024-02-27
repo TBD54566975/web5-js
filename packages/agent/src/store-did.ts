@@ -7,7 +7,7 @@ import type { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataSto
 
 import { TENANT_SEPARATOR } from './utils-internal.js';
 import { DwnInterface } from './types/dwn.js';
-import { isPortableDid } from './temp/add-to-dids.js';
+import { isPortableDid } from './prototyping/dids/utils.js';
 import { DwnDataStore, InMemoryDataStore } from './store-data.js';
 
 export class DwnDidStore extends DwnDataStore<PortableDid> implements AgentDataStore<PortableDid> {
