@@ -1,12 +1,15 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 
+import type { Jwk } from '../src/jose/jwk.js';
+
 import {
   randomUuid,
   randomBytes,
   checkValidProperty,
   isWebCryptoSupported,
   checkRequiredProperty,
+  getJoseSignatureAlgorithmFromPublicKey,
 } from '../src/utils.js';
 
 // TODO: Remove this polyfill once Node.js v18 is no longer supported by @web5/crypto.
@@ -62,6 +65,48 @@ describe('Crypto Utils', () => {
     it('does not throw an error if the property is present', () => {
       const propertiesCollection = { foo: 'bar', baz: 'qux' };
       expect(() => checkRequiredProperty({ property: 'foo', inObject: propertiesCollection })).to.not.throw();
+    });
+  });
+
+  describe('getJoseSignatureAlgorithmFromPublicKey()', () => {
+    it('returns the algorithm specified by the alg property regardless of the crv property', () => {
+      const publicKey: Jwk = { kty: 'OKP', alg: 'EdDSA', crv: 'P-256' };
+      expect(getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('EdDSA');
+    });
+
+    it('returns the correct algorithm for Ed25519 curve', () => {
+      const publicKey: Jwk = { kty: 'OKP', crv: 'Ed25519' };
+      expect(getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('EdDSA');
+    });
+
+    it('returns the correct algorithm for P-256 curve', () => {
+      const publicKey: Jwk = { kty: 'EC', crv: 'P-256' };
+      expect(getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('ES256');
+    });
+
+    it('returns the correct algorithm for P-384 curve', () => {
+      const publicKey: Jwk = { kty: 'EC', crv: 'P-384' };
+      expect(getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('ES384');
+    });
+
+    it('returns the correct algorithm for P-521 curve', () => {
+      const publicKey: Jwk = { kty: 'EC', crv: 'P-521' };
+      expect(getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('ES512');
+    });
+
+    it('throws an error for unsupported algorithms', () => {
+      const publicKey: Jwk = { kty: 'EC', alg: 'UnsupportedAlgorithm' };
+      expect(() => getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.throw();
+    });
+
+    it('throws an error for unsupported curves', () => {
+      const publicKey: Jwk = { kty: 'EC', crv: 'UnsupportedCurve' };
+      expect(() => getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.throw();
+    });
+
+    it('throws an error when neither alg nor crv is provided', () => {
+      const publicKey: Jwk = { kty: 'EC' };
+      expect(() => getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.throw();
     });
   });
 
