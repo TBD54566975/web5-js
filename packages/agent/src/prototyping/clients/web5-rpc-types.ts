@@ -1,5 +1,5 @@
-import type { EventSubscriptionHandler, RecordsReadReply, UnionMessageReply } from "@tbd54566975/dwn-sdk-js";
-import type { SerializableDwnMessage } from "../../types/dwn.js";
+import type { EventSubscriptionHandler, RecordsReadReply, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
+import type { SerializableDwnMessage } from '../../types/dwn.js';
 
 /**
  * Interface that can be implemented to communicate with {@link Web5Agent | Web5 Agent}

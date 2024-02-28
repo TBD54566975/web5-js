@@ -1,7 +1,7 @@
 import type { JsonRpcResponse } from './json-rpc.js';
-import type { DidRpcRequest, DidRpcResponse, DwnRpc, DwnRpcRequest, DwnRpcResponse, Web5Rpc } from "./web5-rpc-types.js";
+import type { DidRpcRequest, DidRpcResponse, DwnRpc, DwnRpcRequest, DwnRpcResponse, Web5Rpc } from './web5-rpc-types.js';
 
-import { createJsonRpcRequest } from './json-rpc.js';
+import { createJsonRpcRequest, parseJson } from './json-rpc.js';
 import { utils as cryptoUtils } from '@web5/crypto';
 
 /**

@@ -96,15 +96,15 @@ export const createJsonRpcSubscriptionRequest = (
   params?: any
 ): JsonRpcRequest => {
   return {
-    jsonrpc: '2.0',
+    jsonrpc      : '2.0',
     id,
-    method: `rpc.subscribe.${method}`,
+    method       : `rpc.subscribe.${method}`,
     params,
-    subscription: {
+    subscription : {
       id: subscriptionId,
     }
-  }
-}
+  };
+};
 
 export const createJsonRpcSuccessResponse = (
   id: JsonRpcId,

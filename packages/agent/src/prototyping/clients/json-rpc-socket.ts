@@ -19,6 +19,9 @@ export interface JsonRpcSocketOptions {
 
 /**
  * JSON RPC Socket Client for WebSocket request/response and long-running subscriptions.
+ *
+ * NOTE: This is temporarily copied over from https://github.com/TBD54566975/dwn-server/blob/main/src/json-rpc-socket.ts
+ * This was done in order to avoid taking a dependency on the `dwn-server`, until a future time when there will be a `clients` package.
  */
 export class JsonRpcSocket {
   private constructor(private socket: IsomorphicWebSocket, private responseTimeout: number) {}
@@ -31,7 +34,7 @@ export class JsonRpcSocket {
     if (!onclose) {
       socket.onclose = ():void => {
         console.info(`JSON RPC Socket close ${url}`);
-      }
+      };
     } else {
       socket.onclose = onclose;
     }
@@ -39,7 +42,7 @@ export class JsonRpcSocket {
     if (!onerror) {
       socket.onerror = (error?: any):void => {
         console.error(`JSON RPC Socket error ${url}`, error);
-      }
+      };
     } else {
       socket.onerror = onerror;
     }
@@ -118,19 +121,19 @@ export class JsonRpcSocket {
     const response = await this.request(request);
     if (response.error) {
       this.socket.removeEventListener('message', socketEventListener);
-      return { response }
+      return { response };
     }
 
     // clean up listener and create a `rpc.subscribe.close` message to use when closing this JSON RPC subscription
     const close = async (): Promise<void> => {
       this.socket.removeEventListener('message', socketEventListener);
       await this.closeSubscription(subscriptionId);
-    }
+    };
 
     return {
       response,
       close
-    }
+    };
   }
 
   private closeSubscription(id: JsonRpcId): Promise<JsonRpcResponse> {
