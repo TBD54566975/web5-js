@@ -1,4 +1,4 @@
-import type { CryptoApi, InferKeyGeneratorAlgorithm, JoseHeaderParams, Jwk, KeyIdentifier, KeyImporterExporter, KmsExportKeyParams, KmsImportKeyParams } from '@web5/crypto';
+import type { CryptoApi, InferKeyGeneratorAlgorithm, JoseHeaderParams, Jwk, KeyIdentifier } from '@web5/crypto';
 
 // TODO: Once ready to migrate -- overwrite the existing `src/jose/jwe.ts` file with this one.
 
@@ -201,29 +201,29 @@ export interface JweHeaderParams extends JoseHeaderParams {
 
 
 
-export interface CompactJweDecryptParams<TKms> {
+export interface CompactJweDecryptParams<TKeyManager> {
   jwe: string;
 
-  keyUri: KeyIdentifier;
+  key: KeyIdentifier | Jwk;
 
-  keyManager?: TKms;
+  keyManager?: TKeyManager;
 
   options?: JweDecryptOptions;
 }
 
 
 
-export interface CompactJweEncryptParams<TKms> {
+export interface CompactJweEncryptParams<TKeyManager> {
   /**
    * Optionally specify the algorithm to be used for key generation.
    */
-  algorithm?: TKms extends CryptoApi
-    ? InferKeyGeneratorAlgorithm<TKms>
+  algorithm?: TKeyManager extends CryptoApi
+    ? InferKeyGeneratorAlgorithm<TKeyManager>
     : InferKeyGeneratorAlgorithm<LocalKeyManager>;
 
   keyUri: KeyIdentifier;
 
-  keyManager?: TKms;
+  keyManager?: TKeyManager;
 
   options?: JweEncryptOptions;
 }
@@ -240,12 +240,12 @@ export interface CompactJweDecryptResult {
 }
 
 export class CompactJwe {
-  public static async decrypt<TKms extends CryptoApi | undefined = undefined>({
+  public static async decrypt<TKeyManager extends CryptoApi | undefined = undefined>({
     jwe,
-    keyUri,
+    key,
     keyManager = new LocalKeyManager(),
     options = {}
-  }: CompactJweDecryptParams<TKms>
+  }: CompactJweDecryptParams<TKeyManager>
   ): Promise<CompactJweDecryptResult> {
     if (typeof jwe !== 'string') {
       throw new CryptoError(CryptoErrorCode.InvalidJwe, 'Invalid JWE format. JWE must be a string.');
@@ -275,7 +275,7 @@ export class CompactJwe {
         protected     : protectedHeader,
         tag           : authenticationTag || undefined,
       },
-      keyUri,
+      key,
       keyManager,
       options
     });
@@ -287,13 +287,14 @@ export class CompactJwe {
     return { plaintext: flattenedJwe.plaintext, protectedHeader: flattenedJwe.protectedHeader };
   }
 
-  public static async encrypt<TKms extends CryptoApi | undefined = undefined>({
+  public static async encrypt<TKeyManager extends CryptoApi | undefined = undefined>({
     algorithm,
     keyUri,
     keyManager = new LocalKeyManager(),
     options = {}
-  }: CompactJweEncryptParams<TKms>
+  }: CompactJweEncryptParams<TKeyManager>
   ): Promise<string> {
+    console.log(algorithm, keyUri, keyManager, options);
     // const jwe = await FlattenedJwe.encrypt(key, options);
 
     // return [jwe.protected, jwe.encrypted_key, jwe.iv, jwe.ciphertext, jwe.tag].join('.');
@@ -319,7 +320,7 @@ import { LocalKeyManager } from '@web5/crypto';
 import { hasDuplicateProperties } from '../../common/object.js';
 import { CryptoError, CryptoErrorCode } from '../crypto-error.js';
 import { Convert } from '@web5/common';
-import { Pbkdf2 } from '../primitives/pbkdf2.js';
+import { isCipher } from '../utils.js';
 
 function isValidJweHeader(obj: unknown): obj is JweHeaderParams {
   return typeof obj === 'object' && obj !== null
@@ -327,13 +328,20 @@ function isValidJweHeader(obj: unknown): obj is JweHeaderParams {
     && 'enc' in obj && obj.enc !== undefined;
 }
 
-export interface FlattenedJweEncryptParams<TKms> {
+export interface FlattenedJweEncryptParams<TKeyManager> {
   /**
    * Optionally specify the algorithm to be used for key generation.
    */
-  algorithm?: TKms extends CryptoApi
-    ? InferKeyGeneratorAlgorithm<TKms>
+  algorithm?: TKeyManager extends CryptoApi
+    ? InferKeyGeneratorAlgorithm<TKeyManager>
     : InferKeyGeneratorAlgorithm<LocalKeyManager>;
+}
+
+export interface FlattenedJweDecryptParams<TKeyManager> {
+  jwe: FlattenedJweParams | FlattenedJwe;
+  key: KeyIdentifier | Jwk;
+  keyManager?: TKeyManager;
+  options?: JweDecryptOptions;
 }
 
 export interface FlattenedJweDecryptResult {
@@ -416,23 +424,28 @@ export class FlattenedJwe {
     Object.assign(this, params);
   }
 
-  public static async decrypt<TKms extends CryptoApi | undefined = undefined>({
+  public static async decrypt<TKeyManager extends CryptoApi | undefined = undefined>({
     jwe,
-    keyUri,
+    key,
     keyManager = new LocalKeyManager(),
     options = {}
-  }: {
-    jwe: FlattenedJweParams | FlattenedJwe;
-    keyUri: KeyIdentifier;
-    keyManager?: TKms;
-    options?: JweDecryptOptions;
-  }): Promise<FlattenedJweDecryptResult> {
+  }: FlattenedJweDecryptParams<TKeyManager>): Promise<FlattenedJweDecryptResult> {
+    // Verify that the provided Key Manager supports the decrypt operation before proceeding.
+    if (!isCipher(keyManager)) {
+      throw new CryptoError(CryptoErrorCode.OperationNotSupported, 'Key Manager does not support the "decrypt" operation.');
+    }
+
     // Verify that at least one of the JOSE header objects is present.
     if (!jwe.protected && !jwe.header && !jwe.unprotected) {
-      throw new Error(
-        'FlattenedJwe: JWE missing required JOSE header parameters. ' +
+      throw new CryptoError(CryptoErrorCode.InvalidJwe,
+        'JWE is missing the required JOSE header parameters. ' +
         'Please provide at least one of the following: "protected", "header", or "unprotected"'
       );
+    }
+
+    // Verify that the JWE Ciphertext is present.
+    if (typeof jwe.ciphertext !== 'string') {
+      throw new CryptoError(CryptoErrorCode.InvalidJwe, 'JWE Ciphertext is missing or not a string.');
     }
 
     // Parse the JWE Protected Header, if present.
@@ -441,7 +454,7 @@ export class FlattenedJwe {
       try {
         parsedProtectedHeader = Convert.base64Url(jwe.protected).toObject();
       } catch {
-        throw new Error('FlattenedJwe: JWE Protected Header is invalid');
+        throw new Error('JWE Protected Header is invalid');
       }
     }
 
@@ -451,8 +464,8 @@ export class FlattenedJwe {
     // `unprotected` JSON object values that together comprise the JOSE Header.
     if (hasDuplicateProperties(parsedProtectedHeader, jwe.header, jwe.unprotected)){
       throw new Error(
-        'FlattenedJwe: Duplicate properties detected. Please ensure that each parameter is ' +
-        'defined only once across the JWE "header", "protected", and "unprotected" objects.'
+        'Duplicate properties detected. Please ensure that each parameter is defined only once ' +
+        'across the JWE "header", "protected", and "unprotected" objects.'
       );
     }
 
@@ -462,23 +475,23 @@ export class FlattenedJwe {
     const joseHeader = { ...parsedProtectedHeader, ...jwe.header, ...jwe.unprotected };
 
     if (!isValidJweHeader(joseHeader)) {
-      throw new Error('FlattenedJwe: JWE Header is missing required "alg" (Algorithm) and/or "enc" (Encryption) Header Parameters');
+      throw new Error('JWE Header is missing required "alg" (Algorithm) and/or "enc" (Encryption) Header Parameters');
     }
 
     if (Array.isArray(options.allowedAlgValues)
         && !options.allowedAlgValues.includes(joseHeader.alg)) {
-      throw new Error(`FlattenedJwe: "alg" (Algorithm) Header Parameter value not allowed: ${joseHeader.alg}`);
+      throw new Error(`"alg" (Algorithm) Header Parameter value not allowed: ${joseHeader.alg}`);
     }
 
     if (Array.isArray(options.allowedEncValues)
         && !options.allowedEncValues.includes(joseHeader.enc)) {
-      throw new Error(`FlattenedJwe: "enc" (Encryption Algorithm) Header Parameter value not allowed: ${joseHeader.enc}`);
+      throw new Error(`"enc" (Encryption Algorithm) Header Parameter value not allowed: ${joseHeader.enc}`);
     }
 
-    let cekUriOrBytes: KeyIdentifier | Uint8Array;
+    let cek: KeyIdentifier | Jwk;
     try {
-      cekUriOrBytes = await FlattenedJwe.decryptContentEncryptionKey({
-        keyUri,
+      cek = await FlattenedJwe.decryptContentEncryptionKey({
+        key,
         encryptedKey: jwe.encrypted_key,
         joseHeader,
         keyManager
@@ -500,51 +513,59 @@ export class FlattenedJwe {
       // recommended, in the event of receiving an improperly formatted key, that the recipient
       // substitute a randomly generated CEK and proceed to the next step, to mitigate timing
       // attacks.
-      cekUriOrBytes = await keyManager.generateKey({ algorithm: joseHeader.enc });
+      cek = await keyManager.generateKey({ algorithm: joseHeader.enc });
     }
 
-    // If present, decode the JWE Initialization Vector (IV), Authentication Tag (Tag), and
-    // Ciphertext to byte arrays.
+    // If present, decode the JWE Initialization Vector (IV) and Authentication Tag.
     const iv = decodeHeaderParam('iv', jwe.iv);
     const tag = decodeHeaderParam('tag', jwe.tag);
-    const ciphertext = decodeHeaderParam('ciphertext', jwe.ciphertext);
 
-    const protectedHeaderBytes = Convert.base64Url(jwe.protected ?? '').toUint8Array();
-
-    const additionalAuthenticatedData = jwe.aad !== undefined
+    // Decode the JWE Ciphertext to a byte array, and if present, append the Authentication Tag.
+    const ciphertext = tag !== undefined
       ? new Uint8Array([
-        ...protectedHeaderBytes,
-        ...Convert.string('.').toUint8Array(),
-        ...Convert.base64Url(jwe.aad).toUint8Array()
+        ...Convert.base64Url(jwe.ciphertext).toUint8Array(),
+        ...(tag ?? [])
       ])
-      : protectedHeaderBytes;
+      : Convert.base64Url(jwe.ciphertext).toUint8Array();
+
+    // If the JWE AAD is present, the Additional Authenticated Data input to the Content Encryption
+    // Algorithm is ASCII(Encoded Protected Header || '.' || BASE64URL(JWE AAD)). If the JWE AAD is
+    // absent, the Additional Authenticated Data is ASCII(BASE64URL(UTF8(JWE Protected Header))).
+    const additionalData = jwe.aad !== undefined
+      ? new Uint8Array([
+        ...Convert.string(jwe.protected ?? '').toUint8Array(),
+        ...Convert.string('.').toUint8Array(),
+        ...Convert.string(jwe.aad).toUint8Array()
+      ])
+      : Convert.string(jwe.protected ?? '').toUint8Array();
+
+    // Set the `key` or `keyUri` input parameter to the `decrypt()` method depending on whether the
+    // Content Encryption Key (CEK) is passed by reference as a Key Identifier or by value as a JWK.
+    const keyOrKeyUri = typeof cek === 'string' ? { keyUri: cek } : { key: cek };
 
     // Decrypt the JWE using the Content Encryption Key (CEK).
-    // const plaintext = await keyManager.decrypt({
-    //   additionalAuthenticatedData,
-    //   ciphertext,
-    //   iv,
-    //   keyUri: cekUriOrBytes,
-    //   tag
-    // });
+    const plaintext = await keyManager.decrypt({
+      ...keyOrKeyUri,
+      data: ciphertext,
+      iv,
+      additionalData
+    });
 
-    // const result: FlattenedJweDecryptResult = {
-    //   plaintext,
-    //   protectedHeader             : parsedProtectedHeader,
-    //   additionalAuthenticatedData : decodeHeaderParam('aad', jwe.aad),
-    //   sharedUnprotectedHeader     : jwe.unprotected,
-    //   unprotectedHeader           : jwe.header
-    // };
-
-    return null as any;
+    return {
+      plaintext,
+      protectedHeader             : parsedProtectedHeader,
+      additionalAuthenticatedData : decodeHeaderParam('aad', jwe.aad),
+      sharedUnprotectedHeader     : jwe.unprotected,
+      unprotectedHeader           : jwe.header
+    };
   }
 
-  // public static async encrypt<TKms extends CryptoApi | undefined = undefined>({
+  // public static async encrypt<TKeyManager extends CryptoApi | undefined = undefined>({
   //   keyManager = new LocalKeyManager(),
   //   options = {}
   // }: {
-  //   keyManager?: TKms;
-  //   options?: FlattenedJweEncryptParams<TKms>;
+  //   keyManager?: TKeyManager;
+  //   options?: FlattenedJweEncryptParams<TKeyManager>;
   // } = {}): Promise<FlattenedJwe> {
   //   // Get the Web Crypto API interface.
   //   const webCrypto = getWebcryptoSubtle();
@@ -565,18 +586,17 @@ export class FlattenedJwe {
   //   return encryptedDataString;
   // }
 
-  private static async decryptContentEncryptionKey<TKms extends CryptoApi>({
-    keyUri,
+  private static async decryptContentEncryptionKey<TKeyManager extends CryptoApi | undefined>({
+    key,
     encryptedKey,
     joseHeader,
     keyManager
   }: {
-    keyUri: KeyIdentifier;
+    key: KeyIdentifier | Jwk;
     encryptedKey?: string;
     joseHeader: JweHeaderParams;
-    keyManager: TKms;
-  }): Promise<KeyIdentifier | Uint8Array> {
-
+    keyManager: TKeyManager;
+  }): Promise<KeyIdentifier | Jwk> {
     // Determine the Key Management Mode employed by the algorithm specified by the "alg"
     // (algorithm) Header Parameter.
     switch (joseHeader.alg) {
@@ -587,7 +607,7 @@ export class FlattenedJwe {
           throw new CryptoError(CryptoErrorCode.InvalidJwe, 'JWE "encrypted_key" is not allowed when using "dir" (Direct Encryption).');
         }
 
-        return keyUri;
+        return key;
       }
 
       // case 'PBES2-HS512+A256KW': {

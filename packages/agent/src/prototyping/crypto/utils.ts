@@ -1,6 +1,16 @@
-import type { KeyWrapper } from '@web5/crypto';
+import type { Cipher, KeyWrapper } from '@web5/crypto';
 
 import type { KeyExporter, KeyImporter } from './types/key-io.js';
+
+export function isCipher<EncryptInput, DecryptInput>(
+  obj: unknown
+): obj is Cipher<EncryptInput, DecryptInput> {
+  return (
+    obj !== null && typeof obj === 'object'
+    && 'encrypt' in obj && typeof obj.encrypt === 'function'
+    && 'decrypt' in obj && typeof obj.decrypt === 'function'
+  );
+}
 
 export function isKeyExporter<ExportKeyInput, ExportKeyOutput>(
   obj: unknown
