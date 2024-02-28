@@ -36,4 +36,7 @@ export enum CryptoErrorCode {
 
   /** The JWK supplied does not conform to valid syntax. */
   InvalidJwk = 'invalidJwk',
+
+  /** The requested operation is not supported by the implementation. */
+  OperationNotSupported = 'operationNotSupported',
 }
