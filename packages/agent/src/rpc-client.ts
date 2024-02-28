@@ -1,5 +1,5 @@
 import { utils as cryptoUtils } from '@web5/crypto';
-import { RecordsReadReply, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
+import { EventSubscriptionHandler, RecordsReadReply, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 
 import type { JsonRpcResponse } from './json-rpc.js';
 import type { SerializableDwnMessage } from './types/dwn.js';
@@ -54,6 +54,7 @@ export interface DwnRpc {
  */
 export type DwnRpcRequest = {
   data?: any;
+  subscriptionHandler?: EventSubscriptionHandler;
   dwnUrl: string;
   message: SerializableDwnMessage | any;
   targetDid: string;

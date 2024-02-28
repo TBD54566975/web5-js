@@ -5,6 +5,8 @@ export type JsonRpcVersion = '2.0';
 export interface JsonRpcRequest {
   jsonrpc: JsonRpcVersion;
   id?: JsonRpcId;
+  /** JSON RPC Subscription Extension Parameters */
+  subscription?: { id: JsonRpcId }
   method: string;
   params?: any;
 }
@@ -86,6 +88,23 @@ export const createJsonRpcRequest = (
     params,
   };
 };
+
+export const createJsonRpcSubscriptionRequest = (
+  id: JsonRpcId,
+  method: string,
+  subscriptionId: JsonRpcId,
+  params?: any
+): JsonRpcRequest => {
+  return {
+    jsonrpc: '2.0',
+    id,
+    method: `rpc.subscribe.${method}`,
+    params,
+    subscription: {
+      id: subscriptionId,
+    }
+  }
+}
 
 export const createJsonRpcSuccessResponse = (
   id: JsonRpcId,
