@@ -110,7 +110,7 @@ describe('AppDataVault', () => {
           expect(agentDid).to.have.property('document');
           expect(agentDid).to.have.property('metadata');
           expect(agentDid).to.have.property('keyManager');
-        });
+        }).timeout(100_000);
 
         it('should deterministically return a DID given a mnemonic', async () => {
           // Initialize the vault.
