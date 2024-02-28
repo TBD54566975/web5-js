@@ -1,6 +1,6 @@
 import type { BearerDid } from '@web5/dids';
 
-import type { Web5Rpc } from '../rpc-client.js';
+import type { Web5Rpc } from '../prototyping/clients/rpc-client.js';
 import type { AgentDwnApi } from '../dwn-api.js';
 import type { AgentSyncApi } from '../sync-api.js';
 import type { AgentCryptoApi } from '../crypto-api.js';

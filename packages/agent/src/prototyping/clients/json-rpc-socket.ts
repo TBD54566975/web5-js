@@ -1,6 +1,6 @@
 import { utils as cryptoUtils } from '@web5/crypto';
 import IsomorphicWebSocket from 'isomorphic-ws';
-import { JsonRpcId, JsonRpcRequest, JsonRpcResponse, createJsonRpcSubscriptionRequest } from '../../json-rpc.js';
+import { JsonRpcId, JsonRpcRequest, JsonRpcResponse, createJsonRpcSubscriptionRequest } from './json-rpc.js';
 
 // These were arbitrarily chosen, but can be modified via connect options
 const CONNECT_TIMEOUT = 3_000;

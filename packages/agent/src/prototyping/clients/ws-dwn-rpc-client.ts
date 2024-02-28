@@ -1,6 +1,6 @@
 import { utils as cryptoUtils } from '@web5/crypto';
-import { createJsonRpcRequest, createJsonRpcSubscriptionRequest } from "../../json-rpc.js";
-import { DwnRpc, DwnRpcRequest, DwnRpcResponse } from "../../rpc-client.js";
+import { createJsonRpcRequest, createJsonRpcSubscriptionRequest } from "./json-rpc.js";
+import { DwnRpc, DwnRpcRequest, DwnRpcResponse } from "./rpc-client.js";
 import { EventSubscriptionHandler, GenericMessage, MessageSubscription, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 import { JsonRpcSocket } from './json-rpc-socket.js';
 

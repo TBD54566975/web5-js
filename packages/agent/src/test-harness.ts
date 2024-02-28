@@ -9,7 +9,7 @@ import type { Web5PlatformAgent } from './types/agent.js';
 import { AgentDidApi } from './did-api.js';
 import { AgentDwnApi } from './dwn-api.js';
 import { AgentSyncApi } from './sync-api.js';
-import { Web5RpcClient } from './rpc-client.js';
+import { Web5RpcClient } from './prototyping/clients/rpc-client.js';
 import { AgentCryptoApi } from './crypto-api.js';
 import { AgentIdentityApi } from './identity-api.js';
 import { BearerIdentity } from './bearer-identity.js';
