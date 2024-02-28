@@ -12,8 +12,7 @@ import { testDwnUrl } from '../../utils/test-config.js';
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
 import { webcrypto } from 'node:crypto';
-import { WebSocketDwnRpcClient } from '../../../src/prototyping/clients/ws-dwn-rpc-client.js';
-import { DwnRpcRequest } from '../../../src/prototyping/clients/rpc-client.js';
+import { WebSocketDwnRpcClient } from '../../../src/prototyping/clients/web-socket-clients.js';
 import { BearerIdentity } from '../../../src/bearer-identity.js';
 // @ts-expect-error - globalThis.crypto and webcrypto are of different types.
 if (!globalThis.crypto) globalThis.crypto = webcrypto;

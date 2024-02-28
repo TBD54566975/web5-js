@@ -10,13 +10,13 @@ import type {
   ProcessDwnRequest,
 } from '../../src/types/dwn.js';
 
-import { Web5Rpc } from '../../src/prototyping/clients/rpc-client.js';
-import { AgentDwnApi } from '../../src/dwn-api.js';
-import { AgentSyncApi } from '../../src/sync-api.js';
-import { AgentCryptoApi } from '../../src/crypto-api.js';
-import { AgentIdentityApi } from '../../src/identity-api.js';
-import { AgentDidApi, DidInterface } from '../../src/did-api.js';
 import { LocalKeyManager } from '../../src/local-key-manager.js';
+import type { Web5Rpc } from '../../src/prototyping/clients/web5-rpc-types.js';
+import type { AgentDwnApi } from '../../src/dwn-api.js';
+import type { AgentSyncApi } from '../../src/sync-api.js';
+import type { AgentCryptoApi } from '../../src/crypto-api.js';
+import type { AgentIdentityApi } from '../../src/identity-api.js';
+import type { AgentDidApi, DidInterface } from '../../src/did-api.js';
 
 type TestAgentOptions = {
   cryptoApi: AgentCryptoApi;
