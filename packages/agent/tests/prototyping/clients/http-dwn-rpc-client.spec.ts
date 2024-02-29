@@ -1,12 +1,15 @@
 import type { Persona, RecordsQueryReplyEntry } from '@tbd54566975/dwn-sdk-js';
 
 import sinon from 'sinon';
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 
 import { RecordsRead, TestDataGenerator } from '@tbd54566975/dwn-sdk-js';
 import { HttpDwnRpcClient } from '../../../src/prototyping/clients/http-clients.js';
 
 import { testDwnUrl } from '../../utils/test-config.js';
+
+chai.use(chaiAsPromised);
 
 describe('HttpDwnRpcClient', () => {
   const client = new HttpDwnRpcClient();

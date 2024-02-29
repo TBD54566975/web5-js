@@ -1,7 +1,9 @@
 import type { EventSubscriptionHandler, Persona, RecordsQueryReplyEntry, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import sinon from 'sinon';
-import { expect } from 'chai';
+
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 
 import { DwnInterfaceName, DwnMethodName, RecordsRead, TestDataGenerator } from '@tbd54566975/dwn-sdk-js';
 import { WebSocketDwnRpcClient } from '../../../src/prototyping/clients/web-socket-clients.js';
@@ -10,6 +12,8 @@ import { testDwnUrl } from '../../utils/test-config.js';
 import { HttpDwnRpcClient } from '../../../src/prototyping/clients/http-clients.js';
 import { JsonRpcSocket } from '../../../src/prototyping/clients/json-rpc-socket.js';
 import { JsonRpcErrorCodes, createJsonRpcErrorResponse } from '../../../src/prototyping/clients/json-rpc.js';
+
+chai.use(chaiAsPromised);
 
 describe('WebSocketDwnRpcClient', () => {
   const client = new WebSocketDwnRpcClient();

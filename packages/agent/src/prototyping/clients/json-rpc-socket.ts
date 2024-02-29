@@ -29,7 +29,7 @@ export class JsonRpcSocket {
   static async connect(url: string, options: JsonRpcSocketOptions = {}): Promise<JsonRpcSocket> {
     const { connectTimeout = CONNECT_TIMEOUT, responseTimeout = RESPONSE_TIMEOUT, onclose, onerror } = options;
 
-    const socket = new IsomorphicWebSocket(url, { timeout: connectTimeout });
+    const socket = new IsomorphicWebSocket(url);
 
     if (!onclose) {
       socket.onclose = ():void => {
@@ -48,13 +48,13 @@ export class JsonRpcSocket {
     }
 
     return new Promise<JsonRpcSocket>((resolve, reject) => {
-      socket.on('open', () => {
+      socket.addEventListener('open', () => {
         resolve(new JsonRpcSocket(socket, responseTimeout));
       });
 
-      socket.on('error', (error) => {
+      socket.addEventListener('error', (error) => {
         reject(error);
-      })
+      });
 
       setTimeout(() => reject, connectTimeout);
     });
@@ -72,7 +72,7 @@ export class JsonRpcSocket {
       request.id ??= cryptoUtils.randomUuid();
 
       const handleResponse = (event: { data: any }):void => {
-        const jsonRpsResponse = JSON.parse(event.data.toString()) as JsonRpcResponse;
+        const jsonRpsResponse = JSON.parse(event.data) as JsonRpcResponse;
         if (jsonRpsResponse.id === request.id) {
           // if the incoming response id matches the request id, we will remove the listener and resolve the response
           this.socket.removeEventListener('message', handleResponse);
@@ -150,6 +150,6 @@ export class JsonRpcSocket {
    * Sends a JSON-RPC request through the socket. You must subscribe to a message listener separately to capture the response.
    */
   send(request: JsonRpcRequest):void {
-    this.socket.send(Buffer.from(JSON.stringify(request)));
+    this.socket.send(JSON.stringify(request));
   }
 }
