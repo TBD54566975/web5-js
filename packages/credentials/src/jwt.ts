@@ -9,8 +9,6 @@ import type {
 import { Convert } from '@web5/common';
 import { LocalKeyManager as CryptoApi  } from '@web5/crypto';
 import { DidDht, DidIon, DidKey, DidJwk, DidWeb, DidResolver, utils as didUtils } from '@web5/dids';
-import { VcDataModel } from './verifiable-credential.js';
-import { VpDataModel } from './verifiable-presentation.js';
 
 const crypto = new CryptoApi();
 

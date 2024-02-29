@@ -88,3 +88,31 @@ export function isValidXmlSchema112Timestamp(timestamp: string): boolean {
 
   return !isNaN(date.getTime());
 }
+
+/**
+ * Validates a timestamp string against the RFC 3339 format.
+ *
+ * This function checks whether the provided timestamp string conforms to the
+ * RFC 3339 standard, which includes full date and time representations with
+ * optional fractional seconds and a timezone offset. The format allows for
+ * both 'Z' (indicating UTC) and numeric timezone offsets (e.g., "-07:00", "+05:30").
+ * This validation ensures that the timestamp is not only correctly formatted
+ * but also represents a valid date and time.
+ *
+ * @param timestamp - The timestamp string to validate.
+ * @returns `true` if the timestamp is valid and conforms to RFC 3339, `false` otherwise.
+ */
+export function isValidRFC3339Timestamp(timestamp: string): boolean {
+  // RFC 3339 format: yyyy-MM-ddTHH:mm:ss[.fractional-seconds]Z or yyyy-MM-ddTHH:mm:ss[.fractional-seconds]±HH:mm
+  // This regex matches both 'Z' for UTC and timezone offsets like '-07:00'
+  const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+  if (!regex.test(timestamp)) {
+    return false;
+  }
+
+  // Parsing the timestamp to a Date object to check validity
+  const date = new Date(timestamp);
+
+  // Checking if the date is an actual date
+  return !isNaN(date.getTime());
+}

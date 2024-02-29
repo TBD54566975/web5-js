@@ -192,7 +192,6 @@ describe('Jwt', () => {
             errorOccurred = true;
             expect(e.message).to.not.be.null;
             if(errorMessage && errorMessage['web5-js']) {
-              console.log(e.message)
               expect(e.message).to.include(errorMessage['web5-js']);
             }
           }
@@ -219,7 +218,6 @@ describe('Jwt', () => {
             errorOccurred = true;
             expect(e.message).to.not.be.null;
             if(errorMessage && errorMessage['web5-js']) {
-              console.log(e.message)
               expect(e.message).to.include(errorMessage['web5-js']);
             }
           }
