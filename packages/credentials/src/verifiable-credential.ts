@@ -230,7 +230,6 @@ export class VerifiableCredential {
       vcTyped.expirationDate = getXmlSchema112Timestamp(exp);
     }
 
-    // TODO: iss is optional?
     if (!iss) throw new Error('Verification failed: iss claim is required');
 
     // iss MUST represent the issuer property of a verifiable credential or the holder property of a verifiable presentation.
