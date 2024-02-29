@@ -7,7 +7,7 @@ import { Jwt } from './jwt.js';
 import { SsiValidator } from './validators.js';
 import { getCurrentXmlSchema112Timestamp, getXmlSchema112Timestamp } from './utils.js';
 
-export const DEFAULT_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
+export const DEFAULT_VC_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
 export const DEFAULT_VC_TYPE = 'VerifiableCredential';
 
 /**
@@ -153,7 +153,7 @@ export class VerifiableCredential {
     };
 
     const vcDataModel: VcDataModel = {
-      '@context' : [DEFAULT_CONTEXT],
+      '@context' : [DEFAULT_VC_CONTEXT],
       type       : Array.isArray(type)
         ? [DEFAULT_VC_TYPE, ...type]
         : (type ? [DEFAULT_VC_TYPE, type] : [DEFAULT_VC_TYPE]),
