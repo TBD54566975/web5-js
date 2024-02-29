@@ -118,55 +118,14 @@ export class Jwt {
    * const verifiedJwt = await Jwt.verify({ jwt: myJwt });
    * ```
    *
-   * exp MUST represent the expirationDate property, encoded as a UNIX timestamp (NumericDate).
-   * iss MUST represent the issuer property of a verifiable credential or the holder property of a verifiable presentation.
-   * nbf MUST represent issuanceDate, encoded as a UNIX timestamp (NumericDate).
-   * jti MUST represent the id property of the verifiable credential or verifiable presentation.
-   * sub MUST represent the id property contained in the credentialSubject.
-
    * @param options - Parameters for JWT verification
    * @returns Verified JWT information including signer DID, header, and payload.
    */
   static async verify(options: VerifyJwtOptions): Promise<JwtVerifyResult> {
     const { decoded: decodedJwt, encoded: encodedJwt } = Jwt.parse({ jwt: options.jwt });
 
-    // Ensure decodedJwt is defined and is an object
-    if (!decodedJwt || typeof decodedJwt !== 'object' || !decodedJwt.payload) {
-      throw new Error('Invalid JWT structure');
-    }
-
-    // Extract relevant properties for easier access
-    const { exp, iss, nbf, jti, sub, vc, vp } = decodedJwt.payload;
-
-    const vcTyped = vc as VcDataModel;
-    const vpTyped = vp as VpDataModel;
-
-    if (exp && Math.floor(Date.now() / 1000) > exp) {
-      throw new Error('Verification failed: JWT is expired');
-    }
-
-    if (!iss) throw new Error('Verification failed: iss claim is required');
-
-    if ((vcTyped && iss !== vcTyped.issuer) || (vpTyped && iss !== vpTyped.holder)) {
-      throw new Error('Verification failed: iss claim does not match expected issuer/holder');
-    }
-
-    if (nbf) {
-      if (vcTyped && nbf !== Math.floor(new Date(vcTyped.issuanceDate).getTime() / 1000)) {
-        throw new Error('Verification failed: nbf claim does not match the expected issuanceDate');
-      }
-      // Note: VP does not have issuanceDate
-    }
-
-    if (jti && ((vcTyped && jti !== vcTyped.id) || (vpTyped && jti !== vpTyped.id))) {
-      throw new Error('Verification failed: jti claim does not match the expected id');
-    }
-
-    if (!sub) throw new Error('Verification failed: sub claim is required');
-    const credentialSubject = vcTyped?.credentialSubject as any;
-    if (vcTyped && sub !== credentialSubject.id) {
-      throw new Error('Verification failed: sub claim does not match the expected subject id');
-      // Note: VP does not have subject id validation
+    if (decodedJwt.payload.exp && Math.floor(Date.now() / 1000) > decodedJwt.payload.exp) {
+      throw new Error(`Verification failed: JWT is expired`);
     }
 
     // TODO: should really be looking for verificationMethod with authentication verification relationship

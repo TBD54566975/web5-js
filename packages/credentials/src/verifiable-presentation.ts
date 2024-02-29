@@ -5,6 +5,7 @@ import { utils as cryptoUtils } from '@web5/crypto';
 
 import { Jwt } from './jwt.js';
 import { SsiValidator } from './validators.js';
+import { VerifiableCredential } from './verifiable-credential.js';
 
 export const DEFAULT_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
 export const DEFAULT_VP_TYPE = 'VerifiablePresentation';
@@ -189,7 +190,7 @@ export class VerifiablePresentation {
     validatePayload(vp);
 
     for (const vcJwt of vp.verifiableCredential!) {
-      await Jwt.verify({ jwt: vcJwt as string });
+      await VerifiableCredential.verify({ vcJwt: vcJwt as string });
     }
 
     return {

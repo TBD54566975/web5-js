@@ -173,7 +173,7 @@ describe('Verifiable Credential Tests', async() => {
         await VerifiableCredential.verify({ vcJwt });
         expect.fail();
       } catch(e: any) {
-        expect(e.message).to.include('Verification failed: iss claim does not match expected issuer/holder');
+        expect(e.message).to.include('Verification failed: iss claim does not match expected issuer');
       }
     });
 
