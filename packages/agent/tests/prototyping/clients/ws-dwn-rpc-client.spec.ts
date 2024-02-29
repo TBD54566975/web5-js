@@ -9,9 +9,9 @@ import { WebSocketDwnRpcClient } from '../../../src/prototyping/clients/web-sock
 import { testDwnUrl } from '../../utils/test-config.js';
 import { HttpDwnRpcClient } from '../../../src/prototyping/clients/http-clients.js';
 import { JsonRpcSocket } from '../../../src/prototyping/clients/json-rpc-socket.js';
-import { JsonRpcErrorCodes } from '../../../src/prototyping/clients/json-rpc.js';
+import { JsonRpcErrorCodes, createJsonRpcErrorResponse } from '../../../src/prototyping/clients/json-rpc.js';
 
-describe.only('WebSocketDwnRpcClient', () => {
+describe('WebSocketDwnRpcClient', () => {
   const client = new WebSocketDwnRpcClient();
   const httpClient = new HttpDwnRpcClient();
   let alice: Persona;
@@ -213,27 +213,114 @@ describe.only('WebSocketDwnRpcClient', () => {
       ]);
     });
 
-    it('processMessage', async () => {
-      const { message } = await TestDataGenerator.generateRecordsQuery({
-        author: alice,
-        filter: {
-          schema: 'foo/bar'
+    describe('processMessage', () => {
+      it('throws when json rpc response errors are returned', async () => {
+        const { message } = await TestDataGenerator.generateRecordsQuery({
+          author: alice,
+          filter: {
+            schema: 'foo/bar'
+          }
+        });
+
+        const socket = await JsonRpcSocket.connect(socketDwnUrl);
+        const connection = {
+          subscriptions: new Map(),
+          socket,
+        };
+
+        sinon.stub(socket, 'request').resolves({ 
+          jsonrpc: '2.0',
+          id: 'id',
+          error: { message: 'some error',code: JsonRpcErrorCodes.BadRequest }
+        });
+        const processMessagePromise = WebSocketDwnRpcClient['processMessage'](connection, alice.did, message);
+        await expect(processMessagePromise).to.eventually.be.rejectedWith('error sending DWN request: some error');
+      });
+    });
+
+    describe('subscriptionRequest', () => {
+      it('throws when json rpc response errors are returned', async () => {
+        const { message } = await TestDataGenerator.generateRecordsQuery({
+          author: alice,
+          filter: {
+            schema: 'foo/bar'
+          }
+        });
+
+        const socket = await JsonRpcSocket.connect(socketDwnUrl);
+        const connection = {
+          subscriptions: new Map(),
+          socket,
+        };
+
+        sinon.stub(socket, 'subscribe').resolves({
+          response: { 
+            jsonrpc: '2.0',
+            id: 'id',
+            error: { message: 'some error',code: JsonRpcErrorCodes.BadRequest }
+          }
+        });
+
+        const processMessagePromise = WebSocketDwnRpcClient['subscriptionRequest'](connection, alice.did, message, () => {});
+        await expect(processMessagePromise).to.eventually.be.rejectedWith('could not subscribe via jsonrpc socket: some error');
+      });
+
+      it('close and clean up subscription when emitted an json rpc error response in the handler', async () => {
+        const { message } = await TestDataGenerator.generateRecordsQuery({
+          author: alice,
+          filter: {
+            schema: 'foo/bar'
+          }
+        });
+
+        const socket = await JsonRpcSocket.connect(socketDwnUrl);
+        const subscriptions = new Map();
+        const connection = {
+          subscriptions,
+          socket,
+        };
+
+        const subscribeStub = sinon.stub(socket, 'subscribe').resolves({
+          response: { 
+            jsonrpc: '2.0',
+            id: 'id',
+            result: {
+              reply: {
+                status: { code: 200, detail: 'Ok' },
+                subscription: {
+                  id: 'sub-id',
+                  close: () => {}
+                }
+              }
+            }
+          }
+        });
+
+        const processMessage = await WebSocketDwnRpcClient['subscriptionRequest'](connection, alice.did, message, () => {});
+        expect(processMessage.status.code).to.equal(200);
+        const subscriptionCallArgs = [...subscribeStub.args][0];
+        const subRequest = subscriptionCallArgs[0];
+        const subHandler = subscriptionCallArgs[1];
+
+        // get the subscription Id from the request, and add a mock subscription to the subscriptions map
+        const subscriptionId = subRequest.subscription?.id!;
+        const subscription = {
+          id: subscriptionId,
+          close: () => {}
         }
-      });
+        // spy on the close function
+        const closeSpy = sinon.spy(subscription, 'close');
+       
+        // add to the subscriptions map
+        subscriptions.set(subscriptionId, subscription);
 
-      const socket = await JsonRpcSocket.connect(socketDwnUrl);
-      const connection = {
-        subscriptions: new Map(),
-        socket,
-      };
+        const jsonError = createJsonRpcErrorResponse('id', JsonRpcErrorCodes.BadRequest, 'some error');
+        subHandler(jsonError);
 
-      sinon.stub(socket, 'request').resolves({ 
-        jsonrpc: '2.0',
-        id: 'id',
-        error: { message: 'some error',code: JsonRpcErrorCodes.BadRequest }
+        // confirm close was called and subscription was removed
+        expect(closeSpy.callCount).to.equal(1);
+        expect(subscriptions.size).to.equal(0);
       });
-      const processMessagePromise = WebSocketDwnRpcClient['processMessage'](connection, alice.did, message);
-      await expect(processMessagePromise).to.eventually.be.rejectedWith('Error sending DWN request: some error');
     });
   });
 });

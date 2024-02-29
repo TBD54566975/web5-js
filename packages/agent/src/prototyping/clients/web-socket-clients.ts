@@ -54,7 +54,7 @@ export class WebSocketDwnRpcClient implements DwnRpc {
 
     const { error, result } = response;
     if (error !== undefined) {
-      throw new Error(`Error sending DWN request: ${error.message}`);
+      throw new Error(`error sending DWN request: ${error.message}`);
     }
 
     return result.reply as DwnRpcResponse;
