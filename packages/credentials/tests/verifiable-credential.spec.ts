@@ -7,7 +7,7 @@ import { DidDht, DidKey, DidIon, DidJwk } from '@web5/dids';
 import { Jwt } from '../src/jwt.js';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import CredentialsVerifyTestVector from '../../../web5-spec/test-vectors/credentials/verify.json' assert { type: 'json' };
-import { getCurrentXmlSchema112Timestamp, getXmlSchema112Timestamp } from '../src/utils.js';
+import { getCurrentXmlSchema112Timestamp } from '../src/utils.js';
 
 describe('Verifiable Credential Tests', async() => {
   let issuerDid: BearerDid;
