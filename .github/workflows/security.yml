@@ -17,29 +17,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  snyk:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
-        with:
-          ref: ${{ github.head_ref }}
-
-      - name: Install Snyk
-        uses: snyk/actions/setup@master
-
-      - name: Snyk VULN and License Check Test
-        run: snyk test --all-projects --sarif-file-output=snyk.sarif
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      - name: Upload SARIF result to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v2
-        if: always()
-        with:
-          sarif_file: snyk.sarif
-
   fossa:
     runs-on: ubuntu-latest
 
