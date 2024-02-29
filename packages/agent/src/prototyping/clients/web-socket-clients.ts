@@ -3,7 +3,7 @@ import type { EventSubscriptionHandler, GenericMessage, MessageSubscription, Uni
 
 import { utils as cryptoUtils } from '@web5/crypto';
 import { createJsonRpcRequest, createJsonRpcSubscriptionRequest } from './json-rpc.js';
-import { JsonRpcSocket } from './json-rpc-socket.js';
+import { JsonRpcSocket, JsonRpcSocketOptions } from './json-rpc-socket.js';
 
 interface SocketConnection {
   socket: JsonRpcSocket;
@@ -15,7 +15,7 @@ export class WebSocketDwnRpcClient implements DwnRpc {
   // a map of dwn host to WebSocket connection
   private static connections = new Map<string, SocketConnection>();
 
-  async sendDwnRequest(request: DwnRpcRequest): Promise<DwnRpcResponse> {
+  async sendDwnRequest(request: DwnRpcRequest, jsonRpcSocketOptions?: JsonRpcSocketOptions): Promise<DwnRpcResponse> {
 
     // validate that the dwn URL provided is a valid WebSocket URL
     const url = new URL(request.dwnUrl);
@@ -27,7 +27,7 @@ export class WebSocketDwnRpcClient implements DwnRpc {
     const hasConnection = WebSocketDwnRpcClient.connections.has(url.host);
     if (!hasConnection) {
       try {
-        const socket = await JsonRpcSocket.connect(url.toString());
+        const socket = await JsonRpcSocket.connect(url.toString(), jsonRpcSocketOptions);
         const subscriptions = new Map();
         WebSocketDwnRpcClient.connections.set(url.host, { socket, subscriptions });
       } catch(error) {

@@ -52,6 +52,10 @@ export class JsonRpcSocket {
         resolve(new JsonRpcSocket(socket, responseTimeout));
       });
 
+      socket.on('error', (error) => {
+        reject(error);
+      })
+
       setTimeout(() => reject, connectTimeout);
     });
   }
