@@ -1,10 +1,11 @@
-import type { GenerateKeyParams, Jwk, KeyGenerator, KeyWrapper } from '@web5/crypto';
+import type { GenerateKeyParams, Jwk, KeyConverter, KeyGenerator, KeyWrapper } from '@web5/crypto';
 
 import { CryptoAlgorithm } from '@web5/crypto';
 
-import type { UnwrapKeyParams, WrapKeyParams } from '../types/params-direct.js';
+import type { BytesToPrivateKeyParams, PrivateKeyToBytesParams, UnwrapKeyParams, WrapKeyParams } from '../types/params-direct.js';
 
 import { AesKw } from '../primitives/aes-kw.js';
+import { RequireOnly } from '@web5/common';
 
 /**
  * The `AesKwGenerateKeyParams` interface defines the algorithm-specific parameters that should be
@@ -30,8 +31,21 @@ export interface AesKwGenerateKeyParams extends GenerateKeyParams {
  * {@link CryptoApi | `CryptoApi`} interface.
  */
 export class AesKwAlgorithm extends CryptoAlgorithm
-  implements KeyGenerator<AesKwGenerateKeyParams, Jwk>,
+  implements KeyConverter,
+             KeyGenerator<AesKwGenerateKeyParams, Jwk>,
              KeyWrapper<WrapKeyParams, UnwrapKeyParams> {
+
+  public async bytesToPrivateKey({ privateKeyBytes }:
+    RequireOnly<BytesToPrivateKeyParams, 'privateKeyBytes'>
+  ): Promise<Jwk> {
+    // Convert the byte array to a JWK.
+    const privateKey = await AesKw.bytesToPrivateKey({ privateKeyBytes });
+
+    // Set the `alg` property based on the key length.
+    privateKey.alg = { 16: 'A128KW', 24: 'A192KW', 32: 'A256KW' }[privateKeyBytes.length];
+
+    return privateKey;
+  }
 
   /**
    * Generates a symmetric key for AES for key wrapping in JSON Web Key (JWK) format.
@@ -74,6 +88,15 @@ export class AesKwAlgorithm extends CryptoAlgorithm
     return privateKey;
   }
 
+  public async privateKeyToBytes({ privateKey }:
+    PrivateKeyToBytesParams
+  ): Promise<Uint8Array> {
+    // Convert the JWK to a byte array.
+    const privateKeyBytes = await AesKw.privateKeyToBytes({ privateKey });
+
+    return privateKeyBytes;
+  }
+
   /**
    * Decrypts a wrapped key using the AES Key Wrap algorithm.
    *
@@ -101,7 +124,9 @@ export class AesKwAlgorithm extends CryptoAlgorithm
    *
    * @returns A Promise that resolves to the unwrapped key in JWK format.
    */
-  public async unwrapKey(params: UnwrapKeyParams): Promise<Jwk> {
+  public async unwrapKey(params:
+    UnwrapKeyParams
+  ): Promise<Jwk> {
     const unwrappedKey = await AesKw.unwrapKey(params);
 
     return unwrappedKey;
@@ -129,7 +154,9 @@ export class AesKwAlgorithm extends CryptoAlgorithm
    *
    * @returns A Promise that resolves to the wrapped key as a Uint8Array.
    */
-  public async wrapKey(params: WrapKeyParams): Promise<Uint8Array> {
+  public async wrapKey(params:
+    WrapKeyParams
+  ): Promise<Uint8Array> {
     const wrappedKeyBytes = AesKw.wrapKey(params);
 
     return wrappedKeyBytes;

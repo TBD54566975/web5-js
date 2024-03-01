@@ -637,13 +637,13 @@ export class AppDataVault implements SecureAppDataStore {
     const cekJwe = await this.getStoredContentEncryptionKey();
 
     // Initialize a Crypto API instance to decrypt the compact JWE.
-    const cryptoApi = new AgentCryptoApi({ agent: {} as Web5PlatformAgent });
+    // const cryptoApi = new AgentCryptoApi({ agent: {} as Web5PlatformAgent });
 
-    const test = await CompactJwe.decrypt({
-      jwe        : cekJwe,
-      key        : 'thing',
-      keyManager : cryptoApi
-    });
+    // const test = await CompactJwe.decrypt({
+    //   jwe        : cekJwe,
+    //   key        : 'thing',
+    //   keyManager : cryptoApi
+    // });
 
 
 

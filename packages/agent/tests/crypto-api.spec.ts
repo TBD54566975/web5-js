@@ -4,10 +4,10 @@ import type { BearerDid } from '@web5/dids';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
-import { utils as cryptoUtils } from '@web5/crypto';
+import { utils as cryptoUtils, isOctPrivateJwk } from '@web5/crypto';
 
-import type { KeyManager } from '../src/types/key-manager.js';
 import type { Web5PlatformAgent } from '../src/types/agent.js';
+import type { AgentKeyManager } from '../src/types/key-manager.js';
 
 import { TestAgent } from './utils/test-agent.js';
 import { AgentCryptoApi } from '../src/crypto-api.js';
@@ -56,6 +56,107 @@ describe('AgentCryptoApi', () => {
       after(async () => {
         await testHarness.clearStorage();
         await testHarness.closeStorage();
+      });
+
+      describe('bytesToPrivateKey()', () => {
+        it('returns a private key as a JWK', async () => {
+          // Setup.
+          const privateKeyBytes = Convert.hex('857fb5c80014e9a642c06a958987c084').toUint8Array();
+
+          // Test the method.
+          const privateKey = await testHarness.agent.crypto.bytesToPrivateKey({ algorithm: 'A128KW', privateKeyBytes });
+
+          // Validate the result.
+          expect(privateKey).to.have.property('kty', 'oct');
+          expect(privateKey).to.have.property('k');
+          expect(privateKey).to.have.property('alg', 'A128KW');
+          if (!isOctPrivateJwk(privateKey)) throw new Error('Invalid key type'); // type guard
+          const privateKeyBytesResult = Convert.base64Url(privateKey.k).toUint8Array();
+          expect(privateKeyBytesResult).to.deep.equal(privateKeyBytes);
+        });
+
+        it('returns a private key as a JWK', async () => {
+          // Setup.
+          const privateKeyBytes = Convert.hex('857fb5c80014e9a642c06a958987c084').toUint8Array();
+
+          // Test the method.
+          const privateKey = await testHarness.agent.crypto.bytesToPrivateKey({ algorithm: 'A128KW', privateKeyBytes });
+
+          // Validate the result.
+          expect(privateKey).to.have.property('kty', 'oct');
+          expect(privateKey).to.have.property('k');
+          expect(privateKey).to.have.property('alg', 'A128KW');
+          if (!isOctPrivateJwk(privateKey)) throw new Error('Invalid key type'); // type guard
+          const privateKeyBytesResult = Convert.base64Url(privateKey.k).toUint8Array();
+          expect(privateKeyBytesResult).to.deep.equal(privateKeyBytes);
+        });
+
+        it('supports A128GCM, A192GCM, and A256GCM', async () => {
+          for (const algorithm of ['A128GCM', 'A192GCM', 'A256GCM'] as const) {
+            // Setup.
+            const privateKeyUri = await testHarness.agent.crypto.generateKey({ algorithm });
+            const privateKeyInput = await testHarness.agent.crypto.exportKey({ keyUri: privateKeyUri });
+            const privateKeyBytes = Convert.base64Url(privateKeyInput.k!).toUint8Array();
+
+            // Test the method.
+            const privateKey = await testHarness.agent.crypto.bytesToPrivateKey({ algorithm, privateKeyBytes });
+
+            // Validate the result.
+            expect(privateKey).to.have.property('alg', algorithm);
+            const privateKeyBytesResult = Convert.base64Url(privateKey.k!).toUint8Array();
+            expect(privateKeyBytesResult).to.deep.equal(privateKeyBytes);
+          }
+        });
+
+        it('supports A128KW, A192KW, and A256KW', async () => {
+          for (const algorithm of ['A128KW', 'A192KW', 'A256KW'] as const) {
+            // Setup.
+            const privateKeyUri = await testHarness.agent.crypto.generateKey({ algorithm });
+            const privateKeyInput = await testHarness.agent.crypto.exportKey({ keyUri: privateKeyUri });
+            const privateKeyBytes = Convert.base64Url(privateKeyInput.k!).toUint8Array();
+
+            // Test the method.
+            const privateKey = await testHarness.agent.crypto.bytesToPrivateKey({ algorithm, privateKeyBytes });
+
+            // Validate the result.
+            expect(privateKey).to.have.property('alg', algorithm);
+            const privateKeyBytesResult = Convert.base64Url(privateKey.k!).toUint8Array();
+            expect(privateKeyBytesResult).to.deep.equal(privateKeyBytes);
+          }
+        });
+      });
+
+      describe('bytesToPublicKey()', () => {
+        it('returns a public key as a JWK', async () => {
+          // Setup.
+          const publicKeyBytes = Convert.hex('d8d6e4ecd1126ca6bd02610f5698063dbce05ec92ef12543d191810d879b9297').toUint8Array();
+
+          // Test the method.
+          const publicKey = await testHarness.agent.crypto.bytesToPublicKey({ algorithm: 'Ed25519', publicKeyBytes });
+
+          // Validate the result.
+          expect(publicKey).to.have.property('kty', 'OKP');
+          expect(publicKey).to.have.property('x');
+          expect(publicKey).to.not.have.property('d');
+          expect(publicKey).to.have.property('alg', 'EdDSA');
+        });
+
+        it('supports Ed25519, ES256K, secp256k1, ES256, and secp256r1', async () => {
+          for (const algorithm of ['Ed25519', 'ES256K', 'secp256k1', 'ES256', 'secp256r1'] as const) {
+            // Setup.
+            const privateKeyUri = await testHarness.agent.crypto.generateKey({ algorithm });
+            const publicKeyInput = await testHarness.agent.crypto.getPublicKey({ keyUri: privateKeyUri });
+            const publicKeyBytes = await testHarness.agent.crypto.publicKeyToBytes({ publicKey: publicKeyInput });
+
+            // Test the method.
+            const publicKey = await testHarness.agent.crypto.bytesToPublicKey({ algorithm, publicKeyBytes });
+
+            // Validate the result.
+            expect(publicKey).to.have.property('alg');
+            expect(publicKey).to.have.property('kty');
+            expect(publicKey).to.have.property('crv');
+          }
+        });
       });
 
       describe('decrypt()', () => {
@@ -107,6 +208,139 @@ describe('AgentCryptoApi', () => {
         });
       });
 
+      describe('deriveKey()', () => {
+        it('returns a derived key as a JWK', async () => {
+          // Setup.
+          const privateKeyHex = '857fb5c80014e9a642c06a958987c084889a4f2bb53d444cb30a08e08426898e'; // 32-bytes / 256-bits
+          const privateKeyBytes = Convert.hex(privateKeyHex).toUint8Array();
+
+          // Test the method.
+          const derivedKey = await testHarness.agent.crypto.deriveKey({
+            algorithm           : 'HKDF-256',
+            baseKeyBytes        : privateKeyBytes,
+            info                : new Uint8Array(0),
+            salt                : new Uint8Array(0),
+            derivedKeyAlgorithm : 'A128KW'
+          });
+
+          // Validate the result.
+          expect(derivedKey).to.have.property('kty', 'oct');
+          expect(derivedKey).to.have.property('k');
+          expect(derivedKey).to.have.property('alg', 'A128KW');
+          if (!isOctPrivateJwk(derivedKey)) throw new Error('Invalid key type'); // type guard
+          const derivedKeyBytes = Convert.base64Url(derivedKey.k).toUint8Array();
+          expect(derivedKeyBytes.byteLength).to.equal(128 / 8);
+        });
+
+        it('supports HKDF-256 with A128KW, A192KW, and A256KW', async () => {
+          // Setup.
+          const privateKeyHex = '857fb5c80014e9a642c06a958987c084889a4f2bb53d444cb30a08e08426898e'; // 32-bytes / 256-bits
+          const privateKeyBytes = Convert.hex(privateKeyHex).toUint8Array();
+
+          for (const derivedKeyAlgorithm of ['A128KW', 'A192KW', 'A256KW'] as const) {
+            // Test the method.
+            const derivedKey = await testHarness.agent.crypto.deriveKey({
+              algorithm    : 'HKDF-256',
+              baseKeyBytes : privateKeyBytes,
+              info         : new Uint8Array(0),
+              salt         : new Uint8Array(0),
+              derivedKeyAlgorithm
+            });
+
+            // Validate the result.
+            expect(derivedKey).to.have.property('alg', derivedKeyAlgorithm);
+            if (!isOctPrivateJwk(derivedKey)) throw new Error('Invalid key type'); // type guard
+            const derivedKeyBytes = Convert.base64Url(derivedKey.k).toUint8Array();
+            const expectedKeyLength = parseInt(derivedKeyAlgorithm.slice(1, 4), 10);
+            expect(derivedKeyBytes.byteLength).to.equal(expectedKeyLength / 8);
+          }
+        });
+
+        it('supports PBES with HMAC-256/A128KW, HMAC-384/A192KW, HMAC-512/A256KW', async () => {
+          // Setup.
+          const privateKeyHex = '857fb5c80014e9a642c06a958987c084889a4f2bb53d444cb30a08e08426898e'; // 32-bytes / 256-bits
+          const privateKeyBytes = Convert.hex(privateKeyHex).toUint8Array();
+
+          for (const algorithm of ['PBES2-HS256+A128KW', 'PBES2-HS384+A192KW', 'PBES2-HS512+A256KW'] as const) {
+            // Test the method.
+            const derivedKey = await testHarness.agent.crypto.deriveKey({
+              algorithm    : algorithm,
+              baseKeyBytes : privateKeyBytes,
+              iterations   : 1,
+              salt         : new Uint8Array(0)
+            });
+
+            // Validate the result.
+            const [, , derivedKeyAlgorithm] = algorithm.split(/[-+]/);
+            expect(derivedKey).to.have.property('alg', derivedKeyAlgorithm);
+            if (!isOctPrivateJwk(derivedKey)) throw new Error('Invalid key type'); // type guard
+            const derivedKeyBytes = Convert.base64Url(derivedKey.k).toUint8Array();
+            const expectedKeyLength = parseInt(derivedKeyAlgorithm.slice(1, 4), 10);
+            expect(derivedKeyBytes.byteLength).to.equal(expectedKeyLength / 8);
+          }
+        });
+
+        it(`throws an error if the "algorithm" is unsupported`, async () => {
+          try {
+            await testHarness.agent.crypto.deriveKey({
+              // @ts-expect-error because an unsupported algorithm is being tested.
+              algorithm           : 'unsupported-algorithm',
+              baseKeyBytes        : new Uint8Array(0),
+              info                : new Uint8Array(0),
+              salt                : new Uint8Array(0),
+              derivedKeyAlgorithm : 'A128KW'
+            });
+            expect.fail('Expected an error to be thrown.');
+          } catch (error: any) {
+            // Validate the result.
+            expect(error.message).to.include('Algorithm not supported');
+          }
+        });
+
+        it(`throws an error if the "derivedKeyAlgorithm" is unsupported`, async () => {
+          // Setup.
+          const privateKeyHex = '857fb5c80014e9a642c06a958987c084889a4f2bb53d444cb30a08e08426898e'; // 32-bytes / 256-bits
+          const privateKeyBytes = Convert.hex(privateKeyHex).toUint8Array();
+
+          try {
+            // Test the method.
+            await testHarness.agent.crypto.deriveKey({
+              algorithm           : 'HKDF-256',
+              baseKeyBytes        : privateKeyBytes,
+              info                : new Uint8Array(0),
+              salt                : new Uint8Array(0),
+              // @ts-expect-error because an unsupported algorithm is being tested.
+              derivedKeyAlgorithm : 'unsupported-algorithm'
+            });
+            expect.fail('Expected an error to be thrown.');
+          } catch (error: any) {
+            // Validate the result.
+            expect(error.message).to.include('is not supported');
+          }
+        });
+      });
+
+      describe('deriveKeyBytes()', () => {
+        it('returns a derived key as a byte array', async () => {
+          // Setup.
+          const privateKeyHex = '857fb5c80014e9a642c06a958987c084889a4f2bb53d444cb30a08e08426898e'; // 32-bytes / 256-bits
+          const privateKeyBytes = Convert.hex(privateKeyHex).toUint8Array();
+
+          // Test the method.
+          const derivedKeyBytes = await testHarness.agent.crypto.deriveKeyBytes({
+            algorithm    : 'HKDF-256',
+            baseKeyBytes : privateKeyBytes,
+            length       : 256,
+            info         : new Uint8Array(0),
+            salt         : new Uint8Array(0),
+          });
+
+          // Validate the result.
+          expect(derivedKeyBytes).to.be.an.instanceOf(Uint8Array);
+          expect(derivedKeyBytes.byteLength).to.equal(32);
+        });
+      });
+
       describe('digest()', () => {
         it('computes and returns a digest as a Uint8Array', async () => {
           // Setup.
@@ -114,6 +348,19 @@ describe('AgentCryptoApi', () => {
 
           // Test the method.
           const digest = await testHarness.agent.crypto.digest({ algorithm: 'SHA-256', data });
+
+          // Validate the result.
+          expect(digest).to.exist;
+          expect(digest).to.be.an.instanceOf(Uint8Array);
+        });
+
+        it('accepts an algorithm identifier as a string parameter', async () => {
+          // Setup.
+          const data = new Uint8Array([0, 1, 2, 3, 4]);
+
+          // Test the method.
+          const algorithm = 'SHA-256';
+          const digest = await testHarness.agent.crypto.digest({ algorithm, data });
 
           // Validate the result.
           expect(digest).to.exist;
@@ -225,8 +472,8 @@ describe('AgentCryptoApi', () => {
             importKey    : sinon.stub(),
             sign         : sinon.stub(),
             verify       : sinon.stub(),
-          } as KeyManager;
 
+          } as AgentKeyManager;
           const cryptoApi = new AgentCryptoApi({ keyManager: keyManagerMock });
 
           const keyUri = await cryptoApi.generateKey({ algorithm: 'Ed25519' });
@@ -244,6 +491,13 @@ describe('AgentCryptoApi', () => {
       describe('generateKey()', () => {
         it('returns a Key URI', async () => {
           const keyUri = await testHarness.agent.crypto.generateKey({ algorithm: 'Ed25519' });
+
+          expect(keyUri).to.be.a.string;
+        });
+
+        it('accepts an algorithm identifier as a string parameter', async () => {
+          const algorithm = 'Ed25519';
+          const keyUri = await testHarness.agent.crypto.generateKey({ algorithm });
 
           expect(keyUri).to.be.a.string;
         });
@@ -298,8 +552,8 @@ describe('AgentCryptoApi', () => {
             getPublicKey : sinon.stub(),
             sign         : sinon.stub(),
             verify       : sinon.stub(),
-          } as KeyManager;
 
+          } as AgentKeyManager;
           const cryptoApi = new AgentCryptoApi({ keyManager: keyManagerMock });
 
           const privateKey: Jwk = {
@@ -319,8 +573,42 @@ describe('AgentCryptoApi', () => {
         });
       });
 
+      describe('privateKeyToBytes()', () => {
+        it('returns a private key as a byte array', async () => {
+          const privateKey: Jwk = {
+            crv : 'Ed25519',
+            d   : 'TM0Imyj_ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U-4pvs',
+            kty : 'OKP',
+            x   : 'PUAXw-hDiVqStwqnTRt-vJyYLM8uxJaMwM1V8Sr0Zgw',
+            kid : 'FtIu-VbGrfe_KB6CH7GNwODB72MNxj_ml11dEvO-7kk'
+          };
+          const privateKeyBytes = await testHarness.agent.crypto.privateKeyToBytes({ privateKey });
+
+          expect(privateKeyBytes).to.be.an.instanceOf(Uint8Array);
+          const expectedOutput = Convert.hex('4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb').toUint8Array();
+          expect(privateKeyBytes).to.deep.equal(expectedOutput);
+        });
+      });
+
+      describe('publicKeyToBytes()', () => {
+        it('returns a public key in JWK format', async () => {
+          const publicKey: Jwk = {
+            kty : 'OKP',
+            crv : 'Ed25519',
+            x   : 'PUAXw-hDiVqStwqnTRt-vJyYLM8uxJaMwM1V8Sr0Zgw',
+            kid : 'FtIu-VbGrfe_KB6CH7GNwODB72MNxj_ml11dEvO-7kk'
+          };
+
+          const publicKeyBytes = await testHarness.agent.crypto.publicKeyToBytes({ publicKey });
+
+          expect(publicKeyBytes).to.be.an.instanceOf(Uint8Array);
+          const expectedOutput = Convert.hex('3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c').toUint8Array();
+          expect(publicKeyBytes).to.deep.equal(expectedOutput);
+        });
+      });
+
       describe('unwrapKey()', () => {
-        it('returns the expected wrapped key for given input', async () => {
+        it('returns the expected key given a wrapped key and decryption key identifier', async () => {
           const wrappedKeyBytes = Convert.hex('8c55fb6fc4c7bb0b6b483df65ba52bee7ed6e0f861ac8097b2394f61067d1157901295aba72c514b').toUint8Array(); // raw format
 
           const decryptionKey: Jwk = {
@@ -344,6 +632,28 @@ describe('AgentCryptoApi', () => {
           expect(unwrappedKey).to.deep.equal(expectedPrivateKey);
         });
 
+        it('returns the expected key given a wrapped key and decryption JWK', async () => {
+          const wrappedKeyBytes = Convert.hex('8c55fb6fc4c7bb0b6b483df65ba52bee7ed6e0f861ac8097b2394f61067d1157901295aba72c514b').toUint8Array(); // raw format
+
+          const decryptionKey: Jwk = {
+            kty : 'oct',
+            k   : '47Fn3ZXGbmntoAKErKN5-d7yuwMejCJtOqgAeq_Ojk0',
+            alg : 'A256KW',
+            kid : 'izA6N7g3xmPWStB6Qe6BbGgfrXvrptzuH2eJ1wmdrtk',
+          };
+
+          const unwrappedKey = await testHarness.agent.crypto.unwrapKey({ wrappedKeyBytes, wrappedKeyAlgorithm: 'A256GCM', decryptionKey });
+
+          const expectedPrivateKey: Jwk = {
+            kty : 'oct',
+            k   : 'hX-1yAAU6aZCwGqViYfAhIiaTyu1PURMswoI4IQmiY4',
+            alg : 'A256GCM',
+            kid : '-TssSnJNgh10-YTwuBtyZTnv0LY6sdT-TQl9WFTSetI',
+          };
+
+          expect(unwrappedKey).to.deep.equal(expectedPrivateKey);
+        });
+
         it('throws an error if the Key Manager does not support key wrapping', async () => {
           const keyManagerMock = {
             agent        : {} as Web5PlatformAgent,
@@ -355,8 +665,8 @@ describe('AgentCryptoApi', () => {
             getPublicKey : sinon.stub(),
             sign         : sinon.stub(),
             verify       : sinon.stub(),
-          } as KeyManager;
 
+          } as AgentKeyManager;
           const cryptoApi = new AgentCryptoApi({ keyManager: keyManagerMock });
 
           try {
@@ -435,7 +745,7 @@ describe('AgentCryptoApi', () => {
       });
 
       describe('wrapKey()', () => {
-        it('returns a wrapped key as a byte array', async () => {
+        it('returns a wrapped key as a byte array given an encryption key identifier', async () => {
           const unwrappedKey: Jwk = {
             kty : 'oct',
             k   : 'hX-1yAAU6aZCwGqViYfAhIiaTyu1PURMswoI4IQmiY4',
@@ -445,6 +755,22 @@ describe('AgentCryptoApi', () => {
           const encryptionKeyUri = await testHarness.agent.crypto.generateKey({ algorithm: 'A256KW' });
 
           const wrappedKeyBytes = await testHarness.agent.crypto.wrapKey({ unwrappedKey, encryptionKeyUri });
+
+          expect(wrappedKeyBytes).to.be.an.instanceOf(Uint8Array);
+          expect(wrappedKeyBytes.byteLength).to.equal(32 + 8); // 32 bytes for the wrapped private key, 8 bytes for the initialization vector
+        });
+
+        it('returns a wrapped key as a byte array given an encryption JWK', async () => {
+          const unwrappedKey: Jwk = {
+            kty : 'oct',
+            k   : 'hX-1yAAU6aZCwGqViYfAhIiaTyu1PURMswoI4IQmiY4',
+            alg : 'A256GCM',
+            kid : '-TssSnJNgh10-YTwuBtyZTnv0LY6sdT-TQl9WFTSetI',
+          };
+          const encryptionKeyUri = await testHarness.agent.crypto.generateKey({ algorithm: 'A256KW' });
+          const encryptionKey = await testHarness.agent.crypto.exportKey({ keyUri: encryptionKeyUri });
+
+          const wrappedKeyBytes = await testHarness.agent.crypto.wrapKey({ unwrappedKey, encryptionKey });
 
           expect(wrappedKeyBytes).to.be.an.instanceOf(Uint8Array);
           expect(wrappedKeyBytes.byteLength).to.equal(32 + 8); // 32 bytes for the wrapped private key, 8 bytes for the initialization vector
@@ -484,8 +810,8 @@ describe('AgentCryptoApi', () => {
             getPublicKey : sinon.stub(),
             sign         : sinon.stub(),
             verify       : sinon.stub(),
-          } as KeyManager;
 
+          } as AgentKeyManager;
           const cryptoApi = new AgentCryptoApi({ keyManager: keyManagerMock });
 
           try {
