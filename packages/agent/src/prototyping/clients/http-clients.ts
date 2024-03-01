@@ -1,5 +1,5 @@
 import type { JsonRpcResponse } from './json-rpc.js';
-import type { DidRpcRequest, DidRpcResponse, DwnRpc, DwnRpcRequest, DwnRpcResponse, Web5Rpc } from './web5-rpc-types.js';
+import type { DidRpcRequest, DidRpcResponse, DwnRpc, DwnRpcRequest, DwnRpcResponse, ServerInfo, Web5Rpc } from './web5-rpc-types.js';
 
 import { createJsonRpcRequest, parseJson } from './json-rpc.js';
 import { utils as cryptoUtils } from '@web5/crypto';
@@ -106,5 +106,31 @@ export class HttpWeb5RpcClient extends HttpDwnRpcClient implements Web5Rpc {
     }
 
     return jsonRpcResponse.result as DidRpcResponse;
+  }
+
+  // TODO: cache responses
+  async getServerInfo(dwnUrl: string): Promise<ServerInfo> {
+    const url = new URL(dwnUrl);
+
+    // add `/info` to the dwn server url path
+    url.pathname.endsWith('/') ? url.pathname += 'info' : url.pathname += '/info';
+
+    try {
+      const response = await fetch(url.toString());
+      if(response.ok) {
+        const serverInfo = await response.json() as ServerInfo;
+
+        // explicitly return only the desired properties.
+        return {
+          registrationRequirements : serverInfo.registrationRequirements,
+          maxFileSize              : serverInfo.maxFileSize,
+          webSocketSupport         : serverInfo.webSocketSupport,
+        };
+      } else {
+        throw new Error(`HTTP (${response.status}) - ${response.statusText}`);
+      }
+    } catch(error: any) {
+      throw new Error(`Error encountered while processing response from ${url.toString()}: ${error.message}`);
+    }
   }
 }

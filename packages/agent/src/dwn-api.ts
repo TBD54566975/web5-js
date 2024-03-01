@@ -3,7 +3,7 @@ import type { Signer as DwnSigner, GenericMessage, UnionMessageReply } from '@tb
 
 import { Convert } from '@web5/common';
 import { DidResolver } from '@web5/dids';
-import { Cid, DataStream, Dwn, Message } from '@tbd54566975/dwn-sdk-js';
+import { Cid, DataStream, Dwn, DwnMethodName, Message } from '@tbd54566975/dwn-sdk-js';
 
 import type { Web5PlatformAgent } from './types/agent.js';
 import type { DwnMessage, DwnMessageInstance, DwnMessageParams, DwnMessageReply, DwnMessageWithData, DwnResponse, ProcessDwnRequest, SendDwnRequest } from './types/dwn.js';
@@ -118,6 +118,8 @@ export class AgentDwnApi {
   public async sendRequest<T extends DwnInterface>(
     request: SendDwnRequest<T>
   ): Promise<DwnResponse<T>> {
+
+    // TODO: detect and cache the target DID's socket capabilities
     // First, confirm the target DID can be dereferenced and extract the DWN service endpoint URLs.
     const dwnEndpointUrls = await getDwnServiceEndpointUrls(request.target, this.agent.did);
     if (dwnEndpointUrls.length === 0) {
@@ -136,7 +138,6 @@ export class AgentDwnApi {
         messageType : request.messageType
       }));
       messageCid = request.messageCid;
-
     } else {
       // Otherwise, construct a new message.
       ({ message } = await this.constructDwnMessage({ request }));
@@ -173,8 +174,27 @@ export class AgentDwnApi {
   ): Promise<DwnMessageReply[T]> {
     const errorMessages: { url: string, message: string }[] = [];
 
+    // subscribe requests can only happen over sockets, so we first check if the message is a subscribe method.
+    const isSubscribeMessage = message.descriptor.method === DwnMethodName.Subscribe;
+
     // Try sending to author's publicly addressable DWNs until the first request succeeds.
     for (let dwnUrl of dwnEndpointUrls) {
+      const info = await this.agent.rpc.getServerInfo(dwnUrl);
+      if (isSubscribeMessage && !info.webSocketSupport) {
+        errorMessages.push({
+          url: dwnUrl,
+          message: 'web sockets not supported'
+        });
+        continue;
+      }
+
+      // if it's a subscribe message modify the protocol to websockets accordingly
+      if(isSubscribeMessage) {
+        const url = new URL(dwnUrl);
+        url.protocol === 'http:' ? url.protocol = 'ws:' : url.protocol = 'wss:';
+        dwnUrl = url.toString();
+      }
+
       try {
         const dwnReply = await this.agent.rpc.sendDwnRequest({
           dwnUrl,
@@ -193,13 +213,6 @@ export class AgentDwnApi {
 
     throw new Error(`Failed to send DWN RPC request: ${JSON.stringify(errorMessages)}`);
   }
-
-
-
-
-
-
-
 
 
   private async constructDwnMessage<T extends DwnInterface>({ request }: {

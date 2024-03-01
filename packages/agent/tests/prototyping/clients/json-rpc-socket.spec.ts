@@ -107,7 +107,6 @@ describe('JsonRpcSocket', () => {
     }
   });
 
-
   xit('closes subscription upon receiving a JsonRpc Error for a long running subscription', async () => {
 
     const client = await JsonRpcSocket.connect(socketDwnUrl, { responseTimeout: 5 });

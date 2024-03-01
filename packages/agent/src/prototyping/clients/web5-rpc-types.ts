@@ -63,6 +63,23 @@ export type DwnRpcResponse = UnionMessageReply & RecordsReadReply;
 export type RpcStatus = {
   code: number;
   message: string;
-};
+}
 
-export interface Web5Rpc extends DwnRpc, DidRpc {}
+export type ServerInfo = {
+  /** the maximum file size the user can request to store */
+  maxFileSize: number,
+  /** 
+   * an array of strings representing the server's registration requirements.
+   *
+   * ie. ['proof-of-work-sha256-v0', 'terms-of-service']
+   * */
+  registrationRequirements: string[],
+  /** whether web socket support is enabled on this server */
+  webSocketSupport: boolean, 
+}
+
+export interface DwnServerInfo {
+  getServerInfo(url: string): Promise<ServerInfo>;
+}
+
+export interface Web5Rpc extends DwnRpc, DidRpc, DwnServerInfo {}
