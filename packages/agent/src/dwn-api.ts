@@ -119,7 +119,6 @@ export class AgentDwnApi {
     request: SendDwnRequest<T>
   ): Promise<DwnResponse<T>> {
 
-    // TODO: detect and cache the target DID's socket capabilities
     // First, confirm the target DID can be dereferenced and extract the DWN service endpoint URLs.
     const dwnEndpointUrls = await getDwnServiceEndpointUrls(request.target, this.agent.did);
     if (dwnEndpointUrls.length === 0) {
@@ -137,6 +136,7 @@ export class AgentDwnApi {
         messageCid  : request.messageCid,
         messageType : request.messageType
       }));
+
       messageCid = request.messageCid;
     } else {
       // Otherwise, construct a new message.
@@ -189,6 +189,7 @@ export class AgentDwnApi {
       }
 
       // if it's a subscribe message modify the protocol to websockets accordingly
+      // we currently only support Subscribe messages over sockets
       if(isSubscribeMessage) {
         const url = new URL(dwnUrl);
         url.protocol === 'http:' ? url.protocol = 'ws:' : url.protocol = 'wss:';
@@ -213,6 +214,13 @@ export class AgentDwnApi {
 
     throw new Error(`Failed to send DWN RPC request: ${JSON.stringify(errorMessages)}`);
   }
+
+
+
+
+
+
+
 
 
   private async constructDwnMessage<T extends DwnInterface>({ request }: {
