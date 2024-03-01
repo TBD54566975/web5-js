@@ -107,51 +107,6 @@ describe('JsonRpcSocket', () => {
     }
   });
 
-  xit('closes subscription upon receiving a JsonRpc Error for a long running subscription', async () => {
-
-    const client = await JsonRpcSocket.connect(socketDwnUrl, { responseTimeout: 5 });
-    const { message } = await TestDataGenerator.generateRecordsSubscribe({ author: alice });
-
-    const requestId = cryptoUtils.randomUuid();
-    const subscriptionId = cryptoUtils.randomUuid();
-    const request = createJsonRpcSubscriptionRequest(
-      requestId,
-      'dwn.processMessage',
-      subscriptionId,
-      { target: alice.did, message }
-    );
-
-    let errorCounter = 0;
-    let responseCounter = 0;
-    const responseListener = (response: JsonRpcResponse): void => {
-      expect(response.id).to.equal(subscriptionId);
-      if (response.error) {
-        errorCounter++;
-      }
-
-      if (response.result) {
-        responseCounter++;
-      }
-    };
-
-    const subscription = await client.subscribe(request, responseListener);
-    expect(subscription.response.error).to.be.undefined;
-    // wait for the messages to arrive
-
-    // induce positive result
-    const jsonResponse = createJsonRpcSuccessResponse(subscriptionId, { reply: {} });
-    client['socket'].emit('message', JSON.stringify(jsonResponse));
-
-    // induce error message
-    const errorResponse = createJsonRpcErrorResponse(subscriptionId, JsonRpcErrorCodes.InternalError, 'message');
-    client['socket'].emit('message', JSON.stringify(errorResponse));
-
-    await new Promise((resolve) => setTimeout(resolve, 5));
-    // the original response
-    expect(responseCounter).to.equal(1, 'response');
-    expect(errorCounter).to.equal(1, 'error');
-  });
-
   it('only JSON RPC Methods prefixed with `rpc.subscribe.` are accepted for a subscription', async () => {
     const client = await JsonRpcSocket.connect(socketDwnUrl);
     const requestId = cryptoUtils.randomUuid();
@@ -191,26 +146,86 @@ describe('JsonRpcSocket', () => {
     expect(logMessage).to.equal(`JSON RPC Socket close ${socketDwnUrl}`);
   });
 
-  xit('calls onerror handler', async () => {
-    // test injected handler
-    const onErrorHandler = { onerror: ():void => {} };
-    const onErrorSpy = sinon.spy(onErrorHandler, 'onerror');
-    const client = await JsonRpcSocket.connect(socketDwnUrl, { onerror: onErrorHandler.onerror });
-    client['socket'].emit('error', 'some error');
+  // NOTE: Temporary in lieu of a better mock of isomorphic-ws
+  // tests reply on Node's use of event listeners to emit an error or message over the socket.
+  describe('browser', () => {
+    if (typeof window !== 'undefined') {
+      xit('calls onerror handler', async () => {
+      });
+      xit('closes subscription upon receiving a JsonRpc Error for a long running subscription', async () => {
+      });
+    }
+  });
 
-    await new Promise((resolve) => setTimeout(resolve, 5)); // wait for close event to arrive
-    expect(onErrorSpy.callCount).to.equal(1, 'error');
+  describe('NodeJS', function () {
+    if (typeof process !== 'undefined' && (process as any).browser !== true) {
+      it('calls onerror handler', async () => {
+        // test injected handler
+        const onErrorHandler = { onerror: ():void => {} };
+        const onErrorSpy = sinon.spy(onErrorHandler, 'onerror');
+        const client = await JsonRpcSocket.connect(socketDwnUrl, { onerror: onErrorHandler.onerror });
+        client['socket'].emit('error', 'some error');
 
-    // test default logger
-    const logInfoSpy = sinon.stub(console, 'error');
-    const defaultClient = await JsonRpcSocket.connect(socketDwnUrl);
-    defaultClient['socket'].emit('error', 'some error');
+        await new Promise((resolve) => setTimeout(resolve, 5)); // wait for close event to arrive
+        expect(onErrorSpy.callCount).to.equal(1, 'error');
 
-    await new Promise((resolve) => setTimeout(resolve, 5)); // wait for close event to arrive
-    expect(logInfoSpy.callCount).to.equal(1, 'log');
+        // test default logger
+        const logInfoSpy = sinon.stub(console, 'error');
+        const defaultClient = await JsonRpcSocket.connect(socketDwnUrl);
+        defaultClient['socket'].emit('error', 'some error');
 
-    // extract log message from argument
-    const logMessage:string = logInfoSpy.args[0][0]!;
-    expect(logMessage).to.equal(`JSON RPC Socket error ${socketDwnUrl}`);
+        await new Promise((resolve) => setTimeout(resolve, 5)); // wait for close event to arrive
+        expect(logInfoSpy.callCount).to.equal(1, 'log');
+
+        // extract log message from argument
+        const logMessage:string = logInfoSpy.args[0][0]!;
+        expect(logMessage).to.equal(`JSON RPC Socket error ${socketDwnUrl}`);
+      });
+
+      it('closes subscription upon receiving a JsonRpc Error for a long running subscription', async () => {
+
+        const client = await JsonRpcSocket.connect(socketDwnUrl, { responseTimeout: 5 });
+        const { message } = await TestDataGenerator.generateRecordsSubscribe({ author: alice });
+
+        const requestId = cryptoUtils.randomUuid();
+        const subscriptionId = cryptoUtils.randomUuid();
+        const request = createJsonRpcSubscriptionRequest(
+          requestId,
+          'dwn.processMessage',
+          subscriptionId,
+          { target: alice.did, message }
+        );
+
+        let errorCounter = 0;
+        let responseCounter = 0;
+        const responseListener = (response: JsonRpcResponse): void => {
+          expect(response.id).to.equal(subscriptionId);
+          if (response.error) {
+            errorCounter++;
+          }
+
+          if (response.result) {
+            responseCounter++;
+          }
+        };
+
+        const subscription = await client.subscribe(request, responseListener);
+        expect(subscription.response.error).to.be.undefined;
+        // wait for the messages to arrive
+
+        // induce positive result
+        const jsonResponse = createJsonRpcSuccessResponse(subscriptionId, { reply: {} });
+        client['socket'].emit('message', JSON.stringify(jsonResponse));
+
+        // induce error message
+        const errorResponse = createJsonRpcErrorResponse(subscriptionId, JsonRpcErrorCodes.InternalError, 'message');
+        client['socket'].emit('message', JSON.stringify(errorResponse));
+
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        // the original response
+        expect(responseCounter).to.equal(1, 'response');
+        expect(errorCounter).to.equal(1, 'error');
+      });
+    }
   });
 });

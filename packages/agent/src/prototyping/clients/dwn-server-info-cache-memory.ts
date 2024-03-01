@@ -34,10 +34,6 @@ export class DwnServerInfoCacheMemory implements DwnServerInfoCache {
    * @returns The cached DWN ServerInfo entry or undefined if not found or expired.
    */
   public async get(dwnUrl: string): Promise<ServerInfo| void> {
-    if (!dwnUrl) {
-      throw new Error('Key cannot be null or undefined');
-    }
-
     return this.cache.get(dwnUrl);
   }
 

@@ -69,14 +69,14 @@ export type RpcStatus = {
 export type ServerInfo = {
   /** the maximum file size the user can request to store */
   maxFileSize: number,
-  /** 
+  /**
    * an array of strings representing the server's registration requirements.
    *
    * ie. ['proof-of-work-sha256-v0', 'terms-of-service']
    * */
   registrationRequirements: string[],
   /** whether web socket support is enabled on this server */
-  webSocketSupport: boolean, 
+  webSocketSupport: boolean,
 }
 
 export interface DwnServerInfoCache extends KeyValueStore<string, ServerInfo| void> {}

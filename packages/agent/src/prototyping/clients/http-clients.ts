@@ -136,10 +136,10 @@ export class HttpWeb5RpcClient extends HttpDwnRpcClient implements Web5Rpc {
           registrationRequirements : results.registrationRequirements,
           maxFileSize              : results.maxFileSize,
           webSocketSupport         : results.webSocketSupport,
-        }
+        };
         this.serverInfoCache.set(dwnUrl, serverInfo);
 
-        return serverInfo; 
+        return serverInfo;
       } else {
         throw new Error(`HTTP (${response.status}) - ${response.statusText}`);
       }

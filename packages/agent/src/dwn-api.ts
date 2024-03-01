@@ -182,8 +182,8 @@ export class AgentDwnApi {
       const info = await this.agent.rpc.getServerInfo(dwnUrl);
       if (isSubscribeMessage && !info.webSocketSupport) {
         errorMessages.push({
-          url: dwnUrl,
-          message: 'web sockets not supported'
+          url     : dwnUrl,
+          message : 'web sockets not supported'
         });
         continue;
       }
