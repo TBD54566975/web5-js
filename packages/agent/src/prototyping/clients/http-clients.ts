@@ -1,8 +1,9 @@
 import type { JsonRpcResponse } from './json-rpc.js';
-import type { DidRpcRequest, DidRpcResponse, DwnRpc, DwnRpcRequest, DwnRpcResponse, ServerInfo, Web5Rpc } from './web5-rpc-types.js';
+import type { DidRpcRequest, DidRpcResponse, DwnRpc, DwnRpcRequest, DwnRpcResponse, DwnServerInfoCache, ServerInfo, Web5Rpc } from './web5-rpc-types.js';
 
 import { createJsonRpcRequest, parseJson } from './json-rpc.js';
 import { utils as cryptoUtils } from '@web5/crypto';
+import { DwnServerInfoCacheMemory } from './dwn-server-info-cache-memory.js';
 
 /**
  * HTTP client that can be used to communicate with Dwn Servers
@@ -71,6 +72,12 @@ export class HttpDwnRpcClient implements DwnRpc {
  * HTTP client that can be used to communicate with Web5 servers
  */
 export class HttpWeb5RpcClient extends HttpDwnRpcClient implements Web5Rpc {
+  private serverInfoCache: DwnServerInfoCache;
+  constructor(serverInfoCache?: DwnServerInfoCache) {
+    super();
+    this.serverInfoCache = serverInfoCache ?? new DwnServerInfoCacheMemory();
+  }
+
   async sendDidRequest(request: DidRpcRequest): Promise<DidRpcResponse> {
     const requestId = cryptoUtils.randomUuid();
     const jsonRpcRequest = createJsonRpcRequest(requestId, request.method, {
@@ -108,8 +115,12 @@ export class HttpWeb5RpcClient extends HttpDwnRpcClient implements Web5Rpc {
     return jsonRpcResponse.result as DidRpcResponse;
   }
 
-  // TODO: cache responses
   async getServerInfo(dwnUrl: string): Promise<ServerInfo> {
+    const serverInfo = await this.serverInfoCache.get(dwnUrl);
+    if (serverInfo) {
+      return serverInfo;
+    }
+
     const url = new URL(dwnUrl);
 
     // add `/info` to the dwn server url path
@@ -118,14 +129,17 @@ export class HttpWeb5RpcClient extends HttpDwnRpcClient implements Web5Rpc {
     try {
       const response = await fetch(url.toString());
       if(response.ok) {
-        const serverInfo = await response.json() as ServerInfo;
+        const results = await response.json() as ServerInfo;
 
-        // explicitly return only the desired properties.
-        return {
-          registrationRequirements : serverInfo.registrationRequirements,
-          maxFileSize              : serverInfo.maxFileSize,
-          webSocketSupport         : serverInfo.webSocketSupport,
-        };
+        // explicitly return and cache only the desired properties.
+        const serverInfo = {
+          registrationRequirements : results.registrationRequirements,
+          maxFileSize              : results.maxFileSize,
+          webSocketSupport         : results.webSocketSupport,
+        }
+        this.serverInfoCache.set(dwnUrl, serverInfo);
+
+        return serverInfo; 
       } else {
         throw new Error(`HTTP (${response.status}) - ${response.statusText}`);
       }

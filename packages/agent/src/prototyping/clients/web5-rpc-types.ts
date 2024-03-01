@@ -1,5 +1,6 @@
 import type { EventSubscriptionHandler, RecordsReadReply, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 import type { SerializableDwnMessage } from '../../types/dwn.js';
+import { KeyValueStore } from '@web5/common';
 
 /**
  * Interface that can be implemented to communicate with {@link Web5Agent | Web5 Agent}
@@ -77,6 +78,8 @@ export type ServerInfo = {
   /** whether web socket support is enabled on this server */
   webSocketSupport: boolean, 
 }
+
+export interface DwnServerInfoCache extends KeyValueStore<string, ServerInfo| void> {}
 
 export interface DwnServerInfo {
   getServerInfo(url: string): Promise<ServerInfo>;
