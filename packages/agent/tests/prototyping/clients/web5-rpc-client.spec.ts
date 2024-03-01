@@ -108,4 +108,35 @@ describe('Web5RpcClient', () => {
       expect(stubHttpClient.sendDwnRequest.callCount).to.equal(0);
     });
   });
+
+  describe('getServerInfo', () => {
+    it('should retrieve server info from http client', async () => {
+      const stubHttpClient = sinon.createStubInstance(HttpWeb5RpcClient);
+      const httpOnlyClient = new Web5RpcClient([ stubHttpClient ]);
+
+      await httpOnlyClient.getServerInfo('http://some-server.com');
+      expect(stubHttpClient.getServerInfo.callCount).to.equal(1);
+    });
+
+    it('should throw if transport client is not http', async () => {
+      const stubHttpClient = sinon.createStubInstance(HttpWeb5RpcClient);
+      const httpOnlyClient = new Web5RpcClient([ stubHttpClient ]);
+
+      // request with http
+      const responsePromise = httpOnlyClient.getServerInfo('ws://some-server-url.com');
+      await expect(responsePromise).to.eventually.be.rejectedWith('ws: not supported for server info');
+
+      // confirm http transport was not called
+      expect(stubHttpClient.getServerInfo.callCount).to.equal(0);
+    });
+
+    it('should throw if transport client is not available', async () => {
+      const noClients = new Web5RpcClient();
+      noClients['transportClients'].clear();
+
+      // request with http
+      const responsePromise = noClients.getServerInfo('http://some-server-url.com');
+      await expect(responsePromise).to.eventually.be.rejectedWith('no http: transport client available');
+    });
+  });
 });

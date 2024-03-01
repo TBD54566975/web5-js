@@ -56,4 +56,11 @@ describe('WebSocketWeb5RpcClient', () => {
       await expect(requestPromise).to.eventually.be.rejectedWith('not implemented for transports [ws:, wss:]');
     });
   });
+
+  describe('getServerInfo', () => {
+    it('server info requests are not supported over sockets', async () => {
+      const requestPromise = client.getServerInfo('http://some-url.com');
+      await expect(requestPromise).to.eventually.be.rejectedWith('not implemented for transports [ws:, wss:]');
+    });
+  });
 });

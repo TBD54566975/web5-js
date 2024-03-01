@@ -104,7 +104,7 @@ export class WebSocketWeb5RpcClient extends WebSocketDwnRpcClient implements Web
     throw new Error(`not implemented for transports [${this.transportProtocols.join(', ')}]`);
   }
 
-  async getServerInfo(url: string): Promise<ServerInfo> {
+  async getServerInfo(_url: string): Promise<ServerInfo> {
     throw new Error(`not implemented for transports [${this.transportProtocols.join(', ')}]`);
   }
 }
