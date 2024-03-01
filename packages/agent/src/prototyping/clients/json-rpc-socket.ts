@@ -1,6 +1,6 @@
 import { utils as cryptoUtils } from '@web5/crypto';
 import IsomorphicWebSocket from 'isomorphic-ws';
-import { JsonRpcId, JsonRpcRequest, JsonRpcResponse, createJsonRpcSubscriptionRequest } from './json-rpc.js';
+import { JsonRpcId, JsonRpcRequest, JsonRpcResponse, createJsonRpcSubscriptionRequest, parseJson } from './json-rpc.js';
 
 // These were arbitrarily chosen, but can be modified via connect options
 const CONNECT_TIMEOUT = 3_000;
@@ -72,7 +72,7 @@ export class JsonRpcSocket {
       request.id ??= cryptoUtils.randomUuid();
 
       const handleResponse = (event: { data: any }):void => {
-        const jsonRpsResponse = JSON.parse(event.data) as JsonRpcResponse;
+        const jsonRpsResponse = parseJson(event.data) as JsonRpcResponse;
         if (jsonRpsResponse.id === request.id) {
           // if the incoming response id matches the request id, we will remove the listener and resolve the response
           this.socket.removeEventListener('message', handleResponse);
@@ -110,7 +110,7 @@ export class JsonRpcSocket {
 
     const subscriptionId = request.subscription.id;
     const socketEventListener = (event: { data: any }):void => {
-      const jsonRpcResponse = JSON.parse(event.data.toString()) as JsonRpcResponse;
+      const jsonRpcResponse = parseJson(event.data.toString()) as JsonRpcResponse;
       if (jsonRpcResponse.id === subscriptionId) {
         if (jsonRpcResponse.error !== undefined) {
           // remove the event listener upon receipt of a JSON RPC Error.

@@ -1,4 +1,4 @@
-import type { EventSubscriptionHandler, Persona, RecordsQueryReplyEntry, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import type { EventSubscriptionHandler, Persona, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import sinon from 'sinon';
 
@@ -40,15 +40,15 @@ describe('WebSocketDwnRpcClient', () => {
     it('sends request', async () => {
       // create a generic records query
       const { message } = await TestDataGenerator.generateRecordsQuery({
-        author: alice,
-        filter: {
+        author : alice,
+        filter : {
           schema: 'foo/bar'
         }
       });
 
       const response = await client.sendDwnRequest({
-        dwnUrl: socketDwnUrl,
-        targetDid: alice.did,
+        dwnUrl    : socketDwnUrl,
+        targetDid : alice.did,
         message,
       });
 
@@ -66,15 +66,15 @@ describe('WebSocketDwnRpcClient', () => {
 
       // create a generic records query
       const { message } = await TestDataGenerator.generateRecordsQuery({
-        author: alice,
-        filter: {
+        author : alice,
+        filter : {
           schema: 'foo/bar'
         }
       });
 
       const responsePromise = client.sendDwnRequest({
-        dwnUrl: httpDwnUrl,
-        targetDid: alice.did,
+        dwnUrl    : httpDwnUrl,
+        targetDid : alice.did,
         message,
       });
 
@@ -85,15 +85,18 @@ describe('WebSocketDwnRpcClient', () => {
 
       // create a generic records query
       const { message } = await TestDataGenerator.generateRecordsQuery({
-        author: alice,
-        filter: {
+        author : alice,
+        filter : {
           schema: 'foo/bar'
         }
       });
 
+      // avoid print default error logging
+      sinon.stub(console, 'error');
+
       const responsePromise = client.sendDwnRequest({
-        dwnUrl: 'ws://127.0.0.1:10', // invalid host
-        targetDid: alice.did,
+        dwnUrl    : 'ws://127.0.0.1:10', // invalid host
+        targetDid : alice.did,
         message,
       }, { connectTimeout: 5 }); // set a short connect timeout
 
@@ -103,35 +106,35 @@ describe('WebSocketDwnRpcClient', () => {
     it('responds to a RecordsRead message', async () => {
       // create a generic record with schema `foo/bar`
       const { message: writeMessage, dataBytes } = await TestDataGenerator.generateRecordsWrite({
-        author: alice,
-        schema: 'foo/bar'
+        author : alice,
+        schema : 'foo/bar'
       });
 
       // write the message using the http client as we currently do not support `RecordsWrite` via sockets.
       const writeResponse = await httpClient.sendDwnRequest({
-        dwnUrl: testDwnUrl,
-        targetDid: alice.did,
-        message: writeMessage,
-        data: dataBytes,
+        dwnUrl    : testDwnUrl,
+        targetDid : alice.did,
+        message   : writeMessage,
+        data      : dataBytes,
       });
       expect(writeResponse.status.code).to.equal(202);
 
       // query for records matching the schema of the record we inserted
       const { message: readMessage } = await RecordsRead.create({
-        signer: alice.signer,
-        filter: {
+        signer : alice.signer,
+        filter : {
           recordId: writeMessage.recordId,
         }
-      })
+      });
 
       // now we send a `RecordsRead` request using the socket client
       const readResponse = await client.sendDwnRequest({
-        dwnUrl: socketDwnUrl,
-        targetDid: alice.did,
-        message: readMessage,
+        dwnUrl    : socketDwnUrl,
+        targetDid : alice.did,
+        message   : readMessage,
       });
 
-      // should return success, and the record we inserted 
+      // should return success, and the record we inserted
       expect(readResponse.status.code).to.equal(200);
       expect(readResponse.record).to.exist;
       expect(readResponse.record?.recordId).to.equal(writeMessage.recordId);
@@ -140,23 +143,23 @@ describe('WebSocketDwnRpcClient', () => {
     it('subscribes to updates to a record', async () => {
       // create an initial record, we will subscribe to updates of this record
       const { message: writeMessage, dataBytes, recordsWrite } = await TestDataGenerator.generateRecordsWrite({
-        author: alice,
-        schema: 'foo/bar'
+        author : alice,
+        schema : 'foo/bar'
       });
 
       // write the message using the http client as we currently do not support `RecordsWrite` via sockets.
       const writeResponse = await httpClient.sendDwnRequest({
-        dwnUrl: testDwnUrl,
-        targetDid: alice.did,
-        message: writeMessage,
-        data: dataBytes,
+        dwnUrl    : testDwnUrl,
+        targetDid : alice.did,
+        message   : writeMessage,
+        data      : dataBytes,
       });
       expect(writeResponse.status.code).to.equal(202);
 
       // create a subscription
       const { message: subscribeMessage } = await TestDataGenerator.generateRecordsSubscribe({
-        author: alice,
-        filter: {
+        author : alice,
+        filter : {
           recordId: writeMessage.recordId,
         }
       });
@@ -172,10 +175,10 @@ describe('WebSocketDwnRpcClient', () => {
       };
 
       const subscribeResponse = await client.sendDwnRequest({
-        dwnUrl: socketDwnUrl,
-        targetDid: alice.did,
-        message: subscribeMessage,
-        subscriptionHandler 
+        dwnUrl    : socketDwnUrl,
+        targetDid : alice.did,
+        message   : subscribeMessage,
+        subscriptionHandler
       });
       expect(subscribeResponse.status.code).to.equal(200);
       expect(subscribeResponse.subscription).to.exist;
@@ -187,10 +190,10 @@ describe('WebSocketDwnRpcClient', () => {
       });
 
       let updateReply = await httpClient.sendDwnRequest({
-        dwnUrl: testDwnUrl,
-        targetDid: alice.did,
-        message: update1,
-        data: update1Data, 
+        dwnUrl    : testDwnUrl,
+        targetDid : alice.did,
+        message   : update1,
+        data      : update1Data,
       });
       expect(updateReply.status.code).to.equal(202);
 
@@ -200,10 +203,10 @@ describe('WebSocketDwnRpcClient', () => {
         author        : alice,
       });
       updateReply = await httpClient.sendDwnRequest({
-        dwnUrl: testDwnUrl,
-        targetDid: alice.did,
-        message: update2,
-        data: update2Data, 
+        dwnUrl    : testDwnUrl,
+        targetDid : alice.did,
+        message   : update2,
+        data      : update2Data,
       });
       expect(updateReply.status.code).to.equal(202);
 
@@ -220,8 +223,8 @@ describe('WebSocketDwnRpcClient', () => {
     describe('processMessage', () => {
       it('throws when json rpc response errors are returned', async () => {
         const { message } = await TestDataGenerator.generateRecordsQuery({
-          author: alice,
-          filter: {
+          author : alice,
+          filter : {
             schema: 'foo/bar'
           }
         });
@@ -232,10 +235,10 @@ describe('WebSocketDwnRpcClient', () => {
           socket,
         };
 
-        sinon.stub(socket, 'request').resolves({ 
-          jsonrpc: '2.0',
-          id: 'id',
-          error: { message: 'some error',code: JsonRpcErrorCodes.BadRequest }
+        sinon.stub(socket, 'request').resolves({
+          jsonrpc : '2.0',
+          id      : 'id',
+          error   : { message: 'some error',code: JsonRpcErrorCodes.BadRequest }
         });
         const processMessagePromise = WebSocketDwnRpcClient['processMessage'](connection, alice.did, message);
         await expect(processMessagePromise).to.eventually.be.rejectedWith('error sending DWN request: some error');
@@ -245,8 +248,8 @@ describe('WebSocketDwnRpcClient', () => {
     describe('subscriptionRequest', () => {
       it('throws when json rpc response errors are returned', async () => {
         const { message } = await TestDataGenerator.generateRecordsQuery({
-          author: alice,
-          filter: {
+          author : alice,
+          filter : {
             schema: 'foo/bar'
           }
         });
@@ -258,10 +261,10 @@ describe('WebSocketDwnRpcClient', () => {
         };
 
         sinon.stub(socket, 'subscribe').resolves({
-          response: { 
-            jsonrpc: '2.0',
-            id: 'id',
-            error: { message: 'some error',code: JsonRpcErrorCodes.BadRequest }
+          response: {
+            jsonrpc : '2.0',
+            id      : 'id',
+            error   : { message: 'some error',code: JsonRpcErrorCodes.BadRequest }
           }
         });
 
@@ -271,8 +274,8 @@ describe('WebSocketDwnRpcClient', () => {
 
       it('close and clean up subscription when emitted an json rpc error response in the handler', async () => {
         const { message } = await TestDataGenerator.generateRecordsQuery({
-          author: alice,
-          filter: {
+          author : alice,
+          filter : {
             schema: 'foo/bar'
           }
         });
@@ -285,15 +288,15 @@ describe('WebSocketDwnRpcClient', () => {
         };
 
         const subscribeStub = sinon.stub(socket, 'subscribe').resolves({
-          response: { 
-            jsonrpc: '2.0',
-            id: 'id',
-            result: {
+          response: {
+            jsonrpc : '2.0',
+            id      : 'id',
+            result  : {
               reply: {
-                status: { code: 200, detail: 'Ok' },
-                subscription: {
-                  id: 'sub-id',
-                  close: () => {}
+                status       : { code: 200, detail: 'Ok' },
+                subscription : {
+                  id    : 'sub-id',
+                  close : () => {}
                 }
               }
             }
@@ -307,14 +310,14 @@ describe('WebSocketDwnRpcClient', () => {
         const subHandler = subscriptionCallArgs[1];
 
         // get the subscription Id from the request, and add a mock subscription to the subscriptions map
-        const subscriptionId = subRequest.subscription?.id!;
+        const subscriptionId = subRequest.subscription!.id;
         const subscription = {
-          id: subscriptionId,
-          close: () => {}
-        }
+          id    : subscriptionId,
+          close : () => {}
+        };
         // spy on the close function
         const closeSpy = sinon.spy(subscription, 'close');
-       
+
         // add to the subscriptions map
         subscriptions.set(subscriptionId, subscription);
 

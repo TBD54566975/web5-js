@@ -99,8 +99,8 @@ export class WebSocketDwnRpcClient implements DwnRpc {
   }
 }
 
-export class WebSocketWeb5Client extends WebSocketDwnRpcClient implements Web5Rpc {
-  sendDidRequest(_request: DidRpcRequest): Promise<DidRpcResponse> {
+export class WebSocketWeb5RpcClient extends WebSocketDwnRpcClient implements Web5Rpc {
+  async sendDidRequest(_request: DidRpcRequest): Promise<DidRpcResponse> {
     throw new Error(`not implemented for transports [${this.transportProtocols.join(', ')}]`);
   }
 }

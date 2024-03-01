@@ -19,7 +19,7 @@ import { DwnKeyStore, InMemoryKeyStore } from './store-key.js';
 import { DwnIdentityStore, InMemoryIdentityStore } from './store-identity.js';
 import { DidResolverCacheMemory } from './prototyping/dids/resolver-cache-memory.js';
 import { BearerIdentity } from './bearer-identity.js';
-import { WebSocketWeb5Client } from './prototyping/clients/web-socket-clients.js';
+import { WebSocketWeb5RpcClient } from './prototyping/clients/web-socket-clients.js';
 
 type ManagedAgentTestHarnessParams = {
   agent: Web5PlatformAgent
@@ -159,7 +159,7 @@ export class ManagedAgentTestHarness {
     const cryptoApi = new AgentCryptoApi();
 
     // Instantiate Agent's RPC Client.
-    const socketRpcClient = new WebSocketWeb5Client();
+    const socketRpcClient = new WebSocketWeb5RpcClient();
     const rpcClient = new Web5RpcClient([ socketRpcClient ]);
 
     const {

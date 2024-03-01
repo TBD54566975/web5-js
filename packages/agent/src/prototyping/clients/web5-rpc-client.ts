@@ -42,7 +42,7 @@ export class Web5RpcClient implements Web5Rpc {
     return transportClient.sendDidRequest(request);
   }
 
-  sendDwnRequest(request: DwnRpcRequest): Promise<DwnRpcResponse> {
+  async sendDwnRequest(request: DwnRpcRequest): Promise<DwnRpcResponse> {
     // will throw if url is invalid
     const url = new URL(request.dwnUrl);
 

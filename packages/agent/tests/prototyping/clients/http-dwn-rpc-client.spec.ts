@@ -1,4 +1,4 @@
-import type { Persona, RecordsQueryReplyEntry } from '@tbd54566975/dwn-sdk-js';
+import type { Persona } from '@tbd54566975/dwn-sdk-js';
 
 import sinon from 'sinon';
 import chai, { expect } from 'chai';
@@ -28,15 +28,15 @@ describe('HttpDwnRpcClient', () => {
     it('sends request', async () => {
       // create a generic records query
       const { message } = await TestDataGenerator.generateRecordsQuery({
-        author: alice,
-        filter: {
+        author : alice,
+        filter : {
           schema: 'foo/bar'
         }
       });
 
       const response = await client.sendDwnRequest({
-        dwnUrl: testDwnUrl,
-        targetDid: alice.did,
+        dwnUrl    : testDwnUrl,
+        targetDid : alice.did,
         message,
       });
 
@@ -49,33 +49,33 @@ describe('HttpDwnRpcClient', () => {
     it('send RecordsWrite message', async () => {
       // create a generic record with schema `foo/bar`
       const { message: writeMessage, dataBytes } = await TestDataGenerator.generateRecordsWrite({
-        author: alice,
-        schema: 'foo/bar'
+        author : alice,
+        schema : 'foo/bar'
       });
 
       const writeResponse = await client.sendDwnRequest({
-        dwnUrl: testDwnUrl,
-        targetDid: alice.did,
-        message: writeMessage,
-        data: dataBytes,
+        dwnUrl    : testDwnUrl,
+        targetDid : alice.did,
+        message   : writeMessage,
+        data      : dataBytes,
       });
       expect(writeResponse.status.code).to.equal(202);
 
       // query for records matching the schema of the record we inserted
       const { message: readMessage } = await RecordsRead.create({
-        signer: alice.signer,
-        filter: {
+        signer : alice.signer,
+        filter : {
           recordId: writeMessage.recordId,
         }
-      }
-      )
-      const readResponse = await client.sendDwnRequest({
-        dwnUrl: testDwnUrl,
-        targetDid: alice.did,
-        message: readMessage,
       });
 
-      // should return success, and the record we inserted 
+      const readResponse = await client.sendDwnRequest({
+        dwnUrl    : testDwnUrl,
+        targetDid : alice.did,
+        message   : readMessage,
+      });
+
+      // should return success, and the record we inserted
       expect(readResponse.status.code).to.equal(200);
       expect(readResponse.record).to.exist;
       expect(readResponse.record?.recordId).to.equal(writeMessage.recordId);
@@ -87,38 +87,38 @@ describe('HttpDwnRpcClient', () => {
 
       // create a generic record with schema `foo/bar`
       const { message: writeMessage, dataBytes } = await TestDataGenerator.generateRecordsWrite({
-        author: alice,
-        schema: 'foo/bar'
+        author : alice,
+        schema : 'foo/bar'
       });
 
       const writeResponsePromise = client.sendDwnRequest({
-        dwnUrl: testDwnUrl,
-        targetDid: alice.did,
-        message: writeMessage,
-        data: dataBytes,
+        dwnUrl    : testDwnUrl,
+        targetDid : alice.did,
+        message   : writeMessage,
+        data      : dataBytes,
       });
 
       await expect(writeResponsePromise).to.eventually.be.rejectedWith('failed to parse json rpc response.');
     });
 
     it('throws error if rpc responds with an error', async () => {
-      const headers = sinon.createStubInstance(Headers, { 
-        has: true,
-        get: '{ "error": { "message": "message", "code":"code" } }'
+      const headers = sinon.createStubInstance(Headers, {
+        has : true,
+        get : '{ "error": { "message": "message", "code":"code" } }'
       });
       sinon.stub(globalThis, 'fetch').resolves({ headers } as any);
 
       // create a generic record with schema `foo/bar`
       const { message: writeMessage, dataBytes } = await TestDataGenerator.generateRecordsWrite({
-        author: alice,
-        schema: 'foo/bar'
+        author : alice,
+        schema : 'foo/bar'
       });
 
       const writeResponsePromise = client.sendDwnRequest({
-        dwnUrl: testDwnUrl,
-        targetDid: alice.did,
-        message: writeMessage,
-        data: dataBytes,
+        dwnUrl    : testDwnUrl,
+        targetDid : alice.did,
+        message   : writeMessage,
+        data      : dataBytes,
       });
 
       await expect(writeResponsePromise).to.eventually.be.rejectedWith('(code) - message');
