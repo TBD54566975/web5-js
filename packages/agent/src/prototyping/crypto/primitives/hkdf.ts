@@ -7,7 +7,7 @@ import { DeriveKeyBytesParams } from '../types/params-direct.js';
 /**
  * The object that should be passed into `Hkdf.deriveKey()`, when using the HKDF algorithm.
  */
-export type HkdfDeriveKeyBytesParams = {
+export type HkdfParams = {
   /**
    * A string representing the digest algorithm to use. This may be one of:
    * - 'SHA-256'
@@ -94,7 +94,7 @@ export class Hkdf {
    * @returns A Promise that resolves to the derived key as a byte array.
    */
   public static async deriveKeyBytes({ baseKeyBytes, length, hash, salt, info = new Uint8Array() }:
-    DeriveKeyBytesParams & HkdfDeriveKeyBytesParams
+    DeriveKeyBytesParams & HkdfParams
   ): Promise<Uint8Array> {
     // Get the Web Crypto API interface.
     const webCrypto = getWebcryptoSubtle() as SubtleCrypto;

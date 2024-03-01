@@ -6,7 +6,7 @@ import type { DeriveKeyBytesParams } from '../types/params-direct.js';
 /**
  * The object that should be passed into `Pbkdf2.deriveKeyBytes()`, when using the PBKDF2 algorithm.
  */
-export interface Pbkdf2DeriveKeyBytesParams {
+export interface Pbkdf2Params {
   /**
    * A string representing the digest algorithm to use. This may be one of:
    * - 'SHA-256'
@@ -87,7 +87,7 @@ export class Pbkdf2 {
    * @returns A Promise that resolves to the derived key as a byte array.
    */
   public static async deriveKeyBytes({ baseKeyBytes, hash, salt, iterations, length }:
-    DeriveKeyBytesParams & Pbkdf2DeriveKeyBytesParams
+    DeriveKeyBytesParams & Pbkdf2Params
   ): Promise<Uint8Array> {
     // Get the Web Crypto API interface.
     const webCrypto = getWebcryptoSubtle() as SubtleCrypto;

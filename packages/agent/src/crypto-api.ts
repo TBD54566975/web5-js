@@ -7,10 +7,10 @@ import type {
   KeyWrapper,
   SignParams,
   AesGcmParams,
+  DigestParams,
   VerifyParams,
   KeyIdentifier,
   KmsSignParams,
-  KmsDigestParams,
   KmsVerifyParams,
   KmsExportKeyParams,
   KmsGetKeyUriParams,
@@ -19,19 +19,37 @@ import type {
   InferKeyGeneratorAlgorithm,
 } from '@web5/crypto';
 
-import { EdDsaAlgorithm, EcdsaAlgorithm, Sha2Algorithm, CryptoAlgorithm, AesGcmAlgorithm } from '@web5/crypto';
+import { CryptoAlgorithm, Sha2Algorithm } from '@web5/crypto';
 
 import type { Web5PlatformAgent } from './types/agent.js';
-import type { KeyManager } from './types/key-manager.js';
+import type { AgentKeyManager } from './types/key-manager.js';
+import type { HkdfParams } from './prototyping/crypto/primitives/hkdf.js';
+import type { Pbkdf2Params } from './prototyping/crypto/primitives/pbkdf2.js';
+import type { KmsCipherParams } from './prototyping/crypto/types/params-kms.js';
+import type { KeyBytesDeriver, KeyDeriver } from './prototyping/crypto/types/kdf.js';
+import type { KeyExporter, KeyImporter } from './prototyping/crypto/types/key-io.js';
+import type { InferKeyUnwrapAlgorithm } from './prototyping/crypto/types/key-wrapper.js';
+import type { KmsUnwrapKeyParams, KmsWrapKeyParams } from './prototyping/crypto/types/params-kms.js';
+import type { AsymmetricKeyConverter, KeyConverter } from './prototyping/crypto/types/key-converter.js';
+import type { BytesToPrivateKeyParams, BytesToPublicKeyParams, CipherParams, DeriveKeyBytesParams, DeriveKeyParams, PrivateKeyToBytesParams, PublicKeyToBytesParams, UnwrapKeyParams, WrapKeyParams } from './prototyping/crypto/types/params-direct.js';
 
 import { LocalKeyManager } from './local-key-manager.js';
-import { InferKeyUnwrapAlgorithm } from './prototyping/crypto/types/key-wrapper.js';
-import { KmsUnwrapKeyParams, KmsWrapKeyParams } from './prototyping/crypto/types/params-kms.js';
+import { HkdfAlgorithm } from './prototyping/crypto/algorithms/hkdf.js';
+import { EcdsaAlgorithm } from './prototyping/crypto/algorithms/ecdsa.js';
+import { EdDsaAlgorithm } from './prototyping/crypto/algorithms/eddsa.js';
+import { AesKwAlgorithm } from './prototyping/crypto/algorithms/aes-kw.js';
+import { Pbkdf2Algorithm } from './prototyping/crypto/algorithms/pbkdf2.js';
+import { AesGcmAlgorithm } from './prototyping/crypto/algorithms/aes-gcm.js';
 import { CryptoError, CryptoErrorCode } from './prototyping/crypto/crypto-error.js';
-import { CipherParams, UnwrapKeyParams, WrapKeyParams } from './prototyping/crypto/types/params-direct.js';
-import { KmsCipherParams } from './prototyping/crypto/types/params-kms.js';
 import { isKeyExporter, isKeyImporter, isKeyWrapper } from './prototyping/crypto/utils.js';
-import { KeyExporter, KeyImporter } from './prototyping/crypto/types/key-io.js';
+
+export interface CryptoApiBytesToPrivateKeyParams extends BytesToPrivateKeyParams {
+  algorithm: KeyConversionAlgorithm;
+}
+
+export interface CryptoApiBytesToPublicKeyParams extends BytesToPublicKeyParams {
+  algorithm: AsymmetricKeyConversionAlgorithm;
+}
 
 /**
  * The `CryptoApiCipherParams` interface defines the algorithm-specific parameters that should
@@ -51,13 +69,67 @@ export interface CryptoApiKmsCipherParams extends KmsCipherParams, AesGcmParams 
  * The `CryptoApiDigestParams` interface defines the algorithm-specific parameters that should
  * be passed into the {@link AgentCryptoApi.digest | `AgentCryptoApi.digest()`} method.
  */
-export interface CryptoApiDigestParams extends KmsDigestParams {
+export interface CryptoApiDigestParams extends DigestParams {
   /**
    * A string defining the name of hash function to use. The value must be one of the following:
    * - `"SHA-256"`: Generates a 256-bit digest.
    */
-  algorithm: 'SHA-256';
+  algorithm: DigestAlgorithm;
 }
+
+export interface CryptoApiDeriveKeyOptions {
+  'HKDF-256': Omit<HkdfParams, 'hash'> & { derivedKeyAlgorithm: CipherAlgorithm | KeyWrappingAlgorithm};
+  'HKDF-384': Omit<HkdfParams, 'hash'> & { derivedKeyAlgorithm: CipherAlgorithm | KeyWrappingAlgorithm};
+  'HKDF-512': Omit<HkdfParams, 'hash'> & { derivedKeyAlgorithm: CipherAlgorithm | KeyWrappingAlgorithm};
+  'PBES2-HS256+A128KW': Omit<Pbkdf2Params, 'hash'> & { derivedKeyAlgorithm?: never };
+  'PBES2-HS384+A192KW': Omit<Pbkdf2Params, 'hash'> & { derivedKeyAlgorithm?: never };
+  'PBES2-HS512+A256KW': Omit<Pbkdf2Params, 'hash'> & { derivedKeyAlgorithm?: never };
+}
+
+export interface CryptoApiDeriveKeyBytesOptions {
+  'HKDF-256': Omit<HkdfParams, 'hash'>;
+  'HKDF-384': Omit<HkdfParams, 'hash'>;
+  'HKDF-512': Omit<HkdfParams, 'hash'>;
+  'PBES2-HS256+A128KW': Omit<Pbkdf2Params, 'hash'>;
+  'PBES2-HS384+A192KW': Omit<Pbkdf2Params, 'hash'>;
+  'PBES2-HS512+A256KW': Omit<Pbkdf2Params, 'hash'>;
+}
+
+/**
+ * The `CryptoApiDeriveKeyParams` interface defines the algorithm-specific parameters that
+ * should be passed into the {@link AgentCryptoApi.deriveKey | `AgentCryptoApi.deriveKey()`} method.
+ */
+export type CryptoApiDeriveKeyParams<T extends DeriveKeyAlgorithm> = DeriveKeyParams & {
+  /**
+   * A string defining the name of key derivation function to use. The value must be one of the
+   * following:
+   * - `"HKDF-256"`: HKDF with SHA-256.
+   * - `"HKDF-384"`: HKDF with SHA-384.
+   * - `"HKDF-512"`: HKDF with SHA-512.
+   * - `"PBKDF2-HS256+A128KW"`: PBKDF2 with HMAC SHA-256 and A128KW key wrapping.
+   * - `"PBKDF2-HS384+A192KW"`: PBKDF2 with HMAC SHA-384 and A192KW key wrapping.
+   * - `"PBKDF2-HS512+A256KW"`: PBKDF2 with HMAC SHA-512 and A256KW key wrapping.
+   */
+  algorithm: T;
+} & CryptoApiDeriveKeyOptions[T];
+
+/**
+ * The `CryptoApiDeriveKeyBytesParams` interface defines the algorithm-specific parameters that
+ * should be passed into the {@link AgentCryptoApi.deriveKeyBytes | `AgentCryptoApi.deriveKeyBytes()`} method.
+ */
+export type CryptoApiDeriveKeyBytesParams<T extends DeriveKeyByteAlgorithm> = DeriveKeyBytesParams & {
+  /**
+   * A string defining the name of key derivation function to use. The value must be one of the
+   * following:
+   * - `"HKDF-256"`: HKDF with SHA-256.
+   * - `"HKDF-384"`: HKDF with SHA-384.
+   * - `"HKDF-512"`: HKDF with SHA-512.
+   * - `"PBKDF2-HS256+A128KW"`: PBKDF2 with HMAC SHA-256 and A128KW key wrapping.
+   * - `"PBKDF2-HS384+A192KW"`: PBKDF2 with HMAC SHA-384 and A192KW key wrapping.
+   * - `"PBKDF2-HS512+A256KW"`: PBKDF2 with HMAC SHA-512 and A256KW key wrapping.
+   */
+  algorithm: T;
+} & CryptoApiDeriveKeyBytesOptions[T];
 
 export interface CryptoApiGenerateKeyParams<TKeyManager> {
   algorithm: TKeyManager extends CryptoApi
@@ -88,38 +160,100 @@ const supportedAlgorithms = {
   'AES-GCM': {
     implementation : AesGcmAlgorithm,
     names          : ['A128GCM', 'A192GCM', 'A256GCM'],
+    operations     : ['bytesToPrivateKey', 'encrypt', 'decrypt'],
+  },
+  'AES-KW': {
+    implementation : AesKwAlgorithm,
+    names          : ['A128KW', 'A192KW', 'A256KW'],
+    operations     : ['bytesToPrivateKey', 'privateKeyToBytes', 'wrapKey', 'unwrapKey'],
   },
   'Ed25519': {
     implementation : EdDsaAlgorithm,
     names          : ['Ed25519'],
+    operations     : ['bytesToPrivateKey', 'bytesToPublicKey', 'sign', 'verify'],
+  },
+  'HKDF': {
+    implementation : HkdfAlgorithm,
+    names          : ['HKDF-256', 'HKDF-384', 'HKDF-512'],
+    operations     : ['deriveKey', 'deriveKeyBytes'],
+  },
+  'PBKDF2': {
+    implementation : Pbkdf2Algorithm,
+    names          : ['PBES2-HS256+A128KW', 'PBES2-HS384+A192KW', 'PBES2-HS512+A256KW'],
+    operations     : ['deriveKey', 'deriveKeyBytes'],
   },
   'secp256k1': {
     implementation : EcdsaAlgorithm,
     names          : ['ES256K', 'secp256k1'],
+    operations     : ['bytesToPrivateKey', 'bytesToPublicKey', 'sign', 'verify'],
   },
   'secp256r1': {
     implementation : EcdsaAlgorithm,
     names          : ['ES256', 'secp256r1'],
+    operations     : ['bytesToPrivateKey', 'bytesToPublicKey', 'sign', 'verify'],
   },
   'SHA-256': {
     implementation : Sha2Algorithm,
-    names          : ['SHA-256']
+    names          : ['SHA-256'],
+    operations     : ['digest'],
   }
-} satisfies {
-  [key: string]: {
-    implementation : typeof CryptoAlgorithm;
-    names          : string[];
-  }
-};
+} as const;
 
-/* Helper type for `supportedAlgorithms`. */
+/* Helper types for `supportedAlgorithms`. */
 type SupportedAlgorithm = keyof typeof supportedAlgorithms;
+type SupportedAlgorithms = typeof supportedAlgorithms;
 
 /* Helper type for `supportedAlgorithms` implementations. */
 type AlgorithmConstructor = typeof supportedAlgorithms[SupportedAlgorithm]['implementation'];
 
-export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> implements
+type CipherAlgorithms = {
+  [K in keyof SupportedAlgorithms]: 'encrypt' extends SupportedAlgorithms[K]['operations'][number] ? K : never
+}[keyof SupportedAlgorithms];
+
+type CipherAlgorithm = typeof supportedAlgorithms[CipherAlgorithms]['names'][number];
+
+type DeriveKeyAlgorithms = {
+  [K in keyof SupportedAlgorithms]: 'deriveKey' extends SupportedAlgorithms[K]['operations'][number] ? K : never
+}[keyof SupportedAlgorithms];
+
+type DeriveKeyAlgorithm = typeof supportedAlgorithms[DeriveKeyAlgorithms]['names'][number];
+
+type DeriveKeyBytesAlgorithms = {
+  [K in keyof SupportedAlgorithms]: 'deriveKeyBytes' extends SupportedAlgorithms[K]['operations'][number] ? K : never
+}[keyof SupportedAlgorithms];
+
+type DeriveKeyByteAlgorithm = typeof supportedAlgorithms[DeriveKeyBytesAlgorithms]['names'][number];
+
+type DigestAlgorithms = {
+  [K in keyof SupportedAlgorithms]: 'digest' extends SupportedAlgorithms[K]['operations'][number] ? K : never
+}[keyof SupportedAlgorithms];
+
+type DigestAlgorithm = typeof supportedAlgorithms[DigestAlgorithms]['names'][number];
+
+type KeyConversionAlgorithms = {
+  [K in keyof SupportedAlgorithms]: 'bytesToPrivateKey' extends SupportedAlgorithms[K]['operations'][number] ? K : never
+}[keyof SupportedAlgorithms];
+
+type KeyConversionAlgorithm = typeof supportedAlgorithms[KeyConversionAlgorithms]['names'][number];
+
+type AsymmetricKeyConversionAlgorithms = {
+  [K in keyof SupportedAlgorithms]: 'bytesToPublicKey' extends SupportedAlgorithms[K]['operations'][number] ? K : never
+}[keyof SupportedAlgorithms];
+
+type AsymmetricKeyConversionAlgorithm = typeof supportedAlgorithms[AsymmetricKeyConversionAlgorithms]['names'][number];
+
+type KeyWrappingAlgorithms = {
+  [K in keyof SupportedAlgorithms]: 'wrapKey' extends SupportedAlgorithms[K]['operations'][number] ? K : never
+}[keyof SupportedAlgorithms];
+
+type KeyWrappingAlgorithm = typeof supportedAlgorithms[KeyWrappingAlgorithms]['names'][number];
+
+export class AgentCryptoApi<TKeyManager extends AgentKeyManager = LocalKeyManager> implements
     CryptoApi<CryptoApiGenerateKeyParams<TKeyManager>>,
+    AsymmetricKeyConverter<CryptoApiBytesToPublicKeyParams, PublicKeyToBytesParams>,
+    KeyConverter<CryptoApiBytesToPrivateKeyParams, PrivateKeyToBytesParams>,
+    KeyDeriver<CryptoApiDeriveKeyParams<DeriveKeyAlgorithm>, Jwk>,
+    KeyBytesDeriver<CryptoApiDeriveKeyBytesParams<DeriveKeyAlgorithm>, Uint8Array>,
     KeyImporter<KmsImportKeyParams, KeyIdentifier>,
     KeyExporter<KmsExportKeyParams, Jwk>,
     KeyWrapper<KmsWrapKeyParams, KmsUnwrapKeyParams> {
@@ -168,6 +302,36 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
     this._keyManager.agent = agent;
   }
 
+  public async bytesToPrivateKey({ algorithm: algorithmIdentifier, privateKeyBytes }:
+    CryptoApiBytesToPrivateKeyParams
+  ): Promise<Jwk> {
+    // Determine the algorithm name based on the given algorithm identifier.
+    const algorithm = this.getAlgorithmName({ algorithm: algorithmIdentifier });
+
+    // Get the key converter based on the algorithm name.
+    const keyConverter = this.getAlgorithm({ algorithm }) as KeyConverter<CryptoApiBytesToPrivateKeyParams, PrivateKeyToBytesParams>;
+
+    // Convert the byte array to a JWK.
+    const privateKey = await keyConverter.bytesToPrivateKey({ algorithm: algorithmIdentifier, privateKeyBytes });
+
+    return privateKey;
+  }
+
+  public async bytesToPublicKey({ algorithm: algorithmIdentifier, publicKeyBytes }:
+    CryptoApiBytesToPublicKeyParams
+  ): Promise<Jwk> {
+    // Determine the algorithm name based on the given algorithm identifier.
+    const algorithm = this.getAlgorithmName({ algorithm: algorithmIdentifier });
+
+    // Get the key converter based on the algorithm name.
+    const keyConverter = this.getAlgorithm({ algorithm }) as AsymmetricKeyConverter<CryptoApiBytesToPublicKeyParams, PublicKeyToBytesParams>;
+
+    // Convert the byte array to a JWK.
+    const publicKey = await keyConverter.bytesToPublicKey({ algorithm: algorithmIdentifier, publicKeyBytes });
+
+    return publicKey;
+  }
+
   public async decrypt(params: CryptoApiKmsCipherParams): Promise<Uint8Array>;
   public async decrypt(params: CryptoApiCipherParams): Promise<Uint8Array>;
   public async decrypt(params: CryptoApiCipherParams | CryptoApiKmsCipherParams): Promise<Uint8Array> {
@@ -186,6 +350,64 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
       // Decrypt the data.
       return await cipher.decrypt(params);
     }
+  }
+
+  public async deriveKey<T extends DeriveKeyAlgorithm>(
+    params: CryptoApiDeriveKeyParams<T>
+  ): Promise<Jwk> {
+    // Determine the algorithm name based on the given algorithm identifier.
+    const algorithm = this.getAlgorithmName({ algorithm: params.algorithm });
+
+    // Get the key derivation function based on the algorithm name.
+    const kdf = this.getAlgorithm({ algorithm }) as KeyBytesDeriver<DeriveKeyBytesParams, Uint8Array>;
+
+    let derivedKeyAlgorithm: CipherAlgorithm | KeyWrappingAlgorithm;
+
+    switch (params.algorithm) {
+      case 'HKDF-256':
+      case 'HKDF-384':
+      case 'HKDF-512': {
+        derivedKeyAlgorithm = params.derivedKeyAlgorithm as CipherAlgorithm | KeyWrappingAlgorithm;
+        break;
+      }
+
+      case 'PBES2-HS256+A128KW':
+      case 'PBES2-HS384+A192KW':
+      case 'PBES2-HS512+A256KW': {
+        derivedKeyAlgorithm = params.algorithm.split(/[-+]/)[2] as 'A128KW' | 'A192KW' | 'A256KW';
+        break;
+      }
+
+      default:
+        throw new CryptoError(CryptoErrorCode.AlgorithmNotSupported, `The specified "algorithm" is not supported: ${params.algorithm}`);
+    }
+
+    // Determine the bit length of the derived key based on the given algorithm.
+    const length = +(derivedKeyAlgorithm.match(/\d+/)?.[0] ?? -1);
+
+    if (length === -1) {
+      throw new CryptoError(CryptoErrorCode.AlgorithmNotSupported, `The derived key algorithm" is not supported: ${derivedKeyAlgorithm}`);
+    }
+
+    // Derive the byte array.
+    const privateKeyBytes = await kdf.deriveKeyBytes({ ...params, length });
+
+    return await this.bytesToPrivateKey({ algorithm: derivedKeyAlgorithm, privateKeyBytes });
+  }
+
+  public async deriveKeyBytes<T extends DeriveKeyAlgorithm>(
+    params: CryptoApiDeriveKeyBytesParams<T>
+  ): Promise<Uint8Array> {
+    // Determine the algorithm name based on the given algorithm identifier.
+    const algorithm = this.getAlgorithmName({ algorithm: params.algorithm });
+
+    // Get the key derivation function based on the algorithm name.
+    const kdf = this.getAlgorithm({ algorithm }) as KeyBytesDeriver<DeriveKeyBytesParams, Uint8Array>;
+
+    // Derive the byte array.
+    const derivedKeyBytes = await kdf.deriveKeyBytes(params);
+
+    return derivedKeyBytes;
   }
 
   /**
@@ -216,7 +438,7 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
     CryptoApiDigestParams
   ): Promise<Uint8Array> {
     // Get the hash function implementation based on the specified `algorithm` parameter.
-    const hasher = this.getAlgorithm({ algorithm }) as Hasher<KmsDigestParams>;
+    const hasher = this.getAlgorithm({ algorithm }) as Hasher<CryptoApiDigestParams>;
 
     // Compute the hash.
     const hash = await hasher.digest({ algorithm, data });
@@ -285,6 +507,32 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
     } else {
       throw new Error('Key Manager does not support importing private keys');
     }
+  }
+
+  public async privateKeyToBytes({ privateKey }: { privateKey: Jwk; }): Promise<Uint8Array> {
+    // Determine the algorithm name based on the JWK's `alg` property.
+    const algorithm = this.getAlgorithmName({ key: privateKey });
+
+    // Get the key converter based on the algorithm name.
+    const keyConverter = this.getAlgorithm({ algorithm }) as KeyConverter<CryptoApiBytesToPrivateKeyParams, PrivateKeyToBytesParams>;
+
+    // Convert the JWK to a byte array.
+    const privateKeyBytes = await keyConverter.privateKeyToBytes({ privateKey });
+
+    return privateKeyBytes;
+  }
+
+  public async publicKeyToBytes({ publicKey }: { publicKey: Jwk; }): Promise<Uint8Array> {
+    // Determine the algorithm name based on the JWK's `alg` property.
+    const algorithm = this.getAlgorithmName({ key: publicKey });
+
+    // Get the key converter based on the algorithm name.
+    const keyConverter = this.getAlgorithm({ algorithm }) as AsymmetricKeyConverter<CryptoApiBytesToPublicKeyParams, PublicKeyToBytesParams>;
+
+    // Convert the JWK to a byte array.
+    const publicKeyBytes = await keyConverter.publicKeyToBytes({ publicKey });
+
+    return publicKeyBytes;
   }
 
   public async sign({ keyUri, data }:
@@ -408,8 +656,13 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
    *
    * @example
    * ```ts
-   * const publicKey = { ... }; // Public key in JWK format
-   * const algorithm = this.getAlgorithmName({ key: publicKey });
+   * const key = { ... }; // Public key in JWK format
+   * const algorithm = this.getAlgorithmName({ key });
+   * ```
+   *
+   * @example
+   * ```ts
+   * const algorithm = this.getAlgorithmName({ algorithm: 'ES256' });
    * ```
    *
    * @param params - The parameters for determining the algorithm name.
@@ -419,11 +672,14 @@ export class AgentCryptoApi<TKeyManager extends KeyManager = LocalKeyManager> im
    *
    * @throws Error if the algorithm name cannot be determined from the provided input.
    */
-  private getAlgorithmName({ key }: {
-      key: { alg?: string, crv?: string };
-    }): SupportedAlgorithm {
-    const algProperty = key.alg;
-    const crvProperty = key.crv;
+  private getAlgorithmName({ key }: { key: Jwk }): SupportedAlgorithm;
+  private getAlgorithmName({ algorithm }: { algorithm: string }): SupportedAlgorithm;
+  private getAlgorithmName({ algorithm, key }: {
+    algorithm?: string;
+    key?: { alg?: string, crv?: string };
+  }): SupportedAlgorithm {
+    const algProperty = key?.alg ?? algorithm;
+    const crvProperty = key?.crv;
 
     for (const algorithmIdentifier of Object.keys(supportedAlgorithms) as SupportedAlgorithm[]) {
       const algorithmNames = supportedAlgorithms[algorithmIdentifier].names as readonly string[];

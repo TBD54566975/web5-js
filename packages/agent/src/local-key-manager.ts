@@ -32,8 +32,8 @@ import {
 } from '@web5/crypto';
 
 import type { AgentDataStore } from './store-data.js';
-import type { KeyManager } from './types/key-manager.js';
 import type { Web5PlatformAgent } from './types/agent.js';
+import type { AgentKeyManager } from './types/key-manager.js';
 import type { InferType } from './prototyping/common/type-utils.js';
 import type { CipherParams, UnwrapKeyParams, WrapKeyParams } from './prototyping/crypto/types/params-direct.js';
 import type { KmsCipherParams, KmsUnwrapKeyParams, KmsWrapKeyParams } from './prototyping/crypto/types/params-kms.js';
@@ -93,10 +93,10 @@ type AlgorithmConstructor = typeof supportedAlgorithms[SupportedAlgorithm]['impl
 
 /* Helper type for supported key generator algorithms. */
 type SupportedKeyGeneratorAlgorithm =
-  | 'Ed25519'                         // Edwards Curve Digital Signature Algorithm (EdDSA)
-  | 'secp256k1' | 'secp256r1'         // Elliptic Curve Digital Signature Algorithm (ECDSA)
-  | 'A128GCM' | 'A192GCM' | 'A256GCM' // AES GCM with a 128-bit, 192-bit, or 256-bit key
-  | 'A128KW' | 'A192KW' | 'A256KW';   // AES Key Wrap with a 128-bit, 192-bit, or 256-bit key
+  | 'Ed25519'                                      // Edwards Curve Digital Signature Algorithm (EdDSA)
+  | 'secp256k1' | 'ES256K' | 'secp256r1' | 'ES256' // Elliptic Curve Digital Signature Algorithm (ECDSA)
+  | 'A128GCM' | 'A192GCM' | 'A256GCM'              // AES GCM with a 128-bit, 192-bit, or 256-bit key
+  | 'A128KW' | 'A192KW' | 'A256KW';                // AES Key Wrap with a 128-bit, 192-bit, or 256-bit key
 
 /**
  * The `LocalKmsParams` interface specifies the parameters for initializing an instance of
@@ -148,7 +148,7 @@ export interface LocalKmsUnwrapKeyParams extends KmsUnwrapKeyParams {
 }
 
 export class LocalKeyManager implements
-    KeyManager,
+    AgentKeyManager,
     KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>,
     KeyWrapper<KmsWrapKeyParams, KmsUnwrapKeyParams> {
 
