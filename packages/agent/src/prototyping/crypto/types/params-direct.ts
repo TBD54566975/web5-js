@@ -1,5 +1,16 @@
 import type { Jwk } from '@web5/crypto';
 
+
+export interface BytesToPrivateKeyParams {
+  algorithm: AlgorithmIdentifier;
+  privateKeyBytes: Uint8Array;
+}
+
+export interface BytesToPublicKeyParams {
+  algorithm: AlgorithmIdentifier;
+  publicKeyBytes: Uint8Array;
+}
+
 /**
  * Parameters for encryption and decryption operations.
  *
@@ -14,16 +25,33 @@ export interface CipherParams {
 }
 
 /**
- * Parameters for deriving bytes.
+ * Parameters for derivation of cryptographic keys.
+ */
+export interface DeriveKeyParams {
+  /** The base key to be used for derivation as a byte array. */
+  baseKeyBytes: Uint8Array;
+
+  /** The algorithm identifier for the derived key. */
+  derivedKeyAlgorithm?: string
+}
+
+/**
+ * Parameters for derivation of cryptographic byte arrays.
  */
 export interface DeriveKeyBytesParams {
   /** The base key to be used for derivation as a byte array. */
   baseKeyBytes: Uint8Array;
 
-  /**
-   * The desired length of the derived key in bits.
-   */
+  /** The desired length of the derived key in bits. */
   length: number;
+}
+
+export interface PrivateKeyToBytesParams {
+  privateKey: Jwk;
+}
+
+export interface PublicKeyToBytesParams {
+  publicKey: Jwk;
 }
 
 /**

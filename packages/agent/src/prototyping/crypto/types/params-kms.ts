@@ -14,6 +14,35 @@ export interface KmsCipherParams {
 }
 
 /**
+ * Parameters for KMS-based derivation of a cryptographic key from a given base key.
+ *
+ * Intended for use with a Key Management System.
+ */
+export interface KmsDeriveKeyParams {
+  /** Identifier for the base key used in derivation in the KMS. */
+  baseKeyUri: KeyIdentifier;
+
+  /** The desired length of the derived key in bits. */
+  length: number;
+
+  /** An object defining the algorithm-specific parameters for the derived key. */
+  derivedKeyParams: unknown
+}
+
+/**
+ * Parameters for KMS-based derivation of a byte array from a given base key.
+ *
+ * Intended for use with a Key Management System.
+ */
+export interface KmsDeriveKeyBytesParams {
+  /** Identifier for the base key used in derivation in the KMS. */
+  baseKeyUri: KeyIdentifier;
+
+  /** The desired length of the derived key in bits. */
+  length: number;
+}
+
+/**
  * Parameters for unwrapping a key using a KMS. Intended for use with a Key Management System.
  */
 export interface KmsUnwrapKeyParams {
