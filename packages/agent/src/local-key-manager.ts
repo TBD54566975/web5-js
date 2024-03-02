@@ -9,12 +9,12 @@ import type {
   VerifyParams,
   KeyIdentifier,
   KmsSignParams,
+  KmsDigestParams,
   KmsVerifyParams,
   GetPublicKeyParams,
   KmsExportKeyParams,
   KmsGetKeyUriParams,
   KmsImportKeyParams,
-  KeyImporterExporter,
   KmsGenerateKeyParams,
   KmsGetPublicKeyParams,
   AsymmetricKeyGenerator,
@@ -147,10 +147,7 @@ export interface LocalKmsUnwrapKeyParams extends KmsUnwrapKeyParams {
   wrappedKeyAlgorithm: 'A128GCM' | 'A192GCM' | 'A256GCM' | 'A128KW' | 'A192KW' | 'A256KW';
 }
 
-export class LocalKeyManager implements
-    AgentKeyManager,
-    KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>,
-    KeyWrapper<KmsWrapKeyParams, KmsUnwrapKeyParams> {
+export class LocalKeyManager implements AgentKeyManager {
 
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
@@ -218,6 +215,10 @@ export class LocalKeyManager implements
     const ciphertext = await cipher.decrypt({ key: privateKey, ...params });
 
     return ciphertext;
+  }
+
+  digest(_params: KmsDigestParams): Promise<Uint8Array> {
+    throw new Error('Method not implemented.');
   }
 
   public async encrypt({ keyUri, ...params }:

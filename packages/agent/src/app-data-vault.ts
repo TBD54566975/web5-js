@@ -8,18 +8,18 @@ import { wordlist } from '@scure/bip39/wordlists/english';
 import { Ed25519, utils as cryptoUtils } from '@web5/crypto';
 import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from '@scure/bip39';
 
-import type { Web5PlatformAgent } from './types/agent.js';
 import type { JweHeaderParams } from './prototyping/crypto/jose/jwe.js';
 import type { AppDataBackup, AppDataStatus, AppDataStore } from './types/app-data.js';
 
 import { AgentCryptoApi } from './crypto-api.js';
-import { Hkdf } from './prototyping/crypto/primitives/hkdf.js';
-import { Pbkdf2 } from './prototyping/crypto/primitives/pbkdf2.js';
 import { isPortableDid } from './prototyping/dids/utils.js';
 import { CompactJwe } from './prototyping/crypto/jose/jwe.js';
+import { Hkdf } from './prototyping/crypto/primitives/hkdf.js';
 import { DeterministicKeyGenerator } from './utils-internal.js';
 import { AesKw } from './prototyping/crypto/primitives/aes-kw.js';
+import { Pbkdf2 } from './prototyping/crypto/primitives/pbkdf2.js';
 import { AesGcm } from './prototyping/crypto/primitives/aes-gcm.js';
+import { LocalKeyManager } from './local-key-manager.js';
 
 /**
  * An extension of the AppDataStore interface which secures the contents of the store.
@@ -123,6 +123,8 @@ function isValidVaultContentKeyProtectedHeader(obj: unknown): obj is VaultConten
 }
 
 export class AppDataVault implements SecureAppDataStore {
+  public crypto = new AgentCryptoApi();
+
   private _keyDerivationWorkFactor: number;
   private _store: KeyValueStore<string, string>;
   private _contentEncryptionKey: Jwk | undefined;
@@ -219,14 +221,12 @@ export class AppDataVault implements SecureAppDataStore {
     // Retrieve the Agent's encrypted DID record as compact JWE from the data store.
     const encryptedAgentDid = await this.getStoredAgentDid();
 
-    // Initialize a Crypto API instance to decrypt the compact JWE.
-    const cryptoApi = new AgentCryptoApi({ agent: {} as Web5PlatformAgent });
-
     // Decrypt the compact JWE to obtain the Agent DID as a byte array.
     const { plaintext: portableDidBytes } = await CompactJwe.decrypt({
       jwe        : encryptedAgentDid,
       key        : this._contentEncryptionKey,
-      keyManager : cryptoApi
+      crypto     : this.crypto,
+      keyManager : new LocalKeyManager()
     });
 
     // Convert the Agent's DID from a byte array to PortableDid format.
