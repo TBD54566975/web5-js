@@ -1,15 +1,15 @@
 import type { CryptoApi } from '@web5/crypto';
 import type { RequireOnly } from '@web5/common';
 
+import type { AgentDataStore } from './store-data.js';
 import type { Web5PlatformAgent } from './types/agent.js';
+import type { DidMethodCreateOptions } from './did-api.js';
 import type { IdentityMetadata, PortableIdentity } from './types/identity.js';
 
-import { AgentCryptoApi } from './crypto-api.js';
 import { BearerIdentity } from './bearer-identity.js';
 import { isPortableDid } from './prototyping/dids/utils.js';
-import { DidMethodCreateOptions } from './did-api.js';
 import { InMemoryIdentityStore } from './store-identity.js';
-import { AgentDataStore } from './store-data.js';
+import { LocalKeyManager } from './local-key-manager.js';
 
 export interface IdentityApiParams {
   agent?: Web5PlatformAgent;
@@ -36,7 +36,7 @@ export function isPortableIdentity(obj: unknown): obj is PortableIdentity {
     && isPortableDid(obj.did);
 }
 
-export class AgentIdentityApi<TKeyManager extends AgentCryptoApi = AgentCryptoApi> {
+export class AgentIdentityApi<TKeyManager extends LocalKeyManager = LocalKeyManager> {
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
    * the `AgentDidApi`. This agent is used to interact with other Web5 agent components. It's vital

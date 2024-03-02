@@ -179,7 +179,7 @@ describe('IdentityStore', () => {
           const authorDid = await did.export();
 
           // Import the DID's private key material into the Agent's key manager.
-          await testHarness.agent.crypto.importKey({ key: authorDid.privateKeys![0] });
+          await testHarness.agent.keyManager.importKey({ key: authorDid.privateKeys![0] });
 
           // Generate three new Identities that are stored under the custom author context.
           const bearerIdentity1 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 1' }, tenant: authorDid.uri });

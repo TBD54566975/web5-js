@@ -172,7 +172,7 @@ describe('DidStore', () => {
           const authorDid = await did.export();
 
           // Import the DID's private key material into the Agent's key manager.
-          await testHarness.agent.crypto.importKey({ key: authorDid.privateKeys![0] });
+          await testHarness.agent.keyManager.importKey({ key: authorDid.privateKeys![0] });
 
           // Generate three did:jwk DIDs.
           const bearerDid1 = await DidJwk.create();
@@ -243,7 +243,7 @@ describe('DidStore', () => {
           const portableDid = await bearerDid.export();
 
           // Import the DID's private key material into the Agent's key manager.
-          await testHarness.agent.crypto.importKey({ key: portableDid.privateKeys![0] });
+          await testHarness.agent.keyManager.importKey({ key: portableDid.privateKeys![0] });
 
           // Store only the URI, document, and metadata of the DID in the store.
           const portableDidWithoutKeys: PortableDid = { uri: portableDid.uri, document: portableDid.document, metadata: portableDid.metadata };
@@ -286,7 +286,7 @@ describe('DidStore', () => {
           const authorDid = await did.export();
 
           // Import the DID's private key material into the Agent's key manager.
-          await testHarness.agent.crypto.importKey({ key: authorDid.privateKeys![0] });
+          await testHarness.agent.keyManager.importKey({ key: authorDid.privateKeys![0] });
 
           // Generate a DID and import it under the custom author tenant.
           const bearerDid = await DidJwk.create();
@@ -310,7 +310,7 @@ describe('DidStore', () => {
           const portableDid = await bearerDid.export();
 
           // Import the DID's private key material into the Agent's key manager.
-          await testHarness.agent.crypto.importKey({ key: portableDid.privateKeys![0] });
+          await testHarness.agent.keyManager.importKey({ key: portableDid.privateKeys![0] });
 
           // Store the DID in the store without keys.
           const portableDidWithoutKeys: PortableDid = { uri: portableDid.uri, document: portableDid.document, metadata: portableDid.metadata };
