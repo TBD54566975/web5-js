@@ -10,18 +10,21 @@ import type {
   ProcessDwnRequest,
 } from '../../src/types/dwn.js';
 
-import { Web5Rpc } from '../../src/rpc-client.js';
+import type { Web5Rpc } from '../../src/rpc-client.js';
+
 import { AgentDwnApi } from '../../src/dwn-api.js';
 import { AgentSyncApi } from '../../src/sync-api.js';
 import { AgentCryptoApi } from '../../src/crypto-api.js';
 import { AgentIdentityApi } from '../../src/identity-api.js';
 import { AgentDidApi, DidInterface } from '../../src/did-api.js';
+import { LocalKeyManager } from '../../src/local-key-manager.js';
 
 type TestAgentOptions = {
   cryptoApi: AgentCryptoApi;
   didApi: AgentDidApi;
   dwnApi: AgentDwnApi;
   identityApi: AgentIdentityApi;
+  keyManager: LocalKeyManager;
   rpcClient: Web5Rpc;
   syncApi: AgentSyncApi;
 }
@@ -31,6 +34,7 @@ export class TestAgent implements Web5PlatformAgent {
   public did: AgentDidApi;
   public dwn: AgentDwnApi;
   public identity: AgentIdentityApi;
+  public keyManager: LocalKeyManager;
   public rpc: Web5Rpc;
   public sync: AgentSyncApi;
 
@@ -41,14 +45,15 @@ export class TestAgent implements Web5PlatformAgent {
     this.did = params.didApi;
     this.dwn = params.dwnApi;
     this.identity = params.identityApi;
+    this.keyManager = params.keyManager;
     this.rpc = params.rpcClient;
     this.sync = params.syncApi;
 
     // Set this agent to be the default agent.
-    this.crypto.agent = this;
     this.did.agent = this;
     this.dwn.agent = this;
     this.identity.agent = this;
+    this.keyManager.agent = this;
     this.sync.agent = this;
   }
 

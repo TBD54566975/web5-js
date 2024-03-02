@@ -3,7 +3,7 @@ import { CryptoAlgorithm } from '@web5/crypto';
 import type { DeriveKeyBytesParams } from '../types/params-direct.js';
 
 import { Hkdf, HkdfParams } from '../primitives/hkdf.js';
-import { KeyBytesDeriver } from '../types/kdf.js';
+import { KeyBytesDeriver } from '../types/key-deriver.js';
 
 /**
  * The `HkdfDeriveKeyBytesParams` interface defines the algorithm-specific parameters that should be

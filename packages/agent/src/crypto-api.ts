@@ -3,37 +3,26 @@ import type {
   Cipher,
   Hasher,
   Signer,
-  CryptoApi,
   KeyWrapper,
   SignParams,
   AesGcmParams,
   DigestParams,
   VerifyParams,
-  KeyIdentifier,
-  KmsSignParams,
-  KmsVerifyParams,
-  KmsExportKeyParams,
+  GenerateKeyParams,
+  GetPublicKeyParams,
   KmsGetKeyUriParams,
-  KmsImportKeyParams,
-  KmsGetPublicKeyParams,
-  InferKeyGeneratorAlgorithm,
+  AsymmetricKeyGenerator,
 } from '@web5/crypto';
 
-import { CryptoAlgorithm, Sha2Algorithm } from '@web5/crypto';
+import { CryptoAlgorithm, Sha2Algorithm, computeJwkThumbprint } from '@web5/crypto';
 
-import type { Web5PlatformAgent } from './types/agent.js';
-import type { AgentKeyManager } from './types/key-manager.js';
+import type { CryptoApi } from './prototyping/crypto/types/crypto-api.js';
 import type { HkdfParams } from './prototyping/crypto/primitives/hkdf.js';
 import type { Pbkdf2Params } from './prototyping/crypto/primitives/pbkdf2.js';
-import type { KmsCipherParams } from './prototyping/crypto/types/params-kms.js';
-import type { KeyBytesDeriver, KeyDeriver } from './prototyping/crypto/types/kdf.js';
-import type { KeyExporter, KeyImporter } from './prototyping/crypto/types/key-io.js';
-import type { InferKeyUnwrapAlgorithm } from './prototyping/crypto/types/key-wrapper.js';
-import type { KmsUnwrapKeyParams, KmsWrapKeyParams } from './prototyping/crypto/types/params-kms.js';
+import type { KeyBytesDeriver } from './prototyping/crypto/types/key-deriver.js';
 import type { AsymmetricKeyConverter, KeyConverter } from './prototyping/crypto/types/key-converter.js';
 import type { BytesToPrivateKeyParams, BytesToPublicKeyParams, CipherParams, DeriveKeyBytesParams, DeriveKeyParams, PrivateKeyToBytesParams, PublicKeyToBytesParams, UnwrapKeyParams, WrapKeyParams } from './prototyping/crypto/types/params-direct.js';
 
-import { LocalKeyManager } from './local-key-manager.js';
 import { HkdfAlgorithm } from './prototyping/crypto/algorithms/hkdf.js';
 import { EcdsaAlgorithm } from './prototyping/crypto/algorithms/ecdsa.js';
 import { EdDsaAlgorithm } from './prototyping/crypto/algorithms/eddsa.js';
@@ -41,7 +30,6 @@ import { AesKwAlgorithm } from './prototyping/crypto/algorithms/aes-kw.js';
 import { Pbkdf2Algorithm } from './prototyping/crypto/algorithms/pbkdf2.js';
 import { AesGcmAlgorithm } from './prototyping/crypto/algorithms/aes-gcm.js';
 import { CryptoError, CryptoErrorCode } from './prototyping/crypto/crypto-error.js';
-import { isKeyExporter, isKeyImporter, isKeyWrapper } from './prototyping/crypto/utils.js';
 
 export interface CryptoApiBytesToPrivateKeyParams extends BytesToPrivateKeyParams {
   algorithm: KeyConversionAlgorithm;
@@ -57,13 +45,6 @@ export interface CryptoApiBytesToPublicKeyParams extends BytesToPublicKeyParams 
  * {@link AgentCryptoApi.decrypt | `AgentCryptoApi.decrypt()`} method.
  */
 export interface CryptoApiCipherParams extends CipherParams, AesGcmParams {}
-
-/**
- * The `CryptoApiKmsCipherParams` interface defines the algorithm-specific parameters that should
- * be passed into the {@link AgentCryptoApi.encrypt | `AgentCryptoApi.encrypt()`} or
- * {@link AgentCryptoApi.decrypt | `AgentCryptoApi.decrypt()`} method.
- */
-export interface CryptoApiKmsCipherParams extends KmsCipherParams, AesGcmParams {}
 
 /**
  * The `CryptoApiDigestParams` interface defines the algorithm-specific parameters that should
@@ -131,21 +112,8 @@ export type CryptoApiDeriveKeyBytesParams<T extends DeriveKeyByteAlgorithm> = De
   algorithm: T;
 } & CryptoApiDeriveKeyBytesOptions[T];
 
-export interface CryptoApiGenerateKeyParams<TKeyManager> {
-  algorithm: TKeyManager extends CryptoApi
-    ? InferKeyGeneratorAlgorithm<TKeyManager>
-    : InferKeyGeneratorAlgorithm<LocalKeyManager>;
-}
-
-export interface CryptoApiUnwrapKeyParams<TKeyManager> extends KmsUnwrapKeyParams {
-  wrappedKeyAlgorithm: TKeyManager extends CryptoApi
-    ? InferKeyUnwrapAlgorithm<TKeyManager>
-    : InferKeyUnwrapAlgorithm<LocalKeyManager>;
-}
-
-export type CryptoApiParams<TKeyManager> = {
-  agent?: Web5PlatformAgent;
-  keyManager?: TKeyManager;
+export interface CryptoApiGenerateKeyParams extends GenerateKeyParams {
+  algorithm: KeyGenerationAlgorithm;
 }
 
 /**
@@ -160,17 +128,17 @@ const supportedAlgorithms = {
   'AES-GCM': {
     implementation : AesGcmAlgorithm,
     names          : ['A128GCM', 'A192GCM', 'A256GCM'],
-    operations     : ['bytesToPrivateKey', 'encrypt', 'decrypt'],
+    operations     : ['bytesToPrivateKey', 'decrypt', 'encrypt', 'generateKey'],
   },
   'AES-KW': {
     implementation : AesKwAlgorithm,
     names          : ['A128KW', 'A192KW', 'A256KW'],
-    operations     : ['bytesToPrivateKey', 'privateKeyToBytes', 'wrapKey', 'unwrapKey'],
+    operations     : ['bytesToPrivateKey', 'generateKey', 'privateKeyToBytes', 'wrapKey', 'unwrapKey'],
   },
   'Ed25519': {
     implementation : EdDsaAlgorithm,
     names          : ['Ed25519'],
-    operations     : ['bytesToPrivateKey', 'bytesToPublicKey', 'sign', 'verify'],
+    operations     : ['bytesToPrivateKey', 'bytesToPublicKey', 'generateKey', 'sign', 'verify'],
   },
   'HKDF': {
     implementation : HkdfAlgorithm,
@@ -185,12 +153,12 @@ const supportedAlgorithms = {
   'secp256k1': {
     implementation : EcdsaAlgorithm,
     names          : ['ES256K', 'secp256k1'],
-    operations     : ['bytesToPrivateKey', 'bytesToPublicKey', 'sign', 'verify'],
+    operations     : ['bytesToPrivateKey', 'bytesToPublicKey', 'generateKey', 'sign', 'verify'],
   },
   'secp256r1': {
     implementation : EcdsaAlgorithm,
     names          : ['ES256', 'secp256r1'],
-    operations     : ['bytesToPrivateKey', 'bytesToPublicKey', 'sign', 'verify'],
+    operations     : ['bytesToPrivateKey', 'bytesToPublicKey', 'generateKey', 'sign', 'verify'],
   },
   'SHA-256': {
     implementation : Sha2Algorithm,
@@ -248,23 +216,30 @@ type KeyWrappingAlgorithms = {
 
 type KeyWrappingAlgorithm = typeof supportedAlgorithms[KeyWrappingAlgorithms]['names'][number];
 
-export class AgentCryptoApi<TKeyManager extends AgentKeyManager = LocalKeyManager> implements
-    CryptoApi<CryptoApiGenerateKeyParams<TKeyManager>>,
-    AsymmetricKeyConverter<CryptoApiBytesToPublicKeyParams, PublicKeyToBytesParams>,
-    KeyConverter<CryptoApiBytesToPrivateKeyParams, PrivateKeyToBytesParams>,
-    KeyDeriver<CryptoApiDeriveKeyParams<DeriveKeyAlgorithm>, Jwk>,
-    KeyBytesDeriver<CryptoApiDeriveKeyBytesParams<DeriveKeyAlgorithm>, Uint8Array>,
-    KeyImporter<KmsImportKeyParams, KeyIdentifier>,
-    KeyExporter<KmsExportKeyParams, Jwk>,
-    KeyWrapper<KmsWrapKeyParams, KmsUnwrapKeyParams> {
+type KeyGenerationAlgorithms = {
+  [K in keyof SupportedAlgorithms]: 'generateKey' extends SupportedAlgorithms[K]['operations'][number] ? K : never
+}[keyof SupportedAlgorithms];
 
-  /**
-   * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
-   * the `AgentCryptoApi`. This agent is used to interact with other Web5 agent components. It's
-   * vital to ensure this instance is set to correctly contextualize operations within the broader
-   * Web5 Agent framework.
-   */
-  private _agent?: Web5PlatformAgent;
+type KeyGenerationAlgorithm = typeof supportedAlgorithms[KeyGenerationAlgorithms]['names'][number];
+
+export class AgentCryptoApi implements CryptoApi<
+  CryptoApiGenerateKeyParams, Jwk, GetPublicKeyParams,
+  CryptoApiDigestParams,
+  SignParams, VerifyParams,
+  CryptoApiBytesToPublicKeyParams, PublicKeyToBytesParams,
+  CryptoApiBytesToPrivateKeyParams, PrivateKeyToBytesParams,
+  CryptoApiDeriveKeyParams<DeriveKeyAlgorithm>, Jwk,
+  CryptoApiDeriveKeyBytesParams<DeriveKeyAlgorithm>, Uint8Array,
+  WrapKeyParams, UnwrapKeyParams
+> {
+  // AsymmetricKeyGenerator<CryptoApiGenerateKeyParams, Jwk, GetPublicKeyParams>,
+  // AsymmetricKeyConverter<CryptoApiBytesToPublicKeyParams, PublicKeyToBytesParams>,
+  // Hasher<CryptoApiDigestParams>,
+  // KeyConverter<CryptoApiBytesToPrivateKeyParams, PrivateKeyToBytesParams>,
+  // KeyDeriver<CryptoApiDeriveKeyParams<DeriveKeyAlgorithm>, Jwk>,
+  // KeyBytesDeriver<CryptoApiDeriveKeyBytesParams<DeriveKeyAlgorithm>, Uint8Array>,
+  // KeyWrapper<WrapKeyParams, UnwrapKeyParams>,
+  // Signer<SignParams, VerifyParams> {
 
   /**
    * A private map that stores instances of cryptographic algorithm implementations. Each key in
@@ -273,34 +248,6 @@ export class AgentCryptoApi<TKeyManager extends AgentKeyManager = LocalKeyManage
    * instances for performance optimization, ensuring that each algorithm is instantiated only once.
    */
   private _algorithmInstances: Map<AlgorithmConstructor, InstanceType<typeof CryptoAlgorithm>> = new Map();
-
-  private _keyManager: TKeyManager;
-
-  constructor({ agent, keyManager }: CryptoApiParams<TKeyManager> = {}) {
-    this._agent = agent;
-
-    // If `keyManager` is not given, use a LocalKeyManager that stores keys in memory.
-    this._keyManager = (keyManager ?? new LocalKeyManager({ agent })) as TKeyManager;
-  }
-
-  /**
-   * Retrieves the `Web5PlatformAgent` execution context.
-   *
-   * @returns The `Web5PlatformAgent` instance that represents the current execution context.
-   * @throws Will throw an error if the `agent` instance property is undefined.
-   */
-  get agent(): Web5PlatformAgent {
-    if (this._agent === undefined) {
-      throw new Error('AgentCryptoApi: Unable to determine agent execution context.');
-    }
-
-    return this._agent;
-  }
-
-  set agent(agent: Web5PlatformAgent) {
-    this._agent = agent;
-    this._keyManager.agent = agent;
-  }
 
   public async bytesToPrivateKey({ algorithm: algorithmIdentifier, privateKeyBytes }:
     CryptoApiBytesToPrivateKeyParams
@@ -332,24 +279,15 @@ export class AgentCryptoApi<TKeyManager extends AgentKeyManager = LocalKeyManage
     return publicKey;
   }
 
-  public async decrypt(params: CryptoApiKmsCipherParams): Promise<Uint8Array>;
-  public async decrypt(params: CryptoApiCipherParams): Promise<Uint8Array>;
-  public async decrypt(params: CryptoApiCipherParams | CryptoApiKmsCipherParams): Promise<Uint8Array> {
-    // If the input parameters contain a key identifier, use the key manager to decrypt the data.
-    if ('keyUri' in params) {
-      return await this._keyManager.decrypt(params);
+  public async decrypt(params: CryptoApiCipherParams): Promise<Uint8Array> {
+    // Determine the algorithm name based on the JWK's `alg` property.
+    const algorithm = this.getAlgorithmName({ key: params.key });
 
-    // Otherwise, use the given JWK to decrypt the data.
-    } else {
-      // Determine the algorithm name based on the JWK's `alg` property.
-      const algorithm = this.getAlgorithmName({ key: params.key });
+    // Get the cipher algorithm based on the algorithm name.
+    const cipher = this.getAlgorithm({ algorithm }) as Cipher<CipherParams, CipherParams>;
 
-      // Get the cipher algorithm based on the algorithm name.
-      const cipher = this.getAlgorithm({ algorithm }) as Cipher<CipherParams, CipherParams>;
-
-      // Decrypt the data.
-      return await cipher.decrypt(params);
-    }
+    // Decrypt the data.
+    return await cipher.decrypt(params);
   }
 
   public async deriveKey<T extends DeriveKeyAlgorithm>(
@@ -446,67 +384,52 @@ export class AgentCryptoApi<TKeyManager extends AgentKeyManager = LocalKeyManage
     return hash;
   }
 
-  public async encrypt(params: CryptoApiCipherParams): Promise<Uint8Array>;
-  public async encrypt(params: CryptoApiKmsCipherParams): Promise<Uint8Array>;
-  public async encrypt(params: CryptoApiCipherParams | CryptoApiKmsCipherParams): Promise<Uint8Array> {
-    // If the input parameters contain a key identifier, use the key manager to encrypt the data.
-    if ('keyUri' in params) {
-      // Encrypt the data and return the ciphertext.
-      return await this._keyManager.encrypt(params);
+  public async encrypt(params: CryptoApiCipherParams): Promise<Uint8Array> {
+    // If th
+    // Determine the algorithm name based on the JWK's `alg` property.
+    const algorithm = this.getAlgorithmName({ key: params.key });
 
-    // Otherwise, use the given JWK to encrypt the data.
-    } else {
-      // Determine the algorithm name based on the JWK's `alg` property.
-      const algorithm = this.getAlgorithmName({ key: params.key });
+    // Get the cipher algorithm based on the algorithm name.
+    const cipher = this.getAlgorithm({ algorithm }) as Cipher<CipherParams, CipherParams>;
 
-      // Get the cipher algorithm based on the algorithm name.
-      const cipher = this.getAlgorithm({ algorithm }) as Cipher<CipherParams, CipherParams>;
-
-      // Encrypt the data and return the ciphertext.
-      return await cipher.encrypt(params);
-    }
+    // Encrypt the data and return the ciphertext.
+    return await cipher.encrypt(params);
   }
 
-  public async exportKey({ keyUri }:
-    KmsExportKeyParams
+  public async generateKey(params: CryptoApiGenerateKeyParams): Promise<Jwk> {
+    // Determine the algorithm name based on the given algorithm identifier.
+    const algorithm = this.getAlgorithmName({ algorithm: params.algorithm });
+
+    // Get the key generator implementation based on the algorithm.
+    const keyGenerator = this.getAlgorithm({ algorithm }) as AsymmetricKeyGenerator<CryptoApiGenerateKeyParams, Jwk, GetPublicKeyParams>;
+
+    // Generate the key.
+    const privateKey = await keyGenerator.generateKey({ algorithm: params.algorithm });
+
+    // If the key ID is undefined, set it to the JWK thumbprint.
+    privateKey.kid ??= await computeJwkThumbprint({ jwk: privateKey });
+
+    return privateKey;
+  }
+
+  // ! TODO: Remove this once the `Dsa` interface is updated in @web5/crypto to remove KMS-specific methods.
+  public async getKeyUri(_params: KmsGetKeyUriParams): Promise<string> {
+    throw new Error('Method not implemented.');
+  }
+
+  public async getPublicKey({ key }:
+    GetPublicKeyParams
   ): Promise<Jwk> {
-    // If the BearerDid's key manager supports exporting private keys, add them to the portable DID.
-    if (isKeyExporter<KmsExportKeyParams, Jwk>(this._keyManager)) {
-      return await this._keyManager.exportKey({ keyUri });
-    } else {
-      throw new Error('Key Manager does not support exporting private keys');
-    }
-  }
+    // Determine the algorithm name based on the JWK's `alg` and `crv` properties.
+    const algorithm = this.getAlgorithmName({ key });
 
-  public async generateKey(params:
-    CryptoApiGenerateKeyParams<TKeyManager>
-  ): Promise<KeyIdentifier> {
-    return await this._keyManager.generateKey(params);
-  }
+    // Get the key generator based on the algorithm name.
+    const keyGenerator = this.getAlgorithm({ algorithm }) as AsymmetricKeyGenerator<CryptoApiGenerateKeyParams, Jwk, GetPublicKeyParams>;
 
-  public async getKeyUri({ key }:
-    KmsGetKeyUriParams
-  ): Promise<KeyIdentifier> {
-    const keyUri = await this._keyManager.getKeyUri({ key });
-    return keyUri;
-  }
+    // Get the public key properties from the private JWK.
+    const publicKey = await keyGenerator.getPublicKey({ key });
 
-  public async getPublicKey({ keyUri }:
-    KmsGetPublicKeyParams
-  ): Promise<Jwk> {
-    const publicKey = await this._keyManager.getPublicKey({ keyUri });
     return publicKey;
-  }
-
-  public async importKey({ key }:
-    KmsImportKeyParams
-  ): Promise<KeyIdentifier> {
-    // If the Agent's key manager supports importing private keys, import the key to the key store.
-    if (isKeyImporter<KmsImportKeyParams, KeyIdentifier>(this._keyManager)) {
-      return await this._keyManager.importKey({ key });
-    } else {
-      throw new Error('Key Manager does not support importing private keys');
-    }
   }
 
   public async privateKeyToBytes({ privateKey }: { privateKey: Jwk; }): Promise<Uint8Array> {
@@ -535,42 +458,34 @@ export class AgentCryptoApi<TKeyManager extends AgentKeyManager = LocalKeyManage
     return publicKeyBytes;
   }
 
-  public async sign({ keyUri, data }:
-    KmsSignParams
+  public async sign({ key, data }:
+    SignParams
   ): Promise<Uint8Array> {
-    const signature = await this._keyManager.sign({ keyUri, data });
+    // Determine the algorithm name based on the JWK's `alg` and `crv` properties.
+    const algorithm = this.getAlgorithmName({ key });
+
+    // Get the signature algorithm based on the algorithm name.
+    const signer = this.getAlgorithm({ algorithm }) as Signer<SignParams, VerifyParams>;
+
+    // Sign the data.
+    const signature = signer.sign({ data, key });
+
     return signature;
   }
 
-  public async unwrapKey(params: UnwrapKeyParams): Promise<Jwk>;
-  public async unwrapKey(params: CryptoApiUnwrapKeyParams<TKeyManager>): Promise<Jwk>;
-  public async unwrapKey(params:
-    UnwrapKeyParams | CryptoApiUnwrapKeyParams<TKeyManager>
-  ): Promise<Jwk> {
-    // If the input parameters contain a key identifier, use the key manager to decrypt the key.
-    if ('decryptionKeyUri' in params) {
-    // If the Agent's key manager supports key wrapping, decrypt the key.
-      if (isKeyWrapper<KmsWrapKeyParams, CryptoApiUnwrapKeyParams<TKeyManager>>(this._keyManager)) {
-        return await this._keyManager.unwrapKey(params);
-      } else {
-        throw new Error('Key Manager does not support key wrapping');
-      }
+  public async unwrapKey(params: UnwrapKeyParams): Promise<Jwk> {
+    // Determine the algorithm name based on the JWK's `alg` property.
+    const algorithm = this.getAlgorithmName({ key: params.decryptionKey });
 
-      // Otherwise, use the given JWK to decrypt the key.
-    } else {
-      // Determine the algorithm name based on the JWK's `alg` property.
-      const algorithm = this.getAlgorithmName({ key: params.decryptionKey });
+    // Get the key wrapping algorithm based on the algorithm name.
+    const keyWrapper = this.getAlgorithm({ algorithm }) as KeyWrapper<WrapKeyParams, UnwrapKeyParams>;
 
-      // Get the key wrapping algorithm based on the algorithm name.
-      const keyWrapper = this.getAlgorithm({ algorithm }) as KeyWrapper<WrapKeyParams, UnwrapKeyParams>;
-
-      // decrypt the key and return the ciphertext.
-      return await keyWrapper.unwrapKey(params);
-    }
+    // decrypt the key and return the ciphertext.
+    return await keyWrapper.unwrapKey(params);
   }
 
   public async verify({ key, signature, data }:
-    KmsVerifyParams
+    VerifyParams
   ): Promise<boolean> {
     // Determine the algorithm name based on the JWK's `alg` and `crv` properties.
     const algorithm = this.getAlgorithmName({ key });
@@ -584,28 +499,15 @@ export class AgentCryptoApi<TKeyManager extends AgentKeyManager = LocalKeyManage
     return isSignatureValid;
   }
 
-  public async wrapKey(params: WrapKeyParams): Promise<Uint8Array>;
-  public async wrapKey(params: KmsWrapKeyParams): Promise<Uint8Array>;
-  public async wrapKey(params: WrapKeyParams | KmsWrapKeyParams): Promise<Uint8Array> {
-    // If the input parameters contain a key identifier, use the key manager to encrypt the key.
-    if ('encryptionKeyUri' in params) {
-      if (isKeyWrapper<KmsWrapKeyParams, CryptoApiUnwrapKeyParams<TKeyManager>>(this._keyManager)) {
-        return await this._keyManager.wrapKey(params);
-      } else {
-        throw new Error('Key Manager does not support key wrapping');
-      }
+  public async wrapKey(params: WrapKeyParams): Promise<Uint8Array> {
+    // Determine the algorithm name based on the JWK's `alg` property.
+    const algorithm = this.getAlgorithmName({ key: params.encryptionKey });
 
-    // Otherwise, use the given JWK to encrypt the key.
-    } else {
-      // Determine the algorithm name based on the JWK's `alg` property.
-      const algorithm = this.getAlgorithmName({ key: params.encryptionKey });
+    // Get the key wrapping algorithm based on the algorithm name.
+    const keyWrapper = this.getAlgorithm({ algorithm }) as KeyWrapper<WrapKeyParams, UnwrapKeyParams>;
 
-      // Get the key wrapping algorithm based on the algorithm name.
-      const keyWrapper = this.getAlgorithm({ algorithm }) as KeyWrapper<WrapKeyParams, KmsUnwrapKeyParams>;
-
-      // Encrypt the key and return the ciphertext.
-      return await keyWrapper.wrapKey(params);
-    }
+    // Encrypt the key and return the ciphertext.
+    return await keyWrapper.wrapKey(params);
   }
 
   /**

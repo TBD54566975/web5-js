@@ -113,8 +113,8 @@ describe('AgentDidApi', () => {
           // Attempt to retrieve the DID's keys from the Agent's KeyManager.
           const signingMethod = await testHarness.agent.did.getSigningMethod({ didUri: did.uri });
           if (!signingMethod.publicKeyJwk) throw new Error('Public key not found'); // Type guard.
-          const storedKeyUri = await testHarness.agent.crypto.getKeyUri({ key: signingMethod.publicKeyJwk });
-          const storedPublicKey = await testHarness.agent.crypto.getPublicKey({ keyUri: storedKeyUri });
+          const storedKeyUri = await testHarness.agent.keyManager.getKeyUri({ key: signingMethod.publicKeyJwk });
+          const storedPublicKey = await testHarness.agent.keyManager.getPublicKey({ keyUri: storedKeyUri });
 
           // Verify the key was found.
           expect(storedPublicKey).to.exist;

@@ -12,13 +12,13 @@ import { AgentSyncApi } from './sync-api.js';
 import { Web5RpcClient } from './rpc-client.js';
 import { AgentCryptoApi } from './crypto-api.js';
 import { AgentIdentityApi } from './identity-api.js';
+import { BearerIdentity } from './bearer-identity.js';
 import { LocalKeyManager } from './local-key-manager.js';
 import { SyncEngineLevel } from './sync-engine-level.js';
 import { DwnDidStore, InMemoryDidStore } from './store-did.js';
 import { DwnKeyStore, InMemoryKeyStore } from './store-key.js';
-import { DidResolverCacheMemory } from './prototyping/dids/resolver-cache-memory.js';
 import { DwnIdentityStore, InMemoryIdentityStore } from './store-identity.js';
-import { BearerIdentity } from './bearer-identity.js';
+import { DidResolverCacheMemory } from './prototyping/dids/resolver-cache-memory.js';
 
 type ManagedAgentTestHarnessParams = {
   agent: Web5PlatformAgent
@@ -72,7 +72,7 @@ export class ManagedAgentTestHarness {
 
     // Reset the indexes and caches for the Agent's DWN data stores.
     // if (this.agentStores === 'dwn') {
-    //   const { cryptoApi, didApi, identityApi } = ManagedAgentTestHarness.useDiskStores({ testDataLocation: '__TESTDATA__', agent: this.agent });
+    //   const { didApi, identityApi } = ManagedAgentTestHarness.useDiskStores({ testDataLocation: '__TESTDATA__', agent: this.agent });
     //   this.agent.crypto = cryptoApi;
     //   this.agent.did = didApi;
     //   this.agent.identity = identityApi;
@@ -81,10 +81,10 @@ export class ManagedAgentTestHarness {
     // Easiest way to start with fresh in-memory stores is to re-instantiate all of the managed
     // agent components.
     if (this.agentStores === 'memory') {
-      const { cryptoApi, didApi, identityApi } = ManagedAgentTestHarness.useMemoryStores({ agent: this.agent });
-      this.agent.crypto = cryptoApi;
+      const { didApi, identityApi, keyManager } = ManagedAgentTestHarness.useMemoryStores({ agent: this.agent });
       this.agent.did = didApi;
       this.agent.identity = identityApi;
+      this.agent.keyManager = keyManager;
     }
   }
 
@@ -154,10 +154,16 @@ export class ManagedAgentTestHarness {
 
     const testDataPath = (path: string) => `${testDataLocation}/${path}`;
 
+    // Instantiate Agent's Crypto API.
+    const cryptoApi = new AgentCryptoApi();
+
+    // Instantiate Agent's RPC Client.
+    const rpcClient = new Web5RpcClient();
+
     const {
-      cryptoApi,
       didApi,
       identityApi,
+      keyManager,
       didResolverCache
     } = (agentStores === 'memory')
       ? ManagedAgentTestHarness.useMemoryStores()
@@ -183,9 +189,6 @@ export class ManagedAgentTestHarness {
     // Instantiate Agent's DWN API using the custom DWN instance.
     const dwnApi = new AgentDwnApi({ dwn });
 
-    // Instantiate Agent's RPC Client.
-    const rpcClient = new Web5RpcClient();
-
     // Instantiate Agent's Sync API using a custom LevelDB-backed store.
     const syncStore = new Level(testDataPath('SYNC_STORE'));
     const syncEngine = new SyncEngineLevel({ db: syncStore });
@@ -197,6 +200,7 @@ export class ManagedAgentTestHarness {
       didApi,
       dwnApi,
       identityApi,
+      keyManager,
       rpcClient,
       syncApi
     });
@@ -224,10 +228,6 @@ export class ManagedAgentTestHarness {
       location: testDataPath('DID_RESOLVERCACHE')
     });
 
-    const keyManager = new LocalKeyManager({ agent, keyStore: new DwnKeyStore() });
-
-    const cryptoApi = new AgentCryptoApi({ agent, keyManager });
-
     const didApi = new AgentDidApi({
       agent         : agent,
       didMethods    : [DidDht, DidJwk],
@@ -237,7 +237,9 @@ export class ManagedAgentTestHarness {
 
     const identityApi = new AgentIdentityApi({ agent, store: new DwnIdentityStore() });
 
-    return { cryptoApi, didApi, didResolverCache, identityApi };
+    const keyManager = new LocalKeyManager({ agent, keyStore: new DwnKeyStore() });
+
+    return { didApi, didResolverCache, identityApi, keyManager };
   }
 
   private static useMemoryStores({ agent }: { agent?: Web5PlatformAgent } = {}) {
@@ -245,8 +247,6 @@ export class ManagedAgentTestHarness {
     const didResolverCache = new DidResolverCacheMemory();
 
     const keyManager = new LocalKeyManager({ agent, keyStore: new InMemoryKeyStore() });
-
-    const cryptoApi = new AgentCryptoApi({ agent, keyManager });
 
     const didApi = new AgentDidApi({
       agent         : agent,
@@ -257,6 +257,6 @@ export class ManagedAgentTestHarness {
 
     const identityApi = new AgentIdentityApi({ agent, store: new InMemoryIdentityStore() });
 
-    return { cryptoApi, didApi, didResolverCache, identityApi };
+    return { didApi, didResolverCache, identityApi, keyManager };
   }
 }

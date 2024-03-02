@@ -275,19 +275,19 @@ export class AgentDwnApi {
         }
 
         // Compute the key URI of the verification method's public key.
-        const keyUri = await this.agent.crypto.getKeyUri({ key: signingMethod.publicKeyJwk });
+        const keyUri = await this.agent.keyManager.getKeyUri({ key: signingMethod.publicKeyJwk });
 
         // Verify that the key is present in the key manager. If not, an error is thrown.
-        const publicKey = await this.agent.crypto.getPublicKey({ keyUri });
+        const publicKey = await this.agent.keyManager.getPublicKey({ keyUri });
 
-        // Bind the Agent's Crypto API to the signer.
-        const crypto = this.agent.crypto;
+        // Bind the Agent's Key Manager to the signer.
+        const keyManager = this.agent.keyManager;
 
         return {
           algorithm : cryptoUtils.getJoseSignatureAlgorithmFromPublicKey(publicKey),
           keyId     : signingMethod.id,
           sign      : async (data: Uint8Array) => {
-            return await crypto.sign({ data, keyUri: keyUri! });
+            return await keyManager.sign({ data, keyUri: keyUri! });
           }
         };
       } catch (error: any) {

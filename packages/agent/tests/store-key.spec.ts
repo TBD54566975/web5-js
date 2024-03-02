@@ -7,7 +7,6 @@ import type { AgentDataStore } from '../src/store-data.js';
 
 import { TestAgent } from './utils/test-agent.js';
 import { DwnInterface } from '../src/types/dwn.js';
-import { AgentCryptoApi } from '../src/crypto-api.js';
 import { LocalKeyManager } from '../src/local-key-manager.js';
 import { ManagedAgentTestHarness } from '../src/test-harness.js';
 import { DwnKeyStore, InMemoryKeyStore } from '../src/store-key.js';
@@ -38,15 +37,8 @@ describe('KeyStore', () => {
 
       beforeEach(async () => {
         keyStore = new AgentDataStore();
-
         const keyManager = new LocalKeyManager({ agent: testHarness.agent, keyStore });
-
-        const cryptoApi = new AgentCryptoApi({
-          agent: testHarness.agent,
-          keyManager
-        });
-
-        testHarness.agent.crypto = cryptoApi;
+        testHarness.agent.keyManager = keyManager;
       });
 
       describe('constructor', () => {
@@ -59,7 +51,7 @@ describe('KeyStore', () => {
       describe('delete()', () => {
         it('should delete Private Key and return true if Private Key exists', async () => {
           // Generate a Private Key.
-          const keyUri = await testHarness.agent.crypto.generateKey({
+          const keyUri = await testHarness.agent.keyManager.generateKey({
             algorithm: 'Ed25519'
           });
 
@@ -90,7 +82,7 @@ describe('KeyStore', () => {
       describe('get()', () => {
         it('should return a Private Key by URI if it exists', async () => {
           // Generate a Private Key.
-          const keyUri = await testHarness.agent.crypto.generateKey({
+          const keyUri = await testHarness.agent.keyManager.generateKey({
             algorithm: 'Ed25519'
           });
 
@@ -114,9 +106,9 @@ describe('KeyStore', () => {
       describe('list()', () => {
         it('should return an array of all Private Keys in the store', async () => {
           // Generate three Private Keys.
-          const keyUri1 = await testHarness.agent.crypto.generateKey({ algorithm: 'Ed25519' });
-          const keyUri2 = await testHarness.agent.crypto.generateKey({ algorithm: 'Ed25519' });
-          const keyUri3 = await testHarness.agent.crypto.generateKey({ algorithm: 'Ed25519' });
+          const keyUri1 = await testHarness.agent.keyManager.generateKey({ algorithm: 'Ed25519' });
+          const keyUri2 = await testHarness.agent.keyManager.generateKey({ algorithm: 'Ed25519' });
+          const keyUri3 = await testHarness.agent.keyManager.generateKey({ algorithm: 'Ed25519' });
 
           // List DIDs and verify the result.
           const storedKeys = await keyStore.list({ agent: testHarness.agent });

@@ -8,6 +8,7 @@ import type { AgentIdentityApi } from '../identity-api.js';
 import type { ProcessVcRequest, SendVcRequest, VcResponse } from './vc.js';
 import type { AgentDidApi, DidInterface, DidRequest, DidResponse } from '../did-api.js';
 import type { DwnInterface, DwnResponse, ProcessDwnRequest, SendDwnRequest } from './dwn.js';
+import { LocalKeyManager } from '../local-key-manager.js';
 
 /**
  * Status code and detailed message for a response.
@@ -35,11 +36,12 @@ export interface Web5Agent {
   sendVcRequest(request: SendVcRequest): Promise<VcResponse>;
 }
 
-export interface Web5PlatformAgent<TCrypto extends AgentCryptoApi = AgentCryptoApi> extends Web5Agent {
-  crypto: TCrypto;
-  did: AgentDidApi<TCrypto>;
+export interface Web5PlatformAgent<TKeyManager extends LocalKeyManager = LocalKeyManager> extends Web5Agent {
+  crypto: AgentCryptoApi;
+  did: AgentDidApi<TKeyManager>;
   dwn: AgentDwnApi;
-  identity: AgentIdentityApi<TCrypto>;
+  identity: AgentIdentityApi<TKeyManager>;
+  keyManager: TKeyManager;
   rpc: Web5Rpc;
   sync: AgentSyncApi;
 

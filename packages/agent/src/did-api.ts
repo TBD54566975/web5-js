@@ -15,6 +15,7 @@ import type {
 import { BearerDid, Did, DidResolver } from '@web5/dids';
 
 import type { AgentDataStore } from './store-data.js';
+import type { AgentKeyManager } from './types/key-manager.js';
 import type { ResponseStatus, Web5PlatformAgent } from './types/agent.js';
 
 import { InMemoryDidStore } from './store-did.js';
@@ -102,7 +103,7 @@ export function isDidRequest<T extends DidInterface>(
   return didRequest.messageType === messageType;
 }
 
-export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidResolver {
+export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> extends DidResolver {
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
    * the `AgentDidApi`. This agent is used to interact with other Web5 agent components. It's vital
@@ -162,7 +163,7 @@ export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidR
     const didMethod = this.getMethod(method);
 
     // Create the DID and store the generated keys in the Agent's key manager.
-    const bearerDid = await didMethod.create({ keyManager: this.agent.crypto, options });
+    const bearerDid = await didMethod.create({ keyManager: this.agent.keyManager, options });
 
     // Persist the DID to the store, by default, unless the `store` option is set to false.
     if (store ?? true) {
@@ -211,7 +212,7 @@ export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidR
 
     if (!portableDid) return undefined;
 
-    const bearerDid = await BearerDid.import({ portableDid, keyManager: this.agent.crypto });
+    const bearerDid = await BearerDid.import({ portableDid, keyManager: this.agent.keyManager });
 
     return bearerDid;
   }
@@ -248,7 +249,7 @@ export class AgentDidApi<TKeyManager extends CryptoApi = CryptoApi> extends DidR
     // If private keys are present in the PortableDid, import the key material into the Agent's key
     // manager. Validate that the key material for every verification method in the DID document is
     // present in the key manager.
-    const bearerDid = await BearerDid.import({ keyManager: this.agent.crypto, portableDid });
+    const bearerDid = await BearerDid.import({ keyManager: this.agent.keyManager, portableDid });
 
     // Only the DID URI, document, and metadata are stored in the Agent's DID store.
     const { uri, document, metadata } = bearerDid;
