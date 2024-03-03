@@ -2,10 +2,11 @@ import type { Jwk } from '@web5/crypto';
 
 import { expect } from 'chai';
 
+import type { Web5PlatformAgent } from '../../../../src/types/agent.js';
+
 import { AgentCryptoApi } from '../../../../src/crypto-api.js';
-import { CompactJwe } from '../../../../src/prototyping/crypto/jose/jwe.js';
 import { LocalKeyManager } from '../../../../src/local-key-manager.js';
-import { Web5PlatformAgent } from '../../../../src/types/agent.js';
+import { CompactJwe } from '../../../../src/prototyping/crypto/jose/jwe-compact.js';
 
 describe('CompactJwe', () => {
   let crypto = new AgentCryptoApi();
