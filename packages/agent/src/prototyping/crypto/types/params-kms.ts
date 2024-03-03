@@ -22,9 +22,6 @@ export interface KmsDeriveKeyParams {
   /** Identifier for the base key used in derivation in the KMS. */
   baseKeyUri: KeyIdentifier;
 
-  /** The desired length of the derived key in bits. */
-  length: number;
-
   /** An object defining the algorithm-specific parameters for the derived key. */
   derivedKeyParams: unknown
 }

@@ -64,10 +64,12 @@ export interface AppDataStore<T extends Record<string, any> = { InitializeResult
   /**
    * Attempts to change the passphrase of the AppDataStore.
    *
-   * The old passphrase is required for verification and a boolean is returned indicating whether
-   * the passphrase change was successful.
+   * The AppDataStore must be initialized and the old password correct or the operation will fail.
+   *
+   * @throws An error if the AppDataStore has not been initialized or the `oldPassphrase` is
+   *         incorrect.
    */
-  changePassphrase(params: { oldPassphrase: string, newPassphrase: string }): Promise<boolean>;
+  changePassphrase(params: { oldPassphrase: string, newPassphrase: string }): Promise<void>;
 }
 
 export type AppDataStatus = {

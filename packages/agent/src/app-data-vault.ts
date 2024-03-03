@@ -5,21 +5,16 @@ import { HDKey } from 'ed25519-keygen/hdkey';
 import { BearerDid, DidDht } from '@web5/dids';
 import { Convert, MemoryStore } from '@web5/common';
 import { wordlist } from '@scure/bip39/wordlists/english';
-import { Ed25519, utils as cryptoUtils } from '@web5/crypto';
 import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from '@scure/bip39';
 
 import type { JweHeaderParams } from './prototyping/crypto/jose/jwe.js';
 import type { AppDataBackup, AppDataStatus, AppDataStore } from './types/app-data.js';
 
 import { AgentCryptoApi } from './crypto-api.js';
+import { LocalKeyManager } from './local-key-manager.js';
 import { isPortableDid } from './prototyping/dids/utils.js';
 import { CompactJwe } from './prototyping/crypto/jose/jwe.js';
-import { Hkdf } from './prototyping/crypto/primitives/hkdf.js';
 import { DeterministicKeyGenerator } from './utils-internal.js';
-import { AesKw } from './prototyping/crypto/primitives/aes-kw.js';
-import { Pbkdf2 } from './prototyping/crypto/primitives/pbkdf2.js';
-import { AesGcm } from './prototyping/crypto/primitives/aes-gcm.js';
-import { LocalKeyManager } from './local-key-manager.js';
 
 /**
  * An extension of the AppDataStore interface which secures the contents of the store.
@@ -33,8 +28,8 @@ export interface SecureAppDataStore extends AppDataStore<{ InitializeResult: str
 }
 
 /**
- * Extended initialization parameters for AppDataVault, including the privateKey required for
- * encrypting the contents of the vault.
+ * Extended initialization parameters for AppDataVault, including an optional mnemonic that can be
+ * used to derive keys to encrypt the vault and generate the Agent's DID.
  */
 export type AppDataVaultInitializeParams = {
   passphrase: string;
@@ -52,20 +47,6 @@ export type AppDataVaultParams = {
   store?: KeyValueStore<string, any>;
 }
 
-interface VaultContentProtectedHeader extends Pick<JweHeaderParams, 'alg' | 'enc' | 'iv' | 'tag' | 'cty'> {
-  alg: string;
-  enc: string;
-  cty: string;
-}
-
-interface VaultContentKeyProtectedHeader extends Pick<JweHeaderParams, 'alg' | 'enc' | 'p2c' | 'p2s'> {
-  alg: string;
-  enc: string;
-  p2c: number;
-  p2s: string;
-  cty: string;
-}
-
 function isAppDataStatus(obj: unknown): obj is AppDataStatus {
   return typeof obj === 'object' && obj !== null
     && 'initialized' in obj && typeof obj.initialized === 'boolean'
@@ -81,45 +62,8 @@ function isAppDataBackup(obj: unknown): obj is AppDataBackup {
     && 'data' in obj && typeof obj.data === 'string';
 }
 
-function isNonEmptyPassphrase(obj: unknown): obj is string {
-  return typeof obj === 'string' && obj !== null
-    && obj.trim().length > 0;
-}
-
-/**
- * Type guard function to check if an object is a valid protected header for a JWE that contains
- * the Agent's vault contents encrypted with the vault content key (CEK).
- */
-// function isValidVaultContentProtectedHeader(obj: unknown): obj is VaultContentProtectedHeader {
-//   if (typeof obj !== 'object' || obj === null) {
-//     return false;
-//   }
-
-//   // Define the required properties for the protected header.
-//   const requiredProperties = ['alg', 'enc', 'iv', 'tag'];
-
-//   // Check for the existence of all required properties.
-//   const hasAllProperties = requiredProperties.every(prop => prop in obj);
-
-//   return hasAllProperties;
-// }
-
-/**
- * Type guard function to check if an object is a valid protected header for a JWE that contains
- * the Agent's vault content key (CEK) encrypted with the Vault Unlock Key (VUK).
- */
-function isValidVaultContentKeyProtectedHeader(obj: unknown): obj is VaultContentKeyProtectedHeader {
-  if (typeof obj !== 'object' || obj === null) {
-    return false;
-  }
-
-  // Define the required properties for the protected header.
-  const requiredProperties = ['alg', 'cty', 'enc', 'p2c', 'p2s'];
-
-  // Check for the existence of all required properties.
-  const hasAllProperties = requiredProperties.every(prop => prop in obj);
-
-  return hasAllProperties;
+function isEmptyPassphrase(obj: unknown): obj is string {
+  return typeof obj !== 'string' || obj.trim().length === 0;
 }
 
 export class AppDataVault implements SecureAppDataStore {
@@ -172,8 +116,8 @@ export class AppDataVault implements SecureAppDataStore {
   public async changePassphrase({ oldPassphrase, newPassphrase }: {
     oldPassphrase: string;
     newPassphrase: string;
-  }): Promise<boolean> {
-    // Step 1: Verify the data vault has already been initialized.
+  }): Promise<void> {
+    // Verify the data vault has already been initialized.
     const { initialized } = await this.getStatus();
     if (initialized !== true) {
       throw new Error(
@@ -183,32 +127,48 @@ export class AppDataVault implements SecureAppDataStore {
       );
     }
 
-    // Step 2: Verify the old passphrase is correct by attempting to change to the new passphrase.
+    // Lock the vault.
     await this.lock();
-    await this.unlock({ passphrase: oldPassphrase });
 
-    // Step 3: Derive a new Vault Unlock Key (VUK) from the new `passphrase` and the stored `salt`.
-    // The VUK serves as the key encryption key (KEK) when wrapping the Agent's vault private key.
-    const salt = await this.getStoredSalt();
-    const _newVaultUnlockKey = await this.deriveVaultUnlockKey({ passphrase: newPassphrase, salt });
+    // Retrieve the content encryption key (CEK) record as a compact JWE from the data store.
+    const cekJwe = await this.getStoredContentEncryptionKey();
 
-    // Step 3: Re-encrypt the Agent's vault key (CEK) using the new VUK (aka KEK).
-    // const vaultContents = await this.getStoredAgentDid();
-    // const encryptedVaultContents = await XChaCha20Poly1305.encrypt({
-    //   data  : Convert.string(vaultContents).toUint8Array(),
-    //   key   : newVaultUnlockKey,
-    //   nonce : cryptoUtils.randomBytes(12),
-    // });
+    // Decrypt the compact JWE using the given `oldPassphrase` to verify it is correct.
+    let protectedHeader: JweHeaderParams;
+    let contentEncryptionKey: Jwk;
+    try {
+      let contentEncryptionKeyBytes: Uint8Array;
+      ({ plaintext: contentEncryptionKeyBytes, protectedHeader } = await CompactJwe.decrypt({
+        jwe        : cekJwe,
+        key        : Convert.string(oldPassphrase).toUint8Array(),
+        crypto     : this.crypto,
+        keyManager : new LocalKeyManager()
+      }));
+      contentEncryptionKey = Convert.uint8Array(contentEncryptionKeyBytes).toObject() as Jwk;
 
-    // // Step 4: Update the vault with the new encrypted data
-    // await this._store.set('vaultContents', Convert.uint8Array(encryptedVaultContents).toBase64Url());
+    } catch (error: any) {
+      // If the decryption fails, the vault is considered locked.
+      await this.setStatus({ locked: true });
+      throw new Error(`AppDataVault: Unable to change the vault passphrase due to an incorrectly entered old passphrase.`);
+    }
 
-    // // Update the vault's unlock key in memory (if you store this in persistent storage, it should be updated as well)
-    // this._contentEncryptionKey = newVaultUnlockKey;
+    // Re-encrypt the Agent's vault content encryption key (CEK) using the new passphrase.
+    const newCekJwe = await CompactJwe.encrypt({
+      key        : Convert.string(newPassphrase).toUint8Array(),
+      protectedHeader, // Re-use the protected header from the original JWE.
+      plaintext  : Convert.object(contentEncryptionKey).toUint8Array(),
+      crypto     : this.crypto,
+      keyManager : new LocalKeyManager()
+    });
 
-    // // Optional: Update any relevant metadata in your vault status, like the last updated timestamp
+    // Update the vault with the new CEK JWE.
+    await this._store.set('contentEncryptionKey', newCekJwe);
 
-    return true; // Indicate success
+    // Update the Agent's vault CEK in memory.
+    this._contentEncryptionKey = contentEncryptionKey;
+
+    // Set the vault to unlocked.
+    await this.setStatus({ locked: false });
   }
 
   public async getAgentDid(): Promise<BearerDid> {
@@ -262,15 +222,22 @@ export class AppDataVault implements SecureAppDataStore {
   }
 
   public async initialize({ mnemonic, passphrase }: AppDataVaultInitializeParams): Promise<string> {
-    // First, verify that the data vault was not previously initialized.
+    /**
+     * STEP 0: Validate the input parameters and verify the data vault is not already initialized.
+     */
+
+    // Verify that the data vault was not previously initialized.
     const appDataStatus = await this.getStatus();
     if (appDataStatus.initialized === true) {
-      throw new Error(`AppDataVault: Data vault already initialized.`);
+      throw new Error(`AppDataVault: Data vault has already been initialized.`);
     }
 
     // Verify that the passphrase is not empty.
-    if (!isNonEmptyPassphrase) {
-      throw new Error(`AppDataVault: Passphrase cannot be empty.`);
+    if (isEmptyPassphrase(passphrase)) {
+      throw new Error(
+        `AppDataVault: The passphrase is required and cannot be blank. Please provide a valid, ' +
+        'non-empty passphrase.`
+      );
     }
 
     /**
@@ -292,13 +259,8 @@ export class AppDataVault implements SecureAppDataStore {
     // Derive a root key for the Agent DID from the root seed.
     const rootHdKey = HDKey.fromMasterSeed(rootSeed);
 
-
-
-
-
-
     /**
-     * STEP 3: Derive the Agent's vault key, which serves as input keying material for:
+     * STEP 2: Derive the Agent's vault key, which serves as input keying material for:
      * - deriving the salt for that is used to derive the Vault Unlock Key (VUK)
      * - deriving the vault content encryption key (CEK)
      */
@@ -308,147 +270,59 @@ export class AppDataVault implements SecureAppDataStore {
     //       deterministically re-derived.
     const vaultHdKey = rootHdKey.derive(`m/44'/0'/0'/0'/0'`);
 
-
-
-
-
-
     /**
-     * STEP 4: Derive the Agent's vault content encryption key (CEK) from the Agent's vault private
+     * STEP 3: Derive the Agent's vault Content Encryption Key (CEK) from the Agent's vault private
      * key and a non-secret static info value.
      */
 
     // A non-secret static info value is combined with the Agent's vault private key as input to
     // HKDF (Hash-based Key Derivation Function) to derive a 32-byte content encryption key (CEK).
-    const contentEncryptionKeyBytes = await Hkdf.deriveKeyBytes({
-      baseKeyBytes : vaultHdKey.privateKey, // input keying material
-      hash         : 'SHA-512',             // hash function
-      salt         : '',                    // empty salt because private key is sufficiently random
-      info         : 'vault_cek',           // non-secret application specific information
-      length       : 256                    // derived key length, in bits
+    const contentEncryptionKey = await this.crypto.deriveKey({
+      algorithm           : 'HKDF-512',            // key derivation function
+      baseKeyBytes        : vaultHdKey.privateKey, // input keying material
+      salt                : '',                    // empty salt because private key is sufficiently random
+      info                : 'vault_cek',           // non-secret application specific information
+      derivedKeyAlgorithm : 'A256GCM'              // derived key algorithm
     });
-
-    // Convert the content encryption key bytes to a JWK to be used with A256GCM.
-    const contentEncryptionKey = await AesGcm.bytesToPrivateKey({
-      privateKeyBytes: contentEncryptionKeyBytes
-    });
-
-
-
-
-
-
-
 
     /**
-     * STEP 5: Derive the Vault Unlock Key (VUK) from the given `passphrase` and a `salt` derived
-     * from the Agent's vault public key. The VUK serves as the key encryption key (KEK) when
-     * wrapping the Agent's vault content encryption key (CEK).
+     * STEP 4: Using the given `passphrase` and a `salt` derived from the Agent's vault public key,
+     * encrypt the Agent's vault CEK and store it in the data store.
      */
 
     // A non-secret static info value is combined with the Agent's vault public key as input to
     // HKDF (Hash-based Key Derivation Function) to derive a new 32-byte salt.
-    const saltInput = await Hkdf.deriveKeyBytes({
-      baseKeyBytes : vaultHdKey.publicKey,  // input keying material
-      hash         : 'SHA-512',             // hash function
-      salt         : '',                    // empty salt because private key is sufficiently random
-      info         : 'vault_unlock_salt',   // non-secret application specific information
-      length       : 32,                    // derived key length, in bytes
+    const saltInput = await this.crypto.deriveKeyBytes({
+      algorithm    : 'HKDF-512',           // key derivation function
+      baseKeyBytes : vaultHdKey.publicKey, // input keying material
+      salt         : '',                   // empty salt because private key is sufficiently random
+      info         : 'vault_unlock_salt',  // non-secret application specific information
+      length       : 256,                  // derived key length, in bits
     });
 
-    // Per {@link https://www.rfc-editor.org/rfc/rfc7518.html#section-4.8.1.1 | RFC 7518, Section 4.8.1.1},
-    // the salt value used with PBES2 should be of the format (UTF8(Alg) || 0x00 || Salt Input),
-    // where Alg is the "alg" (algorithm) Header Parameter value. This reduces the potential for a
-    // precomputed dictionary attack (also known as a rainbow table attack).
-    const algorithmBytes = Convert.string('PBES2-HS512+A256KW').toUint8Array();
-    const salt = new Uint8Array([...algorithmBytes, 0x00, ...saltInput]);
-
-    // Derive the vault unlock key (VUK) from the given `passphrase` and derived `salt`.
-    // The VUK serves as the key encryption key (KEK) when wrapping the Agent's vault CEK.
-    const vaultUnlockKey = await this.deriveVaultUnlockKey({ passphrase, salt });
-
-
-
-    /**
-     * STEP 6: Encrypt the Vault CEK using the KEK (aka VUK) with A256KW.
-     */
-
     // Construct the JWE header.
-    const contentKeyProtectedHeader: VaultContentKeyProtectedHeader = {
+    const cekJweProtectedHeader: JweHeaderParams = {
       alg : 'PBES2-HS512+A256KW',
       enc : 'A256GCM',
       cty : 'text/plain',
       p2c : this._keyDerivationWorkFactor,
-      p2s : Convert.uint8Array(salt).toBase64Url()
+      p2s : Convert.uint8Array(saltInput).toBase64Url()
     };
 
-    // Encrypt the CEK with the "A128KW" algorithm using the PBKDF2 Derived Key.
-    const contentKeyEncryptedKey = await AesKw.wrapKey({
-      unwrappedKey  : contentEncryptionKey,
-      encryptionKey : vaultUnlockKey
+    // Encrypt the Agent's vault content encryption key (CEK) to compact JWE format.
+    const cekJwe = await CompactJwe.encrypt({
+      key             : Convert.string(passphrase).toUint8Array(),
+      protectedHeader : cekJweProtectedHeader,
+      plaintext       : Convert.object(contentEncryptionKey).toUint8Array(),
+      crypto          : this.crypto,
+      keyManager      : new LocalKeyManager()
     });
-
-    // Generate a 12-byte initialization vector to use with AES-GCM when encrypting the payload.
-    const contentKeyInitializationVector = cryptoUtils.randomBytes(12);
-
-    // Use the JWE header as Additional Authenticated Data when encrypting the data payload.
-    const contentKeyProtectedHeaderB64U = Convert.object(contentKeyProtectedHeader).toBase64Url();
-    const contentKeyAdditionalData = Convert.string(contentKeyProtectedHeaderB64U).toUint8Array();
-
-    // Encrypt the payload using the CEK and AES-GCM.
-    const contentKeyCiphertextWithTag = await AesGcm.encrypt({
-      data           : Convert.string(`m/44'/0'/0'/0'/0'`).toUint8Array(),
-      key            : contentEncryptionKey,
-      iv             : contentKeyInitializationVector,
-      additionalData : contentKeyAdditionalData
-    });
-
-    // Extract the ciphertext and tag from the encrypted payload.
-    const contentKeyCiphertext = contentKeyCiphertextWithTag.slice(0, -16);
-    const contentKeyAuthenticationTag = contentKeyCiphertextWithTag.slice(-16);
-
-
-    // Serialize to a compact JWE.
-    const contentKeyJwe = [
-      contentKeyProtectedHeaderB64U,
-      Convert.uint8Array(contentKeyEncryptedKey).toBase64Url(),
-      Convert.uint8Array(contentKeyInitializationVector).toBase64Url(),
-      Convert.uint8Array(contentKeyCiphertext).toBase64Url(),
-      Convert.uint8Array(contentKeyAuthenticationTag).toBase64Url()
-    ].join('.');
 
     // Store the compact JWE in the data store.
-    await this._store.set('contentEncryptionKey', contentKeyJwe);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    await this._store.set('contentEncryptionKey', cekJwe);
 
     /**
-     * STEP 6: Create the Agent's DID using identity, signing, and encryption keys derived from the
+     * STEP 5: Create the Agent's DID using identity, signing, and encryption keys derived from the
      * root key.
      */
 
@@ -457,17 +331,26 @@ export class AppDataVault implements SecureAppDataStore {
     //       document can be deterministically derived based on the versionId returned in a DID
     //       resolution result.
     const identityHdKey = rootHdKey.derive(`m/44'/0'/1708523827'/0'/0'`);
-    const identityPrivateKey = await Ed25519.bytesToPrivateKey({ privateKeyBytes: identityHdKey.privateKey });
+    const identityPrivateKey = await this.crypto.bytesToPrivateKey({
+      algorithm       : 'Ed25519',
+      privateKeyBytes : identityHdKey.privateKey
+    });
 
     // Derive the Agent's signing key using index 1 and convert to JWK format.
     let signingHdKey = rootHdKey.derive(`m/44'/0'/1708523827'/0'/1'`);
-    const signingPrivateKey = await Ed25519.bytesToPrivateKey({ privateKeyBytes: signingHdKey.privateKey });
+    const signingPrivateKey = await this.crypto.bytesToPrivateKey({
+      algorithm       : 'Ed25519',
+      privateKeyBytes : signingHdKey.privateKey
+    });
 
     // TODO: Enable this once DID DHT supports X25519 keys.
     // Derive the Agent's encryption key using index 1 and convert to JWK format.
     // const encryptionHdKey = rootHdKey.derive(`m/44'/0'/1708523827'/0'/1'`);
-    // const encryptionKeyEd25519 = await Ed25519.bytesToPrivateKey({ privateKeyBytes: encryptionHdKey.privateKey });
-    // const encryptionKey = await Ed25519.convertPrivateKeyToX25519({ privateKey: encryptionKeyEd25519 });
+    // const encryptionKeyEd25519 = await this.crypto.bytesToPrivateKey({
+    //   algorithm       : 'Ed25519',
+    //   privateKeyBytes : encryptionHdKey.privateKey
+    // });
+    // const encryptionPrivateKey = await Ed25519.convertPrivateKeyToX25519({ privateKey: encryptionKeyEd25519 });
 
     // Add the Agent's identity and signing keys to the deterministic key generator so that when the
     // Agent DID is created it will use the derived keys.
@@ -483,63 +366,46 @@ export class AppDataVault implements SecureAppDataStore {
             algorithm : 'Ed25519',
             id        : 'sig',
             purposes  : ['assertionMethod', 'authentication']
-          }
+          },
+          // TODO: Enable this once DID DHT supports X25519 keys.
+          // {
+          //   algorithm : 'X25519',
+          //   id        : 'enc',
+          //   purposes  : ['keyAgreement']
+          // }
         ]
       }
     });
 
     /**
-     * STEP 7: Encrypt the Agent's DID in portable format, which will be the payload of the JWE.
+     * STEP 6: Convert the Agent's DID to portable format and store it in the data store as a
+     * compact JWE.
      */
 
     // Construct the JWE header.
-    const protectedHeader: VaultContentProtectedHeader = {
+    const agentDidJweProtectedHeader: JweHeaderParams = {
       alg : 'dir',
       enc : 'A256GCM',
       cty : 'json'
     };
 
-    // Generate a 12-byte initialization vector to use with AES-GCM when encrypting the payload.
-    const payloadInitializationVector = cryptoUtils.randomBytes(12);
-
-    // Use the JWE header as Additional Authenticated Data when encrypting the data payload.
-    const protectedHeaderB64U = Convert.object(protectedHeader).toBase64Url();
-    const payloadAdditionalData = Convert.string(protectedHeaderB64U).toUint8Array();
-
-    // Convert the Agent's DID to a portable format as a byte array.
+    // Convert the Agent's DID to a portable format.
     const portableDid = await agentDid.export();
-    const portableDidBytes = Convert.object(portableDid).toUint8Array();
 
-    // Encrypt the Agent's DID in portable format with the Agent's vault key (CEK).
-    const payloadCiphertextWithTag = await AesGcm.encrypt({
-      data           : portableDidBytes,
-      key            : contentEncryptionKey,
-      iv             : payloadInitializationVector,
-      additionalData : payloadAdditionalData
+    const agentDidJwe = await CompactJwe.encrypt({
+      key             : contentEncryptionKey,
+      plaintext       : Convert.object(portableDid).toUint8Array(),
+      protectedHeader : agentDidJweProtectedHeader,
+      crypto          : this.crypto,
+      keyManager      : new LocalKeyManager()
     });
-
-    /**
-     * STEP 8: Serialize the JWE to compact JWE format and store it in the data store.
-     */
-
-    // Extract the ciphertext and tag from the encrypted payload.
-    const payloadCiphertext = payloadCiphertextWithTag.slice(0, -16);
-    const payloadAuthenticationTag = payloadCiphertextWithTag.slice(-16);
-
-    // Serialize to a compact JWE.
-    const agentDidJwe = [
-      protectedHeaderB64U,
-      '',
-      Convert.uint8Array(payloadInitializationVector).toBase64Url(),
-      Convert.uint8Array(payloadCiphertext).toBase64Url(),
-      Convert.uint8Array(payloadAuthenticationTag).toBase64Url()
-    ].join('.');
 
     // Store the compact JWE in the data store.
     await this._store.set('agentDid', agentDidJwe);
 
     /**
-     * STEP 8: Set the vault to initialized and unlocked.
+     * STEP 7: Set the vault to initialized and unlocked and return the mnemonic used to generate
+     * the Agent's vault CEK and DID.
      */
 
     this._contentEncryptionKey = contentEncryptionKey;
@@ -612,8 +478,8 @@ export class AppDataVault implements SecureAppDataStore {
       await this._store.set('agentDid', previousAgentDid);
 
       throw new Error(
-        'AppDataVault: Restore operation failed due to an incorrect passphrase. ' +
-        'Please verify the passphrase is correct for the provided backup and try again.'
+        'AppDataVault: Restore operation failed due to invalid backup data or an incorrect ' +
+        'passphrase. Please verify the passphrase is correct for the provided backup and try again.'
       );
     }
 
@@ -636,75 +502,27 @@ export class AppDataVault implements SecureAppDataStore {
     // Retrieve the content encryption key (CEK) record as a compact JWE from the data store.
     const cekJwe = await this.getStoredContentEncryptionKey();
 
-    // Initialize a Crypto API instance to decrypt the compact JWE.
-    // const cryptoApi = new AgentCryptoApi({ agent: {} as Web5PlatformAgent });
-
-    // const test = await CompactJwe.decrypt({
-    //   jwe        : cekJwe,
-    //   key        : 'thing',
-    //   keyManager : cryptoApi
-    // });
-
-
-
-    // Decode the protected header.
-    let [ encodedProtectedHeader, encodedEncryptedCek ] = cekJwe.split('.');
-    const protectedHeader = Convert.base64Url(encodedProtectedHeader).toObject();
-
-    // Ensure the protected header is valid for a CEK compact JWE.
-    if (!isValidVaultContentKeyProtectedHeader(protectedHeader)) {
-      throw new Error('AppDataVault: Invalid Content Encryption Key JWE protected header detected.');
-    }
-
-    // Convert the salt to bytes.
-    const salt = Convert.base64Url(protectedHeader.p2s).toUint8Array();
-
-    // Re-derive the Vault Unlock Key (VUK) from the given `passphrase` and stored `salt`.
-    const vaultUnlockKey = await this.deriveVaultUnlockKey({ passphrase, salt });
-
-    // Convert the encrypted content encryption key (CEK) to bytes.
-    const encryptedCekBytes = Convert.base64Url(encodedEncryptedCek).toUint8Array();
-
-    // Decrypt the Agent's vault content encryption key (CEK) using the Vault Unlock Key (VUK).
-    let contentEncryptionKey: Jwk;
+    // Decrypt the compact JWE.
     try {
-      contentEncryptionKey = await AesKw.unwrapKey({
-        wrappedKeyBytes     : encryptedCekBytes,
-        decryptionKey       : vaultUnlockKey,
-        wrappedKeyAlgorithm : 'A256KW'
+      const { plaintext: contentEncryptionKeyBytes } = await CompactJwe.decrypt({
+        jwe        : cekJwe,
+        key        : Convert.string(passphrase).toUint8Array(),
+        crypto     : this.crypto,
+        keyManager : new LocalKeyManager()
       });
+      const contentEncryptionKey = Convert.uint8Array(contentEncryptionKeyBytes).toObject() as Jwk;
+
+      // Save the content encryption key in memory.
+      this._contentEncryptionKey = contentEncryptionKey;
+
     } catch (error: any) {
       // If the decryption fails, the vault is considered locked.
       await this.setStatus({ locked: true });
       throw new Error(`AppDataVault: Unable to unlock the vault due to an incorrect passphrase.`);
     }
 
-    // Save the content encryption key in memory.
-    this._contentEncryptionKey = contentEncryptionKey;
-
     // If the decryption is successful, the vault is considered unlocked.
     await this.setStatus({ locked: false });
-  }
-
-  private async deriveVaultUnlockKey({ passphrase, salt }: {
-    passphrase: string;
-    salt: Uint8Array;
-  }): Promise<Jwk> {
-    // The `passphrase` entered by the end-user and `salt` derived from the Agent's vault public
-    // key are inputs to the PBKDF2 algorithm to derive a 32-byte secret key that will be referred
-    // to as the Vault Unlock Key (VUK).
-    const vaultUnlockKeyBytes = await Pbkdf2.deriveKeyBytes({
-      baseKeyBytes : Convert.string(passphrase).toUint8Array(),
-      hash         : 'SHA-512',
-      iterations   : this._keyDerivationWorkFactor,
-      salt         : salt,
-      length       : 256
-    });
-
-    // Convert the derived key bytes to a JWK to be used with AES-KW.
-    const vaultUnlockKey = await AesKw.bytesToPrivateKey({ privateKeyBytes: vaultUnlockKeyBytes });
-
-    return vaultUnlockKey;
   }
 
   private async getStoredAgentDid(): Promise<string> {
@@ -735,25 +553,6 @@ export class AppDataVault implements SecureAppDataStore {
     }
 
     return cekJwe;
-  }
-
-  private async getStoredSalt(): Promise<Uint8Array> {
-    // Retrieve the content encryption key (CEK) record as a compact JWE from the data store.
-    const cekJwe = await this.getStoredContentEncryptionKey();
-
-    // Decode the protected header.
-    let [ encodedProtectedHeader ] = cekJwe.split('.');
-    const protectedHeader = Convert.base64Url(encodedProtectedHeader).toObject();
-
-    // Ensure the protected header is valid for a CEK compact JWE.
-    if (!isValidVaultContentKeyProtectedHeader(protectedHeader)) {
-      throw new Error('AppDataVault: Invalid Content Encryption Key JWE protected header detected.');
-    }
-
-    // Convert the salt to bytes.
-    const salt = Convert.base64Url(protectedHeader.p2s).toUint8Array();
-
-    return salt;
   }
 
   private async setStatus({ initialized, locked, lastBackup, lastRestore }: Partial<AppDataStatus>): Promise<boolean> {

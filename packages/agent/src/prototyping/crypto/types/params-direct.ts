@@ -22,17 +22,26 @@ export interface CipherParams {
 
   /** Data to be encrypted or decrypted. */
   data: Uint8Array;
+
+  /** Additional algorithm-specific parameters for encryption or decryption. */
+  [key: string]: unknown;
 }
 
 /**
  * Parameters for derivation of cryptographic keys.
  */
 export interface DeriveKeyParams {
+  /** The algorithm identifier. */
+  algorithm: AlgorithmIdentifier;
+
   /** The base key to be used for derivation as a byte array. */
   baseKeyBytes: Uint8Array;
 
   /** The algorithm identifier for the derived key. */
-  derivedKeyAlgorithm?: string
+  derivedKeyAlgorithm?: AlgorithmIdentifier;
+
+  /** Additional algorithm-specific parameters for key derivation. */
+  [key: string]: unknown;
 }
 
 /**
