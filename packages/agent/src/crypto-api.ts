@@ -226,6 +226,7 @@ export class AgentCryptoApi implements CryptoApi<
   CryptoApiGenerateKeyParams, Jwk, GetPublicKeyParams,
   CryptoApiDigestParams,
   SignParams, VerifyParams,
+  CryptoApiCipherParams, CryptoApiCipherParams,
   CryptoApiBytesToPublicKeyParams, PublicKeyToBytesParams,
   CryptoApiBytesToPrivateKeyParams, PrivateKeyToBytesParams,
   CryptoApiDeriveKeyParams<DeriveKeyAlgorithm>, Jwk,

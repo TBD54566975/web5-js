@@ -1,7 +1,11 @@
 import type { JoseHeaderParams, Jwk, KeyIdentifier } from '@web5/crypto';
 
+import { utils as cryptoUtils } from '@web5/crypto';
+
 import type { CryptoApi } from '../types/crypto-api.js';
 import type { KeyManager } from '../types/key-manager.js';
+
+
 
 // TODO: Once ready to migrate -- overwrite the existing `src/jose/jwe.ts` file with this one.
 
@@ -207,7 +211,7 @@ export interface JweHeaderParams extends JoseHeaderParams {
 export interface CompactJweDecryptParams<TKeyManager, TCrypto> {
   jwe: string;
 
-  key: KeyIdentifier | Jwk;
+  key: KeyIdentifier | Jwk | Uint8Array;
 
   keyManager?: TKeyManager;
 
@@ -221,7 +225,9 @@ export interface CompactJweDecryptParams<TKeyManager, TCrypto> {
 export interface CompactJweEncryptParams<TKeyManager, TCrypto> {
   plaintext: Uint8Array;
 
-  key: KeyIdentifier | Jwk;
+  protectedHeader: JweHeaderParams;
+
+  key: KeyIdentifier | Jwk | Uint8Array;
 
   keyManager?: TKeyManager;
 
@@ -243,8 +249,8 @@ export interface CompactJweDecryptResult {
 
 export class CompactJwe {
   public static async decrypt<
-    TKeyManager extends KeyManager | undefined = undefined,
-    TCrypto extends CryptoApi | undefined = undefined
+    TKeyManager extends KeyManager | undefined = KeyManager,
+    TCrypto extends CryptoApi | undefined = CryptoApi
   >({
     jwe,
     key,
@@ -295,21 +301,23 @@ export class CompactJwe {
   }
 
   public static async encrypt<
-    TKeyManager extends KeyManager | undefined = undefined,
-    TCrypto extends CryptoApi | undefined = undefined
+    TKeyManager extends KeyManager | undefined = KeyManager,
+    TCrypto extends CryptoApi | undefined = CryptoApi
   >({
     plaintext,
+    protectedHeader,
     key,
     keyManager = new LocalKeyManager(),
-    crypto: _thingTwo = new AgentCryptoApi(),
+    crypto = new AgentCryptoApi(),
     options = {}
   }: CompactJweEncryptParams<TKeyManager, TCrypto>
   ): Promise<string> {
-    console.log(plaintext, key, keyManager, options);
-    // const jwe = await FlattenedJwe.encrypt(key, keyManager, crypto, options);
+    const jwe = await FlattenedJwe.encrypt({ plaintext, protectedHeader, key, keyManager, crypto, options });
 
-    // return [jwe.protected, jwe.encrypted_key, jwe.iv, jwe.ciphertext, jwe.tag].join('.');
-    return null as any;
+    // Create the Compact Serialization, which is the string BASE64URL(UTF8(JWE Protected Header))
+    // || '.' || BASE64URL(JWE Encrypted Key) || '.' || BASE64URL(JWE Initialization Vector)
+    // || '.' || BASE64URL(JWE Ciphertext) || '.' || BASE64URL(JWE Authentication Tag).
+    return [jwe.protected, jwe.encrypted_key, jwe.iv, jwe.ciphertext, jwe.tag].join('.');
   }
 }
 
@@ -341,7 +349,7 @@ function isValidJweHeader(obj: unknown): obj is JweHeaderParams {
 }
 
 export interface FlattenedJweEncryptParams<TKeyManager, TCrypto> extends FlattenedJweDecryptResult {
-  key: KeyIdentifier | Jwk;
+  key: KeyIdentifier | Jwk | Uint8Array;
   keyManager?: TKeyManager;
   crypto?: TCrypto;
   options?: JweEncryptOptions;
@@ -349,7 +357,7 @@ export interface FlattenedJweEncryptParams<TKeyManager, TCrypto> extends Flatten
 
 export interface FlattenedJweDecryptParams<TKeyManager, TCrypto> {
   jwe: FlattenedJweParams | FlattenedJwe;
-  key: KeyIdentifier | Jwk;
+  key: KeyIdentifier | Jwk | Uint8Array;
   keyManager?: TKeyManager;
   crypto?: TCrypto;
   options?: JweDecryptOptions;
@@ -436,8 +444,8 @@ export class FlattenedJwe {
   }
 
   public static async decrypt<
-    TKeyManager extends KeyManager | undefined = undefined,
-    TCrypto extends CryptoApi | undefined = undefined
+    TKeyManager extends KeyManager | undefined = KeyManager,
+    TCrypto extends CryptoApi | undefined = CryptoApi
   >({
     jwe,
     key,
@@ -509,9 +517,13 @@ export class FlattenedJwe {
 
     let cek: KeyIdentifier | Jwk;
     try {
+      const encryptedKey = jwe.encrypted_key
+        ? Convert.base64Url(jwe.encrypted_key).toUint8Array()
+        : undefined;
+
       cek = await FlattenedJwe.decryptContentEncryptionKey({
         key,
-        encryptedKey: jwe.encrypted_key,
+        encryptedKey,
         joseHeader,
         keyManager,
         crypto
@@ -550,9 +562,10 @@ export class FlattenedJwe {
       ])
       : Convert.base64Url(jwe.ciphertext).toUint8Array();
 
-    // If the JWE Additional Authenticated Data (AAD) is present, the Additional Authenticated Data input to the Content Encryption
-    // Algorithm is ASCII(Encoded Protected Header || '.' || BASE64URL(JWE Additional Authenticated Data (AAD))). If the JWE Additional Authenticated Data (AAD) is
-    // absent, the Additional Authenticated Data is ASCII(BASE64URL(UTF8(JWE Protected Header))).
+    // If the JWE Additional Authenticated Data (AAD) is present, the Additional Authenticated Data
+    // input to the Content Encryption Algorithm is
+    // ASCII(Encoded Protected Header || '.' || BASE64URL(JWE AAD)). If the JWE AAD is absent, the
+    // Additional Authenticated Data is ASCII(BASE64URL(UTF8(JWE Protected Header))).
     const additionalData = jwe.aad !== undefined
       ? new Uint8Array([
         ...Convert.string(jwe.protected ?? '').toUint8Array(),
@@ -561,17 +574,12 @@ export class FlattenedJwe {
       ])
       : Convert.string(jwe.protected ?? '').toUint8Array();
 
-    // Set the `key` or `keyUri` input parameter to the `decrypt()` method depending on whether the
-    // Content Encryption Key (CEK) is passed by reference as a Key Identifier or by value as a JWK.
-    const keyOrKeyUri = typeof cek === 'string' ? { keyUri: cek } : { key: cek };
-
-    // Decrypt the JWE using the Content Encryption Key (CEK).
-    const plaintext = await crypto.decrypt({
-      ...keyOrKeyUri,
-      data: ciphertext,
-      iv,
-      additionalData
-    });
+    // Decrypt the JWE using the Content Encryption Key (CEK) with:
+    // - Key Manager: If the CEK is a Key Identifier.
+    // - Crypto API: If the CEK is a JWK.
+    const plaintext = typeof cek === 'string'
+      ? await keyManager.decrypt({ keyUri: cek, data: ciphertext, iv, additionalData })
+      : await crypto.decrypt({ key: cek, data: ciphertext, iv, additionalData });
 
     return {
       plaintext,
@@ -583,22 +591,18 @@ export class FlattenedJwe {
   }
 
   public static async encrypt<
-    TKeyManager extends KeyManager | undefined = undefined,
-    TCrypto extends CryptoApi | undefined = undefined
+    TKeyManager extends KeyManager | undefined = KeyManager,
+    TCrypto extends CryptoApi | undefined = CryptoApi
   >({
     key,
     plaintext,
-    // additionalAuthenticatedData,
+    additionalAuthenticatedData,
     protectedHeader,
     sharedUnprotectedHeader,
     unprotectedHeader,
     keyManager = new LocalKeyManager(),
     crypto = new AgentCryptoApi(),
-    // options = {}
-  }: FlattenedJweEncryptParams<TKeyManager, TCrypto> & {
-    keyManager?: TKeyManager;
-    options?: JweEncryptOptions;
-  }): Promise<FlattenedJwe> {
+  }: FlattenedJweEncryptParams<TKeyManager, TCrypto>): Promise<FlattenedJwe> {
     // Verify that the provided Crypto API supports the decrypt operation before proceeding.
     if (!isCipher(crypto)) {
       throw new CryptoError(CryptoErrorCode.OperationNotSupported, 'Crypto API does not support the "encrypt" operation.');
@@ -641,24 +645,80 @@ export class FlattenedJwe {
       throw new Error('JWE Header is missing required "alg" (Algorithm) and/or "enc" (Encryption) Header Parameters');
     }
 
-    const { cek: _cek, encryptedKey: _encryptedKey } = await FlattenedJwe.encryptContentEncryptionKey({
+    const { cek, encryptedKey } = await FlattenedJwe.encryptContentEncryptionKey({
       key,
       joseHeader,
       keyManager,
       crypto
     });
 
-    // If the JWE Additional Authenticated Data (AAD) is present, the Additional Authenticated Data input to the Content Encryption
+    // If required for the Content Encryption Algorithm, generate a random JWE Initialization
+    // Vector (IV) of the correct size; otherwise, let the JWE Initialization Vector be the empty
+    // octet sequence.
+    let iv: Uint8Array;
+    switch (joseHeader.enc) {
+      case 'A128GCM':
+      case 'A192GCM':
+      case 'A256GCM':
+        iv = cryptoUtils.randomBytes(12);
+        break;
+      default:
+        iv = new Uint8Array(0);
+    }
 
-    return null as any;
+    // Compute the Encoded Protected Header value BASE64URL(UTF8(JWE Protected Header)).  If the JWE
+    // Protected Header is not present, let this value be the empty string.
+    const encodedProtectedHeader = protectedHeader
+      ? Convert.object(protectedHeader).toBase64Url()
+      : '';
+
+    // If the JWE Additional Authenticated Data (AAD) is present, the Additional Authenticated Data
+    // input to the Content Encryption Algorithm is
+    // ASCII(Encoded Protected Header || '.' || BASE64URL(JWE AAD)). If the JWE AAD is absent, the
+    // Additional Authenticated Data is ASCII(BASE64URL(UTF8(JWE Protected Header))).
+    let additionalData: Uint8Array;
+    let encodedAad: string | undefined;
+    if (additionalAuthenticatedData) {
+      encodedAad = Convert.uint8Array(additionalAuthenticatedData).toBase64Url();
+      additionalData = Convert.string(encodedProtectedHeader + '.' + encodedAad).toUint8Array();
+    } else {
+      additionalData = Convert.string(encodedProtectedHeader).toUint8Array();
+    }
+
+    // Encrypt the plaintext using the CEK, the JWE Initialization Vector, and the Additional
+    // Authenticated Data value using the specified content encryption algorithm to create the JWE
+    // Ciphertext value and the JWE Authentication Tag.
+    const ciphertextWithTag = typeof cek === 'string'
+      ? await keyManager.encrypt({ keyUri: cek, data: plaintext, iv, additionalData })
+      : await crypto.encrypt({ key: cek, data: plaintext, iv, additionalData });
+    const ciphertext = ciphertextWithTag.slice(0, -16);
+    const authenticationTag = ciphertextWithTag.slice(-16);
+
+    // Create the Flattened JWE JSON Serialization output, which is based upon the General syntax,
+    // but flattens it, optimizing it for the single-recipient case. It flattens it by removing the
+    // "recipients" member and instead placing those members defined for use in the "recipients"
+    // array (the "header" and "encrypted_key" members) in the top-level JSON object (at the same
+    // level as the "ciphertext" member).
+    const jwe = new FlattenedJwe({
+      ciphertext: Convert.uint8Array(ciphertext).toBase64Url(),
+    });
+    if (encryptedKey) jwe.encrypted_key = Convert.uint8Array(encryptedKey).toBase64Url();
+    if (protectedHeader) jwe.protected = encodedProtectedHeader;
+    if (unprotectedHeader) jwe.unprotected = unprotectedHeader;
+    if (sharedUnprotectedHeader) jwe.header = sharedUnprotectedHeader;
+    if (iv) jwe.iv = Convert.uint8Array(iv).toBase64Url();
+    if (encodedAad) jwe.aad = encodedAad;
+    if (authenticationTag) jwe.tag = Convert.uint8Array(authenticationTag).toBase64Url();
+
+    return jwe;
   }
 
   private static async decryptContentEncryptionKey<
     TKeyManager extends KeyManager,
     TCrypto extends CryptoApi
-  >({ key, encryptedKey, joseHeader,keyManager: _thingOne, crypto: _thingTwo }: {
-    key: KeyIdentifier | Jwk;
-    encryptedKey?: string;
+  >({ key, encryptedKey, joseHeader, crypto }: {
+    key: KeyIdentifier | Jwk | Uint8Array;
+    encryptedKey?: Uint8Array;
     joseHeader: JweHeaderParams;
     keyManager: TKeyManager;
     crypto: TCrypto;
@@ -673,40 +733,78 @@ export class FlattenedJwe {
 
         // Verify that the JWE Encrypted Key value is empty.
         if (encryptedKey !== undefined) {
-          throw new CryptoError(CryptoErrorCode.InvalidJwe, 'JWE "encrypted_key" is not allowed when using "dir" (Direct Encryption).');
+          throw new CryptoError(CryptoErrorCode.InvalidJwe, 'JWE "encrypted_key" is not allowed when using "dir" (Direct Encryption Mode).');
+        }
+
+        // Verify the key management `key` is a Key Identifier or JWK.
+        if (key instanceof Uint8Array) {
+          throw new CryptoError(CryptoErrorCode.InvalidJwe, 'Key management "key" must be a Key URI or JWK when using "dir" (Direct Encryption Mode).');
         }
 
         // return the key management `key` as the CEK.
         return key;
       }
 
-      // case 'PBES2-HS512+A256KW': {
-      //   // Password-Based Key Encryption Mode
-      //   // Use the given password, salt, and iteration count to derive a key encryption key (KEK)
-      //   // using the PBES2 key derivation function.
+      case 'PBES2-HS256+A128KW':
+      case 'PBES2-HS384+A192KW':
+      case 'PBES2-HS512+A256KW': {
+        // In Key Encryption mode (PBES2) with key wrapping (A128KW, A192KW, A256KW), the given
+        // passphrase, salt (p2s), and iteration count (p2c) are used with the PBKDF2 key derivation
+        // function to derive the Key Encryption Key (KEK).  The KEK is then used to decrypt the JWE
+        // Encrypted Key to obtain the Content Encryption Key (CEK).
 
-      //   if (typeof joseHeader.p2c !== 'number') {
-      //     throw new CryptoError(CryptoErrorCode.InvalidJwe, 'JOSE Header "p2c" (PBES2 Count) is missing or not a number.');
-      //   }
+        if (typeof joseHeader.p2c !== 'number') {
+          throw new CryptoError(CryptoErrorCode.InvalidJwe, 'JOSE Header "p2c" (PBES2 Count) is missing or not a number.');
+        }
 
-      //   if (typeof joseHeader.p2s !== 'string') {
-      //     throw new CryptoError(CryptoErrorCode.InvalidJwe, 'JOSE Header "p2s" (PBES2 salt) is missing or not a string.');
-      //   }
+        if (typeof joseHeader.p2s !== 'string') {
+          throw new CryptoError(CryptoErrorCode.InvalidJwe, 'JOSE Header "p2s" (PBES2 salt) is missing or not a string.');
+        }
 
-      //   let salt: Uint8Array;
-      //   try {
-      //     salt = Convert.string(joseHeader.p2s).toUint8Array();
-      //   } catch {
-      //     throw new CryptoError(CryptoErrorCode.InvalidJwe, 'Failed to decode the JOSE Header "p2s" (PBES2 salt) value.');
-      //   }
+        // Throw an error if the key management `key` is not a byte array.
+        if (!(key instanceof Uint8Array)) {
+          throw new CryptoError(CryptoErrorCode.InvalidJwe, 'Key management "key" must be a Uint8Array when using "PBES2" (Key Encryption Mode).');
+        }
 
-      //   //   // Append the hash function bit length to form the hash algorithm identifier.
-      //   //   const hash = 'SHA-' + joseHeader.alg.match(/HS(\d{3})/)?.[1] as 'SHA-512';
+        // Verify that the JWE Encrypted Key value is present.
+        if (encryptedKey === undefined) {
+          throw new CryptoError(CryptoErrorCode.InvalidJwe, 'JWE "encrypted_key" is required when using "PBES2" (Key Encryption Mode).');
+        }
 
-      //   //   const baseKey = await (keyManager as unknown as KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>).exportKey({ keyUri});
+        // Per {@link https://www.rfc-editor.org/rfc/rfc7518.html#section-4.8.1.1 | RFC 7518, Section 4.8.1.1},
+        // the salt value used with PBES2 should be of the format (UTF8(Alg) || 0x00 || Salt Input),
+        // where Alg is the "alg" (algorithm) Header Parameter value. This reduces the potential for
+        // a precomputed dictionary attack (also known as a rainbow table attack).
+        let salt: Uint8Array;
+        try {
+          salt = new Uint8Array([
+            ...Convert.string(joseHeader.alg).toUint8Array(),
+            0x00,
+            ...Convert.base64Url(joseHeader.p2s).toUint8Array()
+          ]);
+        } catch {
+          throw new CryptoError(CryptoErrorCode.EncodingError, 'Failed to decode the JOSE Header "p2s" (PBES2 salt) value.');
+        }
 
-      // //   return await Pbkdf2.deriveKeyBytes({ baseKey, hash, salt, iterations: joseHeader.p2c, length: 256 });
-      // }
+        // Derive the Key Encryption Key (KEK) from the given passphrase, salt, and iteration count.
+        const kek = await crypto.deriveKey({
+          algorithm    : joseHeader.alg,
+          baseKeyBytes : key,
+          iterations   : joseHeader.p2c,
+          salt
+        });
+
+        if (!(kek.alg && ['A128KW', 'A192KW', 'A256KW'].includes(kek.alg))) {
+          throw new CryptoError(CryptoErrorCode.AlgorithmNotSupported, `Unsupported Key Encryption Algorithm (alg) value: ${kek.alg}`);
+        }
+
+        // Decrypt the Content Encryption Key (CEK) with the derived KEK.
+        return await crypto.unwrapKey({
+          decryptionKey       : kek,
+          wrappedKeyBytes     : encryptedKey,
+          wrappedKeyAlgorithm : joseHeader.enc
+        });
+      }
 
       default: {
         throw new CryptoError(
@@ -720,8 +818,8 @@ export class FlattenedJwe {
   private static async encryptContentEncryptionKey<
     TKeyManager extends KeyManager,
     TCrypto extends CryptoApi
-  >({ key, joseHeader, keyManager, crypto }: {
-    key: KeyIdentifier | Jwk;
+  >({ key, joseHeader, crypto }: {
+    key: KeyIdentifier | Jwk | Uint8Array;
     joseHeader: JweHeaderParams;
     keyManager: TKeyManager;
     crypto: TCrypto;
@@ -739,7 +837,12 @@ export class FlattenedJwe {
 
         // Verify that the JWE Encrypted Key value is empty.
         if (encryptedKey !== undefined) {
-          throw new CryptoError(CryptoErrorCode.InvalidJwe, 'JWE "encrypted_key" is not allowed when using "dir" (Direct Encryption).');
+          throw new CryptoError(CryptoErrorCode.InvalidJwe, 'JWE "encrypted_key" is not allowed when using "dir" (Direct Encryption Mode).');
+        }
+
+        // Verify the key management `key` is a Key Identifier or JWK.
+        if (key instanceof Uint8Array) {
+          throw new CryptoError(CryptoErrorCode.InvalidJwe, 'Key management "key" must be a Key URI or JWK when using "dir" (Direct Encryption Mode).');
         }
 
         // Set the CEK to the key management `key`.
@@ -750,7 +853,7 @@ export class FlattenedJwe {
       case 'PBES2-HS256+A128KW':
       case 'PBES2-HS384+A192KW':
       case 'PBES2-HS512+A256KW': {
-        // In Key Encryption Mode (PBES2) with key wrapping (A128KW, A192KW, A256KW), a randomly
+        // In Key Encryption mode (PBES2) with key wrapping (A128KW, A192KW, A256KW), a randomly
         // generated Content Encryption Key (CEK) is encrypted with a Key Encryption Key (KEK)
         // derived from the given passphrase, salt (p2s), and iteration count (p2c) using the
         // PBKDF2 key derivation function.
@@ -763,11 +866,14 @@ export class FlattenedJwe {
           throw new CryptoError(CryptoErrorCode.InvalidJwe, 'JOSE Header "p2s" (PBES2 salt) is missing or not a string.');
         }
 
+        // Throw an error if the key management `key` is not a byte array.
+        if (!(key instanceof Uint8Array)) {
+          throw new CryptoError(CryptoErrorCode.InvalidJwe, 'Key management "key" must be a Uint8Array when using "PBES2" (Key Encryption Mode).');
+        }
+
         // Generate a random Content Encryption Key (CEK) using the algorithm specified by the "enc"
         // (encryption) Header Parameter.
-        cek = typeof key === 'string'
-          ? await keyManager.generateKey({ algorithm: joseHeader.enc })
-          : await crypto.generateKey({ algorithm: joseHeader.enc });
+        cek = await crypto.generateKey({ algorithm: joseHeader.enc });
 
         // Per {@link https://www.rfc-editor.org/rfc/rfc7518.html#section-4.8.1.1 | RFC 7518, Section 4.8.1.1},
         // the salt value used with PBES2 should be of the format (UTF8(Alg) || 0x00 || Salt Input),
@@ -784,29 +890,16 @@ export class FlattenedJwe {
           throw new CryptoError(CryptoErrorCode.EncodingError, 'Failed to decode the JOSE Header "p2s" (PBES2 salt) value.');
         }
 
-        // Extract the hash function and wrapping algorithm components of the "alg" (Algorithm)
-        // Header Parameter.
-        const [, hashFunction, wrappingAlgorithm] = joseHeader.alg.split(/[-+]/);
+        // Derive a Key Encryption Key (KEK) from the given passphrase, salt, and iteration count.
+        const kek = await crypto.deriveKey({
+          algorithm    : joseHeader.alg,
+          baseKeyBytes : key,
+          iterations   : joseHeader.p2c,
+          salt
+        });
 
-        // Map from JOSE algorithm name to "SHA" hash function identifier.
-        const hash = {
-          'HS256' : 'SHA-256' as const,
-          'HS384' : 'SHA-384' as const,
-          'HS512' : 'SHA-512' as const
-        }[hashFunction]!;
-
-
-
-        console.log(hash, wrappingAlgorithm, salt);
-        // const derivedKeyBytes = await Pbkdf2.deriveKeyBytes({
-        //   baseKeyBytes : Convert.string(key).toUint8Array(),
-        //   hash,
-        //   iterations   : joseHeader.p2c,
-        //   salt         : salt,
-        //   length       : 256
-        // });
-
-
+        // Encrypt the randomly generated CEK with the derived Key Encryption Key (KEK).
+        encryptedKey = await crypto.wrapKey({ encryptionKey: kek, unwrappedKey: cek });
 
         break;
       }

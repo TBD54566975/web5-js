@@ -1,7 +1,7 @@
 import { CryptoAlgorithm } from '@web5/crypto';
 
-import type { KeyBytesDeriver } from '../types/key-deriver.js';
 import type { Pbkdf2Params } from '../primitives/pbkdf2.js';
+import type { KeyBytesDeriver } from '../types/key-deriver.js';
 import type { DeriveKeyBytesParams } from '../types/params-direct.js';
 
 import { Pbkdf2 } from '../primitives/pbkdf2.js';
