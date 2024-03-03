@@ -7,12 +7,13 @@ import type {
   VerifyParams,
   GenerateKeyParams,
   GetPublicKeyParams,
+  Cipher,
 } from '@web5/crypto';
 
 import type { KeyConverter } from './key-converter.js';
 import type { AsymmetricKeyConverter } from './key-converter.js';
 import type { KeyBytesDeriver, KeyDeriver } from './key-deriver.js';
-import type { BytesToPrivateKeyParams, BytesToPublicKeyParams, DeriveKeyBytesParams, DeriveKeyParams, PrivateKeyToBytesParams, PublicKeyToBytesParams, UnwrapKeyParams, WrapKeyParams } from './params-direct.js';
+import type { BytesToPrivateKeyParams, BytesToPublicKeyParams, CipherParams, DeriveKeyBytesParams, DeriveKeyParams, PrivateKeyToBytesParams, PublicKeyToBytesParams, UnwrapKeyParams, WrapKeyParams } from './params-direct.js';
 
 /**
  * The `DsaApi` interface integrates key generation, hashing, and signing functionalities,
@@ -55,6 +56,8 @@ export interface CryptoApi<
   DigestInput = DigestParams,
   SignInput = SignParams,
   VerifyInput = VerifyParams,
+  EncryptInput = CipherParams,
+  DecryptInput = CipherParams,
   BytesToPublicKeyInput = BytesToPublicKeyParams,
   PublicKeyToBytesInput = PublicKeyToBytesParams,
   BytesToPrivateKeyInput = BytesToPrivateKeyParams,
@@ -64,9 +67,10 @@ export interface CryptoApi<
   DeriveKeyBytesInput = DeriveKeyBytesParams,
   DeriveKeyBytesOutput = Uint8Array,
   WrapKeyInput = WrapKeyParams,
-  UnwrapKeyInput = UnwrapKeyParams,
+  UnwrapKeyInput = UnwrapKeyParams
 > extends
   DsaApi<GenerateKeyInput, GenerateKeyOutput, GetPublicKeyInput, DigestInput, SignInput, VerifyInput>,
+  Cipher<EncryptInput, DecryptInput>,
   AsymmetricKeyConverter<BytesToPublicKeyInput, PublicKeyToBytesInput>,
   KeyConverter<BytesToPrivateKeyInput, PrivateKeyToBytesInput>,
   KeyDeriver<DeriveKeyInput, DeriveKeyOutput>,

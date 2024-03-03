@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { LevelStore, MemoryStore } from '@web5/common';
 
 import { AppDataVault } from '../src/app-data-vault.js';
+import { AppDataBackup } from '../src/types/app-data.js';
 
 const testConfigurations = [
   {
@@ -70,6 +71,56 @@ describe('AppDataVault', () => {
         });
       });
 
+      describe('changePassphrase()', () => {
+        it('should change the passphrase', async () => {
+          // Initialize the vault.
+          await dataVault.initialize({ passphrase: 'dumbbell-krakatoa-ditty' });
+
+          // Change the passphrase.
+          const newPassphrase = 'brick-shield-anchor';
+          await dataVault.changePassphrase({ oldPassphrase: 'dumbbell-krakatoa-ditty', newPassphrase });
+
+          // Verify that the vault is initialized and is unlocked.
+          const vaultStatus = await dataVault.getStatus();
+          expect(vaultStatus.initialized).to.be.true;
+          expect(vaultStatus.locked).to.be.false;
+        });
+
+        it('throws an error if the vault is not initialized', async () => {
+          try {
+            await dataVault.changePassphrase({ oldPassphrase: 'dumbbell-krakatoa-ditty', newPassphrase: 'brick-shield-anchor' });
+            expect.fail('Expected an error to be thrown.');
+          } catch (error: any) {
+            expect(error.message).to.include('vault has not been initialized');
+          }
+        });
+
+        it('should throw an error if decryption fails due to an incorrect old passphrase', async () => {
+          // Initialize the vault with a known passphrase.
+          const correctPassphrase = 'correct-horse-battery-staple';
+          await dataVault.initialize({ passphrase: correctPassphrase });
+
+          // Attempt to change the passphrase using an incorrect old passphrase.
+          const incorrectOldPassphrase = 'incorrect-old-passphrase';
+          const newPassphrase = 'new-super-secure-passphrase';
+
+          try {
+            await dataVault.changePassphrase({
+              oldPassphrase : incorrectOldPassphrase,
+              newPassphrase : newPassphrase
+            });
+            // If no error is thrown, the test should fail.
+            expect.fail('Expected an error to be thrown due to incorrect old passphrase.');
+          } catch (error: any) {
+            expect(error.message).to.include('incorrectly entered old passphrase');
+
+            // Verify that the vault is locked after the failed decryption attempt.
+            const vaultStatus = await dataVault.getStatus();
+            expect(vaultStatus.locked).to.be.true;
+          }
+        });
+      });
+
       describe('getStatus()', () => {
         it('should return initialized=false when first instantiated', async () => {
           const vaultStatus = await dataVault.getStatus();
@@ -124,6 +175,15 @@ describe('AppDataVault', () => {
           // Verify that the expected DID URI is returned given the mnemonic.
           expect(agentDid).to.have.property('uri', 'did:dht:qftx7z968xcpfy1a1diu75pg5meap3gdtg6ezagaw849wdh6oubo');
         });
+
+        it('should throw an error if the vault is not initialized and unlocked', async () => {
+          try {
+            await dataVault.getAgentDid();
+            expect.fail('Expected an error to be thrown.');
+          } catch (error: any) {
+            expect(error.message).to.include('has not been initialized and unlocked');
+          }
+        });
       });
 
       describe('initialize()', () => {
@@ -166,6 +226,27 @@ describe('AppDataVault', () => {
           // Verify that the vault is initialized and is unlocked.
           expect(returnedMnemonic).to.equal(predefinedMnemonic);
         });
+
+        it('throws an error if the vault is already initialized', async () => {
+          // Initialize the vault.
+          await dataVault.initialize({ passphrase: 'dumbbell-krakatoa-ditty' });
+
+          try {
+            await dataVault.initialize({ passphrase: 'dumbbell-krakatoa-ditty' });
+            expect.fail('Expected an error to be thrown.');
+          } catch (error: any) {
+            expect(error.message).to.include('vault has already been initialized');
+          }
+        });
+
+        it('throws an error if the passphrase is empty', async () => {
+          try {
+            await dataVault.initialize({ passphrase: '' });
+            expect.fail('Expected an error to be thrown.');
+          } catch (error: any) {
+            expect(error.message).to.include('passphrase is required and cannot be blank');
+          }
+        });
       });
 
       describe('restore()', () => {
@@ -192,12 +273,82 @@ describe('AppDataVault', () => {
           expect(vaultStatus.locked).to.be.false;
         });
 
+        it('should revert to the previous vault contents if conversion of backup data fails', async () => {
+          const backup: AppDataBackup = {
+            data        : 'invalid-backup-data',
+            dateCreated : new Date().toISOString(),
+            size        : 123
+          };
+
+          const passphrase = 'dumbbell-krakatoa-ditty';
+
+          // Initialize the vault.
+          await dataVault.initialize({ passphrase });
+
+          // Mock the initial vault state
+          const previousStatus = await dataStore.get('appDataStatus');
+          const previousContentEncryptionKey = await dataStore.get('contentEncryptionKey');
+          const previousAgentDid = await dataStore.get('agentDid');
+
+          try {
+            await dataVault.restore({ backup, passphrase });
+            expect.fail('Expected an error to be thrown due to backup data conversion failure.');
+          } catch (error: any) {
+            expect(error.message).to.include('invalid backup data or an incorrect passphrase');
+
+            // Verify that the vault contents are unchanged
+            const currentStatus = await dataStore.get('appDataStatus');
+            const currentContentEncryptionKey = await dataStore.get('contentEncryptionKey');
+            const currentAgentDid = await dataStore.get('agentDid');
+
+            expect(currentStatus).to.deep.equal(previousStatus);
+            expect(currentContentEncryptionKey).to.equal(previousContentEncryptionKey);
+            expect(currentAgentDid).to.equal(previousAgentDid);
+          }
+        });
+
         it('throws an error if the vault is not initialized', async () => {
           try {
             await dataVault.backup();
             expect.fail('Expected an error to be thrown.');
           } catch (error: any) {
             expect(error.message).to.include('data vault has not been initialized');
+          }
+        });
+
+        it('should throw an error if the existing vault contents are missing or inaccessible', async () => {
+          const backup: AppDataBackup = {
+            data        : 'a.b.c.d.e',
+            dateCreated : new Date().toISOString(),
+            size        : 123
+          };
+          const passphrase = 'test-passphrase';
+
+          try {
+            dataStore.delete('appDataStatus');
+            await dataVault.restore({ backup, passphrase });
+            expect.fail('Expected an error to be thrown.');
+          } catch (error: any) {
+            expect(error.message).to.include('restore operation cannot proceed');
+            expect(error.message).to.include('vault contents are missing or inaccessible');
+          }
+
+          try {
+            dataStore.delete('agentDid');
+            await dataVault.restore({ backup, passphrase });
+            expect.fail('Expected an error to be thrown.');
+          } catch (error: any) {
+            expect(error.message).to.include('restore operation cannot proceed');
+            expect(error.message).to.include('vault contents are missing or inaccessible');
+          }
+
+          try {
+            dataStore.delete('contentEncryptionKey');
+            await dataVault.restore({ backup, passphrase });
+            expect.fail('Expected an error to be thrown.');
+          } catch (error: any) {
+            expect(error.message).to.include('restore operation cannot proceed');
+            expect(error.message).to.include('vault contents are missing or inaccessible');
           }
         });
       });
@@ -257,15 +408,6 @@ describe('AppDataVault', () => {
           expect(vaultStatus.locked).to.be.false;
         });
 
-        it('throws an error if the vault is not initialized', async () => {
-          try {
-            await dataVault.unlock({ passphrase: 'dumbbell-krakatoa-ditty' });
-            expect.fail('Expected an error to be thrown.');
-          } catch (error: any) {
-            expect(error.message).to.include('vault has not been initialized');
-          }
-        });
-
         it('throws an error if the passphrase is incorrect', async () => {
           // Initialize the vault.
           await dataVault.initialize({ passphrase: 'dumbbell-krakatoa-ditty' });
@@ -275,6 +417,30 @@ describe('AppDataVault', () => {
             expect.fail('Expected an error to be thrown.');
           } catch (error: any) {
             expect(error.message).to.include('incorrect passphrase');
+          }
+        });
+
+        it('throws an error if the vault is not initialized', async () => {
+          try {
+            await dataVault.unlock({ passphrase: 'dumbbell-krakatoa-ditty' });
+            expect.fail('Expected an error to be thrown.');
+          } catch (error: any) {
+            expect(error.message).to.include('vault has not been initialized');
+          }
+        });
+
+        it('throws an error if the content encryption key data is missing', async () => {
+          // Initialize the vault.
+          await dataVault.initialize({ passphrase: 'dumbbell-krakatoa-ditty' });
+
+          // Remove the content encryption key data.
+          await dataStore.delete('contentEncryptionKey');
+
+          try {
+            await dataVault.unlock({ passphrase: 'dumbbell-krakatoa-ditty' });
+            expect.fail('Expected an error to be thrown.');
+          } catch (error: any) {
+            expect(error.message).to.include('Unable to retrieve the Content Encryption Key');
           }
         });
       });
