@@ -5,7 +5,7 @@ import { HDKey } from 'ed25519-keygen/hdkey';
 import { BearerDid, DidDht } from '@web5/dids';
 import { Convert, MemoryStore } from '@web5/common';
 import { wordlist } from '@scure/bip39/wordlists/english';
-import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from '@scure/bip39';
+import { generateMnemonic, mnemonicToSeed, validateMnemonic } from '@scure/bip39';
 
 import type { JweHeaderParams } from './prototyping/crypto/jose/jwe.js';
 import type { AppDataBackup, AppDataStatus, AppDataStore } from './types/app-data.js';
@@ -13,8 +13,8 @@ import type { AppDataBackup, AppDataStatus, AppDataStore } from './types/app-dat
 import { AgentCryptoApi } from './crypto-api.js';
 import { LocalKeyManager } from './local-key-manager.js';
 import { isPortableDid } from './prototyping/dids/utils.js';
-import { CompactJwe } from './prototyping/crypto/jose/jwe.js';
 import { DeterministicKeyGenerator } from './utils-internal.js';
+import { CompactJwe } from './prototyping/crypto/jose/jwe-compact.js';
 
 /**
  * An extension of the AppDataStore interface which secures the contents of the store.
@@ -66,21 +66,84 @@ function isEmptyPassphrase(obj: unknown): obj is string {
   return typeof obj !== 'string' || obj.trim().length === 0;
 }
 
+/**
+ * The `AppDataVault` class provides secure storage and management of application data. It extends
+ * the {@link SecureAppDataStore} interface, offering advanced features like backup, passphrase
+ * change, and encryption of sensitive data using a content encryption key (CEK). The class supports
+ * initializing the vault with a passphrase and an optional mnemonic for key generation, managing
+ * the vault status, and performing secure backups and restores.
+ *
+ * Key functionalities include:
+ * - Initializing the vault with secure passphrase and optional mnemonic.
+ * - Changing the passphrase used for encrypting the vault's content.
+ * - Backing up the vault's encrypted content securely.
+ * - Restoring the vault from a backup with a passphrase.
+ * - Locking and unlocking the vault to secure its contents.
+ * - Retrieving the DID associated with the vault for identity management.
+ *
+ * The vault ensures the confidentiality and integrity of the app data by encrypting it with a
+ * derived content encryption key (CEK) before storage. The CEK is further secured using a
+ * passphrase-based encryption mechanism, making the vault's contents accessible only to users with
+ * the correct passphrase.
+ *
+ * Usage involves initializing the vault with a passphrase, which then allows for storing and
+ * retrieving data securely, as well as backing up and restoring the encrypted data.
+ *
+ * Note: Ensure the passphrase is strong and securely managed, as it is crucial for the security of the
+ * vault's encrypted contents.
+ *
+ * @example
+ * ```ts
+ * const vault = new AppDataVault();
+ * await vault.initialize({ passphrase: 'securepassphrase', mnemonic: 'optional mnemonic' });
+ * const backup = await vault.backup();
+ * await vault.restore({ backup, passphrase: 'securepassphrase' });
+ * ```
+ */
 export class AppDataVault implements SecureAppDataStore {
+  /** Provides cryptographic functions needed for secure storage and management of the vault. */
   public crypto = new AgentCryptoApi();
 
+  /** Determines the computational intensity of the key derivation process. */
   private _keyDerivationWorkFactor: number;
+
+  /** The underlying key-value store for the vault's encrypted content. */
   private _store: KeyValueStore<string, string>;
+
+  /** The cryptographic key used to encrypt and decrypt the vault's content securely. */
   private _contentEncryptionKey: Jwk | undefined;
 
+  /**
+   * Constructs an instance of `AppDataVault`, initializing the key derivation factor and data store.
+   * It sets the default key derivation work factor and initializes the internal data store, either
+   * with the provided store or a default in-memory store. It also establishes the initial status
+   * of the vault as uninitialized and locked.
+   *
+   * @param params - Optional parameters when constructing a vault instance.
+   * @param params.keyDerivationWorkFactor - Optionally set the computational effort for key derivation.
+   * @param params.store - Optionally specify a custom key-value store for vault data.
+   */
   constructor({ keyDerivationWorkFactor, store }: AppDataVaultParams = {}) {
     this._keyDerivationWorkFactor = keyDerivationWorkFactor ?? 210_000;
     this._store = store ?? new MemoryStore<string, string>();
 
-    // Set the initial status of the vault.
-    this.setStatus({ initialized: false });
+    // Set the initial status of the vault to uninitialized and locked.
+    this.setStatus({ initialized: false, locked: true });
   }
 
+  /**
+   * Creates a backup of the vault's current state, including the encrypted Agent DID and content
+   * encryption key, and returns it as an `AppDataBackup` object. The backup includes a
+   * Base64Url-encoded string representing the vault's encrypted data, encapsulating the Agent's
+   * DID, the content encryption key, and the vault's status.
+   *
+   * This method ensures that the vault is initialized and unlocked before proceeding with the
+   * backup operation.
+   *
+   * @throws Error if the vault is not initialized or is locked, preventing the backup.
+   * @returns A promise that resolves to the `AppDataBackup` object containing the vault's encrypted
+   *          backup data.
+   */
   public async backup(): Promise<AppDataBackup> {
     // Verify the data vault has already been initialized and unlocked.
     const { initialized, locked } = await this.getStatus();
@@ -113,6 +176,19 @@ export class AppDataVault implements SecureAppDataStore {
     return backup;
   }
 
+  /**
+   * Changes the passphrase used to secure the vault.
+   *
+   * This method decrypts the existing content encryption key (CEK) with the old passphrase, then
+   * re-encrypts it with the new passphrase, updating the vault's stored encrypted CEK. It ensures
+   * that the vault is initialized and unlocks the vault if the passphrase is successfully changed.
+   *
+   * @param params - Parameters required for changing the vault passphrase.
+   * @param params.oldPassphrase - The current passphrase used to unlock the vault.
+   * @param params.newPassphrase - The new passphrase to replace the existing one.
+   * @throws Error if the vault is not initialized or the old passphrase is incorrect.
+   * @returns A promise that resolves when the passphrase change is complete.
+   */
   public async changePassphrase({ oldPassphrase, newPassphrase }: {
     oldPassphrase: string;
     newPassphrase: string;
@@ -171,6 +247,16 @@ export class AppDataVault implements SecureAppDataStore {
     await this.setStatus({ locked: false });
   }
 
+  /**
+   * Retrieves the DID (Decentralized Identifier) of the Agent from the vault.
+   *
+   * This method ensures the vault is initialized and unlocked before decrypting and returning the
+   * Agent's DID. The DID is stored encrypted and  is decrypted using the vault's content encryption
+   * key.
+   *
+   * @throws Error if the vault is not initialized, is locked, or the Agent's DID cannot be decrypted.
+   * @returns A promise that resolves with the {@link BearerDid} of the Agent.
+   */
   public async getAgentDid(): Promise<BearerDid> {
     // Verify the data vault has been initialized and is unlocked.
     const { initialized, locked } = await this.getStatus();
@@ -199,6 +285,13 @@ export class AppDataVault implements SecureAppDataStore {
     return await BearerDid.import({ portableDid });
   }
 
+  /**
+   * Fetches the current status of the `AppDataVault`, providing details on whether it's
+   * initialized, locked, and the timestamps of the last backup and restore operations.
+   *
+   * @returns A promise that resolves with the current status of the `AppDataVault`, detailing its
+   *          initialization, lock state, and the timestamps of the last backup and restore.
+   */
   public async getStatus(): Promise<AppDataStatus> {
     const storedStatus = await this._store.get('appDataStatus');
 
@@ -221,6 +314,29 @@ export class AppDataVault implements SecureAppDataStore {
     return appDataStatus;
   }
 
+  /**
+   * Initializes the `AppDataVault` with a passphrase and an optional mnemonic.
+   *
+   * If a mnemonic is not provided, a new one is generated. This process sets up the vault, deriving
+   * the necessary cryptographic keys and preparing the vault for use. It ensures the vault is ready
+   * to securely store and manage app data.
+   *
+   * @example
+   * ```ts
+   * const appDataVault = new AppDataVault();
+   * const mnemonic = await appDataVault.initialize({
+   *   passphrase: 'your-secure-passphrase'
+   * });
+   * console.log('Vault initialized. Mnemonic:', mnemonic);
+   * ```
+   *
+   * @param params - The initialization parameters.
+   * @param params.passphrase - The passphrase used to secure the vault.
+   * @param params.mnemonic - An optional mnemonic for key derivation. If omitted, a new mnemonic is
+   *                          generated.
+   * @returns A promise that resolves with the mnemonic used during the initialization, which should
+   *          be securely stored by the user.
+   */
   public async initialize({ mnemonic, passphrase }: AppDataVaultInitializeParams): Promise<string> {
     /**
      * STEP 0: Validate the input parameters and verify the data vault is not already initialized.
@@ -254,18 +370,18 @@ export class AppDataVault implements SecureAppDataStore {
     }
 
     // Derive a root seed from the mnemonic.
-    const rootSeed = mnemonicToSeedSync(mnemonic);
+    const rootSeed = await mnemonicToSeed(mnemonic);
 
     // Derive a root key for the Agent DID from the root seed.
     const rootHdKey = HDKey.fromMasterSeed(rootSeed);
 
     /**
      * STEP 2: Derive the Agent's vault key, which serves as input keying material for:
-     * - deriving the salt for that is used to derive the Vault Unlock Key (VUK)
      * - deriving the vault content encryption key (CEK)
+     * - deriving the salt that serves as input to derive the key that encrypts the vault CEK
      */
 
-    // Derive the Agent's vault key from the root key.
+    // Derive the Agent's vault key pair from the root key.
     // Note: The Agent's vault key is derived using account 0 and index 0 so that it can be
     //       deterministically re-derived.
     const vaultHdKey = rootHdKey.derive(`m/44'/0'/0'/0'/0'`);
@@ -287,7 +403,7 @@ export class AppDataVault implements SecureAppDataStore {
 
     /**
      * STEP 4: Using the given `passphrase` and a `salt` derived from the Agent's vault public key,
-     * encrypt the Agent's vault CEK and store it in the data store.
+     * encrypt the Agent's vault CEK and store it in the data store as a compact JWE.
      */
 
     // A non-secret static info value is combined with the Agent's vault public key as input to
@@ -295,7 +411,7 @@ export class AppDataVault implements SecureAppDataStore {
     const saltInput = await this.crypto.deriveKeyBytes({
       algorithm    : 'HKDF-512',           // key derivation function
       baseKeyBytes : vaultHdKey.publicKey, // input keying material
-      salt         : '',                   // empty salt because private key is sufficiently random
+      salt         : '',                   // empty salt because public key is sufficiently random
       info         : 'vault_unlock_salt',  // non-secret application specific information
       length       : 256,                  // derived key length, in bits
     });
@@ -355,7 +471,9 @@ export class AppDataVault implements SecureAppDataStore {
     // Add the Agent's identity and signing keys to the deterministic key generator so that when the
     // Agent DID is created it will use the derived keys.
     const deterministicKeyGenerator = new DeterministicKeyGenerator();
-    await deterministicKeyGenerator.addPredefinedKeys({ privateKeys: [ identityPrivateKey, signingPrivateKey] });
+    await deterministicKeyGenerator.addPredefinedKeys({
+      privateKeys: [ identityPrivateKey, signingPrivateKey]
+    });
 
     // Create the Agent's DID using the derived identity, signing, and encryption keys.
     const agentDid = await DidDht.create({
@@ -382,6 +500,9 @@ export class AppDataVault implements SecureAppDataStore {
      * compact JWE.
      */
 
+    // Convert the Agent's DID to a portable format.
+    const portableDid = await agentDid.export();
+
     // Construct the JWE header.
     const agentDidJweProtectedHeader: JweHeaderParams = {
       alg : 'dir',
@@ -389,9 +510,7 @@ export class AppDataVault implements SecureAppDataStore {
       cty : 'json'
     };
 
-    // Convert the Agent's DID to a portable format.
-    const portableDid = await agentDid.export();
-
+    // Encrypt the Agent's DID to compact JWE format.
     const agentDidJwe = await CompactJwe.encrypt({
       key             : contentEncryptionKey,
       plaintext       : Convert.object(portableDid).toUint8Array(),
@@ -405,7 +524,7 @@ export class AppDataVault implements SecureAppDataStore {
 
     /**
      * STEP 7: Set the vault to initialized and unlocked and return the mnemonic used to generate
-     * the Agent's vault CEK and DID.
+     * the Agent's vault key.
      */
 
     this._contentEncryptionKey = contentEncryptionKey;
@@ -417,6 +536,22 @@ export class AppDataVault implements SecureAppDataStore {
     return mnemonic;
   }
 
+  /**
+   * Locks the `AppDataVault`, securing its contents by clearing the in-memory encryption key.
+   *
+   * This method ensures that the vault's sensitive data cannot be accessed without unlocking the
+   * vault again with the correct passphrase. It's an essential security feature for safeguarding
+   * the vault's contents against unauthorized access.
+   *
+   * @example
+   * ```ts
+   * const appDataVault = new AppDataVault();
+   * await appDataVault.lock();
+   * console.log('Vault is now locked.');
+   * ```
+   * @throws An error if the data vault has not been initialized.
+   * @returns A promise that resolves when the vault is successfully locked.
+   */
   public async lock(): Promise<void> {
     // Verify the data vault has already been initialized.
     const { initialized } = await this.getStatus();
@@ -432,6 +567,30 @@ export class AppDataVault implements SecureAppDataStore {
     await this.setStatus({ initialized: true, locked: true });
   }
 
+  /**
+   * Restores the vault's data from a backup object, decrypting and reinitializing the vault's
+   * content with the provided backup data.
+   *
+   * This operation is crucial for data recovery scenarios, allowing users to regain access to their
+   * encrypted data using a previously saved backup and their passphrase.
+   *
+   * @example
+   * ```ts
+   * const appDataVault = new AppDataVault();
+   * await appDataVault.initialize({ passphrase: 'your-secure-passphrase' });
+   * // Create a backup of the vault's contents.
+   * const backup = await appDataVault.backup();
+   * // Restore the vault with the same passphrase.
+   * await appDataVault.restore({ backup: backup, passphrase: 'your-secure-passphrase' });
+   * console.log('Vault restored successfully.');
+   * ```
+   *
+   * @param params - The parameters required for the restore operation.
+   * @param params.backup - The backup object containing the encrypted vault data.
+   * @param params.passphrase - The passphrase used to encrypt the backup, necessary for decryption.
+   * @returns A promise that resolves when the vault has been successfully restored.
+   * @throws An error if the backup object is invalid or if the passphrase is incorrect.
+   */
   public async restore({ backup, passphrase }: {
     backup: AppDataBackup;
     passphrase: string;
@@ -489,6 +648,30 @@ export class AppDataVault implements SecureAppDataStore {
     });
   }
 
+  /**
+   * Unlocks the vault by decrypting the stored content encryption key (CEK) using the provided
+   * passphrase.
+   *
+   * This method is essential for accessing the vault's encrypted contents, enabling the decryption
+   * of stored data and the execution of further operations requiring the vault to be unlocked.
+   *
+   * @example
+   * ```ts
+   * const appDataVault = new AppDataVault();
+   * await appDataVault.initialize({ passphrase: 'your-initial-passphrase' });
+   * // Unlock the vault with the correct passphrase before accessing its contents
+   * await appDataVault.unlock({ passphrase: 'your-initial-passphrase' });
+   * console.log('Vault unlocked successfully.');
+   * ```
+   *
+   *
+   * @param params - The parameters required for the unlock operation.
+   * @param params.passphrase - The passphrase used to encrypt the vault's CEK, necessary for
+   *                            decryption.
+   * @returns A promise that resolves when the vault has been successfully unlocked.
+   * @throws An error if the vault has not been initialized or if the provided passphrase is
+   *         incorrect.
+   */
   public async unlock({ passphrase }: { passphrase: string }): Promise<void> {
     // Verify the data vault has already been initialized.
     const { initialized } = await this.getStatus();
@@ -525,6 +708,17 @@ export class AppDataVault implements SecureAppDataStore {
     await this.setStatus({ locked: false });
   }
 
+  /**
+   * Retrieves the Agent's Decentralized Identifier (DID) stored in the vault.
+   *
+   * This DID is encrypted in compact JWE format and needs to be decrypted after the vault is
+   * unlocked. The method is intended to be used internally within the AppDataVault class to access
+   * the encrypted Agent DID.
+   *
+   * @returns A promise that resolves to the encrypted Agent DID stored in the vault as a compact
+   *          JWE.
+   * @throws Will throw an error if the Agent DID cannot be retrieved from the vault.
+   */
   private async getStoredAgentDid(): Promise<string> {
     // Retrieve the Agent's DID record as a compact JWE from the data store.
     const agentDidJwe = await this._store.get('agentDid');
@@ -540,6 +734,17 @@ export class AppDataVault implements SecureAppDataStore {
     return agentDidJwe;
   }
 
+  /**
+   * Retrieves the encrypted Content Encryption Key (CEK) from the vault's storage.
+   *
+   * This CEK is used for encrypting and decrypting the vault's contents. It is stored as a
+   * compact JWE and should be decrypted with the user's passphrase to be used for further
+   * cryptographic operations.
+   *
+   * @returns A promise that resolves to the stored CEK as a string in compact JWE format.
+   * @throws Will throw an error if the CEK cannot be retrieved, indicating potential issues with
+   *         the vault's integrity or state.
+   */
   private async getStoredContentEncryptionKey(): Promise<string> {
     // Retrieve the content encryption key (CEK) record as a compact JWE from the data store.
     const cekJwe = await this._store.get('contentEncryptionKey');
@@ -555,6 +760,20 @@ export class AppDataVault implements SecureAppDataStore {
     return cekJwe;
   }
 
+  /**
+   * Updates the status of the `AppDataVault`, reflecting changes in its initialization, lock state,
+   * and the timestamps of the last backup and restore operations.
+   *
+   * This method directly manipulates the internal state stored in the vault's key-value store.
+   *
+   * @param params - The status properties to be updated.
+   * @param params.initialized - Updates the initialization state of the vault.
+   * @param params.locked - Updates the locked state of the vault.
+   * @param params.lastBackup - Updates the timestamp of the last successful backup.
+   * @param params.lastRestore - Updates the timestamp of the last successful restore.
+   * @returns A promise that resolves to a boolean indicating successful status update.
+   * @throws Will throw an error if the status cannot be updated in the key-value store.
+   */
   private async setStatus({ initialized, locked, lastBackup, lastRestore }: Partial<AppDataStatus>): Promise<boolean> {
     // Get the current status values from the store, if any.
     let appDataStatus = await this.getStatus();
