@@ -33,8 +33,7 @@ jobs:
         uses: cashapp/activate-hermit@v1
 
       - name: Install dependencies
-        run: |
-          pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build all workspace packages
         run: pnpm --recursive --stream build
