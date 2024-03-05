@@ -13,6 +13,11 @@ import { HttpDwnRpcClient } from '../../../src/prototyping/clients/http-clients.
 import { JsonRpcSocket } from '../../../src/prototyping/clients/json-rpc-socket.js';
 import { JsonRpcErrorCodes, createJsonRpcErrorResponse } from '../../../src/prototyping/clients/json-rpc.js';
 
+/** helper method to sleep while waiting for events to process/arrive */
+async function sleepWhileWaitingForEvents(override?: number):Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, override || 10));
+}
+
 chai.use(chaiAsPromised);
 
 describe('WebSocketDwnRpcClient', () => {
@@ -211,7 +216,7 @@ describe('WebSocketDwnRpcClient', () => {
       expect(updateReply.status.code).to.equal(202);
 
       // wait for events to emit
-      await new Promise((resolve) => setTimeout(resolve, 5));
+      await sleepWhileWaitingForEvents();
       await subscribeResponse.subscription!.close();
 
       expect(dataCids).to.have.members([

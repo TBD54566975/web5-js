@@ -9,6 +9,10 @@ import { JsonRpcErrorCodes, JsonRpcResponse, createJsonRpcErrorResponse, createJ
 import { testDwnUrl } from '../../utils/test-config.js';
 import { Persona, TestDataGenerator } from '@tbd54566975/dwn-sdk-js';
 
+/** helper method to sleep while waiting for events to process/arrive */
+async function sleepWhileWaitingForEvents(override?: number):Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, override || 10));
+}
 
 chai.use(chaiAsPromised);
 
@@ -82,8 +86,7 @@ describe('JsonRpcSocket', () => {
 
   it('opens a subscription', async () => {
 
-    const client = await JsonRpcSocket.connect(socketDwnUrl, { responseTimeout: 5 });
-
+    const client = await JsonRpcSocket.connect(socketDwnUrl);
     const { message } = await TestDataGenerator.generateRecordsSubscribe({ author: alice });
 
     const requestId = cryptoUtils.randomUuid();
@@ -100,7 +103,7 @@ describe('JsonRpcSocket', () => {
     const subscription = await client.subscribe(request, responseListener);
     expect(subscription.response.error).to.be.undefined;
     // wait for the messages to arrive
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await sleepWhileWaitingForEvents();
     // the original response
     if (subscription.close) {
       await subscription.close();
@@ -130,7 +133,7 @@ describe('JsonRpcSocket', () => {
     const client = await JsonRpcSocket.connect(socketDwnUrl, { onclose: onCloseHandler.onclose });
     client.close();
 
-    await new Promise((resolve) => setTimeout(resolve, 5)); // wait for close event to arrive
+    await sleepWhileWaitingForEvents();
     expect(onCloseSpy.callCount).to.equal(1);
 
     // test default logger
@@ -138,7 +141,7 @@ describe('JsonRpcSocket', () => {
     const defaultClient = await JsonRpcSocket.connect(socketDwnUrl);
     defaultClient.close();
 
-    await new Promise((resolve) => setTimeout(resolve, 5)); // wait for close event to arrive
+    await sleepWhileWaitingForEvents();
     expect(logInfoSpy.callCount).to.equal(1);
 
     // extract log message from argument
@@ -166,7 +169,7 @@ describe('JsonRpcSocket', () => {
         const client = await JsonRpcSocket.connect(socketDwnUrl, { onerror: onErrorHandler.onerror });
         client['socket'].emit('error', 'some error');
 
-        await new Promise((resolve) => setTimeout(resolve, 5)); // wait for close event to arrive
+        await sleepWhileWaitingForEvents();
         expect(onErrorSpy.callCount).to.equal(1, 'error');
 
         // test default logger
@@ -174,7 +177,7 @@ describe('JsonRpcSocket', () => {
         const defaultClient = await JsonRpcSocket.connect(socketDwnUrl);
         defaultClient['socket'].emit('error', 'some error');
 
-        await new Promise((resolve) => setTimeout(resolve, 5)); // wait for close event to arrive
+        await sleepWhileWaitingForEvents();
         expect(logInfoSpy.callCount).to.equal(1, 'log');
 
         // extract log message from argument
@@ -184,7 +187,7 @@ describe('JsonRpcSocket', () => {
 
       it('closes subscription upon receiving a JsonRpc Error for a long running subscription', async () => {
 
-        const client = await JsonRpcSocket.connect(socketDwnUrl, { responseTimeout: 5 });
+        const client = await JsonRpcSocket.connect(socketDwnUrl);
         const { message } = await TestDataGenerator.generateRecordsSubscribe({ author: alice });
 
         const requestId = cryptoUtils.randomUuid();
@@ -221,7 +224,7 @@ describe('JsonRpcSocket', () => {
         const errorResponse = createJsonRpcErrorResponse(subscriptionId, JsonRpcErrorCodes.InternalError, 'message');
         client['socket'].emit('message', JSON.stringify(errorResponse));
 
-        await new Promise((resolve) => setTimeout(resolve, 5));
+        await sleepWhileWaitingForEvents();
         // the original response
         expect(responseCounter).to.equal(1, 'response');
         expect(errorCounter).to.equal(1, 'error');
