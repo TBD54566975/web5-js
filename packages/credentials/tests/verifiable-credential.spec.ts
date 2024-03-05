@@ -7,7 +7,7 @@ import { DidDht, DidKey, DidIon, DidJwk } from '@web5/dids';
 import { Jwt } from '../src/jwt.js';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import CredentialsVerifyTestVector from '../../../web5-spec/test-vectors/credentials/verify.json' assert { type: 'json' };
-import { getCurrentXmlSchema112Timestamp } from '../src/utils.js';
+import { getCurrentXmlSchema112Timestamp, getXmlSchema112Timestamp } from '../src/utils.js';
 
 describe('Verifiable Credential Tests', async() => {
   let issuerDid: BearerDid;
@@ -88,6 +88,32 @@ describe('Verifiable Credential Tests', async() => {
         expect(currentVc.type).to.equal('TBDeveloperCredential');
         expect(currentVc.vcDataModel.issuanceDate).to.not.be.undefined;
         expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: did.uri, username: 'nitro'});
+      }
+    });
+
+    it('create and sign kyc vc with did:jwk', async () => {
+      const did = await DidJwk.create();
+
+      const vc = await VerifiableCredential.create({
+        type           : 'KnowYourCustomerCred',
+        subject        : did.uri,
+        issuer         : did.uri,
+        expirationDate : getXmlSchema112Timestamp(2687920690), // 2055-03-05
+        data           : {
+          country: 'us'
+        }
+      });
+
+      const vcJwt = await vc.sign({ did });
+
+      await VerifiableCredential.verify({ vcJwt });
+
+      for( const currentVc of [vc, VerifiableCredential.parseJwt({ vcJwt })]){
+        expect(currentVc.issuer).to.equal(did.uri);
+        expect(currentVc.subject).to.equal(did.uri);
+        expect(currentVc.type).to.equal('KnowYourCustomerCred');
+        expect(currentVc.vcDataModel.issuanceDate).to.not.be.undefined;
+        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: did.uri, country: 'us'});
       }
     });
 

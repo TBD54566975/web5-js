@@ -25,7 +25,7 @@ export function getCurrentXmlSchema112Timestamp(): string {
  * timestamps for verifiable credentials and other applications requiring precision to the second
  * without the need for millisecond granularity.
  *
- * @param nbf The UNIX timestamp to convert, measured in seconds.
+ * @param timestampInSeconds The UNIX timestamp to convert, measured in seconds.
  * @example
  * ```ts
  * const issuanceDate = getXmlSchema112Timestamp(1633036800); // "2021-10-01T00:00:00Z"
@@ -33,14 +33,11 @@ export function getCurrentXmlSchema112Timestamp(): string {
  *
  * @returns A date-time string in the format "yyyy-MM-ddTHH:mm:ssZ", compliant with XML Schema 1.1.2, based on the provided UNIX timestamp.
  */
-export function getXmlSchema112Timestamp(nbf: number): string {
-  // Convert nbf from seconds to milliseconds and create a new Date object
-  const date = new Date(nbf * 1000);
+export function getXmlSchema112Timestamp(timestampInSeconds: number): string {
+  const date = new Date(timestampInSeconds * 1000);
 
   // Format the date to an ISO string and then remove milliseconds
-  const issuanceDate = date.toISOString().replace(/\.\d{3}/, '');
-
-  return issuanceDate;
+  return date.toISOString().replace(/\.\d{3}/, '');
 }
 
 /**
