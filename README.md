@@ -65,6 +65,13 @@ We recommend this config which will only checkout the files relevant to web5-js
 git -C web5-spec sparse-checkout set test-vectors
 ```
 
+### Hermit
+This project uses hermit to manage tooling like node. See [this page](https://cashapp.github.io/hermit/usage/get-started/) to set up Hermit on your machine - make sure to download the open source build and activate it for the project
+
+Currently, we have these packages installed via Hermit (can also view by checking out `hermit status`):
+- node 
+- pnpm
+
 ## Installation
 
 _NPM_
