@@ -10,7 +10,7 @@ import type { Web5PlatformAgent } from '../src/types/agent.js';
 import { LocalKeyManager } from '../src/local-key-manager.js';
 import { CryptoErrorCode } from '../src/prototyping/crypto/crypto-error.js';
 import { TestAgent } from './utils/test-agent.js';
-import { ManagedAgentTestHarness } from '../src/test-harness.js';
+import { PlatformAgentTestHarness } from '../src/test-harness.js';
 
 describe('LocalKeyManager', () => {
   describe('get agent', () => {
@@ -38,10 +38,10 @@ describe('LocalKeyManager', () => {
   agentStoreTypes.forEach((agentStoreType) => {
 
     describe(`with ${agentStoreType} key store`, () => {
-      let testHarness: ManagedAgentTestHarness;
+      let testHarness: PlatformAgentTestHarness;
 
       before(async () => {
-        testHarness = await ManagedAgentTestHarness.setup({
+        testHarness = await PlatformAgentTestHarness.setup({
           agentClass  : TestAgent,
           agentStores : agentStoreType
         });

@@ -1,6 +1,7 @@
 import type { Dwn } from '@tbd54566975/dwn-sdk-js';
 
 import { expect } from 'chai';
+import { DidDht } from '@web5/dids';
 import { Convert } from '@web5/common';
 
 import type { PortableIdentity } from '../src/types/identity.js';
@@ -10,7 +11,7 @@ import { TestAgent } from './utils/test-agent.js';
 import { testDwnUrl } from './utils/test-config.js';
 import { DwnInterface } from '../src/types/dwn.js';
 import { BearerIdentity } from '../src/bearer-identity.js';
-import { ManagedAgentTestHarness } from '../src/test-harness.js';
+import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
 
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
@@ -22,10 +23,10 @@ if (!globalThis.crypto) globalThis.crypto = webcrypto;
 let testDwnUrls: string[] = [testDwnUrl];
 
 describe('AgentDwnApi', () => {
-  let testHarness: ManagedAgentTestHarness;
+  let testHarness: PlatformAgentTestHarness;
 
   before(async () => {
-    testHarness = await ManagedAgentTestHarness.setup({
+    testHarness = await PlatformAgentTestHarness.setup({
       agentClass  : TestAgent,
       agentStores : 'dwn'
     });
@@ -645,6 +646,10 @@ describe('AgentDwnApi', () => {
       alice = await testHarness.agent.identity.import({
         portableIdentity: testPortableIdentity
       });
+
+      // Ensure the DID is published to the DHT. This step is necessary while the DHT Gateways
+      // operated by TBD are regularly restarted and DIDs are no longer persisted.
+      await DidDht.publish({ did: alice.did });
     });
 
     after(async () => {
@@ -712,7 +717,7 @@ describe('AgentDwnApi', () => {
       expect(eventsQueryReply).to.have.property('status');
       expect(eventsQueryReply.status.code).to.equal(200);
       expect(eventsQueryReply.entries).to.have.length(0);
-    }).timeout(10000);
+    });
 
     it('handles MessagesGet', async () => {
       // Create test data to write.

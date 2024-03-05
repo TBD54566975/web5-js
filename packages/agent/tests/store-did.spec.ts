@@ -7,14 +7,14 @@ import type { AgentDataStore } from '../src/store-data.js';
 import { AgentDidApi } from '../src/did-api.js';
 import { TestAgent } from './utils/test-agent.js';
 import { DwnInterface } from '../src/types/dwn.js';
-import { ManagedAgentTestHarness } from '../src/test-harness.js';
+import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { DwnDidStore, InMemoryDidStore } from '../src/store-did.js';
 
 describe('DidStore', () => {
-  let testHarness: ManagedAgentTestHarness;
+  let testHarness: PlatformAgentTestHarness;
 
   before(async () => {
-    testHarness = await ManagedAgentTestHarness.setup({
+    testHarness = await PlatformAgentTestHarness.setup({
       agentClass  : TestAgent,
       agentStores : 'memory'
     });
