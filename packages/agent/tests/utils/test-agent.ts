@@ -11,6 +11,7 @@ import type {
 } from '../../src/types/dwn.js';
 
 import type { Web5Rpc } from '../../src/rpc-client.js';
+import type { HdIdentityVault } from '../../src/hd-identity-vault.js';
 
 import { AgentDwnApi } from '../../src/dwn-api.js';
 import { AgentSyncApi } from '../../src/sync-api.js';
@@ -20,6 +21,7 @@ import { AgentDidApi, DidInterface } from '../../src/did-api.js';
 import { LocalKeyManager } from '../../src/local-key-manager.js';
 
 type TestAgentOptions = {
+  agentVault: HdIdentityVault;
   cryptoApi: AgentCryptoApi;
   didApi: AgentDidApi;
   dwnApi: AgentDwnApi;
@@ -37,6 +39,7 @@ export class TestAgent implements Web5PlatformAgent {
   public keyManager: LocalKeyManager;
   public rpc: Web5Rpc;
   public sync: AgentSyncApi;
+  public vault: HdIdentityVault;
 
   private _agentDid?: BearerDid;
 
@@ -48,6 +51,7 @@ export class TestAgent implements Web5PlatformAgent {
     this.keyManager = params.keyManager;
     this.rpc = params.rpcClient;
     this.sync = params.syncApi;
+    this.vault = params.agentVault;
 
     // Set this agent to be the default agent.
     this.did.agent = this;

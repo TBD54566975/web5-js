@@ -8,14 +8,14 @@ import type { AgentDataStore } from '../src/store-data.js';
 import { TestAgent } from './utils/test-agent.js';
 import { DwnInterface } from '../src/types/dwn.js';
 import { LocalKeyManager } from '../src/local-key-manager.js';
-import { ManagedAgentTestHarness } from '../src/test-harness.js';
+import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { DwnKeyStore, InMemoryKeyStore } from '../src/store-key.js';
 
 describe('KeyStore', () => {
-  let testHarness: ManagedAgentTestHarness;
+  let testHarness: PlatformAgentTestHarness;
 
   before(async () => {
-    testHarness = await ManagedAgentTestHarness.setup({
+    testHarness = await PlatformAgentTestHarness.setup({
       agentClass  : TestAgent,
       agentStores : 'memory'
     });

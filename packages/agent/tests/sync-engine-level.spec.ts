@@ -9,15 +9,15 @@ import { DwnInterface } from '../src/types/dwn.js';
 import { testDwnUrl } from './utils/test-config.js';
 import { BearerIdentity } from '../src/bearer-identity.js';
 import { SyncEngineLevel } from '../src/sync-engine-level.js';
-import { ManagedAgentTestHarness } from '../src/test-harness.js';
+import { PlatformAgentTestHarness } from '../src/test-harness.js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
 describe('SyncEngineLevel', () => {
-  let testHarness: ManagedAgentTestHarness;
+  let testHarness: PlatformAgentTestHarness;
 
   before(async () => {
-    testHarness = await ManagedAgentTestHarness.setup({
+    testHarness = await PlatformAgentTestHarness.setup({
       agentClass  : TestAgent,
       agentStores : 'dwn'
     });

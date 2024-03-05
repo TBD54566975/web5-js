@@ -59,7 +59,7 @@ describe('CompactJwe', () => {
   });
 
   describe('encrypt()', () => {
-    it('encrypts and returns a JWE given an encryption JWK', async () => {
+    it('encrypts and returns a Compact JWE given an encryption JWK', async () => {
       const key: Jwk = {
         kty : 'oct',
         k   : 'x_6M0CwMITqmj0a-u1EggAmolpXWty6UxwlfWVtWgFs',
@@ -79,7 +79,7 @@ describe('CompactJwe', () => {
       expect(jwe.split('.')).to.have.length(5);
     });
 
-    it('encrypts and returns a JWE given an encryption Key URI', async () => {
+    it('encrypts and returns a Compact JWE given an encryption Key URI', async () => {
       const testKey: Jwk = {
         kty : 'oct',
         k   : 'x_6M0CwMITqmj0a-u1EggAmolpXWty6UxwlfWVtWgFs',

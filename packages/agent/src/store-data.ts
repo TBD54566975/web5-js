@@ -42,7 +42,6 @@ export interface AgentDataStore<TStoreObject> {
   set(params: DataStoreSetParams<TStoreObject>): Promise<void>;
 }
 
-
 export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implements AgentDataStore<TStoreObject> {
   protected name = 'DwnDataStore';
 

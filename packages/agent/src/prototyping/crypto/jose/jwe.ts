@@ -7,27 +7,43 @@ import type { KeyManager } from '../types/key-manager.js';
 
 import { CryptoError, CryptoErrorCode } from '../crypto-error.js';
 
+/**
+ * Specifies options for decrypting a JWE, allowing the caller to define constraints on the JWE
+ * decryption process, particularly regarding the algorithms used.
+ *
+ * These options ensure that only expected and permitted algorithms are utilized during the
+ * decryption, enhancing security by preventing unexpected algorithm usage.
+ */
 export interface JweDecryptOptions {
   /**
-   * Optionally specify the permitted JWE "alg" (Algorithm) Header Parameter values. By default, all
-   * values are allowed.
+   * The allowed "alg" (Algorithm) Header Parameter values.
    *
-   * The "alg" Header Parameter specifies the cryptographic algorithm used to encrypt the Content
-   * Encryption Key (CEK), producing the JWE Encrypted Key, or to use key agreement to agree upon
-   * the CEK.
+   * These values specify the cryptographic algorithms that are permissible for decrypting
+   * the Content Encryption Key (CEK) or for key agreement to determine the CEK.
+   *
+   * Note: If not specified, all algorithm values are considered allowed, which might not be
+   * desirable in all contexts.
    */
   allowedAlgValues?: string[];
 
   /**
-   * Optionally specify the permitted JWE "enc" (Encryption) Header Parameter values. By default,
-   * all values are allowed.
+   * The allowed "enc" (Encryption) Header Parameter values.
    *
-   * The "enc" Header Parameter is specifies the cryptographic algorithm used to encrypt and
-   * integrity-protect the plaintext and to integrity-protect the Additional Authenticated Data.
+   * These values determine the cryptographic algorithms that can be used for decrypting the
+   * ciphertext and protecting the integrity of the plaintext and Additional Authenticated Data.
+   *
+   * Note: If left unspecified, it implies that all encryption algorithms are acceptable, which may
+   * not be secure in every scenario.
+   *
    */
   allowedEncValues?: string[];
 }
 
+/**
+ * Placeholder for specifying options during the JWE encryption process. Currently, this interface
+ * does not define any specific options but can be extended in the future to include parameters
+ * that control various aspects of the JWE encryption workflow.
+ */
 export interface JweEncryptOptions {}
 
 /**
@@ -117,7 +133,7 @@ export interface JweHeaderParams extends JoseHeaderParams {
    *
    * Indicates that extensions to JOSE RFCs are being used that MUST be understood and processed.
    */
-  crit?: string[]
+  crit?: string[];
 
   /**
    * Encryption Algorithm Header Parameter
@@ -222,26 +238,198 @@ export interface JweHeaderParams extends JoseHeaderParams {
   /**
    * Additional Public or Private Header Parameter names.
    */
-  [key: string]: unknown
+  [key: string]: unknown;
 }
 
+/**
+ * Represents the result of the JWE key management encryption process, encapsulating the Content
+ * Encryption Key (CEK) and optionally the encrypted CEK.
+ */
+export interface JweKeyManagementEncryptResult {
+  /**
+   * The Content Encryption Key (CEK) used for encrypting the JWE payload. It can be a Key
+   * Identifier such as a KMS URI or a JSON Web Key (JWK).
+   */
+  cek: KeyIdentifier | Jwk;
+
+  /**
+   * The encrypted version of the CEK, provided as a byte array. The encrypted version of the CEK
+   * is returned for all key management modes other than "dir" (Direct Encryption Mode).
+   */
+  encryptedKey?: Uint8Array;
+}
+
+/**
+ * Defines the parameters required to decrypt a JWE encrypted key, including the key management
+ * details.
+ *
+ * @typeParam TKeyManager - The Key Manager used to manage cryptographic keys.
+ * @typeParam TCrypto - The Crypto API used to perform cryptographic operations.
+ */
+export interface JweKeyManagementDecryptParams<TKeyManager, TCrypto> {
+  /**
+   * The decryption key which can be a Key Identifier such as a KMS key URI, a JSON Web Key (JWK),
+   * or raw key material represented as a byte array.
+   */
+  key: KeyIdentifier | Jwk | Uint8Array;
+
+  /**
+   * The encrypted key extracted from the JWE, represented as a byte array. This parameter is
+   * optional and is used when the key is wrapped.
+   */
+  encryptedKey?: Uint8Array;
+
+  /**
+   * The JWE header parameters that define the characteristics of the decryption process, specifying
+   * the algorithm and encryption method among other settings.
+   */
+  joseHeader: JweHeaderParams;
+
+  /** Key Manager instanceß responsible for managing cryptographic keys. */
+  keyManager: TKeyManager;
+
+  /** Crypto API instance that provides the necessary cryptographic operations. */
+  crypto: TCrypto;
+}
+
+/**
+ * Defines the parameters required for encrypting a JWE CEK, including the key management details.
+ *
+ * @typeParam TKeyManager - The Key Manager used to manage cryptographic keys.
+ * @typeParam TCrypto - The Crypto API used to perform cryptographic operations.
+ */
+export interface JweKeyManagementEncryptParams<TKeyManager, TCrypto> {
+  /**
+   * The encryption key which can be a Key Identifier such as a KMS key URI, a JSON Web Key (JWK),
+   * or raw key material represented as a byte array.
+   */
+  key: KeyIdentifier | Jwk | Uint8Array;
+
+  /**
+   * The JWE header parameters that define the characteristics of the encryption process, specifying
+   * the algorithm and encryption method among other settings.
+   */
+  joseHeader: JweHeaderParams;
+
+  /** Key Manager instanceß responsible for managing cryptographic keys. */
+  keyManager: TKeyManager;
+
+  /** Crypto API instance that provides the necessary cryptographic operations. */
+  crypto: TCrypto;
+}
+
+/**
+ * Checks if the provided object is a valid JWE (JSON Web Encryption) header.
+ *
+ * This function evaluates whether the given object adheres to the structure expected for
+ * a JWE header, specifically looking for the presence and proper format of the "alg" (algorithm)
+ * and "enc" (encryption algorithm) properties, which are essential for defining the JWE's
+ * cryptographic operations.
+ *
+ * @example
+ * ```ts
+ * const header = {
+ *   alg: 'dir',
+ *   enc: 'A256GCM'
+ * };
+ *
+ * if (isValidJweHeader(header)) {
+ *   console.log('The object is a valid JWE header.');
+ * } else {
+ *   console.log('The object is not a valid JWE header.');
+ * }
+ * ```
+ *
+ * @param obj - The object to be validated as a JWE header.
+ * @returns Returns `true` if the object is a valid JWE header, otherwise `false`.
+ */
 export function isValidJweHeader(obj: unknown): obj is JweHeaderParams {
   return typeof obj === 'object' && obj !== null
     && 'alg' in obj && obj.alg !== undefined
     && 'enc' in obj && obj.enc !== undefined;
 }
 
+/**
+ * The `JweKeyManagement` class implements the key management aspects of JSON Web Encryption (JWE)
+ * as specified in {@link https://datatracker.ietf.org/doc/html/rfc7516 | RFC 7516}.
+ *
+ * It supports algorithms for encrypting and decrypting keys, thereby enabling the secure
+ * transmission of information where the payload is encrypted, and the encryption key is also
+ * encrypted or agreed upon using key agreement techniques.
+ *
+ * The choice of algorithm is determined by the "alg" parameter in the JWE
+ * header, and the class is designed to handle the intricacies associated with each algorithm,
+ * ensuring the secure handling of the encryption keys.
+ *
+ * Supported algorithms include:
+ * - `"dir"`: Direct Encryption Mode
+ * - `"PBES2-HS256+A128KW"`, `"PBES2-HS384+A192KW"`, `"PBES2-HS512+A256KW"`: Password-Based
+ *   Encryption Mode with Key Wrapping (PBES2) using HMAC-SHA and AES Key Wrap algorithms for key
+ *   wrapping and encryption.
+ *
+ * @example
+ * // To encrypt a key:
+ * const keyEncryptionKey = Convert.string(passphrase).toUint8Array()
+ * const { cek, encryptedKey: encryptedCek } = await JweKeyManagement.encrypt({
+ *   key: keyEncryptionKey,
+ *   joseHeader: {
+ *     alg: 'PBES2-HS512+A256KW',
+ *     enc: 'A256GCM',
+ *     p2c : 210_000,
+       p2s : Convert.uint8Array(saltInput).toBase64Url()
+ *   },
+ *   crypto: new AgentCryptoApi(),
+ * });
+ *
+ * // To decrypt a key:
+ * const cek = await JweKeyManagement.decrypt({
+ *   key: keyEncryptionKey,
+ *   encryptedKey: encryptedCek,
+ *   joseHeader: {
+ *     alg: 'PBES2-HS512+A256KW',
+ *     enc: 'A256GCM',
+ *     p2c : 210_000,
+       p2s : Convert.uint8Array(saltInput).toBase64Url()
+ *   },
+ *   crypto: new AgentCryptoApi(),
+ * });
+ */
 export class JweKeyManagement {
-  public static async decrypt<
-    TKeyManager extends KeyManager,
-    TCrypto extends CryptoApi
-  >({ key, encryptedKey, joseHeader, crypto }: {
-    key: KeyIdentifier | Jwk | Uint8Array;
-    encryptedKey?: Uint8Array;
-    joseHeader: JweHeaderParams;
-    keyManager: TKeyManager;
-    crypto: TCrypto;
-  }): Promise<KeyIdentifier | Jwk> {
+  /**
+   * Decrypts the encrypted key (JWE Encrypted Key) using the specified key encryption algorithm
+   * defined in the JWE Header's "alg" parameter.
+   *
+   * This method supports multiple key management algorithms, including Direct Encryption (dir) and
+   * PBES2 schemes with key wrapping.
+   *
+   * The method takes a key, which can be a Key Identifier, JWK, or raw byte array, and the
+   * encrypted key along with the JWE header. It returns the decrypted Content Encryption Key (CEK)
+   * which can then be used to decrypt the JWE ciphertext.
+   *
+   * @example
+   * ```ts
+   * // Decrypting the CEK with the PBES2-HS512+A256KW algorithm
+   * const cek = await JweKeyManagement.decrypt({
+   *   key: Convert.string(passphrase).toUint8Array(),
+   *   encryptedKey: encryptedCek,
+   *   joseHeader: {
+   *     alg: 'PBES2-HS512+A256KW',
+   *     enc: 'A256GCM',
+   *     p2c: 210_000,
+   *     p2s: Convert.uint8Array(saltInput).toBase64Url(),
+   *   },
+   *   crypto: new AgentCryptoApi()
+   * });
+   * ```
+   *
+   * @param params - The decryption parameters.
+   * @throws Throws an error if the key management algorithm is not supported or if required
+   *         parameters are missing or invalid.
+   */
+  public static async decrypt<TKeyManager extends KeyManager, TCrypto extends CryptoApi>({
+    key, encryptedKey, joseHeader, crypto
+  }: JweKeyManagementDecryptParams<TKeyManager, TCrypto>
+  ): Promise<KeyIdentifier | Jwk> {
     // Determine the Key Management Mode employed by the algorithm specified by the "alg"
     // (algorithm) Header Parameter.
     switch (joseHeader.alg) {
@@ -280,7 +468,8 @@ export class JweKeyManagement {
           throw new CryptoError(CryptoErrorCode.InvalidJwe, 'JOSE Header "p2s" (PBES2 salt) is missing or not a string.');
         }
 
-        // Throw an error if the key management `key` is not a byte array.
+        // Throw an error if the key management `key` is not a byte array. For PBES2, the key is
+        // expected to be a low-entropy passphrase as a byte array.
         if (!(key instanceof Uint8Array)) {
           throw new CryptoError(CryptoErrorCode.InvalidJwe, 'Key management "key" must be a Uint8Array when using "PBES2" (Key Encryption Mode).');
         }
@@ -334,15 +523,42 @@ export class JweKeyManagement {
     }
   }
 
-  public static async encrypt<
-    TKeyManager extends KeyManager,
-    TCrypto extends CryptoApi
-  >({ key, joseHeader, crypto }: {
-    key: KeyIdentifier | Jwk | Uint8Array;
-    joseHeader: JweHeaderParams;
-    keyManager: TKeyManager;
-    crypto: TCrypto;
-  }): Promise<{ cek: KeyIdentifier | Jwk, encryptedKey?: Uint8Array }> {
+  /**
+   * Encrypts a Content Encryption Key (CEK) using the key management algorithm specified in the
+   * JWE Header's "alg" parameter.
+   *
+   * This method supports various key management algorithms, including Direct Encryption (dir) and
+   * PBES2 with key wrapping.
+   *
+   * It generates a random CEK for the specified encryption algorithm in the JWE header, which
+   * can then be used to encrypt the actual payload. For algorithms that require an encrypted key,
+   * it returns the CEK along with the encrypted key.
+   *
+   * @example
+   * ```ts
+   * // Encrypting the CEK with the PBES2-HS512+A256KW algorithm
+   * const { cek, encryptedKey } = await JweKeyManagement.encrypt({
+   *   key: Convert.string(passphrase).toUint8Array(),
+   *   joseHeader: {
+   *     alg: 'PBES2-HS512+A256KW',
+   *     enc: 'A256GCM',
+   *     p2c: 210_000,
+   *     p2s: Convert.uint8Array(saltInput).toBase64Url(),
+   *   },
+   *   crypto: crypto: new AgentCryptoApi()
+   * });
+   * ```
+   *
+   * @param params - The encryption parameters.
+   * @returns The encrypted key result containing the CEK and optionally the encrypted CEK
+   *          (JWE Encrypted Key).
+   * @throws Throws an error if the key management algorithm is not supported or if required
+   *         parameters are missing or invalid.
+   */
+  public static async encrypt<TKeyManager extends KeyManager, TCrypto extends CryptoApi>({
+    key, joseHeader, crypto
+  }: JweKeyManagementEncryptParams<TKeyManager, TCrypto>
+  ): Promise<JweKeyManagementEncryptResult> {
     let cek: KeyIdentifier | Jwk;
     let encryptedKey: Uint8Array | undefined;
 
@@ -366,6 +582,7 @@ export class JweKeyManagement {
 
         // Set the CEK to the key management `key`.
         cek = key;
+
         break;
       }
 

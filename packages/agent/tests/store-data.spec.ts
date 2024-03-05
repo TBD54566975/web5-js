@@ -11,7 +11,7 @@ import { DwnInterface } from '../src/types/dwn.js';
 import { TENANT_SEPARATOR } from '../src/utils-internal.js';
 import { Web5PlatformAgent } from '../src/types/agent.js';
 import { isPortableDid } from '../src/prototyping/dids/utils.js';
-import { ManagedAgentTestHarness } from '../src/test-harness.js';
+import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { DwnDataStore, InMemoryDataStore } from '../src/store-data.js';
 import { RecordsDeleteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
@@ -104,15 +104,11 @@ export class InMemoryTestStore extends InMemoryDataStore<PortableDid> implements
   }
 }
 
-
-
-
-
 describe('AgentDataStore', () => {
-  let testHarness: ManagedAgentTestHarness;
+  let testHarness: PlatformAgentTestHarness;
 
   before(async () => {
-    testHarness = await ManagedAgentTestHarness.setup({
+    testHarness = await PlatformAgentTestHarness.setup({
       agentClass  : TestAgent,
       agentStores : 'memory'
     });

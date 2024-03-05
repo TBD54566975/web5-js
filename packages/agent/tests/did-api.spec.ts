@@ -6,7 +6,7 @@ import type { Web5PlatformAgent } from '../src/types/agent.js';
 
 import { TestAgent } from './utils/test-agent.js';
 import { AgentDidApi, DidInterface } from '../src/did-api.js';
-import { ManagedAgentTestHarness } from '../src/test-harness.js';
+import { PlatformAgentTestHarness } from '../src/test-harness.js';
 
 describe('AgentDidApi', () => {
 
@@ -50,10 +50,10 @@ describe('AgentDidApi', () => {
   agentStoreTypes.forEach((agentStoreType) => {
 
     describe(`with ${agentStoreType} DID store`, () => {
-      let testHarness: ManagedAgentTestHarness;
+      let testHarness: PlatformAgentTestHarness;
 
       before(async () => {
-        testHarness = await ManagedAgentTestHarness.setup({
+        testHarness = await PlatformAgentTestHarness.setup({
           agentClass  : TestAgent,
           agentStores : agentStoreType
         });

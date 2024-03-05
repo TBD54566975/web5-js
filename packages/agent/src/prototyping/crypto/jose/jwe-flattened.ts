@@ -13,49 +13,116 @@ import { JweKeyManagement, isValidJweHeader } from './jwe.js';
 import { hasDuplicateProperties } from '../../common/object.js';
 import { CryptoError, CryptoErrorCode } from '../crypto-error.js';
 
-export interface FlattenedJweParams {
-  aad?: string;
-  ciphertext: string;
-  encrypted_key?: string;
-  header?: Partial<JweHeaderParams>;
-  iv?: string;
-  protected?: string;
-  tag?: string;
-  unprotected?: Partial<JweHeaderParams>;
-}
-
+/**
+ * Parameters required for decrypting a flattened JWE.
+ *
+ * @typeParam TKeyManager - The Key Manager used to manage cryptographic keys.
+ * @typeParam TCrypto - The Crypto API used to perform cryptographic operations.
+ */
 export interface FlattenedJweDecryptParams<TKeyManager, TCrypto> {
+  /** The flattened JWE. */
   jwe: FlattenedJweParams | FlattenedJwe;
+
+  /**
+   * The decryption key which can be a Key Identifier such as a KMS key URI, a JSON Web Key (JWK),
+   * or raw key material represented as a byte array.
+   */
   key: KeyIdentifier | Jwk | Uint8Array;
+
+  /** Key Manager instanceß responsible for managing cryptographic keys. */
   keyManager?: TKeyManager;
+
+  /** Crypto API instance that provides the necessary cryptographic operations. */
   crypto?: TCrypto;
+
+  /** {@inheritDoc JweDecryptOptions} */
   options?: JweDecryptOptions;
 }
 
+/**
+ * Result of decrypting a flattened JWE, containing the plaintext and related information.
+ */
 export interface FlattenedJweDecryptResult {
   /** JWE Additional Authenticated Data (AAD). */
-  additionalAuthenticatedData?: Uint8Array
+  additionalAuthenticatedData?: Uint8Array;
 
   /** Plaintext. */
-  plaintext: Uint8Array
+  plaintext: Uint8Array;
 
   /** JWE Protected Header. */
-  protectedHeader?: Partial<JweHeaderParams>
+  protectedHeader?: Partial<JweHeaderParams>;
 
   /** JWE Shared Unprotected Header. */
-  sharedUnprotectedHeader?: Partial<JweHeaderParams>
+  sharedUnprotectedHeader?: Partial<JweHeaderParams>;
 
   /** JWE Per-Recipient Unprotected Header. */
-  unprotectedHeader?: Partial<JweHeaderParams>
+  unprotectedHeader?: Partial<JweHeaderParams>;
 }
 
+/**
+ * Parameters for encrypting data into a flattened JWE format.
+ *
+ * @typeParam TKeyManager - The Key Manager used to manage cryptographic keys.
+ * @typeParam TCrypto - The Crypto API used to perform cryptographic operations.
+ */
 export interface FlattenedJweEncryptParams<TKeyManager, TCrypto> extends FlattenedJweDecryptResult {
+  /**
+   * The encryption key which can be a Key Identifier such as a KMS key URI, a JSON Web Key (JWK),
+   * or raw key material represented as a byte array.
+   */
   key: KeyIdentifier | Jwk | Uint8Array;
+
+  /** Key Manager instanceß responsible for managing cryptographic keys. */
   keyManager?: TKeyManager;
+
+  /** Crypto API instance that provides the necessary cryptographic operations. */
   crypto?: TCrypto;
+
+  /** {@inheritDoc JweEncryptOptions} */
   options?: JweEncryptOptions;
 }
 
+/**
+ * Represents the parameters for a flattened JWE object, typically used in single-recipient
+ * scenarios.
+ */
+export interface FlattenedJweParams {
+  /** Base64URL encoded additional authenticated data. */
+  aad?: string;
+
+  /** Base64URL encoded ciphertext. */
+  ciphertext: string;
+
+  /** Base64URL encoded encrypted key. */
+  encrypted_key?: string;
+
+  /** Per-Recipient Unprotected Header parameters. */
+  header?: Partial<JweHeaderParams>;
+
+  /** Base64URL encoded initialization vector. */
+  iv?: string;
+
+  /** Base64URL encoded string of the Protected Header. */
+  protected?: string;
+
+  /** Base64URL encoded authentication tag. */
+  tag?: string;
+
+  /** Shared Unprotected Header parameters. */
+  unprotected?: Partial<JweHeaderParams>;
+}
+
+/**
+ * A helper utility function used internally to decode a JWE header parameter from a Base64 URL
+ * encoded string to a Uint8Array. It's designed to process individual JWE header parameter values,
+ * ensuring they are correctly formatted and decoded.
+ *
+ * @param param - The name of the JWE header parameter being decoded; used for error messaging.
+ * @param value - The Base64 URL encoded string value of the header parameter to decode.
+ * @returns The decoded parameter as a Uint8Array, or undefined if the input value is undefined.
+ * @throws {@link CryptoError} if the value is not a properly encoded Base64 URL string or if it's
+ *         not a string.
+ */
 function decodeHeaderParam(param: string, value?: string): Uint8Array | undefined {
   // If the parameter value is not present, return undefined.
   if (value === undefined) return undefined;
@@ -71,14 +138,60 @@ function decodeHeaderParam(param: string, value?: string): Uint8Array | undefine
   }
 }
 
+/**
+ * The `FlattenedJwe` class handles the encryption and decryption of JSON Web Encryption (JWE)
+ * objects in the flattened serialization format. This format is a compact, URL-safe means of
+ * representing encrypted content, typically used when dealing with a single recipient or when
+ * bandwidth efficiency is important.
+ *
+ * This class provides methods to encrypt plaintext to a flattened JWE and decrypt a flattened JWE
+ * back to plaintext, utilizing a variety of supported cryptographic algorithms as specified in the
+ * JWE header parameters.
+ *
+ * @example
+ * ```ts
+ *  // Example usage of encrypt method
+ * const plaintext = new TextEncoder().encode("Secret Message");
+ * const key = { kty: "oct", k: "your-secret-key" }; // Example symmetric key
+ * const protectedHeader = { alg: "dir", enc: "A256GCM" };
+ * const encryptedJwe = await FlattenedJwe.encrypt({
+ *   plaintext,
+ *   protectedHeader,
+ *   key,
+ * });
+ * ```
+ *
+ * @example
+ * // Decryption example
+ * const { plaintext, protectedHeader } = await FlattenedJwe.decrypt({
+ *   jwe: yourFlattenedJweObject,
+ *   key: yourDecryptionKey,
+ *   crypto: new YourCryptoApi(),
+ * });
+ */
 export class FlattenedJwe {
+  /** Base64URL encoded additional authenticated data. */
   public aad?: string;
+
+  /** Base64URL encoded ciphertext. */
   public ciphertext: string = '';
+
+  /** Base64URL encoded encrypted key. */
   public encrypted_key?: string;
+
+  /** Per-Recipient Unprotected Header parameters. */
   public header?: Partial<JweHeaderParams>;
+
+  /** Base64URL encoded initialization vector. */
   public iv?: string;
+
+  /** Base64URL encoded string of the Protected Header. */
   public protected?: string;
+
+  /** Base64URL encoded authentication tag. */
   public tag?: string;
+
+  /** Shared Unprotected Header parameters. */
   public unprotected?: Partial<JweHeaderParams>;
 
   constructor(params: FlattenedJweParams) {
@@ -335,8 +448,8 @@ export class FlattenedJwe {
     });
     if (encryptedKey) jwe.encrypted_key = Convert.uint8Array(encryptedKey).toBase64Url();
     if (protectedHeader) jwe.protected = encodedProtectedHeader;
-    if (unprotectedHeader) jwe.unprotected = unprotectedHeader;
-    if (sharedUnprotectedHeader) jwe.header = sharedUnprotectedHeader;
+    if (sharedUnprotectedHeader) jwe.unprotected = sharedUnprotectedHeader;
+    if (unprotectedHeader) jwe.header = unprotectedHeader;
     if (iv) jwe.iv = Convert.uint8Array(iv).toBase64Url();
     if (encodedAad) jwe.aad = encodedAad;
     if (authenticationTag) jwe.tag = Convert.uint8Array(authenticationTag).toBase64Url();

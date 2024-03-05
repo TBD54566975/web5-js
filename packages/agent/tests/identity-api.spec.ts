@@ -2,7 +2,7 @@ import { expect } from 'chai';
 
 import { TestAgent } from './utils/test-agent.js';
 import { AgentIdentityApi } from '../src/identity-api.js';
-import { ManagedAgentTestHarness } from '../src/test-harness.js';
+import { PlatformAgentTestHarness } from '../src/test-harness.js';
 
 describe('AgentIdentityApi', () => {
 
@@ -41,10 +41,10 @@ describe('AgentIdentityApi', () => {
   for (const agentStoreType of agentStoreTypes) {
 
     describe(`with ${agentStoreType} DID store`, () => {
-      let testHarness: ManagedAgentTestHarness;
+      let testHarness: PlatformAgentTestHarness;
 
       before(async () => {
-        testHarness = await ManagedAgentTestHarness.setup({
+        testHarness = await PlatformAgentTestHarness.setup({
           agentClass  : TestAgent,
           agentStores : agentStoreType
         });
