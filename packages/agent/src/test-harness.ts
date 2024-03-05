@@ -9,16 +9,17 @@ import type { Web5PlatformAgent } from './types/agent.js';
 import { AgentDidApi } from './did-api.js';
 import { AgentDwnApi } from './dwn-api.js';
 import { AgentSyncApi } from './sync-api.js';
-import { Web5RpcClient } from './rpc-client.js';
+import { Web5RpcClient } from './prototyping/clients/web5-rpc-client.js';
 import { AgentCryptoApi } from './crypto-api.js';
 import { AgentIdentityApi } from './identity-api.js';
-import { BearerIdentity } from './bearer-identity.js';
 import { LocalKeyManager } from './local-key-manager.js';
 import { SyncEngineLevel } from './sync-engine-level.js';
 import { DwnDidStore, InMemoryDidStore } from './store-did.js';
 import { DwnKeyStore, InMemoryKeyStore } from './store-key.js';
 import { DwnIdentityStore, InMemoryIdentityStore } from './store-identity.js';
 import { DidResolverCacheMemory } from './prototyping/dids/resolver-cache-memory.js';
+import { BearerIdentity } from './bearer-identity.js';
+import { WebSocketWeb5RpcClient } from './prototyping/clients/web-socket-clients.js';
 
 type ManagedAgentTestHarnessParams = {
   agent: Web5PlatformAgent
@@ -158,7 +159,8 @@ export class ManagedAgentTestHarness {
     const cryptoApi = new AgentCryptoApi();
 
     // Instantiate Agent's RPC Client.
-    const rpcClient = new Web5RpcClient();
+    const socketRpcClient = new WebSocketWeb5RpcClient();
+    const rpcClient = new Web5RpcClient([ socketRpcClient ]);
 
     const {
       didApi,
