@@ -43,6 +43,8 @@ jobs:
       # https://cashapp.github.io/hermit/usage/ci/
       - name: Init Hermit
         uses: cashapp/activate-hermit@v1
+        with:
+          cache: "true"
 
       - name: Install semver utility
         run: pnpm install -g semver@7.5.1

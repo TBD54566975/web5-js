@@ -21,6 +21,8 @@ jobs:
       # https://cashapp.github.io/hermit/usage/ci/
       - name: Init Hermit
         uses: cashapp/activate-hermit@v1
+        with:
+          cache: "true"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

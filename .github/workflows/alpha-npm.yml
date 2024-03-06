@@ -30,6 +30,8 @@ jobs:
       # https://cashapp.github.io/hermit/usage/ci/
       - name: Init Hermit
         uses: cashapp/activate-hermit@v1
+        with:
+          cache: "true"
 
       # Note - this is not required but it gives a clean failure prior to attempting a release if
       # the GH workflow runner is not authenticated with NPMjs.com
