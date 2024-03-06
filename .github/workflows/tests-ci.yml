@@ -56,7 +56,7 @@ jobs:
           echo "DWN_SERVER_BACKGROUND_PROCESS=$!" >> $GITHUB_ENV
 
       - name: Run tests for all packages
-        run: pnpm --recursive --no-stream --sequential test:node -- --color --reporter mocha-junit-reporter --reporter-options mochaFile=./results.xml
+        run: npm run test:node --ws -- --color
         env:
           TEST_DWN_URL: http://localhost:3000
 
