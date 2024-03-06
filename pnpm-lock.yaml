@@ -167,7 +167,7 @@ importers:
         version: 0.2.4
       '@web5/user-agent':
         specifier: 0.2.6
-        version: link:../user-agent
+        version: 0.2.6
       level:
         specifier: 8.0.0
         version: 8.0.0
@@ -885,17 +885,17 @@ importers:
   packages/user-agent:
     dependencies:
       '@web5/agent':
-        specifier: 0.2.6
-        version: 0.2.6
+        specifier: workspace:*
+        version: link:../agent
       '@web5/common':
-        specifier: 0.2.3
-        version: 0.2.3
+        specifier: workspace:*
+        version: link:../common
       '@web5/crypto':
-        specifier: 0.2.2
-        version: 0.2.2
+        specifier: workspace:*
+        version: link:../crypto
       '@web5/dids':
-        specifier: 0.2.4
-        version: 0.2.4
+        specifier: workspace:*
+        version: link:../dids
     devDependencies:
       '@playwright/test':
         specifier: 1.40.1
@@ -3412,6 +3412,19 @@ packages:
       - supports-color
       - utf-8-validate
     dev: true
+
+  /@web5/user-agent@0.2.6:
+    resolution: {integrity: sha512-f8ajUcjXtEW28GhOiFI84MAiFJnI5ETh3QK2hd0apwmx9cv+rCfMSlt2qwthGqUPtP0c4mqJEmTtwB886SbsyA==}
+    engines: {node: '>=18.0.0'}
+    dependencies:
+      '@web5/agent': 0.2.6
+      '@web5/common': 0.2.3
+      '@web5/crypto': 0.2.2
+      '@web5/dids': 0.2.4
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    dev: false
 
   /@webassemblyjs/ast@1.11.6:
     resolution: {integrity: sha512-IN1xI7PwOvLPgjcf180gC1bqn3q/QaOCwYUahIOhbYUu8KA/3tw2RT/T0Gidi1l7Hhj5D/INhJxiICObqpMu4Q==}

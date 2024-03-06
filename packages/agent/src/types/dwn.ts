@@ -113,7 +113,7 @@ export type DwnResponse<T extends DwnInterface> = {
 
 export interface DwnMessageConstructor<T extends DwnInterface> {
   new (): DwnMessageInstance[T];
-  create(options: DwnMessageParams[T]): Promise<DwnMessageInstance[T]>;
+  create(params: DwnMessageParams[T]): Promise<DwnMessageInstance[T]>;
   parse(rawMessage: DwnMessage[T]): Promise<DwnMessageInstance[T]>;
 }
 

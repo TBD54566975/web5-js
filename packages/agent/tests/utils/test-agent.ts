@@ -20,7 +20,7 @@ import { AgentIdentityApi } from '../../src/identity-api.js';
 import { AgentDidApi, DidInterface } from '../../src/did-api.js';
 import { LocalKeyManager } from '../../src/local-key-manager.js';
 
-type TestAgentOptions = {
+type TestAgentParams = {
   agentVault: HdIdentityVault;
   cryptoApi: AgentCryptoApi;
   didApi: AgentDidApi;
@@ -43,7 +43,7 @@ export class TestAgent implements Web5PlatformAgent {
 
   private _agentDid?: BearerDid;
 
-  constructor(params: TestAgentOptions) {
+  constructor(params: TestAgentParams) {
     this.crypto = params.cryptoApi;
     this.did = params.didApi;
     this.dwn = params.dwnApi;
@@ -76,7 +76,7 @@ export class TestAgent implements Web5PlatformAgent {
     throw new Error('Not implemented');
   }
 
-  async initialize(_options: { passphrase: string; }): Promise<void> {
+  async initialize(_params: { passphrase: string; }): Promise<void> {
     throw new Error('Not implemented');
   }
 
@@ -112,7 +112,7 @@ export class TestAgent implements Web5PlatformAgent {
     throw new Error('Not implemented');
   }
 
-  async start(_options: { passphrase: string; }): Promise<void> {
+  async start(_params: { passphrase: string; }): Promise<void> {
     throw new Error('Not implemented');
   }
 }

@@ -311,12 +311,10 @@ export class SyncEngineLevel implements SyncEngine {
     }
   }
 
-  private async enqueueOperations(options: {
+  private async enqueueOperations({ syncDirection, syncPeerState }: {
     syncDirection: SyncDirection,
     syncPeerState: SyncState[]
   }) {
-    const { syncDirection, syncPeerState } = options;
-
     for (let syncState of syncPeerState) {
       // Get the event log from the remote DWN if pull sync, or local DWN if push sync.
       const eventLog = await this.getDwnEventLog({
@@ -469,11 +467,9 @@ export class SyncEngineLevel implements SyncEngine {
     return dwnMessageWithBlob;
   }
 
-  private async getSyncPeerState(options: {
+  private async getSyncPeerState({ syncDirection }: {
     syncDirection: SyncDirection
   }): Promise<SyncState[]> {
-    const { syncDirection } = options;
-
     // Get a list of the DIDs of all registered identities.
     const registeredIdentities = await this._db.sublevel('registeredIdentities').keys().all();
 
