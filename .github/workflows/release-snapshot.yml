@@ -1,0 +1,100 @@
+name: release snapshot to jfrog
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Allow only one concurrent deployment, but do NOT cancel in-progress runs as
+# we want to allow these release deployments to complete.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish-npm:
+    name: Snapshot Publish
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        package:
+          [
+            "agent",
+            "api",
+            "common",
+            "credentials",
+            "crypto",
+            "crypto-aws-kms",
+            "dids",
+            "identity-agent",
+            "proxy-agent",
+            "user-agent",
+          ]
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          fetch-depth: 0
+
+      # https://cashapp.github.io/hermit/usage/ci/
+      - name: Init Hermit
+        uses: cashapp/activate-hermit@v1
+        with:
+          cache: "true"
+
+      - uses: jfrog/setup-jfrog-cli@v4
+        with:
+          version: latest
+          oidc-provider-name: github # must match the OpenID Connect name from https://blockxyz.jfrog.io/ui/admin/configuration/integrations
+        env:
+          JF_URL: https://blockxyz.jfrog.io
+
+      - name: Publish @web5/${{ matrix.package }} snapshot
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: |
+          set -exuo pipefail
+
+          package_name="${{ matrix.package }}"
+          cd "packages/${package_name}"
+
+          base_version=$(jq -r .version package.json)
+
+          # I'm not seeing a great way to determine the commit of the last release of a given package, so I'm using a not-so-great way
+          version_line=$(grep -n "\"version\": \"${base_version}\"" package.json | cut -d: -f1) # determine which line in package.json specifies the version
+          version_bump_commit=$(git blame --porcelain -L "${version_line},${version_line}" -- package.json | head -n1 | awk '{ print $1 }') # ask git when the last commit to that line was
+          commits_since_version_bump=$(git rev-list HEAD ${version_bump_commit} --count -- .) # count the number of commits that changed this package since the version change commit
+
+
+          snapshot_version="${base_version}-SNAPSHOT.${commits_since_version_bump}"
+
+          # check if that snapshot version has already been published
+          if curl -f --silent "https://blockxyz.jfrog.io/artifactory/tbd-oss-snapshots-npm/@web5/${package_name}/-/${package_name}-${snapshot_version}.tgz" > /dev/null; then
+              echo "release for @web5/${package_name}-${snapshot_version} already exists, not re-publishing"
+              exit 0
+          fi
+
+          pushd ../..
+          pnpm install
+          pnpm build
+          popd
+
+          # set the snapshot version
+          jq --arg version "${snapshot_version}" '.version = $version' package.json > package-new.json
+          mv package-new.json package.json
+
+          # set publishing config in package.json
+          jq '.publishConfig.registry = "https://blockxyz.jfrog.io/artifactory/api/npm/tbd-oss-snapshots-npm/"' package.json > package-new.json
+          mv package-new.json package.json
+
+          # login to jfrog and publish
+          jf npm-config --global=true --repo-resolve=tbd-oss-snapshots-npm --repo-deploy=tbd-oss-snapshots-npm
+          jf npm publish --registry https://blockxyz.jfrog.io/artifactory/api/npm/tbd-oss-snapshots-npm/
+        shell: bash
