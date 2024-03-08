@@ -684,7 +684,7 @@ describe('AgentDwnApi', () => {
       expect(eventsGetReply).to.have.property('status');
       expect(eventsGetReply.status.code).to.equal(200);
       expect(eventsGetReply.entries).to.have.length(0);
-    }).timeout(10000);
+    });
 
     it('handles EventsQuery', async () => {
       const testCursor = {
