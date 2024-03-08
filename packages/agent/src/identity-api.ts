@@ -1,24 +1,23 @@
-import type { CryptoApi } from '@web5/crypto';
 import type { RequireOnly } from '@web5/common';
 
 import type { AgentDataStore } from './store-data.js';
 import type { Web5PlatformAgent } from './types/agent.js';
 import type { DidMethodCreateOptions } from './did-api.js';
+import type { AgentKeyManager } from './types/key-manager.js';
 import type { IdentityMetadata, PortableIdentity } from './types/identity.js';
 
 import { BearerIdentity } from './bearer-identity.js';
 import { isPortableDid } from './prototyping/dids/utils.js';
 import { InMemoryIdentityStore } from './store-identity.js';
-import { LocalKeyManager } from './local-key-manager.js';
 
-export interface IdentityApiParams {
-  agent?: Web5PlatformAgent;
+export interface IdentityApiParams<TKeyManager extends AgentKeyManager> {
+  agent?: Web5PlatformAgent<TKeyManager>;
 
   store?: AgentDataStore<IdentityMetadata>;
 }
 
 export interface IdentityCreateParams<
-  TKeyManager = CryptoApi,
+  TKeyManager = AgentKeyManager,
   TMethod extends keyof DidMethodCreateOptions<TKeyManager> = keyof DidMethodCreateOptions<TKeyManager>
 > {
   metadata: RequireOnly<IdentityMetadata, 'name'>;
@@ -36,18 +35,18 @@ export function isPortableIdentity(obj: unknown): obj is PortableIdentity {
     && isPortableDid(obj.did);
 }
 
-export class AgentIdentityApi<TKeyManager extends LocalKeyManager = LocalKeyManager> {
+export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyManager> {
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
    * the `AgentDidApi`. This agent is used to interact with other Web5 agent components. It's vital
    * to ensure this instance is set to correctly contextualize operations within the broader Web5
    * Agent framework.
    */
-  private _agent?: Web5PlatformAgent;
+  private _agent?: Web5PlatformAgent<TKeyManager>;
 
   private _store: AgentDataStore<IdentityMetadata>;
 
-  constructor({ agent, store }: IdentityApiParams = {}) {
+  constructor({ agent, store }: IdentityApiParams<TKeyManager> = {}) {
     this._agent = agent;
 
     // If `store` is not given, use an in-memory store by default.
@@ -60,7 +59,7 @@ export class AgentIdentityApi<TKeyManager extends LocalKeyManager = LocalKeyMana
    * @returns The `Web5PlatformAgent` instance that represents the current execution context.
    * @throws Will throw an error if the `agent` instance property is undefined.
    */
-  get agent(): Web5PlatformAgent {
+  get agent(): Web5PlatformAgent<TKeyManager> {
     if (this._agent === undefined) {
       throw new Error('AgentIdentityApi: Unable to determine agent execution context.');
     }
@@ -68,7 +67,7 @@ export class AgentIdentityApi<TKeyManager extends LocalKeyManager = LocalKeyMana
     return this._agent;
   }
 
-  set agent(agent: Web5PlatformAgent) {
+  set agent(agent: Web5PlatformAgent<TKeyManager>) {
     this._agent = agent;
   }
 

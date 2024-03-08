@@ -24,7 +24,7 @@ import { DwnIdentityStore, InMemoryIdentityStore } from './store-identity.js';
 import { DidResolverCacheMemory } from './prototyping/dids/resolver-cache-memory.js';
 
 type PlatformAgentTestHarnessParams = {
-  agent: Web5PlatformAgent
+  agent: Web5PlatformAgent<LocalKeyManager>
 
   agentStores: 'dwn' | 'memory';
   didResolverCache: DidResolverCache;
@@ -37,13 +37,13 @@ type PlatformAgentTestHarnessParams = {
 }
 
 type PlatformAgentTestHarnessSetupParams = {
-  agentClass: new (params: any) => Web5PlatformAgent
+  agentClass: new (params: any) => Web5PlatformAgent<LocalKeyManager>
   agentStores?: 'dwn' | 'memory';
   testDataLocation?: string;
 }
 
 export class PlatformAgentTestHarness {
-  public agent: Web5PlatformAgent;
+  public agent: Web5PlatformAgent<LocalKeyManager>;
 
   public agentStores: 'dwn' | 'memory';
   public didResolverCache: DidResolverCache;
@@ -185,11 +185,12 @@ export class PlatformAgentTestHarness {
       indexLocation      : testDataPath('DWN_MESSAGEINDEX')
     });
 
-    // Instantiate DWN instance.
-    const dwn = await Dwn.create({
-      eventLog     : dwnEventLog,
+    // Instantiate DWN instance using the custom stores.
+    const dwn = await AgentDwnApi.createDwn({
+      dataPath     : testDataLocation,
       dataStore    : dwnDataStore,
       didResolver  : didApi,
+      eventLog     : dwnEventLog,
       messageStore : dwnMessageStore
     });
 
@@ -254,7 +255,7 @@ export class PlatformAgentTestHarness {
     return { agentVault, didApi, didResolverCache, identityApi, keyManager, vaultStore };
   }
 
-  private static useMemoryStores({ agent }: { agent?: Web5PlatformAgent } = {}) {
+  private static useMemoryStores({ agent }: { agent?: Web5PlatformAgent<LocalKeyManager> } = {}) {
     const vaultStore = new MemoryStore<string, string>();
     const agentVault = new HdIdentityVault({ keyDerivationWorkFactor: 1, store: vaultStore });
 
@@ -270,7 +271,7 @@ export class PlatformAgentTestHarness {
 
     const keyManager = new LocalKeyManager({ agent, keyStore: new InMemoryKeyStore() });
 
-    const identityApi = new AgentIdentityApi({ agent, store: new InMemoryIdentityStore() });
+    const identityApi = new AgentIdentityApi<LocalKeyManager>({ agent, store: new InMemoryIdentityStore() });
 
     return { agentVault, didApi, didResolverCache, identityApi, keyManager, vaultStore };
   }

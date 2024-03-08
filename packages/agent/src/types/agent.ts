@@ -4,9 +4,9 @@ import type { Web5Rpc } from '../rpc-client.js';
 import type { AgentDwnApi } from '../dwn-api.js';
 import type { AgentSyncApi } from '../sync-api.js';
 import type { AgentCryptoApi } from '../crypto-api.js';
+import type { AgentKeyManager } from './key-manager.js';
+import type { IdentityVault } from './identity-vault.js';
 import type { AgentIdentityApi } from '../identity-api.js';
-import type { HdIdentityVault } from '../hd-identity-vault.js';
-import type { LocalKeyManager } from '../local-key-manager.js';
 import type { ProcessVcRequest, SendVcRequest, VcResponse } from './vc.js';
 import type { AgentDidApi, DidInterface, DidRequest, DidResponse } from '../did-api.js';
 import type { DwnInterface, DwnResponse, ProcessDwnRequest, SendDwnRequest } from './dwn.js';
@@ -63,7 +63,7 @@ export type ResponseStatus = {
  */
 export interface Web5Agent {
   /**
-   * The Decentralized Identifier (DID) representing this Web5 Agent, acting as a unique identifier.
+   * The Decentralized Identifier (DID) of this Web5 Agent.
    */
   agentDid: BearerDid;
 
@@ -118,11 +118,11 @@ export interface Web5Agent {
  *
  * @typeParam TKeyManager - The type of Key Manager used to manage cryptographic keys.
  */
-export interface Web5PlatformAgent<TKeyManager extends LocalKeyManager = LocalKeyManager> extends Web5Agent {
+export interface Web5PlatformAgent<TKeyManager extends AgentKeyManager = AgentKeyManager> extends Web5Agent {
   /**
    * The cryptography API, essential for performing various cryptographic operations such
    * as encryption, decryption, signing, and verification, ensuring secure data handling and
-   * communication within the Web5 ecosystem.
+   * communication within the Web5 Platform.
    */
   crypto: AgentCryptoApi;
 
@@ -163,10 +163,10 @@ export interface Web5PlatformAgent<TKeyManager extends LocalKeyManager = LocalKe
   sync: AgentSyncApi;
 
   /**
-   * An instance of {@link HdIdentityVault}, providing secure storage and management of a Web5
-   * Agent's DID and cryptographic keys.
+   * An instance of {@link IdentityVault}, providing secure storage and management of a Web5 Agent's
+   * DID and cryptographic keys.
    */
-  vault: HdIdentityVault;
+  vault: IdentityVault;
 
   /**
    * Determines if it's the first time the Agent is being launched, typically used for initialization
@@ -175,15 +175,14 @@ export interface Web5PlatformAgent<TKeyManager extends LocalKeyManager = LocalKe
   firstLaunch(): Promise<boolean>;
 
   /**
-   * Initializes the agent with essential parameters, like a passphrase, and optionally a mnemonic,
-   * setting up the agent's operational environment, cryptographic elements, and readiness for
-   * processing Web5 requets.
+   * Initializes the agent with essential parameters (e.g., a passphrase) and prepares it for
+   * processing Web5 requests.
    */
-  initialize(params: { passphrase: string, mnemonic?: string }): Promise<void>;
+  initialize(params: unknown): Promise<unknown>;
 
   /**
-   * Starts the agent with the provided parameters, usually following initialization, to begin
+   * Starts the agent with the provided parameters, typically following initialization, to begin
    * normal operation and readiness to process requests.
    */
-  start(params: { passphrase: string }): Promise<void>;
+  start(params: unknown): Promise<unknown>;
 }
