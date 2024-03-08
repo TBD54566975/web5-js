@@ -4,252 +4,237 @@ import type {
   VcResponse,
   DidResponse,
   DwnResponse,
-  SyncManager,
-  AppDataStore,
+  DidInterface,
+  DwnInterface,
   SendVcRequest,
   SendDwnRequest,
   ProcessVcRequest,
-  Web5ManagedAgent,
   ProcessDwnRequest,
+  Web5PlatformAgent,
 } from '@web5/agent';
 
 import { LevelStore } from '@web5/common';
-import { EdDsaAlgorithm } from '@web5/crypto';
-import { DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
+import { BearerDid, DidDht, DidJwk, DidResolverCacheLevel } from '@web5/dids';
 import {
-  LocalKms,
-  DidManager,
-  DwnManager,
-  KeyManager,
-  DidStoreDwn,
-  KeyStoreDwn,
-  AppDataVault,
+  AgentDidApi,
+  AgentDwnApi,
+  DwnDidStore,
+  DwnKeyStore,
+  AgentSyncApi,
   Web5RpcClient,
-  IdentityManager,
-  IdentityStoreDwn,
-  SyncManagerLevel,
-  PrivateKeyStoreDwn,
-  cryptoToPortableKeyPair,
+  AgentCryptoApi,
+  AgentKeyManager,
+  HdIdentityVault,
+  LocalKeyManager,
+  SyncEngineLevel,
+  AgentIdentityApi,
+  DwnIdentityStore,
 } from '@web5/agent';
 
-export type Web5ProxyAgentOptions = {
-  agentDid: string;
-  appData: AppDataStore;
-  didManager: DidManager;
-  didResolver: DidResolver;
-  dwnManager: DwnManager;
-  identityManager: IdentityManager;
-  keyManager: KeyManager;
+/**
+ * Initialization parameters for {@link Web5ProxyAgent}, including an optional mnemonic that can
+ * be used to derive keys to encrypt the vault and generate a DID.
+ */
+export type AgentInitializeParams = {
+  /**
+    * The passphrase used to secure the Agent vault.
+    *
+    * The passphrase selected should be strong and securely managed to prevent unauthorized access.
+    */
+   passphrase: string;
+
+   /**
+    * An optional mnemonic phrase used to derive the cryptographic keys for the Agent vault.
+    *
+    * Providing a mnemonic can be used to recover the vault's content or establish a deterministic
+    * key generation scheme. If not provided, a new mnemonic may be generated during the
+    * initialization process.
+    */
+   mnemonic?: string;
+ };
+
+export type AgentStartParams = {
+  /**
+   * The passphrase used to unlock the previously initialized Agent vault.
+   */
+  passphrase: string;
+ }
+
+export type AgentParams<TKeyManager extends AgentKeyManager = LocalKeyManager> = {
+  /** Optional. The Decentralized Identifier (DID) representing this Web5 User Agent. */
+  agentDid?: BearerDid;
+  /** Encrypted vault used for managing the Agent's DID and associated keys. */
+  agentVault: HdIdentityVault;
+  /** Provides cryptographic capabilties like signing, encryption, hashing and key derivation. */
+  cryptoApi: AgentCryptoApi;
+  /** Specifies the local path to be used by the Agent's persistent data stores. */
+  dataPath?: string;
+  /** Facilitates DID operations including create, update, and resolve. */
+  didApi: AgentDidApi<TKeyManager>;
+  /** Facilitates DWN operations including processing and sending requests. */
+  dwnApi: AgentDwnApi;
+  /** Facilitates decentralized Identity operations including create, import, and export. */
+  identityApi: AgentIdentityApi<TKeyManager>;
+  /** Responsible for securely managing the cryptographic keys of the agent. */
+  keyManager: TKeyManager;
+  /** Remote procedure call (RPC) client used to communicate with other Web5 services. */
   rpcClient: Web5Rpc;
-  syncManager: SyncManager;
+  /** Facilitates data synchronization of DWN records between nodes. */
+  syncApi: AgentSyncApi;
 }
 
-export class Web5ProxyAgent implements Web5ManagedAgent {
-  agentDid: string;
-  appData: AppDataStore;
-  didManager: DidManager;
-  didResolver: DidResolver;
-  dwnManager: DwnManager;
-  identityManager: IdentityManager;
-  keyManager: KeyManager;
-  rpcClient: Web5Rpc;
-  syncManager: SyncManager;
+export class Web5ProxyAgent<TKeyManager extends AgentKeyManager = LocalKeyManager> implements Web5PlatformAgent<TKeyManager> {
+  public crypto: AgentCryptoApi;
+  public did: AgentDidApi<TKeyManager>;
+  public dwn: AgentDwnApi;
+  public identity: AgentIdentityApi<TKeyManager>;
+  public keyManager: TKeyManager;
+  public rpc: Web5Rpc;
+  public sync: AgentSyncApi;
+  public vault: HdIdentityVault;
 
-  constructor(options: Web5ProxyAgentOptions) {
-    this.agentDid = options.agentDid;
-    this.appData = options.appData;
-    this.keyManager = options.keyManager;
-    this.didManager = options.didManager;
-    this.didResolver = options.didResolver;
-    this.dwnManager = options.dwnManager;
-    this.identityManager = options.identityManager;
-    this.rpcClient = options.rpcClient;
-    this.syncManager = options.syncManager;
+  private _agentDid?: BearerDid;
+
+  constructor(params: AgentParams<TKeyManager>) {
+    this._agentDid = params.agentDid;
+    this.crypto = params.cryptoApi;
+    this.did = params.didApi;
+    this.dwn = params.dwnApi;
+    this.identity = params.identityApi;
+    this.keyManager = params.keyManager;
+    this.rpc = params.rpcClient;
+    this.sync = params.syncApi;
+    this.vault = params.agentVault;
 
     // Set this agent to be the default agent.
-    this.didManager.agent = this;
-    this.dwnManager.agent = this;
-    this.identityManager.agent = this;
+    this.did.agent = this;
+    this.dwn.agent = this;
+    this.identity.agent = this;
     this.keyManager.agent = this;
-    this.syncManager.agent = this;
+    this.sync.agent = this;
   }
 
-  static async create(options: Partial<Web5ProxyAgentOptions> = {}): Promise<Web5ProxyAgent> {
-    let {
-      agentDid, appData, didManager, didResolver, dwnManager,
-      identityManager, keyManager, rpcClient, syncManager
-    } = options;
-
-    if (agentDid === undefined) {
-      // An Agent DID was not specified, so set to empty string.
-      agentDid = '';
+  get agentDid(): BearerDid {
+    if (this._agentDid === undefined) {
+      throw new Error('TestAgent: Agent DID is not set');
     }
+    return this._agentDid;
+  }
 
-    if (appData === undefined) {
-      // A custom AppDataStore implementation was not specified, so
-      // instantiate a LevelDB backed secure AppDataVault.
-      appData = new AppDataVault({
-        store: new LevelStore({ location: 'data/agent/vault' })
-      });
-    }
+  set agentDid(did: BearerDid) {
+    this._agentDid = did;
+  }
 
-    if (didManager === undefined) {
-      // A custom DidManager implementation was not specified, so
-      // instantiate a default with in-memory store.
-      didManager = new DidManager({
-        didMethods : [DidIonMethod, DidKeyMethod],
-        store      : new DidStoreDwn()
-      });
-    }
+  /**
+   * If any of the required agent components are not provided, instantiate default implementations.
+   */
+  public static async create({
+    dataPath = 'DATA/AGENT',
+    agentDid, agentVault, cryptoApi, didApi, dwnApi, identityApi, keyManager, rpcClient, syncApi
+  }: Partial<AgentParams> = {}
+  ): Promise<Web5ProxyAgent> {
 
-    if (didResolver === undefined) {
-      // A custom DidManager implementation was not specified, so
-      // instantiate a default with in-memory store.
-      didResolver = new DidResolver({ didResolvers: [DidIonMethod, DidKeyMethod] });
-    }
-
-    if (dwnManager === undefined) {
-      // A custom DwnManager implementation was not specified, so
-      // instantiate a default.
-      dwnManager = await DwnManager.create({ didResolver });
-    }
-
-    if (identityManager === undefined) {
-      // A custom IdentityManager implementation was not specified, so
-      // instantiate a default that uses a DWN store.
-      identityManager = new IdentityManager({
-        store: new IdentityStoreDwn()
-      });
-    }
-
-    if (keyManager === undefined) {
-      // A custom KeyManager implementation was not specified, so
-      // instantiate a default with KMSs.
-      const localKmsDwn = new LocalKms({
-        kmsName         : 'local',
-        keyStore        : new KeyStoreDwn({ schema: 'https://identity.foundation/schemas/web5/kms-key' }),
-        privateKeyStore : new PrivateKeyStoreDwn()
-      });
-      const localKmsMemory = new LocalKms({
-        kmsName: 'memory'
-      });
-      keyManager = new KeyManager({
-        kms: {
-          local  : localKmsDwn,
-          memory : localKmsMemory
-        },
-        store: new KeyStoreDwn({ schema: 'https://identity.foundation/schemas/web5/managed-key' })
-      });
-    }
-
-    if (rpcClient === undefined) {
-      // A custom RPC Client implementation was not specified, so
-      // instantiate a default.
-      rpcClient = new Web5RpcClient();
-    }
-
-    if (syncManager === undefined) {
-      // A custom SyncManager implementation was not specified, so
-      // instantiate a LevelDB-backed default.
-      syncManager = new SyncManagerLevel();
-    }
-
-    // Instantiate the Identity Agent.
-    const agent = new Web5ProxyAgent({
-      agentDid,
-      appData,
-      didManager,
-      didResolver,
-      dwnManager,
-      keyManager,
-      identityManager,
-      rpcClient,
-      syncManager
+    agentVault ??= new HdIdentityVault({
+      keyDerivationWorkFactor : 210_000,
+      store                   : new LevelStore<string, string>({ location: `${dataPath}/VAULT_STORE` })
     });
 
-    return agent;
+    cryptoApi ??= new AgentCryptoApi();
+
+    didApi ??= new AgentDidApi({
+      didMethods    : [DidDht, DidJwk],
+      resolverCache : new DidResolverCacheLevel({ location: `${dataPath}/DID_RESOLVERCACHE` }),
+      store         : new DwnDidStore()
+    });
+
+    dwnApi ??= new AgentDwnApi({
+      dwn: await AgentDwnApi.createDwn({ dataPath, didResolver: didApi })
+    });
+
+    identityApi ??= new AgentIdentityApi({ store: new DwnIdentityStore() });
+
+    keyManager ??= new LocalKeyManager({ keyStore: new DwnKeyStore() });
+
+    rpcClient ??= new Web5RpcClient();
+
+    syncApi ??= new AgentSyncApi({ syncEngine: new SyncEngineLevel({ dataPath }) });
+
+    // Instantiate the Agent using the provided or default components.
+    return new Web5ProxyAgent({
+      agentDid,
+      agentVault,
+      cryptoApi,
+      didApi,
+      dwnApi,
+      keyManager,
+      identityApi,
+      rpcClient,
+      syncApi
+    });
   }
 
-  async firstLaunch(): Promise<boolean> {
+  public async firstLaunch(): Promise<boolean> {
     // Check whether data vault is already initialized.
-    const { initialized } = await this.appData.getStatus();
+    const { initialized } = await this.vault.getStatus();
+
     return initialized === false;
   }
 
   /**
-   * Executed once the first time the Identity Agent is launched.
-   * The passphrase should be input by the end-user.
+   * Initializes the User Agent with a passphrase, and optionally a mnemonic.
+   *
+   * This method is typically called once, the first time the Agent is launched, and is responsible
+   * for setting up the agent's operational environment, cryptographic key material, and readiness
+   * for processing Web5 requests.
+   *
+   * The passphrase is used to secure the Agent vault, and the mnemonic is used to derive the
+   * cryptographic keys for the vault. If a mnemonic is not provided, a new mnemonic will be
+   * generated and returned. The passphrase should be chosen and entered by the end-user.
    */
-  async initialize(options: { passphrase: string }) {
-    const { passphrase } = options;
+  public async initialize({ mnemonic, passphrase }: AgentInitializeParams): Promise<string> {
+    // Initialize the Agent vault.
+    mnemonic = await this.vault.initialize({ mnemonic, passphrase: passphrase });
 
-    // Generate an Ed25519 key pair for the Identity Agent.
-    const agentKeyPair = await new EdDsaAlgorithm().generateKey({
-      algorithm   : { name: 'EdDSA', namedCurve: 'Ed25519' },
-      extractable : true,
-      keyUsages   : ['sign', 'verify']
-    });
-
-    /** Initialize the AppDataStore with the Identity Agent's
-       * private key and passphrase, which also unlocks the data vault. */
-    await this.appData.initialize({
-      passphrase : passphrase,
-      keyPair    : agentKeyPair,
-    });
+    return mnemonic;
   }
 
-  async processDidRequest(_request: DidRequest): Promise<DidResponse> {
+  async processDidRequest(
+    request: DidRequest<DidInterface>
+  ): Promise<DidResponse<DidInterface>> {
+    return this.did.processRequest(request);
+  }
+
+  public async processDwnRequest<T extends DwnInterface>(
+    request: ProcessDwnRequest<T>
+  ): Promise<DwnResponse<T>> {
+    return this.dwn.processRequest(request);
+  }
+
+  public async processVcRequest(_request: ProcessVcRequest): Promise<VcResponse> {
     throw new Error('Not implemented');
   }
 
-  async processDwnRequest(request: ProcessDwnRequest): Promise<DwnResponse> {
-    return this.dwnManager.processRequest(request);
-  }
-
-  async processVcRequest(_request: ProcessVcRequest): Promise<VcResponse> {
+  public async sendDidRequest<T extends DidInterface>(
+    _request: DidRequest<T>
+  ): Promise<DidResponse<T>> {
     throw new Error('Not implemented');
   }
 
-  async sendDidRequest(_request: DidRequest): Promise<DidResponse> {
+  public async sendDwnRequest<T extends DwnInterface>(
+    request: SendDwnRequest<T>
+  ): Promise<DwnResponse<T>> {
+    return this.dwn.sendRequest(request);
+  }
+
+  public async sendVcRequest(_request: SendVcRequest): Promise<VcResponse> {
     throw new Error('Not implemented');
   }
 
-  async sendDwnRequest(request: SendDwnRequest): Promise<DwnResponse> {
-    return this.dwnManager.sendRequest(request);
-  }
+  public async start({ passphrase }: AgentInitializeParams): Promise<string | void> {
+    // Unlock the data vault.
+    await this.vault.unlock({ passphrase });
 
-  async sendVcRequest(_request: SendVcRequest): Promise<VcResponse> {
-    throw new Error('Not implemented');
-  }
-
-  async start(options: { passphrase: string }) {
-    const { passphrase } = options;
-
-    if (await this.firstLaunch()) {
-      // 1A. Agent's first launch so initialize.
-      await this.initialize({ passphrase });
-    } else {
-      // 1B. Agent was previously initialized.
-      // Unlock the data vault and cache the vault unlock key (VUK) in memory.
-      await this.appData.unlock({ passphrase });
-    }
-
-    // 2. Set the Identity Agent's root did:key identifier.
-    this.agentDid = await this.appData.getDid();
-
-    // 3. Import the Identity Agent's private key into the KeyManager.
-    const defaultSigningKey = cryptoToPortableKeyPair({
-      cryptoKeyPair: {
-        privateKey : await this.appData.getPrivateKey(),
-        publicKey  : await this.appData.getPublicKey()
-      },
-      keyData: {
-        alias : await this.didManager.getDefaultSigningKey({ did: this.agentDid }),
-        kms   : 'memory'
-      }
-    });
-
-    // Import the Agent's signing key pair to the in-memory KMS key stores.
-    await this.keyManager.setDefaultSigningKey({ key: defaultSigningKey });
+    // Set the Agent's DID.
+    this.agentDid = await this.vault.getDid();
   }
 }
