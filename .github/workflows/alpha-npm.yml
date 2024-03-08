@@ -62,7 +62,7 @@ jobs:
         run: |
           for package in $PACKAGES; do
             cd packages/$package
-            pnpm publish --tag alpha --no-git-tag-version --access public --provenance
+            pnpm publish --tag alpha --access public --provenance
             cd ../..
           done
         shell: bash
