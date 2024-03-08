@@ -118,9 +118,12 @@ describe('AesKwAlgorithm', () => {
         d   : 'nNSAn-qRZEAwu7JqG6lat4E7oU79KPEs-8cBypGyS6Y'
       };
 
-      await expect(
-        aesKw.privateKeyToBytes({ privateKey })
-      ).to.eventually.be.rejectedWith(Error, 'provided key is not a valid oct private key');
+      try {
+        await aesKw.privateKeyToBytes({ privateKey });
+        expect.fail('expected an error to be thrown');
+      } catch (error: any) {
+        expect(error.message).to.include('provided key is not a valid oct private key');
+      }
     });
 
     it('throws an error when provided an asymmetric public key', async () => {
@@ -130,9 +133,12 @@ describe('AesKwAlgorithm', () => {
         x   : 'mU8QoOKvOOPdqdSrpFwJlbv-YiAl7E-0Qqrp4ceIqCA'
       };
 
-      await expect(
-        aesKw.privateKeyToBytes({ privateKey: publicKey })
-      ).to.eventually.be.rejectedWith(Error, 'provided key is not a valid oct private key');
+      try {
+        await aesKw.privateKeyToBytes({ privateKey: publicKey });
+        expect.fail('expected an error to be thrown');
+      } catch (error: any) {
+        expect(error.message).to.include('provided key is not a valid oct private key');
+      }
     });
   });
 
