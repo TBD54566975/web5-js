@@ -1,10 +1,7 @@
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
-import { TestManagedAgent } from '@web5/agent';
+import { expect } from 'chai';
+import { PlatformAgentTestHarness } from '@web5/agent';
 
 import { Web5ProxyAgent } from '../src/proxy-agent.js';
-
-chai.use(chaiAsPromised);
 
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
@@ -20,34 +17,39 @@ describe('Web5ProxyAgent', () => {
   agentStoreTypes.forEach((agentStoreType) => {
 
     describe(`with ${agentStoreType} data stores`, () => {
-      let testAgent: TestManagedAgent;
+      let testHarness: PlatformAgentTestHarness;
 
       before(async () => {
-        testAgent = await TestManagedAgent.create({
+        testHarness = await PlatformAgentTestHarness.setup({
           agentClass  : Web5ProxyAgent,
           agentStores : agentStoreType
         });
       });
 
       beforeEach(async () => {
-        await testAgent.clearStorage();
+        await testHarness.clearStorage();
+        await testHarness.createAgentDid();
       });
 
       after(async () => {
-        await testAgent.clearStorage();
-        await testAgent.closeStorage();
+        await testHarness.clearStorage();
+        await testHarness.closeStorage();
       });
 
       describe('firstLaunch()', () => {
         it('returns true the first time the Identity Agent runs', async () => {
-          await expect(testAgent.agent.firstLaunch()).to.eventually.be.true;
+          const result = await testHarness.agent.firstLaunch();
+          expect(result).to.be.true;
         });
 
         it('returns false after Identity Agent initialization', async () => {
-          await expect(testAgent.agent.firstLaunch()).to.eventually.be.true;
+          let result = await testHarness.agent.firstLaunch();
+          expect(result).to.be.true;
 
-          await testAgent.agent.initialize({ passphrase: 'test' });
-          await expect(testAgent.agent.firstLaunch()).to.eventually.be.false;
+          await testHarness.agent.initialize({ passphrase: 'test' });
+
+          result = await testHarness.agent.firstLaunch();
+          expect(result).to.be.false;
         });
       });
 
@@ -55,29 +57,33 @@ describe('Web5ProxyAgent', () => {
         describe('subsequent launches', () => {
           it('can access stored identifiers after second launch', async () => {
             // First launch and initialization.
-            await testAgent.agent.start({ passphrase: 'test' });
+            await testHarness.agent.initialize({ passphrase: 'test' });
+
+            // Start the Agent, which will decrypt and load the Agent's DID from the vault.
+            await testHarness.agent.start({ passphrase: 'test' });
 
             // Create and persist a new Identity (with DID and Keys).
-            const socialIdentity = await testAgent.agent.identityManager.create({
-              name      : 'Social',
-              didMethod : 'key',
-              kms       : 'local'
+            const socialIdentity = await testHarness.agent.identity.create({
+              metadata  : { name: 'Social' },
+              didMethod : 'jwk'
             });
 
             // Simulate terminating and restarting an app.
-            await testAgent.closeStorage();
-            testAgent = await TestManagedAgent.create({
+            await testHarness.closeStorage();
+            testHarness = await PlatformAgentTestHarness.setup({
               agentClass  : Web5ProxyAgent,
               agentStores : 'dwn'
             });
-            await testAgent.agent.start({ passphrase: 'test' });
+            await testHarness.agent.start({ passphrase: 'test' });
 
             // Try to get the identity and verify it exists.
-            const storedIdentity = await testAgent.agent.identityManager.get({
-              did     : socialIdentity.did,
-              context : socialIdentity.did
+            const storedIdentity = await testHarness.agent.identity.get({
+              didUri : socialIdentity.did.uri,
+              tenant : socialIdentity.did.uri
             });
-            expect(storedIdentity).to.have.property('did', socialIdentity.did);
+
+            expect(storedIdentity).to.exist;
+            expect(storedIdentity!.did).to.have.property('uri', socialIdentity.did.uri);
           });
         });
       }

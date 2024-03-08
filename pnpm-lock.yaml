@@ -800,17 +800,17 @@ importers:
   packages/proxy-agent:
     dependencies:
       '@web5/agent':
-        specifier: 0.2.6
-        version: 0.2.6
+        specifier: 0.3.0
+        version: link:../agent
       '@web5/common':
-        specifier: 0.2.3
-        version: 0.2.3
-      '@web5/crypto':
-        specifier: 0.2.2
-        version: 0.2.2
-      '@web5/dids':
         specifier: 0.2.4
-        version: 0.2.4
+        version: link:../common
+      '@web5/crypto':
+        specifier: 0.4.0
+        version: link:../crypto
+      '@web5/dids':
+        specifier: 0.4.1
+        version: link:../dids
     devDependencies:
       '@playwright/test':
         specifier: 1.40.1
