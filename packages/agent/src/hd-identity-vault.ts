@@ -154,9 +154,6 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
   constructor({ keyDerivationWorkFactor, store }: IdentityVaultParams = {}) {
     this._keyDerivationWorkFactor = keyDerivationWorkFactor ?? 210_000;
     this._store = store ?? new MemoryStore<string, string>();
-
-    // Set the initial status of the vault to uninitialized and locked.
-    this.setStatus({ initialized: false, locked: true });
   }
 
   /**
@@ -590,7 +587,7 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
     this._contentEncryptionKey = undefined;
 
     // Set the vault to locked.
-    await this.setStatus({ initialized: true, locked: true });
+    await this.setStatus({ locked: true });
   }
 
   /**
@@ -699,12 +696,6 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
    *         incorrect.
    */
   public async unlock({ passphrase }: { passphrase: string }): Promise<void> {
-    // Verify the identity vault has already been initialized.
-    const { initialized } = await this.getStatus();
-    if (initialized !== true) {
-      throw new Error(`HdIdentityVault: Unlock operation failed. Vault has not been initialized.`);
-    }
-
     // Lock the vault.
     await this.lock();
 
@@ -725,8 +716,6 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
       this._contentEncryptionKey = contentEncryptionKey;
 
     } catch (error: any) {
-      // If the decryption fails, the vault is considered locked.
-      await this.setStatus({ locked: true });
       throw new Error(`HdIdentityVault: Unable to unlock the vault due to an incorrect passphrase.`);
     }
 
