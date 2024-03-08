@@ -53,7 +53,7 @@ export type IdentityVaultParams = {
   store?: KeyValueStore<string, any>;
 }
 
-export interface IdentityVault<T extends Record<string, any> = { InitializeResult: void }> {
+export interface IdentityVault<T extends Record<string, any> = { InitializeResult: any }> {
   /**
    * Returns the DID associated with the {@link IdentityVault} instance.
    */
