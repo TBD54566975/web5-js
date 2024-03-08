@@ -1,15 +1,15 @@
 import type { Readable } from '@web5/common';
-import type { Signer as DwnSigner, GenericMessage, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
+import type { DwnConfig, Signer as DwnSigner, GenericMessage, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 
 import { Convert } from '@web5/common';
-import { DidResolver } from '@web5/dids';
-import { Cid, DataStream, Dwn, Message } from '@tbd54566975/dwn-sdk-js';
+import { utils as cryptoUtils } from '@web5/crypto';
+import { DidDht, DidJwk, DidResolver, DidResolverCacheLevel } from '@web5/dids';
+import { Cid, DataStoreLevel, DataStream, Dwn, EventLogLevel, Message, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
 
 import type { Web5PlatformAgent } from './types/agent.js';
 import type { DwnMessage, DwnMessageInstance, DwnMessageParams, DwnMessageReply, DwnMessageWithData, DwnResponse, ProcessDwnRequest, SendDwnRequest } from './types/dwn.js';
 
 import { DwnInterface, dwnMessageConstructors } from './types/dwn.js';
-import { utils as cryptoUtils } from '@web5/crypto';
 import { blobToIsomorphicNodeReadable, getDwnServiceEndpointUrls, isRecordsWrite, webReadableToIsomorphicNodeReadable } from './utils.js';
 
 export type DwnMessageWithBlob<T extends DwnInterface> = {
@@ -22,11 +22,8 @@ export type DwnApiParams = {
   dwn: Dwn;
 }
 
-export type DwnApiCreateParams = {
-  agent?: Web5PlatformAgent;
+export interface DwnApiCreateDwnParams extends Partial<DwnConfig> {
   dataPath?: string;
-  didResolver?: DidResolver;
-  dwn?: Dwn;
 }
 
 export function isDwnRequest<T extends DwnInterface>(
@@ -51,10 +48,11 @@ export class AgentDwnApi {
   private _dwn: Dwn;
 
   constructor({ agent, dwn }: DwnApiParams) {
+    // If an agent is provided, set it as the execution context for this API.
+    this._agent = agent;
+
     // Set the DWN instance for this API.
     this._dwn = dwn;
-
-    this._agent = agent;
   }
 
   /**
@@ -88,6 +86,26 @@ export class AgentDwnApi {
    */
   get node(): Dwn {
     return this._dwn;
+  }
+
+  public static async createDwn({
+    dataPath, dataStore, didResolver, eventLog, eventStream, messageStore, tenantGate
+  }: DwnApiCreateDwnParams): Promise<Dwn> {
+    dataStore ??= new DataStoreLevel({ blockstoreLocation: `${dataPath}/DWN_DATASTORE` });
+
+    didResolver ??= new DidResolver({
+      didResolvers : [DidDht, DidJwk],
+      cache        : new DidResolverCacheLevel({ location: `${dataPath}/DID_RESOLVERCACHE` }),
+    });
+
+    eventLog ??= new EventLogLevel({ location: `${dataPath}/DWN_EVENTLOG` });
+
+    messageStore ??= new MessageStoreLevel(({
+      blockstoreLocation : `${dataPath}/DWN_MESSAGESTORE`,
+      indexLocation      : `${dataPath}/DWN_MESSAGEINDEX`
+    }));
+
+    return await Dwn.create({ dataStore, didResolver, eventLog, eventStream, messageStore, tenantGate });
   }
 
   public async processRequest<T extends DwnInterface>(
