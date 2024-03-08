@@ -885,16 +885,16 @@ importers:
   packages/user-agent:
     dependencies:
       '@web5/agent':
-        specifier: workspace:*
+        specifier: 0.3.0
         version: link:../agent
       '@web5/common':
-        specifier: workspace:*
+        specifier: 0.2.4
         version: link:../common
       '@web5/crypto':
-        specifier: workspace:*
+        specifier: 0.4.0
         version: link:../crypto
       '@web5/dids':
-        specifier: workspace:*
+        specifier: 0.4.1
         version: link:../dids
     devDependencies:
       '@playwright/test':
