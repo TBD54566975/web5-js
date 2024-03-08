@@ -11,39 +11,38 @@ import type {
 } from '../../src/types/dwn.js';
 
 import type { Web5Rpc } from '../../src/rpc-client.js';
-import type { HdIdentityVault } from '../../src/hd-identity-vault.js';
+import type { AgentDwnApi } from '../../src/dwn-api.js';
+import type { AgentSyncApi } from '../../src/sync-api.js';
+import type { AgentCryptoApi } from '../../src/crypto-api.js';
+import type { AgentIdentityApi } from '../../src/identity-api.js';
+import type { AgentDidApi, DidInterface } from '../../src/did-api.js';
+import type { AgentKeyManager } from '../../src/types/key-manager.js';
+import type { IdentityVault } from '../../src/types/identity-vault.js';
 
-import { AgentDwnApi } from '../../src/dwn-api.js';
-import { AgentSyncApi } from '../../src/sync-api.js';
-import { AgentCryptoApi } from '../../src/crypto-api.js';
-import { AgentIdentityApi } from '../../src/identity-api.js';
-import { AgentDidApi, DidInterface } from '../../src/did-api.js';
-import { LocalKeyManager } from '../../src/local-key-manager.js';
-
-type TestAgentParams = {
-  agentVault: HdIdentityVault;
+type TestAgentParams<TKeyManager extends AgentKeyManager> = {
+  agentVault: IdentityVault;
   cryptoApi: AgentCryptoApi;
   didApi: AgentDidApi;
   dwnApi: AgentDwnApi;
-  identityApi: AgentIdentityApi;
-  keyManager: LocalKeyManager;
+  identityApi: AgentIdentityApi<TKeyManager>;
+  keyManager: TKeyManager;
   rpcClient: Web5Rpc;
   syncApi: AgentSyncApi;
 }
 
-export class TestAgent implements Web5PlatformAgent {
+export class TestAgent<TKeyManager extends AgentKeyManager> implements Web5PlatformAgent<TKeyManager> {
   public crypto: AgentCryptoApi;
   public did: AgentDidApi;
   public dwn: AgentDwnApi;
-  public identity: AgentIdentityApi;
-  public keyManager: LocalKeyManager;
+  public identity: AgentIdentityApi<TKeyManager>;
+  public keyManager: TKeyManager;
   public rpc: Web5Rpc;
   public sync: AgentSyncApi;
-  public vault: HdIdentityVault;
+  public vault: IdentityVault;
 
   private _agentDid?: BearerDid;
 
-  constructor(params: TestAgentParams) {
+  constructor(params: TestAgentParams<TKeyManager>) {
     this.crypto = params.cryptoApi;
     this.did = params.didApi;
     this.dwn = params.dwnApi;
@@ -72,15 +71,15 @@ export class TestAgent implements Web5PlatformAgent {
     this._agentDid = did;
   }
 
-  async firstLaunch(): Promise<boolean> {
+  public async firstLaunch(): Promise<boolean> {
     throw new Error('Not implemented');
   }
 
-  async initialize(_params: { passphrase: string; }): Promise<void> {
+  public async initialize(_params: { passphrase: string; }): Promise<void> {
     throw new Error('Not implemented');
   }
 
-  async processDidRequest(
+  public async processDidRequest(
     request: DidRequest<DidInterface>
   ): Promise<DidResponse<DidInterface>> {
     return this.did.processRequest(request);
@@ -92,27 +91,27 @@ export class TestAgent implements Web5PlatformAgent {
     return this.dwn.processRequest(request);
   }
 
-  async processVcRequest(_request: ProcessVcRequest): Promise<VcResponse> {
+  public async processVcRequest(_request: ProcessVcRequest): Promise<VcResponse> {
     throw new Error('Not implemented');
   }
 
-  async sendDidRequest<T extends DidInterface>(
+  public async sendDidRequest<T extends DidInterface>(
     _request: DidRequest<T>
   ): Promise<DidResponse<T>> {
     throw new Error('Not implemented');
   }
 
-  async sendDwnRequest<T extends DwnInterface>(
+  public async sendDwnRequest<T extends DwnInterface>(
     request: SendDwnRequest<T>
   ): Promise<DwnResponse<T>> {
     return this.dwn.sendRequest(request);
   }
 
-  async sendVcRequest(_request: SendVcRequest): Promise<VcResponse> {
+  public async sendVcRequest(_request: SendVcRequest): Promise<VcResponse> {
     throw new Error('Not implemented');
   }
 
-  async start(_params: { passphrase: string; }): Promise<void> {
+  public async start(_params: { passphrase: string; }): Promise<void> {
     throw new Error('Not implemented');
   }
 }

@@ -1,4 +1,3 @@
-import type { CryptoApi } from '@web5/crypto';
 import type {
   DidDocument,
   DidMetadata,
@@ -66,7 +65,7 @@ export type DidResponse<T extends DidInterface> = ResponseStatus & {
 };
 
 export interface DidCreateParams<
-  TKeyManager = CryptoApi,
+  TKeyManager = AgentKeyManager,
   TMethod extends keyof DidMethodCreateOptions<TKeyManager> = keyof DidMethodCreateOptions<TKeyManager>
 > {
   method: TMethod;
