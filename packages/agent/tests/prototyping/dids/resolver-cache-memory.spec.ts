@@ -1,18 +1,15 @@
 import type { DidResolverCache } from '@web5/dids';
 
-// Helper function to pause execution for a specified amount of time (in milliseconds).
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 import sinon from 'sinon';
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+import { expect } from 'chai';
 import { DidJwk, DidResolver } from '@web5/dids';
 
 import { DidResolverCacheMemory } from '../../../src/prototyping/dids/resolver-cache-memory.js';
 
-chai.use(chaiAsPromised);
+// Helper function to pause execution for a specified amount of time (in milliseconds).
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 describe('DidResolverCacheMemory', () => {
   let cache: DidResolverCacheMemory;
@@ -95,6 +92,28 @@ describe('DidResolverCacheMemory', () => {
     });
   });
 
+  describe('close()', () => {
+    it('is a no-op', async () => {
+      // Instantiate DID resolution cache with default TTL of 15 minutes.
+      cache = new DidResolverCacheMemory();
+
+      const testDid1 = 'did:example:alice';
+
+      const testDidResolutionResult = {
+        didResolutionMetadata : {},
+        didDocument           : { id: 'abc123' },
+        didDocumentMetadata   : {}
+      };
+
+      await cache.set(testDid1, testDidResolutionResult);
+
+      await cache.close();
+
+      let valueInCache = await cache.get(testDid1);
+      expect(valueInCache).to.deep.equal(testDidResolutionResult);
+    });
+  });
+
   describe('delete()', () => {
     it('removes specified entry from cache', async () => {
     // Instantiate DID resolution cache with default TTL of 15 minutes.
@@ -137,15 +156,21 @@ describe('DidResolverCacheMemory', () => {
       // Instantiate DID resolution cache with default TTL of 15 minutes.
       cache = new DidResolverCacheMemory();
 
-      await expect(
+      try {
         // @ts-expect-error - Test invalid input.
-        cache.get(null)
-      ).to.eventually.be.rejectedWith(Error, 'Key cannot be null or undefined');
+        await cache.get(null);
+        expect.fail('Expected an error to be thrown');
+      } catch (error: any) {
+        expect(error.message).to.include('Key cannot be null or undefined');
+      }
 
-      await expect(
+      try {
         // @ts-expect-error - Test invalid input.
-        cache.get(undefined)
-      ).to.eventually.be.rejectedWith(Error, 'Key cannot be null or undefined');
+        await cache.get(undefined);
+        expect.fail('Expected an error to be thrown');
+      } catch (error: any) {
+        expect(error.message).to.include('Key cannot be null or undefined');
+      }
     });
   });
 
