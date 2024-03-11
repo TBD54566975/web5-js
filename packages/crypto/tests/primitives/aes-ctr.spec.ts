@@ -45,9 +45,12 @@ describe('AesCtr', () => {
     });
 
     for (const vector of AesCtrDecryptTestVector.vectors) {
-      it(vector.description, async () => {
+      it(vector.description, async function () {
         const privateKeyBytes = Convert.hex(vector.input.key).toUint8Array();
         const privateKey = await AesCtr.bytesToPrivateKey({ privateKeyBytes });
+
+        // Skip the test if the key length is 192 bits and the runtime is Chrome browser.
+        if (navigator.userAgent.includes('Chrome') && privateKeyBytes.length === 24) this.skip();
 
         const ciphertext = await AesCtr.decrypt({
           key     : privateKey,
@@ -112,9 +115,12 @@ describe('AesCtr', () => {
     });
 
     for (const vector of AesCtrEncryptTestVector.vectors) {
-      it(vector.description, async () => {
+      it(vector.description, async function () {
         const privateKeyBytes = Convert.hex(vector.input.key).toUint8Array();
         const privateKey = await AesCtr.bytesToPrivateKey({ privateKeyBytes });
+
+        // Skip the test if the key length is 192 bits and the runtime is Chrome browser.
+        if (navigator.userAgent.includes('Chrome') && privateKeyBytes.length === 24) this.skip();
 
         const ciphertext = await AesCtr.encrypt({
           key     : privateKey,
@@ -176,7 +182,7 @@ describe('AesCtr', () => {
       expect(privateKey).to.have.property('kty', 'oct');
     });
 
-    it('supports key lengths of 128, 192, or 256 bits', async () => {
+    it('supports key lengths of 128 and 256 bits in all supported runtimes', async () => {
       let privateKey: Jwk;
       let privateKeyBytes: Uint8Array;
 
@@ -185,15 +191,22 @@ describe('AesCtr', () => {
       privateKeyBytes = Convert.base64Url(privateKey.k!).toUint8Array();
       expect(privateKeyBytes.byteLength).to.equal(16);
 
-      // 192 bits
-      privateKey = await AesCtr.generateKey({ length: 192 }) as JwkParamsOctPrivate;
-      privateKeyBytes = Convert.base64Url(privateKey.k!).toUint8Array();
-      expect(privateKeyBytes.byteLength).to.equal(24);
-
       // 256 bits
       privateKey = await AesCtr.generateKey({ length: 256 }) as JwkParamsOctPrivate;
       privateKeyBytes = Convert.base64Url(privateKey.k!).toUint8Array();
       expect(privateKeyBytes.byteLength).to.equal(32);
+    });
+
+    it('supports key lengths of 192 bits in all supported runtimes except Chrome browser', async function () {
+      if (navigator.userAgent.includes('Chrome')) this.skip();
+
+      let privateKey: Jwk;
+      let privateKeyBytes: Uint8Array;
+
+      // 192 bits
+      privateKey = await AesCtr.generateKey({ length: 192 }) as JwkParamsOctPrivate;
+      privateKeyBytes = Convert.base64Url(privateKey.k!).toUint8Array();
+      expect(privateKeyBytes.byteLength).to.equal(24);
     });
 
     it('throws an error if the key length is invalid', async () => {

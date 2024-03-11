@@ -197,10 +197,14 @@ export class AesGcm {
     // Import the JWK into the Web Crypto API to use for the decrypt operation.
     const webCryptoKey = await webCrypto.importKey('jwk', key, { name: 'AES-GCM' }, true, ['decrypt']);
 
-    // Browser implementations of the Web Crypto API throw an error if additionalData is undefined.
-    const algorithm = (additionalData === undefined)
-      ? { name: 'AES-GCM', iv, tagLength }
-      : { name: 'AES-GCM', additionalData, iv, tagLength };
+    // Note: Some browser implementations of the Web Crypto API throw an error if additionalData or
+    // tagLength are undefined, so only include them in the algorithm object if they are defined.
+    const algorithm = {
+      name: 'AES-GCM',
+      iv,
+      ...(tagLength && { tagLength }),
+      ...(additionalData && { additionalData})
+    };
 
     // Decrypt the data.
     const plaintextBuffer = await webCrypto.decrypt(algorithm, webCryptoKey, data);
@@ -269,10 +273,14 @@ export class AesGcm {
     // Import the JWK into the Web Crypto API to use for the encrypt operation.
     const webCryptoKey = await webCrypto.importKey('jwk', key, { name: 'AES-GCM' }, true, ['encrypt']);
 
-    // Browser implementations of the Web Crypto API throw an error if additionalData is undefined.
-    const algorithm = (additionalData === undefined)
-      ? { name: 'AES-GCM', iv, tagLength }
-      : { name: 'AES-GCM', additionalData, iv, tagLength };
+    // Note: Some browser implementations of the Web Crypto API throw an error if additionalData or
+    // tagLength are undefined, so only include them in the algorithm object if they are defined.
+    const algorithm = {
+      name: 'AES-GCM',
+      iv,
+      ...(tagLength && { tagLength }),
+      ...(additionalData && { additionalData})
+    };
 
     // Encrypt the data.
     const ciphertextBuffer = await webCrypto.encrypt(algorithm, webCryptoKey, data);
