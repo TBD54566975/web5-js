@@ -3,6 +3,7 @@ import { Convert } from '@web5/common';
 
 import type { Jwk } from '../../src/jose/jwk.js';
 
+import { isChrome } from '../utils/runtimes.js';
 import { randomBytes } from '../../src/utils.js';
 import { AesCtrAlgorithm } from '../../src/algorithms/aes-ctr.js';
 
@@ -79,7 +80,7 @@ describe('AesCtrAlgorithm', () => {
     });
 
     it(`supports 'A192CTR' algorithm in all supported runtimes except Chrome browser`, async function () {
-      if (navigator.userAgent.includes('Chrome')) this.skip();
+      if (isChrome) this.skip();
 
       const algorithms = ['A192CTR'] as const;
       for (const algorithm of algorithms) {

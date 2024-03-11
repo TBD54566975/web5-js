@@ -3,6 +3,7 @@ import { Convert } from '@web5/common';
 
 import type { Jwk } from '../../src/jose/jwk.js';
 
+import { isChrome } from '../utils/runtimes.js';
 import { randomBytes } from '../../src/utils.js';
 import { AesGcmAlgorithm } from '../../src/algorithms/aes-gcm.js';
 
@@ -80,7 +81,7 @@ describe('AesGcmAlgorithm', () => {
     });
 
     it(`supports 'A192GCM' algorithm in all supported runtimes except Chrome browser`, async function () {
-      if (navigator.userAgent.includes('Chrome')) this.skip();
+      if (isChrome) this.skip();
 
       const algorithms = ['A192GCM'] as const;
       for (const algorithm of algorithms) {

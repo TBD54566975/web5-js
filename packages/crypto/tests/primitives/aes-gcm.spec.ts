@@ -4,6 +4,7 @@ import chaiAsPromised from 'chai-as-promised';
 
 import type { Jwk, JwkParamsOctPrivate } from '../../src/jose/jwk.js';
 
+import { isChrome } from '../utils/runtimes.js';
 import { AesGcm, AES_GCM_TAG_LENGTHS } from '../../src/primitives/aes-gcm.js';
 import AesGcmDecryptTestVector from '../fixtures/test-vectors/aes-gcm/decrypt.json' assert { type: 'json' };
 import AesGcmEncryptTestVector from '../fixtures/test-vectors/aes-gcm/encrypt.json' assert { type: 'json' };
@@ -245,7 +246,7 @@ describe('AesGcm', () => {
     });
 
     it('supports key lengths of 192 bits in all supported runtimes except Chrome browser', async function () {
-      if (navigator.userAgent.includes('Chrome')) this.skip();
+      if (isChrome) this.skip();
 
       let privateKey: JwkParamsOctPrivate;
       let privateKeyBytes: Uint8Array;

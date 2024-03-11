@@ -4,6 +4,7 @@ import chaiAsPromised from 'chai-as-promised';
 
 import type { Jwk, JwkParamsOctPrivate } from '../../src/jose/jwk.js';
 
+import { isChrome } from '../utils/runtimes.js';
 import { AesCtr } from '../../src/primitives/aes-ctr.js';
 import AesCtrDecryptTestVector from '../fixtures/test-vectors/aes-ctr/decrypt.json' assert { type: 'json' };
 import AesCtrEncryptTestVector from '../fixtures/test-vectors/aes-ctr/encrypt.json' assert { type: 'json' };
@@ -50,7 +51,7 @@ describe('AesCtr', () => {
         const privateKey = await AesCtr.bytesToPrivateKey({ privateKeyBytes });
 
         // Skip the test if the key length is 192 bits and the runtime is Chrome browser.
-        if (navigator.userAgent.includes('Chrome') && privateKeyBytes.length === 24) this.skip();
+        if (isChrome && privateKeyBytes.length === 24) this.skip();
 
         const ciphertext = await AesCtr.decrypt({
           key     : privateKey,
@@ -120,7 +121,7 @@ describe('AesCtr', () => {
         const privateKey = await AesCtr.bytesToPrivateKey({ privateKeyBytes });
 
         // Skip the test if the key length is 192 bits and the runtime is Chrome browser.
-        if (navigator.userAgent.includes('Chrome') && privateKeyBytes.length === 24) this.skip();
+        if (isChrome && privateKeyBytes.length === 24) this.skip();
 
         const ciphertext = await AesCtr.encrypt({
           key     : privateKey,
@@ -198,7 +199,7 @@ describe('AesCtr', () => {
     });
 
     it('supports key lengths of 192 bits in all supported runtimes except Chrome browser', async function () {
-      if (navigator.userAgent.includes('Chrome')) this.skip();
+      if (isChrome) this.skip();
 
       let privateKey: Jwk;
       let privateKeyBytes: Uint8Array;
