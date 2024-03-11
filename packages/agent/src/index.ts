@@ -1,5 +1,5 @@
 export type * from './types/agent.js';
-export type * from './types/dwn.js';
+export * from './types/dwn.js';
 export type * from './types/identity.js';
 export type * from './types/identity-vault.js';
 export type * from './types/key-manager.js';

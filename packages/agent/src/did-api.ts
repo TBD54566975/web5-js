@@ -52,7 +52,6 @@ export type DidResolveResult = DidResolutionResult
 export type DidRequest<T extends DidInterface> = {
   messageType: T;
   messageParams: DidMessageParams[T];
-  store?: boolean;
 }
 
 export type DidResolveParams = {
