@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
         with:
           submodules: true
-    
+
       # https://cashapp.github.io/hermit/usage/ci/
       - name: Init Hermit
         uses: cashapp/activate-hermit@v1
@@ -59,7 +59,7 @@ jobs:
         run: pnpm --recursive --stream --sequential build:tests:node
 
       - name: Run tests for all packages
-        run: pnpm --recursive --stream exec c8 mocha -- --color --reporter mocha-junit-reporter --reporter-options mochaFile=./results.xml
+        run: pnpm --recursive --stream exec c8 mocha -- --color
         env:
           TEST_DWN_URL: http://localhost:3000
 
@@ -70,6 +70,41 @@ jobs:
         uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  sdk-reports:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          submodules: true
+
+      - name: Init Hermit
+        uses: cashapp/activate-hermit@v1
+        with:
+          cache: "true"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all workspace packages
+        run: pnpm --recursive --stream build:esm && pnpm --recursive --stream build:cjs
+
+      - name: Run dwn-server (background)
+        run: |
+          node node_modules/@web5/dwn-server/dist/esm/src/main.js &
+          echo "DWN_SERVER_BACKGROUND_PROCESS=$!" >> $GITHUB_ENV
+
+      - name: Build tests for all packages
+        run: pnpm --recursive --stream --sequential build:tests:node
+
+      - name: Run tests for all packages
+        run: pnpm --recursive --stream exec c8 mocha -- --color --reporter mocha-junit-reporter --reporter-options mochaFile=./results.xml
+        env:
+          TEST_DWN_URL: http://localhost:3000
+
+      - name: Terminate dwn-server
+        run: kill $DWN_SERVER_BACKGROUND_PROCESS || true
 
       - name: Upload test results to update SDK reports
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
