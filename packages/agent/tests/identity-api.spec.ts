@@ -48,9 +48,9 @@ describe('AgentIdentityApi', () => {
           agentClass  : TestAgent,
           agentStores : agentStoreType
         });
-        // });
+      });
 
-        // beforeEach(async () => {
+      beforeEach(async () => {
         await testHarness.clearStorage();
         await testHarness.createAgentDid();
       });
@@ -80,33 +80,69 @@ describe('AgentIdentityApi', () => {
         });
       });
 
-      describe('import()' , () => {
-        it('handles importing only the Identity Metadata to Agent tenant', async () => {
+      describe('manage()' , () => {
+        it('imports only the Identity Metadata to Agent tenant', async () => {
           // Create a new Identity, which by default is stored under the tenant of the created DID.
           const identity = await testHarness.agent.identity.create({
             didMethod : 'jwk',
             metadata  : { name: 'Test Identity' },
           });
 
-          // Attempt to import just the Identity Metadata (no PortableDid) to the Agent's tenant.
+          // Verify that the Identity is stored under the new Identity's tenant.
+          let storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri, tenant: identity.did.uri });
+          expect(storedIdentity).to.exist;
+
+          // Add a managed Identity to the Agent's tenant.
           const managedIdentity = await testHarness.agent.identity.manage({
             portableIdentity: await identity.export()
           });
           expect(managedIdentity).to.deep.equal(identity);
 
           // Verify that the Identity Metadata is stored under the Agent's tenant.
-          let storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri });
+          storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri });
           expect(storedIdentity).to.exist;
 
-          // Verify that the Identity is also stored under the new Identity's tenant.
-          storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri, tenant: identity.did.uri });
-          expect(storedIdentity).to.exist;
-
-          // Verify the DID ONLY exists under the new Identity's tenant.
+          // Verify the DID ONLY exists under the tenant of the previously created DID.
           let storedDidAgent = await testHarness.agent.did.get({ didUri: identity.did.uri });
           expect(storedDidAgent).to.not.exist;
           let storedDidNewIdentity = await testHarness.agent.did.get({ didUri: identity.did.uri, tenant: identity.did.uri });
           expect(storedDidNewIdentity).to.exist;
+        });
+      });
+
+      describe('list()', () => {
+        it('returns an array of all identities', async () => {
+          // Create three new identities all under the Agent's tenant.
+          const alice = await testHarness.agent.identity.create({
+            didMethod : 'jwk',
+            metadata  : { name: 'Alice' },
+            tenant    : testHarness.agent.agentDid.uri
+          });
+          const bob = await testHarness.agent.identity.create({
+            didMethod : 'jwk',
+            metadata  : { name: 'Bob' },
+            tenant    : testHarness.agent.agentDid.uri
+          });
+          const carol = await testHarness.agent.identity.create({
+            didMethod : 'jwk',
+            metadata  : { name: 'Carol' },
+            tenant    : testHarness.agent.agentDid.uri
+          });
+
+          // List identities and verify the result.
+          const storedIdentities = await testHarness.agent.identity.list();
+          expect(storedIdentities).to.have.length(3);
+
+          const createdIdentities = [alice.did.uri, bob.did.uri, carol.did.uri];
+          for (const storedIdentity of storedIdentities) {
+            expect(createdIdentities).to.include(storedIdentity.did.uri);
+          }
+        });
+
+        it('returns an empty array if the store contains no Identities', async () => {
+          // List identities and verify the result is empty.
+          const storedIdentities = await testHarness.agent.identity.list();
+          expect(storedIdentities).to.be.empty;
         });
       });
     });

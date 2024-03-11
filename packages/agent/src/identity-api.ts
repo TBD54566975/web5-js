@@ -177,6 +177,22 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
     return identity;
   }
 
+  public async list({ tenant }: {
+    tenant?: string;
+  } = {}): Promise<BearerIdentity[]> {
+    // Retrieve the list of Identities from the Agent's Identity store.
+    const storedIdentities = await this._store.list({ agent: this.agent, tenant });
+
+    const identities: BearerIdentity[] = [];
+
+    for (const metadata of storedIdentities) {
+      const identity = await this.get({ didUri: metadata.uri, tenant: metadata.tenant });
+      identities.push(identity!);
+    }
+
+    return identities;
+  }
+
   public async manage({ portableIdentity }: {
     portableIdentity: PortableIdentity;
   }): Promise<BearerIdentity> {
