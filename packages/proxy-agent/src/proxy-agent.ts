@@ -32,32 +32,32 @@ import {
 } from '@web5/agent';
 
 /**
- * Initialization parameters for {@link Web5ProxyAgent}, including an optional mnemonic that can
- * be used to derive keys to encrypt the vault and generate a DID.
+ * Initialization parameters for {@link Web5ProxyAgent}, including an optional recovery phrase that
+ * can be used to derive keys to encrypt the vault and generate a DID.
  */
 export type AgentInitializeParams = {
   /**
-    * The passphrase used to secure the Agent vault.
+    * The password used to secure the Agent vault.
     *
-    * The passphrase selected should be strong and securely managed to prevent unauthorized access.
+    * The password selected should be strong and securely managed to prevent unauthorized access.
     */
-   passphrase: string;
+   password: string;
 
-   /**
-    * An optional mnemonic phrase used to derive the cryptographic keys for the Agent vault.
-    *
-    * Providing a mnemonic can be used to recover the vault's content or establish a deterministic
-    * key generation scheme. If not provided, a new mnemonic may be generated during the
-    * initialization process.
-    */
-   mnemonic?: string;
+  /**
+   * An optional recovery phrase used to deterministically generate the cryptographic keys for the
+   * Agent vault.
+   *
+   * Supplying this phrase enables the vault's contents to be restored or replicated across devices.
+   * If omitted, a new phrase is generated, which should be securely recorded for future recovery needs.
+   */
+   recoveryPhrase?: string;
  };
 
 export type AgentStartParams = {
   /**
-   * The passphrase used to unlock the previously initialized Agent vault.
+   * The password used to unlock the previously initialized Agent vault.
    */
-  passphrase: string;
+  password: string;
  }
 
 export type AgentParams<TKeyManager extends AgentKeyManager = LocalKeyManager> = {
@@ -116,7 +116,10 @@ export class Web5ProxyAgent<TKeyManager extends AgentKeyManager = LocalKeyManage
 
   get agentDid(): BearerDid {
     if (this._agentDid === undefined) {
-      throw new Error('TestAgent: Agent DID is not set');
+      throw new Error(
+        'Web5ProxyAgent: The "agentDid" property is not set. Ensure the agent is properly ' +
+        'initialized and a DID is assigned.'
+      );
     }
     return this._agentDid;
   }
@@ -174,33 +177,31 @@ export class Web5ProxyAgent<TKeyManager extends AgentKeyManager = LocalKeyManage
   }
 
   public async firstLaunch(): Promise<boolean> {
-    // Check whether data vault is already initialized.
-    const { initialized } = await this.vault.getStatus();
-
-    return initialized === false;
+    // Check whether data vault is already initialize
+    return await this.vault.isInitialized() === false;
   }
 
   /**
-   * Initializes the User Agent with a passphrase, and optionally a mnemonic.
+   * Initializes the User Agent with a password, and optionally a recovery phrase.
    *
    * This method is typically called once, the first time the Agent is launched, and is responsible
    * for setting up the agent's operational environment, cryptographic key material, and readiness
    * for processing Web5 requests.
    *
-   * The passphrase is used to secure the Agent vault, and the mnemonic is used to derive the
-   * cryptographic keys for the vault. If a mnemonic is not provided, a new mnemonic will be
-   * generated and returned. The passphrase should be chosen and entered by the end-user.
+   * The password is used to secure the Agent vault, and the recovery phrase is used to derive the
+   * cryptographic keys for the vault. If a recovery phrase is not provided, a new recovery phrase
+   * will be generated and returned. The password should be chosen and entered by the end-user.
    */
-  public async initialize({ mnemonic, passphrase }: AgentInitializeParams): Promise<string> {
+  public async initialize({ password, recoveryPhrase }: AgentInitializeParams): Promise<string> {
     // Initialize the Agent vault.
-    mnemonic = await this.vault.initialize({ mnemonic, passphrase: passphrase });
+    recoveryPhrase = await this.vault.initialize({ password, recoveryPhrase });
 
-    return mnemonic;
+    return recoveryPhrase;
   }
 
-  async processDidRequest(
-    request: DidRequest<DidInterface>
-  ): Promise<DidResponse<DidInterface>> {
+  async processDidRequest<T extends DidInterface>(
+    request: DidRequest<T>
+  ): Promise<DidResponse<T>> {
     return this.did.processRequest(request);
   }
 
@@ -230,9 +231,11 @@ export class Web5ProxyAgent<TKeyManager extends AgentKeyManager = LocalKeyManage
     throw new Error('Not implemented');
   }
 
-  public async start({ passphrase }: AgentInitializeParams): Promise<string | void> {
-    // Unlock the data vault.
-    await this.vault.unlock({ passphrase });
+  public async start({ password }: AgentInitializeParams): Promise<void> {
+    // If the Agent vault is locked, unlock it.
+    if (this.vault.isLocked()) {
+      await this.vault.unlock({ password });
+    }
 
     // Set the Agent's DID.
     this.agentDid = await this.vault.getDid();
