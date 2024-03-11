@@ -50,26 +50,19 @@ Build and Test cycles are run on every commit to every branch using [GitHub Acti
 
 ## Development Prerequisites
 
-| Requirement | Tested Version | Installation Instructions                                                                      |
-| ----------- | -------------- | ---------------------------------------------------------------------------------------------- |
-| Node.js     | 18.16.0        | [Introduction to Node.js](https://nodejs.dev/en/learn/)                                        |
-| PNPM        | 8.15.3         | [PNPM Package Manager](https://pnpm.io/installation)                                           |
+### Hermit
+This project uses hermit to manage tooling like node. See [this page](https://cashapp.github.io/hermit/usage/get-started/) to set up Hermit on your machine - make sure to download the open source build and activate it for the project.
+
+Currently, we have these packages installed via Hermit (can also view by checking out `hermit status`):
+
+| Requirement | Tested Version | 
+| ----------- | -------------- | 
+| Node.js     | 20.9.0        | 
+| PNPM        | 8.15.4         |
 
 ### TypeScript
 
 This project is written in TypeScript, a strongly typed programming language that builds on JavaScript.
-
-You may verify your `node` and `pnpm` installation via the terminal:
-
-```
-$ node --version
-v18.16.0
-$ pnpm --version
-8.15.3
-```
-
-If you do not have Node.js installed, we recommend following the
-[Introduction to Node.js](https://nodejs.dev/en/learn/) guide.
 
 ## Contribution
 

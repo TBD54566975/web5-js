@@ -27,16 +27,11 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
 
-      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d #v3.0.0
+      # https://cashapp.github.io/hermit/usage/ci/
+      - name: Init Hermit
+        uses: cashapp/activate-hermit@v1
         with:
-          version: 8
-
-      - name: Set up Node.js
-        uses: actions/setup-node@5ef044f9d09786428e6e895be6be17937becee3a #v4.0.0
-        with:
-          node-version: 18
-          registry-url: https://registry.npmjs.org/
-          cache: 'pnpm'
+          cache: "true"
 
       # Note - this is not required but it gives a clean failure prior to attempting a release if
       # the GH workflow runner is not authenticated with NPMjs.com
@@ -67,7 +62,7 @@ jobs:
         run: |
           for package in $PACKAGES; do
             cd packages/$package
-            pnpm publish --tag alpha --no-git-tag-version --access public --provenance
+            pnpm publish --tag alpha --access public --provenance
             cd ../..
           done
         shell: bash
