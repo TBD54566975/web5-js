@@ -18,15 +18,11 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
 
-      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d #v3.0.0
+      # https://cashapp.github.io/hermit/usage/ci/
+      - name: Init Hermit
+        uses: cashapp/activate-hermit@v1
         with:
-          version: 8
-
-      - name: Set up Node.js
-        uses: actions/setup-node@5ef044f9d09786428e6e895be6be17937becee3a #v4.0.0
-        with:
-          node-version: 18
-          cache: 'pnpm'
+          cache: "true"
 
       - name: Report known vulnerabilities
         run: pnpm audit
@@ -39,16 +35,11 @@ jobs:
         with:
           submodules: true
     
-      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d #v3.0.0
+      # https://cashapp.github.io/hermit/usage/ci/
+      - name: Init Hermit
+        uses: cashapp/activate-hermit@v1
         with:
-          version: 8
-
-      - name: Set up Node.js
-        uses: actions/setup-node@5ef044f9d09786428e6e895be6be17937becee3a #v4.0.0
-        with:
-          node-version: 18
-          registry-url: https://registry.npmjs.org/
-          cache: 'pnpm'
+          cache: "true"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -64,8 +55,11 @@ jobs:
           node node_modules/@web5/dwn-server/dist/esm/src/main.js &
           echo "DWN_SERVER_BACKGROUND_PROCESS=$!" >> $GITHUB_ENV
 
+      - name: Build tests for all packages
+        run: pnpm --recursive --stream --sequential build:tests:node
+
       - name: Run tests for all packages
-        run: pnpm --recursive --no-stream --sequential test:node -- --color --reporter mocha-junit-reporter --reporter-options mochaFile=./results.xml
+        run: pnpm --recursive --stream exec c8 mocha -- --color --reporter mocha-junit-reporter --reporter-options mochaFile=./results.xml
         env:
           TEST_DWN_URL: http://localhost:3000
 
@@ -78,13 +72,13 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload test results to update SDK reports
-        uses: actions/upload-artifact@1eb3cb2b3e0f29609092a73eb033bb759a334595 # v4.1.0
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
         with:
           name: junit-results
           path: packages/*/results.xml
 
       - name: Generate an access token to trigger downstream repo
-        uses: actions/create-github-app-token@2986852ad836768dfea7781f31828eb3e17990fa # v1.6.2
+        uses: actions/create-github-app-token@f2acddfb5195534d487896a656232b016a682f3c # v1.9.0
         id: generate_token
         if: github.ref == 'refs/heads/main'
         with:
@@ -144,7 +138,7 @@ jobs:
 
       - name: Restore Cached Playwright Browsers
         id: cache-playwright-restore
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 #v3.3.2
+        uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 #v4.0.1
         with:
           path: ~/Library/Caches/ms-playwright
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
