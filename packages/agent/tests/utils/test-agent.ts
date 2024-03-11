@@ -79,9 +79,9 @@ export class TestAgent<TKeyManager extends AgentKeyManager> implements Web5Platf
     throw new Error('Not implemented');
   }
 
-  public async processDidRequest(
-    request: DidRequest<DidInterface>
-  ): Promise<DidResponse<DidInterface>> {
+  public async processDidRequest<T extends DidInterface>(
+    request: DidRequest<T>
+  ): Promise<DidResponse<T>> {
     return this.did.processRequest(request);
   }
 

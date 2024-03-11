@@ -71,13 +71,13 @@ export interface Web5Agent {
    * Processes a DID request, handling it internally within the agent and returning a DID response,
    * typically involving operations like DID creation or resolution.
    */
-  processDidRequest(request: DidRequest<DidInterface>): Promise<DidResponse<DidInterface>>
+  processDidRequest<T extends DidInterface>(request: DidRequest<T>): Promise<DidResponse<T>>
 
   /**
    * Sends a DID request to another entity or service, expecting a DID response, often used for
    * interactions involving DIDs occurring over a network or between different agents.
    */
-  sendDidRequest(request: DidRequest<DidInterface>): Promise<DidResponse<DidInterface>>;
+  sendDidRequest<T extends DidInterface>(request: DidRequest<T>): Promise<DidResponse<T>>;
 
   /**
    * Processes a request related to a Decentralized Web Node (DWN) and returns a corresponding
