@@ -17,40 +17,40 @@ import { DeterministicKeyGenerator } from './utils-internal.js';
 import { CompactJwe } from './prototyping/crypto/jose/jwe-compact.js';
 
 /**
- * Extended initialization parameters for HdIdentityVault, including an optional mnemonic that can
- * be used to derive keys to encrypt the vault and generate a DID.
+ * Extended initialization parameters for HdIdentityVault, including an optional recovery phrase
+ * that can be used to derive keys to encrypt the vault and generate a DID.
  */
 export type HdIdentityVaultInitializeParams = {
   /**
-    * The passphrase used to secure the vault.
+    * The password used to secure the vault.
     *
-    * The passphrase selected should be strong and securely managed to prevent unauthorized access.
+    * The password selected should be strong and securely managed to prevent unauthorized access.
     */
-   passphrase: string;
+   password: string;
 
    /**
-    * An optional mnemonic phrase used to derive the cryptographic keys for the vault.
+    * An optional recovery phrase used to derive the cryptographic keys for the vault.
     *
-    * Providing a mnemonic can be used to recover the vault's content or establish a deterministic
-    * key generation scheme. If not provided, a new mnemonic may be generated during the
-    * initialization process.
+    * Providing a recovery phrase can be used to recover the vault's content or establish a
+    * deterministic key generation scheme. If not provided, a new recovery phrase will be generated
+    * during the initialization process.
     */
-   mnemonic?: string;
+   recoveryPhrase?: string;
  };
 
 /**
  * Type guard function to check if a given object is an empty string or a string containing only
  * whitespace.
  *
- * This is an internal utility function used to validate passphrase inputs, ensuring they are not
- * empty or filled with only whitespace characters, which are considered invalid for passphrase
+ * This is an internal utility function used to validate password inputs, ensuring they are not
+ * empty or filled with only whitespace characters, which are considered invalid for password
  * purposes.
  *
- * @param obj - The object to be checked, typically expected to be a passphrase string.
+ * @param obj - The object to be checked, typically expected to be a password string.
  * @returns A boolean value indicating whether the object is an empty string or a string with only
  *          whitespace.
  */
-function isEmptyPassphrase(obj: unknown): obj is string {
+function isEmptyString(obj: unknown): obj is string {
   return typeof obj !== 'string' || obj.trim().length === 0;
 }
 
@@ -79,9 +79,9 @@ function isIdentityVaultBackup(obj: unknown): obj is IdentityVaultBackup {
  *
  * This function is utilized within the {@link HdIdentityVault} implementation to ensure the
  * integrity of the object representing the vault's status, verifying the presence and types of
- * required properties. It aasserts the presence and correct types of `initialized`, `locked`,
- * `lastBackup`, and `lastRestore` properties, ensuring they align with the expected structure of an
- * identity vault's status.
+ * required properties. It aasserts the presence and correct types of `initialized`, `lastBackup`,
+ * and `lastRestore` properties, ensuring they align with the expected structure of an identity
+ * vault's status.
  *
  * @param obj - The object to be checked against the {{@link IdentityVaultStatus} interface.
  * @returns A boolean indicating whether the object is an instance of {@link IdentityVaultStatus}.
@@ -89,7 +89,6 @@ function isIdentityVaultBackup(obj: unknown): obj is IdentityVaultBackup {
 function isIdentityVaultStatus(obj: unknown): obj is IdentityVaultStatus {
   return typeof obj === 'object' && obj !== null
     && 'initialized' in obj && typeof obj.initialized === 'boolean'
-    && 'locked' in obj && typeof obj.locked === 'boolean'
     && 'lastBackup' in obj
     && 'lastRestore' in obj;
 }
@@ -101,12 +100,13 @@ function isIdentityVaultStatus(obj: unknown): obj is IdentityVaultStatus {
  * and management of identity data with an added layer of security using Hierarchical Deterministic
  * (HD) key derivation based on the SLIP-0010 standard for Ed25519 keys. It enhances identity
  * protection by generating and securing the identity using a derived HD key, allowing for the
- * deterministic regeneration of keys from a mnemonic.
+ * deterministic regeneration of keys from a recovery phrase.
  *
  * The vault is capable of:
- * - Secure initialization with a passphrase and an optional mnemonic, employing HD key derivation.
+ * - Secure initialization with a password and an optional recovery phrase, employing HD key
+ *   derivation.
  * - Encrypting the identity data using a derived content encryption key (CEK) which is securely
- *   encrypted and stored, accessible only by the correct passphrase.
+ *   encrypted and stored, accessible only by the correct password.
  * - Securely backing up and restoring the vault’s contents, including the HD-derived keys and
  *   associated DID.
  * - Locking and unlocking the vault, which encrypts and decrypts the CEK for secure access to the
@@ -114,18 +114,18 @@ function isIdentityVaultStatus(obj: unknown): obj is IdentityVaultStatus {
  * - Managing the DID associated with the identity, providing a secure identity layer for
  *   applications.
  *
- * Usage involves initializing the vault with a secure passphrase (and optionally a mnemonic),
+ * Usage involves initializing the vault with a secure password (and optionally a recovery phrase),
  * which then allows for the secure storage, backup, and retrieval of the identity data.
  *
- * Note: Ensure the passphrase is strong and securely managed, as it is crucial for the security of the
+ * Note: Ensure the password is strong and securely managed, as it is crucial for the security of the
  * vault's encrypted contents.
  *
  * @example
  * ```typescript
  * const vault = new HdIdentityVault();
- * await vault.initialize({ passphrase: 'securepassphrase', mnemonic: 'optional mnemonic' });
+ * await vault.initialize({ password: 'secure-unique-phrase', recoveryPhrase: 'twelve words ...' });
  * const backup = await vault.backup();
- * await vault.restore({ backup, passphrase: 'securepassphrase' });
+ * await vault.restore({ backup, password: 'secure-unique-phrase' });
  * ```
  */
 export class HdIdentityVault implements IdentityVault<{ InitializeResult: string }> {
@@ -171,12 +171,11 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
    */
   public async backup(): Promise<IdentityVaultBackup> {
     // Verify the identity vault has already been initialized and unlocked.
-    const { initialized, locked } = await this.getStatus();
-    if (!(initialized === true && locked === false && this._contentEncryptionKey)) {
+    if (this.isLocked() || await this.isInitialized() === false) {
       throw new Error(
         'HdIdentityVault: Unable to proceed with the backup operation because the identity vault ' +
         'has not been initialized and unlocked. Please ensure the vault is properly initialized ' +
-        'with a secure passphrase before attempting to backup its contents.'
+        'with a secure password before attempting to backup its contents.'
       );
     }
 
@@ -195,36 +194,35 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
       size        : backupDataString.length
     };
 
-    // Update the last backup date in the data store.
+    // Update the last backup timestamp in the data store.
     await this.setStatus({ lastBackup: backup.dateCreated });
 
     return backup;
   }
 
   /**
-   * Changes the passphrase used to secure the vault.
+   * Changes the password used to secure the vault.
    *
-   * This method decrypts the existing content encryption key (CEK) with the old passphrase, then
-   * re-encrypts it with the new passphrase, updating the vault's stored encrypted CEK. It ensures
-   * that the vault is initialized and unlocks the vault if the passphrase is successfully changed.
+   * This method decrypts the existing content encryption key (CEK) with the old password, then
+   * re-encrypts it with the new password, updating the vault's stored encrypted CEK. It ensures
+   * that the vault is initialized and unlocks the vault if the password is successfully changed.
    *
-   * @param params - Parameters required for changing the vault passphrase.
-   * @param params.oldPassphrase - The current passphrase used to unlock the vault.
-   * @param params.newPassphrase - The new passphrase to replace the existing one.
-   * @throws Error if the vault is not initialized or the old passphrase is incorrect.
-   * @returns A promise that resolves when the passphrase change is complete.
+   * @param params - Parameters required for changing the vault password.
+   * @param params.oldPassword - The current password used to unlock the vault.
+   * @param params.newPassword - The new password to replace the existing one.
+   * @throws Error if the vault is not initialized or the old password is incorrect.
+   * @returns A promise that resolves when the password change is complete.
    */
-  public async changePassphrase({ oldPassphrase, newPassphrase }: {
-    oldPassphrase: string;
-    newPassphrase: string;
+  public async changePassword({ oldPassword, newPassword }: {
+    oldPassword: string;
+    newPassword: string;
   }): Promise<void> {
     // Verify the identity vault has already been initialized.
-    const { initialized } = await this.getStatus();
-    if (initialized !== true) {
+    if (await this.isInitialized() === false) {
       throw new Error(
-        'HdIdentityVault: Unable to proceed with the change passphrase operation because the ' +
+        'HdIdentityVault: Unable to proceed with the change password operation because the ' +
         'identity vault has not been initialized. Please ensure the vault is properly ' +
-        'initialized with a secure passphrase before trying again.'
+        'initialized with a secure password before trying again.'
       );
     }
 
@@ -234,28 +232,26 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
     // Retrieve the content encryption key (CEK) record as a compact JWE from the data store.
     const cekJwe = await this.getStoredContentEncryptionKey();
 
-    // Decrypt the compact JWE using the given `oldPassphrase` to verify it is correct.
+    // Decrypt the compact JWE using the given `oldPassword` to verify it is correct.
     let protectedHeader: JweHeaderParams;
     let contentEncryptionKey: Jwk;
     try {
       let contentEncryptionKeyBytes: Uint8Array;
       ({ plaintext: contentEncryptionKeyBytes, protectedHeader } = await CompactJwe.decrypt({
         jwe        : cekJwe,
-        key        : Convert.string(oldPassphrase).toUint8Array(),
+        key        : Convert.string(oldPassword).toUint8Array(),
         crypto     : this.crypto,
         keyManager : new LocalKeyManager()
       }));
       contentEncryptionKey = Convert.uint8Array(contentEncryptionKeyBytes).toObject() as Jwk;
 
     } catch (error: any) {
-      // If the decryption fails, the vault is considered locked.
-      await this.setStatus({ locked: true });
-      throw new Error(`HdIdentityVault: Unable to change the vault passphrase due to an incorrectly entered old passphrase.`);
+      throw new Error(`HdIdentityVault: Unable to change the vault password due to an incorrectly entered old password.`);
     }
 
-    // Re-encrypt the vault content encryption key (CEK) using the new passphrase.
+    // Re-encrypt the vault content encryption key (CEK) using the new password.
     const newCekJwe = await CompactJwe.encrypt({
-      key        : Convert.string(newPassphrase).toUint8Array(),
+      key        : Convert.string(newPassword).toUint8Array(),
       protectedHeader, // Re-use the protected header from the original JWE.
       plaintext  : Convert.object(contentEncryptionKey).toUint8Array(),
       crypto     : this.crypto,
@@ -265,11 +261,8 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
     // Update the vault with the new CEK JWE.
     await this._store.set('contentEncryptionKey', newCekJwe);
 
-    // Update the vault CEK in memory.
+    // Update the vault CEK in memory, effectively unlocking the vault.
     this._contentEncryptionKey = contentEncryptionKey;
-
-    // Set the vault to unlocked.
-    await this.setStatus({ locked: false });
   }
 
   /**
@@ -282,9 +275,8 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
    * @returns A promise that resolves with a {@link BearerDid}.
    */
   public async getDid(): Promise<BearerDid> {
-    // Verify the identity vault has been initialized and is unlocked.
-    const { initialized, locked } = await this.getStatus();
-    if (!(initialized === true && locked === false && this._contentEncryptionKey)) {
+    // Verify the identity vault is unlocked.
+    if (this.isLocked()) {
       throw new Error(`HdIdentityVault: Vault has not been initialized and unlocked.`);
     }
 
@@ -294,7 +286,7 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
     // Decrypt the compact JWE to obtain the PortableDid as a byte array.
     const { plaintext: portableDidBytes } = await CompactJwe.decrypt({
       jwe        : didJwe,
-      key        : this._contentEncryptionKey,
+      key        : this._contentEncryptionKey!,
       crypto     : this.crypto,
       keyManager : new LocalKeyManager()
     });
@@ -311,7 +303,7 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
 
   /**
    * Fetches the current status of the `HdIdentityVault`, providing details on whether it's
-   * initialized, locked, and the timestamps of the last backup and restore operations.
+   * initialized and the timestamps of the last backup and restore operations.
    *
    * @returns A promise that resolves with the current status of the `HdIdentityVault`, detailing
    *          its initialization, lock state, and the timestamps of the last backup and restore.
@@ -324,7 +316,6 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
     if (!storedStatus) {
       return {
         initialized : false,
-        locked      : true,
         lastBackup  : null,
         lastRestore : null
       };
@@ -339,63 +330,75 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
   }
 
   /**
-   * Initializes the `HdIdentityVault` with a passphrase and an optional mnemonic.
+   * Initializes the `HdIdentityVault` with a password and an optional recovery phrase.
    *
-   * If a mnemonic is not provided, a new one is generated. This process sets up the vault, deriving
-   * the necessary cryptographic keys and preparing the vault for use. It ensures the vault is ready
-   * to securely store and manage identity data.
+   * If a recovery phrase is not provided, a new one is generated. This process sets up the vault,
+   * deriving the necessary cryptographic keys and preparing the vault for use. It ensures the vault
+   * is ready to securely store and manage identity data.
    *
    * @example
    * ```ts
    * const identityVault = new HdIdentityVault();
-   * const mnemonic = await identityVault.initialize({
-   *   passphrase: 'your-secure-passphrase'
+   * const recoveryPhrase = await identityVault.initialize({
+   *   password: 'your-secure-phrase'
    * });
-   * console.log('Vault initialized. Mnemonic:', mnemonic);
+   * console.log('Vault initialized. Recovery phrase:', recoveryPhrase);
    * ```
    *
    * @param params - The initialization parameters.
-   * @param params.passphrase - The passphrase used to secure the vault.
-   * @param params.mnemonic - An optional mnemonic for key derivation. If omitted, a new mnemonic is
-   *                          generated.
-   * @returns A promise that resolves with the mnemonic used during the initialization, which should
-   *          be securely stored by the user.
+   * @param params.password - The password used to secure the vault.
+   * @param params.recoveryPhrase - An optional 12-word recovery phrase for key derivation. If
+   *                                omitted, a new recovery is generated.
+   * @returns A promise that resolves with the recovery phrase used during the initialization, which
+   *          should be securely stored by the user.
    */
-  public async initialize({ mnemonic, passphrase }: HdIdentityVaultInitializeParams): Promise<string> {
+  public async initialize({ password, recoveryPhrase }:
+    HdIdentityVaultInitializeParams
+  ): Promise<string> {
     /**
      * STEP 0: Validate the input parameters and verify the identity vault is not already
      * initialized.
      */
 
     // Verify that the identity vault was not previously initialized.
-    const vaultStatus = await this.getStatus();
-    if (vaultStatus.initialized === true) {
+    if (await this.isInitialized()) {
       throw new Error(`HdIdentityVault: Vault has already been initialized.`);
     }
 
-    // Verify that the passphrase is not empty.
-    if (isEmptyPassphrase(passphrase)) {
+    // Verify that the password is not empty.
+    if (isEmptyString(password)) {
       throw new Error(
-        `HdIdentityVault: The passphrase is required and cannot be blank. Please provide a ' +
-        'valid, non-empty passphrase.`
+        `HdIdentityVault: The password is required and cannot be blank. Please provide a ' +
+        'valid, non-empty password.`
+      );
+    }
+
+    // If provided, verify that the recovery phrase is not empty.
+    if (recoveryPhrase && isEmptyString(recoveryPhrase)) {
+      throw new Error(
+        `HdIdentityVault: The password is required and cannot be blank. Please provide a ' +
+        'valid, non-empty password.`
       );
     }
 
     /**
      * STEP 1: Derive a Hierarchical Deterministic (HD) key pair from the given (or generated)
-     * mnemonic.
+     * recoveryPhrase.
      */
 
     // Generate a 12-word (128-bit) mnemonic, if one was not provided.
-    mnemonic ??= generateMnemonic(wordlist, 128);
+    recoveryPhrase ??= generateMnemonic(wordlist, 128);
 
     // Validate the mnemonic for being 12-24 words contained in `wordlist`.
-    if (!validateMnemonic(mnemonic, wordlist)) {
-      throw new Error('HdIdentityVault: Invalid mnemonic');
+    if (!validateMnemonic(recoveryPhrase, wordlist)) {
+      throw new Error(
+        'HdIdentityVault: The provided recovery phrase is invalid. Please ensure that the ' +
+        'recovery phrase is a correctly formatted series of 12 words.'
+      );
     }
 
     // Derive a root seed from the mnemonic.
-    const rootSeed = await mnemonicToSeed(mnemonic);
+    const rootSeed = await mnemonicToSeed(recoveryPhrase);
 
     // Derive a root key for the DID from the root seed.
     const rootHdKey = HDKey.fromMasterSeed(rootSeed);
@@ -426,7 +429,7 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
     });
 
     /**
-     * STEP 4: Using the given `passphrase` and a `salt` derived from the vault public key, encrypt
+     * STEP 4: Using the given `password` and a `salt` derived from the vault public key, encrypt
      * the vault CEK and store it in the data store as a compact JWE.
      */
 
@@ -451,7 +454,7 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
 
     // Encrypt the vault content encryption key (CEK) to compact JWE format.
     const cekJwe = await CompactJwe.encrypt({
-      key             : Convert.string(passphrase).toUint8Array(),
+      key             : Convert.string(password).toUint8Array(),
       protectedHeader : cekJweProtectedHeader,
       plaintext       : Convert.object(contentEncryptionKey).toUint8Array(),
       crypto          : this.crypto,
@@ -546,24 +549,63 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
     await this._store.set('did', didJwe);
 
     /**
-     * STEP 7: Set the vault to initialized and unlocked and return the mnemonic used to generate
-     * the vault key.
+     * STEP 7: Set the vault CEK (effectively unlocking the vault), set the status to initialized,
+     * and return the mnemonic used to generate the vault key.
      */
 
     this._contentEncryptionKey = contentEncryptionKey;
 
-    await this.setStatus({ initialized: true, locked: false });
+    await this.setStatus({ initialized: true });
 
-    // Return the mnemonic in case it was generated so that it can be displayed to the user for
-    // safekeeping.
-    return mnemonic;
+    // Return the recovery phrase in case it was generated so that it can be displayed to the user
+    // for safekeeping.
+    return recoveryPhrase;
+  }
+
+  /**
+   * Determines whether the vault has been initialized.
+   *
+   * This method checks the vault's current status to determine if it has been
+   * initialized. Initialization is a prerequisite for most operations on the vault,
+   * ensuring that it is ready for use.
+   *
+   * @example
+   * ```ts
+   * const isInitialized = await identityVault.isInitialized();
+   * console.log('Is the vault initialized?', isInitialized);
+   * ```
+   *
+   * @returns A promise that resolves to `true` if the vault has been initialized, otherwise `false`.
+   */
+  public async isInitialized(): Promise<boolean> {
+    return this.getStatus().then(({ initialized }) => initialized);
+  }
+
+  /**
+   * Checks if the vault is currently locked.
+   *
+   * This method assesses the vault's current state to determine if it is locked.
+   * A locked vault restricts access to its contents, requiring the correct password
+   * to unlock and access the stored identity data. The vault must be unlocked to
+   * perform operations that access or modify its contents.
+   *
+   * @example
+   * ```ts
+   * const isLocked = await identityVault.isLocked();
+   * console.log('Is the vault locked?', isLocked);
+   * ```
+   *
+   * @returns `true` if the vault is locked, otherwise `false`.
+   */
+  public isLocked(): boolean {
+    return !this._contentEncryptionKey;
   }
 
   /**
    * Locks the `HdIdentityVault`, securing its contents by clearing the in-memory encryption key.
    *
    * This method ensures that the vault's sensitive data cannot be accessed without unlocking the
-   * vault again with the correct passphrase. It's an essential security feature for safeguarding
+   * vault again with the correct password. It's an essential security feature for safeguarding
    * the vault's contents against unauthorized access.
    *
    * @example
@@ -577,17 +619,13 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
    */
   public async lock(): Promise<void> {
     // Verify the identity vault has already been initialized.
-    const { initialized } = await this.getStatus();
-    if (initialized !== true) {
+    if (await this.isInitialized() === false) {
       throw new Error(`HdIdentityVault: Lock operation failed. Vault has not been initialized.`);
     }
 
-    // Clear the vault content encryption key (CEK) from memory.
+    // Clear the vault content encryption key (CEK), effectively locking the vault.
     if (this._contentEncryptionKey) this._contentEncryptionKey.k = '';
     this._contentEncryptionKey = undefined;
-
-    // Set the vault to locked.
-    await this.setStatus({ locked: true });
   }
 
   /**
@@ -595,28 +633,28 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
    * content with the provided backup data.
    *
    * This operation is crucial for data recovery scenarios, allowing users to regain access to their
-   * encrypted data using a previously saved backup and their passphrase.
+   * encrypted data using a previously saved backup and their password.
    *
    * @example
    * ```ts
    * const identityVault = new HdIdentityVault();
-   * await identityVault.initialize({ passphrase: 'your-secure-passphrase' });
+   * await identityVault.initialize({ password: 'your-secure-phrase' });
    * // Create a backup of the vault's contents.
    * const backup = await identityVault.backup();
-   * // Restore the vault with the same passphrase.
-   * await identityVault.restore({ backup: backup, passphrase: 'your-secure-passphrase' });
+   * // Restore the vault with the same password.
+   * await identityVault.restore({ backup: backup, password: 'your-secure-phrase' });
    * console.log('Vault restored successfully.');
    * ```
    *
    * @param params - The parameters required for the restore operation.
    * @param params.backup - The backup object containing the encrypted vault data.
-   * @param params.passphrase - The passphrase used to encrypt the backup, necessary for decryption.
+   * @param params.password - The password used to encrypt the backup, necessary for decryption.
    * @returns A promise that resolves when the vault has been successfully restored.
-   * @throws An error if the backup object is invalid or if the passphrase is incorrect.
+   * @throws An error if the backup object is invalid or if the password is incorrect.
    */
-  public async restore({ backup, passphrase }: {
+  public async restore({ backup, password }: {
     backup: IdentityVaultBackup;
-    passphrase: string;
+    password: string;
   }): Promise<void> {
     // Validate the backup object.
     if (!isIdentityVaultBackup(backup)) {
@@ -649,8 +687,8 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
       await this._store.set('contentEncryptionKey', backupData.contentEncryptionKey);
       await this.setStatus(backupData.status);
 
-      // Attempt to unlock the vault with the given `passphrase`.
-      await this.unlock({ passphrase });
+      // Attempt to unlock the vault with the given `password`.
+      await this.unlock({ password });
 
     } catch (error: any) {
       // If the restore operation fails, revert the data store to the status and contents that were
@@ -661,19 +699,17 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
 
       throw new Error(
         'HdIdentityVault: Restore operation failed due to invalid backup data or an incorrect ' +
-        'passphrase. Please verify the passphrase is correct for the provided backup and try again.'
+        'password. Please verify the password is correct for the provided backup and try again.'
       );
     }
 
-    // Update the status of the vault.
-    await this.setStatus({
-      lastRestore: new Date().toISOString()
-    });
+    // Update the last restore timestamp in the data store.
+    await this.setStatus({ lastRestore: new Date().toISOString() });
   }
 
   /**
    * Unlocks the vault by decrypting the stored content encryption key (CEK) using the provided
-   * passphrase.
+   * password.
    *
    * This method is essential for accessing the vault's encrypted contents, enabling the decryption
    * of stored data and the execution of further operations requiring the vault to be unlocked.
@@ -681,21 +717,21 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
    * @example
    * ```ts
    * const identityVault = new HdIdentityVault();
-   * await identityVault.initialize({ passphrase: 'your-initial-passphrase' });
-   * // Unlock the vault with the correct passphrase before accessing its contents
-   * await identityVault.unlock({ passphrase: 'your-initial-passphrase' });
+   * await identityVault.initialize({ password: 'your-initial-phrase' });
+   * // Unlock the vault with the correct password before accessing its contents
+   * await identityVault.unlock({ password: 'your-initial-phrase' });
    * console.log('Vault unlocked successfully.');
    * ```
    *
    *
    * @param params - The parameters required for the unlock operation.
-   * @param params.passphrase - The passphrase used to encrypt the vault's CEK, necessary for
+   * @param params.password - The password used to encrypt the vault's CEK, necessary for
    *                            decryption.
    * @returns A promise that resolves when the vault has been successfully unlocked.
-   * @throws An error if the vault has not been initialized or if the provided passphrase is
+   * @throws An error if the vault has not been initialized or if the provided password is
    *         incorrect.
    */
-  public async unlock({ passphrase }: { passphrase: string }): Promise<void> {
+  public async unlock({ password }: { password: string }): Promise<void> {
     // Lock the vault.
     await this.lock();
 
@@ -706,21 +742,18 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
     try {
       const { plaintext: contentEncryptionKeyBytes } = await CompactJwe.decrypt({
         jwe        : cekJwe,
-        key        : Convert.string(passphrase).toUint8Array(),
+        key        : Convert.string(password).toUint8Array(),
         crypto     : this.crypto,
         keyManager : new LocalKeyManager()
       });
       const contentEncryptionKey = Convert.uint8Array(contentEncryptionKeyBytes).toObject() as Jwk;
 
-      // Save the content encryption key in memory.
+      // Save the content encryption key in memory, thereby unlocking the vault.
       this._contentEncryptionKey = contentEncryptionKey;
 
     } catch (error: any) {
-      throw new Error(`HdIdentityVault: Unable to unlock the vault due to an incorrect passphrase.`);
+      throw new Error(`HdIdentityVault: Unable to unlock the vault due to an incorrect password.`);
     }
-
-    // If the decryption is successful, the vault is considered unlocked.
-    await this.setStatus({ locked: false });
   }
 
   /**
@@ -753,7 +786,7 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
    * Retrieves the encrypted Content Encryption Key (CEK) from the vault's storage.
    *
    * This CEK is used for encrypting and decrypting the vault's contents. It is stored as a
-   * compact JWE and should be decrypted with the user's passphrase to be used for further
+   * compact JWE and should be decrypted with the user's password to be used for further
    * cryptographic operations.
    *
    * @returns A promise that resolves to the stored CEK as a string in compact JWE format.
@@ -783,19 +816,17 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
    *
    * @param params - The status properties to be updated.
    * @param params.initialized - Updates the initialization state of the vault.
-   * @param params.locked - Updates the locked state of the vault.
    * @param params.lastBackup - Updates the timestamp of the last successful backup.
    * @param params.lastRestore - Updates the timestamp of the last successful restore.
    * @returns A promise that resolves to a boolean indicating successful status update.
    * @throws Will throw an error if the status cannot be updated in the key-value store.
    */
-  private async setStatus({ initialized, locked, lastBackup, lastRestore }: Partial<IdentityVaultStatus>): Promise<boolean> {
+  private async setStatus({ initialized, lastBackup, lastRestore }: Partial<IdentityVaultStatus>): Promise<boolean> {
     // Get the current status values from the store, if any.
     let vaultStatus = await this.getStatus();
 
     // Update the status properties with new values specified, if any.
     vaultStatus.initialized = initialized ?? vaultStatus.initialized;
-    vaultStatus.locked = locked ?? vaultStatus.locked;
     vaultStatus.lastBackup = lastBackup ?? vaultStatus.lastBackup;
     vaultStatus.lastRestore = lastRestore ?? vaultStatus.lastRestore;
 

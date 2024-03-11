@@ -55,6 +55,24 @@ export type IdentityVaultParams = {
 
 export interface IdentityVault<T extends Record<string, any> = { InitializeResult: any }> {
   /**
+   * Creates a backup of the current state of the IdentityVault instance returning an
+   * {@link IdentityVaultBackup} object.
+   *
+   * The IdentityVault must be initialized and unlocked or the backup operation will fail.
+   */
+  backup(): Promise<IdentityVaultBackup>;
+
+  /**
+   * Attempts to change the password of the IdentityVault.
+   *
+   * The IdentityVault must be initialized and the old password correct or the operation will fail.
+   *
+   * @throws An error if the IdentityVault has not been initialized or the `oldPassword` is
+   *         incorrect.
+   */
+  changePassword(params: { oldPassword: string, newPassword: string }): Promise<void>;
+
+  /**
    * Returns the DID associated with the {@link IdentityVault} instance.
    */
   getDid(): Promise<BearerDid>
@@ -66,47 +84,39 @@ export interface IdentityVault<T extends Record<string, any> = { InitializeResul
   getStatus(): Promise<IdentityVaultStatus>
 
   /**
-   * Initializes the IdentityVault instance with the given `passphrase`.
+   * Initializes the IdentityVault instance with the given `password`.
    */
-  initialize(params: { passphrase: string }): Promise<T['InitializeResult']>;
+  initialize(params: { password: string }): Promise<T['InitializeResult']>;
 
   /**
-   * Creates a backup of the current state of the IdentityVault instance returning an
-   * {@link IdentityVaultBackup} object.
-   *
-   * The IdentityVault must be initialized and unlocked or the backup operation will fail.
+   * Returns a boolean indicating whether the IdentityVault has been initialized.
    */
-  backup(): Promise<IdentityVaultBackup>;
+  isInitialized(): Promise<boolean>;
+
+  /**
+   * Returns a boolean indicating whether the IdentityVault is currently locked.
+   */
+  isLocked(): boolean;
+
+  /**
+   * Locks the IdentityVault, secured by a password that must be entered to unlock.
+   */
+  lock(): Promise<void>;
 
   /**
    * Restores the IdentityVault instance to the state in the provided {@link IdentityVaultBackup}
    * object.
    *
-   * @throws An error if the backup is invalid or the passphrase is incorrect.
+   * @throws An error if the backup is invalid or the password is incorrect.
    */
-  restore(params: { backup: IdentityVaultBackup, passphrase: string }): Promise<void>;
+  restore(params: { backup: IdentityVaultBackup, password: string }): Promise<void>;
 
   /**
-   * Locks the IdentityVault, secured by a passphrase that must be entered to unlock.
-   */
-  lock(): Promise<void>;
-
-  /**
-   * Attempts to unlock the IdentityVault with the provided passphrase.
+   * Attempts to unlock the IdentityVault with the provided password.
    *
-   * @throws An error if the passphrase is incorrect.
+   * @throws An error if the password is incorrect.
    */
-  unlock(params: { passphrase: string }): Promise<void>;
-
-  /**
-   * Attempts to change the passphrase of the IdentityVault.
-   *
-   * The IdentityVault must be initialized and the old passphrase correct or the operation will fail.
-   *
-   * @throws An error if the IdentityVault has not been initialized or the `oldPassphrase` is
-   *         incorrect.
-   */
-  changePassphrase(params: { oldPassphrase: string, newPassphrase: string }): Promise<void>;
+  unlock(params: { password: string }): Promise<void>;
 }
 
 export type IdentityVaultStatus = {
@@ -114,11 +124,6 @@ export type IdentityVaultStatus = {
    * Boolean indicating whether the IdentityVault has been initialized.
    */
   initialized: boolean;
-
-  /**
-   * Boolean indicating whether the IdentityVault is currently locked.
-   */
-  locked: boolean;
 
   /**
    * The timestamp of the last backup.
