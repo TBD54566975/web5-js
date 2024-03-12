@@ -15,7 +15,7 @@
       "type": "node",
       "request": "launch",
       "name": "test:node",
-      "runtimeExecutable": "${workspaceFolder:root}/node_modules/.bin/mocha",
+      "runtimeExecutable": "${workspaceFolder:api}/node_modules/.bin/mocha",
       "console": "internalConsole",
       "preLaunchTask": "build tests",
       "skipFiles": [
