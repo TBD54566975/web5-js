@@ -515,10 +515,13 @@ describe('DidKey', () => {
       });
 
       it('throws an error if unsupported JOSE has been passed', async () => {
-        await expect(
+        try {
           // @ts-expect-error because parameters are intentionally omitted to trigger an error.
-          DidKeyUtils.jwkToMulticodec({ jwk: { crv: '123' } })
-        ).to.eventually.be.rejectedWith(Error, `Unsupported JWK to Multicodec conversion: '123:public'`);
+          await DidKeyUtils.jwkToMulticodec({ jwk: { crv: '123' } });
+          expect.fail('Expected an error to be thrown.');
+        } catch (error: any) {
+          expect(error.message).to.include(`Unsupported JWK to Multicodec conversion: '123:public'`);
+        }
       });
     });
 
@@ -658,28 +661,34 @@ describe('DidKey', () => {
       });
 
       it('throws an error for an unsupported public key type', async () => {
-        await expect(
-          DidKeyUtils.publicKeyToMultibaseId({
+        try {
+          await DidKeyUtils.publicKeyToMultibaseId({
             publicKey: {
               kty : 'RSA',
               n   : 'r0YDzIV4GPJ1wFb1Gftdd3C3VE6YeknVq1C7jGypq5WTTmX0yRDBqzL6mBR3_c-mKRuE5Z5VMGniA1lFnFmv8m0A2engKfALXHPJqoL6WzqN1SyjSM2aI6v8JVTj4H0RdYV9R4jxIB-zK5X-ZyL6CwHx-3dKZkCvZSEp8b-5I8c2Fz8E8Hl7qKkD_qEz6ZOmKVhJLGiEag1qUQYJv2TcRdiyZfwwVsV3nI3IcVfMCTjDZTw2jI0YHJgLi7-MkP4DO7OJ4D4AFtL-7CkZ7V2xG0piBz4b02_-ZGnBZ5zHJxGoUZnTY6HX4V9bPQI_ME8qCjFXf-TcwCfDFcwMm70L2Q',
               e   : 'AQAB',
               alg : 'RS256'
             }
-          })
-        ).to.eventually.be.rejectedWith(Error, `unsupported key type`);
+          });
+          expect.fail('Expected an error to be thrown.');
+        } catch (error: any) {
+          expect(error.message).to.include('unsupported key type');
+        }
       });
 
       it('throws an error for an unsupported public key curve', async () => {
-        await expect(
-          DidKeyUtils.publicKeyToMultibaseId({
+        try {
+          await DidKeyUtils.publicKeyToMultibaseId({
             publicKey: {
               kty : 'EC',
               crv : 'BLS12381_G1',
               x   : 'mIT3NuXBB_VeJUaV15hwBbMtBrMaTWcN4gnDfkzX-VuUZg3vnpB9RxxaC6vkTgJ2'
             }
-          })
-        ).to.eventually.be.rejectedWith(Error, `unsupported key type`);
+          });
+          expect.fail('Expected an error to be thrown.');
+        } catch (error: any) {
+          expect(error.message).to.include('unsupported key type');
+        }
       });
     });
   });
