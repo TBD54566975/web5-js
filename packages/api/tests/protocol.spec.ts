@@ -1,16 +1,12 @@
-import type { PortableDid } from '@web5/dids';
-import type { ManagedIdentity } from '@web5/agent';
+import type { BearerDid } from '@web5/dids';
 
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
-import { TestManagedAgent } from '@web5/agent';
+import { expect } from 'chai';
+import { Web5UserAgent } from '@web5/user-agent';
+import { PlatformAgentTestHarness } from '@web5/agent';
 
 import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';
-import { TestUserAgent } from './utils/test-user-agent.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
-
-chai.use(chaiAsPromised);
 
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
@@ -24,45 +20,39 @@ if (!globalThis.crypto) globalThis.crypto = webcrypto;
 let testDwnUrls: string[] = [testDwnUrl];
 
 describe('Protocol', () => {
-  let dwn: DwnApi;
-  let alice: ManagedIdentity;
-  let aliceDid: PortableDid;
-  let testAgent: TestManagedAgent;
+  let aliceDid: BearerDid;
+  let dwnAlice: DwnApi;
+  let testHarness: PlatformAgentTestHarness;
 
   before(async () => {
-    testAgent = await TestManagedAgent.create({
-      agentClass  : TestUserAgent,
+    testHarness = await PlatformAgentTestHarness.setup({
+      agentClass  : Web5UserAgent,
       agentStores : 'memory'
     });
   });
 
   beforeEach(async () => {
-    await testAgent.clearStorage();
+    await testHarness.clearStorage();
+    await testHarness.createAgentDid();
 
-    // Create an Agent DID.
-    await testAgent.createAgentDid();
+    // Create an "alice" Identity to author the DWN messages.
+    const alice = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
+    await testHarness.agent.identity.manage({ portableIdentity: await alice.export() });
+    aliceDid = alice.did;
 
-    // Create a new Identity to author the DWN messages.
-    ({ did: aliceDid } = await testAgent.createIdentity({ testDwnUrls }));
-    alice = await testAgent.agent.identityManager.import({
-      did      : aliceDid,
-      identity : { name: 'Alice', did: aliceDid.did },
-      kms      : 'local'
-    });
-
-    // Instantiate DwnApi.
-    dwn = new DwnApi({ agent: testAgent.agent, connectedDid: alice.did });
+    // Instantiate DwnApi for both test identities.
+    dwnAlice = new DwnApi({ agent: testHarness.agent, connectedDid: aliceDid.uri });
   });
 
   after(async () => {
-    await testAgent.clearStorage();
-    await testAgent.closeStorage();
+    await testHarness.clearStorage();
+    await testHarness.closeStorage();
   });
 
   describe('send()', () => {
     it('configures protocols on remote DWNs for your own DID', async () => {
       // Alice configures a protocol on her agent connected DWN.
-      const { status: aliceEmailStatus, protocol: aliceEmailProtocol } = await dwn.protocols.configure({
+      const { status: aliceEmailStatus, protocol: aliceEmailProtocol } = await dwnAlice.protocols.configure({
         message: {
           definition: emailProtocolDefinition
         }
@@ -72,12 +62,12 @@ describe('Protocol', () => {
       expect(aliceEmailProtocol.definition).to.deep.equal(emailProtocolDefinition);
 
       // Attempt to configure the protocol on Alice's remote DWN.
-      const { status } = await aliceEmailProtocol.send(alice.did);
+      const { status } = await aliceEmailProtocol.send(aliceDid.uri);
       expect(status.code).to.equal(202);
 
       // Query Alices's remote DWN for `email` schema records.
-      const aliceRemoteQueryResult = await dwn.protocols.query({
-        from    : alice.did,
+      const aliceRemoteQueryResult = await dwnAlice.protocols.query({
+        from    : aliceDid.uri,
         message : {
           filter: {
             protocol: emailProtocolDefinition.protocol

@@ -25,7 +25,7 @@
   },
   "structure": {
     "friend": {
-      "$globalRole": true
+      "$role": true
     },
     "album": {
       "$actions": [
@@ -35,7 +35,7 @@
         }
       ],
       "participant": {
-        "$contextRole": true,
+        "$role": true,
         "$actions": [
           {
             "who": "author",
@@ -45,7 +45,7 @@
         ]
       },
       "updater": {
-        "$contextRole": true,
+        "$role": true,
         "$actions": [
           {
             "role": "album/participant",

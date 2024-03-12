@@ -1,22 +1,21 @@
-import type { DwnResponse, Web5Agent } from '@web5/agent';
+import type { DwnResponse, ProcessDwnRequest, Web5Agent } from '@web5/agent';
 import type {
   PaginationCursor,
   RecordsQueryReply,
   RecordsReadOptions,
-  ProtocolsQueryReply,
   RecordsQueryOptions,
   RecordsWriteMessage,
   RecordsWriteOptions,
   RecordsDeleteOptions,
   ProtocolsQueryOptions,
   RecordsQueryReplyEntry,
-  ProtocolsConfigureMessage,
   ProtocolsConfigureOptions,
   ProtocolsConfigureDescriptor,
 } from '@tbd54566975/dwn-sdk-js';
 
+import { DwnInterface } from '@web5/agent';
 import { isEmptyObject } from '@web5/common';
-import { DwnInterfaceName, DwnMethodName, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
+import { RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 
 import { Record } from './record.js';
 import { dataToBlob } from './utils.js';
@@ -203,10 +202,10 @@ export class DwnApi {
        */
       configure: async (request: ProtocolsConfigureRequest): Promise<ProtocolsConfigureResponse> => {
         const agentResponse = await this.agent.processDwnRequest({
-          target         : this.connectedDid,
-          author         : this.connectedDid,
-          messageOptions : request.message,
-          messageType    : DwnInterfaceName.Protocols + DwnMethodName.Configure
+          author        : this.connectedDid,
+          messageParams : request.message,
+          messageType   : DwnInterface.ProtocolsConfigure,
+          target        : this.connectedDid
         });
 
         const { message, messageCid, reply: { status }} = agentResponse;
@@ -214,7 +213,7 @@ export class DwnApi {
 
         if (status.code < 300) {
           const metadata = { author: this.connectedDid, messageCid };
-          response.protocol = new Protocol(this.agent, message as ProtocolsConfigureMessage, metadata);
+          response.protocol = new Protocol(this.agent, message, metadata);
         }
 
         return response;
@@ -224,14 +223,14 @@ export class DwnApi {
        * Query the available protocols
        */
       query: async (request: ProtocolsQueryRequest): Promise<ProtocolsQueryResponse> => {
-        const agentRequest = {
-          author         : this.connectedDid,
-          messageOptions : request.message,
-          messageType    : DwnInterfaceName.Protocols + DwnMethodName.Query,
-          target         : request.from || this.connectedDid
+        const agentRequest: ProcessDwnRequest<DwnInterface.ProtocolsQuery> = {
+          author        : this.connectedDid,
+          messageParams : request.message,
+          messageType   : DwnInterface.ProtocolsQuery,
+          target        : request.from || this.connectedDid
         };
 
-        let agentResponse: DwnResponse;
+        let agentResponse: DwnResponse<DwnInterface.ProtocolsQuery>;
 
         if (request.from) {
           agentResponse = await this.agent.sendDwnRequest(agentRequest);
@@ -239,16 +238,12 @@ export class DwnApi {
           agentResponse = await this.agent.processDwnRequest(agentRequest);
         }
 
-        const reply = agentResponse.reply as ProtocolsQueryReply;
+        const reply = agentResponse.reply;
         const { entries = [], status  } = reply;
 
-        const protocols = entries.map((entry: ProtocolsQueryReplyEntry) => {
-          const metadata = { author: this.connectedDid, };
-
-          // FIXME: dwn-sdk-js actually returns the entire ProtocolsConfigure message,
-          //        but the type claims that it returns the message without authorization.
-          //        When dwn-sdk-js fixes the type, we should remove `as ProtocolsConfigureMessage`
-          return new Protocol(this.agent, entry as ProtocolsConfigureMessage, metadata);
+        const protocols = entries.map((entry) => {
+          const metadata = { author: this.connectedDid };
+          return new Protocol(this.agent, entry, metadata);
         });
 
         return { protocols, status };
@@ -306,23 +301,23 @@ export class DwnApi {
        * Delete a record
        */
       delete: async (request: RecordsDeleteRequest): Promise<ResponseStatus> => {
-        const agentRequest = {
+        const agentRequest: ProcessDwnRequest<DwnInterface.RecordsDelete> = {
           /**
            * The `author` is the DID that will sign the message and must be the DID the Web5 app is
            * connected with and is authorized to access the signing private key of.
            */
-          author         : this.connectedDid,
-          messageOptions : request.message,
-          messageType    : DwnInterfaceName.Records + DwnMethodName.Delete,
+          author        : this.connectedDid,
+          messageParams : request.message,
+          messageType   : DwnInterface.RecordsDelete,
           /**
            * The `target` is the DID of the DWN tenant under which the delete will be executed.
            * If `from` is provided, the delete operation will be executed on a remote DWN.
            * Otherwise, the record will be deleted on the local DWN.
            */
-          target         : request.from || this.connectedDid
+          target        : request.from || this.connectedDid
         };
 
-        let agentResponse: DwnResponse;
+        let agentResponse: DwnResponse<DwnInterface.RecordsDelete>;
 
         if (request.from) {
           agentResponse = await this.agent.sendDwnRequest(agentRequest);
@@ -339,23 +334,23 @@ export class DwnApi {
        * Query a single or multiple records based on the given filter
        */
       query: async (request: RecordsQueryRequest): Promise<RecordsQueryResponse> => {
-        const agentRequest = {
+        const agentRequest: ProcessDwnRequest<DwnInterface.RecordsQuery> = {
           /**
            * The `author` is the DID that will sign the message and must be the DID the Web5 app is
            * connected with and is authorized to access the signing private key of.
            */
-          author         : this.connectedDid,
-          messageOptions : request.message,
-          messageType    : DwnInterfaceName.Records + DwnMethodName.Query,
+          author        : this.connectedDid,
+          messageParams : request.message,
+          messageType   : DwnInterface.RecordsQuery,
           /**
            * The `target` is the DID of the DWN tenant under which the query will be executed.
            * If `from` is provided, the query operation will be executed on a remote DWN.
            * Otherwise, the local DWN will be queried.
            */
-          target         : request.from || this.connectedDid
+          target        : request.from || this.connectedDid
         };
 
-        let agentResponse: DwnResponse;
+        let agentResponse: DwnResponse<DwnInterface.RecordsQuery>;
 
         if (request.from) {
           agentResponse = await this.agent.sendDwnRequest(agentRequest);
@@ -400,23 +395,23 @@ export class DwnApi {
        * Read a single record based on the given filter
        */
       read: async (request: RecordsReadRequest): Promise<RecordsReadResponse> => {
-        const agentRequest = {
+        const agentRequest: ProcessDwnRequest<DwnInterface.RecordsRead> = {
           /**
            * The `author` is the DID that will sign the message and must be the DID the Web5 app is
            * connected with and is authorized to access the signing private key of.
            */
-          author         : this.connectedDid,
-          messageOptions : request.message,
-          messageType    : DwnInterfaceName.Records + DwnMethodName.Read,
+          author        : this.connectedDid,
+          messageParams : request.message,
+          messageType   : DwnInterface.RecordsRead,
           /**
            * The `target` is the DID of the DWN tenant under which the read will be executed.
            * If `from` is provided, the read operation will be executed on a remote DWN.
            * Otherwise, the read will occur on the local DWN.
            */
-          target         : request.from || this.connectedDid
+          target        : request.from || this.connectedDid
         };
 
-        let agentResponse: DwnResponse;
+        let agentResponse: DwnResponse<DwnInterface.RecordsRead>;
 
         if (request.from) {
           agentResponse = await this.agent.sendDwnRequest(agentRequest);
@@ -466,24 +461,18 @@ export class DwnApi {
        * requires fetching from the DWN datastore.
        */
       write: async (request: RecordsWriteRequest): Promise<RecordsWriteResponse> => {
-        const messageOptions: Partial<RecordsWriteOptions> = {
-          ...request.message
-        };
-
-        const { dataBlob, dataFormat } = dataToBlob(request.data, messageOptions.dataFormat);
-        messageOptions.dataFormat = dataFormat;
+        const { dataBlob, dataFormat } = dataToBlob(request.data, request.message?.dataFormat);
 
         const agentResponse = await this.agent.processDwnRequest({
-          author      : this.connectedDid,
-          dataStream  : dataBlob,
-          messageOptions,
-          messageType : DwnInterfaceName.Records + DwnMethodName.Write,
-          store       : request.store,
-          target      : this.connectedDid
+          author        : this.connectedDid,
+          dataStream    : dataBlob,
+          messageParams : { ...request.message, dataFormat },
+          messageType   : DwnInterface.RecordsWrite,
+          store         : request.store,
+          target        : this.connectedDid
         });
 
-        const { message, reply: { status } } = agentResponse;
-        const responseMessage = message as RecordsWriteMessage;
+        const { message: responseMessage, reply: { status } } = agentResponse;
 
         let record: Record;
         if (200 <= status.code && status.code <= 299) {

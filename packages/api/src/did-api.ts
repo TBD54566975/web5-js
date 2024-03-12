@@ -36,7 +36,7 @@ export class DidApi {
   /**
    * Resolves a DID to a DID Resolution Result.
    *
-   * @param didUrl - The DID or DID URL to resolve.
+   * @param didUri - The DID or DID URL to resolve.
    * @returns A promise that resolves to the DID Resolution Result.
    */
   public async resolve(
