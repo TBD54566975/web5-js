@@ -133,7 +133,7 @@ export class PlatformAgentTestHarness {
           },
           {
             algorithm : 'secp256k1',
-            id        : 'end',
+            id        : 'enc',
             purposes  : ['keyAgreement']
           }
         ]
