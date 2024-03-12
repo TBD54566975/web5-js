@@ -1,45 +1,72 @@
 import { expect } from 'chai';
-import { TestManagedAgent } from '@web5/agent';
+import { Web5UserAgent } from '@web5/user-agent';
+import { PlatformAgentTestHarness } from '@web5/agent';
 
 import { DidApi } from '../src/did-api.js';
-import { TestUserAgent } from './utils/test-user-agent.js';
 
 describe('DidApi', () => {
   let did: DidApi;
-  let testAgent: TestManagedAgent;
+  let testHarness: PlatformAgentTestHarness;
 
   before(async () => {
-    testAgent = await TestManagedAgent.create({
-      agentClass  : TestUserAgent,
+    testHarness = await PlatformAgentTestHarness.setup({
+      agentClass  : Web5UserAgent,
       agentStores : 'memory'
     });
   });
 
   beforeEach(async () => {
-    await testAgent.clearStorage();
+    await testHarness.clearStorage();
+    await testHarness.createAgentDid();
 
-    // Create an Agent DID.
-    await testAgent.createAgentDid();
-
-    // Create a new Identity to author DWN messages.
-    const identity = await testAgent.agent.identityManager.create({
-      name      : 'Test',
-      didMethod : 'key',
-      kms       : 'local'
+    // Create a new Identity to author DID requests.
+    const identity = await testHarness.agent.identity.create({
+      metadata  : { name: 'Test' },
+      didMethod : 'jwk',
     });
 
-    // Instantiate DwnApi.
-    did = new DidApi({ agent: testAgent.agent, connectedDid: identity.did });
+    // Instantiate DidApi.
+    did = new DidApi({ agent: testHarness.agent, connectedDid: identity.did.uri });
   });
 
   after(async () => {
-    await testAgent.clearStorage();
-    await testAgent.closeStorage();
+    await testHarness.clearStorage();
+    await testHarness.closeStorage();
+  });
+
+  describe('create()', async () => {
+    it('creates a DID and returns a response', async () => {
+      const didCreateResponse = await did.create({ method: 'jwk' });
+
+      expect(didCreateResponse).to.exist;
+      expect(didCreateResponse).to.have.property('ok', true);
+      expect(didCreateResponse).to.have.property('status');
+      expect(didCreateResponse.status).to.have.property('code', 201);
+      expect(didCreateResponse.status).to.have.property('detail', 'Created');
+      expect(didCreateResponse).to.have.property('did');
+      expect(didCreateResponse.did).to.have.property('uri');
+      expect(didCreateResponse.did).to.have.property('document');
+      expect(didCreateResponse.did).to.have.property('metadata');
+    });
+
+    it('supports DHT method', async () => {
+      const didCreateResponse = await did.create({ method: 'dht' });
+
+      expect(didCreateResponse.did.uri).includes('did:dht:');
+    });
+
+    it('supports JWK method', async () => {
+      const didCreateResponse = await did.create({ method: 'jwk' });
+
+      expect(didCreateResponse.did.uri).includes('did:jwk:');
+    });
   });
 
   describe('resolve()', async () => {
     it('resolves a DID and returns a resolution result', async () => {
-      const testDid = 'did:key:z6MkmNvXGmVuux5W63nXKEM8zoxFmDLNfe7siCKG2GM7Kd8D';
+      // const testDid = 'did:jwk:eyJjcnYiOiJFZDI1NTE5Iiwia3R5IjoiT0tQIiwieCI6Im80MHNoWnJzY28tQ2ZFcWs2bUZzWGZjUDk0bHkzQXozZ204NFB6QVVzWG8iLCJraWQiOiJCRHAweGltODJHc3dseG5QVjhUUHRCZFV3ODB3a0dJRjhnakZidzF4NWlRIiwiYWxnIjoiRWREU0EifQ';
+      const testDid = 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy';
+
       const didResolutionResult = await did.resolve(testDid);
 
       expect(didResolutionResult).to.exist;
