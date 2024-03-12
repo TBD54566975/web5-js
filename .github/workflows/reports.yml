@@ -1,0 +1,75 @@
+name: Reports
+
+on:
+  push:
+    branches:
+      - main
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  node-sdk-reports:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          submodules: true
+
+      - name: Init Hermit
+        uses: cashapp/activate-hermit@v1
+        with:
+          cache: "true"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all workspace packages
+        run: pnpm --recursive --stream build:esm && pnpm --recursive --stream build:cjs
+
+      - name: Run dwn-server (background)
+        run: |
+          node node_modules/@web5/dwn-server/dist/esm/src/main.js &
+          echo "DWN_SERVER_BACKGROUND_PROCESS=$!" >> $GITHUB_ENV
+
+      - name: Build tests for all packages
+        run: pnpm --recursive --stream --sequential build:tests:node
+
+      - name: Run tests for all packages
+        run: pnpm --recursive --stream exec c8 mocha -- --color --reporter mocha-junit-reporter --reporter-options mochaFile=./results.xml
+        env:
+          TEST_DWN_URL: http://localhost:3000
+
+      - name: Terminate dwn-server
+        run: kill $DWN_SERVER_BACKGROUND_PROCESS || true
+
+      - name: Upload test results to update SDK reports
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
+        with:
+          name: junit-results
+          path: packages/*/results.xml
+
+      - name: Generate an access token to trigger downstream repo
+        uses: actions/create-github-app-token@f2acddfb5195534d487896a656232b016a682f3c # v1.9.0
+        id: generate_token
+        if: github.ref == 'refs/heads/main'
+        with:
+          app-id: ${{ secrets.CICD_ROBOT_GITHUB_APP_ID }}
+          private-key: ${{ secrets.CICD_ROBOT_GITHUB_APP_PRIVATE_KEY }}
+          owner: TBD54566975
+          repositories: sdk-report-runner
+
+      - name: Trigger sdk-report-runner report build
+        if: github.ref == 'refs/heads/main'
+        run: |
+          curl -L \
+          -H "Authorization: Bearer ${APP_TOKEN}" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          -H "Content-Type: application/json" \
+          --fail \
+          --data '{"ref": "main"}' \
+          https://api.github.com/repos/TBD54566975/sdk-report-runner/actions/workflows/build-report.yaml/dispatches
+        env:
+          APP_TOKEN: ${{ steps.generate_token.outputs.token }}
+
