@@ -13,18 +13,18 @@ The `@web5/credentials` package provides the following functionality:
     - [Signing a Verifiable Credential](#signing-a-verifiable-credential)
     - [Verifying a Verifiable Credential](#verifying-a-verifiable-credential)
     - [Parsing a JWT into a Verifiable Credential](#parsing-a-jwt-into-a-verifiable-credential)
-  - [`PresentationExchange`](#presentationexchange)
-    - [Features](#features-1)
-    - [Usage](#usage-1)
+- [`PresentationExchange`](#presentationexchange)
+  - [Features](#pex-features)
+  - [Usage](#pex-usage)
     - [Selecting Credentials](#selecting-credentials)
     - [Satisfying a Presentation Definition](#satisfying-a-presentation-definition)
     - [Create Presentation From Credentials](#create-presentation-from-credentials)
     - [Validate Definition](#validate-definition)
     - [Validate Submission](#validate-submission)
     - [Validate Presentation](#validate-presentation)
-  - [`VerifiablePresentation`](#verifiablepresentation)
-    - [Features](#vp-features)
-    - [Usage](#vp-usage)
+- [`VerifiablePresentation`](#verifiablepresentation)
+  - [Features](#vp-features)
+  - [Usage](#vp-usage)
     - [Creating a Verifiable Presentation](#creating-a-verifiable-presentation)
     - [Signing a Verifiable Presentation](#signing-a-verifiable-presentation)
     - [Verifying a Verifiable Presentation](#verifying-a-verifiable-presentation)
@@ -125,14 +125,14 @@ const vc = VerifiableCredential.parseJwt({ vcJwt: signedVcJwt })
 
 `PresentationExchange` is designed to facilitate the creation of a Verifiable Presentation by providing tools to select and validate Verifiable Credentials against defined criteria.
 
-### Features
+### PEX Features
 
 - Select credentials that satisfy a given presentation definition.
 - Validate if a Verifiable Credential JWT satisfies a Presentation Definition.
 - Validate input descriptors within Presentation Definitions.
 
 
-### Usage
+### PEX Usage
 
 ### Selecting Credentials
 Select Verifiable Credentials that meet the criteria of a given presentation definition.
