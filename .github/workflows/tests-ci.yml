@@ -82,9 +82,11 @@ jobs:
           - group: "A"
             packages: "--filter agent"
           - group: "B"
-            packages: "--filter credentials --filter crypto --filter dids --filter proxy-agent --filter identity-agent --filter user-agent"
+            packages: "--filter credentials ----filter dids --filter identity-agent"
           - group: "C"
             packages: "--filter api --filter common"
+          - group: "D"
+            packages: "--filter crypto --filter proxy-agent --filter user-agent"
     steps:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
