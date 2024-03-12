@@ -59,8 +59,7 @@ jobs:
         run: pnpm --recursive --stream --sequential build:tests:node
 
       - name: Run tests for all packages
-        # run: pnpm --recursive --stream exec c8 mocha -- --color --reporter mocha-junit-reporter --reporter-options mochaFile=./results.xml
-        run: npm run test:node --ws -- --color
+        run: pnpm --recursive --stream exec c8 mocha -- --color --reporter mocha-junit-reporter --reporter-options mochaFile=./results.xml
         env:
           TEST_DWN_URL: http://localhost:3000
 
