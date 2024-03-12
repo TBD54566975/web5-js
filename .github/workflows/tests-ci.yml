@@ -27,50 +27,6 @@ jobs:
       - name: Report known vulnerabilities
         run: pnpm audit
 
-  test-with-node:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
-        with:
-          submodules: true
-
-      # https://cashapp.github.io/hermit/usage/ci/
-      - name: Init Hermit
-        uses: cashapp/activate-hermit@v1
-        with:
-          cache: "true"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build all workspace packages
-        run: pnpm --recursive --stream build:esm && pnpm --recursive --stream build:cjs
-
-      - name: Run linter for all packages
-        run: pnpm --recursive --stream lint
-
-      - name: Run dwn-server (background)
-        run: |
-          node node_modules/@web5/dwn-server/dist/esm/src/main.js &
-          echo "DWN_SERVER_BACKGROUND_PROCESS=$!" >> $GITHUB_ENV
-
-      - name: Build tests for all packages
-        run: pnpm --recursive --stream --sequential build:tests:node
-
-      - name: Run tests for all packages
-        run: pnpm --recursive --stream exec c8 mocha -- --color
-        env:
-          TEST_DWN_URL: http://localhost:3000
-
-      - name: Terminate dwn-server
-        run: kill $DWN_SERVER_BACKGROUND_PROCESS || true
-
-      - name: Upload test coverage to Codecov
-        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
   sdk-reports:
     runs-on: ubuntu-latest
     steps:
@@ -134,6 +90,50 @@ jobs:
           https://api.github.com/repos/TBD54566975/sdk-report-runner/actions/workflows/build-report.yaml/dispatches
         env:
           APP_TOKEN: ${{ steps.generate_token.outputs.token }}
+
+  test-with-node:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          submodules: true
+
+      # https://cashapp.github.io/hermit/usage/ci/
+      - name: Init Hermit
+        uses: cashapp/activate-hermit@v1
+        with:
+          cache: "true"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all workspace packages
+        run: pnpm --recursive --stream build:esm && pnpm --recursive --stream build:cjs
+
+      - name: Run linter for all packages
+        run: pnpm --recursive --stream lint
+
+      - name: Run dwn-server (background)
+        run: |
+          node node_modules/@web5/dwn-server/dist/esm/src/main.js &
+          echo "DWN_SERVER_BACKGROUND_PROCESS=$!" >> $GITHUB_ENV
+
+      - name: Build tests for all packages
+        run: pnpm --recursive --stream --sequential build:tests:node
+
+      - name: Run tests for all packages
+        run: pnpm --recursive --stream exec c8 mocha -- --color
+        env:
+          TEST_DWN_URL: http://localhost:3000
+
+      - name: Terminate dwn-server
+        run: kill $DWN_SERVER_BACKGROUND_PROCESS || true
+
+      - name: Upload test coverage to Codecov
+        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   test-with-browsers:
     name: test-with-browsers (group ${{ matrix.group }})
