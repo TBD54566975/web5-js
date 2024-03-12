@@ -44,11 +44,18 @@ describe('Web5 API Utils', () => {
       expect(result.dataFormat).to.equal('application/octet-stream');
     });
 
-    it('should handle Blob data', () => {
+    it('should handle Blob data with a specified type', () => {
       const blob = new Blob(['data'], { type: 'custom/type' });
       const result = dataToBlob(blob);
       expect(result.dataBlob.type).to.equal('custom/type');
       expect(result.dataFormat).to.equal('custom/type');
+    });
+
+    it('should handle Blob data that lacks a type', () => {
+      const blob = new Blob(['data']);
+      const result = dataToBlob(blob);
+      expect(result.dataBlob.type).to.equal('');
+      expect(result.dataFormat).to.equal('application/octet-stream');
     });
 
     it('should throw an error for unsupported data types', () => {

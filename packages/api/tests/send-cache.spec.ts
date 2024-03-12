@@ -1,9 +1,6 @@
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
+import { expect } from 'chai';
 
 import { SendCache } from '../src/send-cache.js';
-
-chai.use(chaiAsPromised);
 
 describe('SendCache', () => {
   it('sets and checks an item in the cache', async () => {
