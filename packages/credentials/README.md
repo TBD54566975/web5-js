@@ -226,7 +226,7 @@ const vp = await VerifiablePresentation.create({
   holder: 'did:ex:holder',
   vcJwts: vcJwts,
   additionalData: { 'arbitrary': 'data' }
-  })
+});
 ```
 
 ### Signing a Verifiable Presentation
