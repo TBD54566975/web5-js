@@ -3,6 +3,7 @@ import { Convert } from '@web5/common';
 
 import type { Jwk } from '../../src/jose/jwk.js';
 
+import { isChrome } from '../utils/runtimes.js';
 import { randomBytes } from '../../src/utils.js';
 import { AesGcmAlgorithm } from '../../src/algorithms/aes-gcm.js';
 
@@ -68,18 +69,24 @@ describe('AesGcmAlgorithm', () => {
       expect(privateKey).to.have.property('kty', 'oct');
     });
 
-    it(`supports 'A128GCM', 'A192GCM', and 'A256GCM' algorithms`, async () => {
-      const algorithms = ['A128GCM', 'A192GCM', 'A256GCM'] as const;
+    it(`supports 'A128GCM' and 'A256GCM' algorithms in all supported runtimes`, async () => {
+      const algorithms = ['A128GCM', 'A256GCM'] as const;
       for (const algorithm of algorithms) {
         const privateKey = await aesGcm.generateKey({ algorithm });
         expect(privateKey).to.have.property('alg', algorithm);
+        if (!privateKey.k) throw new Error('Expected privateKey to have a `k` property'); // TypeScript type guard.
+        const privateKeyBytes = Convert.base64Url(privateKey.k).toUint8Array();
+        expect(privateKeyBytes.byteLength * 8).to.equal(parseInt(algorithm.slice(1, 4)));
       }
     });
 
-    it(`returns keys with the correct bit length`, async () => {
-      const algorithms = ['A128GCM', 'A192GCM', 'A256GCM'] as const;
+    it(`supports 'A192GCM' algorithm in all supported runtimes except Chrome browser`, async function () {
+      if (isChrome) this.skip();
+
+      const algorithms = ['A192GCM'] as const;
       for (const algorithm of algorithms) {
         const privateKey = await aesGcm.generateKey({ algorithm });
+        expect(privateKey).to.have.property('alg', algorithm);
         if (!privateKey.k) throw new Error('Expected privateKey to have a `k` property'); // TypeScript type guard.
         const privateKeyBytes = Convert.base64Url(privateKey.k).toUint8Array();
         expect(privateKeyBytes.byteLength * 8).to.equal(parseInt(algorithm.slice(1, 4)));
