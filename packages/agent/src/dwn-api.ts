@@ -1,10 +1,10 @@
 import type { Readable } from '@web5/common';
 import type { DwnConfig, Signer as DwnSigner, GenericMessage, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 
-import { Convert } from '@web5/common';
+import { Convert, NodeStream } from '@web5/common';
 import { utils as cryptoUtils } from '@web5/crypto';
 import { DidDht, DidJwk, DidResolver, DidResolverCacheLevel } from '@web5/dids';
-import { Cid, DataStoreLevel, DataStream, Dwn, EventLogLevel, Message, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
+import { Cid, DataStoreLevel, Dwn, EventLogLevel, Message, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
 
 import type { Web5PlatformAgent } from './types/agent.js';
 import type { DwnMessage, DwnMessageInstance, DwnMessageParams, DwnMessageReply, DwnMessageWithData, DwnResponse, ProcessDwnRequest, SendDwnRequest } from './types/dwn.js';
@@ -212,14 +212,6 @@ export class AgentDwnApi {
     throw new Error(`Failed to send DWN RPC request: ${JSON.stringify(errorMessages)}`);
   }
 
-
-
-
-
-
-
-
-
   private async constructDwnMessage<T extends DwnInterface>({ request }: {
     request: ProcessDwnRequest<T>
   }): Promise<DwnMessageWithData<T>> {
@@ -258,7 +250,7 @@ export class AgentDwnApi {
 
     const dwnMessageConstructor = dwnMessageConstructors[request.messageType];
     const dwnMessage = rawMessage ? await dwnMessageConstructor.parse(rawMessage) : await dwnMessageConstructor.create({
-      // ! TODO: Explore whether 'messageParams' should be required in the ProcessDwnRequest type.
+      // TODO: Implement alternative to type assertion.
       ...request.messageParams!,
       signer
     });
@@ -314,7 +306,6 @@ export class AgentDwnApi {
     }
   }
 
-
   /**
    * FURTHER REFACTORING NEEDED BELOW THIS LINE
    */
@@ -353,7 +344,7 @@ export class AgentDwnApi {
     if (isRecordsWrite(messageEntry)) {
       if (messageEntry.encodedData) {
         const dataBytes = Convert.base64Url(messageEntry.encodedData).toUint8Array();
-        // ! TODO: test adding the messageEntry.message.descriptor.dataFormat to the Blob constructor.
+        // TODO: test adding the messageEntry.message.descriptor.dataFormat to the Blob constructor.
         dwnMessageWithBlob.data = new Blob([dataBytes]);
 
       } else {
@@ -370,8 +361,7 @@ export class AgentDwnApi {
           const { status: { code, detail } } = reply;
           throw new Error(`AgentDwnApi: (${code}) Failed to read data associated with record ${messageEntry.message.recordId}. ${detail}}`);
         } else if (reply.record) {
-          // ! TODO: Switch this to use the @web5/common utility once confirmed working.
-          const dataBytes = await DataStream.toBytes(reply.record.data);
+          const dataBytes = await NodeStream.consumeToBytes({ readable: reply.record.data });
           dwnMessageWithBlob.data = new Blob([dataBytes]);
         }
       }
@@ -380,21 +370,8 @@ export class AgentDwnApi {
     return dwnMessageWithBlob;
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   /**
+   * TODO: Refactor this to consolidate logic in AgentDwnApi and SyncEngineLevel.
    * ADDED TO GET SYNC WORKING
    * - createMessage()
    * - processMessage()
@@ -410,7 +387,7 @@ export class AgentDwnApi {
 
     const dwnMessageConstructor = dwnMessageConstructors[messageType];
     const dwnMessage = await dwnMessageConstructor.create({
-      // ! TODO: Explore whether 'messageParams' should be required in the ProcessDwnRequest type.
+      // TODO: Explore whether 'messageParams' should be required in the ProcessDwnRequest type.
       ...messageParams!,
       signer
     });
