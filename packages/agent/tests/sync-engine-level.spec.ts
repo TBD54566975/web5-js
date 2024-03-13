@@ -3,11 +3,12 @@ import { expect } from 'chai';
 import { utils as cryptoUtils } from '@web5/crypto';
 import { DwnConstant } from '@tbd54566975/dwn-sdk-js';
 
+import type { BearerIdentity } from '../src/bearer-identity.js';
+
 import { AgentSyncApi } from '../src/sync-api.js';
 import { TestAgent } from './utils/test-agent.js';
 import { DwnInterface } from '../src/types/dwn.js';
 import { testDwnUrl } from './utils/test-config.js';
-import { BearerIdentity } from '../src/bearer-identity.js';
 import { SyncEngineLevel } from '../src/sync-engine-level.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 

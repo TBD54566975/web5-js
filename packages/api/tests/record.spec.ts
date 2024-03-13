@@ -11,7 +11,6 @@ import { utils as didUtils } from '@web5/dids';
 import { Web5UserAgent } from '@web5/user-agent';
 import { PlatformAgentTestHarness } from '@web5/agent';
 import {
-  DataStream,
   DwnConstant,
   RecordsWrite,
   EncryptionAlgorithm,
@@ -602,7 +601,7 @@ describe('Record', () => {
 
         // Confirm that the length of the data read as text matches the original input data.
         const dataStream = await record!.data.stream();
-        const dataStreamBytes = await DataStream.toBytes(dataStream);
+        const dataStreamBytes = await NodeStream.consumeToBytes({ readable: dataStream });
         expect(dataStreamBytes.length).to.equal(dataText500Bytes.length);
 
         // Ensure the text returned matches the input data, byte for byte.
@@ -624,7 +623,7 @@ describe('Record', () => {
 
         // Confirm that the length of the data read as text matches the original input data.
         const dataStream = await readRecord!.data.stream();
-        const dataStreamBytes = await DataStream.toBytes(dataStream);
+        const dataStreamBytes = await NodeStream.consumeToBytes({ readable: dataStream });
         expect(dataStreamBytes.length).to.equal(dataText500Bytes.length);
 
         // Ensure the text returned matches the input data, byte for byte.
@@ -642,7 +641,7 @@ describe('Record', () => {
 
         // Confirm that the length of the data read as text matches the original input data.
         const dataStream = await record!.data.stream();
-        const dataStreamBytes = await DataStream.toBytes(dataStream);
+        const dataStreamBytes = await NodeStream.consumeToBytes({ readable: dataStream });
         expect(dataStreamBytes.length).to.equal(dataTextExceedingMaxSize.length);
 
         // Ensure the text returned matches the input data, byte for byte.
@@ -667,7 +666,7 @@ describe('Record', () => {
         // Confirm that the length of the data read as text matches the original input data.
         const [ queryRecord ] = queryRecords;
         const dataStream = await queryRecord!.data.stream();
-        const dataStreamBytes = await DataStream.toBytes(dataStream);
+        const dataStreamBytes = await NodeStream.consumeToBytes({ readable: dataStream });
         expect(dataStreamBytes.length).to.equal(dataTextExceedingMaxSize.length);
 
         // Ensure the text returned matches the input data, byte for byte.
@@ -692,7 +691,7 @@ describe('Record', () => {
 
         // Confirm that the length of the data read as text matches the original input data.
         const dataStream = await readRecord!.data.stream();
-        const dataStreamBytes = await DataStream.toBytes(dataStream);
+        const dataStreamBytes = await NodeStream.consumeToBytes({ readable: dataStream });
         expect(dataStreamBytes.length).to.equal(dataTextExceedingMaxSize.length);
 
         // Ensure the text returned matches the input data, byte for byte.
@@ -997,12 +996,12 @@ describe('Record', () => {
 
       // Confirm that the size, in bytes, of the data read as JSON matches the original input data.
       let readDataStream = await readRecord!.data.stream();
-      let readDataBytes = await DataStream.toBytes(readDataStream);
+      let readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
       expect(readDataBytes.length).to.equal(inputDataBytes.length);
 
       // Consume the data stream as bytes a third time.
       readDataStream = await readRecord!.data.stream();
-      readDataBytes = await DataStream.toBytes(readDataStream);
+      readDataBytes = await NodeStream.consumeToBytes({ readable: readDataStream });
       expect(readDataBytes.length).to.equal(inputDataBytes.length);
     });
 

@@ -10,15 +10,15 @@ import type {
 
 import ms from 'ms';
 import { Level } from 'level';
-import { Convert } from '@web5/common';
 import { monotonicFactory } from 'ulidx';
+import { Convert, NodeStream } from '@web5/common';
 import { DataStream } from '@tbd54566975/dwn-sdk-js';
 
 import type { SyncEngine } from './types/sync.js';
 import type { Web5PlatformAgent } from './types/agent.js';
 
 import { DwnInterface } from './types/dwn.js';
-import { getDwnServiceEndpointUrls, isRecordsWrite, webReadableToIsomorphicNodeReadable } from './utils.js';
+import { getDwnServiceEndpointUrls, isRecordsWrite } from './utils.js';
 
 export type SyncEngineLevelParams = {
   agent?: Web5PlatformAgent;
@@ -130,11 +130,11 @@ export class SyncEngineLevel implements SyncEngine {
         continue;
       }
 
-      // TODO
-      /** Per Moe, this loop exists because the original intent was to pass multiple messageCid
-       * values to batch network requests for record messages rather than one at a time, as it
-       * is currently implemented.  Either the pull() method should be refactored to batch
-       * getting messages OR this loop should be removed. */
+      // TODO: Refactor this to batch network requests for record messages rather than one at a time.
+      // Per Moe, this loop exists because the original intent was to pass multiple messageCid
+      // values to batch network requests for record messages rather than one at a time, as it
+      // is currently implemented.  Either the pull() method should be refactored to batch
+      // getting messages OR this loop should be removed.
       for (let entry of reply.entries ?? []) {
         if (entry.error || !entry.message) {
           await this.addMessage(did, messageCid);
@@ -172,9 +172,10 @@ export class SyncEngineLevel implements SyncEngine {
             const { record, status: readStatus } = recordsReadReply;
 
             if (is2xx(readStatus.code) && record) {
-              /** If the read was successful, convert the data stream from web ReadableStream
-                 * to Node.js Readable so that the DWN can process it.*/
-              dataStream = webReadableToIsomorphicNodeReadable(record.data as any);
+              // If the read was successful, convert the data stream from web ReadableStream
+              // to Node.js Readable so that the DWN can process it.
+              // TODO: Remove the type assertion once sendDwnRequest type is fixed to return a ReadableStream.
+              dataStream = NodeStream.fromWebReadable({ readableStream: record.data as unknown as ReadableStream });
 
             } else if (readStatus.code >= 400) {
               // writes record without data, if this is an initial records write, it will succeed.
@@ -232,9 +233,9 @@ export class SyncEngineLevel implements SyncEngine {
       // Attempt to retrieve the message from the local DWN.
       const dwnMessage = await this.getDwnMessage({ author: did, messageCid });
 
-      /** If the message does not exist on the local DWN, remove the sync operation from the
-       * push queue, update the push watermark for this DID/DWN endpoint combination, add the
-       * message to the local message store, and continue to the next job. */
+      // If the message does not exist on the local DWN, remove the sync operation from the
+      // push queue, update the push watermark for this DID/DWN endpoint combination, add the
+      // message to the local message store, and continue to the next job.
       if (!dwnMessage) {
         deleteOperations.push({ type: 'del', key: key });
         await this.addMessage(did, messageCid);
@@ -250,10 +251,9 @@ export class SyncEngineLevel implements SyncEngine {
           message   : dwnMessage.message
         });
 
-        /** Update the watermark and add the messageCid to the Sync Message Store if either:
-         * - 202: message was successfully written to the remote DWN
-         * - 409: message was already present on the remote DWN
-         */
+        // Update the watermark and add the messageCid to the Sync Message Store if either:
+        // - 202: message was successfully written to the remote DWN
+        // - 409: message was already present on the remote DWN
         if (reply.status.code === 202 || reply.status.code === 409) {
           await this.addMessage(did, messageCid);
           deleteOperations.push({ type: 'del', key: key });
@@ -328,10 +328,9 @@ export class SyncEngineLevel implements SyncEngine {
 
       for (let messageCid of eventLog) {
         const watermark = this._ulidFactory();
-        /** Use "did~dwnUrl~watermark~messageCid" as the key in the sync queue.
-         * Note: It is critical that `watermark` precedes `messageCid` to
-         * ensure that when the sync jobs are pulled off the queue, they
-         * are lexographically sorted oldest to newest. */
+        // Use "did~dwnUrl~watermark~messageCid" as the key in the sync queue.
+        // Note: It is critical that `watermark` precedes `messageCid` to ensure that when the sync
+        //       jobs are pulled off the queue, they are lexographically sorted oldest to newest.
         const operationKey = [
           syncState.did,
           syncState.dwnUrl,
@@ -409,10 +408,10 @@ export class SyncEngineLevel implements SyncEngine {
       }
     });
 
-    /** Absence of a messageEntry or message within messageEntry can happen because updating a
-     * Record creates another RecordsWrite with the same recordId. Only the first and
-     * most recent RecordsWrite messages are kept for a given recordId. Any RecordsWrite messages
-     * that aren't the first or most recent are discarded by the DWN. */
+    // Absence of a messageEntry or message within messageEntry can happen because updating a
+    // Record creates another RecordsWrite with the same recordId. Only the first and
+    // most recent RecordsWrite messages are kept for a given recordId. Any RecordsWrite messages
+    // that aren't the first or most recent are discarded by the DWN.
     if (!(reply.entries && reply.entries.length === 1)) {
       return undefined;
     }
@@ -446,15 +445,13 @@ export class SyncEngineLevel implements SyncEngine {
 
         if (is2xx(reply.status.code) && reply.record) {
           // If status code is 200-299, return the data.
-          // ! TODO: Switch this to use the @web5/common utility once confirmed working.
-          const dataBytes = await DataStream.toBytes(reply.record.data);
-          dwnMessageWithBlob.data = new Blob([dataBytes]);
+          dwnMessageWithBlob.data = await NodeStream.consumeToBlob({ readable: reply.record.data });
 
         } else if (is4xx(reply.status.code)) {
-          /** If status code is 400-499, typically 404 indicating the data no longer exists, it is
-           * likely that a `RecordsDelete` took place. `RecordsDelete` keeps a `RecordsWrite` and
-           * deletes the associated data, effectively acting as a "tombstone."  Sync still needs to
-           * _push_ this tombstone so that the `RecordsDelete` can be processed successfully. */
+          // If status code is 400-499, typically 404 indicating the data no longer exists, it is
+          // likely that a `RecordsDelete` took place. `RecordsDelete` keeps a `RecordsWrite` and
+          // deletes the associated data, effectively acting as a "tombstone."  Sync still needs to
+          // push this tombstone so that the `RecordsDelete` can be processed successfully.
 
         } else {
           // If status code is anything else (likely 5xx), throw an error.
