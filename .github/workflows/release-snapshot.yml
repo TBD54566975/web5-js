@@ -60,6 +60,7 @@ jobs:
       - name: Publish @web5/${{ matrix.package }} snapshot
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+          REGISTRY: https://blockxyz.jfrog.io/artifactory/tbd-oss-snapshots-npm/
         run: |
           set -exuo pipefail
 
@@ -78,7 +79,7 @@ jobs:
           snapshot_version="${base_version}-SNAPSHOT.${commits_since_version_bump}-${last_commit_to_package:0:7}"
 
           # check if that snapshot version has already been published
-          if curl -f --silent "https://blockxyz.jfrog.io/artifactory/tbd-oss-snapshots-npm/@web5/${package_name}/-/${package_name}-${snapshot_version}.tgz" > /dev/null; then
+          if npm view --registry "${REGISTRY}" "@web5/${package_name}@${snapshot_version}" > /dev/null"; then
               echo "release for @web5/${package_name}-${snapshot_version} already exists, not re-publishing"
               exit 0
           fi
@@ -93,10 +94,10 @@ jobs:
           mv package-new.json package.json
 
           # set publishing config in package.json
-          jq '.publishConfig.registry = "https://blockxyz.jfrog.io/artifactory/api/npm/tbd-oss-snapshots-npm/"' package.json > package-new.json
+          jq '.publishConfig.registry = "${REGISTRY}"' package.json > package-new.json
           mv package-new.json package.json
 
           # login to jfrog and publish
           jf npm-config --global=true --repo-resolve=tbd-oss-snapshots-npm --repo-deploy=tbd-oss-snapshots-npm
-          jf npm publish --registry https://blockxyz.jfrog.io/artifactory/api/npm/tbd-oss-snapshots-npm/
+          jf npm publish --registry "${REGISTRY}"
         shell: bash
