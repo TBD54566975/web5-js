@@ -94,7 +94,7 @@ jobs:
           mv package-new.json package.json
 
           # set publishing config in package.json
-          jq '.publishConfig.registry = "${REGISTRY}"' package.json > package-new.json
+          jq --arg registry "${REGISTRY}" '.publishConfig.registry = $registry' package.json > package-new.json
           mv package-new.json package.json
 
           # login to jfrog and publish
