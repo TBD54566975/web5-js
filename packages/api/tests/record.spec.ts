@@ -27,8 +27,6 @@ import emailProtocolDefinition from './fixtures/protocol-definitions/email.json'
 
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
-// NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
-// Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
 import { webcrypto } from 'node:crypto';
 // @ts-ignore
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
@@ -122,7 +120,6 @@ describe('Record', () => {
     const { status: sendStatus } = await aliceEmailRecord!.send(aliceDid.uri);
     expect(sendStatus.code).to.equal(202);
 
-
     // Bob queries for the record on his own DWN (should not find it)
     let bobQueryBobDwn = await dwnBob.records.query({
       from    : bobDid.uri,
@@ -149,12 +146,12 @@ describe('Record', () => {
     expect(bobQueryAliceDwn.status.code).to.equal(200);
     expect(bobQueryAliceDwn.records.length).to.equal(1);
 
-    // bob imports the record
+    // Bob imports the record.
     const importRecord = bobQueryAliceDwn.records[0];
     const { status: importRecordStatus } = await importRecord.import();
     expect(importRecordStatus.code).to.equal(202);
 
-    // bob sends the record to his remote dwn
+    // Bob sends the record to his remote DWN.
     const { status: importSendStatus } = await importRecord!.send();
     expect(importSendStatus.code).to.equal(202);
 
@@ -207,7 +204,7 @@ describe('Record', () => {
     expect(bobQueryAliceDwn.records.length).to.equal(1);
     const updatedRecord = bobQueryAliceDwn.records[0];
 
-    // stores the record on his own DWN
+    // Bob stores the record on his own DWN.
     const { status: updatedRecordStoredStatus } = await updatedRecord.store();
     expect(updatedRecordStoredStatus.code).to.equal(202);
     expect(await updatedRecord.data.text()).to.equal(updatedText);
@@ -216,7 +213,7 @@ describe('Record', () => {
     const { status: updatedRecordToSelfStatus } = await updatedRecord!.send();
     expect(updatedRecordToSelfStatus.code).to.equal(202);
 
-    // Bob queries for the updated record on his own DWN
+    // Bob queries for the updated record on his own DWN.
     bobQueryBobDwn = await dwnBob.records.query({
       from    : bobDid.uri,
       message : {
@@ -2305,7 +2302,7 @@ describe('Record', () => {
       let sendResponse = await record.send();
       expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
 
-      // bob queries alice's DWN for the record
+      // Bob queries Alice's DWN for the record.
       const aliceQueryResult = await dwnBob.records.query({
         from    : aliceDid.uri,
         message : {
@@ -2318,7 +2315,7 @@ describe('Record', () => {
       expect(aliceQueryResult.records.length).to.equal(1);
       const queriedRecord = aliceQueryResult.records[0];
 
-      // bob queries their own DWN for the record, should not return any results
+      // Bob queries his own DWN for the record, which should not return any results.
       let bobQueryResult = await dwnBob.records.query({
         message: {
           filter: {
@@ -2329,15 +2326,15 @@ describe('Record', () => {
       expect(bobQueryResult.status.code).to.equal(200);
       expect(bobQueryResult.records.length).to.equal(0);
 
-      // attempts to store the record without importing it, should fail
+      // Attempts to store the record without importing it, which should fail.
       let { status: storeRecordStatus } = await queriedRecord.store();
       expect(storeRecordStatus.code).to.equal(401, storeRecordStatus.detail);
 
-      // attempts to store the record flagging it for import
+      // Attempts to store the record flagging it for import.
       ({ status: storeRecordStatus } = await queriedRecord.store(true));
       expect(storeRecordStatus.code).to.equal(202, storeRecordStatus.detail);
 
-      // bob queries their own DWN for the record, should return the record
+      // Bob queries his own DWN for the record, which should return the record.
       bobQueryResult = await dwnBob.records.query({
         message: {
           filter: {
@@ -2383,7 +2380,7 @@ describe('Record', () => {
       expect(queryResult.status.code).to.equal(200);
       expect(queryResult.records.length).to.equal(0);
 
-      // Bob queries for the record from Alice's remote DWN
+      // Bob queries for the record from Alice's remote DWN.
       const queryResultFromAlice = await dwnBob.records.query({
         from    : aliceDid.uri,
         message : {
@@ -2397,15 +2394,16 @@ describe('Record', () => {
       const queriedRecord = queryResultFromAlice.records[0];
       expect(await queriedRecord.data.text()).to.equal(updatedText);
 
-      // attempts to store the record without signing it, should fail
+      // Attempts to store the record without signing it, which should fail.
       let { status: storeRecordStatus } = await queriedRecord.store();
       expect(storeRecordStatus.code).to.equal(401, storeRecordStatus.detail);
 
-      // stores the record in Bob's DWN, the importRecord parameter is set to true so that bob signs the record before storing it
+      // Stores the record in Bob's DWN, the importRecord parameter is set to true so that Bob
+      // signs the record before storing it.
       ({ status: storeRecordStatus } = await queriedRecord.store(true));
       expect(storeRecordStatus.code).to.equal(202, storeRecordStatus.detail);
 
-      // The record should now exist on bob's node
+      // The record should now exist on Bob's DWN.
       queryResult = await dwnBob.records.query({
         message: {
           filter: {
@@ -2418,7 +2416,7 @@ describe('Record', () => {
       const storedRecord = queryResult.records[0];
       expect(storedRecord.id).to.equal(record!.id);
       expect(await storedRecord.data.text()).to.equal(updatedText);
-    }).timeout(100_000);
+    });
   });
 
   describe('import()', () => {
@@ -2427,7 +2425,7 @@ describe('Record', () => {
       //           Bob queries for the record from Alice's DWN and then imports it without storing
       //           Bob then .stores() it without specifying import explicitly as it's already been imported.
 
-      // alice creates a record and sends it to her DWN
+      // Alice creates a record and sends it to her DWN.
       const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
@@ -2440,7 +2438,7 @@ describe('Record', () => {
       let sendResponse = await record.send();
       expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
 
-      // bob queries alice's DWN for the record
+      // Bob queries Alice's DWN for the record.
       const aliceQueryResult = await dwnBob.records.query({
         from    : aliceDid.uri,
         message : {
@@ -2453,11 +2451,11 @@ describe('Record', () => {
       expect(aliceQueryResult.records.length).to.equal(1);
       const queriedRecord = aliceQueryResult.records[0];
 
-      // imports the record without storing it
+      // Imports the record without storing it.
       let { status: importRecordStatus } = await queriedRecord.import();
       expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
 
-      // bob queries their own DWN for the record, should return the record
+      // Bob queries his own DWN for the record, which should return the record.
       const bobQueryResult = await dwnBob.records.query({
         message: {
           filter: {
@@ -2491,7 +2489,7 @@ describe('Record', () => {
       const sendResponse = await record.send();
       expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
 
-      // bob queries alice's DWN for the record
+      // Bob queries Alice's DWN for the record.
       const aliceQueryResult = await dwnBob.records.query({
         from    : aliceDid.uri,
         message : {
@@ -2504,11 +2502,11 @@ describe('Record', () => {
       expect(aliceQueryResult.records.length).to.equal(1);
       const queriedRecord = aliceQueryResult.records[0];
 
-      // imports the record without storing it
+      // Imports the record without storing it.
       let { status: importRecordStatus } = await queriedRecord.import();
       expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
 
-      // bob queries their own DWN for the record, should return the record
+      // Bob queries his own DWN for the record, which should return the record.
       const bobQueryResult = await dwnBob.records.query({
         message: {
           filter: {
@@ -2528,7 +2526,7 @@ describe('Record', () => {
         //           Bob queries for the record from Alice's DWN and then imports it without storing
         //           Bob then .stores() it without specifying import explicitly as it's already been imported.
 
-        // alice creates a record and sends it to her DWN
+        // Alice creates a record and sends it to her DWN.
         const { status, record } = await dwnAlice.records.write({
           data    : 'Hello, world!',
           message : {
@@ -2541,7 +2539,7 @@ describe('Record', () => {
         let sendResponse = await record.send();
         expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
 
-        // bob queries alice's DWN for the record
+        // Bob queries Alice's DWN for the record.
         const aliceQueryResult = await dwnBob.records.query({
           from    : aliceDid.uri,
           message : {
@@ -2554,11 +2552,11 @@ describe('Record', () => {
         expect(aliceQueryResult.records.length).to.equal(1);
         const queriedRecord = aliceQueryResult.records[0];
 
-        // imports the record without storing it
+        // Imports the record without storing it.
         let { status: importRecordStatus } = await queriedRecord.import(false);
         expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
 
-        // queries for the record from bob's DWN, should not return any results
+        // Queries for the record from Bob's DWN, which should not return any results.
         let bobQueryResult = await dwnBob.records.query({
           message: {
             filter: {
@@ -2569,11 +2567,12 @@ describe('Record', () => {
         expect(bobQueryResult.status.code).to.equal(200);
         expect(bobQueryResult.records.length).to.equal(0);
 
-        // attempts to store the record without explicitly marking it for import as it's already been imported
+        // Attempts to store the record without explicitly marking it for import as it's already
+        // been imported
         ({ status: importRecordStatus } = await queriedRecord.store());
         expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
 
-        // bob queries their own DWN for the record, should return the record
+        // Bob queries his own DWN for the record, which should return the record.
         bobQueryResult = await dwnBob.records.query({
           message: {
             filter: {
@@ -2607,7 +2606,7 @@ describe('Record', () => {
         const sendResponse = await record.send();
         expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
 
-        // bob queries alice's DWN for the record
+        // Bob queries Alice's DWN for the record.
         const aliceQueryResult = await dwnBob.records.query({
           from    : aliceDid.uri,
           message : {
@@ -2620,11 +2619,11 @@ describe('Record', () => {
         expect(aliceQueryResult.records.length).to.equal(1);
         const queriedRecord = aliceQueryResult.records[0];
 
-        // imports the record without storing it
+        // Imports the record without storing it.
         let { status: importRecordStatus } = await queriedRecord.import(false);
         expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
 
-        // queries for the record from bob's DWN, should not return any results
+        // Queries for the record from Bob's DWN, which should not return any results.
         let bobQueryResult = await dwnBob.records.query({
           message: {
             filter: {
@@ -2635,11 +2634,11 @@ describe('Record', () => {
         expect(bobQueryResult.status.code).to.equal(200);
         expect(bobQueryResult.records.length).to.equal(0);
 
-        // attempts to store the record without explicitly marking it for import as it's already been imported
+        // Attempts to store the record without explicitly marking it for import as it's already been imported.
         ({ status: importRecordStatus } = await queriedRecord.store());
         expect(importRecordStatus.code).to.equal(202, importRecordStatus.detail);
 
-        // bob queries their own DWN for the record, should return the record
+        // Bob queries his own DWN for the record, which should return the record.
         bobQueryResult = await dwnBob.records.query({
           message: {
             filter: {

@@ -444,7 +444,7 @@ describe('DwnApi', () => {
         expect(alicePhotoReadResult.record).to.exist;
         const { status: alicePhotoReadStoreStatus } = await alicePhotoReadResult.record.store();
         expect(alicePhotoReadStoreStatus.code).to.equal(202);
-      }).timeout(100_000);
+      });
     });
 
     describe('agent store: false', () => {
