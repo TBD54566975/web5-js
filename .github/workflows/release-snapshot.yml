@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - snapshot-releases-test
   workflow_dispatch:
 
 # Allow only one concurrent deployment, but do NOT cancel in-progress runs as
