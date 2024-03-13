@@ -7,10 +7,11 @@ import { utils as cryptoUtils } from '@web5/crypto';
 
 import type { Web5PlatformAgent } from '../src/types/agent.js';
 
-import { LocalKeyManager } from '../src/local-key-manager.js';
-import { CryptoErrorCode } from '../src/prototyping/crypto/crypto-error.js';
+import { isChrome } from './utils/runtimes.js';
 import { TestAgent } from './utils/test-agent.js';
+import { LocalKeyManager } from '../src/local-key-manager.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
+import { CryptoErrorCode } from '../src/prototyping/crypto/crypto-error.js';
 
 describe('LocalKeyManager', () => {
   describe('get agent', () => {
@@ -158,8 +159,11 @@ describe('LocalKeyManager', () => {
           let keyUri = await testHarness.agent.keyManager.generateKey({ algorithm: 'A128KW' });
           expect(keyUri).to.be.a.string;
 
-          keyUri = await testHarness.agent.keyManager.generateKey({ algorithm: 'A192KW' });
-          expect(keyUri).to.be.a.string;
+          // Skip this test in Chrome browser because it does not support AES with 192-bit keys.
+          if (!isChrome) {
+            keyUri = await testHarness.agent.keyManager.generateKey({ algorithm: 'A192KW' });
+            expect(keyUri).to.be.a.string;
+          }
 
           keyUri = await testHarness.agent.keyManager.generateKey({ algorithm: 'A256KW' });
           expect(keyUri).to.be.a.string;
@@ -169,8 +173,11 @@ describe('LocalKeyManager', () => {
           let keyUri = await testHarness.agent.keyManager.generateKey({ algorithm: 'A128GCM' });
           expect(keyUri).to.be.a.string;
 
-          keyUri = await testHarness.agent.keyManager.generateKey({ algorithm: 'A192GCM' });
-          expect(keyUri).to.be.a.string;
+          // Skip this test in Chrome browser because it does not support AES with 192-bit keys.
+          if (!isChrome) {
+            keyUri = await testHarness.agent.keyManager.generateKey({ algorithm: 'A192GCM' });
+            expect(keyUri).to.be.a.string;
+          }
 
           keyUri = await testHarness.agent.keyManager.generateKey({ algorithm: 'A256GCM' });
           expect(keyUri).to.be.a.string;
