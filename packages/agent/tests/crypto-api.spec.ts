@@ -4,6 +4,7 @@ import { expect } from 'chai';
 import { Convert } from '@web5/common';
 import { utils as cryptoUtils, isOctPrivateJwk } from '@web5/crypto';
 
+import { isChrome } from './utils/runtimes.js';
 import { AgentCryptoApi } from '../src/crypto-api.js';
 
 describe('AgentCryptoApi', () => {
@@ -46,8 +47,8 @@ describe('AgentCryptoApi', () => {
       expect(privateKeyBytesResult).to.deep.equal(privateKeyBytes);
     });
 
-    it('supports A128GCM, A192GCM, and A256GCM', async () => {
-      for (const algorithm of ['A128GCM', 'A192GCM', 'A256GCM'] as const) {
+    it('supports A128GCM and A256GCM in all supported runtimes', async function () {
+      for (const algorithm of ['A128GCM', 'A256GCM'] as const) {
         // Setup.
         const privateKeyInput = await cryptoApi.generateKey({ algorithm });
         const privateKeyBytes = Convert.base64Url(privateKeyInput.k!).toUint8Array();
@@ -62,8 +63,46 @@ describe('AgentCryptoApi', () => {
       }
     });
 
-    it('supports A128KW, A192KW, and A256KW', async () => {
-      for (const algorithm of ['A128KW', 'A192KW', 'A256KW'] as const) {
+    it('supports A192GCM in all supported runtimes except Chrome browser', async function () {
+      // Google Chrome does not support AES with 192-bit keys.
+      if (isChrome) this.skip();
+
+      for (const algorithm of ['A192GCM'] as const) {
+        // Setup.
+        const privateKeyInput = await cryptoApi.generateKey({ algorithm });
+        const privateKeyBytes = Convert.base64Url(privateKeyInput.k!).toUint8Array();
+
+        // Test the method.
+        const privateKey = await cryptoApi.bytesToPrivateKey({ algorithm, privateKeyBytes });
+
+        // Validate the result.
+        expect(privateKey).to.have.property('alg', algorithm);
+        const privateKeyBytesResult = Convert.base64Url(privateKey.k!).toUint8Array();
+        expect(privateKeyBytesResult).to.deep.equal(privateKeyBytes);
+      }
+    });
+
+    it('supports A128KW and A256KW in all supported runtimes', async () => {
+      for (const algorithm of ['A128KW', 'A256KW'] as const) {
+        // Setup.
+        const privateKeyInput = await cryptoApi.generateKey({ algorithm });
+        const privateKeyBytes = Convert.base64Url(privateKeyInput.k!).toUint8Array();
+
+        // Test the method.
+        const privateKey = await cryptoApi.bytesToPrivateKey({ algorithm, privateKeyBytes });
+
+        // Validate the result.
+        expect(privateKey).to.have.property('alg', algorithm);
+        const privateKeyBytesResult = Convert.base64Url(privateKey.k!).toUint8Array();
+        expect(privateKeyBytesResult).to.deep.equal(privateKeyBytes);
+      }
+    });
+
+    it('supports A192KW in all supported runtimes except Chrome browser', async function () {
+      // Google Chrome does not support AES with 192-bit keys.
+      if (isChrome) this.skip();
+
+      for (const algorithm of ['A192KW'] as const) {
         // Setup.
         const privateKeyInput = await cryptoApi.generateKey({ algorithm });
         const privateKeyBytes = Convert.base64Url(privateKeyInput.k!).toUint8Array();
