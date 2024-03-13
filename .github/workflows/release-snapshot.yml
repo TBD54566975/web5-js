@@ -59,6 +59,7 @@ jobs:
       - name: Publish @web5/${{ matrix.package }} snapshot
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+          REGISTRY: https://blockxyz.jfrog.io/artifactory/api/npm/tbd-oss-snapshots-npm/
         run: |
           set -exuo pipefail
 
@@ -71,13 +72,13 @@ jobs:
           version_line=$(grep -n "\"version\": \"${base_version}\"" package.json | cut -d: -f1) # determine which line in package.json specifies the version
           version_bump_commit=$(git blame --porcelain -L "${version_line},${version_line}" -- package.json | head -n1 | awk '{ print $1 }') # ask git when the last commit to that line was
           commits_since_version_bump=$(git rev-list HEAD ${version_bump_commit} --count -- .) # count the number of commits that changed this package since the version change commit
-          last_commit_to_package=$(git log -1 --pretty=format:%H -- .)
+          last_commit_to_package="$(git log -1 --pretty=format:%H -- .)"
 
 
           snapshot_version="${base_version}-SNAPSHOT.${commits_since_version_bump}-${last_commit_to_package:0:7}"
 
           # check if that snapshot version has already been published
-          if curl -f --silent "https://blockxyz.jfrog.io/artifactory/tbd-oss-snapshots-npm/@web5/${package_name}/-/${package_name}-${snapshot_version}.tgz" > /dev/null; then
+          if npm view --registry "${REGISTRY}" "@web5/${package_name}@${snapshot_version}" > /dev/null; then
               echo "release for @web5/${package_name}-${snapshot_version} already exists, not re-publishing"
               exit 0
           fi
@@ -92,10 +93,10 @@ jobs:
           mv package-new.json package.json
 
           # set publishing config in package.json
-          jq '.publishConfig.registry = "https://blockxyz.jfrog.io/artifactory/api/npm/tbd-oss-snapshots-npm/"' package.json > package-new.json
+          jq --arg registry "${REGISTRY}" '.publishConfig.registry = $registry' package.json > package-new.json
           mv package-new.json package.json
 
           # login to jfrog and publish
           jf npm-config --global=true --repo-resolve=tbd-oss-snapshots-npm --repo-deploy=tbd-oss-snapshots-npm
-          jf npm publish --registry https://blockxyz.jfrog.io/artifactory/api/npm/tbd-oss-snapshots-npm/
+          jf npm publish --registry "${REGISTRY}"
         shell: bash
