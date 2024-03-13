@@ -13,6 +13,13 @@ The `@web5/credentials` package provides the following functionality:
     - [Signing a Verifiable Credential](#signing-a-verifiable-credential)
     - [Verifying a Verifiable Credential](#verifying-a-verifiable-credential)
     - [Parsing a JWT into a Verifiable Credential](#parsing-a-jwt-into-a-verifiable-credential)
+- [`VerifiablePresentation`](#verifiablepresentation)
+  - [Features](#vp-features)
+  - [Usage](#vp-usage)
+    - [Creating a Verifiable Presentation](#creating-a-verifiable-presentation)
+    - [Signing a Verifiable Presentation](#signing-a-verifiable-presentation)
+    - [Verifying a Verifiable Presentation](#verifying-a-verifiable-presentation)
+    - [Parsing a JWT into a Verifiable Presentation](#parsing-a-jwt-into-a-verifiable-presentation)
 - [`PresentationExchange`](#presentationexchange)
   - [Features](#pex-features)
   - [Usage](#pex-usage)
@@ -22,13 +29,6 @@ The `@web5/credentials` package provides the following functionality:
     - [Validate Definition](#validate-definition)
     - [Validate Submission](#validate-submission)
     - [Validate Presentation](#validate-presentation)
-- [`VerifiablePresentation`](#verifiablepresentation)
-  - [Features](#vp-features)
-  - [Usage](#vp-usage)
-    - [Creating a Verifiable Presentation](#creating-a-verifiable-presentation)
-    - [Signing a Verifiable Presentation](#signing-a-verifiable-presentation)
-    - [Verifying a Verifiable Presentation](#verifying-a-verifiable-presentation)
-    - [Parsing a JWT into a Verifiable Presentation](#parsing-a-jwt-into-a-verifiable-presentation)
 
 # `VerifiableCredential`
 
@@ -121,6 +121,67 @@ Parse a JWT into a `VerifiableCredential` instance
 const vc = VerifiableCredential.parseJwt({ vcJwt: signedVcJwt })
 ```
 
+# `VerifiablePresentation`
+
+## VP Features
+
+* Create Verifiable Presentation with flexible data types.
+* Sign presentations using decentralized identifiers (DIDs).
+* Verify the integrity and authenticity of VPs encoded as JSON Web Tokens (JWTs).
+* Parse JWT representations of VPs into VerifiablePresentation instances.
+
+### VP Usage
+
+### Creating a Verifiable Presentation
+Create a new VerifiablePresentation with the following parameters:
+
+- `holder`: The holder URI of the presentation, as a string..
+- `vcJwts`: The JWTs of the credentials to be included in the presentation.
+- `type`: Optional type of the presentation, can be a string or an array of strings.
+- `additionalData`: Optional additional data to be included in the presentation.
+
+```javascript
+const vp = await VerifiablePresentation.create({
+  type: 'PresentationSubmission',
+  holder: 'did:ex:holder',
+  vcJwts: vcJwts,
+  additionalData: { 'arbitrary': 'data' }
+});
+```
+
+### Signing a Verifiable Presentation
+Sign a `VerifiablePresentation` with a DID:
+
+- `did`: The did that is signing the VP
+
+Sign the VP using the `did` object
+```javascript
+const vpJwt = await vp.sign({ did: issuer });
+```
+
+### Verifying a Verifiable Presentation
+Verify the integrity and authenticity of a Verifiable Presentation
+
+- `vpJwt`: The VP in JWT format as a String.
+
+```javascript
+try {
+  await VerifiablePresentation.verify({ vpJwt: signedVpJwt })
+  console.log("VP Verification successful!")
+} catch (e: Error) {
+  console.log("VP Verification failed: ${e.message}")
+}
+```
+
+### Parsing a JWT into a Verifiable Presentation
+Parse a JWT into a `VerifiablePresentation` instance
+
+`vpJwt`: The VP JWT as a String.
+
+```javascript
+const parsedVp = VerifiablePresentation.parseJwt({ vcJwt: signedVcJwt })
+```
+
 ## `PresentationExchange`
 
 `PresentationExchange` is designed to facilitate the creation of a Verifiable Presentation by providing tools to select and validate Verifiable Credentials against defined criteria.
@@ -199,65 +260,4 @@ Evaluates a presentation against a presentation definition.
 
 ```javascript
 const evaluationResults = PresentationExchange.evaluatePresentation({ presentationDefinition, presentation })
-```
-
-# `VerifiablePresentation`
-
-## VP Features
-
-* Create Verifiable Presentation with flexible data types.
-* Sign presentations using decentralized identifiers (DIDs).
-* Verify the integrity and authenticity of VPs encoded as JSON Web Tokens (JWTs).
-* Parse JWT representations of VPs into VerifiablePresentation instances.
-
-### VP Usage
-
-### Creating a Verifiable Presentation
-Create a new VerifiablePresentation with the following parameters:
-
-- `holder`: The holder URI of the presentation, as a string..
-- `vcJwts`: The JWTs of the credentials to be included in the presentation.
-- `type`: Optional type of the presentation, can be a string or an array of strings.
-- `additionalData`: Optional additional data to be included in the presentation.
-
-```javascript
-const vp = await VerifiablePresentation.create({
-  type: 'PresentationSubmission',
-  holder: 'did:ex:holder',
-  vcJwts: vcJwts,
-  additionalData: { 'arbitrary': 'data' }
-});
-```
-
-### Signing a Verifiable Presentation
-Sign a `VerifiablePresentation` with a DID:
-
-- `did`: The did that is signing the VP
-
-Sign the VP using the `did` object
-```javascript
-const vpJwt = await vp.sign({ did: issuer });
-```
-
-### Verifying a Verifiable Presentation
-Verify the integrity and authenticity of a Verifiable Presentation
-
-- `vpJwt`: The VP in JWT format as a String.
-
-```javascript
-try {
-  await VerifiablePresentation.verify({ vpJwt: signedVpJwt })
-  console.log("VP Verification successful!")
-} catch (e: Error) {
-  console.log("VP Verification failed: ${e.message}")
-}
-```
-
-### Parsing a JWT into a Verifiable Presentation
-Parse a JWT into a `VerifiablePresentation` instance
-
-`vpJwt`: The VP JWT as a String.
-
-```javascript
-const parsedVp = VerifiablePresentation.parseJwt({ vcJwt: signedVcJwt })
 ```
