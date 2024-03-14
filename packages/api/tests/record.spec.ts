@@ -1,22 +1,11 @@
 import type { BearerDid } from '@web5/dids';
-import type {
-  EncryptionInput,
-  Signer as DwnSigner,
-  PublicJwk as DwnPublicKeyJwk,
-} from '@tbd54566975/dwn-sdk-js';
+import type { DwnMessageParams, DwnPublicKeyJwk, DwnSigner } from '@web5/agent';
 
 import { expect } from 'chai';
 import { NodeStream } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { Web5UserAgent } from '@web5/user-agent';
-import { PlatformAgentTestHarness } from '@web5/agent';
-import {
-  DwnConstant,
-  RecordsWrite,
-  EncryptionAlgorithm,
-  KeyDerivationScheme,
-} from '@tbd54566975/dwn-sdk-js';
-
+import { DwnConstant, DwnEncryptionAlgorithm, DwnInterface, DwnKeyDerivationScheme, dwnMessageConstructors, PlatformAgentTestHarness } from '@web5/agent';
 import { Record } from '../src/record.js';
 import { DwnApi } from '../src/dwn-api.js';
 import { dataToBlob } from '../src/utils.js';
@@ -254,13 +243,13 @@ describe('Record', () => {
       }
     };
 
-    const encryptionInput: EncryptionInput = {
-      algorithm            : EncryptionAlgorithm.Aes256Ctr,
+    const encryptionInput: DwnMessageParams[DwnInterface.RecordsWrite]['encryptionInput'] = {
+      algorithm            : DwnEncryptionAlgorithm.Aes256Ctr,
       initializationVector : TestDataGenerator.randomBytes(16),
       key                  : TestDataGenerator.randomBytes(32),
       keyEncryptionInputs  : [{
-        algorithm        : EncryptionAlgorithm.EciesSecp256k1,
-        derivationScheme : KeyDerivationScheme.ProtocolPath,
+        algorithm        : DwnEncryptionAlgorithm.EciesSecp256k1,
+        derivationScheme : DwnKeyDerivationScheme.ProtocolPath,
         publicKey        : encryptionPublicKeyJwk as DwnPublicKeyJwk,
         publicKeyId      : encryptionKeyId
       }]
@@ -279,6 +268,8 @@ describe('Record', () => {
         definition: emailProtocolDefinition
       }
     });
+
+    const RecordsWrite = dwnMessageConstructors[DwnInterface.RecordsWrite];
 
     // Create a parent record to reference in the RecordsWriteMessage used for validation
     const parentRecordsWrite = await RecordsWrite.create({
@@ -321,7 +312,7 @@ describe('Record', () => {
     expect(record.id).to.equal(recordsWrite.message.recordId);
     expect(record.encryption).to.not.be.undefined;
     expect(record.encryption).to.deep.equal(recordsWrite.message.encryption);
-    expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === KeyDerivationScheme.ProtocolPath));
+    expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === DwnKeyDerivationScheme.ProtocolPath));
     expect(record.attestation).to.not.be.undefined;
     expect(record.attestation).to.have.property('signatures');
 
@@ -802,6 +793,45 @@ describe('Record', () => {
 
         // Confirm that the length of the data read as text matches the original input data.
         const readDataText = await readRecord!.data.text();
+        expect(readDataText.length).to.equal(dataText.length);
+
+        // Ensure the text returned matches the input data, char for char.
+        expect(readDataText).to.deep.equal(dataText);
+      });
+    });
+
+    describe('data.then()', () => {
+      it('returns small data payloads after dwnAlice.records.write()', async () => {
+        // Use a data payload that is less than the encoded data limit to ensure that the data will
+        // not have to be fetched with a RecordsRead when record.data.text() is executed.
+        const inputDataBytes = new TextEncoder().encode(dataText500Bytes);
+
+        // Write the 500B record to agent-connected DWN.
+        const { record, status } = await dwnAlice.records.write({ data: dataText500Bytes });
+        expect(status.code).to.equal(202);
+
+        // Confirm that the length of the data read as text matches the original input data.
+        const dataStream = await record.data.then(stream => stream);
+        const dataStreamBytes = await NodeStream.consumeToBytes({ readable: dataStream });
+        expect(dataStreamBytes.length).to.equal(dataText500Bytes.length);
+
+        // Ensure the text returned matches the input data, byte for byte.
+        expect(dataStreamBytes).to.deep.equal(inputDataBytes);
+      });
+
+      it('returns large data payloads after dwnAlice.records.write()', async () => {
+        // Generate data that exceeds the DWN encoded data limit to ensure that the data will have to be fetched
+        // with a RecordsRead when record.data.text() is executed.
+        const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
+
+        // Write the large record to agent-connected DWN.
+        const { record, status } = await dwnAlice.records.write({ data: dataText });
+
+        expect(status.code).to.equal(202);
+
+        // Confirm that the length of the data read as text matches the original input data.
+        const dataStream = await record.data.then(stream => stream);
+        const readDataText = await NodeStream.consumeToText({ readable: dataStream });
         expect(readDataText.length).to.equal(dataText.length);
 
         // Ensure the text returned matches the input data, char for char.
@@ -1924,13 +1954,13 @@ describe('Record', () => {
         }
       };
 
-      const encryptionInput: EncryptionInput = {
-        algorithm            : EncryptionAlgorithm.Aes256Ctr,
+      const encryptionInput: DwnMessageParams[DwnInterface.RecordsWrite]['encryptionInput'] = {
+        algorithm            : DwnEncryptionAlgorithm.Aes256Ctr,
         initializationVector : TestDataGenerator.randomBytes(16),
         key                  : TestDataGenerator.randomBytes(32),
         keyEncryptionInputs  : [{
-          algorithm        : EncryptionAlgorithm.EciesSecp256k1,
-          derivationScheme : KeyDerivationScheme.ProtocolPath,
+          algorithm        : DwnEncryptionAlgorithm.EciesSecp256k1,
+          derivationScheme : DwnKeyDerivationScheme.ProtocolPath,
           publicKey        : encryptionPublicKeyJwk as DwnPublicKeyJwk,
           publicKeyId      : encryptionKeyId
         }]
@@ -1949,6 +1979,8 @@ describe('Record', () => {
           definition: emailProtocolDefinition
         }
       });
+
+      const RecordsWrite = dwnMessageConstructors[DwnInterface.RecordsWrite];
 
       // Create a parent record to reference in the RecordsWriteMessage used for validation
       const parentRecordsWrite = await RecordsWrite.create({
@@ -1994,7 +2026,7 @@ describe('Record', () => {
       expect(record.id).to.equal(recordsWrite.message.recordId);
       expect(record.encryption).to.not.be.undefined;
       expect(record.encryption).to.deep.equal(recordsWrite.message.encryption);
-      expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === KeyDerivationScheme.ProtocolPath));
+      expect(record.encryption!.keyEncryption.find(key => key.derivationScheme === DwnKeyDerivationScheme.ProtocolPath));
       expect(record.attestation).to.not.be.undefined;
       expect(record.attestation).to.have.property('signatures');
 

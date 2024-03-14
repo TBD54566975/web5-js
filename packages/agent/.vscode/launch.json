@@ -15,7 +15,7 @@
         "<node_internals>/**"
       ],
       "env": {
-        "TEST_DWN_URL": "http://localhost:3018"
+        "TEST_DWN_URL": "http://localhost:3010"
       }
     }
   ]

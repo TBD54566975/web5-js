@@ -3,8 +3,7 @@ import type { BearerDid } from '@web5/dids';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { Web5UserAgent } from '@web5/user-agent';
-import { DateSort } from '@tbd54566975/dwn-sdk-js';
-import { PlatformAgentTestHarness } from '@web5/agent';
+import { DwnDateSort, PlatformAgentTestHarness } from '@web5/agent';
 
 import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';
@@ -792,7 +791,7 @@ describe('DwnApi', () => {
             filter: {
               schema: 'foo/bar'
             },
-            dateSort: DateSort.CreatedAscending // same as default
+            dateSort: DwnDateSort.CreatedAscending // same as default
           }
         });
         expect(createdAscResults.status.code).to.equal(200);
@@ -806,7 +805,7 @@ describe('DwnApi', () => {
             filter: {
               schema: 'foo/bar'
             },
-            dateSort: DateSort.CreatedDescending
+            dateSort: DwnDateSort.CreatedDescending
           }
         });
         expect(createdDescResults.status.code).to.equal(200);
@@ -820,7 +819,7 @@ describe('DwnApi', () => {
             filter: {
               schema: 'foo/bar'
             },
-            dateSort: DateSort.PublishedAscending
+            dateSort: DwnDateSort.PublishedAscending
           }
         });
         expect(publishedAscResults.status.code).to.equal(200);
@@ -834,7 +833,7 @@ describe('DwnApi', () => {
             filter: {
               schema: 'foo/bar'
             },
-            dateSort: DateSort.PublishedDescending
+            dateSort: DwnDateSort.PublishedDescending
           }
         });
         expect(publishedDescResults.status.code).to.equal(200);

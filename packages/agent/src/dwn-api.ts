@@ -1,5 +1,5 @@
 import type { Readable } from '@web5/common';
-import type { DwnConfig, Signer as DwnSigner, GenericMessage, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
+import type { DwnConfig, GenericMessage, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 
 import { Convert, NodeStream } from '@web5/common';
 import { utils as cryptoUtils } from '@web5/crypto';
@@ -7,7 +7,7 @@ import { DidDht, DidJwk, DidResolver, DidResolverCacheLevel } from '@web5/dids';
 import { Cid, DataStoreLevel, Dwn, EventLogLevel, Message, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
 
 import type { Web5PlatformAgent } from './types/agent.js';
-import type { DwnMessage, DwnMessageInstance, DwnMessageParams, DwnMessageReply, DwnMessageWithData, DwnResponse, ProcessDwnRequest, SendDwnRequest } from './types/dwn.js';
+import type { DwnMessage, DwnMessageInstance, DwnMessageParams, DwnMessageReply, DwnMessageWithData, DwnResponse, DwnSigner, ProcessDwnRequest, SendDwnRequest } from './types/dwn.js';
 
 import { DwnInterface, dwnMessageConstructors } from './types/dwn.js';
 import { blobToIsomorphicNodeReadable, getDwnServiceEndpointUrls, isRecordsWrite, webReadableToIsomorphicNodeReadable } from './utils.js';
@@ -33,7 +33,6 @@ export function isDwnRequest<T extends DwnInterface>(
 }
 
 export class AgentDwnApi {
-
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
    * the `AgentDidApi`. This agent is used to interact with other Web5 agent components. It's vital
