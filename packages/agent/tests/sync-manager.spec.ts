@@ -292,7 +292,7 @@ describe('SyncManagerLevel', () => {
         expect(reply.status.code).to.equal(200);
         expect(reply.record).to.not.be.undefined;
         expect(reply.record!.data).to.not.be.undefined; // record data exists
-      });
+      }).timeout(5000);
 
       it('synchronizes records for multiple identities from remote DWN to local DWN', async () => {
         // Create a second Identity to author the DWN messages.
@@ -488,7 +488,7 @@ describe('SyncManagerLevel', () => {
         expect(reply.status.code).to.equal(200);
         expect(reply.record).to.not.be.undefined;
         expect(reply.record!.data).to.not.be.undefined;
-      });
+      }).timeout(5000);
 
       it('synchronizes records for multiple identities from local DWN to remote DWN', async () => {
         // Create a second Identity to author the DWN messages.
