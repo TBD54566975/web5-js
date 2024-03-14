@@ -282,14 +282,14 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
             metadata : bearerDid.metadata,
           },
           ok     : true,
-          status : { code: 201, detail: 'Created' }
+          status : { code: 201, message: 'Created' }
         };
         return response;
 
       } catch (error: any) {
         return {
           ok     : false,
-          status : { code: 500, detail: error.message ?? 'Unknown error occurred' }
+          status : { code: 500, message: error.message ?? 'Unknown error occurred' }
         };
       }
     }
@@ -301,7 +301,7 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
       const response: DidResponse<typeof request.messageType> = {
         result : resolutionResult,
         ok     : true,
-        status : { code: 200, detail: 'OK' }
+        status : { code: 200, message: 'OK' }
       };
       return response;
     }

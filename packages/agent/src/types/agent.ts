@@ -42,12 +42,13 @@ export type ResponseStatus = {
     code: number;
 
     /**
-     * A descriptive string providing additional information about the operation's result.
+     * A descriptive message corresponding to the status code that provides additional information
+     * about the operation's result.
      *
-     * This detail is particularly useful for logging, debugging, or displaying contextual messages
+     * This message is particularly useful for logging, debugging, or displaying contextual messages
      * to the end-user, offering insights into why an operation succeeded or failed.
      */
-    detail: string;
+    message: string;
   };
 };
 
