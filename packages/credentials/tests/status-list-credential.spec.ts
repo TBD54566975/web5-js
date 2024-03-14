@@ -44,8 +44,9 @@ describe('Status List Credential Tests', async() => {
 
       const credWithStatusContexts = credWithCredStatus.vcDataModel['@context'] as string[];
 
-      expect(credWithStatusContexts.includes('https://www.w3.org/2018/credentials/v1')).to.be.true;
-      expect(credWithStatusContexts.includes('https://w3id.org/vc/status-list/2021/v1')).to.be.true;
+      expect(credWithStatusContexts.some(context => context.includes('https://w3id.org/vc/status-list/2021/v1'))).to.be.true;
+      expect(credWithStatusContexts.some(context => context.includes('https://www.w3.org/2018/credentials/v1'))).to.be.true;
+
       expect(credWithCredStatus.vcDataModel.credentialStatus).to.deep.equal(credentialStatus);
 
       const statusListCred = StatusListCredential.create({

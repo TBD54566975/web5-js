@@ -1,5 +1,5 @@
 import type { BearerDid } from '@web5/dids';
-import type { ICredential, ICredentialSubject, ICredentialStatus} from '@sphereon/ssi-types';
+import type { ICredential, ICredentialSubject} from '@sphereon/ssi-types';
 
 import { utils as cryptoUtils } from '@web5/crypto';
 
