@@ -127,7 +127,7 @@ describe('Web5UserAgent', () => {
           expect(didCreateResponse).to.have.property('ok', true);
           expect(didCreateResponse).to.have.property('status');
           expect(didCreateResponse.status).to.have.property('code', 201);
-          expect(didCreateResponse.status).to.have.property('detail', 'Created');
+          expect(didCreateResponse.status).to.have.property('message', 'Created');
           expect(didCreateResponse).to.have.property('result');
           expect(didCreateResponse.result).to.have.property('uri');
           expect(didCreateResponse.result).to.have.property('document');
@@ -144,7 +144,7 @@ describe('Web5UserAgent', () => {
           expect(didResolveResponse).to.have.property('ok', true);
           expect(didResolveResponse).to.have.property('status');
           expect(didResolveResponse.status).to.have.property('code', 200);
-          expect(didResolveResponse.status).to.have.property('detail', 'OK');
+          expect(didResolveResponse.status).to.have.property('message', 'OK');
           expect(didResolveResponse).to.have.property('result');
           expect(didResolveResponse.result).to.have.property('didDocument');
           expect(didResolveResponse.result).to.have.property('didDocumentMetadata');

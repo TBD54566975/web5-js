@@ -42,7 +42,7 @@ describe('DidApi', () => {
       expect(didCreateResponse).to.have.property('ok', true);
       expect(didCreateResponse).to.have.property('status');
       expect(didCreateResponse.status).to.have.property('code', 201);
-      expect(didCreateResponse.status).to.have.property('detail', 'Created');
+      expect(didCreateResponse.status).to.have.property('message', 'Created');
       expect(didCreateResponse).to.have.property('did');
       expect(didCreateResponse.did).to.have.property('uri');
       expect(didCreateResponse.did).to.have.property('document');

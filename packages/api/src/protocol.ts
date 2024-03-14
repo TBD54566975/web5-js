@@ -1,4 +1,4 @@
-import type { DwnMessage, Web5Agent } from '@web5/agent';
+import type { DwnMessage, DwnResponseStatus, Web5Agent } from '@web5/agent';
 
 import { DwnInterface } from '@web5/agent';
 
@@ -68,7 +68,7 @@ export class Protocol {
    * @param target - The DID of the target DWN to which the protocol configuration will be installed.
    * @returns A promise that resolves to an object containing the status of the send operation.
    */
-  async send(target: string) {
+  async send(target: string): Promise<DwnResponseStatus> {
     const { reply } = await this._agent.sendDwnRequest({
       author      : this._metadata.author,
       messageCid  : this._metadata.messageCid,
