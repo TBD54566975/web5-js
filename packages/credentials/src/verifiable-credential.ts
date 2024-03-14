@@ -1,11 +1,12 @@
 import type { BearerDid } from '@web5/dids';
-import type { ICredential, ICredentialSubject} from '@sphereon/ssi-types';
+import type { ICredential, ICredentialSubject, ICredentialStatus} from '@sphereon/ssi-types';
 
 import { utils as cryptoUtils } from '@web5/crypto';
 
 import { Jwt } from './jwt.js';
 import { SsiValidator } from './validators.js';
 import { getCurrentXmlSchema112Timestamp } from './utils.js';
+import { DEFAULT_STATUS_LIST_VC_CONTEXT, StatusList2021Entry } from './status-list-credential.js';
 
 export const DEFAULT_VC_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
 export const DEFAULT_VC_TYPE = 'VerifiableCredential';
@@ -34,6 +35,7 @@ export type VerifiableCredentialCreateOptions = {
   data: any;
   issuanceDate?: string;
   expirationDate?: string;
+  credentialStatus?: StatusList2021Entry
 };
 
 /**
@@ -125,7 +127,7 @@ export class VerifiableCredential {
    * @returns A [VerifiableCredential] instance.
    */
   public static async create(options: VerifiableCredentialCreateOptions): Promise<VerifiableCredential> {
-    const { type, issuer, subject, data, issuanceDate, expirationDate } = options;
+    const { type, issuer, subject, data, issuanceDate, expirationDate, credentialStatus } = options;
 
     const jsonData = JSON.parse(JSON.stringify(data));
 
@@ -146,8 +148,14 @@ export class VerifiableCredential {
       ...jsonData
     };
 
+    const contexts: string[] = [DEFAULT_VC_CONTEXT];
+
+    if (credentialStatus !== null) {
+      contexts.push(DEFAULT_STATUS_LIST_VC_CONTEXT);
+    }
+
     const vcDataModel: VcDataModel = {
-      '@context' : [DEFAULT_VC_CONTEXT],
+      '@context' : contexts,
       type       : Array.isArray(type)
         ? [DEFAULT_VC_TYPE, ...type]
         : (type ? [DEFAULT_VC_TYPE, type] : [DEFAULT_VC_TYPE]),
@@ -155,7 +163,8 @@ export class VerifiableCredential {
       issuer            : issuer,
       issuanceDate      : issuanceDate || getCurrentXmlSchema112Timestamp(), // use default if undefined
       credentialSubject : credentialSubject,
-      ...(expirationDate && { expirationDate }), // optional property
+      ...(expirationDate && { expirationDate }), // optional  property
+      ...(credentialStatus && { credentialStatus }) // optional  property
     };
 
     validatePayload(vcDataModel);
