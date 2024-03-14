@@ -138,9 +138,6 @@ importers:
 
   packages/api:
     dependencies:
-      '@tbd54566975/dwn-sdk-js':
-        specifier: 0.2.18
-        version: 0.2.18
       '@web5/agent':
         specifier: 0.3.0
         version: link:../agent

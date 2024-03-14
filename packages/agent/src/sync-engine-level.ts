@@ -5,7 +5,6 @@ import type {
   GenericMessage,
   MessagesGetReply,
   PaginationCursor,
-  RecordsWriteMessage,
 } from '@tbd54566975/dwn-sdk-js';
 
 import ms from 'ms';
@@ -147,7 +146,7 @@ export class SyncEngineLevel implements SyncEngine {
 
         if (isRecordsWrite(entry)) {
           const { encodedData } = entry;
-          const message = entry.message as RecordsWriteMessage;
+          const message = entry.message;
 
           if (encodedData) {
             const dataBytes = Convert.base64Url(encodedData).toUint8Array();

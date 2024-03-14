@@ -104,6 +104,18 @@ export interface DwnMessage {
   [DwnInterface.RecordsWrite]       : RecordsWriteMessage;
 }
 
+export interface DwnMessageDescriptor {
+  [DwnInterface.EventsGet]          : EventsGetMessage['descriptor'];
+  [DwnInterface.EventsQuery]        : EventsQueryMessage['descriptor'];
+  [DwnInterface.MessagesGet]        : MessagesGetMessage['descriptor'];
+  [DwnInterface.ProtocolsConfigure] : ProtocolsConfigureMessage['descriptor'];
+  [DwnInterface.ProtocolsQuery]     : ProtocolsQueryMessage['descriptor'];
+  [DwnInterface.RecordsDelete]      : RecordsDeleteMessage['descriptor'];
+  [DwnInterface.RecordsQuery]       : RecordsQueryMessage['descriptor'];
+  [DwnInterface.RecordsRead]        : RecordsReadMessage['descriptor'];
+  [DwnInterface.RecordsWrite]       : RecordsWriteMessage['descriptor'];
+}
+
 export interface DwnMessageParams {
   [DwnInterface.EventsGet]          : Partial<EventsGetOptions>;
   [DwnInterface.EventsQuery]        : RequireOnly<EventsQueryOptions, 'filters'>;
@@ -133,6 +145,20 @@ export type DwnRequest<T extends DwnInterface> = {
   target: string;
   messageType: T;
 }
+
+/**
+ * Defines the structure for response status, including a status code and detail message.
+ */
+export type DwnResponseStatus = {
+  /** Encapsulates the outcome of an operation, providing both a numeric status code and a descriptive message. */
+  status: {
+    /** Numeric status code representing the outcome of the operation. */
+    code: number;
+
+    /** Descriptive detail about the status or error. */
+    detail: string;
+  };
+};
 
 export type ProcessDwnRequest<T extends DwnInterface> = DwnRequest<T> & {
   dataStream?: Blob | ReadableStream | Readable;
@@ -170,7 +196,7 @@ export const dwnMessageConstructors: { [T in DwnInterface]: DwnMessageConstructo
 
 export type DwnMessageConstructors = typeof dwnMessageConstructors;
 
-export interface DwnMessageInstance  {
+export interface DwnMessageInstance {
   [DwnInterface.EventsGet]          : EventsGet;
   [DwnInterface.EventsQuery]        : EventsQuery;
   [DwnInterface.MessagesGet]        : MessagesGet;
@@ -187,11 +213,16 @@ export type DwnMessageWithData<T extends DwnInterface> = {
   dataStream?: Readable;
 }
 
-/**
- * TODO: add JSDoc
- */
-// export type SendDwnResponse = DwnRpcResponse;
+// The following types are exported by the DWN SDK and are re-exported here so that dependent
+// packages do not need to import the DWN SDK directly. This ensures that downstream packages are
+// always using the same version of the DWN SDK as the agent package.
 
-export interface SerializableDwnMessage {
-  toJSON(): string;
-}
+export {
+  DwnConstant,
+  Signer as DwnSigner,
+  DateSort as DwnDateSort,
+  PublicJwk as DwnPublicKeyJwk, // TODO: Remove once DWN SDK switches to Jwk from @web5/crypto
+  PaginationCursor as DwnPaginationCursor,
+  EncryptionAlgorithm as DwnEncryptionAlgorithm,
+  KeyDerivationScheme as DwnKeyDerivationScheme,
+} from '@tbd54566975/dwn-sdk-js';

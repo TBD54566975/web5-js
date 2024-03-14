@@ -148,7 +148,6 @@ export interface LocalKmsUnwrapKeyParams extends KmsUnwrapKeyParams {
 }
 
 export class LocalKeyManager implements AgentKeyManager {
-
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
    * the `LocalKeyManager`. This agent is used to interact with other Web5 agent components. It's

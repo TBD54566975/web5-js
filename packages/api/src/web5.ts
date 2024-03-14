@@ -16,16 +16,16 @@ export type TechPreviewOptions = {
 /** Optional overrides that can be provided when calling {@link Web5.connect}. */
 export type Web5ConnectOptions = {
   /**
-   * Provide a {@link @web5/agent#Web5Agent} implementation. Defaults to creating a local
-   * {@link @web5/user-agent#Web5UserAgent} if one isn't provided
+   * Provide a {@link Web5Agent} implementation. Defaults to creating a local
+   * {@link Web5UserAgent} if one isn't provided
    **/
   agent?: Web5Agent;
 
   /**
-   * Provide an instance of a {@link @web5/agent#AppDataStore} implementation. Defaults to
+   * Provide an instance of a {@link HdIdentityVault} implementation. Defaults to
    * a LevelDB-backed store with an insecure, static unlock password if one
    * isn't provided. To allow the app user to enter a secure password of
-   * their choosing, provide an initialized {@link @web5/agent#AppDataStore} instance.
+   * their choosing, provide an initialized {@link HdIdentityVault} instance.
    **/
   agentVault?: HdIdentityVault;
 
@@ -113,18 +113,23 @@ export type Web5ConnectResult = {
  * @see {@link Web5ConnectOptions}
  */
 export type Web5Params = {
+  /**
+   * A {@link Web5Agent} instance that handles DIDs, DWNs and VCs requests. The agent manages the
+   * user keys and identities, and is responsible to sign and verify messages.
+   */
   agent: Web5Agent;
+
+  /** The DID of the tenant under which all DID, DWN, and VC requests are being performed. */
   connectedDid: string;
 };
 
 /**
- * The main Web5 API interface. It manages the creation of a DID if needed, the
- * connection to the local DWN and all the web5 main foundational APIs such as VC,
- * syncing, etc.
+ * The main Web5 API interface. It manages the creation of a DID if needed, the connection to the
+ * local DWN and all the web5 main foundational APIs such as VC, syncing, etc.
  */
 export class Web5 {
   /**
-   * Web5 Agent knows how to handle DIDs, DWNs and VCs requests. The agent manages the
+   * A {@link Web5Agent} instance that handles DIDs, DWNs and VCs requests. The agent manages the
    * user keys and identities, and is responsible to sign and verify messages.
    */
   agent: Web5Agent;
@@ -138,6 +143,7 @@ export class Web5 {
   /** Exposed instance to the VC APIs, allow users to issue, present and verify VCs */
   vc: VcApi;
 
+  /** The DID of the tenant under which DID operations are being performed. */
   private connectedDid: string;
 
   constructor({ agent, connectedDid }: Web5Params) {
@@ -149,8 +155,8 @@ export class Web5 {
   }
 
   /**
-   * Connects to a {@link @web5/agent#Web5Agent}. Defaults to creating a local
-   * {@link @web5/user-agent#Web5UserAgent} if one isn't provided.
+   * Connects to a {@link Web5Agent}. Defaults to creating a local {@link Web5UserAgent} if one
+   * isn't provided.
    *
    * @param options - Optional overrides that can be provided when calling {@link Web5.connect}.
    * @returns A promise that resolves to a {@link Web5} instance and the connected DID.

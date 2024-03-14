@@ -1,10 +1,10 @@
 import type { DidResolver } from '@web5/dids';
-import type { RecordsWrite } from '@tbd54566975/dwn-sdk-js';
+import type { RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import { Readable } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { ReadableWebToNodeStream } from 'readable-web-to-node-stream';
-import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
+import { DwnInterfaceName, DwnMethodName, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 
 export function blobToIsomorphicNodeReadable(blob: Blob): Readable {
   return webReadableToIsomorphicNodeReadable(blob.stream() as ReadableStream<any>);
@@ -36,6 +36,10 @@ export async function getDwnServiceEndpointUrls(didUri: string, resolver: DidRes
 
   // If the DID service with ID fragment #dwn was not found or is not valid, return an empty array.
   return [];
+}
+
+export function getRecordAuthor(record: RecordsWriteMessage): string | undefined {
+  return RecordsWrite.getAuthor(record);
 }
 
 export function isRecordsWrite(obj: unknown): obj is RecordsWrite {

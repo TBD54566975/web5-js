@@ -1,5 +1,4 @@
-import type { Web5Agent } from '@web5/agent';
-import type { ProtocolsConfigureMessage } from '@tbd54566975/dwn-sdk-js';
+import type { DwnMessage, Web5Agent } from '@web5/agent';
 
 import { DwnInterface } from '@web5/agent';
 
@@ -25,14 +24,14 @@ export type ProtocolMetadata = {
  * protocols on remote DWNs.
  */
 export class Protocol {
-  /** The Web5Agent instance used for network interactions. */
+  /** The {@link Web5Agent} instance that handles DWNs requests. */
   private _agent: Web5Agent;
 
   /** The ProtocolsConfigureMessage containing the detailed configuration for the protocol. */
   private _metadata: ProtocolMetadata;
 
   /** Metadata associated with the protocol, including the author and optional message CID. */
-  private _protocolsConfigureMessage: ProtocolsConfigureMessage;
+  private _protocolsConfigureMessage: DwnMessage[DwnInterface.ProtocolsConfigure];
 
   /**
    * Constructs a new instance of the Protocol class.
@@ -41,7 +40,7 @@ export class Protocol {
    * @param protocolsConfigureMessage - The configuration message containing the protocol details.
    * @param metadata - Metadata associated with the protocol, including the author and optional message CID.
    */
-  constructor(agent: Web5Agent, protocolsConfigureMessage: ProtocolsConfigureMessage, metadata: ProtocolMetadata) {
+  constructor(agent: Web5Agent, protocolsConfigureMessage: DwnMessage[DwnInterface.ProtocolsConfigure], metadata: ProtocolMetadata) {
     this._agent = agent;
     this._metadata = metadata;
     this._protocolsConfigureMessage = protocolsConfigureMessage;
