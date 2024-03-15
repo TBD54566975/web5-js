@@ -58,6 +58,8 @@ jobs:
         shell: bash
 
       - name: Build all workspace packages
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: pnpm --recursive --stream build:esm && pnpm --recursive --stream build:cjs && pnpm --recursive --stream build:browser
         
       - name: Publish selected @web5/* packages
