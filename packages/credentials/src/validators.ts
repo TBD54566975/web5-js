@@ -9,7 +9,7 @@ import {
   VerifiableCredential
 } from './verifiable-credential.js';
 
-import { isValidXmlSchema112Timestamp } from './utils.js';
+import { isValidRFC3339Timestamp, isValidXmlSchema112Timestamp } from './utils.js';
 import { DEFAULT_VP_TYPE } from './verifiable-presentation.js';
 
 export class SsiValidator {
@@ -49,7 +49,7 @@ export class SsiValidator {
   }
 
   static validateTimestamp(timestamp: string) {
-    if(!isValidXmlSchema112Timestamp(timestamp)){
+    if(!isValidXmlSchema112Timestamp(timestamp) && !isValidRFC3339Timestamp(timestamp)){
       throw new Error(`timestamp is not valid xml schema 112 timestamp`);
     }
   }

@@ -5,7 +5,8 @@ import { utils as cryptoUtils } from '@web5/crypto';
 
 import { Jwt } from './jwt.js';
 import { SsiValidator } from './validators.js';
-import { DEFAULT_VC_CONTEXT } from './verifiable-credential.js';
+
+import { VerifiableCredential, DEFAULT_VC_CONTEXT } from './verifiable-credential.js';
 
 export const DEFAULT_VP_TYPE = 'VerifiablePresentation';
 
@@ -82,6 +83,8 @@ export class VerifiablePresentation {
         vp  : this.vpDataModel,
         iss : options.did.uri,
         sub : options.did.uri,
+        jti : this.vpDataModel.id,
+        iat : Math.floor(Date.now() / 1000)
       }
     });
 
@@ -187,7 +190,7 @@ export class VerifiablePresentation {
     validatePayload(vp);
 
     for (const vcJwt of vp.verifiableCredential!) {
-      await Jwt.verify({ jwt: vcJwt as string });
+      await VerifiableCredential.verify({ vcJwt: vcJwt as string });
     }
 
     return {
