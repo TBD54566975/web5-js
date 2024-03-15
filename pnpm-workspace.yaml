@@ -7,5 +7,5 @@ packages:
   - "packages/agent"
   - "packages/user-agent"
   - "packages/proxy-agent"
-  - "packages/api"
   - "packages/identity-agent"
+  - "packages/api"
