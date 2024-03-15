@@ -184,7 +184,7 @@ export class Web5 {
 
       // Initialize, if necessary, and start the agent.
       if (await userAgent.firstLaunch()) {
-        await userAgent.initialize({ password, recoveryPhrase });
+        recoveryPhrase = await userAgent.initialize({ password, recoveryPhrase });
       }
       await userAgent.start({ password });
 

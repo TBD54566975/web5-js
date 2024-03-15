@@ -8,7 +8,7 @@
       "type": "node",
       "request": "launch",
       "name": "test:node",
-      "runtimeExecutable": "${workspaceFolder:root}/node_modules/.bin/mocha",
+      "runtimeExecutable": "${workspaceFolder:crypto}/node_modules/.bin/mocha",
       "console": "internalConsole",
       "preLaunchTask": "build tests",
       "skipFiles": [
