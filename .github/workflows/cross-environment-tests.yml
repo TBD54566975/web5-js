@@ -1,0 +1,279 @@
+name: Cross Environment Tests
+
+on:
+  push:
+    branches:
+      - main
+      - bundler-bonanza
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  test-node-web5:
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 18]
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout web5-js
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          path: web5-js
+      
+      - name: Checkout bundler-bonanza
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          repository: TBD54566975/bundler-bonanza
+          path: bundler-bonanza
+
+      - name: 📦 Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: ⚙️ Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: https://registry.npmjs.org/
+
+      - name: build web5-js
+        run: |
+          cd web5-js
+          pnpm install
+          pnpm build
+
+      - name: 📥 Install dependencies
+        run: |
+          cd bundler-bonanza
+          npm install --save ../web5-js/packages/api
+          pnpm install --no-frozen-lockfile
+
+      - name: 🧪 Run Web5 tests
+        run: cd bundler-bonanza && pnpm test:web5
+
+  # reference: https://github.com/remarkablemark/react-native-cli-quickstart/blob/master/.github/workflows/e2e-ios.yml
+  test-rn-ios:
+    timeout-minutes: 60
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout web5-js
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          path: web5-js
+      
+      - name: Checkout bundler-bonanza
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          repository: TBD54566975/bundler-bonanza
+          path: bundler-bonanza
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          cache: yarn
+          node-version: 18
+          cache-dependency-path: ./bundler-bonanza/tests/reactnative/yarn.lock
+
+      - name: install pnpm
+        run: npm install -g pnpm
+
+      - name: build web5-js
+        run: |
+          cd web5-js
+          pnpm install
+          pnpm build
+
+      - name: 📥 Install dependencies
+        run: |
+          cd bundler-bonanza
+          npm install --save ../web5-js/packages/api
+          cd tests/reactnative && yarn --prefer-offline
+
+      - name: Install macOS dependencies
+        run: |
+          brew tap wix/brew
+          brew install applesimutils
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+
+      - name: Restore CocoaPods
+        id: restore-cocoapods
+        uses: actions/cache/restore@v3
+        with:
+          path: bundler-bonanza/tests/reactnative/ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('bundler-bonanza/tests/reactnative/ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install CocoaPods
+        run: cd bundler-bonanza/tests/reactnative/ios && NO_FLIPPER=1 pod install
+
+      - name: Save CocoaPods
+        uses: actions/cache/save@v3
+        if: success()
+        id: save-cocoapods
+        with:
+          path: bundler-bonanza/tests/reactnative/ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('bundler-bonanza/tests/reactnative/ios/Podfile.lock') }}
+
+      - name: Restore Detox build
+        id: restore-detox-build
+        uses: actions/cache/restore@v3
+        with:
+          path: bundler-bonanza/tests/reactnative/ios/build
+          key: ${{ runner.os }}-detox-${{ hashFiles('bundler-bonanza/tests/reactnative/ios/Podfile.lock') }}
+
+      - name: Detox build
+        if: steps.restore-detox-build.outputs.cache-hit != 'true'
+        run: cd bundler-bonanza/tests/reactnative && yarn detox build --configuration ios.sim.debug
+
+      - name: Save Detox Build
+        uses: actions/cache/save@v3
+        if: success()
+        id: save-detox-build
+        with:
+          path: bundler-bonanza/tests/reactnative/ios/build
+          key: ${{ runner.os }}-detox-${{ hashFiles('bundler-bonanza/tests/reactnative/ios/Podfile.lock') }}
+
+      - name: Run tests
+        run: cd bundler-bonanza/tests/reactnative && yarn test
+
+      - name: Upload artifacts
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-rn-ios-detox-artifacts
+          path: bundler-bonanza/tests/reactnative/artifacts
+
+  test-browsers:
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        browser:
+          [
+            "desktop-safari",
+            "desktop-chrome",
+            "desktop-firefox",
+            "desktop-edge",
+            "mobile-safari",
+            "mobile-chrome",
+          ]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout web5-js
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          path: web5-js
+      
+      - name: Checkout bundler-bonanza
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          repository: TBD54566975/bundler-bonanza
+          path: bundler-bonanza
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: build web5-js
+        run: |
+          cd web5-js
+          pnpm install
+          pnpm build
+
+      - name: 📥 Install dependencies
+        run: |
+          cd bundler-bonanza
+          npm install --save ../web5-js/packages/api
+          pnpm install --no-frozen-lockfile
+
+      - name: Install Playwright Browsers
+        run: cd bundler-bonanza && pnpm playwright install --with-deps
+
+      - name: Run browser tests
+        run: cd bundler-bonanza && TEST_PARAMS="--project=${{ matrix.browser }} --trace=on" pnpm test:browser
+
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-report
+          path: bundler-bonanza/playwright-report/
+          retention-days: 30
+
+  test-electron:
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout web5-js
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          path: web5-js
+
+      - name: install pnpm
+        run: npm install -g pnpm
+
+      - name: build web5-js
+        run: |
+          cd web5-js
+          pnpm install
+          pnpm build
+      
+      - name: Checkout bundler-bonanza
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          repository: TBD54566975/bundler-bonanza
+          path: bundler-bonanza
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          cache: yarn
+          node-version: 18
+          cache-dependency-path: ./bundler-bonanza/tests/electron-vite/yarn.lock
+
+      - name: 📥 Install dependencies
+        run: |
+          cd bundler-bonanza
+          npm install --save ../web5-js/packages/api
+          cd tests/electron-vite && yarn --prefer-offline
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+
+      - name: Build electron app
+        run: cd bundler-bonanza/tests/electron-vite && yarn build
+
+      - name: Run electron tests
+        run: cd bundler-bonanza/tests/electron-vite && yarn test --trace=on
+        if: matrix.os != 'ubuntu-latest'
+
+      - name: Run electron tests (xvfb)
+        run: cd bundler-bonanza/tests/electron-vite && xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- yarn test --trace=on
+        if: matrix.os == 'ubuntu-latest'
+
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-report
+          path: bundler-bonanza/tests/electron-vite/playwright-report/
+          retention-days: 30
