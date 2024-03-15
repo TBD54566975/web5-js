@@ -45,11 +45,11 @@ jobs:
 
       # https://cashapp.github.io/hermit/usage/ci/
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1
+        uses: cashapp/activate-hermit@31ce88b17a84941bb1b782f1b7b317856addf286 #v1.1.0
         with:
           cache: "true"
 
-      - uses: jfrog/setup-jfrog-cli@v4
+      - uses: jfrog/setup-jfrog-cli@d82fe26823e1f25529250895d5673f65b02af085 #v4.0.1
         with:
           version: latest
           oidc-provider-name: github # must match the OpenID Connect name from https://blockxyz.jfrog.io/ui/admin/configuration/integrations
