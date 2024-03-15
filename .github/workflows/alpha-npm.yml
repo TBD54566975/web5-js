@@ -33,6 +33,10 @@ jobs:
         with:
           cache: "true"
 
+      - name: Store NPM Registry Settings to .npmrc
+        run: |
+          echo -e "//registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}" > ~/.npmrc
+
       # Note - this is not required but it gives a clean failure prior to attempting a release if
       # the GH workflow runner is not authenticated with NPMjs.com
       - name: Verify NPM token is authenticated with NPMjs.com
@@ -55,14 +59,14 @@ jobs:
 
       - name: Build all workspace packages
         run: pnpm --recursive --stream build
-
+        
       - name: Publish selected @web5/* packages
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: |
           for package in $PACKAGES; do
             cd packages/$package
-            pnpm publish --tag alpha --access public --provenance
+            pnpm publish --tag alpha --access public --provenance --no-git-checks
             cd ../..
           done
         shell: bash
