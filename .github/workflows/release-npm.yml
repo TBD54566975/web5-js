@@ -46,6 +46,10 @@ jobs:
         with:
           cache: "true"
 
+      - name: Store NPM Registry Settings to .npmrc
+        run: |
+          echo -e "//registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}" > ~/.npmrc
+
       - name: Install semver utility
         run: pnpm install -g semver@7.5.1
 
