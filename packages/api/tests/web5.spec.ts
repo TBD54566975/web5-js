@@ -1,9 +1,9 @@
 import { expect } from 'chai';
+import { MemoryStore } from '@web5/common';
 import { Web5UserAgent } from '@web5/user-agent';
 import { HdIdentityVault, PlatformAgentTestHarness } from '@web5/agent';
 
 import { Web5 } from '../src/web5.js';
-import { MemoryStore } from '@web5/common';
 
 describe('Web5', () => {
   describe('using Test Harness', () => {
