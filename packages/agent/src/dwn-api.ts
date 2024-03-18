@@ -35,7 +35,7 @@ export function isDwnRequest<T extends DwnInterface>(
 export class AgentDwnApi {
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
-   * the `AgentDidApi`. This agent is used to interact with other Web5 agent components. It's vital
+   * the `AgentDwnApi`. This agent is used to interact with other Web5 agent components. It's vital
    * to ensure this instance is set to correctly contextualize operations within the broader Web5
    * Agent framework.
    */
@@ -62,7 +62,7 @@ export class AgentDwnApi {
    */
   get agent(): Web5PlatformAgent {
     if (this._agent === undefined) {
-      throw new Error('AgentDidApi: Unable to determine agent execution context.');
+      throw new Error('AgentDwnApi: Unable to determine agent execution context.');
     }
 
     return this._agent;
