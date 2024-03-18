@@ -58,7 +58,6 @@ jobs:
 
       - name: Publish @web5/${{ matrix.package }} snapshot
         env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
           REGISTRY: https://blockxyz.jfrog.io/artifactory/api/npm/tbd-oss-snapshots-npm/
         run: |
           set -exuo pipefail
