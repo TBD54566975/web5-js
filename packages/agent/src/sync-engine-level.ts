@@ -41,9 +41,9 @@ const is4xx = (code: number) => code >= 400 && code <= 499;
 export class SyncEngineLevel implements SyncEngine {
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
-   * the `AgentDidApi`. This agent is used to interact with other Web5 agent components. It's vital
-   * to ensure this instance is set to correctly contextualize operations within the broader Web5
-   * Agent framework.
+   * the `SyncEngineLevel`. This agent is used to interact with other Web5 agent components. It's
+   * vital to ensure this instance is set to correctly contextualize operations within the broader
+   * Web5 Agent framework.
    */
   private _agent?: Web5PlatformAgent;
 
