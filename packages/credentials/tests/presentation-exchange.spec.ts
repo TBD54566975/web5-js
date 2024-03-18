@@ -50,12 +50,29 @@ describe('PresentationExchange', () => {
       });
     });
 
-    it('should return the selected verifiable credentials', () => {
-      const actualSelectedVcJwts = PresentationExchange.selectCredentials({
+    it('should evaluate credentials without any errors or warnings', async () => {
+      PresentationExchange.satisfiesPresentationDefinition({
         vcJwts: [btcCredentialJwt],
         presentationDefinition
       });
-      expect(actualSelectedVcJwts).to.deep.equal([btcCredentialJwt]);
+    });
+
+    it('should return 0 verifiable credentials when they dont match the pd', async () => {
+      const vc = await VerifiableCredential.create({
+        type    : 'Random',
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
+        data    : {random: 'random'},
+      });
+
+      const randomVcJwt = await vc.sign({did: issuerDid});
+
+      const actualSelectedVcJwts = PresentationExchange.selectCredentials({
+        vcJwts: [randomVcJwt],
+        presentationDefinition
+      });
+
+      expect(actualSelectedVcJwts).to.deep.equal([]);
     });
 
     it('should return the only one verifiable credential', async () => {
