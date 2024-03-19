@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-node-web5:
+  test-node:
     strategy:
       fail-fast: false
       matrix:
@@ -277,3 +277,22 @@ jobs:
           name: playwright-report
           path: bundler-bonanza/tests/electron-vite/playwright-report/
           retention-days: 30
+  
+  create-website-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { Octokit } = require("@octokit/rest");
+            const { createAppAuth } = require("@octokit/auth-app");
+            const appOctokit = new Octokit({
+              authStrategy: createAppAuth,
+              auth: {
+                appId: parseInt(process.env.GH_APP_ID),
+                privateKey: process.env.GH_APP_PRIVATE_KEY,
+                clientId: process.env.GH_APP_CLIENT_ID,
+                clientSecret: process.env.GH_APP_CLIENT_SECRET,
+              },
+            });
+
