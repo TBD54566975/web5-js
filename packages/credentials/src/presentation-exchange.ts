@@ -33,7 +33,7 @@ export class PresentationExchange {
     this.resetPex();
     const selectResults: SelectResults = this.pex.selectFrom(presentationDefinition, vcJwts);
 
-    // If errros the credentials provided didn't satisfy the requirement defined presentationDefinition object
+    // If errors the credentials provided didn't satisfy the requirement defined presentationDefinition object
     if(selectResults.errors?.length) {
       return [];
     } else {
