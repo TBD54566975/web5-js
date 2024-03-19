@@ -34,10 +34,10 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
         with:
           submodules: true
-    
+
       # https://cashapp.github.io/hermit/usage/ci/
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1
+        uses: cashapp/activate-hermit@31ce88b17a84941bb1b782f1b7b317856addf286 #v1.1.0
         with:
           cache: "true"
 
@@ -59,7 +59,7 @@ jobs:
         run: pnpm --recursive --stream --sequential build:tests:node
 
       - name: Run tests for all packages
-        run: pnpm --recursive --stream exec c8 mocha -- --color --reporter mocha-junit-reporter --reporter-options mochaFile=./results.xml
+        run: pnpm --recursive --stream exec c8 mocha -- --color
         env:
           TEST_DWN_URL: http://localhost:3000
 
@@ -70,35 +70,6 @@ jobs:
         uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload test results to update SDK reports
-        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
-        with:
-          name: junit-results
-          path: packages/*/results.xml
-
-      - name: Generate an access token to trigger downstream repo
-        uses: actions/create-github-app-token@f2acddfb5195534d487896a656232b016a682f3c # v1.9.0
-        id: generate_token
-        if: github.ref == 'refs/heads/main'
-        with:
-          app-id: ${{ secrets.CICD_ROBOT_GITHUB_APP_ID }}
-          private-key: ${{ secrets.CICD_ROBOT_GITHUB_APP_PRIVATE_KEY }}
-          owner: TBD54566975
-          repositories: sdk-report-runner
-
-      - name: Trigger sdk-report-runner report build
-        if: github.ref == 'refs/heads/main'
-        run: |
-          curl -L \
-          -H "Authorization: Bearer ${APP_TOKEN}" \
-          -H "X-GitHub-Api-Version: 2022-11-28" \
-          -H "Content-Type: application/json" \
-          --fail \
-          --data '{"ref": "main"}' \
-          https://api.github.com/repos/TBD54566975/sdk-report-runner/actions/workflows/build-report.yaml/dispatches
-        env:
-          APP_TOKEN: ${{ steps.generate_token.outputs.token }}
 
   test-with-browsers:
     name: test-with-browsers (group ${{ matrix.group }})
@@ -111,9 +82,11 @@ jobs:
           - group: "A"
             packages: "--filter agent"
           - group: "B"
-            packages: "--filter credentials --filter crypto --filter dids --filter proxy-agent --filter identity-agent --filter user-agent"
+            packages: "--filter credentials ----filter dids --filter identity-agent"
           - group: "C"
             packages: "--filter api --filter common"
+          - group: "D"
+            packages: "--filter crypto --filter proxy-agent --filter user-agent"
     steps:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
