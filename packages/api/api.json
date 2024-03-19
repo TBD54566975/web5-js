@@ -1,0 +1,3321 @@
+{
+  "metadata": {
+    "toolPackage": "@microsoft/api-extractor",
+    "toolVersion": "7.43.0",
+    "schemaVersion": 1011,
+    "oldestForwardsCompatibleVersion": 1001,
+    "tsdocConfig": {
+      "$schema": "https://developer.microsoft.com/json-schemas/tsdoc/v0/tsdoc.schema.json",
+      "noStandardTags": true,
+      "tagDefinitions": [
+        {
+          "tagName": "@alpha",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@beta",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@defaultValue",
+          "syntaxKind": "block"
+        },
+        {
+          "tagName": "@decorator",
+          "syntaxKind": "block",
+          "allowMultiple": true
+        },
+        {
+          "tagName": "@deprecated",
+          "syntaxKind": "block"
+        },
+        {
+          "tagName": "@eventProperty",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@example",
+          "syntaxKind": "block",
+          "allowMultiple": true
+        },
+        {
+          "tagName": "@experimental",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@inheritDoc",
+          "syntaxKind": "inline"
+        },
+        {
+          "tagName": "@internal",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@label",
+          "syntaxKind": "inline"
+        },
+        {
+          "tagName": "@link",
+          "syntaxKind": "inline",
+          "allowMultiple": true
+        },
+        {
+          "tagName": "@override",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@packageDocumentation",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@param",
+          "syntaxKind": "block",
+          "allowMultiple": true
+        },
+        {
+          "tagName": "@privateRemarks",
+          "syntaxKind": "block"
+        },
+        {
+          "tagName": "@public",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@readonly",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@remarks",
+          "syntaxKind": "block"
+        },
+        {
+          "tagName": "@returns",
+          "syntaxKind": "block"
+        },
+        {
+          "tagName": "@sealed",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@see",
+          "syntaxKind": "block"
+        },
+        {
+          "tagName": "@throws",
+          "syntaxKind": "block",
+          "allowMultiple": true
+        },
+        {
+          "tagName": "@typeParam",
+          "syntaxKind": "block",
+          "allowMultiple": true
+        },
+        {
+          "tagName": "@virtual",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@betaDocumentation",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@internalRemarks",
+          "syntaxKind": "block"
+        },
+        {
+          "tagName": "@preapproved",
+          "syntaxKind": "modifier"
+        }
+      ],
+      "supportForTags": {
+        "@alpha": true,
+        "@beta": true,
+        "@defaultValue": true,
+        "@decorator": true,
+        "@deprecated": true,
+        "@eventProperty": true,
+        "@example": true,
+        "@experimental": true,
+        "@inheritDoc": true,
+        "@internal": true,
+        "@label": true,
+        "@link": true,
+        "@override": true,
+        "@packageDocumentation": true,
+        "@param": true,
+        "@privateRemarks": true,
+        "@public": true,
+        "@readonly": true,
+        "@remarks": true,
+        "@returns": true,
+        "@sealed": true,
+        "@see": true,
+        "@throws": true,
+        "@typeParam": true,
+        "@virtual": true,
+        "@betaDocumentation": true,
+        "@internalRemarks": true,
+        "@preapproved": true
+      },
+      "reportUnsupportedHtmlElements": false
+    }
+  },
+  "kind": "Package",
+  "canonicalReference": "@web5/api!",
+  "docComment": "/**\n * Making developing with Web5 components at least 5 times easier to work with.\n *\n * Web5 consists of the following components: - Decentralized Identifiers - Verifiable Credentials - DWeb Node personal datastores\n *\n * The SDK sets out to gather the most oft used functionality from all three of these pillar technologies to provide a simple library that is as close to effortless as possible.\n *\n * The SDK is currently still under active development, but having entered the Tech Preview phase there is now a drive to avoid unnecessary changes unless backwards compatibility is provided. Additional functionality will be added in the lead up to 1.0 final, and modifications will be made to address issues and community feedback.\n *\n * [Link to GitHub Repo](https://github.com/TBD54566975/web5-js)\n *\n * @packageDocumentation\n */\n",
+  "name": "@web5/api",
+  "preserveMemberOrder": false,
+  "members": [
+    {
+      "kind": "EntryPoint",
+      "canonicalReference": "@web5/api!",
+      "name": "",
+      "preserveMemberOrder": false,
+      "members": [
+        {
+          "kind": "Class",
+          "canonicalReference": "@web5/api!DidApi:class",
+          "docComment": "/**\n * The DID API is used to resolve DIDs.\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare class DidApi "
+            }
+          ],
+          "fileUrlPath": "src/did-api.ts",
+          "releaseTag": "Beta",
+          "isAbstract": false,
+          "name": "DidApi",
+          "preserveMemberOrder": false,
+          "members": [
+            {
+              "kind": "Constructor",
+              "canonicalReference": "@web5/api!DidApi:constructor(1)",
+              "docComment": "/**\n * Constructs a new instance of the `DidApi` class\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "constructor(options: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        agent: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Web5Agent",
+                  "canonicalReference": "@web5/agent!Web5Agent:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n        connectedDid: string;\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": ");"
+                }
+              ],
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "options",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ]
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/api!DidApi#resolve:member(1)",
+              "docComment": "/**\n * Resolves a DID to a DID Resolution Result.\n *\n * @param didUrl - The DID or DID URL to resolve.\n *\n * @returns A promise that resolves to the DID Resolution Result.\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "resolve(didUrl: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ", resolutionOptions?: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "DidResolutionOptions",
+                  "canonicalReference": "@web5/dids!DidResolutionOptions:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "DidResolutionResult",
+                  "canonicalReference": "@web5/dids!DidResolutionResult:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 5,
+                "endIndex": 9
+              },
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "didUrl",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                },
+                {
+                  "parameterName": "resolutionOptions",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 3,
+                    "endIndex": 4
+                  },
+                  "isOptional": true
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "resolve"
+            }
+          ],
+          "implementsTokenRanges": []
+        },
+        {
+          "kind": "Class",
+          "canonicalReference": "@web5/api!DwnApi:class",
+          "docComment": "/**\n * Interface to interact with DWN Records and Protocols\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare class DwnApi "
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "isAbstract": false,
+          "name": "DwnApi",
+          "preserveMemberOrder": false,
+          "members": [
+            {
+              "kind": "Constructor",
+              "canonicalReference": "@web5/api!DwnApi:constructor(1)",
+              "docComment": "/**\n * Constructs a new instance of the `DwnApi` class\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "constructor(options: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        agent: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Web5Agent",
+                  "canonicalReference": "@web5/agent!Web5Agent:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n        connectedDid: string;\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": ");"
+                }
+              ],
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "options",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ]
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!DwnApi#protocols:member",
+              "docComment": "/**\n * API to interact with DWN protocols (e.g., `dwn.protocols.configure()`).\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get protocols(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        configure: (request: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ProtocolsConfigureRequest",
+                  "canonicalReference": "@web5/api!ProtocolsConfigureRequest:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ") => "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ProtocolsConfigureResponse",
+                  "canonicalReference": "@web5/api!ProtocolsConfigureResponse:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">;\n        query: (request: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ProtocolsQueryRequest",
+                  "canonicalReference": "@web5/api!ProtocolsQueryRequest:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ") => "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ProtocolsQueryResponse",
+                  "canonicalReference": "@web5/api!ProtocolsQueryResponse:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">;\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "protocols",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 14
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!DwnApi#records:member",
+              "docComment": "/**\n * API to interact with DWN records (e.g., `dwn.records.create()`).\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get records(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        create: (request: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsCreateRequest",
+                  "canonicalReference": "@web5/api!RecordsCreateRequest:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ") => "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsCreateResponse",
+                  "canonicalReference": "@web5/api!RecordsCreateResponse:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">;\n        createFrom: (request: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsCreateFromRequest",
+                  "canonicalReference": "@web5/api!RecordsCreateFromRequest:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ") => "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsWriteResponse",
+                  "canonicalReference": "@web5/api!RecordsWriteResponse:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">;\n        delete: (request: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsDeleteRequest",
+                  "canonicalReference": "@web5/api!RecordsDeleteRequest:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ") => "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsDeleteResponse",
+                  "canonicalReference": "@web5/api!RecordsDeleteResponse:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">;\n        query: (request: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsQueryRequest",
+                  "canonicalReference": "@web5/api!RecordsQueryRequest:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ") => "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsQueryResponse",
+                  "canonicalReference": "@web5/api!RecordsQueryResponse:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">;\n        read: (request: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsReadRequest",
+                  "canonicalReference": "@web5/api!RecordsReadRequest:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ") => "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsReadResponse",
+                  "canonicalReference": "@web5/api!RecordsReadResponse:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">;\n        write: (request: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsWriteRequest",
+                  "canonicalReference": "@web5/api!RecordsWriteRequest:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ") => "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsWriteResponse",
+                  "canonicalReference": "@web5/api!RecordsWriteResponse:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">;\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "records",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 38
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            }
+          ],
+          "implementsTokenRanges": []
+        },
+        {
+          "kind": "Function",
+          "canonicalReference": "@web5/api!getTechPreviewDwnEndpoints:function(1)",
+          "docComment": "/**\n * Dynamically selects up to 2 DWN endpoints that are provided by default during the Tech Preview period.\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare function getTechPreviewDwnEndpoints(): "
+            },
+            {
+              "kind": "Reference",
+              "text": "Promise",
+              "canonicalReference": "!Promise:interface"
+            },
+            {
+              "kind": "Content",
+              "text": "<string[]>"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/tech-preview.ts",
+          "returnTypeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 3
+          },
+          "releaseTag": "Beta",
+          "overloadIndex": 1,
+          "parameters": [],
+          "name": "getTechPreviewDwnEndpoints"
+        },
+        {
+          "kind": "Class",
+          "canonicalReference": "@web5/api!Protocol:class",
+          "docComment": "/**\n * The Protocol API abstraction class. It's used to represent and retrieve a protocol and also to install (send) protocols to other DIDs.\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare class Protocol "
+            }
+          ],
+          "fileUrlPath": "src/protocol.ts",
+          "releaseTag": "Beta",
+          "isAbstract": false,
+          "name": "Protocol",
+          "preserveMemberOrder": false,
+          "members": [
+            {
+              "kind": "Constructor",
+              "canonicalReference": "@web5/api!Protocol:constructor(1)",
+              "docComment": "/**\n * Constructs a new instance of the `Protocol` class\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "constructor(agent: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Web5Agent",
+                  "canonicalReference": "@web5/agent!Web5Agent:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ", protocolsConfigureMessage: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ProtocolsConfigureMessage",
+                  "canonicalReference": "@web5/api!ProtocolsConfigureMessage:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ", metadata: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ProtocolMetadata",
+                  "canonicalReference": "@web5/api!~ProtocolMetadata:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ");"
+                }
+              ],
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "agent",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                },
+                {
+                  "parameterName": "protocolsConfigureMessage",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 3,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                },
+                {
+                  "parameterName": "metadata",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 5,
+                    "endIndex": 6
+                  },
+                  "isOptional": false
+                }
+              ]
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Protocol#definition:member",
+              "docComment": "/**\n * The protocol definition: types, structure and publish status\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get definition(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "import(\"@tbd54566975/dwn-sdk-js\")."
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ProtocolDefinition",
+                  "canonicalReference": "@tbd54566975/dwn-sdk-js!ProtocolDefinition:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "definition",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 3
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/api!Protocol#send:member(1)",
+              "docComment": "/**\n * Sends the protocol to a remote DWN by specifying their DID\n *\n * @param target - the DID to send the protocol to\n *\n * @returns the status of the send protocols request\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "send(target: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<{\n        status: {\n            code: number;\n            detail: string;\n        };\n    }>"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 5
+              },
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "target",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "send"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/api!Protocol#toJSON:member(1)",
+              "docComment": "/**\n * Returns the protocol as a JSON object.\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "toJSON(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "import(\"@tbd54566975/dwn-sdk-js\")."
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ProtocolsConfigureMessage",
+                  "canonicalReference": "@tbd54566975/dwn-sdk-js!ProtocolsConfigureMessage:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 3
+              },
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "toJSON"
+            }
+          ],
+          "implementsTokenRanges": []
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!ProtocolsConfigureMessage:type",
+          "docComment": "/**\n * The protocol configure message carries the protocol definition and is used to setup the protocol.\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type ProtocolsConfigureMessage = "
+            },
+            {
+              "kind": "Reference",
+              "text": "ProtocolsConfigure",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!ProtocolsConfigure:class"
+            },
+            {
+              "kind": "Content",
+              "text": "['message']"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/protocol.ts",
+          "releaseTag": "Beta",
+          "name": "ProtocolsConfigureMessage",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 3
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!ProtocolsConfigureRequest:type",
+          "docComment": "/**\n * Request to setup a protocol with its definitions\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type ProtocolsConfigureRequest = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    message: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Omit",
+              "canonicalReference": "!Omit:type"
+            },
+            {
+              "kind": "Content",
+              "text": "<"
+            },
+            {
+              "kind": "Reference",
+              "text": "ProtocolsConfigureOptions",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!ProtocolsConfigureOptions:type"
+            },
+            {
+              "kind": "Content",
+              "text": ", 'authorizationSigner'>;\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "ProtocolsConfigureRequest",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 6
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!ProtocolsConfigureResponse:type",
+          "docComment": "/**\n * Response for the protocol configure request\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type ProtocolsConfigureResponse = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    status: "
+            },
+            {
+              "kind": "Reference",
+              "text": "UnionMessageReply",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!UnionMessageReply:type"
+            },
+            {
+              "kind": "Content",
+              "text": "['status'];\n    protocol?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Protocol",
+              "canonicalReference": "@web5/api!Protocol:class"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "ProtocolsConfigureResponse",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 6
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!ProtocolsQueryReplyEntry:type",
+          "docComment": "/**\n * Represents each entry on the protocols query reply\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type ProtocolsQueryReplyEntry = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    descriptor: "
+            },
+            {
+              "kind": "Reference",
+              "text": "ProtocolsConfigureDescriptor",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!ProtocolsConfigureDescriptor:type"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "ProtocolsQueryReplyEntry",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 4
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!ProtocolsQueryRequest:type",
+          "docComment": "/**\n * Request to query protocols\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type ProtocolsQueryRequest = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    from?: string;\n    message: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Omit",
+              "canonicalReference": "!Omit:type"
+            },
+            {
+              "kind": "Content",
+              "text": "<"
+            },
+            {
+              "kind": "Reference",
+              "text": "ProtocolsQueryOptions",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!ProtocolsQueryOptions:type"
+            },
+            {
+              "kind": "Content",
+              "text": ", 'authorizationSigner'>;\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "ProtocolsQueryRequest",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 6
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!ProtocolsQueryResponse:type",
+          "docComment": "/**\n * Response with the retrieved protocols\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type ProtocolsQueryResponse = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    protocols: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Protocol",
+              "canonicalReference": "@web5/api!Protocol:class"
+            },
+            {
+              "kind": "Content",
+              "text": "[];\n    status: "
+            },
+            {
+              "kind": "Reference",
+              "text": "UnionMessageReply",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!UnionMessageReply:type"
+            },
+            {
+              "kind": "Content",
+              "text": "['status'];\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "ProtocolsQueryResponse",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 6
+          }
+        },
+        {
+          "kind": "Class",
+          "canonicalReference": "@web5/api!Record_2:class",
+          "docComment": "/**\n * Record wrapper class with convenience methods to send, update, and delete itself, aside from manipulating and reading the record data.\n *\n * Note: The `messageTimestamp` of the most recent RecordsWrite message is logically equivalent to the date/time at which a Record was most recently modified. Since this Record class implementation is intended to simplify the developer experience of working with logical records (and not individual DWN messages) the `messageTimestamp` is mapped to `dateModified`.\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare class Record implements "
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordModel",
+              "canonicalReference": "@web5/api!RecordModel:type"
+            },
+            {
+              "kind": "Content",
+              "text": " "
+            }
+          ],
+          "fileUrlPath": "src/record.ts",
+          "releaseTag": "Beta",
+          "isAbstract": false,
+          "name": "Record_2",
+          "preserveMemberOrder": false,
+          "members": [
+            {
+              "kind": "Constructor",
+              "canonicalReference": "@web5/api!Record_2:constructor(1)",
+              "docComment": "/**\n * Constructs a new instance of the `Record` class\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "constructor(agent: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Web5Agent",
+                  "canonicalReference": "@web5/agent!Web5Agent:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ", options: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordOptions",
+                  "canonicalReference": "@web5/api!RecordOptions:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ");"
+                }
+              ],
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "agent",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                },
+                {
+                  "parameterName": "options",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 3,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ]
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#attestation:member",
+              "docComment": "/**\n * Record's signatures attestation\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get attestation(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsWriteMessage",
+                  "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsWriteMessage:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": "['attestation']"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "attestation",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 3
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#author:member",
+              "docComment": "/**\n * Record's author\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "author: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": false,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "author",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#contextId:member",
+              "docComment": "/**\n * Record's context ID\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get contextId(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "contextId",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#data:member",
+              "docComment": "/**\n * Returns the data of the current record. If the record data is not available, it attempts to fetch the data from the DWN.\n *\n * @returns a data stream with convenience methods such as `blob()`, `json()`, `text()`, and `stream()`, similar to the fetch API response\n *\n * @throws\n *\n * `Error` if the record has already been deleted.\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get data(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        blob(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Blob",
+                  "canonicalReference": "!Blob:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">;\n        json(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<any>;\n        text(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<any>;\n        stream(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Readable",
+                  "canonicalReference": "@types/readable-stream!_Readable.Readable:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">;\n        then(...callbacks: any[]): any;\n        catch(callback: any): any;\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "data",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 14
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#dataCid:member",
+              "docComment": "/**\n * Record's CID\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get dataCid(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "dataCid",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#dataFormat:member",
+              "docComment": "/**\n * Record's data format\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get dataFormat(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "dataFormat",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#dataSize:member",
+              "docComment": "/**\n * Record's data size\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get dataSize(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "number"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "dataSize",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#dateCreated:member",
+              "docComment": "/**\n * Record's creation date\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get dateCreated(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "dateCreated",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#dateModified:member",
+              "docComment": "/**\n * Record's modified date\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get dateModified(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "dateModified",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#datePublished:member",
+              "docComment": "/**\n * Record's published date\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get datePublished(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "datePublished",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/api!Record_2#delete:member(1)",
+              "docComment": "/**\n * Delete the current record from the DWN.\n *\n * @returns the status of the delete request\n *\n * @throws\n *\n * `Error` if the record has already been deleted.\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "delete(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsDeleteResponse",
+                  "canonicalReference": "@web5/api!RecordsDeleteResponse:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 5
+              },
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "delete"
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#encryption:member",
+              "docComment": "/**\n * Record's encryption\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get encryption(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsWriteMessage",
+                  "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsWriteMessage:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": "['encryption']"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "encryption",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 3
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#id:member",
+              "docComment": "/**\n * Record's ID\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get id(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "id",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#interface:member",
+              "docComment": "/**\n * Interface is always `Records`\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get interface(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "DwnInterfaceName.Records",
+                  "canonicalReference": "@tbd54566975/dwn-sdk-js!DwnInterfaceName.Records:member"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "interface",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#isDeleted:member",
+              "docComment": "/**\n * Record deleted status\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "isDeleted: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "boolean"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": false,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "isDeleted",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#messageTimestamp:member",
+              "docComment": "/**\n * Record's published status\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get messageTimestamp(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "messageTimestamp",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#method:member",
+              "docComment": "/**\n * Method is always `Write`\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get method(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "DwnMethodName.Write",
+                  "canonicalReference": "@tbd54566975/dwn-sdk-js!DwnMethodName.Write:member"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "method",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#parentId:member",
+              "docComment": "/**\n * Record's parent ID\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get parentId(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "parentId",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#protocol:member",
+              "docComment": "/**\n * Record's protocol\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get protocol(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "protocol",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#protocolPath:member",
+              "docComment": "/**\n * Record's protocol path\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get protocolPath(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "protocolPath",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#published:member",
+              "docComment": "/**\n * Record's published status (true/false)\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get published(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "boolean"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "published",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#recipient:member",
+              "docComment": "/**\n * Record's recipient\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get recipient(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "recipient",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#schema:member",
+              "docComment": "/**\n * Record's schema\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get schema(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "schema",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/api!Record_2#send:member(1)",
+              "docComment": "/**\n * Send the current record to a remote DWN by specifying their DID (vs waiting for the regular DWN sync)\n *\n * @param target - the DID to send the record to\n *\n * @returns the status of the send record request\n *\n * @throws\n *\n * `Error` if the record has already been deleted.\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "send(target: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<any>"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 5
+              },
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "target",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "send"
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#target:member",
+              "docComment": "/**\n * Record's target (for sent records)\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "target: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": false,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "target",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/api!Record_2#toJSON:member(1)",
+              "docComment": "/**\n * Returns a JSON representation of the Record instance. It's called by `JSON.stringify(...)` automatically.\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "toJSON(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordModel",
+                  "canonicalReference": "@web5/api!RecordModel:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "toJSON"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/api!Record_2#toString:member(1)",
+              "docComment": "/**\n * Convenience method to return the string representation of the Record instance. Called automatically in string concatenation, String() type conversion, and template literals.\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "toString(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "toString"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/api!Record_2#update:member(1)",
+              "docComment": "/**\n * Update the current record on the DWN.\n *\n * @param options - options to update the record, including the new data\n *\n * @returns the status of the update request\n *\n * @throws\n *\n * `Error` if the record has already been deleted.\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "update(options?: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordUpdateOptions",
+                  "canonicalReference": "@web5/api!RecordUpdateOptions:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<{\n        status: {\n            code: number;\n            detail: string;\n        };\n    }>"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 5
+              },
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "options",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": true
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "update"
+            }
+          ],
+          "implementsTokenRanges": [
+            {
+              "startIndex": 1,
+              "endIndex": 2
+            }
+          ]
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!RecordModel:type",
+          "docComment": "/**\n * Represents the record data model, without the auxiliary properties such as the `descriptor` and the `authorization`\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type RecordModel = "
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsWriteDescriptor",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsWriteDescriptor:type"
+            },
+            {
+              "kind": "Content",
+              "text": " & "
+            },
+            {
+              "kind": "Reference",
+              "text": "Omit",
+              "canonicalReference": "!Omit:type"
+            },
+            {
+              "kind": "Content",
+              "text": "<"
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsWriteMessage",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsWriteMessage:type"
+            },
+            {
+              "kind": "Content",
+              "text": ", 'descriptor' | 'recordId' | 'authorization'> & {\n    author: string;\n    recordId?: string;\n    target: string;\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/record.ts",
+          "releaseTag": "Beta",
+          "name": "RecordModel",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 7
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!RecordOptions:type",
+          "docComment": "/**\n * Options that are passed to Record constructor.\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type RecordOptions = "
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsWriteMessage",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsWriteMessage:type"
+            },
+            {
+              "kind": "Content",
+              "text": " & {\n    author: string;\n    target: string;\n    encodedData?: string | "
+            },
+            {
+              "kind": "Reference",
+              "text": "Blob",
+              "canonicalReference": "!Blob:interface"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n    data?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Readable",
+              "canonicalReference": "@types/readable-stream!_Readable.Readable:class"
+            },
+            {
+              "kind": "Content",
+              "text": " | "
+            },
+            {
+              "kind": "Reference",
+              "text": "ReadableStream",
+              "canonicalReference": "!ReadableStream:interface"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/record.ts",
+          "releaseTag": "Beta",
+          "name": "RecordOptions",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 9
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!RecordsCreateFromRequest:type",
+          "docComment": "/**\n * Request to create a record from an existing one (useful for updating an existing record)\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type RecordsCreateFromRequest = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    author: string;\n    data: unknown;\n    message?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Omit",
+              "canonicalReference": "!Omit:type"
+            },
+            {
+              "kind": "Content",
+              "text": "<"
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsWriteOptions",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsWriteOptions:type"
+            },
+            {
+              "kind": "Content",
+              "text": ", 'authorizationSigner'>;\n    record: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Record",
+              "canonicalReference": "@web5/api!Record_2:class"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "RecordsCreateFromRequest",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 8
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!RecordsCreateRequest:type",
+          "docComment": "/**\n * Type alias for {@link RecordsWriteRequest}\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type RecordsCreateRequest = "
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsWriteRequest",
+              "canonicalReference": "@web5/api!RecordsWriteRequest:type"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "RecordsCreateRequest",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 2
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!RecordsCreateResponse:type",
+          "docComment": "/**\n * Type alias for {@link RecordsWriteResponse}\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type RecordsCreateResponse = "
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsWriteResponse",
+              "canonicalReference": "@web5/api!RecordsWriteResponse:type"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "RecordsCreateResponse",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 2
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!RecordsDeleteRequest:type",
+          "docComment": "/**\n * Request to delete a record from the DWN\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type RecordsDeleteRequest = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    from?: string;\n    message: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Omit",
+              "canonicalReference": "!Omit:type"
+            },
+            {
+              "kind": "Content",
+              "text": "<"
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsDeleteOptions",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsDeleteOptions:type"
+            },
+            {
+              "kind": "Content",
+              "text": ", 'authorizationSigner'>;\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "RecordsDeleteRequest",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 6
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!RecordsDeleteResponse:type",
+          "docComment": "/**\n * Response for the delete request\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type RecordsDeleteResponse = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    status: "
+            },
+            {
+              "kind": "Reference",
+              "text": "UnionMessageReply",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!UnionMessageReply:type"
+            },
+            {
+              "kind": "Content",
+              "text": "['status'];\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "RecordsDeleteResponse",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 4
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!RecordsQueryRequest:type",
+          "docComment": "/**\n * Request to query records from the DWN\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type RecordsQueryRequest = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    from?: string;\n    message: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Omit",
+              "canonicalReference": "!Omit:type"
+            },
+            {
+              "kind": "Content",
+              "text": "<"
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsQueryOptions",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsQueryOptions:type"
+            },
+            {
+              "kind": "Content",
+              "text": ", 'authorizationSigner'>;\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "RecordsQueryRequest",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 6
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!RecordsQueryResponse:type",
+          "docComment": "/**\n * Response for the query request\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type RecordsQueryResponse = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    status: "
+            },
+            {
+              "kind": "Reference",
+              "text": "UnionMessageReply",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!UnionMessageReply:type"
+            },
+            {
+              "kind": "Content",
+              "text": "['status'];\n    records?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Record",
+              "canonicalReference": "@web5/api!Record_2:class"
+            },
+            {
+              "kind": "Content",
+              "text": "[];\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "RecordsQueryResponse",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 6
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!RecordsReadRequest:type",
+          "docComment": "/**\n * Request to read a record from the DWN\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type RecordsReadRequest = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    from?: string;\n    message: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Omit",
+              "canonicalReference": "!Omit:type"
+            },
+            {
+              "kind": "Content",
+              "text": "<"
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsReadOptions",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsReadOptions:type"
+            },
+            {
+              "kind": "Content",
+              "text": ", 'authorizationSigner'>;\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "RecordsReadRequest",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 6
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!RecordsReadResponse:type",
+          "docComment": "/**\n * Response for the read request\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type RecordsReadResponse = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    status: "
+            },
+            {
+              "kind": "Reference",
+              "text": "UnionMessageReply",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!UnionMessageReply:type"
+            },
+            {
+              "kind": "Content",
+              "text": "['status'];\n    record: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Record",
+              "canonicalReference": "@web5/api!Record_2:class"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "RecordsReadResponse",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 6
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!RecordsWriteRequest:type",
+          "docComment": "/**\n * Request to write a record to the DWN\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type RecordsWriteRequest = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    data: unknown;\n    message?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Omit",
+              "canonicalReference": "!Omit:type"
+            },
+            {
+              "kind": "Content",
+              "text": "<"
+            },
+            {
+              "kind": "Reference",
+              "text": "Partial",
+              "canonicalReference": "!Partial:type"
+            },
+            {
+              "kind": "Content",
+              "text": "<"
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsWriteOptions",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsWriteOptions:type"
+            },
+            {
+              "kind": "Content",
+              "text": ">, 'authorizationSigner'>;\n    store?: boolean;\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "RecordsWriteRequest",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 8
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!RecordsWriteResponse:type",
+          "docComment": "/**\n * Response for the write request\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type RecordsWriteResponse = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    status: "
+            },
+            {
+              "kind": "Reference",
+              "text": "UnionMessageReply",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!UnionMessageReply:type"
+            },
+            {
+              "kind": "Content",
+              "text": "['status'];\n    record?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Record",
+              "canonicalReference": "@web5/api!Record_2:class"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/dwn-api.ts",
+          "releaseTag": "Beta",
+          "name": "RecordsWriteResponse",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 6
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!RecordUpdateOptions:type",
+          "docComment": "/**\n * Options that are passed to update the record on the DWN\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type RecordUpdateOptions = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    data?: unknown;\n    dataCid?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsWriteDescriptor",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsWriteDescriptor:type"
+            },
+            {
+              "kind": "Content",
+              "text": "['dataCid'];\n    dataSize?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsWriteDescriptor",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsWriteDescriptor:type"
+            },
+            {
+              "kind": "Content",
+              "text": "['dataSize'];\n    dateModified?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsWriteDescriptor",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsWriteDescriptor:type"
+            },
+            {
+              "kind": "Content",
+              "text": "['messageTimestamp'];\n    datePublished?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsWriteDescriptor",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsWriteDescriptor:type"
+            },
+            {
+              "kind": "Content",
+              "text": "['datePublished'];\n    published?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsWriteDescriptor",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsWriteDescriptor:type"
+            },
+            {
+              "kind": "Content",
+              "text": "['published'];\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/record.ts",
+          "releaseTag": "Beta",
+          "name": "RecordUpdateOptions",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 12
+          }
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!TechPreviewOptions:type",
+          "docComment": "/**\n * Override defaults configured during the technical preview phase.\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type TechPreviewOptions = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    dwnEndpoints?: string[];\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/web5.ts",
+          "releaseTag": "Beta",
+          "name": "TechPreviewOptions",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 2
+          }
+        },
+        {
+          "kind": "Namespace",
+          "canonicalReference": "@web5/api!utils:namespace",
+          "docComment": "",
+          "excerptTokens": [],
+          "fileUrlPath": "src/index.ts",
+          "releaseTag": "None",
+          "name": "utils",
+          "preserveMemberOrder": false,
+          "members": [
+            {
+              "kind": "Function",
+              "canonicalReference": "@web5/api!utils.dataToBlob:function(1)",
+              "docComment": "/**\n * Set/detect the media type and return the data as bytes.\n *\n * @beta\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "dataToBlob: (data: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "any"
+                },
+                {
+                  "kind": "Content",
+                  "text": ", dataFormat?: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ") => "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n    dataBlob: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Blob",
+                  "canonicalReference": "!Blob:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    dataFormat: string;\n}"
+                }
+              ],
+              "fileUrlPath": "src/utils.ts",
+              "returnTypeTokenRange": {
+                "startIndex": 5,
+                "endIndex": 8
+              },
+              "releaseTag": "Beta",
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "data",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                },
+                {
+                  "parameterName": "dataFormat",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 3,
+                    "endIndex": 4
+                  },
+                  "isOptional": true
+                }
+              ],
+              "name": "dataToBlob"
+            }
+          ]
+        },
+        {
+          "kind": "Class",
+          "canonicalReference": "@web5/api!VcApi:class",
+          "docComment": "/**\n * The VC API is used to issue, present and verify VCs\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare class VcApi "
+            }
+          ],
+          "fileUrlPath": "src/vc-api.ts",
+          "releaseTag": "Beta",
+          "isAbstract": false,
+          "name": "VcApi",
+          "preserveMemberOrder": false,
+          "members": [
+            {
+              "kind": "Constructor",
+              "canonicalReference": "@web5/api!VcApi:constructor(1)",
+              "docComment": "/**\n * Constructs a new instance of the `VcApi` class\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "constructor(options: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        agent: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Web5Agent",
+                  "canonicalReference": "@web5/agent!Web5Agent:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n        connectedDid: string;\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": ");"
+                }
+              ],
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "options",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ]
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/api!VcApi#create:member(1)",
+              "docComment": "/**\n * Issues a VC (Not implemented yet)\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "create(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<void>"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 3
+              },
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "create"
+            }
+          ],
+          "implementsTokenRanges": []
+        },
+        {
+          "kind": "Class",
+          "canonicalReference": "@web5/api!Web5:class",
+          "docComment": "/**\n * The main Web5 API interface. It manages the creation of a DID if needed, the connection to the local DWN and all the web5 main foundational APIs such as VC, syncing, etc.\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare class Web5 "
+            }
+          ],
+          "fileUrlPath": "src/web5.ts",
+          "releaseTag": "Beta",
+          "isAbstract": false,
+          "name": "Web5",
+          "preserveMemberOrder": false,
+          "members": [
+            {
+              "kind": "Constructor",
+              "canonicalReference": "@web5/api!Web5:constructor(1)",
+              "docComment": "/**\n * Constructs a new instance of the `Web5` class\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "constructor(options: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Web5Options",
+                  "canonicalReference": "@web5/api!~Web5Options:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ");"
+                }
+              ],
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "options",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ]
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Web5#agent:member",
+              "docComment": "/**\n * Web5 Agent knows how to handle DIDs, DWNs and VCs requests. The agent manages the user keys and identities, and is responsible to sign and verify messages.\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "agent: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Web5Agent",
+                  "canonicalReference": "@web5/agent!Web5Agent:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": false,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "agent",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/api!Web5.connect:member(1)",
+              "docComment": "/**\n * Connects to a {@link @web5/agent#Web5Agent}. Defaults to creating a local {@link @web5/user-agent#Web5UserAgent} if one isn't provided.\n *\n * @param options - optional overrides\n *\n * @returns \n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static connect(options?: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Web5ConnectOptions",
+                  "canonicalReference": "@web5/api!Web5ConnectOptions:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<{\n        web5: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Web5",
+                  "canonicalReference": "@web5/api!Web5:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n        did: string;\n    }>"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 7
+              },
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "options",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": true
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "connect"
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Web5#did:member",
+              "docComment": "/**\n * Exposed instance to the DID APIs, allow users to create and resolve DIDs\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "did: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "DidApi",
+                  "canonicalReference": "@web5/api!DidApi:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": false,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "did",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Web5#dwn:member",
+              "docComment": "/**\n * Exposed instance to the DWN APIs, allow users to read/write records\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "dwn: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "DwnApi",
+                  "canonicalReference": "@web5/api!DwnApi:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": false,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "dwn",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Web5#vc:member",
+              "docComment": "/**\n * Exposed instance to the VC APIs, allow users to issue, present and verify VCs\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "vc: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "VcApi",
+                  "canonicalReference": "@web5/api!VcApi:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": false,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "vc",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            }
+          ],
+          "implementsTokenRanges": []
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/api!Web5ConnectOptions:type",
+          "docComment": "/**\n * Optional overrides that can be provided when calling {@link Web5.connect}.\n *\n * @beta\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type Web5ConnectOptions = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    agent?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Web5Agent",
+              "canonicalReference": "@web5/agent!Web5Agent:interface"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n    appData?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "AppDataStore",
+              "canonicalReference": "@web5/agent!AppDataStore:interface"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n    connectedDid?: string;\n    sync?: string;\n    techPreview?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "TechPreviewOptions",
+              "canonicalReference": "@web5/api!TechPreviewOptions:type"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/web5.ts",
+          "releaseTag": "Beta",
+          "name": "Web5ConnectOptions",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 8
+          }
+        }
+      ]
+    }
+  ]
+}
