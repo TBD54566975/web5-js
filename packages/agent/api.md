@@ -4,6 +4,9 @@
 
 ```ts
 
+/// <reference types="node" />
+
+import type { AbstractLevel } from 'abstract-level';
 import { CryptoAlgorithm } from '@web5/crypto';
 import { CryptoKey as CryptoKey_2 } from '@web5/crypto';
 import { DataStoreLevel } from '@tbd54566975/dwn-sdk-js';
@@ -38,6 +41,7 @@ import type { RecordsDeleteMessage } from '@tbd54566975/dwn-sdk-js';
 import { RecordsQuery } from '@tbd54566975/dwn-sdk-js';
 import type { RecordsQueryMessage } from '@tbd54566975/dwn-sdk-js';
 import { RecordsRead } from '@tbd54566975/dwn-sdk-js';
+import { RecordsReadReply } from '@tbd54566975/dwn-sdk-js';
 import { RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 import { RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 import { RequireOnly } from '@web5/common';
@@ -325,7 +329,7 @@ export type DidResponse = {
     result?: DidResolutionResult | PortableDid;
 };
 
-// @public (undocumented)
+// @public
 export interface DidRpc {
     // (undocumented)
     sendDidRequest(request: DidRpcRequest): Promise<DidRpcResponse>;
@@ -490,7 +494,7 @@ export type DwnRequest = {
 export type DwnResponse = {
     message?: unknown;
     messageCid?: string;
-    reply: UnionMessageReply;
+    reply: UnionMessageReply & RecordsReadReply;
 };
 
 // @public
@@ -508,7 +512,7 @@ export type DwnRpcRequest = {
 };
 
 // @public
-export type DwnRpcResponse = UnionMessageReply;
+export type DwnRpcResponse = UnionMessageReply & RecordsReadReply;
 
 // @public
 export type EncryptOptions = {
@@ -1240,7 +1244,7 @@ export class SyncManagerLevel implements SyncManager {
 export type SyncManagerOptions = {
     agent?: Web5ManagedAgent;
     dataPath?: string;
-    db?: Level;
+    db?: LevelDatabase;
 };
 
 // @public (undocumented)
@@ -1368,6 +1372,10 @@ export class Web5RpcClient implements Web5Rpc {
 
 // @public (undocumented)
 export function webReadableToIsomorphicNodeReadable(webReadable: ReadableStream<any>): ReadableWebToNodeStream;
+
+// Warnings were encountered during analysis:
+//
+// src/sync-manager.ts:32:3 - (ae-forgotten-export) The symbol "LevelDatabase" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

@@ -288,6 +288,60 @@
             },
             {
               "kind": "Method",
+              "canonicalReference": "@web5/common!Convert.asyncIterable:member(1)",
+              "docComment": "",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static asyncIterable(data: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "AsyncIterable",
+                  "canonicalReference": "!AsyncIterable:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<any>"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Convert",
+                  "canonicalReference": "@web5/common!Convert:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 4,
+                "endIndex": 5
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "data",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 3
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "asyncIterable"
+            },
+            {
+              "kind": "Method",
               "canonicalReference": "@web5/common!Convert.base58Btc:member(1)",
               "docComment": "",
               "excerptTokens": [
@@ -729,6 +783,51 @@
             },
             {
               "kind": "Method",
+              "canonicalReference": "@web5/common!Convert#toArrayBufferAsync:member(1)",
+              "docComment": "",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "toArrayBufferAsync(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ArrayBuffer",
+                  "canonicalReference": "!ArrayBuffer:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 5
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "toArrayBufferAsync"
+            },
+            {
+              "kind": "Method",
               "canonicalReference": "@web5/common!Convert#toBase58Btc:member(1)",
               "docComment": "",
               "excerptTokens": [
@@ -788,6 +887,51 @@
               "isOptional": false,
               "isAbstract": false,
               "name": "toBase64Url"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!Convert#toBlobAsync:member(1)",
+              "docComment": "",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "toBlobAsync(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Blob",
+                  "canonicalReference": "!Blob:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 5
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "toBlobAsync"
             },
             {
               "kind": "Method",
@@ -889,6 +1033,42 @@
             },
             {
               "kind": "Method",
+              "canonicalReference": "@web5/common!Convert#toObjectAsync:member(1)",
+              "docComment": "",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "toObjectAsync(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<any>"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 3
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "toObjectAsync"
+            },
+            {
+              "kind": "Method",
               "canonicalReference": "@web5/common!Convert#toString:member(1)",
               "docComment": "",
               "excerptTokens": [
@@ -917,6 +1097,42 @@
               "isOptional": false,
               "isAbstract": false,
               "name": "toString"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!Convert#toStringAsync:member(1)",
+              "docComment": "",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "toStringAsync(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<string>"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 3
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "toStringAsync"
             },
             {
               "kind": "Method",
@@ -949,6 +1165,51 @@
               "isOptional": false,
               "isAbstract": false,
               "name": "toUint8Array"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!Convert#toUint8ArrayAsync:member(1)",
+              "docComment": "",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "toUint8ArrayAsync(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Uint8Array",
+                  "canonicalReference": "!Uint8Array:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 5
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "toUint8ArrayAsync"
             },
             {
               "kind": "Method",
@@ -1048,6 +1309,65 @@
             }
           ],
           "name": "isArrayBufferSlice"
+        },
+        {
+          "kind": "Function",
+          "canonicalReference": "@web5/common!isAsyncIterable:function(1)",
+          "docComment": "/**\n * Checks if the given object is an AsyncIterable.\n *\n * An AsyncIterable is an object that implements the AsyncIterable protocol, which means it has a [Symbol.asyncIterator] method. This function checks if the provided object conforms to this protocol by verifying the presence and type of the [Symbol.asyncIterator] method.\n *\n * @param obj - The object to be checked for AsyncIterable conformity.\n *\n * @returns True if the object is an AsyncIterable, false otherwise.\n *\n * @example\n * ```ts\n * // Returns true for a valid AsyncIterable\n * const asyncIterable = {\n *   async *[Symbol.asyncIterator]() {\n *     yield 1;\n *     yield 2;\n *   }\n * };\n * console.log(isAsyncIterable(asyncIterable)); // true\n * ```\n *\n * @example\n * ```ts\n * // Returns false for a regular object\n * console.log(isAsyncIterable({ a: 1, b: 2 })); // false\n * ```\n *\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare function isAsyncIterable(obj: "
+            },
+            {
+              "kind": "Content",
+              "text": "any"
+            },
+            {
+              "kind": "Content",
+              "text": "): "
+            },
+            {
+              "kind": "Reference",
+              "text": "obj",
+              "canonicalReference": "@web5/common!~obj"
+            },
+            {
+              "kind": "Content",
+              "text": " is "
+            },
+            {
+              "kind": "Reference",
+              "text": "AsyncIterable",
+              "canonicalReference": "!AsyncIterable:interface"
+            },
+            {
+              "kind": "Content",
+              "text": "<any>"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/type-utils.ts",
+          "returnTypeTokenRange": {
+            "startIndex": 3,
+            "endIndex": 7
+          },
+          "releaseTag": "Public",
+          "overloadIndex": 1,
+          "parameters": [
+            {
+              "parameterName": "obj",
+              "parameterTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isOptional": false
+            }
+          ],
+          "name": "isAsyncIterable"
         },
         {
           "kind": "Function",
@@ -2676,6 +2996,771 @@
           }
         },
         {
+          "kind": "Class",
+          "canonicalReference": "@web5/common!NodeStream:class",
+          "docComment": "",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare class NodeStream "
+            }
+          ],
+          "fileUrlPath": "src/stream-node.ts",
+          "releaseTag": "Public",
+          "isAbstract": false,
+          "name": "NodeStream",
+          "preserveMemberOrder": false,
+          "members": [
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!NodeStream.consumeToArrayBuffer:member(1)",
+              "docComment": "/**\n * Consumes a `Readable` stream and returns its contents as an `ArrayBuffer`.\n *\n * This method reads all data from a Node.js `Readable` stream, collects it, and converts it into an `ArrayBuffer`.\n *\n * @param readable - The Node.js Readable stream whose data will be consumed.\n *\n * @returns A Promise that resolves to an `ArrayBuffer` containing all the data from the stream.\n *\n * @example\n * ```ts\n * const nodeReadable = getReadableStreamSomehow();\n * const arrayBuffer = await NodeStream.consumeToArrayBuffer({ readable: nodeReadable });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static consumeToArrayBuffer({ readable }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        readable: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Readable",
+                  "canonicalReference": "@types/readable-stream!_Readable.Readable:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ArrayBuffer",
+                  "canonicalReference": "!ArrayBuffer:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 5,
+                "endIndex": 9
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ readable }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "consumeToArrayBuffer"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!NodeStream.consumeToBlob:member(1)",
+              "docComment": "/**\n * Consumes a `Readable` stream and returns its contents as a `Blob`.\n *\n * This method reads all data from a Node.js `Readable` stream, collects it, and converts it into a `Blob`.\n *\n * @param readableStream - The Node.js `Readable` stream whose data will be consumed.\n *\n * @returns A Promise that resolves to a `Blob` containing all the data from the stream.\n *\n * @example\n * ```ts\n * const nodeReadable = getReadableStreamSomehow();\n * const blob = await NodeStream.consumeToBlob({ readable: nodeReadable });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static consumeToBlob({ readable }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        readable: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Readable",
+                  "canonicalReference": "@types/readable-stream!_Readable.Readable:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Blob",
+                  "canonicalReference": "!Blob:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 5,
+                "endIndex": 9
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ readable }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "consumeToBlob"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!NodeStream.consumeToBytes:member(1)",
+              "docComment": "/**\n * Consumes a `Readable` stream and returns its contents as a `Uint8Array`.\n *\n * This method reads all data from a Node.js `Readable`, collects it, and converts it into a `Uint8Array`.\n *\n * @param readableStream - The Node.js `Readable` stream whose data will be consumed.\n *\n * @returns A Promise that resolves to a `Uint8Array` containing all the data from the stream.\n *\n * @example\n * ```ts\n * const nodeReadable = getReadableStreamSomehow();\n * const bytes = await NodeStream.consumeToBytes({ readable: nodeReadable });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static consumeToBytes({ readable }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        readable: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Readable",
+                  "canonicalReference": "@types/readable-stream!_Readable.Readable:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Uint8Array",
+                  "canonicalReference": "!Uint8Array:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 5,
+                "endIndex": 9
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ readable }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "consumeToBytes"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!NodeStream.consumeToJson:member(1)",
+              "docComment": "/**\n * Consumes a `Readable` stream and parses its contents as JSON.\n *\n * This method reads all the data from the stream, converts it to a text string, and then parses it as JSON, returning the resulting object.\n *\n * @param readableStream - The Node.js `Readable` stream whose JSON content will be consumed.\n *\n * @returns A Promise that resolves to the parsed JSON object from the stream's data.\n *\n * @example\n * ```ts\n * const nodeReadable = getReadableStreamSomehow();\n * const jsonData = await NodeStream.consumeToJson({ readable: nodeReadable });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static consumeToJson({ readable }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        readable: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Readable",
+                  "canonicalReference": "@types/readable-stream!_Readable.Readable:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<any>"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 5,
+                "endIndex": 7
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ readable }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "consumeToJson"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!NodeStream.consumeToText:member(1)",
+              "docComment": "/**\n * Consumes a `Readable` stream and returns its contents as a text string.\n *\n * This method reads all the data from the stream, converting it into a single string.\n *\n * @param readableStream - The Node.js `Readable` stream whose text content will be consumed.\n *\n * @returns A Promise that resolves to a string containing all the data from the stream.\n *\n * @example\n * ```ts\n * const nodeReadable = getReadableStreamSomehow();\n * const text = await NodeStream.consumeToText({ readable: nodeReadable });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static consumeToText({ readable }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        readable: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Readable",
+                  "canonicalReference": "@types/readable-stream!_Readable.Readable:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<string>"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 5,
+                "endIndex": 7
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ readable }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "consumeToText"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!NodeStream.fromWebReadable:member(1)",
+              "docComment": "/**\n * Converts a Web `ReadableStream` to a Node.js `Readable` stream.\n *\n * This method takes a Web `ReadableStream` and converts it to a Node.js `Readable` stream. The conversion is done by reading chunks from the Web `ReadableStream` and pushing them into the Node.js `Readable` stream.\n *\n * @param readableStream - The Web `ReadableStream` to be converted.\n *\n * @param readableOptions - Optional `Readable` stream options for the Node.js stream.\n *\n * @returns The Node.js `Readable` stream.\n *\n * @example\n * ```ts\n * const webReadableStream = getWebReadableStreamSomehow();\n * const nodeReadableStream = NodeStream.fromWebReadable({ readableStream: webReadableStream });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static fromWebReadable({ readableStream, readableOptions }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        readableStream: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ReadableStream",
+                  "canonicalReference": "!ReadableStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n        readableOptions?: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ReadableStateOptions",
+                  "canonicalReference": "@types/readable-stream!_Readable.ReadableStateOptions:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Readable",
+                  "canonicalReference": "@types/readable-stream!_Readable.Readable:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 7,
+                "endIndex": 8
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ readableStream, readableOptions }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 6
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "fromWebReadable"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!NodeStream.isDestroyed:member(1)",
+              "docComment": "/**\n * Checks if a Node.js stream (`Readable`, `Writable`, `Duplex`, or `Transform`) has been destroyed.\n *\n * This method determines whether the provided Node.js stream has been destroyed. A stream is considered destroyed if its 'destroyed' property is set to true or if its internal state indicates it has been destroyed.\n *\n * @param stream - The Node.js stream to check.\n *\n * @returns `true` if the stream has been destroyed; otherwise, `false`.\n *\n * @example\n * ```ts\n * const stream = getStreamSomehow();\n * stream.destroy(); // Destroy the stream.\n * const isDestroyed = NodeStream.isDestroyed({ stream });\n * console.log(isDestroyed); // Output: true\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static isDestroyed({ stream }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        stream: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Readable",
+                  "canonicalReference": "@types/readable-stream!_Readable.Readable:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": " | "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Writable",
+                  "canonicalReference": "@types/readable-stream!_Readable.Writable:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": " | "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Duplex",
+                  "canonicalReference": "@types/readable-stream!_Readable.Duplex:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": " | "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Transform",
+                  "canonicalReference": "@types/readable-stream!_Readable.Transform:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "boolean"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 11,
+                "endIndex": 12
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ stream }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 10
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "isDestroyed"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!NodeStream.isReadable:member(1)",
+              "docComment": "/**\n * Checks if a Node.js `Readable` stream is still readable.\n *\n * This method checks if a Node.js `Readable` stream is still in a state that allows reading from it. A stream is considered readable if it has not ended, has not been destroyed, and is not currently paused.\n *\n * @param readable - The Node.js `Readable` stream to be checked.\n *\n * @returns `true` if the stream is still readable; otherwise, `false`.\n *\n * @example\n * ```ts\n * const readableStream = new Readable();\n * const isReadable = NodeStream.isReadable({ readable: readableStream });\n * console.log(isReadable); // Output: true or false\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static isReadable({ readable }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        readable: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Readable",
+                  "canonicalReference": "@types/readable-stream!_Readable.Readable:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "boolean"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 5,
+                "endIndex": 6
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ readable }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "isReadable"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!NodeStream.isReadableStream:member(1)",
+              "docComment": "/**\n * Checks if an object is a Node.js `Readable` stream.\n *\n * This method verifies if the provided object is a Node.js `Readable` stream by checking for specific properties and methods typical of a `Readable` stream in Node.js.\n *\n * @param obj - The object to be checked.\n *\n * @returns `true` if `obj` is a Node.js `Readable` stream; otherwise, `false`.\n *\n * @example\n * ```ts\n * const obj = getSomeObject();\n * if (NodeStream.isReadableStream(obj)) {\n *   // obj is a Node.js Readable stream\n * }\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static isReadableStream(obj: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "unknown"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "obj",
+                  "canonicalReference": "@web5/common!~obj"
+                },
+                {
+                  "kind": "Content",
+                  "text": " is "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Readable",
+                  "canonicalReference": "@types/readable-stream!_Readable.Readable:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 6
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "obj",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "isReadableStream"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!NodeStream.isStream:member(1)",
+              "docComment": "/**\n * Checks if the provided object is a Node.js stream (`Duplex`, `Readable`, `Writable`, or `Transform`).\n *\n * This method checks for the presence of internal properties specific to Node.js streams: `_readableState` and `_writableState`. These properties are present in Node.js stream instances, allowing identification of the stream type.\n *\n * The `_readableState` property is found in `Readable` and `Duplex` streams (including `Transform` streams, which are a type of `Duplex` stream), indicating that the stream can be read from. The `_writableState` property is found in `Writable` and `Duplex` streams, indicating that the stream can be written to.\n *\n * @remarks\n *\n * - This method does not differentiate between the different types of streams (Readable, Writable, Duplex, Transform). It simply checks if the object is any kind of Node.js stream. - While this method can identify standard Node.js streams, it may not recognize custom or third-party stream-like objects that do not inherit directly from Node.js's stream classes or do not have these internal state properties. This is intentional as many of the methods in this library are designed to work with standard Node.js streams.\n *\n * @param obj - The object to be checked for being a Node.js stream.\n *\n * @returns `true` if the object is a Node.js stream (`Duplex`, `Readable`, `Writable`, or `Transform`); otherwise, `false`.\n *\n * @example\n * ```ts\n * const { Readable, Writable, Duplex, Transform } = require('stream');\n *\n * const readableStream = new Readable();\n * console.log(NodeStream.isStream(readableStream)); // Output: true\n *\n * const writableStream = new Writable();\n * console.log(NodeStream.isStream(writableStream)); // Output: true\n *\n * const duplexStream = new Duplex();\n * console.log(NodeStream.isStream(duplexStream)); // Output: true\n *\n * const transformStream = new Transform();\n * console.log(NodeStream.isStream(transformStream)); // Output: true\n *\n * const nonStreamObject = {};\n * console.log(NodeStream.isStream(nonStreamObject)); // Output: false\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static isStream(obj: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "unknown"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "obj",
+                  "canonicalReference": "@web5/common!~obj"
+                },
+                {
+                  "kind": "Content",
+                  "text": " is "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Duplex",
+                  "canonicalReference": "@types/readable-stream!_Readable.Duplex:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": " | "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Readable",
+                  "canonicalReference": "@types/readable-stream!_Readable.Readable:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": " | "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Writable",
+                  "canonicalReference": "@types/readable-stream!_Readable.Writable:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": " | "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Transform",
+                  "canonicalReference": "@types/readable-stream!_Readable.Transform:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 12
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "obj",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "isStream"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!NodeStream.toWebReadable:member(1)",
+              "docComment": "/**\n * Converts a Node.js `Readable` stream to a Web `ReadableStream`.\n *\n * This method provides a bridge between Node.js streams and the Web Streams API by converting a Node.js `Readable` stream into a Web `ReadableStream`. It listens for 'data', 'end', and 'error' events on the Node.js stream and appropriately enqueues data, closes, or errors the Web `ReadableStream`.\n *\n * If the Node.js stream is already destroyed, the method returns an immediately cancelled Web `ReadableStream`.\n *\n * @param readable - The Node.js `Readable` stream to be converted.\n *\n * @returns A Web `ReadableStream` corresponding to the provided Node.js `Readable` stream.\n *\n * @example\n * ```ts\n * const nodeReadable = getNodeReadableStreamSomehow();\n * const webReadableStream = NodeStream.toWebReadable({ readable: nodeReadable });\n * ```\n *\n * @throws\n *\n * TypeError if `readable` is not a Node.js `Readable` stream.\n *\n * @throws\n *\n * Error if the Node.js `Readable` stream is already destroyed.\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static toWebReadable({ readable }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        readable: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Readable",
+                  "canonicalReference": "@types/readable-stream!_Readable.Readable:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ReadableStream",
+                  "canonicalReference": "!ReadableStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 5,
+                "endIndex": 6
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ readable }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "toWebReadable"
+            }
+          ],
+          "implementsTokenRanges": []
+        },
+        {
           "kind": "Function",
           "canonicalReference": "@web5/common!removeEmptyObjects:function(1)",
           "docComment": "/**\n * Recursively removes all properties with an empty object or array as its value from the given object.\n */\n",
@@ -2891,6 +3976,802 @@
             "startIndex": 7,
             "endIndex": 15
           }
+        },
+        {
+          "kind": "Class",
+          "canonicalReference": "@web5/common!Stream:class",
+          "docComment": "",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare class Stream "
+            }
+          ],
+          "fileUrlPath": "src/stream.ts",
+          "releaseTag": "Public",
+          "isAbstract": false,
+          "name": "Stream",
+          "preserveMemberOrder": false,
+          "members": [
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!Stream.asAsyncIterator:member(1)",
+              "docComment": "/**\n * Transforms a `ReadableStream` into an `AsyncIterable`. This allows for the asynchronous iteration over the stream's data chunks.\n *\n * This method creates an async iterator from a `ReadableStream`, enabling the use of `for await...of` loops to process stream data. It reads from the stream until it's closed or errored, yielding each chunk as it becomes available.\n *\n * @remarks\n *\n * - The method ensures proper cleanup by releasing the reader lock when iteration is completed or if an error occurs.\n *\n * @param readableStream - The Web `ReadableStream` to be transformed into an `AsyncIterable`.\n *\n * @returns An `AsyncIterable` that yields data chunks from the `ReadableStream`.\n *\n * @example\n * ```ts\n * const readableStream = new ReadableStream({ ... });\n * for await (const chunk of Stream.asAsyncIterator(readableStream)) {\n *   // process each chunk\n * }\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static asAsyncIterator<T>(readableStream: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ReadableStream",
+                  "canonicalReference": "!ReadableStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<T>"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "AsyncIterable",
+                  "canonicalReference": "!AsyncIterable:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<T>"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "typeParameters": [
+                {
+                  "typeParameterName": "T",
+                  "constraintTokenRange": {
+                    "startIndex": 0,
+                    "endIndex": 0
+                  },
+                  "defaultTypeTokenRange": {
+                    "startIndex": 0,
+                    "endIndex": 0
+                  }
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 4,
+                "endIndex": 6
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "readableStream",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 3
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "asAsyncIterator"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!Stream.consumeToArrayBuffer:member(1)",
+              "docComment": "/**\n * Consumes a `ReadableStream` and returns its contents as an `ArrayBuffer`.\n *\n * This method reads all data from a `ReadableStream`, collects it, and converts it into an `ArrayBuffer`.\n *\n * @param readableStream - The Web `ReadableStream` whose data will be consumed.\n *\n * @returns A Promise that resolves to an `ArrayBuffer` containing all the data from the stream.\n *\n * @example\n * ```ts\n * const readableStream = new ReadableStream({ ... });\n * const arrayBuffer = await Stream.consumeToArrayBuffer({ readableStream });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static consumeToArrayBuffer({ readableStream }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        readableStream: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ReadableStream",
+                  "canonicalReference": "!ReadableStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ArrayBuffer",
+                  "canonicalReference": "!ArrayBuffer:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 5,
+                "endIndex": 9
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ readableStream }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "consumeToArrayBuffer"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!Stream.consumeToBlob:member(1)",
+              "docComment": "/**\n * Consumes a `ReadableStream` and returns its contents as a `Blob`.\n *\n * This method reads all data from a `ReadableStream`, collects it, and converts it into a `Blob`.\n *\n * @param readableStream - The Web `ReadableStream` whose data will be consumed.\n *\n * @returns A Promise that resolves to a `Blob` containing all the data from the stream.\n *\n * @example\n * ```ts\n * const readableStream = new ReadableStream({ ... });\n * const blob = await Stream.consumeToBlob({ readableStream });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static consumeToBlob({ readableStream }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        readableStream: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ReadableStream",
+                  "canonicalReference": "!ReadableStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Blob",
+                  "canonicalReference": "!Blob:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 5,
+                "endIndex": 9
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ readableStream }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "consumeToBlob"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!Stream.consumeToBytes:member(1)",
+              "docComment": "/**\n * Consumes a `ReadableStream` and returns its contents as a `Uint8Array`.\n *\n * This method reads all data from a `ReadableStream`, collects it, and converts it into a `Uint8Array`.\n *\n * @param readableStream - The Web `ReadableStream` whose data will be consumed.\n *\n * @returns A Promise that resolves to a `Uint8Array` containing all the data from the stream.\n *\n * @example\n * ```ts\n * const readableStream = new ReadableStream({ ... });\n * const bytes = await Stream.consumeToBytes({ readableStream });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static consumeToBytes({ readableStream }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        readableStream: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ReadableStream",
+                  "canonicalReference": "!ReadableStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Uint8Array",
+                  "canonicalReference": "!Uint8Array:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 5,
+                "endIndex": 9
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ readableStream }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "consumeToBytes"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!Stream.consumeToJson:member(1)",
+              "docComment": "/**\n * Consumes a `ReadableStream` and parses its contents as JSON.\n *\n * This method reads all the data from the stream, converts it to a text string, and then parses it as JSON, returning the resulting object.\n *\n * @param readableStream - The Web `ReadableStream` whose JSON content will be consumed.\n *\n * @returns A Promise that resolves to the parsed JSON object from the stream's data.\n *\n * @example\n * ```ts\n * const readableStream = new ReadableStream({ ... });\n * const jsonData = await Stream.consumeToJson({ readableStream });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static consumeToJson({ readableStream }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        readableStream: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ReadableStream",
+                  "canonicalReference": "!ReadableStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<any>"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 5,
+                "endIndex": 7
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ readableStream }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "consumeToJson"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!Stream.consumeToText:member(1)",
+              "docComment": "/**\n * Consumes a `ReadableStream` and returns its contents as a text string.\n *\n * This method reads all the data from the stream, converting it into a single string.\n *\n * @param readableStream - The Web `ReadableStream` whose text content will be consumed.\n *\n * @returns A Promise that resolves to a string containing all the data from the stream.\n *\n * @example\n * ```ts\n * const readableStream = new ReadableStream({ ... });\n * const text = await Stream.consumeToText({ readableStream });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static consumeToText({ readableStream }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        readableStream: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ReadableStream",
+                  "canonicalReference": "!ReadableStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<string>"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 5,
+                "endIndex": 7
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ readableStream }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "consumeToText"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!Stream.generateByteStream:member(1)",
+              "docComment": "/**\n * Generates a `ReadableStream` of `Uint8Array` chunks with customizable length and fill value.\n *\n * This method creates a `ReadableStream` that emits `Uint8Array` chunks. You can specify the total length of the stream, the length of individual chunks, and a fill value or range for the chunks. It's useful for testing or when specific binary data streams are required.\n *\n * @param streamLength - The total length of the stream in bytes. If omitted, the stream is infinite.\n *\n * @param chunkLength - The length of each chunk. If omitted, each chunk is the size of `streamLength`.\n *\n * @param fillValue - A value or range to fill the chunks with. Can be a single number or a tuple [min, max].\n *\n * @returns A `ReadableStream` that emits `Uint8Array` chunks.\n *\n * @example\n * ```ts\n * // Create a stream of 1000 bytes with 100-byte chunks filled with 0xAA.\n * const byteStream = Stream.generateByteStream({\n *   streamLength: 1000,\n *   chunkLength: 100,\n *   fillValue: 0xAA\n * });\n *\n * // Create an unending stream of 100KB chunks filled with values that range from 1 to 99.\n * const byteStream = Stream.generateByteStream({\n *  chunkLength: 100 * 1024,\n *  fillValue: [1, 99]\n * });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static generateByteStream({ streamLength, chunkLength, fillValue }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        streamLength?: number;\n        chunkLength?: number;\n        fillValue?: number | [number, number];\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ReadableStream",
+                  "canonicalReference": "!ReadableStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Uint8Array",
+                  "canonicalReference": "!Uint8Array:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 7
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ streamLength, chunkLength, fillValue }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "generateByteStream"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!Stream.isReadable:member(1)",
+              "docComment": "/**\n * Checks if the provided Web `ReadableStream` is in a readable state.\n *\n * After verifying that the stream is a Web {@link https://streams.spec.whatwg.org/#rs-model | ReadableStream}, this method checks the {@link https://streams.spec.whatwg.org/#readablestream-locked | locked} property of the ReadableStream. The `locked` property is `true` if a reader is currently active, meaning the stream is either being read or has already been read (and hence is not in a readable state). If `locked` is `false`, it means the stream is still in a state where it can be read.\n *\n * In the case where a `ReadableStream` has been unlocked but is no longer readable (for example, if it has been fully read or cancelled), additional checks are needed beyond just examining the locked property. The ReadableStream API does not provide a direct way to check if the stream has data left or if it's in a readable state once it's been unlocked.\n *\n * Per {@link https://streams.spec.whatwg.org/#other-specs-rs-introspect | WHATWG Streams, Section 9.1.3. Introspection}:\n *\n * > ...note that apart from checking whether or not the stream is locked, this direct > introspection is not possible via the public JavaScript API, and so specifications should > instead use the algorithms in §9.1.2 Reading. (For example, instead of testing if the stream > is readable, attempt to get a reader and handle any exception.)\n *\n * This implementation employs the technique suggested by the WHATWG Streams standard by attempting to acquire a reader and checking the state of the reader. If acquiring a reader succeeds, it immediately releases the lock and returns `true`, indicating the stream is readable. If an error occurs while trying to get a reader (which can happen if the stream is already closed or errored), it catches the error and returns `false`, indicating the stream is not readable.\n *\n * @remarks\n *\n * - This method does not check whether the stream has data left to read; it only checks if the stream is in a state that allows reading. It is possible for a stream to be unlocked but still have no data left if it has never been locked to a reader.\n *\n * @param readableStream - The Web `ReadableStream` to be checked for readability.\n *\n * @returns `true` if the stream is a `ReadableStream` and is in a readable state (not locked and no error on getting a reader); otherwise, `false`.\n *\n * @example\n * ```ts\n * const readableStream = new ReadableStream({ ... });\n * const isStreamReadable = Stream.isReadable({ readableStream });\n * console.log(isStreamReadable); // Output: true or false\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static isReadable({ readableStream }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        readableStream: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ReadableStream",
+                  "canonicalReference": "!ReadableStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "boolean"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 5,
+                "endIndex": 6
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ readableStream }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 4
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "isReadable"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!Stream.isReadableStream:member(1)",
+              "docComment": "/**\n * Checks if an object is a Web `ReadableStream`.\n *\n * This method verifies whether the given object is a `ReadableStream` by checking its type and the presence of the `getReader` function.\n *\n * @param obj - The object to be checked.\n *\n * @returns `true` if `obj` is a `ReadableStream`; otherwise, `false`.\n *\n * @example\n * ```ts\n * const obj = getSomeObject();\n * if (Stream.isReadableStream(obj)) {\n *   // obj is a ReadableStream\n * }\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static isReadableStream(obj: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "unknown"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "obj",
+                  "canonicalReference": "@web5/common!~obj"
+                },
+                {
+                  "kind": "Content",
+                  "text": " is "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ReadableStream",
+                  "canonicalReference": "!ReadableStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 6
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "obj",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "isReadableStream"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!Stream.isStream:member(1)",
+              "docComment": "/**\n * Checks if an object is a Web `ReadableStream`, `WritableStream`, or `TransformStream`.\n *\n * This method verifies the type of a given object to determine if it is one of the standard stream types in the Web Streams API: `ReadableStream`, `WritableStream`, or `TransformStream`. It employs type-checking strategies that are specific to each stream type.\n *\n * The method checks for the specific functions and properties associated with each stream type: - `ReadableStream`: Identified by the presence of a `getReader` method. - `WritableStream`: Identified by the presence of a `getWriter` and `abort` methods. - `TransformStream`: Identified by having both `readable` and `writable` properties.\n *\n * @remarks\n *\n * - This method does not differentiate between `ReadableStream`, `WritableStream`, and `TransformStream`. It checks if the object conforms to any of these types. - This method is specific to the Web Streams API and may not recognize non-standard or custom stream-like objects that do not adhere to the Web Streams API specifications.\n *\n * @param obj - The object to be checked for being a Web `ReadableStream`, `WritableStream`, or `TransformStream`.\n *\n * @returns `true` if the object is a `ReadableStream`, `WritableStream`, or `TransformStream`; otherwise, `false`.\n *\n * @example\n * ```ts\n * const readableStream = new ReadableStream();\n * console.log(Stream.isStream(readableStream)); // Output: true\n *\n * const writableStream = new WritableStream();\n * console.log(Stream.isStream(writableStream)); // Output: true\n *\n * const transformStream = new TransformStream();\n * console.log(Stream.isStream(transformStream)); // Output: true\n *\n * const nonStreamObject = {};\n * console.log(Stream.isStream(nonStreamObject)); // Output: false\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static isStream(obj: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "unknown"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "obj",
+                  "canonicalReference": "@web5/common!~obj"
+                },
+                {
+                  "kind": "Content",
+                  "text": " is "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ReadableStream",
+                  "canonicalReference": "!ReadableStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": " | "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "WritableStream",
+                  "canonicalReference": "!WritableStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": " | "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "TransformStream",
+                  "canonicalReference": "!TransformStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 10
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "obj",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "isStream"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!Stream.isTransformStream:member(1)",
+              "docComment": "/**\n * Checks if an object is a `TransformStream`.\n *\n * This method verifies whether the given object is a `TransformStream` by checking its type and the presence of `readable` and `writable` properties.\n *\n * @param obj - The object to be checked.\n *\n * @returns `true` if `obj` is a `TransformStream`; otherwise, `false`.\n *\n * @example\n * ```ts\n * const obj = getSomeObject();\n * if (Stream.isTransformStream(obj)) {\n *   // obj is a TransformStream\n * }\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static isTransformStream(obj: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "unknown"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "obj",
+                  "canonicalReference": "@web5/common!~obj"
+                },
+                {
+                  "kind": "Content",
+                  "text": " is "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "TransformStream",
+                  "canonicalReference": "!TransformStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 6
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "obj",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "isTransformStream"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/common!Stream.isWritableStream:member(1)",
+              "docComment": "/**\n * Checks if an object is a `WritableStream`.\n *\n * This method determines whether the given object is a `WritableStream` by verifying its type and the presence of the `getWriter` and `abort` functions.\n *\n * @param obj - The object to be checked.\n *\n * @returns `true` if `obj` is a `TransformStream`; otherwise, `false`.\n *\n * @example\n * ```ts\n * const obj = getSomeObject();\n * if (Stream.isWritableStream(obj)) {\n *   // obj is a WritableStream\n * }\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "static isWritableStream(obj: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "unknown"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "obj",
+                  "canonicalReference": "@web5/common!~obj"
+                },
+                {
+                  "kind": "Content",
+                  "text": " is "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "WritableStream",
+                  "canonicalReference": "!WritableStream:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": true,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 6
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "obj",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "isWritableStream"
+            }
+          ],
+          "implementsTokenRanges": []
         },
         {
           "kind": "Function",

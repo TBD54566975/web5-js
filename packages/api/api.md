@@ -15,14 +15,13 @@ import type { ProtocolsConfigureDescriptor } from '@tbd54566975/dwn-sdk-js';
 import { ProtocolsConfigureMessage as ProtocolsConfigureMessage_2 } from '@tbd54566975/dwn-sdk-js';
 import type { ProtocolsConfigureOptions } from '@tbd54566975/dwn-sdk-js';
 import type { ProtocolsQueryOptions } from '@tbd54566975/dwn-sdk-js';
-import type { Readable } from 'readable-stream';
+import type { Readable } from '@web5/common';
 import type { RecordsDeleteOptions } from '@tbd54566975/dwn-sdk-js';
 import type { RecordsQueryOptions } from '@tbd54566975/dwn-sdk-js';
 import type { RecordsReadOptions } from '@tbd54566975/dwn-sdk-js';
 import type { RecordsWriteDescriptor } from '@tbd54566975/dwn-sdk-js';
 import type { RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 import type { RecordsWriteOptions } from '@tbd54566975/dwn-sdk-js';
-import type { UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 import type { Web5Agent } from '@web5/agent';
 
 // @beta
@@ -53,7 +52,7 @@ export class DwnApi {
     get records(): {
         create: (request: RecordsCreateRequest) => Promise<RecordsCreateResponse>;
         createFrom: (request: RecordsCreateFromRequest) => Promise<RecordsWriteResponse>;
-        delete: (request: RecordsDeleteRequest) => Promise<RecordsDeleteResponse>;
+        delete: (request: RecordsDeleteRequest) => Promise<ResponseStatus>;
         query: (request: RecordsQueryRequest) => Promise<RecordsQueryResponse>;
         read: (request: RecordsReadRequest) => Promise<RecordsReadResponse>;
         write: (request: RecordsWriteRequest) => Promise<RecordsWriteResponse>;
@@ -82,12 +81,11 @@ export type ProtocolsConfigureMessage = ProtocolsConfigure['message'];
 
 // @beta
 export type ProtocolsConfigureRequest = {
-    message: Omit<ProtocolsConfigureOptions, 'authorizationSigner'>;
+    message: Omit<ProtocolsConfigureOptions, 'signer'>;
 };
 
 // @beta
-export type ProtocolsConfigureResponse = {
-    status: UnionMessageReply['status'];
+export type ProtocolsConfigureResponse = ResponseStatus & {
     protocol?: Protocol;
 };
 
@@ -99,13 +97,12 @@ export type ProtocolsQueryReplyEntry = {
 // @beta
 export type ProtocolsQueryRequest = {
     from?: string;
-    message: Omit<ProtocolsQueryOptions, 'authorizationSigner'>;
+    message: Omit<ProtocolsQueryOptions, 'signer'>;
 };
 
 // @beta
-export type ProtocolsQueryResponse = {
+export type ProtocolsQueryResponse = ResponseStatus & {
     protocols: Protocol[];
-    status: UnionMessageReply['status'];
 };
 
 // @beta
@@ -116,8 +113,9 @@ class Record_2 implements RecordModel {
     get contextId(): string;
     get data(): {
         blob(): Promise<Blob>;
+        bytes(): Promise<Uint8Array>;
         json(): Promise<any>;
-        text(): Promise<any>;
+        text(): Promise<string>;
         stream(): Promise<Readable>;
         then(...callbacks: any[]): any;
         catch(callback: any): any;
@@ -128,11 +126,9 @@ class Record_2 implements RecordModel {
     get dateCreated(): string;
     get dateModified(): string;
     get datePublished(): string;
-    delete(): Promise<RecordsDeleteResponse>;
     get encryption(): RecordsWriteMessage['encryption'];
     get id(): string;
     get interface(): DwnInterfaceName.Records;
-    isDeleted: boolean;
     get messageTimestamp(): string;
     get method(): DwnMethodName.Write;
     get parentId(): string;
@@ -141,16 +137,11 @@ class Record_2 implements RecordModel {
     get published(): boolean;
     get recipient(): string;
     get schema(): string;
-    send(target: string): Promise<any>;
+    send(target: string): Promise<ResponseStatus>;
     target: string;
     toJSON(): RecordModel;
     toString(): string;
-    update(options?: RecordUpdateOptions): Promise<{
-        status: {
-            code: number;
-            detail: string;
-        };
-    }>;
+    update(options?: RecordUpdateOptions): Promise<ResponseStatus>;
 }
 export { Record_2 as Record }
 
@@ -167,13 +158,14 @@ export type RecordOptions = RecordsWriteMessage & {
     target: string;
     encodedData?: string | Blob;
     data?: Readable | ReadableStream;
+    remoteTarget?: string;
 };
 
 // @beta
 export type RecordsCreateFromRequest = {
     author: string;
     data: unknown;
-    message?: Omit<RecordsWriteOptions, 'authorizationSigner'>;
+    message?: Omit<RecordsWriteOptions, 'signer'>;
     record: Record_2;
 };
 
@@ -186,48 +178,41 @@ export type RecordsCreateResponse = RecordsWriteResponse;
 // @beta
 export type RecordsDeleteRequest = {
     from?: string;
-    message: Omit<RecordsDeleteOptions, 'authorizationSigner'>;
-};
-
-// @beta
-export type RecordsDeleteResponse = {
-    status: UnionMessageReply['status'];
+    message: Omit<RecordsDeleteOptions, 'signer'>;
 };
 
 // @beta
 export type RecordsQueryRequest = {
     from?: string;
-    message: Omit<RecordsQueryOptions, 'authorizationSigner'>;
+    message: Omit<RecordsQueryOptions, 'signer'>;
 };
 
 // @beta
-export type RecordsQueryResponse = {
-    status: UnionMessageReply['status'];
+export type RecordsQueryResponse = ResponseStatus & {
     records?: Record_2[];
+    cursor?: string;
 };
 
 // @beta
 export type RecordsReadRequest = {
     from?: string;
-    message: Omit<RecordsReadOptions, 'authorizationSigner'>;
+    message: Omit<RecordsReadOptions, 'signer'>;
 };
 
 // @beta
-export type RecordsReadResponse = {
-    status: UnionMessageReply['status'];
+export type RecordsReadResponse = ResponseStatus & {
     record: Record_2;
 };
 
 // @beta
 export type RecordsWriteRequest = {
     data: unknown;
-    message?: Omit<Partial<RecordsWriteOptions>, 'authorizationSigner'>;
+    message?: Omit<Partial<RecordsWriteOptions>, 'signer'>;
     store?: boolean;
 };
 
 // @beta
-export type RecordsWriteResponse = {
-    status: UnionMessageReply['status'];
+export type RecordsWriteResponse = ResponseStatus & {
     record?: Record_2;
 };
 
@@ -239,6 +224,14 @@ export type RecordUpdateOptions = {
     dateModified?: RecordsWriteDescriptor['messageTimestamp'];
     datePublished?: RecordsWriteDescriptor['datePublished'];
     published?: RecordsWriteDescriptor['published'];
+};
+
+// @beta
+export type ResponseStatus = {
+    status: {
+        code: number;
+        detail: string;
+    };
 };
 
 // @beta

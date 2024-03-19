@@ -3887,7 +3887,7 @@
         {
           "kind": "Interface",
           "canonicalReference": "@web5/agent!DidRpc:interface",
-          "docComment": "",
+          "docComment": "/**\n * Interface that can be implemented to communicate with {@link Web5Agent | Web5 Agent} implementations via JSON-RPC.\n */\n",
           "excerptTokens": [
             {
               "kind": "Content",
@@ -5801,6 +5801,15 @@
             },
             {
               "kind": "Content",
+              "text": " & "
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsReadReply",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsReadReply:type"
+            },
+            {
+              "kind": "Content",
               "text": ";\n}"
             },
             {
@@ -5813,13 +5822,13 @@
           "name": "DwnResponse",
           "typeTokenRange": {
             "startIndex": 1,
-            "endIndex": 4
+            "endIndex": 6
           }
         },
         {
           "kind": "Interface",
           "canonicalReference": "@web5/agent!DwnRpc:interface",
-          "docComment": "/**\n * interface that can be implemented to communicate with Dwn Servers\n */\n",
+          "docComment": "/**\n * Interface that can be implemented to communicate with {@link https://github.com/TBD54566975/dwn-server | DWN Servers} via JSON-RPC.\n */\n",
           "excerptTokens": [
             {
               "kind": "Content",
@@ -5975,6 +5984,15 @@
             },
             {
               "kind": "Content",
+              "text": " & "
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsReadReply",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsReadReply:type"
+            },
+            {
+              "kind": "Content",
               "text": ";"
             }
           ],
@@ -5983,7 +6001,7 @@
           "name": "DwnRpcResponse",
           "typeTokenRange": {
             "startIndex": 1,
-            "endIndex": 2
+            "endIndex": 4
           }
         },
         {
@@ -15432,8 +15450,8 @@
             },
             {
               "kind": "Reference",
-              "text": "Level",
-              "canonicalReference": "level!Level:class"
+              "text": "LevelDatabase",
+              "canonicalReference": "@web5/agent!~LevelDatabase:type"
             },
             {
               "kind": "Content",

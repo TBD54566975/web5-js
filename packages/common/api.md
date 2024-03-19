@@ -4,13 +4,20 @@
 
 ```ts
 
+import type { Duplex } from 'readable-stream';
 import type { Multibase } from 'multiformats';
+import { Readable } from 'readable-stream';
+import type { ReadableStateOptions } from 'readable-stream';
+import type { Transform } from 'readable-stream';
+import type { Writable } from 'readable-stream';
 
 // @public (undocumented)
 export class Convert {
     constructor(data: any, format: string);
     // (undocumented)
     static arrayBuffer(data: ArrayBuffer): Convert;
+    // (undocumented)
+    static asyncIterable(data: AsyncIterable<any>): Convert;
     // (undocumented)
     static base58Btc(data: string): Convert;
     // (undocumented)
@@ -31,9 +38,13 @@ export class Convert {
     // (undocumented)
     toArrayBuffer(): ArrayBuffer;
     // (undocumented)
+    toArrayBufferAsync(): Promise<ArrayBuffer>;
+    // (undocumented)
     toBase58Btc(): string;
     // (undocumented)
     toBase64Url(): string;
+    // (undocumented)
+    toBlobAsync(): Promise<Blob>;
     // (undocumented)
     toHex(): string;
     // (undocumented)
@@ -41,15 +52,24 @@ export class Convert {
     // (undocumented)
     toObject(): object;
     // (undocumented)
+    toObjectAsync(): Promise<any>;
+    // (undocumented)
     toString(): string;
     // (undocumented)
+    toStringAsync(): Promise<string>;
+    // (undocumented)
     toUint8Array(): Uint8Array;
+    // (undocumented)
+    toUint8ArrayAsync(): Promise<Uint8Array>;
     // (undocumented)
     static uint8Array(data: Uint8Array): Convert;
 }
 
 // @public
 export function isArrayBufferSlice(arrayBufferView: ArrayBufferView): boolean;
+
+// @public
+export function isAsyncIterable(obj: any): obj is AsyncIterable<any>;
 
 // @public
 export function isDefined<T>(arg: T): arg is Exclude<T, null | undefined>;
@@ -129,6 +149,42 @@ export type MulticodecDefinition<MulticodecCode> = {
     name: string;
 };
 
+// @public (undocumented)
+export class NodeStream {
+    static consumeToArrayBuffer({ readable }: {
+        readable: Readable;
+    }): Promise<ArrayBuffer>;
+    static consumeToBlob({ readable }: {
+        readable: Readable;
+    }): Promise<Blob>;
+    static consumeToBytes({ readable }: {
+        readable: Readable;
+    }): Promise<Uint8Array>;
+    static consumeToJson({ readable }: {
+        readable: Readable;
+    }): Promise<any>;
+    static consumeToText({ readable }: {
+        readable: Readable;
+    }): Promise<string>;
+    static fromWebReadable({ readableStream, readableOptions }: {
+        readableStream: ReadableStream;
+        readableOptions?: ReadableStateOptions;
+    }): Readable;
+    static isDestroyed({ stream }: {
+        stream: Readable | Writable | Duplex | Transform;
+    }): boolean;
+    static isReadable({ readable }: {
+        readable: Readable;
+    }): boolean;
+    static isReadableStream(obj: unknown): obj is Readable;
+    static isStream(obj: unknown): obj is Duplex | Readable | Writable | Transform;
+    static toWebReadable({ readable }: {
+        readable: Readable;
+    }): ReadableStream;
+}
+
+export { Readable }
+
 // @public
 export function removeEmptyObjects(obj: Record<string, unknown>): void;
 
@@ -137,6 +193,38 @@ export function removeUndefinedProperties(obj: Record<string, unknown>): void;
 
 // @public
 export type RequireOnly<T, K extends keyof T, O extends keyof T = never> = Required<Pick<T, K>> & Omit<Partial<T>, O>;
+
+// @public (undocumented)
+export class Stream {
+    static asAsyncIterator<T>(readableStream: ReadableStream<T>): AsyncIterable<T>;
+    static consumeToArrayBuffer({ readableStream }: {
+        readableStream: ReadableStream;
+    }): Promise<ArrayBuffer>;
+    static consumeToBlob({ readableStream }: {
+        readableStream: ReadableStream;
+    }): Promise<Blob>;
+    static consumeToBytes({ readableStream }: {
+        readableStream: ReadableStream;
+    }): Promise<Uint8Array>;
+    static consumeToJson({ readableStream }: {
+        readableStream: ReadableStream;
+    }): Promise<any>;
+    static consumeToText({ readableStream }: {
+        readableStream: ReadableStream;
+    }): Promise<string>;
+    static generateByteStream({ streamLength, chunkLength, fillValue }: {
+        streamLength?: number;
+        chunkLength?: number;
+        fillValue?: number | [number, number];
+    }): ReadableStream<Uint8Array>;
+    static isReadable({ readableStream }: {
+        readableStream: ReadableStream;
+    }): boolean;
+    static isReadableStream(obj: unknown): obj is ReadableStream;
+    static isStream(obj: unknown): obj is ReadableStream | WritableStream | TransformStream;
+    static isTransformStream(obj: unknown): obj is TransformStream;
+    static isWritableStream(obj: unknown): obj is WritableStream;
+}
 
 // @public
 export function universalTypeOf(value: unknown): string;
