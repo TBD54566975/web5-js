@@ -65,7 +65,7 @@ describe('PresentationExchange', () => {
       expect(actualSelectedVcJwts).to.deep.equal([btcCredentialJwt]);
     });
 
-    it('should return 0 verifiable credentials when they dont match the pd', async () => {
+    it('should return 0 verifiable credentials when they dont match the presentation definition', async () => {
       const vc = await VerifiableCredential.create({
         type    : 'Random',
         issuer  : issuerDid.uri,
