@@ -33,12 +33,12 @@ export class PresentationExchange {
     this.resetPex();
     const selectResults: SelectResults = this.pex.selectFrom(presentationDefinition, vcJwts);
 
-    // If errors the credentials provided didn't satisfy the requirement defined presentationDefinition object
+    // If errors exist in the results object the credentials provided didn't satisfy the requirements in the Presentation Definition
     if(selectResults.errors?.length) {
       return [];
-    } else {
-      return Array.from(new Set(selectResults.verifiableCredential as string[] ?? []));
     }
+
+    return Array.from(new Set(selectResults.verifiableCredential as string[] ?? []));
   }
 
   /**
