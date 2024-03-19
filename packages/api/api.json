@@ -1237,11 +1237,11 @@
             {
               "kind": "Property",
               "canonicalReference": "@web5/api!Record_2#author:member",
-              "docComment": "/**\n * Record's author DID\n */\n",
+              "docComment": "/**\n * DID that signed the record.\n */\n",
               "excerptTokens": [
                 {
                   "kind": "Content",
-                  "text": "author: "
+                  "text": "get author(): "
                 },
                 {
                   "kind": "Content",
@@ -1252,13 +1252,48 @@
                   "text": ";"
                 }
               ],
-              "isReadonly": false,
+              "isReadonly": true,
               "isOptional": false,
               "releaseTag": "Beta",
               "name": "author",
               "propertyTypeTokenRange": {
                 "startIndex": 1,
                 "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#authorization:member",
+              "docComment": "/**\n * Record's signatures attestation\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get authorization(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordsWriteMessage",
+                  "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsWriteMessage:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": "['authorization']"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "authorization",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 3
               },
               "isStatic": false,
               "isProtected": false,
@@ -1642,6 +1677,103 @@
               "isAbstract": false
             },
             {
+              "kind": "Method",
+              "canonicalReference": "@web5/api!Record_2#import:member(1)",
+              "docComment": "/**\n * Signs the current record state as well as any initial write and optionally stores it to the owner's DWN. This is useful when importing a record that was signed by someone else int your own DWN.\n *\n * @param store - if true, the record will be stored to the owner's DWN after signing. Defaults to true.\n *\n * @returns the status of the import request\n *\n * @beta\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "import(store?: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "boolean"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ResponseStatus",
+                  "canonicalReference": "@web5/api!ResponseStatus:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 7
+              },
+              "releaseTag": "Beta",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "store",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": true
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "import"
+            },
+            {
+              "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#initialWrite:member",
+              "docComment": "/**\n * Record's initial write if the record has been updated\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get initialWrite(): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "RecordOptions",
+                  "canonicalReference": "@web5/api!RecordOptions:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": "['initialWrite']"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "initialWrite",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 3
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
               "kind": "Property",
               "canonicalReference": "@web5/api!Record_2#interface:member",
               "docComment": "/**\n * Interface is always `Records`\n */\n",
@@ -1825,6 +1957,36 @@
             },
             {
               "kind": "Property",
+              "canonicalReference": "@web5/api!Record_2#protocolRole:member",
+              "docComment": "/**\n * Role under which the author is writing the record\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "get protocolRole(): "
+                },
+                {
+                  "kind": "Content",
+                  "text": "string"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": true,
+              "isOptional": false,
+              "releaseTag": "Beta",
+              "name": "protocolRole",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              },
+              "isStatic": false,
+              "isProtected": false,
+              "isAbstract": false
+            },
+            {
+              "kind": "Property",
               "canonicalReference": "@web5/api!Record_2#published:member",
               "docComment": "/**\n * Record's published status (true/false)\n */\n",
               "excerptTokens": [
@@ -1916,11 +2078,11 @@
             {
               "kind": "Method",
               "canonicalReference": "@web5/api!Record_2#send:member(1)",
-              "docComment": "/**\n * Send the current record to a remote DWN by specifying their DID (vs waiting for the regular DWN sync)\n *\n * @param target - the DID to send the record to\n *\n * @returns the status of the send record request\n *\n * @throws\n *\n * `Error` if the record has already been deleted.\n *\n * @beta\n */\n",
+              "docComment": "/**\n * Send the current record to a remote DWN by specifying their DID If no DID is specified, the target is assumed to be the owner (connectedDID). If an initial write is present and the Record class send cache has no awareness of it, the initial write is sent first (vs waiting for the regular DWN sync)\n *\n * @param target - the optional DID to send the record to, if none is set it is sent to the connectedDid\n *\n * @returns the status of the send record request\n *\n * @throws\n *\n * `Error` if the record has already been deleted.\n *\n * @beta\n */\n",
               "excerptTokens": [
                 {
                   "kind": "Content",
-                  "text": "send(target: "
+                  "text": "send(target?: "
                 },
                 {
                   "kind": "Content",
@@ -1968,7 +2130,7 @@
                     "startIndex": 1,
                     "endIndex": 2
                   },
-                  "isOptional": false
+                  "isOptional": true
                 }
               ],
               "isOptional": false,
@@ -1976,34 +2138,66 @@
               "name": "send"
             },
             {
-              "kind": "Property",
-              "canonicalReference": "@web5/api!Record_2#target:member",
-              "docComment": "/**\n * Record's target DID\n */\n",
+              "kind": "Method",
+              "canonicalReference": "@web5/api!Record_2#store:member(1)",
+              "docComment": "/**\n * Stores the current record state as well as any initial write to the owner's DWN.\n *\n * @param importRecord - if true, the record will signed by the owner before storing it to the owner's DWN. Defaults to false.\n *\n * @returns the status of the store request\n *\n * @beta\n */\n",
               "excerptTokens": [
                 {
                   "kind": "Content",
-                  "text": "target: "
+                  "text": "store(importRecord?: "
                 },
                 {
                   "kind": "Content",
-                  "text": "string"
+                  "text": "boolean"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "ResponseStatus",
+                  "canonicalReference": "@web5/api!ResponseStatus:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
                 },
                 {
                   "kind": "Content",
                   "text": ";"
                 }
               ],
-              "isReadonly": false,
-              "isOptional": false,
-              "releaseTag": "Beta",
-              "name": "target",
-              "propertyTypeTokenRange": {
-                "startIndex": 1,
-                "endIndex": 2
-              },
               "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 7
+              },
+              "releaseTag": "Beta",
               "isProtected": false,
-              "isAbstract": false
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "importRecord",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": true
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "store"
             },
             {
               "kind": "Method",
@@ -2173,7 +2367,16 @@
             },
             {
               "kind": "Content",
-              "text": ", 'descriptor' | 'recordId' | 'authorization'> & {\n    author: string;\n    recordId?: string;\n    target: string;\n}"
+              "text": ", 'descriptor' | 'recordId'> & {\n    author: string;\n    protocolRole?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordOptions",
+              "canonicalReference": "@web5/api!RecordOptions:type"
+            },
+            {
+              "kind": "Content",
+              "text": "['protocolRole'];\n    recordId?: string;\n}"
             },
             {
               "kind": "Content",
@@ -2185,7 +2388,7 @@
           "name": "RecordModel",
           "typeTokenRange": {
             "startIndex": 1,
-            "endIndex": 7
+            "endIndex": 9
           }
         },
         {
@@ -2204,7 +2407,7 @@
             },
             {
               "kind": "Content",
-              "text": " & {\n    author: string;\n    target: string;\n    encodedData?: string | "
+              "text": " & {\n    author: string;\n    connectedDid: string;\n    encodedData?: string | "
             },
             {
               "kind": "Reference",
@@ -2231,7 +2434,16 @@
             },
             {
               "kind": "Content",
-              "text": ";\n    remoteTarget?: string;\n}"
+              "text": ";\n    initialWrite?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordsWriteMessage",
+              "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsWriteMessage:type"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n    protocolRole?: string;\n    remoteOrigin?: string;\n}"
             },
             {
               "kind": "Content",
@@ -2243,7 +2455,7 @@
           "name": "RecordOptions",
           "typeTokenRange": {
             "startIndex": 1,
-            "endIndex": 9
+            "endIndex": 11
           }
         },
         {
@@ -2714,7 +2926,16 @@
             },
             {
               "kind": "Content",
-              "text": "['published'];\n}"
+              "text": "['published'];\n    protocolRole?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "RecordOptions",
+              "canonicalReference": "@web5/api!RecordOptions:type"
+            },
+            {
+              "kind": "Content",
+              "text": "['protocolRole'];\n}"
             },
             {
               "kind": "Content",
@@ -2726,7 +2947,7 @@
           "name": "RecordUpdateOptions",
           "typeTokenRange": {
             "startIndex": 1,
-            "endIndex": 12
+            "endIndex": 14
           }
         },
         {

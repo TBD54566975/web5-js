@@ -4,6 +4,8 @@
 
 ```ts
 
+/// <reference types="readable-stream" />
+
 import type { AppDataStore } from '@web5/agent';
 import type { DidResolutionOptions } from '@web5/dids';
 import type { DidResolutionResult } from '@web5/dids';
@@ -109,7 +111,8 @@ export type ProtocolsQueryResponse = ResponseStatus & {
 class Record_2 implements RecordModel {
     constructor(agent: Web5Agent, options: RecordOptions);
     get attestation(): RecordsWriteMessage['attestation'];
-    author: string;
+    get author(): string;
+    get authorization(): RecordsWriteMessage['authorization'];
     get contextId(): string;
     get data(): {
         blob(): Promise<Blob>;
@@ -128,17 +131,20 @@ class Record_2 implements RecordModel {
     get datePublished(): string;
     get encryption(): RecordsWriteMessage['encryption'];
     get id(): string;
+    import(store?: boolean): Promise<ResponseStatus>;
+    get initialWrite(): RecordOptions['initialWrite'];
     get interface(): DwnInterfaceName.Records;
     get messageTimestamp(): string;
     get method(): DwnMethodName.Write;
     get parentId(): string;
     get protocol(): string;
     get protocolPath(): string;
+    get protocolRole(): string;
     get published(): boolean;
     get recipient(): string;
     get schema(): string;
-    send(target: string): Promise<ResponseStatus>;
-    target: string;
+    send(target?: string): Promise<ResponseStatus>;
+    store(importRecord?: boolean): Promise<ResponseStatus>;
     toJSON(): RecordModel;
     toString(): string;
     update(options?: RecordUpdateOptions): Promise<ResponseStatus>;
@@ -146,19 +152,21 @@ class Record_2 implements RecordModel {
 export { Record_2 as Record }
 
 // @beta
-export type RecordModel = RecordsWriteDescriptor & Omit<RecordsWriteMessage, 'descriptor' | 'recordId' | 'authorization'> & {
+export type RecordModel = RecordsWriteDescriptor & Omit<RecordsWriteMessage, 'descriptor' | 'recordId'> & {
     author: string;
+    protocolRole?: RecordOptions['protocolRole'];
     recordId?: string;
-    target: string;
 };
 
 // @beta
 export type RecordOptions = RecordsWriteMessage & {
     author: string;
-    target: string;
+    connectedDid: string;
     encodedData?: string | Blob;
     data?: Readable | ReadableStream;
-    remoteTarget?: string;
+    initialWrite?: RecordsWriteMessage;
+    protocolRole?: string;
+    remoteOrigin?: string;
 };
 
 // @beta
@@ -224,6 +232,7 @@ export type RecordUpdateOptions = {
     dateModified?: RecordsWriteDescriptor['messageTimestamp'];
     datePublished?: RecordsWriteDescriptor['datePublished'];
     published?: RecordsWriteDescriptor['published'];
+    protocolRole?: RecordOptions['protocolRole'];
 };
 
 // @beta

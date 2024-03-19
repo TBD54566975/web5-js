@@ -43,7 +43,7 @@ import type { RecordsQueryMessage } from '@tbd54566975/dwn-sdk-js';
 import { RecordsRead } from '@tbd54566975/dwn-sdk-js';
 import { RecordsReadReply } from '@tbd54566975/dwn-sdk-js';
 import { RecordsWrite } from '@tbd54566975/dwn-sdk-js';
-import { RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import type { RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 import { RequireOnly } from '@web5/common';
 import { UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 import type { Web5Crypto } from '@web5/crypto';
@@ -448,11 +448,6 @@ export class DwnManager {
     processRequest(request: ProcessDwnRequest): Promise<DwnResponse>;
     // (undocumented)
     sendRequest(request: SendDwnRequest): Promise<DwnResponse>;
-    // Warning: (ae-forgotten-export) The symbol "GenericMessageReply" needs to be exported by the entry point index.d.ts
-    writePrunedRecord(options: {
-        targetDid: string;
-        message: RecordsWriteMessage;
-    }): Promise<GenericMessageReply>;
 }
 
 // @public (undocumented)
@@ -1145,8 +1140,10 @@ export class PrivateKeyStoreMemory implements ManagedKeyStore<string, ManagedPri
 // @public
 export type ProcessDwnRequest = DwnRequest & {
     dataStream?: Blob | ReadableStream | Readable;
-    messageOptions: unknown;
+    rawMessage?: unknown;
+    messageOptions?: unknown;
     store?: boolean;
+    signAsOwner?: boolean;
 };
 
 // @public
@@ -1375,7 +1372,7 @@ export function webReadableToIsomorphicNodeReadable(webReadable: ReadableStream<
 
 // Warnings were encountered during analysis:
 //
-// src/sync-manager.ts:32:3 - (ae-forgotten-export) The symbol "LevelDatabase" needs to be exported by the entry point index.d.ts
+// src/sync-manager.ts:34:3 - (ae-forgotten-export) The symbol "LevelDatabase" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

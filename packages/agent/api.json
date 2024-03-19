@@ -5463,77 +5463,6 @@
               "isOptional": false,
               "isAbstract": false,
               "name": "sendRequest"
-            },
-            {
-              "kind": "Method",
-              "canonicalReference": "@web5/agent!DwnManager#writePrunedRecord:member(1)",
-              "docComment": "/**\n * Writes a pruned initial `RecordsWrite` to a DWN without needing to supply associated data. Note: This method should ONLY be used by a {@link SyncManager} implementation.\n *\n * @param  - options.targetDid - DID of the DWN tenant to write the pruned RecordsWrite to.\n *\n * @returns DWN reply containing the status of processing request.\n */\n",
-              "excerptTokens": [
-                {
-                  "kind": "Content",
-                  "text": "writePrunedRecord(options: "
-                },
-                {
-                  "kind": "Content",
-                  "text": "{\n        targetDid: string;\n        message: "
-                },
-                {
-                  "kind": "Reference",
-                  "text": "RecordsWriteMessage",
-                  "canonicalReference": "@tbd54566975/dwn-sdk-js!RecordsWriteMessage:type"
-                },
-                {
-                  "kind": "Content",
-                  "text": ";\n    }"
-                },
-                {
-                  "kind": "Content",
-                  "text": "): "
-                },
-                {
-                  "kind": "Reference",
-                  "text": "Promise",
-                  "canonicalReference": "!Promise:interface"
-                },
-                {
-                  "kind": "Content",
-                  "text": "<"
-                },
-                {
-                  "kind": "Reference",
-                  "text": "GenericMessageReply",
-                  "canonicalReference": "@web5/agent!~GenericMessageReply:type"
-                },
-                {
-                  "kind": "Content",
-                  "text": ">"
-                },
-                {
-                  "kind": "Content",
-                  "text": ";"
-                }
-              ],
-              "isStatic": false,
-              "returnTypeTokenRange": {
-                "startIndex": 5,
-                "endIndex": 9
-              },
-              "releaseTag": "Public",
-              "isProtected": false,
-              "overloadIndex": 1,
-              "parameters": [
-                {
-                  "parameterName": "options",
-                  "parameterTypeTokenRange": {
-                    "startIndex": 1,
-                    "endIndex": 4
-                  },
-                  "isOptional": false
-                }
-              ],
-              "isOptional": false,
-              "isAbstract": false,
-              "name": "writePrunedRecord"
             }
           ],
           "implementsTokenRanges": []
@@ -14515,7 +14444,7 @@
             },
             {
               "kind": "Content",
-              "text": ";\n    messageOptions: unknown;\n    store?: boolean;\n}"
+              "text": ";\n    rawMessage?: unknown;\n    messageOptions?: unknown;\n    store?: boolean;\n    signAsOwner?: boolean;\n}"
             },
             {
               "kind": "Content",

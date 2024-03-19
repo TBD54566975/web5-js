@@ -4,11 +4,15 @@
 
 ```ts
 
+/// <reference types="node" />
+
+import type { AbstractLevel } from 'abstract-level';
 import type { Duplex } from 'readable-stream';
 import type { Multibase } from 'multiformats';
 import { Readable } from 'readable-stream';
 import type { ReadableStateOptions } from 'readable-stream';
 import type { Transform } from 'readable-stream';
+import { default as TtlCache } from '@isaacs/ttlcache';
 import type { Writable } from 'readable-stream';
 
 // @public (undocumented)
@@ -18,6 +22,8 @@ export class Convert {
     static arrayBuffer(data: ArrayBuffer): Convert;
     // (undocumented)
     static asyncIterable(data: AsyncIterable<any>): Convert;
+    // (undocumented)
+    static base32Z(data: string): Convert;
     // (undocumented)
     static base58Btc(data: string): Convert;
     // (undocumented)
@@ -39,6 +45,8 @@ export class Convert {
     toArrayBuffer(): ArrayBuffer;
     // (undocumented)
     toArrayBufferAsync(): Promise<ArrayBuffer>;
+    // (undocumented)
+    toBase32Z(): string;
     // (undocumented)
     toBase58Btc(): string;
     // (undocumented)
@@ -65,6 +73,13 @@ export class Convert {
     static uint8Array(data: Uint8Array): Convert;
 }
 
+// Warning: (ae-forgotten-export) The symbol "ArrayLengthMutationKeys" needs to be exported by the entry point index.d.ts
+//
+// @public
+export type FixedLengthArray<T extends any[]> = Pick<T, Exclude<keyof T, ArrayLengthMutationKeys>> & {
+    [Symbol.iterator]: () => IterableIterator<ArrayItems<T>>;
+};
+
 // @public
 export function isArrayBufferSlice(arrayBufferView: ArrayBufferView): boolean;
 
@@ -87,18 +102,21 @@ export interface KeyValueStore<K, V> {
 }
 
 // @public (undocumented)
-export class LevelStore implements KeyValueStore<string, any> {
-    constructor(location?: string);
+export class LevelStore<K = string, V = any> implements KeyValueStore<K, V> {
+    constructor({ db, location }?: {
+        db?: AbstractLevel<string | Buffer | Uint8Array, K, V>;
+        location?: string;
+    });
     // (undocumented)
     clear(): Promise<void>;
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
-    delete(key: string): Promise<boolean>;
+    delete(key: K): Promise<void>;
     // (undocumented)
-    get(key: string): Promise<any>;
+    get(key: K): Promise<V | undefined>;
     // (undocumented)
-    set(key: string, value: any): Promise<void>;
+    set(key: K, value: V): Promise<void>;
 }
 
 // @public
@@ -226,8 +244,17 @@ export class Stream {
     static isWritableStream(obj: unknown): obj is WritableStream;
 }
 
+export { TtlCache }
+
 // @public
 export function universalTypeOf(value: unknown): string;
+
+// @public
+export type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;
+
+// Warnings were encountered during analysis:
+//
+// src/type-utils.ts:58:5 - (ae-forgotten-export) The symbol "ArrayItems" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

@@ -1,0 +1,1408 @@
+{
+  "metadata": {
+    "toolPackage": "@microsoft/api-extractor",
+    "toolVersion": "7.43.0",
+    "schemaVersion": 1011,
+    "oldestForwardsCompatibleVersion": 1001,
+    "tsdocConfig": {
+      "$schema": "https://developer.microsoft.com/json-schemas/tsdoc/v0/tsdoc.schema.json",
+      "noStandardTags": true,
+      "tagDefinitions": [
+        {
+          "tagName": "@alpha",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@beta",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@defaultValue",
+          "syntaxKind": "block"
+        },
+        {
+          "tagName": "@decorator",
+          "syntaxKind": "block",
+          "allowMultiple": true
+        },
+        {
+          "tagName": "@deprecated",
+          "syntaxKind": "block"
+        },
+        {
+          "tagName": "@eventProperty",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@example",
+          "syntaxKind": "block",
+          "allowMultiple": true
+        },
+        {
+          "tagName": "@experimental",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@inheritDoc",
+          "syntaxKind": "inline"
+        },
+        {
+          "tagName": "@internal",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@label",
+          "syntaxKind": "inline"
+        },
+        {
+          "tagName": "@link",
+          "syntaxKind": "inline",
+          "allowMultiple": true
+        },
+        {
+          "tagName": "@override",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@packageDocumentation",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@param",
+          "syntaxKind": "block",
+          "allowMultiple": true
+        },
+        {
+          "tagName": "@privateRemarks",
+          "syntaxKind": "block"
+        },
+        {
+          "tagName": "@public",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@readonly",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@remarks",
+          "syntaxKind": "block"
+        },
+        {
+          "tagName": "@returns",
+          "syntaxKind": "block"
+        },
+        {
+          "tagName": "@sealed",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@see",
+          "syntaxKind": "block"
+        },
+        {
+          "tagName": "@throws",
+          "syntaxKind": "block",
+          "allowMultiple": true
+        },
+        {
+          "tagName": "@typeParam",
+          "syntaxKind": "block",
+          "allowMultiple": true
+        },
+        {
+          "tagName": "@virtual",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@betaDocumentation",
+          "syntaxKind": "modifier"
+        },
+        {
+          "tagName": "@internalRemarks",
+          "syntaxKind": "block"
+        },
+        {
+          "tagName": "@preapproved",
+          "syntaxKind": "modifier"
+        }
+      ],
+      "supportForTags": {
+        "@alpha": true,
+        "@beta": true,
+        "@defaultValue": true,
+        "@decorator": true,
+        "@deprecated": true,
+        "@eventProperty": true,
+        "@example": true,
+        "@experimental": true,
+        "@inheritDoc": true,
+        "@internal": true,
+        "@label": true,
+        "@link": true,
+        "@override": true,
+        "@packageDocumentation": true,
+        "@param": true,
+        "@privateRemarks": true,
+        "@public": true,
+        "@readonly": true,
+        "@remarks": true,
+        "@returns": true,
+        "@sealed": true,
+        "@see": true,
+        "@throws": true,
+        "@typeParam": true,
+        "@virtual": true,
+        "@betaDocumentation": true,
+        "@internalRemarks": true,
+        "@preapproved": true
+      },
+      "reportUnsupportedHtmlElements": false
+    }
+  },
+  "kind": "Package",
+  "canonicalReference": "@web5/crypto-aws-kms!",
+  "docComment": "",
+  "name": "@web5/crypto-aws-kms",
+  "preserveMemberOrder": false,
+  "members": [
+    {
+      "kind": "EntryPoint",
+      "canonicalReference": "@web5/crypto-aws-kms!",
+      "name": "",
+      "preserveMemberOrder": false,
+      "members": [
+        {
+          "kind": "Class",
+          "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManager:class",
+          "docComment": "",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare class AwsKeyManager implements "
+            },
+            {
+              "kind": "Reference",
+              "text": "CryptoApi",
+              "canonicalReference": "@web5/crypto!CryptoApi:interface"
+            },
+            {
+              "kind": "Content",
+              "text": "<"
+            },
+            {
+              "kind": "Reference",
+              "text": "AwsKeyManagerGenerateKeyParams",
+              "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManagerGenerateKeyParams:interface"
+            },
+            {
+              "kind": "Content",
+              "text": ">"
+            },
+            {
+              "kind": "Content",
+              "text": " "
+            }
+          ],
+          "fileUrlPath": "src/key-manager.ts",
+          "releaseTag": "Public",
+          "isAbstract": false,
+          "name": "AwsKeyManager",
+          "preserveMemberOrder": false,
+          "members": [
+            {
+              "kind": "Constructor",
+              "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManager:constructor(1)",
+              "docComment": "/**\n * Constructs a new instance of the `AwsKeyManager` class\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "constructor(params?: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "AwsKeyManagerParams",
+                  "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManagerParams:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ");"
+                }
+              ],
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "params",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": true
+                }
+              ]
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManager#digest:member(1)",
+              "docComment": "/**\n * Generates a hash digest of the provided data.\n *\n * @remarks\n *\n * A digest is the output of the hash function. It's a fixed-size string of bytes that uniquely represents the data input into the hash function. The digest is often used for data integrity checks, as any alteration in the input data results in a significantly different digest.\n *\n * It takes the algorithm identifier of the hash function and data to digest as input and returns the digest of the data.\n *\n * @param params - The parameters for the digest operation.\n *\n * @param  - params.algorithm - The name of hash function to use.\n *\n * @param  - params.data - The data to digest.\n *\n * @returns A Promise which will be fulfilled with the hash digest.\n *\n * @example\n * ```ts\n * const keyManager = new AwsKeyManager();\n * const data = new Uint8Array([...]);\n * const digest = await keyManager.digest({ algorithm: 'SHA-256', data });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "digest({ algorithm, data }: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "AwsKeyManagerDigestParams",
+                  "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManagerDigestParams:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Uint8Array",
+                  "canonicalReference": "!Uint8Array:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 7
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ algorithm, data }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "digest"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManager#generateKey:member(1)",
+              "docComment": "/**\n * Generates a new cryptographic key in AWS KMS with the specified algorithm and returns a unique key URI which can be used to reference the key in subsequent operations.\n *\n * @remarks\n *\n * This method initiates the creation of a customer-managed key in AWS KMS, using the specified algorithm parameters. The generated key is an AWS KMS key, identified by an AWS-assigned {@link https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#key-id-key-id | key ID} (UUID V4 format) and a {@link https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#key-id-key-ARN | key ARN} (Amazon Resource Name). The method returns a key URI that uniquely identifies the key and can be used in subsequent cryptographic operations.\n *\n * @param params - The parameters for key generation.\n *\n * @param  - params.algorithm - The algorithm to use for key generation, defined in `SupportedAlgorithm`.\n *\n * @returns A Promise that resolves to the key URI, a unique identifier for the generated key.\n *\n * @example\n * ```ts\n * const keyManager = new AwsKeyManager();\n * const keyUri = await keyManager.generateKey({ algorithm: 'ES256K' });\n * console.log(keyUri); // Outputs the key URI\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "generateKey({ algorithm }: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "AwsKeyManagerGenerateKeyParams",
+                  "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManagerGenerateKeyParams:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "KeyIdentifier",
+                  "canonicalReference": "@web5/crypto!KeyIdentifier:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 7
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ algorithm }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "generateKey"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManager#getKeyUri:member(1)",
+              "docComment": "/**\n * Computes the Key URI for a given public JWK (JSON Web Key).\n *\n * @remarks\n *\n * This method generates a {@link https://datatracker.ietf.org/doc/html/rfc3986 | URI} (Uniform Resource Identifier) for the given JWK, which uniquely identifies the key across all `CryptoApi` implementations. The key URI is constructed by appending the {@link https://datatracker.ietf.org/doc/html/rfc7638 | JWK thumbprint} to the prefix `urn:jwk:`. The JWK thumbprint is deterministically computed from the JWK and is consistent regardless of property order or optional property inclusion in the JWK. This ensures that the same key material represented as a JWK will always yield the same thumbprint, and therefore, the same key URI.\n *\n * @param params - The parameters for getting the key URI.\n *\n * @param  - params.key - The JWK for which to compute the key URI.\n *\n * @returns A Promise that resolves to the key URI as a string.\n *\n * @example\n * ```ts\n * const keyManager = new AwsKeyManager();\n * const publicKey = { ... }; // Public key in JWK format\n * const keyUri = await keyManager.getKeyUri({ key: publicKey });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "getKeyUri({ key }: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "KmsGetKeyUriParams",
+                  "canonicalReference": "@web5/crypto!KmsGetKeyUriParams:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "KeyIdentifier",
+                  "canonicalReference": "@web5/crypto!KeyIdentifier:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 7
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ key }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "getKeyUri"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManager#getPublicKey:member(1)",
+              "docComment": "/**\n * Retrieves the public key associated with a previously generated private key, identified by the provided key URI.\n *\n * @param params - The parameters for retrieving the public key.\n *\n * @param  - params.keyUri - The key URI of the private key to retrieve the public key for.\n *\n * @returns A Promise that resolves to the public key in JWK format.\n *\n * @example\n * ```ts\n * const keyManager = new AwsKeyManager();\n * const keyUri = await keyManager.generateKey({ algorithm: 'ES256K' });\n * const publicKey = await keyManager.getPublicKey({ keyUri });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "getPublicKey({ keyUri }: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "KmsGetPublicKeyParams",
+                  "canonicalReference": "@web5/crypto!KmsGetPublicKeyParams:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Jwk",
+                  "canonicalReference": "@web5/crypto!Jwk:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 7
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ keyUri }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "getPublicKey"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManager#sign:member(1)",
+              "docComment": "/**\n * Signs the provided data using the private key identified by the provided key URI.\n *\n * @remarks\n *\n * This method uses the signature algorithm determined by the AWS KMS `KeySpec` of the private key identified by the provided key URI to sign the provided data. The signature can later be verified by parties with access to the corresponding public key, ensuring that the data has not been tampered with and was indeed signed by the holder of the private key.\n *\n * @param params - The parameters for the signing operation.\n *\n * @param  - params.keyUri - The key URI of the private key to use for signing.\n *\n * @param  - params.data - The data to sign.\n *\n * @returns A Promise resolving to the digital signature as a `Uint8Array`.\n *\n * @example\n * ```ts\n * const keyManager = new AwsKeyManager();\n * const data = new TextEncoder().encode('Message to sign');\n * const signature = await keyManager.sign({\n *   keyUri: 'urn:jwk:...',\n *   data\n * });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "sign({ keyUri, data }: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "KmsSignParams",
+                  "canonicalReference": "@web5/crypto!KmsSignParams:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Uint8Array",
+                  "canonicalReference": "!Uint8Array:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 7
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ keyUri, data }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "sign"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManager#verify:member(1)",
+              "docComment": "/**\n * Verifies a digital signature associated the provided data using the provided key.\n *\n * @remarks\n *\n * This method uses the signature algorithm determined by the `alg` and/or `crv` properties of the provided key to check the validity of a digital signature against the original data. It confirms whether the signature was created by the holder of the corresponding private key and that the data has not been tampered with.\n *\n * @param params - The parameters for the verification operation.\n *\n * @param  - params.key - The key to use for verification.\n *\n * @param  - params.signature - The signature to verify.\n *\n * @param  - params.data - The data to verify.\n *\n * @returns A Promise resolving to a boolean indicating whether the signature is valid.\n *\n * @example\n * ```ts\n * const keyManager = new AwsKeyManager();\n * const publicKey = { ... }; // Public key in JWK format corresponding to the private key that signed the data\n * const data = new TextEncoder().encode('Message to sign'); // Data that was signed\n * const signature = new Uint8Array([...]); // Signature to verify\n * const isValid = await ecdsa.verify({\n *   key: publicKey,\n *   signature,\n *   data\n * });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "verify({ key, signature, data }: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "KmsVerifyParams",
+                  "canonicalReference": "@web5/crypto!KmsVerifyParams:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<boolean>"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 5
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ key, signature, data }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "verify"
+            }
+          ],
+          "implementsTokenRanges": [
+            {
+              "startIndex": 1,
+              "endIndex": 5
+            }
+          ]
+        },
+        {
+          "kind": "Interface",
+          "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManagerDigestParams:interface",
+          "docComment": "/**\n * The `AwsKeyManagerDigestParams` interface defines the algorithm-specific parameters that should be passed into the {@link AwsKeyManager.digest | `AwsKeyManager.digest()`} method.\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export interface AwsKeyManagerDigestParams extends "
+            },
+            {
+              "kind": "Reference",
+              "text": "KmsDigestParams",
+              "canonicalReference": "@web5/crypto!KmsDigestParams:interface"
+            },
+            {
+              "kind": "Content",
+              "text": " "
+            }
+          ],
+          "fileUrlPath": "src/key-manager.ts",
+          "releaseTag": "Public",
+          "name": "AwsKeyManagerDigestParams",
+          "preserveMemberOrder": false,
+          "members": [
+            {
+              "kind": "PropertySignature",
+              "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManagerDigestParams#algorithm:member",
+              "docComment": "/**\n * A string defining the name of hash function to use. The value must be one of the following: - `\"SHA-256\"`: Generates a 256-bit digest.\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "algorithm: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "'SHA-256'"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": false,
+              "isOptional": false,
+              "releaseTag": "Public",
+              "name": "algorithm",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              }
+            }
+          ],
+          "extendsTokenRanges": [
+            {
+              "startIndex": 1,
+              "endIndex": 2
+            }
+          ]
+        },
+        {
+          "kind": "Interface",
+          "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManagerGenerateKeyParams:interface",
+          "docComment": "/**\n * The `AwsKeyManagerGenerateKeyParams` interface defines the algorithm-specific parameters that should be passed into the {@link AwsKeyManager.generateKey | `AwsKeyManager.generateKey()`} method when generating a key in AWS KMS.\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export interface AwsKeyManagerGenerateKeyParams extends "
+            },
+            {
+              "kind": "Reference",
+              "text": "KmsGenerateKeyParams",
+              "canonicalReference": "@web5/crypto!KmsGenerateKeyParams:interface"
+            },
+            {
+              "kind": "Content",
+              "text": " "
+            }
+          ],
+          "fileUrlPath": "src/key-manager.ts",
+          "releaseTag": "Public",
+          "name": "AwsKeyManagerGenerateKeyParams",
+          "preserveMemberOrder": false,
+          "members": [
+            {
+              "kind": "PropertySignature",
+              "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManagerGenerateKeyParams#algorithm:member",
+              "docComment": "/**\n * A string defining the type of key to generate. The value must be one of the following: - `\"ES256K\"`: ECDSA using the secp256k1 curve and SHA-256.\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "algorithm: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "'ES256K'"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": false,
+              "isOptional": false,
+              "releaseTag": "Public",
+              "name": "algorithm",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              }
+            }
+          ],
+          "extendsTokenRanges": [
+            {
+              "startIndex": 1,
+              "endIndex": 2
+            }
+          ]
+        },
+        {
+          "kind": "TypeAlias",
+          "canonicalReference": "@web5/crypto-aws-kms!AwsKeyManagerParams:type",
+          "docComment": "/**\n * The `AwsKeyManagerParams` interface specifies the parameters for initializing an instance of `AwsKeyManager`, which is an implementation of the `CryptoApi` interface tailored for AWS KMS.\n *\n * This interface allows the optional inclusion of a `KMSClient` instance, which is used for interacting with AWS KMS. If not provided, a default `KMSClient` instance will be created and used.\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export type AwsKeyManagerParams = "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    kmsClient?: "
+            },
+            {
+              "kind": "Reference",
+              "text": "KMSClient",
+              "canonicalReference": "@aws-sdk/client-kms!KMSClient:class"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n}"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/key-manager.ts",
+          "releaseTag": "Public",
+          "name": "AwsKeyManagerParams",
+          "typeTokenRange": {
+            "startIndex": 1,
+            "endIndex": 4
+          }
+        },
+        {
+          "kind": "Function",
+          "canonicalReference": "@web5/crypto-aws-kms!convertSpkiToPublicKey:function(1)",
+          "docComment": "/**\n * Converts a DER-encoded SPKI public key to its JWK format.\n *\n * @remarks\n *\n * This method is used to transform a public key from its DER-encoded X.509 `SubjectPublicKeyInfo` (SPKI) format to JSON Web Key (JWK) format. This conversion is necessary because AWS KMS returns public keys in SPKI format, but all other Web5 cryptographic libraries use JWK format.\n *\n * @param params - The parameters for the SPKI to JWK conversion.\n *\n * @param  - params.spki - The DER-encoded SPKI public key as a `Uint8Array`.\n *\n * @returns The public key in JWK format.\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare function convertSpkiToPublicKey({ spki }: "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    spki: "
+            },
+            {
+              "kind": "Reference",
+              "text": "Uint8Array",
+              "canonicalReference": "!Uint8Array:interface"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n}"
+            },
+            {
+              "kind": "Content",
+              "text": "): "
+            },
+            {
+              "kind": "Reference",
+              "text": "Jwk",
+              "canonicalReference": "@web5/crypto!Jwk:interface"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/utils.ts",
+          "returnTypeTokenRange": {
+            "startIndex": 5,
+            "endIndex": 6
+          },
+          "releaseTag": "Public",
+          "overloadIndex": 1,
+          "parameters": [
+            {
+              "parameterName": "{ spki }",
+              "parameterTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 4
+              },
+              "isOptional": false
+            }
+          ],
+          "name": "convertSpkiToPublicKey"
+        },
+        {
+          "kind": "Function",
+          "canonicalReference": "@web5/crypto-aws-kms!createKeyAlias:function(1)",
+          "docComment": "/**\n * Creates an alias that is associated with an AWS KMS key.\n *\n * @remarks\n *\n * This method creates an alias (friendly name) for identifying an AWS KMS {@link https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#customer-cmk | customer managed key}. The method requires an alias name and an AWS key identifier (either a {@link https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#key-id-key-id | key ID} or {@link https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#key-id-key-ARN | key ARN}).\n *\n * This library uses the AWS KMS alias feature to make it possible to reference a key using a {@link https://datatracker.ietf.org/doc/html/rfc3986 | URI} (Uniform Resource Identifier) that is consistent across all implementations of `CryptoApi`. These key URIs take the form `urn:jwk:<JWK thumbprint>`, where the {@link https://datatracker.ietf.org/doc/html/rfc7638 | JWK thumbprint} is deterministically computed from the {@link https://datatracker.ietf.org/doc/html/rfc7517 | JWK} (JSON Web Key) representation of the key. In other words, the same key material represented as a JWK will always produce the same JWK thumbprint regardless of the order of JWK properties or inclusion of optional properties. Due to AWS KMS restrictions on key alias names, the JWK thumbprint is prepended with the \"alias/\" prefix and the URN namespace separator is replaced with dashes.\n *\n * **Alias name restrictions imposed by AWS KMS:** - must be a string of 1-256 characters - can contain only alphanumeric characters, forward slashes (/), underscores (_), and dashes (-) - must begin with `alias/` followed by a name, such as `alias/ExampleAlias` - cannot begin with `alias/aws/` because this prefix is reserved for AWS managed keys - must be unique within an AWS account and region.\n *\n * @param params - The parameters for creating the key alias.\n *\n * @param  - params.alias - The name of the key alias.\n *\n * @param  - params.awsKeyId - The AWS Key ID or AWS Key ARN of the key to associate the alias with.\n *\n * @returns A promise that resolves when the key alias has been created.\n *\n * @throws\n *\n * {@link https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-client-kms/Class/AlreadyExistsException/ | `AlreadyExistsException`} if the alias already exists. Each AWS KMS key alias must be unique in the account and region.\n *\n * @throws\n *\n * {@link https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-client-kms/Class/InvalidAliasNameException/ | `InvalidAliasNameException`} if the alias name is invalid. The alias name value must be string of 1-256 characters containing only alphanumeric characters, forward slashes (/), underscores (_), and dashes (-).\n *\n * @throws\n *\n * {@link https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-client-kms/Class/NotFoundException/ | `NotFoundException`} if the AWS Key ID or AWS Key ARN could not be found in the account and region.\n *\n * @throws\n *\n * Other AWS KMS related errors.\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare function createKeyAlias({ alias, awsKeyId, kmsClient }: "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    alias: string;\n    awsKeyId: string;\n    kmsClient: "
+            },
+            {
+              "kind": "Reference",
+              "text": "KMSClient",
+              "canonicalReference": "@aws-sdk/client-kms!KMSClient:class"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n}"
+            },
+            {
+              "kind": "Content",
+              "text": "): "
+            },
+            {
+              "kind": "Reference",
+              "text": "Promise",
+              "canonicalReference": "!Promise:interface"
+            },
+            {
+              "kind": "Content",
+              "text": "<void>"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/utils.ts",
+          "returnTypeTokenRange": {
+            "startIndex": 5,
+            "endIndex": 7
+          },
+          "releaseTag": "Public",
+          "overloadIndex": 1,
+          "parameters": [
+            {
+              "parameterName": "{ alias, awsKeyId, kmsClient }",
+              "parameterTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 4
+              },
+              "isOptional": false
+            }
+          ],
+          "name": "createKeyAlias"
+        },
+        {
+          "kind": "Class",
+          "canonicalReference": "@web5/crypto-aws-kms!EcdsaAlgorithm:class",
+          "docComment": "",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare class EcdsaAlgorithm implements "
+            },
+            {
+              "kind": "Reference",
+              "text": "KeyGenerator",
+              "canonicalReference": "@web5/crypto!KeyGenerator:interface"
+            },
+            {
+              "kind": "Content",
+              "text": "<"
+            },
+            {
+              "kind": "Reference",
+              "text": "EcdsaGenerateKeyParams",
+              "canonicalReference": "@web5/crypto-aws-kms!EcdsaGenerateKeyParams:interface"
+            },
+            {
+              "kind": "Content",
+              "text": ", "
+            },
+            {
+              "kind": "Reference",
+              "text": "KeyIdentifier",
+              "canonicalReference": "@web5/crypto!KeyIdentifier:type"
+            },
+            {
+              "kind": "Content",
+              "text": ">"
+            },
+            {
+              "kind": "Content",
+              "text": ", "
+            },
+            {
+              "kind": "Reference",
+              "text": "Signer",
+              "canonicalReference": "@web5/crypto!Signer:interface"
+            },
+            {
+              "kind": "Content",
+              "text": "<"
+            },
+            {
+              "kind": "Reference",
+              "text": "KmsSignParams",
+              "canonicalReference": "@web5/crypto!KmsSignParams:interface"
+            },
+            {
+              "kind": "Content",
+              "text": ", "
+            },
+            {
+              "kind": "Reference",
+              "text": "KmsVerifyParams",
+              "canonicalReference": "@web5/crypto!KmsVerifyParams:interface"
+            },
+            {
+              "kind": "Content",
+              "text": ">"
+            },
+            {
+              "kind": "Content",
+              "text": " "
+            }
+          ],
+          "fileUrlPath": "src/ecdsa.ts",
+          "releaseTag": "Public",
+          "isAbstract": false,
+          "name": "EcdsaAlgorithm",
+          "preserveMemberOrder": false,
+          "members": [
+            {
+              "kind": "Constructor",
+              "canonicalReference": "@web5/crypto-aws-kms!EcdsaAlgorithm:constructor(1)",
+              "docComment": "/**\n * Constructs a new instance of the `EcdsaAlgorithm` class\n *\n * @param params - An object containing the parameters to use when instantiating the algorithm.\n *\n * @param  - params.keyManager - An instance of `AwsKeyManager`.\n *\n * @param  - params.kmsClient - An instance of `KMSClient` from the AWS SDK.\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "constructor({ keyManager, kmsClient }: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "{\n        keyManager: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "CryptoApi",
+                  "canonicalReference": "@web5/crypto!CryptoApi:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n        kmsClient: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "KMSClient",
+                  "canonicalReference": "@aws-sdk/client-kms!KMSClient:class"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";\n    }"
+                },
+                {
+                  "kind": "Content",
+                  "text": ");"
+                }
+              ],
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ keyManager, kmsClient }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 6
+                  },
+                  "isOptional": false
+                }
+              ]
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/crypto-aws-kms!EcdsaAlgorithm#generateKey:member(1)",
+              "docComment": "/**\n * Generates a new cryptographic key in AWS KMS with the specified algorithm and returns a unique key URI which can be used to reference the key in subsequent operations.\n *\n * @param params - The parameters for key generation.\n *\n * @param  - params.algorithm - The algorithm to use for key generation, defined in `SupportedAlgorithm`.\n *\n * @returns A Promise that resolves to the key URI, a unique identifier for the generated key.\n *\n * @example\n * ```ts\n * const ecdsa = new EcdsaAlgorithm({ keyManager, kmsClient });\n * const keyUri = await ecdsa.generateKey({ algorithm: 'ES256K' });\n * console.log(keyUri); // Outputs the key URI\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "generateKey({ algorithm }: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "EcdsaGenerateKeyParams",
+                  "canonicalReference": "@web5/crypto-aws-kms!EcdsaGenerateKeyParams:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "KeyIdentifier",
+                  "canonicalReference": "@web5/crypto!KeyIdentifier:type"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 7
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ algorithm }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "generateKey"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/crypto-aws-kms!EcdsaAlgorithm#sign:member(1)",
+              "docComment": "/**\n * Generates an ECDSA signature of given data using the private key identified by the provided key URI.\n *\n * @remarks\n *\n * This method uses the signature algorithm determined by the given `algorithm` to sign the provided data. The `algorithm` is used to avoid another round trip to AWS KMS to determine the `KeySpec` since it was already retrieved in {@link AwsKeyManager.sign | `AwsKeyManager.sign()`}.\n *\n * The signature can later be verified by parties with access to the corresponding public key, ensuring that the data has not been tampered with and was indeed signed by the holder of the private key.\n *\n * Note: Data is pre-hashed before signing to accommodate AWS KMS limitations for signature payloads. AWS KMS restricts the size of the data payload to 4096 bytes for direct signing. Hashing the data first ensures that the input to the signing operation is within this limit, regardless of the original data size.\n *\n * Note: The signature returned is normalized to low-S to prevent signature malleability. This ensures that the signature can be verified by other libraries that enforce strict verification. More information on signature malleability can be found {@link @web5/crypto#Secp256k1.adjustSignatureToLowS | here}.\n *\n * @param params - The parameters for the signing operation.\n *\n * @param  - params.algorithm - The algorithm to use for signing.\n *\n * @param  - params.keyUri - The key URI of the private key to use for signing.\n *\n * @param  - params.data - The data to sign.\n *\n * @returns A Promise resolving to the digital signature as a `Uint8Array`.\n *\n * @example\n * ```ts\n * const ecdsa = new EcdsaAlgorithm({ keyManager, kmsClient });\n * const data = new TextEncoder().encode('Message to sign');\n * const signature = await ecdsa.sign({\n *   algorithm: 'ES256K',\n *   keyUri: 'urn:jwk:...',\n *   data\n * });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "sign({ algorithm, keyUri, data }: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "EcdsaSignParams",
+                  "canonicalReference": "@web5/crypto-aws-kms!EcdsaSignParams:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<"
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Uint8Array",
+                  "canonicalReference": "!Uint8Array:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": ">"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 7
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ algorithm, keyUri, data }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "sign"
+            },
+            {
+              "kind": "Method",
+              "canonicalReference": "@web5/crypto-aws-kms!EcdsaAlgorithm#verify:member(1)",
+              "docComment": "/**\n * Verifies an ECDSA signature associated with the provided data using the provided key.\n *\n * @remarks\n *\n * This method uses the signature algorithm determined by the `alg` and/or `crv` properties of the provided key to check the validity of a digital signature against the original data. It confirms whether the signature was created by the holder of the corresponding private key and that the data has not been tampered with.\n *\n * @param params - The parameters for the verification operation.\n *\n * @param  - params.key - The key to use for verification.\n *\n * @param  - params.signature - The signature to verify.\n *\n * @param  - params.data - The data to verify.\n *\n * @returns A Promise resolving to a boolean indicating whether the signature is valid.\n *\n * @example\n * ```ts\n * const ecdsa = new EcdsaAlgorithm({ keyManager, kmsClient });\n * const publicKey = { ... }; // Public key in JWK format corresponding to the private key that signed the data\n * const signature = new Uint8Array([...]); // Signature to verify\n * const isValid = await ecdsa.verify({\n *   key: publicKey,\n *   signature,\n *   data\n * });\n * ```\n *\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "verify({ key, signature, data }: "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "KmsVerifyParams",
+                  "canonicalReference": "@web5/crypto!KmsVerifyParams:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "): "
+                },
+                {
+                  "kind": "Reference",
+                  "text": "Promise",
+                  "canonicalReference": "!Promise:interface"
+                },
+                {
+                  "kind": "Content",
+                  "text": "<boolean>"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isStatic": false,
+              "returnTypeTokenRange": {
+                "startIndex": 3,
+                "endIndex": 5
+              },
+              "releaseTag": "Public",
+              "isProtected": false,
+              "overloadIndex": 1,
+              "parameters": [
+                {
+                  "parameterName": "{ key, signature, data }",
+                  "parameterTypeTokenRange": {
+                    "startIndex": 1,
+                    "endIndex": 2
+                  },
+                  "isOptional": false
+                }
+              ],
+              "isOptional": false,
+              "isAbstract": false,
+              "name": "verify"
+            }
+          ],
+          "implementsTokenRanges": [
+            {
+              "startIndex": 1,
+              "endIndex": 7
+            },
+            {
+              "startIndex": 8,
+              "endIndex": 14
+            }
+          ]
+        },
+        {
+          "kind": "Interface",
+          "canonicalReference": "@web5/crypto-aws-kms!EcdsaGenerateKeyParams:interface",
+          "docComment": "/**\n * The `EcdsaGenerateKeyParams` interface defines the algorithm-specific parameters that should be passed into the {@link EcdsaAlgorithm.generateKey | `EcdsaAlgorithm.generateKey()`} method when using the ECDSA algorithm.\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export interface EcdsaGenerateKeyParams extends "
+            },
+            {
+              "kind": "Reference",
+              "text": "KmsGenerateKeyParams",
+              "canonicalReference": "@web5/crypto!KmsGenerateKeyParams:interface"
+            },
+            {
+              "kind": "Content",
+              "text": " "
+            }
+          ],
+          "fileUrlPath": "src/ecdsa.ts",
+          "releaseTag": "Public",
+          "name": "EcdsaGenerateKeyParams",
+          "preserveMemberOrder": false,
+          "members": [
+            {
+              "kind": "PropertySignature",
+              "canonicalReference": "@web5/crypto-aws-kms!EcdsaGenerateKeyParams#algorithm:member",
+              "docComment": "/**\n * A string defining the type of key to generate. The value must be one of the following: - `\"ES256K\"`: ECDSA using the secp256k1 curve and SHA-256.\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "algorithm: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "'ES256K'"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": false,
+              "isOptional": false,
+              "releaseTag": "Public",
+              "name": "algorithm",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              }
+            }
+          ],
+          "extendsTokenRanges": [
+            {
+              "startIndex": 1,
+              "endIndex": 2
+            }
+          ]
+        },
+        {
+          "kind": "Interface",
+          "canonicalReference": "@web5/crypto-aws-kms!EcdsaSignParams:interface",
+          "docComment": "/**\n * The `EcdsaSignParams` interface defines the algorithm-specific parameters that should be passed into the {@link EcdsaAlgorithm.sign | `EcdsaAlgorithm.sign()`} method when using the ECDSA algorithm.\n */\n",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export interface EcdsaSignParams extends "
+            },
+            {
+              "kind": "Reference",
+              "text": "KmsSignParams",
+              "canonicalReference": "@web5/crypto!KmsSignParams:interface"
+            },
+            {
+              "kind": "Content",
+              "text": " "
+            }
+          ],
+          "fileUrlPath": "src/ecdsa.ts",
+          "releaseTag": "Public",
+          "name": "EcdsaSignParams",
+          "preserveMemberOrder": false,
+          "members": [
+            {
+              "kind": "PropertySignature",
+              "canonicalReference": "@web5/crypto-aws-kms!EcdsaSignParams#algorithm:member",
+              "docComment": "/**\n * Specifies the algorithm used for the signing operation. The value must be one of the following: - `\"ES256K\"`: ECDSA using the secp256k1 curve and SHA-256.\n */\n",
+              "excerptTokens": [
+                {
+                  "kind": "Content",
+                  "text": "algorithm: "
+                },
+                {
+                  "kind": "Content",
+                  "text": "'ES256K'"
+                },
+                {
+                  "kind": "Content",
+                  "text": ";"
+                }
+              ],
+              "isReadonly": false,
+              "isOptional": false,
+              "releaseTag": "Public",
+              "name": "algorithm",
+              "propertyTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 2
+              }
+            }
+          ],
+          "extendsTokenRanges": [
+            {
+              "startIndex": 1,
+              "endIndex": 2
+            }
+          ]
+        },
+        {
+          "kind": "Function",
+          "canonicalReference": "@web5/crypto-aws-kms!getKeySpec:function(1)",
+          "docComment": "",
+          "excerptTokens": [
+            {
+              "kind": "Content",
+              "text": "export declare function getKeySpec({ keyUri, kmsClient }: "
+            },
+            {
+              "kind": "Content",
+              "text": "{\n    keyUri: "
+            },
+            {
+              "kind": "Reference",
+              "text": "KeyIdentifier",
+              "canonicalReference": "@web5/crypto!KeyIdentifier:type"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n    kmsClient: "
+            },
+            {
+              "kind": "Reference",
+              "text": "KMSClient",
+              "canonicalReference": "@aws-sdk/client-kms!KMSClient:class"
+            },
+            {
+              "kind": "Content",
+              "text": ";\n}"
+            },
+            {
+              "kind": "Content",
+              "text": "): "
+            },
+            {
+              "kind": "Reference",
+              "text": "Promise",
+              "canonicalReference": "!Promise:interface"
+            },
+            {
+              "kind": "Content",
+              "text": "<"
+            },
+            {
+              "kind": "Reference",
+              "text": "KeySpec",
+              "canonicalReference": "@aws-sdk/client-kms!KeySpec:type"
+            },
+            {
+              "kind": "Content",
+              "text": ">"
+            },
+            {
+              "kind": "Content",
+              "text": ";"
+            }
+          ],
+          "fileUrlPath": "src/utils.ts",
+          "returnTypeTokenRange": {
+            "startIndex": 7,
+            "endIndex": 11
+          },
+          "releaseTag": "Public",
+          "overloadIndex": 1,
+          "parameters": [
+            {
+              "parameterName": "{ keyUri, kmsClient }",
+              "parameterTypeTokenRange": {
+                "startIndex": 1,
+                "endIndex": 6
+              },
+              "isOptional": false
+            }
+          ],
+          "name": "getKeySpec"
+        }
+      ]
+    }
+  ]
+}
