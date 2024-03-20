@@ -1,27 +1,22 @@
-import type { KeyValueStore } from '@web5/common';
-
 import type { DidMethodResolver } from '../methods/did-method.js';
+import type { DidResolver, DidResolverCache, DidUrlDereferencer } from '../types/did-resolution.js';
 import type { DidDereferencingOptions, DidDereferencingResult, DidResolutionOptions, DidResolutionResult, DidResource } from '../types/did-core.js';
 
 import { Did } from '../did.js';
 import { DidErrorCode } from '../did-error.js';
 import { DidResolverCacheNoop } from './resolver-cache-noop.js';
+import { EMPTY_DID_RESOLUTION_RESULT } from '../types/did-resolution.js';
 
 /**
- * Interface for cache implementations used by {@link DidResolver} to store resolved DID documents.
- */
-export interface DidResolverCache extends KeyValueStore<string, DidResolutionResult | void> {}
-
-/**
- * Parameters for configuring the `DidResolver` class, which is responsible for resolving
+ * Parameters for configuring the `UniversalResolver` class, which is responsible for resolving
  * decentralized identifiers (DIDs) to their corresponding DID documents.
  *
- * This type specifies the essential components required by the `DidResolver` to perform
+ * This type specifies the essential components required by the `UniversalResolver` to perform
  * DID resolution and dereferencing. It includes an array of `DidMethodResolver` instances,
  * each capable of resolving DIDs for a specific method, and optionally, a cache for storing
  * resolved DID documents to improve resolution efficiency.
  */
-export type DidResolverParams = {
+export type UniversalResolverParams = {
   /**
    * An array of `DidMethodResolver` instances.
    *
@@ -39,18 +34,6 @@ export type DidResolverParams = {
    */
   cache?: DidResolverCache;
 }
-
-/**
- * A constant representing an empty DID Resolution Result. This object is used as the basis for a
- * result of DID resolution and is typically augmented with additional properties by the
- * DID method resolver.
- */
-export const EMPTY_DID_RESOLUTION_RESULT: DidResolutionResult = {
-  '@context'            : 'https://w3id.org/did-resolution/v1',
-  didResolutionMetadata : {},
-  didDocument           : null,
-  didDocumentMetadata   : {},
-};
 
 /**
  * The `DidResolver` class provides mechanisms for resolving Decentralized Identifiers (DIDs) to
@@ -79,7 +62,7 @@ export const EMPTY_DID_RESOLUTION_RESULT: DidResolutionResult = {
  * const dereferenceResult = await resolver.dereference({ didUri: 'did:example:123456#key-1' });
  * ```
  */
-export class DidResolver {
+export class UniversalResolver implements DidResolver, DidUrlDereferencer {
   /**
    * A cache for storing resolved DID documents.
    */
@@ -95,7 +78,7 @@ export class DidResolver {
    *
    * @param params - The parameters for constructing the `DidResolver`.
    */
-  constructor({ cache, didResolvers }: DidResolverParams) {
+  constructor({ cache, didResolvers }: UniversalResolverParams) {
     this.cache = cache || DidResolverCacheNoop;
 
     for (const resolver of didResolvers) {
@@ -152,7 +135,6 @@ export class DidResolver {
 
   /**
    * Dereferences a DID (Decentralized Identifier) URL to a corresponding DID resource.
-   *
    *
    * This method interprets the DID URL's components, which include the DID method, method-specific
    * identifier, path, query, and fragment, and retrieves the related resource as per the DID Core

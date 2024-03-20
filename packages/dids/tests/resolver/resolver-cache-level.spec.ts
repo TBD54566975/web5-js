@@ -1,9 +1,11 @@
 import sinon from 'sinon';
 import { expect } from 'chai';
-
 import { Level } from 'level';
+
+import type { DidResolver, DidResolverCache } from '../../src/types/did-resolution.js';
+
 import { DidJwk } from '../../src/methods/did-jwk.js';
-import { DidResolver, DidResolverCache } from '../../src/resolver/did-resolver.js';
+import { UniversalResolver } from '../../src/resolver/universal-resolver.js';
 import { DidResolverCacheLevel } from '../../src/resolver/resolver-cache-level.js';
 
 describe('DidResolverCacheLevel', () => {
@@ -179,7 +181,7 @@ describe('DidResolverCacheLevel', () => {
     });
   });
 
-  describe('with DidResolver', () => {
+  describe('with UniversalResolver', () => {
     let cache: DidResolverCache;
     let didResolver: DidResolver;
 
@@ -190,7 +192,7 @@ describe('DidResolverCacheLevel', () => {
     beforeEach(async () => {
       await cache.clear();
       const didMethodApis = [DidJwk];
-      didResolver = new DidResolver({ cache, didResolvers: didMethodApis });
+      didResolver = new UniversalResolver({ cache, didResolvers: didMethodApis });
     });
 
     after(async () => {
