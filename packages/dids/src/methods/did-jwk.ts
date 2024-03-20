@@ -362,8 +362,7 @@ export class DidJwk extends DidMethod {
 
     const didDocument: DidDocument = {
       '@context': [
-        'https://www.w3.org/ns/did/v1',
-        'https://w3id.org/security/suites/jws-2020/v1'
+        'https://www.w3.org/ns/did/v1'
       ],
       id: parsedDid.uri
     };
@@ -373,7 +372,7 @@ export class DidJwk extends DidMethod {
     // Set the Verification Method property.
     didDocument.verificationMethod = [{
       id           : keyUri,
-      type         : 'JsonWebKey2020',
+      type         : 'JsonWebKey',
       controller   : didDocument.id,
       publicKeyJwk : publicKey
     }];
