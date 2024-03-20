@@ -51,13 +51,14 @@ Build and Test cycles are run on every commit to every branch using [GitHub Acti
 ## Development Prerequisites
 
 ### Hermit
+
 This project uses hermit to manage tooling like node. See [this page](https://cashapp.github.io/hermit/usage/get-started/) to set up Hermit on your machine - make sure to download the open source build and activate it for the project.
 
 Currently, we have these packages installed via Hermit (can also view by checking out `hermit status`):
 
-| Requirement | Tested Version | 
-| ----------- | -------------- | 
-| Node.js     | 20.9.0        | 
+| Requirement | Tested Version |
+| ----------- | -------------- |
+| Node.js     | 20.9.0         |
 | PNPM        | 8.15.4         |
 
 ### TypeScript
@@ -103,6 +104,7 @@ to your valuable work:
 
 > [!IMPORTANT]
 > Before running tests ensure you've completed the following steps:
+>
 > 1. Install the [development prerequisites](#development-prerequisites).
 > 2. Follow the [these steps](https://github.com/TBD54566975/web5-js#cloning) to clone this repository and `cd` into the project directory.
 > 3. Install all project dependencies by running `pnpm install` from the root directory of the project.
@@ -177,7 +179,7 @@ The CLI tool will walk you through a set of steps for you to define the semantic
 
 **Publishing Releases**
 
-Whenever ready, project maintainers will just merge the [Version Packages PR](https://github.com/TBD54566975/tbdex-js/pulls?q=is%3Apr+author%3Aapp%2Fgithub-actions+%22Version+Packages%22+) when you are ready to publish the new versions!
+Project maintainers will just merge the [Version Packages PR](https://github.com/TBD54566975/web5-js/pulls?q=is%3Apr+author%3Aapp%2Fgithub-actions+%22Version+Packages%22+) when it's ready to publish the new versions!
 
 When these PRs are merged to main we will automatically publish to NPM and create corresponding git tags with the changelog notes, and mirror each tag to a GitHub release per package.
 
@@ -193,7 +195,7 @@ Recap of the above changesets, plus the release process:
 
 1. Open a PR
 2. `changeset-bot` will automatically [comment on the PR](https://github.com/TBD54566975/tbdex-js/pull/30#issuecomment-1732721942) with a reminder & recommendations for semver
-3. Run `npx changeset` locally and push changes (`.changeset/*.md`)
+3. Run `pnpm changeset` locally and push changes (`.changeset/*.md`)
 4. Merge PR into `main`
 5. Profit from the automated release pipeline:
    - [Release Workflow](./.github/workflows/release.yml) will create a new Version Package PR, or update the existing one
@@ -205,10 +207,31 @@ The `@web5/api` package is special because it dictates our release train schedul
 
 **Because of that, the changesets of the `@web5/api` are ignored by default.**
 
-To enable the `@web5/api` release in the Changesets Version Package PR, you need two simple steps:
+Check below how to enable the `@web5/api` package release.
 
-1. Add the `api-release` Label to the current **Version Package PR**
-2. Manually trigger the [Release workflow](https://github.com/TBD54566975/web5-js/actions/workflows/release.yml).
+##### @web5/api New Standalone Release
+
+1. Go to the [Release workflow](https://github.com/TBD54566975/web5-js/actions/workflows/release.yml)
+2. Press the `Run Workflow` button and select the `Kick @web5/api release` checkbox
+3. Push `Run Workflow`
+
+This will create a new [Version Packages PR](https://github.com/TBD54566975/tbdex-js/pulls?q=is%3Apr+author%3Aapp%2Fgithub-actions+%22Version+Packages%22+is%3Aopen) with the `@web5/api` package bump, if there are any relevant changesets for the package.
+
+##### @web5/api Release with other package bumps
+
+In the rare occasion where `@web5/api` needs to be bumped together with other packages, just label the existing Version Package PR.
+
+1. Go to the current [Version Packages PR](https://github.com/TBD54566975/tbdex-js/pulls?q=is%3Apr+author%3Aapp%2Fgithub-actions+%22Version+Packages%22+is%3Aopen)
+2. Label the PR with the `api-release` tag
+3. The release workflow should be triggered and the `@web5/api` package changes should be included in the PR as soon as the workflow completes.
+
+##### @web5/api Canceling Release
+
+If for some reason you need to bump other packages and the `@web5/api` is added to the current Version Package PR, this will probably block your release until everything is sorted in the web5/dwn side of things... Follow the steps below to ignore the `@web5/api` package release.
+
+1. Go to the current [Version Packages PR](https://github.com/TBD54566975/tbdex-js/pulls?q=is%3Apr+author%3Aapp%2Fgithub-actions+%22Version+Packages%22+is%3Aopen)
+2. Remove the `api-release` label from the PR
+3. The release workflow should be triggered and the `@web5/api` package changes should be removed from the PR as soon as the workflow completes.
 
 #### Preview Releases
 
