@@ -1153,7 +1153,7 @@ describe('DidDhtDocument', () => {
 
   describe('Web5TestVectorsDidDht', () => {
     it('resolve', async () => {
-      for (const vector of DidDhtResolveTestVector.vectors as unknown as any[]) {
+      for (const vector of DidDhtResolveTestVector.vectors as any[]) {
         const didResolutionResult = await DidDht.resolve(vector.input.didUri);
         expect(didResolutionResult.didResolutionMetadata.error).to.equal(vector.output.didResolutionMetadata.error);
       }
