@@ -50,6 +50,11 @@ jobs:
         run: |
           echo -e "//registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}" > ~/.npmrc
 
+      - name: Install semver utility
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: pnpm install -g semver@7.5.1
+
       # Note - this is not required but it gives a clean failure prior to attempting a release if the GH workflow runner is not authenticated with NPMjs.com
       - name: Verify NPM token is authenticated with NPMjs.com
         env:
