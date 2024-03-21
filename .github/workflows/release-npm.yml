@@ -84,11 +84,11 @@ jobs:
 
       - name: Install dependencies
         if: env.IS_LATEST == 'true'
-        run: pnpm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build all workspace packages
         if: env.IS_LATEST == 'true'
-        run: pnpm build
+        run: pnpm --recursive --stream build
 
       - name: Publish @web5/${{ matrix.package }}@${{ env.REPO_VERSION }}
         if: env.IS_LATEST == 'true'
