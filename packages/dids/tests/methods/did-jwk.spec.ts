@@ -153,7 +153,7 @@ describe('DidJwk', () => {
       const signingMethod = await DidJwk.getSigningMethod({ didDocument: did.document });
 
       expect(signingMethod).to.have.property('publicKeyJwk');
-      expect(signingMethod).to.have.property('type', 'JsonWebKey2020');
+      expect(signingMethod).to.have.property('type', 'JsonWebKey');
       expect(signingMethod).to.have.property('id', `${did.uri}#0`);
       expect(signingMethod).to.have.property('controller', did.uri);
     });

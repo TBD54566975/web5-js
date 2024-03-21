@@ -7,6 +7,8 @@ import type { PortableDid } from '../../src/types/portable-did.js';
 import { DidErrorCode } from '../../src/did-error.js';
 import { DidDht, DidDhtDocument, DidDhtRegisteredDidType } from '../../src/methods/did-dht.js';
 
+import DidDhtResolveTestVector from '../../../../web5-spec/test-vectors/did_dht/resolve.json' assert { type: 'json' };
+
 // Helper function to create a mocked fetch response that fails and returns a 404 Not Found.
 const fetchNotFoundResponse = () => ({
   status     : 404,
@@ -1147,5 +1149,14 @@ describe('DidDhtDocument', () => {
         }
       }
     });
+  });
+
+  describe('Web5TestVectorsDidDht', () => {
+    it('resolve', async () => {
+      for (const vector of DidDhtResolveTestVector.vectors as any[]) {
+        const didResolutionResult = await DidDht.resolve(vector.input.didUri);
+        expect(didResolutionResult.didResolutionMetadata.error).to.equal(vector.output.didResolutionMetadata.error);
+      }
+    }).timeout(30000); // Set timeout to 30 seconds for this test for did:dht resolution timeout test
   });
 });
