@@ -8,7 +8,7 @@ import type {
 
 import { Convert } from '@web5/common';
 import { LocalKeyManager as CryptoApi  } from '@web5/crypto';
-import { DidDht, DidIon, DidKey, DidJwk, DidWeb, DidResolver, utils as didUtils } from '@web5/dids';
+import { DidDht, DidIon, DidKey, DidJwk, DidWeb, UniversalResolver, utils as didUtils } from '@web5/dids';
 
 const crypto = new CryptoApi();
 
@@ -67,7 +67,7 @@ export class Jwt {
   /**
    * DID Resolver instance for resolving decentralized identifiers.
    */
-  static didResolver: DidResolver = new DidResolver({ didResolvers: [DidDht, DidIon, DidKey, DidJwk, DidWeb] });
+  static didResolver: UniversalResolver = new UniversalResolver({ didResolvers: [DidDht, DidIon, DidKey, DidJwk, DidWeb] });
 
   /**
    * Creates a signed JWT.
