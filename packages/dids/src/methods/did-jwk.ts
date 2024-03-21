@@ -19,7 +19,7 @@ import { Did } from '../did.js';
 import { DidMethod } from './did-method.js';
 import { BearerDid } from '../bearer-did.js';
 import { DidError, DidErrorCode } from '../did-error.js';
-import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
+import { EMPTY_DID_RESOLUTION_RESULT } from '../types/did-resolution.js';
 
 /**
  * Defines the set of options available when creating a new Decentralized Identifier (DID) with the

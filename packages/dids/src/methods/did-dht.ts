@@ -31,7 +31,7 @@ import { BearerDid } from '../bearer-did.js';
 import { extractDidFragment } from '../utils.js';
 import { DidError, DidErrorCode } from '../did-error.js';
 import { DidVerificationRelationship } from '../types/did-core.js';
-import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
+import { EMPTY_DID_RESOLUTION_RESULT } from '../types/did-resolution.js';
 
 /**
  * Represents a BEP44 message, which is used for storing and retrieving data in the Mainline DHT

@@ -25,7 +25,7 @@ import { BearerDid } from '../bearer-did.js';
 import { DidMethod } from '../methods/did-method.js';
 import { DidError, DidErrorCode } from '../did-error.js';
 import { getVerificationRelationshipsById } from '../utils.js';
-import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
+import { EMPTY_DID_RESOLUTION_RESULT } from '../types/did-resolution.js';
 
 /**
  * Options for creating a Decentralized Identifier (DID) using the DID ION method.

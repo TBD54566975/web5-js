@@ -1,4 +1,5 @@
 export * from './types/did-core.js';
+export * from './types/did-resolution.js';
 export type * from './types/multibase.js';
 export type * from './types/portable-did.js';
 
@@ -13,8 +14,8 @@ export * from './methods/did-key.js';
 export * from './methods/did-method.js';
 export * from './methods/did-web.js';
 
-export * from './resolver/did-resolver.js';
 export * from './resolver/resolver-cache-level.js';
 export * from './resolver/resolver-cache-noop.js';
+export * from './resolver/universal-resolver.js';
 
 export * as utils from './utils.js';

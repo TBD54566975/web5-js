@@ -3,19 +3,20 @@ import type { UnwrapPromise } from '@web5/common';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 
+import type { DidResource } from '../../src/types/did-core.js';
+
 import { DidJwk } from '../../src/methods/did-jwk.js';
-import { DidResource } from '../../src/types/did-core.js';
 import { isDidVerificationMethod } from '../../src/utils.js';
-import { DidResolver } from '../../src/resolver/did-resolver.js';
+import { UniversalResolver } from '../../src/resolver/universal-resolver.js';
 import DidJwkResolveTestVector from '../../../../web5-spec/test-vectors/did_jwk/resolve.json' assert { type: 'json' };
 
-describe('DidResolver', () => {
+describe('UniversalResolver', () => {
   describe('resolve()', () => {
-    let didResolver: DidResolver;
+    let didResolver: UniversalResolver;
 
     beforeEach(() => {
       const didMethodApis = [DidJwk];
-      didResolver = new DidResolver({ didResolvers: didMethodApis });
+      didResolver = new UniversalResolver({ didResolvers: didMethodApis });
     });
 
     it('returns an invalidDid error if the DID cannot be parsed', async () => {
@@ -55,11 +56,11 @@ describe('DidResolver', () => {
   });
 
   describe('dereference()', () => {
-    let didResolver: DidResolver;
+    let didResolver: UniversalResolver;
 
     beforeEach(() => {
       const didMethodApis = [DidJwk];
-      didResolver = new DidResolver({ didResolvers: didMethodApis });
+      didResolver = new UniversalResolver({ didResolvers: didMethodApis });
     });
 
     it('returns a result with contentStream set to null and dereferenceMetadata.error set to invalidDidUrl, if the DID URL is invalid', async () => {
@@ -88,8 +89,8 @@ describe('DidResolver', () => {
     });
 
     it('returns a DID service resource as the value of contentStream if found', async () => {
-      // Create an instance of DidResolver
-      const resolver = new DidResolver({ didResolvers: [] });
+      // Create an instance of UniversalResolver
+      const resolver = new UniversalResolver({ didResolvers: [] });
 
       // Stub the resolve method
       const mockDidResolutionResult = {
