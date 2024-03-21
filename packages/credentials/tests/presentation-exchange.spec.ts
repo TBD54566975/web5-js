@@ -43,14 +43,7 @@ describe('PresentationExchange', () => {
       groupPresentationDefinition = createGroupPresentationDefinition();
     });
 
-    it('should evaluate credentials without any errors or warnings', async () => {
-      PresentationExchange.satisfiesPresentationDefinition({
-        vcJwts: [btcCredentialJwt],
-        presentationDefinition
-      });
-    });
-
-    it('should evaluate credentials without any errors or warnings', async () => {
+    it('should not throw when credential aligns with presentation definition', async () => {
       PresentationExchange.satisfiesPresentationDefinition({
         vcJwts: [btcCredentialJwt],
         presentationDefinition
