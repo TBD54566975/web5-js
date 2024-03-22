@@ -1,4 +1,4 @@
-import type { DidResolver } from '@web5/dids';
+import type { DidUrlDereferencer } from '@web5/dids';
 import type { RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import { Readable } from '@web5/common';
@@ -10,9 +10,9 @@ export function blobToIsomorphicNodeReadable(blob: Blob): Readable {
   return webReadableToIsomorphicNodeReadable(blob.stream() as ReadableStream<any>);
 }
 
-export async function getDwnServiceEndpointUrls(didUri: string, resolver: DidResolver): Promise<string[]> {
+export async function getDwnServiceEndpointUrls(didUri: string, dereferencer: DidUrlDereferencer): Promise<string[]> {
   // Attempt to dereference the DID service with ID fragment #dwn.
-  const dereferencingResult = await resolver.dereference(`${didUri}#dwn`);
+  const dereferencingResult = await dereferencer.dereference(`${didUri}#dwn`);
 
   if (dereferencingResult.dereferencingMetadata.error) {
     throw new Error(`Failed to dereference '${didUri}#dwn': ${dereferencingResult.dereferencingMetadata.error}`);

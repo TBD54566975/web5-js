@@ -1,8 +1,8 @@
-import type { DidResolverCache } from '@web5/dids';
+import type { DidResolver, DidResolverCache } from '@web5/dids';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { DidJwk, DidResolver } from '@web5/dids';
+import { DidJwk, UniversalResolver } from '@web5/dids';
 
 import { DidResolverCacheMemory } from '../../../src/prototyping/dids/resolver-cache-memory.js';
 
@@ -185,7 +185,7 @@ describe('DidResolverCacheMemory', () => {
     beforeEach(async () => {
       await cache.clear();
       const didMethodApis = [DidJwk];
-      didResolver = new DidResolver({ cache, didResolvers: didMethodApis });
+      didResolver = new UniversalResolver({ cache, didResolvers: didMethodApis });
     });
 
     after(async () => {

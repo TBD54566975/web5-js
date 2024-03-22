@@ -3,7 +3,7 @@ import type { DwnConfig, GenericMessage, UnionMessageReply } from '@tbd54566975/
 
 import { Convert, NodeStream } from '@web5/common';
 import { utils as cryptoUtils } from '@web5/crypto';
-import { DidDht, DidJwk, DidResolver, DidResolverCacheLevel } from '@web5/dids';
+import { DidDht, DidJwk, DidResolverCacheLevel, UniversalResolver } from '@web5/dids';
 import { Cid, DataStoreLevel, Dwn, EventLogLevel, Message, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
 
 import type { Web5PlatformAgent } from './types/agent.js';
@@ -92,7 +92,7 @@ export class AgentDwnApi {
   }: DwnApiCreateDwnParams): Promise<Dwn> {
     dataStore ??= new DataStoreLevel({ blockstoreLocation: `${dataPath}/DWN_DATASTORE` });
 
-    didResolver ??= new DidResolver({
+    didResolver ??= new UniversalResolver({
       didResolvers : [DidDht, DidJwk],
       cache        : new DidResolverCacheLevel({ location: `${dataPath}/DID_RESOLVERCACHE` }),
     });

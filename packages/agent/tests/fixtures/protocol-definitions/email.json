@@ -1,10 +1,12 @@
 {
   "protocol": "http://email-protocol.xyz",
-  "published": false,
+  "published": true,
   "types": {
     "email": {
       "schema": "http://email-protocol.xyz/schema/email",
-      "dataFormats": ["text/plain"]
+      "dataFormats": [
+        "text/plain"
+      ]
     }
   },
   "structure": {
@@ -12,34 +14,46 @@
       "$actions": [
         {
           "who": "anyone",
-          "can": "write"
+          "can": [
+            "create"
+          ]
         },
         {
           "who": "author",
           "of": "email",
-          "can": "read"
+          "can": [
+            "read"
+          ]
         },
         {
           "who": "recipient",
           "of": "email",
-          "can": "read"
+          "can": [
+            "read"
+          ]
         }
       ],
       "email": {
         "$actions": [
           {
             "who": "anyone",
-            "can": "write"
+            "can": [
+              "create"
+            ]
           },
           {
             "who": "author",
             "of": "email/email",
-            "can": "read"
+            "can": [
+              "read"
+            ]
           },
           {
             "who": "recipient",
             "of": "email/email",
-            "can": "read"
+            "can": [
+              "read"
+            ]
           }
         ]
       }

@@ -70,10 +70,10 @@
   "dependencies": {
     "@noble/ciphers": "0.4.1",
     "@scure/bip39": "1.2.2",
-    "@tbd54566975/dwn-sdk-js": "0.2.18",
+    "@tbd54566975/dwn-sdk-js": "0.2.21",
     "@web5/common": "0.2.4",
-    "@web5/crypto": "0.4.0",
-    "@web5/dids": "0.4.1",
+    "@web5/crypto": "0.4.1",
+    "@web5/dids": "0.4.3",
     "abstract-level": "1.0.4",
     "ed25519-keygen": "0.4.11",
     "level": "8.0.0",
