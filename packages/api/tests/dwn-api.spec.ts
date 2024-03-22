@@ -659,8 +659,8 @@ describe('DwnApi', () => {
           data    : 'test',
           message : {
             protocol     : 'http://email-protocol.xyz',
-            protocolPath : 'email',
-            schema       : 'http://email-protocol.xyz/schema/email',
+            protocolPath : 'thread',
+            schema       : 'http://email-protocol.xyz/schema/thread',
             dataFormat   : 'text/plain'
           }
         });
@@ -919,8 +919,8 @@ describe('DwnApi', () => {
           data    : 'test',
           message : {
             protocol     : 'http://email-protocol.xyz',
-            protocolPath : 'email',
-            schema       : 'http://email-protocol.xyz/schema/email',
+            protocolPath : 'thread',
+            schema       : 'http://email-protocol.xyz/schema/thread',
             dataFormat   : 'text/plain'
           }
         });
@@ -1087,8 +1087,8 @@ describe('DwnApi', () => {
           data    : 'test',
           message : {
             protocol     : 'http://email-protocol.xyz',
-            protocolPath : 'email',
-            schema       : 'http://email-protocol.xyz/schema/email',
+            protocolPath : 'thread',
+            schema       : 'http://email-protocol.xyz/schema/thread',
             dataFormat   : 'text/plain'
           }
         });
