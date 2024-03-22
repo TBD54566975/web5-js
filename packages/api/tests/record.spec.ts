@@ -12,7 +12,6 @@ import { dataToBlob } from '../src/utils.js';
 import { testDwnUrl } from './utils/test-config.js';
 import { TestDataGenerator } from './utils/test-data-generator.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
-import threadProtocolDefinition from './fixtures/protocol-definitions/thread.json' assert { type: 'json' };
 
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
@@ -71,7 +70,7 @@ describe('Record', () => {
     // Install the thread protocol for Alice's local DWN.
     let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
       message: {
-        definition: threadProtocolDefinition,
+        definition: emailProtocolDefinition,
       }
     });
     expect(aliceStatus.code).to.equal(202);
@@ -84,7 +83,7 @@ describe('Record', () => {
     // Install the thread protocol for Bob's local DWN.
     const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
       message: {
-        definition: threadProtocolDefinition
+        definition: emailProtocolDefinition
       }
     });
 
@@ -100,9 +99,9 @@ describe('Record', () => {
       data    : TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000),
       message : {
         recipient    : bobDid.uri,
-        protocol     : threadProtocolDefinition.protocol,
+        protocol     : emailProtocolDefinition.protocol,
         protocolPath : 'thread',
-        schema       : 'http://thread-protocol.xyz/schema/thread',
+        schema       : 'http://email-protocol.xyz/schema/thread',
       }
     });
     expect(aliceThreadStatus.code).to.equal(202);
@@ -114,7 +113,7 @@ describe('Record', () => {
       from    : bobDid.uri,
       message : {
         filter: {
-          protocol     : threadProtocolDefinition.protocol,
+          protocol     : emailProtocolDefinition.protocol,
           protocolPath : 'thread',
         }
       }
@@ -127,7 +126,7 @@ describe('Record', () => {
       from    : aliceDid.uri,
       message : {
         filter: {
-          protocol     : threadProtocolDefinition.protocol,
+          protocol     : emailProtocolDefinition.protocol,
           protocolPath : 'thread',
         }
       }
@@ -149,7 +148,7 @@ describe('Record', () => {
       from    : bobDid.uri,
       message : {
         filter: {
-          protocol     : threadProtocolDefinition.protocol,
+          protocol     : emailProtocolDefinition.protocol,
           protocolPath : 'thread',
         }
       }
@@ -183,7 +182,7 @@ describe('Record', () => {
       from    : aliceDid.uri,
       message : {
         filter: {
-          protocol     : threadProtocolDefinition.protocol,
+          protocol     : emailProtocolDefinition.protocol,
           protocolPath : 'thread',
         }
       }
@@ -206,7 +205,7 @@ describe('Record', () => {
       from    : bobDid.uri,
       message : {
         filter: {
-          protocol     : threadProtocolDefinition.protocol,
+          protocol     : emailProtocolDefinition.protocol,
           protocolPath : 'thread',
         }
       }
@@ -257,8 +256,8 @@ describe('Record', () => {
 
     // RecordsWriteDescriptor properties that can be pre-defined
     const protocol = emailProtocolDefinition.protocol;
-    const protocolPath = 'email';
-    const schema = emailProtocolDefinition.types.email.schema;
+    const protocolPath = 'thread';
+    const schema = emailProtocolDefinition.types.thread.schema;
     const recipient = aliceDid.uri;
     const published = true;
 
@@ -1235,8 +1234,8 @@ describe('Record', () => {
           store   : false,
           message : {
             protocol     : emailProtocolDefinition.protocol,
-            protocolPath : 'email',
-            schema       : emailProtocolDefinition.types.email.schema
+            protocolPath : 'thread',
+            schema       : emailProtocolDefinition.types.thread.schema
           }
         });
         expect(status.code).to.equal(202);
@@ -1313,8 +1312,8 @@ describe('Record', () => {
           store   : false,
           message : {
             protocol     : emailProtocolDefinition.protocol,
-            protocolPath : 'email',
-            schema       : emailProtocolDefinition.types.email.schema
+            protocolPath : 'thread',
+            schema       : emailProtocolDefinition.types.thread.schema
           }
         });
         expect(status.code).to.equal(202);
@@ -1562,8 +1561,8 @@ describe('Record', () => {
         data    : dataText,
         message : {
           protocol     : emailProtocolDefinition.protocol,
-          protocolPath : 'email',
-          schema       : 'http://email-protocol.xyz/schema/email',
+          protocolPath : 'thread',
+          schema       : 'http://email-protocol.xyz/schema/thread',
         }
       });
       expect(aliceEmailStatus.code).to.equal(202);
@@ -1589,7 +1588,7 @@ describe('Record', () => {
         from    : bobDid.uri,
         message : {
           filter: {
-            schema: 'http://email-protocol.xyz/schema/email'
+            schema: 'http://email-protocol.xyz/schema/thread'
           }
         }
       });
@@ -1634,8 +1633,8 @@ describe('Record', () => {
         data    : dataText,
         message : {
           protocol     : emailProtocolDefinition.protocol,
-          protocolPath : 'email',
-          schema       : 'http://email-protocol.xyz/schema/email',
+          protocolPath : 'thread',
+          schema       : 'http://email-protocol.xyz/schema/thread',
         }
       });
       expect(aliceEmailStatus.code).to.equal(202);
@@ -1660,7 +1659,7 @@ describe('Record', () => {
         from    : bobDid.uri,
         message : {
           filter: {
-            schema: 'http://email-protocol.xyz/schema/email'
+            schema: 'http://email-protocol.xyz/schema/thread'
           }
         }
       });
@@ -1705,8 +1704,8 @@ describe('Record', () => {
         data    : dataString,
         message : {
           protocol     : emailProtocolDefinition.protocol,
-          protocolPath : 'email',
-          schema       : 'http://email-protocol.xyz/schema/email',
+          protocolPath : 'thread',
+          schema       : 'http://email-protocol.xyz/schema/thread',
         }
       });
 
@@ -1716,12 +1715,12 @@ describe('Record', () => {
       const { status } = await aliceEmailRecord!.send(bobDid.uri);
       expect(status.code).to.equal(202);
 
-      // Query Bob's remote DWN for `email` schema records.
+      // Query Bob's remote DWN for `thread` schema records.
       const bobQueryResult = await dwnBob.records.query({
         from    : bobDid.uri,
         message : {
           filter: {
-            schema: 'http://email-protocol.xyz/schema/email'
+            schema: 'http://email-protocol.xyz/schema/thread'
           }
         }
       });
@@ -1823,8 +1822,8 @@ describe('Record', () => {
           data    : dataString,
           message : {
             protocol     : emailProtocolDefinition.protocol,
-            protocolPath : 'email',
-            schema       : 'http://email-protocol.xyz/schema/email',
+            protocolPath : 'thread',
+            schema       : 'http://email-protocol.xyz/schema/thread',
           }
         });
 
@@ -1834,16 +1833,16 @@ describe('Record', () => {
         expect(writeResult.record).to.exist;
         expect(await writeResult.record?.data.text()).to.equal(dataString);
 
-        // Query Alice's agent DWN for `email` schema records.
+        // Query Alice's agent DWN for `thread` schema records.
         const queryResult = await dwnAlice.records.query({
           message: {
             filter: {
-              schema: 'http://email-protocol.xyz/schema/email'
+              schema: 'http://email-protocol.xyz/schema/thread'
             }
           }
         });
 
-        // Confirm no `email` schema records were written.
+        // Confirm no `thread` schema records were written.
         expect(queryResult.status.code).to.equal(200);
         expect(queryResult.records).to.exist;
         expect(queryResult.records!.length).to.equal(0);
@@ -1852,7 +1851,7 @@ describe('Record', () => {
         const { status } = await writeResult.record!.send(bobDid.uri);
         expect(status.code).to.equal(202);
 
-        // Query Bobs's remote DWN for `email` schema records.
+        // Query Bobs's remote DWN for `thread` schema records.
         const bobQueryResult = await dwnBob.records.query({
           from    : bobDid.uri,
           message : {
@@ -1862,7 +1861,7 @@ describe('Record', () => {
           }
         });
 
-        // Confirm `email` schema record was written to Bob's remote DWN.
+        // Confirm `thread` schema record was written to Bob's remote DWN.
         expect(bobQueryResult.status.code).to.equal(200);
         expect(bobQueryResult.records).to.exist;
         expect(bobQueryResult.records!.length).to.equal(1);
@@ -1968,8 +1967,8 @@ describe('Record', () => {
 
       // RecordsWriteDescriptor properties that can be pre-defined
       const protocol = emailProtocolDefinition.protocol;
-      const protocolPath = 'email';
-      const schema = emailProtocolDefinition.types.email.schema;
+      const protocolPath = 'thread';
+      const schema = emailProtocolDefinition.types.thread.schema;
       const recipient = aliceDid.uri;
       const published = true;
 

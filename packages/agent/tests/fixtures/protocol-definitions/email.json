@@ -2,6 +2,12 @@
   "protocol": "http://email-protocol.xyz",
   "published": true,
   "types": {
+    "thread": {
+      "schema": "http://email-protocol.xyz/schema/thread",
+      "dataFormats": [
+        "text/plain"
+      ]
+    },
     "email": {
       "schema": "http://email-protocol.xyz/schema/email",
       "dataFormats": [
@@ -10,24 +16,24 @@
     }
   },
   "structure": {
-    "email": {
+    "thread": {
       "$actions": [
         {
           "who": "anyone",
           "can": [
-            "create"
+            "create", "update"
           ]
         },
         {
           "who": "author",
-          "of": "email",
+          "of": "thread",
           "can": [
             "read"
           ]
         },
         {
           "who": "recipient",
-          "of": "email",
+          "of": "thread",
           "can": [
             "read"
           ]
@@ -36,21 +42,22 @@
       "email": {
         "$actions": [
           {
-            "who": "anyone",
+            "who": "recipient",
+            "of": "thread",
             "can": [
-              "create"
+              "create", "update"
             ]
           },
           {
             "who": "author",
-            "of": "email/email",
+            "of": "thread/email",
             "can": [
               "read"
             ]
           },
           {
             "who": "recipient",
-            "of": "email/email",
+            "of": "thread/email",
             "can": [
               "read"
             ]
