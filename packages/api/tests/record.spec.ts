@@ -12,6 +12,7 @@ import { dataToBlob } from '../src/utils.js';
 import { testDwnUrl } from './utils/test-config.js';
 import { TestDataGenerator } from './utils/test-data-generator.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
+import threadProtocolDefinition from './fixtures/protocol-definitions/thread.json' assert { type: 'json' };
 
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
@@ -67,45 +68,45 @@ describe('Record', () => {
 
   it('imports a record that another user wrote', async () => {
 
-    // Install the email protocol for Alice's local DWN.
+    // Install the thread protocol for Alice's local DWN.
     let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
       message: {
-        definition: emailProtocolDefinition
+        definition: threadProtocolDefinition,
       }
     });
     expect(aliceStatus.code).to.equal(202);
     expect(aliceProtocol).to.exist;
 
-    // Install the email protocol for Alice's remote DWN.
+    // Install the thread protocol for Alice's remote DWN.
     const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.uri);
     expect(alicePushStatus.code).to.equal(202);
 
-    // Install the email protocol for Bob's local DWN.
+    // Install the thread protocol for Bob's local DWN.
     const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
       message: {
-        definition: emailProtocolDefinition
+        definition: threadProtocolDefinition
       }
     });
 
     expect(bobStatus.code).to.equal(202);
     expect(bobProtocol).to.exist;
 
-    // Install the email protocol for Bob's remote DWN.
+    // Install the thread protocol for Bob's remote DWN.
     const { status: bobPushStatus } = await bobProtocol!.send(bobDid.uri);
     expect(bobPushStatus.code).to.equal(202);
 
     // Alice creates a new large record and stores it on her own dwn
-    const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwnAlice.records.write({
+    const { status: aliceThreadStatus, record: aliceThreadRecord } = await dwnAlice.records.write({
       data    : TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000),
       message : {
         recipient    : bobDid.uri,
-        protocol     : emailProtocolDefinition.protocol,
+        protocol     : threadProtocolDefinition.protocol,
         protocolPath : 'thread',
-        schema       : 'http://email-protocol.xyz/schema/thread',
+        schema       : 'http://thread-protocol.xyz/schema/thread',
       }
     });
-    expect(aliceEmailStatus.code).to.equal(202);
-    const { status: sendStatus } = await aliceEmailRecord!.send(aliceDid.uri);
+    expect(aliceThreadStatus.code).to.equal(202);
+    const { status: sendStatus } = await aliceThreadRecord!.send(aliceDid.uri);
     expect(sendStatus.code).to.equal(202);
 
     // Bob queries for the record on his own DWN (should not find it)
@@ -113,7 +114,7 @@ describe('Record', () => {
       from    : bobDid.uri,
       message : {
         filter: {
-          protocol     : emailProtocolDefinition.protocol,
+          protocol     : threadProtocolDefinition.protocol,
           protocolPath : 'thread',
         }
       }
@@ -126,7 +127,7 @@ describe('Record', () => {
       from    : aliceDid.uri,
       message : {
         filter: {
-          protocol     : emailProtocolDefinition.protocol,
+          protocol     : threadProtocolDefinition.protocol,
           protocolPath : 'thread',
         }
       }
@@ -148,7 +149,7 @@ describe('Record', () => {
       from    : bobDid.uri,
       message : {
         filter: {
-          protocol     : emailProtocolDefinition.protocol,
+          protocol     : threadProtocolDefinition.protocol,
           protocolPath : 'thread',
         }
       }
@@ -158,24 +159,23 @@ describe('Record', () => {
     expect(bobQueryBobDwn.records[0].id).to.equal(importRecord.id);
 
     // Alice updates her record
-    let { status: aliceEmailStatusUpdated } = await aliceEmailRecord.update({
+    let { status: aliceThreadStatusUpdated } = await aliceThreadRecord.update({
       data: TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000)
     });
-    expect(aliceEmailStatusUpdated.code).to.equal(202);
-
-    const { status: sentToSelfStatus } = await aliceEmailRecord!.send();
+    expect(aliceThreadStatusUpdated.code).to.equal(202);
+    const { status: sentToSelfStatus } = await aliceThreadRecord!.send();
     expect(sentToSelfStatus.code).to.equal(202);
 
-    const { status: sentToBobStatus } = await aliceEmailRecord!.send(bobDid.uri);
+    const { status: sentToBobStatus } = await aliceThreadRecord!.send(bobDid.uri);
     expect(sentToBobStatus.code).to.equal(202);
 
     // Alice updates her record and sends it to her own DWN again
     const updatedText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
-    let { status: aliceEmailStatusUpdatedAgain } = await aliceEmailRecord.update({
+    let { status: aliceThreadStatusUpdatedAgain } = await aliceThreadRecord.update({
       data: updatedText
     });
-    expect(aliceEmailStatusUpdatedAgain.code).to.equal(202);
-    const { status: sentToSelfAgainStatus } = await aliceEmailRecord!.send();
+    expect(aliceThreadStatusUpdatedAgain.code).to.equal(202);
+    const { status: sentToSelfAgainStatus } = await aliceThreadRecord!.send();
     expect(sentToSelfAgainStatus.code).to.equal(202);
 
     // Bob queries for the updated record on alice's DWN
@@ -183,7 +183,7 @@ describe('Record', () => {
       from    : aliceDid.uri,
       message : {
         filter: {
-          protocol     : emailProtocolDefinition.protocol,
+          protocol     : threadProtocolDefinition.protocol,
           protocolPath : 'thread',
         }
       }
@@ -206,7 +206,7 @@ describe('Record', () => {
       from    : bobDid.uri,
       message : {
         filter: {
-          protocol     : emailProtocolDefinition.protocol,
+          protocol     : threadProtocolDefinition.protocol,
           protocolPath : 'thread',
         }
       }
