@@ -11,7 +11,7 @@ import type {
   DidVerificationMethod,
 } from '@web5/dids';
 
-import { BearerDid, Did, DidResolver } from '@web5/dids';
+import { BearerDid, Did, UniversalResolver } from '@web5/dids';
 
 import type { AgentDataStore } from './store-data.js';
 import type { AgentKeyManager } from './types/key-manager.js';
@@ -101,7 +101,7 @@ export function isDidRequest<T extends DidInterface>(
   return didRequest.messageType === messageType;
 }
 
-export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> extends DidResolver {
+export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> extends UniversalResolver {
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
    * the `AgentDidApi`. This agent is used to interact with other Web5 agent components. It's vital

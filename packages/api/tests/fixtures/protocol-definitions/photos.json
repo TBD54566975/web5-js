@@ -31,7 +31,9 @@
       "$actions": [
         {
           "role": "friend",
-          "can": "write"
+          "can": [
+            "create", "update"
+          ]
         }
       ],
       "participant": {
@@ -40,7 +42,9 @@
           {
             "who": "author",
             "of": "album",
-            "can": "write"
+            "can": [
+              "create", "update"
+            ]
           }
         ]
       },
@@ -49,7 +53,9 @@
         "$actions": [
           {
             "role": "album/participant",
-            "can": "write"
+            "can": [
+              "create", "update"
+            ]
           }
         ]
       },
@@ -57,16 +63,22 @@
         "$actions": [
           {
             "role": "album/participant",
-            "can": "write"
+            "can": [
+              "create", "update"
+            ]
           },
           {
             "role": "album/updater",
-            "can": "update"
+            "can": [
+              "create", "update"
+            ]
           },
           {
             "who": "author",
             "of": "album",
-            "can": "write"
+            "can": [
+              "create", "update"
+            ]
           }
         ]
       }
