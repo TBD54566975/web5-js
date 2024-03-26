@@ -64,7 +64,7 @@ Create a new `VerifiableCredential` with the following parameters:
 - `subject`: Subject URI.
 - `data`: Credential data.
 - `issuanceData?` (Optional) The Issuance Date. Defaults to current date if not specified
-- `expirationDate?`: (Optinal) Expiration Date
+- `expirationDate?`: (Optional) Expiration Date
 - `evidence?`: (Optional) Evidence can be included by an issuer to provide the verifier with additional supporting information in a verifiable credential.
 
 ```javascript
