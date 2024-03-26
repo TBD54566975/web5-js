@@ -26,6 +26,7 @@ export type VcDataModel = ICredential;
  * @param issuanceDate Optional. The issuance date of the credential, as a string.
  *               Defaults to the current date if not specified.
  * @param expirationDate Optional. The expiration date of the credential, as a string.
+ * @param evidence Optional. Evidence can be included by an issuer to provide the verifier with additional supporting information in a verifiable credential.
  */
 export type VerifiableCredentialCreateOptions = {
   type?: string | string[];
@@ -34,6 +35,7 @@ export type VerifiableCredentialCreateOptions = {
   data: any;
   issuanceDate?: string;
   expirationDate?: string;
+  evidence?: any[];
 };
 
 /**
@@ -131,7 +133,7 @@ export class VerifiableCredential {
    * @returns A [VerifiableCredential] instance.
    */
   public static async create(options: VerifiableCredentialCreateOptions): Promise<VerifiableCredential> {
-    const { type, issuer, subject, data, issuanceDate, expirationDate } = options;
+    const { type, issuer, subject, data, issuanceDate, expirationDate, evidence } = options;
 
     const jsonData = JSON.parse(JSON.stringify(data));
 
@@ -159,9 +161,11 @@ export class VerifiableCredential {
         : (type ? [DEFAULT_VC_TYPE, type] : [DEFAULT_VC_TYPE]),
       id                : `urn:uuid:${cryptoUtils.randomUuid()}`,
       issuer            : issuer,
-      issuanceDate      : issuanceDate || getCurrentXmlSchema112Timestamp(), // use default if undefined
+      issuanceDate      : issuanceDate || getCurrentXmlSchema112Timestamp(),
       credentialSubject : credentialSubject,
-      ...(expirationDate && { expirationDate }), // optional property
+      // Include optional properties only if they have values
+      ...(expirationDate && { expirationDate }),
+      ...(evidence && { evidence }),
     };
 
     validatePayload(vcDataModel);
