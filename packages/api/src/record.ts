@@ -1,60 +1,110 @@
-import type { ProcessDwnRequest, SendDwnRequest, Web5Agent } from '@web5/agent';
 import type { Readable } from '@web5/common';
 import type {
-  RecordsWriteMessage,
-  RecordsWriteOptions,
-  RecordsWriteDescriptor,
-} from '@tbd54566975/dwn-sdk-js';
+  Web5Agent,
+  DwnMessage,
+  DwnMessageParams,
+  DwnResponseStatus,
+  ProcessDwnRequest,
+  DwnMessageDescriptor,
+} from '@web5/agent';
 
+import { DwnInterface } from '@web5/agent';
 import { Convert, NodeStream, removeUndefinedProperties, Stream } from '@web5/common';
-import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 
-import type { ResponseStatus } from './dwn-api.js';
-import { dataToBlob } from './utils.js';
-import { SendCache } from './send-cache.js';
+import { dataToBlob, SendCache } from './utils.js';
 
 /**
- * Options that are passed to Record constructor.
+ * Represents the structured data model of a record, encapsulating the essential fields that define
+ * the record's metadata and payload within a Decentralized Web Node (DWN).
  *
  * @beta
  */
-export type RecordOptions = RecordsWriteMessage & {
-  author: string;
-  connectedDid: string;
-  encodedData?: string | Blob;
-  data?: Readable | ReadableStream;
-  initialWrite?: RecordsWriteMessage;
-  protocolRole?: string;
-  remoteOrigin?: string;
-};
-
-/**
- * Represents the record data model, without the auxiliary properties such as
- * the `descriptor` and the `authorization`
- *
- * @beta
- */
-export type RecordModel = RecordsWriteDescriptor
-  & Omit<RecordsWriteMessage, 'descriptor' | 'recordId'>
+export type RecordModel = DwnMessageDescriptor[DwnInterface.RecordsWrite]
+  & Omit<DwnMessage[DwnInterface.RecordsWrite], 'descriptor' | 'recordId'>
   & {
+    /** The DID that signed the record. */
     author: string;
+
+    /** The protocol role under which this record is written. */
     protocolRole?: RecordOptions['protocolRole'];
+
+    /** The unique identifier of the record. */
     recordId?: string;
   }
 
 /**
- * Options that are passed to update the record on the DWN
+ * Options for configuring a {@link Record} instance, extending the base `RecordsWriteMessage` with
+ * additional properties.
+ *
+ * This type combines the standard fields required for writing DWN records with additional metadata
+ * and configuration options used specifically in the {@link Record} class.
  *
  * @beta
  */
-export type RecordUpdateOptions = {
+export type RecordOptions = DwnMessage[DwnInterface.RecordsWrite] & {
+  /** The DID that signed the record. */
+  author: string;
+
+  /** The DID of the DWN tenant under which record operations are being performed. */
+  connectedDid: string;
+
+  /** The data of the record, either as a Base64 URL encoded string or a Blob. */
+  encodedData?: string | Blob;
+
+  /**
+   * A stream of data, conforming to the `Readable` or `ReadableStream` interface, providing a
+   * mechanism to read the record's data sequentially. This is particularly useful for handling
+   * large datasets that should not be loaded entirely in memory, allowing for efficient, chunked
+   * processing of the record's data.
+   */
+  data?: Readable | ReadableStream;
+
+  /** The initial `RecordsWriteMessage` that represents the initial state/version of the record. */
+  initialWrite?: DwnMessage[DwnInterface.RecordsWrite];
+
+  /** The protocol role under which this record is written. */
+  protocolRole?: string;
+
+  /** The remote tenant DID if the record was queried or read from a remote DWN. */
+  remoteOrigin?: string;
+};
+
+/**
+ * Parameters for updating a DWN record.
+ *
+ * This type specifies the  set of properties that can be updated on an existing record. It is used
+ * to convey the new state or changes to be applied to the record.
+ *
+ * @beta
+ */
+export type RecordUpdateParams = {
+  /**
+   * The new data for the record, which can be of any type. This data will replace the existing
+   * data of the record. It's essential to ensure that this data is compatible with the record's
+   * schema or data format expectations.
+   */
   data?: unknown;
-  dataCid?: RecordsWriteDescriptor['dataCid'];
-  dataSize?: RecordsWriteDescriptor['dataSize'];
-  dateModified?: RecordsWriteDescriptor['messageTimestamp'];
-  datePublished?: RecordsWriteDescriptor['datePublished'];
-  published?: RecordsWriteDescriptor['published'];
+
+  /**
+   * The Content Identifier (CID) of the data. Updating this value changes the reference to the data
+   * associated with the record.
+   */
+  dataCid?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['dataCid'];
+
+  /** The size of the data in bytes. */
+  dataSize?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['dataSize'];
+
+  /** The timestamp indicating when the record was last modified. */
+  dateModified?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['messageTimestamp'];
+
+  /** The timestamp indicating when the record was published. */
+  datePublished?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['datePublished'];
+
+  /** The protocol role under which this record is written. */
   protocolRole?: RecordOptions['protocolRole'];
+
+  /** The published status of the record. */
+  published?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['published'];
 }
 
 /**
@@ -70,37 +120,67 @@ export type RecordUpdateOptions = {
  *
  * @beta
  */
+/**
+ * The `Record` class encapsulates a single record's data and metadata, providing a more
+ * developer-friendly interface for working with Decentralized Web Node (DWN) records.
+ *
+ * Methods are provided to read, update, and manage the record's lifecycle, including writing to
+ * remote DWNs.
+ *
+ * @beta
+ */
 export class Record implements RecordModel {
-  // Cache to minimize the amount of redundant two-phase commits we do in store() and send()
-  // Retains awareness of the last 100 records stored/sent for up to 100 target DIDs each.
+  /**
+   * Cache to minimize the amount of redundant two-phase commits we do in store() and send()
+   * Retains awareness of the last 100 records stored/sent for up to 100 target DIDs each.
+   */
   private static _sendCache = SendCache;
 
   // Record instance metadata.
+
+  /** The {@link Web5Agent} instance that handles DWNs requests. */
   private _agent: Web5Agent;
+  /** The DID of the DWN tenant under which operations are being performed. */
   private _connectedDid: string;
+  /** Encoded data of the record, if available. */
   private _encodedData?: Blob;
+  /** Stream of the record's data. */
   private _readableStream?: Readable;
+  /** The origin DID if the record was fetched from a remote DWN. */
   private _remoteOrigin?: string;
 
   // Private variables for DWN `RecordsWrite` message properties.
+
+  /** The DID of the entity that authored the record. */
   private _author: string;
-  private _attestation?: RecordsWriteMessage['attestation'];
-  private _authorization?: RecordsWriteMessage['authorization'];
+  /** Attestation JWS signature. */
+  private _attestation?: DwnMessage[DwnInterface.RecordsWrite]['attestation'];
+  /** Authorization signature(s). */
+  private _authorization?: DwnMessage[DwnInterface.RecordsWrite]['authorization'];
+  /** Context ID associated with the record. */
   private _contextId?: string;
-  private _descriptor: RecordsWriteDescriptor;
-  private _encryption?: RecordsWriteMessage['encryption'];
+  /** Descriptor detailing the record's schema, format, and other metadata. */
+  private _descriptor: DwnMessageDescriptor[DwnInterface.RecordsWrite];
+  /** Encryption details for the record, if the data is encrypted. */
+  private _encryption?: DwnMessage[DwnInterface.RecordsWrite]['encryption'];
+  /** Initial state of the record before any updates. */
   private _initialWrite: RecordOptions['initialWrite'];
+  /** Flag indicating if the initial write has been stored, to prevent duplicates. */
   private _initialWriteStored: boolean;
+  /** Flag indicating if the initial write has been signed by the owner. */
   private _initialWriteSigned: boolean;
+  /** Unique identifier of the record. */
   private _recordId: string;
+  /** Role under which the record is written. */
   private _protocolRole: RecordOptions['protocolRole'];
+
   // Getters for immutable DWN Record properties.
 
   /** Record's signatures attestation */
-  get attestation(): RecordsWriteMessage['attestation'] { return this._attestation; }
+  get attestation(): DwnMessage[DwnInterface.RecordsWrite]['attestation'] { return this._attestation; }
 
   /** Record's signatures attestation */
-  get authorization(): RecordsWriteMessage['authorization'] { return this._authorization; }
+  get authorization(): DwnMessage[DwnInterface.RecordsWrite]['authorization'] { return this._authorization; }
 
   /** DID that signed the record. */
   get author(): string { return this._author; }
@@ -115,7 +195,7 @@ export class Record implements RecordModel {
   get dateCreated() { return this._descriptor.dateCreated; }
 
   /** Record's encryption */
-  get encryption(): RecordsWriteMessage['encryption'] { return this._encryption; }
+  get encryption(): DwnMessage[DwnInterface.RecordsWrite]['encryption'] { return this._encryption; }
 
   /** Record's initial write if the record has been updated */
   get initialWrite(): RecordOptions['initialWrite'] { return this._initialWrite; }
@@ -170,7 +250,7 @@ export class Record implements RecordModel {
   /**
    * Returns a copy of the raw `RecordsWriteMessage` that was used to create the current `Record` instance.
    */
-  private get rawMessage(): RecordsWriteMessage {
+  private get rawMessage(): DwnMessage[DwnInterface.RecordsWrite] {
     const message = JSON.parse(JSON.stringify({
       contextId     : this._contextId,
       recordId      : this._recordId,
@@ -188,18 +268,18 @@ export class Record implements RecordModel {
 
     this._agent = agent;
 
-    /** Store the author DID that originally signed the message as a convenience for developers, so
-     * that they don't have to decode the signer's DID from the JWS. */
+    // Store the author DID that originally signed the message as a convenience for developers, so
+    // that they don't have to decode the signer's DID from the JWS.
     this._author = options.author;
 
-    /** Store the currently `connectedDid` so that subsequent message signing is done with the
-     * connected DID's keys and DWN requests target the connected DID's DWN. */
+    // Store the currently `connectedDid` so that subsequent message signing is done with the
+    // connected DID's keys and DWN requests target the connected DID's DWN.
     this._connectedDid = options.connectedDid;
 
-    /** If the record was queried or read from a remote DWN, the `remoteOrigin` DID will be
-     * defined. This value is used to send subsequent read requests to the same remote DWN in the
-     * event the record's data payload was too large to be returned in query results. or must be
-     * read again (e.g., if the data stream is consumed). */
+    // If the record was queried or read from a remote DWN, the `remoteOrigin` DID will be
+    // defined. This value is used to send subsequent read requests to the same remote DWN in the
+    // event the record's data payload was too large to be returned in query results. or must be
+    // read again (e.g., if the data stream is consumed).
     this._remoteOrigin = options.remoteOrigin;
 
     // RecordsWriteMessage properties.
@@ -325,13 +405,36 @@ export class Record implements RecordModel {
         return self._readableStream;
       },
 
-      then(...callbacks) {
-        return this.stream().then(...callbacks);
+      /**
+       * Attaches callbacks for the resolution and/or rejection of the `Promise` returned by
+       * `stream()`.
+       *
+       * This method is a proxy to the `then` method of the `Promise` returned by `stream()`,
+       * allowing for a seamless integration with promise-based workflows.
+       * @param onFulfilled - A function to asynchronously execute when the `stream()` promise
+       *                      becomes fulfilled.
+       * @param onRejected - A function to asynchronously execute when the `stream()` promise
+       *                     becomes rejected.
+       * @returns A `Promise` for the completion of which ever callback is executed.
+       */
+      then(onFulfilled?: (value: Readable) => Readable | PromiseLike<Readable>, onRejected?: (reason: any) => PromiseLike<never>) {
+        return this.stream().then(onFulfilled, onRejected);
       },
 
-      catch(callback) {
-        return dataObj.then().catch(callback);
-      },
+      /**
+       * Attaches a rejection handler callback to the `Promise` returned by the `stream()` method.
+       * This method is a shorthand for `.then(undefined, onRejected)`, specifically designed for handling
+       * rejection cases in the promise chain initiated by accessing the record's data. It ensures that
+       * errors during data retrieval or processing can be caught and handled appropriately.
+       *
+       * @param onRejected - A function to asynchronously execute when the `stream()` promise
+       *                     becomes rejected.
+       * @returns A `Promise` that resolves to the value of the callback if it is called, or to its
+       *          original fulfillment value if the promise is instead fulfilled.
+       */
+      catch(onRejected?: (reason: any) => PromiseLike<never>) {
+        return this.stream().catch(onRejected);
+      }
     };
 
     return dataObj;
@@ -345,21 +448,21 @@ export class Record implements RecordModel {
    *
    * @beta
    */
-  async store(importRecord: boolean = false): Promise<ResponseStatus> {
+  async store(importRecord: boolean = false): Promise<DwnResponseStatus> {
     // if we are importing the record we sign it as the owner
     return this.processRecord({ signAsOwner: importRecord, store: true });
   }
 
   /**
    * Signs the current record state as well as any initial write and optionally stores it to the owner's DWN.
-   * This is useful when importing a record that was signed by someone else int your own DWN.
+   * This is useful when importing a record that was signed by someone else into your own DWN.
    *
    * @param store - if true, the record will be stored to the owner's DWN after signing. Defaults to true.
    * @returns the status of the import request
    *
    * @beta
    */
-  async import(store: boolean = true): Promise<ResponseStatus> {
+  async import(store: boolean = true): Promise<DwnResponseStatus> {
     return this.processRecord({ store, signAsOwner: true });
   }
 
@@ -368,15 +471,16 @@ export class Record implements RecordModel {
    * If no DID is specified, the target is assumed to be the owner (connectedDID).
    * If an initial write is present and the Record class send cache has no awareness of it, the initial write is sent first
    * (vs waiting for the regular DWN sync)
+   *
    * @param target - the optional DID to send the record to, if none is set it is sent to the connectedDid
    * @returns the status of the send record request
    * @throws `Error` if the record has already been deleted.
    *
    * @beta
    */
-  async send(target?: string): Promise<ResponseStatus> {
+  async send(target?: string): Promise<DwnResponseStatus> {
     const initialWrite = this._initialWrite;
-    target??= this._connectedDid;
+    target ??= this._connectedDid;
 
     // Is there an initial write? Do we know if we've already sent it to this target?
     if (initialWrite && !Record._sendCache.check(this._recordId, target)){
@@ -386,28 +490,27 @@ export class Record implements RecordModel {
       };
       removeUndefinedProperties(rawMessage);
 
-      const initialState: SendDwnRequest = {
-        messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+      // Send the initial write to the target.
+      await this._agent.sendDwnRequest({
+        messageType : DwnInterface.RecordsWrite,
         author      : this._connectedDid,
         target      : target,
         rawMessage
-      };
-      await this._agent.sendDwnRequest(initialState);
+      });
 
       // Set the cache to maintain awareness that we don't need to send the initial write next time.
       Record._sendCache.set(this._recordId, target);
     }
 
-    // Prepare the current state for sending to the target
-    const latestState: SendDwnRequest = {
-      messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+    // Send the current/latest state to the target.
+    const { reply } = await this._agent.sendDwnRequest({
+      messageType : DwnInterface.RecordsWrite,
       author      : this._connectedDid,
       dataStream  : await this.data.blob(),
-      target      : target
-    };
+      target      : target,
+      rawMessage  : { ...this.rawMessage }
+    });
 
-    latestState.rawMessage = { ...this.rawMessage };
-    const { reply } = await this._agent.sendDwnRequest(latestState);
     return reply;
   }
 
@@ -462,66 +565,52 @@ export class Record implements RecordModel {
 
   /**
    * Update the current record on the DWN.
-   * @param options - options to update the record, including the new data
+   * @param params - Parameters to update the record.
    * @returns the status of the update request
    * @throws `Error` if the record has already been deleted.
    *
    * @beta
    */
-  async update(options: RecordUpdateOptions = {}): Promise<ResponseStatus> {
-    // Map Record class `dateModified`  property to DWN SDK `messageTimestamp`.
-    const { dateModified, ...updateOptions } = options as Partial<RecordsWriteOptions> & RecordUpdateOptions;
-    updateOptions.messageTimestamp = dateModified;
-
-    // Begin assembling update message.
-    let updateMessage = {...this._descriptor, ...updateOptions } as Partial<RecordsWriteOptions>;
+  async update({ dateModified, data, ...params }: RecordUpdateParams): Promise<DwnResponseStatus> {
+    // Begin assembling the update message.
+    let updateMessage: DwnMessageParams[DwnInterface.RecordsWrite] = {
+      ...this._descriptor,
+      ...params,
+      messageTimestamp : dateModified, // Map Record class `dateModified` property to DWN SDK `messageTimestamp`
+      recordId         : this._recordId
+    };
 
     let dataBlob: Blob;
-    if (options.data !== undefined) {
+    if (data !== undefined) {
       // If `data` is being updated then `dataCid` and `dataSize` must be undefined and the `data`
-      // property is passed as a top-level property to `agent.processDwnRequest()`.
+      // value must be converted to a Blob and later passed as a top-level property to
+      // `agent.processDwnRequest()`.
       delete updateMessage.dataCid;
       delete updateMessage.dataSize;
-      delete updateMessage.data;
-
-      ({ dataBlob } = dataToBlob(options.data, updateMessage.dataFormat));
+      ({ dataBlob } = dataToBlob(data, updateMessage.dataFormat));
     }
 
-    // Throw an error if an attempt is made to modify immutable properties. `data` has already been handled.
+    // Throw an error if an attempt is made to modify immutable properties.
+    // Note: `data` and `dateModified` have already been handled.
     const mutableDescriptorProperties = new Set(['data', 'dataCid', 'dataSize', 'datePublished', 'messageTimestamp', 'published']);
-    Record.verifyPermittedMutation(Object.keys(options), mutableDescriptorProperties);
-
-    // If a new `dateModified` was not provided, remove the equivalent `messageTimestamp` property from from the
-    // updateMessage to let the DWN SDK auto-fill. This is necessary because otherwise DWN SDK throws an
-    // Error 409 Conflict due to attempting to overwrite a record when the `messageTimestamp` values are identical.
-    if (options.dateModified === undefined) {
-      delete updateMessage.messageTimestamp;
-    }
+    Record.verifyPermittedMutation(Object.keys(params), mutableDescriptorProperties);
 
     // If `published` is set to false, ensure that `datePublished` is undefined. Otherwise, DWN SDK's schema validation
     // will throw an error if `published` is false but `datePublished` is set.
-    if (options.published === false && updateMessage.datePublished !== undefined) {
+    if (params.published === false && updateMessage.datePublished !== undefined) {
       delete updateMessage.datePublished;
     }
 
-    // Set the record ID and context ID, if any.
-    updateMessage.recordId = this._recordId;
-    updateMessage.contextId = this._contextId;
-
-    const messageOptions: Partial<RecordsWriteOptions> = {
-      ...updateMessage
-    };
-
     const agentResponse = await this._agent.processDwnRequest({
-      author      : this._connectedDid,
-      dataStream  : dataBlob,
-      messageOptions,
-      messageType : DwnInterfaceName.Records + DwnMethodName.Write,
-      target      : this._connectedDid,
+      author        : this._connectedDid,
+      dataStream    : dataBlob,
+      messageParams : { ...updateMessage },
+      messageType   : DwnInterface.RecordsWrite,
+      target        : this._connectedDid,
     });
 
     const { message, reply: { status } } = agentResponse;
-    const responseMessage = message as RecordsWriteMessage;
+    const responseMessage = message;
 
     if (200 <= status.code && status.code <= 299) {
       // copy the original raw message to the initial write before we update the values.
@@ -531,13 +620,13 @@ export class Record implements RecordModel {
 
       // Only update the local Record instance mutable properties if the record was successfully (over)written.
       this._authorization = responseMessage.authorization;
-      this._protocolRole = messageOptions.protocolRole;
+      this._protocolRole = params.protocolRole;
       mutableDescriptorProperties.forEach(property => {
         this._descriptor[property] = responseMessage.descriptor[property];
       });
 
       // Cache data.
-      if (options.data !== undefined) {
+      if (data !== undefined) {
         this._encodedData = dataBlob;
       }
     }
@@ -545,13 +634,15 @@ export class Record implements RecordModel {
     return { status };
   }
 
-  // Handles the various conditions around there being an initial write, whether to store initial/current state,
-  // and whether to add an owner signature to the initial write to enable storage when protocol rules require it.
-  private async processRecord({ store, signAsOwner }:{ store: boolean, signAsOwner: boolean }): Promise<ResponseStatus> {
+  /**
+   * Handles the various conditions around there being an initial write, whether to store initial/current state,
+   * and whether to add an owner signature to the initial write to enable storage when protocol rules require it.
+   */
+  private async processRecord({ store, signAsOwner }:{ store: boolean, signAsOwner: boolean }): Promise<DwnResponseStatus> {
     // if there is an initial write and we haven't already processed it, we first process it and marked it as such.
     if (this._initialWrite && ((signAsOwner && !this._initialWriteSigned) || (store && !this._initialWriteStored))) {
-      const initialWriteRequest: ProcessDwnRequest = {
-        messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+      const initialWriteRequest: ProcessDwnRequest<DwnInterface.RecordsWrite> = {
+        messageType : DwnInterface.RecordsWrite,
         rawMessage  : this.initialWrite,
         author      : this._connectedDid,
         target      : this._connectedDid,
@@ -561,8 +652,9 @@ export class Record implements RecordModel {
 
       // Process the prepared initial write, with the options set for storing and/or signing as the owner.
       const agentResponse = await this._agent.processDwnRequest(initialWriteRequest);
+
       const { message, reply: { status } } = agentResponse;
-      const responseMessage = message as RecordsWriteMessage;
+      const responseMessage = message;
 
       // If we are signing as owner, make sure to update the initial write's authorization, because now it will have the owner's signature on it
       // set the stored or signed status to true so we don't process it again.
@@ -576,8 +668,8 @@ export class Record implements RecordModel {
     }
 
     // Now that we've processed a potential initial write, we can process the current record state.
-    const requestOptions: ProcessDwnRequest = {
-      messageType : DwnInterfaceName.Records + DwnMethodName.Write,
+    const requestOptions: ProcessDwnRequest<DwnInterface.RecordsWrite> = {
+      messageType : DwnInterface.RecordsWrite,
       rawMessage  : this.rawMessage,
       author      : this._connectedDid,
       target      : this._connectedDid,
@@ -588,7 +680,7 @@ export class Record implements RecordModel {
 
     const agentResponse = await this._agent.processDwnRequest(requestOptions);
     const { message, reply: { status } } = agentResponse;
-    const responseMessage = message as RecordsWriteMessage;
+    const responseMessage = message;
 
     if (200 <= status.code && status.code <= 299) {
       // If we are signing as the owner, make sure to update the current record state's authorization, because now it will have the owner's signature on it.
@@ -606,18 +698,19 @@ export class Record implements RecordModel {
    * It makes a read request to the specified DWN and processes the response to provide
    * a Node.js `Readable` stream of the record's data.
    *
-   * @param target - The DID of the DWN to fetch the data from.
-   * @param isRemote - Indicates whether the target DWN is a remote node.
+   * @param params - Parameters for fetching the record's data.
+   * @param params.target - The DID of the DWN to fetch the data from.
+   * @param params.isRemote - Indicates whether the target DWN is a remote node.
    * @returns A Promise that resolves to a Node.js `Readable` stream of the record's data.
    * @throws If there is an error while fetching or processing the data from the DWN.
    *
    * @beta
    */
   private async readRecordData({ target, isRemote }: { target: string, isRemote: boolean }) {
-    const readRequest = {
-      author         : this._connectedDid,
-      messageOptions : { filter: { recordId: this.id } },
-      messageType    : DwnInterfaceName.Records + DwnMethodName.Read,
+    const readRequest: ProcessDwnRequest<DwnInterface.RecordsRead> = {
+      author        : this._connectedDid,
+      messageParams : { filter: { recordId: this.id } },
+      messageType   : DwnInterface.RecordsRead,
       target,
     };
 

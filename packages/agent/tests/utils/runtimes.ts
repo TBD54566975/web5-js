@@ -1,0 +1,1 @@
+export const isChrome = typeof navigator !== 'undefined' && /Chrome/.test(navigator.userAgent);

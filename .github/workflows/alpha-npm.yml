@@ -29,7 +29,7 @@ jobs:
 
       # https://cashapp.github.io/hermit/usage/ci/
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1
+        uses: cashapp/activate-hermit@31ce88b17a84941bb1b782f1b7b317856addf286 #v1.1.0
         with:
           cache: "true"
 
@@ -58,6 +58,8 @@ jobs:
         shell: bash
 
       - name: Build all workspace packages
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: pnpm --recursive --stream build
         
       - name: Publish selected @web5/* packages

@@ -1,67 +1,66 @@
 {
   "protocol": "http://email-protocol.xyz",
-  "published": false,
+  "published": true,
   "types": {
     "thread": {
       "schema": "http://email-protocol.xyz/schema/thread",
-      "dataFormats": ["text/plain"]
+      "dataFormats": [
+        "text/plain"
+      ]
     },
     "email": {
       "schema": "http://email-protocol.xyz/schema/email",
-      "dataFormats": ["text/plain"]
+      "dataFormats": [
+        "text/plain"
+      ]
     }
   },
   "structure": {
     "thread": {
       "$actions": [
         {
-          "who": "recipient",
-          "of": "thread",
-          "can": "read"
+          "who": "anyone",
+          "can": [
+            "create", "update"
+          ]
         },
         {
           "who": "author",
           "of": "thread",
-          "can": "write"
-        },
-        {
-          "who": "anyone",
-          "can": "update"
-        }
-      ]
-    },
-    "email": {
-      "$actions": [
-        {
-          "who": "anyone",
-          "can": "write"
-        },
-        {
-          "who": "author",
-          "of": "email",
-          "can": "read"
+          "can": [
+            "read"
+          ]
         },
         {
           "who": "recipient",
-          "of": "email",
-          "can": "read"
+          "of": "thread",
+          "can": [
+            "read"
+          ]
         }
       ],
       "email": {
         "$actions": [
           {
-            "who": "anyone",
-            "can": "write"
+            "who": "recipient",
+            "of": "thread",
+            "can": [
+              "create", "update"
+            ]
           },
           {
             "who": "author",
-            "of": "email/email",
-            "can": "read"
+            "of": "thread/email",
+            "can": [
+              "read"
+            ]
           },
           {
             "who": "recipient",
-            "of": "email/email",
-            "can": "read"
+            "of": "thread/email",
+            "can": [
+              "read"
+            ]
           }
         ]
       }

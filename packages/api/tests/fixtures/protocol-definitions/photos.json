@@ -25,31 +25,37 @@
   },
   "structure": {
     "friend": {
-      "$globalRole": true
+      "$role": true
     },
     "album": {
       "$actions": [
         {
           "role": "friend",
-          "can": "write"
+          "can": [
+            "create", "update"
+          ]
         }
       ],
       "participant": {
-        "$contextRole": true,
+        "$role": true,
         "$actions": [
           {
             "who": "author",
             "of": "album",
-            "can": "write"
+            "can": [
+              "create", "update"
+            ]
           }
         ]
       },
       "updater": {
-        "$contextRole": true,
+        "$role": true,
         "$actions": [
           {
             "role": "album/participant",
-            "can": "write"
+            "can": [
+              "create", "update"
+            ]
           }
         ]
       },
@@ -57,16 +63,22 @@
         "$actions": [
           {
             "role": "album/participant",
-            "can": "write"
+            "can": [
+              "create", "update"
+            ]
           },
           {
             "role": "album/updater",
-            "can": "update"
+            "can": [
+              "co-update"
+            ]
           },
           {
             "who": "author",
             "of": "album",
-            "can": "write"
+            "can": [
+              "create", "update"
+            ]
           }
         ]
       }

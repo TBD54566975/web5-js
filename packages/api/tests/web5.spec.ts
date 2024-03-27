@@ -1,51 +1,42 @@
 import { expect } from 'chai';
-import { DidIonMethod } from '@web5/dids';
 import { MemoryStore } from '@web5/common';
-import { AppDataVault, TestManagedAgent } from '@web5/agent';
+import { Web5UserAgent } from '@web5/user-agent';
+import { HdIdentityVault, PlatformAgentTestHarness } from '@web5/agent';
 
 import { Web5 } from '../src/web5.js';
-import { TestUserAgent } from './utils/test-user-agent.js';
 
 describe('Web5', () => {
-  describe('using TestManagedAgent', () => {
-    let testAgent: TestManagedAgent;
+  describe('using Test Harness', () => {
+    let testHarness: PlatformAgentTestHarness;
 
     before(async () => {
-      testAgent = await TestManagedAgent.create({
-        agentClass  : TestUserAgent,
+      testHarness = await PlatformAgentTestHarness.setup({
+        agentClass  : Web5UserAgent,
         agentStores : 'memory'
       });
     });
 
     beforeEach(async () => {
-      await testAgent.clearStorage();
-      await testAgent.createAgentDid();
+      await testHarness.clearStorage();
+      await testHarness.createAgentDid();
     });
 
     after(async () => {
-      await testAgent.clearStorage();
-      await testAgent.closeStorage();
+      await testHarness.clearStorage();
+      await testHarness.closeStorage();
     });
 
     describe('connect()', () => {
-      it('accepts an externally created ION DID', async () => {
-        // Create an ION DID.
-        const didOptions = await DidIonMethod.generateDwnOptions({
-          serviceEndpointNodes: ['https://dwn.example.com']
-        });
-        const portableDid = await DidIonMethod.create({ ...didOptions });
-
-        // Import the previously created DID.
-        await testAgent.agent.identityManager.import({
-          identity : { name: 'Test', did: portableDid.did },
-          did      : portableDid,
-          kms      : 'local'
+      it('accepts an externally created DID', async () => {
+        const testIdentity = await testHarness.createIdentity({
+          name        : 'Test',
+          testDwnUrls : ['https://dwn.example.com']
         });
 
         // Call connect() with the custom agent.
         const { web5, did } = await Web5.connect({
-          agent        : testAgent.agent,
-          connectedDid : portableDid.did
+          agent        : testHarness.agent,
+          connectedDid : testIdentity.did.uri
         });
 
         expect(did).to.exist;
@@ -56,33 +47,103 @@ describe('Web5', () => {
     describe('constructor', () => {
       it('instantiates Web5 API with provided Web5Agent and connectedDid', async () => {
         // Create a new Identity.
-        const socialIdentity = await testAgent.agent.identityManager.create({
-          name      : 'Social',
-          didMethod : 'key',
-          kms       : 'local'
+        const socialIdentity = await testHarness.agent.identity.create({
+          metadata  : { name: 'Social' },
+          didMethod : 'jwk',
         });
 
         // Instantiates Web5 instance with test agent and new Identity's DID.
-        const web5 = new Web5({ agent: testAgent.agent, connectedDid: socialIdentity.did });
+        const web5 = new Web5({ agent: testHarness.agent, connectedDid: socialIdentity.did.uri });
         expect(web5).to.exist;
         expect(web5).to.have.property('did');
         expect(web5).to.have.property('dwn');
         expect(web5).to.have.property('vc');
       });
+
+      it('supports a single agent with multiple Web5 instances and different DIDs', async () => {
+        // Create two identities, each of which is stored in a new tenant.
+        const careerIdentity = await testHarness.agent.identity.create({
+          metadata  : { name: 'Social' },
+          didMethod : 'jwk'
+        });
+        const socialIdentity = await testHarness.agent.identity.create({
+          metadata  : { name: 'Social' },
+          didMethod : 'jwk'
+        });
+
+        // Instantiate a Web5 instance with the "Career" Identity, write a record, and verify the result.
+        const web5Career = new Web5({ agent: testHarness.agent, connectedDid: careerIdentity.did.uri });
+        expect(web5Career).to.exist;
+
+        // Instantiate a Web5 instance with the "Social" Identity, write a record, and verify the result.
+        const web5Social = new Web5({ agent: testHarness.agent, connectedDid: socialIdentity.did.uri });
+        expect(web5Social).to.exist;
+      });
+    });
+
+    describe('scenarios', () => {
+      it('writes records with multiple identities under management', async () => {
+        // First launch and initialization.
+        await testHarness.agent.initialize({ password: 'test' });
+
+        // Start the Agent, which will decrypt and load the Agent's DID from the vault.
+        await testHarness.agent.start({ password: 'test' });
+
+        // Create two identities, each of which is stored in a new tenant.
+        const careerIdentity = await testHarness.agent.identity.create({
+          metadata  : { name: 'Social' },
+          didMethod : 'jwk'
+        });
+        const socialIdentity = await testHarness.agent.identity.create({
+          metadata  : { name: 'Social' },
+          didMethod : 'jwk'
+        });
+
+        // Instantiate a Web5 instance with the "Career" Identity, write a record, and verify the result.
+        const web5Career = new Web5({ agent: testHarness.agent, connectedDid: careerIdentity.did.uri });
+        const careerResult = await web5Career.dwn.records.write({
+          data    : 'Hello, world!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+        expect(careerResult.status.code).to.equal(202);
+        expect(careerResult.record).to.exist;
+        expect(careerResult.record?.author).to.equal(careerIdentity.did.uri);
+        expect(await careerResult.record?.data.text()).to.equal('Hello, world!');
+
+        // Instantiate a Web5 instance with the "Social" Identity, write a record, and verify the result.
+        const web5Social = new Web5({ agent: testHarness.agent, connectedDid: socialIdentity.did.uri });
+        const socialResult = await web5Social.dwn.records.write({
+          data    : 'Hello, everyone!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+        expect(socialResult.status.code).to.equal(202);
+        expect(socialResult.record).to.exist;
+        expect(socialResult.record?.author).to.equal(socialIdentity.did.uri);
+        expect(await socialResult.record?.data.text()).to.equal('Hello, everyone!');
+      });
     });
   });
 
   describe('connect()', () => {
-    it('returns a web5 instance and connected DID using Web5UserAgent, by default', async () => {
-    // Create an in-memory App data store to speed up tests.
-      const appData = new AppDataVault({
+    it('uses Web5UserAgent, by default', async () => {
+      // Create an in-memory identity vault store to speed up tests.
+      const agentVault = new HdIdentityVault({
         keyDerivationWorkFactor : 1,
-        store                   : new MemoryStore()
+        store                   : new MemoryStore<string, string>()
       });
-      const { web5, did } = await Web5.connect({ appData });
+      const { web5, recoveryPhrase } = await Web5.connect({ agentVault });
 
-      expect(did).to.exist;
       expect(web5).to.exist;
+      expect(web5.agent).to.be.instanceOf(Web5UserAgent);
+      // Verify recovery phrase is a 12-word string.
+      expect(recoveryPhrase).to.be.a('string');
+      expect(recoveryPhrase.split(' ')).to.have.lengthOf(12);
     });
   });
 });
