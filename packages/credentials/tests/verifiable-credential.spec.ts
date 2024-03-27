@@ -167,6 +167,45 @@ describe('Verifiable Credential Tests', async() => {
       }
     });
 
+    it('create and sign vc with evidence', async () => {
+      const did = await DidJwk.create();
+
+      const evidence = [{
+        'id'               : 'https://example.edu/evidence/f2aeec97-fc0d-42bf-8ca7-0548192d4231',
+        'type'             : ['DocumentVerification'],
+        'verifier'         : 'https://example.edu/issuers/14',
+        'evidenceDocument' : 'DriversLicense',
+        'subjectPresence'  : 'Physical',
+        'documentPresence' : 'Physical',
+        'licenseNumber'    : '123AB4567'
+      }];
+
+      const vc = await VerifiableCredential.create({
+        type    : 'TBDeveloperCredential',
+        subject : did.uri,
+        issuer  : did.uri,
+        data    : {
+          username: 'nitro'
+        },
+        evidence: evidence
+      });
+
+      expect(vc.vcDataModel.evidence).to.deep.equal(evidence);
+
+      const vcJwt = await vc.sign({ did });
+
+      await VerifiableCredential.verify({ vcJwt });
+
+      for( const currentVc of [vc, VerifiableCredential.parseJwt({ vcJwt })]){
+        expect(currentVc.issuer).to.equal(did.uri);
+        expect(currentVc.subject).to.equal(did.uri);
+        expect(currentVc.type).to.equal('TBDeveloperCredential');
+        expect(currentVc.vcDataModel.issuanceDate).to.not.be.undefined;
+        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: did.uri, username: 'nitro'});
+        expect(currentVc.vcDataModel.evidence).to.deep.equal(evidence);
+      }
+    });
+
     it('should throw an error if issuer is not string', async () => {
       const subjectDid = issuerDid.uri;
 

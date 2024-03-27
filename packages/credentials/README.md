@@ -63,7 +63,9 @@ Create a new `VerifiableCredential` with the following parameters:
 - `issuer`: Issuer URI.
 - `subject`: Subject URI.
 - `data`: Credential data.
-- `expirationDate?`: (optinal) Expiration Date
+- `issuanceDate?` (Optional) The Issuance Date. Defaults to current date if not specified
+- `expirationDate?`: (Optional) Expiration Date
+- `evidence?`: (Optional) Evidence can be included by an issuer to provide the verifier with additional supporting information in a verifiable credential.
 
 ```javascript
 class StreetCredibility {
