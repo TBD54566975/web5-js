@@ -7,7 +7,9 @@ import { Jwt } from './jwt.js';
 import { SsiValidator } from './validators.js';
 import { getCurrentXmlSchema112Timestamp, getXmlSchema112Timestamp } from './utils.js';
 
+/** The default Verifiable Credential context. */
 export const DEFAULT_VC_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
+/** The default Verifiable Credential type. */
 export const DEFAULT_VC_TYPE = 'VerifiableCredential';
 
 /**
@@ -29,12 +31,19 @@ export type VcDataModel = ICredential;
  * @param evidence Optional. Evidence can be included by an issuer to provide the verifier with additional supporting information in a verifiable credential.
  */
 export type VerifiableCredentialCreateOptions = {
+  /** The type of the credential, can be a string or an array of strings. */
   type?: string | string[];
+  /** The issuer URI of the credential, as a string. */
   issuer: string;
+  /** The subject URI of the credential, as a string. */
   subject: string;
+  /** The credential data, as a generic type any. */
   data: any;
+  /** The issuance date of the credential, as a string. */
   issuanceDate?: string;
+  /** The expiration date of the credential, as a string. */
   expirationDate?: string;
+  /** The evidence of the credential, as an array of any. */
   evidence?: any[];
 };
 
@@ -43,9 +52,11 @@ export type VerifiableCredentialCreateOptions = {
  * @param did - The issuer DID of the credential, represented as a PortableDid.
  */
 export type VerifiableCredentialSignOptions = {
+  /** The issuer DID of the credential, represented as a PortableDid. */
   did: BearerDid;
 };
 
+/** The credential subject of a verifiable credential. */
 type CredentialSubject = ICredentialSubject;
 
 /**
@@ -61,14 +72,17 @@ type CredentialSubject = ICredentialSubject;
 export class VerifiableCredential {
   constructor(public vcDataModel: VcDataModel) {}
 
+  /** The type of the credential. */
   get type(): string {
     return this.vcDataModel.type[this.vcDataModel.type.length - 1];
   }
 
+  /** The issuer of the credential. */
   get issuer(): string {
     return this.vcDataModel.issuer.toString();
   }
 
+  /** The subject of the credential. */
   get subject(): string {
     if (Array.isArray(this.vcDataModel.credentialSubject)) {
       return this.vcDataModel.credentialSubject[0].id!;
@@ -207,8 +221,8 @@ export class VerifiableCredential {
    *     console.log("VC Verification failed: ${e.message}")
    * }
    * ```
-   *
-   * @param vcJwt The Verifiable Credential in JWT format as a [string].
+   * @param param - The parameters for the verification process.
+   * @param param.vcJwt The Verifiable Credential in JWT format as a [string].
    * @throws Error if the verification fails at any step, providing a message with failure details.
    * @throws Error if critical JWT header elements are absent.
    */
@@ -278,8 +292,11 @@ export class VerifiableCredential {
     validatePayload(vcTyped);
 
     return {
+      /** The issuer of the VC. */
       issuer  : payload.iss!,
+      /** The subject of the VC. */
       subject : payload.sub!,
+      /** The VC data model object. */
       vc      : vcTyped
     };
   }

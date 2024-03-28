@@ -13,14 +13,28 @@ import { DidDht, DidIon, DidKey, DidJwk, DidWeb, UniversalResolver, utils as did
 const crypto = new CryptoApi();
 
 /**
- * Result of parsing a JWT.
+ * Represents the result of parsing a JWT (JSON Web Token).
  */
 export type JwtParseResult = {
+  /**
+   * The decoded part of the JWT, which includes the verified results.
+   * This contains the JWT's payload and other data that has been
+   * validated against the JWT's signature to ensure its integrity and authenticity.
+   */
   decoded: JwtVerifyResult
+
+  /**
+   * The encoded components of the JWT, including the header, payload,
+   * and signature, each as a separate string. These are the raw, encoded
+   * parts of the JWT as they were received or transmitted.
+   */
   encoded: {
-    header: string
-    payload: string
-    signature: string
+    /** The encoded header of the JWT. */
+    header: string,
+    /** The encoded payload of the JWT. */
+    payload: string,
+    /** The encoded signature of the JWT. */
+    signature: string,
   }
 }
 
@@ -40,6 +54,7 @@ export interface JwtVerifyResult {
  * used in {@link Jwt.parse}
  */
 export type ParseJwtOptions = {
+  /** The JWT string to parse. */
   jwt: string
 }
 
@@ -47,7 +62,9 @@ export type ParseJwtOptions = {
  * Parameters for signing a JWT.
  */
 export type SignJwtOptions = {
+  /** The DID of the signer. */
   signerDid: BearerDid
+  /** The payload to sign. */
   payload: JwtPayload
 }
 
@@ -55,6 +72,7 @@ export type SignJwtOptions = {
  * Parameters for verifying a JWT.
  */
 export type VerifyJwtOptions = {
+  /** The JWT string to verify. */
   jwt: string
 }
 
