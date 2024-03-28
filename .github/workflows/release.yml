@@ -65,7 +65,7 @@ jobs:
       - name: Build all workspace packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: pnpm --recursive --stream build:esm && pnpm --recursive --stream build:cjs
+        run: pnpm --recursive --stream build
 
       - name: Check @web5/api Release Flow
         id: check_api_release
