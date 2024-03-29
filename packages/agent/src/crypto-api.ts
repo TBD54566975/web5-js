@@ -233,14 +233,6 @@ export class AgentCryptoApi implements CryptoApi<
   CryptoApiDeriveKeyBytesParams<DeriveKeyAlgorithm>, Uint8Array,
   WrapKeyParams, UnwrapKeyParams
 > {
-  // AsymmetricKeyGenerator<CryptoApiGenerateKeyParams, Jwk, GetPublicKeyParams>,
-  // AsymmetricKeyConverter<CryptoApiBytesToPublicKeyParams, PublicKeyToBytesParams>,
-  // Hasher<CryptoApiDigestParams>,
-  // KeyConverter<CryptoApiBytesToPrivateKeyParams, PrivateKeyToBytesParams>,
-  // KeyDeriver<CryptoApiDeriveKeyParams<DeriveKeyAlgorithm>, Jwk>,
-  // KeyBytesDeriver<CryptoApiDeriveKeyBytesParams<DeriveKeyAlgorithm>, Uint8Array>,
-  // KeyWrapper<WrapKeyParams, UnwrapKeyParams>,
-  // Signer<SignParams, VerifyParams> {
 
   /**
    * A private map that stores instances of cryptographic algorithm implementations. Each key in
