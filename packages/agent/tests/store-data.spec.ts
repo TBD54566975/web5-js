@@ -289,33 +289,6 @@ describe('AgentDataStore', () => {
           }
         });
 
-        it('throws an error if cache unexpectedly is missing data that is present in the index', async function() {
-          // Skip this test for InMemoryTestStore, as the in-memory store does not have a cache.
-          if (TestStore.name === 'InMemoryTestStore') this.skip();
-
-          await testStore.set({
-            id       : 'test-1',
-            data     : { document: { id: 'test-1' }, metadata: {}, uri: 'test-1' },
-            agent    : testHarness.agent,
-            useCache : true
-          });
-
-          // @ts-expect-error because the cache is protected and only present in DwnDataStore.
-          testStore._cache.clear();
-
-          try {
-            await testStore.get({
-              id       : 'test-1',
-              agent    : testHarness.agent,
-              useCache : true
-            });
-            expect.fail('Expected an error to be thrown');
-
-          } catch (error: any) {
-            expect(error.message).to.include('Failed to read data from cache for');
-          }
-        });
-
         it('throws an error if DWN unexpectedly is missing a record that is present in the index', async function() {
           // Skip this test for InMemoryTestStore, as it is only relevant for the DWN store.
           if (TestStore.name === 'InMemoryTestStore') this.skip();

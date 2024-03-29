@@ -46,7 +46,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   protected name = 'DwnDataStore';
 
   /**
-     * Index for mappings from DWN record ID to Store Objects.
+     * Cache of Store Objects referenced by DWN record ID to Store Objects.
      *
      * Up to 100 entries are retained for 15 minutes.
      */
@@ -137,7 +137,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
       }
     }
 
-    // Convert the record object to store to a byte array.
+    // Convert the store object to a byte array, which will be the data payload of the DWN record.
     const dataBytes = Convert.object(data).toUint8Array();
 
     // Store the record in the DWN.
@@ -154,10 +154,10 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
       throw new Error(`${this.name}: Failed to write data to store for: ${id}`);
     }
 
-    // Add the newly created record to the index.
+    // Add the ID of the newly created record to the index.
     this._index.set(`${tenantDid}${TENANT_SEPARATOR}${id}`, message.recordId);
 
-    // If caching is enabled, add the record to the cache.
+    // If caching is enabled, add the store object to the cache.
     if (useCache) {
       this._cache.set(message.recordId, data);
     }
@@ -176,13 +176,12 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
     agent: Web5PlatformAgent;
     useCache: boolean;
   }): Promise<TStoreObject | undefined> {
-    // If caching is enabled, check the cache for the record.
+    // If caching is enabled, check the cache for the record ID.
     if (useCache) {
       const record = this._cache.get(recordId);
-      if (!record) {
-        throw new Error(`${this.name}: Failed to read data from cache for: ${recordId}`);
-      }
-      return record;
+      // If the record ID was present in the cache, return the associated store object.
+      if (record) return record;
+      // Otherwise, continue to read from the store.
     }
 
     // Read the record from the store.
@@ -197,8 +196,15 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
       throw new Error(`${this.name}: Failed to read data from DWN for: ${recordId}`);
     }
 
-    // If the record was found, convert back to store object format, and return it.
-    return await NodeStream.consumeToJson({ readable: readReply.record.data }) as TStoreObject;
+    // If the record was found, convert back to store object format.
+    const storeObject = await NodeStream.consumeToJson({ readable: readReply.record.data }) as TStoreObject;
+
+    // If caching is enabled, add the store object to the cache.
+    if (useCache) {
+      this._cache.set(recordId, storeObject);
+    }
+
+    return storeObject;
   }
 
   private async lookupRecordId({ id, tenantDid, agent }: {
