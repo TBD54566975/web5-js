@@ -8,7 +8,7 @@
   "scripts": {
     "clean": "rimraf dist coverage tests/compiled",
     "build:esm": "rimraf dist/esm dist/types && pnpm tsc -p tsconfig.json",
-    "build:cjs": "rimraf dist/cjs && pnpm tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
+    "build:cjs": "rimraf dist/cjs && node build/cjs-bundle.js && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
     "build:browser": "rimraf dist/browser.mjs dist/browser.js && node build/bundles.js",
     "build:tests:node": "rimraf tests/compiled && pnpm tsc -p tests/tsconfig.json",
     "build:tests:browser": "rimraf tests/compiled && node build/esbuild-tests.cjs",
