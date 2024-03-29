@@ -139,7 +139,7 @@ importers:
   packages/api:
     dependencies:
       '@web5/agent':
-        specifier: 0.3.0
+        specifier: 0.3.1
         version: link:../agent
       '@web5/common':
         specifier: 0.2.4
@@ -151,7 +151,7 @@ importers:
         specifier: 0.4.3
         version: link:../dids
       '@web5/user-agent':
-        specifier: 0.3.0
+        specifier: 0.3.1
         version: link:../user-agent
     devDependencies:
       '@playwright/test':
@@ -673,7 +673,7 @@ importers:
   packages/identity-agent:
     dependencies:
       '@web5/agent':
-        specifier: 0.3.0
+        specifier: 0.3.1
         version: link:../agent
       '@web5/common':
         specifier: 0.2.4
@@ -761,7 +761,7 @@ importers:
   packages/proxy-agent:
     dependencies:
       '@web5/agent':
-        specifier: 0.3.0
+        specifier: 0.3.1
         version: link:../agent
       '@web5/common':
         specifier: 0.2.4
@@ -846,7 +846,7 @@ importers:
   packages/user-agent:
     dependencies:
       '@web5/agent':
-        specifier: 0.3.0
+        specifier: 0.3.1
         version: link:../agent
       '@web5/common':
         specifier: 0.2.4
