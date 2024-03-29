@@ -3,6 +3,7 @@
 **/EVENTLOG/
 **/INDEX/
 **/MESSAGESTORE/
+**/RESOLVERCACHE/
 data
 compiled
 
