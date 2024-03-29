@@ -8,8 +8,8 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
     inputs:
-      kick_api_release:
-        description: "Kick @web5/api release"
+      initiate_api_release:
+        description: "Initiate @web5/api release"
         required: false
         default: false
         type: boolean
@@ -72,7 +72,7 @@ jobs:
         run: scripts/changesets-api-release-check.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          KICK_API_RELEASE: ${{ github.event.inputs.kick_api_release || '' }}
+          KICK_API_RELEASE: ${{ github.event.inputs.initiate_api_release || '' }}
 
       - name: Create Release Pull Request or Publish to npm
         uses: changesets/action@aba318e9165b45b7948c60273e0b72fce0a64eb9 # v1.4.7
@@ -87,7 +87,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Label Changesets PR with API release
-        if: github.event.inputs.kick_api_release && steps.changesets.outputs.pullRequestNumber != ''
+        if: github.event.inputs.initiate_api_release && steps.changesets.outputs.pullRequestNumber != ''
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |

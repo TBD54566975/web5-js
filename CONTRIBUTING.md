@@ -212,7 +212,7 @@ Check below how to enable the `@web5/api` package release.
 ##### @web5/api New Standalone Release
 
 1. Go to the [Release workflow](https://github.com/TBD54566975/web5-js/actions/workflows/release.yml)
-2. Press the `Run Workflow` button and select the `Kick @web5/api release` checkbox
+2. Press the `Run Workflow` button and select the `Initiate @web5/api release` checkbox
 3. Push `Run Workflow`
 
 This will create a new [Version Packages PR](https://github.com/TBD54566975/tbdex-js/pulls?q=is%3Apr+author%3Aapp%2Fgithub-actions+%22Version+Packages%22+is%3Aopen) with the `@web5/api` package bump, if there are any relevant changesets for the package.
