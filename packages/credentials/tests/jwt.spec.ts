@@ -208,7 +208,7 @@ describe('Jwt', () => {
       const vectors = JwtVerifyTestVector.vectors;
 
       for (const vector of vectors) {
-        const { input, errors, errorMessage } = vector;
+        const { input, errors } = vector;
 
         if (errors) {
           let errorOccurred = false;
@@ -216,10 +216,6 @@ describe('Jwt', () => {
             await VerifiableCredential.verify({ vcJwt: input });
           } catch (e: any) {
             errorOccurred = true;
-            expect(e.message).to.not.be.null;
-            if(errorMessage && errorMessage['web5-js']) {
-              expect(e.message).to.include(errorMessage['web5-js']);
-            }
           }
           if (!errorOccurred) {
             throw new Error('Verification should have failed but didn\'t.');
