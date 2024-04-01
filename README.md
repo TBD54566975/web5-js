@@ -32,6 +32,14 @@ Web5 decentralized web applications are built using decentralized identifiers (D
 
 ## Getting Started
 
+To start developing applications and services with the Web5 JS SDK, the following steps will guide
+you through setting up your local development environment.
+
+For detailed documentation on usage refer to the
+[API reference documentation](https://tbd54566975.github.io/web5-js/). Additionally, comprehensive
+guides can be found at the [TBD Developer site](https://developer.tbd.website/docs/) to
+enrich your understanding of the underlying concepts and how to implement them effectively.
+
 ### Cloning
 
 This repository uses git submodules. To clone this repo with submodules:
