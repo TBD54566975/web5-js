@@ -77,7 +77,7 @@ describe('HttpWeb5RpcClient', () => {
       try {
         await client.sendDidRequest(request);
         expect.fail('Expected an error to be thrown');
-      } catch(error: any) { 
+      } catch(error: any) {
         expect(error.message).to.contain(`Error encountered while processing response from ${testDwnUrl}`);
       }
     });

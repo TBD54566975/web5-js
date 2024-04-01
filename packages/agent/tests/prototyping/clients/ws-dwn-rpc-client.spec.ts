@@ -100,13 +100,13 @@ describe('WebSocketDwnRpcClient', () => {
       sinon.stub(console, 'error');
 
       try {
-       await client.sendDwnRequest({
+        await client.sendDwnRequest({
           dwnUrl    : 'ws://127.0.0.1:10', // invalid host
           targetDid : alice.did,
           message,
         }, { connectTimeout: 5 }); // set a short connect timeout
         expect.fail('Expected an error to be thrown');
-      } catch (error: any) { 
+      } catch (error: any) {
         expect(error.message).to.include('Error connecting to 127.0.0.1:10');
       }
     });
