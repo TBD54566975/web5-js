@@ -600,7 +600,7 @@ describe('Verifiable Credential Tests', async() => {
       const vectors = CredentialsVerifyTestVector.vectors;
 
       for (const vector of vectors) {
-        const { input, errors } = vector;
+        const { input, errors, errorMessage } = vector;
 
         if (errors) {
           let errorOccurred = false;
@@ -609,6 +609,10 @@ describe('Verifiable Credential Tests', async() => {
           } catch (e: any) {
             errorOccurred = true;
             expect(e.message).to.not.be.null;
+
+            if(errorMessage) {
+              expect(e.message).to.equal(errorMessage['web5-js'])
+            }
           }
           if (!errorOccurred) {
             throw new Error('Verification should have failed but didn\'t.');
