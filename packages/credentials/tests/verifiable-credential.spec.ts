@@ -611,7 +611,7 @@ describe('Verifiable Credential Tests', async() => {
             expect(e.message).to.not.be.null;
 
             if(errorMessage) {
-              expect(e.message).to.equal(errorMessage['web5-js'])
+              expect(e.message).to.equal(errorMessage['web5-js']);
             }
           }
           if (!errorOccurred) {
