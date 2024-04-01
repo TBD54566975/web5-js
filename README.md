@@ -37,8 +37,8 @@ you through setting up your local development environment.
 
 For detailed documentation on usage refer to the
 [API reference documentation](https://tbd54566975.github.io/web5-js/). Additionally, comprehensive
-guides can be found at the [TBD Developer site](https://developer.tbd.website/docs/) to
-enrich your understanding of the underlying concepts and how to implement them effectively.
+guides can be found at the [TBD Developer site](https://developer.tbd.website/docs/) to enhance
+your understanding of the underlying concepts and how to implement them effectively.
 
 ### Cloning
 
