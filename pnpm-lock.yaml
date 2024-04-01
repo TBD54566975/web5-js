@@ -18,8 +18,8 @@ importers:
         specifier: 6.4.0
         version: 6.4.0(@typescript-eslint/parser@6.4.0)(eslint@8.47.0)(typescript@5.1.6)
       '@web5/dwn-server':
-        specifier: 0.1.15
-        version: 0.1.15
+        specifier: 0.1.16
+        version: 0.1.16
       eslint-plugin-mocha:
         specifier: 10.1.0
         version: 10.1.0(eslint@8.47.0)
@@ -3207,8 +3207,8 @@ packages:
       level: 8.0.0
       ms: 2.1.3
 
-  /@web5/dwn-server@0.1.15:
-    resolution: {integrity: sha512-WHmXWMg7QH6LwdBbcyEktnRXhVXkQw+kDzbgxOaIsUJk8ZRt2FtTfctvX6tBgASKIRhm8ZO1DOrqwk+zrrf/ZA==}
+  /@web5/dwn-server@0.1.16:
+    resolution: {integrity: sha512-aenZC3lFs5nyq9XHLnn2HtZ1jYHFdDIpGypI5HwrSoCfqLBByB888GOXa6VmOH2o4sAEdXd3oQmrb/mbxCPQ3Q==}
     hasBin: true
     dependencies:
       '@tbd54566975/dwn-sdk-js': 0.2.21

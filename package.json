@@ -17,7 +17,7 @@
   "scripts": {
     "clean": "pnpm npkill -d $(pwd)/packages -t dist && pnpm npkill -d $(pwd) -t node_modules",
     "build": "pnpm --recursive --stream build",
-    "dwn-server": "node node_modules/@web5/dwn-server/dist/esm/src/main.js || true",
+    "dwn-server": "DWN_SERVER_PACKAGE_JSON=node_modules/@web5/dwn-server/package.json node node_modules/@web5/dwn-server/dist/esm/src/main.js || true",
     "test:node": "pnpm --recursive test:node"
   },
   "repository": {
@@ -28,7 +28,7 @@
   "devDependencies": {
     "@npmcli/package-json": "5.0.0",
     "@typescript-eslint/eslint-plugin": "6.4.0",
-    "@web5/dwn-server": "0.1.15",
+    "@web5/dwn-server": "0.1.16",
     "eslint-plugin-mocha": "10.1.0",
     "npkill": "0.11.3"
   },
