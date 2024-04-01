@@ -10,7 +10,7 @@ import type {
   ProcessDwnRequest,
 } from '../../src/types/dwn.js';
 
-import type { Web5Rpc } from '../../src/rpc-client.js';
+import type { Web5Rpc } from '../../src/prototyping/clients/web5-rpc-types.js';
 import type { AgentDwnApi } from '../../src/dwn-api.js';
 import type { AgentSyncApi } from '../../src/sync-api.js';
 import type { AgentCryptoApi } from '../../src/crypto-api.js';

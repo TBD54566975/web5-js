@@ -582,7 +582,6 @@ export class JweKeyManagement {
 
         // Set the CEK to the key management `key`.
         cek = key;
-
         break;
       }
 

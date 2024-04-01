@@ -5,6 +5,8 @@ export type JsonRpcVersion = '2.0';
 export interface JsonRpcRequest {
   jsonrpc: JsonRpcVersion;
   id?: JsonRpcId;
+  /** JSON RPC Subscription Extension Parameters */
+  subscription?: { id: JsonRpcId }
   method: string;
   params?: any;
 }
@@ -52,25 +54,11 @@ export const createJsonRpcErrorResponse = (
   message: string,
   data?: any,
 ): JsonRpcErrorResponse => {
-  const error: JsonRpcError = { code, message };
-  if (data != undefined) {
-    error.data = data;
-  }
+  const error: JsonRpcError = { code, message, data };
   return {
     jsonrpc: '2.0',
     id,
     error,
-  };
-};
-
-export const createJsonRpcNotification = (
-  method: string,
-  params?: JsonRpcParams,
-): JsonRpcRequest => {
-  return {
-    jsonrpc: '2.0',
-    method,
-    params,
   };
 };
 
@@ -87,14 +75,31 @@ export const createJsonRpcRequest = (
   };
 };
 
+export const createJsonRpcSubscriptionRequest = (
+  id: JsonRpcId,
+  method: string,
+  subscriptionId: JsonRpcId,
+  params?: any
+): JsonRpcRequest => {
+  return {
+    jsonrpc      : '2.0',
+    id,
+    method       : `rpc.subscribe.${method}`,
+    params,
+    subscription : {
+      id: subscriptionId,
+    }
+  };
+};
+
 export const createJsonRpcSuccessResponse = (
   id: JsonRpcId,
-  result?: any,
+  result: any,
 ): JsonRpcSuccessResponse => {
   return {
-    jsonrpc : '2.0',
+    jsonrpc: '2.0',
     id,
-    result  : result ?? null,
+    result,
   };
 };
 
