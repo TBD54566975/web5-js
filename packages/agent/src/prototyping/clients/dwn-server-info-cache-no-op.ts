@@ -3,7 +3,9 @@ import { DwnServerInfoCache, ServerInfo } from './web5-rpc-types.js';
 
 export class DwnServerInfoCacheNoOp implements DwnServerInfoCache {
 
-  public async get(_dwnUrl: string): Promise<ServerInfo| void> {}
+  public async get(_dwnUrl: string): Promise<ServerInfo|undefined> {
+    return;
+  }
 
   public async set(_dwnUrl: string, _value: ServerInfo): Promise<void> {}
 

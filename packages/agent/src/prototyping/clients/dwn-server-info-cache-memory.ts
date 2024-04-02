@@ -33,7 +33,7 @@ export class DwnServerInfoCacheMemory implements DwnServerInfoCache {
    * @param dwnUrl - The DWN URL endpoint string used as the key for getting the entry.
    * @returns The cached DWN ServerInfo entry or undefined if not found or expired.
    */
-  public async get(dwnUrl: string): Promise<ServerInfo| void> {
+  public async get(dwnUrl: string): Promise<ServerInfo| undefined> {
     return this.cache.get(dwnUrl);
   }
 

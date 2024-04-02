@@ -91,7 +91,7 @@ export class DwnServerInfoCacheLevel implements DwnServerInfoCache {
    * @param dwnUrl - The DWN URL endpoint string used as the key for retrieving the cached result.
    * @returns The cached ServerInfo entry or undefined if not found or expired.
    */
-  async get(dwnUrl: string): Promise<ServerInfo| void> {
+  async get(dwnUrl: string): Promise<ServerInfo| undefined> {
     try {
       const str = await this.cache.get(dwnUrl);
       const cacheWrapper: CacheWrapper = JSON.parse(str);

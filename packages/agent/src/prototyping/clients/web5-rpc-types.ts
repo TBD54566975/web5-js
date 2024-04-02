@@ -82,9 +82,10 @@ export type ServerInfo = {
   webSocketSupport: boolean,
 }
 
-export interface DwnServerInfoCache extends KeyValueStore<string, ServerInfo| void> {}
+export interface DwnServerInfoCache extends KeyValueStore<string, ServerInfo| undefined> {}
 
 export interface DwnServerInfo {
+  /** retrieves the DWN Sever info, used to detect features such as WebSocket Subscriptions */
   getServerInfo(url: string): Promise<ServerInfo>;
 }
 
