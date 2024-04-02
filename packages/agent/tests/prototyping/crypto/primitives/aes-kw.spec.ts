@@ -4,6 +4,7 @@ import { expect } from 'chai';
 import { Convert } from '@web5/common';
 
 import { AesKw } from '../../../../src/prototyping/crypto/primitives/aes-kw.js';
+import { isChrome } from '../../../utils/runtimes.js';
 
 describe('AesKw', () => {
   describe('bytesToPrivateKey()', () => {
@@ -52,11 +53,14 @@ describe('AesKw', () => {
       privateKeyBytes = Convert.base64Url(privateKey.k!).toUint8Array();
       expect(privateKeyBytes.byteLength).to.equal(16);
 
-      // 192 bits
-      privateKey = await AesKw.generateKey({ length: 192 }) as Jwk;
-      expect(privateKey.alg).to.equal('A192KW');
-      privateKeyBytes = Convert.base64Url(privateKey.k!).toUint8Array();
-      expect(privateKeyBytes.byteLength).to.equal(24);
+      // Skip this test in Chrome browser because it does not support AES with 192-bit keys.
+      if (!isChrome) {
+        // 192 bits
+        privateKey = await AesKw.generateKey({ length: 192 }) as Jwk;
+        expect(privateKey.alg).to.equal('A192KW');
+        privateKeyBytes = Convert.base64Url(privateKey.k!).toUint8Array();
+        expect(privateKeyBytes.byteLength).to.equal(24);
+      }
 
       // 256 bits
       privateKey = await AesKw.generateKey({ length: 256 }) as Jwk;
