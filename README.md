@@ -52,7 +52,7 @@ Or to add submodules after cloning:
 git submodule update --init
 ```
 
-We recommend this config which will only checkout the test-vector files:
+We recommend running the command below once which will configure your environment to only checkout the `test-vectors` directory under the `web5-spec` git submodule directory.
 ```sh
 git -C web5-spec sparse-checkout set test-vectors
 ```
@@ -178,7 +178,7 @@ git push
 [proxy-agent-package]: ./packages/proxy-agent#readme
 [proxy-agent-npm-badge]: https://img.shields.io/npm/v/@web5/proxy-agent.svg?&color=blue&santize=true
 [proxy-agent-npm-link]: https://www.npmjs.com/package/@web5/proxy-agent
-[proxy-agent-issues-badge]: https://img.shields.io/github/issues/TBD54566975/web5-js/package:%proxy-agent?label=issues
+[proxy-agent-issues-badge]: https://img.shields.io/github/issues/TBD54566975/web5-js/package:%20proxy-agent?label=issues
 [proxy-agent-issues-link]: https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+is%3Aissue+label%3A"package%3A+proxy-agent"
 [proxy-agent-docs-badge]: https://img.shields.io/badge/docs-blue?logo=googledocs&logoColor=FFFFFF
 [proxy-agent-docs-link]: https://tbd54566975.github.io/web5-js/modules/_web5_proxy_agent.html
