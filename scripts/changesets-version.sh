@@ -8,7 +8,7 @@ FORCE_API_RELEASE=$1
 # if there is no PR, then we release without the Web5 API
 if [[ -z "$FORCE_API_RELEASE" ]]; then
     echo "This is a release without the Web5 API"
-    IGNORE_API_RELEASE="--ignore @leordev-web5/api"
+    IGNORE_API_RELEASE="--ignore @web5/api"
 else
     echo "Web5 API Release DETECTED"
 fi
