@@ -46,13 +46,13 @@ importers:
         version: 0.2.21
       '@web5/common':
         specifier: 0.2.4
-        version: link:../common
+        version: 0.2.4
       '@web5/crypto':
         specifier: 0.4.1
-        version: link:../crypto
+        version: 0.4.1
       '@web5/dids':
         specifier: 0.4.3
-        version: link:../dids
+        version: 0.4.3
       abstract-level:
         specifier: 1.0.4
         version: 1.0.4
@@ -152,13 +152,13 @@ importers:
         version: link:../agent
       '@web5/common':
         specifier: 0.2.4
-        version: link:../common
+        version: 0.2.4
       '@web5/crypto':
         specifier: 0.4.1
-        version: link:../crypto
+        version: 0.4.1
       '@web5/dids':
         specifier: 0.4.3
-        version: link:../dids
+        version: 0.4.3
       '@web5/user-agent':
         specifier: 0.3.0
         version: link:../user-agent
@@ -327,13 +327,13 @@ importers:
         specifier: 2.1.0
         version: 2.1.0
       '@web5/common':
-        specifier: 0.2.4
+        specifier: 1.0.0
         version: link:../common
       '@web5/crypto':
-        specifier: 0.4.1
+        specifier: 1.0.0
         version: link:../crypto
       '@web5/dids':
-        specifier: 0.4.3
+        specifier: 1.0.0
         version: link:../dids
     devDependencies:
       '@playwright/test':
@@ -418,7 +418,7 @@ importers:
         specifier: 1.3.3
         version: 1.3.3
       '@web5/common':
-        specifier: 0.2.4
+        specifier: 1.0.0
         version: link:../common
     devDependencies:
       '@playwright/test':
@@ -500,7 +500,7 @@ importers:
         specifier: 3.478.0
         version: 3.478.0
       '@web5/crypto':
-        specifier: 0.4.1
+        specifier: 1.0.0
         version: link:../crypto
     devDependencies:
       '@playwright/test':
@@ -538,7 +538,7 @@ importers:
         version: 0.11.0
       '@web5/common':
         specifier: 0.2.4
-        version: link:../common
+        version: 0.2.4
       c8:
         specifier: 9.0.0
         version: 9.0.0
@@ -585,10 +585,10 @@ importers:
         specifier: 6.1.1
         version: 6.1.1
       '@web5/common':
-        specifier: 0.2.4
+        specifier: 1.0.0
         version: link:../common
       '@web5/crypto':
-        specifier: 0.4.1
+        specifier: 1.0.0
         version: link:../crypto
       abstract-level:
         specifier: 1.0.4
@@ -686,13 +686,13 @@ importers:
         version: link:../agent
       '@web5/common':
         specifier: 0.2.4
-        version: link:../common
+        version: 0.2.4
       '@web5/crypto':
         specifier: 0.4.1
-        version: link:../crypto
+        version: 0.4.1
       '@web5/dids':
         specifier: 0.4.3
-        version: link:../dids
+        version: 0.4.3
     devDependencies:
       '@playwright/test':
         specifier: 1.40.1
@@ -774,13 +774,13 @@ importers:
         version: link:../agent
       '@web5/common':
         specifier: 0.2.4
-        version: link:../common
+        version: 0.2.4
       '@web5/crypto':
         specifier: 0.4.1
-        version: link:../crypto
+        version: 0.4.1
       '@web5/dids':
         specifier: 0.4.3
-        version: link:../dids
+        version: 0.4.3
     devDependencies:
       '@playwright/test':
         specifier: 1.40.1
@@ -859,13 +859,13 @@ importers:
         version: link:../agent
       '@web5/common':
         specifier: 0.2.4
-        version: link:../common
+        version: 0.2.4
       '@web5/crypto':
         specifier: 0.4.1
-        version: link:../crypto
+        version: 0.4.1
       '@web5/dids':
         specifier: 0.4.3
-        version: link:../dids
+        version: 0.4.3
     devDependencies:
       '@playwright/test':
         specifier: 1.40.1
