@@ -52,7 +52,7 @@ Or to add submodules after cloning:
 git submodule update --init
 ```
 
-We recommend this config which will only checkout the test-vector files:
+We recommend running the command below once which will configure your environment to only checkout the `test-vectors` directory under the `web5-spec` git submodule directory.
 ```sh
 git -C web5-spec sparse-checkout set test-vectors
 ```
