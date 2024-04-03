@@ -78,8 +78,8 @@
   "dependencies": {
     "@decentralized-identity/ion-sdk": "1.0.1",
     "@dnsquery/dns-packet": "6.1.1",
-    "@web5/common": "0.2.4",
-    "@web5/crypto": "0.4.1",
+    "@web5/common": "1.0.0",
+    "@web5/crypto": "1.0.0",
     "abstract-level": "1.0.4",
     "bencode": "4.0.0",
     "buffer": "6.0.3",

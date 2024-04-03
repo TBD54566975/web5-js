@@ -71,7 +71,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-kms": "3.478.0",
-    "@web5/crypto": "0.4.1"
+    "@web5/crypto": "1.0.0"
   },
   "devDependencies": {
     "@playwright/test": "1.40.1",
