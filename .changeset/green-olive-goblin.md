@@ -1,5 +1,5 @@
 ---
-"@web5/api": minor
+"@web5/api": patch
 ---
 
 - Upgrade `api` latest `dwn` changes.
