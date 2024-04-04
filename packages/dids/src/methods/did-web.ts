@@ -2,7 +2,7 @@ import type { DidDocument, DidResolutionOptions, DidResolutionResult } from '../
 
 import { Did } from '../did.js';
 import { DidMethod } from './did-method.js';
-import { EMPTY_DID_RESOLUTION_RESULT } from '../resolver/did-resolver.js';
+import { EMPTY_DID_RESOLUTION_RESULT } from '../types/did-resolution.js';
 
 /**
  * The `DidWeb` class provides an implementation of the `did:web` DID method.

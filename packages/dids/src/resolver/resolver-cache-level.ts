@@ -3,8 +3,8 @@ import type { AbstractLevel } from 'abstract-level';
 import ms from 'ms';
 import { Level } from 'level';
 
-import type { DidResolverCache } from './did-resolver.js';
 import type { DidResolutionResult } from '../types/did-core.js';
+import type { DidResolverCache } from '../types/did-resolution.js';
 
 /**
  * Configuration parameters for creating a LevelDB-based cache for DID resolution results.

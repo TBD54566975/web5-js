@@ -1,66 +1,78 @@
-import type { Web5Agent } from '@web5/agent';
-import type { ProtocolsConfigure } from '@tbd54566975/dwn-sdk-js';
+import type { DwnMessage, DwnResponseStatus, Web5Agent } from '@web5/agent';
 
-// TODO: export ProtocolsConfigureMessage from dwn-sdk-js
-/**
- * The protocol configure message carries the protocol definition and is used
- * to setup the protocol.
- *
- * @beta
- */
-export type ProtocolsConfigureMessage = ProtocolsConfigure['message'];
+import { DwnInterface } from '@web5/agent';
 
 /**
- * Metadata of the protocol
- *
- * @beta
+ * Represents metadata associated with a protocol, including the author and an optional message CID.
  */
-type ProtocolMetadata = {
+export type ProtocolMetadata = {
+  /** The author of the protocol. */
   author: string;
+
+  /**
+   * The Content Identifier (CID) of a ProtocolsConfigure message.
+   *
+   * This is an optional field, and is used by {@link Protocol.send}.
+   */
   messageCid?: string;
 };
 
 /**
- * The Protocol API abstraction class. It's used to represent and retrieve a protocol and
- * also to install (send) protocols to other DIDs.
+ * Encapsulates a DWN Protocol with its associated metadata and configuration.
  *
- * @beta
+ * This class primarly exists to provide developers with a convenient way to configure/install
+ * protocols on remote DWNs.
  */
 export class Protocol {
+  /** The {@link Web5Agent} instance that handles DWNs requests. */
   private _agent: Web5Agent;
+
+  /** The ProtocolsConfigureMessage containing the detailed configuration for the protocol. */
   private _metadata: ProtocolMetadata;
-  private _protocolsConfigureMessage: ProtocolsConfigureMessage;
+
+  /** Metadata associated with the protocol, including the author and optional message CID. */
+  private _protocolsConfigureMessage: DwnMessage[DwnInterface.ProtocolsConfigure];
 
   /**
-   * The protocol definition: types, structure and publish status
+   * Constructs a new instance of the Protocol class.
+   *
+   * @param agent - The Web5Agent instance used for network interactions.
+   * @param protocolsConfigureMessage - The configuration message containing the protocol details.
+   * @param metadata - Metadata associated with the protocol, including the author and optional message CID.
    */
-  get definition() {
-    return this._protocolsConfigureMessage.descriptor.definition;
-  }
-
-  constructor(agent: Web5Agent, protocolsConfigureMessage: ProtocolsConfigureMessage, metadata: ProtocolMetadata) {
+  constructor(agent: Web5Agent, protocolsConfigureMessage: DwnMessage[DwnInterface.ProtocolsConfigure], metadata: ProtocolMetadata) {
     this._agent = agent;
     this._metadata = metadata;
     this._protocolsConfigureMessage = protocolsConfigureMessage;
   }
 
   /**
-   * Returns the protocol as a JSON object.
+   * Retrieves the protocol definition from the protocol's configuration message.
+   * @returns The protocol definition.
+   */
+  get definition() {
+    return this._protocolsConfigureMessage.descriptor.definition;
+  }
+
+  /**
+   * Serializes the protocol's configuration message to JSON.
+   * @returns The serialized JSON object of the protocol's configuration message.
    */
   toJSON() {
     return this._protocolsConfigureMessage;
   }
 
   /**
-   * Sends the protocol to a remote DWN by specifying their DID
-   * @param target - the DID to send the protocol to
-   * @returns the status of the send protocols request
+   * Sends the protocol configuration to a remote DWN identified by the target DID.
+   *
+   * @param target - The DID of the target DWN to which the protocol configuration will be installed.
+   * @returns A promise that resolves to an object containing the status of the send operation.
    */
-  async send(target: string) {
+  async send(target: string): Promise<DwnResponseStatus> {
     const { reply } = await this._agent.sendDwnRequest({
       author      : this._metadata.author,
       messageCid  : this._metadata.messageCid,
-      messageType : 'ProtocolsConfigure',
+      messageType : DwnInterface.ProtocolsConfigure,
       target      : target,
     });
 

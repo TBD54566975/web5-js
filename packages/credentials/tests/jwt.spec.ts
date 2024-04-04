@@ -6,6 +6,9 @@ import { Ed25519 } from '@web5/crypto';
 import { DidJwk, DidKey, PortableDid } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
+import JwtVerifyTestVector from '../../../web5-spec/test-vectors/vc_jwt/verify.json' assert { type: 'json' };
+import JwtDecodeTestVector from '../../../web5-spec/test-vectors/vc_jwt/decode.json' assert { type: 'json' };
+import { VerifiableCredential } from '../src/verifiable-credential.js';
 
 describe('Jwt', () => {
   describe('parse()', () => {
@@ -89,7 +92,7 @@ describe('Jwt', () => {
       const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: did.uri };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
-      const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000) };
+      const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000), iss: did.uri, sub: did.uri };
       const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
 
       try {
@@ -105,7 +108,7 @@ describe('Jwt', () => {
       const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256', kid: did.document.verificationMethod![0].id };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
-      const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000) };
+      const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000), iss: did.uri, sub: did.uri };
       const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
 
       try {
@@ -155,7 +158,7 @@ describe('Jwt', () => {
       const header: JwtHeaderParams = { typ: 'JWT', alg: 'EdDSA', kid: did.document.verificationMethod![0].id };
       const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
 
-      const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000) };
+      const payload: JwtPayload = { iat: Math.floor(Date.now() / 1000), iss: did.uri, sub: did.uri };
       const base64UrlEncodedPayload = Convert.object(payload).toBase64Url();
 
       const toSign = `${base64UrlEncodedHeader}.${base64UrlEncodedPayload}`;
@@ -171,6 +174,57 @@ describe('Jwt', () => {
 
       expect(verifyResult.header).to.deep.equal(header);
       expect(verifyResult.payload).to.deep.equal(payload);
+    });
+  });
+
+  describe('Web5TestVectorsVcJwt', () => {
+    it('decode', async () => {
+      const vectors = JwtDecodeTestVector.vectors;
+
+      for (const vector of vectors) {
+        const { input, errors, errorMessage } = vector;
+
+        if (errors) {
+          let errorOccurred = false;
+          try {
+            VerifiableCredential.parseJwt({ vcJwt: input });
+          } catch (e: any) {
+            errorOccurred = true;
+            expect(e.message).to.not.be.null;
+            if(errorMessage && errorMessage['web5-js']) {
+              expect(e.message).to.include(errorMessage['web5-js']);
+            }
+          }
+          if (!errorOccurred) {
+            throw new Error('Verification should have failed but didn\'t.');
+          }
+        } else {
+          VerifiableCredential.parseJwt({ vcJwt: input });
+        }
+      }
+    });
+
+    it('verify', async () => {
+      const vectors = JwtVerifyTestVector.vectors;
+
+      for (const vector of vectors) {
+        const { input, errors } = vector;
+
+        if (errors) {
+          let errorOccurred = false;
+          try {
+            await VerifiableCredential.verify({ vcJwt: input });
+          } catch (e: any) {
+            errorOccurred = true;
+          }
+          if (!errorOccurred) {
+            throw new Error('Verification should have failed but didn\'t.');
+          }
+        } else {
+          // Expecting successful verification
+          await VerifiableCredential.verify({ vcJwt: input });
+        }
+      }
     });
   });
 });

@@ -1,0 +1,122 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      initiate_api_release:
+        description: "Initiate @web5/api release"
+        required: false
+        default: false
+        type: boolean
+
+  # Triggered when a PR is labeled/unlabeled with `api-release`
+  pull_request_target:
+    types: [labeled, unlabeled]
+    branches:
+      - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    # if not a fork, and its a pr label event, check if the head ref is a release branch
+    if: github.repository == 'TBD54566975/web5-js' && (github.event_name != 'pull_request_target' || (contains(github.event.action, 'labeled') && startsWith(github.event.pull_request.head.ref, 'changeset')))
+
+    permissions:
+      contents: write # to create release (changesets/action)
+      pull-requests: write # to create pull request (changesets/action)
+      id-token: write # necessary for NPM provenance
+
+    name: Release
+    runs-on: ubuntu-latest
+
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          ref: main
+
+      # https://cashapp.github.io/hermit/usage/ci/
+      - name: Init Hermit
+        uses: cashapp/activate-hermit@31ce88b17a84941bb1b782f1b7b317856addf286 # v1.1.0
+        with:
+          cache: "true"
+
+      - name: Store NPM Registry Settings to .npmrc
+        run: |
+          echo -e "//registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}" > ~/.npmrc
+
+      - name: Verify NPM token is authenticated with NPMjs.com
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm whoami
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all workspace packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm --recursive --stream build
+
+      - name: Check @web5/api Release Flow
+        id: check_api_release
+        run: scripts/changesets-api-release-check.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KICK_API_RELEASE: ${{ github.event.inputs.initiate_api_release || '' }}
+
+      - name: Create Release Pull Request or Publish to npm
+        uses: changesets/action@aba318e9165b45b7948c60273e0b72fce0a64eb9 # v1.4.7
+        id: changesets
+        if: steps.check_api_release.outputs.skip_release != 'true'
+        with:
+          publish: pnpm changeset publish
+          version: scripts/changesets-version.sh ${{ steps.check_api_release.outputs.release_web5_api || '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Label Changesets PR with API release
+        if: github.event.inputs.initiate_api_release && steps.changesets.outputs.pullRequestNumber != ''
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              issue_number: ${{ steps.changesets.outputs.pullRequestNumber }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['api-release']
+            })
+
+      - name: Publish `next` preview
+        if: steps.changesets.outputs.published != 'true' && steps.changesets.outputs.pullRequestNumber != '' && steps.changesets.outputs.hasChangesets == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          git checkout main
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          pnpm changeset version --snapshot next-$SHORT_SHA
+          pnpm changeset publish --no-git-tag --tag next
+
+  publish-docs:
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    needs: release
+    name: Publish Docs
+    if: ${{ needs.release.outputs.published == 'true' }}
+    uses: ./.github/workflows/docs-publish.yml

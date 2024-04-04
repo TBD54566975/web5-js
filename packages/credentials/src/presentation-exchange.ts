@@ -9,37 +9,49 @@ import type {
 
 import { PEX } from '@sphereon/pex';
 
+/** The Presentation Definition V2 as defined in the PEX models. */
 export interface PresentationDefinitionV2 extends PexPresDefV2 { }
 
+/** The validated object as defined in the PEX models. */
 export type Validated = PexValidated;
 
+/**
+ * The Presentation Exchange (PEX) Library implements the functionality described in the DIF Presentation Exchange specification
+ */
 export class PresentationExchange {
-  /**
-   * The Presentation Exchange (PEX) Library implements the functionality described in the DIF Presentation Exchange specification
-   */
+  /** The Presentation Exchange (PEX) instance. */
   private static pex: PEX = new PEX();
 
   /**
    * Selects credentials that satisfy a given presentation definition.
    *
-   * @param {string[]} vcJwts The list of Verifiable Credentials to select from.
-   * @param {PresentationDefinitionV2} presentationDefinition The Presentation Definition to match against.
+   * @param params - The parameters for the credential selection.
+   * @param params.vcJwts  The list of Verifiable Credentials to select from.
+   * @param params.presentationDefinition The Presentation Definition to match against.
    * @returns {string[]} selectedVcJwts A list of Verifiable Credentials that satisfy the Presentation Definition.
    */
+
   public static selectCredentials({ vcJwts, presentationDefinition }: {
     vcJwts: string[],
     presentationDefinition: PresentationDefinitionV2
   }): string[] {
     this.resetPex();
     const selectResults: SelectResults = this.pex.selectFrom(presentationDefinition, vcJwts);
+
+    // If errors exist in the results object the credentials provided didn't satisfy the requirements in the Presentation Definition
+    if(selectResults.errors?.length !== 0) {
+      return [];
+    }
+
     return Array.from(new Set(selectResults.verifiableCredential as string[] ?? []));
   }
 
   /**
    * Validates if a list of VC JWTs satisfies the given presentation definition.
    *
-   * @param vcJwts - An array of VC JWTs as strings.
-   * @param presentationDefinition - The criteria to validate against.
+   * @param params - The parameters for the satisfaction check.
+   * @param params.vcJwts - An array of VC JWTs as strings.
+   * @param params.presentationDefinition - The criteria to validate against.
    * @throws Error if the evaluation results in warnings or errors.
    */
   public static satisfiesPresentationDefinition({ vcJwts, presentationDefinition }: {
@@ -72,8 +84,9 @@ export class PresentationExchange {
    * evaluates the credentials against the definition, and finally constructs the presentation result if the
    * evaluation is successful.
    *
-   * @param {string[]} vcJwts The list of Verifiable Credentials (VCs) in JWT format to be evaluated.
-   * @param {PresentationDefinitionV2} presentationDefinition The Presentation Definition V2 to match the VCs against.
+   * @param params - The parameters for the presentation creation.
+   * @param params.vcJwts The list of Verifiable Credentials (VCs) in JWT format to be evaluated.
+   * @param params.presentationDefinition The Presentation Definition V2 to match the VCs against.
    * @returns {PresentationResult} The result of the presentation creation process, containing a presentation submission
    *                               that satisfies the presentation definition criteria.
    * @throws {Error} If the evaluation results in warnings or errors, or if the required credentials are not present,
@@ -152,6 +165,7 @@ export class PresentationExchange {
     return this.pex.evaluatePresentation(presentationDefinition, presentation);
   }
 
+  /** Resets the PEX instance. */
   private static resetPex() {
     this.pex = new PEX();
   }

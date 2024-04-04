@@ -1,13 +1,12 @@
 import sinon from 'sinon';
-import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised';
-
+import { expect } from 'chai';
 import { Level } from 'level';
-import { DidJwk } from '../../src/methods/did-jwk.js';
-import { DidResolver, DidResolverCache } from '../../src/resolver/did-resolver.js';
-import { DidResolverCacheLevel } from '../../src/resolver/resolver-cache-level.js';
 
-chai.use(chaiAsPromised);
+import type { DidResolver, DidResolverCache } from '../../src/types/did-resolution.js';
+
+import { DidJwk } from '../../src/methods/did-jwk.js';
+import { UniversalResolver } from '../../src/resolver/universal-resolver.js';
+import { DidResolverCacheLevel } from '../../src/resolver/resolver-cache-level.js';
 
 describe('DidResolverCacheLevel', () => {
   let cache: DidResolverCacheLevel;
@@ -164,19 +163,25 @@ describe('DidResolverCacheLevel', () => {
       // Instantiate DID resolution cache with default TTL of 15 minutes.
       cache = new DidResolverCacheLevel({ location: cacheStoreLocation });
 
-      await expect(
+      try {
         // @ts-expect-error - Test invalid input.
-        cache.get(null)
-      ).to.eventually.be.rejectedWith(Error, 'Key cannot be null or undefine');
+        await cache.get(null);
+        expect.fail('An error should have been thrown');
+      } catch (error: any) {
+        expect(error.message).to.include('Key cannot be null or undefined');
+      }
 
-      await expect(
+      try {
         // @ts-expect-error - Test invalid input.
-        cache.get(undefined)
-      ).to.eventually.be.rejectedWith(Error, 'Key cannot be null or undefine');
+        await cache.get(undefined);
+        expect.fail('An error should have been thrown');
+      } catch (error: any) {
+        expect(error.message).to.include('Key cannot be null or undefined');
+      }
     });
   });
 
-  describe('with DidResolver', () => {
+  describe('with UniversalResolver', () => {
     let cache: DidResolverCache;
     let didResolver: DidResolver;
 
@@ -187,7 +192,7 @@ describe('DidResolverCacheLevel', () => {
     beforeEach(async () => {
       await cache.clear();
       const didMethodApis = [DidJwk];
-      didResolver = new DidResolver({ cache, didResolvers: didMethodApis });
+      didResolver = new UniversalResolver({ cache, didResolvers: didMethodApis });
     });
 
     after(async () => {

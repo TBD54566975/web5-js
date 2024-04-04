@@ -7,6 +7,7 @@ import { DidDht, DidKey, DidIon, DidJwk } from '@web5/dids';
 import { Jwt } from '../src/jwt.js';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import CredentialsVerifyTestVector from '../../../web5-spec/test-vectors/credentials/verify.json' assert { type: 'json' };
+import { getCurrentXmlSchema112Timestamp, getXmlSchema112Timestamp } from '../src/utils.js';
 
 describe('Verifiable Credential Tests', async() => {
   let issuerDid: BearerDid;
@@ -90,6 +91,32 @@ describe('Verifiable Credential Tests', async() => {
       }
     });
 
+    it('create and sign kyc vc with did:jwk', async () => {
+      const did = await DidJwk.create();
+
+      const vc = await VerifiableCredential.create({
+        type           : 'KnowYourCustomerCred',
+        subject        : did.uri,
+        issuer         : did.uri,
+        expirationDate : getXmlSchema112Timestamp(2687920690), // 2055-03-05
+        data           : {
+          country: 'us'
+        }
+      });
+
+      const vcJwt = await vc.sign({ did });
+
+      await VerifiableCredential.verify({ vcJwt });
+
+      for( const currentVc of [vc, VerifiableCredential.parseJwt({ vcJwt })]){
+        expect(currentVc.issuer).to.equal(did.uri);
+        expect(currentVc.subject).to.equal(did.uri);
+        expect(currentVc.type).to.equal('KnowYourCustomerCred');
+        expect(currentVc.vcDataModel.issuanceDate).to.not.be.undefined;
+        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: did.uri, country: 'us'});
+      }
+    });
+
     it('create and sign vc with did:ion', async () => {
       const did = await DidIon.create();
 
@@ -140,6 +167,45 @@ describe('Verifiable Credential Tests', async() => {
       }
     });
 
+    it('create and sign vc with evidence', async () => {
+      const did = await DidJwk.create();
+
+      const evidence = [{
+        'id'               : 'https://example.edu/evidence/f2aeec97-fc0d-42bf-8ca7-0548192d4231',
+        'type'             : ['DocumentVerification'],
+        'verifier'         : 'https://example.edu/issuers/14',
+        'evidenceDocument' : 'DriversLicense',
+        'subjectPresence'  : 'Physical',
+        'documentPresence' : 'Physical',
+        'licenseNumber'    : '123AB4567'
+      }];
+
+      const vc = await VerifiableCredential.create({
+        type    : 'TBDeveloperCredential',
+        subject : did.uri,
+        issuer  : did.uri,
+        data    : {
+          username: 'nitro'
+        },
+        evidence: evidence
+      });
+
+      expect(vc.vcDataModel.evidence).to.deep.equal(evidence);
+
+      const vcJwt = await vc.sign({ did });
+
+      await VerifiableCredential.verify({ vcJwt });
+
+      for( const currentVc of [vc, VerifiableCredential.parseJwt({ vcJwt })]){
+        expect(currentVc.issuer).to.equal(did.uri);
+        expect(currentVc.subject).to.equal(did.uri);
+        expect(currentVc.type).to.equal('TBDeveloperCredential');
+        expect(currentVc.vcDataModel.issuanceDate).to.not.be.undefined;
+        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: did.uri, username: 'nitro'});
+        expect(currentVc.vcDataModel.evidence).to.deep.equal(evidence);
+      }
+    });
+
     it('should throw an error if issuer is not string', async () => {
       const subjectDid = issuerDid.uri;
 
@@ -155,6 +221,25 @@ describe('Verifiable Credential Tests', async() => {
         expect.fail();
       } catch(e: any) {
         expect(e.message).to.include('Issuer and subject must be of type string');
+      }
+    });
+
+    it('should throw and error if wrong issuer', async () => {
+      const issuerDid = await DidKey.create();
+      const vc = await VerifiableCredential.create({
+        type    : 'StreetCred',
+        issuer  : 'did:fakeissuer:123',
+        subject : 'did:subject:123',
+        data    : new StreetCredibility('high', true),
+      });
+
+      const vcJwt = await vc.sign({ did: issuerDid });
+
+      try {
+        await VerifiableCredential.verify({ vcJwt });
+        expect.fail();
+      } catch(e: any) {
+        expect(e.message).to.include('Verification failed: iss claim does not match expected issuer');
       }
     });
 
@@ -324,7 +409,7 @@ describe('Verifiable Credential Tests', async() => {
       const did = await DidKey.create();
 
       const jwt = await Jwt.sign({
-        payload   : { jti: 'hi' },
+        payload   : { jti: 'hi', iss: did.uri, sub: did.uri },
         signerDid : did
       });
 
@@ -332,6 +417,63 @@ describe('Verifiable Credential Tests', async() => {
         await VerifiableCredential.verify({ vcJwt: jwt });
       } catch(e: any) {
         expect(e.message).to.include('vc property missing');
+      }
+    });
+
+    it('verify works with RFC3339 vcjwt', async () => {
+      const didIssuer = await DidKey.create();
+      const didSubject = await DidKey.create();
+
+      const vc = await VerifiableCredential.create({
+        type         : 'TBDeveloperCredential',
+        subject      : didSubject.uri,
+        issuer       : didIssuer.uri,
+        issuanceDate : new Date().toISOString(),
+        data         : {
+          username: 'nitro'
+        }
+      });
+
+      const vcJwt = await vc.sign({ did: didIssuer });
+      await VerifiableCredential.verify({ vcJwt });
+    });
+
+    it('verify works with XmlSchema112 vcjwt', async () => {
+      const didIssuer = await DidKey.create();
+      const didSubject = await DidKey.create();
+
+      const vc = await VerifiableCredential.create({
+        type         : 'TBDeveloperCredential',
+        subject      : didSubject.uri,
+        issuer       : didIssuer.uri,
+        issuanceDate : getCurrentXmlSchema112Timestamp(),
+        data         : {
+          username: 'nitro'
+        }
+      });
+
+      const vcJwt = await vc.sign({ did: didIssuer });
+      await VerifiableCredential.verify({ vcJwt });
+    });
+
+    it('create throws with with invalid issuance date vcjwt', async () => {
+      const didIssuer = await DidKey.create();
+      const didSubject = await DidKey.create();
+
+      try {
+        await VerifiableCredential.create({
+          type         : 'TBDeveloperCredential',
+          subject      : didSubject.uri,
+          issuer       : didIssuer.uri,
+          issuanceDate : 'July 20, 2024, 15:45:30 GMT+02:00',
+          data         : {
+            username: 'nitro'
+          }
+        });
+        expect.fail();
+      } catch(e: any) {
+        expect(e).to.not.be.null;
+        expect(e.message).to.include('timestamp is not valid');
       }
     });
 

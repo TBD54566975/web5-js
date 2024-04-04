@@ -453,22 +453,70 @@ console.log(protocols); // logs an array of protocol configurations installed on
 
 #### **Request**
 
-The query `request` must contain the following:
+The `query` request object must contain the following:
 
 - **`from`** - _`DID string`_ (_optional_): the decentralized identifier of the DWeb Node the query will fetch results from.
 - **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid record query:
   - **`filter`** - _`object`_ (_optional_): properties against which results of the query will be filtered:
     - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol bucket in which to query.
 
-### **`web5.did.create(method, options)`**
+### **`web5.did.create(request)`**
 
-The `create` method under the `did` object enables generation of DIDs for a supported set of DID Methods ('ion'|'key'). The output is method-specific, and handles things like key generation and assembly of DID Documents that can be published to DID networks.
+The `create` method under the `did` object enables generation of DIDs for a supported set of DID Methods ('dht'|'jwk').
+The output is method-specific, and handles things like key generation and assembly of DID Documents that can be
+published to DID networks.
 
-> NOTE: You do not usually need to manually invoke this, as the `Web5.connect()` method already acquires a DID for the user (either by direct creation or connection to an identity agent app).
+#### **Usage**
 
 ```javascript
-const myDid = await Web5.did.create("ion");
+const myDid = await web5.did.create("dht");
 ```
+
+#### **Parameters**
+
+The `create` request object must contain the following parameters:
+
+- **`method`** - _`string`_: The DID method to use for generating the DID. Supported methods include 'dht' and 'jwk', among others that may be supported by the SDK.
+
+- **`options`** - _`object`_ (_optional_): An object containing options specific to the DID method chosen. These options can influence how the DID is generated. For instance, they can dictate specifics about the cryptographic keys that are generated or associated with the new DID. Common options include:
+
+- **`store`** - _`boolean`_ (_optional_): Determines whether the DID's cryptographic keys and metadata will be stored in
+  the user's DWeb Node.
+
+#### **Notes**
+
+- Typically developers will not manually invoke this method as the more common approach is to use the `Web5.connect()`
+  method to acquire a DID for the user (either by direct creation or connection to an identity agent app).
+
+### **`web5.did.resolve(didUri, options)`**
+
+The `resolve` method under the `did` object enables the resolution of a Decentralized Identifier (DID) to its
+corresponding DID Document. This operation allows applications to fetch the public keys, service endpoints, and other
+metadata associated with a DID.
+
+#### **Usage**
+
+```javascript
+const { didDocument } = await web5.did.resolve('did:dht:qftx7z968xcpfy1a1diu75pg5meap3gdtg6ezagaw849wdh6oubo');
+```
+
+#### **Parameters**
+
+- **`didUri`** - _`string`_: The DID URI to be resolved. This should be a fully qualified DID following the standard scheme `did:<method>:<identifier>`.
+
+- **`options`** (_optional_): An object containing options for DID resolution. This can include method-specific parameters that influence the resolution process.
+
+#### **Response**
+
+The method returns a DID resolution result as a JavaScript object. The structure of this object adheres to the
+[DID Core specifications](https://www.w3.org/TR/did-core/#did-resolution), containing the elements
+`didResolutionMetadata`, `didDocument`, and `didDocumentMetadata`.
+
+#### **Notes**
+
+- The resolution process for some DID methods like DID DHT involve network requests to the relevant DID verifiable 
+  data registry or a resolver endpoint, which may introduce latency based on the network conditions and the specific DID
+  method utilized.
 
 ## Project Resources
 

@@ -4,6 +4,7 @@ import chaiAsPromised from 'chai-as-promised';
 
 import type { Jwk, JwkParamsOctPrivate } from '../../src/jose/jwk.js';
 
+import { isChrome } from '../utils/runtimes.js';
 import { AesGcm, AES_GCM_TAG_LENGTHS } from '../../src/primitives/aes-gcm.js';
 import AesGcmDecryptTestVector from '../fixtures/test-vectors/aes-gcm/decrypt.json' assert { type: 'json' };
 import AesGcmEncryptTestVector from '../fixtures/test-vectors/aes-gcm/encrypt.json' assert { type: 'json' };
@@ -229,7 +230,7 @@ describe('AesGcm', () => {
       expect(privateKey).to.have.property('kty', 'oct');
     });
 
-    it('supports key lengths of 128, 192, or 256 bits', async () => {
+    it('supports key lengths of 128 and 256 bits in all supported runtimes', async () => {
       let privateKey: JwkParamsOctPrivate;
       let privateKeyBytes: Uint8Array;
 
@@ -238,15 +239,22 @@ describe('AesGcm', () => {
       privateKeyBytes = Convert.base64Url(privateKey.k).toUint8Array();
       expect(privateKeyBytes.byteLength).to.equal(16);
 
-      // 192 bits
-      privateKey = await AesGcm.generateKey({ length: 192 }) as JwkParamsOctPrivate;
-      privateKeyBytes = Convert.base64Url(privateKey.k).toUint8Array();
-      expect(privateKeyBytes.byteLength).to.equal(24);
-
       // 256 bits
       privateKey = await AesGcm.generateKey({ length: 256 }) as JwkParamsOctPrivate;
       privateKeyBytes = Convert.base64Url(privateKey.k).toUint8Array();
       expect(privateKeyBytes.byteLength).to.equal(32);
+    });
+
+    it('supports key lengths of 192 bits in all supported runtimes except Chrome browser', async function () {
+      if (isChrome) this.skip();
+
+      let privateKey: JwkParamsOctPrivate;
+      let privateKeyBytes: Uint8Array;
+
+      // 192 bits
+      privateKey = await AesGcm.generateKey({ length: 192 }) as JwkParamsOctPrivate;
+      privateKeyBytes = Convert.base64Url(privateKey.k).toUint8Array();
+      expect(privateKeyBytes.byteLength).to.equal(24);
     });
 
     it('throws an error if the key length is invalid', async () => {

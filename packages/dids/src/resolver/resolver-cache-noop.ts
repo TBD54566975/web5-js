@@ -1,5 +1,5 @@
-import type { DidResolverCache } from './did-resolver.js';
 import type { DidResolutionResult } from '../types/did-core.js';
+import type { DidResolverCache } from '../types/did-resolution.js';
 
 /**
  * No-op cache that is used as the default cache for did-resolver.

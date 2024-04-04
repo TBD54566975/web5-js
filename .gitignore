@@ -3,6 +3,7 @@
 **/EVENTLOG/
 **/INDEX/
 **/MESSAGESTORE/
+**/RESOLVERCACHE/
 data
 compiled
 
@@ -165,3 +166,6 @@ results.xml
 
 .tbdocs
 temp
+
+# Hermit build output
+.hermit

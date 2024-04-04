@@ -5,8 +5,10 @@ import { utils as cryptoUtils } from '@web5/crypto';
 
 import { Jwt } from './jwt.js';
 import { SsiValidator } from './validators.js';
-import { DEFAULT_VC_CONTEXT } from './verifiable-credential.js';
 
+import { VerifiableCredential, DEFAULT_VC_CONTEXT } from './verifiable-credential.js';
+
+/** The default type for a Verifiable Presentation. */
 export const DEFAULT_VP_TYPE = 'VerifiablePresentation';
 
 /**
@@ -24,9 +26,13 @@ export type VpDataModel = IPresentation;
  * @param additionalData Optional additional data to be included in the presentation.
  */
 export type VerifiablePresentationCreateOptions = {
+  /** The holder URI of the presentation, as a string. */
   holder: string,
+  /** The JWTs of the credentials to be included in the presentation. */
   vcJwts: string[],
+  /** The type of the presentation, can be a string or an array of strings. */
   type?: string | string[];
+  /** Optional additional data to be included in the presentation. */
   additionalData?: Record<string, any>
 };
 
@@ -35,6 +41,7 @@ export type VerifiablePresentationCreateOptions = {
  * @param did - The holder DID of the presentation, represented as a PortableDid.
  */
 export type VerifiablePresentationSignOptions = {
+  /** The holder DID of the presentation, represented as a PortableDid. */
   did: BearerDid;
 };
 
@@ -52,14 +59,17 @@ export type VerifiablePresentationSignOptions = {
 export class VerifiablePresentation {
   constructor(public vpDataModel: VpDataModel) {}
 
+  /** The type of the Verifiable Presentation. */
   get type(): string {
     return this.vpDataModel.type![this.vpDataModel.type!.length - 1];
   }
 
+  /** The holder of the Verifiable Presentation. */
   get holder(): string {
     return this.vpDataModel.holder!.toString();
   }
 
+  /** The verifiable credentials contained in the Verifiable Presentation. */
   get verifiableCredential(): string[] {
     return this.vpDataModel.verifiableCredential! as string[];
   }
@@ -82,6 +92,8 @@ export class VerifiablePresentation {
         vp  : this.vpDataModel,
         iss : options.did.uri,
         sub : options.did.uri,
+        jti : this.vpDataModel.id,
+        iat : Math.floor(Date.now() / 1000)
       }
     });
 
@@ -187,13 +199,16 @@ export class VerifiablePresentation {
     validatePayload(vp);
 
     for (const vcJwt of vp.verifiableCredential!) {
-      await Jwt.verify({ jwt: vcJwt as string });
+      await VerifiableCredential.verify({ vcJwt: vcJwt as string });
     }
 
     return {
+      /** The issuer of the VP */
       issuer  : payload.iss!,
+      /** The subject of the VP. */
       subject : payload.sub!,
-      vc      : payload['vp'] as VpDataModel
+      /** The VP data model object. */
+      vp      : payload['vp'] as VpDataModel
     };
   }
 

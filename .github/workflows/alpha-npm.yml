@@ -29,9 +29,13 @@ jobs:
 
       # https://cashapp.github.io/hermit/usage/ci/
       - name: Init Hermit
-        uses: cashapp/activate-hermit@v1
+        uses: cashapp/activate-hermit@31ce88b17a84941bb1b782f1b7b317856addf286 #v1.1.0
         with:
           cache: "true"
+
+      - name: Store NPM Registry Settings to .npmrc
+        run: |
+          echo -e "//registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}" > ~/.npmrc
 
       # Note - this is not required but it gives a clean failure prior to attempting a release if
       # the GH workflow runner is not authenticated with NPMjs.com
@@ -54,15 +58,17 @@ jobs:
         shell: bash
 
       - name: Build all workspace packages
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: pnpm --recursive --stream build
-
+        
       - name: Publish selected @web5/* packages
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: |
           for package in $PACKAGES; do
             cd packages/$package
-            pnpm publish --tag alpha --no-git-tag-version --access public --provenance
+            pnpm publish --tag alpha --access public --provenance --no-git-checks
             cd ../..
           done
         shell: bash

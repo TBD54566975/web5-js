@@ -5,10 +5,12 @@ import { utils as cryptoUtils } from '@web5/crypto';
 
 import { Jwt } from './jwt.js';
 import { SsiValidator } from './validators.js';
-import { getCurrentXmlSchema112Timestamp } from './utils.js';
+import { getCurrentXmlSchema112Timestamp, getXmlSchema112Timestamp } from './utils.js';
 import { DEFAULT_STATUS_LIST_VC_CONTEXT, StatusList2021Entry } from './status-list-credential.js';
 
+/** The default Verifiable Credential context. */
 export const DEFAULT_VC_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
+/** The default Verifiable Credential type. */
 export const DEFAULT_VC_TYPE = 'VerifiableCredential';
 
 /**
@@ -27,15 +29,25 @@ export type VcDataModel = ICredential;
  * @param issuanceDate Optional. The issuance date of the credential, as a string.
  *               Defaults to the current date if not specified.
  * @param expirationDate Optional. The expiration date of the credential, as a string.
+ * @param evidence Optional. Evidence can be included by an issuer to provide the verifier with additional supporting information in a verifiable credential.
  */
 export type VerifiableCredentialCreateOptions = {
+  /** The type of the credential, can be a string or an array of strings. */
   type?: string | string[];
+  /** The issuer URI of the credential, as a string. */
   issuer: string;
+  /** The subject URI of the credential, as a string. */
   subject: string;
+  /** The credential data, as a generic type any. */
   data: any;
+  /** The issuance date of the credential, as a string. */
   issuanceDate?: string;
+  /** The expiration date of the credential, as a string. */
   expirationDate?: string;
-  credentialStatus?: StatusList2021Entry
+  /** The status of the credential, as a StatusList2021Entry. */
+  credentialStatus?: StatusList2021Entry;
+  /** The evidence of the credential, as an array of any. */
+  evidence?: any[];
 };
 
 /**
@@ -43,9 +55,11 @@ export type VerifiableCredentialCreateOptions = {
  * @param did - The issuer DID of the credential, represented as a PortableDid.
  */
 export type VerifiableCredentialSignOptions = {
+  /** The issuer DID of the credential, represented as a PortableDid. */
   did: BearerDid;
 };
 
+/** The credential subject of a verifiable credential. */
 type CredentialSubject = ICredentialSubject;
 
 /**
@@ -61,14 +75,17 @@ type CredentialSubject = ICredentialSubject;
 export class VerifiableCredential {
   constructor(public vcDataModel: VcDataModel) {}
 
+  /** The type of the credential. */
   get type(): string {
     return this.vcDataModel.type[this.vcDataModel.type.length - 1];
   }
 
+  /** The issuer of the credential. */
   get issuer(): string {
     return this.vcDataModel.issuer.toString();
   }
 
+  /** The subject of the credential. */
   get subject(): string {
     if (Array.isArray(this.vcDataModel.credentialSubject)) {
       return this.vcDataModel.credentialSubject[0].id!;
@@ -93,8 +110,14 @@ export class VerifiableCredential {
       signerDid : options.did,
       payload   : {
         vc  : this.vcDataModel,
-        iss : this.issuer,
+        nbf : Math.floor(new Date(this.vcDataModel.issuanceDate).getTime() / 1000),
+        jti : this.vcDataModel.id,
+        iss : options.did.uri,
         sub : this.subject,
+        iat : Math.floor(Date.now() / 1000),
+        ...(this.vcDataModel.expirationDate && {
+          exp: Math.floor(new Date(this.vcDataModel.expirationDate).getTime() / 1000),
+        }),
       }
     });
 
@@ -127,7 +150,7 @@ export class VerifiableCredential {
    * @returns A [VerifiableCredential] instance.
    */
   public static async create(options: VerifiableCredentialCreateOptions): Promise<VerifiableCredential> {
-    const { type, issuer, subject, data, issuanceDate, expirationDate, credentialStatus } = options;
+    const { type, issuer, subject, data, issuanceDate, expirationDate, credentialStatus, evidence } = options;
 
     const jsonData = JSON.parse(JSON.stringify(data));
 
@@ -161,10 +184,13 @@ export class VerifiableCredential {
         : (type ? [DEFAULT_VC_TYPE, type] : [DEFAULT_VC_TYPE]),
       id                : `urn:uuid:${cryptoUtils.randomUuid()}`,
       issuer            : issuer,
-      issuanceDate      : issuanceDate || getCurrentXmlSchema112Timestamp(), // use default if undefined
+      issuanceDate      : issuanceDate || getCurrentXmlSchema112Timestamp(),
       credentialSubject : credentialSubject,
-      ...(expirationDate && { expirationDate }), // optional  property
-      ...(credentialStatus && { credentialStatus }) // optional  property
+
+      // Include optional properties only if they have values
+      ...(expirationDate && { expirationDate }),
+      ...(credentialStatus && { credentialStatus }),
+      ...(evidence && { evidence }),
     };
 
     validatePayload(vcDataModel);
@@ -183,7 +209,19 @@ export class VerifiableCredential {
    * - Identifies the correct Verification Method from the DID Document based on the `kid` parameter.
    * - Verifies the JWT's signature using the public key associated with the Verification Method.
    *
-   * If any of these steps fail, the function will throw a [Error] with a message indicating the nature of the failure.
+   * If any of these steps fail, the function will throw a [Error] with a message indicating the nature of the failure:
+   * - exp MUST represent the expirationDate property, encoded as a UNIX timestamp (NumericDate).
+   * - iss MUST represent the issuer property of a verifiable credential or the holder property of a verifiable presentation.
+   * - nbf MUST represent issuanceDate, encoded as a UNIX timestamp (NumericDate).
+   * - jti MUST represent the id property of the verifiable credential or verifiable presentation.
+   * - sub MUST represent the id property contained in the credentialSubject.
+   *
+   * Once the verifications are successful, when recreating the VC data model object, this function will:
+   * - If exp is present, the UNIX timestamp MUST be converted to an [XMLSCHEMA11-2] date-time, and MUST be used to set the value of the expirationDate property of credentialSubject of the new JSON object.
+   * - If iss is present, the value MUST be used to set the issuer property of the new credential JSON object or the holder property of the new presentation JSON object.
+   * - If nbf is present, the UNIX timestamp MUST be converted to an [XMLSCHEMA11-2] date-time, and MUST be used to set the value of the issuanceDate property of the new JSON object.
+   * - If sub is present, the value MUST be used to set the value of the id property of credentialSubject of the new credential JSON object.
+   * - If jti is present, the value MUST be used to set the value of the id property of the new JSON object.
    *
    * @example
    * ```ts
@@ -194,8 +232,8 @@ export class VerifiableCredential {
    *     console.log("VC Verification failed: ${e.message}")
    * }
    * ```
-   *
-   * @param vcJwt The Verifiable Credential in JWT format as a [string].
+   * @param param - The parameters for the verification process.
+   * @param param.vcJwt The Verifiable Credential in JWT format as a [string].
    * @throws Error if the verification fails at any step, providing a message with failure details.
    * @throws Error if critical JWT header elements are absent.
    */
@@ -203,17 +241,74 @@ export class VerifiableCredential {
     vcJwt: string
   }) {
     const { payload } = await Jwt.verify({ jwt: vcJwt });
-    const vc = payload['vc'] as VcDataModel;
+    const { exp, iss, nbf, jti, sub, vc } = payload;
+
     if (!vc) {
       throw new Error('vc property missing.');
     }
 
-    validatePayload(vc);
+    const vcTyped: VcDataModel = payload['vc'] as VcDataModel;
+
+    // exp MUST represent the expirationDate property, encoded as a UNIX timestamp (NumericDate).
+    if(exp && vcTyped.expirationDate && exp !==  Math.floor(new Date(vcTyped.expirationDate).getTime() / 1000)) {
+      throw new Error('Verification failed: exp claim does not match expirationDate');
+    }
+
+    // If exp is present, the UNIX timestamp MUST be converted to an [XMLSCHEMA11-2] date-time, and MUST be used to set the value of the expirationDate property of credentialSubject of the new JSON object.
+    if(exp) {
+      vcTyped.expirationDate = getXmlSchema112Timestamp(exp);
+    }
+
+    if (!iss) throw new Error('Verification failed: iss claim is required');
+
+    // iss MUST represent the issuer property of a verifiable credential or the holder property of a verifiable presentation.
+    if (iss !== vcTyped.issuer) {
+      throw new Error('Verification failed: iss claim does not match expected issuer');
+    }
+
+    // nbf cannot represent time in the future
+    if(nbf && nbf > Math.floor(Date.now() / 1000)) {
+      throw new Error('Verification failed: nbf claim is in the future');
+    }
+
+    // nbf MUST represent issuanceDate, encoded as a UNIX timestamp (NumericDate).
+    if(nbf && vcTyped.issuanceDate && nbf !== Math.floor(new Date(vcTyped.issuanceDate).getTime() / 1000)) {
+      throw new Error('Verification failed: nbf claim does not match issuanceDate');
+    }
+
+    // If nbf is present, the UNIX timestamp MUST be converted to an [XMLSCHEMA11-2] date-time, and MUST be used to set the value of the issuanceDate property of the new JSON object.
+    if(nbf) {
+      vcTyped.issuanceDate = getXmlSchema112Timestamp(nbf);
+    }
+
+    // sub MUST represent the id property contained in the credentialSubject.
+    if(sub && !Array.isArray(vcTyped.credentialSubject) && sub !== vcTyped.credentialSubject.id) {
+      throw new Error('Verification failed: sub claim does not match credentialSubject.id');
+    }
+
+    // If sub is present, the value MUST be used to set the value of the id property of credentialSubject of the new credential JSON object.
+    if(sub && !Array.isArray(vcTyped.credentialSubject)) {
+      vcTyped.credentialSubject.id = sub;
+    }
+
+    // jti MUST represent the id property of the verifiable credential or verifiable presentation.
+    if(jti && jti !== vcTyped.id) {
+      throw new Error('Verification failed: jti claim does not match id');
+    }
+
+    if(jti) {
+      vcTyped.id = jti;
+    }
+
+    validatePayload(vcTyped);
 
     return {
+      /** The issuer of the VC. */
       issuer  : payload.iss!,
+      /** The subject of the VC. */
       subject : payload.sub!,
-      vc      : payload['vc'] as VcDataModel
+      /** The VC data model object. */
+      vc      : vcTyped
     };
   }
 
@@ -235,6 +330,8 @@ export class VerifiableCredential {
     if(!vcDataModel) {
       throw Error('Jwt payload missing vc property');
     }
+
+    validatePayload(vcDataModel);
 
     return new VerifiableCredential(vcDataModel);
   }

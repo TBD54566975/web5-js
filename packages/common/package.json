@@ -1,6 +1,6 @@
 {
   "name": "@web5/common",
-  "version": "0.2.4",
+  "version": "1.0.0",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -62,10 +62,11 @@
     "web5"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "@isaacs/ttlcache": "1.4.1",

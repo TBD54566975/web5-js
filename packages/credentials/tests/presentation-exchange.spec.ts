@@ -7,6 +7,8 @@ import { VerifiableCredential } from '../src/verifiable-credential.js';
 import { PresentationExchange } from '../src/presentation-exchange.js';
 import PresentationExchangeSelectCredentialsTestVector from '../../../web5-spec/test-vectors/presentation_exchange/select_credentials.json' assert { type: 'json' };
 import PresentationExchangeCreatePresentationFromCredentialsTestVector from '../../../web5-spec/test-vectors/presentation_exchange/create_presentation_from_credentials.json' assert { type: 'json' };
+import PresentationExchangeValidateDefinitionTestVector from '../../../web5-spec/test-vectors/presentation_exchange/validate_definition.json' assert { type: 'json' };
+import PresentationExchangeValidateSubmissionTestVector from '../../../web5-spec/test-vectors/presentation_exchange/validate_submission.json' assert { type: 'json' };
 
 
 class BitcoinCredential {
@@ -43,7 +45,7 @@ describe('PresentationExchange', () => {
       groupPresentationDefinition = createGroupPresentationDefinition();
     });
 
-    it('should evaluate credentials without any errors or warnings', async () => {
+    it('should not throw when credential aligns with presentation definition', async () => {
       PresentationExchange.satisfiesPresentationDefinition({
         vcJwts: [btcCredentialJwt],
         presentationDefinition
@@ -56,6 +58,24 @@ describe('PresentationExchange', () => {
         presentationDefinition
       });
       expect(actualSelectedVcJwts).to.deep.equal([btcCredentialJwt]);
+    });
+
+    it('should return 0 verifiable credentials when they dont match the presentation definition', async () => {
+      const vc = await VerifiableCredential.create({
+        type    : 'Random',
+        issuer  : issuerDid.uri,
+        subject : issuerDid.uri,
+        data    : {random: 'random'},
+      });
+
+      const randomVcJwt = await vc.sign({did: issuerDid});
+
+      const actualSelectedVcJwts = PresentationExchange.selectCredentials({
+        vcJwts: [randomVcJwt],
+        presentationDefinition
+      });
+
+      expect(actualSelectedVcJwts).to.deep.equal([]);
     });
 
     it('should return the only one verifiable credential', async () => {
@@ -275,14 +295,12 @@ describe('PresentationExchange', () => {
         const input = vectors[i].input;
         const expectedOutput = vectors[i].output.selectedCredentials;
 
-        const selectedCreds = PresentationExchange.selectCredentials({ vcJwts: input.credentialJwts, presentationDefinition: input.presentationDefinition});
+        const selectedCreds = PresentationExchange.selectCredentials({ vcJwts: input.credentialJwts, presentationDefinition: input.presentationDefinition });
 
         expect(selectedCreds).to.deep.equals(expectedOutput);
       }
     });
-  });
 
-  describe('Web5TestVectorsPresentationExchange', () => {
     it('create_presentation_from_credentials', async () => {
       const vectors = PresentationExchangeCreatePresentationFromCredentialsTestVector.vectors;
 
@@ -290,14 +308,60 @@ describe('PresentationExchange', () => {
         const input = vectors[i].input;
         const expectedOutput = vectors[i].output.presentationSubmission;
 
-        const presentation = PresentationExchange.createPresentationFromCredentials({ vcJwts: input.credentialJwts, presentationDefinition: input.presentationDefinition});
+        const presentation = PresentationExchange.createPresentationFromCredentials({ vcJwts: input.credentialJwts, presentationDefinition: input.presentationDefinition });
 
         expect(presentation.presentationSubmission.definition_id).to.deep.equals(expectedOutput.definition_id);
         expect(presentation.presentationSubmission.descriptor_map).to.deep.equals(expectedOutput.descriptor_map);
       }
     });
+
+    it('validate_definition', async () => {
+      const vectors = PresentationExchangeValidateDefinitionTestVector.vectors;
+
+      for (let i = 0; i < vectors.length; i++) {
+        const input = vectors[i].input;
+        const errorExpected = vectors[i].errors;
+
+        const result = PresentationExchange.validateDefinition({ presentationDefinition: input.presentationDefinition });
+        if(errorExpected) {
+          expect(isValid(result)).to.be.false;
+        } else {
+          expect(isValid(result)).to.be.true;
+        }
+      }
+    });
+
+    it('validate_submission', async () => {
+      const vectors = PresentationExchangeValidateSubmissionTestVector.vectors;
+
+      for (let i = 0; i < vectors.length; i++) {
+        const input = vectors[i].input;
+        const errorExpected = vectors[i].errors;
+
+        const result = PresentationExchange.validateSubmission({ presentationSubmission: input.presentationSubmission });
+        if(errorExpected) {
+          expect(isValid(result)).to.be.false;
+        } else {
+          expect(isValid(result)).to.be.true;
+        }
+      }
+    });
   });
 });
+
+function isValid(validated: Validated) {
+  if (Array.isArray(validated)) {
+    if (!validated.every(item => item.status === 'info')) {
+      return false;
+    }
+  } else {
+    if (validated.status !== 'info') {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 function createPresentationDefinition(): PresentationDefinitionV2 {
   return {

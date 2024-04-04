@@ -7,15 +7,22 @@ The `@web5/credentials` package provides the following functionality:
 # Table of Contents <!-- omit in toc -->
 
 - [`VerifiableCredential`](#verifiablecredential)
-  - [Features](#features)
-  - [Usage](#usage)
+  - [Features](#vc-features)
+  - [Usage](#vc-usage)
     - [Creating a Verifiable Credential](#creating-a-verifiable-credential)
     - [Signing a Verifiable Credential](#signing-a-verifiable-credential)
     - [Verifying a Verifiable Credential](#verifying-a-verifiable-credential)
     - [Parsing a JWT into a Verifiable Credential](#parsing-a-jwt-into-a-verifiable-credential)
-  - [`PresentationExchange`](#presentationexchange)
-    - [Features](#features-1)
-    - [Usage](#usage-1)
+- [`VerifiablePresentation`](#verifiablepresentation)
+  - [Features](#vp-features)
+  - [Usage](#vp-usage)
+    - [Creating a Verifiable Presentation](#creating-a-verifiable-presentation)
+    - [Signing a Verifiable Presentation](#signing-a-verifiable-presentation)
+    - [Verifying a Verifiable Presentation](#verifying-a-verifiable-presentation)
+    - [Parsing a JWT into a Verifiable Presentation](#parsing-a-jwt-into-a-verifiable-presentation)
+- [`PresentationExchange`](#presentationexchange)
+  - [Features](#pex-features)
+  - [Usage](#pex-usage)
     - [Selecting Credentials](#selecting-credentials)
     - [Satisfying a Presentation Definition](#satisfying-a-presentation-definition)
     - [Create Presentation From Credentials](#create-presentation-from-credentials)
@@ -23,17 +30,30 @@ The `@web5/credentials` package provides the following functionality:
     - [Validate Submission](#validate-submission)
     - [Validate Presentation](#validate-presentation)
 
-
 # `VerifiableCredential`
 
-## Features
+## VC Features
 
 * Create Verifiable Credentials with flexible data types.
 * Sign credentials using decentralized identifiers (DIDs).
 * Verify the integrity and authenticity of VCs encoded as JSON Web Tokens (JWTs).
 * Parse JWT representations of VCs into VerifiableCredential instances.
 
-## Usage
+## VC Usage
+
+Along with the credentials package you will need command and dids for most of the Verifiable Credentials operations
+
+```javascript
+npm install @web5/common
+npm install @web5/dids
+npm install @web5/credentials
+```
+
+Then to import:
+
+```javascript
+import { VerifiableCredential, VerifiablePresentation, PresentationExchange } from '@web5/credentials';
+```
 
 ### Creating a Verifiable Credential
 
@@ -43,7 +63,9 @@ Create a new `VerifiableCredential` with the following parameters:
 - `issuer`: Issuer URI.
 - `subject`: Subject URI.
 - `data`: Credential data.
-- `expirationDate?`: (optinal) Expiration Date
+- `issuanceDate?` (Optional) The Issuance Date. Defaults to current date if not specified
+- `expirationDate?`: (Optional) Expiration Date
+- `evidence?`: (Optional) Evidence can be included by an issuer to provide the verifier with additional supporting information in a verifiable credential.
 
 ```javascript
 class StreetCredibility {
@@ -101,18 +123,79 @@ Parse a JWT into a `VerifiableCredential` instance
 const vc = VerifiableCredential.parseJwt({ vcJwt: signedVcJwt })
 ```
 
+# `VerifiablePresentation`
+
+## VP Features
+
+* Create Verifiable Presentation with flexible data types.
+* Sign presentations using decentralized identifiers (DIDs).
+* Verify the integrity and authenticity of VPs encoded as JSON Web Tokens (JWTs).
+* Parse JWT representations of VPs into VerifiablePresentation instances.
+
+### VP Usage
+
+### Creating a Verifiable Presentation
+Create a new VerifiablePresentation with the following parameters:
+
+- `holder`: The holder URI of the presentation, as a string..
+- `vcJwts`: The JWTs of the credentials to be included in the presentation.
+- `type`: Optional type of the presentation, can be a string or an array of strings.
+- `additionalData`: Optional additional data to be included in the presentation.
+
+```javascript
+const vp = await VerifiablePresentation.create({
+  type: 'PresentationSubmission',
+  holder: 'did:ex:holder',
+  vcJwts: vcJwts,
+  additionalData: { 'arbitrary': 'data' }
+});
+```
+
+### Signing a Verifiable Presentation
+Sign a `VerifiablePresentation` with a DID:
+
+- `did`: The did that is signing the VP
+
+Sign the VP using the `did` object
+```javascript
+const vpJwt = await vp.sign({ did: issuer });
+```
+
+### Verifying a Verifiable Presentation
+Verify the integrity and authenticity of a Verifiable Presentation
+
+- `vpJwt`: The VP in JWT format as a String.
+
+```javascript
+try {
+  await VerifiablePresentation.verify({ vpJwt: signedVpJwt })
+  console.log("VP Verification successful!")
+} catch (e: Error) {
+  console.log("VP Verification failed: ${e.message}")
+}
+```
+
+### Parsing a JWT into a Verifiable Presentation
+Parse a JWT into a `VerifiablePresentation` instance
+
+`vpJwt`: The VP JWT as a String.
+
+```javascript
+const parsedVp = VerifiablePresentation.parseJwt({ vcJwt: signedVcJwt })
+```
+
 ## `PresentationExchange`
 
 `PresentationExchange` is designed to facilitate the creation of a Verifiable Presentation by providing tools to select and validate Verifiable Credentials against defined criteria.
 
-### Features
+### PEX Features
 
 - Select credentials that satisfy a given presentation definition.
 - Validate if a Verifiable Credential JWT satisfies a Presentation Definition.
 - Validate input descriptors within Presentation Definitions.
 
 
-### Usage
+### PEX Usage
 
 ### Selecting Credentials
 Select Verifiable Credentials that meet the criteria of a given presentation definition.
