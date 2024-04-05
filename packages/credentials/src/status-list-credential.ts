@@ -219,7 +219,7 @@ export class StatusListCredential {
    */
   private static bitstringExpansion(compressedBitstring: string): number[] {
     // Base64-decode the compressed bitstring
-    const compressedData = Buffer.from(compressedBitstring, 'base64');
+    const compressedData = Convert.base64Url(compressedBitstring).toUint8Array();
 
     // Decompress the data using pako
     const decompressedData = pako.inflate(compressedData);
