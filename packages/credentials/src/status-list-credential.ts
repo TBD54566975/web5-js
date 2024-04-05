@@ -1,7 +1,6 @@
 import pako from 'pako';
 import { getCurrentXmlSchema112Timestamp } from './utils.js';
 import { VerifiableCredential, DEFAULT_VC_CONTEXT, DEFAULT_VC_TYPE, VcDataModel } from './verifiable-credential.js';
-import type { ICredentialStatus} from '@sphereon/ssi-types';
 import { Convert } from '@web5/common';
 
 export const DEFAULT_STATUS_LIST_VC_CONTEXT = 'https://w3id.org/vc/status-list/2021/v1';
@@ -43,7 +42,7 @@ export type StatusListCredentialCreateOptions = {
  *
  * @see {@link https://www.w3.org/community/reports/credentials/CG-FINAL-vc-status-list-2021-20230102/#example-example-statuslist2021credential | Status List 2021 Entry}
  */
-export interface StatusList2021Entry {
+export interface CredentialStatusReference {
   id: string
   type: string
   statusPurpose: string,
@@ -125,7 +124,7 @@ export class StatusListCredential {
     credentialToValidate: VerifiableCredential,
     statusListCredential: VerifiableCredential
   ): boolean {
-    const statusListEntryValue = credentialToValidate.vcDataModel.credentialStatus! as StatusList2021Entry;
+    const statusListEntryValue = credentialToValidate.vcDataModel.credentialStatus! as CredentialStatusReference;
     const credentialSubject = statusListCredential.vcDataModel.credentialSubject as any;
     const statusListCredStatusPurpose = credentialSubject['statusPurpose'] as StatusPurpose;
     const encodedListCompressedBitString = credentialSubject['encodedList'] as string;
@@ -170,25 +169,25 @@ export class StatusListCredential {
         throw new Error('no credential status found in credential');
       }
 
-      const statusListEntry: StatusList2021Entry = vc.vcDataModel.credentialStatus as StatusList2021Entry;
+      const statusReference: CredentialStatusReference = vc.vcDataModel.credentialStatus as CredentialStatusReference;
 
-      if (statusListEntry.statusPurpose !== statusPurpose) {
+      if (statusReference.statusPurpose !== statusPurpose) {
         throw new Error('status purpose mismatch');
       }
 
-      if (duplicateSet.has(statusListEntry.statusListIndex)) {
-        throw new Error(`duplicate entry found with index: ${statusListEntry.statusListIndex}`);
+      if (duplicateSet.has(statusReference.statusListIndex)) {
+        throw new Error(`duplicate entry found with index: ${statusReference.statusListIndex}`);
       }
 
-      if(parseInt(statusListEntry.statusListIndex) < 0) {
+      if(parseInt(statusReference.statusListIndex) < 0) {
         throw new Error('status list index cannot be negative');
       }
 
-      if(parseInt(statusListEntry.statusListIndex) >= BITSTRING_SIZE) {
+      if(parseInt(statusReference.statusListIndex) >= BITSTRING_SIZE) {
         throw new Error('status list index is larger than the bitset size');
       }
 
-      duplicateSet.add(statusListEntry.statusListIndex);
+      duplicateSet.add(statusReference.statusListIndex);
     }
 
     return Array.from(duplicateSet);

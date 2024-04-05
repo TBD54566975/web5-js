@@ -6,7 +6,7 @@ import { utils as cryptoUtils } from '@web5/crypto';
 import { Jwt } from './jwt.js';
 import { SsiValidator } from './validators.js';
 import { getCurrentXmlSchema112Timestamp, getXmlSchema112Timestamp } from './utils.js';
-import { DEFAULT_STATUS_LIST_VC_CONTEXT, StatusList2021Entry } from './status-list-credential.js';
+import { DEFAULT_STATUS_LIST_VC_CONTEXT, CredentialStatusReference } from './status-list-credential.js';
 
 /** The default Verifiable Credential context. */
 export const DEFAULT_VC_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
@@ -44,8 +44,8 @@ export type VerifiableCredentialCreateOptions = {
   issuanceDate?: string;
   /** The expiration date of the credential, as a string. */
   expirationDate?: string;
-  /** The status of the credential, as a StatusList2021Entry. */
-  credentialStatus?: StatusList2021Entry;
+  /** The status of the credential, as a CredentialStatusReference. */
+  credentialStatus?: CredentialStatusReference;
   /** The evidence of the credential, as an array of any. */
   evidence?: any[];
 };
