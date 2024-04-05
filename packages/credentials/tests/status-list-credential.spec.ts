@@ -44,8 +44,6 @@ describe('Status List Credential Tests', async() => {
         credentialStatus : credentialStatus
       });
 
-      console.log(credWithCredStatus);
-
       const credWithStatusContexts = credWithCredStatus.vcDataModel['@context'] as string[];
 
       expect(credWithStatusContexts.some(context => context.includes('https://w3id.org/vc/status-list/2021/v1'))).to.be.true;
@@ -72,7 +70,8 @@ describe('Status List Credential Tests', async() => {
       expect(statusListCredSubject['id']).to.equal('https://statuslistcred.com/123');
       expect(statusListCredSubject['type']).to.equal('StatusList2021');
       expect(statusListCredSubject['statusPurpose']).to.equal(StatusPurpose.REVOCATION);
-      expect(statusListCredSubject['encodedList']).to.equal('H4sIAAAAAAAAA+3OMQ0AAAgDsOHfNBp2kZBWQRMAAAAAAAAAAAAAAL6Z6wAAAAAAtQVQdb5gAEAAAA==');
+
+      expect(statusListCredSubject['encodedList']).to.equal('H4sIAAAAAAAAA-3OMQ0AAAgDsOHfNBp2kZBWQRMAAAAAAAAAAAAAAL6Z6wAAAAAAtQVQdb5gAEAAAA');
     });
 
     it('should generate StatusListCredential from multiple VerifiableCredentials', async () => {
@@ -140,7 +139,7 @@ describe('Status List Credential Tests', async() => {
       expect(credentialSubject['statusPurpose']).to.equal('revocation');
 
       // TODO: Check encoding across other sdks and spec - https://github.com/TBD54566975/web5-kt/issues/97
-      expect(credentialSubject['encodedList']).to.equal('H4sIAAAAAAAAA+3BMQEAAAjAoMWwf1JvC3gBdUwAAAAAAAAAAAAAAAAAAADAuwUYSEbMAEAAAA==');
+      expect(credentialSubject['encodedList']).to.equal('H4sIAAAAAAAAA-3BMQEAAAjAoMWwf1JvC3gBdUwAAAAAAAAAAAAAAAAAAADAuwUYSEbMAEAAAA');
 
       expect(StatusListCredential.validateCredentialInStatusList(vc1, statusListCredential)).to.be.true;
       expect(StatusListCredential.validateCredentialInStatusList(vc2, statusListCredential)).to.be.true;

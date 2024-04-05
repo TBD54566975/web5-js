@@ -2,6 +2,7 @@ import pako from 'pako';
 import { getCurrentXmlSchema112Timestamp } from './utils.js';
 import { VerifiableCredential, DEFAULT_VC_CONTEXT, DEFAULT_VC_TYPE, VcDataModel } from './verifiable-credential.js';
 import type { ICredentialStatus} from '@sphereon/ssi-types';
+import { Convert } from '@web5/common';
 
 export const DEFAULT_STATUS_LIST_VC_CONTEXT = 'https://w3id.org/vc/status-list/2021/v1';
 export const DEFAULT_STATUS_LIST_VC_TYPE = 'StatusList2021Credential';
@@ -190,7 +191,7 @@ export class StatusListCredential {
    */
   private static bitstringGeneration(statusListIndexes: string[]): string {
     // Initialize a Buffer with 16KB filled with zeros
-    const bitstring = Buffer.alloc(BITSTRING_SIZE / 8, 0);
+    const bitstring = new Uint8Array(BITSTRING_SIZE / 8);
 
     // Set bits for revoked credentials
     statusListIndexes.forEach(index => {
@@ -205,7 +206,9 @@ export class StatusListCredential {
     const compressed = pako.gzip(bitstring);
 
     // Return the base64-encoded string
-    return Buffer.from(compressed).toString('base64');
+    const base64EncodedString = Convert.uint8Array(compressed).toBase64Url();
+
+    return base64EncodedString;
   }
 
   /**
