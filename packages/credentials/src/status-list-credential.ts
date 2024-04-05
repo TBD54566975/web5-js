@@ -84,8 +84,8 @@ export class StatusListCredential {
    */
   public static create(options: StatusListCredentialCreateOptions): VerifiableCredential {
     const { statusListCredentialId, issuer, statusPurpose, issuedCredentials } = options;
-    const statusListIndexes: string[] = this.prepareCredentialsForStatusList(statusPurpose, issuedCredentials);
-    const bitString = this.bitstringGeneration(statusListIndexes);
+    const indexOfCredentialsToRevoke: number[] = this.validateStatusListEntryIndexesAreAllUnique(statusPurpose, issuedCredentials);
+    const bitString = this.generateBitString(indexOfCredentialsToRevoke);
 
     const credentialSubject = {
       id            : statusListCredentialId,
@@ -152,17 +152,18 @@ export class StatusListCredential {
   }
 
   /**
-   * Validates and extracts unique statusListIndex values from VerifiableCredential objects.
+   * Validates that the status list entry index in all the given credentials are unique,
+   * and returns the unique index values.
    *
-   * @param statusPurpose - The status purpose
-   * @param credentials - An array of VerifiableCredential objects.
-   * @returns {string[]} An array of unique statusListIndex values.
+   * @param statusPurpose - The status purpose that all given credentials must match to.
+   * @param credentials - An array of VerifiableCredential objects each contain a status list entry index.
+   * @returns {number[]} An array of unique statusListIndex values.
    * @throws {Error} If any validation fails.
    */
-  private static prepareCredentialsForStatusList(
+  private static validateStatusListEntryIndexesAreAllUnique(
     statusPurpose: StatusPurpose,
     credentials: VerifiableCredential[]
-  ): string[] {
+  ): number[] {
     const duplicateSet = new Set<string>();
     for (const vc of credentials) {
       if (!vc.vcDataModel.credentialStatus) {
@@ -190,30 +191,29 @@ export class StatusListCredential {
       duplicateSet.add(statusReference.statusListIndex);
     }
 
-    return Array.from(duplicateSet);
+    return Array.from(duplicateSet).map(index => parseInt(index));
   }
 
   /**
-   * Generates a compressed bitstring from an array of statusListIndex values.
+   * Generates a Base64URL encoded, GZIP compressed bit string.
    *
-   * @param statusListIndexes - An array of statusListIndex values.
-   * @returns {string} The compressed bitstring as a base64-encoded string.
+   * @param indexOfBitsToTurnOn - The indexes of the bits to turn on (set to 1) in the bit string.
+   * @returns {string} The compressed bit string as a base64-encoded string.
    */
-  private static bitstringGeneration(statusListIndexes: string[]): string {
+  private static generateBitString(indexOfBitsToTurnOn: number[]): string {
     // Initialize a Buffer with 16KB filled with zeros
-    const bitstring = new Uint8Array(BITSTRING_SIZE / 8);
+    const bitArray = new Uint8Array(BITSTRING_SIZE / 8);
 
-    // Set bits for revoked credentials
-    statusListIndexes.forEach(index => {
-      const statusListIndex = parseInt(index);
-      const byteIndex = Math.floor(statusListIndex / 8);
-      const bitIndex = statusListIndex % 8;
+    // set specified bits to 1
+    indexOfBitsToTurnOn.forEach(index => {
+      const byteIndex = Math.floor(index / 8);
+      const bitIndex = index % 8;
 
-      bitstring[byteIndex] = bitstring[byteIndex] | (1 << (7 - bitIndex)); // Set bit to 1
+      bitArray[byteIndex] = bitArray[byteIndex] | (1 << (7 - bitIndex)); // Set bit to 1
     });
 
-    // Compress the bitstring with GZIP using pako
-    const compressed = pako.gzip(bitstring);
+    // Compress the bit array with GZIP using pako
+    const compressed = pako.gzip(bitArray);
 
     // Return the base64-encoded string
     const base64EncodedString = Convert.uint8Array(compressed).toBase64Url();
