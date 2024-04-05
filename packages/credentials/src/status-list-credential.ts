@@ -7,16 +7,20 @@ import { Convert } from '@web5/common';
 export const DEFAULT_STATUS_LIST_VC_CONTEXT = 'https://w3id.org/vc/status-list/2021/v1';
 export const DEFAULT_STATUS_LIST_VC_TYPE = 'StatusList2021Credential';
 
+/**
+ * The status purpose dictated by Status List 2021 spec.
+ * @see {@link https://www.w3.org/community/reports/credentials/CG-FINAL-vc-status-list-2021-20230102/#statuslist2021entry | Status List 2021 Entry}
+ */
 export enum StatusPurpose {
-  REVOCATION = 'revocation',
-  SUSPENSION = 'suspension',
+  revocation = 'revocation',
+  suspension = 'suspension',
 }
 
 /**
  * The size of the bitstring in bits.
  * The bitstring is 16KB in size.
  */
-const BITSTRING_SIZE = 16 * 1024 * 8; // 16KB in bits
+const BITSTRING_SIZE = 16 * 1024 * 8; // 16KiB in bits
 
 /**
  * StatusListCredentialCreateOptions for creating a status list credential.
@@ -34,14 +38,21 @@ export type StatusListCredentialCreateOptions = {
 };
 
 /**
- * The StatusList2021Entry instance representing the core data model of a vc status list 2021.
+ * Credential status lookup information included in a Verifiable Credential that supports status lookup.
+ * Data model dictated by the Status List 2021 spec.
  *
- * @see {@link https://www.w3.org/community/reports/credentials/CG-FINAL-vc-status-list-2021-20230102/ | Status List 2021 Entry}
+ * @see {@link https://www.w3.org/community/reports/credentials/CG-FINAL-vc-status-list-2021-20230102/#example-example-statuslist2021credential | Status List 2021 Entry}
  */
-export interface StatusList2021Entry extends ICredentialStatus {
-  statusListIndex: string,
-  statusListCredential: string,
+export interface StatusList2021Entry {
+  id: string
+  type: string
   statusPurpose: string,
+
+  /** The index of the status entry in the status list. Poorly named by spec, should really be `entryIndex`. */
+  statusListIndex: string,
+
+  /** URL to the status list */
+  statusListCredential: string,
 }
 
 /**
@@ -67,7 +78,7 @@ export class StatusListCredential {
       StatusListCredential.create({
         statusListCredentialId : 'https://statuslistcred.com/123',
         issuer                 : issuerDid.uri,
-        statusPurpose          : StatusPurpose.REVOCATION,
+        statusPurpose          : StatusPurpose.revocation,
         issuedCredentials      : [credWithCredStatus]
       })
    * ```

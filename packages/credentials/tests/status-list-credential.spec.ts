@@ -54,7 +54,7 @@ describe('Status List Credential Tests', async() => {
       const statusListCred = StatusListCredential.create({
         statusListCredentialId : 'https://statuslistcred.com/123',
         issuer                 : issuerDid.uri,
-        statusPurpose          : StatusPurpose.REVOCATION,
+        statusPurpose          : StatusPurpose.revocation,
         issuedCredentials      : [credWithCredStatus]
       });
 
@@ -69,7 +69,7 @@ describe('Status List Credential Tests', async() => {
       const statusListCredSubject = statusListCred.vcDataModel.credentialSubject as any;
       expect(statusListCredSubject['id']).to.equal('https://statuslistcred.com/123');
       expect(statusListCredSubject['type']).to.equal('StatusList2021');
-      expect(statusListCredSubject['statusPurpose']).to.equal(StatusPurpose.REVOCATION);
+      expect(statusListCredSubject['statusPurpose']).to.equal(StatusPurpose.revocation);
 
       expect(statusListCredSubject['encodedList']).to.equal('H4sIAAAAAAAAA-3OMQ0AAAgDsOHfNBp2kZBWQRMAAAAAAAAAAAAAAL6Z6wAAAAAAtQVQdb5gAEAAAA');
     });
@@ -127,7 +127,7 @@ describe('Status List Credential Tests', async() => {
       const statusListCredential = await StatusListCredential.create({
         statusListCredentialId : 'revocation-id',
         issuer                 : issuerDid.uri,
-        statusPurpose          : StatusPurpose.REVOCATION,
+        statusPurpose          : StatusPurpose.revocation,
         issuedCredentials      : [vc1, vc2]
       });
 
@@ -169,7 +169,7 @@ describe('Status List Credential Tests', async() => {
         StatusListCredential.create({
           statusListCredentialId : 'https://statuslistcred.com/123',
           issuer                 : issuerDid.uri,
-          statusPurpose          : StatusPurpose.REVOCATION,
+          statusPurpose          : StatusPurpose.revocation,
           issuedCredentials      : [credWithCredStatus, credWithCredStatus]
         })
       ).to.throw('duplicate entry found with index: 94567');
@@ -198,7 +198,7 @@ describe('Status List Credential Tests', async() => {
         StatusListCredential.create({
           statusListCredentialId : 'https://statuslistcred.com/123',
           issuer                 : issuerDid.uri,
-          statusPurpose          : StatusPurpose.REVOCATION,
+          statusPurpose          : StatusPurpose.revocation,
           issuedCredentials      : [credWithCredStatus]
         })
       ).to.throw('status list index cannot be negative');
@@ -227,7 +227,7 @@ describe('Status List Credential Tests', async() => {
         StatusListCredential.create({
           statusListCredentialId : 'https://statuslistcred.com/123',
           issuer                 : issuerDid.uri,
-          statusPurpose          : StatusPurpose.REVOCATION,
+          statusPurpose          : StatusPurpose.revocation,
           issuedCredentials      : [credWithCredStatus]
         })
       ).to.throw('status list index is larger than the bitset size');
