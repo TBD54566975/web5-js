@@ -6,6 +6,8 @@ import { DidJwk } from '@web5/dids';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import { StatusListCredential, StatusPurpose } from '../src/status-list-credential.js';
 
+import StatusListCredentialsCreateTestVector from '../../../web5-spec/test-vectors/status_list_credentials/create.json' assert { type: 'json' };
+
 describe('Status List Credential Tests', async() => {
   let issuerDid: BearerDid;
   let holderDid: BearerDid;
@@ -41,6 +43,8 @@ describe('Status List Credential Tests', async() => {
         data             : new StreetCredibility('high', true),
         credentialStatus : credentialStatus
       });
+
+      console.log(credWithCredStatus);
 
       const credWithStatusContexts = credWithCredStatus.vcDataModel['@context'] as string[];
 
@@ -228,6 +232,38 @@ describe('Status List Credential Tests', async() => {
           issuedCredentials      : [credWithCredStatus]
         })
       ).to.throw('status list index is larger than the bitset size');
+    });
+  });
+
+  describe('Web5TestVectorsStatusListCredentials', () => {
+    it('create', async () => {
+      const vectors = StatusListCredentialsCreateTestVector.vectors;
+
+      for (const vector of vectors) {
+        const { input, output } = vector;
+
+        const vcWithCredStatus = await VerifiableCredential.create({
+          type             : input.credential.type,
+          issuer           : input.credential.issuer,
+          subject          : input.credential.subject,
+          data             : input.credential.credentialSubject,
+          credentialStatus : input.credential.credentialStatus
+        });
+
+        const statusListCred = StatusListCredential.create({
+          statusListCredentialId : input.statusListCredential.statusListCredentialId,
+          issuer                 : input.statusListCredential.issuer,
+          statusPurpose          : input.statusListCredential.statusPurpose as StatusPurpose,
+          issuedCredentials      : [vcWithCredStatus]
+        });
+
+        expect(StatusListCredential.validateCredentialInStatusList(vcWithCredStatus, statusListCred)).to.be.true;
+
+        const statusListCredSubject = statusListCred.vcDataModel.credentialSubject as any;
+        expect(statusListCredSubject['type']).to.equal('StatusList2021');
+        expect(statusListCredSubject['statusPurpose']).to.equal(input.statusListCredential.statusPurpose);
+        expect(statusListCredSubject['encodedList']).to.equal(output.encodedList);
+      }
     });
   });
 });
