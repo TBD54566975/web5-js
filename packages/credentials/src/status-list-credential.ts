@@ -42,7 +42,7 @@ export type StatusListCredentialCreateOptions = {
  *
  * @see {@link https://www.w3.org/community/reports/credentials/CG-FINAL-vc-status-list-2021-20230102/#example-example-statuslist2021credential | Status List 2021 Entry}
  */
-export interface CredentialStatusReference {
+export interface CredentialStatusModel {
   id: string
   type: string
   statusPurpose: string,
@@ -50,7 +50,7 @@ export interface CredentialStatusReference {
   /** The index of the status entry in the status list. Poorly named by spec, should really be `entryIndex`. */
   statusListIndex: string,
 
-  /** URL to the status list */
+  /** URL to the status list. */
   statusListCredential: string,
 }
 
@@ -124,7 +124,7 @@ export class StatusListCredential {
     credentialToValidate: VerifiableCredential,
     statusListCredential: VerifiableCredential
   ): boolean {
-    const statusListEntryValue = credentialToValidate.vcDataModel.credentialStatus! as CredentialStatusReference;
+    const statusListEntryValue = credentialToValidate.vcDataModel.credentialStatus! as CredentialStatusModel;
     const credentialSubject = statusListCredential.vcDataModel.credentialSubject as any;
     const statusListCredStatusPurpose = credentialSubject['statusPurpose'] as StatusPurpose;
     const encodedListCompressedBitString = credentialSubject['encodedList'] as string;
@@ -164,19 +164,19 @@ export class StatusListCredential {
     statusPurpose: StatusPurpose,
     credentials: VerifiableCredential[]
   ): number[] {
-    const duplicateSet = new Set<string>();
+    const uniqueIndexes = new Set<string>();
     for (const vc of credentials) {
       if (!vc.vcDataModel.credentialStatus) {
         throw new Error('no credential status found in credential');
       }
 
-      const statusReference: CredentialStatusReference = vc.vcDataModel.credentialStatus as CredentialStatusReference;
+      const statusReference: CredentialStatusModel = vc.vcDataModel.credentialStatus as CredentialStatusModel;
 
       if (statusReference.statusPurpose !== statusPurpose) {
         throw new Error('status purpose mismatch');
       }
 
-      if (duplicateSet.has(statusReference.statusListIndex)) {
+      if (uniqueIndexes.has(statusReference.statusListIndex)) {
         throw new Error(`duplicate entry found with index: ${statusReference.statusListIndex}`);
       }
 
@@ -188,10 +188,10 @@ export class StatusListCredential {
         throw new Error('status list index is larger than the bitset size');
       }
 
-      duplicateSet.add(statusReference.statusListIndex);
+      uniqueIndexes.add(statusReference.statusListIndex);
     }
 
-    return Array.from(duplicateSet).map(index => parseInt(index));
+    return Array.from(uniqueIndexes).map(index => parseInt(index));
   }
 
   /**

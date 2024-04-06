@@ -74,7 +74,7 @@ describe('Status List Credential Tests', async() => {
       expect(statusListCredSubject['encodedList']).to.equal('H4sIAAAAAAAAA-3OMQ0AAAgDsOHfNBp2kZBWQRMAAAAAAAAAAAAAAL6Z6wAAAAAAtQVQdb5gAEAAAA');
     });
 
-    it('should generate StatusListCredential from multiple VerifiableCredentials', async () => {
+    it('should generate StatusListCredential from multiple revoked VerifiableCredentials', async () => {
       const credentialStatus1 = {
         id                   : 'cred-with-status-id',
         type                 : 'StatusList2021Entry',
