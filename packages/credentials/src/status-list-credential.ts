@@ -170,25 +170,25 @@ export class StatusListCredential {
         throw new Error('no credential status found in credential');
       }
 
-      const statusReference: CredentialStatusModel = vc.vcDataModel.credentialStatus as CredentialStatusModel;
+      const credentialStatusModel: CredentialStatusModel = vc.vcDataModel.credentialStatus as CredentialStatusModel;
 
-      if (statusReference.statusPurpose !== statusPurpose) {
+      if (credentialStatusModel.statusPurpose !== statusPurpose) {
         throw new Error('status purpose mismatch');
       }
 
-      if (uniqueIndexes.has(statusReference.statusListIndex)) {
-        throw new Error(`duplicate entry found with index: ${statusReference.statusListIndex}`);
+      if (uniqueIndexes.has(credentialStatusModel.statusListIndex)) {
+        throw new Error(`duplicate entry found with index: ${credentialStatusModel.statusListIndex}`);
       }
 
-      if(parseInt(statusReference.statusListIndex) < 0) {
+      if(parseInt(credentialStatusModel.statusListIndex) < 0) {
         throw new Error('status list index cannot be negative');
       }
 
-      if(parseInt(statusReference.statusListIndex) >= BITSTRING_SIZE) {
+      if(parseInt(credentialStatusModel.statusListIndex) >= BITSTRING_SIZE) {
         throw new Error('status list index is larger than the bitset size');
       }
 
-      uniqueIndexes.add(statusReference.statusListIndex);
+      uniqueIndexes.add(credentialStatusModel.statusListIndex);
     }
 
     return Array.from(uniqueIndexes).map(index => parseInt(index));
