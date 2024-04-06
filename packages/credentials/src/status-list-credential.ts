@@ -42,7 +42,7 @@ export type StatusListCredentialCreateOptions = {
  *
  * @see {@link https://www.w3.org/community/reports/credentials/CG-FINAL-vc-status-list-2021-20230102/#example-example-statuslist2021credential | Status List 2021 Entry}
  */
-export interface CredentialStatusModel {
+export interface StatusList2021Entry {
   id: string
   type: string
   statusPurpose: string,
@@ -124,7 +124,7 @@ export class StatusListCredential {
     credentialToValidate: VerifiableCredential,
     statusListCredential: VerifiableCredential
   ): boolean {
-    const statusListEntryValue = credentialToValidate.vcDataModel.credentialStatus! as CredentialStatusModel;
+    const statusListEntryValue = credentialToValidate.vcDataModel.credentialStatus! as StatusList2021Entry;
     const credentialSubject = statusListCredential.vcDataModel.credentialSubject as any;
     const statusListCredStatusPurpose = credentialSubject['statusPurpose'] as StatusPurpose;
     const encodedListCompressedBitString = credentialSubject['encodedList'] as string;
@@ -170,25 +170,25 @@ export class StatusListCredential {
         throw new Error('no credential status found in credential');
       }
 
-      const credentialStatusModel: CredentialStatusModel = vc.vcDataModel.credentialStatus as CredentialStatusModel;
+      const statusList2021Entry: StatusList2021Entry = vc.vcDataModel.credentialStatus as StatusList2021Entry;
 
-      if (credentialStatusModel.statusPurpose !== statusPurpose) {
+      if (statusList2021Entry.statusPurpose !== statusPurpose) {
         throw new Error('status purpose mismatch');
       }
 
-      if (uniqueIndexes.has(credentialStatusModel.statusListIndex)) {
-        throw new Error(`duplicate entry found with index: ${credentialStatusModel.statusListIndex}`);
+      if (uniqueIndexes.has(statusList2021Entry.statusListIndex)) {
+        throw new Error(`duplicate entry found with index: ${statusList2021Entry.statusListIndex}`);
       }
 
-      if(parseInt(credentialStatusModel.statusListIndex) < 0) {
+      if(parseInt(statusList2021Entry.statusListIndex) < 0) {
         throw new Error('status list index cannot be negative');
       }
 
-      if(parseInt(credentialStatusModel.statusListIndex) >= BITSTRING_SIZE) {
+      if(parseInt(statusList2021Entry.statusListIndex) >= BITSTRING_SIZE) {
         throw new Error('status list index is larger than the bitset size');
       }
 
-      uniqueIndexes.add(credentialStatusModel.statusListIndex);
+      uniqueIndexes.add(statusList2021Entry.statusListIndex);
     }
 
     return Array.from(uniqueIndexes).map(index => parseInt(index));
