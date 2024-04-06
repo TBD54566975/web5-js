@@ -27,13 +27,13 @@ const BITSTRING_SIZE = 16 * 1024 * 8; // 16KiB in bits
  * @param statusListCredentialId The id used for the resolvable path to the status list credential [String].
  * @param issuer The issuer URI of the credential, as a [String].
  * @param statusPurpose The status purpose of the status list cred, eg: revocation, as a [StatusPurpose].
- * @param issuedCredentials The credentials to be included in the status list credential, eg: revoked credentials, list of type [VerifiableCredential].
+ * @param revokedCredentials The credentials to be included in the status list credential, eg: revoked credentials, list of type [VerifiableCredential].
  */
 export type StatusListCredentialCreateOptions = {
   statusListCredentialId: string,
   issuer: string,
   statusPurpose: StatusPurpose,
-  issuedCredentials: VerifiableCredential[]
+  revokedCredentials: VerifiableCredential[]
 };
 
 /**
@@ -68,7 +68,7 @@ export class StatusListCredential {
    * @param statusListCredentialId The id used for the resolvable path to the status list credential [String].
    * @param issuer The issuer URI of the credential, as a [String].
    * @param statusPurpose The status purpose of the status list cred, eg: revocation, as a [StatusPurpose].
-   * @param issuedCredentials The credentials to be included in the status list credential, eg: revoked credentials, list of type [VerifiableCredential].
+   * @param revokedCredentials The credentials to be marked as revoked in the status list.
    * @returns A special [VerifiableCredential] instance that is a StatusListCredential.
    * @throws Error If the status list credential cannot be created.
    *
@@ -78,13 +78,13 @@ export class StatusListCredential {
         statusListCredentialId : 'https://statuslistcred.com/123',
         issuer                 : issuerDid.uri,
         statusPurpose          : StatusPurpose.revocation,
-        issuedCredentials      : [credWithCredStatus]
+        revokedCredentials      : [credWithCredStatus]
       })
    * ```
    */
   public static create(options: StatusListCredentialCreateOptions): VerifiableCredential {
-    const { statusListCredentialId, issuer, statusPurpose, issuedCredentials } = options;
-    const indexOfCredentialsToRevoke: number[] = this.validateStatusListEntryIndexesAreAllUnique(statusPurpose, issuedCredentials);
+    const { statusListCredentialId, issuer, statusPurpose, revokedCredentials } = options;
+    const indexOfCredentialsToRevoke: number[] = this.validateStatusListEntryIndexesAreAllUnique(statusPurpose, revokedCredentials);
     const bitString = this.generateBitString(indexOfCredentialsToRevoke);
 
     const credentialSubject = {
