@@ -55,7 +55,7 @@ describe('Status List Credential Tests', async() => {
         statusListCredentialId : 'https://statuslistcred.com/123',
         issuer                 : issuerDid.uri,
         statusPurpose          : StatusPurpose.revocation,
-        revokedCredentials     : [credWithCredStatus]
+        credentialsToDisable   : [credWithCredStatus]
       });
 
       const statusListCredContexts = statusListCred.vcDataModel['@context'];
@@ -128,7 +128,7 @@ describe('Status List Credential Tests', async() => {
         statusListCredentialId : 'revocation-id',
         issuer                 : issuerDid.uri,
         statusPurpose          : StatusPurpose.revocation,
-        revokedCredentials     : [vc1, vc2]
+        credentialsToDisable   : [vc1, vc2]
       });
 
       expect(statusListCredential).not.be.undefined;
@@ -170,7 +170,7 @@ describe('Status List Credential Tests', async() => {
           statusListCredentialId : 'https://statuslistcred.com/123',
           issuer                 : issuerDid.uri,
           statusPurpose          : StatusPurpose.revocation,
-          revokedCredentials     : [credWithCredStatus, credWithCredStatus]
+          credentialsToDisable   : [credWithCredStatus, credWithCredStatus]
         })
       ).to.throw('duplicate entry found with index: 94567');
     });
@@ -199,7 +199,7 @@ describe('Status List Credential Tests', async() => {
           statusListCredentialId : 'https://statuslistcred.com/123',
           issuer                 : issuerDid.uri,
           statusPurpose          : StatusPurpose.revocation,
-          revokedCredentials     : [credWithCredStatus]
+          credentialsToDisable   : [credWithCredStatus]
         })
       ).to.throw('status list index cannot be negative');
     });
@@ -228,7 +228,7 @@ describe('Status List Credential Tests', async() => {
           statusListCredentialId : 'https://statuslistcred.com/123',
           issuer                 : issuerDid.uri,
           statusPurpose          : StatusPurpose.revocation,
-          revokedCredentials     : [credWithCredStatus]
+          credentialsToDisable   : [credWithCredStatus]
         })
       ).to.throw('status list index is larger than the bitset size');
     });
@@ -253,7 +253,7 @@ describe('Status List Credential Tests', async() => {
           statusListCredentialId : input.statusListCredential.statusListCredentialId,
           issuer                 : input.statusListCredential.issuer,
           statusPurpose          : input.statusListCredential.statusPurpose as StatusPurpose,
-          revokedCredentials     : [vcWithCredStatus]
+          credentialsToDisable   : [vcWithCredStatus]
         });
 
         expect(StatusListCredential.validateCredentialInStatusList(vcWithCredStatus, statusListCred)).to.be.true;
