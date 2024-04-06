@@ -1,22 +1,25 @@
 import pako from 'pako';
 import { getCurrentXmlSchema112Timestamp } from './utils.js';
 import { VerifiableCredential, DEFAULT_VC_CONTEXT, DEFAULT_VC_TYPE, VcDataModel } from './verifiable-credential.js';
-import type { ICredentialStatus} from '@sphereon/ssi-types';
 import { Convert } from '@web5/common';
 
 export const DEFAULT_STATUS_LIST_VC_CONTEXT = 'https://w3id.org/vc/status-list/2021/v1';
 export const DEFAULT_STATUS_LIST_VC_TYPE = 'StatusList2021Credential';
 
+/**
+ * The status purpose dictated by Status List 2021 spec.
+ * @see {@link https://www.w3.org/community/reports/credentials/CG-FINAL-vc-status-list-2021-20230102/#statuslist2021entry | Status List 2021 Entry}
+ */
 export enum StatusPurpose {
-  REVOCATION = 'revocation',
-  SUSPENSION = 'suspension',
+  revocation = 'revocation',
+  suspension = 'suspension',
 }
 
 /**
  * The size of the bitstring in bits.
  * The bitstring is 16KB in size.
  */
-const BITSTRING_SIZE = 16 * 1024 * 8; // 16KB in bits
+const BITSTRING_SIZE = 16 * 1024 * 8; // 16KiB in bits
 
 /**
  * StatusListCredentialCreateOptions for creating a status list credential.
@@ -24,24 +27,31 @@ const BITSTRING_SIZE = 16 * 1024 * 8; // 16KB in bits
  * @param statusListCredentialId The id used for the resolvable path to the status list credential [String].
  * @param issuer The issuer URI of the credential, as a [String].
  * @param statusPurpose The status purpose of the status list cred, eg: revocation, as a [StatusPurpose].
- * @param issuedCredentials The credentials to be included in the status list credential, eg: revoked credentials, list of type [VerifiableCredential].
+ * @param credentialsToDisable The credentials to be included in the status list credential, eg: revoked credentials, list of type [VerifiableCredential].
  */
 export type StatusListCredentialCreateOptions = {
   statusListCredentialId: string,
   issuer: string,
   statusPurpose: StatusPurpose,
-  issuedCredentials: VerifiableCredential[]
+  credentialsToDisable: VerifiableCredential[]
 };
 
 /**
- * The StatusList2021Entry instance representing the core data model of a vc status list 2021.
+ * Credential status lookup information included in a Verifiable Credential that supports status lookup.
+ * Data model dictated by the Status List 2021 spec.
  *
- * @see {@link https://www.w3.org/community/reports/credentials/CG-FINAL-vc-status-list-2021-20230102/ | Status List 2021 Entry}
+ * @see {@link https://www.w3.org/community/reports/credentials/CG-FINAL-vc-status-list-2021-20230102/#example-example-statuslist2021credential | Status List 2021 Entry}
  */
-export interface StatusList2021Entry extends ICredentialStatus {
-  statusListIndex: string,
-  statusListCredential: string,
+export interface StatusList2021Entry {
+  id: string
+  type: string
   statusPurpose: string,
+
+  /** The index of the status entry in the status list. Poorly named by spec, should really be `entryIndex`. */
+  statusListIndex: string,
+
+  /** URL to the status list. */
+  statusListCredential: string,
 }
 
 /**
@@ -58,7 +68,7 @@ export class StatusListCredential {
    * @param statusListCredentialId The id used for the resolvable path to the status list credential [String].
    * @param issuer The issuer URI of the credential, as a [String].
    * @param statusPurpose The status purpose of the status list cred, eg: revocation, as a [StatusPurpose].
-   * @param issuedCredentials The credentials to be included in the status list credential, eg: revoked credentials, list of type [VerifiableCredential].
+   * @param credentialsToDisable The credentials to be marked as revoked/suspended (status bit set to 1) in the status list.
    * @returns A special [VerifiableCredential] instance that is a StatusListCredential.
    * @throws Error If the status list credential cannot be created.
    *
@@ -67,15 +77,15 @@ export class StatusListCredential {
       StatusListCredential.create({
         statusListCredentialId : 'https://statuslistcred.com/123',
         issuer                 : issuerDid.uri,
-        statusPurpose          : StatusPurpose.REVOCATION,
-        issuedCredentials      : [credWithCredStatus]
+        statusPurpose          : StatusPurpose.revocation,
+        credentialsToDisable      : [credWithCredStatus]
       })
    * ```
    */
   public static create(options: StatusListCredentialCreateOptions): VerifiableCredential {
-    const { statusListCredentialId, issuer, statusPurpose, issuedCredentials } = options;
-    const statusListIndexes: string[] = this.prepareCredentialsForStatusList(statusPurpose, issuedCredentials);
-    const bitString = this.bitstringGeneration(statusListIndexes);
+    const { statusListCredentialId, issuer, statusPurpose, credentialsToDisable } = options;
+    const indexesOfCredentialsToRevoke: number[] = this.validateStatusListEntryIndexesAreAllUnique(statusPurpose, credentialsToDisable);
+    const bitString = this.generateBitString(indexesOfCredentialsToRevoke);
 
     const credentialSubject = {
       id            : statusListCredentialId,
@@ -142,68 +152,68 @@ export class StatusListCredential {
   }
 
   /**
-   * Validates and extracts unique statusListIndex values from VerifiableCredential objects.
+   * Validates that the status list entry index in all the given credentials are unique,
+   * and returns the unique index values.
    *
-   * @param statusPurpose - The status purpose
-   * @param credentials - An array of VerifiableCredential objects.
-   * @returns {string[]} An array of unique statusListIndex values.
+   * @param statusPurpose - The status purpose that all given credentials must match to.
+   * @param credentials - An array of VerifiableCredential objects each contain a status list entry index.
+   * @returns {number[]} An array of unique statusListIndex values.
    * @throws {Error} If any validation fails.
    */
-  private static prepareCredentialsForStatusList(
+  private static validateStatusListEntryIndexesAreAllUnique(
     statusPurpose: StatusPurpose,
     credentials: VerifiableCredential[]
-  ): string[] {
-    const duplicateSet = new Set<string>();
+  ): number[] {
+    const uniqueIndexes = new Set<string>();
     for (const vc of credentials) {
       if (!vc.vcDataModel.credentialStatus) {
         throw new Error('no credential status found in credential');
       }
 
-      const statusListEntry: StatusList2021Entry = vc.vcDataModel.credentialStatus as StatusList2021Entry;
+      const statusList2021Entry: StatusList2021Entry = vc.vcDataModel.credentialStatus as StatusList2021Entry;
 
-      if (statusListEntry.statusPurpose !== statusPurpose) {
+      if (statusList2021Entry.statusPurpose !== statusPurpose) {
         throw new Error('status purpose mismatch');
       }
 
-      if (duplicateSet.has(statusListEntry.statusListIndex)) {
-        throw new Error(`duplicate entry found with index: ${statusListEntry.statusListIndex}`);
+      if (uniqueIndexes.has(statusList2021Entry.statusListIndex)) {
+        throw new Error(`duplicate entry found with index: ${statusList2021Entry.statusListIndex}`);
       }
 
-      if(parseInt(statusListEntry.statusListIndex) < 0) {
+      if(parseInt(statusList2021Entry.statusListIndex) < 0) {
         throw new Error('status list index cannot be negative');
       }
 
-      if(parseInt(statusListEntry.statusListIndex) >= BITSTRING_SIZE) {
+      if(parseInt(statusList2021Entry.statusListIndex) >= BITSTRING_SIZE) {
         throw new Error('status list index is larger than the bitset size');
       }
 
-      duplicateSet.add(statusListEntry.statusListIndex);
+      uniqueIndexes.add(statusList2021Entry.statusListIndex);
     }
 
-    return Array.from(duplicateSet);
+    return Array.from(uniqueIndexes).map(index => parseInt(index));
   }
 
   /**
-   * Generates a compressed bitstring from an array of statusListIndex values.
+   * Generates a Base64URL encoded, GZIP compressed bit string.
    *
-   * @param statusListIndexes - An array of statusListIndex values.
-   * @returns {string} The compressed bitstring as a base64-encoded string.
+   * @param indexOfBitsToTurnOn - The indexes of the bits to turn on (set to 1) in the bit string.
+   * @returns {string} The compressed bit string as a base64-encoded string.
    */
-  private static bitstringGeneration(statusListIndexes: string[]): string {
+  private static generateBitString(indexOfBitsToTurnOn: number[]): string {
     // Initialize a Buffer with 16KB filled with zeros
-    const bitstring = new Uint8Array(BITSTRING_SIZE / 8);
+    const bitArray = new Uint8Array(BITSTRING_SIZE / 8);
 
-    // Set bits for revoked credentials
-    statusListIndexes.forEach(index => {
-      const statusListIndex = parseInt(index);
-      const byteIndex = Math.floor(statusListIndex / 8);
-      const bitIndex = statusListIndex % 8;
+    // set specified bits to 1
+    indexOfBitsToTurnOn.forEach(index => {
+      const byteIndex = Math.floor(index / 8);
+      const bitIndex = index % 8;
 
-      bitstring[byteIndex] = bitstring[byteIndex] | (1 << (7 - bitIndex)); // Set bit to 1
+      bitArray[byteIndex] = bitArray[byteIndex] | (1 << (7 - bitIndex)); // Set bit to 1
     });
 
-    // Compress the bitstring with GZIP using pako
-    const compressed = pako.gzip(bitstring);
+    // Compress the bit array with GZIP using pako
+    const compressed = pako.gzip(bitArray);
 
     // Return the base64-encoded string
     const base64EncodedString = Convert.uint8Array(compressed).toBase64Url();

@@ -44,7 +44,7 @@ export type VerifiableCredentialCreateOptions = {
   issuanceDate?: string;
   /** The expiration date of the credential, as a string. */
   expirationDate?: string;
-  /** The status of the credential, as a StatusList2021Entry. */
+  /** The credential status lookup information. */
   credentialStatus?: StatusList2021Entry;
   /** The evidence of the credential, as an array of any. */
   evidence?: any[];
@@ -171,8 +171,8 @@ export class VerifiableCredential {
       ...jsonData
     };
 
+    // create the @context value
     const contexts: string[] = [DEFAULT_VC_CONTEXT];
-
     if (credentialStatus !== null) {
       contexts.push(DEFAULT_STATUS_LIST_VC_CONTEXT);
     }

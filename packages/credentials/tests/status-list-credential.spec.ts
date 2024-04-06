@@ -54,8 +54,8 @@ describe('Status List Credential Tests', async() => {
       const statusListCred = StatusListCredential.create({
         statusListCredentialId : 'https://statuslistcred.com/123',
         issuer                 : issuerDid.uri,
-        statusPurpose          : StatusPurpose.REVOCATION,
-        issuedCredentials      : [credWithCredStatus]
+        statusPurpose          : StatusPurpose.revocation,
+        credentialsToDisable   : [credWithCredStatus]
       });
 
       const statusListCredContexts = statusListCred.vcDataModel['@context'];
@@ -69,12 +69,12 @@ describe('Status List Credential Tests', async() => {
       const statusListCredSubject = statusListCred.vcDataModel.credentialSubject as any;
       expect(statusListCredSubject['id']).to.equal('https://statuslistcred.com/123');
       expect(statusListCredSubject['type']).to.equal('StatusList2021');
-      expect(statusListCredSubject['statusPurpose']).to.equal(StatusPurpose.REVOCATION);
+      expect(statusListCredSubject['statusPurpose']).to.equal(StatusPurpose.revocation);
 
       expect(statusListCredSubject['encodedList']).to.equal('H4sIAAAAAAAAA-3OMQ0AAAgDsOHfNBp2kZBWQRMAAAAAAAAAAAAAAL6Z6wAAAAAAtQVQdb5gAEAAAA');
     });
 
-    it('should generate StatusListCredential from multiple VerifiableCredentials', async () => {
+    it('should generate StatusListCredential from multiple revoked VerifiableCredentials', async () => {
       const credentialStatus1 = {
         id                   : 'cred-with-status-id',
         type                 : 'StatusList2021Entry',
@@ -127,8 +127,8 @@ describe('Status List Credential Tests', async() => {
       const statusListCredential = await StatusListCredential.create({
         statusListCredentialId : 'revocation-id',
         issuer                 : issuerDid.uri,
-        statusPurpose          : StatusPurpose.REVOCATION,
-        issuedCredentials      : [vc1, vc2]
+        statusPurpose          : StatusPurpose.revocation,
+        credentialsToDisable   : [vc1, vc2]
       });
 
       expect(statusListCredential).not.be.undefined;
@@ -169,8 +169,8 @@ describe('Status List Credential Tests', async() => {
         StatusListCredential.create({
           statusListCredentialId : 'https://statuslistcred.com/123',
           issuer                 : issuerDid.uri,
-          statusPurpose          : StatusPurpose.REVOCATION,
-          issuedCredentials      : [credWithCredStatus, credWithCredStatus]
+          statusPurpose          : StatusPurpose.revocation,
+          credentialsToDisable   : [credWithCredStatus, credWithCredStatus]
         })
       ).to.throw('duplicate entry found with index: 94567');
     });
@@ -198,8 +198,8 @@ describe('Status List Credential Tests', async() => {
         StatusListCredential.create({
           statusListCredentialId : 'https://statuslistcred.com/123',
           issuer                 : issuerDid.uri,
-          statusPurpose          : StatusPurpose.REVOCATION,
-          issuedCredentials      : [credWithCredStatus]
+          statusPurpose          : StatusPurpose.revocation,
+          credentialsToDisable   : [credWithCredStatus]
         })
       ).to.throw('status list index cannot be negative');
     });
@@ -227,8 +227,8 @@ describe('Status List Credential Tests', async() => {
         StatusListCredential.create({
           statusListCredentialId : 'https://statuslistcred.com/123',
           issuer                 : issuerDid.uri,
-          statusPurpose          : StatusPurpose.REVOCATION,
-          issuedCredentials      : [credWithCredStatus]
+          statusPurpose          : StatusPurpose.revocation,
+          credentialsToDisable   : [credWithCredStatus]
         })
       ).to.throw('status list index is larger than the bitset size');
     });
@@ -253,7 +253,7 @@ describe('Status List Credential Tests', async() => {
           statusListCredentialId : input.statusListCredential.statusListCredentialId,
           issuer                 : input.statusListCredential.issuer,
           statusPurpose          : input.statusListCredential.statusPurpose as StatusPurpose,
-          issuedCredentials      : [vcWithCredStatus]
+          credentialsToDisable   : [vcWithCredStatus]
         });
 
         expect(StatusListCredential.validateCredentialInStatusList(vcWithCredStatus, statusListCred)).to.be.true;
