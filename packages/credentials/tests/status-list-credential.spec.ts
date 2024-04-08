@@ -138,7 +138,7 @@ describe('Status List Credential Tests', async() => {
       expect(credentialSubject['type']).to.equal('StatusList2021');
       expect(credentialSubject['statusPurpose']).to.equal('revocation');
 
-      // TODO: Check encoding across other sdks and spec - https://github.com/TBD54566975/web5-kt/issues/97
+      // TODO: Check encoding across other sdks and spec - https://github.com/TBD54566975/web5-kt/issues/52
       expect(credentialSubject['encodedList']).to.equal('H4sIAAAAAAAAA-3BMQEAAAjAoMWwf1JvC3gBdUwAAAAAAAAAAAAAAAAAAADAuwUYSEbMAEAAAA');
 
       expect(StatusListCredential.validateCredentialInStatusList(vc1, statusListCredential)).to.be.true;
