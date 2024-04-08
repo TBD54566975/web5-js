@@ -71,7 +71,7 @@
   "dependencies": {
     "@noble/ciphers": "0.4.1",
     "@scure/bip39": "1.2.2",
-    "@tbd54566975/dwn-sdk-js": "0.2.21",
+    "@tbd54566975/dwn-sdk-js": "0.2.22",
     "@web5/common": "1.0.0",
     "@web5/crypto": "1.0.0",
     "@web5/dids": "1.0.0",
