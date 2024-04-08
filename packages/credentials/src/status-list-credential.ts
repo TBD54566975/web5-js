@@ -218,31 +218,6 @@ export class StatusListCredential {
     return base64EncodedString;
   }
 
-  // private static getBit(compressedBitstring: string, bitIndex: number): boolean {
-  //   // Base64-decode the compressed bitstring
-  //   const compressedData = Convert.base64Url(compressedBitstring).toUint8Array();
-
-  //   // Decompress the data using pako
-  //   const decompressedData = pako.inflate(compressedData);
-
-  //   // Calculate byte index in the array
-  //   const byteIndex = Math.floor(bitIndex / 8);
-
-  //   // Ensure the bitIndex is within the bounds of the decompressedData
-  //   if (byteIndex < 0 || byteIndex >= decompressedData.length) {
-  //     throw new Error('Bit index is out of bounds');
-  //   }
-
-  //   // Calculate the bit's position within the selected byte
-  //   const bitPosition = 7 - (bitIndex % 8);
-
-  //   // Extract the bit
-  //   const bitInteger = (decompressedData[byteIndex] >> bitPosition) & 1;
-
-  //   return bitInteger === 1;
-  // }
-
-
   /**
    * Retrieves the value of a specific bit from a compressed base64 URL-encoded bitstring
    * by decoding and decompressing a bitstring, then extracting a bit's value by its index.
@@ -268,30 +243,5 @@ export class StatusListCredential {
     const bitInteger = (byte >> (7 - bitIndexWithinByte)) & 1;
 
     return (bitInteger === 1);
-  }
-
-  // /**
-  //  * Expands a compressed bitstring into an array of 0s and 1s.
-  //  *
-  //  * @param compressedBitstring - The compressed bitstring as a base64-encoded string.
-  //  * @returns {number[]} An array of 0s and 1s representing the bitstring.
-  //  */
-  private static bitstringExpansion(compressedBitstring: string): number[] {
-    // Base64-decode the compressed bitstring
-    const compressedData = Convert.base64Url(compressedBitstring).toUint8Array();
-
-    // Decompress the data using pako
-    const decompressedData = pako.inflate(compressedData);
-
-    // Convert the decompressed data into an array of "0" or "1" strings
-    const bitstringArray: number[] = [];
-    decompressedData.forEach(byte => {
-      for (let i = 7; i >= 0; i--) {
-        const bit = (byte >> i) & 1;
-        bitstringArray.push(bit);
-      }
-    });
-
-    return bitstringArray;
   }
 }
