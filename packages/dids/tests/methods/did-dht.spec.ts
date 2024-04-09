@@ -1152,11 +1152,36 @@ describe('DidDhtDocument', () => {
   });
 
   describe('Web5TestVectorsDidDht', () => {
+    let fetchStub: sinon.SinonStub;
+
+    beforeEach(() => {
+      // Setup stub so that a mocked response is returned rather than calling over the network.
+      fetchStub = sinon.stub(globalThis as any, 'fetch');
+
+      // By default, return a 200 OK response when fetch is called by publish().
+      fetchStub.resolves(fetchOkResponse());
+    });
+
+    afterEach(() => {
+      fetchStub.restore();
+    });
+
     it('resolve', async () => {
       for (const vector of DidDhtResolveTestVector.vectors as any[]) {
+
+        if(vector.input.mockResponse) {
+          fetchStub.resolves({
+            ok         : vector.input.mockResponse.ok,
+            status     : vector.input.mockResponse.status,
+            statusText : vector.input.mockResponse.statusText,
+            json       : () => Promise.resolve(vector.input.mockResponse.body),
+            text       : () => Promise.resolve(JSON.stringify(vector.input.mockResponse.body)),
+          });
+        }
+
         const didResolutionResult = await DidDht.resolve(vector.input.didUri);
         expect(didResolutionResult.didResolutionMetadata.error).to.equal(vector.output.didResolutionMetadata.error);
       }
-    }).timeout(300000); // Set timeout to 300 seconds for this test for did:dht resolution timeout test
+    });
   });
 });
