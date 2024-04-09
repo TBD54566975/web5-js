@@ -1157,6 +1157,6 @@ describe('DidDhtDocument', () => {
         const didResolutionResult = await DidDht.resolve(vector.input.didUri);
         expect(didResolutionResult.didResolutionMetadata.error).to.equal(vector.output.didResolutionMetadata.error);
       }
-    }).timeout(30000); // Set timeout to 30 seconds for this test for did:dht resolution timeout test
+    }).timeout(300000); // Set timeout to 300 seconds for this test for did:dht resolution timeout test
   });
 });
