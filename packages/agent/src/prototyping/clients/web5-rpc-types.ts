@@ -1,9 +1,11 @@
-import type { EventSubscriptionHandler, RecordsReadReply, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
+import type { MessageEvent, RecordsReadReply, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 import { KeyValueStore } from '@web5/common';
 
 export interface SerializableDwnMessage {
   toJSON(): string;
 }
+
+export type DwnEventSubscriptionHandler = (event: MessageEvent) => void;
 
 /**
  * Interface that can be implemented to communicate with {@link Web5Agent | Web5 Agent}
@@ -53,7 +55,7 @@ export interface DwnRpc {
  */
 export type DwnRpcRequest = {
   data?: any;
-  subscriptionHandler?: EventSubscriptionHandler;
+  subscriptionHandler?: DwnEventSubscriptionHandler;
   dwnUrl: string;
   message: SerializableDwnMessage | any;
   targetDid: string;
