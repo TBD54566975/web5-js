@@ -1,5 +1,5 @@
-import type { DidRpcRequest, DidRpcResponse, DwnRpc, DwnRpcRequest, DwnRpcResponse, Web5Rpc } from './web5-rpc-types.js';
-import type { EventSubscriptionHandler, GenericMessage, MessageSubscription, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
+import type { DidRpcRequest, DidRpcResponse, DwnEventSubscriptionHandler, DwnRpc, DwnRpcRequest, DwnRpcResponse, Web5Rpc } from './web5-rpc-types.js';
+import type { GenericMessage, MessageSubscription, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 
 import { utils as cryptoUtils } from '@web5/crypto';
 import { createJsonRpcRequest, createJsonRpcSubscriptionRequest } from './json-rpc.js';
@@ -60,7 +60,7 @@ export class WebSocketDwnRpcClient implements DwnRpc {
     return result.reply as DwnRpcResponse;
   }
 
-  private static async subscriptionRequest(connection: SocketConnection, target:string, message: GenericMessage, messageHandler: EventSubscriptionHandler): Promise<DwnRpcResponse> {
+  private static async subscriptionRequest(connection: SocketConnection, target:string, message: GenericMessage, messageHandler: DwnEventSubscriptionHandler): Promise<DwnRpcResponse> {
     const requestId = cryptoUtils.randomUuid();
     const subscriptionId = cryptoUtils.randomUuid();
     const request = createJsonRpcSubscriptionRequest(requestId, 'dwn.processMessage', subscriptionId, { target, message });

@@ -1,4 +1,4 @@
-import type { EventSubscriptionHandler, Persona, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import type { Persona, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import sinon from 'sinon';
 
@@ -11,6 +11,7 @@ import { testDwnUrl } from '../../utils/test-config.js';
 import { HttpDwnRpcClient } from '../../../src/prototyping/clients/http-clients.js';
 import { JsonRpcSocket } from '../../../src/prototyping/clients/json-rpc-socket.js';
 import { JsonRpcErrorCodes, createJsonRpcErrorResponse } from '../../../src/prototyping/clients/json-rpc.js';
+import { DwnEventSubscriptionHandler } from '../../../src/prototyping/clients/web5-rpc-types.js';
 
 /** helper method to sleep while waiting for events to process/arrive */
 async function sleepWhileWaitingForEvents(override?: number):Promise<void> {
@@ -173,7 +174,7 @@ describe('WebSocketDwnRpcClient', () => {
       });
 
       const dataCids:string[] = [];
-      const subscriptionHandler: EventSubscriptionHandler = (event) => {
+      const subscriptionHandler: DwnEventSubscriptionHandler = (event) => {
         const { message, initialWrite } = event;
         expect(initialWrite!.recordId).to.equal(writeMessage.recordId);
         expect(initialWrite!.descriptor.dataCid).to.equal(writeMessage.descriptor.dataCid);
