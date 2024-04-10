@@ -57,15 +57,4 @@ describe('WebSocketWeb5RpcClient', () => {
       }
     });
   });
-
-  describe('getServerInfo', () => {
-    it('server info requests are not supported over sockets', async () => {
-      try {
-        await client.getServerInfo('http://some-url.com');
-        expect.fail('Expected error to be thrown');
-      } catch (error: any) {
-        expect(error.message).to.equal('not implemented for transports [ws:, wss:]');
-      }
-    });
-  });
 });

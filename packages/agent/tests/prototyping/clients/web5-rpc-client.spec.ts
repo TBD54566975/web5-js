@@ -112,44 +112,4 @@ describe('Web5RpcClient', () => {
       expect(stubHttpClient.sendDwnRequest.callCount).to.equal(0);
     });
   });
-
-  describe('getServerInfo', () => {
-    it('should retrieve server info from http client', async () => {
-      const stubHttpClient = sinon.createStubInstance(HttpWeb5RpcClient);
-      const httpOnlyClient = new Web5RpcClient([ stubHttpClient ]);
-
-      await httpOnlyClient.getServerInfo('http://some-server.com');
-      expect(stubHttpClient.getServerInfo.callCount).to.equal(1);
-    });
-
-    it('should throw if transport client is not http', async () => {
-      const stubHttpClient = sinon.createStubInstance(HttpWeb5RpcClient);
-      const httpOnlyClient = new Web5RpcClient([ stubHttpClient ]);
-
-      try {
-        // request with http
-        await httpOnlyClient.getServerInfo('ws://some-server-url.com');
-        expect.fail('Expected error to be thrown');
-      } catch (error: any) {
-        expect(error.message).to.contain('ws: not supported for server info');
-      }
-
-      // confirm http transport was not called
-      expect(stubHttpClient.getServerInfo.callCount).to.equal(0);
-    });
-
-    it('should throw if transport client is not available', async () => {
-      const noClients = new Web5RpcClient();
-      noClients['transportClients'].clear();
-
-      try {
-
-        // request with http
-        await noClients.getServerInfo('http://some-server-url.com');
-        expect.fail('Expected error to be thrown');
-      } catch (error: any) {
-        expect(error.message).to.equal('no http: transport client available');
-      }
-    });
-  });
 });

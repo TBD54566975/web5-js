@@ -1,4 +1,4 @@
-import type { DidRpcRequest, DidRpcResponse, DwnRpcRequest, DwnRpcResponse, ServerInfo, Web5Rpc } from './web5-rpc-types.js';
+import type { DidRpcRequest, DidRpcResponse, DwnRpcRequest, DwnRpcResponse, Web5Rpc } from './web5-rpc-types.js';
 
 import { HttpWeb5RpcClient } from './http-clients.js';
 
@@ -54,23 +54,5 @@ export class Web5RpcClient implements Web5Rpc {
     }
 
     return transportClient.sendDwnRequest(request);
-  }
-
-  async getServerInfo(dwnUrl: string): Promise<ServerInfo> {
-    // server info only available currently in http transport
-    const url = new URL(dwnUrl);
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      throw new Error(`${url.protocol} not supported for server info`);
-    }
-
-    const transportClient = this.transportClients.get(url.protocol);
-    if(!transportClient) {
-      const error = new Error(`no ${url.protocol} transport client available`);
-      error.name = 'NO_TRANSPORT_CLIENT';
-
-      throw error;
-    }
-
-    return transportClient.getServerInfo(dwnUrl);
   }
 }
