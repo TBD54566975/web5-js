@@ -1,4 +1,4 @@
-import { KeyValueStore } from "@web5/common";
+import { KeyValueStore } from '@web5/common';
 
 export type ServerInfo = {
   /** the maximum file size the user can request to store */
