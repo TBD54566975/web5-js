@@ -2,12 +2,12 @@ import { utils as cryptoUtils } from '@web5/crypto';
 
 
 import type { DwnRpc, DwnRpcRequest, DwnRpcResponse } from './prototyping/clients/dwn-rpc-types.js';
+import type { DwnServerInfoRpc, ServerInfo } from './prototyping/clients/server-info-types.js';
 import type { JsonRpcResponse } from './prototyping/clients/json-rpc.js';
 
 import { createJsonRpcRequest } from './prototyping/clients/json-rpc.js';
 import { HttpDwnRpcClient } from './prototyping/clients/http-dwn-rpc-client.js';
 import { WebSocketDwnRpcClient } from './prototyping/clients/web-socket-clients.js';
-import { DwnServerInfo, ServerInfo } from './prototyping/clients/server-info-types.js';
 
 /**
  * Interface that can be implemented to communicate with {@link Web5Agent | Web5 Agent}
@@ -40,7 +40,7 @@ export type RpcStatus = {
   message: string;
 };
 
-export interface Web5Rpc extends DwnRpc, DidRpc, DwnServerInfo {}
+export interface Web5Rpc extends DwnRpc, DidRpc, DwnServerInfoRpc {}
 
 /**
  * Client used to communicate with Dwn Servers

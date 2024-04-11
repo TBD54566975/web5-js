@@ -15,7 +15,7 @@ export type ServerInfo = {
 
 export interface DwnServerInfoCache extends KeyValueStore<string, ServerInfo| undefined> {}
 
-export interface DwnServerInfo {
+export interface DwnServerInfoRpc {
   /** retrieves the DWN Sever info, used to detect features such as WebSocket Subscriptions */
   getServerInfo(url: string): Promise<ServerInfo>;
 }
