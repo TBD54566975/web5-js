@@ -115,6 +115,63 @@ describe('RPC Clients', () => {
         expect(stubHttpClient.sendDwnRequest.callCount).to.equal(0);
       });
     });
+
+    describe('getServerInfo',() => {
+      let client: Web5RpcClient;
+
+      after(() => {
+        sinon.restore();
+      });
+
+      beforeEach(async () => {
+        sinon.restore();
+        client = new Web5RpcClient();
+      });
+
+      it('is able to get server info', async () => {
+        const serverInfo = await client.getServerInfo(testDwnUrl);
+        expect(serverInfo.registrationRequirements).to.not.be.undefined;
+        expect(serverInfo.maxFileSize).to.not.be.undefined;
+        expect(serverInfo.webSocketSupport).to.not.be.undefined;
+      });
+
+      it('throws for an invalid response', async () => {
+        const mockResponse = new Response(JSON.stringify({}), { status: 500 });
+        sinon.stub(globalThis, 'fetch').resolves(mockResponse);
+
+        try {
+          await client.getServerInfo(testDwnUrl);
+          expect.fail('Expected an error to be thrown');
+        } catch(error: any) {
+          expect(error.message).to.contain('HTTP (500)');
+        }
+      });
+
+      it('should append url with info path accounting for trailing slash', async () => {
+        const fetchStub = sinon.stub(globalThis, 'fetch').resolves(new Response(JSON.stringify({
+          registrationRequirements : [],
+          maxFileSize              : 123,
+          webSocketSupport         : false,
+        })));
+
+        await client.getServerInfo('http://some-domain.com/dwn'); // without trailing slash
+        let fetchUrl = fetchStub.args[0][0];
+        expect(fetchUrl).to.equal('http://some-domain.com/dwn/info');
+
+        // we reset the fetch stub and initiate a new response
+        // this wa the response body stream won't be attempt to be read twice and fail on the 2nd attempt.
+        fetchStub.reset();
+        fetchStub.resolves(new Response(JSON.stringify({
+          registrationRequirements : [],
+          maxFileSize              : 123,
+          webSocketSupport         : false,
+        })));
+
+        await client.getServerInfo('http://some-other-domain.com/dwn/'); // with trailing slash
+        fetchUrl = fetchStub.args[0][0];
+        expect(fetchUrl).to.equal('http://some-other-domain.com/dwn/info');
+      });
+    });
   });
 
   describe('HttpWeb5RpcClient', () => {

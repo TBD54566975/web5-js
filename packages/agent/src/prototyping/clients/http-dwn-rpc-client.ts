@@ -3,11 +3,18 @@ import type { DwnRpc, DwnRpcRequest, DwnRpcResponse } from './dwn-rpc-types.js';
 
 import { createJsonRpcRequest, parseJson } from './json-rpc.js';
 import { utils as cryptoUtils } from '@web5/crypto';
+import { DwnServerInfoCache, ServerInfo } from './server-info-types.js';
+import { DwnServerInfoCacheMemory } from './dwn-server-info-cache-memory.js';
 
 /**
  * HTTP client that can be used to communicate with Dwn Servers
  */
 export class HttpDwnRpcClient implements DwnRpc {
+  private serverInfoCache: DwnServerInfoCache;
+  constructor(serverInfoCache?: DwnServerInfoCache) {
+    this.serverInfoCache = serverInfoCache ?? new DwnServerInfoCacheMemory();
+  }
+
   get transportProtocols() { return ['http:', 'https:']; }
 
   async sendDwnRequest(request: DwnRpcRequest): Promise<DwnRpcResponse> {
@@ -64,5 +71,38 @@ export class HttpDwnRpcClient implements DwnRpc {
     }
 
     return reply as DwnRpcResponse;
+  }
+
+  async getServerInfo(dwnUrl: string): Promise<ServerInfo> {
+    const serverInfo = await this.serverInfoCache.get(dwnUrl);
+    if (serverInfo) {
+      return serverInfo;
+    }
+
+    const url = new URL(dwnUrl);
+
+    // add `/info` to the dwn server url path
+    url.pathname.endsWith('/') ? url.pathname += 'info' : url.pathname += '/info';
+
+    try {
+      const response = await fetch(url.toString());
+      if(response.ok) {
+        const results = await response.json() as ServerInfo;
+
+        // explicitly return and cache only the desired properties.
+        const serverInfo = {
+          registrationRequirements : results.registrationRequirements,
+          maxFileSize              : results.maxFileSize,
+          webSocketSupport         : results.webSocketSupport,
+        };
+        this.serverInfoCache.set(dwnUrl, serverInfo);
+
+        return serverInfo;
+      } else {
+        throw new Error(`HTTP (${response.status}) - ${response.statusText}`);
+      }
+    } catch(error: any) {
+      throw new Error(`Error encountered while processing response from ${url.toString()}: ${error.message}`);
+    }
   }
 }
