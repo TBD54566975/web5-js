@@ -14,21 +14,21 @@ import { JsonRpcErrorCodes, createJsonRpcErrorResponse, createJsonRpcSuccessResp
 describe('RPC Clients', () => {
   describe('Web5RpcClient', () => {
     let alice: Persona;
-  
+
     beforeEach(async () => {
       sinon.restore();
-  
+
       alice = await TestDataGenerator.generateDidKeyPersona();
     });
-  
+
     it('returns available transports', async () => {
       const httpOnlyClient = new Web5RpcClient();
       expect(httpOnlyClient.transportProtocols).to.have.members(['http:', 'https:']);
-  
+
       const wsAndHttpClients = new Web5RpcClient([
         new WebSocketWeb5RpcClient()
       ]);
-  
+
       expect(wsAndHttpClients.transportProtocols).to.have.members([
         'http:',
         'https:',
@@ -36,23 +36,23 @@ describe('RPC Clients', () => {
         'wss:'
       ]);
     });
-  
+
     describe('sendDidRequest', () => {
       it('should send to the client depending on transport', async () => {
         const stubHttpClient = sinon.createStubInstance(HttpWeb5RpcClient);
         const httpOnlyClient = new Web5RpcClient([ stubHttpClient ]);
-  
+
         // request with http
         const request = { method: DidRpcMethod.Resolve, url: 'http://127.0.0.1', data: 'some-data' };
         httpOnlyClient.sendDidRequest(request);
-  
+
         expect(stubHttpClient.sendDidRequest.callCount).to.equal(1);
       });
-  
+
       it('should throw if transport client is not found', async () => {
         const stubHttpClient = sinon.createStubInstance(HttpWeb5RpcClient);
         const httpOnlyClient = new Web5RpcClient([ stubHttpClient ]);
-  
+
         // request with http
         const request = { method: DidRpcMethod.Resolve, url: 'ws://127.0.0.1', data: 'some-data' };
         try {
@@ -61,12 +61,12 @@ describe('RPC Clients', () => {
         } catch (error: any) {
           expect(error.message).to.equal('no ws: transport client available');
         }
-  
+
         // confirm http transport was not called
         expect(stubHttpClient.sendDidRequest.callCount).to.equal(0);
       });
     });
-  
+
     describe('sendDwnRequest', () => {
       it('should send to the client depending on transport', async () => {
         const stubHttpClient = sinon.createStubInstance(HttpWeb5RpcClient);
@@ -77,18 +77,18 @@ describe('RPC Clients', () => {
             schema: 'foo/bar'
           }
         });
-  
+
         // request with http
         await httpOnlyClient.sendDwnRequest({
           dwnUrl    : 'http://127.0.0.1',
           targetDid : alice.did,
           message,
         });
-  
+
         // confirm http transport was called
         expect(stubHttpClient.sendDwnRequest.callCount).to.equal(1);
       });
-  
+
       it('should throw if transport client is not found', async () => {
         const stubHttpClient = sinon.createStubInstance(HttpWeb5RpcClient);
         const httpOnlyClient = new Web5RpcClient([ stubHttpClient ]);
@@ -98,7 +98,7 @@ describe('RPC Clients', () => {
             schema: 'foo/bar'
           }
         });
-  
+
         try {
           // request with ws
           await httpOnlyClient.sendDwnRequest({
@@ -110,7 +110,7 @@ describe('RPC Clients', () => {
         } catch(error: any) {
           expect(error.message).to.equal('no ws: transport client available');
         }
-  
+
         // confirm http transport was not called
         expect(stubHttpClient.sendDwnRequest.callCount).to.equal(0);
       });
@@ -211,13 +211,13 @@ describe('RPC Clients', () => {
     const dwnUrl = new URL(testDwnUrl);
     dwnUrl.protocol = dwnUrl.protocol === 'http:' ? 'ws:' : 'wss:';
     const socketDwnUrl = dwnUrl.toString();
-  
+
     beforeEach(async () => {
       sinon.restore();
-  
+
       alice = await TestDataGenerator.generateDidKeyPersona();
     });
-  
+
     describe('sendDwnRequest', () => {
       it('supports sending dwn requests', async () => {
         // create a generic records query
@@ -227,20 +227,20 @@ describe('RPC Clients', () => {
             schema: 'foo/bar'
           }
         });
-  
+
         const response = await client.sendDwnRequest({
           dwnUrl    : socketDwnUrl,
           targetDid : alice.did,
           message,
         });
-  
+
         // should return success but without any records as none exist yet
         expect(response.status.code).to.equal(200);
         expect(response.entries).to.exist;
         expect(response.entries?.length).to.equal(0);
       });
     });
-  
+
     describe('sendDidRequest', () => {
       it('did requests are not supported over sockets', async () => {
         const request = { method: DidRpcMethod.Resolve, url: socketDwnUrl, data: 'some-data' };
