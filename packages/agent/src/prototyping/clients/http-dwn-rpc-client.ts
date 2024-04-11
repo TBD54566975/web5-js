@@ -1,5 +1,5 @@
 import type { JsonRpcResponse } from './json-rpc.js';
-import type { DidRpcRequest, DidRpcResponse, DwnRpc, DwnRpcRequest, DwnRpcResponse, Web5Rpc } from './web5-rpc-types.js';
+import type { DwnRpc, DwnRpcRequest, DwnRpcResponse } from './dwn-rpc-types.js';
 
 import { createJsonRpcRequest, parseJson } from './json-rpc.js';
 import { utils as cryptoUtils } from '@web5/crypto';
@@ -64,48 +64,5 @@ export class HttpDwnRpcClient implements DwnRpc {
     }
 
     return reply as DwnRpcResponse;
-  }
-}
-
-/**
- * HTTP client that can be used to communicate with Web5 servers
- */
-export class HttpWeb5RpcClient extends HttpDwnRpcClient implements Web5Rpc {
-
-  async sendDidRequest(request: DidRpcRequest): Promise<DidRpcResponse> {
-    const requestId = cryptoUtils.randomUuid();
-    const jsonRpcRequest = createJsonRpcRequest(requestId, request.method, {
-      data: request.data
-    });
-
-    const httpRequest = new Request(request.url, {
-      method  : 'POST',
-      headers : {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(jsonRpcRequest),
-    });
-
-    let jsonRpcResponse: JsonRpcResponse;
-
-    try {
-      const response = await fetch(httpRequest);
-
-      if (response.ok) {
-        jsonRpcResponse = await response.json();
-
-        // If the response is an error, throw an error.
-        if (jsonRpcResponse.error) {
-          const { code, message } = jsonRpcResponse.error;
-          throw new Error(`JSON RPC (${code}) - ${message}`);
-        }
-      } else {
-        throw new Error(`HTTP (${response.status}) - ${response.statusText}`);
-      }
-    } catch (error: any) {
-      throw new Error(`Error encountered while processing response from ${request.url}: ${error.message}`);
-    }
-
-    return jsonRpcResponse.result as DidRpcResponse;
   }
 }

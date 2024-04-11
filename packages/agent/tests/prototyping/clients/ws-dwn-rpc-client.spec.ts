@@ -8,10 +8,10 @@ import { DwnInterfaceName, DwnMethodName, RecordsRead, TestDataGenerator } from 
 import { WebSocketDwnRpcClient } from '../../../src/prototyping/clients/web-socket-clients.js';
 
 import { testDwnUrl } from '../../utils/test-config.js';
-import { HttpDwnRpcClient } from '../../../src/prototyping/clients/http-clients.js';
 import { JsonRpcSocket } from '../../../src/prototyping/clients/json-rpc-socket.js';
 import { JsonRpcErrorCodes, createJsonRpcErrorResponse } from '../../../src/prototyping/clients/json-rpc.js';
-import { DwnEventSubscriptionHandler } from '../../../src/prototyping/clients/web5-rpc-types.js';
+import { HttpDwnRpcClient } from '../../../src/prototyping/clients/http-dwn-rpc-client.js';
+import { DwnEventSubscriptionHandler } from '../../../src/prototyping/clients/dwn-rpc-types.js';
 
 /** helper method to sleep while waiting for events to process/arrive */
 async function sleepWhileWaitingForEvents(override?: number):Promise<void> {

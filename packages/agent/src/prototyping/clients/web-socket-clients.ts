@@ -1,4 +1,4 @@
-import type { DidRpcRequest, DidRpcResponse, DwnEventSubscriptionHandler, DwnRpc, DwnRpcRequest, DwnRpcResponse, Web5Rpc } from './web5-rpc-types.js';
+import type { DwnEventSubscriptionHandler, DwnRpc, DwnRpcRequest, DwnRpcResponse } from './dwn-rpc-types.js';
 import type { GenericMessage, MessageSubscription, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 
 import { utils as cryptoUtils } from '@web5/crypto';
@@ -96,11 +96,5 @@ export class WebSocketDwnRpcClient implements DwnRpc {
     }
 
     return reply;
-  }
-}
-
-export class WebSocketWeb5RpcClient extends WebSocketDwnRpcClient implements Web5Rpc {
-  async sendDidRequest(_request: DidRpcRequest): Promise<DidRpcResponse> {
-    throw new Error(`not implemented for transports [${this.transportProtocols.join(', ')}]`);
   }
 }

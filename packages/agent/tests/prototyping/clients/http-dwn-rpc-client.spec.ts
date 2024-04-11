@@ -4,7 +4,7 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 
 import { RecordsRead, TestDataGenerator } from '@tbd54566975/dwn-sdk-js';
-import { HttpDwnRpcClient } from '../../../src/prototyping/clients/http-clients.js';
+import { HttpDwnRpcClient } from '../../../src/prototyping/clients/http-dwn-rpc-client.js';
 
 import { testDwnUrl } from '../../utils/test-config.js';
 
