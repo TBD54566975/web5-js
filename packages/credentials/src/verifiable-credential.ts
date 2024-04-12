@@ -20,6 +20,14 @@ export const DEFAULT_VC_TYPE = 'VerifiableCredential';
 export type VcDataModel = ICredential;
 
 /**
+ * A credential schema defines the structure and content of the data, enabling verifiers to assess if the data adheres to the established schema.
+ */
+export type CredentialSchema = {
+  id: string;
+  type: string;
+};
+
+/**
  * Options for creating a verifiable credential.
  * @param type Optional. The type of the credential, can be a string or an array of strings.
  * @param issuer The issuer URI of the credential, as a string.
@@ -43,6 +51,8 @@ export type VerifiableCredentialCreateOptions = {
   issuanceDate?: string;
   /** The expiration date of the credential, as a string. */
   expirationDate?: string;
+  /** The credential schema of the credential */
+  credentialSchema?: CredentialSchema;
   /** The evidence of the credential, as an array of any. */
   evidence?: any[];
 };
@@ -147,7 +157,7 @@ export class VerifiableCredential {
    * @returns A [VerifiableCredential] instance.
    */
   public static async create(options: VerifiableCredentialCreateOptions): Promise<VerifiableCredential> {
-    const { type, issuer, subject, data, issuanceDate, expirationDate, evidence } = options;
+    const { type, issuer, subject, data, issuanceDate, expirationDate, credentialSchema, evidence } = options;
 
     const jsonData = JSON.parse(JSON.stringify(data));
 
@@ -179,6 +189,7 @@ export class VerifiableCredential {
       credentialSubject : credentialSubject,
       // Include optional properties only if they have values
       ...(expirationDate && { expirationDate }),
+      ...(credentialSchema && { credentialSchema }),
       ...(evidence && { evidence }),
     };
 
