@@ -18,6 +18,10 @@ describe('RPC Clients', () => {
       client = new HttpDwnRpcClient();
     });
 
+    after(() => {
+      sinon.restore();
+    });
+
     it('should retrieve subsequent result from cache', async () => {
       // we spy on fetch to see how many times it is called
       const fetchSpy = sinon.spy(globalThis, 'fetch');
@@ -58,6 +62,10 @@ describe('RPC Clients', () => {
 
   describe('Web5RpcClient', () => {
     let alice: Persona
+
+    after(() => {
+      sinon.restore();
+    });
 
     beforeEach(async () => {
       sinon.restore();
