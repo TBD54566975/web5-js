@@ -2263,6 +2263,60 @@ describe('Record', () => {
       expect(updatedData).to.equal('bye');
     });
 
+    it('updates a record which has a parent reference', async () => {
+      // install a protocol
+      let { protocol, status: protocolStatus } = await dwnAlice.protocols.configure({
+        message: {
+          definition: emailProtocolDefinition,
+        }
+      });
+      expect(protocolStatus.code).to.equal(202);
+      expect(protocolStatus).to.exist;
+
+      // create a parent thread
+      const { status: threadStatus, record: threadRecord } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          protocol     : protocol.definition.protocol,
+          schema       : emailProtocolDefinition.types.thread.schema, 
+          protocolPath : 'thread'
+        }
+      });
+
+      expect(threadStatus.code).to.equal(202);
+      expect(threadRecord).to.not.be.undefined;
+
+      // create an email with the thread as a parent
+      const { status: emailStatus, record: emailRecord } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          parentContextId : threadRecord.contextId,
+          protocol        : emailProtocolDefinition.protocol,
+          protocolPath    : 'thread/email',
+          schema          : emailProtocolDefinition.types.email.schema
+        }
+      });
+      expect(emailStatus.code).to.equal(202);
+      expect(emailRecord).to.not.be.undefined;
+
+
+      // update email record
+      const updateResult = await emailRecord!.update({ data: 'updated email record' });
+      expect(updateResult.status.code).to.equal(202);
+
+      const readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: emailRecord.id
+          }
+        }
+      });
+
+      expect(readResult.status.code).to.equal(200);
+      expect(readResult.record).to.not.be.undefined;
+      expect(await readResult.record.data.text()).to.equal('updated email record');
+    });
+
     it('returns new dateModified after each update', async () => {
       // Initial write of the record.
       const { status, record } = await dwnAlice.records.write({

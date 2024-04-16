@@ -572,10 +572,16 @@ export class Record implements RecordModel {
    * @beta
    */
   async update({ dateModified, data, ...params }: RecordUpdateParams): Promise<DwnResponseStatus> {
+
+    // if there is a parentId, we remove it from the descriptor and set a parentContextId
+    const { parentId, ...descriptor } = this._descriptor;
+    const parentContextId = parentId ? this._contextId.split('/').slice(0, -1).join('/') : undefined;
+
     // Begin assembling the update message.
     let updateMessage: DwnMessageParams[DwnInterface.RecordsWrite] = {
-      ...this._descriptor,
+      ...descriptor,
       ...params,
+      parentContextId,
       messageTimestamp : dateModified, // Map Record class `dateModified` property to DWN SDK `messageTimestamp`
       recordId         : this._recordId
     };
