@@ -1,5 +1,11 @@
 # @web5/api
 
+## 0.9.2
+
+### Patch Changes
+
+- [#494](https://github.com/TBD54566975/web5-js/pull/494) [`d12eff8`](https://github.com/TBD54566975/web5-js/commit/d12eff8dc360dc4991325d4d686269497c13e453) Thanks [@LiranCohen](https://github.com/LiranCohen)! - When updating a record, we must include the `parentContextId` in the create options
+
 ## 0.9.1
 
 ### Patch Changes
