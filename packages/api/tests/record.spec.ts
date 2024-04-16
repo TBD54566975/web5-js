@@ -2278,7 +2278,7 @@ describe('Record', () => {
         data    : 'Hello, world!',
         message : {
           protocol     : protocol.definition.protocol,
-          schema       : emailProtocolDefinition.types.thread.schema, 
+          schema       : emailProtocolDefinition.types.thread.schema,
           protocolPath : 'thread'
         }
       });
