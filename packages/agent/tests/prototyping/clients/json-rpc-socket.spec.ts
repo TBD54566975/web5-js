@@ -66,6 +66,42 @@ describe('JsonRpcSocket', () => {
     }
   });
 
+  it('adds a handler to the messageHandlers map when listening for a response to a request', async () => {
+    const client = await JsonRpcSocket.connect(socketDwnUrl);
+    const { message } = await TestDataGenerator.generateRecordsSubscribe({ author: alice });
+    const requestId = cryptoUtils.randomUuid();
+    const request = createJsonRpcRequest(requestId, 'dwn.processMessage', { target: alice.did, message });
+    const response = client.request(request);
+    expect(client['messageHandlers'].has(requestId)).to.be.true;
+
+    await response;
+
+    // removes the handler after the response is received
+    expect(client['messageHandlers'].has(requestId)).to.be.false;
+  });
+
+  it('adds a handler to the messageHandlers map when listening for a response to a subscription', async () => {
+    const client = await JsonRpcSocket.connect(socketDwnUrl);
+    const { message } = await TestDataGenerator.generateRecordsSubscribe({ author: alice });
+
+    const requestId = cryptoUtils.randomUuid();
+    const subscriptionId = cryptoUtils.randomUuid();
+    const request = createJsonRpcSubscriptionRequest(
+      requestId,
+      'dwn.processMessage',
+      subscriptionId,
+      { target: alice.did, message }
+    );
+
+    const responseListener = (_response: JsonRpcResponse): void => {};
+    const subscription = await client.subscribe(request, responseListener);
+    expect(client['messageHandlers'].has(subscriptionId)).to.be.true;
+
+    // removes the handler after the subscription is closed
+    await subscription.close!();
+    expect(client['messageHandlers'].has(subscriptionId)).to.be.false;
+  });
+
   it('removes listener if subscription json rpc is rejected ', async () => {
     const client = await JsonRpcSocket.connect(socketDwnUrl);
     const requestId = cryptoUtils.randomUuid();
@@ -82,6 +118,7 @@ describe('JsonRpcSocket', () => {
 
     const subscription = await client.subscribe(request, responseListener);
     expect(subscription.response.error).to.not.be.undefined;
+    expect(client['messageHandlers'].has(subscribeId)).to.be.false;
   });
 
   it('opens a subscription', async () => {
