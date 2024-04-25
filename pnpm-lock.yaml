@@ -6,6 +6,7 @@ settings:
 
 overrides:
   express@<4.19.2: '>=4.19.2'
+  mysql2: 3.9.7
 
 importers:
 
@@ -3489,7 +3490,7 @@ packages:
       loglevel: 1.9.1
       loglevel-plugin-prefix: 0.8.4
       multiformats: 11.0.2
-      mysql2: 3.9.1
+      mysql2: 3.9.7
       node-fetch: 3.3.1
       pg: 8.11.3
       pg-cursor: 2.10.3(pg@8.11.3)
@@ -7080,8 +7081,8 @@ packages:
     resolution: {integrity: sha512-/sF3ee6zvScXMb1XFJ8gDsSnY+X8PbOyjIuBhtgis10W2Jx4ZjIhikUCIF9c4gpJxVnQIsPAFrSwTCuAjicP6g==}
     engines: {node: '>=8.0.0'}
 
-  /mysql2@3.9.1:
-    resolution: {integrity: sha512-3njoWAAhGBYy0tWBabqUQcLtczZUxrmmtc2vszQUekg3kTJyZ5/IeLC3Fo04u6y6Iy5Sba7pIIa2P/gs8D3ZeQ==}
+  /mysql2@3.9.7:
+    resolution: {integrity: sha512-KnJT8vYRcNAZv73uf9zpXqNbvBG7DJrs+1nACsjZP1HMJ1TgXEy8wnNilXAn/5i57JizXKtrUtwDB7HxT9DDpw==}
     engines: {node: '>= 8.0'}
     dependencies:
       denque: 2.1.0
