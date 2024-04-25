@@ -19,6 +19,10 @@ describe('UniversalResolver', () => {
       didResolver = new UniversalResolver({ didResolvers: didMethodApis });
     });
 
+    afterEach(() => {
+      sinon.restore();
+    });
+
     it('returns an invalidDid error if the DID cannot be parsed', async () => {
       const didResolutionResult = await didResolver.resolve('unparseable:did');
       expect(didResolutionResult).to.exist;
@@ -37,6 +41,56 @@ describe('UniversalResolver', () => {
       expect(didResolutionResult).to.have.property('didDocumentMetadata');
       expect(didResolutionResult).to.have.property('didResolutionMetadata');
       expect(didResolutionResult.didResolutionMetadata).to.have.property('error', 'methodNotSupported');
+    });
+
+    it('should not attempt to cache a DID resolution result if the result is an error', async () => {
+      // Create a Sinon spy on the cache.set method
+      const cacheSetSpy = sinon.spy(didResolver['cache'], 'set');
+
+      // stub the underlying JWK Resolver to return an error
+      const resultWithError = {
+        didResolutionMetadata: {
+          error: 'anyError'
+        },
+        didDocument: {
+          id: 'did:jwk:123456789abcdefghi'
+        },
+        didDocumentMetadata: {}
+      };
+
+      const didMethodResolver = sinon.stub(DidJwk, 'resolve').resolves(resultWithError);
+
+      // Resolve a DID
+      const did = 'did:jwk:123456789abcdefghi';
+      await didResolver.resolve(did);
+
+      // expect that the cache.set method was not called
+      expect(cacheSetSpy.called).to.be.false;
+      expect(didMethodResolver.callCount).to.equal(1);
+    });
+
+    it('should set cache for a DID resolution result if the result is not an error', async () => {
+      // Create a Sinon spy on the cache.set method
+      const cacheSetSpy = sinon.spy(didResolver['cache'], 'set');
+
+      // stub the underlying JWK Resolver to not return an error
+      const result = {
+        didResolutionMetadata : {},
+        didDocument           : {
+          id: 'did:jwk:123456789abcdefghi'
+        },
+        didDocumentMetadata: {}
+      };
+
+      const didMethodResolver = sinon.stub(DidJwk, 'resolve').resolves(result);
+
+      // Resolve a DID
+      const did = 'did:jwk:123456789abcdefghi';
+      await didResolver.resolve(did);
+
+      // expect that the cache.set was called once
+      expect(cacheSetSpy.callCount).to.equal(1);
+      expect(didMethodResolver.callCount).to.equal(1);
     });
 
     it('pass DID JWK resolve test vectors', async () => {
