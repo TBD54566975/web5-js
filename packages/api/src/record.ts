@@ -9,7 +9,7 @@ import type {
 } from '@web5/agent';
 
 import { DwnInterface } from '@web5/agent';
-import { Convert, NodeStream, removeUndefinedProperties, Stream } from '@web5/common';
+import { Convert, isEmptyObject, NodeStream, removeUndefinedProperties, Stream } from '@web5/common';
 
 import { dataToBlob, SendCache } from './utils.js';
 
@@ -105,6 +105,9 @@ export type RecordUpdateParams = {
 
   /** The published status of the record. */
   published?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['published'];
+
+  /** The tags associated with the updated record */
+  tags?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['tags'];
 }
 
 /**
@@ -574,7 +577,7 @@ export class Record implements RecordModel {
    *
    * @beta
    */
-  async update({ dateModified, data, ...params }: RecordUpdateParams): Promise<DwnResponseStatus> {
+  async update({ dateModified, data,  ...params }: RecordUpdateParams): Promise<DwnResponseStatus> {
 
     // if there is a parentId, we remove it from the descriptor and set a parentContextId
     const { parentId, ...descriptor } = this._descriptor;
@@ -599,9 +602,14 @@ export class Record implements RecordModel {
       ({ dataBlob } = dataToBlob(data, updateMessage.dataFormat));
     }
 
+    if (isEmptyObject(updateMessage.tags)) {
+      delete updateMessage.tags; // Remove empty tags object from the updated message.
+    }
+
+
     // Throw an error if an attempt is made to modify immutable properties.
     // Note: `data` and `dateModified` have already been handled.
-    const mutableDescriptorProperties = new Set(['data', 'dataCid', 'dataSize', 'datePublished', 'messageTimestamp', 'published']);
+    const mutableDescriptorProperties = new Set(['data', 'dataCid', 'dataSize', 'datePublished', 'messageTimestamp', 'published', 'tags']);
     Record.verifyPermittedMutation(Object.keys(params), mutableDescriptorProperties);
 
     // If `published` is set to false, ensure that `datePublished` is undefined. Otherwise, DWN SDK's schema validation

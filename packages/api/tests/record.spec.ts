@@ -2366,6 +2366,54 @@ describe('Record', () => {
         expect(error.message).to.include('is an immutable property. Its value cannot be changed.');
       }
     });
+
+    it('should override tags on update', async () => {
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain',
+          tags       : {
+            tag1: 'value1',
+            tag2: 'value2'
+          }
+        }
+      });
+
+      expect(status.code).to.equal(202);
+      expect(record).to.not.be.undefined;
+      expect(await record.data.text()).to.equal('Hello, world!');
+      expect(record.tags).to.deep.equal({ tag1: 'value1', tag2: 'value2'})
+
+      // if you do not modify the tags they do not change
+      const updateResultWithoutTags = await record!.update({
+        data: 'hi',
+      });
+
+      expect(updateResultWithoutTags.status.code).to.equal(202);
+      expect(record.tags).to.deep.equal({ tag1: 'value1', tag2: 'value2'}); // unchanged
+
+      // if you modify the tags they change
+      const updateResultWithTags = await record!.update({
+        data: 'hi',
+        tags: {
+          tag1: 'value3',
+          tag3: 'value4'
+        }
+      });
+
+      expect(updateResultWithTags.status.code).to.equal(202);
+      expect(record.tags).to.deep.equal({ tag1: 'value3', tag3: 'value4'}); // changed
+
+      // if you use an empty tags object it removes all tags
+      const updateResultWithEmptyTags = await record!.update({
+        data: 'hi',
+        tags: {}
+      });
+
+      expect(updateResultWithEmptyTags.status.code).to.equal(202);
+      expect(record.tags).to.not.exist; // removed
+    });
   });
 
   describe('store()', () => {
