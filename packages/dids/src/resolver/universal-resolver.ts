@@ -126,8 +126,10 @@ export class UniversalResolver implements DidResolver, DidUrlDereferencer {
       return cachedResolutionResult;
     } else {
       const resolutionResult = await resolver.resolve(parsedDid.uri, options);
-
-      await this.cache.set(parsedDid.uri, resolutionResult);
+      if (!resolutionResult.didResolutionMetadata.error) {
+        // Cache the resolution result if it was successful.
+        await this.cache.set(parsedDid.uri, resolutionResult);
+      }
 
       return resolutionResult;
     }
