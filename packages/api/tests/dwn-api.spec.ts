@@ -205,7 +205,7 @@ describe('DwnApi', () => {
         const response = await dwnAlice.protocols.query({
           from    : bobDid.uri,
           message : {
-            permissionsGrantId : 'bafyreiduimprbncdo2oruvjrvmfmwuyz4xx3d5biegqd2qntlryvuuosem',
+            permissionGrantId : 'bafyreiduimprbncdo2oruvjrvmfmwuyz4xx3d5biegqd2qntlryvuuosem',
             filter             : {
               protocol: 'https://doesnotexist.com/protocol'
             }
@@ -236,6 +236,32 @@ describe('DwnApi', () => {
         expect(result.status.detail).to.equal('Accepted');
         expect(result.record).to.exist;
         expect(await result.record?.data.text()).to.equal(dataString);
+      });
+
+      it('creates a record with tags', async () => {
+        const result = await dwnAlice.records.create({
+          data    : 'some data',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain',
+            tags: {
+              foo   : 'bar',
+              count : 2,
+              bool  : true
+            }
+          }
+        });
+
+        expect(result.status.code).to.equal(202);
+        expect(result.status.detail).to.equal('Accepted');
+        expect(result.record).to.exist;
+        expect(result.record?.tags).to.exist;
+        expect(result.record?.tags).to.deep.equal({
+          foo   : 'bar',
+          count : 2,
+          bool  : true
+        });
+
       });
 
       it('creates a record with JSON data', async () => {

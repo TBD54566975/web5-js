@@ -247,6 +247,8 @@ export class Record implements RecordModel {
   /** Record's published status (true/false) */
   get published() { return this._descriptor.published; }
 
+  get tags() { return this._descriptor.tags; }
+
   /**
    * Returns a copy of the raw `RecordsWriteMessage` that was used to create the current `Record` instance.
    */
@@ -540,7 +542,8 @@ export class Record implements RecordModel {
       published        : this.published,
       recipient        : this.recipient,
       recordId         : this.id,
-      schema           : this.schema
+      schema           : this.schema,
+      tags             : this.tags,
     };
   }
 

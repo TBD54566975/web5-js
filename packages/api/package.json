@@ -80,12 +80,12 @@
     "@web5/agent": "0.3.1",
     "@web5/common": "1.0.0",
     "@web5/crypto": "1.0.0",
-    "@web5/dids": "1.0.0",
+    "@web5/dids": "1.0.1",
     "@web5/user-agent": "0.3.1"
   },
   "devDependencies": {
     "@playwright/test": "1.40.1",
-    "@tbd54566975/dwn-sdk-js": "0.2.22",
+    "@tbd54566975/dwn-sdk-js": "0.3.1",
     "@types/chai": "4.3.6",
     "@types/eslint": "8.44.2",
     "@types/mocha": "10.0.1",
