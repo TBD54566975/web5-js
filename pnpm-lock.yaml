@@ -52,7 +52,7 @@ importers:
         version: link:../crypto
       '@web5/dids':
         specifier: 1.0.0
-        version: link:../dids
+        version: 1.0.0
       abstract-level:
         specifier: 1.0.4
         version: 1.0.4
@@ -158,7 +158,7 @@ importers:
         version: link:../crypto
       '@web5/dids':
         specifier: 1.0.0
-        version: link:../dids
+        version: 1.0.0
       '@web5/user-agent':
         specifier: 0.3.1
         version: link:../user-agent
@@ -334,7 +334,7 @@ importers:
         version: link:../crypto
       '@web5/dids':
         specifier: 1.0.0
-        version: link:../dids
+        version: 1.0.0
     devDependencies:
       '@playwright/test':
         specifier: 1.40.1
@@ -692,7 +692,7 @@ importers:
         version: link:../crypto
       '@web5/dids':
         specifier: 1.0.0
-        version: link:../dids
+        version: 1.0.0
     devDependencies:
       '@playwright/test':
         specifier: 1.40.1
@@ -780,7 +780,7 @@ importers:
         version: link:../crypto
       '@web5/dids':
         specifier: 1.0.0
-        version: link:../dids
+        version: 1.0.0
     devDependencies:
       '@playwright/test':
         specifier: 1.40.1
@@ -865,7 +865,7 @@ importers:
         version: link:../crypto
       '@web5/dids':
         specifier: 1.0.0
-        version: link:../dids
+        version: 1.0.0
     devDependencies:
       '@playwright/test':
         specifier: 1.40.1
