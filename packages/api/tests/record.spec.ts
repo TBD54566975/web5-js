@@ -2392,10 +2392,10 @@ describe('Record', () => {
 
       expect(updateResultWithoutTags.status.code).to.equal(202);
       expect(record.tags).to.deep.equal({ tag1: 'value1', tag2: 'value2'}); // unchanged
+      expect(await record.data.text()).to.equal('hi');
 
       // if you modify the tags they change
       const updateResultWithTags = await record!.update({
-        data: 'hi',
         tags: {
           tag1: 'value3',
           tag3: 'value4'
@@ -2404,15 +2404,16 @@ describe('Record', () => {
 
       expect(updateResultWithTags.status.code).to.equal(202);
       expect(record.tags).to.deep.equal({ tag1: 'value3', tag3: 'value4'}); // changed
+      expect(await record.data.text()).to.equal('hi');
 
       // if you use an empty tags object it removes all tags
       const updateResultWithEmptyTags = await record!.update({
-        data: 'hi',
         tags: {}
       });
 
       expect(updateResultWithEmptyTags.status.code).to.equal(202);
       expect(record.tags).to.not.exist; // removed
+      expect(await record.data.text()).to.equal('hi');
     });
   });
 
