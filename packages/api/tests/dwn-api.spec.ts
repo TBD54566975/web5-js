@@ -877,7 +877,7 @@ describe('DwnApi', () => {
             schema     : 'foo/bar',
             dataFormat : 'text/plain',
             tags       : {
-              foo   : 'bar',
+              foo: 'bar',
             }
           }
         });
@@ -890,7 +890,7 @@ describe('DwnApi', () => {
             schema     : 'foo/bar',
             dataFormat : 'text/plain',
             tags       : {
-              foo   : 'baz',
+              foo: 'baz',
             }
           }
         });
@@ -915,9 +915,9 @@ describe('DwnApi', () => {
         const fooBarResult = await dwnAlice.records.query({
           message: {
             filter: {
-              schema: 'foo/bar',
-              tags: {
-                foo   : 'bar',
+              schema : 'foo/bar',
+              tags   : {
+                foo: 'bar',
               }
             }
           }
@@ -1047,7 +1047,7 @@ describe('DwnApi', () => {
             schema     : 'foo/bar',
             dataFormat : 'text/plain',
             tags       : {
-              foo   : 'bar',
+              foo: 'bar',
             }
           }
         });
@@ -1063,7 +1063,7 @@ describe('DwnApi', () => {
             schema     : 'foo/bar',
             dataFormat : 'text/plain',
             tags       : {
-              foo   : 'baz',
+              foo: 'baz',
             }
           }
         });
@@ -1092,9 +1092,9 @@ describe('DwnApi', () => {
           from    : aliceDid.uri,
           message : {
             filter: {
-              schema: 'foo/bar',
-              tags: {
-                foo   : 'bar',
+              schema : 'foo/bar',
+              tags   : {
+                foo: 'bar',
               }
             }
           }
