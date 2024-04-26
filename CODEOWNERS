@@ -18,9 +18,9 @@
 
 # These are owners of any file in the `agent`, `user-agent`, `proxy-agent`, `identity-agent`, and
 # `api` packages and their sub-directories.
-/packages/agent          @lirancohen @frankhinek @csuwildcat @mistermoe
-/packages/proxy-agent    @lirancohen @frankhinek @csuwildcat @mistermoe
-/packages/user-agent     @lirancohen @frankhinek @csuwildcat @mistermoe
-/packages/identity-agent @lirancohen @frankhinek @csuwildcat @mistermoe
-/packages/api            @lirancohen @frankhinek @csuwildcat @mistermoe
+/packages/agent          @lirancohen @frankhinek @csuwildcat @mistermoe @shamilovtim
+/packages/proxy-agent    @lirancohen @frankhinek @csuwildcat @mistermoe @shamilovtim
+/packages/user-agent     @lirancohen @frankhinek @csuwildcat @mistermoe @shamilovtim
+/packages/identity-agent @lirancohen @frankhinek @csuwildcat @mistermoe @shamilovtim
+/packages/api            @lirancohen @frankhinek @csuwildcat @mistermoe @shamilovtim
  
