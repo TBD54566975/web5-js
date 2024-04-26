@@ -206,7 +206,7 @@ describe('DwnApi', () => {
           from    : bobDid.uri,
           message : {
             permissionGrantId : 'bafyreiduimprbncdo2oruvjrvmfmwuyz4xx3d5biegqd2qntlryvuuosem',
-            filter             : {
+            filter            : {
               protocol: 'https://doesnotexist.com/protocol'
             }
           }
@@ -244,7 +244,7 @@ describe('DwnApi', () => {
           message : {
             schema     : 'foo/bar',
             dataFormat : 'text/plain',
-            tags: {
+            tags       : {
               foo   : 'bar',
               count : 2,
               bool  : true

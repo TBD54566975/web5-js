@@ -2374,8 +2374,8 @@ describe('Record', () => {
           schema     : 'foo/bar',
           dataFormat : 'text/plain',
           tags       : {
-            tag1: 'value1',
-            tag2: 'value2'
+            tag1 : 'value1',
+            tag2 : 'value2'
           }
         }
       });
@@ -2383,7 +2383,7 @@ describe('Record', () => {
       expect(status.code).to.equal(202);
       expect(record).to.not.be.undefined;
       expect(await record.data.text()).to.equal('Hello, world!');
-      expect(record.tags).to.deep.equal({ tag1: 'value1', tag2: 'value2'})
+      expect(record.tags).to.deep.equal({ tag1: 'value1', tag2: 'value2'});
 
       // if you do not modify the tags they do not change
       const updateResultWithoutTags = await record!.update({
@@ -2397,8 +2397,8 @@ describe('Record', () => {
       // if you modify the tags they change
       const updateResultWithTags = await record!.update({
         tags: {
-          tag1: 'value3',
-          tag3: 'value4'
+          tag1 : 'value3',
+          tag3 : 'value4'
         }
       });
 
