@@ -577,7 +577,7 @@ export class Record implements RecordModel {
    *
    * @beta
    */
-  async update({ dateModified, data,  ...params }: RecordUpdateParams): Promise<DwnResponseStatus> {
+  async update({ dateModified, data, ...params }: RecordUpdateParams): Promise<DwnResponseStatus> {
 
     // if there is a parentId, we remove it from the descriptor and set a parentContextId
     const { parentId, ...descriptor } = this._descriptor;
@@ -608,7 +608,6 @@ export class Record implements RecordModel {
       delete updateMessage.dataSize;
       ({ dataBlob } = dataToBlob(data, updateMessage.dataFormat));
     }
-
 
     // Throw an error if an attempt is made to modify immutable properties.
     // Note: `data` and `dateModified` have already been handled.
