@@ -2368,6 +2368,7 @@ describe('Record', () => {
     });
 
     it('should override tags on update', async () => {
+      // create a record with tags
       const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
@@ -2385,7 +2386,7 @@ describe('Record', () => {
       expect(await record.data.text()).to.equal('Hello, world!');
       expect(record.tags).to.deep.equal({ tag1: 'value1', tag2: 'value2'});
 
-      // if you do not modify the tags they do not change
+      // if you do not pass any tags they remain unchanged
       const updateResultWithoutTags = await record!.update({
         data: 'hi',
       });
@@ -2394,7 +2395,7 @@ describe('Record', () => {
       expect(record.tags).to.deep.equal({ tag1: 'value1', tag2: 'value2'}); // unchanged
       expect(await record.data.text()).to.equal('hi');
 
-      // if you modify the tags they change
+      // if you modify the tags they override the existing tags
       const updateResultWithTags = await record!.update({
         tags: {
           tag1 : 'value3',
@@ -2403,17 +2404,55 @@ describe('Record', () => {
       });
 
       expect(updateResultWithTags.status.code).to.equal(202);
-      expect(record.tags).to.deep.equal({ tag1: 'value3', tag3: 'value4'}); // changed
+      expect(record.tags).to.deep.equal({ tag1: 'value3', tag3: 'value4'}); // changed to updated tags
       expect(await record.data.text()).to.equal('hi');
+    });
 
-      // if you use an empty tags object it removes all tags
+    it('should remove tags on update if tags are set to an empty object or null', async () => {
+      // create a record with tags
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain',
+          tags       : {
+            tag1 : 'value1',
+            tag2 : 'value2'
+          }
+        }
+      });
+
+      expect(status.code).to.equal(202);
+      expect(record).to.not.be.undefined;
+      expect(await record.data.text()).to.equal('Hello, world!');
+      expect(record.tags).to.deep.equal({ tag1: 'value1', tag2: 'value2'});
+
+      // if you use an empty tags object it removes the tags
       const updateResultWithEmptyTags = await record!.update({
         tags: {}
       });
 
       expect(updateResultWithEmptyTags.status.code).to.equal(202);
       expect(record.tags).to.not.exist; // removed
-      expect(await record.data.text()).to.equal('hi');
+
+      // add tags to the record again
+      const updateResultWithTags = await record!.update({
+        tags: {
+          tag1 : 'value3',
+          tag3 : 'value4'
+        }
+      });
+
+      expect(updateResultWithTags.status.code).to.equal(202);
+      expect(record.tags).to.deep.equal({ tag1: 'value3', tag3: 'value4'}); // added tags
+
+      // if you use null it removes the tags
+      const updateResultWithNullTags = await record!.update({
+        tags: null
+      });
+
+      expect(updateResultWithNullTags.status.code).to.equal(202);
+      expect(record.tags).to.not.exist; // removed
     });
   });
 

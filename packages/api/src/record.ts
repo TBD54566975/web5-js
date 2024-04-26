@@ -592,6 +592,13 @@ export class Record implements RecordModel {
       recordId         : this._recordId
     };
 
+    // NOTE: The original Record's tags are copied to the update message, so that the tags are not lost.
+    // However if a user passes new tags in the `RecordUpdateParams` object, they will overwrite the original tags.
+    // If the updated tag object is empty or set to null, we remove the tags property to avoid schema validation errors in the DWN SDK.
+    if (isEmptyObject(updateMessage.tags) || updateMessage.tags === null) {
+      delete updateMessage.tags;
+    }
+
     let dataBlob: Blob;
     if (data !== undefined) {
       // If `data` is being updated then `dataCid` and `dataSize` must be undefined and the `data`
@@ -600,10 +607,6 @@ export class Record implements RecordModel {
       delete updateMessage.dataCid;
       delete updateMessage.dataSize;
       ({ dataBlob } = dataToBlob(data, updateMessage.dataFormat));
-    }
-
-    if (isEmptyObject(updateMessage.tags)) {
-      delete updateMessage.tags; // Remove empty tags object from the updated message.
     }
 
 
