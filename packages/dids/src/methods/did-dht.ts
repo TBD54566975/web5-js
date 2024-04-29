@@ -1014,17 +1014,26 @@ export class DidDhtDocument {
         case dnsRecordId.startsWith('k'): {
           // Get the method ID fragment (id), key type (t), Base64URL-encoded public key (k), and
           // optionally, controller (c) from the decoded TXT record data.
-          const { id, t, k, c, alg } = DidDhtUtils.parseTxtDataToObject(answer.data);
-
+          const { id, t, k, c, alg: parsedAlg } = DidDhtUtils.parseTxtDataToObject(answer.data);
 
           // Convert the public key from Base64URL format to a byte array.
           const publicKeyBytes = Convert.base64Url(k).toUint8Array();
 
-          // Use the key type integer to look up the cryptographic curve name.
-          const namedCurve = DidDhtRegisteredKeyType[Number(t)];
+          // Determine the algorithm from the key type or use the initial algorithm if provided.
+          const alg = parsedAlg || DidDhtRegisteredKeyType[Number(t)];
 
           // Convert the public key from a byte array to JWK format.
-          let publicKey = await DidDhtUtils.keyConverter(namedCurve).bytesToPublicKey({ publicKeyBytes });
+          let publicKey = await DidDhtUtils.keyConverter(alg).bytesToPublicKey({ publicKeyBytes });
+
+          // Always set the algorithm on did:dht expansion.
+          publicKey.alg = alg;
+
+          // Determine the Key ID (kid): '0' for the identity key or JWK thumbprint for others. Always set alg on expansion.
+          if (id !== '0' && publicKey.kid === undefined) {
+            publicKey.kid = await computeJwkThumbprint({ jwk: publicKey });
+          } else {
+            publicKey.kid = '0';
+          }
 
           // Initialize the `verificationMethod` array if it does not already exist.
           didDocument.verificationMethod ??= [];
@@ -1032,21 +1041,13 @@ export class DidDhtDocument {
           // Prepend the DID URI to the ID fragment to form the full verification method ID.
           const methodId = `${didUri}#${id}`;
 
-          // Determine the Key ID (kid): '0' for the identity key or JWK thumbprint for others.
-          let kid = id;
-          if (kid !== '0') {
-            kid = await computeJwkThumbprint({ jwk: publicKey });
-          }
-
-          // Add the verification method to the DID document and always set alg and kid on expansion.
+          // Add the verification method to the DID document.
           didDocument.verificationMethod.push({
             id           : methodId,
             type         : 'JsonWebKey',
             controller   : c ?? didUri,
             publicKeyJwk : {
               ...publicKey,
-              alg : namedCurve,
-              kid : kid
             }
           });
 
@@ -1170,7 +1171,11 @@ export class DidDhtDocument {
       let methodId = vm.id.split('#').pop()!; // Remove fragment prefix, if any.
       idLookup.set(methodId, dnsRecordId);
 
-      const publicKey = vm.publicKeyJwk;
+      const publicKey = vm.publicKeyJwk!;
+
+      if(methodId === '0') {
+        publicKey.kid = '0';
+      }
 
       if (!(publicKey?.crv && publicKey.crv in AlgorithmToKeyTypeMap)) {
         throw new DidError(DidErrorCode.InvalidPublicKeyType, `Verification method '${vm.id}' contains an unsupported key type: ${publicKey?.crv ?? 'undefined'}`);
