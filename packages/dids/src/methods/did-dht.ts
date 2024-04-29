@@ -1031,7 +1031,7 @@ export class DidDhtDocument {
           // Prepend the DID URI to the ID fragment to form the full verification method ID.
           const methodId = `${didUri}#${id}`;
 
-          // Add the verification method to the DID document and always set alg and kid on expansion
+          // Add the verification method to the DID document and always set alg and kid on expansion.
           didDocument.verificationMethod.push({
             id           : methodId,
             type         : 'JsonWebKey',
