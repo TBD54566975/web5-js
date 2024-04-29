@@ -1031,7 +1031,7 @@ export class DidDhtDocument {
           // Determine the Key ID (kid): '0' for the identity key or JWK thumbprint for others. Always set alg on expansion.
           if (id !== '0' && publicKey.kid === undefined) {
             publicKey.kid = await computeJwkThumbprint({ jwk: publicKey });
-          } else {
+          } else if (id === '0') {
             publicKey.kid = '0';
           }
 
@@ -1046,9 +1046,7 @@ export class DidDhtDocument {
             id           : methodId,
             type         : 'JsonWebKey',
             controller   : c ?? didUri,
-            publicKeyJwk : {
-              ...publicKey,
-            }
+            publicKeyJwk : publicKey,
           });
 
           // Add a mapping from the DNS record ID (e.g., 'k0', 'k1', etc.) to the verification
