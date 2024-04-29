@@ -1031,12 +1031,16 @@ export class DidDhtDocument {
           // Prepend the DID URI to the ID fragment to form the full verification method ID.
           const methodId = `${didUri}#${id}`;
 
-          // Add the verification method to the DID document.
+          // Add the verification method to the DID document and always set alg and kid on expansion
           didDocument.verificationMethod.push({
             id           : methodId,
             type         : 'JsonWebKey',
             controller   : c ?? didUri,
-            publicKeyJwk : publicKey,
+            publicKeyJwk : {
+              ...publicKey,
+              alg : namedCurve,  // Set algorithm in JWK
+              kid : id // Set key ID in JWK
+            }
           });
 
           // Add a mapping from the DNS record ID (e.g., 'k0', 'k1', etc.) to the verification
