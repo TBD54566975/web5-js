@@ -32,6 +32,7 @@ import { extractDidFragment } from '../utils.js';
 import { DidError, DidErrorCode } from '../did-error.js';
 import { DidVerificationRelationship } from '../types/did-core.js';
 import { EMPTY_DID_RESOLUTION_RESULT } from '../types/did-resolution.js';
+import { getJoseSignatureAlgorithmFromPublicKey } from '@web5/crypto/utils';
 
 /**
  * Represents a BEP44 message, which is used for storing and retrieving data in the Mainline DHT
@@ -346,6 +347,15 @@ export enum DidDhtRegisteredKeyType {
    */
   secp256r1 = 2
 }
+
+/**
+ * Private helper that maps did dht registered key types to their corresponding default algorithm identifiers.
+ */
+const KeyTypeToDefaultAlgorithmMap = {
+  [DidDhtRegisteredKeyType.Ed25519]   : 'EdDSA',
+  [DidDhtRegisteredKeyType.secp256k1] : 'ES256K',
+  [DidDhtRegisteredKeyType.secp256r1] : 'ES256',
+} as const;
 
 /**
  * Maps {@link https://www.w3.org/TR/did-core/#verification-relationships | DID Core Verification Relationship}
@@ -1182,6 +1192,12 @@ export class DidDhtDocument {
       // Use the public key's `crv` property to get the DID DHT key type.
       const keyType = DidDhtRegisteredKeyType[publicKey.crv as keyof typeof DidDhtRegisteredKeyType];
 
+      let alg;
+      if(KeyTypeToDefaultAlgorithmMap[keyType] !== getJoseSignatureAlgorithmFromPublicKey(publicKey))
+      {
+        alg = getJoseSignatureAlgorithmFromPublicKey(publicKey);
+      }
+
       // Convert the public key from JWK format to a byte array.
       const publicKeyBytes = await DidDhtUtils.keyConverter(publicKey.crv).publicKeyToBytes({ publicKey });
 
@@ -1189,7 +1205,7 @@ export class DidDhtDocument {
       const publicKeyBase64Url = Convert.uint8Array(publicKeyBytes).toBase64Url();
 
       // Define the data for the DNS TXT record.
-      const txtData = [`id=${methodId}`, `t=${keyType}`, `k=${publicKeyBase64Url}`];
+      const txtData = [`id=${methodId}`, `t=${keyType}`, `k=${publicKeyBase64Url}`, ...(alg ? [`alg=${alg}`] : [])];
 
       // Add the controller property, if set to a value other than the Identity Key (DID Subject).
       if (vm.controller !== didDocument.id) txtData.push(`c=${vm.controller}`);
