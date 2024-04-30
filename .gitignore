@@ -3,17 +3,20 @@
 **/EVENTLOG/
 **/INDEX/
 **/MESSAGESTORE/
+**/RESOLVERCACHE/
 data
 compiled
 
 **/__tests__/
 **/__TESTDATA__/
-packages/web5-user-agent/src/test-sync-api.ts
 
 # bundle metadata
 bundle-metadata.json
 
 ### Node ###
+# NPM lock file
+package-lock.json
+
 # Logs
 logs
 *.log
@@ -158,3 +161,11 @@ dist
 
 # IntelliJ
 .idea
+
+results.xml
+
+.tbdocs
+temp
+
+# Hermit build output
+.hermit

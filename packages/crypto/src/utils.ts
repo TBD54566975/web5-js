@@ -1,22 +1,32 @@
-import { Convert, Multicodec } from '@web5/common';
-import { bytesToHex, randomBytes as nobleRandomBytes } from '@noble/hashes/utils';
+import type { Jwk } from './jose/jwk.js';
+
+import { crypto } from '@noble/hashes/crypto';
+import { randomBytes as nobleRandomBytes } from '@noble/hashes/utils';
 
 /**
  * Checks whether the properties object provided contains the specified property.
  *
- * @param property Property key to check for.
- * @param properties Properties object to check within.
+ * @example
+ * ```ts
+ * const obj = { a: 'Bob', t: 30 };
+ * checkRequiredProperty({ property: 'a', inObject: obj }); // No error
+ * checkRequiredProperty({ property: 'z', inObject: obj }); // Throws TypeError
+ * ```
+ *
+ * @param params - The parameters for the check.
+ * @param params.property - Property key to check for.
+ * @param params.properties - Properties object to check within.
  * @returns void
- * @throws {SyntaxError} If the property is not a key in the properties object.
+ * @throws {TypeError} If the property is not a key in the properties object.
  */
-export function checkRequiredProperty(options: {
+export function checkRequiredProperty(params: {
   property: string,
   inObject: object
 }): void {
-  if (!options || options.property === undefined || options.inObject === undefined) {
+  if (!params || params.property === undefined || params.inObject === undefined) {
     throw new TypeError(`One or more required parameters missing: 'property, properties'`);
   }
-  const { property, inObject } = options;
+  const { property, inObject } = params;
   if (!(property in inObject)) {
     throw new TypeError(`Required parameter missing: '${property}'`);
   }
@@ -25,18 +35,26 @@ export function checkRequiredProperty(options: {
 /**
  * Checks whether the property specified is a member of the list of valid properties.
  *
+ * @example
+ * ```ts
+ * const property = 'color';
+ * const allowedProperties = ['size', 'shape', 'color'];
+ * checkValidProperty({ property, allowedProperties }); // No error
+ * checkValidProperty({ property: 'weight', allowedProperties }); // Throws TypeError
+ * ```
+ *
  * @param property Property key to check for.
  * @param allowedProperties Properties Array, Map, or Set to check within.
  * @returns void
- * @throws {SyntaxError} If the property is not a member of the allowedProperties Array, Map, or Set.
+ * @throws {TypeError} If the property is not a member of the allowedProperties Array, Map, or Set.
  */
-export function checkValidProperty(options: {
+export function checkValidProperty(params: {
   property: string, allowedProperties: ReadonlyArray<string> | Array<string> | Map<string, unknown> | Set<string>
 }): void {
-  if (!options || options.property === undefined || options.allowedProperties === undefined) {
+  if (!params || params.property === undefined || params.allowedProperties === undefined) {
     throw new TypeError(`One or more required parameters missing: 'property, allowedProperties'`);
   }
-  const { property, allowedProperties } = options;
+  const { property, allowedProperties } = params;
   if (
     (Array.isArray(allowedProperties) && !allowedProperties.includes(property)) ||
     (allowedProperties instanceof Set && !allowedProperties.has(property)) ||
@@ -47,22 +65,62 @@ export function checkValidProperty(options: {
   }
 }
 
-export function keyToMultibaseId(options: {
-  key: Uint8Array,
-  multicodecCode?: number,
-  multicodecName?: string
-}): string {
-  const { key, multicodecCode, multicodecName } = options;
-  const prefixedKey = Multicodec.addPrefix({ code: multicodecCode, data: key, name: multicodecName });
-  const prefixedKeyB58 = Convert.uint8Array(prefixedKey).toBase58Btc();
-  const multibaseKeyId = Convert.base58Btc(prefixedKeyB58).toMultibase();
+/**
+ * Determines the JOSE algorithm identifier of the digital signature algorithm based on the `alg` or
+ * `crv` property of a {@link Jwk | JWK}.
+ *
+ * If the `alg` property is present, its value takes precedence and is returned. Otherwise, the
+ * `crv` property is used to determine the algorithm.
+ *
+ * @see {@link https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms | JOSE Algorithms}
+ * @see {@link https://datatracker.ietf.org/doc/draft-ietf-jose-fully-specified-algorithms/ | Fully-Specified Algorithms for JOSE and COSE}
+ *
+ * @example
+ * ```ts
+ * const publicKey: Jwk = {
+ *   "kty": "OKP",
+ *   "crv": "Ed25519",
+ *   "x": "FEJG7OakZi500EydXxuE8uMc8uaAzEJkmQeG8khXANw"
+ * }
+ * const algorithm = getJoseSignatureAlgorithmFromPublicKey(publicKey);
+ * console.log(algorithm); // Output: "EdDSA"
+ * ```
+ *
+ * @param publicKey - A JWK containing the `alg` and/or `crv` properties.
+ * @returns The name of the algorithm associated with the key.
+ * @throws Error if the algorithm cannot be determined from the provided input.
+ */
+export function getJoseSignatureAlgorithmFromPublicKey(publicKey: Jwk): string {
+  const curveToJoseAlgorithm: Record<string, string> = {
+    'Ed25519'   : 'EdDSA',
+    'P-256'     : 'ES256',
+    'P-384'     : 'ES384',
+    'P-521'     : 'ES512',
+    'secp256k1' : 'ES256K',
+  };
 
-  return multibaseKeyId;
+  // If the key contains an `alg` property that matches a JOSE registered algorithm identifier,
+  // return its value.
+  if (publicKey.alg && Object.values(curveToJoseAlgorithm).includes(publicKey.alg)) {
+    return publicKey.alg;
+  }
+
+  // If the key contains a `crv` property, return the corresponding algorithm.
+  if (publicKey.crv && Object.keys(curveToJoseAlgorithm).includes(publicKey.crv)) {
+    return curveToJoseAlgorithm[publicKey.crv];
+  }
+
+  throw new Error(
+    `Unable to determine algorithm based on provided input: alg=${publicKey.alg}, crv=${publicKey.crv}. ` +
+    `Supported 'alg' values: ${Object.values(curveToJoseAlgorithm).join(', ')}. ` +
+    `Supported 'crv' values: ${Object.keys(curveToJoseAlgorithm).join(', ')}.`
+  );
 }
 
 /**
  * Checks if the Web Crypto API is supported in the current runtime environment.
  *
+ * @remarks
  * The function uses `globalThis` to provide a universal reference to the global
  * scope, regardless of the environment. `globalThis` is a standard feature introduced
  * in ECMAScript 2020 that is agnostic to the underlying JavaScript environment, making
@@ -75,10 +133,7 @@ export function keyToMultibaseId(options: {
  * to determine the availability of the Web Crypto API. If both are present, the API is
  * supported; otherwise, it is not.
  *
- * @returns A boolean indicating whether the Web Crypto API is supported in the current environment.
- *
- * Example usage:
- *
+ * @example
  * ```ts
  * if (isWebCryptoSupported()) {
  *   console.log('Crypto operations can be performed');
@@ -86,6 +141,8 @@ export function keyToMultibaseId(options: {
  *   console.log('Crypto operations are not supported in this environment');
  * }
  * ```
+ *
+ * @returns A boolean indicating whether the Web Crypto API is supported in the current environment.
  */
 export function isWebCryptoSupported(): boolean {
   if (globalThis.crypto && globalThis.crypto.subtle) {
@@ -95,34 +152,25 @@ export function isWebCryptoSupported(): boolean {
   }
 }
 
-export function multibaseIdToKey(options: {
-  multibaseKeyId: string
-}): { key: Uint8Array, multicodecCode: number, multicodecName: string } {
-  const { multibaseKeyId } = options;
-
-  const prefixedKeyB58 = Convert.multibase(multibaseKeyId).toBase58Btc();
-  const prefixedKey = Convert.base58Btc(prefixedKeyB58).toUint8Array();
-  const { code, data, name } = Multicodec.removePrefix({ prefixedData: prefixedKey });
-
-  return { key: data, multicodecCode: code, multicodecName: name };
-}
-
 /**
  * Generates secure pseudorandom values of the specified length using
  * `crypto.getRandomValues`, which defers to the operating system.
  *
+ * @remarks
  * This function is a wrapper around `randomBytes` from the '@noble/hashes'
  * package. It's designed to be cryptographically strong, suitable for
- * generating keys, initialization vectors, and other random values.
+ * generating initialization vectors, nonces, and other random values.
+ *
+ * @see {@link https://www.npmjs.com/package/@noble/hashes | @noble/hashes on NPM} for more
+ * information about the underlying implementation.
+ *
+ * @example
+ * ```ts
+ * const bytes = randomBytes(32); // Generates 32 random bytes
+ * ```
  *
  * @param bytesLength - The number of bytes to generate.
  * @returns A Uint8Array containing the generated random bytes.
- *
- * @example
- * const bytes = randomBytes(32); // Generates 32 random bytes
- *
- * @see {@link https://www.npmjs.com/package/@noble/hashes | @noble/hashes on NPM}
- * for more information about the underlying implementation.
  */
 export function randomBytes(bytesLength: number): Uint8Array {
   return nobleRandomBytes(bytesLength);
@@ -145,27 +193,16 @@ export function randomBytes(bytesLength: number): Uint8Array {
  * practically unique" given the large number of possible UUIDs and
  * the randomness of generation.
  *
- * After generating the UUID, the function securely wipes the memory
- * areas used to hold temporary values to prevent any possibility of
- * the random values being unintentionally leaked or retained in memory.
+ * @example
+ * ```ts
+ * const uuid = randomUuid();
+ * console.log(uuid); // Outputs a version 4 UUID, e.g., '123e4567-e89b-12d3-a456-426655440000'
+ * ```
  *
- * @returns A UUID string in version 4 format.
+ * @returns A string containing a randomly generated, 36 character long v4 UUID.
  */
 export function randomUuid(): string {
-  const bytes = randomBytes(16);
-  bytes[6] = (bytes[6] & 0x0f) | 0x40; // set version 4
-  bytes[8] = (bytes[8] & 0x3f) | 0x80; // set variant 1
-  const hex = bytesToHex(bytes);
-  bytes.fill(0); // wipe the random values array
-  const segments = [
-    hex.slice(0, 8),
-    hex.slice(8, 12),
-    hex.slice(12, 16),
-    hex.slice(16, 20),
-    hex.slice(20, 32)
-  ];
-  const uuid = segments.join('-');
-  segments.fill('0'); // wipe the segments array
+  const uuid = crypto.randomUUID();
 
   return uuid;
 }

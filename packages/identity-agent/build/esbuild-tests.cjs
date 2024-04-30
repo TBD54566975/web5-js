@@ -5,7 +5,7 @@ const browserConfig = require('./esbuild-browser-config.cjs');
 let config = {
   ...browserConfig,
   format      : 'esm',
-  entryPoints : ['./tests/*.spec.*'],
+  entryPoints : ['./tests/**/*.spec.*'],
   bundle      : true,
   minify      : false,
   outdir      : 'tests/compiled',

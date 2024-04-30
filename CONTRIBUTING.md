@@ -50,26 +50,20 @@ Build and Test cycles are run on every commit to every branch using [GitHub Acti
 
 ## Development Prerequisites
 
-| Requirement | Tested Version | Installation Instructions                                                                      |
-| ----------- | -------------- | ---------------------------------------------------------------------------------------------- |
-| Node.js     | 18.16.0        | [Introduction to Node.js](https://nodejs.dev/en/learn/)                                        |
-| NPM         | 9.6.3          | [NPM Package Manager](https://nodejs.dev/en/learn/an-introduction-to-the-npm-package-manager/) |
+### Hermit
+
+This project uses hermit to manage tooling like node. See [this page](https://cashapp.github.io/hermit/usage/get-started/) to set up Hermit on your machine - make sure to download the open source build and activate it for the project.
+
+Currently, we have these packages installed via Hermit (can also view by checking out `hermit status`):
+
+| Requirement | Tested Version |
+| ----------- | -------------- |
+| Node.js     | 20.9.0         |
+| PNPM        | 8.15.4         |
 
 ### TypeScript
 
 This project is written in TypeScript, a strongly typed programming language that builds on JavaScript.
-
-You may verify your `node` and `npm` installation via the terminal:
-
-```
-$ node --version
-v18.16.0
-$ npm --version
-9.6.3
-```
-
-If you do not have Node.js installed, we recommend following the
-[Introduction to Node.js](https://nodejs.dev/en/learn/) guide.
 
 ## Contribution
 
@@ -94,7 +88,7 @@ to your valuable work:
   rebase atop the upstream `main` branch. This will limit the potential for merge
   conflicts during review, and helps keep the audit trail clean. A good writeup for
   how this is done is
- [this beginner's guide to squashing commits](https://medium.com/@slamflipstrom/a-beginners-guide-to-squashing-commits-with-git-rebase-8185cf6e62ec)
+  [this beginner's guide to squashing commits](https://medium.com/@slamflipstrom/a-beginners-guide-to-squashing-commits-with-git-rebase-8185cf6e62ec)
   having trouble - feel free to ask a member or the community for help or leave the commits as-is, and flag that you'd like
   rebasing assistance in your PR! We're here to support you.
 - Open a PR in the project to bring in the code from your feature branch.
@@ -108,11 +102,19 @@ to your valuable work:
 
 ### Running Tests
 
-- Running the `npm run test:node --ws` command from the root of the project will run all tests using node.
+> [!IMPORTANT]
+> Before running tests ensure you've completed the following steps:
+>
+> 1. Install the [development prerequisites](#development-prerequisites).
+> 2. Follow the [these steps](https://github.com/TBD54566975/web5-js#cloning) to clone this repository and `cd` into the project directory.
+> 3. Install all project dependencies by running `pnpm install` from the root directory of the project.
+> 4. Build all workspace projects by running npm `pnpm build` from the root directory of the project.
+
+- Running the `pnpm --recursive test:node` command from the root of the project will run all tests using node.
   - This is run via CI whenever a pull request is opened, or a commit is pushed to a branch that has an open PR
-- Running the `npm run test:browser --ws` command from the root of the project will run the tests in a browser environment
+- Running the `pnpm --recursive test:browser` command from the root of the project will run the tests in a browser environment
   - Please make sure there are no failing tests before switching your PR to ready for review! We hope to have this automated via a github action very soon.
-- You can also run `npm run test:node -w=packages/DIR` or `npm run test:browser -w=packages/DIR` from the root of the project to run tests for a single package. For example, to run the tests only for the `web5` package run `npm run test:node -w=packages/web5`.
+- You can also run `pnpm --filter=PACKAGE test:node` or `pnpm --filter=PACKAGE test:browser` from the root of the project to run tests for a single package. For example, to run the tests only for the `dids` package run `pnpm --filter=dids test:node`.
 
 ### Test Coverage Expectations
 
@@ -134,6 +136,26 @@ To maintain the robustness and reliability of the codebase, we highly value test
   [Discord](https://discord.com/channels/937858703112155166/969272658501976117)
   channel.
 
+### Documentation Generator
+
+We are using [tbdocs](https://github.com/TBD54566975/tbdocs) to check, generate and publish our SDK API Reference docs automatically to GH Pages.
+
+To see if the docs are being generated properly without errors, and to preview the generated docs locally execute the following script:
+
+```sh
+./scripts/tbdocs-check-local.sh
+
+# to see if there are any doc errors
+open .tbdocs/docs-report.md
+
+# to serve the generated docs locally using a static server (e.g. `pnpm install -g http-server`)
+http-server .tbdocs/docs
+```
+
+The errors can be found at `./tbdocs/summary.md`
+
+_PS: You need to have docker installed on your computer._
+
 ### Project Versioning Guidelines
 
 This section provides guidelines for versioning Web5 JS packages. All releases are published to the
@@ -143,36 +165,79 @@ remains consistent and well-organized.
 #### Stable Releases
 
 We use semantic versioning for stable releases that have completed testing and are considered reliable enough for
-general use. Project maintainers will follow the steps below to create a new release:
+general use.
 
-1. For each updated package that requires a new release, update the version in `package.json` according to semantic versioning rules (`MAJOR.MINOR.PATCH`).
+This project uses [Changesets](https://github.com/changesets/changesets) for semver management. For motivations, see [full explanation here](https://github.com/changesets/changesets/blob/main/docs/detailed-explanation.md).
 
-1. In a local feature branch, commit the changes:
+Upon opening a Pull Request, the `changeset-bot` will automatically comment ([example](https://github.com/TBD54566975/tbdex-js/pull/30#issuecomment-1732721942)) on the PR with a reminder & recommendations for managing the changeset for the given changes.
 
-   ```
-   git add package.json
-   git commit -m "Bump version to x.y.z"
-   ```
+Prior to merging your branch into main, and given you have relevant semantic versioning changes, then you should run `npx changeset` locally.
 
-1. Create a tag for the new release:
+The CLI tool will walk you through a set of steps for you to define the semantic changes. This will create a randomly-named (and funnily-named) markdown file within the `.changeset/` directory. For example, see the `.changeset/sixty-tables-cheat.md` file on [this PR](https://github.com/TBD54566975/tbdex-js/pull/35/files). There is an analogy to staging a commit (using `git add`) for these markdown files, in that, they exist so that the developer can codify the semantic changes made but they don't actually update the semantic version.
 
-   ```
-   git tag -a vx.y.z -m "Release x.y.z"
-   ```
+**You can stop here!** It is recommended to merge your branch into main with the `.changeset/*.md` files, at which point, the Changeset GitHub Action will automatically pick up those changes and open a PR to automate the `npx changeset version` execution. For example, [see this PR](https://github.com/TBD54566975/tbdex-js/pull/36). This command will do two things: update the version numbers in the relevant `package.json` files & also aggregate Summary notes into the relevant `CHANGELOG.md` files. In keeping with the staged commit analogy, this is akin to the actual commit.
 
-1. Push the changes and the tag to the remote repository:
+**Publishing Releases**
 
-   ```
-   git push --tags
-   ```
+Project maintainers will just merge the [Version Packages PR](https://github.com/TBD54566975/web5-js/pulls?q=is%3Apr+author%3Aapp%2Fgithub-actions+%22Version+Packages%22+) when it's ready to publish the new versions!
 
-1. Open a pull request (PR) from your feature branch to begin the review process.
+When these PRs are merged to main we will automatically publish to NPM and create corresponding git tags with the changelog notes, and mirror each tag to a GitHub release per package.
 
-After one or more PRs have been approved and merged by project maintainers, a GitHub Release will be created using the
-version tag. The act of creating the GitHub release triggers automated publication of the package to the
-[NPM Registry](https://npmjs.com) which will be tagged as _latest_.
+> [!NOTE]
+>
+> This is all achieved by the Changesets GitHub action being used in the [Release Workflow](./.github/workflows/release.yml).
 
-The next time someone runs `npm install @web5/<package_name>` the newly published release will be installed.
+The next time someone runs `pnpm install @web5/<package_name>` the newly published release will be installed.
+
+##### Recapping the steps for a new release publish
+
+Recap of the above changesets, plus the release process:
+
+1. Open a PR
+2. `changeset-bot` will automatically [comment on the PR](https://github.com/TBD54566975/tbdex-js/pull/30#issuecomment-1732721942) with a reminder & recommendations for semver
+3. Run `pnpm changeset` locally and push changes (`.changeset/*.md`)
+4. Merge PR into `main`
+5. Profit from the automated release pipeline:
+   - [Release Workflow](./.github/workflows/release.yml) will create a new Version Package PR, or update the existing one
+   - When maintainers are ready to publish the new changes, they will merge that PR and the very same [Release Workflow](./.github/workflows/release.yml) will automatically publish a [new version to NPM](https://www.npmjs.com/package/@web5/dids?activeTab=versions), and publish the docs to https://tbd54566975.github.io/web5-js/
+
+#### Web5 API Releases
+
+The `@web5/api` package is special because it dictates our release train schedule. Whenever a new Web5 API needs to be released projects maintainers will need to reach out to DevRel team to orchestrate an announcement to the community and follow a set of tests to ensure the Web5 API release is reliable and working ([example here](https://github.com/TBD54566975/developer.tbd.website/issues/1129)).
+
+**Because of that, the changesets of the `@web5/api` are ignored by default.**
+
+Check below how to enable the `@web5/api` package release.
+
+##### @web5/api New Standalone Release
+
+1. Go to the [Release workflow](https://github.com/TBD54566975/web5-js/actions/workflows/release.yml)
+2. Press the `Run Workflow` button and select the `Initiate @web5/api release` checkbox
+3. Push `Run Workflow`
+
+This will create a new [Version Packages PR](https://github.com/TBD54566975/tbdex-js/pulls?q=is%3Apr+author%3Aapp%2Fgithub-actions+%22Version+Packages%22+is%3Aopen) with the `@web5/api` package bump, if there are any relevant changesets for the package.
+
+##### @web5/api Release with other package bumps
+
+In the rare occasion where `@web5/api` needs to be bumped together with other packages, just label the existing Version Package PR.
+
+1. Go to the current [Version Packages PR](https://github.com/TBD54566975/tbdex-js/pulls?q=is%3Apr+author%3Aapp%2Fgithub-actions+%22Version+Packages%22+is%3Aopen)
+2. Label the PR with the `api-release` tag
+3. The release workflow should be triggered and the `@web5/api` package changes should be included in the PR as soon as the workflow completes.
+
+##### @web5/api Canceling Release
+
+If for some reason you need to bump other packages and the `@web5/api` is added to the current Version Package PR, this will probably block your release until everything is sorted in the web5/dwn side of things... Follow the steps below to ignore the `@web5/api` package release.
+
+1. Go to the current [Version Packages PR](https://github.com/TBD54566975/tbdex-js/pulls?q=is%3Apr+author%3Aapp%2Fgithub-actions+%22Version+Packages%22+is%3Aopen)
+2. Remove the `api-release` label from the PR
+3. The release workflow should be triggered and the `@web5/api` package changes should be removed from the PR as soon as the workflow completes.
+
+#### Preview Releases
+
+With the Changesets automation, every push to main with relevant changesets, will publish the corresponding packages to the NPM registry automatically with the tag `next`.
+
+The preview releases are useful for testing and verifying the changes before publishing a stable release.
 
 #### Alpha Releases
 
@@ -198,5 +263,5 @@ the [NPM Registry](https://npmjs.com) within a few minutes.
 > **Note**
 > Alpha version will never be tagged as _latest_.
 
-To install an `alpha` tagged release use either the `npm install @web5/<package>@alpha` or
-`npm install @web5/<package>@x.y.z-alpha-YYYYMMDD-commithash` syntax.
+To install an `alpha` tagged release use either the `pnpm install @web5/<package>@alpha` or
+`pnpm install @web5/<package>@x.y.z-alpha-YYYYMMDD-commithash` syntax.

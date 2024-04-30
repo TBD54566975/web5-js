@@ -21,30 +21,31 @@ jobs:
 
     env:
       # Packages not listed here will be excluded from publishing
-      PACKAGES: "agent api common credentials crypto dids identity-agent proxy-agent user-agent"
+      PACKAGES: "agent api common credentials crypto crypto-aws-kms dids identity-agent proxy-agent user-agent"
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
 
-      - name: Set up Node.js
-        uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
+      # https://cashapp.github.io/hermit/usage/ci/
+      - name: Init Hermit
+        uses: cashapp/activate-hermit@31ce88b17a84941bb1b782f1b7b317856addf286 #v1.1.0
         with:
-          node-version: 18
-          registry-url: https://registry.npmjs.org/
+          cache: "true"
 
-      - name: Install latest npm
-        run: npm install -g npm@latest
+      - name: Store NPM Registry Settings to .npmrc
+        run: |
+          echo -e "//registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}" > ~/.npmrc
 
       # Note - this is not required but it gives a clean failure prior to attempting a release if
       # the GH workflow runner is not authenticated with NPMjs.com
       - name: Verify NPM token is authenticated with NPMjs.com
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-        run: npm whoami
+        run: pnpm whoami
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Generate alpha prerelease and bump package.json @web5/* versions
         env:
@@ -57,15 +58,17 @@ jobs:
         shell: bash
 
       - name: Build all workspace packages
-        run: npm run build
-
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: pnpm --recursive --stream build
+        
       - name: Publish selected @web5/* packages
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: |
           for package in $PACKAGES; do
             cd packages/$package
-            npm publish --tag alpha --no-git-tag-version --access public --provenance
+            pnpm publish --tag alpha --access public --provenance --no-git-checks
             cd ../..
           done
         shell: bash

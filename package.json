@@ -5,6 +5,7 @@
   "workspaces": [
     "packages/common",
     "packages/crypto",
+    "packages/crypto-aws-kms",
     "packages/dids",
     "packages/credentials",
     "packages/agent",
@@ -14,8 +15,10 @@
     "packages/identity-agent"
   ],
   "scripts": {
-    "clean": "npx npkill -d $(pwd) -t node_modules && npx npkill -d $(pwd)/packages -t dist",
-    "build": "npm run build --ws"
+    "clean": "pnpm npkill -d $(pwd)/packages -t dist && pnpm npkill -d $(pwd) -t node_modules",
+    "build": "pnpm --recursive --stream build",
+    "dwn-server": "DWN_SERVER_PACKAGE_JSON=node_modules/@web5/dwn-server/package.json node node_modules/@web5/dwn-server/dist/esm/src/main.js || true",
+    "test:node": "pnpm --recursive test:node"
   },
   "repository": {
     "type": "git",
@@ -23,8 +26,17 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
+    "@changesets/changelog-github": "^0.5.0",
+    "@changesets/cli": "^2.27.1",
     "@npmcli/package-json": "5.0.0",
     "@typescript-eslint/eslint-plugin": "6.4.0",
-    "eslint-plugin-mocha": "10.1.0"
+    "@web5/dwn-server": "0.2.1",
+    "eslint-plugin-mocha": "10.1.0",
+    "npkill": "0.11.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "express@<4.19.2": ">=4.19.2"
+    }
   }
 }

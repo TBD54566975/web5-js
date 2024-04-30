@@ -1,188 +1,218 @@
-import type { DwnResponse, Web5Agent } from '@web5/agent';
 import type {
-  RecordsReadOptions,
-  RecordsQueryOptions,
-  RecordsWriteMessage,
-  RecordsWriteOptions,
-  RecordsDeleteOptions,
-  ProtocolsQueryOptions,
-  RecordsQueryReplyEntry,
-  ProtocolsConfigureMessage,
-  ProtocolsConfigureOptions,
-  ProtocolsConfigureDescriptor,
-} from '@tbd54566975/dwn-sdk-js';
+  Web5Agent,
+  DwnMessage,
+  DwnResponse,
+  DwnMessageParams,
+  DwnResponseStatus,
+  ProcessDwnRequest,
+  DwnPaginationCursor,
+} from '@web5/agent';
 
 import { isEmptyObject } from '@web5/common';
-import { DwnInterfaceName, DwnMethodName, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
+import { DwnInterface, getRecordAuthor } from '@web5/agent';
 
 import { Record } from './record.js';
 import { dataToBlob } from './utils.js';
 import { Protocol } from './protocol.js';
 
 /**
- * Status code and detailed message for a response.
+ * Represents the request payload for configuring a protocol on a Decentralized Web Node (DWN).
  *
- * @beta
- */
-export type ResponseStatus = {
-  status: {
-    code: number;
-    detail: string;
-  };
-};
-
-/**
- * Request to setup a protocol with its definitions
- *
- * @beta
+ * This request type is used to specify the configuration options for the protocol.
  */
 export type ProtocolsConfigureRequest = {
-  message: Omit<ProtocolsConfigureOptions, 'signer'>;
+  /** Configuration options for the protocol. */
+  message: Omit<DwnMessageParams[DwnInterface.ProtocolsConfigure], 'signer'>;
 }
 
 /**
- * Response for the protocol configure request
+ * Encapsulates the response from a protocol configuration request to a Decentralized Web Node (DWN).
+ *
+ * This response type combines the general operation status with the details of the protocol that
+ * was configured, if the operation was successful.
  *
  * @beta
  */
-export type ProtocolsConfigureResponse = ResponseStatus & {
+export type ProtocolsConfigureResponse = DwnResponseStatus & {
+  /** The configured protocol, if successful. */
   protocol?: Protocol;
 }
 
 /**
- * Represents each entry on the protocols query reply
+ * Defines the request structure for querying protocols from a Decentralized Web Node (DWN).
  *
- * @beta
- */
-export type ProtocolsQueryReplyEntry = {
-  descriptor: ProtocolsConfigureDescriptor;
-};
-
-/**
- * Request to query protocols
- *
- * @beta
+ * This request type is used to specify the target DWN from which protocols should be queried and
+ * any additional query filters or options. If the `from` property is not provided, the query will
+ * target the local DWN. If the `from` property is provided, the query will target the specified
+ * remote DWN.
  */
 export type ProtocolsQueryRequest = {
+  /** Optional DID specifying the remote target DWN tenant to be queried. */
   from?: string;
-  message: Omit<ProtocolsQueryOptions, 'signer'>
+
+  /** Query filters and options that influence the results returned. */
+  message: Omit<DwnMessageParams[DwnInterface.ProtocolsQuery], 'signer'>
 }
 
 /**
- * Response with the retrieved protocols
- *
- * @beta
+ * Wraps the response from a protocols query, including the operation status and the list of
+ * protocols.
  */
-export type ProtocolsQueryResponse = ResponseStatus & {
+export type ProtocolsQueryResponse = DwnResponseStatus & {
+  /** Array of protocols matching the query. */
   protocols: Protocol[];
 }
 
 /**
  * Type alias for {@link RecordsWriteRequest}
- *
- * @beta
  */
 export type RecordsCreateRequest = RecordsWriteRequest;
 
 /**
  * Type alias for {@link RecordsWriteResponse}
- *
- * @beta
  */
 export type RecordsCreateResponse = RecordsWriteResponse;
 
 /**
- * Request to create a record from an existing one (useful for updating an existing record)
+ * Represents a request to create a new record based on an existing one.
  *
- * @beta
+ * This request type allows specifying the new data for the record, along with any additional
+ * message parameters required for the write operation.
  */
 export type RecordsCreateFromRequest = {
+  /** The DID of the entity authoring the record. */
   author: string;
+  /** The new data for the record. */
   data: unknown;
-  message?: Omit<RecordsWriteOptions, 'signer'>;
+  /** ptional additional parameters for the record write operation */
+  message?: Omit<DwnMessageParams[DwnInterface.RecordsWrite], 'signer'>;
+  /** The existing record instance that is being used as a basis for the new record. */
   record: Record;
 }
 
 /**
- * Request to delete a record from the DWN
+ * Defines a request to delete a record from the Decentralized Web Node (DWN).
  *
- * @beta
+ * This request type optionally specifies the target from which the record should be deleted and the
+ * message parameters for the delete operation. If the `from` property is not provided, the record
+ * will be deleted from the local DWN.
  */
 export type RecordsDeleteRequest = {
+  /** Optional DID specifying the remote target DWN tenant the record will be deleted from. */
   from?: string;
-  message: Omit<RecordsDeleteOptions, 'signer'>;
+
+  /** The parameters for the delete operation. */
+  message: Omit<DwnMessageParams[DwnInterface.RecordsDelete], 'signer'>;
 }
 
 /**
- * Request to query records from the DWN
+ * Encapsulates a request to query records from a Decentralized Web Node (DWN).
  *
- * @beta
+ * This request type is used to specify the criteria for querying records, including query
+ * parameters, and optionally the target DWN to query from. If the `from` property is not provided,
+ * the query will target the local DWN.
  */
 export type RecordsQueryRequest = {
-  /** The from property indicates the DID to query from and return results. */
+  /** Optional DID specifying the remote target DWN tenant to query from and return results. */
   from?: string;
-  message: Omit<RecordsQueryOptions, 'signer'>;
+
+  /** The parameters for the query operation, detailing the criteria for selecting records. */
+  message: Omit<DwnMessageParams[DwnInterface.RecordsQuery], 'signer'>;
 }
 
 /**
- * Response for the query request
- *
- * @beta
+ * Represents the response from a records query operation, including status, records, and an
+ * optional pagination cursor.
  */
-export type RecordsQueryResponse = ResponseStatus & {
+export type RecordsQueryResponse = DwnResponseStatus & {
+  /** Array of records matching the query. */
   records?: Record[]
 
   /** If there are additional results, the messageCid of the last record will be returned as a pagination cursor. */
-  cursor?: string;
+  cursor?: DwnPaginationCursor;
 };
 
 /**
- * Request to read a record from the DWN
+ * Represents a request to read a specific record from a Decentralized Web Node (DWN).
  *
- * @beta
+ * This request type is used to specify the target DWN from which the record should be read and any
+ * additional parameters for the read operation. It's useful for fetching the details of a single
+ * record by its identifier or other criteria.
  */
 export type RecordsReadRequest = {
-  /** The from property indicates the DID to read from and return results fro. */
+  /** Optional DID specifying the remote target DWN tenant the record will be read from. */
   from?: string;
-  message: Omit<RecordsReadOptions, 'signer'>;
+
+  /** The parameters for the read operation, detailing the criteria for selecting the record. */
+  message: Omit<DwnMessageParams[DwnInterface.RecordsRead], 'signer'>;
 }
 
 /**
- * Response for the read request
- *
- * @beta
+ * Encapsulates the response from a record read operation, combining the general operation status
+ * with the specific record that was retrieved.
  */
-export type RecordsReadResponse = ResponseStatus & {
+export type RecordsReadResponse = DwnResponseStatus & {
+  /** The record retrieved by the read operation. */
   record: Record;
 };
 
 /**
- * Request to write a record to the DWN
+ * Defines a request to write (create) a record to a Decentralized Web Node (DWN).
  *
- * @beta
+ * This request type allows specifying the data for the new or updated record, along with any
+ * additional message parameters required for the write operation, and an optional flag to indicate
+ * whether the record should be immediately stored.
+ *
+ * @param data -
+ * @param message - , excluding the signer.
+ * @param store -
  */
 export type RecordsWriteRequest = {
+  /** The data payload for the record, which can be of any type. */
   data: unknown;
-  message?: Omit<Partial<RecordsWriteOptions>, 'signer'>;
+
+  /** Optional additional parameters for the record write operation. */
+  message?: Omit<Partial<DwnMessageParams[DwnInterface.RecordsWrite]>, 'signer'>;
+
+  /**
+   * Optional flag indicating whether the record should be immediately stored. If true, the record
+   * is persisted in the DWN as part of the write operation. If false, the record is created,
+   * signed, and returned but not persisted.
+   */
   store?: boolean;
 }
 
 /**
- * Response for the write request
+ * Encapsulates the response from a record write operation to a Decentralized Web Node (DWN).
  *
- * @beta
+ * This request type combines the general operation status with the details of the record that was
+ * written, if the operation was successful.
+ *
+ * The response includes a status object that contains the HTTP-like status code and detail message
+ * indicating the success or failure of the write operation. If the operation was successful and a
+ * record was created or updated, the `record` property will contain an instance of the `Record`
+ * class representing the written record. This allows the caller to access the written record's
+ * details and perform additional operations using the provided {@link Record} instance methods.
  */
-export type RecordsWriteResponse = ResponseStatus & {
+export type RecordsWriteResponse = DwnResponseStatus & {
+  /**
+   * The `Record` instance representing the record that was successfully written to the
+   * DWN as a result of the write operation.
+   */
   record?: Record
 };
 
 /**
  * Interface to interact with DWN Records and Protocols
- *
- * @beta
  */
 export class DwnApi {
+  /**
+   * Holds the instance of a {@link Web5Agent} that represents the current execution context for
+   * the `DwnApi`. This agent is used to process DWN requests.
+   */
   private agent: Web5Agent;
+
+  /** The DID of the DWN tenant under which operations are being performed. */
   private connectedDid: string;
 
   constructor(options: { agent: Web5Agent, connectedDid: string }) {
@@ -200,10 +230,10 @@ export class DwnApi {
        */
       configure: async (request: ProtocolsConfigureRequest): Promise<ProtocolsConfigureResponse> => {
         const agentResponse = await this.agent.processDwnRequest({
-          target         : this.connectedDid,
-          author         : this.connectedDid,
-          messageOptions : request.message,
-          messageType    : DwnInterfaceName.Protocols + DwnMethodName.Configure
+          author        : this.connectedDid,
+          messageParams : request.message,
+          messageType   : DwnInterface.ProtocolsConfigure,
+          target        : this.connectedDid
         });
 
         const { message, messageCid, reply: { status }} = agentResponse;
@@ -211,7 +241,7 @@ export class DwnApi {
 
         if (status.code < 300) {
           const metadata = { author: this.connectedDid, messageCid };
-          response.protocol = new Protocol(this.agent, message as ProtocolsConfigureMessage, metadata);
+          response.protocol = new Protocol(this.agent, message, metadata);
         }
 
         return response;
@@ -221,14 +251,14 @@ export class DwnApi {
        * Query the available protocols
        */
       query: async (request: ProtocolsQueryRequest): Promise<ProtocolsQueryResponse> => {
-        const agentRequest = {
-          author         : this.connectedDid,
-          messageOptions : request.message,
-          messageType    : DwnInterfaceName.Protocols + DwnMethodName.Query,
-          target         : request.from || this.connectedDid
+        const agentRequest: ProcessDwnRequest<DwnInterface.ProtocolsQuery> = {
+          author        : this.connectedDid,
+          messageParams : request.message,
+          messageType   : DwnInterface.ProtocolsQuery,
+          target        : request.from || this.connectedDid
         };
 
-        let agentResponse: DwnResponse;
+        let agentResponse: DwnResponse<DwnInterface.ProtocolsQuery>;
 
         if (request.from) {
           agentResponse = await this.agent.sendDwnRequest(agentRequest);
@@ -236,15 +266,12 @@ export class DwnApi {
           agentResponse = await this.agent.processDwnRequest(agentRequest);
         }
 
-        const { reply: { entries = [], status } } = agentResponse;
+        const reply = agentResponse.reply;
+        const { entries = [], status  } = reply;
 
-        const protocols = entries.map((entry: ProtocolsQueryReplyEntry) => {
-          const metadata = { author: this.connectedDid, };
-
-          // FIXME: dwn-sdk-js actually returns the entire ProtocolsConfigure message,
-          //        but the type claims that it returns the message without authorization.
-          //        When dwn-sdk-js fixes the type, we should remove `as ProtocolsConfigureMessage`
-          return new Protocol(this.agent, entry as ProtocolsConfigureMessage, metadata);
+        const protocols = entries.map((entry) => {
+          const metadata = { author: this.connectedDid };
+          return new Protocol(this.agent, entry, metadata);
         });
 
         return { protocols, status };
@@ -269,10 +296,6 @@ export class DwnApi {
        */
       createFrom: async (request: RecordsCreateFromRequest): Promise<RecordsWriteResponse> => {
         const { author: inheritedAuthor, ...inheritedProperties } = request.record.toJSON();
-
-        // Remove target from inherited properties since target is being explicitly defined in method parameters.
-        delete inheritedProperties.target;
-
 
         // If `data` is being updated then `dataCid` and `dataSize` must not be present.
         if (request.data !== undefined) {
@@ -305,24 +328,24 @@ export class DwnApi {
       /**
        * Delete a record
        */
-      delete: async (request: RecordsDeleteRequest): Promise<ResponseStatus> => {
-        const agentRequest = {
+      delete: async (request: RecordsDeleteRequest): Promise<DwnResponseStatus> => {
+        const agentRequest: ProcessDwnRequest<DwnInterface.RecordsDelete> = {
           /**
            * The `author` is the DID that will sign the message and must be the DID the Web5 app is
            * connected with and is authorized to access the signing private key of.
            */
-          author         : this.connectedDid,
-          messageOptions : request.message,
-          messageType    : DwnInterfaceName.Records + DwnMethodName.Delete,
+          author        : this.connectedDid,
+          messageParams : request.message,
+          messageType   : DwnInterface.RecordsDelete,
           /**
            * The `target` is the DID of the DWN tenant under which the delete will be executed.
            * If `from` is provided, the delete operation will be executed on a remote DWN.
            * Otherwise, the record will be deleted on the local DWN.
            */
-          target         : request.from || this.connectedDid
+          target        : request.from || this.connectedDid
         };
 
-        let agentResponse: DwnResponse;
+        let agentResponse: DwnResponse<DwnInterface.RecordsDelete>;
 
         if (request.from) {
           agentResponse = await this.agent.sendDwnRequest(agentRequest);
@@ -339,23 +362,23 @@ export class DwnApi {
        * Query a single or multiple records based on the given filter
        */
       query: async (request: RecordsQueryRequest): Promise<RecordsQueryResponse> => {
-        const agentRequest = {
+        const agentRequest: ProcessDwnRequest<DwnInterface.RecordsQuery> = {
           /**
            * The `author` is the DID that will sign the message and must be the DID the Web5 app is
            * connected with and is authorized to access the signing private key of.
            */
-          author         : this.connectedDid,
-          messageOptions : request.message,
-          messageType    : DwnInterfaceName.Records + DwnMethodName.Query,
+          author        : this.connectedDid,
+          messageParams : request.message,
+          messageType   : DwnInterface.RecordsQuery,
           /**
            * The `target` is the DID of the DWN tenant under which the query will be executed.
            * If `from` is provided, the query operation will be executed on a remote DWN.
            * Otherwise, the local DWN will be queried.
            */
-          target         : request.from || this.connectedDid
+          target        : request.from || this.connectedDid
         };
 
-        let agentResponse: DwnResponse;
+        let agentResponse: DwnResponse<DwnInterface.RecordsQuery>;
 
         if (request.from) {
           agentResponse = await this.agent.sendDwnRequest(agentRequest);
@@ -363,22 +386,31 @@ export class DwnApi {
           agentResponse = await this.agent.processDwnRequest(agentRequest);
         }
 
-        const { reply: { entries, status, cursor } } = agentResponse;
+        const reply = agentResponse.reply;
+        const { entries, status, cursor } = reply;
 
-        const records = entries.map((entry: RecordsQueryReplyEntry) => {
+        const records = entries.map((entry) => {
+
           const recordOptions = {
             /**
              * Extract the `author` DID from the record entry since records may be signed by the
              * tenant owner or any other entity.
              */
-            author : RecordsWrite.getAuthor(entry),
+            author       : getRecordAuthor(entry),
             /**
-             * Set the `target` DID to currently connected DID so that subsequent calls to
+             * Set the `connectedDid` to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
              * local DWN even if the record was returned by a query of a remote DWN.
              */
-            target : this.connectedDid,
-            ...entry as RecordsWriteMessage
+            connectedDid : this.connectedDid,
+            /**
+             * If the record was returned by a query of a remote DWN, set the `remoteOrigin` to
+             * the DID of the DWN that returned the record. The `remoteOrigin` property will be used
+             * to determine which DWN to send subsequent read requests to in the event the data
+             * payload exceeds the threshold for being returned with queries.
+             */
+            remoteOrigin : request.from,
+            ...entry as DwnMessage[DwnInterface.RecordsWrite]
           };
           const record = new Record(this.agent, recordOptions);
           return record;
@@ -391,23 +423,23 @@ export class DwnApi {
        * Read a single record based on the given filter
        */
       read: async (request: RecordsReadRequest): Promise<RecordsReadResponse> => {
-        const agentRequest = {
+        const agentRequest: ProcessDwnRequest<DwnInterface.RecordsRead> = {
           /**
            * The `author` is the DID that will sign the message and must be the DID the Web5 app is
            * connected with and is authorized to access the signing private key of.
            */
-          author         : this.connectedDid,
-          messageOptions : request.message,
-          messageType    : DwnInterfaceName.Records + DwnMethodName.Read,
+          author        : this.connectedDid,
+          messageParams : request.message,
+          messageType   : DwnInterface.RecordsRead,
           /**
            * The `target` is the DID of the DWN tenant under which the read will be executed.
            * If `from` is provided, the read operation will be executed on a remote DWN.
            * Otherwise, the read will occur on the local DWN.
            */
-          target         : request.from || this.connectedDid
+          target        : request.from || this.connectedDid
         };
 
-        let agentResponse: DwnResponse;
+        let agentResponse: DwnResponse<DwnInterface.RecordsRead>;
 
         if (request.from) {
           agentResponse = await this.agent.sendDwnRequest(agentRequest);
@@ -424,13 +456,20 @@ export class DwnApi {
              * Extract the `author` DID from the record since records may be signed by the
              * tenant owner or any other entity.
              */
-            author : RecordsWrite.getAuthor(responseRecord),
+            author       : getRecordAuthor(responseRecord),
             /**
-             * Set the `target` DID to currently connected DID so that subsequent calls to
+             * Set the `connectedDid` to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
              * local DWN even if the record was read from a remote DWN.
              */
-            target : this.connectedDid,
+            connectedDid : this.connectedDid,
+            /**
+             * If the record was returned by reading from a remote DWN, set the `remoteOrigin` to
+             * the DID of the DWN that returned the record. The `remoteOrigin` property will be used
+             * to determine which DWN to send subsequent read requests to in the event the data
+             * payload must be read again (e.g., if the data stream is consumed).
+             */
+            remoteOrigin : request.from,
             ...responseRecord,
           };
 
@@ -450,24 +489,18 @@ export class DwnApi {
        * requires fetching from the DWN datastore.
        */
       write: async (request: RecordsWriteRequest): Promise<RecordsWriteResponse> => {
-        const messageOptions: Partial<RecordsWriteOptions> = {
-          ...request.message
-        };
-
-        const { dataBlob, dataFormat } = dataToBlob(request.data, messageOptions.dataFormat);
-        messageOptions.dataFormat = dataFormat;
+        const { dataBlob, dataFormat } = dataToBlob(request.data, request.message?.dataFormat);
 
         const agentResponse = await this.agent.processDwnRequest({
-          author      : this.connectedDid,
-          dataStream  : dataBlob,
-          messageOptions,
-          messageType : DwnInterfaceName.Records + DwnMethodName.Write,
-          store       : request.store,
-          target      : this.connectedDid
+          author        : this.connectedDid,
+          dataStream    : dataBlob,
+          messageParams : { ...request.message, dataFormat },
+          messageType   : DwnInterface.RecordsWrite,
+          store         : request.store,
+          target        : this.connectedDid
         });
 
-        const { message, reply: { status } } = agentResponse;
-        const responseMessage = message as RecordsWriteMessage;
+        const { message: responseMessage, reply: { status } } = agentResponse;
 
         let record: Record;
         if (200 <= status.code && status.code <= 299) {
@@ -476,14 +509,14 @@ export class DwnApi {
              * Assume the author is the connected DID since the record was just written to the
              * local DWN.
              */
-            author      : this.connectedDid,
-            encodedData : dataBlob,
+            author       : this.connectedDid,
             /**
-             * Set the `target` DID to currently connected DID so that subsequent calls to
+             * Set the `connectedDid` to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
              * local DWN.
              */
-            target      : this.connectedDid,
+            connectedDid : this.connectedDid,
+            encodedData  : dataBlob,
             ...responseMessage,
           };
 

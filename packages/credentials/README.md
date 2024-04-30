@@ -1,17 +1,60 @@
-# Credentials
+# `@web5/credentials` <!-- omit in toc -->
 
-The Credentials package enables the creation, signing, verification, and general processing of `Verifiable Credentials` (VCs). It also has full `Presentation Exchange` support.
+The `@web5/credentials` package provides the following functionality:
+* creation, signing, verification, and general processing of [Verifiable Credentials (VCs)](https://www.google.com/search?q=w3c+verifiable+credentials&rlz=1C5GCEM_enPK1033PK1033&oq=w3c+verifiable+credentials&gs_lcrp=EgZjaHJvbWUyBggAEEUYOTIGCAEQRRg7MgYIAhBFGDvSAQgzMTIwajBqN6gCALACAA&sourceid=chrome&ie=UTF-8). 
+* [Presentation Exchange](https://identity.foundation/presentation-exchange/) evaluation
 
-## Verifiable Credential
+# Table of Contents <!-- omit in toc -->
 
-### Features
+- [`VerifiableCredential`](#verifiablecredential)
+  - [Features](#vc-features)
+  - [Usage](#vc-usage)
+    - [Creating a Verifiable Credential](#creating-a-verifiable-credential)
+    - [Signing a Verifiable Credential](#signing-a-verifiable-credential)
+    - [Verifying a Verifiable Credential](#verifying-a-verifiable-credential)
+    - [Parsing a JWT into a Verifiable Credential](#parsing-a-jwt-into-a-verifiable-credential)
+- [`VerifiablePresentation`](#verifiablepresentation)
+  - [Features](#vp-features)
+  - [Usage](#vp-usage)
+    - [Creating a Verifiable Presentation](#creating-a-verifiable-presentation)
+    - [Signing a Verifiable Presentation](#signing-a-verifiable-presentation)
+    - [Verifying a Verifiable Presentation](#verifying-a-verifiable-presentation)
+    - [Parsing a JWT into a Verifiable Presentation](#parsing-a-jwt-into-a-verifiable-presentation)
+- [`PresentationExchange`](#presentationexchange)
+  - [Features](#pex-features)
+  - [Usage](#pex-usage)
+    - [Selecting Credentials](#selecting-credentials)
+    - [Satisfying a Presentation Definition](#satisfying-a-presentation-definition)
+    - [Create Presentation From Credentials](#create-presentation-from-credentials)
+    - [Validate Definition](#validate-definition)
+    - [Validate Submission](#validate-submission)
+    - [Validate Presentation](#validate-presentation)
 
-- Create Verifiable Credentials with flexible data types.
-- Sign credentials using decentralized identifiers (DIDs).
-- Verify the integrity and authenticity of VCs encoded as JSON Web Tokens (JWTs).
-- Parse JWT representations of VCs into `VerifiableCredential` instances.
+# `VerifiableCredential`
 
-### Usage:
+## VC Features
+
+* Create Verifiable Credentials with flexible data types.
+* Sign credentials using decentralized identifiers (DIDs).
+* Verify the integrity and authenticity of VCs encoded as JSON Web Tokens (JWTs).
+* Parse JWT representations of VCs into VerifiableCredential instances.
+
+## VC Usage
+
+Along with the credentials package you will need command and dids for most of the Verifiable Credentials operations
+
+```javascript
+npm install @web5/common
+npm install @web5/dids
+npm install @web5/credentials
+```
+
+Then to import:
+
+```javascript
+import { VerifiableCredential, VerifiablePresentation, PresentationExchange } from '@web5/credentials';
+```
+
 ### Creating a Verifiable Credential
 
 Create a new `VerifiableCredential` with the following parameters:
@@ -20,7 +63,9 @@ Create a new `VerifiableCredential` with the following parameters:
 - `issuer`: Issuer URI.
 - `subject`: Subject URI.
 - `data`: Credential data.
-- `expirationDate?`: (optinal) Expiration Date
+- `issuanceDate?` (Optional) The Issuance Date. Defaults to current date if not specified
+- `expirationDate?`: (Optional) Expiration Date
+- `evidence?`: (Optional) Evidence can be included by an issuer to provide the verifier with additional supporting information in a verifiable credential.
 
 ```javascript
 class StreetCredibility {
@@ -30,7 +75,7 @@ class StreetCredibility {
   }
 }
 
-const vc = new VerifiableCredential({
+const vc = await VerifiableCredential.create({
   type: "StreetCred",
   issuer: "did:example:issuer",
   subject: "did:example:subject",
@@ -41,36 +86,28 @@ const vc = new VerifiableCredential({
 ### Signing a Verifiable Credential
 Sign a `VerifiableCredential` with a DID:
 
-- `signOptions`: The sign options used to sign the credential.
+- `did`: The did that is signing the VC
 
-First create a SignOptions object as follows:
+First create a `Did` object as follows:
+
 ```javascript
-import { Ed25519, Jose } from '@web5/crypto';
-import { DidKeyMethod } from '@web5/dids';
-
-const issuer = await DidKeyMethod.create();
-const privateKey = (await Jose.jwkToKey({ key: issuer.keySet.verificationMethodKeys![0].privateKeyJwk! })).keyMaterial;
-
-const signOptions = {
-  issuerDid: issuer.did,
-  subjectDid: "did:example:subject",
-  kid: `${issuer.did}#${issuer.did.split(':')[2]}`,
-  signer: async (data) => await Ed25519.sign({ data, key: privateKey })
-};
+import { DidKey } from '@web5/dids';
+const issuer: BearerDid = await DidKey.create();
 ```
 
-Then sign the VC using the signoptions object
+Then sign the VC using the `did` object
 ```javascript
-const vcJwt = vc.sign(signOptions)
+const vcJwt = await vc.sign({ did: issuer });
 ```
 
 ### Verifying a Verifiable Credential
-Verify the integrity and authenticity of a VC JWT
+Verify the integrity and authenticity of a Verifiable Credential
 
 - `vcJwt`: The VC in JWT format as a String.
+
 ```javascript
 try {
-  await VerifiableCredential.verify(vcJwt)
+  await VerifiableCredential.verify({ vcJwt: signedVcJwt })
   console.log("VC Verification successful!")
 } catch (e: Error) {
   console.log("VC Verification failed: ${e.message}")
@@ -83,21 +120,82 @@ Parse a JWT into a `VerifiableCredential` instance
 `vcJwt`: The VC JWT as a String.
 
 ```javascript
-const vc = VerifiableCredential.parseJwt(vcJwt)
+const vc = VerifiableCredential.parseJwt({ vcJwt: signedVcJwt })
 ```
 
-## Presentation Exchange
+# `VerifiablePresentation`
+
+## VP Features
+
+* Create Verifiable Presentation with flexible data types.
+* Sign presentations using decentralized identifiers (DIDs).
+* Verify the integrity and authenticity of VPs encoded as JSON Web Tokens (JWTs).
+* Parse JWT representations of VPs into VerifiablePresentation instances.
+
+### VP Usage
+
+### Creating a Verifiable Presentation
+Create a new VerifiablePresentation with the following parameters:
+
+- `holder`: The holder URI of the presentation, as a string..
+- `vcJwts`: The JWTs of the credentials to be included in the presentation.
+- `type`: Optional type of the presentation, can be a string or an array of strings.
+- `additionalData`: Optional additional data to be included in the presentation.
+
+```javascript
+const vp = await VerifiablePresentation.create({
+  type: 'PresentationSubmission',
+  holder: 'did:ex:holder',
+  vcJwts: vcJwts,
+  additionalData: { 'arbitrary': 'data' }
+});
+```
+
+### Signing a Verifiable Presentation
+Sign a `VerifiablePresentation` with a DID:
+
+- `did`: The did that is signing the VP
+
+Sign the VP using the `did` object
+```javascript
+const vpJwt = await vp.sign({ did: issuer });
+```
+
+### Verifying a Verifiable Presentation
+Verify the integrity and authenticity of a Verifiable Presentation
+
+- `vpJwt`: The VP in JWT format as a String.
+
+```javascript
+try {
+  await VerifiablePresentation.verify({ vpJwt: signedVpJwt })
+  console.log("VP Verification successful!")
+} catch (e: Error) {
+  console.log("VP Verification failed: ${e.message}")
+}
+```
+
+### Parsing a JWT into a Verifiable Presentation
+Parse a JWT into a `VerifiablePresentation` instance
+
+`vpJwt`: The VP JWT as a String.
+
+```javascript
+const parsedVp = VerifiablePresentation.parseJwt({ vcJwt: signedVcJwt })
+```
+
+## `PresentationExchange`
 
 `PresentationExchange` is designed to facilitate the creation of a Verifiable Presentation by providing tools to select and validate Verifiable Credentials against defined criteria.
 
-### Features
+### PEX Features
 
 - Select credentials that satisfy a given presentation definition.
 - Validate if a Verifiable Credential JWT satisfies a Presentation Definition.
-- Validate input descriptors within Verifiable Credentials.
+- Validate input descriptors within Presentation Definitions.
 
 
-### Usage
+### PEX Usage
 
 ### Selecting Credentials
 Select Verifiable Credentials that meet the criteria of a given presentation definition.
@@ -107,10 +205,10 @@ Select Verifiable Credentials that meet the criteria of a given presentation def
 
 This returns a list of the vcJwts that are acceptable in the presentation definition.
 ```javascript
-const selectedCredentials = PresentationExchange.selectCredentials(
-    vcJwts,
-    presentationDefinition
-)
+const selectedCredentials = PresentationExchange.selectCredentials({
+    vcJwts: signedVcJwts,
+    presentationDefinition: presentationDefinition
+})
 ```
 
 ### Satisfying a Presentation Definition
@@ -121,13 +219,11 @@ Validate if a Verifiable Credential JWT satisfies the given presentation definit
 
 ```javascript 
 try {
-  PresentationExchange.satisfiesPresentationDefinition(vcJwts, presentationDefinition)
+  PresentationExchange.satisfiesPresentationDefinition({ vcJwts: signedVcJwts, presentationDefinition: presentationDefinition })
   console.log("vcJwts satisfies Presentation Definition!")
 } catch (e: Error) {
   console.log("Verification failed: ${e.message}")
 }
-
-
 ```
 
 ### Create Presentation From Credentials
@@ -137,26 +233,33 @@ Creates a presentation from a list of Verifiable Credentials that satisfy a give
 - `presentationDefinition` The Presentation Definition to match against.
 
 ```javascript
-const presentationResult = PresentationExchange.createPresentationFromCredentials(vcJwts, presentationDefinition)
+const presentationResult = PresentationExchange.createPresentationFromCredentials({ vcJwts: signedVcJwts, presentationDefinition: presentationDefinition })
 ```
 
 ### Validate Definition
 This method validates whether an object is usable as a presentation definition or not.
 
+- `presentationDefinition` The Presentation Definition to validate
+
 ```javascript
-const valid = PresentationExchange.validateDefinition(presentationDefinition)
+const valid = PresentationExchange.validateDefinition({ presentationDefinition })
 ```
 
 ### Validate Submission
 This method validates whether an object is usable as a presentation submission or not.
 
+- `presentationSubmission` The Presentation Submission to validate 
+
 ```javascript
-const valid = PresentationExchange.validateSubmission(presentationSubmission)
+const valid = PresentationExchange.validateSubmission({ presentationSubmission })
 ```
 
 ### Validate Presentation
 Evaluates a presentation against a presentation definition.
 
+- `presentationDefinition` The Presentation Definition to validate
+- `presentation` The Presentation
+
 ```javascript
-const evaluationResults = PresentationExchange.evaluatePresentation(presentationDefinition, presentation)
+const evaluationResults = PresentationExchange.evaluatePresentation({ presentationDefinition, presentation })
 ```

@@ -31,6 +31,11 @@
       "path": "packages/crypto",
     },
     {
+      // @web5/crypto-aws-kms
+      "name": "crypto-aws-kms",
+      "path": "packages/crypto-aws-kms",
+    },
+    {
       // @web5/dids
       "name": "dids",
       "path": "packages/dids",
@@ -57,10 +62,11 @@
         "mode": "auto"
       }
     ],
-    "npm.packageManager": "npm",
+    "npm.packageManager": "pnpm",
     "editor.codeActionsOnSave": {
       "source.fixAll": "always"
-    }
+    },
+    "typescript.tsdk": "root/node_modules/typescript/lib"
   },
   "launch": {
     "version": "0.2.0",
@@ -85,7 +91,7 @@
       {
         "label": "Build All",
         "type": "shell",
-        "command": "npm run build",
+        "command": "pnpm build",
         "problemMatcher": [],
         "group": {
           "kind": "build",
@@ -95,11 +101,11 @@
       {
         "label": "build tests",
         "type": "shell",
-        "command": "npm",
+        "command": "pnpm",
         "args": [
-          "run",
-          "build:tests:node",
-          "--ws"
+          "--recursive",
+          "--stream",
+          "build:tests:node"
         ],
         "problemMatcher": [
           "$tsc"

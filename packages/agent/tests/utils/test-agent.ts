@@ -1,216 +1,117 @@
-import { Level } from 'level';
-import { DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
-import { Dwn, DataStoreLevel, EventLogLevel, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
+import type { BearerDid } from '@web5/dids';
+
+import type { Web5PlatformAgent } from '../../src/types/agent.js';
+import type { DidRequest, DidResponse } from '../../src/did-api.js';
+import type { VcResponse, SendVcRequest, ProcessVcRequest } from '../../src/types/vc.js';
+import type {
+  DwnResponse,
+  DwnInterface,
+  SendDwnRequest,
+  ProcessDwnRequest,
+} from '../../src/types/dwn.js';
 
 import type { Web5Rpc } from '../../src/rpc-client.js';
-import type { AppDataStore } from '../../src/app-data-store.js';
-import type {
-  DidRequest,
-  VcResponse,
-  DidResponse,
-  DwnResponse,
-  SendVcRequest,
-  SendDwnRequest,
-  ProcessVcRequest,
-  Web5ManagedAgent,
-  ProcessDwnRequest,
-} from '../../src/types/agent.js';
+import type { AgentDwnApi } from '../../src/dwn-api.js';
+import type { AgentSyncApi } from '../../src/sync-api.js';
+import type { AgentCryptoApi } from '../../src/crypto-api.js';
+import type { AgentIdentityApi } from '../../src/identity-api.js';
+import type { AgentDidApi, DidInterface } from '../../src/did-api.js';
+import type { AgentKeyManager } from '../../src/types/key-manager.js';
+import type { IdentityVault } from '../../src/types/identity-vault.js';
 
-
-import { LocalKms } from '../../src/kms-local.js';
-import { DwnManager } from '../../src/dwn-manager.js';
-import { KeyManager } from '../../src/key-manager.js';
-import { Web5RpcClient } from '../../src/rpc-client.js';
-import { AppDataVault } from '../../src/app-data-store.js';
-import { IdentityManager } from '../../src/identity-manager.js';
-import { DidManager, DidMessage } from '../../src/did-manager.js';
-import { SyncManager, SyncManagerLevel } from '../../src/sync-manager.js';
-
-type CreateMethodOptions = {
-  testDataLocation?: string;
+type TestAgentParams<TKeyManager extends AgentKeyManager> = {
+  agentVault: IdentityVault;
+  cryptoApi: AgentCryptoApi;
+  didApi: AgentDidApi;
+  dwnApi: AgentDwnApi;
+  identityApi: AgentIdentityApi<TKeyManager>;
+  keyManager: TKeyManager;
+  rpcClient: Web5Rpc;
+  syncApi: AgentSyncApi;
 }
 
-type TestAgentOptions = {
-  appData: AppDataStore;
-  didManager: DidManager;
-  didResolver: DidResolver;
-  dwnManager: DwnManager;
-  identityManager: IdentityManager;
-  keyManager: KeyManager;
-  rpcClient: Web5Rpc;
-  syncManager: SyncManager;
+export class TestAgent<TKeyManager extends AgentKeyManager> implements Web5PlatformAgent<TKeyManager> {
+  public crypto: AgentCryptoApi;
+  public did: AgentDidApi;
+  public dwn: AgentDwnApi;
+  public identity: AgentIdentityApi<TKeyManager>;
+  public keyManager: TKeyManager;
+  public rpc: Web5Rpc;
+  public sync: AgentSyncApi;
+  public vault: IdentityVault;
 
-  dwn: Dwn;
-  dwnDataStore: DataStoreLevel;
-  dwnEventLog: EventLogLevel;
-  dwnMessageStore: MessageStoreLevel;
-  syncStore: Level;
-}
+  private _agentDid?: BearerDid;
 
-export class TestAgent implements Web5ManagedAgent {
-  agentDid: string | undefined;
-  appData: AppDataStore;
-  didManager: DidManager;
-  didResolver: DidResolver;
-  dwnManager: DwnManager;
-  identityManager: IdentityManager;
-  keyManager: KeyManager;
-  rpcClient: Web5Rpc;
-  syncManager: SyncManager;
+  constructor(params: TestAgentParams<TKeyManager>) {
+    this.crypto = params.cryptoApi;
+    this.did = params.didApi;
+    this.dwn = params.dwnApi;
+    this.identity = params.identityApi;
+    this.keyManager = params.keyManager;
+    this.rpc = params.rpcClient;
+    this.sync = params.syncApi;
+    this.vault = params.agentVault;
 
-  /**
-   * Store-related properties.
-   */
-  dwn: Dwn;
-  dwnDataStore: DataStoreLevel;
-  dwnEventLog: EventLogLevel;
-  dwnMessageStore: MessageStoreLevel;
-  syncStore: Level;
-
-  constructor(options: TestAgentOptions) {
-    this.appData = options.appData;
-    this.didManager = options.didManager;
-    this.didResolver = options.didResolver;
-    this.dwnManager = options.dwnManager;
-    this.identityManager = options.identityManager;
-    this.keyManager = options.keyManager;
-    this.rpcClient = options.rpcClient;
-    this.syncManager = options.syncManager;
-
-    // Set this agent to be the default agent for each component.
-    this.didManager.agent = this;
-    this.dwnManager.agent = this;
-    this.identityManager.agent = this;
+    // Set this agent to be the default agent.
+    this.did.agent = this;
+    this.dwn.agent = this;
+    this.identity.agent = this;
     this.keyManager.agent = this;
-    this.syncManager.agent = this;
-
-    // TestAgent-specific properties.
-    this.dwn = options.dwn;
-    this.dwnDataStore = options.dwnDataStore;
-    this.dwnEventLog = options.dwnEventLog;
-    this.dwnMessageStore = options.dwnMessageStore;
-    this.syncStore = options.syncStore;
+    this.sync.agent = this;
   }
 
-  async clearStorage(): Promise<void> {
-    this.agentDid = undefined;
-    await this.dwnDataStore.clear();
-    await this.dwnEventLog.clear();
-    await this.dwnMessageStore.clear();
-    await this.syncStore.clear();
-  }
-
-  async closeStorage(): Promise<void> {
-    await this.dwnDataStore.close();
-    await this.dwnEventLog.close();
-    await this.dwnMessageStore.close();
-    await this.syncStore.close();
-  }
-
-  static async create(options: CreateMethodOptions = {}): Promise<TestAgent> {
-    let { testDataLocation } = options;
-
-    testDataLocation ??= '__TESTDATA__';
-    const testDataPath = (path: string) => `${testDataLocation}/${path}`;
-
-    // Instantiate custom stores to use with DWN instance.
-    const dwnDataStore = new DataStoreLevel({ blockstoreLocation: testDataPath('DATASTORE') });
-    const dwnEventLog = new EventLogLevel({ location: testDataPath('EVENTLOG') });
-    const dwnMessageStore = new MessageStoreLevel({
-      blockstoreLocation : testDataPath('MESSAGESTORE'),
-      indexLocation      : testDataPath('INDEX')
-    });
-
-    // Instantiate components with default in-memory stores.
-    const appData = new AppDataVault({ keyDerivationWorkFactor: 1 });
-    const didManager = new DidManager({ didMethods: [DidKeyMethod] });
-    const identityManager = new IdentityManager();
-    const kms = {
-      memory: new LocalKms({ kmsName: 'memory' })
-    };
-    const keyManager = new KeyManager({ kms });
-
-    // Instantiate DID resolver.
-    const didMethodApis = [DidIonMethod, DidKeyMethod];
-    const didResolver = new DidResolver({ didResolvers: didMethodApis });
-
-    // Instantiate custom DWN instance.
-    const dwn = await Dwn.create({
-      eventLog     : dwnEventLog,
-      dataStore    : dwnDataStore,
-      messageStore : dwnMessageStore
-    });
-
-    // Instantiate a DwnManager using the custom DWN instance.
-    const dwnManager = new DwnManager({ dwn });
-
-    // Instantiate an RPC Client.
-    const rpcClient = new Web5RpcClient();
-
-    // Instantiate a custom SyncManager and LevelDB-backed store.
-    const syncStore = new Level(testDataPath('SYNC_STORE'));
-    const syncManager = new SyncManagerLevel({ db: syncStore });
-
-    return new TestAgent({
-      appData,
-      didManager,
-      didResolver,
-      dwn,
-      dwnDataStore,
-      dwnEventLog,
-      dwnMessageStore,
-      dwnManager,
-      identityManager,
-      keyManager,
-      rpcClient,
-      syncManager,
-      syncStore
-    });
-  }
-
-  async firstLaunch(): Promise<boolean> {
-    throw new Error('Not implemented');
-  }
-
-  async initialize(_options: { passphrase: string; }): Promise<void> {
-    throw new Error('Not implemented');
-  }
-
-  async processDidRequest(request: DidRequest): Promise<DidResponse> {
-    switch (request.messageType) {
-      case DidMessage.Resolve: {
-        const { didUrl, resolutionOptions } = request.messageOptions;
-        const result = await this.didResolver.resolve(didUrl, resolutionOptions);
-        return { result };
-      }
-
-      default: {
-        return this.didManager.processRequest(request);
-      }
+  get agentDid(): BearerDid {
+    if (this._agentDid === undefined) {
+      throw new Error('TestAgent: Agent DID is not set');
     }
+    return this._agentDid;
   }
 
-  async processDwnRequest(request: ProcessDwnRequest): Promise<DwnResponse> {
-    return this.dwnManager.processRequest(request);
+  set agentDid(did: BearerDid) {
+    this._agentDid = did;
   }
 
-  async processVcRequest(_request: ProcessVcRequest): Promise<VcResponse> {
+  public async firstLaunch(): Promise<boolean> {
     throw new Error('Not implemented');
   }
 
-  async sendDidRequest(_request: DidRequest): Promise<DidResponse> {
+  public async initialize(_params: { passphrase: string; }): Promise<void> {
     throw new Error('Not implemented');
   }
 
-  async sendDwnRequest(request: SendDwnRequest): Promise<DwnResponse> {
-    return this.dwnManager.sendRequest(request);
+  public async processDidRequest<T extends DidInterface>(
+    request: DidRequest<T>
+  ): Promise<DidResponse<T>> {
+    return this.did.processRequest(request);
   }
 
-  async sendVcRequest(_request: SendVcRequest): Promise<VcResponse> {
+  public async processDwnRequest<T extends DwnInterface>(
+    request: ProcessDwnRequest<T>
+  ): Promise<DwnResponse<T>> {
+    return this.dwn.processRequest(request);
+  }
+
+  public async processVcRequest(_request: ProcessVcRequest): Promise<VcResponse> {
     throw new Error('Not implemented');
   }
 
-  async start(_options: { passphrase: string; }): Promise<void> {
+  public async sendDidRequest<T extends DidInterface>(
+    _request: DidRequest<T>
+  ): Promise<DidResponse<T>> {
+    throw new Error('Not implemented');
+  }
+
+  public async sendDwnRequest<T extends DwnInterface>(
+    request: SendDwnRequest<T>
+  ): Promise<DwnResponse<T>> {
+    return this.dwn.sendRequest(request);
+  }
+
+  public async sendVcRequest(_request: SendVcRequest): Promise<VcResponse> {
+    throw new Error('Not implemented');
+  }
+
+  public async start(_params: { passphrase: string; }): Promise<void> {
     throw new Error('Not implemented');
   }
 }

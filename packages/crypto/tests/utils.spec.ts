@@ -1,14 +1,30 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 
+import type { Jwk } from '../src/jose/jwk.js';
+
 import {
   randomUuid,
-  keyToMultibaseId,
-  multibaseIdToKey,
+  randomBytes,
   checkValidProperty,
   isWebCryptoSupported,
   checkRequiredProperty,
+  getJoseSignatureAlgorithmFromPublicKey,
 } from '../src/utils.js';
+
+// TODO: Remove this polyfill once Node.js v18 is no longer supported by @web5/crypto.
+if (!globalThis.crypto) {
+  // Node.js v18 and earlier requires a polyfill for `webcrypto` because the Web Crypto API was
+  // still marked as experimental and not available globally. In contrast, Node.js versions 19 and
+  // 20 removed the experimental flag and `webcrypto` is globally available.
+  // As a consequence `webcrypto` must be imported from the Node.js `crypto` until Node.js 18
+  // reaches "End-of-life" status on 2025-04-30.
+  (async () => {
+    const { webcrypto } = await import('node:crypto');
+    // @ts-ignore
+    globalThis.crypto = webcrypto;
+  })();
+}
 
 describe('Crypto Utils', () => {
   describe('checkValidProperty()', () => {
@@ -52,6 +68,48 @@ describe('Crypto Utils', () => {
     });
   });
 
+  describe('getJoseSignatureAlgorithmFromPublicKey()', () => {
+    it('returns the algorithm specified by the alg property regardless of the crv property', () => {
+      const publicKey: Jwk = { kty: 'OKP', alg: 'EdDSA', crv: 'P-256' };
+      expect(getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('EdDSA');
+    });
+
+    it('returns the correct algorithm for Ed25519 curve', () => {
+      const publicKey: Jwk = { kty: 'OKP', crv: 'Ed25519' };
+      expect(getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('EdDSA');
+    });
+
+    it('returns the correct algorithm for P-256 curve', () => {
+      const publicKey: Jwk = { kty: 'EC', crv: 'P-256' };
+      expect(getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('ES256');
+    });
+
+    it('returns the correct algorithm for P-384 curve', () => {
+      const publicKey: Jwk = { kty: 'EC', crv: 'P-384' };
+      expect(getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('ES384');
+    });
+
+    it('returns the correct algorithm for P-521 curve', () => {
+      const publicKey: Jwk = { kty: 'EC', crv: 'P-521' };
+      expect(getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('ES512');
+    });
+
+    it('throws an error for unsupported algorithms', () => {
+      const publicKey: Jwk = { kty: 'EC', alg: 'UnsupportedAlgorithm' };
+      expect(() => getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.throw();
+    });
+
+    it('throws an error for unsupported curves', () => {
+      const publicKey: Jwk = { kty: 'EC', crv: 'UnsupportedCurve' };
+      expect(() => getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.throw();
+    });
+
+    it('throws an error when neither alg nor crv is provided', () => {
+      const publicKey: Jwk = { kty: 'EC' };
+      expect(() => getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.throw();
+    });
+  });
+
   describe('isWebCryptoSupported()', () => {
     afterEach(() => {
       // Restore the original state after each test
@@ -70,107 +128,42 @@ describe('Crypto Utils', () => {
     });
   });
 
-  describe('keyToMultibaseId()', () => {
-    it('returns a multibase encoded string', () => {
-      const input = {
-        key            : new Uint8Array(32),
-        multicodecName : 'ed25519-pub',
-      };
-      const encoded = keyToMultibaseId({ key: input.key, multicodecName: input.multicodecName });
-      expect(encoded).to.be.a.string;
-      expect(encoded.substring(0, 1)).to.equal('z');
-      expect(encoded.substring(1, 4)).to.equal('6Mk');
+  describe('randomBytes()', () => {
+    it('returns a Uint8Array of the specified length', () => {
+      const length = 16;
+      const result = randomBytes(length);
+
+      expect(result).to.be.instanceof(Uint8Array);
+      expect(result).to.have.length(length);
     });
 
-    it('passes test vectors', () => {
-      let input: { key: Uint8Array, multicodecName: string };
-      let output: string;
-      let encoded: string;
-
-      // Test Vector 1.
-      input = {
-        key            : (new Uint8Array(32)).fill(0),
-        multicodecName : 'ed25519-pub',
-      };
-      output = 'z6MkeTG3bFFSLYVU7VqhgZxqr6YzpaGrQtFMh1uvqGy1vDnP';
-      encoded = keyToMultibaseId({ key: input.key, multicodecName: input.multicodecName });
-      expect(encoded).to.equal(output);
-
-      // Test Vector 2.
-      input = {
-        key            : (new Uint8Array(32)).fill(1),
-        multicodecName : 'ed25519-pub',
-      };
-      output = 'z6MkeXBLjYiSvqnhFb6D7sHm8yKm4jV45wwBFRaatf1cfZ76';
-      encoded = keyToMultibaseId({ key: input.key, multicodecName: input.multicodecName });
-      expect(encoded).to.equal(output);
-
-      // Test Vector 3.
-      input = {
-        key            : (new Uint8Array(32)).fill(9),
-        multicodecName : 'ed25519-pub',
-      };
-      output = 'z6Mkf4XhsxSXfEAWNK6GcFu7TyVs21AfUTRjiguqMhNQeDgk';
-      encoded = keyToMultibaseId({ key: input.key, multicodecName: input.multicodecName });
-      expect(encoded).to.equal(output);
-    });
-  });
-
-  describe('multibaseIdToKey()', () => {
-    it('Converts secp256k1-pub multibase identifiers', () => {
-      const multibaseKeyId = 'zQ3shMrXA3Ah8h5asMM69USP8qRDnPaCLRV3nPmitAXVfWhgp';
-
-      const { key, multicodecCode, multicodecName } = multibaseIdToKey({ multibaseKeyId });
-
-      expect(key).to.exist;
-      expect(key).to.be.a('Uint8Array');
-      expect(key).to.have.length(33);
-      expect(multicodecCode).to.exist;
-      expect(multicodecCode).to.equal(231);
-      expect(multicodecName).to.exist;
-      expect(multicodecName).to.equal('secp256k1-pub');
+    it('handles invalid input gracefully', () => {
+      expect(() => randomBytes(-1)).to.throw(RangeError, 'length'); // Length cannot be negative.
+      expect(() => randomBytes(1e9)).to.throw(Error, 'exceed'); // Extremely large number that exceeds the available entropy.
     });
 
-    it('Converts ed25519-pub multibase identifiers', () => {
-      const multibaseKeyId = 'z6MkizSHspkM891CAnYZis1TJkB4fWwuyVjt4pV93rWPGYwW';
-
-      const { key, multicodecCode, multicodecName } = multibaseIdToKey({ multibaseKeyId });
-
-      expect(key).to.exist;
-      expect(key).to.be.a('Uint8Array');
-      expect(key).to.have.length(32);
-      expect(multicodecCode).to.exist;
-      expect(multicodecCode).to.equal(237);
-      expect(multicodecName).to.exist;
-      expect(multicodecName).to.equal('ed25519-pub');
-    });
-
-    it('Converts x25519-pub multibase identifiers', () => {
-      const multibaseKeyId = 'z6LSfsF6tQA7j56WSzNPT4yrzZprzGEK8137DMeAVLgGBJEz';
-
-      const { key, multicodecCode, multicodecName } = multibaseIdToKey({ multibaseKeyId });
-
-      expect(key).to.exist;
-      expect(key).to.be.a('Uint8Array');
-      expect(key).to.have.length(32);
-      expect(multicodecCode).to.exist;
-      expect(multicodecCode).to.equal(236);
-      expect(multicodecName).to.exist;
-      expect(multicodecName).to.equal('x25519-pub');
+    it('produces unique values on each call', () => {
+      const set = new Set();
+      for (let i = 0; i < 100; i++) {
+        set.add(randomBytes(10).toString());
+      }
+      expect(set.size).to.equal(100);
     });
   });
 
   describe('randomUuid()', () => {
-    it('should generate a valid v4 UUID', () => {
+    it('generates a valid v4 UUID', () => {
       const id = randomUuid();
       expect(id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
       expect(id).to.have.length(36);
     });
 
-    it('should generate different UUIDs', () => {
-      const id1 = randomUuid();
-      const id2 = randomUuid();
-      expect(id1).to.not.equal(id2);
+    it('produces unique values on each call', () => {
+      const set = new Set();
+      for (let i = 0; i < 100; i++) {
+        set.add(randomUuid());
+      }
+      expect(set.size).to.equal(100);
     });
   });
 });

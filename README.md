@@ -1,487 +1,200 @@
-# Web5 JS SDK
+# Web5 JS Monorepo
 
-[![NPM](https://img.shields.io/npm/v/@web5/api.svg?style=flat-square&logo=npm&logoColor=FFFFFF&color=FFEC19&santize=true)](https://www.npmjs.com/package/@web5/api)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/TBD54566975/web5-js/tests-ci.yml?branch=main&logo=github&label=ci&logoColor=FFFFFF&style=flat-square)](https://github.com/TBD54566975/web5-js/actions/workflows/tests-ci.yml)
 [![Coverage](https://img.shields.io/codecov/c/gh/TBD54566975/web5-js/main?logo=codecov&logoColor=FFFFFF&style=flat-square&token=YI87CKF1LI)](https://codecov.io/github/TBD54566975/web5-js)
-[![License](https://img.shields.io/npm/l/@web5/api.svg?style=flat-square&color=24f2ff&logo=apache&logoColor=FFFFFF&santize=true)](https://github.com/TBD54566975/web5-js/blob/main/LICENSE)
 [![Chat](https://img.shields.io/badge/chat-on%20discord-7289da.svg?style=flat-square&color=9a1aff&logo=discord&logoColor=FFFFFF&sanitize=true)](https://discord.com/channels/937858703112155166/969272658501976117)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/TBD54566975/web5-js/badge)](https://securityscorecards.dev/viewer/?uri=github.com/TBD54566975/web5-js)
 
-Making developing with Web5 components at least 5 times easier to work with.
+This monorepo houses the core components of the [Web5](https://developer.tbd.website/docs/web5/) platform implemented in TypeScript/JavaScript. It features libraries for building applications with decentralized identifiers (DIDs), verifiable credentials (VCs), and decentralized web nodes (DWNs). The packages were designed for modern development runtimes, including Node.js, web browsers, and React Native.
 
-> :warning: WEB5 JS SDK IS CURRENTLY IN TECH PREVIEW :warning:
+## Foundational Packages
 
-The SDK is currently still under active development, but having entered the Tech Preview phase there is now a drive to avoid unnecessary changes unless backwards compatibility is provided. Additional functionality will be added in the lead up to 1.0 final, and modifications will be made to address issues and community feedback.
+Below you can find a list of the foundational platform SDK packages included in this repository.
 
-## Table of Contents
+| package | npm | issues | api reference |
+| ------- | --- | ------ | ------------- |
+| [@web5/common][common-package] | [![NPM Package][common-npm-badge]][common-npm-link] | [![Open Issues][common-issues-badge]][common-issues-link] | _coming soon_ <!--[![API Reference][common-docs-badge]][common-docs-link]--> |
+| [@web5/credentials][credentials-package] | [![NPM Package][credentials-npm-badge]][credentials-npm-link] | [![Open Issues][credentials-issues-badge]][credentials-issues-link] | [![API Reference][credentials-docs-badge]][credentials-docs-link] |
+| [@web5/crypto][crypto-package] | [![NPM Package][crypto-npm-badge]][crypto-npm-link] | [![Open Issues][crypto-issues-badge]][crypto-issues-link] | [![API Reference][crypto-docs-badge]][crypto-docs-link] |
+| [@web5/crypto-aws-kms][crypto-aws-kms-package] | [![NPM Package][crypto-aws-kms-npm-badge]][crypto-aws-kms-npm-link] | [![Open Issues][crypto-aws-kms-issues-badge]][crypto-aws-kms-issues-link] | [![API Reference][crypto-aws-kms-docs-badge]][crypto-aws-kms-docs-link] |
+| [@web5/dids][dids-package] | [![NPM Package][dids-npm-badge]][dids-npm-link] | [![Open Issues][dids-issues-badge]][dids-issues-link] | [![API Reference][dids-docs-badge]][dids-docs-link] |
 
-- [Introduction](#introduction)
-- [Installation](#installation)
-- [Usage](#usage)
-- [API Documentation](#api-documentation)
-  - [Web5.connect](#web5connectoptions)
-  - [web5.dwn.records.query](#web5dwnrecordsqueryrequest)
-  - [web5.dwn.records.create](#web5dwnrecordscreaterequest)
-  - [web5.dwn.records.write](#web5dwnrecordswriterequest)
-  - [web5.dwn.records.read](#web5dwnrecordsreadrequest)
-  - [web5.dwn.records.delete](#web5dwnrecordsdeleterequest)
-  - [web5.dwn.protocols.configure](#web5dwnprotocolsconfigurerequest)
-  - [web5.dwn.protocols.query](#web5dwnprotocolsqueryrequest)
-  - [web5.did.create](#web5didcreatemethod-options)
-- [Project Resources](#project-resources)
+## Decentralized Web Packages
 
-## Introduction
+Web5 decentralized web applications are built using decentralized identifiers (DIDs), verifiable credentials (VCs), and decentralized web node (DWN) datastores.  This repository includes the following packages designed to make building Web5 apps as simple as possible.
 
-Web5 consists of the following components:
+| package | npm | issues | api reference |
+| ------- | --- | ------ | ------------- |
+| [@web5/agent][agent-package] | [![NPM Package][agent-npm-badge]][agent-npm-link] | [![Open Issues][agent-issues-badge]][agent-issues-link] | _coming soon_ <!--[![API Reference][agent-docs-badge]][agent-docs-link]--> |
+| [@web5/api][api-package] | [![NPM Package][api-npm-badge]][api-npm-link] | [![Open Issues][api-issues-badge]][api-issues-link] | [![API Reference][api-docs-badge]][api-docs-link] |
+| [@web5/identity-agent][identity-agent-package] | [![NPM Package][identity-agent-npm-badge]][identity-agent-npm-link] | [![Open Issues][identity-agent-issues-badge]][identity-agent-issues-link] | _coming soon_ <!--[![API Reference][identity-agent-docs-badge]][identity-agent-docs-link]--> |
+| [@web5/proxy-agent][proxy-agent-package] | [![NPM Package][proxy-agent-npm-badge]][proxy-agent-npm-link] | [![Open Issues][proxy-agent-issues-badge]][proxy-agent-issues-link] | _coming soon_ <!--[![API Reference][proxy-agent-docs-badge]][proxy-agent-docs-link]--> |
+| [@web5/user-agent][user-agent-package] | [![NPM Package][user-agent-npm-badge]][user-agent-npm-link] | [![Open Issues][user-agent-issues-badge]][user-agent-issues-link] | _coming soon_ <!--[![API Reference][user-agent-docs-badge]][user-agent-docs-link]--> |
 
-- Decentralized Identifiers
-- Verifiable Credentials
-- DWeb Node personal datastores
+## Getting Started
 
-The SDK sets out to gather the most oft used functionality from all three of these
-pillar technologies to provide a simple library that is as close to effortless as
-possible.
+To start developing applications and services with the Web5 JS SDK, the following steps will guide
+you through setting up your local development environment.
 
-## Running online environment
+For detailed documentation on usage refer to the
+[API reference documentation](https://tbd54566975.github.io/web5-js/). Additionally, comprehensive
+guides can be found at the [TBD Developer site](https://developer.tbd.website/docs/) to enhance
+your understanding of the underlying concepts and how to implement them effectively.
 
-Interested in contributing instantly? You can make your updates directly without cloning in the running CodeSandbox environment.
+### Cloning
 
-[![Button to click and edit code in CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/github/TBD54566975/web5-js/main)
-
-## Installation
-
-_NPM_
-
-```yaml
-npm install @web5/api
+This repository uses git submodules. To clone this repo with submodules:
+```sh
+git clone --recurse-submodules git@github.com:TBD54566975/web5-js.git
 ```
 
-_CDNs_
-
-```yaml
-https://unpkg.com/@web5/api@0.8.2/dist/browser.js
+Or to add submodules after cloning:
+```sh
+git submodule update --init
 ```
 
-```yaml
-https://cdn.jsdelivr.net/npm/@web5/api@0.8.2/dist/browser.mjs
+We recommend running the command below once which will configure your environment to only checkout the `test-vectors` directory under the `web5-spec` git submodule directory.
+```sh
+git -C web5-spec sparse-checkout set test-vectors
 ```
 
-## Usage
+### Hermit
 
-### Importing the SDK
+This project uses [Hermit](https://cashapp.github.io/hermit/) to manage development tooling.
+See [this guide](https://cashapp.github.io/hermit/usage/get-started/) to learn how to download the
+Hermit open source build and activate it for the project.
 
-```javascript
-import { Web5 } from "@web5/api";
+By default, the following packages installed by Hermit:
+- node
+- pnpm
+
+You can check what has been installed by running `hermit status`.
+
+## Contributing
+
+We welcome you to join our open source community. Whether you're new to open source or a seasoned
+contributor, there's a place for you here. From coding to documentation, every contribution matters.
+Check out our [contribution guide][contributing-link] for ways to get started.
+
+For help, discussion about best practices, or to chat with others building on Web5 join our
+[Discord Server][discord-link]:
+
+[![discord-badge]][discord-link]
+
+Remember, contributing is not just about code; it's about building together. Join us in shaping the
+future of the Web!
+
+## Working with the `web5-spec` submodule
+
+### Pulling
+You may need to update the `web5-spec` submodule after pulling.
+```sh
+git pull
+git submodule update
 ```
 
-or
-
-```javascript
-import { Web5 } from CDN_LINK_HERE;
-```
-
-### Additional Steps
-
-This SDK relies indirectly on the [`@noble/ed25519`](https://github.com/paulmillr/noble-ed25519#usage)
-and [`@noble/secp256k1`](https://github.com/paulmillr/noble-secp256k1#usage) packages. Therefore,
-in certain environments, you'll need to perform additional steps to make it work.
-
-- Node.js <= 18
-
-```js
-// node.js 18 and earlier,  needs globalThis.crypto polyfill
-import { webcrypto } from "node:crypto";
-// @ts-ignore
-if (!globalThis.crypto) globalThis.crypto = webcrypto;
-```
-
-- React Native:
-
-```js
-// If you're on react native. React Native needs crypto.getRandomValues polyfill and sha512
-import "react-native-get-random-values";
-import { hmac } from "@noble/hashes/hmac";
-import { sha256 } from "@noble/hashes/sha256";
-import { sha512 } from "@noble/hashes/sha512";
-ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
-ed.etc.sha512Async = (...m) => Promise.resolve(ed.etc.sha512Sync(...m));
-
-secp.etc.hmacSha256Sync = (k, ...m) =>
-  hmac(sha256, k, secp.etc.concatBytes(...m));
-secp.etc.hmacSha256Async = (k, ...m) =>
-  Promise.resolve(secp.etc.hmacSha256Sync(k, ...m));
-```
-
-## API Documentation
-
-### **`Web5.connect(options)`**
-
-Enables an app to request connection to a user's local identity app (like a desktop or mobile agent - work is underway for reference apps of each), or generate an in-app DID to represent the user (e.g. if the user does not have an identity app).
-
-> **NOTE:** The outputs of this method invocation will be used throughout the other API methods below.
-
-```javascript
-const { web5, did: myDid } = await Web5.connect();
-```
-
-#### **`options`** _(optional)_
-
-An object which may specify any of the following properties:
-
-- **`agent`** - _`Web5Agent instance`_ _(optional)_: an instance of a `Web5Agent` implementation. Defaults to creating a local `Web5UserAgent` if not provided.
-
-- **`appData`** - _`AppDataStore instance`_ _(optional)_: an instance of an `AppDataStore` implementation. Defaults to a LevelDB-backed store with an insecure, static unlock passphrase if not provided. To allow the end user to enter a secure passphrase of their choosing, provide an initialized `AppDataVault`.
-
-- **`connectedDid`** - _`string`_ _(optional)_: an existing DID to connect to.
-
-- **`sync`** - _`string`_ _(optional)_: enable or disable synchronization of DWN records between local and remote DWNs. Sync defaults to running every 2 minutes and can be set to any value accepted by [`ms`](https://www.npmjs.com/package/ms). To disable sync set to `'off'`.
-
-- **`techPreview`** - _`object`_ _(optional)_: an object that specifies configuration parameters that are relevant during the Tech Preview period of Web5 JS and may be deprecated in the future with advance notice.
-
-  - **`dwnEndpoints`** - _`array`_ _(optional)_: a list of DWeb Node endpoints to define in the DID created and returned by `Web5.connect()`. If this property is omitted, during the Tech Preview two nodes will be included by default (e.g., `['https://dwn.tbddev.org/dwn0', 'https://dwn.tbddev.org/dwn3']`).
-
-  For example:
-
-  ```typescript
-  const { web5, did: myDid } = await Web5.connect({
-    techPreview: {
-      dwnEndpoints: ["https://dwn.your-domain.org/"],
-    },
-  });
-  ```
-
-<!-- > NOTE: This method **_MUST_** be invoked within the scope of a 'trusted user action' (something enforced by the OS/browser) if the desire is to connect to a local identity app. For browsers this is generally some direct user action, like clicking a link or button. -->
-
-#### **Response**
-
-An invocation of `Web5.connect()` produces the following items in response:
-
-- **`web5`** - _`Web5 instance`_: A class instance that enables access to a locally running DWeb Node, DID interaction methods, and other capabilities related to the connected DID.
-- **`did`** - _`string`_: The DID that was created or attained connection to.
-
-### **`Record` instances from responses**
-
-Every modifying method (`create`, `write`, etc.) and the `entries` from queries return an instance of a `Record` class, which is a representation of the Record(s) being referenced.
-
-Each `Record` instance has the following instance properties: `id`, `attestation`, `contextId`, `dataFormat`, `dateCreated`, `encryption`, `interface`, `method`, `parentId`, `protocol`, `protocolPath`, `recipient`, `schema`, `dataCid`, `dataSize`, `dateModified`, `datePublished`, and `published`.
-
-> **Note** The **`id`** property is a unique identifier based on the record entry's composition. All entries across all records are deterministically unique.
-
-Each `Record` instance has the following instance methods:
-
-- **`data`** - _`object`_: an object with the following convenience methods that read out the data of the record entry in the following formats:
-  - **`text`** - _`function`_: produces a textual representation of the data.
-  - **`json`** - _`function`_: if the value is JSON data, this method will return a parsed JSON object.
-  - **`stream`** - _`function`_: returns the raw stream of bytes for the data.
-- **`send`** - _`function`_: sends the record the instance represents to the DWeb Node endpoints of a provided DID.
-- **`update`** - _`function`_: takes in a new request object matching the expected method signature of a `write` and overwrites the record. This is a convenience method that allows you to easily overwrite records with less verbosity.
-- **`delete`** - _`function`_: generates a `delete` entry tombstone for the record. This is a convenience method that allows you to easily delete records with less verbosity.
-
-### **`web5.dwn.records.query(request)`**
-
-Method for querying either the locally connected DWeb Node or any remote DWeb Node specified in the `from` property.
-
-```javascript
-// This invocation will query the user's own DWeb Nodes
-const { records } = await web5.dwn.records.query({
-  message: {
-    filter: {
-      schema: "https://schema.org/Playlist",
-      dataFormat: "application/json",
-    },
-  },
-});
-
-console.log(records); // an array of record entries from Bob's DWeb Nodes
-
-// This invocation will query Bob's DWeb Nodes
-const { records } = await web5.dwn.records.query({
-  from: "did:example:bob",
-  message: {
-    filter: {
-      protocol: "https://music.org/protocol",
-      schema: "https://schema.org/Playlist",
-      dataFormat: "application/json",
-    },
-  },
-});
-
-console.log(records); // an array of record entries from Bob's DWeb Nodes
-```
-
-#### **Request**
-
-The query `request` contains the following properties:
-
-- **`from`** - _`DID string`_ (_optional_): the decentralized identifier of the DWeb Node the query will fetch results from.
-- **`message`** - _`object`_: the properties of the DWeb Node Message Descriptor that will be used to construct a valid record query:
-  - **`filter`** - _`object`_: properties against which results of the query will be filtered:
-    - **`recordId`** - _`string`_ (_optional_): the record ID string that identifies the record data you are fetching.
-    - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol bucket in which to query.
-    - **`protocolPath`** - _`string`_ (_optional_): the path to the record in the protocol configuration.
-    - **`contextId`** _`string`_ (_optional_): the `recordId` of a root record of a protocol.
-    - **`parentId`** _`string`_ (_optional_): the `recordId` of a the parent of a protocol record.
-    - **`recipient`** - _`string`_ (_optional_): the DID in the `recipient` field of the record.
-    - **`schema`** - _`URI string`_ (_optional_): the URI of the schema bucket in which to query.
-    - **`dataFormat`** - _`Media Type string`_ (_optional_): the IANA string corresponding with the format of the data to filter for. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
-  - **`dateSort`** - _`DateSort`_ (_optional_): the `DateSort` value of the date field and direction to sort records by. Defaults to `CreatedAscending`.
-  - **`pagination`** - _`object`_ (_optional_): the properties used to paginate results.
-    - **`limit`** - _`number`_ (_optional_): the number of records that should be returned with this query. `undefined` returns all records.
-    - **`cursor`** - _`messageCid string`_ (_optional_): the `messageCid` of the records toc continue paginating from. This value is returned as a `cursor` in the response object of a `query` if there are more results beyond the `limit`.
-
-#### **Response**
-
-The query `response` contains the following properties:
-
-- **`status`** - _`object`_: the status of the `request`:
-  - **`code`** - _`number`_: the `Response Status` code, following the response code patterns for `HTTP Response Status Codes`.
-  - **`detail`** _`string`_: a detailed message describing the response.
-- **`records`** - _`Records array`_ (_optional_): the array of `Records` returned if the request was successful.
-- **`cursor`** - _`messageCid string`_ (_optional_): the `messageCid` of the last message returned in the results if there are exist additional records beyond the specified `limit` in the `query`.
-
-### **`web5.dwn.records.create(request)`**
-
-Method for creating a new record and storing it in the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted).
-
-```javascript
-// this creates a record and stores it in the user's local DWeb Node
-const { record } = await web5.dwn.records.create({
-  data: "Hello World!",
-  message: {
-    dataFormat: "text/plain",
-  },
-});
-
-console.log(await record.data.text()); // logs "Hello World!"
-const { status } = await record.send(myDid); // send the record to the user's remote DWeb Nodes
-const { status } = await record.send("did:example:bob"); // send the newly generated record to Bob's DWeb Nodes
-
-// this creates a record, but does not store it in the user's local DWeb Node
-const { record } = await web5.dwn.records.create({
-  store: false,
-  data: "Hello again, World!",
-  message: {
-    dataFormat: "text/plain",
-  },
-});
-
-const { status } = await record.send("did:example:bob"); // send the newly generated record to Bob's DWeb Nodes
-```
-
-#### **Request**
-
-The `create` request object is composed as follows:
-
-- **`store`** - _`boolean`_ (_optional_): tells the create function whether or not to store the record in the user's local DWeb Node. (you might pass `false` if you didn't want to retain a copy of the record for yourself)
-- **`data`** - _`text|object|file|blob`_: the data payload of the record.
-- **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid record query:
-  - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol under which the record will be bucketed.
-  - **`schema`** - _`URI string`_ (_optional_): the URI of the schema under which the record will be bucketed.
-  - **`dataFormat`** - _`Media Type string`_ (_optional_): the IANA string corresponding with the format of the data the record will be bucketed. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
-
-### **`web5.dwn.records.write(request)`**
-
-The `create()` method is an alias for `write()` and both can take the same request object properties.
-
-### **`web5.dwn.records.read(request)`**
-
-Method for reading a record stored in the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted). The request takes a filter; if there is exactly one record matching the filter, the record and its data are returned. The most common filter is by `recordId`, but it is also useful to filter by `protocol`, `contextId`, and `protocolPath`.
-
-```javascript
-// Reads the indicated record from the user's DWeb Nodes
-const { record } = await web5.dwn.records.read({
-  message: {
-    filter: {
-      recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
-    },
-  },
-});
-
-console.log(await record.data.text()); // assuming the record is a text payload, logs the text
-
-// Reads the indicated record from Bob's DWeb Nodes
-const { record } = await web5.dwn.records.read({
-  from: "did:example:bob",
-  message: {
-    filter: {
-      recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
-    },
-  },
-});
-
-console.log(await record.data.text()); // assuming the record is a text payload, logs the text
-```
-
-#### **Request**
-
-The `read` request object is composed as follows:
-
-- **`from`** - _`DID string`_ (_optional_): The DID of the DWeb Node the read request will fetch the indicated record from.
-- **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
-  - **`filter`** - _`object`_: properties against which results of the query will be filtered:
-    - **`recordId`** - _`string`_ (_optional_): the record ID string that identifies the record data you are fetching.
-    - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol bucket in which to query.
-    - **`protocolPath`** - _`string`_ (_optional_): the path to the record in the protocol configuration.
-    - **`contextId`** _`string`_ (_optional_): the `recordId` of a root record of a protocol.
-    - **`parentId`** _`string`_ (_optional_): the `recordId` of a the parent of a protocol record.
-    - **`recipient`** - _`string`_ (_optional_): the DID in the `recipient` field of the record.
-    - **`schema`** - _`URI string`_ (_optional_): the URI of the schema bucket in which to query.
-    - **`dataFormat`** - _`Media Type string`_ (_optional_): the IANA string corresponding with the format of the data to filter for. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
-
-### **`web5.dwn.records.delete(request)`**
-
-Method for deleting a record stored in the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted).
-
-```javascript
-// Deletes the indicated record from the user's DWeb Node
-const { record } = await web5.dwn.records.delete({
-  message: {
-    recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
-  },
-});
-
-// Deletes the indicated record from Bob's DWeb Node
-const { record } = await web5.dwn.records.delete({
-  from: "did:example:bob",
-  message: {
-    recordId: "bfw35evr6e54c4cqa4c589h4cq3v7w4nc534c9w7h5",
-  },
-});
-```
-
-#### **Request**
-
-The `delete` request object is composed as follows:
-
-- **`from`** - _`DID string`_ (_optional_): The DID of the DWeb Node the delete tombstone will be sent to.
-- **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
-  - **`recordId`** - _`string`_: the required record ID string that identifies the record being deleted.
-
-### **`web5.dwn.protocols.configure(request)`**
-
-Method for configuring a protocol definition in the DWeb Node of the user's local DWeb Node, remote DWeb Nodes, or another party's DWeb Nodes (if permitted).
-
-```javascript
-const { protocol } = await web5.dwn.protocols.configure({
-  message: {
-    definition: {
-      protocol: "https://photos.org/protocol",
-      published: true,
-      types: {
-        album: {
-          schema: "https://photos.org/protocol/album",
-          dataFormats: ["application/json"],
-        },
-        photo: {
-          schema: "https://photos.org/protocols/photo",
-          dataFormats: ["application/json"],
-        },
-        binaryImage: {
-          dataFormats: ["image/png", "jpeg", "gif"],
-        },
-      },
-      structure: {
-        album: {
-          $actions: [
-            {
-              who: "recipient",
-              can: "read",
-            },
-          ],
-        },
-        photo: {
-          $actions: [
-            {
-              who: "recipient",
-              can: "read",
-            },
-          ],
-          binaryImage: {
-            $actions: [
-              {
-                who: "author",
-                of: "photo",
-                can: "write",
-              },
-            ],
-          },
-        },
-      },
-    },
-  },
-});
-
-protocol.send(myDid); // sends the protocol configuration to the user's other DWeb Nodes.
-```
-
-#### **Request**
-
-The `configure` request object is composed as follows:
-
-- **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid DWeb Node message.
-  - **`definition`** - _`object`_: an object that defines the enforced composition of the protocol.
-    - **`protocol`** - _`URI string`_: a URI that represents the protocol being configured.
-    - **`types`** - _`object`_: an object that defines the records that can be used in the `structure` graph of the `definition` object. The following properties are optional constraints you can set for the type being defined:
-      - **`schema`** - _`URI string`_ (_optional_): the URI of the schema under which the record will be bucketed.
-      - **`dataFormats`** - _`Media Type string[]`_ (_optional_): Array of the IANA strings corresponding with the formats of the data the record will be bucketed. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
-    - **`structure`** - _`object`_: an object that defines the structure of a protocol, including data relationships and constraints on which entities can perform various activities. Fields under the `structure` object of the Protocol definition are expected to be either type references matching those defined in the `types` object. The type structures are recursive, so types form a graph and each type can have within it further attached types or the following rule statements that are all denoted with the prefix `$`:
-      - **`$actions`** - _`array`_: one or more rule objects that expose various allowed actions to actors (`author`, `recipient`), composed as follows:
-        - **`who`** - _`string`_: the actor (`author`, `recipient`) that is being permitted to invoke a given action.
-        - **`of`** - _`string`_: the protocol path that refers to the record subject. Using the above example protocol, the protocol path to `binaryImage` would be `photo/binaryImage`.
-        - **`can`** - _`string`_: the action being permitted by the rule.
-
-### **`web5.dwn.protocols.query(request)`**
-
-Method for querying a DID's DWeb Nodes for the presence of a protocol. This method is useful in detecting what protocols a given DID has installed to enable interaction over the protocol.
-
-```javascript
-const { protocols } = await web5.dwn.protocols.query({
-  message: {
-    filter: {
-      protocol: "https://music.org/protocol",
-    },
-  },
-});
-
-console.log(protocols); // logs an array of protocol configurations installed on the user's own DWeb Node
-
-const { protocols } = await web5.dwn.protocols.query({
-  from: "did:example:bob",
-  message: {
-    filter: {
-      protocol: "https://music.org/protocol",
-    },
-  },
-});
-
-console.log(protocols); // logs an array of protocol configurations installed on Bob's DWeb Node
-```
-
-#### **Request**
-
-The query `request` must contain the following:
-
-- **`from`** - _`DID string`_ (_optional_): the decentralized identifier of the DWeb Node the query will fetch results from.
-- **`message`** - _`object`_: The properties of the DWeb Node Message Descriptor that will be used to construct a valid record query:
-  - **`filter`** - _`object`_ (_optional_): properties against which results of the query will be filtered:
-    - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol bucket in which to query.
-
-### **`web5.did.create(method, options)`**
-
-The `create` method under the `did` object enables generation of DIDs for a supported set of DID Methods ('ion'|'key'). The output is method-specific, and handles things like key generation and assembly of DID Documents that can be published to DID networks.
-
-> NOTE: You do not usually need to manually invoke this, as the `Web5.connect()` method already acquires a DID for the user (either by direct creation or connection to an identity agent app).
-
-```javascript
-const myDid = await Web5.did.create("ion");
+### Pushing
+If you have made changes to the `web5-spec` submodule, you should push your changes to the `web5-spec` remote as well as pushing changes to `web5-js`.
+```sh
+cd web5-spec
+git push
+cd ..
+git push
 ```
 
 ## Project Resources
 
-| Resource                                   | Description                                                                   |
-| ------------------------------------------ | ----------------------------------------------------------------------------- |
-| [CODEOWNERS](./CODEOWNERS)                 | Outlines the project lead(s)                                                  |
-| [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) | Expected behavior for project contributors, promoting a welcoming environment |
-| [CONTRIBUTING.md](./CONTRIBUTING.md)       | Developer guide to build, test, run, access CI, chat, discuss, file issues    |
-| [GOVERNANCE.md](./GOVERNANCE.md)           | Project governance                                                            |
-| [LICENSE](./LICENSE)                       | Apache License, Version 2.0                                                   |
+| Resource                                | Description                                                                   |
+| --------------------------------------- | ----------------------------------------------------------------------------- |
+| [CODEOWNERS][codeowners-link]           | Outlines the project lead(s)                                                  |
+| [CODE OF CONDUCT][code-of-conduct-link] | Expected behavior for project contributors, promoting a welcoming environment |
+| [CONTRIBUTING][contributing-link]       | Developer guide to build, test, run, access CI, chat, discuss, file issues    |
+| [GOVERNANCE][governance-link]           | Project governance                                                            |
+| [LICENSE][license-link]                 | Apache License, Version 2.0                                                   |
+
+[agent-package]: ./packages/agent#readme
+[agent-npm-badge]: https://img.shields.io/npm/v/@web5/agent.svg?&color=blue&santize=true
+[agent-npm-link]: https://www.npmjs.com/package/@web5/agent
+[agent-issues-badge]: https://img.shields.io/github/issues/TBD54566975/web5-js/package:%20agent?label=issues
+[agent-issues-link]: https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+is%3Aissue+label%3A"package%3A+agent"
+[agent-docs-badge]: https://img.shields.io/badge/docs-blue?logo=googledocs&logoColor=FFFFFF
+[agent-docs-link]: https://tbd54566975.github.io/web5-js/modules/_web5_agent.html
+
+[api-package]: ./packages/api#readme
+[api-npm-badge]: https://img.shields.io/npm/v/@web5/api.svg?&color=blue&santize=true
+[api-npm-link]: https://www.npmjs.com/package/@web5/api
+[api-issues-badge]: https://img.shields.io/github/issues/TBD54566975/web5-js/package:%20api?label=issues
+[api-issues-link]: https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+is%3Aissue+label%3A"package%3A+api"
+[api-docs-badge]: https://img.shields.io/badge/docs-blue?logo=googledocs&logoColor=FFFFFF
+[api-docs-link]: https://tbd54566975.github.io/web5-js/modules/_web5_api.html
+
+[common-package]: ./packages/common#readme
+[common-npm-badge]: https://img.shields.io/npm/v/@web5/common.svg?&color=blue&santize=true
+[common-npm-link]: https://www.npmjs.com/package/@web5/common
+[common-issues-badge]: https://img.shields.io/github/issues/TBD54566975/web5-js/package:%20common?label=issues
+[common-issues-link]: https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+is%3Aissue+label%3A"package%3A+common"
+[common-docs-badge]: https://img.shields.io/badge/docs-blue?logo=googledocs&logoColor=FFFFFF
+[common-docs-link]: https://tbd54566975.github.io/web5-js/modules/_web5_common.html
+
+[credentials-package]: ./packages/credentials#readme
+[credentials-npm-badge]: https://img.shields.io/npm/v/@web5/credentials.svg?&color=blue&santize=true
+[credentials-npm-link]: https://www.npmjs.com/package/@web5/credentials
+[credentials-issues-badge]: https://img.shields.io/github/issues/TBD54566975/web5-js/package:%20credentials?label=issues
+[credentials-issues-link]: https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+is%3Aissue+label%3A"package%3A+credentials"
+[credentials-docs-badge]: https://img.shields.io/badge/docs-blue?logo=googledocs&logoColor=FFFFFF
+[credentials-docs-link]: https://tbd54566975.github.io/web5-js/modules/_web5_credentials.html
+
+[crypto-package]: ./packages/crypto#readme
+[crypto-npm-badge]: https://img.shields.io/npm/v/@web5/crypto.svg?&color=blue&santize=true
+[crypto-npm-link]: https://www.npmjs.com/package/@web5/crypto
+[crypto-issues-badge]: https://img.shields.io/github/issues/TBD54566975/web5-js/package:%20crypto?label=issues
+[crypto-issues-link]: https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+is%3Aissue+label%3A"package%3A+crypto"
+[crypto-docs-badge]: https://img.shields.io/badge/docs-blue?logo=googledocs&logoColor=FFFFFF
+[crypto-docs-link]: https://tbd54566975.github.io/web5-js/modules/_web5_crypto.html
+
+[crypto-aws-kms-package]: ./packages/crypto-aws-kms#readme
+[crypto-aws-kms-npm-badge]: https://img.shields.io/npm/v/@web5/crypto-aws-kms.svg?&color=blue&santize=true
+[crypto-aws-kms-npm-link]: https://www.npmjs.com/package/@web5/crypto-aws-kms
+[crypto-aws-kms-issues-badge]: https://img.shields.io/github/issues/TBD54566975/web5-js/package:%20crypto-aws-kms?label=issues
+[crypto-aws-kms-issues-link]: https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+is%3Aissue+label%3A"package%3A+crypto-aws-kms"
+[crypto-aws-kms-docs-badge]: https://img.shields.io/badge/docs-blue?logo=googledocs&logoColor=FFFFFF
+[crypto-aws-kms-docs-link]: https://tbd54566975.github.io/web5-js/modules/_web5_crypto_aws_kms.html
+
+[dids-package]: ./packages/dids#readme
+[dids-npm-badge]: https://img.shields.io/npm/v/@web5/dids.svg?&color=blue&santize=true
+[dids-npm-link]: https://www.npmjs.com/package/@web5/dids
+[dids-issues-badge]: https://img.shields.io/github/issues/TBD54566975/web5-js/package:%20dids?label=issues
+[dids-issues-link]: https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+is%3Aissue+label%3A"package%3A+dids"
+[dids-docs-badge]: https://img.shields.io/badge/docs-blue?logo=googledocs&logoColor=FFFFFF
+[dids-docs-link]: https://tbd54566975.github.io/web5-js/modules/_web5_dids.html
+
+[identity-agent-package]: ./packages/identity-agent#readme
+[identity-agent-npm-badge]: https://img.shields.io/npm/v/@web5/identity-agent.svg?&color=blue&santize=true
+[identity-agent-npm-link]: https://www.npmjs.com/package/@web5/identity-agent
+[identity-agent-issues-badge]: https://img.shields.io/github/issues/TBD54566975/web5-js/package:%20identity-agent?label=issues
+[identity-agent-issues-link]: https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+is%3Aissue+label%3A"package%3A+identity-agent"
+[identity-agent-docs-badge]: https://img.shields.io/badge/docs-blue?logo=googledocs&logoColor=FFFFFF
+[identity-agent-docs-link]: https://tbd54566975.github.io/web5-js/modules/_web5_identity_agent.html
+
+[proxy-agent-package]: ./packages/proxy-agent#readme
+[proxy-agent-npm-badge]: https://img.shields.io/npm/v/@web5/proxy-agent.svg?&color=blue&santize=true
+[proxy-agent-npm-link]: https://www.npmjs.com/package/@web5/proxy-agent
+[proxy-agent-issues-badge]: https://img.shields.io/github/issues/TBD54566975/web5-js/package:%20proxy-agent?label=issues
+[proxy-agent-issues-link]: https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+is%3Aissue+label%3A"package%3A+proxy-agent"
+[proxy-agent-docs-badge]: https://img.shields.io/badge/docs-blue?logo=googledocs&logoColor=FFFFFF
+[proxy-agent-docs-link]: https://tbd54566975.github.io/web5-js/modules/_web5_proxy_agent.html
+
+[user-agent-package]: ./packages/user-agent#readme
+[user-agent-npm-badge]: https://img.shields.io/npm/v/@web5/user-agent.svg?&color=blue&santize=true
+[user-agent-npm-link]: https://www.npmjs.com/package/@web5/user-agent
+[user-agent-issues-badge]: https://img.shields.io/github/issues/TBD54566975/web5-js/package:%20user-agent?label=issues
+[user-agent-issues-link]: https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+is%3Aissue+label%3A"package%3A+user-agent"
+[user-agent-docs-badge]: https://img.shields.io/badge/docs-blue?logo=googledocs&logoColor=FFFFFF
+[user-agent-docs-link]: https://tbd54566975.github.io/web5-js/modules/_web5_user_agent.html
+
+[codeowners-link]: https://github.com/TBD54566975/web5-js/blob/main/CODEOWNERS
+[code-of-conduct-link]: https://github.com/TBD54566975/web5-js/blob/main/CODE_OF_CONDUCT.md
+[contributing-link]: https://github.com/TBD54566975/web5-js/blob/main/CONTRIBUTING.md
+[governance-link]: https://github.com/TBD54566975/web5-js/blob/main/GOVERNANCE.md
+[license-link]: https://github.com/TBD54566975/web5-js/blob/main/LICENSE
+[discord-badge]: https://img.shields.io/discord/937858703112155166?color=5865F2&logo=discord&logoColor=white
+[discord-link]: https://discord.com/channels/937858703112155166/969272658501976117

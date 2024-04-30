@@ -1,45 +1,66 @@
 {
   "protocol": "http://email-protocol.xyz",
-  "published": false,
+  "published": true,
   "types": {
+    "thread": {
+      "schema": "http://email-protocol.xyz/schema/thread",
+      "dataFormats": [
+        "text/plain"
+      ]
+    },
     "email": {
       "schema": "http://email-protocol.xyz/schema/email",
-      "dataFormats": ["text/plain"]
+      "dataFormats": [
+        "text/plain"
+      ]
     }
   },
   "structure": {
-    "email": {
+    "thread": {
       "$actions": [
         {
           "who": "anyone",
-          "can": "write"
+          "can": [
+            "create", "update"
+          ]
         },
         {
           "who": "author",
-          "of": "email",
-          "can": "read"
+          "of": "thread",
+          "can": [
+            "read"
+          ]
         },
         {
           "who": "recipient",
-          "of": "email",
-          "can": "read"
+          "of": "thread",
+          "can": [
+            "read"
+          ]
         }
       ],
       "email": {
         "$actions": [
           {
-            "who": "anyone",
-            "can": "write"
+            "who": "recipient",
+            "of": "thread",
+            "can": [
+              "create", "update"
+            ]
           },
           {
             "who": "author",
-            "of": "email/email",
-            "can": "read"
+            "of": "thread/email",
+            "can": [
+              "read"
+            ]
           },
           {
             "who": "recipient",
-            "of": "email/email",
-            "can": "read"
+            "of": "thread/email",
+            "can": [
+              "read"
+            ]
           }
         ]
       }

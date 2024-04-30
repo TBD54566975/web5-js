@@ -1,40 +1,37 @@
 import { expect } from 'chai';
-import { TestManagedAgent } from '@web5/agent';
+import { Web5UserAgent } from '@web5/user-agent';
+import { PlatformAgentTestHarness } from '@web5/agent';
 
 import { VcApi } from '../src/vc-api.js';
-import { TestUserAgent } from './utils/test-user-agent.js';
 
 describe('VcApi', () => {
   let vc: VcApi;
-  let testAgent: TestManagedAgent;
+  let testHarness: PlatformAgentTestHarness;
 
   before(async () => {
-    testAgent = await TestManagedAgent.create({
-      agentClass  : TestUserAgent,
+    testHarness = await PlatformAgentTestHarness.setup({
+      agentClass  : Web5UserAgent,
       agentStores : 'memory'
     });
   });
 
   beforeEach(async () => {
-    await testAgent.clearStorage();
+    await testHarness.clearStorage();
+    await testHarness.createAgentDid();
 
-    // Create an Agent DID.
-    await testAgent.createAgentDid();
-
-    // Create a new Identity to author DWN messages.
-    const identity = await testAgent.agent.identityManager.create({
-      name      : 'Test',
-      didMethod : 'key',
-      kms       : 'local'
+    // Create a new Identity to author VC requests.
+    const identity = await testHarness.agent.identity.create({
+      metadata  : { name: 'Test' },
+      didMethod : 'jwk',
     });
 
     // Instantiate VcApi.
-    vc = new VcApi({ agent: testAgent.agent, connectedDid: identity.did });
+    vc = new VcApi({ agent: testHarness.agent, connectedDid: identity.did.uri });
   });
 
   after(async () => {
-    await testAgent.clearStorage();
-    await testAgent.closeStorage();
+    await testHarness.clearStorage();
+    await testHarness.closeStorage();
   });
 
   describe('create()', () => {
