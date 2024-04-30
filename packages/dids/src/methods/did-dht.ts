@@ -1029,14 +1029,18 @@ export class DidDhtDocument {
           // Convert the public key from Base64URL format to a byte array.
           const publicKeyBytes = Convert.base64Url(k).toUint8Array();
 
+          // Use the key type integer to look up the cryptographic curve name.
+          const namedCurve = DidDhtRegisteredKeyType[Number(t)];
+
+          // TODO: Remove after testing
           // Determine the algorithm from the key type or use the initial algorithm if provided.
-          const alg = parsedAlg || DidDhtRegisteredKeyType[Number(t)];
+          // const alg = parsedAlg || DidDhtRegisteredKeyType[Number(t)];
 
           // Convert the public key from a byte array to JWK format.
-          let publicKey = await DidDhtUtils.keyConverter(alg).bytesToPublicKey({ publicKeyBytes });
+          let publicKey = await DidDhtUtils.keyConverter(namedCurve).bytesToPublicKey({ publicKeyBytes });
 
           // Always set the algorithm on did:dht expansion.
-          publicKey.alg = alg;
+          publicKey.alg = parsedAlg || getJoseSignatureAlgorithmFromPublicKey(publicKey);
 
           // Determine the Key ID (kid): '0' for the identity key or JWK thumbprint for others. Always set alg on expansion.
           if (id !== '0' && publicKey.kid === undefined) {
