@@ -1209,7 +1209,7 @@ export class DidDhtDocument {
       const publicKeyBase64Url = Convert.uint8Array(publicKeyBytes).toBase64Url();
 
       // Define the data for the DNS TXT record.
-      const txtData = [`id=${methodId}`, `t=${keyType}`, `k=${publicKeyBase64Url}`, ...(alg ? [`alg=${alg}`] : [])];
+      const txtData = [`id=${methodId}`, `t=${keyType}`, `k=${publicKeyBase64Url}`, ...(alg ? [`a=${alg}`] : [])];
 
       // Add the controller property, if set to a value other than the Identity Key (DID Subject).
       if (vm.controller !== didDocument.id) txtData.push(`c=${vm.controller}`);
