@@ -219,6 +219,22 @@ describe('RPC Clients', () => {
         fetchUrl = fetchStub.args[0][0];
         expect(fetchUrl).to.equal('http://some-other-domain.com/dwn/info');
       });
+
+      it('should throw if transport client is not found', async () => {
+        const stubHttpClient = sinon.createStubInstance(HttpWeb5RpcClient);
+        const httpOnlyClient = new Web5RpcClient([ stubHttpClient ]);
+
+        // request with http
+        try {
+          await httpOnlyClient.getServerInfo('ws://127.0.0.1')
+          expect.fail('Expected error to be thrown');
+        } catch (error: any) {
+          expect(error.message).to.equal('no ws: transport client available');
+        }
+
+        // confirm http transport was not called
+        expect(stubHttpClient.sendDidRequest.callCount).to.equal(0);
+      });
     });
   });
 
@@ -351,6 +367,17 @@ describe('RPC Clients', () => {
         const request = { method: DidRpcMethod.Resolve, url: socketDwnUrl, data: 'some-data' };
         try {
           await client.sendDidRequest(request);
+          expect.fail('Expected error to be thrown');
+        } catch (error: any) {
+          expect(error.message).to.equal('not implemented for transports [ws:, wss:]');
+        }
+      });
+    });
+
+    describe('getServerInfo', () => {
+      it('server info requests are not supported over sockets', async () => {
+        try {
+          await client.getServerInfo(socketDwnUrl);
           expect.fail('Expected error to be thrown');
         } catch (error: any) {
           expect(error.message).to.equal('not implemented for transports [ws:, wss:]');
