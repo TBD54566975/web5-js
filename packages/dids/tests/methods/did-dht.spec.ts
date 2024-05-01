@@ -1178,18 +1178,16 @@ describe('Official DID:DHT Vector tests', () => {
 
     expect(dnsPacket.answers).to.have.length(officialTestVector1DnsRecords.length);
 
-    // NOTE: the DNS library we use uses name `data` instead of `rdata` seen in the test vectors hence the additional normalization step
-    const normalizedConstructedRecords = [];
-    for (const record of dnsPacket.answers!) {
+    // NOTE: the DNS library we use uses name `data` instead of `rdata` used in DID:DHT spec,
+    // but prefer to keep the naming in test vector files identical that of the DID:DHT spec,
+    // hence this additional normalization step
+    const normalizedConstructedRecords = dnsPacket.answers!.map(record => {
       const { data: rdata, ...otherProperties } = record;
-
-      const normalizedRecord = {
-        ... otherProperties,
+      return {
+        ...otherProperties,
         rdata
       };
-
-      normalizedConstructedRecords.push(normalizedRecord);
-    }
+    });
 
     expect(normalizedConstructedRecords).to.deep.include.members(officialTestVector1DnsRecords);
   });
