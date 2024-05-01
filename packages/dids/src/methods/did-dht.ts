@@ -1023,18 +1023,14 @@ export class DidDhtDocument {
         // Process verification methods.
         case dnsRecordId.startsWith('k'): {
           // Get the method ID fragment (id), key type (t), Base64URL-encoded public key (k), and
-          // optionally, controller (c) from the decoded TXT record data.
-          const { id, t, k, c, alg: parsedAlg } = DidDhtUtils.parseTxtDataToObject(answer.data);
+          // optionally, controller (c) and alg (a) from the decoded TXT record data.
+          const { id, t, k, c, a: parsedAlg } = DidDhtUtils.parseTxtDataToObject(answer.data);
 
           // Convert the public key from Base64URL format to a byte array.
           const publicKeyBytes = Convert.base64Url(k).toUint8Array();
 
           // Use the key type integer to look up the cryptographic curve name.
           const namedCurve = DidDhtRegisteredKeyType[Number(t)];
-
-          // TODO: Remove after testing
-          // Determine the algorithm from the key type or use the initial algorithm if provided.
-          // const alg = parsedAlg || DidDhtRegisteredKeyType[Number(t)];
 
           // Convert the public key from a byte array to JWK format.
           let publicKey = await DidDhtUtils.keyConverter(namedCurve).bytesToPublicKey({ publicKeyBytes });
