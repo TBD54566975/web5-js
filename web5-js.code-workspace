@@ -69,7 +69,9 @@
     "typescript.tsdk": "root/node_modules/typescript/lib",
     "search.exclude": {
         "**/dist/**": true,
-        "**/coverage/**": true
+        "**/coverage/**": true,
+        "**/compiled/**": true
+
     }
   },
   "launch": {
