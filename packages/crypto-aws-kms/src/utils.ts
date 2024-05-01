@@ -95,14 +95,18 @@ export async function createKeyAlias({ alias, awsKeyId, kmsClient }: {
 }
 
 /**
- * Gets the `KeySpec` of the key specified.
+ * Gets the key specification of the key specified.
+ *
+ * @param params - The parameters for getting the key specification.
+ * @param params.keyUri - URI of the key.
+ * @param params.kmsClient - The Key Management Service client to use.
  */
 export async function getKeySpec({ keyUri, kmsClient }: {
     keyUri: KeyIdentifier;
     kmsClient: KMSClient;
 }): Promise<KeySpec> {
   // If the key URI is a JWK URI, prepend the AWS-required "alias/" prefix and replace the URN
-  // namespace separator with hyphens to accomodate AWS KMS key alias character restrictions.
+  // namespace separator with hyphens to accommodate AWS KMS key alias character restrictions.
   const awsKeyId = keyUri.replace('urn:jwk:', 'alias/urn-jwk-');
 
   // Send the request to retrieve detailed key information to AWS KMS.
