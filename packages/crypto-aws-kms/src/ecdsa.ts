@@ -47,6 +47,9 @@ export interface EcdsaSignParams extends KmsSignParams {
   algorithm: 'ES256K';
 }
 
+/**
+ * The `EcdsaAlgorithm` class is an implementation of the `KeyGenerator` and `Signer` interfaces for the ECDSA algorithm.
+ */
 export class EcdsaAlgorithm implements
     KeyGenerator<EcdsaGenerateKeyParams, KeyIdentifier>,
     Signer<KmsSignParams, KmsVerifyParams> {

@@ -23,7 +23,9 @@ export type VcDataModel = ICredential;
  * A credential schema defines the structure and content of the data, enabling verifiers to assess if the data adheres to the established schema.
  */
 export type CredentialSchema = {
+  /** Credential schema ID */
   id: string;
+  /** Credential schema type */
   type: string;
 };
 

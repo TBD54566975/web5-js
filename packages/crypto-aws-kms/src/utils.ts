@@ -94,6 +94,9 @@ export async function createKeyAlias({ alias, awsKeyId, kmsClient }: {
   );
 }
 
+/**
+ * Gets the `KeySpec` of the key specified.
+ */
 export async function getKeySpec({ keyUri, kmsClient }: {
     keyUri: KeyIdentifier;
     kmsClient: KMSClient;

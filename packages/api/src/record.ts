@@ -250,6 +250,7 @@ export class Record implements RecordModel {
   /** Record's published status (true/false) */
   get published() { return this._descriptor.published; }
 
+  /** Tags of the record */
   get tags() { return this._descriptor.tags; }
 
   /**
