@@ -1,9 +1,12 @@
 import { utils as cryptoUtils } from '@web5/crypto';
-import { RecordsReadReply, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 
-import type { JsonRpcResponse } from './json-rpc.js';
 
-import { createJsonRpcRequest, parseJson } from './json-rpc.js';
+import type { DwnRpc, DwnRpcRequest, DwnRpcResponse } from './prototyping/clients/dwn-rpc-types.js';
+import type { JsonRpcResponse } from './prototyping/clients/json-rpc.js';
+
+import { createJsonRpcRequest } from './prototyping/clients/json-rpc.js';
+import { HttpDwnRpcClient } from './prototyping/clients/http-dwn-rpc-client.js';
+import { WebSocketDwnRpcClient } from './prototyping/clients/web-socket-clients.js';
 
 /**
  * Interface that can be implemented to communicate with {@link Web5Agent | Web5 Agent}
@@ -31,59 +34,10 @@ export type DidRpcResponse = {
   status: RpcStatus;
 }
 
-/**
- * Interface for communicating with {@link https://github.com/TBD54566975/dwn-server | DWN Servers}
- * via JSON-RPC, supporting operations like sending DWN requests.
- */
-export interface DwnRpc {
-  /**
-   * Lists the transport protocols supported by the DWN RPC client, such as HTTP or HTTPS.
-   * @returns An array of strings representing the supported transport protocols.
-   */
-  get transportProtocols(): string[]
-
-  /**
-   * Sends a request to a DWN Server using the specified DWN RPC request parameters.
-   *
-   * @param request - The DWN RPC request containing the URL, target DID, message, and optional data.
-   * @returns A promise that resolves to the response from the DWN server.
-   */
-  sendDwnRequest(request: DwnRpcRequest): Promise<DwnRpcResponse>
-}
-
-
-/**
- * Represents a JSON RPC request to a DWN server, including the URL, target DID, the message to be
- * processed, and optional data.
- */
-export type DwnRpcRequest = {
-  /** Optional data to be sent with the request. */
-  data?: any;
-
-  /** The URL of the DWN server to which the request is sent. */
-  dwnUrl: string;
-
-  /** The message to be processed by the DWN server, which can be a serializable DWN message. */
-  message: SerializableDwnMessage | any;
-
-  /** The DID of the target to which the message is addressed. */
-  targetDid: string;
-}
-
-/**
- * Represents the JSON RPC response from a DWN server to a request, combining the results of various
- * DWN operations.
- */
-export type DwnRpcResponse = UnionMessageReply & RecordsReadReply;
-
 export type RpcStatus = {
   code: number;
   message: string;
 };
-
-export interface SerializableDwnMessage {
-  toJSON(): string;
-}
 
 export interface Web5Rpc extends DwnRpc, DidRpc {}
 
@@ -142,72 +96,7 @@ export class Web5RpcClient implements Web5Rpc {
   }
 }
 
-// TODO: move to dwn-server repo. i wrote this here for expediency
-
-/**
- * HTTP client that can be used to communicate with Dwn Servers
- */
-class HttpDwnRpcClient implements DwnRpc {
-  get transportProtocols() { return ['http:', 'https:']; }
-
-  async sendDwnRequest(request: DwnRpcRequest): Promise<DwnRpcResponse> {
-    const requestId = cryptoUtils.randomUuid();
-    const jsonRpcRequest = createJsonRpcRequest(requestId, 'dwn.processMessage', {
-      target  : request.targetDid,
-      message : request.message
-    });
-
-    const fetchOpts = {
-      method  : 'POST',
-      headers : {
-        'dwn-request': JSON.stringify(jsonRpcRequest)
-      }
-    };
-
-    if (request.data) {
-      // @ts-expect-error TODO: REMOVE
-      fetchOpts.headers['content-type'] = 'application/octet-stream';
-      // @ts-expect-error TODO: REMOVE
-      fetchOpts['body'] = request.data;
-    }
-
-    const resp = await fetch(request.dwnUrl, fetchOpts);
-    let dwnRpcResponse: JsonRpcResponse;
-
-    // check to see if response is in header first. if it is, that means the response is a ReadableStream
-    let dataStream;
-    const { headers } = resp;
-    if (headers.has('dwn-response')) {
-      // @ts-expect-error TODO: REMOVE
-      const jsonRpcResponse = parseJson(headers.get('dwn-response')) as JsonRpcResponse;
-
-      if (jsonRpcResponse == null) {
-        throw new Error(`failed to parse json rpc response. dwn url: ${request.dwnUrl}`);
-      }
-
-      dataStream = resp.body;
-      dwnRpcResponse = jsonRpcResponse;
-    } else {
-      // TODO: wonder if i need to try/catch this?
-      const responseBody = await resp.text();
-      dwnRpcResponse = JSON.parse(responseBody);
-    }
-
-    if (dwnRpcResponse.error) {
-      const { code, message } = dwnRpcResponse.error;
-      throw new Error(`(${code}) - ${message}`);
-    }
-
-    const { reply } = dwnRpcResponse.result;
-    if (dataStream) {
-      reply['record']['data'] = dataStream;
-    }
-
-    return reply as DwnRpcResponse;
-  }
-}
-
-class HttpWeb5RpcClient extends HttpDwnRpcClient implements Web5Rpc {
+export class HttpWeb5RpcClient extends HttpDwnRpcClient implements Web5Rpc {
   async sendDidRequest(request: DidRpcRequest): Promise<DidRpcResponse> {
     const requestId = cryptoUtils.randomUuid();
     const jsonRpcRequest = createJsonRpcRequest(requestId, request.method, {
@@ -243,5 +132,11 @@ class HttpWeb5RpcClient extends HttpDwnRpcClient implements Web5Rpc {
     }
 
     return jsonRpcResponse.result as DidRpcResponse;
+  }
+}
+
+export class WebSocketWeb5RpcClient extends WebSocketDwnRpcClient implements Web5Rpc {
+  async sendDidRequest(_request: DidRpcRequest): Promise<DidRpcResponse> {
+    throw new Error(`not implemented for transports [${this.transportProtocols.join(', ')}]`);
   }
 }
