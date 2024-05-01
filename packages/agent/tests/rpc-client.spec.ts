@@ -226,7 +226,7 @@ describe('RPC Clients', () => {
 
         // request with http
         try {
-          await httpOnlyClient.getServerInfo('ws://127.0.0.1')
+          await httpOnlyClient.getServerInfo('ws://127.0.0.1');
           expect.fail('Expected error to be thrown');
         } catch (error: any) {
           expect(error.message).to.equal('no ws: transport client available');
