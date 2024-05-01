@@ -61,11 +61,7 @@ describe('RPC Clients', () => {
   });
 
   describe('Web5RpcClient', () => {
-    let alice: Persona
-
-    after(() => {
-      sinon.restore();
-    });
+    let alice: Persona;
 
     beforeEach(async () => {
       sinon.restore();
