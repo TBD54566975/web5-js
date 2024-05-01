@@ -1255,18 +1255,9 @@ export class DidDhtDocument {
     // Add a DNS TXT record for the root record.
     dnsAnswerRecords.push({
       type : 'TXT',
-      name : '_did.',
+      name : '_did.' + DidDhtDocument.getUniqueDidSuffix(didDocument.id) + '.', // name of a Root Record MUST end in `<ID>.`
       ttl  : DNS_RECORD_TTL,
       data : rootRecord.join(PROPERTY_SEPARATOR)
-    });
-
-    // Per the DID DHT specification (https://did-dht.com/#dids-as-dns-records):
-    // Record name of a Root Record or a Authoritative Gateway Records MUST end in `<ID>.`
-    const [, , identifier] = didDocument.id.split(':');
-    dnsAnswerRecords.forEach(record => {
-      if (record.name.startsWith('_did.')) {
-        record.name += identifier + '.';
-      }
     });
 
     // Create a DNS response packet with the authoritative answer flag set.
@@ -1278,6 +1269,16 @@ export class DidDhtDocument {
     };
 
     return dnsPacket;
+  }
+
+  /**
+   * Gets the unique portion of the DID identifier after the last `:` character.
+   * e.g. `did:dht:example` -> `example`
+   *
+   * @param did - The DID to extract the unique suffix from.
+   */
+  private static getUniqueDidSuffix(did: string ): string {
+    return did.split(':')[2];
   }
 }
 
