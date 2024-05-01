@@ -1,13 +1,15 @@
-import sinon from 'sinon';
-import { expect } from 'chai';
-import { Convert } from '@web5/common';
-
 import type { PortableDid } from '../../src/types/portable-did.js';
 
+import sinon from 'sinon';
+import resolveTestVectors from '../../../../web5-spec/test-vectors/did_dht/resolve.json' assert { type: 'json' };
+import officialTestVector1DidDocument from '../fixtures/test-vectors/did-dht/vector-1-did-document.json' assert { type: 'json' };
+import officialTestVector1DnsRecords from '../fixtures/test-vectors/did-dht/vector-1-dns-records.json' assert { type: 'json' };
+
+import { expect } from 'chai';
+import { Convert } from '@web5/common';
+import { DidDocument } from '../../src/index.js';
 import { DidErrorCode } from '../../src/did-error.js';
 import { DidDht, DidDhtDocument, DidDhtRegisteredDidType } from '../../src/methods/did-dht.js';
-
-import DidDhtResolveTestVector from '../../../../web5-spec/test-vectors/did_dht/resolve.json' assert { type: 'json' };
 
 // Helper function to create a mocked fetch response that fails and returns a 404 Not Found.
 const fetchNotFoundResponse = () => ({
@@ -431,10 +433,15 @@ describe('DidDht', () => {
 
     it('throws an error if the resulting DID document would exceed the 1000 byte maximum', async () => {
       try {
-        // Attempt to create a DID with 6 verification methods (Identity Key plus 5 additional).
+        // Attempt to create a DID with DID Document that exceeds the maximum size.
         await DidDht.create({
           options: {
             verificationMethods: [
+              { algorithm: 'Ed25519' },
+              { algorithm: 'Ed25519' },
+              { algorithm: 'Ed25519' },
+              { algorithm: 'Ed25519' },
+              { algorithm: 'Ed25519' },
               { algorithm: 'Ed25519' },
               { algorithm: 'Ed25519' },
               { algorithm: 'Ed25519' },
@@ -1153,10 +1160,37 @@ describe('DidDhtDocument', () => {
 
   describe('Web5TestVectorsDidDht', () => {
     it('resolve', async () => {
-      for (const vector of DidDhtResolveTestVector.vectors as any[]) {
+      for (const vector of resolveTestVectors.vectors as any[]) {
         const didResolutionResult = await DidDht.resolve(vector.input.didUri);
         expect(didResolutionResult.didResolutionMetadata.error).to.equal(vector.output.didResolutionMetadata.error);
       }
     }).timeout(30000); // Set timeout to 30 seconds for this test for did:dht resolution timeout test
+  });
+});
+
+// vectors come from https://did-dht.com/#test-vectors
+describe('Official DID:DHT Vector tests', () => {
+  it('vector 1', async () => {
+    const dnsPacket = await DidDhtDocument.toDnsPacket({
+      didDocument : officialTestVector1DidDocument as DidDocument,
+      didMetadata : { published: false }
+    });
+
+    expect(dnsPacket.answers).to.have.length(officialTestVector1DnsRecords.length);
+
+    // NOTE: the DNS library we use uses name `data` instead of `rdata` seen in the test vectors hence the additional normalization step
+    const normalizedConstructedRecords = [];
+    for (const record of dnsPacket.answers!) {
+      const { data: rdata, ...otherProperties } = record;
+
+      const normalizedRecord = {
+        ... otherProperties,
+        rdata
+      };
+
+      normalizedConstructedRecords.push(normalizedRecord);
+    }
+
+    expect(normalizedConstructedRecords).to.deep.include.members(officialTestVector1DnsRecords);
   });
 });

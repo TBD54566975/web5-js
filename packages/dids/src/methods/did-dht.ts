@@ -1260,10 +1260,14 @@ export class DidDhtDocument {
       data : rootRecord.join(PROPERTY_SEPARATOR)
     });
 
-    // Per the DID DHT specification, the method-specific identifier must be appended as the
-    // Origin of all records.
+    // Per the DID DHT specification (https://did-dht.com/#dids-as-dns-records):
+    // Record name of a Root Record or a Authoritative Gateway Records MUST end in `<ID>.`
     const [, , identifier] = didDocument.id.split(':');
-    dnsAnswerRecords.forEach(record => record.name += identifier);
+    dnsAnswerRecords.forEach(record => {
+      if (record.name.startsWith('_did.')) {
+        record.name += identifier + '.';
+      }
+    });
 
     // Create a DNS response packet with the authoritative answer flag set.
     const dnsPacket: Packet = {
