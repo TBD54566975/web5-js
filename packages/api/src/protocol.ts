@@ -1,3 +1,9 @@
+/**
+ * NOTE: Added reference types here to avoid a `pnpm` bug during build.
+ * https://github.com/TBD54566975/web5-js/pull/507
+ */
+/// <reference types="@tbd54566975/dwn-sdk-js" />
+
 import type { DwnMessage, DwnResponseStatus, Web5Agent } from '@web5/agent';
 
 import { DwnInterface } from '@web5/agent';
