@@ -1181,6 +1181,7 @@ export class DidDhtDocument {
 
       const publicKey = vm.publicKeyJwk!;
 
+      // Always set `kid` to `0` if `methodId` is `0`, even if `kid` is not given, as a caller/user convenience.
       if(methodId === '0') {
         publicKey.kid = '0';
       }
