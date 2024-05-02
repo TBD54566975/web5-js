@@ -1038,7 +1038,7 @@ export class DidDhtDocument {
           // DID DHT spec requires `alg` in keys in the DID document
           publicKey.alg = parsedAlg || getJoseSignatureAlgorithmFromPublicKey(publicKey);
 
-          // Determine the Key ID (kid): '0' for the identity key or JWK thumbprint for others. Always set alg on expansion.
+          // Determine the Key ID (kid): '0' for the identity key or JWK thumbprint for others.
           if (id !== '0' && publicKey.kid === undefined) {
             publicKey.kid = await computeJwkThumbprint({ jwk: publicKey });
           } else if (id === '0') {
