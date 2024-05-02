@@ -69,7 +69,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@web5/agent": "0.3.2",
+    "@web5/agent": "0.3.3",
     "@web5/common": "1.0.0",
     "@web5/crypto": "1.0.0",
     "@web5/dids": "1.0.1"
