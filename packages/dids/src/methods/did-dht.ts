@@ -1206,7 +1206,13 @@ export class DidDhtDocument {
       const publicKeyBase64Url = Convert.uint8Array(publicKeyBytes).toBase64Url();
 
       // Define the data for the DNS TXT record.
-      const txtData = [`id=${methodId}`, `t=${keyType}`, `k=${publicKeyBase64Url}`, ...(alg ? [`a=${alg}`] : [])];
+      const txtData = [`id=${methodId}`, `t=${keyType}`, `k=${publicKeyBase64Url}`];
+
+      // Only set the algorithm property (`a`) if it differs from the default algorithm for the key type.
+      const algorithmUsedByKey = getJoseSignatureAlgorithmFromPublicKey(publicKey);
+      if(algorithmUsedByKey !== KeyTypeToDefaultAlgorithmMap[keyType]) {
+        txtData.push(`a=${algorithmUsedByKey}`);
+      }
 
       // Add the controller property, if set to a value other than the Identity Key (DID Subject).
       if (vm.controller !== didDocument.id) txtData.push(`c=${vm.controller}`);
