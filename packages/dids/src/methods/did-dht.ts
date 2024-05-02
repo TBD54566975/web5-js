@@ -948,7 +948,7 @@ export class DidDhtDocument {
       });
 
     } catch (error: any) {
-      throw new DidError(DidErrorCode.InternalError, `Failed to put Pkarr record: ${error.message}`);
+      throw new DidError(DidErrorCode.InternalError, `Failed to put Pkarr record for identifier ${identifier}: ${error.message}`);
     }
 
     // Return `true` if the DHT request was successful, otherwise return `false`.
