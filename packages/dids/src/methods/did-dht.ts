@@ -1035,7 +1035,7 @@ export class DidDhtDocument {
           // Convert the public key from a byte array to JWK format.
           let publicKey = await DidDhtUtils.keyConverter(namedCurve).bytesToPublicKey({ publicKeyBytes });
 
-          // Always set the algorithm on did:dht expansion.
+          // DID DHT spec requires `alg` in keys in the DID document
           publicKey.alg = parsedAlg || getJoseSignatureAlgorithmFromPublicKey(publicKey);
 
           // Determine the Key ID (kid): '0' for the identity key or JWK thumbprint for others. Always set alg on expansion.
