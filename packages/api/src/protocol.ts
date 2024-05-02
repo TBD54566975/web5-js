@@ -1,3 +1,5 @@
+/// <reference types="@tbd54566975/dwn-sdk-js" />
+
 import type { DwnMessage, DwnResponseStatus, Web5Agent } from '@web5/agent';
 
 import { DwnInterface } from '@web5/agent';

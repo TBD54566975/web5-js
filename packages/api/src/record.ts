@@ -1,3 +1,5 @@
+/// <reference types="@tbd54566975/dwn-sdk-js" />
+
 import type { Readable } from '@web5/common';
 import type {
   Web5Agent,
