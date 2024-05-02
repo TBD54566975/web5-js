@@ -1,1 +1,2 @@
 export const isChrome = typeof navigator !== 'undefined' && /Chrome/.test(navigator.userAgent);
+export const isNode = typeof navigator === 'undefined' && typeof process !== 'undefined' && process.versions != null && process.versions.node != null;

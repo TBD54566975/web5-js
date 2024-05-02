@@ -1,13 +1,15 @@
-import sinon from 'sinon';
-import { expect } from 'chai';
-import { Convert } from '@web5/common';
-
 import type { PortableDid } from '../../src/types/portable-did.js';
 
+import sinon from 'sinon';
+import resolveTestVectors from '../../../../web5-spec/test-vectors/did_dht/resolve.json' assert { type: 'json' };
+import officialTestVector1DidDocument from '../fixtures/test-vectors/did-dht/vector-1-did-document.json' assert { type: 'json' };
+import officialTestVector1DnsRecords from '../fixtures/test-vectors/did-dht/vector-1-dns-records.json' assert { type: 'json' };
+
+import { expect } from 'chai';
+import { Convert } from '@web5/common';
+import { DidDocument } from '../../src/index.js';
 import { DidErrorCode } from '../../src/did-error.js';
 import { DidDht, DidDhtDocument, DidDhtRegisteredDidType } from '../../src/methods/did-dht.js';
-
-import DidDhtResolveTestVector from '../../../../web5-spec/test-vectors/did_dht/resolve.json' assert { type: 'json' };
 
 // Helper function to create a mocked fetch response that fails and returns a 404 Not Found.
 const fetchNotFoundResponse = () => ({
@@ -431,10 +433,15 @@ describe('DidDht', () => {
 
     it('throws an error if the resulting DID document would exceed the 1000 byte maximum', async () => {
       try {
-        // Attempt to create a DID with 6 verification methods (Identity Key plus 5 additional).
+        // Attempt to create a DID with DID Document that exceeds the maximum size.
         await DidDht.create({
           options: {
             verificationMethods: [
+              { algorithm: 'Ed25519' },
+              { algorithm: 'Ed25519' },
+              { algorithm: 'Ed25519' },
+              { algorithm: 'Ed25519' },
+              { algorithm: 'Ed25519' },
               { algorithm: 'Ed25519' },
               { algorithm: 'Ed25519' },
               { algorithm: 'Ed25519' },
@@ -1152,36 +1159,36 @@ describe('DidDhtDocument', () => {
   });
 
   describe('Web5TestVectorsDidDht', () => {
-    let fetchStub: sinon.SinonStub;
-
-    beforeEach(() => {
-      // Setup stub so that a mocked response is returned rather than calling over the network.
-      fetchStub = sinon.stub(globalThis as any, 'fetch');
-
-      // By default, return a 200 OK response when fetch is called by publish().
-      fetchStub.resolves(fetchOkResponse());
-    });
-
-    afterEach(() => {
-      fetchStub.restore();
-    });
-
     it('resolve', async () => {
-      for (const vector of DidDhtResolveTestVector.vectors as any[]) {
-
-        if(vector.input.mockResponse) {
-          fetchStub.resolves({
-            ok         : vector.input.mockResponse.ok,
-            status     : vector.input.mockResponse.status,
-            statusText : vector.input.mockResponse.statusText,
-            json       : () => Promise.resolve(vector.input.mockResponse.body),
-            text       : () => Promise.resolve(JSON.stringify(vector.input.mockResponse.body)),
-          });
-        }
-
+      for (const vector of resolveTestVectors.vectors as any[]) {
         const didResolutionResult = await DidDht.resolve(vector.input.didUri);
         expect(didResolutionResult.didResolutionMetadata.error).to.equal(vector.output.didResolutionMetadata.error);
       }
+    }).timeout(30000); // Set timeout to 30 seconds for this test for did:dht resolution timeout test
+  });
+});
+
+// vectors come from https://did-dht.com/#test-vectors
+describe('Official DID:DHT Vector tests', () => {
+  it('vector 1', async () => {
+    const dnsPacket = await DidDhtDocument.toDnsPacket({
+      didDocument : officialTestVector1DidDocument as DidDocument,
+      didMetadata : { published: false }
     });
+
+    expect(dnsPacket.answers).to.have.length(officialTestVector1DnsRecords.length);
+
+    // NOTE: the DNS library we use uses name `data` instead of `rdata` used in DID:DHT spec,
+    // but prefer to keep the naming in test vector files identical to that of the DID:DHT spec,
+    // hence this additional normalization step
+    const normalizedConstructedRecords = dnsPacket.answers!.map(record => {
+      const { data: rdata, ...otherProperties } = record;
+      return {
+        ...otherProperties,
+        rdata
+      };
+    });
+
+    expect(normalizedConstructedRecords).to.deep.include.members(officialTestVector1DnsRecords);
   });
 });

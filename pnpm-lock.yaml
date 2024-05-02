@@ -24,8 +24,8 @@ importers:
         specifier: 6.4.0
         version: 6.4.0(@typescript-eslint/parser@6.4.0)(eslint@8.47.0)(typescript@5.1.6)
       '@web5/dwn-server':
-        specifier: 0.1.16
-        version: 0.1.16
+        specifier: 0.2.1
+        version: 0.2.1
       eslint-plugin-mocha:
         specifier: 10.1.0
         version: 10.1.0(eslint@8.47.0)
@@ -42,8 +42,8 @@ importers:
         specifier: 1.2.2
         version: 1.2.2
       '@tbd54566975/dwn-sdk-js':
-        specifier: 0.2.21
-        version: 0.2.21
+        specifier: 0.3.1
+        version: 0.3.1
       '@web5/common':
         specifier: 1.0.0
         version: link:../common
@@ -51,7 +51,7 @@ importers:
         specifier: 1.0.0
         version: link:../crypto
       '@web5/dids':
-        specifier: 1.0.0
+        specifier: 1.0.1
         version: link:../dids
       abstract-level:
         specifier: 1.0.4
@@ -59,6 +59,9 @@ importers:
       ed25519-keygen:
         specifier: 0.4.11
         version: 0.4.11
+      isomorphic-ws:
+        specifier: ^5.0.0
+        version: 5.0.0(ws@8.13.0)
       level:
         specifier: 8.0.0
         version: 8.0.0
@@ -148,7 +151,7 @@ importers:
   packages/api:
     dependencies:
       '@web5/agent':
-        specifier: 0.3.0
+        specifier: 0.3.2
         version: link:../agent
       '@web5/common':
         specifier: 1.0.0
@@ -157,18 +160,18 @@ importers:
         specifier: 1.0.0
         version: link:../crypto
       '@web5/dids':
-        specifier: 1.0.0
+        specifier: 1.0.1
         version: link:../dids
       '@web5/user-agent':
-        specifier: 0.3.0
+        specifier: 0.3.2
         version: link:../user-agent
     devDependencies:
       '@playwright/test':
         specifier: 1.40.1
         version: 1.40.1
       '@tbd54566975/dwn-sdk-js':
-        specifier: 0.2.21
-        version: 0.2.21
+        specifier: 0.3.1
+        version: 0.3.1
       '@types/chai':
         specifier: 4.3.6
         version: 4.3.6
@@ -333,7 +336,7 @@ importers:
         specifier: 1.0.0
         version: link:../crypto
       '@web5/dids':
-        specifier: 1.0.0
+        specifier: 1.0.1
         version: link:../dids
       pako:
         specifier: ^2.1.0
@@ -585,8 +588,8 @@ importers:
   packages/dids:
     dependencies:
       '@decentralized-identity/ion-sdk':
-        specifier: 1.0.1
-        version: 1.0.1
+        specifier: 1.0.4
+        version: 1.0.4
       '@dnsquery/dns-packet':
         specifier: 6.1.1
         version: 6.1.1
@@ -688,7 +691,7 @@ importers:
   packages/identity-agent:
     dependencies:
       '@web5/agent':
-        specifier: 0.3.0
+        specifier: 0.3.2
         version: link:../agent
       '@web5/common':
         specifier: 1.0.0
@@ -697,7 +700,7 @@ importers:
         specifier: 1.0.0
         version: link:../crypto
       '@web5/dids':
-        specifier: 1.0.0
+        specifier: 1.0.1
         version: link:../dids
     devDependencies:
       '@playwright/test':
@@ -776,7 +779,7 @@ importers:
   packages/proxy-agent:
     dependencies:
       '@web5/agent':
-        specifier: 0.3.0
+        specifier: 0.3.2
         version: link:../agent
       '@web5/common':
         specifier: 1.0.0
@@ -785,7 +788,7 @@ importers:
         specifier: 1.0.0
         version: link:../crypto
       '@web5/dids':
-        specifier: 1.0.0
+        specifier: 1.0.1
         version: link:../dids
     devDependencies:
       '@playwright/test':
@@ -861,7 +864,7 @@ importers:
   packages/user-agent:
     dependencies:
       '@web5/agent':
-        specifier: 0.3.0
+        specifier: 0.3.2
         version: link:../agent
       '@web5/common':
         specifier: 1.0.0
@@ -870,7 +873,7 @@ importers:
         specifier: 1.0.0
         version: link:../crypto
       '@web5/dids':
-        specifier: 1.0.0
+        specifier: 1.0.1
         version: link:../dids
     devDependencies:
       '@playwright/test':
@@ -1659,6 +1662,16 @@ packages:
       multiformats: 12.1.3
       multihashes: 4.0.3
       uri-js: 4.4.1
+
+  /@decentralized-identity/ion-sdk@1.0.4:
+    resolution: {integrity: sha512-pOWrlTH5ChxUKRHOgfG2ZeTioWEFJXADyErCQOJ0BqYNDKfP+CM09Vss+9ei6PNOABQlcDn0mEDFZtpO+DXl8A==}
+    dependencies:
+      '@noble/ed25519': 2.0.0
+      '@noble/secp256k1': 2.0.0
+      canonicalize: 2.0.0
+      multiformats: 12.1.3
+      uri-js: 4.4.1
+    dev: false
 
   /@dnsquery/dns-packet@6.1.1:
     resolution: {integrity: sha512-WXTuFvL3G+74SchFAtz3FgIYVOe196ycvGsMgvSH/8Goptb1qpIQtIuM4SOK9G9lhMWYpHxnXyy544ZhluFOew==}
@@ -2761,15 +2774,15 @@ packages:
       jwt-decode: 3.1.2
     dev: true
 
-  /@tbd54566975/dwn-sdk-js@0.2.21:
-    resolution: {integrity: sha512-rave+6mwn2/YBYu5LRwDWaOxvHV51DdMO6OFCLC3gJVOiAAYCmtPlebpdVCanBzqhWITh2qPcIZa7BefoxOPmQ==}
+  /@tbd54566975/dwn-sdk-js@0.3.1:
+    resolution: {integrity: sha512-G73ixUGieRBE4kYxLlYu/9wN36RUBGp5nvDrlAWZsNUXEXWnhCS3qTYFnUqzPEXjoE0z8EVRtpMU/eITM8ZcDA==}
     engines: {node: '>= 18'}
     dependencies:
       '@ipld/dag-cbor': 9.0.3
       '@js-temporal/polyfill': 0.4.4
       '@noble/ed25519': 2.0.0
       '@noble/secp256k1': 2.0.0
-      '@web5/dids': 0.4.3
+      '@web5/dids': 1.0.1
       abstract-level: 1.0.3
       ajv: 8.12.0
       blockstore-core: 4.2.0
@@ -2793,12 +2806,12 @@ packages:
       - encoding
       - supports-color
 
-  /@tbd54566975/dwn-sql-store@0.2.12:
-    resolution: {integrity: sha512-URcxrgRWTW7et5EH3+P5vK9qp2pmzwq9Yvrp8GRdWG8pwmBZ+poku2QSICE6E3liVYimaI1QDC/7/F2XJbRwhg==}
+  /@tbd54566975/dwn-sql-store@0.4.1:
+    resolution: {integrity: sha512-ndslsbtNjkIuNu8ytNZnKjH4uWoxWFzt+L/8ok5giVmgrjTh/+XDU23LQYJjRHC/RusjpDNjlt77PhL2qbXxmQ==}
     engines: {node: '>=18'}
     dependencies:
       '@ipld/dag-cbor': 9.2.0
-      '@tbd54566975/dwn-sdk-js': 0.2.21
+      '@tbd54566975/dwn-sdk-js': 0.3.1
       kysely: 0.26.3
       multiformats: 12.0.1
       readable-stream: 4.4.2
@@ -3440,36 +3453,46 @@ packages:
       level: 8.0.0
       multiformats: 11.0.2
       readable-stream: 4.4.2
+    dev: true
 
-  /@web5/crypto@0.4.1:
-    resolution: {integrity: sha512-23LxbdnpTnHBfspqin2L+qy0UKPgdx212SUg6K1pgj2oTvP7gyCKDOyN6yJ4HhexlT0AQxZ6TJ5reoTVn8Cu+g==}
+  /@web5/common@1.0.0:
+    resolution: {integrity: sha512-3JHF6X5o0h+3oAVQeBC4XpMoZeEYZYdEmQdgpOfKv/rnSru2yHQSAM+0wbIvEFcSCmelBT3u7rUAcpJjelLB0w==}
+    engines: {node: '>=18.0.0'}
+    dependencies:
+      '@isaacs/ttlcache': 1.4.1
+      level: 8.0.0
+      multiformats: 11.0.2
+      readable-stream: 4.4.2
+
+  /@web5/crypto@1.0.0:
+    resolution: {integrity: sha512-z1CsgycTqiXEsS6pPlJDDLGAeGsgzfdBeWvyxLXTgh08Q8ACULmEGRXjSsgWHFn6DO6MpWFn55h/hF4wZZRxvA==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@noble/ciphers': 0.4.1
       '@noble/curves': 1.3.0
       '@noble/hashes': 1.3.3
-      '@web5/common': 0.2.4
+      '@web5/common': 1.0.0
 
-  /@web5/dids@0.4.3:
-    resolution: {integrity: sha512-VyTG8dY7iY3j8O055/wBFoGU5Xu1rwTF0RJpFazUE/6W3IuZEYAFTNl2mZ5KSuNRDT1f0VcwebuXW9PbzGuAaw==}
+  /@web5/dids@1.0.1:
+    resolution: {integrity: sha512-bAc+zwTDPvtFtd8T25XD0oUmSOBmeTpYSZyBz9w/EqZPKtZOFSc5oFS5qLtrh4YDkkcBqTG5ENQlE9fXs56zIQ==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@decentralized-identity/ion-sdk': 1.0.1
       '@dnsquery/dns-packet': 6.1.1
-      '@web5/common': 0.2.4
-      '@web5/crypto': 0.4.1
+      '@web5/common': 1.0.0
+      '@web5/crypto': 1.0.0
       abstract-level: 1.0.4
       bencode: 4.0.0
       buffer: 6.0.3
       level: 8.0.0
       ms: 2.1.3
 
-  /@web5/dwn-server@0.1.16:
-    resolution: {integrity: sha512-aenZC3lFs5nyq9XHLnn2HtZ1jYHFdDIpGypI5HwrSoCfqLBByB888GOXa6VmOH2o4sAEdXd3oQmrb/mbxCPQ3Q==}
+  /@web5/dwn-server@0.2.1:
+    resolution: {integrity: sha512-RMt+YjVF3qru6zpjIdqB9vlCBfBt+H7QrrE/VsX8/VoQVRdrRPLnMIUVeYnfOn1pjXMWQs8cZjBypD04lMYZCA==}
     hasBin: true
     dependencies:
-      '@tbd54566975/dwn-sdk-js': 0.2.21
-      '@tbd54566975/dwn-sql-store': 0.2.12
+      '@tbd54566975/dwn-sdk-js': 0.3.1
+      '@tbd54566975/dwn-sql-store': 0.4.1
       better-sqlite3: 8.7.0
       body-parser: 1.20.2
       bytes: 3.1.2
@@ -3479,7 +3502,7 @@ packages:
       loglevel: 1.9.1
       loglevel-plugin-prefix: 0.8.4
       multiformats: 11.0.2
-      mysql2: 3.9.1
+      mysql2: 3.9.7
       node-fetch: 3.3.1
       pg: 8.11.3
       pg-cursor: 2.10.3(pg@8.11.3)
@@ -6316,6 +6339,14 @@ packages:
     engines: {node: '>=10'}
     dev: true
 
+  /isomorphic-ws@5.0.0(ws@8.13.0):
+    resolution: {integrity: sha512-muId7Zzn9ywDsyXgTIafTry2sV3nySZeUDe6YedVd1Hvuuep5AsIlqK+XefWpYTyJG5e503F2xIuT2lcU6rCSw==}
+    peerDependencies:
+      ws: '*'
+    dependencies:
+      ws: 8.13.0
+    dev: false
+
   /istanbul-lib-coverage@3.2.2:
     resolution: {integrity: sha512-O8dpsF+r0WV/8MNRKfnmrtCWhuKjxrq2w+jpzBL5UZKTi2LeVWnWOmWRxFlesJONmc+wLAGvKQZEOanko0LFTg==}
     engines: {node: '>=8'}
@@ -7070,8 +7101,8 @@ packages:
     resolution: {integrity: sha512-/sF3ee6zvScXMb1XFJ8gDsSnY+X8PbOyjIuBhtgis10W2Jx4ZjIhikUCIF9c4gpJxVnQIsPAFrSwTCuAjicP6g==}
     engines: {node: '>=8.0.0'}
 
-  /mysql2@3.9.1:
-    resolution: {integrity: sha512-3njoWAAhGBYy0tWBabqUQcLtczZUxrmmtc2vszQUekg3kTJyZ5/IeLC3Fo04u6y6Iy5Sba7pIIa2P/gs8D3ZeQ==}
+  /mysql2@3.9.7:
+    resolution: {integrity: sha512-KnJT8vYRcNAZv73uf9zpXqNbvBG7DJrs+1nACsjZP1HMJ1TgXEy8wnNilXAn/5i57JizXKtrUtwDB7HxT9DDpw==}
     engines: {node: '>= 8.0'}
     dependencies:
       denque: 2.1.0
@@ -9444,7 +9475,6 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
-    dev: true
 
   /xml@1.0.1:
     resolution: {integrity: sha512-huCv9IH9Tcf95zuYCsQraZtWnJvBtLVE0QHMOs8bWyZAFZNDcYjsPq1nEx8jKA9y+Beo9v+7OBPRisQTjinQMw==}

@@ -66,7 +66,13 @@
     "editor.codeActionsOnSave": {
       "source.fixAll": "always"
     },
-    "typescript.tsdk": "root/node_modules/typescript/lib"
+    "typescript.tsdk": "root/node_modules/typescript/lib",
+    "search.exclude": {
+        "**/dist/**": true,
+        "**/coverage/**": true,
+        "**/compiled/**": true
+
+    }
   },
   "launch": {
     "version": "0.2.0",

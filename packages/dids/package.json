@@ -1,6 +1,6 @@
 {
   "name": "@web5/dids",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "TBD DIDs library",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -76,7 +76,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@decentralized-identity/ion-sdk": "1.0.1",
+    "@decentralized-identity/ion-sdk": "1.0.4",
     "@dnsquery/dns-packet": "6.1.1",
     "@web5/common": "1.0.0",
     "@web5/crypto": "1.0.0",

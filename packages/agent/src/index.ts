@@ -12,7 +12,6 @@ export * from './did-api.js';
 export * from './dwn-api.js';
 export * from './hd-identity-vault.js';
 export * from './identity-api.js';
-export * from './json-rpc.js';
 export * from './local-key-manager.js';
 export * from './rpc-client.js';
 export * from './store-data.js';

@@ -97,6 +97,9 @@ export interface AwsKeyManagerGenerateKeyParams extends KmsGenerateKeyParams {
   algorithm: 'ES256K';
 }
 
+/**
+ * The `AwsKeyManager` class is an implementation of the `CryptoApi` interface tailored for AWS KMS.
+ */
 export class AwsKeyManager implements CryptoApi<AwsKeyManagerGenerateKeyParams> {
   /**
    * A private map that stores instances of cryptographic algorithm implementations. Each key in

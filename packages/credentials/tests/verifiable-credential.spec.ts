@@ -7,7 +7,7 @@ import { DidDht, DidKey, DidIon, DidJwk } from '@web5/dids';
 import { Jwt } from '../src/jwt.js';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import CredentialsVerifyTestVector from '../../../web5-spec/test-vectors/credentials/verify.json' assert { type: 'json' };
-import { getCurrentXmlSchema112Timestamp, getXmlSchema112Timestamp } from '../src/utils.js';
+import { getCurrentXmlSchema112Timestamp } from '../src/utils.js';
 
 describe('Verifiable Credential Tests', async() => {
   let issuerDid: BearerDid;
@@ -92,28 +92,46 @@ describe('Verifiable Credential Tests', async() => {
     });
 
     it('create and sign kyc vc with did:jwk', async () => {
-      const did = await DidJwk.create();
+      const subjectDid = await DidJwk.create();
+      const issuerDid = await DidJwk.create();
 
       const vc = await VerifiableCredential.create({
         type           : 'KnowYourCustomerCred',
-        subject        : did.uri,
-        issuer         : did.uri,
-        expirationDate : getXmlSchema112Timestamp(2687920690), // 2055-03-05
+        subject        : subjectDid.uri,
+        issuer         : issuerDid.uri,
+        issuanceDate   : '2023-05-19T08:02:04Z',
+        expirationDate : `2055-05-19T08:02:04Z`,
         data           : {
-          country: 'us'
-        }
+          id                   : subjectDid.uri,
+          country_of_residence : 'US',
+          tier                 : 'Tier 1'
+        },
+        credentialSchema: {
+          id   : ' https://schema.org/PFI',
+          type : 'JsonSchema'
+        },
+        evidence: [
+          { kind: 'document_verification', checks: ['passport', 'utility_bill'] },
+          { kind: 'sanctions_check', checks: ['daily'] }
+        ]
       });
 
-      const vcJwt = await vc.sign({ did });
+      const vcJwt = await vc.sign({ did: issuerDid });
 
       await VerifiableCredential.verify({ vcJwt });
 
       for( const currentVc of [vc, VerifiableCredential.parseJwt({ vcJwt })]){
-        expect(currentVc.issuer).to.equal(did.uri);
-        expect(currentVc.subject).to.equal(did.uri);
+        expect(currentVc.issuer).to.equal(issuerDid.uri);
+        expect(currentVc.subject).to.equal(subjectDid.uri);
         expect(currentVc.type).to.equal('KnowYourCustomerCred');
-        expect(currentVc.vcDataModel.issuanceDate).to.not.be.undefined;
-        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: did.uri, country: 'us'});
+        expect(currentVc.vcDataModel.issuanceDate).to.equal('2023-05-19T08:02:04Z');
+        expect(currentVc.vcDataModel.expirationDate).to.equal('2055-05-19T08:02:04Z');
+        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: subjectDid.uri, country_of_residence: 'US', tier: 'Tier 1'});
+        expect(currentVc.vcDataModel.credentialSchema).to.deep.equal({ id: ' https://schema.org/PFI', type: 'JsonSchema'});
+        expect(currentVc.vcDataModel.evidence).to.deep.equal([
+          { kind: 'document_verification', checks: ['passport', 'utility_bill'] },
+          { kind: 'sanctions_check', checks: ['daily'] }
+        ]);
       }
     });
 

@@ -47,6 +47,9 @@ export interface EcdsaSignParams extends KmsSignParams {
   algorithm: 'ES256K';
 }
 
+/**
+ * The `EcdsaAlgorithm` class is an implementation of the `KeyGenerator` and `Signer` interfaces for the ECDSA algorithm.
+ */
 export class EcdsaAlgorithm implements
     KeyGenerator<EcdsaGenerateKeyParams, KeyIdentifier>,
     Signer<KmsSignParams, KmsVerifyParams> {
@@ -163,7 +166,7 @@ export class EcdsaAlgorithm implements
    * Note: The signature returned is normalized to low-S to prevent signature malleability. This
    * ensures that the signature can be verified by other libraries that enforce strict verification.
    * More information on signature malleability can be found
-   * {@link @web5/crypto#Secp256k1.adjustSignatureToLowS | here}.
+   * {@link https://tbd54566975.github.io/web5-js/classes/_web5_crypto.Secp256k1.html#adjustSignatureToLowS | here}.
    *
    * @example
    * ```ts

@@ -9,7 +9,7 @@ import type {
 } from '@web5/agent';
 
 import { DwnInterface } from '@web5/agent';
-import { Convert, NodeStream, removeUndefinedProperties, Stream } from '@web5/common';
+import { Convert, isEmptyObject, NodeStream, removeUndefinedProperties, Stream } from '@web5/common';
 
 import { dataToBlob, SendCache } from './utils.js';
 
@@ -105,6 +105,9 @@ export type RecordUpdateParams = {
 
   /** The published status of the record. */
   published?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['published'];
+
+  /** The tags associated with the updated record */
+  tags?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['tags'];
 }
 
 /**
@@ -246,6 +249,9 @@ export class Record implements RecordModel {
 
   /** Record's published status (true/false) */
   get published() { return this._descriptor.published; }
+
+  /** Tags of the record */
+  get tags() { return this._descriptor.tags; }
 
   /**
    * Returns a copy of the raw `RecordsWriteMessage` that was used to create the current `Record` instance.
@@ -540,7 +546,8 @@ export class Record implements RecordModel {
       published        : this.published,
       recipient        : this.recipient,
       recordId         : this.id,
-      schema           : this.schema
+      schema           : this.schema,
+      tags             : this.tags,
     };
   }
 
@@ -572,13 +579,26 @@ export class Record implements RecordModel {
    * @beta
    */
   async update({ dateModified, data, ...params }: RecordUpdateParams): Promise<DwnResponseStatus> {
+
+    // if there is a parentId, we remove it from the descriptor and set a parentContextId
+    const { parentId, ...descriptor } = this._descriptor;
+    const parentContextId = parentId ? this._contextId.split('/').slice(0, -1).join('/') : undefined;
+
     // Begin assembling the update message.
     let updateMessage: DwnMessageParams[DwnInterface.RecordsWrite] = {
-      ...this._descriptor,
+      ...descriptor,
       ...params,
+      parentContextId,
       messageTimestamp : dateModified, // Map Record class `dateModified` property to DWN SDK `messageTimestamp`
       recordId         : this._recordId
     };
+
+    // NOTE: The original Record's tags are copied to the update message, so that the tags are not lost.
+    // However if a user passes new tags in the `RecordUpdateParams` object, they will overwrite the original tags.
+    // If the updated tag object is empty or set to null, we remove the tags property to avoid schema validation errors in the DWN SDK.
+    if (isEmptyObject(updateMessage.tags) || updateMessage.tags === null) {
+      delete updateMessage.tags;
+    }
 
     let dataBlob: Blob;
     if (data !== undefined) {
@@ -592,7 +612,7 @@ export class Record implements RecordModel {
 
     // Throw an error if an attempt is made to modify immutable properties.
     // Note: `data` and `dateModified` have already been handled.
-    const mutableDescriptorProperties = new Set(['data', 'dataCid', 'dataSize', 'datePublished', 'messageTimestamp', 'published']);
+    const mutableDescriptorProperties = new Set(['data', 'dataCid', 'dataSize', 'datePublished', 'messageTimestamp', 'published', 'tags']);
     Record.verifyPermittedMutation(Object.keys(params), mutableDescriptorProperties);
 
     // If `published` is set to false, ensure that `datePublished` is undefined. Otherwise, DWN SDK's schema validation
