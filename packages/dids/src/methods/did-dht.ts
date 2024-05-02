@@ -352,7 +352,7 @@ export enum DidDhtRegisteredKeyType {
  * Private helper that maps did dht registered key types to their corresponding default algorithm identifiers.
  */
 const KeyTypeToDefaultAlgorithmMap = {
-  [DidDhtRegisteredKeyType.Ed25519]   : 'EdDSA',
+  [DidDhtRegisteredKeyType.Ed25519]   : 'Ed25519',
   [DidDhtRegisteredKeyType.secp256k1] : 'ES256K',
   [DidDhtRegisteredKeyType.secp256r1] : 'ES256',
 }
@@ -1039,10 +1039,10 @@ export class DidDhtDocument {
           publicKey.alg = parsedAlg || getJoseSignatureAlgorithmFromPublicKey(publicKey);
 
           // Determine the Key ID (kid): '0' for the identity key or JWK thumbprint for others.
-          if (id !== '0' && publicKey.kid === undefined) {
-            publicKey.kid = await computeJwkThumbprint({ jwk: publicKey });
-          } else if (id === '0') {
+          if (id === '0') {
             publicKey.kid = '0';
+          } else if (publicKey.kid === undefined) {
+            publicKey.kid = await computeJwkThumbprint({ jwk: publicKey });
           }
 
           // Initialize the `verificationMethod` array if it does not already exist.
@@ -1192,12 +1192,6 @@ export class DidDhtDocument {
 
       // Use the public key's `crv` property to get the DID DHT key type.
       const keyType = DidDhtRegisteredKeyType[publicKey.crv as keyof typeof DidDhtRegisteredKeyType];
-
-      let alg;
-      if(KeyTypeToDefaultAlgorithmMap[keyType] !== getJoseSignatureAlgorithmFromPublicKey(publicKey))
-      {
-        alg = getJoseSignatureAlgorithmFromPublicKey(publicKey);
-      }
 
       // Convert the public key from JWK format to a byte array.
       const publicKeyBytes = await DidDhtUtils.keyConverter(publicKey.crv).publicKeyToBytes({ publicKey });
