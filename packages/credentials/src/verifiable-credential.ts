@@ -39,6 +39,8 @@ export type CredentialSchema = {
  * @param issuanceDate Optional. The issuance date of the credential, as a string.
  *               Defaults to the current date if not specified.
  * @param expirationDate Optional. The expiration date of the credential, as a string.
+ * @param credentialStatus Optional. The credential status lookup information to see if credential is revoked.
+ * @param credentialSchema Optional. The credential schema of the credential.
  * @param evidence Optional. Evidence can be included by an issuer to provide the verifier with additional supporting information in a verifiable credential.
  */
 export type VerifiableCredentialCreateOptions = {
