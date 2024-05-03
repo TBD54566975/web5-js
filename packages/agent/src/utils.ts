@@ -65,7 +65,7 @@ export async function getPaginationCursor(record: RecordsWriteMessage, dateSort:
     record.descriptor.dateCreated : record.descriptor.datePublished;
 
   if (value === undefined) {
-    throw new Error('The dateCreated or datePublished property is missing from the record descriptor.')
+    throw new Error('The dateCreated or datePublished property is missing from the record descriptor.');
   }
 
   return {
