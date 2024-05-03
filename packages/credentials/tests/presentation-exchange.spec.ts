@@ -23,7 +23,7 @@ class OtherCredential {
   ) {}
 }
 
-describe('PresentationExchange', () => {
+describe.only('PresentationExchange', () => {
   describe('Full Presentation Exchange', () => {
     let issuerDid: BearerDid;
     let btcCredentialJwt: string;
@@ -287,11 +287,13 @@ describe('PresentationExchange', () => {
     });
   });
 
-  describe('Web5TestVectorsPresentationExchange', () => {
-    it('select_credentials', async () => {
+  describe.only('Web5TestVectorsPresentationExchange', () => {
+    it.only('select_credentials', async () => {
       const vectors = PresentationExchangeSelectCredentialsTestVector.vectors;
 
       for (let i = 0; i < vectors.length; i++) {
+        console.log("Description: ", vectors[i].description)
+        // test vector with description "select credentials for presentation, using array filter" is failing.
         const input = vectors[i].input;
         const expectedOutput = vectors[i].output.selectedCredentials;
 
