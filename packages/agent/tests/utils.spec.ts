@@ -1,7 +1,5 @@
 import { expect } from 'chai';
 
-import { DeterministicKeyGenerator } from '../src/utils-internal.js';
-import { EdDsaAlgorithm } from '@web5/crypto';
 import { DateSort, Message, TestDataGenerator } from '@tbd54566975/dwn-sdk-js';
 import { getPaginationCursor, getRecordAuthor, getRecordMessageCid } from '../src/utils.js';
 
