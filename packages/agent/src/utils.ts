@@ -1,10 +1,11 @@
 import type { DidUrlDereferencer } from '@web5/dids';
-import type { RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import type { PaginationCursor, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
+import { DateSort } from '@tbd54566975/dwn-sdk-js';
 import { Readable } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { ReadableWebToNodeStream } from 'readable-web-to-node-stream';
-import { DwnInterfaceName, DwnMethodName, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
+import { DwnInterfaceName, DwnMethodName, Message, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 
 export function blobToIsomorphicNodeReadable(blob: Blob): Readable {
   return webReadableToIsomorphicNodeReadable(blob.stream() as ReadableStream<any>);
@@ -53,6 +54,24 @@ export function isRecordsWrite(obj: unknown): obj is RecordsWrite {
     'interface' in obj.message.descriptor && obj.message.descriptor.interface === DwnInterfaceName.Records &&
     'method' in obj.message.descriptor && obj.message.descriptor.method === DwnMethodName.Write
   );
+}
+
+export function getRecordMessageCid(record: RecordsWriteMessage): Promise<string> {
+  return Message.getCid(record);
+}
+
+export async function getPaginationCursor(record: RecordsWriteMessage, dateSort: DateSort): Promise<PaginationCursor> {
+  const value = dateSort === DateSort.CreatedAscending || dateSort === DateSort.CreatedDescending ?
+    record.descriptor.dateCreated : record.descriptor.datePublished;
+
+  if (value === undefined) {
+    throw new Error('The dateCreated or datePublished property is missing from the record descriptor.')
+  }
+
+  return {
+    messageCid: await getRecordMessageCid(record),
+    value
+  };
 }
 
 export function webReadableToIsomorphicNodeReadable(webReadable: ReadableStream<any>) {
