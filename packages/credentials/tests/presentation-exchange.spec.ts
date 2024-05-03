@@ -292,8 +292,6 @@ describe('PresentationExchange', () => {
       const vectors = PresentationExchangeSelectCredentialsTestVector.vectors;
 
       for (let i = 0; i < vectors.length; i++) {
-        console.log("Description: ", vectors[i].description)
-        // test vector with description "select credentials for presentation, using array filter" is failing.
         const input = vectors[i].input;
         const expectedOutput = vectors[i].output.selectedCredentials;
 
