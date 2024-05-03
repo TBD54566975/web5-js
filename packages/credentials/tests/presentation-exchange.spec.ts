@@ -23,7 +23,7 @@ class OtherCredential {
   ) {}
 }
 
-describe.only('PresentationExchange', () => {
+describe('PresentationExchange', () => {
   describe('Full Presentation Exchange', () => {
     let issuerDid: BearerDid;
     let btcCredentialJwt: string;
@@ -287,8 +287,8 @@ describe.only('PresentationExchange', () => {
     });
   });
 
-  describe.only('Web5TestVectorsPresentationExchange', () => {
-    it.only('select_credentials', async () => {
+  describe('Web5TestVectorsPresentationExchange', () => {
+    it('select_credentials', async () => {
       const vectors = PresentationExchangeSelectCredentialsTestVector.vectors;
 
       for (let i = 0; i < vectors.length; i++) {
