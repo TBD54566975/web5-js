@@ -1430,22 +1430,14 @@ export class DidDhtUtils {
       'Ed25519'   : Ed25519,
       'P-256'     : Secp256r1,
       'secp256k1' : {
-        async publicKeyToBytes({ publicKey }: { publicKey: Jwk }): Promise<Uint8Array> {
+        publicKeyToBytes: async ({ publicKey }: { publicKey: Jwk }): Promise<Uint8Array> => {
           const publicKeyBytes = await Secp256k1.publicKeyToBytes({ publicKey });
           const compressedPublicKey = await Secp256k1.compressPublicKey({ publicKeyBytes });
           return compressedPublicKey;
         },
-        async bytesToPublicKey({ publicKeyBytes }: { publicKeyBytes: Uint8Array; }): Promise<Jwk> {
-          return Secp256k1.bytesToPublicKey({ publicKeyBytes});
-        },
-        async privateKeyToBytes({ privateKey }: { privateKey: Jwk }): Promise<Uint8Array> {
-          // Placeholder: Implement this method based on your needs
-          return Secp256k1.privateKeyToBytes({ privateKey});
-        },
-        async bytesToPrivateKey({ privateKeyBytes }: { privateKeyBytes: Uint8Array }): Promise<Jwk> {
-          // Placeholder: Implement this method based on your needs
-          return Secp256k1.bytesToPrivateKey({ privateKeyBytes});
-        },
+        bytesToPublicKey  : Secp256k1.bytesToPublicKey,
+        privateKeyToBytes : Secp256k1.privateKeyToBytes,
+        bytesToPrivateKey : Secp256k1.bytesToPrivateKey,
       }
     };
 
