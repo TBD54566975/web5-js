@@ -5,7 +5,7 @@ import { expect } from 'chai';
 import { NodeStream } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { Web5UserAgent } from '@web5/user-agent';
-import { DwnConstant, DwnDateSort, DwnEncryptionAlgorithm, DwnInterface, DwnKeyDerivationScheme, dwnMessageConstructors, getRecordMessageCid, PlatformAgentTestHarness } from '@web5/agent';
+import { DwnConstant, DwnDateSort, DwnEncryptionAlgorithm, DwnInterface, DwnKeyDerivationScheme, dwnMessageConstructors, PlatformAgentTestHarness } from '@web5/agent';
 import { Record } from '../src/record.js';
 import { DwnApi } from '../src/dwn-api.js';
 import { dataToBlob } from '../src/utils.js';
