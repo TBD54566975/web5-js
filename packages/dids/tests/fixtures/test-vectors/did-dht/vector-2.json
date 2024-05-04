@@ -1,0 +1,105 @@
+{
+  "didDocument": {
+    "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
+    "controller": "did:example:abcd",
+    "alsoKnownAs": ["did:example:efgh", "did:example:ijkl"],
+    "verificationMethod": [
+      {
+        "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0",
+        "type": "JsonWebKey",
+        "controller": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
+        "publicKeyJwk": {
+          "kid": "0",
+          "alg": "Ed25519",
+          "crv": "Ed25519",
+          "kty": "OKP",
+          "x": "YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE"
+        }
+      },
+      {
+        "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw",
+        "type": "JsonWebKey",
+        "controller": "did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y",
+        "publicKeyJwk": {
+          "kid": "0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw",
+          "alg": "ES256K",
+          "crv": "secp256k1",
+          "kty": "EC",
+          "x": "1_o0IKHGNamet8-3VYNUTiKlhVK-LilcKrhJSPHSNP0",
+          "y": "qzU8qqh0wKB6JC_9HCu8pHE-ZPkDpw4AdJ-MsV2InVY"
+        }
+      }
+    ],
+    "authentication": [
+      "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0"
+    ],
+    "assertionMethod": [
+      "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0",
+      "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw"
+    ],
+    "capabilityInvocation": [
+      "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0",
+      "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw"
+    ],
+    "capabilityDelegation": [
+      "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#0"
+    ],
+    "service": [
+      {
+        "id": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo#service-1",
+        "type": "TestService",
+        "serviceEndpoint": ["https://test-service.com/1", "https://test-service.com/2"]
+      }
+    ]
+  },
+  "dnsRecords": [
+    {
+      "name": "_did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo.",
+      "type": "NS",
+      "ttl": 7200,
+      "rdata": "gateway1.example-did-dht-gateway.com."
+    },
+    {
+      "name": "_did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo.",
+      "type": "TXT",
+      "ttl": 7200,
+      "rdata": "v=0;vm=k0,k1;auth=k0;asm=k0,k1;inv=k0,k1;del=k0;svc=s0"
+    },
+    {
+      "name": "_cnt._did.",
+      "type": "TXT",
+      "ttl": 7200,
+      "rdata": "did:example:abcd"
+    },
+    {
+      "name": "_aka._did.",
+      "type": "TXT",
+      "ttl": 7200,
+      "rdata": "did:example:efgh,did:example:ijkl"
+    },
+    {
+      "name": "_k0._did.",
+      "type": "TXT",
+      "ttl": 7200,
+      "rdata": "id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE"
+    },
+    {
+      "name": "_k1._did.",
+      "type": "TXT",
+      "ttl": 7200,
+      "rdata": "id=0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw;t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9;c=did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y"
+    },
+    {
+      "name": "_s0._did.",
+      "type": "TXT",
+      "ttl": 7200,
+      "rdata": "id=service-1;t=TestService;se=https://test-service.com/1,https://test-service.com/2"
+    },
+    {
+      "name": "_typ._did.",
+      "type": "TXT",
+      "ttl": 7200,
+      "rdata": "id=1,2,3"
+    }
+  ]
+}

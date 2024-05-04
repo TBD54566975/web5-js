@@ -2,8 +2,8 @@ import type { PortableDid } from '../../src/types/portable-did.js';
 
 import sinon from 'sinon';
 import resolveTestVectors from '../../../../web5-spec/test-vectors/did_dht/resolve.json' assert { type: 'json' };
-import officialTestVector1DidDocument from '../fixtures/test-vectors/did-dht/vector-1-did-document.json' assert { type: 'json' };
-import officialTestVector1DnsRecords from '../fixtures/test-vectors/did-dht/vector-1-dns-records.json' assert { type: 'json' };
+import officialTestVector1 from '../fixtures/test-vectors/did-dht/vector-1.json' assert { type: 'json' };
+import officialTestVector2 from '../fixtures/test-vectors/did-dht/vector-2.json' assert { type: 'json' };
 
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
@@ -1172,11 +1172,11 @@ describe('DidDhtDocument', () => {
 describe('Official DID:DHT Vector tests', () => {
   it('vector 1', async () => {
     const dnsPacket = await DidDhtDocument.toDnsPacket({
-      didDocument : officialTestVector1DidDocument as DidDocument,
+      didDocument : officialTestVector1.didDocument as DidDocument,
       didMetadata : { published: false }
     });
 
-    expect(dnsPacket.answers).to.have.length(officialTestVector1DnsRecords.length);
+    expect(dnsPacket.answers).to.have.length(officialTestVector1.dnsRecords.length);
 
     // NOTE: the DNS library we use uses name `data` instead of `rdata` used in DID:DHT spec,
     // but prefer to keep the naming in test vector files identical to that of the DID:DHT spec,
@@ -1189,6 +1189,32 @@ describe('Official DID:DHT Vector tests', () => {
       };
     });
 
-    expect(normalizedConstructedRecords).to.deep.include.members(officialTestVector1DnsRecords);
+    expect(normalizedConstructedRecords).to.deep.include.members(officialTestVector1.dnsRecords);
+  });
+
+  it.only('vector 2', async () => {
+    const dnsPacket = await DidDhtDocument.toDnsPacket({
+      didDocument : officialTestVector2.didDocument as DidDocument,
+      didMetadata : {
+        published : false,
+        types     : [DidDhtRegisteredDidType.Organization, DidDhtRegisteredDidType.Government, DidDhtRegisteredDidType.Corporation]
+      },
+      authoritativeGatewayUris: ['gateway1.example-did-dht-gateway.com']
+    });
+
+    expect(dnsPacket.answers).to.have.length(officialTestVector2.dnsRecords.length);
+
+    // NOTE: the DNS library we use uses name `data` instead of `rdata` used in DID:DHT spec,
+    // but prefer to keep the naming in test vector files identical to that of the DID:DHT spec,
+    // hence this additional normalization step
+    const normalizedConstructedRecords = dnsPacket.answers!.map(record => {
+      const { data: rdata, ...otherProperties } = record;
+      return {
+        ...otherProperties,
+        rdata
+      };
+    });
+
+    expect(normalizedConstructedRecords).to.deep.include.members(officialTestVector2.dnsRecords);
   });
 });

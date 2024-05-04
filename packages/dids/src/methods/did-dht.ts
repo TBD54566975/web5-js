@@ -1,4 +1,4 @@
-import type { Packet, TxtAnswer, TxtData } from '@dnsquery/dns-packet';
+import type { Packet, StringAnswer, TxtAnswer, TxtData } from '@dnsquery/dns-packet';
 import type {
   Jwk,
   Signer,
@@ -825,8 +825,9 @@ export class DidDhtDocument {
   }): Promise<DidRegistrationResult> {
     // Convert the DID document and DID metadata (such as DID types) to a DNS packet.
     const dnsPacket = await DidDhtDocument.toDnsPacket({
-      didDocument : did.document,
-      didMetadata : did.metadata
+      didDocument              : did.document,
+      didMetadata              : did.metadata,
+      authoritativeGatewayUris : [gatewayUri]
     });
 
     // Create a signed BEP44 put message from the DNS packet.
@@ -1118,22 +1119,26 @@ export class DidDhtDocument {
    * @param params - The parameters to use when converting a DID document to a DNS packet.
    * @param params.didDocument - The DID document to convert to a DNS packet.
    * @param params.didMetadata - The DID metadata to include in the DNS packet.
+   * @param params.authoritativeGatewayUris - The URIs of the Authoritative Gateways to generate NS records from.
+   * @param params.authoritativeGatewayUris - The URIs of the Authoritative Gateways to generate NS records from.
    * @returns A promise that resolves to a DNS packet.
    */
-  public static async toDnsPacket({ didDocument, didMetadata }: {
+  public static async toDnsPacket({ didDocument, didMetadata, authoritativeGatewayUris }: {
     didDocument: DidDocument;
     didMetadata: DidMetadata;
+    authoritativeGatewayUris?: string[];
   }): Promise<Packet> {
-    const dnsAnswerRecords: TxtAnswer[] = [];
+    const txtRecords: TxtAnswer[] = [];
+    const nsRecords: StringAnswer[] = [];
     const idLookup = new Map<string, string>();
     const serviceIds: string[] = [];
     const verificationMethodIds: string[] = [];
 
     // Add DNS TXT records if the DID document contains an `alsoKnownAs` property.
     if (didDocument.alsoKnownAs) {
-      dnsAnswerRecords.push({
+      txtRecords.push({
         type : 'TXT',
-        name : '_aka.did.',
+        name : '_aka._did.',
         ttl  : DNS_RECORD_TTL,
         data : didDocument.alsoKnownAs.join(VALUE_SEPARATOR)
       });
@@ -1144,9 +1149,9 @@ export class DidDhtDocument {
       const controller = Array.isArray(didDocument.controller)
         ? didDocument.controller.join(VALUE_SEPARATOR)
         : didDocument.controller;
-      dnsAnswerRecords.push({
+      txtRecords.push({
         type : 'TXT',
-        name : '_cnt.did.',
+        name : '_cnt._did.',
         ttl  : DNS_RECORD_TTL,
         data : controller
       });
@@ -1181,7 +1186,7 @@ export class DidDhtDocument {
       if (vm.controller !== didDocument.id) txtData.push(`c=${vm.controller}`);
 
       // Add a TXT record for the verification method.
-      dnsAnswerRecords.push({
+      txtRecords.push({
         type : 'TXT',
         name : `_${dnsRecordId}._did.`,
         ttl  : DNS_RECORD_TTL,
@@ -1203,7 +1208,7 @@ export class DidDhtDocument {
       );
 
       // Add a TXT record for the verification method.
-      dnsAnswerRecords.push({
+      txtRecords.push({
         type : 'TXT',
         name : `_${dnsRecordId}._did.`,
         ttl  : DNS_RECORD_TTL,
@@ -1244,7 +1249,7 @@ export class DidDhtDocument {
       const types = didMetadata.types as (DidDhtRegisteredDidType | keyof typeof DidDhtRegisteredDidType)[];
       const typeIntegers = types.map(type => typeof type === 'string' ? DidDhtRegisteredDidType[type] : type);
 
-      dnsAnswerRecords.push({
+      txtRecords.push({
         type : 'TXT',
         name : '_typ._did.',
         ttl  : DNS_RECORD_TTL,
@@ -1253,19 +1258,29 @@ export class DidDhtDocument {
     }
 
     // Add a DNS TXT record for the root record.
-    dnsAnswerRecords.push({
+    txtRecords.push({
       type : 'TXT',
       name : '_did.' + DidDhtDocument.getUniqueDidSuffix(didDocument.id) + '.', // name of a Root Record MUST end in `<ID>.`
       ttl  : DNS_RECORD_TTL,
       data : rootRecord.join(PROPERTY_SEPARATOR)
     });
 
+    // Add an NS record for each authoritative gateway URI.
+    for (const gatewayUri of authoritativeGatewayUris || []) {
+      nsRecords.push({
+        type : 'NS',
+        name : '_did.' + DidDhtDocument.getUniqueDidSuffix(didDocument.id) + '.', // name of a Root Record MUST end in `<ID>.`
+        ttl  : DNS_RECORD_TTL,
+        data : gatewayUri + '.'
+      });
+    }
+
     // Create a DNS response packet with the authoritative answer flag set.
     const dnsPacket: Packet = {
       id      : 0,
       type    : 'response',
       flags   : AUTHORITATIVE_ANSWER,
-      answers : dnsAnswerRecords
+      answers : [...txtRecords, ...nsRecords]
     };
 
     return dnsPacket;
@@ -1414,7 +1429,24 @@ export class DidDhtUtils {
     const converters: Record<string, AsymmetricKeyConverter> = {
       'Ed25519'   : Ed25519,
       'P-256'     : Secp256r1,
-      'secp256k1' : Secp256k1
+      'secp256k1' : {
+        async publicKeyToBytes({ publicKey }: { publicKey: Jwk }): Promise<Uint8Array> {
+          const publicKeyBytes = await Secp256k1.publicKeyToBytes({ publicKey });
+          const compressedPublicKey = await Secp256k1.compressPublicKey({ publicKeyBytes });
+          return compressedPublicKey;
+        },
+        async bytesToPublicKey({ publicKeyBytes }: { publicKeyBytes: Uint8Array; }): Promise<Jwk> {
+          return Secp256k1.bytesToPublicKey({ publicKeyBytes});
+        },
+        async privateKeyToBytes({ privateKey }: { privateKey: Jwk }): Promise<Uint8Array> {
+          // Placeholder: Implement this method based on your needs
+          return Secp256k1.privateKeyToBytes({ privateKey});
+        },
+        async bytesToPrivateKey({ privateKeyBytes }: { privateKeyBytes: Uint8Array }): Promise<Jwk> {
+          // Placeholder: Implement this method based on your needs
+          return Secp256k1.bytesToPrivateKey({ privateKeyBytes});
+        },
+      }
     };
 
     const converter = converters[curve];
