@@ -5,7 +5,7 @@ import { expect } from 'chai';
 import { NodeStream } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { Web5UserAgent } from '@web5/user-agent';
-import { DwnConstant, DwnEncryptionAlgorithm, DwnInterface, DwnKeyDerivationScheme, dwnMessageConstructors, PlatformAgentTestHarness } from '@web5/agent';
+import { DwnConstant, DwnDateSort, DwnEncryptionAlgorithm, DwnInterface, DwnKeyDerivationScheme, dwnMessageConstructors, getRecordMessageCid, PlatformAgentTestHarness } from '@web5/agent';
 import { Record } from '../src/record.js';
 import { DwnApi } from '../src/dwn-api.js';
 import { dataToBlob } from '../src/utils.js';
@@ -16,6 +16,7 @@ import emailProtocolDefinition from './fixtures/protocol-definitions/email.json'
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
 import { webcrypto } from 'node:crypto';
+import { Message } from '@tbd54566975/dwn-sdk-js';
 // @ts-ignore
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
@@ -2822,6 +2823,72 @@ describe('Record', () => {
         expect(bobQueryResult.records.length).to.equal(1);
         const storedRecord = bobQueryResult.records[0];
         expect(storedRecord.id).to.equal(record.id);
+      });
+    });
+  });
+
+  describe('paginationCursor', () => {
+    it('should return a cursor for pagination', async () => {
+      // Create a record that is not published.
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+
+      expect(status.code).to.equal(202);
+      const messageCid = await Message.getCid(record['rawMessage']);
+
+      const paginationCursorCreatedAscending = await record.paginationCursor(DwnDateSort.CreatedAscending);
+      expect(paginationCursorCreatedAscending).to.be.deep.equal({
+        messageCid,
+        value: record.dateCreated,
+      });
+
+      const paginationCursorCreatedDescending = await record.paginationCursor(DwnDateSort.CreatedDescending);
+      expect(paginationCursorCreatedDescending).to.be.deep.equal({
+        messageCid,
+        value: record.dateCreated,
+      });
+    });
+
+    it('should return a cursor for pagination for a published record', async () => {
+      // Create a record that is not published.
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          published  : true,
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202);
+      const messageCid = await Message.getCid(record['rawMessage']);
+
+      const paginationCursorCreatedAscending = await record.paginationCursor(DwnDateSort.CreatedAscending);
+      expect(paginationCursorCreatedAscending).to.be.deep.equal({
+        messageCid,
+        value: record.dateCreated,
+      });
+
+      const paginationCursorCreatedDescending = await record.paginationCursor(DwnDateSort.CreatedDescending);
+      expect(paginationCursorCreatedDescending).to.be.deep.equal({
+        messageCid,
+        value: record.dateCreated,
+      });
+
+      const paginationCursorPublishedAscending = await record.paginationCursor(DwnDateSort.PublishedAscending);
+      expect(paginationCursorPublishedAscending).to.be.deep.equal({
+        messageCid,
+        value: record.datePublished,
+      });
+
+      const paginationCursorPublishedDescending = await record.paginationCursor(DwnDateSort.PublishedDescending);
+      expect(paginationCursorPublishedDescending).to.be.deep.equal({
+        messageCid,
+        value: record.datePublished,
       });
     });
   });
