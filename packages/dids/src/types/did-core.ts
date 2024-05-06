@@ -563,18 +563,18 @@ export enum DidVerificationRelationship {
   keyAgreement = 'keyAgreement',
 
   /**
+   * Specifies a verification method used by the DID subject to invoke a cryptographic capability.
+   * This is frequently associated with authorization actions, like updating the DID Document.
+   *
+   * @see {@link https://www.w3.org/TR/did-core/#capability-invocation | DID Core Specification, § Capability Invocation}
+   */
+  capabilityInvocation = 'capabilityInvocation',
+
+  /**
    * Specifies a mechanism used by the DID subject to delegate a cryptographic capability to another
    * party. This can include delegating access to a specific resource or API.
    *
    * @see {@link https://www.w3.org/TR/did-core/#capability-delegation | DID Core Specification, § Capability Delegation}
    */
   capabilityDelegation = 'capabilityDelegation',
-
-  /**
-   * Specifies a verification method used by the DID subject to invoke a cryptographic capability.
-   * This is frequently associated with authorization actions, like updating the DID Document.
-   *
-   * @see {@link https://www.w3.org/TR/did-core/#capability-invocation | DID Core Specification, § Capability Invocation}
-   */
-  capabilityInvocation = 'capabilityInvocation'
 }

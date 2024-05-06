@@ -1,5 +1,11 @@
 # @web5/credentials
 
+## 1.0.1
+
+### Patch Changes
+
+- [#491](https://github.com/TBD54566975/web5-js/pull/491) [`8663aee`](https://github.com/TBD54566975/web5-js/commit/8663aee7fc6c608b7e23dd2ec212c22573857d41) Thanks [@nitro-neal](https://github.com/nitro-neal)! - Added credentialSchema to the VcDataModel
+
 ## 1.0.0
 
 ### Major Changes

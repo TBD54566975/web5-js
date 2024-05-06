@@ -6,15 +6,15 @@
 # The format is described: https://github.blog/2017-07-06-introducing-code-owners/
 
 # These owners will be the default owners for everything in the repo.
-* @frankhinek @csuwildcat @mistermoe
+* @frankhinek @csuwildcat @mistermoe @thehenrytsai @lirancohen
 
 # These are owners of any file in the `common`, `crypto`, `crypto-aws-kms`, `dids`, and
 # `credentials` packages and their sub-directories.
-/packages/common         @jiyoontbd @diehuxx @mistermoe @frankhinek @thehenrytsai
-/packages/crypto         @jiyoontbd @diehuxx @mistermoe @frankhinek @thehenrytsai
-/packages/crypto-aws-kms @jiyoontbd @diehuxx @mistermoe @frankhinek @thehenrytsai
-/packages/dids           @jiyoontbd @diehuxx @mistermoe @frankhinek @thehenrytsai
-/packages/credentials    @jiyoontbd @diehuxx @mistermoe @frankhinek @thehenrytsai
+/packages/common         @diehuxx @mistermoe @frankhinek @thehenrytsai @nitro-neal
+/packages/crypto         @diehuxx @mistermoe @frankhinek @thehenrytsai
+/packages/crypto-aws-kms @diehuxx @mistermoe @frankhinek @thehenrytsai
+/packages/dids           @diehuxx @mistermoe @frankhinek @thehenrytsai @nitro-neal
+/packages/credentials    @diehuxx @mistermoe @frankhinek @thehenrytsai @nitro-neal
 
 # These are owners of any file in the `agent`, `user-agent`, `proxy-agent`, `identity-agent`, and
 # `api` packages and their sub-directories.
@@ -22,5 +22,5 @@
 /packages/proxy-agent    @lirancohen @frankhinek @csuwildcat @mistermoe @shamilovtim
 /packages/user-agent     @lirancohen @frankhinek @csuwildcat @mistermoe @shamilovtim
 /packages/identity-agent @lirancohen @frankhinek @csuwildcat @mistermoe @shamilovtim
-/packages/api            @lirancohen @frankhinek @csuwildcat @mistermoe @shamilovtim
+/packages/api            @lirancohen @frankhinek @csuwildcat @mistermoe @shamilovtim @nitro-neal
  
