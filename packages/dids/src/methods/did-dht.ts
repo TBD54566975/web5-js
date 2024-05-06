@@ -355,7 +355,7 @@ const KeyTypeToDefaultAlgorithmMap = {
   [DidDhtRegisteredKeyType.Ed25519]   : 'Ed25519',
   [DidDhtRegisteredKeyType.secp256k1] : 'ES256K',
   [DidDhtRegisteredKeyType.secp256r1] : 'ES256',
-}
+};
 
 /**
  * Maps {@link https://www.w3.org/TR/did-core/#verification-relationships | DID Core Verification Relationship}
