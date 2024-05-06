@@ -1427,9 +1427,22 @@ export class DidDhtUtils {
    */
   public static keyConverter(curve: string): AsymmetricKeyConverter {
     const converters: Record<string, AsymmetricKeyConverter> = {
-      'Ed25519'   : Ed25519,
-      'P-256'     : Secp256r1,
-      'secp256k1' : {
+      'Ed25519' : Ed25519,
+      'P-256'   : {
+        // Wrap the key converter which produces uncompressed public key bytes to produce compressed key bytes as required by the DID DHT spec.
+        // See https://did-dht.com/#representing-keys for more info.
+        publicKeyToBytes: async ({ publicKey }: { publicKey: Jwk }): Promise<Uint8Array> => {
+          const publicKeyBytes = await Secp256r1.publicKeyToBytes({ publicKey });
+          const compressedPublicKey = await Secp256r1.compressPublicKey({ publicKeyBytes });
+          return compressedPublicKey;
+        },
+        bytesToPublicKey  : Secp256r1.bytesToPublicKey,
+        privateKeyToBytes : Secp256r1.privateKeyToBytes,
+        bytesToPrivateKey : Secp256r1.bytesToPrivateKey,
+      },
+      'secp256k1': {
+        // Wrap the key converter which produces uncompressed public key bytes to produce compressed key bytes as required by the DID DHT spec.
+        // See https://did-dht.com/#representing-keys for more info.
         publicKeyToBytes: async ({ publicKey }: { publicKey: Jwk }): Promise<Uint8Array> => {
           const publicKeyBytes = await Secp256k1.publicKeyToBytes({ publicKey });
           const compressedPublicKey = await Secp256k1.compressPublicKey({ publicKeyBytes });

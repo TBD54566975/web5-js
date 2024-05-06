@@ -6,6 +6,7 @@ import officialTestVector1 from '../fixtures/test-vectors/did-dht/vector-1.json'
 import officialTestVector2 from '../fixtures/test-vectors/did-dht/vector-2.json' assert { type: 'json' };
 
 import { expect } from 'chai';
+import { Answer } from '@dnsquery/dns-packet';
 import { Convert } from '@web5/common';
 import { DidDocument } from '../../src/index.js';
 import { DidErrorCode } from '../../src/did-error.js';
@@ -1178,17 +1179,7 @@ describe('Official DID:DHT Vector tests', () => {
 
     expect(dnsPacket.answers).to.have.length(officialTestVector1.dnsRecords.length);
 
-    // NOTE: the DNS library we use uses name `data` instead of `rdata` used in DID:DHT spec,
-    // but prefer to keep the naming in test vector files identical to that of the DID:DHT spec,
-    // hence this additional normalization step
-    const normalizedConstructedRecords = dnsPacket.answers!.map(record => {
-      const { data: rdata, ...otherProperties } = record;
-      return {
-        ...otherProperties,
-        rdata
-      };
-    });
-
+    const normalizedConstructedRecords = normalizeDnsRecords(dnsPacket.answers!);
     expect(normalizedConstructedRecords).to.deep.include.members(officialTestVector1.dnsRecords);
   });
 
@@ -1204,17 +1195,26 @@ describe('Official DID:DHT Vector tests', () => {
 
     expect(dnsPacket.answers).to.have.length(officialTestVector2.dnsRecords.length);
 
-    // NOTE: the DNS library we use uses name `data` instead of `rdata` used in DID:DHT spec,
-    // but prefer to keep the naming in test vector files identical to that of the DID:DHT spec,
-    // hence this additional normalization step
-    const normalizedConstructedRecords = dnsPacket.answers!.map(record => {
-      const { data: rdata, ...otherProperties } = record;
-      return {
-        ...otherProperties,
-        rdata
-      };
-    });
-
+    const normalizedConstructedRecords = normalizeDnsRecords(dnsPacket.answers!);
     expect(normalizedConstructedRecords).to.deep.include.members(officialTestVector2.dnsRecords);
   });
 });
+
+/**
+ * Normalizes the DNS records in the format of the DNS library we use to the format used in the test vectors.
+ *
+ *  NOTE: the DNS library we use uses name `data` instead of `rdata` used in DID:DHT spec,
+ *  but prefer to keep the naming in test vector files identical to that of the DID:DHT spec hence this additional normalization step.
+ */
+function normalizeDnsRecords(dnsRecords: Answer[]): Record<string, any> {
+
+  const normalizedRecords = dnsRecords.map(record => {
+    const { data: rdata, ...otherProperties } = record;
+    return {
+      ...otherProperties,
+      rdata
+    };
+  });
+
+  return normalizedRecords;
+}
