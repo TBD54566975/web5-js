@@ -1120,7 +1120,6 @@ export class DidDhtDocument {
    * @param params.didDocument - The DID document to convert to a DNS packet.
    * @param params.didMetadata - The DID metadata to include in the DNS packet.
    * @param params.authoritativeGatewayUris - The URIs of the Authoritative Gateways to generate NS records from.
-   * @param params.authoritativeGatewayUris - The URIs of the Authoritative Gateways to generate NS records from.
    * @returns A promise that resolves to a DNS packet.
    */
   public static async toDnsPacket({ didDocument, didMetadata, authoritativeGatewayUris }: {
