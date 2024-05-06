@@ -39,7 +39,7 @@
       "name": "_k0._did.",
       "type": "TXT",
       "ttl": 7200,
-      "rdata": "id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE"
+      "rdata": "t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE"
     }
   ]
 }

@@ -81,13 +81,13 @@
       "name": "_k0._did.",
       "type": "TXT",
       "ttl": 7200,
-      "rdata": "id=0;t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE"
+      "rdata": "t=0;k=YCcHYL2sYNPDlKaALcEmll2HHyT968M4UWbr-9CFGWE"
     },
     {
       "name": "_k1._did.",
       "type": "TXT",
       "ttl": 7200,
-      "rdata": "id=0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw;t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9;c=did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y"
+      "rdata": "t=1;k=Atf6NCChxjWpnrfPt1WDVE4ipYVSvi4pXCq4SUjx0jT9;c=did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y"
     },
     {
       "name": "_s0._did.",

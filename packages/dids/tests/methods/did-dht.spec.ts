@@ -1192,7 +1192,7 @@ describe('Official DID:DHT Vector tests', () => {
     expect(normalizedConstructedRecords).to.deep.include.members(officialTestVector1.dnsRecords);
   });
 
-  it.only('vector 2', async () => {
+  it('vector 2', async () => {
     const dnsPacket = await DidDhtDocument.toDnsPacket({
       didDocument : officialTestVector2.didDocument as DidDocument,
       didMetadata : {

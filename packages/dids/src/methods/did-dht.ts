@@ -533,17 +533,17 @@ export class DidDht extends DidMethod {
 
     // Generate random key material for the Identity Key and any additional verification methods.
     // Add verification methods to the DID document.
-    for (const vm of verificationMethodsToAdd) {
+    for (const verificationMethod of verificationMethodsToAdd) {
       // Generate a random key for the verification method, or if its the Identity Key's
       // verification method (`id` is 0) use the key previously generated.
-      const keyUri = (vm.id && vm.id.split('#').pop() === '0')
+      const keyUri = (verificationMethod.id && verificationMethod.id.split('#').pop() === '0')
         ? identityKeyUri
-        : await keyManager.generateKey({ algorithm: vm.algorithm });
+        : await keyManager.generateKey({ algorithm: verificationMethod.algorithm });
 
       const publicKey = await keyManager.getPublicKey({ keyUri });
 
       // Use the given ID, the key's ID, or the key's thumbprint as the verification method ID.
-      let methodId = vm.id ?? publicKey.kid ?? await computeJwkThumbprint({ jwk: publicKey });
+      let methodId = verificationMethod.id ?? publicKey.kid ?? await computeJwkThumbprint({ jwk: publicKey });
       methodId = `${didUri}#${extractDidFragment(methodId)}`; // Remove fragment prefix, if any.
 
       // Initialize the `verificationMethod` array if it does not already exist.
@@ -553,12 +553,12 @@ export class DidDht extends DidMethod {
       document.verificationMethod.push({
         id           : methodId,
         type         : 'JsonWebKey',
-        controller   : vm.controller ?? didUri,
+        controller   : verificationMethod.controller ?? didUri,
         publicKeyJwk : publicKey,
       });
 
       // Add the verification method to the specified purpose properties of the DID document.
-      for (const purpose of vm.purposes ?? []) {
+      for (const purpose of verificationMethod.purposes ?? []) {
         // Initialize the purpose property if it does not already exist.
         if (!document[purpose]) document[purpose] = [];
         // Add the verification method to the purpose property.
@@ -1158,16 +1158,16 @@ export class DidDhtDocument {
     }
 
     // Add DNS TXT records for each verification method.
-    for (const [index, vm] of didDocument.verificationMethod?.entries() ?? []) {
+    for (const [index, verificationMethod] of didDocument.verificationMethod?.entries() ?? []) {
       const dnsRecordId = `k${index}`;
       verificationMethodIds.push(dnsRecordId);
-      let methodId = vm.id.split('#').pop()!; // Remove fragment prefix, if any.
+      let methodId = verificationMethod.id.split('#').pop()!; // Remove fragment prefix, if any.
       idLookup.set(methodId, dnsRecordId);
 
-      const publicKey = vm.publicKeyJwk;
+      const publicKey = verificationMethod.publicKeyJwk;
 
       if (!(publicKey?.crv && publicKey.crv in AlgorithmToKeyTypeMap)) {
-        throw new DidError(DidErrorCode.InvalidPublicKeyType, `Verification method '${vm.id}' contains an unsupported key type: ${publicKey?.crv ?? 'undefined'}`);
+        throw new DidError(DidErrorCode.InvalidPublicKeyType, `Verification method '${verificationMethod.id}' contains an unsupported key type: ${publicKey?.crv ?? 'undefined'}`);
       }
 
       // Use the public key's `crv` property to get the DID DHT key type.
@@ -1180,10 +1180,10 @@ export class DidDhtDocument {
       const publicKeyBase64Url = Convert.uint8Array(publicKeyBytes).toBase64Url();
 
       // Define the data for the DNS TXT record.
-      const txtData = [`id=${methodId}`, `t=${keyType}`, `k=${publicKeyBase64Url}`];
+      const txtData = [`t=${keyType}`, `k=${publicKeyBase64Url}`];
 
       // Add the controller property, if set to a value other than the Identity Key (DID Subject).
-      if (vm.controller !== didDocument.id) txtData.push(`c=${vm.controller}`);
+      if (verificationMethod.controller !== didDocument.id) txtData.push(`c=${verificationMethod.controller}`);
 
       // Add a TXT record for the verification method.
       txtRecords.push({
