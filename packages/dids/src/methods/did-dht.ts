@@ -1268,7 +1268,7 @@ export class DidDhtDocument {
     for (const gatewayUri of authoritativeGatewayUris || []) {
       nsRecords.push({
         type : 'NS',
-        name : '_did.' + DidDhtDocument.getUniqueDidSuffix(didDocument.id) + '.', // name of a Root Record MUST end in `<ID>.`
+        name : '_did.' + DidDhtDocument.getUniqueDidSuffix(didDocument.id) + '.', // name of an NS record a authoritative gateway MUST end in `<ID>.`
         ttl  : DNS_RECORD_TTL,
         data : gatewayUri + '.'
       });
