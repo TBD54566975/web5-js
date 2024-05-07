@@ -57,14 +57,14 @@ export function isRecordsWrite(obj: unknown): obj is RecordsWrite {
 }
 
 /**
- * Get the CID of the given RecordsWriteMessage. 
+ * Get the CID of the given RecordsWriteMessage.
  */
 export function getRecordMessageCid(message: RecordsWriteMessage): Promise<string> {
   return Message.getCid(message);
 }
 
 /**
- *  Get the pagination cursor for the given RecordsWriteMessage and DateSort. 
+ *  Get the pagination cursor for the given RecordsWriteMessage and DateSort.
  *
  * @param message The RecordsWriteMessage for which to get the pagination cursor.
  * @param dateSort The date sort that will be used in the query or subscription to which the cursor will be applied.
