@@ -8,6 +8,6 @@
 Add `DwnServerInfoRpc` to `Web5Rpc` for retrieving server specific info.
 
 Server Info includes:
-- maxFileSize
-- registrationRequirements
-- webSocketSupport
+ - maxFileSize
+ - registrationRequirements
+ - webSocketSupport
