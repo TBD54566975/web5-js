@@ -1,5 +1,20 @@
 # @web5/identity-agent
 
+## 0.3.4
+
+### Patch Changes
+
+- [#489](https://github.com/TBD54566975/web5-js/pull/489) [`eabe5ca`](https://github.com/TBD54566975/web5-js/commit/eabe5ca780745d229d5df7a0e64f43a5283a10d7) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Add `DwnServerInfoRpc` to `Web5Rpc` for retrieving server specific info.
+
+  Server Info includes:
+
+  - maxFileSize
+  - registrationRequirements
+  - webSocketSupport
+
+- Updated dependencies [[`eabe5ca`](https://github.com/TBD54566975/web5-js/commit/eabe5ca780745d229d5df7a0e64f43a5283a10d7)]:
+  - @web5/agent@0.3.4
+
 ## 0.3.3
 
 ### Patch Changes
