@@ -1,17 +1,65 @@
-
 import sinon from 'sinon';
-
 import { expect } from 'chai';
-
+import { testDwnUrl } from './utils/test-config.js';
 import { utils as cryptoUtils } from '@web5/crypto';
 
-import { testDwnUrl } from './utils/test-config.js';
-
 import { DidRpcMethod, HttpWeb5RpcClient, Web5RpcClient, WebSocketWeb5RpcClient } from '../src/rpc-client.js';
+import { DwnServerInfoCacheMemory } from '../src/prototyping/clients/dwn-server-info-cache-memory.js';
+import { HttpDwnRpcClient } from '../src/prototyping/clients/http-dwn-rpc-client.js';
 import { Persona, TestDataGenerator } from '@tbd54566975/dwn-sdk-js';
 import { JsonRpcErrorCodes, createJsonRpcErrorResponse, createJsonRpcSuccessResponse } from '../src/prototyping/clients/json-rpc.js';
 
 describe('RPC Clients', () => {
+  describe('HttpDwnRpcClient', () => {
+    let client: HttpDwnRpcClient;
+
+    beforeEach(async () => {
+      sinon.restore();
+      client = new HttpDwnRpcClient();
+    });
+
+    after(() => {
+      sinon.restore();
+    });
+
+    it('should retrieve subsequent result from cache', async () => {
+      // we spy on fetch to see how many times it is called
+      const fetchSpy = sinon.spy(globalThis, 'fetch');
+
+      // fetch info first, currently not in cache should call fetch
+      const serverInfo = await client.getServerInfo(testDwnUrl);
+      expect(fetchSpy.callCount).to.equal(1);
+
+      // confirm it exists in cache
+      const cachedResult = await client['serverInfoCache'].get(testDwnUrl);
+      expect(cachedResult).to.equal(serverInfo);
+
+      // make another call and confirm that fetch ahs not been called again
+      const serverInfo2 = await client.getServerInfo(testDwnUrl);
+      expect(fetchSpy.callCount).to.equal(1); // should still equal only 1
+      expect(cachedResult).to.equal(serverInfo2);
+
+      // delete the cache entry to force a fetch call
+      await client['serverInfoCache'].delete(testDwnUrl);
+      const noResult = await client['serverInfoCache'].get(testDwnUrl);
+      expect(noResult).to.equal(undefined);
+
+      // make a third call and confirm that a new fetch request was made and data is in the cache
+      const serverInfo3 = await client.getServerInfo(testDwnUrl);
+      expect(fetchSpy.callCount).to.equal(2); // another fetch call was made
+      const cachedResult2 = await client['serverInfoCache'].get(testDwnUrl);
+      expect(cachedResult2).to.equal(serverInfo3);
+    });
+
+    it('should accept an override server info cache', async () => {
+      const serverInfoCacheStub = sinon.createStubInstance(DwnServerInfoCacheMemory);
+      const client = new HttpDwnRpcClient(serverInfoCacheStub);
+      await client.getServerInfo(testDwnUrl);
+
+      expect(serverInfoCacheStub.get.callCount).to.equal(1);
+    });
+  });
+
   describe('Web5RpcClient', () => {
     let alice: Persona;
 
@@ -113,6 +161,79 @@ describe('RPC Clients', () => {
 
         // confirm http transport was not called
         expect(stubHttpClient.sendDwnRequest.callCount).to.equal(0);
+      });
+    });
+
+    describe('getServerInfo',() => {
+      let client: Web5RpcClient;
+
+      after(() => {
+        sinon.restore();
+      });
+
+      beforeEach(async () => {
+        sinon.restore();
+        client = new Web5RpcClient();
+      });
+
+      it('is able to get server info', async () => {
+        const serverInfo = await client.getServerInfo(testDwnUrl);
+        expect(serverInfo.registrationRequirements).to.not.be.undefined;
+        expect(serverInfo.maxFileSize).to.not.be.undefined;
+        expect(serverInfo.webSocketSupport).to.not.be.undefined;
+      });
+
+      it('throws for an invalid response', async () => {
+        const mockResponse = new Response(JSON.stringify({}), { status: 500 });
+        sinon.stub(globalThis, 'fetch').resolves(mockResponse);
+
+        try {
+          await client.getServerInfo(testDwnUrl);
+          expect.fail('Expected an error to be thrown');
+        } catch(error: any) {
+          expect(error.message).to.contain('HTTP (500)');
+        }
+      });
+
+      it('should append url with info path accounting for trailing slash', async () => {
+        const fetchStub = sinon.stub(globalThis, 'fetch').resolves(new Response(JSON.stringify({
+          registrationRequirements : [],
+          maxFileSize              : 123,
+          webSocketSupport         : false,
+        })));
+
+        await client.getServerInfo('http://some-domain.com/dwn'); // without trailing slash
+        let fetchUrl = fetchStub.args[0][0];
+        expect(fetchUrl).to.equal('http://some-domain.com/dwn/info');
+
+        // we reset the fetch stub and initiate a new response
+        // this wa the response body stream won't be attempt to be read twice and fail on the 2nd attempt.
+        fetchStub.reset();
+        fetchStub.resolves(new Response(JSON.stringify({
+          registrationRequirements : [],
+          maxFileSize              : 123,
+          webSocketSupport         : false,
+        })));
+
+        await client.getServerInfo('http://some-other-domain.com/dwn/'); // with trailing slash
+        fetchUrl = fetchStub.args[0][0];
+        expect(fetchUrl).to.equal('http://some-other-domain.com/dwn/info');
+      });
+
+      it('should throw if transport client is not found', async () => {
+        const stubHttpClient = sinon.createStubInstance(HttpWeb5RpcClient);
+        const httpOnlyClient = new Web5RpcClient([ stubHttpClient ]);
+
+        // request with http
+        try {
+          await httpOnlyClient.getServerInfo('ws://127.0.0.1');
+          expect.fail('Expected error to be thrown');
+        } catch (error: any) {
+          expect(error.message).to.equal('no ws: transport client available');
+        }
+
+        // confirm http transport was not called
+        expect(stubHttpClient.sendDidRequest.callCount).to.equal(0);
       });
     });
   });
@@ -246,6 +367,17 @@ describe('RPC Clients', () => {
         const request = { method: DidRpcMethod.Resolve, url: socketDwnUrl, data: 'some-data' };
         try {
           await client.sendDidRequest(request);
+          expect.fail('Expected error to be thrown');
+        } catch (error: any) {
+          expect(error.message).to.equal('not implemented for transports [ws:, wss:]');
+        }
+      });
+    });
+
+    describe('getServerInfo', () => {
+      it('server info requests are not supported over sockets', async () => {
+        try {
+          await client.getServerInfo(socketDwnUrl);
           expect.fail('Expected error to be thrown');
         } catch (error: any) {
           expect(error.message).to.equal('not implemented for transports [ws:, wss:]');

@@ -2,6 +2,7 @@ import { utils as cryptoUtils } from '@web5/crypto';
 
 
 import type { DwnRpc, DwnRpcRequest, DwnRpcResponse } from './prototyping/clients/dwn-rpc-types.js';
+import type { DwnServerInfoRpc, ServerInfo } from './prototyping/clients/server-info-types.js';
 import type { JsonRpcResponse } from './prototyping/clients/json-rpc.js';
 
 import { createJsonRpcRequest } from './prototyping/clients/json-rpc.js';
@@ -39,7 +40,7 @@ export type RpcStatus = {
   message: string;
 };
 
-export interface Web5Rpc extends DwnRpc, DidRpc {}
+export interface Web5Rpc extends DwnRpc, DidRpc, DwnServerInfoRpc {}
 
 /**
  * Client used to communicate with Dwn Servers
@@ -94,6 +95,21 @@ export class Web5RpcClient implements Web5Rpc {
 
     return transportClient.sendDwnRequest(request);
   }
+
+  async getServerInfo(dwnUrl: string): Promise<ServerInfo> {
+    // will throw if url is invalid
+    const url = new URL(dwnUrl);
+
+    const transportClient = this.transportClients.get(url.protocol);
+    if(!transportClient) {
+      const error = new Error(`no ${url.protocol} transport client available`);
+      error.name = 'NO_TRANSPORT_CLIENT';
+
+      throw error;
+    }
+
+    return transportClient.getServerInfo(dwnUrl);
+  }
 }
 
 export class HttpWeb5RpcClient extends HttpDwnRpcClient implements Web5Rpc {
@@ -137,6 +153,10 @@ export class HttpWeb5RpcClient extends HttpDwnRpcClient implements Web5Rpc {
 
 export class WebSocketWeb5RpcClient extends WebSocketDwnRpcClient implements Web5Rpc {
   async sendDidRequest(_request: DidRpcRequest): Promise<DidRpcResponse> {
+    throw new Error(`not implemented for transports [${this.transportProtocols.join(', ')}]`);
+  }
+
+  async getServerInfo(_dwnUrl: string): Promise<ServerInfo> {
     throw new Error(`not implemented for transports [${this.transportProtocols.join(', ')}]`);
   }
 }
