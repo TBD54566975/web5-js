@@ -34,12 +34,3 @@ if [[ -n $API_RELEASE_PR || $KICK_API_RELEASE == "true" ]]; then
     echo "release_web5_api=$RELEASE_WEB5_API" >> $GITHUB_OUTPUT
     exit 0
 fi
-
-if [[ $API_RELEASES_COUNT == $ALL_RELEASES_COUNT ]]; then
-    echo "Only @web5/api release detected, checking for API Release labeled PR or Kick trigger..."
-    if [[ -z $RELEASE_WEB5_API ]]; then
-        echo "No API Release labeled PR found and KICK_API_RELEASE is false, skipping the release..."
-        echo "skip_release=true" >> $GITHUB_OUTPUT
-        exit 0
-    fi
-fi
