@@ -3,7 +3,10 @@
 CHANGESET_STATUS=$(pnpm changeset status)
 
 ALL_RELEASES_COUNT=$(echo $CHANGESET_STATUS | grep -o "web5/" | wc -l)
+echo "ALL_RELEASES_COUNT: $ALL_RELEASES_COUNT"
+
 API_RELEASES_COUNT=$(echo $CHANGESET_STATUS | grep -o "web5/api" | wc -l)
+echo "API_RELEASES_COUNT: $API_RELEASES_COUNT"
 
 # check if it has changesets
 if [[ $ALL_RELEASES_COUNT == 0 ]]; then
