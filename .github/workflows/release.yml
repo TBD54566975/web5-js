@@ -77,7 +77,6 @@ jobs:
       - name: Create Release Pull Request or Publish to npm
         uses: changesets/action@aba318e9165b45b7948c60273e0b72fce0a64eb9 # v1.4.7
         id: changesets
-        if: steps.check_api_release.outputs.skip_release != 'true'
         with:
           publish: pnpm changeset publish
           version: scripts/changesets-version.sh ${{ steps.check_api_release.outputs.release_web5_api || '' }}

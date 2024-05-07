@@ -11,4 +11,3 @@ Server Info includes:
  - maxFileSize
  - registrationRequirements
  - webSocketSupport
-
