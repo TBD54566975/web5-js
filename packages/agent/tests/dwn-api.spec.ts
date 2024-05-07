@@ -1,4 +1,4 @@
-import type { Dwn } from '@tbd54566975/dwn-sdk-js';
+import { Message, ProtocolDefinition, TestDataGenerator, type Dwn, type MessageEvent, type RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import { expect } from 'chai';
 import { DidDht } from '@web5/dids';
@@ -6,7 +6,7 @@ import { Convert } from '@web5/common';
 
 import type { PortableIdentity } from '../src/types/identity.js';
 
-import { AgentDwnApi } from '../src/dwn-api.js';
+import { AgentDwnApi, isDwnMessage } from '../src/dwn-api.js';
 import { TestAgent } from './utils/test-agent.js';
 import { testDwnUrl } from './utils/test-config.js';
 import { DwnInterface } from '../src/types/dwn.js';
@@ -402,6 +402,87 @@ describe('AgentDwnApi', () => {
       expect(readReply.record).to.have.property('recordId', writeMessage.recordId);
     });
 
+    it('handles RecordsSubscribe message', async () => {
+      const receivedMessages: RecordsWriteMessage[] = [];
+      const subscriptionHandler = (event: MessageEvent) => {
+        const { message } = event;
+        if (!isDwnMessage(DwnInterface.RecordsWrite, message)) {
+          expect.fail('Received message is not a RecordsWrite message');
+        }
+        receivedMessages.push(message);
+      };
+
+      // create a subscription message for schema 'https://schemas.xyz/example'
+      const { reply: { status: subscribeStatus, subscription } } = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsSubscribe,
+        messageParams : {
+          filter: {
+            schema: 'https://schemas.xyz/example'
+          }
+        },
+        subscriptionHandler
+      });
+
+      // Verify the response.
+      expect(subscribeStatus.code).to.equal(200);
+      expect(subscription).to.exist;
+
+
+      // create a test record that matches the subscription filter
+      const dataBytes = Convert.string('Write 1').toUint8Array();
+      let { message, reply: { status: writeStatus } } = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          dataFormat : 'text/plain',
+          schema     : 'https://schemas.xyz/example'
+        },
+        dataStream: new Blob([dataBytes])
+      });
+      expect(writeStatus.code).to.equal(202);
+      const writeMessage1 = message!;
+
+      // create another test record that matches the subscription filter
+      const dataBytes2 = Convert.string('Write 2').toUint8Array();
+      let { message: message2, reply: { status: writeStatus2 } } = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          dataFormat : 'text/plain',
+          schema     : 'https://schemas.xyz/example'
+        },
+        dataStream: new Blob([dataBytes2])
+      });
+      expect(writeStatus2.code).to.equal(202);
+      const writeMessage2 = message2!;
+
+      // create a message that does not match the subscription filter
+      const dataBytes3 = Convert.string('Write 3').toUint8Array();
+      let { reply: { status: writeStatus3 } } = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          dataFormat : 'text/plain',
+          schema     : 'https://schemas.xyz/other' // different schema
+        },
+        dataStream: new Blob([dataBytes3])
+      });
+      expect(writeStatus3.code).to.equal(202);
+
+      // close subscription
+      await subscription!.close();
+
+      // check that the subscription handler received the expected messages
+      expect(receivedMessages).to.have.length(2);
+      expect(receivedMessages[0].recordId).to.equal(writeMessage1.recordId);
+      expect(receivedMessages[1].recordId).to.equal(writeMessage2.recordId);
+    });
+
     it('handles RecordsWrite messages', async () => {
       // Create test data to write.
       const dataBytes = Convert.string('Hello, world!').toUint8Array();
@@ -717,6 +798,113 @@ describe('AgentDwnApi', () => {
       expect(eventsQueryReply).to.have.property('status');
       expect(eventsQueryReply.status.code).to.equal(200);
       expect(eventsQueryReply.entries).to.have.length(0);
+    });
+
+    it('handles EventsSubscription', async () => {
+      const receivedMessages: string[] = [];
+      const subscriptionHandler = async (event: MessageEvent) => {
+        const { message } = event;
+        receivedMessages.push(await Message.getCid(message));
+      };
+
+      // create a subscription message for protocol 'https://schemas.xyz/example'
+      const { reply: { status: subscribeStatus, subscription } } = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.EventsSubscribe,
+        messageParams : {
+          filters: [{
+            protocol: 'https://protocol.xyz/example'
+          }]
+        },
+        subscriptionHandler
+      });
+
+      // Verify the response.
+      expect(subscribeStatus.code).to.equal(200);
+      expect(subscription).to.exist;
+
+      // install the protocol, this will match the subscription filter
+      const protocolDefinition: ProtocolDefinition = {
+        published : true,
+        protocol  : 'https://protocol.xyz/example',
+        types     : {
+          foo: {
+            schema      : 'https://schemas.xyz/foo',
+            dataFormats : ['text/plain', 'application/json']
+          }
+        },
+        structure: {
+          foo: {}
+        }
+      };
+
+      let {messageCid: protocolMessageCid, reply: { status: protocolStatus } } = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.ProtocolsConfigure,
+        messageParams : {
+          definition: protocolDefinition
+        }
+      });
+      expect(protocolStatus.code).to.equal(202);
+
+      // create a test record that matches the subscription filter
+      const dataBytes = Convert.string('Write 1').toUint8Array();
+      let { messageCid: write1MessageCid, reply: { status: writeStatus } } = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          protocol     : 'https://protocol.xyz/example',
+          protocolPath : 'foo',
+          dataFormat   : 'text/plain',
+          schema       : 'https://schemas.xyz/foo'
+        },
+        dataStream: new Blob([dataBytes])
+      });
+      expect(writeStatus.code).to.equal(202);
+
+      // create another test record that matches the subscription filter
+      const dataBytes2 = Convert.string('Write 2').toUint8Array();
+      let { messageCid: write2MessageCid, reply: { status: writeStatus2 } } = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          protocol     : 'https://protocol.xyz/example',
+          protocolPath : 'foo',
+          dataFormat   : 'text/plain',
+          schema       : 'https://schemas.xyz/foo'
+        },
+        dataStream: new Blob([dataBytes2])
+      });
+      expect(writeStatus2.code).to.equal(202);
+
+      // create a message that does not match the subscription filter
+      const dataBytes3 = Convert.string('Write 3').toUint8Array();
+      let { reply: { status: writeStatus3 } } = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          dataFormat : 'text/plain',
+          schema     : 'https://schemas.xyz/foo' // no protocol
+        },
+        dataStream: new Blob([dataBytes3])
+      });
+      expect(writeStatus3.code).to.equal(202);
+
+      // close subscription
+      await subscription!.close();
+
+      // check that the subscription handler received the expected messages
+      expect(receivedMessages).to.have.length(3);
+      expect(receivedMessages).to.have.members([
+        protocolMessageCid,
+        write1MessageCid,
+        write2MessageCid
+      ]);
     });
 
     it('handles MessagesGet', async () => {
@@ -1067,5 +1255,20 @@ describe('AgentDwnApi', () => {
         expect(error.message).to.include('/descriptor/filter: must NOT have fewer than 1 properties');
       }
     });
+  });
+});
+
+describe('isDwnMessage', () => {
+  it('asserts the type of DWN message', async () => {
+    const { message: recordsWriteMessage } = await TestDataGenerator.generateRecordsWrite();
+    const { message: recordsQueryMessage } = await TestDataGenerator.generateRecordsQuery();
+
+    // positive tests
+    expect(isDwnMessage(DwnInterface.RecordsWrite, recordsWriteMessage)).to.be.true;
+    expect(isDwnMessage(DwnInterface.RecordsQuery, recordsQueryMessage)).to.be.true;
+
+    // negative tests
+    expect(isDwnMessage(DwnInterface.RecordsQuery, recordsWriteMessage)).to.be.false;
+    expect(isDwnMessage(DwnInterface.RecordsWrite, recordsQueryMessage)).to.be.false;
   });
 });

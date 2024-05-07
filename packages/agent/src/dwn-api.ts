@@ -32,6 +32,13 @@ export function isDwnRequest<T extends DwnInterface>(
   return dwnRequest.messageType === messageType;
 }
 
+export function isDwnMessage<T extends DwnInterface>(
+  messageType: T, message: GenericMessage
+): message is DwnMessage[T] {
+  const incomingMessageInterfaceName = message.descriptor.interface + message.descriptor.method;
+  return incomingMessageInterfaceName === messageType;
+}
+
 export class AgentDwnApi {
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
@@ -114,13 +121,16 @@ export class AgentDwnApi {
     // Readable stream.
     const { message, dataStream } = await this.constructDwnMessage({ request });
 
+    // Extracts the optional subscription handler from the request to pass into `processMessage.
+    const { subscriptionHandler } = request;
+
     // Conditionally processes the message with the DWN instance:
     // - If `store` is not explicitly set to false, it sends the message to the DWN node for
     //   processing, passing along the target DID, the message, and any associated data stream.
     // - If `store` is set to false, it immediately returns a simulated 'accepted' status without
     //   storing the message/data in the DWN node.
     const reply: DwnMessageReply[T] = (request.store !== false)
-      ? await this._dwn.processMessage(request.target, message, { dataStream })
+      ? await this._dwn.processMessage(request.target, message, { dataStream, subscriptionHandler })
       : { status: { code: 202, detail: 'Accepted' } };
 
     // Returns an object containing the reply from processing the message, the original message,

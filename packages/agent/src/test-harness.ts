@@ -3,7 +3,7 @@ import type { AbstractLevel } from 'abstract-level';
 
 import { Level } from 'level';
 import { LevelStore, MemoryStore } from '@web5/common';
-import { DataStoreLevel, Dwn, EventLogLevel, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
+import { DataStoreLevel, Dwn, EventEmitterStream, EventLogLevel, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
 import { DidDht, DidJwk, DidResolutionResult, DidResolverCache, DidResolverCacheLevel } from '@web5/dids';
 
 import type { Web5PlatformAgent } from './types/agent.js';
@@ -180,6 +180,8 @@ export class PlatformAgentTestHarness {
     // Note: There is no in-memory store for DWN, so we always use LevelDB-based disk stores.
     const dwnDataStore = new DataStoreLevel({ blockstoreLocation: testDataPath('DWN_DATASTORE') });
     const dwnEventLog = new EventLogLevel({ location: testDataPath('DWN_EVENTLOG') });
+    const dwnEventStream = new EventEmitterStream();
+
     const dwnMessageStore = new MessageStoreLevel({
       blockstoreLocation : testDataPath('DWN_MESSAGESTORE'),
       indexLocation      : testDataPath('DWN_MESSAGEINDEX')
@@ -191,7 +193,8 @@ export class PlatformAgentTestHarness {
       dataStore    : dwnDataStore,
       didResolver  : didApi,
       eventLog     : dwnEventLog,
-      messageStore : dwnMessageStore
+      eventStream  : dwnEventStream,
+      messageStore : dwnMessageStore,
     });
 
     // Instantiate Agent's DWN API using the custom DWN instance.
