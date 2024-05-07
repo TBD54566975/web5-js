@@ -685,7 +685,7 @@ importers:
   packages/identity-agent:
     dependencies:
       '@web5/agent':
-        specifier: 0.3.3
+        specifier: 0.3.4
         version: link:../agent
       '@web5/common':
         specifier: 1.0.0
@@ -773,7 +773,7 @@ importers:
   packages/proxy-agent:
     dependencies:
       '@web5/agent':
-        specifier: 0.3.3
+        specifier: 0.3.4
         version: link:../agent
       '@web5/common':
         specifier: 1.0.0
@@ -858,7 +858,7 @@ importers:
   packages/user-agent:
     dependencies:
       '@web5/agent':
-        specifier: 0.3.3
+        specifier: 0.3.4
         version: link:../agent
       '@web5/common':
         specifier: 1.0.0
