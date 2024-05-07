@@ -8,19 +8,28 @@
 # These owners will be the default owners for everything in the repo.
 * @frankhinek @csuwildcat @mistermoe @thehenrytsai @lirancohen
 
+# These are owners who can approve folders under the root directory and other CICD and QoL directories.
+# Should be the union list of all owners of sub-directories, optionally minus the default owners.
+/*                       @diehuxx @shamilovtim @nitro-neal
+/.changeset              @diehuxx @shamilovtim @nitro-neal
+/.codesandbox            @diehuxx @shamilovtim @nitro-neal
+/.github                 @diehuxx @shamilovtim @nitro-neal
+/.vscode                 @diehuxx @shamilovtim @nitro-neal
+/scripts                 @diehuxx @shamilovtim @nitro-neal
+
 # These are owners of any file in the `common`, `crypto`, `crypto-aws-kms`, `dids`, and
 # `credentials` packages and their sub-directories.
-/packages/common         @diehuxx @mistermoe @frankhinek @thehenrytsai @nitro-neal
-/packages/crypto         @diehuxx @mistermoe @frankhinek @thehenrytsai
-/packages/crypto-aws-kms @diehuxx @mistermoe @frankhinek @thehenrytsai
-/packages/dids           @diehuxx @mistermoe @frankhinek @thehenrytsai @nitro-neal
-/packages/credentials    @diehuxx @mistermoe @frankhinek @thehenrytsai @nitro-neal
+/packages/common         @diehuxx @thehenrytsai @nitro-neal
+/packages/crypto         @diehuxx @thehenrytsai
+/packages/crypto-aws-kms @diehuxx @thehenrytsai
+/packages/dids           @diehuxx @thehenrytsai @nitro-neal
+/packages/credentials    @diehuxx @thehenrytsai @nitro-neal
 
 # These are owners of any file in the `agent`, `user-agent`, `proxy-agent`, `identity-agent`, and
 # `api` packages and their sub-directories.
-/packages/agent          @lirancohen @frankhinek @csuwildcat @mistermoe @shamilovtim
-/packages/proxy-agent    @lirancohen @frankhinek @csuwildcat @mistermoe @shamilovtim
-/packages/user-agent     @lirancohen @frankhinek @csuwildcat @mistermoe @shamilovtim
-/packages/identity-agent @lirancohen @frankhinek @csuwildcat @mistermoe @shamilovtim
-/packages/api            @lirancohen @frankhinek @csuwildcat @mistermoe @shamilovtim @nitro-neal
+/packages/agent          @lirancohen @csuwildcat @shamilovtim
+/packages/proxy-agent    @lirancohen @csuwildcat @shamilovtim
+/packages/user-agent     @lirancohen @csuwildcat @shamilovtim
+/packages/identity-agent @lirancohen @csuwildcat @shamilovtim
+/packages/api            @lirancohen @csuwildcat @shamilovtim @nitro-neal
  
