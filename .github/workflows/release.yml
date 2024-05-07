@@ -44,8 +44,10 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
-        with:
-          ref: main
+        # forcing release because of the issue documented here:
+        # https://github.com/TBD54566975/web5-js/pull/517
+        # with:
+        #   ref: main
 
       # https://cashapp.github.io/hermit/usage/ci/
       - name: Init Hermit
