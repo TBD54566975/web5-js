@@ -74,7 +74,12 @@ jobs:
 
       - name: Check @web5/api Release Flow
         id: check_api_release
-        run: scripts/changesets-api-release-check.sh
+        # forcing release because of the issue documented here:
+        # https://github.com/TBD54566975/web5-js/pull/517
+        # run: scripts/changesets-api-release-check.sh
+        # removes all the api changesets files to ensure a Version Packages PR is not created
+        run: |
+          find .changeset -type f -name "*.md" ! -name "README.md" -exec rm {} +
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           KICK_API_RELEASE: ${{ github.event.inputs.initiate_api_release || '' }}
