@@ -24,8 +24,8 @@ importers:
         specifier: 6.4.0
         version: 6.4.0(@typescript-eslint/parser@6.4.0)(eslint@8.47.0)(typescript@5.1.6)
       '@web5/dwn-server':
-        specifier: 0.2.1
-        version: 0.2.1
+        specifier: 0.2.2
+        version: 0.2.2
       eslint-plugin-mocha:
         specifier: 10.1.0
         version: 10.1.0(eslint@8.47.0)
@@ -2768,39 +2768,6 @@ packages:
       jwt-decode: 3.1.2
     dev: true
 
-  /@tbd54566975/dwn-sdk-js@0.3.1:
-    resolution: {integrity: sha512-G73ixUGieRBE4kYxLlYu/9wN36RUBGp5nvDrlAWZsNUXEXWnhCS3qTYFnUqzPEXjoE0z8EVRtpMU/eITM8ZcDA==}
-    engines: {node: '>= 18'}
-    dependencies:
-      '@ipld/dag-cbor': 9.0.3
-      '@js-temporal/polyfill': 0.4.4
-      '@noble/ed25519': 2.0.0
-      '@noble/secp256k1': 2.0.0
-      '@web5/dids': 1.0.1
-      abstract-level: 1.0.3
-      ajv: 8.12.0
-      blockstore-core: 4.2.0
-      cross-fetch: 4.0.0
-      eciesjs: 0.4.5
-      interface-blockstore: 5.2.3
-      interface-store: 5.1.2
-      ipfs-unixfs-exporter: 13.1.5
-      ipfs-unixfs-importer: 15.1.5
-      level: 8.0.0
-      lodash: 4.17.21
-      lru-cache: 9.1.2
-      ms: 2.1.3
-      multiformats: 11.0.2
-      randombytes: 2.1.0
-      readable-stream: 4.5.2
-      ulidx: 2.1.0
-      uuid: 8.3.2
-      varint: 6.0.0
-    transitivePeerDependencies:
-      - encoding
-      - supports-color
-    dev: true
-
   /@tbd54566975/dwn-sdk-js@0.3.2:
     resolution: {integrity: sha512-MMBau0Snkfnw4pCyBAzOneniUPVOBD1+m/Wj5rVgkDJNPIRkbFMcJ7auEmc4Pm0w+7pgm/ToPXDaSix+2Qob1w==}
     engines: {node: '>= 18'}
@@ -2833,12 +2800,12 @@ packages:
       - encoding
       - supports-color
 
-  /@tbd54566975/dwn-sql-store@0.4.1:
-    resolution: {integrity: sha512-ndslsbtNjkIuNu8ytNZnKjH4uWoxWFzt+L/8ok5giVmgrjTh/+XDU23LQYJjRHC/RusjpDNjlt77PhL2qbXxmQ==}
+  /@tbd54566975/dwn-sql-store@0.4.2:
+    resolution: {integrity: sha512-KdLk5PUaAuONr/xLOQN6LSVwVV/JQ3kn7ozlj74f9MRoBjL2iIiowCocCe6sAhzKCYmrT+xSdYP+M3e9moJ6Yw==}
     engines: {node: '>=18'}
     dependencies:
       '@ipld/dag-cbor': 9.2.0
-      '@tbd54566975/dwn-sdk-js': 0.3.1
+      '@tbd54566975/dwn-sdk-js': 0.3.2
       kysely: 0.26.3
       multiformats: 12.0.1
       readable-stream: 4.4.2
@@ -3510,12 +3477,12 @@ packages:
       level: 8.0.0
       ms: 2.1.3
 
-  /@web5/dwn-server@0.2.1:
-    resolution: {integrity: sha512-RMt+YjVF3qru6zpjIdqB9vlCBfBt+H7QrrE/VsX8/VoQVRdrRPLnMIUVeYnfOn1pjXMWQs8cZjBypD04lMYZCA==}
+  /@web5/dwn-server@0.2.2:
+    resolution: {integrity: sha512-jUd02x1aWvDFVzOdi1KFfB816fMmOJSM9lPY1hi4uFww8r7sx3YU00LH5q+/odJXM3FDwHTX8yDncL8GS9xQEg==}
     hasBin: true
     dependencies:
-      '@tbd54566975/dwn-sdk-js': 0.3.1
-      '@tbd54566975/dwn-sql-store': 0.4.1
+      '@tbd54566975/dwn-sdk-js': 0.3.2
+      '@tbd54566975/dwn-sql-store': 0.4.2
       better-sqlite3: 8.7.0
       body-parser: 1.20.2
       bytes: 3.1.2
