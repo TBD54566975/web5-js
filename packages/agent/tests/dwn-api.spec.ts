@@ -1428,6 +1428,41 @@ describe('AgentDwnApi', () => {
       }
     });
 
+    it('throws an error when a Subscribe method is called without a subscriptionHandler', async () => {
+
+      // RecordsSubscribe message without a subscriptionHandler
+      try {
+        await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsSubscribe,
+          messageParams : {
+            filter: {
+              schema: 'https://schemas.xyz/example'
+            }
+          }
+        });
+        expect.fail('Expected an error to be thrown');
+
+      } catch (error: any) {
+        expect(error.message).to.include('AgentDwnApi: Subscription handler is required for subscription requests.');
+      }
+
+      // EventsSubscribe message without a subscriptionHandler
+      try {
+        await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.EventsSubscribe,
+          messageParams : {}
+        });
+        expect.fail('Expected an error to be thrown');
+
+      } catch (error: any) {
+        expect(error.message).to.include('AgentDwnApi: Subscription handler is required for subscription requests.');
+      }
+    });
+
     it('throws an error when DwnRequest fails validation', async () => {
       try {
         await testHarness.agent.dwn.sendRequest({
