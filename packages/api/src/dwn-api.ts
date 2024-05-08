@@ -503,6 +503,12 @@ export class DwnApi {
         return { record, status };
       },
 
+      /**
+       * Subscribes to records based on the given filter and emits events to the `subscriptionHandler`.
+       *
+       * @param request must include the `message` with the subscription filter and the `subscriptionHandler` to process the events.
+       * @returns the subscription status and the subscription object used to close the subscription.
+       */
       subscribe: async (request: RecordsSubscribeRequest): Promise<RecordsSubscribeResponse> => {
         const agentRequest: ProcessDwnRequest<DwnInterface.RecordsSubscribe> = {
           /**
@@ -513,9 +519,9 @@ export class DwnApi {
           messageParams : request.message,
           messageType   : DwnInterface.RecordsSubscribe,
           /**
-           * The `target` is the DID of the DWN tenant under which the query will be executed.
-           * If `from` is provided, the query operation will be executed on a remote DWN.
-           * Otherwise, the local DWN will be queried.
+           * The `target` is the DID of the DWN tenant under which the subscribe operation will be executed.
+           * If `from` is provided, the subscribe operation will be executed on a remote DWN.
+           * Otherwise, the local DWN will execute the subscribe operation.
            */
           target        : request.from || this.connectedDid,
 
