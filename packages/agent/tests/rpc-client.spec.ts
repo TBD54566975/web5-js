@@ -122,7 +122,7 @@ describe('RPC Clients', () => {
 
         // confirm it was called once per each transport
         expect(socketClientSpy.callCount).to.equal(2);
-      });      
+      });
     });
 
     describe('sendDwnRequest', () => {
