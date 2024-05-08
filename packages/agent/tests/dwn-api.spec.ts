@@ -626,6 +626,31 @@ describe('AgentDwnApi', () => {
       expect(writeReply.status.code).to.equal(202);
     });
 
+    it('returns a 202 Accepted status when the request is not stored', async () => {
+      // spy on dwn.processMessage
+      const processMessageSpy = sinon.spy(testHarness.agent.dwn, 'processMessage');
+
+      // Attempt to process the RecordsWrite
+      const dataBytes = Convert.string('Hello, world!').toUint8Array();
+      let writeResponse = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          dataFormat: 'text/plain'
+        },
+        dataStream: new Blob([dataBytes])
+      });
+
+      // Verify the response.
+      expect(writeResponse).to.have.property('message');
+      expect(writeResponse.reply.status.code).to.equal(202);
+      expect(writeResponse.reply.status.detail).to.equal('Accepted');
+
+      // dwnProcessMessage should not have been called
+      expect(processMessageSpy.called).to.be.false;
+    });
+
     it('handles RecordsWrite messages to sign as owner', async () => {
       // bob authors a public record to his dwn
       const dataStream = new Blob([ Convert.string('Hello, world!').toUint8Array() ]);
@@ -1499,6 +1524,29 @@ describe('AgentDwnApi', () => {
       } catch (error: any) {
         expect(error.message).to.include('Failed to send DWN RPC request');
         expect(error.message).to.include('WebSocket support is not enabled on the server.');
+      }
+    });
+
+    it('throws an error if sendDwnRequest fails', async () => {
+      // stub sendDwnRequest to reject with an error
+      sinon.stub(testHarness.agent.rpc, 'sendDwnRequest').rejects(new Error('sendDwnRequest Error'));
+
+      try {
+        await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            filter: {
+              schema: 'https://schemas.xyz/example'
+            }
+          },
+        });
+        expect.fail('Expected an error to be thrown');
+
+      } catch (error: any) {
+        expect(error.message).to.include('Failed to send DWN RPC request');
+        expect(error.message).to.include('sendDwnRequest Error');
       }
     });
 
