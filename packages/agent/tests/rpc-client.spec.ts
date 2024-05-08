@@ -71,13 +71,8 @@ describe('RPC Clients', () => {
 
     it('returns available transports', async () => {
       const httpOnlyClient = new Web5RpcClient();
-      expect(httpOnlyClient.transportProtocols).to.have.members(['http:', 'https:']);
 
-      const wsAndHttpClients = new Web5RpcClient([
-        new WebSocketWeb5RpcClient()
-      ]);
-
-      expect(wsAndHttpClients.transportProtocols).to.have.members([
+      expect(httpOnlyClient.transportProtocols).to.have.members([
         'http:',
         'https:',
         'ws:',
@@ -98,21 +93,36 @@ describe('RPC Clients', () => {
       });
 
       it('should throw if transport client is not found', async () => {
-        const stubHttpClient = sinon.createStubInstance(HttpWeb5RpcClient);
-        const httpOnlyClient = new Web5RpcClient([ stubHttpClient ]);
+        const client = new Web5RpcClient();
 
-        // request with http
-        const request = { method: DidRpcMethod.Resolve, url: 'ws://127.0.0.1', data: 'some-data' };
+        // request with foo transport
+        const request = { method: DidRpcMethod.Resolve, url: 'foo://127.0.0.1', data: 'some-data' };
         try {
-          await httpOnlyClient.sendDidRequest(request);
+          await client.sendDidRequest(request);
           expect.fail('Expected error to be thrown');
         } catch (error: any) {
-          expect(error.message).to.equal('no ws: transport client available');
+          expect(error.message).to.equal('no foo: transport client available');
+        }
+      });
+
+      it('should throw if transport is sockets', async () => {
+        const socketClientSpy = sinon.spy(WebSocketWeb5RpcClient.prototype, 'sendDidRequest');
+        const client = new Web5RpcClient();
+
+        for (const transport of ['ws:', 'wss:']) {
+        // request with ws transport
+          try {
+            const request = { method: DidRpcMethod.Resolve, url: `${transport}//127.0.0.1`, data: 'some-data' };
+            await client.sendDidRequest(request);
+            expect.fail('Expected error to be thrown');
+          } catch (error: any) {
+            expect(error.message).to.equal('not implemented for transports [ws:, wss:]');
+          }
         }
 
-        // confirm http transport was not called
-        expect(stubHttpClient.sendDidRequest.callCount).to.equal(0);
-      });
+        // confirm it was called once per each transport
+        expect(socketClientSpy.callCount).to.equal(2);
+      });      
     });
 
     describe('sendDwnRequest', () => {
@@ -138,8 +148,7 @@ describe('RPC Clients', () => {
       });
 
       it('should throw if transport client is not found', async () => {
-        const stubHttpClient = sinon.createStubInstance(HttpWeb5RpcClient);
-        const httpOnlyClient = new Web5RpcClient([ stubHttpClient ]);
+        const client = new Web5RpcClient();
         const { message } = await TestDataGenerator.generateRecordsQuery({
           author : alice,
           filter : {
@@ -148,19 +157,16 @@ describe('RPC Clients', () => {
         });
 
         try {
-          // request with ws
-          await httpOnlyClient.sendDwnRequest({
-            dwnUrl    : 'ws://127.0.0.1',
+          // request with foo transport
+          await client.sendDwnRequest({
+            dwnUrl    : 'foo://127.0.0.1',
             targetDid : alice.did,
             message,
           });
           expect.fail('Expected error to be thrown');
         } catch(error: any) {
-          expect(error.message).to.equal('no ws: transport client available');
+          expect(error.message).to.equal('no foo: transport client available');
         }
-
-        // confirm http transport was not called
-        expect(stubHttpClient.sendDwnRequest.callCount).to.equal(0);
       });
     });
 
@@ -221,19 +227,33 @@ describe('RPC Clients', () => {
       });
 
       it('should throw if transport client is not found', async () => {
-        const stubHttpClient = sinon.createStubInstance(HttpWeb5RpcClient);
-        const httpOnlyClient = new Web5RpcClient([ stubHttpClient ]);
+        const client = new Web5RpcClient();
 
-        // request with http
+        // request with foo transport
         try {
-          await httpOnlyClient.getServerInfo('ws://127.0.0.1');
+          await client.getServerInfo('foo://127.0.0.1');
           expect.fail('Expected error to be thrown');
         } catch (error: any) {
-          expect(error.message).to.equal('no ws: transport client available');
+          expect(error.message).to.equal('no foo: transport client available');
+        }
+      });
+
+      it('should throw if transport is sockets', async () => {
+        const socketClientSpy = sinon.spy(WebSocketWeb5RpcClient.prototype, 'getServerInfo');
+        const client = new Web5RpcClient();
+
+        for (const transport of ['ws:', 'wss:']) {
+        // request with ws transport
+          try {
+            await client.getServerInfo(`${transport}//127.0.0.1`);
+            expect.fail('Expected error to be thrown');
+          } catch (error: any) {
+            expect(error.message).to.equal('not implemented for transports [ws:, wss:]');
+          }
         }
 
-        // confirm http transport was not called
-        expect(stubHttpClient.sendDidRequest.callCount).to.equal(0);
+        // confirm it was called once per each transport
+        expect(socketClientSpy.callCount).to.equal(2);
       });
     });
   });

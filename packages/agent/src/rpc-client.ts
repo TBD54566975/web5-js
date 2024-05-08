@@ -51,9 +51,9 @@ export class Web5RpcClient implements Web5Rpc {
   constructor(clients: Web5Rpc[] = []) {
     this.transportClients = new Map();
 
-    // include http client as default. can be overwritten for 'http:' or 'https:' if instantiator provides
-    // their own.
-    clients = [new HttpWeb5RpcClient(), ...clients];
+    // include http and socket clients as default.
+    // can be overwritten for 'http:', 'https:', 'ws: or ':wss' if instantiated with other clients.
+    clients = [new HttpWeb5RpcClient(), new WebSocketWeb5RpcClient(), ...clients];
 
     for (let client of clients) {
       for (let transportScheme of client.transportProtocols) {
