@@ -1,5 +1,7 @@
 import { Message, ProtocolDefinition, TestDataGenerator, type Dwn, type MessageEvent, type RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
+import sinon from 'sinon';
+
 import { expect } from 'chai';
 import { DidDht } from '@web5/dids';
 import { Convert } from '@web5/common';
@@ -30,6 +32,10 @@ describe('AgentDwnApi', () => {
       agentClass  : TestAgent,
       agentStores : 'dwn'
     });
+  });
+
+  afterEach(() => {
+    sinon.restore();
   });
 
   after(async () => {
@@ -1369,6 +1375,131 @@ describe('AgentDwnApi', () => {
       const writeReply = writeResponse.reply;
       expect(writeReply).to.have.property('status');
       expect(writeReply.status.code).to.equal(202);
+    });
+
+    it('should use a secure (wss) transport when the dwnUrl is also secure (https)', async () => {
+
+      // mock the dereference method to return a DWN service endpoint that is secure (https)
+      sinon.stub(testHarness.agent.did, 'dereference').resolves({
+        dereferencingMetadata : {},
+        contentMetadata       : {},
+        contentStream         : {
+          id              : '#dwn',
+          type            : 'DecentralizedWebNode',
+          serviceEndpoint : ['https://localhost'], // secure endpoint
+          enc             : '#enc',
+          sig             : '#sig'
+        }
+      });
+
+      // stub the serverInfo to return true for `webSocketSupport`
+      sinon.stub(testHarness.agent.rpc, 'getServerInfo').resolves({
+        registrationRequirements : [],
+        maxFileSize              : 1000000,
+        webSocketSupport         : true
+      });
+
+      // stub the sendDwnRequest method to return a 500 error as it doesn't matter if the request is successful or not
+      const sendDwnRequestStub = sinon.stub(testHarness.agent.rpc, 'sendDwnRequest').resolves({
+        status: {
+          code   : 500,
+          detail : 'Internal Server Error'
+        }
+      });
+
+      // Attempt to process a RecordsSubscribe message
+      await testHarness.agent.dwn.sendRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsSubscribe,
+        messageParams : {
+          filter: {
+            schema: 'https://schemas.xyz/example'
+          }
+        },
+        subscriptionHandler: () => {}
+      });
+
+      // the dwnUrl should be 'wss://localhost' as the server http(s) transport is secure
+      const { dwnUrl } = sendDwnRequestStub.args[0][0];
+      expect(dwnUrl).to.equal('wss://localhost/');
+    });
+
+    it('should use a non-secure (ws) transport when the dwnUrl is also non-secure (http)', async () => {
+
+      // mock the dereference method to return a DWN service endpoint that is insecure (http)
+      sinon.stub(testHarness.agent.did, 'dereference').resolves({
+        dereferencingMetadata : {},
+        contentMetadata       : {},
+        contentStream         : {
+          id              : '#dwn',
+          type            : 'DecentralizedWebNode',
+          serviceEndpoint : ['http://localhost'], // secure endpoint
+          enc             : '#enc',
+          sig             : '#sig'
+        }
+      });
+
+      // stub the serverInfo to return true for `webSocketSupport`
+      sinon.stub(testHarness.agent.rpc, 'getServerInfo').resolves({
+        registrationRequirements : [],
+        maxFileSize              : 1000000,
+        webSocketSupport         : true
+      });
+
+      // stub the sendDwnRequest method to return a 500 error as it doesn't matter if the request is successful or not
+      const sendDwnRequestStub = sinon.stub(testHarness.agent.rpc, 'sendDwnRequest').resolves({
+        status: {
+          code   : 500,
+          detail : 'Internal Server Error'
+        }
+      });
+
+      // Attempt to process a RecordsSubscribe message
+      await testHarness.agent.dwn.sendRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsSubscribe,
+        messageParams : {
+          filter: {
+            schema: 'https://schemas.xyz/example'
+          }
+        },
+        subscriptionHandler: () => {}
+      });
+
+      // the dwnUrl should be 'ws://localhost/' as the server http transport is insecure
+      const { dwnUrl } = sendDwnRequestStub.args[0][0];
+      expect(dwnUrl).to.equal('ws://localhost/');
+    });
+
+    it('throws an error if target DID does not contain websocket support', async () => {
+      // stub the serverInfo to return false for `webSocketSupport`
+      sinon.stub(testHarness.agent.rpc, 'getServerInfo').resolves({
+        registrationRequirements : [],
+        maxFileSize              : 1000000,
+        webSocketSupport         : false
+      });
+
+      try {
+        await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsSubscribe,
+          messageParams : {
+            filter: {
+              schema: 'https://schemas.xyz/example'
+            }
+          },
+          dataStream          : new Blob([Convert.string('Hello, world!').toUint8Array()]),
+          subscriptionHandler : () => {}
+        });
+        expect.fail('Expected an error to be thrown');
+
+      } catch (error: any) {
+        expect(error.message).to.include('Failed to send DWN RPC request');
+        expect(error.message).to.include('WebSocket support is not enabled on the server.');
+      }
     });
 
     it('throws an error if target DID method is not supported by the Agent DID Resolver', async () => {
