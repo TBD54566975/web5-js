@@ -1,5 +1,14 @@
 # @web5/user-agent
 
+## 0.3.5
+
+### Patch Changes
+
+- [#513](https://github.com/TBD54566975/web5-js/pull/513) [`82fe049`](https://github.com/TBD54566975/web5-js/commit/82fe049234423bd08a4b3c7e6cf48bdd5556d5a7) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Add a helper methods for generating a PaginationCursor from `api` without importing `dwn-sdk-js` directly
+
+- Updated dependencies [[`82fe049`](https://github.com/TBD54566975/web5-js/commit/82fe049234423bd08a4b3c7e6cf48bdd5556d5a7)]:
+  - @web5/agent@0.3.5
+
 ## 0.3.4
 
 ### Patch Changes
