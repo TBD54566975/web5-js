@@ -264,6 +264,8 @@ export {
   DateSort as DwnDateSort,
   PublicJwk as DwnPublicKeyJwk, // TODO: Remove once DWN SDK switches to Jwk from @web5/crypto
   PaginationCursor as DwnPaginationCursor,
+  EventSubscriptionHandler as DwnEventSubscriptionHandler,
+  RecordSubscriptionHandler as DwnRecordSubscriptionHandler,
   EncryptionAlgorithm as DwnEncryptionAlgorithm,
   KeyDerivationScheme as DwnKeyDerivationScheme,
 } from '@tbd54566975/dwn-sdk-js';
