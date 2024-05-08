@@ -266,6 +266,7 @@ export {
   PaginationCursor as DwnPaginationCursor,
   EventSubscriptionHandler as DwnEventSubscriptionHandler,
   RecordSubscriptionHandler as DwnRecordSubscriptionHandler,
+  MessageSubscription as DwnMessageSubscription,
   EncryptionAlgorithm as DwnEncryptionAlgorithm,
   KeyDerivationScheme as DwnKeyDerivationScheme,
 } from '@tbd54566975/dwn-sdk-js';
