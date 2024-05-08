@@ -206,8 +206,6 @@ export class AgentDwnApi {
 
     if (message.descriptor.method === DwnMethodName.Subscribe && subscriptionHandler === undefined) {
       throw new Error('AgentDwnApi: Subscription handler is required for subscription requests.');
-    } else if (subscriptionHandler !== undefined && message.descriptor.method !== DwnMethodName.Subscribe) {
-      throw new Error('AgentDwnApi: Subscription handler is only allowed for subscription requests.');
     }
 
     // Try sending to author's publicly addressable DWNs until the first request succeeds.
