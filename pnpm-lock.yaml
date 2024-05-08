@@ -170,8 +170,8 @@ importers:
         specifier: 1.40.1
         version: 1.40.1
       '@tbd54566975/dwn-sdk-js':
-        specifier: 0.3.1
-        version: 0.3.1
+        specifier: 0.3.2
+        version: 0.3.2
       '@types/chai':
         specifier: 4.3.6
         version: 4.3.6
@@ -2799,6 +2799,7 @@ packages:
     transitivePeerDependencies:
       - encoding
       - supports-color
+    dev: true
 
   /@tbd54566975/dwn-sdk-js@0.3.2:
     resolution: {integrity: sha512-MMBau0Snkfnw4pCyBAzOneniUPVOBD1+m/Wj5rVgkDJNPIRkbFMcJ7auEmc4Pm0w+7pgm/ToPXDaSix+2Qob1w==}
@@ -2831,7 +2832,6 @@ packages:
     transitivePeerDependencies:
       - encoding
       - supports-color
-    dev: false
 
   /@tbd54566975/dwn-sql-store@0.4.1:
     resolution: {integrity: sha512-ndslsbtNjkIuNu8ytNZnKjH4uWoxWFzt+L/8ok5giVmgrjTh/+XDU23LQYJjRHC/RusjpDNjlt77PhL2qbXxmQ==}
