@@ -1,7 +1,7 @@
 import type { DidUrlDereferencer } from '@web5/dids';
-import type { PaginationCursor, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import type { PaginationCursor, RecordsDeleteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
-import { DateSort } from '@tbd54566975/dwn-sdk-js';
+import { DateSort, Records, RecordsDelete } from '@tbd54566975/dwn-sdk-js';
 import { Readable } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { ReadableWebToNodeStream } from 'readable-web-to-node-stream';
@@ -39,8 +39,21 @@ export async function getDwnServiceEndpointUrls(didUri: string, dereferencer: Di
   return [];
 }
 
-export function getRecordAuthor(record: RecordsWriteMessage): string | undefined {
+export function getRecordsWriteAuthor(record: RecordsWriteMessage): string | undefined {
   return RecordsWrite.getAuthor(record);
+}
+
+// TODO: temporary until a more generic record from `dwn-sdk-js` is available
+export function getRecordAuthor(message: RecordsWriteMessage | RecordsDeleteMessage): string | undefined {
+  let author;
+
+  if (message.authorization.authorDelegatedGrant !== undefined) {
+    author = Message.getSigner(message.authorization.authorDelegatedGrant);
+  } else {
+    author = Message.getSigner(message);
+  }
+
+  return author;
 }
 
 export function isRecordsWrite(obj: unknown): obj is RecordsWrite {
