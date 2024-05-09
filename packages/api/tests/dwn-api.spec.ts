@@ -1377,8 +1377,8 @@ describe('DwnApi', () => {
         const recordsMap = new Map<string, Record>();
 
         const subscriptionResult = await dwnAlice.records.subscribe({
-          from: aliceDid.uri,
-          message: {
+          from    : aliceDid.uri,
+          message : {
             filter: {
               schema: 'foo/bar'
             }
@@ -1434,8 +1434,8 @@ describe('DwnApi', () => {
 
         // delete the first write
         const deleteRecord = await dwnAlice.records.delete({
-          from: aliceDid.uri,
-          message: {
+          from    : aliceDid.uri,
+          message : {
             recordId: writeResult.record.id
           }
         });

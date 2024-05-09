@@ -1,7 +1,7 @@
 import type { DidUrlDereferencer } from '@web5/dids';
 import type { PaginationCursor, RecordsDeleteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
-import { DateSort, Records, RecordsDelete } from '@tbd54566975/dwn-sdk-js';
+import { DateSort } from '@tbd54566975/dwn-sdk-js';
 import { Readable } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { ReadableWebToNodeStream } from 'readable-web-to-node-stream';

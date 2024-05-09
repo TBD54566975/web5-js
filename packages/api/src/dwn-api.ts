@@ -253,7 +253,7 @@ export class DwnApi {
       const { message, initialWrite } = event;
       const author = getRecordAuthor(message);
       const recordOptions = {
-        connectedDid: this.connectedDid,
+        connectedDid : this.connectedDid,
         remoteOrigin : request.from,
         author,
         initialWrite
@@ -280,8 +280,8 @@ export class DwnApi {
       }
 
       subscriptionHandler(record);
-    }
-  };
+    };
+  }
 
   /**
    * API to interact with DWN protocols (e.g., `dwn.protocols.configure()`).
