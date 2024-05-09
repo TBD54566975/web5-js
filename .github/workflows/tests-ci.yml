@@ -42,7 +42,7 @@ jobs:
           cache: "true"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build all workspace packages
         run: pnpm --recursive --stream build:esm && pnpm --recursive --stream build:cjs
@@ -102,7 +102,7 @@ jobs:
           cache: "true"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Get Playwright Version (for cache)
         id: get-playwright-version

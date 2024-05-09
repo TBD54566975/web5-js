@@ -89,7 +89,7 @@
     "c8": "9.0.0",
     "chai": "4.3.10",
     "chai-as-promised": "7.1.1",
-    "eslint": "8.47.0",
+    "eslint": "9.2.0",
     "eslint-plugin-mocha": "10.1.0",
     "mocha": "10.2.0",
     "mocha-junit-reporter": "2.2.1",
