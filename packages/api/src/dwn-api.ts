@@ -247,9 +247,11 @@ export class DwnApi {
   }
 
   private subscriptionHandler(request: RecordsSubscribeRequest): DwnRecordSubscriptionHandler {
+    const { subscriptionHandler } = request;
+
     return async (event) => {
       const { message, initialWrite } = event;
-      const author = await getRecordAuthor(message);
+      const author = getRecordAuthor(message);
       const recordOptions = {
         connectedDid: this.connectedDid,
         remoteOrigin : request.from,
@@ -277,7 +279,7 @@ export class DwnApi {
         });
       }
 
-      request.subscriptionHandler(record);
+      subscriptionHandler(record);
     }
   };
 
