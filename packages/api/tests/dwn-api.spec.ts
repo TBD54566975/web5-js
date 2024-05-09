@@ -1277,4 +1277,407 @@ describe('DwnApi', () => {
       });
     });
   });
+
+  xdescribe('records.subscribe()', () => {
+    describe('agent', () => {
+      it('subscribes to records that match the filter provided', async () => {
+
+        const records = [];
+
+        const result = await dwnAlice.records.subscribe({
+          message: {
+            filter: {
+              schema: 'foo/bar'
+            }
+          },
+          subscriptionHandler: (record) => {
+            records.push(record);
+          }
+        });
+
+        expect(result.status.code).to.equal(200);
+
+        const writeResult = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+
+        expect(writeResult.status.code).to.equal(202);
+        expect(writeResult.status.detail).to.equal('Accepted');
+        expect(writeResult.record).to.exist;
+
+      });
+
+      it('returns cursor when there are additional results', async () => {
+        for(let i = 0; i < 3; i++ ) {
+          const writeResult = await dwnAlice.records.write({
+            data    : `Hello, world ${i + 1}!`,
+            message : {
+              schema     : 'foo/bar',
+              dataFormat : 'text/plain'
+            }
+          });
+
+          expect(writeResult.status.code).to.equal(202);
+          expect(writeResult.status.detail).to.equal('Accepted');
+          expect(writeResult.record).to.exist;
+        }
+
+        const results = await dwnAlice.records.query({
+          message: {
+            filter: {
+              schema: 'foo/bar'
+            },
+            pagination: { limit: 2 } // set a limit of 2
+          }
+        });
+
+        expect(results.status.code).to.equal(200);
+        expect(results.records).to.exist;
+        expect(results.records!.length).to.equal(2);
+        expect(results.cursor).to.exist;
+
+        const additionalResults = await dwnAlice.records.query({
+          message: {
+            filter: {
+              schema: 'foo/bar'
+            },
+            pagination: { limit: 2, cursor: results.cursor}
+          }
+        });
+        expect(additionalResults.status.code).to.equal(200);
+        expect(additionalResults.records).to.exist;
+        expect(additionalResults.records!.length).to.equal(1);
+        expect(additionalResults.cursor).to.not.exist;
+      });
+
+      it('sorts results based on provided query sort parameter', async () => {
+        const clock = sinon.useFakeTimers();
+
+        const items = [];
+        const publishedItems = [];
+        for(let i = 0; i < 6; i++ ) {
+          const writeResult = await dwnAlice.records.write({
+            data    : `Hello, world ${i + 1}!`,
+            message : {
+              published  : i % 2 == 0 ? true : false,
+              schema     : 'foo/bar',
+              dataFormat : 'text/plain'
+            }
+          });
+
+          expect(writeResult.status.code).to.equal(202);
+          expect(writeResult.status.detail).to.equal('Accepted');
+          expect(writeResult.record).to.exist;
+
+          items.push(writeResult.record.id); // add id to list in the order it was inserted
+          if (writeResult.record.published === true) {
+            publishedItems.push(writeResult.record.id); // add published records separately
+          }
+
+          clock.tick(1000 * 1); // travel forward one second
+        }
+        clock.restore();
+
+        // query in ascending order by the dateCreated field
+        const createdAscResults = await dwnAlice.records.query({
+          message: {
+            filter: {
+              schema: 'foo/bar'
+            },
+            dateSort: DwnDateSort.CreatedAscending // same as default
+          }
+        });
+        expect(createdAscResults.status.code).to.equal(200);
+        expect(createdAscResults.records).to.exist;
+        expect(createdAscResults.records!.length).to.equal(6);
+        expect(createdAscResults.records.map(r => r.id)).to.eql(items);
+
+        // query in descending order by the dateCreated field
+        const createdDescResults = await dwnAlice.records.query({
+          message: {
+            filter: {
+              schema: 'foo/bar'
+            },
+            dateSort: DwnDateSort.CreatedDescending
+          }
+        });
+        expect(createdDescResults.status.code).to.equal(200);
+        expect(createdDescResults.records).to.exist;
+        expect(createdDescResults.records!.length).to.equal(6);
+        expect(createdDescResults.records.map(r => r.id)).to.eql([...items].reverse());
+
+        // query in ascending order by the datePublished field, this will only return published records
+        const publishedAscResults = await dwnAlice.records.query({
+          message: {
+            filter: {
+              schema: 'foo/bar'
+            },
+            dateSort: DwnDateSort.PublishedAscending
+          }
+        });
+        expect(publishedAscResults.status.code).to.equal(200);
+        expect(publishedAscResults.records).to.exist;
+        expect(publishedAscResults.records!.length).to.equal(3);
+        expect(publishedAscResults.records.map(r => r.id)).to.eql(publishedItems);
+
+        // query in desscending order by the datePublished field, this will only return published records
+        const publishedDescResults = await dwnAlice.records.query({
+          message: {
+            filter: {
+              schema: 'foo/bar'
+            },
+            dateSort: DwnDateSort.PublishedDescending
+          }
+        });
+        expect(publishedDescResults.status.code).to.equal(200);
+        expect(publishedDescResults.records).to.exist;
+        expect(publishedDescResults.records!.length).to.equal(3);
+        expect(publishedDescResults.records.map(r => r.id)).to.eql([...publishedItems].reverse());
+      });
+
+      it('queries for records matching tags', async () => {
+
+        // Write a record to the agent's local DWN that includes a tag `foo` with value `bar`
+        const { status, record } = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain',
+            tags       : {
+              foo: 'bar',
+            }
+          }
+        });
+        expect(status.code).to.equal(202);
+
+        // Write a record to the agent's local DWN that includes a tag `foo` with value `baz`
+        const { status: status2 } = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain',
+            tags       : {
+              foo: 'baz',
+            }
+          }
+        });
+        expect(status2.code).to.equal(202);
+
+        // Control: query the agent's local DWN for the record without any tag filters
+        const result = await dwnAlice.records.query({
+          message: {
+            filter: {
+              schema: 'foo/bar'
+            }
+          }
+        });
+
+        // should return both records
+        expect(result.status.code).to.equal(200);
+        expect(result.records).to.exist;
+        expect(result.records!.length).to.equal(2);
+
+
+        // Query the agent's local DWN for the record using the tags.
+        const fooBarResult = await dwnAlice.records.query({
+          message: {
+            filter: {
+              schema : 'foo/bar',
+              tags   : {
+                foo: 'bar',
+              }
+            }
+          }
+        });
+
+        // should only return the record with the tag `foo` and value `bar`
+        expect(fooBarResult.status.code).to.equal(200);
+        expect(fooBarResult.records).to.exist;
+        expect(fooBarResult.records!.length).to.equal(1);
+        expect(fooBarResult.records![0].id).to.equal(record.id);
+        expect(fooBarResult.records![0].tags).to.deep.equal({ foo: 'bar' });
+      });
+    });
+
+    describe('from: did', () => {
+      it('returns an array of records that match the filter provided', async () => {
+        // Write a record to the agent's local DWN.
+        const { record } = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+
+        // Write the record to the agent's remote DWN.
+        await record.send(aliceDid.uri);
+
+        // Query the agent's remote DWN.
+        const result = await dwnAlice.records.query({
+          from    : aliceDid.uri,
+          message : {
+            filter: {
+              schema: 'foo/bar'
+            }
+          }
+        });
+
+        // Verify the query returns a result.
+        expect(result.status.code).to.equal(200);
+        expect(result.records).to.exist;
+        expect(result.records!.length).to.equal(1);
+        expect(result.records![0].id).to.equal(record!.id);
+      });
+
+      it('returns empty records array when no records match the filter provided', async () => {
+        // Attempt to query Bob's DWN using the ID of a record that does not exist.
+        const result = await dwnAlice.records.query({
+          from    : bobDid.uri,
+          message : {
+            filter: {
+              recordId: 'abcd1234'
+            }
+          }
+        });
+        // Confirm that the record does not currently exist on Bob's DWN.
+        expect(result.status.code).to.equal(200);
+        expect(result.records).to.exist;
+        expect(result.records!.length).to.equal(0);
+      });
+
+      it('returns the correct author for records signed by another DID', async () => {
+        /**
+         * WHAT IS BEING TESTED?
+         *
+         * We are testing whether a record authored/signed by one party (Alice) can be written to
+         * another party's DWN (Bob) and retain the original author's DID (Alice) when queried.
+         *
+         * TEST SETUP STEPS:
+         *   1. Configure the email protocol on Bob's local DWN.
+         */
+        const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
+          message: {
+            definition: emailProtocolDefinition
+          }
+        });
+        expect(bobProtocolStatus.code).to.equal(202);
+        /**
+         *   2. Configure the email protocol on Bob's remote DWN.
+         */
+        const { status: bobRemoteProtocolStatus } = await bobProtocol.send(bobDid.uri);
+        expect(bobRemoteProtocolStatus.code).to.equal(202);
+        /**
+         *   3. Alice creates a record, but doesn't store it locally.
+         */
+        const { status: createStatus, record: testRecord} = await dwnAlice.records.create({
+          store   : false,
+          data    : 'test',
+          message : {
+            protocol     : 'http://email-protocol.xyz',
+            protocolPath : 'thread',
+            schema       : 'http://email-protocol.xyz/schema/thread',
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(createStatus.code).to.equal(202);
+        expect(testRecord.author).to.equal(aliceDid.uri);
+        /**
+         *   4. Alice writes the record to Bob's remote DWN.
+         */
+        const { status: sendStatus } = await testRecord.send(bobDid.uri);
+        expect(sendStatus.code).to.equal(202);
+        /**
+         *   5. Bob queries his remote DWN for the record.
+         */
+        const bobQueryResult = await dwnBob.records.query({
+          from    : bobDid.uri,
+          message : {
+            filter: {
+              recordId: testRecord.id
+            }
+          }
+        });
+
+        // The record's author should be Alice's DID since Alice was the signer.
+        const [ recordOnBobsDwn ] = bobQueryResult.records;
+        expect(recordOnBobsDwn.author).to.equal(aliceDid.uri);
+      });
+
+      it('queries for records matching tags', async () => {
+
+        // Write a record to alice's remote DWN that includes a tag `foo` with value `bar`
+        const { status, record } = await dwnAlice.records.write({
+          store   : false,
+          data    : 'Hello, world!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain',
+            tags       : {
+              foo: 'bar',
+            }
+          }
+        });
+        expect(status.code).to.equal(202);
+        const { status: sendFooBarStatus } = await record.send(aliceDid.uri);
+        expect(sendFooBarStatus.code).to.equal(202);
+
+        // Write a record to alice's remote DWN that includes a tag `foo` with value `baz`
+        const { status: status2, record: record2 } = await dwnAlice.records.write({
+          store   : false,
+          data    : 'Hello, world!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain',
+            tags       : {
+              foo: 'baz',
+            }
+          }
+        });
+        expect(status2.code).to.equal(202);
+        const { status: sendFooBazStatus } = await record2.send(aliceDid.uri);
+        expect(sendFooBazStatus.code).to.equal(202);
+
+        // Control: query the agent's local DWN for the record without any tag filters
+        const result = await dwnAlice.records.query({
+          from    : aliceDid.uri,
+          message : {
+            filter: {
+              schema: 'foo/bar'
+            }
+          }
+        });
+
+        // should return both records
+        expect(result.status.code).to.equal(200);
+        expect(result.records).to.exist;
+        expect(result.records!.length).to.equal(2);
+
+
+        // Query the agent's local DWN for the record using the tags.
+        const fooBarResult = await dwnAlice.records.query({
+          from    : aliceDid.uri,
+          message : {
+            filter: {
+              schema : 'foo/bar',
+              tags   : {
+                foo: 'bar',
+              }
+            }
+          }
+        });
+
+        // should only return the record with the tag `foo` and value `bar`
+        expect(fooBarResult.status.code).to.equal(200);
+        expect(fooBarResult.records).to.exist;
+        expect(fooBarResult.records!.length).to.equal(1);
+        expect(fooBarResult.records![0].id).to.equal(record.id);
+        expect(fooBarResult.records![0].tags).to.deep.equal({ foo: 'bar' });
+      });
+    });
+  });
 });

@@ -11,7 +11,7 @@ import type {
 } from '@web5/agent';
 
 import { isEmptyObject } from '@web5/common';
-import { DwnInterface, getRecordAuthor } from '@web5/agent';
+import { DwnInterface, getRecordAuthor, getRecordsWriteAuthor, isDwnMessage } from '@web5/agent';
 
 import { Record } from './record.js';
 import { dataToBlob } from './utils.js';
@@ -158,6 +158,8 @@ export type RecordsReadResponse = DwnResponseStatus & {
   record: Record;
 }
 
+export type RecordsSubscriptionHandler = (record: Record) => void;
+
 /**
  * Represents a request to subscribe to records from a Decentralized Web Node (DWN).
  *
@@ -172,7 +174,7 @@ export type RecordsSubscribeRequest = {
   message: Omit<DwnMessageParams[DwnInterface.RecordsSubscribe], 'signer'>;
 
   /** The handler to process the subscription events */
-  subscriptionHandler: DwnRecordSubscriptionHandler;
+  subscriptionHandler: RecordsSubscriptionHandler;
 }
 
 
@@ -243,6 +245,41 @@ export class DwnApi {
     this.agent = options.agent;
     this.connectedDid = options.connectedDid;
   }
+
+  private subscriptionHandler(request: RecordsSubscribeRequest): DwnRecordSubscriptionHandler {
+    return async (event) => {
+      const { message, initialWrite } = event;
+      const author = await getRecordAuthor(message);
+      const recordOptions = {
+        connectedDid: this.connectedDid,
+        remoteOrigin : request.from,
+        author,
+        initialWrite
+      };
+
+      let record:Record;
+      if (isDwnMessage(DwnInterface.RecordsWrite, message)) {
+        // is a records write message
+        record = new Record(this.agent, { ...message, ...recordOptions });
+      } else {
+        // The event is a delete message
+        const descriptor = {
+          ...initialWrite.descriptor,
+          messageTimestamp: message.descriptor.messageTimestamp,
+        };
+
+        record = new Record(this.agent, {
+          ...recordOptions,
+          descriptor,
+          authorization : message.authorization,
+          recordId      : message.descriptor.recordId,
+          isDeleted     : true
+        });
+      }
+
+      request.subscriptionHandler(record);
+    }
+  };
 
   /**
    * API to interact with DWN protocols (e.g., `dwn.protocols.configure()`).
@@ -420,7 +457,7 @@ export class DwnApi {
              * Extract the `author` DID from the record entry since records may be signed by the
              * tenant owner or any other entity.
              */
-            author       : getRecordAuthor(entry),
+            author       : getRecordsWriteAuthor(entry),
             /**
              * Set the `connectedDid` to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
@@ -480,7 +517,7 @@ export class DwnApi {
              * Extract the `author` DID from the record since records may be signed by the
              * tenant owner or any other entity.
              */
-            author       : getRecordAuthor(responseRecord),
+            author       : getRecordsWriteAuthor(responseRecord),
             /**
              * Set the `connectedDid` to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
@@ -528,7 +565,7 @@ export class DwnApi {
           /**
            * The handler to process the subscription events.
            */
-          subscriptionHandler: request.subscriptionHandler,
+          subscriptionHandler: this.subscriptionHandler(request)
         };
 
         let agentResponse: DwnResponse<DwnInterface.RecordsSubscribe>;

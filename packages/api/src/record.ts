@@ -76,6 +76,9 @@ export type RecordOptions = DwnMessage[DwnInterface.RecordsWrite] & {
 
   /** The remote tenant DID if the record was queried or read from a remote DWN. */
   remoteOrigin?: string;
+
+  /** Allows to mark a record as deleted for the purpose of receiving updates during a subscription */
+  isDeleted?: boolean;
 };
 
 /**
@@ -160,6 +163,8 @@ export class Record implements RecordModel {
   private _readableStream?: Readable;
   /** The origin DID if the record was fetched from a remote DWN. */
   private _remoteOrigin?: string;
+  /** Signals whether the record is in a deleted state */
+  private _deleted: boolean;
 
   // Private variables for DWN `RecordsWrite` message properties.
 
@@ -262,6 +267,9 @@ export class Record implements RecordModel {
   /** Tags of the record */
   get tags() { return this._descriptor.tags; }
 
+  /** Record's deleted state */
+  get deleted() { return this._deleted; }
+
   /**
    * Returns a copy of the raw `RecordsWriteMessage` that was used to create the current `Record` instance.
    */
@@ -306,6 +314,7 @@ export class Record implements RecordModel {
     this._initialWrite = options.initialWrite;
     this._recordId = options.recordId;
     this._protocolRole = options.protocolRole;
+    this._deleted = options.isDeleted === true;
 
     if (options.encodedData) {
       // If `encodedData` is set, then it is expected that:
