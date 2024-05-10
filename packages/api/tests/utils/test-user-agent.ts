@@ -1,5 +1,5 @@
 import type {
-  DwnRpc,
+  Web5Rpc,
   VcResponse,
   DidResponse,
   DwnResponse,
@@ -43,7 +43,7 @@ type TestUserAgentOptions = {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
-  rpcClient: DwnRpc;
+  rpcClient: Web5Rpc;
   syncManager: SyncManager;
 
   dwn: Dwn;
@@ -60,7 +60,7 @@ export class TestUserAgent implements Web5ManagedAgent {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
-  rpcClient: DwnRpc;
+  rpcClient: Web5Rpc;
   syncManager: SyncManager;
 
   /**

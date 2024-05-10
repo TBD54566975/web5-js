@@ -33,6 +33,8 @@ import {
 import { isManagedKey, isManagedKeyPair } from './utils.js';
 import { KeyStoreMemory, PrivateKeyStoreMemory } from './store-managed-key.js';
 import { Web5ManagedAgent } from './types/agent.js';
+import { XChaCha20Poly1305Algorithm } from '@web5/crypto';
+import { XChaCha20Algorithm } from '@web5/crypto';
 
 export type AlgorithmImplementation = typeof CryptoAlgorithm & { new(): CryptoAlgorithm; };
 
@@ -50,10 +52,12 @@ export type KmsOptions = {
 
 // Map key operations to algorithm specs to implementations.
 export const defaultAlgorithms: AlgorithmImplementations = {
-  'AES-CTR' : AesCtrAlgorithm,
-  ECDH      : EcdhAlgorithm,
-  ECDSA     : EcdsaAlgorithm,
-  EdDSA     : EdDsaAlgorithm,
+  'AES-CTR'            : AesCtrAlgorithm,
+  'ECDH'               : EcdhAlgorithm,
+  'ECDSA'              : EcdsaAlgorithm,
+  'EdDSA'              : EdDsaAlgorithm,
+  'XCHACHA20'          : XChaCha20Algorithm,
+  'XCHACHA20-POLY1305' : XChaCha20Poly1305Algorithm
 };
 
 export class LocalKms implements KeyManagementSystem {

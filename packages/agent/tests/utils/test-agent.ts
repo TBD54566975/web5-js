@@ -2,9 +2,9 @@ import { Level } from 'level';
 import { Dwn, MessageStoreLevel, DataStoreLevel, EventLogLevel } from '@tbd54566975/dwn-sdk-js';
 import { DidIonMethod, DidKeyMethod, DidResolver } from '@web5/dids';
 
+import type { Web5Rpc } from '../../src/rpc-client.js';
 import type { AppDataStore } from '../../src/app-data-store.js';
 import type {
-  DwnRpc,
   VcResponse,
   DidResponse,
   DwnResponse,
@@ -37,7 +37,7 @@ type TestAgentOptions = {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
-  rpcClient: DwnRpc;
+  rpcClient: Web5Rpc;
   syncManager: SyncManager;
 
   dwn: Dwn;
@@ -55,7 +55,7 @@ export class TestAgent implements Web5ManagedAgent {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
-  rpcClient: DwnRpc;
+  rpcClient: Web5Rpc;
   syncManager: SyncManager;
 
   /**

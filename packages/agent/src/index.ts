@@ -16,3 +16,6 @@ export * from './sync-manager.js';
 export * from './utils.js';
 
 export * from './test-managed-agent.js';
+
+export * from './connect.js';
+export * from './events.js';

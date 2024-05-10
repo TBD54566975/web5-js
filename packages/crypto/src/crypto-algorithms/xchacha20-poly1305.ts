@@ -18,9 +18,10 @@ export class XChaCha20Poly1305Algorithm extends BaseXChaCha20Poly1305Algorithm {
     this.checkKeyUsages({ keyUsages: ['decrypt'], allowedKeyUsages: key.usages });
 
     const plaintext = XChaCha20Poly1305.decrypt({
-      data  : data,
-      key   : key.material,
-      nonce : algorithm.nonce
+      additionalData : algorithm.additionalData,
+      data           : data,
+      key            : key.material,
+      nonce          : algorithm.nonce
     });
 
     return plaintext;

@@ -12,11 +12,13 @@ import type {
 
 import { DidResolver } from '@web5/dids';
 
+import type { SyncManager } from '../sync-manager.js';
+import type { AppDataStore } from '../app-data-store.js';
+import type { DwnRpcResponse, Web5Rpc } from '../rpc-client.js';
+
 import { DidManager } from '../did-manager.js';
 import { DwnManager } from '../dwn-manager.js';
 import { KeyManager } from '../key-manager.js';
-import { SyncManager } from '../sync-manager.js';
-import { AppDataStore } from '../app-data-store.js';
 import { IdentityManager } from '../identity-manager.js';
 
 /**
@@ -26,6 +28,7 @@ import { IdentityManager } from '../identity-manager.js';
 export type ProcessDidRequest = { /** empty */ }
 export type SendDidRequest = { /** empty */ }
 export type DidResponse = { /** empty */ }
+
 
 /**
  * DWN Types
@@ -73,44 +76,6 @@ export type DwnResponse = {
  */
 export type SendDwnResponse = DwnRpcResponse;
 
-export interface SerializableDwnMessage {
-  toJSON(): string;
-}
-
-
-// TODO: move what's below to dwn-server repo. i wrote this here for expediency
-
-/**
- * interface that can be implemented to communicate with Dwn Servers
- */
-export interface DwnRpc {
-  /**
-   * TODO: add jsdoc
-   */
-  get transportProtocols(): string[]
-
-  /**
-   * TODO: add jsdoc
-   * @param request
-   */
-  sendDwnRequest(request: DwnRpcRequest): Promise<DwnRpcResponse>
-}
-
-/**
- * TODO: add jsdoc
- */
-export type DwnRpcRequest = {
-  data?: any;
-  dwnUrl: string;
-  message: SerializableDwnMessage | any;
-  targetDid: string;
-}
-
-/**
- * TODO: add jsdoc
- */
-export type DwnRpcResponse = UnionMessageReply;
-
 
 /**
  * Verifiable Credential Types
@@ -119,6 +84,7 @@ export type DwnRpcResponse = UnionMessageReply;
 export type ProcessVcRequest = { /** empty */ }
 export type SendVcRequest = { /** empty */ }
 export type VcResponse = { /** empty */ }
+
 
 /**
  * Web5 Agent Types
@@ -141,7 +107,7 @@ export interface Web5ManagedAgent extends Web5Agent {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
-  rpcClient: DwnRpc;
+  rpcClient: Web5Rpc;
   syncManager: SyncManager;
 
   firstLaunch(): Promise<boolean>;

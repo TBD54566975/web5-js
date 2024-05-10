@@ -13,6 +13,8 @@ import {
   EcdsaAlgorithm,
   EdDsaAlgorithm,
   AesCtrAlgorithm,
+  XChaCha20Algorithm,
+  XChaCha20Poly1305Algorithm,
 } from '../src/crypto-algorithms/index.js';
 
 chai.use(chaiAsPromised);
@@ -1330,5 +1332,578 @@ describe('Default Crypto Algorithm Implementations', () => {
         })).to.eventually.be.rejectedWith(TypeError, 'Out of range');
       });
     });
+  });
+
+  describe('XChaCha20Algorithm', () => {
+    let xChaCha20: XChaCha20Algorithm;
+
+    before(() => {
+      xChaCha20 = XChaCha20Algorithm.create();
+    });
+
+    describe('decrypt()', () => {
+      let secretCryptoKey: Web5Crypto.CryptoKey;
+
+      beforeEach(async () => {
+        secretCryptoKey = await xChaCha20.generateKey({
+          algorithm   : { name: 'XCHACHA20' },
+          extractable : false,
+          keyUsages   : ['encrypt', 'decrypt']
+        });
+      });
+
+      it('returns plaintext as a Uint8Array', async () => {
+        const plaintext = await xChaCha20.decrypt({
+          algorithm: {
+            name  : 'XCHACHA20',
+            nonce : new Uint8Array(24)
+          },
+          key  : secretCryptoKey,
+          data : new Uint8Array([1, 2, 3, 4])
+        });
+
+        expect(plaintext).to.be.instanceOf(Uint8Array);
+        expect(plaintext.byteLength).to.equal(4);
+      });
+
+      it('returns plaintext given ciphertext', async () => {
+        const input = {
+          data  : Convert.hex('879b10a139674fe65087f59577ee2c1ab54655d900697fd02d953f53ddcc1ae476e8').toUint8Array(),
+          key   : Convert.hex('79c99798ac67300bbb2704c95c341e3245f3dcb21761b98e52ff45b24f304fc4').toUint8Array(),
+          nonce : Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toUint8Array()
+        };
+        const output = Convert.string(`Are You There Bob? It's Me, Alice.`).toUint8Array();
+
+        let secretCryptoKey = new CryptoKey(
+          { name: 'XCHACHA20' },
+          false,
+          input.key,
+          'secret',
+          ['encrypt', 'decrypt']
+        );
+        const plaintext = await xChaCha20.decrypt({
+          algorithm: {
+            name  : 'XCHACHA20',
+            nonce : input.nonce
+          },
+          key  : secretCryptoKey,
+          data : input.data
+        });
+        expect(plaintext).to.deep.equal(output);
+      });
+
+      //   it('validates algorithm, counter, and length', async () => {
+      //     const secretCryptoKey: Web5Crypto.CryptoKey = new CryptoKey(
+      //       { name: 'AES-CTR', length: 128 },
+      //       false,
+      //       new Uint8Array(16),
+      //       'secret',
+      //       ['encrypt', 'decrypt']
+      //     );
+
+      //     // Invalid (algorithm name, counter, length) result in algorithm name check failing first.
+      //     await expect(aesCtr.decrypt({
+      //       algorithm : { name: 'foo', counter: new Uint8Array(64), length: 512 },
+      //       key       : secretCryptoKey,
+      //       data      : new Uint8Array([1, 2, 3, 4])
+      //     })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
+
+      //     // Valid (algorithm name) + Invalid (counter, length) result counter check failing first.
+      //     await expect(aesCtr.decrypt({
+      //       algorithm : { name: 'AES-CTR', counter: new Uint8Array(64), length: 512 },
+      //       key       : secretCryptoKey,
+      //       data      : new Uint8Array([1, 2, 3, 4])
+      //     })).to.eventually.be.rejectedWith(OperationError, `'counter' must have length`);
+
+      //     // Valid (algorithm name, counter) + Invalid (length) result length check failing first.
+      //     await expect(aesCtr.decrypt({
+      //       algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 512 },
+      //       key       : secretCryptoKey,
+      //       data      : new Uint8Array([1, 2, 3, 4])
+      //     })).to.eventually.be.rejectedWith(OperationError, `'length' should be in the range`);
+      //   });
+
+      //   it(`validates that key usage is 'decrypt'`, async () => {
+      //     // Manually specify the secret key usages to exclude the 'decrypt' operation.
+      //     secretCryptoKey.usages = ['encrypt'];
+
+    //     await expect(aesCtr.decrypt({
+    //       algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 128 },
+    //       key       : secretCryptoKey,
+    //       data      : new Uint8Array([1, 2, 3, 4])
+    //     })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
+    //   });
+    });
+
+    // describe('encrypt()', () => {
+    //   let secretCryptoKey: Web5Crypto.CryptoKey;
+
+    //   before(async () => {
+    //     secretCryptoKey = await aesCtr.generateKey({
+    //       algorithm   : { name: 'AES-CTR', length: 128 },
+    //       extractable : false,
+    //       keyUsages   : ['encrypt', 'decrypt']
+    //     });
+    //   });
+
+    //   it('returns ciphertext as a Uint8Array', async () => {
+    //     const ciphertext = await aesCtr.encrypt({
+    //       algorithm: {
+    //         name    : 'AES-CTR',
+    //         counter : new Uint8Array(16),
+    //         length  : 128
+    //       },
+    //       key  : secretCryptoKey,
+    //       data : new Uint8Array([1, 2, 3, 4])
+    //     });
+
+    //     expect(ciphertext).to.be.instanceOf(Uint8Array);
+    //     expect(ciphertext.byteLength).to.equal(4);
+    //   });
+
+    //   it('returns ciphertext given plaintext', async () => {
+    //     let secretCryptoKey: Web5Crypto.CryptoKey;
+    //     for (const vector of aesCtrTestVectors) {
+    //       secretCryptoKey = new CryptoKey(
+    //         { name: 'AES-CTR', length: 128 },
+    //         false,
+    //         Convert.hex(vector.key).toUint8Array(),
+    //         'secret',
+    //         ['encrypt', 'decrypt']
+    //       );
+    //       const ciphertext = await aesCtr.encrypt({
+    //         algorithm: {
+    //           name    : 'AES-CTR',
+    //           counter : Convert.hex(vector.counter).toUint8Array(),
+    //           length  : vector.length
+    //         },
+    //         key  : secretCryptoKey,
+    //         data : Convert.hex(vector.data).toUint8Array()
+    //       });
+    //       expect(Convert.uint8Array(ciphertext).toHex()).to.deep.equal(vector.ciphertext);
+    //     }
+    //   });
+
+    //   it('validates algorithm, counter, and length', async () => {
+    //     const secretCryptoKey: Web5Crypto.CryptoKey = new CryptoKey(
+    //       { name: 'AES-CTR', length: 128 },
+    //       false,
+    //       new Uint8Array(16),
+    //       'secret',
+    //       ['encrypt', 'decrypt']
+    //     );
+
+    //     // Invalid (algorithm name, counter, length) result in algorithm name check failing first.
+    //     await expect(aesCtr.encrypt({
+    //       algorithm : { name: 'foo', counter: new Uint8Array(64), length: 512 },
+    //       key       : secretCryptoKey,
+    //       data      : new Uint8Array([1, 2, 3, 4])
+    //     })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
+
+    //     // Valid (algorithm name) + Invalid (counter, length) result counter check failing first.
+    //     await expect(aesCtr.encrypt({
+    //       algorithm : { name: 'AES-CTR', counter: new Uint8Array(64), length: 512 },
+    //       key       : secretCryptoKey,
+    //       data      : new Uint8Array([1, 2, 3, 4])
+    //     })).to.eventually.be.rejectedWith(OperationError, `'counter' must have length`);
+
+    //     // Valid (algorithm name, counter) + Invalid (length) result length check failing first.
+    //     await expect(aesCtr.encrypt({
+    //       algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 512 },
+    //       key       : secretCryptoKey,
+    //       data      : new Uint8Array([1, 2, 3, 4])
+    //     })).to.eventually.be.rejectedWith(OperationError, `'length' should be in the range`);
+    //   });
+
+    //   it(`validates that key usage is 'encrypt'`, async () => {
+    //     // Manually specify the secret key usages to exclude the 'encrypt' operation.
+    //     secretCryptoKey.usages = ['decrypt'];
+
+    //     await expect(aesCtr.encrypt({
+    //       algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 128 },
+    //       key       : secretCryptoKey,
+    //       data      : new Uint8Array([1, 2, 3, 4])
+    //     })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
+    //   });
+    // });
+
+    // describe('generateKey()', () => {
+    //   it('returns a secret key', async () => {
+    //     const key = await aesCtr.generateKey({
+    //       algorithm   : { name: 'AES-CTR', length: 128 },
+    //       extractable : false,
+    //       keyUsages   : ['encrypt', 'decrypt']
+    //     });
+
+    //     expect(key.algorithm.name).to.equal('AES-CTR');
+    //     expect(key.usages).to.deep.equal(['encrypt', 'decrypt', 'wrapKey', 'unwrapKey']);
+    //     expect(key.material.byteLength).to.equal(128 / 8);
+    //   });
+
+    //   it('secret key is selectively extractable', async () => {
+    //     let key: CryptoKey;
+    //     // key is NOT extractable if generateKey() called with extractable = false
+    //     key = await aesCtr.generateKey({
+    //       algorithm   : { name: 'AES-CTR', length: 128 },
+    //       extractable : false,
+    //       keyUsages   : ['encrypt', 'decrypt']
+    //     });
+    //     expect(key.extractable).to.be.false;
+
+    //     // key is extractable if generateKey() called with extractable = true
+    //     key = await aesCtr.generateKey({
+    //       algorithm   : { name: 'AES-CTR', length: 128 },
+    //       extractable : true,
+    //       keyUsages   : ['encrypt', 'decrypt']
+    //     });
+    //     expect(key.extractable).to.be.true;
+    //   });
+
+    //   it(`supports 'encrypt', 'decrypt', 'wrapKey', and/or 'unWrapKey' key usages`, async () => {
+    //     const operations = ['encrypt', 'decrypt', 'wrapKey', 'unwrapKey'];
+    //     for (const operation of operations) {
+    //       await expect(aesCtr.generateKey({
+    //         algorithm   : { name: 'AES-CTR', length: 128 },
+    //         extractable : true,
+    //         keyUsages   : [operation as KeyUsage]
+    //       })).to.eventually.be.fulfilled;
+    //     }
+    //   });
+
+    //   it('validates algorithm, length, and key usages', async () => {
+    //     // Invalid (algorithm name, length, and key usages) result in algorithm name check failing first.
+    //     await expect(aesCtr.generateKey({
+    //       algorithm   : { name: 'foo', length: 512 },
+    //       extractable : false,
+    //       keyUsages   : ['sign']
+    //     })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
+
+    //     // Valid (algorithm name) + Invalid (length, key usages) result length check failing first.
+    //     await expect(aesCtr.generateKey({
+    //       algorithm   : { name: 'AES-CTR', length: 512 },
+    //       extractable : false,
+    //       keyUsages   : ['sign']
+    //     })).to.eventually.be.rejectedWith(OperationError, `'length' must be 128, 192, or 256`);
+
+    //     // Valid (algorithm name, length) + Invalid (key usages) result key usages check failing first.
+    //     await expect(aesCtr.generateKey({
+    //       algorithm   : { name: 'AES-CTR', length: 256 },
+    //       extractable : false,
+    //       keyUsages   : ['sign']
+    //     })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation');
+    //   });
+
+    //   it(`should throw an error if 'AES-CTR' key generation fails`, async function() {
+    //     // @ts-ignore because the method is being intentionally stubbed to return null.
+    //     const aesCtrStub = sinon.stub(AesCtr, 'generateKey').returns(Promise.resolve(null));
+
+    //     try {
+    //       await aesCtr.generateKey({
+    //         algorithm   : { name: 'AES-CTR', length: 128 },
+    //         extractable : false,
+    //         keyUsages   : ['encrypt', 'decrypt']
+    //       });
+    //       aesCtrStub.restore();
+    //       expect.fail('Expect generateKey() to throw an error');
+    //     } catch (error) {
+    //       aesCtrStub.restore();
+    //       expect(error).to.be.an('error');
+    //       expect((error as Error).message).to.equal('Operation failed to generate key.');
+    //     }
+    //   });
+    // });
+  });
+
+  describe('XChaCha20Poly1305Algorithm', () => {
+    let xChaCha20Poly1305: XChaCha20Poly1305Algorithm;
+
+    before(() => {
+      xChaCha20Poly1305 = XChaCha20Poly1305Algorithm.create();
+    });
+
+    describe('decrypt()', () => {
+      let secretCryptoKey: Web5Crypto.CryptoKey;
+
+      beforeEach(async () => {
+        secretCryptoKey = await xChaCha20Poly1305.generateKey({
+          algorithm   : { name: 'XCHACHA20-POLY1305' },
+          extractable : false,
+          keyUsages   : ['encrypt', 'decrypt']
+        });
+      });
+
+      it('returns plaintext as a Uint8Array', async () => {
+        const ciphertext = Convert.hex('789e9689e5208d7fd9e1').toUint8Array();
+        const tag = Convert.hex('09701fb9f36ab77a0f136ca539229a34').toUint8Array();
+        const ciphertextAndTag = new Uint8Array([...ciphertext, ...tag]);
+
+        secretCryptoKey = {
+          ...secretCryptoKey,
+          material: new Uint8Array(32)
+        };
+
+        const plaintext = await xChaCha20Poly1305.decrypt({
+          algorithm: {
+            name  : 'XCHACHA20-POLY1305',
+            nonce : new Uint8Array(24)
+          },
+          key  : secretCryptoKey,
+          data : ciphertextAndTag
+        });
+
+        expect(plaintext).to.be.instanceOf(Uint8Array);
+        expect(plaintext.byteLength).to.equal(10);
+      });
+
+      it('returns plaintext given ciphertext', async () => {
+        const ciphertext = Convert.hex('80246ca517c0fb5860c19090a7e7a2b030dde4882520102cbc64fad937916596ca9d').toUint8Array();
+        const tag = Convert.hex('9e10a121d990e6a290f6b534516aa32f').toUint8Array();
+        const ciphertextAndTag = new Uint8Array([...ciphertext, ...tag]);
+
+        const input = {
+          data  : ciphertextAndTag,
+          key   : Convert.hex('79c99798ac67300bbb2704c95c341e3245f3dcb21761b98e52ff45b24f304fc4').toUint8Array(),
+          nonce : Convert.hex('b33ffd3096479bcfbc9aee49417688a0a2554f8d95389419').toUint8Array(),
+        };
+        const output = Convert.string(`Are You There Bob? It's Me, Alice.`).toUint8Array();
+
+        let secretCryptoKey = new CryptoKey(
+          { name: 'XCHACHA20-POLY1305' },
+          false,
+          input.key,
+          'secret',
+          ['encrypt', 'decrypt']
+        );
+        const plaintext = await xChaCha20Poly1305.decrypt({
+          algorithm: {
+            name  : 'XCHACHA20-POLY1305',
+            nonce : input.nonce
+          },
+          key  : secretCryptoKey,
+          data : input.data
+        });
+        expect(plaintext).to.deep.equal(output);
+      });
+
+      //   it('validates algorithm, counter, and length', async () => {
+      //     const secretCryptoKey: Web5Crypto.CryptoKey = new CryptoKey(
+      //       { name: 'AES-CTR', length: 128 },
+      //       false,
+      //       new Uint8Array(16),
+      //       'secret',
+      //       ['encrypt', 'decrypt']
+      //     );
+
+      //     // Invalid (algorithm name, counter, length) result in algorithm name check failing first.
+      //     await expect(aesCtr.decrypt({
+      //       algorithm : { name: 'foo', counter: new Uint8Array(64), length: 512 },
+      //       key       : secretCryptoKey,
+      //       data      : new Uint8Array([1, 2, 3, 4])
+      //     })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
+
+      //     // Valid (algorithm name) + Invalid (counter, length) result counter check failing first.
+      //     await expect(aesCtr.decrypt({
+      //       algorithm : { name: 'AES-CTR', counter: new Uint8Array(64), length: 512 },
+      //       key       : secretCryptoKey,
+      //       data      : new Uint8Array([1, 2, 3, 4])
+      //     })).to.eventually.be.rejectedWith(OperationError, `'counter' must have length`);
+
+      //     // Valid (algorithm name, counter) + Invalid (length) result length check failing first.
+      //     await expect(aesCtr.decrypt({
+      //       algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 512 },
+      //       key       : secretCryptoKey,
+      //       data      : new Uint8Array([1, 2, 3, 4])
+      //     })).to.eventually.be.rejectedWith(OperationError, `'length' should be in the range`);
+      //   });
+
+      //   it(`validates that key usage is 'decrypt'`, async () => {
+      //     // Manually specify the secret key usages to exclude the 'decrypt' operation.
+      //     secretCryptoKey.usages = ['encrypt'];
+
+    //     await expect(aesCtr.decrypt({
+    //       algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 128 },
+    //       key       : secretCryptoKey,
+    //       data      : new Uint8Array([1, 2, 3, 4])
+    //     })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
+    //   });
+    });
+
+    // describe('encrypt()', () => {
+    //   let secretCryptoKey: Web5Crypto.CryptoKey;
+
+    //   before(async () => {
+    //     secretCryptoKey = await aesCtr.generateKey({
+    //       algorithm   : { name: 'AES-CTR', length: 128 },
+    //       extractable : false,
+    //       keyUsages   : ['encrypt', 'decrypt']
+    //     });
+    //   });
+
+    //   it('returns ciphertext as a Uint8Array', async () => {
+    //     const ciphertext = await aesCtr.encrypt({
+    //       algorithm: {
+    //         name    : 'AES-CTR',
+    //         counter : new Uint8Array(16),
+    //         length  : 128
+    //       },
+    //       key  : secretCryptoKey,
+    //       data : new Uint8Array([1, 2, 3, 4])
+    //     });
+
+    //     expect(ciphertext).to.be.instanceOf(Uint8Array);
+    //     expect(ciphertext.byteLength).to.equal(4);
+    //   });
+
+    //   it('returns ciphertext given plaintext', async () => {
+    //     let secretCryptoKey: Web5Crypto.CryptoKey;
+    //     for (const vector of aesCtrTestVectors) {
+    //       secretCryptoKey = new CryptoKey(
+    //         { name: 'AES-CTR', length: 128 },
+    //         false,
+    //         Convert.hex(vector.key).toUint8Array(),
+    //         'secret',
+    //         ['encrypt', 'decrypt']
+    //       );
+    //       const ciphertext = await aesCtr.encrypt({
+    //         algorithm: {
+    //           name    : 'AES-CTR',
+    //           counter : Convert.hex(vector.counter).toUint8Array(),
+    //           length  : vector.length
+    //         },
+    //         key  : secretCryptoKey,
+    //         data : Convert.hex(vector.data).toUint8Array()
+    //       });
+    //       expect(Convert.uint8Array(ciphertext).toHex()).to.deep.equal(vector.ciphertext);
+    //     }
+    //   });
+
+    //   it('validates algorithm, counter, and length', async () => {
+    //     const secretCryptoKey: Web5Crypto.CryptoKey = new CryptoKey(
+    //       { name: 'AES-CTR', length: 128 },
+    //       false,
+    //       new Uint8Array(16),
+    //       'secret',
+    //       ['encrypt', 'decrypt']
+    //     );
+
+    //     // Invalid (algorithm name, counter, length) result in algorithm name check failing first.
+    //     await expect(aesCtr.encrypt({
+    //       algorithm : { name: 'foo', counter: new Uint8Array(64), length: 512 },
+    //       key       : secretCryptoKey,
+    //       data      : new Uint8Array([1, 2, 3, 4])
+    //     })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
+
+    //     // Valid (algorithm name) + Invalid (counter, length) result counter check failing first.
+    //     await expect(aesCtr.encrypt({
+    //       algorithm : { name: 'AES-CTR', counter: new Uint8Array(64), length: 512 },
+    //       key       : secretCryptoKey,
+    //       data      : new Uint8Array([1, 2, 3, 4])
+    //     })).to.eventually.be.rejectedWith(OperationError, `'counter' must have length`);
+
+    //     // Valid (algorithm name, counter) + Invalid (length) result length check failing first.
+    //     await expect(aesCtr.encrypt({
+    //       algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 512 },
+    //       key       : secretCryptoKey,
+    //       data      : new Uint8Array([1, 2, 3, 4])
+    //     })).to.eventually.be.rejectedWith(OperationError, `'length' should be in the range`);
+    //   });
+
+    //   it(`validates that key usage is 'encrypt'`, async () => {
+    //     // Manually specify the secret key usages to exclude the 'encrypt' operation.
+    //     secretCryptoKey.usages = ['decrypt'];
+
+    //     await expect(aesCtr.encrypt({
+    //       algorithm : { name: 'AES-CTR', counter: new Uint8Array(16), length: 128 },
+    //       key       : secretCryptoKey,
+    //       data      : new Uint8Array([1, 2, 3, 4])
+    //     })).to.eventually.be.rejectedWith(InvalidAccessError, 'is not valid for the provided key');
+    //   });
+    // });
+
+    // describe('generateKey()', () => {
+    //   it('returns a secret key', async () => {
+    //     const key = await aesCtr.generateKey({
+    //       algorithm   : { name: 'AES-CTR', length: 128 },
+    //       extractable : false,
+    //       keyUsages   : ['encrypt', 'decrypt']
+    //     });
+
+    //     expect(key.algorithm.name).to.equal('AES-CTR');
+    //     expect(key.usages).to.deep.equal(['encrypt', 'decrypt', 'wrapKey', 'unwrapKey']);
+    //     expect(key.material.byteLength).to.equal(128 / 8);
+    //   });
+
+    //   it('secret key is selectively extractable', async () => {
+    //     let key: CryptoKey;
+    //     // key is NOT extractable if generateKey() called with extractable = false
+    //     key = await aesCtr.generateKey({
+    //       algorithm   : { name: 'AES-CTR', length: 128 },
+    //       extractable : false,
+    //       keyUsages   : ['encrypt', 'decrypt']
+    //     });
+    //     expect(key.extractable).to.be.false;
+
+    //     // key is extractable if generateKey() called with extractable = true
+    //     key = await aesCtr.generateKey({
+    //       algorithm   : { name: 'AES-CTR', length: 128 },
+    //       extractable : true,
+    //       keyUsages   : ['encrypt', 'decrypt']
+    //     });
+    //     expect(key.extractable).to.be.true;
+    //   });
+
+    //   it(`supports 'encrypt', 'decrypt', 'wrapKey', and/or 'unWrapKey' key usages`, async () => {
+    //     const operations = ['encrypt', 'decrypt', 'wrapKey', 'unwrapKey'];
+    //     for (const operation of operations) {
+    //       await expect(aesCtr.generateKey({
+    //         algorithm   : { name: 'AES-CTR', length: 128 },
+    //         extractable : true,
+    //         keyUsages   : [operation as KeyUsage]
+    //       })).to.eventually.be.fulfilled;
+    //     }
+    //   });
+
+    //   it('validates algorithm, length, and key usages', async () => {
+    //     // Invalid (algorithm name, length, and key usages) result in algorithm name check failing first.
+    //     await expect(aesCtr.generateKey({
+    //       algorithm   : { name: 'foo', length: 512 },
+    //       extractable : false,
+    //       keyUsages   : ['sign']
+    //     })).to.eventually.be.rejectedWith(NotSupportedError, 'Algorithm not supported');
+
+    //     // Valid (algorithm name) + Invalid (length, key usages) result length check failing first.
+    //     await expect(aesCtr.generateKey({
+    //       algorithm   : { name: 'AES-CTR', length: 512 },
+    //       extractable : false,
+    //       keyUsages   : ['sign']
+    //     })).to.eventually.be.rejectedWith(OperationError, `'length' must be 128, 192, or 256`);
+
+    //     // Valid (algorithm name, length) + Invalid (key usages) result key usages check failing first.
+    //     await expect(aesCtr.generateKey({
+    //       algorithm   : { name: 'AES-CTR', length: 256 },
+    //       extractable : false,
+    //       keyUsages   : ['sign']
+    //     })).to.eventually.be.rejectedWith(InvalidAccessError, 'Requested operation');
+    //   });
+
+    //   it(`should throw an error if 'AES-CTR' key generation fails`, async function() {
+    //     // @ts-ignore because the method is being intentionally stubbed to return null.
+    //     const aesCtrStub = sinon.stub(AesCtr, 'generateKey').returns(Promise.resolve(null));
+
+    //     try {
+    //       await aesCtr.generateKey({
+    //         algorithm   : { name: 'AES-CTR', length: 128 },
+    //         extractable : false,
+    //         keyUsages   : ['encrypt', 'decrypt']
+    //       });
+    //       aesCtrStub.restore();
+    //       expect.fail('Expect generateKey() to throw an error');
+    //     } catch (error) {
+    //       aesCtrStub.restore();
+    //       expect(error).to.be.an('error');
+    //       expect((error as Error).message).to.equal('Operation failed to generate key.');
+    //     }
+    //   });
+    // });
   });
 });

@@ -34,7 +34,8 @@ import {
   MessageStoreLevel,
 } from '@tbd54566975/dwn-sdk-js';
 
-import type { DwnRpcRequest, DwnResponse,ProcessDwnRequest, SendDwnRequest, Web5ManagedAgent } from './types/agent.js';
+import type { DwnRpcRequest } from './rpc-client.js';
+import type { DwnResponse,ProcessDwnRequest, SendDwnRequest, Web5ManagedAgent } from './types/agent.js';
 
 import { isManagedKeyPair } from './utils.js';
 import { blobToIsomorphicNodeReadable, webReadableToIsomorphicNodeReadable } from './utils.js';

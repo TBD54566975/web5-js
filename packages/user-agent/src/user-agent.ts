@@ -1,5 +1,5 @@
 import type {
-  DwnRpc,
+  Web5Rpc,
   VcResponse,
   DidResponse,
   DwnResponse,
@@ -41,7 +41,7 @@ export type Web5UserAgentOptions = {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
-  rpcClient: DwnRpc;
+  rpcClient: Web5Rpc;
   syncManager: SyncManager;
 }
 
@@ -53,7 +53,7 @@ export class Web5UserAgent implements Web5ManagedAgent {
   dwnManager: DwnManager;
   identityManager: IdentityManager;
   keyManager: KeyManager;
-  rpcClient: DwnRpc;
+  rpcClient: Web5Rpc;
   syncManager: SyncManager;
 
   constructor(options: Web5UserAgentOptions) {

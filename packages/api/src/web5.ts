@@ -42,10 +42,10 @@ export type Web5ConnectOptions = {
   techPreview?: TechPreviewOptions;
 
   appDid?: string;
-  connectRelay?: string;
+  connectEndpoint?: string;
   origin?: string;
   passphrase?: string;
-  permissionsRequests?: string;
+  permissionsRequests?: Record<string, unknown>[];
 }
 
 /**
@@ -153,7 +153,8 @@ type Web5Options = {
 // }
 
 
-import { ConnectProtocol, EventEmitter, EventListener } from '@web5/agent';
+import type { ConnectState } from '@web5/agent';
+import { ConnectPhase, ConnectProtocol, EventEmitter } from '@web5/agent';
 
 
 export class Web5 {
@@ -176,24 +177,12 @@ export class Web5 {
   }
 
   static async connect({
-    agent, appData, appDid, connectRelay, origin, passphrase, permissionsRequests, sync, techPreview
+    agent, appData, appDid, connectEndpoint, origin, passphrase, permissionsRequests, sync, techPreview
   }: Web5ConnectOptions): Promise<{ web5: Web5 }> {
     if (agent === undefined) {
       // A custom Web5Agent implementation was not specified, so use a default managed user agent.
       const userAgent = await Web5UserAgent.create({ appData });
       agent = userAgent;
-
-      // Warn the developer and application user of the security risks of using a static passphrase.
-      if (passphrase === undefined) {
-        passphrase = 'insecure-static-phrase';
-        console.warn(
-          '%cSECURITY WARNING:%c' +
-          'You are using a static, insecure passphrase. ' +
-          'Please change it to a value chosen by the application user.',
-          'font-weight: bold; color: red;',
-          'font-weight: normal; color: inherit;'
-        );
-      }
 
       // Start the agent using the specified passphrase or a static default.
       await userAgent.start({ passphrase });
@@ -219,9 +208,17 @@ export class Web5 {
           }, 200);
         }
 
-        /** If there no authorized sessions, prompt the user to Connect to an Identity Provider or
-         * fallback to a local Identity. */
-        const useLocalIdentity = createLocalIdentity(web5);
+        /** If there are no authorized sessions, prompt the user to Connect to an Identity Provider
+         * or create a local Identity. */
+        const dataStore = new LevelStore('DATA/AGENT/TEMP_CONNECT'); // ! TODO: Replace with AppDataStore.
+        const connectToIdentityProvider = initiateConnectProtocol({
+          connectEndpoint,
+          dataStore,
+          origin: web5.origin,
+          permissionsRequests,
+          web5
+        });
+        const useLocalIdentity = createLocalIdentity({ techPreview, web5 });
         web5.session.emit('chooseIdentitySource', { connectToIdentityProvider, useLocalIdentity });
       });
 
@@ -239,14 +236,6 @@ export class Web5 {
 
     // web5.session.clear();
 
-    // const connectInitiator = await ConnectProtocol.createInitiator({
-    //   appData             : appData,
-    //   connectRelay        : connectRelay,
-    //   origin              : web5.origin,
-    //   permissionsRequests : permissionsRequests,
-    //   rpcClient           : web5.agent.rpcClient
-    // });
-
     return {
       web5
     };
@@ -258,39 +247,117 @@ export class Web5 {
     this.did = new DidApi({ agent: this.agent, connectedDid: did });
     this.dwn = new DwnApi({ agent: this.agent, connectedDid: did });
     this.vc = new VcApi({ agent: this.agent, connectedDid: did });
-
-    this.session.emit('authorized', { appDid: did });
   }
 }
 
 
 
-const connectToIdentityProvider = async () => {
-  console.log('Connecting to IDP');
+
+const initiateConnectProtocol = ({ connectEndpoint, dataStore, origin, permissionsRequests, web5 }: {
+  connectEndpoint: string,
+  dataStore: KeyValueStore<string, string>,
+  origin: string,
+  permissionsRequests: Record<string, unknown>[],
+  web5: Web5
+}): () => Promise<void> => {
+  return async function () {
+    console.log('Connecting to IDP');
+
+    // First attempt to restore the Connect Protocol state from local storage.
+    let connectState: { phase: ConnectPhase, handshakeState: HandshakeState } | undefined;
+    try {
+      connectState = JSON.parse(await dataStore.get('connectState'));
+      console.log('Restored Connect Protocol state from local storage.');
+    } catch (error) {
+      if (error.notFound) { /* Do not throw error if key could not be found. */ }
+    }
+
+    // Create a new Connect Protocol instance, restoring the prior state, if any.
+    const connect = new ConnectProtocol({ ...connectState });
+
+    // Initiate the Connect Protocol process.
+    const client = await connect.createClient({
+      connectEndpoint,
+      origin,
+      delegationGrantRequest: { permissionsRequests }
+    });
+
+    // Listen for 'checkpoint' events emitted by the Connect Protocol client.
+    client.on('checkpoint', async ({ handshakeState, phase }) => {
+      console.log('got checkpoint in web5');
+      await dataStore.set('connectState', JSON.stringify({ handshakeState, phase}));
+    });
+
+    // Listen for 'connectLink' events emitted by the Connect Protocol client.
+    client.on('connectLink', async ({ connectLink }) => {
+      console.log('got connect link in web5');
+      /** If the Identity Provider is directly connected on localhost,
+           * trigger the app registered to handle the `web5://` URL scheme. */
+      // ! TODO: Implement triggering the custom URL scheme handler.
+
+      // Store the Connect Link in the data store.
+      // ! TODO: Update the local connect state with the Connect Link.
+
+      // Emit a 'connectLink' event to signal to the application that the Connect Link is ready.
+      web5.session.emit('connectLink', { connectLink });
+    });
+
+    // Listen for 'challenge' events emitted by the Connect Protocol client.
+    client.on('challenge', async ({ validatePin }) => {
+      web5.session.emit('challenge', { validatePin });
+    });
+
+    // Listen for 'connected' events emitted by the Connect Protocol client.
+    client.on('connected', async ({ grants }) => {
+      web5.session.emit('connected', { grants });
+      console.log('Cleaning up Connect Protocol state.');
+      await dataStore.clear();
+    });
+
+    // Listen for 'done' events emitted by the Connect Protocol client.
+    client.on('done', async () => {
+      web5.session.emit('done', undefined);
+      console.log('Cleaning up Connect Protocol state.');
+      await dataStore.clear();
+    });
+  };
 };
 
-export const createLocalIdentity = (web5: Web5): () => Promise<void> => {
+export const createLocalIdentity = ({ techPreview, web5 }: {
+  techPreview: TechPreviewOptions,
+  web5: Web5
+}): () => Promise<void> => {
   return async function () {
-    // // Use the specified DWN endpoints or get default tech preview hosted nodes.
-    // const serviceEndpointNodes = techPreview?.dwnEndpoints ?? await getTechPreviewDwnEndpoints();
+    // Use the specified DWN endpoints or get default tech preview hosted nodes.
+    const serviceEndpointNodes = techPreview?.dwnEndpoints ?? await getTechPreviewDwnEndpoints();
 
-    // // Generate ION DID service and key set.
-    // const didOptions = await DidIonMethod.generateDwnOptions({ serviceEndpointNodes });
+    // Generate ION DID service and key set.
+    const didOptions = await DidIonMethod.generateDwnOptions({ serviceEndpointNodes });
 
-    // // Generate a new Identity for the end-user.
-    // const identity = await userAgent.identityManager.create({
-    //   name      : 'Default',
-    //   didMethod : 'ion',
-    //   didOptions,
-    //   kms       : 'local'
-    // });
+    // Generate a new Identity for the end-user.
+    const identity = await (web5.agent as Web5ManagedAgent).identityManager.create({
+      name       : 'Default',
+      didMethod  : 'ion',
+      didOptions : didOptions,
+      kms        : 'local'
+    });
 
-    // /** Import the Identity metadata to the User Agent's tenant so that it can be restored
-    //   * on subsequent launches or page reloads. */
-    // await userAgent.identityManager.import({ identity, context: userAgent.agentDid });
+    /** Import the Identity metadata to the User Agent's tenant so that it can be restored
+      * on subsequent launches or page reloads. */
+    await (web5.agent as Web5ManagedAgent).identityManager.import({
+      identity : identity,
+      context  : (web5.agent as Web5ManagedAgent).agentDid
+    });
 
-    // // Set the newly created identity as the App DID.
-    // web5.setAppDid({ did: identity.did });
+    // Create a new authorized session for the newly created Identity.
+    await web5.session.initialize({ did: identity.did });
+    await web5.session.authorize({ did: identity.did });
+
+    // Set the newly created identity as the App DID.
+    web5.setAppDid({ did: identity.did });
+
+    // Emit an 'authorized' event to signal to the application that the session is ready.
+    web5.session.emit('authorized', { appDid: identity.did });
   };
 };
 
@@ -324,18 +391,43 @@ export type Session = {
 
 
 export interface SessionEvents {
-  // 'challenge': { validatePin: (pin: string) => Promise<void>; };
-  'authorized': { appDid: string; };
+  'authorized': {
+    appDid: string;
+  };
+
   'chooseIdentity': {
     identities: string[];
     useIdentity: ({ did }: { did: string }) => void;
   };
+
   'chooseIdentitySource': {
-    connectToIdentityProvider: () => void;
-    useLocalIdentity: () => Promise<void>;
+    connectToIdentityProvider: ({ web5 }: {
+      web5: Web5
+    }) => Promise<void>;
+
+    useLocalIdentity: ({ techPreview, web5 }: {
+      techPreview: TechPreviewOptions,
+      web5: Web5
+    }) => Promise<void>;
   };
-  // 'connected': { appDid: string; };
-  // 'done': undefined;
+
+  'connectLink': {
+    connectLink: string;
+  }
+
+  'challenge': {
+    validatePin: ({ pin }: { pin: string }) => Promise<void>;
+  };
+
+  'connected': {
+    grants: AuthorizationResponse[];
+  };
+
+  'error': {
+    message: string
+  };
+
+  'done': undefined;
 }
 
 /**
@@ -482,10 +574,12 @@ export class SessionApi extends EventEmitter<SessionEvents> {
 }
 
 
-import type { RequireOnly } from '@web5/common';
+import type { KeyValueStore, RequireOnly } from '@web5/common';
+import type { ConnectProvider, HandshakeState } from '@web5/agent';
 
 import { Level } from 'level';
-
+import { LevelStore } from '@web5/common';
+import { AuthorizationResponse } from '@web5/agent';
 
 
 

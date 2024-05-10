@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web5 Profile Creation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // On page load or when changing themes, best to add inline in `head` to avoid FOUC
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+
+    // Whenever the user explicitly chooses light mode
+    localStorage.theme = 'light'
+
+    // Whenever the user explicitly chooses dark mode
+    localStorage.theme = 'dark'
+
+    // Whenever the user explicitly chooses to respect the OS preference
+    localStorage.removeItem('theme')
+  </script>
+</head>
+
+<body class="bg-slate-200 dark:bg-slate-800">
+
+  <div class="screen mx-auto mt-20 p-6 bg-white dark:bg-gray-900 rounded-xl shadow-md max-w-sm hidden"
+    id="landing_page">
+    <div class="text-4xl text-gray-600 dark:text-gray-200 mb-8 font-bold">Web App</div>
+
+    <button id="local_identity_button" class="w-full py-3 bg-blue-600 text-white rounded-lg mb-3">Create a new
+      profile</button>
+    <p class="text-center mt-4 mb-1 text-gray-600 dark:text-gray-200 font-bold ">Already have a Web5 Wallet?</p>
+    <button id="identity_provider_button" class="w-full py-3 border-2 border-blue-600 text-blue-600 rounded-lg">
+      Sign in with your digital wallet
+    </button>
+  </div>
+
+  <div class="screen mx-auto mt-20 p-6 bg-white dark:bg-gray-900 rounded-xl shadow-md max-w-sm hidden"
+    id="ida_connect_link">
+    <div class="flex flex-row">
+      <div class="flex-grow text-xl mb-4 text-gray-600 dark:text-gray-200 font-bold">Let's Get Connected</div>
+      <button id="close_ida_connect_link" type="button" class="flex-shrink-0 flex">
+        <svg role="presentation" viewBox="0 0 24 24" fill="none" class="h-6 w-6">
+          <path d="M5 5L19 19" stroke="#4C5165" stroke-width="1.5" stroke-linecap="round"></path>
+          <path d="M19 5L5 19" stroke="#4C5165" stroke-width="1.5" stroke-linecap="round"></path>
+        </svg></button>
+    </div>
+
+    <div class="flex flex-row">
+      <!-- First column -->
+      <div class="ml-4 flex-shrink-0 flex items-center">
+        <svg class="w-6 h-6 overflow-hidden fill-gray-400 dark:fill-gray-300" viewBox="0 0 1024 1024" version="1.1"
+          xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M924.845211 546.435277l-825.859267 0c-19.015076 0-34.444487-15.429411-34.444487-34.435277 0-19.015076 15.429411-34.44551 34.444487-34.44551l825.859267 0c19.042705 0 34.44551 15.430434 34.44551 34.44551C959.285604 531.005866 943.888939 546.435277 924.845211 546.435277L924.845211 546.435277 924.845211 546.435277zM856.400353 959.723068 649.761062 959.723068c-19.041682 0-34.43937-15.402805-34.43937-34.444487 0-19.044752 15.397688-34.44244 34.43937-34.44244l206.639291 0c19.010983 0 34.441417-15.429411 34.441417-34.434254L890.841769 684.197874c0-19.042705 15.391549-34.440393 34.44551-34.440393 19.042705 0 34.43016 15.397688 34.43016 34.440393l0 172.20299C959.721533 913.360134 913.363715 959.723068 856.400353 959.723068L856.400353 959.723068 856.400353 959.723068zM339.801615 959.723068 167.597601 959.723068c-56.957223 0-103.317087-46.363957-103.317087-103.322204L64.280514 684.197874c0-19.042705 15.431457-34.440393 34.4363-34.440393 19.015076 0 34.444487 15.397688 34.444487 34.440393l0 172.20299c0 19.004843 15.461133 34.434254 34.4363 34.434254l172.198897 0c19.015076 0 34.44551 15.397688 34.44551 34.44244C374.242008 944.321286 358.811574 959.723068 339.801615 959.723068L339.801615 959.723068 339.801615 959.723068zM98.721931 374.232287c-19.009959 0-34.4363-15.425318-34.4363-34.435277L64.28563 167.598112c0-56.969503 46.354747-103.322204 103.31197-103.322204l172.198897 0c19.015076 0 34.44551 15.430434 34.44551 34.43937 0 19.005866-15.430434 34.435277-34.44551 34.435277L167.597601 133.150556c-18.975167 0-34.4363 15.464203-34.4363 34.446533l0 172.197874C133.161301 358.806969 117.73189 374.232287 98.721931 374.232287L98.721931 374.232287 98.721931 374.232287zM925.287279 374.232287c-19.053961 0-34.44551-15.425318-34.44551-34.435277L890.841769 167.598112c0-18.978237-15.425318-34.446533-34.441417-34.446533L649.761062 133.151579c-19.041682 0-34.43937-15.429411-34.43937-34.435277 0-19.008936 15.397688-34.43937 34.43937-34.43937l206.639291 0c56.963363 0 103.31811 46.352701 103.31811 103.322204l0 172.197874C959.721533 358.806969 944.329984 374.232287 925.287279 374.232287L925.287279 374.232287 925.287279 374.232287zM925.287279 374.232287" />
+        </svg>
+      </div>
+      <!-- Second column -->
+      <div class="flex-grow ml-4 mr-4 text-left text-gray-500 dark:text-gray-200">
+        Open your Web5 Wallet and scan the QR code to connect.
+      </div>
+    </div>
+
+    <div class="flex justify-center">
+      <div
+        class="w-[180px] h-[180px] bg-white rounded-lg shadow-xl border border-[rgba(29, 29, 29, 0.08)] my-10 relative">
+        <div id="qrcode_loading_spinner"
+          class="absolute rounded-lg w-full h-full flex justify-center z-10 border border-gray-100">
+          <div class="flex flex-col justify-center space-y-4">
+            <svg class="animate-spin h-20 w-20 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+              viewBox="0 0 24 24">
+              <circle class="opacity-10" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-50" fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+              </path>
+            </svg>
+          </div>
+        </div>
+        <div class="hidden absolute backdrop-brightness-50 rounded-lg w-full h-full flex justify-center z-10">
+          <div class="flex flex-col justify-center space-y-4">
+            <p class="font-bold text-white text-center drop-shadow-[0_0px_5px_rgba(0,0,0,0.9)] pointer-events-none">Code
+              Expired</p>
+            <button
+              class="flex items-center justify-center w-full px-4 py-2 space-x-2 transition-colors duration-300 transform border rounded-full text-gray-800 border-none bg-gray-200 hover:bg-gray-300 focus:outline-none">
+              <svg class="w-5 h-5" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"
+                fill="currentColor">
+                <path
+                  d="M512 170.656c-188.512 0-341.344 152.832-341.344 341.344S323.488 853.344 512 853.344c94.272 0 179.552-38.144 241.344-99.968a42.656 42.656 0 1160.352 60.352A425.504 425.504 0 01512 938.688c-235.648 0-426.656-191.04-426.656-426.656S276.384 85.376 512 85.376c117.824 0 224.544 47.808 301.696 124.96A1499.84 1499.84 0 01853.344 252l-53.248 68.128s-29.888-32.608-46.72-49.44a340.128 340.128 0 00-241.344-99.968z">
+                </path>
+                <path
+                  d="M896 128c23.552 0 42.656 19.104 42.656 42.656v192c0 23.552-19.104 42.656-42.656 42.656H704A42.656 42.656 0 01704 320l96.064.096 53.248-68.128v-81.312c0-23.552 19.104-42.656 42.656-42.656z">
+                </path>
+              </svg>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+        <div id="qrcode_connect_link" class="opacity-0 transition-opacity p-5"></div>
+      </div>
+    </div>
+
+    <div>
+      <button id="copy_qr_code_button" type="button"
+        class="opacity-0 transition-opacity flex items-center justify-center w-full px-4 py-2 space-x-2 transition-colors duration-300 transform border rounded-lg text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-600 border-none dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
+          </path>
+        </svg>
+        <span>Copy QR Code</span>
+      </button>
+    </div>
+
+    <div class="mt-6 flex space-x-4 space-y-0 justify-center">
+      <a href="https://apps.apple.com/us/app/web5-wallet/id1234567890" target="_blank" rel="noreferrer"
+        title="Get the TBD Web Wallet in the Apple App store."
+        class="items-center space-x-3 text-gray-600 transition-colors duration-300 transform border rounded-lg lg:flex dark:text-gray-200 dark:border-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"><svg
+          viewBox="0 0 119.66 40" xmlns="http://www.w3.org/2000/svg" height="40"
+          class="StyledElements__SVG-sc-nr1cic-53 Icon__Base-sc-1i6vuca-0 iEzORu djHSqo">
+          <path fill="#000"
+            d="M110.13 0H8.44l-.92.01a13.21 13.21 0 0 0-2 .18 6.67 6.67 0 0 0-1.9.63A6.44 6.44 0 0 0 2 2 6.26 6.26 0 0 0 .82 3.62a6.6 6.6 0 0 0-.63 1.9 13 13 0 0 0-.17 2L0 8.44v23.12c0 .3 0 .61.02.92a13 13 0 0 0 .17 2 6.59 6.59 0 0 0 .63 1.9A6.2 6.2 0 0 0 2 38a6.27 6.27 0 0 0 1.62 1.18 6.7 6.7 0 0 0 1.9.63 13.46 13.46 0 0 0 2 .18h.92l1.1.01h101.67l.92-.01a13.28 13.28 0 0 0 2-.18 6.8 6.8 0 0 0 1.9-.63 6.28 6.28 0 0 0 1.63-1.18 6.4 6.4 0 0 0 1.18-1.61 6.6 6.6 0 0 0 .62-1.9 13.5 13.5 0 0 0 .18-2.01v-.92l.01-1.1V7.52a13.5 13.5 0 0 0-.2-2 6.62 6.62 0 0 0-.61-1.9 6.47 6.47 0 0 0-2.8-2.8 6.77 6.77 0 0 0-1.9-.63 13.04 13.04 0 0 0-2-.18h-.93L110.13 0Z">
+          </path>
+          <path
+            d="M8.44 39.13c-.3 0-.6 0-.9-.02a12.69 12.69 0 0 1-1.87-.16 5.88 5.88 0 0 1-1.66-.55 5.4 5.4 0 0 1-1.4-1.01 5.32 5.32 0 0 1-1.01-1.4 5.72 5.72 0 0 1-.55-1.66 12.41 12.41 0 0 1-.16-1.87l-.02-.92V8.44l.02-.89a12.37 12.37 0 0 1 .16-1.87 5.76 5.76 0 0 1 .55-1.66 5.37 5.37 0 0 1 1.01-1.4 5.57 5.57 0 0 1 1.4-1.02 5.82 5.82 0 0 1 1.66-.55A12.59 12.59 0 0 1 7.54.9l.9-.02h102.77l.92.02a12.38 12.38 0 0 1 1.86.16 5.94 5.94 0 0 1 1.67.55 5.6 5.6 0 0 1 2.41 2.42 5.76 5.76 0 0 1 .54 1.65 13 13 0 0 1 .17 1.88v.9l.01 1.09v22l-.01.93a12.73 12.73 0 0 1-.17 1.85 5.74 5.74 0 0 1-.54 1.67 5.48 5.48 0 0 1-1.02 1.39 5.41 5.41 0 0 1-1.4 1.02 5.86 5.86 0 0 1-1.66.55 12.54 12.54 0 0 1-1.87.16l-.9.01h-1.09Z">
+          </path>
+          <g fill="#fff" data-name="<Group>">
+            <g data-name="<Group>">
+              <path
+                d="M24.77 20.3a4.95 4.95 0 0 1 2.36-4.15 5.07 5.07 0 0 0-4-2.16c-1.67-.18-3.3 1-4.16 1-.87 0-2.19-.98-3.6-.95a5.32 5.32 0 0 0-4.48 2.73c-1.93 3.34-.5 8.26 1.36 10.97.93 1.33 2.01 2.8 3.43 2.75 1.39-.05 1.9-.88 3.58-.88 1.66 0 2.14.88 3.59.85 1.49-.02 2.43-1.33 3.32-2.67a10.96 10.96 0 0 0 1.52-3.09 4.78 4.78 0 0 1-2.92-4.4Zm-2.73-8.09a4.87 4.87 0 0 0 1.11-3.49 4.96 4.96 0 0 0-3.2 1.66 4.64 4.64 0 0 0-1.15 3.36 4.1 4.1 0 0 0 3.24-1.53Z"
+                data-name="<Path>"></path>
+            </g>
+            <path
+              d="M42.3 27.14h-4.73l-1.14 3.36h-2l4.48-12.42H41l4.49 12.42h-2.04Zm-4.24-1.55h3.75l-1.85-5.45h-.05Zm17.1.38c0 2.81-1.5 4.62-3.78 4.62a3.07 3.07 0 0 1-2.85-1.58h-.04v4.48h-1.86V21.44h1.8v1.5h.03a3.21 3.21 0 0 1 2.89-1.6c2.3 0 3.81 1.82 3.81 4.63Zm-1.91 0c0-1.83-.95-3.04-2.4-3.04-1.41 0-2.37 1.23-2.37 3.04 0 1.82.96 3.05 2.38 3.05 1.44 0 2.39-1.2 2.39-3.05Zm11.87 0c0 2.81-1.5 4.62-3.77 4.62a3.07 3.07 0 0 1-2.85-1.58h-.05v4.48H56.6V21.44h1.8v1.5h.03a3.21 3.21 0 0 1 2.88-1.6c2.3 0 3.81 1.82 3.81 4.63Zm-1.9 0c0-1.83-.95-3.04-2.4-3.04-1.42 0-2.37 1.23-2.37 3.04 0 1.82.95 3.05 2.37 3.05 1.45 0 2.4-1.2 2.4-3.05Zm8.49 1.07c.14 1.23 1.33 2.04 2.97 2.04 1.57 0 2.7-.81 2.7-1.92 0-.97-.69-1.54-2.3-1.94l-1.6-.39c-2.29-.55-3.34-1.61-3.34-3.34 0-2.15 1.86-3.62 4.51-3.62 2.63 0 4.43 1.47 4.49 3.62h-1.88c-.11-1.24-1.14-2-2.63-2s-2.52.76-2.52 1.87c0 .87.65 1.4 2.25 1.79l1.37.33c2.55.6 3.6 1.63 3.6 3.44 0 2.33-1.85 3.78-4.79 3.78-2.75 0-4.61-1.42-4.73-3.66Zm11.64-7.74v2.14h1.72v1.47h-1.72v5c0 .77.34 1.13 1.1 1.13a5.8 5.8 0 0 0 .6-.04v1.46a5.1 5.1 0 0 1-1.02.09c-1.84 0-2.55-.7-2.55-2.45v-5.19h-1.32v-1.47h1.32V19.3Zm2.71 6.67c0-2.85 1.68-4.64 4.3-4.64s4.3 1.8 4.3 4.64c0 2.86-1.67 4.64-4.3 4.64s-4.3-1.78-4.3-4.64Zm6.7 0c0-1.95-.9-3.1-2.4-3.1s-2.4 1.15-2.4 3.1c0 1.96.9 3.1 2.4 3.1s2.4-1.14 2.4-3.1Zm3.43-4.53h1.77v1.54H98a2.16 2.16 0 0 1 2.18-1.63 2.87 2.87 0 0 1 .64.07v1.74a2.6 2.6 0 0 0-.84-.12 1.87 1.87 0 0 0-1.94 2.09v5.37H96.2Zm13.19 6.4c-.25 1.64-1.85 2.77-3.9 2.77-2.63 0-4.26-1.77-4.26-4.6 0-2.84 1.64-4.68 4.19-4.68 2.5 0 4.08 1.72 4.08 4.47v.63h-6.4v.12a2.36 2.36 0 0 0 2.44 2.56 2.05 2.05 0 0 0 2.09-1.27Zm-6.28-2.7h4.53a2.18 2.18 0 0 0-2.22-2.3 2.3 2.3 0 0 0-2.3 2.3Z">
+            </path>
+          </g>
+          <path fill="#fff"
+            d="M37.83 8.73a2.64 2.64 0 0 1 2.8 2.97c0 1.9-1.03 3-2.8 3h-2.16V8.73Zm-1.23 5.12h1.12a1.88 1.88 0 0 0 1.97-2.14 1.88 1.88 0 0 0-1.97-2.14H36.6Zm5.08-1.41a2.13 2.13 0 1 1 4.25 0 2.13 2.13 0 1 1-4.25 0Zm3.33 0c0-.97-.43-1.54-1.2-1.54-.78 0-1.21.57-1.21 1.54 0 .99.43 1.55 1.2 1.55.78 0 1.21-.57 1.21-1.55Zm6.56 2.26h-.92l-.93-3.32h-.07l-.93 3.32h-.9l-1.25-4.5h.9l.8 3.43h.07l.93-3.44h.85l.93 3.44h.07l.8-3.44h.89Zm2.28-4.5h.86v.71h.07a1.35 1.35 0 0 1 1.34-.8 1.46 1.46 0 0 1 1.56 1.67v2.92h-.9V12c0-.72-.3-1.08-.96-1.08a1.03 1.03 0 0 0-1.08 1.14v2.64h-.89Zm5.25-1.76h.88v6.26h-.89Zm2.12 4a2.13 2.13 0 1 1 4.25 0 2.13 2.13 0 1 1-4.25 0Zm3.33 0c0-.97-.44-1.54-1.2-1.54-.78 0-1.21.57-1.21 1.54 0 .99.43 1.55 1.2 1.55s1.21-.57 1.21-1.55Zm1.85.98c0-.8.6-1.27 1.68-1.34l1.22-.07v-.39c0-.47-.32-.74-.93-.74-.5 0-.84.18-.93.5h-.87c.1-.78.82-1.27 1.84-1.27 1.13 0 1.77.56 1.77 1.51v3.08h-.86v-.64h-.07a1.51 1.51 0 0 1-1.35.71 1.36 1.36 0 0 1-1.5-1.35Zm2.9-.38v-.38l-1.1.07c-.62.04-.9.26-.9.65 0 .4.35.64.83.64a1.06 1.06 0 0 0 1.17-.98Zm2.05-.6c0-1.42.73-2.32 1.87-2.32a1.48 1.48 0 0 1 1.38.79h.06V8.44h.9v6.26h-.86v-.71h-.07a1.56 1.56 0 0 1-1.41.78c-1.15 0-1.87-.9-1.87-2.33Zm.92 0c0 .96.45 1.53 1.2 1.53s1.21-.58 1.21-1.52c0-.94-.47-1.53-1.21-1.53-.75 0-1.2.58-1.2 1.52Zm6.96 0a2.13 2.13 0 1 1 4.25 0 2.13 2.13 0 1 1-4.25 0Zm3.33 0c0-.97-.44-1.54-1.2-1.54-.78 0-1.21.57-1.21 1.54 0 .99.43 1.55 1.2 1.55s1.21-.57 1.21-1.55Zm2.11-2.24h.85v.71h.07a1.35 1.35 0 0 1 1.35-.8 1.46 1.46 0 0 1 1.55 1.67v2.92h-.88V12c0-.72-.32-1.08-.98-1.08a1.03 1.03 0 0 0-1.07 1.14v2.64h-.9Zm8.85-1.13v1.15h.97v.74h-.97v2.32c0 .47.19.68.63.68a2.97 2.97 0 0 0 .34-.02v.74a2.92 2.92 0 0 1-.48.04c-1 0-1.38-.35-1.38-1.21v-2.55h-.72v-.74h.72V9.07Zm2.18-.63h.89v2.48h.07a1.39 1.39 0 0 1 1.37-.8 1.48 1.48 0 0 1 1.55 1.67v2.9h-.89v-2.68c0-.72-.34-1.08-.96-1.08a1.05 1.05 0 0 0-1.14 1.14v2.63h-.89Zm9.06 5.04a1.83 1.83 0 0 1-1.95 1.3 2.05 2.05 0 0 1-2.08-2.32 2.08 2.08 0 0 1 2.08-2.35c1.25 0 2 .85 2 2.27v.3h-3.17v.06a1.19 1.19 0 0 0 1.2 1.29 1.08 1.08 0 0 0 1.07-.55Zm-3.12-1.45h2.27a1.09 1.09 0 0 0-1.1-1.17 1.15 1.15 0 0 0-1.17 1.17Z"
+            data-name="<Group>"></path>
+        </svg></a>
+      <a href="https://play.google.com/store/apps/details?id=website.tbd.web5.wallet" target="_blank" rel="noreferrer"
+        title="Get the TBD Web Wallet in the Google Play store."
+        class="items-center space-x-3 text-gray-600 transition-colors duration-300 transform border rounded-lg lg:flex dark:text-gray-200 dark:border-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
+        <svg viewBox="10 10 135 40" xmlns="http://www.w3.org/2000/svg" height="40">
+          <path d="M140 50H15c-2.75 0-5-2.25-5-5V15c0-2.75 2.25-5 5-5h125c2.75 0 5 2.25 5 5v30c0 2.75-2.25 5-5 5z" />
+          <path
+            d="M140 10.8a4.2 4.2 0 0 1 4.2 4.2v30a4.2 4.2 0 0 1-4.2 4.2H15a4.2 4.2 0 0 1-4.2-4.2V15a4.2 4.2 0 0 1 4.2-4.2zm0-.8H15c-2.75 0-5 2.25-5 5v30c0 2.75 2.25 5 5 5h125c2.75 0 5-2.25 5-5V15c0-2.75-2.25-5-5-5z"
+            fill="#a6a6a6" />
+          <g fill="#fff">
+            <path
+              d="M57.42 20.24c0 .84-.25 1.51-.75 2-.56.59-1.29.89-2.2.89-.87 0-1.61-.3-2.21-.9s-.9-1.35-.9-2.23.3-1.63.9-2.23 1.34-.91 2.21-.91c.44 0 .86.08 1.25.23.39.16.71.38.96.66l-.55.55c-.18-.22-.42-.4-.72-.52a2.29 2.29 0 0 0-.94-.19c-.65 0-1.21.23-1.66.68-.45.46-.67 1.03-.67 1.72s.22 1.26.67 1.72c.45.45 1 .68 1.66.68.6 0 1.09-.17 1.49-.5s.63-.8.69-1.38h-2.18v-.72h2.91c.02.16.04.31.04.45zM62.03 17v.74H59.3v1.9h2.46v.72H59.3v1.9h2.73V23h-3.5v-6zM65.28 17.74V23h-.77v-5.26h-1.68V17h4.12v.74zM70.71 23h-.77v-6h.77zM74.13 17.74V23h-.77v-5.26h-1.68V17h4.12v.74zM84.49 20c0 .89-.3 1.63-.89 2.23-.6.6-1.33.9-2.2.9s-1.6-.3-2.2-.9c-.59-.6-.89-1.34-.89-2.23s.3-1.63.89-2.23 1.32-.91 2.2-.91c.87 0 1.6.3 2.2.91s.89 1.35.89 2.23zm-5.38 0c0 .69.22 1.27.65 1.72.44.45.99.68 1.64.68s1.2-.23 1.63-.68c.44-.45.66-1.02.66-1.72s-.22-1.27-.66-1.72-.98-.68-1.63-.68-1.2.23-1.64.68c-.43.45-.65 1.03-.65 1.72zM86.34 23h-.77v-6h.94l2.92 4.67h.03l-.03-1.16V17h.77v6h-.8l-3.05-4.89h-.03l.03 1.16V23z"
+              stroke="#fff" stroke-miterlimit="10" stroke-width=".2" />
+            <path
+              d="M78.14 31.75c-2.35 0-4.27 1.79-4.27 4.25 0 2.45 1.92 4.25 4.27 4.25s4.27-1.8 4.27-4.25c0-2.46-1.92-4.25-4.27-4.25zm0 6.83c-1.29 0-2.4-1.06-2.4-2.58 0-1.53 1.11-2.58 2.4-2.58s2.4 1.05 2.4 2.58c0 1.52-1.12 2.58-2.4 2.58zm-9.32-6.83c-2.35 0-4.27 1.79-4.27 4.25 0 2.45 1.92 4.25 4.27 4.25s4.27-1.8 4.27-4.25c0-2.46-1.92-4.25-4.27-4.25zm0 6.83c-1.29 0-2.4-1.06-2.4-2.58 0-1.53 1.11-2.58 2.4-2.58s2.4 1.05 2.4 2.58c0 1.52-1.11 2.58-2.4 2.58zm-11.08-5.52v1.8h4.32c-.13 1.01-.47 1.76-.98 2.27-.63.63-1.61 1.32-3.33 1.32-2.66 0-4.74-2.14-4.74-4.8s2.08-4.8 4.74-4.8c1.43 0 2.48.56 3.25 1.29l1.27-1.27c-1.08-1.03-2.51-1.82-4.53-1.82-3.64 0-6.7 2.96-6.7 6.61 0 3.64 3.06 6.61 6.7 6.61 1.97 0 3.45-.64 4.61-1.85 1.19-1.19 1.56-2.87 1.56-4.22 0-.42-.03-.81-.1-1.13h-6.07zm45.31 1.4c-.35-.95-1.43-2.71-3.64-2.71-2.19 0-4.01 1.72-4.01 4.25 0 2.38 1.8 4.25 4.22 4.25 1.95 0 3.08-1.19 3.54-1.88l-1.45-.97c-.48.71-1.14 1.18-2.09 1.18s-1.63-.43-2.06-1.29l5.69-2.35zm-5.8 1.42c-.05-1.64 1.27-2.48 2.22-2.48.74 0 1.37.37 1.58.9zM92.63 40h1.87V27.5h-1.87zm-3.06-7.3h-.07c-.42-.5-1.22-.95-2.24-.95-2.13 0-4.08 1.87-4.08 4.27 0 2.38 1.95 4.24 4.08 4.24 1.01 0 1.82-.45 2.24-.97h.06v.61c0 1.63-.87 2.5-2.27 2.5-1.14 0-1.85-.82-2.14-1.51l-1.63.68c.47 1.13 1.71 2.51 3.77 2.51 2.19 0 4.04-1.29 4.04-4.43v-7.64h-1.77v.69zm-2.15 5.88c-1.29 0-2.37-1.08-2.37-2.56 0-1.5 1.08-2.59 2.37-2.59 1.27 0 2.27 1.1 2.27 2.59.01 1.48-.99 2.56-2.27 2.56zm24.39-11.08h-4.47V40h1.87v-4.74h2.61c2.07 0 4.1-1.5 4.1-3.88-.01-2.38-2.05-3.88-4.11-3.88zm.04 6.02h-2.65v-4.29h2.65c1.4 0 2.19 1.16 2.19 2.14s-.79 2.15-2.19 2.15zm11.54-1.79c-1.35 0-2.75.6-3.33 1.91l1.66.69c.35-.69 1.01-.92 1.7-.92.96 0 1.95.58 1.96 1.61v.13c-.34-.19-1.06-.48-1.95-.48-1.79 0-3.6.98-3.6 2.81 0 1.67 1.46 2.75 3.1 2.75 1.25 0 1.95-.56 2.38-1.22h.06v.96h1.8v-4.79c.01-2.21-1.65-3.45-3.78-3.45zm-.23 6.85c-.61 0-1.46-.31-1.46-1.06 0-.96 1.06-1.33 1.98-1.33.82 0 1.21.18 1.7.42a2.257 2.257 0 0 1-2.22 1.97zM133.74 32l-2.14 5.42h-.06L129.32 32h-2.01l3.33 7.58-1.9 4.21h1.95L135.82 32zm-16.8 8h1.87V27.5h-1.87z" />
+          </g>
+          <path d="M30.72 29.42l-10.65 11.3v.01a2.877 2.877 0 0 0 4.24 1.73l.03-.02 11.98-6.91z" fill="#ea4335" />
+          <path d="M41.49 27.5l-.01-.01-5.17-3-5.83 5.19 5.85 5.85 5.15-2.97a2.88 2.88 0 0 0 .01-5.06z"
+            fill="#fbbc04" />
+          <path d="M20.07 19.28c-.06.24-.1.48-.1.74v19.97c0 .26.03.5.1.74l11.01-11.01z" fill="#4285f4" />
+          <path d="M30.8 30l5.51-5.51-11.97-6.94a2.889 2.889 0 0 0-4.27 1.72z" fill="#34a853" />
+        </svg></a>
+    </div>
+    <div id="copied_tooltip"
+      class="opacity-0 absolute bg-gray-600 text-white z-10 px-2 py-1 rounded-lg pointer-events-none text-sm transition-opacity">
+      Copied!
+    </div>
+  </div>
+
+  <div
+    class="screen hidden mx-auto mt-20 p-6 md:px-12 bg-white dark:bg-gray-900 rounded-xl shadow-md max-w-full md:max-w-[521px]"
+    id="pin_challenge">
+    <div class="space-y-4">
+      <div class="text-xl text-gray-600 dark:text-gray-200 font-bold">Verification Code</div>
+      <p class="text-gray-600 dark:text-gray-200">Enter the verification code from your Web5 Wallet.
+      </p>
+      <div class="pin-entry flex space-x-2.5 justify-center">
+        <input
+          class="text-gray-800 dark:text-gray-200 text-center text-4xl p-0 my-0 w-[63px] h-[63px] md:w-[95px] md:h-[95px] border-2 focus:border-[3px] border-solid rounded-2xl border-gray-200 dark:border-gray-700 focus:border-blue-400 dark:focus:hover:border-blue-400 focus:outline-none focus:shadow-none hover:border-gray-300 dark:hover:border-white/25 bg-transparent transition-colors duration-500"
+          type="tel" value="">
+        <input
+          class="text-gray-800 dark:text-gray-200 text-center text-4xl p-0 my-0 w-[63px] h-[63px] md:w-[95px] md:h-[95px] border-2 focus:border-[3px] border-solid rounded-2xl border-gray-200 dark:border-gray-700 focus:border-blue-400 dark:focus:hover:border-blue-400 focus:outline-none focus:shadow-none hover:border-gray-300 dark:hover:border-white/25 bg-transparent transition-colors duration-500"
+          type="tel" value="">
+        <input
+          class="text-gray-800 dark:text-gray-200 text-center text-4xl p-0 my-0 w-[63px] h-[63px] md:w-[95px] md:h-[95px] border-2 focus:border-[3px] border-solid rounded-2xl border-gray-200 dark:border-gray-700 focus:border-blue-400 dark:focus:hover:border-blue-400 focus:outline-none focus:shadow-none hover:border-gray-300 dark:hover:border-white/25 bg-transparent transition-colors duration-500"
+          type="tel" value="">
+        <input
+          class="text-gray-800 dark:text-gray-200 text-center text-4xl p-0 my-0 w-[63px] h-[63px] md:w-[95px] md:h-[95px] border-2 focus:border-[3px] border-solid rounded-2xl border-gray-200 dark:border-gray-700 focus:border-blue-400 dark:focus:hover:border-blue-400 focus:outline-none focus:shadow-none hover:border-gray-300 dark:hover:border-white/25 bg-transparent transition-colors duration-500"
+          type="tel" value="">
+      </div>
+
+      <div class="pin-entry flex space-x-2.5 py-2 justify-center">
+        <div>
+          <span
+            class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-400/10 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-500 ring-1 ring-inset ring-blue-700/10 dark:ring-blue-700/30">NOTE</span>
+        </div>
+        <p class="text-gray-600 dark:text-gray-200">Your Web5 IDs can only be used from devices you approve.
+        </p>
+      </div>
+      <button id="pin_challenge_verify_button" class="w-full py-3 bg-blue-600 text-white rounded-lg">Verify
+        Device</button>
+    </div>
+  </div>
+
+
+  <div class="screen mx-auto mt-20 p-6 bg-white rounded-xl shadow-md max-w-sm hidden" id="local_create_profile">
+    <div class="text-xl mb-4 text-gray-700 font-bold">Let’s create your first Web5 profile</div>
+    <p class="mb-4 text-gray-600">
+      <span class="font-semibold">A Web5 profile is a “version” of yourself in Web5.</span>
+      You can have multiple Web5 profiles, each for a different side of yourself (like
+      social vs. professional).
+    </p>
+    <p class="mb-4 text-gray-600">You can use a Web5 profile across multiple Web5 apps (more on that later).</p>
+    <button onclick="switchScreen('screen2')" class="w-full py-3 bg-blue-600 text-white rounded-lg">Next</button>
+  </div>
+
+  <div class="screen mx-auto mt-20 p-6 bg-white rounded-xl shadow-md max-w-sm hidden" id="screen2">
+    <div class="text-xl mb-4 text-gray-700 font-bold">Enter a public display name for your Web5 profile</div>
+    <p class="mb-4 text-gray-600">This is how others will see you in Dwitter and wherever else you use this Web5
+      profile. You can change this later.</p>
+    <input type="text" placeholder="Public display name" id="displayName" class="w-full p-3 mb-4 border rounded-md">
+    <button onclick="switchScreen('screen3')" class="w-full py-3 bg-blue-600 text-white rounded-lg">Next</button>
+  </div>
+
+  <div class="screen mx-auto mt-20 p-6 bg-white rounded-xl shadow-md max-w-sm hidden" id="screen3">
+    <div class="text-xl mb-4 text-gray-700 font-bold">Here’s your new Web5 profile</div>
+    <p class="mb-4 text-gray-600">You'll use it in Twitter, but you can also use it in other Web5 apps (more on that
+      later).</p>
+    <div class="flex items-start mb-4" id="profileDisplay">
+      <div
+        class="w-12 h-12 bg-gray-300 rounded-full flex-shrink-0 mr-4 flex items-center justify-center text-2xl font-bold text-gray-700"
+        id="profileIcon">F</div>
+      <div>
+        <span class="block text-gray-800 font-medium mb-1" id="profileName">Frank</span>
+        <p class="text-gray-600">My first Web5 profile</p>
+      </div>
+    </div>
+    <button onclick="alert('Profile created!')" class="w-full py-3 bg-blue-600 text-white rounded-lg">Continue</button>
+  </div>
+
+  <script type="module">
+    import { Web5 } from '/packages/api/dist/browser.mjs';
+
+    var connectLinkQrCode = new QRCode('qrcode_connect_link');
+    function generateQrCode(url) {
+      connectLinkQrCode.makeCode(url);
+    }
+
+    generateQrCode('https://yahoo.com');
+
+    export const profileProtocol = {
+      protocol: "http://garfield.com/profile.schema.json",
+      types: {
+        profile: {
+          schema: "http://garfield.com/profile.schema.json",
+          dataFormats: ["application/json"],
+        },
+      },
+      structure: {
+        profile: {
+          $actions: [
+            {
+              who: "anyone",
+              can: "read",
+            },
+            // TODO: remove the following rule.
+            // This only exists currently due to a bug where ManagedIdentities
+            // aren't being considered the DWN's tentant.
+            {
+              who: "anyone",
+              can: "write",
+            },
+          ],
+        },
+      },
+      published: true,
+    };
+
+    /** The app developer defines a Connect Relay URL that will be used to facilitate all Connect
+     * requests. The Connect Relay server can be hosted by the app developer or a third party.
+     * A Connect Relay is particularly useful when the peers cannot communicate directly due to NAT
+     * or firewall restrictions or one peer is running in a web browser. */
+    const connectRelayUrl = 'http://localhost:8080/connect';
+
+    /** The app developer constructs an array of permission request objects based on the scope and
+     * conditions needed, either statically pre-defined or dynamically generated during a
+     * connection request. */
+    const permissionsRequests = [
+      {
+        'scope': {
+          'protocol': 'https://protocol.org/DirectMessage'
+        },
+        'conditions': {
+          'delegation': false,
+          'publication': false,
+          'sharedAccess': true,
+          'encryption': 'required',
+          'attestation': 'prohibited'
+        }
+      }
+    ];
+
+    let idpWindow = null;
+    let pinCodeForm;
+
+    // DWeb App (DWA) initiates a Connect request to a Connect Provider using a Connect Relay.
+    const { web5 } = await Web5.connect({
+      connectEndpoint: connectRelayUrl,
+      origin: 'https://dignal.xyz',
+      permissionsRequests: permissionsRequests,
+    });
+
+    console.log('Agent DID:', web5.agent.agentDid);
+
+    web5.session.on('chooseIdentitySource', ({ connectToIdentityProvider, useLocalIdentity }) => {
+      // Show the landing page.
+      landing_page.classList.remove('hidden');
+
+      console.log('Received chooseIdentitySource event');
+      // Display the identity source selection UI.
+      const identitySourceList = document.getElementById('landing_page');
+
+      // Add a button to use a local identity.
+      local_identity_button.addEventListener('click', () => {
+        useLocalIdentity();
+        switchScreen('local_create_profile');
+      });
+
+      // Add a button to connect to an identity provider.
+      identity_provider_button.addEventListener('click', () => {
+        connectToIdentityProvider();
+        switchScreen('ida_connect_link');
+      });
+    });
+
+    web5.session.on('connectLink', ({ connectLink }) => {
+      console.log('Received connectLink event');
+      generateQrCode(connectLink);
+
+      const qrCodeElement = document.getElementById('qrcode_connect_link');
+      const btnCopyQrCode = document.getElementById('copy_qr_code_button');
+      const qrCodeSpinnerElement = document.getElementById('qrcode_loading_spinner');
+
+      // This can be removed but intentionally showing the loading spinner to make sure style changes don't break it.
+      setTimeout(() => {
+        // Hide the loading spinner.
+        qrCodeSpinnerElement.classList.add('hidden');
+
+        // Show the QR code and "Copy QR Code" button.
+        qrCodeElement.style.opacity = '1';
+        btnCopyQrCode.style.opacity = '1';
+      }, 300);
+
+      setTimeout(() => {
+        // Launch a tab for the Identity Provider.
+        idpWindow = launchIdentityProvider();
+
+        // Wait for the Identity Provider to be ready before sending Connect Link.
+        window.addEventListener('message', event => {
+          if (event.data === 'ready') {
+            console.log('Received message that other window is ready');
+            idpWindow.postMessage(connectLink, '*');
+          }
+        });
+      }, 2000);
+    });
+
+    web5.session.on('challenge', ({ validatePin }) => {
+      console.log('Received challenge event');
+      // Generate the UI to display the PIN to the user.
+
+      // Switch to the PIN challenge screen.
+      switchScreen('pin_challenge');
+
+      pinCodeForm = createPinCodeForm({ length: 4 });
+
+      pin_challenge_verify_button.addEventListener('click', () => {
+        validatePin({ pin: pinCodeForm.getValue() });
+        pinCodeForm.removeAllListeners('PIN entry submitted.');
+      });
+    });
+
+    web5.session.on('connected', ({ grants }) => {
+      console.log('Received connected event', grants);
+    });
+
+    web5.session.on('done', () => {
+      console.log('Received done event');
+    });
+
+    close_ida_connect_link.addEventListener('click', () => {
+      switchScreen('landing_page');
+    });
+
+    copy_qr_code_button.addEventListener('click', () => {
+      const tempElem = document.createElement('textarea');
+      tempElem.value = 'abc123';
+      document.body.appendChild(tempElem);
+      tempElem.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempElem);
+
+      // showTooltip(copy_qr_code_button);
+      const button = document.getElementById('copy_qr_code_button');
+      showTooltip(button);
+    });
+
+    async function showTooltip(btn) {
+      const tooltip = document.getElementById('copied_tooltip');
+
+      const btnRect = btn.getBoundingClientRect();
+      const tooltipRect = tooltip.getBoundingClientRect();
+
+      // Calculate tooltip position
+      const topPos = btnRect.top - tooltipRect.height - 20;
+      const leftPos = btnRect.left + (btnRect.width / 2) - (tooltipRect.width / 2);
+
+      // Set tooltip position
+      tooltip.style.top = `${topPos}px`;
+      tooltip.style.left = `${leftPos}px`;
+
+      // Show the tooltip
+      tooltip.style.opacity = '1';
+
+      // Optionally hide tooltip after some time (e.g., 2 seconds)
+      setTimeout(() => {
+        tooltip.style.opacity = '0';
+      }, 2000);
+    }
+
+    function launchIdentityProvider() {
+      // Get a reference to the Identity Provider tab's window object.
+      // const idpWindow = window.open('idp.html');
+      const idpWindow = window.open('http://localhost:8001/examples/idp.html');
+
+      return idpWindow;
+    }
+  </script>
+
+  <script src="script.js"></script>
+  <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+</body>
+
+</html>
