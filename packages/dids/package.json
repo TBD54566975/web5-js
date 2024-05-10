@@ -80,7 +80,7 @@
     "@dnsquery/dns-packet": "6.1.1",
     "@web5/common": "1.0.0",
     "@web5/crypto": "1.0.0",
-    "abstract-level": "1.0.4",
+    "abstract-level": "2.0.0",
     "bencode": "4.0.0",
     "buffer": "6.0.3",
     "level": "8.0.0",
