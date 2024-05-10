@@ -14,8 +14,8 @@
     "build:tests:node": "rimraf tests/compiled && pnpm tsc -p tests/tsconfig.json",
     "build:tests:browser": "rimraf tests/compiled && node build/esbuild-tests.cjs",
     "build": "pnpm clean && pnpm build:esm && pnpm build:cjs && pnpm build:browser",
-    "lint": "eslint . --max-warnings 0",
-    "lint:fix": "eslint . --fix",
+    "lint": "eslint . --ext .ts --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts --fix",
     "test:node": "pnpm build:tests:node && pnpm c8 mocha",
     "test:browser": "pnpm build:tests:browser && web-test-runner"
   },
