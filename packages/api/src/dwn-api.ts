@@ -11,7 +11,7 @@ import type {
 } from '@web5/agent';
 
 import { isEmptyObject } from '@web5/common';
-import { DwnInterface, getRecordAuthor, getRecordsWriteAuthor, isDwnMessage } from '@web5/agent';
+import { DwnInterface, getRecordsWriteAuthor, isDwnMessage } from '@web5/agent';
 
 import { Record } from './record.js';
 import { dataToBlob } from './utils.js';
@@ -251,31 +251,21 @@ export class DwnApi {
 
     return async (event) => {
       const { message, initialWrite } = event;
-      const author = getRecordAuthor(message);
       const recordOptions = {
         connectedDid : this.connectedDid,
         remoteOrigin : request.from,
-        author,
         initialWrite
       };
 
       let record:Record;
       if (isDwnMessage(DwnInterface.RecordsWrite, message)) {
-        // is a records write message
         record = new Record(this.agent, { ...message, ...recordOptions });
       } else {
-        // The event is a delete message
-        const descriptor = {
-          ...initialWrite.descriptor,
-          messageTimestamp: message.descriptor.messageTimestamp,
-        };
-
         record = new Record(this.agent, {
-          ...recordOptions,
-          descriptor,
-          authorization : message.authorization,
           recordId      : message.descriptor.recordId,
-          isDeleted     : true
+          authorization : initialWrite.authorization,
+          deleteMessage : message,
+          ...recordOptions,
         });
       }
 
