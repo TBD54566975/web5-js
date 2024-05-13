@@ -1,6 +1,6 @@
 
 export function installNetworkingFeatures(path){
-  if (typeof ServiceWorkerGlobalScope !== 'undefined' && self instanceof ServiceWorkerGlobalScope) {
+  if (typeof ServiceWorkerGlobalScope !== 'undefined' && (self as any) instanceof ServiceWorkerGlobalScope) {
     import('./service-worker.js')
   }
   else if (globalThis?.navigator?.serviceWorker) {
