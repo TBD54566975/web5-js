@@ -2,7 +2,6 @@
 declare const ServiceWorkerGlobalScope: any;
 
 export function installNetworkingFeatures(path: string): void {
-  // Assume `self` could be any type
   const workerSelf = self as any;
 
   try {
@@ -13,13 +12,12 @@ export function installNetworkingFeatures(path: string): void {
       });
     }
     else if (globalThis?.navigator?.serviceWorker) {
-      // Register the service worker if `path` is provided and service workers are supported
-      navigator.serviceWorker.register(path).catch(error => {
+      if (path) navigator.serviceWorker.register(path).catch(error => {
         console.error('DWeb networking feature installation failed: ', error);
       });
     }
     else {
-      throw new Error("DWeb networking features are not available for install in this environment");
+      throw new Error('DWeb networking features are not available for install in this environment');
     }
   } catch (error) {
     console.error('Error in installing networking features:', error);

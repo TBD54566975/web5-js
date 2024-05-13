@@ -2,7 +2,7 @@ import { UniversalResolver, DidDht, DidWeb } from '@web5/dids';
 
 const workerSelf = self as any;
 const DidResolver = new UniversalResolver({ didResolvers: [DidDht, DidWeb] });
-const didUrlRegex = /^https?:\/\/dweb\/(([^\/]+)\/.*)?$/;
+const didUrlRegex = /^https?:\/\/dweb\/(([^/]+)\/.*)?$/;
 const httpToHttpsRegex = /^http:/;
 const trailingSlashRegex = /\/$/;
 
@@ -33,9 +33,9 @@ async function handleEvent(event, did, route){
 
 async function fetchResource(event, ddo, route) {
   let endpoints = ddo?.service?.find(service => service.type === 'DecentralizedWebNode')?.serviceEndpoint;
-      endpoints = (Array.isArray(endpoints) ? endpoints : [endpoints]).filter(url => url.startsWith('http'));
+  endpoints = (Array.isArray(endpoints) ? endpoints : [endpoints]).filter(url => url.startsWith('http'));
   if (!endpoints?.length) {
-    throw new Response('DWeb Node resolution failed: no valid endpoints found.', { status: 530 })
+    throw new Response('DWeb Node resolution failed: no valid endpoints found.', { status: 530 });
   }
 
   for (const endpoint of endpoints) {
@@ -45,11 +45,11 @@ async function fetchResource(event, ddo, route) {
         return response;
       }
       console.log(`DWN endpoint error: ${response.status}`);
-      return new Response('DWeb Node request failed', { status: response.status }) 
+      return new Response('DWeb Node request failed', { status: response.status });
     }
     catch (error) {
       console.log(`DWN endpoint error: ${error}`);
-      return new Response('DWeb Node request failed: ' + error, { status: 500 }) 
+      return new Response('DWeb Node request failed: ' + error, { status: 500 });
     }
   }
 }
