@@ -1,11 +1,12 @@
 import { UniversalResolver, DidDht, DidWeb } from '@web5/dids';
 
+const workerSelf = self as any;
 const DidResolver = new UniversalResolver({ didResolvers: [DidDht, DidWeb] });
 const didUrlRegex = /^https?:\/\/dweb\/(([^\/]+)\/.*)?$/;
 const httpToHttpsRegex = /^http:/;
 const trailingSlashRegex = /\/$/;
 
-self.addEventListener('fetch', event => {
+workerSelf.addEventListener('fetch', event => {
   const match = event.request.url.match(didUrlRegex);
   if (match) {
     event.respondWith((async () => {
