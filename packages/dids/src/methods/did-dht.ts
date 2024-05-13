@@ -32,7 +32,6 @@ import { extractDidFragment } from '../utils.js';
 import { DidError, DidErrorCode } from '../did-error.js';
 import { DidVerificationRelationship } from '../types/did-core.js';
 import { EMPTY_DID_RESOLUTION_RESULT } from '../types/did-resolution.js';
-import { getJoseSignatureAlgorithmFromPublicKey } from '@web5/crypto/utils';
 
 /**
  * Represents a BEP44 message, which is used for storing and retrieving data in the Mainline DHT
@@ -1036,8 +1035,7 @@ export class DidDhtDocument {
           // Convert the public key from a byte array to JWK format.
           let publicKey = await DidDhtUtils.keyConverter(namedCurve).bytesToPublicKey({ publicKeyBytes });
 
-          // DID DHT spec requires `alg` in keys in the DID document
-          publicKey.alg = parsedAlg || getJoseSignatureAlgorithmFromPublicKey(publicKey);
+          publicKey.alg = parsedAlg || KeyTypeToDefaultAlgorithmMap[Number(t) as DidDhtRegisteredKeyType];
 
           // Determine the Key ID (kid): '0' for the identity key or JWK thumbprint for others.
           publicKey.kid = dnsRecordId.endsWith('0') ? '0' : await computeJwkThumbprint({ jwk: publicKey });
