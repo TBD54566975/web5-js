@@ -152,7 +152,7 @@ importers:
     dependencies:
       '@web5/agent':
         specifier: 0.3.5
-        version: link:../agent
+        version: 0.3.5(ws@8.13.0)
       '@web5/common':
         specifier: 1.0.0
         version: link:../common
@@ -164,7 +164,7 @@ importers:
         version: 1.0.1
       '@web5/user-agent':
         specifier: 0.3.5
-        version: link:../user-agent
+        version: 0.3.5(ws@8.13.0)
     devDependencies:
       '@playwright/test':
         specifier: 1.40.1
@@ -686,7 +686,7 @@ importers:
     dependencies:
       '@web5/agent':
         specifier: 0.3.5
-        version: link:../agent
+        version: 0.3.5(ws@8.13.0)
       '@web5/common':
         specifier: 1.0.0
         version: link:../common
@@ -774,7 +774,7 @@ importers:
     dependencies:
       '@web5/agent':
         specifier: 0.3.5
-        version: link:../agent
+        version: 0.3.5(ws@8.13.0)
       '@web5/common':
         specifier: 1.0.0
         version: link:../common
@@ -859,7 +859,7 @@ importers:
     dependencies:
       '@web5/agent':
         specifier: 0.3.5
-        version: link:../agent
+        version: 0.3.5(ws@8.13.0)
       '@web5/common':
         specifier: 1.0.0
         version: link:../common
@@ -2798,6 +2798,39 @@ packages:
       jwt-decode: 3.1.2
     dev: true
 
+  /@tbd54566975/dwn-sdk-js@0.3.1:
+    resolution: {integrity: sha512-G73ixUGieRBE4kYxLlYu/9wN36RUBGp5nvDrlAWZsNUXEXWnhCS3qTYFnUqzPEXjoE0z8EVRtpMU/eITM8ZcDA==}
+    engines: {node: '>= 18'}
+    dependencies:
+      '@ipld/dag-cbor': 9.0.3
+      '@js-temporal/polyfill': 0.4.4
+      '@noble/ed25519': 2.0.0
+      '@noble/secp256k1': 2.0.0
+      '@web5/dids': 1.0.1
+      abstract-level: 1.0.3
+      ajv: 8.12.0
+      blockstore-core: 4.2.0
+      cross-fetch: 4.0.0
+      eciesjs: 0.4.5
+      interface-blockstore: 5.2.3
+      interface-store: 5.1.2
+      ipfs-unixfs-exporter: 13.1.5
+      ipfs-unixfs-importer: 15.1.5
+      level: 8.0.0
+      lodash: 4.17.21
+      lru-cache: 9.1.2
+      ms: 2.1.3
+      multiformats: 11.0.2
+      randombytes: 2.1.0
+      readable-stream: 4.5.2
+      ulidx: 2.1.0
+      uuid: 8.3.2
+      varint: 6.0.0
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    dev: false
+
   /@tbd54566975/dwn-sdk-js@0.3.2:
     resolution: {integrity: sha512-MMBau0Snkfnw4pCyBAzOneniUPVOBD1+m/Wj5rVgkDJNPIRkbFMcJ7auEmc4Pm0w+7pgm/ToPXDaSix+2Qob1w==}
     engines: {node: '>= 18'}
@@ -3646,6 +3679,29 @@ packages:
       - utf-8-validate
     dev: true
 
+  /@web5/agent@0.3.5(ws@8.13.0):
+    resolution: {integrity: sha512-0tE2XQZgvGm8+4axT3iB4acNnkR+3URWP+Z5u10D509XCiKMDRvpt1+X70M0zbICzLCmrzNtM3IDQN+PyWWOEg==}
+    engines: {node: '>=18.0.0'}
+    dependencies:
+      '@noble/ciphers': 0.4.1
+      '@scure/bip39': 1.2.2
+      '@tbd54566975/dwn-sdk-js': 0.3.1
+      '@web5/common': 1.0.0
+      '@web5/crypto': 1.0.0
+      '@web5/dids': 1.0.1
+      abstract-level: 1.0.4
+      ed25519-keygen: 0.4.11
+      isomorphic-ws: 5.0.0(ws@8.13.0)
+      level: 8.0.0
+      ms: 2.1.3
+      readable-web-to-node-stream: 3.0.2
+      ulidx: 2.1.0
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+      - ws
+    dev: false
+
   /@web5/common@0.2.4:
     resolution: {integrity: sha512-h7I+FbAzTbkQWnv5RZCtE1lFsOzwssvcr4aQuQvO1mx8qTjzl5gGXhFIpl6JB9aSE2FayNUV6kQBID8Sb5HXTQ==}
     engines: {node: '>=18.0.0'}
@@ -3719,6 +3775,20 @@ packages:
       - supports-color
       - utf-8-validate
     dev: true
+
+  /@web5/user-agent@0.3.5(ws@8.13.0):
+    resolution: {integrity: sha512-RuK35r1gAfJqisKU7/wVoW02k9b1Pqb9sfpRjU2yaSmDJeiV/LWhFq3fXX0xJfF4K1vUdz/Gm20vEY1U2Fx9WA==}
+    engines: {node: '>=18.0.0'}
+    dependencies:
+      '@web5/agent': 0.3.5(ws@8.13.0)
+      '@web5/common': 1.0.0
+      '@web5/crypto': 1.0.0
+      '@web5/dids': 1.0.1
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+      - ws
+    dev: false
 
   /@webassemblyjs/ast@1.11.6:
     resolution: {integrity: sha512-IN1xI7PwOvLPgjcf180gC1bqn3q/QaOCwYUahIOhbYUu8KA/3tw2RT/T0Gidi1l7Hhj5D/INhJxiICObqpMu4Q==}
