@@ -395,6 +395,15 @@ const AlgorithmToKeyTypeMap = {
 } as const;
 
 /**
+ * Private helper that maps did dht registered key types to their corresponding default algorithm identifiers.
+ */
+const KeyTypeToDefaultAlgorithmMap = {
+  [DidDhtRegisteredKeyType.Ed25519]   : 'Ed25519',
+  [DidDhtRegisteredKeyType.secp256k1] : 'ES256K',
+  [DidDhtRegisteredKeyType.secp256r1] : 'ES256',
+};
+
+/**
  * The `DidDht` class provides an implementation of the `did:dht` DID method.
  *
  * Features:
@@ -1015,7 +1024,7 @@ export class DidDhtDocument {
         case dnsRecordId.startsWith('k'): {
           // Get the method ID fragment (id), key type (t), Base64URL-encoded public key (k), and
           // optionally, controller (c) from the decoded TXT record data.
-          const { id, t, k, c } = DidDhtUtils.parseTxtDataToObject(answer.data);
+          const { id, t, k, c, a: parsedAlg } = DidDhtUtils.parseTxtDataToObject(answer.data);
 
           // Convert the public key from Base64URL format to a byte array.
           const publicKeyBytes = Convert.base64Url(k).toUint8Array();
@@ -1025,6 +1034,11 @@ export class DidDhtDocument {
 
           // Convert the public key from a byte array to JWK format.
           let publicKey = await DidDhtUtils.keyConverter(namedCurve).bytesToPublicKey({ publicKeyBytes });
+
+          publicKey.alg = parsedAlg || KeyTypeToDefaultAlgorithmMap[Number(t) as DidDhtRegisteredKeyType];
+
+          // Determine the Key ID (kid): '0' for the identity key or JWK thumbprint for others.
+          publicKey.kid = dnsRecordId.endsWith('0') ? '0' : await computeJwkThumbprint({ jwk: publicKey });
 
           // Initialize the `verificationMethod` array if it does not already exist.
           didDocument.verificationMethod ??= [];
@@ -1180,6 +1194,11 @@ export class DidDhtDocument {
 
       // Define the data for the DNS TXT record.
       const txtData = [`t=${keyType}`, `k=${publicKeyBase64Url}`];
+
+      // Only set the algorithm property (`a`) if it differs from the default algorithm for the key type.
+      if(publicKey.alg !== KeyTypeToDefaultAlgorithmMap[keyType]) {
+        txtData.push(`a=${publicKey.alg}`);
+      }
 
       // Add the controller property, if set to a value other than the Identity Key (DID Subject).
       if (verificationMethod.controller !== didDocument.id) txtData.push(`c=${verificationMethod.controller}`);
