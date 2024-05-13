@@ -253,7 +253,7 @@ export class Record implements RecordModel {
   get protocolPath() { return this.descriptor.protocolPath; }
 
   /** Role under which the author is writing the record */
-  get protocolRole() { return this.protocolRole; }
+  get protocolRole() { return this._protocolRole; }
 
   /** Record's recipient */
   get recipient() { return this.descriptor.recipient; }

@@ -300,7 +300,6 @@ describe('Record', () => {
     const record = new Record(testHarness.agent, {
       ...recordsWrite.message,
       encodedData  : dataBlob,
-      author       : aliceDid.uri,
       connectedDid : aliceDid.uri
     });
 
@@ -2011,7 +2010,6 @@ describe('Record', () => {
       const record = new Record(testHarness.agent, {
         ...recordsWrite.message,
         encodedData  : dataBlob,
-        author       : aliceDid.uri,
         connectedDid : aliceDid.uri,
       });
 
