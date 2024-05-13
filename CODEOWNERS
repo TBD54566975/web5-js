@@ -5,25 +5,25 @@
 # Each line is a file pattern followed by one or more owners.
 # The format is described: https://github.blog/2017-07-06-introducing-code-owners/
 
-# These owners will be the default owners for everything in the repo.
+# These owners will be the default owners for all directories in the repo that do not have a designated owner.
 * @frankhinek @csuwildcat @mistermoe @thehenrytsai @lirancohen
 
 # These are owners who can approve folders under the root directory and other CICD and QoL directories.
 # Should be the union list of all owners of sub-directories, optionally minus the default owners.
-/*                       @diehuxx @shamilovtim @nitro-neal
-/.changeset              @diehuxx @shamilovtim @nitro-neal
-/.codesandbox            @diehuxx @shamilovtim @nitro-neal
-/.github                 @diehuxx @shamilovtim @nitro-neal
-/.vscode                 @diehuxx @shamilovtim @nitro-neal
-/scripts                 @diehuxx @shamilovtim @nitro-neal
+/*                       @csuwildcat @ lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
+/.changeset              @csuwildcat @ lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
+/.codesandbox            @csuwildcat @ lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
+/.github                 @csuwildcat @ lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
+/.vscode                 @csuwildcat @ lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
+/scripts                 @csuwildcat @ lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
 
 # These are owners of any file in the `common`, `crypto`, `crypto-aws-kms`, `dids`, and
 # `credentials` packages and their sub-directories.
-/packages/common         @diehuxx @thehenrytsai @nitro-neal
-/packages/crypto         @diehuxx @thehenrytsai
-/packages/crypto-aws-kms @diehuxx @thehenrytsai
-/packages/dids           @diehuxx @thehenrytsai @nitro-neal
-/packages/credentials    @diehuxx @thehenrytsai @nitro-neal
+/packages/common         @csuwildcat @diehuxx @thehenrytsai @nitro-neal
+/packages/crypto         @csuwildcat @diehuxx @thehenrytsai
+/packages/crypto-aws-kms @csuwildcat @diehuxx @thehenrytsai
+/packages/dids           @csuwildcat @diehuxx @thehenrytsai @nitro-neal
+/packages/credentials    @csuwildcat @diehuxx @thehenrytsai @nitro-neal
 
 # These are owners of any file in the `agent`, `user-agent`, `proxy-agent`, `identity-agent`, and
 # `api` packages and their sub-directories.
