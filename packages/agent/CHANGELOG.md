@@ -1,5 +1,12 @@
 # @web5/agent
 
+## 0.3.6
+
+### Patch Changes
+
+- [#492](https://github.com/TBD54566975/web5-js/pull/492) [`b516a5f`](https://github.com/TBD54566975/web5-js/commit/b516a5f71c3e2babefa644f2d88b1520c844ca0c) Thanks [@LiranCohen](https://github.com/LiranCohen)! - - `@web5/agent` DWN Subscriptions Support
+  - `@web5/agent` supports latest `dwn-sdk-js` with `prune` feature from `RecordsWriteDelete`
+
 ## 0.3.5
 
 ### Patch Changes
