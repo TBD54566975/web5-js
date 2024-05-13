@@ -1,5 +1,5 @@
-# Web5 JS Monorepo
-
+# Web5 JS Monorepo.
+ 
 [![Coverage](https://img.shields.io/codecov/c/gh/TBD54566975/web5-js/main?logo=codecov&logoColor=FFFFFF&style=flat-square&token=YI87CKF1LI)](https://codecov.io/github/TBD54566975/web5-js)
 [![Chat](https://img.shields.io/badge/chat-on%20discord-7289da.svg?style=flat-square&color=9a1aff&logo=discord&logoColor=FFFFFF&sanitize=true)](https://discord.com/channels/937858703112155166/969272658501976117)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/TBD54566975/web5-js/badge)](https://securityscorecards.dev/viewer/?uri=github.com/TBD54566975/web5-js)
