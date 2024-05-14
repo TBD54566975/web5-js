@@ -290,7 +290,7 @@ export class Record implements RecordModel {
   /**
    * Returns a copy of the raw `RecordsWriteMessage` that was used to create the current `Record` instance.
    */
-  private get rawMessage(): DwnMessage[DwnInterface.RecordsWrite] {
+  private get rawRecordsWriteMessage(): DwnMessage[DwnInterface.RecordsWrite] {
     const message = JSON.parse(JSON.stringify({
       contextId     : this._contextId,
       recordId      : this._recordId,
@@ -302,6 +302,12 @@ export class Record implements RecordModel {
 
     removeUndefinedProperties(message);
     return message;
+  }
+
+  /** Returns the descriptor associated with the `Record` */
+  private get descriptor(): DwnMessageDescriptor[DwnInterface.RecordsWrite] {
+    // if the message is a delete message, we use the initial write descriptor
+    return this._descriptor ? this._descriptor : this._initialWrite.descriptor;
   }
 
   constructor(agent: Web5Agent, options: RecordOptions) {
@@ -351,10 +357,6 @@ export class Record implements RecordModel {
         NodeStream.fromWebReadable({ readableStream: options.data }) :
         options.data;
     }
-  }
-
-  get descriptor(): DwnMessageDescriptor[DwnInterface.RecordsWrite] {
-    return this._descriptor ? this._descriptor : this._initialWrite.descriptor;
   }
 
   /**
@@ -513,8 +515,10 @@ export class Record implements RecordModel {
   }
 
   /**
-   * Send the current record to a remote DWN by specifying their DID
+   * Send the current record state to a remote DWN by specifying their DID
    * If no DID is specified, the target is assumed to be the owner (connectedDID).
+   *
+   * If the record is in a deleted state a `RecordsDelete` message is sent, otherwise a `RecordsWrite` message is sent.
    * If an initial write is present and the Record class send cache has no awareness of it, the initial write is sent first
    * (vs waiting for the regular DWN sync)
    *
@@ -526,6 +530,7 @@ export class Record implements RecordModel {
    */
   async send(target?: string): Promise<DwnResponseStatus> {
     const initialWrite = this._initialWrite;
+
     target ??= this._connectedDid;
 
     // Is there an initial write? Do we know if we've already sent it to this target?
@@ -548,14 +553,25 @@ export class Record implements RecordModel {
       Record._sendCache.set(this._recordId, target);
     }
 
-    // Send the current/latest state to the target.
-    const { reply } = await this._agent.sendDwnRequest({
-      messageType : DwnInterface.RecordsWrite,
-      author      : this._connectedDid,
-      dataStream  : await this.data.blob(),
-      target      : target,
-      rawMessage  : { ...this.rawMessage }
-    });
+    let reply: DwnResponseStatus;
+    if (this._deleteMessage) {
+      // send the deleted state to the target
+      ({ reply } = await this._agent.sendDwnRequest({
+        messageType : DwnInterface.RecordsDelete,
+        author      : this._connectedDid,
+        target      : target,
+        rawMessage  : { ...this._deleteMessage }
+      })); 
+    } else {
+      // Send the current/latest state to the target.
+      ({ reply } = await this._agent.sendDwnRequest({
+        messageType : DwnInterface.RecordsWrite,
+        author      : this._connectedDid,
+        dataStream  : await this.data.blob(),
+        target      : target,
+        rawMessage  : { ...this.rawRecordsWriteMessage }
+      }));
+    }
 
     return reply;
   }
@@ -617,7 +633,7 @@ export class Record implements RecordModel {
    * @returns A promise that resolves to a pagination cursor for the current record.
    */
   async paginationCursor(sort: DwnDateSort): Promise<DwnPaginationCursor> {
-    return getPaginationCursor(this.rawMessage, sort);
+    return getPaginationCursor(this.rawRecordsWriteMessage, sort);
   }
 
   /**
@@ -685,7 +701,7 @@ export class Record implements RecordModel {
     if (200 <= status.code && status.code <= 299) {
       // copy the original raw message to the initial write before we update the values.
       if (!this._initialWrite) {
-        this._initialWrite = { ...this.rawMessage };
+        this._initialWrite = { ...this.rawRecordsWriteMessage };
       }
 
       // Only update the local Record instance mutable properties if the record was successfully (over)written.
@@ -709,29 +725,27 @@ export class Record implements RecordModel {
    * @param params - Parameters to delete the record.
    * @returns the status of the delete request
    */
-  async delete({ dateModified, store, signAsOwner, ...params }: RecordDeleteParams): Promise<DwnResponseStatus> {
-    let deleteOptions: ProcessDwnRequest<DwnInterface.RecordsDelete>;
+  async delete(deleteParams?: RecordDeleteParams): Promise<DwnResponseStatus> {
+    const { store, signAsOwner, dateModified, ...params } = deleteParams || {};
+
+    // prepare delete options
+    let deleteOptions: ProcessDwnRequest<DwnInterface.RecordsDelete> = {
+      messageType : DwnInterface.RecordsDelete,
+      author      : this._connectedDid,
+      target      : this._connectedDid,
+      store,
+      signAsOwner
+    }
+
     if (this._deleteMessage) {
-      deleteOptions = {
-        messageType : DwnInterface.RecordsDelete,
-        rawMessage  : this._deleteMessage,
-        author      : this._connectedDid,
-        target      : this._connectedDid,
-        store,
-        signAsOwner,
-      };
+      // if we have a delete message we can just use it
+      deleteOptions.rawMessage = this._deleteMessage;
     } else {
-      deleteOptions = {
-        messageType   : DwnInterface.RecordsDelete,
-        author        : this._connectedDid,
-        messageParams : {
-          ...params,
-          recordId         : this._recordId,
-          messageTimestamp : dateModified,
-        },
-        target: this._connectedDid,
-        store,
-        signAsOwner,
+      // otherwise we construct a delete message given the `RecordDeleteParams`
+      deleteOptions.messageParams = {
+        ...params,
+        recordId         : this._recordId,
+        messageTimestamp : dateModified,
       };
     }
 
@@ -785,9 +799,12 @@ export class Record implements RecordModel {
       }
     }
 
+    // If there is a delete message and we haven't already processed it, we process it and marked it as such.
+    // We then return the status as there is no longer a need to process the current record state.
     if (this._deleteMessage && ((signAsOwner && !this._deleteMessageSigned) || (store && !this._deleteMessageStored))) {
       const { status } = await this.delete({ store, signAsOwner });
       if (200 <= status.code && status.code <= 299) {
+        this._descriptor = undefined;
         if (store) this._deleteMessageStored = true;
         if (signAsOwner) {
           this._deleteMessageSigned = true;
@@ -800,7 +817,7 @@ export class Record implements RecordModel {
     // Now that we've processed a potential initial write, we can process the current record state.
     const requestOptions: ProcessDwnRequest<DwnInterface.RecordsWrite> = {
       messageType : DwnInterface.RecordsWrite,
-      rawMessage  : this.rawMessage,
+      rawMessage  : this.rawRecordsWriteMessage,
       author      : this._connectedDid,
       target      : this._connectedDid,
       dataStream  : await this.data.blob(),

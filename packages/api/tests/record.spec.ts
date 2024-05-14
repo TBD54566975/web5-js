@@ -2455,6 +2455,87 @@ describe('Record', () => {
     });
   });
 
+  describe('delete()', () => {
+    it('deletes a local record on the local DWN', async () => {
+      const { status: writeStatus, record }  = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+
+      expect(writeStatus.code).to.equal(202);
+      expect(record).to.not.be.undefined;
+
+      // Write the record to Alice's remote DWN.
+      const { status } = await record!.send(aliceDid.uri);
+      expect(status.code).to.equal(202);
+
+      const { status: deleteStatus } = await record.delete();
+      expect(deleteStatus.code).to.equal(202);
+
+      // confirm the record has been deleted
+      const readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(404);
+    });
+
+    it('deletes a record that was only written to a remote DWN', async () => {
+      const { status: writeStatus, record }  = await dwnAlice.records.write({
+        store   : false,
+        data    : 'Hello, world!',
+        message : {
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+
+      expect(writeStatus.code).to.equal(202);
+      expect(record).to.not.be.undefined;
+
+      // Write the record to Alice's remote DWN.
+      const { status } = await record!.send(aliceDid.uri);
+      expect(status.code).to.equal(202);
+
+      // confirm the record has been written to the remote DWN
+      const readResult = await dwnAlice.records.read({
+        from    : aliceDid.uri,
+        message : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200);
+      expect(readResult.record).to.exist;
+      expect(readResult.record.id).to.equal(record.id);
+
+      const { status: deleteStatus } = await record.delete({ store: false});
+      expect(deleteStatus.code).to.equal(202);
+
+      // send the delete request to the remote DWN
+      const { status: deleteSendStatus } = await record.send(aliceDid.uri);
+      expect(deleteSendStatus.code).to.equal(202);
+
+      // confirm the record has been deleted
+      const readResultDeleted = await dwnAlice.records.read({
+        from    : aliceDid.uri,
+        message : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResultDeleted.status.code).to.equal(404);
+    });
+  });
+
   describe('store()', () => {
     it('should store an external record if it has been imported by the dwn owner', async () => {
       // Scenario: Alice creates a record.
@@ -2837,7 +2918,7 @@ describe('Record', () => {
       });
 
       expect(status.code).to.equal(202);
-      const messageCid = await Message.getCid(record['rawMessage']);
+      const messageCid = await Message.getCid(record['rawRecordsWriteMessage']);
 
       const paginationCursorCreatedAscending = await record.paginationCursor(DwnDateSort.CreatedAscending);
       expect(paginationCursorCreatedAscending).to.be.deep.equal({
@@ -2863,7 +2944,7 @@ describe('Record', () => {
         }
       });
       expect(status.code).to.equal(202);
-      const messageCid = await Message.getCid(record['rawMessage']);
+      const messageCid = await Message.getCid(record['rawRecordsWriteMessage']);
 
       const paginationCursorCreatedAscending = await record.paginationCursor(DwnDateSort.CreatedAscending);
       expect(paginationCursorCreatedAscending).to.be.deep.equal({

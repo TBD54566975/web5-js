@@ -379,39 +379,6 @@ export class DwnApi {
       },
 
       /**
-       * Delete a record
-       */
-      delete: async (request: RecordsDeleteRequest): Promise<DwnResponseStatus> => {
-        const agentRequest: ProcessDwnRequest<DwnInterface.RecordsDelete> = {
-          /**
-           * The `author` is the DID that will sign the message and must be the DID the Web5 app is
-           * connected with and is authorized to access the signing private key of.
-           */
-          author        : this.connectedDid,
-          messageParams : request.message,
-          messageType   : DwnInterface.RecordsDelete,
-          /**
-           * The `target` is the DID of the DWN tenant under which the delete will be executed.
-           * If `from` is provided, the delete operation will be executed on a remote DWN.
-           * Otherwise, the record will be deleted on the local DWN.
-           */
-          target        : request.from || this.connectedDid
-        };
-
-        let agentResponse: DwnResponse<DwnInterface.RecordsDelete>;
-
-        if (request.from) {
-          agentResponse = await this.agent.sendDwnRequest(agentRequest);
-        } else {
-          agentResponse = await this.agent.processDwnRequest(agentRequest);
-        }
-
-        const { reply: { status } } = agentResponse;
-
-        return { status };
-      },
-
-      /**
        * Query a single or multiple records based on the given filter
        */
       query: async (request: RecordsQueryRequest): Promise<RecordsQueryResponse> => {
