@@ -561,7 +561,7 @@ export class Record implements RecordModel {
         author      : this._connectedDid,
         target      : target,
         rawMessage  : { ...this._deleteMessage }
-      })); 
+      }));
     } else {
       // Send the current/latest state to the target.
       ({ reply } = await this._agent.sendDwnRequest({
@@ -735,7 +735,7 @@ export class Record implements RecordModel {
       target      : this._connectedDid,
       store,
       signAsOwner
-    }
+    };
 
     if (this._deleteMessage) {
       // if we have a delete message we can just use it
