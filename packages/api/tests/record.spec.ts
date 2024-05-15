@@ -2713,7 +2713,7 @@ describe('Record', () => {
       });
       expect(readResultFromAlice.status.code).to.equal(200);
       expect(readResultFromAlice.record).to.exist;
-      const readRecord = readResultFromAlice.record; 
+      const readRecord = readResultFromAlice.record;
 
       // Attempts to store the record without signing it, which should fail.
       let { status: storeRecordStatus } = await readRecord.store();
