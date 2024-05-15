@@ -32,7 +32,7 @@ describe('DidResolverCacheLevel', () => {
     });
 
     it('should initialize with a custom database', async function() {
-      const db = new Level<string, string>('__TESTDATA__/customLocation');
+      const db = new Level('__TESTDATA__/customLocation');
       const cache = new DidResolverCacheLevel({ db });
       expect(cache).to.be.an.instanceof(DidResolverCacheLevel);
       await cache.close();
