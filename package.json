@@ -29,9 +29,9 @@
     "@changesets/changelog-github": "^0.5.0",
     "@changesets/cli": "^2.27.1",
     "@npmcli/package-json": "5.0.0",
-    "@typescript-eslint/eslint-plugin": "6.4.0",
+    "@typescript-eslint/eslint-plugin": "7.9.0",
     "@web5/dwn-server": "0.2.2",
-    "eslint-plugin-mocha": "10.1.0",
+    "eslint-plugin-mocha": "10.4.3",
     "npkill": "0.11.3"
   },
   "pnpm": {

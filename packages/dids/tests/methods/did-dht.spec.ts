@@ -815,7 +815,7 @@ describe('DidDht', () => {
 });
 
 describe('DidDhtDocument', () => {
-  describe('fromDnsPacket()', async () => {
+  describe('fromDnsPacket()', () => {
     it('handles custom string properties for services', async () => {
       const didUri = 'did:dht:hpmp9uur565nkimpwdzom7ehbuabnsba658xwwynyk7awcd15bko';
 
