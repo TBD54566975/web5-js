@@ -73,6 +73,7 @@ module.exports = [
     '@typescript-eslint/no-explicit-any'       : 'off',
     '@typescript-eslint/no-non-null-assertion' : 'off',
     '@typescript-eslint/ban-ts-comment'        : 'off',
+    // TODO: Revisit new default mocha rules that were disabled in #579 - https://github.com/TBD54566975/web5-js/issues/580
     'mocha/no-exclusive-tests'                 : 'warn',
     'mocha/no-setup-in-describe'               : 'off',
     'mocha/no-mocha-arrows'                    : 'off',
@@ -80,6 +81,7 @@ module.exports = [
     'mocha/no-identical-title'                 : 'off',
     'mocha/no-pending-tests'                   : 'off',
     'mocha/no-skipped-tests'                   : 'off',
+    'mocha/no-sibling-hooks'                   : 'off',
   }
 }, {
   ignores: [
