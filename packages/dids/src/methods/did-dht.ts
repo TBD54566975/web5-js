@@ -828,6 +828,9 @@ export class DidDhtDocument {
         // If the retrieval failed, try the next resolution gateway.
         continue;
       }
+
+      // if the retrieval was successful, break the loop.
+      break;
     }
 
     // Convert the DNS packet to a DID document and metadata.
