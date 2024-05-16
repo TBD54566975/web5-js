@@ -11,4 +11,4 @@
 "@web5/api": patch
 ---
 
-Updated dependencies of all tbDEX related packages
+Updated dependencies of all packages
