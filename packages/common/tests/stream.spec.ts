@@ -367,7 +367,6 @@ describe('Stream', () => {
       let chunkCount = 0;
       let firstChunkLength: number | undefined;
 
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -418,7 +417,6 @@ describe('Stream', () => {
       const readableStream = Stream.generateByteStream({ streamLength, chunkLength, fillValue: fillValueRange });
       const reader = readableStream.getReader();
 
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
