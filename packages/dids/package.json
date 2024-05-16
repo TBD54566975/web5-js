@@ -1,6 +1,6 @@
 {
   "name": "@web5/dids",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "TBD DIDs library",
   "type": "module",
   "main": "./dist/cjs/index.js",
