@@ -1172,8 +1172,9 @@ describe('DidDhtDocument', () => {
 // vectors come from https://did-dht.com/#test-vectors
 describe('Official DID:DHT Vector tests', () => {
   it('vector 1', async () => {
+    const inputDidDocument = officialTestVector1.didDocument as DidDocument;
     const dnsPacket = await DidDhtDocument.toDnsPacket({
-      didDocument : officialTestVector1.didDocument as DidDocument,
+      didDocument : inputDidDocument,
       didMetadata : { published: false }
     });
 
@@ -1181,11 +1182,19 @@ describe('Official DID:DHT Vector tests', () => {
 
     const normalizedConstructedRecords = normalizeDnsRecords(dnsPacket.answers!);
     expect(normalizedConstructedRecords).to.deep.include.members(officialTestVector1.dnsRecords);
+
+    const didResolutionResult = await DidDhtDocument.fromDnsPacket({
+      didUri    : inputDidDocument.id,
+      dnsPacket : dnsPacket
+    });
+
+    expect(didResolutionResult.didDocument).to.deep.equal(inputDidDocument);
   });
 
   it('vector 2', async () => {
+    const inputDidDocument = officialTestVector2.didDocument as DidDocument;
     const dnsPacket = await DidDhtDocument.toDnsPacket({
-      didDocument : officialTestVector2.didDocument as DidDocument,
+      didDocument : inputDidDocument,
       didMetadata : {
         published : false,
         types     : [DidDhtRegisteredDidType.Organization, DidDhtRegisteredDidType.Government, DidDhtRegisteredDidType.Corporation]
@@ -1197,6 +1206,13 @@ describe('Official DID:DHT Vector tests', () => {
 
     const normalizedConstructedRecords = normalizeDnsRecords(dnsPacket.answers!);
     expect(normalizedConstructedRecords).to.deep.include.members(officialTestVector2.dnsRecords);
+
+    const didResolutionResult = await DidDhtDocument.fromDnsPacket({
+      didUri    : inputDidDocument.id,
+      dnsPacket : dnsPacket
+    });
+
+    expect(didResolutionResult.didDocument).to.deep.equal(inputDidDocument);
   });
 });
 
