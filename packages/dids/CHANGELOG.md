@@ -1,5 +1,11 @@
 # @web5/dids
 
+## 1.0.3
+
+### Patch Changes
+
+- [#575](https://github.com/TBD54566975/web5-js/pull/575) [`98eeb4c`](https://github.com/TBD54566975/web5-js/commit/98eeb4cffad6d2cea4a79fc6b4811056a3aeb922) Thanks [@thehenrytsai](https://github.com/thehenrytsai)! - Fixed DID DHT library regression where `kid` becomes `undefined`
+
 ## 1.0.2
 
 ### Patch Changes
