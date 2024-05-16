@@ -1,4 +1,4 @@
-import chai, { expect } from 'chai';
+import { expect, use } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
@@ -11,7 +11,7 @@ import x25519PublicKeyToBytes from '../fixtures/test-vectors/x25519/public-key-t
 
 import { X25519 } from '../../src/primitives/x25519.js';
 
-chai.use(chaiAsPromised);
+use(chaiAsPromised);
 
 describe('X25519', () => {
   let privateKey: Jwk;

@@ -294,11 +294,11 @@ importers:
         specifier: 9.1.0
         version: 9.1.0
       chai:
-        specifier: 4.3.10
-        version: 4.3.10
+        specifier: 5.1.1
+        version: 5.1.1
       chai-as-promised:
         specifier: 7.1.2
-        version: 7.1.2(chai@4.3.10)
+        version: 7.1.2(chai@5.1.1)
       esbuild:
         specifier: 0.19.8
         version: 0.19.8
@@ -4688,15 +4688,6 @@ packages:
     resolution: {integrity: sha512-azL6xMoi+uxu6z4rhWQ1jbdUhOMhis2PvscD/xjLqNMkv3BPPp2JyyuTHOrf9BOosGpNQ11v6BKv/g57RXbiaA==}
     peerDependencies:
       chai: '>= 2.1.2 < 5'
-    dependencies:
-      chai: 4.3.10
-      check-error: 1.0.3
-    dev: true
-
-  /chai-as-promised@7.1.2(chai@4.3.10):
-    resolution: {integrity: sha512-aBDHZxRzYnUYuIAIPBH2s511DjlKPzXNlXSGFC8CwmroWQLfrW0LtE1nK3MAwwNhJPa9raEjNCmRoFpG0Hurdw==}
-    peerDependencies:
-      chai: '>= 2.1.2 < 6'
     dependencies:
       chai: 4.3.10
       check-error: 1.0.3

@@ -1,4 +1,4 @@
-import chai, { expect } from 'chai';
+import { expect, use } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
@@ -6,7 +6,7 @@ import type { Jwk } from '../../src/jose/jwk.js';
 
 import { XChaCha20 } from '../../src/primitives/xchacha20.js';
 
-chai.use(chaiAsPromised);
+use(chaiAsPromised);
 
 describe('XChaCha20', () => {
   describe('bytesToPrivateKey()', () => {

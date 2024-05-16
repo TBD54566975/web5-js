@@ -88,7 +88,7 @@
     "@web/test-runner-playwright": "0.11.0",
     "abstract-level": "1.0.4",
     "c8": "9.1.0",
-    "chai": "4.3.10",
+    "chai": "5.1.1",
     "chai-as-promised": "7.1.2",
     "esbuild": "0.19.8",
     "eslint": "8.47.0",

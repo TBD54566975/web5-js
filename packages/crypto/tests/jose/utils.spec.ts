@@ -1,9 +1,9 @@
-import chai, { expect } from 'chai';
+import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
 import { canonicalize } from '../../src/jose/utils.js';
 
-chai.use(chaiAsPromised);
+use(chaiAsPromised);
 
 describe('JOSE Utils', () => {
   describe('canonicalize', () => {

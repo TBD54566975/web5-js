@@ -1,4 +1,4 @@
-import chai, { expect } from 'chai';
+import { expect, use } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
@@ -6,7 +6,7 @@ import type { Jwk } from '../../src/jose/jwk.js';
 
 import { POLY1305_TAG_LENGTH, XChaCha20Poly1305 } from '../../src/primitives/xchacha20-poly1305.js';
 
-chai.use(chaiAsPromised);
+use(chaiAsPromised);
 
 describe('XChaCha20Poly1305', () => {
   describe('bytesToPrivateKey()', () => {
