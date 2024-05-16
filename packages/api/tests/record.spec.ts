@@ -2868,6 +2868,98 @@ describe('Record', () => {
       expect(storedRecord.id).to.equal(record.id);
     });
 
+    it('import an external deleted record to the local DWN along with the initial write', async () => {
+      // Scenario: Alice creates a record.
+      //           Bob reads the record from Alice's DWN and stores it.
+      //           Bob deletes the record and stores the deletion.
+
+      // Alice creates a public record then sends it to her remote DWN.
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          published  : true,
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202, status.detail);
+      const sendResponse = await record.send();
+      expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
+
+      // Bob reads for the record from his own node, should not return any results
+      let readResult = await dwnBob.records.read({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(404);
+
+      // Bob reads the record from Alice's remote DWN.
+      const readResultFromAlice = await dwnBob.records.read({
+        from    : aliceDid.uri,
+        message : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResultFromAlice.status.code).to.equal(200);
+      expect(readResultFromAlice.record).to.exist;
+      const readRecord = readResultFromAlice.record;
+
+      // Attempts to store the record without signing it, which should fail.
+      let { status: storeRecordStatus } = await readRecord.store();
+      expect(storeRecordStatus.code).to.equal(401, storeRecordStatus.detail);
+
+      // Stores the record in Bob's DWN, the importRecord parameter is set to true so that Bob
+      // signs the record before storing it.
+      ({ status: storeRecordStatus } = await readRecord.store(true));
+      expect(storeRecordStatus.code).to.equal(202, storeRecordStatus.detail);
+
+      // The record should now exist on Bob's DWN.
+      readResult = await dwnBob.records.read({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200);
+      expect(readResult.record).to.exist;
+      const storedRecord = readResult.record;
+      expect(storedRecord.id).to.equal(record!.id);
+
+      // Bob delete the record
+      const { status: deleteStatus } = await storedRecord.delete();
+      expect(deleteStatus.code).to.equal(202);
+
+      // Bob sends the delete request to alice's DWN, it should reject
+      const { status: sendDeleteStatus } = await storedRecord.send(aliceDid.uri);
+      expect(sendDeleteStatus.code).to.equal(401);
+
+      // confirm the record has been deleted from Bob's DWN
+      readResult = await dwnBob.records.read({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(404);
+
+      // confirm it is not deleted from Alice's DWN
+      readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200);
+    });
+
     describe('store: false', () => {
       it('should import an external record without storing it', async () => {
         // Scenario: Alice creates a record.
