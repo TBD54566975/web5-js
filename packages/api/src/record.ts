@@ -335,7 +335,6 @@ export class Record implements RecordModel {
    * @beta
    */
   get data() {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this; // Capture the context of the `Record` instance.
     const dataObj = {
 
