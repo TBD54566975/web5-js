@@ -1022,9 +1022,9 @@ export class DidDhtDocument {
 
         // Process verification methods.
         case dnsRecordId.startsWith('k'): {
-          // Get the method ID fragment (id), key type (t), Base64URL-encoded public key (k), and
+          // Get the key type (t), Base64URL-encoded public key (k), and
           // optionally, controller (c) from the decoded TXT record data.
-          const { id, t, k, c, a: parsedAlg } = DidDhtUtils.parseTxtDataToObject(answer.data);
+          const { t, k, c, a: parsedAlg } = DidDhtUtils.parseTxtDataToObject(answer.data);
 
           // Convert the public key from Base64URL format to a byte array.
           const publicKeyBytes = Convert.base64Url(k).toUint8Array();
@@ -1038,13 +1038,14 @@ export class DidDhtDocument {
           publicKey.alg = parsedAlg || KeyTypeToDefaultAlgorithmMap[Number(t) as DidDhtRegisteredKeyType];
 
           // Determine the Key ID (kid): '0' for the identity key or JWK thumbprint for others.
-          publicKey.kid = dnsRecordId.endsWith('0') ? '0' : await computeJwkThumbprint({ jwk: publicKey });
+          const kid = dnsRecordId.endsWith('0') ? '0' : await computeJwkThumbprint({ jwk: publicKey });
+          publicKey.kid = kid;
 
           // Initialize the `verificationMethod` array if it does not already exist.
           didDocument.verificationMethod ??= [];
 
           // Prepend the DID URI to the ID fragment to form the full verification method ID.
-          const methodId = `${didUri}#${id}`;
+          const methodId = `${didUri}#${kid}`;
 
           // Add the verification method to the DID document.
           didDocument.verificationMethod.push({
