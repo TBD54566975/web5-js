@@ -68,8 +68,9 @@ module.exports = [
         'varsIgnorePattern'  : '^_'
       }
     ],
-    '@typescript-eslint/no-explicit-any'       : 'off',
+    'no-dupe-class-members'                    : 'off',
     'no-trailing-spaces'                       : ['error'],
+    '@typescript-eslint/no-explicit-any'       : 'off',
     '@typescript-eslint/no-non-null-assertion' : 'off',
     '@typescript-eslint/ban-ts-comment'        : 'off',
     'mocha/no-exclusive-tests'                 : 'warn',
@@ -77,6 +78,8 @@ module.exports = [
     'mocha/no-mocha-arrows'                    : 'off',
     'mocha/max-top-level-suites'               : 'off',
     'mocha/no-identical-title'                 : 'off',
+    'mocha/no-pending-tests'                   : 'off',
+    'mocha/no-skipped-tests'                   : 'off',
   }
 }, {
   ignores: [
