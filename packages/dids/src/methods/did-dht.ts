@@ -805,10 +805,30 @@ export class DidDhtDocument {
     const publicKeyBytes = DidDhtUtils.identifierToIdentityKeyBytes({ didUri });
 
     // Retrieve the signed BEP44 message from a DID DHT Gateway or Pkarr relay.
-    const bep44Message = await DidDhtDocument.pkarrGet({ gatewayUri, publicKeyBytes });
+    let bep44Message = await DidDhtDocument.pkarrGet({ gatewayUri, publicKeyBytes });
 
     // Verify the signature of the BEP44 message and parse the value to a DNS packet.
-    const dnsPacket = await DidDhtUtils.parseBep44GetMessage({ bep44Message });
+    let dnsPacket = await DidDhtUtils.parseBep44GetMessage({ bep44Message });
+
+    // Look at the NS records in the DNS packet to find the resolution gateway URIs.
+    let resolutinGatewayUris = await DidDhtDocument.getAuthoritativeGatewayUris({ didUri, dnsPacket });
+
+    const accumulatedErrors = [];
+    for(const nsRecordGatewayUri of resolutinGatewayUris) {
+      try {
+        bep44Message = await DidDhtDocument.pkarrGet({ gatewayUri: nsRecordGatewayUri, publicKeyBytes });
+        dnsPacket = await DidDhtUtils.parseBep44GetMessage({ bep44Message });
+      } catch (error: any) {
+        accumulatedErrors.push(`Failed retrieval from ${nsRecordGatewayUri}: ${error}`);
+
+        if(nsRecordGatewayUri == resolutinGatewayUris[resolutinGatewayUris.length - 1]) {
+          throw new Error(`DID document not found for: ${didUri}. Errors: ${accumulatedErrors.join('; ')}`);
+        }
+
+        // If the retrieval failed, try the next resolution gateway.
+        continue;
+      }
+    }
 
     // Convert the DNS packet to a DID document and metadata.
     const resolutionResult = await DidDhtDocument.fromDnsPacket({ didUri, dnsPacket });
@@ -963,6 +983,38 @@ export class DidDhtDocument {
 
     // Return `true` if the DHT request was successful, otherwise return `false`.
     return response.ok;
+  }
+
+
+  /**
+   * Extracts authoritative gateway URIs from a DNS packet based on the DID DHT specifications.
+   * This method filters NS records related to the provided DID URI and extracts gateway URIs
+   * that are used to resolve the complete DID document.
+   *
+   * @see {@link https://did-dht.com/#designating-authoritative-gateways | DID DHT Specification, § Authoritative Gateways}
+   *
+   * @param {object} params - The parameters to use when extracting gateway URIs from the DNS packet.
+   * @param {string} params.didUri - The DID URI corresponding to the DNS packet.
+   * @param {Packet} params.dnsPacket - The DNS packet containing potential NS records for resolution gateways.
+   * @returns {Promise<string[]>} Resolves to an array of gateway URIs if found, otherwise an empty array.
+   */
+  public static async getAuthoritativeGatewayUris({ didUri, dnsPacket }: {
+    didUri: string;
+    dnsPacket: Packet;
+  }): Promise<string[]> {
+    const authoritativeGatewayUris: string[] = [];
+
+    for (const answer of dnsPacket?.answers ?? []) {
+      if (answer.type !== 'NS') continue;
+
+      if(answer.name.endsWith(`.${DidDhtDocument.getUniqueDidSuffix(didUri)}.`)) {
+        const gatewayUri = answer.data.slice(0, -1); // Remove trailing dot
+        authoritativeGatewayUris.push(gatewayUri);
+        break;
+      }
+    }
+
+    return authoritativeGatewayUris;
   }
 
   /**
