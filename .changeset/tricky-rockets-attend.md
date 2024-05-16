@@ -11,4 +11,4 @@
 "@web5/api": patch
 ---
 
-Updated all packages to use ESLint v9
+Updated dependencies of all tbDEX related packages
