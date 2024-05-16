@@ -1022,7 +1022,7 @@ export class DidDhtDocument {
 
         // Process verification methods.
         case dnsRecordId.startsWith('k'): {
-          // Get the method ID fragment (id), key type (t), Base64URL-encoded public key (k), and
+          // Get the key type (t), Base64URL-encoded public key (k), and
           // optionally, controller (c) from the decoded TXT record data.
           const { t, k, c, a: parsedAlg } = DidDhtUtils.parseTxtDataToObject(answer.data);
 
