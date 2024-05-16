@@ -1,4 +1,4 @@
-import chai, { expect } from 'chai';
+import { expect, use } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
@@ -14,7 +14,7 @@ import secp256r1ValidatePrivateKey from '../fixtures/test-vectors/secp256r1/vali
 
 import { Secp256r1 } from '../../src/primitives/secp256r1.js';
 
-chai.use(chaiAsPromised);
+use(chaiAsPromised);
 
 describe('Secp256r1', () => {
   let privateKey: Jwk;

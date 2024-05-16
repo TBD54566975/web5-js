@@ -1,10 +1,10 @@
-import chai, { expect } from 'chai';
+import { expect, use } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
 import { Pbkdf2 } from '../../src/primitives/pbkdf2.js';
 
-chai.use(chaiAsPromised);
+use(chaiAsPromised);
 
 describe('Pbkdf2', () => {
   const password = Convert.string('password').toUint8Array();

@@ -1,10 +1,10 @@
-import chai, { expect } from 'chai';
+import { expect, use } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
 import { ConcatKdf } from '../../src/primitives/concat-kdf.js';
 
-chai.use(chaiAsPromised);
+use(chaiAsPromised);
 
 describe('ConcatKdf', () => {
   describe('deriveKey()', () => {

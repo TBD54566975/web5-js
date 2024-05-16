@@ -1,4 +1,4 @@
-import chai, { expect } from 'chai';
+import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
 import type { Jwk } from '../../src/jose/jwk.js';
@@ -15,7 +15,7 @@ import {
 } from '../../src/jose/jwk.js';
 import { jwkToThumbprintTestVectors } from '../fixtures/test-vectors/jwk.js';
 
-chai.use(chaiAsPromised);
+use(chaiAsPromised);
 
 describe('JWK', () => {
   describe('computeJwkThumbprint()', () => {

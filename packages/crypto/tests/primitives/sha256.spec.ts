@@ -1,4 +1,4 @@
-import chai, { expect } from 'chai';
+import { expect, use } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
@@ -6,7 +6,7 @@ import Sha256DigestTestVector from '../fixtures/test-vectors/sha256/digest.json'
 
 import { Sha256 } from '../../src/primitives/sha256.js';
 
-chai.use(chaiAsPromised);
+use(chaiAsPromised);
 
 describe('Sha256', () => {
   describe('digest()', () => {
