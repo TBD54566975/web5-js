@@ -5,7 +5,7 @@ import type { Validated, PresentationDefinitionV2 } from '../src/presentation-ex
 
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import { PresentationExchange } from '../src/presentation-exchange.js';
-import PresentationExchangeSelectCredentialsTestVector from '../../../web5-spec/test-vectors/presentation_exchange/select_credentials.json' assert { type: 'json' };
+// import PresentationExchangeSelectCredentialsTestVector from '../../../web5-spec/test-vectors/presentation_exchange/select_credentials.json' assert { type: 'json' };
 import PresentationExchangeCreatePresentationFromCredentialsTestVector from '../../../web5-spec/test-vectors/presentation_exchange/create_presentation_from_credentials.json' assert { type: 'json' };
 import PresentationExchangeValidateDefinitionTestVector from '../../../web5-spec/test-vectors/presentation_exchange/validate_definition.json' assert { type: 'json' };
 import PresentationExchangeValidateSubmissionTestVector from '../../../web5-spec/test-vectors/presentation_exchange/validate_submission.json' assert { type: 'json' };
