@@ -1,6 +1,10 @@
+const baseConfig = require('../../eslint.config.cjs');
+
 /** @type {import('eslint').ESLint.ConfigData} */
-module.exports = {
+module.exports = [
+  ...baseConfig,
+  {
   rules: {
     '@typescript-eslint/no-namespace': 'off',
   }
-};
+}];
