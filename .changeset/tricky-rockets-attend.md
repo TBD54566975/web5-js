@@ -8,7 +8,6 @@
 "@web5/user-agent": patch
 "@web5/proxy-agent": patch
 "@web5/identity-agent": patch
-"@web5/api": patch
 ---
 
 Updated dependencies of all packages
