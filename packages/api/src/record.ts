@@ -5,13 +5,16 @@
 /// <reference types="@tbd54566975/dwn-sdk-js" />
 
 import type { Readable } from '@web5/common';
-import type {
+import {
   Web5Agent,
   DwnMessage,
   DwnMessageParams,
   DwnResponseStatus,
   ProcessDwnRequest,
   DwnMessageDescriptor,
+  getPaginationCursor,
+  DwnDateSort,
+  DwnPaginationCursor
 } from '@web5/agent';
 
 import { DwnInterface } from '@web5/agent';
@@ -332,7 +335,6 @@ export class Record implements RecordModel {
    * @beta
    */
   get data() {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this; // Capture the context of the `Record` instance.
     const dataObj = {
 
@@ -574,6 +576,16 @@ export class Record implements RecordModel {
     str += `  Modified: ${this.dateModified}\n`;
     str += `}`;
     return str;
+  }
+
+  /**
+   * Returns a pagination cursor for the current record given a sort order.
+   *
+   * @param sort the sort order to use for the pagination cursor.
+   * @returns A promise that resolves to a pagination cursor for the current record.
+   */
+  async paginationCursor(sort: DwnDateSort): Promise<DwnPaginationCursor> {
+    return getPaginationCursor(this.rawMessage, sort);
   }
 
   /**

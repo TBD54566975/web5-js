@@ -10,7 +10,8 @@
   "exclude": [
     "tests/compiled/**/src/index.js",
     "tests/compiled/**/src/types.js",
-    "tests/compiled/**/src/types/**"
+    "tests/compiled/**/src/types/**",
+    "tests/compiled/**/src/prototyping/clients/*-types.js"
   ],
   "reporter": [
     "cobertura",

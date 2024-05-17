@@ -30,8 +30,8 @@ describe('SyncEngineLevel', () => {
 
   describe('get agent', () => {
     it(`returns the 'agent' instance property`, () => {
-      // @ts-expect-error because we are only mocking a single property.
-      const mockAgent: Web5PlatformAgent = {
+      // we are only mocking
+      const mockAgent: any = {
         agentDid: 'did:method:abc123'
       };
       const syncEngine = new SyncEngineLevel({ agent: mockAgent, db: {} as any });

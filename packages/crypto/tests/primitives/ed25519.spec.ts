@@ -1,4 +1,4 @@
-import chai, { expect } from 'chai';
+import { expect, use } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
@@ -16,7 +16,7 @@ import ed25519ConvertPrivateKeyToX25519 from '../fixtures/test-vectors/ed25519/c
 
 import { Ed25519 } from '../../src/primitives/ed25519.js';
 
-chai.use(chaiAsPromised);
+use(chaiAsPromised);
 
 describe('Ed25519', () => {
   let privateKey: Jwk;

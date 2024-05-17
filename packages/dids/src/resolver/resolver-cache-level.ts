@@ -40,7 +40,7 @@ export type DidResolverCacheLevelParams = {
  * with an associated time-to-live (TTL) value. The TTL is represented in milliseconds and
  * determines when the cached entry is considered expired and eligible for removal.
  */
-type CacheWrapper = {
+type CachedDidResolutionResult = {
   /**
    * The expiration time of the cache entry in milliseconds since the Unix epoch.
    *
@@ -73,7 +73,7 @@ type CacheWrapper = {
  */
 export class DidResolverCacheLevel implements DidResolverCache {
   /** The underlying LevelDB store used for caching. */
-  private cache: AbstractLevel<string | Buffer | Uint8Array, string, string>;
+  private cache;
 
   /** The time-to-live for cache entries in milliseconds. */
   private ttl: number;
@@ -98,15 +98,15 @@ export class DidResolverCacheLevel implements DidResolverCache {
   async get(did: string): Promise<DidResolutionResult | void> {
     try {
       const str = await this.cache.get(did);
-      const cacheWrapper: CacheWrapper = JSON.parse(str);
+      const cachedDidResolutionResult: CachedDidResolutionResult = JSON.parse(str);
 
-      if (Date.now() >= cacheWrapper.ttlMillis) {
+      if (Date.now() >= cachedDidResolutionResult.ttlMillis) {
         // defer deletion to be called in the next tick of the js event loop
         this.cache.nextTick(() => this.cache.del(did));
 
         return;
       } else {
-        return cacheWrapper.value;
+        return cachedDidResolutionResult.value;
       }
 
     } catch(error: any) {
@@ -127,8 +127,8 @@ export class DidResolverCacheLevel implements DidResolverCache {
    * @returns A promise that resolves when the operation is complete.
    */
   set(did: string, value: DidResolutionResult): Promise<void> {
-    const cacheWrapper: CacheWrapper = { ttlMillis: Date.now() + this.ttl, value };
-    const str = JSON.stringify(cacheWrapper);
+    const cachedDidResolutionResult: CachedDidResolutionResult = { ttlMillis: Date.now() + this.ttl, value };
+    const str = JSON.stringify(cachedDidResolutionResult);
 
     return this.cache.put(did, str);
   }

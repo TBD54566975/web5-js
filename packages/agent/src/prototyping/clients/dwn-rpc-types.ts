@@ -1,10 +1,10 @@
-import type { MessageEvent, RecordsReadReply, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
+import type { RecordsReadReply, UnionMessageReply, EventSubscriptionHandler, RecordSubscriptionHandler } from '@tbd54566975/dwn-sdk-js';
 
 export interface SerializableDwnMessage {
   toJSON(): string;
 }
 
-export type DwnEventSubscriptionHandler = (event: MessageEvent) => void;
+export type DwnSubscriptionHandler = EventSubscriptionHandler | RecordSubscriptionHandler;
 
 /**
  * Interface for communicating with {@link https://github.com/TBD54566975/dwn-server | DWN Servers}
@@ -45,7 +45,7 @@ export type DwnRpcRequest = {
   targetDid: string;
 
   /** Optional subscription handler for DWN events. */
-  subscriptionHandler?: DwnEventSubscriptionHandler;
+  subscriptionHandler?: DwnSubscriptionHandler;
 }
 
 /**

@@ -84,7 +84,7 @@ class DwnTestStore extends DwnDataStore<PortableDid> implements AgentDataStore<P
   }
 }
 
-export class InMemoryTestStore extends InMemoryDataStore<PortableDid> implements AgentDataStore<PortableDid> {
+class InMemoryTestStore extends InMemoryDataStore<PortableDid> implements AgentDataStore<PortableDid> {
   protected name = 'InMemoryTestStore';
 
   public async delete(params: DataStoreDeleteParams): Promise<boolean> {

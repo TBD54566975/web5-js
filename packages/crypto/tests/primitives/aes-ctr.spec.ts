@@ -1,4 +1,4 @@
-import chai, { expect } from 'chai';
+import { expect, use } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
@@ -9,7 +9,7 @@ import { AesCtr } from '../../src/primitives/aes-ctr.js';
 import AesCtrDecryptTestVector from '../fixtures/test-vectors/aes-ctr/decrypt.json' assert { type: 'json' };
 import AesCtrEncryptTestVector from '../fixtures/test-vectors/aes-ctr/encrypt.json' assert { type: 'json' };
 
-chai.use(chaiAsPromised);
+use(chaiAsPromised);
 
 describe('AesCtr', () => {
   describe('bytesToPrivateKey()', () => {

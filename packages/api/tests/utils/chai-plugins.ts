@@ -1,3 +1,5 @@
+import * as Chai from 'chai';
+
 /**
  * Chai plugin for validating URLs.
  *

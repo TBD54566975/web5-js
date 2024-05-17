@@ -87,6 +87,7 @@ describe('Jwt', () => {
         expect(e.message).to.include('JWT is expired');
       }
     });
+
     it('throws error if JWT header kid does not dereference a verification method', async () => {
       const did = await DidKey.create({ options: { algorithm: 'secp256k1'} });
       const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: did.uri };

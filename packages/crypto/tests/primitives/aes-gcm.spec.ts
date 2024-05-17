@@ -1,4 +1,4 @@
-import chai, { expect } from 'chai';
+import { expect, use } from 'chai';
 import { Convert } from '@web5/common';
 import chaiAsPromised from 'chai-as-promised';
 
@@ -9,7 +9,7 @@ import { AesGcm, AES_GCM_TAG_LENGTHS } from '../../src/primitives/aes-gcm.js';
 import AesGcmDecryptTestVector from '../fixtures/test-vectors/aes-gcm/decrypt.json' assert { type: 'json' };
 import AesGcmEncryptTestVector from '../fixtures/test-vectors/aes-gcm/encrypt.json' assert { type: 'json' };
 
-chai.use(chaiAsPromised);
+use(chaiAsPromised);
 
 describe('AesGcm', () => {
   describe('bytesToPrivateKey()', () => {

@@ -1,5 +1,38 @@
 # @web5/identity-agent
 
+## 0.3.6
+
+### Patch Changes
+
+- [#492](https://github.com/TBD54566975/web5-js/pull/492) [`b516a5f`](https://github.com/TBD54566975/web5-js/commit/b516a5f71c3e2babefa644f2d88b1520c844ca0c) Thanks [@LiranCohen](https://github.com/LiranCohen)! - - `@web5/agent` DWN Subscriptions Support
+  - `@web5/agent` supports latest `dwn-sdk-js` with `prune` feature from `RecordsWriteDelete`
+- Updated dependencies [[`b516a5f`](https://github.com/TBD54566975/web5-js/commit/b516a5f71c3e2babefa644f2d88b1520c844ca0c)]:
+  - @web5/agent@0.3.6
+
+## 0.3.5
+
+### Patch Changes
+
+- [#513](https://github.com/TBD54566975/web5-js/pull/513) [`82fe049`](https://github.com/TBD54566975/web5-js/commit/82fe049234423bd08a4b3c7e6cf48bdd5556d5a7) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Add a helper methods for generating a PaginationCursor from `api` without importing `dwn-sdk-js` directly
+
+- Updated dependencies [[`82fe049`](https://github.com/TBD54566975/web5-js/commit/82fe049234423bd08a4b3c7e6cf48bdd5556d5a7)]:
+  - @web5/agent@0.3.5
+
+## 0.3.4
+
+### Patch Changes
+
+- [#489](https://github.com/TBD54566975/web5-js/pull/489) [`eabe5ca`](https://github.com/TBD54566975/web5-js/commit/eabe5ca780745d229d5df7a0e64f43a5283a10d7) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Add `DwnServerInfoRpc` to `Web5Rpc` for retrieving server specific info.
+
+  Server Info includes:
+
+  - maxFileSize
+  - registrationRequirements
+  - webSocketSupport
+
+- Updated dependencies [[`eabe5ca`](https://github.com/TBD54566975/web5-js/commit/eabe5ca780745d229d5df7a0e64f43a5283a10d7)]:
+  - @web5/agent@0.3.4
+
 ## 0.3.3
 
 ### Patch Changes

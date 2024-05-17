@@ -1,4 +1,4 @@
-import type { Packet, TxtAnswer, TxtData } from '@dnsquery/dns-packet';
+import type { Packet, StringAnswer, TxtAnswer, TxtData } from '@dnsquery/dns-packet';
 import type {
   Jwk,
   Signer,
@@ -395,6 +395,15 @@ const AlgorithmToKeyTypeMap = {
 } as const;
 
 /**
+ * Private helper that maps did dht registered key types to their corresponding default algorithm identifiers.
+ */
+const KeyTypeToDefaultAlgorithmMap = {
+  [DidDhtRegisteredKeyType.Ed25519]   : 'Ed25519',
+  [DidDhtRegisteredKeyType.secp256k1] : 'ES256K',
+  [DidDhtRegisteredKeyType.secp256r1] : 'ES256',
+};
+
+/**
  * The `DidDht` class provides an implementation of the `did:dht` DID method.
  *
  * Features:
@@ -533,17 +542,17 @@ export class DidDht extends DidMethod {
 
     // Generate random key material for the Identity Key and any additional verification methods.
     // Add verification methods to the DID document.
-    for (const vm of verificationMethodsToAdd) {
+    for (const verificationMethod of verificationMethodsToAdd) {
       // Generate a random key for the verification method, or if its the Identity Key's
       // verification method (`id` is 0) use the key previously generated.
-      const keyUri = (vm.id && vm.id.split('#').pop() === '0')
+      const keyUri = (verificationMethod.id && verificationMethod.id.split('#').pop() === '0')
         ? identityKeyUri
-        : await keyManager.generateKey({ algorithm: vm.algorithm });
+        : await keyManager.generateKey({ algorithm: verificationMethod.algorithm });
 
       const publicKey = await keyManager.getPublicKey({ keyUri });
 
       // Use the given ID, the key's ID, or the key's thumbprint as the verification method ID.
-      let methodId = vm.id ?? publicKey.kid ?? await computeJwkThumbprint({ jwk: publicKey });
+      let methodId = verificationMethod.id ?? publicKey.kid ?? await computeJwkThumbprint({ jwk: publicKey });
       methodId = `${didUri}#${extractDidFragment(methodId)}`; // Remove fragment prefix, if any.
 
       // Initialize the `verificationMethod` array if it does not already exist.
@@ -553,12 +562,12 @@ export class DidDht extends DidMethod {
       document.verificationMethod.push({
         id           : methodId,
         type         : 'JsonWebKey',
-        controller   : vm.controller ?? didUri,
+        controller   : verificationMethod.controller ?? didUri,
         publicKeyJwk : publicKey,
       });
 
       // Add the verification method to the specified purpose properties of the DID document.
-      for (const purpose of vm.purposes ?? []) {
+      for (const purpose of verificationMethod.purposes ?? []) {
         // Initialize the purpose property if it does not already exist.
         if (!document[purpose]) document[purpose] = [];
         // Add the verification method to the purpose property.
@@ -825,8 +834,9 @@ export class DidDhtDocument {
   }): Promise<DidRegistrationResult> {
     // Convert the DID document and DID metadata (such as DID types) to a DNS packet.
     const dnsPacket = await DidDhtDocument.toDnsPacket({
-      didDocument : did.document,
-      didMetadata : did.metadata
+      didDocument              : did.document,
+      didMetadata              : did.metadata,
+      authoritativeGatewayUris : [gatewayUri]
     });
 
     // Create a signed BEP44 put message from the DNS packet.
@@ -1012,9 +1022,9 @@ export class DidDhtDocument {
 
         // Process verification methods.
         case dnsRecordId.startsWith('k'): {
-          // Get the method ID fragment (id), key type (t), Base64URL-encoded public key (k), and
+          // Get the key type (t), Base64URL-encoded public key (k), and
           // optionally, controller (c) from the decoded TXT record data.
-          const { id, t, k, c } = DidDhtUtils.parseTxtDataToObject(answer.data);
+          const { t, k, c, a: parsedAlg } = DidDhtUtils.parseTxtDataToObject(answer.data);
 
           // Convert the public key from Base64URL format to a byte array.
           const publicKeyBytes = Convert.base64Url(k).toUint8Array();
@@ -1025,11 +1035,17 @@ export class DidDhtDocument {
           // Convert the public key from a byte array to JWK format.
           let publicKey = await DidDhtUtils.keyConverter(namedCurve).bytesToPublicKey({ publicKeyBytes });
 
+          publicKey.alg = parsedAlg || KeyTypeToDefaultAlgorithmMap[Number(t) as DidDhtRegisteredKeyType];
+
+          // Determine the Key ID (kid): '0' for the identity key or JWK thumbprint for others.
+          const kid = dnsRecordId.endsWith('0') ? '0' : await computeJwkThumbprint({ jwk: publicKey });
+          publicKey.kid = kid;
+
           // Initialize the `verificationMethod` array if it does not already exist.
           didDocument.verificationMethod ??= [];
 
           // Prepend the DID URI to the ID fragment to form the full verification method ID.
-          const methodId = `${didUri}#${id}`;
+          const methodId = `${didUri}#${kid}`;
 
           // Add the verification method to the DID document.
           didDocument.verificationMethod.push({
@@ -1118,22 +1134,25 @@ export class DidDhtDocument {
    * @param params - The parameters to use when converting a DID document to a DNS packet.
    * @param params.didDocument - The DID document to convert to a DNS packet.
    * @param params.didMetadata - The DID metadata to include in the DNS packet.
+   * @param params.authoritativeGatewayUris - The URIs of the Authoritative Gateways to generate NS records from.
    * @returns A promise that resolves to a DNS packet.
    */
-  public static async toDnsPacket({ didDocument, didMetadata }: {
+  public static async toDnsPacket({ didDocument, didMetadata, authoritativeGatewayUris }: {
     didDocument: DidDocument;
     didMetadata: DidMetadata;
+    authoritativeGatewayUris?: string[];
   }): Promise<Packet> {
-    const dnsAnswerRecords: TxtAnswer[] = [];
+    const txtRecords: TxtAnswer[] = [];
+    const nsRecords: StringAnswer[] = [];
     const idLookup = new Map<string, string>();
     const serviceIds: string[] = [];
     const verificationMethodIds: string[] = [];
 
     // Add DNS TXT records if the DID document contains an `alsoKnownAs` property.
     if (didDocument.alsoKnownAs) {
-      dnsAnswerRecords.push({
+      txtRecords.push({
         type : 'TXT',
-        name : '_aka.did.',
+        name : '_aka._did.',
         ttl  : DNS_RECORD_TTL,
         data : didDocument.alsoKnownAs.join(VALUE_SEPARATOR)
       });
@@ -1144,25 +1163,25 @@ export class DidDhtDocument {
       const controller = Array.isArray(didDocument.controller)
         ? didDocument.controller.join(VALUE_SEPARATOR)
         : didDocument.controller;
-      dnsAnswerRecords.push({
+      txtRecords.push({
         type : 'TXT',
-        name : '_cnt.did.',
+        name : '_cnt._did.',
         ttl  : DNS_RECORD_TTL,
         data : controller
       });
     }
 
     // Add DNS TXT records for each verification method.
-    for (const [index, vm] of didDocument.verificationMethod?.entries() ?? []) {
+    for (const [index, verificationMethod] of didDocument.verificationMethod?.entries() ?? []) {
       const dnsRecordId = `k${index}`;
       verificationMethodIds.push(dnsRecordId);
-      let methodId = vm.id.split('#').pop()!; // Remove fragment prefix, if any.
+      let methodId = verificationMethod.id.split('#').pop()!; // Remove fragment prefix, if any.
       idLookup.set(methodId, dnsRecordId);
 
-      const publicKey = vm.publicKeyJwk;
+      const publicKey = verificationMethod.publicKeyJwk;
 
       if (!(publicKey?.crv && publicKey.crv in AlgorithmToKeyTypeMap)) {
-        throw new DidError(DidErrorCode.InvalidPublicKeyType, `Verification method '${vm.id}' contains an unsupported key type: ${publicKey?.crv ?? 'undefined'}`);
+        throw new DidError(DidErrorCode.InvalidPublicKeyType, `Verification method '${verificationMethod.id}' contains an unsupported key type: ${publicKey?.crv ?? 'undefined'}`);
       }
 
       // Use the public key's `crv` property to get the DID DHT key type.
@@ -1175,13 +1194,18 @@ export class DidDhtDocument {
       const publicKeyBase64Url = Convert.uint8Array(publicKeyBytes).toBase64Url();
 
       // Define the data for the DNS TXT record.
-      const txtData = [`id=${methodId}`, `t=${keyType}`, `k=${publicKeyBase64Url}`];
+      const txtData = [`t=${keyType}`, `k=${publicKeyBase64Url}`];
+
+      // Only set the algorithm property (`a`) if it differs from the default algorithm for the key type.
+      if(publicKey.alg !== KeyTypeToDefaultAlgorithmMap[keyType]) {
+        txtData.push(`a=${publicKey.alg}`);
+      }
 
       // Add the controller property, if set to a value other than the Identity Key (DID Subject).
-      if (vm.controller !== didDocument.id) txtData.push(`c=${vm.controller}`);
+      if (verificationMethod.controller !== didDocument.id) txtData.push(`c=${verificationMethod.controller}`);
 
       // Add a TXT record for the verification method.
-      dnsAnswerRecords.push({
+      txtRecords.push({
         type : 'TXT',
         name : `_${dnsRecordId}._did.`,
         ttl  : DNS_RECORD_TTL,
@@ -1203,7 +1227,7 @@ export class DidDhtDocument {
       );
 
       // Add a TXT record for the verification method.
-      dnsAnswerRecords.push({
+      txtRecords.push({
         type : 'TXT',
         name : `_${dnsRecordId}._did.`,
         ttl  : DNS_RECORD_TTL,
@@ -1244,7 +1268,7 @@ export class DidDhtDocument {
       const types = didMetadata.types as (DidDhtRegisteredDidType | keyof typeof DidDhtRegisteredDidType)[];
       const typeIntegers = types.map(type => typeof type === 'string' ? DidDhtRegisteredDidType[type] : type);
 
-      dnsAnswerRecords.push({
+      txtRecords.push({
         type : 'TXT',
         name : '_typ._did.',
         ttl  : DNS_RECORD_TTL,
@@ -1253,19 +1277,29 @@ export class DidDhtDocument {
     }
 
     // Add a DNS TXT record for the root record.
-    dnsAnswerRecords.push({
+    txtRecords.push({
       type : 'TXT',
       name : '_did.' + DidDhtDocument.getUniqueDidSuffix(didDocument.id) + '.', // name of a Root Record MUST end in `<ID>.`
       ttl  : DNS_RECORD_TTL,
       data : rootRecord.join(PROPERTY_SEPARATOR)
     });
 
+    // Add an NS record for each authoritative gateway URI.
+    for (const gatewayUri of authoritativeGatewayUris || []) {
+      nsRecords.push({
+        type : 'NS',
+        name : '_did.' + DidDhtDocument.getUniqueDidSuffix(didDocument.id) + '.', // name of an NS record a authoritative gateway MUST end in `<ID>.`
+        ttl  : DNS_RECORD_TTL,
+        data : gatewayUri + '.'
+      });
+    }
+
     // Create a DNS response packet with the authoritative answer flag set.
     const dnsPacket: Packet = {
       id      : 0,
       type    : 'response',
       flags   : AUTHORITATIVE_ANSWER,
-      answers : dnsAnswerRecords
+      answers : [...txtRecords, ...nsRecords]
     };
 
     return dnsPacket;
@@ -1412,9 +1446,31 @@ export class DidDhtUtils {
    */
   public static keyConverter(curve: string): AsymmetricKeyConverter {
     const converters: Record<string, AsymmetricKeyConverter> = {
-      'Ed25519'   : Ed25519,
-      'P-256'     : Secp256r1,
-      'secp256k1' : Secp256k1
+      'Ed25519' : Ed25519,
+      'P-256'   : {
+        // Wrap the key converter which produces uncompressed public key bytes to produce compressed key bytes as required by the DID DHT spec.
+        // See https://did-dht.com/#representing-keys for more info.
+        publicKeyToBytes: async ({ publicKey }: { publicKey: Jwk }): Promise<Uint8Array> => {
+          const publicKeyBytes = await Secp256r1.publicKeyToBytes({ publicKey });
+          const compressedPublicKey = await Secp256r1.compressPublicKey({ publicKeyBytes });
+          return compressedPublicKey;
+        },
+        bytesToPublicKey  : Secp256r1.bytesToPublicKey,
+        privateKeyToBytes : Secp256r1.privateKeyToBytes,
+        bytesToPrivateKey : Secp256r1.bytesToPrivateKey,
+      },
+      'secp256k1': {
+        // Wrap the key converter which produces uncompressed public key bytes to produce compressed key bytes as required by the DID DHT spec.
+        // See https://did-dht.com/#representing-keys for more info.
+        publicKeyToBytes: async ({ publicKey }: { publicKey: Jwk }): Promise<Uint8Array> => {
+          const publicKeyBytes = await Secp256k1.publicKeyToBytes({ publicKey });
+          const compressedPublicKey = await Secp256k1.compressPublicKey({ publicKeyBytes });
+          return compressedPublicKey;
+        },
+        bytesToPublicKey  : Secp256k1.bytesToPublicKey,
+        privateKeyToBytes : Secp256k1.privateKeyToBytes,
+        bytesToPrivateKey : Secp256k1.bytesToPrivateKey,
+      }
     };
 
     const converter = converters[curve];

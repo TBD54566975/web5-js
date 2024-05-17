@@ -4,10 +4,10 @@ import type { DwnConfig, GenericMessage, UnionMessageReply } from '@tbd54566975/
 import { Convert, NodeStream } from '@web5/common';
 import { utils as cryptoUtils } from '@web5/crypto';
 import { DidDht, DidJwk, DidResolverCacheLevel, UniversalResolver } from '@web5/dids';
-import { Cid, DataStoreLevel, Dwn, EventLogLevel, Message, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
+import { Cid, DataStoreLevel, Dwn, DwnMethodName, EventLogLevel, Message, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
 
 import type { Web5PlatformAgent } from './types/agent.js';
-import type { DwnMessage, DwnMessageInstance, DwnMessageParams, DwnMessageReply, DwnMessageWithData, DwnResponse, DwnSigner, ProcessDwnRequest, SendDwnRequest } from './types/dwn.js';
+import type { DwnMessage, DwnMessageInstance, DwnMessageParams, DwnMessageReply, DwnMessageWithData, DwnResponse, DwnSigner, MessageHandler, ProcessDwnRequest, SendDwnRequest } from './types/dwn.js';
 
 import { DwnInterface, dwnMessageConstructors } from './types/dwn.js';
 import { blobToIsomorphicNodeReadable, getDwnServiceEndpointUrls, isRecordsWrite, webReadableToIsomorphicNodeReadable } from './utils.js';
@@ -30,6 +30,13 @@ export function isDwnRequest<T extends DwnInterface>(
   dwnRequest: ProcessDwnRequest<DwnInterface>, messageType: T
 ): dwnRequest is ProcessDwnRequest<T> {
   return dwnRequest.messageType === messageType;
+}
+
+export function isDwnMessage<T extends DwnInterface>(
+  messageType: T, message: GenericMessage
+): message is DwnMessage[T] {
+  const incomingMessageInterfaceName = message.descriptor.interface + message.descriptor.method;
+  return incomingMessageInterfaceName === messageType;
 }
 
 export class AgentDwnApi {
@@ -114,13 +121,16 @@ export class AgentDwnApi {
     // Readable stream.
     const { message, dataStream } = await this.constructDwnMessage({ request });
 
+    // Extracts the optional subscription handler from the request to pass into `processMessage.
+    const { subscriptionHandler } = request;
+
     // Conditionally processes the message with the DWN instance:
     // - If `store` is not explicitly set to false, it sends the message to the DWN node for
     //   processing, passing along the target DID, the message, and any associated data stream.
     // - If `store` is set to false, it immediately returns a simulated 'accepted' status without
     //   storing the message/data in the DWN node.
     const reply: DwnMessageReply[T] = (request.store !== false)
-      ? await this._dwn.processMessage(request.target, message, { dataStream })
+      ? await this._dwn.processMessage(request.target, message, { dataStream, subscriptionHandler })
       : { status: { code: 202, detail: 'Accepted' } };
 
     // Returns an object containing the reply from processing the message, the original message,
@@ -144,6 +154,7 @@ export class AgentDwnApi {
     let messageCid: string | undefined;
     let message: DwnMessage[T];
     let data: Blob | undefined;
+    let subscriptionHandler: MessageHandler[T] | undefined;
 
     // If `messageCid` is given, retrieve message and data, if any.
     if ('messageCid' in request) {
@@ -161,6 +172,7 @@ export class AgentDwnApi {
         throw new Error('AgentDwnApi: DataStream must be provided as a Blob');
       }
       data = request.dataStream;
+      subscriptionHandler = request.subscriptionHandler;
     }
 
     // Send the RPC request to the target DID's DWN service endpoint using the Agent's RPC client.
@@ -168,7 +180,8 @@ export class AgentDwnApi {
       targetDid: request.target,
       dwnEndpointUrls,
       message,
-      data
+      data,
+      subscriptionHandler
     });
 
     // If the message CID was not given in the `request`, compute it.
@@ -180,25 +193,51 @@ export class AgentDwnApi {
   }
 
   private async sendDwnRpcRequest<T extends DwnInterface>({
-    targetDid, dwnEndpointUrls, message, data
+    targetDid, dwnEndpointUrls, message, data, subscriptionHandler
   }: {
       targetDid: string;
       dwnEndpointUrls: string[];
       message: DwnMessage[T];
       data?: Blob;
+      subscriptionHandler?: MessageHandler[T];
     }
   ): Promise<DwnMessageReply[T]> {
     const errorMessages: { url: string, message: string }[] = [];
 
+    if (message.descriptor.method === DwnMethodName.Subscribe && subscriptionHandler === undefined) {
+      throw new Error('AgentDwnApi: Subscription handler is required for subscription requests.');
+    }
+
     // Try sending to author's publicly addressable DWNs until the first request succeeds.
     for (let dwnUrl of dwnEndpointUrls) {
       try {
+        if (subscriptionHandler !== undefined) {
+          // we get the server info to check if the server supports WebSocket for subscription requests
+          const serverInfo = await this.agent.rpc.getServerInfo(dwnUrl);
+          if (!serverInfo.webSocketSupport) {
+            // If the server does not support WebSocket, add an error message and continue to the next URL.
+            errorMessages.push({
+              url     : dwnUrl,
+              message : 'WebSocket support is not enabled on the server.'
+            });
+            continue;
+          }
+
+          // If the server supports WebSocket, replace the subscription URL with a socket transport.
+          // For `http` we use the unsecured `ws` protocol, and for `https` we use the secured `wss` protocol.
+          const parsedUrl = new URL(dwnUrl);
+          parsedUrl.protocol = parsedUrl.protocol === 'http:' ? 'ws:' : 'wss:';
+          dwnUrl = parsedUrl.toString();
+        }
+
         const dwnReply = await this.agent.rpc.sendDwnRequest({
           dwnUrl,
           targetDid,
           message,
           data,
+          subscriptionHandler
         });
+
         return dwnReply;
       } catch(error: any) {
         errorMessages.push({

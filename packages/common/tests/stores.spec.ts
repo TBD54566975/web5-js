@@ -1,8 +1,8 @@
 import { Level } from 'level';
-import chai, { expect } from 'chai';
+import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
-chai.use(chaiAsPromised);
+use(chaiAsPromised);
 
 import { LevelStore, MemoryStore } from '../src/stores.js';
 
