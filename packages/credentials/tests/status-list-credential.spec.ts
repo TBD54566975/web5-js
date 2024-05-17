@@ -8,7 +8,7 @@ import { StatusListCredential, StatusPurpose } from '../src/status-list-credenti
 
 import StatusListCredentialsCreateTestVector from '../../../web5-spec/test-vectors/status_list_credentials/create.json' assert { type: 'json' };
 
-describe('Status List Credential Tests', async() => {
+describe('Status List Credential Tests', () => {
   let issuerDid: BearerDid;
   let holderDid: BearerDid;
 
