@@ -811,7 +811,7 @@ export class DidDhtDocument {
     let dnsPacket = await DidDhtUtils.parseBep44GetMessage({ bep44Message });
 
     // Look at the NS records in the DNS packet to find the resolution gateway URIs.
-    let resolutinGatewayUris = await DidDhtDocument.getAuthoritativeGatewayUris({ didUri, dnsPacket });
+    let resolutionGatewayUris = await DidDhtDocument.getAuthoritativeGatewayUris({ didUri, dnsPacket });
 
     // Only do a second retrieval if the authoritative resolution gateway URIs are different from the given gateway URI.
     if(!resolutinGatewayUris.includes(gatewayUri)) {
