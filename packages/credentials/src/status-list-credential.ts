@@ -43,8 +43,13 @@ export type StatusListCredentialCreateOptions = {
  * @see {@link https://www.w3.org/community/reports/credentials/CG-FINAL-vc-status-list-2021-20230102/#example-example-statuslist2021credential | Status List 2021 Entry}
  */
 export interface StatusList2021Entry {
+  /* The id of the status list entry. */
   id: string
+  
+  /* The type of the status list entry. */
   type: string
+
+  /* The status purpose of the status list entry. */
   statusPurpose: string,
 
   /** The index of the status entry in the status list. Poorly named by spec, should really be `entryIndex`. */
