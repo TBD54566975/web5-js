@@ -1157,6 +1157,82 @@ describe('DidDhtDocument', () => {
         }
       }
     });
+
+    it('handles custom authoritative gateways', async () => {
+      const dnsPacket = await DidDhtDocument.toDnsPacket({
+        didDocument: {
+          id                 : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
+          verificationMethod : [
+            {
+              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                x   : '2zHGF5m_DhcPbBZB6ooIxIOR-Vw-yJVYSPo2NgCMkgg',
+                kid : 'KDT9PKj4_z7gPk2s279Y-OGlMtt_L93oJzIaiVrrySU',
+                alg : 'EdDSA',
+              },
+            },
+            {
+              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#sig',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                x   : 'FrrBhqvAWxE4lstj-IWgN8_5-O4L1KuZjdNjn5bX_dw',
+                kid : 'dRnxo2XQ7QT1is5WmpEefwEz3z4_4JdpGea6KWUn3ww',
+                alg : 'EdDSA',
+              },
+            },
+            {
+              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#enc',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
+              publicKeyJwk : {
+                kty : 'EC',
+                crv : 'secp256k1',
+                x   : 'e1_pCWZwI9cxdrotVKIT8t75itk22XkpalDPx7pVpYQ',
+                y   : '5cAlBmnzzuwRNuFtLhyFNdy9v1rVEqEgrFEiiwKMx5I',
+                kid : 'jGYs9XgQMDH_PCDFWocTN0F06mTUOA1J1McVvluq4lM',
+                alg : 'ES256K',
+              },
+            },
+          ],
+          authentication: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#sig',
+          ],
+          assertionMethod: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#sig',
+          ],
+          capabilityDelegation: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+          ],
+          capabilityInvocation: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+          ],
+          keyAgreement: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#enc',
+          ],
+        },
+        didMetadata: {
+          published: true,
+        },
+        authoritativeGatewayUris: ['gateway1.example-did-dht-gateway.com', 'gateway2.example-did-dht-gateway.com']
+      });
+
+      for (const record of dnsPacket.answers ?? []) {
+        if (record.type !== 'NS')
+          continue;
+
+        expect(record.name).to.equal('_did.5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery.');
+        expect(record.data).to.match(/(gateway1.example-did-dht-gateway.com.|gateway2.example-did-dht-gateway.com.)/);
+      }
+    });
   });
 
   describe('Web5TestVectorsDidDht', () => {

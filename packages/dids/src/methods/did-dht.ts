@@ -813,24 +813,27 @@ export class DidDhtDocument {
     // Look at the NS records in the DNS packet to find the resolution gateway URIs.
     let resolutinGatewayUris = await DidDhtDocument.getAuthoritativeGatewayUris({ didUri, dnsPacket });
 
-    const accumulatedErrors = [];
-    for(const nsRecordGatewayUri of resolutinGatewayUris) {
-      try {
-        bep44Message = await DidDhtDocument.pkarrGet({ gatewayUri: nsRecordGatewayUri, publicKeyBytes });
-        dnsPacket = await DidDhtUtils.parseBep44GetMessage({ bep44Message });
-      } catch (error: any) {
-        accumulatedErrors.push(`Failed retrieval from ${nsRecordGatewayUri}: ${error}`);
+    // Only do a second retrieval if the authoritative resolution gateway URIs are different from the given gateway URI.
+    if(!resolutinGatewayUris.includes(gatewayUri)) {
+      const accumulatedErrors = [];
+      for(const nsRecordGatewayUri of resolutinGatewayUris) {
+        try {
+          bep44Message = await DidDhtDocument.pkarrGet({ gatewayUri: nsRecordGatewayUri, publicKeyBytes });
+          dnsPacket = await DidDhtUtils.parseBep44GetMessage({ bep44Message });
+        } catch (error: any) {
+          accumulatedErrors.push(`Failed retrieval from ${nsRecordGatewayUri}: ${error}`);
 
-        if(nsRecordGatewayUri == resolutinGatewayUris[resolutinGatewayUris.length - 1]) {
-          throw new Error(`DID document not found for: ${didUri}. Errors: ${accumulatedErrors.join('; ')}`);
+          if(nsRecordGatewayUri == resolutinGatewayUris[resolutinGatewayUris.length - 1]) {
+            throw new Error(`DID document not found for: ${didUri}. Errors: ${accumulatedErrors.join('; ')}`);
+          }
+
+          // If the retrieval failed, try the next resolution gateway.
+          continue;
         }
 
-        // If the retrieval failed, try the next resolution gateway.
-        continue;
+        // If the retrieval was successful, break the loop.
+        break;
       }
-
-      // if the retrieval was successful, break the loop.
-      break;
     }
 
     // Convert the DNS packet to a DID document and metadata.
