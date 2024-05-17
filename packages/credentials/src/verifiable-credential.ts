@@ -6,6 +6,7 @@ import { utils as cryptoUtils } from '@web5/crypto';
 import { Jwt } from './jwt.js';
 import { SsiValidator } from './validators.js';
 import { getCurrentXmlSchema112Timestamp, getXmlSchema112Timestamp } from './utils.js';
+import { DEFAULT_STATUS_LIST_VC_CONTEXT, StatusList2021Entry } from './status-list-credential.js';
 
 /** The default Verifiable Credential context. */
 export const DEFAULT_VC_CONTEXT = 'https://www.w3.org/2018/credentials/v1';
@@ -38,6 +39,8 @@ export type CredentialSchema = {
  * @param issuanceDate Optional. The issuance date of the credential, as a string.
  *               Defaults to the current date if not specified.
  * @param expirationDate Optional. The expiration date of the credential, as a string.
+ * @param credentialStatus Optional. The credential status lookup information to see if credential is revoked.
+ * @param credentialSchema Optional. The credential schema of the credential.
  * @param evidence Optional. Evidence can be included by an issuer to provide the verifier with additional supporting information in a verifiable credential.
  */
 export type VerifiableCredentialCreateOptions = {
@@ -53,6 +56,8 @@ export type VerifiableCredentialCreateOptions = {
   issuanceDate?: string;
   /** The expiration date of the credential, as a string. */
   expirationDate?: string;
+  /** The credential status lookup information. */
+  credentialStatus?: StatusList2021Entry;
   /** The credential schema of the credential */
   credentialSchema?: CredentialSchema;
   /** The evidence of the credential, as an array of any. */
@@ -159,7 +164,7 @@ export class VerifiableCredential {
    * @returns A [VerifiableCredential] instance.
    */
   public static async create(options: VerifiableCredentialCreateOptions): Promise<VerifiableCredential> {
-    const { type, issuer, subject, data, issuanceDate, expirationDate, credentialSchema, evidence } = options;
+    const { type, issuer, subject, data, issuanceDate, expirationDate, credentialStatus, credentialSchema, evidence } = options;
 
     const jsonData = JSON.parse(JSON.stringify(data));
 
@@ -180,8 +185,14 @@ export class VerifiableCredential {
       ...jsonData
     };
 
+    // create the @context value
+    const contexts: string[] = [DEFAULT_VC_CONTEXT];
+    if (credentialStatus !== null) {
+      contexts.push(DEFAULT_STATUS_LIST_VC_CONTEXT);
+    }
+
     const vcDataModel: VcDataModel = {
-      '@context' : [DEFAULT_VC_CONTEXT],
+      '@context' : contexts,
       type       : Array.isArray(type)
         ? [DEFAULT_VC_TYPE, ...type]
         : (type ? [DEFAULT_VC_TYPE, type] : [DEFAULT_VC_TYPE]),
@@ -189,8 +200,10 @@ export class VerifiableCredential {
       issuer            : issuer,
       issuanceDate      : issuanceDate || getCurrentXmlSchema112Timestamp(),
       credentialSubject : credentialSubject,
+
       // Include optional properties only if they have values
       ...(expirationDate && { expirationDate }),
+      ...(credentialStatus && { credentialStatus }),
       ...(credentialSchema && { credentialSchema }),
       ...(evidence && { evidence }),
     };
