@@ -44,19 +44,15 @@ export type StatusListCredentialCreateOptions = {
  */
 export interface StatusList2021Entry {
   /* The id of the status list entry. */
-  id: string
-  
+  id: string,
   /* The type of the status list entry. */
-  type: string
-
+  type: string,
   /* The status purpose of the status list entry. */
   statusPurpose: string,
-
   /** The index of the status entry in the status list. Poorly named by spec, should really be `entryIndex`. */
   statusListIndex: string,
-
   /** URL to the status list. */
-  statusListCredential: string,
+  statusListCredential: string
 }
 
 /**
