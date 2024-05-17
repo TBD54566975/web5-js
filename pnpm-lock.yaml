@@ -336,8 +336,8 @@ importers:
         specifier: 1.0.0
         version: link:../crypto
       '@web5/dids':
-        specifier: 1.0.1
-        version: 1.0.1
+        specifier: 1.0.3
+        version: link:../dids
     devDependencies:
       '@playwright/test':
         specifier: 1.40.1
