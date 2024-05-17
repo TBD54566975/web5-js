@@ -814,16 +814,16 @@ export class DidDhtDocument {
     let resolutionGatewayUris = await DidDhtDocument.getAuthoritativeGatewayUris({ didUri, dnsPacket });
 
     // Only do a second retrieval if the authoritative resolution gateway URIs are different from the given gateway URI.
-    if(!resolutinGatewayUris.includes(gatewayUri)) {
+    if(!resolutionGatewayUris.includes(gatewayUri)) {
       const accumulatedErrors = [];
-      for(const nsRecordGatewayUri of resolutinGatewayUris) {
+      for(const nsRecordGatewayUri of resolutionGatewayUris) {
         try {
           bep44Message = await DidDhtDocument.pkarrGet({ gatewayUri: nsRecordGatewayUri, publicKeyBytes });
           dnsPacket = await DidDhtUtils.parseBep44GetMessage({ bep44Message });
         } catch (error: any) {
           accumulatedErrors.push(`Failed retrieval from ${nsRecordGatewayUri}: ${error}`);
 
-          if(nsRecordGatewayUri == resolutinGatewayUris[resolutinGatewayUris.length - 1]) {
+          if(nsRecordGatewayUri == resolutionGatewayUris[resolutionGatewayUris.length - 1]) {
             throw new Error(`DID document not found for: ${didUri}. Errors: ${accumulatedErrors.join('; ')}`);
           }
 
