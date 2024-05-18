@@ -61,6 +61,9 @@ export enum DidErrorCode {
   /** The DID resolver was unable to find the DID document resulting from the resolution request. */
   NotFound = 'notFound',
 
+  /** The DID resolver was unable to find the DID document in any authoritative gateway. */
+  NotFoundInAuthoritativeGateWay = 'notFoundInAuthoritativeGateWay',
+
   /**
    * The representation requested via the `accept` input metadata property is not supported by the
    * DID method and/or DID resolver implementation.
