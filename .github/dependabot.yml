@@ -8,24 +8,24 @@ updates:
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/packages/common" # Location of package manifests
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
   - package-ecosystem: "npm"
     directory: "/packages/credentials"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
   - package-ecosystem: "npm"
     directory: "/packages/crypto"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       
   - package-ecosystem: "npm"
     directory: "/packages/crypto-aws-kms"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       
   - package-ecosystem: "npm"
     directory: "/packages/dids"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
