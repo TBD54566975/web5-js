@@ -71,7 +71,7 @@
   "dependencies": {
     "@isaacs/ttlcache": "1.4.1",
     "level": "8.0.1",
-    "multiformats": "11.0.2",
+    "multiformats": "13.1.0",
     "readable-stream": "4.4.2"
   },
   "devDependencies": {
