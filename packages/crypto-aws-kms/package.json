@@ -96,7 +96,7 @@
     "playwright": "1.44.0",
     "rimraf": "5.0.7",
     "sinon": "18.0.0",
-    "source-map-loader": "4.0.2",
+    "source-map-loader": "5.0.0",
     "typescript": "5.1.6"
   }
 }
