@@ -813,8 +813,8 @@ export class DidDhtDocument {
     // Look at the NS records in the DNS packet to find the resolution gateway URIs.
     const resolutionGatewayUris = await DidDhtDocument.getAuthoritativeGatewayUris({ didUri, dnsPacket });
 
-    // Only do a second retrieval if the authoritative resolution gateway URIs are different from the given gateway URI.
-    if(!resolutionGatewayUris.includes(gatewayUri)) {
+    // Only do a second retrieval if authoritative resolution gateway URIs are specified and are different from the given gateway URI.
+    if(resolutionGatewayUris.length > 0 && !resolutionGatewayUris.includes(gatewayUri)) {
       dnsPacket = undefined; // reset to `undefined` to use as a condition check for throwing an error
       const accumulatedErrors = [];
       for(const nsRecordGatewayUri of resolutionGatewayUris) {
