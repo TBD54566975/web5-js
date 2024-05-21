@@ -1020,7 +1020,6 @@ export class DidDhtDocument {
       if (answer.name.endsWith(`.${DidDhtDocument.getUniqueDidSuffix(didUri)}.`)) {
         const gatewayUri = answer.data.slice(0, -1); // Remove trailing dot
         authoritativeGatewayUris.push(gatewayUri);
-        break;
       }
     }
 
