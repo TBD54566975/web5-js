@@ -2455,6 +2455,91 @@ describe('Record', () => {
     });
   });
 
+  describe('delete()', () => {
+    it('deletes a local record on the local DWN', async () => {
+      const { status: writeStatus, record }  = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+
+      expect(writeStatus.code).to.equal(202);
+      expect(record).to.not.be.undefined;
+
+      // Write the record to Alice's remote DWN.
+      const { status } = await record!.send(aliceDid.uri);
+      expect(status.code).to.equal(202);
+
+      const { status: deleteStatus } = await record.delete();
+      expect(deleteStatus.code).to.equal(202);
+
+      // confirm the record has been deleted
+      const readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(404);
+    });
+
+    it('deletes record remotely that was not on the local DWN', async () => {
+      const { status: writeStatus, record }  = await dwnAlice.records.write({
+        store   : false,
+        data    : 'Hello, world!',
+        message : {
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+
+      expect(writeStatus.code).to.equal(202);
+      expect(record).to.not.be.undefined;
+
+      // Write the record to Alice's remote DWN.
+      const { status } = await record!.send(aliceDid.uri);
+      expect(status.code).to.equal(202);
+
+      // confirm the record has been written to the remote DWN
+      const readResult = await dwnAlice.records.read({
+        from    : aliceDid.uri,
+        message : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200);
+      expect(readResult.record).to.exist;
+      expect(readResult.record.id).to.equal(record.id);
+
+      // confirm you the record is not found locally when deleting
+      const { status: deleteLocalStatus } = await record.delete();
+      expect(deleteLocalStatus.code).to.equal(404);
+
+      const { status: deleteStatus } = await record.delete({ store: false});
+      expect(deleteStatus.code).to.equal(202);
+
+      // send the delete request to the remote DWN
+      const { status: deleteSendStatus } = await record.send(aliceDid.uri);
+      expect(deleteSendStatus.code).to.equal(202);
+
+      // confirm the record has been deleted
+      const readResultDeleted = await dwnAlice.records.read({
+        from    : aliceDid.uri,
+        message : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResultDeleted.status.code).to.equal(404);
+    });
+  });
+
   describe('store()', () => {
     it('should store an external record if it has been imported by the dwn owner', async () => {
       // Scenario: Alice creates a record.
@@ -2588,6 +2673,98 @@ describe('Record', () => {
       expect(storedRecord.id).to.equal(record!.id);
       expect(await storedRecord.data.text()).to.equal(updatedText);
     });
+
+    it('stores a deleted record to the local DWN along with the initial write', async () => {
+      // Scenario: Alice creates a record.
+      //           Bob reads the record from Alice's DWN and stores it.
+      //           Bob deletes the record and stores the deletion.
+
+      // Alice creates a public record then sends it to her remote DWN.
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          published  : true,
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202, status.detail);
+      const sendResponse = await record.send();
+      expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
+
+      // Bob attempts to read the record from his own node, should not return any results
+      let readResult = await dwnBob.records.read({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(404);
+
+      // Bob reads the record from Alice's remote DWN.
+      const readResultFromAlice = await dwnBob.records.read({
+        from    : aliceDid.uri,
+        message : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResultFromAlice.status.code).to.equal(200);
+      expect(readResultFromAlice.record).to.exist;
+      const readRecord = readResultFromAlice.record;
+
+      // Bob attempts to store the record without signing it, which should fail.
+      let { status: storeRecordStatus } = await readRecord.store();
+      expect(storeRecordStatus.code).to.equal(401, storeRecordStatus.detail);
+
+      // Bob stores the record in his DWN, the importRecord parameter is set to true so that Bob
+      // signs the record before storing it.
+      ({ status: storeRecordStatus } = await readRecord.store(true));
+      expect(storeRecordStatus.code).to.equal(202, storeRecordStatus.detail);
+
+      // The record should now exist on Bob's DWN.
+      readResult = await dwnBob.records.read({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200);
+      expect(readResult.record).to.exist;
+      const storedRecord = readResult.record;
+      expect(storedRecord.id).to.equal(record!.id);
+
+      // Bob deletes the record
+      const { status: deleteStatus } = await storedRecord.delete();
+      expect(deleteStatus.code).to.equal(202);
+
+      // Bob sends the delete request to alice's DWN, it should reject
+      const { status: sendDeleteStatus } = await storedRecord.send(aliceDid.uri);
+      expect(sendDeleteStatus.code).to.equal(401);
+
+      // confirm the record has been deleted from Bob's DWN
+      readResult = await dwnBob.records.read({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(404);
+
+      // confirm it is not deleted from Alice's DWN
+      readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200);
+    });
   });
 
   describe('import()', () => {
@@ -2689,6 +2866,99 @@ describe('Record', () => {
       expect(bobQueryResult.records.length).to.equal(1);
       const storedRecord = bobQueryResult.records[0];
       expect(storedRecord.id).to.equal(record.id);
+    });
+
+    it('import an external deleted record to the local DWN along with the initial write', async () => {
+      // Scenario: Alice creates a record.
+      //           Bob reads the record from Alice's DWN and stores it.
+      //           Bob deletes the record and stores the deletion.
+
+      // Alice creates a public record then sends it to her remote DWN.
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          published  : true,
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202, status.detail);
+      const sendResponse = await record.send();
+      expect(sendResponse.status.code).to.equal(202, sendResponse.status.detail);
+
+      // Bob attempts to read the record from his own node, should not return any results
+      let readResult = await dwnBob.records.read({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(404);
+
+      // Bob reads the record from Alice's remote DWN.
+      const readResultFromAlice = await dwnBob.records.read({
+        from    : aliceDid.uri,
+        message : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResultFromAlice.status.code).to.equal(200);
+      expect(readResultFromAlice.record).to.exist;
+      const readRecord = readResultFromAlice.record;
+
+      // Bob attempts to store the record without signing it, which should fail.
+      let { status: storeRecordStatus } = await readRecord.store();
+      expect(storeRecordStatus.code).to.equal(401, storeRecordStatus.detail);
+
+      // Stores the record in Bob's DWN, the importRecord parameter is set to true so that Bob
+      // signs the record before storing it.
+      ({ status: storeRecordStatus } = await readRecord.store(true));
+      expect(storeRecordStatus.code).to.equal(202, storeRecordStatus.detail);
+
+      // The record should now exist on Bob's DWN.
+      readResult = await dwnBob.records.read({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200);
+      expect(readResult.record).to.exist;
+      const storedRecord = readResult.record;
+      expect(storedRecord.id).to.equal(record!.id);
+
+
+      // Bob deletes the record
+      const { status: deleteStatus } = await storedRecord.delete();
+      expect(deleteStatus.code).to.equal(202);
+
+      // Bob sends the delete request to alice's DWN, it should reject
+      const { status: sendDeleteStatus } = await storedRecord.send(aliceDid.uri);
+      expect(sendDeleteStatus.code).to.equal(401, sendDeleteStatus.detail);
+
+      // confirm the record has been deleted from Bob's DWN
+      readResult = await dwnBob.records.read({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(404);
+
+      // confirm it is not deleted from Alice's DWN
+      readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200);
     });
 
     describe('store: false', () => {
