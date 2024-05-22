@@ -231,12 +231,6 @@ export class Record implements RecordModel {
   /** Record's ID */
   get id() { return this._recordId; }
 
-  /** Interface is always `Records` */
-  // get interface() { return this._descriptor.interface; }
-
-  /** Method is always `Write` */
-  // get method() { return this._descriptor.method; }
-
   /** Record's parent ID */
   get parentId() { return this.recordsWriteDescriptor.parentId; }
 
@@ -277,6 +271,9 @@ export class Record implements RecordModel {
 
   /** Tags of the record */
   get tags() { return this.recordsWriteDescriptor.tags; }
+
+  /** Record's deleted state (true/false) */
+  get deleted() { return isDwnMessage(DwnInterface.RecordsDelete, this.rawMessage); }
 
   /**
    * Returns a copy of the raw `RecordsWriteMessage` that was used to create the current `Record` instance.
@@ -543,7 +540,7 @@ export class Record implements RecordModel {
     }
 
     let sendRequestOptions: SendDwnRequest<DwnInterface.RecordsWrite | DwnInterface.RecordsDelete>;
-    if (isDwnMessage(DwnInterface.RecordsDelete, this.rawMessage)) {
+    if (this.deleted) {
       sendRequestOptions = {
         messageType : DwnInterface.RecordsDelete,
         author      : this._connectedDid,
@@ -730,7 +727,7 @@ export class Record implements RecordModel {
       signAsOwner
     };
 
-    if (isDwnMessage(DwnInterface.RecordsDelete, this.rawMessage)) {
+    if (this.deleted) {
       if (!this._initialWrite) {
         // if the rawMessage is a `RecordsDelete` the initial message must be set.
         // this should never happen, but we check as a form of defensive programming.
@@ -738,7 +735,7 @@ export class Record implements RecordModel {
       }
 
       // if we have a delete message we can just use it
-      deleteOptions.rawMessage = this.rawMessage;
+      deleteOptions.rawMessage = this.rawMessage as DwnMessage[DwnInterface.RecordsDelete];
     } else {
       // otherwise we construct a delete message given the `RecordDeleteParams`
       deleteOptions.messageParams = {
@@ -811,7 +808,7 @@ export class Record implements RecordModel {
     let requestOptions: ProcessDwnRequest<DwnInterface.RecordsWrite | DwnInterface.RecordsDelete>;
     // Now that we've processed a potential initial write, we can process the current record state.
     // If the record has been deleted, we need to send a delete request. Otherwise, we send a write request.
-    if(isDwnMessage(DwnInterface.RecordsDelete, this.rawMessage)) {
+    if(this.deleted) {
       requestOptions = {
         messageType : DwnInterface.RecordsDelete,
         rawMessage  : this.rawMessage,
