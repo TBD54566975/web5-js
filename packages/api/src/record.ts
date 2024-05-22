@@ -14,7 +14,9 @@ import {
   DwnMessageDescriptor,
   getPaginationCursor,
   DwnDateSort,
-  DwnPaginationCursor
+  DwnPaginationCursor,
+  isDwnMessage,
+  SendDwnRequest
 } from '@web5/agent';
 
 import { DwnInterface } from '@web5/agent';
@@ -28,18 +30,18 @@ import { dataToBlob, SendCache } from './utils.js';
  *
  * @beta
  */
-export type RecordModel = DwnMessageDescriptor[DwnInterface.RecordsWrite]
-  & Omit<DwnMessage[DwnInterface.RecordsWrite], 'descriptor' | 'recordId'>
-  & {
-    /** The DID that signed the record. */
-    author: string;
+export type RecordModel =
+  Partial<DwnMessageDescriptor[DwnInterface.RecordsWrite]> & Partial<DwnMessage[DwnInterface.RecordsWrite]> & {
 
-    /** The protocol role under which this record is written. */
-    protocolRole?: RecordOptions['protocolRole'];
+  /** The logical author of the record. */
+  author: string;
 
-    /** The unique identifier of the record. */
-    recordId?: string;
-  }
+  /** The unique identifier of the record. */
+  recordId?: string;
+
+  /** The protocol role under which this record is written. */
+  protocolRole?: RecordOptions['protocolRole'];
+}
 
 /**
  * Options for configuring a {@link Record} instance, extending the base `RecordsWriteMessage` with
@@ -168,7 +170,7 @@ export class Record implements RecordModel {
   /** Attestation JWS signature. */
   private _attestation?: DwnMessage[DwnInterface.RecordsWrite]['attestation'];
   /** Authorization signature(s). */
-  private _authorization?: DwnMessage[DwnInterface.RecordsWrite]['authorization'];
+  private _authorization?: DwnMessage[DwnInterface.RecordsWrite | DwnInterface.RecordsDelete]['authorization'];
   /** Context ID associated with the record. */
   private _contextId?: string;
   /** Descriptor detailing the record's schema, format, and other metadata. */
@@ -184,15 +186,15 @@ export class Record implements RecordModel {
   /** Unique identifier of the record. */
   private _recordId: string;
   /** Role under which the record is written. */
-  private _protocolRole: RecordOptions['protocolRole'];
+  private _protocolRole?: RecordOptions['protocolRole'];
 
   // Getters for immutable DWN Record properties.
 
   /** Record's signatures attestation */
-  get attestation(): DwnMessage[DwnInterface.RecordsWrite]['attestation'] { return this._attestation; }
+  get attestation(): DwnMessage[DwnInterface.RecordsWrite]['attestation'] | undefined { return this._attestation; }
 
   /** Record's signatures attestation */
-  get authorization(): DwnMessage[DwnInterface.RecordsWrite]['authorization'] { return this._authorization; }
+  get authorization(): DwnMessage[DwnInterface.RecordsWrite | DwnInterface.RecordsDelete]['authorization'] { return this._authorization; }
 
   /** DID that signed the record. */
   get author(): string { return this._author; }
@@ -216,10 +218,10 @@ export class Record implements RecordModel {
   get id() { return this._recordId; }
 
   /** Interface is always `Records` */
-  get interface() { return this._descriptor.interface; }
+  // get interface() { return this._descriptor.interface; }
 
   /** Method is always `Write` */
-  get method() { return this._descriptor.method; }
+  // get method() { return this._descriptor.method; }
 
   /** Record's parent ID */
   get parentId() { return this._descriptor.parentId; }
@@ -265,7 +267,7 @@ export class Record implements RecordModel {
   /**
    * Returns a copy of the raw `RecordsWriteMessage` that was used to create the current `Record` instance.
    */
-  private get rawMessage(): DwnMessage[DwnInterface.RecordsWrite] {
+  private get rawMessage(): DwnMessage[DwnInterface.RecordsWrite] | DwnMessage[DwnInterface.RecordsDelete] {
     const message = JSON.parse(JSON.stringify({
       contextId     : this._contextId,
       recordId      : this._recordId,
@@ -516,15 +518,26 @@ export class Record implements RecordModel {
       Record._sendCache.set(this._recordId, target);
     }
 
-    // Send the current/latest state to the target.
-    const { reply } = await this._agent.sendDwnRequest({
-      messageType : DwnInterface.RecordsWrite,
-      author      : this._connectedDid,
-      dataStream  : await this.data.blob(),
-      target      : target,
-      rawMessage  : { ...this.rawMessage }
-    });
+    let sendRequestOptions: SendDwnRequest<DwnInterface.RecordsWrite | DwnInterface.RecordsDelete>;
+    if (isDwnMessage(DwnInterface.RecordsDelete, this.rawMessage)) {
+      sendRequestOptions = {
+        messageType : DwnInterface.RecordsDelete,
+        author      : this._connectedDid,
+        target      : target,
+        rawMessage  : { ...this.rawMessage }
+      };
+    } else {
+      sendRequestOptions = {
+        messageType : DwnInterface.RecordsWrite,
+        author      : this._connectedDid,
+        target      : target,
+        dataStream  : await this.data.blob(),
+        rawMessage  : { ...this.rawMessage }
+      };
+    }
 
+    // Send the current/latest state to the target.
+    const { reply } = await this._agent.sendDwnRequest(sendRequestOptions);
     return reply;
   }
 
@@ -545,8 +558,6 @@ export class Record implements RecordModel {
       messageTimestamp : this.dateModified,
       datePublished    : this.datePublished,
       encryption       : this.encryption,
-      interface        : this.interface,
-      method           : this.method,
       parentId         : this.parentId,
       protocol         : this.protocol,
       protocolPath     : this.protocolPath,
@@ -584,8 +595,8 @@ export class Record implements RecordModel {
    * @param sort the sort order to use for the pagination cursor.
    * @returns A promise that resolves to a pagination cursor for the current record.
    */
-  async paginationCursor(sort: DwnDateSort): Promise<DwnPaginationCursor> {
-    return getPaginationCursor(this.rawMessage, sort);
+  async paginationCursor(sort: DwnDateSort): Promise<DwnPaginationCursor | undefined> {
+    return isDwnMessage(DwnInterface.RecordsWrite, this.rawMessage) ? getPaginationCursor(this.rawMessage, sort) : undefined;
   }
 
   /**
@@ -597,6 +608,11 @@ export class Record implements RecordModel {
    * @beta
    */
   async update({ dateModified, data, ...params }: RecordUpdateParams): Promise<DwnResponseStatus> {
+
+    if (!isDwnMessage(DwnInterface.RecordsWrite, this.rawMessage) && !this._initialWrite) {
+      //TODO better error
+      throw new Error('If initial write is not set, the current rawRecord must be a RecordsWrite message.');
+    }
 
     // if there is a parentId, we remove it from the descriptor and set a parentContextId
     const { parentId, ...descriptor } = this._descriptor;
@@ -653,7 +669,9 @@ export class Record implements RecordModel {
     if (200 <= status.code && status.code <= 299) {
       // copy the original raw message to the initial write before we update the values.
       if (!this._initialWrite) {
-        this._initialWrite = { ...this.rawMessage };
+        // If there is no initial write, we need to create one from the current record state.
+        // We checked in the beginning of the function that the rawMessage is a RecordsWrite message.
+        this._initialWrite = { ...this.rawMessage as DwnMessage[DwnInterface.RecordsWrite] };
       }
 
       // Only update the local Record instance mutable properties if the record was successfully (over)written.
@@ -705,16 +723,30 @@ export class Record implements RecordModel {
       }
     }
 
+    let requestOptions: ProcessDwnRequest<DwnInterface.RecordsWrite | DwnInterface.RecordsDelete>;
     // Now that we've processed a potential initial write, we can process the current record state.
-    const requestOptions: ProcessDwnRequest<DwnInterface.RecordsWrite> = {
-      messageType : DwnInterface.RecordsWrite,
-      rawMessage  : this.rawMessage,
-      author      : this._connectedDid,
-      target      : this._connectedDid,
-      dataStream  : await this.data.blob(),
-      signAsOwner,
-      store,
-    };
+    // If the record has been deleted, we need to send a delete request. Otherwise, we send a write request.
+    if(isDwnMessage(DwnInterface.RecordsDelete, this.rawMessage)) {
+      requestOptions = {
+        messageType : DwnInterface.RecordsDelete,
+        rawMessage  : this.rawMessage,
+        author      : this._connectedDid,
+        target      : this._connectedDid,
+        signAsOwner,
+        store,
+      };
+      return
+    } else {
+      requestOptions = {
+        messageType : DwnInterface.RecordsWrite,
+        rawMessage  : this.rawMessage,
+        author      : this._connectedDid,
+        target      : this._connectedDid,
+        dataStream  : await this.data.blob(),
+        signAsOwner,
+        store,
+      };
+    }
 
     const agentResponse = await this._agent.processDwnRequest(requestOptions);
     const { message, reply: { status } } = agentResponse;

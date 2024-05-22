@@ -2031,8 +2031,6 @@ describe('Record', () => {
       expect(record.attestation).to.have.property('signatures');
 
       // Retained RecordsWriteDescriptor properties.
-      expect(recordJson.interface).to.equal('Records');
-      expect(recordJson.method).to.equal('Write');
       expect(recordJson.protocol).to.equal(protocol);
       expect(recordJson.protocolPath).to.equal(protocolPath);
       expect(recordJson.recipient).to.equal(recipient);
