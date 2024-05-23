@@ -616,8 +616,8 @@ importers:
         specifier: 2.0.4
         version: 2.0.4
       '@types/chai':
-        specifier: 4.3.6
-        version: 4.3.6
+        specifier: 4.3.16
+        version: 4.3.16
       '@types/chai-as-promised':
         specifier: 7.1.8
         version: 7.1.8
