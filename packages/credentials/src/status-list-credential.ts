@@ -37,7 +37,7 @@ export type StatusListCredentialCreateOptions = {
 };
 
 /**
- * Credential status lookup information included in a Verifiable Credential that supports status lookup.
+ * StatusList2021Entry Credential status lookup information included in a Verifiable Credential that supports status lookup.
  * Data model dictated by the Status List 2021 spec.
  *
  * @see {@link https://www.w3.org/community/reports/credentials/CG-FINAL-vc-status-list-2021-20230102/#example-example-statuslist2021credential | Status List 2021 Entry}
