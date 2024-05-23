@@ -402,13 +402,13 @@ export enum DidDhtVerificationRelationship {
  * {@link DidDhtRegisteredKeyType | registered key type}.
  */
 const AlgorithmToKeyTypeMap = {
-  X25519    : DidDhtRegisteredKeyType.X25519,
   Ed25519   : DidDhtRegisteredKeyType.Ed25519,
   ES256K    : DidDhtRegisteredKeyType.secp256k1,
   ES256     : DidDhtRegisteredKeyType.secp256r1,
   'P-256'   : DidDhtRegisteredKeyType.secp256r1,
   secp256k1 : DidDhtRegisteredKeyType.secp256k1,
-  secp256r1 : DidDhtRegisteredKeyType.secp256r1
+  secp256r1 : DidDhtRegisteredKeyType.secp256r1,
+  X25519    : DidDhtRegisteredKeyType.X25519,
 } as const;
 
 /**
