@@ -520,12 +520,7 @@ describe('DidIon', () => {
         ],
       };
 
-      try {
-        await DidIon.getSigningMethod({ didDocument });
-        expect.fail('Error should have been thrown');
-      } catch (error: any) {
-        expect(error.message).to.equal('Method not supported: example');
-      }
+      await expect(DidIon.getSigningMethod({ didDocument })).to.be.rejectedWith('Method not supported: example');
     });
   });
 

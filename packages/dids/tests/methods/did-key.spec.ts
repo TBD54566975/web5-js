@@ -276,12 +276,7 @@ describe('DidKey', () => {
         ],
       };
 
-      try {
-        await DidKey.getSigningMethod({ didDocument });
-        expect.fail('Error should have been thrown');
-      } catch (error: any) {
-        expect(error.message).to.equal('Method not supported: example');
-      }
+      await expect(DidKey.getSigningMethod({ didDocument })).to.be.rejectedWith('Method not supported: example');
     });
   });
 

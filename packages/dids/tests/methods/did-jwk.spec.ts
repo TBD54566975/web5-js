@@ -184,12 +184,7 @@ describe('DidJwk', () => {
         ],
       };
 
-      try {
-        await DidJwk.getSigningMethod({ didDocument });
-        expect.fail('Error should have been thrown');
-      } catch (error: any) {
-        expect(error.message).to.equal('Method not supported: example');
-      }
+      await expect(DidJwk.getSigningMethod({ didDocument })).to.be.rejectedWith('Method not supported: example');
     });
   });
 
