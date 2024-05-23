@@ -3,15 +3,19 @@ import { getCurrentXmlSchema112Timestamp } from './utils.js';
 import { VerifiableCredential, DEFAULT_VC_CONTEXT, DEFAULT_VC_TYPE, VcDataModel } from './verifiable-credential.js';
 import { Convert } from '@web5/common';
 
+/** Status list VC context */
 export const DEFAULT_STATUS_LIST_VC_CONTEXT = 'https://w3id.org/vc/status-list/2021/v1';
-export const DEFAULT_STATUS_LIST_VC_TYPE = 'StatusList2021Credential';
+
+const DEFAULT_STATUS_LIST_VC_TYPE = 'StatusList2021Credential';
 
 /**
  * The status purpose dictated by Status List 2021 spec.
  * @see {@link https://www.w3.org/community/reports/credentials/CG-FINAL-vc-status-list-2021-20230102/#statuslist2021entry | Status List 2021 Entry}
  */
 export enum StatusPurpose {
+  /** `revocation` purpose */
   revocation = 'revocation',
+  /** `suspension` purpose */
   suspension = 'suspension',
 }
 
@@ -23,16 +27,15 @@ const BITSTRING_SIZE = 16 * 1024 * 8; // 16KiB in bits
 
 /**
  * StatusListCredentialCreateOptions for creating a status list credential.
- *
- * @param statusListCredentialId The id used for the resolvable path to the status list credential [String].
- * @param issuer The issuer URI of the credential, as a [String].
- * @param statusPurpose The status purpose of the status list cred, eg: revocation, as a [StatusPurpose].
- * @param credentialsToDisable The credentials to be included in the status list credential, eg: revoked credentials, list of type [VerifiableCredential].
  */
 export type StatusListCredentialCreateOptions = {
+  /** The id used for the resolvable path to the status list credential [String]. */
   statusListCredentialId: string,
+  /** The issuer URI of the credential, as a [String]. */
   issuer: string,
+  /** The status purpose of the status list cred, eg: revocation, as a [StatusPurpose]. */
   statusPurpose: StatusPurpose,
+  /** The credentials to be included in the status list credential, eg: revoked credentials, list of type [VerifiableCredential]. */
   credentialsToDisable: VerifiableCredential[]
 };
 
@@ -43,11 +46,11 @@ export type StatusListCredentialCreateOptions = {
  * @see {@link https://www.w3.org/community/reports/credentials/CG-FINAL-vc-status-list-2021-20230102/#example-example-statuslist2021credential | Status List 2021 Entry}
  */
 export interface StatusList2021Entry {
-  /* The id of the status list entry. */
+  /** The id of the status list entry. */
   id: string,
-  /* The type of the status list entry. */
+  /** The type of the status list entry. */
   type: string,
-  /* The status purpose of the status list entry. */
+  /** The status purpose of the status list entry. */
   statusPurpose: string,
   /** The index of the status entry in the status list. Poorly named by spec, should really be `entryIndex`. */
   statusListIndex: string,
