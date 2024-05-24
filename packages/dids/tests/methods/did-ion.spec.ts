@@ -1,16 +1,16 @@
-import type { Jwk } from '@web5/crypto';
-
-import sinon from 'sinon';
-import { expect } from 'chai';
-import { computeJwkThumbprint } from '@web5/crypto';
-
 import type { DidDocument } from '../../src/types/did-core.js';
+import type { Jwk } from '@web5/crypto';
 import type { PortableDid } from '../../src/types/portable-did.js';
 
+import chaiAsPromised from 'chai-as-promised';
+import sinon from 'sinon';
+import { computeJwkThumbprint } from '@web5/crypto';
 import { DidIon } from '../../src/methods/did-ion.js';
 import { vectors as CreateTestVector } from '../fixtures/test-vectors/did-ion/create.js';
 import { vectors as ResolveTestVector } from '../fixtures/test-vectors/did-ion/resolve.js';
+import { expect, use } from 'chai';
 
+use(chaiAsPromised);
 // Helper function to create a mocked fetch response that fails and returns a 404 Not Found.
 const fetchNotFoundResponse = () => ({
   status     : 404,
@@ -520,12 +520,7 @@ describe('DidIon', () => {
         ],
       };
 
-      try {
-        await DidIon.getSigningMethod({ didDocument });
-        expect.fail('Error should have been thrown');
-      } catch (error: any) {
-        expect(error.message).to.equal('Method not supported: example');
-      }
+      await expect(DidIon.getSigningMethod({ didDocument })).to.be.rejectedWith('Method not supported: example');
     });
   });
 

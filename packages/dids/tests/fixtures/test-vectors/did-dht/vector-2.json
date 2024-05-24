@@ -52,6 +52,9 @@
       }
     ]
   },
+  "authoritativeGatewayUris": [
+    "gateway1.example-did-dht-gateway.com"
+  ],
   "dnsRecords": [
     {
       "name": "_did.cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo.",

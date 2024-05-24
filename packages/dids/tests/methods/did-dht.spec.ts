@@ -1,16 +1,20 @@
 import type { PortableDid } from '../../src/types/portable-did.js';
 
+import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import resolveTestVectors from '../../../../web5-spec/test-vectors/did_dht/resolve.json' assert { type: 'json' };
 import officialTestVector1 from '../fixtures/test-vectors/did-dht/vector-1.json' assert { type: 'json' };
 import officialTestVector2 from '../fixtures/test-vectors/did-dht/vector-2.json' assert { type: 'json' };
+import officialTestVector3 from '../fixtures/test-vectors/did-dht/vector-3.json' assert { type: 'json' };
 
-import { expect } from 'chai';
 import { Answer } from '@dnsquery/dns-packet';
 import { Convert } from '@web5/common';
 import { DidDocument } from '../../src/index.js';
 import { DidErrorCode } from '../../src/did-error.js';
-import { DidDht, DidDhtDocument, DidDhtRegisteredDidType } from '../../src/methods/did-dht.js';
+import { DidDht, DidDhtDocument, DidDhtRegisteredDidType, DidDhtUtils } from '../../src/methods/did-dht.js';
+import { expect, use } from 'chai';
+
+use(chaiAsPromised);
 
 // Helper function to create a mocked fetch response that fails and returns a 404 Not Found.
 const fetchNotFoundResponse = () => ({
@@ -1279,6 +1283,16 @@ describe('DidDhtDocument', () => {
   });
 });
 
+describe('DidDhtUtils', () => {
+  it('validatePreviousDidProof()', async () => {
+    // reuse an existing previous proof from the official test vector 3, but use a different new DID
+    const previousDidProof = { ...officialTestVector3.previousDidProof };
+    const newDid = (await DidDht.create()).document.id;
+
+    await expect(DidDhtUtils.validatePreviousDidProof({ newDid, previousDidProof })).to.be.rejectedWith(DidErrorCode.InvalidPreviousDidProof);
+  });
+});
+
 // vectors come from https://did-dht.com/#test-vectors
 describe('Official DID:DHT Vector tests', () => {
   // Temporarily disabling due to inability to add a custom `kid` to our JWK in the current deployment.
@@ -1315,13 +1329,37 @@ describe('Official DID:DHT Vector tests', () => {
         published : false,
         types     : [DidDhtRegisteredDidType.Organization, DidDhtRegisteredDidType.Government, DidDhtRegisteredDidType.Corporation]
       },
-      authoritativeGatewayUris: ['gateway1.example-did-dht-gateway.com']
+      authoritativeGatewayUris: officialTestVector2.authoritativeGatewayUris,
     });
 
     expect(dnsPacket.answers).to.have.length(officialTestVector2.dnsRecords.length);
 
     const normalizedConstructedRecords = normalizeDnsRecords(dnsPacket.answers!);
     expect(normalizedConstructedRecords).to.deep.include.members(officialTestVector2.dnsRecords);
+
+    const didResolutionResult = await DidDhtDocument.fromDnsPacket({
+      didUri    : inputDidDocument.id,
+      dnsPacket : dnsPacket
+    });
+
+    expect(didResolutionResult.didDocument).to.deep.equal(inputDidDocument);
+  });
+
+  it('vector 3', async () => {
+    const inputDidDocument = officialTestVector3.didDocument as DidDocument;
+    const dnsPacket = await DidDhtDocument.toDnsPacket({
+      didDocument : inputDidDocument,
+      didMetadata : {
+        published: false
+      },
+      authoritativeGatewayUris : officialTestVector3.authoritativeGatewayUris,
+      previousDidProof         : officialTestVector3.previousDidProof,
+    });
+
+    expect(dnsPacket.answers).to.have.length(officialTestVector3.dnsRecords.length);
+
+    const normalizedConstructedRecords = normalizeDnsRecords(dnsPacket.answers!);
+    expect(normalizedConstructedRecords).to.deep.include.members(officialTestVector3.dnsRecords);
 
     const didResolutionResult = await DidDhtDocument.fromDnsPacket({
       didUri    : inputDidDocument.id,

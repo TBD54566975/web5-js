@@ -1,13 +1,14 @@
-import type { Jwk } from '@web5/crypto';
-
-import { expect } from 'chai';
-import { LocalKeyManager } from '@web5/crypto';
-
 import type { DidDocument } from '../../src/types/did-core.js';
+import type { Jwk } from '@web5/crypto';
 import type { PortableDid } from '../../src/types/portable-did.js';
 
+import chaiAsPromised from 'chai-as-promised';
 import { DidErrorCode } from '../../src/did-error.js';
+import { LocalKeyManager } from '@web5/crypto';
 import { DidKey, DidKeyUtils } from '../../src/methods/did-key.js';
+import { expect, use } from 'chai';
+
+use(chaiAsPromised);
 
 describe('DidKey', () => {
   let keyManager: LocalKeyManager;
@@ -276,12 +277,7 @@ describe('DidKey', () => {
         ],
       };
 
-      try {
-        await DidKey.getSigningMethod({ didDocument });
-        expect.fail('Error should have been thrown');
-      } catch (error: any) {
-        expect(error.message).to.equal('Method not supported: example');
-      }
+      await expect(DidKey.getSigningMethod({ didDocument })).to.be.rejectedWith('Method not supported: example');
     });
   });
 

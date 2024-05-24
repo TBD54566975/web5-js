@@ -1,6 +1,9 @@
 
 declare const ServiceWorkerGlobalScope: any;
 
+/**
+ * Installs the DWeb networking features in the current environment.
+ */
 export function installNetworkingFeatures(path: string): void {
   const workerSelf = self as any;
 
