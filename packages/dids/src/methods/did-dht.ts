@@ -1039,7 +1039,7 @@ export class DidDhtDocument {
 
           // Determine the Verification Method ID: '0' for the identity key,
           // the id from the TXT Data Object, or the JWK thumbprint if an explicity Verification Method ID not defined.
-          const vmId = dnsRecordId.endsWith('k0') ? '0' : id !== undefined ? id : await computeJwkThumbprint({ jwk: publicKey });
+          const vmId = dnsRecordId === 'k0' ? '0' : id !== undefined ? id : await computeJwkThumbprint({ jwk: publicKey });
 
           // Initialize the `verificationMethod` array if it does not already exist.
           didDocument.verificationMethod ??= [];
