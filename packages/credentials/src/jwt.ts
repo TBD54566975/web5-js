@@ -161,7 +161,9 @@ export class Jwt {
       throw new Error('Verification failed: Expected kid in JWT header to dereference to a DID Document Verification Method with publicKeyJwk');
     }
 
-    if(publicKeyJwk.alg && (publicKeyJwk.alg !== decodedJwt.header.alg)) {
+    // When a JWT is created, the alg is set to EdDSA and if not specified, the DID DHT implementation will insert an alg of Ed25519 if the kty is Ed25519
+    // To support DID DHT, we need to normalize the alg to EdDSA
+    if (publicKeyJwk.alg && (Jwt._normalizeAlg(publicKeyJwk.alg) !== Jwt._normalizeAlg(decodedJwt.header.alg))) {
       throw new Error('Verification failed: Expected alg in JWT header to match DID Document Verification Method alg');
     }
 
@@ -237,4 +239,11 @@ export class Jwt {
       }
     };
   }
+
+  static _normalizeAlg(alg: string): string{
+    if (alg === 'Ed25519' || alg === 'EdDSA') {
+      return 'EdDSA';
+    }
+    return alg;
+  };
 }
