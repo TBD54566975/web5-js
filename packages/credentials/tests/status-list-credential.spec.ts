@@ -4,7 +4,7 @@ import { expect } from 'chai';
 import { DidJwk } from '@web5/dids';
 
 import { VerifiableCredential } from '../src/verifiable-credential.js';
-import { StatusListCredential, StatusPurpose } from '../src/status-list-credential.js';
+import { StatusList2021Entry, StatusListCredential, StatusPurpose } from '../src/status-list-credential.js';
 
 import StatusListCredentialsCreateTestVector from '../../../web5-spec/test-vectors/status_list_credentials/create.json' assert { type: 'json' };
 
@@ -28,7 +28,7 @@ describe('Status List Credential Tests', () => {
     it('create status list credential works', async () => {
       const subjectDid = issuerDid;
 
-      const credentialStatus = {
+      const credentialStatus: StatusList2021Entry = {
         id                   : 'cred-with-status-id',
         type                 : 'StatusList2021Entry',
         statusPurpose        : 'revocation',

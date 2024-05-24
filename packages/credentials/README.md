@@ -13,6 +13,7 @@ The `@web5/credentials` package provides the following functionality:
     - [Signing a Verifiable Credential](#signing-a-verifiable-credential)
     - [Verifying a Verifiable Credential](#verifying-a-verifiable-credential)
     - [Parsing a JWT into a Verifiable Credential](#parsing-a-jwt-into-a-verifiable-credential)
+    - [Creating a Status List Credential](#creating-a-status-list-credential)
 - [`VerifiablePresentation`](#verifiablepresentation)
   - [Features](#vp-features)
   - [Usage](#vp-usage)
@@ -43,7 +44,7 @@ The `@web5/credentials` package provides the following functionality:
 
 Along with the credentials package you will need command and dids for most of the Verifiable Credentials operations
 
-```javascript
+```bash
 npm install @web5/common
 npm install @web5/dids
 npm install @web5/credentials
@@ -63,8 +64,10 @@ Create a new `VerifiableCredential` with the following parameters:
 - `issuer`: Issuer URI.
 - `subject`: Subject URI.
 - `data`: Credential data.
-- `issuanceDate?` (Optional) The Issuance Date. Defaults to current date if not specified
-- `expirationDate?`: (Optional) Expiration Date
+- `issuanceDate?` (Optional) The Issuance Date. Defaults to current date if not specified.
+- `expirationDate?`: (Optional) Expiration Date.
+- `credentialStatus?`: Optional. The credential status lookup information to see if credential is revoked.
+- `credentialSchema?`: (Optional) The credential schema of the credential.
 - `evidence?`: (Optional) Evidence can be included by an issuer to provide the verifier with additional supporting information in a verifiable credential.
 
 ```javascript
@@ -75,7 +78,7 @@ class StreetCredibility {
   }
 }
 
-const vc = await VerifiableCredential.create({
+const vc: VerifiableCredential = await VerifiableCredential.create({
   type: "StreetCred",
   issuer: "did:example:issuer",
   subject: "did:example:subject",
@@ -86,18 +89,18 @@ const vc = await VerifiableCredential.create({
 ### Signing a Verifiable Credential
 Sign a `VerifiableCredential` with a DID:
 
-- `did`: The did that is signing the VC
+- `did`: The did that is signing the VC.
 
 First create a `Did` object as follows:
 
 ```javascript
-import { DidKey } from '@web5/dids';
-const issuer: BearerDid = await DidKey.create();
+import { DidJwk } from '@web5/dids';
+const issuer: BearerDid = await DidJwk.create();
 ```
 
 Then sign the VC using the `did` object
 ```javascript
-const vcJwt = await vc.sign({ did: issuer });
+const vcJwt: string = await vc.sign({ did: issuer });
 ```
 
 ### Verifying a Verifiable Credential
@@ -120,7 +123,52 @@ Parse a JWT into a `VerifiableCredential` instance
 `vcJwt`: The VC JWT as a String.
 
 ```javascript
-const vc = VerifiableCredential.parseJwt({ vcJwt: signedVcJwt })
+const vc: VerifiableCredential = VerifiableCredential.parseJwt({ vcJwt: signedVcJwt })
+```
+
+### Creating a Status List Credential
+Create a new `StatusListCredential` with the following parameters:
+
+- `statusListCredentialId`: The id used for the resolvable path to the status list credential [String].
+- `issuer`: The issuer URI of the status list credential, as a [String].
+- `statusPurpose`: The status purpose of the status list cred, eg: revocation, as a [StatusPurpose].
+- `credentialsToDisable`: The credentials to be marked as revoked/suspended (status bit set to 1) in the status list.
+
+```javascript
+const statusListCredential: VerifiableCredential = StatusListCredential.create({
+  statusListCredentialId : 'https://statuslistcred.com/123',
+  issuer                 : "did:example:issuer",
+  statusPurpose          : 'revocation',
+  credentialsToDisable   : [credWithCredStatus]
+});
+```
+
+To associate the status list credential with a revocable credential have the `statusListCredential` parameter match up to the `statusListCredentialId` parameter. Here is a full example:
+
+```javascript
+const credentialStatus: StatusList2021Entry = {
+  id                   : 'cred-with-status-id',
+  type                 : 'StatusList2021Entry',
+  statusPurpose        : 'revocation',
+  statusListIndex      : '94567',
+  statusListCredential : 'https://statuslistcred.com/123',
+};
+
+const credWithCredStatus: VerifiableCredential = await VerifiableCredential.create({
+  type             : 'StreetCred',
+  issuer           : issuerDid.uri,
+  subject          : subjectDid.uri,
+  data             : new StreetCredibility('high', true),
+  credentialStatus : credentialStatus
+});
+
+// Create a status list credential with and revoke the credWithCredStatus
+const statusListCredential: VerifiableCredential = StatusListCredential.create({
+  statusListCredentialId : 'https://statuslistcred.com/123',
+  issuer                 : "did:example:issuer",
+  statusPurpose          : 'revocation',
+  credentialsToDisable   : [credWithCredStatus]
+});
 ```
 
 # `VerifiablePresentation`
@@ -143,7 +191,7 @@ Create a new VerifiablePresentation with the following parameters:
 - `additionalData`: Optional additional data to be included in the presentation.
 
 ```javascript
-const vp = await VerifiablePresentation.create({
+const vp: VerifiablePresentation = await VerifiablePresentation.create({
   type: 'PresentationSubmission',
   holder: 'did:ex:holder',
   vcJwts: vcJwts,
@@ -158,7 +206,7 @@ Sign a `VerifiablePresentation` with a DID:
 
 Sign the VP using the `did` object
 ```javascript
-const vpJwt = await vp.sign({ did: issuer });
+const vpJwt: string = await vp.sign({ did: issuer });
 ```
 
 ### Verifying a Verifiable Presentation
@@ -181,7 +229,7 @@ Parse a JWT into a `VerifiablePresentation` instance
 `vpJwt`: The VP JWT as a String.
 
 ```javascript
-const parsedVp = VerifiablePresentation.parseJwt({ vcJwt: signedVcJwt })
+const parsedVp: VerifiablePresentation = VerifiablePresentation.parseJwt({ vcJwt: signedVcJwt })
 ```
 
 ## `PresentationExchange`
@@ -205,7 +253,7 @@ Select Verifiable Credentials that meet the criteria of a given presentation def
 
 This returns a list of the vcJwts that are acceptable in the presentation definition.
 ```javascript
-const selectedCredentials = PresentationExchange.selectCredentials({
+const selectedCredentialsJwts: string[] = PresentationExchange.selectCredentials({
     vcJwts: signedVcJwts,
     presentationDefinition: presentationDefinition
 })
@@ -233,7 +281,7 @@ Creates a presentation from a list of Verifiable Credentials that satisfy a give
 - `presentationDefinition` The Presentation Definition to match against.
 
 ```javascript
-const presentationResult = PresentationExchange.createPresentationFromCredentials({ vcJwts: signedVcJwts, presentationDefinition: presentationDefinition })
+const presentationResult: PresentationResult = PresentationExchange.createPresentationFromCredentials({ vcJwts: signedVcJwts, presentationDefinition: presentationDefinition })
 ```
 
 ### Validate Definition
@@ -242,7 +290,7 @@ This method validates whether an object is usable as a presentation definition o
 - `presentationDefinition` The Presentation Definition to validate
 
 ```javascript
-const valid = PresentationExchange.validateDefinition({ presentationDefinition })
+const valid: Validated = PresentationExchange.validateDefinition({ presentationDefinition })
 ```
 
 ### Validate Submission
@@ -251,7 +299,7 @@ This method validates whether an object is usable as a presentation submission o
 - `presentationSubmission` The Presentation Submission to validate 
 
 ```javascript
-const valid = PresentationExchange.validateSubmission({ presentationSubmission })
+const valid: Validated = PresentationExchange.validateSubmission({ presentationSubmission })
 ```
 
 ### Validate Presentation
@@ -261,5 +309,5 @@ Evaluates a presentation against a presentation definition.
 - `presentation` The Presentation
 
 ```javascript
-const evaluationResults = PresentationExchange.evaluatePresentation({ presentationDefinition, presentation })
+const evaluationResults: EvaluationResults = PresentationExchange.evaluatePresentation({ presentationDefinition, presentation })
 ```
