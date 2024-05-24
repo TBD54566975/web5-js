@@ -90,6 +90,9 @@ importers:
       '@types/eslint':
         specifier: 8.56.10
         version: 8.56.10
+      '@types/express':
+        specifier: 4.17.21
+        version: 4.17.21
       '@types/mocha':
         specifier: 10.0.1
         version: 10.0.1
@@ -102,6 +105,9 @@ importers:
       '@types/sinon':
         specifier: 17.0.2
         version: 17.0.2
+      '@types/ws':
+        specifier: 8.5.10
+        version: 8.5.10
       '@typescript-eslint/eslint-plugin':
         specifier: 7.9.0
         version: 7.9.0(@typescript-eslint/parser@7.9.0)(eslint@9.3.0)(typescript@5.1.6)
@@ -156,6 +162,9 @@ importers:
       typescript:
         specifier: 5.1.6
         version: 5.1.6
+      ws:
+        specifier: 8.17.0
+        version: 8.17.0
 
   packages/api:
     dependencies:
@@ -3459,6 +3468,12 @@ packages:
 
   /@types/ws@7.4.7:
     resolution: {integrity: sha512-JQbbmxZTZehdc2iszGKs5oC3NFnjeay7mtAWrdt7qNtAVK0g19muApzAy4bm9byz79xa2ZnO/BOBC2R8RC5Lww==}
+    dependencies:
+      '@types/node': 20.12.12
+    dev: true
+
+  /@types/ws@8.5.10:
+    resolution: {integrity: sha512-vmQSUcfalpIq0R9q7uTo2lXs6eGIpt9wtnLdMv9LVpIjCA/+ufZRozlVoVelIYixx1ugCBKDhn89vnsEGOCx9A==}
     dependencies:
       '@types/node': 20.12.12
     dev: true
