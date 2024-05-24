@@ -1194,6 +1194,79 @@ describe('DidDhtDocument', () => {
       expect(didResolutionResult.didDocument!.verificationMethod![1].id).to.equal(`${didUri}#sig`);
       expect(didResolutionResult.didDocument!.verificationMethod![2].id).to.equal(`${didUri}#enc`);
     });
+
+    it('handles custom controller for verification methods', async () => {
+      const didUri = 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery';
+      const customController = 'did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y';
+      const dnsPacket = await DidDhtDocument.toDnsPacket({
+        didDocument: {
+          id                 : didUri,
+          verificationMethod : [
+            {
+              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                x   : '2zHGF5m_DhcPbBZB6ooIxIOR-Vw-yJVYSPo2NgCMkgg',
+                kid : '0',
+                alg : 'EdDSA',
+              },
+            },
+            {
+              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw',
+              type         : 'JsonWebKey',
+              controller   : customController,
+              publicKeyJwk : {
+                crv : 'secp256k1',
+                kty : 'EC',
+                x   : '1_o0IKHGNamet8-3VYNUTiKlhVK-LilcKrhJSPHSNP0',
+                y   : 'qzU8qqh0wKB6JC_9HCu8pHE-ZPkDpw4AdJ-MsV2InVY',
+                kid : '0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw',
+                alg : 'ES256K',
+              },
+            },
+          ],
+          authentication: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw',
+          ],
+          assertionMethod: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw',
+          ],
+          capabilityDelegation: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+          ],
+          capabilityInvocation: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+          ],
+        },
+        didMetadata: {
+          published: false,
+        }
+      });
+
+      // check for key controller controller
+      for (const record of dnsPacket.answers ?? []) {
+        if (record.name.startsWith('_k1')) {
+          expect(record.data).to.include('t=1');
+          expect(record.data).to.include(`c=${customController}`);
+        }
+      }
+
+      const didResolutionResult = await DidDhtDocument.fromDnsPacket({ didUri, dnsPacket });
+
+      expect(didResolutionResult).to.have.property('didDocument');
+      expect(didResolutionResult).to.have.property('didDocumentMetadata');
+      expect(didResolutionResult).to.have.property('didResolutionMetadata');
+
+      expect(didResolutionResult.didDocument).to.have.property('id', didUri);
+      expect(didResolutionResult.didDocument!.verificationMethod).to.have.length(2);
+      expect(didResolutionResult.didDocument!.verificationMethod![0].controller).to.equal(didUri); // identity key
+      expect(didResolutionResult.didDocument!.verificationMethod![1].controller).to.equal(customController); // custom controller
+    });
   });
 
   describe('Web5TestVectorsDidDht', () => {
