@@ -1022,9 +1022,9 @@ export class DidDhtDocument {
 
         // Process verification methods.
         case dnsRecordId.startsWith('k'): {
-          // Get the key type (t), Base64URL-encoded public key (k), and
-          // optionally, controller (c) from the decoded TXT record data.
-          const { t, k, c, a: parsedAlg } = DidDhtUtils.parseTxtDataToObject(answer.data);
+          // Get the key type (t), Base64URL-encoded public key (k), algorithm (a), and
+          // optionally, controller (c) or Verification Method ID (id) from the decoded TXT record data.
+          const { id, t, k, c, a: parsedAlg } = DidDhtUtils.parseTxtDataToObject(answer.data);
 
           // Convert the public key from Base64URL format to a byte array.
           const publicKeyBytes = Convert.base64Url(k).toUint8Array();
@@ -1037,15 +1037,15 @@ export class DidDhtDocument {
 
           publicKey.alg = parsedAlg || KeyTypeToDefaultAlgorithmMap[Number(t) as DidDhtRegisteredKeyType];
 
-          // Determine the Key ID (kid): '0' for the identity key or JWK thumbprint for others.
-          const kid = dnsRecordId.endsWith('0') ? '0' : await computeJwkThumbprint({ jwk: publicKey });
-          publicKey.kid = kid;
+          // Determine the Verification Method ID: '0' for the identity key,
+          // the id from the TXT Data Object, or the JWK thumbprint if an explicity Verification Method ID not defined.
+          const vmId = dnsRecordId === 'k0' ? '0' : id !== undefined ? id : await computeJwkThumbprint({ jwk: publicKey });
 
           // Initialize the `verificationMethod` array if it does not already exist.
           didDocument.verificationMethod ??= [];
 
           // Prepend the DID URI to the ID fragment to form the full verification method ID.
-          const methodId = `${didUri}#${kid}`;
+          const methodId = `${didUri}#${vmId}`;
 
           // Add the verification method to the DID document.
           didDocument.verificationMethod.push({
@@ -1195,6 +1195,11 @@ export class DidDhtDocument {
 
       // Define the data for the DNS TXT record.
       const txtData = [`t=${keyType}`, `k=${publicKeyBase64Url}`];
+      // if the methodId is not the identity key or a thumbprint, explicity define the id within the DNS TXT record.
+      // otherwise the id can be inferred from the thumbprint.
+      if (methodId !== '0' && await computeJwkThumbprint({ jwk: publicKey }) !== methodId)  {
+        txtData.unshift(`id=${methodId}`);
+      }
 
       // Only set the algorithm property (`a`) if it differs from the default algorithm for the key type.
       if(publicKey.alg !== KeyTypeToDefaultAlgorithmMap[keyType]) {
