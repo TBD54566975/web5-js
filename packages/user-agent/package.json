@@ -1,6 +1,6 @@
 {
   "name": "@web5/user-agent",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",

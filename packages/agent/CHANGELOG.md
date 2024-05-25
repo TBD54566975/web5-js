@@ -1,5 +1,16 @@
 # @web5/agent
 
+## 0.3.7
+
+### Patch Changes
+
+- [#579](https://github.com/TBD54566975/web5-js/pull/579) [`b36e7b1`](https://github.com/TBD54566975/web5-js/commit/b36e7b1eabd7c99313d6f6adb335c5a6d085d83e) Thanks [@thehenrytsai](https://github.com/thehenrytsai)! - Updated dependencies of all packages
+
+- Updated dependencies [[`b425bbc`](https://github.com/TBD54566975/web5-js/commit/b425bbc6bfedb44121d18b4f9d72f18cdd33ac00), [`269384b`](https://github.com/TBD54566975/web5-js/commit/269384b7b96635c1205419293df346bff9491a1b), [`b36e7b1`](https://github.com/TBD54566975/web5-js/commit/b36e7b1eabd7c99313d6f6adb335c5a6d085d83e)]:
+  - @web5/dids@1.1.0
+  - @web5/common@1.0.1
+  - @web5/crypto@1.0.1
+
 ## 0.3.6
 
 ### Patch Changes
