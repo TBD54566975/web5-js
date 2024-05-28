@@ -1,11 +1,10 @@
 import type { DidUrlDereferencer } from '@web5/dids';
-import type { PaginationCursor, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import type { PaginationCursor, RecordsDeleteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
-import { DateSort } from '@tbd54566975/dwn-sdk-js';
 import { Readable } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { ReadableWebToNodeStream } from 'readable-web-to-node-stream';
-import { DwnInterfaceName, DwnMethodName, Message, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
+import { DateSort, DwnInterfaceName, DwnMethodName, Message, Records, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 
 export function blobToIsomorphicNodeReadable(blob: Blob): Readable {
   return webReadableToIsomorphicNodeReadable(blob.stream() as ReadableStream<any>);
@@ -39,8 +38,8 @@ export async function getDwnServiceEndpointUrls(didUri: string, dereferencer: Di
   return [];
 }
 
-export function getRecordAuthor(record: RecordsWriteMessage): string | undefined {
-  return RecordsWrite.getAuthor(record);
+export function getRecordAuthor(record: RecordsWriteMessage | RecordsDeleteMessage): string | undefined {
+  return Records.getAuthor(record);
 }
 
 export function isRecordsWrite(obj: unknown): obj is RecordsWrite {
