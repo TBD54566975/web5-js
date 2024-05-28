@@ -589,6 +589,95 @@ describe('DwnApi', () => {
         expect(deleteResult.status.code).to.equal(202);
       });
 
+      it('deletes a record and prunes its children', async () => {
+        // Install a protocol that supports parent-child relationships.
+        const { status: protocolStatus, protocol } = await dwnAlice.protocols.configure({
+          message: {
+            definition: {
+              protocol: 'http://example.com/parent-child',
+              published: true,
+              types: {
+                foo: {
+                  schema: 'http://example.com/foo',
+                },
+                bar: {
+                  schema: 'http://example.com/bar'
+                }
+              },
+              structure: {
+                foo: {
+                  bar: {}
+                }
+              }
+            }
+          }
+        });
+        expect(protocolStatus.code).to.equal(202);
+
+        // Write a parent record.
+        const { status: parentWriteStatus, record: parentRecord } = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            protocol     : protocol.definition.protocol,
+            protocolPath : 'foo',
+            schema       : 'http://example.com/foo',
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(parentWriteStatus.code).to.equal(202);
+        expect(parentRecord).to.exist;
+
+        // Write a child record.
+        const { status: childWriteStatus, record: childRecord } = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            protocol     : protocol.definition.protocol,
+            protocolPath : 'foo/bar',
+            schema       : 'http://example.com/bar',
+            dataFormat   : 'text/plain',
+            parentContextId: parentRecord.contextId
+          }
+        });
+        expect(childWriteStatus.code).to.equal(202);
+        expect(childRecord).to.exist;
+
+        // query for child records to confirm it exists
+        const { status: childrenStatus, records: childrenRecords } = await dwnAlice.records.query({
+          message: {
+            filter: {
+              protocol     : protocol.definition.protocol,
+              protocolPath : 'foo/bar'
+            }
+          }
+        });
+        expect(childrenStatus.code).to.equal(200);
+        expect(childrenRecords).to.exist;
+        expect(childrenRecords).to.have.lengthOf(1);
+        expect(childrenRecords![0].id).to.equal(childRecord.id);
+
+        // Delete the parent record and its children.
+        const { status: deleteStatus } = await dwnAlice.records.delete({
+          message: {
+            recordId : parentRecord.id,
+            prune    : true
+          }
+        });
+        expect(deleteStatus.code).to.equal(202);
+
+        // query for child records to confirm it was deleted
+        const { status: childrenStatusAfterDelete, records: childrenRecordsAfterDelete } = await dwnAlice.records.query({
+          message: {
+            filter: {
+              protocol     : protocol.definition.protocol,
+              protocolPath : 'foo/bar'
+            }
+          }
+        });
+        expect(childrenStatusAfterDelete.code).to.equal(200);
+        expect(childrenRecordsAfterDelete).to.exist;
+        expect(childrenRecordsAfterDelete).to.have.lengthOf(0);
+      });
+
       it('returns a 404 when the specified record does not exist', async () => {
         let deleteResult = await dwnAlice.records.delete({
           message: {
