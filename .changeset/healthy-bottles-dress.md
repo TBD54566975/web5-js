@@ -2,8 +2,6 @@
 "@web5/credentials": patch
 ---
 
-Update jwt verify for did:dht and status list credentials
-
 ## Summary:
 This patch updates the JWT verification logic for did:dht and adds support for status list credentials.
 
