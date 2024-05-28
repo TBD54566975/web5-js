@@ -239,7 +239,7 @@ export class Jwt {
       }
     };
   }
-  
+
   /**
    * Normalizes the algorithm name to EdDSA if it is Ed25519.
    *
