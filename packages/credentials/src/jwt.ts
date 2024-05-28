@@ -239,7 +239,13 @@ export class Jwt {
       }
     };
   }
-
+  
+  /**
+   * Normalizes the algorithm name to EdDSA if it is Ed25519.
+   *
+   * @param alg - The algorithm name to normalize.
+   * @returns The normalized algorithm name.
+   */
   static _normalizeAlg(alg: string): string{
     if (alg === 'Ed25519' || alg === 'EdDSA') {
       return 'EdDSA';

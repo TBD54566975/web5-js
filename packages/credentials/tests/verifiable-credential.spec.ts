@@ -185,6 +185,40 @@ describe('Verifiable Credential Tests', () => {
       }
     });
 
+    it('create and sign vc with did:dht using Ed25519 algorithm', async () => {
+      const did = await DidDht.create({
+        options: {
+          verificationMethods: [
+            {
+              algorithm : 'Ed25519',
+              purposes  : ['authentication', 'assertionMethod']
+            }
+          ]
+        }
+      });
+
+      const vc = await VerifiableCredential.create({
+        type    : 'TBDeveloperCredential',
+        subject : did.uri,
+        issuer  : did.uri,
+        data    : {
+          username: 'nitro'
+        }
+      });
+
+      const vcJwt = await vc.sign({ did });
+
+      await VerifiableCredential.verify({ vcJwt });
+
+      for (const currentVc of [vc, VerifiableCredential.parseJwt({ vcJwt })]){
+        expect(currentVc.issuer).to.equal(did.uri);
+        expect(currentVc.subject).to.equal(did.uri);
+        expect(currentVc.type).to.equal('TBDeveloperCredential');
+        expect(currentVc.vcDataModel.issuanceDate).to.not.be.undefined;
+        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: did.uri, username: 'nitro'});
+      }
+    });
+
     it('create and sign vc with evidence', async () => {
       const did = await DidJwk.create();
 
