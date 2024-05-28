@@ -69,12 +69,19 @@ describe('Utils', () => {
 
   describe('getRecordAuthor', () => {
     it('should get the author of a RecordsWriteMessage', async () => {
-      // create a RecordWriteMessage object
-      const { message, author } = await TestDataGenerator.generateRecordsWrite();
+      // create a RecordsWriteMessage object
+      const { message: recordsWriteMessage, author: recordsWriteAuthor } = await TestDataGenerator.generateRecordsWrite();
 
-      const authorFromFunction = getRecordAuthor(message);
-      expect(authorFromFunction).to.not.be.undefined;
-      expect(authorFromFunction!).to.equal(author.did);
+      const writeAuthorFromFunction = getRecordAuthor(recordsWriteMessage);
+      expect(writeAuthorFromFunction).to.not.be.undefined;
+      expect(writeAuthorFromFunction!).to.equal(recordsWriteAuthor.did);
+
+      // create a RecordsDeleteMessage
+      const { message: recordsDeleteMessage, author: recordsDeleteAuthor } = await TestDataGenerator.generateRecordsDelete();
+
+      const deleteAuthorFromFunction = getRecordAuthor(recordsDeleteMessage);
+      expect(deleteAuthorFromFunction).to.not.be.undefined;
+      expect(deleteAuthorFromFunction!).to.equal(recordsDeleteAuthor.did);
     });
   });
 });

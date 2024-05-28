@@ -594,9 +594,9 @@ describe('DwnApi', () => {
         const { status: protocolStatus, protocol } = await dwnAlice.protocols.configure({
           message: {
             definition: {
-              protocol: 'http://example.com/parent-child',
-              published: true,
-              types: {
+              protocol  : 'http://example.com/parent-child',
+              published : true,
+              types     : {
                 foo: {
                   schema: 'http://example.com/foo',
                 },
@@ -631,11 +631,11 @@ describe('DwnApi', () => {
         const { status: childWriteStatus, record: childRecord } = await dwnAlice.records.write({
           data    : 'Hello, world!',
           message : {
-            protocol     : protocol.definition.protocol,
-            protocolPath : 'foo/bar',
-            schema       : 'http://example.com/bar',
-            dataFormat   : 'text/plain',
-            parentContextId: parentRecord.contextId
+            protocol        : protocol.definition.protocol,
+            protocolPath    : 'foo/bar',
+            schema          : 'http://example.com/bar',
+            dataFormat      : 'text/plain',
+            parentContextId : parentRecord.contextId
           }
         });
         expect(childWriteStatus.code).to.equal(202);
