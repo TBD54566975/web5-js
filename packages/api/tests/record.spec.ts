@@ -2107,7 +2107,7 @@ describe('Record', () => {
       // fails because record has not been stored in the local dwn yet
       let updateResult = await record!.update({ data: 'bye' });
       expect(updateResult.status.code).to.equal(400);
-      expect(updateResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: initial write is not found');
+      expect(updateResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: Initial write is not found.');
 
       const { status: recordStoreStatus }=  await record.store();
       expect(recordStoreStatus.code).to.equal(202);
@@ -2235,7 +2235,7 @@ describe('Record', () => {
       const [ queriedRecord ] = queryResult.records;
       let updateResult = await queriedRecord!.update({ data: 'bye' });
       expect(updateResult.status.code).to.equal(400);
-      expect(updateResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: initial write is not found');
+      expect(updateResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: Initial write is not found.');
 
       // store the queried record
       const { status: queriedStoreStatus } = await queriedRecord.store();
