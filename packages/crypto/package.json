@@ -1,6 +1,6 @@
 {
   "name": "@web5/crypto",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Web5 cryptographic library",
   "type": "module",
   "main": "./dist/cjs/index.js",
