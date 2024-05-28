@@ -697,8 +697,8 @@ importers:
   packages/identity-agent:
     dependencies:
       '@web5/agent':
-        specifier: 0.3.6
-        version: 0.3.6(ws@8.17.0)
+        specifier: 0.3.7
+        version: link:../agent
       '@web5/common':
         specifier: 1.0.0
         version: 1.0.0
@@ -785,8 +785,8 @@ importers:
   packages/proxy-agent:
     dependencies:
       '@web5/agent':
-        specifier: 0.3.6
-        version: 0.3.6(ws@8.17.0)
+        specifier: 0.3.7
+        version: link:../agent
       '@web5/common':
         specifier: 1.0.0
         version: 1.0.0
@@ -870,8 +870,8 @@ importers:
   packages/user-agent:
     dependencies:
       '@web5/agent':
-        specifier: 0.3.6
-        version: 0.3.6(ws@8.17.0)
+        specifier: 0.3.7
+        version: link:../agent
       '@web5/common':
         specifier: 1.0.0
         version: 1.0.0
@@ -9399,6 +9399,7 @@ packages:
 
   /rimraf@3.0.2:
     resolution: {integrity: sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==}
+    deprecated: Rimraf versions prior to v4 are no longer supported
     hasBin: true
     dependencies:
       glob: 7.2.3
