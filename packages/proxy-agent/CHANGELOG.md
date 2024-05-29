@@ -1,5 +1,14 @@
 # @web5/proxy-agent
 
+## 0.3.8
+
+### Patch Changes
+
+- [#644](https://github.com/TBD54566975/web5-js/pull/644) [`8b8de7a`](https://github.com/TBD54566975/web5-js/commit/8b8de7a82337a68c8625107da2f9fc7ce4286c07) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Upgrade `dwn-sdk-js` to `v0.3.5`
+
+- Updated dependencies [[`8b8de7a`](https://github.com/TBD54566975/web5-js/commit/8b8de7a82337a68c8625107da2f9fc7ce4286c07)]:
+  - @web5/agent@0.3.8
+
 ## 0.3.7
 
 ### Patch Changes
