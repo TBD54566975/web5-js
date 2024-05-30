@@ -2049,6 +2049,88 @@ describe('Record', () => {
     });
   });
 
+  describe('toString()', () => {
+    it('should return a string representation of the record', async () => {
+      // install a protocol to use for the record
+      let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
+        message: {
+          definition: emailProtocolDefinition,
+        }
+      });
+      expect(aliceStatus.code).to.equal(202);
+      expect(aliceProtocol).to.exist;
+
+      // create a record
+      const { record, status } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          protocol     : emailProtocolDefinition.protocol,
+          protocolPath : 'thread',
+          schema       : emailProtocolDefinition.types.thread.schema,
+          dataFormat   : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202);
+
+      const recordString = record!.toString();
+      expect(recordString).to.be.a('string');
+      expect(recordString).to.contain(`ID: ${record.id}`);
+      expect(recordString).to.contain(`Context ID: ${record.contextId}`);
+      expect(recordString).to.contain(`Protocol: ${record.protocol}`);
+      expect(recordString).to.contain(`Schema : ${record.schema}`);
+      expect(recordString).to.contain(`Deleted: ${false}`); // record is not deleted
+      expect(recordString).to.contain(`Created: ${record.dateCreated}`);
+      expect(recordString).to.contain(`Modified: ${record.dateModified}`);
+
+      // data related properties
+      expect(recordString).to.contain(`Data CID: ${record.dataCid}`);
+      expect(recordString).to.contain(`Data Format: ${record.dataFormat}`);
+      expect(recordString).to.contain(`Data Size: ${record.dataSize}`);
+    });
+
+    it('should return a string representation of the record in a deleted state', async () => {
+      // install a protocol to use for the record
+      let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
+        message: {
+          definition: emailProtocolDefinition,
+        }
+      });
+      expect(aliceStatus.code).to.equal(202);
+      expect(aliceProtocol).to.exist;
+
+      // create a record
+      const { record, status } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          protocol     : emailProtocolDefinition.protocol,
+          protocolPath : 'thread',
+          schema       : emailProtocolDefinition.types.thread.schema,
+          dataFormat   : 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202);
+
+      // delete the record
+      const { status: deleteStatus } = await record!.delete();
+      expect(deleteStatus.code).to.equal(202);
+
+      const recordString = record!.toString();
+      expect(recordString).to.be.a('string');
+      expect(recordString).to.contain(`ID: ${record.id}`);
+      expect(recordString).to.contain(`Context ID: ${record.contextId}`);
+      expect(recordString).to.contain(`Protocol: ${record.protocol}`);
+      expect(recordString).to.contain(`Schema : ${record.schema}`);
+      expect(recordString).to.contain(`Deleted: ${true}`); // record is deleted
+      expect(recordString).to.contain(`Created: ${record.dateCreated}`);
+      expect(recordString).to.contain(`Modified: ${record.dateModified}`);
+
+      // data related properties
+      expect(recordString).to.not.contain('Data CID');
+      expect(recordString).to.not.contain('Data Format');
+      expect(recordString).to.not.contain('Data Size');
+    });
+  });
+
   describe('update()', () => {
     it('updates a local record on the local DWN', async () => {
       const { status, record } = await dwnAlice.records.write({
