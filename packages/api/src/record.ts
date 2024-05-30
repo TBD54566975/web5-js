@@ -25,10 +25,12 @@ import { Convert, isEmptyObject, NodeStream, removeUndefinedProperties, Stream }
 import { dataToBlob, SendCache } from './utils.js';
 import { getRecordAuthor } from '@web5/agent';
 
-export type ImmutableRecordProperties =
+/** Represents Immutable Record properties */
+type ImmutableRecordProperties =
   Pick<DwnMessageDescriptor[DwnInterface.RecordsWrite], 'dateCreated' | 'parentId' | 'protocol' | 'protocolPath' | 'recipient' | 'schema'>;
 
-export type OptionalRecordProperties =
+/** Represents Optional Record properties */
+type OptionalRecordProperties =
   Pick<DwnMessage[DwnInterface.RecordsWrite], 'authorization' | 'attestation' | 'encryption' | 'contextId' > &
   Pick<DwnMessageDescriptor[DwnInterface.RecordsWrite], 'dataFormat' | 'dataCid' | 'dataSize' | 'datePublished' | 'published' | 'tags'>;
 
@@ -221,7 +223,7 @@ export class Record implements RecordModel {
   private _protocolRole?: RecordOptions['protocolRole'];
 
   /** The `RecordsWriteMessage` descriptor unless the record is in a deleted state */
-  get _recordsWriteDescriptor() {
+  private get _recordsWriteDescriptor() {
     if (isDwnMessage(DwnInterface.RecordsWrite, this.rawMessage)) {
       return this._descriptor as DwnMessageDescriptor[DwnInterface.RecordsWrite];
     }
@@ -229,7 +231,8 @@ export class Record implements RecordModel {
     return undefined; // returns undefined if the descriptor does not represent a RecordsWrite message.
   }
 
-  get _immutableProperties(): ImmutableRecordProperties {
+  /** The `RecordsWrite` descriptor from the current record or the initial write if the record is in a delete state. */
+  private get _immutableProperties(): ImmutableRecordProperties {
     return this._recordsWriteDescriptor || this._initialWrite.descriptor;
   }
 
