@@ -285,7 +285,7 @@ export class Record implements RecordModel {
 
 
   // Getters for for properties that depend on the current state of the Record.
-  /** DID that signed the record. */
+  /** DID that is the logical author of the Record. */
   get author(): string { return this._author; }
 
   /** Record's modified date */
