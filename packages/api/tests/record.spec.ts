@@ -1,6 +1,7 @@
 import type { BearerDid } from '@web5/dids';
 import type { DwnMessageParams, DwnPublicKeyJwk, DwnSigner } from '@web5/agent';
 
+import sinon from 'sinon';
 import { expect } from 'chai';
 import { NodeStream } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
@@ -43,6 +44,7 @@ describe('Record', () => {
   });
 
   beforeEach(async () => {
+    sinon.restore();
     await testHarness.clearStorage();
     await testHarness.createAgentDid();
 
@@ -62,6 +64,7 @@ describe('Record', () => {
   });
 
   after(async () => {
+    sinon.restore();
     await testHarness.clearStorage();
     await testHarness.closeStorage();
   });
@@ -3065,7 +3068,40 @@ describe('Record', () => {
       expect(await storedRecord.data.text()).to.equal(updatedText);
     });
 
-    xit('stores a deleted record to the local DWN along with the initial write');
+    it('stores a deleted record to the local DWN along with the initial write', async () => {
+      // spy on the processMessage method to confirm it is called twice by the `store()` method
+      // once for the initial write and once for the delete
+      const processMessageSpy = sinon.spy(testHarness.dwn, 'processMessage');
+
+      // create a record
+      const { status: writeStatus, record }  = await dwnAlice.records.write({
+        store   : false,
+        data    : 'Hello, world!',
+        message : {
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(writeStatus.code).to.equal(202);
+      expect(record).to.exist;
+
+      // delete the record without storing
+      const { status: deleteStatus } = await record.delete({ store: false });
+      expect(deleteStatus.code).to.equal(202);
+
+      // check that the record is in a deleted state
+      expect(record.deleted).to.be.true;
+
+      // check that processMessage has not been called yet, as the records have not been stored
+      expect(processMessageSpy.callCount).to.equal(0);
+
+      // store the record
+      const { status: storeStatus } = await record.store();
+      expect(storeStatus.code).to.equal(202);
+
+      // check that it was called once for initial write and once for the delete
+      expect(processMessageSpy.callCount).to.equal(2);
+    });
   });
 
   describe('import()', () => {
@@ -3169,7 +3205,41 @@ describe('Record', () => {
       expect(storedRecord.id).to.equal(record.id);
     });
 
-    xit('import an external deleted record to the local DWN along with the initial write');
+    it('imports a deleted record to the local DWN along with the initial write', async () => {
+
+      // spy on the processMessage method to confirm it is called twice by the `import()` method
+      // once for the initial write and once for the delete
+      const processMessageSpy = sinon.spy(testHarness.dwn, 'processMessage');
+
+      // create a record
+      const { status: writeStatus, record }  = await dwnAlice.records.write({
+        store   : false,
+        data    : 'Hello, world!',
+        message : {
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(writeStatus.code).to.equal(202);
+      expect(record).to.exist;
+
+      // delete the record without storing
+      const { status: deleteStatus } = await record.delete({ store: false });
+      expect(deleteStatus.code).to.equal(202);
+
+      // check that the record is in a deleted state
+      expect(record.deleted).to.be.true;
+
+      // dwn processMessage should not have been called yet as it hasn't been stored
+      expect(processMessageSpy.callCount).to.equal(0);
+
+      // store the record
+      const { status: importedStatus } = await record.import();
+      expect(importedStatus.code).to.equal(202);
+
+      // check that it was called once for initial write and once for the delete
+      expect(processMessageSpy.callCount).to.equal(2);
+    });
 
     describe('store: false', () => {
       it('should import an external record without storing it', async () => {

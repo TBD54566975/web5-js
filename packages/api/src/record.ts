@@ -632,9 +632,15 @@ export class Record implements RecordModel {
     str += this.contextId ? `  Context ID: ${this.contextId}\n` : '';
     str += this.protocol ? `  Protocol: ${this.protocol}\n` : '';
     str += this.schema ? `  Schema: ${this.schema}\n` : '';
-    str += `  Data CID: ${this.dataCid}\n`;
-    str += `  Data Format: ${this.dataFormat}\n`;
-    str += `  Data Size: ${this.dataSize}\n`;
+
+    // Only display data properties if the record has not been deleted.
+    if (!this.deleted) {
+      str += `  Data CID: ${this.dataCid}\n`;
+      str += `  Data Format: ${this.dataFormat}\n`;
+      str += `  Data Size: ${this.dataSize}\n`;
+    }
+
+    str += `  Deleted: ${this.deleted}\n`;
     str += `  Created: ${this.dateCreated}\n`;
     str += `  Modified: ${this.dateModified}\n`;
     str += `}`;
