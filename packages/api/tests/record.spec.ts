@@ -2051,6 +2051,29 @@ describe('Record', () => {
 
   describe('toString()', () => {
     it('should return a string representation of the record', async () => {
+      // create a record
+      const { record, status } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          dataFormat: 'text/plain'
+        }
+      });
+      expect(status.code).to.equal(202);
+
+      const recordString = record!.toString();
+      expect(recordString).to.be.a('string');
+      expect(recordString).to.contain(`ID: ${record.id}`);
+      expect(recordString).to.contain(`Deleted: ${false}`); // record is not deleted
+      expect(recordString).to.contain(`Created: ${record.dateCreated}`);
+      expect(recordString).to.contain(`Modified: ${record.dateModified}`);
+
+      // data related properties
+      expect(recordString).to.contain(`Data CID: ${record.dataCid}`);
+      expect(recordString).to.contain(`Data Format: ${record.dataFormat}`);
+      expect(recordString).to.contain(`Data Size: ${record.dataSize}`);
+    });
+
+    it('should return a string representation of the record with protocol properties', async () => {
       // install a protocol to use for the record
       let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
         message: {
@@ -2089,23 +2112,11 @@ describe('Record', () => {
     });
 
     it('should return a string representation of the record in a deleted state', async () => {
-      // install a protocol to use for the record
-      let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
-        message: {
-          definition: emailProtocolDefinition,
-        }
-      });
-      expect(aliceStatus.code).to.equal(202);
-      expect(aliceProtocol).to.exist;
-
       // create a record
       const { record, status } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
-          protocol     : emailProtocolDefinition.protocol,
-          protocolPath : 'thread',
-          schema       : emailProtocolDefinition.types.thread.schema,
-          dataFormat   : 'text/plain'
+          dataFormat: 'text/plain'
         }
       });
       expect(status.code).to.equal(202);
@@ -2117,9 +2128,6 @@ describe('Record', () => {
       const recordString = record!.toString();
       expect(recordString).to.be.a('string');
       expect(recordString).to.contain(`ID: ${record.id}`);
-      expect(recordString).to.contain(`Context ID: ${record.contextId}`);
-      expect(recordString).to.contain(`Protocol: ${record.protocol}`);
-      expect(recordString).to.contain(`Schema: ${record.schema}`);
       expect(recordString).to.contain(`Deleted: ${true}`); // record is deleted
       expect(recordString).to.contain(`Created: ${record.dateCreated}`);
       expect(recordString).to.contain(`Modified: ${record.dateModified}`);
@@ -2520,7 +2528,7 @@ describe('Record', () => {
       // purposefully delete the _initialWrite property
       delete record['_initialWrite'];
 
-      // store the recordA
+      // store the record
       try {
         await record.update({ data: 'hi' });
         expect.fail('Should have failed because the initial write is not set');
@@ -3570,6 +3578,27 @@ describe('Record', () => {
         messageCid,
         value: record.datePublished,
       });
+    });
+
+    it('should return undefined if record is in a deleted state', async () => {
+      // create a record
+      const { status: writeStatus, record }  = await dwnAlice.records.write({
+        store   : false,
+        data    : 'Hello, world!',
+        message : {
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain'
+        }
+      });
+      expect(writeStatus.code).to.equal(202);
+
+      // delete the record
+      const { status: deleteStatus } = await record.delete({ store: false });
+      expect(deleteStatus.code).to.equal(202);
+
+      // get a pagination cursor
+      const paginationCursor = await record.paginationCursor(DwnDateSort.CreatedAscending);
+      expect(paginationCursor).to.be.undefined;
     });
   });
 });

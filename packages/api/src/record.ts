@@ -7,29 +7,37 @@
 import type { Readable } from '@web5/common';
 import {
   Web5Agent,
+  DwnInterface,
   DwnMessage,
   DwnMessageParams,
   DwnResponseStatus,
   ProcessDwnRequest,
   DwnMessageDescriptor,
   getPaginationCursor,
+  getRecordAuthor,
   DwnDateSort,
   DwnPaginationCursor,
   isDwnMessage,
   SendDwnRequest
 } from '@web5/agent';
 
-import { DwnInterface } from '@web5/agent';
 import { Convert, isEmptyObject, NodeStream, removeUndefinedProperties, Stream } from '@web5/common';
 
 import { dataToBlob, SendCache } from './utils.js';
-import { getRecordAuthor } from '@web5/agent';
 
-/** Represents Immutable Record properties */
+/**
+ * Represents Immutable Record properties
+ *
+ * @beta
+ * */
 type ImmutableRecordProperties =
   Pick<DwnMessageDescriptor[DwnInterface.RecordsWrite], 'dateCreated' | 'parentId' | 'protocol' | 'protocolPath' | 'recipient' | 'schema'>;
 
-/** Represents Optional Record properties */
+/**
+ * Represents Optional Record properties
+ *
+ * @beta
+*/
 type OptionalRecordProperties =
   Pick<DwnMessage[DwnInterface.RecordsWrite], 'authorization' | 'attestation' | 'encryption' | 'contextId' > &
   Pick<DwnMessageDescriptor[DwnInterface.RecordsWrite], 'dataFormat' | 'dataCid' | 'dataSize' | 'datePublished' | 'published' | 'tags'>;
