@@ -26,19 +26,19 @@ import { Convert, isEmptyObject, NodeStream, removeUndefinedProperties, Stream }
 import { dataToBlob, SendCache } from './utils.js';
 
 /**
- * Represents Immutable Record properties
+ * Represents Immutable Record properties that cannot be changed after the record is created.
  *
  * @beta
  * */
-type ImmutableRecordProperties =
+export type ImmutableRecordProperties =
   Pick<DwnMessageDescriptor[DwnInterface.RecordsWrite], 'dateCreated' | 'parentId' | 'protocol' | 'protocolPath' | 'recipient' | 'schema'>;
 
 /**
- * Represents Optional Record properties
+ * Represents Optional Record properties that depend on the Record's current state.
  *
  * @beta
 */
-type OptionalRecordProperties =
+export type OptionalRecordProperties =
   Pick<DwnMessage[DwnInterface.RecordsWrite], 'authorization' | 'attestation' | 'encryption' | 'contextId' > &
   Pick<DwnMessageDescriptor[DwnInterface.RecordsWrite], 'dataFormat' | 'dataCid' | 'dataSize' | 'datePublished' | 'published' | 'tags'>;
 
@@ -164,8 +164,11 @@ export type RecordDeleteParams = {
 };
 
 /**
- * Record wrapper class with convenience methods to send and update,
- * aside from manipulating and reading the record data.
+ * The `Record` class encapsulates a single record's data and metadata, providing a more
+ * developer-friendly interface for working with Decentralized Web Node (DWN) records.
+ *
+ * Methods are provided to read, update, and manage the record's lifecycle, including writing to
+ * remote DWNs.
  *
  * Note: The `messageTimestamp` of the most recent RecordsWrite message is
  *       logically equivalent to the date/time at which a Record was most
@@ -173,15 +176,6 @@ export type RecordDeleteParams = {
  *       intended to simplify the developer experience of working with
  *       logical records (and not individual DWN messages) the
  *       `messageTimestamp` is mapped to `dateModified`.
- *
- * @beta
- */
-/**
- * The `Record` class encapsulates a single record's data and metadata, providing a more
- * developer-friendly interface for working with Decentralized Web Node (DWN) records.
- *
- * Methods are provided to read, update, and manage the record's lifecycle, including writing to
- * remote DWNs.
  *
  * @beta
  */
