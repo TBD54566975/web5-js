@@ -2077,7 +2077,7 @@ describe('Record', () => {
       expect(recordString).to.contain(`ID: ${record.id}`);
       expect(recordString).to.contain(`Context ID: ${record.contextId}`);
       expect(recordString).to.contain(`Protocol: ${record.protocol}`);
-      expect(recordString).to.contain(`Schema : ${record.schema}`);
+      expect(recordString).to.contain(`Schema: ${record.schema}`);
       expect(recordString).to.contain(`Deleted: ${false}`); // record is not deleted
       expect(recordString).to.contain(`Created: ${record.dateCreated}`);
       expect(recordString).to.contain(`Modified: ${record.dateModified}`);
@@ -2119,7 +2119,7 @@ describe('Record', () => {
       expect(recordString).to.contain(`ID: ${record.id}`);
       expect(recordString).to.contain(`Context ID: ${record.contextId}`);
       expect(recordString).to.contain(`Protocol: ${record.protocol}`);
-      expect(recordString).to.contain(`Schema : ${record.schema}`);
+      expect(recordString).to.contain(`Schema: ${record.schema}`);
       expect(recordString).to.contain(`Deleted: ${true}`); // record is deleted
       expect(recordString).to.contain(`Created: ${record.dateCreated}`);
       expect(recordString).to.contain(`Modified: ${record.dateModified}`);
@@ -2165,6 +2165,56 @@ describe('Record', () => {
 
       const updatedData = await record!.data.text();
       expect(updatedData).to.equal('bye');
+    });
+
+    it('updates a record to be unpublished from published', async () => {
+      // alice creates a record and sets it to published
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          schema     : 'foo/bar',
+          dataFormat : 'text/plain',
+          published  : true
+        }
+      });
+      expect(status.code).to.equal(202);
+      expect(record).to.not.be.undefined;
+
+      // send the record to alice's DWN
+      const sendResult = await record!.send(aliceDid.uri);
+      expect(sendResult.status.code).to.equal(202);
+
+      // bob reads the record to confirm it is published
+      const readResult = await dwnBob.records.read({
+        from    : aliceDid.uri,
+        message : {
+          filter: {
+            recordId: record!.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200);
+      expect(readResult.record).to.not.be.undefined;
+      expect(readResult.record!.id).to.equal(record!.id);
+
+      // alice updates the record to be unpublished
+      const updateResult = await record!.update({ published: false });
+      expect(updateResult.status.code).to.equal(202);
+
+      // send the updated record to alice's DWN
+      const sendResultAfterUpdate = await record!.send(aliceDid.uri);
+      expect(sendResultAfterUpdate.status.code).to.equal(202);
+
+      // bob attempts to read the record again but it should not be authorized as it's unpublished
+      const readResultAfterUpdate = await dwnBob.records.read({
+        from    : aliceDid.uri,
+        message : {
+          filter: {
+            recordId: record!.id
+          }
+        }
+      });
+      expect(readResultAfterUpdate.status.code).to.equal(401);
     });
 
     it('updates a record locally that only written to a remote DWN', async () => {
