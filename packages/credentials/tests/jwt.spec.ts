@@ -3,7 +3,7 @@ import type { JwtHeaderParams, JwtPayload, PrivateKeyJwk } from '@web5/crypto';
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
 import { Ed25519 } from '@web5/crypto';
-import { DidDht, DidJwk, DidKey, PortableDid, UniversalResolver } from '@web5/dids';
+import { DidDht, DidJwk, DidKey, PortableDid } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
 import JwtVerifyTestVector from '../../../web5-spec/test-vectors/vc_jwt/verify.json' assert { type: 'json' };
@@ -169,17 +169,17 @@ describe('Jwt', () => {
 
       const siopv2Response = {
         id_token: await Jwt.sign({
-          signerDid: bearerDid,
-          payload: {
-            iss: bearerDid.uri,
-            sub: bearerDid.uri,
-            aud: 'did:dht:ho3axp5pgp4k8a7kqtb8knn5uaqwy9ghkm98wrytnh67bsn7ezry',
-            nonce: 'd844f80d21c33ea6e087afa2b84dc31f',
-            iat: Math.floor(Date.now() / 1000),
-            exp: Math.floor(Date.now() / 1000) + (30 * 60), // plus 30 minutes
+          signerDid : bearerDid,
+          payload   : {
+            iss   : bearerDid.uri,
+            sub   : bearerDid.uri,
+            aud   : 'did:dht:ho3axp5pgp4k8a7kqtb8knn5uaqwy9ghkm98wrytnh67bsn7ezry',
+            nonce : 'd844f80d21c33ea6e087afa2b84dc31f',
+            iat   : Math.floor(Date.now() / 1000),
+            exp   : Math.floor(Date.now() / 1000) + (30 * 60), // plus 30 minutes
           }
         })
-      }
+      };
 
       // Verify the JWT and make sure we get a result that it does not throw an error.
       const jwtVerifyResult = await Jwt.verify({ jwt: siopv2Response.id_token });
