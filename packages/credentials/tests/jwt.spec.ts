@@ -3,12 +3,22 @@ import type { JwtHeaderParams, JwtPayload, PrivateKeyJwk } from '@web5/crypto';
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
 import { Ed25519 } from '@web5/crypto';
-import { DidJwk, DidKey, PortableDid } from '@web5/dids';
+import { DidDht, DidJwk, DidKey, PortableDid, UniversalResolver } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
 import JwtVerifyTestVector from '../../../web5-spec/test-vectors/vc_jwt/verify.json' assert { type: 'json' };
 import JwtDecodeTestVector from '../../../web5-spec/test-vectors/vc_jwt/decode.json' assert { type: 'json' };
 import { VerifiableCredential } from '../src/verifiable-credential.js';
+import sinon from 'sinon';
+
+// Helper function to create a mocked fetch response that is successful and returns the given
+// response.
+const fetchOkResponse = (response?: any) => ({
+  status      : 200,
+  statusText  : 'OK',
+  ok          : true,
+  arrayBuffer : async () => Promise.resolve(response)
+});
 
 describe('Jwt', () => {
   describe('parse()', () => {
@@ -72,6 +82,113 @@ describe('Jwt', () => {
   });
 
   describe('verify()', () => {
+
+    let fetchStub: sinon.SinonStub;
+
+    beforeEach(() => {
+      // Setup stub so that a mocked response is returned rather than calling over the network.
+      fetchStub = sinon.stub(globalThis as any, 'fetch');
+
+      // By default, return a 200 OK response when fetch is called by publish().
+      fetchStub.resolves(fetchOkResponse());
+    });
+
+    afterEach(() => {
+      fetchStub.restore();
+    });
+
+    it.only('successful verify with did:dht', async () => {
+      const hexString =
+        '0ab2b3386e22595e1271e7ef67fda70c37acf7d28b8c884a6fdcbb0ea739f341' +
+        'fd5785483c3ea894f44c66c486c74a59326cda93d75aa71cd3846bc85fa9d60b' +
+        '0000000065b2349c000084000000000300000000035f6b30045f646964346b73' +
+        '626b70736a7974626d376b6836686e7433786939317436746f39387a6e647472' +
+        '72787a73717a397938376d35717a7479716f000010000100001c200037366964' +
+        '3d303b743d303b6b3d56594b6d325343495639567a334252792d763552394748' +
+        '7a33454f4a4350765a315f675031653358694230045f747970045f646964346b' +
+        '73626b70736a7974626d376b6836686e7433786939317436746f39387a6e6474' +
+        '7272787a73717a397938376d35717a7479716f000010000100001c2000070669' +
+        '643d372c36045f646964346b73626b70736a7974626d376b6836686e74337869' +
+        '39317436746f39387a6e64747272787a73717a397938376d35717a7479716f00' +
+        '0010000100001c20002726763d303b766d3d6b303b617574683d6b303b61736d' +
+        '3d6b303b64656c3d6b303b696e763d6b30';
+
+      // Mock the response from the Pkarr relay rather than calling over the network.
+      fetchStub.resolves(fetchOkResponse(
+        Convert.hex(hexString).toArrayBuffer()
+      ));
+
+      let portableDid : PortableDid = {
+        uri      : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+        document : {
+          id                 : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+          verificationMethod : [
+            {
+              id           : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
+                kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
+                alg : 'EdDSA'
+              },
+            },
+          ],
+          authentication: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+          assertionMethod: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+          capabilityDelegation: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+          capabilityInvocation: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+        },
+        metadata: {
+          types: [6, 7]
+        },
+        privateKeys: [
+          {
+            crv : 'Ed25519',
+            d   : 'hdSIwbQwVD-fNOVEgt-k3mMl44Ip1iPi58Ex6VDGxqY',
+            kty : 'OKP',
+            x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
+            kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
+            alg : 'EdDSA',
+          }
+        ]
+      };
+
+      const bearerDid = await DidDht.import({ portableDid });
+      const result = await DidDht.resolve(`${bearerDid.uri}#0`);
+
+      const siopv2Response = {
+        id_token: await Jwt.sign({
+          signerDid: bearerDid,
+          payload: {
+            iss: bearerDid.uri,
+            sub: bearerDid.uri,
+            aud: 'did:dht:ho3axp5pgp4k8a7kqtb8knn5uaqwy9ghkm98wrytnh67bsn7ezry',
+            nonce: 'd844f80d21c33ea6e087afa2b84dc31f',
+            iat: Math.floor(Date.now() / 1000),
+            exp: Math.floor(Date.now() / 1000) + (30 * 60), // plus 30 minutes
+          }
+        })
+      }
+
+      // Verify the JWT and make sure we get a result that it does not throw an error.
+      const jwtVerifyResult = await Jwt.verify({ jwt: siopv2Response.id_token });
+
+      expect(bearerDid.document?.verificationMethod?.[0]?.publicKeyJwk?.alg).to.equal('EdDSA');
+      expect(result.didDocument?.verificationMethod?.[0]?.publicKeyJwk?.alg).to.equal('EdDSA');
+      expect(jwtVerifyResult.header.alg).to.equal('EdDSA');
+    });
+
     it('throws error if JWT is expired', async () => {
       const did = await DidKey.create({ options: { algorithm: 'secp256k1'} });
       const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: did.document.verificationMethod![0].id };

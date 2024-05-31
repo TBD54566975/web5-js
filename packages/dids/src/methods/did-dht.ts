@@ -415,7 +415,7 @@ const AlgorithmToKeyTypeMap = {
  * Private helper that maps did dht registered key types to their corresponding default algorithm identifiers.
  */
 const KeyTypeToDefaultAlgorithmMap = {
-  [DidDhtRegisteredKeyType.Ed25519]   : 'Ed25519',
+  [DidDhtRegisteredKeyType.Ed25519]   : 'EdDSA',
   [DidDhtRegisteredKeyType.secp256k1] : 'ES256K',
   [DidDhtRegisteredKeyType.secp256r1] : 'ES256',
   [DidDhtRegisteredKeyType.X25519]    : 'ECDH-ES+A256KW',
@@ -1239,7 +1239,6 @@ export class DidDhtDocument {
       if (methodId !== '0' && await computeJwkThumbprint({ jwk: publicKey }) !== methodId)  {
         txtData.unshift(`id=${methodId}`);
       }
-
       // Only set the algorithm property (`a`) if it differs from the default algorithm for the key type.
       if(publicKey.alg !== KeyTypeToDefaultAlgorithmMap[keyType]) {
         txtData.push(`a=${publicKey.alg}`);

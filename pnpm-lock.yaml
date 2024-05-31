@@ -330,14 +330,14 @@ importers:
         specifier: 2.1.0
         version: 2.1.0
       '@web5/common':
-        specifier: 1.0.0
-        version: 1.0.0
+        specifier: 1.0.1
+        version: link:../common
       '@web5/crypto':
-        specifier: 1.0.0
-        version: 1.0.0
+        specifier: 1.0.1
+        version: link:../crypto
       '@web5/dids':
-        specifier: 1.0.3
-        version: 1.0.3
+        specifier: 1.1.0
+        version: link:../dids
       pako:
         specifier: ^2.1.0
         version: 2.1.0
@@ -4227,21 +4227,6 @@ packages:
       '@noble/curves': 1.3.0
       '@noble/hashes': 1.3.3
       '@web5/common': 1.0.0
-
-  /@web5/dids@1.0.3:
-    resolution: {integrity: sha512-XRqONYJg/uZmMpYMX2hNvdYWrlNgy8/wiKApzTRGausgiefXfkDSpBpYzGKThADBeim5Q6RTnS0VnSza4QeGEg==}
-    engines: {node: '>=18.0.0'}
-    dependencies:
-      '@decentralized-identity/ion-sdk': 1.0.4
-      '@dnsquery/dns-packet': 6.1.1
-      '@web5/common': 1.0.0
-      '@web5/crypto': 1.0.0
-      abstract-level: 1.0.4
-      bencode: 4.0.0
-      buffer: 6.0.3
-      level: 8.0.1
-      ms: 2.1.3
-    dev: false
 
   /@web5/dids@1.1.0:
     resolution: {integrity: sha512-d9pKf/DW+ziUiV5g3McC71utyAhQyT1tYGPbQSYWt2ji6FHGNC6tffHMfLXXK/W+vbwV3eNTn06JqTXRaYhxBA==}
