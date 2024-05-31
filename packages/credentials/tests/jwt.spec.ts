@@ -97,7 +97,7 @@ describe('Jwt', () => {
       fetchStub.restore();
     });
 
-    it.only('successful verify with did:dht', async () => {
+    it('successful verify with did:dht', async () => {
       const hexString =
         '0ab2b3386e22595e1271e7ef67fda70c37acf7d28b8c884a6fdcbb0ea739f341' +
         'fd5785483c3ea894f44c66c486c74a59326cda93d75aa71cd3846bc85fa9d60b' +
