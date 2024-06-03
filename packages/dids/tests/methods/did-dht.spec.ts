@@ -1298,7 +1298,7 @@ describe('Official DID:DHT Vector tests', () => {
   // Temporarily disabling due to inability to add a custom `kid` to our JWK in the current deployment.
   // We disable the test instead of changing the official specd test vector.
   // TODO: https://github.com/TBD54566975/web5-js/issues/638
-  xit('vector 1', async () => {
+  it('vector 1', async () => {
     const inputDidDocument = officialTestVector1.didDocument as DidDocument;
     const dnsPacket = await DidDhtDocument.toDnsPacket({
       didDocument : inputDidDocument,
@@ -1321,7 +1321,7 @@ describe('Official DID:DHT Vector tests', () => {
   // Temporarily disabling due to inability to add a custom `kid` to our JWK in the current deployment.
   // We disable the test instead of changing the official specd test vector.
   // TODO: https://github.com/TBD54566975/web5-js/issues/638
-  xit('vector 2', async () => {
+  it('vector 2', async () => {
     const inputDidDocument = officialTestVector2.didDocument as DidDocument;
     const dnsPacket = await DidDhtDocument.toDnsPacket({
       didDocument : inputDidDocument,
@@ -1348,7 +1348,7 @@ describe('Official DID:DHT Vector tests', () => {
   // Temporarily disabling due to inability to add a custom `kid` to our JWK in the current deployment.
   // We disable the test instead of changing the official specd test vector.
   // TODO: https://github.com/TBD54566975/web5-js/issues/638
-  xit('vector 3', async () => {
+  it('vector 3', async () => {
     const inputDidDocument = officialTestVector3.didDocument as DidDocument;
     const dnsPacket = await DidDhtDocument.toDnsPacket({
       didDocument : inputDidDocument,
