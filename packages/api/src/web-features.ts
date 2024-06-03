@@ -15,7 +15,7 @@ export function installWorker(options: any = {}): void {
 
       workerSelf.skipWaiting();
 
-      self.addEventListener('activate', event => {
+      self.addEventListener('activate', (event: any) => {
         // Claim clients to make the service worker take control immediately
         event.waitUntil(workerSelf.clients.claim());
       });
@@ -91,7 +91,7 @@ export function installWorker(options: any = {}): void {
       }
     }
     else if (globalThis?.navigator?.serviceWorker) {
-      const workerUrl =  globalThis.document ? document?.currentScript?.src : import.meta?.url;
+      const workerUrl =  globalThis.document ? (document?.currentScript as any)?.src : import.meta?.url;
       navigator.serviceWorker.register(options.path || workerUrl, { type: 'module' }).catch(error => {
         console.error('DWeb networking feature installation failed: ', error);
       });
