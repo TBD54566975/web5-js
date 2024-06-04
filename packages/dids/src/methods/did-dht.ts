@@ -1055,6 +1055,10 @@ export class DidDhtDocument {
 
           publicKey.alg = parsedAlg || KeyTypeToDefaultAlgorithmMap[Number(t) as DidDhtRegisteredKeyType];
 
+          if(dnsRecordId === 'k0') {
+            publicKey.kid = '0';
+          }
+
           // Determine the Verification Method ID: '0' for the identity key,
           // the id from the TXT Data Object, or the JWK thumbprint if an explicity Verification Method ID not defined.
           const vmId = dnsRecordId === 'k0' ? '0' : id !== undefined ? id : await computeJwkThumbprint({ jwk: publicKey });

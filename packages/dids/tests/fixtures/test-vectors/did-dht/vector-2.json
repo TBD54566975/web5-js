@@ -9,7 +9,7 @@
         "type": "JsonWebKey",
         "controller": "did:dht:cyuoqaf7itop8ohww4yn5ojg13qaq83r9zihgqntc5i9zwrfdfoo",
         "publicKeyJwk": {
-          "kid": "HP6bkG6mv-YPsU3Vi5Coi5wGYSVW9abFBwBSQwLQ7PU",
+          "kid": "0",
           "alg": "EdDSA",
           "crv": "Ed25519",
           "kty": "OKP",
