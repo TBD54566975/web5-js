@@ -51,6 +51,10 @@ export class DwnKeyStore extends DwnDataStore<Jwk> implements AgentDataStore<Jwk
       messageParams : { filter: { ...this._recordProperties } }
     });
 
+    if (queryReply.status.code !== 200) {
+      throw new Error(`${this.name}: Failed to query DWN for stored DIDs - ${queryReply.status.detail}`);
+    }
+
     // Loop through all of the stored Jwk records and accumulate the objects.
     let storedKeys: Jwk[] = [];
     for (const record of queryReply.entries ?? []) {

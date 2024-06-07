@@ -5,6 +5,8 @@ import { Convert } from '@web5/common';
 import type { AgentDataStore } from '../src/store-data.js';
 import type { IdentityMetadata } from '../src/types/identity.js';
 
+import sinon from 'sinon';
+
 import { TestAgent } from './utils/test-agent.js';
 import { DwnInterface } from '../src/types/dwn.js';
 import { AgentIdentityApi } from '../src/identity-api.js';
@@ -29,6 +31,31 @@ describe('IdentityStore', () => {
   after(async () => {
     await testHarness.clearStorage();
     await testHarness.closeStorage();
+  });
+
+  describe('DwnIdentityStore.getAllRecords', () => {
+    beforeEach(() => {
+      sinon.restore();
+    });
+
+    after(() => {
+      sinon.restore();
+    });
+
+    it('should fail if the DWN query fails', async () => {
+      sinon.stub(testHarness.agent.dwn, 'processRequest').resolves({ reply: { status: { code: 500, detail: 'Internal Server Error' } }, messageCid: '' });
+      const store = new DwnIdentityStore();
+
+      try {
+        await store['getAllRecords']({
+          agent     : testHarness.agent,
+          tenantDid : testHarness.agent.agentDid.uri
+        });
+        expect.fail('Expected an error to be thrown');
+      } catch(error:any) {
+        expect(error.message).to.include('DwnIdentityStore: Failed to query DWN for stored DIDs - Internal Server Error');
+      }
+    });
   });
 
   [DwnIdentityStore, InMemoryIdentityStore].forEach((IdentityStore) => {

@@ -52,6 +52,10 @@ export class DwnDidStore extends DwnDataStore<PortableDid> implements AgentDataS
       messageParams : { filter: { ...this._recordProperties } }
     });
 
+    if (queryReply.status.code !== 200) {
+      throw new Error(`${this.name}: Failed to query DWN for stored DIDs - ${queryReply.status.detail}`);
+    }
+
     // Loop through all of the stored DID records and accumulate the DID objects.
     let storedDids: PortableDid[] = [];
     for (const record of queryReply.entries ?? []) {
