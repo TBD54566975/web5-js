@@ -85,6 +85,11 @@ export type Web5ConnectOptions = {
    * See {@link TechPreviewOptions} for available options.
    */
   techPreview?: TechPreviewOptions;
+
+  /**
+   * Helps debug issues by alerting a user when unknown errors within certain code paths occur.
+   */
+  debug?: boolean;
 }
 
 /**
@@ -162,7 +167,7 @@ export class Web5 {
    * @returns A promise that resolves to a {@link Web5} instance and the connected DID.
    */
   static async connect({
-    agent, agentVault, connectedDid, password, recoveryPhrase, sync, techPreview
+    agent, agentVault, connectedDid, password, recoveryPhrase, sync, techPreview, debug
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
     if (agent === undefined) {
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
@@ -200,11 +205,16 @@ export class Web5 {
         // Query the Agent's DWN tenant for identity records.
         const identities = await userAgent.identity.list();
 
+        if (debug && identities.length > 1) {
+          alert('multiple identities detected');
+          return;
+        }
+
         /**
          * The user agent could have multiple identities stored, but we only want to connect to one.
          * In most cases with default `Web5.connect()` usage, there will only be one identity.
-         * Therefore, if no `connectedDid` is provided, we expect for there to only be a single identity.
-         * However, if a `connectedDid` is provided, we expect to find that identity in the list.
+         * If a `connectedDid` is provided, we expect to find that identity in the list.
+         * If no `connectedDid` is provided, we will use the first identity in the list.
          *
          * NOTE: There has been a case where there should have only been one identity but there were two.
          * We have this Issue to track it: https://github.com/TBD54566975/web5-js/issues/680
@@ -256,12 +266,9 @@ export class Web5 {
             // The User Agent will manage the Identity, which ensures it will be available on future
             // sessions.
             await userAgent.identity.manage({ portableIdentity: await identity.export() });
-          } else if (existingIdentityCount === 1) {
-            // A single existing identity was found in the User Agent's tenant.
-            identity = identities[0];
           } else {
-            // no connectedDid was provided and more than one identity was found.
-            throw new Error(`connect() failed due to unexpected state: Expected 1 but found ${existingIdentityCount} stored identities with no connectedDid option.`);
+            // If multiple identities are found, use the first one in the list.
+            identity = identities[0];
           }
 
           // Set the stored identity as the connected DID.

@@ -215,31 +215,6 @@ describe('Web5', () => {
       expect(web5.agent).to.be.instanceOf(Web5UserAgent);
     });
 
-    it('fails if multiple identities are returned by the agent and no connectedDid is provided', async () => {
-      sinon.stub(Web5UserAgent, 'create').resolves(agent);
-
-      // create two identities, use the second one as connectedDid
-      const identity1 = await agent.identity.create({
-        store     : true,
-        metadata  : { name: 'Test 2' },
-        didMethod : 'jwk'
-      });
-      await agent.identity.manage({ portableIdentity: await identity1.export() });
-
-      const identity2 = await agent.identity.create({
-        store     : true,
-        metadata  : { name: 'Test' },
-        didMethod : 'jwk'
-      });
-      await agent.identity.manage({ portableIdentity: await identity2.export() });
-
-      try {
-        await Web5.connect({ password });
-      } catch(error:any) {
-        expect(error.message).to.equal(`connect() failed due to unexpected state: Expected 1 but found 2 stored identities with no connectedDid option.`);
-      }
-    });
-
     it('calling connect multiple times will return the same did', async () => {
       sinon.stub(Web5UserAgent, 'create').resolves(agent);
       const { did } = await Web5.connect({ password });
