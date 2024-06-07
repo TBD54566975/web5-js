@@ -222,5 +222,32 @@ describe('Web5', () => {
 
       expect(did).to.equal(did_2);
     });
+
+    it('passing a debug option will alert the user and short-circuit when multiple identities are found', async () => {
+      sinon.stub(Web5UserAgent, 'create').resolves(agent);
+      globalThis.alert = (message:any) => {}
+      const alertSpy = sinon.spy(globalThis, 'alert');
+
+      // create two identities, use the second one as connectedDid
+      const identity1 = await agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Test 2' },
+        didMethod : 'jwk'
+      });
+      await agent.identity.manage({ portableIdentity: await identity1.export() });
+
+      const identity2 = await agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Test' },
+        didMethod : 'jwk'
+      });
+      await agent.identity.manage({ portableIdentity: await identity2.export() });
+
+      const { web5, did } = await Web5.connect({ debug: true });
+      expect(alertSpy.calledOnce).to.be.true;
+      expect(did).to.be.undefined;
+      expect(web5).to.be.undefined;
+      globalThis.alert = undefined;
+    });
   });
 });

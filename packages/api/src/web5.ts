@@ -206,8 +206,10 @@ export class Web5 {
         const identities = await userAgent.identity.list();
 
         if (debug && identities.length > 1) {
-          alert('multiple identities detected');
-          return;
+          if ('alert' in globalThis) {
+            globalThis.alert('multiple identities detected');
+          }
+          return { did: undefined, web5: undefined };
         }
 
         /**
