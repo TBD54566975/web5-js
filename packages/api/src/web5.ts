@@ -200,55 +200,63 @@ export class Web5 {
         // Query the Agent's DWN tenant for identity records.
         const identities = await userAgent.identity.list();
 
-        // If an existing identity is not found found, create a new one.
         const existingIdentityCount = identities.length;
-        if (existingIdentityCount === 0) {
-          // Use the specified DWN endpoints or get default tech preview hosted nodes.
-          const serviceEndpointNodes = techPreview?.dwnEndpoints ?? await getTechPreviewDwnEndpoints();
-
-          // Generate a new Identity for the end-user.
-          identity = await userAgent.identity.create({
-            didMethod  : 'dht',
-            metadata   : { name: 'Default' },
-            didOptions : {
-              services: [
-                {
-                  id              : 'dwn',
-                  type            : 'DecentralizedWebNode',
-                  serviceEndpoint : serviceEndpointNodes,
-                  enc             : '#enc',
-                  sig             : '#sig',
-                }
-              ],
-              verificationMethods: [
-                {
-                  algorithm : 'Ed25519',
-                  id        : 'sig',
-                  purposes  : ['assertionMethod', 'authentication']
-                },
-                {
-                  algorithm : 'secp256k1',
-                  id        : 'enc',
-                  purposes  : ['keyAgreement']
-                }
-              ]
-            }
-          });
-
-          // The User Agent will manage the Identity, which ensures it will be available on future
-          // sessions.
-          await userAgent.identity.manage({ portableIdentity: await identity.export() });
-
-        } else if (existingIdentityCount === 1) {
-          // An existing identity was found in the User Agent's tenant.
-          identity = identities[0];
-
+        if (connectedDid !== undefined) {
+          // if a connectedDid is provided, find the identity with that DID.
+          const connectedIdentity = identities.find(identity => identity.did.uri === connectedDid);
+          if (connectedIdentity === undefined) {
+            throw new Error(`connect() failed due to unexpected state: Expected to find identity with DID ${connectedDid}.`);
+          }
+          identity = connectedIdentity;
         } else {
-          throw new Error(`connect() failed due to unexpected state: Expected 1 but found ${existingIdentityCount} stored identities.`);
-        }
+          // If no connected DID is provided, and no identities exist in the agent, create a new identity
+          if (existingIdentityCount === 0) {
+            // Use the specified DWN endpoints or get default tech preview hosted nodes.
+            const serviceEndpointNodes = techPreview?.dwnEndpoints ?? await getTechPreviewDwnEndpoints();
 
-        // Set the stored identity as the connected DID.
-        connectedDid = identity.did.uri;
+            // Generate a new Identity for the end-user.
+            identity = await userAgent.identity.create({
+              didMethod  : 'dht',
+              metadata   : { name: 'Default' },
+              didOptions : {
+                services: [
+                  {
+                    id              : 'dwn',
+                    type            : 'DecentralizedWebNode',
+                    serviceEndpoint : serviceEndpointNodes,
+                    enc             : '#enc',
+                    sig             : '#sig',
+                  }
+                ],
+                verificationMethods: [
+                  {
+                    algorithm : 'Ed25519',
+                    id        : 'sig',
+                    purposes  : ['assertionMethod', 'authentication']
+                  },
+                  {
+                    algorithm : 'secp256k1',
+                    id        : 'enc',
+                    purposes  : ['keyAgreement']
+                  }
+                ]
+              }
+            });
+
+            // The User Agent will manage the Identity, which ensures it will be available on future
+            // sessions.
+            await userAgent.identity.manage({ portableIdentity: await identity.export() });
+          } else if (existingIdentityCount === 1) {
+            // A single existing identity was found in the User Agent's tenant.
+            identity = identities[0];
+          } else {
+            // no connectedDid was provided and more than one identity was found.
+            throw new Error(`connect() failed due to unexpected state: Expected 1 but found ${existingIdentityCount} stored identities with no connectedDid option.`);
+          }
+
+          // Set the stored identity as the connected DID.
+          connectedDid = identity.did.uri;
+        }
       }
 
       // Enable sync, unless explicitly disabled.

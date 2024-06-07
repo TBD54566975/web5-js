@@ -3,6 +3,8 @@ import { MemoryStore } from '@web5/common';
 import { Web5UserAgent } from '@web5/user-agent';
 import { HdIdentityVault, PlatformAgentTestHarness } from '@web5/agent';
 
+import sinon from 'sinon';
+
 import { Web5 } from '../src/web5.js';
 
 describe('Web5', () => {
@@ -131,6 +133,36 @@ describe('Web5', () => {
   });
 
   describe('connect()', () => {
+    let testHarness: PlatformAgentTestHarness;
+    let agent: Web5UserAgent;
+    const password = 'insecure-static-phrase';
+
+    before(async () => {
+      testHarness = await PlatformAgentTestHarness.setup({
+        agentClass  : Web5UserAgent,
+        agentStores : 'memory'
+      });
+      agent = testHarness.agent as Web5UserAgent;
+    });
+
+    beforeEach(async () => {
+      sinon.restore();
+      await testHarness.clearStorage();
+      await testHarness.createAgentDid();
+
+      if (await agent.firstLaunch()) {
+        await agent.initialize({ password });
+      }
+      await agent.start({ password: 'insecure-static-phrase' });
+    });
+
+    after(async () => {
+      sinon.restore();
+      await testHarness.clearStorage();
+      await testHarness.closeStorage();
+    });
+
+
     it('uses Web5UserAgent, by default', async () => {
       // Create an in-memory identity vault store to speed up tests.
       const agentVault = new HdIdentityVault({
@@ -144,6 +176,76 @@ describe('Web5', () => {
       // Verify recovery phrase is a 12-word string.
       expect(recoveryPhrase).to.be.a('string');
       expect(recoveryPhrase.split(' ')).to.have.lengthOf(12);
+    });
+
+    it('fails if a connectedDid is provided and it is not found in the identities list', async () => {
+      sinon.stub(Web5UserAgent, 'create').resolves(agent as Web5UserAgent);
+      const connectedDid = 'did:web5:1234567890';
+      try {
+        await Web5.connect({ connectedDid, password });
+        expect.fail('Expected an error to be thrown');
+      } catch (error:any) {
+        expect(error.message).to.equal(`connect() failed due to unexpected state: Expected to find identity with DID ${connectedDid}.`);
+      }
+    });
+
+    it('if multiple identities are returned by the agent and a connectedDid is provided, it uses the connectedDid', async () => {
+      sinon.stub(Web5UserAgent, 'create').resolves(agent);
+
+      // create two identities, use the second one as connectedDid
+      const identity1 = await agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Test 2' },
+        didMethod : 'jwk'
+      });
+      await agent.identity.manage({ portableIdentity: await identity1.export() });
+
+      const identity2 = await agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Test' },
+        didMethod : 'jwk'
+      });
+      await agent.identity.manage({ portableIdentity: await identity2.export() });
+
+      const connectedDid = identity2.did.uri;
+      const { web5, did } = await Web5.connect({ connectedDid, password });
+
+      expect(did).to.equal(connectedDid);
+      expect(web5).to.exist;
+      expect(web5.agent).to.be.instanceOf(Web5UserAgent);
+    });
+
+    it('fails if multiple identities are returned by the agent and no connectedDid is provided', async () => {
+      sinon.stub(Web5UserAgent, 'create').resolves(agent);
+
+      // create two identities, use the second one as connectedDid
+      const identity1 = await agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Test 2' },
+        didMethod : 'jwk'
+      });
+      await agent.identity.manage({ portableIdentity: await identity1.export() });
+
+      const identity2 = await agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Test' },
+        didMethod : 'jwk'
+      });
+      await agent.identity.manage({ portableIdentity: await identity2.export() });
+
+      try {
+        await Web5.connect({ password });
+      } catch(error:any) {
+        expect(error.message).to.equal(`connect() failed due to unexpected state: Expected 1 but found 2 stored identities with no connectedDid option.`);
+      }
+    });
+
+    it('calling connect multiple times will return the same did', async () => {
+      sinon.stub(Web5UserAgent, 'create').resolves(agent);
+      const { did } = await Web5.connect({ password });
+      const { did: did_2 } = await Web5.connect({ password });
+
+      expect(did).to.equal(did_2);
     });
   });
 });
