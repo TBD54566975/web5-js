@@ -200,6 +200,16 @@ export class Web5 {
         // Query the Agent's DWN tenant for identity records.
         const identities = await userAgent.identity.list();
 
+        /**
+         * The user agent could have multiple identities stored, but we only want to connect to one.
+         * In most cases with default `Web5.connect()` usage, there will only be one identity.
+         * Therefore, if no `connectedDid` is provided, we expect for there to only be a single identity.
+         * However, if a `connectedDid` is provided, we expect to find that identity in the list.
+         *
+         * NOTE: There has been a case where there should have only been one identity but there were two.
+         * We have this Issue to track it: https://github.com/TBD54566975/web5-js/issues/680
+         */
+
         const existingIdentityCount = identities.length;
         if (connectedDid !== undefined) {
           // if a connectedDid is provided, find the identity with that DID.
