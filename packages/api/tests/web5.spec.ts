@@ -225,7 +225,7 @@ describe('Web5', () => {
 
     it('passing a debug option will alert the user and short-circuit when multiple identities are found', async () => {
       sinon.stub(Web5UserAgent, 'create').resolves(agent);
-      globalThis.alert = (message:any) => {}
+      globalThis.alert = (_message:any) => {};
       const alertSpy = sinon.spy(globalThis, 'alert');
 
       // create two identities, use the second one as connectedDid
