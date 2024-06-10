@@ -1,0 +1,9 @@
+{
+  "$schema": "https://github.com/IBM/audit-ci/raw/main/docs/schema.json",
+  "moderate": true,
+  "allowlist": [
+    "ip",
+    "mysql2",
+    "GHSA-rv95-896h-c2vc"
+  ]
+}
