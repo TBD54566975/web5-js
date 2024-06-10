@@ -1055,9 +1055,11 @@ export class DidDhtDocument {
 
           publicKey.alg = parsedAlg || KeyTypeToDefaultAlgorithmMap[Number(t) as DidDhtRegisteredKeyType];
 
-          if(dnsRecordId === 'k0') {
-            publicKey.kid = '0';
-          }
+          // TOOD: when this is complete https://github.com/TBD54566975/web5-js/issues/638 then we can add this back and 
+          // update the test vectors kid back to '0'
+          // if(dnsRecordId === 'k0') {
+          //   publicKey.kid = '0';
+          // }
 
           // Determine the Verification Method ID: '0' for the identity key,
           // the id from the TXT Data Object, or the JWK thumbprint if an explicity Verification Method ID not defined.
