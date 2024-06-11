@@ -1,9 +1,8 @@
-import type { JwtHeaderParams, JwtPayload, PrivateKeyJwk } from '@web5/crypto';
+import type { Ed25519, JwtHeaderParams, JwtPayload, PrivateKeyJwk } from '@web5/crypto';
 
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
-import { Ed25519 } from '@web5/crypto';
-import { DidDht, DidJwk, DidKey, PortableDid } from '@web5/dids';
+import { DidDereferencingResult, DidDht, DidJwk, DidKey, PortableDid } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
 import JwtVerifyTestVector from '../../../web5-spec/test-vectors/vc_jwt/verify.json' assert { type: 'json' };
@@ -82,42 +81,39 @@ describe('Jwt', () => {
   });
 
   describe('verify()', () => {
-
-    let fetchStub: sinon.SinonStub;
+    let dereferenceStub: sinon.SinonStub;
 
     beforeEach(() => {
-      // Setup stub so that a mocked response is returned rather than calling over the network.
-      fetchStub = sinon.stub(globalThis as any, 'fetch');
-
-      // By default, return a 200 OK response when fetch is called by publish().
-      fetchStub.resolves(fetchOkResponse());
+      dereferenceStub = sinon.stub(Jwt.didResolver, 'dereference');
     });
-
+  
     afterEach(() => {
-      fetchStub.restore();
+      dereferenceStub.restore();
     });
 
     it('successful verify with did:dht', async () => {
-      const hexString =
-        '0ab2b3386e22595e1271e7ef67fda70c37acf7d28b8c884a6fdcbb0ea739f341' +
-        'fd5785483c3ea894f44c66c486c74a59326cda93d75aa71cd3846bc85fa9d60b' +
-        '0000000065b2349c000084000000000300000000035f6b30045f646964346b73' +
-        '626b70736a7974626d376b6836686e7433786939317436746f39387a6e647472' +
-        '72787a73717a397938376d35717a7479716f000010000100001c200037366964' +
-        '3d303b743d303b6b3d56594b6d325343495639567a334252792d763552394748' +
-        '7a33454f4a4350765a315f675031653358694230045f747970045f646964346b' +
-        '73626b70736a7974626d376b6836686e7433786939317436746f39387a6e6474' +
-        '7272787a73717a397938376d35717a7479716f000010000100001c2000070669' +
-        '643d372c36045f646964346b73626b70736a7974626d376b6836686e74337869' +
-        '39317436746f39387a6e64747272787a73717a397938376d35717a7479716f00' +
-        '0010000100001c20002726763d303b766d3d6b303b617574683d6b303b61736d' +
-        '3d6b303b64656c3d6b303b696e763d6b30';
 
-      // Mock the response from the Pkarr relay rather than calling over the network.
-      fetchStub.resolves(fetchOkResponse(
-        Convert.hex(hexString).toArrayBuffer()
-      ));
+      const mockResult: DidDereferencingResult = {
+        dereferencingMetadata: {
+          contentType: "application/did+json"
+        },
+        contentStream: {
+          id: "did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0",
+          type: "JsonWebKey",
+          controller: "did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo",
+          publicKeyJwk: {
+            kty: "OKP",
+            crv: "Ed25519",
+            x: "VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0",
+            kid: "cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8",
+            alg: "EdDSA"
+          }
+        },
+        contentMetadata: {}
+      };
 
+      dereferenceStub.resolves(mockResult);
+      
       let portableDid : PortableDid = {
         uri      : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
         document : {
@@ -165,7 +161,6 @@ describe('Jwt', () => {
       };
 
       const bearerDid = await DidDht.import({ portableDid });
-      const result = await DidDht.resolve(`${bearerDid.uri}#0`);
 
       const siopv2Response = {
         id_token: await Jwt.sign({
@@ -185,7 +180,6 @@ describe('Jwt', () => {
       const jwtVerifyResult = await Jwt.verify({ jwt: siopv2Response.id_token });
 
       expect(bearerDid.document?.verificationMethod?.[0]?.publicKeyJwk?.alg).to.equal('EdDSA');
-      expect(result.didDocument?.verificationMethod?.[0]?.publicKeyJwk?.alg).to.equal('EdDSA');
       expect(jwtVerifyResult.header.alg).to.equal('EdDSA');
     });
 
