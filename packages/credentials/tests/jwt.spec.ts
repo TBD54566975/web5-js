@@ -1,7 +1,8 @@
-import type { Ed25519, JwtHeaderParams, JwtPayload, PrivateKeyJwk } from '@web5/crypto';
+import type { JwtHeaderParams, JwtPayload, PrivateKeyJwk } from '@web5/crypto';
 
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
+import { Ed25519 } from '@web5/crypto';
 import { DidDereferencingResult, DidDht, DidJwk, DidKey, PortableDid } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
