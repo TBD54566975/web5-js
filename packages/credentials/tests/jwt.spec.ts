@@ -73,17 +73,8 @@ describe('Jwt', () => {
   });
 
   describe('verify()', () => {
-    let dereferenceStub: sinon.SinonStub;
-
-    beforeEach(() => {
-      dereferenceStub = sinon.stub(Jwt.didResolver, 'dereference');
-    });
-
-    afterEach(() => {
-      dereferenceStub.restore();
-    });
-
     it('successful verify with did:dht', async () => {
+      const dereferenceStub = sinon.stub(Jwt.didResolver, 'dereference');
 
       const mockResult: DidDereferencingResult = {
         dereferencingMetadata: {
@@ -173,6 +164,8 @@ describe('Jwt', () => {
 
       expect(bearerDid.document?.verificationMethod?.[0]?.publicKeyJwk?.alg).to.equal('EdDSA');
       expect(jwtVerifyResult.header.alg).to.equal('EdDSA');
+
+      dereferenceStub.restore();
     });
 
     it('throws error if JWT is expired', async () => {
