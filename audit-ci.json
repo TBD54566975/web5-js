@@ -4,6 +4,7 @@
   "allowlist": [
     "ip",
     "mysql2",
+    "braces",
     "GHSA-rv95-896h-c2vc"
   ]
 }
