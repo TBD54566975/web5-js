@@ -10,15 +10,6 @@ import JwtDecodeTestVector from '../../../web5-spec/test-vectors/vc_jwt/decode.j
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import sinon from 'sinon';
 
-// Helper function to create a mocked fetch response that is successful and returns the given
-// response.
-const fetchOkResponse = (response?: any) => ({
-  status      : 200,
-  statusText  : 'OK',
-  ok          : true,
-  arrayBuffer : async () => Promise.resolve(response)
-});
-
 describe('Jwt', () => {
   describe('parse()', () => {
     it('throws error if JWT doesnt contain 3 parts', async () => {
@@ -86,7 +77,7 @@ describe('Jwt', () => {
     beforeEach(() => {
       dereferenceStub = sinon.stub(Jwt.didResolver, 'dereference');
     });
-  
+
     afterEach(() => {
       dereferenceStub.restore();
     });
@@ -95,25 +86,25 @@ describe('Jwt', () => {
 
       const mockResult: DidDereferencingResult = {
         dereferencingMetadata: {
-          contentType: "application/did+json"
+          contentType: 'application/did+json'
         },
         contentStream: {
-          id: "did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0",
-          type: "JsonWebKey",
-          controller: "did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo",
-          publicKeyJwk: {
-            kty: "OKP",
-            crv: "Ed25519",
-            x: "VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0",
-            kid: "cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8",
-            alg: "EdDSA"
+          id           : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0',
+          type         : 'JsonWebKey',
+          controller   : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+          publicKeyJwk : {
+            kty : 'OKP',
+            crv : 'Ed25519',
+            x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
+            kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
+            alg : 'EdDSA'
           }
         },
         contentMetadata: {}
       };
 
       dereferenceStub.resolves(mockResult);
-      
+
       let portableDid : PortableDid = {
         uri      : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
         document : {
