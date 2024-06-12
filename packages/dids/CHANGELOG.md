@@ -1,5 +1,11 @@
 # @web5/dids
 
+## 1.1.1
+
+### Patch Changes
+
+- [#689](https://github.com/TBD54566975/web5-js/pull/689) [`16eb49d`](https://github.com/TBD54566975/web5-js/commit/16eb49d00ee45bd25fa62c370a5b729801581950) Thanks [@nitro-neal](https://github.com/nitro-neal)! - Update KeyTypeToDefaultAlgorithmMap for did dht
+
 ## 1.1.0
 
 ### Minor Changes

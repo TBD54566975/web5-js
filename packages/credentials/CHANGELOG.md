@@ -1,5 +1,14 @@
 # @web5/credentials
 
+## 1.0.3
+
+### Patch Changes
+
+- [#653](https://github.com/TBD54566975/web5-js/pull/653) [`65b577b`](https://github.com/TBD54566975/web5-js/commit/65b577ba28ca01b9c209af9c8575c5690ca1c12b) Thanks [@nitro-neal](https://github.com/nitro-neal)! - Consuming latest web5 repos. Fixing diddht jwt verification
+
+- Updated dependencies [[`16eb49d`](https://github.com/TBD54566975/web5-js/commit/16eb49d00ee45bd25fa62c370a5b729801581950)]:
+  - @web5/dids@1.1.1
+
 ## 1.0.2
 
 ### Patch Changes
