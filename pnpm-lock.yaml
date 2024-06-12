@@ -339,8 +339,8 @@ importers:
         specifier: 1.0.1
         version: link:../crypto
       '@web5/dids':
-        specifier: 1.1.0
-        version: 1.1.0
+        specifier: 1.1.1
+        version: link:../dids
       pako:
         specifier: ^2.1.0
         version: 2.1.0
