@@ -24,7 +24,7 @@ app.post('/connect/par', (req, res) => {
 
   // Generate a request URI
   const requestId = randomUuid();
-  const requestUri = `http://localhost:${port}/connect/${requestId}.jwt`;
+  const request_uri = `http://localhost:${port}/connect/${requestId}.jwt`;
 
   // Store the Request Object.
   const requestJwt = req.body.request;
@@ -33,7 +33,7 @@ app.post('/connect/par', (req, res) => {
   console.log(`Request Object stored for ${requestId}`);
 
   res.status(201).json({
-    request_uri : requestUri,
+    request_uri,
     expires_in  : 600,  // The request URI is valid for 10 minutes.
   });
 });
