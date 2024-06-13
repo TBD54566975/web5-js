@@ -107,7 +107,8 @@ export function installWorker(options: any = {}): void {
       });
     }
     else if (globalThis?.navigator?.serviceWorker) {
-      const workerUrl =  globalThis.document ? (document?.currentScript as any)?.src : import.meta?.url;
+      // @ts-ignore
+      const workerUrl =  globalThis.document ? document?.currentScript?.src : import.meta?.url;
       navigator.serviceWorker.register(options.path || workerUrl, { type: 'module' }).catch(error => {
         console.error('DWeb networking feature installation failed: ', error);
       });
