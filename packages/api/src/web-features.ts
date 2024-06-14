@@ -1,7 +1,7 @@
 /*
   This file is run in dual environments to make installation of the Service Worker code easier.
   Be mindful that code placed in any open excution space may be evaluated multiple times in different contexts,
-  so take care to gate additions to only activate code in the right env, such as a Service Worker scope or page window.
+  so take care to gate additions to only activate code in the right env, such as a Service Worker scope or page window.  
 */
 
 import { UniversalResolver, DidDht, DidWeb } from '@web5/dids';
@@ -37,11 +37,11 @@ async function handleEvent(event, did, path, options){
     if (!path) {
       const response = await DidResolver.resolve(did);
       return new Response(JSON.stringify(response), {
-        status  : 200,
-        headers : {
+        status: 200,
+        headers: {
           'Content-Type': 'application/json'
         }
-      });
+      })
     }
     else return await fetchResource(event, did, drl, path, responseCache, options);
   }
@@ -57,33 +57,34 @@ async function handleEvent(event, did, path, options){
 async function fetchResource(event, did, drl, path, responseCache, options) {
   const endpoints = await getDwnEndpoints(did);
   if (!endpoints?.length) {
-    throw new Response('DWeb Node resolution failed: no valid endpoints found.', { status: 530 });
+    throw new Response('DWeb Node resolution failed: no valid endpoints found.', { status: 530 })
   }
   for (const endpoint of endpoints) {
     try {
       const url = `${endpoint.replace(trailingSlashRegex, '')}/${did}/${path}`;
-      const response = await fetch(url, { headers: event.request.headers });
-      if (response.ok) {
+      const response = await fetch(url, { headers: event.request.headers });     
+      if (response.ok) { 
         const match = await options?.onCacheCheck(event, drl);
         if (match) {
-          cacheResponse(drl, response, responseCache);
+          cacheResponse(drl, url, response, responseCache);
         }
         return response;
       }
       console.log(`DWN endpoint error: ${response.status}`);
-      return new Response('DWeb Node request failed', { status: response.status });
+      return new Response('DWeb Node request failed', { status: response.status }) 
     }
     catch (error) {
       console.log(`DWN endpoint error: ${error}`);
-      return new Response('DWeb Node request failed: ' + error, { status: 500 });
+      return new Response('DWeb Node request failed: ' + error, { status: 500 }) 
     }
   }
 }
 
-async function cacheResponse(drl, response, cache){
+async function cacheResponse(drl, url, response, cache){   
   const clonedResponse = response.clone();
   const headers = new Headers(clonedResponse.headers);
-  headers.append('dwn-cache-time', Date.now().toString());
+        headers.append('dwn-cache-time', Date.now().toString());
+        headers.append('dwn-composed-url', url);
   const modifiedResponse = new Response(clonedResponse.body, { headers });
   cache.put(drl, modifiedResponse);
 }
@@ -262,7 +263,7 @@ const tabContent = `
 `;
 
 let elementsInjected = false;
-function injectElements() {
+function injectElements(options) {
   if (elementsInjected) return;
   const style = document.createElement('style');
   style.innerHTML = `
@@ -301,7 +302,7 @@ function cancelNavigation(){
 }
 
 let activeNavigation;
-function addLinkFeatures(){
+function addLinkFeatures(options){
   if (!activeFeatures.links) {
     document.addEventListener('click', async (event: any) => {
       let anchor = event.target.closest('a');
@@ -309,10 +310,10 @@ function addLinkFeatures(){
         let href = anchor.href;
         const match = href.match(didUrlRegex);
         if (match) {
-          let did = match[1];
+          let did = match[1]; 
           let path = match[2];
           const openAsTab = anchor.target === '_blank';
-          event.preventDefault();
+          event.preventDefault(); 
           try {
             let tab;
             if (openAsTab) {
@@ -323,7 +324,7 @@ function addLinkFeatures(){
               activeNavigation = path;
               setTimeout(() => document.documentElement.setAttribute('drl-link-loading', ''), 50);
             }
-            const endpoints = await getDwnEndpoints(did);
+            const endpoints = await getDwnEndpoints(did)
             if (!endpoints.length) throw null;
             let url = `${endpoints[0].replace(trailingSlashRegex, '')}/${did}/${path}`;
             if (openAsTab) {
@@ -342,16 +343,47 @@ function addLinkFeatures(){
         }
       }
     });
+
+    let contextMenuTarget;
+    function resetContextMenuTarget(e){
+      if (contextMenuTarget) {
+        contextMenuTarget.src = contextMenuTarget.__src__;
+        delete contextMenuTarget.__src__;
+        contextMenuTarget = null;
+      }
+    }
+    document.addEventListener('pointercancel', resetContextMenuTarget);
+    document.addEventListener('pointerdown', async (event: any) => {
+      const target = event.composedPath()[0];
+      if ((event.pointerType === 'mouse' && event.button === 2) ||
+          (event.pointerType === 'touch' && event.isPrimary)) {
+        resetContextMenuTarget(event);
+        if (target && target?.src?.match(didUrlRegex)) {
+          contextMenuTarget = target;
+          target.__src__ = target.src;
+          const drl = target.src.replace(httpToHttpsRegex, 'https:').replace(trailingSlashRegex, '');
+          const responseCache = await caches.open('drl');
+          const response = await responseCache.match(drl);
+          const url = response.headers.get('dwn-composed-url');
+          if (url) target.src = url;
+          target.addEventListener('pointerleave', resetContextMenuTarget, { once: true });
+        }
+      }
+      else if (target === contextMenuTarget) {
+        resetContextMenuTarget(event);
+      }
+    });
+
     activeFeatures.links = true;
   }
 }
 
 export function activateFeatures(options: any = {}){
   if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
-    if (document.readyState !== 'loading') injectElements();
+    if (document.readyState !== 'loading') injectElements(options);
     else {
       document.addEventListener('DOMContentLoaded', injectElements, { once: true });
     }
-    if (options.links || options.allFeatures) addLinkFeatures();
+    if (options.links || options.allFeatures) addLinkFeatures(options);
   }
 }
