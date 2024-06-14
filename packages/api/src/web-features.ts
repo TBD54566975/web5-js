@@ -357,7 +357,7 @@ function addLinkFeatures(){
       const target = event.composedPath()[0];
       if ((event.pointerType === 'mouse' && event.button === 2) ||
           (event.pointerType === 'touch' && event.isPrimary)) {
-        resetContextMenuTarget(event);
+        resetContextMenuTarget();
         if (target && target?.src?.match(didUrlRegex)) {
           contextMenuTarget = target;
           target.__src__ = target.src;
@@ -370,7 +370,7 @@ function addLinkFeatures(){
         }
       }
       else if (target === contextMenuTarget) {
-        resetContextMenuTarget(event);
+        resetContextMenuTarget();
       }
     });
 
