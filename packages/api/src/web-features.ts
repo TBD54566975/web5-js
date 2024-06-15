@@ -347,7 +347,7 @@ function addLinkFeatures(){
     let contextMenuTarget;
     async function resetContextMenuTarget(e?: any){
       if (e?.type === 'pointerup') {
-        await new Promise(r => requestAnimationFrame(r));
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
       }
       if (contextMenuTarget) {
         contextMenuTarget.src = contextMenuTarget.__src__;
