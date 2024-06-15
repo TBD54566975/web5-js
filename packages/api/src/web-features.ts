@@ -346,7 +346,7 @@ function addLinkFeatures(){
 
     let contextMenuTarget;
     async function resetContextMenuTarget(e?: any){
-      if (e?.type === 'contextmenu') {
+      if (e?.type === 'pointerup') {
         await new Promise(r => requestAnimationFrame(r));
       }
       if (contextMenuTarget) {
@@ -369,7 +369,7 @@ function addLinkFeatures(){
           const response = await responseCache.match(drl);
           const url = response.headers.get('dwn-composed-url');
           if (url) target.src = url;
-          target.addEventListener('contextmenu', resetContextMenuTarget, { once: true });
+          target.addEventListener('pointerup', resetContextMenuTarget, { once: true });
         }
       }
       else if (target === contextMenuTarget) {
