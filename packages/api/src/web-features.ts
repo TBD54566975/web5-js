@@ -345,7 +345,10 @@ function addLinkFeatures(){
     });
 
     let contextMenuTarget;
-    function resetContextMenuTarget(){
+    async function resetContextMenuTarget(e?: any){
+      if (e?.type === 'contextmenu') {
+        await new Promise(r => requestAnimationFrame(r));
+      }
       if (contextMenuTarget) {
         contextMenuTarget.src = contextMenuTarget.__src__;
         delete contextMenuTarget.__src__;
@@ -366,7 +369,7 @@ function addLinkFeatures(){
           const response = await responseCache.match(drl);
           const url = response.headers.get('dwn-composed-url');
           if (url) target.src = url;
-          target.addEventListener('pointerleave', resetContextMenuTarget, { once: true });
+          target.addEventListener('contextmenu', resetContextMenuTarget, { once: true });
         }
       }
       else if (target === contextMenuTarget) {
