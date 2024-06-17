@@ -91,7 +91,7 @@ async function cacheResponse(drl, url, response, cache){
 
 /* Service Worker-based features */
 
-export function installWorker(options: any = {}): void {
+async function installWorker(options: any = {}): Promise<void> {
   const workerSelf = self as any;
   try {
     if (typeof ServiceWorkerGlobalScope !== 'undefined' && workerSelf instanceof ServiceWorkerGlobalScope) {
@@ -110,9 +110,12 @@ export function installWorker(options: any = {}): void {
     else if (globalThis?.navigator?.serviceWorker) {
       // @ts-ignore
       const workerUrl =  globalThis.document ? document?.currentScript?.src : import.meta?.url;
-      navigator.serviceWorker.register(options.path || workerUrl, { type: 'module' }).catch(error => {
-        console.error('DWeb networking feature installation failed: ', error);
-      });
+      const registration = await navigator.serviceWorker.getRegistration('/');
+      if (!registration){
+        navigator.serviceWorker.register(options.path || workerUrl, { type: 'module' }).catch(error => {
+          console.error('DWeb networking feature installation failed: ', error);
+        });
+      }
     }
     else {
       throw new Error('DWeb networking features are not available for install in this environment');
@@ -124,7 +127,6 @@ export function installWorker(options: any = {}): void {
 
 /* DOM Environment Features */
 
-const activeFeatures = {} as any;
 const loaderStyles = `
   .drl-loading-overlay {
     position: fixed;
@@ -302,8 +304,9 @@ function cancelNavigation(){
 }
 
 let activeNavigation;
+let linkFeaturesActive = false;
 function addLinkFeatures(){
-  if (!activeFeatures.links) {
+  if (!linkFeaturesActive) {
     document.addEventListener('click', async (event: any) => {
       let anchor = event.target.closest('a');
       if (anchor) {
@@ -347,7 +350,7 @@ function addLinkFeatures(){
     let contextMenuTarget;
     async function resetContextMenuTarget(e?: any){
       if (e?.type === 'pointerup') {
-        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        await new Promise(r => requestAnimationFrame(r));
       }
       if (contextMenuTarget) {
         contextMenuTarget.src = contextMenuTarget.__src__;
@@ -377,16 +380,21 @@ function addLinkFeatures(){
       }
     });
 
-    activeFeatures.links = true;
+    linkFeaturesActive = true;
   }
 }
 
-export function activateFeatures(options: any = {}){
+export function activatePolyfills(options: any = {}){
+  if (options.serviceWorker !== false) {
+    installWorker(options);
+  }
   if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
-    if (document.readyState !== 'loading') injectElements();
-    else {
-      document.addEventListener('DOMContentLoaded', injectElements, { once: true });
+    if (options.injectStyles !== false) {
+      if (document.readyState !== 'loading') injectElements();
+      else {
+        document.addEventListener('DOMContentLoaded', injectElements, { once: true });
+      }
     }
-    if (options.links || options.allFeatures) addLinkFeatures();
+    if (options.links !== false) addLinkFeatures();
   }
 }
