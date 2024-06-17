@@ -108,11 +108,11 @@ async function installWorker(options: any = {}): Promise<void> {
       });
     }
     else if (globalThis?.navigator?.serviceWorker) {
-      // @ts-ignore
-      const workerUrl =  globalThis.document ? document?.currentScript?.src : import.meta?.url;
       const registration = await navigator.serviceWorker.getRegistration('/');
       if (!registration){
-        navigator.serviceWorker.register(options.path || workerUrl, { type: 'module' }).catch(error => {
+        // @ts-ignore
+        const installUrl =  options.path || (globalThis.document ? document?.currentScript?.src : import.meta?.url);
+        if (installUrl) navigator.serviceWorker.register(installUrl, { type: 'module' }).catch(error => {
           console.error('DWeb networking feature installation failed: ', error);
         });
       }
