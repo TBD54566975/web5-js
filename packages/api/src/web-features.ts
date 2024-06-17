@@ -347,17 +347,6 @@ function addLinkFeatures(){
       }
     });
 
-    let contextMenuTarget;
-    async function resetContextMenuTarget(e?: any){
-      if (e?.type === 'pointerup') {
-        await new Promise(r => requestAnimationFrame(r));
-      }
-      if (contextMenuTarget) {
-        contextMenuTarget.src = contextMenuTarget.__src__;
-        delete contextMenuTarget.__src__;
-        contextMenuTarget = null;
-      }
-    }
     document.addEventListener('pointercancel', resetContextMenuTarget);
     document.addEventListener('pointerdown', async (event: any) => {
       const target = event.composedPath()[0];
@@ -381,6 +370,18 @@ function addLinkFeatures(){
     });
 
     linkFeaturesActive = true;
+  }
+}
+
+let contextMenuTarget;
+async function resetContextMenuTarget(e?: any){
+  if (e?.type === 'pointerup') {
+    await new Promise(r => requestAnimationFrame(r));
+  }
+  if (contextMenuTarget) {
+    contextMenuTarget.src = contextMenuTarget.__src__;
+    delete contextMenuTarget.__src__;
+    contextMenuTarget = null;
   }
 }
 
