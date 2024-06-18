@@ -36,12 +36,6 @@ type PlatformAgentTestHarnessParams = {
   vaultStore: KeyValueStore<string, string>;
 }
 
-type PlatformAgentTestHarnessSetupParams = {
-  agentClass: new (params: any) => Web5PlatformAgent<LocalKeyManager>
-  agentStores?: 'dwn' | 'memory';
-  testDataLocation?: string;
-}
-
 export class PlatformAgentTestHarness {
   public agent: Web5PlatformAgent<LocalKeyManager>;
 
@@ -151,9 +145,11 @@ export class PlatformAgentTestHarness {
     await this.didResolverCache.set(didUri, resolutionResult);
   }
 
-  public static async setup({ agentClass, agentStores, testDataLocation }:
-    PlatformAgentTestHarnessSetupParams
-  ): Promise<PlatformAgentTestHarness> {
+  public static async setup({ agentClass, agentStores, testDataLocation }: { 
+      agentClass: new (params: any) => Web5PlatformAgent<LocalKeyManager>
+      agentStores?: 'dwn' | 'memory';
+      testDataLocation?: string; 
+    }): Promise<PlatformAgentTestHarness> {
     agentStores ??= 'memory';
     testDataLocation ??= '__TESTDATA__';
 
