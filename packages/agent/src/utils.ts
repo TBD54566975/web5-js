@@ -109,14 +109,28 @@ export function appendPathToUrl({ path, url }: { url: string, path: string }): s
 export function pollWithTTL<T>(
   fetchFunction: () => Promise<Response>,
   interval = 3000,
-  ttl = 300_000
+  ttl = 300_000,
+  abortSignal?: AbortSignal
 ): Promise<T | null> {
   const endTime = Date.now() + ttl;
   let timeoutId: NodeJS.Timeout | null = null;
   let isPolling = true;
 
   return new Promise((resolve, reject) => {
+    if (abortSignal) {
+      abortSignal.addEventListener('abort', () => {
+        isPolling = false;
+        if (timeoutId !== null) {
+          clearTimeout(timeoutId);
+        }
+        console.log("Polling aborted by user");
+        resolve(null);
+      });
+    }
+
     async function poll() {
+      if (!isPolling) return;
+
       const remainingTime = endTime - Date.now();
 
       if (remainingTime <= 0) {
@@ -126,9 +140,7 @@ export function pollWithTTL<T>(
         return;
       }
 
-      console.log(
-        `Polling... (Remaining time: ${Math.ceil(remainingTime / 1000)}s)`
-      );
+      console.log(`Polling... (Remaining time: ${Math.ceil(remainingTime / 1000)}s)`);
 
       try {
         const response = await fetchFunction();
