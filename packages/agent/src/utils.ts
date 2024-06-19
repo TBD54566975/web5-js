@@ -100,6 +100,67 @@ export function appendPathToUrl({ path, url }: { url: string, path: string }): s
   return urlObject.toString();
 }
 
+/**
+ * Polling function with interval, TTL accepting a custom fetch function
+ * @param fetchFunction an http fetch function
+ * @param [interval=3000] how frequently to poll 
+ * @param [ttl=300_000] how long until polling stops
+ */
+export function pollWithTTL<T>(
+  fetchFunction: () => Promise<Response>,
+  interval = 3000,
+  ttl = 300_000
+): Promise<T | null> {
+  const endTime = Date.now() + ttl;
+  let timeoutId: NodeJS.Timeout | null = null;
+  let isPolling = true;
+
+  return new Promise((resolve, reject) => {
+    async function poll() {
+      const remainingTime = endTime - Date.now();
+
+      if (remainingTime <= 0) {
+        isPolling = false;
+        console.log("Polling stopped: TTL reached");
+        resolve(null);
+        return;
+      }
+
+      console.log(
+        `Polling... (Remaining time: ${Math.ceil(remainingTime / 1000)}s)`
+      );
+
+      try {
+        const response = await fetchFunction();
+
+        console.log("Received response:", response);
+
+        if (response.ok) {
+          const data = (await response.json()) as T;
+          isPolling = false;
+
+          if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+          }
+
+          console.log("Polling stopped: Success condition met");
+          resolve(data);
+          return;
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        reject(error);
+      }
+
+      if (isPolling) {
+        timeoutId = setTimeout(poll, interval);
+      }
+    }
+
+    poll();
+  });
+}
+
 export async function poll<T>(fn: () => Promise<T>, options: { interval: number, validate?: (result: T) => boolean, abortSignal?: AbortSignal }): Promise<T>;
 export async function poll<T>(fn: () => Promise<T>, options: { interval: number, validate?: (result: T) => boolean, abortSignal?: AbortSignal, callback?: (result: T) => Promise<void> }): Promise<void>;
 export async function poll<T>(
