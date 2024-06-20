@@ -102,9 +102,11 @@ export function appendPathToUrl({ path, url }: { url: string, path: string }): s
 
 /**
  * Polling function with interval, TTL accepting a custom fetch function
+ * @template T - the return you expect from the fetcher
  * @param fetchFunction an http fetch function
  * @param [interval=3000] how frequently to poll 
  * @param [ttl=300_000] how long until polling stops
+ * @returns T - the result of fetch
  */
 export function pollWithTTL<T>(
   fetchFunction: () => Promise<Response>,
