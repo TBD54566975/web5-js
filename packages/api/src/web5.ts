@@ -155,6 +155,7 @@ export class Web5 {
   }
 
   /**
+   * Tim's note: Used on 1) init and 2) install
    * Connects to a {@link Web5Agent}. Defaults to creating a local {@link Web5UserAgent} if one
    * isn't provided.
    *
