@@ -100,42 +100,13 @@ describe('AgentDwnApi', () => {
       await testHarness.clearStorage();
     });
 
-    it('handles EventsGet', async () => {
-      const testCursor = {
-        messageCid : 'foo',
-        value      : 'bar'
-      };
-
-      // Attempt to process the EventsGet.
-      let eventsQueryResponse = await testHarness.agent.dwn.processRequest({
-        author        : alice.did.uri,
-        target        : alice.did.uri,
-        messageType   : DwnInterface.EventsGet,
-        messageParams : {
-          cursor: testCursor,
-        }
-      });
-
-      expect(eventsQueryResponse).to.have.property('message');
-      expect(eventsQueryResponse).to.have.property('messageCid');
-      expect(eventsQueryResponse).to.have.property('reply');
-
-      const eventsGetMessage = eventsQueryResponse.message!;
-      expect(eventsGetMessage.descriptor).to.have.property('cursor', testCursor);
-
-      const eventsGetReply = eventsQueryResponse.reply;
-      expect(eventsGetReply).to.have.property('status');
-      expect(eventsGetReply.status.code).to.equal(200);
-      expect(eventsGetReply.entries).to.have.length(0);
-    });
-
     it('handles EventsQuery', async () => {
       const testCursor = {
         messageCid : 'foo',
         value      : 'bar'
       };
 
-      const testFilters = [{ schema: 'http://schema1' }];
+      const testFilters = [{ protocol: 'http://protocol1' }];
 
       // Attempt to process the EventsGet.
       let eventsQueryResponse = await testHarness.agent.dwn.processRequest({
@@ -876,42 +847,13 @@ describe('AgentDwnApi', () => {
       await testHarness.closeStorage();
     });
 
-    it('handles EventsGet', async () => {
-      const testCursor = {
-        messageCid : 'foo',
-        value      : 'bar'
-      };
-
-      // Attempt to process the EventsGet.
-      let eventsQueryResponse = await testHarness.agent.dwn.sendRequest({
-        author        : alice.did.uri,
-        target        : alice.did.uri,
-        messageType   : DwnInterface.EventsGet,
-        messageParams : {
-          cursor: testCursor,
-        }
-      });
-
-      expect(eventsQueryResponse).to.have.property('message');
-      expect(eventsQueryResponse).to.have.property('messageCid');
-      expect(eventsQueryResponse).to.have.property('reply');
-
-      const eventsGetMessage = eventsQueryResponse.message!;
-      expect(eventsGetMessage.descriptor).to.have.property('cursor', testCursor);
-
-      const eventsGetReply = eventsQueryResponse.reply;
-      expect(eventsGetReply).to.have.property('status');
-      expect(eventsGetReply.status.code).to.equal(200);
-      expect(eventsGetReply.entries).to.have.length(0);
-    });
-
     it('handles EventsQuery', async () => {
       const testCursor = {
         messageCid : 'foo',
         value      : 'bar'
       };
 
-      const testFilters = [{ schema: 'http://schema1' }];
+      const testFilters = [{ protocol: 'http://protocol1' }];
 
       // Attempt to process the EventsGet.
       let eventsQueryResponse = await testHarness.agent.dwn.sendRequest({

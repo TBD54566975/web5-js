@@ -45,8 +45,8 @@ importers:
         specifier: 1.2.2
         version: 1.2.2
       '@tbd54566975/dwn-sdk-js':
-        specifier: 0.3.5
-        version: 0.3.5
+        specifier: 0.3.10
+        version: 0.3.10
       '@web5/common':
         specifier: 1.0.0
         version: 1.0.0
@@ -154,7 +154,7 @@ importers:
   packages/api:
     dependencies:
       '@web5/agent':
-        specifier: 0.3.8
+        specifier: workspace:*
         version: link:../agent
       '@web5/common':
         specifier: 1.0.0
@@ -173,8 +173,8 @@ importers:
         specifier: 1.40.1
         version: 1.40.1
       '@tbd54566975/dwn-sdk-js':
-        specifier: 0.3.5
-        version: 0.3.5
+        specifier: 0.3.10
+        version: 0.3.10
       '@types/chai':
         specifier: 4.3.6
         version: 4.3.6
@@ -3124,6 +3124,39 @@ packages:
       jwt-decode: 3.1.2
     dev: true
 
+  /@tbd54566975/dwn-sdk-js@0.3.10:
+    resolution: {integrity: sha512-Ky59hx7Diw2dp0rQdIuk6b/ige3C0mRatQiQNwCWvq6gedkKBP+efqp+1l2xhjKiEanwrOJi39gWkK02jkngmg==}
+    engines: {node: '>= 18'}
+    dependencies:
+      '@ipld/dag-cbor': 9.0.3
+      '@js-temporal/polyfill': 0.4.4
+      '@noble/ciphers': 0.5.3
+      '@noble/ed25519': 2.0.0
+      '@noble/secp256k1': 2.0.0
+      '@web5/dids': 1.1.0
+      abstract-level: 1.0.3
+      ajv: 8.12.0
+      blockstore-core: 4.2.0
+      cross-fetch: 4.0.0
+      eciesjs: 0.4.5
+      interface-blockstore: 5.2.3
+      interface-store: 5.1.2
+      ipfs-unixfs-exporter: 13.1.5
+      ipfs-unixfs-importer: 15.1.5
+      level: 8.0.0
+      lodash: 4.17.21
+      lru-cache: 9.1.2
+      ms: 2.1.3
+      multiformats: 11.0.2
+      randombytes: 2.1.0
+      readable-stream: 4.5.2
+      ulidx: 2.1.0
+      uuid: 8.3.2
+      varint: 6.0.0
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+
   /@tbd54566975/dwn-sdk-js@0.3.5:
     resolution: {integrity: sha512-1OZFxZSSpMpA186wqPOMbvhE7GJAZ5agVjGusC2KF2FQ4HxM26nlW6ZVigYVnfN/ddrrrey3t3hE7BiGQ9m2yg==}
     engines: {node: '>= 18'}
@@ -3156,6 +3189,7 @@ packages:
     transitivePeerDependencies:
       - encoding
       - supports-color
+    dev: true
 
   /@tbd54566975/dwn-sql-store@0.4.5:
     resolution: {integrity: sha512-e0m6zs5JRXzz5maRqrP6XxkdWSIqCd8F4OHZZ9liWUms6fkQA04Tfb9pwVDW/CzvbV5ld91goHtNHwJc6gSRFQ==}
@@ -4479,7 +4513,7 @@ packages:
     resolution: {integrity: sha512-o/zjMZRhJxny7OyEF+Op8X+efiELC7k7yOjMzgfzVqOzXqkBkWI79YoTdOtsuWd5BWhAGAuOY/Xa6xpiaWXiNg==}
     engines: {node: '>= 14'}
     dependencies:
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.5
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -5609,6 +5643,7 @@ packages:
     dependencies:
       ms: 2.1.2
       supports-color: 8.1.1
+    dev: true
 
   /debug@4.3.5:
     resolution: {integrity: sha512-pt0bNEmneDIvdL1Xsd9oDQ/wrQRkXDT4AUWlNZNPKvW5x/jyO9VFXkJUP07vQ2upmw5PlaITaPKc31jK13V+jg==}
@@ -5620,7 +5655,6 @@ packages:
         optional: true
     dependencies:
       ms: 2.1.2
-    dev: true
 
   /decamelize-keys@1.1.1:
     resolution: {integrity: sha512-WiPxgEirIV0/eIOMcnFBA3/IJZAZqKnwAwWyvvdi4lsr1WCN22nhdf/3db3DoZcUjTV2SqfzIwNyp6y2xs3nmg==}
@@ -6752,7 +6786,7 @@ packages:
     dependencies:
       basic-ftp: 5.0.4
       data-uri-to-buffer: 6.0.2
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.5
       fs-extra: 11.2.0
     transitivePeerDependencies:
       - supports-color
@@ -6904,6 +6938,7 @@ packages:
   /has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
     engines: {node: '>=8'}
+    dev: true
 
   /has-property-descriptors@1.0.2:
     resolution: {integrity: sha512-55JNKuIW+vq4Ke1BjOTjM2YctQIvCT7GFzHwmfZPGo5wnrgkid0YQtnAleFSqumZm4az3n2BS+erby5ipJdgrg==}
@@ -7019,7 +7054,7 @@ packages:
     engines: {node: '>= 14'}
     dependencies:
       agent-base: 7.1.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.5
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -7033,7 +7068,7 @@ packages:
     engines: {node: '>= 14'}
     dependencies:
       agent-base: 7.1.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.5
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -8680,7 +8715,7 @@ packages:
     dependencies:
       '@tootallnate/quickjs-emscripten': 0.23.0
       agent-base: 7.1.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.5
       get-uri: 6.0.3
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.4
@@ -9249,7 +9284,7 @@ packages:
     dependencies:
       '@assemblyscript/loader': 0.9.4
       bl: 5.1.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.5
       minimist: 1.2.8
       node-fetch: 2.7.0
       readable-stream: 3.6.2
@@ -9804,7 +9839,7 @@ packages:
     engines: {node: '>= 14'}
     dependencies:
       agent-base: 7.1.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.5
       socks: 2.7.3
     transitivePeerDependencies:
       - supports-color
@@ -10107,6 +10142,7 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       has-flag: 4.0.0
+    dev: true
 
   /supports-preserve-symlinks-flag@1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}

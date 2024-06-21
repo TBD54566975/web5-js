@@ -1,7 +1,7 @@
 import type { ULIDFactory } from 'ulidx';
 import type { AbstractBatchOperation, AbstractLevel } from 'abstract-level';
 import type {
-  EventsGetReply,
+  EventsQueryReply,
   GenericMessage,
   MessagesGetReply,
   PaginationCursor,
@@ -355,13 +355,14 @@ export class SyncEngineLevel implements SyncEngine {
     syncDirection: SyncDirection,
     cursor?: PaginationCursor
   }) {
-    let eventsReply = {} as EventsGetReply;
+    let eventsReply = {} as EventsQueryReply;
 
     if (syncDirection === 'pull') {
       // When sync is a pull, get the event log from the remote DWN.
       const eventsGetMessage = await this.agent.dwn.createMessage({
         author        : did,
-        messageType   : DwnInterface.EventsGet,
+        messageType   : DwnInterface.EventsQuery,
+        // TODO: Liran help!
         messageParams : { cursor }
       });
 
@@ -370,7 +371,7 @@ export class SyncEngineLevel implements SyncEngine {
           dwnUrl    : dwnUrl,
           targetDid : did,
           message   : eventsGetMessage
-        }) as EventsGetReply;
+        }) as EventsQueryReply;
       } catch {
         // If a particular DWN service endpoint is unreachable, silently ignore.
       }
@@ -380,10 +381,11 @@ export class SyncEngineLevel implements SyncEngine {
       const eventsGetDwnResponse = await this.agent.dwn.processRequest({
         author        : did,
         target        : did,
-        messageType   : DwnInterface.EventsGet,
+        messageType   : DwnInterface.EventsQuery,
+        // TODO: Liran help!
         messageParams : { cursor }
       });
-      eventsReply = eventsGetDwnResponse.reply as EventsGetReply;
+      eventsReply = eventsGetDwnResponse.reply as EventsQueryReply;
     }
 
     const eventLog = eventsReply.entries ?? [];
