@@ -153,7 +153,7 @@ export class Web5 {
    * const { did: aliceBearerDid } = await web5.platformAgent.identity.get({ didUri: aliceDid });
    * const signer = await aliceBearerDid.getSigner();
    * const signature = await signer.sign({ data: 'Hello world!' });
-   * 
+   * ```
    */
    platformAgent: Web5PlatformAgent;
 
