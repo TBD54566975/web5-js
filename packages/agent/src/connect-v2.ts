@@ -62,9 +62,13 @@ interface CreateClientOptions {
   agent: Web5PlatformAgent;
 }
 
-export const connectClient = async (options: CreateClientOptions) => {
-  let { clientDid, connectEndpoint, delegationGrantRequest, origin, agent } =
-    options;
+export const connectClient = async ({
+  clientDid,
+  connectEndpoint,
+  delegationGrantRequest,
+  origin,
+  agent,
+}: CreateClientOptions) => {
   const connectRoutes = oidc.buildRoutes(connectEndpoint);
 
   /** bifurcated desttop flow disabled, possibly permanently */
