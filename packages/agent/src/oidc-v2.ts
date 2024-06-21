@@ -122,30 +122,36 @@ async function createRequestObject(
 
 async function signRequestObject({
   keyId,
+  keyUri,
   request,
   agent,
 }: {
   keyId: string;
+  keyUri: string;
   request: AuthorizationRequestObject;
   agent: Web5PlatformAgent;
 }) {
-  const header = Convert.object({
-    alg: "EdDSA",
-    kid: keyId,
-    typ: "JWT",
-  }).toBase64Url();
+  try {
+    const header = Convert.object({
+      alg: "EdDSA",
+      kid: keyId,
+      typ: "JWT",
+    }).toBase64Url();
 
-  const payload = Convert.object(request).toBase64Url();
+    const payload = Convert.object(request).toBase64Url();
 
-  const signature = await agent.keyManager.sign({
-    keyUri: keyId,
-    data: Convert.string(`${header}.${payload}`).toUint8Array(),
-  });
-  const signatureBase64Url = Convert.uint8Array(signature).toBase64Url();
+    const signature = await agent.keyManager.sign({
+      keyUri,
+      data: Convert.string(`${header}.${payload}`).toUint8Array(),
+    });
+    const signatureBase64Url = Convert.uint8Array(signature).toBase64Url();
 
-  const jwt = `${header}.${payload}.${signatureBase64Url}`;
+    const jwt = `${header}.${payload}.${signatureBase64Url}`;
 
-  return jwt;
+    return jwt;
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 // async function verifyRequestObject({

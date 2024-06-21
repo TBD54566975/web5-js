@@ -57,7 +57,7 @@ interface CreateClientOptions {
   origin: string;
   /** The delegation request(s) to be granted by the Identity Provider. */
   delegationGrantRequest: {
-    permissionsRequests: PermissionGrantData[];
+    permissionsRequests: any[];
   };
   agent: Web5PlatformAgent;
 }
@@ -70,7 +70,6 @@ export const connectClient = async ({
   agent,
 }: CreateClientOptions) => {
   const connectRoutes = oidc.buildRoutes(connectEndpoint);
-
   /** bifurcated desttop flow disabled, possibly permanently */
   // if (!provider.authorizationEndpoint.startsWith("web5:")) {
   //   connectEndpoint = provider.authorizationEndpoint;
@@ -102,17 +101,30 @@ export const connectClient = async ({
   // Get the signingMethod for the clientDid
   const signingMethod = await agent.did.getSigningMethod({ didUri: clientDid });
 
-  if (!signingMethod?.id)
+  if (!signingMethod?.publicKeyJwk || !signingMethod?.id) {
     throw new Error(
       "ConnectProtocol: Unable to determine Client signing key ID."
     );
+  }
+
+  const keyId = signingMethod.id;
+
+  // get the URI in the KMS
+  const keyUri = await agent.keyManager.getKeyUri({
+    key: signingMethod.publicKeyJwk,
+  });
 
   // Sign the Request Object using the Client DID's signing key.
   const requestJwt = await oidc.signRequestObject({
-    keyId: signingMethod.id,
+    keyId,
+    keyUri,
     request,
     agent,
   });
+
+  if (!requestJwt) {
+    throw new Error("Unable to sign requestObject");
+  }
 
   // Encrypt the Request Object JWT using the code challenge.
   const requestObjectJwe = await oidc.encryptRequestJwt({
