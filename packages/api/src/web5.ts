@@ -1,4 +1,4 @@
-import type { BearerIdentity, HdIdentityVault, Web5Agent } from '@web5/agent';
+import type { BearerIdentity, HdIdentityVault, Web5Agent, Web5PlatformAgent } from '@web5/agent';
 
 import { Web5UserAgent } from '@web5/user-agent';
 
@@ -143,6 +143,20 @@ export class Web5 {
   /** Exposed instance to the VC APIs, allow users to issue, present and verify VCs */
   vc: VcApi;
 
+  /**
+   * A {@link Web5PlatformAgent} instance exposing `identity` {@link AgentIdentityApi} to the Web5
+   * instance to provide direct access to the signing ability of the connectedDid.
+   * 
+   * @example 
+   * ```ts
+   * const { web5, did: aliceDid, recoveryPhrase } = await Web5.connect({ password });
+   * const { did: aliceBearerDid } = await web5.platformAgent.identity.get({ didUri: aliceDid });
+   * const signer = await aliceBearerDid.getSigner();
+   * const signature = await signer.sign({ data: 'Hello world!' });
+   * 
+   */
+   platformAgent: Web5PlatformAgent;
+
   /** The DID of the tenant under which DID operations are being performed. */
   private connectedDid: string;
 
@@ -152,6 +166,7 @@ export class Web5 {
     this.did = new DidApi({ agent, connectedDid });
     this.dwn = new DwnApi({ agent, connectedDid });
     this.vc = new VcApi({ agent, connectedDid });
+    this.platformAgent = agent as Web5PlatformAgent;
   }
 
   /**
