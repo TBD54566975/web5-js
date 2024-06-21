@@ -18,7 +18,7 @@ import { xchacha20poly1305 } from "@noble/ciphers/chacha";
 /**
  * OIDC URL used for Web5 connect (through OIDC Claims) or OIDC
  *
- * @param {string} endpoint as `scheme://foo`
+ * @param {string} connectURL as `scheme://foo`
  */
 function buildRoutes(connectURL: string) {
   return {

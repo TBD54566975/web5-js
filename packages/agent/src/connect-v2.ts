@@ -95,6 +95,7 @@ export const connectClient = async (options: CreateClientOptions) => {
   // Hash the code verifier to use as a code challenge and to encrypt the Request Object.
   const codeChallenge = await oidc.deriveCodeChallenge(codeVerifieru8a);
 
+  // Get the signingMethod for the clientDid
   const signingMethod = await agent.did.getSigningMethod({ didUri: clientDid });
 
   if (!signingMethod?.id)
