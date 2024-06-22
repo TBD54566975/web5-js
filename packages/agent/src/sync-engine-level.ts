@@ -362,8 +362,7 @@ export class SyncEngineLevel implements SyncEngine {
       const eventsGetMessage = await this.agent.dwn.createMessage({
         author        : did,
         messageType   : DwnInterface.EventsQuery,
-        // TODO: Liran help!
-        messageParams : { cursor }
+        messageParams : { filters: [], cursor }
       });
 
       try {
@@ -382,8 +381,7 @@ export class SyncEngineLevel implements SyncEngine {
         author        : did,
         target        : did,
         messageType   : DwnInterface.EventsQuery,
-        // TODO: Liran help!
-        messageParams : { cursor }
+        messageParams : { filters: [], cursor }
       });
       eventsReply = eventsGetDwnResponse.reply as EventsQueryReply;
     }

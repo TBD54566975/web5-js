@@ -4,7 +4,7 @@ import type { DwnConfig, GenericMessage, UnionMessageReply } from '@tbd54566975/
 import { Convert, NodeStream } from '@web5/common';
 import { utils as cryptoUtils } from '@web5/crypto';
 import { DidDht, DidJwk, DidResolverCacheLevel, UniversalResolver } from '@web5/dids';
-import { Cid, DataStoreLevel, Dwn, DwnMethodName, EventLogLevel, Message, MessageStoreLevel } from '@tbd54566975/dwn-sdk-js';
+import { Cid, DataStoreLevel, Dwn, DwnMethodName, EventLogLevel, Message, MessageStoreLevel, ResumableTaskStoreLevel } from '@tbd54566975/dwn-sdk-js';
 
 import type { Web5PlatformAgent } from './types/agent.js';
 import type { DwnMessage, DwnMessageInstance, DwnMessageParams, DwnMessageReply, DwnMessageWithData, DwnResponse, DwnSigner, MessageHandler, ProcessDwnRequest, SendDwnRequest } from './types/dwn.js';
@@ -95,7 +95,7 @@ export class AgentDwnApi {
   }
 
   public static async createDwn({
-    dataPath, dataStore, didResolver, eventLog, eventStream, messageStore, tenantGate
+    dataPath, dataStore, didResolver, eventLog, eventStream, messageStore, tenantGate, resumableTaskStore
   }: DwnApiCreateDwnParams): Promise<Dwn> {
     dataStore ??= new DataStoreLevel({ blockstoreLocation: `${dataPath}/DWN_DATASTORE` });
 
@@ -111,7 +111,9 @@ export class AgentDwnApi {
       indexLocation      : `${dataPath}/DWN_MESSAGEINDEX`
     }));
 
-    return await Dwn.create({ dataStore, didResolver, eventLog, eventStream, messageStore, tenantGate });
+    resumableTaskStore ??= new ResumableTaskStoreLevel({ location: `${dataPath}/DWN_RESUMABLETASKSTORE` });
+
+    return await Dwn.create({ dataStore, didResolver, eventLog, eventStream, messageStore, tenantGate, resumableTaskStore });
   }
 
   public async processRequest<T extends DwnInterface>(
