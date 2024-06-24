@@ -260,5 +260,6 @@ export {
   PermissionGrant as DwnPermissionGrant,
   PermissionRequest as DwnPermissionRequest,
   PermissionsProtocol as DwnPermissionsProtocol,
+  ProtocolDefinition as DwnProtocolDefinition,
   RecordsPermissionScope as DwnRecordsPermissionScope,
 } from '@tbd54566975/dwn-sdk-js';

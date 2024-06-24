@@ -2,7 +2,7 @@ import type { BearerIdentity, HdIdentityVault, Web5Agent } from '@web5/agent';
 
 import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
-import { DwnRecordsPermissionScope } from '@web5/agent';
+import { DwnRecordsPermissionScope, DwnProtocolDefinition } from '@web5/agent';
 import { getTechPreviewDwnEndpoints } from './tech-preview.js';
 import { VcApi } from './vc-api.js';
 import { Web5UserAgent } from '@web5/user-agent';
@@ -23,15 +23,27 @@ export type WalletConnectOptions = {
   connectServerUrl: string;
 
   /**
-   * The scope of each permission grant to requested by the app.
+   * The protocols of permissions requested, along with the definition and permission copes for each protocol.
+   * The key is the protocol URL and the value is an object with the protocol definition and the permission scopes.
+   */
+  requestedProtocolAndScopes: Map<
+    string,
+    {
+      protocolDefinition: DwnProtocolDefinition;
+      permissionScopes: DwnRecordsPermissionScope[];
+    }
+  >;
+
+  /**
+   * The scope of each permission grant to be requested by the app.
    */
   permissionScopes: DwnRecordsPermissionScope[];
 
   /**
    * A handler to be called when the request URL is ready to be used to fetch the permission request by the wallet.
-   * This method should be used to used by the app to pass the request URL to the wallet via a QR code or a deep link.
+   * This method should be used by the calling app to pass the request URL to the wallet via a QR code or a deep link.
    *
-   * @param requestUrl - The request URL to pass to the wallet for it to fetch the permission request.
+   * @param requestUrl - The request URL for the wallet to fetch the permission request.
    */
   onRequestReady: (requestUrl: string) => void;
 
