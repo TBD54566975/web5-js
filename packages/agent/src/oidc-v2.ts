@@ -138,15 +138,15 @@ async function signRequestObject({
       typ: "JWT",
     }).toBase64Url();
 
-    const payload = Convert.object(request).toBase64Url();
+    const claims = Convert.object(request).toBase64Url();
 
     const signature = await agent.keyManager.sign({
       keyUri,
-      data: Convert.string(`${header}.${payload}`).toUint8Array(),
+      data: Convert.string(`${header}.${claims}`).toUint8Array(),
     });
     const signatureBase64Url = Convert.uint8Array(signature).toBase64Url();
 
-    const jwt = `${header}.${payload}.${signatureBase64Url}`;
+    const jwt = `${header}.${claims}.${signatureBase64Url}`;
 
     return jwt;
   } catch (e) {
