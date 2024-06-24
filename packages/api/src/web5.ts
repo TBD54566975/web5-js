@@ -29,7 +29,15 @@ export type WalletConnectOptions = {
   requestedProtocolsAndScopes: Map<
     string,
     {
+      /**
+       * The definition of the protocol the permissions are being requested for.
+       * In the event that the protocol is not already installed, the wallet will install this given protocol definition.
+       */
       protocolDefinition: DwnProtocolDefinition;
+
+      /**
+       * The scope of the permissions being requested for the given protocol.
+       */
       permissionScopes: DwnRecordsPermissionScope[];
     }
   >;
