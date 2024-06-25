@@ -171,13 +171,13 @@ This project uses [Changesets](https://github.com/changesets/changesets) for sem
 
 Upon opening a Pull Request, the `changeset-bot` will automatically comment ([example](https://github.com/TBD54566975/tbdex-js/pull/30#issuecomment-1732721942)) on the PR with a reminder & recommendations for creating/managing the changeset for the given changes.
 
-If your changes to the packages warrant semantic version increments, you should run npx changeset locally. This command will trigger the Changesets CLI, which will help you create changeset files to include in your pull request.
+If your changes to the packages warrant semantic version increments, you should run `npx changeset` locally. This command will trigger the changesets CLI, which will help you create changeset files to include in your Pull Request.
 
 The CLI tool will walk you through a set of steps for you to define the semantic changes. This will create a randomly-named (and funnily-named) markdown file within the `.changeset/` directory. For example, see the `.changeset/sixty-tables-cheat.md` file on [this PR](https://github.com/TBD54566975/tbdex-js/pull/35/files). There is an analogy to staging a commit (using `git add`) for these markdown files, in that, they exist so that the developer can codify the semantic changes made but they don't actually update the semantic version.
 
 > [!NOTE]
 >
-> Unique to this repo, always include *only* the `api` package in the changeset file without other packages.ie. step through the CLI tool twice to create two separate changeset files if there are changes to the `api` package as well as other packages to create two separate changeset files. This is because `api` package gets released separately by a manually triggered GitHub action. See [Web5 API Releases](#web5-api-releases) section below for more detail.
+> Unique to this repo, always include only the `api` package in its own changeset file, separate from other packages: if there are changes to both the api package and other packages, run the CLI tool twice to create two separate changeset files. This is necessary because the api package is released separately via a manually triggered GitHub action. See [Web5 API Releases](#web5-api-releases) section below for more detail.
 
 Once your PR is merged into the `main` branch together with the changeset files generated, the Changeset GitHub Action will automatically pick up those changes and open a PR to automate the `npx changeset version` execution. For example, [see this PR](https://github.com/TBD54566975/tbdex-js/pull/36). This command will do two things: update the version numbers in the relevant `package.json` files & also aggregate Summary notes into the relevant `CHANGELOG.md` files. In keeping with the staged commit analogy, this is akin to the actual commit.
 
