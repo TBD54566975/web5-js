@@ -94,6 +94,8 @@ async function cacheResponse(drl, url, response, cache){
 async function installWorker(options: any = {}): Promise<void> {
   const workerSelf = self as any;
   try {
+    // Check to see if we are in a Service Worker already, if so, proceed
+    // You can call the activatePolyfills() function in your own worker, or standalone as a root worker
     if (typeof ServiceWorkerGlobalScope !== 'undefined' && workerSelf instanceof ServiceWorkerGlobalScope) {
       workerSelf.skipWaiting();
       workerSelf.addEventListener('activate', event => {
@@ -107,8 +109,10 @@ async function installWorker(options: any = {}): Promise<void> {
         }
       });
     }
+    // If the code gets here, it is not a SW env, it is likely DOM, but check to be sure
     else if (globalThis?.navigator?.serviceWorker) {
       const registration = await navigator.serviceWorker.getRegistration('/');
+      // You can only have one worker per path, so check to see if one is already registered
       if (!registration){
         // @ts-ignore
         const installUrl =  options.path || (globalThis.document ? document?.currentScript?.src : import.meta?.url);
@@ -325,6 +329,7 @@ function addLinkFeatures(){
             }
             else {
               activeNavigation = path;
+              // this is to allow for cached DIDs to instantly load without any flash of loading UI
               setTimeout(() => document.documentElement.setAttribute('drl-link-loading', ''), 50);
             }
             const endpoints = await getDwnEndpoints(did);
