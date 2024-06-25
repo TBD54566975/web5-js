@@ -43,11 +43,6 @@ export type WalletConnectOptions = {
   >;
 
   /**
-   * The scope of each permission grant to be requested by the app.
-   */
-  permissionScopes: DwnRecordsPermissionScope[];
-
-  /**
    * A handler to be called when the request URL is ready to be used to fetch the permission request by the wallet.
    * This method should be used by the calling app to pass the request URL to the wallet via a QR code or a deep link.
    *
@@ -56,11 +51,11 @@ export type WalletConnectOptions = {
   onRequestReady: (requestUrl: string) => void;
 
   /**
-   * An async method to get the PIN needed from the user to decrypt the response from the wallet.
+   * An async method to get the PIN from the user to decrypt the response from the wallet.
    *
    * @returns A promise that resolves to the PIN as a string.
    */
-  pinGetter: () => Promise<string>;
+  pinCapture: () => Promise<string>;
 }
 
 /** Optional overrides that can be provided when calling {@link Web5.connect}. */
