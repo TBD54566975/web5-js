@@ -1,5 +1,11 @@
 # @web5/common
 
+## 1.0.2
+
+### Patch Changes
+
+- [#694](https://github.com/TBD54566975/web5-js/pull/694) [`cc3aa58`](https://github.com/TBD54566975/web5-js/commit/cc3aa58069dd5465834b32174e3f840ddf782d60) Thanks [@thehenrytsai](https://github.com/thehenrytsai)! - Dependency updates.
+
 ## 1.0.1
 
 ### Patch Changes
