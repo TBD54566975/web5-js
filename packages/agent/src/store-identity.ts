@@ -56,6 +56,10 @@ export class DwnIdentityStore extends DwnDataStore<IdentityMetadata> implements 
       messageParams : { filter: { ...this._recordProperties } }
     });
 
+    if (queryReply.status.code !== 200) {
+      throw new Error(`${this.name}: Failed to query DWN for stored DIDs - ${queryReply.status.detail}`);
+    }
+
     // Loop through all of the stored IdentityMetadata records and accumulate the objects.
     let storedIdentities: IdentityMetadata[] = [];
     for (const record of queryReply.entries ?? []) {
