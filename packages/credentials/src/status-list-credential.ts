@@ -70,7 +70,7 @@ export class StatusListCredential {
    * Create a [StatusListCredential] with a specific purpose, e.g., for revocation.
    *
    * @param statusListCredentialId The id used for the resolvable path to the status list credential [String].
-   * @param issuer The issuer URI of the credential, as a [String].
+   * @param issuer The issuer URI of the status list credential, as a [String].
    * @param statusPurpose The status purpose of the status list cred, eg: revocation, as a [StatusPurpose].
    * @param credentialsToDisable The credentials to be marked as revoked/suspended (status bit set to 1) in the status list.
    * @returns A special [VerifiableCredential] instance that is a StatusListCredential.

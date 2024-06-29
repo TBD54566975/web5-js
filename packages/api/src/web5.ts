@@ -1,11 +1,11 @@
 import type { BearerIdentity, HdIdentityVault, Web5Agent } from '@web5/agent';
 
-import { Web5UserAgent } from '@web5/user-agent';
-
-import { VcApi } from './vc-api.js';
-import { DwnApi } from './dwn-api.js';
 import { DidApi } from './did-api.js';
+import { DwnApi } from './dwn-api.js';
+import { DwnRecordsPermissionScope, DwnProtocolDefinition } from '@web5/agent';
 import { getTechPreviewDwnEndpoints } from './tech-preview.js';
+import { VcApi } from './vc-api.js';
+import { Web5UserAgent } from '@web5/user-agent';
 
 /** Override defaults configured during the technical preview phase. */
 export type TechPreviewOptions = {
@@ -13,8 +13,59 @@ export type TechPreviewOptions = {
   dwnEndpoints?: string[];
 }
 
+/**
+ * Options to provide when the initiating app wants to import a delegated identity/DID from an external wallet.
+ */
+export type WalletConnectOptions = {
+  /**
+   * The URL of the wallet connect server to use for relaying messages between the app and the wallet.
+   */
+  connectServerUrl: string;
+
+  /**
+   * The protocols of permissions requested, along with the definition and permission copes for each protocol.
+   * The key is the protocol URL and the value is an object with the protocol definition and the permission scopes.
+   */
+  requestedProtocolsAndScopes: Map<
+    string,
+    {
+      /**
+       * The definition of the protocol the permissions are being requested for.
+       * In the event that the protocol is not already installed, the wallet will install this given protocol definition.
+       */
+      protocolDefinition: DwnProtocolDefinition;
+
+      /**
+       * The scope of the permissions being requested for the given protocol.
+       */
+      permissionScopes: DwnRecordsPermissionScope[];
+    }
+  >;
+
+  /**
+   * A handler to be called when the request URL is ready to be used to fetch the permission request by the wallet.
+   * This method should be used by the calling app to pass the request URL to the wallet via a QR code or a deep link.
+   *
+   * @param requestUrl - The request URL for the wallet to fetch the permission request.
+   */
+  onRequestReady: (requestUrl: string) => void;
+
+  /**
+   * An async method to get the PIN from the user to decrypt the response from the wallet.
+   *
+   * @returns A promise that resolves to the PIN as a string.
+   */
+  pinCapture: () => Promise<string>;
+}
+
 /** Optional overrides that can be provided when calling {@link Web5.connect}. */
 export type Web5ConnectOptions = {
+
+  /**
+   * When specified, wallet connect flow interacting with an external wallet would be triggered.
+   */
+  walletConnectOptions?: WalletConnectOptions;
+
   /**
    * Provide a {@link Web5Agent} implementation. Defaults to creating a local
    * {@link Web5UserAgent} if one isn't provided

@@ -2,4 +2,4 @@
 "@web5/credentials": patch
 ---
 
-Adding credential status
+update pex package to 3.3.3

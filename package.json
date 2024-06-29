@@ -18,7 +18,8 @@
     "clean": "pnpm npkill -d $(pwd)/packages -t dist && pnpm npkill -d $(pwd) -t node_modules",
     "build": "pnpm --recursive --stream build",
     "dwn-server": "DWN_SERVER_PACKAGE_JSON=node_modules/@web5/dwn-server/package.json node node_modules/@web5/dwn-server/dist/esm/src/main.js || true",
-    "test:node": "pnpm --recursive test:node"
+    "test:node": "pnpm --recursive test:node",
+    "audit-ci": "audit-ci --config ./audit-ci.json"
   },
   "repository": {
     "type": "git",
@@ -27,16 +28,18 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.0",
-    "@changesets/cli": "^2.27.1",
+    "@changesets/cli": "^2.27.5",
     "@npmcli/package-json": "5.0.0",
     "@typescript-eslint/eslint-plugin": "7.9.0",
-    "@web5/dwn-server": "0.2.2",
+    "@web5/dwn-server": "0.3.1",
+    "audit-ci": "^7.0.1",
     "eslint-plugin-mocha": "10.4.3",
     "npkill": "0.11.3"
   },
   "pnpm": {
     "overrides": {
-      "express@<4.19.2": ">=4.19.2"
+      "express@<4.19.2": ">=4.19.2",
+      "ws@<8.17.1": ">=8.17.1"
     }
   }
 }

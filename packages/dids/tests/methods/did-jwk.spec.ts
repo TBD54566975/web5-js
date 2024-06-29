@@ -1,15 +1,17 @@
+import type { DidDocument } from '../../src/types/did-core.js';
 import type { Jwk } from '@web5/crypto';
+import type { PortableDid } from '../../src/types/portable-did.js';
 import type { UnwrapPromise } from '@web5/common';
 
-import { expect } from 'chai';
-import { LocalKeyManager } from '@web5/crypto';
-
-import type { DidDocument } from '../../src/types/did-core.js';
-import type { PortableDid } from '../../src/types/portable-did.js';
+import chaiAsPromised from 'chai-as-promised';
+import DidJwkResolveTestVector from '../../../../web5-spec/test-vectors/did_jwk/resolve.json' assert { type: 'json' };
 
 import { DidErrorCode } from '../../src/did-error.js';
 import { DidJwk } from '../../src/methods/did-jwk.js';
-import DidJwkResolveTestVector from '../../../../web5-spec/test-vectors/did_jwk/resolve.json' assert { type: 'json' };
+import { LocalKeyManager } from '@web5/crypto';
+import { expect, use } from 'chai';
+
+use(chaiAsPromised);
 
 describe('DidJwk', () => {
   let keyManager: LocalKeyManager;
@@ -184,12 +186,7 @@ describe('DidJwk', () => {
         ],
       };
 
-      try {
-        await DidJwk.getSigningMethod({ didDocument });
-        expect.fail('Error should have been thrown');
-      } catch (error: any) {
-        expect(error.message).to.equal('Method not supported: example');
-      }
+      await expect(DidJwk.getSigningMethod({ didDocument })).to.eventually.be.rejectedWith('Method not supported: example');
     });
   });
 

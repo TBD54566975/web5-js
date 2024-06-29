@@ -1,6 +1,6 @@
 {
   "name": "@web5/user-agent",
-  "version": "0.3.6",
+  "version": "0.3.8",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -69,10 +69,10 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@web5/agent": "0.3.6",
+    "@web5/agent": "workspace:*",
     "@web5/common": "1.0.0",
     "@web5/crypto": "1.0.0",
-    "@web5/dids": "1.0.1"
+    "@web5/dids": "1.1.0"
   },
   "devDependencies": {
     "@playwright/test": "1.40.1",
@@ -83,8 +83,8 @@
     "@types/mocha": "10.0.1",
     "@types/node": "20.11.19",
     "@typescript-eslint/eslint-plugin": "7.9.0",
-    "@typescript-eslint/parser": "7.9.0",
-    "@web/test-runner": "0.18.0",
+    "@typescript-eslint/parser": "7.14.1",
+    "@web/test-runner": "0.18.2",
     "@web/test-runner-playwright": "0.11.0",
     "c8": "9.1.0",
     "chai": "4.3.10",

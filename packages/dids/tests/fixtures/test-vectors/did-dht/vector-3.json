@@ -1,0 +1,108 @@
+{
+  "didDocument": {
+    "id": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy",
+    "verificationMethod": [
+      {
+        "id": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#0",
+        "type": "JsonWebKey",
+        "controller": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy",
+        "publicKeyJwk": {
+          "kid": "TchFveGbbRf58hDDchTr_TAJ7XnWSrrGf8DK4rzG4nE",
+          "alg": "EdDSA",
+          "crv": "Ed25519",
+          "kty": "OKP",
+          "x": "sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g"
+        }
+      },
+      {
+        "id": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ",
+        "type": "JsonWebKey",
+        "controller": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy",
+        "publicKeyJwk": {
+          "kid": "WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ",
+          "alg": "ECDH-ES+A128KW",
+          "crv": "X25519",
+          "kty": "OKP",
+          "x": "3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4"
+        }
+      }
+    ],
+    "authentication": [
+      "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#0"
+    ],
+    "assertionMethod": [
+      "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#0"
+    ],
+    "keyAgreement": [
+      "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#WVy5IWMa36AoyAXZDvPd5j9zxt2t-GjifDEV-DwgIdQ"
+    ],
+    "capabilityInvocation": [
+      "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#0"
+    ],
+    "capabilityDelegation": [
+      "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#0"
+    ],
+    "service": [
+      {
+        "id": "did:dht:sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy#service-1",
+        "type": "TestLongService",
+        "serviceEndpoint": ["https://test-lllllllllllllllllllllllllllllllllllooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggsssssssssssssssssssssssssseeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrvvvvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/1"]
+      }
+    ]
+  },
+  "authoritativeGatewayUris": [
+    "gateway1.example-did-dht-gateway.com",
+    "gateway2.example-did-dht-gateway.com"
+  ],
+  "previousDidProof": {
+    "previousDid": "did:dht:x3heus3ke8fhgb5pbecday9wtbfynd6m19q4pm6gcf5j356qhjzo",
+    "signature": "Tt9DRT6J32v7O2lzbfasW63_FfagiMHTHxtaEOD7p85zHE0r_EfiNleyL6BZGyB1P-oQ5p6_7KONaHAjr2K6Bw"
+  },
+  "dnsRecords": [
+    {
+      "name": "_prv._did.",
+      "type": "TXT",
+      "ttl": 7200,
+      "rdata": "id=did:dht:x3heus3ke8fhgb5pbecday9wtbfynd6m19q4pm6gcf5j356qhjzo;s=Tt9DRT6J32v7O2lzbfasW63_FfagiMHTHxtaEOD7p85zHE0r_EfiNleyL6BZGyB1P-oQ5p6_7KONaHAjr2K6Bw"
+    },
+    {
+      "name": "_did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy.",
+      "type": "NS",
+      "ttl": 7200,
+      "rdata": "gateway1.example-did-dht-gateway.com."
+    },
+    {
+      "name": "_did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy.",
+      "type": "NS",
+      "ttl": 7200,
+      "rdata": "gateway2.example-did-dht-gateway.com."
+    },
+    {
+      "name": "_did.sr6jgmcc84xig18ix66qbiwnzeiumocaaybh13f5w97bfzus4pcy.",
+      "type": "TXT",
+      "ttl": 7200,
+      "rdata": "v=0;vm=k0,k1;auth=k0;asm=k0;agm=k1;inv=k0;del=k0;svc=s0"
+    },
+    {
+      "name": "_k0._did.",
+      "type": "TXT",
+      "ttl": 7200,
+      "rdata": "t=0;k=sTyTLYw-n1NI9X-84NaCuis1wZjAA8lku6f6Et5201g"
+    },
+    {
+      "name": "_k1._did.",
+      "type": "TXT",
+      "ttl": 7200,
+      "rdata": "t=3;k=3POE0_i2mGeZ2qiQCA3KcLfi1fZo0311CXFSIwt1nB4;a=ECDH-ES+A128KW"
+    },
+    {
+      "name": "_s0._did.",
+      "type": "TXT",
+      "ttl": 7200,
+      "rdata": [
+        "id=service-1;t=TestLongService;se=https://test-lllllllllllllllllllllllllllllllllllooooooooooooooooooooonnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggsssssssssssssssssssssssssseeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrvvvvvvvvvvvvvvvvvvvviiiiiiiiiiiiiiii",
+        "iiiiiiiiiiiiiiiccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.com/1"
+      ]
+    }
+  ]
+}

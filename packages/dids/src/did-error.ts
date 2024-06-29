@@ -9,7 +9,7 @@ export class DidError extends Error {
    * @param message - A human-readable description of the error.
    */
   constructor(public code: DidErrorCode, message: string) {
-    super(message);
+    super(`${code}: ${message}`);
     this.name = 'DidError';
 
     // Ensures that instanceof works properly, the correct prototype chain when using inheritance,
@@ -45,6 +45,9 @@ export enum DidErrorCode {
 
   /** The DID URL supplied to the dereferencing function does not conform to valid syntax. */
   InvalidDidUrl = 'invalidDidUrl',
+
+  /** The given proof of a previous DID is invalid */
+  InvalidPreviousDidProof = 'invalidPreviousDidProof',
 
   /** An invalid public key is detected during a DID operation. */
   InvalidPublicKey = 'invalidPublicKey',

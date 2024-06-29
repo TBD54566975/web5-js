@@ -1,9 +1,6 @@
 import type { DidService } from '@web5/dids';
 import type { Readable, RequireOnly } from '@web5/common';
 import type {
-  EventsGetReply,
-  EventsGetOptions,
-  EventsGetMessage,
   EventsQueryReply,
   MessagesGetReply,
   RecordsReadReply,
@@ -32,12 +29,11 @@ import type {
   RecordsSubscribeOptions,
   EventsSubscribeReply,
   RecordsSubscribeReply,
+  MessageSubscriptionHandler,
   RecordSubscriptionHandler,
-  EventSubscriptionHandler,
 } from '@tbd54566975/dwn-sdk-js';
 
 import {
-  EventsGet,
   MessagesGet,
   RecordsRead,
   RecordsQuery,
@@ -91,7 +87,6 @@ export interface DwnDidService extends DidService {
 }
 
 export enum DwnInterface {
-  EventsGet          = DwnInterfaceName.Events + DwnMethodName.Get,
   EventsQuery        = DwnInterfaceName.Events + DwnMethodName.Query,
   EventsSubscribe    = DwnInterfaceName.Events + DwnMethodName.Subscribe,
   MessagesGet        = DwnInterfaceName.Messages + DwnMethodName.Get,
@@ -105,7 +100,6 @@ export enum DwnInterface {
 }
 
 export interface DwnMessage {
-  [DwnInterface.EventsGet]          : EventsGetMessage;
   [DwnInterface.EventsSubscribe]    : EventsSubscribeMessage;
   [DwnInterface.EventsQuery]        : EventsQueryMessage;
   [DwnInterface.MessagesGet]        : MessagesGetMessage;
@@ -119,7 +113,6 @@ export interface DwnMessage {
 }
 
 export interface DwnMessageDescriptor {
-  [DwnInterface.EventsGet]          : EventsGetMessage['descriptor'];
   [DwnInterface.EventsSubscribe]    : EventsSubscribeMessage['descriptor'];
   [DwnInterface.EventsQuery]        : EventsQueryMessage['descriptor'];
   [DwnInterface.MessagesGet]        : MessagesGetMessage['descriptor'];
@@ -133,7 +126,6 @@ export interface DwnMessageDescriptor {
 }
 
 export interface DwnMessageParams {
-  [DwnInterface.EventsGet]          : Partial<EventsGetOptions>;
   [DwnInterface.EventsQuery]        : RequireOnly<EventsQueryOptions, 'filters'>;
   [DwnInterface.EventsSubscribe]    : Partial<EventsSubscribeOptions>;
   [DwnInterface.MessagesGet]        : RequireOnly<MessagesGetOptions, 'messageCids'>;
@@ -147,7 +139,6 @@ export interface DwnMessageParams {
 }
 
 export interface DwnMessageReply {
-  [DwnInterface.EventsGet]          : EventsGetReply;
   [DwnInterface.EventsQuery]        : EventsQueryReply;
   [DwnInterface.EventsSubscribe]    : EventsSubscribeReply;
   [DwnInterface.MessagesGet]        : MessagesGetReply;
@@ -161,11 +152,10 @@ export interface DwnMessageReply {
 }
 
 export interface MessageHandler {
-  [DwnInterface.EventsSubscribe]    : EventSubscriptionHandler;
+  [DwnInterface.EventsSubscribe]    : MessageSubscriptionHandler;
   [DwnInterface.RecordsSubscribe]   : RecordSubscriptionHandler;
 
   // define all of them individually as undefined
-  [DwnInterface.EventsGet]          : undefined;
   [DwnInterface.EventsQuery]        : undefined;
   [DwnInterface.MessagesGet]        : undefined;
   [DwnInterface.ProtocolsConfigure] : undefined;
@@ -220,7 +210,6 @@ export interface DwnMessageConstructor<T extends DwnInterface> {
 }
 
 export const dwnMessageConstructors: { [T in DwnInterface]: DwnMessageConstructor<T> } = {
-  [DwnInterface.EventsGet]          : EventsGet as any,
   [DwnInterface.EventsQuery]        : EventsQuery as any,
   [DwnInterface.EventsSubscribe]    : EventsSubscribe as any,
   [DwnInterface.MessagesGet]        : MessagesGet as any,
@@ -236,7 +225,6 @@ export const dwnMessageConstructors: { [T in DwnInterface]: DwnMessageConstructo
 export type DwnMessageConstructors = typeof dwnMessageConstructors;
 
 export interface DwnMessageInstance {
-  [DwnInterface.EventsGet]          : EventsGet;
   [DwnInterface.EventsQuery]        : EventsQuery;
   [DwnInterface.EventsSubscribe]    : EventsSubscribe;
   [DwnInterface.MessagesGet]        : MessagesGet;
@@ -264,9 +252,14 @@ export {
   DateSort as DwnDateSort,
   PublicJwk as DwnPublicKeyJwk, // TODO: Remove once DWN SDK switches to Jwk from @web5/crypto
   PaginationCursor as DwnPaginationCursor,
-  EventSubscriptionHandler as DwnEventSubscriptionHandler,
+  MessageSubscriptionHandler as DwnMessageSubscriptionHandler,
   RecordSubscriptionHandler as DwnRecordSubscriptionHandler,
   MessageSubscription as DwnMessageSubscription,
   EncryptionAlgorithm as DwnEncryptionAlgorithm,
   KeyDerivationScheme as DwnKeyDerivationScheme,
+  PermissionGrant as DwnPermissionGrant,
+  PermissionRequest as DwnPermissionRequest,
+  PermissionsProtocol as DwnPermissionsProtocol,
+  ProtocolDefinition as DwnProtocolDefinition,
+  RecordsPermissionScope as DwnRecordsPermissionScope,
 } from '@tbd54566975/dwn-sdk-js';

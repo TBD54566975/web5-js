@@ -1,5 +1,27 @@
 # @web5/dids
 
+## 1.1.1
+
+### Patch Changes
+
+- [#689](https://github.com/TBD54566975/web5-js/pull/689) [`16eb49d`](https://github.com/TBD54566975/web5-js/commit/16eb49d00ee45bd25fa62c370a5b729801581950) Thanks [@nitro-neal](https://github.com/nitro-neal)! - Update KeyTypeToDefaultAlgorithmMap for did dht
+
+## 1.1.0
+
+### Minor Changes
+
+- [#636](https://github.com/TBD54566975/web5-js/pull/636) [`b425bbc`](https://github.com/TBD54566975/web5-js/commit/b425bbc6bfedb44121d18b4f9d72f18cdd33ac00) Thanks [@thehenrytsai](https://github.com/thehenrytsai)! - 1. Vector 3 compliance 2. X25519 support 3. Previous DID link support 4. DNS record chunking support for record > 255 characters (only in context of vector 3 compliance)
+
+### Patch Changes
+
+- [#637](https://github.com/TBD54566975/web5-js/pull/637) [`269384b`](https://github.com/TBD54566975/web5-js/commit/269384b7b96635c1205419293df346bff9491a1b) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Reintroduce ability to specify custom Verification Method IDs for `did:dht`
+
+- [#579](https://github.com/TBD54566975/web5-js/pull/579) [`b36e7b1`](https://github.com/TBD54566975/web5-js/commit/b36e7b1eabd7c99313d6f6adb335c5a6d085d83e) Thanks [@thehenrytsai](https://github.com/thehenrytsai)! - Updated dependencies of all packages
+
+- Updated dependencies [[`b36e7b1`](https://github.com/TBD54566975/web5-js/commit/b36e7b1eabd7c99313d6f6adb335c5a6d085d83e)]:
+  - @web5/common@1.0.1
+  - @web5/crypto@1.0.1
+
 ## 1.0.3
 
 ### Patch Changes

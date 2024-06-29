@@ -12,7 +12,7 @@ import type {
 
 import bencode from 'bencode';
 import { Convert } from '@web5/common';
-import { computeJwkThumbprint, Ed25519, LocalKeyManager, Secp256k1, Secp256r1 } from '@web5/crypto';
+import { computeJwkThumbprint, Ed25519, LocalKeyManager, Secp256k1, Secp256r1, X25519 } from '@web5/crypto';
 import { AUTHORITATIVE_ANSWER, decode as dnsPacketDecode, encode as dnsPacketEncode } from '@dnsquery/dns-packet';
 
 import type { DidMetadata, PortableDid } from '../types/portable-did.js';
@@ -207,6 +207,17 @@ export interface DidDhtCreateOptions<TKms> extends DidCreateOptions<TKms> {
 }
 
 /**
+ * Proof to used to construct the `_prv._did.` DNS record as described in https://did-dht.com/#rotation to link a DID to a previous DID.
+ */
+export type PreviousDidProof = {
+  /** The previous DID. */
+  previousDid: string;
+
+  /** The signature signed using the private Identity Key of the previous DID in Base64URL format. */
+  signature: string;
+};
+
+/**
  * The default DID DHT Gateway or Pkarr Relay server to use when publishing and resolving DID
  * documents.
  */
@@ -332,7 +343,7 @@ export enum DidDhtRegisteredKeyType {
    * Ed25519: A public-key signature system using the EdDSA (Edwards-curve Digital Signature
    * Algorithm) and Curve25519.
    */
-  Ed25519   = 0,
+  Ed25519 = 0,
 
   /**
    * secp256k1: A cryptographic curve used for digital signatures in a range of decentralized
@@ -344,7 +355,12 @@ export enum DidDhtRegisteredKeyType {
    * secp256r1: Also known as P-256 or prime256v1, this curve is used for cryptographic operations
    * and is widely supported in various cryptographic libraries and standards.
    */
-  secp256r1 = 2
+  secp256r1 = 2,
+
+  /**
+   * X25519: A public key used for Diffie-Hellman key exchange using Curve25519.
+   */
+  X25519 = 3,
 }
 
 /**
@@ -391,16 +407,18 @@ const AlgorithmToKeyTypeMap = {
   ES256     : DidDhtRegisteredKeyType.secp256r1,
   'P-256'   : DidDhtRegisteredKeyType.secp256r1,
   secp256k1 : DidDhtRegisteredKeyType.secp256k1,
-  secp256r1 : DidDhtRegisteredKeyType.secp256r1
+  secp256r1 : DidDhtRegisteredKeyType.secp256r1,
+  X25519    : DidDhtRegisteredKeyType.X25519,
 } as const;
 
 /**
  * Private helper that maps did dht registered key types to their corresponding default algorithm identifiers.
  */
 const KeyTypeToDefaultAlgorithmMap = {
-  [DidDhtRegisteredKeyType.Ed25519]   : 'Ed25519',
+  [DidDhtRegisteredKeyType.Ed25519]   : 'EdDSA',
   [DidDhtRegisteredKeyType.secp256k1] : 'ES256K',
   [DidDhtRegisteredKeyType.secp256r1] : 'ES256',
+  [DidDhtRegisteredKeyType.X25519]    : 'ECDH-ES+A256KW',
 };
 
 /**
@@ -1022,9 +1040,9 @@ export class DidDhtDocument {
 
         // Process verification methods.
         case dnsRecordId.startsWith('k'): {
-          // Get the key type (t), Base64URL-encoded public key (k), and
-          // optionally, controller (c) from the decoded TXT record data.
-          const { t, k, c, a: parsedAlg } = DidDhtUtils.parseTxtDataToObject(answer.data);
+          // Get the key type (t), Base64URL-encoded public key (k), algorithm (a), and
+          // optionally, controller (c) or Verification Method ID (id) from the decoded TXT record data.
+          const { id, t, k, c, a: parsedAlg } = DidDhtUtils.parseTxtDataToObject(answer.data);
 
           // Convert the public key from Base64URL format to a byte array.
           const publicKeyBytes = Convert.base64Url(k).toUint8Array();
@@ -1037,15 +1055,21 @@ export class DidDhtDocument {
 
           publicKey.alg = parsedAlg || KeyTypeToDefaultAlgorithmMap[Number(t) as DidDhtRegisteredKeyType];
 
-          // Determine the Key ID (kid): '0' for the identity key or JWK thumbprint for others.
-          const kid = dnsRecordId.endsWith('0') ? '0' : await computeJwkThumbprint({ jwk: publicKey });
-          publicKey.kid = kid;
+          // TOOD: when this is complete https://github.com/TBD54566975/web5-js/issues/638 then we can add this back and
+          // update the test vectors kid back to '0'
+          // if(dnsRecordId === 'k0') {
+          //   publicKey.kid = '0';
+          // }
+
+          // Determine the Verification Method ID: '0' for the identity key,
+          // the id from the TXT Data Object, or the JWK thumbprint if an explicity Verification Method ID not defined.
+          const vmId = dnsRecordId === 'k0' ? '0' : id !== undefined ? id : await computeJwkThumbprint({ jwk: publicKey });
 
           // Initialize the `verificationMethod` array if it does not already exist.
           didDocument.verificationMethod ??= [];
 
           // Prepend the DID URI to the ID fragment to form the full verification method ID.
-          const methodId = `${didUri}#${kid}`;
+          const methodId = `${didUri}#${vmId}`;
 
           // Add the verification method to the DID document.
           didDocument.verificationMethod.push({
@@ -1068,8 +1092,10 @@ export class DidDhtDocument {
           // other properties from the decoded TXT record data.
           const { id, t, se, ...customProperties } = DidDhtUtils.parseTxtDataToObject(answer.data);
 
-          // The service endpoint can either be a string or an array of strings.
-          const serviceEndpoint = se.includes(VALUE_SEPARATOR) ? se.split(VALUE_SEPARATOR) : se;
+          // if multi-values: 'a,b,c' -> ['a', 'b', 'c'], if single-value: 'a' -> ['a']
+          // NOTE: The service endpoint technically can either be a string or an array of strings,
+          // we enforce an array for single-value to simplify verification of vector 3 in the spec: https://did-dht.com/#vector-3
+          const serviceEndpoint = se.includes(VALUE_SEPARATOR) ? se.split(VALUE_SEPARATOR) : [se];
 
           // Convert custom property values to either a string or an array of strings.
           const serviceProperties = Object.fromEntries(Object.entries(customProperties).map(
@@ -1135,18 +1161,37 @@ export class DidDhtDocument {
    * @param params.didDocument - The DID document to convert to a DNS packet.
    * @param params.didMetadata - The DID metadata to include in the DNS packet.
    * @param params.authoritativeGatewayUris - The URIs of the Authoritative Gateways to generate NS records from.
+   * @param params.previousDidProof - The signature proof that this DID is linked to the given previous DID.
    * @returns A promise that resolves to a DNS packet.
    */
-  public static async toDnsPacket({ didDocument, didMetadata, authoritativeGatewayUris }: {
+  public static async toDnsPacket({ didDocument, didMetadata, authoritativeGatewayUris, previousDidProof }: {
     didDocument: DidDocument;
     didMetadata: DidMetadata;
     authoritativeGatewayUris?: string[];
+    previousDidProof?: PreviousDidProof;
   }): Promise<Packet> {
     const txtRecords: TxtAnswer[] = [];
     const nsRecords: StringAnswer[] = [];
     const idLookup = new Map<string, string>();
     const serviceIds: string[] = [];
     const verificationMethodIds: string[] = [];
+
+    // Add `_prv._did.` TXT record if previous DID proof is provided and valid.
+    if (previousDidProof !== undefined) {
+      const { signature, previousDid } = previousDidProof;
+
+      await DidDhtUtils.validatePreviousDidProof({
+        newDid: didDocument.id,
+        previousDidProof
+      });
+
+      txtRecords.push({
+        type : 'TXT',
+        name : '_prv._did.',
+        ttl  : DNS_RECORD_TTL,
+        data : `id=${previousDid};s=${signature}`
+      });
+    }
 
     // Add DNS TXT records if the DID document contains an `alsoKnownAs` property.
     if (didDocument.alsoKnownAs) {
@@ -1195,7 +1240,11 @@ export class DidDhtDocument {
 
       // Define the data for the DNS TXT record.
       const txtData = [`t=${keyType}`, `k=${publicKeyBase64Url}`];
-
+      // if the methodId is not the identity key or a thumbprint, explicity define the id within the DNS TXT record.
+      // otherwise the id can be inferred from the thumbprint.
+      if (methodId !== '0' && await computeJwkThumbprint({ jwk: publicKey }) !== methodId)  {
+        txtData.unshift(`id=${methodId}`);
+      }
       // Only set the algorithm property (`a`) if it differs from the default algorithm for the key type.
       if(publicKey.alg !== KeyTypeToDefaultAlgorithmMap[keyType]) {
         txtData.push(`a=${publicKey.alg}`);
@@ -1226,12 +1275,15 @@ export class DidDhtDocument {
         ([key, value]) => `${key}=${value}`
       );
 
+      const txtDataString = txtData.join(PROPERTY_SEPARATOR);
+      const data = DidDhtUtils.chunkDataIfNeeded(txtDataString);
+
       // Add a TXT record for the verification method.
       txtRecords.push({
         type : 'TXT',
         name : `_${dnsRecordId}._did.`,
         ttl  : DNS_RECORD_TTL,
-        data : txtData.join(PROPERTY_SEPARATOR)
+        data
       });
     });
 
@@ -1470,7 +1522,8 @@ export class DidDhtUtils {
         bytesToPublicKey  : Secp256k1.bytesToPublicKey,
         privateKeyToBytes : Secp256k1.privateKeyToBytes,
         bytesToPrivateKey : Secp256k1.bytesToPrivateKey,
-      }
+      },
+      X25519: X25519,
     };
 
     const converter = converters[curve];
@@ -1540,5 +1593,45 @@ export class DidDhtUtils {
     } else {
       throw new DidError(DidErrorCode.InternalError, 'Pkarr returned DNS TXT record with invalid data type');
     }
+  }
+
+  /**
+   * Validates the proof of previous DID given.
+   *
+   * @param params - The parameters to validate the previous DID proof.
+   * @param params.newDid - The new DID that the previous DID is linking to.
+   * @param params.previousDidProof - The proof of the previous DID, containing the previous DID and signature signed by the previous DID.
+   */
+  public static async validatePreviousDidProof({ newDid, previousDidProof }: {
+    newDid: string,
+    previousDidProof: PreviousDidProof,
+  }): Promise<void> {
+    const key = await DidDhtUtils.identifierToIdentityKey({ didUri: previousDidProof.previousDid });
+    const data = DidDhtUtils.identifierToIdentityKeyBytes({ didUri: newDid });
+    const signature = Convert.base64Url(previousDidProof.signature).toUint8Array();
+    const isValid = await Ed25519.verify({ key, data, signature  });
+
+    if (!isValid) {
+      throw new DidError(DidErrorCode.InvalidPreviousDidProof, 'The previous DID proof is invalid.');
+    }
+  }
+
+  /**
+   * Splits a string into chunks of length 255 if the string exceeds length 255.
+   * @param data - The string to split into chunks.
+   * @returns The original string if its length is less than or equal to 255, otherwise an array of chunked strings.
+   */
+  public static chunkDataIfNeeded(data: string): string | string[] {
+    if (data.length <= 255) {
+      return data;
+    }
+
+    // Split the data into chunks of 255 characters.
+    const chunks: string[] = [];
+    for (let i = 0; i < data.length; i += 255) {
+      chunks.push(data.slice(i, i + 255)); // end index is ignored if it exceeds the length of the string
+    }
+
+    return chunks;
   }
 }

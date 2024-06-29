@@ -3,12 +3,13 @@ import type { JwtHeaderParams, JwtPayload, PrivateKeyJwk } from '@web5/crypto';
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
 import { Ed25519 } from '@web5/crypto';
-import { DidJwk, DidKey, PortableDid } from '@web5/dids';
+import { DidDereferencingResult, DidDht, DidJwk, DidKey, PortableDid } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
 import JwtVerifyTestVector from '../../../web5-spec/test-vectors/vc_jwt/verify.json' assert { type: 'json' };
 import JwtDecodeTestVector from '../../../web5-spec/test-vectors/vc_jwt/decode.json' assert { type: 'json' };
 import { VerifiableCredential } from '../src/verifiable-credential.js';
+import sinon from 'sinon';
 
 describe('Jwt', () => {
   describe('parse()', () => {
@@ -72,6 +73,101 @@ describe('Jwt', () => {
   });
 
   describe('verify()', () => {
+    it('successful verify with did:dht', async () => {
+      const dereferenceStub = sinon.stub(Jwt.didResolver, 'dereference');
+
+      const mockResult: DidDereferencingResult = {
+        dereferencingMetadata: {
+          contentType: 'application/did+json'
+        },
+        contentStream: {
+          id           : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0',
+          type         : 'JsonWebKey',
+          controller   : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+          publicKeyJwk : {
+            kty : 'OKP',
+            crv : 'Ed25519',
+            x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
+            kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
+            alg : 'EdDSA'
+          }
+        },
+        contentMetadata: {}
+      };
+
+      dereferenceStub.resolves(mockResult);
+
+      let portableDid : PortableDid = {
+        uri      : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+        document : {
+          id                 : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+          verificationMethod : [
+            {
+              id           : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
+                kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
+                alg : 'EdDSA'
+              },
+            },
+          ],
+          authentication: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+          assertionMethod: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+          capabilityDelegation: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+          capabilityInvocation: [
+            'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'
+          ],
+        },
+        metadata: {
+          types: [6, 7]
+        },
+        privateKeys: [
+          {
+            crv : 'Ed25519',
+            d   : 'hdSIwbQwVD-fNOVEgt-k3mMl44Ip1iPi58Ex6VDGxqY',
+            kty : 'OKP',
+            x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
+            kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
+            alg : 'EdDSA',
+          }
+        ]
+      };
+
+      const bearerDid = await DidDht.import({ portableDid });
+
+      const siopv2Response = {
+        id_token: await Jwt.sign({
+          signerDid : bearerDid,
+          payload   : {
+            iss   : bearerDid.uri,
+            sub   : bearerDid.uri,
+            aud   : 'did:dht:ho3axp5pgp4k8a7kqtb8knn5uaqwy9ghkm98wrytnh67bsn7ezry',
+            nonce : 'd844f80d21c33ea6e087afa2b84dc31f',
+            iat   : Math.floor(Date.now() / 1000),
+            exp   : Math.floor(Date.now() / 1000) + (30 * 60), // plus 30 minutes
+          }
+        })
+      };
+
+      // Verify the JWT and make sure we get a result that it does not throw an error.
+      const jwtVerifyResult = await Jwt.verify({ jwt: siopv2Response.id_token });
+
+      expect(bearerDid.document?.verificationMethod?.[0]?.publicKeyJwk?.alg).to.equal('EdDSA');
+      expect(jwtVerifyResult.header.alg).to.equal('EdDSA');
+
+      dereferenceStub.restore();
+    });
+
     it('throws error if JWT is expired', async () => {
       const did = await DidKey.create({ options: { algorithm: 'secp256k1'} });
       const header: JwtHeaderParams = { typ: 'JWT', alg: 'ES256K', kid: did.document.verificationMethod![0].id };

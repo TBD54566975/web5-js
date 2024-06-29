@@ -1,16 +1,20 @@
 import type { PortableDid } from '../../src/types/portable-did.js';
 
+import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import resolveTestVectors from '../../../../web5-spec/test-vectors/did_dht/resolve.json' assert { type: 'json' };
 import officialTestVector1 from '../fixtures/test-vectors/did-dht/vector-1.json' assert { type: 'json' };
 import officialTestVector2 from '../fixtures/test-vectors/did-dht/vector-2.json' assert { type: 'json' };
+import officialTestVector3 from '../fixtures/test-vectors/did-dht/vector-3.json' assert { type: 'json' };
 
-import { expect } from 'chai';
 import { Answer } from '@dnsquery/dns-packet';
 import { Convert } from '@web5/common';
 import { DidDocument } from '../../src/index.js';
 import { DidErrorCode } from '../../src/did-error.js';
-import { DidDht, DidDhtDocument, DidDhtRegisteredDidType } from '../../src/methods/did-dht.js';
+import { DidDht, DidDhtDocument, DidDhtRegisteredDidType, DidDhtUtils } from '../../src/methods/did-dht.js';
+import { expect, use } from 'chai';
+
+use(chaiAsPromised);
 
 // Helper function to create a mocked fetch response that fails and returns a 404 Not Found.
 const fetchNotFoundResponse = () => ({
@@ -162,7 +166,7 @@ describe('DidDht', () => {
       expect(did.document.verificationMethod?.[0].id).to.include('#0');
     });
 
-    it('uses the JWK thumbprint as the ID for additional verification methods, by default', async () => {
+    it('uses the JWK thumbprint as the ID for additional verification methods if no id is provided', async () => {
       const did = await DidDht.create({
         options: {
           verificationMethods: [
@@ -816,91 +820,7 @@ describe('DidDht', () => {
 
 describe('DidDhtDocument', () => {
   describe('fromDnsPacket()', () => {
-    it('handles custom string properties for services', async () => {
-      const didUri = 'did:dht:hpmp9uur565nkimpwdzom7ehbuabnsba658xwwynyk7awcd15bko';
-
-      const didResolutionResult = await DidDhtDocument.fromDnsPacket({
-        didUri,
-        dnsPacket: {
-          id        : 0,
-          type      : 'response',
-          flags     : 1024,
-          flag_qr   : true,
-          opcode    : 'QUERY',
-          flag_aa   : true,
-          flag_tc   : false,
-          flag_rd   : false,
-          flag_ra   : false,
-          flag_z    : false,
-          flag_ad   : false,
-          flag_cd   : false,
-          rcode     : 'NOERROR',
-          questions : [
-          ],
-          answers: [
-            {
-              name  : '_k0._did.hpmp9uur565nkimpwdzom7ehbuabnsba658xwwynyk7awcd15bko',
-              type  : 'TXT',
-              ttl   : 7200,
-              class : 'IN',
-              data  : [
-                new Uint8Array([105, 100, 61, 48, 59, 116, 61, 48, 59, 107, 61, 52, 49, 98, 102, 122, 109, 84, 102, 116, 105, 86, 86, 98, 97, 68, 118, 66, 102, 85, 99, 68, 80, 65, 82, 87, 68, 106, 50, 122, 118, 112, 81, 65, 103, 75, 55, 105, 106, 66, 121, 50, 70, 85]),
-              ],
-            },
-            {
-              name  : '_k1._did.hpmp9uur565nkimpwdzom7ehbuabnsba658xwwynyk7awcd15bko',
-              type  : 'TXT',
-              ttl   : 7200,
-              class : 'IN',
-              data  : [
-                new Uint8Array([105, 100, 61, 115, 105, 103, 59, 116, 61, 48, 59, 107, 61, 73, 120, 57, 114, 84, 52, 52, 81, 75, 110, 73, 106, 78, 101, 66, 53, 49, 45, 79, 82, 108, 119, 111, 67, 98, 76, 75, 114, 45, 104, 115, 79, 89, 103, 108, 52, 103, 78, 57, 84, 122, 73, 85]),
-              ],
-            },
-            {
-              name  : '_k2._did.hpmp9uur565nkimpwdzom7ehbuabnsba658xwwynyk7awcd15bko',
-              type  : 'TXT',
-              ttl   : 7200,
-              class : 'IN',
-              data  : [
-                new Uint8Array([105, 100, 61, 101, 110, 99, 59, 116, 61, 49, 59, 107, 61, 66, 71, 65, 105, 105, 83, 48, 118, 78, 110, 111, 101, 57, 76, 57, 108, 99, 103, 101, 116, 54, 122, 97, 108, 68, 68, 106, 56, 90, 120, 66, 76, 119, 90, 86, 73, 97, 56, 72, 119, 122, 106, 117, 112, 107, 65, 55, 54, 108, 78, 74, 52, 105, 49, 57, 48, 117, 74, 86, 101, 108, 81, 106, 90, 57, 116, 120, 89, 98, 85, 85, 56, 112, 121, 107, 51, 97, 120, 103, 72, 120, 121, 68, 82, 86, 72, 56]),
-              ],
-            },
-            {
-              name  : '_s0._did.hpmp9uur565nkimpwdzom7ehbuabnsba658xwwynyk7awcd15bko',
-              type  : 'TXT',
-              ttl   : 7200,
-              class : 'IN',
-              data  : [
-                new Uint8Array([105, 100, 61, 100, 119, 110, 59, 116, 61, 68, 101, 99, 101, 110, 116, 114, 97, 108, 105, 122, 101, 100, 87, 101, 98, 78, 111, 100, 101, 59, 115, 101, 61, 104, 116, 116, 112, 115, 58, 47, 47, 101, 120, 97, 109, 112, 108, 101, 46, 99, 111, 109, 47, 100, 119, 110, 50, 59, 101, 110, 99, 61, 35, 101, 110, 99, 59, 115, 105, 103, 61, 35, 115, 105, 103]),
-              ],
-            },
-            {
-              name  : '_did.hpmp9uur565nkimpwdzom7ehbuabnsba658xwwynyk7awcd15bko',
-              type  : 'TXT',
-              ttl   : 7200,
-              class : 'IN',
-              data  : [
-                new Uint8Array([118, 61, 48, 59, 118, 109, 61, 107, 48, 44, 107, 49, 44, 107, 50, 59, 97, 117, 116, 104, 61, 107, 48, 44, 107, 49, 59, 97, 115, 109, 61, 107, 48, 44, 107, 49, 59, 97, 103, 109, 61, 107, 50, 59, 100, 101, 108, 61, 107, 48, 59, 105, 110, 118, 61, 107, 48, 59, 115, 118, 99, 61, 115, 48]),
-              ],
-            },
-          ],
-          authorities: [
-          ],
-          additionals: [
-          ],
-        }
-      });
-
-      expect(didResolutionResult).to.have.property('didDocument');
-      expect(didResolutionResult).to.have.property('didDocumentMetadata');
-      expect(didResolutionResult).to.have.property('didResolutionMetadata');
-
-      expect(didResolutionResult.didDocument).to.have.property('id', didUri);
-      expect(didResolutionResult.didDocument!.service![0].sig).to.equal('#sig');
-      expect(didResolutionResult.didDocument!.service![0].enc).to.equal('#enc');
-    });
-
-    it('handles custom array for services', async () => {
+    it('handles DID Resolution from DNS Packet', async () => {
       const didUri = 'did:dht:1ati6y645tprnm9nkqgguj718bmtqw5mbjq87ttbrntfokekzeso';
 
       const didResolutionResult = await DidDhtDocument.fromDnsPacket({
@@ -979,103 +899,27 @@ describe('DidDhtDocument', () => {
       expect(didResolutionResult).to.have.property('didDocumentMetadata');
       expect(didResolutionResult).to.have.property('didResolutionMetadata');
 
-      expect(didResolutionResult.didDocument).to.have.property('id', didUri);
+      // Check the DID Document.
+      expect(didResolutionResult.didDocument).to.have.property('id', didUri); // expected DID URI
+      expect(didResolutionResult.didDocument?.verificationMethod).to.have.length(3); // expected 3 verification methods
+      expect(didResolutionResult.didDocument?.verificationMethod![0].id).to.equal(`${didUri}#0`); // expected first verification method to be the identity key
+      expect(didResolutionResult.didDocument?.verificationMethod![1].id).to.equal(`${didUri}#auth`); // expected second verification method to be #auth
+      expect(didResolutionResult.didDocument?.verificationMethod![2].id).to.equal(`${didUri}#assert`); // expected third verification method to be #assert
+
+      expect(didResolutionResult.didDocument?.service).to.have.length(1); // expected 1 service
+      expect(didResolutionResult.didDocument?.service![0].id).to.equal(`${didUri}#dwn`); // expected service id
       expect(didResolutionResult.didDocument!.service![0].sig).to.have.length(2);
       expect(didResolutionResult.didDocument!.service![0].sig).to.deep.equal(['#auth', '#assert']);
     });
   });
 
-  describe('toDnsPacket()', () => {
-    it('handles custom string properties for services', async () => {
-      const dnsPacket = await DidDhtDocument.toDnsPacket({
-        didDocument: {
-          id                 : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
-          verificationMethod : [
-            {
-              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
-              type         : 'JsonWebKey',
-              controller   : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
-              publicKeyJwk : {
-                crv : 'Ed25519',
-                kty : 'OKP',
-                x   : '2zHGF5m_DhcPbBZB6ooIxIOR-Vw-yJVYSPo2NgCMkgg',
-                kid : 'KDT9PKj4_z7gPk2s279Y-OGlMtt_L93oJzIaiVrrySU',
-                alg : 'EdDSA',
-              },
-            },
-            {
-              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#sig',
-              type         : 'JsonWebKey',
-              controller   : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
-              publicKeyJwk : {
-                crv : 'Ed25519',
-                kty : 'OKP',
-                x   : 'FrrBhqvAWxE4lstj-IWgN8_5-O4L1KuZjdNjn5bX_dw',
-                kid : 'dRnxo2XQ7QT1is5WmpEefwEz3z4_4JdpGea6KWUn3ww',
-                alg : 'EdDSA',
-              },
-            },
-            {
-              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#enc',
-              type         : 'JsonWebKey',
-              controller   : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
-              publicKeyJwk : {
-                kty : 'EC',
-                crv : 'secp256k1',
-                x   : 'e1_pCWZwI9cxdrotVKIT8t75itk22XkpalDPx7pVpYQ',
-                y   : '5cAlBmnzzuwRNuFtLhyFNdy9v1rVEqEgrFEiiwKMx5I',
-                kid : 'jGYs9XgQMDH_PCDFWocTN0F06mTUOA1J1McVvluq4lM',
-                alg : 'ES256K',
-              },
-            },
-          ],
-          authentication: [
-            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
-            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#sig',
-          ],
-          assertionMethod: [
-            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
-            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#sig',
-          ],
-          capabilityDelegation: [
-            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
-          ],
-          capabilityInvocation: [
-            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
-          ],
-          keyAgreement: [
-            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#enc',
-          ],
-          service: [
-            {
-              id              : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#dwn',
-              type            : 'DecentralizedWebNode',
-              serviceEndpoint : 'https://example.com/dwn',
-              enc             : '#enc',
-              sig             : '#sig',
-            },
-          ],
-        },
-        didMetadata: {
-          published: false,
-        }
-      });
-
-      for (const record of dnsPacket.answers ?? []) {
-        if (record.name.startsWith('_s')) {
-          expect(record.data).to.include('id=dwn');
-          expect(record.data).to.include('t=DecentralizedWebNode');
-          expect(record.data).to.include('se=https://example.com/dwn');
-          expect(record.data).to.include('enc=#enc');
-          expect(record.data).to.include('sig=#sig');
-        }
-      }
-    });
-
+  describe('DNS Packet e2e tests', () => {
     it('handles custom array for services', async () => {
+
+      const didUri = 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery';
       const dnsPacket = await DidDhtDocument.toDnsPacket({
         didDocument: {
-          id                 : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
+          id                 : didUri,
           verificationMethod : [
             {
               id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
@@ -1156,6 +1000,276 @@ describe('DidDhtDocument', () => {
           expect(record.data).to.include('sig=#sig,#0');
         }
       }
+
+      const didResolutionResult = await DidDhtDocument.fromDnsPacket({ didUri, dnsPacket });
+
+      expect(didResolutionResult).to.have.property('didDocument');
+      expect(didResolutionResult).to.have.property('didDocumentMetadata');
+      expect(didResolutionResult).to.have.property('didResolutionMetadata');
+
+      expect(didResolutionResult.didDocument).to.have.property('id', didUri);
+      expect(didResolutionResult.didDocument!.service![0].sig).to.have.length(2);
+      expect(didResolutionResult.didDocument!.service![0].sig).to.deep.equal(['#sig', '#0']);
+    });
+
+    it('handles custom string properties for services', async () => {
+      const didUri = 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery';
+
+      const dnsPacket = await DidDhtDocument.toDnsPacket({
+        didDocument: {
+          id                 : didUri,
+          verificationMethod : [
+            {
+              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                x   : '2zHGF5m_DhcPbBZB6ooIxIOR-Vw-yJVYSPo2NgCMkgg',
+                kid : 'KDT9PKj4_z7gPk2s279Y-OGlMtt_L93oJzIaiVrrySU',
+                alg : 'EdDSA',
+              },
+            },
+            {
+              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#sig',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                x   : 'FrrBhqvAWxE4lstj-IWgN8_5-O4L1KuZjdNjn5bX_dw',
+                kid : 'dRnxo2XQ7QT1is5WmpEefwEz3z4_4JdpGea6KWUn3ww',
+                alg : 'EdDSA',
+              },
+            },
+            {
+              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#enc',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
+              publicKeyJwk : {
+                kty : 'EC',
+                crv : 'secp256k1',
+                x   : 'e1_pCWZwI9cxdrotVKIT8t75itk22XkpalDPx7pVpYQ',
+                y   : '5cAlBmnzzuwRNuFtLhyFNdy9v1rVEqEgrFEiiwKMx5I',
+                kid : 'jGYs9XgQMDH_PCDFWocTN0F06mTUOA1J1McVvluq4lM',
+                alg : 'ES256K',
+              },
+            },
+          ],
+          authentication: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#sig',
+          ],
+          assertionMethod: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#sig',
+          ],
+          capabilityDelegation: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+          ],
+          capabilityInvocation: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+          ],
+          keyAgreement: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#enc',
+          ],
+          service: [
+            {
+              id              : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#dwn',
+              type            : 'DecentralizedWebNode',
+              serviceEndpoint : 'https://example.com/dwn',
+              enc             : '#enc',
+              sig             : '#sig',
+            },
+          ],
+        },
+        didMetadata: {
+          published: false,
+        }
+      });
+
+      for (const record of dnsPacket.answers ?? []) {
+        if (record.name.startsWith('_s')) {
+          expect(record.data).to.include('id=dwn');
+          expect(record.data).to.include('t=DecentralizedWebNode');
+          expect(record.data).to.include('se=https://example.com/dwn');
+          expect(record.data).to.include('enc=#enc');
+          expect(record.data).to.include('sig=#sig');
+        }
+      }
+
+      const didResolutionResult = await DidDhtDocument.fromDnsPacket({ didUri, dnsPacket });
+
+      expect(didResolutionResult).to.have.property('didDocument');
+      expect(didResolutionResult).to.have.property('didDocumentMetadata');
+      expect(didResolutionResult).to.have.property('didResolutionMetadata');
+
+      expect(didResolutionResult.didDocument).to.have.property('id', didUri);
+      expect(didResolutionResult.didDocument!.service![0].sig).to.equal('#sig');
+      expect(didResolutionResult.didDocument!.service![0].enc).to.equal('#enc');
+    });
+
+    it('handles user defined Key Ids', async () => {
+      const didUri = 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery';
+      const dnsPacket = await DidDhtDocument.toDnsPacket({
+        didDocument: {
+          id                 : didUri,
+          verificationMethod : [
+            {
+              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                x   : '2zHGF5m_DhcPbBZB6ooIxIOR-Vw-yJVYSPo2NgCMkgg',
+                kid : '0',
+                alg : 'EdDSA',
+              },
+            },
+            {
+              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#sig',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                x   : 'FrrBhqvAWxE4lstj-IWgN8_5-O4L1KuZjdNjn5bX_dw',
+                kid : 'sig',
+                alg : 'EdDSA',
+              },
+            },
+            {
+              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#enc',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
+              publicKeyJwk : {
+                kty : 'EC',
+                crv : 'secp256k1',
+                x   : 'e1_pCWZwI9cxdrotVKIT8t75itk22XkpalDPx7pVpYQ',
+                y   : '5cAlBmnzzuwRNuFtLhyFNdy9v1rVEqEgrFEiiwKMx5I',
+                kid : 'enc',
+                alg : 'ES256K',
+              },
+            },
+          ],
+          authentication: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#sig',
+          ],
+          assertionMethod: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#sig',
+          ],
+          capabilityDelegation: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+          ],
+          capabilityInvocation: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+          ],
+          keyAgreement: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#enc',
+          ],
+        },
+        didMetadata: {
+          published: false,
+        }
+      });
+
+      for (const record of dnsPacket.answers ?? []) {
+        if (record.name.startsWith('_k1')) {
+          expect(record.data).to.include('id=sig');
+          expect(record.data).to.include('t=0');
+        } else if (record.name.startsWith('_k2')) {
+          expect(record.data).to.include('id=enc');
+          expect(record.data).to.include('t=1');
+        }
+      }
+
+      const didResolutionResult = await DidDhtDocument.fromDnsPacket({ didUri, dnsPacket });
+
+      expect(didResolutionResult).to.have.property('didDocument');
+      expect(didResolutionResult).to.have.property('didDocumentMetadata');
+      expect(didResolutionResult).to.have.property('didResolutionMetadata');
+
+      expect(didResolutionResult.didDocument).to.have.property('id', didUri);
+      expect(didResolutionResult.didDocument!.verificationMethod![0].id).to.equal(`${didUri}#0`);
+      expect(didResolutionResult.didDocument!.verificationMethod![1].id).to.equal(`${didUri}#sig`);
+      expect(didResolutionResult.didDocument!.verificationMethod![2].id).to.equal(`${didUri}#enc`);
+    });
+
+    it('handles custom controller for verification methods', async () => {
+      const didUri = 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery';
+      const customController = 'did:dht:i9xkp8ddcbcg8jwq54ox699wuzxyifsqx4jru45zodqu453ksz6y';
+      const dnsPacket = await DidDhtDocument.toDnsPacket({
+        didDocument: {
+          id                 : didUri,
+          verificationMethod : [
+            {
+              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+              type         : 'JsonWebKey',
+              controller   : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery',
+              publicKeyJwk : {
+                crv : 'Ed25519',
+                kty : 'OKP',
+                x   : '2zHGF5m_DhcPbBZB6ooIxIOR-Vw-yJVYSPo2NgCMkgg',
+                kid : '0',
+                alg : 'EdDSA',
+              },
+            },
+            {
+              id           : 'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw',
+              type         : 'JsonWebKey',
+              controller   : customController,
+              publicKeyJwk : {
+                crv : 'secp256k1',
+                kty : 'EC',
+                x   : '1_o0IKHGNamet8-3VYNUTiKlhVK-LilcKrhJSPHSNP0',
+                y   : 'qzU8qqh0wKB6JC_9HCu8pHE-ZPkDpw4AdJ-MsV2InVY',
+                kid : '0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw',
+                alg : 'ES256K',
+              },
+            },
+          ],
+          authentication: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw',
+          ],
+          assertionMethod: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0GkvkdCGu3DL7Mkv0W1DhTMCBT9-z0CkFqZoJQtw7vw',
+          ],
+          capabilityDelegation: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+          ],
+          capabilityInvocation: [
+            'did:dht:5cahcfh3zh8bqd5cn3y6inoea1b3d6kh85rjksne9e5dcyrc1ery#0',
+          ],
+        },
+        didMetadata: {
+          published: false,
+        }
+      });
+
+      // check for key controller controller
+      for (const record of dnsPacket.answers ?? []) {
+        if (record.name.startsWith('_k1')) {
+          expect(record.data).to.include('t=1');
+          expect(record.data).to.include(`c=${customController}`);
+        }
+      }
+
+      const didResolutionResult = await DidDhtDocument.fromDnsPacket({ didUri, dnsPacket });
+
+      expect(didResolutionResult).to.have.property('didDocument');
+      expect(didResolutionResult).to.have.property('didDocumentMetadata');
+      expect(didResolutionResult).to.have.property('didResolutionMetadata');
+
+      expect(didResolutionResult.didDocument).to.have.property('id', didUri);
+      expect(didResolutionResult.didDocument!.verificationMethod).to.have.length(2);
+      expect(didResolutionResult.didDocument!.verificationMethod![0].controller).to.equal(didUri); // identity key
+      expect(didResolutionResult.didDocument!.verificationMethod![1].controller).to.equal(customController); // custom controller
     });
   });
 
@@ -1166,6 +1280,16 @@ describe('DidDhtDocument', () => {
         expect(didResolutionResult.didResolutionMetadata.error).to.equal(vector.output.didResolutionMetadata.error);
       }
     }).timeout(30000); // Set timeout to 30 seconds for this test for did:dht resolution timeout test
+  });
+});
+
+describe('DidDhtUtils', () => {
+  it('validatePreviousDidProof()', async () => {
+    // reuse an existing previous proof from the official test vector 3, but use a different new DID
+    const previousDidProof = { ...officialTestVector3.previousDidProof };
+    const newDid = (await DidDht.create()).document.id;
+
+    await expect(DidDhtUtils.validatePreviousDidProof({ newDid, previousDidProof })).to.be.rejectedWith(DidErrorCode.InvalidPreviousDidProof);
   });
 });
 
@@ -1199,13 +1323,37 @@ describe('Official DID:DHT Vector tests', () => {
         published : false,
         types     : [DidDhtRegisteredDidType.Organization, DidDhtRegisteredDidType.Government, DidDhtRegisteredDidType.Corporation]
       },
-      authoritativeGatewayUris: ['gateway1.example-did-dht-gateway.com']
+      authoritativeGatewayUris: officialTestVector2.authoritativeGatewayUris,
     });
 
     expect(dnsPacket.answers).to.have.length(officialTestVector2.dnsRecords.length);
 
     const normalizedConstructedRecords = normalizeDnsRecords(dnsPacket.answers!);
     expect(normalizedConstructedRecords).to.deep.include.members(officialTestVector2.dnsRecords);
+
+    const didResolutionResult = await DidDhtDocument.fromDnsPacket({
+      didUri    : inputDidDocument.id,
+      dnsPacket : dnsPacket
+    });
+
+    expect(didResolutionResult.didDocument).to.deep.equal(inputDidDocument);
+  });
+
+  it('vector 3', async () => {
+    const inputDidDocument = officialTestVector3.didDocument as DidDocument;
+    const dnsPacket = await DidDhtDocument.toDnsPacket({
+      didDocument : inputDidDocument,
+      didMetadata : {
+        published: false
+      },
+      authoritativeGatewayUris : officialTestVector3.authoritativeGatewayUris,
+      previousDidProof         : officialTestVector3.previousDidProof,
+    });
+
+    expect(dnsPacket.answers).to.have.length(officialTestVector3.dnsRecords.length);
+
+    const normalizedConstructedRecords = normalizeDnsRecords(dnsPacket.answers!);
+    expect(normalizedConstructedRecords).to.deep.include.members(officialTestVector3.dnsRecords);
 
     const didResolutionResult = await DidDhtDocument.fromDnsPacket({
       didUri    : inputDidDocument.id,

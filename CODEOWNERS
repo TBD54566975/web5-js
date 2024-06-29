@@ -10,12 +10,12 @@
 
 # These are owners who can approve folders under the root directory and other CICD and QoL directories.
 # Should be the union list of all owners of sub-directories, optionally minus the default owners.
-/*                       @csuwildcat @ lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
-/.changeset              @csuwildcat @ lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
-/.codesandbox            @csuwildcat @ lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
-/.github                 @csuwildcat @ lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
-/.vscode                 @csuwildcat @ lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
-/scripts                 @csuwildcat @ lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
+/*                       @csuwildcat @lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
+/.changeset              @csuwildcat @lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
+/.codesandbox            @csuwildcat @lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
+/.github                 @csuwildcat @lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
+/.vscode                 @csuwildcat @lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
+/scripts                 @csuwildcat @lirancohen @thehenrytsai @diehuxx @shamilovtim @nitro-neal
 
 # These are owners of any file in the `common`, `crypto`, `crypto-aws-kms`, `dids`, and
 # `credentials` packages and their sub-directories.

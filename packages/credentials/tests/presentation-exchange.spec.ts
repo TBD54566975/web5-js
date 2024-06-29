@@ -9,6 +9,7 @@ import PresentationExchangeSelectCredentialsTestVector from '../../../web5-spec/
 import PresentationExchangeCreatePresentationFromCredentialsTestVector from '../../../web5-spec/test-vectors/presentation_exchange/create_presentation_from_credentials.json' assert { type: 'json' };
 import PresentationExchangeValidateDefinitionTestVector from '../../../web5-spec/test-vectors/presentation_exchange/validate_definition.json' assert { type: 'json' };
 import PresentationExchangeValidateSubmissionTestVector from '../../../web5-spec/test-vectors/presentation_exchange/validate_submission.json' assert { type: 'json' };
+import { IPresentation } from '@sphereon/ssi-types';
 
 
 class BitcoinCredential {
@@ -234,7 +235,7 @@ describe('PresentationExchange', () => {
 
       const presentationEvaluationResults = PresentationExchange.evaluatePresentation({
         presentationDefinition,
-        presentation: presentationResult.presentation
+        presentation: presentationResult.presentation as IPresentation
       });
       expect(presentationEvaluationResults.errors).to.deep.equal([]);
       expect(presentationEvaluationResults.warnings).to.deep.equal([]);
@@ -255,7 +256,7 @@ describe('PresentationExchange', () => {
 
       const { warnings, errors } = PresentationExchange.evaluatePresentation({
         presentationDefinition,
-        presentation: presentationResult.presentation
+        presentation: presentationResult.presentation as IPresentation
       });
 
       expect(errors).to.be.an('array');
@@ -276,7 +277,7 @@ describe('PresentationExchange', () => {
 
       const { warnings, errors } = PresentationExchange.evaluatePresentation({
         presentationDefinition : groupPresentationDefinition,
-        presentation           : presentationResult.presentation
+        presentation           : presentationResult.presentation as IPresentation
       });
 
       expect(errors).to.be.an('array');
@@ -376,7 +377,7 @@ function createPresentationDefinition(): PresentationDefinitionV2 {
           'fields': [
             {
               'path': [
-                '$.credentialSubject.btcAddress',
+                '$.vc.credentialSubject.btcAddress',
               ]
             }
           ]
@@ -406,7 +407,7 @@ function createGroupPresentationDefinition(): PresentationDefinitionV2 {
           'fields': [
             {
               'path': [
-                '$.credentialSubject.btcAddress',
+                '$.vc.credentialSubject.btcAddress',
               ]
             }
           ]
@@ -420,7 +421,7 @@ function createGroupPresentationDefinition(): PresentationDefinitionV2 {
           'fields': [
             {
               'path': [
-                '$.credentialSubject.dob',
+                '$.vc.credentialSubject.dob',
               ]
             }
           ]
