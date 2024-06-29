@@ -24,7 +24,5 @@ export * from  './test-harness.js';
 export * from './utils.js';
 
 // connect
-export * from './test-managed-agent.js';
-
 export * from './connect.js';
 export * from './events.js';
