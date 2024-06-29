@@ -1,7 +1,6 @@
-import { Oidc } from "./oidc-v2.js";
+import { Oidc, type PushedAuthResponse } from "./oidc-v2.js";
 import { pollWithTTL } from "./utils.js";
-import { Web5PlatformAgent } from "./types/agent.js";
-import { PushedAuthorizationResponse } from "./connect.js";
+import { type Web5PlatformAgent } from "./types/agent.js";
 
 type ClientWalletConnectOptions = {
   /** The client app DID public key to connect to the wallet */
@@ -102,7 +101,7 @@ async function init({
     endpoint: "pushedAuthorizationRequest",
   });
 
-  const postPar = await pollWithTTL<PushedAuthorizationResponse>(() =>
+  const postPar = await pollWithTTL<PushedAuthResponse>(() =>
     fetch(pushedAuthorizationRequestEndpoint, {
       body: formEncodedRequest,
       method: "POST",

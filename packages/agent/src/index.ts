@@ -24,5 +24,5 @@ export * from  './test-harness.js';
 export * from './utils.js';
 
 // connect
-export * from './connect.js';
-export * from './events.js';
+export * from './connect-v2.js';
+export * from './oidc-v2.js';

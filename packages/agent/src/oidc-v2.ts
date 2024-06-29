@@ -28,7 +28,7 @@ type PushedAuthRequest = {
  * with the Provider using a link or a QR code along with additional params
  * to access the url and decrypt the payload.
  */
-type PushedAuthResponse = {
+export type PushedAuthResponse = {
   request_uri: string;
   expires_in: number;
 };
