@@ -104,8 +104,8 @@ importers:
         specifier: 0.7.31
         version: 0.7.31
       '@types/node':
-        specifier: 20.11.19
-        version: 20.11.19
+        specifier: 20.14.8
+        version: 20.14.8
       '@types/sinon':
         specifier: 17.0.2
         version: 17.0.2
@@ -167,8 +167,8 @@ importers:
         specifier: 5.1.6
         version: 5.1.6
       ws:
-        specifier: 8.17.0
-        version: 8.17.0
+        specifier: '>=8.17.1'
+        version: 8.17.1
 
   packages/api:
     dependencies:
@@ -204,8 +204,8 @@ importers:
         specifier: 10.0.1
         version: 10.0.1
       '@types/node':
-        specifier: 20.11.19
-        version: 20.11.19
+        specifier: 20.14.8
+        version: 20.14.8
       '@types/sinon':
         specifier: 17.0.2
         version: 17.0.2
@@ -468,8 +468,8 @@ importers:
         specifier: 10.0.6
         version: 10.0.6
       '@types/node':
-        specifier: 20.12.11
-        version: 20.12.11
+        specifier: 20.14.8
+        version: 20.14.8
       '@types/sinon':
         specifier: 17.0.3
         version: 17.0.3
@@ -659,8 +659,8 @@ importers:
         specifier: 0.7.34
         version: 0.7.34
       '@types/node':
-        specifier: 20.12.12
-        version: 20.12.12
+        specifier: 20.14.8
+        version: 20.14.8
       '@types/sinon':
         specifier: 17.0.2
         version: 17.0.2
@@ -747,8 +747,8 @@ importers:
         specifier: 10.0.1
         version: 10.0.1
       '@types/node':
-        specifier: 20.11.19
-        version: 20.11.19
+        specifier: 20.14.8
+        version: 20.14.8
       '@types/sinon':
         specifier: 17.0.2
         version: 17.0.2
@@ -838,8 +838,8 @@ importers:
         specifier: 10.0.1
         version: 10.0.1
       '@types/node':
-        specifier: 20.11.19
-        version: 20.11.19
+        specifier: 20.14.8
+        version: 20.14.8
       '@typescript-eslint/eslint-plugin':
         specifier: 7.9.0
         version: 7.9.0(@typescript-eslint/parser@7.14.1)(eslint@9.3.0)(typescript@5.1.6)
@@ -923,8 +923,8 @@ importers:
         specifier: 10.0.1
         version: 10.0.1
       '@types/node':
-        specifier: 20.11.19
-        version: 20.11.19
+        specifier: 20.14.8
+        version: 20.14.8
       '@typescript-eslint/eslint-plugin':
         specifier: 7.9.0
         version: 7.9.0(@typescript-eslint/parser@7.14.1)(eslint@9.3.0)(typescript@5.1.6)
@@ -2458,8 +2458,8 @@ packages:
     engines: {node: '>=10.10.0'}
     deprecated: Use @eslint/config-array instead
     dependencies:
-      '@humanwhocodes/object-schema': 2.0.2
-      debug: 4.3.4(supports-color@8.1.1)
+      '@humanwhocodes/object-schema': 2.0.3
+      debug: 4.3.5
       minimatch: 3.1.2
     transitivePeerDependencies:
       - supports-color
@@ -3500,7 +3500,7 @@ packages:
   /@types/cors@2.8.17:
     resolution: {integrity: sha512-8CGDvrBj1zgo2qE+oS3pOCyYNqCPryMWY2bGfwA0dcfopWGgxs+78df0Rs3rc9THP4JkOhLsAa+15VdpAqkcUA==}
     dependencies:
-      '@types/node': 20.12.12
+      '@types/node': 20.14.8
     dev: true
 
   /@types/debounce@1.2.4:
@@ -3510,7 +3510,7 @@ packages:
   /@types/dns-packet@5.6.4:
     resolution: {integrity: sha512-R0ORTvCCeujG+upKfV4JlvozKLdQWlpsducXGd1L6ezBChwpjSj9K84F+KoMDsZQ9RhOLTR1hnNrwJHWagY24g==}
     dependencies:
-      '@types/node': 20.11.19
+      '@types/node': 20.14.8
     dev: true
 
   /@types/eslint-scope@3.7.7:
@@ -3638,18 +3638,6 @@ packages:
       undici-types: 5.26.5
     dev: true
 
-  /@types/node@20.12.11:
-    resolution: {integrity: sha512-vDg9PZ/zi+Nqp6boSOT7plNuthRugEKixDv5sFTIpkE89MmNtEArAShI4mxuX2+UrLEe9pxC1vm2cjm9YlWbJw==}
-    dependencies:
-      undici-types: 5.26.5
-    dev: true
-
-  /@types/node@20.12.12:
-    resolution: {integrity: sha512-eWLDGF/FOSPtAvEqeRAQ4C8LSA7M1I7i0ky1I8U7kD1J5ITyW3AsRhQrKVoWf5pFKZ2kILsEGJhsI9r93PYnOw==}
-    dependencies:
-      undici-types: 5.26.5
-    dev: true
-
   /@types/node@20.14.8:
     resolution: {integrity: sha512-DO+2/jZinXfROG7j7WKFn/3C6nFwxy2lLpgLjEXJz+0XKphZlTLJ14mo8Vfg8X5BWN6XjyESXq+LcYdT7tR3bA==}
     dependencies:
@@ -3731,7 +3719,7 @@ packages:
   /@types/ws@8.5.10:
     resolution: {integrity: sha512-vmQSUcfalpIq0R9q7uTo2lXs6eGIpt9wtnLdMv9LVpIjCA/+ufZRozlVoVelIYixx1ugCBKDhn89vnsEGOCx9A==}
     dependencies:
-      '@types/node': 20.12.12
+      '@types/node': 20.14.8
     dev: true
 
   /@types/yauzl@2.10.3:
@@ -7871,12 +7859,12 @@ packages:
     engines: {node: '>=10'}
     dev: true
 
-  /isomorphic-ws@5.0.0(ws@8.13.0):
+  /isomorphic-ws@5.0.0(ws@8.17.1):
     resolution: {integrity: sha512-muId7Zzn9ywDsyXgTIafTry2sV3nySZeUDe6YedVd1Hvuuep5AsIlqK+XefWpYTyJG5e503F2xIuT2lcU6rCSw==}
     peerDependencies:
       ws: '>=8.17.1'
     dependencies:
-      ws: 8.13.0
+      ws: 8.17.1
     dev: false
 
   /istanbul-lib-coverage@3.2.2:
@@ -11282,32 +11270,6 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
-    dev: true
-
-  /ws@8.13.0:
-    resolution: {integrity: sha512-x9vcZYTrFPC7aSIbj7sRCYo7L/Xb8Iy+pW0ng0wt2vCJv7M9HOMy0UoN3rr+IFC7hb7vXoqS+P9ktyLLLhO+LA==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
-
-  /ws@8.17.0:
-    resolution: {integrity: sha512-uJq6108EgZMAl20KagGkzCKfMEjxmKvZHG7Tlq0Z6nOky7YF7aq4mOx6xK8TJ/i1LeK4Qus7INktacctDgY8Ow==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
-    dev: true
 
   /xml@1.0.1:
     resolution: {integrity: sha512-huCv9IH9Tcf95zuYCsQraZtWnJvBtLVE0QHMOs8bWyZAFZNDcYjsPq1nEx8jKA9y+Beo9v+7OBPRisQTjinQMw==}
