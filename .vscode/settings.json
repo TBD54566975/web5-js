@@ -1,3 +1,11 @@
 {
-  "npm.packageManager": "pnpm"
+  "npm.packageManager": "pnpm",
+  "editor.formatOnSave":true,
+  "eslint.useFlatConfig": true,
+  "eslint.lintTask.enable": true,
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+  "eslint.format.enable": true,
+  "prettier.enable": false,
+  "[javascript]": { "editor.defaultFormatter": "dbaeumer.vscode-eslint" },
+  "[typescript]": { "editor.defaultFormatter": "dbaeumer.vscode-eslint" },
 }
