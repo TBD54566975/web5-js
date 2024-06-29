@@ -1,113 +1,75 @@
-// connectv2
-import { DidDht, DidJwk, DidMethod, UniversalResolver } from "@web5/dids";
-import { oidc } from "./oidc-v2.js";
-import { appendPathToUrl, pollWithTTL } from "./utils.js";
+import { Oidc } from "./oidc-v2.js";
+import { pollWithTTL } from "./utils.js";
 import { Web5PlatformAgent } from "./types/agent.js";
-import { Convert } from "@web5/common";
-import { Sha256, utils } from "@web5/crypto";
-import { AgentDidApi } from "./did-api.js";
-import { PermissionScope, PermissionConditions } from "@tbd54566975/dwn-sdk-js";
+import { PushedAuthorizationResponse } from "./connect.js";
 
-// dApp: sends PAR to connect server
-// connect server: accepts PAR, responds with connect endpoint
-// dApp: gets back connect endpoint from connect server. provides OIDC params plus claims in a deep link (QR code).
-// wallet: scan deep link
-// wallet: display permission UI
-
-// TODO: lifted from dwn-sdk-js. expose it from dwn-sdk-js.
-/**
- * Type for the data payload of a permission grant message.
- */
-type PermissionGrantData = {
-  /**
-   * Optional string that communicates what the grant would be used for
-   */
-  description?: string;
-
-  /**
-   * Optional CID of a permission request. This is optional because grants may be given without being officially requested
-   * */
-  requestId?: string;
-
-  /**
-   * Timestamp at which this grant will no longer be active.
-   */
-  dateExpires: string;
-
-  /**
-   * Whether this grant is delegated or not. If `true`, the `grantedTo` will be able to act as the `grantedTo` within the scope of this grant.
-   */
-  delegated?: boolean;
-
-  /**
-   * The scope of the allowed access.
-   */
-  scope: PermissionScope;
-
-  conditions?: PermissionConditions;
+type ClientWalletConnectOptions = {
+  /** The client app DID public key to connect to the wallet */
+  clientDid: string;
+  /** URL of the connect server */
+  baseURL: string;
+  /** An optional webpage providing information about the client */
+  client_uri?: string;
+  /** PermissionRequest for the Identity Provider (provider will respond with PermissionGrants) */
+  permissionRequests: string[];
+  /** An instance of a Web5 agent used for getting keys and signing with them */
+  agent: Web5PlatformAgent;
 };
 
-interface CreateClientOptions {
-  /** The DID provided by the connecting app used to sign and encrypt requests and responses. */
-  clientDid: string;
-  /** The base URL of the server that requests and responses will be relayed through if the
-   * Identity Provider's authorization endpoint is not directly accessible. */
-  connectEndpoint: string;
-  /** The origin of the connecting app. */
-  origin: string;
-  /** The delegation request(s) to be granted by the Identity Provider. */
-  delegationGrantRequest: {
-    permissionsRequests: any[];
-  };
-  agent: Web5PlatformAgent;
-}
-
-export const connectClient = async ({
+/**
+ * Description placeholder
+ *
+ * @async
+ * @param {Object} options The options object
+ * @param {string} options.clientDid The client app DID public key to connect to the wallet
+ * @param {string} options.baseURL The URL of the connect server
+ * @param {string[]} options.permissionRequests The PermissionRequests for the Identity Provider (Provider will respond with PermissionGrants)
+ * @param {string} options.client_uri An optional webpage providing information about the client
+ * @param {Web5PlatformAgent} options.agent An instance of a Web5 agent used for getting keys and signing with them
+ */
+async function init({
   clientDid,
-  connectEndpoint,
-  delegationGrantRequest,
-  origin,
+  baseURL,
+  permissionRequests,
+  client_uri,
   agent,
-}: CreateClientOptions) => {
-  const connectRoutes = oidc.buildRoutes(connectEndpoint);
-  /** bifurcated desttop flow disabled, possibly permanently */
+}: ClientWalletConnectOptions) {
+  /** bifurcated desktop flow disabled, possibly permanently */
   // if (!provider.authorizationEndpoint.startsWith("web5:")) {
-  //   connectEndpoint = provider.authorizationEndpoint;
+  //   baseURL = provider.authorizationEndpoint;
   // }
 
   // Hash the code verifier to use as a code challenge and to encrypt the Request Object.
   const { codeVerifieru8a, codeVerifierb64url } =
-    oidc.generateRandomCodeVerifier();
+    Oidc.generateRandomCodeVerifier();
 
-  // TODO: figure out what this should be
-  const redirectUri = "http://localhost:8080/connect/sessions";
+  // Derive the code challenge based on the code verifier
+  const { codeChallengeu8a, codeChallengeb64url } =
+    await Oidc.deriveCodeChallenge(codeVerifieru8a);
 
-  const mockDelegationGrants = ["foo", "bar"] as any;
+  // get callback buildOidcUrl to pass into the connect auth request
+  const callbackEndpoint = Oidc.buildOidcUrl({ baseURL, endpoint: "callback" });
 
   // build the PAR request
-  const request = await oidc.createRequestObject({
-    client_id: redirectUri,
-    claims: { id_token: { delegation_grants: mockDelegationGrants } },
-    scope: "web5", // TODO?
-    client_metadata: { client_uri: origin },
-    code_verifier: codeVerifierb64url,
-    delegation_grant_request: delegationGrantRequest,
-    redirect_uri: redirectUri,
+  const request = await Oidc.createAuthRequest({
+    client_id: callbackEndpoint,
+    scope: "web5", // TODO: clear with frank
+    code_challenge: codeChallengeb64url,
+    code_challenge_method: "S256",
+    permission_requests: permissionRequests,
+    redirect_uri: callbackEndpoint,
+    client_metadata: {
+      client_uri,
+      subject_syntax_types_supported: ["did:dht"],
+    },
   });
-
-  // Hash the code verifier to use as a code challenge and to encrypt the Request Object.
-  const codeChallenge = await oidc.deriveCodeChallenge(codeVerifieru8a);
 
   // Get the signingMethod for the clientDid
   const signingMethod = await agent.did.getSigningMethod({ didUri: clientDid });
 
   if (!signingMethod?.publicKeyJwk || !signingMethod?.id) {
-    throw new Error(
-      "ConnectProtocol: Unable to determine Client signing key ID."
-    );
+    throw new Error("Unable to determine client signing key ID.");
   }
-
-  const keyId = signingMethod.id;
 
   // get the URI in the KMS
   const keyUri = await agent.keyManager.getKeyUri({
@@ -115,8 +77,8 @@ export const connectClient = async ({
   });
 
   // Sign the Request Object using the Client DID's signing key.
-  const requestJwt = await oidc.signRequestObject({
-    keyId,
+  const requestJwt = await Oidc.signRequestObject({
+    keyId: signingMethod.id,
     keyUri,
     request,
     agent,
@@ -127,16 +89,21 @@ export const connectClient = async ({
   }
 
   // Encrypt the Request Object JWT using the code challenge.
-  const requestObjectJwe = await oidc.encryptRequestJwt({
+  const requestObjectJwe = await Oidc.encryptRequestJwt({
     jwt: requestJwt,
-    codeChallenge,
+    codeChallenge: codeChallengeu8a,
   });
 
   // Convert the encrypted Request Object to URLSearchParams for form encoding.
   const formEncodedRequest = new URLSearchParams({ request: requestObjectJwe });
 
-  const postPar = await pollWithTTL<string>(() =>
-    fetch(connectRoutes.pushedAuthorizationRequestEndpoint, {
+  const pushedAuthorizationRequestEndpoint = Oidc.buildOidcUrl({
+    baseURL,
+    endpoint: "pushedAuthorizationRequest",
+  });
+
+  const postPar = await pollWithTTL<PushedAuthorizationResponse>(() =>
+    fetch(pushedAuthorizationRequestEndpoint, {
       body: formEncodedRequest,
       method: "POST",
       headers: {
@@ -144,6 +111,9 @@ export const connectClient = async ({
       },
     })
   );
+
+  if (postPar?.request_uri) {
+  }
 
   //! we can test up until here
 
@@ -161,63 +131,6 @@ export const connectClient = async ({
   //   data: formEncodedRequest,
   //   url: provider.pushedAuthorizationRequestEndpoint,
   // });
-
-  // generateRequestedPermissions();
-  // generateDeepLink();
-  // startDwnServer();
-  // pollToDwnServer();
-};
-
-// connectProvider();
-
-export interface IdentityProvider {
-  authorizationEndpoint: string;
-  pushedAuthorizationRequestEndpoint: string;
 }
 
-export interface IdTokenClaims {
-  // should be of type PermissionGrant[]?
-  delegation_grants: PermissionGrantData;
-  [key: string]: any;
-}
-
-export const SiopIssuerIdentifier = {
-  SELF_ISSUED_V1: "https://self-issued.me",
-  SELF_ISSUED_V2: "https://self-issued.me/v2",
-} as const;
-
-export interface AuthorizationRequestObject {
-  claims?: { id_token: IdTokenClaims };
-  client_id: string;
-  client_metadata?: { client_uri?: string; [key: string]: any };
-  code_verifier?: string;
-  nonce: string;
-  redirect_uri: string;
-  state?: string;
-
-  [key: string]: any;
-}
-
-export interface AuthorizationResponseObject {
-  /** Issuer Identifier for the Issuer of the response. */
-  iss: typeof SiopIssuerIdentifier | string;
-  /** Subject Identifier. A locally unique and never reassigned identifier
-   * within the Issuer for the End-User, which is intended to be consumed
-   * by the Client. */
-  sub: string;
-  /** Audience(s) that this ID Token is intended for. It MUST contain the
-   * OAuth 2.0 client_id of the Relying Party as an audience value. */
-  aud: string;
-  /** Time at which the JWT was issued. */
-  iat: number;
-  /** Expiration time on or after which the ID Token MUST NOT be accepted
-   * for processing. */
-  exp: number;
-  /** Time when the End-User authentication occurred. */
-  auth_time?: number;
-  /** String value used to associate a Client session with an ID Token, and to
-   * mitigate replay attacks. */
-  nonce?: string;
-  /** Custom claims. */
-  [key: string]: any;
-}
+export const ClientWalletConnect = { init };

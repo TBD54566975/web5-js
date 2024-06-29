@@ -5,26 +5,275 @@ import { Convert, RequireOnly } from "@web5/common";
 import { JoseHeaderParams, Sha256, utils, EdDsaAlgorithm } from "@web5/crypto";
 
 import { appendPathToUrl } from "./utils.js";
-
-import {
-  AuthorizationRequestObject,
-  AuthorizationResponseObject,
-  IdentityProvider,
-} from "./connect-v2.js";
 import { Hkdf } from "./prototyping/crypto/primitives/hkdf.js";
 import { Web5PlatformAgent } from "./types/agent.js";
 import { xchacha20poly1305 } from "@noble/ciphers/chacha";
 
 /**
- * OIDC URL used for Web5 connect (through OIDC Claims) or OIDC
+ * Sent to an OIDC server to authorize a client. Allows clients
+ * to securely send authorization request parameters directly to
+ * the server via POST. This avoids exposing sensitive data in URLs
+ * and ensures the server validates the request before user interaction.
  *
- * @param {string} connectURL as `scheme://foo`
+ * @see {@link https://www.rfc-editor.org/rfc/rfc9126.html | OAuth 2.0 Pushed Authorization Requests}
  */
-function buildRoutes(connectURL: string) {
-  return {
-    authorizationEndpoint: connectURL,
-    pushedAuthorizationRequestEndpoint: `${connectURL}/par`,
+type PushedAuthRequest = {
+  /** The JWT which contains the {@link HybridAuthRequest} */
+  request: string;
+};
+
+/**
+ * Sent back by OIDC server in response to {@link PushedAuthRequest}
+ * The server generates a TTL and a unique request_uri. The request_uri can be shared
+ * with the Provider using a link or a QR code along with additional params
+ * to access the url and decrypt the payload.
+ */
+type PushedAuthResponse = {
+  request_uri: string;
+  expires_in: number;
+};
+
+/** An auth request that is compatible with both Web5 Connect and (hopefully, WIP) OIDC SIOPv2 */
+type HybridAuthRequest = SIOPv2AuthRequest & Web5ConnectRequest;
+
+/**
+ * Used in decentralized apps. The SIOPv2 Auth Request is created by a client relying party (RP)
+ * often a web service or an app who wants to obtain information from a provider
+ * The contents of these are inserted into a JWT inside of the {@link PushedAuthRequest}.
+ * @see {@link https://github.com/TBD54566975/known-customer-credential | TBD OIDC Documentation for SIOPv2 }
+ */
+type SIOPv2AuthRequest = {
+  /** Often the same as the redirect_uri */
+  client_id: string;
+
+  /** The scope of the access request (e.g., `openid profile`). */
+  scope: string;
+
+  /** The type of response desired (e.g. `id_token`) */
+  response_type: string;
+
+  /** the URL to which the Identity Provider will post the Authorization Response */
+  redirect_uri: string;
+
+  /** The URI to which the SIOPv2 Authorization Response will be sent (Tim's note: not used with encrypted request JWT)*/
+  response_uri?: string;
+
+  /**
+   * An opaque value used to maintain state between the request and the callback.
+   * Recommended for security to prevent CSRF attacks.
+   */
+  state: string;
+
+  /**
+   * A string value used to associate a client session with an ID token to mitigate replay attacks.
+   * Recommended when requesting ID tokens.
+   */
+  nonce: string;
+
+  /**
+   * The PKCE code challenge.
+   * Required if `code_challenge_method` is used. Enhances security for public clients (e.g., single-page apps,
+   * mobile apps) by requiring an additional verification step during token exchange.
+   */
+  code_challenge: string;
+
+  /** The method used for the PKCE challenge (typically `S256`). Must be present if `code_challenge` is included. */
+  code_challenge_method: "S256";
+
+  /**
+   * An ID token previously issued to the client, passed as a hint about the end-user’s current or past authenticated
+   * session with the client. Can streamline user experience if already logged in.
+   */
+  id_token_hint?: string;
+
+  /** A hint to the authorization server about the login identifier the user might use. Useful for pre-filling login information. */
+  login_hint?: string;
+
+  /** Requested Authentication Context Class Reference values. Specifies the authentication context requirements. */
+  acr_values?: string;
+
+  /** When using a PAR for secure cross device flows we use a "form_post" rather than a "direct_post" */
+  response_mode: "direct_post";
+
+  /** Used by PFI to request VCs as input to IDV process. If present, `response_type: "vp_token""` MUST also be present */
+  presentation_definition?: any;
+
+  /** A JSON object containing the Verifier metadata values (Tim's note: from TBD KCC Repo) */
+  client_metadata?: {
+    /** Array of strings, each a DID method supported for the subject of ID Token	*/
+    subject_syntax_types_supported: string[];
+    /** Human-readable string name of the client to be presented to the end-user during authorization */
+    client_name?: string;
+    /** URI of a web page providing information about the client */
+    client_uri?: string;
+    /** URI of an image logo for the client */
+    logo_uri?: string;
+    /** Array of strings representing ways to contact people responsible for this client, typically email addresses */
+    contacts?: string[];
+    /** URI that points to a terms of service document for the client */
+    tos_uri?: string;
+    /** URI that points to a privacy policy document */
+    policy_uri?: string;
   };
+};
+
+/** Claims specific to Web5 Connect rather than OIDC */
+type Web5ConnectRequest = {
+  /** PermissionGrants that are to be sent to the provider */
+  permission_requests: string[];
+};
+
+// old, ignore, do not use. here for comparison.
+// export interface AuthorizationRequestObject {
+//   claims?: { id_token: { delegation_grants: any; [key: string]: any } };
+//   client_id: string;
+//   client_metadata?: { client_uri?: string; [key: string]: any };
+//   code_verifier?: string;
+//   nonce: string;
+//   redirect_uri: string;
+//   state?: string;
+
+//   [key: string]: any;
+// }
+
+/** An auth response that is compatible with both Web5 Connect and (hopefully, WIP) OIDC SIOPv2 */
+type HybridAuthResponse = SIOPv2AuthResponse & Web5ConnectAuthResponse;
+
+/** The fields for an OIDC SIOPv2 Auth Repsonse */
+type SIOPv2AuthResponse = {
+  /** Issuer Identifier for the Issuer of the response. */
+  iss: "https://self-issued.me" | "https://self-issued.me/v2" | string;
+  /** Subject Identifier. A locally unique and never reassigned identifier
+   * within the Issuer for the End-User, which is intended to be consumed
+   * by the Client. */
+  sub: string;
+  /** Audience(s) that this ID Token is intended for. It MUST contain the
+   * OAuth 2.0 client_id of the Relying Party as an audience value. */
+  aud: string;
+  /** Time at which the JWT was issued. */
+  iat: number;
+  /** Expiration time on or after which the ID Token MUST NOT be accepted
+   * for processing. */
+  exp: number;
+  /** Time when the End-User authentication occurred. */
+  auth_time?: number;
+  /** String value used to associate a Client session with an ID Token, and to
+   * mitigate replay attacks. */
+  nonce?: string;
+  /** Custom claims. */
+  [key: string]: any;
+};
+
+/** The fields for an Web5 Connect Auth Repsonse */
+type Web5ConnectAuthResponse = {};
+
+// /**
+//  * Used in decentralized apps.
+//  * The SIOPv2 Auth Request is created by a client relying party (RP), often a web service or an app,
+//  * who wants to obtain information from a provider. That provider will return a `SIOPv2AuthResponse`. // TODO: need to type this as well
+//  *
+//  * @see {@link https://github.com/TBD54566975/known-customer-credential | TBD OIDC Documentation for SIOPv2 }
+//  */
+// type SIOPv2AuthRequestData = {
+//   /** The DID of the RP (client)	*/
+//   client_id: string;
+//   /** What's being requested. 'openid' indicates ID Token is being requested */
+//   scope: string;
+//   /** What sort of response the RP is expecting. MUST include id_token. MAY include vp_token */
+//   response_type: string;
+//   /** The URI to which the SIOPv2 Authorization Response will be sent (Tim's note: not used with encrypted request JWT)*/
+//   response_uri: string;
+//   /** The mode in which the SIOPv2 Authorization Response will be sent. MUST be direct_post */
+//   response_mode: "direct_post";
+//   /** Used by PFI to request VCs as input to IDV process. If present, `response_type: "vp_token""` MUST also be present */
+//   presentation_definition?: any;
+//   /** A nonce which MUST be included in the ID Token provided in the SIOPv2 Authorization Response */
+//   nonce: string;
+//   /** A JSON object containing the Verifier metadata values */
+//   client_metadata: {
+//     /** Array of strings, each a DID method supported for the subject of ID Token	*/
+//     subject_syntax_types_supported: string[];
+//     /** Human-readable string name of the client to be presented to the end-user during authorization */
+//     client_name?: string;
+//     /** URI of a web page providing information about the client */
+//     client_uri?: string;
+//     /** URI of an image logo for the client */
+//     logo_uri?: string;
+//     /** Array of strings representing ways to contact people responsible for this client, typically email addresses */
+//     contacts?: string[];
+//     /** URI that points to a terms of service document for the client */
+//     tos_uri?: string;
+//     /** URI that points to a privacy policy document */
+//     policy_uri?: string;
+//   };
+// };
+
+/** Represents the different OIDC endpoint types.
+ * 1. `pushedAuthorizationRequest`: client sends {@link PushedAuthRequest} receives {@link PushedAuthResponse}
+ * 2. `authorize`: provider gets the {@link HybridAuthRequest} JWT that was stored by the PAR
+ * 3. `callback`: provider sends {@link HybridAuthResponse} to this endpoint
+ * 4. `token`: client gets {@link HybridAuthResponse} from this endpoint
+ */
+type OidcEndpoint =
+  | "pushedAuthorizationRequest"
+  | "authorize"
+  | "callback"
+  | "token";
+
+/**
+ * Gets the correct OIDC endpoint out of the {@link OidcEndpoint} options provided.
+ * Handles a trailing slash on baseURL
+ *
+ * @param {Object} options the options object
+ * @param {string} options.baseURL for example `http://foo.com/connect/
+ * @param {OidcEndpoint} options.endpoint the OIDC endpoint desired
+ * @param {string} options.authParam must be provided when getting the `authorize` endpoint
+ * @param {string} options.tokenParam must be provided when getting the `token` endpoint
+ */
+function buildOidcUrl({
+  baseURL,
+  endpoint,
+  authParam,
+  tokenParam,
+}: {
+  baseURL: string;
+  endpoint: OidcEndpoint;
+  authParam?: string;
+  tokenParam?: string;
+}) {
+  switch (endpoint) {
+    /** 1. client sends {@link PushedAuthRequest} & receives {@link PushedAuthResponse} */
+    case "pushedAuthorizationRequest":
+      return appendPathToUrl({
+        path: "par",
+        url: baseURL,
+      });
+    /** 2. provider gets {@link HybridAuthRequest} */
+    case "authorize":
+      return authParam
+        ? appendPathToUrl({
+            path: `authorize/${authParam}`,
+            url: baseURL,
+          })
+        : "";
+    /** 3. provider sends {@link HybridAuthResponse} */
+    case "callback":
+      return appendPathToUrl({
+        path: `callback`,
+        url: baseURL,
+      });
+    /**  4. client gets {@link HybridAuthResponse */
+    case "token":
+      return tokenParam
+        ? appendPathToUrl({
+            path: `token/${tokenParam}`,
+            url: baseURL,
+          })
+        : "";
+    // TODO: metadata endpoints?
+    default:
+      return "";
+  }
 }
 
 /**
@@ -90,31 +339,37 @@ export function generateRandomCodeVerifier() {
  * @see {@link https://datatracker.ietf.org/doc/html/rfc7636#section-4.2 | RFC 7636, Client Creates the Code Challenge}
  */
 export async function deriveCodeChallenge(codeVerifier: Uint8Array) {
-  const codeChallengeBytes = await Sha256.digest({ data: codeVerifier });
+  const codeChallengeu8a = await Sha256.digest({ data: codeVerifier });
+  const codeChallengeb64url =
+    Convert.uint8Array(codeChallengeu8a).toBase64Url();
 
-  return codeChallengeBytes;
+  return { codeChallengeu8a, codeChallengeb64url };
 }
 
-async function createRequestObject(
+// TODO: when implementing pure OIDC split up the Web5 and OIDC params
+async function createAuthRequest(
   options: RequireOnly<
-    AuthorizationRequestObject,
-    "claims" | "client_id" | "redirect_uri"
+    HybridAuthRequest,
+    | "code_challenge"
+    | "code_challenge_method"
+    | "client_id"
+    | "scope"
+    | "redirect_uri"
+    | "permission_requests"
   >
 ) {
   // Generate a random state value to associate the authorization request with the response.
-  const randomState = generateRandomState();
+  const { randomStateu8a, ramdomStateb64url } = generateRandomState();
 
   // Generate a random nonce value to associate the ID Token with the authorization request.
-  const nonce = await deriveNonceFromInput(randomState.randomStateu8a);
+  const nonce = await deriveNonceFromInput(randomStateu8a);
 
-  // Define the Request Object properties.
-  const requestObject: AuthorizationRequestObject = {
+  const requestObject: HybridAuthRequest = {
     ...options,
     nonce,
-    response_uri: null, // TODO?
-    response_mode: "form_post",
     response_type: "id_token",
-    randomState: randomState.ramdomStateb64url,
+    response_mode: "direct_post",
+    state: ramdomStateb64url,
   };
 
   return requestObject;
@@ -128,7 +383,7 @@ async function signRequestObject({
 }: {
   keyId: string;
   keyUri: string;
-  request: AuthorizationRequestObject;
+  request: HybridAuthRequest;
   agent: Web5PlatformAgent;
 }) {
   try {
@@ -138,15 +393,15 @@ async function signRequestObject({
       typ: "JWT",
     }).toBase64Url();
 
-    const claims = Convert.object(request).toBase64Url();
+    const payload = Convert.object(request).toBase64Url();
 
     const signature = await agent.keyManager.sign({
       keyUri,
-      data: Convert.string(`${header}.${claims}`).toUint8Array(),
+      data: Convert.string(`${header}.${payload}`).toUint8Array(),
     });
     const signatureBase64Url = Convert.uint8Array(signature).toBase64Url();
 
-    const jwt = `${header}.${claims}.${signatureBase64Url}`;
+    const jwt = `${header}.${payload}.${signatureBase64Url}`;
 
     return jwt;
   } catch (e) {
@@ -346,10 +601,10 @@ async function encryptRequestJwt({
 //   return jwt;
 // }
 
-export const oidc = {
+export const Oidc = {
   generateRandomCodeVerifier,
-  buildRoutes,
-  createRequestObject,
+  buildOidcUrl,
+  createAuthRequest,
   signRequestObject,
   deriveCodeChallenge,
   encryptRequestJwt,
