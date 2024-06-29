@@ -70,7 +70,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@aws-sdk/client-kms": "3.577.0",
+    "@aws-sdk/client-kms": "3.588.0",
     "@web5/crypto": "1.0.0"
   },
   "devDependencies": {
