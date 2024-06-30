@@ -1,13 +1,13 @@
-import { DidResolver } from "@web5/dids";
-import { Convert, RequireOnly } from "@web5/common";
+import { DidResolver } from '@web5/dids';
+import { Convert, RequireOnly } from '@web5/common';
 
 // TODO connect: Find new jose
-import { JoseHeaderParams, Sha256, utils, EdDsaAlgorithm } from "@web5/crypto";
+import { JoseHeaderParams, Sha256, utils, EdDsaAlgorithm } from '@web5/crypto';
 
-import { appendPathToUrl } from "./utils.js";
-import { Hkdf } from "./prototyping/crypto/primitives/hkdf.js";
-import { Web5PlatformAgent } from "./types/agent.js";
-import { xchacha20poly1305 } from "@noble/ciphers/chacha";
+import { appendPathToUrl } from './utils.js';
+import { Hkdf } from './prototyping/crypto/primitives/hkdf.js';
+import { Web5PlatformAgent } from './types/agent.js';
+import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 
 /**
  * Sent to an OIDC server to authorize a client. Allows clients
@@ -78,7 +78,7 @@ type SIOPv2AuthRequest = {
   code_challenge: string;
 
   /** The method used for the PKCE challenge (typically `S256`). Must be present if `code_challenge` is included. */
-  code_challenge_method: "S256";
+  code_challenge_method: 'S256';
 
   /**
    * An ID token previously issued to the client, passed as a hint about the end-user’s current or past authenticated
@@ -93,7 +93,7 @@ type SIOPv2AuthRequest = {
   acr_values?: string;
 
   /** When using a PAR for secure cross device flows we use a "form_post" rather than a "direct_post" */
-  response_mode: "direct_post";
+  response_mode: 'direct_post';
 
   /** Used by PFI to request VCs as input to IDV process. If present, `response_type: "vp_token""` MUST also be present */
   presentation_definition?: any;
@@ -142,7 +142,7 @@ type HybridAuthResponse = SIOPv2AuthResponse & Web5ConnectAuthResponse;
 /** The fields for an OIDC SIOPv2 Auth Repsonse */
 type SIOPv2AuthResponse = {
   /** Issuer Identifier for the Issuer of the response. */
-  iss: "https://self-issued.me" | "https://self-issued.me/v2" | string;
+  iss: 'https://self-issued.me' | 'https://self-issued.me/v2' | string;
   /** Subject Identifier. A locally unique and never reassigned identifier
    * within the Issuer for the End-User, which is intended to be consumed
    * by the Client. */
@@ -215,10 +215,10 @@ type Web5ConnectAuthResponse = {};
  * 4. `token`: client gets {@link HybridAuthResponse} from this endpoint
  */
 type OidcEndpoint =
-  | "pushedAuthorizationRequest"
-  | "authorize"
-  | "callback"
-  | "token";
+  | 'pushedAuthorizationRequest'
+  | 'authorize'
+  | 'callback'
+  | 'token';
 
 /**
  * Gets the correct OIDC endpoint out of the {@link OidcEndpoint} options provided.
@@ -243,36 +243,36 @@ function buildOidcUrl({
 }) {
   switch (endpoint) {
     /** 1. client sends {@link PushedAuthRequest} & receives {@link PushedAuthResponse} */
-    case "pushedAuthorizationRequest":
+    case 'pushedAuthorizationRequest':
       return appendPathToUrl({
-        path: "par",
-        url: baseURL,
+        path : 'par',
+        url  : baseURL,
       });
     /** 2. provider gets {@link HybridAuthRequest} */
-    case "authorize":
+    case 'authorize':
       return authParam
         ? appendPathToUrl({
-            path: `authorize/${authParam}`,
-            url: baseURL,
-          })
-        : "";
+          path : `authorize/${authParam}`,
+          url  : baseURL,
+        })
+        : '';
     /** 3. provider sends {@link HybridAuthResponse} */
-    case "callback":
+    case 'callback':
       return appendPathToUrl({
-        path: `callback`,
-        url: baseURL,
+        path : `callback`,
+        url  : baseURL,
       });
     /**  4. client gets {@link HybridAuthResponse */
-    case "token":
+    case 'token':
       return tokenParam
         ? appendPathToUrl({
-            path: `token/${tokenParam}`,
-            url: baseURL,
-          })
-        : "";
+          path : `token/${tokenParam}`,
+          url  : baseURL,
+        })
+        : '';
     // TODO: metadata endpoints?
     default:
-      return "";
+      return '';
   }
 }
 
@@ -300,12 +300,12 @@ function generateRandomState() {
  */
 async function deriveNonceFromInput(state: Uint8Array) {
   const nonceBytes = await Hkdf.deriveKeyBytes({
-    hash: "SHA-256",
+    hash         : 'SHA-256',
     // TODO: verify this is correct
-    baseKeyBytes: state,
-    length: 16,
+    baseKeyBytes : state,
+    length       : 16,
     // TODO: verify this is correct
-    salt: utils.randomBytes(12),
+    salt         : utils.randomBytes(12),
   });
   // const { hash, info, inputKeyingMaterial, length, salt } = options;
 
@@ -350,12 +350,12 @@ export async function deriveCodeChallenge(codeVerifier: Uint8Array) {
 async function createAuthRequest(
   options: RequireOnly<
     HybridAuthRequest,
-    | "code_challenge"
-    | "code_challenge_method"
-    | "client_id"
-    | "scope"
-    | "redirect_uri"
-    | "permission_requests"
+    | 'code_challenge'
+    | 'code_challenge_method'
+    | 'client_id'
+    | 'scope'
+    | 'redirect_uri'
+    | 'permission_requests'
   >
 ) {
   // Generate a random state value to associate the authorization request with the response.
@@ -367,9 +367,9 @@ async function createAuthRequest(
   const requestObject: HybridAuthRequest = {
     ...options,
     nonce,
-    response_type: "id_token",
-    response_mode: "direct_post",
-    state: ramdomStateb64url,
+    response_type : 'id_token',
+    response_mode : 'direct_post',
+    state         : ramdomStateb64url,
   };
 
   return requestObject;
@@ -388,9 +388,9 @@ async function signRequestObject({
 }) {
   try {
     const header = Convert.object({
-      alg: "EdDSA",
-      kid: keyId,
-      typ: "JWT",
+      alg : 'EdDSA',
+      kid : keyId,
+      typ : 'JWT',
     }).toBase64Url();
 
     const payload = Convert.object(request).toBase64Url();
@@ -522,10 +522,10 @@ async function encryptRequestJwt({
   codeChallenge: Uint8Array;
 }) {
   const protectedHeader = {
-    alg: "dir",
-    cty: "JWT",
-    enc: "XC20P",
-    typ: "JWT",
+    alg : 'dir',
+    cty : 'JWT',
+    enc : 'XC20P',
+    typ : 'JWT',
   };
 
   const additionalData = Convert.object(protectedHeader).toUint8Array();
@@ -541,11 +541,11 @@ async function encryptRequestJwt({
 
   const compactJwe = [
     Convert.object(protectedHeader).toBase64Url(),
-    "", // Empty string since there is no wrapped key.
+    '', // Empty string since there is no wrapped key.
     Convert.uint8Array(nonce).toBase64Url(),
     Convert.uint8Array(ciphertext).toBase64Url(),
     Convert.uint8Array(authenticationTag).toBase64Url(),
-  ].join(".");
+  ].join('.');
 
   return compactJwe;
 }

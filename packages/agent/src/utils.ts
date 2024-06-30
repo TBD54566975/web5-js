@@ -103,7 +103,7 @@ export function appendPathToUrl({ path, url }: { url: string, path: string }): s
  * Polling function with interval, TTL accepting a custom fetch function
  * @template T - the return you expect from the fetcher
  * @param fetchFunction an http fetch function
- * @param [interval=3000] how frequently to poll 
+ * @param [interval=3000] how frequently to poll
  * @param [ttl=300_000] how long until polling stops
  * @returns T - the result of fetch
  */
@@ -124,7 +124,7 @@ export function pollWithTTL<T>(
         if (timeoutId !== null) {
           clearTimeout(timeoutId);
         }
-        console.log("Polling aborted by user");
+        console.log('Polling aborted by user');
         resolve(null);
       });
     }
@@ -136,7 +136,7 @@ export function pollWithTTL<T>(
 
       if (remainingTime <= 0) {
         isPolling = false;
-        console.log("Polling stopped: TTL reached");
+        console.log('Polling stopped: TTL reached');
         resolve(null);
         return;
       }
@@ -146,7 +146,7 @@ export function pollWithTTL<T>(
       try {
         const response = await fetchFunction();
 
-        console.log("Received response:", response);
+        console.log('Received response:', response);
 
         if (response.ok) {
           const data = (await response.json()) as T;
@@ -156,12 +156,12 @@ export function pollWithTTL<T>(
             clearTimeout(timeoutId);
           }
 
-          console.log("Polling stopped: Success condition met");
+          console.log('Polling stopped: Success condition met');
           resolve(data);
           return;
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error('Error fetching data:', error);
         reject(error);
       }
 

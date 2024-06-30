@@ -1,6 +1,6 @@
-import { Oidc, type PushedAuthResponse } from "./oidc-v2.js";
-import { pollWithTTL } from "./utils.js";
-import { type Web5PlatformAgent } from "./types/agent.js";
+import { Oidc, type PushedAuthResponse } from './oidc-v2.js';
+import { type Web5PlatformAgent } from './types/agent.js';
+import { pollWithTTL } from './utils.js';
 
 type ClientWalletConnectOptions = {
   /** The client app DID public key to connect to the wallet */
@@ -39,7 +39,7 @@ async function init({
   // }
 
   // Hash the code verifier to use as a code challenge and to encrypt the Request Object.
-  const { codeVerifieru8a, codeVerifierb64url } =
+  const { codeVerifieru8a } =
     Oidc.generateRandomCodeVerifier();
 
   // Derive the code challenge based on the code verifier
@@ -47,19 +47,19 @@ async function init({
     await Oidc.deriveCodeChallenge(codeVerifieru8a);
 
   // get callback buildOidcUrl to pass into the connect auth request
-  const callbackEndpoint = Oidc.buildOidcUrl({ baseURL, endpoint: "callback" });
+  const callbackEndpoint = Oidc.buildOidcUrl({ baseURL, endpoint: 'callback' });
 
   // build the PAR request
   const request = await Oidc.createAuthRequest({
-    client_id: callbackEndpoint,
-    scope: "web5", // TODO: clear with frank
-    code_challenge: codeChallengeb64url,
-    code_challenge_method: "S256",
-    permission_requests: permissionRequests,
-    redirect_uri: callbackEndpoint,
-    client_metadata: {
+    client_id             : callbackEndpoint,
+    scope                 : 'web5', // TODO: clear with frank
+    code_challenge        : codeChallengeb64url,
+    code_challenge_method : 'S256',
+    permission_requests   : permissionRequests,
+    redirect_uri          : callbackEndpoint,
+    client_metadata       : {
       client_uri,
-      subject_syntax_types_supported: ["did:dht"],
+      subject_syntax_types_supported: ['did:dht'],
     },
   });
 
@@ -67,7 +67,7 @@ async function init({
   const signingMethod = await agent.did.getSigningMethod({ didUri: clientDid });
 
   if (!signingMethod?.publicKeyJwk || !signingMethod?.id) {
-    throw new Error("Unable to determine client signing key ID.");
+    throw new Error('Unable to determine client signing key ID.');
   }
 
   // get the URI in the KMS
@@ -84,13 +84,13 @@ async function init({
   });
 
   if (!requestJwt) {
-    throw new Error("Unable to sign requestObject");
+    throw new Error('Unable to sign requestObject');
   }
 
   // Encrypt the Request Object JWT using the code challenge.
   const requestObjectJwe = await Oidc.encryptRequestJwt({
-    jwt: requestJwt,
-    codeChallenge: codeChallengeu8a,
+    jwt           : requestJwt,
+    codeChallenge : codeChallengeu8a,
   });
 
   // Convert the encrypted Request Object to URLSearchParams for form encoding.
@@ -98,20 +98,21 @@ async function init({
 
   const pushedAuthorizationRequestEndpoint = Oidc.buildOidcUrl({
     baseURL,
-    endpoint: "pushedAuthorizationRequest",
+    endpoint: 'pushedAuthorizationRequest',
   });
 
   const postPar = await pollWithTTL<PushedAuthResponse>(() =>
     fetch(pushedAuthorizationRequestEndpoint, {
-      body: formEncodedRequest,
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+      body    : formEncodedRequest,
+      method  : 'POST',
+      headers : {
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
     })
   );
 
   if (postPar?.request_uri) {
+    // pass the link back
   }
 
   //! we can test up until here
