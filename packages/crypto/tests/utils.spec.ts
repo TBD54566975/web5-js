@@ -10,6 +10,7 @@ import {
   isWebCryptoSupported,
   checkRequiredProperty,
   getJoseSignatureAlgorithmFromPublicKey,
+  randomPin
 } from '../src/utils.js';
 
 // TODO: Remove this polyfill once Node.js v18 is no longer supported by @web5/crypto.
@@ -164,6 +165,60 @@ describe('Crypto Utils', () => {
         set.add(randomUuid());
       }
       expect(set.size).to.equal(100);
+    });
+  });
+
+  describe('randomPin', () => {
+    it('generates a 3-digit PIN', () => {
+      const pin = randomPin({ length: 3 });
+      expect(pin).to.match(/^\d{3}$/);
+    });
+
+    it('generates a 4-digit PIN', () => {
+      const pin = randomPin({ length: 4 });
+      expect(pin).to.match(/^\d{4}$/);
+    });
+
+    it('generates a 5-digit PIN', () => {
+      const pin = randomPin({ length: 5 });
+      expect(pin).to.match(/^\d{5}$/);
+    });
+
+    it('generates a 6-digit PIN', () => {
+      const pin = randomPin({ length: 6 });
+      expect(pin).to.match(/^\d{6}$/);
+    });
+
+    it('generates a 7-digit PIN', () => {
+      const pin = randomPin({ length: 7 });
+      expect(pin).to.match(/^\d{7}$/);
+    });
+
+    it('generates an 8-digit PIN', () => {
+      const pin = randomPin({ length: 8 });
+      expect(pin).to.match(/^\d{8}$/);
+    });
+
+    it('generates an 9-digit PIN', () => {
+      const pin = randomPin({ length: 8 });
+      expect(pin).to.match(/^\d{8}$/);
+    });
+
+    it('generates an 10-digit PIN', () => {
+      const pin = randomPin({ length: 8 });
+      expect(pin).to.match(/^\d{8}$/);
+    });
+
+    it('throws an error for a PIN length less than 3', () => {
+      expect(
+        () => randomPin({ length: 2 })
+      ).to.throw(Error, 'randomPin() can securely generate a PIN between 3 to 10 digits.');
+    });
+
+    it('throws an error for a PIN length greater than 10', () => {
+      expect(
+        () => randomPin({ length: 11 })
+      ).to.throw(Error, 'randomPin() can securely generate a PIN between 3 to 10 digits.');
     });
   });
 });

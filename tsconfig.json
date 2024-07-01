@@ -4,7 +4,7 @@
       "DOM",
       "ES2022",
     ],
-    "allowJs": true,
+    "allowJs": false,
     "strict": true,
     "declaration": true,
     "declarationMap": true,
@@ -16,5 +16,6 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "moduleResolution": "NodeNext"
-  }
+  },
+  "exclude": ["eslint.config.cjs", "data", "bin", "web5-spec", "node_modules"]
 }

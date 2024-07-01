@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web5 Profile Creation</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <div class="screen" id="screen0">
+    <h1>Dwitter</h1>
+    <button onclick="switchScreen('screen1')">Get started</button>
+    <p class="subtle-text">Already have a Web5 profile?</p>
+    <button onclick="alert('ID agent login not implemented yet.')" class="alt-btn">Sign in with your ID agent</button>
+  </div>
+
+  <div class="screen" id="screen1" style="display: none;">
+    <h2>Let’s create your first Web5 profile</h2>
+    <p><span style="font-weight:bold">A Web5 profile is a “version” of yourself in Web5.</span>
+      You can have multiple Web5 profiles, each for a different side
+      of yourself (like social vs. professional).</p>
+    <p>You can use a Web5 profile across multiple Web5 apps (more on that later).</p>
+    <button onclick="switchScreen('screen2')">Next</button>
+  </div>
+
+  <div class="screen" id="screen2" style="display: none;">
+    <h2>Enter a public display name for your Web5 profile</h2>
+    <p>This is how others will see you in Dwitter and wherever else you use this Web5 profile. You can change this
+      later.</p>
+    <input type="text" placeholder="Public display name" id="displayName">
+    <button onclick="switchScreen('screen3')">Next</button>
+  </div>
+
+  <div class="screen" id="screen3" style="display: none;">
+    <h2>Here’s your new Web5 profile</h2>
+    <p>You'll use it in Twitter, but you can also use it in other Web5 apps (more on that later).</p>
+    <div id="profileDisplay">
+      <div class="profile-icon">
+        <span id="profileInitial"></span>
+      </div>
+      <div> <!-- Additional div container to structure the text -->
+        <span id="profileName"></span>
+        <p class="profile-text">My first Web5 profile</p>
+      </div>
+    </div>
+    <button onclick="alert('Profile created!')">Continue</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>

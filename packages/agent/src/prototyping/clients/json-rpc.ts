@@ -29,7 +29,8 @@ export enum JsonRpcErrorCodes {
   // App defined errors
   BadRequest = -50400, // equivalent to HTTP Status 400
   Unauthorized = -50401, // equivalent to HTTP Status 401
-  Forbidden = -50403, // equivalent to HTTP Status 403
+  Forbidden = -50403, // equivalent to HTTP Status 403,
+  Conflict = -50409, // equivalent to HTTP Status 409
 }
 
 export type JsonRpcResponse = JsonRpcSuccessResponse | JsonRpcErrorResponse;

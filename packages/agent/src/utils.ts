@@ -85,3 +85,186 @@ export async function getPaginationCursor(message: RecordsWriteMessage, dateSort
 export function webReadableToIsomorphicNodeReadable(webReadable: ReadableStream<any>) {
   return new ReadableWebToNodeStream(webReadable);
 }
+
+export function appendPathToUrl({ path, url }: { url: string, path: string }): string {
+  const urlObject = new URL(url);
+  const lastChar = urlObject.pathname.slice(-1);
+
+  if (lastChar === '/') {
+    urlObject.pathname += path;
+  } else {
+    urlObject.pathname += `/${path}`;
+  }
+
+  return urlObject.toString();
+}
+
+/**
+ * Polling function with interval, TTL accepting a custom fetch function
+ * @template T - the return you expect from the fetcher
+ * @param fetchFunction an http fetch function
+ * @param [interval=3000] how frequently to poll
+ * @param [ttl=300_000] how long until polling stops
+ * @returns T - the result of fetch
+ */
+export function pollWithTTL<T>(
+  fetchFunction: () => Promise<Response>,
+  interval = 3000,
+  ttl = 300_000,
+  abortSignal?: AbortSignal
+): Promise<T | null> {
+  const endTime = Date.now() + ttl;
+  let timeoutId: NodeJS.Timeout | null = null;
+  let isPolling = true;
+
+  return new Promise((resolve, reject) => {
+    if (abortSignal) {
+      abortSignal.addEventListener('abort', () => {
+        isPolling = false;
+        if (timeoutId !== null) {
+          clearTimeout(timeoutId);
+        }
+        console.log('Polling aborted by user');
+        resolve(null);
+      });
+    }
+
+    async function poll() {
+      if (!isPolling) return;
+
+      const remainingTime = endTime - Date.now();
+
+      if (remainingTime <= 0) {
+        isPolling = false;
+        console.log('Polling stopped: TTL reached');
+        resolve(null);
+        return;
+      }
+
+      console.log(`Polling... (Remaining time: ${Math.ceil(remainingTime / 1000)}s)`);
+
+      try {
+        const response = await fetchFunction();
+
+        console.log('Received response:', response);
+
+        if (response.ok) {
+          const data = (await response.json()) as T;
+          isPolling = false;
+
+          if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+          }
+
+          console.log('Polling stopped: Success condition met');
+          resolve(data);
+          return;
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        reject(error);
+      }
+
+      if (isPolling) {
+        timeoutId = setTimeout(poll, interval);
+      }
+    }
+
+    poll();
+  });
+}
+
+export async function poll<T>(fn: () => Promise<T>, options: { interval: number, validate?: (result: T) => boolean, abortSignal?: AbortSignal }): Promise<T>;
+export async function poll<T>(fn: () => Promise<T>, options: { interval: number, validate?: (result: T) => boolean, abortSignal?: AbortSignal, callback?: (result: T) => Promise<void> }): Promise<void>;
+export async function poll<T>(
+  fn: () => Promise<T>,
+  {
+    interval,
+    validate = () => true,
+    abortSignal,
+    callback,
+  }: {
+    interval: number,
+    validate?: (result: T) => boolean,
+    abortSignal?: AbortSignal,
+    callback?: (result: T) => Promise<void>
+  }
+): Promise<void | T> {
+  while (!abortSignal?.aborted) {
+    try {
+      const result = await fn();
+      // If the result is valid...
+      if (validate(result)) {
+        // ...and a `callback` function is not provided, return the result.
+        if (!callback) return result;
+        // ...otherwise, invoke the callback and continue polling.
+        callback(result);
+      }
+    } catch (error) { /* Ignore errors and continue polling. */ }
+
+    // Await the interval.
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+}
+
+/**
+ * Retries an asynchronous function a specified number of times at given intervals.
+ *
+ * @template T - The type of the result returned by the asynchronous function.
+ * @param {() => Promise<T>} fn - The asynchronous function to retry.
+ * @param {Object} options - An object specifying retry options.
+ * @param {number} options.maxRetries - The maximum number of retry attempts.
+ * @param {number} options.interval - The delay between retries in milliseconds.
+ * @param {string} options.errorMsg - The error message to throw if all retries fail.
+ * @param {(result: T) => boolean} [options.validate = () => true] - An optional validation function
+ *                                                                   that returns a boolean
+ *                                                                   indicating whether the result
+ *                                                                   is valid.
+ *
+ * @returns {Promise<T>} - A Promise that resolves to the result of the asynchronous function if it
+ *                         succeeds within the specified number of retries, or rejects with an error
+ *                         if all retries fail.
+ *
+ * @throws Will throw an error if the function fails to produce a valid result after the specified
+ *         number of retries, or if the validation function consistently returns `false`.
+ *
+ * @example
+ * const result = await retry(
+ *   () => someAsyncFunction(),
+ *   {
+ *     maxRetries: 3,
+ *     interval: 100,
+ *     errorMsg: 'Failed after 3 retries',
+ *     validate: (result) => result !== undefined,
+ *   }
+ * );
+ */
+export async function retry<T>(
+  fn: () => Promise<T>,
+  {
+    maxRetries,
+    interval,
+    errorMsg,
+    validate = () => true,
+  }: {
+    maxRetries: number,
+    interval: number,
+    errorMsg: string,
+    validate?: (result: T) => boolean
+  }
+): Promise<T> {
+  let attempts = 0;
+  while (attempts < maxRetries) {
+    try {
+      const result = await fn();
+      if (validate(result)) {
+        return result;
+      }
+      throw new Error('Validation failed');
+    } catch (error) {
+      attempts++;
+      await new Promise((resolve) => setTimeout(resolve, interval));
+    }
+  }
+  throw new Error(errorMsg);
+}

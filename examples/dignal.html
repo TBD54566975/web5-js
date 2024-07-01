@@ -1,0 +1,50 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dignal</title>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Public+Sans:wght@400;500;700&display=swap">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-[#181818] text-gray-300 font-sans dark-mode h-screen overflow-y-hidden"
+  style="font-family: 'Public Sans'">
+  <!-- <div id="root" class="h-screen flex justify-center items-center"> -->
+  <div id="root" class="h-full m-0">
+    <div id="screen0" class="max-w-[480px] h-full m-auto py-6 flex text-center">
+      <div class="flex flex-col text-center justify-center m-auto ps-6 pe-6 gap-x-8 gap-y-8">
+        <img alt="Blank white speech bubble with a light blue outline" src="assets/speech-bubble.png">
+        <div>
+          <h1 class="text-[2em] font-bold" style="font-family: 'Press Start 2P'">Dignal</h1>
+          <p class="text-xl leading-normal my-4">End-to-end encrypted, decentralized chat
+            <strong class="font-semibold">built atop the Web5 chat protocol</strong>
+          </p>
+        </div>
+        <button
+          class="bg-[#ffd600] text-gray-900 text-xl leading-normal font-medium py-[.875rem] px-[.875rem] rounded hover:bg-[#ffd600] focus:bg-[#ffd600] active:bg-[#ffb800]"
+          onclick="switchScreen('screen1')">Get started</button>
+      </div>
+    </div>
+    <div id="screen1" class="max-w-[480px] h-full m-auto py-6 flex text-center hidden">
+      <div class="flex flex-col text-center justify-center m-auto ps-6 pe-6 gap-x-8 gap-y-8">
+        <img alt="Blank white speech bubble with a light blue outline" src="assets/speech-bubble.png">
+        <div>
+          <h1 class="text-[2em] font-bold" style="font-family: 'Press Start 2P'">Dignal</h1>
+          <p class="text-xl leading-normal my-4">End-to-end encrypted, decentralized chat
+            <strong class="font-semibold">built atop the Web5 chat protocol</strong>
+          </p>
+        </div>
+        <button
+          class="bg-[#ffd600] text-gray-900 text-xl leading-normal font-medium py-[.875rem] px-[.875rem] rounded hover:bg-[#ffd600] focus:bg-[#ffd600] active:bg-[#ffb800]"
+          onclick="switchScreen('screen1')">Get started</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
