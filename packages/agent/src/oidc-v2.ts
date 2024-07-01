@@ -1,8 +1,5 @@
-import { DidResolver } from '@web5/dids';
 import { Convert, RequireOnly } from '@web5/common';
-
-// TODO connect: Find new jose
-import { JoseHeaderParams, Sha256, utils, EdDsaAlgorithm } from '@web5/crypto';
+import { Sha256, utils } from '@web5/crypto';
 
 import { appendPathToUrl } from './utils.js';
 import { Hkdf } from './prototyping/crypto/primitives/hkdf.js';
@@ -17,7 +14,7 @@ import { xchacha20poly1305 } from '@noble/ciphers/chacha';
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc9126.html | OAuth 2.0 Pushed Authorization Requests}
  */
-type PushedAuthRequest = {
+export type PushedAuthRequest = {
   /** The JWT which contains the {@link HybridAuthRequest} */
   request: string;
 };
@@ -33,16 +30,19 @@ export type PushedAuthResponse = {
   expires_in: number;
 };
 
-/** An auth request that is compatible with both Web5 Connect and (hopefully, WIP) OIDC SIOPv2 */
-type HybridAuthRequest = SIOPv2AuthRequest & Web5ConnectRequest;
+/**
+ * An auth request that is compatible with both Web5 Connect and (hopefully, WIP) OIDC SIOPv2
+ * The contents of this are inserted into a JWT inside of the {@link PushedAuthRequest}.
+ */
+export type HybridAuthRequest = SIOPv2AuthRequest & Web5ConnectRequest;
 
 /**
  * Used in decentralized apps. The SIOPv2 Auth Request is created by a client relying party (RP)
  * often a web service or an app who wants to obtain information from a provider
- * The contents of these are inserted into a JWT inside of the {@link PushedAuthRequest}.
+ * The contents of this are inserted into a JWT inside of the {@link PushedAuthRequest}.
  * @see {@link https://github.com/TBD54566975/known-customer-credential | TBD OIDC Documentation for SIOPv2 }
  */
-type SIOPv2AuthRequest = {
+export type SIOPv2AuthRequest = {
   /** Often the same as the redirect_uri */
   client_id: string;
 
@@ -117,8 +117,11 @@ type SIOPv2AuthRequest = {
   };
 };
 
-/** Claims specific to Web5 Connect rather than OIDC */
-type Web5ConnectRequest = {
+/**
+ * Claims specific to Web5 Connect rather than OIDC
+ * The contents of this are inserted into a JWT inside of the {@link PushedAuthRequest}.
+ */
+export type Web5ConnectRequest = {
   /** PermissionGrants that are to be sent to the provider */
   permission_requests: string[];
 };
@@ -132,15 +135,14 @@ type Web5ConnectRequest = {
 //   nonce: string;
 //   redirect_uri: string;
 //   state?: string;
-
 //   [key: string]: any;
 // }
 
 /** An auth response that is compatible with both Web5 Connect and (hopefully, WIP) OIDC SIOPv2 */
-type HybridAuthResponse = SIOPv2AuthResponse & Web5ConnectAuthResponse;
+export type HybridAuthResponse = SIOPv2AuthResponse & Web5ConnectAuthResponse;
 
 /** The fields for an OIDC SIOPv2 Auth Repsonse */
-type SIOPv2AuthResponse = {
+export type SIOPv2AuthResponse = {
   /** Issuer Identifier for the Issuer of the response. */
   iss: 'https://self-issued.me' | 'https://self-issued.me/v2' | string;
   /** Subject Identifier. A locally unique and never reassigned identifier
@@ -164,49 +166,8 @@ type SIOPv2AuthResponse = {
   [key: string]: any;
 };
 
-/** The fields for an Web5 Connect Auth Repsonse */
-type Web5ConnectAuthResponse = {};
-
-// /**
-//  * Used in decentralized apps.
-//  * The SIOPv2 Auth Request is created by a client relying party (RP), often a web service or an app,
-//  * who wants to obtain information from a provider. That provider will return a `SIOPv2AuthResponse`. // TODO: need to type this as well
-//  *
-//  * @see {@link https://github.com/TBD54566975/known-customer-credential | TBD OIDC Documentation for SIOPv2 }
-//  */
-// type SIOPv2AuthRequestData = {
-//   /** The DID of the RP (client)	*/
-//   client_id: string;
-//   /** What's being requested. 'openid' indicates ID Token is being requested */
-//   scope: string;
-//   /** What sort of response the RP is expecting. MUST include id_token. MAY include vp_token */
-//   response_type: string;
-//   /** The URI to which the SIOPv2 Authorization Response will be sent (Tim's note: not used with encrypted request JWT)*/
-//   response_uri: string;
-//   /** The mode in which the SIOPv2 Authorization Response will be sent. MUST be direct_post */
-//   response_mode: "direct_post";
-//   /** Used by PFI to request VCs as input to IDV process. If present, `response_type: "vp_token""` MUST also be present */
-//   presentation_definition?: any;
-//   /** A nonce which MUST be included in the ID Token provided in the SIOPv2 Authorization Response */
-//   nonce: string;
-//   /** A JSON object containing the Verifier metadata values */
-//   client_metadata: {
-//     /** Array of strings, each a DID method supported for the subject of ID Token	*/
-//     subject_syntax_types_supported: string[];
-//     /** Human-readable string name of the client to be presented to the end-user during authorization */
-//     client_name?: string;
-//     /** URI of a web page providing information about the client */
-//     client_uri?: string;
-//     /** URI of an image logo for the client */
-//     logo_uri?: string;
-//     /** Array of strings representing ways to contact people responsible for this client, typically email addresses */
-//     contacts?: string[];
-//     /** URI that points to a terms of service document for the client */
-//     tos_uri?: string;
-//     /** URI that points to a privacy policy document */
-//     policy_uri?: string;
-//   };
-// };
+/** The fields for an Web5 Connect Auth Response */
+export type Web5ConnectAuthResponse = {};
 
 /** Represents the different OIDC endpoint types.
  * 1. `pushedAuthorizationRequest`: client sends {@link PushedAuthRequest} receives {@link PushedAuthResponse}
