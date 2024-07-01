@@ -1,14 +1,8 @@
 import type { DidService } from '@web5/dids';
 import type { Readable, RequireOnly } from '@web5/common';
 import type {
-  EventsQueryReply,
-  MessagesGetReply,
   RecordsReadReply,
   RecordsQueryReply,
-  EventsQueryMessage,
-  EventsQueryOptions,
-  MessagesGetMessage,
-  MessagesGetOptions,
   RecordsReadMessage,
   RecordsReadOptions,
   GenericMessageReply,
@@ -23,18 +17,23 @@ import type {
   ProtocolsQueryOptions,
   ProtocolsConfigureMessage,
   ProtocolsConfigureOptions,
-  EventsSubscribeMessage,
   RecordsSubscribeMessage,
-  EventsSubscribeOptions,
   RecordsSubscribeOptions,
-  EventsSubscribeReply,
   RecordsSubscribeReply,
   MessageSubscriptionHandler,
   RecordSubscriptionHandler,
+  MessagesQueryMessage,
+  MessagesReadMessage,
+  MessagesSubscribeMessage,
+  MessagesQueryOptions,
+  MessagesReadOptions,
+  MessagesSubscribeOptions,
+  MessagesQueryReply,
+  MessagesReadReply,
+  MessagesSubscribeReply,
 } from '@tbd54566975/dwn-sdk-js';
 
 import {
-  MessagesGet,
   RecordsRead,
   RecordsQuery,
   RecordsWrite,
@@ -43,9 +42,10 @@ import {
   ProtocolsQuery,
   DwnInterfaceName,
   ProtocolsConfigure,
-  EventsQuery,
-  EventsSubscribe,
   RecordsSubscribe,
+  MessagesQuery,
+  MessagesRead,
+  MessagesSubscribe,
 } from '@tbd54566975/dwn-sdk-js';
 
 /**
@@ -87,22 +87,22 @@ export interface DwnDidService extends DidService {
 }
 
 export enum DwnInterface {
-  EventsQuery        = DwnInterfaceName.Events + DwnMethodName.Query,
-  EventsSubscribe    = DwnInterfaceName.Events + DwnMethodName.Subscribe,
-  MessagesGet        = DwnInterfaceName.Messages + DwnMethodName.Get,
-  ProtocolsConfigure = DwnInterfaceName.Protocols + DwnMethodName.Configure,
-  ProtocolsQuery     = DwnInterfaceName.Protocols + DwnMethodName.Query,
-  RecordsDelete      = DwnInterfaceName.Records + DwnMethodName.Delete,
-  RecordsQuery       = DwnInterfaceName.Records + DwnMethodName.Query,
-  RecordsRead        = DwnInterfaceName.Records + DwnMethodName.Read,
-  RecordsSubscribe   = DwnInterfaceName.Records + DwnMethodName.Subscribe,
-  RecordsWrite       = DwnInterfaceName.Records + DwnMethodName.Write
+  MessagesQuery       = DwnInterfaceName.Messages + DwnMethodName.Query,
+  MessagesRead        = DwnInterfaceName.Messages + DwnMethodName.Read,
+  MessagesSubscribe   = DwnInterfaceName.Messages + DwnMethodName.Subscribe,
+  ProtocolsConfigure  = DwnInterfaceName.Protocols + DwnMethodName.Configure,
+  ProtocolsQuery      = DwnInterfaceName.Protocols + DwnMethodName.Query,
+  RecordsDelete       = DwnInterfaceName.Records + DwnMethodName.Delete,
+  RecordsQuery        = DwnInterfaceName.Records + DwnMethodName.Query,
+  RecordsRead         = DwnInterfaceName.Records + DwnMethodName.Read,
+  RecordsSubscribe    = DwnInterfaceName.Records + DwnMethodName.Subscribe,
+  RecordsWrite        = DwnInterfaceName.Records + DwnMethodName.Write
 }
 
 export interface DwnMessage {
-  [DwnInterface.EventsSubscribe]    : EventsSubscribeMessage;
-  [DwnInterface.EventsQuery]        : EventsQueryMessage;
-  [DwnInterface.MessagesGet]        : MessagesGetMessage;
+  [DwnInterface.MessagesQuery]      : MessagesQueryMessage;
+  [DwnInterface.MessagesRead]       : MessagesReadMessage;
+  [DwnInterface.MessagesSubscribe]  : MessagesSubscribeMessage;
   [DwnInterface.ProtocolsConfigure] : ProtocolsConfigureMessage;
   [DwnInterface.ProtocolsQuery]     : ProtocolsQueryMessage;
   [DwnInterface.RecordsDelete]      : RecordsDeleteMessage;
@@ -113,9 +113,9 @@ export interface DwnMessage {
 }
 
 export interface DwnMessageDescriptor {
-  [DwnInterface.EventsSubscribe]    : EventsSubscribeMessage['descriptor'];
-  [DwnInterface.EventsQuery]        : EventsQueryMessage['descriptor'];
-  [DwnInterface.MessagesGet]        : MessagesGetMessage['descriptor'];
+  [DwnInterface.MessagesQuery]      : MessagesQueryMessage['descriptor'];
+  [DwnInterface.MessagesRead]       : MessagesReadMessage['descriptor'];
+  [DwnInterface.MessagesSubscribe]  : MessagesSubscribeMessage['descriptor'];
   [DwnInterface.ProtocolsConfigure] : ProtocolsConfigureMessage['descriptor'];
   [DwnInterface.ProtocolsQuery]     : ProtocolsQueryMessage['descriptor'];
   [DwnInterface.RecordsDelete]      : RecordsDeleteMessage['descriptor'];
@@ -126,9 +126,9 @@ export interface DwnMessageDescriptor {
 }
 
 export interface DwnMessageParams {
-  [DwnInterface.EventsQuery]        : RequireOnly<EventsQueryOptions, 'filters'>;
-  [DwnInterface.EventsSubscribe]    : Partial<EventsSubscribeOptions>;
-  [DwnInterface.MessagesGet]        : RequireOnly<MessagesGetOptions, 'messageCids'>;
+  [DwnInterface.MessagesQuery]      : RequireOnly<MessagesQueryOptions, 'filters'>;
+  [DwnInterface.MessagesRead]       : RequireOnly<MessagesReadOptions, 'messageCid'>;
+  [DwnInterface.MessagesSubscribe]  : Partial<MessagesSubscribeOptions>;
   [DwnInterface.ProtocolsConfigure] : RequireOnly<ProtocolsConfigureOptions, 'definition'>;
   [DwnInterface.ProtocolsQuery]     : ProtocolsQueryOptions;
   [DwnInterface.RecordsDelete]      : RequireOnly<RecordsDeleteOptions, 'recordId'>;
@@ -139,9 +139,9 @@ export interface DwnMessageParams {
 }
 
 export interface DwnMessageReply {
-  [DwnInterface.EventsQuery]        : EventsQueryReply;
-  [DwnInterface.EventsSubscribe]    : EventsSubscribeReply;
-  [DwnInterface.MessagesGet]        : MessagesGetReply;
+  [DwnInterface.MessagesQuery]      : MessagesQueryReply;
+  [DwnInterface.MessagesRead]       : MessagesReadReply;
+  [DwnInterface.MessagesSubscribe]  : MessagesSubscribeReply;
   [DwnInterface.ProtocolsConfigure] : GenericMessageReply;
   [DwnInterface.ProtocolsQuery]     : ProtocolsQueryReply;
   [DwnInterface.RecordsDelete]      : GenericMessageReply;
@@ -152,12 +152,12 @@ export interface DwnMessageReply {
 }
 
 export interface MessageHandler {
-  [DwnInterface.EventsSubscribe]    : MessageSubscriptionHandler;
+  [DwnInterface.MessagesSubscribe]  : MessageSubscriptionHandler;
   [DwnInterface.RecordsSubscribe]   : RecordSubscriptionHandler;
 
   // define all of them individually as undefined
-  [DwnInterface.EventsQuery]        : undefined;
-  [DwnInterface.MessagesGet]        : undefined;
+  [DwnInterface.MessagesQuery]      : undefined;
+  [DwnInterface.MessagesRead]       : undefined;
   [DwnInterface.ProtocolsConfigure] : undefined;
   [DwnInterface.ProtocolsQuery]     : undefined;
   [DwnInterface.RecordsDelete]      : undefined;
@@ -210,9 +210,9 @@ export interface DwnMessageConstructor<T extends DwnInterface> {
 }
 
 export const dwnMessageConstructors: { [T in DwnInterface]: DwnMessageConstructor<T> } = {
-  [DwnInterface.EventsQuery]        : EventsQuery as any,
-  [DwnInterface.EventsSubscribe]    : EventsSubscribe as any,
-  [DwnInterface.MessagesGet]        : MessagesGet as any,
+  [DwnInterface.MessagesQuery]      : MessagesQuery as any,
+  [DwnInterface.MessagesRead]       : MessagesRead as any,
+  [DwnInterface.MessagesSubscribe]  : MessagesSubscribe as any,
   [DwnInterface.ProtocolsConfigure] : ProtocolsConfigure as any,
   [DwnInterface.ProtocolsQuery]     : ProtocolsQuery as any,
   [DwnInterface.RecordsDelete]      : RecordsDelete as any,
@@ -225,9 +225,9 @@ export const dwnMessageConstructors: { [T in DwnInterface]: DwnMessageConstructo
 export type DwnMessageConstructors = typeof dwnMessageConstructors;
 
 export interface DwnMessageInstance {
-  [DwnInterface.EventsQuery]        : EventsQuery;
-  [DwnInterface.EventsSubscribe]    : EventsSubscribe;
-  [DwnInterface.MessagesGet]        : MessagesGet;
+  [DwnInterface.MessagesQuery]      : MessagesQuery;
+  [DwnInterface.MessagesRead]       : MessagesRead;
+  [DwnInterface.MessagesSubscribe]  : MessagesSubscribe;
   [DwnInterface.ProtocolsConfigure] : ProtocolsConfigure;
   [DwnInterface.ProtocolsQuery]     : ProtocolsQuery;
   [DwnInterface.RecordsDelete]      : RecordsDelete;

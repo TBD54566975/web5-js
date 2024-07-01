@@ -1,23 +1,22 @@
 import type { ULIDFactory } from 'ulidx';
 import type { AbstractBatchOperation, AbstractLevel } from 'abstract-level';
 import type {
-  EventsQueryReply,
   GenericMessage,
-  MessagesGetReply,
+  MessagesQueryReply,
+  MessagesReadReply,
   PaginationCursor,
 } from '@tbd54566975/dwn-sdk-js';
 
 import ms from 'ms';
 import { Level } from 'level';
 import { monotonicFactory } from 'ulidx';
-import { Convert, NodeStream } from '@web5/common';
-import { DataStream } from '@tbd54566975/dwn-sdk-js';
+import { NodeStream } from '@web5/common';
 
 import type { SyncEngine } from './types/sync.js';
 import type { Web5PlatformAgent } from './types/agent.js';
 
 import { DwnInterface } from './types/dwn.js';
-import { getDwnServiceEndpointUrls, isRecordsWrite } from './utils.js';
+import { getDwnServiceEndpointUrls, isRecordsWrite, webReadableToIsomorphicNodeReadable } from './utils.js';
 
 export type SyncEngineLevelParams = {
   agent?: Web5PlatformAgent;
@@ -34,9 +33,6 @@ type SyncState = {
   dwnUrl: string;
   cursor?: PaginationCursor,
 }
-
-const is2xx = (code: number) => code >= 200 && code <= 299;
-const is4xx = (code: number) => code >= 400 && code <= 499;
 
 export class SyncEngineLevel implements SyncEngine {
   /**
@@ -108,97 +104,46 @@ export class SyncEngineLevel implements SyncEngine {
         continue;
       }
 
-      const messagesGet = await this.agent.dwn.createMessage({
+      const messagesRead = await this.agent.dwn.createMessage({
         author        : did,
-        messageType   : DwnInterface.MessagesGet,
+        messageType   : DwnInterface.MessagesRead,
         messageParams : {
-          messageCids: [messageCid]
+          messageCid: messageCid
         }
       });
 
-      let reply: MessagesGetReply;
+      let reply: MessagesReadReply;
 
       try {
         reply = await this.agent.rpc.sendDwnRequest({
           dwnUrl,
           targetDid : did,
-          message   : messagesGet
-        }) as MessagesGetReply;
+          message   : messagesRead,
+        }) as MessagesReadReply;
       } catch(e) {
         errored.add(dwnUrl);
         continue;
       }
 
-      // TODO: Refactor this to batch network requests for record messages rather than one at a time.
-      // Per Moe, this loop exists because the original intent was to pass multiple messageCid
-      // values to batch network requests for record messages rather than one at a time, as it
-      // is currently implemented.  Either the pull() method should be refactored to batch
-      // getting messages OR this loop should be removed.
-      for (let entry of reply.entries ?? []) {
-        if (entry.error || !entry.message) {
-          await this.addMessage(did, messageCid);
-          deleteOperations.push({ type: 'del', key: key });
+      if (!reply.entry?.message) {
+        await this.addMessage(did, messageCid);
+        deleteOperations.push({ type: 'del', key: key });
+        continue;
+      }
 
-          continue;
-        }
+      const replyEntry = reply.entry;
 
+      if (isRecordsWrite(replyEntry) && replyEntry.data) {
+        const message = replyEntry.message;
         let dataStream;
-
-        if (isRecordsWrite(entry)) {
-          const { encodedData } = entry;
-          const message = entry.message;
-
-          if (encodedData) {
-            const dataBytes = Convert.base64Url(encodedData).toUint8Array();
-            dataStream = DataStream.fromBytes(dataBytes);
-          } else {
-            const recordsRead = await this.agent.dwn.createMessage({
-              author        : did,
-              messageType   : DwnInterface.RecordsRead,
-              messageParams : {
-                filter: {
-                  recordId: message.recordId
-                }
-              }
-            });
-
-            const recordsReadReply = await this.agent.rpc.sendDwnRequest({
-              dwnUrl,
-              targetDid : did,
-              message   : recordsRead.message
-            });
-
-            const { record, status: readStatus } = recordsReadReply;
-
-            if (is2xx(readStatus.code) && record) {
-              // If the read was successful, convert the data stream from web ReadableStream
-              // to Node.js Readable so that the DWN can process it.
-              // TODO: Remove the type assertion once sendDwnRequest type is fixed to return a ReadableStream.
-              dataStream = NodeStream.fromWebReadable({ readableStream: record.data as unknown as ReadableStream });
-
-            } else if (readStatus.code >= 400) {
-              // writes record without data, if this is an initial records write, it will succeed.
-              const pruneReply = await this.agent.dwn.processMessage({
-                targetDid: did,
-                message
-              });
-
-              if (pruneReply.status.code === 202 || pruneReply.status.code === 409) {
-                await this.addMessage(did, messageCid);
-                deleteOperations.push({ type: 'del', key: key });
-
-                continue;
-              } else {
-                throw new Error(`SyncManager: Failed to sync tombstone for message '${messageCid}'`);
-              }
-            }
-          }
+        if (replyEntry.data instanceof ReadableStream) {
+          dataStream = webReadableToIsomorphicNodeReadable(replyEntry.data);
         }
 
         const pullReply = await this.agent.dwn.processMessage({
-          targetDid : did,
-          message   : entry.message,
-          dataStream
+          targetDid: did,
+          message,
+          dataStream,
         });
 
         if (pullReply.status.code === 202 || pullReply.status.code === 409) {
@@ -355,40 +300,40 @@ export class SyncEngineLevel implements SyncEngine {
     syncDirection: SyncDirection,
     cursor?: PaginationCursor
   }) {
-    let eventsReply = {} as EventsQueryReply;
+    let messagesReply = {} as MessagesQueryReply;
 
     if (syncDirection === 'pull') {
       // When sync is a pull, get the event log from the remote DWN.
-      const eventsGetMessage = await this.agent.dwn.createMessage({
+      const messagesReadMessage = await this.agent.dwn.createMessage({
         author        : did,
-        messageType   : DwnInterface.EventsQuery,
+        messageType   : DwnInterface.MessagesQuery,
         messageParams : { filters: [], cursor }
       });
 
       try {
-        eventsReply = await this.agent.rpc.sendDwnRequest({
+        messagesReply = await this.agent.rpc.sendDwnRequest({
           dwnUrl    : dwnUrl,
           targetDid : did,
-          message   : eventsGetMessage
-        }) as EventsQueryReply;
+          message   : messagesReadMessage
+        }) as MessagesQueryReply;
       } catch {
         // If a particular DWN service endpoint is unreachable, silently ignore.
       }
 
     } else if (syncDirection === 'push') {
       // When sync is a push, get the event log from the local DWN.
-      const eventsGetDwnResponse = await this.agent.dwn.processRequest({
+      const messagesReadDwnResponse = await this.agent.dwn.processRequest({
         author        : did,
         target        : did,
-        messageType   : DwnInterface.EventsQuery,
+        messageType   : DwnInterface.MessagesQuery,
         messageParams : { filters: [], cursor }
       });
-      eventsReply = eventsGetDwnResponse.reply as EventsQueryReply;
+      messagesReply = messagesReadDwnResponse.reply as MessagesQueryReply;
     }
 
-    const eventLog = eventsReply.entries ?? [];
-    if (eventsReply.cursor) {
-      this.setCursor(did, dwnUrl, syncDirection, eventsReply.cursor);
+    const eventLog = messagesReply.entries ?? [];
+    if (messagesReply.cursor) {
+      this.setCursor(did, dwnUrl, syncDirection, messagesReply.cursor);
     }
 
     return eventLog;
@@ -401,63 +346,32 @@ export class SyncEngineLevel implements SyncEngine {
     let { reply } = await this.agent.dwn.processRequest({
       author        : author,
       target        : author,
-      messageType   : DwnInterface.MessagesGet,
+      messageType   : DwnInterface.MessagesRead,
       messageParams : {
-        messageCids: [messageCid]
+        messageCid: messageCid
       }
     });
+
+
 
     // Absence of a messageEntry or message within messageEntry can happen because updating a
     // Record creates another RecordsWrite with the same recordId. Only the first and
     // most recent RecordsWrite messages are kept for a given recordId. Any RecordsWrite messages
     // that aren't the first or most recent are discarded by the DWN.
-    if (!(reply.entries && reply.entries.length === 1)) {
+    if (reply.status.code !== 200 || !reply.entry) {
+      return undefined;
+    }
+    const messageEntry = reply.entry;
+    if (!messageEntry) {
       return undefined;
     }
 
-    const [ messageEntry ] = reply.entries;
-
-    const message = messageEntry.message;
-    if (!message) {
-      return undefined;
-    }
-
-    let dwnMessageWithBlob: { message: GenericMessage, data?: Blob } = { message };
+    let dwnMessageWithBlob: { message: GenericMessage, data?: Blob } = { message: messageEntry.message };
 
     // If the message is a RecordsWrite, either data will be present,
     // OR we have to fetch it using a RecordsRead.
-    if (isRecordsWrite(messageEntry)) {
-      if (messageEntry.encodedData) {
-        const dataBytes = Convert.base64Url(messageEntry.encodedData).toUint8Array();
-        // ! TODO: test adding the messageEntry.message.descriptor.dataFormat to the Blob constructor.
-        dwnMessageWithBlob.data = new Blob([dataBytes]);
-
-      } else {
-        let readResponse = await this.agent.dwn.processRequest({
-          author        : author,
-          target        : author,
-          messageType   : DwnInterface.RecordsRead,
-          messageParams : { filter: { recordId: messageEntry.message.recordId } }
-        });
-
-        const reply = readResponse.reply;
-
-        if (is2xx(reply.status.code) && reply.record) {
-          // If status code is 200-299, return the data.
-          dwnMessageWithBlob.data = await NodeStream.consumeToBlob({ readable: reply.record.data });
-
-        } else if (is4xx(reply.status.code)) {
-          // If status code is 400-499, typically 404 indicating the data no longer exists, it is
-          // likely that a `RecordsDelete` took place. `RecordsDelete` keeps a `RecordsWrite` and
-          // deletes the associated data, effectively acting as a "tombstone."  Sync still needs to
-          // push this tombstone so that the `RecordsDelete` can be processed successfully.
-
-        } else {
-          // If status code is anything else (likely 5xx), throw an error.
-          const { status: { code, detail } } = reply;
-          throw new Error(`SyncEngineLevel: (${code}) Failed to read data associated with record ${messageEntry.message.recordId}. ${detail}}`);
-        }
-      }
+    if (isRecordsWrite(messageEntry) && messageEntry.data) {
+      dwnMessageWithBlob.data = new Blob([await NodeStream.consumeToBytes({ readable: messageEntry.data })], { type: messageEntry.message.descriptor.dataFormat });
     }
 
     return dwnMessageWithBlob;
