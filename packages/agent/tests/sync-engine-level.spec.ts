@@ -92,6 +92,24 @@ describe('SyncEngineLevel', () => {
           },
           dataStream: new Blob([`Hello, ${i}`])
         });
+        expect(writeResponse.reply.status.code).to.equal(202);
+
+        // write an update message for one of the records
+        if (i === 0) {
+          const updateResponse = await testHarness.agent.dwn.processRequest({
+            author        : alice.did.uri,
+            target        : alice.did.uri,
+            messageType   : DwnInterface.RecordsWrite,
+            messageParams : {
+              recordId    : writeResponse.message!.recordId,
+              dataFormat  : 'text/plain',
+              schema      : writeResponse.message!.descriptor.schema,
+              dateCreated : writeResponse.message!.descriptor.dateCreated
+            },
+            dataStream: new Blob([`Hello, ${i} updated!`]),
+          });
+          expect(updateResponse.reply.status.code).to.equal(202);
+        }
 
         localRecords.push((writeResponse.message!).recordId);
       }
@@ -109,6 +127,24 @@ describe('SyncEngineLevel', () => {
           },
           dataStream: new Blob([`Hello, ${i}`])
         });
+        expect(writeResponse.reply.status.code).to.equal(202);
+
+        // write an update message for one of the records
+        if (i === 0) {
+          const updateResponse = await testHarness.agent.dwn.sendRequest({
+            author        : alice.did.uri,
+            target        : alice.did.uri,
+            messageType   : DwnInterface.RecordsWrite,
+            messageParams : {
+              recordId   : writeResponse.message!.recordId,
+              dataFormat : 'text/plain',
+              schema      : writeResponse.message!.descriptor.schema,
+              dateCreated : writeResponse.message!.descriptor.dateCreated
+            },
+            dataStream: new Blob([`Hello, ${i} updated!`]),
+          });
+          expect(updateResponse.reply.status.code).to.equal(202);
+        }
         remoteRecords.push((writeResponse.message!).recordId);
       }
 
@@ -171,7 +207,7 @@ describe('SyncEngineLevel', () => {
       });
       localDwnQueryReply = localQueryResponse.reply;
       expect(localDwnQueryReply.status.code).to.equal(200);
-      expect(localDwnQueryReply.entries).to.have.length(6);
+      expect(localDwnQueryReply.entries).to.have.length(6, 'local');
       localRecordsFromQuery = localDwnQueryReply.entries?.map(entry => entry.recordId);
       expect(localRecordsFromQuery).to.have.members([...localRecords, ...remoteRecords]);
 
@@ -189,7 +225,7 @@ describe('SyncEngineLevel', () => {
       });
       remoteDwnQueryReply = remoteQueryResponse.reply;
       expect(remoteDwnQueryReply.status.code).to.equal(200);
-      expect(remoteDwnQueryReply.entries).to.have.length(6);
+      expect(remoteDwnQueryReply.entries).to.have.length(6, 'remote');
       remoteRecordsFromQuery = remoteDwnQueryReply.entries?.map(entry => entry.recordId);
       expect(remoteRecordsFromQuery).to.have.members([...localRecords, ...remoteRecords]);
     }).slow(1000); // Yellow at 500ms, Red at 1000ms.

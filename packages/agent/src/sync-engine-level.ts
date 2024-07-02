@@ -133,7 +133,7 @@ export class SyncEngineLevel implements SyncEngine {
 
       const replyEntry = reply.entry;
 
-      if (isRecordsWrite(replyEntry) && replyEntry.data) {
+      if (isRecordsWrite(replyEntry)) {
         const message = replyEntry.message;
 
         // if the message includes data we convert it to a Node readable stream
