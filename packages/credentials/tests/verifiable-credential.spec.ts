@@ -27,37 +27,77 @@ describe('Verifiable Credential Tests', () => {
       'credentialSubject': {
         'type'       : 'object',
         'properties' : {
-          'id'                   : { 'type': 'string' },
-          'country_of_residence' : { 'type': 'string', 'pattern': '^[A-Z]{2}$' },
-          'tier'                 : { 'type': 'string', 'optional': true }
+          'id': {
+            'type': 'string'
+          },
+          'country_of_residence': {
+            'type'    : 'string',
+            'pattern' : '^[A-Z]{2}$'
+          },
+          'tier': {
+            'type'     : 'string',
+            'optional' : true
+          }
         },
-        'required': ['id', 'country_of_residence']
+        'required': [
+          'id',
+          'country_of_residence'
+        ]
       },
-      'issuer'           : { 'type': 'string' },
-      'issuanceDate'     : { 'type': 'string', 'format': 'date-time' },
-      'expirationDate'   : { 'type': 'string', 'format': 'date-time' },
-      'credentialSchema' : {
+      'issuer': {
+        'type': 'string'
+      },
+      'issuanceDate': {
+        'type'   : 'string',
+        'format' : 'date-time'
+      },
+      'expirationDate': {
+        'type'   : 'string',
+        'format' : 'date-time'
+      },
+      'credentialSchema': {
         'type'       : 'object',
         'properties' : {
-          'id'   : { 'type': 'string', 'format': 'uri' },
-          'type' : { 'type': 'string' }
+          'id': {
+            'type'   : 'string',
+            'format' : 'uri'
+          },
+          'type': {
+            'type': 'string'
+          }
         },
-        'required': ['id', 'type']
+        'required': [
+          'id',
+          'type'
+        ]
       },
       'evidence': {
         'type'  : 'array',
         'items' : {
           'type'       : 'object',
           'properties' : {
-            'kind'   : { 'type': 'string' },
-            'checks' : { 'type': 'array', 'items': { 'type': 'string' } }
+            'kind': {
+              'type': 'string'
+            },
+            'checks': {
+              'type'  : 'array',
+              'items' : {
+                'type': 'string'
+              }
+            }
           },
           'optional': true
         },
         'optional': true
       }
     },
-    'required': ['credentialSubject', 'issuer', 'issuanceDate', 'expirationDate', 'credentialSchema']
+    'required': [
+      'credentialSubject',
+      'issuer',
+      'issuanceDate',
+      'expirationDate',
+      'credentialSchema'
+    ]
   };
 
   beforeEach(async () => {
