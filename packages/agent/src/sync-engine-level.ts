@@ -361,10 +361,7 @@ export class SyncEngineLevel implements SyncEngine {
     if (reply.status.code !== 200 || !reply.entry) {
       return undefined;
     }
-    const messageEntry = reply.entry;
-    if (!messageEntry) {
-      return undefined;
-    }
+    const messageEntry = reply.entry!;
 
     let dwnMessageWithBlob: { message: GenericMessage, data?: Blob } = { message: messageEntry.message };
 

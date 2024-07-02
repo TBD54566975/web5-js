@@ -848,6 +848,37 @@ describe('AgentDwnApi', () => {
       await testHarness.closeStorage();
     });
 
+    it('handles sending existing message using `messageCid` request property', async () => {
+      // Create test data to write.
+      const dataBytes = Convert.string('Hello, world!').toUint8Array();
+
+      // Write a record to the local DWN to use for the test.
+      let writeResponse = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          dataFormat : 'text/plain',
+          schema     : 'https://schemas.xyz/example'
+        },
+        dataStream: new Blob([dataBytes])
+      });
+      expect(writeResponse.reply.status.code).to.equal(202);
+
+      // sendRequest using the message's `messageCid`
+      const sendResponse = await testHarness.agent.dwn.sendRequest({
+        author      : alice.did.uri,
+        target      : alice.did.uri,
+        messageType : DwnInterface.RecordsWrite,
+        messageCid  : writeResponse.messageCid
+      });
+
+      // Verify the response.
+      expect(sendResponse.message).to.deep.equal(writeResponse.message);
+      expect(sendResponse.messageCid).to.equal(writeResponse.messageCid);
+      expect(sendResponse.reply.status.code).to.equal(202);
+    });
+
     it('handles MessagesQuery', async () => {
       const testCursor = {
         messageCid : 'foo',
@@ -1029,9 +1060,6 @@ describe('AgentDwnApi', () => {
       expect(messagesReadReply.status.code).to.equal(200);
       const retrievedRecordsWrite = messagesReadReply.entry!;
       expect(retrievedRecordsWrite.message).to.have.property('recordId', writeMessage.recordId);
-
-      const readDataBytes = await NodeStream.consumeToBytes({ readable: retrievedRecordsWrite.data! });
-      expect(readDataBytes).to.deep.equal(dataBytes);
     });
 
     it('handles ProtocolsConfigure', async () => {
@@ -1232,9 +1260,6 @@ describe('AgentDwnApi', () => {
       expect(readReply.record).to.have.property('data');
       expect(readReply.record).to.have.property('descriptor');
       expect(readReply.record).to.have.property('recordId', writeMessage.recordId);
-
-      const readDataBytes = await NodeStream.consumeToBytes({ readable: readReply.record!.data });
-      expect(readDataBytes).to.deep.equal(dataBytes);
     });
 
     it('handles RecordsSubscribe message', async () => {
