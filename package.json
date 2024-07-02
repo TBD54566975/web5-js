@@ -31,7 +31,7 @@
     "@changesets/cli": "^2.27.5",
     "@npmcli/package-json": "5.0.0",
     "@typescript-eslint/eslint-plugin": "7.9.0",
-    "@web5/dwn-server": "0.3.1",
+    "@web5/dwn-server": "0.4.0",
     "audit-ci": "^7.0.1",
     "eslint-plugin-mocha": "10.4.3",
     "npkill": "0.11.3"
