@@ -67,9 +67,9 @@ export class HttpDwnRpcClient implements DwnRpc {
 
     const { reply } = dwnRpcResponse.result;
     if (dataStream && reply.record) {
-      reply['record']['data'] = dataStream;
+      reply.record.data = dataStream;
     } else if (dataStream && reply.entry) {
-      reply['entry']['data'] = dataStream;
+      reply.entry.data = dataStream;
     }
 
     return reply as DwnRpcResponse;

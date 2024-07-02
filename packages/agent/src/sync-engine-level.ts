@@ -16,7 +16,7 @@ import type { SyncEngine } from './types/sync.js';
 import type { Web5PlatformAgent } from './types/agent.js';
 
 import { DwnInterface } from './types/dwn.js';
-import { getDwnServiceEndpointUrls, isRecordsWrite, webReadableToIsomorphicNodeReadable } from './utils.js';
+import { getDwnServiceEndpointUrls, isRecordsWrite } from './utils.js';
 
 export type SyncEngineLevelParams = {
   agent?: Web5PlatformAgent;
@@ -125,7 +125,7 @@ export class SyncEngineLevel implements SyncEngine {
         continue;
       }
 
-      if (!reply.entry?.message) {
+      if (reply.status.code !== 200 || !reply.entry?.message) {
         await this.addMessage(did, messageCid);
         deleteOperations.push({ type: 'del', key: key });
         continue;
@@ -135,10 +135,13 @@ export class SyncEngineLevel implements SyncEngine {
 
       if (isRecordsWrite(replyEntry) && replyEntry.data) {
         const message = replyEntry.message;
-        let dataStream;
-        if (replyEntry.data instanceof ReadableStream) {
-          dataStream = webReadableToIsomorphicNodeReadable(replyEntry.data);
-        }
+
+        // if the message includes data we convert it to a Node readable stream
+        // otherwise we set it as undefined, as the message does not include data
+        // this occurs when the message is a RecordsWrite message that has been updated
+        const dataStream = replyEntry.data ?
+          NodeStream.fromWebReadable({ readableStream: replyEntry.data as unknown as ReadableStream })
+          : undefined;
 
         const pullReply = await this.agent.dwn.processMessage({
           targetDid: did,
@@ -155,6 +158,7 @@ export class SyncEngineLevel implements SyncEngine {
 
     await pullQueue.batch(deleteOperations as any);
   }
+
   public async push(): Promise<void> {
     const syncPeerState = await this.getSyncPeerState({ syncDirection: 'push' });
     await this.enqueueOperations({ syncDirection: 'push', syncPeerState });
@@ -368,7 +372,8 @@ export class SyncEngineLevel implements SyncEngine {
     // If the message is a RecordsWrite, either data will be present,
     // OR we have to fetch it using a RecordsRead.
     if (isRecordsWrite(messageEntry) && messageEntry.data) {
-      dwnMessageWithBlob.data = new Blob([await NodeStream.consumeToBytes({ readable: messageEntry.data })], { type: messageEntry.message.descriptor.dataFormat });
+      const dataBytes = await NodeStream.consumeToBytes({ readable: messageEntry.data });
+      dwnMessageWithBlob.data = new Blob([ dataBytes ], { type: messageEntry.message.descriptor.dataFormat });
     }
 
     return dwnMessageWithBlob;

@@ -379,7 +379,8 @@ export class AgentDwnApi {
     // If the message is a RecordsWrite, data will be present in the form of a stream
 
     if (isRecordsWrite(messageEntry) && messageEntry.data) {
-      dwnMessageWithBlob.data = new Blob([await NodeStream.consumeToBytes({ readable: messageEntry.data })], { type: messageEntry.message.descriptor.dataFormat });
+      const dataBytes = await NodeStream.consumeToBytes({ readable: messageEntry.data });
+      dwnMessageWithBlob.data = new Blob([ dataBytes ], { type: messageEntry.message.descriptor.dataFormat });
     }
 
     return dwnMessageWithBlob;

@@ -1,10 +1,11 @@
+import type { Readable } from '@web5/common';
 import { Message, ProtocolDefinition, TestDataGenerator, type Dwn, type MessageEvent, type RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import sinon from 'sinon';
 
 import { expect } from 'chai';
 import { DidDht } from '@web5/dids';
-import { Convert, NodeStream } from '@web5/common';
+import { Convert, NodeStream, Stream } from '@web5/common';
 
 import type { PortableIdentity } from '../src/types/identity.js';
 
@@ -282,6 +283,9 @@ describe('AgentDwnApi', () => {
 
       const retrievedRecordsWrite = messagesReadReply.entry!;
       expect(retrievedRecordsWrite.message).to.have.property('recordId', writeMessage.recordId);
+
+      const readDataBytes = await NodeStream.consumeToBytes({ readable: retrievedRecordsWrite.data! });
+      expect(readDataBytes).to.deep.equal(dataBytes);
     });
 
     it('handles ProtocolsConfigure', async () => {
@@ -1060,6 +1064,15 @@ describe('AgentDwnApi', () => {
       expect(messagesReadReply.status.code).to.equal(200);
       const retrievedRecordsWrite = messagesReadReply.entry!;
       expect(retrievedRecordsWrite.message).to.have.property('recordId', writeMessage.recordId);
+
+      const dataStream: ReadableStream | Readable = retrievedRecordsWrite.data!;
+      // If the data stream is a web ReadableStream, convert it to a Node.js Readable.
+      const nodeReadable = Stream.isReadableStream(dataStream) ?
+        NodeStream.fromWebReadable({ readableStream: dataStream }) :
+        dataStream;
+
+      const readDataBytes = await NodeStream.consumeToBytes({ readable: nodeReadable });
+      expect(readDataBytes).to.deep.equal(dataBytes);
     });
 
     it('handles ProtocolsConfigure', async () => {
@@ -1260,6 +1273,15 @@ describe('AgentDwnApi', () => {
       expect(readReply.record).to.have.property('data');
       expect(readReply.record).to.have.property('descriptor');
       expect(readReply.record).to.have.property('recordId', writeMessage.recordId);
+
+      const dataStream: ReadableStream | Readable = readReply.record!.data;
+      // If the data stream is a web ReadableStream, convert it to a Node.js Readable.
+      const nodeReadable = Stream.isReadableStream(dataStream) ?
+        NodeStream.fromWebReadable({ readableStream: dataStream }) :
+        dataStream;
+
+      const readDataBytes = await NodeStream.consumeToBytes({ readable: nodeReadable });
+      expect(readDataBytes).to.deep.equal(dataBytes);
     });
 
     it('handles RecordsSubscribe message', async () => {
