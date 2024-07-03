@@ -148,7 +148,7 @@ export class SyncEngineLevel implements SyncEngine {
         : undefined;
 
       const pullReply = await this.agent.dwn.node.processMessage(did, message, { dataStream });
-      if (SyncEngineLevel.successMessageSyncReply(pullReply)) {
+      if (SyncEngineLevel.syncMessageReplyIsSuccessful(pullReply)) {
         await this.addMessage(did, messageCid);
         deleteOperations.push({ type: 'del', key: key });
       }
@@ -201,7 +201,7 @@ export class SyncEngineLevel implements SyncEngine {
         // - 202: message was successfully written to the remote DWN
         // - 409: message was already present on the remote DWN
         // - RecordsDelete and the status code is 404: the initial write message was not found or the message was already deleted
-        if (SyncEngineLevel.successMessageSyncReply(reply)) {
+        if (SyncEngineLevel.syncMessageReplyIsSuccessful(reply)) {
           await this.addMessage(did, messageCid);
           deleteOperations.push({ type: 'del', key: key });
         }
@@ -258,7 +258,7 @@ export class SyncEngineLevel implements SyncEngine {
     }
   }
 
-  private static successMessageSyncReply(reply: UnionMessageReply): boolean {
+  private static syncMessageReplyIsSuccessful(reply: UnionMessageReply): boolean {
     return reply.status.code === 202 ||
       reply.status.code === 409 ||
       (
