@@ -1,7 +1,7 @@
 import type { Readable } from '@web5/common';
 import type { DwnConfig, GenericMessage, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 
-import { Convert, NodeStream } from '@web5/common';
+import { NodeStream } from '@web5/common';
 import { utils as cryptoUtils } from '@web5/crypto';
 import { DidDht, DidJwk, DidResolverCacheLevel, UniversalResolver } from '@web5/dids';
 import { Cid, DataStoreLevel, Dwn, DwnMethodName, EventLogLevel, Message, MessageStoreLevel, ResumableTaskStoreLevel } from '@tbd54566975/dwn-sdk-js';
@@ -357,54 +357,27 @@ export class AgentDwnApi {
   }): Promise<DwnMessageWithBlob<T>> {
     const signer = await this.getSigner(author);
 
-    // Construct a MessagesGet message to fetch the message.
-    const messagesGet = await dwnMessageConstructors[DwnInterface.MessagesGet].create({
-      messageCids: [messageCid],
+    // Construct a MessagesRead message to fetch the message.
+    const messagesRead = await dwnMessageConstructors[DwnInterface.MessagesRead].create({
+      messageCid: messageCid,
       signer
     });
 
-    const result = await this._dwn.processMessage(author, messagesGet.message);
+    const result = await this._dwn.processMessage(author, messagesRead.message);
 
-    if (!(result.entries && result.entries.length === 1)) {
-      throw new Error('AgentDwnApi: Expected 1 message entry in the MessagesGet response but received none or more than one.');
+    if (result.status.code !== 200) {
+      throw new Error(`AgentDwnApi: Failed to read message, response status: ${result.status.code} - ${result.status.detail}`);
     }
 
-    const [ messageEntry ] = result.entries;
-
+    const messageEntry = result.entry!;
     const message = messageEntry.message as DwnMessage[T];
-    if (!message) {
-      throw new Error(`AgentDwnApi: Message not found with CID: ${messageCid}`);
-    }
 
     let dwnMessageWithBlob: DwnMessageWithBlob<T> = { message };
-    // isRecordsWrite(message) && (dwnMessage.data = await this.getDataForRecordsWrite({ author, message, messageEntry, messageType, signer }));
+    // If the message is a RecordsWrite, data will be present in the form of a stream
 
-    // If the message is a RecordsWrite, either data will be present,
-    // OR we have to fetch it using a RecordsRead.
-    if (isRecordsWrite(messageEntry)) {
-      if (messageEntry.encodedData) {
-        const dataBytes = Convert.base64Url(messageEntry.encodedData).toUint8Array();
-        // TODO: test adding the messageEntry.message.descriptor.dataFormat to the Blob constructor.
-        dwnMessageWithBlob.data = new Blob([dataBytes]);
-
-      } else {
-        const recordsRead = await dwnMessageConstructors[DwnInterface.RecordsRead].create({
-          filter: {
-            recordId: messageEntry.message.recordId
-          },
-          signer
-        });
-
-        const reply = await this._dwn.processMessage(author, recordsRead.message);
-
-        if (reply.status.code >= 400) {
-          const { status: { code, detail } } = reply;
-          throw new Error(`AgentDwnApi: (${code}) Failed to read data associated with record ${messageEntry.message.recordId}. ${detail}}`);
-        } else if (reply.record) {
-          const dataBytes = await NodeStream.consumeToBytes({ readable: reply.record.data });
-          dwnMessageWithBlob.data = new Blob([dataBytes]);
-        }
-      }
+    if (isRecordsWrite(messageEntry) && messageEntry.data) {
+      const dataBytes = await NodeStream.consumeToBytes({ readable: messageEntry.data });
+      dwnMessageWithBlob.data = new Blob([ dataBytes ], { type: messageEntry.message.descriptor.dataFormat });
     }
 
     return dwnMessageWithBlob;

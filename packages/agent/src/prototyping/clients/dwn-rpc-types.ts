@@ -44,7 +44,7 @@ export type DwnRpcRequest = {
   /** The DID of the target to which the message is addressed. */
   targetDid: string;
 
-  /** Optional subscription handler for DWN events. */
+  /** Optional subscription handler for DWN message events. */
   subscriptionHandler?: DwnSubscriptionHandler;
 }
 
