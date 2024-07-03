@@ -5,12 +5,17 @@ import type {
   MessagesQueryReply,
   MessagesReadReply,
   PaginationCursor,
+  UnionMessageReply,
 } from '@tbd54566975/dwn-sdk-js';
 
 import ms from 'ms';
 import { Level } from 'level';
 import { monotonicFactory } from 'ulidx';
 import { NodeStream } from '@web5/common';
+import {
+  DwnInterfaceName,
+  DwnMethodName,
+} from '@tbd54566975/dwn-sdk-js';
 
 import type { SyncEngine } from './types/sync.js';
 import type { Web5PlatformAgent } from './types/agent.js';
@@ -143,7 +148,7 @@ export class SyncEngineLevel implements SyncEngine {
         : undefined;
 
       const pullReply = await this.agent.dwn.node.processMessage(did, message, { dataStream });
-      if (pullReply.status.code === 202 || pullReply.status.code === 409) {
+      if (SyncEngineLevel.successMessageSyncReply(pullReply)) {
         await this.addMessage(did, messageCid);
         deleteOperations.push({ type: 'del', key: key });
       }
@@ -195,7 +200,8 @@ export class SyncEngineLevel implements SyncEngine {
         // Update the watermark and add the messageCid to the Sync Message Store if either:
         // - 202: message was successfully written to the remote DWN
         // - 409: message was already present on the remote DWN
-        if (reply.status.code === 202 || reply.status.code === 409) {
+        // - RecordsDelete and the status code is 404: the initial write message was not found or the message was already deleted
+        if (SyncEngineLevel.successMessageSyncReply(reply)) {
           await this.addMessage(did, messageCid);
           deleteOperations.push({ type: 'del', key: key });
         }
@@ -250,6 +256,17 @@ export class SyncEngineLevel implements SyncEngine {
       clearInterval(this._syncIntervalId);
       this._syncIntervalId = undefined;
     }
+  }
+
+  private static successMessageSyncReply(reply: UnionMessageReply): boolean {
+    return reply.status.code === 202 ||
+      reply.status.code === 409 ||
+      (
+        // If the message is a RecordsDelete and the status code is 404, the initial write message was not found or the message was already deleted
+        reply.entry?.message.descriptor.interface === DwnInterfaceName.Records &&
+        reply.entry?.message.descriptor.method === DwnMethodName.Delete &&
+        reply.status.code === 404
+      );
   }
 
   private async enqueueOperations({ syncDirection, syncPeerState }: {
