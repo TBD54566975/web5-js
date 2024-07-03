@@ -1,10 +1,10 @@
 import type { Readable } from '@web5/common';
-import type { DwnConfig, GenericMessage, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
+import { DwnConfig, GenericMessage, PermissionGrant, RecordsWriteMessage, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
 
 import { NodeStream } from '@web5/common';
 import { utils as cryptoUtils } from '@web5/crypto';
 import { DidDht, DidJwk, DidResolverCacheLevel, UniversalResolver } from '@web5/dids';
-import { Cid, DataStoreLevel, Dwn, DwnMethodName, EventLogLevel, Message, MessageStoreLevel, ResumableTaskStoreLevel } from '@tbd54566975/dwn-sdk-js';
+import { Cid, DataStoreLevel, Dwn, DwnMethodName, EventLogLevel, Message, MessageStoreLevel, PermissionsProtocol, ResumableTaskStoreLevel } from '@tbd54566975/dwn-sdk-js';
 
 import type { Web5PlatformAgent } from './types/agent.js';
 import type { DwnMessage, DwnMessageInstance, DwnMessageParams, DwnMessageReply, DwnMessageWithData, DwnResponse, DwnSigner, MessageHandler, ProcessDwnRequest, SendDwnRequest } from './types/dwn.js';
@@ -258,9 +258,18 @@ export class AgentDwnApi {
     const rawMessage = request.rawMessage;
     let readableStream: Readable | undefined;
 
+    // Get a delegate to sign the message with if one exists.
+    const delegate = await this.getDelegateForAuthor(request.author);
+    // Determine the signer for the message.
+    const signer =  delegate ? await this.getSigner(delegate.grant.grantee) : await this.getSigner(request.author);
+
     // TODO: Consider refactoring to move data transformations imposed by fetch() limitations to the HTTP transport-related methods.
     if (isDwnRequest(request, DwnInterface.RecordsWrite)) {
-      const messageParams = request.messageParams;
+      const messageParams = request.messageParams!;
+
+      if (delegate){
+        messageParams.delegatedGrant = delegate.message;
+      }
 
       if (request.dataStream && !messageParams?.data) {
         const { dataStream } = request;
@@ -284,9 +293,6 @@ export class AgentDwnApi {
         }
       }
     }
-
-    // Determine the signer for the message.
-    const signer = await this.getSigner(request.author);
 
     const dwnMessageConstructor = dwnMessageConstructors[request.messageType];
     const dwnMessage = rawMessage ? await dwnMessageConstructor.parse(rawMessage) : await dwnMessageConstructor.create({
@@ -342,6 +348,39 @@ export class AgentDwnApi {
         };
       } catch (error: any) {
         throw new Error(`AgentDwnApi: Unable to get signer for author '${author}': ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   *
+   */
+  private async getDelegateForAuthor(author: string): Promise<{ grant: PermissionGrant, message: RecordsWriteMessage & { encodedData: string } } | undefined> {
+    // If the author is the Agent's DID we do not need a permission grant.
+    if (author === this.agent.agentDid.uri) {
+      return;
+    }
+
+    const getPermissionsMessages = await this.processRequest({
+      author        : this.agent.agentDid.uri,
+      target        : this.agent.agentDid.uri,
+      messageType   : DwnInterface.RecordsQuery,
+      messageParams : {
+        filter: {
+          protocol     : PermissionsProtocol.uri,
+          protocolPath : PermissionsProtocol.grantPath,
+        }
+      }
+    });
+
+    if (getPermissionsMessages.reply.status.code !== 200) {
+      return;
+    }
+
+    for (const message of getPermissionsMessages.reply.entries!) {
+      const grant = await PermissionGrant.parse(message as RecordsWriteMessage & { encodedData: string });
+      if (grant.grantor === author && grant.grantee === this.agent.agentDid.uri && grant.delegated === true) {
+        return { grant, message: message as RecordsWriteMessage & { encodedData: string } };
       }
     }
   }
