@@ -883,6 +883,23 @@ describe('AgentDwnApi', () => {
       expect(sendResponse.reply.status.code).to.equal(202);
     });
 
+    it('should fail when sending a message with a `messageCid` that does not exist', async () => {
+      // Attempt to send a message with an invalid `messageCid`.
+      try {
+        const messageCid = await TestDataGenerator.randomCborSha256Cid();
+
+        await testHarness.agent.dwn.sendRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          messageCid,
+        });
+        expect.fail('Expected an error to be thrown');
+      } catch (error:any) {
+        expect(error.message).to.contain('AgentDwnApi: Failed to read message');
+      }
+    });
+
     it('handles MessagesQuery', async () => {
       const testCursor = {
         messageCid : 'foo',

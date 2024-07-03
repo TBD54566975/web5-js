@@ -369,11 +369,8 @@ export class AgentDwnApi {
       throw new Error(`AgentDwnApi: Failed to read message, response status: ${result.status.code} - ${result.status.detail}`);
     }
 
-    const messageEntry = result.entry;
-    const message = messageEntry?.message as DwnMessage[T];
-    if (!message) {
-      throw new Error(`AgentDwnApi: Message not found with CID: ${messageCid}`);
-    }
+    const messageEntry = result.entry!;
+    const message = messageEntry.message as DwnMessage[T];
 
     let dwnMessageWithBlob: DwnMessageWithBlob<T> = { message };
     // If the message is a RecordsWrite, data will be present in the form of a stream
