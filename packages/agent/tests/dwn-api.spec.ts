@@ -604,11 +604,12 @@ describe('AgentDwnApi', () => {
 
     it('returns a 202 Accepted status when the request is not stored', async () => {
       // spy on dwn.processMessage
-      const processMessageSpy = sinon.spy(testHarness.agent.dwn, 'processMessage');
+      const processMessageSpy = sinon.spy(testHarness.agent.dwn.node, 'processMessage');
 
       // Attempt to process the RecordsWrite
       const dataBytes = Convert.string('Hello, world!').toUint8Array();
       let writeResponse = await testHarness.agent.dwn.processRequest({
+        store         : false,
         author        : alice.did.uri,
         target        : alice.did.uri,
         messageType   : DwnInterface.RecordsWrite,

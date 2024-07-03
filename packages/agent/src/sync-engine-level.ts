@@ -104,8 +104,10 @@ export class SyncEngineLevel implements SyncEngine {
         continue;
       }
 
-      const messagesRead = await this.agent.dwn.createMessage({
+      const messagesRead = await this.agent.processDwnRequest({
+        store         : false,
         author        : did,
+        target        : did,
         messageType   : DwnInterface.MessagesRead,
         messageParams : {
           messageCid: messageCid
@@ -118,7 +120,7 @@ export class SyncEngineLevel implements SyncEngine {
         reply = await this.agent.rpc.sendDwnRequest({
           dwnUrl,
           targetDid : did,
-          message   : messagesRead,
+          message   : messagesRead.message,
         }) as MessagesReadReply;
       } catch(e) {
         errored.add(dwnUrl);
@@ -132,27 +134,18 @@ export class SyncEngineLevel implements SyncEngine {
       }
 
       const replyEntry = reply.entry;
+      const message = replyEntry.message;
+      // if the message includes data we convert it to a Node readable stream
+      // otherwise we set it as undefined, as the message does not include data
+      // this occurs when the message is a RecordsWrite message that has been updated
+      const dataStream = isRecordsWrite(replyEntry) && replyEntry.data ?
+        NodeStream.fromWebReadable({ readableStream: replyEntry.data as unknown as ReadableStream })
+        : undefined;
 
-      if (isRecordsWrite(replyEntry)) {
-        const message = replyEntry.message;
-
-        // if the message includes data we convert it to a Node readable stream
-        // otherwise we set it as undefined, as the message does not include data
-        // this occurs when the message is a RecordsWrite message that has been updated
-        const dataStream = replyEntry.data ?
-          NodeStream.fromWebReadable({ readableStream: replyEntry.data as unknown as ReadableStream })
-          : undefined;
-
-        const pullReply = await this.agent.dwn.processMessage({
-          targetDid: did,
-          message,
-          dataStream,
-        });
-
-        if (pullReply.status.code === 202 || pullReply.status.code === 409) {
-          await this.addMessage(did, messageCid);
-          deleteOperations.push({ type: 'del', key: key });
-        }
+      const pullReply = await this.agent.dwn.node.processMessage(did, message, { dataStream });
+      if (pullReply.status.code === 202 || pullReply.status.code === 409) {
+        await this.addMessage(did, messageCid);
+        deleteOperations.push({ type: 'del', key: key });
       }
     }
 
@@ -308,7 +301,9 @@ export class SyncEngineLevel implements SyncEngine {
 
     if (syncDirection === 'pull') {
       // When sync is a pull, get the event log from the remote DWN.
-      const messagesReadMessage = await this.agent.dwn.createMessage({
+      const messagesReadMessage = await this.agent.dwn.processRequest({
+        store         : false,
+        target        : did,
         author        : did,
         messageType   : DwnInterface.MessagesQuery,
         messageParams : { filters: [], cursor }
@@ -318,7 +313,7 @@ export class SyncEngineLevel implements SyncEngine {
         messagesReply = await this.agent.rpc.sendDwnRequest({
           dwnUrl    : dwnUrl,
           targetDid : did,
-          message   : messagesReadMessage
+          message   : messagesReadMessage.message
         }) as MessagesQueryReply;
       } catch {
         // If a particular DWN service endpoint is unreachable, silently ignore.

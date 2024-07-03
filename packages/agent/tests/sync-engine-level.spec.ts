@@ -1,7 +1,7 @@
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { utils as cryptoUtils } from '@web5/crypto';
-import { DwnConstant } from '@tbd54566975/dwn-sdk-js';
+import { DwnConstant, ProtocolDefinition } from '@tbd54566975/dwn-sdk-js';
 
 import type { BearerIdentity } from '../src/bearer-identity.js';
 
@@ -82,7 +82,56 @@ describe('SyncEngineLevel', () => {
       await testHarness.closeStorage();
     });
 
-    it('syncs multiple records in both directions', async () => {
+    it('syncs multiple messages in both directions', async () => {
+      // create 1 local protocol configure
+      const protocolDefinition1: ProtocolDefinition = {
+        published : true,
+        protocol  : 'https://protocol.xyz/example/1',
+        types     : {
+          foo: {
+            schema      : 'https://schemas.xyz/foo',
+            dataFormats : ['text/plain', 'application/json']
+          }
+        },
+        structure: {
+          foo: {}
+        }
+      };
+
+      const protocolsConfigure1 = await testHarness.agent.processDwnRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.ProtocolsConfigure,
+        messageParams : {
+          definition: protocolDefinition1
+        }
+      });
+
+      // create 1 remote protocol configure
+      const protocolDefinition2: ProtocolDefinition = {
+        published : true,
+        protocol  : 'https://protocol.xyz/example/2',
+        types     : {
+          bar: {
+            schema      : 'https://schemas.xyz/bar',
+            dataFormats : ['text/plain', 'application/json']
+          }
+        },
+        structure: {
+          bar: {}
+        }
+      };
+
+      const protocolsConfigure2 = await testHarness.agent.sendDwnRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.ProtocolsConfigure,
+        messageParams : {
+          definition: protocolDefinition2
+        }
+      });
+
+
       // create 3 local records.
       const localRecords: string[] = [];
       for (let i = 0; i < 3; i++) {
@@ -152,8 +201,20 @@ describe('SyncEngineLevel', () => {
         remoteRecords.push((writeResponse.message!).recordId);
       }
 
+      // check that protocol1 exists locally
+      let localProtocolsQueryResponse = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.ProtocolsQuery,
+        messageParams : {}
+      });
+      let localProtocolsQueryReply = localProtocolsQueryResponse.reply;
+      expect(localProtocolsQueryReply.status.code).to.equal(200);
+      expect(localProtocolsQueryReply.entries?.length).to.equal(1);
+      expect(localProtocolsQueryReply.entries).to.have.deep.equal([ protocolsConfigure1.message ]);
+
       // query local and check for only local records
-      let localQueryResponse = await testHarness.agent.dwn.processRequest({
+      let localRecordsQueryResponse = await testHarness.agent.dwn.processRequest({
         author        : alice.did.uri,
         target        : alice.did.uri,
         messageType   : DwnInterface.RecordsQuery,
@@ -164,14 +225,26 @@ describe('SyncEngineLevel', () => {
           }
         }
       });
-      let localDwnQueryReply = localQueryResponse.reply;
-      expect(localDwnQueryReply.status.code).to.equal(200);
-      expect(localDwnQueryReply.entries).to.have.length(3);
-      let localRecordsFromQuery = localDwnQueryReply.entries?.map(entry => entry.recordId);
+      let localRecordsQueryReply = localRecordsQueryResponse.reply;
+      expect(localRecordsQueryReply.status.code).to.equal(200);
+      expect(localRecordsQueryReply.entries).to.have.length(3);
+      let localRecordsFromQuery = localRecordsQueryReply.entries?.map(entry => entry.recordId);
       expect(localRecordsFromQuery).to.have.members(localRecords);
 
+      // check that protocol2 exists remotely
+      let remoteProtocolsQueryResponse = await testHarness.agent.dwn.sendRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.ProtocolsQuery,
+        messageParams : {}
+      });
+      let remoteProtocolsQueryReply = remoteProtocolsQueryResponse.reply;
+      expect(remoteProtocolsQueryReply.status.code).to.equal(200);
+      expect(remoteProtocolsQueryReply.entries?.length).to.equal(1);
+      expect(remoteProtocolsQueryReply.entries).to.have.deep.equal([ protocolsConfigure2.message ]);
+
       // query remote and check for only remote records
-      let remoteQueryResponse = await testHarness.agent.dwn.sendRequest({
+      let remoteRecordsQueryResponse = await testHarness.agent.dwn.sendRequest({
         author        : alice.did.uri,
         target        : alice.did.uri,
         messageType   : DwnInterface.RecordsQuery,
@@ -182,10 +255,10 @@ describe('SyncEngineLevel', () => {
           }
         }
       });
-      let remoteDwnQueryReply = remoteQueryResponse.reply;
-      expect(remoteDwnQueryReply.status.code).to.equal(200);
-      expect(remoteDwnQueryReply.entries).to.have.length(3);
-      let remoteRecordsFromQuery = remoteDwnQueryReply.entries?.map(entry => entry.recordId);
+      let remoteRecordsQueryReply = remoteRecordsQueryResponse.reply;
+      expect(remoteRecordsQueryReply.status.code).to.equal(200);
+      expect(remoteRecordsQueryReply.entries).to.have.length(3);
+      let remoteRecordsFromQuery = remoteRecordsQueryReply.entries?.map(entry => entry.recordId);
       expect(remoteRecordsFromQuery).to.have.members(remoteRecords);
 
       // Register Alice's DID to be synchronized.
@@ -197,8 +270,20 @@ describe('SyncEngineLevel', () => {
       await syncEngine.push();
       await syncEngine.pull();
 
+      // query local to see all protocols
+      localProtocolsQueryResponse = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.ProtocolsQuery,
+        messageParams : {}
+      });
+      localProtocolsQueryReply = localProtocolsQueryResponse.reply;
+      expect(localProtocolsQueryReply.status.code).to.equal(200);
+      expect(localProtocolsQueryReply.entries?.length).to.equal(2);
+      expect(localProtocolsQueryReply.entries).to.have.deep.equal([ protocolsConfigure1.message, protocolsConfigure2.message ]);
+
       // query local node to see all records
-      localQueryResponse = await testHarness.agent.dwn.processRequest({
+      localRecordsQueryResponse = await testHarness.agent.dwn.processRequest({
         author        : alice.did.uri,
         target        : alice.did.uri,
         messageType   : DwnInterface.RecordsQuery,
@@ -209,14 +294,26 @@ describe('SyncEngineLevel', () => {
           }
         }
       });
-      localDwnQueryReply = localQueryResponse.reply;
-      expect(localDwnQueryReply.status.code).to.equal(200);
-      expect(localDwnQueryReply.entries).to.have.length(6, 'local');
-      localRecordsFromQuery = localDwnQueryReply.entries?.map(entry => entry.recordId);
+      localRecordsQueryReply = localRecordsQueryResponse.reply;
+      expect(localRecordsQueryReply.status.code).to.equal(200);
+      expect(localRecordsQueryReply.entries).to.have.length(6, 'local');
+      localRecordsFromQuery = localRecordsQueryReply.entries?.map(entry => entry.recordId);
       expect(localRecordsFromQuery).to.have.members([...localRecords, ...remoteRecords]);
 
-      // query remote node to see all results
-      remoteQueryResponse = await testHarness.agent.dwn.sendRequest({
+      // query remote node to see all protocols
+      remoteProtocolsQueryResponse = await testHarness.agent.dwn.sendRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.ProtocolsQuery,
+        messageParams : {}
+      });
+      remoteProtocolsQueryReply = remoteProtocolsQueryResponse.reply;
+      expect(remoteProtocolsQueryReply.status.code).to.equal(200);
+      expect(remoteProtocolsQueryReply.entries?.length).to.equal(2);
+      expect(remoteProtocolsQueryReply.entries).to.have.deep.equal([ protocolsConfigure1.message, protocolsConfigure2.message ]);
+
+      // query remote node to see all records
+      remoteRecordsQueryResponse = await testHarness.agent.dwn.sendRequest({
         author        : alice.did.uri,
         target        : alice.did.uri,
         messageType   : DwnInterface.RecordsQuery,
@@ -227,10 +324,10 @@ describe('SyncEngineLevel', () => {
           }
         }
       });
-      remoteDwnQueryReply = remoteQueryResponse.reply;
-      expect(remoteDwnQueryReply.status.code).to.equal(200);
-      expect(remoteDwnQueryReply.entries).to.have.length(6, 'remote');
-      remoteRecordsFromQuery = remoteDwnQueryReply.entries?.map(entry => entry.recordId);
+      remoteRecordsQueryReply = remoteRecordsQueryResponse.reply;
+      expect(remoteRecordsQueryReply.status.code).to.equal(200);
+      expect(remoteRecordsQueryReply.entries).to.have.length(6, 'remote');
+      remoteRecordsFromQuery = remoteRecordsQueryReply.entries?.map(entry => entry.recordId);
       expect(remoteRecordsFromQuery).to.have.members([...localRecords, ...remoteRecords]);
     }).slow(1000); // Yellow at 500ms, Red at 1000ms.
 
@@ -412,7 +509,7 @@ describe('SyncEngineLevel', () => {
 
         // spy on sendDwnRequest to the remote DWN
         const sendDwnRequestSpy = sinon.spy(testHarness.agent.rpc, 'sendDwnRequest');
-        const processMessageSpy = sinon.spy(testHarness.agent.dwn, 'processMessage');
+        const processMessageSpy = sinon.spy(testHarness.agent.dwn.node, 'processMessage');
 
         // Execute Sync to push records to Alice's remote node
         await syncEngine.pull();

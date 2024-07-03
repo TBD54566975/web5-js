@@ -1,5 +1,5 @@
 import type { Readable } from '@web5/common';
-import type { DwnConfig, GenericMessage, UnionMessageReply } from '@tbd54566975/dwn-sdk-js';
+import type { DwnConfig, GenericMessage } from '@tbd54566975/dwn-sdk-js';
 
 import { NodeStream } from '@web5/common';
 import { utils as cryptoUtils } from '@web5/crypto';
@@ -7,7 +7,7 @@ import { DidDht, DidJwk, DidResolverCacheLevel, UniversalResolver } from '@web5/
 import { Cid, DataStoreLevel, Dwn, DwnMethodName, EventLogLevel, Message, MessageStoreLevel, ResumableTaskStoreLevel } from '@tbd54566975/dwn-sdk-js';
 
 import type { Web5PlatformAgent } from './types/agent.js';
-import type { DwnMessage, DwnMessageInstance, DwnMessageParams, DwnMessageReply, DwnMessageWithData, DwnResponse, DwnSigner, MessageHandler, ProcessDwnRequest, SendDwnRequest } from './types/dwn.js';
+import type { DwnMessage, DwnMessageReply, DwnMessageWithData, DwnResponse, DwnSigner, MessageHandler, ProcessDwnRequest, SendDwnRequest } from './types/dwn.js';
 
 import { DwnInterface, dwnMessageConstructors } from './types/dwn.js';
 import { blobToIsomorphicNodeReadable, getDwnServiceEndpointUrls, isRecordsWrite, webReadableToIsomorphicNodeReadable } from './utils.js';
@@ -381,38 +381,5 @@ export class AgentDwnApi {
     }
 
     return dwnMessageWithBlob;
-  }
-
-  /**
-   * TODO: Refactor this to consolidate logic in AgentDwnApi and SyncEngineLevel.
-   * ADDED TO GET SYNC WORKING
-   * - createMessage()
-   * - processMessage()
-   */
-
-  public async createMessage<T extends DwnInterface>({ author, messageParams, messageType }: {
-    author: string;
-    messageType: T;
-    messageParams?: DwnMessageParams[T];
-  }): Promise<DwnMessageInstance[T]> {
-    // Determine the signer for the message.
-    const signer = await this.getSigner(author);
-
-    const dwnMessageConstructor = dwnMessageConstructors[messageType];
-    const dwnMessage = await dwnMessageConstructor.create({
-      // TODO: Explore whether 'messageParams' should be required in the ProcessDwnRequest type.
-      ...messageParams!,
-      signer
-    });
-
-    return dwnMessage;
-  }
-
-  public async processMessage({ dataStream, message, targetDid }: {
-    targetDid: string;
-    message: GenericMessage;
-    dataStream?: Readable;
-  }): Promise<UnionMessageReply> {
-    return await this._dwn.processMessage(targetDid, message, { dataStream });
   }
 }
