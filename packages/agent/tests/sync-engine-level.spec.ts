@@ -435,6 +435,9 @@ describe('SyncEngineLevel', () => {
       it('silently ignores a messageCid that already exists on the local DWN', async () => {
         // scenario: The messageCids returned from the remote eventLog contains a messageCid that already exists on the local DWN.
         //           During sync, when processing the messageCid the local DWN will return a conflict response, but the sync should continue
+        //
+        //           NOTE: When deleting a message, the conflicting Delete will return a 404 instead of a 409,
+        //           the sync should still mark the message as synced and continue
 
         // create a record and store it locally and remotely
         const remoteAndLocalRecord = await testHarness.agent.processDwnRequest({
@@ -454,6 +457,23 @@ describe('SyncEngineLevel', () => {
           target      : alice.did.uri,
           messageType : DwnInterface.RecordsWrite,
           messageCid  : remoteAndLocalRecord.messageCid,
+        });
+
+        // delete the record both locally and remotely
+        const deleteMessage = await testHarness.agent.processDwnRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsDelete,
+          messageParams : {
+            recordId: remoteAndLocalRecord.message!.recordId
+          }
+        });
+        // send the delete to the remote
+        await testHarness.agent.sendDwnRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsDelete,
+          messageCid  : deleteMessage.messageCid,
         });
 
         // create 2 records stored only remotely to later sync to the local DWN
@@ -481,7 +501,7 @@ describe('SyncEngineLevel', () => {
         });
         expect(record2.reply.status.code).to.equal(202);
 
-        // confirm that only the single record exists locally
+        // confirm that only the record and it's delete exists locally
         let localQueryResponse = await testHarness.agent.processDwnRequest({
           author        : alice.did.uri,
           target        : alice.did.uri,
@@ -492,12 +512,16 @@ describe('SyncEngineLevel', () => {
         });
 
         let localDwnQueryEntries = localQueryResponse.reply.entries!;
-        expect(localDwnQueryEntries.length).to.equal(1);
-        expect(localDwnQueryEntries).to.have.members([remoteAndLocalRecord.messageCid]);
+        expect(localDwnQueryEntries.length).to.equal(2);
+        expect(localDwnQueryEntries).to.have.members([
+          remoteAndLocalRecord.messageCid,
+          deleteMessage.messageCid
+        ]);
 
         // stub getDwnEventLog to return the messageCids of the records we want to sync
         sinon.stub(syncEngine as any, 'getDwnEventLog').resolves([
           remoteAndLocalRecord.messageCid,
+          deleteMessage.messageCid,
           record1.messageCid,
           record2.messageCid
         ]);
@@ -514,17 +538,19 @@ describe('SyncEngineLevel', () => {
         // Execute Sync to push records to Alice's remote node
         await syncEngine.pull();
 
-        // Verify sendDwnRequest is called for all 3 records
-        expect(sendDwnRequestSpy.callCount).to.equal(3, 'sendDwnRequestSpy');
-        // Verify that processMessage is called for all 3 records
-        expect(processMessageSpy.callCount).to.equal(3, 'processMessageSpy');
+        // Verify sendDwnRequest is called for all 4 messages
+        expect(sendDwnRequestSpy.callCount).to.equal(4, 'sendDwnRequestSpy');
+        // Verify that processMessage is called for all 4 messages
+        expect(processMessageSpy.callCount).to.equal(4, 'processMessageSpy');
 
         // Verify that the conflict response is returned for the record that already exists locally
         expect((await processMessageSpy.firstCall.returnValue).status.code).to.equal(409);
+        // Verify that the delete message returned a 404
+        expect((await processMessageSpy.secondCall.returnValue).status.code).to.equal(404);
 
         // Verify that the other 2 records are successfully processed
-        expect((await processMessageSpy.secondCall.returnValue).status.code).to.equal(202);
-        expect((await processMessageSpy.thirdCall.returnValue).status.code).to.equal(202);
+        expect((await processMessageSpy.returnValues[2]).status.code).to.equal(202);
+        expect((await processMessageSpy.returnValues[3]).status.code).to.equal(202);
 
         // confirm the new records exist remotely
         localQueryResponse = await testHarness.agent.processDwnRequest({
@@ -536,9 +562,10 @@ describe('SyncEngineLevel', () => {
           },
         });
         localDwnQueryEntries = localQueryResponse.reply.entries!;
-        expect(localDwnQueryEntries.length).to.equal(3);
+        expect(localDwnQueryEntries.length).to.equal(4);
         expect(localDwnQueryEntries).to.have.members([
           remoteAndLocalRecord.messageCid,
+          deleteMessage.messageCid,
           record1.messageCid,
           record2.messageCid
         ]);
@@ -901,6 +928,8 @@ describe('SyncEngineLevel', () => {
 
         // scenario: The messageCids returned from the local eventLog contains a Cid that already exists in the remote DWN.
         //           During sync, the remote DWN will return a conflict 409 status code and the sync should continue
+        //           NOTE: if the messageCid is a delete message and it is already deleted,
+        //           the remote DWN will return a 404 status code and the sync should continue
 
         // create a record, store it and send it to the remote Dwn
         const remoteAndLocalRecord = await testHarness.agent.processDwnRequest({
@@ -920,6 +949,23 @@ describe('SyncEngineLevel', () => {
           target      : alice.did.uri,
           messageType : DwnInterface.RecordsWrite,
           messageCid  : remoteAndLocalRecord.messageCid,
+        });
+
+        // delete the record both locally and remotely
+        const deleteMessage = await testHarness.agent.processDwnRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsDelete,
+          messageParams : {
+            recordId: remoteAndLocalRecord.message!.recordId
+          }
+        });
+        // send the delete to the remote
+        await testHarness.agent.sendDwnRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsDelete,
+          messageCid  : deleteMessage.messageCid,
         });
 
         // create 2 records stored only locally to sync to the remote DWN
@@ -947,7 +993,7 @@ describe('SyncEngineLevel', () => {
         });
         expect(record2.reply.status.code).to.equal(202);
 
-        // confirm that only the single record exists remotely
+        // confirm that only record and it's delete exist remotely
         let remoteQueryResponse = await testHarness.agent.sendDwnRequest({
           author        : alice.did.uri,
           target        : alice.did.uri,
@@ -958,13 +1004,14 @@ describe('SyncEngineLevel', () => {
         });
 
         let remoteDwnQueryEntries = remoteQueryResponse.reply.entries!;
-        expect(remoteDwnQueryEntries.length).to.equal(1);
-        expect(remoteDwnQueryEntries).to.have.members([remoteAndLocalRecord.messageCid]);
+        expect(remoteDwnQueryEntries.length).to.equal(2);
+        expect(remoteDwnQueryEntries).to.have.members([ remoteAndLocalRecord.messageCid, deleteMessage.messageCid ]);
 
         // stub getDwnEventLog to return the messageCids of the records we want to sync
         // we stub this to avoid syncing the registered identity related messages
         sinon.stub(syncEngine as any, 'getDwnEventLog').resolves([
           remoteAndLocalRecord.messageCid,
+          deleteMessage.messageCid,
           record1.messageCid,
           record2.messageCid
         ]);
@@ -975,8 +1022,17 @@ describe('SyncEngineLevel', () => {
         // Execute Sync to push records to Alice's remote node
         await syncEngine.push();
 
-        // Verify sendDwnRequest was called once for each record including the one that already exists remotely
-        expect(sendDwnRequestSpy.callCount).to.equal(3);
+        // Verify sendDwnRequest was called once for each record including the ones that already exist remotely
+        expect(sendDwnRequestSpy.callCount).to.equal(4);
+
+        // Verify that the conflict response is returned for the record that already exists remotely
+        expect((await sendDwnRequestSpy.firstCall.returnValue).status.code).to.equal(409);
+        // Verify that the delete message returned a 404
+        expect((await sendDwnRequestSpy.secondCall.returnValue).status.code).to.equal(404);
+
+        // Verify that the other 2 records are successfully processed
+        expect((await sendDwnRequestSpy.returnValues[2]).status.code).to.equal(202);
+        expect((await sendDwnRequestSpy.returnValues[3]).status.code).to.equal(202);
 
         // confirm the new records exist remotely
         remoteQueryResponse = await testHarness.agent.sendDwnRequest({
@@ -988,9 +1044,10 @@ describe('SyncEngineLevel', () => {
           },
         });
         remoteDwnQueryEntries = remoteQueryResponse.reply.entries!;
-        expect(remoteDwnQueryEntries.length).to.equal(3);
+        expect(remoteDwnQueryEntries.length).to.equal(4);
         expect(remoteDwnQueryEntries).to.have.members([
           remoteAndLocalRecord.messageCid,
+          deleteMessage.messageCid,
           record1.messageCid,
           record2.messageCid
         ]);

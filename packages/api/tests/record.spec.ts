@@ -2983,7 +2983,7 @@ describe('Record', () => {
       }
     });
 
-    it('duplicate delete with store should return conflict', async () => {
+    it('duplicate delete with store should return not found', async () => {
       // create a record
       const { status: writeStatus, record }  = await dwnAlice.records.write({
         data    : 'Hello, world!',
@@ -3013,7 +3013,7 @@ describe('Record', () => {
 
       // attempt to delete the record again
       const { status: deleteStatus2 } = await record.delete();
-      expect(deleteStatus2.code).to.equal(409);
+      expect(deleteStatus2.code).to.equal(404);
     });
 
     it('a record in a deleted state returns undefined for data related fields', async () => {
