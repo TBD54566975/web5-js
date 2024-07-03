@@ -19,8 +19,8 @@ describe('Verifiable Credential Tests', () => {
     ) {}
   }
 
-  // KYC schema, also hosted here https://purple-charming-snail-690.mypinata.cloud/ipfs/QmZbPpfPXsp4bFQvQvWRaexCu9Vxmj6qkwWerVfPwY9kQS
-  const mockKycSchema = {
+  // KYC schema, also hosted here https://developer.tbd.website/schemas/kccSchema.json
+  const kycSchema = {
     '$schema'    : 'http://json-schema.org/draft-07/schema#',
     'type'       : 'object',
     'properties' : {
@@ -30,7 +30,7 @@ describe('Verifiable Credential Tests', () => {
           'id': {
             'type': 'string'
           },
-          'country_of_residence': {
+          'countryOfResidence': {
             'type'    : 'string',
             'pattern' : '^[A-Z]{2}$'
           },
@@ -41,7 +41,7 @@ describe('Verifiable Credential Tests', () => {
         },
         'required': [
           'id',
-          'country_of_residence'
+          'countryOfResidence'
         ]
       },
       'issuer': {
@@ -63,7 +63,8 @@ describe('Verifiable Credential Tests', () => {
             'format' : 'uri'
           },
           'type': {
-            'type': 'string'
+            'type'  : 'string',
+            'const' : 'JsonSchema'
           }
         },
         'required': [
@@ -177,7 +178,7 @@ describe('Verifiable Credential Tests', () => {
       const fetchStub = sinon.stub(globalThis, 'fetch');
 
       // Mock the schema fetch
-      fetchStub.withArgs('https://schema.org/PFI').resolves(new Response(JSON.stringify(mockKycSchema), { status: 200 }));
+      fetchStub.withArgs('https://schema.org/PFI').resolves(new Response(JSON.stringify(kycSchema), { status: 200 }));
 
       const subjectDid = await DidJwk.create();
       const issuerDid = await DidJwk.create();
@@ -190,7 +191,7 @@ describe('Verifiable Credential Tests', () => {
         expirationDate : `2055-05-19T08:02:04Z`,
         data           : {
           id                   : subjectDid.uri,
-          country_of_residence : 'US',
+          countryOfResidence   : 'US',
           tier                 : 'Tier 1'
         },
         credentialSchema: {
@@ -218,7 +219,7 @@ describe('Verifiable Credential Tests', () => {
         { kind: 'document_verification', checks: ['passport', 'utility_bill'] },
         { kind: 'sanctions_check', checks: ['daily'] }
       ]);
-      expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: subjectDid.uri, country_of_residence: 'US', tier: 'Tier 1' });
+      expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: subjectDid.uri, countryOfResidence: 'US', tier: 'Tier 1' });
       expect(currentVc.vcDataModel.credentialSchema).to.deep.equal({ id: 'https://schema.org/PFI', type: 'JsonSchema' });
       expect(currentVc.vcDataModel.evidence).to.deep.equal([{ kind: 'document_verification', checks: ['passport', 'utility_bill'] }, { kind: 'sanctions_check', checks: ['daily'] }]);
 
