@@ -190,9 +190,9 @@ describe('Verifiable Credential Tests', () => {
         issuanceDate   : '2023-05-19T08:02:04Z',
         expirationDate : `2055-05-19T08:02:04Z`,
         data           : {
-          id                   : subjectDid.uri,
-          countryOfResidence   : 'US',
-          tier                 : 'Tier 1'
+          id                 : subjectDid.uri,
+          countryOfResidence : 'US',
+          tier               : 'Tier 1'
         },
         credentialSchema: {
           id   : 'https://schema.org/PFI',
