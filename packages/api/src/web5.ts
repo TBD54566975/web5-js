@@ -136,6 +136,11 @@ export type Web5ConnectOptions = {
    * See {@link TechPreviewOptions} for available options.
    */
   techPreview?: TechPreviewOptions;
+
+  /**
+   * Helps debug issues by alerting a user when unknown errors within certain code paths occur.
+   */
+  debug?: boolean;
 }
 
 /**
@@ -213,7 +218,7 @@ export class Web5 {
    * @returns A promise that resolves to a {@link Web5} instance and the connected DID.
    */
   static async connect({
-    agent, agentVault, connectedDid, password, recoveryPhrase, sync, techPreview
+    agent, agentVault, connectedDid, password, recoveryPhrase, sync, techPreview, debug = false
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
     if (agent === undefined) {
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
@@ -251,55 +256,77 @@ export class Web5 {
         // Query the Agent's DWN tenant for identity records.
         const identities = await userAgent.identity.list();
 
-        // If an existing identity is not found found, create a new one.
-        const existingIdentityCount = identities.length;
-        if (existingIdentityCount === 0) {
-          // Use the specified DWN endpoints or get default tech preview hosted nodes.
-          const serviceEndpointNodes = techPreview?.dwnEndpoints ?? await getTechPreviewDwnEndpoints();
-
-          // Generate a new Identity for the end-user.
-          identity = await userAgent.identity.create({
-            didMethod  : 'dht',
-            metadata   : { name: 'Default' },
-            didOptions : {
-              services: [
-                {
-                  id              : 'dwn',
-                  type            : 'DecentralizedWebNode',
-                  serviceEndpoint : serviceEndpointNodes,
-                  enc             : '#enc',
-                  sig             : '#sig',
-                }
-              ],
-              verificationMethods: [
-                {
-                  algorithm : 'Ed25519',
-                  id        : 'sig',
-                  purposes  : ['assertionMethod', 'authentication']
-                },
-                {
-                  algorithm : 'secp256k1',
-                  id        : 'enc',
-                  purposes  : ['keyAgreement']
-                }
-              ]
-            }
-          });
-
-          // The User Agent will manage the Identity, which ensures it will be available on future
-          // sessions.
-          await userAgent.identity.manage({ portableIdentity: await identity.export() });
-
-        } else if (existingIdentityCount === 1) {
-          // An existing identity was found in the User Agent's tenant.
-          identity = identities[0];
-
-        } else {
-          throw new Error(`connect() failed due to unexpected state: Expected 1 but found ${existingIdentityCount} stored identities.`);
+        if (debug && identities.length > 1) {
+          if ('alert' in globalThis) {
+            globalThis.alert('multiple identities detected');
+          }
+          return { did: undefined, web5: undefined };
         }
 
-        // Set the stored identity as the connected DID.
-        connectedDid = identity.did.uri;
+        /**
+         * The user agent could have multiple identities stored, but we only want to connect to one.
+         * In most cases with default `Web5.connect()` usage, there will only be one identity.
+         * If a `connectedDid` is provided, we expect to find that identity in the list.
+         * If no `connectedDid` is provided, we will use the first identity in the list.
+         *
+         * NOTE: There has been a case where there should have only been one identity but there were two.
+         * We have this Issue to track it: https://github.com/TBD54566975/web5-js/issues/680
+         */
+
+        const existingIdentityCount = identities.length;
+        if (connectedDid !== undefined) {
+          // if a connectedDid is provided, find the identity with that DID.
+          const connectedIdentity = identities.find(identity => identity.did.uri === connectedDid);
+          if (connectedIdentity === undefined) {
+            throw new Error(`connect() failed due to unexpected state: Expected to find identity with DID ${connectedDid}.`);
+          }
+          identity = connectedIdentity;
+        } else {
+          // If no connected DID is provided, and no identities exist in the agent, create a new identity
+          if (existingIdentityCount === 0) {
+            // Use the specified DWN endpoints or get default tech preview hosted nodes.
+            const serviceEndpointNodes = techPreview?.dwnEndpoints ?? await getTechPreviewDwnEndpoints();
+
+            // Generate a new Identity for the end-user.
+            identity = await userAgent.identity.create({
+              didMethod  : 'dht',
+              metadata   : { name: 'Default' },
+              didOptions : {
+                services: [
+                  {
+                    id              : 'dwn',
+                    type            : 'DecentralizedWebNode',
+                    serviceEndpoint : serviceEndpointNodes,
+                    enc             : '#enc',
+                    sig             : '#sig',
+                  }
+                ],
+                verificationMethods: [
+                  {
+                    algorithm : 'Ed25519',
+                    id        : 'sig',
+                    purposes  : ['assertionMethod', 'authentication']
+                  },
+                  {
+                    algorithm : 'secp256k1',
+                    id        : 'enc',
+                    purposes  : ['keyAgreement']
+                  }
+                ]
+              }
+            });
+
+            // The User Agent will manage the Identity, which ensures it will be available on future
+            // sessions.
+            await userAgent.identity.manage({ portableIdentity: await identity.export() });
+          } else {
+            // If multiple identities are found, use the first one in the list.
+            identity = identities[0];
+          }
+
+          // Set the stored identity as the connected DID.
+          connectedDid = identity.did.uri;
+        }
       }
 
       // Enable sync, unless explicitly disabled.

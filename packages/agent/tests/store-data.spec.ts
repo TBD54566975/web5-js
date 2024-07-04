@@ -57,6 +57,10 @@ class DwnTestStore extends DwnDataStore<PortableDid> implements AgentDataStore<P
       messageParams : { filter: { ...this._recordProperties } }
     });
 
+    if (queryReply.status.code !== 200) {
+      throw new Error(`${this.name}: Failed to query DWN for stored DIDs - ${queryReply.status.detail}`);
+    }
+
     // Loop through all of the stored PortableDid records and accumulate the objects.
     let storedObjects: PortableDid[] = [];
     for (const record of queryReply.entries ?? []) {
@@ -115,11 +119,13 @@ describe('AgentDataStore', () => {
   });
 
   beforeEach(async () => {
+    sinon.restore();
     await testHarness.clearStorage();
     await testHarness.createAgentDid();
   });
 
   after(async () => {
+    sinon.restore();
     await testHarness.clearStorage();
     await testHarness.closeStorage();
   });
@@ -552,6 +558,9 @@ describe('AgentDataStore', () => {
         it('throws an error if the DWN write request fails', async function() {
           // Skip this test for InMemoryTestStore, as it is only relevant for the DWN store.
           if (TestStore.name === 'InMemoryTestStore') this.skip();
+
+          // Stub the DWN DataStore to return undefined when looking up a record ID.
+          sinon.stub(DwnDataStore.prototype as any, 'lookupRecordId').resolves(undefined);
 
           // Stub the DWN API to return a failed response.
           const dwnApiStub = sinon.stub(testHarness.agent.dwn, 'processRequest').resolves({
