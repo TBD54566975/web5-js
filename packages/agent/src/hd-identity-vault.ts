@@ -15,6 +15,7 @@ import { LocalKeyManager } from './local-key-manager.js';
 import { isPortableDid } from './prototyping/dids/utils.js';
 import { DeterministicKeyGenerator } from './utils-internal.js';
 import { CompactJwe } from './prototyping/crypto/jose/jwe-compact.js';
+import { getTechPreviewDwnEndpoints } from '@web5/api';
 
 /**
  * Extended initialization parameters for HdIdentityVault, including an optional recovery phrase
@@ -36,6 +37,15 @@ export type HdIdentityVaultInitializeParams = {
     * during the initialization process.
     */
    recoveryPhrase?: string;
+
+   /**
+    * Optional dwnEndpoints to register didService endpoints during HdIdentityVault initialization
+    * 
+    * The dwnEndpoints are used to register a DWN endpoint during DidDht.create(). This allows the
+    * agent to properly recover connectedDids from DWN. Also, this pattern can be used on the server
+    * side in place of the agentDid-->connectedDids pattern.
+    */
+    dwnEndpoints?: string[];
  };
 
 /**
@@ -352,7 +362,7 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
    * @returns A promise that resolves with the recovery phrase used during the initialization, which
    *          should be securely stored by the user.
    */
-  public async initialize({ password, recoveryPhrase }:
+  public async initialize({ password, recoveryPhrase, dwnEndpoints }:
     HdIdentityVaultInitializeParams
   ): Promise<string> {
     /**
@@ -501,10 +511,20 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
       privateKeys: [ identityPrivateKey, signingPrivateKey]
     });
 
+    const serviceEndpointNodes = dwnEndpoints ?? await getTechPreviewDwnEndpoints();
     // Create the DID using the derived identity, signing, and encryption keys.
     const did = await DidDht.create({
       keyManager : deterministicKeyGenerator,
       options    : {
+        services: [
+          {
+            id              : 'dwn',
+            type            : 'DecentralizedWebNode',
+            serviceEndpoint : serviceEndpointNodes,
+            enc             : '#enc',
+            sig             : '#sig',
+          }
+        ],
         verificationMethods: [
           {
             algorithm : 'Ed25519',
