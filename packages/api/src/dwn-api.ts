@@ -16,12 +16,15 @@ import {
   DwnMessage,
   DwnResponse,
   DwnMessageParams,
+  DwnMessageSubscription,
   DwnResponseStatus,
   CachedPermissions,
   ProcessDwnRequest,
   DwnPaginationCursor,
   DwnDataEncodedRecordsWriteMessage,
-  AgentPermissionsApi
+  DwnRecordSubscriptionHandler,
+  AgentPermissionsApi,
+  isDwnMessage
 } from '@web5/agent';
 
 import { isEmptyObject } from '@web5/common';
@@ -179,7 +182,7 @@ export type RecordsQueryResponse = DwnResponseStatus & {
 
   /** If there are additional results, the messageCid of the last record will be returned as a pagination cursor. */
   cursor?: DwnPaginationCursor;
-};
+}
 
 /**
  * Represents a request to read a specific record from a Decentralized Web Node (DWN).
@@ -206,7 +209,31 @@ export type RecordsReadRequest = {
 export type RecordsReadResponse = DwnResponseStatus & {
   /** The record retrieved by the read operation. */
   record: Record;
-};
+}
+
+export type RecordsSubscriptionHandler = (record: Record) => void;
+
+/**
+ * Represents a request to subscribe to records from a Decentralized Web Node (DWN).
+ *
+ * This request type is used to specify the target DWN from which records matching the subscription
+ * criteria should be emitted. It's useful for being notified in real time when records are written, deleted or modified.
+ */
+export type RecordsSubscribeRequest = {
+  /** Optional DID specifying the remote target DWN tenant to subscribe from. */
+  from?: string;
+
+  /** The parameters for the subscription operation, detailing the criteria for the subscription filter */
+  message: Omit<DwnMessageParams[DwnInterface.RecordsSubscribe], 'signer'>;
+
+  /** The handler to process the subscription events */
+  subscriptionHandler: RecordsSubscriptionHandler;
+}
+
+
+export type RecordsSubscribeResponse = DwnResponseStatus & {
+  subscription?: DwnMessageSubscription;
+}
 
 /**
  * Defines a request to write (create) a record to a Decentralized Web Node (DWN).
@@ -252,7 +279,7 @@ export type RecordsWriteResponse = DwnResponseStatus & {
    * DWN as a result of the write operation.
    */
   record?: Record
-};
+}
 
 /**
  * Interface to interact with DWN Records and Protocols
@@ -431,6 +458,35 @@ export class DwnApi {
     };
   }
 
+  private subscriptionHandler(request: RecordsSubscribeRequest): DwnRecordSubscriptionHandler {
+    const { subscriptionHandler } = request;
+
+    return async (event) => {
+      const { message, initialWrite } = event;
+      const author = getRecordAuthor(message);
+      const recordOptions = {
+        author,
+        connectedDid : this.connectedDid,
+        remoteOrigin : request.from,
+        initialWrite
+      };
+
+      let record:Record;
+      if (isDwnMessage(DwnInterface.RecordsWrite, message)) {
+        record = new Record(this.agent, { ...message, ...recordOptions });
+      } else {
+        // The event is a delete message, we first initialize the initialWrite
+        // and then we put it into a deleted state
+        // record = new Record(this.agent, {
+        //   ...recordOptions,
+        //   ...initialWrite
+        // });
+      }
+
+      subscriptionHandler(record);
+    };
+  }
+
   /**
    * API to interact with DWN protocols (e.g., `dwn.protocols.configure()`).
    */
@@ -582,7 +638,6 @@ export class DwnApi {
 
         return { status };
       },
-
       /**
        * Query a single or multiple records based on the given filter
        */
@@ -731,6 +786,48 @@ export class DwnApi {
         }
 
         return { record, status };
+      },
+
+      /**
+       * Subscribes to records based on the given filter and emits events to the `subscriptionHandler`.
+       *
+       * @param request must include the `message` with the subscription filter and the `subscriptionHandler` to process the events.
+       * @returns the subscription status and the subscription object used to close the subscription.
+       */
+      subscribe: async (request: RecordsSubscribeRequest): Promise<RecordsSubscribeResponse> => {
+        const agentRequest: ProcessDwnRequest<DwnInterface.RecordsSubscribe> = {
+          /**
+           * The `author` is the DID that will sign the message and must be the DID the Web5 app is
+           * connected with and is authorized to access the signing private key of.
+           */
+          author        : this.connectedDid,
+          messageParams : request.message,
+          messageType   : DwnInterface.RecordsSubscribe,
+          /**
+           * The `target` is the DID of the DWN tenant under which the subscribe operation will be executed.
+           * If `from` is provided, the subscribe operation will be executed on a remote DWN.
+           * Otherwise, the local DWN will execute the subscribe operation.
+           */
+          target        : request.from || this.connectedDid,
+
+          /**
+           * The handler to process the subscription events.
+           */
+          subscriptionHandler: this.subscriptionHandler(request)
+        };
+
+        let agentResponse: DwnResponse<DwnInterface.RecordsSubscribe>;
+
+        if (request.from) {
+          agentResponse = await this.agent.sendDwnRequest(agentRequest);
+        } else {
+          agentResponse = await this.agent.processDwnRequest(agentRequest);
+        }
+
+        const reply = agentResponse.reply;
+        const { status, subscription } = reply;
+
+        return { status, subscription };
       },
 
       /**

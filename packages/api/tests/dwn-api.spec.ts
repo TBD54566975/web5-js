@@ -1248,6 +1248,7 @@ describe('DwnApi', () => {
         expect(writeResult.status.detail).to.equal('Accepted');
         expect(writeResult.record).to.exist;
 
+
         // Delete the record
         await writeResult.record!.delete();
 
