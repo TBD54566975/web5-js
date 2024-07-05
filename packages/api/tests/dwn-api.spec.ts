@@ -9,6 +9,7 @@ import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
 import photosProtocolDefinition from './fixtures/protocol-definitions/photos.json' assert { type: 'json' };
+import { Record } from '../src/record.js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -1239,6 +1240,7 @@ describe('DwnApi', () => {
         expect(writeResult.status.detail).to.equal('Accepted');
         expect(writeResult.record).to.exist;
 
+
         // Delete the record
         await dwnAlice.records.delete({
           message: {
@@ -1363,6 +1365,188 @@ describe('DwnApi', () => {
         // The record's author should be Alice's DID since Alice was the signer.
         const recordOnBobsDwn = bobQueryResult.record;
         expect(recordOnBobsDwn.author).to.equal(aliceDid.uri);
+      });
+    });
+  });
+
+  describe('records.subscribe()', () => {
+    describe('agent', () => {
+      it('subscribes to records that match the filter provided', async () => {
+
+        // a map to record the records that have been received by the subscription
+        // deleted records will be removed
+        const recordsMap = new Map<string, Record>();
+
+        const subscriptionResult = await dwnAlice.records.subscribe({
+          message: {
+            filter: {
+              schema: 'foo/bar'
+            }
+          },
+          subscriptionHandler: (record) => record.deleted ? recordsMap.delete(record.id) : recordsMap.set(record.id, record)
+        });
+        expect(subscriptionResult.status.code).to.equal(200);
+
+        const writeResult = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+        expect(writeResult.status.code).to.equal(202);
+        expect(writeResult.status.detail).to.equal('Accepted');
+        expect(writeResult.record).to.exist;
+
+        expect(recordsMap.size).to.equal(1);
+        expect([...recordsMap.keys()]).to.include(writeResult.record.id);
+
+        // create another record
+        const writeResult2 = await dwnAlice.records.write({
+          data    : 'Hello, world again!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+        expect(writeResult2.status.code).to.equal(202);
+        expect(writeResult2.status.detail).to.equal('Accepted');
+        expect(writeResult2.record).to.exist;
+
+        expect(recordsMap.size).to.equal(2);
+        expect([...recordsMap.keys()]).to.include(writeResult2.record.id);
+
+        // write a record that does not match the filter
+        const writeResult3 = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            schema     : 'foo/baz', // different schema
+            dataFormat : 'text/plain'
+          }
+        });
+        expect(writeResult3.status.code).to.equal(202);
+
+        expect(recordsMap.size).to.equal(2); // should not have changed
+        expect([...recordsMap.keys()]).to.not.include(writeResult3.record.id);
+
+        // delete the first write
+        const deleteRecord = await writeResult.record.delete();
+        expect(deleteRecord.status.code).to.equal(202);
+        expect(recordsMap.size).to.equal(1); // only one record should be left after deletion
+        expect([...recordsMap.keys()]).to.not.include(writeResult.record.id); // the deleted record should not be in the map
+
+        // close subscription
+        await subscriptionResult.subscription.close();
+
+        // write another matching record
+        const writeResult4 = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+        expect(writeResult4.status.code).to.equal(202);
+        expect(writeResult4.status.detail).to.equal('Accepted');
+        expect(writeResult4.record).to.exist;
+
+        expect(recordsMap.size).to.equal(1); // should not have changed
+        expect([...recordsMap.keys()]).to.not.include(writeResult4.record.id); // the new record should not be in the map
+      });
+    });
+
+    describe('from: did', () => {
+      it('subscribes to records that match the filter provided', async () => {
+
+        // a map to record the records that have been received by the subscription
+        // deleted records will be removed
+        const recordsMap = new Map<string, Record>();
+
+        const subscriptionResult = await dwnAlice.records.subscribe({
+          from    : aliceDid.uri,
+          message : {
+            filter: {
+              schema: 'foo/bar'
+            }
+          },
+          subscriptionHandler: (record) => record.deleted ? recordsMap.delete(record.id) : recordsMap.set(record.id, record)
+        });
+        expect(subscriptionResult.status.code).to.equal(200);
+
+        const writeResult = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+
+        const writeSendResult = await writeResult.record.send(aliceDid.uri);
+        expect(writeSendResult.status.code).to.equal(202);
+        expect(writeSendResult.status.detail).to.equal('Accepted');
+
+        expect(recordsMap.size).to.equal(1);
+        expect([...recordsMap.keys()]).to.include(writeResult.record.id);
+
+        // create another record
+        const writeResult2 = await dwnAlice.records.write({
+          data    : 'Hello, world again!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+        const writeSendResult2 = await writeResult2.record.send(aliceDid.uri);
+        expect(writeSendResult2.status.code).to.equal(202);
+        expect(writeSendResult2.status.detail).to.equal('Accepted');
+
+        expect(recordsMap.size).to.equal(2);
+        expect([...recordsMap.keys()]).to.include(writeResult2.record.id);
+
+        // write a record that does not match the filter
+        const writeResult3 = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            schema     : 'foo/baz', // different schema
+            dataFormat : 'text/plain'
+          }
+        });
+        const writeSendResult3 = await writeResult3.record.send(aliceDid.uri);
+        expect(writeSendResult3.status.code).to.equal(202);
+        expect(writeSendResult3.status.detail).to.equal('Accepted');
+
+        expect(recordsMap.size).to.equal(2); // should not have changed
+        expect([...recordsMap.keys()]).to.not.include(writeResult3.record.id);
+
+        // delete the first write
+        const deleteRecord = await writeResult.record.delete();
+        expect(deleteRecord.status.code).to.equal(202);
+        expect(deleteRecord.status.detail).to.equal('Accepted');
+        // send the deleted record to the remote DWN
+        const sendDelete = await writeResult.record.send(aliceDid.uri);
+        expect(sendDelete.status.code).to.equal(202);
+        expect(sendDelete.status.detail).to.equal('Accepted');
+
+        expect(recordsMap.size).to.equal(1); // only one record should be left after deletion
+        expect([...recordsMap.keys()]).to.not.include(writeResult.record.id); // the deleted record should not be in the map
+
+        // close subscription
+        await subscriptionResult.subscription.close();
+
+        // write another matching record
+        const writeResult4 = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain'
+          }
+        });
+        const writeSendResult4 = await writeResult4.record.send(aliceDid.uri);
+        expect(writeSendResult4.status.code).to.equal(202);
+        expect(writeSendResult4.status.detail).to.equal('Accepted');
+
+        expect(recordsMap.size).to.equal(1); // should not have changed
+        expect([...recordsMap.keys()]).to.not.include(writeResult4.record.id); // the new record should not be in the map
       });
     });
   });
