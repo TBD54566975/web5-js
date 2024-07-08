@@ -53,6 +53,7 @@ app.post("/connect/par", (req, res) => {
 
     // Generate a request URI
     const requestId = randomUuid();
+    //TODO: REPLACE THIS
     const request_uri = `http://localhost:${port}/connect/authorize/${requestId}.jwt`;
 
     // Store the SIOPv2 Auth Request JWT
