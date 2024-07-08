@@ -15,7 +15,8 @@
     // reference: https://devblogs.microsoft.com/typescript/announcing-typescript-4-7/#ecmascript-module-support-in-node-js
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "skipLibCheck": true
   },
   "exclude": ["eslint.config.cjs", "data", "bin", "web5-spec", "node_modules"]
 }
