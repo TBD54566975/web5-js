@@ -3,8 +3,9 @@ import { Sha256, utils } from '@web5/crypto';
 
 import { appendPathToUrl } from './utils.js';
 import { Hkdf } from './prototyping/crypto/primitives/hkdf.js';
-import { Web5PlatformAgent } from './types/agent.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
+import type { Web5PlatformAgent } from './types/agent.js';
+import type { ConnectPermissionRequests } from './connect-v2.js';
 
 /**
  * Sent to an OIDC server to authorize a client. Allows clients
@@ -123,7 +124,7 @@ export type SIOPv2AuthRequest = {
  */
 export type Web5ConnectRequest = {
   /** PermissionGrants that are to be sent to the provider */
-  permission_requests: string[];
+  permission_requests: ConnectPermissionRequests;
 };
 
 // old, ignore, do not use. here for comparison.
@@ -188,8 +189,8 @@ type OidcEndpoint =
  * @param {Object} options the options object
  * @param {string} options.baseURL for example `http://foo.com/connect/
  * @param {OidcEndpoint} options.endpoint the OIDC endpoint desired
- * @param {string} options.authParam must be provided when getting the `authorize` endpoint
- * @param {string} options.tokenParam must be provided when getting the `token` endpoint
+ * @param {string} options.authParam this is the unique id which must be provided when getting the `authorize` endpoint
+ * @param {string} options.tokenParam this is the random state as b64url which must be provided with the `token` endpoint
  */
 function buildOidcUrl({
   baseURL,
@@ -243,7 +244,7 @@ function buildOidcUrl({
  *
  * @returns A random state as a Base64Url encoded string.
  */
-function generateRandomState() {
+export function generateRandomState() {
   const randomStateu8a = utils.randomBytes(12);
   const ramdomStateb64url = Convert.uint8Array(randomStateu8a).toBase64Url();
 
@@ -286,9 +287,8 @@ async function deriveNonceFromInput(state: Uint8Array) {
  */
 export function generateRandomCodeVerifier() {
   const codeVerifieru8a = utils.randomBytes(32);
-  const codeVerifierb64url = Convert.uint8Array(codeVerifieru8a).toBase64Url();
 
-  return { codeVerifieru8a, codeVerifierb64url };
+  return { codeVerifieru8a };
 }
 
 /**
@@ -356,10 +356,12 @@ async function signRequestObject({
 
     const payload = Convert.object(request).toBase64Url();
 
+    // signs using ed25519 for EdDSA
     const signature = await agent.keyManager.sign({
       keyUri,
       data: Convert.string(`${header}.${payload}`).toUint8Array(),
     });
+
     const signatureBase64Url = Convert.uint8Array(signature).toBase64Url();
 
     const jwt = `${header}.${payload}.${signatureBase64Url}`;

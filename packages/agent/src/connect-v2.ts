@@ -1,41 +1,70 @@
-import { Oidc, type PushedAuthResponse } from './oidc-v2.js';
+import { DwnProtocolDefinition, DwnRecordsPermissionScope } from './index.js';
+import {
+  HybridAuthResponse,
+  Oidc,
+  type PushedAuthResponse,
+} from './oidc-v2.js';
 import { type Web5PlatformAgent } from './types/agent.js';
 import { pollWithTTL } from './utils.js';
+
+/**
+* The protocols of permissions requested, along with the definition and permission scopes for each protocol.
+* The key is the protocol URL and the value is an object with the protocol definition and the permission scopes.
+*/
+export type ConnectPermissionRequests = Record<
+string,
+{
+  /**
+   * The definition of the protocol the permissions are being requested for.
+   * In the event that the protocol is not already installed, the wallet will install this given protocol definition.
+   */
+  protocolDefinition: DwnProtocolDefinition;
+
+  /** The scope of the permissions being requested for the given protocol */
+  permissionScopes: DwnRecordsPermissionScope[];
+}
+>;
 
 type ClientWalletConnectOptions = {
   /** The client app DID public key to connect to the wallet */
   clientDid: string;
   /** URL of the connect server */
-  baseURL: string;
+  connectServerUrl: string;
   /** An optional webpage providing information about the client */
   client_uri?: string;
   /** PermissionRequest for the Identity Provider (provider will respond with PermissionGrants) */
-  permissionRequests: string[];
+  permissionRequests: ConnectPermissionRequests;
   /** An instance of a Web5 agent used for getting keys and signing with them */
   agent: Web5PlatformAgent;
+  /** Provides the URI to the client  */
+  onUriReady: (uri: string) => void;
+  /** The user provided pin obtained asyncronously from the client */
+  pinCapture: () => Promise<string>;
 };
 
 /**
- * Description placeholder
+ * Initializes the Web5 Wallet Connect flow on behalf of the client (dwa). Stays valid for 5 minutes.
  *
  * @async
  * @param {Object} options The options object
  * @param {string} options.clientDid The client app DID public key to connect to the wallet
- * @param {string} options.baseURL The URL of the connect server
- * @param {string[]} options.permissionRequests The PermissionRequests for the Identity Provider (Provider will respond with PermissionGrants)
+ * @param {string} options.connectServerUrl URL of the connect server
+ * @param {ConnectPermissionRequests} options.permissionRequests PermissionRequest for the Identity Provider (provider will respond with PermissionGrants)
  * @param {string} options.client_uri An optional webpage providing information about the client
  * @param {Web5PlatformAgent} options.agent An instance of a Web5 agent used for getting keys and signing with them
  */
 async function init({
   clientDid,
-  baseURL,
+  connectServerUrl,
   permissionRequests,
   client_uri,
   agent,
+  onUriReady,
+  pinCapture
 }: ClientWalletConnectOptions) {
   /** bifurcated desktop flow disabled, possibly permanently */
   // if (!provider.authorizationEndpoint.startsWith("web5:")) {
-  //   baseURL = provider.authorizationEndpoint;
+  //   connectServerUrl = provider.authorizationEndpoint;
   // }
 
   // Hash the code verifier to use as a code challenge and to encrypt the Request Object.
@@ -47,7 +76,7 @@ async function init({
     await Oidc.deriveCodeChallenge(codeVerifieru8a);
 
   // get callback buildOidcUrl to pass into the connect auth request
-  const callbackEndpoint = Oidc.buildOidcUrl({ baseURL, endpoint: 'callback' });
+  const callbackEndpoint = Oidc.buildOidcUrl({ baseURL: connectServerUrl, endpoint: 'callback' });
 
   // build the PAR request
   const request = await Oidc.createAuthRequest({
@@ -97,40 +126,55 @@ async function init({
   const formEncodedRequest = new URLSearchParams({ request: requestObjectJwe });
 
   const pushedAuthorizationRequestEndpoint = Oidc.buildOidcUrl({
-    baseURL,
-    endpoint: 'pushedAuthorizationRequest',
+    baseURL  : connectServerUrl,
+    endpoint : 'pushedAuthorizationRequest',
   });
 
-  const postPar = await pollWithTTL<PushedAuthResponse>(() =>
-    fetch(pushedAuthorizationRequestEndpoint, {
+  try {
+    const parResponse = await fetch(pushedAuthorizationRequestEndpoint, {
       body    : formEncodedRequest,
       method  : 'POST',
       headers : {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-    })
-  );
+    });
+    if (!parResponse.ok) {
+      throw new Error(`${parResponse.status}: ${parResponse.statusText}`);
+    }
 
-  if (postPar?.request_uri) {
-    // pass the link back
+    const parData: PushedAuthResponse = await parResponse.json();
+
+    // build the deeplink to the wallet. if the wallet scans this link it should receive
+    // a route to its web5 connect provider flow and these params of where to fetch the auth request.
+    const walletURI = new URL(connectServerUrl);
+    walletURI.searchParams.set('code_challenge', codeChallengeb64url);
+    walletURI.searchParams.set('request_uri', parData.request_uri);
+
+    // call user's callback so they can send the URI to the wallet as they see fit
+    onUriReady(walletURI.toString());
+
+    // subscribe to receiving a response from the wallet with default TTL
+    const tokenURL = Oidc.buildOidcUrl({
+      baseURL    : connectServerUrl,
+      endpoint   : 'token',
+      tokenParam : request.state,
+    });
+
+    /** ciphertext of {@link HybridAuthResponse} */
+    const authResponse = await pollWithTTL<string>(() =>
+      fetch(tokenURL)
+    );
+
+    if (authResponse) {
+      const userPin = await pinCapture();
+
+      // decrypt response using pin
+    }
+
+    console.log('authResponse', authResponse);
+  } catch (e) {
+    console.error('Could not generate connect link');
   }
-
-  //! we can test up until here
-
-  // !fix: separate this code
-  /** Define the Authorization Request that will be transmitted to the Identity Provider
-   * to initiate the authorization process. */
-  // const authorizationRequestUrl = new URL(oidcEndpoints.authorizationEndpoint);
-  // authorizationRequestUrl.searchParams.set("code_challenge", codeVerifier);
-  // authorizationRequestUrl.searchParams.set("request_uri", request_uri);
-
-  // Push the encrypted Request Object to the Identity Provider.
-
-  // HERE
-  // channel.send({
-  //   data: formEncodedRequest,
-  //   url: provider.pushedAuthorizationRequestEndpoint,
-  // });
 }
 
 export const ClientWalletConnect = { init };

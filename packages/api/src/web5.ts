@@ -1,11 +1,17 @@
-import type { BearerIdentity, HdIdentityVault, Web5Agent } from '@web5/agent';
-
+import {
+  ClientWalletConnect,
+  type BearerIdentity,
+  type ConnectPermissionRequests,
+  type HdIdentityVault,
+  type HybridAuthRequest,
+  type HybridAuthResponse,
+  type Web5Agent
+} from '@web5/agent';
+import { Web5UserAgent } from '@web5/user-agent';
 import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
-import { DwnRecordsPermissionScope, DwnProtocolDefinition } from '@web5/agent';
-import { getTechPreviewDwnEndpoints } from './tech-preview.js';
 import { VcApi } from './vc-api.js';
-import { Web5UserAgent } from '@web5/user-agent';
+import { getTechPreviewDwnEndpoints } from './tech-preview.js';
 
 /** Override defaults configured during the technical preview phase. */
 export type TechPreviewOptions = {
@@ -14,56 +20,49 @@ export type TechPreviewOptions = {
 }
 
 /**
- * Options to provide when the initiating app wants to import a delegated identity/DID from an external wallet.
- */
+* Initiates the wallet connect process. Used when the app (client) wants to import
+* a delegated identity DID from a wallet (provider).
+*/
 export type WalletConnectOptions = {
   /**
-   * The URL of the wallet connect server to use for relaying messages between the app and the wallet.
+   * The URL of the intermediary server which relays messages between the client and provider.
    */
   connectServerUrl: string;
 
   /**
-   * The protocols of permissions requested, along with the definition and permission copes for each protocol.
-   * The key is the protocol URL and the value is an object with the protocol definition and the permission scopes.
+   * The protocols of permissions requested, along with the definition and
+   * permission scopes for each protocol. The key is the protocol URL and
+   * the value is an object with the protocol definition and the permission scopes.
    */
-  requestedProtocolsAndScopes: Map<
-    string,
-    {
-      /**
-       * The definition of the protocol the permissions are being requested for.
-       * In the event that the protocol is not already installed, the wallet will install this given protocol definition.
-       */
-      protocolDefinition: DwnProtocolDefinition;
-
-      /**
-       * The scope of the permissions being requested for the given protocol.
-       */
-      permissionScopes: DwnRecordsPermissionScope[];
-    }
-  >;
+  permissionRequestsAndProtocols: ConnectPermissionRequests;
 
   /**
-   * A handler to be called when the request URL is ready to be used to fetch the permission request by the wallet.
-   * This method should be used by the calling app to pass the request URL to the wallet via a QR code or a deep link.
+   * The Web5 API provides a URI to the wallet based on the `connectServerUrl` plus a query params payload valid for 5 minutes.
+   * The link can either be used as a deep link on the same device or a QR code for cross device or both.
+   * The query params are `{ request_uri: string; code_challenge: string; }`
+   * The wallet will use the `request_uri to contact the intermediary server's `authorize` endpoint
+   * and pull down the {@link HybridAuthRequest} and use the `code_challenge` to decrypt it.
    *
-   * @param requestUrl - The request URL for the wallet to fetch the permission request.
+   * @param uri - The URI returned by the web5 connect API to be passed to a provider.
    */
-  onRequestReady: (requestUrl: string) => void;
+  onUriReady: (uri: string) => void;
 
   /**
-   * An async method to get the PIN from the user to decrypt the response from the wallet.
+   * Function that must be provided to submit the pin entered by the user on the client.
+   * The pin is used to decrypt the {@link HybridAuthResponse} that was retrieved from the
+   * token endpoint by the client inside of web5 connect.
    *
    * @returns A promise that resolves to the PIN as a string.
    */
-  pinCapture: () => Promise<string>;
+  validatePin: () => Promise<string>;
 }
 
 /** Optional overrides that can be provided when calling {@link Web5.connect}. */
 export type Web5ConnectOptions = {
-
   /**
-   * When specified, wallet connect flow interacting with an external wallet would be triggered.
-   */
+  * When specified, external wallet connect flow is triggered.
+  * @remarks This param currently will not work in apps that were previously connected. It must be invoked at registration.
+  */
   walletConnectOptions?: WalletConnectOptions;
 
   /**
@@ -214,7 +213,7 @@ export class Web5 {
    * @returns A promise that resolves to a {@link Web5} instance and the connected DID.
    */
   static async connect({
-    agent, agentVault, connectedDid, password, recoveryPhrase, sync, techPreview
+    agent, agentVault, connectedDid, password, recoveryPhrase, sync, techPreview, walletConnectOptions
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
     if (agent === undefined) {
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
@@ -240,68 +239,73 @@ export class Web5 {
       }
       await userAgent.start({ password });
 
-      // TODO: Replace stubbed connection attempt once Connect Protocol has been implemented.
-      // Attempt to Connect to localhost agent or via Connect Server.
-      // userAgent.connect();
+      // userAgent.
+      // Connect attempt failed or was rejected so fallback to local user agent.
+      let identity: BearerIdentity;
 
-      const notConnected = true;
-      if (/* !userAgent.isConnected() */ notConnected) {
-        // Connect attempt failed or was rejected so fallback to local user agent.
-        let identity: BearerIdentity;
+      // Query the Agent's DWN tenant for identity records.
+      const identities = await userAgent.identity.list();
 
-        // Query the Agent's DWN tenant for identity records.
-        const identities = await userAgent.identity.list();
+      // If an existing identity is not found found, create a new one.
+      const existingIdentityCount = identities.length;
 
-        // If an existing identity is not found found, create a new one.
-        const existingIdentityCount = identities.length;
-        if (existingIdentityCount === 0) {
-          // Use the specified DWN endpoints or get default tech preview hosted nodes.
-          const serviceEndpointNodes = techPreview?.dwnEndpoints ?? await getTechPreviewDwnEndpoints();
+      if (existingIdentityCount === 0) {
+        // Use the specified DWN endpoints or get default tech preview hosted nodes.
+        const serviceEndpointNodes = techPreview?.dwnEndpoints ?? await getTechPreviewDwnEndpoints();
 
-          // Generate a new Identity for the end-user.
-          identity = await userAgent.identity.create({
-            didMethod  : 'dht',
-            metadata   : { name: 'Default' },
-            didOptions : {
-              services: [
-                {
-                  id              : 'dwn',
-                  type            : 'DecentralizedWebNode',
-                  serviceEndpoint : serviceEndpointNodes,
-                  enc             : '#enc',
-                  sig             : '#sig',
-                }
-              ],
-              verificationMethods: [
-                {
-                  algorithm : 'Ed25519',
-                  id        : 'sig',
-                  purposes  : ['assertionMethod', 'authentication']
-                },
-                {
-                  algorithm : 'secp256k1',
-                  id        : 'enc',
-                  purposes  : ['keyAgreement']
-                }
-              ]
-            }
+        // Generate a new Identity for the end-user.
+        identity = await userAgent.identity.create({
+          didMethod  : 'dht',
+          metadata   : { name: 'Default' },
+          didOptions : {
+            services: [
+              {
+                id              : 'dwn',
+                type            : 'DecentralizedWebNode',
+                serviceEndpoint : serviceEndpointNodes,
+                enc             : '#enc',
+                sig             : '#sig',
+              }
+            ],
+            verificationMethods: [
+              {
+                algorithm : 'Ed25519',
+                id        : 'sig',
+                purposes  : ['assertionMethod', 'authentication']
+              },
+              {
+                algorithm : 'secp256k1',
+                id        : 'enc',
+                purposes  : ['keyAgreement']
+              }
+            ]
+          }
+        });
+
+        if (walletConnectOptions) {
+          ClientWalletConnect.init({
+            agent              : userAgent,
+            clientDid          : identity.did.uri, // TODO: need to double check this is ok. using a temporary did for cryptographic purposes only.
+            connectServerUrl   : walletConnectOptions.connectServerUrl,
+            onUriReady         : walletConnectOptions.onUriReady,
+            permissionRequests : walletConnectOptions.permissionRequestsAndProtocols,
+            pinCapture         : walletConnectOptions.validatePin
           });
-
-          // The User Agent will manage the Identity, which ensures it will be available on future
-          // sessions.
-          await userAgent.identity.manage({ portableIdentity: await identity.export() });
-
-        } else if (existingIdentityCount === 1) {
-          // An existing identity was found in the User Agent's tenant.
-          identity = identities[0];
-
         } else {
-          throw new Error(`connect() failed due to unexpected state: Expected 1 but found ${existingIdentityCount} stored identities.`);
+          // Persists the Identity to be available in future sessions
+          await userAgent.identity.manage({ portableIdentity: await identity.export() });
         }
 
-        // Set the stored identity as the connected DID.
-        connectedDid = identity.did.uri;
+
+      } else if (existingIdentityCount === 1) {
+        // An existing identity was found in the User Agent's tenant.
+        identity = identities[0];
+      } else {
+        throw new Error(`connect() failed due to unexpected state: Expected 1 but found ${existingIdentityCount} stored identities.`);
       }
+
+      // Set the stored identity as the connected DID.
+      connectedDid = identity.did.uri;
 
       // Enable sync, unless explicitly disabled.
       if (sync !== 'off') {
