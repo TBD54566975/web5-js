@@ -516,7 +516,7 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
     const did = await DidDht.create({
       keyManager : deterministicKeyGenerator,
       options    : {
-        services: [
+        services : [
           {
             id              : 'dwn',
             type            : 'DecentralizedWebNode',
@@ -525,7 +525,7 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
             sig             : '#sig',
           }
         ],
-        verificationMethods: [
+        verificationMethods : [
           {
             algorithm : 'Ed25519',
             id        : 'sig',
