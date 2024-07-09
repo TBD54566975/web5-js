@@ -145,7 +145,7 @@ async function init({
 
     const parData: PushedAuthResponse = await parResponse.json();
 
-    // build a universal link to a web5 compatible wallet. if the wallet scans this link it should receive
+    // a universal link to a web5 compatible wallet. if the wallet scans this link it should receive
     // a route to its web5 connect provider flow and the params of where to fetch the auth request.
     const walletURI = new URL('https://tbd54566975.github.io/connect/');
     walletURI.searchParams.set('code_challenge', codeChallengeb64url);
