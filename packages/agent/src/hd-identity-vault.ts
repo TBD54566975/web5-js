@@ -1,5 +1,6 @@
 import type { Jwk } from '@web5/crypto';
 import type { KeyValueStore } from '@web5/common';
+import { DidDhtCreateOptions } from '@web5/dids';
 
 import { HDKey } from 'ed25519-keygen/hdkey';
 import { BearerDid, DidDht } from '@web5/dids';
@@ -15,7 +16,6 @@ import { LocalKeyManager } from './local-key-manager.js';
 import { isPortableDid } from './prototyping/dids/utils.js';
 import { DeterministicKeyGenerator } from './utils-internal.js';
 import { CompactJwe } from './prototyping/crypto/jose/jwe-compact.js';
-import { getTechPreviewDwnEndpoints } from '@web5/api';
 
 /**
  * Extended initialization parameters for HdIdentityVault, including an optional recovery phrase
@@ -508,38 +508,43 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
     // created it will use the derived keys.
     const deterministicKeyGenerator = new DeterministicKeyGenerator();
     await deterministicKeyGenerator.addPredefinedKeys({
-      privateKeys: [ identityPrivateKey, signingPrivateKey]
+      privateKeys: [identityPrivateKey, signingPrivateKey]
     });
 
-    const serviceEndpointNodes = dwnEndpoints ?? await getTechPreviewDwnEndpoints();
-    // Create the DID using the derived identity, signing, and encryption keys.
-    const did = await DidDht.create({
-      keyManager : deterministicKeyGenerator,
-      options    : {
-        services : [
+  // Create the DID using the derived identity, signing, and encryption keys.
+  const verificationMethods = [
+    {
+      algorithm : 'Ed25519',
+      id        : 'sig',
+      purposes  : ['assertionMethod', 'authentication']
+    },
+    // TODO: Enable this once DID DHT supports X25519 keys.
+    // {
+    //   algorithm : 'X25519',
+    //   id        : 'enc',
+    //   purposes  : ['keyAgreement']
+    // }
+  ]
+  const didDhtCreateOptions =
+    dwnEndpoints && !!dwnEndpoints.length
+      ? { verificationMethods }
+      : {
+        verificationMethods,
+        services: [
           {
             id              : 'dwn',
             type            : 'DecentralizedWebNode',
-            serviceEndpoint : serviceEndpointNodes,
+            serviceEndpoint : dwnEndpoints,
             enc             : '#enc',
             sig             : '#sig',
           }
         ],
-        verificationMethods : [
-          {
-            algorithm : 'Ed25519',
-            id        : 'sig',
-            purposes  : ['assertionMethod', 'authentication']
-          },
-          // TODO: Enable this once DID DHT supports X25519 keys.
-          // {
-          //   algorithm : 'X25519',
-          //   id        : 'enc',
-          //   purposes  : ['keyAgreement']
-          // }
-        ]
-      }
-    });
+      };
+
+  const did = await DidDht.create({
+    keyManager: deterministicKeyGenerator,
+    options: didDhtCreateOptions as DidDhtCreateOptions<DeterministicKeyGenerator>
+  });
 
     /**
      * STEP 6: Convert the DID to portable format and store it in the data store as a
