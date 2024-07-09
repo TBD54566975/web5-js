@@ -259,7 +259,8 @@ export class Web5 {
 
       // Initialize, if necessary, and start the agent.
       if (await userAgent.firstLaunch()) {
-        recoveryPhrase = await userAgent.initialize({ password, recoveryPhrase });
+        const { dwnEndpoints } = techPreview ?? {};
+        recoveryPhrase = await userAgent.initialize({ password, recoveryPhrase, dwnEndpoints });
       }
       await userAgent.start({ password });
 
@@ -283,28 +284,28 @@ export class Web5 {
 
           // Generate a new Identity for the end-user.
           identity = await userAgent.identity.create({
-            didMethod  : 'dht',
-            metadata   : { name: 'Default' },
-            didOptions : {
+            didMethod: 'dht',
+            metadata: { name: 'Default' },
+            didOptions: {
               services: [
                 {
-                  id              : 'dwn',
-                  type            : 'DecentralizedWebNode',
-                  serviceEndpoint : serviceEndpointNodes,
-                  enc             : '#enc',
-                  sig             : '#sig',
+                  id: 'dwn',
+                  type: 'DecentralizedWebNode',
+                  serviceEndpoint: serviceEndpointNodes,
+                  enc: '#enc',
+                  sig: '#sig',
                 }
               ],
               verificationMethods: [
                 {
-                  algorithm : 'Ed25519',
-                  id        : 'sig',
-                  purposes  : ['assertionMethod', 'authentication']
+                  algorithm: 'Ed25519',
+                  id: 'sig',
+                  purposes: ['assertionMethod', 'authentication']
                 },
                 {
-                  algorithm : 'secp256k1',
-                  id        : 'enc',
-                  purposes  : ['keyAgreement']
+                  algorithm: 'secp256k1',
+                  id: 'enc',
+                  purposes: ['keyAgreement']
                 }
               ]
             }
