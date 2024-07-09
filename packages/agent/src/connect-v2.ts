@@ -75,7 +75,7 @@ async function init({
   const { codeChallengeu8a, codeChallengeb64url } =
     await Oidc.deriveCodeChallenge(codeVerifieru8a);
 
-  // get callback buildOidcUrl to pass into the connect auth request
+  // build callback URL to pass into the auth request
   const callbackEndpoint = Oidc.buildOidcUrl({ baseURL: connectServerUrl, endpoint: 'callback' });
 
   // build the PAR request
@@ -86,6 +86,7 @@ async function init({
     code_challenge_method : 'S256',
     permission_requests   : permissionRequests,
     redirect_uri          : callbackEndpoint,
+    // known customer credential defines these
     client_metadata       : {
       client_uri,
       subject_syntax_types_supported: ['did:dht'],
@@ -144,9 +145,9 @@ async function init({
 
     const parData: PushedAuthResponse = await parResponse.json();
 
-    // build the deeplink to the wallet. if the wallet scans this link it should receive
-    // a route to its web5 connect provider flow and these params of where to fetch the auth request.
-    const walletURI = new URL(connectServerUrl);
+    // build a universal link to a web5 compatible wallet. if the wallet scans this link it should receive
+    // a route to its web5 connect provider flow and the params of where to fetch the auth request.
+    const walletURI = new URL('https://tbd54566975.github.io/connect/');
     walletURI.searchParams.set('code_challenge', codeChallengeb64url);
     walletURI.searchParams.set('request_uri', parData.request_uri);
 
