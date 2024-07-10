@@ -392,7 +392,7 @@ async function resetContextMenuTarget(e?: any){
 
 /**
  * Activates various polyfills to enable Web5 features in Web environments.
- * 
+ *
  * @param {object} [options={}] - Configuration options to control the activation of polyfills.
  * @param {boolean} [options.serviceWorker=true] - Option to avoid installation of the Service Worker. Defaults to true, installing the Service Worker.
  * @param {boolean} [options.injectStyles=true] - Option to skip injection of styles for UI related UX polyfills. Defaults to true, injecting styles.
@@ -416,7 +416,7 @@ async function resetContextMenuTarget(e?: any){
  * });
  *
  * @example
- * // Activate polyfills, but without Service Worker activation 
+ * // Activate polyfills, but without Service Worker activation
  * activatePolyfills({ serviceWorker: false });
 */
 export function activatePolyfills(options: any = {}){
