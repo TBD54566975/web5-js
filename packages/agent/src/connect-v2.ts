@@ -1,3 +1,4 @@
+import { utils } from '@web5/crypto';
 import { DwnProtocolDefinition, DwnRecordsPermissionScope } from './index.js';
 import {
   HybridAuthResponse,
@@ -6,6 +7,7 @@ import {
 } from './oidc-v2.js';
 import { type Web5PlatformAgent } from './types/agent.js';
 import { pollWithTTL } from './utils.js';
+import { Convert } from '@web5/common';
 
 /**
 * The protocols of permissions requested, along with the definition and permission scopes for each protocol.
@@ -117,10 +119,14 @@ async function init({
     throw new Error('Unable to sign requestObject');
   }
 
+  // Encryption nonce
+  const nonce = utils.randomBytes(24);
+
   // Encrypt the Request Object JWT using the code challenge.
   const requestObjectJwe = await Oidc.encryptRequestJwt({
     jwt           : requestJwt,
     codeChallenge : codeChallengeu8a,
+    nonce
   });
 
   // Convert the encrypted Request Object to URLSearchParams for form encoding.
@@ -148,8 +154,9 @@ async function init({
     // a universal link to a web5 compatible wallet. if the wallet scans this link it should receive
     // a route to its web5 connect provider flow and the params of where to fetch the auth request.
     const walletURI = new URL('https://tbd54566975.github.io/connect/');
-    walletURI.searchParams.set('code_challenge', codeChallengeb64url);
+    walletURI.searchParams.set('nonce', Convert.uint8Array(nonce).toBase64Url());
     walletURI.searchParams.set('request_uri', parData.request_uri);
+    walletURI.searchParams.set('client_did', clientDid);
 
     // call user's callback so they can send the URI to the wallet as they see fit
     onUriReady(walletURI.toString());

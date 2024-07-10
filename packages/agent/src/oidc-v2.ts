@@ -477,12 +477,15 @@ async function signRequestObject({
 //   return jwt;
 // }
 
+
 async function encryptRequestJwt({
   jwt,
   codeChallenge,
+  nonce
 }: {
   jwt: string;
   codeChallenge: Uint8Array;
+  nonce: Uint8Array
 }) {
   const protectedHeader = {
     alg : 'dir',
@@ -490,9 +493,7 @@ async function encryptRequestJwt({
     enc : 'XC20P',
     typ : 'JWT',
   };
-
   const additionalData = Convert.object(protectedHeader).toUint8Array();
-  const nonce = utils.randomBytes(24);
   const jwtu8a = Convert.string(jwt).toUint8Array();
   const chacha = xchacha20poly1305(codeChallenge, nonce, additionalData);
   const ciphertextAndTag = chacha.encrypt(jwtu8a);

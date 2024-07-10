@@ -285,7 +285,7 @@ export class Web5 {
         if (walletConnectOptions) {
           ClientWalletConnect.init({
             agent              : userAgent,
-            clientDid          : identity.did.uri, // TODO: need to double check this is ok. using a temporary did for cryptographic purposes only.
+            clientDid          : identity.did.uri, // TODO: cleanup. did probably not needed as param, move inside method.
             connectServerUrl   : walletConnectOptions.connectServerUrl,
             onUriReady         : walletConnectOptions.onUriReady,
             permissionRequests : walletConnectOptions.permissionRequestsAndProtocols,

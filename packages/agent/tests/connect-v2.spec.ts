@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import sinon from 'sinon';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { TestAgent } from './utils/test-agent.js';
 import { testDwnUrl } from './utils/test-config.js';
@@ -44,13 +45,15 @@ describe('connect-v2', () => {
   //   didUri: careerIdentity.did.uri,
   // });
 
-  describe('client connect', () => {
-    it('build an OIDC request using the clientDid and permissionRequests', async () => {
+  describe('client connect integration tests', () => {
+    it('intiaties client wallet connect using a temporary clientDid', async () => {
       const foo = await ClientWalletConnect.init({
         clientDid          : alice.did.uri,
-        baseURL            : 'http://localhost:8080/connect',
-        permissionRequests : ['foo', 'bar'],
+        connectServerUrl   : 'http://localhost:8080/connect',
+        permissionRequests : {'12345': { protocolDefinition: {} as any, permissionScopes: {} as any }},
         agent              : testHarness.agent,
+        onUriReady         : (uri) => console.log('onUriReady callback called: ', uri),
+        pinCapture         : async () => '12345'
       });
     });
 
