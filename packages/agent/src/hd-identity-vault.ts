@@ -525,8 +525,9 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
     //   purposes  : ['keyAgreement']
     // }
   ]
+
   const didDhtCreateOptions =
-    dwnEndpoints && !!dwnEndpoints.length
+    !dwnEndpoints || !!dwnEndpoints.length
       ? { verificationMethods }
       : {
         verificationMethods,
