@@ -271,7 +271,7 @@ export class PlatformAgentTestHarness {
 
   private static useDiskStores({ agent, testDataLocation, stores }: {
     agent?: Web5PlatformAgent;
-    stores?: {
+    stores: {
       keyStore: DwnKeyStore;
       identityStore: DwnIdentityStore;
       didStore: DwnDidStore;
@@ -283,7 +283,7 @@ export class PlatformAgentTestHarness {
     const vaultStore = new LevelStore<string, string>({ location: testDataPath('VAULT_STORE') });
     const agentVault = new HdIdentityVault({ keyDerivationWorkFactor: 1, store: vaultStore });
 
-    const { didStore = new DwnDidStore(), identityStore = new DwnIdentityStore(), keyStore } = stores || {};
+    const { didStore, identityStore, keyStore } = stores;
 
     // Setup DID Resolver Cache
     const didResolverCache = new DidResolverCacheLevel({
