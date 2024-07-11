@@ -6,45 +6,6 @@ import { SsiValidator } from '../src/validators.js';
 import { DEFAULT_VC_CONTEXT, DEFAULT_VC_TYPE, VcDataModel } from '../src/verifiable-credential.js';
 import { DEFAULT_VP_TYPE } from '../src/verifiable-presentation.js';
 
-const mockSchema = {
-  '$schema'    : 'http://json-schema.org/draft-07/schema#',
-  'type'       : 'object',
-  'properties' : {
-    'credentialSubject': {
-      'type'       : 'object',
-      'properties' : {
-        'id': {
-          'type': 'string'
-        },
-        'country_of_residence': {
-          'type'    : 'string',
-          'pattern' : '^[A-Z]{2}$'
-        },
-      },
-      'required': [
-        'id',
-        'country_of_residence'
-      ]
-    }
-  },
-  'required': [
-    'issuer',
-  ]
-};
-
-// Mock JSON schema validator
-const jsonSchemaValidator = {
-  validate: sinon.stub()
-};
-
-// Mock VcDataModel and CredentialSchema
-const validVcDataModel: VcDataModel = {
-  credentialSchema: {
-    id   : 'https://schema.org/PFI',
-    type : 'JsonSchema'
-  }
-} as any;
-
 describe('SsiValidator', () => {
 
 
@@ -111,7 +72,15 @@ describe('SsiValidator', () => {
     });
   });
 
-  describe('validateTimestamp', () => {
+  describe('validateCredentialSchema', () => {
+    // Mock VcDataModel and CredentialSchema
+    const validVcDataModel: VcDataModel = {
+      credentialSchema: {
+        id   : 'https://schema.org/PFI',
+        type : 'JsonSchema'
+      }
+    } as any;
+
     let fetchStub: sinon.SinonStub;
 
     beforeEach(() => {
@@ -167,8 +136,33 @@ describe('SsiValidator', () => {
     });
 
     it('should throw an error if schema validation fails', async () => {
+      const mockSchema = {
+        '$schema'    : 'http://json-schema.org/draft-07/schema#',
+        'type'       : 'object',
+        'properties' : {
+          'credentialSubject': {
+            'type'       : 'object',
+            'properties' : {
+              'id': {
+                'type': 'string'
+              },
+              'country_of_residence': {
+                'type'    : 'string',
+                'pattern' : '^[A-Z]{2}$'
+              },
+            },
+            'required': [
+              'id',
+              'country_of_residence'
+            ]
+          }
+        },
+        'required': [
+          'issuer',
+        ]
+      };
+
       fetchStub.resolves(new Response(JSON.stringify(mockSchema), { status: 200 }));
-      jsonSchemaValidator.validate.returns({ valid: false, errors: ['Validation error'] });
 
       try {
         await SsiValidator.validateCredentialSchema(validVcDataModel);

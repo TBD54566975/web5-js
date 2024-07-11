@@ -61,7 +61,7 @@ export class SsiValidator {
   }
 
   static async validateCredentialSchema(vcDataModel: VcDataModel): Promise<void> {
-    const credentialSchema = vcDataModel.credentialSchema as CredentialSchema;
+    const credentialSchema = vcDataModel.credentialSchema as CredentialSchema | CredentialSchema[];
 
     if (!credentialSchema || (Array.isArray(credentialSchema) && credentialSchema.length === 0)) {
       throw new Error('Credential schema is missing or empty');
