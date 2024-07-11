@@ -70,17 +70,13 @@ describe('SyncEngineLevel', () => {
 
       sinon.restore();
 
-      // clear the protocol initialization caches
-      testHarness.dwnStores.didStore['_protocolInitializedCache']?.clear();
-      testHarness.dwnStores.keyStore['_protocolInitializedCache']?.clear();
-      testHarness.dwnStores.identityStore['_protocolInitializedCache']?.clear();
-
       await syncEngine.clear();
       await testHarness.syncStore.clear();
       await testHarness.dwnDataStore.clear();
       await testHarness.dwnEventLog.clear();
       await testHarness.dwnMessageStore.clear();
       await testHarness.dwnResumableTaskStore.clear();
+      testHarness.dwnStores.clear();
     });
 
     after(async () => {

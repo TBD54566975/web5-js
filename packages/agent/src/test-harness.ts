@@ -39,6 +39,7 @@ type PlatformAgentTestHarnessParams = {
     keyStore: DwnKeyStore;
     identityStore: DwnIdentityStore;
     didStore: DwnDidStore;
+    clear: () => void;
   }
 }
 
@@ -61,10 +62,16 @@ export class PlatformAgentTestHarness {
   public syncStore: AbstractLevel<string | Buffer | Uint8Array>;
   public vaultStore: KeyValueStore<string, string>;
 
+  /**
+   * Custom DWN Stores for `keyStore`, `identityStore` and `didStore`.
+   * This allows us to clear the store cache between tests
+   */
   public dwnStores: {
     keyStore: DwnKeyStore;
     identityStore: DwnIdentityStore;
     didStore: DwnDidStore;
+    /** clears the protocol initialization caches */
+    clear: () => void;
   };
 
   constructor(params: PlatformAgentTestHarnessParams) {
@@ -185,7 +192,12 @@ export class PlatformAgentTestHarness {
     const dwnStores = {
       keyStore      : new DwnKeyStore(),
       identityStore : new DwnIdentityStore(),
-      didStore      : new DwnDidStore()
+      didStore      : new DwnDidStore(),
+      clear         : ():void => {
+        dwnStores.keyStore['_protocolInitializedCache']?.clear();
+        dwnStores.identityStore['_protocolInitializedCache']?.clear();
+        dwnStores.didStore['_protocolInitializedCache']?.clear();
+      }
     };
 
     const {
