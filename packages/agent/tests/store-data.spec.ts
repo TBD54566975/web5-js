@@ -8,7 +8,7 @@ import type { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataSto
 import { AgentDidApi } from '../src/did-api.js';
 import { TestAgent } from './utils/test-agent.js';
 import { DwnInterface } from '../src/types/dwn.js';
-import { TENANT_SEPARATOR } from '../src/utils-internal.js';
+import { TENANT_SEPARATOR, getDataStoreTenant } from '../src/utils-internal.js';
 import { Web5PlatformAgent } from '../src/types/agent.js';
 import { isPortableDid } from '../src/prototyping/dids/utils.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
@@ -131,11 +131,13 @@ describe('AgentDataStore', () => {
   });
 
   beforeEach(async () => {
+    sinon.restore();
     await testHarness.clearStorage();
     await testHarness.createAgentDid();
   });
 
   after(async () => {
+    sinon.restore();
     await testHarness.clearStorage();
     await testHarness.closeStorage();
   });
@@ -631,6 +633,74 @@ describe('AgentDataStore', () => {
           const portableDid2 = { uri: bearerDid2.uri, document: bearerDid2.document, metadata: bearerDid2.metadata };
           await testStore.set({ id: portableDid2.uri, data: portableDid2, agent: testHarness.agent });
           expect(installProtocolSpy.calledOnce).to.be.true; // still only called once
+
+          // even after clearing cache
+          (testStore as DwnDataStore<PortableDid>)['_protocolInitializedCache']?.clear();
+
+          // create and set did3
+          let bearerDid3 = await DidJwk.create();
+          const portableDid3 = { uri: bearerDid3.uri, document: bearerDid3.document, metadata: bearerDid3.metadata };
+          await testStore.set({ id: portableDid3.uri, data: portableDid3, agent: testHarness.agent });
+          expect(installProtocolSpy.calledOnce).to.be.true; // still only called once
+
+          // all 3 dids should be in the store
+          const storedDids = await testStore.list({ agent: testHarness.agent });
+          expect(storedDids).to.have.length(3);
+          expect(storedDids.map(d => d.uri)).has.members([portableDid1.uri, portableDid2.uri, portableDid3.uri]);
+        });
+
+        it('throws an error if dwn failed during query for protocol installation', async function () {
+          // Skip this test for InMemoryTestStore, as it is only relevant for the DWN store.
+          if (TestStore.name === 'InMemoryTestStore') this.skip();
+
+          // stub `processRequest` to return a code other than 200
+          sinon.stub(testHarness.agent.dwn, 'processRequest').resolves({
+            messageCid : 'test-cid',
+            message    : {} as RecordsWriteMessage,
+            reply      : {
+              status: {
+                code   : 500,
+                detail : 'Internal Server Error'
+              }
+            }
+          });
+
+          try {
+            // create and set did
+            let bearerDid = await DidJwk.create();
+            const portableDid = { uri: bearerDid.uri, document: bearerDid.document, metadata: bearerDid.metadata };
+            await testStore.set({ id: portableDid.uri, data: portableDid, agent: testHarness.agent });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error.message).to.include('Failed to query for protocols');
+          }
+        });
+
+        it('throws an error if dwn failed during protocol installation', async function () {
+          // Skip this test for InMemoryTestStore, as it is only relevant for the DWN store.
+          if (TestStore.name === 'InMemoryTestStore') this.skip();
+
+          // stub `processRequest` to return a code other than 200
+          sinon.stub(testHarness.agent.dwn, 'processRequest').resolves({
+            messageCid : 'test-cid',
+            message    : {} as RecordsWriteMessage,
+            reply      : {
+              status: {
+                code   : 500,
+                detail : 'Internal Server Error'
+              }
+            }
+          });
+
+          try {
+            const tenantDid = await getDataStoreTenant({ agent: testHarness.agent });
+
+            // The DWN will return a 500 error when attempting to install the protocol
+            await (testStore as DwnDataStore<PortableDid>)['installProtocol'](tenantDid, testHarness.agent);
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error.message).to.include('Failed to install protocol: 500 - Internal Server Error');
+          }
         });
       });
     });
