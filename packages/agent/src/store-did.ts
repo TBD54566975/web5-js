@@ -8,17 +8,20 @@ import type { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataSto
 import { TENANT_SEPARATOR } from './utils-internal.js';
 import { DwnInterface } from './types/dwn.js';
 import { isPortableDid } from './prototyping/dids/utils.js';
-import { DwnDataStore, InMemoryDataStore } from './store-data.js';
+import { InMemoryDataStore } from './store-data.js';
+import { IdentityProtocolStore } from './store-protocol.js';
 
-export class DwnDidStore extends DwnDataStore<PortableDid> implements AgentDataStore<PortableDid> {
+export class DwnDidStore extends IdentityProtocolStore<PortableDid> implements AgentDataStore<PortableDid> {
   protected name = 'DwnDidStore';
 
   /**
    * Properties to use when writing and querying DID records with the DWN store.
    */
   protected _recordProperties = {
-    dataFormat : 'application/json',
-    schema     : 'https://identity.foundation/schemas/web5/portable-did'
+    protocol     : this._recordProtocolDefinition.protocol,
+    protocolPath : 'portableDid',
+    dataFormat   : 'application/json',
+    schema       : 'https://identity.foundation/schemas/web5/portable-did'
   };
 
   public async delete(params: DataStoreDeleteParams): Promise<boolean> {

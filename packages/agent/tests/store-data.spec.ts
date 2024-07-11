@@ -13,17 +13,33 @@ import { Web5PlatformAgent } from '../src/types/agent.js';
 import { isPortableDid } from '../src/prototyping/dids/utils.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { DwnDataStore, InMemoryDataStore } from '../src/store-data.js';
-import { RecordsDeleteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import { ProtocolDefinition, RecordsDeleteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 class DwnTestStore extends DwnDataStore<PortableDid> implements AgentDataStore<PortableDid> {
   protected name = 'DwnTestStore';
+
+  protected _recordProtocolDefinition: ProtocolDefinition = {
+    protocol  : 'http://example.org/protocols/web5/test-data',
+    published : false,
+    types     : {
+      foo: {
+        schema      : 'https://example.org/schemas/web5/foo',
+        dataFormats : ['application/json']
+      }
+    },
+    structure: {
+      foo: {}
+    }
+  };
 
   /**
    * Properties to use when writing and querying Test records with the DWN store.
    */
   protected _recordProperties = {
-    dataFormat : 'application/json',
-    schema     : 'https://identity.foundation/schemas/web5/test-data'
+    protocol     : this._recordProtocolDefinition.protocol,
+    protocolPath : 'foo',
+    dataFormat   : 'application/json',
+    schema       : 'https://example.org/schemas/web5/foo'
   };
 
   public async delete(params: DataStoreDeleteParams): Promise<boolean> {
@@ -128,6 +144,12 @@ describe('AgentDataStore', () => {
     it('must implement the getAllRecords() method', async function() {
       class InvalidStore extends DwnDataStore<PortableDid> implements AgentDataStore<PortableDid> {
         protected name = 'InvalidStore';
+        protected _recordProtocolDefinition = {
+          protocol  : 'http://example.org/protocols/web5/test-data',
+          published : false,
+          types     : {},
+          structure : {}
+        };
       }
 
       try {
@@ -148,7 +170,7 @@ describe('AgentDataStore', () => {
       let testStore: AgentDataStore<PortableDid>;
 
       beforeEach(async () => {
-        testStore = new TestStore();
+        testStore =  new TestStore();
 
         const didApi = new AgentDidApi({
           didMethods    : [DidJwk],
@@ -399,18 +421,22 @@ describe('AgentDataStore', () => {
 
           const didBytes = Convert.string(new Array(102400 + 1).join('0')).toUint8Array();
 
+          // since we are writing directly to the dwn we first initialize the storage protocol
+          await testStore.initialize({ agent: testHarness.agent });
+
           // Store the DID in the DWN.
           const response = await testHarness.agent.dwn.processRequest({
             author        : testHarness.agent.agentDid.uri,
             target        : testHarness.agent.agentDid.uri,
             messageType   : DwnInterface.RecordsWrite,
             messageParams : {
-              dataFormat : 'application/json',
-              schema     : 'https://identity.foundation/schemas/web5/test-data'
+              dataFormat   : 'application/json',
+              protocol     : 'http://example.org/protocols/web5/test-data',
+              protocolPath : 'foo',
+              schema       : 'https://example.org/schemas/web5/foo',
             },
             dataStream: new Blob([didBytes], { type: 'application/json' })
           });
-
           expect(response.reply.status.code).to.equal(202);
 
           try {
@@ -552,6 +578,9 @@ describe('AgentDataStore', () => {
         it('throws an error if the DWN write request fails', async function() {
           // Skip this test for InMemoryTestStore, as it is only relevant for the DWN store.
           if (TestStore.name === 'InMemoryTestStore') this.skip();
+
+          // have the protocol installed before dwn api stub
+          await testStore.initialize({ agent: testHarness.agent });
 
           // Stub the DWN API to return a failed response.
           const dwnApiStub = sinon.stub(testHarness.agent.dwn, 'processRequest').resolves({

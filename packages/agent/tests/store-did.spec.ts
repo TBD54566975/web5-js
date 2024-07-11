@@ -210,18 +210,22 @@ describe('DidStore', () => {
 
           const didBytes = Convert.string(new Array(102400 + 1).join('0')).toUint8Array();
 
+          // since we are writing directly to the dwn we first initialize the storage protocol
+          await didStore.initialize({ agent: testHarness.agent });
+
           // Store the DID in the DWN.
           const response = await testHarness.agent.dwn.processRequest({
             author        : testHarness.agent.agentDid.uri,
             target        : testHarness.agent.agentDid.uri,
             messageType   : DwnInterface.RecordsWrite,
             messageParams : {
-              dataFormat : 'application/json',
-              schema     : 'https://identity.foundation/schemas/web5/portable-did'
+              dataFormat   : 'application/json',
+              protocol     : 'http://identity.foundation/protocols/web5/identity-store',
+              protocolPath : 'portableDid',
+              schema       : 'https://identity.foundation/schemas/web5/portable-did',
             },
             dataStream: new Blob([didBytes], { type: 'application/json' })
           });
-
           expect(response.reply.status.code).to.equal(202);
 
           try {

@@ -8,6 +8,7 @@ import type { Web5PlatformAgent } from './types/agent.js';
 import { TENANT_SEPARATOR } from './utils-internal.js';
 import { getDataStoreTenant } from './utils-internal.js';
 import { DwnInterface } from './types/dwn.js';
+import { ProtocolDefinition } from '@tbd54566975/dwn-sdk-js';
 
 export type DataStoreTenantParams = {
   agent: Web5PlatformAgent;
@@ -33,6 +34,8 @@ export type DataStoreDeleteParams = DataStoreTenantParams & {
 }
 
 export interface AgentDataStore<TStoreObject> {
+  initialize({ tenant, agent }: DataStoreTenantParams): Promise<void>;
+
   delete(params: DataStoreDeleteParams): Promise<boolean>;
 
   get(params: DataStoreGetParams): Promise<TStoreObject | undefined>;
@@ -60,12 +63,18 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   protected _index = new TtlCache<string, string>({ ttl: ms('2 hours'), max: 1000 });
 
   /**
+   * The protocol assigned to this storage instance.
+   */
+  protected _recordProtocolDefinition!: ProtocolDefinition;
+
+  /**
    * Properties to use when writing and querying records with the DWN store.
    */
   protected _recordProperties = {
-    dataFormat : 'application/json',
-    schema     : 'https://identity.foundation/schemas/web5/private-jwk'
+    dataFormat: 'application/json',
   };
+
+  protected _protocolInitializedCache: Map<string, boolean> = new Map();
 
   public async delete({ id, agent, tenant }: DataStoreDeleteParams): Promise<boolean> {
     // Determine the tenant identifier (DID) for the delete operation.
@@ -127,6 +136,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   ): Promise<void> {
     // Determine the tenant identifier (DID) for the set operation.
     const tenantDid = await getDataStoreTenant({ agent, tenant, didUri: id });
+    await this.initialize({ tenant: tenantDid, agent });
 
     // If enabled, check if a record with the given `id` is already present in the store.
     if (preventDuplicates) {
@@ -161,6 +171,35 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
     if (useCache) {
       this._cache.set(message.recordId, data);
     }
+  }
+
+  public async initialize({ tenant, agent }: DataStoreTenantParams) {
+    const tenantDid = await getDataStoreTenant({ agent, tenant });
+    if (this._protocolInitializedCache.has(tenantDid)) {
+      return;
+    }
+
+    const { reply: { status, entries }} = await agent.dwn.processRequest({
+      author        : tenantDid,
+      target        : tenantDid,
+      messageType   : DwnInterface.ProtocolsQuery,
+      messageParams : {
+        filter: {
+          protocol: this._recordProtocolDefinition.protocol
+        }
+      },
+    });
+
+    if (status.code !== 200) {
+      throw new Error(`Failed to query for protocols: ${status.code} - ${status.detail}`);
+    }
+
+    if (entries?.length === 0) {
+      // protocol is not installed, install it
+      await this.installProtocol(tenantDid, agent);
+    }
+
+    this._protocolInitializedCache.set(tenantDid, true);
   }
 
   protected async getAllRecords(_params: {
@@ -207,6 +246,21 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
     return storeObject;
   }
 
+  private async installProtocol(tenant: string, agent: Web5PlatformAgent) {
+    const { reply : { status } } = await agent.dwn.processRequest({
+      author        : tenant,
+      target        : tenant,
+      messageType   : DwnInterface.ProtocolsConfigure,
+      messageParams : {
+        definition: this._recordProtocolDefinition
+      },
+    });
+
+    if (status.code !== 202) {
+      throw new Error(`Failed to install protocol: ${status.code} - ${status.detail}`);
+    }
+  }
+
   private async lookupRecordId({ id, tenantDid, agent }: {
     id: string;
     tenantDid: string;
@@ -235,6 +289,7 @@ export class InMemoryDataStore<TStoreObject extends Record<string, any> = Jwk> i
    * A private field that contains the Map used as the in-memory data store.
    */
   private store: Map<string, TStoreObject> = new Map();
+  public async initialize(_params: DataStoreTenantParams) {}
 
   public async delete({ id, agent, tenant }: DataStoreDeleteParams): Promise<boolean> {
     // Determine the tenant identifier (DID) for the delete operation.

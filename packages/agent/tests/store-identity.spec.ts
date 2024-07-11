@@ -200,6 +200,10 @@ describe('IdentityStore', () => {
           // regardless of the size of the data.
           if (IdentityStore.name === 'InMemoryIdentityStore') this.skip();
 
+          // since we are testing by issuing a RecordsWrite directly to the DWN without the `identityStore` abstraction,
+          // we need to ensure the AgentStore protocol is initialized.
+          await identityStore.initialize({ agent: testHarness.agent });
+
           const identityBytes = Convert.string(new Array(102400 + 1).join('0')).toUint8Array();
 
           // Store the Identity in the DWN.
@@ -208,8 +212,10 @@ describe('IdentityStore', () => {
             target        : testHarness.agent.agentDid.uri,
             messageType   : DwnInterface.RecordsWrite,
             messageParams : {
-              dataFormat : 'application/json',
-              schema     : 'https://identity.foundation/schemas/web5/identity-metadata'
+              dataFormat   : 'application/json',
+              schema       : 'https://identity.foundation/schemas/web5/identity-metadata',
+              protocol     : 'http://identity.foundation/protocols/web5/identity-store',
+              protocolPath : 'identityMetadata'
             },
             dataStream: new Blob([identityBytes], { type: 'application/json' })
           });
