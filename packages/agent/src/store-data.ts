@@ -34,6 +34,8 @@ export type DataStoreDeleteParams = DataStoreTenantParams & {
 }
 
 export interface AgentDataStore<TStoreObject> {
+  initialize({ tenant, agent }: DataStoreTenantParams): Promise<void>;
+
   delete(params: DataStoreDeleteParams): Promise<boolean>;
 
   get(params: DataStoreGetParams): Promise<TStoreObject | undefined>;
@@ -138,6 +140,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   ): Promise<void> {
     // Determine the tenant identifier (DID) for the set operation.
     const tenantDid = await getDataStoreTenant({ agent, tenant, didUri: id });
+    await this.initialize({ tenant: tenantDid, agent });
 
     // initialize the storage protocol if not already done
     await this.initialize({ tenant: tenantDid, agent });
@@ -300,6 +303,7 @@ export class InMemoryDataStore<TStoreObject extends Record<string, any> = Jwk> i
    * A private field that contains the Map used as the in-memory data store.
    */
   private store: Map<string, TStoreObject> = new Map();
+  public async initialize(_params: DataStoreTenantParams) {}
 
   public async delete({ id, agent, tenant }: DataStoreDeleteParams): Promise<boolean> {
     // Determine the tenant identifier (DID) for the delete operation.
