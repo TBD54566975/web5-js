@@ -140,6 +140,8 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   ): Promise<void> {
     // Determine the tenant identifier (DID) for the set operation.
     const tenantDid = await getDataStoreTenant({ agent, tenant, didUri: id });
+
+    // initialize the storage protocol if not already done
     await this.initialize({ tenant: tenantDid, agent });
 
     // initialize the storage protocol if not already done
