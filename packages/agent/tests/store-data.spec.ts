@@ -608,6 +608,30 @@ describe('AgentDataStore', () => {
             dwnApiStub.restore();
           }
         });
+
+        it('checks that protocol is installed only once', async function() {
+          // Scenario: The storage protocol should only need to be installed once
+          // any operations after the first should not attempt to re-install the protocol.
+
+          // Skip this test for InMemoryTestStore, as checking for protocol installation is not
+          // relevant given that the store is in-memory.
+          if (TestStore.name === 'InMemoryTestStore') this.skip();
+
+          // spy on the installProtocol method
+          const installProtocolSpy = sinon.spy(testStore as any, 'installProtocol');
+
+          // create and set did1
+          let bearerDid1 = await DidJwk.create();
+          const portableDid1 = { uri: bearerDid1.uri, document: bearerDid1.document, metadata: bearerDid1.metadata };
+          await testStore.set({ id: portableDid1.uri, data: portableDid1, agent: testHarness.agent });
+          expect(installProtocolSpy.calledOnce).to.be.true;
+
+          // create and set did2
+          let bearerDid2 = await DidJwk.create();
+          const portableDid2 = { uri: bearerDid2.uri, document: bearerDid2.document, metadata: bearerDid2.metadata };
+          await testStore.set({ id: portableDid2.uri, data: portableDid2, agent: testHarness.agent });
+          expect(installProtocolSpy.calledOnce).to.be.true; // still only called once
+        });
       });
     });
   });

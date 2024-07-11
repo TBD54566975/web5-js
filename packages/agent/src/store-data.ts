@@ -74,6 +74,10 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
     dataFormat: 'application/json',
   };
 
+  /**
+   * Cache of tenant DIDs that have been initialized with the protocol.
+   * This is used to avoid redundant protocol initialization requests.
+   */
   protected _protocolInitializedCache: Map<string, boolean> = new Map();
 
   public async delete({ id, agent, tenant }: DataStoreDeleteParams): Promise<boolean> {
@@ -136,6 +140,8 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   ): Promise<void> {
     // Determine the tenant identifier (DID) for the set operation.
     const tenantDid = await getDataStoreTenant({ agent, tenant, didUri: id });
+
+    // initialize the storage protocol if not already done
     await this.initialize({ tenant: tenantDid, agent });
 
     // If enabled, check if a record with the given `id` is already present in the store.
@@ -173,6 +179,10 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
     }
   }
 
+  /**
+   * Initialize the relevant protocol for the given tenant.
+   * This confirms that the storage protocol is configured, otherwise it will be installed.
+   */
   public async initialize({ tenant, agent }: DataStoreTenantParams) {
     const tenantDid = await getDataStoreTenant({ agent, tenant });
     if (this._protocolInitializedCache.has(tenantDid)) {
@@ -246,6 +256,9 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
     return storeObject;
   }
 
+  /**
+   * Install the protocol for the given tenant using a `ProtocolsConfigure` message.
+   */
   private async installProtocol(tenant: string, agent: Web5PlatformAgent) {
     const { reply : { status } } = await agent.dwn.processRequest({
       author        : tenant,
