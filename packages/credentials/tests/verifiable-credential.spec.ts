@@ -2,7 +2,7 @@ import type { BearerDid, PortableDid } from '@web5/dids';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { DidDht, DidKey, DidIon, DidJwk } from '@web5/dids';
+import { DidDht, DidKey, DidJwk } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
