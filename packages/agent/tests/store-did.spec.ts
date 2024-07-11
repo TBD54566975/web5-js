@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { Convert } from '@web5/common';
 import { DidJwk, PortableDid } from '@web5/dids';
 
-import type { AgentDataStore } from '../src/store-data.js';
+import type { AgentDataStore, DwnDataStore } from '../src/store-data.js';
 
 import { AgentDidApi } from '../src/did-api.js';
 import { TestAgent } from './utils/test-agent.js';
@@ -211,7 +211,7 @@ describe('DidStore', () => {
           const didBytes = Convert.string(new Array(102400 + 1).join('0')).toUint8Array();
 
           // since we are writing directly to the dwn we first initialize the storage protocol
-          await didStore.initialize({ agent: testHarness.agent });
+          await (didStore as DwnDataStore<PortableDid>)['initialize']({ agent: testHarness.agent });
 
           // Store the DID in the DWN.
           const response = await testHarness.agent.dwn.processRequest({

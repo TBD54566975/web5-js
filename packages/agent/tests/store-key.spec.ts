@@ -3,7 +3,7 @@ import type { Jwk } from '@web5/crypto';
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
 
-import type { AgentDataStore } from '../src/store-data.js';
+import type { AgentDataStore, DwnDataStore } from '../src/store-data.js';
 
 import { TestAgent } from './utils/test-agent.js';
 import { DwnInterface } from '../src/types/dwn.js';
@@ -133,7 +133,7 @@ describe('KeyStore', () => {
           const keyBytes = Convert.string(new Array(102400 + 1).join('0')).toUint8Array();
 
           // since we are writing directly to the dwn we first initialize the storage protocol
-          await keyStore.initialize({ agent: testHarness.agent });
+          await (keyStore as DwnDataStore<Jwk>)['initialize']({ agent: testHarness.agent });
 
           // Store the DID in the DWN.
           const response = await testHarness.agent.dwn.processRequest({

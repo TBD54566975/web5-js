@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { DidJwk } from '@web5/dids';
 import { Convert } from '@web5/common';
 
-import type { AgentDataStore } from '../src/store-data.js';
+import type { AgentDataStore, DwnDataStore } from '../src/store-data.js';
 import type { IdentityMetadata } from '../src/types/identity.js';
 
 import { TestAgent } from './utils/test-agent.js';
@@ -200,9 +200,8 @@ describe('IdentityStore', () => {
           // regardless of the size of the data.
           if (IdentityStore.name === 'InMemoryIdentityStore') this.skip();
 
-          // since we are testing by issuing a RecordsWrite directly to the DWN without the `identityStore` abstraction,
-          // we need to ensure the AgentStore protocol is initialized.
-          await identityStore.initialize({ agent: testHarness.agent });
+          // since we are writing directly to the dwn we first initialize the storage protocol
+          await (identityStore as DwnDataStore<IdentityMetadata>)['initialize']({ agent: testHarness.agent });
 
           const identityBytes = Convert.string(new Array(102400 + 1).join('0')).toUint8Array();
 

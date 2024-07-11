@@ -424,7 +424,7 @@ describe('AgentDataStore', () => {
           const didBytes = Convert.string(new Array(102400 + 1).join('0')).toUint8Array();
 
           // since we are writing directly to the dwn we first initialize the storage protocol
-          await testStore.initialize({ agent: testHarness.agent });
+          await (testStore as DwnDataStore<PortableDid>)['initialize']({ agent: testHarness.agent });
 
           // Store the DID in the DWN.
           const response = await testHarness.agent.dwn.processRequest({
@@ -581,8 +581,8 @@ describe('AgentDataStore', () => {
           // Skip this test for InMemoryTestStore, as it is only relevant for the DWN store.
           if (TestStore.name === 'InMemoryTestStore') this.skip();
 
-          // have the protocol installed before dwn api stub
-          await testStore.initialize({ agent: testHarness.agent });
+          // since we are writing directly to the dwn we first initialize the storage protocol
+          await (testStore as DwnDataStore<PortableDid>)['initialize']({ agent: testHarness.agent });
 
           // Stub the DWN API to return a failed response.
           const dwnApiStub = sinon.stub(testHarness.agent.dwn, 'processRequest').resolves({
