@@ -34,8 +34,6 @@ export type DataStoreDeleteParams = DataStoreTenantParams & {
 }
 
 export interface AgentDataStore<TStoreObject> {
-  initialize({ tenant, agent }: DataStoreTenantParams): Promise<void>;
-
   delete(params: DataStoreDeleteParams): Promise<boolean>;
 
   get(params: DataStoreGetParams): Promise<TStoreObject | undefined>;
