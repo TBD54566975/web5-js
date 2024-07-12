@@ -61,6 +61,12 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   protected _index = new TtlCache<string, string>({ ttl: ms('2 hours'), max: 1000 });
 
   /**
+   * Cache of tenant DIDs that have been initialized with the protocol.
+   * This is used to avoid redundant protocol initialization requests.
+   */
+  protected _protocolInitializedCache: TtlCache<string, boolean> = new TtlCache({ ttl: ms('1 hour'), max: 1000 });
+
+  /**
    * The protocol assigned to this storage instance.
    */
   protected _recordProtocolDefinition!: ProtocolDefinition;
@@ -71,12 +77,6 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   protected _recordProperties = {
     dataFormat: 'application/json',
   };
-
-  /**
-   * Cache of tenant DIDs that have been initialized with the protocol.
-   * This is used to avoid redundant protocol initialization requests.
-   */
-  protected _protocolInitializedCache: Map<string, boolean> = new Map();
 
   public async delete({ id, agent, tenant }: DataStoreDeleteParams): Promise<boolean> {
     // Determine the tenant identifier (DID) for the delete operation.
