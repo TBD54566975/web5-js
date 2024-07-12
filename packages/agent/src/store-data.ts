@@ -303,7 +303,6 @@ export class InMemoryDataStore<TStoreObject extends Record<string, any> = Jwk> i
    * A private field that contains the Map used as the in-memory data store.
    */
   private store: Map<string, TStoreObject> = new Map();
-  public async initialize(_params: DataStoreTenantParams) {}
 
   public async delete({ id, agent, tenant }: DataStoreDeleteParams): Promise<boolean> {
     // Determine the tenant identifier (DID) for the delete operation.
