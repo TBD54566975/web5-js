@@ -552,6 +552,16 @@ export class LocalKeyManager implements AgentKeyManager {
     return wrappedKeyBytes;
   }
 
+  public async deleteKey({ keyUri }:{ keyUri: KeyIdentifier }): Promise<void> {
+    // Get the private key from the key store.
+    const jwk = await this._keyStore.get({ id: keyUri, agent: this.agent, useCache: true });
+    if (!jwk) {
+      throw new Error(`Key not found: ${keyUri}`);
+    }
+
+    await this._keyStore.delete({ id: keyUri, agent: this.agent });
+  }
+
   /**
    * Retrieves an algorithm implementation instance based on the provided algorithm name.
    *

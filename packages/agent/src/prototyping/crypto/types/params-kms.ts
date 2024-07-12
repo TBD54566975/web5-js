@@ -69,3 +69,8 @@ export interface KmsWrapKeyParams {
   /** An object defining the algorithm-specific parameters for encrypting the `unwrappedKey`. */
   encryptParams?: unknown
 }
+
+export interface KmsDeleteKeyParams {
+  /** Identifier for the key to be deleted in the KMS. */
+  keyUri: KeyIdentifier;
+}

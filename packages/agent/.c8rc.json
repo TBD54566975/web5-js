@@ -11,7 +11,8 @@
     "tests/compiled/**/src/index.js",
     "tests/compiled/**/src/types.js",
     "tests/compiled/**/src/types/**",
-    "tests/compiled/**/src/prototyping/clients/*-types.js"
+    "tests/compiled/**/src/prototyping/clients/*-types.js",
+    "tests/compiled/**/src/prototyping/**/types/**"
   ],
   "reporter": [
     "cobertura",

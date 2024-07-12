@@ -1,4 +1,4 @@
-
+import sinon from 'sinon';
 import { expect } from 'chai';
 import { BearerDid, DidJwk } from '@web5/dids';
 
@@ -60,11 +60,13 @@ describe('AgentDidApi', () => {
       });
 
       beforeEach(async () => {
+        sinon.restore();
         await testHarness.clearStorage();
         await testHarness.createAgentDid();
       });
 
       after(async () => {
+        sinon.restore();
         await testHarness.clearStorage();
         await testHarness.closeStorage();
       });
@@ -174,7 +176,107 @@ describe('AgentDidApi', () => {
       });
 
       describe('delete()', () => {
-        xit('should be implemented');
+        it('should delete a DID', async () => {
+          // we use the agentDid as the tenant for this test
+          // that way when we delete the DID we cna still issue a `get()` and agent's key is still there
+          const agentDid = testHarness.agent.agentDid.uri;
+          // Generate a new DID.
+          const did = await testHarness.agent.did.create({tenant: agentDid, method: 'jwk', store: true }); // store
+
+          // attempt to get the DID
+          let storedDid = await testHarness.agent.did.get({ didUri: did.uri, tenant: agentDid });
+          expect(storedDid).to.not.be.undefined;
+          expect(storedDid!.uri).to.equal(did.uri);
+
+          // delete the DID
+          await testHarness.agent.did.delete({ didUri: did.uri, tenant: agentDid });
+
+          // attempt to get the DID again
+          storedDid = await testHarness.agent.did.get({ didUri: did.uri, tenant: agentDid });
+          expect(storedDid).to.be.undefined;
+        });
+
+        it('should throw not found if the DID does not exist', async () => {
+          try {
+            await testHarness.agent.did.delete({ didUri: 'did:method:abc123', tenant: testHarness.agent.agentDid.uri });
+            expect.fail('Expected an error to be thrown');
+          } catch(error: any) {
+            expect(error.message).to.include('AgentDidApi: Could not delete, DID not found');
+          }
+        });
+
+        it('should not be able to get signer for tenant after the tenant DID is deleted and the deleteKey parameter is not false', async function () {
+          if (agentStoreType !== 'dwn') {
+            this.skip();
+          }
+          // Generate a new DID, since no tenant is provided it will be stored under its own tenant
+          const did = await testHarness.agent.did.create({ method: 'jwk', store: true }); // store
+
+          // attempt to get the DID
+          let storedDid = await testHarness.agent.did.get({ didUri: did.uri, tenant: did.uri });
+          expect(storedDid).to.not.be.undefined;
+          expect(storedDid!.uri).to.equal(did.uri);
+
+          // delete the DID
+          await testHarness.agent.did.delete({ didUri: did.uri, tenant: did.uri });
+
+          console.log('deleted');
+          // attempt to get the DID again
+          try {
+            storedDid = await testHarness.agent.did.get({ didUri: did.uri, tenant: did.uri });
+            expect.fail('Expected an error to be thrown');
+          } catch(error:any) {
+            expect(error.message).to.include('Unable to get signer for author');
+          }
+        });
+
+        it('should keep key if deleteKey parameter is false', async () => {
+          // Generate a new DID.
+          const did = await testHarness.agent.did.create({ method: 'jwk', store: true }); // store
+
+          // attempt to get the DID
+          let storedDid = await testHarness.agent.did.get({ didUri: did.uri, tenant: did.uri});
+          expect(storedDid).to.not.be.undefined;
+          expect(storedDid!.uri).to.equal(did.uri);
+
+          // spy on deleteKey
+          const keyManagerSpy = sinon.spy(testHarness.agent.keyManager, 'deleteKey');
+
+          // delete the DID without deleting the key
+          await testHarness.agent.did.delete({ didUri: did.uri, tenant: did.uri, deleteKey: false });
+
+          expect(keyManagerSpy.called).to.be.false;
+
+          // attempt to get the DID again this will not fail because the key still exists
+          storedDid = await testHarness.agent.did.get({ didUri: did.uri, tenant: did.uri });
+          expect(storedDid).to.be.undefined;
+        });
+
+        it('should skip non JWK encoded verification methods', async () => {
+          // stub store to return a portable did with non-jwk verification methods
+          sinon.stub(testHarness.agent.did['_store'], 'get').resolves({
+            uri      : 'did:method:abc123',
+            metadata : {},
+            document : {
+              id                 : 'did:method:abc123',
+              verificationMethod : [{
+                id                 : 'did:method:abc123#key1',
+                type               : 'Ed25519VerificationKey2018',
+                controller         : 'did:method:abc123',
+                publicKeyMultibase : 'z6Mkq'
+              }]
+            }
+          });
+
+          sinon.stub(testHarness.agent.did['_store'], 'delete').resolves();
+
+          // spy on deleteKey
+          const keyManagerSpy = sinon.spy(testHarness.agent.keyManager, 'deleteKey');
+          // delete the DID
+          await testHarness.agent.did.delete({ didUri: 'did:example:123' });
+
+          expect(keyManagerSpy.called).to.be.false;
+        });
       });
 
       describe('export()', () => {
