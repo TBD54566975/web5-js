@@ -1,10 +1,11 @@
+import type { Readable } from '@web5/common';
 import { Message, ProtocolDefinition, TestDataGenerator, type Dwn, type MessageEvent, type RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import sinon from 'sinon';
 
 import { expect } from 'chai';
 import { DidDht } from '@web5/dids';
-import { Convert } from '@web5/common';
+import { Convert, NodeStream, Stream } from '@web5/common';
 
 import type { PortableIdentity } from '../src/types/identity.js';
 
@@ -100,7 +101,7 @@ describe('AgentDwnApi', () => {
       await testHarness.clearStorage();
     });
 
-    it('handles EventsQuery', async () => {
+    it('handles MessagesQuery', async () => {
       const testCursor = {
         messageCid : 'foo',
         value      : 'bar'
@@ -108,32 +109,32 @@ describe('AgentDwnApi', () => {
 
       const testFilters = [{ protocol: 'http://protocol1' }];
 
-      // Attempt to process the EventsGet.
-      let eventsQueryResponse = await testHarness.agent.dwn.processRequest({
+      // Attempt to process the MessagesQuery.
+      let messagesQueryResponse = await testHarness.agent.dwn.processRequest({
         author        : alice.did.uri,
         target        : alice.did.uri,
-        messageType   : DwnInterface.EventsQuery,
+        messageType   : DwnInterface.MessagesQuery,
         messageParams : {
           cursor  : testCursor,
           filters : testFilters
         }
       });
 
-      expect(eventsQueryResponse).to.have.property('message');
-      expect(eventsQueryResponse).to.have.property('messageCid');
-      expect(eventsQueryResponse).to.have.property('reply');
+      expect(messagesQueryResponse).to.have.property('message');
+      expect(messagesQueryResponse).to.have.property('messageCid');
+      expect(messagesQueryResponse).to.have.property('reply');
 
-      const eventsQueryMessage = eventsQueryResponse.message!;
-      expect(eventsQueryMessage.descriptor).to.have.property('cursor', testCursor);
-      expect(eventsQueryMessage.descriptor.filters).to.deep.equal(testFilters);
+      const messagesQueryMessage = messagesQueryResponse.message!;
+      expect(messagesQueryMessage.descriptor).to.have.property('cursor', testCursor);
+      expect(messagesQueryMessage.descriptor.filters).to.deep.equal(testFilters);
 
-      const eventsQueryReply = eventsQueryResponse.reply;
-      expect(eventsQueryReply).to.have.property('status');
-      expect(eventsQueryReply.status.code).to.equal(200);
-      expect(eventsQueryReply.entries).to.have.length(0);
+      const messagesQueryReply = messagesQueryResponse.reply;
+      expect(messagesQueryReply).to.have.property('status');
+      expect(messagesQueryReply.status.code).to.equal(200);
+      expect(messagesQueryReply.entries).to.have.length(0);
     });
 
-    it('handles EventsSubscription', async () => {
+    it('handles MessageSubscription', async () => {
       const receivedMessages: string[] = [];
       const subscriptionHandler = async (event: MessageEvent) => {
         const { message } = event;
@@ -144,7 +145,7 @@ describe('AgentDwnApi', () => {
       const { reply: { status: subscribeStatus, subscription } } = await testHarness.agent.dwn.processRequest({
         author        : alice.did.uri,
         target        : alice.did.uri,
-        messageType   : DwnInterface.EventsSubscribe,
+        messageType   : DwnInterface.MessagesSubscribe,
         messageParams : {
           filters: [{
             protocol: 'https://protocol.xyz/example'
@@ -240,11 +241,11 @@ describe('AgentDwnApi', () => {
       ]);
     });
 
-    it('handles MessagesGet', async () => {
+    it('handles MessagesRead', async () => {
       // Create test data to write.
       const dataBytes = Convert.string('Hello, world!').toUint8Array();
 
-      // Write a record to use for the MessagesGet test.
+      // Write a record to use for the MessagesRead test.
       let writeResponse = await testHarness.agent.dwn.processRequest({
         author        : alice.did.uri,
         target        : alice.did.uri,
@@ -258,32 +259,33 @@ describe('AgentDwnApi', () => {
       expect(writeResponse.reply.status.code).to.equal(202);
       const writeMessage = writeResponse.message!;
 
-      // Attempt to process the MessagesGet.
-      let messagesGetResponse = await testHarness.agent.dwn.processRequest({
+      // Attempt to process the MessagesRead.
+      let messagesReadResponse = await testHarness.agent.dwn.processRequest({
         author        : alice.did.uri,
         target        : alice.did.uri,
-        messageType   : DwnInterface.MessagesGet,
+        messageType   : DwnInterface.MessagesRead,
         messageParams : {
-          messageCids: [writeResponse.messageCid!]
+          messageCid: writeResponse.messageCid!
         }
       });
 
-      expect(messagesGetResponse).to.have.property('message');
-      expect(messagesGetResponse).to.have.property('messageCid');
-      expect(messagesGetResponse).to.have.property('reply');
+      expect(messagesReadResponse).to.have.property('message');
+      expect(messagesReadResponse).to.have.property('messageCid');
+      expect(messagesReadResponse).to.have.property('reply');
 
-      const messagesGetMessage = messagesGetResponse.message!;
-      expect(messagesGetMessage.descriptor).to.have.property('messageCids');
-      expect(messagesGetMessage.descriptor.messageCids).to.have.length(1);
-      expect(messagesGetMessage.descriptor.messageCids).to.include(writeResponse.messageCid);
+      const messagesReadMessage = messagesReadResponse.message!;
+      expect(messagesReadMessage.descriptor).to.have.property('messageCid');
+      expect(messagesReadMessage.descriptor.messageCid).to.equal(writeResponse.messageCid);
 
-      const messagesGetReply = messagesGetResponse.reply;
-      expect(messagesGetReply).to.have.property('status');
-      expect(messagesGetReply.status.code).to.equal(200);
-      expect(messagesGetReply.entries).to.have.length(1);
+      const messagesReadReply = messagesReadResponse.reply;
+      expect(messagesReadReply).to.have.property('status');
+      expect(messagesReadReply.status.code).to.equal(200);
 
-      const [ retrievedRecordsWrite ] = messagesGetReply.entries!;
+      const retrievedRecordsWrite = messagesReadReply.entry!;
       expect(retrievedRecordsWrite.message).to.have.property('recordId', writeMessage.recordId);
+
+      const readDataBytes = await NodeStream.consumeToBytes({ readable: retrievedRecordsWrite.data! });
+      expect(readDataBytes).to.deep.equal(dataBytes);
     });
 
     it('handles ProtocolsConfigure', async () => {
@@ -484,6 +486,9 @@ describe('AgentDwnApi', () => {
       expect(readReply.record).to.have.property('data');
       expect(readReply.record).to.have.property('descriptor');
       expect(readReply.record).to.have.property('recordId', writeMessage.recordId);
+
+      const readDataBytes = await NodeStream.consumeToBytes({ readable: readReply.record!.data });
+      expect(readDataBytes).to.deep.equal(dataBytes);
     });
 
     it('handles RecordsSubscribe message', async () => {
@@ -599,11 +604,12 @@ describe('AgentDwnApi', () => {
 
     it('returns a 202 Accepted status when the request is not stored', async () => {
       // spy on dwn.processMessage
-      const processMessageSpy = sinon.spy(testHarness.agent.dwn, 'processMessage');
+      const processMessageSpy = sinon.spy(testHarness.agent.dwn.node, 'processMessage');
 
       // Attempt to process the RecordsWrite
       const dataBytes = Convert.string('Hello, world!').toUint8Array();
       let writeResponse = await testHarness.agent.dwn.processRequest({
+        store         : false,
         author        : alice.did.uri,
         target        : alice.did.uri,
         messageType   : DwnInterface.RecordsWrite,
@@ -847,7 +853,55 @@ describe('AgentDwnApi', () => {
       await testHarness.closeStorage();
     });
 
-    it('handles EventsQuery', async () => {
+    it('handles sending existing message using `messageCid` request property', async () => {
+      // Create test data to write.
+      const dataBytes = Convert.string('Hello, world!').toUint8Array();
+
+      // Write a record to the local DWN to use for the test.
+      let writeResponse = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          dataFormat : 'text/plain',
+          schema     : 'https://schemas.xyz/example'
+        },
+        dataStream: new Blob([dataBytes])
+      });
+      expect(writeResponse.reply.status.code).to.equal(202);
+
+      // sendRequest using the message's `messageCid`
+      const sendResponse = await testHarness.agent.dwn.sendRequest({
+        author      : alice.did.uri,
+        target      : alice.did.uri,
+        messageType : DwnInterface.RecordsWrite,
+        messageCid  : writeResponse.messageCid
+      });
+
+      // Verify the response.
+      expect(sendResponse.message).to.deep.equal(writeResponse.message);
+      expect(sendResponse.messageCid).to.equal(writeResponse.messageCid);
+      expect(sendResponse.reply.status.code).to.equal(202);
+    });
+
+    it('should fail when sending a message with a `messageCid` that does not exist', async () => {
+      // Attempt to send a message with an invalid `messageCid`.
+      try {
+        const messageCid = await TestDataGenerator.randomCborSha256Cid();
+
+        await testHarness.agent.dwn.sendRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          messageCid,
+        });
+        expect.fail('Expected an error to be thrown');
+      } catch (error:any) {
+        expect(error.message).to.contain('AgentDwnApi: Failed to read message');
+      }
+    });
+
+    it('handles MessagesQuery', async () => {
       const testCursor = {
         messageCid : 'foo',
         value      : 'bar'
@@ -855,32 +909,32 @@ describe('AgentDwnApi', () => {
 
       const testFilters = [{ protocol: 'http://protocol1' }];
 
-      // Attempt to process the EventsGet.
-      let eventsQueryResponse = await testHarness.agent.dwn.sendRequest({
+      // Attempt to process the MessagesQuery.
+      let messagesQueryResponse = await testHarness.agent.dwn.sendRequest({
         author        : alice.did.uri,
         target        : alice.did.uri,
-        messageType   : DwnInterface.EventsQuery,
+        messageType   : DwnInterface.MessagesQuery,
         messageParams : {
           cursor  : testCursor,
           filters : testFilters
         }
       });
 
-      expect(eventsQueryResponse).to.have.property('message');
-      expect(eventsQueryResponse).to.have.property('messageCid');
-      expect(eventsQueryResponse).to.have.property('reply');
+      expect(messagesQueryResponse).to.have.property('message');
+      expect(messagesQueryResponse).to.have.property('messageCid');
+      expect(messagesQueryResponse).to.have.property('reply');
 
-      const eventsQueryMessage = eventsQueryResponse.message!;
-      expect(eventsQueryMessage.descriptor).to.have.property('cursor', testCursor);
-      expect(eventsQueryMessage.descriptor.filters).to.deep.equal(testFilters);
+      const messagesQueryMessage = messagesQueryResponse.message!;
+      expect(messagesQueryMessage.descriptor).to.have.property('cursor', testCursor);
+      expect(messagesQueryMessage.descriptor.filters).to.deep.equal(testFilters);
 
-      const eventsQueryReply = eventsQueryResponse.reply;
-      expect(eventsQueryReply).to.have.property('status');
-      expect(eventsQueryReply.status.code).to.equal(200);
-      expect(eventsQueryReply.entries).to.have.length(0);
+      const messagesQueryReply = messagesQueryResponse.reply;
+      expect(messagesQueryReply).to.have.property('status');
+      expect(messagesQueryReply.status.code).to.equal(200);
+      expect(messagesQueryReply.entries).to.have.length(0);
     });
 
-    it('handles EventsSubscription', async () => {
+    it('handles MessagesSubscribe', async () => {
       const receivedMessages: string[] = [];
       const subscriptionHandler = async (event: MessageEvent) => {
         const { message } = event;
@@ -891,7 +945,7 @@ describe('AgentDwnApi', () => {
       const { reply: { status: subscribeStatus, subscription } } = await testHarness.agent.dwn.sendRequest({
         author        : alice.did.uri,
         target        : alice.did.uri,
-        messageType   : DwnInterface.EventsSubscribe,
+        messageType   : DwnInterface.MessagesSubscribe,
         messageParams : {
           filters: [{
             protocol: 'https://protocol.xyz/example'
@@ -987,11 +1041,11 @@ describe('AgentDwnApi', () => {
       ]);
     });
 
-    it('handles MessagesGet', async () => {
+    it('handles MessagesRead', async () => {
       // Create test data to write.
       const dataBytes = Convert.string('Hello, world!').toUint8Array();
 
-      // Write a record to use for the MessagesGet test.
+      // Write a record to use for the MessagesRead test.
       let writeResponse = await testHarness.agent.dwn.sendRequest({
         author        : alice.did.uri,
         target        : alice.did.uri,
@@ -1005,32 +1059,38 @@ describe('AgentDwnApi', () => {
       expect(writeResponse.reply.status.code).to.equal(202);
       const writeMessage = writeResponse.message!;
 
-      // Attempt to process the MessagesGet.
-      let messagesGetResponse = await testHarness.agent.dwn.sendRequest({
+      // Attempt to process the MessagesRead.
+      let messagesReadResponse = await testHarness.agent.dwn.sendRequest({
         author        : alice.did.uri,
         target        : alice.did.uri,
-        messageType   : DwnInterface.MessagesGet,
+        messageType   : DwnInterface.MessagesRead,
         messageParams : {
-          messageCids: [writeResponse.messageCid!]
+          messageCid: writeResponse.messageCid!
         }
       });
 
-      expect(messagesGetResponse).to.have.property('message');
-      expect(messagesGetResponse).to.have.property('messageCid');
-      expect(messagesGetResponse).to.have.property('reply');
+      expect(messagesReadResponse).to.have.property('message');
+      expect(messagesReadResponse).to.have.property('messageCid');
+      expect(messagesReadResponse).to.have.property('reply');
 
-      const messagesGetMessage = messagesGetResponse.message!;
-      expect(messagesGetMessage.descriptor).to.have.property('messageCids');
-      expect(messagesGetMessage.descriptor.messageCids).to.have.length(1);
-      expect(messagesGetMessage.descriptor.messageCids).to.include(writeResponse.messageCid);
+      const messagesReadMessage = messagesReadResponse.message!;
+      expect(messagesReadMessage.descriptor).to.have.property('messageCid');
+      expect(messagesReadMessage.descriptor.messageCid).to.equal(writeResponse.messageCid);
 
-      const messagesGetReply = messagesGetResponse.reply;
-      expect(messagesGetReply).to.have.property('status');
-      expect(messagesGetReply.status.code).to.equal(200);
-      expect(messagesGetReply.entries).to.have.length(1);
-
-      const [ retrievedRecordsWrite ] = messagesGetReply.entries!;
+      const messagesReadReply = messagesReadResponse.reply;
+      expect(messagesReadReply).to.have.property('status');
+      expect(messagesReadReply.status.code).to.equal(200);
+      const retrievedRecordsWrite = messagesReadReply.entry!;
       expect(retrievedRecordsWrite.message).to.have.property('recordId', writeMessage.recordId);
+
+      const dataStream: ReadableStream | Readable = retrievedRecordsWrite.data!;
+      // If the data stream is a web ReadableStream, convert it to a Node.js Readable.
+      const nodeReadable = Stream.isReadableStream(dataStream) ?
+        NodeStream.fromWebReadable({ readableStream: dataStream }) :
+        dataStream;
+
+      const readDataBytes = await NodeStream.consumeToBytes({ readable: nodeReadable });
+      expect(readDataBytes).to.deep.equal(dataBytes);
     });
 
     it('handles ProtocolsConfigure', async () => {
@@ -1231,6 +1291,15 @@ describe('AgentDwnApi', () => {
       expect(readReply.record).to.have.property('data');
       expect(readReply.record).to.have.property('descriptor');
       expect(readReply.record).to.have.property('recordId', writeMessage.recordId);
+
+      const dataStream: ReadableStream | Readable = readReply.record!.data;
+      // If the data stream is a web ReadableStream, convert it to a Node.js Readable.
+      const nodeReadable = Stream.isReadableStream(dataStream) ?
+        NodeStream.fromWebReadable({ readableStream: dataStream }) :
+        dataStream;
+
+      const readDataBytes = await NodeStream.consumeToBytes({ readable: nodeReadable });
+      expect(readDataBytes).to.deep.equal(dataBytes);
     });
 
     it('handles RecordsSubscribe message', async () => {
@@ -1569,12 +1638,12 @@ describe('AgentDwnApi', () => {
         expect(error.message).to.include('AgentDwnApi: Subscription handler is required for subscription requests.');
       }
 
-      // EventsSubscribe message without a subscriptionHandler
+      // MessagesSubscribe message without a subscriptionHandler
       try {
         await testHarness.agent.dwn.sendRequest({
           author        : alice.did.uri,
           target        : alice.did.uri,
-          messageType   : DwnInterface.EventsSubscribe,
+          messageType   : DwnInterface.MessagesSubscribe,
           messageParams : {}
         });
         expect.fail('Expected an error to be thrown');

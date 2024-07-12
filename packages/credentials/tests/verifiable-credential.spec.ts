@@ -135,7 +135,9 @@ describe('Verifiable Credential Tests', () => {
       }
     });
 
-    it('create and sign vc with did:ion', async () => {
+    // TBD's `did:ion` resolver has been sunset so skipping tests
+    // TODO: Move `did:ion` functionality to separate repo
+    xit('create and sign vc with did:ion', async () => {
       const did = await DidIon.create();
 
       const vc = await VerifiableCredential.create({

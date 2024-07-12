@@ -7,20 +7,40 @@
 import type { Readable } from '@web5/common';
 import {
   Web5Agent,
+  DwnInterface,
   DwnMessage,
   DwnMessageParams,
   DwnResponseStatus,
   ProcessDwnRequest,
   DwnMessageDescriptor,
   getPaginationCursor,
+  getRecordAuthor,
   DwnDateSort,
-  DwnPaginationCursor
+  DwnPaginationCursor,
+  isDwnMessage,
+  SendDwnRequest
 } from '@web5/agent';
 
-import { DwnInterface } from '@web5/agent';
 import { Convert, isEmptyObject, NodeStream, removeUndefinedProperties, Stream } from '@web5/common';
 
 import { dataToBlob, SendCache } from './utils.js';
+
+/**
+ * Represents Immutable Record properties that cannot be changed after the record is created.
+ *
+ * @beta
+ * */
+export type ImmutableRecordProperties =
+  Pick<DwnMessageDescriptor[DwnInterface.RecordsWrite], 'dateCreated' | 'parentId' | 'protocol' | 'protocolPath' | 'recipient' | 'schema'>;
+
+/**
+ * Represents Optional Record properties that depend on the Record's current state.
+ *
+ * @beta
+*/
+export type OptionalRecordProperties =
+  Pick<DwnMessage[DwnInterface.RecordsWrite], 'authorization' | 'attestation' | 'encryption' | 'contextId' > &
+  Pick<DwnMessageDescriptor[DwnInterface.RecordsWrite], 'dataFormat' | 'dataCid' | 'dataSize' | 'datePublished' | 'published' | 'tags'>;
 
 /**
  * Represents the structured data model of a record, encapsulating the essential fields that define
@@ -28,18 +48,20 @@ import { dataToBlob, SendCache } from './utils.js';
  *
  * @beta
  */
-export type RecordModel = DwnMessageDescriptor[DwnInterface.RecordsWrite]
-  & Omit<DwnMessage[DwnInterface.RecordsWrite], 'descriptor' | 'recordId'>
-  & {
-    /** The DID that signed the record. */
-    author: string;
+export type RecordModel = ImmutableRecordProperties & OptionalRecordProperties & {
 
-    /** The protocol role under which this record is written. */
-    protocolRole?: RecordOptions['protocolRole'];
+  /** The logical author of the record. */
+  author: string;
 
-    /** The unique identifier of the record. */
-    recordId?: string;
-  }
+  /** The unique identifier of the record. */
+  recordId?: string;
+
+  /** The timestamp indicating when the record was last modified. */
+  messageTimestamp?: string;
+
+  /** The protocol role under which this record is written. */
+  protocolRole?: RecordOptions['protocolRole'];
+}
 
 /**
  * Options for configuring a {@link Record} instance, extending the base `RecordsWriteMessage` with
@@ -81,7 +103,7 @@ export type RecordOptions = DwnMessage[DwnInterface.RecordsWrite] & {
 /**
  * Parameters for updating a DWN record.
  *
- * This type specifies the  set of properties that can be updated on an existing record. It is used
+ * This type specifies the set of properties that can be updated on an existing record. It is used
  * to convey the new state or changes to be applied to the record.
  *
  * @beta
@@ -120,8 +142,33 @@ export type RecordUpdateParams = {
 }
 
 /**
- * Record wrapper class with convenience methods to send and update,
- * aside from manipulating and reading the record data.
+ * Parameters for deleting a DWN record.
+ *
+ * This type specifies the set of properties that are used when deleting an existing record. It is used
+ * to convey the new state or changes to be applied to the record.
+ *
+ * @beta
+ */
+export type RecordDeleteParams = {
+  /** Whether or not to store the message. */
+  store?: boolean;
+
+  /** Whether or not to sign the delete as an owner in order to import it. */
+  signAsOwner?: boolean;
+
+  /** Whether or not to prune any children this record may have. */
+  prune?: DwnMessageDescriptor[DwnInterface.RecordsDelete]['prune'];
+
+  /** The timestamp indicating when the record was deleted. */
+  dateModified?: DwnMessageDescriptor[DwnInterface.RecordsDelete]['messageTimestamp'];
+};
+
+/**
+ * The `Record` class encapsulates a single record's data and metadata, providing a more
+ * developer-friendly interface for working with Decentralized Web Node (DWN) records.
+ *
+ * Methods are provided to read, update, and manage the record's lifecycle, including writing to
+ * remote DWNs.
  *
  * Note: The `messageTimestamp` of the most recent RecordsWrite message is
  *       logically equivalent to the date/time at which a Record was most
@@ -129,15 +176,6 @@ export type RecordUpdateParams = {
  *       intended to simplify the developer experience of working with
  *       logical records (and not individual DWN messages) the
  *       `messageTimestamp` is mapped to `dateModified`.
- *
- * @beta
- */
-/**
- * The `Record` class encapsulates a single record's data and metadata, providing a more
- * developer-friendly interface for working with Decentralized Web Node (DWN) records.
- *
- * Methods are provided to read, update, and manage the record's lifecycle, including writing to
- * remote DWNs.
  *
  * @beta
  */
@@ -168,11 +206,11 @@ export class Record implements RecordModel {
   /** Attestation JWS signature. */
   private _attestation?: DwnMessage[DwnInterface.RecordsWrite]['attestation'];
   /** Authorization signature(s). */
-  private _authorization?: DwnMessage[DwnInterface.RecordsWrite]['authorization'];
+  private _authorization?: DwnMessage[DwnInterface.RecordsWrite | DwnInterface.RecordsDelete]['authorization'];
   /** Context ID associated with the record. */
   private _contextId?: string;
   /** Descriptor detailing the record's schema, format, and other metadata. */
-  private _descriptor: DwnMessageDescriptor[DwnInterface.RecordsWrite];
+  private _descriptor: DwnMessageDescriptor[DwnInterface.RecordsWrite] | DwnMessageDescriptor[DwnInterface.RecordsDelete];
   /** Encryption details for the record, if the data is encrypted. */
   private _encryption?: DwnMessage[DwnInterface.RecordsWrite]['encryption'];
   /** Initial state of the record before any updates. */
@@ -184,96 +222,114 @@ export class Record implements RecordModel {
   /** Unique identifier of the record. */
   private _recordId: string;
   /** Role under which the record is written. */
-  private _protocolRole: RecordOptions['protocolRole'];
+  private _protocolRole?: RecordOptions['protocolRole'];
 
-  // Getters for immutable DWN Record properties.
+  /** The `RecordsWriteMessage` descriptor unless the record is in a deleted state */
+  private get _recordsWriteDescriptor() {
+    if (isDwnMessage(DwnInterface.RecordsWrite, this.rawMessage)) {
+      return this._descriptor as DwnMessageDescriptor[DwnInterface.RecordsWrite];
+    }
 
-  /** Record's signatures attestation */
-  get attestation(): DwnMessage[DwnInterface.RecordsWrite]['attestation'] { return this._attestation; }
+    return undefined; // returns undefined if the descriptor does not represent a RecordsWrite message.
+  }
 
-  /** Record's signatures attestation */
-  get authorization(): DwnMessage[DwnInterface.RecordsWrite]['authorization'] { return this._authorization; }
+  /** The `RecordsWrite` descriptor from the current record or the initial write if the record is in a delete state. */
+  private get _immutableProperties(): ImmutableRecordProperties {
+    return this._recordsWriteDescriptor || this._initialWrite.descriptor;
+  }
 
-  /** DID that signed the record. */
-  get author(): string { return this._author; }
+  // Getters for immutable Record properties.
+  /** Record's ID */
+  get id() { return this._recordId; }
 
   /** Record's context ID */
   get contextId() { return this._contextId; }
 
-  /** Record's data format */
-  get dataFormat() { return this._descriptor.dataFormat; }
-
   /** Record's creation date */
-  get dateCreated() { return this._descriptor.dateCreated; }
-
-  /** Record's encryption */
-  get encryption(): DwnMessage[DwnInterface.RecordsWrite]['encryption'] { return this._encryption; }
-
-  /** Record's initial write if the record has been updated */
-  get initialWrite(): RecordOptions['initialWrite'] { return this._initialWrite; }
-
-  /** Record's ID */
-  get id() { return this._recordId; }
-
-  /** Interface is always `Records` */
-  get interface() { return this._descriptor.interface; }
-
-  /** Method is always `Write` */
-  get method() { return this._descriptor.method; }
+  get dateCreated() { return this._immutableProperties.dateCreated; }
 
   /** Record's parent ID */
-  get parentId() { return this._descriptor.parentId; }
+  get parentId() { return this._immutableProperties.parentId; }
 
   /** Record's protocol */
-  get protocol() { return this._descriptor.protocol; }
+  get protocol() { return this._immutableProperties.protocol; }
 
   /** Record's protocol path */
-  get protocolPath() { return this._descriptor.protocolPath; }
-
-  /** Role under which the author is writing the record */
-  get protocolRole() { return this._protocolRole; }
+  get protocolPath() { return this._immutableProperties.protocolPath; }
 
   /** Record's recipient */
-  get recipient() { return this._descriptor.recipient; }
+  get recipient() { return this._immutableProperties.recipient; }
 
   /** Record's schema */
-  get schema() { return this._descriptor.schema; }
+  get schema() { return this._immutableProperties.schema; }
 
-  // Getters for mutable DWN Record properties.
+
+  // Getters for mutable DWN RecordsWrite properties that may be undefined in a deleted state.
+  /** Record's data format */
+  get dataFormat() { return this._recordsWriteDescriptor?.dataFormat; }
 
   /** Record's CID */
-  get dataCid() { return this._descriptor.dataCid; }
+  get dataCid() { return this._recordsWriteDescriptor?.dataCid; }
 
   /** Record's data size */
-  get dataSize() { return this._descriptor.dataSize; }
+  get dataSize() { return this._recordsWriteDescriptor?.dataSize; }
+
+  /** Record's published date */
+  get datePublished() { return this._recordsWriteDescriptor?.datePublished; }
+
+  /** Record's published status (true/false) */
+  get published() { return this._recordsWriteDescriptor?.published; }
+
+  /** Tags of the record */
+  get tags() { return this._recordsWriteDescriptor?.tags; }
+
+
+  // Getters for for properties that depend on the current state of the Record.
+  /** DID that is the logical author of the Record. */
+  get author(): string { return this._author; }
 
   /** Record's modified date */
   get dateModified() { return this._descriptor.messageTimestamp; }
 
-  /** Record's published date */
-  get datePublished() { return this._descriptor.datePublished; }
+  /** Record's encryption */
+  get encryption(): DwnMessage[DwnInterface.RecordsWrite]['encryption'] { return this._encryption; }
 
-  /** Record's published status */
-  get messageTimestamp() { return this._descriptor.messageTimestamp; }
+  /** Record's signatures attestation */
+  get authorization(): DwnMessage[DwnInterface.RecordsWrite | DwnInterface.RecordsDelete]['authorization'] { return this._authorization; }
 
-  /** Record's published status (true/false) */
-  get published() { return this._descriptor.published; }
+  /** Record's signatures attestation */
+  get attestation(): DwnMessage[DwnInterface.RecordsWrite]['attestation'] | undefined { return this._attestation; }
 
-  /** Tags of the record */
-  get tags() { return this._descriptor.tags; }
+  /** Role under which the author is writing the record */
+  get protocolRole() { return this._protocolRole; }
+
+  /** Record's deleted state (true/false) */
+  get deleted() { return isDwnMessage(DwnInterface.RecordsDelete, this.rawMessage); }
+
+  /** Record's initial write if the record has been updated */
+  get initialWrite(): RecordOptions['initialWrite'] { return this._initialWrite; }
 
   /**
    * Returns a copy of the raw `RecordsWriteMessage` that was used to create the current `Record` instance.
    */
-  private get rawMessage(): DwnMessage[DwnInterface.RecordsWrite] {
-    const message = JSON.parse(JSON.stringify({
-      contextId     : this._contextId,
-      recordId      : this._recordId,
-      descriptor    : this._descriptor,
-      attestation   : this._attestation,
-      authorization : this._authorization,
-      encryption    : this._encryption,
-    }));
+  get rawMessage(): DwnMessage[DwnInterface.RecordsWrite] | DwnMessage[DwnInterface.RecordsDelete] {
+    const messageType = this._descriptor.interface + this._descriptor.method;
+    let message: DwnMessage[DwnInterface.RecordsWrite] | DwnMessage[DwnInterface.RecordsDelete];
+    if (messageType === DwnInterface.RecordsWrite) {
+      message = JSON.parse(JSON.stringify({
+        contextId     : this._contextId,
+        recordId      : this._recordId,
+        descriptor    : this._descriptor,
+        attestation   : this._attestation,
+        authorization : this._authorization,
+        encryption    : this._encryption,
+      }));
+    } else {
+      message = JSON.parse(JSON.stringify({
+        descriptor    : this._descriptor,
+        authorization : this._authorization,
+      }));
+    }
 
     removeUndefinedProperties(message);
     return message;
@@ -516,15 +572,26 @@ export class Record implements RecordModel {
       Record._sendCache.set(this._recordId, target);
     }
 
-    // Send the current/latest state to the target.
-    const { reply } = await this._agent.sendDwnRequest({
-      messageType : DwnInterface.RecordsWrite,
-      author      : this._connectedDid,
-      dataStream  : await this.data.blob(),
-      target      : target,
-      rawMessage  : { ...this.rawMessage }
-    });
+    let sendRequestOptions: SendDwnRequest<DwnInterface.RecordsWrite | DwnInterface.RecordsDelete>;
+    if (this.deleted) {
+      sendRequestOptions = {
+        messageType : DwnInterface.RecordsDelete,
+        author      : this._connectedDid,
+        target      : target,
+        rawMessage  : { ...this.rawMessage }
+      };
+    } else {
+      sendRequestOptions = {
+        messageType : DwnInterface.RecordsWrite,
+        author      : this._connectedDid,
+        target      : target,
+        dataStream  : await this.data.blob(),
+        rawMessage  : { ...this.rawMessage }
+      };
+    }
 
+    // Send the current/latest state to the target.
+    const { reply } = await this._agent.sendDwnRequest(sendRequestOptions);
     return reply;
   }
 
@@ -545,8 +612,6 @@ export class Record implements RecordModel {
       messageTimestamp : this.dateModified,
       datePublished    : this.datePublished,
       encryption       : this.encryption,
-      interface        : this.interface,
-      method           : this.method,
       parentId         : this.parentId,
       protocol         : this.protocol,
       protocolPath     : this.protocolPath,
@@ -569,9 +634,15 @@ export class Record implements RecordModel {
     str += this.contextId ? `  Context ID: ${this.contextId}\n` : '';
     str += this.protocol ? `  Protocol: ${this.protocol}\n` : '';
     str += this.schema ? `  Schema: ${this.schema}\n` : '';
-    str += `  Data CID: ${this.dataCid}\n`;
-    str += `  Data Format: ${this.dataFormat}\n`;
-    str += `  Data Size: ${this.dataSize}\n`;
+
+    // Only display data properties if the record has not been deleted.
+    if (!this.deleted) {
+      str += `  Data CID: ${this.dataCid}\n`;
+      str += `  Data Format: ${this.dataFormat}\n`;
+      str += `  Data Size: ${this.dataSize}\n`;
+    }
+
+    str += `  Deleted: ${this.deleted}\n`;
     str += `  Created: ${this.dateCreated}\n`;
     str += `  Modified: ${this.dateModified}\n`;
     str += `}`;
@@ -584,8 +655,8 @@ export class Record implements RecordModel {
    * @param sort the sort order to use for the pagination cursor.
    * @returns A promise that resolves to a pagination cursor for the current record.
    */
-  async paginationCursor(sort: DwnDateSort): Promise<DwnPaginationCursor> {
-    return getPaginationCursor(this.rawMessage, sort);
+  async paginationCursor(sort: DwnDateSort): Promise<DwnPaginationCursor | undefined> {
+    return isDwnMessage(DwnInterface.RecordsWrite, this.rawMessage) ? getPaginationCursor(this.rawMessage, sort) : undefined;
   }
 
   /**
@@ -598,8 +669,12 @@ export class Record implements RecordModel {
    */
   async update({ dateModified, data, ...params }: RecordUpdateParams): Promise<DwnResponseStatus> {
 
+    if (!isDwnMessage(DwnInterface.RecordsWrite, this.rawMessage) && !this._initialWrite) {
+      throw new Error('If initial write is not set, the current rawRecord must be a RecordsWrite message.');
+    }
+
     // if there is a parentId, we remove it from the descriptor and set a parentContextId
-    const { parentId, ...descriptor } = this._descriptor;
+    const { parentId, ...descriptor } = this._recordsWriteDescriptor;
     const parentContextId = parentId ? this._contextId.split('/').slice(0, -1).join('/') : undefined;
 
     // Begin assembling the update message.
@@ -653,7 +728,9 @@ export class Record implements RecordModel {
     if (200 <= status.code && status.code <= 299) {
       // copy the original raw message to the initial write before we update the values.
       if (!this._initialWrite) {
-        this._initialWrite = { ...this.rawMessage };
+        // If there is no initial write, we need to create one from the current record state.
+        // We checked in the beginning of the function that the rawMessage is a RecordsWrite message.
+        this._initialWrite = { ...this.rawMessage as DwnMessage[DwnInterface.RecordsWrite] };
       }
 
       // Only update the local Record instance mutable properties if the record was successfully (over)written.
@@ -668,6 +745,69 @@ export class Record implements RecordModel {
         this._encodedData = dataBlob;
       }
     }
+
+    return { status };
+  }
+
+  /**
+   * Delete the current record on the DWN.
+   * @param params - Parameters to delete the record.
+   * @returns the status of the delete request
+   */
+  async delete(deleteParams?: RecordDeleteParams): Promise<DwnResponseStatus> {
+    const { store, signAsOwner, dateModified, ...params } = deleteParams || {};
+
+    // prepare delete options
+    let deleteOptions: ProcessDwnRequest<DwnInterface.RecordsDelete> = {
+      messageType : DwnInterface.RecordsDelete,
+      author      : this._connectedDid,
+      target      : this._connectedDid,
+      store,
+      signAsOwner
+    };
+
+    if (this.deleted) {
+      if (!this._initialWrite) {
+        // if the rawMessage is a `RecordsDelete` the initial message must be set.
+        // this should never happen, but we check as a form of defensive programming.
+        throw new Error('If initial write is not set, the current rawRecord must be a RecordsWrite message.');
+      }
+
+      // if we have a delete message we can just use it
+      deleteOptions.rawMessage = this.rawMessage as DwnMessage[DwnInterface.RecordsDelete];
+    } else {
+      // otherwise we construct a delete message given the `RecordDeleteParams`
+      deleteOptions.messageParams = {
+        ...params,
+        recordId         : this._recordId,
+        messageTimestamp : dateModified,
+      };
+    }
+
+    const agentResponse = await this._agent.processDwnRequest(deleteOptions);
+    const { message, reply: { status } } = agentResponse;
+
+    if (status.code !== 202) {
+      // If the delete was not successful, return the status.
+      return { status };
+    }
+
+    if (!this._initialWrite) {
+      // If there is no initial write, we need to create one from the current record state.
+      // We checked in the beginning of the function that the initialWrite is not set if the rawMessage is a RecordsDelete message.
+      // So we can safely assume that the rawMessage is a RecordsWrite message.
+      this._initialWrite = { ...this.rawMessage as DwnMessage[DwnInterface.RecordsWrite] };
+    }
+
+    // If the delete was successful, update the Record author to the author of the delete message.
+    this._author = getRecordAuthor(message);
+    this._descriptor = message.descriptor;
+    this._authorization = message.authorization;
+
+    // clear out properties that are not relevant for a deleted record
+    this._encodedData = undefined;
+    this._encryption = undefined;
+    this._attestation = undefined;
 
     return { status };
   }
@@ -705,16 +845,29 @@ export class Record implements RecordModel {
       }
     }
 
+    let requestOptions: ProcessDwnRequest<DwnInterface.RecordsWrite | DwnInterface.RecordsDelete>;
     // Now that we've processed a potential initial write, we can process the current record state.
-    const requestOptions: ProcessDwnRequest<DwnInterface.RecordsWrite> = {
-      messageType : DwnInterface.RecordsWrite,
-      rawMessage  : this.rawMessage,
-      author      : this._connectedDid,
-      target      : this._connectedDid,
-      dataStream  : await this.data.blob(),
-      signAsOwner,
-      store,
-    };
+    // If the record has been deleted, we need to send a delete request. Otherwise, we send a write request.
+    if(this.deleted) {
+      requestOptions = {
+        messageType : DwnInterface.RecordsDelete,
+        rawMessage  : this.rawMessage,
+        author      : this._connectedDid,
+        target      : this._connectedDid,
+        signAsOwner,
+        store,
+      };
+    } else {
+      requestOptions = {
+        messageType : DwnInterface.RecordsWrite,
+        rawMessage  : this.rawMessage,
+        author      : this._connectedDid,
+        target      : this._connectedDid,
+        dataStream  : await this.data.blob(),
+        signAsOwner,
+        store,
+      };
+    }
 
     const agentResponse = await this._agent.processDwnRequest(requestOptions);
     const { message, reply: { status } } = agentResponse;
@@ -757,7 +910,11 @@ export class Record implements RecordModel {
       this._agent.processDwnRequest(readRequest);
 
     try {
-      const { reply: { record }} = await agentResponsePromise;
+      const { reply: { status, record }} = await agentResponsePromise;
+      if (status.code !== 200) {
+        throw new Error(`${status.code}: ${status.detail}`);
+      }
+
       const dataStream: ReadableStream | Readable = record.data;
       // If the data stream is a web ReadableStream, convert it to a Node.js Readable.
       const nodeReadable = Stream.isReadableStream(dataStream) ?
