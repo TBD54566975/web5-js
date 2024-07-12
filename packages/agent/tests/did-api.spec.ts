@@ -277,6 +277,26 @@ describe('AgentDidApi', () => {
 
           expect(keyManagerSpy.called).to.be.false;
         });
+
+        it('skips if verificationMethod is not defined', async () => {
+          // stub store to return a portable did with non-jwk verification methods
+          sinon.stub(testHarness.agent.did['_store'], 'get').resolves({
+            uri      : 'did:method:abc123',
+            metadata : {},
+            document : {
+              id: 'did:method:abc123',
+            }
+          });
+
+          sinon.stub(testHarness.agent.did['_store'], 'delete').resolves();
+
+          // spy on deleteKey
+          const keyManagerDeleteSpy = sinon.spy(testHarness.agent.keyManager, 'deleteKey');
+          // delete the DID
+          await testHarness.agent.did.delete({ didUri: 'did:example:123' });
+
+          expect(keyManagerDeleteSpy.called).to.be.false;
+        });
       });
 
       describe('export()', () => {
