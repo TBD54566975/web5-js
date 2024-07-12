@@ -69,12 +69,14 @@ describe('SyncEngineLevel', () => {
       randomSchema = cryptoUtils.randomUuid();
 
       sinon.restore();
+
       await syncEngine.clear();
       await testHarness.syncStore.clear();
       await testHarness.dwnDataStore.clear();
       await testHarness.dwnEventLog.clear();
       await testHarness.dwnMessageStore.clear();
       await testHarness.dwnResumableTaskStore.clear();
+      testHarness.dwnStores.clear();
     });
 
     after(async () => {
@@ -83,6 +85,12 @@ describe('SyncEngineLevel', () => {
     });
 
     it('syncs multiple messages in both directions', async () => {
+      // scenario:  Alice installs a protocol only on her local DWN and writes some messages associated with it
+      //            Alice installs a protocol only on her remote DWN and writes some messages associated with it
+      //            Alice registers her DID to be synchronized, and kicks off a sync
+      //            The sync should complete and the same records should exist on both remote and local DWNs
+
+
       // create 1 local protocol configure
       const protocolDefinition1: ProtocolDefinition = {
         published : true,
@@ -741,7 +749,7 @@ describe('SyncEngineLevel', () => {
       }).slow(1200); // Yellow at 600ms, Red at 1200ms.
 
       it('synchronizes records for multiple identities from remote DWN to local DWN', async () => {
-      // Create a second Identity to author the DWN messages.
+        // Create a second Identity to author the DWN messages.
         const bob = await testHarness.createIdentity({ name: 'Bob', testDwnUrls });
 
         // Write a test record to Alice's remote DWN.

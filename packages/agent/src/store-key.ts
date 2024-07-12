@@ -5,19 +5,24 @@ import { Convert } from '@web5/common';
 
 import type { Web5PlatformAgent } from './types/agent.js';
 
-import { TENANT_SEPARATOR } from './utils-internal.js';
 import { DwnInterface } from './types/dwn.js';
+import { JwkProtocolDefinition } from './store-data-protocols.js';
+import { TENANT_SEPARATOR } from './utils-internal.js';
 import { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams, DwnDataStore, InMemoryDataStore } from './store-data.js';
 
 export class DwnKeyStore extends DwnDataStore<Jwk> implements AgentDataStore<Jwk> {
   protected name = 'DwnKeyStore';
 
+  protected _recordProtocolDefinition = JwkProtocolDefinition;
+
   /**
    * Properties to use when writing and querying Private Key records with the DWN store.
    */
   protected _recordProperties = {
-    dataFormat : 'application/json',
-    schema     : 'https://identity.foundation/schemas/web5/private-jwk'
+    dataFormat   : 'application/json',
+    protocol     : this._recordProtocolDefinition.protocol,
+    protocolPath : 'privateJwk',
+    schema       : this._recordProtocolDefinition.types.privateJwk.schema,
   };
 
   public async delete(params: DataStoreDeleteParams): Promise<boolean> {

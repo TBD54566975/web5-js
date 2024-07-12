@@ -4,8 +4,9 @@ import type { Web5PlatformAgent } from './types/agent.js';
 import type { IdentityMetadata } from './types/identity.js';
 import type { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams } from './store-data.js';
 
-import { TENANT_SEPARATOR } from './utils-internal.js';
 import { DwnInterface } from './types/dwn.js';
+import { IdentityProtocolDefinition } from './store-data-protocols.js';
+import { TENANT_SEPARATOR } from './utils-internal.js';
 import { DwnDataStore, InMemoryDataStore } from './store-data.js';
 
 export function isIdentityMetadata(obj: unknown): obj is IdentityMetadata {
@@ -17,12 +18,16 @@ export function isIdentityMetadata(obj: unknown): obj is IdentityMetadata {
 export class DwnIdentityStore extends DwnDataStore<IdentityMetadata> implements AgentDataStore<IdentityMetadata> {
   protected name = 'DwnIdentityStore';
 
+  protected _recordProtocolDefinition = IdentityProtocolDefinition;
+
   /**
    * Properties to use when writing and querying Identity records with the DWN store.
    */
   protected _recordProperties = {
-    dataFormat : 'application/json',
-    schema     : 'https://identity.foundation/schemas/web5/identity-metadata'
+    dataFormat   : 'application/json',
+    protocol     : this._recordProtocolDefinition.protocol,
+    protocolPath : 'identityMetadata',
+    schema       : this._recordProtocolDefinition.types.identityMetadata.schema,
   };
 
   public async delete(params: DataStoreDeleteParams): Promise<boolean> {
