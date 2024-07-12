@@ -23,7 +23,7 @@ export const IdentityProtocolDefinition: ProtocolDefinition = {
   }
 };
 
-export const JWKProtocolDefinition: ProtocolDefinition = {
+export const JwkProtocolDefinition: ProtocolDefinition = {
   protocol  : 'http://identity.foundation/protocols/web5/jwk-store',
   published : false,
   types     : {
