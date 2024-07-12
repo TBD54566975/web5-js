@@ -142,9 +142,6 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
     // initialize the storage protocol if not already done
     await this.initialize({ tenant: tenantDid, agent });
 
-    // initialize the storage protocol if not already done
-    await this.initialize({ tenant: tenantDid, agent });
-
     // If enabled, check if a record with the given `id` is already present in the store.
     if (preventDuplicates) {
       // Look up the DWN record ID of the object in the store with the given `id`.

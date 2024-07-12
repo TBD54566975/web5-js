@@ -205,7 +205,8 @@ describe('AgentDidApi', () => {
           }
         });
 
-        it('should not be able to get signer for tenant after the tenant DID is deleted and the deleteKey parameter is not false', async function () {
+        it('should not be able to get signer for tenant after the tenant DID is deleted and the deleteKey parameter is set not false', async function () {
+          // This test is only relevant for the DWN store as it needs a signer to perform storage operations
           if (agentStoreType !== 'dwn') {
             this.skip();
           }
@@ -252,7 +253,7 @@ describe('AgentDidApi', () => {
           expect(storedDid).to.be.undefined;
         });
 
-        it('should skip non JWK encoded verification methods', async () => {
+        it('should skip non Jwk encoded verification methods', async () => {
           // stub store to return a portable did with non-jwk verification methods
           sinon.stub(testHarness.agent.did['_store'], 'get').resolves({
             uri      : 'did:method:abc123',
