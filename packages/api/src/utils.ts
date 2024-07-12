@@ -62,6 +62,27 @@ export function dataToBlob(data: any, dataFormat?: string): {
   return { dataBlob, dataFormat };
 }
 
+export function validateRecoverParams(params: any): void {
+  if (!params || typeof params !== 'object') {
+    throw new Error('Invalid recovery parameters.');
+  }
+  if (!params.password || typeof params.password !== 'string') {
+    throw new Error('Invalid password.');
+  }
+  if (!params.recoveryPhrase || typeof params.recoveryPhrase !== 'string') {
+    throw new Error('Invalid recoveryPhrase.');
+  }
+  if (!params.dwnEndpoints || !Array.isArray(params.dwnEndpoints) || params.dwnEndpoints.length === 0) {
+    throw new Error('Invalid DWN endpoints.');
+  }
+  if (!params.dids || !Array.isArray(params.dids) || params.dids.length === 0) {
+    throw new Error('Invalid DIDs.');
+  }
+  if (params.sync && typeof params.sync !== 'string') {
+    throw new Error('Invalid sync interval.');
+  }
+}
+
 /**
  * The `SendCache` class provides a static caching mechanism to optimize the process of sending
  * records to remote DWN targets by minimizing redundant sends.

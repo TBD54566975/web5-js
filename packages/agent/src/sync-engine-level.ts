@@ -258,6 +258,22 @@ export class SyncEngineLevel implements SyncEngine {
     }
   }
 
+  public sync({ syncDirection }: { syncDirection: string }): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (syncDirection === 'push') {
+        this.push();
+        this.pull();
+        resolve();
+      } else if (syncDirection === 'pull') {
+        this.pull();
+        this.push();
+        resolve();
+      } else {
+        throw new Error('SyncEngineLevel: Invalid sync direction.');
+      }
+    });
+  }
+
   private static syncMessageReplyIsSuccessful(reply: UnionMessageReply): boolean {
     return reply.status.code === 202 ||
       reply.status.code === 409 ||

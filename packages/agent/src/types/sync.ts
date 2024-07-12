@@ -5,4 +5,7 @@ export interface SyncEngine {
   registerIdentity(params: { did: string }): Promise<void>;
   startSync(params: { interval: string }): Promise<void>;
   stopSync(): void;
+  sync(params: { syncDirection: string }): Promise<void>;
+  push(): Promise<void>;
+  pull(): Promise<void>;
 }

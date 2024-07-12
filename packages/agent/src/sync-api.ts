@@ -52,4 +52,16 @@ export class AgentSyncApi implements SyncEngine {
   public stopSync(): void {
     this._syncEngine.stopSync();
   }
+
+  public push(): Promise<void> {
+    return this._syncEngine.push();
+  }
+
+  public pull(): Promise<void> {
+    return this._syncEngine.pull();
+  }
+
+  public sync(params: {syncDirection: string } = {syncDirection: 'push'}): Promise<void> {
+    return this._syncEngine.sync(params);
+  }
 }
