@@ -6,14 +6,14 @@ import { Convert } from '@web5/common';
 import type { Web5PlatformAgent } from './types/agent.js';
 
 import { DwnInterface } from './types/dwn.js';
-import { JWKProtocolDefinition } from './store-data-protocols.js';
+import { JwkProtocolDefinition } from './store-data-protocols.js';
 import { TENANT_SEPARATOR } from './utils-internal.js';
 import { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams, DwnDataStore, InMemoryDataStore } from './store-data.js';
 
 export class DwnKeyStore extends DwnDataStore<Jwk> implements AgentDataStore<Jwk> {
   protected name = 'DwnKeyStore';
 
-  protected _recordProtocolDefinition = JWKProtocolDefinition;
+  protected _recordProtocolDefinition = JwkProtocolDefinition;
 
   /**
    * Properties to use when writing and querying Private Key records with the DWN store.

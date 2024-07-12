@@ -10,7 +10,7 @@ import { DwnInterface } from '../src/types/dwn.js';
 import { LocalKeyManager } from '../src/local-key-manager.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { DwnKeyStore, InMemoryKeyStore } from '../src/store-key.js';
-import { JWKProtocolDefinition } from '../src/store-data-protocols.js';
+import { JwkProtocolDefinition } from '../src/store-data-protocols.js';
 
 describe('KeyStore', () => {
   let testHarness: PlatformAgentTestHarness;
@@ -143,9 +143,9 @@ describe('KeyStore', () => {
             messageType   : DwnInterface.RecordsWrite,
             messageParams : {
               dataFormat   : 'application/json',
-              protocol     : JWKProtocolDefinition.protocol,
+              protocol     : JwkProtocolDefinition.protocol,
               protocolPath : 'privateJwk',
-              schema       : JWKProtocolDefinition.types.privateJwk.schema,
+              schema       : JwkProtocolDefinition.types.privateJwk.schema,
             },
             dataStream: new Blob([keyBytes], { type: 'application/json' })
           });
