@@ -4,10 +4,10 @@ import type { Web5PlatformAgent } from './types/agent.js';
 import type { IdentityMetadata } from './types/identity.js';
 import type { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams } from './store-data.js';
 
-import { IdentityProtocolStore } from './store-protocol.js';
 import { DwnInterface } from './types/dwn.js';
-import { InMemoryDataStore } from './store-data.js';
+import { IdentityProtocolDefinition } from './store-data-protocols.js';
 import { TENANT_SEPARATOR } from './utils-internal.js';
+import { DwnDataStore, InMemoryDataStore } from './store-data.js';
 
 export function isIdentityMetadata(obj: unknown): obj is IdentityMetadata {
   // Validate that the given value is an object that has the necessary properties of IdentityMetadata.
@@ -15,8 +15,10 @@ export function isIdentityMetadata(obj: unknown): obj is IdentityMetadata {
     && 'name' in obj;
 }
 
-export class DwnIdentityStore extends IdentityProtocolStore<IdentityMetadata> implements AgentDataStore<IdentityMetadata> {
+export class DwnIdentityStore extends DwnDataStore<IdentityMetadata> implements AgentDataStore<IdentityMetadata> {
   protected name = 'DwnIdentityStore';
+
+  protected _recordProtocolDefinition = IdentityProtocolDefinition;
 
   /**
    * Properties to use when writing and querying Identity records with the DWN store.

@@ -5,14 +5,16 @@ import { Convert } from '@web5/common';
 import type { Web5PlatformAgent } from './types/agent.js';
 import type { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams } from './store-data.js';
 
-import { TENANT_SEPARATOR } from './utils-internal.js';
 import { DwnInterface } from './types/dwn.js';
+import { IdentityProtocolDefinition } from './store-data-protocols.js';
 import { isPortableDid } from './prototyping/dids/utils.js';
-import { InMemoryDataStore } from './store-data.js';
-import { IdentityProtocolStore } from './store-protocol.js';
+import { TENANT_SEPARATOR } from './utils-internal.js';
+import { DwnDataStore, InMemoryDataStore } from './store-data.js';
 
-export class DwnDidStore extends IdentityProtocolStore<PortableDid> implements AgentDataStore<PortableDid> {
+export class DwnDidStore extends DwnDataStore<PortableDid> implements AgentDataStore<PortableDid> {
   protected name = 'DwnDidStore';
+
+  protected _recordProtocolDefinition = IdentityProtocolDefinition;
 
   /**
    * Properties to use when writing and querying DID records with the DWN store.
