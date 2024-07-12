@@ -10,6 +10,7 @@ import { DwnInterface } from '../src/types/dwn.js';
 import { LocalKeyManager } from '../src/local-key-manager.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { DwnKeyStore, InMemoryKeyStore } from '../src/store-key.js';
+import { JWKProtocolDefinition } from '../src/store-data-protocols.js';
 
 describe('KeyStore', () => {
   let testHarness: PlatformAgentTestHarness;
@@ -142,9 +143,9 @@ describe('KeyStore', () => {
             messageType   : DwnInterface.RecordsWrite,
             messageParams : {
               dataFormat   : 'application/json',
-              schema       : 'https://identity.foundation/schemas/web5/private-jwk',
-              protocol     : 'http://identity.foundation/protocols/web5/jwk-store',
-              protocolPath : 'privateJwk'
+              protocol     : JWKProtocolDefinition.protocol,
+              protocolPath : 'privateJwk',
+              schema       : JWKProtocolDefinition.types.privateJwk.schema,
             },
             dataStream: new Blob([keyBytes], { type: 'application/json' })
           });

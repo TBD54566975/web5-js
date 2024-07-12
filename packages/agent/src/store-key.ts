@@ -19,10 +19,10 @@ export class DwnKeyStore extends DwnDataStore<Jwk> implements AgentDataStore<Jwk
    * Properties to use when writing and querying Private Key records with the DWN store.
    */
   protected _recordProperties = {
+    dataFormat   : 'application/json',
     protocol     : this._recordProtocolDefinition.protocol,
     protocolPath : 'privateJwk',
-    dataFormat   : 'application/json',
-    schema       : 'https://identity.foundation/schemas/web5/private-jwk'
+    schema       : this._recordProtocolDefinition.types.privateJwk.schema,
   };
 
   public async delete(params: DataStoreDeleteParams): Promise<boolean> {

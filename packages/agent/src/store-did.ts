@@ -20,10 +20,10 @@ export class DwnDidStore extends DwnDataStore<PortableDid> implements AgentDataS
    * Properties to use when writing and querying DID records with the DWN store.
    */
   protected _recordProperties = {
+    dataFormat   : 'application/json',
     protocol     : this._recordProtocolDefinition.protocol,
     protocolPath : 'portableDid',
-    dataFormat   : 'application/json',
-    schema       : 'https://identity.foundation/schemas/web5/portable-did'
+    schema       : this._recordProtocolDefinition.types.portableDid.schema,
   };
 
   public async delete(params: DataStoreDeleteParams): Promise<boolean> {

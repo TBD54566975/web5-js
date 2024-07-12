@@ -9,6 +9,7 @@ import { TestAgent } from './utils/test-agent.js';
 import { DwnInterface } from '../src/types/dwn.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { DwnDidStore, InMemoryDidStore } from '../src/store-did.js';
+import { IdentityProtocolDefinition } from '../src/store-data-protocols.js';
 
 describe('DidStore', () => {
   let testHarness: PlatformAgentTestHarness;
@@ -220,9 +221,9 @@ describe('DidStore', () => {
             messageType   : DwnInterface.RecordsWrite,
             messageParams : {
               dataFormat   : 'application/json',
-              protocol     : 'http://identity.foundation/protocols/web5/identity-store',
+              protocol     : IdentityProtocolDefinition.protocol,
               protocolPath : 'portableDid',
-              schema       : 'https://identity.foundation/schemas/web5/portable-did',
+              schema       : IdentityProtocolDefinition.types.portableDid.schema,
             },
             dataStream: new Blob([didBytes], { type: 'application/json' })
           });

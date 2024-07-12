@@ -25,9 +25,9 @@ export class DwnIdentityStore extends DwnDataStore<IdentityMetadata> implements 
    */
   protected _recordProperties = {
     dataFormat   : 'application/json',
-    schema       : 'https://identity.foundation/schemas/web5/identity-metadata',
     protocol     : this._recordProtocolDefinition.protocol,
-    protocolPath : 'identityMetadata'
+    protocolPath : 'identityMetadata',
+    schema       : this._recordProtocolDefinition.types.identityMetadata.schema,
   };
 
   public async delete(params: DataStoreDeleteParams): Promise<boolean> {

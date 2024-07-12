@@ -10,6 +10,7 @@ import { DwnInterface } from '../src/types/dwn.js';
 import { AgentIdentityApi } from '../src/identity-api.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { DwnIdentityStore, InMemoryIdentityStore } from '../src/store-identity.js';
+import { IdentityProtocolDefinition } from '../src/store-data-protocols.js';
 
 describe('IdentityStore', () => {
   let testHarness: PlatformAgentTestHarness;
@@ -212,9 +213,9 @@ describe('IdentityStore', () => {
             messageType   : DwnInterface.RecordsWrite,
             messageParams : {
               dataFormat   : 'application/json',
-              schema       : 'https://identity.foundation/schemas/web5/identity-metadata',
-              protocol     : 'http://identity.foundation/protocols/web5/identity-store',
-              protocolPath : 'identityMetadata'
+              protocol     : IdentityProtocolDefinition.protocol,
+              protocolPath : 'identityMetadata',
+              schema       : IdentityProtocolDefinition.types.identityMetadata.schema,
             },
             dataStream: new Blob([identityBytes], { type: 'application/json' })
           });

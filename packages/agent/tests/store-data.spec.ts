@@ -39,7 +39,7 @@ class DwnTestStore extends DwnDataStore<PortableDid> implements AgentDataStore<P
     protocol     : this._recordProtocolDefinition.protocol,
     protocolPath : 'foo',
     dataFormat   : 'application/json',
-    schema       : 'https://example.org/schemas/web5/foo'
+    schema       : this._recordProtocolDefinition.types.foo.schema
   };
 
   public async delete(params: DataStoreDeleteParams): Promise<boolean> {
