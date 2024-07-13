@@ -278,7 +278,6 @@ async function deriveNonceFromInput(state: Uint8Array) {
     length       : 16,
     salt         : utils.randomBytes(12),
   });
-  // const { hash, info, inputKeyingMaterial, length, salt } = options;
 
   const nonce = Convert.uint8Array(nonceBytes).toBase64Url();
 

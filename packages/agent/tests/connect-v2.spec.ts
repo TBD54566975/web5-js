@@ -48,10 +48,11 @@ describe('connect-v2', () => {
   describe('client connect integration tests', () => {
     it('intiaties client wallet connect using a temporary clientDid', async () => {
       const foo = await WalletConnect.initClient({
+        walletUri          : 'http://localhost:8080/',
         connectServerUrl   : 'http://localhost:8080/connect',
         permissionRequests : {'12345': { protocolDefinition: {} as any, permissionScopes: {} as any }},
         onUriReady         : (uri) => console.log('onUriReady callback called: ', uri),
-        pinCapture         : async () => '1234'
+        validatePin        : async () => '1234'
       });
     });
 

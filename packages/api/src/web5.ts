@@ -1,11 +1,9 @@
 import {
   WalletConnect,
   type BearerIdentity,
-  type ConnectPermissionRequests,
   type HdIdentityVault,
-  type HybridAuthRequest,
-  type HybridAuthResponse,
-  type Web5Agent
+  type WalletConnectOptions,
+  type Web5Agent,
 } from '@web5/agent';
 import { Web5UserAgent } from '@web5/user-agent';
 import { DidApi } from './did-api.js';
@@ -17,52 +15,14 @@ import { getTechPreviewDwnEndpoints } from './tech-preview.js';
 export type TechPreviewOptions = {
   /** Override default dwnEndpoints provided for technical preview. */
   dwnEndpoints?: string[];
-}
-
-/**
-* Initiates the wallet connect process. Used when the app (client) wants to import
-* a delegated identity DID from a wallet (provider).
-*/
-export type WalletConnectOptions = {
-  /**
-   * The URL of the intermediary server which relays messages between the client and provider.
-   */
-  connectServerUrl: string;
-
-  /**
-   * The protocols of permissions requested, along with the definition and
-   * permission scopes for each protocol. The key is the protocol URL and
-   * the value is an object with the protocol definition and the permission scopes.
-   */
-  permissionRequestsAndProtocols: ConnectPermissionRequests;
-
-  /**
-   * The Web5 API provides a URI to the wallet based on the `connectServerUrl` plus a query params payload valid for 5 minutes.
-   * The link can either be used as a deep link on the same device or a QR code for cross device or both.
-   * The query params are `{ request_uri: string; code_challenge: string; }`
-   * The wallet will use the `request_uri to contact the intermediary server's `authorize` endpoint
-   * and pull down the {@link HybridAuthRequest} and use the `code_challenge` to decrypt it.
-   *
-   * @param uri - The URI returned by the web5 connect API to be passed to a provider.
-   */
-  onUriReady: (uri: string) => void;
-
-  /**
-   * Function that must be provided to submit the pin entered by the user on the client.
-   * The pin is used to decrypt the {@link HybridAuthResponse} that was retrieved from the
-   * token endpoint by the client inside of web5 connect.
-   *
-   * @returns A promise that resolves to the PIN as a string.
-   */
-  validatePin: () => Promise<string>;
-}
+};
 
 /** Optional overrides that can be provided when calling {@link Web5.connect}. */
 export type Web5ConnectOptions = {
   /**
-  * When specified, external wallet connect flow is triggered.
-  * @remarks This param currently will not work in apps that were previously connected. It must be invoked at registration.
-  */
+   * When specified, external wallet connect flow is triggered.
+   * @remarks This param currently will not work in apps that were previously connected. It must be invoked at registration.
+   */
   walletConnectOptions?: WalletConnectOptions;
 
   /**
@@ -135,7 +95,7 @@ export type Web5ConnectOptions = {
    * See {@link TechPreviewOptions} for available options.
    */
   techPreview?: TechPreviewOptions;
-}
+};
 
 /**
  * Represents the result of the Web5 connection process, including the Web5 instance,
@@ -212,7 +172,14 @@ export class Web5 {
    * @returns A promise that resolves to a {@link Web5} instance and the connected DID.
    */
   static async connect({
-    agent, agentVault, connectedDid, password, recoveryPhrase, sync, techPreview, walletConnectOptions
+    agent,
+    agentVault,
+    connectedDid,
+    password,
+    recoveryPhrase,
+    sync,
+    techPreview,
+    walletConnectOptions,
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
     if (agent === undefined) {
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
@@ -283,17 +250,17 @@ export class Web5 {
 
         if (walletConnectOptions) {
           WalletConnect.initClient({
-            connectServerUrl   : walletConnectOptions.connectServerUrl,
-            onUriReady         : walletConnectOptions.onUriReady,
-            permissionRequests : walletConnectOptions.permissionRequestsAndProtocols,
-            pinCapture         : walletConnectOptions.validatePin
+            connectServerUrl : walletConnectOptions.connectServerUrl,
+            walletUri        : walletConnectOptions.walletUri,
+            onUriReady       : walletConnectOptions.onUriReady,
+            permissionRequests:
+            walletConnectOptions.permissionRequests,
+            validatePin: walletConnectOptions.validatePin,
           });
         } else {
           // Persists the Identity to be available in future sessions
           await userAgent.identity.manage({ portableIdentity: await identity.export() });
         }
-
-
       } else if (existingIdentityCount === 1) {
         // An existing identity was found in the User Agent's tenant.
         identity = identities[0];
