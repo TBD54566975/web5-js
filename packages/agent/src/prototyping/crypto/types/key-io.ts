@@ -36,3 +36,16 @@ export interface KeyImporter<ImportKeyInput, ImportKeyOutput = void> {
    */
   importKey(params: ImportKeyInput): Promise<ImportKeyOutput>;
 }
+
+export interface KeyDeleter<DeleteKeyInput> {
+  /**
+   * Deletes a cryptographic key.
+   *
+   * @remarks
+   * The `deleteKey()` method of the {@link KeyDeleter | `KeyDeleter`} interface deletes a cryptographic
+   * key from the key store.
+   *
+   * @param params - The parameters for the key deletion operation.
+   */
+  deleteKey(params: DeleteKeyInput): Promise<void>;
+}

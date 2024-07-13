@@ -268,6 +268,39 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
     return bearerDid;
   }
 
+  public async delete({ didUri, tenant, deleteKey = true }: {
+    didUri: string;
+    tenant?: string;
+    deleteKey?: boolean;
+  }): Promise<void> {
+    const portableDid = await this._store.get({ id: didUri, agent: this.agent, tenant, useCache: false });
+    if(!portableDid) {
+      throw new Error('AgentDidApi: Could not delete, DID not found');
+    }
+
+    // Delete the data before deleting the associated keys.
+    await this._store.delete({ id: didUri, agent: this.agent, tenant });
+
+    if (deleteKey) {
+      // Delete the keys associated with the DID
+      // TODO: this could be made a static method on `BearerDid` class
+      await this.deleteKeys({ portableDid });
+    }
+  }
+
+  public async deleteKeys({ portableDid }: {
+    portableDid: PortableDid;
+  }): Promise<void> {
+    for (const verificationMethod of portableDid.document.verificationMethod || []) {
+      if (!verificationMethod.publicKeyJwk) {
+        continue;
+      }
+      // Compute the key URI of the verification method's public key.
+      const keyUri = await this.agent.keyManager.getKeyUri({ key: verificationMethod.publicKeyJwk });
+      await this.agent.keyManager.deleteKey({ keyUri });
+    }
+  }
+
   public async processRequest<T extends DidInterface>(
     request: DidRequest<T>
   ): Promise<DidResponse<T>> {
