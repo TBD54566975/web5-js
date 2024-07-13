@@ -230,6 +230,7 @@ export class AgentDwnApi {
     return { reply, message, messageCid };
   }
 
+
   private async sendDwnRpcRequest<T extends DwnInterface>({
     targetDid, dwnEndpointUrls, message, data, subscriptionHandler
   }: {
@@ -302,7 +303,6 @@ export class AgentDwnApi {
     // if the request is a RecordsWrite message, we need to handle the data stream and update the messageParams accordingly
     if (isDwnRequest(request, DwnInterface.RecordsWrite)) {
       const messageParams = request.messageParams;
-
       if (request.dataStream && !messageParams?.data) {
         const { dataStream } = request;
         let isomorphicNodeReadable: Readable;

@@ -25,6 +25,7 @@ export type DataStoreGetParams = DataStoreTenantParams & {
 export type DataStoreSetParams<TStoreObject> = DataStoreTenantParams & {
   id: string;
   data: TStoreObject;
+  replace?: boolean;
   preventDuplicates?: boolean;
   useCache?: boolean;
 }
@@ -133,7 +134,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
     return storedRecords;
   }
 
-  public async set({ id, data, tenant, agent, preventDuplicates = true, useCache = false }:
+  public async set({ id, data, tenant, agent, replace = false, preventDuplicates = true, useCache = false }:
     DataStoreSetParams<TStoreObject>
   ): Promise<void> {
     // Determine the tenant identifier (DID) for the set operation.
@@ -142,8 +143,15 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
     // initialize the storage protocol if not already done
     await this.initialize({ tenant: tenantDid, agent });
 
+    let recordId: string | undefined;
     // If enabled, check if a record with the given `id` is already present in the store.
-    if (preventDuplicates) {
+    if (replace) {
+      // Look up the DWN record ID of the object in the store with the given `id`.
+      recordId = await this.lookupRecordId({ id, tenantDid, agent });
+      if (!recordId) {
+        throw new Error(`${this.name}: Import with replace failed due to missing entry for: ${id}`);
+      }
+    } else if (preventDuplicates) {
       // Look up the DWN record ID of the object in the store with the given `id`.
       const matchingRecordId = await this.lookupRecordId({ id, tenantDid, agent });
       if (matchingRecordId) {
@@ -159,7 +167,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
       author        : tenantDid,
       target        : tenantDid,
       messageType   : DwnInterface.RecordsWrite,
-      messageParams : { ...this._recordProperties },
+      messageParams : { ...this._recordProperties, recordId },
       dataStream    : new Blob([dataBytes], { type: 'application/json' })
     });
 
@@ -300,6 +308,7 @@ export class InMemoryDataStore<TStoreObject extends Record<string, any> = Jwk> i
    * A private field that contains the Map used as the in-memory data store.
    */
   private store: Map<string, TStoreObject> = new Map();
+  public async initialize(_params: DataStoreTenantParams) {}
 
   public async delete({ id, agent, tenant }: DataStoreDeleteParams): Promise<boolean> {
     // Determine the tenant identifier (DID) for the delete operation.
