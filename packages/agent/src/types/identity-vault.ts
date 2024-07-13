@@ -103,6 +103,9 @@ export interface IdentityVault<T extends Record<string, any> = { InitializeResul
    */
   lock(): Promise<void>;
 
+  setGranteeDid(grantorDid: string, granteeDid: string): Promise<void>;
+  getGranteeDid(grantorDid: string): Promise<string | undefined>;
+
   /**
    * Restores the IdentityVault instance to the state in the provided {@link IdentityVaultBackup}
    * object.

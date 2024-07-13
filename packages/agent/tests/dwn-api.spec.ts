@@ -1,21 +1,23 @@
 import type { Readable } from '@web5/common';
-import { Message, ProtocolDefinition, TestDataGenerator, type Dwn, type MessageEvent, type RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import type { Dwn, MessageEvent, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+
+import { DidDht } from '@web5/dids';
+import { Convert, NodeStream, Stream } from '@web5/common';
+import { Message, ProtocolDefinition, TestDataGenerator } from '@tbd54566975/dwn-sdk-js';
 
 import sinon from 'sinon';
 
 import { expect } from 'chai';
-import { DidDht } from '@web5/dids';
-import { Convert, NodeStream, Stream } from '@web5/common';
 
 import type { PortableIdentity } from '../src/types/identity.js';
 
-import { AgentDwnApi, isDwnMessage } from '../src/dwn-api.js';
-import { TestAgent } from './utils/test-agent.js';
-import { testDwnUrl } from './utils/test-config.js';
 import { DwnInterface } from '../src/types/dwn.js';
 import { BearerIdentity } from '../src/bearer-identity.js';
-import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
+import { PlatformAgentTestHarness } from '../src/test-harness.js';
+import { TestAgent } from './utils/test-agent.js';
+import { testDwnUrl } from './utils/test-config.js';
+import { AgentDwnApi, isDwnMessage } from '../src/dwn-api.js';
 
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule

@@ -1,13 +1,13 @@
 import type { Readable } from '@web5/common';
-import type { DwnConfig, GenericMessage } from '@tbd54566975/dwn-sdk-js';
+import { DwnConfig, GenericMessage, PermissionGrant, PermissionScope, RecordsPermissionScope, RecordsWrite, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import { NodeStream } from '@web5/common';
 import { utils as cryptoUtils } from '@web5/crypto';
 import { DidDht, DidJwk, DidResolverCacheLevel, UniversalResolver } from '@web5/dids';
-import { Cid, DataStoreLevel, Dwn, DwnMethodName, EventLogLevel, Message, MessageStoreLevel, ResumableTaskStoreLevel } from '@tbd54566975/dwn-sdk-js';
+import { Cid, DataStoreLevel, Dwn, DwnMethodName, EventLogLevel, Message, MessageStoreLevel, PermissionsProtocol, ResumableTaskStoreLevel } from '@tbd54566975/dwn-sdk-js';
 
 import type { Web5PlatformAgent } from './types/agent.js';
-import type { DwnMessage, DwnMessageReply, DwnMessageWithData, DwnResponse, DwnSigner, MessageHandler, ProcessDwnRequest, SendDwnRequest } from './types/dwn.js';
+import type { DwnMessage, DwnMessageInstance, DwnMessageParams, DwnMessageReply, DwnMessageWithData, DwnResponse, DwnSigner, MessageHandler, ProcessDwnRequest, SendDwnRequest } from './types/dwn.js';
 
 import { DwnInterface, dwnMessageConstructors } from './types/dwn.js';
 import { blobToIsomorphicNodeReadable, getDwnServiceEndpointUrls, isRecordsWrite, webReadableToIsomorphicNodeReadable } from './utils.js';
@@ -194,6 +194,27 @@ export class AgentDwnApi {
     return { reply, message, messageCid };
   }
 
+  /** TEMPORARY */
+  public async createGrant({ grantedFrom, dateExpires, grantedTo, scope, delegated }:{
+    dateExpires: string,
+    grantedFrom: string,
+    grantedTo: string,
+    scope: PermissionScope,
+    delegated?: boolean
+  }): Promise<{
+    recordsWrite: RecordsWrite,
+    dataEncodedMessage: RecordsWriteMessage & { encodedData: string },
+    permissionGrantBytes: Uint8Array
+  }> {
+    return await PermissionsProtocol.createGrant({
+      signer: await this.getSigner(grantedFrom),
+      grantedTo,
+      dateExpires,
+      scope,
+      delegated
+    });
+  }
+
   private async sendDwnRpcRequest<T extends DwnInterface>({
     targetDid, dwnEndpointUrls, message, data, subscriptionHandler
   }: {
@@ -259,9 +280,9 @@ export class AgentDwnApi {
     let readableStream: Readable | undefined;
 
     // TODO: Consider refactoring to move data transformations imposed by fetch() limitations to the HTTP transport-related methods.
+    // if the request is a RecordsWrite message, we need to handle the data stream
     if (isDwnRequest(request, DwnInterface.RecordsWrite)) {
       const messageParams = request.messageParams;
-
       if (request.dataStream && !messageParams?.data) {
         const { dataStream } = request;
         let isomorphicNodeReadable: Readable;
@@ -286,20 +307,129 @@ export class AgentDwnApi {
     }
 
     // Determine the signer for the message.
-    const signer = await this.getSigner(request.author);
+    // If a granteeDID exists, use the granteeDID to get the signer, otherwise use the author's DID.
+    const  granteeDid = await this.agent.vault.getGranteeDid(request.author);
 
+    let dwnMessage: DwnMessageInstance[T];
     const dwnMessageConstructor = dwnMessageConstructors[request.messageType];
-    const dwnMessage = rawMessage ? await dwnMessageConstructor.parse(rawMessage) : await dwnMessageConstructor.create({
-      // TODO: Implement alternative to type assertion.
-      ...request.messageParams!,
-      signer
-    });
+    if (!rawMessage) {
+      const signer = granteeDid ? await this.getSigner(granteeDid) : await this.getSigner(request.author);
+      // Gets a granteeDID for the given author's DID if one exists
+      if (granteeDid) {
+        await this.setPermissionGrantId(granteeDid, request);
+      }
 
-    if (isRecordsWrite(dwnMessage) && request.signAsOwner) {
-      await dwnMessage.signAsOwner(signer);
+      if (granteeDid &&(
+        isDwnRequest(request, DwnInterface.RecordsWrite) ||
+        isDwnRequest(request, DwnInterface.RecordsDelete) ||
+        isDwnRequest(request, DwnInterface.RecordsQuery) ||
+        isDwnRequest(request, DwnInterface.RecordsSubscribe)
+      )) {
+        const grant = await this.findGrant({
+          grantee       : granteeDid,
+          grantor       : request.author,
+          messageType   : request.messageType,
+          messageParams : request.messageParams!,
+          delegate      : true
+        });
+
+        if (grant) {
+          request.messageParams!.delegatedGrant = grant.message;
+        }
+      }
+
+      dwnMessage = await dwnMessageConstructor.create({
+        // TODO: Implement alternative to type assertion.
+        ...request.messageParams!,
+        signer
+      });
+    } else {
+      dwnMessage = await dwnMessageConstructor.parse(rawMessage);
+
+      if (isRecordsWrite(dwnMessage) && request.signAsOwner) {
+        const signer = await this.getSigner(request.author);
+        await dwnMessage.signAsOwner(signer);
+      }
     }
 
     return { message: dwnMessage.message as DwnMessage[T], dataStream: readableStream };
+  }
+
+  private async setPermissionGrantId<T extends DwnInterface>(granteeDid: string, request: ProcessDwnRequest<T>): Promise<void> {
+    const grant = await this.findGrant({
+      grantee       : granteeDid,
+      grantor       : request.author,
+      messageType   : request.messageType,
+      messageParams : request.messageParams!,
+    });
+
+    const permissionGrantId = grant?.grant.id;
+    if (permissionGrantId) {
+      // currently `RecordsDelete`, `RecordsQuery and `RecordsSubscribe` do not take a permissionGrantId so we cast the messageParams to any
+      // in the future all records messages will also take a permissionGrantId
+      (request.messageParams! as any).permissionGrantId = permissionGrantId;
+    }
+  }
+
+  private async findGrant<T extends DwnInterface>({ grantee, grantor, messageType, messageParams, delegate }:{
+    grantee: string;
+    grantor: string;
+    messageType: DwnInterface;
+    messageParams: DwnMessageParams[T];
+    delegate?: boolean // when true only delegated grants are returned, when not set or false all grants are returned
+  }): Promise<{ message: RecordsWriteMessage & { encodedData: string }, grant: PermissionGrant } | undefined> {
+    if (grantee === grantor) {
+      return undefined;
+    }
+
+    const { reply: grantsReply } = await this.processRequest({
+      author        : grantee,
+      target        : grantee,
+      messageType   : DwnInterface.RecordsQuery,
+      messageParams : {
+        filter: {
+          author       : grantor,
+          protocol     : PermissionsProtocol.uri,
+          protocolPath : PermissionsProtocol.grantPath,
+        }
+      }
+    });
+
+    if (grantsReply.status.code !== 200) {
+      return undefined;
+    }
+
+    // grant messages include encoded data
+    const grants = grantsReply.entries! as (RecordsWriteMessage & { encodedData: string })[];
+    for (const grant of grants) {
+      const grantData = await PermissionGrant.parse(grant);
+      // only delegated grants are returned
+      if (delegate === true && grantData.delegated === false) {
+        continue;
+      }
+      if (grantData.grantee === grantee && grantData.grantor === grantor && this.matchScopeFromGrant(messageType, messageParams, grantData.scope)) {
+        return { message: grant, grant: grantData };
+      }
+    }
+  }
+
+  private matchScopeFromGrant<T extends DwnInterface>(messageType: T, messageParams: DwnMessageParams[T], scope: PermissionScope): boolean {
+    const scopeMessageType = scope.interface + scope.method;
+    if (scopeMessageType === messageType) { // Scope interface + method match the incoming message
+
+      if (DwnInterface.RecordsWrite === messageType) {
+        const recordsScope = scope as RecordsPermissionScope;
+        const recordParams = messageParams as DwnMessageParams[DwnInterface.RecordsWrite];
+        // TODO: check for protocolPath / contextId
+        if (recordsScope.protocol === recordParams.protocol) {
+          return true;
+        }
+      } else {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private async getSigner(author: string): Promise<DwnSigner> {
