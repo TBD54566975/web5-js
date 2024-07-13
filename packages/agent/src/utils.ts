@@ -107,12 +107,12 @@ export function appendPathToUrl({ path, url }: { url: string, path: string }): s
  * @param [ttl=300_000] how long until polling stops
  * @returns T - the result of fetch
  */
-export function pollWithTTL<T>(
+export function pollWithTTL(
   fetchFunction: () => Promise<Response>,
   interval = 3000,
   ttl = 300_000,
   abortSignal?: AbortSignal
-): Promise<T | null> {
+): Promise<Response | null> {
   const endTime = Date.now() + ttl;
   let timeoutId: NodeJS.Timeout | null = null;
   let isPolling = true;
@@ -145,10 +145,8 @@ export function pollWithTTL<T>(
       try {
         const response = await fetchFunction();
 
-        console.log('Received response:', response);
-
         if (response.ok) {
-          const data = (await response.json()) as T;
+          console.log('Received ok response:', response);
           isPolling = false;
 
           if (timeoutId !== null) {
@@ -156,7 +154,7 @@ export function pollWithTTL<T>(
           }
 
           console.log('Polling stopped: Success condition met');
-          resolve(data);
+          resolve(response);
           return;
         }
       } catch (error) {

@@ -4,7 +4,7 @@ import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { TestAgent } from './utils/test-agent.js';
 import { testDwnUrl } from './utils/test-config.js';
 import type { BearerIdentity } from '../src/bearer-identity.js';
-import { ClientWalletConnect } from '../src/connect-v2.js';
+import { WalletConnect } from '../src/connect-v2.js';
 
 let testDwnUrls = [testDwnUrl];
 
@@ -47,13 +47,11 @@ describe('connect-v2', () => {
 
   describe('client connect integration tests', () => {
     it('intiaties client wallet connect using a temporary clientDid', async () => {
-      const foo = await ClientWalletConnect.init({
-        clientDid          : alice.did.uri,
+      const foo = await WalletConnect.initClient({
         connectServerUrl   : 'http://localhost:8080/connect',
         permissionRequests : {'12345': { protocolDefinition: {} as any, permissionScopes: {} as any }},
-        agent              : testHarness.agent,
         onUriReady         : (uri) => console.log('onUriReady callback called: ', uri),
-        pinCapture         : async () => '12345'
+        pinCapture         : async () => '1234'
       });
     });
 

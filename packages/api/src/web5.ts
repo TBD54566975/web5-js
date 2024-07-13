@@ -1,5 +1,5 @@
 import {
-  ClientWalletConnect,
+  WalletConnect,
   type BearerIdentity,
   type ConnectPermissionRequests,
   type HdIdentityVault,
@@ -282,9 +282,7 @@ export class Web5 {
         });
 
         if (walletConnectOptions) {
-          ClientWalletConnect.init({
-            agent              : userAgent,
-            clientDid          : identity.did.uri, // TODO: cleanup. did probably not needed as param, move inside method.
+          WalletConnect.initClient({
             connectServerUrl   : walletConnectOptions.connectServerUrl,
             onUriReady         : walletConnectOptions.onUriReady,
             permissionRequests : walletConnectOptions.permissionRequestsAndProtocols,

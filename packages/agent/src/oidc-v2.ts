@@ -1,11 +1,19 @@
 import { Convert, RequireOnly } from '@web5/common';
-import { Sha256, utils } from '@web5/crypto';
+import {
+  Ed25519,
+  EdDsaAlgorithm,
+  JoseHeaderParams,
+  Jwk,
+  Sha256,
+  utils,
+  X25519,
+} from '@web5/crypto';
 
 import { appendPathToUrl } from './utils.js';
 import { Hkdf } from './prototyping/crypto/primitives/hkdf.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
-import type { Web5PlatformAgent } from './types/agent.js';
 import type { ConnectPermissionRequests } from './connect-v2.js';
+import { DidDht, DidDocument, type BearerDid } from '@web5/dids';
 
 /**
  * Sent to an OIDC server to authorize a client. Allows clients
@@ -145,7 +153,7 @@ export type HybridAuthResponse = SIOPv2AuthResponse & Web5ConnectAuthResponse;
 /** The fields for an OIDC SIOPv2 Auth Repsonse */
 export type SIOPv2AuthResponse = {
   /** Issuer Identifier for the Issuer of the response. */
-  iss: 'https://self-issued.me' | 'https://self-issued.me/v2' | string;
+  iss: 'https://self-issued.me/v2';
   /** Subject Identifier. A locally unique and never reassigned identifier
    * within the Issuer for the End-User, which is intended to be consumed
    * by the Client. */
@@ -160,7 +168,7 @@ export type SIOPv2AuthResponse = {
   exp: number;
   /** Time when the End-User authentication occurred. */
   auth_time?: number;
-  /** String value used to associate a Client session with an ID Token, and to
+  /** b64url encoded nonce used to associate a Client session with an ID Token, and to
    * mitigate replay attacks. */
   nonce?: string;
   /** Custom claims. */
@@ -168,7 +176,10 @@ export type SIOPv2AuthResponse = {
 };
 
 /** The fields for an Web5 Connect Auth Response */
-export type Web5ConnectAuthResponse = {};
+export type Web5ConnectAuthResponse = {
+  delegation_grants: any[];
+  privateKeyJwks: Jwk[];
+};
 
 /** Represents the different OIDC endpoint types.
  * 1. `pushedAuthorizationRequest`: client sends {@link PushedAuthRequest} receives {@link PushedAuthResponse}
@@ -214,7 +225,7 @@ function buildOidcUrl({
     case 'authorize':
       return authParam
         ? appendPathToUrl({
-          path : `authorize/${authParam}`,
+          path : `authorize/${authParam}.jwt`,
           url  : baseURL,
         })
         : '';
@@ -228,7 +239,7 @@ function buildOidcUrl({
     case 'token':
       return tokenParam
         ? appendPathToUrl({
-          path : `token/${tokenParam}`,
+          path : `token/${tokenParam}.jwt`,
           url  : baseURL,
         })
         : '';
@@ -244,7 +255,7 @@ function buildOidcUrl({
  *
  * @returns A random state as a Base64Url encoded string.
  */
-export function generateRandomState() {
+function generateRandomState() {
   const randomStateu8a = utils.randomBytes(12);
   const ramdomStateb64url = Convert.uint8Array(randomStateu8a).toBase64Url();
 
@@ -263,10 +274,8 @@ export function generateRandomState() {
 async function deriveNonceFromInput(state: Uint8Array) {
   const nonceBytes = await Hkdf.deriveKeyBytes({
     hash         : 'SHA-256',
-    // TODO: verify this is correct
     baseKeyBytes : state,
     length       : 16,
-    // TODO: verify this is correct
     salt         : utils.randomBytes(12),
   });
   // const { hash, info, inputKeyingMaterial, length, salt } = options;
@@ -285,7 +294,7 @@ async function deriveNonceFromInput(state: Uint8Array) {
  *
  * @returns A random code verifier as a Base64Url encoded string.
  */
-export function generateRandomCodeVerifier() {
+function generateRandomCodeVerifier() {
   const codeVerifieru8a = utils.randomBytes(32);
 
   return { codeVerifieru8a };
@@ -299,7 +308,7 @@ export function generateRandomCodeVerifier() {
  *
  * @see {@link https://datatracker.ietf.org/doc/html/rfc7636#section-4.2 | RFC 7636, Client Creates the Code Challenge}
  */
-export async function deriveCodeChallenge(codeVerifier: Uint8Array) {
+async function deriveCodeChallenge(codeVerifier: Uint8Array) {
   const codeChallengeu8a = await Sha256.digest({ data: codeVerifier });
   const codeChallengeb64url =
     Convert.uint8Array(codeChallengeu8a).toBase64Url();
@@ -336,156 +345,14 @@ async function createAuthRequest(
   return requestObject;
 }
 
-async function signRequestObject({
-  keyId,
-  keyUri,
-  request,
-  agent,
-}: {
-  keyId: string;
-  keyUri: string;
-  request: HybridAuthRequest;
-  agent: Web5PlatformAgent;
-}) {
-  try {
-    const header = Convert.object({
-      alg : 'EdDSA',
-      kid : keyId,
-      typ : 'JWT',
-    }).toBase64Url();
-
-    const payload = Convert.object(request).toBase64Url();
-
-    // signs using ed25519 for EdDSA
-    const signature = await agent.keyManager.sign({
-      keyUri,
-      data: Convert.string(`${header}.${payload}`).toUint8Array(),
-    });
-
-    const signatureBase64Url = Convert.uint8Array(signature).toBase64Url();
-
-    const jwt = `${header}.${payload}.${signatureBase64Url}`;
-
-    return jwt;
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-// async function verifyRequestObject({
-//   jwt,
-//   dependencies,
-// }: {
-//   jwt: string;
-//   dependencies: { crypto: CryptoManager; didResolver: DidResolver };
-// }): Promise<AuthorizationRequestObject> {
-//   const [headerB64U, payloadB64U, signatureB64U] = jwt.split(".");
-
-//   // Convert the header back to a JOSE object and verify that the 'kid' header value is present.
-//   const header = Convert.base64Url(headerB64U).toObject() as JoseHeaderParams;
-//   if (!header.kid)
-//     throw new Error(
-//       `OIDC: Request Object could not be verified due to missing 'kid' header value.`
-//     );
-
-//   // Resolve the Client DID document.
-//   const { didDocument } = await dependencies.didResolver.resolve(header.kid);
-//   if (!didDocument)
-//     throw new Error(
-//       "OIDC: Request Object could not be verified due to Client DID resolution issue."
-//     );
-
-//   // Get the public key used to sign the Request Object from the DID document.
-//   const { publicKeyJwk } =
-//     didDocument.verificationMethod?.find(
-//       (method) => method.id === header.kid
-//     ) ?? {};
-//   if (!publicKeyJwk)
-//     throw new Error(
-//       "OIDC: Request Object could not be verified due to missing public key in DID document."
-//     );
-
-//   // Import the code challenge as a crypto key to use for verification.
-//   const signingKey = await Jose.jwkToKey({ key: publicKeyJwk });
-//   await dependencies.crypto.importKey({
-//     algorithm: { name: "EdDSA" },
-//     alias: header.kid,
-//     extractable: true,
-//     material: signingKey.keyMaterial,
-//     type: "public",
-//     usages: ["verify"],
-//   });
-
-//   const isValid = await dependencies.crypto.verify({
-//     algorithm: { name: "EdDSA" },
-//     keyRef: header.kid,
-//     signature: Convert.base64Url(signatureB64U).toUint8Array(),
-//     data: Convert.string(`${headerB64U}.${payloadB64U}`).toUint8Array(),
-//   });
-
-//   if (!isValid)
-//     throw new Error(
-//       "OIDC: Request Object failed verification due to invalid signature."
-//     );
-
-//   const request = Convert.base64Url(
-//     payloadB64U
-//   ).toObject() as AuthorizationRequestObject;
-
-//   return request;
-// }
-
-// async function decryptRequestJwt({
-//   jwe,
-//   keyId,
-//   dependencies,
-// }: {
-//   jwe: string;
-//   keyId: string;
-//   dependencies: { crypto: CryptoManager };
-// }): Promise<string> {
-//   const [
-//     protectedHeaderB64U,
-//     ,
-//     nonceB64U,
-//     ciphertextB64U,
-//     authenticationTagB64U,
-//   ] = jwe.split(".");
-
-//   const protectedHeader = Convert.base64Url(protectedHeaderB64U).toUint8Array();
-//   const additionalData = protectedHeader;
-//   const nonce = Convert.base64Url(nonceB64U).toUint8Array();
-//   const ciphertext = Convert.base64Url(ciphertextB64U).toUint8Array();
-//   const authenticationTag = Convert.base64Url(
-//     authenticationTagB64U
-//   ).toUint8Array();
-
-//   // The cipher expects the encrypted data and tag to be concatenated.
-//   const ciphertextAndTag = new Uint8Array([
-//     ...ciphertext,
-//     ...authenticationTag,
-//   ]);
-
-//   const jwtBytes = await dependencies.crypto.decrypt({
-//     algorithm: { name: "XCHACHA20-POLY1305", additionalData, nonce },
-//     data: ciphertextAndTag,
-//     keyRef: keyId,
-//   });
-
-//   const jwt = Convert.uint8Array(jwtBytes).toString();
-
-//   return jwt;
-// }
-
-
-async function encryptRequestJwt({
+async function encryptAuthRequest({
   jwt,
   codeChallenge,
-  nonce
+  nonce,
 }: {
   jwt: string;
   codeChallenge: Uint8Array;
-  nonce: Uint8Array
+  nonce: Uint8Array;
 }) {
   const protectedHeader = {
     alg : 'dir',
@@ -514,62 +381,310 @@ async function encryptRequestJwt({
   return compactJwe;
 }
 
-// async function createResponseObject(
-//   options: RequireOnly<AuthorizationResponseObject, "iss" | "sub" | "aud">
-// ): Promise<AuthorizationResponseObject> {
-//   const currentTimeInSeconds = Math.floor(Date.now() / 1000);
+// todo: split up oidc and connect specific stuff in the future
+async function createResponseObject(
+  options: RequireOnly<
+    HybridAuthResponse,
+    'iss' | 'sub' | 'aud' | 'delegation_grants' | 'privateKeyJwks'
+  >
+) {
+  const currentTimeInSeconds = Math.floor(Date.now() / 1000);
 
-//   // Define the Response Object properties.
-//   const responseObject: AuthorizationResponseObject = {
-//     ...options,
-//     iat: currentTimeInSeconds,
-//     exp: currentTimeInSeconds + 600, // Expires in 10 minutes.
-//   };
+  const responseObject: HybridAuthResponse = {
+    ...options,
+    iat : currentTimeInSeconds,
+    exp : currentTimeInSeconds + 600, // Expires in 10 minutes.
+  };
 
-//   return responseObject;
-// }
+  return responseObject;
+}
 
-// async function signResponseObject({
-//   keyId,
-//   response,
-//   dependencies,
-// }: {
-//   keyId: string;
-//   response: AuthorizationResponseObject;
-//   dependencies: { crypto: CryptoManager };
-// }) {
-//   const header = Convert.object({
-//     alg: "EdDSA",
-//     kid: keyId,
-//     typ: "JWT",
-//   }).toBase64Url();
+async function signJwt({
+  did,
+  data,
+}: {
+  did: BearerDid;
+  data: Record<string, unknown>;
+}) {
+  try {
+    const header = Convert.object({
+      alg : 'EdDSA',
+      kid : did.document.verificationMethod![0].id,
+      typ : 'JWT',
+    }).toBase64Url();
 
-//   const payload = Convert.object(response).toBase64Url();
-//   const EdDsa = new EdDsaAlgorithm();
-//   const signature = await EdDsa.sign({
-//     key: "foo",
-//     data: Convert.string(`${header}.${payload}`).toUint8Array(),
-//   });
-//   const singatureb64url = Convert.uint8Array(signature).toBase64Url();
+    const payload = Convert.object(data).toBase64Url();
 
-//   // const signature = Convert.uint8Array(
-//   //   await dependencies.crypto.sign({
-//   //     algorithm: { name: "EdDSA" },
-//   //     keyRef: keyId,
-//   //     data: Convert.string(`${header}.${payload}`).toUint8Array(),
-//   //   })
-//   // ).toBase64Url();
+    // signs using ed25519 EdDSA
+    const signer = await did.getSigner();
+    const signature = await signer.sign({
+      data: Convert.string(`${header}.${payload}`).toUint8Array(),
+    });
 
-//   const jwt = `${header}.${payload}.${singatureb64url}`;
+    const signatureBase64Url = Convert.uint8Array(signature).toBase64Url();
 
-//   return jwt;
-// }
+    const jwt = `${header}.${payload}.${signatureBase64Url}`;
+
+    return jwt;
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+/** Take the decrypted JWT and verify it was signed by its public DID. Return parsed object. */
+async function verifyJwt({ jwt }: { jwt: string }) {
+  const [headerB64U, payloadB64U, signatureB64U] = jwt.split('.');
+
+  // Convert the header back to a JOSE object and verify that the 'kid' header value is present.
+  const header: JoseHeaderParams = Convert.base64Url(headerB64U).toObject();
+
+  if (!header.kid)
+    throw new Error(
+      `OIDC: Request Object could not be verified due to missing 'kid' header value.`
+    );
+
+  // Resolve the Client DID document.
+  const { didDocument } = await DidDht.resolve(header.kid.split('#')[0]);
+
+  if (!didDocument)
+    throw new Error(
+      'OIDC: Request Object could not be verified due to Client DID resolution issue.'
+    );
+
+  // Get the public key used to sign the Request Object from the DID document.
+  const { publicKeyJwk } =
+    didDocument.verificationMethod?.find(
+      (method: any) => method.id === header.kid
+    ) ?? {};
+
+  if (!publicKeyJwk)
+    throw new Error(
+      'OIDC: Request Object could not be verified due to missing public key in DID document.'
+    );
+
+  const EdDsa = new EdDsaAlgorithm();
+  const isValid = await EdDsa.verify({
+    key       : publicKeyJwk,
+    signature : Convert.base64Url(signatureB64U).toUint8Array(),
+    data      : Convert.string(`${headerB64U}.${payloadB64U}`).toUint8Array(),
+  });
+
+  if (!isValid)
+    throw new Error(
+      'OIDC: Request Object failed verification due to invalid signature.'
+    );
+
+  const request = Convert.base64Url(payloadB64U).toObject();
+
+  return request;
+}
+
+const getAuthRequest = async (request_uri: string, code_challenge: string) => {
+  const authRequest = await fetch(request_uri);
+  const jwe = await authRequest.text();
+  const jwt = decryptAuthRequest({
+    jwe,
+    code_challenge,
+  });
+
+  const hybridAuthRequest = (await verifyJwt({
+    jwt,
+  })) as HybridAuthRequest;
+
+  return hybridAuthRequest;
+};
+
+/** Take the encrypted JWE, decrypt using the code challenge and return a JWT string which will need to be verified */
+function decryptAuthRequest({
+  jwe,
+  code_challenge,
+}: {
+  jwe: string;
+  code_challenge: string;
+}) {
+  const [
+    protectedHeaderB64U,
+    ,
+    nonceB64U,
+    ciphertextB64U,
+    authenticationTagB64U,
+  ] = jwe.split('.');
+
+  const code_challenge_u8a = Convert.base64Url(code_challenge).toUint8Array();
+  const protectedHeader = Convert.base64Url(protectedHeaderB64U).toUint8Array();
+  const additionalData = protectedHeader;
+  const nonce = Convert.base64Url(nonceB64U).toUint8Array();
+  const ciphertext = Convert.base64Url(ciphertextB64U).toUint8Array();
+  const authenticationTag = Convert.base64Url(
+    authenticationTagB64U
+  ).toUint8Array();
+
+  // The cipher expects the encrypted data and tag to be concatenated.
+  const ciphertextAndTag = new Uint8Array([
+    ...ciphertext,
+    ...authenticationTag,
+  ]);
+  const chacha = xchacha20poly1305(code_challenge_u8a, nonce, additionalData);
+  const decryptedJwtU8a = chacha.decrypt(ciphertextAndTag);
+  const jwt = Convert.uint8Array(decryptedJwtU8a).toString();
+
+  return jwt;
+}
+
+/**
+ * Used by the client to decrypt the jwe obtained from the auth server which contains
+ * the {@link HybridAuthResponse} that was sent by the provider to the auth server.
+ *
+ * @async
+ * @param {BearerDid} clientDid - The did that was initially used by the client for ECDH at connect init.
+ * @param {string} jwe - The encrypted data as a jwe.
+ * @param {string} pin - The pin that was obtained from the user.
+ */
+async function decryptAuthResponse(
+  clientDid: BearerDid,
+  jwe: string,
+  pin: string
+) {
+  const [
+    protectedHeaderB64U,
+    ,
+    nonceB64U,
+    ciphertextB64U,
+    authenticationTagB64U,
+  ] = jwe.split('.');
+
+  // get the Provider's public key from the header
+  const header = Convert.base64Url(protectedHeaderB64U).toObject() as Jwk;
+  const providerDid = await DidDht.resolve(header.kid!.split('#')[0]);
+
+  // derive ECDH shared key using the provider's public key and our clientDid private key
+  const sharedKey = await deriveSharedKey(clientDid, providerDid.didDocument!);
+
+  // add the pin to the AAD
+  const additionalData = { ...header, pin: pin };
+  const AAD = Convert.object(additionalData).toUint8Array();
+
+  const nonce = Convert.base64Url(nonceB64U).toUint8Array();
+  const ciphertext = Convert.base64Url(ciphertextB64U).toUint8Array();
+  const authenticationTag = Convert.base64Url(
+    authenticationTagB64U
+  ).toUint8Array();
+
+  // The cipher expects the encrypted data and tag to be concatenated.
+  const ciphertextAndTag = new Uint8Array([
+    ...ciphertext,
+    ...authenticationTag,
+  ]);
+
+  // decrypt using the sharedKey
+  const chacha = xchacha20poly1305(sharedKey, nonce, AAD);
+  const decryptedJwtU8a = chacha.decrypt(ciphertextAndTag);
+  const jwt = Convert.uint8Array(decryptedJwtU8a).toString();
+
+  return jwt;
+}
+
+async function deriveSharedKey(
+  privateKeyDid: BearerDid,
+  publicKeyDid: DidDocument
+) {
+  const exportedClientDid = await privateKeyDid.export();
+
+  const publicJwk = publicKeyDid.verificationMethod?.[0].publicKeyJwk!;
+  const privateJwk = exportedClientDid.privateKeys?.[0]!;
+  publicJwk.alg = 'EdDSA';
+
+  const publicX25519 = await Ed25519.convertPublicKeyToX25519({
+    publicKey: publicJwk,
+  });
+  const privateX25519 = await Ed25519.convertPrivateKeyToX25519({
+    privateKey: privateJwk,
+  });
+
+  const sharedKey = await X25519.sharedSecret({
+    privateKeyA : privateX25519,
+    publicKeyB  : publicX25519,
+  });
+
+  const derivedKey = await crypto.subtle.importKey(
+    'raw',
+    sharedKey,
+    { name: 'HKDF' },
+    false,
+    ['deriveBits']
+  );
+  const derivedKeyBits = await crypto.subtle.deriveBits(
+    {
+      name : 'HKDF',
+      hash : 'SHA-256',
+      info : new Uint8Array(),
+      salt : new Uint8Array(),
+    },
+    derivedKey,
+    256
+  );
+  const sharedEncryptionKey = new Uint8Array(derivedKeyBits);
+  return sharedEncryptionKey;
+}
+
+function encryptAuthResponse({
+  jwt,
+  nonce,
+  encryptionKey,
+  providerDidKid,
+}: {
+  jwt: string;
+  nonce: Uint8Array;
+  encryptionKey: Uint8Array;
+  providerDidKid: string;
+}) {
+  const protectedHeader = {
+    alg : 'dir',
+    cty : 'JWT',
+    enc : 'XC20P',
+    typ : 'JWT',
+    kid : providerDidKid,
+  };
+
+  const additionalData = Convert.object({
+    ...protectedHeader,
+    // pin: randomPin({ length: 4 }),
+    // for testing
+    pin: '1234',
+  }).toUint8Array();
+
+  const jwtu8a = Convert.string(jwt).toUint8Array();
+  const chacha = xchacha20poly1305(encryptionKey, nonce, additionalData);
+  const ciphertextAndTag = chacha.encrypt(jwtu8a);
+
+  /** The cipher output concatenates the encrypted data and tag
+   * so we need to extract the values for use in the JWE. */
+  const ciphertext = ciphertextAndTag.subarray(0, -16);
+  const authenticationTag = ciphertextAndTag.subarray(-16);
+
+  const compactJwe = [
+    Convert.object(protectedHeader).toBase64Url(),
+    '', // Empty string since there is no wrapped key.
+    Convert.uint8Array(nonce).toBase64Url(),
+    Convert.uint8Array(ciphertext).toBase64Url(),
+    Convert.uint8Array(authenticationTag).toBase64Url(),
+  ].join('.');
+
+  return compactJwe;
+}
 
 export const Oidc = {
-  generateRandomCodeVerifier,
-  buildOidcUrl,
   createAuthRequest,
-  signRequestObject,
+  encryptAuthRequest,
+  getAuthRequest,
+  decryptAuthRequest,
+  createResponseObject,
+  encryptAuthResponse,
+  decryptAuthResponse,
+  deriveSharedKey,
+  signJwt,
+  verifyJwt,
+  buildOidcUrl,
+  generateRandomCodeVerifier,
   deriveCodeChallenge,
-  encryptRequestJwt,
 };

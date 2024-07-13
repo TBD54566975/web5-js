@@ -5,39 +5,35 @@ import {
   Oidc,
   type PushedAuthResponse,
 } from './oidc-v2.js';
-import { type Web5PlatformAgent } from './types/agent.js';
 import { pollWithTTL } from './utils.js';
 import { Convert } from '@web5/common';
+import { DidDht } from '@web5/dids';
 
 /**
-* The protocols of permissions requested, along with the definition and permission scopes for each protocol.
-* The key is the protocol URL and the value is an object with the protocol definition and the permission scopes.
-*/
+ * The protocols of permissions requested, along with the definition and permission scopes for each protocol.
+ * The key is the protocol URL and the value is an object with the protocol definition and the permission scopes.
+ */
 export type ConnectPermissionRequests = Record<
-string,
-{
-  /**
-   * The definition of the protocol the permissions are being requested for.
-   * In the event that the protocol is not already installed, the wallet will install this given protocol definition.
-   */
-  protocolDefinition: DwnProtocolDefinition;
+  string,
+  {
+    /**
+     * The definition of the protocol the permissions are being requested for.
+     * In the event that the protocol is not already installed, the wallet will install this given protocol definition.
+     */
+    protocolDefinition: DwnProtocolDefinition;
 
-  /** The scope of the permissions being requested for the given protocol */
-  permissionScopes: DwnRecordsPermissionScope[];
-}
+    /** The scope of the permissions being requested for the given protocol */
+    permissionScopes: DwnRecordsPermissionScope[];
+  }
 >;
 
-type ClientWalletConnectOptions = {
-  /** The client app DID public key to connect to the wallet */
-  clientDid: string;
+type InitClientOptions = {
   /** URL of the connect server */
   connectServerUrl: string;
   /** An optional webpage providing information about the client */
   client_uri?: string;
   /** PermissionRequest for the Identity Provider (provider will respond with PermissionGrants) */
   permissionRequests: ConnectPermissionRequests;
-  /** An instance of a Web5 agent used for getting keys and signing with them */
-  agent: Web5PlatformAgent;
   /** Provides the URI to the client  */
   onUriReady: (uri: string) => void;
   /** The user provided pin obtained asyncronously from the client */
@@ -49,36 +45,34 @@ type ClientWalletConnectOptions = {
  *
  * @async
  * @param {Object} options The options object
- * @param {string} options.clientDid The client app DID public key to connect to the wallet
  * @param {string} options.connectServerUrl URL of the connect server
  * @param {ConnectPermissionRequests} options.permissionRequests PermissionRequest for the Identity Provider (provider will respond with PermissionGrants)
  * @param {string} options.client_uri An optional webpage providing information about the client
  * @param {Web5PlatformAgent} options.agent An instance of a Web5 agent used for getting keys and signing with them
  */
-async function init({
-  clientDid,
+async function initClient({
   connectServerUrl,
   permissionRequests,
   client_uri,
-  agent,
   onUriReady,
-  pinCapture
-}: ClientWalletConnectOptions) {
-  /** bifurcated desktop flow disabled, possibly permanently */
-  // if (!provider.authorizationEndpoint.startsWith("web5:")) {
-  //   connectServerUrl = provider.authorizationEndpoint;
-  // }
+  pinCapture,
+}: InitClientOptions) {
+  // ephemeral client did for ECDH, signing, verification
+  // TODO: use separate keys for ECDH vs. sign/verify. could maybe use secp256k1.
+  const clientDid = await DidDht.create();
 
   // Hash the code verifier to use as a code challenge and to encrypt the Request Object.
-  const { codeVerifieru8a } =
-    Oidc.generateRandomCodeVerifier();
+  const { codeVerifieru8a } = Oidc.generateRandomCodeVerifier();
 
   // Derive the code challenge based on the code verifier
   const { codeChallengeu8a, codeChallengeb64url } =
     await Oidc.deriveCodeChallenge(codeVerifieru8a);
 
   // build callback URL to pass into the auth request
-  const callbackEndpoint = Oidc.buildOidcUrl({ baseURL: connectServerUrl, endpoint: 'callback' });
+  const callbackEndpoint = Oidc.buildOidcUrl({
+    baseURL  : connectServerUrl,
+    endpoint : 'callback',
+  });
 
   // build the PAR request
   const request = await Oidc.createAuthRequest({
@@ -95,24 +89,10 @@ async function init({
     },
   });
 
-  // Get the signingMethod for the clientDid
-  const signingMethod = await agent.did.getSigningMethod({ didUri: clientDid });
-
-  if (!signingMethod?.publicKeyJwk || !signingMethod?.id) {
-    throw new Error('Unable to determine client signing key ID.');
-  }
-
-  // get the URI in the KMS
-  const keyUri = await agent.keyManager.getKeyUri({
-    key: signingMethod.publicKeyJwk,
-  });
-
   // Sign the Request Object using the Client DID's signing key.
-  const requestJwt = await Oidc.signRequestObject({
-    keyId: signingMethod.id,
-    keyUri,
-    request,
-    agent,
+  const requestJwt = await Oidc.signJwt({
+    did  : clientDid,
+    data : request,
   });
 
   if (!requestJwt) {
@@ -123,10 +103,10 @@ async function init({
   const nonce = utils.randomBytes(24);
 
   // Encrypt the Request Object JWT using the code challenge.
-  const requestObjectJwe = await Oidc.encryptRequestJwt({
+  const requestObjectJwe = await Oidc.encryptAuthRequest({
     jwt           : requestJwt,
     codeChallenge : codeChallengeu8a,
-    nonce
+    nonce,
   });
 
   // Convert the encrypted Request Object to URLSearchParams for form encoding.
@@ -151,12 +131,16 @@ async function init({
 
     const parData: PushedAuthResponse = await parResponse.json();
 
-    // a universal link to a web5 compatible wallet. if the wallet scans this link it should receive
+    // a deeplink to a web5 compatible wallet. if the wallet scans this link it should receive
     // a route to its web5 connect provider flow and the params of where to fetch the auth request.
-    const walletURI = new URL('https://tbd54566975.github.io/connect/');
-    walletURI.searchParams.set('nonce', Convert.uint8Array(nonce).toBase64Url());
+    const walletURI = new URL('web5://connect/');
+    walletURI.searchParams.set(
+      'nonce',
+      Convert.uint8Array(nonce).toBase64Url()
+    );
     walletURI.searchParams.set('request_uri', parData.request_uri);
-    walletURI.searchParams.set('client_did', clientDid);
+    walletURI.searchParams.set('client_did', clientDid.uri);
+    walletURI.searchParams.set('code_challenge', codeChallengeb64url);
 
     // call user's callback so they can send the URI to the wallet as they see fit
     onUriReady(walletURI.toString());
@@ -169,20 +153,24 @@ async function init({
     });
 
     /** ciphertext of {@link HybridAuthResponse} */
-    const authResponse = await pollWithTTL<string>(() =>
-      fetch(tokenURL)
-    );
+    const authResponse = await pollWithTTL(() => fetch(tokenURL));
 
     if (authResponse) {
-      const userPin = await pinCapture();
+      const jwe = await authResponse?.text();
 
-      // decrypt response using pin
+      // get the pin from the user and use it as AAD to decrypt
+      const pin = await pinCapture();
+      const jwt = await Oidc.decryptAuthResponse(clientDid, jwe, pin);
+      const verifiedAuthResponse = (await Oidc.verifyJwt({
+        jwt,
+      })) as HybridAuthResponse;
+
+      // return the grants for liran to
+      console.log(verifiedAuthResponse);
     }
-
-    console.log('authResponse', authResponse);
   } catch (e) {
-    console.error('Could not generate connect link');
+    console.error(e);
   }
 }
 
-export const ClientWalletConnect = { init };
+export const WalletConnect = { initClient };
