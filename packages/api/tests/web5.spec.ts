@@ -133,12 +133,25 @@ describe('Web5', () => {
   });
 
   describe('connect()', () => {
-    beforeEach(() => {
-      sinon.restore();
+    let testHarness: PlatformAgentTestHarness;
+
+    before(async () => {
+      testHarness = await PlatformAgentTestHarness.setup({
+        agentClass  : Web5UserAgent,
+        agentStores : 'memory'
+      });
     });
 
-    after(() => {
+    beforeEach(async () => {
       sinon.restore();
+      await testHarness.clearStorage();
+      await testHarness.createAgentDid();
+    });
+
+    after(async () => {
+      sinon.restore();
+      await testHarness.clearStorage();
+      await testHarness.closeStorage();
     });
 
     it('uses Web5UserAgent, by default', async () => {
@@ -157,12 +170,9 @@ describe('Web5', () => {
     });
 
     it('creates an identity using the provided dwnEndpoints', async () => {
-      const agentVault = new HdIdentityVault({
-        keyDerivationWorkFactor : 1,
-        store                   : new MemoryStore<string, string>()
-      });
+      sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
       const identityApiSpy = sinon.spy(AgentIdentityApi.prototype, 'create');
-      const { web5, did } = await Web5.connect({ agentVault, didCreateOptions: { dwnEndpoints: ['https://dwn.example.com'] }});
+      const { web5, did } = await Web5.connect({ didCreateOptions: { dwnEndpoints: ['https://dwn.example.com'] }});
       expect(web5).to.exist;
       expect(did).to.exist;
 
@@ -172,12 +182,9 @@ describe('Web5', () => {
     });
 
     it('defaults to `https://dwn.tbddev.org/latest` as the single DWN Service endpoint if non is provided', async () => {
-      const agentVault = new HdIdentityVault({
-        keyDerivationWorkFactor : 1,
-        store                   : new MemoryStore<string, string>()
-      });
+      sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
       const identityApiSpy = sinon.spy(AgentIdentityApi.prototype, 'create');
-      const { web5, did } = await Web5.connect({ agentVault });
+      const { web5, did } = await Web5.connect();
       expect(web5).to.exist;
       expect(did).to.exist;
 
