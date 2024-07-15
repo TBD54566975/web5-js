@@ -19,13 +19,11 @@ describe('Web5', () => {
     });
 
     beforeEach(async () => {
-      sinon.restore();
       await testHarness.clearStorage();
       await testHarness.createAgentDid();
     });
 
     after(async () => {
-      sinon.restore();
       await testHarness.clearStorage();
       await testHarness.closeStorage();
     });
@@ -135,6 +133,14 @@ describe('Web5', () => {
   });
 
   describe('connect()', () => {
+    beforeEach(() => {
+      sinon.restore();
+    });
+
+    after(() => {
+      sinon.restore();
+    });
+
     it('uses Web5UserAgent, by default', async () => {
       // Create an in-memory identity vault store to speed up tests.
       const agentVault = new HdIdentityVault({
