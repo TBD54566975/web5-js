@@ -3,13 +3,12 @@ import type { BearerIdentity, HdIdentityVault, Web5Agent } from '@web5/agent';
 import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
 import { DwnRecordsPermissionScope, DwnProtocolDefinition } from '@web5/agent';
-import { getTechPreviewDwnEndpoints } from './tech-preview.js';
 import { VcApi } from './vc-api.js';
 import { Web5UserAgent } from '@web5/user-agent';
 
-/** Override defaults configured during the technical preview phase. */
-export type TechPreviewOptions = {
-  /** Override default dwnEndpoints provided for technical preview. */
+/** Override defaults for DID creation. */
+export type DidCreateOptions = {
+  /** Override default dwnEndpoints provided during DID creation. */
   dwnEndpoints?: string[];
 }
 
@@ -132,10 +131,10 @@ export type Web5ConnectOptions = {
   sync?: string;
 
   /**
-   * Override defaults configured during the technical preview phase.
-   * See {@link TechPreviewOptions} for available options.
+   * Override defaults configured options for creating a DID during connect.
+   * See {@link DidCreateOptions} for available options.
    */
-  techPreview?: TechPreviewOptions;
+  didCreateOptions?: DidCreateOptions;
 }
 
 /**
@@ -213,7 +212,7 @@ export class Web5 {
    * @returns A promise that resolves to a {@link Web5} instance and the connected DID.
    */
   static async connect({
-    agent, agentVault, connectedDid, password, recoveryPhrase, sync, techPreview
+    agent, agentVault, connectedDid, password, recoveryPhrase, sync, didCreateOptions
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
     if (agent === undefined) {
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
@@ -254,8 +253,8 @@ export class Web5 {
         // If an existing identity is not found found, create a new one.
         const existingIdentityCount = identities.length;
         if (existingIdentityCount === 0) {
-          // Use the specified DWN endpoints or get default tech preview hosted nodes.
-          const serviceEndpointNodes = techPreview?.dwnEndpoints ?? await getTechPreviewDwnEndpoints();
+          // Use the specified DWN endpoints or the latest TBD hosted DWN
+          const serviceEndpointNodes = didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/latest'];
 
           // Generate a new Identity for the end-user.
           identity = await userAgent.identity.create({
