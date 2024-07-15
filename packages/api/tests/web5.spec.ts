@@ -1,7 +1,9 @@
 import { expect } from 'chai';
+import sinon from 'sinon';
+
 import { MemoryStore } from '@web5/common';
 import { Web5UserAgent } from '@web5/user-agent';
-import { HdIdentityVault, PlatformAgentTestHarness } from '@web5/agent';
+import { AgentIdentityApi, HdIdentityVault, PlatformAgentTestHarness } from '@web5/agent';
 
 import { Web5 } from '../src/web5.js';
 
@@ -17,11 +19,13 @@ describe('Web5', () => {
     });
 
     beforeEach(async () => {
+      sinon.restore();
       await testHarness.clearStorage();
       await testHarness.createAgentDid();
     });
 
     after(async () => {
+      sinon.restore();
       await testHarness.clearStorage();
       await testHarness.closeStorage();
     });
@@ -144,6 +148,36 @@ describe('Web5', () => {
       // Verify recovery phrase is a 12-word string.
       expect(recoveryPhrase).to.be.a('string');
       expect(recoveryPhrase.split(' ')).to.have.lengthOf(12);
+    });
+
+    it('creates an identity using the provided dwnEndpoints', async () => {
+      const agentVault = new HdIdentityVault({
+        keyDerivationWorkFactor : 1,
+        store                   : new MemoryStore<string, string>()
+      });
+      const identityApiSpy = sinon.spy(AgentIdentityApi.prototype, 'create');
+      const { web5, did } = await Web5.connect({ agentVault, didCreateOptions: { dwnEndpoints: ['https://dwn.example.com'] }});
+      expect(web5).to.exist;
+      expect(did).to.exist;
+
+      expect(identityApiSpy.calledOnce, 'identityApiSpy called').to.be.true;
+      const serviceEndpoints = (identityApiSpy.firstCall.args[0].didOptions as any).services[0].serviceEndpoint;
+      expect(serviceEndpoints).to.deep.equal(['https://dwn.example.com']);
+    });
+
+    it('defaults to `https://dwn.tbddev.org/latest` as the single DWN Service endpoint if non is provided', async () => {
+      const agentVault = new HdIdentityVault({
+        keyDerivationWorkFactor : 1,
+        store                   : new MemoryStore<string, string>()
+      });
+      const identityApiSpy = sinon.spy(AgentIdentityApi.prototype, 'create');
+      const { web5, did } = await Web5.connect({ agentVault });
+      expect(web5).to.exist;
+      expect(did).to.exist;
+
+      expect(identityApiSpy.calledOnce, 'identityApiSpy called').to.be.true;
+      const serviceEndpoints = (identityApiSpy.firstCall.args[0].didOptions as any).services[0].serviceEndpoint;
+      expect(serviceEndpoints).to.deep.equal(['https://dwn.tbddev.org/latest']);
     });
   });
 });
