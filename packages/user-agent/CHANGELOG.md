@@ -1,5 +1,27 @@
 # @web5/user-agent
 
+## 0.4.0
+
+### Minor Changes
+
+- [#736](https://github.com/TBD54566975/web5-js/pull/736) [`89f239d`](https://github.com/TBD54566975/web5-js/commit/89f239d1338a71ce700ac1efaef124035a5363c9) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Migrate `Events` interface to `Messages` interface for sync
+
+- [#743](https://github.com/TBD54566975/web5-js/pull/743) [`44604a4`](https://github.com/TBD54566975/web5-js/commit/44604a4edacdbfa09f0427f782ac49a34a9d9d2b) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Protocol driven identity, key and did storage
+
+### Patch Changes
+
+- [#739](https://github.com/TBD54566975/web5-js/pull/739) [`5b0c61a`](https://github.com/TBD54566975/web5-js/commit/5b0c61ab548dfe7258592cc7fb924fabc80f7be1) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Sync accounts for 404 from a conflicting RecordsDelete message
+
+- [#694](https://github.com/TBD54566975/web5-js/pull/694) [`cc3aa58`](https://github.com/TBD54566975/web5-js/commit/cc3aa58069dd5465834b32174e3f840ddf782d60) Thanks [@thehenrytsai](https://github.com/thehenrytsai)! - Dependency updates.
+
+- [#738](https://github.com/TBD54566975/web5-js/pull/738) [`bc54d0c`](https://github.com/TBD54566975/web5-js/commit/bc54d0c82d9665d60b4fa6bba11f7ef3e24497a4) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Remove Duplicate Methods used in sync & Fix sync bug where only RecordsWrite were being pulled from the remote
+
+- Updated dependencies [[`5b0c61a`](https://github.com/TBD54566975/web5-js/commit/5b0c61ab548dfe7258592cc7fb924fabc80f7be1), [`cc3aa58`](https://github.com/TBD54566975/web5-js/commit/cc3aa58069dd5465834b32174e3f840ddf782d60), [`89f239d`](https://github.com/TBD54566975/web5-js/commit/89f239d1338a71ce700ac1efaef124035a5363c9), [`1708050`](https://github.com/TBD54566975/web5-js/commit/1708050fa2cbcdd9861ef289bb306505c8671194), [`44604a4`](https://github.com/TBD54566975/web5-js/commit/44604a4edacdbfa09f0427f782ac49a34a9d9d2b), [`bc54d0c`](https://github.com/TBD54566975/web5-js/commit/bc54d0c82d9665d60b4fa6bba11f7ef3e24497a4)]:
+  - @web5/agent@0.4.0
+  - @web5/common@1.0.2
+  - @web5/crypto@1.0.2
+  - @web5/dids@1.1.2
+
 ## 0.3.8
 
 ### Patch Changes
