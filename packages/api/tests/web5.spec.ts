@@ -169,7 +169,19 @@ describe('Web5', () => {
       expect(recoveryPhrase.split(' ')).to.have.lengthOf(12);
     });
 
-    it('creates an identity using the provided dwnEndpoints', async () => {
+    it('creates an identity using the provided techPreview dwnEndpoints', async () => {
+      sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+      const identityApiSpy = sinon.spy(AgentIdentityApi.prototype, 'create');
+      const { web5, did } = await Web5.connect({ techPreview: { dwnEndpoints: ['https://dwn.example.com/preview'] }});
+      expect(web5).to.exist;
+      expect(did).to.exist;
+
+      expect(identityApiSpy.calledOnce, 'identityApiSpy called').to.be.true;
+      const serviceEndpoints = (identityApiSpy.firstCall.args[0].didOptions as any).services[0].serviceEndpoint;
+      expect(serviceEndpoints).to.deep.equal(['https://dwn.example.com/preview']);
+    });
+
+    it('creates an identity using the provided didCreateOptions dwnEndpoints', async () => {
       sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
       const identityApiSpy = sinon.spy(AgentIdentityApi.prototype, 'create');
       const { web5, did } = await Web5.connect({ didCreateOptions: { dwnEndpoints: ['https://dwn.example.com'] }});
@@ -181,7 +193,7 @@ describe('Web5', () => {
       expect(serviceEndpoints).to.deep.equal(['https://dwn.example.com']);
     });
 
-    it('defaults to `https://dwn.tbddev.org/latest` as the single DWN Service endpoint if non is provided', async () => {
+    it('defaults to `https://dwn.tbddev.org/beta` as the single DWN Service endpoint if non is provided', async () => {
       sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
       const identityApiSpy = sinon.spy(AgentIdentityApi.prototype, 'create');
       const { web5, did } = await Web5.connect();
@@ -190,7 +202,7 @@ describe('Web5', () => {
 
       expect(identityApiSpy.calledOnce, 'identityApiSpy called').to.be.true;
       const serviceEndpoints = (identityApiSpy.firstCall.args[0].didOptions as any).services[0].serviceEndpoint;
-      expect(serviceEndpoints).to.deep.equal(['https://dwn.tbddev.org/latest']);
+      expect(serviceEndpoints).to.deep.equal(['https://dwn.tbddev.org/beta']);
     });
   });
 });
