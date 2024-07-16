@@ -249,14 +249,7 @@ export class Web5 {
         });
 
         if (walletConnectOptions) {
-          WalletConnect.initClient({
-            connectServerUrl : walletConnectOptions.connectServerUrl,
-            walletUri        : walletConnectOptions.walletUri,
-            onUriReady       : walletConnectOptions.onUriReady,
-            permissionRequests:
-            walletConnectOptions.permissionRequests,
-            validatePin: walletConnectOptions.validatePin,
-          });
+          WalletConnect.initClient(walletConnectOptions);
         } else {
           // Persists the Identity to be available in future sessions
           await userAgent.identity.manage({ portableIdentity: await identity.export() });
