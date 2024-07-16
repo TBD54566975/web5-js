@@ -66,6 +66,9 @@ export type SignJwtOptions = {
   signerDid: BearerDid
   /** The payload to sign. */
   payload: JwtPayload
+
+  /** Header parameters */
+  header?: { typ: string }
 }
 
 /**
@@ -108,9 +111,9 @@ export class Jwt {
     }
 
     const header: JwtHeaderParams = {
-      typ : 'JWT',
       alg : signer.algorithm,
       kid : vmId,
+      ...options.header,
     };
 
     const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
