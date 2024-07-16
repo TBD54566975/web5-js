@@ -210,10 +210,6 @@ export class Jwt {
       throw new Error('Verification failed: Malformed JWT. Invalid base64url encoding for JWT header');
     }
 
-    if (!jwtHeader.typ || jwtHeader.typ !== 'JWT') {
-      throw new Error('Verification failed: Expected JWT header to contain typ property set to JWT');
-    }
-
     if (!jwtHeader.alg || !jwtHeader.kid) { // ensure that JWT header has required properties
       throw new Error('Verification failed: Expected JWT header to contain alg and kid');
     }
