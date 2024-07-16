@@ -261,13 +261,13 @@ describe('Jwt', () => {
       const did = await DidJwk.create();
       const signedJwt = await Jwt.sign({
         signerDid : did,
-        payload: {jti: 'hehe'},
-        header: {typ: 'openid4vci-proof+jwt'}
+        payload   : {jti: 'hehe'},
+        header    : {typ: 'openid4vci-proof+jwt'}
       });
 
       const parsed = Jwt.parse({ jwt: signedJwt });
       expect(parsed.decoded.header.typ).to.equal('openid4vci-proof+jwt');
-    })
+    });
   });
 
   describe('Web5TestVectorsVcJwt', () => {
