@@ -66,6 +66,12 @@ export type SignJwtOptions = {
   signerDid: BearerDid
   /** The payload to sign. */
   payload: JwtPayload
+
+  /** Overridable header parameters */
+  header?: {
+    /** Type Header Parameter */
+    typ: string
+  }
 }
 
 /**
@@ -108,9 +114,9 @@ export class Jwt {
     }
 
     const header: JwtHeaderParams = {
-      typ : 'JWT',
       alg : signer.algorithm,
       kid : vmId,
+      ...options.header,
     };
 
     const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
@@ -208,10 +214,6 @@ export class Jwt {
       jwtHeader = Convert.base64Url(base64urlEncodedJwtHeader).toObject() as JwtHeaderParams;
     } catch(e) {
       throw new Error('Verification failed: Malformed JWT. Invalid base64url encoding for JWT header');
-    }
-
-    if (!jwtHeader.typ || jwtHeader.typ !== 'JWT') {
-      throw new Error('Verification failed: Expected JWT header to contain typ property set to JWT');
     }
 
     if (!jwtHeader.alg || !jwtHeader.kid) { // ensure that JWT header has required properties
