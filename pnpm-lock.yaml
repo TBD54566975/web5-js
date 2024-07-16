@@ -335,13 +335,13 @@ importers:
         version: 3.3.3
       '@web5/common':
         specifier: 1.0.1
-        version: link:../common
+        version: 1.0.1
       '@web5/crypto':
         specifier: 1.0.1
-        version: link:../crypto
+        version: 1.0.1
       '@web5/dids':
         specifier: 1.1.1
-        version: link:../dids
+        version: 1.1.1
       pako:
         specifier: ^2.1.0
         version: 2.1.0
@@ -432,7 +432,7 @@ importers:
         version: 1.4.0
       '@web5/common':
         specifier: 1.0.1
-        version: link:../common
+        version: 1.0.1
     devDependencies:
       '@playwright/test':
         specifier: 1.40.1
@@ -551,7 +551,7 @@ importers:
         version: 0.11.0
       '@web5/common':
         specifier: 1.0.1
-        version: link:../common
+        version: 1.0.1
       c8:
         specifier: 9.1.0
         version: 9.1.0
@@ -602,7 +602,7 @@ importers:
         version: 1.0.0
       '@web5/crypto':
         specifier: 1.0.1
-        version: link:../crypto
+        version: 1.0.1
       abstract-level:
         specifier: 1.0.4
         version: 1.0.4
@@ -4578,6 +4578,15 @@ packages:
       multiformats: 11.0.2
       readable-stream: 4.4.2
 
+  /@web5/common@1.0.1:
+    resolution: {integrity: sha512-dxczXqzWt6HCwuNyOVBeakg6GgOpP74tVEVxBeKkb+D3XcSP96mYaDtky5ZnjY4iBYb16SaCgwje+sgevOL51A==}
+    engines: {node: '>=18.0.0'}
+    dependencies:
+      '@isaacs/ttlcache': 1.4.1
+      level: 8.0.1
+      multiformats: 13.1.0
+      readable-stream: 4.4.2
+
   /@web5/crypto@1.0.0:
     resolution: {integrity: sha512-z1CsgycTqiXEsS6pPlJDDLGAeGsgzfdBeWvyxLXTgh08Q8ACULmEGRXjSsgWHFn6DO6MpWFn55h/hF4wZZRxvA==}
     engines: {node: '>=18.0.0'}
@@ -4586,6 +4595,16 @@ packages:
       '@noble/curves': 1.3.0
       '@noble/hashes': 1.3.3
       '@web5/common': 1.0.0
+
+  /@web5/crypto@1.0.1:
+    resolution: {integrity: sha512-LqJsJTDgzEZoxsYSWjhIKDTE3xwjfPF3rpkClMFAxmK4dur/KmYHgeZW2/HjRrFrUhNeaNVClcl7Fg2ZnvjsWw==}
+    engines: {node: '>=18.0.0'}
+    dependencies:
+      '@noble/ciphers': 0.4.1
+      '@noble/curves': 1.3.0
+      '@noble/hashes': 1.4.0
+      '@web5/common': 1.0.0
+    dev: false
 
   /@web5/dids@1.1.0:
     resolution: {integrity: sha512-d9pKf/DW+ziUiV5g3McC71utyAhQyT1tYGPbQSYWt2ji6FHGNC6tffHMfLXXK/W+vbwV3eNTn06JqTXRaYhxBA==}
@@ -4600,6 +4619,21 @@ packages:
       buffer: 6.0.3
       level: 8.0.1
       ms: 2.1.3
+
+  /@web5/dids@1.1.1:
+    resolution: {integrity: sha512-LKc6Okl2iz78QGJCsd8QKQq3LdtmfQ9cfiRKu1BU4ITWteWsg4JD089hKmslNDd2KKnEf9LE72TqEYWxr/e8JA==}
+    engines: {node: '>=18.0.0'}
+    dependencies:
+      '@decentralized-identity/ion-sdk': 1.0.4
+      '@dnsquery/dns-packet': 6.1.1
+      '@web5/common': 1.0.0
+      '@web5/crypto': 1.0.0
+      abstract-level: 1.0.4
+      bencode: 4.0.0
+      buffer: 6.0.3
+      level: 8.0.1
+      ms: 2.1.3
+    dev: false
 
   /@web5/dwn-server@0.4.0:
     resolution: {integrity: sha512-2zc/REV4ibLRS0ZljF3905ZYBkv1kAaeXksgIgZrTND/xudJHid3aMKhxV2ihzO+Zvkcva2P5ho7ys4vFSU/EA==}
