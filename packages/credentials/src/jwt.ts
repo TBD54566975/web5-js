@@ -68,7 +68,10 @@ export type SignJwtOptions = {
   payload: JwtPayload
 
   /** Overridable header parameters */
-  header?: { typ: string }
+  header?: { 
+    /** Type Header Parameter */
+    typ: string 
+  }
 }
 
 /**
