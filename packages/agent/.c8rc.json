@@ -16,6 +16,7 @@
   ],
   "reporter": [
     "cobertura",
+    "html",
     "text"
   ]
 }
