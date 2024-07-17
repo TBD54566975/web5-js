@@ -302,9 +302,9 @@ describe('Web5', () => {
         expect(web5).to.exist;
         expect(did).to.exist;
 
-        // should ot call either success or failure
+        // should call onSuccess and not onFailure
+        expect(registerSuccessSpy.calledOnce, 'onSuccess called').to.be.true;
         expect(registerFailureSpy.notCalled, 'onFailure not called').to.be.true;
-        expect(registerSuccessSpy.notCalled, 'onSuccess called').to.be.true;
 
         // Expect getServerInfo to be called but not registerTenant
         expect(serverInfoStub.calledTwice, 'getServerInfo called').to.be.true; // once per dwnEndpoint

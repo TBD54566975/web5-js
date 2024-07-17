@@ -330,9 +330,6 @@ export class Web5 {
         // If a registration object is passed, we attempt to register the AgentDID and the ConnectedDID with the DWN endpoints provided
         const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints;
 
-        // We only want to return the success callback if we successfully register with all DWN endpoints
-        // So we keep track of whether we attempted registration at all
-        let registrationAttempt = false;
         try {
           for (const dwnEndpoint of serviceEndpointNodes) {
             // check if endpoint needs registration
@@ -342,8 +339,6 @@ export class Web5 {
               continue;
             }
 
-            registrationAttempt = true;
-
             // register the agent DID
             await DwnRegistrar.registerTenant(dwnEndpoint, agent.agentDid.uri);
 
@@ -351,11 +346,8 @@ export class Web5 {
             await DwnRegistrar.registerTenant(dwnEndpoint, connectedDid);
           }
 
-          if (registrationAttempt) {
-            // If there was a registration attempt and no errors were thrown, call the onSuccess callback
-            registration.onSuccess();
-          }
-
+          // If no failures occurred, call the onSuccess callback
+          registration.onSuccess();
         } catch(error) {
           // for any failure, call the onFailure callback with the error
           registration.onFailure(error);
