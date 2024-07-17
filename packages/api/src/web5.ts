@@ -2,7 +2,7 @@ import type { BearerIdentity, HdIdentityVault, Web5Agent } from '@web5/agent';
 
 import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
-import { DwnRecordsPermissionScope, DwnProtocolDefinition } from '@web5/agent';
+import { DwnRecordsPermissionScope, DwnProtocolDefinition, DwnRegistrar } from '@web5/agent';
 import { VcApi } from './vc-api.js';
 import { Web5UserAgent } from '@web5/user-agent';
 
@@ -147,6 +147,17 @@ export type Web5ConnectOptions = {
    * See {@link DidCreateOptions} for available options.
    */
   didCreateOptions?: DidCreateOptions;
+
+  /**
+   * If the `registration` option is provided, the agent DID and the connected DID will be registered with the DWN endpoints provided by `techPreview` or `didCreateOptions`.
+   *
+   * If registration fails, the `onFailure` callback will be called with the error. 
+   * If registration is successful, the `onSuccess` callback will be called.
+   */
+  registration? : {
+    onSuccess: () => void;
+    onFailure: (error: any) => void;
+  }
 }
 
 /**
@@ -224,7 +235,7 @@ export class Web5 {
    * @returns A promise that resolves to a {@link Web5} instance and the connected DID.
    */
   static async connect({
-    agent, agentVault, connectedDid, password, recoveryPhrase, sync, techPreview, didCreateOptions
+    agent, agentVault, connectedDid, password, recoveryPhrase, sync, techPreview, didCreateOptions, registration
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
     if (agent === undefined) {
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
@@ -311,6 +322,35 @@ export class Web5 {
 
         // Set the stored identity as the connected DID.
         connectedDid = identity.did.uri;
+      }
+
+      if (registration !== undefined) {
+        // If a registration object is passed, we attempt to register the AgentDID and the ConnectedDID with the DWN endpoints provided
+
+        const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints;
+        for (const dwnEndpoint of serviceEndpointNodes) {
+          try {
+
+            // check if endpoint needs registration
+            const serverInfo = await userAgent.rpc.getServerInfo(dwnEndpoint);
+            if (serverInfo.registrationRequirements.length === 0) {
+              // no registration required
+              continue;
+            }
+
+            // register the agent DID
+            await DwnRegistrar.registerTenant(dwnEndpoint, agent.agentDid.uri);
+
+            // register the connected Identity DID
+            await DwnRegistrar.registerTenant(dwnEndpoint, connectedDid);
+
+            // if no failure occurs, call the onSuccess callback
+            registration.onSuccess();
+          } catch(error) {
+            // for any failure, call the onFailure callback with the error
+            registration.onFailure(error);
+          }
+        }
       }
 
       // Enable sync, unless explicitly disabled.
