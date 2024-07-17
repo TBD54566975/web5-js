@@ -40,11 +40,11 @@ export class DwnRegistrar {
     // create registration data based on the hash of the terms-of-service and the DID
     const registrationData = {
       did,
-      termsOfServiceHash: DwnRegistrar.hashAsHexString(termsOfServiceFetched),
+      termsOfServiceHash: await DwnRegistrar.hashAsHexString(termsOfServiceFetched),
     };
 
     // compute the proof-of-work response nonce based on the the proof-of-work challenge and the registration data.
-    const responseNonce = DwnRegistrar.findQualifiedResponseNonce({
+    const responseNonce = await DwnRegistrar.findQualifiedResponseNonce({
       challengeNonce,
       maximumAllowedHashValue,
       requestData: JSON.stringify(registrationData),
