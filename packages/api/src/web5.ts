@@ -151,7 +151,7 @@ export type Web5ConnectOptions = {
   /**
    * If the `registration` option is provided, the agent DID and the connected DID will be registered with the DWN endpoints provided by `techPreview` or `didCreateOptions`.
    *
-   * If registration fails, the `onFailure` callback will be called with the error. 
+   * If registration fails, the `onFailure` callback will be called with the error.
    * If registration is successful, the `onSuccess` callback will be called.
    */
   registration? : {
@@ -326,11 +326,13 @@ export class Web5 {
 
       if (registration !== undefined) {
         // If a registration object is passed, we attempt to register the AgentDID and the ConnectedDID with the DWN endpoints provided
-
         const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints;
-        for (const dwnEndpoint of serviceEndpointNodes) {
-          try {
 
+        // We only want to return the success callback if we successfully register with all DWN endpoints
+        // So we keep track of whether we attempted registration at all
+        let registrationAttempt = false;
+        try {
+          for (const dwnEndpoint of serviceEndpointNodes) {
             // check if endpoint needs registration
             const serverInfo = await userAgent.rpc.getServerInfo(dwnEndpoint);
             if (serverInfo.registrationRequirements.length === 0) {
@@ -338,18 +340,23 @@ export class Web5 {
               continue;
             }
 
+            registrationAttempt = true;
+
             // register the agent DID
             await DwnRegistrar.registerTenant(dwnEndpoint, agent.agentDid.uri);
 
             // register the connected Identity DID
             await DwnRegistrar.registerTenant(dwnEndpoint, connectedDid);
-
-            // if no failure occurs, call the onSuccess callback
-            registration.onSuccess();
-          } catch(error) {
-            // for any failure, call the onFailure callback with the error
-            registration.onFailure(error);
           }
+
+          if (registrationAttempt) {
+            // If there was a registration attempt and no errors were thrown, call the onSuccess callback
+            registration.onSuccess();
+          }
+
+        } catch(error) {
+          // for any failure, call the onFailure callback with the error
+          registration.onFailure(error);
         }
       }
 
