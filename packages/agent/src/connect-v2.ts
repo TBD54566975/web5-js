@@ -142,9 +142,9 @@ export type WalletConnectOptions = {
   connectServerUrl: string;
 
   /**
-   * The URI of the Provider (wallet) which is used to generate the URI returned in `onWalletUriReady`
-   * e.g. `web5://` or `http://localhost:3000/`.
-   *
+   * The URI of the Provider (wallet).The `onWalletUriReady` will take this wallet
+   * uri and add a payload to it which will be used to obtain and decrypt from the `request_uri`.
+   * @example `web5://` or `http://localhost:3000/`.
    */
   walletUri: string;
 
