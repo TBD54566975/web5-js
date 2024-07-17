@@ -1,11 +1,11 @@
 import { utils } from '@web5/crypto';
 import { DwnProtocolDefinition, DwnRecordsPermissionScope } from './index.js';
 import {
-  HybridAuthResponse,
+  Web5ConnectAuthResponse,
   Oidc,
   type PushedAuthResponse,
 } from './oidc-v2.js';
-import { pollWithTTL } from './utils.js';
+import { pollWithTtl } from './utils.js';
 import { Convert } from '@web5/common';
 import { DidDht } from '@web5/dids';
 
@@ -111,8 +111,8 @@ async function initClient({
       tokenParam : request.state,
     });
 
-    /** ciphertext of {@link HybridAuthResponse} */
-    const authResponse = await pollWithTTL(() => fetch(tokenURL));
+    /** ciphertext of {@link Web5ConnectAuthResponse} */
+    const authResponse = await pollWithTtl(() => fetch(tokenURL));
 
     if (authResponse) {
       const jwe = await authResponse?.text();
@@ -122,10 +122,18 @@ async function initClient({
       const jwt = await Oidc.decryptAuthResponse(clientDid, jwe, pin);
       const verifiedAuthResponse = (await Oidc.verifyJwt({
         jwt,
-      })) as HybridAuthResponse;
+      })) as Web5ConnectAuthResponse;
 
       // return the grants for liran to
       console.log(verifiedAuthResponse);
+
+      return {
+        delegationGrants : verifiedAuthResponse.delegationGrants,
+        didToImport      : [{
+          didUri         : verifiedAuthResponse.aud,
+          privateKeyJwks : verifiedAuthResponse.privateKeyJwks
+        }]
+      };
     }
   } catch (e) {
     console.error(e);
@@ -159,7 +167,7 @@ export type WalletConnectOptions = {
    * The link can either be used as a deep link on the same device or a QR code for cross device or both.
    * The query params are `{ request_uri: string; code_challenge: string; }`
    * The wallet will use the `request_uri to contact the intermediary server's `authorize` endpoint
-   * and pull down the {@link HybridAuthRequest} and use the `code_challenge` to decrypt it.
+   * and pull down the {@link Web5ConnectAuthRequest} and use the `code_challenge` to decrypt it.
    *
    * @param uri - The URI returned by the web5 connect API to be passed to a provider.
    */
@@ -167,7 +175,7 @@ export type WalletConnectOptions = {
 
   /**
    * Function that must be provided to submit the pin entered by the user on the client.
-   * The pin is used to decrypt the {@link HybridAuthResponse} that was retrieved from the
+   * The pin is used to decrypt the {@link Web5ConnectAuthResponse} that was retrieved from the
    * token endpoint by the client inside of web5 connect.
    *
    * @returns A promise that resolves to the PIN as a string.

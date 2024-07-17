@@ -107,7 +107,7 @@ export function appendPathToUrl({ path, url }: { url: string, path: string }): s
  * @param [ttl=300_000] how long until polling stops
  * @returns T - the result of fetch
  */
-export function pollWithTTL(
+export function pollWithTtl(
   fetchFunction: () => Promise<Response>,
   interval = 3000,
   ttl = 300_000,

@@ -24,7 +24,7 @@ import { DidDht, DidDocument, type BearerDid } from '@web5/dids';
  * @see {@link https://www.rfc-editor.org/rfc/rfc9126.html | OAuth 2.0 Pushed Authorization Requests}
  */
 export type PushedAuthRequest = {
-  /** The JWT which contains the {@link HybridAuthRequest} */
+  /** The JWT which contains the {@link Web5ConnectAuthRequest} */
   request: string;
 };
 
@@ -38,12 +38,6 @@ export type PushedAuthResponse = {
   request_uri: string;
   expires_in: number;
 };
-
-/**
- * An auth request that is compatible with both Web5 Connect and (hopefully, WIP) OIDC SIOPv2
- * The contents of this are inserted into a JWT inside of the {@link PushedAuthRequest}.
- */
-export type HybridAuthRequest = SIOPv2AuthRequest & Web5ConnectRequest;
 
 /**
  * Used in decentralized apps. The SIOPv2 Auth Request is created by a client relying party (RP)
@@ -127,28 +121,13 @@ export type SIOPv2AuthRequest = {
 };
 
 /**
- * Claims specific to Web5 Connect rather than OIDC
+ * An auth request that is compatible with both Web5 Connect and (hopefully, WIP) OIDC SIOPv2
  * The contents of this are inserted into a JWT inside of the {@link PushedAuthRequest}.
  */
-export type Web5ConnectRequest = {
+export type Web5ConnectAuthRequest = {
   /** PermissionGrants that are to be sent to the provider */
   permission_requests: ConnectPermissionRequests;
-};
-
-// old, ignore, do not use. here for comparison.
-// export interface AuthorizationRequestObject {
-//   claims?: { id_token: { delegation_grants: any; [key: string]: any } };
-//   client_id: string;
-//   client_metadata?: { client_uri?: string; [key: string]: any };
-//   code_verifier?: string;
-//   nonce: string;
-//   redirect_uri: string;
-//   state?: string;
-//   [key: string]: any;
-// }
-
-/** An auth response that is compatible with both Web5 Connect and (hopefully, WIP) OIDC SIOPv2 */
-export type HybridAuthResponse = SIOPv2AuthResponse & Web5ConnectAuthResponse;
+} & SIOPv2AuthRequest;
 
 /** The fields for an OIDC SIOPv2 Auth Repsonse */
 export type SIOPv2AuthResponse = {
@@ -175,17 +154,17 @@ export type SIOPv2AuthResponse = {
   [key: string]: any;
 };
 
-/** The fields for an Web5 Connect Auth Response */
+/** An auth response that is compatible with both Web5 Connect and (hopefully, WIP) OIDC SIOPv2 */
 export type Web5ConnectAuthResponse = {
-  delegation_grants: any[];
+  delegationGrants: any[];
   privateKeyJwks: Jwk[];
-};
+} & SIOPv2AuthResponse;
 
 /** Represents the different OIDC endpoint types.
  * 1. `pushedAuthorizationRequest`: client sends {@link PushedAuthRequest} receives {@link PushedAuthResponse}
- * 2. `authorize`: provider gets the {@link HybridAuthRequest} JWT that was stored by the PAR
- * 3. `callback`: provider sends {@link HybridAuthResponse} to this endpoint
- * 4. `token`: client gets {@link HybridAuthResponse} from this endpoint
+ * 2. `authorize`: provider gets the {@link Web5ConnectAuthRequest} JWT that was stored by the PAR
+ * 3. `callback`: provider sends {@link Web5ConnectAuthResponse} to this endpoint
+ * 4. `token`: client gets {@link Web5ConnectAuthResponse} from this endpoint
  */
 type OidcEndpoint =
   | 'pushedAuthorizationRequest'
@@ -215,13 +194,13 @@ function buildOidcUrl({
   tokenParam?: string;
 }) {
   switch (endpoint) {
-    /** 1. client sends {@link PushedAuthRequest} & receives {@link PushedAuthResponse} */
+    /** 1. client sends {@link PushedAuthRequest} & client receives {@link PushedAuthResponse} */
     case 'pushedAuthorizationRequest':
       return appendPathToUrl({
         path : 'par',
         url  : baseURL,
       });
-    /** 2. provider gets {@link HybridAuthRequest} */
+    /** 2. provider gets {@link Web5ConnectAuthRequest} */
     case 'authorize':
       return authParam
         ? appendPathToUrl({
@@ -229,13 +208,13 @@ function buildOidcUrl({
           url  : baseURL,
         })
         : '';
-    /** 3. provider sends {@link HybridAuthResponse} */
+    /** 3. provider sends {@link Web5ConnectAuthResponse} */
     case 'callback':
       return appendPathToUrl({
         path : `callback`,
         url  : baseURL,
       });
-    /**  4. client gets {@link HybridAuthResponse */
+    /**  4. client gets {@link Web5ConnectAuthResponse */
     case 'token':
       return tokenParam
         ? appendPathToUrl({
@@ -318,7 +297,7 @@ async function deriveCodeChallenge(codeVerifier: Uint8Array) {
 // TODO: when implementing pure OIDC split up the Web5 and OIDC params
 async function createAuthRequest(
   options: RequireOnly<
-    HybridAuthRequest,
+  Web5ConnectAuthRequest,
     | 'code_challenge'
     | 'code_challenge_method'
     | 'client_id'
@@ -333,7 +312,7 @@ async function createAuthRequest(
   // Generate a random nonce value to associate the ID Token with the authorization request.
   const nonce = await deriveNonceFromInput(randomStateu8a);
 
-  const requestObject: HybridAuthRequest = {
+  const requestObject: Web5ConnectAuthRequest = {
     ...options,
     nonce,
     response_type : 'id_token',
@@ -383,13 +362,13 @@ async function encryptAuthRequest({
 // todo: split up oidc and connect specific stuff in the future
 async function createResponseObject(
   options: RequireOnly<
-    HybridAuthResponse,
-    'iss' | 'sub' | 'aud' | 'delegation_grants' | 'privateKeyJwks'
+  Web5ConnectAuthResponse,
+    'iss' | 'sub' | 'aud' | 'delegationGrants' | 'privateKeyJwks'
   >
 ) {
   const currentTimeInSeconds = Math.floor(Date.now() / 1000);
 
-  const responseObject: HybridAuthResponse = {
+  const responseObject: Web5ConnectAuthResponse = {
     ...options,
     iat : currentTimeInSeconds,
     exp : currentTimeInSeconds + 600, // Expires in 10 minutes.
@@ -486,11 +465,11 @@ const getAuthRequest = async (request_uri: string, code_challenge: string) => {
     code_challenge,
   });
 
-  const hybridAuthRequest = (await verifyJwt({
+  const web5ConnectAuthRequest = (await verifyJwt({
     jwt,
-  })) as HybridAuthRequest;
+  })) as Web5ConnectAuthRequest;
 
-  return hybridAuthRequest;
+  return web5ConnectAuthRequest;
 };
 
 /** Take the encrypted JWE, decrypt using the code challenge and return a JWT string which will need to be verified */
@@ -532,7 +511,7 @@ function decryptAuthRequest({
 
 /**
  * Used by the client to decrypt the jwe obtained from the auth server which contains
- * the {@link HybridAuthResponse} that was sent by the provider to the auth server.
+ * the {@link Web5ConnectAuthResponse} that was sent by the provider to the auth server.
  *
  * @async
  * @param {BearerDid} clientDid - The did that was initially used by the client for ECDH at connect init.
