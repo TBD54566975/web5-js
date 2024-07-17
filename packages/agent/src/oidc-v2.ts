@@ -126,7 +126,7 @@ export type SIOPv2AuthRequest = {
  */
 export type Web5ConnectAuthRequest = {
   /** PermissionGrants that are to be sent to the provider */
-  permission_requests: ConnectPermissionRequests;
+  permissionRequests: ConnectPermissionRequests;
 } & SIOPv2AuthRequest;
 
 /** The fields for an OIDC SIOPv2 Auth Repsonse */
@@ -156,7 +156,7 @@ export type SIOPv2AuthResponse = {
 
 /** An auth response that is compatible with both Web5 Connect and (hopefully, WIP) OIDC SIOPv2 */
 export type Web5ConnectAuthResponse = {
-  delegationGrants: any[];
+  delegatedGrants: any[];
   privateKeyJwks: Jwk[];
 } & SIOPv2AuthResponse;
 
@@ -232,13 +232,13 @@ function buildOidcUrl({
  * Generates a random string value used to associate a Client authorization
  * request with the Identity Provider's response callback.
  *
- * @returns A random state as a Base64Url encoded string.
+ * @returns The random state as both bytes and base64url for convenience.
  */
 function generateRandomState() {
-  const randomStateu8a = utils.randomBytes(12);
-  const ramdomStateb64url = Convert.uint8Array(randomStateu8a).toBase64Url();
+  const randomStateBytes = utils.randomBytes(12);
+  const randomStateBase64Url = Convert.uint8Array(randomStateBytes).toBase64Url();
 
-  return { randomStateu8a, ramdomStateb64url };
+  return { randomStateBytes, randomStateBase64Url };
 }
 
 /**
@@ -270,12 +270,12 @@ async function deriveNonceFromInput(state: Uint8Array) {
  *
  * @see {@link https://datatracker.ietf.org/doc/html/rfc7636#section-4.1 | RFC 7636, Client Creates a Code Verifier}
  *
- * @returns A random code verifier as a Base64Url encoded string.
+ * @returns A random code verifier
  */
 function generateRandomCodeVerifier() {
-  const codeVerifieru8a = utils.randomBytes(32);
+  const codeVerifierBytes = utils.randomBytes(32);
 
-  return { codeVerifieru8a };
+  return { codeVerifierBytes };
 }
 
 /**
@@ -287,11 +287,11 @@ function generateRandomCodeVerifier() {
  * @see {@link https://datatracker.ietf.org/doc/html/rfc7636#section-4.2 | RFC 7636, Client Creates the Code Challenge}
  */
 async function deriveCodeChallenge(codeVerifier: Uint8Array) {
-  const codeChallengeu8a = await Sha256.digest({ data: codeVerifier });
-  const codeChallengeb64url =
-    Convert.uint8Array(codeChallengeu8a).toBase64Url();
+  const codeChallengeBytes = await Sha256.digest({ data: codeVerifier });
+  const codeChallengeBase64Url =
+    Convert.uint8Array(codeChallengeBytes).toBase64Url();
 
-  return { codeChallengeu8a, codeChallengeb64url };
+  return { codeChallengeBytes, codeChallengeBase64Url };
 }
 
 // TODO: when implementing pure OIDC split up the Web5 and OIDC params
@@ -303,21 +303,21 @@ async function createAuthRequest(
     | 'client_id'
     | 'scope'
     | 'redirect_uri'
-    | 'permission_requests'
+    | 'permissionRequests'
   >
 ) {
   // Generate a random state value to associate the authorization request with the response.
-  const { randomStateu8a, ramdomStateb64url } = generateRandomState();
+  const { randomStateBytes, randomStateBase64Url } = generateRandomState();
 
   // Generate a random nonce value to associate the ID Token with the authorization request.
-  const nonce = await deriveNonceFromInput(randomStateu8a);
+  const nonce = await deriveNonceFromInput(randomStateBytes);
 
   const requestObject: Web5ConnectAuthRequest = {
     ...options,
     nonce,
     response_type : 'id_token',
     response_mode : 'direct_post',
-    state         : ramdomStateb64url,
+    state         : randomStateBase64Url,
   };
 
   return requestObject;
@@ -339,9 +339,9 @@ async function encryptAuthRequest({
     typ : 'JWT',
   };
   const additionalData = Convert.object(protectedHeader).toUint8Array();
-  const jwtu8a = Convert.string(jwt).toUint8Array();
+  const jwtBytes = Convert.string(jwt).toUint8Array();
   const chacha = xchacha20poly1305(codeChallenge, nonce, additionalData);
-  const ciphertextAndTag = chacha.encrypt(jwtu8a);
+  const ciphertextAndTag = chacha.encrypt(jwtBytes);
 
   /** The cipher output concatenates the encrypted data and tag
    * so we need to extract the values for use in the JWE. */
@@ -363,7 +363,7 @@ async function encryptAuthRequest({
 async function createResponseObject(
   options: RequireOnly<
   Web5ConnectAuthResponse,
-    'iss' | 'sub' | 'aud' | 'delegationGrants' | 'privateKeyJwks'
+    'iss' | 'sub' | 'aud' | 'delegatedGrants' | 'privateKeyJwks'
   >
 ) {
   const currentTimeInSeconds = Math.floor(Date.now() / 1000);
@@ -488,7 +488,7 @@ function decryptAuthRequest({
     authenticationTagB64U,
   ] = jwe.split('.');
 
-  const code_challenge_u8a = Convert.base64Url(code_challenge).toUint8Array();
+  const codeChallengeBytes = Convert.base64Url(code_challenge).toUint8Array();
   const protectedHeader = Convert.base64Url(protectedHeaderB64U).toUint8Array();
   const additionalData = protectedHeader;
   const nonce = Convert.base64Url(nonceB64U).toUint8Array();
@@ -502,9 +502,9 @@ function decryptAuthRequest({
     ...ciphertext,
     ...authenticationTag,
   ]);
-  const chacha = xchacha20poly1305(code_challenge_u8a, nonce, additionalData);
-  const decryptedJwtU8a = chacha.decrypt(ciphertextAndTag);
-  const jwt = Convert.uint8Array(decryptedJwtU8a).toString();
+  const chacha = xchacha20poly1305(codeChallengeBytes, nonce, additionalData);
+  const decryptedJwtBytes = chacha.decrypt(ciphertextAndTag);
+  const jwt = Convert.uint8Array(decryptedJwtBytes).toString();
 
   return jwt;
 }
@@ -556,8 +556,8 @@ async function decryptAuthResponse(
 
   // decrypt using the sharedKey
   const chacha = xchacha20poly1305(sharedKey, nonce, AAD);
-  const decryptedJwtU8a = chacha.decrypt(ciphertextAndTag);
-  const jwt = Convert.uint8Array(decryptedJwtU8a).toString();
+  const decryptedJwtBytes = chacha.decrypt(ciphertextAndTag);
+  const jwt = Convert.uint8Array(decryptedJwtBytes).toString();
 
   return jwt;
 }
@@ -631,9 +631,9 @@ function encryptAuthResponse({
     pin: '1234',
   }).toUint8Array();
 
-  const jwtu8a = Convert.string(jwt).toUint8Array();
+  const jwtBytes = Convert.string(jwt).toUint8Array();
   const chacha = xchacha20poly1305(encryptionKey, nonce, additionalData);
-  const ciphertextAndTag = chacha.encrypt(jwtu8a);
+  const ciphertextAndTag = chacha.encrypt(jwtBytes);
 
   /** The cipher output concatenates the encrypted data and tag
    * so we need to extract the values for use in the JWE. */

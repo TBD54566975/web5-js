@@ -21,11 +21,11 @@ async function initClient({
   const clientDid = await DidDht.create();
 
   // Hash the code verifier to use as a code challenge and to encrypt the Request Object.
-  const { codeVerifieru8a } = Oidc.generateRandomCodeVerifier();
+  const { codeVerifierBytes } = Oidc.generateRandomCodeVerifier();
 
   // Derive the code challenge based on the code verifier
-  const { codeChallengeu8a, codeChallengeb64url } =
-    await Oidc.deriveCodeChallenge(codeVerifieru8a);
+  const { codeChallengeBytes, codeChallengeBase64Url } =
+    await Oidc.deriveCodeChallenge(codeVerifierBytes);
 
   // build callback URL to pass into the auth request
   const callbackEndpoint = Oidc.buildOidcUrl({
@@ -37,9 +37,9 @@ async function initClient({
   const request = await Oidc.createAuthRequest({
     client_id             : callbackEndpoint,
     scope                 : 'web5', // TODO: clear with frank
-    code_challenge        : codeChallengeb64url,
+    code_challenge        : codeChallengeBase64Url,
     code_challenge_method : 'S256',
-    permission_requests   : permissionRequests,
+    permissionRequests    : permissionRequests,
     redirect_uri          : callbackEndpoint,
     // known customer credential defines these
     client_metadata       : {
@@ -64,7 +64,7 @@ async function initClient({
   // Encrypt the Request Object JWT using the code challenge.
   const requestObjectJwe = await Oidc.encryptAuthRequest({
     jwt           : requestJwt,
-    codeChallenge : codeChallengeu8a,
+    codeChallenge : codeChallengeBytes,
     nonce,
   });
 
@@ -92,27 +92,27 @@ async function initClient({
 
     // a deeplink to a web5 compatible wallet. if the wallet scans this link it should receive
     // a route to its web5 connect provider flow and the params of where to fetch the auth request.
-    const walletURI = new URL('web5://connect/');
-    walletURI.searchParams.set(
+    const walletUri = new URL('web5://connect/');
+    walletUri.searchParams.set(
       'nonce',
       Convert.uint8Array(nonce).toBase64Url()
     );
-    walletURI.searchParams.set('request_uri', parData.request_uri);
-    walletURI.searchParams.set('client_did', clientDid.uri);
-    walletURI.searchParams.set('code_challenge', codeChallengeb64url);
+    walletUri.searchParams.set('request_uri', parData.request_uri);
+    walletUri.searchParams.set('client_did', clientDid.uri);
+    walletUri.searchParams.set('code_challenge', codeChallengeBase64Url);
 
     // call user's callback so they can send the URI to the wallet as they see fit
-    onUriReady(walletURI.toString());
+    onUriReady(walletUri.toString());
 
     // subscribe to receiving a response from the wallet with default TTL
-    const tokenURL = Oidc.buildOidcUrl({
+    const tokenUrl = Oidc.buildOidcUrl({
       baseURL    : connectServerUrl,
       endpoint   : 'token',
       tokenParam : request.state,
     });
 
     /** ciphertext of {@link Web5ConnectAuthResponse} */
-    const authResponse = await pollWithTtl(() => fetch(tokenURL));
+    const authResponse = await pollWithTtl(() => fetch(tokenUrl));
 
     if (authResponse) {
       const jwe = await authResponse?.text();
@@ -128,8 +128,8 @@ async function initClient({
       console.log(verifiedAuthResponse);
 
       return {
-        delegationGrants : verifiedAuthResponse.delegationGrants,
-        didToImport      : [{
+        delegatedGrants : verifiedAuthResponse.delegatedGrants,
+        didToImport     : [{
           didUri         : verifiedAuthResponse.aud,
           privateKeyJwks : verifiedAuthResponse.privateKeyJwks
         }]
