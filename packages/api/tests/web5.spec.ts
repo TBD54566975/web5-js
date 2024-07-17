@@ -3,7 +3,7 @@ import sinon from 'sinon';
 
 import { MemoryStore } from '@web5/common';
 import { Web5UserAgent } from '@web5/user-agent';
-import { AgentIdentityApi, HdIdentityVault, PlatformAgentTestHarness } from '@web5/agent';
+import { AgentIdentityApi, DwnRegistrar, HdIdentityVault, PlatformAgentTestHarness } from '@web5/agent';
 
 import { Web5 } from '../src/web5.js';
 
@@ -204,5 +204,148 @@ describe('Web5', () => {
       const serviceEndpoints = (identityApiSpy.firstCall.args[0].didOptions as any).services[0].serviceEndpoint;
       expect(serviceEndpoints).to.deep.equal(['https://dwn.tbddev.org/beta']);
     });
+
+    describe('registration', () => {
+      it('should call onSuccess if registration is successful', async () => {
+        sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+        const serverInfoStub = sinon.stub(testHarness.agent.rpc, 'getServerInfo').resolves({
+          registrationRequirements : ['terms-of-service'],
+          maxFileSize              : 10000,
+          webSocketSupport         : true,
+        });
+
+        // stub a successful registration
+        const registerStub = sinon.stub(DwnRegistrar, 'registerTenant').resolves();
+
+        const registration = {
+          onSuccess : () => {},
+          onFailure : () => {}
+        };
+
+        const registerSuccessSpy = sinon.spy(registration, 'onSuccess');
+        const registerFailureSpy = sinon.spy(registration, 'onFailure');
+
+        const { web5, did } = await Web5.connect({ registration, didCreateOptions: { dwnEndpoints: [
+          'https://dwn.example.com',
+          'https://dwn.production.com/'
+        ] } });
+        expect(web5).to.exist;
+        expect(did).to.exist;
+
+        // Success should be called, and failure should not
+        expect(registerFailureSpy.notCalled, 'onFailure not called').to.be.true;
+        expect(registerSuccessSpy.calledOnce, 'onSuccess called').to.be.true;
+
+        // Expect getServerInfo and registerTenant to be called.
+        expect(serverInfoStub.calledTwice, 'getServerInfo called').to.be.true; // once per dwnEndpoint
+        expect(registerStub.callCount, 'registerTenant called').to.equal(4); // called twice for each dwnEndpoint
+      });
+
+      it('should call onFailure if the registration attempts fail', async () => {
+        sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+        const serverInfoStub = sinon.stub(testHarness.agent.rpc, 'getServerInfo').resolves({
+          registrationRequirements : ['terms-of-service'],
+          maxFileSize              : 10000,
+          webSocketSupport         : true,
+        });
+
+        // stub a successful registration
+        const registerStub = sinon.stub(DwnRegistrar, 'registerTenant').rejects();
+
+        const registration = {
+          onSuccess : () => {},
+          onFailure : () => {}
+        };
+
+        const registerSuccessSpy = sinon.spy(registration, 'onSuccess');
+        const registerFailureSpy = sinon.spy(registration, 'onFailure');
+
+        const { web5, did } = await Web5.connect({ registration, didCreateOptions: { dwnEndpoints: [
+          'https://dwn.example.com',
+          'https://dwn.production.com/'
+        ] } });
+        expect(web5).to.exist;
+        expect(did).to.exist;
+
+        // failure should be called, and success should not
+        expect(registerSuccessSpy.notCalled, 'onSuccess not called').to.be.true;
+        expect(registerFailureSpy.calledOnce, 'onFailure called').to.be.true;
+
+        // Expect getServerInfo and registerTenant to be called.
+        expect(serverInfoStub.calledOnce, 'getServerInfo called').to.be.true; // only called once before registration fails
+        expect(registerStub.callCount, 'registerTenant called').to.equal(1); // called once and fails
+      });
+
+      it('should not attempt registration if the server does not require it', async () => {
+        sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+        const serverInfoStub = sinon.stub(testHarness.agent.rpc, 'getServerInfo').resolves({
+          registrationRequirements : [], // no registration requirements
+          maxFileSize              : 10000,
+          webSocketSupport         : true,
+        });
+
+        // stub a successful registration
+        const registerStub = sinon.stub(DwnRegistrar, 'registerTenant').resolves();
+
+        const registration = {
+          onSuccess : () => {},
+          onFailure : () => {}
+        };
+
+        const registerSuccessSpy = sinon.spy(registration, 'onSuccess');
+        const registerFailureSpy = sinon.spy(registration, 'onFailure');
+
+        const { web5, did } = await Web5.connect({ registration, didCreateOptions: { dwnEndpoints: [
+          'https://dwn.example.com',
+          'https://dwn.production.com/'
+        ] } });
+        expect(web5).to.exist;
+        expect(did).to.exist;
+
+        // should call onSuccess and not onFailure
+        expect(registerSuccessSpy.calledOnce, 'onSuccess called').to.be.true;
+        expect(registerFailureSpy.notCalled, 'onFailure not called').to.be.true;
+
+        // Expect getServerInfo to be called but not registerTenant
+        expect(serverInfoStub.calledTwice, 'getServerInfo called').to.be.true; // once per dwnEndpoint
+        expect(registerStub.notCalled, 'registerTenant not called').to.be.true; // not called
+      });
+
+      it('techPreview.dwnEndpoints should take precedence over didCreateOptions.dwnEndpoints', async () => {
+        sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+        const serverInfoStub = sinon.stub(testHarness.agent.rpc, 'getServerInfo').resolves({
+          registrationRequirements : ['terms-of-service'],
+          maxFileSize              : 10000,
+          webSocketSupport         : true,
+        });
+
+        // stub a successful registration
+        const registerStub = sinon.stub(DwnRegistrar, 'registerTenant').resolves();
+
+        const registration = {
+          onSuccess : () => {},
+          onFailure : () => {}
+        };
+
+        const registerSuccessSpy = sinon.spy(registration, 'onSuccess');
+        const registerFailureSpy = sinon.spy(registration, 'onFailure');
+
+        const { web5, did } = await Web5.connect({ registration,
+          didCreateOptions : { dwnEndpoints: [ 'https://dwn.example.com', 'https://dwn.production.com/' ] }, // two endpoints,
+          techPreview      : { dwnEndpoints: [ 'https://dwn.production.com/' ] }, // one endpoint
+        });
+        expect(web5).to.exist;
+        expect(did).to.exist;
+
+        // Success should be called, and failure should not
+        expect(registerFailureSpy.notCalled, 'onFailure not called').to.be.true;
+        expect(registerSuccessSpy.calledOnce, 'onSuccess called').to.be.true;
+
+        // Expect getServerInfo and registerTenant to be called.
+        expect(serverInfoStub.calledOnce, 'getServerInfo called').to.be.true; // Should only be called once for `techPreview` endpoint
+        expect(registerStub.callCount, 'registerTenant called').to.equal(2); // called twice, once for Agent DID once for Identity DID
+      });
+    });
+
   });
 });
