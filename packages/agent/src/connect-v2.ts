@@ -15,7 +15,6 @@ async function initClient({
   permissionRequests,
   onWalletUriReady,
   validatePin,
-  clientUri
 }: WalletConnectOptions) {
   // ephemeral client did for ECDH, signing, verification
   // TODO: use separate keys for ECDH vs. sign/verify. could maybe use secp256k1.
@@ -44,8 +43,7 @@ async function initClient({
     redirect_uri          : callbackEndpoint,
     // known customer credential defines these
     client_metadata       : {
-      client_uri                     : clientUri,
-      subject_syntax_types_supported : ['did:dht'],
+      subject_syntax_types_supported: ['did:dht'],
     },
   });
 
@@ -174,9 +172,6 @@ export type WalletConnectOptions = {
    * @returns A promise that resolves to the PIN as a string.
    */
   validatePin: () => Promise<string>;
-
-  /** An optional webpage providing information about the client */
-  clientUri?: string;
 };
 
 /**
