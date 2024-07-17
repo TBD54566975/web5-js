@@ -13,6 +13,9 @@ const didUrlRegex = /^https?:\/\/dweb\/([^/]+)\/?(.*)?$/;
 const httpToHttpsRegex = /^http:/;
 const trailingSlashRegex = /\/$/;
 
+// This is in place to prevent our `bundler-bonanza` repo from failing for Node CJS builds
+// Not sure if this is working as expected in all environments, crated an issue
+// TODO: https://github.com/TBD54566975/web5-js/issues/767
 function importMetaIfSupported() {
   try {
     return new Function('return import.meta')();
