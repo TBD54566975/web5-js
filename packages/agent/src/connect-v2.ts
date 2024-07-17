@@ -11,10 +11,11 @@ import { DidDht } from '@web5/dids';
 
 async function initClient({
   connectServerUrl,
+  walletUri,
   permissionRequests,
-  clientUri,
   onUriReady,
   validatePin,
+  clientUri
 }: WalletConnectOptions) {
   // ephemeral client did for ECDH, signing, verification
   // TODO: use separate keys for ECDH vs. sign/verify. could maybe use secp256k1.
@@ -57,15 +58,10 @@ async function initClient({
   if (!requestJwt) {
     throw new Error('Unable to sign requestObject');
   }
-
-  // Encryption nonce
-  const nonce = utils.randomBytes(24);
-
   // Encrypt the Request Object JWT using the code challenge.
   const requestObjectJwe = await Oidc.encryptAuthRequest({
     jwt           : requestJwt,
     codeChallenge : codeChallengeBytes,
-    nonce,
   });
 
   // Convert the encrypted Request Object to URLSearchParams for form encoding.
@@ -92,14 +88,10 @@ async function initClient({
 
     // a deeplink to a web5 compatible wallet. if the wallet scans this link it should receive
     // a route to its web5 connect provider flow and the params of where to fetch the auth request.
-    const walletUri = new URL('web5://connect/');
-    walletUri.searchParams.set(
-      'nonce',
-      Convert.uint8Array(nonce).toBase64Url()
-    );
-    walletUri.searchParams.set('request_uri', parData.request_uri);
-    walletUri.searchParams.set('client_did', clientDid.uri);
-    walletUri.searchParams.set('code_challenge', codeChallengeBase64Url);
+    const generatedWalletUri = new URL(walletUri);
+    generatedWalletUri.searchParams.set('request_uri', parData.request_uri);
+    generatedWalletUri.searchParams.set('client_did', clientDid.uri);
+    generatedWalletUri.searchParams.set('code_challenge', codeChallengeBase64Url);
 
     // call user's callback so they can send the URI to the wallet as they see fit
     onUriReady(walletUri.toString());

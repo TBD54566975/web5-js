@@ -326,11 +326,9 @@ async function createAuthRequest(
 async function encryptAuthRequest({
   jwt,
   codeChallenge,
-  nonce,
 }: {
   jwt: string;
   codeChallenge: Uint8Array;
-  nonce: Uint8Array;
 }) {
   const protectedHeader = {
     alg : 'dir',
@@ -338,6 +336,7 @@ async function encryptAuthRequest({
     enc : 'XC20P',
     typ : 'JWT',
   };
+  const nonce = utils.randomBytes(24);
   const additionalData = Convert.object(protectedHeader).toUint8Array();
   const jwtBytes = Convert.string(jwt).toUint8Array();
   const chacha = xchacha20poly1305(codeChallenge, nonce, additionalData);
