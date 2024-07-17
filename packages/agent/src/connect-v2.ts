@@ -13,7 +13,7 @@ async function initClient({
   connectServerUrl,
   walletUri,
   permissionRequests,
-  onUriReady,
+  onWalletUriReady,
   validatePin,
   clientUri
 }: WalletConnectOptions) {
@@ -80,6 +80,7 @@ async function initClient({
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
+
     if (!parResponse.ok) {
       throw new Error(`${parResponse.status}: ${parResponse.statusText}`);
     }
@@ -94,7 +95,7 @@ async function initClient({
     generatedWalletUri.searchParams.set('code_challenge', codeChallengeBase64Url);
 
     // call user's callback so they can send the URI to the wallet as they see fit
-    onUriReady(walletUri.toString());
+    onWalletUriReady(generatedWalletUri.toString());
 
     // subscribe to receiving a response from the wallet with default TTL
     const tokenUrl = Oidc.buildOidcUrl({
@@ -141,7 +142,7 @@ export type WalletConnectOptions = {
   connectServerUrl: string;
 
   /**
-   * The URI of the Provider (wallet) which is used to generate the URI returned in `onUriReady`
+   * The URI of the Provider (wallet) which is used to generate the URI returned in `onWalletUriReady`
    * e.g. `web5://` or `http://localhost:3000/`.
    *
    */
@@ -163,7 +164,7 @@ export type WalletConnectOptions = {
    *
    * @param uri - The URI returned by the web5 connect API to be passed to a provider.
    */
-  onUriReady: (uri: string) => void;
+  onWalletUriReady: (uri: string) => void;
 
   /**
    * Function that must be provided to submit the pin entered by the user on the client.
