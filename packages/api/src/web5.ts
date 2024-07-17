@@ -155,7 +155,9 @@ export type Web5ConnectOptions = {
    * If registration is successful, the `onSuccess` callback will be called.
    */
   registration? : {
+    /** Called when all of the DWN registrations are successful */
     onSuccess: () => void;
+    /** Called when any of the DWN registrations fail */
     onFailure: (error: any) => void;
   }
 }
