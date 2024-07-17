@@ -122,7 +122,7 @@ async function installWorker(options: any = {}): Promise<void> {
       const registration = await navigator.serviceWorker.getRegistration('/');
       // You can only have one worker per path, so check to see if one is already registered
       if (!registration){
-          // @ts-ignore
+        // @ts-ignore
         const installUrl =  options.path || (globalThis.document ? document?.currentScript?.src : importMetaIfSupported()?.url);
         if (installUrl) navigator.serviceWorker.register(installUrl, { type: 'module' }).catch(error => {
           console.error('DWeb networking feature installation failed: ', error);
