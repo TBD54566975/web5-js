@@ -98,7 +98,7 @@ app.get("/connect/authorize/:requestId.jwt", (req, res) => {
       res.send(requestObjectJwt);
 
       // Delete the Request Object from the data store now that it has been retrieved.
-      dataStore.delete(`request:${requestId}`);
+      // dataStore.delete(`request:${requestId}`);
     }
   } catch (error) {
     console.error(`Error retrieving request object: ${error.message}`);
@@ -118,6 +118,9 @@ app.post("/connect/callback", (req, res) => {
   // Store the ID token.
   const idToken = req.body.id_token;
   const state = req.body.state;
+
+  console.log(idToken);
+  console.log(state);
 
   if (idToken && state) {
     dataStore.set(`response:${state}`, idToken);
@@ -156,7 +159,7 @@ app.get("/connect/token/:state.jwt", (req, res) => {
     res.send(idToken);
 
     // Delete the request object from the data store now that it has been retrieved.
-    dataStore.delete(`response:${state}`);
+    // dataStore.delete(`response:${state}`);
   }
 });
 
