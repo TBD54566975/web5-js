@@ -60,9 +60,9 @@ export class DwnRegistrar {
     };
 
     const registrationResponse = await fetch(registrationEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(registrationRequest),
+      method  : 'POST',
+      headers : { 'Content-Type': 'application/json' },
+      body    : JSON.stringify(registrationRequest),
     });
 
     if (registrationResponse.status !== 200) {
