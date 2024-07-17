@@ -13,14 +13,6 @@ const didUrlRegex = /^https?:\/\/dweb\/([^/]+)\/?(.*)?$/;
 const httpToHttpsRegex = /^http:/;
 const trailingSlashRegex = /\/$/;
 
-function importMetaIfSupported() {
-  try {
-    return new Function('return import.meta')();
-  } catch(_error) {
-    return undefined;
-  }
-}
-
 async function getDwnEndpoints(did) {
   const { didDocument } = await DidResolver.resolve(did);
   let endpoints = didDocument?.service?.find(service => service.type === 'DecentralizedWebNode')?.serviceEndpoint;
@@ -123,7 +115,7 @@ async function installWorker(options: any = {}): Promise<void> {
       // You can only have one worker per path, so check to see if one is already registered
       if (!registration){
         // @ts-ignore
-        const installUrl =  options.path || (globalThis.document ? document?.currentScript?.src : importMetaIfSupported()?.url);
+        const installUrl =  options.path || (globalThis.document ? document?.currentScript?.src : undefined);
         if (installUrl) navigator.serviceWorker.register(installUrl, { type: 'module' }).catch(error => {
           console.error('DWeb networking feature installation failed: ', error);
         });
