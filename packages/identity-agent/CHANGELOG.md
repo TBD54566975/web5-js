@@ -1,5 +1,14 @@
 # @web5/identity-agent
 
+## 0.4.1
+
+### Patch Changes
+
+- [#770](https://github.com/TBD54566975/web5-js/pull/770) [`f71ce8a`](https://github.com/TBD54566975/web5-js/commit/f71ce8a6b9b10dfb1a627a9fe0d7473a453422e0) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Upgrade `dwn-sdk-js` and `dwn-server`
+
+- Updated dependencies [[`8baa679`](https://github.com/TBD54566975/web5-js/commit/8baa679ae496c9052025b11d435c48390579be47), [`f71ce8a`](https://github.com/TBD54566975/web5-js/commit/f71ce8a6b9b10dfb1a627a9fe0d7473a453422e0)]:
+  - @web5/agent@0.4.1
+
 ## 0.4.0
 
 ### Minor Changes
