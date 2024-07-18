@@ -85,7 +85,7 @@
   },
   "devDependencies": {
     "@playwright/test": "1.40.1",
-    "@tbd54566975/dwn-sdk-js": "0.4.3-unstable-2024-07-18-07-51-338dffa",
+    "@tbd54566975/dwn-sdk-js": "0.4.4",
     "@types/chai": "4.3.6",
     "@types/eslint": "8.56.10",
     "@types/mocha": "10.0.1",

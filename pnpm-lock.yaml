@@ -46,8 +46,8 @@ importers:
         specifier: 1.2.2
         version: 1.2.2
       '@tbd54566975/dwn-sdk-js':
-        specifier: 0.4.3-unstable-2024-07-18-07-51-338dffa
-        version: 0.4.3-unstable-2024-07-18-07-51-338dffa
+        specifier: 0.4.4
+        version: 0.4.4
       '@web5/common':
         specifier: 1.0.0
         version: 1.0.0
@@ -174,8 +174,8 @@ importers:
         specifier: 1.40.1
         version: 1.40.1
       '@tbd54566975/dwn-sdk-js':
-        specifier: 0.4.3-unstable-2024-07-18-07-51-338dffa
-        version: 0.4.3-unstable-2024-07-18-07-51-338dffa
+        specifier: 0.4.4
+        version: 0.4.4
       '@types/chai':
         specifier: 4.3.6
         version: 4.3.6
@@ -3392,8 +3392,8 @@ packages:
       - supports-color
     dev: true
 
-  /@tbd54566975/dwn-sdk-js@0.4.3-unstable-2024-07-18-07-51-338dffa:
-    resolution: {integrity: sha512-xEdoM73VLDuFtGxbllC5khximxonqYulsdkNixdIw3RFt8EhNZVpFucSdmP62CRG2Rgnj8+MlDFfcBQqkHicgQ==}
+  /@tbd54566975/dwn-sdk-js@0.4.4:
+    resolution: {integrity: sha512-i4jBrKOn6ypaFQJLNG8Kc9AvR1nmZrq3A+9M4O9xiDbH60+QMPf2HsNuVOTu6Ve9V7IU8NorI/GoSryD0TknpQ==}
     engines: {node: '>= 18'}
     dependencies:
       '@ipld/dag-cbor': 9.0.3
