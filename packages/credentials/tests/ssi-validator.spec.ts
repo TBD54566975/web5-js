@@ -74,12 +74,12 @@ describe('SsiValidator', () => {
 
   describe('validateCredentialSchema', () => {
     // Mock VcDataModel and CredentialSchema
-    const validVcDataModel: VcDataModel = {
+    const validVcDataModel = {
       credentialSchema: {
         id   : 'https://schema.org/PFI',
         type : 'JsonSchema'
       }
-    } as any;
+    } as VcDataModel;
 
     let fetchStub: sinon.SinonStub;
 
