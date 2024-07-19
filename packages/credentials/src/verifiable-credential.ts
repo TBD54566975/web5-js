@@ -317,6 +317,8 @@ export class VerifiableCredential {
 
     validatePayload(vcTyped);
 
+    if (vcTyped.credentialSchema) await SsiValidator.validateCredentialSchema(vcTyped);
+
     return {
       /** The issuer of the VC. */
       issuer  : payload.iss!,

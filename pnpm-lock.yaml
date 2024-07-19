@@ -65,7 +65,7 @@ importers:
         version: 0.4.11
       isomorphic-ws:
         specifier: ^5.0.0
-        version: 5.0.0(ws@8.18.0)
+        version: 5.0.0(ws@8.17.1)
       level:
         specifier: 8.0.0
         version: 8.0.0
@@ -342,6 +342,9 @@ importers:
       '@web5/dids':
         specifier: 1.1.1
         version: 1.1.1
+      jsonschema:
+        specifier: 1.4.1
+        version: 1.4.1
       pako:
         specifier: ^2.1.0
         version: 2.1.0
@@ -7882,12 +7885,12 @@ packages:
     engines: {node: '>=10'}
     dev: true
 
-  /isomorphic-ws@5.0.0(ws@8.18.0):
+  /isomorphic-ws@5.0.0(ws@8.17.1):
     resolution: {integrity: sha512-muId7Zzn9ywDsyXgTIafTry2sV3nySZeUDe6YedVd1Hvuuep5AsIlqK+XefWpYTyJG5e503F2xIuT2lcU6rCSw==}
     peerDependencies:
       ws: '>=8.17.1'
     dependencies:
-      ws: 8.18.0
+      ws: 8.17.1
     dev: false
 
   /istanbul-lib-coverage@3.2.2:
@@ -8062,6 +8065,10 @@ packages:
     resolution: {integrity: sha512-POQXvpdL69+CluYsillJ7SUhKvytYjW9vG/GKpnf+xP8UWgYEM/RaMzHHofbALDiKbbP1W8UEYmgGl39WkPZsg==}
     engines: {'0': node >= 0.2.0}
     dev: true
+
+  /jsonschema@1.4.1:
+    resolution: {integrity: sha512-S6cATIPVv1z0IlxdN+zUk5EPjkGCdnhN4wVSBlvoUO1tOLJootbo9CquNJmbIh4yikWHiUedhRYrNPn1arpEmQ==}
+    dev: false
 
   /jsonstream-next@3.0.0:
     resolution: {integrity: sha512-aAi6oPhdt7BKyQn1SrIIGZBt0ukKuOUE1qV6kJ3GgioSOYzsRc8z9Hfr1BVmacA/jLe9nARfmgMGgn68BqIAgg==}
@@ -11293,7 +11300,6 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
-    dev: true
 
   /ws@8.18.0:
     resolution: {integrity: sha512-8VbfWfHLbbwu3+N6OKsOMpBdT4kXPDDB9cJk2bJ6mh9ucxdlnNvH1e+roYkKmN9Nxw2yjz7VzeO9oOz2zJ04Pw==}
@@ -11306,6 +11312,7 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
+    dev: true
 
   /xml@1.0.1:
     resolution: {integrity: sha512-huCv9IH9Tcf95zuYCsQraZtWnJvBtLVE0QHMOs8bWyZAFZNDcYjsPq1nEx8jKA9y+Beo9v+7OBPRisQTjinQMw==}
