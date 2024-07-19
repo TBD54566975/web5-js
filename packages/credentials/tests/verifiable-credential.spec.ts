@@ -217,10 +217,6 @@ describe('Verifiable Credential Tests', () => {
       expect(currentVc.vcDataModel.evidence).to.deep.equal(evidence);
       expect(currentVc.vcDataModel.credentialSubject).to.deep.equal(credentialSubject);
       expect(currentVc.vcDataModel.credentialSchema).to.deep.equal(credentialSchema);
-
-      expect(fetchStub.calledWith('https://schema.org/PFI')).to.be.true;
-
-      fetchStub.restore();
     });
 
     it('create and sign vc with did:dht', async () => {

@@ -5,20 +5,25 @@ import { Convert } from '@web5/common';
 import type { Web5PlatformAgent } from './types/agent.js';
 import type { AgentDataStore, DataStoreDeleteParams, DataStoreGetParams, DataStoreListParams, DataStoreSetParams } from './store-data.js';
 
-import { TENANT_SEPARATOR } from './utils-internal.js';
 import { DwnInterface } from './types/dwn.js';
+import { IdentityProtocolDefinition } from './store-data-protocols.js';
 import { isPortableDid } from './prototyping/dids/utils.js';
+import { TENANT_SEPARATOR } from './utils-internal.js';
 import { DwnDataStore, InMemoryDataStore } from './store-data.js';
 
 export class DwnDidStore extends DwnDataStore<PortableDid> implements AgentDataStore<PortableDid> {
   protected name = 'DwnDidStore';
 
+  protected _recordProtocolDefinition = IdentityProtocolDefinition;
+
   /**
    * Properties to use when writing and querying DID records with the DWN store.
    */
   protected _recordProperties = {
-    dataFormat : 'application/json',
-    schema     : 'https://identity.foundation/schemas/web5/portable-did'
+    dataFormat   : 'application/json',
+    protocol     : this._recordProtocolDefinition.protocol,
+    protocolPath : 'portableDid',
+    schema       : this._recordProtocolDefinition.types.portableDid.schema,
   };
 
   public async delete(params: DataStoreDeleteParams): Promise<boolean> {

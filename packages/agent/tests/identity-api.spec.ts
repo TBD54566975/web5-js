@@ -1,3 +1,4 @@
+import sinon from 'sinon';
 import { expect } from 'chai';
 
 import { TestAgent } from './utils/test-agent.js';
@@ -51,11 +52,13 @@ describe('AgentIdentityApi', () => {
       });
 
       beforeEach(async () => {
+        sinon.restore();
         await testHarness.clearStorage();
         await testHarness.createAgentDid();
       });
 
       after(async () => {
+        sinon.restore();
         await testHarness.clearStorage();
         await testHarness.closeStorage();
       });
@@ -143,6 +146,45 @@ describe('AgentIdentityApi', () => {
           // List identities and verify the result is empty.
           const storedIdentities = await testHarness.agent.identity.list();
           expect(storedIdentities).to.be.empty;
+        });
+      });
+
+      describe('delete()', () => {
+        it('deletes an Identity', async () => {
+          // Create a new Identity.
+          const identity = await testHarness.agent.identity.create({
+            didMethod : 'jwk',
+            metadata  : { name: 'Test Identity' },
+            store     : true
+          });
+
+          // Verify that the Identity exists.
+          let storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri, tenant: identity.did.uri });
+          expect(storedIdentity).to.exist;
+          expect(storedIdentity?.did.uri).to.equal(identity.did.uri);
+
+          // Delete the Identity.
+          await testHarness.agent.identity.delete({ didUri: identity.did.uri, tenant: identity.did.uri });
+
+          // Verify that the Identity no longer exists.
+          storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri, tenant: identity.did.uri });
+          expect(storedIdentity).to.not.exist;
+
+          // Verify that the DID still exists
+          const storedDid = await testHarness.agent.did.get({ didUri: identity.did.uri, tenant: identity.did.uri });
+          expect(storedDid).to.not.be.undefined;
+          expect(storedDid!.uri).to.equal(identity.did.uri);
+        });
+
+        it('fails with not found error if the Identity does not exist', async () => {
+          // Delete an Identity that does not exist.
+          const didUri = 'did:method:xyz123';
+          try {
+            await testHarness.agent.identity.delete({ didUri });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error.message).to.include('AgentIdentityApi: Failed to purge due to Identity not found');
+          }
         });
       });
     });
