@@ -539,6 +539,7 @@ export class Record implements RecordModel {
   /**
    * Send the current record to a remote DWN by specifying their DID
    * If no DID is specified, the target is assumed to be the owner (connectedDID).
+   *
    * If an initial write is present and the Record class send cache has no awareness of it, the initial write is sent first
    * (vs waiting for the regular DWN sync)
    *
