@@ -25,24 +25,6 @@ describe('Jwt', () => {
       ).to.throw('Invalid base64url encoding for JWT header');
     });
 
-    it('throws error if JWT header is missing typ property', async () => {
-      const header: JwtHeaderParams = { alg: 'ES256K', kid: 'whateva' };
-      const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
-
-      expect(() =>
-        Jwt.parse({ jwt: `${base64UrlEncodedHeader}.efgh.hijk` })
-      ).to.throw('typ property set to JWT');
-    });
-
-    it('throws error if JWT header typ property is not set to JWT', async () => {
-      const header: JwtHeaderParams = { typ: 'hehe', alg: 'ES256K', kid: 'whateva' };
-      const base64UrlEncodedHeader = Convert.object(header).toBase64Url();
-
-      expect(() =>
-        Jwt.parse({ jwt: `${base64UrlEncodedHeader}.efgh.hijk` })
-      ).to.throw('typ property set to JWT');
-    });
-
     it('throws error if JWT header alg property is missing', async () => {
       // @ts-expect-error because alg is intentionally missing to trigger error.
       const header: JwtHeaderParams = { typ: 'JWT', kid: 'whateva' };
@@ -271,6 +253,20 @@ describe('Jwt', () => {
 
       expect(verifyResult.header).to.deep.equal(header);
       expect(verifyResult.payload).to.deep.equal(payload);
+    });
+  });
+
+  describe('sign()', () => {
+    it('allows typ to be set by caller', async () => {
+      const did = await DidJwk.create();
+      const signedJwt = await Jwt.sign({
+        signerDid : did,
+        payload   : {jti: 'hehe'},
+        header    : {typ: 'openid4vci-proof+jwt'}
+      });
+
+      const parsed = Jwt.parse({ jwt: signedJwt });
+      expect(parsed.decoded.header.typ).to.equal('openid4vci-proof+jwt');
     });
   });
 

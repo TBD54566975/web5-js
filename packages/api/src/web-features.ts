@@ -13,6 +13,17 @@ const didUrlRegex = /^https?:\/\/dweb\/([^/]+)\/?(.*)?$/;
 const httpToHttpsRegex = /^http:/;
 const trailingSlashRegex = /\/$/;
 
+// This is in place to prevent our `bundler-bonanza` repo from failing for Node CJS builds
+// Not sure if this is working as expected in all environments, crated an issue
+// TODO: https://github.com/TBD54566975/web5-js/issues/767
+function importMetaIfSupported() {
+  try {
+    return new Function('return import.meta')();
+  } catch(_error) {
+    return undefined;
+  }
+}
+
 async function getDwnEndpoints(did) {
   const { didDocument } = await DidResolver.resolve(did);
   let endpoints = didDocument?.service?.find(service => service.type === 'DecentralizedWebNode')?.serviceEndpoint;
@@ -115,7 +126,7 @@ async function installWorker(options: any = {}): Promise<void> {
       // You can only have one worker per path, so check to see if one is already registered
       if (!registration){
         // @ts-ignore
-        const installUrl =  options.path || (globalThis.document ? document?.currentScript?.src : import.meta?.url);
+        const installUrl =  options.path || (globalThis.document ? document?.currentScript?.src : importMetaIfSupported()?.url);
         if (installUrl) navigator.serviceWorker.register(installUrl, { type: 'module' }).catch(error => {
           console.error('DWeb networking feature installation failed: ', error);
         });

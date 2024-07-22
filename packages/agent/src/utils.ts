@@ -86,19 +86,6 @@ export function webReadableToIsomorphicNodeReadable(webReadable: ReadableStream<
   return new ReadableWebToNodeStream(webReadable);
 }
 
-export function appendPathToUrl({ path, url }: { url: string, path: string }): string {
-  const urlObject = new URL(url);
-  const lastChar = urlObject.pathname.slice(-1);
-
-  if (lastChar === '/') {
-    urlObject.pathname += path;
-  } else {
-    urlObject.pathname += `/${path}`;
-  }
-
-  return urlObject.toString();
-}
-
 /**
  * Polling function with interval, TTL accepting a custom fetch function
  * @template T - the return you expect from the fetcher
@@ -169,4 +156,19 @@ export function pollWithTtl(
 
     poll();
   });
+}
+
+/** Concatenates a base URL and a path ensuring that there is exactly one slash between them */
+export function concatenateUrl(baseUrl: string, path: string): string {
+  // Remove trailing slash from baseUrl if it exists
+  if (baseUrl.endsWith('/')) {
+    baseUrl = baseUrl.slice(0, -1);
+  }
+
+  // Remove leading slash from path if it exists
+  if (path.startsWith('/')) {
+    path = path.slice(1);
+  }
+
+  return `${baseUrl}/${path}`;
 }

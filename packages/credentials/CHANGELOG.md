@@ -1,5 +1,20 @@
 # @web5/credentials
 
+## 1.0.4
+
+### Patch Changes
+
+- [#694](https://github.com/TBD54566975/web5-js/pull/694) [`cc3aa58`](https://github.com/TBD54566975/web5-js/commit/cc3aa58069dd5465834b32174e3f840ddf782d60) Thanks [@thehenrytsai](https://github.com/thehenrytsai)! - Dependency updates.
+
+- [#712](https://github.com/TBD54566975/web5-js/pull/712) [`169bd1c`](https://github.com/TBD54566975/web5-js/commit/169bd1c6b600b38f081fd01fbf8d4aae0d44acb1) Thanks [@nitro-neal](https://github.com/nitro-neal)! - update pex package to 3.3.3
+
+- [#751](https://github.com/TBD54566975/web5-js/pull/751) [`e0d5bac`](https://github.com/TBD54566975/web5-js/commit/e0d5bac22e8a7106be08fa79795b3e9fb30b1c88) Thanks [@mistermoe](https://github.com/mistermoe)! - Replaced hardcoded `typ` value in JWT with an optional header override.
+
+- Updated dependencies [[`cc3aa58`](https://github.com/TBD54566975/web5-js/commit/cc3aa58069dd5465834b32174e3f840ddf782d60)]:
+  - @web5/common@1.0.2
+  - @web5/crypto@1.0.2
+  - @web5/dids@1.1.2
+
 ## 1.0.3
 
 ### Patch Changes

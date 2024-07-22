@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { DidJwk } from '@web5/dids';
 import { Convert } from '@web5/common';
 
-import type { AgentDataStore } from '../src/store-data.js';
+import type { AgentDataStore, DwnDataStore } from '../src/store-data.js';
 import type { IdentityMetadata } from '../src/types/identity.js';
 
 import { TestAgent } from './utils/test-agent.js';
@@ -10,6 +10,7 @@ import { DwnInterface } from '../src/types/dwn.js';
 import { AgentIdentityApi } from '../src/identity-api.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { DwnIdentityStore, InMemoryIdentityStore } from '../src/store-identity.js';
+import { IdentityProtocolDefinition } from '../src/store-data-protocols.js';
 
 describe('IdentityStore', () => {
   let testHarness: PlatformAgentTestHarness;
@@ -200,6 +201,9 @@ describe('IdentityStore', () => {
           // regardless of the size of the data.
           if (IdentityStore.name === 'InMemoryIdentityStore') this.skip();
 
+          // since we are writing directly to the dwn we first initialize the storage protocol
+          await (identityStore as DwnDataStore<IdentityMetadata>)['initialize']({ agent: testHarness.agent });
+
           const identityBytes = Convert.string(new Array(102400 + 1).join('0')).toUint8Array();
 
           // Store the Identity in the DWN.
@@ -208,8 +212,10 @@ describe('IdentityStore', () => {
             target        : testHarness.agent.agentDid.uri,
             messageType   : DwnInterface.RecordsWrite,
             messageParams : {
-              dataFormat : 'application/json',
-              schema     : 'https://identity.foundation/schemas/web5/identity-metadata'
+              dataFormat   : 'application/json',
+              protocol     : IdentityProtocolDefinition.protocol,
+              protocolPath : 'identityMetadata',
+              schema       : IdentityProtocolDefinition.types.identityMetadata.schema,
             },
             dataStream: new Blob([identityBytes], { type: 'application/json' })
           });

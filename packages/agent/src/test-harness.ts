@@ -35,6 +35,12 @@ type PlatformAgentTestHarnessParams = {
   dwnResumableTaskStore: ResumableTaskStoreLevel;
   syncStore: AbstractLevel<string | Buffer | Uint8Array>;
   vaultStore: KeyValueStore<string, string>;
+  dwnStores: {
+    keyStore: DwnKeyStore;
+    identityStore: DwnIdentityStore;
+    didStore: DwnDidStore;
+    clear: () => void;
+  }
 }
 
 export class PlatformAgentTestHarness {
@@ -50,6 +56,18 @@ export class PlatformAgentTestHarness {
   public syncStore: AbstractLevel<string | Buffer | Uint8Array>;
   public vaultStore: KeyValueStore<string, string>;
 
+  /**
+   * Custom DWN Stores for `keyStore`, `identityStore` and `didStore`.
+   * This allows us to clear the store cache between tests
+   */
+  public dwnStores: {
+    keyStore: DwnKeyStore;
+    identityStore: DwnIdentityStore;
+    didStore: DwnDidStore;
+    /** clears the protocol initialization caches */
+    clear: () => void;
+  };
+
   constructor(params: PlatformAgentTestHarnessParams) {
     this.agent = params.agent;
     this.agentStores = params.agentStores;
@@ -61,6 +79,7 @@ export class PlatformAgentTestHarness {
     this.syncStore = params.syncStore;
     this.vaultStore = params.vaultStore;
     this.dwnResumableTaskStore = params.dwnResumableTaskStore;
+    this.dwnStores = params.dwnStores;
   }
 
   public async clearStorage(): Promise<void> {
@@ -166,6 +185,17 @@ export class PlatformAgentTestHarness {
     // Instantiate Agent's RPC Client.
     const rpcClient = new Web5RpcClient();
 
+    const dwnStores = {
+      keyStore      : new DwnKeyStore(),
+      identityStore : new DwnIdentityStore(),
+      didStore      : new DwnDidStore(),
+      clear         : ():void => {
+        dwnStores.keyStore['_protocolInitializedCache']?.clear();
+        dwnStores.identityStore['_protocolInitializedCache']?.clear();
+        dwnStores.didStore['_protocolInitializedCache']?.clear();
+      }
+    };
+
     const {
       agentVault,
       didApi,
@@ -175,7 +205,7 @@ export class PlatformAgentTestHarness {
       vaultStore
     } = (agentStores === 'memory')
       ? PlatformAgentTestHarness.useMemoryStores()
-      : PlatformAgentTestHarness.useDiskStores({ testDataLocation });
+      : PlatformAgentTestHarness.useDiskStores({ testDataLocation, stores: dwnStores });
 
     // Instantiate custom stores to use with DWN instance.
     // Note: There is no in-memory store for DWN, so we always use LevelDB-based disk stores.
@@ -229,19 +259,27 @@ export class PlatformAgentTestHarness {
       dwnEventLog,
       dwnMessageStore,
       dwnResumableTaskStore,
+      dwnStores,
       syncStore,
       vaultStore
     });
   }
 
-  private static useDiskStores({ agent, testDataLocation }: {
+  private static useDiskStores({ agent, testDataLocation, stores }: {
     agent?: Web5PlatformAgent;
+    stores: {
+      keyStore: DwnKeyStore;
+      identityStore: DwnIdentityStore;
+      didStore: DwnDidStore;
+    }
     testDataLocation: string;
   }) {
     const testDataPath = (path: string) => `${testDataLocation}/${path}`;
 
     const vaultStore = new LevelStore<string, string>({ location: testDataPath('VAULT_STORE') });
     const agentVault = new HdIdentityVault({ keyDerivationWorkFactor: 1, store: vaultStore });
+
+    const { didStore, identityStore, keyStore } = stores;
 
     // Setup DID Resolver Cache
     const didResolverCache = new DidResolverCacheLevel({
@@ -252,12 +290,12 @@ export class PlatformAgentTestHarness {
       agent         : agent,
       didMethods    : [DidDht, DidJwk],
       resolverCache : didResolverCache,
-      store         : new DwnDidStore()
+      store         : didStore
     });
 
-    const identityApi = new AgentIdentityApi({ agent, store: new DwnIdentityStore() });
+    const identityApi = new AgentIdentityApi({ agent, store: identityStore });
 
-    const keyManager = new LocalKeyManager({ agent, keyStore: new DwnKeyStore() });
+    const keyManager = new LocalKeyManager({ agent, keyStore: keyStore });
 
     return { agentVault, didApi, didResolverCache, identityApi, keyManager, vaultStore };
   }

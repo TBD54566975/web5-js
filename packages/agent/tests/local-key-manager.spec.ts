@@ -375,6 +375,40 @@ describe('LocalKeyManager', () => {
           expect(wrappedKeyBytes).to.deep.equal(expectedOutput);
         });
       });
+
+      describe('deleteKey()', () => {
+        it('deletes a key', async () => {
+          // create key that will be stored in the keyStore
+          const keyUri = await testHarness.agent.keyManager.generateKey({ algorithm: 'secp256k1' });
+
+          // verify that you can get the key
+          let key = await testHarness.agent.keyManager.getPublicKey({ keyUri });
+          const computedKeyUri = await testHarness.agent.keyManager.getKeyUri({ key });
+          expect(computedKeyUri).to.equal(keyUri);
+
+          // delete the key
+          await testHarness.agent.keyManager.deleteKey({ keyUri });
+
+          try {
+            // verify that the key is no longer in the keyStore
+            key = await testHarness.agent.keyManager.getPublicKey({ keyUri });
+            expect.fail('Expected an error to be thrown.');
+          } catch(error: any) {
+            expect(error.message).to.include('Key not found');
+          }
+        });
+
+        it('errors if key is not found', async () => {
+          const keyUri = 'urn:jwk:does-not-exist';
+
+          try {
+            await testHarness.agent.keyManager.deleteKey({ keyUri });
+            expect.fail('Expected an error to be thrown.');
+          } catch(error: any) {
+            expect(error.message).to.include('Key not found');
+          }
+        });
+      });
     });
   });
 });

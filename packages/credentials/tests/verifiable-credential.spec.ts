@@ -2,7 +2,7 @@ import type { BearerDid, PortableDid } from '@web5/dids';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { DidDht, DidKey, DidIon, DidJwk } from '@web5/dids';
+import { DidDht, DidKey, DidJwk } from '@web5/dids';
 
 import { Jwt } from '../src/jwt.js';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
@@ -20,7 +20,7 @@ describe('Verifiable Credential Tests', () => {
   }
 
   beforeEach(async () => {
-    issuerDid = await DidKey.create();
+    issuerDid = await DidJwk.create();
   });
 
   describe('Verifiable Credential (VC)', () => {
@@ -92,74 +92,133 @@ describe('Verifiable Credential Tests', () => {
     });
 
     it('create and sign kyc vc with did:jwk', async () => {
+      // KYC schema, also hosted here https://developer.tbd.website/schemas/kccSchema.json
+      const kycSchema = {
+        '$schema'    : 'http://json-schema.org/draft-07/schema#',
+        'type'       : 'object',
+        'properties' : {
+          'credentialSubject': {
+            'type'       : 'object',
+            'properties' : {
+              'id': {
+                'type': 'string'
+              },
+              'countryOfResidence': {
+                'type'    : 'string',
+                'pattern' : '^[A-Z]{2}$'
+              },
+              'tier': {
+                'type'     : 'string',
+                'optional' : true
+              }
+            },
+            'required': [
+              'id',
+              'countryOfResidence'
+            ]
+          },
+          'issuer': {
+            'type': 'string'
+          },
+          'issuanceDate': {
+            'type'   : 'string',
+            'format' : 'date-time'
+          },
+          'expirationDate': {
+            'type'   : 'string',
+            'format' : 'date-time'
+          },
+          'credentialSchema': {
+            'type'       : 'object',
+            'properties' : {
+              'id': {
+                'type'   : 'string',
+                'format' : 'uri'
+              },
+              'type': {
+                'type'  : 'string',
+                'const' : 'JsonSchema'
+              }
+            },
+            'required': [
+              'id',
+              'type'
+            ]
+          },
+          'evidence': {
+            'type'  : 'array',
+            'items' : {
+              'type'       : 'object',
+              'properties' : {
+                'kind': {
+                  'type': 'string'
+                },
+                'checks': {
+                  'type'  : 'array',
+                  'items' : {
+                    'type': 'string'
+                  }
+                }
+              },
+              'optional': true
+            },
+            'optional': true
+          }
+        },
+        'required': [
+          'credentialSubject',
+          'issuer',
+          'issuanceDate',
+          'expirationDate',
+          'credentialSchema'
+        ]
+      };
+
+      // Setup stub for fetch
+      const fetchStub = sinon.stub(globalThis, 'fetch');
+
+      // Mock the schema fetch
+      fetchStub.withArgs('https://schema.org/PFI').resolves(new Response(JSON.stringify(kycSchema), { status: 200 }));
+
       const subjectDid = await DidJwk.create();
       const issuerDid = await DidJwk.create();
 
+      const issuanceDate = '2023-05-19T08:02:04Z';
+      const expirationDate = '2055-05-19T08:02:04Z';
+      const evidence = [
+        { kind: 'document_verification', checks: ['passport', 'utility_bill'] },
+        { kind: 'sanctions_check', checks: ['daily'] }
+      ];
+      const credentialSubject = { id: subjectDid.uri, countryOfResidence: 'US', tier: 'Tier 1' };
+      const credentialSchema = { id: 'https://schema.org/PFI', type: 'JsonSchema' };
+
       const vc = await VerifiableCredential.create({
-        type           : 'KnowYourCustomerCred',
-        subject        : subjectDid.uri,
-        issuer         : issuerDid.uri,
-        issuanceDate   : '2023-05-19T08:02:04Z',
-        expirationDate : `2055-05-19T08:02:04Z`,
-        data           : {
-          id                   : subjectDid.uri,
-          country_of_residence : 'US',
-          tier                 : 'Tier 1'
-        },
-        credentialSchema: {
-          id   : ' https://schema.org/PFI',
-          type : 'JsonSchema'
-        },
-        evidence: [
-          { kind: 'document_verification', checks: ['passport', 'utility_bill'] },
-          { kind: 'sanctions_check', checks: ['daily'] }
-        ]
+        type    : 'KnowYourCustomerCred',
+        subject : subjectDid.uri,
+        issuer  : issuerDid.uri,
+        issuanceDate,
+        expirationDate,
+        data    : credentialSubject,
+        credentialSchema,
+        evidence
       });
 
       const vcJwt = await vc.sign({ did: issuerDid });
 
       await VerifiableCredential.verify({ vcJwt });
 
-      for( const currentVc of [vc, VerifiableCredential.parseJwt({ vcJwt })]){
-        expect(currentVc.issuer).to.equal(issuerDid.uri);
-        expect(currentVc.subject).to.equal(subjectDid.uri);
-        expect(currentVc.type).to.equal('KnowYourCustomerCred');
-        expect(currentVc.vcDataModel.issuanceDate).to.equal('2023-05-19T08:02:04Z');
-        expect(currentVc.vcDataModel.expirationDate).to.equal('2055-05-19T08:02:04Z');
-        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: subjectDid.uri, country_of_residence: 'US', tier: 'Tier 1'});
-        expect(currentVc.vcDataModel.credentialSchema).to.deep.equal({ id: ' https://schema.org/PFI', type: 'JsonSchema'});
-        expect(currentVc.vcDataModel.evidence).to.deep.equal([
-          { kind: 'document_verification', checks: ['passport', 'utility_bill'] },
-          { kind: 'sanctions_check', checks: ['daily'] }
-        ]);
-      }
-    });
+      const currentVc = VerifiableCredential.parseJwt({ vcJwt });
 
-    // TBD's `did:ion` resolver has been sunset so skipping tests
-    // TODO: Move `did:ion` functionality to separate repo
-    xit('create and sign vc with did:ion', async () => {
-      const did = await DidIon.create();
+      expect(currentVc.issuer).to.equal(issuerDid.uri);
+      expect(currentVc.subject).to.equal(subjectDid.uri);
+      expect(currentVc.type).to.equal('KnowYourCustomerCred');
+      expect(currentVc.vcDataModel.issuanceDate).to.equal(issuanceDate);
+      expect(currentVc.vcDataModel.expirationDate).to.equal(expirationDate);
+      expect(currentVc.vcDataModel.evidence).to.deep.equal(evidence);
+      expect(currentVc.vcDataModel.credentialSubject).to.deep.equal(credentialSubject);
+      expect(currentVc.vcDataModel.credentialSchema).to.deep.equal(credentialSchema);
 
-      const vc = await VerifiableCredential.create({
-        type    : 'TBDeveloperCredential',
-        subject : did.uri,
-        issuer  : did.uri,
-        data    : {
-          username: 'nitro'
-        }
-      });
-
-      const vcJwt = await vc.sign({ did });
-
-      await VerifiableCredential.verify({ vcJwt });
-
-      for (const currentVc of [vc, VerifiableCredential.parseJwt({ vcJwt })]){
-        expect(currentVc.issuer).to.equal(did.uri);
-        expect(currentVc.subject).to.equal(did.uri);
-        expect(currentVc.type).to.equal('TBDeveloperCredential');
-        expect(currentVc.vcDataModel.issuanceDate).to.not.be.undefined;
-        expect(currentVc.vcDataModel.credentialSubject).to.deep.equal({ id: did.uri, username: 'nitro'});
-      }
+      sinon.restore();
     });
 
     it('create and sign vc with did:dht', async () => {

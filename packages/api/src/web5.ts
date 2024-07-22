@@ -8,14 +8,20 @@ import {
 import { Web5UserAgent } from '@web5/user-agent';
 import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
+import { DwnRecordsPermissionScope, DwnProtocolDefinition, DwnRegistrar } from '@web5/agent';
 import { VcApi } from './vc-api.js';
-import { getTechPreviewDwnEndpoints } from './tech-preview.js';
 
 /** Override defaults configured during the technical preview phase. */
 export type TechPreviewOptions = {
   /** Override default dwnEndpoints provided for technical preview. */
   dwnEndpoints?: string[];
 };
+
+/** Override defaults for DID creation. */
+export type DidCreateOptions = {
+  /** Override default dwnEndpoints provided during DID creation. */
+  dwnEndpoints?: string[];
+}
 
 /** Optional overrides that can be provided when calling {@link Web5.connect}. */
 export type Web5ConnectOptions = {
@@ -95,7 +101,26 @@ export type Web5ConnectOptions = {
    * See {@link TechPreviewOptions} for available options.
    */
   techPreview?: TechPreviewOptions;
-};
+
+  /**
+   * Override defaults configured options for creating a DID during connect.
+   * See {@link DidCreateOptions} for available options.
+   */
+  didCreateOptions?: DidCreateOptions;
+
+  /**
+   * If the `registration` option is provided, the agent DID and the connected DID will be registered with the DWN endpoints provided by `techPreview` or `didCreateOptions`.
+   *
+   * If registration fails, the `onFailure` callback will be called with the error.
+   * If registration is successful, the `onSuccess` callback will be called.
+   */
+  registration? : {
+    /** Called when all of the DWN registrations are successful */
+    onSuccess: () => void;
+    /** Called when any of the DWN registrations fail */
+    onFailure: (error: any) => void;
+  }
+}
 
 /**
  * Represents the result of the Web5 connection process, including the Web5 instance,
@@ -179,6 +204,8 @@ export class Web5 {
     recoveryPhrase,
     sync,
     techPreview,
+    didCreateOptions,
+    registration,
     walletConnectOptions,
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
     if (agent === undefined) {
@@ -217,7 +244,7 @@ export class Web5 {
 
       if (existingIdentityCount === 0) {
         // Use the specified DWN endpoints or get default tech preview hosted nodes.
-        const serviceEndpointNodes = techPreview?.dwnEndpoints ?? await getTechPreviewDwnEndpoints();
+        const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
 
         // Generate a new Identity for the end-user.
         identity = await userAgent.identity.create({
@@ -261,8 +288,35 @@ export class Web5 {
         throw new Error(`connect() failed due to unexpected state: Expected 1 but found ${existingIdentityCount} stored identities.`);
       }
 
-      // Set the stored identity as the connected DID.
       connectedDid = identity.did.uri;
+
+      if (registration !== undefined) {
+        // If a registration object is passed, we attempt to register the AgentDID and the ConnectedDID with the DWN endpoints provided
+        const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints;
+
+        try {
+          for (const dwnEndpoint of serviceEndpointNodes) {
+            // check if endpoint needs registration
+            const serverInfo = await userAgent.rpc.getServerInfo(dwnEndpoint);
+            if (serverInfo.registrationRequirements.length === 0) {
+              // no registration required
+              continue;
+            }
+
+            // register the agent DID
+            await DwnRegistrar.registerTenant(dwnEndpoint, agent.agentDid.uri);
+
+            // register the connected Identity DID
+            await DwnRegistrar.registerTenant(dwnEndpoint, connectedDid);
+          }
+
+          // If no failures occurred, call the onSuccess callback
+          registration.onSuccess();
+        } catch(error) {
+          // for any failure, call the onFailure callback with the error
+          registration.onFailure(error);
+        }
+      }
 
       // Enable sync, unless explicitly disabled.
       if (sync !== 'off') {
