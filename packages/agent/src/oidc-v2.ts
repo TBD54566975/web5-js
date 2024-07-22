@@ -9,7 +9,7 @@ import {
   X25519,
 } from '@web5/crypto';
 
-import { appendPathToUrl } from './utils.js';
+import { concatenateUrl } from './utils.js';
 import { Hkdf } from './prototyping/crypto/primitives/hkdf.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 import type { ConnectPermissionRequests } from './connect-v2.js';
@@ -196,31 +196,19 @@ function buildOidcUrl({
   switch (endpoint) {
     /** 1. client sends {@link PushedAuthRequest} & client receives {@link PushedAuthResponse} */
     case 'pushedAuthorizationRequest':
-      return appendPathToUrl({
-        path : 'par',
-        url  : baseURL,
-      });
+      return concatenateUrl(baseURL, 'par');
     /** 2. provider gets {@link Web5ConnectAuthRequest} */
     case 'authorize':
       return authParam
-        ? appendPathToUrl({
-          path : `authorize/${authParam}.jwt`,
-          url  : baseURL,
-        })
+        ? concatenateUrl(baseURL, `authorize/${authParam}.jwt`)
         : '';
     /** 3. provider sends {@link Web5ConnectAuthResponse} */
     case 'callback':
-      return appendPathToUrl({
-        path : `callback`,
-        url  : baseURL,
-      });
+      return concatenateUrl(baseURL, `callback`);
     /**  4. client gets {@link Web5ConnectAuthResponse */
     case 'token':
       return tokenParam
-        ? appendPathToUrl({
-          path : `token/${tokenParam}.jwt`,
-          url  : baseURL,
-        })
+        ? concatenateUrl(baseURL, `token/${tokenParam}.jwt`)
         : '';
     // TODO: metadata endpoints?
     default:
