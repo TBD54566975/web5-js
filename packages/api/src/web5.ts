@@ -27,7 +27,8 @@ export type DidCreateOptions = {
 export type Web5ConnectOptions = {
   /**
    * When specified, external wallet connect flow is triggered.
-   * @remarks This param currently will not work in apps that were previously connected. It must be invoked at registration.
+   * This param currently will not work in apps that are currently connected.
+   * It must only be invoked at registration with a reset and empty DWN and agent.
    */
   walletConnectOptions?: WalletConnectOptions;
 
