@@ -217,41 +217,6 @@ function buildOidcUrl({
 }
 
 /**
- * Generates a random string value used to associate a Client authorization
- * request with the Identity Provider's response callback.
- *
- * @returns The random state as both bytes and base64url for convenience.
- */
-function generateRandomState() {
-  const randomStateBytes = utils.randomBytes(12);
-  const randomStateBase64Url = Convert.uint8Array(randomStateBytes).toBase64Url();
-
-  return { randomStateBytes, randomStateBase64Url };
-}
-
-/**
- * Calculates a value based on the given input that can be used to associate a
- * Client session with an ID Token, and to mitigate replay attacks. Per the
- * OpenID Connect Core 1.0 specification, the nonce parameter value should
- * include per-session state and be unguessable to attackers.
- *
- * @see {@link https://openid.net/specs/openid-connect-core-1_0.html#NonceNotes | OpenID Connect Core 1.0, Nonce Implementation Notes}
- * @returns A derived nonce as a Base64Url encoded string.
- */
-async function deriveNonceFromInput(state: Uint8Array) {
-  const nonceBytes = await Hkdf.deriveKeyBytes({
-    hash         : 'SHA-256',
-    baseKeyBytes : state,
-    length       : 16,
-    salt         : utils.randomBytes(12),
-  });
-
-  const nonce = Convert.uint8Array(nonceBytes).toBase64Url();
-
-  return nonce;
-}
-
-/**
  * Generates a cryptographically random key called a "code verifier" in
  * accordance with the RFC 7636 PKCE specification. A unique code verifier
  * should be created for every authorization request.
@@ -285,7 +250,7 @@ async function deriveCodeChallenge(codeVerifier: Uint8Array) {
 // TODO: when implementing pure OIDC split up the Web5 and OIDC params
 async function createAuthRequest(
   options: RequireOnly<
-  Web5ConnectAuthRequest,
+    Web5ConnectAuthRequest,
     | 'code_challenge'
     | 'code_challenge_method'
     | 'client_id'
@@ -295,17 +260,18 @@ async function createAuthRequest(
   >
 ) {
   // Generate a random state value to associate the authorization request with the response.
-  const { randomStateBytes, randomStateBase64Url } = generateRandomState();
+  const stateBytes = utils.randomBytes(12);
 
   // Generate a random nonce value to associate the ID Token with the authorization request.
-  const nonce = await deriveNonceFromInput(randomStateBytes);
+  const nonceBytes = await Sha256.digest({ data: utils.randomBytes(12) });
+  const nonce = Convert.uint8Array(nonceBytes).toBase64Url();
 
   const requestObject: Web5ConnectAuthRequest = {
     ...options,
     nonce,
     response_type : 'id_token',
     response_mode : 'direct_post',
-    state         : randomStateBase64Url,
+    state         : Convert.uint8Array(stateBytes).toBase64Url(),
   };
 
   return requestObject;
@@ -349,7 +315,7 @@ async function encryptAuthRequest({
 // todo: split up oidc and connect specific stuff in the future
 async function createResponseObject(
   options: RequireOnly<
-  Web5ConnectAuthResponse,
+    Web5ConnectAuthResponse,
     'iss' | 'sub' | 'aud' | 'delegatedGrants' | 'privateKeyJwks'
   >
 ) {

@@ -41,7 +41,7 @@ async function initClient({
     code_challenge_method : 'S256',
     permissionRequests    : permissionRequests,
     redirect_uri          : callbackEndpoint,
-    // known customer credential defines these
+    // TBD known-customer-credential defines these
     client_metadata       : {
       subject_syntax_types_supported: ['did:dht'],
     },
