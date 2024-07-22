@@ -89,7 +89,6 @@ async function initClient({
     // a route to its web5 connect provider flow and the params of where to fetch the auth request.
     const generatedWalletUri = new URL(walletUri);
     generatedWalletUri.searchParams.set('request_uri', parData.request_uri);
-    generatedWalletUri.searchParams.set('client_did', clientDid.uri);
     generatedWalletUri.searchParams.set('code_challenge', codeChallengeBase64Url);
 
     // call user's callback so they can send the URI to the wallet as they see fit
