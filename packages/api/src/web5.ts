@@ -8,7 +8,7 @@ import {
 import { Web5UserAgent } from '@web5/user-agent';
 import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
-import { DwnRecordsPermissionScope, DwnProtocolDefinition, DwnRegistrar } from '@web5/agent';
+import { DwnRegistrar } from '@web5/agent';
 import { VcApi } from './vc-api.js';
 
 /** Override defaults configured during the technical preview phase. */
