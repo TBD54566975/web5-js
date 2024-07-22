@@ -46,7 +46,7 @@ export type PushedAuthResponse = {
  * @see {@link https://github.com/TBD54566975/known-customer-credential | TBD OIDC Documentation for SIOPv2 }
  */
 export type SIOPv2AuthRequest = {
-  /** Often the same as the redirect_uri */
+  /** The DID of the client (RP) */
   client_id: string;
 
   /** The scope of the access request (e.g., `openid profile`). */

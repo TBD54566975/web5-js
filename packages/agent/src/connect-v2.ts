@@ -35,7 +35,7 @@ async function initClient({
 
   // build the PAR request
   const request = await Oidc.createAuthRequest({
-    client_id             : callbackEndpoint,
+    client_id             : clientDid.uri,
     scope                 : 'web5', // TODO: clear with frank
     code_challenge        : codeChallengeBase64Url,
     code_challenge_method : 'S256',
