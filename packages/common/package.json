@@ -89,7 +89,7 @@
     "abstract-level": "1.0.4",
     "c8": "9.1.0",
     "chai": "5.1.1",
-    "chai-as-promised": "7.1.2",
+    "chai-as-promised": "8.0.0",
     "esbuild": "0.23.0",
     "eslint": "9.7.0",
     "eslint-plugin-mocha": "10.4.3",
