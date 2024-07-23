@@ -337,29 +337,25 @@ async function signJwt({
   did: BearerDid;
   data: Record<string, unknown>;
 }) {
-  try {
-    const header = Convert.object({
-      alg : 'EdDSA',
-      kid : did.document.verificationMethod![0].id,
-      typ : 'JWT',
-    }).toBase64Url();
+  const header = Convert.object({
+    alg : 'EdDSA',
+    kid : did.document.verificationMethod![0].id,
+    typ : 'JWT',
+  }).toBase64Url();
 
-    const payload = Convert.object(data).toBase64Url();
+  const payload = Convert.object(data).toBase64Url();
 
-    // signs using ed25519 EdDSA
-    const signer = await did.getSigner();
-    const signature = await signer.sign({
-      data: Convert.string(`${header}.${payload}`).toUint8Array(),
-    });
+  // signs using ed25519 EdDSA
+  const signer = await did.getSigner();
+  const signature = await signer.sign({
+    data: Convert.string(`${header}.${payload}`).toUint8Array(),
+  });
 
-    const signatureBase64Url = Convert.uint8Array(signature).toBase64Url();
+  const signatureBase64Url = Convert.uint8Array(signature).toBase64Url();
 
-    const jwt = `${header}.${payload}.${signatureBase64Url}`;
+  const jwt = `${header}.${payload}.${signatureBase64Url}`;
 
-    return jwt;
-  } catch (e) {
-    console.error(e);
-  }
+  return jwt;
 }
 
 /** Take the decrypted JWT and verify it was signed by its public DID. Return parsed object. */

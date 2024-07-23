@@ -70,61 +70,58 @@ async function initClient({
     endpoint : 'pushedAuthorizationRequest',
   });
 
-  try {
-    const parResponse = await fetch(pushedAuthorizationRequestEndpoint, {
-      body    : formEncodedRequest,
-      method  : 'POST',
-      headers : {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
 
-    if (!parResponse.ok) {
-      throw new Error(`${parResponse.status}: ${parResponse.statusText}`);
-    }
+  const parResponse = await fetch(pushedAuthorizationRequestEndpoint, {
+    body    : formEncodedRequest,
+    method  : 'POST',
+    headers : {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  });
 
-    const parData: PushedAuthResponse = await parResponse.json();
+  if (!parResponse.ok) {
+    throw new Error(`${parResponse.status}: ${parResponse.statusText}`);
+  }
 
-    // a deeplink to a web5 compatible wallet. if the wallet scans this link it should receive
-    // a route to its web5 connect provider flow and the params of where to fetch the auth request.
-    const generatedWalletUri = new URL(walletUri);
-    generatedWalletUri.searchParams.set('request_uri', parData.request_uri);
-    generatedWalletUri.searchParams.set('code_challenge', codeChallengeBase64Url);
+  const parData: PushedAuthResponse = await parResponse.json();
 
-    // call user's callback so they can send the URI to the wallet as they see fit
-    onWalletUriReady(generatedWalletUri.toString());
+  // a deeplink to a web5 compatible wallet. if the wallet scans this link it should receive
+  // a route to its web5 connect provider flow and the params of where to fetch the auth request.
+  const generatedWalletUri = new URL(walletUri);
+  generatedWalletUri.searchParams.set('request_uri', parData.request_uri);
+  generatedWalletUri.searchParams.set('code_challenge', codeChallengeBase64Url);
 
-    // subscribe to receiving a response from the wallet with default TTL
-    const tokenUrl = Oidc.buildOidcUrl({
-      baseURL    : connectServerUrl,
-      endpoint   : 'token',
-      tokenParam : request.state,
-    });
+  // call user's callback so they can send the URI to the wallet as they see fit
+  onWalletUriReady(generatedWalletUri.toString());
 
-    /** ciphertext of {@link Web5ConnectAuthResponse} */
-    const authResponse = await pollWithTtl(() => fetch(tokenUrl));
+  // subscribe to receiving a response from the wallet with default TTL
+  const tokenUrl = Oidc.buildOidcUrl({
+    baseURL    : connectServerUrl,
+    endpoint   : 'token',
+    tokenParam : request.state,
+  });
 
-    if (authResponse) {
-      const jwe = await authResponse?.text();
+  /** ciphertext of {@link Web5ConnectAuthResponse} */
+  const authResponse = await pollWithTtl(() => fetch(tokenUrl));
 
-      // get the pin from the user and use it as AAD to decrypt
-      const pin = await validatePin();
-      const jwt = await Oidc.decryptAuthResponse(clientDid, jwe, pin);
-      const verifiedAuthResponse = (await Oidc.verifyJwt({
-        jwt,
-      })) as Web5ConnectAuthResponse;
+  if (authResponse) {
+    const jwe = await authResponse?.text();
 
-      // return the grants for liran to ingest into the DWN SDK / agent
-      return {
-        delegatedGrants : verifiedAuthResponse.delegatedGrants,
-        didToImport     : [{
-          didUri         : verifiedAuthResponse.aud,
-          privateKeyJwks : verifiedAuthResponse.privateKeyJwks
-        }]
-      };
-    }
-  } catch (e) {
-    console.error(e);
+    // get the pin from the user and use it as AAD to decrypt
+    const pin = await validatePin();
+    const jwt = await Oidc.decryptAuthResponse(clientDid, jwe, pin);
+    const verifiedAuthResponse = (await Oidc.verifyJwt({
+      jwt,
+    })) as Web5ConnectAuthResponse;
+
+    // return the grants for liran to ingest into the DWN SDK / agent
+    return {
+      delegatedGrants : verifiedAuthResponse.delegatedGrants,
+      didToImport     : [{
+        didUri         : verifiedAuthResponse.aud,
+        privateKeyJwks : verifiedAuthResponse.privateKeyJwks
+      }]
+    };
   }
 }
 
