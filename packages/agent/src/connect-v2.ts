@@ -114,9 +114,7 @@ async function initClient({
         jwt,
       })) as Web5ConnectAuthResponse;
 
-      // return the grants for liran to
-      console.log(verifiedAuthResponse);
-
+      // return the grants for liran to ingest into the DWN SDK / agent
       return {
         delegatedGrants : verifiedAuthResponse.delegatedGrants,
         didToImport     : [{
