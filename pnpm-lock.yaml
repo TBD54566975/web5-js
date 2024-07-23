@@ -80,8 +80,8 @@ importers:
         version: 2.1.0
     devDependencies:
       '@playwright/test':
-        specifier: 1.40.1
-        version: 1.40.1
+        specifier: 1.45.3
+        version: 1.45.3
       '@types/chai':
         specifier: 4.3.6
         version: 4.3.6
@@ -140,8 +140,8 @@ importers:
         specifier: 1.2.0
         version: 1.2.0
       playwright:
-        specifier: 1.40.1
-        version: 1.40.1
+        specifier: 1.45.3
+        version: 1.45.3
       rimraf:
         specifier: 4.4.0
         version: 4.4.0
@@ -171,8 +171,8 @@ importers:
         version: link:../user-agent
     devDependencies:
       '@playwright/test':
-        specifier: 1.40.1
-        version: 1.40.1
+        specifier: 1.45.3
+        version: 1.45.3
       '@tbd54566975/dwn-sdk-js':
         specifier: 0.4.4
         version: 0.4.4
@@ -228,8 +228,8 @@ importers:
         specifier: 1.2.0
         version: 1.2.0
       playwright:
-        specifier: 1.40.1
-        version: 1.40.1
+        specifier: 1.45.3
+        version: 1.45.3
       rimraf:
         specifier: 4.4.0
         version: 4.4.0
@@ -319,8 +319,8 @@ importers:
         specifier: 2.2.1
         version: 2.2.1(mocha@10.4.0)
       playwright:
-        specifier: 1.45.0
-        version: 1.45.0
+        specifier: 1.45.3
+        version: 1.45.3
       rimraf:
         specifier: 5.0.7
         version: 5.0.7
@@ -438,8 +438,8 @@ importers:
         version: 1.0.1
     devDependencies:
       '@playwright/test':
-        specifier: 1.40.1
-        version: 1.40.1
+        specifier: 1.45.3
+        version: 1.45.3
       '@types/chai':
         specifier: 4.3.16
         version: 4.3.16
@@ -520,8 +520,8 @@ importers:
         version: 1.0.0
     devDependencies:
       '@playwright/test':
-        specifier: 1.45.0
-        version: 1.45.0
+        specifier: 1.45.3
+        version: 1.45.3
       '@types/chai':
         specifier: 4.3.16
         version: 4.3.16
@@ -577,8 +577,8 @@ importers:
         specifier: 2.2.1
         version: 2.2.1(mocha@10.7.0)
       playwright:
-        specifier: 1.44.0
-        version: 1.44.0
+        specifier: 1.45.3
+        version: 1.45.3
       rimraf:
         specifier: 5.0.7
         version: 5.0.7
@@ -623,8 +623,8 @@ importers:
         version: 2.1.3
     devDependencies:
       '@playwright/test':
-        specifier: 1.40.1
-        version: 1.40.1
+        specifier: 1.45.3
+        version: 1.45.3
       '@types/bencode':
         specifier: 2.0.4
         version: 2.0.4
@@ -686,8 +686,8 @@ importers:
         specifier: 2.2.1
         version: 2.2.1(mocha@10.7.0)
       playwright:
-        specifier: 1.45.0
-        version: 1.45.0
+        specifier: 1.45.3
+        version: 1.45.3
       rimraf:
         specifier: 5.0.7
         version: 5.0.7
@@ -717,8 +717,8 @@ importers:
         version: 1.1.0
     devDependencies:
       '@playwright/test':
-        specifier: 1.40.1
-        version: 1.40.1
+        specifier: 1.45.3
+        version: 1.45.3
       '@types/chai':
         specifier: 4.3.6
         version: 4.3.6
@@ -777,8 +777,8 @@ importers:
         specifier: 1.2.0
         version: 1.2.0
       playwright:
-        specifier: 1.40.1
-        version: 1.40.1
+        specifier: 1.45.3
+        version: 1.45.3
       rimraf:
         specifier: 4.4.0
         version: 4.4.0
@@ -805,8 +805,8 @@ importers:
         version: 1.1.0
     devDependencies:
       '@playwright/test':
-        specifier: 1.40.1
-        version: 1.40.1
+        specifier: 1.45.3
+        version: 1.45.3
       '@types/chai':
         specifier: 4.3.6
         version: 4.3.6
@@ -865,8 +865,8 @@ importers:
         specifier: 1.2.0
         version: 1.2.0
       playwright:
-        specifier: 1.40.1
-        version: 1.40.1
+        specifier: 1.45.3
+        version: 1.45.3
       rimraf:
         specifier: 4.4.0
         version: 4.4.0
@@ -890,8 +890,8 @@ importers:
         version: 1.1.0
     devDependencies:
       '@playwright/test':
-        specifier: 1.40.1
-        version: 1.40.1
+        specifier: 1.45.3
+        version: 1.45.3
       '@types/chai':
         specifier: 4.3.6
         version: 4.3.6
@@ -950,8 +950,8 @@ importers:
         specifier: 1.2.0
         version: 1.2.0
       playwright:
-        specifier: 1.40.1
-        version: 1.40.1
+        specifier: 1.45.3
+        version: 1.45.3
       rimraf:
         specifier: 4.4.0
         version: 4.4.0
@@ -1779,16 +1779,6 @@ packages:
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
-
-  '@playwright/test@1.40.1':
-    resolution: {integrity: sha512-EaaawMTOeEItCRvfmkI9v6rBkF1svM8wjl/YPRrg2N2Wmp+4qJYkWtJsbew1szfKKDm6fPLy4YAanBhIlf9dWw==}
-    engines: {node: '>=16'}
-    hasBin: true
-
-  '@playwright/test@1.45.0':
-    resolution: {integrity: sha512-TVYsfMlGAaxeUllNkywbwek67Ncf8FRGn8ZlRdO291OL3NjG9oMbfVhyP82HQF0CZLMrYsvesqoUekxdWuF9Qw==}
-    engines: {node: '>=18'}
-    hasBin: true
 
   '@playwright/test@1.45.3':
     resolution: {integrity: sha512-UKF4XsBfy+u3MFWEH44hva1Q8Da28G6RFtR2+5saw+jgAFQV5yYnB1fu68Mz7fO+5GJF3wgwAIs0UelU8TxFrA==}
@@ -5033,38 +5023,8 @@ packages:
     resolution: {integrity: sha512-NPE8TDbzl/3YQYY7CSS228s3g2ollTFnc+Qi3tqmqJp9Vg2ovUpixcJEo2HJScN2Ez+kEaal6y70c0ehqJBJeA==}
     engines: {node: '>=10'}
 
-  playwright-core@1.40.1:
-    resolution: {integrity: sha512-+hkOycxPiV534c4HhpfX6yrlawqVUzITRKwHAmYfmsVreltEl6fAZJ3DPfLMOODw0H3s1Itd6MDCWmP1fl/QvQ==}
-    engines: {node: '>=16'}
-    hasBin: true
-
-  playwright-core@1.44.0:
-    resolution: {integrity: sha512-ZTbkNpFfYcGWohvTTl+xewITm7EOuqIqex0c7dNZ+aXsbrLj0qI8XlGKfPpipjm0Wny/4Lt4CJsWJk1stVS5qQ==}
-    engines: {node: '>=16'}
-    hasBin: true
-
-  playwright-core@1.45.0:
-    resolution: {integrity: sha512-lZmHlFQ0VYSpAs43dRq1/nJ9G/6SiTI7VPqidld9TDefL9tX87bTKExWZZUF5PeRyqtXqd8fQi2qmfIedkwsNQ==}
-    engines: {node: '>=18'}
-    hasBin: true
-
   playwright-core@1.45.3:
     resolution: {integrity: sha512-+ym0jNbcjikaOwwSZycFbwkWgfruWvYlJfThKYAlImbxUgdWFO2oW70ojPm4OpE4t6TAo2FY/smM+hpVTtkhDA==}
-    engines: {node: '>=18'}
-    hasBin: true
-
-  playwright@1.40.1:
-    resolution: {integrity: sha512-2eHI7IioIpQ0bS1Ovg/HszsN/XKNwEG1kbzSDDmADpclKc7CyqkHw7Mg2JCz/bbCxg25QUPcjksoMW7JcIFQmw==}
-    engines: {node: '>=16'}
-    hasBin: true
-
-  playwright@1.44.0:
-    resolution: {integrity: sha512-F9b3GUCLQ3Nffrfb6dunPOkE5Mh68tR7zN32L4jCk4FjQamgesGay7/dAAe1WaMEGV04DkdJfcJzjoCKygUaRQ==}
-    engines: {node: '>=16'}
-    hasBin: true
-
-  playwright@1.45.0:
-    resolution: {integrity: sha512-4z3ac3plDfYzGB6r0Q3LF8POPR20Z8D0aXcxbJvmfMgSSq1hkcgvFRXJk9rUq5H/MJ0Ktal869hhOdI/zUTeLA==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -7178,14 +7138,6 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
-  '@playwright/test@1.40.1':
-    dependencies:
-      playwright: 1.40.1
-
-  '@playwright/test@1.45.0':
-    dependencies:
-      playwright: 1.45.0
-
   '@playwright/test@1.45.3':
     dependencies:
       playwright: 1.45.3
@@ -8524,7 +8476,7 @@ snapshots:
     dependencies:
       '@web/test-runner-core': 0.13.1
       '@web/test-runner-coverage-v8': 0.8.0
-      playwright: 1.40.1
+      playwright: 1.45.3
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -8743,9 +8695,9 @@ snapshots:
       mime-types: 2.1.35
       negotiator: 0.6.3
 
-  acorn-import-attributes@1.9.5(acorn@8.11.3):
+  acorn-import-attributes@1.9.5(acorn@8.12.1):
     dependencies:
-      acorn: 8.11.3
+      acorn: 8.12.1
 
   acorn-jsx@5.3.2(acorn@8.11.3):
     dependencies:
@@ -11680,31 +11632,7 @@ snapshots:
     dependencies:
       find-up: 5.0.0
 
-  playwright-core@1.40.1: {}
-
-  playwright-core@1.44.0: {}
-
-  playwright-core@1.45.0: {}
-
   playwright-core@1.45.3: {}
-
-  playwright@1.40.1:
-    dependencies:
-      playwright-core: 1.40.1
-    optionalDependencies:
-      fsevents: 2.3.2
-
-  playwright@1.44.0:
-    dependencies:
-      playwright-core: 1.44.0
-    optionalDependencies:
-      fsevents: 2.3.2
-
-  playwright@1.45.0:
-    dependencies:
-      playwright-core: 1.45.0
-    optionalDependencies:
-      fsevents: 2.3.2
 
   playwright@1.45.3:
     dependencies:
@@ -12486,7 +12414,7 @@ snapshots:
   terser@5.31.1:
     dependencies:
       '@jridgewell/source-map': 0.3.6
-      acorn: 8.11.3
+      acorn: 8.12.1
       commander: 2.20.3
       source-map-support: 0.5.21
 
@@ -12775,8 +12703,8 @@ snapshots:
       '@webassemblyjs/ast': 1.12.1
       '@webassemblyjs/wasm-edit': 1.12.1
       '@webassemblyjs/wasm-parser': 1.12.1
-      acorn: 8.11.3
-      acorn-import-attributes: 1.9.5(acorn@8.11.3)
+      acorn: 8.12.1
+      acorn-import-attributes: 1.9.5(acorn@8.12.1)
       browserslist: 4.23.1
       chrome-trace-event: 1.0.4
       enhanced-resolve: 5.17.0
@@ -12806,8 +12734,8 @@ snapshots:
       '@webassemblyjs/ast': 1.12.1
       '@webassemblyjs/wasm-edit': 1.12.1
       '@webassemblyjs/wasm-parser': 1.12.1
-      acorn: 8.11.3
-      acorn-import-attributes: 1.9.5(acorn@8.11.3)
+      acorn: 8.12.1
+      acorn-import-attributes: 1.9.5(acorn@8.12.1)
       browserslist: 4.23.1
       chrome-trace-event: 1.0.4
       enhanced-resolve: 5.17.0
@@ -12837,8 +12765,8 @@ snapshots:
       '@webassemblyjs/ast': 1.12.1
       '@webassemblyjs/wasm-edit': 1.12.1
       '@webassemblyjs/wasm-parser': 1.12.1
-      acorn: 8.11.3
-      acorn-import-attributes: 1.9.5(acorn@8.11.3)
+      acorn: 8.12.1
+      acorn-import-attributes: 1.9.5(acorn@8.12.1)
       browserslist: 4.23.1
       chrome-trace-event: 1.0.4
       enhanced-resolve: 5.17.0
