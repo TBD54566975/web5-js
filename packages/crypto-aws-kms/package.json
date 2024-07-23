@@ -70,15 +70,15 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@aws-sdk/client-kms": "3.577.0",
+    "@aws-sdk/client-kms": "3.616.0",
     "@web5/crypto": "1.0.0"
   },
   "devDependencies": {
     "@playwright/test": "1.45.0",
     "@types/chai": "4.3.16",
     "@types/chai-as-promised": "7.1.8",
-    "@types/eslint": "8.56.10",
-    "@types/mocha": "10.0.6",
+    "@types/eslint": "9.6.0",
+    "@types/mocha": "10.0.7",
     "@types/node": "20.14.8",
     "@types/sinon": "17.0.3",
     "@typescript-eslint/eslint-plugin": "7.14.1",
@@ -88,10 +88,10 @@
     "@web5/common": "1.0.1",
     "c8": "9.1.0",
     "chai": "5.1.1",
-    "chai-as-promised": "7.1.2",
-    "eslint": "9.3.0",
+    "chai-as-promised": "8.0.0",
+    "eslint": "9.7.0",
     "eslint-plugin-mocha": "10.4.3",
-    "mocha": "10.4.0",
+    "mocha": "10.7.0",
     "mocha-junit-reporter": "2.2.1",
     "playwright": "1.44.0",
     "rimraf": "5.0.7",
