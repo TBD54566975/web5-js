@@ -137,7 +137,7 @@ describe('Crypto Utils', () => {
       expect(result).to.have.length(length);
     });
 
-    it.only('handles invalid input gracefully', () => {
+    it('handles invalid input gracefully', () => {
       expect(() => randomBytes(-1)).to.throw(RangeError, 'length'); // Length cannot be negative.
 
       // NOTE: only checking for Error being thrown because there is no meaningful message overlap between all browsers:
