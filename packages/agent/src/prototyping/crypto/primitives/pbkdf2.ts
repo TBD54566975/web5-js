@@ -1,5 +1,5 @@
 // ! TODO : Make sure I remove `@noble/ciphers` from the Agent package.json once this is moved to the `@web5/crypto` package.
-import { getWebcryptoSubtle } from '@noble/ciphers/webcrypto/utils';
+import { getWebcryptoSubtle } from '@noble/ciphers/webcrypto';
 
 import type { DeriveKeyBytesParams } from '../types/params-direct.js';
 
