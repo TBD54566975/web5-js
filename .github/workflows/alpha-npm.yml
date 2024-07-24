@@ -44,6 +44,12 @@ jobs:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: pnpm whoami
 
+      - name: Print Node.js, npm, & pnpm versions for debugging if needed
+        run: |
+          node -v
+          npm -v
+          pnpm -v
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
