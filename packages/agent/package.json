@@ -69,7 +69,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@noble/ciphers": "0.4.1",
+    "@noble/ciphers": "0.5.3",
     "@scure/bip39": "1.2.2",
     "@tbd54566975/dwn-sdk-js": "0.4.4",
     "@web5/common": "1.0.0",
