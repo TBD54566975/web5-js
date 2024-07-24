@@ -34,7 +34,6 @@ export class DwnServerInfoCacheMemory implements DwnServerInfoCache {
    * @returns The cached DWN ServerInfo entry or undefined if not found or expired.
    */
   public async get(dwnUrl: string): Promise<ServerInfo| undefined> {
-    console.log('renaming time for', dwnUrl, 'is:', this.cache.getRemainingTTL(dwnUrl));
     return this.cache.get(dwnUrl);
   }
 
