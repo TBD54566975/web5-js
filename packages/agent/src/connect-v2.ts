@@ -25,7 +25,7 @@ async function initClient({
 
   // Derive the code challenge based on the code verifier
   const { codeChallengeBytes, codeChallengeBase64Url } =
-    await Oidc.deriveCodeChallenge(codeVerifierBytes);
+      await Oidc.deriveCodeChallenge(codeVerifierBytes);
 
   // build callback URL to pass into the auth request
   const callbackEndpoint = Oidc.buildOidcUrl({
@@ -63,13 +63,14 @@ async function initClient({
   });
 
   // Convert the encrypted Request Object to URLSearchParams for form encoding.
-  const formEncodedRequest = new URLSearchParams({ request: requestObjectJwe });
+  const formEncodedRequest = new URLSearchParams({
+    request: requestObjectJwe,
+  });
 
   const pushedAuthorizationRequestEndpoint = Oidc.buildOidcUrl({
     baseURL  : connectServerUrl,
     endpoint : 'pushedAuthorizationRequest',
   });
-
 
   const parResponse = await fetch(pushedAuthorizationRequestEndpoint, {
     body    : formEncodedRequest,
@@ -89,7 +90,10 @@ async function initClient({
   // a route to its web5 connect provider flow and the params of where to fetch the auth request.
   const generatedWalletUri = new URL(walletUri);
   generatedWalletUri.searchParams.set('request_uri', parData.request_uri);
-  generatedWalletUri.searchParams.set('code_challenge', codeChallengeBase64Url);
+  generatedWalletUri.searchParams.set(
+    'code_challenge',
+    codeChallengeBase64Url
+  );
 
   // call user's callback so they can send the URI to the wallet as they see fit
   onWalletUriReady(generatedWalletUri.toString());
@@ -117,10 +121,12 @@ async function initClient({
     // return the grants for liran to ingest into the DWN SDK / agent
     return {
       delegatedGrants : verifiedAuthResponse.delegatedGrants,
-      didToImport     : [{
-        didUri         : verifiedAuthResponse.aud,
-        privateKeyJwks : verifiedAuthResponse.privateKeyJwks
-      }]
+      didToImport     : [
+        {
+          didUri         : verifiedAuthResponse.aud,
+          privateKeyJwks : verifiedAuthResponse.privateKeyJwks,
+        },
+      ],
     };
   }
 }
