@@ -106,10 +106,16 @@ jobs:
         with:
           cache: "true"
 
+      - name: Print Node.js, npm, & pnpm versions for debugging if needed
+        run: |
+          node -v
+          npm -v
+          pnpm -v
+
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Get Playwright Version (for cache)
+      - name: Get Playwright version referenced by DIDs package (for cache)
         id: get-playwright-version
         run: |
           PLAYWRIGHT_VERSION=$(pnpm --filter dids ls @playwright/test | grep '@playwright/test' | awk 'NR==1{print $2}')
@@ -123,11 +129,11 @@ jobs:
           path: ~/Library/Caches/ms-playwright
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
 
-      - name: Install Playwright Browsers (if no cache)
+      - name: Install Playwright browsers referenced by DIDs package (if no cache)
         if: steps.cache-playwright-restore.outputs.cache-hit != 'true'
         run: pnpm --filter dids exec playwright install --with-deps
 
-      - name: Build esm
+      - name: Build ESM
         run: pnpm --recursive --stream build:esm
 
       - name: Build browser for matrix ${{ matrix.group }}

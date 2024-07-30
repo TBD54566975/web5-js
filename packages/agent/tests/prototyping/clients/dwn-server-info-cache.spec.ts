@@ -4,13 +4,11 @@ import { expect } from 'chai';
 
 import { DwnServerInfoCache, ServerInfo } from '../../../src/prototyping/clients/server-info-types.js';
 import { DwnServerInfoCacheMemory } from '../../../src/prototyping/clients/dwn-server-info-cache-memory.js';
-import { isNode } from '../../utils/runtimes.js';
 
 describe('DwnServerInfoCache', () => {
 
   describe(`DwnServerInfoCacheMemory`, () => {
     let cache: DwnServerInfoCache;
-    let clock: sinon.SinonFakeTimers;
 
     const exampleInfo:ServerInfo = {
       maxFileSize              : 100,
@@ -23,14 +21,12 @@ describe('DwnServerInfoCache', () => {
     });
 
     beforeEach(() => {
-      clock = sinon.useFakeTimers();
       cache = new DwnServerInfoCacheMemory();
     });
 
     afterEach(async () => {
       await cache.clear();
       await cache.close();
-      clock.restore();
     });
 
     it('sets server info in cache', async () => {
@@ -96,11 +92,9 @@ describe('DwnServerInfoCache', () => {
     });
 
     it('returns undefined after ttl', async function () {
-      // skip this test in the browser, sinon fake timers don't seem to work here
-      // with a an await setTimeout in the test, it passes.
-      if (!isNode) {
-        this.skip();
-      }
+      // NOTE: tried very hard to use sinon.useFakeTimers() but couldn't get it to work with `TtlCache` implementation in `DwnServerInfoCacheMemory`.
+      // I sanity added a setInterval here, and it obeys the fake time ticks and its callback is fired, but the `TtlCache` just ignores the fake timer ticks.
+      cache = new DwnServerInfoCacheMemory({ ttl: '100ms'});
 
       const key = 'some-key1';
       await cache.set(key, { ...exampleInfo });
@@ -109,8 +103,8 @@ describe('DwnServerInfoCache', () => {
       expect(result!.webSocketSupport).to.deep.equal(true);
       expect(result).to.deep.equal(exampleInfo);
 
-      // wait until 15m default ttl is up
-      await clock.tickAsync('15:01');
+      // sleep for 100ms
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const resultAfter = await cache.get(key);
       expect(resultAfter).to.be.undefined;

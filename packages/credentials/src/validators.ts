@@ -3,14 +3,20 @@ import type {
   ICredentialSubject
 } from '@sphereon/ssi-types';
 
+import { Validator as JsonSchemaValidator } from 'jsonschema';
+
 import {
+  CredentialSchema,
   DEFAULT_VC_CONTEXT,
   DEFAULT_VC_TYPE,
+  VcDataModel,
   VerifiableCredential
 } from './verifiable-credential.js';
 
 import { isValidRFC3339Timestamp, isValidXmlSchema112Timestamp } from './utils.js';
 import { DEFAULT_VP_TYPE } from './verifiable-presentation.js';
+
+const jsonSchemaValidator = new JsonSchemaValidator();
 
 export class SsiValidator {
   static validateCredentialPayload(vc: VerifiableCredential): void {
@@ -51,6 +57,35 @@ export class SsiValidator {
   static validateTimestamp(timestamp: string) {
     if(!isValidXmlSchema112Timestamp(timestamp) && !isValidRFC3339Timestamp(timestamp)){
       throw new Error(`timestamp is not valid xml schema 112 timestamp`);
+    }
+  }
+
+  static async validateCredentialSchema(vcDataModel: VcDataModel): Promise<void> {
+    const credentialSchema = vcDataModel.credentialSchema as CredentialSchema | CredentialSchema[];
+
+    if (!credentialSchema || (Array.isArray(credentialSchema) && credentialSchema.length === 0)) {
+      throw new Error('Credential schema is missing or empty');
+    }
+
+    const schemaId = Array.isArray(credentialSchema) ? credentialSchema[0].id : credentialSchema.id;
+
+    let jsonSchema;
+    try {
+      const response = await fetch(schemaId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      jsonSchema = await response.json();
+    } catch (error: any) {
+      throw new Error(`Failed to fetch schema from ${schemaId}: ${error.message}`);
+    }
+
+    const validationResult = jsonSchemaValidator.validate(vcDataModel, jsonSchema);
+
+    if (!validationResult.valid) {
+      throw new Error(`Schema Validation Errors: ${JSON.stringify(validationResult.errors)}`);
     }
   }
 

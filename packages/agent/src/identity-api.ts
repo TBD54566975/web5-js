@@ -221,4 +221,18 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
 
     return identity;
   }
+
+  public async delete({ didUri, tenant }:{
+    didUri: string;
+    tenant?: string;
+  }): Promise<void> {
+    // Attempt to retrieve the Identity from the Agent's Identity store.
+    const storedIdentity = await this._store.get({ id: didUri, agent: this.agent, tenant, useCache: true });
+    if (!storedIdentity) {
+      throw new Error(`AgentIdentityApi: Failed to purge due to Identity not found: ${didUri}`);
+    }
+
+    // Delete the Identity from the Agent's Identity store.
+    await this._store.delete({ id: didUri, agent: this.agent, tenant });
+  }
 }

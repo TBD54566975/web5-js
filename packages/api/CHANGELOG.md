@@ -1,5 +1,29 @@
 # @web5/api
 
+## 0.10.0
+
+### Minor Changes
+
+- [#635](https://github.com/TBD54566975/web5-js/pull/635) [`09f80b7`](https://github.com/TBD54566975/web5-js/commit/09f80b70d099c743cb1057e3d66eb0471c542f14) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Implement a `delete` method and state on the `@web5/api` `Record` class
+
+- [#736](https://github.com/TBD54566975/web5-js/pull/736) [`89f239d`](https://github.com/TBD54566975/web5-js/commit/89f239d1338a71ce700ac1efaef124035a5363c9) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Update Agent to latest version along with dwn-sdk-js to v 0.4.0
+
+- [#694](https://github.com/TBD54566975/web5-js/pull/694) [`cc3aa58`](https://github.com/TBD54566975/web5-js/commit/cc3aa58069dd5465834b32174e3f840ddf782d60) Thanks [@thehenrytsai](https://github.com/thehenrytsai)! - Added WalletConnectOptions and updated dwn-sdk-js dependencies.
+
+### Patch Changes
+
+- [#769](https://github.com/TBD54566975/web5-js/pull/769) [`d18aa6b`](https://github.com/TBD54566975/web5-js/commit/d18aa6bfe0388097e48416477d3c43147dfd4282) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Add DWN Tenent Registration to `Web5.connect()`
+
+- [#770](https://github.com/TBD54566975/web5-js/pull/770) [`f71ce8a`](https://github.com/TBD54566975/web5-js/commit/f71ce8a6b9b10dfb1a627a9fe0d7473a453422e0) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Upgrade `dwn-sdk-js` and `dwn-server`
+
+- [#745](https://github.com/TBD54566975/web5-js/pull/745) [`a956f72`](https://github.com/TBD54566975/web5-js/commit/a956f729f2c7a8e935d4a66511b393d1ccf1476a) Thanks [@LiranCohen](https://github.com/LiranCohen)! - make `rawMessage` not private in `Record` class
+
+- [#750](https://github.com/TBD54566975/web5-js/pull/750) [`750aa1c`](https://github.com/TBD54566975/web5-js/commit/750aa1c2c52515104c7ff4e36945297b58d68356) Thanks [@LiranCohen](https://github.com/LiranCohen)! - default DWN Server selection updated to select only 1 defaulting to the `beta` TBD hosted version
+
+- Updated dependencies [[`8baa679`](https://github.com/TBD54566975/web5-js/commit/8baa679ae496c9052025b11d435c48390579be47), [`f71ce8a`](https://github.com/TBD54566975/web5-js/commit/f71ce8a6b9b10dfb1a627a9fe0d7473a453422e0)]:
+  - @web5/agent@0.4.1
+  - @web5/user-agent@0.4.1
+
 ## 0.9.4
 
 ### Patch Changes
