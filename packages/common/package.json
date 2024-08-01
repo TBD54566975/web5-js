@@ -91,7 +91,7 @@
     "chai": "5.1.1",
     "chai-as-promised": "8.0.0",
     "esbuild": "0.23.0",
-    "eslint": "9.7.0",
+    "eslint": "9.8.0",
     "eslint-plugin-mocha": "10.4.3",
     "mocha": "10.4.0",
     "mocha-junit-reporter": "2.2.1",
