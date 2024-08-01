@@ -96,7 +96,7 @@
     "@types/ms": "0.7.34",
     "@types/node": "20.12.12",
     "@types/sinon": "17.0.3",
-    "@typescript-eslint/eslint-plugin": "7.9.0",
+    "@typescript-eslint/eslint-plugin": "8.0.0",
     "@typescript-eslint/parser": "7.14.1",
     "@web/test-runner": "0.18.2",
     "@web/test-runner-playwright": "0.11.0",
