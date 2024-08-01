@@ -101,7 +101,7 @@
     "mocha": "10.4.0",
     "mocha-junit-reporter": "2.2.1",
     "playwright": "1.45.3",
-    "rimraf": "5.0.7",
+    "rimraf": "6.0.1",
     "sinon": "18.0.0",
     "source-map-loader": "5.0.0",
     "typescript": "5.4.5"
