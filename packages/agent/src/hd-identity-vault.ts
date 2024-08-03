@@ -808,16 +808,6 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
     return cekJwe;
   }
 
-  public async setGranteeDid(grantorDid: string, granteeDid: string): Promise<void> {
-    const granteeKey = `grantorDid:${grantorDid}`;
-    await this._store.set(granteeKey, granteeDid);
-  };
-
-  public async getGranteeDid(grantorDid: string): Promise<string | undefined> {
-    const granteeKey = `grantorDid:${grantorDid}`;
-    return this._store.get(granteeKey);
-  };
-
   /**
    * Updates the status of the `HdIdentityVault`, reflecting changes in its initialization, lock
    * state, and the timestamps of the last backup and restore operations.
