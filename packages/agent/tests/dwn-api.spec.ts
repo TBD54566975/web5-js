@@ -942,6 +942,36 @@ describe('AgentDwnApi', () => {
         expect(error.message).to.include('no delegated grant was provided in the messageParams');
       }
     });
+
+    it('should throw if attempting to sign as a delegate without providing a delegated grant in the messageParams', async () => {
+      // create a DID for alice's Device X and grant it delegated write permissions to alice's DWN
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+      // alice attempts to sign as a grantee without providing a grant parameters in the messageParams
+      try {
+        const dataStream = new Blob([ Convert.string('Hello, world!').toUint8Array() ]);
+
+        await testHarness.agent.dwn.processRequest({
+          messageType   : DwnInterface.RecordsWrite,
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageParams : {
+            dataFormat   : 'text/plain',
+            protocol     : 'https://schemas.xyz/example',
+            protocolPath : 'foo',
+          },
+          granteeDid: aliceDeviceX.did.uri,
+          dataStream,
+        });
+
+        expect.fail('Should have thrown');
+      } catch(error:any) {
+        expect(error.message).to.include('AgentDwnApi: Requested to sign with a permission but no grant messageParams was provided in the request');
+      }
+    });
   });
 
   describe('sendRequest()', () => {
