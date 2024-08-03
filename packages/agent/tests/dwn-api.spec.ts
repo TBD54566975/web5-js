@@ -3,7 +3,7 @@ import type { Dwn, MessageEvent, RecordsWriteMessage } from '@tbd54566975/dwn-sd
 
 import { DidDht } from '@web5/dids';
 import { Convert, NodeStream, Stream } from '@web5/common';
-import { Message, ProtocolDefinition, TestDataGenerator } from '@tbd54566975/dwn-sdk-js';
+import { DwnInterfaceName, DwnMethodName, Message, ProtocolDefinition, TestDataGenerator, Time } from '@tbd54566975/dwn-sdk-js';
 
 import sinon from 'sinon';
 
@@ -713,6 +713,235 @@ describe('AgentDwnApi', () => {
       expect(queryAliceResponse.reply.status.code).to.equal(200);
       expect(queryAliceResponse.reply.entries!.length).to.equal(1);
     });
+
+    it('handles RecordsWrite messages to sign as delegate owner', async () => {
+      // install a protocol to use for the test
+      const protocolDefinition: ProtocolDefinition = {
+        published : true,
+        protocol  : 'https://schemas.xyz/example',
+        types     : {
+          foo: {}
+        },
+        structure: {
+          foo: {}
+        }
+      };
+
+      // install for bob
+      let { reply: { status: protocolStatus } } = await testHarness.agent.dwn.processRequest({
+        author        : bob.did.uri,
+        target        : bob.did.uri,
+        messageType   : DwnInterface.ProtocolsConfigure,
+        messageParams : {
+          definition: protocolDefinition
+        }
+      });
+      expect(protocolStatus.code).to.equal(202);
+
+      // install for alice
+      let { reply: { status: protocolStatus2 } } = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.ProtocolsConfigure,
+        messageParams : {
+          definition: protocolDefinition
+        }
+      });
+
+      expect(protocolStatus2.code).to.equal(202);
+
+      // create a DID for alice's Device X and grant it delegated write permissions to alice's DWN
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+      // create teh grant
+      const recordsWriteDelegateGrant = await testHarness.agent.dwn.createGrant({
+        grantedFrom : alice.did.uri,
+        grantedTo   : aliceDeviceX.did.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        delegated   : true,
+        scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Write, protocol: protocolDefinition.protocol }
+      });
+
+      // process the grant on alice's DWN
+      let { reply: { status: grantStatus } } = await testHarness.agent.dwn.processRequest({
+        author      : alice.did.uri,
+        target      : alice.did.uri,
+        messageType : DwnInterface.RecordsWrite,
+        rawMessage  : recordsWriteDelegateGrant.recordsWrite.message,
+        dataStream  : new Blob([ recordsWriteDelegateGrant.permissionGrantBytes ]),
+      });
+      expect(grantStatus.code).to.equal(202, 'grant write');
+
+
+      // bob authors a public record to his dwn
+      const dataStream = new Blob([ Convert.string('Hello, world!').toUint8Array() ]);
+
+      const bobWrite = await testHarness.agent.dwn.processRequest({
+        author        : bob.did.uri,
+        target        : bob.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          published    : true,
+          protocol     : protocolDefinition.protocol,
+          protocolPath : 'foo',
+          dataFormat   : 'text/plain'
+        },
+        dataStream,
+      });
+      expect(bobWrite.reply.status.code).to.equal(202);
+      const message = bobWrite.message!;
+
+      // alice queries bob's DWN for the record
+      const queryBobResponse = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : bob.did.uri,
+        messageType   : DwnInterface.RecordsQuery,
+        messageParams : {
+          filter: {
+            recordId: message.recordId
+          }
+        }
+      });
+      let reply = queryBobResponse.reply;
+      expect(reply.status.code).to.equal(200);
+      expect(reply.entries!.length).to.equal(1);
+      expect(reply.entries![0].recordId).to.equal(message.recordId);
+
+      // alice attempts to process the rawMessage as is without signing it, should fail
+      let aliceWrite = await testHarness.agent.dwn.processRequest({
+        messageType : DwnInterface.RecordsWrite,
+        author      : alice.did.uri,
+        target      : alice.did.uri,
+        rawMessage  : message,
+        dataStream,
+      });
+      expect(aliceWrite.reply.status.code).to.equal(401);
+
+      // alice queries to make sure the record is not saved on her dwn
+      let queryAliceResponse = await testHarness.agent.dwn.processRequest({
+        messageType   : DwnInterface.RecordsQuery,
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageParams : {
+          filter: {
+            recordId: message.recordId
+          }
+        }
+      });
+      expect(queryAliceResponse.reply.status.code).to.equal(200);
+      expect(queryAliceResponse.reply.entries!.length).to.equal(0);
+
+      // alice attempts to process the rawMessage again this time marking it to be signed as owner
+      aliceWrite = await testHarness.agent.dwn.processRequest({
+        messageType         : DwnInterface.RecordsWrite,
+        author              : alice.did.uri,
+        target              : alice.did.uri,
+        rawMessage          : message,
+        signAsOwnerDelegate : true,
+        granteeDid          : aliceDeviceX.did.uri,
+        messageParams       : {
+          dataFormat     : 'text/plain', // TODO: not necessary
+          delegatedGrant : recordsWriteDelegateGrant.dataEncodedMessage,
+        },
+        dataStream,
+      });
+      expect(aliceWrite.reply.status.code).to.equal(202);
+
+      // alice now queries for the record, it should be there
+      queryAliceResponse = await testHarness.agent.dwn.processRequest({
+        messageType   : DwnInterface.RecordsQuery,
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageParams : {
+          filter: {
+            recordId: message.recordId
+          }
+        }
+      });
+      expect(queryAliceResponse.reply.status.code).to.equal(200);
+      expect(queryAliceResponse.reply.entries!.length).to.equal(1);
+    });
+
+    it('should throw if attempting to sign as owner delegate without providing a delegated grant in the messageParams', async () => {
+      // create a DID for alice's Device X and grant it delegated write permissions to alice's DWN
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+      // install a protocol to use for the test
+      const protocolDefinition: ProtocolDefinition = {
+        published : true,
+        protocol  : 'https://schemas.xyz/example',
+        types     : {
+          foo: {}
+        },
+        structure: {
+          foo: {}
+        }
+      };
+
+      // install for bob
+      let { reply: { status: protocolStatus } } = await testHarness.agent.dwn.processRequest({
+        author        : bob.did.uri,
+        target        : bob.did.uri,
+        messageType   : DwnInterface.ProtocolsConfigure,
+        messageParams : {
+          definition: protocolDefinition
+        }
+      });
+      expect(protocolStatus.code).to.equal(202);
+
+      // install for alice
+      let { reply: { status: protocolStatus2 } } = await testHarness.agent.dwn.processRequest({
+        author        : alice.did.uri,
+        target        : alice.did.uri,
+        messageType   : DwnInterface.ProtocolsConfigure,
+        messageParams : {
+          definition: protocolDefinition
+        }
+      });
+
+      expect(protocolStatus2.code).to.equal(202);
+
+      // bob authors a public record to his dwn
+      const dataStream = new Blob([ Convert.string('Hello, world!').toUint8Array() ]);
+
+      const bobWrite = await testHarness.agent.dwn.processRequest({
+        author        : bob.did.uri,
+        target        : bob.did.uri,
+        messageType   : DwnInterface.RecordsWrite,
+        messageParams : {
+          published    : true,
+          protocol     : protocolDefinition.protocol,
+          protocolPath : 'foo',
+          dataFormat   : 'text/plain'
+        },
+        dataStream,
+      });
+      expect(bobWrite.reply.status.code).to.equal(202);
+      const message = bobWrite.message!;
+
+      // alice attempts to sign as owner delegate without providing a delegated grant in the messageParams
+      try {
+        await testHarness.agent.dwn.processRequest({
+          messageType         : DwnInterface.RecordsWrite,
+          author              : alice.did.uri,
+          target              : alice.did.uri,
+          rawMessage          : message,
+          signAsOwnerDelegate : true,
+          granteeDid          : aliceDeviceX.did.uri,
+          dataStream,
+        });
+
+        expect.fail('Should have thrown');
+      } catch(error:any) {
+        expect(error.message).to.include('no delegated grant was provided in the messageParams');
+      }
+    });
   });
 
   describe('sendRequest()', () => {
@@ -852,7 +1081,6 @@ describe('AgentDwnApi', () => {
 
     after(async () => {
       await testHarness.clearStorage();
-      await testHarness.closeStorage();
     });
 
     it('handles sending existing message using `messageCid` request property', async () => {

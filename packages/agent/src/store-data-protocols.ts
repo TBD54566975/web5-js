@@ -15,18 +15,11 @@ export const IdentityProtocolDefinition: ProtocolDefinition = {
       dataFormats : [
         'application/json'
       ]
-    },
-    delegatedIdentity: {
-      schema      : 'https://identity.foundation/schemas/web5/delegated-identity',
-      dataFormats : [
-        'application/json'
-      ]
     }
   },
   structure: {
-    portableDid       : {},
-    identityMetadata  : {},
-    delegatedIdentity : {}
+    portableDid      : {},
+    identityMetadata : {}
   }
 };
 
