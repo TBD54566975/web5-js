@@ -939,7 +939,7 @@ describe('AgentDwnApi', () => {
 
         expect.fail('Should have thrown');
       } catch(error:any) {
-        expect(error.message).to.include('no delegated grant was provided in the messageParams');
+        expect(error.message).to.include('Requested to sign with a permission but no grant messageParams were provided in the request');
       }
     });
 
@@ -969,7 +969,7 @@ describe('AgentDwnApi', () => {
 
         expect.fail('Should have thrown');
       } catch(error:any) {
-        expect(error.message).to.include('AgentDwnApi: Requested to sign with a permission but no grant messageParams was provided in the request');
+        expect(error.message).to.include('AgentDwnApi: Requested to sign with a permission but no grant messageParams were provided in the request');
       }
     });
   });

@@ -291,9 +291,13 @@ export class AgentDwnApi {
   private async constructDwnMessage<T extends DwnInterface>({ request }: {
     request: ProcessDwnRequest<T>
   }): Promise<DwnMessageWithData<T>> {
+    // if the request has a granteeDid, ensure the messageParams include the proper grant parameters
+    if (request.granteeDid && !this.hasGrantParams(request.messageParams)) {
+      throw new Error('AgentDwnApi: Requested to sign with a permission but no grant messageParams were provided in the request');
+    }
+
     const rawMessage = request.rawMessage;
     let readableStream: Readable | undefined;
-
     // TODO: Consider refactoring to move data transformations imposed by fetch() limitations to the HTTP transport-related methods.
     // if the request is a RecordsWrite message, we need to handle the data stream and update the messageParams accordingly
     if (isDwnRequest(request, DwnInterface.RecordsWrite)) {
@@ -334,11 +338,6 @@ export class AgentDwnApi {
         await this.getSigner(request.granteeDid) :
         await this.getSigner(request.author);
 
-      // if the request has a granteeDid, ensure the messageParams include the proper grant parameters
-      if (request.granteeDid && !this.hasGrantParams(request.messageParams!)) {
-        throw new Error('AgentDwnApi: Requested to sign with a permission but no grant messageParams was provided in the request');
-      }
-
       dwnMessage = await dwnMessageConstructor.create({
         // TODO: Implement alternative to type assertion.
         ...request.messageParams!,
@@ -354,20 +353,20 @@ export class AgentDwnApi {
       } else if (request.granteeDid && isRecordsWrite(dwnMessage) && request.signAsOwnerDelegate) {
         // if we are signing as owner delegate, we use the grantee's signer and the provided delegated grant
         const signer = await this.getSigner(request.granteeDid);
-        const messageParams = request.messageParams as DwnMessageParams[DwnInterface.RecordsWrite] | undefined;
-        if (!messageParams?.delegatedGrant) {
-          throw new Error('AgentDwnApi: Requested to sign as owner delegate but no delegated grant was provided in the messageParams');
-        }
-        await dwnMessage.signAsOwnerDelegate(signer, messageParams.delegatedGrant);
+
+        //if we have reached here, the presence of the grant params has already been checked
+        const messageParams = request.messageParams as DwnMessageParams[DwnInterface.RecordsWrite];
+        await dwnMessage.signAsOwnerDelegate(signer, messageParams.delegatedGrant!);
       }
     }
 
     return { message: dwnMessage.message as DwnMessage[T], dataStream: readableStream };
   }
 
-  private hasGrantParams<T extends DwnInterface>(params: DwnMessageParams[T]): boolean {
-    return ('permissionGrantId' in params && params.permissionGrantId !== undefined) ||
-     ('delegatedGrant' in params && params.delegatedGrant !== undefined);
+  private hasGrantParams<T extends DwnInterface>(params?: DwnMessageParams[T]): boolean {
+    return params !== undefined &&
+      (('permissionGrantId' in params && params.permissionGrantId !== undefined) ||
+      ('delegatedGrant' in params && params.delegatedGrant !== undefined));
   }
 
   private async getSigner(author: string): Promise<DwnSigner> {
