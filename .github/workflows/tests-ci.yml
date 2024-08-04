@@ -50,7 +50,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build all workspace packages
-        run: pnpm --recursive --stream build:esm && pnpm --recursive --stream build:cjs
+        run: pnpm --recursive --stream --sequential build:esm && pnpm --recursive --stream --sequential build:cjs
 
       - name: Run linter for all packages
         run: pnpm --recursive --stream lint
@@ -134,7 +134,7 @@ jobs:
         run: pnpm --filter dids exec playwright install --with-deps
 
       - name: Build ESM
-        run: pnpm --recursive --stream build:esm
+        run: pnpm --recursive --stream --sequential build:esm
 
       - name: Build browser for matrix ${{ matrix.group }}
         run: pnpm ${{ matrix.packages }} build:browser

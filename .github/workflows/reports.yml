@@ -26,7 +26,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build all workspace packages
-        run: pnpm --recursive --stream build:esm && pnpm --recursive --stream build:cjs
+        run: pnpm --recursive --stream --sequential build:esm && pnpm --recursive --stream --sequential build:cjs
 
       - name: Run dwn-server (background)
         run: |
