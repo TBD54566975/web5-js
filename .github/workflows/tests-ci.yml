@@ -50,7 +50,7 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Build all workspace packages
-        run: pnpm --recursive --stream --sequential build:esm && pnpm --recursive --stream --sequential build:cjs
+        run: pnpm --recursive --stream build:esm && pnpm --recursive --stream build:cjs
 
       - name: Run linter for all packages
         run: pnpm --recursive --stream lint
