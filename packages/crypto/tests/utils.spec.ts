@@ -140,7 +140,12 @@ describe('Crypto Utils', () => {
 
     it('handles invalid input gracefully', () => {
       expect(() => randomBytes(-1)).to.throw(RangeError, 'length'); // Length cannot be negative.
-      expect(() => randomBytes(1e9)).to.throw(Error, 'exceed'); // Extremely large number that exceeds the available entropy.
+
+      // NOTE: only checking for Error being thrown because there is no meaningful message overlap between all browsers:
+      // Webkit:  The quota has been exceeded.
+      // Firefox: Crypto.getRandomValues: getRandomValues can only generate maximum 65536 bytes
+      // Chromium: The ArrayBufferView's byte length (1000000000) exceeds the number of bytes of entropy available via this API (65536).
+      expect(() => randomBytes(1e9)).to.throw(Error); // Extremely large number that exceeds the available entropy.
     });
 
     it('produces unique values on each call', () => {
