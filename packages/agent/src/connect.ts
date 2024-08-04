@@ -4,7 +4,7 @@ import {
   Web5ConnectAuthResponse,
   Oidc,
   type PushedAuthResponse,
-} from './oidc-v2.js';
+} from './oidc.js';
 import { pollWithTtl } from './utils.js';
 import { Convert } from '@web5/common';
 import { DidDht } from '@web5/dids';
@@ -20,12 +20,9 @@ async function initClient({
   // TODO: use separate keys for ECDH vs. sign/verify. could maybe use secp256k1.
   const clientDid = await DidDht.create();
 
-  // Hash the code verifier to use as a code challenge and to encrypt the Request Object.
-  const { codeVerifierBytes } = Oidc.generateRandomCodeVerifier();
-
   // Derive the code challenge based on the code verifier
   const { codeChallengeBytes, codeChallengeBase64Url } =
-      await Oidc.deriveCodeChallenge(codeVerifierBytes);
+    await Oidc.generateCodeChallenge();
 
   // build callback URL to pass into the auth request
   const callbackEndpoint = Oidc.buildOidcUrl({
@@ -42,9 +39,6 @@ async function initClient({
     permissionRequests    : permissionRequests,
     redirect_uri          : callbackEndpoint,
     // TBD known-customer-credential defines these
-    client_metadata       : {
-      subject_syntax_types_supported: ['did:dht'],
-    },
   });
 
   // Sign the Request Object using the Client DID's signing key.
@@ -90,10 +84,7 @@ async function initClient({
   // a route to its web5 connect provider flow and the params of where to fetch the auth request.
   const generatedWalletUri = new URL(walletUri);
   generatedWalletUri.searchParams.set('request_uri', parData.request_uri);
-  generatedWalletUri.searchParams.set(
-    'code_challenge',
-    codeChallengeBase64Url
-  );
+  generatedWalletUri.searchParams.set('code_challenge', codeChallengeBase64Url);
 
   // call user's callback so they can send the URI to the wallet as they see fit
   onWalletUriReady(generatedWalletUri.toString());
@@ -121,7 +112,8 @@ async function initClient({
     // return the grants for liran to ingest into the DWN SDK / agent
     return {
       delegatedGrants : verifiedAuthResponse.delegatedGrants,
-      didToImport     : [
+      // TODO: should this just be a PortableDid? can one be constructed with this data?
+      didsToImport    : [
         {
           didUri         : verifiedAuthResponse.aud,
           privateKeyJwks : verifiedAuthResponse.privateKeyJwks,

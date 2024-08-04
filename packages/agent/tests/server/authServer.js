@@ -110,7 +110,7 @@ app.get("/connect/authorize/:requestId.jwt", (req, res) => {
 });
 
 /**
- * 3. Endpoint that the Provider sends the Authorization Response to.
+ * 3. Endpoint that the Provider sends the Authorization Response (id token) to.
  */
 app.post("/connect/callback", (req, res) => {
   console.log("Identity Provider pushed response with ID token.");

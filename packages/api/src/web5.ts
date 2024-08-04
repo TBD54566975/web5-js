@@ -243,42 +243,43 @@ export class Web5 {
       // If an existing identity is not found found, create a new one.
       const existingIdentityCount = identities.length;
 
+      // on init/registration
       if (existingIdentityCount === 0) {
-        // Use the specified DWN endpoints or get default tech preview hosted nodes.
-        const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
-
-        // Generate a new Identity for the end-user.
-        identity = await userAgent.identity.create({
-          didMethod  : 'dht',
-          metadata   : { name: 'Default' },
-          didOptions : {
-            services: [
-              {
-                id              : 'dwn',
-                type            : 'DecentralizedWebNode',
-                serviceEndpoint : serviceEndpointNodes,
-                enc             : '#enc',
-                sig             : '#sig',
-              }
-            ],
-            verificationMethods: [
-              {
-                algorithm : 'Ed25519',
-                id        : 'sig',
-                purposes  : ['assertionMethod', 'authentication']
-              },
-              {
-                algorithm : 'secp256k1',
-                id        : 'enc',
-                purposes  : ['keyAgreement']
-              }
-            ]
-          }
-        });
-
         if (walletConnectOptions) {
           WalletConnect.initClient(walletConnectOptions);
         } else {
+          // Use the specified DWN endpoints or get default tech preview hosted nodes.
+          const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
+
+          // Generate a new Identity for the end-user.
+          identity = await userAgent.identity.create({
+            didMethod  : 'dht',
+            metadata   : { name: 'Default' },
+            didOptions : {
+              services: [
+                {
+                  id              : 'dwn',
+                  type            : 'DecentralizedWebNode',
+                  serviceEndpoint : serviceEndpointNodes,
+                  enc             : '#enc',
+                  sig             : '#sig',
+                }
+              ],
+              verificationMethods: [
+                {
+                  algorithm : 'Ed25519',
+                  id        : 'sig',
+                  purposes  : ['assertionMethod', 'authentication']
+                },
+                {
+                  algorithm : 'secp256k1',
+                  id        : 'enc',
+                  purposes  : ['keyAgreement']
+                }
+              ]
+            }
+          });
+
           // Persists the Identity to be available in future sessions
           await userAgent.identity.manage({ portableIdentity: await identity.export() });
         }

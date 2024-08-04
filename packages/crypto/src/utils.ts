@@ -269,3 +269,13 @@ export function randomPin({ length }: { length: number }): string {
   // Pad the PIN with leading zeros to the desired length.
   return pin.toString().padStart(length, '0');
 }
+
+export const CryptoUtils = {
+  randomPin,
+  randomUuid,
+  randomBytes,
+  isWebCryptoSupported,
+  getJoseSignatureAlgorithmFromPublicKey,
+  checkValidProperty,
+  checkRequiredProperty
+};

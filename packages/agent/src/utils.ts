@@ -133,7 +133,6 @@ export function pollWithTtl(
         const response = await fetchFunction();
 
         if (response.ok) {
-          console.log('Received ok response:', response);
           isPolling = false;
 
           if (timeoutId !== null) {

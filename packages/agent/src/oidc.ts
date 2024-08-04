@@ -5,15 +5,16 @@ import {
   JoseHeaderParams,
   Jwk,
   Sha256,
-  utils,
   X25519,
+  CryptoUtils
 } from '@web5/crypto';
-
 import { concatenateUrl } from './utils.js';
-import { Hkdf } from './prototyping/crypto/primitives/hkdf.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
-import type { ConnectPermissionRequests } from './connect-v2.js';
+import type { ConnectPermissionRequests } from './connect.js';
 import { DidDht, DidDocument, type BearerDid } from '@web5/dids';
+import { AgentDwnApi } from './dwn-api.js';
+import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
+import { DwnInterface, DwnResponse } from './types/dwn.js';
 
 /**
  * Sent to an OIDC server to authorize a client. Allows clients
@@ -199,6 +200,11 @@ function buildOidcUrl({
       return concatenateUrl(baseURL, 'par');
     /** 2. provider gets {@link Web5ConnectAuthRequest} */
     case 'authorize':
+      if (!authParam)
+        throw new Error(
+          `authParam must be providied when building a token URL`
+        );
+
       return authParam
         ? concatenateUrl(baseURL, `authorize/${authParam}.jwt`)
         : '';
@@ -207,40 +213,29 @@ function buildOidcUrl({
       return concatenateUrl(baseURL, `callback`);
     /**  4. client gets {@link Web5ConnectAuthResponse */
     case 'token':
+      if (!tokenParam)
+        throw new Error(
+          `tokenParam must be providied when building a token URL`
+        );
+
       return tokenParam
         ? concatenateUrl(baseURL, `token/${tokenParam}.jwt`)
         : '';
     // TODO: metadata endpoints?
     default:
-      return '';
+      throw new Error(`No matches for endpoint specified: ${endpoint}`);
   }
 }
 
 /**
- * Generates a cryptographically random key called a "code verifier" in
- * accordance with the RFC 7636 PKCE specification. A unique code verifier
- * should be created for every authorization request.
+ * Generates a cryptographically random "code challenge" in
+ * accordance with the RFC 7636 PKCE specification.
  *
- * @see {@link https://datatracker.ietf.org/doc/html/rfc7636#section-4.1 | RFC 7636, Client Creates a Code Verifier}
- *
- * @returns A random code verifier
+ * @see {@link https://datatracker.ietf.org/doc/html/rfc7636#section-4.2 | RFC 7636 }
  */
-function generateRandomCodeVerifier() {
-  const codeVerifierBytes = utils.randomBytes(32);
-
-  return { codeVerifierBytes };
-}
-
-/**
- * Calculates the PKCE `code_verifier` value to send with an authorization request using the S256
- * PKCE Code Challenge Method transformation.
- *
- * @param codeVerifier `code_verifier` value generated e.g. from {@link generateRandomCodeVerifier}.
- *
- * @see {@link https://datatracker.ietf.org/doc/html/rfc7636#section-4.2 | RFC 7636, Client Creates the Code Challenge}
- */
-async function deriveCodeChallenge(codeVerifier: Uint8Array) {
-  const codeChallengeBytes = await Sha256.digest({ data: codeVerifier });
+async function generateCodeChallenge() {
+  const codeVerifierBytes = CryptoUtils.randomBytes(32);
+  const codeChallengeBytes = await Sha256.digest({ data: codeVerifierBytes });
   const codeChallengeBase64Url =
     Convert.uint8Array(codeChallengeBytes).toBase64Url();
 
@@ -260,18 +255,20 @@ async function createAuthRequest(
   >
 ) {
   // Generate a random state value to associate the authorization request with the response.
-  const stateBytes = utils.randomBytes(12);
+  const stateBytes = CryptoUtils.randomBytes(12);
 
   // Generate a random nonce value to associate the ID Token with the authorization request.
-  const nonceBytes = await Sha256.digest({ data: utils.randomBytes(12) });
-  const nonce = Convert.uint8Array(nonceBytes).toBase64Url();
+  const nonceBytes = CryptoUtils.randomBytes(12);
 
   const requestObject: Web5ConnectAuthRequest = {
     ...options,
-    nonce,
-    response_type : 'id_token',
-    response_mode : 'direct_post',
-    state         : Convert.uint8Array(stateBytes).toBase64Url(),
+    nonce           : Convert.uint8Array(nonceBytes).toBase64Url(),
+    response_type   : 'id_token',
+    response_mode   : 'direct_post',
+    state           : Convert.uint8Array(stateBytes).toBase64Url(),
+    client_metadata : {
+      subject_syntax_types_supported: ['did:dht'],
+    },
   };
 
   return requestObject;
@@ -290,7 +287,7 @@ async function encryptAuthRequest({
     enc : 'XC20P',
     typ : 'JWT',
   };
-  const nonce = utils.randomBytes(24);
+  const nonce = CryptoUtils.randomBytes(24);
   const additionalData = Convert.object(protectedHeader).toUint8Array();
   const jwtBytes = Convert.string(jwt).toUint8Array();
   const chacha = xchacha20poly1305(codeChallenge, nonce, additionalData);
@@ -380,9 +377,9 @@ async function verifyJwt({ jwt }: { jwt: string }) {
 
   // Get the public key used to sign the Request Object from the DID document.
   const { publicKeyJwk } =
-    didDocument.verificationMethod?.find(
-      (method: any) => method.id === header.kid
-    ) ?? {};
+    didDocument.verificationMethod?.find((method: any) => {
+      return method.id === header.kid;
+    }) ?? {};
 
   if (!publicKeyJwk)
     throw new Error(
@@ -413,7 +410,6 @@ const getAuthRequest = async (request_uri: string, code_challenge: string) => {
     jwe,
     code_challenge,
   });
-
   const web5ConnectAuthRequest = (await verifyJwt({
     jwt,
   })) as Web5ConnectAuthRequest;
@@ -556,14 +552,14 @@ async function deriveSharedKey(
 
 function encryptAuthResponse({
   jwt,
-  nonce,
   encryptionKey,
   providerDidKid,
+  randomPin,
 }: {
   jwt: string;
-  nonce: Uint8Array;
   encryptionKey: Uint8Array;
   providerDidKid: string;
+  randomPin: string;
 }) {
   const protectedHeader = {
     alg : 'dir',
@@ -572,12 +568,10 @@ function encryptAuthResponse({
     typ : 'JWT',
     kid : providerDidKid,
   };
-
+  const nonce = CryptoUtils.randomBytes(24);
   const additionalData = Convert.object({
     ...protectedHeader,
-    // pin: randomPin({ length: 4 }),
-    // for testing
-    pin: '1234',
+    pin: randomPin,
   }).toUint8Array();
 
   const jwtBytes = Convert.string(jwt).toUint8Array();
@@ -600,11 +594,106 @@ function encryptAuthResponse({
   return compactJwe;
 }
 
+export async function createPermissionGrants(
+  selectedDids: string[],
+  ephemeralDid: BearerDid,
+  dwn: AgentDwnApi
+) {
+  const grantPromises = selectedDids.map(async (did) => {
+    // TODO: Replace with real permission request
+    const permissionRequestData = {
+      description : 'The app is asking to Records Write to http://profile-protocol.xyz',
+      scope       : {
+        interface : DwnInterfaceName.Records,
+        method    : DwnMethodName.Write,
+        protocol  : 'http://profile-protocol.xyz',
+      },
+    };
+
+    // TODO: Confirm this
+    const message = await dwn.processRequest({
+      author        : did,
+      target        : did,
+      messageType   : DwnInterface.RecordsWrite,
+      messageParams : {
+        recipient    : ephemeralDid.uri,
+        protocolPath : 'grant',
+        protocol     : ' https://tbd.website/dwn/permissions',
+        dataFormat   : 'application/json',
+        data         : Convert.object(permissionRequestData).toUint8Array(),
+      },
+      // todo: is it data or datastream?
+      // dataStream: await Convert.object(permissionRequestData).toBlobAsync(),
+    });
+
+    return message;
+  });
+
+  const permissionGrants = (await Promise.all(grantPromises)).flat();
+
+  return permissionGrants;
+}
+
+async function submitAuthResponse(
+  selectedDids: string[],
+  authRequest: Web5ConnectAuthRequest,
+  randomPin: string,
+  dwn: AgentDwnApi
+) {
+  const ephemeralDid = await DidDht.create();
+  const ephemeralDidExported = await ephemeralDid.export();
+
+  const permissionGrants = await Oidc.createPermissionGrants(selectedDids, ephemeralDid, dwn);
+
+  const responseObject = await Oidc.createResponseObject({
+    iss             : 'https://self-issued.me/v2',
+    sub             : ephemeralDid.uri,
+    aud             : authRequest.redirect_uri,
+    //* the nonce of the original auth request
+    nonce           : authRequest.nonce,
+    delegatedGrants : permissionGrants,
+    privateKeyJwks  : ephemeralDidExported.privateKeys!,
+  });
+
+  // Sign the Response Object using the ephemeral DID's signing key.
+  const responseObjectJwt = await Oidc.signJwt({
+    did  : ephemeralDid,
+    data : responseObject,
+  });
+  const clientDid = await DidDht.resolve(authRequest.client_id);
+
+  const sharedKey = await Oidc.deriveSharedKey(
+    ephemeralDid,
+    clientDid?.didDocument!
+  );
+
+  const encryptedResponse = Oidc.encryptAuthResponse({
+    jwt            : responseObjectJwt!,
+    encryptionKey  : sharedKey,
+    providerDidKid : ephemeralDid.document.verificationMethod![0].id,
+    randomPin,
+  });
+
+  const formEncodedRequest = new URLSearchParams({
+    id_token : encryptedResponse,
+    state    : authRequest.state,
+  }).toString();
+
+  await fetch(authRequest.redirect_uri, {
+    body    : formEncodedRequest,
+    method  : 'POST',
+    headers : {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  });
+}
+
 export const Oidc = {
   createAuthRequest,
   encryptAuthRequest,
   getAuthRequest,
   decryptAuthRequest,
+  createPermissionGrants,
   createResponseObject,
   encryptAuthResponse,
   decryptAuthResponse,
@@ -612,6 +701,6 @@ export const Oidc = {
   signJwt,
   verifyJwt,
   buildOidcUrl,
-  generateRandomCodeVerifier,
-  deriveCodeChallenge,
+  generateCodeChallenge,
+  submitAuthResponse,
 };
