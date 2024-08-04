@@ -26,7 +26,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build all workspace packages
-        run: pnpm --recursive --stream --sequential build:esm && pnpm --recursive --stream --sequential build:cjs
+        run: pnpm --sequential --recursive --stream build:esm && pnpm --sequential --recursive --stream build:cjs
 
       - name: Run dwn-server (background)
         run: |
@@ -34,7 +34,7 @@ jobs:
           echo "DWN_SERVER_BACKGROUND_PROCESS=$!" >> $GITHUB_ENV
 
       - name: Build tests for all packages
-        run: pnpm --recursive --stream --sequential build:tests:node
+        run: pnpm --sequential --recursive --stream build:tests:node
 
       - name: Run tests for all packages
         run: pnpm --recursive --stream exec c8 mocha -- --color --reporter mocha-junit-reporter --reporter-options mochaFile=./results.xml
