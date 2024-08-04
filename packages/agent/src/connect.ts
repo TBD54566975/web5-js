@@ -1,4 +1,3 @@
-import { utils } from '@web5/crypto';
 import { DwnProtocolDefinition, DwnRecordsPermissionScope } from './index.js';
 import {
   Web5ConnectAuthResponse,
@@ -6,7 +5,6 @@ import {
   type PushedAuthResponse,
 } from './oidc.js';
 import { pollWithTtl } from './utils.js';
-import { Convert } from '@web5/common';
 import { DidDht } from '@web5/dids';
 
 async function initClient({

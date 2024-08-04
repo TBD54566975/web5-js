@@ -14,7 +14,7 @@ import type { ConnectPermissionRequests } from './connect.js';
 import { DidDht, DidDocument, type BearerDid } from '@web5/dids';
 import { AgentDwnApi } from './dwn-api.js';
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
-import { DwnInterface, DwnResponse } from './types/dwn.js';
+import { DwnInterface } from './types/dwn.js';
 
 /**
  * Sent to an OIDC server to authorize a client. Allows clients
