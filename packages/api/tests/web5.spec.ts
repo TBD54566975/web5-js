@@ -3,11 +3,12 @@ import sinon from 'sinon';
 
 import { MemoryStore } from '@web5/common';
 import { Web5UserAgent } from '@web5/user-agent';
-import { AgentIdentityApi, DwnRegistrar, HdIdentityVault, PlatformAgentTestHarness } from '@web5/agent';
+import { AgentIdentityApi, DwnRegistrar, HdIdentityVault, PlatformAgentTestHarness, WalletConnect } from '@web5/agent';
 
 import { Web5 } from '../src/web5.js';
+import { testDwnUrl } from './utils/test-config.js';
 
-describe('Web5', () => {
+describe('web5 api', () => {
   describe('using Test Harness', () => {
     let testHarness: PlatformAgentTestHarness;
 
@@ -26,24 +27,6 @@ describe('Web5', () => {
     after(async () => {
       await testHarness.clearStorage();
       await testHarness.closeStorage();
-    });
-
-    describe('connect()', () => {
-      it('accepts an externally created DID', async () => {
-        const testIdentity = await testHarness.createIdentity({
-          name        : 'Test',
-          testDwnUrls : ['https://dwn.example.com']
-        });
-
-        // Call connect() with the custom agent.
-        const { web5, did } = await Web5.connect({
-          agent        : testHarness.agent,
-          connectedDid : testIdentity.did.uri
-        });
-
-        expect(did).to.exist;
-        expect(web5).to.exist;
-      });
     });
 
     describe('constructor', () => {
@@ -161,16 +144,38 @@ describe('Web5', () => {
         store                   : new MemoryStore<string, string>()
       });
       const { web5, recoveryPhrase } = await Web5.connect({ agentVault });
+      const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
 
       expect(web5).to.exist;
       expect(web5.agent).to.be.instanceOf(Web5UserAgent);
       // Verify recovery phrase is a 12-word string.
       expect(recoveryPhrase).to.be.a('string');
       expect(recoveryPhrase.split(' ')).to.have.lengthOf(12);
+      expect(walletConnectSpy.called).to.be.false;
+    });
+
+    it('accepts an externally created DID', async () => {
+      const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
+
+      const testIdentity = await testHarness.createIdentity({
+        name        : 'Test',
+        testDwnUrls : ['https://dwn.example.com']
+      });
+
+      // Call connect() with the custom agent.
+      const { web5, did } = await Web5.connect({
+        agent        : testHarness.agent,
+        connectedDid : testIdentity.did.uri
+      });
+
+      expect(did).to.exist;
+      expect(web5).to.exist;
+      expect(walletConnectSpy.called).to.be.false;
     });
 
     it('creates an identity using the provided techPreview dwnEndpoints', async () => {
       sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+      const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
       const identityApiSpy = sinon.spy(AgentIdentityApi.prototype, 'create');
       const { web5, did } = await Web5.connect({ techPreview: { dwnEndpoints: ['https://dwn.example.com/preview'] }});
       expect(web5).to.exist;
@@ -179,11 +184,13 @@ describe('Web5', () => {
       expect(identityApiSpy.calledOnce, 'identityApiSpy called').to.be.true;
       const serviceEndpoints = (identityApiSpy.firstCall.args[0].didOptions as any).services[0].serviceEndpoint;
       expect(serviceEndpoints).to.deep.equal(['https://dwn.example.com/preview']);
+      expect(walletConnectSpy.called).to.be.false;
     });
 
     it('creates an identity using the provided didCreateOptions dwnEndpoints', async () => {
       sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
       const identityApiSpy = sinon.spy(AgentIdentityApi.prototype, 'create');
+      const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
       const { web5, did } = await Web5.connect({ didCreateOptions: { dwnEndpoints: ['https://dwn.example.com'] }});
       expect(web5).to.exist;
       expect(did).to.exist;
@@ -191,6 +198,7 @@ describe('Web5', () => {
       expect(identityApiSpy.calledOnce, 'identityApiSpy called').to.be.true;
       const serviceEndpoints = (identityApiSpy.firstCall.args[0].didOptions as any).services[0].serviceEndpoint;
       expect(serviceEndpoints).to.deep.equal(['https://dwn.example.com']);
+      expect(walletConnectSpy.called).to.be.false;
     });
 
     it('defaults to `https://dwn.tbddev.org/beta` as the single DWN Service endpoint if non is provided', async () => {
@@ -203,6 +211,43 @@ describe('Web5', () => {
       expect(identityApiSpy.calledOnce, 'identityApiSpy called').to.be.true;
       const serviceEndpoints = (identityApiSpy.firstCall.args[0].didOptions as any).services[0].serviceEndpoint;
       expect(serviceEndpoints).to.deep.equal(['https://dwn.tbddev.org/beta']);
+    });
+
+    describe('wallet connect', () => {
+
+      it('should not initiate wallet connect if has walletConnectOptions and stored identities', async () => {
+        const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
+        sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+        const existingIdentity = await testHarness.createIdentity({
+          name        : 'Mr FooBarovich',
+          testDwnUrls : [testDwnUrl]
+        });
+        sinon.stub(testHarness.agent.identity, 'list').resolves([existingIdentity]);
+
+        const { web5, did } = await Web5.connect({
+          walletConnectOptions: {} as any,
+        });
+
+        expect(walletConnectSpy.called).to.be.false;
+        expect(web5).to.exist;
+        expect(did).to.exist;
+      });
+
+      it('should initiate wallet connect if has walletConnectOptions and no stored identities', async () => {
+        const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
+        sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+
+        try {
+          const { web5, did } = await Web5.connect({
+            walletConnectOptions: {} as any
+          });
+          expect(walletConnectSpy.called).to.be.true;
+          expect(web5).to.exist;
+          expect(did).to.exist;
+        } catch(e) {
+          console.log();
+        }
+      });
     });
 
     describe('registration', () => {
@@ -346,6 +391,5 @@ describe('Web5', () => {
         expect(registerStub.callCount, 'registerTenant called').to.equal(2); // called twice, once for Agent DID once for Identity DID
       });
     });
-
   });
 });

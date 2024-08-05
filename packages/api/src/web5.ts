@@ -10,6 +10,7 @@ import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
 import { DwnRegistrar } from '@web5/agent';
 import { VcApi } from './vc-api.js';
+import { DidDht } from '@web5/dids';
 
 /** Override defaults configured during the technical preview phase. */
 export type TechPreviewOptions = {
@@ -244,7 +245,25 @@ export class Web5 {
       // on init/registration
       if (existingIdentityCount === 0) {
         if (walletConnectOptions) {
-          WalletConnect.initClient(walletConnectOptions);
+          // TODO: do something with these
+          const { delegatedGrants, didsToImport } = await WalletConnect.initClient(walletConnectOptions);
+
+          const resolved = await DidDht.resolve(didsToImport[0].didUri);
+
+          const did = await userAgent.did.import({
+            portableDid: {
+              document    : resolved.didDocument,
+              metadata    : resolved.didDocumentMetadata,
+              uri         : didsToImport[0].didUri,
+              privateKeys : didsToImport[0].privateKeyJwks }
+          });
+
+          identity = await userAgent.identity.import({
+            portableIdentity: {
+              portableDid : did,
+              metadata    : { name: 'Connection', uri: did.uri, tenant: did.uri }
+            }
+          });
         } else {
           // Use the specified DWN endpoints or get default tech preview hosted nodes.
           const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
