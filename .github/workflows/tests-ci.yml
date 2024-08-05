@@ -50,7 +50,7 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Build all workspace packages
-        run: pnpm --sequential  --recursive --stream build:esm && pnpm --recursive --stream --sequential build:cjs
+        run: pnpm --recursive --stream build:esm && pnpm --recursive --stream build:cjs
 
       - name: Run linter for all packages
         run: pnpm --recursive --stream lint
@@ -105,12 +105,6 @@ jobs:
         uses: cashapp/activate-hermit@v1
         with:
           cache: "true"
-
-      - name: Print Node.js, npm, & pnpm versions for debugging if needed
-        run: |
-          node -v
-          npm -v
-          pnpm -v
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
