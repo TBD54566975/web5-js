@@ -11,7 +11,6 @@ import type {
   Web5Agent,
 } from '@web5/agent';
 
-import { PortableDid } from '@web5/dids';
 import { Web5UserAgent } from '@web5/user-agent';
 import { DwnRegistrar, WalletConnect } from '@web5/agent';
 
@@ -333,10 +332,11 @@ export class Web5 {
           // sessions.
           await userAgent.identity.manage({ portableIdentity: await identity.export() });
 
-        } else {
-          // If multiple identities are found, use the first one.
-          // TODO: Implement selecting a connectedDid from multiple identities
+        } else if (existingIdentityCount === 1) {
+          // An existing identity was found in the User Agent's tenant.
           identity = identities[0];
+        } else {
+          throw new Error(`connect() failed due to unexpected state: Expected 1 but found ${existingIdentityCount} stored identities.`);
         }
       }
 
