@@ -39,6 +39,7 @@ import type {
 
 import { DwnInterface, dwnMessageConstructors } from './types/dwn.js';
 import { blobToIsomorphicNodeReadable, getDwnServiceEndpointUrls, isRecordsWrite, webReadableToIsomorphicNodeReadable } from './utils.js';
+import { DwnPermissionsUtil } from './dwn-permissions-util.js';
 
 export type DwnMessageWithBlob<T extends DwnInterface> = {
   message: DwnMessage[T];
@@ -477,10 +478,9 @@ export class AgentDwnApi {
       messageType   : DwnInterface.RecordsQuery,
       messageParams : {
         filter: {
-          author       : grantor, // the author of the grant would be the grantor and the logical author of the message
-          recipient    : grantee, // the recipient of the grant would be the grantee
-          protocol     : PermissionsProtocol.uri,
-          protocolPath : PermissionsProtocol.grantPath,
+          author    : grantor, // the author of the grant would be the grantor and the logical author of the message
+          recipient : grantee, // the recipient of the grant would be the grantee
+          ...DwnPermissionsUtil.permissionsProtocolParams('grant')
         }
       }
     });
@@ -502,9 +502,8 @@ export class AgentDwnApi {
       messageType   : DwnInterface.RecordsRead,
       messageParams : {
         filter: {
-          parentId     : grantRecordId,
-          protocol     : PermissionsProtocol.uri,
-          protocolPath : PermissionsProtocol.revocationPath,
+          parentId: grantRecordId,
+          ...DwnPermissionsUtil.permissionsProtocolParams('revoke')
         }
       }
     });
