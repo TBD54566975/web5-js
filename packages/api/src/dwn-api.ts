@@ -21,6 +21,7 @@ import { DwnInterface, getRecordAuthor, DwnPermissionsUtil } from '@web5/agent';
 import { Record } from './record.js';
 import { dataToBlob } from './utils.js';
 import { Protocol } from './protocol.js';
+import { DataEncodedRecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 /**
  * Represents the request payload for configuring a protocol on a Decentralized Web Node (DWN).
@@ -640,7 +641,7 @@ export class DwnApi {
       },
 
       /**
-       * Read a single record based on the given filter
+       * Read a single record based on the given filter.
        */
       read: async (request: RecordsReadRequest): Promise<RecordsReadResponse> => {
         const agentRequest: ProcessDwnRequest<DwnInterface.RecordsRead> = {
