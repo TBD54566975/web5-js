@@ -10,7 +10,5 @@
 "@web5/user-agent": patch
 ---
 
-@web5/agent
-@web5/api
-
 introduce initial web5 connect implementation
+bump crypto
