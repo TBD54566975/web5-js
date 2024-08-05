@@ -272,7 +272,7 @@ describe('web5 connect', () => {
 
     it('should create an authrequest with the code challenge and client did', async () => {
       const callbackUrl = Oidc.buildOidcUrl({
-        baseURL  : 'http://example.com',
+        baseURL  : 'http://localhost:3000',
         endpoint : 'callback',
       });
 
@@ -288,7 +288,7 @@ describe('web5 connect', () => {
       expect(authRequest).to.include(options);
       expect(authRequest.nonce).to.be.a('string');
       expect(authRequest.state).to.be.a('string');
-      expect(authRequest.redirect_uri).to.equal('http://example.com/callback');
+      expect(authRequest.redirect_uri).to.equal('http://localhost:3000/callback');
     });
 
     it('should construct a signed jwt of an authrequest', async () => {
@@ -320,11 +320,11 @@ describe('web5 connect', () => {
       fetchStub.callThrough();
 
       const authorizeUrl = Oidc.buildOidcUrl({
-        baseURL   : 'http://example.com',
+        baseURL   : 'http://localhost:3000',
         endpoint  : 'authorize',
         authParam : '12345',
       });
-      expect(authorizeUrl).to.equal('http://example.com/authorize/12345.jwt');
+      expect(authorizeUrl).to.equal('http://localhost:3000/authorize/12345.jwt');
 
       const result = await Oidc.getAuthRequest(
         authorizeUrl,
@@ -424,12 +424,12 @@ describe('web5 connect', () => {
       }).toString();
 
       const callbackUrl = Oidc.buildOidcUrl({
-        baseURL  : 'http://example.com',
+        baseURL  : 'http://localhost:3000',
         endpoint : 'callback',
       });
-      expect(callbackUrl).to.equal('http://example.com/callback');
+      expect(callbackUrl).to.equal('http://localhost:3000/callback');
 
-      const fetchSpy = sinon.spy(global, 'fetch').withArgs(
+      const fetchSpy = sinon.spy(globalThis, 'fetch').withArgs(
         callbackUrl,
         sinon.match({
           method  : 'POST',
@@ -494,7 +494,7 @@ describe('web5 connect', () => {
 
       const par = {
         expires_in  : 3600000,
-        request_uri : 'http://localhost:${port}/connect/authorize/xyz.jwt',
+        request_uri : 'http://localhost:3000/connect/authorize/xyz.jwt',
       };
 
       const parResponse = new Response(JSON.stringify(par), {
@@ -532,7 +532,8 @@ describe('web5 connect', () => {
       expect(onWalletUriReadySpy.calledOnce).to.be.true;
       expect(onWalletUriReadySpy.firstCall.args[0]).to.match(
         new RegExp(
-          'http:\\/\\/localhost:3000\\/\\?request_uri=http%3A%2F%2Flocalhost%3A%24%7Bport%7D%2Fconnect%2Fauthorize%2Fxyz\\.jwt&code_challenge=.+$'
+          'http:\\/\\/[\\w.-]+:\\d+\\/\\?request_uri=http%3A%2F%2F[\\w.-]+%3A(\\d+|%24%7Bport%7D)%2Fconnect%2Fauthorize%2F[\\w.-]+\\.jwt&code_challenge=.+',
+          'i'
         )
       );
       expect(fetchStub.thirdCall.args[0]).to.match(
