@@ -312,7 +312,7 @@ describe('web5 connect', () => {
   describe('provider authresponse phase', () => {
     it('should get authrequest from server, decrypt and verify the jwt', async () => {
       const fetchStub = sinon
-        .stub(global, 'fetch')
+        .stub(globalThis, 'fetch')
         .onFirstCall()
         .resolves({
           text: sinon.stub().resolves(authRequestJwe),
