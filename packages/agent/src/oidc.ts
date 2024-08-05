@@ -255,10 +255,10 @@ async function createAuthRequest(
   >
 ) {
   // Generate a random state value to associate the authorization request with the response.
-  const stateBytes = CryptoUtils.randomBytes(12);
+  const stateBytes = CryptoUtils.randomBytes(16);
 
   // Generate a random nonce value to associate the ID Token with the authorization request.
-  const nonceBytes = CryptoUtils.randomBytes(12);
+  const nonceBytes = CryptoUtils.randomBytes(16);
 
   const requestObject: Web5ConnectAuthRequest = {
     ...options,
