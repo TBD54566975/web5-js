@@ -40,7 +40,8 @@
   "pnpm": {
     "overrides": {
       "express@<4.19.2": ">=4.19.2",
-      "ws@<8.17.1": ">=8.17.1"
+      "ws@<8.17.1": ">=8.17.1",
+      "fast-xml-parser@<4.4.1": ">=4.4.1"
     }
   },
   "packageManager": "pnpm@9.6.0+sha256.dae0f7e822c56b20979bb5965e3b73b8bdabb6b8b8ef121da6d857508599ca35"
