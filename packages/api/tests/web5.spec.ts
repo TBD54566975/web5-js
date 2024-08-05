@@ -3,10 +3,11 @@ import sinon from 'sinon';
 
 import { MemoryStore } from '@web5/common';
 import { Web5UserAgent } from '@web5/user-agent';
-import { AgentIdentityApi, DwnRegistrar, HdIdentityVault, PlatformAgentTestHarness, WalletConnect } from '@web5/agent';
+import { AgentDidApi, AgentIdentityApi, DwnRegistrar, HdIdentityVault, PlatformAgentTestHarness, WalletConnect } from '@web5/agent';
 
 import { Web5 } from '../src/web5.js';
 import { testDwnUrl } from './utils/test-config.js';
+import { DidDht } from '@web5/dids';
 
 describe('web5 api', () => {
   describe('using Test Harness', () => {
@@ -236,11 +237,17 @@ describe('web5 api', () => {
       it('should initiate wallet connect if has walletConnectOptions and no stored identities', async () => {
         const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
         sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+        const didDhtspy = sinon.spy(DidDht, 'resolve');
+        const identityImportSpy = sinon.spy(AgentIdentityApi.prototype, 'import');
+        const didImportSpy = sinon.spy(AgentDidApi.prototype, 'import');
 
         try {
           const { web5, did } = await Web5.connect({
             walletConnectOptions: {} as any
           });
+          expect(didDhtspy.called).to.be.true;
+          expect(didImportSpy.called).to.be.true;
+          expect(identityImportSpy.called).to.be.true;
           expect(walletConnectSpy.called).to.be.true;
           expect(web5).to.exist;
           expect(did).to.exist;
