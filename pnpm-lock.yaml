@@ -7,6 +7,7 @@ settings:
 overrides:
   express@<4.19.2: '>=4.19.2'
   ws@<8.17.1: '>=8.17.1'
+  fast-xml-parser@<4.4.1: '>=4.4.1'
 
 importers:
 
@@ -3561,8 +3562,8 @@ packages:
   fast-uri@3.0.1:
     resolution: {integrity: sha512-MWipKbbYiYI0UC7cl8m/i/IWTqfC8YXsqjzybjddLsFjStroQzsHXkc73JutMvBiXmOvapk+axIl79ig5t55Bw==}
 
-  fast-xml-parser@4.2.5:
-    resolution: {integrity: sha512-B9/wizE4WngqQftFPmdaMYlXoJlJOYxGQOanC77fq9k8+Z0v5dDSVh+3glErdIROP//s/jgb7ZuxKfB8nVyo0g==}
+  fast-xml-parser@4.4.1:
+    resolution: {integrity: sha512-xkjOecfnKGkSsOwtZ5Pz7Us/T6mrbPQrq0nh+aCO5V9nk5NLWmasAHumTKjiPJPWANe+kAZ84Jc8ooJkzZ88Sw==}
     hasBin: true
 
   fastq@1.17.1:
@@ -6143,7 +6144,7 @@ snapshots:
       '@smithy/signature-v4': 4.1.0
       '@smithy/smithy-client': 3.1.12
       '@smithy/types': 3.3.0
-      fast-xml-parser: 4.2.5
+      fast-xml-parser: 4.4.1
       tslib: 2.6.3
 
   '@aws-sdk/credential-provider-env@3.609.0':
@@ -9810,7 +9811,7 @@ snapshots:
 
   fast-uri@3.0.1: {}
 
-  fast-xml-parser@4.2.5:
+  fast-xml-parser@4.4.1:
     dependencies:
       strnum: 1.0.5
 
