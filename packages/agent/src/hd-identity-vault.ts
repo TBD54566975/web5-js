@@ -512,40 +512,29 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
     });
 
   // Create the DID using the derived identity, signing, and encryption keys.
-  const verificationMethods = [
-    {
-      algorithm : 'Ed25519',
-      id        : 'sig',
-      purposes  : ['assertionMethod', 'authentication']
-    },
-    // TODO: Enable this once DID DHT supports X25519 keys.
-    // {
-    //   algorithm : 'X25519',
-    //   id        : 'enc',
-    //   purposes  : ['keyAgreement']
-    // }
-  ]
+  const options = {
+    verificationMethods: [
+      {
+        algorithm : 'Ed25519',
+        id        : 'sig',
+        purposes  : ['assertionMethod', 'authentication']
+      },
+    ]
+  } as DidDhtCreateOptions<DeterministicKeyGenerator>;
 
-  const didDhtCreateOptions =
-    !dwnEndpoints || !dwnEndpoints.length
-      ? { verificationMethods }
-      : {
-        verificationMethods,
-        services: [
-          {
-            id              : 'dwn',
-            type            : 'DecentralizedWebNode',
-            serviceEndpoint : dwnEndpoints,
-            enc             : '#enc',
-            sig             : '#sig',
-          }
-        ],
-      };
+  if(dwnEndpoints && !!dwnEndpoints.length) {
+    options.services = [
+      {
+        id              : 'dwn',
+        type            : 'DecentralizedWebNode',
+        serviceEndpoint : dwnEndpoints,
+        enc             : '#enc',
+        sig             : '#sig',
+      }
+    ];
+  }
 
-  const did = await DidDht.create({
-    keyManager: deterministicKeyGenerator,
-    options: didDhtCreateOptions as DidDhtCreateOptions<DeterministicKeyGenerator>
-  });
+  const did = await DidDht.create({ keyManager: deterministicKeyGenerator, options });
 
     /**
      * STEP 6: Convert the DID to portable format and store it in the data store as a

@@ -1,5 +1,5 @@
 import { Convert } from '@web5/common';
-import { getWebcryptoSubtle } from '@noble/ciphers/webcrypto/utils';
+import { getWebcryptoSubtle } from '@noble/ciphers/webcrypto';
 
 import type { Jwk } from '@web5/crypto';
 
