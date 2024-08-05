@@ -26,8 +26,8 @@ importers:
         specifier: 7.9.0
         version: 7.9.0(@typescript-eslint/parser@7.14.1(eslint@9.7.0)(typescript@5.5.4))(eslint@9.7.0)(typescript@5.5.4)
       '@web5/dwn-server':
-        specifier: 0.4.3
-        version: 0.4.3
+        specifier: 0.4.4
+        version: 0.4.4
       audit-ci:
         specifier: ^7.0.1
         version: 7.1.0
@@ -2510,8 +2510,8 @@ packages:
     resolution: {integrity: sha512-LKc6Okl2iz78QGJCsd8QKQq3LdtmfQ9cfiRKu1BU4ITWteWsg4JD089hKmslNDd2KKnEf9LE72TqEYWxr/e8JA==}
     engines: {node: '>=18.0.0'}
 
-  '@web5/dwn-server@0.4.3':
-    resolution: {integrity: sha512-wKdVhOMBsTJTIfYRiD/5crYwiPBZIsaVsr3CKjEj3HMY2HzeoDnACdLFpKq0CzvcU2qfXe9X8S6B0ObAfIDZQA==}
+  '@web5/dwn-server@0.4.4':
+    resolution: {integrity: sha512-lebeZUQjr7wGm1UfRVv49sAiY6W62dvkM/ayxRpEbHefjiN6p4CyCXHbiqwzOT+569B3lkblDW1eJ7E8kQb3hA==}
     hasBin: true
 
   '@webassemblyjs/ast@1.12.1':
@@ -6798,7 +6798,7 @@ snapshots:
   '@ipld/dag-cbor@9.0.5':
     dependencies:
       cborg: 4.2.3
-      multiformats: 12.0.1
+      multiformats: 12.1.3
 
   '@ipld/dag-pb@4.1.2':
     dependencies:
@@ -8338,7 +8338,7 @@ snapshots:
       level: 8.0.1
       ms: 2.1.3
 
-  '@web5/dwn-server@0.4.3':
+  '@web5/dwn-server@0.4.4':
     dependencies:
       '@tbd54566975/dwn-sdk-js': 0.4.4
       '@tbd54566975/dwn-sql-store': 0.6.4

@@ -514,8 +514,8 @@ describe('web5 connect', () => {
       fetchStub.callThrough();
 
       const results = await WalletConnect.initClient({
-        walletUri          : 'http://localhost:8080/',
-        connectServerUrl   : 'http://localhost:8080/connect',
+        walletUri          : 'http://localhost:3000/',
+        connectServerUrl   : 'http://localhost:3000/connect',
         permissionRequests : {
           '12345': {
             protocolDefinition : {} as any,
@@ -527,16 +527,16 @@ describe('web5 connect', () => {
       });
 
       expect(fetchStub.firstCall.args[0]).to.equal(
-        'http://localhost:8080/connect/par'
+        'http://localhost:3000/connect/par'
       );
       expect(onWalletUriReadySpy.calledOnce).to.be.true;
       expect(onWalletUriReadySpy.firstCall.args[0]).to.match(
         new RegExp(
-          'http:\\/\\/localhost:8080\\/\\?request_uri=http%3A%2F%2Flocalhost%3A%24%7Bport%7D%2Fconnect%2Fauthorize%2Fxyz\\.jwt&code_challenge=.+$'
+          'http:\\/\\/localhost:3000\\/\\?request_uri=http%3A%2F%2Flocalhost%3A%24%7Bport%7D%2Fconnect%2Fauthorize%2Fxyz\\.jwt&code_challenge=.+$'
         )
       );
       expect(fetchStub.thirdCall.args[0]).to.match(
-        new RegExp('^http:\\/\\/localhost:8080\\/connect\\/token\\/.+\\.jwt$')
+        new RegExp('^http:\\/\\/localhost:3000\\/connect\\/token\\/.+\\.jwt$')
       );
 
       expect(results).to.be.an('object');
