@@ -27,7 +27,7 @@ jobs:
           cache: "true"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Report known vulnerabilities
         run: pnpm run audit-ci
@@ -47,7 +47,7 @@ jobs:
           cache: "true"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build all workspace packages
         run: pnpm --sequential  --recursive --stream build:esm && pnpm --recursive --stream --sequential build:cjs
@@ -113,7 +113,7 @@ jobs:
           pnpm -v
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Get Playwright version referenced by DIDs package (for cache)
         id: get-playwright-version

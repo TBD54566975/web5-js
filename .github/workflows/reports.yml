@@ -23,10 +23,10 @@ jobs:
           cache: "true"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build all workspace packages
-        run: pnpm --sequential --recursive --stream build:esm && pnpm --sequential --recursive --stream build:cjs
+        run: pnpm --recursive --stream build:esm && pnpm --recursive --stream build:cjs
 
       - name: Run dwn-server (background)
         run: |

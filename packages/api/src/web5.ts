@@ -233,8 +233,6 @@ export class Web5 {
       }
       await userAgent.start({ password });
 
-      // userAgent.
-      // Connect attempt failed or was rejected so fallback to local user agent.
       let identity: BearerIdentity;
 
       // Query the Agent's DWN tenant for identity records.
