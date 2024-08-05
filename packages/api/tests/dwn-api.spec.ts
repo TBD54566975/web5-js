@@ -1240,11 +1240,7 @@ describe('DwnApi', () => {
         expect(writeResult.record).to.exist;
 
         // Delete the record
-        await dwnAlice.records.delete({
-          message: {
-            recordId: writeResult.record!.id
-          }
-        });
+        await writeResult.record!.delete();
 
         const result = await dwnAlice.records.read({
           message: {
