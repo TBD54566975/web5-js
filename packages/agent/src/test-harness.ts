@@ -169,10 +169,10 @@ export class PlatformAgentTestHarness {
     await this.didResolverCache.set(didUri, resolutionResult);
   }
 
-  public static async setup({ agentClass, agentStores, testDataLocation }: { 
+  public static async setup({ agentClass, agentStores, testDataLocation }: {
       agentClass: new (params: any) => Web5PlatformAgent<LocalKeyManager>
       agentStores?: 'dwn' | 'memory';
-      testDataLocation?: string; 
+      testDataLocation?: string;
     }): Promise<PlatformAgentTestHarness> {
     agentStores ??= 'memory';
     testDataLocation ??= '__TESTDATA__';
