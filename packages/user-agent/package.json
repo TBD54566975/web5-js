@@ -71,7 +71,7 @@
   "dependencies": {
     "@web5/agent": "workspace:*",
     "@web5/common": "1.0.0",
-    "@web5/crypto": "1.0.0",
+    "@web5/crypto": "workspace:*",
     "@web5/dids": "1.1.0"
   },
   "devDependencies": {
