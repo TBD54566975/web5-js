@@ -23,7 +23,5 @@ export * from './sync-api.js';
 export * from './sync-engine-level.js';
 export * from  './test-harness.js';
 export * from './utils.js';
-
-// connect
 export * from './connect.js';
 export * from './oidc.js';
