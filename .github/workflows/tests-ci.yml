@@ -128,7 +128,7 @@ jobs:
         run: pnpm --filter dids exec playwright install --with-deps
 
       - name: Build ESM
-        run: pnpm --sequential --recursive --stream build:esm
+        run: pnpm --recursive --stream build:esm
 
       - name: Build browser for matrix ${{ matrix.group }}
         run: pnpm ${{ matrix.packages }} build:browser
