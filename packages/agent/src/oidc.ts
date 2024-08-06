@@ -10,7 +10,7 @@ import {
 } from '@web5/crypto';
 import { concatenateUrl } from './utils.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
-import type { ConnectPermissionRequests } from './connect.js';
+import type { ConnectPermissionRequest } from './connect.js';
 import { DidDht, DidDocument, type BearerDid } from '@web5/dids';
 import { AgentDwnApi } from './dwn-api.js';
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
@@ -127,7 +127,7 @@ export type SIOPv2AuthRequest = {
  */
 export type Web5ConnectAuthRequest = {
   /** PermissionGrants that are to be sent to the provider */
-  permissionRequests: ConnectPermissionRequests;
+  permissionRequests: ConnectPermissionRequest[];
 } & SIOPv2AuthRequest;
 
 /** The fields for an OIDC SIOPv2 Auth Repsonse */

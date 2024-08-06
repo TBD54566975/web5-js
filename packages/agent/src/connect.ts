@@ -141,7 +141,7 @@ export type WalletConnectOptions = {
    * permission scopes for each protocol. The key is the protocol URL and
    * the value is an object with the protocol definition and the permission scopes.
    */
-  permissionRequests: ConnectPermissionRequests;
+  permissionRequests: ConnectPermissionRequest[];
 
   /**
    * The Web5 API provides a URI to the wallet based on the `walletUri` plus a query params payload valid for 5 minutes.
@@ -168,18 +168,15 @@ export type WalletConnectOptions = {
  * The protocols of permissions requested, along with the definition and permission scopes for each protocol.
  * The key is the protocol URL and the value is an object with the protocol definition and the permission scopes.
  */
-export type ConnectPermissionRequests = Record<
-  string,
-  {
-    /**
-     * The definition of the protocol the permissions are being requested for.
-     * In the event that the protocol is not already installed, the wallet will install this given protocol definition.
-     */
-    protocolDefinition: DwnProtocolDefinition;
+export type ConnectPermissionRequest = {
+  /**
+   * The definition of the protocol the permissions are being requested for.
+   * In the event that the protocol is not already installed, the wallet will install this given protocol definition.
+   */
+  protocolDefinition: DwnProtocolDefinition;
 
-    /** The scope of the permissions being requested for the given protocol */
-    permissionScopes: DwnRecordsPermissionScope[];
-  }
->;
+  /** The scope of the permissions being requested for the given protocol */
+  permissionScopes: DwnRecordsPermissionScope[];
+};
 
 export const WalletConnect = { initClient };

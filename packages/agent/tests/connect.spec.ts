@@ -516,12 +516,11 @@ describe('web5 connect', () => {
       const results = await WalletConnect.initClient({
         walletUri          : 'http://localhost:3000/',
         connectServerUrl   : 'http://localhost:3000/connect',
-        permissionRequests : {
-          '12345': {
-            protocolDefinition : {} as any,
-            permissionScopes   : {} as any,
-          },
+        permissionRequests : [{
+          protocolDefinition : {} as any,
+          permissionScopes   : {} as any,
         },
+        ],
         onWalletUriReady : (uri) => onWalletUriReadySpy(uri),
         validatePin      : async () => randomPin,
       });
