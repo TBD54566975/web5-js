@@ -494,7 +494,7 @@ describe('web5 api', () => {
           }
         };
 
-        const { reply: protocolConfigReply } = await testHarness.agent.dwn.processRequest({
+        const { reply: protocolConfigReply, message: protocolConfigureMessage } = await testHarness.agent.dwn.processRequest({
           author        : alice.did.uri,
           target        : alice.did.uri,
           messageType   : DwnInterface.ProtocolsConfigure,
@@ -578,6 +578,33 @@ describe('web5 api', () => {
         expect(did).to.equal(alice.did.uri);
         expect(impersonatorDid).to.equal(app.uri);
 
+        // in lieu of sync, we will process the grants and protocol definition on the local connected agent
+        const { reply: localProtocolReply } = await web5.agent.processDwnRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.ProtocolsConfigure,
+          rawMessage  : protocolConfigureMessage,
+        });
+        expect(localProtocolReply.status.code).to.equal(202);
+
+        const { reply: grantWriteLocalReply } = await web5.agent.processDwnRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : writeGrant.recordsWrite.message,
+          dataStream  : new Blob([ writeGrant.permissionGrantBytes ])
+        });
+        expect(grantWriteLocalReply.status.code).to.equal(202);
+
+        const { reply: grantReadLocalReply } = await web5.agent.processDwnRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : readGrant.recordsWrite.message,
+          dataStream  : new Blob([ readGrant.permissionGrantBytes ])
+        });
+        expect(grantReadLocalReply.status.code).to.equal(202);
+
         // use the grant to write a record
         const writeResult = await web5.dwn.records.write({
           data    : 'Hello, world!',
@@ -586,31 +613,26 @@ describe('web5 api', () => {
             protocolPath : 'foo',
           }
         });
-        console.log('write record local reply', writeResult.status);
         expect(writeResult.status.code).to.equal(202);
+        expect(writeResult.record).to.exist;
+        // test that the logical author is the connected DID and the signer is the impersonator DID
+        expect(writeResult.record.author).to.equal(did);
+        const writeSigner = Jws.getSignerDid(writeResult.record.authorization.signature.signatures[0]);
+        expect(writeSigner).to.equal(impersonatorDid);
 
-        // // use the result to write to the testHarness
-        // const { reply: writeReply } = await testHarness.agent.dwn.processRequest({
-        //   author: alice.did.uri,
-        //   target: alice.did.uri,
-        //   messageType: DwnInterface.RecordsWrite,
-        //   rawMessage: writeResult.record.rawMessage as RecordsWriteMessage,
-        // });
-        // console.log('write record reply', writeReply.status);
-        // expect(writeReply.status.code).to.equal(202);
-
-        // // use the read grant to read the record
-        // const readResult = await web5.dwn.records.read({
-        //   protocol: protocol.protocol,
-        //   message: {
-        //     filter: { recordId: writeResult.record.id }
-        //   }
-        // });
-        // console.log('read record local reply', readResult.status);
-        // expect(readResult.status.code).to.equal(200);
-        // expect(readResult.record).to.exist;
-
-      }).timeout(20000); // long timeout for dht resolution
+        const readResult = await web5.dwn.records.read({
+          protocol : protocol.protocol,
+          message  : {
+            filter: { recordId: writeResult.record.id }
+          }
+        });
+        expect(readResult.status.code).to.equal(200);
+        expect(readResult.record).to.exist;
+        // test that the logical author is the connected DID and the signer is the impersonator DID
+        expect(readResult.record.author).to.equal(did);
+        const readSigner = Jws.getSignerDid(readResult.record.authorization.signature.signatures[0]);
+        expect(readSigner).to.equal(impersonatorDid);
+      });
     });
 
     describe('constructor', () => {

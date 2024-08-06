@@ -669,8 +669,6 @@ export class DwnApi {
             }
           });
 
-          console.log('got grant', delegatedGrant.recordId);
-
           // set the required delegated grant and grantee DID for the read operation
           agentRequest.messageParams.delegatedGrant = delegatedGrant;
           agentRequest.granteeDid = this.delegateDid;
