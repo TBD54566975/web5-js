@@ -1,5 +1,14 @@
 # @web5/user-agent
 
+## 0.4.2
+
+### Patch Changes
+
+- [#746](https://github.com/TBD54566975/web5-js/pull/746) [`1fee7a2`](https://github.com/TBD54566975/web5-js/commit/1fee7a266d426013d1d250155af2a9c3c8b1ee78) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Apply logic to sign messages with grants, add utils for dealing with grants
+
+- Updated dependencies [[`1fee7a2`](https://github.com/TBD54566975/web5-js/commit/1fee7a266d426013d1d250155af2a9c3c8b1ee78)]:
+  - @web5/agent@0.4.2
+
 ## 0.4.1
 
 ### Patch Changes
