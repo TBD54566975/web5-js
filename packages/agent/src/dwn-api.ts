@@ -1,16 +1,45 @@
 import type { Readable } from '@web5/common';
-import type { DwnConfig, GenericMessage } from '@tbd54566975/dwn-sdk-js';
+
+import {
+  Cid,
+  DataEncodedRecordsWriteMessage,
+  DataStoreLevel,
+  Dwn,
+  DwnConfig,
+  DwnMethodName,
+  EventLogLevel,
+  GenericMessage,
+  Message,
+  MessageStoreLevel,
+  PermissionGrant,
+  PermissionScope,
+  PermissionsProtocol,
+  RecordsWrite,
+  ResumableTaskStoreLevel
+} from '@tbd54566975/dwn-sdk-js';
 
 import { NodeStream } from '@web5/common';
 import { utils as cryptoUtils } from '@web5/crypto';
 import { DidDht, DidJwk, DidResolverCacheLevel, UniversalResolver } from '@web5/dids';
-import { Cid, DataStoreLevel, Dwn, DwnMethodName, EventLogLevel, Message, MessageStoreLevel, ResumableTaskStoreLevel } from '@tbd54566975/dwn-sdk-js';
 
 import type { Web5PlatformAgent } from './types/agent.js';
-import type { DwnMessage, DwnMessageReply, DwnMessageWithData, DwnResponse, DwnSigner, MessageHandler, ProcessDwnRequest, SendDwnRequest } from './types/dwn.js';
+import type {
+  DwnMessage,
+  DwnMessageInstance,
+  DwnMessageParams,
+  DwnMessageReply,
+  DwnMessageWithData,
+  DwnRecordsInterfaces,
+  DwnResponse,
+  DwnSigner,
+  MessageHandler,
+  ProcessDwnRequest,
+  SendDwnRequest
+} from './types/dwn.js';
 
 import { DwnInterface, dwnMessageConstructors } from './types/dwn.js';
 import { blobToIsomorphicNodeReadable, getDwnServiceEndpointUrls, isRecordsWrite, webReadableToIsomorphicNodeReadable } from './utils.js';
+import { DwnPermissionsUtil } from './dwn-permissions-util.js';
 
 export type DwnMessageWithBlob<T extends DwnInterface> = {
   message: DwnMessage[T];
@@ -37,6 +66,14 @@ export function isDwnMessage<T extends DwnInterface>(
 ): message is DwnMessage[T] {
   const incomingMessageInterfaceName = message.descriptor.interface + message.descriptor.method;
   return incomingMessageInterfaceName === messageType;
+}
+
+export function isRecordsType(messageType: DwnInterface): messageType is DwnRecordsInterfaces {
+  return messageType === DwnInterface.RecordsDelete ||
+    messageType === DwnInterface.RecordsQuery ||
+    messageType === DwnInterface.RecordsRead ||
+    messageType === DwnInterface.RecordsSubscribe ||
+    messageType === DwnInterface.RecordsWrite;
 }
 
 export class AgentDwnApi {
@@ -255,10 +292,15 @@ export class AgentDwnApi {
   private async constructDwnMessage<T extends DwnInterface>({ request }: {
     request: ProcessDwnRequest<T>
   }): Promise<DwnMessageWithData<T>> {
+    // if the request has a granteeDid, ensure the messageParams include the proper grant parameters
+    if (request.granteeDid && !this.hasGrantParams(request.messageParams)) {
+      throw new Error('AgentDwnApi: Requested to sign with a permission but no grant messageParams were provided in the request');
+    }
+
     const rawMessage = request.rawMessage;
     let readableStream: Readable | undefined;
-
     // TODO: Consider refactoring to move data transformations imposed by fetch() limitations to the HTTP transport-related methods.
+    // if the request is a RecordsWrite message, we need to handle the data stream and update the messageParams accordingly
     if (isDwnRequest(request, DwnInterface.RecordsWrite)) {
       const messageParams = request.messageParams;
 
@@ -285,21 +327,47 @@ export class AgentDwnApi {
       }
     }
 
-    // Determine the signer for the message.
-    const signer = await this.getSigner(request.author);
-
+    let dwnMessage: DwnMessageInstance[T];
     const dwnMessageConstructor = dwnMessageConstructors[request.messageType];
-    const dwnMessage = rawMessage ? await dwnMessageConstructor.parse(rawMessage) : await dwnMessageConstructor.create({
-      // TODO: Implement alternative to type assertion.
-      ...request.messageParams!,
-      signer
-    });
 
-    if (isRecordsWrite(dwnMessage) && request.signAsOwner) {
-      await dwnMessage.signAsOwner(signer);
+    // if there is no raw message provided, we need to create the dwn message
+    if (!rawMessage) {
+
+      // If we need to sign as an author delegate or with permissions we need to get the grantee's signer
+      // The messageParams should include either a permissionGrantId, or a delegatedGrant message
+      const signer = request.granteeDid ?
+        await this.getSigner(request.granteeDid) :
+        await this.getSigner(request.author);
+
+      dwnMessage = await dwnMessageConstructor.create({
+        // TODO: Implement alternative to type assertion.
+        ...request.messageParams!,
+        signer
+      });
+
+    } else {
+      dwnMessage = await dwnMessageConstructor.parse(rawMessage);
+      if (isRecordsWrite(dwnMessage) && request.signAsOwner) {
+        // if we are signing as owner, we use the author's signer
+        const signer = await this.getSigner(request.author);
+        await dwnMessage.signAsOwner(signer);
+      } else if (request.granteeDid && isRecordsWrite(dwnMessage) && request.signAsOwnerDelegate) {
+        // if we are signing as owner delegate, we use the grantee's signer and the provided delegated grant
+        const signer = await this.getSigner(request.granteeDid);
+
+        //if we have reached here, the presence of the grant params has already been checked
+        const messageParams = request.messageParams as DwnMessageParams[DwnInterface.RecordsWrite];
+        await dwnMessage.signAsOwnerDelegate(signer, messageParams.delegatedGrant!);
+      }
     }
 
     return { message: dwnMessage.message as DwnMessage[T], dataStream: readableStream };
+  }
+
+  private hasGrantParams<T extends DwnInterface>(params?: DwnMessageParams[T]): boolean {
+    return params !== undefined &&
+      (('permissionGrantId' in params && params.permissionGrantId !== undefined) ||
+      ('delegatedGrant' in params && params.delegatedGrant !== undefined));
   }
 
   private async getSigner(author: string): Promise<DwnSigner> {
@@ -381,5 +449,107 @@ export class AgentDwnApi {
     }
 
     return dwnMessageWithBlob;
+  }
+
+  /**
+   * NOTE EVERYTHING BELOW THIS LINE IS TEMPORARY
+   * TODO: Create a `grants` API to handle creating permission requests, grants and revocations
+   * */
+
+  /**
+   * Performs a RecordsQuery for permission grants that match the given parameters.
+   */
+  public async fetchGrants({ author, target, grantee, grantor }: {
+    /** author of the query message, defaults to grantee */
+    author?: string,
+    /** target of the query message, defaults to author */
+    target?: string,
+    grantor: string,
+    grantee: string
+  }): Promise<DataEncodedRecordsWriteMessage[]> {
+    // if no author is provided, use the grantee's DID
+    author ??= grantee;
+    // if no target is explicitly provided, use the author
+    target ??= author;
+
+    const { reply: grantsReply } = await this.processRequest({
+      author,
+      target,
+      messageType   : DwnInterface.RecordsQuery,
+      messageParams : {
+        filter: {
+          author    : grantor, // the author of the grant would be the grantor and the logical author of the message
+          recipient : grantee, // the recipient of the grant would be the grantee
+          ...DwnPermissionsUtil.permissionsProtocolParams('grant')
+        }
+      }
+    });
+
+    if (grantsReply.status.code !== 200) {
+      throw new Error(`AgentDwnApi: Failed to fetch grants: ${grantsReply.status.detail}`);
+    }
+
+    return grantsReply.entries! as DataEncodedRecordsWriteMessage[];
+  };
+
+  /**
+   * Check whether a grant is revoked by reading the revocation record for a given grant recordId.
+   */
+  public async isGrantRevoked(author:string, target: string, grantRecordId: string): Promise<boolean> {
+    const { reply: revocationReply } = await this.processRequest({
+      author,
+      target,
+      messageType   : DwnInterface.RecordsRead,
+      messageParams : {
+        filter: {
+          parentId: grantRecordId,
+          ...DwnPermissionsUtil.permissionsProtocolParams('revoke')
+        }
+      }
+    });
+
+    if (revocationReply.status.code === 404) {
+      // no revocation found, the grant is not revoked
+      return false;
+    } else if (revocationReply.status.code === 200) {
+      // a revocation was found, the grant is revoked
+      return true;
+    }
+
+    throw new Error(`AgentDwnApi: Failed to check if grant is revoked: ${revocationReply.status.detail}`);
+  }
+
+  public async createGrant({ grantedFrom, dateExpires, grantedTo, scope, delegated }:{
+    dateExpires: string,
+    grantedFrom: string,
+    grantedTo: string,
+    scope: PermissionScope,
+    delegated?: boolean
+  }): Promise<{
+    recordsWrite: RecordsWrite,
+    dataEncodedMessage: DataEncodedRecordsWriteMessage,
+    permissionGrantBytes: Uint8Array
+  }> {
+    return await PermissionsProtocol.createGrant({
+      signer: await this.getSigner(grantedFrom),
+      grantedTo,
+      dateExpires,
+      scope,
+      delegated
+    });
+  }
+
+  public async createRevocation({ grant, author }:{
+    author: string,
+    grant: PermissionGrant
+  }): Promise<{
+    recordsWrite: RecordsWrite,
+    dataEncodedMessage: DataEncodedRecordsWriteMessage,
+    permissionRevocationBytes: Uint8Array
+  }> {
+    return await PermissionsProtocol.createRevocation({
+      signer: await this.getSigner(author),
+      grant,
+    });
   }
 }
