@@ -430,11 +430,19 @@ export class Web5 {
 }
 
 
-// TODO: Temporary Class to mock WalletConnect integration
+/**
+ * Placeholder for WalletConnect integration.
+ *
+ * TODO: Temporary Class to mock WalletConnect integration
+ */
 export class ConnectPlaceholder {
+  /** initialize a connect flow */
   static async initClient(_walletConnectOptions: WalletConnectOptions): Promise<{
+    /** grants provided to the grantee for use with the app */
     delegatedGrants: DataEncodedRecordsWriteMessage[];
+    /** the logical owner of the tenant */
     connectedDid: string;
+    /** The DID used as the grantee to act on behalf of the connectedDid */
     portableDid: PortableDid
   }> {
     return {

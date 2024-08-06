@@ -229,6 +229,7 @@ export class DwnApi {
   /** (optional) The DID of the signer when signing with permissions */
   private signerDid?: string;
 
+  /** cache for fetching permissions, the key is comprised of the protocol and messageType */
   private cachedPermissions: TtlCache<string, DataEncodedRecordsWriteMessage> = new TtlCache({ ttl: 60 * 1000 });
 
   constructor(options: { agent: Web5Agent, connectedDid: string, signerDid?: string }) {
@@ -237,6 +238,7 @@ export class DwnApi {
     this.signerDid = options.signerDid;
   }
 
+  /** finds the appropriate permission grants associated with the message request */
   private async findDelegatedPermissionGrant<T extends DwnInterface>({ messageParams }:{
     messageParams: {
       messageType: T,
