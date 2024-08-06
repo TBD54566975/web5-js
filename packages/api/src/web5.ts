@@ -356,31 +356,6 @@ export class Web5 {
 
                 throw new Error(`Failed to process delegated grant: ${reply.status.detail}`);
               }
-
-              // in lieu of sync being enabled, manually add the grants to the connectedDID's local DWN tenant
-              const { reply: connectedReply } = await userAgent.processDwnRequest({
-                author      : connectedDid,
-                target      : connectedDid,
-                messageType : DwnInterface.RecordsWrite,
-                rawMessage  : grantMessage,
-                dataStream  : new Blob([ data ])
-              });
-
-              if (connectedReply.status.code !== 202) {
-                // delete DID and Identity if grant processing fails
-                try {
-                  await userAgent.did.delete({ didUri: connectedDid });
-                } catch(error: any) {
-                  console.error(`Failed to delete DID: ${error.message}`);
-                }
-
-                try {
-                  await userAgent.identity.delete({ didUri: connectedDid });
-                } catch(error: any) {
-                  console.error(`Failed to delete Identity: ${error.message}`);
-                }
-                throw new Error(`Failed to process delegated grant for connectedDID: ${connectedReply.status.detail}`);
-              }
             }
 
           } catch (error:any) {
