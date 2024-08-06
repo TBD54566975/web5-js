@@ -257,9 +257,12 @@ export class Web5 {
         );
       }
 
+      // Use the specified DWN endpoints or the latest TBD hosted DWN
+      const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
+
       // Initialize, if necessary, and start the agent.
       if (await userAgent.firstLaunch()) {
-        recoveryPhrase = await userAgent.initialize({ password, recoveryPhrase });
+        recoveryPhrase = await userAgent.initialize({ password, recoveryPhrase, dwnEndpoints: serviceEndpointNodes });
       }
       await userAgent.start({ password });
 
@@ -278,8 +281,6 @@ export class Web5 {
         // If an existing identity is not found found, create a new one.
         const existingIdentityCount = identities.length;
         if (existingIdentityCount === 0) {
-          // Use the specified DWN endpoints or the latest TBD hosted DWN
-          const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
 
           // Generate a new Identity for the end-user.
           identity = await userAgent.identity.create({
