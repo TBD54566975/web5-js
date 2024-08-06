@@ -5,10 +5,10 @@ component_management:
   default_rules:
     statuses:
       - type: project
-        target: auto
+        target: auto # auto compares coverage to the previous base commit
         threshold: 5% # allows a 5% drop from the previous base commit coverage
       - type: patch
-        target: auto # every PR opened should strive for at least 90% coverage
+        target: auto
 
   individual_components:
     - component_id: package-agent
