@@ -2,8 +2,8 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>QR Code and Form Example</title>
   <style>
     #formScreen {
@@ -26,7 +26,7 @@
     <h1>Simple Form</h1>
     <form id="myForm">
       <label for="myInput">Enter Pin:</label>
-      <input type="text" id="myInput" name="myInput" required>
+      <input type="text" id="myInput" name="myInput" required />
       <button type="button" onclick="sendPin()">Send</button>
     </form>
   </div>
@@ -36,48 +36,52 @@
 </html>
 
 <script type="module">
-  import { Web5 } from '/packages/api/dist/browser.mjs';
+  import { Web5 } from "/packages/api/dist/browser.mjs";
 
   const profileProtocol = {
-    protocol: 'http://profile-protocol.xyz',
+    protocol: "http://profile-protocol.xyz",
     published: true,
     types: {
       profile: {
-        schema: 'http://profile-protocol.xyz/schema/profile',
-        dataFormats: ['application/json'],
+        schema: "http://profile-protocol.xyz/schema/profile",
+        dataFormats: ["application/json"],
       },
     },
     structure: {
       profile: {
         $actions: [
           {
-            who: 'anyone',
-            can: ['create', 'update'],
+            who: "anyone",
+            can: ["create", "update"],
           },
         ],
       },
     },
   };
 
-  const scopes = [{
-    interface: 'Records',
-    method: 'Write',
-    protocol: 'http://profile-protocol.xyz',
-  },
-  {
-    interface: 'Records',
-    method: 'Query',
-    protocol: 'http://profile-protocol.xyz',
-  }];
+  const scopes = [
+    {
+      interface: "Records",
+      method: "Write",
+      protocol: "http://profile-protocol.xyz",
+    },
+    {
+      interface: "Records",
+      method: "Query",
+      protocol: "http://profile-protocol.xyz",
+    },
+  ];
 
   const { web5, did } = await Web5.connect({
     walletConnectOptions: {
-      walletUri: 'http://localhost:3000/',
-      connectServerUrl: 'http://localhost:3000/connect',
-      permissionRequests: [{ protocolDefinition: profileProtocol, permissionScopes: scopes }],
+      walletUri: "http://localhost:3000/",
+      connectServerUrl: "http://localhost:3000/connect",
+      permissionRequests: [
+        { protocolDefinition: profileProtocol, permissionScopes: scopes },
+      ],
       onWalletUriReady: generateQRCode,
       validatePin: submitPin,
-    }
+    },
   });
 
   function generateQRCode(text) {
@@ -85,14 +89,14 @@
   }
 
   async function submitPin() {
-    var inputValue = document.getElementById('myInput').value;
+    var inputValue = document.getElementById("myInput").value;
     console.log("Pin is :", inputValue);
     return inputValue;
   }
 
   function goToFormScreen() {
-    document.getElementById('qrCodeScreen').style.display = 'none';
-    document.getElementById('formScreen').style.display = 'block';
+    document.getElementById("qrCodeScreen").style.display = "none";
+    document.getElementById("formScreen").style.display = "block";
   }
 
   // document.addEventListener("DOMContentLoaded", function () {
