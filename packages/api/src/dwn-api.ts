@@ -21,7 +21,6 @@ import { DwnInterface, getRecordAuthor, DwnPermissionsUtil } from '@web5/agent';
 import { Record } from './record.js';
 import { dataToBlob } from './utils.js';
 import { Protocol } from './protocol.js';
-import { DataEncodedRecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 /**
  * Represents the request payload for configuring a protocol on a Decentralized Web Node (DWN).
