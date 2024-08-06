@@ -143,7 +143,7 @@ export type Web5ConnectResult = {
   did: string;
 
   /** The DID that is used to sign messages on behalf of the connectedDID */
-  impersonatorDid?: string;
+  signerDid?: string;
 
   /**
    * The first time a Web5 agent is initialized, the recovery phrase that was used to generate the

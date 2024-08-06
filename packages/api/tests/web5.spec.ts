@@ -12,7 +12,7 @@ import {
   WalletConnect,
 } from '@web5/agent';
 
-import { Web5 } from '../src/web5.js';
+import { ConnectPlaceholder, Web5 } from '../src/web5.js';
 import { DwnInterfaceName, DwnMethodName, Jws, Time } from '@tbd54566975/dwn-sdk-js';
 import { testDwnUrl } from './utils/test-config.js';
 import { DidJwk } from '@web5/dids';
@@ -561,8 +561,19 @@ describe('web5 api', () => {
           connectedDid    : alice.did.uri
         });
 
+        const appTestHarness = await PlatformAgentTestHarness.setup({
+          agentClass       : Web5UserAgent,
+          agentStores      : 'memory',
+          testDataLocation : '__TESTDATA__/web5-connect-app'
+        });
+        await appTestHarness.clearStorage();
+        await appTestHarness.createAgentDid();
+
+        // stub the create method of the Web5UserAgent to use the test harness agent
+        sinon.stub(Web5UserAgent, 'create').resolves(appTestHarness.agent as Web5UserAgent);
+
         // connect to the app, the options don't matter because we're stubbing the initClient method
-        const { web5, did, impersonatorDid } = await Web5.connect({
+        const { web5, did, signerDid } = await Web5.connect({
           walletConnectOptions: {
             connectServerUrl            : 'https://connect.example.com',
             walletUri                   : 'https://wallet.example.com',
@@ -571,12 +582,11 @@ describe('web5 api', () => {
             permissionRequests          : [],
           }
         });
-
         expect(web5).to.exist;
         expect(did).to.exist;
-        expect(impersonatorDid).to.exist;
+        expect(signerDid).to.exist;
         expect(did).to.equal(alice.did.uri);
-        expect(impersonatorDid).to.equal(app.uri);
+        expect(signerDid).to.equal(app.uri);
 
         // in lieu of sync, we will process the grants and protocol definition on the local connected agent
         const { reply: localProtocolReply } = await web5.agent.processDwnRequest({
@@ -618,7 +628,7 @@ describe('web5 api', () => {
         // test that the logical author is the connected DID and the signer is the impersonator DID
         expect(writeResult.record.author).to.equal(did);
         const writeSigner = Jws.getSignerDid(writeResult.record.authorization.signature.signatures[0]);
-        expect(writeSigner).to.equal(impersonatorDid);
+        expect(writeSigner).to.equal(signerDid);
 
         const readResult = await web5.dwn.records.read({
           protocol : protocol.protocol,
@@ -631,7 +641,7 @@ describe('web5 api', () => {
         // test that the logical author is the connected DID and the signer is the impersonator DID
         expect(readResult.record.author).to.equal(did);
         const readSigner = Jws.getSignerDid(readResult.record.authorization.signature.signatures[0]);
-        expect(readSigner).to.equal(impersonatorDid);
+        expect(readSigner).to.equal(signerDid);
       });
     });
 
