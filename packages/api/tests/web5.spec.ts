@@ -3,9 +3,11 @@ import sinon from 'sinon';
 
 import { MemoryStore } from '@web5/common';
 import { Web5UserAgent } from '@web5/user-agent';
-import { AgentIdentityApi, DwnRegistrar, HdIdentityVault, PlatformAgentTestHarness } from '@web5/agent';
+import { AgentIdentityApi, DwnInterface, DwnProtocolDefinition, DwnRegistrar, HdIdentityVault, PlatformAgentTestHarness } from '@web5/agent';
 
 import { Web5 } from '../src/web5.js';
+import { DwnInterfaceName, DwnMethodName, Time } from '@tbd54566975/dwn-sdk-js';
+import { testDwnUrl } from './utils/test-config.js';
 
 describe('Web5', () => {
   describe('using Test Harness', () => {
@@ -19,6 +21,7 @@ describe('Web5', () => {
     });
 
     beforeEach(async () => {
+      sinon.restore();
       await testHarness.clearStorage();
       await testHarness.createAgentDid();
     });
@@ -29,7 +32,7 @@ describe('Web5', () => {
     });
 
     describe('connect()', () => {
-      it('accepts an externally created DID', async () => {
+      it('accepts an externally created DID with an external agent', async () => {
         const testIdentity = await testHarness.createIdentity({
           name        : 'Test',
           testDwnUrls : ['https://dwn.example.com']
@@ -43,7 +46,147 @@ describe('Web5', () => {
 
         expect(did).to.exist;
         expect(web5).to.exist;
+        expect(did).to.equal(testIdentity.did.uri);
       });
+
+      it('uses walletConnectOptions to connect to a DID and import the grants', async () => {
+        // Create a new Identity.
+        const alice = await testHarness.createIdentity({
+          name        : 'Alice',
+          testDwnUrls : [testDwnUrl]
+        });
+
+        // alice installs a protocol definition
+        const protocol: DwnProtocolDefinition = {
+          protocol  : 'https://example.com/test-protocol',
+          published : true,
+          types     : {
+            foo : {},
+            bar : {}
+          },
+          structure: {
+            foo: {
+              bar: {}
+            }
+          }
+        };
+
+        const { reply: protocolConfigReply } = await testHarness.agent.dwn.processRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.ProtocolsConfigure,
+          messageParams : {
+            definition: protocol,
+          },
+        });
+        expect(protocolConfigReply.status.code).to.equal(202);
+
+        // create an identity for the app to use
+        const app = await testHarness.agent.did.create({
+          store  : false,
+          method : 'jwk',
+        });
+
+        // create grants for the app to use
+        const writeGrant = await testHarness.agent.dwn.createGrant({
+          delegated   : true,
+          grantedFrom : alice.did.uri,
+          grantedTo   : app.uri,
+          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+          scope       : {
+            interface : DwnInterfaceName.Records,
+            method    : DwnMethodName.Write,
+            protocol  : protocol.protocol,
+          }
+        });
+
+        const readGrant = await testHarness.agent.dwn.createGrant({
+          delegated   : true,
+          grantedFrom : alice.did.uri,
+          grantedTo   : app.uri,
+          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+          scope       : {
+            interface : DwnInterfaceName.Records,
+            method    : DwnMethodName.Read,
+            protocol  : protocol.protocol,
+          }
+        });
+
+        // write the grants to wallet
+        const { reply: writeGrantReply } = await testHarness.agent.dwn.processRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : writeGrant.recordsWrite.message,
+          dataStream  : new Blob([ writeGrant.permissionGrantBytes ])
+        });
+        expect(writeGrantReply.status.code).to.equal(202);
+
+        const { reply: readGrantReply } = await testHarness.agent.dwn.processRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : readGrant.recordsWrite.message,
+          dataStream  : new Blob([ readGrant.permissionGrantBytes ])
+        });
+        expect(readGrantReply.status.code).to.equal(202);
+
+        // stub the walletInit method
+        sinon.stub(Web5, 'initClient').resolves({
+          delegatedGrants : [ writeGrant.dataEncodedMessage, readGrant.dataEncodedMessage ],
+          portableDid     : await app.export(),
+          connectedDid    : alice.did.uri
+        });
+
+        // connect to the app, the options don't matter because we're stubbing the initClient method
+        const { web5, did, impersonatorDid } = await Web5.connect({
+          walletConnectOptions: {
+            connectServerUrl            : 'https://connect.example.com',
+            pinCapture                  : async () => { return '1234'; },
+            onRequestReady              : (_requestUrl: string) => {},
+            requestedProtocolsAndScopes : new Map()
+          }
+        });
+
+        expect(web5).to.exist;
+        expect(did).to.exist;
+        expect(impersonatorDid).to.exist;
+        expect(did).to.equal(alice.did.uri);
+        expect(impersonatorDid).to.equal(app.uri);
+
+        // use the grant to write a record
+        const writeResult = await web5.dwn.records.write({
+          data    : 'Hello, world!',
+          message : {
+            protocol     : protocol.protocol,
+            protocolPath : 'foo',
+          }
+        });
+        console.log('write record local reply', writeResult.status);
+        expect(writeResult.status.code).to.equal(202);
+
+        // // use the result to write to the testHarness
+        // const { reply: writeReply } = await testHarness.agent.dwn.processRequest({
+        //   author: alice.did.uri,
+        //   target: alice.did.uri,
+        //   messageType: DwnInterface.RecordsWrite,
+        //   rawMessage: writeResult.record.rawMessage as RecordsWriteMessage,
+        // });
+        // console.log('write record reply', writeReply.status);
+        // expect(writeReply.status.code).to.equal(202);
+
+        // // use the read grant to read the record
+        // const readResult = await web5.dwn.records.read({
+        //   protocol: protocol.protocol,
+        //   message: {
+        //     filter: { recordId: writeResult.record.id }
+        //   }
+        // });
+        // console.log('read record local reply', readResult.status);
+        // expect(readResult.status.code).to.equal(200);
+        // expect(readResult.record).to.exist;
+
+      }).timeout(20000); // long timeout for dht resolution
     });
 
     describe('constructor', () => {

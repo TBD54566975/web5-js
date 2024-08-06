@@ -5,7 +5,7 @@ import { DwnApi } from './dwn-api.js';
 import { DwnRecordsPermissionScope, DwnProtocolDefinition, DwnRegistrar, DwnInterface } from '@web5/agent';
 import { VcApi } from './vc-api.js';
 import { Web5UserAgent } from '@web5/user-agent';
-import { DataEncodedRecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import { DataEncodedRecordsWriteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 import { PortableDid } from '@web5/dids';
 import { Convert } from '@web5/common';
 
@@ -177,6 +177,9 @@ export type Web5ConnectResult = {
   /** The DID that has been connected or created during the connection process. */
   did: string;
 
+  /** The DID that is used to sign messages on behalf of the connectedDID */
+  impersonatorDid?: string;
+
   /**
    * The first time a Web5 agent is initialized, the recovery phrase that was used to generate the
    * agent's DID and keys is returned. This phrase can be used to recover the agent's vault contents
@@ -309,38 +312,74 @@ export class Web5 {
           try {
             // await WalletConnect.initClient(walletConnectOptions);
             const { connectedDid, portableDid, delegatedGrants } = await this.initClient(walletConnectOptions);
-            const actorDid = await userAgent.did.import({ portableDid });
             identity = await userAgent.identity.import({ portableIdentity: {
-              portableDid : await actorDid.export(),
-              metadata    : {
-                name   : 'Actor',
+              portableDid,
+              metadata: {
                 connectedDid,
-                tenant : actorDid.uri,
-                uri    : actorDid.uri,
+                name   : 'Actor',
+                tenant : portableDid.uri,
+                uri    : portableDid.uri,
               }
             }});
+
             await userAgent.identity.manage({ portableIdentity: await identity.export() });
 
             // store the delegated grants as owner using the actorDID
             // this will allow the actorDID to fetch the grants in order to use them
             for (const grant of delegatedGrants) {
               const data = Convert.base64Url(grant.encodedData).toArrayBuffer();
+              const grantMessage = grant as RecordsWriteMessage;
+              delete grantMessage['encodedData'];
+
               const { reply } = await userAgent.processDwnRequest({
-                author      : actorDid.uri,
-                target      : actorDid.uri,
+                author      : portableDid.uri,
+                target      : portableDid.uri,
                 signAsOwner : true,
                 messageType : DwnInterface.RecordsWrite,
-                rawMessage  : grant,
+                rawMessage  : grantMessage,
                 dataStream  : new Blob([ data ])
               });
 
               if (reply.status.code !== 202) {
                 // delete DID and Identity if grant processing fails
-                await userAgent.did.delete({ didUri: actorDid.uri });
-                await userAgent.identity.delete({ didUri: actorDid.uri });
+                try {
+                  await userAgent.did.delete({ didUri: portableDid.uri });
+                } catch(error: any) {
+                  console.error(`Failed to delete DID: ${error.message}`);
+                }
 
-                // TODO: Recover from this?? Delete identity
+                try {
+                  await userAgent.identity.delete({ didUri: portableDid.uri });
+                } catch(error: any) {
+                  console.error(`Failed to delete Identity: ${error.message}`);
+                }
+
                 throw new Error(`Failed to process delegated grant: ${reply.status.detail}`);
+              }
+
+              // in lieu of sync being enabled, manually add the grants to the connectedDID's local DWN tenant
+              const { reply: connectedReply } = await userAgent.processDwnRequest({
+                author      : connectedDid,
+                target      : connectedDid,
+                messageType : DwnInterface.RecordsWrite,
+                rawMessage  : grantMessage,
+                dataStream  : new Blob([ data ])
+              });
+
+              if (connectedReply.status.code !== 202) {
+                // delete DID and Identity if grant processing fails
+                try {
+                  await userAgent.did.delete({ didUri: connectedDid });
+                } catch(error: any) {
+                  console.error(`Failed to delete DID: ${error.message}`);
+                }
+
+                try {
+                  await userAgent.identity.delete({ didUri: connectedDid });
+                } catch(error: any) {
+                  console.error(`Failed to delete Identity: ${error.message}`);
+                }
+                throw new Error(`Failed to process delegated grant for connectedDID: ${connectedReply.status.detail}`);
               }
             }
 
@@ -448,6 +487,6 @@ export class Web5 {
 
     const web5 = new Web5({ agent, connectedDid, impersonatorDid });
 
-    return { web5, did: connectedDid, recoveryPhrase };
+    return { web5, did: connectedDid, impersonatorDid, recoveryPhrase };
   }
 }

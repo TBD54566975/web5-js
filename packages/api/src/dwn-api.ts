@@ -561,9 +561,11 @@ export class DwnApi {
           const delegatedGrant = await this.findDelegatedPermissionGrant({
             messageParams: {
               messageType : DwnInterface.RecordsRead,
-              protocol    : agentRequest.messageParams.filter.protocol
+              protocol    : request.protocol
             }
           });
+
+          console.log('got grant', delegatedGrant.recordId);
 
           // set the required delegated grant and grantee DID for the read operation
           agentRequest.messageParams.delegatedGrant = delegatedGrant;
