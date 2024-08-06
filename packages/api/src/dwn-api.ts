@@ -227,14 +227,14 @@ export class DwnApi {
   private connectedDid: string;
 
   /** (optional) The DID of the signer when signing with permissions */
-  private impersonatorDid?: string;
+  private signerDid?: string;
 
   private cachedPermissions: TtlCache<string, DataEncodedRecordsWriteMessage> = new TtlCache({ ttl: 60 * 1000 });
 
-  constructor(options: { agent: Web5Agent, connectedDid: string, impersonatorDid?: string }) {
+  constructor(options: { agent: Web5Agent, connectedDid: string, signerDid?: string }) {
     this.agent = options.agent;
     this.connectedDid = options.connectedDid;
-    this.impersonatorDid = options.impersonatorDid;
+    this.signerDid = options.signerDid;
   }
 
   private async findDelegatedPermissionGrant<T extends DwnInterface>({ messageParams }:{
@@ -252,13 +252,13 @@ export class DwnApi {
 
     const permissions = await this.fetchGrants({
       grantor : this.connectedDid,
-      grantee : this.impersonatorDid
+      grantee : this.signerDid
     });
 
     // get the delegate grants that match the messageParams and are associated with the connectedDid as the grantor
     const delegateGrant = await DwnPermissionsUtil.matchGrantFromArray(
       this.connectedDid,
-      this.impersonatorDid,
+      this.signerDid,
       messageParams,
       permissions,
       true
@@ -433,7 +433,7 @@ export class DwnApi {
           target        : request.from || this.connectedDid
         };
 
-        if (this.impersonatorDid) {
+        if (this.signerDid) {
           // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
           const delegatedGrant = await this.findDelegatedPermissionGrant({
             messageParams: {
@@ -444,7 +444,7 @@ export class DwnApi {
 
           // set the required delegated grant and grantee DID for the read operation
           agentRequest.messageParams.delegatedGrant = delegatedGrant;
-          agentRequest.granteeDid = this.impersonatorDid;
+          agentRequest.granteeDid = this.signerDid;
         }
 
         let agentResponse: DwnResponse<DwnInterface.RecordsDelete>;
@@ -480,7 +480,7 @@ export class DwnApi {
           target        : request.from || this.connectedDid
         };
 
-        if (this.impersonatorDid) {
+        if (this.signerDid) {
           // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
           const delegatedGrant = await this.findDelegatedPermissionGrant({
             messageParams: {
@@ -491,7 +491,7 @@ export class DwnApi {
 
           // set the required delegated grant and grantee DID for the read operation
           agentRequest.messageParams.delegatedGrant = delegatedGrant;
-          agentRequest.granteeDid = this.impersonatorDid;
+          agentRequest.granteeDid = this.signerDid;
         }
 
 
@@ -556,7 +556,7 @@ export class DwnApi {
           target        : request.from || this.connectedDid
         };
 
-        if (this.impersonatorDid) {
+        if (this.signerDid) {
           // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
           const delegatedGrant = await this.findDelegatedPermissionGrant({
             messageParams: {
@@ -567,7 +567,7 @@ export class DwnApi {
 
           // set the required delegated grant and grantee DID for the read operation
           agentRequest.messageParams.delegatedGrant = delegatedGrant;
-          agentRequest.granteeDid = this.impersonatorDid;
+          agentRequest.granteeDid = this.signerDid;
         }
 
         let agentResponse: DwnResponse<DwnInterface.RecordsRead>;
@@ -635,7 +635,7 @@ export class DwnApi {
         };
 
         // if impersonation is enabled, fetch the delegated grant to use with the write operation
-        if (this.impersonatorDid) {
+        if (this.signerDid) {
           const delegatedGrant = await this.findDelegatedPermissionGrant({
             messageParams: {
               messageType : DwnInterface.RecordsWrite,
@@ -645,7 +645,7 @@ export class DwnApi {
 
           // set the required delegated grant and grantee DID for the write operation
           dwnRequestParams.messageParams.delegatedGrant = delegatedGrant;
-          dwnRequestParams.granteeDid = this.impersonatorDid;
+          dwnRequestParams.granteeDid = this.signerDid;
         };
 
         const agentResponse = await this.agent.processDwnRequest(dwnRequestParams);
