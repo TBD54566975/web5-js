@@ -269,114 +269,113 @@ export class Web5 {
       }
       await userAgent.start({ password });
 
-      // TODO: Replace stubbed connection attempt once Connect Protocol has been implemented.
-      // Attempt to Connect to localhost agent or via Connect Server.
-      // userAgent.connect();
-
-      let identity: BearerIdentity;
-      const connected = await userAgent.isConnected();
-      if (!connected && walletConnectOptions) {
-        // Connect attempt failed or was rejected so fallback to local user agent.
-        try {
-          // TEMPORARY: Placeholder for WalletConnect integration
-          const { connectedDid, portableDid, delegatedGrants } = await ConnectPlaceholder.initClient(walletConnectOptions);
-          identity = await userAgent.identity.import({ portableIdentity: {
-            portableDid,
-            metadata: {
-              connectedDid,
-              name   : 'Actor',
-              tenant : portableDid.uri,
-              uri    : portableDid.uri,
-            }
-          }});
-          await userAgent.identity.manage({ portableIdentity: await identity.export() });
-
-          // store the delegated grants as owner using the actorDID
-          // this will allow the actorDID to fetch the grants in order to use them
-          for (const grant of delegatedGrants) {
-            const data = Convert.base64Url(grant.encodedData).toArrayBuffer();
-            const grantMessage = grant as RecordsWriteMessage;
-            delete grantMessage['encodedData'];
-
-            const { reply } = await userAgent.processDwnRequest({
-              author      : portableDid.uri,
-              target      : portableDid.uri,
-              signAsOwner : true,
-              messageType : DwnInterface.RecordsWrite,
-              rawMessage  : grantMessage,
-              dataStream  : new Blob([ data ])
-            });
-
-            if (reply.status.code !== 202) {
-              // delete DID and Identity if grant processing fails
-              try {
-                await userAgent.did.delete({ didUri: portableDid.uri });
-              } catch(error: any) {
-                console.error(`Failed to delete DID: ${error.message}`);
+      // Attempt to retrieve the connected Identity if it exists.
+      let identity: BearerIdentity = await userAgent.identity.connectedIdentity();
+      if (!identity) {
+        if (walletConnectOptions) {
+          // Connect attempt failed or was rejected so fallback to local user agent.
+          try {
+            // TEMPORARY: Placeholder for WalletConnect integration
+            const { connectedDid, portableDid, delegatedGrants } = await ConnectPlaceholder.initClient(walletConnectOptions);
+            identity = await userAgent.identity.import({ portableIdentity: {
+              portableDid,
+              metadata: {
+                connectedDid,
+                name   : 'Actor',
+                tenant : portableDid.uri,
+                uri    : portableDid.uri,
               }
-
-              try {
-                await userAgent.identity.delete({ didUri: portableDid.uri });
-              } catch(error: any) {
-                console.error(`Failed to delete Identity: ${error.message}`);
+            }});
+            await userAgent.identity.manage({ portableIdentity: await identity.export() });
+  
+            // store the delegated grants as owner using the actorDID
+            // this will allow the actorDID to fetch the grants in order to use them
+            for (const grant of delegatedGrants) {
+              const data = Convert.base64Url(grant.encodedData).toArrayBuffer();
+              const grantMessage = grant as RecordsWriteMessage;
+              delete grantMessage['encodedData'];
+  
+              const { reply } = await userAgent.processDwnRequest({
+                author      : portableDid.uri,
+                target      : portableDid.uri,
+                signAsOwner : true,
+                messageType : DwnInterface.RecordsWrite,
+                rawMessage  : grantMessage,
+                dataStream  : new Blob([ data ])
+              });
+  
+              if (reply.status.code !== 202) {
+                // delete DID and Identity if grant processing fails
+                try {
+                  await userAgent.did.delete({ didUri: portableDid.uri });
+                } catch(error: any) {
+                  console.error(`Failed to delete DID: ${error.message}`);
+                }
+  
+                try {
+                  await userAgent.identity.delete({ didUri: portableDid.uri });
+                } catch(error: any) {
+                  console.error(`Failed to delete Identity: ${error.message}`);
+                }
+  
+                throw new Error(`Failed to process delegated grant: ${reply.status.detail}`);
               }
-
-              throw new Error(`Failed to process delegated grant: ${reply.status.detail}`);
             }
+  
+          } catch (error:any) {
+            throw new Error(`Failed to connect to wallet: ${error.message}`);
           }
-
-        } catch (error:any) {
-          throw new Error(`Failed to connect to wallet: ${error.message}`);
-        }
-      } else {
-        // Query the Agent's DWN tenant for identity records.
-        const identities = await userAgent.identity.list();
-
-        // If an existing identity is not found found, create a new one.
-        const existingIdentityCount = identities.length;
-        if (existingIdentityCount === 0) {
-          // Use the specified DWN endpoints or the latest TBD hosted DWN
-          const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
-
-          // Generate a new Identity for the end-user.
-          identity = await userAgent.identity.create({
-            didMethod  : 'dht',
-            metadata   : { name: 'Default' },
-            didOptions : {
-              services: [
-                {
-                  id              : 'dwn',
-                  type            : 'DecentralizedWebNode',
-                  serviceEndpoint : serviceEndpointNodes,
-                  enc             : '#enc',
-                  sig             : '#sig',
-                }
-              ],
-              verificationMethods: [
-                {
-                  algorithm : 'Ed25519',
-                  id        : 'sig',
-                  purposes  : ['assertionMethod', 'authentication']
-                },
-                {
-                  algorithm : 'secp256k1',
-                  id        : 'enc',
-                  purposes  : ['keyAgreement']
-                }
-              ]
-            }
-          });
-
-          // The User Agent will manage the Identity, which ensures it will be available on future
-          // sessions.
-          await userAgent.identity.manage({ portableIdentity: await identity.export() });
-
         } else {
-          // If multiple identities are found, use the first one.
-          // TODO: Implement selecting a connectedDid from multiple identities
-          identity = identities[0];
+          // Query the Agent's DWN tenant for identity records.
+          const identities = await userAgent.identity.list();
+  
+          // If an existing identity is not found found, create a new one.
+          const existingIdentityCount = identities.length;
+          if (existingIdentityCount === 0) {
+            // Use the specified DWN endpoints or the latest TBD hosted DWN
+            const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
+  
+            // Generate a new Identity for the end-user.
+            identity = await userAgent.identity.create({
+              didMethod  : 'dht',
+              metadata   : { name: 'Default' },
+              didOptions : {
+                services: [
+                  {
+                    id              : 'dwn',
+                    type            : 'DecentralizedWebNode',
+                    serviceEndpoint : serviceEndpointNodes,
+                    enc             : '#enc',
+                    sig             : '#sig',
+                  }
+                ],
+                verificationMethods: [
+                  {
+                    algorithm : 'Ed25519',
+                    id        : 'sig',
+                    purposes  : ['assertionMethod', 'authentication']
+                  },
+                  {
+                    algorithm : 'secp256k1',
+                    id        : 'enc',
+                    purposes  : ['keyAgreement']
+                  }
+                ]
+              }
+            });
+  
+            // The User Agent will manage the Identity, which ensures it will be available on future
+            // sessions.
+            await userAgent.identity.manage({ portableIdentity: await identity.export() });
+  
+          } else {
+            // If multiple identities are found, use the first one.
+            // TODO: Implement selecting a connectedDid from multiple identities
+            identity = identities[0];
+          }
         }
       }
+
       // If the stored identity has a connected DID, use it as the connected DID, otherwise use the identity's DID.
       connectedDid = identity.metadata.connectedDid ?? identity.did.uri;
       // If the stored identity has a connected DID, use the identity DID as the signer DID, otherwise it is undefined.
