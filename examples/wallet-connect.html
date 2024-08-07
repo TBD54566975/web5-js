@@ -53,9 +53,9 @@
   <!-- Pin Screen -->
   <div id="pinScreen">
     <h1>Pin Entry</h1>
-    <form id="myForm">
-      <label for="myInput">Enter Pin:</label>
-      <input type="text" id="myInput" name="myInput" required />
+    <form id="pinForm">
+      <label for="pinInput">Enter Pin:</label>
+      <input type="text" id="pinInput" name="pinInput" required />
       <button type="button" id="submitButton">Send</button>
     </form>
   </div>
@@ -154,7 +154,7 @@
 
     function onSubmitPinClicked(event) {
       event.preventDefault();
-      const pin = document.getElementById("myInput").value;
+      const pin = document.getElementById("pinInput").value;
       const eventObj = new CustomEvent("pinEntered", { detail: { pin } });
       window.dispatchEvent(eventObj);
     }
