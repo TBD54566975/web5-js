@@ -240,16 +240,4 @@ export class Web5IdentityAgent<TKeyManager extends AgentKeyManager = LocalKeyMan
     // Set the Agent's DID.
     this.agentDid = await this.vault.getDid();
   }
-
-  public async isConnected(): Promise<boolean> {
-    const identities = await this.identity.list();
-    if (identities.length < 1) {
-      return false;
-    }
-
-    // TODO: Implement selecting a connectedDid from multiple identities
-    // Get the first identity, and check if it has a connectedDID set in the metadata
-    const firstIdentity = identities[0];
-    return firstIdentity.metadata.connectedDid !== undefined;
-  }
 }

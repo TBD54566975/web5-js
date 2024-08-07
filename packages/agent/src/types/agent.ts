@@ -186,9 +186,4 @@ export interface Web5PlatformAgent<TKeyManager extends AgentKeyManager = AgentKe
    * normal operation and readiness to process requests.
    */
   start(params: unknown): Promise<unknown>;
-
-  /**
-   * Checks whether or not the Agent has already performed a WalletConnect operation.
-   */
-  isConnected(): Promise<boolean>;
 }

@@ -198,6 +198,63 @@ describe('AgentIdentityApi', () => {
           }
         });
       });
+
+      describe('connectedIdentity', async () => {
+        it('returns a connected Identity', async () => {
+          // create multiple identities, some that are connected, and some that are not
+          // an identity is determined to be connected if it has a connectedDid set in its metadata
+
+          // Create a non-connected Identity.
+          await testHarness.agent.identity.create({
+            didMethod : 'jwk',
+            metadata  : { name: 'Alice' },
+            tenant    : testHarness.agent.agentDid.uri
+          });
+
+          // attempt to get a connected identity when none exist
+          const notConnected = await testHarness.agent.identity.connectedIdentity();
+          expect(notConnected).to.be.undefined;
+
+          // Create a connected Identity.
+          const connectedDid1 = await testHarness.agent.identity.create({
+            didMethod : 'jwk',
+            metadata  : { name: 'Bob', connectedDid: 'did:method:abc123' },
+            tenant    : testHarness.agent.agentDid.uri
+          });
+
+          // Create another connected Identity.
+          const connectedDid2 = await testHarness.agent.identity.create({
+            didMethod : 'jwk',
+            metadata  : { name: 'Carol', connectedDid: 'did:method:def456' },
+            tenant    : testHarness.agent.agentDid.uri
+          });
+
+          // Create another identity with the same connectedDid as the previous
+          const connectedDid3 = await testHarness.agent.identity.create({
+            didMethod : 'jwk',
+            metadata  : { name: 'Daniel', connectedDid: 'did:method:def456' },
+            tenant    : testHarness.agent.agentDid.uri 
+          });
+
+          // get the first connected identity
+          const connectedIdentity = await testHarness.agent.identity.connectedIdentity();
+          expect(connectedIdentity).to.exist;
+          expect(connectedIdentity!.did.uri).to.equal(connectedDid1.did.uri);
+
+          // get the first identity connected to a specific connectedDid
+          const connectedIdentity2 = await testHarness.agent.identity.connectedIdentity({ connectedDid: 'did:method:def456' });
+          expect(connectedIdentity2).to.exist;
+          expect(connectedIdentity2!.did.uri).to.equal(connectedDid2.did.uri);
+
+          // get the specific identity connected to a specific connectedDid and signerDid
+          const connectedIdentity3 = await testHarness.agent.identity.connectedIdentity({
+            connectedDid: 'did:method:def456',
+            signerDid: connectedDid3.did.uri
+          });
+          expect(connectedIdentity3).to.exist;
+          expect(connectedIdentity3!.did.uri).to.equal(connectedDid3.did.uri);
+        });
+      });
     });
   }
 });

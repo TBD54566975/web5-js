@@ -114,16 +114,4 @@ export class TestAgent<TKeyManager extends AgentKeyManager> implements Web5Platf
   public async start(_params: { passphrase: string; }): Promise<void> {
     throw new Error('Not implemented');
   }
-
-  public async isConnected(): Promise<boolean> {
-    const identities = await this.identity.list();
-    if (identities.length < 1) {
-      return false;
-    }
-
-    // TODO: Implement selecting a connectedDid from multiple identities
-    // Get the first identity, and check if it has a connectedDID set in the metadata
-    const firstIdentity = identities[0];
-    return firstIdentity.metadata.connectedDid !== undefined;
-  }
 }
