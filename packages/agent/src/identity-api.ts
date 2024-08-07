@@ -239,32 +239,19 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
   /**
    * Returns the connected Identity, if one is available.
    *
-   * Accepts optional `connectedDid` and `signerDid` parameter to filter the a specific identity, otherwise the first connected identity is returned.
+   * Accepts optional `connectedDid` parameter to filter the a specific connected identity,
+   * if none is provided the first connected identity is returned.
    */
-  public async connectedIdentity({ connectedDid, signerDid }:{ connectedDid?: string, signerDid?: string } = {}): Promise<BearerIdentity | undefined> {
+  public async connectedIdentity({ connectedDid }:{ connectedDid?: string } = {}): Promise<BearerIdentity | undefined> {
     const identities = await this.list();
     if (identities.length < 1) {
       return undefined;
     }
 
-    if (connectedDid || signerDid) {
-      // if signerDid and connectedDid are provided, return the first identity that matches both
-      // if only signerDid is provided, return the first identity that matches the signerDid
-      // if only connectedDid is provided, return the first identity that matches the connectedDid
-      const checkConnectedOrSigner = (identity: BearerIdentity): boolean => {
-        if (connectedDid && signerDid) {
-          return identity.metadata.connectedDid === connectedDid && identity.did.uri === signerDid;
-        } else if (connectedDid) {
-          return identity.metadata.connectedDid === connectedDid;
-        } else {
-          return identity.did.uri === signerDid;
-        }
-      };
-
-      return identities.find(checkConnectedOrSigner);
-    }
-
-    // returns the first connected identity found
-    return identities.find(identity => identity.metadata.connectedDid !== undefined);
+    // If a specific connected DID is provided, return the first identity that matches it.
+    // Otherwise, return the first connected identity.
+    return connectedDid ?
+      identities.find(identity => identity.metadata.connectedDid === connectedDid) :
+      identities.find(identity => identity.metadata.connectedDid !== undefined);
   }
 }

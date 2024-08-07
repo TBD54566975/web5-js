@@ -229,13 +229,6 @@ describe('AgentIdentityApi', () => {
             tenant    : testHarness.agent.agentDid.uri
           });
 
-          // Create another identity with the same connectedDid as the previous
-          const connectedDid3 = await testHarness.agent.identity.create({
-            didMethod : 'jwk',
-            metadata  : { name: 'Daniel', connectedDid: 'did:method:def456' },
-            tenant    : testHarness.agent.agentDid.uri
-          });
-
           // get the first connected identity
           const connectedIdentity = await testHarness.agent.identity.connectedIdentity();
           expect(connectedIdentity).to.exist;
@@ -245,14 +238,6 @@ describe('AgentIdentityApi', () => {
           const connectedIdentity2 = await testHarness.agent.identity.connectedIdentity({ connectedDid: 'did:method:def456' });
           expect(connectedIdentity2).to.exist;
           expect(connectedIdentity2!.did.uri).to.equal(connectedDid2.did.uri);
-
-          // get the specific identity connected to a specific connectedDid and signerDid
-          const connectedIdentity3 = await testHarness.agent.identity.connectedIdentity({
-            connectedDid : 'did:method:def456',
-            signerDid    : connectedDid3.did.uri
-          });
-          expect(connectedIdentity3).to.exist;
-          expect(connectedIdentity3!.did.uri).to.equal(connectedDid3.did.uri);
         });
       });
     });
