@@ -204,6 +204,10 @@ describe('AgentIdentityApi', () => {
           // create multiple identities, some that are connected, and some that are not
           // an identity is determined to be connected if it has a connectedDid set in its metadata
 
+          // no identities exist, return undefined
+          const noIdentities = await testHarness.agent.identity.connectedIdentity();
+          expect(noIdentities).to.be.undefined;
+
           // Create a non-connected Identity.
           await testHarness.agent.identity.create({
             didMethod : 'jwk',
