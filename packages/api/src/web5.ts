@@ -287,42 +287,16 @@ export class Web5 {
               }
             }});
             await userAgent.identity.manage({ portableIdentity: await identity.export() });
-
             // store the delegated grants as owner using the actorDID
             // this will allow the actorDID to fetch the grants in order to use them
-            for (const grant of delegatedGrants) {
-              const data = Convert.base64Url(grant.encodedData).toArrayBuffer();
-              const grantMessage = grant as RecordsWriteMessage;
-              delete grantMessage['encodedData'];
-
-              const { reply } = await userAgent.processDwnRequest({
-                author      : portableDid.uri,
-                target      : portableDid.uri,
-                signAsOwner : true,
-                messageType : DwnInterface.RecordsWrite,
-                rawMessage  : grantMessage,
-                dataStream  : new Blob([ data ])
-              });
-
-              if (reply.status.code !== 202) {
-                // delete DID and Identity if grant processing fails
-                try {
-                  await userAgent.did.delete({ didUri: portableDid.uri });
-                } catch(error: any) {
-                  console.error(`Failed to delete DID: ${error.message}`);
-                }
-
-                try {
-                  await userAgent.identity.delete({ didUri: portableDid.uri });
-                } catch(error: any) {
-                  console.error(`Failed to delete Identity: ${error.message}`);
-                }
-
-                throw new Error(`Failed to process delegated grant: ${reply.status.detail}`);
-              }
-            }
-
+            await this.processGrantsAsOwner({
+              userAgent,
+              didUri : identity.did.uri,
+              grants : delegatedGrants,
+            });
           } catch (error:any) {
+            // clean up the DID and Identity if import fails
+            await this.cleanUpIdentity({ identity, userAgent });
             throw new Error(`Failed to connect to wallet: ${error.message}`);
           }
         } else {
@@ -425,6 +399,70 @@ export class Web5 {
     const web5 = new Web5({ agent, connectedDid, signerDid });
 
     return { web5, did: connectedDid, signerDid, recoveryPhrase };
+  }
+
+  static async cleanUpIdentity({ identity, userAgent }:{
+    identity: BearerIdentity,
+    userAgent: Web5UserAgent
+  }): Promise<void> {
+    try {
+      // Delete the DID and the Associated Keys
+      await userAgent.did.delete({
+        didUri    : identity.did.uri,
+        tenant    : identity.metadata.tenant,
+        deleteKey : true,
+      });
+    } catch(error: any) {
+      console.error(`Failed to delete DID ${identity.did.uri}: ${error.message}`);
+    }
+
+    try {
+      // Delete the Identity
+      await userAgent.identity.delete({ didUri: identity.did.uri });
+    } catch(error: any) {
+      console.error(`Failed to delete Identity ${identity.metadata.name}: ${error.message}`);
+    }
+  }
+
+  static async processGrantsAsOwner({ didUri, grants, userAgent }: {
+    didUri: string;
+    grants: DataEncodedRecordsWriteMessage[]
+    userAgent: Web5UserAgent;
+  }): Promise<void> {
+    for (const grant of grants) {
+      const data = Convert.base64Url(grant.encodedData).toArrayBuffer();
+      const grantMessage = grant as RecordsWriteMessage;
+      delete grantMessage['encodedData'];
+
+      const { reply } = await userAgent.processDwnRequest({
+        author      : didUri,
+        target      : didUri,
+        signAsOwner : true,
+        messageType : DwnInterface.RecordsWrite,
+        rawMessage  : grantMessage,
+        dataStream  : new Blob([ data ])
+      });
+
+      if (reply.status.code !== 202) {
+        // if any of the grants fail, delete the other grants and throw an error
+        for (const grant of grants) {
+          const { reply } = await userAgent.processDwnRequest({
+            author        : didUri,
+            target        : didUri,
+            messageType   : DwnInterface.RecordsDelete,
+            messageParams : {
+              recordId: grant.recordId
+            }
+          });
+
+          if (reply.status.code !== 202 && reply.status.code !== 404) {
+            console.error('Failed to delete grant: ', grant.recordId);
+          }
+        }
+
+        throw new Error(`Failed to process delegated grant: ${reply.status.detail}`);
+      }
+    }
   }
 }
 
