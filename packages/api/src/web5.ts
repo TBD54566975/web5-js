@@ -287,14 +287,14 @@ export class Web5 {
               }
             }});
             await userAgent.identity.manage({ portableIdentity: await identity.export() });
-  
+
             // store the delegated grants as owner using the actorDID
             // this will allow the actorDID to fetch the grants in order to use them
             for (const grant of delegatedGrants) {
               const data = Convert.base64Url(grant.encodedData).toArrayBuffer();
               const grantMessage = grant as RecordsWriteMessage;
               delete grantMessage['encodedData'];
-  
+
               const { reply } = await userAgent.processDwnRequest({
                 author      : portableDid.uri,
                 target      : portableDid.uri,
@@ -303,7 +303,7 @@ export class Web5 {
                 rawMessage  : grantMessage,
                 dataStream  : new Blob([ data ])
               });
-  
+
               if (reply.status.code !== 202) {
                 // delete DID and Identity if grant processing fails
                 try {
@@ -311,30 +311,30 @@ export class Web5 {
                 } catch(error: any) {
                   console.error(`Failed to delete DID: ${error.message}`);
                 }
-  
+
                 try {
                   await userAgent.identity.delete({ didUri: portableDid.uri });
                 } catch(error: any) {
                   console.error(`Failed to delete Identity: ${error.message}`);
                 }
-  
+
                 throw new Error(`Failed to process delegated grant: ${reply.status.detail}`);
               }
             }
-  
+
           } catch (error:any) {
             throw new Error(`Failed to connect to wallet: ${error.message}`);
           }
         } else {
           // Query the Agent's DWN tenant for identity records.
           const identities = await userAgent.identity.list();
-  
+
           // If an existing identity is not found found, create a new one.
           const existingIdentityCount = identities.length;
           if (existingIdentityCount === 0) {
             // Use the specified DWN endpoints or the latest TBD hosted DWN
             const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
-  
+
             // Generate a new Identity for the end-user.
             identity = await userAgent.identity.create({
               didMethod  : 'dht',
@@ -363,11 +363,11 @@ export class Web5 {
                 ]
               }
             });
-  
+
             // The User Agent will manage the Identity, which ensures it will be available on future
             // sessions.
             await userAgent.identity.manage({ portableIdentity: await identity.export() });
-  
+
           } else {
             // If multiple identities are found, use the first one.
             // TODO: Implement selecting a connectedDid from multiple identities

@@ -259,7 +259,7 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
         } else {
           return identity.did.uri === signerDid;
         }
-      }
+      };
 
       return identities.find(checkConnectedOrSigner);
     }
