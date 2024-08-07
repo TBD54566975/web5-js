@@ -1,5 +1,5 @@
 import type { DidUrlDereferencer } from '@web5/dids';
-import type { PaginationCursor, RecordsDeleteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import { PaginationCursor, RecordsDeleteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import { Readable } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
