@@ -508,7 +508,6 @@ describe('web5 connect', () => {
         headers : { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
 
-      // first call is to DidDht
       fetchStub.onFirstCall().resolves(parResponse);
       fetchStub.callThrough();
       fetchStub.onThirdCall().resolves(authResponse);
