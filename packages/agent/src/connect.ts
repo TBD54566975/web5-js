@@ -109,14 +109,8 @@ async function initClient({
 
     // return the grants for liran to ingest into the DWN SDK / agent
     return {
-      delegatedGrants : verifiedAuthResponse.delegatedGrants,
-      // TODO: should this just be a PortableDid? can one be constructed with this data?
-      didsToImport    : [
-        {
-          didUri         : verifiedAuthResponse.aud,
-          privateKeyJwks : verifiedAuthResponse.privateKeyJwks,
-        },
-      ],
+      delegateGrants : verifiedAuthResponse.delegateGrants,
+      delegateDid    : verifiedAuthResponse.delegateDid
     };
   }
 }

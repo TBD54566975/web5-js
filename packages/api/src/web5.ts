@@ -10,7 +10,7 @@ import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
 import { DwnRegistrar } from '@web5/agent';
 import { VcApi } from './vc-api.js';
-import { DidDht } from '@web5/dids';
+import { DidDht, PortableDid } from '@web5/dids';
 
 /** Override defaults configured during the technical preview phase. */
 export type TechPreviewOptions = {
@@ -142,6 +142,12 @@ export type Web5ConnectResult = {
    * and should be stored securely by the user.
    */
   recoveryPhrase?: string;
+
+  /**
+   * The resulting did of a successful wallet connect. Only returned on success if
+   * {@link WalletConnectOptions} was provided.
+   */
+  delegateDid?: PortableDid
 };
 
 /**
@@ -245,61 +251,54 @@ export class Web5 {
       // on init/registration
       if (existingIdentityCount === 0) {
         if (walletConnectOptions) {
-          // TODO: do something with these
-          const { delegatedGrants, didsToImport } = await WalletConnect.initClient(walletConnectOptions);
+          // WIP: ingest this
+          const { delegateDid } = await WalletConnect.initClient(walletConnectOptions);
+          // WIP
+          // identity = await userAgent.identity.import({
+          //   portableIdentity: {
+          //     portableDid : did,
+          //     metadata    : { name: 'Connection', uri: did.uri, tenant: did.uri }
+          //   }
+          // });
 
-          const resolved = await DidDht.resolve(didsToImport[0].didUri);
-
-          const did = await userAgent.did.import({
-            portableDid: {
-              document    : resolved.didDocument,
-              metadata    : resolved.didDocumentMetadata,
-              uri         : didsToImport[0].didUri,
-              privateKeys : didsToImport[0].privateKeyJwks }
-          });
-
-          identity = await userAgent.identity.import({
-            portableIdentity: {
-              portableDid : did,
-              metadata    : { name: 'Connection', uri: did.uri, tenant: did.uri }
-            }
-          });
-        } else {
-          // Use the specified DWN endpoints or get default tech preview hosted nodes.
-          const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
-
-          // Generate a new Identity for the end-user.
-          identity = await userAgent.identity.create({
-            didMethod  : 'dht',
-            metadata   : { name: 'Default' },
-            didOptions : {
-              services: [
-                {
-                  id              : 'dwn',
-                  type            : 'DecentralizedWebNode',
-                  serviceEndpoint : serviceEndpointNodes,
-                  enc             : '#enc',
-                  sig             : '#sig',
-                }
-              ],
-              verificationMethods: [
-                {
-                  algorithm : 'Ed25519',
-                  id        : 'sig',
-                  purposes  : ['assertionMethod', 'authentication']
-                },
-                {
-                  algorithm : 'secp256k1',
-                  id        : 'enc',
-                  purposes  : ['keyAgreement']
-                }
-              ]
-            }
-          });
-
-          // Persists the Identity to be available in future sessions
-          await userAgent.identity.manage({ portableIdentity: await identity.export() });
+          // WIP. just going to early return for now.
+          return { web5: null, did: null, delegateDid };
         }
+
+        // Use the specified DWN endpoints or get default tech preview hosted nodes.
+        const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
+
+        // Generate a new Identity for the end-user.
+        identity = await userAgent.identity.create({
+          didMethod  : 'dht',
+          metadata   : { name: 'Default' },
+          didOptions : {
+            services: [
+              {
+                id              : 'dwn',
+                type            : 'DecentralizedWebNode',
+                serviceEndpoint : serviceEndpointNodes,
+                enc             : '#enc',
+                sig             : '#sig',
+              }
+            ],
+            verificationMethods: [
+              {
+                algorithm : 'Ed25519',
+                id        : 'sig',
+                purposes  : ['assertionMethod', 'authentication']
+              },
+              {
+                algorithm : 'secp256k1',
+                id        : 'enc',
+                purposes  : ['keyAgreement']
+              }
+            ]
+          }
+        });
+
+        // Persists the Identity to be available in future sessions
+        await userAgent.identity.manage({ portableIdentity: await identity.export() });
       } else if (existingIdentityCount === 1) {
         // An existing identity was found in the User Agent's tenant.
         identity = identities[0];
@@ -352,7 +351,6 @@ export class Web5 {
     }
 
     const web5 = new Web5({ agent, connectedDid });
-
     return { web5, did: connectedDid, recoveryPhrase };
   }
 }

@@ -11,7 +11,7 @@ import {
 import { concatenateUrl } from './utils.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 import type { ConnectPermissionRequest } from './connect.js';
-import { DidDht, DidDocument, type BearerDid } from '@web5/dids';
+import { DidDht, DidDocument, PortableDid, type BearerDid } from '@web5/dids';
 import { AgentDwnApi } from './dwn-api.js';
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 import { DwnInterface } from './types/dwn.js';
@@ -132,8 +132,8 @@ export type Web5ConnectAuthRequest = {
 
 /** The fields for an OIDC SIOPv2 Auth Repsonse */
 export type SIOPv2AuthResponse = {
-  /** Issuer Identifier for the Issuer of the response. */
-  iss: 'https://self-issued.me/v2';
+  /** Issuer MUST match the value of sub (Applicant's DID) */
+  iss: string;
   /** Subject Identifier. A locally unique and never reassigned identifier
    * within the Issuer for the End-User, which is intended to be consumed
    * by the Client. */
@@ -157,8 +157,8 @@ export type SIOPv2AuthResponse = {
 
 /** An auth response that is compatible with both Web5 Connect and (hopefully, WIP) OIDC SIOPv2 */
 export type Web5ConnectAuthResponse = {
-  delegatedGrants: any[];
-  privateKeyJwks: Jwk[];
+  delegateGrants: any[];
+  delegateDid: PortableDid;
 } & SIOPv2AuthResponse;
 
 /** Represents the different OIDC endpoint types.
@@ -313,7 +313,7 @@ async function encryptAuthRequest({
 async function createResponseObject(
   options: RequireOnly<
     Web5ConnectAuthResponse,
-    'iss' | 'sub' | 'aud' | 'delegatedGrants' | 'privateKeyJwks'
+    'iss' | 'sub' | 'aud' | 'delegateGrants' | 'delegateDid'
   >
 ) {
   const currentTimeInSeconds = Math.floor(Date.now() / 1000);
@@ -640,37 +640,40 @@ async function submitAuthResponse(
   randomPin: string,
   dwn: AgentDwnApi
 ) {
-  const ephemeralDid = await DidDht.create();
-  const ephemeralDidExported = await ephemeralDid.export();
+  const delegateDid = await DidDht.create();
+  const delegateDidPortable = await delegateDid.export();
 
-  const permissionGrants = await Oidc.createPermissionGrants(selectedDids, ephemeralDid, dwn);
+  const permissionGrants = await Oidc.createPermissionGrants(selectedDids, delegateDid, dwn);
 
   const responseObject = await Oidc.createResponseObject({
-    iss             : 'https://self-issued.me/v2',
-    sub             : ephemeralDid.uri,
-    aud             : authRequest.redirect_uri,
+    //* the IDP's did that was selected to be connected
+    iss            : selectedDids[0],
+    //* the client's new identity
+    sub            : delegateDid.uri,
+    //* the client's temporary ephemeral did used for connect
+    aud            : authRequest.client_id,
     //* the nonce of the original auth request
-    nonce           : authRequest.nonce,
-    delegatedGrants : permissionGrants,
-    privateKeyJwks  : ephemeralDidExported.privateKeys!,
+    nonce          : authRequest.nonce,
+    delegateGrants : permissionGrants,
+    delegateDid    : delegateDidPortable,
   });
 
   // Sign the Response Object using the ephemeral DID's signing key.
   const responseObjectJwt = await Oidc.signJwt({
-    did  : ephemeralDid,
+    did  : delegateDid,
     data : responseObject,
   });
   const clientDid = await DidDht.resolve(authRequest.client_id);
 
   const sharedKey = await Oidc.deriveSharedKey(
-    ephemeralDid,
+    delegateDid,
     clientDid?.didDocument!
   );
 
   const encryptedResponse = Oidc.encryptAuthResponse({
     jwt            : responseObjectJwt!,
     encryptionKey  : sharedKey,
-    providerDidKid : ephemeralDid.document.verificationMethod![0].id,
+    providerDidKid : delegateDid.document.verificationMethod![0].id,
     randomPin,
   });
 

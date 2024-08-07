@@ -192,6 +192,7 @@ describe('web5 connect', () => {
       messageCid: 'bafyreievjytxn2qbfwg4fthnsrjnob3mm2j2haar6revl723v7q2up5g5i',
     },
   ];
+
   let testHarness: PlatformAgentTestHarness;
 
   let codeChallenge: Uint8Array;
@@ -346,12 +347,12 @@ describe('web5 connect', () => {
 
     it('should create the authresponse which includes the permissionGrants, nonce, private key material', async () => {
       const options = {
-        iss             : 'https://self-issued.me/v2' as const,
-        sub             : providerEphemeralBearerDid.uri,
-        aud             : authRequest.redirect_uri,
-        nonce           : authRequest.nonce,
-        delegatedGrants : permissionGrants,
-        privateKeyJwks  : providerEphemeralPortableDid.privateKeys!,
+        iss            : providerIdentity.did.uri,
+        sub            : providerEphemeralBearerDid.uri,
+        aud            : authRequest.client_id,
+        nonce          : authRequest.nonce,
+        delegateGrants : permissionGrants,
+        delegateDid    : providerEphemeralPortableDid,
       };
       authResponse = await Oidc.createResponseObject(options);
 
@@ -480,7 +481,7 @@ describe('web5 connect', () => {
         jwt: authResponseJwt,
       })) as Web5ConnectAuthResponse;
       expect(result).to.be.a('object');
-      expect(result.delegatedGrants).to.have.length.above(0);
+      expect(result.delegateGrants).to.have.length.above(0);
     });
   });
 
@@ -540,10 +541,8 @@ describe('web5 connect', () => {
       );
 
       expect(results).to.be.an('object');
-      expect(results?.delegatedGrants).to.be.an('array');
-      expect(results?.didsToImport).to.be.an('array');
-      expect(results?.didsToImport[0].privateKeyJwks).to.be.an('array');
-      expect(results?.didsToImport[0].privateKeyJwks).have.length.above(0);
+      expect(results?.delegateGrants).to.be.an('array');
+      expect(results?.delegateDid).to.be.an('object');
     });
   });
 });
