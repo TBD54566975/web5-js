@@ -110,7 +110,8 @@ async function initClient({
     // return the grants for liran to ingest into the DWN SDK / agent
     return {
       delegateGrants : verifiedAuthResponse.delegateGrants,
-      delegateDid    : verifiedAuthResponse.delegateDid
+      delegateDid    : verifiedAuthResponse.delegateDid,
+      connectedDid   : verifiedAuthResponse.iss
     };
   }
 }
