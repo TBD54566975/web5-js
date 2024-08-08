@@ -204,10 +204,7 @@ function buildOidcUrl({
         throw new Error(
           `authParam must be providied when building a token URL`
         );
-
-      return authParam
-        ? concatenateUrl(baseURL, `authorize/${authParam}.jwt`)
-        : '';
+      return concatenateUrl(baseURL, `authorize/${authParam}.jwt`);
     /** 3. provider sends {@link Web5ConnectAuthResponse} */
     case 'callback':
       return concatenateUrl(baseURL, `callback`);
@@ -217,10 +214,7 @@ function buildOidcUrl({
         throw new Error(
           `tokenParam must be providied when building a token URL`
         );
-
-      return tokenParam
-        ? concatenateUrl(baseURL, `token/${tokenParam}.jwt`)
-        : '';
+      return  concatenateUrl(baseURL, `token/${tokenParam}.jwt`);
     // TODO: metadata endpoints?
     default:
       throw new Error(`No matches for endpoint specified: ${endpoint}`);
