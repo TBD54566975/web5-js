@@ -295,6 +295,11 @@ describe('Web5', () => {
         expect(queryResult.status.code).to.equal(200);
         expect(queryResult.records).to.have.lengthOf(0); // record has been deleted
 
+        // connecting a 2nd time will return the same connectedDID and delegatedDID
+        const { did: did2, delegatedDid: delegatedDid2 } = await Web5.connect();
+        expect(did2).to.equal(did);
+        expect(delegatedDid2).to.equal(delegatedDid);
+
         // Close the app test harness storage.
         await appTestHarness.clearStorage();
         await appTestHarness.closeStorage();
