@@ -151,7 +151,7 @@ describe('Web5', () => {
         sinon.stub(Web5UserAgent, 'create').resolves(appTestHarness.agent as Web5UserAgent);
 
         // connect to the app, the options don't matter because we're stubbing the initClient method
-        const { web5, did, delegatedDid } = await Web5.connect({
+        const { web5, did, delegateDid } = await Web5.connect({
           walletConnectOptions: {
             connectServerUrl            : 'https://connect.example.com',
             pinCapture                  : async () => { return '1234'; },
@@ -161,9 +161,9 @@ describe('Web5', () => {
         });
         expect(web5).to.exist;
         expect(did).to.exist;
-        expect(delegatedDid).to.exist;
+        expect(delegateDid).to.exist;
         expect(did).to.equal(alice.did.uri);
-        expect(delegatedDid).to.equal(app.uri);
+        expect(delegateDid).to.equal(app.uri);
 
         // in lieu of sync, we will process the grants and protocol definition on the local connected agent
         const { reply: localProtocolReply } = await web5.agent.processDwnRequest({
@@ -205,7 +205,7 @@ describe('Web5', () => {
         // test that the logical author is the connected DID and the signer is the impersonator DID
         expect(writeResult.record.author).to.equal(did);
         const writeSigner = Jws.getSignerDid(writeResult.record.authorization.signature.signatures[0]);
-        expect(writeSigner).to.equal(delegatedDid);
+        expect(writeSigner).to.equal(delegateDid);
 
         const readResult = await web5.dwn.records.read({
           protocol : protocol.protocol,
@@ -218,7 +218,7 @@ describe('Web5', () => {
         // test that the logical author is the connected DID and the signer is the impersonator DID
         expect(readResult.record.author).to.equal(did);
         const readSigner = Jws.getSignerDid(readResult.record.authorization.signature.signatures[0]);
-        expect(readSigner).to.equal(delegatedDid);
+        expect(readSigner).to.equal(delegateDid);
 
         // attempt to query or delete, should fail because we did not grant query permissions
         try {
@@ -296,9 +296,9 @@ describe('Web5', () => {
         expect(queryResult.records).to.have.lengthOf(0); // record has been deleted
 
         // connecting a 2nd time will return the same connectedDID and delegatedDID
-        const { did: did2, delegatedDid: delegatedDid2 } = await Web5.connect();
+        const { did: did2, delegateDid: delegateDid2 } = await Web5.connect();
         expect(did2).to.equal(did);
-        expect(delegatedDid2).to.equal(delegatedDid);
+        expect(delegateDid2).to.equal(delegateDid);
 
         // Close the app test harness storage.
         await appTestHarness.clearStorage();

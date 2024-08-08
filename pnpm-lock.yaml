@@ -28,8 +28,8 @@ importers:
         specifier: 7.9.0
         version: 7.9.0(@typescript-eslint/parser@7.14.1(eslint@9.7.0)(typescript@5.5.4))(eslint@9.7.0)(typescript@5.5.4)
       '@web5/dwn-server':
-        specifier: 0.4.3
-        version: 0.4.3
+        specifier: 0.4.5
+        version: 0.4.5
       audit-ci:
         specifier: ^7.0.1
         version: 7.0.1
@@ -2516,8 +2516,8 @@ packages:
     resolution: {integrity: sha512-LKc6Okl2iz78QGJCsd8QKQq3LdtmfQ9cfiRKu1BU4ITWteWsg4JD089hKmslNDd2KKnEf9LE72TqEYWxr/e8JA==}
     engines: {node: '>=18.0.0'}
 
-  '@web5/dwn-server@0.4.3':
-    resolution: {integrity: sha512-wKdVhOMBsTJTIfYRiD/5crYwiPBZIsaVsr3CKjEj3HMY2HzeoDnACdLFpKq0CzvcU2qfXe9X8S6B0ObAfIDZQA==}
+  '@web5/dwn-server@0.4.5':
+    resolution: {integrity: sha512-fEoL3IU/RwkOUj5kKuoBaBRY2OJ1h/gEzEgeH0nDluNg1S8T96kOCDxSgPbuVMY+aofj7JmQZQm0oAmq4tH2Eg==}
     hasBin: true
 
   '@webassemblyjs/ast@1.12.1':
@@ -6012,18 +6012,6 @@ packages:
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
-  ws@8.17.1:
-    resolution: {integrity: sha512-6XQFvXTkbfUOZOKKILFG1PDK2NDQs4azKQl26T0YS5CxqWLgXajbPZ+h4gZekJyRqFU8pvnbAbbs/3TgRPy+GQ==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
-
   ws@8.18.0:
     resolution: {integrity: sha512-8VbfWfHLbbwu3+N6OKsOMpBdT4kXPDDB9cJk2bJ6mh9ucxdlnNvH1e+roYkKmN9Nxw2yjz7VzeO9oOz2zJ04Pw==}
     engines: {node: '>=10.0.0'}
@@ -8345,7 +8333,7 @@ snapshots:
       mime-types: 2.1.35
       parse5: 6.0.1
       picomatch: 2.3.1
-      ws: 8.17.1
+      ws: 8.18.0
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -8549,7 +8537,7 @@ snapshots:
       level: 8.0.1
       ms: 2.1.3
 
-  '@web5/dwn-server@0.4.3':
+  '@web5/dwn-server@0.4.5':
     dependencies:
       '@tbd54566975/dwn-sdk-js': 0.4.4
       '@tbd54566975/dwn-sql-store': 0.6.4
@@ -11741,7 +11729,7 @@ snapshots:
       chromium-bidi: 0.5.19(devtools-protocol@0.0.1286932)
       debug: 4.3.4(supports-color@8.1.1)
       devtools-protocol: 0.0.1286932
-      ws: 8.17.1
+      ws: 8.18.0
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -12843,8 +12831,6 @@ snapshots:
       strip-ansi: 7.1.0
 
   wrappy@1.0.2: {}
-
-  ws@8.17.1: {}
 
   ws@8.18.0: {}
 

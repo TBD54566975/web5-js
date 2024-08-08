@@ -182,7 +182,7 @@ export type Web5ConnectResult = {
   did: string;
 
   /** The DID that is used to sign messages on behalf of the connectedDID */
-  delegatedDid?: string;
+  delegateDid?: string;
 
   /**
    * The first time a Web5 agent is initialized, the recovery phrase that was used to generate the
@@ -208,7 +208,7 @@ export type Web5Params = {
   connectedDid: string;
 
   /** The DID that will be signing Web5 messages using grants from the connectedDid */
-  delegatedDid?: string;
+  delegateDid?: string;
 };
 
 /**
@@ -231,10 +231,10 @@ export class Web5 {
   /** Exposed instance to the VC APIs, allow users to issue, present and verify VCs */
   vc: VcApi;
 
-  constructor({ agent, connectedDid, delegatedDid }: Web5Params) {
+  constructor({ agent, connectedDid, delegateDid }: Web5Params) {
     this.agent = agent;
     this.did = new DidApi({ agent, connectedDid });
-    this.dwn = new DwnApi({ agent, connectedDid, delegatedDid });
+    this.dwn = new DwnApi({ agent, connectedDid, delegateDid });
     this.vc = new VcApi({ agent, connectedDid });
   }
 
@@ -252,7 +252,7 @@ export class Web5 {
   static async connect({
     agent, agentVault, connectedDid, password, recoveryPhrase, sync, techPreview, didCreateOptions, registration, walletConnectOptions
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
-    let delegatedDid: string | undefined;
+    let delegateDid: string | undefined;
     if (agent === undefined) {
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
       const userAgent = await Web5UserAgent.create({ agentVault });
@@ -308,7 +308,7 @@ export class Web5 {
           // Process the incoming delegated grants in the UserAgent as the owner of the signing delegatedDID
           // this will allow the delegated DID to fetch the grants in order to use them when selecting a grant to sign a record/message with
           // If any of the grants fail to process, they are all rolled back and this will throw an error causing the identity to be cleaned up
-          const dwnApi = new DwnApi({ agent, connectedDid, delegatedDid: delegateDid.uri });
+          const dwnApi = new DwnApi({ agent, connectedDid, delegateDid: delegateDid.uri });
           await dwnApi.grants.processConnectedGrantsAsOwner(delegateGrants);
         } catch (error:any) {
           // clean up the DID and Identity if import fails and throw
@@ -369,7 +369,7 @@ export class Web5 {
       // If the stored identity has a connected DID, use it as the connected DID, otherwise use the identity's DID.
       connectedDid = identity.metadata.connectedDid ?? identity.did.uri;
       // If the stored identity has a connected DID, use the identity DID as the delegated DID, otherwise it is undefined.
-      delegatedDid = identity.metadata.connectedDid ? identity.did.uri : undefined;
+      delegateDid = identity.metadata.connectedDid ? identity.did.uri : undefined;
       if (registration !== undefined) {
         // If a registration object is passed, we attempt to register the AgentDID and the ConnectedDID with the DWN endpoints provided
         const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints;
@@ -412,9 +412,9 @@ export class Web5 {
       }
     }
 
-    const web5 = new Web5({ agent, connectedDid, delegatedDid });
+    const web5 = new Web5({ agent, connectedDid, delegateDid });
 
-    return { web5, did: connectedDid, delegatedDid, recoveryPhrase };
+    return { web5, did: connectedDid, delegateDid, recoveryPhrase };
   }
 
   /**
