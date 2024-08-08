@@ -1116,6 +1116,28 @@ describe('web5 api', () => {
       expect(did2).to.equal(did);
     });
 
+    it('defaults to the first identity if multiple identities exist', async () => {
+      // scenario: For some reason more than one identity exists when attempting to re-connect to `Web5`
+      // the first identity in the array should be the one selected
+      // TODO: this has happened due to a race condition somewhere. Dig into this issue and implement a better way to select/manage DIDs when using `Web5.connect()`
+
+      // create an identity by connecting
+      sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+      const { web5, did } = await Web5.connect({ techPreview: { dwnEndpoints: [ testDwnUrl ] }});
+      expect(web5).to.exist;
+      expect(did).to.exist;
+
+      // create a second identity
+      await testHarness.agent.identity.create({
+        didMethod : 'jwk',
+        metadata  : { name: 'Second' }
+      });
+
+      // connect again
+      const { did: did2 } = await Web5.connect();
+      expect(did2).to.equal(did);
+    });
+
     it('defaults to `https://dwn.tbddev.org/beta` as the single DWN Service endpoint if non is provided', async () => {
       sinon
         .stub(Web5UserAgent, 'create')
