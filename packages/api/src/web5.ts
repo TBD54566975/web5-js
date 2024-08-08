@@ -434,7 +434,7 @@ export class Web5 {
     validateRecoverParams({ password, recoveryPhrase, dwnEndpoints, dids });
 
     // Get default tech preview hosted nodes if not provided.
-    dwnEndpoints ??= await getTechPreviewDwnEndpoints();
+    dwnEndpoints ??= ['https://dwn.tbddev.org/beta'];
 
     // Initialize the agent with the provided recovery phrase, password and dwnEndpoints.
     const agent = await Web5UserAgent.create();
