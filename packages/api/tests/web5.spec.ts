@@ -697,7 +697,7 @@ describe('web5 api', () => {
 
         // write the grants to app as owner
         // this also clears the grants cache
-        await web5.dwn.grants.processGrantsAsOwner([ queryGrant.dataEncodedMessage, deleteGrant.dataEncodedMessage ]);
+        await web5.dwn.grants.processConnectedGrantsAsOwner([ queryGrant.dataEncodedMessage, deleteGrant.dataEncodedMessage ]);
 
         // attempt to delete using the grant
         const deleteResult = await web5.dwn.records.delete({

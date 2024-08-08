@@ -640,7 +640,7 @@ export class DwnApi {
       },
 
       /**
-       * Read a single record based on the given filter.
+       * Read a single record based on the given filter
        */
       read: async (request: RecordsReadRequest): Promise<RecordsReadResponse> => {
         const agentRequest: ProcessDwnRequest<DwnInterface.RecordsRead> = {
