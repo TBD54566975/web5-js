@@ -246,22 +246,25 @@ export class DwnApi {
   /**
    * API to interact with grants.
    *
-   * NOTE: This is an EXPERIMENTAL API that may change.
+   * NOTE: This is an EXPERIMENTAL API that will change behavior.
    * @beta
-   * */
+   */
   get grants() {
     return {
-      /** Finds the appropriate permission grants associated with the message request */
-      findDelegatedPermissionGrant: async <T extends DwnInterface>({ messageParams }:{
+      /**
+       * Finds the appropriate permission grants associated with a message request
+       */
+      findConnectedPermissionGrant: async <T extends DwnInterface>({ messageParams }:{
         messageParams: {
           messageType: T,
           protocol: string,
         }
       }) : Promise<DwnDataEncodedRecordsWriteMessage> => {
-        const permissions = await this.grants.fetchGrants({
-          grantor : this.connectedDid,
-          grantee : this.signerDid
-        });
+        if(!this.signerDid) {
+          throw new Error('AgentDwnApi: Cannot find connected grants without a signer DID');
+        }
+
+        const permissions = await this.grants.fetchConnectedGrants();
 
         // get the delegate grants that match the messageParams and are associated with the connectedDid as the grantor
         const delegateGrant = await DwnPermissionsUtil.matchGrantFromArray(
@@ -280,38 +283,29 @@ export class DwnApi {
       },
 
       /**
-      * Performs a RecordsQuery for permission grants that match the given parameters.
-      *
-      * (optionally) Caches the results for the given parameters to avoid redundant queries.
-      */
-      fetchGrants: async ({ author, target, grantee, grantor, cached = true }: {
-        /** author of the query message, defaults to grantee */
-        author?: string,
-        /** target of the query message, defaults to author */
-        target?: string,
-        grantor: string,
-        grantee: string,
-        cached?: boolean
-      }): Promise<DwnDataEncodedRecordsWriteMessage[]> => {
-        // if no author is provided, use the grantee's DID
-        author ??= grantee;
-        // if no target is explicitly provided, use the author
-        target ??= author;
+       * Performs a RecordsQuery for permission grants that match the given parameters.
+       *
+       * (optionally) Caches the results for the given parameters to avoid redundant queries.
+       */
+      fetchConnectedGrants: async (cached: boolean = true): Promise<DwnDataEncodedRecordsWriteMessage[]> => {
+        if (!this.signerDid) {
+          throw new Error('AgentDwnApi: Cannot fetch grants without a signer DID');
+        }
 
-        const cacheKey = [ grantor, grantee, author, target ].join('~');
+        const cacheKey = [ this.signerDid, this.connectedDid ].join('~');
         const cachedGrants = cached ? this.cachedPermissions.get(cacheKey) : undefined;
         if (cachedGrants) {
           return cachedGrants;
         }
 
         const { reply: grantsReply } = await this.agent.processDwnRequest({
-          author,
-          target,
+          author        : this.signerDid,
+          target        : this.signerDid,
           messageType   : DwnInterface.RecordsQuery,
           messageParams : {
             filter: {
-              author    : grantor, // the author of the grant would be the grantor and the logical author of the message
-              recipient : grantee, // the recipient of the grant would be the grantee
+              author    : this.connectedDid, // the author of the grant would be the grantor and the logical author of the message
+              recipient : this.signerDid, // the recipient of the grant would be the grantee
               ...DwnPermissionsUtil.permissionsProtocolParams('grant')
             }
           }
@@ -323,7 +317,9 @@ export class DwnApi {
 
         const grants:DwnDataEncodedRecordsWriteMessage[] = [];
         for (const entry of grantsReply.entries! as DwnDataEncodedRecordsWriteMessage[]) {
-          if(await this.grants.isGrantRevoked(author, target, entry.recordId)) {
+          // check if the grant is revoked, we set the target to the grantor since the grantor is the author of the revocation
+          // the revocations should come in through sync, and are checked against the local DWN
+          if(await this.grants.isGrantRevoked(this.signerDid, this.connectedDid, entry.recordId)) {
             // grant is revoked do not return it in the grants list
             continue;
           }
@@ -338,8 +334,8 @@ export class DwnApi {
       },
 
       /**
-      * Check whether a grant is revoked by reading the revocation record for a given grant recordId.
-      */
+       * Check whether a grant is revoked by reading the revocation record for a given grant recordId.
+       */
       isGrantRevoked: async (author:string, target: string, grantRecordId: string): Promise<boolean> => {
         const { reply: revocationReply } = await this.agent.processDwnRequest({
           author,
@@ -370,7 +366,11 @@ export class DwnApi {
        * If any of the grants fail, all the input grants are deleted and an error is thrown.
        * Grants cache is cleared after processing.
        */
-      processGrantsAsOwner: async (grants: DwnDataEncodedRecordsWriteMessage[]): Promise<void> => {
+      processConnectedGrantsAsOwner: async (grants: DwnDataEncodedRecordsWriteMessage[]): Promise<void> => {
+        if(!this.signerDid) {
+          throw new Error('AgentDwnApi: Cannot process grants without a signer DID');
+        }
+
         for (const grant of grants) {
           const data = Convert.base64Url(grant.encodedData).toArrayBuffer();
           const grantMessage = grant as DwnMessage[DwnInterface.RecordsWrite];
@@ -538,7 +538,7 @@ export class DwnApi {
 
         if (this.signerDid) {
           // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-          const delegatedGrant = await this.grants.findDelegatedPermissionGrant({
+          const delegatedGrant = await this.grants.findConnectedPermissionGrant({
             messageParams: {
               messageType : DwnInterface.RecordsDelete,
               protocol    : request.protocol,
@@ -585,7 +585,7 @@ export class DwnApi {
 
         if (this.signerDid) {
           // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-          const delegatedGrant = await this.grants.findDelegatedPermissionGrant({
+          const delegatedGrant = await this.grants.findConnectedPermissionGrant({
             messageParams: {
               messageType : DwnInterface.RecordsQuery,
               protocol    : agentRequest.messageParams.filter.protocol,
@@ -640,7 +640,7 @@ export class DwnApi {
       },
 
       /**
-       * Read a single record based on the given filter.
+       * Read a single record based on the given filter
        */
       read: async (request: RecordsReadRequest): Promise<RecordsReadResponse> => {
         const agentRequest: ProcessDwnRequest<DwnInterface.RecordsRead> = {
@@ -661,7 +661,7 @@ export class DwnApi {
 
         if (this.signerDid) {
           // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-          const delegatedGrant = await this.grants.findDelegatedPermissionGrant({
+          const delegatedGrant = await this.grants.findConnectedPermissionGrant({
             messageParams: {
               messageType : DwnInterface.RecordsRead,
               protocol    : request.protocol
@@ -739,7 +739,7 @@ export class DwnApi {
 
         // if impersonation is enabled, fetch the delegated grant to use with the write operation
         if (this.signerDid) {
-          const delegatedGrant = await this.grants.findDelegatedPermissionGrant({
+          const delegatedGrant = await this.grants.findConnectedPermissionGrant({
             messageParams: {
               messageType : DwnInterface.RecordsWrite,
               protocol    : dwnRequestParams.messageParams.protocol,

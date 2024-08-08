@@ -293,7 +293,7 @@ export class Web5 {
             // store the delegated grants as owner using the actorDID
             // this will allow the actorDID to fetch the grants in order to use them
             const dwnApi = new DwnApi({ agent, connectedDid, signerDid: delegateDid.uri });
-            await dwnApi.grants.processGrantsAsOwner(delegateGrants);
+            await dwnApi.grants.processConnectedGrantsAsOwner(delegateGrants);
           } catch (error:any) {
             // clean up the DID and Identity if import fails
             await this.cleanUpIdentity({ identity, userAgent });
