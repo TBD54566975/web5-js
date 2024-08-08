@@ -143,7 +143,7 @@ export type Web5ConnectResult = {
   did: string;
 
   /** The DID that is used to sign messages on behalf of the connectedDID */
-  signerDid?: string;
+  delegatedDid?: string;
 
   /**
    * The first time a Web5 agent is initialized, the recovery phrase that was used to generate the
@@ -335,11 +335,10 @@ export class Web5 {
           // sessions.
           await userAgent.identity.manage({ portableIdentity: await identity.export() });
 
-        } else if (existingIdentityCount === 1) {
-          // An existing identity was found in the User Agent's tenant.
-          identity = identities[0];
         } else {
-          throw new Error(`connect() failed due to unexpected state: Expected 1 but found ${existingIdentityCount} stored identities.`);
+          // If multiple identities are found, use the first one.
+          // TODO: Implement selecting a connectedDid from multiple identities
+          identity = identities[0];
         }
       }
 
