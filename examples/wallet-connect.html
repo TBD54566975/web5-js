@@ -125,14 +125,9 @@
           onWalletUriReady: generateQRCode,
           validatePin: async () => {
             goToPinScreen();
-            return new Promise((resolve) => {
-              const handlePinEntered = (event) => {
-                const pin = event.detail.pin;
-                resolve(pin);
-                window.removeEventListener("pinEntered", handlePinEntered);
-              };
-              window.addEventListener("pinEntered", handlePinEntered);
-            });
+
+            const pin = await waitForPin();
+            return pin;
           },
         },
       });
@@ -150,6 +145,17 @@
       document.getElementById("qrCodeText").setAttribute("href", text);
       document.getElementById("qrCodeText").innerText = text;
       goToQRCodeScreen();
+    }
+
+    function waitForPin() {
+      return new Promise((resolve) => {
+        const handlePinEntered = (event) => {
+          const pin = event.detail.pin;
+          resolve(pin);
+          window.removeEventListener("pinEntered", handlePinEntered);
+        };
+        window.addEventListener("pinEntered", handlePinEntered);
+      });
     }
 
     function onSubmitPinClicked(event) {
