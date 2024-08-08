@@ -6,6 +6,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Web5 Connect Example</title>
   <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    /* Ensure all elements respect the box model */
+    * {
+      box-sizing: border-box;
+    }
+
+    /* Additional styles to make sure no element causes overflow */
+    .container {
+      max-width: 100%;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+
+    /* Make text wrap correctly */
+    p,
+    a {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+    }
+
     /* Hide screens initially */
     #qrCodeScreen,
     #pinScreen,
@@ -35,40 +63,42 @@
 </head>
 
 <body>
-  <!-- Loading Screen -->
-  <div id="loadingScreen">
-    <h1>Loading...</h1>
-    <div class="loader"></div>
-  </div>
-
-  <!-- QR Code Screen -->
-  <div id="qrCodeScreen">
-    <h1>Scan with a web5 compatible wallet</h1>
-    <div id="qrCode"></div>
-    <div>
-      <a id="qrCodeText" target="_blank" href=""></a>
+  <div class="container">
+    <!-- Loading Screen -->
+    <div id="loadingScreen">
+      <h1>Loading...</h1>
+      <div class="loader"></div>
     </div>
-  </div>
 
-  <!-- Pin Screen -->
-  <div id="pinScreen">
-    <h1>Pin Entry</h1>
-    <form id="pinForm">
-      <label for="pinInput">Enter Pin:</label>
-      <input type="text" id="pinInput" name="pinInput" required />
-      <button type="button" id="submitButton">Send</button>
-    </form>
-  </div>
+    <!-- QR Code Screen -->
+    <div id="qrCodeScreen">
+      <h1>Scan with a web5 compatible wallet</h1>
+      <div id="qrCode"></div>
+      <div>
+        <a id="qrCodeText" target="_blank" href=""></a>
+      </div>
+    </div>
 
-  <!-- End Screen -->
-  <div id="endScreen">
-    <h1>Success</h1>
-    <p>You have connected the DID from your wallet.</p>
-    <div id="didInformation"></div>
-  </div>
+    <!-- Pin Screen -->
+    <div id="pinScreen">
+      <h1>Pin Entry</h1>
+      <form id="pinForm">
+        <label for="pinInput">Enter Pin:</label>
+        <input type="text" id="pinInput" name="pinInput" required />
+        <button type="button" id="submitButton">Send</button>
+      </form>
+    </div>
 
-  <!-- Error message -->
-  <p id="errorMessage"></p>
+    <!-- End Screen -->
+    <div id="endScreen">
+      <h1>Success</h1>
+      <p>You have connected the DID from your wallet.</p>
+      <p id="didInformation"></p>
+    </div>
+
+    <!-- Error message -->
+    <p id="errorMessage"></p>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
 
