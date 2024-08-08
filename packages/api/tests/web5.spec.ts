@@ -12,7 +12,7 @@ import {
   WalletConnect,
 } from '@web5/agent';
 
-import { ConnectPlaceholder, Web5 } from '../src/web5.js';
+import { Web5 } from '../src/web5.js';
 import { DwnInterfaceName, DwnMethodName, Jws, Time } from '@tbd54566975/dwn-sdk-js';
 import { testDwnUrl } from './utils/test-config.js';
 import { DidJwk } from '@web5/dids';
@@ -643,6 +643,32 @@ describe('web5 api', () => {
         const readSigner = Jws.getSignerDid(readResult.record.authorization.signature.signatures[0]);
         expect(readSigner).to.equal(signerDid);
 
+        // attempt to query or delete, should fail because we did not grant query permissions
+        try {
+          await web5.dwn.records.query({
+            protocol : protocol.protocol,
+            message  : {
+              filter: { protocol: protocol.protocol }
+            }
+          });
+
+          expect.fail('Should have thrown an error');
+        } catch(error:any) {
+          expect(error.message).to.include('AgentDwnApi: No permissions found for RecordsQuery');
+        }
+        try {
+          await web5.dwn.records.delete({
+            protocol : protocol.protocol,
+            message  : {
+              recordId: writeResult.record.id
+            }
+          });
+
+          expect.fail('Should have thrown an error');
+        } catch(error:any) {
+          expect(error.message).to.include('AgentDwnApi: No permissions found for RecordsDelete');
+        }
+
         // Close the app test harness storage.
         await appTestHarness.clearStorage();
         await appTestHarness.closeStorage();
@@ -729,9 +755,9 @@ describe('web5 api', () => {
         expect(readGrantReply.status.code).to.equal(202);
 
         // stub the walletInit method of the Connect placeholder class
-        sinon.stub(ConnectPlaceholder, 'initClient').resolves({
-          delegatedGrants : [ writeGrant.dataEncodedMessage, readGrant.dataEncodedMessage ],
-          portableDid     : await app.export(),
+        sinon.stub(WalletConnect, 'initClient').resolves({
+          delegateGrants : [ writeGrant.dataEncodedMessage, readGrant.dataEncodedMessage ],
+          delegateDid     : await app.export(),
           connectedDid    : alice.did.uri
         });
 
@@ -761,9 +787,10 @@ describe('web5 api', () => {
           await Web5.connect({
             walletConnectOptions: {
               connectServerUrl            : 'https://connect.example.com',
-              pinCapture                  : async () => { return '1234'; },
-              onRequestReady              : (_requestUrl: string) => {},
-              requestedProtocolsAndScopes : new Map()
+              walletUri                   : 'https://wallet.example.com',
+              validatePin                 : async () => { return '1234'; },
+              onWalletUriReady            : (_walletUri: string) => {},
+              permissionRequests          : []
             }
           });
 
@@ -783,6 +810,27 @@ describe('web5 api', () => {
         // close the app test harness storage
         await appTestHarness.clearStorage();
         await appTestHarness.closeStorage();
+      });
+
+      it('logs an error if there is a failure during cleanup of Identity information, but does not throw', async () => {
+        // create a DID that is not stored in the agent
+        const did = await DidJwk.create();
+        const identity = new BearerIdentity({
+          did,
+          metadata: {
+            name   : 'Test',
+            uri    : did.uri,
+            tenant : did.uri
+          }
+        });
+
+        // stub console.error to avoid logging errors into the test output, use as spy to check if the error message is logged
+        const consoleSpy = sinon.stub(console, 'error').returns();
+
+        // call identityCleanup on a did that does not exist
+        await Web5['cleanUpIdentity']({ userAgent: testHarness.agent as Web5UserAgent, identity });
+
+        expect(consoleSpy.calledTwice, 'console.error called twice').to.be.true;
       });
     });
 

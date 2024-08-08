@@ -6,6 +6,7 @@
 
 import type {
   BearerIdentity,
+  DwnDataEncodedRecordsWriteMessage,
   HdIdentityVault,
   WalletConnectOptions,
   Web5Agent,
