@@ -670,6 +670,54 @@ describe('web5 api', () => {
           expect(error.message).to.include('AgentDwnApi: No permissions found for RecordsDelete');
         }
 
+        // grant query and delete permissions
+        const queryGrant = await testHarness.agent.dwn.createGrant({
+          delegated   : true,
+          grantedFrom : alice.did.uri,
+          grantedTo   : app.uri,
+          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+          scope       : {
+            interface : DwnInterfaceName.Records,
+            method    : DwnMethodName.Query,
+            protocol  : protocol.protocol,
+          }
+        });
+
+        const deleteGrant = await testHarness.agent.dwn.createGrant({
+          delegated   : true,
+          grantedFrom : alice.did.uri,
+          grantedTo   : app.uri,
+          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+          scope       : {
+            interface : DwnInterfaceName.Records,
+            method    : DwnMethodName.Delete,
+            protocol  : protocol.protocol,
+          }
+        });
+
+        // write the grants to app as owner
+        // this also clears the grants cache
+        await web5.dwn.grants.processGrantsAsOwner([ queryGrant.dataEncodedMessage, deleteGrant.dataEncodedMessage ]);
+
+        // attempt to delete using the grant
+        const deleteResult = await web5.dwn.records.delete({
+          protocol : protocol.protocol,
+          message  : {
+            recordId: writeResult.record.id
+          }
+        });
+        expect(deleteResult.status.code).to.equal(202);
+
+        // attempt to query using the grant
+        const queryResult = await web5.dwn.records.query({
+          protocol : protocol.protocol,
+          message  : {
+            filter: { protocol: protocol.protocol }
+          }
+        });
+        expect(queryResult.status.code).to.equal(200);
+        expect(queryResult.records).to.have.lengthOf(0); // record has been deleted
+
         // Close the app test harness storage.
         await appTestHarness.clearStorage();
         await appTestHarness.closeStorage();
