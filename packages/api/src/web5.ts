@@ -268,7 +268,6 @@ export class Web5 {
         recoveryPhrase = await userAgent.initialize({ password, recoveryPhrase });
       }
       await userAgent.start({ password });
-
       // Attempt to retrieve the connected Identity if it exists.
       let identity: BearerIdentity = await userAgent.identity.connectedIdentity();
       if (!identity) {
@@ -401,7 +400,10 @@ export class Web5 {
     return { web5, did: connectedDid, signerDid, recoveryPhrase };
   }
 
-  static async cleanUpIdentity({ identity, userAgent }:{
+  /**
+   * Cleans up the DID, Keys and Identity. Primarily used by a failed WalletConnect import.
+   */
+  private static async cleanUpIdentity({ identity, userAgent }:{
     identity: BearerIdentity,
     userAgent: Web5UserAgent
   }): Promise<void> {
@@ -424,7 +426,11 @@ export class Web5 {
     }
   }
 
-  static async processGrantsAsOwner({ didUri, grants, userAgent }: {
+  /**
+   * Processes a list of delegated grants as the owner of the DID.
+   * If any of the grants fail, all the grants are deleted and an error is thrown.
+   */
+  private static async processGrantsAsOwner({ didUri, grants, userAgent }: {
     didUri: string;
     grants: DataEncodedRecordsWriteMessage[]
     userAgent: Web5UserAgent;
