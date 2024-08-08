@@ -37,11 +37,13 @@ describe('AgentDwnApi', () => {
     });
   });
 
-  afterEach(() => {
+  beforeEach(() => {
     sinon.restore();
   });
 
   after(async () => {
+    sinon.restore();
+    await testHarness.clearStorage();
     await testHarness.closeStorage();
   });
 

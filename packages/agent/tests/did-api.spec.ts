@@ -221,7 +221,6 @@ describe('AgentDidApi', () => {
           // delete the DID
           await testHarness.agent.did.delete({ didUri: did.uri, tenant: did.uri });
 
-          console.log('deleted');
           // attempt to get the DID again
           try {
             storedDid = await testHarness.agent.did.get({ didUri: did.uri, tenant: did.uri });

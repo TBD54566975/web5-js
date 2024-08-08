@@ -106,7 +106,7 @@ describe('DwnPermissionsUtil', () => {
 
       const protocol = 'http://example.com/protocol';
 
-      await GrantsUtil.createRecordsGrants({
+      const deviceXRecordGrants = await GrantsUtil.createRecordsGrants({
         grantorAgent : aliceAgent.agent,
         granteeAgent : appAgent.agent,
         grantor      : alice.did.uri,
@@ -114,11 +114,13 @@ describe('DwnPermissionsUtil', () => {
         protocol
       });
 
-      const deviceXGranteeGrants = await appAgent.agent.dwn.fetchGrants({
-        grantor : alice.did.uri,
-        grantee : aliceDeviceX.did.uri
-      });
-      expect(deviceXGranteeGrants.length).to.equal(5);
+      const deviceXGranteeGrants = [
+        deviceXRecordGrants.write,
+        deviceXRecordGrants.read,
+        deviceXRecordGrants.delete,
+        deviceXRecordGrants.query,
+        deviceXRecordGrants.subscribe
+      ];
 
       // attempt to match a grant with a different grantee, aliceDeviceY
       const notFoundGrantee = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceY.did.uri, {
@@ -128,7 +130,7 @@ describe('DwnPermissionsUtil', () => {
 
       expect(notFoundGrantee).to.be.undefined;
 
-      await GrantsUtil.createRecordsGrants({
+      const deviceYRecordGrants = await GrantsUtil.createRecordsGrants({
         grantorAgent : appAgent.agent,
         granteeAgent : appAgent.agent,
         grantor      : aliceDeviceX.did.uri,
@@ -136,13 +138,18 @@ describe('DwnPermissionsUtil', () => {
         protocol
       });
 
-      const deviceXGrantorGrants = await appAgent.agent.dwn.fetchGrants({ grantor: aliceDeviceX.did.uri, grantee: aliceDeviceY.did.uri });
-      expect(deviceXGrantorGrants.length).to.equal(5);
+      const deviceYGrantorGrants = [
+        deviceYRecordGrants.write,
+        deviceYRecordGrants.read,
+        deviceYRecordGrants.delete,
+        deviceYRecordGrants.query,
+        deviceYRecordGrants.subscribe
+      ];
 
       const notFoundGrantor = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceY.did.uri, {
         messageType: DwnInterface.RecordsWrite,
         protocol
-      }, deviceXGrantorGrants);
+      }, deviceYGrantorGrants);
 
       expect(notFoundGrantor).to.be.undefined;
     });
@@ -161,19 +168,23 @@ describe('DwnPermissionsUtil', () => {
         grantee      : aliceDeviceX.did.uri,
       });
 
-      const fetchedGrants = await appAgent.agent.dwn.fetchGrants({ grantor: alice.did.uri, grantee: aliceDeviceX.did.uri });
+      const aliceDeviceXMessageGrants = [
+        messagesGrants.query,
+        messagesGrants.read,
+        messagesGrants.subscribe
+      ];
 
       // control: match a grant without specifying delegated
       const queryGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType: DwnInterface.MessagesQuery,
-      }, fetchedGrants);
+      }, aliceDeviceXMessageGrants);
 
       expect(queryGrant?.message.recordId).to.equal(messagesGrants.query.recordId);
 
       // attempt to match non-delegated grant with delegated set to true
       const notFoundDelegated = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType: DwnInterface.MessagesQuery,
-      }, fetchedGrants, true);
+      }, aliceDeviceXMessageGrants, true);
 
       expect(notFoundDelegated).to.be.undefined;
 
@@ -187,13 +198,19 @@ describe('DwnPermissionsUtil', () => {
         protocol
       });
 
-      const fetchedRecordsGrants = await appAgent.agent.dwn.fetchGrants({ grantor: alice.did.uri, grantee: aliceDeviceX.did.uri });
+      const deviceXRecordGrants = [
+        recordsGrants.write,
+        recordsGrants.read,
+        recordsGrants.delete,
+        recordsGrants.query,
+        recordsGrants.subscribe
+      ];
 
       // match a delegated grant
       const writeGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType: DwnInterface.RecordsWrite,
         protocol
-      }, fetchedRecordsGrants, true);
+      }, deviceXRecordGrants, true);
 
       expect(writeGrant?.message.recordId).to.equal(recordsGrants.write.recordId);
     });
@@ -212,29 +229,33 @@ describe('DwnPermissionsUtil', () => {
         grantee      : aliceDeviceX.did.uri
       });
 
-      const fetchedGrants = await appAgent.agent.dwn.fetchGrants({ grantor: alice.did.uri, grantee: aliceDeviceX.did.uri });
+      const deviceXMessageGrants = [
+        messageGrants.query,
+        messageGrants.read,
+        messageGrants.subscribe
+      ];
 
       const queryGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType: DwnInterface.MessagesQuery,
-      }, fetchedGrants);
+      }, deviceXMessageGrants);
 
       expect(queryGrant?.message.recordId).to.equal(messageGrants.query.recordId);
 
       const readGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType: DwnInterface.MessagesRead,
-      }, fetchedGrants);
+      }, deviceXMessageGrants);
 
       expect(readGrant?.message.recordId).to.equal(messageGrants.read.recordId);
 
       const subscribeGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType: DwnInterface.MessagesSubscribe,
-      }, fetchedGrants);
+      }, deviceXMessageGrants);
 
       expect(subscribeGrant?.message.recordId).to.equal(messageGrants.subscribe.recordId);
 
       const invalidGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType: DwnInterface.RecordsQuery,
-      }, fetchedGrants);
+      }, deviceXMessageGrants);
 
       expect(invalidGrant).to.be.undefined;
     });
@@ -265,40 +286,47 @@ describe('DwnPermissionsUtil', () => {
         protocol     : otherProtocol
       });
 
-      const fetchedGrants = await appAgent.agent.dwn.fetchGrants({ grantor: alice.did.uri, grantee: aliceDeviceX.did.uri });
+      const deviceXMessageGrants = [
+        protocolMessageGrants.query,
+        protocolMessageGrants.read,
+        protocolMessageGrants.subscribe,
+        otherProtocolMessageGrants.query,
+        otherProtocolMessageGrants.read,
+        otherProtocolMessageGrants.subscribe
+      ];
 
       const queryGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType: DwnInterface.MessagesQuery,
         protocol
-      }, fetchedGrants);
+      }, deviceXMessageGrants);
 
       expect(queryGrant?.message.recordId).to.equal(protocolMessageGrants.query.recordId);
 
       const readGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType: DwnInterface.MessagesRead,
         protocol
-      }, fetchedGrants);
+      }, deviceXMessageGrants);
 
       expect(readGrant?.message.recordId).to.equal(protocolMessageGrants.read.recordId);
 
       const subscribeGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType: DwnInterface.MessagesSubscribe,
         protocol
-      }, fetchedGrants);
+      }, deviceXMessageGrants);
 
       expect(subscribeGrant?.message.recordId).to.equal(protocolMessageGrants.subscribe.recordId);
 
       const invalidGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType : DwnInterface.MessagesQuery,
         protocol    : 'http://example.com/unknown-protocol'
-      }, fetchedGrants);
+      }, deviceXMessageGrants);
 
       expect(invalidGrant).to.be.undefined;
 
       const otherProtocolQueryGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType : DwnInterface.MessagesQuery,
         protocol    : otherProtocol
-      }, fetchedGrants);
+      }, deviceXMessageGrants);
 
       expect(otherProtocolQueryGrant?.message.recordId).to.equal(otherProtocolMessageGrants.query.recordId);
     });
@@ -329,47 +357,58 @@ describe('DwnPermissionsUtil', () => {
         protocol     : protocol2,
       });
 
-      const fetchedGrants = await appAgent.agent.dwn.fetchGrants({ grantor: alice.did.uri, grantee: aliceDeviceX.did.uri });
+      const deviceXRecordGrants = [
+        protocol1Grants.write,
+        protocol1Grants.read,
+        protocol1Grants.delete,
+        protocol1Grants.query,
+        protocol1Grants.subscribe,
+        otherProtocolGrants.write,
+        otherProtocolGrants.read,
+        otherProtocolGrants.delete,
+        otherProtocolGrants.query,
+        otherProtocolGrants.subscribe
+      ];
 
       const writeGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType : DwnInterface.RecordsWrite,
         protocol    : protocol1
-      }, fetchedGrants);
+      }, deviceXRecordGrants);
 
       expect(writeGrant?.message.recordId).to.equal(protocol1Grants.write.recordId);
 
       const readGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType : DwnInterface.RecordsRead,
         protocol    : protocol1
-      }, fetchedGrants);
+      }, deviceXRecordGrants);
 
       expect(readGrant?.message.recordId).to.equal(protocol1Grants.read.recordId);
 
       const deleteGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType : DwnInterface.RecordsDelete,
         protocol    : protocol1
-      }, fetchedGrants);
+      }, deviceXRecordGrants);
 
       expect(deleteGrant?.message.recordId).to.equal(protocol1Grants.delete.recordId);
 
       const queryGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType : DwnInterface.RecordsQuery,
         protocol    : protocol1
-      }, fetchedGrants);
+      }, deviceXRecordGrants);
 
       expect(queryGrant?.message.recordId).to.equal(protocol1Grants.query.recordId);
 
       const subscribeGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType : DwnInterface.RecordsSubscribe,
         protocol    : protocol1
-      }, fetchedGrants);
+      }, deviceXRecordGrants);
 
       expect(subscribeGrant?.message.recordId).to.equal(protocol1Grants.subscribe.recordId);
 
       const queryGrantOtherProtocol = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType : DwnInterface.RecordsQuery,
         protocol    : protocol2
-      }, fetchedGrants);
+      }, deviceXRecordGrants);
 
       expect(queryGrantOtherProtocol?.message.recordId).to.equal(otherProtocolGrants.query.recordId);
 
@@ -377,7 +416,7 @@ describe('DwnPermissionsUtil', () => {
       const invalidGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType : DwnInterface.RecordsQuery,
         protocol    : 'http://example.com/unknown-protocol'
-      }, fetchedGrants);
+      }, deviceXRecordGrants);
 
       expect(invalidGrant).to.be.undefined;
     });
@@ -409,13 +448,24 @@ describe('DwnPermissionsUtil', () => {
         protocolPath : 'foo/bar'
       });
 
-      const fetchedGrants = await appAgent.agent.dwn.fetchGrants({ grantor: alice.did.uri, grantee: aliceDeviceX.did.uri });
+      const protocolGrants = [
+        fooGrants.write,
+        fooGrants.read,
+        fooGrants.delete,
+        fooGrants.query,
+        fooGrants.subscribe,
+        barGrants.write,
+        barGrants.read,
+        barGrants.delete,
+        barGrants.query,
+        barGrants.subscribe
+      ];
 
       const writeFooGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType  : DwnInterface.RecordsWrite,
         protocol     : protocol,
         protocolPath : 'foo'
-      }, fetchedGrants);
+      }, protocolGrants);
 
       expect(writeFooGrant?.message.recordId).to.equal(fooGrants.write.recordId);
 
@@ -423,7 +473,7 @@ describe('DwnPermissionsUtil', () => {
         messageType  : DwnInterface.RecordsRead,
         protocol     : protocol,
         protocolPath : 'foo'
-      }, fetchedGrants);
+      }, protocolGrants);
 
       expect(readFooGrant?.message.recordId).to.equal(fooGrants.read.recordId);
 
@@ -431,7 +481,7 @@ describe('DwnPermissionsUtil', () => {
         messageType  : DwnInterface.RecordsDelete,
         protocol     : protocol,
         protocolPath : 'foo'
-      }, fetchedGrants);
+      }, protocolGrants);
 
       expect(deleteFooGrant?.message.recordId).to.equal(fooGrants.delete.recordId);
 
@@ -439,7 +489,7 @@ describe('DwnPermissionsUtil', () => {
         messageType  : DwnInterface.RecordsQuery,
         protocol     : protocol,
         protocolPath : 'foo'
-      }, fetchedGrants);
+      }, protocolGrants);
 
       expect(queryGrant?.message.recordId).to.equal(fooGrants.query.recordId);
 
@@ -447,7 +497,7 @@ describe('DwnPermissionsUtil', () => {
         messageType  : DwnInterface.RecordsSubscribe,
         protocol     : protocol,
         protocolPath : 'foo'
-      }, fetchedGrants);
+      }, protocolGrants);
 
       expect(subscribeGrant?.message.recordId).to.equal(fooGrants.subscribe.recordId);
 
@@ -455,7 +505,7 @@ describe('DwnPermissionsUtil', () => {
         messageType  : DwnInterface.RecordsWrite,
         protocol     : protocol,
         protocolPath : 'foo/bar'
-      }, fetchedGrants);
+      }, protocolGrants);
 
       expect(writeBarGrant?.message.recordId).to.equal(barGrants.write.recordId);
 
@@ -463,7 +513,7 @@ describe('DwnPermissionsUtil', () => {
         messageType  : DwnInterface.RecordsWrite,
         protocol     : protocol,
         protocolPath : 'bar'
-      }, fetchedGrants);
+      }, protocolGrants);
 
       expect(noMatchGrant).to.be.undefined;
     });
@@ -495,13 +545,24 @@ describe('DwnPermissionsUtil', () => {
         contextId    : 'def/ghi'
       });
 
-      const fetchedGrants = await appAgent.agent.dwn.fetchGrants({ grantor: alice.did.uri, grantee: aliceDeviceX.did.uri });
+      const contextGrants = [
+        abcGrants.write,
+        abcGrants.read,
+        abcGrants.delete,
+        abcGrants.query,
+        abcGrants.subscribe,
+        defGrants.write,
+        defGrants.read,
+        defGrants.delete,
+        defGrants.query,
+        defGrants.subscribe
+      ];
 
       const writeFooGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType : DwnInterface.RecordsWrite,
         protocol    : protocol,
         contextId   : 'abc'
-      }, fetchedGrants);
+      }, contextGrants);
 
       expect(writeFooGrant?.message.recordId).to.equal(abcGrants.write.recordId);
 
@@ -509,7 +570,7 @@ describe('DwnPermissionsUtil', () => {
         messageType : DwnInterface.RecordsWrite,
         protocol    : protocol,
         contextId   : 'def/ghi'
-      }, fetchedGrants);
+      }, contextGrants);
 
       expect(writeBarGrant?.message.recordId).to.equal(defGrants.write.recordId);
 
@@ -517,14 +578,14 @@ describe('DwnPermissionsUtil', () => {
         messageType : DwnInterface.RecordsWrite,
         protocol    : protocol,
         contextId   : 'def'
-      }, fetchedGrants);
+      }, contextGrants);
 
       expect(invalidGrant).to.be.undefined;
 
       const withoutContextGrant = await DwnPermissionsUtil.matchGrantFromArray(alice.did.uri, aliceDeviceX.did.uri, {
         messageType : DwnInterface.RecordsWrite,
         protocol    : protocol
-      }, fetchedGrants);
+      }, contextGrants);
 
       expect(withoutContextGrant).to.be.undefined;
     });

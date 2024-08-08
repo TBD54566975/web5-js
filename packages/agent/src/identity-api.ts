@@ -235,4 +235,23 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
     // Delete the Identity from the Agent's Identity store.
     await this._store.delete({ id: didUri, agent: this.agent, tenant });
   }
+
+  /**
+   * Returns the connected Identity, if one is available.
+   *
+   * Accepts optional `connectedDid` parameter to filter the a specific connected identity,
+   * if none is provided the first connected identity is returned.
+   */
+  public async connectedIdentity({ connectedDid }:{ connectedDid?: string } = {}): Promise<BearerIdentity | undefined> {
+    const identities = await this.list();
+    if (identities.length < 1) {
+      return undefined;
+    }
+
+    // If a specific connected DID is provided, return the first identity that matches it.
+    // Otherwise, return the first connected identity.
+    return connectedDid ?
+      identities.find(identity => identity.metadata.connectedDid === connectedDid) :
+      identities.find(identity => identity.metadata.connectedDid !== undefined);
+  }
 }

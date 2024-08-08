@@ -7,6 +7,7 @@ export interface IdentityMetadata {
   name: string;
   tenant: string;
   uri: string;
+  connectedDid?: string;
 }
 
 export interface PortableIdentity {
