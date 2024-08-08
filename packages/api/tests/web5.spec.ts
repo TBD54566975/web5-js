@@ -557,8 +557,8 @@ describe('web5 api', () => {
         // stub the walletInit method
         sinon.stub(WalletConnect, 'initClient').resolves({
           delegateGrants : [ writeGrant.dataEncodedMessage, readGrant.dataEncodedMessage ],
-          delegateDid: await app.export(),
-          connectedDid    : alice.did.uri
+          delegateDid    : await app.export(),
+          connectedDid   : alice.did.uri
         });
 
         const appTestHarness = await PlatformAgentTestHarness.setup({
@@ -575,11 +575,11 @@ describe('web5 api', () => {
         // connect to the app, the options don't matter because we're stubbing the initClient method
         const { web5, did, delegateDid } = await Web5.connect({
           walletConnectOptions: {
-            connectServerUrl            : 'https://connect.example.com',
-            walletUri                   : 'https://wallet.example.com',
-            validatePin                 : async () => { return '1234'; },
-            onWalletUriReady            : (_walletUri: string) => {},
-            permissionRequests          : [],
+            connectServerUrl   : 'https://connect.example.com',
+            walletUri          : 'https://wallet.example.com',
+            validatePin        : async () => { return '1234'; },
+            onWalletUriReady   : (_walletUri: string) => {},
+            permissionRequests : [],
           }
         });
         expect(web5).to.exist;
@@ -719,9 +719,9 @@ describe('web5 api', () => {
         expect(queryResult.records).to.have.lengthOf(0); // record has been deleted
 
         // connecting a 2nd time will return the same connectedDID and delegatedDID
-        const { did: did2, delegatedDid: delegatedDid2 } = await Web5.connect();
+        const { did: did2, delegateDid: delegateDid2 } = await Web5.connect();
         expect(did2).to.equal(did);
-        expect(delegatedDid2).to.equal(delegatedDid);
+        expect(delegateDid2).to.equal(delegateDid);
 
         // Close the app test harness storage.
         await appTestHarness.clearStorage();
@@ -811,8 +811,8 @@ describe('web5 api', () => {
         // stub the walletInit method of the Connect placeholder class
         sinon.stub(WalletConnect, 'initClient').resolves({
           delegateGrants : [ writeGrant.dataEncodedMessage, readGrant.dataEncodedMessage ],
-          delegateDid     : await app.export(),
-          connectedDid    : alice.did.uri
+          delegateDid    : await app.export(),
+          connectedDid   : alice.did.uri
         });
 
         const appTestHarness = await PlatformAgentTestHarness.setup({
@@ -840,11 +840,11 @@ describe('web5 api', () => {
           // connect to the app, the options don't matter because we're stubbing the initClient method
           await Web5.connect({
             walletConnectOptions: {
-              connectServerUrl            : 'https://connect.example.com',
-              walletUri                   : 'https://wallet.example.com',
-              validatePin                 : async () => { return '1234'; },
-              onWalletUriReady            : (_walletUri: string) => {},
-              permissionRequests          : []
+              connectServerUrl   : 'https://connect.example.com',
+              walletUri          : 'https://wallet.example.com',
+              validatePin        : async () => { return '1234'; },
+              onWalletUriReady   : (_walletUri: string) => {},
+              permissionRequests : []
             }
           });
 

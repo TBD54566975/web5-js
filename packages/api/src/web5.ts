@@ -142,9 +142,6 @@ export type Web5ConnectResult = {
   /** The DID that has been connected or created during the connection process. */
   did: string;
 
-  /** The DID that is used to sign messages on behalf of the connectedDID */
-  delegatedDid?: string;
-
   /**
    * The first time a Web5 agent is initialized, the recovery phrase that was used to generate the
    * agent's DID and keys is returned. This phrase can be used to recover the agent's vault contents
