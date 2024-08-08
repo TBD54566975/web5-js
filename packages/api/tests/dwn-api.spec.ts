@@ -45,6 +45,9 @@ describe('DwnApi', () => {
     // Instantiate DwnApi for both test identities.
     dwnAlice = new DwnApi({ agent: testHarness.agent, connectedDid: aliceDid.uri });
     dwnBob = new DwnApi({ agent: testHarness.agent, connectedDid: bobDid.uri });
+
+    dwnAlice['cachedPermissions'].clear();
+    dwnBob['cachedPermissions'].clear();
   });
 
   after(async () => {
@@ -1367,6 +1370,130 @@ describe('DwnApi', () => {
   });
 
   describe('grants.fetchGrants()', () => {
+    it('caches results', async () => {
+      // scenario: alice creates grants for recipients deviceY and deviceX
+      // the grantee fetches their own grants respectively
+
+      // create an identity for deviceX and deviceY
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+      const recordsWriteGrant = await testHarness.agent.dwn.createGrant({
+        grantedFrom : aliceDid.uri,
+        grantedTo   : aliceDeviceX.did.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Write, protocol: 'http://example.com/protocol' }
+      });
+
+      // process the grant to aliceDeviceX's DWN
+      const { reply: writeReplyX } = await testHarness.agent.dwn.processRequest({
+        messageType : DwnInterface.RecordsWrite,
+        rawMessage  : recordsWriteGrant.recordsWrite.message,
+        author      : aliceDeviceX.did.uri,
+        target      : aliceDeviceX.did.uri,
+        dataStream  : new Blob([recordsWriteGrant.permissionGrantBytes]),
+        signAsOwner : true
+      });
+
+      expect(writeReplyX.status.code).to.equal(202);
+
+      const recordsReadGrant = await testHarness.agent.dwn.createGrant({
+        grantedFrom : aliceDid.uri,
+        grantedTo   : aliceDeviceX.did.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Read, protocol: 'http://example.com/protocol' }
+      });
+
+      // process the grant to aliceDeviceX's DWN
+      const { reply: readReplyX } = await testHarness.agent.dwn.processRequest({
+        messageType : DwnInterface.RecordsWrite,
+        rawMessage  : recordsReadGrant.recordsWrite.message,
+        author      : aliceDeviceX.did.uri,
+        target      : aliceDeviceX.did.uri,
+        dataStream  : new Blob([recordsReadGrant.permissionGrantBytes]),
+        signAsOwner : true
+      });
+
+      expect(readReplyX.status.code).to.equal(202);
+
+      // spy on processDwnRequest to ensure it is only called for the first fetch
+      const dwnRequestSpy = sinon.spy(testHarness.agent, 'processDwnRequest');
+      const grants = await dwnAlice.grants.fetchGrants({
+        grantor : aliceDid.uri,
+        grantee : aliceDeviceX.did.uri,
+      });
+
+      expect(grants).to.exist;
+      expect(grants.length).to.equal(2);
+
+      // ensure the spy to be called three times, once for fetch and once for each revocation check
+      expect(dwnRequestSpy.callCount).to.equal(3);
+
+      // get the grants again to ensure they are cached
+      const cachedGrants = await dwnAlice.grants.fetchGrants({
+        grantor : aliceDid.uri,
+        grantee : aliceDeviceX.did.uri,
+      });
+
+      expect(cachedGrants).to.exist;
+      expect(cachedGrants.length).to.equal(2);
+
+      // ensure the spy callCount was unchanged
+      expect(dwnRequestSpy.callCount).to.equal(3);
+
+      // add a new grant to aliceDeviceX
+      const recordsWriteGrant2 = await testHarness.agent.dwn.createGrant({
+        grantedFrom : aliceDid.uri,
+        grantedTo   : aliceDeviceX.did.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Write, protocol: 'http://example.com/protocol-two' }
+      });
+
+      // process the grant to aliceDeviceX's DWN
+      const { reply: writeReplyXTwo } = await testHarness.agent.dwn.processRequest({
+        messageType : DwnInterface.RecordsWrite,
+        rawMessage  : recordsWriteGrant2.recordsWrite.message,
+        author      : aliceDeviceX.did.uri,
+        target      : aliceDeviceX.did.uri,
+        dataStream  : new Blob([recordsWriteGrant2.permissionGrantBytes]),
+        signAsOwner : true
+      });
+      expect(writeReplyXTwo.status.code).to.equal(202);
+
+      // reset the spy
+      dwnRequestSpy.resetHistory();
+
+      // fetch the grants again, the cached results should be returned, and the spy should not be called
+      const updatedGrants = await dwnAlice.grants.fetchGrants({
+        grantor : aliceDid.uri,
+        grantee : aliceDeviceX.did.uri,
+      });
+      expect(updatedGrants).to.exist;
+      expect(updatedGrants.length).to.equal(2); // unchanged
+      // must not include the new grant
+      expect(updatedGrants.map(grant => grant.recordId)).to.not.include(recordsWriteGrant2.dataEncodedMessage.recordId);
+
+      // ensure a dwnRequest was not made
+      expect(dwnRequestSpy.callCount).to.equal(0);
+
+      // now fetch the grants with cache set to false
+      const updatedGrantsNoCache = await dwnAlice.grants.fetchGrants({
+        grantor : aliceDid.uri,
+        grantee : aliceDeviceX.did.uri,
+        cached  : false
+      });
+      expect(updatedGrantsNoCache).to.exist;
+      expect(updatedGrantsNoCache.length).to.equal(3); // includes the new grant
+      // must include the new grant
+      expect(updatedGrantsNoCache.map(grant => grant.recordId)).to.include(recordsWriteGrant2.dataEncodedMessage.recordId);
+
+      // ensure dwnRequest was called, once for the fetch and once for each revocation check
+      expect(dwnRequestSpy.callCount).to.equal(4);
+    });
+
     it('fetches grants for a grantee', async () => {
       // scenario: alice creates grants for recipients deviceY and deviceX
       // the grantee fetches their own grants respectively
@@ -1596,6 +1723,7 @@ describe('DwnApi', () => {
 
       // try again to fetch the grants with alice ad the target
       fetchedAliceTarget = await dwnAlice.grants.fetchGrants({
+        cached  : false, // bypass cache
         target  : aliceDid.uri,
         grantor : aliceDid.uri,
         grantee : aliceDeviceX.did.uri,

@@ -4,7 +4,8 @@ import sinon from 'sinon';
 import { Web5UserAgent } from '@web5/user-agent';
 import { AgentIdentityApi, BearerIdentity, DwnInterface, DwnProtocolDefinition, DwnRegistrar, PlatformAgentTestHarness } from '@web5/agent';
 
-import { ConnectPlaceholder, Web5 } from '../src/web5.js';
+import { Web5 } from '../src/web5.js';
+import { ConnectPlaceholder } from '../src/temp.js';
 import { DwnInterfaceName, DwnMethodName, Jws, Time } from '@tbd54566975/dwn-sdk-js';
 import { testDwnUrl } from './utils/test-config.js';
 import { DidJwk } from '@web5/dids';
@@ -133,9 +134,9 @@ describe('Web5', () => {
 
         // stub the walletInit method of the Connect placeholder class
         sinon.stub(ConnectPlaceholder, 'initClient').resolves({
-          delegatedGrants : [ writeGrant.dataEncodedMessage, readGrant.dataEncodedMessage ],
-          portableDid     : await app.export(),
-          connectedDid    : alice.did.uri
+          delegateGrants : [ writeGrant.dataEncodedMessage, readGrant.dataEncodedMessage ],
+          delegateDid    : await app.export(),
+          connectedDid   : alice.did.uri
         });
 
         const appTestHarness = await PlatformAgentTestHarness.setup({
@@ -232,6 +233,7 @@ describe('Web5', () => {
         } catch(error:any) {
           expect(error.message).to.include('AgentDwnApi: No permissions found for RecordsQuery');
         }
+
         try {
           await web5.dwn.records.delete({
             protocol : protocol.protocol,
@@ -332,9 +334,9 @@ describe('Web5', () => {
 
         // stub the walletInit method of the Connect placeholder class
         sinon.stub(ConnectPlaceholder, 'initClient').resolves({
-          delegatedGrants : [ writeGrant.dataEncodedMessage, readGrant.dataEncodedMessage ],
-          portableDid     : await app.export(),
-          connectedDid    : alice.did.uri
+          delegateGrants : [ writeGrant.dataEncodedMessage, readGrant.dataEncodedMessage ],
+          delegateDid    : await app.export(),
+          connectedDid   : alice.did.uri
         });
 
         const appTestHarness = await PlatformAgentTestHarness.setup({

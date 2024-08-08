@@ -1,13 +1,18 @@
-import type { BearerIdentity, HdIdentityVault, Web5Agent } from '@web5/agent';
+/**
+ * NOTE: Added reference types here to avoid a `pnpm` bug during build.
+ * https://github.com/TBD54566975/web5-js/pull/507
+ */
+/// <reference types="@tbd54566975/dwn-sdk-js" />
+
+import type { BearerIdentity, DwnDataEncodedRecordsWriteMessage, DwnMessage, HdIdentityVault, Web5Agent } from '@web5/agent';
 
 import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
 import { DwnRecordsPermissionScope, DwnProtocolDefinition, DwnRegistrar, DwnInterface } from '@web5/agent';
 import { VcApi } from './vc-api.js';
 import { Web5UserAgent } from '@web5/user-agent';
-import { DataEncodedRecordsWriteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
-import { PortableDid } from '@web5/dids';
 import { Convert } from '@web5/common';
+import { ConnectPlaceholder } from './temp.js';
 
 /** Override defaults configured during the technical preview phase. */
 export type TechPreviewOptions = {
@@ -275,14 +280,14 @@ export class Web5 {
           // Connect attempt failed or was rejected so fallback to local user agent.
           try {
             // TEMPORARY: Placeholder for WalletConnect integration
-            const { connectedDid, portableDid, delegatedGrants } = await ConnectPlaceholder.initClient(walletConnectOptions);
+            const { connectedDid, delegateDid, delegateGrants } = await ConnectPlaceholder.initClient(walletConnectOptions);
             identity = await userAgent.identity.import({ portableIdentity: {
-              portableDid,
-              metadata: {
+              portableDid : delegateDid,
+              metadata    : {
                 connectedDid,
                 name   : 'Actor',
-                tenant : portableDid.uri,
-                uri    : portableDid.uri,
+                tenant : delegateDid.uri,
+                uri    : delegateDid.uri,
               }
             }});
             await userAgent.identity.manage({ portableIdentity: await identity.export() });
@@ -291,7 +296,7 @@ export class Web5 {
             await this.processGrantsAsOwner({
               userAgent,
               didUri : identity.did.uri,
-              grants : delegatedGrants,
+              grants : delegateGrants,
             });
           } catch (error:any) {
             // clean up the DID and Identity if import fails
@@ -432,12 +437,12 @@ export class Web5 {
    */
   private static async processGrantsAsOwner({ didUri, grants, userAgent }: {
     didUri: string;
-    grants: DataEncodedRecordsWriteMessage[]
+    grants: DwnDataEncodedRecordsWriteMessage[]
     userAgent: Web5UserAgent;
   }): Promise<void> {
     for (const grant of grants) {
       const data = Convert.base64Url(grant.encodedData).toArrayBuffer();
-      const grantMessage = grant as RecordsWriteMessage;
+      const grantMessage = grant as DwnMessage[DwnInterface.RecordsWrite];
       delete grantMessage['encodedData'];
 
       const { reply } = await userAgent.processDwnRequest({
@@ -469,43 +474,5 @@ export class Web5 {
         throw new Error(`Failed to process delegated grant: ${reply.status.detail}`);
       }
     }
-  }
-}
-
-
-/**
- * Placeholder for WalletConnect integration.
- *
- * TODO: Temporary Class to mock WalletConnect integration
- */
-export class ConnectPlaceholder {
-  /** initialize a connect flow */
-  static async initClient(_walletConnectOptions: WalletConnectOptions): Promise<{
-    /** grants provided to the grantee for use with the app */
-    delegatedGrants: DataEncodedRecordsWriteMessage[];
-    /** the logical owner of the tenant */
-    connectedDid: string;
-    /** The DID used as the grantee to act on behalf of the connectedDid */
-    portableDid: PortableDid
-  }> {
-    return {
-      delegatedGrants : [],
-      connectedDid    : '',
-      portableDid     : {
-        uri      : '',
-        document : {
-          '@context'           : 'https://www.w3.org/ns/did/v1',
-          id                   : '',
-          verificationMethod   : [],
-          authentication       : [],
-          assertionMethod      : [],
-          capabilityDelegation : [],
-          capabilityInvocation : [],
-          keyAgreement         : [],
-          service              : []
-        },
-        metadata: {}
-      }
-    };
   }
 }

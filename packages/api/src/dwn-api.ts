@@ -1,3 +1,9 @@
+/**
+ * NOTE: Added reference types here to avoid a `pnpm` bug during build.
+ * https://github.com/TBD54566975/web5-js/pull/507
+ */
+/// <reference types="@tbd54566975/dwn-sdk-js" />
+
 import {
   Web5Agent,
   DwnMessage,
@@ -228,8 +234,8 @@ export class DwnApi {
   /** (optional) The DID of the signer when signing with permissions */
   private signerDid?: string;
 
-  /** cache for fetching permissions, the key is comprised of the protocol and messageType */
-  private cachedPermissions: TtlCache<string, DwnDataEncodedRecordsWriteMessage> = new TtlCache({ ttl: 60 * 1000 });
+  /** cache for fetching permissions */
+  private cachedPermissions: TtlCache<string, DwnDataEncodedRecordsWriteMessage[]> = new TtlCache({ ttl: 60 * 1000 });
 
   constructor(options: { agent: Web5Agent, connectedDid: string, signerDid?: string }) {
     this.agent = options.agent;
@@ -252,13 +258,6 @@ export class DwnApi {
           protocol: string,
         }
       }) : Promise<DwnDataEncodedRecordsWriteMessage> => {
-        const { messageType, protocol } = messageParams;
-        const cacheKey = [ messageType, protocol ].join('~');
-        const cachedPermission = this.cachedPermissions.get(cacheKey);
-        if (cachedPermission) {
-          return cachedPermission;
-        }
-
         const permissions = await this.grants.fetchGrants({
           grantor : this.connectedDid,
           grantee : this.signerDid
@@ -274,28 +273,36 @@ export class DwnApi {
         );
 
         if (!delegateGrant) {
-          throw new Error(`AgentDwnApi: No permissions found for ${cacheKey}`);
+          throw new Error(`AgentDwnApi: No permissions found for ${messageParams.messageType}: ${messageParams.protocol}`);
         }
 
-        this.cachedPermissions.set(cacheKey, delegateGrant.message);
         return delegateGrant.message;
       },
 
       /**
       * Performs a RecordsQuery for permission grants that match the given parameters.
+      *
+      * (optionally) Caches the results for the given parameters to avoid redundant queries.
       */
-      fetchGrants: async ({ author, target, grantee, grantor }: {
+      fetchGrants: async ({ author, target, grantee, grantor, cached = true }: {
         /** author of the query message, defaults to grantee */
         author?: string,
         /** target of the query message, defaults to author */
         target?: string,
         grantor: string,
-        grantee: string
+        grantee: string,
+        cached?: boolean
       }): Promise<DwnDataEncodedRecordsWriteMessage[]> => {
         // if no author is provided, use the grantee's DID
         author ??= grantee;
         // if no target is explicitly provided, use the author
         target ??= author;
+
+        const cacheKey = [ grantor, grantee, author, target ].join('~');
+        const cachedGrants = cached ? this.cachedPermissions.get(cacheKey) : undefined;
+        if (cachedGrants) {
+          return cachedGrants;
+        }
 
         const { reply: grantsReply } = await this.agent.processDwnRequest({
           author,
@@ -314,7 +321,20 @@ export class DwnApi {
           throw new Error(`AgentDwnApi: Failed to fetch grants: ${grantsReply.status.detail}`);
         }
 
-        return grantsReply.entries! as DwnDataEncodedRecordsWriteMessage[];
+        const grants:DwnDataEncodedRecordsWriteMessage[] = [];
+        for (const entry of grantsReply.entries! as DwnDataEncodedRecordsWriteMessage[]) {
+          if(await this.grants.isGrantRevoked(author, target, entry.recordId)) {
+            // grant is revoked do not return it in the grants list
+            continue;
+          }
+          grants.push(entry as DwnDataEncodedRecordsWriteMessage);
+        }
+
+        if (cached) {
+          this.cachedPermissions.set(cacheKey, grants);
+        }
+
+        return grants;
       },
 
       /**

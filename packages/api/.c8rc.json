@@ -8,6 +8,7 @@
     "tests/compiled/**/src/**"
   ],
   "exclude": [
+    "tests/compiled/**/src/temp.js",
     "tests/compiled/**/src/web-features.js",
     "tests/compiled/**/src/index.js",
     "tests/compiled/**/src/types.js",
