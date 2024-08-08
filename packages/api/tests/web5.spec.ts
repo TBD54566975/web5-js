@@ -656,6 +656,7 @@ describe('web5 api', () => {
         } catch(error:any) {
           expect(error.message).to.include('AgentDwnApi: No permissions found for RecordsQuery');
         }
+
         try {
           await web5.dwn.records.delete({
             protocol : protocol.protocol,
