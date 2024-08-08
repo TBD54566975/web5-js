@@ -4,14 +4,13 @@
  */
 /// <reference types="@tbd54566975/dwn-sdk-js" />
 
-import type { BearerIdentity, DwnDataEncodedRecordsWriteMessage, DwnMessage, HdIdentityVault, Web5Agent } from '@web5/agent';
+import type { BearerIdentity, HdIdentityVault, Web5Agent } from '@web5/agent';
 
 import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
-import { DwnRecordsPermissionScope, DwnProtocolDefinition, DwnRegistrar, DwnInterface } from '@web5/agent';
+import { DwnRecordsPermissionScope, DwnProtocolDefinition, DwnRegistrar } from '@web5/agent';
 import { VcApi } from './vc-api.js';
 import { Web5UserAgent } from '@web5/user-agent';
-import { Convert } from '@web5/common';
 import { ConnectPlaceholder } from './temp.js';
 
 /** Override defaults configured during the technical preview phase. */
@@ -293,11 +292,8 @@ export class Web5 {
             await userAgent.identity.manage({ portableIdentity: await identity.export() });
             // store the delegated grants as owner using the actorDID
             // this will allow the actorDID to fetch the grants in order to use them
-            await this.processGrantsAsOwner({
-              userAgent,
-              didUri : identity.did.uri,
-              grants : delegateGrants,
-            });
+            const dwnApi = new DwnApi({ agent, connectedDid, signerDid: delegateDid.uri });
+            await dwnApi.grants.processGrantsAsOwner(delegateGrants);
           } catch (error:any) {
             // clean up the DID and Identity if import fails
             await this.cleanUpIdentity({ identity, userAgent });
@@ -407,6 +403,7 @@ export class Web5 {
 
   /**
    * Cleans up the DID, Keys and Identity. Primarily used by a failed WalletConnect import.
+   * Does not throw on error, but logs to console.
    */
   private static async cleanUpIdentity({ identity, userAgent }:{
     identity: BearerIdentity,
@@ -428,51 +425,6 @@ export class Web5 {
       await userAgent.identity.delete({ didUri: identity.did.uri });
     } catch(error: any) {
       console.error(`Failed to delete Identity ${identity.metadata.name}: ${error.message}`);
-    }
-  }
-
-  /**
-   * Processes a list of delegated grants as the owner of the DID.
-   * If any of the grants fail, all the grants are deleted and an error is thrown.
-   */
-  private static async processGrantsAsOwner({ didUri, grants, userAgent }: {
-    didUri: string;
-    grants: DwnDataEncodedRecordsWriteMessage[]
-    userAgent: Web5UserAgent;
-  }): Promise<void> {
-    for (const grant of grants) {
-      const data = Convert.base64Url(grant.encodedData).toArrayBuffer();
-      const grantMessage = grant as DwnMessage[DwnInterface.RecordsWrite];
-      delete grantMessage['encodedData'];
-
-      const { reply } = await userAgent.processDwnRequest({
-        author      : didUri,
-        target      : didUri,
-        signAsOwner : true,
-        messageType : DwnInterface.RecordsWrite,
-        rawMessage  : grantMessage,
-        dataStream  : new Blob([ data ])
-      });
-
-      if (reply.status.code !== 202) {
-        // if any of the grants fail, delete the other grants and throw an error
-        for (const grant of grants) {
-          const { reply } = await userAgent.processDwnRequest({
-            author        : didUri,
-            target        : didUri,
-            messageType   : DwnInterface.RecordsDelete,
-            messageParams : {
-              recordId: grant.recordId
-            }
-          });
-
-          if (reply.status.code !== 202 && reply.status.code !== 404) {
-            console.error('Failed to delete grant: ', grant.recordId);
-          }
-        }
-
-        throw new Error(`Failed to process delegated grant: ${reply.status.detail}`);
-      }
     }
   }
 }

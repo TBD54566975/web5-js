@@ -15,7 +15,7 @@ import {
   DwnDataEncodedRecordsWriteMessage
 } from '@web5/agent';
 
-import { isEmptyObject, TtlCache } from '@web5/common';
+import { Convert, isEmptyObject, TtlCache } from '@web5/common';
 import { DwnInterface, getRecordAuthor, DwnPermissionsUtil } from '@web5/agent';
 
 import { Record } from './record.js';
@@ -363,6 +363,51 @@ export class DwnApi {
 
         throw new Error(`AgentDwnApi: Failed to check if grant is revoked: ${revocationReply.status.detail}`);
       },
+
+      /**
+       * Processes a list of delegated grants as the delegated signer so that they are available for the signer to use.
+       *
+       * If any of the grants fail, all the input grants are deleted and an error is thrown.
+       * Grants cache is cleared after processing.
+       */
+      processGrantsAsOwner: async (grants: DwnDataEncodedRecordsWriteMessage[]): Promise<void> => {
+        for (const grant of grants) {
+          const data = Convert.base64Url(grant.encodedData).toArrayBuffer();
+          const grantMessage = grant as DwnMessage[DwnInterface.RecordsWrite];
+          delete grantMessage['encodedData'];
+
+          const { reply } = await this.agent.processDwnRequest({
+            author      : this.signerDid,
+            target      : this.signerDid,
+            signAsOwner : true,
+            messageType : DwnInterface.RecordsWrite,
+            rawMessage  : grantMessage,
+            dataStream  : new Blob([ data ])
+          });
+
+          if (reply.status.code !== 202) {
+            // if any of the grants fail, delete the other grants and throw an error
+            for (const grant of grants) {
+              const { reply } = await this.agent.processDwnRequest({
+                author        : this.signerDid,
+                target        : this.signerDid,
+                messageType   : DwnInterface.RecordsDelete,
+                messageParams : {
+                  recordId: grant.recordId
+                }
+              });
+
+              if (reply.status.code !== 202 && reply.status.code !== 404) {
+                console.error('Failed to delete grant: ', grant.recordId);
+              }
+            }
+
+            throw new Error(`Failed to process delegated grant: ${reply.status.detail}`);
+          }
+
+          this.cachedPermissions.clear();
+        }
+      }
     };
   }
 
