@@ -1373,7 +1373,7 @@ describe('DwnApi', () => {
   describe('grants.fetchConnectedGrants()', () => {
     it('throws if no signerDID is set', async () => {
       // make sure signerDID is undefined
-      dwnAlice['signerDid'] = undefined;
+      dwnAlice['delegatedDid'] = undefined;
       try {
         await dwnAlice.grants.fetchConnectedGrants();
         expect.fail('Error was not thrown');
@@ -1391,7 +1391,7 @@ describe('DwnApi', () => {
       });
 
       // set the device identity as the signerDID
-      dwnAlice['signerDid'] = aliceDeviceX.did.uri;
+      dwnAlice['delegatedDid'] = aliceDeviceX.did.uri;
 
       const recordsWriteGrant = await testHarness.agent.dwn.createGrant({
         grantedFrom : aliceDid.uri,
@@ -1505,7 +1505,7 @@ describe('DwnApi', () => {
       });
 
       // set the device identity as the signerDID, this normally happens when the identity is connected
-      dwnAlice['signerDid'] = aliceDeviceX.did.uri;
+      dwnAlice['delegatedDid'] = aliceDeviceX.did.uri;
 
       const recordsWriteGrant = await testHarness.agent.dwn.createGrant({
         grantedFrom : aliceDid.uri,
@@ -1560,7 +1560,7 @@ describe('DwnApi', () => {
 
     it('should throw if the grant query returns anything other than a 200', async () => {
       // setting a signerDID, otherwise fetchConnectedGrants will throw
-      dwnAlice['signerDid'] = 'did:example:123';
+      dwnAlice['delegatedDid'] = 'did:example:123';
 
       // return empty array if grant query returns something other than a 200
       sinon.stub(testHarness.agent, 'processDwnRequest').resolves({ messageCid: '', reply: { status: { code: 400, detail: 'unknown error' } } });
@@ -1582,7 +1582,7 @@ describe('DwnApi', () => {
       });
 
       // set the device identity as the signerDID for alice, this normally happens during a connect flow
-      dwnAlice['signerDid'] = aliceDeviceX.did.uri;
+      dwnAlice['delegatedDid'] = aliceDeviceX.did.uri;
 
       const recordsWriteGrant = await testHarness.agent.dwn.createGrant({
         grantedFrom : aliceDid.uri,
@@ -1675,7 +1675,7 @@ describe('DwnApi', () => {
   describe('grants.findConnectedPermissionGrant', () => {
     it('throws if no signerDID is set', async () => {
       // make sure signerDID is undefined
-      dwnAlice['signerDid'] = undefined;
+      dwnAlice['delegatedDid'] = undefined;
       try {
         await dwnAlice.grants.findConnectedPermissionGrant({
           messageParams: {
@@ -1693,7 +1693,7 @@ describe('DwnApi', () => {
   describe('grants.processConnectedGrantsAsOwner', () => {
     it('throws if no signerDID is set', async () => {
       // make sure signerDID is undefined
-      dwnAlice['signerDid'] = undefined;
+      dwnAlice['delegatedDid'] = undefined;
       try {
         await dwnAlice.grants.processConnectedGrantsAsOwner([]);
         expect.fail('Error was not thrown');
