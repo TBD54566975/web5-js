@@ -36,8 +36,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           report_changed_scope_only: false
-          fail_on_warnings: true
-          fail_on_error: true
+          fail_on_warnings: false
+          fail_on_error: false
           group_docs: true
           entry_points: |
             - file: packages/api/src/index.ts

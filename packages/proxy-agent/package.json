@@ -71,7 +71,7 @@
   "dependencies": {
     "@web5/agent": "workspace:*",
     "@web5/common": "1.0.0",
-    "@web5/crypto": "1.0.0",
+    "@web5/crypto": "workspace:*",
     "@web5/dids": "1.1.0"
   },
   "devDependencies": {
@@ -81,7 +81,7 @@
     "@types/dns-packet": "5.6.4",
     "@types/eslint": "8.56.10",
     "@types/mocha": "10.0.1",
-    "@types/node": "20.11.19",
+    "@types/node": "20.14.8",
     "@typescript-eslint/eslint-plugin": "7.9.0",
     "@typescript-eslint/parser": "7.14.1",
     "@web/test-runner": "0.18.2",

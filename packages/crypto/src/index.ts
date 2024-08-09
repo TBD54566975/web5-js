@@ -1,5 +1,6 @@
 export * from './local-key-manager.js';
 export * as utils from './utils.js';
+export * from './utils.js';
 
 export * from './algorithms/aes-ctr.js';
 export * from './algorithms/aes-gcm.js';

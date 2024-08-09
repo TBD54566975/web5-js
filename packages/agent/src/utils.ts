@@ -87,9 +87,77 @@ export function webReadableToIsomorphicNodeReadable(webReadable: ReadableStream<
 }
 
 /**
- * Concatenates a base URL and a path, ensuring that there is exactly one slash between them.
- * TODO: Move this function to a more common shared utility library across pacakges.
+ * Polling function with interval, TTL accepting a custom fetch function
+ * @template T - the return you expect from the fetcher
+ * @param fetchFunction an http fetch function
+ * @param [interval=3000] how frequently to poll
+ * @param [ttl=300_000] how long until polling stops
+ * @returns T - the result of fetch
  */
+export function pollWithTtl(
+  fetchFunction: () => Promise<Response>,
+  interval = 3000,
+  ttl = 300_000,
+  abortSignal?: AbortSignal
+): Promise<Response | null> {
+  const endTime = Date.now() + ttl;
+  let timeoutId: NodeJS.Timeout | null = null;
+  let isPolling = true;
+  return new Promise((resolve, reject) => {
+    if (abortSignal) {
+      abortSignal.addEventListener('abort', () => {
+        isPolling = false;
+        if (timeoutId !== null) {
+          clearTimeout(timeoutId);
+        }
+        console.log('Polling aborted by user');
+        resolve(null);
+      });
+    }
+
+    async function poll() {
+      if (!isPolling) return;
+
+      const remainingTime = endTime - Date.now();
+
+      if (remainingTime <= 0) {
+        isPolling = false;
+        console.log('Polling stopped: TTL reached');
+        resolve(null);
+        return;
+      }
+
+      console.log(`Polling... (Remaining time: ${Math.ceil(remainingTime / 1000)}s)`);
+
+      try {
+        const response = await fetchFunction();
+
+        if (response.ok) {
+          isPolling = false;
+
+          if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+          }
+
+          console.log('Polling stopped: Success condition met');
+          resolve(response);
+          return;
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        reject(error);
+      }
+
+      if (isPolling) {
+        timeoutId = setTimeout(poll, interval);
+      }
+    }
+
+    poll();
+  });
+}
+
+/** Concatenates a base URL and a path ensuring that there is exactly one slash between them */
 export function concatenateUrl(baseUrl: string, path: string): string {
   // Remove trailing slash from baseUrl if it exists
   if (baseUrl.endsWith('/')) {

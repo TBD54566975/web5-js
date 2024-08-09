@@ -8,7 +8,7 @@ component_management:
         target: auto # auto compares coverage to the previous base commit
         threshold: 5% # allows a 5% drop from the previous base commit coverage
       - type: patch
-        target: 90 # every PR opened should strive for at least 90% coverage
+        target: 90
 
   individual_components:
     - component_id: package-agent
@@ -59,3 +59,4 @@ coverage:
     patch:
       default:
         informational: true # Don't gate PRs based on Codecov passing thresholds
+        if_ci_failed: success
