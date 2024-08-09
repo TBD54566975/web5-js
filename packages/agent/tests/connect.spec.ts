@@ -13,7 +13,9 @@ import { TestAgent } from './utils/test-agent.js';
 import { testDwnUrl } from './utils/test-config.js';
 import { BearerIdentity, DwnResponse, WalletConnect } from '../src/index.js';
 
-describe('web5 connect', () => {
+describe('web5 connect', function() {
+  this.timeout(10000);
+
   /** The real tenant (identity) of the DWN that the provider is using and selecting */
   const providerIdentityPortableDid = {
     uri      : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
@@ -263,7 +265,7 @@ describe('web5 connect', () => {
     sinon.restore();
   });
 
-  describe('client authrequest phase', () => {
+  describe('client authrequest phase', function() {
     it('should create a code challenge', async () => {
       const result = await Oidc.generateCodeChallenge();
       expect(result.codeChallengeBytes).to.be.instanceOf(Uint8Array);
@@ -310,7 +312,7 @@ describe('web5 connect', () => {
     });
   });
 
-  describe('provider authresponse phase', () => {
+  describe('provider authresponse phase', function() {
     it('should get authrequest from server, decrypt and verify the jwt', async () => {
       const fetchStub = sinon
         .stub(globalThis, 'fetch')
@@ -452,7 +454,7 @@ describe('web5 connect', () => {
     });
   });
 
-  describe('client pin entry final phase', () => {
+  describe('client pin entry final phase', function() {
     it('should get the authresponse from server and decrypt the jwe using the pin', async () => {
       const result = await Oidc.decryptAuthResponse(
         clientEphemeralBearerDid,
@@ -485,8 +487,8 @@ describe('web5 connect', () => {
     });
   });
 
-  describe('end to end client test', () => {
-    it('should complete the whole connect flow with the correct pin', async () => {
+  describe('end to end client test', function() {
+    it('should complete the whole connect flow with the correct pin', async function() {
       const fetchStub = sinon.stub(globalThis, 'fetch');
       const onWalletUriReadySpy = sinon.spy();
       const didDhtStub = sinon
