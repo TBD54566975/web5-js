@@ -1,7 +1,7 @@
 import type { Jwk, KeyIdentifier } from '@web5/crypto';
 
 import { Convert } from '@web5/common';
-import { LocalKeyManager, utils as cryptoUtils } from '@web5/crypto';
+import { LocalKeyManager, CryptoUtils } from '@web5/crypto';
 
 import type { CryptoApi } from '../types/crypto-api.js';
 import type { KeyManager } from '../types/key-manager.js';
@@ -404,7 +404,7 @@ export class FlattenedJwe {
       case 'A128GCM':
       case 'A192GCM':
       case 'A256GCM':
-        iv = cryptoUtils.randomBytes(12);
+        iv = CryptoUtils.randomBytes(12);
         break;
       default:
         iv = new Uint8Array(0);

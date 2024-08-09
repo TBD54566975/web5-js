@@ -1,7 +1,7 @@
 import type { BearerDid } from '@web5/dids';
 import type { IPresentation} from '@sphereon/ssi-types';
 
-import { utils as cryptoUtils } from '@web5/crypto';
+import { CryptoUtils } from '@web5/crypto';
 
 import { Jwt } from './jwt.js';
 import { SsiValidator } from './validators.js';
@@ -149,7 +149,7 @@ export class VerifiablePresentation {
       type       : Array.isArray(type)
         ? [DEFAULT_VP_TYPE, ...type]
         : (type ? [DEFAULT_VP_TYPE, type] : [DEFAULT_VP_TYPE]),
-      id                   : `urn:uuid:${cryptoUtils.randomUuid()}`,
+      id                   : `urn:uuid:${CryptoUtils.randomUuid()}`,
       holder               : holder,
       verifiableCredential : vcJwts,
       ...additionalData,

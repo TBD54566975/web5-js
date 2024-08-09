@@ -1,4 +1,4 @@
-import { utils as cryptoUtils } from '@web5/crypto';
+import { CryptoUtils } from '@web5/crypto';
 import IsomorphicWebSocket from 'isomorphic-ws';
 import { JsonRpcId, JsonRpcRequest, JsonRpcResponse, createJsonRpcSubscriptionRequest, parseJson } from './json-rpc.js';
 
@@ -81,7 +81,7 @@ export class JsonRpcSocket {
    */
   async request(request: JsonRpcRequest): Promise<JsonRpcResponse> {
     return new Promise((resolve, reject) => {
-      request.id ??= cryptoUtils.randomUuid();
+      request.id ??= CryptoUtils.randomUuid();
 
       const handleResponse = (event: { data: any }):void => {
         const jsonRpsResponse = parseJson(event.data) as JsonRpcResponse;
@@ -155,7 +155,7 @@ export class JsonRpcSocket {
   }
 
   private closeSubscription(id: JsonRpcId): Promise<JsonRpcResponse> {
-    const requestId = cryptoUtils.randomUuid();
+    const requestId = CryptoUtils.randomUuid();
     const request = createJsonRpcSubscriptionRequest(requestId, 'close', id, {});
     return this.request(request);
   }

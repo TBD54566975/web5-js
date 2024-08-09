@@ -3,15 +3,7 @@ import * as sinon from 'sinon';
 
 import type { Jwk } from '../src/jose/jwk.js';
 
-import {
-  randomUuid,
-  randomBytes,
-  checkValidProperty,
-  isWebCryptoSupported,
-  checkRequiredProperty,
-  getJoseSignatureAlgorithmFromPublicKey,
-  randomPin
-} from '../src/utils.js';
+import { CryptoUtils } from '../src/utils.js';
 
 // TODO: Remove this polyfill once Node.js v18 is no longer supported by @web5/crypto.
 if (!globalThis.crypto) {
@@ -28,130 +20,71 @@ if (!globalThis.crypto) {
 }
 
 describe('Crypto Utils', () => {
-  describe('checkValidProperty()', () => {
-    it('should not throw for a property in the allowed list', () => {
-      expect(() => checkValidProperty({ property: 'foo', allowedProperties: ['foo', 'bar']})).to.not.throw();
-      expect(() => checkValidProperty({ property: 'foo', allowedProperties: new Set(['foo', 'bar'])})).to.not.throw();
-      expect(() => checkValidProperty({ property: 'foo', allowedProperties: new Map([['foo', 1], ['bar', 2]])})).to.not.throw();
-    });
-
-    it('throws an error if required parameters are missing', () => {
-      expect(() => checkValidProperty({ property: 'foo' } as any)).to.throw(TypeError, 'required parameters missing');
-      expect(() => checkValidProperty({ allowedProperties: ['foo', 'bar'] } as any)).to.throw(TypeError, 'required parameters missing');
-      // @ts-expect-error because both arguments are intentionally omitted.
-      expect(() => checkValidProperty()).to.throw(TypeError, 'required parameters missing');
-    });
-
-    it('throws an error if the property does not exist', () => {
-      expect(() => checkValidProperty({ property: 'baz', allowedProperties: ['foo', 'bar']})).to.throw(TypeError, 'Out of range');
-      expect(() => checkValidProperty({ property: 'baz', allowedProperties: new Set(['foo', 'bar'])})).to.throw(TypeError, 'Out of range');
-      expect(() => checkValidProperty({ property: 'baz', allowedProperties: new Map([['foo', 1], ['bar', 2]])})).to.throw(TypeError, 'Out of range');
-    });
-
-  });
-
-  describe('checkRequiredProperty', () => {
-    it('throws an error if required parameters are missing', () => {
-    // @ts-expect-error because second argument is intentionally omitted.
-      expect(() => checkRequiredProperty({ property: 'foo' })).to.throw('required parameters missing');
-      // @ts-expect-error because both arguments are intentionally omitted.
-      expect(() => checkRequiredProperty()).to.throw('required parameters missing');
-    });
-
-    it('throws an error if the property is missing', () => {
-      const propertiesCollection = { foo: 'bar', baz: 'qux' };
-      expect(() => checkRequiredProperty({ property: 'quux', inObject: propertiesCollection })).to.throw('Required parameter missing');
-    });
-
-    it('does not throw an error if the property is present', () => {
-      const propertiesCollection = { foo: 'bar', baz: 'qux' };
-      expect(() => checkRequiredProperty({ property: 'foo', inObject: propertiesCollection })).to.not.throw();
-    });
-  });
-
   describe('getJoseSignatureAlgorithmFromPublicKey()', () => {
     it('returns the algorithm specified by the alg property regardless of the crv property', () => {
       const publicKey: Jwk = { kty: 'OKP', alg: 'EdDSA', crv: 'P-256' };
-      expect(getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('EdDSA');
+      expect(CryptoUtils.getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('EdDSA');
     });
 
     it('returns the correct algorithm for Ed25519 curve', () => {
       const publicKey: Jwk = { kty: 'OKP', crv: 'Ed25519' };
-      expect(getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('EdDSA');
+      expect(CryptoUtils.getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('EdDSA');
     });
 
     it('returns the correct algorithm for P-256 curve', () => {
       const publicKey: Jwk = { kty: 'EC', crv: 'P-256' };
-      expect(getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('ES256');
+      expect(CryptoUtils.getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('ES256');
     });
 
     it('returns the correct algorithm for P-384 curve', () => {
       const publicKey: Jwk = { kty: 'EC', crv: 'P-384' };
-      expect(getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('ES384');
+      expect(CryptoUtils.getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('ES384');
     });
 
     it('returns the correct algorithm for P-521 curve', () => {
       const publicKey: Jwk = { kty: 'EC', crv: 'P-521' };
-      expect(getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('ES512');
+      expect(CryptoUtils.getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.equal('ES512');
     });
 
     it('throws an error for unsupported algorithms', () => {
       const publicKey: Jwk = { kty: 'EC', alg: 'UnsupportedAlgorithm' };
-      expect(() => getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.throw();
+      expect(() => CryptoUtils.getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.throw();
     });
 
     it('throws an error for unsupported curves', () => {
       const publicKey: Jwk = { kty: 'EC', crv: 'UnsupportedCurve' };
-      expect(() => getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.throw();
+      expect(() => CryptoUtils.getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.throw();
     });
 
     it('throws an error when neither alg nor crv is provided', () => {
       const publicKey: Jwk = { kty: 'EC' };
-      expect(() => getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.throw();
-    });
-  });
-
-  describe('isWebCryptoSupported()', () => {
-    afterEach(() => {
-      // Restore the original state after each test
-      sinon.restore();
-    });
-
-    it('returns true if the Web Crypto API is supported', () => {
-      expect(isWebCryptoSupported()).to.be.true;
-    });
-
-    it('returns false if Web Crypto API is not supported', function () {
-      // Mock an unsupported environment
-      sinon.stub(globalThis, 'crypto').value({});
-
-      expect(isWebCryptoSupported()).to.be.false;
+      expect(() => CryptoUtils.getJoseSignatureAlgorithmFromPublicKey(publicKey)).to.throw();
     });
   });
 
   describe('randomBytes()', () => {
     it('returns a Uint8Array of the specified length', () => {
       const length = 16;
-      const result = randomBytes(length);
+      const result = CryptoUtils.randomBytes(length);
 
       expect(result).to.be.instanceof(Uint8Array);
       expect(result).to.have.length(length);
     });
 
     it('handles invalid input gracefully', () => {
-      expect(() => randomBytes(-1)).to.throw(RangeError, 'length'); // Length cannot be negative.
+      expect(() => CryptoUtils.randomBytes(-1)).to.throw(RangeError, 'length'); // Length cannot be negative.
 
       // NOTE: only checking for Error being thrown because there is no meaningful message overlap between all browsers:
       // Webkit:  The quota has been exceeded.
       // Firefox: Crypto.getRandomValues: getRandomValues can only generate maximum 65536 bytes
       // Chromium: The ArrayBufferView's byte length (1000000000) exceeds the number of bytes of entropy available via this API (65536).
-      expect(() => randomBytes(1e9)).to.throw(Error); // Extremely large number that exceeds the available entropy.
+      expect(() => CryptoUtils.randomBytes(1e9)).to.throw(Error); // Extremely large number that exceeds the available entropy.
     });
 
     it('produces unique values on each call', () => {
       const set = new Set();
       for (let i = 0; i < 100; i++) {
-        set.add(randomBytes(10).toString());
+        set.add(CryptoUtils.randomBytes(10).toString());
       }
       expect(set.size).to.equal(100);
     });
@@ -159,7 +92,7 @@ describe('Crypto Utils', () => {
 
   describe('randomUuid()', () => {
     it('generates a valid v4 UUID', () => {
-      const id = randomUuid();
+      const id = CryptoUtils.randomUuid();
       expect(id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
       expect(id).to.have.length(36);
     });
@@ -167,7 +100,7 @@ describe('Crypto Utils', () => {
     it('produces unique values on each call', () => {
       const set = new Set();
       for (let i = 0; i < 100; i++) {
-        set.add(randomUuid());
+        set.add(CryptoUtils.randomUuid());
       }
       expect(set.size).to.equal(100);
     });
@@ -175,54 +108,54 @@ describe('Crypto Utils', () => {
 
   describe('randomPin', () => {
     it('generates a 3-digit PIN', () => {
-      const pin = randomPin({ length: 3 });
+      const pin = CryptoUtils.randomPin({ length: 3 });
       expect(pin).to.match(/^\d{3}$/);
     });
 
     it('generates a 4-digit PIN', () => {
-      const pin = randomPin({ length: 4 });
+      const pin = CryptoUtils.randomPin({ length: 4 });
       expect(pin).to.match(/^\d{4}$/);
     });
 
     it('generates a 5-digit PIN', () => {
-      const pin = randomPin({ length: 5 });
+      const pin = CryptoUtils.randomPin({ length: 5 });
       expect(pin).to.match(/^\d{5}$/);
     });
 
     it('generates a 6-digit PIN', () => {
-      const pin = randomPin({ length: 6 });
+      const pin = CryptoUtils.randomPin({ length: 6 });
       expect(pin).to.match(/^\d{6}$/);
     });
 
     it('generates a 7-digit PIN', () => {
-      const pin = randomPin({ length: 7 });
+      const pin = CryptoUtils.randomPin({ length: 7 });
       expect(pin).to.match(/^\d{7}$/);
     });
 
     it('generates an 8-digit PIN', () => {
-      const pin = randomPin({ length: 8 });
+      const pin = CryptoUtils.randomPin({ length: 8 });
       expect(pin).to.match(/^\d{8}$/);
     });
 
     it('generates an 9-digit PIN', () => {
-      const pin = randomPin({ length: 8 });
+      const pin = CryptoUtils.randomPin({ length: 8 });
       expect(pin).to.match(/^\d{8}$/);
     });
 
     it('generates an 10-digit PIN', () => {
-      const pin = randomPin({ length: 8 });
+      const pin = CryptoUtils.randomPin({ length: 8 });
       expect(pin).to.match(/^\d{8}$/);
     });
 
     it('throws an error for a PIN length less than 3', () => {
       expect(
-        () => randomPin({ length: 2 })
+        () => CryptoUtils.randomPin({ length: 2 })
       ).to.throw(Error, 'randomPin() can securely generate a PIN between 3 to 10 digits.');
     });
 
     it('throws an error for a PIN length greater than 10', () => {
       expect(
-        () => randomPin({ length: 11 })
+        () => CryptoUtils.randomPin({ length: 11 })
       ).to.throw(Error, 'randomPin() can securely generate a PIN between 3 to 10 digits.');
     });
   });

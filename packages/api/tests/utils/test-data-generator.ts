@@ -1,11 +1,11 @@
-import { utils as cryptoUtils } from '@web5/crypto';
+import { CryptoUtils } from '@web5/crypto';
 
 export class TestDataGenerator {
   /**
    * Generates a random byte array of given length.
    */
   static randomBytes(length: number): Uint8Array {
-    return cryptoUtils.randomBytes(length);
+    return CryptoUtils.randomBytes(length);
   }
 
   /**

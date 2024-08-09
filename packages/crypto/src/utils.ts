@@ -4,68 +4,6 @@ import { crypto } from '@noble/hashes/crypto';
 import { randomBytes as nobleRandomBytes } from '@noble/hashes/utils';
 
 /**
- * Checks whether the properties object provided contains the specified property.
- *
- * @example
- * ```ts
- * const obj = { a: 'Bob', t: 30 };
- * checkRequiredProperty({ property: 'a', inObject: obj }); // No error
- * checkRequiredProperty({ property: 'z', inObject: obj }); // Throws TypeError
- * ```
- *
- * @param params - The parameters for the check.
- * @param params.property - Property key to check for.
- * @param params.properties - Properties object to check within.
- * @returns void
- * @throws {TypeError} If the property is not a key in the properties object.
- */
-export function checkRequiredProperty(params: {
-  property: string,
-  inObject: object
-}): void {
-  if (!params || params.property === undefined || params.inObject === undefined) {
-    throw new TypeError(`One or more required parameters missing: 'property, properties'`);
-  }
-  const { property, inObject } = params;
-  if (!(property in inObject)) {
-    throw new TypeError(`Required parameter missing: '${property}'`);
-  }
-}
-
-/**
- * Checks whether the property specified is a member of the list of valid properties.
- *
- * @example
- * ```ts
- * const property = 'color';
- * const allowedProperties = ['size', 'shape', 'color'];
- * checkValidProperty({ property, allowedProperties }); // No error
- * checkValidProperty({ property: 'weight', allowedProperties }); // Throws TypeError
- * ```
- *
- * @param property Property key to check for.
- * @param allowedProperties Properties Array, Map, or Set to check within.
- * @returns void
- * @throws {TypeError} If the property is not a member of the allowedProperties Array, Map, or Set.
- */
-export function checkValidProperty(params: {
-  property: string, allowedProperties: ReadonlyArray<string> | Array<string> | Map<string, unknown> | Set<string>
-}): void {
-  if (!params || params.property === undefined || params.allowedProperties === undefined) {
-    throw new TypeError(`One or more required parameters missing: 'property, allowedProperties'`);
-  }
-  const { property, allowedProperties } = params;
-  if (
-    (Array.isArray(allowedProperties) && !allowedProperties.includes(property)) ||
-    (allowedProperties instanceof Set && !allowedProperties.has(property)) ||
-    (allowedProperties instanceof Map && !allowedProperties.has(property))
-  ) {
-    const validProperties = Array.from((allowedProperties instanceof Map) ? allowedProperties.keys() : allowedProperties).join(', ');
-    throw new TypeError(`Out of range: '${property}'. Must be one of '${validProperties}'`);
-  }
-}
-
-/**
  * Determines the JOSE algorithm identifier of the digital signature algorithm based on the `alg` or
  * `crv` property of a {@link Jwk | JWK}.
  *
@@ -90,7 +28,7 @@ export function checkValidProperty(params: {
  * @returns The name of the algorithm associated with the key.
  * @throws Error if the algorithm cannot be determined from the provided input.
  */
-export function getJoseSignatureAlgorithmFromPublicKey(publicKey: Jwk): string {
+function getJoseSignatureAlgorithmFromPublicKey(publicKey: Jwk): string {
   const curveToJoseAlgorithm: Record<string, string> = {
     'Ed25519'   : 'EdDSA',
     'P-256'     : 'ES256',
@@ -118,41 +56,6 @@ export function getJoseSignatureAlgorithmFromPublicKey(publicKey: Jwk): string {
 }
 
 /**
- * Checks if the Web Crypto API is supported in the current runtime environment.
- *
- * @remarks
- * The function uses `globalThis` to provide a universal reference to the global
- * scope, regardless of the environment. `globalThis` is a standard feature introduced
- * in ECMAScript 2020 that is agnostic to the underlying JavaScript environment, making
- * the code portable across browser, Node.js, and Web Workers environments.
- *
- * In a web browser, `globalThis` is equivalent to the `window` object. In Node.js, it
- * is equivalent to the `global` object, and in Web Workers, it corresponds to `self`.
- *
- * This method checks for the `crypto` object and its `subtle` property on the global scope
- * to determine the availability of the Web Crypto API. If both are present, the API is
- * supported; otherwise, it is not.
- *
- * @example
- * ```ts
- * if (isWebCryptoSupported()) {
- *   console.log('Crypto operations can be performed');
- * } else {
- *   console.log('Crypto operations are not supported in this environment');
- * }
- * ```
- *
- * @returns A boolean indicating whether the Web Crypto API is supported in the current environment.
- */
-export function isWebCryptoSupported(): boolean {
-  if (globalThis.crypto && globalThis.crypto.subtle) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-/**
  * Generates secure pseudorandom values of the specified length using
  * `crypto.getRandomValues`, which defers to the operating system.
  *
@@ -172,7 +75,7 @@ export function isWebCryptoSupported(): boolean {
  * @param bytesLength - The number of bytes to generate.
  * @returns A Uint8Array containing the generated random bytes.
  */
-export function randomBytes(bytesLength: number): Uint8Array {
+function randomBytes(bytesLength: number): Uint8Array {
   return nobleRandomBytes(bytesLength);
 }
 
@@ -201,7 +104,7 @@ export function randomBytes(bytesLength: number): Uint8Array {
  *
  * @returns A string containing a randomly generated, 36 character long v4 UUID.
  */
-export function randomUuid(): string {
+function randomUuid(): string {
   const uuid = crypto.randomUUID();
 
   return uuid;
@@ -236,7 +139,7 @@ export function randomUuid(): string {
  *
  * @throws Will throw an error if the requested PIN length is less than 3 or greater than 8.
  */
-export function randomPin({ length }: { length: number }): string {
+function randomPin({ length }: { length: number }): string {
   if (3 > length || length > 10) {
     throw new Error('randomPin() can securely generate a PIN between 3 to 10 digits.');
   }
@@ -274,8 +177,5 @@ export const CryptoUtils = {
   randomPin,
   randomUuid,
   randomBytes,
-  isWebCryptoSupported,
   getJoseSignatureAlgorithmFromPublicKey,
-  checkValidProperty,
-  checkRequiredProperty
 };

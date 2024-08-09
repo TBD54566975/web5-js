@@ -1,4 +1,4 @@
-import { Sha256, utils } from '@web5/crypto';
+import { Sha256, CryptoUtils } from '@web5/crypto';
 import { concatenateUrl } from './utils.js';
 import { Convert } from '@web5/common';
 
@@ -120,8 +120,8 @@ export class DwnRegistrar {
    * Generates 32 random bytes expressed as a HEX string.
    */
   public static async generateNonce(): Promise<string> {
-    const randomBytes = utils.randomBytes(32);
-    const hexString = await Convert.uint8Array(randomBytes).toHex().toUpperCase();
+    const randomBytes = CryptoUtils.randomBytes(32);
+    const hexString = Convert.uint8Array(randomBytes).toHex().toUpperCase();
     return hexString;
   }
 }

@@ -19,7 +19,7 @@ import {
 } from '@tbd54566975/dwn-sdk-js';
 
 import { NodeStream } from '@web5/common';
-import { utils as cryptoUtils } from '@web5/crypto';
+import { CryptoUtils } from '@web5/crypto';
 import { DidDht, DidJwk, DidResolverCacheLevel, UniversalResolver } from '@web5/dids';
 
 import type { Web5PlatformAgent } from './types/agent.js';
@@ -402,7 +402,7 @@ export class AgentDwnApi {
         const keyManager = this.agent.keyManager;
 
         return {
-          algorithm : cryptoUtils.getJoseSignatureAlgorithmFromPublicKey(publicKey),
+          algorithm : CryptoUtils.getJoseSignatureAlgorithmFromPublicKey(publicKey),
           keyId     : signingMethod.id,
           sign      : async (data: Uint8Array) => {
             return await keyManager.sign({ data, keyUri: keyUri! });

@@ -3,7 +3,7 @@ import type { BearerDid } from '@web5/dids';
 
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
-import { utils as cryptoUtils } from '@web5/crypto';
+import { CryptoUtils } from '@web5/crypto';
 
 import type { Web5PlatformAgent } from '../src/types/agent.js';
 
@@ -89,7 +89,7 @@ describe('LocalKeyManager', () => {
           // Setup.
           const encryptionKeyUri = await testHarness.agent.keyManager.generateKey({ algorithm: 'A128GCM' });
           const plaintext = new Uint8Array([1, 2, 3, 4]);
-          const iv = cryptoUtils.randomBytes(12); // Initialization vector.
+          const iv = CryptoUtils.randomBytes(12); // Initialization vector.
           const tagLength = 128; // Size in bits of the authentication tag.
 
           // Test the method.
