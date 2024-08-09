@@ -590,7 +590,7 @@ function encryptAuthResponse({
 
 export async function createPermissionGrants(
   selectedDids: string[],
-  ephemeralDid: BearerDid,
+  delegateDid: BearerDid,
   dwn: AgentDwnApi
 ) {
   const grantPromises = selectedDids.map(async (did) => {
@@ -610,7 +610,7 @@ export async function createPermissionGrants(
       target        : did,
       messageType   : DwnInterface.RecordsWrite,
       messageParams : {
-        recipient    : ephemeralDid.uri,
+        recipient    : delegateDid.uri,
         protocolPath : 'grant',
         protocol     : ' https://tbd.website/dwn/permissions',
         dataFormat   : 'application/json',
