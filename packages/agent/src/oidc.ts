@@ -603,7 +603,7 @@ export async function createPermissionGrants(
     },
   };
 
-  // TODO: Confirm this
+  // TODO: Confirm this: https://github.com/TBD54566975/web5-js/issues/827
   const message = await dwn.processRequest({
     author        : selectedDid,
     target        : selectedDid,
