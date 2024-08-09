@@ -15,6 +15,7 @@ export * from './dwn-registrar.js';
 export * from './hd-identity-vault.js';
 export * from './identity-api.js';
 export * from './local-key-manager.js';
+export * from './permissions-api.js';
 export * from './rpc-client.js';
 export * from './store-data.js';
 export * from './store-did.js';

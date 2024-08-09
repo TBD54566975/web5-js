@@ -1,5 +1,6 @@
 import { DataEncodedRecordsWriteMessage, DwnInterfaceName, DwnMethodName, Time } from '@tbd54566975/dwn-sdk-js';
 import { DwnInterface, Web5PlatformAgent } from '../../src/index.js';
+import { Convert } from '@web5/common';
 
 export type MessagesGrants = {
   query: DataEncodedRecordsWriteMessage;
@@ -32,10 +33,10 @@ export class GrantsUtil {
   }): Promise<RecordsGrants> {
 
     // RecordsWrite grant
-    const recordsWriteGrant = await grantorAgent.dwn.createGrant({
+    const recordsWriteGrant = await grantorAgent.permissions.createGrant({
       delegated   : true,
       dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-      grantedFrom : grantor,
+      author      : grantor,
       grantedTo   : grantee,
       scope       : {
         interface : DwnInterfaceName.Records,
@@ -47,12 +48,14 @@ export class GrantsUtil {
     });
 
     // write the grant to the grantee's DWN
+    const { encodedData: recordsWriteGrantEncodedData, ...recordsWriteGrantMessage } = recordsWriteGrant.message;
+    const recordsWriteGrantData = Convert.base64Url(recordsWriteGrantEncodedData).toUint8Array();
     const recordsWriteGrantReply = await granteeAgent.dwn.processRequest({
       author      : grantee,
       target      : grantee,
       messageType : DwnInterface.RecordsWrite,
-      rawMessage  : recordsWriteGrant.recordsWrite.message,
-      dataStream  : new Blob([ recordsWriteGrant.permissionGrantBytes ]),
+      rawMessage  : recordsWriteGrantMessage,
+      dataStream  : new Blob([ recordsWriteGrantData ]),
       signAsOwner : true
     });
 
@@ -61,10 +64,10 @@ export class GrantsUtil {
     }
 
     // RecordsDelete grant
-    const recordsDeleteGrant = await grantorAgent.dwn.createGrant({
+    const recordsDeleteGrant = await grantorAgent.permissions.createGrant({
       delegated   : true,
       dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-      grantedFrom : grantor,
+      author      : grantor,
       grantedTo   : grantee,
       scope       : {
         interface : DwnInterfaceName.Records,
@@ -75,12 +78,14 @@ export class GrantsUtil {
       }
     });
 
+    const { encodedData: recordsDeleteGrantEncodedData, ...recordsDeleteGrantMessage } = recordsDeleteGrant.message;
+    const recordsDeleteGrantData = Convert.base64Url(recordsDeleteGrantEncodedData).toUint8Array();
     const recordsDeleteGrantReply = await granteeAgent.dwn.processRequest({
       author      : grantee,
       target      : grantee,
       messageType : DwnInterface.RecordsWrite,
-      rawMessage  : recordsDeleteGrant.recordsWrite.message,
-      dataStream  : new Blob([ recordsDeleteGrant.permissionGrantBytes ]),
+      rawMessage  : recordsDeleteGrantMessage,
+      dataStream  : new Blob([ recordsDeleteGrantData ]),
       signAsOwner : true
     });
 
@@ -89,10 +94,10 @@ export class GrantsUtil {
     }
 
     // RecordsRead grant
-    const recordsReadGrant = await grantorAgent.dwn.createGrant({
+    const recordsReadGrant = await grantorAgent.permissions.createGrant({
       delegated   : true,
       dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-      grantedFrom : grantor,
+      author      : grantor,
       grantedTo   : grantee,
       scope       : {
         interface : DwnInterfaceName.Records,
@@ -103,12 +108,14 @@ export class GrantsUtil {
       }
     });
 
+    const { encodedData: recordsReadGrantEncodedData, ...recordsReadGrantMessage } = recordsReadGrant.message;
+    const recordsReadGrantData = Convert.base64Url(recordsReadGrantEncodedData).toUint8Array();
     const recordsReadGrantReply = await granteeAgent.dwn.processRequest({
       author      : grantee,
       target      : grantee,
       messageType : DwnInterface.RecordsWrite,
-      rawMessage  : recordsReadGrant.recordsWrite.message,
-      dataStream  : new Blob([ recordsReadGrant.permissionGrantBytes ]),
+      rawMessage  : recordsReadGrantMessage,
+      dataStream  : new Blob([ recordsReadGrantData ]),
       signAsOwner : true
     });
 
@@ -117,10 +124,10 @@ export class GrantsUtil {
     }
 
     // RecordsQuery grant
-    const recordsQueryGrant = await grantorAgent.dwn.createGrant({
+    const recordsQueryGrant = await grantorAgent.permissions.createGrant({
       delegated   : true,
       dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-      grantedFrom : grantor,
+      author      : grantor,
       grantedTo   : grantee,
       scope       : {
         interface : DwnInterfaceName.Records,
@@ -131,12 +138,14 @@ export class GrantsUtil {
       }
     });
 
+    const { encodedData: recordsQueryGrantEncodedData, ...recordsQueryGrantMessage } = recordsQueryGrant.message;
+    const recordsQueryGrantData = Convert.base64Url(recordsQueryGrantEncodedData).toUint8Array();
     const recordsQueryGrantReply = await granteeAgent.dwn.processRequest({
       author      : grantee,
       target      : grantee,
       messageType : DwnInterface.RecordsWrite,
-      rawMessage  : recordsQueryGrant.recordsWrite.message,
-      dataStream  : new Blob([ recordsQueryGrant.permissionGrantBytes ]),
+      rawMessage  : recordsQueryGrantMessage,
+      dataStream  : new Blob([ recordsQueryGrantData ]),
       signAsOwner : true
     });
 
@@ -145,10 +154,10 @@ export class GrantsUtil {
     }
 
     // RecordsSubscribe grant
-    const recordsSubscribeGrant = await grantorAgent.dwn.createGrant({
+    const recordsSubscribeGrant = await grantorAgent.permissions.createGrant({
       delegated   : true,
       dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-      grantedFrom : grantor,
+      author      : grantor,
       grantedTo   : grantee,
       scope       : {
         interface : DwnInterfaceName.Records,
@@ -159,12 +168,14 @@ export class GrantsUtil {
       }
     });
 
+    const { encodedData: recordsSubscribeGrantEncodedData, ...recordsSubscribeGrantMessage } = recordsSubscribeGrant.message;
+    const recordsSubscribeGrantData = Convert.base64Url(recordsSubscribeGrantEncodedData).toUint8Array();
     const recordsSubscribeGrantReply = await granteeAgent.dwn.processRequest({
       author      : grantee,
       target      : grantee,
       messageType : DwnInterface.RecordsWrite,
-      rawMessage  : recordsSubscribeGrant.recordsWrite.message,
-      dataStream  : new Blob([ recordsSubscribeGrant.permissionGrantBytes ]),
+      rawMessage  : recordsSubscribeGrantMessage,
+      dataStream  : new Blob([ recordsSubscribeGrantData ]),
       signAsOwner : true
     });
 
@@ -173,11 +184,11 @@ export class GrantsUtil {
     }
 
     return {
-      write     : recordsWriteGrant.dataEncodedMessage,
-      delete    : recordsDeleteGrant.dataEncodedMessage,
-      read      : recordsReadGrant.dataEncodedMessage,
-      query     : recordsQueryGrant.dataEncodedMessage,
-      subscribe : recordsSubscribeGrant.dataEncodedMessage,
+      write     : recordsWriteGrant.message,
+      delete    : recordsDeleteGrant.message,
+      read      : recordsReadGrant.message,
+      query     : recordsQueryGrant.message,
+      subscribe : recordsSubscribeGrant.message,
     };
   };
 
@@ -192,9 +203,9 @@ export class GrantsUtil {
     protocol?: string;
   }): Promise<MessagesGrants> {
     // MessagesQuery grant
-    const messagesQueryGrant = await grantorAgent.dwn.createGrant({
+    const messagesQueryGrant = await grantorAgent.permissions.createGrant({
       dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-      grantedFrom : grantor,
+      author      : grantor,
       grantedTo   : grantee,
       scope       : {
         interface : DwnInterfaceName.Messages,
@@ -203,12 +214,14 @@ export class GrantsUtil {
       }
     });
 
+    const { encodedData: messagesQueryGrantEncodedData, ...messagesQueryGrantMessage } = messagesQueryGrant.message;
+    const messagesQueryGrantData = Convert.base64Url(messagesQueryGrantEncodedData).toUint8Array();
     const messagesQueryReply = await granteeAgent.dwn.processRequest({
       author      : grantee,
       target      : grantee,
       messageType : DwnInterface.RecordsWrite,
-      rawMessage  : messagesQueryGrant.recordsWrite.message,
-      dataStream  : new Blob([ messagesQueryGrant.permissionGrantBytes ]),
+      rawMessage  : messagesQueryGrantMessage,
+      dataStream  : new Blob([ messagesQueryGrantData ]),
       signAsOwner : true,
     });
 
@@ -217,9 +230,9 @@ export class GrantsUtil {
     }
 
     // MessagesRead
-    const messagesReadGrant = await grantorAgent.dwn.createGrant({
+    const messagesReadGrant = await grantorAgent.permissions.createGrant({
       dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-      grantedFrom : grantor,
+      author      : grantor,
       grantedTo   : grantee,
       scope       : {
         interface : DwnInterfaceName.Messages,
@@ -228,12 +241,14 @@ export class GrantsUtil {
       }
     });
 
+    const { encodedData: messagesReadGrantEncodedData, ...messagesReadGrantMessage } = messagesReadGrant.message;
+    const messagesReadGrantData = Convert.base64Url(messagesReadGrantEncodedData).toUint8Array();
     const messagesReadReply = await granteeAgent.dwn.processRequest({
       author      : grantee,
       target      : grantee,
       messageType : DwnInterface.RecordsWrite,
-      rawMessage  : messagesReadGrant.recordsWrite.message,
-      dataStream  : new Blob([ messagesReadGrant.permissionGrantBytes ]),
+      rawMessage  : messagesReadGrantMessage,
+      dataStream  : new Blob([ messagesReadGrantData ]),
       signAsOwner : true,
     });
 
@@ -242,9 +257,9 @@ export class GrantsUtil {
     }
 
     // MessagesSubscribe
-    const messagesSubscribeGrant = await grantorAgent.dwn.createGrant({
+    const messagesSubscribeGrant = await grantorAgent.permissions.createGrant({
       dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-      grantedFrom : grantor,
+      author      : grantor,
       grantedTo   : grantee,
       scope       : {
         interface : DwnInterfaceName.Messages,
@@ -253,12 +268,14 @@ export class GrantsUtil {
       }
     });
 
+    const { encodedData: messagesSubscribeGrantEncodedData, ...messagesSubscribeGrantMessage } = messagesSubscribeGrant.message;
+    const messagesSubscribeGrantData = Convert.base64Url(messagesSubscribeGrantEncodedData).toUint8Array();
     const messagesSubscribeReply = await granteeAgent.dwn.processRequest({
       author      : grantee,
       target      : grantee,
       messageType : DwnInterface.RecordsWrite,
-      rawMessage  : messagesSubscribeGrant.recordsWrite.message,
-      dataStream  : new Blob([ messagesSubscribeGrant.permissionGrantBytes ]),
+      rawMessage  : messagesSubscribeGrantMessage,
+      dataStream  : new Blob([ messagesSubscribeGrantData ]),
       signAsOwner : true,
     });
 
@@ -268,9 +285,9 @@ export class GrantsUtil {
 
 
     return {
-      query     : messagesQueryGrant.dataEncodedMessage,
-      read      : messagesReadGrant.dataEncodedMessage,
-      subscribe : messagesSubscribeGrant.dataEncodedMessage,
+      query     : messagesQueryGrant.message,
+      read      : messagesReadGrant.message,
+      subscribe : messagesSubscribeGrant.message,
     };
   };
 

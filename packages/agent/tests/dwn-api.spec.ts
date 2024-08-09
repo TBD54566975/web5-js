@@ -759,8 +759,8 @@ describe('AgentDwnApi', () => {
       });
 
       // create teh grant
-      const recordsWriteDelegateGrant = await testHarness.agent.dwn.createGrant({
-        grantedFrom : alice.did.uri,
+      const recordsWriteDelegateGrant = await testHarness.agent.permissions.createGrant({
+        author      : alice.did.uri,
         grantedTo   : aliceDeviceX.did.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
         delegated   : true,
@@ -768,12 +768,13 @@ describe('AgentDwnApi', () => {
       });
 
       // process the grant on alice's DWN
+      const { encodedData: recordsWriteGrantData, ...recordsWriteGrantMessage } = recordsWriteDelegateGrant.message;
       let { reply: { status: grantStatus } } = await testHarness.agent.dwn.processRequest({
         author      : alice.did.uri,
         target      : alice.did.uri,
         messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordsWriteDelegateGrant.recordsWrite.message,
-        dataStream  : new Blob([ recordsWriteDelegateGrant.permissionGrantBytes ]),
+        rawMessage  : recordsWriteGrantMessage,
+        dataStream  : new Blob([ Convert.base64Url(recordsWriteGrantData).toUint8Array() ]),
       });
       expect(grantStatus.code).to.equal(202, 'grant write');
 
@@ -846,7 +847,7 @@ describe('AgentDwnApi', () => {
         granteeDid          : aliceDeviceX.did.uri,
         messageParams       : {
           dataFormat     : 'text/plain', // TODO: not necessary
-          delegatedGrant : recordsWriteDelegateGrant.dataEncodedMessage,
+          delegatedGrant : recordsWriteDelegateGrant.message,
         },
         dataStream,
       });

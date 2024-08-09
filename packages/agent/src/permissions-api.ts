@@ -1,7 +1,7 @@
-import { PermissionsProtocol } from '@tbd54566975/dwn-sdk-js';
+import { PermissionGrantData, PermissionsProtocol } from '@tbd54566975/dwn-sdk-js';
 import { DwnPermissionsUtil } from './dwn-permissions-util.js';
 import { Web5Agent } from './types/agent.js';
-import { DwnDataEncodedRecordsWriteMessage, DwnInterface, DwnPermissionGrant, DwnPermissionRequest, DwnPermissionScope } from './types/dwn.js';
+import { DwnDataEncodedRecordsWriteMessage, DwnInterface, DwnMessageParams, DwnPermissionGrant, DwnPermissionRequest, DwnPermissionScope } from './types/dwn.js';
 import { Convert } from '@web5/common';
 
 export type FetchPermissionsParams = {
@@ -28,6 +28,7 @@ export type PermissionRevocationEntry = {
 
 export type CreateGrantParams = {
   store?: boolean;
+  requestId?: string;
   author: string;
   description?: string;
   dateExpires: string;
@@ -82,13 +83,24 @@ export interface PermissionsApi {
 
 export class AgentPermissionsApi implements PermissionsApi {
 
-  private agent: Web5Agent;
+  private _agent?: Web5Agent;
 
-  constructor({ agent }: { agent: Web5Agent }) {
-    this.agent = agent
+  get agent(): Web5Agent {
+    if (!this._agent) {
+      throw new Error('AgentPermissionsApi: Agent is not set');
+    }
+    return this._agent;
   }
 
-  async fetchGrants({ 
+  set agent(agent:Web5Agent) {
+    this._agent = agent;
+  }
+
+  constructor({ agent }: { agent?: Web5Agent } = {}) {
+    this._agent = agent;
+  }
+
+  async fetchGrants({
     author,
     target,
     grantee,
@@ -119,7 +131,7 @@ export class AgentPermissionsApi implements PermissionsApi {
 
     const grants:PermissionGrantEntry[] = [];
     for (const entry of grantsReply.entries! as DwnDataEncodedRecordsWriteMessage[]) {
-      // TODO: Check for revocation status based on a request parameter
+      // TODO: Check for revocation status based on a request parameter and filter out revoked grants
       const grant = await DwnPermissionGrant.parse(entry);
       grants.push({ grant, message: entry });
     }
@@ -152,17 +164,39 @@ export class AgentPermissionsApi implements PermissionsApi {
   }
 
   async createGrant(params: CreateGrantParams): Promise<PermissionGrantEntry> {
-    const { author, store = false, ...createGrantParams } = params;
-    const { recordsWrite, permissionGrantBytes } = await PermissionsProtocol.createGrant(createGrantParams);
+    const { author, store = false, delegated = false, ...createGrantParams } = params;
+
+    let tags = undefined;
+    if (PermissionsProtocol.hasProtocolScope(createGrantParams.scope)) {
+      tags = { protocol: createGrantParams.scope.protocol };
+    }
+
+    const permissionGrantData: PermissionGrantData = {
+      dateExpires : createGrantParams.dateExpires,
+      requestId   : createGrantParams.requestId,
+      description : createGrantParams.description,
+      delegated,
+      scope       : createGrantParams.scope
+    };
+
+    const permissionsGrantBytes = Convert.object(permissionGrantData).toUint8Array();
+
+    const messageParams: DwnMessageParams[DwnInterface.RecordsWrite] = {
+      recipient    : createGrantParams.grantedTo,
+      protocol     : PermissionsProtocol.uri,
+      protocolPath : PermissionsProtocol.grantPath,
+      dataFormat   : 'application/json',
+      data         : permissionsGrantBytes,
+      tags
+    };
+
     const { reply, message } = await this.agent.processDwnRequest({
       store,
       author,
-      target: author,
-      messageType: DwnInterface.RecordsWrite,
-      messageParams: {
-        ...recordsWrite.message.descriptor,
-      },
-      dataStream: new Blob([ permissionGrantBytes ])
+      target      : author,
+      messageType : DwnInterface.RecordsWrite,
+      messageParams,
+      dataStream  : new Blob([ permissionsGrantBytes ])
     });
 
     if (reply.status.code !== 202) {
@@ -171,8 +205,8 @@ export class AgentPermissionsApi implements PermissionsApi {
 
     const dataEncodedMessage: DwnDataEncodedRecordsWriteMessage = {
       ...message!,
-      encodedData: Convert.uint8Array(permissionGrantBytes).toBase64Url()
-    }
+      encodedData: Convert.uint8Array(permissionsGrantBytes).toBase64Url()
+    };
 
     const grant = await DwnPermissionGrant.parse(dataEncodedMessage);
 
@@ -185,9 +219,9 @@ export class AgentPermissionsApi implements PermissionsApi {
     const { reply, message } = await this.agent.processDwnRequest({
       store,
       author,
-      target: author,
-      messageType: DwnInterface.RecordsWrite,
-      messageParams: {
+      target        : author,
+      messageType   : DwnInterface.RecordsWrite,
+      messageParams : {
         ...recordsWrite.message.descriptor,
       },
       dataStream: new Blob([ permissionRequestBytes ])
@@ -200,7 +234,7 @@ export class AgentPermissionsApi implements PermissionsApi {
     const dataEncodedMessage: DwnDataEncodedRecordsWriteMessage = {
       ...message!,
       encodedData: Convert.uint8Array(permissionRequestBytes).toBase64Url()
-    }
+    };
 
     const request = await DwnPermissionRequest.parse(dataEncodedMessage);
 
@@ -213,9 +247,9 @@ export class AgentPermissionsApi implements PermissionsApi {
     const { reply, message } = await this.agent.processDwnRequest({
       store,
       author,
-      target: author,
-      messageType: DwnInterface.RecordsWrite,
-      messageParams: {
+      target        : author,
+      messageType   : DwnInterface.RecordsWrite,
+      messageParams : {
         ...recordsWrite.message.descriptor,
       },
       dataStream: new Blob([ permissionRevocationBytes ])
@@ -228,7 +262,7 @@ export class AgentPermissionsApi implements PermissionsApi {
     const dataEncodedMessage: DwnDataEncodedRecordsWriteMessage = {
       ...message!,
       encodedData: Convert.uint8Array(permissionRevocationBytes).toBase64Url()
-    }
+    };
 
     return { message: dataEncodedMessage };
   }

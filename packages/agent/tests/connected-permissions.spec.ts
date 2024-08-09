@@ -14,6 +14,7 @@ import { expect } from 'chai';
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
 import { webcrypto } from 'node:crypto';
+import { Convert } from '@web5/common';
 // @ts-expect-error - globalThis.crypto and webcrypto are of different types.
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
@@ -99,39 +100,41 @@ describe('Connect Flow Permissions', () => {
       await appAgent.agent.identity.manage({ portableIdentity: await appX.export() });
 
       // alice creates a permission grant
-      const messagesQueryGrant = await aliceAgent.agent.dwn.createGrant({
-        grantedFrom : alice.did.uri,
+      const messagesQueryGrant = await aliceAgent.agent.permissions.createGrant({
+        store       : false,
+        author      : alice.did.uri,
         grantedTo   : appX.did.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
         scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Query }
       });
 
       // alice stores and processes the permission grant on her DWN
+      const { encodedData: messagesQueryGrantData, ...messagesQueryGrantMessage } = messagesQueryGrant.message;
       const { reply: aliceGrantReply } = await aliceAgent.agent.dwn.processRequest({
         messageType : DwnInterface.RecordsWrite,
-        rawMessage  : messagesQueryGrant.recordsWrite.message,
+        rawMessage  : messagesQueryGrantMessage,
         author      : alice.did.uri,
         target      : alice.did.uri,
-        dataStream  : new Blob([messagesQueryGrant.permissionGrantBytes]),
+        dataStream  : new Blob([ Convert.base64Url(messagesQueryGrantData).toUint8Array() ]),
       });
       expect(aliceGrantReply.status.code).to.equal(202);
 
       // The App processes the permission grant given by Alice, so it can be accessible when using it
       const { reply: appAgentGrantReply } = await appAgent.agent.dwn.processRequest({
         messageType : DwnInterface.RecordsWrite,
-        rawMessage  : messagesQueryGrant.recordsWrite.message,
+        rawMessage  : messagesQueryGrantMessage,
         author      : alice.did.uri,
         target      : alice.did.uri,
-        dataStream  : new Blob([messagesQueryGrant.permissionGrantBytes]),
+        dataStream  : new Blob([ Convert.base64Url(messagesQueryGrantData).toUint8Array() ]),
       });
       expect(appAgentGrantReply.status.code).to.equal(202);
 
       const writeGrantToGrantee: ProcessDwnRequest<DwnInterface.RecordsWrite> = {
         messageType : DwnInterface.RecordsWrite,
-        rawMessage  : messagesQueryGrant.recordsWrite.message,
+        rawMessage  : messagesQueryGrantMessage,
         author      : appX.did.uri,
         target      : appX.did.uri,
-        dataStream  : new Blob([messagesQueryGrant.permissionGrantBytes]),
+        dataStream  : new Blob([ Convert.base64Url(messagesQueryGrantData).toUint8Array() ]),
         signAsOwner : true
       };
 
@@ -145,7 +148,7 @@ describe('Connect Flow Permissions', () => {
         messageType   : DwnInterface.MessagesQuery,
         messageParams : {
           filters           : [],
-          permissionGrantId : messagesQueryGrant.recordsWrite.message.recordId
+          permissionGrantId : messagesQueryGrant.message.recordId
         },
         granteeDid: appX.did.uri,
       });
@@ -155,7 +158,7 @@ describe('Connect Flow Permissions', () => {
       expect(signatureDid).to.equal(appX.did.uri);
       expect(reply.status.code).to.equal(200);
       expect(reply.entries?.length).to.equal(1); // the permission grant should exist
-      expect(reply.entries![0]).to.equal(await Message.getCid(messagesQueryGrant.recordsWrite.message));
+      expect(reply.entries![0]).to.equal(await Message.getCid(messagesQueryGrant.message));
 
       // process the message on alice's agent
       const { reply: aliceReply } = await aliceAgent.agent.dwn.processRequest({
@@ -169,7 +172,7 @@ describe('Connect Flow Permissions', () => {
       // should have more than 1 message
       // the other messages are related to DID and Identity information stored on the DWN
       expect(aliceReply.entries?.length).to.be.gt(1);
-      expect(aliceReply.entries).to.include(await Message.getCid(messagesQueryGrant.recordsWrite.message));
+      expect(aliceReply.entries).to.include(await Message.getCid(messagesQueryGrant.message));
     });
 
     it('creates and signs a delegated grant message', async () => {
@@ -214,8 +217,8 @@ describe('Connect Flow Permissions', () => {
       await appAgent.agent.identity.manage({ portableIdentity: await appX.export() });
 
       // alice creates a delegated permission grant
-      const recordsWriteGrant = await aliceAgent.agent.dwn.createGrant({
-        grantedFrom : alice.did.uri,
+      const recordsWriteGrant = await aliceAgent.agent.permissions.createGrant({
+        author      : alice.did.uri,
         grantedTo   : appX.did.uri,
         delegated   : true,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
@@ -227,12 +230,13 @@ describe('Connect Flow Permissions', () => {
       });
 
       // alice stores and processes the permission grant on her DWN
+      const { encodedData: recordsWriteGrantData, ...recordsWriteGrantMessage } = recordsWriteGrant.message;
       const { reply: aliceGrantReply } = await aliceAgent.agent.dwn.processRequest({
         messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordsWriteGrant.recordsWrite.message,
+        rawMessage  : recordsWriteGrantMessage,
         author      : alice.did.uri,
         target      : alice.did.uri,
-        dataStream  : new Blob([ recordsWriteGrant.permissionGrantBytes ]),
+        dataStream  : new Blob([ Convert.base64Url(recordsWriteGrantData).toUint8Array() ]),
       });
       expect(aliceGrantReply.status.code).to.equal(202);
 
@@ -251,10 +255,10 @@ describe('Connect Flow Permissions', () => {
       // The App processes the permission grant given by Alice, so it can be accessible when using it
       const { reply: appAgentGrantReply } = await appAgent.agent.dwn.processRequest({
         messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordsWriteGrant.recordsWrite.message,
+        rawMessage  : recordsWriteGrantMessage,
         author      : appX.did.uri,
         target      : appX.did.uri,
-        dataStream  : new Blob([ recordsWriteGrant.permissionGrantBytes ]),
+        dataStream  : new Blob([ Convert.base64Url(recordsWriteGrantData).toUint8Array() ]),
         signAsOwner : true
       });
       expect(appAgentGrantReply.status.code).to.equal(202);
@@ -267,7 +271,7 @@ describe('Connect Flow Permissions', () => {
           protocol       : protocol.protocol,
           protocolPath   : 'foo',
           dataFormat     : 'application/json',
-          delegatedGrant : recordsWriteGrant.dataEncodedMessage
+          delegatedGrant : recordsWriteGrant.message
         },
         author     : alice.did.uri,
         target     : alice.did.uri,
@@ -294,7 +298,7 @@ describe('Connect Flow Permissions', () => {
             protocol     : protocol.protocol,
             protocolPath : 'foo'
           },
-          delegatedGrant: recordsWriteGrant.dataEncodedMessage,
+          delegatedGrant: recordsWriteGrant.message,
         },
         author     : alice.did.uri,
         target     : alice.did.uri,
@@ -303,8 +307,8 @@ describe('Connect Flow Permissions', () => {
       expect(delegatedReadReply.status.code).to.equal(401, 'delegated read');
 
       // alice issues a delegated read permission grant
-      const recordReadGrant = await aliceAgent.agent.dwn.createGrant({
-        grantedFrom : alice.did.uri,
+      const recordReadGrant = await aliceAgent.agent.permissions.createGrant({
+        author      : alice.did.uri,
         grantedTo   : appX.did.uri,
         delegated   : true,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
@@ -316,22 +320,23 @@ describe('Connect Flow Permissions', () => {
       });
 
       // alice stores and processes the permission grant on her DWN
+      const { encodedData: recordsReadGrantData, ...recordsReadGrantMessage } = recordReadGrant.message;
       const { reply: aliceGrantReadReply } = await aliceAgent.agent.dwn.processRequest({
         messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordReadGrant.recordsWrite.message,
+        rawMessage  : recordsReadGrantMessage,
         author      : alice.did.uri,
         target      : alice.did.uri,
-        dataStream  : new Blob([ recordReadGrant.permissionGrantBytes]),
+        dataStream  : new Blob([ Convert.base64Url(recordsReadGrantData).toUint8Array() ]),
       });
       expect(aliceGrantReadReply.status.code).to.equal(202);
 
       // alice hands off the grant to the appX agent
       const { reply: appAgentGrantReadReply } = await appAgent.agent.dwn.processRequest({
         messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordReadGrant.recordsWrite.message,
+        rawMessage  : recordsReadGrantMessage,
         author      : appX.did.uri,
         target      : appX.did.uri,
-        dataStream  : new Blob([ recordReadGrant.permissionGrantBytes ]),
+        dataStream  : new Blob([ Convert.base64Url(recordsReadGrantData).toUint8Array() ]),
         signAsOwner : true
       });
       expect(appAgentGrantReadReply.status.code).to.equal(202);
@@ -344,7 +349,7 @@ describe('Connect Flow Permissions', () => {
             protocol     : protocol.protocol,
             protocolPath : 'foo'
           },
-          delegatedGrant: recordReadGrant.dataEncodedMessage,
+          delegatedGrant: recordReadGrant.message,
         },
         author     : alice.did.uri,
         target     : alice.did.uri,

@@ -2,7 +2,6 @@ import type { Readable } from '@web5/common';
 
 import {
   Cid,
-  DataEncodedRecordsWriteMessage,
   DataStoreLevel,
   Dwn,
   DwnConfig,
@@ -11,10 +10,6 @@ import {
   GenericMessage,
   Message,
   MessageStoreLevel,
-  PermissionGrant,
-  PermissionScope,
-  PermissionsProtocol,
-  RecordsWrite,
   ResumableTaskStoreLevel
 } from '@tbd54566975/dwn-sdk-js';
 
@@ -448,44 +443,5 @@ export class AgentDwnApi {
     }
 
     return dwnMessageWithBlob;
-  }
-
-  /**
-   * NOTE EVERYTHING BELOW THIS LINE IS TEMPORARY
-   * TODO: Create a `grants` API to handle creating permission requests, grants and revocations
-   * */
-
-  public async createGrant({ grantedFrom, dateExpires, grantedTo, scope, delegated }:{
-    dateExpires: string,
-    grantedFrom: string,
-    grantedTo: string,
-    scope: PermissionScope,
-    delegated?: boolean
-  }): Promise<{
-    recordsWrite: RecordsWrite,
-    dataEncodedMessage: DataEncodedRecordsWriteMessage,
-    permissionGrantBytes: Uint8Array
-  }> {
-    return await PermissionsProtocol.createGrant({
-      signer: await this.getSigner(grantedFrom),
-      grantedTo,
-      dateExpires,
-      scope,
-      delegated
-    });
-  }
-
-  public async createRevocation({ grant, author }:{
-    author: string,
-    grant: PermissionGrant
-  }): Promise<{
-    recordsWrite: RecordsWrite,
-    dataEncodedMessage: DataEncodedRecordsWriteMessage,
-    permissionRevocationBytes: Uint8Array
-  }> {
-    return await PermissionsProtocol.createRevocation({
-      signer: await this.getSigner(author),
-      grant,
-    });
   }
 }
