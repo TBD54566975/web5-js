@@ -505,10 +505,10 @@ async function deriveSharedKey(
   privateKeyDid: BearerDid,
   publicKeyDid: DidDocument
 ) {
-  const exportedClientDid = await privateKeyDid.export();
+  const privatePortableDid = await privateKeyDid.export();
 
   const publicJwk = publicKeyDid.verificationMethod?.[0].publicKeyJwk!;
-  const privateJwk = exportedClientDid.privateKeys?.[0]!;
+  const privateJwk = privatePortableDid.privateKeys?.[0]!;
   publicJwk.alg = 'EdDSA';
 
   const publicX25519 = await Ed25519.convertPublicKeyToX25519({
