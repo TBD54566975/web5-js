@@ -205,8 +205,8 @@ describe('Crypto Utils', () => {
     });
 
     it('generates an 9-digit PIN', () => {
-      const pin = randomPin({ length: 8 });
-      expect(pin).to.match(/^\d{8}$/);
+      const pin = randomPin({ length: 9 });
+      expect(pin).to.match(/^\d{9}$/);
     });
 
     it('generates an 10-digit PIN', () => {
