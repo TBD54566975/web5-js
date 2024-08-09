@@ -589,47 +589,41 @@ function encryptAuthResponse({
 }
 
 export async function createPermissionGrants(
-  selectedDids: string[],
+  selectedDid: string,
   delegateDid: BearerDid,
   dwn: AgentDwnApi
 ) {
-  const grantPromises = selectedDids.map(async (did) => {
-    // TODO: Replace with real permission request
-    const permissionRequestData = {
-      description : 'The app is asking to Records Write to http://profile-protocol.xyz',
-      scope       : {
-        interface : DwnInterfaceName.Records,
-        method    : DwnMethodName.Write,
-        protocol  : 'http://profile-protocol.xyz',
-      },
-    };
+  // TODO: Replace with real permission request
+  const permissionRequestData = {
+    description : 'The app is asking to Records Write to http://profile-protocol.xyz',
+    scope       : {
+      interface : DwnInterfaceName.Records,
+      method    : DwnMethodName.Write,
+      protocol  : 'http://profile-protocol.xyz',
+    },
+  };
 
-    // TODO: Confirm this
-    const message = await dwn.processRequest({
-      author        : did,
-      target        : did,
-      messageType   : DwnInterface.RecordsWrite,
-      messageParams : {
-        recipient    : delegateDid.uri,
-        protocolPath : 'grant',
-        protocol     : ' https://tbd.website/dwn/permissions',
-        dataFormat   : 'application/json',
-        data         : Convert.object(permissionRequestData).toUint8Array(),
-      },
-      // todo: is it data or datastream?
-      // dataStream: await Convert.object(permissionRequestData).toBlobAsync(),
-    });
-
-    return message;
+  // TODO: Confirm this
+  const message = await dwn.processRequest({
+    author        : selectedDid,
+    target        : selectedDid,
+    messageType   : DwnInterface.RecordsWrite,
+    messageParams : {
+      recipient    : delegateDid.uri,
+      protocolPath : 'grant',
+      protocol     : ' https://tbd.website/dwn/permissions',
+      dataFormat   : 'application/json',
+      data         : Convert.object(permissionRequestData).toUint8Array(),
+    },
+    // todo: is it data or datastream?
+    // dataStream: await Convert.object(permissionRequestData).toBlobAsync(),
   });
 
-  const permissionGrants = (await Promise.all(grantPromises)).flat();
-
-  return permissionGrants;
+  return [message];
 }
 
 async function submitAuthResponse(
-  selectedDids: string[],
+  selectedDid: string,
   authRequest: Web5ConnectAuthRequest,
   randomPin: string,
   dwn: AgentDwnApi
@@ -637,11 +631,11 @@ async function submitAuthResponse(
   const delegateDid = await DidDht.create();
   const delegateDidPortable = await delegateDid.export();
 
-  const permissionGrants = await Oidc.createPermissionGrants(selectedDids, delegateDid, dwn);
+  const permissionGrants = await Oidc.createPermissionGrants(selectedDid, delegateDid, dwn);
 
   const responseObject = await Oidc.createResponseObject({
     //* the IDP's did that was selected to be connected
-    iss            : selectedDids[0],
+    iss            : selectedDid,
     //* the client's new identity
     sub            : delegateDid.uri,
     //* the client's temporary ephemeral did used for connect

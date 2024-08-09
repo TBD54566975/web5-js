@@ -339,7 +339,7 @@ describe('web5 connect', function() {
     // TODO: waiting for DWN feature complete
     it('should create permission grants for each selected did', async () => {
       const results = await Oidc.createPermissionGrants(
-        [providerIdentity.did.uri],
+        providerIdentity.did.uri,
         providerEphemeralBearerDid,
         testHarness.agent.dwn
       );
@@ -443,9 +443,9 @@ describe('web5 connect', function() {
         })
       );
 
-      const selectedDids = [providerIdentity.did.uri];
+      const selectedDid = providerIdentity.did.uri;
       await Oidc.submitAuthResponse(
-        selectedDids,
+        selectedDid,
         authRequest,
         randomPin,
         testHarness.agent.dwn
