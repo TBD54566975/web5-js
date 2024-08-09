@@ -19,6 +19,7 @@ async function initClient({
   const clientDid = await DidDht.create();
 
   // TODO: properly implement PKCE. this implementation is lacking server side validations and more.
+  // https://github.com/TBD54566975/web5-js/issues/829
   // Derive the code challenge based on the code verifier
   const { codeChallengeBytes, codeChallengeBase64Url } =
     await Oidc.generateCodeChallenge();
