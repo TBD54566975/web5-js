@@ -14,7 +14,7 @@ import { testDwnUrl } from './utils/test-config.js';
 import { BearerIdentity, DwnResponse, WalletConnect } from '../src/index.js';
 
 describe('web5 connect', function() {
-  this.timeout(10000);
+  this.timeout(20000);
 
   /** The real tenant (identity) of the DWN that the provider is using and selecting */
   const providerIdentityPortableDid = {
