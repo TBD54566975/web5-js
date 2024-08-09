@@ -13,7 +13,7 @@ import { TestAgent } from './utils/test-agent.js';
 import { testDwnUrl } from './utils/test-config.js';
 import { BearerIdentity, DwnResponse, WalletConnect } from '../src/index.js';
 
-describe('web5 connect', function() {
+describe('web5 connect', function () {
   this.timeout(20000);
 
   /** The real tenant (identity) of the DWN that the provider is using and selecting */
@@ -265,7 +265,7 @@ describe('web5 connect', function() {
     sinon.restore();
   });
 
-  describe('client authrequest phase', function() {
+  describe('client authrequest phase', function () {
     it('should create a code challenge', async () => {
       const result = await Oidc.generateCodeChallenge();
       expect(result.codeChallengeBytes).to.be.instanceOf(Uint8Array);
@@ -291,7 +291,9 @@ describe('web5 connect', function() {
       expect(authRequest).to.include(options);
       expect(authRequest.nonce).to.be.a('string');
       expect(authRequest.state).to.be.a('string');
-      expect(authRequest.redirect_uri).to.equal('http://localhost:3000/callback');
+      expect(authRequest.redirect_uri).to.equal(
+        'http://localhost:3000/callback'
+      );
     });
 
     it('should construct a signed jwt of an authrequest', async () => {
@@ -312,7 +314,7 @@ describe('web5 connect', function() {
     });
   });
 
-  describe('provider authresponse phase', function() {
+  describe('provider authresponse phase', function () {
     it('should get authrequest from server, decrypt and verify the jwt', async () => {
       const fetchStub = sinon
         .stub(globalThis, 'fetch')
@@ -327,7 +329,9 @@ describe('web5 connect', function() {
         endpoint  : 'authorize',
         authParam : '12345',
       });
-      expect(authorizeUrl).to.equal('http://localhost:3000/authorize/12345.jwt');
+      expect(authorizeUrl).to.equal(
+        'http://localhost:3000/authorize/12345.jwt'
+      );
 
       const result = await Oidc.getAuthRequest(
         authorizeUrl,
@@ -454,7 +458,7 @@ describe('web5 connect', function() {
     });
   });
 
-  describe('client pin entry final phase', function() {
+  describe('client pin entry final phase', function () {
     it('should get the authresponse from server and decrypt the jwe using the pin', async () => {
       const result = await Oidc.decryptAuthResponse(
         clientEphemeralBearerDid,
@@ -487,8 +491,8 @@ describe('web5 connect', function() {
     });
   });
 
-  describe('end to end client test', function() {
-    it('should complete the whole connect flow with the correct pin', async function() {
+  describe('end to end client test', function () {
+    it('should complete the whole connect flow with the correct pin', async function () {
       const fetchStub = sinon.stub(globalThis, 'fetch');
       const onWalletUriReadySpy = sinon.spy();
       const didDhtStub = sinon
@@ -518,10 +522,11 @@ describe('web5 connect', function() {
       const results = await WalletConnect.initClient({
         walletUri          : 'http://localhost:3000/',
         connectServerUrl   : 'http://localhost:3000/connect',
-        permissionRequests : [{
-          protocolDefinition : {} as any,
-          permissionScopes   : {} as any,
-        },
+        permissionRequests : [
+          {
+            protocolDefinition : {} as any,
+            permissionScopes   : {} as any,
+          },
         ],
         onWalletUriReady : (uri) => onWalletUriReadySpy(uri),
         validatePin      : async () => randomPin,

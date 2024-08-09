@@ -6,7 +6,7 @@ import {
   Jwk,
   Sha256,
   X25519,
-  CryptoUtils
+  CryptoUtils,
 } from '@web5/crypto';
 import { concatenateUrl } from './utils.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
@@ -214,7 +214,7 @@ function buildOidcUrl({
         throw new Error(
           `tokenParam must be providied when building a token URL`
         );
-      return  concatenateUrl(baseURL, `token/${tokenParam}.jwt`);
+      return concatenateUrl(baseURL, `token/${tokenParam}.jwt`);
     // TODO: metadata endpoints?
     default:
       throw new Error(`No matches for endpoint specified: ${endpoint}`);
@@ -595,8 +595,9 @@ export async function createPermissionGrants(
 ) {
   // TODO: Replace with real permission request
   const permissionRequestData = {
-    description : 'The app is asking to Records Write to http://profile-protocol.xyz',
-    scope       : {
+    description:
+      'The app is asking to Records Write to http://profile-protocol.xyz',
+    scope: {
       interface : DwnInterfaceName.Records,
       method    : DwnMethodName.Write,
       protocol  : 'http://profile-protocol.xyz',
@@ -631,7 +632,11 @@ async function submitAuthResponse(
   const delegateDid = await DidDht.create();
   const delegateDidPortable = await delegateDid.export();
 
-  const permissionGrants = await Oidc.createPermissionGrants(selectedDid, delegateDid, dwn);
+  const permissionGrants = await Oidc.createPermissionGrants(
+    selectedDid,
+    delegateDid,
+    dwn
+  );
 
   const responseObject = await Oidc.createResponseObject({
     //* the IDP's did that was selected to be connected

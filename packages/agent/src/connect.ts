@@ -38,7 +38,6 @@ async function initClient({
     code_challenge_method : 'S256',
     permissionRequests    : permissionRequests,
     redirect_uri          : callbackEndpoint,
-    // TBD known-customer-credential defines these
   });
 
   // Sign the Request Object using the Client DID's signing key.
@@ -89,14 +88,13 @@ async function initClient({
   // call user's callback so they can send the URI to the wallet as they see fit
   onWalletUriReady(generatedWalletUri.toString());
 
-  // subscribe to receiving a response from the wallet with default TTL
   const tokenUrl = Oidc.buildOidcUrl({
     baseURL    : connectServerUrl,
     endpoint   : 'token',
     tokenParam : request.state,
   });
 
-  /** ciphertext of {@link Web5ConnectAuthResponse} */
+  // subscribe to receiving a response from the wallet with default TTL. receive ciphertext of {@link Web5ConnectAuthResponse}
   const authResponse = await pollWithTtl(() => fetch(tokenUrl));
 
   if (authResponse) {
@@ -112,7 +110,7 @@ async function initClient({
     return {
       delegateGrants : verifiedAuthResponse.delegateGrants,
       delegateDid    : verifiedAuthResponse.delegateDid,
-      connectedDid   : verifiedAuthResponse.iss
+      connectedDid   : verifiedAuthResponse.iss,
     };
   }
 }
