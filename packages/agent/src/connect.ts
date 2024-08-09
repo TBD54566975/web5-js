@@ -163,7 +163,6 @@ export type WalletConnectOptions = {
 
 /**
  * The protocols of permissions requested, along with the definition and permission scopes for each protocol.
- * The key is the protocol URL and the value is an object with the protocol definition and the permission scopes.
  */
 export type ConnectPermissionRequest = {
   /**
