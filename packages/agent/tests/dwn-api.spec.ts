@@ -767,18 +767,6 @@ describe('AgentDwnApi', () => {
         scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Write, protocol: protocolDefinition.protocol }
       });
 
-      // process the grant on alice's DWN
-      const { encodedData: recordsWriteGrantData, ...recordsWriteGrantMessage } = recordsWriteDelegateGrant.message;
-      let { reply: { status: grantStatus } } = await testHarness.agent.dwn.processRequest({
-        author      : alice.did.uri,
-        target      : alice.did.uri,
-        messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordsWriteGrantMessage,
-        dataStream  : new Blob([ Convert.base64Url(recordsWriteGrantData).toUint8Array() ]),
-      });
-      expect(grantStatus.code).to.equal(202, 'grant write');
-
-
       // bob authors a public record to his dwn
       const dataStream = new Blob([ Convert.string('Hello, world!').toUint8Array() ]);
 

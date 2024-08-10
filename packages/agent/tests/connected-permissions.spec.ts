@@ -3,7 +3,7 @@ import { DwnInterfaceName, DwnMethodName, Jws, Message, ProtocolDefinition, Time
 import type { BearerIdentity } from '../src/bearer-identity.js';
 
 import { TestAgent } from './utils/test-agent.js';
-import { DwnInterface, ProcessDwnRequest } from '../src/types/dwn.js';
+import { DwnInterface } from '../src/types/dwn.js';
 import { testDwnUrl } from './utils/test-config.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 
@@ -101,25 +101,15 @@ describe('Connect Flow Permissions', () => {
 
       // alice creates a permission grant
       const messagesQueryGrant = await aliceAgent.agent.permissions.createGrant({
-        store       : false,
+        store       : true,
         author      : alice.did.uri,
         grantedTo   : appX.did.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
         scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Query }
       });
 
-      // alice stores and processes the permission grant on her DWN
-      const { encodedData: messagesQueryGrantData, ...messagesQueryGrantMessage } = messagesQueryGrant.message;
-      const { reply: aliceGrantReply } = await aliceAgent.agent.dwn.processRequest({
-        messageType : DwnInterface.RecordsWrite,
-        rawMessage  : messagesQueryGrantMessage,
-        author      : alice.did.uri,
-        target      : alice.did.uri,
-        dataStream  : new Blob([ Convert.base64Url(messagesQueryGrantData).toUint8Array() ]),
-      });
-      expect(aliceGrantReply.status.code).to.equal(202);
-
       // The App processes the permission grant given by Alice, so it can be accessible when using it
+      const { encodedData: messagesQueryGrantData, ...messagesQueryGrantMessage } = messagesQueryGrant.message;
       const { reply: appAgentGrantReply } = await appAgent.agent.dwn.processRequest({
         messageType : DwnInterface.RecordsWrite,
         rawMessage  : messagesQueryGrantMessage,
@@ -129,28 +119,25 @@ describe('Connect Flow Permissions', () => {
       });
       expect(appAgentGrantReply.status.code).to.equal(202);
 
-      const writeGrantToGrantee: ProcessDwnRequest<DwnInterface.RecordsWrite> = {
+      const { reply: importGrantReply } = await appAgent.agent.dwn.processRequest({
         messageType : DwnInterface.RecordsWrite,
         rawMessage  : messagesQueryGrantMessage,
         author      : appX.did.uri,
         target      : appX.did.uri,
         dataStream  : new Blob([ Convert.base64Url(messagesQueryGrantData).toUint8Array() ]),
         signAsOwner : true
-      };
-
-      const { reply: importGrantReply } = await appAgent.agent.dwn.processRequest(writeGrantToGrantee);
+      });
       expect(importGrantReply.status.code).to.equal(202);
 
       // Attempt to process the MessagesQuery locally using the permission grant.
       const { message: queryMessage, reply } = await appAgent.agent.dwn.processRequest({
-        author        : alice.did.uri,
+        author        : appX.did.uri,
         target        : alice.did.uri,
         messageType   : DwnInterface.MessagesQuery,
         messageParams : {
           filters           : [],
           permissionGrantId : messagesQueryGrant.message.recordId
-        },
-        granteeDid: appX.did.uri,
+        }
       });
       const messageSignature = queryMessage!.authorization.signature.signatures[0];
       const signatureDid = Jws.getSignerDid(messageSignature);

@@ -185,7 +185,6 @@ export class AgentPermissionsApi implements PermissionsApi {
       protocol     : PermissionsProtocol.uri,
       protocolPath : PermissionsProtocol.grantPath,
       dataFormat   : 'application/json',
-      data         : permissionsGrantBytes,
       tags
     };
 
