@@ -1,4 +1,4 @@
-import { PermissionGrantData, PermissionRevocationData, PermissionsProtocol } from '@tbd54566975/dwn-sdk-js';
+import { PermissionGrantData, PermissionRequestData, PermissionRevocationData, PermissionsProtocol } from '@tbd54566975/dwn-sdk-js';
 import { DwnPermissionsUtil } from './dwn-permissions-util.js';
 import { Web5Agent } from './types/agent.js';
 import { DwnDataEncodedRecordsWriteMessage, DwnInterface, DwnMessageParams, DwnPermissionGrant, DwnPermissionRequest, DwnPermissionScope } from './types/dwn.js';
@@ -41,9 +41,8 @@ export type CreateRequestParams = {
   store?: boolean;
   author: string;
   description?: string;
-  dateExpires: string;
   scope: DwnPermissionScope;
-  delegated: boolean;
+  delegated?: boolean;
 }
 
 export type CreateRevocationParams = {
@@ -212,17 +211,35 @@ export class AgentPermissionsApi implements PermissionsApi {
   }
 
   async createRequest(params: CreateRequestParams): Promise<PermissionRequestEntry> {
-    const { author, store = false, ...createRequestParams } = params;
-    const { recordsWrite, permissionRequestBytes } = await PermissionsProtocol.createRequest(createRequestParams);
+    const { author, store = false, delegated = false, ...createGrantParams } = params;
+
+    let tags = undefined;
+    if (PermissionsProtocol.hasProtocolScope(createGrantParams.scope)) {
+      tags = { protocol: createGrantParams.scope.protocol };
+    }
+
+    const permissionRequestData: PermissionRequestData = {
+      description : createGrantParams.description,
+      delegated,
+      scope       : createGrantParams.scope
+    };
+
+    const permissionRequestBytes = Convert.object(permissionRequestData).toUint8Array();
+
+    const messageParams: DwnMessageParams[DwnInterface.RecordsWrite] = {
+      protocol     : PermissionsProtocol.uri,
+      protocolPath : PermissionsProtocol.requestPath,
+      dataFormat   : 'application/json',
+      tags
+    };
+
     const { reply, message } = await this.agent.processDwnRequest({
       store,
       author,
-      target        : author,
-      messageType   : DwnInterface.RecordsWrite,
-      messageParams : {
-        ...recordsWrite.message.descriptor,
-      },
-      dataStream: new Blob([ permissionRequestBytes ])
+      target      : author,
+      messageType : DwnInterface.RecordsWrite,
+      messageParams,
+      dataStream  : new Blob([ permissionRequestBytes ])
     });
 
     if (reply.status.code !== 202) {

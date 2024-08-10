@@ -3,13 +3,13 @@ import type { BearerDid } from '@web5/dids';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { Web5UserAgent } from '@web5/user-agent';
-import { DwnDateSort, DwnInterface, DwnPermissionGrant, PlatformAgentTestHarness } from '@web5/agent';
+import { DwnDataEncodedRecordsWriteMessage, DwnDateSort, DwnInterface, DwnPermissionGrant, PlatformAgentTestHarness } from '@web5/agent';
 
 import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
 import photosProtocolDefinition from './fixtures/protocol-definitions/photos.json' assert { type: 'json' };
-import { DwnInterfaceName, DwnMethodName, PermissionGrant, Time } from '@tbd54566975/dwn-sdk-js';
+import { DwnInterfaceName, DwnMethodName, PermissionGrant, PermissionsProtocol, Time } from '@tbd54566975/dwn-sdk-js';
 import { Convert } from '@web5/common';
 
 let testDwnUrls: string[] = [testDwnUrl];
@@ -1531,6 +1531,552 @@ describe('DwnApi', () => {
       } catch (e) {
         expect(e.message).to.equal('AgentDwnApi: Cannot find connected grants without a signer DID');
       }
+    });
+  });
+
+  describe('grants.storeRequest', () => {
+    it('fails to store a message that is not a permissions request', async () => {
+      // attempt to store a message that has a `request` path but not a permissions protocol
+      const { record } = await dwnAlice.records.create({
+        store   : false,
+        message : {
+          protocol     : 'http://example.com/protocol', // not a permissions protocol
+          protocolPath : 'request',
+        },
+        data: new Blob([ 'test' ])
+      });
+
+      try {
+        await dwnAlice.grants.storeRequest({
+          request: record.rawMessage as DwnDataEncodedRecordsWriteMessage,
+        });
+        expect.fail('Error was not thrown');
+      } catch(error: any) {
+        expect(error.message).to.equal('AgentDwnApi: Cannot store non grant messages.');
+      }
+
+      // attempt to store a non request permissions message
+      const grant = await dwnAlice.grants.createGrant({
+        store       : false,
+        grantedTo   : bobDid.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol'
+        }
+      });
+
+      try {
+        await dwnAlice.grants.storeRequest({
+          request: grant.message,
+        });
+        expect.fail('Error was not thrown');
+      } catch(error: any) {
+        expect(error.message).to.equal('AgentDwnApi: Cannot store messages that are not permission requests.');
+      }
+    });
+
+    it('successfully stores a permissions request', async () => {
+      // create a grant request
+      const grantRequest = await dwnAlice.grants.createRequest({
+        store : false,
+        scope : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol'
+        }
+      });
+
+      // query for the grant request
+      let fetchedRequests = await dwnAlice.records.query({
+        message: {
+          filter: {
+            protocol     : PermissionsProtocol.uri,
+            protocolPath : PermissionsProtocol.requestPath,
+          }
+        }
+      });
+      // expect no requests as we haven't stored any
+      expect(fetchedRequests.status.code).to.equal(200);
+      expect(fetchedRequests.records).to.exist;
+      expect(fetchedRequests.records!.length).to.equal(0);
+
+      const processGrantRequestReply = await dwnAlice.grants.storeRequest({
+        request: grantRequest.message,
+      });
+      expect(processGrantRequestReply.status.code).to.equal(202);
+
+      // query for the grant requests again
+      fetchedRequests = await dwnAlice.records.query({
+        message: {
+          filter: {
+            protocol     : PermissionsProtocol.uri,
+            protocolPath : PermissionsProtocol.requestPath,
+          }
+        }
+      });
+      // expect to have the 1 grant request that was stored
+      expect(fetchedRequests.status.code).to.equal(200);
+      expect(fetchedRequests.records).to.exist;
+      expect(fetchedRequests.records!.length).to.equal(1);
+      expect(fetchedRequests.records![0].id).to.equal(grantRequest.message.recordId);
+    });
+  });
+
+  describe('grants.storeGrant', () => {
+    it('fails to store a message that is not a permissions grant', async () => {
+      // attempt to store a message that has a `grant` path but not a permissions protocol
+      const { record } = await dwnAlice.records.create({
+        store   : false,
+        message : {
+          protocol     : 'http://example.com/protocol', // not a permissions protocol
+          protocolPath : 'grant',
+        },
+        data: new Blob([ 'test' ])
+      });
+
+      try {
+        await dwnAlice.grants.storeGrant({
+          grant: record.rawMessage as DwnDataEncodedRecordsWriteMessage,
+        });
+        expect.fail('Error was not thrown');
+      } catch(error: any) {
+        expect(error.message).to.equal('AgentDwnApi: Cannot store non grant messages.');
+      }
+
+      // attempt to store a non grant permissions message
+      const request = await dwnAlice.grants.createRequest({
+        store : false,
+        scope : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol'
+        }
+      });
+
+      try {
+        await dwnAlice.grants.storeGrant({
+          grant: request.message,
+        });
+        expect.fail('Error was not thrown');
+      } catch(error: any) {
+        expect(error.message).to.equal('AgentDwnApi: Cannot store messages that are not grants.');
+      }
+    });
+
+    it('successfully stores a permissions grant', async () => {
+      // create a grant
+      const grant = await dwnAlice.grants.createGrant({
+        store       : false,
+        grantedTo   : bobDid.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol'
+        }
+      });
+
+      // query for the grant
+      let fetchedGrants = await dwnAlice.records.query({
+        message: {
+          filter: {
+            protocol     : PermissionsProtocol.uri,
+            protocolPath : PermissionsProtocol.grantPath,
+          }
+        }
+      });
+      // expect no grants as we haven't stored any
+      expect(fetchedGrants.status.code).to.equal(200);
+      expect(fetchedGrants.records).to.exist;
+      expect(fetchedGrants.records!.length).to.equal(0);
+
+      const processGrantReply = await dwnAlice.grants.storeGrant({
+        grant: grant.message,
+      });
+      expect(processGrantReply.status.code).to.equal(202);
+
+      // query for the grant requests again
+      fetchedGrants = await dwnAlice.records.query({
+        message: {
+          filter: {
+            protocol     : PermissionsProtocol.uri,
+            protocolPath : PermissionsProtocol.grantPath,
+          }
+        }
+      });
+      // expect to have the 1 grant request that was stored
+      expect(fetchedGrants.status.code).to.equal(200);
+      expect(fetchedGrants.records).to.exist;
+      expect(fetchedGrants.records!.length).to.equal(1);
+      expect(fetchedGrants.records![0].id).to.equal(grant.message.recordId);
+    });
+  });
+
+  describe('grants.storeRevocation', () => {
+    it('fails to store a message that is not a grant revocation', async () => {
+      // attempt to store a message that has a `grant/revocation` path but not a permissions protocol
+      const { record } = await dwnAlice.records.create({
+        store   : false,
+        message : {
+          protocol     : 'http://example.com/protocol', // not a permissions protocol
+          protocolPath : 'grant/revocation',
+        },
+        data: new Blob([ 'test' ])
+      });
+
+      try {
+        await dwnAlice.grants.storeRevocation({
+          revocation: record.rawMessage as DwnDataEncodedRecordsWriteMessage,
+        });
+        expect.fail('Error was not thrown');
+      } catch(error: any) {
+        expect(error.message).to.equal('AgentDwnApi: Cannot store non grant messages.');
+      }
+
+      // attempt to store a non grant revocation permissions message
+      const request = await dwnAlice.grants.createRequest({
+        store : false,
+        scope : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol'
+        }
+      });
+
+      try {
+        await dwnAlice.grants.storeRevocation({
+          revocation: request.message,
+        });
+        expect.fail('Error was not thrown');
+      } catch(error: any) {
+        expect(error.message).to.equal('AgentDwnApi: Cannot store messages that are not grant revocations.');
+      }
+    });
+
+    it('successfully stores a permissions grant', async () => {
+      // create a grant
+      const grant = await dwnAlice.grants.createGrant({
+        store       : true,
+        grantedTo   : bobDid.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol'
+        }
+      });
+
+      // create a revocation for the grant without storing it
+      const revocation = await dwnAlice.grants.createRevocation({
+        store : false,
+        grant : grant.grant,
+      });
+
+      // query for the grant
+      let fetchedRevocations = await dwnAlice.records.query({
+        message: {
+          filter: {
+            protocol     : PermissionsProtocol.uri,
+            protocolPath : PermissionsProtocol.revocationPath,
+          }
+        }
+      });
+      // expect no grants as we haven't stored any
+      expect(fetchedRevocations.status.code).to.equal(200);
+      expect(fetchedRevocations.records).to.exist;
+      expect(fetchedRevocations.records!.length).to.equal(0);
+
+      const processGrantReply = await dwnAlice.grants.storeRevocation({
+        revocation: revocation.message,
+      });
+      expect(processGrantReply.status.code).to.equal(202);
+
+      // query for the grant requests again
+      fetchedRevocations = await dwnAlice.records.query({
+        message: {
+          filter: {
+            protocol     : PermissionsProtocol.uri,
+            protocolPath : PermissionsProtocol.revocationPath,
+          }
+        }
+      });
+      // expect to have the 1 grant request that was stored
+      expect(fetchedRevocations.status.code).to.equal(200);
+      expect(fetchedRevocations.records).to.exist;
+      expect(fetchedRevocations.records!.length).to.equal(1);
+      expect(fetchedRevocations.records![0].id).to.equal(revocation.message.recordId);
+    });
+  });
+
+  describe('grants.createGrant', () => {
+    it('creates and stores a grant', async () => {
+      // scenario: create a grant for deviceX, confirm the grant exists
+
+      // create an identity for deviceX
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+
+      // create a grant for deviceX
+      const deviceXGrant = await dwnAlice.grants.createGrant({
+        store       : true,
+        grantedTo   : aliceDeviceX.did.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol'
+        }
+      });
+
+      // query for the grant
+      const fetchedGrants = await dwnAlice.records.query({
+        message: {
+          filter: {
+            protocol     : PermissionsProtocol.uri,
+            protocolPath : PermissionsProtocol.grantPath,
+          }
+        }
+      });
+
+      // expect to have the 1 grant created for deviceX
+      expect(fetchedGrants.status.code).to.equal(200);
+      expect(fetchedGrants.records).to.exist;
+      expect(fetchedGrants.records!.length).to.equal(1);
+      expect(fetchedGrants.records![0].id).to.equal(deviceXGrant.message.recordId);
+    });
+
+    it('creates a grant without storing it', async () => {
+      // scenario: create a grant for deviceX, confirm the grant does not exist
+
+      // create an identity for deviceX
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+      // create a grant for deviceX store is set to false by default
+      const deviceXGrant = await dwnAlice.grants.createGrant({
+        grantedTo   : aliceDeviceX.did.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol'
+        }
+      });
+
+      // query for the grant
+      let fetchedGrants = await dwnAlice.records.query({
+        message: {
+          filter: {
+            protocol     : PermissionsProtocol.uri,
+            protocolPath : PermissionsProtocol.grantPath,
+          }
+        }
+      });
+
+      // expect to have no grants
+      expect(fetchedGrants.status.code).to.equal(200);
+      expect(fetchedGrants.records).to.exist;
+      expect(fetchedGrants.records!.length).to.equal(0);
+
+      // store the grant
+      const processGrantReply = await dwnAlice.grants.storeGrant({ grant: deviceXGrant.message });
+      expect(processGrantReply.status.code).to.equal(202);
+
+      // query for the grants again
+      fetchedGrants = await dwnAlice.records.query({
+        message: {
+          filter: {
+            protocol     : PermissionsProtocol.uri,
+            protocolPath : PermissionsProtocol.grantPath,
+          }
+        }
+      });
+
+      // expect to have the 1 grant created for deviceX
+      expect(fetchedGrants.status.code).to.equal(200);
+      expect(fetchedGrants.records).to.exist;
+      expect(fetchedGrants.records!.length).to.equal(1);
+      expect(fetchedGrants.records![0].id).to.equal(deviceXGrant.message.recordId);
+    });
+  });
+
+  describe('grants.createRevocation', () => {
+    it('creates and stores a grant revocation', async () => {
+      // scenario: create a grant for deviceX, revoke the grant, confirm the grant is revoked
+
+      // create an identity for deviceX
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+      // create a grant for deviceX
+      const deviceXGrant = await testHarness.agent.permissions.createGrant({
+        store       : true,
+        author      : aliceDid.uri,
+        grantedTo   : aliceDeviceX.did.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol'
+        }
+      });
+
+      // parse the grant
+      const writeGrant = await DwnPermissionGrant.parse(deviceXGrant.message);
+
+      // check if the grant is revoked
+      let isRevoked = await dwnAlice.grants.isRevoked(writeGrant);
+      expect(isRevoked).to.equal(false);
+
+      // create a revocation for the grant
+      await dwnAlice.grants.createRevocation({
+        store : true,
+        grant : writeGrant,
+      });
+
+      // check if the grant is revoked again, should be true
+      isRevoked = await dwnAlice.grants.isRevoked(writeGrant);
+      expect(isRevoked).to.equal(true);
+    });
+
+    it('creates a grant revocation without storing it', async () => {
+      // scenario: create a grant for deviceX, revoke the grant, confirm the grant is revoked
+
+      // create an identity for deviceX
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+      // create a grant for deviceX
+      const deviceXGrant = await testHarness.agent.permissions.createGrant({
+        store       : true,
+        author      : aliceDid.uri,
+        grantedTo   : aliceDeviceX.did.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol'
+        }
+      });
+
+      // parse the grant
+      const writeGrant = await DwnPermissionGrant.parse(deviceXGrant.message);
+
+      // check if the grant is revoked
+      let isRevoked = await dwnAlice.grants.isRevoked(writeGrant);
+      expect(isRevoked).to.equal(false);
+
+      // create a revocation for the grant without storing it
+      const revokeGrant = await dwnAlice.grants.createRevocation({
+        grant: writeGrant,
+      });
+
+      // check if the grant is revoked again, should be true
+      isRevoked = await dwnAlice.grants.isRevoked(writeGrant);
+      expect(isRevoked).to.equal(false);
+
+      // store the revocation
+      const processRevokeReply = await dwnAlice.grants.storeRevocation({ revocation: revokeGrant.message });
+      expect(processRevokeReply.status.code).to.equal(202);
+
+      // check if the grant is revoked again, should be true
+      isRevoked = await dwnAlice.grants.isRevoked(writeGrant);
+      expect(isRevoked).to.equal(true);
+    });
+  });
+
+  describe('grants.createRequest', () => {
+    it('creates a permission request and stores it', async () => {
+      // scenario: create a permission request confirm the request exists
+
+      // create a permission request
+      const deviceXRequest = await dwnAlice.grants.createRequest({
+        store : true,
+        scope : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol'
+        }
+      });
+
+      // query for the request
+      const fetchedRequests = await dwnAlice.records.query({
+        message: {
+          filter: {
+            protocol     : PermissionsProtocol.uri,
+            protocolPath : PermissionsProtocol.requestPath,
+          }
+        }
+      });
+
+      // expect to have the 1 request created
+      expect(fetchedRequests.status.code).to.equal(200);
+      expect(fetchedRequests.records).to.exist;
+      expect(fetchedRequests.records!.length).to.equal(1);
+      expect(fetchedRequests.records![0].id).to.equal(deviceXRequest.message.recordId);
+    });
+
+    it('creates a permission request without storing it', async () => {
+      // scenario: create a permission request confirm the request does not exist
+
+      // create a permission request store is set to false by default
+      const deviceXRequest = await dwnAlice.grants.createRequest({
+        scope: {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol'
+        }
+      });
+
+      // query for the request
+      let fetchedRequests = await dwnAlice.records.query({
+        message: {
+          filter: {
+            protocol     : PermissionsProtocol.uri,
+            protocolPath : PermissionsProtocol.requestPath,
+          }
+        }
+      });
+
+      // expect to have no requests
+      expect(fetchedRequests.status.code).to.equal(200);
+      expect(fetchedRequests.records).to.exist;
+      expect(fetchedRequests.records!.length).to.equal(0);
+
+      // store the request
+      const processRequestReply = await dwnAlice.grants.storeRequest({ request: deviceXRequest.message });
+      expect(processRequestReply.status.code).to.equal(202);
+
+      // query for the requests again
+      fetchedRequests = await dwnAlice.records.query({
+        message: {
+          filter: {
+            protocol     : PermissionsProtocol.uri,
+            protocolPath : PermissionsProtocol.requestPath,
+          }
+        }
+      });
+
+      // expect to have the 1 request created for deviceX
+      expect(fetchedRequests.status.code).to.equal(200);
+      expect(fetchedRequests.records).to.exist;
+      expect(fetchedRequests.records!.length).to.equal(1);
+      expect(fetchedRequests.records![0].id).to.equal(deviceXRequest.message.recordId);
     });
   });
 
