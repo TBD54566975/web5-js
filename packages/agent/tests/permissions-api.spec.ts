@@ -1,3 +1,4 @@
+import sinon from 'sinon';
 import { expect } from 'chai';
 import { AgentPermissionsApi } from '../src/permissions-api.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
@@ -6,7 +7,7 @@ import { BearerDid } from '@web5/dids';
 
 import { testDwnUrl } from './utils/test-config.js';
 import { DwnInterfaceName, DwnMethodName, Time } from '@tbd54566975/dwn-sdk-js';
-import { DwnPermissionGrant } from '../src/index.js';
+import { DwnPermissionGrant, DwnPermissionScope } from '../src/index.js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -22,11 +23,13 @@ describe('AgentPermissionsApi', () => {
   });
 
   after(async () => {
+    sinon.restore();
     await testHarness.clearStorage();
     await testHarness.closeStorage();
   });
 
   beforeEach(async () => {
+    sinon.restore();
     await testHarness.clearStorage();
     await testHarness.createAgentDid();
 
@@ -53,7 +56,115 @@ describe('AgentPermissionsApi', () => {
     });
   });
 
+  describe('fetchGrants', () => {
+    it('throws if the query returns anything other than 200', async () => {
+      // stub the processDwnRequest method to return a 400 error
+      sinon.stub(testHarness.agent, 'processDwnRequest').resolves({ messageCid: '', reply: { status: { code: 400, detail: 'Bad Request'} }});
+
+      // fetch permission requests
+      try {
+        await testHarness.agent.permissions.fetchGrants({
+          author : aliceDid.uri,
+          target : aliceDid.uri,
+        });
+      } catch(error: any) {
+        expect(error.message).to.equal('PermissionsApi: Failed to fetch grants: Bad Request');
+      }
+    });
+  });
+
+  describe('fetchRequests', () => {
+    it('throws if the query returns anything other than 200', async () => {
+      // stub the processDwnRequest method to return a 400 error
+      sinon.stub(testHarness.agent, 'processDwnRequest').resolves({ messageCid: '', reply: { status: { code: 400, detail: 'Bad Request'} }});
+
+      // fetch permission requests
+      try {
+        await testHarness.agent.permissions.fetchRequests({
+          author : aliceDid.uri,
+          target : aliceDid.uri,
+        });
+      } catch(error: any) {
+        expect(error.message).to.equal('PermissionsApi: Failed to fetch requests: Bad Request');
+      }
+    });
+  });
+
+  describe('isGrantRevoked', () => {
+    it('throws if the request was bad', async () => {
+      // stub the processDwnRequest method to return a 400 error
+      sinon.stub(testHarness.agent, 'processDwnRequest').resolves({ messageCid: '', reply: { status: { code: 400, detail: 'Bad Request'} }});
+
+      // create a permission request
+      try {
+        await testHarness.agent.permissions.isGrantRevoked(aliceDid.uri, aliceDid.uri, 'grant-record-id');
+      } catch(error: any) {
+        expect(error.message).to.equal('PermissionsApi: Failed to check if grant is revoked: Bad Request');
+      }
+    });
+
+    it('returns revocation status', async () => {
+      // scenario: create a grant for deviceX, revoke the grant, confirm the grant is revoked
+
+      // create an identity for deviceX
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+      // create a grant for deviceX
+      const deviceXGrant = await testHarness.agent.permissions.createGrant({
+        store       : true,
+        author      : aliceDid.uri,
+        grantedTo   : aliceDeviceX.did.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol'
+        }
+      });
+
+      // parse the grant
+      const writeGrant = await DwnPermissionGrant.parse(deviceXGrant.message);
+
+      // check if the grant is revoked
+      let isRevoked = await testHarness.agent.permissions.isGrantRevoked(aliceDid.uri, aliceDid.uri, deviceXGrant.grant.id);
+      expect(isRevoked).to.equal(false);
+
+      // create a revocation for the grant
+      await testHarness.agent.permissions.createRevocation({
+        author : aliceDid.uri,
+        store  : true,
+        grant  : writeGrant,
+      });
+
+      // check if the grant is revoked again, should be true
+      isRevoked = await testHarness.agent.permissions.isGrantRevoked(aliceDid.uri, aliceDid.uri, deviceXGrant.grant.id);
+      expect(isRevoked).to.equal(true);
+    });
+  });
+
   describe('createGrant', () => {
+    it('throws if the grant was not created', async () => {
+      // stub the processDwnRequest method to return a 400 error
+      sinon.stub(testHarness.agent, 'processDwnRequest').resolves({ messageCid: '', reply: { status: { code: 400, detail: 'Bad Request'} }});
+
+      // create a permission request
+      try {
+        await testHarness.agent.permissions.createGrant({
+          author      : aliceDid.uri,
+          grantedTo   : 'did:example:deviceX',
+          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+          store       : true,
+          scope       : {} as DwnPermissionScope,
+        });
+      } catch(error: any) {
+        expect(error.message).to.equal('PermissionsApi: Failed to create grant: Bad Request');
+      }
+    });
+
     it('creates and stores a grant', async () => {
       // scenario: create a grant for deviceX, confirm the grant exists
 
@@ -118,6 +229,25 @@ describe('AgentPermissionsApi', () => {
   });
 
   describe('createRevocation', () => {
+    it('throws if the revocation was not created', async () => {
+      // stub the processDwnRequest method to return a 400 error
+      sinon.stub(testHarness.agent, 'processDwnRequest').resolves({ messageCid: '', reply: { status: { code: 400, detail: 'Bad Request'} }});
+
+      // create a permission request
+      try {
+        await testHarness.agent.permissions.createRevocation({
+          author : aliceDid.uri,
+          store  : true,
+          grant  : {
+            scope: {}
+          } as DwnPermissionGrant,
+        });
+      } catch(error: any) {
+        expect(error.message).to.equal('PermissionsApi: Failed to create revocation: Bad Request');
+      }
+
+    });
+
     it('creates and stores a grant revocation', async () => {
       // scenario: create a grant for deviceX, revoke the grant, confirm the grant is revoked
 
@@ -203,6 +333,26 @@ describe('AgentPermissionsApi', () => {
   });
 
   describe('createRequest', () => {
+    it('throws if the request was not created', async () => {
+      // stub the processDwnRequest method to return a 400 error
+      sinon.stub(testHarness.agent, 'processDwnRequest').resolves({ messageCid: '', reply: { status: { code: 400, detail: 'Bad Request'} }});
+
+      // create a permission request
+      try {
+        await testHarness.agent.permissions.createRequest({
+          author : aliceDid.uri,
+          scope  : {
+            interface : DwnInterfaceName.Records,
+            method    : DwnMethodName.Write,
+            protocol  : 'http://example.com/protocol'
+          }
+        });
+      } catch(error: any) {
+        expect(error.message).to.equal('PermissionsApi: Failed to create request: Bad Request');
+      }
+
+    });
+
     it('creates a permission request and stores it', async () => {
       // scenario: create a permission request confirm the request exists
 

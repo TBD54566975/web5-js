@@ -132,7 +132,7 @@ export class AgentPermissionsApi implements PermissionsApi {
     });
 
     if (grantsReply.status.code !== 200) {
-      throw new Error(`AgentDwnApi: Failed to fetch grants: ${grantsReply.status.detail}`);
+      throw new Error(`PermissionsApi: Failed to fetch grants: ${grantsReply.status.detail}`);
     }
 
     const grants:PermissionGrantEntry[] = [];
@@ -166,7 +166,7 @@ export class AgentPermissionsApi implements PermissionsApi {
     });
 
     if (requestsReply.status.code !== 200) {
-      throw new Error(`AgentDwnApi: Failed to fetch requests: ${requestsReply.status.detail}`);
+      throw new Error(`PermissionsApi: Failed to fetch requests: ${requestsReply.status.detail}`);
     }
 
     const requests: PermissionRequestEntry[] = [];
