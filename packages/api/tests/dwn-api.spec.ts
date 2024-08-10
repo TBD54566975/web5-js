@@ -3,13 +3,14 @@ import type { BearerDid } from '@web5/dids';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { Web5UserAgent } from '@web5/user-agent';
-import { DwnDateSort, DwnInterface, PlatformAgentTestHarness } from '@web5/agent';
+import { DwnDateSort, DwnInterface, DwnPermissionGrant, PlatformAgentTestHarness } from '@web5/agent';
 
 import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
 import photosProtocolDefinition from './fixtures/protocol-definitions/photos.json' assert { type: 'json' };
 import { DwnInterfaceName, DwnMethodName, PermissionGrant, Time } from '@tbd54566975/dwn-sdk-js';
+import { Convert } from '@web5/common';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -45,10 +46,6 @@ describe('DwnApi', () => {
     // Instantiate DwnApi for both test identities.
     dwnAlice = new DwnApi({ agent: testHarness.agent, connectedDid: aliceDid.uri });
     dwnBob = new DwnApi({ agent: testHarness.agent, connectedDid: bobDid.uri });
-
-    // clear cached permissions between test runs
-    dwnAlice['cachedPermissions'].clear();
-    dwnBob['cachedPermissions'].clear();
   });
 
   after(async () => {
@@ -1370,130 +1367,19 @@ describe('DwnApi', () => {
     });
   });
 
-  describe('grants.fetchConnectedGrants()', () => {
-    it('throws if no signerDID is set', async () => {
-      // make sure signerDID is undefined
+  describe('connected.fetchConnectedGrants()', () => {
+    it('throws if no delegateDid is set', async () => {
+      // make sure delegateDid is undefined
       dwnAlice['delegateDid'] = undefined;
       try {
-        await dwnAlice.grants.fetchConnectedGrants();
+        await dwnAlice['connected'].fetchConnectedGrants();
         expect.fail('Error was not thrown');
       } catch (e) {
         expect(e.message).to.equal('AgentDwnApi: Cannot fetch grants without a signer DID');
       }
     });
 
-    it('caches results', async () => {
-      // create an identity for deviceX
-      const aliceDeviceX = await testHarness.agent.identity.create({
-        store     : true,
-        metadata  : { name: 'Alice Device X' },
-        didMethod : 'jwk'
-      });
-
-      // set the device identity as the signerDID
-      dwnAlice['delegateDid'] = aliceDeviceX.did.uri;
-
-      const recordsWriteGrant = await testHarness.agent.dwn.createGrant({
-        grantedFrom : aliceDid.uri,
-        grantedTo   : aliceDeviceX.did.uri,
-        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Write, protocol: 'http://example.com/protocol' }
-      });
-
-      // process the grant to aliceDeviceX's DWN
-      const { reply: writeReplyX } = await testHarness.agent.dwn.processRequest({
-        messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordsWriteGrant.recordsWrite.message,
-        author      : aliceDeviceX.did.uri,
-        target      : aliceDeviceX.did.uri,
-        dataStream  : new Blob([recordsWriteGrant.permissionGrantBytes]),
-        signAsOwner : true
-      });
-
-      expect(writeReplyX.status.code).to.equal(202);
-
-      const recordsReadGrant = await testHarness.agent.dwn.createGrant({
-        grantedFrom : aliceDid.uri,
-        grantedTo   : aliceDeviceX.did.uri,
-        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Read, protocol: 'http://example.com/protocol' }
-      });
-
-      // process the grant to aliceDeviceX's DWN
-      const { reply: readReplyX } = await testHarness.agent.dwn.processRequest({
-        messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordsReadGrant.recordsWrite.message,
-        author      : aliceDeviceX.did.uri,
-        target      : aliceDeviceX.did.uri,
-        dataStream  : new Blob([recordsReadGrant.permissionGrantBytes]),
-        signAsOwner : true
-      });
-
-      expect(readReplyX.status.code).to.equal(202);
-
-      // spy on processDwnRequest to ensure it is only called for the first fetch
-      const dwnRequestSpy = sinon.spy(testHarness.agent, 'processDwnRequest');
-      const grants = await dwnAlice.grants.fetchConnectedGrants();
-
-      expect(grants).to.exist;
-      expect(grants.length).to.equal(2);
-
-      // ensure the spy to be called three times, once for fetch and once for each revocation check
-      expect(dwnRequestSpy.callCount).to.equal(3);
-
-      // get the grants again to ensure they are cached
-      const cachedGrants = await dwnAlice.grants.fetchConnectedGrants();
-
-      expect(cachedGrants).to.exist;
-      expect(cachedGrants.length).to.equal(2);
-
-      // ensure the spy callCount was unchanged
-      expect(dwnRequestSpy.callCount).to.equal(3);
-
-      // add a new grant to aliceDeviceX
-      const recordsWriteGrant2 = await testHarness.agent.dwn.createGrant({
-        grantedFrom : aliceDid.uri,
-        grantedTo   : aliceDeviceX.did.uri,
-        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Write, protocol: 'http://example.com/protocol-two' }
-      });
-
-      // process the grant to aliceDeviceX's DWN
-      const { reply: writeReplyXTwo } = await testHarness.agent.dwn.processRequest({
-        messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordsWriteGrant2.recordsWrite.message,
-        author      : aliceDeviceX.did.uri,
-        target      : aliceDeviceX.did.uri,
-        dataStream  : new Blob([recordsWriteGrant2.permissionGrantBytes]),
-        signAsOwner : true
-      });
-      expect(writeReplyXTwo.status.code).to.equal(202);
-
-      // reset the spy
-      dwnRequestSpy.resetHistory();
-
-      // fetch the grants again, the cached results should be returned, and the spy should not be called
-      const updatedGrants = await dwnAlice.grants.fetchConnectedGrants();
-      expect(updatedGrants).to.exist;
-      expect(updatedGrants.length).to.equal(2); // unchanged
-      // must not include the new grant
-      expect(updatedGrants.map(grant => grant.recordId)).to.not.include(recordsWriteGrant2.dataEncodedMessage.recordId);
-
-      // ensure a dwnRequest was not made
-      expect(dwnRequestSpy.callCount).to.equal(0);
-
-      // now fetch the grants with cache set to false
-      const updatedGrantsNoCache = await dwnAlice.grants.fetchConnectedGrants(false);
-      expect(updatedGrantsNoCache).to.exist;
-      expect(updatedGrantsNoCache.length).to.equal(3); // includes the new grant
-      // must include the new grant
-      expect(updatedGrantsNoCache.map(grant => grant.recordId)).to.include(recordsWriteGrant2.dataEncodedMessage.recordId);
-
-      // ensure dwnRequest was called, once for the fetch and once for each revocation check
-      expect(dwnRequestSpy.callCount).to.equal(4);
-    });
-
-    it('fetches grants for the signer', async () => {
+    it('fetches grants for the delegateDid', async () => {
       // scenario: alice creates grants for recipients deviceY and deviceX
       // the grantee fetches their own grants respectively
 
@@ -1504,54 +1390,36 @@ describe('DwnApi', () => {
         didMethod : 'jwk'
       });
 
-      // set the device identity as the signerDID, this normally happens when the identity is connected
+      // set the device identity as the delegateDid, this normally happens when the identity is connected
       dwnAlice['delegateDid'] = aliceDeviceX.did.uri;
 
-      const recordsWriteGrant = await testHarness.agent.dwn.createGrant({
-        grantedFrom : aliceDid.uri,
+      const recordsWriteGrant = await testHarness.agent.permissions.createGrant({
+        author      : aliceDid.uri,
         grantedTo   : aliceDeviceX.did.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
         scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Write, protocol: 'http://example.com/protocol' }
       });
-
       // process the grant to aliceDeviceX's DWN
-      const { reply: writeReplyX } = await testHarness.agent.dwn.processRequest({
-        messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordsWriteGrant.recordsWrite.message,
-        author      : aliceDeviceX.did.uri,
-        target      : aliceDeviceX.did.uri,
-        dataStream  : new Blob([recordsWriteGrant.permissionGrantBytes]),
-        signAsOwner : true
-      });
-
+      const writeReplyX = await dwnAlice.grants.storeGrant({ grant: recordsWriteGrant.message, signAsOwner: true });
       expect(writeReplyX.status.code).to.equal(202);
 
-      const recordsReadGrant = await testHarness.agent.dwn.createGrant({
-        grantedFrom : aliceDid.uri,
+      const recordsReadGrant = await testHarness.agent.permissions.createGrant({
+        author      : aliceDid.uri,
         grantedTo   : aliceDeviceX.did.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
         scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Read, protocol: 'http://example.com/protocol' }
       });
-
       // process the grant to aliceDeviceX's DWN
-      const { reply: readReplyX } = await testHarness.agent.dwn.processRequest({
-        messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordsReadGrant.recordsWrite.message,
-        author      : aliceDeviceX.did.uri,
-        target      : aliceDeviceX.did.uri,
-        dataStream  : new Blob([recordsReadGrant.permissionGrantBytes]),
-        signAsOwner : true
-      });
-
+      const readReplyX = await dwnAlice.grants.storeGrant({ grant: recordsReadGrant.message, signAsOwner: true });
       expect(readReplyX.status.code).to.equal(202);
 
       const deviceXGrantRecordIds = [
-        recordsWriteGrant.dataEncodedMessage.recordId,
-        recordsReadGrant.dataEncodedMessage.recordId
+        recordsWriteGrant.message.recordId,
+        recordsReadGrant.message.recordId
       ];
 
       // fetch the grants for deviceX from the app agent
-      const fetchedDeviceXGrants = await dwnAlice.grants.fetchConnectedGrants();
+      const fetchedDeviceXGrants = await dwnAlice['connected'].fetchConnectedGrants();
 
       // expect to have the 5 grants created for deviceX
       expect(fetchedDeviceXGrants.length).to.equal(2);
@@ -1559,13 +1427,13 @@ describe('DwnApi', () => {
     });
 
     it('should throw if the grant query returns anything other than a 200', async () => {
-      // setting a signerDID, otherwise fetchConnectedGrants will throw
+      // setting a delegateDid, otherwise fetchConnectedGrants will throw
       dwnAlice['delegateDid'] = 'did:example:123';
 
       // return empty array if grant query returns something other than a 200
       sinon.stub(testHarness.agent, 'processDwnRequest').resolves({ messageCid: '', reply: { status: { code: 400, detail: 'unknown error' } } });
       try {
-        await dwnAlice.grants.fetchConnectedGrants();
+        await dwnAlice['connected'].fetchConnectedGrants();
 
         expect.fail('Expected fetchGrants to throw');
       } catch(error: any) {
@@ -1577,107 +1445,83 @@ describe('DwnApi', () => {
       // create an identity for deviceX and deviceY
       const aliceDeviceX = await testHarness.agent.identity.create({
         store     : true,
-        metadata  : { name: 'Alice Device X' },
+        metadata  : { name: 'Alice Device X', connectedDid: aliceDid.uri },
         didMethod : 'jwk'
       });
 
-      // set the device identity as the signerDID for alice, this normally happens during a connect flow
+      // set the device identity as the delegateDid for alice, this normally happens during a connect flow
       dwnAlice['delegateDid'] = aliceDeviceX.did.uri;
 
-      const recordsWriteGrant = await testHarness.agent.dwn.createGrant({
-        grantedFrom : aliceDid.uri,
+      const recordsWriteGrant = await testHarness.agent.permissions.createGrant({
+        author      : aliceDid.uri,
         grantedTo   : aliceDeviceX.did.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
         scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Write, protocol: 'http://example.com/protocol' }
       });
 
       // process the grant to alice's DWN
-      const { reply: writeReply } = await testHarness.agent.dwn.processRequest({
-        messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordsWriteGrant.recordsWrite.message,
-        author      : aliceDid.uri,
-        target      : aliceDid.uri,
-        dataStream  : new Blob([recordsWriteGrant.permissionGrantBytes]),
-      });
+      const writeReply = await dwnAlice.grants.storeGrant({ grant: recordsWriteGrant.message });
       expect(writeReply.status.code).to.equal(202);
 
       // process the grant to aliceDeviceX's DWN as owner
-      const { reply: writeReplyX } = await testHarness.agent.dwn.processRequest({
-        messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordsWriteGrant.recordsWrite.message,
-        author      : aliceDeviceX.did.uri,
-        target      : aliceDeviceX.did.uri,
-        dataStream  : new Blob([recordsWriteGrant.permissionGrantBytes]),
-        signAsOwner : true
-      });
+      const writeReplyX = await dwnAlice.grants.storeGrant({ grant: recordsWriteGrant.message, signAsOwner: true });
       expect(writeReplyX.status.code).to.equal(202);
 
-      const recordsReadGrant = await testHarness.agent.dwn.createGrant({
-        grantedFrom : aliceDid.uri,
+      const recordsReadGrant = await testHarness.agent.permissions.createGrant({
+        author      : aliceDid.uri,
         grantedTo   : aliceDeviceX.did.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
         scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Read, protocol: 'http://example.com/protocol' }
       });
-
       // process the grant to alice's DWN
-      const { reply: readReply } = await testHarness.agent.dwn.processRequest({
-        messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordsReadGrant.recordsWrite.message,
-        author      : aliceDid.uri,
-        target      : aliceDid.uri,
-        dataStream  : new Blob([recordsReadGrant.permissionGrantBytes]),
-      });
+      const readReply = await dwnAlice.grants.storeGrant({ grant: recordsReadGrant.message });
       expect(readReply.status.code).to.equal(202);
 
       // process the grant to aliceDeviceX's DWN
-      const { reply: readReplyX } = await testHarness.agent.dwn.processRequest({
-        messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordsReadGrant.recordsWrite.message,
-        author      : aliceDeviceX.did.uri,
-        target      : aliceDeviceX.did.uri,
-        dataStream  : new Blob([recordsReadGrant.permissionGrantBytes]),
-        signAsOwner : true
-      });
+      const readReplyX = await dwnAlice.grants.storeGrant({ grant: recordsReadGrant.message, signAsOwner: true });
       expect(readReplyX.status.code).to.equal(202);
 
-      // fetch the grants for deviceX from the app agent with cache set to false
-      const fetchedDeviceXGrants = await dwnAlice.grants.fetchConnectedGrants(false);
+      // fetch the grants for deviceX from the app agent
+      const fetchedDeviceXGrants = await dwnAlice['connected'].fetchConnectedGrants();
 
       // expect to have the 2 grants created for deviceX
       expect(fetchedDeviceXGrants.length).to.equal(2);
 
       // revoke a grant
-      const writeGrant = await PermissionGrant.parse(recordsWriteGrant.dataEncodedMessage);
-      const recordsWriteGrantRevoke = await testHarness.agent.dwn.createRevocation({
+      const writeGrant = await PermissionGrant.parse(recordsWriteGrant.message);
+      const recordsWriteGrantRevoke = await testHarness.agent.permissions.createRevocation({
         author : aliceDid.uri,
         grant  : writeGrant,
       });
 
       // process the grant to alice's DWN
+      const { encodedData: revokeEncodedData, ...revokeMessage } = recordsWriteGrantRevoke.message;
       const revokeReply = await testHarness.agent.dwn.processRequest({
         messageType : DwnInterface.RecordsWrite,
-        rawMessage  : recordsWriteGrantRevoke.recordsWrite.message,
+        rawMessage  : revokeMessage,
         author      : aliceDid.uri,
         target      : aliceDid.uri,
-        dataStream  : new Blob([recordsWriteGrantRevoke.permissionRevocationBytes]),
+        dataStream  : new Blob([ Convert.base64Url(revokeEncodedData).toUint8Array() ]),
       });
       expect(revokeReply.reply.status.code).to.equal(202);
 
       // fetch the grants for deviceX from the app agent with cache set to false
-      const fetchedDeviceXGrantsRevoked = await dwnAlice.grants.fetchConnectedGrants();
+      const fetchedDeviceXGrantsRevoked = await dwnAlice['connected'].fetchConnectedGrants();
       expect(fetchedDeviceXGrantsRevoked.length).to.equal(1); // only the read grant should be available
 
       // ensure the revoked grant is not included
-      expect(fetchedDeviceXGrantsRevoked.map(grant => grant.recordId)).to.not.include(recordsWriteGrant.dataEncodedMessage.recordId);
+      expect(fetchedDeviceXGrantsRevoked.map(grant => grant.recordId)).to.not.include(recordsWriteGrant.message.recordId);
     });
   });
 
-  describe('grants.findConnectedPermissionGrant', () => {
-    it('throws if no signerDID is set', async () => {
-      // make sure signerDID is undefined
+  describe('connected.findPermissionGrantForRequest', () => {
+    xit('caches result');
+
+    it('throws if no delegateDid is set', async () => {
+      // make sure delegateDid is undefined
       dwnAlice['delegateDid'] = undefined;
       try {
-        await dwnAlice.grants.findConnectedPermissionGrant({
+        await dwnAlice['connected'].findPermissionGrantForRequest({
           messageParams: {
             messageType : DwnInterface.RecordsWrite,
             protocol    : 'http://example.com/protocol'
@@ -1690,20 +1534,7 @@ describe('DwnApi', () => {
     });
   });
 
-  describe('grants.processConnectedGrantsAsOwner', () => {
-    it('throws if no signerDID is set', async () => {
-      // make sure signerDID is undefined
-      dwnAlice['delegateDid'] = undefined;
-      try {
-        await dwnAlice.grants.processConnectedGrantsAsOwner([]);
-        expect.fail('Error was not thrown');
-      } catch (e) {
-        expect(e.message).to.equal('AgentDwnApi: Cannot process grants without a signer DID');
-      }
-    });
-  });
-
-  describe('grants.isGrantRevoked', () => {
+  describe('grants.isRevoked', () => {
     it('checks if grant is revoked', async () => {
       // scenario: create a grant for deviceX, check if the grant is revoked, revoke the grant, check if the grant is revoked
 
@@ -1715,8 +1546,8 @@ describe('DwnApi', () => {
       });
 
       // create records grants for deviceX
-      const deviceXGrant = await  testHarness.agent.dwn.createGrant({
-        grantedFrom : aliceDid.uri,
+      const deviceXGrant = await  testHarness.agent.permissions.createGrant({
+        author      : aliceDid.uri,
         grantedTo   : aliceDeviceX.did.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
         scope       : {
@@ -1726,58 +1557,56 @@ describe('DwnApi', () => {
         }
       });
 
-      const { reply: processGrantReply } = await testHarness.agent.dwn.processRequest({
-        messageType : DwnInterface.RecordsWrite,
-        rawMessage  : deviceXGrant.recordsWrite.message,
-        author      : aliceDid.uri,
-        target      : aliceDid.uri,
-        dataStream  : new Blob([deviceXGrant.permissionGrantBytes]),
-      });
+      const processGrantReply = await dwnAlice.grants.storeGrant({ grant: deviceXGrant.message });
       expect(processGrantReply.status.code).to.equal(202);
 
-      // check if the grant is revoked
-      let isRevoked = await dwnAlice.grants.isGrantRevoked(
-        aliceDid.uri,
-        aliceDid.uri,
-        deviceXGrant.recordsWrite.message.recordId
-      );
+      // parse the grant
+      const writeGrant = await DwnPermissionGrant.parse(deviceXGrant.message);
 
+      // check if the grant is revoked
+      let isRevoked = await dwnAlice.grants.isRevoked(writeGrant);
       expect(isRevoked).to.equal(false);
 
       // revoke the grant
-      const writeGrant = await PermissionGrant.parse(deviceXGrant.dataEncodedMessage);
-      const revokeGrant = await testHarness.agent.dwn.createRevocation({
+      const revokeGrant = await testHarness.agent.permissions.createRevocation({
         author : aliceDid.uri,
         grant  : writeGrant,
       });
 
+      const { encodedData: revokeGrantEncodedData, ...revokeGrantMessage } = revokeGrant.message;
       const revokeReply = await testHarness.agent.dwn.processRequest({
         messageType : DwnInterface.RecordsWrite,
-        rawMessage  : revokeGrant.recordsWrite.message,
+        rawMessage  : revokeGrantMessage,
         author      : aliceDid.uri,
         target      : aliceDid.uri,
-        dataStream  : new Blob([revokeGrant.permissionRevocationBytes]),
+        dataStream  : new Blob([ Convert.base64Url(revokeGrantEncodedData).toUint8Array() ]),
       });
       expect(revokeReply.reply.status.code).to.equal(202);
 
       // check if the grant is revoked again, should be true
-      isRevoked = await dwnAlice.grants.isGrantRevoked(
-        aliceDid.uri,
-        aliceDid.uri,
-        deviceXGrant.recordsWrite.message.recordId
-      );
+      isRevoked = await dwnAlice.grants.isRevoked(writeGrant);
       expect(isRevoked).to.equal(true);
     });
 
     it('throws if grant revocation query returns anything other than a 200 or 404', async () => {
       // return empty array if grant query returns something other than a 200
       sinon.stub(testHarness.agent, 'processDwnRequest').resolves({ messageCid: '', reply: { status: { code: 400, detail: 'unknown error' } } });
-
       try {
-        await dwnAlice.grants.isGrantRevoked(aliceDid.uri, aliceDid.uri, 'some-record-id');
-        expect.fail('Expected isGrantRevoked to throw');
+        await dwnAlice.grants.isRevoked({
+          id          : 'some-record',
+          grantee     : 'did:example:123',
+          grantor     : 'did:example:456',
+          dateGranted : Time.getCurrentTimestamp(),
+          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+          scope       : {
+            interface : DwnInterfaceName.Records,
+            method    : DwnMethodName.Write,
+            protocol  : 'http://example.com/protocol',
+          }
+        });
+        expect.fail('Expected isRevoked to throw');
       } catch (error:any) {
-        expect(error.message).to.equal('AgentDwnApi: Failed to check if grant is revoked: unknown error');
+        expect(error.message).to.equal('PermissionsApi: Failed to check if grant is revoked: unknown error');
       }
     });
   });
