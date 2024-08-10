@@ -312,24 +312,29 @@ export class DwnApi {
           throw new Error('AgentDwnApi: Cannot fetch grants without a signer DID');
         }
 
-        const fetchResponse = await this.permissions.fetchGrants({
-          author  : this.delegateDid,
-          target  : this.delegateDid,
-          grantee : this.delegateDid,
-          grantor : this.connectedDid,
-        });
+        try {
+          const fetchResponse = await this.permissions.fetchGrants({
+            author  : this.delegateDid,
+            target  : this.delegateDid,
+            grantee : this.delegateDid,
+            grantor : this.connectedDid,
+          });
 
-        const grants:DwnDataEncodedRecordsWriteMessage[] = [];
-        for (const entry of fetchResponse) {
-          // check if the grant is revoked, we set the target to the grantor since the grantor is the author of the revocation
-          // the revocations should come in through sync, and are checked against the local DWN
-          if(await this.permissions.isGrantRevoked(this.delegateDid, this.connectedDid, entry.message.recordId)) {
-            continue;
+          const grants:DwnDataEncodedRecordsWriteMessage[] = [];
+          for (const entry of fetchResponse) {
+            // check if the grant is revoked, we set the target to the grantor since the grantor is the author of the revocation
+            // the revocations should come in through sync, and are checked against the local DWN
+            if(await this.permissions.isGrantRevoked(this.delegateDid, this.connectedDid, entry.message.recordId)) {
+              continue;
+            }
+
+            grants.push(entry.message);
           }
 
-          grants.push(entry.message);
+          return grants;
+        } catch(error:any) {
+          throw new Error(`AgentDwnApi: Failed to fetch connected grants.`);
         }
-        return grants;
       },
     };
   }
