@@ -1,4 +1,4 @@
-import { PermissionGrantData, PermissionsProtocol } from '@tbd54566975/dwn-sdk-js';
+import { PermissionGrantData, PermissionRevocationData, PermissionsProtocol } from '@tbd54566975/dwn-sdk-js';
 import { DwnPermissionsUtil } from './dwn-permissions-util.js';
 import { Web5Agent } from './types/agent.js';
 import { DwnDataEncodedRecordsWriteMessage, DwnInterface, DwnMessageParams, DwnPermissionGrant, DwnPermissionRequest, DwnPermissionScope } from './types/dwn.js';
@@ -51,7 +51,6 @@ export type CreateRevocationParams = {
   author: string;
   grant: DwnPermissionGrant;
   description?: string;
-  dateRevoked?: string;
 }
 
 export interface PermissionsApi {
@@ -243,16 +242,33 @@ export class AgentPermissionsApi implements PermissionsApi {
 
   async createRevocation(params: CreateRevocationParams): Promise<PermissionRevocationEntry> {
     const { author, store = false, ...createRevocationParams } = params;
-    const { recordsWrite, permissionRevocationBytes } = await PermissionsProtocol.createRevocation(createRevocationParams);
+
+    const revokeData: PermissionRevocationData = {
+      description: createRevocationParams.description,
+    };
+
+    const permissionRevocationBytes = Convert.object(revokeData).toUint8Array();
+
+    let tags = undefined;
+    if (PermissionsProtocol.hasProtocolScope(createRevocationParams.grant.scope)) {
+      tags = { protocol: createRevocationParams.grant.scope.protocol };
+    }
+
+    const messageParams: DwnMessageParams[DwnInterface.RecordsWrite] = {
+      parentContextId : createRevocationParams.grant.id,
+      protocol        : PermissionsProtocol.uri,
+      protocolPath    : PermissionsProtocol.revocationPath,
+      dataFormat      : 'application/json',
+      tags
+    };
+
     const { reply, message } = await this.agent.processDwnRequest({
       store,
       author,
-      target        : author,
-      messageType   : DwnInterface.RecordsWrite,
-      messageParams : {
-        ...recordsWrite.message.descriptor,
-      },
-      dataStream: new Blob([ permissionRevocationBytes ])
+      target      : author,
+      messageType : DwnInterface.RecordsWrite,
+      messageParams,
+      dataStream  : new Blob([ permissionRevocationBytes ])
     });
 
     if (reply.status.code !== 202) {
