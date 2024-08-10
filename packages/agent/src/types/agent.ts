@@ -7,7 +7,7 @@ import type { AgentCryptoApi } from '../crypto-api.js';
 import type { AgentKeyManager } from './key-manager.js';
 import type { IdentityVault } from './identity-vault.js';
 import type { AgentIdentityApi } from '../identity-api.js';
-import type { PermissionsApi } from '../permissions-api.js';
+import type { AgentPermissionsApi } from '../permissions-api.js';
 import type { ProcessVcRequest, SendVcRequest, VcResponse } from './vc.js';
 import type { AgentDidApi, DidInterface, DidRequest, DidResponse } from '../did-api.js';
 import type { DwnInterface, DwnResponse, ProcessDwnRequest, SendDwnRequest } from './dwn.js';
@@ -155,7 +155,7 @@ export interface Web5PlatformAgent<TKeyManager extends AgentKeyManager = AgentKe
   /**
    * The Permissions API, handling permission operations such as request, create, revocation, fetching and verifying revocation status.
    */
-  permissions: PermissionsApi;
+  permissions: AgentPermissionsApi;
 
   /**
    * The RPC (Remote Procedure Call) client interface, facilitating communication with other Web5
