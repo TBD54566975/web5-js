@@ -12,6 +12,12 @@ export type FetchPermissionsParams = {
   protocol?: string;
 }
 
+export type FetchPermissionRequestParams = {
+  author: string;
+  target: string;
+  protocol?: string;
+}
+
 export type PermissionGrantEntry = {
   grant: DwnPermissionGrant;
   message: DwnDataEncodedRecordsWriteMessage;
@@ -57,6 +63,8 @@ export interface PermissionsApi {
    * Fetch all grants for a given author and target, optionally filtered by a specific grantee, grantor, or protocol.
    */
   fetchGrants: (params: FetchPermissionsParams) => Promise<PermissionGrantEntry[]>;
+
+  fetchRequests: (params: FetchPermissionRequestParams) => Promise<PermissionRequestEntry[]>;
 
   /**
   * Check whether a grant is revoked by reading the revocation record for a given grant recordId.
@@ -135,6 +143,39 @@ export class AgentPermissionsApi implements PermissionsApi {
     }
 
     return grants;
+  }
+
+  async fetchRequests({
+    author,
+    target,
+    protocol,
+  }:FetchPermissionRequestParams):Promise<PermissionRequestEntry[]> {
+    // filter by a protocol using tags if provided
+    const tags = protocol ? { protocol } : undefined;
+
+    const { reply: requestsReply } = await this.agent.processDwnRequest({
+      author        : author,
+      target        : target,
+      messageType   : DwnInterface.RecordsQuery,
+      messageParams : {
+        filter: {
+          ...DwnPermissionsUtil.permissionsProtocolParams('request'),
+          tags
+        }
+      }
+    });
+
+    if (requestsReply.status.code !== 200) {
+      throw new Error(`AgentDwnApi: Failed to fetch requests: ${requestsReply.status.detail}`);
+    }
+
+    const requests: PermissionRequestEntry[] = [];
+    for (const entry of requestsReply.entries! as DwnDataEncodedRecordsWriteMessage[]) {
+      const request = await DwnPermissionRequest.parse(entry);
+      requests.push({ request, message: entry });
+    }
+
+    return requests;
   }
 
   async isGrantRevoked(author:string, target: string, grantRecordId: string): Promise<boolean> {
