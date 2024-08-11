@@ -6,7 +6,8 @@
 
 import type {
   CreateGrantParams,
-  CreateRequestParams
+  CreateRequestParams,
+  FetchPermissionsParams
 } from '@web5/agent';
 
 import {
@@ -29,6 +30,14 @@ import { dataToBlob } from './utils.js';
 import { Protocol } from './protocol.js';
 import { Grant } from './grant.js';
 import { GrantRequest } from './grant-request.js';
+
+export type GrantRequestCreateRequest = Omit<CreateRequestParams, 'author'>;
+
+export type GrantCreateRequest = Omit<CreateGrantParams, 'author'>;
+
+export type FetchGrantsRequest = Omit<FetchPermissionsParams, 'author' | 'target' | 'remote'> & {
+  from?: string;
+};
 
 /**
  * Represents the request payload for configuring a protocol on a Decentralized Web Node (DWN).
@@ -351,7 +360,7 @@ export class DwnApi {
    */
   get grants() {
     return {
-      createRequest: async(request :Omit<CreateRequestParams, 'author'>): Promise<GrantRequest> => {
+      createRequest: async(request: GrantRequestCreateRequest): Promise<GrantRequest> => {
         const { message } = await this.permissions.createRequest({
           ...request,
           author: this.connectedDid,
@@ -365,7 +374,7 @@ export class DwnApi {
 
         return await GrantRequest.parse(requestParams);
       },
-      createGrant: async(request :Omit<CreateGrantParams, 'author'>): Promise<Grant> => {
+      createGrant: async(request :GrantCreateRequest): Promise<Grant> => {
         const { message } = await this.permissions.createGrant({
           ...request,
           author: this.connectedDid,
@@ -373,11 +382,32 @@ export class DwnApi {
 
         const grantParams = {
           connectedDid : this.connectedDid,
-          permissions  : this.permissions,
+          agent        : this.agent,
           message,
         };
 
         return await Grant.parse(grantParams);
+      },
+      fetchGrants: async(request: FetchGrantsRequest = {}): Promise<Grant[]> => {
+        const { from, ...params } = request;
+        const fetchResponse = await this.permissions.fetchGrants({
+          ...params,
+          author : this.connectedDid,
+          target : from ?? this.connectedDid,
+          remote : from !== undefined,
+        });
+
+        const grants: Grant[] = [];
+        for (const permission of fetchResponse) {
+          const grantParams = {
+            connectedDid : this.connectedDid,
+            agent        : this.agent,
+            message      : permission.message,
+          };
+          grants.push(await Grant.parse(grantParams));
+        }
+
+        return grants;
       }
     };
   }
@@ -757,10 +787,9 @@ export class DwnApi {
     agent: Web5Agent,
     delegateDid: string,
   }): Promise<void> {
-    const permissions = new AgentPermissionsApi({ agent });
     for (const grantMessage of grants) {
       // use the delegateDid as the connectedDid of the grant as they do not yet support impersonation/delegation
-      const grant = await Grant.parse({ connectedDid: delegateDid, permissions, message: grantMessage });
+      const grant = await Grant.parse({ connectedDid: delegateDid, agent, message: grantMessage });
       // store the grant as the owner of the DWN, this will allow the delegateDid to use the grant when impersonating the connectedDid
       const { status } = await grant.store(true);
       if (status.code !== 202) {

@@ -1410,12 +1410,12 @@ describe('DwnApi', () => {
       await DwnApi.processConnectedGrants({
         agent       : testHarness.agent,
         delegateDid : aliceDeviceX.did.uri,
-        grants      : [recordsWriteGrant.message, recordsReadGrant.message]
+        grants      : [recordsWriteGrant.rawMessage, recordsReadGrant.rawMessage]
       });
 
       const deviceXGrantRecordIds = [
-        recordsWriteGrant.message.recordId,
-        recordsReadGrant.message.recordId
+        recordsWriteGrant.rawMessage.recordId,
+        recordsReadGrant.rawMessage.recordId
       ];
 
       // fetch the grants for deviceX from the app agent
@@ -1468,7 +1468,7 @@ describe('DwnApi', () => {
       await DwnApi.processConnectedGrants({
         agent       : testHarness.agent,
         delegateDid : aliceDeviceX.did.uri,
-        grants      : [recordsWriteGrant.message, recordsReadGrant.message]
+        grants      : [recordsWriteGrant.rawMessage, recordsReadGrant.rawMessage]
       });
 
       // fetch the grants for deviceX from the app agent
@@ -1482,7 +1482,7 @@ describe('DwnApi', () => {
       await testHarness.agent.permissions.createRevocation({
         store  : true,
         author : aliceDid.uri,
-        grant  : recordsWriteGrant.grant,
+        grant  : recordsWriteGrant,
       });
 
       // fetch the grants for deviceX from the app agent with cache set to false
@@ -1490,7 +1490,7 @@ describe('DwnApi', () => {
       expect(fetchedDeviceXGrantsRevoked.length).to.equal(1); // only the read grant should be available
 
       // ensure the revoked grant is not included
-      expect(fetchedDeviceXGrantsRevoked.map(grant => grant.recordId)).to.not.include(recordsWriteGrant.message.recordId);
+      expect(fetchedDeviceXGrantsRevoked.map(grant => grant.recordId)).to.not.include(recordsWriteGrant.rawMessage.recordId);
     });
   });
 
@@ -1598,7 +1598,7 @@ describe('DwnApi', () => {
       expect(fetchedGrants.status.code).to.equal(200);
       expect(fetchedGrants.records).to.exist;
       expect(fetchedGrants.records!.length).to.equal(1);
-      expect(fetchedGrants.records![0].id).to.equal(deviceXGrant.message.recordId);
+      expect(fetchedGrants.records![0].id).to.equal(deviceXGrant.rawMessage.recordId);
     });
 
     it('creates a grant without storing it', async () => {
@@ -1655,7 +1655,7 @@ describe('DwnApi', () => {
       expect(fetchedGrants.status.code).to.equal(200);
       expect(fetchedGrants.records).to.exist;
       expect(fetchedGrants.records!.length).to.equal(1);
-      expect(fetchedGrants.records![0].id).to.equal(deviceXGrant.message.recordId);
+      expect(fetchedGrants.records![0].id).to.equal(deviceXGrant.rawMessage.recordId);
     });
   });
 
@@ -1763,14 +1763,14 @@ describe('DwnApi', () => {
       });
 
       // check if the grant is revoked
-      let isRevoked = await deviceXGrant.isRevoked(false);
+      let isRevoked = await deviceXGrant.isRevoked();
       expect(isRevoked).to.equal(false);
 
       // defaults to storing the revocation
       await deviceXGrant.revoke();
 
       // check if the grant is revoked again, should be true
-      isRevoked = await deviceXGrant.isRevoked(false);
+      isRevoked = await deviceXGrant.isRevoked();
       expect(isRevoked).to.equal(true);
     });
 
@@ -1797,21 +1797,21 @@ describe('DwnApi', () => {
       });
 
       // check if the grant is revoked
-      let isRevoked = await deviceXGrant.isRevoked(false);
+      let isRevoked = await deviceXGrant.isRevoked();
       expect(isRevoked).to.equal(false);
 
       // create a revocation for the grant without storing it
       const revokeGrant = await deviceXGrant.revoke(false);
 
       // check if the grant is revoked again, should be true
-      isRevoked = await deviceXGrant.isRevoked(false);
+      isRevoked = await deviceXGrant.isRevoked();
       expect(isRevoked).to.equal(false);
 
       const storeRevokeReply = await revokeGrant.store();
       expect(storeRevokeReply.status.code).to.equal(202);
 
       // check if the grant is revoked again, should be true
-      isRevoked = await deviceXGrant.isRevoked(false);
+      isRevoked = await deviceXGrant.isRevoked();
       expect(isRevoked).to.equal(true);
     });
   });
@@ -1840,14 +1840,14 @@ describe('DwnApi', () => {
       });
 
       // check if the grant is revoked
-      let isRevoked = await deviceXGrant.isRevoked(false);
+      let isRevoked = await deviceXGrant.isRevoked();
       expect(isRevoked).to.equal(false);
 
       // revoke the grant
       await deviceXGrant.revoke();
 
       // check if the grant is revoked again, should be true
-      isRevoked = await deviceXGrant.isRevoked(false);
+      isRevoked = await deviceXGrant.isRevoked();
       expect(isRevoked).to.equal(true);
     });
 
@@ -1866,7 +1866,7 @@ describe('DwnApi', () => {
       // return empty array if grant query returns something other than a 200
       sinon.stub(testHarness.agent, 'processDwnRequest').resolves({ messageCid: '', reply: { status: { code: 400, detail: 'unknown error' } } });
       try {
-        await grant.isRevoked(false);
+        await grant.isRevoked();
         expect.fail('Expected isRevoked to throw');
       } catch (error:any) {
         expect(error.message).to.equal('PermissionsApi: Failed to check if grant is revoked: unknown error');
