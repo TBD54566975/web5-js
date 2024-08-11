@@ -4,6 +4,11 @@
  */
 /// <reference types="@tbd54566975/dwn-sdk-js" />
 
+import type {
+  CreateGrantParams,
+  CreateRequestParams
+} from '@web5/agent';
+
 import {
   Web5Agent,
   DwnMessage,
@@ -13,23 +18,17 @@ import {
   ProcessDwnRequest,
   DwnPaginationCursor,
   DwnDataEncodedRecordsWriteMessage,
-  AgentPermissionsApi,
-  DwnPermissionGrant,
-  CreateGrantParams,
-  PermissionGrantEntry,
-  CreateRevocationParams,
-  CreateRequestParams,
-  PermissionRequestEntry,
-  PermissionRevocationEntry,
-  DwnPermissionsProtocol
+  AgentPermissionsApi
 } from '@web5/agent';
 
-import { Convert, isEmptyObject, TtlCache } from '@web5/common';
+import { isEmptyObject, TtlCache } from '@web5/common';
 import { DwnInterface, getRecordAuthor, DwnPermissionsUtil } from '@web5/agent';
 
 import { Record } from './record.js';
 import { dataToBlob } from './utils.js';
 import { Protocol } from './protocol.js';
+import { Grant } from './grant.js';
+import { GrantRequest } from './grant-request.js';
 
 /**
  * Represents the request payload for configuring a protocol on a Decentralized Web Node (DWN).
@@ -313,18 +312,23 @@ export class DwnApi {
         }
 
         try {
+          const author = this.delegateDid;
+          const grantee = this.delegateDid;
+          const grantor = this.connectedDid;
+
           const fetchResponse = await this.permissions.fetchGrants({
-            author  : this.delegateDid,
-            target  : this.delegateDid,
-            grantee : this.delegateDid,
-            grantor : this.connectedDid,
+            target: grantee,
+            author,
+            grantee,
+            grantor,
           });
 
           const grants:DwnDataEncodedRecordsWriteMessage[] = [];
           for (const entry of fetchResponse) {
             // check if the grant is revoked, we set the target to the grantor since the grantor is the author of the revocation
             // the revocations should come in through sync, and are checked against the local DWN
-            if(await this.permissions.isGrantRevoked(this.delegateDid, this.connectedDid, entry.message.recordId)) {
+            const grantRecordId = entry.grant.id;
+            if(await this.permissions.isGrantRevoked({ author, target: grantor, grantRecordId })) {
               continue;
             }
 
@@ -346,83 +350,34 @@ export class DwnApi {
    * @beta
    */
   get grants() {
-
-    const storePermissionMessage = async ({ message, signAsOwner = false }:{
-      message: DwnDataEncodedRecordsWriteMessage,
-      signAsOwner?: boolean
-    }): Promise<DwnResponseStatus & { messageCid: string }> => {
-      const { protocol } = message.descriptor;
-      if (protocol !== DwnPermissionsProtocol.uri) {
-        throw new Error(`AgentDwnApi: Cannot store non grant messages.`);
-      }
-
-      const signerDid = signAsOwner ? this.delegateDid ?? this.connectedDid : undefined;
-      const { encodedData, ...rawMessage } = message;
-      const { reply, messageCid } = await this.agent.processDwnRequest({
-        author      : signerDid ?? this.connectedDid,
-        // if not signing, attempt to store as the connected DID
-        target      : signerDid ?? this.connectedDid,
-        messageType : DwnInterface.RecordsWrite,
-        rawMessage,
-        dataStream  : new Blob([ Convert.base64Url(encodedData).toUint8Array() ]),
-        signAsOwner
-      });
-
-      return { status: reply.status, messageCid };
-    };
-
     return {
-      createRequest: async(request :Omit<CreateRequestParams, 'author'>): Promise<PermissionRequestEntry> => {
-        return this.permissions.createRequest({
-          author: this.delegateDid ?? this.connectedDid,
+      createRequest: async(request :Omit<CreateRequestParams, 'author'>): Promise<GrantRequest> => {
+        const { message } = await this.permissions.createRequest({
           ...request,
+          author: this.connectedDid,
         });
+
+        const requestParams = {
+          connectedDid : this.connectedDid,
+          permissions  : this.permissions,
+          message,
+        };
+
+        return await GrantRequest.parse(requestParams);
       },
-      createGrant: async(request :Omit<CreateGrantParams, 'author'>): Promise<PermissionGrantEntry> => {
-        return this.permissions.createGrant({
-          author: this.delegateDid ?? this.connectedDid,
+      createGrant: async(request :Omit<CreateGrantParams, 'author'>): Promise<Grant> => {
+        const { message } = await this.permissions.createGrant({
           ...request,
+          author: this.connectedDid,
         });
-      },
-      createRevocation: async(request :Omit<CreateRevocationParams, 'author'>): Promise<PermissionRevocationEntry> => {
-        return this.permissions.createRevocation({
-          author: this.delegateDid ?? this.connectedDid,
-          ...request,
-        });
-      },
-      isRevoked: async (grant: DwnPermissionGrant): Promise<boolean> => {
-        const author = this.delegateDid ?? this.connectedDid;
-        return this.permissions.isGrantRevoked(author, grant.grantor, grant.id);
-      },
-      storeRequest: async ({ request , signAsOwner = false }:{
-        request: DwnDataEncodedRecordsWriteMessage,
-        signAsOwner?: boolean
-      }): Promise<DwnResponseStatus & { messageCid: string }> => {
-        const { protocolPath } = request.descriptor;
-        if (protocolPath !== DwnPermissionsProtocol.requestPath) {
-          throw new Error(`AgentDwnApi: Cannot store messages that are not permission requests.`);
-        }
-        return storePermissionMessage({ message: request, signAsOwner });
-      },
-      storeGrant: async ({ grant , signAsOwner = false }:{
-        grant: DwnDataEncodedRecordsWriteMessage,
-        signAsOwner?: boolean
-      }): Promise<DwnResponseStatus & { messageCid: string }> => {
-        const { protocolPath } = grant.descriptor;
-        if (protocolPath !== DwnPermissionsProtocol.grantPath) {
-          throw new Error(`AgentDwnApi: Cannot store messages that are not grants.`);
-        }
-        return storePermissionMessage({ message: grant, signAsOwner });
-      },
-      storeRevocation: async ({ revocation, signAsOwner = false }:{
-        revocation: DwnDataEncodedRecordsWriteMessage,
-        signAsOwner?: boolean
-      }): Promise<DwnResponseStatus & { messageCid: string }> => {
-        const { protocolPath } = revocation.descriptor;
-        if (protocolPath !== DwnPermissionsProtocol.revocationPath) {
-          throw new Error(`AgentDwnApi: Cannot store messages that are not grant revocations.`);
-        }
-        return storePermissionMessage({ message: revocation, signAsOwner });
+
+        const grantParams = {
+          connectedDid : this.connectedDid,
+          permissions  : this.permissions,
+          message,
+        };
+
+        return await Grant.parse(grantParams);
       }
     };
   }
@@ -797,16 +752,17 @@ export class DwnApi {
     };
   }
 
-  static async processConnectedGrants({ grants, agent, connectedDid, delegateDid }: {
+  static async processConnectedGrants({ grants, agent, delegateDid }: {
     grants: DwnDataEncodedRecordsWriteMessage[],
     agent: Web5Agent,
-    connectedDid: string,
-    delegateDid: string
+    delegateDid: string,
   }): Promise<void> {
-    const dwnApi = new DwnApi({ agent, connectedDid, delegateDid });
-    for (const grant of grants) {
+    const permissions = new AgentPermissionsApi({ agent });
+    for (const grantMessage of grants) {
+      // use the delegateDid as the connectedDid of the grant as they do not yet support impersonation/delegation
+      const grant = await Grant.parse({ connectedDid: delegateDid, permissions, message: grantMessage });
       // store the grant as the owner of the DWN, this will allow the delegateDid to use the grant when impersonating the connectedDid
-      const { status } = await dwnApi.grants.storeGrant({ grant: grant, signAsOwner: true });
+      const { status } = await grant.store(true);
       if (status.code !== 202) {
         throw new Error(`AgentDwnApi: Failed to process connected grant: ${status.detail}`);
       }

@@ -304,7 +304,7 @@ export class Web5 {
 
           // Attempts to process the connected grants to be used by the delegateDID
           // If the process fails, we want to clean up the identity
-          await DwnApi.processConnectedGrants({ agent, connectedDid, delegateDid: delegateDid.uri, grants: delegateGrants });
+          await DwnApi.processConnectedGrants({ agent, delegateDid: delegateDid.uri, grants: delegateGrants });
         } catch (error:any) {
           // clean up the DID and Identity if import fails and throw
           // TODO: Implement the ability to purge all of our messages as a tenant

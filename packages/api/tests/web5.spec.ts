@@ -239,10 +239,9 @@ describe('Web5', () => {
         // write the grants to app as owner
         // this also clears the grants cache
         await DwnApi.processConnectedGrants({
-          grants       : [ queryGrant.message, deleteGrant.message ],
-          agent        : appTestHarness.agent,
-          connectedDid : alice.did.uri,
-          delegateDid  : app.uri,
+          grants      : [ queryGrant.message, deleteGrant.message ],
+          agent       : appTestHarness.agent,
+          delegateDid : app.uri,
         });
 
         // attempt to delete using the grant
