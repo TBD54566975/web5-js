@@ -358,7 +358,7 @@ async function verifyJwt({ jwt }: { jwt: string }) {
 
   if (!header.kid)
     throw new Error(
-      `OIDC: Request Object could not be verified due to missing 'kid' header value.`
+      `OIDC: Object could not be verified due to missing 'kid' header value.`
     );
 
   // Resolve the Client DID document.
@@ -366,10 +366,10 @@ async function verifyJwt({ jwt }: { jwt: string }) {
 
   if (!didDocument)
     throw new Error(
-      'OIDC: Request Object could not be verified due to Client DID resolution issue.'
+      'OIDC: Object could not be verified due to Client DID resolution issue.'
     );
 
-  // Get the public key used to sign the Request Object from the DID document.
+  // Get the public key used to sign the Object from the DID document.
   const { publicKeyJwk } =
     didDocument.verificationMethod?.find((method: any) => {
       return method.id === header.kid;
@@ -377,7 +377,7 @@ async function verifyJwt({ jwt }: { jwt: string }) {
 
   if (!publicKeyJwk)
     throw new Error(
-      'OIDC: Request Object could not be verified due to missing public key in DID document.'
+      'OIDC: Object could not be verified due to missing public key in DID document.'
     );
 
   const EdDsa = new EdDsaAlgorithm();
@@ -389,12 +389,12 @@ async function verifyJwt({ jwt }: { jwt: string }) {
 
   if (!isValid)
     throw new Error(
-      'OIDC: Request Object failed verification due to invalid signature.'
+      'OIDC: Object failed verification due to invalid signature.'
     );
 
-  const request = Convert.base64Url(payloadB64U).toObject();
+  const object = Convert.base64Url(payloadB64U).toObject();
 
-  return request;
+  return object;
 }
 
 const getAuthRequest = async (request_uri: string, code_challenge: string) => {
