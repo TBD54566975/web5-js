@@ -261,7 +261,7 @@ async function createAuthRequest(
     response_mode   : 'direct_post',
     state           : Convert.uint8Array(stateBytes).toBase64Url(),
     client_metadata : {
-      subject_syntax_types_supported: ['did:dht'],
+      subject_syntax_types_supported: ['did:dht', 'did:jwk'],
     },
   };
 
