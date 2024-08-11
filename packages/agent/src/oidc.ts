@@ -11,7 +11,7 @@ import {
 import { concatenateUrl } from './utils.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 import type { ConnectPermissionRequest } from './connect.js';
-import { DidDht, DidDocument, DidJwk, PortableDid, type BearerDid } from '@web5/dids';
+import { DidDocument, DidJwk, PortableDid, type BearerDid } from '@web5/dids';
 import { AgentDwnApi } from './dwn-api.js';
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 import { DwnInterface } from './types/dwn.js';
@@ -362,7 +362,7 @@ async function verifyJwt({ jwt }: { jwt: string }) {
     );
 
   // Resolve the Client DID document.
-  const { didDocument } = await DidDht.resolve(header.kid.split('#')[0]);
+  const { didDocument } = await DidJwk.resolve(header.kid.split('#')[0]);
 
   if (!didDocument)
     throw new Error(
@@ -472,7 +472,7 @@ async function decryptAuthResponse(
 
   // get the Provider's public key from the header
   const header = Convert.base64Url(protectedHeaderB64U).toObject() as Jwk;
-  const providerDid = await DidDht.resolve(header.kid!.split('#')[0]);
+  const providerDid = await DidJwk.resolve(header.kid!.split('#')[0]);
 
   // derive ECDH shared key using the provider's public key and our clientDid private key
   const sharedKey = await deriveSharedKey(clientDid, providerDid.didDocument!);
@@ -656,7 +656,7 @@ async function submitAuthResponse(
     did  : delegateDid,
     data : responseObject,
   });
-  const clientDid = await DidDht.resolve(authRequest.client_id);
+  const clientDid = await DidJwk.resolve(authRequest.client_id);
 
   const sharedKey = await Oidc.deriveSharedKey(
     delegateDid,

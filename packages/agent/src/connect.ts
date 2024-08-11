@@ -5,7 +5,7 @@ import {
   type PushedAuthResponse,
 } from './oidc.js';
 import { pollWithTtl } from './utils.js';
-import { DidDht } from '@web5/dids';
+import { DidJwk } from '@web5/dids';
 
 async function initClient({
   connectServerUrl,
@@ -16,7 +16,7 @@ async function initClient({
 }: WalletConnectOptions) {
   // ephemeral client did for ECDH, signing, verification
   // TODO: use separate keys for ECDH vs. sign/verify. could maybe use secp256k1.
-  const clientDid = await DidDht.create();
+  const clientDid = await DidJwk.create();
 
   // TODO: properly implement PKCE. this implementation is lacking server side validations and more.
   // https://github.com/TBD54566975/web5-js/issues/829

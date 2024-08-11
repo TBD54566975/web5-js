@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { CryptoUtils } from '@web5/crypto';
-import { type BearerDid, DidDht, DidJwk } from '@web5/dids';
+import { type BearerDid, DidDht, DidJwk, PortableDid } from '@web5/dids';
 import { Convert } from '@web5/common';
 import {
   Oidc,
@@ -16,7 +16,20 @@ import { BearerIdentity, DwnResponse, WalletConnect } from '../src/index.js';
 describe('web5 connect', function () {
   this.timeout(20000);
 
+  /** The temporary DID that web5 connect created on behalf of the client */
+  let clientEphemeralBearerDid: BearerDid;
+  let clientEphemeralPortableDid: PortableDid;
+
+  /** The real tenant (identity) of the DWN that the provider had chosen to connect */
+  let providerIdentity: BearerIdentity;
+
+
+  /** The new DID created for the delegate which it will impersonate in the future */
+  let delegateBearerDid: BearerDid;
+  let delegatePortableDid: PortableDid;
+
   /** The real tenant (identity) of the DWN that the provider is using and selecting */
+  let providerIdentityBearerDid: BearerDid;
   const providerIdentityPortableDid = {
     uri      : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
     document : {
@@ -63,97 +76,6 @@ describe('web5 connect', function () {
     ],
   };
 
-  /** The temporary DID that web5 connect created on behalf of the client */
-  const clientEphemeralPortableDid = {
-    uri      : 'did:dht:jop4jkuhoueythkk39rtg3f5rtn85yrbopduuwsjq3wp7t6hryyy',
-    document : {
-      id                 : 'did:dht:jop4jkuhoueythkk39rtg3f5rtn85yrbopduuwsjq3wp7t6hryyy',
-      verificationMethod : [
-        {
-          id   : 'did:dht:jop4jkuhoueythkk39rtg3f5rtn85yrbopduuwsjq3wp7t6hryyy#0',
-          type : 'JsonWebKey',
-          controller:
-            'did:dht:jop4jkuhoueythkk39rtg3f5rtn85yrbopduuwsjq3wp7t6hryyy',
-          publicKeyJwk: {
-            crv : 'Ed25519',
-            kty : 'OKP' as const,
-            x   : 'TBukqnyE0AjxSs_JE2S7JER9gIGDRznSyXZo3sfcIAA',
-            kid : 'reOjZ2lsYcL13Vad1t6rmyngMf_7ZXcIdqnXoIh1jNs',
-            alg : 'EdDSA',
-          },
-        },
-      ],
-      authentication: [
-        'did:dht:jop4jkuhoueythkk39rtg3f5rtn85yrbopduuwsjq3wp7t6hryyy#0',
-      ],
-      assertionMethod: [
-        'did:dht:jop4jkuhoueythkk39rtg3f5rtn85yrbopduuwsjq3wp7t6hryyy#0',
-      ],
-      capabilityDelegation: [
-        'did:dht:jop4jkuhoueythkk39rtg3f5rtn85yrbopduuwsjq3wp7t6hryyy#0',
-      ],
-      capabilityInvocation: [
-        'did:dht:jop4jkuhoueythkk39rtg3f5rtn85yrbopduuwsjq3wp7t6hryyy#0',
-      ],
-    },
-    metadata    : { published: true, versionId: '1722012428' },
-    privateKeys : [
-      {
-        crv : 'Ed25519',
-        d   : 'jmX-xX1ScJlmvBkNrlHVqAGqLhcVRxxD6VR7FGJCM1o',
-        kty : 'OKP' as const,
-        x   : 'TBukqnyE0AjxSs_JE2S7JER9gIGDRznSyXZo3sfcIAA',
-        kid : 'reOjZ2lsYcL13Vad1t6rmyngMf_7ZXcIdqnXoIh1jNs',
-        alg : 'EdDSA',
-      },
-    ],
-  };
-
-  /** The temporary DID that web5 connect created on behalf of the provider */
-  const delegatePortableDid = {
-    uri      : 'did:dht:pfm8f6w57srtci1k3spp73dqgk5eo3afkimtyi4zcqc5hg1ui5mo',
-    document : {
-      id                 : 'did:dht:pfm8f6w57srtci1k3spp73dqgk5eo3afkimtyi4zcqc5hg1ui5mo',
-      verificationMethod : [
-        {
-          id   : 'did:dht:pfm8f6w57srtci1k3spp73dqgk5eo3afkimtyi4zcqc5hg1ui5mo#0',
-          type : 'JsonWebKey',
-          controller:
-            'did:dht:pfm8f6w57srtci1k3spp73dqgk5eo3afkimtyi4zcqc5hg1ui5mo',
-          publicKeyJwk: {
-            crv : 'Ed25519',
-            kty : 'OKP' as const,
-            x   : 'aVZy-pvtiRZWSs2a3uRuMraIZwVVVxBXV2OZvhpTrtc',
-            kid : 'XbjbYC8wLOxIYOCvDAcJQcJBWWpfXbaHNiZYu9KyMsI',
-            alg : 'EdDSA',
-          },
-        },
-      ],
-      authentication: [
-        'did:dht:pfm8f6w57srtci1k3spp73dqgk5eo3afkimtyi4zcqc5hg1ui5mo#0',
-      ],
-      assertionMethod: [
-        'did:dht:pfm8f6w57srtci1k3spp73dqgk5eo3afkimtyi4zcqc5hg1ui5mo#0',
-      ],
-      capabilityDelegation: [
-        'did:dht:pfm8f6w57srtci1k3spp73dqgk5eo3afkimtyi4zcqc5hg1ui5mo#0',
-      ],
-      capabilityInvocation: [
-        'did:dht:pfm8f6w57srtci1k3spp73dqgk5eo3afkimtyi4zcqc5hg1ui5mo#0',
-      ],
-    },
-    metadata    : { published: true, versionId: '1722222058' },
-    privateKeys : [
-      {
-        crv : 'Ed25519',
-        d   : 'hfdP9c-mZGGpMxXOwxVeWi9yGqBuOPFIjYuIGBvVeTU',
-        kty : 'OKP' as const,
-        x   : 'aVZy-pvtiRZWSs2a3uRuMraIZwVVVxBXV2OZvhpTrtc',
-        kid : 'XbjbYC8wLOxIYOCvDAcJQcJBWWpfXbaHNiZYu9KyMsI',
-        alg : 'EdDSA',
-      },
-    ],
-  };
 
   let permissionGrants: DwnResponse<any>[] = [
     {
@@ -199,12 +121,6 @@ describe('web5 connect', function () {
 
   let codeChallenge: Uint8Array;
 
-  let clientEphemeralBearerDid: BearerDid;
-  let delegateBearerDid: BearerDid;
-
-  let providerIdentity: BearerIdentity;
-  let providerIdentityBearerDid: BearerDid;
-
   let authRequest: Web5ConnectAuthRequest;
   let authRequestJwt: string;
   let authRequestJwe: string;
@@ -219,26 +135,6 @@ describe('web5 connect', function () {
   const randomPin = '9999';
 
   before(async () => {
-    sinon.stub(DidDht, 'resolve').resolves({
-      didDocument           : clientEphemeralPortableDid!.document,
-      didDocumentMetadata   : clientEphemeralPortableDid!.metadata,
-      didResolutionMetadata : clientEphemeralPortableDid!.metadata,
-    });
-    clientEphemeralBearerDid = await DidDht.import({
-      portableDid: clientEphemeralPortableDid,
-    });
-    sinon.restore();
-
-    sinon.stub(DidDht, 'resolve').resolves({
-      didDocument           : delegatePortableDid!.document,
-      didDocumentMetadata   : delegatePortableDid!.metadata,
-      didResolutionMetadata : delegatePortableDid!.metadata,
-    });
-    delegateBearerDid = await DidDht.import({
-      portableDid: delegatePortableDid,
-    });
-    sinon.restore();
-
     providerIdentityBearerDid = await DidDht.import({
       portableDid: providerIdentityPortableDid,
     });
@@ -254,6 +150,32 @@ describe('web5 connect', function () {
       name        : 'MrProvider',
       testDwnUrls : [testDwnUrl],
     });
+
+    clientEphemeralBearerDid = await DidJwk.create();
+    clientEphemeralPortableDid = await clientEphemeralBearerDid.export();
+
+    // sinon.stub(DidDht, 'resolve').resolves({
+    //   didDocument           : clientEphemeralPortableDid!.document,
+    //   didDocumentMetadata   : clientEphemeralPortableDid!.metadata,
+    //   didResolutionMetadata : clientEphemeralPortableDid!.metadata,
+    // });
+    // clientEphemeralBearerDid = await DidDht.import({
+    //   portableDid: clientEphemeralPortableDid,
+    // });
+    // sinon.restore();
+
+    delegateBearerDid = await DidJwk.create();
+    delegatePortableDid = await delegateBearerDid.export();
+
+    // sinon.stub(DidDht, 'resolve').resolves({
+    //   didDocument           : delegatePortableDid!.document,
+    //   didDocumentMetadata   : delegatePortableDid!.metadata,
+    //   didResolutionMetadata : delegatePortableDid!.metadata,
+    // });
+    // delegateBearerDid = await DidDht.import({
+    //   portableDid: delegatePortableDid,
+    // });
+    // sinon.restore();
   });
 
   after(async () => {
@@ -489,8 +411,8 @@ describe('web5 connect', function () {
     it('should complete the whole connect flow with the correct pin', async function () {
       const fetchStub = sinon.stub(globalThis, 'fetch');
       const onWalletUriReadySpy = sinon.spy();
-      const didDhtStub = sinon
-        .stub(DidDht, 'create')
+      sinon
+        .stub(DidJwk, 'create')
         .resolves(clientEphemeralBearerDid);
 
       const par = {
