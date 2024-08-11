@@ -11,7 +11,7 @@ import {
 import { concatenateUrl } from './utils.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 import type { ConnectPermissionRequest } from './connect.js';
-import { DidDht, DidDocument, PortableDid, type BearerDid } from '@web5/dids';
+import { DidDht, DidDocument, DidJwk, PortableDid, type BearerDid } from '@web5/dids';
 import { AgentDwnApi } from './dwn-api.js';
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 import { DwnInterface } from './types/dwn.js';
@@ -629,7 +629,7 @@ async function submitAuthResponse(
   randomPin: string,
   dwn: AgentDwnApi
 ) {
-  const delegateDid = await DidDht.create();
+  const delegateDid = await DidJwk.create();
   const delegateDidPortable = await delegateDid.export();
 
   const permissionGrants = await Oidc.createPermissionGrants(

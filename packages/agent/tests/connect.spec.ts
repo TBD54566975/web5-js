@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { CryptoUtils } from '@web5/crypto';
-import { type BearerDid, DidDht } from '@web5/dids';
+import { type BearerDid, DidDht, DidJwk } from '@web5/dids';
 import { Convert } from '@web5/common';
 import {
   Oidc,
@@ -110,7 +110,7 @@ describe('web5 connect', function () {
   };
 
   /** The temporary DID that web5 connect created on behalf of the provider */
-  const providerEphemeralPortableDid = {
+  const delegatePortableDid = {
     uri      : 'did:dht:pfm8f6w57srtci1k3spp73dqgk5eo3afkimtyi4zcqc5hg1ui5mo',
     document : {
       id                 : 'did:dht:pfm8f6w57srtci1k3spp73dqgk5eo3afkimtyi4zcqc5hg1ui5mo',
@@ -200,7 +200,7 @@ describe('web5 connect', function () {
   let codeChallenge: Uint8Array;
 
   let clientEphemeralBearerDid: BearerDid;
-  let providerEphemeralBearerDid: BearerDid;
+  let delegateBearerDid: BearerDid;
 
   let providerIdentity: BearerIdentity;
   let providerIdentityBearerDid: BearerDid;
@@ -230,12 +230,12 @@ describe('web5 connect', function () {
     sinon.restore();
 
     sinon.stub(DidDht, 'resolve').resolves({
-      didDocument           : providerEphemeralPortableDid!.document,
-      didDocumentMetadata   : providerEphemeralPortableDid!.metadata,
-      didResolutionMetadata : providerEphemeralPortableDid!.metadata,
+      didDocument           : delegatePortableDid!.document,
+      didDocumentMetadata   : delegatePortableDid!.metadata,
+      didResolutionMetadata : delegatePortableDid!.metadata,
     });
-    providerEphemeralBearerDid = await DidDht.import({
-      portableDid: providerEphemeralPortableDid,
+    delegateBearerDid = await DidDht.import({
+      portableDid: delegatePortableDid,
     });
     sinon.restore();
 
@@ -344,7 +344,7 @@ describe('web5 connect', function () {
     it('should create permission grants for each selected did', async () => {
       const results = await Oidc.createPermissionGrants(
         providerIdentity.did.uri,
-        providerEphemeralBearerDid,
+        delegateBearerDid,
         testHarness.agent.dwn
       );
       expect(results).to.have.lengthOf(1);
@@ -354,11 +354,11 @@ describe('web5 connect', function () {
     it('should create the authresponse which includes the permissionGrants, nonce, private key material', async () => {
       const options = {
         iss            : providerIdentity.did.uri,
-        sub            : providerEphemeralBearerDid.uri,
+        sub            : delegateBearerDid.uri,
         aud            : authRequest.client_id,
         nonce          : authRequest.nonce,
         delegateGrants : permissionGrants,
-        delegateDid    : providerEphemeralPortableDid,
+        delegateDid    : delegatePortableDid,
       };
       authResponse = await Oidc.createResponseObject(options);
 
@@ -370,7 +370,7 @@ describe('web5 connect', function () {
 
     it('should sign the authresponse with its provider did', async () => {
       authResponseJwt = await Oidc.signJwt({
-        did  : providerEphemeralBearerDid,
+        did  : delegateBearerDid,
         data : authResponse,
       });
       expect(authResponseJwt).to.be.a('string');
@@ -378,12 +378,12 @@ describe('web5 connect', function () {
 
     it('should derive a valid ECDH private key for both provider and client which is identical', async () => {
       const providerECDHDerivedPrivateKey = await Oidc.deriveSharedKey(
-        providerEphemeralBearerDid,
+        delegateBearerDid,
         clientEphemeralBearerDid.document
       );
       const clientECDHDerivedPrivateKey = await Oidc.deriveSharedKey(
         clientEphemeralBearerDid,
-        providerEphemeralBearerDid.document
+        delegateBearerDid.document
       );
 
       expect(providerECDHDerivedPrivateKey).to.be.instanceOf(Uint8Array);
@@ -408,22 +408,16 @@ describe('web5 connect', function () {
         encryptionKey : sharedECDHPrivateKey,
         randomPin,
         providerDidKid:
-          providerEphemeralBearerDid.document.verificationMethod![0].id,
+          delegateBearerDid.document.verificationMethod![0].id,
       });
       expect(authResponseJwe).to.be.a('string');
       expect(randomBytesStub.calledOnce).to.be.true;
     });
 
     it('should send the encrypted jwe authresponse to the server', async () => {
-      const permissionGrantsStub = sinon
-        .stub(Oidc, 'createPermissionGrants')
-        .resolves(permissionGrants);
-      const randomBytesStub = sinon
-        .stub(CryptoUtils, 'randomBytes')
-        .returns(encryptionNonce);
-      const didDhtStub = sinon
-        .stub(DidDht, 'create')
-        .resolves(providerEphemeralBearerDid);
+      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants);
+      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
+      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
 
       const formEncodedRequest = new URLSearchParams({
         id_token : authResponseJwe,
