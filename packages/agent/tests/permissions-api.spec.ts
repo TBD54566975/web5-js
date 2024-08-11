@@ -57,6 +57,26 @@ describe('AgentPermissionsApi', () => {
   });
 
   describe('fetchGrants', () => {
+    it('from remote', async () => {
+      // spy on the processDwnRequest method
+      const processDwnRequestSpy = sinon.spy(testHarness.agent, 'processDwnRequest');
+      // mock the sendDwnRequest method to return a 200 response
+      const sendDwnRequestStub = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({ messageCid: '', reply: { entries: [], status: { code: 200, detail: 'OK'} }});
+
+      // fetch permission grants
+      await testHarness.agent.permissions.fetchGrants({
+        author : aliceDid.uri,
+        target : aliceDid.uri,
+        remote : true
+      });
+
+      // expect the processDwnRequest method to not have been called
+      expect(processDwnRequestSpy.called).to.be.false;
+
+      // expect the sendDwnRequest method to have been called
+      expect(sendDwnRequestStub.called).to.be.true;
+    });
+
     it('throws if the query returns anything other than 200', async () => {
       // stub the processDwnRequest method to return a 400 error
       sinon.stub(testHarness.agent, 'processDwnRequest').resolves({ messageCid: '', reply: { status: { code: 400, detail: 'Bad Request'} }});
@@ -74,6 +94,26 @@ describe('AgentPermissionsApi', () => {
   });
 
   describe('fetchRequests', () => {
+    it('from remote', async () => {
+      // spy on the processDwnRequest method
+      const processDwnRequestSpy = sinon.spy(testHarness.agent, 'processDwnRequest');
+      // mock the sendDwnRequest method to return a 200 response
+      const sendDwnRequestStub = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({ messageCid: '', reply: { entries: [], status: { code: 200, detail: 'OK'} }});
+
+      // fetch permission grants
+      await testHarness.agent.permissions.fetchRequests({
+        author : aliceDid.uri,
+        target : aliceDid.uri,
+        remote : true
+      });
+
+      // expect the processDwnRequest method to not have been called
+      expect(processDwnRequestSpy.called).to.be.false;
+
+      // expect the sendDwnRequest method to have been called
+      expect(sendDwnRequestStub.called).to.be.true;
+    });
+
     it('throws if the query returns anything other than 200', async () => {
       // stub the processDwnRequest method to return a 400 error
       sinon.stub(testHarness.agent, 'processDwnRequest').resolves({ messageCid: '', reply: { status: { code: 400, detail: 'Bad Request'} }});
@@ -91,13 +131,38 @@ describe('AgentPermissionsApi', () => {
   });
 
   describe('isGrantRevoked', () => {
+    it('from remote', async () => {
+      // spy on the processDwnRequest method
+      const processDwnRequestSpy = sinon.spy(testHarness.agent, 'processDwnRequest');
+      // mock the sendDwnRequest method to return a 200 response
+      const sendDwnRequestStub = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK'} }});
+
+      // fetch permission grants
+      await testHarness.agent.permissions.isGrantRevoked({
+        author : aliceDid.uri,
+        target : aliceDid.uri,
+        grantRecordId : 'grant-record-id',
+        remote : true
+      });
+
+      // expect the processDwnRequest method to not have been called
+      expect(processDwnRequestSpy.called).to.be.false;
+
+      // expect the sendDwnRequest method to have been called
+      expect(sendDwnRequestStub.called).to.be.true;
+    });
+
     it('throws if the request was bad', async () => {
       // stub the processDwnRequest method to return a 400 error
       sinon.stub(testHarness.agent, 'processDwnRequest').resolves({ messageCid: '', reply: { status: { code: 400, detail: 'Bad Request'} }});
 
       // create a permission request
       try {
-        await testHarness.agent.permissions.isGrantRevoked(aliceDid.uri, aliceDid.uri, 'grant-record-id');
+        await testHarness.agent.permissions.isGrantRevoked({
+          author        : aliceDid.uri,
+          target        : aliceDid.uri,
+          grantRecordId : 'grant-record-id'
+        });
       } catch(error: any) {
         expect(error.message).to.equal('PermissionsApi: Failed to check if grant is revoked: Bad Request');
       }
@@ -130,7 +195,11 @@ describe('AgentPermissionsApi', () => {
       const writeGrant = await DwnPermissionGrant.parse(deviceXGrant.message);
 
       // check if the grant is revoked
-      let isRevoked = await testHarness.agent.permissions.isGrantRevoked(aliceDid.uri, aliceDid.uri, deviceXGrant.grant.id);
+      let isRevoked = await testHarness.agent.permissions.isGrantRevoked({
+        author        : aliceDid.uri,
+        target        : aliceDid.uri,
+        grantRecordId : deviceXGrant.grant.id
+      });
       expect(isRevoked).to.equal(false);
 
       // create a revocation for the grant
@@ -141,7 +210,11 @@ describe('AgentPermissionsApi', () => {
       });
 
       // check if the grant is revoked again, should be true
-      isRevoked = await testHarness.agent.permissions.isGrantRevoked(aliceDid.uri, aliceDid.uri, deviceXGrant.grant.id);
+      isRevoked = await testHarness.agent.permissions.isGrantRevoked({
+        author        : aliceDid.uri,
+        target        : aliceDid.uri,
+        grantRecordId : deviceXGrant.grant.id
+      });
       expect(isRevoked).to.equal(true);
     });
   });
@@ -275,7 +348,11 @@ describe('AgentPermissionsApi', () => {
       const writeGrant = await DwnPermissionGrant.parse(deviceXGrant.message);
 
       // check if the grant is revoked
-      let isRevoked = await testHarness.agent.permissions.isGrantRevoked(aliceDid.uri, aliceDid.uri, deviceXGrant.grant.id);
+      let isRevoked = await testHarness.agent.permissions.isGrantRevoked({
+        author        : aliceDid.uri,
+        target        : aliceDid.uri,
+        grantRecordId : deviceXGrant.grant.id
+      });
       expect(isRevoked).to.equal(false);
 
       // create a revocation for the grant
@@ -286,7 +363,11 @@ describe('AgentPermissionsApi', () => {
       });
 
       // check if the grant is revoked again, should be true
-      isRevoked = await testHarness.agent.permissions.isGrantRevoked(aliceDid.uri, aliceDid.uri, deviceXGrant.grant.id);
+      isRevoked = await testHarness.agent.permissions.isGrantRevoked({
+        author        : aliceDid.uri,
+        target        : aliceDid.uri,
+        grantRecordId : deviceXGrant.grant.id
+      });
       expect(isRevoked).to.equal(true);
     });
 
@@ -317,7 +398,11 @@ describe('AgentPermissionsApi', () => {
       const writeGrant = await DwnPermissionGrant.parse(deviceXGrant.message);
 
       // check if the grant is revoked
-      let isRevoked = await testHarness.agent.permissions.isGrantRevoked(aliceDid.uri, aliceDid.uri, deviceXGrant.grant.id);
+      let isRevoked = await testHarness.agent.permissions.isGrantRevoked({
+        author        : aliceDid.uri,
+        target        : aliceDid.uri,
+        grantRecordId : deviceXGrant.grant.id
+      });
       expect(isRevoked).to.equal(false);
 
       // create a revocation for the grant without storing it
@@ -327,7 +412,11 @@ describe('AgentPermissionsApi', () => {
       });
 
       // check if the grant is revoked again, should be true
-      isRevoked = await testHarness.agent.permissions.isGrantRevoked(aliceDid.uri, aliceDid.uri, deviceXGrant.grant.id);
+      isRevoked = await testHarness.agent.permissions.isGrantRevoked({
+        author        : aliceDid.uri,
+        target        : aliceDid.uri,
+        grantRecordId : deviceXGrant.grant.id
+      });
       expect(isRevoked).to.equal(false);
     });
   });
