@@ -226,21 +226,19 @@ export class AgentPermissionsApi implements PermissionsApi {
   }
 
   async createRevocation(params: CreateRevocationParams): Promise<PermissionRevocationEntry> {
-    const { author, store = false, ...createRevocationParams } = params;
+    const { author, store = false, grant, description } = params;
 
-    const revokeData: PermissionRevocationData = {
-      description: createRevocationParams.description,
-    };
+    const revokeData: PermissionRevocationData = { description };
 
     const permissionRevocationBytes = Convert.object(revokeData).toUint8Array();
 
     let tags = undefined;
-    if (PermissionsProtocol.hasProtocolScope(createRevocationParams.grant.scope)) {
-      tags = { protocol: createRevocationParams.grant.scope.protocol };
+    if (PermissionsProtocol.hasProtocolScope(grant.scope)) {
+      tags = { protocol: grant.scope.protocol };
     }
 
     const messageParams: DwnMessageParams[DwnInterface.RecordsWrite] = {
-      parentContextId : createRevocationParams.grant.id,
+      parentContextId : grant.id,
       protocol        : PermissionsProtocol.uri,
       protocolPath    : PermissionsProtocol.revocationPath,
       dataFormat      : 'application/json',
