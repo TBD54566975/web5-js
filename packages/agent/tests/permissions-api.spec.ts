@@ -139,10 +139,10 @@ describe('AgentPermissionsApi', () => {
 
       // fetch permission grants
       await testHarness.agent.permissions.isGrantRevoked({
-        author : aliceDid.uri,
-        target : aliceDid.uri,
+        author        : aliceDid.uri,
+        target        : aliceDid.uri,
         grantRecordId : 'grant-record-id',
-        remote : true
+        remote        : true
       });
 
       // expect the processDwnRequest method to not have been called

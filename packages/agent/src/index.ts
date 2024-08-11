@@ -3,6 +3,7 @@ export * from './types/dwn.js';
 export type * from './types/identity.js';
 export type * from './types/identity-vault.js';
 export type * from './types/key-manager.js';
+export type * from './types/permissions.js';
 export type * from './types/sync.js';
 export type * from './types/vc.js';
 
