@@ -1368,7 +1368,87 @@ describe('DwnApi', () => {
   });
 
   describe('connected.findPermissionGrantForRequest', () => {
-    xit('caches result');
+    it('caches result', async () => {
+      // create a grant for bob
+      const deviceXGrant = await dwnAlice.permissions.grant({
+        store       : true,
+        grantedTo   : bobDid.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        delegated   : true,
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol'
+        }
+      });
+
+      const processDwnRequestSpy = sinon.spy(testHarness.agent, 'processDwnRequest');
+      // find the grant for a request
+
+      // simulate a connect where bobDid can impersonate aliceDid
+      dwnBob['connectedDid'] = aliceDid.uri;
+      dwnBob['delegateDid'] = bobDid.uri;
+      await DwnApi.processConnectedGrants({
+        agent       : testHarness.agent,
+        delegateDid : bobDid.uri,
+        grants      : [ deviceXGrant.rawMessage ]
+      });
+
+      let grantForRequest = await dwnBob['connected'].findPermissionGrantForMessage({
+        messageParams: {
+          messageType : DwnInterface.RecordsWrite,
+          protocol    : 'http://example.com/protocol'
+        }
+      });
+
+      // expect to have the grant
+      expect(grantForRequest).to.exist;
+      expect(grantForRequest.id).to.equal(deviceXGrant.id);
+      expect(processDwnRequestSpy.callCount).to.equal(2); // 1 for the request, and 1 for the revocation check
+
+      processDwnRequestSpy.resetHistory();
+
+      // attempt to find the grant again
+      grantForRequest = await dwnBob['connected'].findPermissionGrantForMessage({
+        messageParams: {
+          messageType : DwnInterface.RecordsWrite,
+          protocol    : 'http://example.com/protocol'
+        }
+      });
+      expect(grantForRequest).to.exist;
+      expect(grantForRequest.id).to.equal(deviceXGrant.id);
+      expect(processDwnRequestSpy.callCount).to.equal(0); // should not have been called again
+
+      // call for a different grant
+      try {
+        await dwnBob['connected'].findPermissionGrantForMessage({
+          messageParams: {
+            messageType : DwnInterface.RecordsRead,
+            protocol    : 'http://example.com/protocol'
+          }
+        });
+        expect.fail('Should have thrown an error');
+      } catch(error:any) {
+        expect(error.message).to.equal('AgentDwnApi: No permissions found for RecordsRead: http://example.com/protocol');
+      }
+
+      expect(processDwnRequestSpy.callCount).to.equal(1); // should have been called once for the request
+
+      // call again to ensure grants which are not found are not cached
+      try {
+        await dwnBob['connected'].findPermissionGrantForMessage({
+          messageParams: {
+            messageType : DwnInterface.RecordsRead,
+            protocol    : 'http://example.com/protocol'
+          }
+        });
+        expect.fail('Should have thrown an error');
+      } catch(error:any) {
+        expect(error.message).to.equal('AgentDwnApi: No permissions found for RecordsRead: http://example.com/protocol');
+      }
+
+      expect(processDwnRequestSpy.callCount).to.equal(2); // should have been called again for the request
+    });
 
     it('throws if no delegateDid is set', async () => {
       // make sure delegateDid is undefined
