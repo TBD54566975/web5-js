@@ -10,14 +10,14 @@ import { testDwnUrl } from './utils/test-config.js';
 import { webcrypto } from 'node:crypto';
 import { PlatformAgentTestHarness } from '@web5/agent';
 import { DwnInterfaceName, DwnMethodName, Time } from '@tbd54566975/dwn-sdk-js';
-import { Grant } from '../src/grant.js';
+import { PermissionGrant } from '../src/permission-grant.js';
 import { DwnApi } from '../src/dwn-api.js';
 // @ts-ignore
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 let testDwnUrls: string[] = [testDwnUrl];
 
-describe('Grant', () => {
+describe('PermissionGrant', () => {
   let aliceDid: BearerDid;
   let bobDid: BearerDid;
   let aliceDwn: DwnApi;
@@ -67,7 +67,7 @@ describe('Grant', () => {
         scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
       });
 
-      const parsedGrant = await Grant.parse({
+      const parsedGrant = await PermissionGrant.parse({
         agent        : testHarness.agent,
         connectedDid : bobDid.uri,
         message,
@@ -84,7 +84,7 @@ describe('Grant', () => {
   describe('send()', () => {
     it('sends to connectedDID target by default', async () => {
       // Create a grant message.
-      const grant = await aliceDwn.grants.createGrant({
+      const grant = await aliceDwn.permissions.grant({
         store       : false,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
@@ -92,7 +92,7 @@ describe('Grant', () => {
       });
 
       // query the remote for the grant
-      let fetchedRemote = await aliceDwn.grants.fetchGrants({
+      let fetchedRemote = await aliceDwn.permissions.queryGrants({
         from: aliceDid.uri,
       });
       expect(fetchedRemote.length).to.equal(0);
@@ -102,7 +102,7 @@ describe('Grant', () => {
       expect(sent.status.code).to.equal(202);
 
       // query the remote for the grant, should now exist
-      fetchedRemote = await aliceDwn.grants.fetchGrants({
+      fetchedRemote = await aliceDwn.permissions.queryGrants({
         from: aliceDid.uri,
       });
       expect(fetchedRemote.length).to.equal(1);
@@ -110,7 +110,7 @@ describe('Grant', () => {
 
     it('sends to a remote target', async () => {
       // Alice creates a grant for Bob
-      const grant = await aliceDwn.grants.createGrant({
+      const grant = await aliceDwn.permissions.grant({
         store       : false,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
@@ -121,13 +121,13 @@ describe('Grant', () => {
       expect(aliceSent.status.code).to.equal(202);
 
       // bob queries alice's remote for a grant
-      const fetchedFromAlice = await bobDwn.grants.fetchGrants({
+      const fetchedFromAlice = await bobDwn.permissions.queryGrants({
         from: aliceDid.uri,
       });
       expect(fetchedFromAlice.length).to.equal(1);
 
       // fetch from bob's remote. should have no grants
-      let fetchedRemote = await bobDwn.grants.fetchGrants({
+      let fetchedRemote = await bobDwn.permissions.queryGrants({
         from: bobDid.uri,
       });
       expect(fetchedRemote.length).to.equal(0);
@@ -144,7 +144,7 @@ describe('Grant', () => {
       expect(sent.status.code).to.equal(202);
       // // send the gran
       // the grant should now exist in bob's remote
-      fetchedRemote = await bobDwn.grants.fetchGrants({
+      fetchedRemote = await bobDwn.permissions.queryGrants({
         from: bobDid.uri,
       });
       expect(fetchedRemote.length).to.equal(1);
@@ -155,7 +155,7 @@ describe('Grant', () => {
   describe('store()', () => {
     it('stores the grant as is', async () => {
       // create a grant not marked as stored
-      const grant = await aliceDwn.grants.createGrant({
+      const grant = await aliceDwn.permissions.grant({
         store       : false,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
@@ -163,7 +163,7 @@ describe('Grant', () => {
       });
 
       // validate the grant does not exist in the DWN
-      let fetchedGrants = await aliceDwn.grants.fetchGrants();
+      let fetchedGrants = await aliceDwn.permissions.queryGrants();
       expect(fetchedGrants.length).to.equal(0);
 
       // store the grant
@@ -171,14 +171,14 @@ describe('Grant', () => {
       expect(stored.status.code).to.equal(202);
 
       // validate the grant now exists in the DWN
-      fetchedGrants = await aliceDwn.grants.fetchGrants();
+      fetchedGrants = await aliceDwn.permissions.queryGrants();
       expect(fetchedGrants.length).to.equal(1);
       expect(fetchedGrants[0].toJSON()).to.deep.equal(grant.toJSON());
     });
 
     it('stores the grant and imports it', async () => {
       // alice creates a grant and sends it to her remote
-      const grant = await aliceDwn.grants.createGrant({
+      const grant = await aliceDwn.permissions.grant({
         store       : false,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
@@ -188,7 +188,7 @@ describe('Grant', () => {
       expect(sent.status.code).to.equal(202);
 
       // bob queries alice's remote for a grant
-      let fetchedFromAlice = await bobDwn.grants.fetchGrants({
+      let fetchedFromAlice = await bobDwn.permissions.queryGrants({
         from: aliceDid.uri,
       });
       expect(fetchedFromAlice.length).to.equal(1);
@@ -199,7 +199,7 @@ describe('Grant', () => {
       expect(stored.status.code).to.equal(401);
 
       // attempt to fetch from local to ensure it was not imported
-      let fetchedLocal = await bobDwn.grants.fetchGrants();
+      let fetchedLocal = await bobDwn.permissions.queryGrants();
       expect(fetchedLocal.length).to.equal(0);
 
       // store the grant and import it
@@ -207,7 +207,7 @@ describe('Grant', () => {
       expect(stored.status.code).to.equal(202);
 
       // fetch from local to ensure it was imported
-      fetchedLocal = await bobDwn.grants.fetchGrants();
+      fetchedLocal = await bobDwn.permissions.queryGrants();
       expect(fetchedLocal.length).to.equal(1);
       expect(fetchedLocal[0].toJSON()).to.deep.equal(fetchedGrant.toJSON());
     });
@@ -216,7 +216,7 @@ describe('Grant', () => {
   describe('import()', () => {
     it('imports the grant without storing it', async () => {
       // alice creates a grant and sends it to her remote
-      const grant = await aliceDwn.grants.createGrant({
+      const grant = await aliceDwn.permissions.grant({
         store       : false,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
@@ -226,14 +226,14 @@ describe('Grant', () => {
       expect(sent.status.code).to.equal(202);
 
       // bob queries alice's remote for a grant
-      let fetchedFromAlice = await bobDwn.grants.fetchGrants({
+      let fetchedFromAlice = await bobDwn.permissions.queryGrants({
         from: aliceDid.uri,
       });
       expect(fetchedFromAlice.length).to.equal(1);
       const fetchedGrant = fetchedFromAlice[0];
 
       // confirm the grant does not yet exist in bob's remote
-      let fetchedRemote = await bobDwn.grants.fetchGrants({
+      let fetchedRemote = await bobDwn.permissions.queryGrants({
         from: bobDid.uri,
       });
       expect(fetchedRemote.length).to.equal(0);
@@ -247,7 +247,7 @@ describe('Grant', () => {
       expect(imported.status.code).to.equal(202);
 
       // fetch from local to ensure it was not stored
-      const fetchedLocal = await bobDwn.grants.fetchGrants();
+      const fetchedLocal = await bobDwn.permissions.queryGrants();
       expect(fetchedLocal.length).to.equal(0);
 
       // send the grant to bob's remote
@@ -255,7 +255,7 @@ describe('Grant', () => {
       expect(sentToBob.status.code).to.equal(202);
 
       // fetch from bob's remote to ensure it was imported
-      fetchedRemote = await bobDwn.grants.fetchGrants({
+      fetchedRemote = await bobDwn.permissions.queryGrants({
         from: bobDid.uri,
       });
       expect(fetchedRemote.length).to.equal(1);
@@ -264,7 +264,7 @@ describe('Grant', () => {
 
     it('imports the grant and stores it', async () => {
       // alice creates a grant and sends it to her remote
-      const grant = await aliceDwn.grants.createGrant({
+      const grant = await aliceDwn.permissions.grant({
         store       : false,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
@@ -274,14 +274,14 @@ describe('Grant', () => {
       expect(sent.status.code).to.equal(202);
 
       // bob queries alice's remote for a grant
-      let fetchedFromAlice = await bobDwn.grants.fetchGrants({
+      let fetchedFromAlice = await bobDwn.permissions.queryGrants({
         from: aliceDid.uri,
       });
       expect(fetchedFromAlice.length).to.equal(1);
       const fetchedGrant = fetchedFromAlice[0];
 
       // confirm the grant does not yet exist in bob's remote
-      let fetchedRemote = await bobDwn.grants.fetchGrants({
+      let fetchedRemote = await bobDwn.permissions.queryGrants({
         from: bobDid.uri,
       });
       expect(fetchedRemote.length).to.equal(0);
@@ -291,7 +291,7 @@ describe('Grant', () => {
       expect(imported.status.code).to.equal(202);
 
       // fetch from local to ensure it was stored
-      const fetchedLocal = await bobDwn.grants.fetchGrants();
+      const fetchedLocal = await bobDwn.permissions.queryGrants();
       expect(fetchedLocal.length).to.equal(1);
       expect(fetchedLocal[0].toJSON()).to.deep.equal(fetchedGrant.toJSON());
     });
@@ -307,7 +307,7 @@ describe('Grant', () => {
         scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
       });
 
-      const parsedGrant = await Grant.parse({
+      const parsedGrant = await PermissionGrant.parse({
         agent        : testHarness.agent,
         connectedDid : bobDid.uri,
         message,
@@ -320,7 +320,7 @@ describe('Grant', () => {
   describe('revoke()', () => {
     it('revokes the grant, stores it by default', async () => {
       // create a grant
-      const grant = await aliceDwn.grants.createGrant({
+      const grant = await aliceDwn.permissions.grant({
         store       : true,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
@@ -340,7 +340,7 @@ describe('Grant', () => {
 
     it('revokes the grant, does not store it', async () => {
       // create a grant
-      const grant = await aliceDwn.grants.createGrant({
+      const grant = await aliceDwn.permissions.grant({
         store       : true,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
@@ -370,7 +370,7 @@ describe('Grant', () => {
   describe('isRevoked()', () => {
     it('checks revocation status of local DWN', async () => {
       // create a grant
-      const grant = await aliceDwn.grants.createGrant({
+      const grant = await aliceDwn.permissions.grant({
         store       : true,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
@@ -390,7 +390,7 @@ describe('Grant', () => {
 
     it('checks revocation status of remote DWN', async () => {
       // create a grant
-      const grant = await aliceDwn.grants.createGrant({
+      const grant = await aliceDwn.permissions.grant({
         store       : true,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),

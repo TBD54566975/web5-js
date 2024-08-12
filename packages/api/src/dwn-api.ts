@@ -7,6 +7,7 @@
 import type {
   CreateGrantParams,
   CreateRequestParams,
+  FetchPermissionRequestParams,
   FetchPermissionsParams
 } from '@web5/agent';
 
@@ -28,12 +29,16 @@ import { DwnInterface, getRecordAuthor, DwnPermissionsUtil } from '@web5/agent';
 import { Record } from './record.js';
 import { dataToBlob } from './utils.js';
 import { Protocol } from './protocol.js';
-import { Grant } from './grant.js';
-import { GrantRequest } from './grant-request.js';
+import { PermissionGrant } from './permission-grant.js';
+import { PermissionRequest } from './permission-request.js';
 
 export type GrantRequestCreateRequest = Omit<CreateRequestParams, 'author'>;
 
 export type GrantCreateRequest = Omit<CreateGrantParams, 'author'>;
+
+export type FetchRequestsRequest = Omit<FetchPermissionRequestParams, 'author' | 'target' | 'remote'> & {
+  from?: string;
+};
 
 export type FetchGrantsRequest = Omit<FetchPermissionsParams, 'author' | 'target' | 'remote'> & {
   from?: string;
@@ -251,7 +256,7 @@ export class DwnApi {
   /** (optional) The DID of the signer when signing with permissions */
   private delegateDid?: string;
 
-  private permissions: AgentPermissionsApi;
+  private permissionsApi: AgentPermissionsApi;
 
   /** cache for fetching permissions */
   private cachedPermissions: TtlCache<string, DwnDataEncodedRecordsWriteMessage> = new TtlCache({ ttl: 60 * 1000 });
@@ -260,7 +265,7 @@ export class DwnApi {
     this.agent = options.agent;
     this.connectedDid = options.connectedDid;
     this.delegateDid = options.delegateDid;
-    this.permissions = new AgentPermissionsApi({ agent: this.agent });
+    this.permissionsApi = new AgentPermissionsApi({ agent: this.agent });
   }
 
   /**
@@ -325,7 +330,7 @@ export class DwnApi {
           const grantee = this.delegateDid;
           const grantor = this.connectedDid;
 
-          const fetchResponse = await this.permissions.fetchGrants({
+          const fetchResponse = await this.permissionsApi.fetchGrants({
             target: grantee,
             author,
             grantee,
@@ -337,7 +342,7 @@ export class DwnApi {
             // check if the grant is revoked, we set the target to the grantor since the grantor is the author of the revocation
             // the revocations should come in through sync, and are checked against the local DWN
             const grantRecordId = entry.grant.id;
-            if(await this.permissions.isGrantRevoked({ author, target: grantor, grantRecordId })) {
+            if(await this.permissionsApi.isGrantRevoked({ author, target: grantor, grantRecordId })) {
               continue;
             }
 
@@ -358,24 +363,24 @@ export class DwnApi {
    * NOTE: This is an EXPERIMENTAL API that will change behavior.
    * @beta
    */
-  get grants() {
+  get permissions() {
     return {
-      createRequest: async(request: GrantRequestCreateRequest): Promise<GrantRequest> => {
-        const { message } = await this.permissions.createRequest({
+      request: async(request: GrantRequestCreateRequest): Promise<PermissionRequest> => {
+        const { message } = await this.permissionsApi.createRequest({
           ...request,
           author: this.connectedDid,
         });
 
         const requestParams = {
           connectedDid : this.connectedDid,
-          permissions  : this.permissions,
+          agent        : this.agent,
           message,
         };
 
-        return await GrantRequest.parse(requestParams);
+        return await PermissionRequest.parse(requestParams);
       },
-      createGrant: async(request :GrantCreateRequest): Promise<Grant> => {
-        const { message } = await this.permissions.createGrant({
+      grant: async(request :GrantCreateRequest): Promise<PermissionGrant> => {
+        const { message } = await this.permissionsApi.createGrant({
           ...request,
           author: this.connectedDid,
         });
@@ -386,25 +391,46 @@ export class DwnApi {
           message,
         };
 
-        return await Grant.parse(grantParams);
+        return await PermissionGrant.parse(grantParams);
       },
-      fetchGrants: async(request: FetchGrantsRequest = {}): Promise<Grant[]> => {
+      queryRequests: async(request: FetchGrantsRequest = {}): Promise<PermissionRequest[]> => {
         const { from, ...params } = request;
-        const fetchResponse = await this.permissions.fetchGrants({
+        const fetchResponse = await this.permissionsApi.fetchRequests({
           ...params,
           author : this.connectedDid,
           target : from ?? this.connectedDid,
           remote : from !== undefined,
         });
 
-        const grants: Grant[] = [];
+        const requests: PermissionRequest[] = [];
+        for (const permission of fetchResponse) {
+          const requestParams = {
+            connectedDid : this.connectedDid,
+            agent        : this.agent,
+            message      : permission.message,
+          };
+          requests.push(await PermissionRequest.parse(requestParams));
+        }
+
+        return requests;
+      },
+      queryGrants: async(request: FetchGrantsRequest = {}): Promise<PermissionGrant[]> => {
+        const { from, ...params } = request;
+        const fetchResponse = await this.permissionsApi.fetchGrants({
+          ...params,
+          author : this.connectedDid,
+          target : from ?? this.connectedDid,
+          remote : from !== undefined,
+        });
+
+        const grants: PermissionGrant[] = [];
         for (const permission of fetchResponse) {
           const grantParams = {
             connectedDid : this.connectedDid,
             agent        : this.agent,
             message      : permission.message,
           };
-          grants.push(await Grant.parse(grantParams));
+          grants.push(await PermissionGrant.parse(grantParams));
         }
 
         return grants;
@@ -789,7 +815,7 @@ export class DwnApi {
   }): Promise<void> {
     for (const grantMessage of grants) {
       // use the delegateDid as the connectedDid of the grant as they do not yet support impersonation/delegation
-      const grant = await Grant.parse({ connectedDid: delegateDid, agent, message: grantMessage });
+      const grant = await PermissionGrant.parse({ connectedDid: delegateDid, agent, message: grantMessage });
       // store the grant as the owner of the DWN, this will allow the delegateDid to use the grant when impersonating the connectedDid
       const { status } = await grant.store(true);
       if (status.code !== 202) {

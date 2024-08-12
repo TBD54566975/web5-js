@@ -15,7 +15,7 @@ import {
 } from '@web5/agent';
 import { GrantRevocation } from './grant-revocation.js';
 
-export interface GrantModel {
+export interface PermissionGrantModel {
   /**
    * The ID of the permission grant, which is the record ID DWN message.
    */
@@ -67,13 +67,13 @@ export interface GrantModel {
   readonly conditions?: DwnPermissionConditions;
 }
 
-export interface GrantOptions {
+export interface PermissionGrantOptions {
   connectedDid: string;
   message: DwnDataEncodedRecordsWriteMessage;
   agent: Web5Agent;
 }
 
-export class Grant implements GrantModel {
+export class PermissionGrant implements PermissionGrantModel {
 
   private _permissions: AgentPermissionsApi;
   private _connectedDid: string;
@@ -98,11 +98,11 @@ export class Grant implements GrantModel {
     this._grant = grant;
   }
 
-  static async parse(options: GrantOptions): Promise<Grant> {
+  static async parse(options: PermissionGrantOptions): Promise<PermissionGrant> {
     //TODO: this does not have to be async https://github.com/TBD54566975/web5-js/pull/831/files
     const grant = await DwnPermissionGrant.parse(options.message);
     const api = new AgentPermissionsApi({ agent: options.agent });
-    return new Grant({ ...options, grant, api });
+    return new PermissionGrant({ ...options, grant, api });
   }
 
   get id(): string {
@@ -231,7 +231,7 @@ export class Grant implements GrantModel {
     });
   }
 
-  toJSON(): GrantModel {
+  toJSON(): PermissionGrantModel {
     return this._grant;
   }
 }
