@@ -11,7 +11,6 @@ export * from './bearer-identity.js';
 export * from './crypto-api.js';
 export * from './did-api.js';
 export * from './dwn-api.js';
-export * from './dwn-permissions-util.js';
 export * from './dwn-registrar.js';
 export * from './hd-identity-vault.js';
 export * from './identity-api.js';

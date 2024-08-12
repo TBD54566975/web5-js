@@ -7,7 +7,7 @@ import { BearerDid } from '@web5/dids';
 
 import { testDwnUrl } from './utils/test-config.js';
 import { DwnInterfaceName, DwnMethodName, Time } from '@tbd54566975/dwn-sdk-js';
-import { DwnPermissionGrant, DwnPermissionScope } from '../src/index.js';
+import { DwnInterface, DwnPermissionGrant, DwnPermissionScope, Web5PlatformAgent } from '../src/index.js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -277,9 +277,6 @@ describe('AgentPermissionsApi', () => {
         }
       });
 
-      // parse the grant
-      const writeGrant = await DwnPermissionGrant.parse(deviceXGrant.message);
-
       // check if the grant is revoked
       let isRevoked = await testHarness.agent.permissions.isGrantRevoked({
         author        : aliceDid.uri,
@@ -292,7 +289,7 @@ describe('AgentPermissionsApi', () => {
       await testHarness.agent.permissions.createRevocation({
         author : aliceDid.uri,
         store  : true,
-        grant  : writeGrant,
+        grant  : deviceXGrant.grant,
       });
 
       // check if the grant is revoked again, should be true
@@ -574,6 +571,653 @@ describe('AgentPermissionsApi', () => {
 
       // expect to have no requests
       expect(fetchedRequests.length).to.equal(0);
+    });
+  });
+
+  describe('matchGrantFromArray', () => {
+
+    const createRecordGrants = async ({ grantee, grantor, grantorAgent, protocol, protocolPath, contextId }:{
+      grantorAgent: Web5PlatformAgent;
+      granteeAgent: Web5PlatformAgent;
+      grantor: string;
+      grantee: string;
+      protocol: string;
+      protocolPath?: string;
+      contextId?: string;
+    }) => {
+      const recordsWriteGrant = await grantorAgent.permissions.createGrant({
+        author      : grantor,
+        grantedTo   : grantee,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        store       : true,
+        delegated   : true,
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol,
+          protocolPath,
+          contextId
+        }
+      });
+
+      const recordsReadGrant = await grantorAgent.permissions.createGrant({
+        author      : grantor,
+        grantedTo   : grantee,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        store       : true,
+        delegated   : true,
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Read,
+          protocol,
+          protocolPath,
+          contextId
+        }
+      });
+
+      const recordsDeleteGrant = await grantorAgent.permissions.createGrant({
+        author      : grantor,
+        grantedTo   : grantee,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        store       : true,
+        delegated   : true,
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Delete,
+          protocol,
+          protocolPath,
+          contextId
+        }
+      });
+
+      const recordsQueryGrant = await grantorAgent.permissions.createGrant({
+        author      : grantor,
+        grantedTo   : grantee,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        store       : true,
+        delegated   : true,
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Query,
+          protocol,
+          protocolPath,
+          contextId
+        }
+      });
+
+      const recordsSubscribeGrant = await grantorAgent.permissions.createGrant({
+        author      : grantor,
+        grantedTo   : grantee,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        store       : true,
+        delegated   : true,
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Subscribe,
+          protocol,
+          protocolPath,
+          contextId
+        }
+      });
+
+      return {
+        write     : recordsWriteGrant,
+        read      : recordsReadGrant,
+        delete    : recordsDeleteGrant,
+        query     : recordsQueryGrant,
+        subscribe : recordsSubscribeGrant
+      };
+    };
+
+    const createMessageGrants = async ({ grantee, grantor, grantorAgent, protocol }:{
+      grantorAgent: Web5PlatformAgent;
+      granteeAgent: Web5PlatformAgent;
+      grantor: string;
+      grantee: string;
+      protocol?: string;
+    }) => {
+
+      const messagesReadGrant = await grantorAgent.permissions.createGrant({
+        author      : grantor,
+        grantedTo   : grantee,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        store       : true,
+        scope       : {
+          interface : DwnInterfaceName.Messages,
+          method    : DwnMethodName.Read,
+          protocol
+        }
+      });
+
+      const messagesQueryGrant = await grantorAgent.permissions.createGrant({
+        author      : grantor,
+        grantedTo   : grantee,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        store       : true,
+        scope       : {
+          interface : DwnInterfaceName.Messages,
+          method    : DwnMethodName.Query,
+          protocol
+        }
+      });
+
+      const messagesSubscribeGrant = await grantorAgent.permissions.createGrant({
+        author      : grantor,
+        grantedTo   : grantee,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        store       : true,
+        scope       : {
+          interface : DwnInterfaceName.Messages,
+          method    : DwnMethodName.Subscribe,
+          protocol
+        }
+      });
+
+      return {
+        read      : messagesReadGrant,
+        query     : messagesQueryGrant,
+        subscribe : messagesSubscribeGrant
+      };
+    };
+
+    it('does not match a grant with a different grantee or grantor', async () => {
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+      const aliceDeviceY = await testHarness.agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Alice Device Y' },
+        didMethod : 'jwk'
+      });
+
+      const protocol = 'http://example.com/protocol';
+
+
+      const deviceXRecordGrantsFromAlice = await createRecordGrants({
+        grantorAgent : testHarness.agent as Web5PlatformAgent,
+        granteeAgent : testHarness.agent as Web5PlatformAgent,
+        grantor      : aliceDid.uri,
+        grantee      : aliceDeviceX.did.uri,
+        protocol
+      });
+
+      const deviceXRecordGrantsFromAliceArray = [
+        deviceXRecordGrantsFromAlice.write,
+        deviceXRecordGrantsFromAlice.read,
+        deviceXRecordGrantsFromAlice.delete,
+        deviceXRecordGrantsFromAlice.query,
+        deviceXRecordGrantsFromAlice.subscribe
+      ];
+
+      // attempt to match a grant with a different grantee, aliceDeviceY
+      const notFoundGrantee = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceY.did.uri, {
+        messageType: DwnInterface.RecordsWrite,
+        protocol
+      }, deviceXRecordGrantsFromAliceArray);
+
+      expect(notFoundGrantee).to.be.undefined;
+
+      const deviceYRecordGrantsFromDeviceX = await createRecordGrants({
+        grantorAgent : testHarness.agent as Web5PlatformAgent,
+        granteeAgent : testHarness.agent as Web5PlatformAgent,
+        grantor      : aliceDeviceX.did.uri,
+        grantee      : aliceDeviceY.did.uri,
+        protocol
+      });
+
+      const deviceYRecordGrantsFromDeviceXArray = [
+        deviceYRecordGrantsFromDeviceX.write,
+        deviceYRecordGrantsFromDeviceX.read,
+        deviceYRecordGrantsFromDeviceX.delete,
+        deviceYRecordGrantsFromDeviceX.query,
+        deviceYRecordGrantsFromDeviceX.subscribe
+      ];
+
+      const notFoundGrantor = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceY.did.uri, {
+        messageType: DwnInterface.RecordsWrite,
+        protocol
+      }, deviceYRecordGrantsFromDeviceXArray);
+
+      expect(notFoundGrantor).to.be.undefined;
+    });
+
+    it('matches delegated grants if specified', async () => {
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+      const messagesGrants = await createMessageGrants({
+        grantorAgent : testHarness.agent as Web5PlatformAgent,
+        granteeAgent : testHarness.agent as Web5PlatformAgent,
+        grantor      : aliceDid.uri,
+        grantee      : aliceDeviceX.did.uri,
+      });
+
+      const aliceDeviceXMessageGrants = [
+        messagesGrants.query,
+        messagesGrants.read,
+        messagesGrants.subscribe
+      ];
+
+      // control: match a grant without specifying delegated
+      const queryGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType: DwnInterface.MessagesQuery,
+      }, aliceDeviceXMessageGrants);
+
+      expect(queryGrant?.message.recordId).to.equal(messagesGrants.query.message.recordId);
+
+      // attempt to match non-delegated grant with delegated set to true
+      const notFoundDelegated = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType: DwnInterface.MessagesQuery,
+      }, aliceDeviceXMessageGrants, true);
+
+      expect(notFoundDelegated).to.be.undefined;
+
+      // create delegated record grants
+      const protocol = 'http://example.com/protocol';
+      const recordsGrants = await createRecordGrants({
+        grantorAgent : testHarness.agent as Web5PlatformAgent,
+        granteeAgent : testHarness.agent as Web5PlatformAgent,
+        grantor      : aliceDid.uri,
+        grantee      : aliceDeviceX.did.uri,
+        protocol
+      });
+
+      const deviceXRecordGrants = [
+        recordsGrants.write,
+        recordsGrants.read,
+        recordsGrants.delete,
+        recordsGrants.query,
+        recordsGrants.subscribe
+      ];
+
+      // match a delegated grant
+      const writeGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType: DwnInterface.RecordsWrite,
+        protocol
+      }, deviceXRecordGrants, true);
+
+      expect(writeGrant?.message.recordId).to.equal(recordsGrants.write.message.recordId);
+    });
+
+    it('Messages', async () => {
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+      const messageGrants = await createMessageGrants({
+        grantorAgent : testHarness.agent as Web5PlatformAgent,
+        granteeAgent : testHarness.agent as Web5PlatformAgent,
+        grantor      : aliceDid.uri,
+        grantee      : aliceDeviceX.did.uri
+      });
+
+      const deviceXMessageGrants = [
+        messageGrants.query,
+        messageGrants.read,
+        messageGrants.subscribe
+      ];
+
+      const queryGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType: DwnInterface.MessagesQuery,
+      }, deviceXMessageGrants);
+
+      expect(queryGrant?.message.recordId).to.equal(messageGrants.query.message.recordId);
+
+      const readGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType: DwnInterface.MessagesRead,
+      }, deviceXMessageGrants);
+
+      expect(readGrant?.message.recordId).to.equal(messageGrants.read.message.recordId);
+
+      const subscribeGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType: DwnInterface.MessagesSubscribe,
+      }, deviceXMessageGrants);
+
+      expect(subscribeGrant?.message.recordId).to.equal(messageGrants.subscribe.message.recordId);
+
+      const invalidGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType: DwnInterface.RecordsQuery,
+      }, deviceXMessageGrants);
+
+      expect(invalidGrant).to.be.undefined;
+    });
+
+    it('Messages with protocol', async () => {
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+      const protocol = 'http://example.com/protocol';
+      const otherProtocol = 'http://example.com/other-protocol';
+
+      const protocolMessageGrants = await createMessageGrants({
+        grantorAgent : testHarness.agent as Web5PlatformAgent,
+        granteeAgent : testHarness.agent as Web5PlatformAgent,
+        grantor      : aliceDid.uri,
+        grantee      : aliceDeviceX.did.uri,
+        protocol
+      });
+
+      const otherProtocolMessageGrants = await createMessageGrants({
+        grantorAgent : testHarness.agent as Web5PlatformAgent,
+        granteeAgent : testHarness.agent as Web5PlatformAgent,
+        grantor      : aliceDid.uri,
+        grantee      : aliceDeviceX.did.uri,
+        protocol     : otherProtocol
+      });
+
+      const deviceXMessageGrants = [
+        protocolMessageGrants.query,
+        protocolMessageGrants.read,
+        protocolMessageGrants.subscribe,
+        otherProtocolMessageGrants.query,
+        otherProtocolMessageGrants.read,
+        otherProtocolMessageGrants.subscribe
+      ];
+
+      const queryGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType: DwnInterface.MessagesQuery,
+        protocol
+      }, deviceXMessageGrants);
+
+      expect(queryGrant?.message.recordId).to.equal(protocolMessageGrants.query.message.recordId);
+
+      const readGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType: DwnInterface.MessagesRead,
+        protocol
+      }, deviceXMessageGrants);
+
+      expect(readGrant?.message.recordId).to.equal(protocolMessageGrants.read.message.recordId);
+
+      const subscribeGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType: DwnInterface.MessagesSubscribe,
+        protocol
+      }, deviceXMessageGrants);
+
+      expect(subscribeGrant?.message.recordId).to.equal(protocolMessageGrants.subscribe.message.recordId);
+
+      const invalidGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType : DwnInterface.MessagesQuery,
+        protocol    : 'http://example.com/unknown-protocol'
+      }, deviceXMessageGrants);
+
+      expect(invalidGrant).to.be.undefined;
+
+      const otherProtocolQueryGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType : DwnInterface.MessagesQuery,
+        protocol    : otherProtocol
+      }, deviceXMessageGrants);
+
+      expect(otherProtocolQueryGrant?.message.recordId).to.equal(otherProtocolMessageGrants.query.message.recordId);
+    });
+
+    it('Records', async () => {
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+      const protocol1 = 'http://example.com/protocol';
+      const protocol2 = 'http://example.com/other-protocol';
+
+      const protocol1Grants = await createRecordGrants({
+        grantorAgent : testHarness.agent as Web5PlatformAgent,
+        granteeAgent : testHarness.agent as Web5PlatformAgent,
+        grantor      : aliceDid.uri,
+        grantee      : aliceDeviceX.did.uri,
+        protocol     : protocol1,
+      });
+
+      const otherProtocolGrants = await createRecordGrants({
+        grantorAgent : testHarness.agent as Web5PlatformAgent,
+        granteeAgent : testHarness.agent as Web5PlatformAgent,
+        grantor      : aliceDid.uri,
+        grantee      : aliceDeviceX.did.uri,
+        protocol     : protocol2,
+      });
+
+      const deviceXRecordGrants = [
+        protocol1Grants.write,
+        protocol1Grants.read,
+        protocol1Grants.delete,
+        protocol1Grants.query,
+        protocol1Grants.subscribe,
+        otherProtocolGrants.write,
+        otherProtocolGrants.read,
+        otherProtocolGrants.delete,
+        otherProtocolGrants.query,
+        otherProtocolGrants.subscribe
+      ];
+
+      const writeGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType : DwnInterface.RecordsWrite,
+        protocol    : protocol1
+      }, deviceXRecordGrants);
+
+      expect(writeGrant?.message.recordId).to.equal(protocol1Grants.write.message.recordId);
+
+      const readGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType : DwnInterface.RecordsRead,
+        protocol    : protocol1
+      }, deviceXRecordGrants);
+
+      expect(readGrant?.message.recordId).to.equal(protocol1Grants.read.message.recordId);
+
+      const deleteGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType : DwnInterface.RecordsDelete,
+        protocol    : protocol1
+      }, deviceXRecordGrants);
+
+      expect(deleteGrant?.message.recordId).to.equal(protocol1Grants.delete.message.recordId);
+
+      const queryGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType : DwnInterface.RecordsQuery,
+        protocol    : protocol1
+      }, deviceXRecordGrants);
+
+      expect(queryGrant?.message.recordId).to.equal(protocol1Grants.query.message.recordId);
+
+      const subscribeGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType : DwnInterface.RecordsSubscribe,
+        protocol    : protocol1
+      }, deviceXRecordGrants);
+
+      expect(subscribeGrant?.message.recordId).to.equal(protocol1Grants.subscribe.message.recordId);
+
+      const queryGrantOtherProtocol = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType : DwnInterface.RecordsQuery,
+        protocol    : protocol2
+      }, deviceXRecordGrants);
+
+      expect(queryGrantOtherProtocol?.message.recordId).to.equal(otherProtocolGrants.query.message.recordId);
+
+      // unknown protocol
+      const invalidGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType : DwnInterface.RecordsQuery,
+        protocol    : 'http://example.com/unknown-protocol'
+      }, deviceXRecordGrants);
+
+      expect(invalidGrant).to.be.undefined;
+    });
+
+    it('Records with protocolPath', async () => {
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+      const protocol = 'http://example.com/protocol';
+
+      const fooGrants = await createRecordGrants({
+        grantorAgent : testHarness.agent as Web5PlatformAgent,
+        granteeAgent : testHarness.agent as Web5PlatformAgent,
+        grantor      : aliceDid.uri,
+        grantee      : aliceDeviceX.did.uri,
+        protocol,
+        protocolPath : 'foo'
+      });
+
+      const barGrants = await createRecordGrants({
+        grantorAgent : testHarness.agent as Web5PlatformAgent,
+        granteeAgent : testHarness.agent as Web5PlatformAgent,
+        grantor      : aliceDid.uri,
+        grantee      : aliceDeviceX.did.uri,
+        protocol,
+        protocolPath : 'foo/bar'
+      });
+
+      const protocolGrants = [
+        fooGrants.write,
+        fooGrants.read,
+        fooGrants.delete,
+        fooGrants.query,
+        fooGrants.subscribe,
+        barGrants.write,
+        barGrants.read,
+        barGrants.delete,
+        barGrants.query,
+        barGrants.subscribe
+      ];
+
+      const writeFooGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType  : DwnInterface.RecordsWrite,
+        protocol     : protocol,
+        protocolPath : 'foo'
+      }, protocolGrants);
+
+      expect(writeFooGrant?.message.recordId).to.equal(fooGrants.write.message.recordId);
+
+      const readFooGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType  : DwnInterface.RecordsRead,
+        protocol     : protocol,
+        protocolPath : 'foo'
+      }, protocolGrants);
+
+      expect(readFooGrant?.message.recordId).to.equal(fooGrants.read.message.recordId);
+
+      const deleteFooGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType  : DwnInterface.RecordsDelete,
+        protocol     : protocol,
+        protocolPath : 'foo'
+      }, protocolGrants);
+
+      expect(deleteFooGrant?.message.recordId).to.equal(fooGrants.delete.message.recordId);
+
+      const queryGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType  : DwnInterface.RecordsQuery,
+        protocol     : protocol,
+        protocolPath : 'foo'
+      }, protocolGrants);
+
+      expect(queryGrant?.message.recordId).to.equal(fooGrants.query.message.recordId);
+
+      const subscribeGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType  : DwnInterface.RecordsSubscribe,
+        protocol     : protocol,
+        protocolPath : 'foo'
+      }, protocolGrants);
+
+      expect(subscribeGrant?.message.recordId).to.equal(fooGrants.subscribe.message.recordId);
+
+      const writeBarGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType  : DwnInterface.RecordsWrite,
+        protocol     : protocol,
+        protocolPath : 'foo/bar'
+      }, protocolGrants);
+
+      expect(writeBarGrant?.message.recordId).to.equal(barGrants.write.message.recordId);
+
+      const noMatchGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType  : DwnInterface.RecordsWrite,
+        protocol     : protocol,
+        protocolPath : 'bar'
+      }, protocolGrants);
+
+      expect(noMatchGrant).to.be.undefined;
+    });
+
+    it('Records with contextId', async () => {
+      const aliceDeviceX = await testHarness.agent.identity.create({
+        store     : true,
+        metadata  : { name: 'Alice Device X' },
+        didMethod : 'jwk'
+      });
+
+      const protocol = 'http://example.com/protocol';
+
+      const abcGrants = await createRecordGrants({
+        grantorAgent : testHarness.agent as Web5PlatformAgent,
+        granteeAgent : testHarness.agent as Web5PlatformAgent,
+        grantor      : aliceDid.uri,
+        grantee      : aliceDeviceX.did.uri,
+        protocol,
+        contextId    : 'abc'
+      });
+
+      const defGrants = await createRecordGrants({
+        grantorAgent : testHarness.agent as Web5PlatformAgent,
+        granteeAgent : testHarness.agent as Web5PlatformAgent,
+        grantor      : aliceDid.uri,
+        grantee      : aliceDeviceX.did.uri,
+        protocol,
+        contextId    : 'def/ghi'
+      });
+
+      const contextGrants = [
+        abcGrants.write,
+        abcGrants.read,
+        abcGrants.delete,
+        abcGrants.query,
+        abcGrants.subscribe,
+        defGrants.write,
+        defGrants.read,
+        defGrants.delete,
+        defGrants.query,
+        defGrants.subscribe
+      ];
+
+      const writeFooGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType : DwnInterface.RecordsWrite,
+        protocol    : protocol,
+        contextId   : 'abc'
+      }, contextGrants);
+
+      expect(writeFooGrant?.message.recordId).to.equal(abcGrants.write.message.recordId);
+
+      const writeBarGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType : DwnInterface.RecordsWrite,
+        protocol    : protocol,
+        contextId   : 'def/ghi'
+      }, contextGrants);
+
+      expect(writeBarGrant?.message.recordId).to.equal(defGrants.write.message.recordId);
+
+      const invalidGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType : DwnInterface.RecordsWrite,
+        protocol    : protocol,
+        contextId   : 'def'
+      }, contextGrants);
+
+      expect(invalidGrant).to.be.undefined;
+
+      const withoutContextGrant = await AgentPermissionsApi.matchGrantFromArray(aliceDid.uri, aliceDeviceX.did.uri, {
+        messageType : DwnInterface.RecordsWrite,
+        protocol    : protocol
+      }, contextGrants);
+
+      expect(withoutContextGrant).to.be.undefined;
     });
   });
 });

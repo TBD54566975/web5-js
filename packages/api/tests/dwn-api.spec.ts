@@ -1367,134 +1367,6 @@ describe('DwnApi', () => {
     });
   });
 
-  describe('connected.fetchConnectedGrants()', () => {
-    it('throws if no delegateDid is set', async () => {
-      // make sure delegateDid is undefined
-      dwnAlice['delegateDid'] = undefined;
-      try {
-        await dwnAlice['connected'].fetchConnectedGrants();
-        expect.fail('Error was not thrown');
-      } catch (e) {
-        expect(e.message).to.equal('AgentDwnApi: Cannot fetch grants without a signer DID');
-      }
-    });
-
-    it('fetches grants for the delegateDid', async () => {
-      // scenario: alice creates grants for recipients deviceY and deviceX
-      // the grantee fetches their own grants respectively
-
-      // create an identity for deviceX and deviceY
-      const aliceDeviceX = await testHarness.agent.identity.create({
-        store     : true,
-        metadata  : { name: 'Alice Device X', connectedDid: aliceDid.uri },
-        didMethod : 'jwk'
-      });
-
-      const recordsWriteGrant = await dwnAlice.permissions.grant({
-        store       : true,
-        grantedTo   : aliceDeviceX.did.uri,
-        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Write, protocol: 'http://example.com/protocol' }
-      });
-
-
-      const recordsReadGrant = await dwnAlice.permissions.grant({
-        store       : true,
-        grantedTo   : aliceDeviceX.did.uri,
-        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Read, protocol: 'http://example.com/protocol' }
-      });
-
-
-      // NOTE: This is normally done during connect
-      dwnAlice['delegateDid'] = aliceDeviceX.did.uri;
-      await DwnApi.processConnectedGrants({
-        agent       : testHarness.agent,
-        delegateDid : aliceDeviceX.did.uri,
-        grants      : [recordsWriteGrant.rawMessage, recordsReadGrant.rawMessage]
-      });
-
-      const deviceXGrantRecordIds = [
-        recordsWriteGrant.rawMessage.recordId,
-        recordsReadGrant.rawMessage.recordId
-      ];
-
-      // fetch the grants for deviceX from the app agent
-      const fetchedDeviceXGrants = await dwnAlice['connected'].fetchConnectedGrants();
-
-      // expect to have the 5 grants created for deviceX
-      expect(fetchedDeviceXGrants.length).to.equal(2);
-      expect(fetchedDeviceXGrants.map(grant => grant.recordId)).to.have.members(deviceXGrantRecordIds);
-    });
-
-    it('should throw if the grant query returns anything other than a 200', async () => {
-      // setting a delegateDid, otherwise fetchConnectedGrants will throw
-      dwnAlice['delegateDid'] = 'did:example:123';
-
-      // return empty array if grant query returns something other than a 200
-      sinon.stub(testHarness.agent, 'processDwnRequest').resolves({ messageCid: '', reply: { status: { code: 400, detail: 'unknown error' } } });
-      try {
-        await dwnAlice['connected'].fetchConnectedGrants();
-
-        expect.fail('Expected fetchGrants to throw');
-      } catch(error: any) {
-        expect(error.message).to.equal('AgentDwnApi: Failed to fetch connected grants.');
-      }
-    });
-
-    it('should not return revoked grants', async () => {
-      // create an identity for deviceX and deviceY
-      const aliceDeviceX = await testHarness.agent.identity.create({
-        store     : true,
-        metadata  : { name: 'Alice Device X', connectedDid: aliceDid.uri },
-        didMethod : 'jwk'
-      });
-
-      const recordsWriteGrant = await dwnAlice.permissions.grant({
-        store       : true,
-        grantedTo   : aliceDeviceX.did.uri,
-        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Write, protocol: 'http://example.com/protocol' }
-      });
-
-      const recordsReadGrant = await dwnAlice.permissions.grant({
-        store       : true,
-        grantedTo   : aliceDeviceX.did.uri,
-        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Records, method: DwnMethodName.Read, protocol: 'http://example.com/protocol' }
-      });
-
-      // set the device identity as the delegateDid and process the connected grants, this normally happens during a connect flow
-      dwnAlice['delegateDid'] = aliceDeviceX.did.uri;
-      await DwnApi.processConnectedGrants({
-        agent       : testHarness.agent,
-        delegateDid : aliceDeviceX.did.uri,
-        grants      : [recordsWriteGrant.rawMessage, recordsReadGrant.rawMessage]
-      });
-
-      // fetch the grants for deviceX from the app agent
-      let fetchedDeviceXGrants = await dwnAlice['connected'].fetchConnectedGrants();
-
-      // expect to have the 2 grants created for deviceX
-      expect(fetchedDeviceXGrants.length).to.equal(2);
-
-      // revoke the write grant, explicitly store it.
-      // NOTE: in a normal scenario SYNC will look for revocations and import them
-      await testHarness.agent.permissions.createRevocation({
-        store  : true,
-        author : aliceDid.uri,
-        grant  : recordsWriteGrant,
-      });
-
-      // fetch the grants for deviceX from the app agent with cache set to false
-      const fetchedDeviceXGrantsRevoked = await dwnAlice['connected'].fetchConnectedGrants();
-      expect(fetchedDeviceXGrantsRevoked.length).to.equal(1); // only the read grant should be available
-
-      // ensure the revoked grant is not included
-      expect(fetchedDeviceXGrantsRevoked.map(grant => grant.recordId)).to.not.include(recordsWriteGrant.rawMessage.recordId);
-    });
-  });
-
   describe('connected.findPermissionGrantForRequest', () => {
     xit('caches result');
 
@@ -1502,7 +1374,7 @@ describe('DwnApi', () => {
       // make sure delegateDid is undefined
       dwnAlice['delegateDid'] = undefined;
       try {
-        await dwnAlice['connected'].findPermissionGrantForRequest({
+        await dwnAlice['connected'].findPermissionGrantForMessage({
           messageParams: {
             messageType : DwnInterface.RecordsWrite,
             protocol    : 'http://example.com/protocol'

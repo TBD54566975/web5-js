@@ -1,9 +1,9 @@
-import { PermissionGrantData, PermissionRequestData, PermissionRevocationData, PermissionsProtocol } from '@tbd54566975/dwn-sdk-js';
-import { DwnPermissionsUtil } from './dwn-permissions-util.js';
+import { PermissionGrant, PermissionGrantData, PermissionRequestData, PermissionRevocationData, PermissionsProtocol } from '@tbd54566975/dwn-sdk-js';
 import { Web5Agent } from './types/agent.js';
-import { DwnDataEncodedRecordsWriteMessage, DwnInterface, DwnMessageParams, DwnPermissionGrant, DwnPermissionRequest, ProcessDwnRequest } from './types/dwn.js';
+import { DwnDataEncodedRecordsWriteMessage, DwnInterface, DwnMessageParams, DwnMessagesPermissionScope, DwnPermissionGrant, DwnPermissionRequest, DwnPermissionScope, DwnProtocolPermissionScope, DwnRecordsPermissionScope, ProcessDwnRequest } from './types/dwn.js';
 import { Convert } from '@web5/common';
 import { CreateGrantParams, CreateRequestParams, CreateRevocationParams, FetchPermissionRequestParams, FetchPermissionsParams, IsGrantRevokedParams, PermissionGrantEntry, PermissionRequestEntry, PermissionRevocationEntry, PermissionsApi } from './types/permissions.js';
+import { isRecordsType } from './dwn-api.js';
 
 export class AgentPermissionsApi implements PermissionsApi {
 
@@ -42,9 +42,10 @@ export class AgentPermissionsApi implements PermissionsApi {
       messageType   : DwnInterface.RecordsQuery,
       messageParams : {
         filter: {
-          author    : grantor, // the author of the grant would be the grantor
-          recipient : grantee, // the recipient of the grant would be the grantee
-          ...DwnPermissionsUtil.permissionsProtocolParams('grant'),
+          author       : grantor, // the author of the grant would be the grantor
+          recipient    : grantee, // the recipient of the grant would be the grantee
+          protocol     : PermissionsProtocol.uri,
+          protocolPath : PermissionsProtocol.grantPath,
           tags
         }
       }
@@ -80,7 +81,8 @@ export class AgentPermissionsApi implements PermissionsApi {
       messageType   : DwnInterface.RecordsQuery,
       messageParams : {
         filter: {
-          ...DwnPermissionsUtil.permissionsProtocolParams('request'),
+          protocol     : PermissionsProtocol.uri,
+          protocolPath : PermissionsProtocol.requestPath,
           tags
         }
       }
@@ -112,8 +114,9 @@ export class AgentPermissionsApi implements PermissionsApi {
       messageType   : DwnInterface.RecordsRead,
       messageParams : {
         filter: {
-          parentId: grantRecordId,
-          ...DwnPermissionsUtil.permissionsProtocolParams('revoke')
+          parentId     : grantRecordId,
+          protocol     : PermissionsProtocol.uri,
+          protocolPath : PermissionsProtocol.revocationPath,
         }
       }
     };
@@ -264,5 +267,105 @@ export class AgentPermissionsApi implements PermissionsApi {
     };
 
     return { message: dataEncodedMessage };
+  }
+
+  /**
+   * Matches the appropriate grant from an array of grants based on the provided parameters.
+   *
+   * @param delegated if true, only delegated grants are turned, if false all grants are returned including delegated ones.
+   */
+  static async matchGrantFromArray<T extends DwnInterface>(
+    grantor: string,
+    grantee: string,
+    messageParams: {
+      messageType: T,
+      protocol?: string,
+      protocolPath?: string,
+      contextId?: string,
+    },
+    grants: PermissionGrantEntry[],
+    delegated: boolean = false
+  ): Promise<PermissionGrantEntry | undefined> {
+    for (const entry of grants) {
+      const { grant, message } = entry;
+      if (delegated === true && grant.delegated !== true) {
+        continue;
+      }
+      const { messageType, protocol, protocolPath, contextId } = messageParams;
+
+      if (this.matchScopeFromGrant(grantor, grantee, messageType, grant, protocol, protocolPath, contextId)) {
+        return { grant, message };
+      }
+    }
+  }
+
+  private static matchScopeFromGrant<T extends DwnInterface>(
+    grantor: string,
+    grantee: string,
+    messageType: T,
+    grant: PermissionGrant,
+    protocol?: string,
+    protocolPath?: string,
+    contextId?: string
+  ): boolean {
+  // Check if the grant matches the provided parameters
+    if (grant.grantee !== grantee || grant.grantor !== grantor) {
+      return false;
+    }
+
+    const scope = grant.scope;
+    const scopeMessageType = scope.interface + scope.method;
+    if (scopeMessageType === messageType) {
+      if (isRecordsType(messageType)) {
+        const recordScope = scope as DwnRecordsPermissionScope;
+        if (!this.matchesProtocol(recordScope, protocol)) {
+          return false;
+        }
+
+        // If the grant scope is not restricted to a specific context or protocol path, it is unrestricted and can be used
+        if (this.isUnrestrictedProtocolScope(recordScope)) {
+          return true;
+        }
+
+        // protocolPath and contextId are mutually exclusive
+        // If the permission is scoped to a protocolPath and the permissionParams matches that path, this grant can be used
+        if (recordScope.protocolPath !== undefined && recordScope.protocolPath === protocolPath) {
+          return true;
+        }
+
+        // If the permission is scoped to a contextId and the permissionParams starts with that contextId, this grant can be used
+        if (recordScope.contextId !== undefined && contextId?.startsWith(recordScope.contextId)) {
+          return true;
+        }
+      } else {
+        const messagesScope = scope as DwnMessagesPermissionScope | DwnProtocolPermissionScope;
+        if (this.protocolScopeUnrestricted(messagesScope)) {
+          return true;
+        }
+
+        if (!this.matchesProtocol(messagesScope, protocol)) {
+          return false;
+        }
+
+        return this.isUnrestrictedProtocolScope(messagesScope);
+      }
+    }
+
+    return false;
+  }
+
+  private static matchesProtocol(scope: DwnPermissionScope & { protocol?: string }, protocol?: string): boolean {
+    return scope.protocol !== undefined && scope.protocol === protocol;
+  }
+
+  /**
+   *  Checks if the scope is restricted to a specific protocol
+   */
+  private static protocolScopeUnrestricted(scope: DwnPermissionScope & { protocol?: string }): boolean {
+    return scope.protocol === undefined;
+  }
+
+  private static isUnrestrictedProtocolScope(scope: DwnPermissionScope & { contextId?: string, protocolPath?: string }): boolean {
+    return scope.contextId === undefined && scope.protocolPath === undefined;
   }
 }

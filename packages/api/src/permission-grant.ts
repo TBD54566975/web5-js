@@ -231,7 +231,18 @@ export class PermissionGrant implements PermissionGrantModel {
     });
   }
 
-  toJSON(): PermissionGrantModel {
-    return this._grant;
+  toJSON(): DwnPermissionGrant {
+    return {
+      id          : this.id,
+      grantor     : this.grantor,
+      grantee     : this.grantee,
+      dateGranted : this.dateGranted,
+      description : this.description,
+      requestId   : this.requestId,
+      dateExpires : this.dateExpires,
+      delegated   : this.delegated,
+      scope       : this.scope,
+      conditions  : this.conditions
+    };
   }
 }
