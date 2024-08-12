@@ -236,7 +236,7 @@ async function generateCodeChallenge() {
   return { codeChallengeBytes, codeChallengeBase64Url };
 }
 
-/** Create the {@link Web5ConnectAuthRequest} */
+/** Client creates the {@link Web5ConnectAuthRequest} */
 async function createAuthRequest(
   options: RequireOnly<
     Web5ConnectAuthRequest,
@@ -268,6 +268,7 @@ async function createAuthRequest(
   return requestObject;
 }
 
+/** Encrypts the auth request with the key which will be passed through QR code */
 async function encryptAuthRequest({
   jwt,
   codeChallenge,
