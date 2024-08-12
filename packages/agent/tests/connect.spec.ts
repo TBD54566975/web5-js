@@ -23,7 +23,6 @@ describe('web5 connect', function () {
   /** The real tenant (identity) of the DWN that the provider had chosen to connect */
   let providerIdentity: BearerIdentity;
 
-
   /** The new DID created for the delegate which it will impersonate in the future */
   let delegateBearerDid: BearerDid;
   let delegatePortableDid: PortableDid;
@@ -75,7 +74,6 @@ describe('web5 connect', function () {
       },
     ],
   };
-
 
   let permissionGrants: DwnResponse<any>[] = [
     {
@@ -326,11 +324,10 @@ describe('web5 connect', function () {
         .stub(CryptoUtils, 'randomBytes')
         .returns(encryptionNonce);
       authResponseJwe = Oidc.encryptAuthResponse({
-        jwt           : authResponseJwt,
-        encryptionKey : sharedECDHPrivateKey,
+        jwt              : authResponseJwt,
+        encryptionKey    : sharedECDHPrivateKey,
         randomPin,
-        providerDidKid:
-          delegateBearerDid.document.verificationMethod![0].id,
+        delegateDidKeyId : delegateBearerDid.document.verificationMethod![0].id,
       });
       expect(authResponseJwe).to.be.a('string');
       expect(randomBytesStub.calledOnce).to.be.true;
@@ -411,9 +408,7 @@ describe('web5 connect', function () {
     it('should complete the whole connect flow with the correct pin', async function () {
       const fetchStub = sinon.stub(globalThis, 'fetch');
       const onWalletUriReadySpy = sinon.spy();
-      sinon
-        .stub(DidJwk, 'create')
-        .resolves(clientEphemeralBearerDid);
+      sinon.stub(DidJwk, 'create').resolves(clientEphemeralBearerDid);
 
       const par = {
         expires_in  : 3600000,

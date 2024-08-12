@@ -236,7 +236,7 @@ async function generateCodeChallenge() {
   return { codeChallengeBytes, codeChallengeBase64Url };
 }
 
-// TODO: when implementing pure OIDC split up the Web5 and OIDC params
+/** Create the {@link Web5ConnectAuthRequest} */
 async function createAuthRequest(
   options: RequireOnly<
     Web5ConnectAuthRequest,
@@ -397,6 +397,10 @@ async function verifyJwt({ jwt }: { jwt: string }) {
   return object;
 }
 
+/**
+ * Fetches the {@Web5ConnectAuthRequest} from the authorize endpoint and decrypts it
+ * using the encryption key passed via QR code.
+ */
 const getAuthRequest = async (request_uri: string, code_challenge: string) => {
   const authRequest = await fetch(request_uri);
   const jwe = await authRequest.text();
@@ -470,12 +474,15 @@ async function decryptAuthResponse(
     authenticationTagB64U,
   ] = jwe.split('.');
 
-  // get the Provider's public key from the header
+  // get the delegatedid public key from the header
   const header = Convert.base64Url(protectedHeaderB64U).toObject() as Jwk;
-  const providerDid = await DidJwk.resolve(header.kid!.split('#')[0]);
+  const delegateDid = await DidJwk.resolve(header.kid!.split('#')[0]);
 
   // derive ECDH shared key using the provider's public key and our clientDid private key
-  const sharedKey = await deriveSharedKey(clientDid, providerDid.didDocument!);
+  const sharedKey = await Oidc.deriveSharedKey(
+    clientDid,
+    delegateDid.didDocument!
+  );
 
   // add the pin to the AAD
   const additionalData = { ...header, pin: pin };
@@ -501,6 +508,7 @@ async function decryptAuthResponse(
   return jwt;
 }
 
+/** Derives a shared ECDH private key in order to encrypt the {@link Web5ConnectAuthResponse} */
 async function deriveSharedKey(
   privateKeyDid: BearerDid,
   publicKeyDid: DidDocument
@@ -544,15 +552,21 @@ async function deriveSharedKey(
   return sharedEncryptionKey;
 }
 
+/**
+ * Encrypts the auth response jwt. Requires a randomPin is added to the AAD of the
+ * encryption algorithm in order to prevent man in the middle and eavesdropping attacks.
+ * The keyid of the delegate did is used to pass the public key to the client in order
+ * for the client to derive the shared ECDH private key.
+ */
 function encryptAuthResponse({
   jwt,
   encryptionKey,
-  providerDidKid,
+  delegateDidKeyId,
   randomPin,
 }: {
   jwt: string;
   encryptionKey: Uint8Array;
-  providerDidKid: string;
+  delegateDidKeyId: string;
   randomPin: string;
 }) {
   const protectedHeader = {
@@ -560,7 +574,7 @@ function encryptAuthResponse({
     cty : 'JWT',
     enc : 'XC20P',
     typ : 'JWT',
-    kid : providerDidKid,
+    kid : delegateDidKeyId,
   };
   const nonce = CryptoUtils.randomBytes(24);
   const additionalData = Convert.object({
@@ -588,12 +602,16 @@ function encryptAuthResponse({
   return compactJwe;
 }
 
+/**
+ * Creates the permission grants that assign to the selectedDid the level of
+ * permissions that the web app requested in the {@link Web5ConnectAuthRequest}
+ */
 export async function createPermissionGrants(
   selectedDid: string,
   delegateDid: BearerDid,
   dwn: AgentDwnApi
 ) {
-  // TODO: Replace with real permission request
+  // TODO: remove mock after adding functionality: https://github.com/TBD54566975/web5-js/issues/827
   const permissionRequestData = {
     description:
       'The app is asking to Records Write to http://profile-protocol.xyz',
@@ -604,7 +622,7 @@ export async function createPermissionGrants(
     },
   };
 
-  // TODO: Confirm this: https://github.com/TBD54566975/web5-js/issues/827
+  // TODO: remove mock after adding functionality: https://github.com/TBD54566975/web5-js/issues/827
   const message = await dwn.processRequest({
     author        : selectedDid,
     target        : selectedDid,
@@ -623,6 +641,15 @@ export async function createPermissionGrants(
   return [message];
 }
 
+/**
+ * Creates a delegate did which the web app will use as its future indentity.
+ * Assigns to that DID the level of permissions that the web app requested in
+ * the {@link Web5ConnectAuthRequest}. Encrypts via ECDH key that the web app
+ * will have access to because the web app has the public key which it provided
+ * in the {@link Web5ConnectAuthRequest}. Then sends the ciphertext of this
+ * {@link Web5ConnectAuthResponse} to the callback endpoint. Which the
+ * web app will need to retrieve from the token endpoint and decrypt with the pin to access.
+ */
 async function submitAuthResponse(
   selectedDid: string,
   authRequest: Web5ConnectAuthRequest,
@@ -664,9 +691,9 @@ async function submitAuthResponse(
   );
 
   const encryptedResponse = Oidc.encryptAuthResponse({
-    jwt            : responseObjectJwt!,
-    encryptionKey  : sharedKey,
-    providerDidKid : delegateDid.document.verificationMethod![0].id,
+    jwt              : responseObjectJwt!,
+    encryptionKey    : sharedKey,
+    delegateDidKeyId : delegateDid.document.verificationMethod![0].id,
     randomPin,
   });
 
