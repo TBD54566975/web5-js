@@ -70,6 +70,12 @@ describe('PermissionRequest', () => {
 
       expect(parsedRequest.toJSON()).to.deep.equal(request);
       expect(parsedRequest.rawMessage).to.deep.equal(message);
+      expect(parsedRequest.id).to.equal(request.id);
+      expect(parsedRequest.requester).to.equal(request.requester);
+      expect(parsedRequest.description).to.equal(request.description);
+      expect(parsedRequest.delegated).to.equal(request.delegated);
+      expect(parsedRequest.scope).to.deep.equal(request.scope);
+      expect(parsedRequest.conditions).to.deep.equal(request.conditions);
     });
 
     //TODO: this should happen in the `dwn-sdk-js` helper

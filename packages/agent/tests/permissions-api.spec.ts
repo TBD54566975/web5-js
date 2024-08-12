@@ -77,6 +77,51 @@ describe('AgentPermissionsApi', () => {
       expect(sendDwnRequestStub.called).to.be.true;
     });
 
+    it('filter by protocol', async () => {
+      // create a grant for permission-1
+      const protocol1Grant = await testHarness.agent.permissions.createGrant({
+        author      : aliceDid.uri,
+        grantedTo   : aliceDid.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        store       : true,
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol-1'
+        }
+      });
+
+      // create a grant for permission-2
+      const protocol2Grant = await testHarness.agent.permissions.createGrant({
+        author      : aliceDid.uri,
+        grantedTo   : aliceDid.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        store       : true,
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol-2'
+        }
+      });
+
+      // fetch permission grants
+      const protocol1Grants = await testHarness.agent.permissions.fetchGrants({
+        author   : aliceDid.uri,
+        target   : aliceDid.uri,
+        protocol : 'http://example.com/protocol-1'
+      });
+      expect(protocol1Grants.length).to.equal(1);
+      expect(protocol1Grants[0].grant.id).to.equal(protocol1Grant.grant.id);
+
+      const protocol2Grants = await testHarness.agent.permissions.fetchGrants({
+        author   : aliceDid.uri,
+        target   : aliceDid.uri,
+        protocol : 'http://example.com/protocol-2'
+      });
+      expect(protocol2Grants.length).to.equal(1);
+      expect(protocol2Grants[0].grant.id).to.equal(protocol2Grant.grant.id);
+    });
+
     it('throws if the query returns anything other than 200', async () => {
       // stub the processDwnRequest method to return a 400 error
       sinon.stub(testHarness.agent, 'processDwnRequest').resolves({ messageCid: '', reply: { status: { code: 400, detail: 'Bad Request'} }});
@@ -112,6 +157,47 @@ describe('AgentPermissionsApi', () => {
 
       // expect the sendDwnRequest method to have been called
       expect(sendDwnRequestStub.called).to.be.true;
+    });
+
+    it('filter by protocol', async () => {
+      // create a request for permission-1
+      const protocol1Request = await testHarness.agent.permissions.createRequest({
+        author : aliceDid.uri,
+        store  : true,
+        scope  : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol-1'
+        }
+      });
+
+      // create a request for permission-2
+      const protocol2Request = await testHarness.agent.permissions.createRequest({
+        author : aliceDid.uri,
+        store  : true,
+        scope  : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : 'http://example.com/protocol-2'
+        }
+      });
+
+      // fetch permission grants
+      const protocol1Requests = await testHarness.agent.permissions.fetchRequests({
+        author   : aliceDid.uri,
+        target   : aliceDid.uri,
+        protocol : 'http://example.com/protocol-1'
+      });
+      expect(protocol1Requests.length).to.equal(1);
+      expect(protocol1Requests[0].request.id).to.equal(protocol1Request.request.id);
+
+      const protocol2Requests = await testHarness.agent.permissions.fetchRequests({
+        author   : aliceDid.uri,
+        target   : aliceDid.uri,
+        protocol : 'http://example.com/protocol-2'
+      });
+      expect(protocol2Requests.length).to.equal(1);
+      expect(protocol2Requests[0].request.id).to.equal(protocol2Request.request.id);
     });
 
     it('throws if the query returns anything other than 200', async () => {

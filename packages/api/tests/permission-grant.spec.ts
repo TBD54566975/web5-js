@@ -63,7 +63,9 @@ describe('PermissionGrant', () => {
         store       : false,
         author      : aliceDid.uri,
         grantedTo   : bobDid.uri,
+        requestId   : '123',
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        description : 'This is a grant',
         scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
       });
 
@@ -75,6 +77,16 @@ describe('PermissionGrant', () => {
 
       expect(parsedGrant.toJSON()).to.deep.equal(grant);
       expect(parsedGrant.rawMessage).to.deep.equal(message);
+      expect(parsedGrant.id).to.equal(grant.id);
+      expect(parsedGrant.grantor).to.equal(grant.grantor);
+      expect(parsedGrant.grantee).to.equal(grant.grantee);
+      expect(parsedGrant.scope).to.deep.equal(grant.scope);
+      expect(parsedGrant.conditions).to.deep.equal(grant.conditions);
+      expect(parsedGrant.requestId).to.equal(grant.requestId);
+      expect(parsedGrant.dateGranted).to.equal(grant.dateGranted);
+      expect(parsedGrant.dateExpires).to.equal(grant.dateExpires);
+      expect(parsedGrant.description).to.equal(grant.description);
+      expect(parsedGrant.delegated).to.equal(grant.delegated);
     });
 
     //TODO: this should happen in the `dwn-sdk-js` helper
@@ -363,6 +375,33 @@ describe('PermissionGrant', () => {
 
       // is now true
       isRevoked = await grant.isRevoked();
+      expect(isRevoked).to.equal(true);
+    });
+
+    it('sends the revocation to a remote target', async () => {
+      // create a grant
+      const grant = await aliceDwn.permissions.grant({
+        store       : true,
+        grantedTo   : bobDid.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+      });
+
+      // send the grant to alice's remote
+      const sentGrant = await grant.send();
+      expect(sentGrant.status.code).to.equal(202);
+
+      // revoke the grant but do not store it
+      const revocation = await grant.revoke(false);
+      const sendToAliceRevoke = await revocation.send(aliceDid.uri);
+      expect(sendToAliceRevoke.status.code).to.equal(202);
+
+      // should not return revoked since it was not stored locally
+      let isRevoked = await grant.isRevoked();
+      expect(isRevoked).to.equal(false);
+
+      // check the revocation status of the grant on alice's remote node
+      isRevoked = await grant.isRevoked(true);
       expect(isRevoked).to.equal(true);
     });
   });
