@@ -258,6 +258,38 @@ describe('web5 api', () => {
       expect(serviceEndpoints).to.deep.equal(['https://dwn.tbddev.org/beta']);
     });
 
+    it('should throw if more than one identity because thats unsupported by user agent', async () => {
+      const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
+      sinon
+        .stub(Web5UserAgent, 'create')
+        .resolves(testHarness.agent as Web5UserAgent);
+      const existingIdentity = await testHarness.createIdentity({
+        name        : 'Mr FooBarovich',
+        testDwnUrls : [testDwnUrl],
+      });
+      sinon
+        .stub(testHarness.agent.identity, 'list')
+        .resolves([existingIdentity, existingIdentity]);
+
+      let web5: any, did: any;
+
+      try {
+        const results = await Web5.connect({
+          walletConnectOptions: {} as any,
+        });
+        web5 = results.web5;
+        did = results.did;
+      } catch (e) {
+        expect(e.message).to.include(
+          'connect() failed due to unexpected state: Expected 1 but found'
+        );
+      }
+
+      expect(walletConnectSpy.called).to.be.false;
+      expect(web5).not.to.exist;
+      expect(did).not.to.exist;
+    });
+
     describe('wallet connect', () => {
       it('should not initiate wallet connect if has walletConnectOptions and stored identities', async () => {
         const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
@@ -279,38 +311,6 @@ describe('web5 api', () => {
         expect(walletConnectSpy.called).to.be.false;
         expect(web5).to.exist;
         expect(did).to.exist;
-      });
-
-      it('should throw if more than one identity because thats unsupported by user agent', async () => {
-        const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
-        sinon
-          .stub(Web5UserAgent, 'create')
-          .resolves(testHarness.agent as Web5UserAgent);
-        const existingIdentity = await testHarness.createIdentity({
-          name        : 'Mr FooBarovich',
-          testDwnUrls : [testDwnUrl],
-        });
-        sinon
-          .stub(testHarness.agent.identity, 'list')
-          .resolves([existingIdentity, existingIdentity]);
-
-        let web5: any, did: any;
-
-        try {
-          const results = await Web5.connect({
-            walletConnectOptions: {} as any,
-          });
-          web5 = results.web5;
-          did = results.did;
-        } catch (e) {
-          expect(e.message).to.include(
-            'connect() failed due to unexpected state: Expected 1 but found'
-          );
-        }
-
-        expect(walletConnectSpy.called).to.be.false;
-        expect(web5).not.to.exist;
-        expect(did).not.to.exist;
       });
 
       it('should initiate wallet connect if has walletConnectOptions and no stored identities', async () => {
