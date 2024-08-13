@@ -203,7 +203,7 @@ describe('web5 connect', function () {
 
       const options = {
         client_id          : clientEphemeralPortableDid.uri,
-        scope              : 'web5',
+        scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
         // code_challenge_method : 'S256' as const,
         permissionRequests : {} as any, // TODO: use a better mock once DWN stuff is in place,
