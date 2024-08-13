@@ -10,7 +10,7 @@ import type {
   EnclosedVerifyParams,
 } from '@web5/crypto';
 
-import { LocalKeyManager, utils as cryptoUtils } from '@web5/crypto';
+import { LocalKeyManager, CryptoUtils } from '@web5/crypto';
 
 import type { DidDocument } from './types/did-core.js';
 import type { DidMetadata, PortableDid } from './types/portable-did.js';
@@ -193,7 +193,7 @@ export class BearerDid {
     const keyManager = this.keyManager;
 
     // Determine the signing algorithm.
-    const algorithm = cryptoUtils.getJoseSignatureAlgorithmFromPublicKey(publicKey);
+    const algorithm = CryptoUtils.getJoseSignatureAlgorithmFromPublicKey(publicKey);
 
     return {
       algorithm : algorithm,
