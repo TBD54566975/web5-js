@@ -39,7 +39,6 @@ import type {
 
 import { DwnInterface, dwnMessageConstructors } from './types/dwn.js';
 import { blobToIsomorphicNodeReadable, getDwnServiceEndpointUrls, isRecordsWrite, webReadableToIsomorphicNodeReadable } from './utils.js';
-import { DwnPermissionsUtil } from './dwn-permissions-util.js';
 
 export type DwnMessageWithBlob<T extends DwnInterface> = {
   message: DwnMessage[T];
@@ -455,69 +454,6 @@ export class AgentDwnApi {
    * NOTE EVERYTHING BELOW THIS LINE IS TEMPORARY
    * TODO: Create a `grants` API to handle creating permission requests, grants and revocations
    * */
-
-  /**
-   * Performs a RecordsQuery for permission grants that match the given parameters.
-   */
-  public async fetchGrants({ author, target, grantee, grantor }: {
-    /** author of the query message, defaults to grantee */
-    author?: string,
-    /** target of the query message, defaults to author */
-    target?: string,
-    grantor: string,
-    grantee: string
-  }): Promise<DataEncodedRecordsWriteMessage[]> {
-    // if no author is provided, use the grantee's DID
-    author ??= grantee;
-    // if no target is explicitly provided, use the author
-    target ??= author;
-
-    const { reply: grantsReply } = await this.processRequest({
-      author,
-      target,
-      messageType   : DwnInterface.RecordsQuery,
-      messageParams : {
-        filter: {
-          author    : grantor, // the author of the grant would be the grantor and the logical author of the message
-          recipient : grantee, // the recipient of the grant would be the grantee
-          ...DwnPermissionsUtil.permissionsProtocolParams('grant')
-        }
-      }
-    });
-
-    if (grantsReply.status.code !== 200) {
-      throw new Error(`AgentDwnApi: Failed to fetch grants: ${grantsReply.status.detail}`);
-    }
-
-    return grantsReply.entries! as DataEncodedRecordsWriteMessage[];
-  };
-
-  /**
-   * Check whether a grant is revoked by reading the revocation record for a given grant recordId.
-   */
-  public async isGrantRevoked(author:string, target: string, grantRecordId: string): Promise<boolean> {
-    const { reply: revocationReply } = await this.processRequest({
-      author,
-      target,
-      messageType   : DwnInterface.RecordsRead,
-      messageParams : {
-        filter: {
-          parentId: grantRecordId,
-          ...DwnPermissionsUtil.permissionsProtocolParams('revoke')
-        }
-      }
-    });
-
-    if (revocationReply.status.code === 404) {
-      // no revocation found, the grant is not revoked
-      return false;
-    } else if (revocationReply.status.code === 200) {
-      // a revocation was found, the grant is revoked
-      return true;
-    }
-
-    throw new Error(`AgentDwnApi: Failed to check if grant is revoked: ${revocationReply.status.detail}`);
-  }
 
   public async createGrant({ grantedFrom, dateExpires, grantedTo, scope, delegated }:{
     dateExpires: string,

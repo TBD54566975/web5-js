@@ -256,6 +256,7 @@ export {
   DwnConstant,
   Signer as DwnSigner,
   DateSort as DwnDateSort,
+  DataEncodedRecordsWriteMessage as DwnDataEncodedRecordsWriteMessage,
   PublicJwk as DwnPublicKeyJwk, // TODO: Remove once DWN SDK switches to Jwk from @web5/crypto
   PaginationCursor as DwnPaginationCursor,
   MessageSubscriptionHandler as DwnMessageSubscriptionHandler,
