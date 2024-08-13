@@ -10,7 +10,7 @@ import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
 import { DwnRegistrar } from '@web5/agent';
 import { VcApi } from './vc-api.js';
-import { DidDht, PortableDid } from '@web5/dids';
+import { PortableDid } from '@web5/dids';
 
 /** Override defaults configured during the technical preview phase. */
 export type TechPreviewOptions = {

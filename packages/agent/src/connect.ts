@@ -1,3 +1,4 @@
+import { CryptoUtils } from '@web5/crypto';
 import { DwnProtocolDefinition, DwnRecordsPermissionScope } from './index.js';
 import {
   Web5ConnectAuthResponse,
@@ -5,8 +6,13 @@ import {
   type PushedAuthResponse,
 } from './oidc.js';
 import { pollWithTtl } from './utils.js';
-import { DidDht } from '@web5/dids';
+import { DidJwk } from '@web5/dids';
+import { Convert } from '@web5/common';
 
+/**
+ * Initiates the wallet connect process. Used when a client wants to obtain
+ * a did from a provider.
+ */
 async function initClient({
   connectServerUrl,
   walletUri,
@@ -16,13 +22,14 @@ async function initClient({
 }: WalletConnectOptions) {
   // ephemeral client did for ECDH, signing, verification
   // TODO: use separate keys for ECDH vs. sign/verify. could maybe use secp256k1.
-  const clientDid = await DidDht.create();
+  const clientDid = await DidJwk.create();
 
   // TODO: properly implement PKCE. this implementation is lacking server side validations and more.
   // https://github.com/TBD54566975/web5-js/issues/829
   // Derive the code challenge based on the code verifier
-  const { codeChallengeBytes, codeChallengeBase64Url } =
-    await Oidc.generateCodeChallenge();
+  // const { codeChallengeBytes, codeChallengeBase64Url } =
+  //   await Oidc.generateCodeChallenge();
+  const encryptionKey = CryptoUtils.randomBytes(32);
 
   // build callback URL to pass into the auth request
   const callbackEndpoint = Oidc.buildOidcUrl({
@@ -32,13 +39,12 @@ async function initClient({
 
   // build the PAR request
   const request = await Oidc.createAuthRequest({
-    client_id             : clientDid.uri,
-    scope                 : 'web5', // TODO: clear with frank
-    code_challenge        : codeChallengeBase64Url,
-    code_challenge_method : 'S256',
-    permissionRequests    : permissionRequests,
-    redirect_uri          : callbackEndpoint,
-    // TBD known-customer-credential defines these
+    client_id          : clientDid.uri,
+    scope              : 'web5', // TODO: clear with frank
+    // code_challenge        : codeChallengeBase64Url,
+    // code_challenge_method : 'S256',
+    permissionRequests : permissionRequests,
+    redirect_uri       : callbackEndpoint,
   });
 
   // Sign the Request Object using the Client DID's signing key.
@@ -52,8 +58,8 @@ async function initClient({
   }
   // Encrypt the Request Object JWT using the code challenge.
   const requestObjectJwe = await Oidc.encryptAuthRequest({
-    jwt           : requestJwt,
-    codeChallenge : codeChallengeBytes,
+    jwt: requestJwt,
+    encryptionKey,
   });
 
   // Convert the encrypted Request Object to URLSearchParams for form encoding.
@@ -84,19 +90,18 @@ async function initClient({
   // a route to its web5 connect provider flow and the params of where to fetch the auth request.
   const generatedWalletUri = new URL(walletUri);
   generatedWalletUri.searchParams.set('request_uri', parData.request_uri);
-  generatedWalletUri.searchParams.set('code_challenge', codeChallengeBase64Url);
+  generatedWalletUri.searchParams.set('encryptionKey', Convert.uint8Array(encryptionKey).toBase64Url());
 
   // call user's callback so they can send the URI to the wallet as they see fit
   onWalletUriReady(generatedWalletUri.toString());
 
-  // subscribe to receiving a response from the wallet with default TTL
   const tokenUrl = Oidc.buildOidcUrl({
     baseURL    : connectServerUrl,
     endpoint   : 'token',
     tokenParam : request.state,
   });
 
-  /** ciphertext of {@link Web5ConnectAuthResponse} */
+  // subscribe to receiving a response from the wallet with default TTL. receive ciphertext of {@link Web5ConnectAuthResponse}
   const authResponse = await pollWithTtl(() => fetch(tokenUrl));
 
   if (authResponse) {
@@ -109,18 +114,17 @@ async function initClient({
       jwt,
     })) as Web5ConnectAuthResponse;
 
-    // return the grants for liran to ingest into the DWN SDK / agent
     return {
       delegateGrants : verifiedAuthResponse.delegateGrants,
       delegateDid    : verifiedAuthResponse.delegateDid,
-      connectedDid   : verifiedAuthResponse.iss
+      connectedDid   : verifiedAuthResponse.iss,
     };
   }
 }
 
 /**
- * Initiates the wallet connect process. Used when the app (client) wants to import
- * a delegated identity DID from a wallet (provider).
+ * Initiates the wallet connect process. Used when a client wants to obtain
+ * a did from a provider.
  */
 export type WalletConnectOptions = {
   /** The URL of the intermediary server which relays messages between the client and provider */
@@ -163,7 +167,6 @@ export type WalletConnectOptions = {
 
 /**
  * The protocols of permissions requested, along with the definition and permission scopes for each protocol.
- * The key is the protocol URL and the value is an object with the protocol definition and the permission scopes.
  */
 export type ConnectPermissionRequest = {
   /**

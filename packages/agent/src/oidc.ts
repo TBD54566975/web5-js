@@ -6,12 +6,12 @@ import {
   Jwk,
   Sha256,
   X25519,
-  CryptoUtils
+  CryptoUtils,
 } from '@web5/crypto';
 import { concatenateUrl } from './utils.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 import type { ConnectPermissionRequest } from './connect.js';
-import { DidDht, DidDocument, PortableDid, type BearerDid } from '@web5/dids';
+import { DidDocument, DidJwk, PortableDid, type BearerDid } from '@web5/dids';
 import { AgentDwnApi } from './dwn-api.js';
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 import { DwnInterface } from './types/dwn.js';
@@ -79,10 +79,10 @@ export type SIOPv2AuthRequest = {
    * Required if `code_challenge_method` is used. Enhances security for public clients (e.g., single-page apps,
    * mobile apps) by requiring an additional verification step during token exchange.
    */
-  code_challenge: string;
+  code_challenge?: string;
 
   /** The method used for the PKCE challenge (typically `S256`). Must be present if `code_challenge` is included. */
-  code_challenge_method: 'S256';
+  code_challenge_method?: 'S256';
 
   /**
    * An ID token previously issued to the client, passed as a hint about the end-user’s current or past authenticated
@@ -214,7 +214,7 @@ function buildOidcUrl({
         throw new Error(
           `tokenParam must be providied when building a token URL`
         );
-      return  concatenateUrl(baseURL, `token/${tokenParam}.jwt`);
+      return concatenateUrl(baseURL, `token/${tokenParam}.jwt`);
     // TODO: metadata endpoints?
     default:
       throw new Error(`No matches for endpoint specified: ${endpoint}`);
@@ -236,12 +236,10 @@ async function generateCodeChallenge() {
   return { codeChallengeBytes, codeChallengeBase64Url };
 }
 
-// TODO: when implementing pure OIDC split up the Web5 and OIDC params
+/** Client creates the {@link Web5ConnectAuthRequest} */
 async function createAuthRequest(
   options: RequireOnly<
     Web5ConnectAuthRequest,
-    | 'code_challenge'
-    | 'code_challenge_method'
     | 'client_id'
     | 'scope'
     | 'redirect_uri'
@@ -261,19 +259,20 @@ async function createAuthRequest(
     response_mode   : 'direct_post',
     state           : Convert.uint8Array(stateBytes).toBase64Url(),
     client_metadata : {
-      subject_syntax_types_supported: ['did:dht'],
+      subject_syntax_types_supported: ['did:dht', 'did:jwk'],
     },
   };
 
   return requestObject;
 }
 
+/** Encrypts the auth request with the key which will be passed through QR code */
 async function encryptAuthRequest({
   jwt,
-  codeChallenge,
+  encryptionKey,
 }: {
   jwt: string;
-  codeChallenge: Uint8Array;
+  encryptionKey: Uint8Array;
 }) {
   const protectedHeader = {
     alg : 'dir',
@@ -284,7 +283,7 @@ async function encryptAuthRequest({
   const nonce = CryptoUtils.randomBytes(24);
   const additionalData = Convert.object(protectedHeader).toUint8Array();
   const jwtBytes = Convert.string(jwt).toUint8Array();
-  const chacha = xchacha20poly1305(codeChallenge, nonce, additionalData);
+  const chacha = xchacha20poly1305(encryptionKey, nonce, additionalData);
   const ciphertextAndTag = chacha.encrypt(jwtBytes);
 
   /** The cipher output concatenates the encrypted data and tag
@@ -303,7 +302,7 @@ async function encryptAuthRequest({
   return compactJwe;
 }
 
-// todo: split up oidc and connect specific stuff in the future
+/** Create a response object compatible with Web5 Connect and OIDC SIOPv2 */
 async function createResponseObject(
   options: RequireOnly<
     Web5ConnectAuthResponse,
@@ -321,6 +320,7 @@ async function createResponseObject(
   return responseObject;
 }
 
+/** sign an object and transform it into a jwt using a did */
 async function signJwt({
   did,
   data,
@@ -358,18 +358,18 @@ async function verifyJwt({ jwt }: { jwt: string }) {
 
   if (!header.kid)
     throw new Error(
-      `OIDC: Request Object could not be verified due to missing 'kid' header value.`
+      `OIDC: Object could not be verified due to missing 'kid' header value.`
     );
 
   // Resolve the Client DID document.
-  const { didDocument } = await DidDht.resolve(header.kid.split('#')[0]);
+  const { didDocument } = await DidJwk.resolve(header.kid.split('#')[0]);
 
   if (!didDocument)
     throw new Error(
-      'OIDC: Request Object could not be verified due to Client DID resolution issue.'
+      'OIDC: Object could not be verified due to Client DID resolution issue.'
     );
 
-  // Get the public key used to sign the Request Object from the DID document.
+  // Get the public key used to sign the Object from the DID document.
   const { publicKeyJwk } =
     didDocument.verificationMethod?.find((method: any) => {
       return method.id === header.kid;
@@ -377,7 +377,7 @@ async function verifyJwt({ jwt }: { jwt: string }) {
 
   if (!publicKeyJwk)
     throw new Error(
-      'OIDC: Request Object could not be verified due to missing public key in DID document.'
+      'OIDC: Object could not be verified due to missing public key in DID document.'
     );
 
   const EdDsa = new EdDsaAlgorithm();
@@ -389,14 +389,18 @@ async function verifyJwt({ jwt }: { jwt: string }) {
 
   if (!isValid)
     throw new Error(
-      'OIDC: Request Object failed verification due to invalid signature.'
+      'OIDC: Object failed verification due to invalid signature.'
     );
 
-  const request = Convert.base64Url(payloadB64U).toObject();
+  const object = Convert.base64Url(payloadB64U).toObject();
 
-  return request;
+  return object;
 }
 
+/**
+ * Fetches the {@Web5ConnectAuthRequest} from the authorize endpoint and decrypts it
+ * using the encryption key passed via QR code.
+ */
 const getAuthRequest = async (request_uri: string, code_challenge: string) => {
   const authRequest = await fetch(request_uri);
   const jwe = await authRequest.text();
@@ -449,7 +453,7 @@ function decryptAuthRequest({
 }
 
 /**
- * Used by the client to decrypt the jwe obtained from the auth server which contains
+ * The client uses to decrypt the jwe obtained from the auth server which contains
  * the {@link Web5ConnectAuthResponse} that was sent by the provider to the auth server.
  *
  * @async
@@ -470,12 +474,15 @@ async function decryptAuthResponse(
     authenticationTagB64U,
   ] = jwe.split('.');
 
-  // get the Provider's public key from the header
+  // get the delegatedid public key from the header
   const header = Convert.base64Url(protectedHeaderB64U).toObject() as Jwk;
-  const providerDid = await DidDht.resolve(header.kid!.split('#')[0]);
+  const delegateDid = await DidJwk.resolve(header.kid!.split('#')[0]);
 
   // derive ECDH shared key using the provider's public key and our clientDid private key
-  const sharedKey = await deriveSharedKey(clientDid, providerDid.didDocument!);
+  const sharedKey = await Oidc.deriveSharedKey(
+    clientDid,
+    delegateDid.didDocument!
+  );
 
   // add the pin to the AAD
   const additionalData = { ...header, pin: pin };
@@ -501,6 +508,7 @@ async function decryptAuthResponse(
   return jwt;
 }
 
+/** Derives a shared ECDH private key in order to encrypt the {@link Web5ConnectAuthResponse} */
 async function deriveSharedKey(
   privateKeyDid: BearerDid,
   publicKeyDid: DidDocument
@@ -544,15 +552,21 @@ async function deriveSharedKey(
   return sharedEncryptionKey;
 }
 
+/**
+ * Encrypts the auth response jwt. Requires a randomPin is added to the AAD of the
+ * encryption algorithm in order to prevent man in the middle and eavesdropping attacks.
+ * The keyid of the delegate did is used to pass the public key to the client in order
+ * for the client to derive the shared ECDH private key.
+ */
 function encryptAuthResponse({
   jwt,
   encryptionKey,
-  providerDidKid,
+  delegateDidKeyId,
   randomPin,
 }: {
   jwt: string;
   encryptionKey: Uint8Array;
-  providerDidKid: string;
+  delegateDidKeyId: string;
   randomPin: string;
 }) {
   const protectedHeader = {
@@ -560,7 +574,7 @@ function encryptAuthResponse({
     cty : 'JWT',
     enc : 'XC20P',
     typ : 'JWT',
-    kid : providerDidKid,
+    kid : delegateDidKeyId,
   };
   const nonce = CryptoUtils.randomBytes(24);
   const additionalData = Convert.object({
@@ -588,60 +602,72 @@ function encryptAuthResponse({
   return compactJwe;
 }
 
+/**
+ * Creates the permission grants that assign to the selectedDid the level of
+ * permissions that the web app requested in the {@link Web5ConnectAuthRequest}
+ */
 export async function createPermissionGrants(
-  selectedDids: string[],
+  selectedDid: string,
   delegateDid: BearerDid,
   dwn: AgentDwnApi
 ) {
-  const grantPromises = selectedDids.map(async (did) => {
-    // TODO: Replace with real permission request
-    const permissionRequestData = {
-      description : 'The app is asking to Records Write to http://profile-protocol.xyz',
-      scope       : {
-        interface : DwnInterfaceName.Records,
-        method    : DwnMethodName.Write,
-        protocol  : 'http://profile-protocol.xyz',
-      },
-    };
+  // TODO: remove mock after adding functionality: https://github.com/TBD54566975/web5-js/issues/827
+  const permissionRequestData = {
+    description:
+      'The app is asking to Records Write to http://profile-protocol.xyz',
+    scope: {
+      interface : DwnInterfaceName.Records,
+      method    : DwnMethodName.Write,
+      protocol  : 'http://profile-protocol.xyz',
+    },
+  };
 
-    // TODO: Confirm this
-    const message = await dwn.processRequest({
-      author        : did,
-      target        : did,
-      messageType   : DwnInterface.RecordsWrite,
-      messageParams : {
-        recipient    : delegateDid.uri,
-        protocolPath : 'grant',
-        protocol     : ' https://tbd.website/dwn/permissions',
-        dataFormat   : 'application/json',
-        data         : Convert.object(permissionRequestData).toUint8Array(),
-      },
-      // todo: is it data or datastream?
-      // dataStream: await Convert.object(permissionRequestData).toBlobAsync(),
-    });
-
-    return message;
+  // TODO: remove mock after adding functionality: https://github.com/TBD54566975/web5-js/issues/827
+  const message = await dwn.processRequest({
+    author        : selectedDid,
+    target        : selectedDid,
+    messageType   : DwnInterface.RecordsWrite,
+    messageParams : {
+      recipient    : delegateDid.uri,
+      protocolPath : 'grant',
+      protocol     : ' https://tbd.website/dwn/permissions',
+      dataFormat   : 'application/json',
+      data         : Convert.object(permissionRequestData).toUint8Array(),
+    },
+    // todo: is it data or datastream?
+    // dataStream: await Convert.object(permissionRequestData).toBlobAsync(),
   });
 
-  const permissionGrants = (await Promise.all(grantPromises)).flat();
-
-  return permissionGrants;
+  return [message];
 }
 
+/**
+ * Creates a delegate did which the web app will use as its future indentity.
+ * Assigns to that DID the level of permissions that the web app requested in
+ * the {@link Web5ConnectAuthRequest}. Encrypts via ECDH key that the web app
+ * will have access to because the web app has the public key which it provided
+ * in the {@link Web5ConnectAuthRequest}. Then sends the ciphertext of this
+ * {@link Web5ConnectAuthResponse} to the callback endpoint. Which the
+ * web app will need to retrieve from the token endpoint and decrypt with the pin to access.
+ */
 async function submitAuthResponse(
-  selectedDids: string[],
+  selectedDid: string,
   authRequest: Web5ConnectAuthRequest,
   randomPin: string,
   dwn: AgentDwnApi
 ) {
-  const delegateDid = await DidDht.create();
+  const delegateDid = await DidJwk.create();
   const delegateDidPortable = await delegateDid.export();
 
-  const permissionGrants = await Oidc.createPermissionGrants(selectedDids, delegateDid, dwn);
+  const permissionGrants = await Oidc.createPermissionGrants(
+    selectedDid,
+    delegateDid,
+    dwn
+  );
 
   const responseObject = await Oidc.createResponseObject({
     //* the IDP's did that was selected to be connected
-    iss            : selectedDids[0],
+    iss            : selectedDid,
     //* the client's new identity
     sub            : delegateDid.uri,
     //* the client's temporary ephemeral did used for connect
@@ -657,7 +683,7 @@ async function submitAuthResponse(
     did  : delegateDid,
     data : responseObject,
   });
-  const clientDid = await DidDht.resolve(authRequest.client_id);
+  const clientDid = await DidJwk.resolve(authRequest.client_id);
 
   const sharedKey = await Oidc.deriveSharedKey(
     delegateDid,
@@ -665,9 +691,9 @@ async function submitAuthResponse(
   );
 
   const encryptedResponse = Oidc.encryptAuthResponse({
-    jwt            : responseObjectJwt!,
-    encryptionKey  : sharedKey,
-    providerDidKid : delegateDid.document.verificationMethod![0].id,
+    jwt              : responseObjectJwt!,
+    encryptionKey    : sharedKey,
+    delegateDidKeyId : delegateDid.document.verificationMethod![0].id,
     randomPin,
   });
 
