@@ -72,6 +72,7 @@ export function checkValidProperty(params: {
  * If the `alg` property is present, its value takes precedence and is returned. Otherwise, the
  * `crv` property is used to determine the algorithm.
  *
+ * @memberof CryptoUtils
  * @see {@link https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms | JOSE Algorithms}
  * @see {@link https://datatracker.ietf.org/doc/draft-ietf-jose-fully-specified-algorithms/ | Fully-Specified Algorithms for JOSE and COSE}
  *
@@ -85,7 +86,6 @@ export function checkValidProperty(params: {
  * const algorithm = getJoseSignatureAlgorithmFromPublicKey(publicKey);
  * console.log(algorithm); // Output: "EdDSA"
  * ```
- *
  * @param publicKey - A JWK containing the `alg` and/or `crv` properties.
  * @returns The name of the algorithm associated with the key.
  * @throws Error if the algorithm cannot be determined from the provided input.
@@ -156,6 +156,7 @@ export function isWebCryptoSupported(): boolean {
  * Generates secure pseudorandom values of the specified length using
  * `crypto.getRandomValues`, which defers to the operating system.
  *
+ * @memberof CryptoUtils
  * @remarks
  * This function is a wrapper around `randomBytes` from the '@noble/hashes'
  * package. It's designed to be cryptographically strong, suitable for
@@ -192,7 +193,7 @@ export function randomBytes(bytesLength: number): Uint8Array {
  * Note that while UUIDs are not guaranteed to be unique, they are
  * practically unique" given the large number of possible UUIDs and
  * the randomness of generation.
- *
+ * @memberof CryptoUtils
  * @example
  * ```ts
  * const uuid = randomUuid();
@@ -206,3 +207,84 @@ export function randomUuid(): string {
 
   return uuid;
 }
+
+
+/**
+ * Generates a secure random PIN (Personal Identification Number) of a
+ * specified length.
+ *
+ * This function ensures that the generated PIN is cryptographically secure and
+ * uniformly distributed by using rejection sampling. It repeatedly generates
+ * random numbers until it gets one in the desired range [0, max]. This avoids
+ * bias introduced by simply taking the modulus or truncating the number.
+ *
+ * Note: The function can generate PINs of 3 to 10 digits in length.
+ * Any request for a PIN outside this range will result in an error.
+ *
+ * Example usage:
+ *
+ * ```ts
+ * const pin = randomPin({ length: 4 });
+ * console.log(pin); // Outputs a 4-digit PIN, e.g., "0231"
+ * ```
+ * @memberof CryptoUtils
+ * @param options - The options object containing the desired length of the generated PIN.
+ * @param options.length - The desired length of the generated PIN. The value should be
+ *                         an integer between 3 and 8 inclusive.
+ *
+ * @returns A string representing the generated PIN. The PIN will be zero-padded
+ *          to match the specified length, if necessary.
+ *
+ * @throws Will throw an error if the requested PIN length is less than 3 or greater than 8.
+ */
+export function randomPin({ length }: { length: number }): string {
+  if (3 > length || length > 10) {
+    throw new Error('randomPin() can securely generate a PIN between 3 to 10 digits.');
+  }
+
+  const max = Math.pow(10, length) - 1;
+
+  let pin;
+
+  if (length <= 6) {
+    const rejectionRange = Math.pow(10, length);
+    do {
+      // Adjust the byte generation based on length.
+      const randomBuffer = randomBytes(Math.ceil(length / 2) );  // 2 digits per byte.
+      const view = new DataView(randomBuffer.buffer);
+      // Convert the buffer to integer and take modulus based on length.
+      pin = view.getUint16(0, false) % rejectionRange;
+    } while (pin > max);
+  } else {
+    const rejectionRange = Math.pow(10, 10); // For max 10 digit number.
+    do {
+    // Generates 4 random bytes.
+      const randomBuffer = randomBytes(4);
+      // Create a DataView to read from the randomBuffer.
+      const view = new DataView(randomBuffer.buffer);
+      // Transform bytes to number (big endian).
+      pin = view.getUint32(0, false) % rejectionRange;
+    } while (pin > max);  // Reject if the number is outside the desired range.
+  }
+
+  // Pad the PIN with leading zeros to the desired length.
+  return pin.toString().padStart(length, '0');
+}
+
+/** Utility functions for cryptographic operations. */
+export const CryptoUtils = {
+  /** Generates a secure random PIN (Personal Identification Number) of a specified length. */
+  randomPin,
+  /** Generates a UUID following the version 4 format, as specified in RFC 4122. */
+  randomUuid,
+  /** Generates secure pseudorandom values of the specified length using `crypto.getRandomValues`, which defers to the operating system. */
+  randomBytes,
+  /** Checks if the Web Crypto API is supported in the current runtime environment. */
+  isWebCryptoSupported,
+  /** Determines the JOSE algorithm identifier of the digital signature algorithm based on the `alg` or `crv` property of a {@link Jwk | JWK}. */
+  getJoseSignatureAlgorithmFromPublicKey,
+  /** Checks whether the property specified is a member of the list of valid properties. */
+  checkValidProperty,
+  /** Checks whether the properties object provided contains the specified property. */
+  checkRequiredProperty
+};
