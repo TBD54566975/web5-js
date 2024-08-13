@@ -1,3 +1,4 @@
+import { CryptoUtils } from '@web5/crypto';
 import { DwnProtocolDefinition, DwnRecordsPermissionScope } from './index.js';
 import {
   Web5ConnectAuthResponse,
@@ -6,6 +7,7 @@ import {
 } from './oidc.js';
 import { pollWithTtl } from './utils.js';
 import { DidJwk } from '@web5/dids';
+import { Convert } from '@web5/common';
 
 /**
  * Initiates the wallet connect process. Used when a client wants to obtain
@@ -25,8 +27,9 @@ async function initClient({
   // TODO: properly implement PKCE. this implementation is lacking server side validations and more.
   // https://github.com/TBD54566975/web5-js/issues/829
   // Derive the code challenge based on the code verifier
-  const { codeChallengeBytes, codeChallengeBase64Url } =
-    await Oidc.generateCodeChallenge();
+  // const { codeChallengeBytes, codeChallengeBase64Url } =
+  //   await Oidc.generateCodeChallenge();
+  const encryptionKey = CryptoUtils.randomBytes(32);
 
   // build callback URL to pass into the auth request
   const callbackEndpoint = Oidc.buildOidcUrl({
@@ -36,12 +39,12 @@ async function initClient({
 
   // build the PAR request
   const request = await Oidc.createAuthRequest({
-    client_id             : clientDid.uri,
-    scope                 : 'web5', // TODO: clear with frank
-    code_challenge        : codeChallengeBase64Url,
-    code_challenge_method : 'S256',
-    permissionRequests    : permissionRequests,
-    redirect_uri          : callbackEndpoint,
+    client_id          : clientDid.uri,
+    scope              : 'web5', // TODO: clear with frank
+    // code_challenge        : codeChallengeBase64Url,
+    // code_challenge_method : 'S256',
+    permissionRequests : permissionRequests,
+    redirect_uri       : callbackEndpoint,
   });
 
   // Sign the Request Object using the Client DID's signing key.
@@ -55,8 +58,8 @@ async function initClient({
   }
   // Encrypt the Request Object JWT using the code challenge.
   const requestObjectJwe = await Oidc.encryptAuthRequest({
-    jwt           : requestJwt,
-    codeChallenge : codeChallengeBytes,
+    jwt: requestJwt,
+    encryptionKey,
   });
 
   // Convert the encrypted Request Object to URLSearchParams for form encoding.
@@ -87,7 +90,7 @@ async function initClient({
   // a route to its web5 connect provider flow and the params of where to fetch the auth request.
   const generatedWalletUri = new URL(walletUri);
   generatedWalletUri.searchParams.set('request_uri', parData.request_uri);
-  generatedWalletUri.searchParams.set('code_challenge', codeChallengeBase64Url);
+  generatedWalletUri.searchParams.set('encryptionKey', Convert.uint8Array(encryptionKey).toBase64Url());
 
   // call user's callback so they can send the URI to the wallet as they see fit
   onWalletUriReady(generatedWalletUri.toString());

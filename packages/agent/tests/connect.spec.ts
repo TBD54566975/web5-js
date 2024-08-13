@@ -117,8 +117,6 @@ describe('web5 connect', function () {
 
   let testHarness: PlatformAgentTestHarness;
 
-  let codeChallenge: Uint8Array;
-
   let authRequest: Web5ConnectAuthRequest;
   let authRequestJwt: string;
   let authRequestJwe: string;
@@ -129,6 +127,7 @@ describe('web5 connect', function () {
 
   let sharedECDHPrivateKey: Uint8Array;
 
+  const authRequestEncryptionKey = CryptoUtils.randomBytes(32);
   const encryptionNonce = CryptoUtils.randomBytes(24);
   const randomPin = '9999';
 
@@ -186,26 +185,29 @@ describe('web5 connect', function () {
   });
 
   describe('client authrequest phase', function () {
-    it('should create a code challenge', async () => {
-      const result = await Oidc.generateCodeChallenge();
-      expect(result.codeChallengeBytes).to.be.instanceOf(Uint8Array);
-      expect(result.codeChallengeBase64Url).to.be.a('string');
-      codeChallenge = result.codeChallengeBytes;
-    });
+    // it('should create a code challenge', async () => {
+    //   const result = await Oidc.generateCodeChallenge();
+    //   expect(result.codeChallengeBytes).to.be.instanceOf(Uint8Array);
+    //   expect(result.codeChallengeBase64Url).to.be.a('string');
+    // });
 
     it('should create an authrequest with the code challenge and client did', async () => {
+      const randomBytesStub = sinon
+        .stub(CryptoUtils, 'randomBytes')
+        .returns(authRequestEncryptionKey);
+
       const callbackUrl = Oidc.buildOidcUrl({
         baseURL  : 'http://localhost:3000',
         endpoint : 'callback',
       });
 
       const options = {
-        client_id             : clientEphemeralPortableDid.uri,
-        scope                 : 'web5',
-        code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
-        code_challenge_method : 'S256' as const,
-        permissionRequests    : {} as any, // TODO: use a better mock once DWN stuff is in place,
-        redirect_uri          : callbackUrl,
+        client_id          : clientEphemeralPortableDid.uri,
+        scope              : 'web5',
+        // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
+        // code_challenge_method : 'S256' as const,
+        permissionRequests : {} as any, // TODO: use a better mock once DWN stuff is in place,
+        redirect_uri       : callbackUrl,
       };
       authRequest = await Oidc.createAuthRequest(options);
       expect(authRequest).to.include(options);
@@ -226,8 +228,8 @@ describe('web5 connect', function () {
 
     it('should encrypt an authrequest using the code challenge', async () => {
       authRequestJwe = await Oidc.encryptAuthRequest({
-        jwt: authRequestJwt,
-        codeChallenge,
+        jwt           : authRequestJwt,
+        encryptionKey : authRequestEncryptionKey
       });
       expect(authRequestJwe).to.be.a('string');
       expect(authRequestJwe.split('.')).to.have.lengthOf(5);
@@ -255,7 +257,7 @@ describe('web5 connect', function () {
 
       const result = await Oidc.getAuthRequest(
         authorizeUrl,
-        Convert.uint8Array(codeChallenge).toBase64Url()
+        Convert.uint8Array(authRequestEncryptionKey).toBase64Url()
       );
       expect(result).to.deep.equal(authRequest);
     });

@@ -79,10 +79,10 @@ export type SIOPv2AuthRequest = {
    * Required if `code_challenge_method` is used. Enhances security for public clients (e.g., single-page apps,
    * mobile apps) by requiring an additional verification step during token exchange.
    */
-  code_challenge: string;
+  code_challenge?: string;
 
   /** The method used for the PKCE challenge (typically `S256`). Must be present if `code_challenge` is included. */
-  code_challenge_method: 'S256';
+  code_challenge_method?: 'S256';
 
   /**
    * An ID token previously issued to the client, passed as a hint about the end-user’s current or past authenticated
@@ -240,8 +240,6 @@ async function generateCodeChallenge() {
 async function createAuthRequest(
   options: RequireOnly<
     Web5ConnectAuthRequest,
-    | 'code_challenge'
-    | 'code_challenge_method'
     | 'client_id'
     | 'scope'
     | 'redirect_uri'
@@ -271,10 +269,10 @@ async function createAuthRequest(
 /** Encrypts the auth request with the key which will be passed through QR code */
 async function encryptAuthRequest({
   jwt,
-  codeChallenge,
+  encryptionKey,
 }: {
   jwt: string;
-  codeChallenge: Uint8Array;
+  encryptionKey: Uint8Array;
 }) {
   const protectedHeader = {
     alg : 'dir',
@@ -285,7 +283,7 @@ async function encryptAuthRequest({
   const nonce = CryptoUtils.randomBytes(24);
   const additionalData = Convert.object(protectedHeader).toUint8Array();
   const jwtBytes = Convert.string(jwt).toUint8Array();
-  const chacha = xchacha20poly1305(codeChallenge, nonce, additionalData);
+  const chacha = xchacha20poly1305(encryptionKey, nonce, additionalData);
   const ciphertextAndTag = chacha.encrypt(jwtBytes);
 
   /** The cipher output concatenates the encrypted data and tag
