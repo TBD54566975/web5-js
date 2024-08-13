@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 
 import { JsonRpcSocket } from '../../../src/prototyping/clients/json-rpc-socket.js';
-import { utils as cryptoUtils } from '@web5/crypto';
+import { CryptoUtils } from '@web5/crypto';
 import { JsonRpcErrorCodes, JsonRpcResponse, createJsonRpcErrorResponse, createJsonRpcRequest, createJsonRpcSubscriptionRequest, createJsonRpcSuccessResponse } from '../../../src/prototyping/clients/json-rpc.js';
 import { testDwnUrl } from '../../utils/test-config.js';
 import { Persona, TestDataGenerator } from '@tbd54566975/dwn-sdk-js';
@@ -37,7 +37,7 @@ describe('JsonRpcSocket', () => {
 
   it('generates a request id if one is not provided', async () => {
     const client = await JsonRpcSocket.connect(socketDwnUrl);
-    const requestId = cryptoUtils.randomUuid();
+    const requestId = CryptoUtils.randomUuid();
     const request = createJsonRpcRequest(requestId, 'dwn.processMessage', { param1: 'test-param1', param2: 'test-param2' });
     delete request.id;
 
@@ -47,7 +47,7 @@ describe('JsonRpcSocket', () => {
 
   it('resolves a request with given params', async () => {
     const client = await JsonRpcSocket.connect(socketDwnUrl);
-    const requestId = cryptoUtils.randomUuid();
+    const requestId = CryptoUtils.randomUuid();
     const request = createJsonRpcRequest(requestId, 'dwn.processMessage', { param1: 'test-param1', param2: 'test-param2' });
     const response = await client.request(request);
     expect(response.id).to.equal(request.id);
@@ -56,7 +56,7 @@ describe('JsonRpcSocket', () => {
   it('request times out', async () => {
     // time out after 1 ms
     const client = await JsonRpcSocket.connect(socketDwnUrl, { responseTimeout: 1 });
-    const requestId = cryptoUtils.randomUuid();
+    const requestId = CryptoUtils.randomUuid();
     const request = createJsonRpcRequest(requestId, 'down.processMessage', { param1: 'test-param1', param2: 'test-param2' });
     try {
       await client.request(request);
@@ -69,7 +69,7 @@ describe('JsonRpcSocket', () => {
   it('adds a handler to the messageHandlers map when listening for a response to a request', async () => {
     const client = await JsonRpcSocket.connect(socketDwnUrl);
     const { message } = await TestDataGenerator.generateRecordsSubscribe({ author: alice });
-    const requestId = cryptoUtils.randomUuid();
+    const requestId = CryptoUtils.randomUuid();
     const request = createJsonRpcRequest(requestId, 'dwn.processMessage', { target: alice.did, message });
     const response = client.request(request);
     expect(client['messageHandlers'].has(requestId)).to.be.true;
@@ -84,8 +84,8 @@ describe('JsonRpcSocket', () => {
     const client = await JsonRpcSocket.connect(socketDwnUrl);
     const { message } = await TestDataGenerator.generateRecordsSubscribe({ author: alice });
 
-    const requestId = cryptoUtils.randomUuid();
-    const subscriptionId = cryptoUtils.randomUuid();
+    const requestId = CryptoUtils.randomUuid();
+    const subscriptionId = CryptoUtils.randomUuid();
     const request = createJsonRpcSubscriptionRequest(
       requestId,
       'dwn.processMessage',
@@ -104,8 +104,8 @@ describe('JsonRpcSocket', () => {
 
   it('removes listener if subscription json rpc is rejected ', async () => {
     const client = await JsonRpcSocket.connect(socketDwnUrl);
-    const requestId = cryptoUtils.randomUuid();
-    const subscribeId = cryptoUtils.randomUuid();
+    const requestId = CryptoUtils.randomUuid();
+    const subscribeId = CryptoUtils.randomUuid();
 
     const request = createJsonRpcSubscriptionRequest(
       requestId,
@@ -126,8 +126,8 @@ describe('JsonRpcSocket', () => {
     const client = await JsonRpcSocket.connect(socketDwnUrl);
     const { message } = await TestDataGenerator.generateRecordsSubscribe({ author: alice });
 
-    const requestId = cryptoUtils.randomUuid();
-    const subscriptionId = cryptoUtils.randomUuid();
+    const requestId = CryptoUtils.randomUuid();
+    const subscriptionId = CryptoUtils.randomUuid();
     const request = createJsonRpcSubscriptionRequest(
       requestId,
       'dwn.processMessage',
@@ -149,7 +149,7 @@ describe('JsonRpcSocket', () => {
 
   it('only JSON RPC Methods prefixed with `rpc.subscribe.` are accepted for a subscription', async () => {
     const client = await JsonRpcSocket.connect(socketDwnUrl);
-    const requestId = cryptoUtils.randomUuid();
+    const requestId = CryptoUtils.randomUuid();
     const request = createJsonRpcRequest(requestId, 'test.method', { param1: 'test-param1', param2: 'test-param2' });
     try {
       await client.subscribe(request, () => {});
@@ -161,7 +161,7 @@ describe('JsonRpcSocket', () => {
 
   it('subscribe methods must contain a subscribe object within the request which contains the subscription JsonRpcId', async () => {
     const client = await JsonRpcSocket.connect(socketDwnUrl);
-    const requestId = cryptoUtils.randomUuid();
+    const requestId = CryptoUtils.randomUuid();
     const request = createJsonRpcRequest(requestId, 'rpc.subscribe.test.method', { param1: 'test-param1', param2: 'test-param2' });
     try {
       await client.subscribe(request, () => {});
@@ -235,8 +235,8 @@ describe('JsonRpcSocket', () => {
         const client = await JsonRpcSocket.connect(socketDwnUrl);
         const { message } = await TestDataGenerator.generateRecordsSubscribe({ author: alice });
 
-        const requestId = cryptoUtils.randomUuid();
-        const subscriptionId = cryptoUtils.randomUuid();
+        const requestId = CryptoUtils.randomUuid();
+        const subscriptionId = CryptoUtils.randomUuid();
         const request = createJsonRpcSubscriptionRequest(
           requestId,
           'dwn.processMessage',

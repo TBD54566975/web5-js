@@ -1,4 +1,4 @@
-import { utils as cryptoUtils } from '@web5/crypto';
+import { CryptoUtils } from '@web5/crypto';
 
 
 import type { DwnRpc, DwnRpcRequest, DwnRpcResponse } from './prototyping/clients/dwn-rpc-types.js';
@@ -114,7 +114,7 @@ export class Web5RpcClient implements Web5Rpc {
 
 export class HttpWeb5RpcClient extends HttpDwnRpcClient implements Web5Rpc {
   async sendDidRequest(request: DidRpcRequest): Promise<DidRpcResponse> {
-    const requestId = cryptoUtils.randomUuid();
+    const requestId = CryptoUtils.randomUuid();
     const jsonRpcRequest = createJsonRpcRequest(requestId, request.method, {
       data: request.data
     });
