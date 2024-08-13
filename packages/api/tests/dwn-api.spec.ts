@@ -46,6 +46,10 @@ describe('DwnApi', () => {
     // Instantiate DwnApi for both test identities.
     dwnAlice = new DwnApi({ agent: testHarness.agent, connectedDid: aliceDid.uri });
     dwnBob = new DwnApi({ agent: testHarness.agent, connectedDid: bobDid.uri });
+
+    // clear cached permissions between test runs
+    dwnAlice['cachedPermissions'].clear();
+    dwnBob['cachedPermissions'].clear();
   });
 
   after(async () => {

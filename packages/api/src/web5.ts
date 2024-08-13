@@ -370,7 +370,9 @@ export class Web5 {
       // Enable sync, unless explicitly disabled.
       if (sync !== 'off') {
         // First, register the user identity for sync.
-        await userAgent.sync.registerIdentity({ did: connectedDid });
+        await userAgent.sync.registerIdentity({ did: connectedDid, options: {
+          protocols: [] // TODO: Add protocols to sync
+        } });
 
         // Enable sync using the specified interval or default.
         sync ??= '2m';
