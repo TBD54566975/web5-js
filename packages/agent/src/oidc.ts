@@ -401,12 +401,12 @@ async function verifyJwt({ jwt }: { jwt: string }) {
  * Fetches the {@Web5ConnectAuthRequest} from the authorize endpoint and decrypts it
  * using the encryption key passed via QR code.
  */
-const getAuthRequest = async (request_uri: string, code_challenge: string) => {
+const getAuthRequest = async (request_uri: string, encryption_key: string) => {
   const authRequest = await fetch(request_uri);
   const jwe = await authRequest.text();
   const jwt = decryptAuthRequest({
     jwe,
-    code_challenge,
+    encryption_key,
   });
   const web5ConnectAuthRequest = (await verifyJwt({
     jwt,
@@ -418,10 +418,10 @@ const getAuthRequest = async (request_uri: string, code_challenge: string) => {
 /** Take the encrypted JWE, decrypt using the code challenge and return a JWT string which will need to be verified */
 function decryptAuthRequest({
   jwe,
-  code_challenge,
+  encryption_key,
 }: {
   jwe: string;
-  code_challenge: string;
+  encryption_key: string;
 }) {
   const [
     protectedHeaderB64U,
@@ -431,7 +431,7 @@ function decryptAuthRequest({
     authenticationTagB64U,
   ] = jwe.split('.');
 
-  const codeChallengeBytes = Convert.base64Url(code_challenge).toUint8Array();
+  const encryptionKeyBytes = Convert.base64Url(encryption_key).toUint8Array();
   const protectedHeader = Convert.base64Url(protectedHeaderB64U).toUint8Array();
   const additionalData = protectedHeader;
   const nonce = Convert.base64Url(nonceB64U).toUint8Array();
@@ -445,7 +445,7 @@ function decryptAuthRequest({
     ...ciphertext,
     ...authenticationTag,
   ]);
-  const chacha = xchacha20poly1305(codeChallengeBytes, nonce, additionalData);
+  const chacha = xchacha20poly1305(encryptionKeyBytes, nonce, additionalData);
   const decryptedJwtBytes = chacha.decrypt(ciphertextAndTag);
   const jwt = Convert.uint8Array(decryptedJwtBytes).toString();
 

@@ -451,7 +451,7 @@ describe('web5 connect', function () {
       expect(onWalletUriReadySpy.calledOnce).to.be.true;
       expect(onWalletUriReadySpy.firstCall.args[0]).to.match(
         new RegExp(
-          'http:\\/\\/[\\w.-]+:\\d+\\/\\?request_uri=http%3A%2F%2F[\\w.-]+%3A(\\d+|%24%7Bport%7D)%2Fconnect%2Fauthorize%2F[\\w.-]+\\.jwt&code_challenge=.+',
+          'http:\\/\\/[\\w.-]+:\\d+\\/\\?request_uri=http%3A%2F%2F[\\w.-]+%3A(\\d+|%24%7Bport%7D)%2Fconnect%2Fauthorize%2F[\\w.-]+\\.jwt&encryption_key=.+',
           'i'
         )
       );
