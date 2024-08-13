@@ -90,7 +90,7 @@ async function initClient({
   // a route to its web5 connect provider flow and the params of where to fetch the auth request.
   const generatedWalletUri = new URL(walletUri);
   generatedWalletUri.searchParams.set('request_uri', parData.request_uri);
-  generatedWalletUri.searchParams.set('encryptionKey', Convert.uint8Array(encryptionKey).toBase64Url());
+  generatedWalletUri.searchParams.set('encryption_key', Convert.uint8Array(encryptionKey).toBase64Url());
 
   // call user's callback so they can send the URI to the wallet as they see fit
   onWalletUriReady(generatedWalletUri.toString());
@@ -147,9 +147,9 @@ export type WalletConnectOptions = {
   /**
    * The Web5 API provides a URI to the wallet based on the `walletUri` plus a query params payload valid for 5 minutes.
    * The link can either be used as a deep link on the same device or a QR code for cross device or both.
-   * The query params are `{ request_uri: string; code_challenge: string; }`
+   * The query params are `{ request_uri: string; encryption_key: string; }`
    * The wallet will use the `request_uri to contact the intermediary server's `authorize` endpoint
-   * and pull down the {@link Web5ConnectAuthRequest} and use the `code_challenge` to decrypt it.
+   * and pull down the {@link Web5ConnectAuthRequest} and use the `encryption_key` to decrypt it.
    *
    * @param uri - The URI returned by the web5 connect API to be passed to a provider.
    */
