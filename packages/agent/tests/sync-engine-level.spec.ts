@@ -1,6 +1,6 @@
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { CryptoUtils } from '@web5/crypto';
+import { utils as cryptoUtils } from '@web5/crypto';
 import { DwnConstant, ProtocolDefinition } from '@tbd54566975/dwn-sdk-js';
 
 import type { BearerIdentity } from '../src/bearer-identity.js';
@@ -66,7 +66,7 @@ describe('SyncEngineLevel', () => {
     });
 
     beforeEach(async () => {
-      randomSchema = CryptoUtils.randomUuid();
+      randomSchema = cryptoUtils.randomUuid();
 
       sinon.restore();
 
@@ -821,7 +821,7 @@ describe('SyncEngineLevel', () => {
       it('silently ignores a messageCid from the eventLog that does not exist on the local DWN', async () => {
         // It's important to create a new DID here to avoid conflicts with the previous test on the remote DWN,
         // since we are not clearing the remote DWN's storage before each test.
-        const name = CryptoUtils.randomUuid();
+        const name = cryptoUtils.randomUuid();
         const alice = await testHarness.createIdentity({ name, testDwnUrls });
 
         // scenario: The messageCids returned from the local eventLog contains a Cid that is not found when attempting to push it to the remote DWN
@@ -926,7 +926,7 @@ describe('SyncEngineLevel', () => {
       it('silently ignores a messageCid that already exists on the remote DWN', async () => {
         // It's important to create a new DID here to avoid conflicts with the previous test on the remote DWN,
         // since we are not clearing the remote DWN's storage before each test.
-        const name = CryptoUtils.randomUuid();
+        const name = cryptoUtils.randomUuid();
         const alice = await testHarness.createIdentity({ name, testDwnUrls });
 
         // Register Alice's DID to be synchronized.

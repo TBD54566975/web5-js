@@ -1,7 +1,7 @@
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { testDwnUrl } from './utils/test-config.js';
-import { CryptoUtils } from '@web5/crypto';
+import { utils as cryptoUtils } from '@web5/crypto';
 
 import { DidRpcMethod, HttpWeb5RpcClient, Web5RpcClient, WebSocketWeb5RpcClient } from '../src/rpc-client.js';
 import { DwnServerInfoCacheMemory } from '../src/prototyping/clients/dwn-server-info-cache-memory.js';
@@ -296,7 +296,7 @@ describe('RPC Clients', () => {
       it('should throw if json rpc server responds with an error', async () => {
         const request = { method: DidRpcMethod.Resolve, url: testDwnUrl, data: 'some-data' };
 
-        const requestId = CryptoUtils.randomUuid();
+        const requestId = cryptoUtils.randomUuid();
         const jsonRpcResponse = createJsonRpcErrorResponse(
           requestId,
           JsonRpcErrorCodes.InternalError,
@@ -330,7 +330,7 @@ describe('RPC Clients', () => {
       it('should return json rpc result', async () => {
         const request = { method: DidRpcMethod.Resolve, url: testDwnUrl, data: 'some-data' };
 
-        const requestId = CryptoUtils.randomUuid();
+        const requestId = cryptoUtils.randomUuid();
         const jsonRpcResponse = createJsonRpcSuccessResponse(
           requestId,
           { status: { code: 200 }, data: 'data' }
