@@ -273,11 +273,18 @@ export function randomPin({ length }: { length: number }): string {
 
 /** Utility functions for cryptographic operations. */
 export const CryptoUtils = {
+  /** Generates a secure random PIN (Personal Identification Number) of a specified length. */
   randomPin,
+  /** Generates a UUID following the version 4 format, as specified in RFC 4122. */
   randomUuid,
+  /** Generates secure pseudorandom values of the specified length using `crypto.getRandomValues`, which defers to the operating system. */
   randomBytes,
+  /** Checks if the Web Crypto API is supported in the current runtime environment. */
   isWebCryptoSupported,
+  /** Determines the JOSE algorithm identifier of the digital signature algorithm based on the `alg` or `crv` property of a {@link Jwk | JWK}. */
   getJoseSignatureAlgorithmFromPublicKey,
+  /** Checks whether the property specified is a member of the list of valid properties. */
   checkValidProperty,
+  /** Checks whether the properties object provided contains the specified property. */
   checkRequiredProperty
 };
