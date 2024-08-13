@@ -7,6 +7,10 @@ import {
 import { pollWithTtl } from './utils.js';
 import { DidJwk } from '@web5/dids';
 
+/**
+ * Initiates the wallet connect process. Used when a client wants to obtain
+ * a did from a provider.
+ */
 async function initClient({
   connectServerUrl,
   walletUri,
@@ -116,8 +120,8 @@ async function initClient({
 }
 
 /**
- * Initiates the wallet connect process. Used when the app (client) wants to import
- * a delegated identity DID from a wallet (provider).
+ * Initiates the wallet connect process. Used when a client wants to obtain
+ * a did from a provider.
  */
 export type WalletConnectOptions = {
   /** The URL of the intermediary server which relays messages between the client and provider */

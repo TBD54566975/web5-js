@@ -304,7 +304,7 @@ async function encryptAuthRequest({
   return compactJwe;
 }
 
-// todo: split up oidc and connect specific stuff in the future
+/** Create a response object compatible with Web5 Connect and OIDC SIOPv2 */
 async function createResponseObject(
   options: RequireOnly<
     Web5ConnectAuthResponse,
@@ -322,6 +322,7 @@ async function createResponseObject(
   return responseObject;
 }
 
+/** sign an object and transform it into a jwt using a did */
 async function signJwt({
   did,
   data,
@@ -454,7 +455,7 @@ function decryptAuthRequest({
 }
 
 /**
- * Used by the client to decrypt the jwe obtained from the auth server which contains
+ * The client uses to decrypt the jwe obtained from the auth server which contains
  * the {@link Web5ConnectAuthResponse} that was sent by the provider to the auth server.
  *
  * @async
