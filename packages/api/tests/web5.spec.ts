@@ -16,6 +16,7 @@ import { Web5 } from '../src/web5.js';
 import { DwnInterfaceName, DwnMethodName, Jws, Time } from '@tbd54566975/dwn-sdk-js';
 import { testDwnUrl } from './utils/test-config.js';
 import { DidJwk } from '@web5/dids';
+import { DwnApi } from '../src/dwn-api.js';
 
 describe('web5 api', () => {
   describe('using Test Harness', () => {
@@ -96,9 +97,9 @@ describe('web5 api', () => {
         });
 
         // create grants for the app to use
-        const writeGrant = await testHarness.agent.dwn.createGrant({
+        const writeGrant = await testHarness.agent.permissions.createGrant({
           delegated   : true,
-          grantedFrom : alice.did.uri,
+          author      : alice.did.uri,
           grantedTo   : app.uri,
           dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
           scope       : {
@@ -108,9 +109,9 @@ describe('web5 api', () => {
           }
         });
 
-        const readGrant = await testHarness.agent.dwn.createGrant({
+        const readGrant = await testHarness.agent.permissions.createGrant({
           delegated   : true,
-          grantedFrom : alice.did.uri,
+          author      : alice.did.uri,
           grantedTo   : app.uri,
           dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
           scope       : {
@@ -120,28 +121,9 @@ describe('web5 api', () => {
           }
         });
 
-        // write the grants to wallet
-        const { reply: writeGrantReply } = await testHarness.agent.dwn.processRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : writeGrant.recordsWrite.message,
-          dataStream  : new Blob([ writeGrant.permissionGrantBytes ])
-        });
-        expect(writeGrantReply.status.code).to.equal(202);
-
-        const { reply: readGrantReply } = await testHarness.agent.dwn.processRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : readGrant.recordsWrite.message,
-          dataStream  : new Blob([ readGrant.permissionGrantBytes ])
-        });
-        expect(readGrantReply.status.code).to.equal(202);
-
         // stub the walletInit method of the Connect placeholder class
         sinon.stub(WalletConnect, 'initClient').resolves({
-          delegateGrants : [ writeGrant.dataEncodedMessage, readGrant.dataEncodedMessage ],
+          delegateGrants : [ writeGrant.message, readGrant.message ],
           delegateDid    : await app.export(),
           connectedDid   : alice.did.uri
         });
@@ -181,24 +163,6 @@ describe('web5 api', () => {
           rawMessage  : protocolConfigureMessage,
         });
         expect(localProtocolReply.status.code).to.equal(202);
-
-        const { reply: grantWriteLocalReply } = await web5.agent.processDwnRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : writeGrant.recordsWrite.message,
-          dataStream  : new Blob([ writeGrant.permissionGrantBytes ])
-        });
-        expect(grantWriteLocalReply.status.code).to.equal(202);
-
-        const { reply: grantReadLocalReply } = await web5.agent.processDwnRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : readGrant.recordsWrite.message,
-          dataStream  : new Blob([ readGrant.permissionGrantBytes ])
-        });
-        expect(grantReadLocalReply.status.code).to.equal(202);
 
         // use the grant to write a record
         const writeResult = await web5.dwn.records.write({
@@ -256,9 +220,9 @@ describe('web5 api', () => {
         }
 
         // grant query and delete permissions
-        const queryGrant = await testHarness.agent.dwn.createGrant({
+        const queryGrant = await testHarness.agent.permissions.createGrant({
+          author      : alice.did.uri,
           delegated   : true,
-          grantedFrom : alice.did.uri,
           grantedTo   : app.uri,
           dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
           scope       : {
@@ -268,9 +232,9 @@ describe('web5 api', () => {
           }
         });
 
-        const deleteGrant = await testHarness.agent.dwn.createGrant({
+        const deleteGrant = await testHarness.agent.permissions.createGrant({
+          author      : alice.did.uri,
           delegated   : true,
-          grantedFrom : alice.did.uri,
           grantedTo   : app.uri,
           dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
           scope       : {
@@ -282,7 +246,11 @@ describe('web5 api', () => {
 
         // write the grants to app as owner
         // this also clears the grants cache
-        await web5.dwn.grants.processConnectedGrantsAsOwner([ queryGrant.dataEncodedMessage, deleteGrant.dataEncodedMessage ]);
+        await DwnApi.processConnectedGrants({
+          grants      : [ queryGrant.message, deleteGrant.message ],
+          agent       : appTestHarness.agent,
+          delegateDid : app.uri,
+        });
 
         // attempt to delete using the grant
         const deleteResult = await web5.dwn.records.delete({
@@ -350,9 +318,9 @@ describe('web5 api', () => {
         });
 
         // create grants for the app to use
-        const writeGrant = await testHarness.agent.dwn.createGrant({
+        const writeGrant = await testHarness.agent.permissions.createGrant({
           delegated   : true,
-          grantedFrom : alice.did.uri,
+          author      : alice.did.uri,
           grantedTo   : app.uri,
           dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
           scope       : {
@@ -362,9 +330,9 @@ describe('web5 api', () => {
           }
         });
 
-        const readGrant = await testHarness.agent.dwn.createGrant({
+        const readGrant = await testHarness.agent.permissions.createGrant({
           delegated   : true,
-          grantedFrom : alice.did.uri,
+          author      : alice.did.uri,
           grantedTo   : app.uri,
           dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
           scope       : {
@@ -374,28 +342,9 @@ describe('web5 api', () => {
           }
         });
 
-        // write the grants to wallet
-        const { reply: writeGrantReply } = await testHarness.agent.dwn.processRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : writeGrant.recordsWrite.message,
-          dataStream  : new Blob([ writeGrant.permissionGrantBytes ])
-        });
-        expect(writeGrantReply.status.code).to.equal(202);
-
-        const { reply: readGrantReply } = await testHarness.agent.dwn.processRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : readGrant.recordsWrite.message,
-          dataStream  : new Blob([ readGrant.permissionGrantBytes ])
-        });
-        expect(readGrantReply.status.code).to.equal(202);
-
         // stub the walletInit method of the Connect placeholder class
         sinon.stub(WalletConnect, 'initClient').resolves({
-          delegateGrants : [ writeGrant.dataEncodedMessage, readGrant.dataEncodedMessage ],
+          delegateGrants : [ writeGrant.message, readGrant.message ],
           delegateDid    : await app.export(),
           connectedDid   : alice.did.uri
         });
@@ -418,9 +367,6 @@ describe('web5 api', () => {
         // stub the create method of the Web5UserAgent to use the test harness agent
         sinon.stub(Web5UserAgent, 'create').resolves(appTestHarness.agent as Web5UserAgent);
 
-        // stub console.error so that it doesn't log in the test output and use it as a spy confirming the error messages were logged
-        const consoleSpy = sinon.stub(console, 'error').returns();
-
         try {
           // connect to the app, the options don't matter because we're stubbing the initClient method
           await Web5.connect({
@@ -435,12 +381,8 @@ describe('web5 api', () => {
 
           expect.fail('Should have thrown an error');
         } catch(error:any) {
-          expect(error.message).to.equal('Failed to connect to wallet: Failed to process delegated grant: Bad Request');
+          expect(error.message).to.equal('Failed to connect to wallet: AgentDwnApi: Failed to process connected grant: Bad Request');
         }
-
-        // because `processDwnRequest` is stubbed to return a 400, deleting the grants will return the same
-        // we spy on console.error to check if the error messages are logged for the 2 failed grant deletions
-        expect(consoleSpy.calledTwice, 'console.error called twice').to.be.true;
 
         // check that the Identity was deleted
         const appDid = await appTestHarness.agent.identity.list();
@@ -511,9 +453,9 @@ describe('web5 api', () => {
         });
 
         // create grants for the app to use
-        const writeGrant = await testHarness.agent.dwn.createGrant({
+        const writeGrant = await testHarness.agent.permissions.createGrant({
           delegated   : true,
-          grantedFrom : alice.did.uri,
+          author      : alice.did.uri,
           grantedTo   : app.uri,
           dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
           scope       : {
@@ -523,9 +465,9 @@ describe('web5 api', () => {
           }
         });
 
-        const readGrant = await testHarness.agent.dwn.createGrant({
+        const readGrant = await testHarness.agent.permissions.createGrant({
           delegated   : true,
-          grantedFrom : alice.did.uri,
+          author      : alice.did.uri,
           grantedTo   : app.uri,
           dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
           scope       : {
@@ -535,28 +477,9 @@ describe('web5 api', () => {
           }
         });
 
-        // write the grants to wallet
-        const { reply: writeGrantReply } = await testHarness.agent.dwn.processRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : writeGrant.recordsWrite.message,
-          dataStream  : new Blob([ writeGrant.permissionGrantBytes ])
-        });
-        expect(writeGrantReply.status.code).to.equal(202);
-
-        const { reply: readGrantReply } = await testHarness.agent.dwn.processRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : readGrant.recordsWrite.message,
-          dataStream  : new Blob([ readGrant.permissionGrantBytes ])
-        });
-        expect(readGrantReply.status.code).to.equal(202);
-
         // stub the walletInit method
         sinon.stub(WalletConnect, 'initClient').resolves({
-          delegateGrants : [ writeGrant.dataEncodedMessage, readGrant.dataEncodedMessage ],
+          delegateGrants : [ writeGrant.message, readGrant.message ],
           delegateDid    : await app.export(),
           connectedDid   : alice.did.uri
         });
@@ -596,24 +519,6 @@ describe('web5 api', () => {
           rawMessage  : protocolConfigureMessage,
         });
         expect(localProtocolReply.status.code).to.equal(202);
-
-        const { reply: grantWriteLocalReply } = await web5.agent.processDwnRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : writeGrant.recordsWrite.message,
-          dataStream  : new Blob([ writeGrant.permissionGrantBytes ])
-        });
-        expect(grantWriteLocalReply.status.code).to.equal(202);
-
-        const { reply: grantReadLocalReply } = await web5.agent.processDwnRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : readGrant.recordsWrite.message,
-          dataStream  : new Blob([ readGrant.permissionGrantBytes ])
-        });
-        expect(grantReadLocalReply.status.code).to.equal(202);
 
         // use the grant to write a record
         const writeResult = await web5.dwn.records.write({
@@ -671,10 +576,10 @@ describe('web5 api', () => {
         }
 
         // grant query and delete permissions
-        const queryGrant = await testHarness.agent.dwn.createGrant({
+        const queryGrant = await testHarness.agent.permissions.createGrant({
           delegated   : true,
-          grantedFrom : alice.did.uri,
-          grantedTo   : app.uri,
+          author      : alice.did.uri,
+          grantedTo   : delegateDid,
           dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
           scope       : {
             interface : DwnInterfaceName.Records,
@@ -683,10 +588,10 @@ describe('web5 api', () => {
           }
         });
 
-        const deleteGrant = await testHarness.agent.dwn.createGrant({
+        const deleteGrant = await testHarness.agent.permissions.createGrant({
           delegated   : true,
-          grantedFrom : alice.did.uri,
-          grantedTo   : app.uri,
+          author      : alice.did.uri,
+          grantedTo   : delegateDid,
           dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
           scope       : {
             interface : DwnInterfaceName.Records,
@@ -697,7 +602,11 @@ describe('web5 api', () => {
 
         // write the grants to app as owner
         // this also clears the grants cache
-        await web5.dwn.grants.processConnectedGrantsAsOwner([ queryGrant.dataEncodedMessage, deleteGrant.dataEncodedMessage ]);
+        await DwnApi.processConnectedGrants({
+          grants : [ queryGrant.message, deleteGrant.message ],
+          agent  : appTestHarness.agent,
+          delegateDid,
+        });
 
         // attempt to delete using the grant
         const deleteResult = await web5.dwn.records.delete({
@@ -765,9 +674,9 @@ describe('web5 api', () => {
         });
 
         // create grants for the app to use
-        const writeGrant = await testHarness.agent.dwn.createGrant({
+        const writeGrant = await testHarness.agent.permissions.createGrant({
           delegated   : true,
-          grantedFrom : alice.did.uri,
+          author      : alice.did.uri,
           grantedTo   : app.uri,
           dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
           scope       : {
@@ -777,9 +686,9 @@ describe('web5 api', () => {
           }
         });
 
-        const readGrant = await testHarness.agent.dwn.createGrant({
+        const readGrant = await testHarness.agent.permissions.createGrant({
           delegated   : true,
-          grantedFrom : alice.did.uri,
+          author      : alice.did.uri,
           grantedTo   : app.uri,
           dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
           scope       : {
@@ -789,28 +698,9 @@ describe('web5 api', () => {
           }
         });
 
-        // write the grants to wallet
-        const { reply: writeGrantReply } = await testHarness.agent.dwn.processRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : writeGrant.recordsWrite.message,
-          dataStream  : new Blob([ writeGrant.permissionGrantBytes ])
-        });
-        expect(writeGrantReply.status.code).to.equal(202);
-
-        const { reply: readGrantReply } = await testHarness.agent.dwn.processRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : readGrant.recordsWrite.message,
-          dataStream  : new Blob([ readGrant.permissionGrantBytes ])
-        });
-        expect(readGrantReply.status.code).to.equal(202);
-
         // stub the walletInit method of the Connect placeholder class
         sinon.stub(WalletConnect, 'initClient').resolves({
-          delegateGrants : [ writeGrant.dataEncodedMessage, readGrant.dataEncodedMessage ],
+          delegateGrants : [ writeGrant.message, readGrant.message ],
           delegateDid    : await app.export(),
           connectedDid   : alice.did.uri
         });
@@ -850,16 +740,12 @@ describe('web5 api', () => {
 
           expect.fail('Should have thrown an error');
         } catch(error:any) {
-          expect(error.message).to.equal('Failed to connect to wallet: Failed to process delegated grant: Bad Request');
+          expect(error.message).to.equal('Failed to connect to wallet: AgentDwnApi: Failed to process connected grant: Bad Request');
         }
 
-        // because `processDwnRequest` is stubbed to return a 400, deleting the grants will return the same
-        // we spy on console.error to check if the error messages are logged for the 2 failed grant deletions
-        expect(consoleSpy.calledTwice, 'console.error called twice').to.be.true;
-
         // check that the Identity was deleted
-        const appDid = await appTestHarness.agent.identity.list();
-        expect(appDid).to.have.lengthOf(0);
+        const appIdentities = await appTestHarness.agent.identity.list();
+        expect(appIdentities).to.have.lengthOf(0);
 
         // close the app test harness storage
         await appTestHarness.clearStorage();

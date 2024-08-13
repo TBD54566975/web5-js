@@ -18,6 +18,7 @@ import type { AgentIdentityApi } from '../../src/identity-api.js';
 import type { AgentDidApi, DidInterface } from '../../src/did-api.js';
 import type { AgentKeyManager } from '../../src/types/key-manager.js';
 import type { IdentityVault } from '../../src/types/identity-vault.js';
+import { AgentPermissionsApi } from '../../src/permissions-api.js';
 
 type TestAgentParams<TKeyManager extends AgentKeyManager> = {
   agentVault: IdentityVault;
@@ -26,6 +27,7 @@ type TestAgentParams<TKeyManager extends AgentKeyManager> = {
   dwnApi: AgentDwnApi;
   identityApi: AgentIdentityApi<TKeyManager>;
   keyManager: TKeyManager;
+  permissionsApi: AgentPermissionsApi;
   rpcClient: Web5Rpc;
   syncApi: AgentSyncApi;
 }
@@ -36,6 +38,7 @@ export class TestAgent<TKeyManager extends AgentKeyManager> implements Web5Platf
   public dwn: AgentDwnApi;
   public identity: AgentIdentityApi<TKeyManager>;
   public keyManager: TKeyManager;
+  public permissions: AgentPermissionsApi;
   public rpc: Web5Rpc;
   public sync: AgentSyncApi;
   public vault: IdentityVault;
@@ -48,6 +51,7 @@ export class TestAgent<TKeyManager extends AgentKeyManager> implements Web5Platf
     this.dwn = params.dwnApi;
     this.identity = params.identityApi;
     this.keyManager = params.keyManager;
+    this.permissions = params.permissionsApi;
     this.rpc = params.rpcClient;
     this.sync = params.syncApi;
     this.vault = params.agentVault;
@@ -57,6 +61,7 @@ export class TestAgent<TKeyManager extends AgentKeyManager> implements Web5Platf
     this.dwn.agent = this;
     this.identity.agent = this;
     this.keyManager.agent = this;
+    this.permissions.agent = this;
     this.sync.agent = this;
   }
 
