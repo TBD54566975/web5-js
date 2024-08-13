@@ -292,7 +292,13 @@ describe('web5 api', () => {
 
     describe('wallet connect', () => {
       it('should not initiate wallet connect if has walletConnectOptions and stored identities', async () => {
-        const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
+        const walletConnectStub = sinon
+          .stub(WalletConnect, 'initClient')
+          .resolves({
+            delegateDid    : { garfield: 'i hate mondays' } as any,
+            delegateGrants : {} as any,
+            connectedDid   : {} as any,
+          });
         sinon
           .stub(Web5UserAgent, 'create')
           .resolves(testHarness.agent as Web5UserAgent);
@@ -308,12 +314,14 @@ describe('web5 api', () => {
           walletConnectOptions: {} as any,
         });
 
-        expect(walletConnectSpy.called).to.be.false;
+        expect(walletConnectStub.called).to.be.false;
         expect(web5).to.exist;
         expect(did).to.exist;
       });
 
       it('should initiate wallet connect if has walletConnectOptions and no stored identities', async () => {
+        sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+
         const walletConnectStub = sinon
           .stub(WalletConnect, 'initClient')
           .resolves({
@@ -326,7 +334,7 @@ describe('web5 api', () => {
           walletConnectOptions: {} as any,
         });
 
-        sinon.assert.calledOnce(walletConnectStub);
+        expect(walletConnectStub.called).to.be.true;
         expect(web5).to.be.null;
         expect(did).to.be.null;
         expect(delegateDid).to.deep.equal({ garfield: 'i hate mondays' });
