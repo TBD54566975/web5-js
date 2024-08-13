@@ -10,6 +10,7 @@ import { randomBytes as nobleRandomBytes } from '@noble/hashes/utils';
  * If the `alg` property is present, its value takes precedence and is returned. Otherwise, the
  * `crv` property is used to determine the algorithm.
  *
+ * @memberof CryptoUtils
  * @see {@link https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms | JOSE Algorithms}
  * @see {@link https://datatracker.ietf.org/doc/draft-ietf-jose-fully-specified-algorithms/ | Fully-Specified Algorithms for JOSE and COSE}
  *
@@ -23,7 +24,6 @@ import { randomBytes as nobleRandomBytes } from '@noble/hashes/utils';
  * const algorithm = getJoseSignatureAlgorithmFromPublicKey(publicKey);
  * console.log(algorithm); // Output: "EdDSA"
  * ```
- *
  * @param publicKey - A JWK containing the `alg` and/or `crv` properties.
  * @returns The name of the algorithm associated with the key.
  * @throws Error if the algorithm cannot be determined from the provided input.
@@ -59,6 +59,7 @@ function getJoseSignatureAlgorithmFromPublicKey(publicKey: Jwk): string {
  * Generates secure pseudorandom values of the specified length using
  * `crypto.getRandomValues`, which defers to the operating system.
  *
+ * @memberof CryptoUtils
  * @remarks
  * This function is a wrapper around `randomBytes` from the '@noble/hashes'
  * package. It's designed to be cryptographically strong, suitable for
@@ -95,7 +96,7 @@ function randomBytes(bytesLength: number): Uint8Array {
  * Note that while UUIDs are not guaranteed to be unique, they are
  * practically unique" given the large number of possible UUIDs and
  * the randomness of generation.
- *
+ * @memberof CryptoUtils
  * @example
  * ```ts
  * const uuid = randomUuid();
@@ -129,7 +130,7 @@ function randomUuid(): string {
  * const pin = randomPin({ length: 4 });
  * console.log(pin); // Outputs a 4-digit PIN, e.g., "0231"
  * ```
- *
+ * @memberof CryptoUtils
  * @param options - The options object containing the desired length of the generated PIN.
  * @param options.length - The desired length of the generated PIN. The value should be
  *                         an integer between 3 and 8 inclusive.
@@ -173,6 +174,7 @@ function randomPin({ length }: { length: number }): string {
   return pin.toString().padStart(length, '0');
 }
 
+/** Utility functions for cryptographic operations. */
 export const CryptoUtils = {
   randomPin,
   randomUuid,
