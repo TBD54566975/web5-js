@@ -11,7 +11,6 @@ import type {
   Web5Agent,
 } from '@web5/agent';
 
-import { PortableDid } from '@web5/dids';
 import { Web5UserAgent } from '@web5/user-agent';
 import { DwnRegistrar, WalletConnect } from '@web5/agent';
 
@@ -276,16 +275,12 @@ export class Web5 {
           }});
           await userAgent.identity.manage({ portableIdentity: await identity.export() });
 
-          // NOTE: We are using the DwnApi directly temporarily, in a future release there will be a more robust Permissions API on the agent level
-          // to handle specific permissions requests
-          //
-          // Process the incoming delegated grants in the UserAgent as the owner of the signing delegatedDID
-          // this will allow the delegated DID to fetch the grants in order to use them when selecting a grant to sign a record/message with
-          // If any of the grants fail to process, they are all rolled back and this will throw an error causing the identity to be cleaned up
-          const dwnApi = new DwnApi({ agent, connectedDid, delegateDid: delegateDid.uri });
-          await dwnApi.grants.processConnectedGrantsAsOwner(delegateGrants);
+          // Attempts to process the connected grants to be used by the delegateDID
+          // If the process fails, we want to clean up the identity
+          await DwnApi.processConnectedGrants({ agent, delegateDid: delegateDid.uri, grants: delegateGrants });
         } catch (error:any) {
           // clean up the DID and Identity if import fails and throw
+          // TODO: Implement the ability to purge all of our messages as a tenant
           await this.cleanUpIdentity({ identity, userAgent });
           throw new Error(`Failed to connect to wallet: ${error.message}`);
         }
