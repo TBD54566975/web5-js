@@ -1,5 +1,12 @@
 # @web5/crypto
 
+## 1.0.3
+
+### Patch Changes
+
+- [#713](https://github.com/TBD54566975/web5-js/pull/713) [`5ed8798`](https://github.com/TBD54566975/web5-js/commit/5ed87986e4f3fde25eff2691afb49011d4ba69ce) Thanks [@shamilovtim](https://github.com/shamilovtim)! - introduce initial web5 connect implementation
+  bump crypto
+
 ## 1.0.2
 
 ### Patch Changes
