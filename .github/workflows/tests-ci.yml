@@ -57,7 +57,7 @@ jobs:
 
       - name: Run dwn-server (background)
         run: |
-          node node_modules/@web5/dwn-server/dist/esm/src/main.js &
+          npx @web5/dwn-server &
           echo "DWN_SERVER_BACKGROUND_PROCESS=$!" >> $GITHUB_ENV
 
       - name: Build tests for all packages
@@ -105,12 +105,6 @@ jobs:
         uses: cashapp/activate-hermit@v1
         with:
           cache: "true"
-
-      - name: Print Node.js, npm, & pnpm versions for debugging if needed
-        run: |
-          node -v
-          npm -v
-          pnpm -v
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
