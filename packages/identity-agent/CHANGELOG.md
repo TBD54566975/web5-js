@@ -1,5 +1,12 @@
 # @web5/identity-agent
 
+## 0.4.3
+
+### Patch Changes
+
+- Updated dependencies [[`ddd7106`](https://github.com/TBD54566975/web5-js/commit/ddd71065431209048a9f6b012c034530510d44da)]:
+  - @web5/agent@0.5.1
+
 ## 0.4.2
 
 ### Patch Changes
