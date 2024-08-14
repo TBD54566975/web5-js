@@ -174,14 +174,9 @@ function randomPin({ length }: { length: number }): string {
   return pin.toString().padStart(length, '0');
 }
 
-/** Utility functions for cryptographic operations. */
 export const CryptoUtils = {
-  /** Generates a secure random PIN (Personal Identification Number) of a specified length. */
   randomPin,
-  /** Generates a UUID following the version 4 format, as specified in RFC 4122. */
   randomUuid,
-  /** Generates secure pseudorandom values of the specified length using `crypto.getRandomValues`, which defers to the operating system. */
   randomBytes,
-  /** Determines the JOSE algorithm identifier of the digital signature algorithm based on the `alg` or `crv` property of a {@link Jwk | JWK}. */
   getJoseSignatureAlgorithmFromPublicKey,
 };
