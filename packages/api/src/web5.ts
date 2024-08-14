@@ -1,16 +1,22 @@
-import type { BearerIdentity, HdIdentityVault, Web5Agent } from '@web5/agent';
+import {
+  WalletConnect,
+  type BearerIdentity,
+  type HdIdentityVault,
+  type WalletConnectOptions,
+  type Web5Agent,
+} from '@web5/agent';
+import { Web5UserAgent } from '@web5/user-agent';
 import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
-import { DwnRecordsPermissionScope, DwnProtocolDefinition, DwnRegistrar } from '@web5/agent';
+import { DwnRegistrar } from '@web5/agent';
 import { VcApi } from './vc-api.js';
-import { Web5UserAgent } from '@web5/user-agent';
-import { validateRecoverParams } from './utils.js';
+import { PortableDid } from '@web5/dids';
 
 /** Override defaults configured during the technical preview phase. */
 export type TechPreviewOptions = {
   /** Override default dwnEndpoints provided for technical preview. */
   dwnEndpoints?: string[];
-}
+};
 
 /** Override defaults for DID creation. */
 export type DidCreateOptions = {
@@ -18,56 +24,12 @@ export type DidCreateOptions = {
   dwnEndpoints?: string[];
 }
 
-/**
- * Options to provide when the initiating app wants to import a delegated identity/DID from an external wallet.
- */
-export type WalletConnectOptions = {
-  /**
-   * The URL of the wallet connect server to use for relaying messages between the app and the wallet.
-   */
-  connectServerUrl: string;
-
-  /**
-   * The protocols of permissions requested, along with the definition and permission copes for each protocol.
-   * The key is the protocol URL and the value is an object with the protocol definition and the permission scopes.
-   */
-  requestedProtocolsAndScopes: Map<
-    string,
-    {
-      /**
-       * The definition of the protocol the permissions are being requested for.
-       * In the event that the protocol is not already installed, the wallet will install this given protocol definition.
-       */
-      protocolDefinition: DwnProtocolDefinition;
-
-      /**
-       * The scope of the permissions being requested for the given protocol.
-       */
-      permissionScopes: DwnRecordsPermissionScope[];
-    }
-  >;
-
-  /**
-   * A handler to be called when the request URL is ready to be used to fetch the permission request by the wallet.
-   * This method should be used by the calling app to pass the request URL to the wallet via a QR code or a deep link.
-   *
-   * @param requestUrl - The request URL for the wallet to fetch the permission request.
-   */
-  onRequestReady: (requestUrl: string) => void;
-
-  /**
-   * An async method to get the PIN from the user to decrypt the response from the wallet.
-   *
-   * @returns A promise that resolves to the PIN as a string.
-   */
-  pinCapture: () => Promise<string>;
-}
-
 /** Optional overrides that can be provided when calling {@link Web5.connect}. */
 export type Web5ConnectOptions = {
-
   /**
-   * When specified, wallet connect flow interacting with an external wallet would be triggered.
+   * When specified, external wallet connect flow is triggered.
+   * This param currently will not work in apps that are currently connected.
+   * It must only be invoked at registration with a reset and empty DWN and agent.
    */
   walletConnectOptions?: WalletConnectOptions;
 
@@ -180,6 +142,12 @@ export type Web5ConnectResult = {
    * and should be stored securely by the user.
    */
   recoveryPhrase?: string;
+
+  /**
+   * The resulting did of a successful wallet connect. Only returned on success if
+   * {@link WalletConnectOptions} was provided.
+   */
+  delegateDid?: PortableDid
 };
 
 /**
@@ -277,7 +245,16 @@ export class Web5 {
    * @returns A promise that resolves to a {@link Web5} instance and the connected DID.
    */
   static async connect({
-    agent, agentVault, connectedDid, password, recoveryPhrase, sync, techPreview, didCreateOptions, registration
+    agent,
+    agentVault,
+    connectedDid,
+    password,
+    recoveryPhrase,
+    sync,
+    techPreview,
+    didCreateOptions,
+    registration,
+    walletConnectOptions,
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
     if (agent === undefined) {
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
@@ -306,66 +283,73 @@ export class Web5 {
       }
       await userAgent.start({ password });
 
-      // TODO: Replace stubbed connection attempt once Connect Protocol has been implemented.
-      // Attempt to Connect to localhost agent or via Connect Server.
-      // userAgent.connect();
+      let identity: BearerIdentity;
 
-      const notConnected = true;
-      if (/* !userAgent.isConnected() */ notConnected) {
-        // Connect attempt failed or was rejected so fallback to local user agent.
-        let identity: BearerIdentity;
+      // Query the Agent's DWN tenant for identity records.
+      const identities = await userAgent.identity.list();
 
-        // Query the Agent's DWN tenant for identity records.
-        const identities = await userAgent.identity.list();
+      // If an existing identity is not found found, create a new one.
+      const existingIdentityCount = identities.length;
 
-        // If an existing identity is not found found, create a new one.
-        const existingIdentityCount = identities.length;
-        if (existingIdentityCount === 0) {
+      // on init/registration
+      if (existingIdentityCount === 0) {
+        if (walletConnectOptions) {
+          // WIP: ingest this
+          const { delegateDid } = await WalletConnect.initClient(walletConnectOptions);
+          // WIP
+          // identity = await userAgent.identity.import({
+          //   portableIdentity: {
+          //     portableDid : did,
+          //     metadata    : { name: 'Connection', uri: did.uri, tenant: did.uri }
+          //   }
+          // });
 
-          // Generate a new Identity for the end-user.
-          identity = await userAgent.identity.create({
-            didMethod  : 'dht',
-            metadata   : { name: 'Default' },
-            didOptions : {
-              services: [
-                {
-                  id              : 'dwn',
-                  type            : 'DecentralizedWebNode',
-                  serviceEndpoint : serviceEndpointNodes,
-                  enc             : '#enc',
-                  sig             : '#sig',
-                }
-              ],
-              verificationMethods: [
-                {
-                  algorithm : 'Ed25519',
-                  id        : 'sig',
-                  purposes  : ['assertionMethod', 'authentication']
-                },
-                {
-                  algorithm : 'secp256k1',
-                  id        : 'enc',
-                  purposes  : ['keyAgreement']
-                }
-              ]
-            }
-          });
-
-          // The User Agent will manage the Identity, which ensures it will be available on future
-          // sessions.
-          await userAgent.identity.manage({ portableIdentity: await identity.export() });
-
-        } else if (existingIdentityCount === 1) {
-          // An existing identity was found in the User Agent's tenant.
-          identity = identities[0];
-
-        } else {
-          throw new Error(`connect() failed due to unexpected state: Expected 1 but found ${existingIdentityCount} stored identities.`);
+          // WIP. just going to early return for now.
+          return { web5: null, did: null, delegateDid };
         }
 
-        // Set the stored identity as the connected DID.
-        connectedDid = identity.did.uri;
+        // Use the specified DWN endpoints or get default tech preview hosted nodes.
+        const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
+
+        // Generate a new Identity for the end-user.
+        identity = await userAgent.identity.create({
+          didMethod  : 'dht',
+          metadata   : { name: 'Default' },
+          didOptions : {
+            services: [
+              {
+                id              : 'dwn',
+                type            : 'DecentralizedWebNode',
+                serviceEndpoint : serviceEndpointNodes,
+                enc             : '#enc',
+                sig             : '#sig',
+              }
+            ],
+            verificationMethods: [
+              {
+                algorithm : 'Ed25519',
+                id        : 'sig',
+                purposes  : ['assertionMethod', 'authentication']
+              },
+              {
+                algorithm : 'secp256k1',
+                id        : 'enc',
+                purposes  : ['keyAgreement']
+              }
+            ]
+          }
+        });
+
+        // Persists the Identity to be available in future sessions
+        await userAgent.identity.manage({ portableIdentity: await identity.export() });
+      } else if (existingIdentityCount === 1) {
+        // An existing identity was found in the User Agent's tenant.
+        identity = identities[0];
+      } else {
+        throw new Error(`connect() failed due to unexpected state: Expected 1 but found ${existingIdentityCount} stored identities.`);
       }
+
+      connectedDid = identity.did.uri;
 
       if (registration !== undefined) {
         // If a registration object is passed, we attempt to register the AgentDID and the ConnectedDID with the DWN endpoints provided
@@ -410,9 +394,9 @@ export class Web5 {
     }
 
     const web5 = new Web5({ agent, connectedDid });
-
     return { web5, did: connectedDid, recoveryPhrase };
   }
+}
 
 
   /**
@@ -491,4 +475,5 @@ export class Web5 {
 
     return { web5, did: connectedDid };
   }
-}
+
+  

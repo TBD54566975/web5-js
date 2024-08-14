@@ -99,6 +99,10 @@ export enum DwnInterface {
   RecordsWrite        = DwnInterfaceName.Records + DwnMethodName.Write
 }
 
+export type DwnRecordsInterfaces = DwnInterface.RecordsDelete | DwnInterface.RecordsQuery | DwnInterface.RecordsRead | DwnInterface.RecordsSubscribe | DwnInterface.RecordsWrite;
+export type DwnMessageInterfaces = DwnInterface.MessagesQuery | DwnInterface.MessagesRead | DwnInterface.MessagesSubscribe;
+export type DwnProtocolInterfaces = DwnInterface.ProtocolsConfigure | DwnInterface.ProtocolsQuery;
+
 export interface DwnMessage {
   [DwnInterface.MessagesQuery]      : MessagesQueryMessage;
   [DwnInterface.MessagesRead]       : MessagesReadMessage;
@@ -192,6 +196,8 @@ export type ProcessDwnRequest<T extends DwnInterface> = DwnRequest<T> & {
   messageParams?: DwnMessageParams[T];
   store?: boolean;
   signAsOwner?: boolean;
+  signAsOwnerDelegate?: boolean;
+  granteeDid?: string;
   subscriptionHandler?: MessageHandler[T];
 }
 
