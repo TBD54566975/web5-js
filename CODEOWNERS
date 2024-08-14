@@ -14,11 +14,11 @@
 
 # These are owners of any file in the `common`, `crypto`, `crypto-aws-kms`, `dids`, and
 # `credentials` packages and their sub-directories.
-/packages/common         @csuwildcat @thehenrytsai @nitro-neal @shamilovtim
-/packages/crypto         @csuwildcat @thehenrytsai @nitro-neal @shamilovtim
-/packages/crypto-aws-kms @csuwildcat @thehenrytsai @nitro-neal @shamilovtim 
-/packages/dids           @csuwildcat @thehenrytsai @nitro-neal @shamilovtim 
-/packages/credentials    @csuwildcat @thehenrytsai @nitro-neal @shamilovtim
+/packages/common         @csuwildcat @thehenrytsai @nitro-neal @shamilovtim @lirancohen
+/packages/crypto         @csuwildcat @thehenrytsai @nitro-neal @shamilovtim @lirancohen
+/packages/crypto-aws-kms @csuwildcat @thehenrytsai @nitro-neal @shamilovtim @lirancohen
+/packages/dids           @csuwildcat @thehenrytsai @nitro-neal @shamilovtim @lirancohen
+/packages/credentials    @csuwildcat @thehenrytsai @nitro-neal @shamilovtim @lirancohen 
 
 # These are owners of any file in the `agent`, `user-agent`, `proxy-agent`, `identity-agent`, and
 # `api` packages and their sub-directories.
