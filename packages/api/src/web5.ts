@@ -11,6 +11,7 @@ import { DwnApi } from './dwn-api.js';
 import { DwnRegistrar } from '@web5/agent';
 import { VcApi } from './vc-api.js';
 import { PortableDid } from '@web5/dids';
+import { validateRecoverParams } from './utils.js';
 
 /** Override defaults configured during the technical preview phase. */
 export type TechPreviewOptions = {
@@ -396,7 +397,6 @@ export class Web5 {
     const web5 = new Web5({ agent, connectedDid });
     return { web5, did: connectedDid, recoveryPhrase };
   }
-}
 
 
   /**
@@ -476,4 +476,4 @@ export class Web5 {
     return { web5, did: connectedDid };
   }
 
-  
+}
