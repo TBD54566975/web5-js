@@ -243,9 +243,6 @@ export class SyncEngineLevel implements SyncEngine {
         });
 
         // Update the watermark and add the messageCid to the Sync Message Store if either:
-        // - 202: message was successfully written to the remote DWN
-        // - 409: message was already present on the remote DWN
-        // - RecordsDelete and the status code is 404: the initial write message was not found or the message was already deleted
         if (SyncEngineLevel.syncMessageReplyIsSuccessful(reply)) {
           await this.addMessage(did, messageCid);
           deleteOperations.push({ type: 'del', key: key });
@@ -315,8 +312,18 @@ export class SyncEngineLevel implements SyncEngine {
     }
   }
 
+  /**
+   * 202: message was successfully written to the remote DWN
+   * 204: an initial write message was written without any data, cannot yet be read until a subsequent message is written with data
+   * 409: message was already present on the remote DWN
+   * RecordsDelete and the status code is 404: the initial write message was not found or the message was already deleted
+   */
   private static syncMessageReplyIsSuccessful(reply: UnionMessageReply): boolean {
     return reply.status.code === 202 ||
+      // a 204 status code is returned when the message was accepted without any data.
+      // This is the case for an initial RecordsWrite messages for records that have been updated.
+      // For context: https://github.com/TBD54566975/dwn-sdk-js/issues/695
+      reply.status.code === 204 || 
       reply.status.code === 409 ||
       (
         // If the message is a RecordsDelete and the status code is 404, the initial write message was not found or the message was already deleted

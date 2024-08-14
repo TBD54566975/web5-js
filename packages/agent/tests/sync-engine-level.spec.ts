@@ -1,7 +1,7 @@
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { CryptoUtils } from '@web5/crypto';
-import { DwnConstant, DwnInterfaceName, DwnMethodName, Jws, ProtocolDefinition, Time } from '@tbd54566975/dwn-sdk-js';
+import { DwnConstant, DwnInterfaceName, DwnMethodName, Jws, Message, ProtocolDefinition, Time } from '@tbd54566975/dwn-sdk-js';
 
 import type { BearerIdentity } from '../src/bearer-identity.js';
 
@@ -934,6 +934,84 @@ describe('SyncEngineLevel', () => {
     });
 
     describe('pull()', () => {
+      it('synchronizes records that have been updated', async () => {
+        // Write a test record to Alice's remote DWN.
+        let writeResponse1 = await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat : 'text/plain',
+            schema     : randomSchema
+          },
+          dataStream: new Blob(['Hello, world!'])
+        });
+
+        // Get the record ID of the test record.
+        const testRecordId = writeResponse1.message!.recordId;
+
+        // const update the record
+        let updateResponse = await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            recordId    : testRecordId,
+            dataFormat  : 'text/plain',
+            schema      : randomSchema,
+            dateCreated : writeResponse1.message!.descriptor.dateCreated
+          },
+          dataStream: new Blob(['Hello, world updated!'])
+        });
+        expect(updateResponse.reply.status.code).to.equal(202);
+        expect(updateResponse.message!.recordId).to.equal(testRecordId);
+
+        const updateMessageCid = updateResponse.messageCid;
+
+        // Confirm the record does NOT exist on Alice's local DWN.
+        let queryResponse = await testHarness.agent.dwn.processRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            filter: {
+              dataFormat : 'text/plain',
+              schema     : randomSchema
+            }
+          }
+        });
+        let localDwnQueryReply = queryResponse.reply;
+        expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(localDwnQueryReply.entries).to.have.length(0); // Record doesn't exist on local DWN.
+
+        // Register Alice's DID to be synchronized.
+        await testHarness.agent.sync.registerIdentity({
+          did     : alice.did.uri,
+          options : {
+            protocols: []
+          }
+        });
+
+        // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
+        await syncEngine.pull();
+
+        // Confirm the record now DOES exist on Alice's local DWN.
+        queryResponse = await testHarness.agent.dwn.processRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : { filter: { recordId: testRecordId } }
+        });
+        localDwnQueryReply = queryResponse.reply;
+        expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
+
+        // remove `initialWrite` from the response to generate an accurate messageCid
+        const { initialWrite, ...rawMessage } = localDwnQueryReply.entries![0]
+        const queriedMessageCid = await Message.getCid(rawMessage);
+        expect(queriedMessageCid).to.equal(updateMessageCid);
+      });
+
       it('silently ignores sendDwnRequest for a messageCid that does not exist on a remote DWN', async () => {
         // scenario: The messageCids returned  from the remote eventLog contains a Cid that is not found in the remote DWN
         //           this could happen when a record is updated, only the initial write and the most recent state are kept.
@@ -1194,7 +1272,7 @@ describe('SyncEngineLevel', () => {
       });
 
       it('synchronizes records for 1 identity from remote DWN to local DWN', async () => {
-      // Write a test record to Alice's remote DWN.
+        // Write a test record to Alice's remote DWN.
         let writeResponse = await testHarness.agent.dwn.sendRequest({
           author        : alice.did.uri,
           target        : alice.did.uri,
@@ -1246,8 +1324,6 @@ describe('SyncEngineLevel', () => {
         localDwnQueryReply = queryResponse.reply;
         expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
-
-
 
 
         // Add another record for a subsequent sync.
@@ -1430,6 +1506,84 @@ describe('SyncEngineLevel', () => {
     });
 
     describe('push()', () => {
+      it('synchronizes records that have been updated', async () => {
+        // Write a test record to Alice's local DWN.
+        let writeResponse1 = await testHarness.agent.dwn.processRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat : 'text/plain',
+            schema     : randomSchema
+          },
+          dataStream: new Blob(['Hello, world!'])
+        });
+
+        // Get the record ID of the test record.
+        const testRecordId = writeResponse1.message!.recordId;
+
+        // const update the record
+        let updateResponse = await testHarness.agent.dwn.processRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            recordId    : testRecordId,
+            dataFormat  : 'text/plain',
+            schema      : randomSchema,
+            dateCreated : writeResponse1.message!.descriptor.dateCreated
+          },
+          dataStream: new Blob(['Hello, world updated!'])
+        });
+        expect(updateResponse.reply.status.code).to.equal(202);
+        expect(updateResponse.message!.recordId).to.equal(testRecordId);
+
+        const updateMessageCid = updateResponse.messageCid;
+
+        // Confirm the record does NOT exist on Alice's remote DWN.
+        let queryResponse = await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            filter: {
+              dataFormat : 'text/plain',
+              schema     : randomSchema
+            }
+          }
+        });
+        let remoteDwnQueryReply = queryResponse.reply;
+        expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(remoteDwnQueryReply.entries).to.have.length(0); // Record doesn't exist on local DWN.
+
+        // Register Alice's DID to be synchronized.
+        await testHarness.agent.sync.registerIdentity({
+          did     : alice.did.uri,
+          options : {
+            protocols: []
+          }
+        });
+
+        // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
+        await syncEngine.push();
+
+        // Confirm the record now DOES exist on Alice's local DWN.
+        queryResponse = await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : { filter: { recordId: testRecordId } }
+        });
+        remoteDwnQueryReply = queryResponse.reply;
+        expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
+        expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
+
+        // remove `initialWrite` from the response to generate an accurate messageCid
+        const { initialWrite, ...rawMessage } = remoteDwnQueryReply.entries![0]
+        const queriedMessageCid = await Message.getCid(rawMessage);
+        expect(queriedMessageCid).to.equal(updateMessageCid);
+      });
+
       it('silently ignores a messageCid from the eventLog that does not exist on the local DWN', async () => {
         // It's important to create a new DID here to avoid conflicts with the previous test on the remote DWN,
         // since we are not clearing the remote DWN's storage before each test.
