@@ -15184,10 +15184,10 @@ snapshots:
 
   puppeteer-core@22.15.0:
     dependencies:
-      "@puppeteer/browsers": 2.2.3
-      chromium-bidi: 0.5.19(devtools-protocol@0.0.1286932)
-      debug: 4.3.4(supports-color@8.1.1)
-      devtools-protocol: 0.0.1286932
+      "@puppeteer/browsers": 2.3.0
+      chromium-bidi: 0.6.3(devtools-protocol@0.0.1312386)
+      debug: 4.3.6(supports-color@8.1.1)
+      devtools-protocol: 0.0.1312386
       ws: 8.18.0
     transitivePeerDependencies:
       - bufferutil
