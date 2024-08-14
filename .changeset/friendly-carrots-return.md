@@ -7,7 +7,6 @@
 "@web5/crypto": patch
 "@web5/agent": patch
 "@web5/dids": patch
-"@web5/api": patch
 ---
 
 cleanup crypto utils
