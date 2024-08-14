@@ -340,6 +340,11 @@ export class DwnApi {
    * API to interact with Grants
    *
    * NOTE: This is an EXPERIMENTAL API that will change behavior.
+   *
+   * Currently only supports issuing requests, grants, revokes and queries on behalf without permissions or impersonation.
+   * If the agent is connected to a delegateDid, the delegateDid will be used to sign/author the underlying records.
+   * If the agent is not connected to a delegateDid, the connectedDid will be used to sign/author the underlying records.
+   *
    * @beta
    */
   get permissions() {
