@@ -186,6 +186,17 @@ describe('AgentIdentityApi', () => {
             expect(error.message).to.include('AgentIdentityApi: Failed to purge due to Identity not found');
           }
         });
+
+        it('fails with not found error if the Identity does not exist', async () => {
+          // Delete an Identity that does not exist.
+          const didUri = 'did:method:xyz123';
+          try {
+            await testHarness.agent.identity.delete({ didUri });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error.message).to.include('AgentIdentityApi: Failed to purge due to Identity not found');
+          }
+        });
       });
     });
   }

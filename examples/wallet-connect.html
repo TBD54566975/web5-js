@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web5 Connect Example</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    /* Ensure all elements respect the box model */
+    * {
+      box-sizing: border-box;
+    }
+
+    /* Additional styles to make sure no element causes overflow */
+    .container {
+      max-width: 100%;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+
+    /* Make text wrap correctly */
+    p,
+    a {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+    }
+
+    /* Hide screens initially */
+    #qrCodeScreen,
+    #pinScreen,
+    #endScreen {
+      display: none;
+    }
+
+    .loader {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #ccc;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Loading Screen -->
+    <div id="loadingScreen">
+      <h1>Loading...</h1>
+      <div class="loader"></div>
+    </div>
+
+    <!-- QR Code Screen -->
+    <div id="qrCodeScreen">
+      <h1>Scan with a web5 compatible wallet</h1>
+      <div id="qrCode"></div>
+      <div>
+        <a id="qrCodeText" target="_blank" href=""></a>
+      </div>
+    </div>
+
+    <!-- Pin Screen -->
+    <div id="pinScreen">
+      <h1>Pin Entry</h1>
+      <form id="pinForm">
+        <label for="pinInput">Enter Pin:</label>
+        <input type="text" id="pinInput" name="pinInput" required />
+        <button type="button" id="submitButton">Send</button>
+      </form>
+    </div>
+
+    <!-- End Screen -->
+    <div id="endScreen">
+      <h1>Success</h1>
+      <p>You have connected the DID from your wallet.</p>
+      <p id="didInformation"></p>
+    </div>
+
+    <!-- Error message -->
+    <p id="errorMessage"></p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+
+  <script type="module">
+    import { Web5 } from "/packages/api/dist/browser.mjs";
+
+    initListeners();
+
+    const profileProtocol = {
+      protocol: "http://profile-protocol.xyz",
+      published: true,
+      types: {
+        profile: {
+          schema: "http://profile-protocol.xyz/schema/profile",
+          dataFormats: ["application/json"],
+        },
+      },
+      structure: {
+        profile: {
+          $actions: [
+            {
+              who: "anyone",
+              can: ["create", "update"],
+            },
+          ],
+        },
+      },
+    };
+
+    const scopes = [
+      {
+        interface: "Records",
+        method: "Write",
+        protocol: "http://profile-protocol.xyz",
+      },
+      {
+        interface: "Records",
+        method: "Query",
+        protocol: "http://profile-protocol.xyz",
+      },
+    ];
+
+    try {
+      const { delegateDid } = await Web5.connect({
+        walletConnectOptions: {
+          walletUri: "web5://connect",
+          connectServerUrl: "http://localhost:3000/connect",
+          permissionRequests: [
+            {
+              protocolDefinition: profileProtocol,
+              permissionScopes: scopes,
+            },
+          ],
+          onWalletUriReady: generateQRCode,
+          validatePin: async () => {
+            goToPinScreen();
+
+            const pin = await waitForPin();
+            return pin;
+          },
+        },
+      });
+
+      goToEndScreen(delegateDid);
+    } catch (e) {
+      document.getElementById(
+        "errorMessage"
+      ).innerText = `Wallet connect failed. ${e.message}`;
+      console.error(e.message);
+    }
+
+    function generateQRCode(text) {
+      new QRCode(document.getElementById("qrCode"), text);
+      document.getElementById("qrCodeText").setAttribute("href", text);
+      document.getElementById("qrCodeText").innerText = text;
+      goToQRCodeScreen();
+    }
+
+    function waitForPin() {
+      return new Promise((resolve) => {
+        const handlePinEntered = (event) => {
+          const pin = event.detail.pin;
+          resolve(pin);
+          window.removeEventListener("pinEntered", handlePinEntered);
+        };
+        window.addEventListener("pinEntered", handlePinEntered);
+      });
+    }
+
+    function onSubmitPinClicked(event) {
+      event.preventDefault();
+      const pin = document.getElementById("pinInput").value;
+      const eventObj = new CustomEvent("pinEntered", { detail: { pin } });
+      window.dispatchEvent(eventObj);
+    }
+
+    function goToQRCodeScreen() {
+      document.getElementById("loadingScreen").style.display = "none";
+      document.getElementById("qrCodeScreen").style.display = "block";
+    }
+
+    function goToPinScreen() {
+      document.getElementById("qrCodeScreen").style.display = "none";
+      document.getElementById("pinScreen").style.display = "block";
+    }
+
+    function goToEndScreen(delegateDid) {
+      document.getElementById("didInformation").innerText = `${JSON.stringify(
+        delegateDid
+      )}`;
+
+      document.getElementById("pinScreen").style.display = "none";
+      document.getElementById("endScreen").style.display = "block";
+    }
+
+    function initListeners() {
+      const submitButton = document.getElementById("submitButton");
+      submitButton.addEventListener("click", onSubmitPinClicked);
+    }
+  </script>
+</body>
+
+</html>
