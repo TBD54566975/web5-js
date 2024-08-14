@@ -28,8 +28,8 @@ importers:
         specifier: 7.9.0
         version: 7.9.0(@typescript-eslint/parser@7.14.1(eslint@9.7.0)(typescript@5.5.4))(eslint@9.7.0)(typescript@5.5.4)
       '@web5/dwn-server':
-        specifier: 0.4.5
-        version: 0.4.5
+        specifier: 0.4.6
+        version: 0.4.6
       audit-ci:
         specifier: ^7.0.1
         version: 7.1.0
@@ -52,8 +52,8 @@ importers:
         specifier: 1.2.2
         version: 1.2.2
       '@tbd54566975/dwn-sdk-js':
-        specifier: 0.4.4
-        version: 0.4.4
+        specifier: 0.4.5
+        version: 0.4.5
       '@web5/common':
         specifier: 1.0.0
         version: 1.0.0
@@ -180,8 +180,8 @@ importers:
         specifier: 1.45.3
         version: 1.45.3
       '@tbd54566975/dwn-sdk-js':
-        specifier: 0.4.4
-        version: 0.4.4
+        specifier: 0.4.5
+        version: 0.4.5
       '@types/chai':
         specifier: 4.3.6
         version: 4.3.6
@@ -2096,12 +2096,12 @@ packages:
   '@sphereon/ssi-types@0.26.0':
     resolution: {integrity: sha512-r4JQIN7rnPunEv0HvCFC1ZCc9qlWcegYvhJbMJqSvyFE6VhmT5NNdH9jNV9QetgMa0yo5r3k+TnHNv3nH58Dmg==}
 
-  '@tbd54566975/dwn-sdk-js@0.4.4':
-    resolution: {integrity: sha512-i4jBrKOn6ypaFQJLNG8Kc9AvR1nmZrq3A+9M4O9xiDbH60+QMPf2HsNuVOTu6Ve9V7IU8NorI/GoSryD0TknpQ==}
+  '@tbd54566975/dwn-sdk-js@0.4.5':
+    resolution: {integrity: sha512-UGcq9PX32oQ3sB9LfQms82Ce5secNJXUUe+W163Am2vOAAjJ8AyFG9CaIrXO8HMyEO1yZ7l3bBv57tYM9Zf70A==}
     engines: {node: '>= 18'}
 
-  '@tbd54566975/dwn-sql-store@0.6.4':
-    resolution: {integrity: sha512-ivQt83MMMYsXC4qSD61lKINuJ5KnGIz4p0H61oh/zqd4ivg7ofrTnnVZBdKopvchREZ1ozxI5hcRRuBLkuLbkw==}
+  '@tbd54566975/dwn-sql-store@0.6.5':
+    resolution: {integrity: sha512-ZPdz7Ck7NMNCIOuZv+oxfxrw5lZJI/SukcLVd7PMseWZvT28D/gRcHgt0MfizeE9jLv9+ONI+0k8uc/O2NILyw==}
     engines: {node: '>=18'}
 
   '@tootallnate/quickjs-emscripten@0.23.0':
@@ -2483,6 +2483,10 @@ packages:
     resolution: {integrity: sha512-z1CsgycTqiXEsS6pPlJDDLGAeGsgzfdBeWvyxLXTgh08Q8ACULmEGRXjSsgWHFn6DO6MpWFn55h/hF4wZZRxvA==}
     engines: {node: '>=18.0.0'}
 
+  '@web5/crypto@1.0.3':
+    resolution: {integrity: sha512-gZJKo0scX+L53E2K/5cgEiFYxejzHP2RSg64ncF6TitOnCNxUyWjofovgufb+u3ZpGC4iuliD7V0o1C+V73Law==}
+    engines: {node: '>=18.0.0'}
+
   '@web5/dids@1.1.0':
     resolution: {integrity: sha512-d9pKf/DW+ziUiV5g3McC71utyAhQyT1tYGPbQSYWt2ji6FHGNC6tffHMfLXXK/W+vbwV3eNTn06JqTXRaYhxBA==}
     engines: {node: '>=18.0.0'}
@@ -2491,8 +2495,12 @@ packages:
     resolution: {integrity: sha512-LKc6Okl2iz78QGJCsd8QKQq3LdtmfQ9cfiRKu1BU4ITWteWsg4JD089hKmslNDd2KKnEf9LE72TqEYWxr/e8JA==}
     engines: {node: '>=18.0.0'}
 
-  '@web5/dwn-server@0.4.5':
-    resolution: {integrity: sha512-fEoL3IU/RwkOUj5kKuoBaBRY2OJ1h/gEzEgeH0nDluNg1S8T96kOCDxSgPbuVMY+aofj7JmQZQm0oAmq4tH2Eg==}
+  '@web5/dids@1.1.3':
+    resolution: {integrity: sha512-M9EfsEYcOtYuEvUQjow4vpxXbD0Sz5H8EuDXMtwuvP4UdYL0ATl+60F8+8HDmwPFeUy6M2wxuoixrLDwSRFwZA==}
+    engines: {node: '>=18.0.0'}
+
+  '@web5/dwn-server@0.4.6':
+    resolution: {integrity: sha512-92uNTJDBHGprneQtuD0A4XbcWirWHY+MrQVKd4fyrjwMh7cUMF3uE4l3QnBwn8kquzRrU+3sekcgzNjHvmTfHw==}
     hasBin: true
 
   '@webassemblyjs/ast@1.12.1':
@@ -7344,7 +7352,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@tbd54566975/dwn-sdk-js@0.4.4':
+  '@tbd54566975/dwn-sdk-js@0.4.5':
     dependencies:
       '@ipld/dag-cbor': 9.0.3
       '@js-temporal/polyfill': 0.4.4
@@ -7352,7 +7360,7 @@ snapshots:
       '@noble/curves': 1.4.2
       '@noble/ed25519': 2.0.0
       '@noble/secp256k1': 2.0.0
-      '@web5/dids': 1.1.0
+      '@web5/dids': 1.1.3
       abstract-level: 1.0.3
       ajv: 8.12.0
       blockstore-core: 4.2.0
@@ -7377,10 +7385,10 @@ snapshots:
       - encoding
       - supports-color
 
-  '@tbd54566975/dwn-sql-store@0.6.4':
+  '@tbd54566975/dwn-sql-store@0.6.5':
     dependencies:
       '@ipld/dag-cbor': 9.0.5
-      '@tbd54566975/dwn-sdk-js': 0.4.4
+      '@tbd54566975/dwn-sdk-js': 0.4.5
       kysely: 0.26.3
       multiformats: 12.0.1
       readable-stream: 4.4.2
@@ -8287,6 +8295,13 @@ snapshots:
       '@noble/hashes': 1.3.3
       '@web5/common': 1.0.0
 
+  '@web5/crypto@1.0.3':
+    dependencies:
+      '@noble/ciphers': 0.5.3
+      '@noble/curves': 1.3.0
+      '@noble/hashes': 1.4.0
+      '@web5/common': 1.0.1
+
   '@web5/dids@1.1.0':
     dependencies:
       '@decentralized-identity/ion-sdk': 1.0.4
@@ -8311,10 +8326,22 @@ snapshots:
       level: 8.0.1
       ms: 2.1.3
 
-  '@web5/dwn-server@0.4.5':
+  '@web5/dids@1.1.3':
     dependencies:
-      '@tbd54566975/dwn-sdk-js': 0.4.4
-      '@tbd54566975/dwn-sql-store': 0.6.4
+      '@decentralized-identity/ion-sdk': 1.0.4
+      '@dnsquery/dns-packet': 6.1.1
+      '@web5/common': 1.0.0
+      '@web5/crypto': 1.0.3
+      abstract-level: 1.0.4
+      bencode: 4.0.0
+      buffer: 6.0.3
+      level: 8.0.1
+      ms: 2.1.3
+
+  '@web5/dwn-server@0.4.6':
+    dependencies:
+      '@tbd54566975/dwn-sdk-js': 0.4.5
+      '@tbd54566975/dwn-sql-store': 0.6.5
       better-sqlite3: 8.7.0
       body-parser: 1.20.2
       bytes: 3.1.2
@@ -10205,7 +10232,7 @@ snapshots:
 
   ipfs-unixfs-exporter@13.1.5:
     dependencies:
-      '@ipld/dag-cbor': 9.0.3
+      '@ipld/dag-cbor': 9.0.5
       '@ipld/dag-pb': 4.1.2
       '@multiformats/murmur3': 2.1.8
       err-code: 3.0.1
