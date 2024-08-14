@@ -1,5 +1,11 @@
 # @web5/agent
 
+## 0.5.1
+
+### Patch Changes
+
+- [#846](https://github.com/TBD54566975/web5-js/pull/846) [`ddd7106`](https://github.com/TBD54566975/web5-js/commit/ddd71065431209048a9f6b012c034530510d44da) Thanks [@shamilovtim](https://github.com/shamilovtim)! - bump dwn-sdk-js
+
 ## 0.5.0
 
 ### Minor Changes
