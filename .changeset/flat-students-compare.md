@@ -1,6 +1,5 @@
 ---
 "@web5/agent": minor
-"@web5/api": patch
 "@web5/credentials": patch
 "@web5/crypto": patch
 "@web5/crypto-aws-kms": patch
