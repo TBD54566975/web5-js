@@ -6,7 +6,7 @@
 # The format is described: https://github.blog/2017-07-06-introducing-code-owners/
 
 # These owners will be the default owners for all directories in the repo that do not have a designated owner.
-* @frankhinek @csuwildcat @mistermoe @thehenrytsai @lirancohen
+* @frankhinek @csuwildcat @mistermoe @thehenrytsai @lirancohen @shamilovtim
 
 # These are owners who can approve folders under the root directory and other CICD and QoL directories.
 # Should be the union list of all owners of sub-directories, optionally minus the default owners.
@@ -19,11 +19,11 @@
 
 # These are owners of any file in the `common`, `crypto`, `crypto-aws-kms`, `dids`, and
 # `credentials` packages and their sub-directories.
-/packages/common         @csuwildcat @thehenrytsai @nitro-neal
-/packages/crypto         @csuwildcat @thehenrytsai @nitro-neal
-/packages/crypto-aws-kms @csuwildcat @thehenrytsai @nitro-neal
-/packages/dids           @csuwildcat @thehenrytsai @nitro-neal
-/packages/credentials    @csuwildcat @thehenrytsai @nitro-neal
+/packages/common         @csuwildcat @thehenrytsai @nitro-neal @shamilovtim
+/packages/crypto         @csuwildcat @thehenrytsai @nitro-neal @shamilovtim
+/packages/crypto-aws-kms @csuwildcat @thehenrytsai @nitro-neal @shamilovtim 
+/packages/dids           @csuwildcat @thehenrytsai @nitro-neal @shamilovtim 
+/packages/credentials    @csuwildcat @thehenrytsai @nitro-neal @shamilovtim
 
 # These are owners of any file in the `agent`, `user-agent`, `proxy-agent`, `identity-agent`, and
 # `api` packages and their sub-directories.
