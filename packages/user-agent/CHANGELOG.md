@@ -1,5 +1,26 @@
 # @web5/user-agent
 
+## 0.4.3
+
+### Patch Changes
+
+- Updated dependencies [[`ddd7106`](https://github.com/TBD54566975/web5-js/commit/ddd71065431209048a9f6b012c034530510d44da)]:
+  - @web5/agent@0.5.1
+
+## 0.4.2
+
+### Patch Changes
+
+- [#713](https://github.com/TBD54566975/web5-js/pull/713) [`5ed8798`](https://github.com/TBD54566975/web5-js/commit/5ed87986e4f3fde25eff2691afb49011d4ba69ce) Thanks [@shamilovtim](https://github.com/shamilovtim)! - introduce initial web5 connect implementation
+  bump crypto
+
+- [#746](https://github.com/TBD54566975/web5-js/pull/746) [`1fee7a2`](https://github.com/TBD54566975/web5-js/commit/1fee7a266d426013d1d250155af2a9c3c8b1ee78) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Apply logic to sign messages with grants, add utils for dealing with grants
+
+- Updated dependencies [[`5ed8798`](https://github.com/TBD54566975/web5-js/commit/5ed87986e4f3fde25eff2691afb49011d4ba69ce), [`1fee7a2`](https://github.com/TBD54566975/web5-js/commit/1fee7a266d426013d1d250155af2a9c3c8b1ee78)]:
+  - @web5/agent@0.5.0
+  - @web5/crypto@1.0.3
+  - @web5/dids@1.1.3
+
 ## 0.4.1
 
 ### Patch Changes

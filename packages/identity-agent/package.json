@@ -1,6 +1,6 @@
 {
   "name": "@web5/identity-agent",
-  "version": "0.4.1",
+  "version": "0.4.3",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
