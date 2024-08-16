@@ -28,8 +28,8 @@ importers:
         specifier: 7.9.0
         version: 7.9.0(@typescript-eslint/parser@7.14.1(eslint@9.7.0)(typescript@5.5.4))(eslint@9.7.0)(typescript@5.5.4)
       '@web5/dwn-server':
-        specifier: 0.4.6
-        version: 0.4.6
+        specifier: 0.4.7
+        version: 0.4.7
       audit-ci:
         specifier: ^7.0.1
         version: 7.1.0
@@ -2499,8 +2499,8 @@ packages:
     resolution: {integrity: sha512-M9EfsEYcOtYuEvUQjow4vpxXbD0Sz5H8EuDXMtwuvP4UdYL0ATl+60F8+8HDmwPFeUy6M2wxuoixrLDwSRFwZA==}
     engines: {node: '>=18.0.0'}
 
-  '@web5/dwn-server@0.4.6':
-    resolution: {integrity: sha512-92uNTJDBHGprneQtuD0A4XbcWirWHY+MrQVKd4fyrjwMh7cUMF3uE4l3QnBwn8kquzRrU+3sekcgzNjHvmTfHw==}
+  '@web5/dwn-server@0.4.7':
+    resolution: {integrity: sha512-ZCs1Ztc3wiywMEeINAIED/u5CA0qfuH8sr8gDeot1lBvu1viXMu1Ua8YqKc6CABPLXtWFmy5vuXIsf72TD5KHw==}
     hasBin: true
 
   '@webassemblyjs/ast@1.12.1':
@@ -8338,10 +8338,11 @@ snapshots:
       level: 8.0.1
       ms: 2.1.3
 
-  '@web5/dwn-server@0.4.6':
+  '@web5/dwn-server@0.4.7':
     dependencies:
       '@tbd54566975/dwn-sdk-js': 0.4.5
       '@tbd54566975/dwn-sql-store': 0.6.5
+      '@web5/crypto': 1.0.3
       better-sqlite3: 8.7.0
       body-parser: 1.20.2
       bytes: 3.1.2
