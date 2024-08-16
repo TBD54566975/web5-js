@@ -280,8 +280,7 @@ describe('SyncEngineLevel', () => {
       });
 
       // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
-      await syncEngine.push();
-      await syncEngine.pull();
+      await syncEngine.sync();
 
       // query local to see all protocols
       localProtocolsQueryResponse = await testHarness.agent.dwn.processRequest({
@@ -347,8 +346,8 @@ describe('SyncEngineLevel', () => {
     describe('sync()', () => {
       it('syncs only specified direction, or if non specified syncs both directions', async () => {
         // spy on push and pull and stub their response
-        const pushSpy = sinon.stub(syncEngine, 'push').resolves();
-        const pullSpy = sinon.stub(syncEngine, 'pull').resolves();
+        const pushSpy = sinon.stub(syncEngine as any, 'push').resolves();
+        const pullSpy = sinon.stub(syncEngine as any, 'pull').resolves();
 
         // Register Alice's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
@@ -993,7 +992,7 @@ describe('SyncEngineLevel', () => {
         });
 
         // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
-        await syncEngine.pull();
+        await syncEngine.sync('pull');
 
         // Confirm the record now DOES exist on Alice's local DWN.
         queryResponse = await testHarness.agent.dwn.processRequest({
@@ -1007,7 +1006,7 @@ describe('SyncEngineLevel', () => {
         expect(localDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
 
         // remove `initialWrite` from the response to generate an accurate messageCid
-        const { initialWrite, ...rawMessage } = localDwnQueryReply.entries![0]
+        const { initialWrite, ...rawMessage } = localDwnQueryReply.entries![0];
         const queriedMessageCid = await Message.getCid(rawMessage);
         expect(queriedMessageCid).to.equal(updateMessageCid);
       });
@@ -1089,7 +1088,7 @@ describe('SyncEngineLevel', () => {
         });
 
         // Execute Sync to pull all records from Alice's remote DWNs
-        await syncEngine.pull();
+        await syncEngine.sync('pull');
 
         // Verify sendDwnRequest was called once for each record, including the invalid record
         //
@@ -1222,7 +1221,7 @@ describe('SyncEngineLevel', () => {
         const processMessageSpy = sinon.spy(testHarness.agent.dwn.node, 'processMessage');
 
         // Execute Sync to push records to Alice's remote node
-        await syncEngine.pull();
+        await syncEngine.sync('pull');
 
         // Verify sendDwnRequest is called for all 4 messages
         expect(sendDwnRequestSpy.callCount).to.equal(4, 'sendDwnRequestSpy');
@@ -1261,7 +1260,7 @@ describe('SyncEngineLevel', () => {
         const didResolveSpy = sinon.spy(testHarness.agent.did, 'resolve');
         const sendDwnRequestSpy = sinon.spy(testHarness.agent.rpc, 'sendDwnRequest');
 
-        await syncEngine.pull();
+        await syncEngine.sync('pull');
 
         // Verify DID resolution and DWN requests did not occur.
         expect(didResolveSpy.notCalled).to.be.true;
@@ -1312,7 +1311,7 @@ describe('SyncEngineLevel', () => {
         });
 
         // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
-        await syncEngine.pull();
+        await syncEngine.sync('pull');
 
         // Confirm the record now DOES exist on Alice's local DWN.
         queryResponse = await testHarness.agent.dwn.processRequest({
@@ -1350,7 +1349,7 @@ describe('SyncEngineLevel', () => {
         expect(localDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(localDwnQueryReply.entries).to.have.length(0); // New Record doesn't exist on local DWN.
 
-        await syncEngine.pull();
+        await syncEngine.sync('pull');
 
         // Confirm the new record DOES exist on Alice's local DWN.
         queryResponse = await testHarness.agent.dwn.processRequest({
@@ -1400,7 +1399,7 @@ describe('SyncEngineLevel', () => {
         expect(localReply.entries?.length).to.equal(0);
 
         // initiate sync
-        await syncEngine.pull();
+        await syncEngine.sync('pull');
 
         // query that the local record exists
         const { reply: localReply2 } = await testHarness.agent.dwn.processRequest({
@@ -1479,7 +1478,7 @@ describe('SyncEngineLevel', () => {
         });
 
         // Execute Sync to pull all records from Alice's and Bob's remove DWNs to their local DWNs.
-        await syncEngine.pull();
+        await syncEngine.sync('pull');
 
         // Confirm the Alice test record exist on Alice's local DWN.
         let queryResponse = await testHarness.agent.dwn.processRequest({
@@ -1565,7 +1564,7 @@ describe('SyncEngineLevel', () => {
         });
 
         // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
-        await syncEngine.push();
+        await syncEngine.sync('push');
 
         // Confirm the record now DOES exist on Alice's local DWN.
         queryResponse = await testHarness.agent.dwn.sendRequest({
@@ -1579,7 +1578,7 @@ describe('SyncEngineLevel', () => {
         expect(remoteDwnQueryReply.entries).to.have.length(1); // Record does exist on local DWN.
 
         // remove `initialWrite` from the response to generate an accurate messageCid
-        const { initialWrite, ...rawMessage } = remoteDwnQueryReply.entries![0]
+        const { initialWrite, ...rawMessage } = remoteDwnQueryReply.entries![0];
         const queriedMessageCid = await Message.getCid(rawMessage);
         expect(queriedMessageCid).to.equal(updateMessageCid);
       });
@@ -1668,7 +1667,7 @@ describe('SyncEngineLevel', () => {
         });
 
         // Execute Sync to pull all records from Alice's remote DWNs
-        await syncEngine.push();
+        await syncEngine.sync('push');
 
         // verify that sendDwnRequest was called once only for each valid record
         // and getDwnMessage was called for each record, including the invalid record
@@ -1800,7 +1799,7 @@ describe('SyncEngineLevel', () => {
         const sendDwnRequestSpy = sinon.spy(testHarness.agent.rpc, 'sendDwnRequest');
 
         // Execute Sync to push records to Alice's remote node
-        await syncEngine.push();
+        await syncEngine.sync('push');
 
         // Verify sendDwnRequest was called once for each record including the ones that already exist remotely
         expect(sendDwnRequestSpy.callCount).to.equal(4);
@@ -1837,7 +1836,7 @@ describe('SyncEngineLevel', () => {
         const didResolveSpy = sinon.spy(testHarness.agent.did, 'resolve');
         const processRequestSpy = sinon.spy(testHarness.agent.dwn, 'processRequest');
 
-        await syncEngine.push();
+        await syncEngine.sync('push');
 
         // Verify DID resolution and DWN requests did not occur.
         expect(didResolveSpy.notCalled).to.be.true;
@@ -1882,7 +1881,7 @@ describe('SyncEngineLevel', () => {
         });
 
         // Execute Sync to push all records from Alice's local DWN to Alice's remote DWN.
-        await syncEngine.push();
+        await syncEngine.sync('push');
 
         // Confirm the record now DOES exist on Alice's remote DWN.
         queryResponse = await testHarness.agent.dwn.sendRequest({
@@ -1919,7 +1918,7 @@ describe('SyncEngineLevel', () => {
         expect(remoteDwnQueryReply.status.code).to.equal(200); // Query was successfully executed.
         expect(remoteDwnQueryReply.entries).to.have.length(0); // New Record doesn't exist on local DWN.
 
-        await syncEngine.push();
+        await syncEngine.sync('push');
 
         // Confirm the new record DOES exist on Alice's local DWN.
         queryResponse = await testHarness.agent.dwn.sendRequest({
@@ -1968,7 +1967,7 @@ describe('SyncEngineLevel', () => {
         expect(remoteReply.entries?.length).to.equal(0);
 
         // initiate sync
-        await syncEngine.push();
+        await syncEngine.sync('push');
 
         // query for remote REcords
         const { reply: remoteReply2 } = await testHarness.agent.dwn.sendRequest({
@@ -2046,7 +2045,7 @@ describe('SyncEngineLevel', () => {
         });
 
         // Execute Sync to push all records from Alice's and Bob's local DWNs to their remote DWNs.
-        await syncEngine.push();
+        await syncEngine.sync('push');
 
         // Confirm the Alice test record exist on Alice's remote DWN.
         let queryResponse = await testHarness.agent.dwn.sendRequest({

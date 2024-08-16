@@ -18,11 +18,11 @@ import {
 } from '@tbd54566975/dwn-sdk-js';
 
 import type { SyncEngine, SyncIdentityOptions } from './types/sync.js';
-import type { Web5PlatformAgent } from './types/agent.js';
+import type { Web5Agent, Web5PlatformAgent } from './types/agent.js';
 
-import { DwnInterface, DwnMessagesPermissionScope } from './types/dwn.js';
+import { DwnInterface } from './types/dwn.js';
 import { getDwnServiceEndpointUrls, isRecordsWrite } from './utils.js';
-import { AgentPermissionsApi } from './permissions-api.js';
+import { CachedPermissions } from './cached-permissions.js';
 
 export type SyncEngineLevelParams = {
   agent?: Web5PlatformAgent;
@@ -64,7 +64,7 @@ export class SyncEngineLevel implements SyncEngine {
   /**
    * An instance of the `AgentPermissionsApi` that is used to interact with permissions grants used during sync
    */
-  private _permissionsApi: AgentPermissionsApi;
+  private _cachedPermissionsApi: CachedPermissions;
 
   private _db: AbstractLevel<string | Buffer | Uint8Array>;
   private _syncIntervalId?: ReturnType<typeof setInterval>;
@@ -72,7 +72,7 @@ export class SyncEngineLevel implements SyncEngine {
 
   constructor({ agent, dataPath, db }: SyncEngineLevelParams) {
     this._agent = agent;
-    this._permissionsApi = new AgentPermissionsApi({ agent });
+    this._cachedPermissionsApi = new CachedPermissions({ agent: agent as Web5Agent, cachedDefault: true });
     this._db = (db) ? db : new Level<string, string>(dataPath ?? 'DATA/AGENT/SYNC_STORE');
     this._ulidFactory = monotonicFactory();
   }
@@ -93,18 +93,11 @@ export class SyncEngineLevel implements SyncEngine {
 
   set agent(agent: Web5PlatformAgent) {
     this._agent = agent;
-    this._permissionsApi = new AgentPermissionsApi({ agent });
-  }
-
-  private get permissionsApi() {
-    if (!this._permissionsApi) {
-      throw new Error('SyncEngineLevel: Permissions API not initialized.');
-    }
-
-    return this._permissionsApi;
+    this._cachedPermissionsApi = new CachedPermissions({ agent: agent as Web5Agent, cachedDefault: true });
   }
 
   public async clear(): Promise<void> {
+    await this._cachedPermissionsApi.clear();
     await this._db.clear();
   }
 
@@ -112,7 +105,7 @@ export class SyncEngineLevel implements SyncEngine {
     await this._db.close();
   }
 
-  public async pull(): Promise<void> {
+  private async pull(): Promise<void> {
     const syncPeerState = await this.getSyncPeerState({ syncDirection: 'pull' });
     await this.enqueueOperations({ syncDirection: 'pull', syncPeerState });
 
@@ -139,16 +132,12 @@ export class SyncEngineLevel implements SyncEngine {
       let permissionGrantId: string | undefined;
       let granteeDid: string | undefined;
       if (delegateDid) {
-        const grants = await this.permissionsApi.fetchGrants({
-          author  : delegateDid,
-          target  : delegateDid,
-          grantor : did,
-          protocol
+        const messagesReadGrant = await this._cachedPermissionsApi.getPermission({
+          connectedDid : did,
+          messageType  : DwnInterface.MessagesRead,
+          delegateDid,
+          protocol,
         });
-
-        const messagesReadGrant = grants
-          .filter(({ grant }) => grant.scope.interface === DwnInterfaceName.Messages && grant.scope.method === DwnMethodName.Read)
-          .find(({ grant: { scope } }) => (scope as DwnMessagesPermissionScope).protocol === protocol);
 
         permissionGrantId = messagesReadGrant?.grant.id;
         granteeDid = delegateDid;
@@ -203,7 +192,7 @@ export class SyncEngineLevel implements SyncEngine {
     await pullQueue.batch(deleteOperations as any);
   }
 
-  public async push(): Promise<void> {
+  private async push(): Promise<void> {
     const syncPeerState = await this.getSyncPeerState({ syncDirection: 'push' });
     await this.enqueueOperations({ syncDirection: 'push', syncPeerState });
 
@@ -323,7 +312,7 @@ export class SyncEngineLevel implements SyncEngine {
       // a 204 status code is returned when the message was accepted without any data.
       // This is the case for an initial RecordsWrite messages for records that have been updated.
       // For context: https://github.com/TBD54566975/dwn-sdk-js/issues/695
-      reply.status.code === 204 || 
+      reply.status.code === 204 ||
       reply.status.code === 409 ||
       (
         // If the message is a RecordsDelete and the status code is 404, the initial write message was not found or the message was already deleted
@@ -405,17 +394,12 @@ export class SyncEngineLevel implements SyncEngine {
     let granteeDid: string | undefined;
     if (delegateDid) {
       // fetch the grants for the delegate DID
-      const grants = await this.permissionsApi.fetchGrants({
-        author  : delegateDid,
-        target  : delegateDid,
-        grantor : did,
-        protocol
+      const messagesReadGrant = await this._cachedPermissionsApi.getPermission({
+        connectedDid : did,
+        messageType  : DwnInterface.MessagesRead,
+        delegateDid,
+        protocol,
       });
-
-      // find the grant for the MessagesQuery and the protocol
-      const messagesReadGrant = grants
-        .filter(({ grant }) => grant.scope.interface === DwnInterfaceName.Messages && grant.scope.method === DwnMethodName.Query)
-        .find(({ grant: { scope } }) => (scope as DwnMessagesPermissionScope).protocol === protocol);
 
       permissionGrantId = messagesReadGrant?.grant.id;
       granteeDid = delegateDid;
@@ -476,16 +460,12 @@ export class SyncEngineLevel implements SyncEngine {
     let granteeDid: string | undefined;
 
     if (delegateDid) {
-      const grants = await this.permissionsApi.fetchGrants({
-        author   : delegateDid,
-        target   : delegateDid,
-        grantor  : author,
-        protocol : protocol
+      const messagesReadGrant = await this._cachedPermissionsApi.getPermission({
+        connectedDid : author,
+        messageType  : DwnInterface.MessagesRead,
+        delegateDid,
+        protocol,
       });
-
-      const messagesReadGrant = grants
-        .filter(({ grant}) => grant.scope.interface === DwnInterfaceName.Messages && grant.scope.method === DwnMethodName.Read)
-        .find(({ grant: { scope } }) => (scope as DwnMessagesPermissionScope).protocol === protocol);
 
       permissionGrantId = messagesReadGrant?.grant.id;
       granteeDid = delegateDid;

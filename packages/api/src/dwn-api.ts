@@ -5,6 +5,7 @@
 /// <reference types="@tbd54566975/dwn-sdk-js" />
 
 import type {
+  CachedPermissions,
   CreateGrantParams,
   CreateRequestParams,
   FetchPermissionRequestParams,
@@ -271,7 +272,7 @@ export class DwnApi {
   private permissionsApi: AgentPermissionsApi;
 
   /** cache for fetching a permission {@link PermissionGrant}, keyed by a specific MessageType and protocol */
-  private cachedPermissions: TtlCache<string, PermissionGrant> = new TtlCache({ ttl: 60 * 1000 });
+  private cachedPermissionsApi: CachedPermissions;
 
   constructor(options: { agent: Web5Agent, connectedDid: string, delegateDid?: string }) {
     this.agent = options.agent;
@@ -304,33 +305,20 @@ export class DwnApi {
           throw new Error('AgentDwnApi: Cannot find connected grants without a signer DID');
         }
 
-        // Currently we only support finding grants based on protocols
-        // A different approach may be necessary when we introduce `protocolPath` and `contextId` specific impersonation
-        const cacheKey = [ this.connectedDid, messageParams.messageType, messageParams.protocol ].join('~');
-        const cachedGrant = cached ? this.cachedPermissions.get(cacheKey) : undefined;
-        if (cachedGrant) {
-          return cachedGrant;
-        }
-
-        const permissionGrants = await this.permissions.queryGrants({ checkRevoked: true, grantor: this.connectedDid });
-
-        const grantEntries = permissionGrants.map(grant => ({ message: grant.rawMessage, grant: grant.toJSON() }));
-
-        // get the delegate grants that match the messageParams and are associated with the connectedDid as the grantor
-        const delegateGrant = await AgentPermissionsApi.matchGrantFromArray(
-          this.connectedDid,
-          this.delegateDid,
-          messageParams,
-          grantEntries,
-          true
-        );
+        const delegateGrant = await this.cachedPermissionsApi.getPermission({
+          connectedDid: this.connectedDid,
+          delegateDid: this.delegateDid,
+          messageType: messageParams.messageType,
+          protocol: messageParams.protocol,
+          delegate: true,
+          cached,
+        })
 
         if (!delegateGrant) {
           throw new Error(`AgentDwnApi: No permissions found for ${messageParams.messageType}: ${messageParams.protocol}`);
         }
 
         const grant = await PermissionGrant.parse({ connectedDid: this.delegateDid, agent: this.agent, message: delegateGrant.message });
-        this.cachedPermissions.set(cacheKey, grant);
         return grant;
       }
     };
