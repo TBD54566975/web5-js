@@ -23,7 +23,7 @@ describe('Web5IdentityAgent', () => {
   describe('agentDid', () => {
     it('throws an error if accessed before the Agent is initialized', async () => {
       // @ts-expect-error - Initializing with empty object to test error.
-      const identityAgent = new Web5IdentityAgent({ didApi: {}, dwnApi: {}, identityApi: {}, keyManager: {}, syncApi: {} });
+      const identityAgent = new Web5IdentityAgent({ didApi: {}, dwnApi: {}, identityApi: {}, keyManager: {}, syncApi: {}, permissionsApi: {} });
       try {
         identityAgent.agentDid;
         throw new Error('Expected an error');

@@ -22,6 +22,7 @@ import { DwnDidStore, InMemoryDidStore } from './store-did.js';
 import { DwnKeyStore, InMemoryKeyStore } from './store-key.js';
 import { DwnIdentityStore, InMemoryIdentityStore } from './store-identity.js';
 import { DidResolverCacheMemory } from './prototyping/dids/resolver-cache-memory.js';
+import { AgentPermissionsApi } from './permissions-api.js';
 
 type PlatformAgentTestHarnessParams = {
   agent: Web5PlatformAgent<LocalKeyManager>
@@ -104,10 +105,11 @@ export class PlatformAgentTestHarness {
 
     // Easiest way to start with fresh in-memory stores is to re-instantiate Agent components.
     if (this.agentStores === 'memory') {
-      const { didApi, identityApi, keyManager } = PlatformAgentTestHarness.useMemoryStores({ agent: this.agent });
+      const { didApi, identityApi, permissionsApi, keyManager } = PlatformAgentTestHarness.useMemoryStores({ agent: this.agent });
       this.agent.did = didApi;
       this.agent.identity = identityApi;
       this.agent.keyManager = keyManager;
+      this.agent.permissions = permissionsApi;
     }
   }
 
@@ -203,7 +205,8 @@ export class PlatformAgentTestHarness {
       identityApi,
       keyManager,
       didResolverCache,
-      vaultStore
+      vaultStore,
+      permissionsApi
     } = (agentStores === 'memory')
       ? PlatformAgentTestHarness.useMemoryStores()
       : PlatformAgentTestHarness.useDiskStores({ testDataLocation, stores: dwnStores });
@@ -247,6 +250,7 @@ export class PlatformAgentTestHarness {
       dwnApi,
       identityApi,
       keyManager,
+      permissionsApi,
       rpcClient,
       syncApi,
     });
@@ -298,7 +302,9 @@ export class PlatformAgentTestHarness {
 
     const keyManager = new LocalKeyManager({ agent, keyStore: keyStore });
 
-    return { agentVault, didApi, didResolverCache, identityApi, keyManager, vaultStore };
+    const permissionsApi = new AgentPermissionsApi({ agent });
+
+    return { agentVault, didApi, didResolverCache, identityApi, keyManager, permissionsApi, vaultStore };
   }
 
   private static useMemoryStores({ agent }: { agent?: Web5PlatformAgent<LocalKeyManager> } = {}) {
@@ -319,6 +325,8 @@ export class PlatformAgentTestHarness {
 
     const identityApi = new AgentIdentityApi<LocalKeyManager>({ agent, store: new InMemoryIdentityStore() });
 
-    return { agentVault, didApi, didResolverCache, identityApi, keyManager, vaultStore };
+    const permissionsApi = new AgentPermissionsApi({ agent });
+
+    return { agentVault, didApi, didResolverCache, identityApi, keyManager, permissionsApi, vaultStore };
   }
 }
