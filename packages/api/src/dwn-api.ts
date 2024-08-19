@@ -21,10 +21,7 @@ import {
   CachedPermissions,
   ProcessDwnRequest,
   DwnPaginationCursor,
-  DwnDataEncodedRecordsWriteMessage,
-  DwnRecordSubscriptionHandler,
   AgentPermissionsApi,
-  isDwnMessage
 } from '@web5/agent';
 
 import { isEmptyObject } from '@web5/common';
@@ -35,8 +32,7 @@ import { dataToBlob } from './utils.js';
 import { Protocol } from './protocol.js';
 import { PermissionGrant } from './permission-grant.js';
 import { PermissionRequest } from './permission-request.js';
-import { DwnMessagesPermissionScope } from '@web5/agent';
-import { DwnRecordsPermissionScope } from '@web5/agent';
+import { SubscriptionUtil } from './subscription-util.js';
 
 /**
  * Represents the request payload for fetching permission requests from a Decentralized Web Node (DWN).
@@ -458,24 +454,6 @@ export class DwnApi {
     };
   }
 
-  private subscriptionHandler(request: RecordsSubscribeRequest): DwnRecordSubscriptionHandler {
-    const { subscriptionHandler } = request;
-
-    return async (event) => {
-      const { message, initialWrite } = event;
-      const author = getRecordAuthor(message);
-      const recordOptions = {
-        author,
-        connectedDid : this.connectedDid,
-        remoteOrigin : request.from,
-        initialWrite
-      };
-
-      const record = new Record(this.agent, { ...message, ...recordOptions });
-      subscriptionHandler(record);
-    };
-  }
-
   /**
    * API to interact with DWN protocols (e.g., `dwn.protocols.configure()`).
    */
@@ -802,7 +780,11 @@ export class DwnApi {
           /**
            * The handler to process the subscription events.
            */
-          subscriptionHandler: this.subscriptionHandler(request)
+          subscriptionHandler: SubscriptionUtil.recordSubscriptionHandler({
+            agent        : this.agent,
+            connectedDid : this.connectedDid,
+            request
+          })
         };
 
         let agentResponse: DwnResponse<DwnInterface.RecordsSubscribe>;
