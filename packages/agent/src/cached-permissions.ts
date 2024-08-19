@@ -53,7 +53,7 @@ export class CachedPermissions {
     );
 
     if (!grant) {
-      throw new Error(`AgentDwnApi: No permissions found for ${messageType}: ${protocol}`);
+      throw new Error(`CachedPermissions: No permissions found for ${messageType}: ${protocol}`);
     }
 
     this.cachedPermissions.set(cacheKey, grant);
