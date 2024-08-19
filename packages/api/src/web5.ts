@@ -295,9 +295,6 @@ export class Web5 {
         // If an existing identity is not found found, create a new one.
         const existingIdentityCount = identities.length;
         if (existingIdentityCount === 0) {
-          // Use the specified DWN endpoints or the latest TBD hosted DWN
-          const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
-
           // Generate a new Identity for the end-user.
           identity = await userAgent.identity.create({
             didMethod  : 'dht',
@@ -344,8 +341,6 @@ export class Web5 {
       delegateDid = identity.metadata.connectedDid ? identity.did.uri : undefined;
       if (registration !== undefined) {
         // If a registration object is passed, we attempt to register the AgentDID and the ConnectedDID with the DWN endpoints provided
-        const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints;
-
         try {
           for (const dwnEndpoint of serviceEndpointNodes) {
             // check if endpoint needs registration
