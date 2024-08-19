@@ -1,16 +1,22 @@
-import {
-  WalletConnect,
-  type BearerIdentity,
-  type HdIdentityVault,
-  type WalletConnectOptions,
-  type Web5Agent,
+/**
+ * NOTE: Added reference types here to avoid a `pnpm` bug during build.
+ * https://github.com/TBD54566975/web5-js/pull/507
+ */
+/// <reference types="@tbd54566975/dwn-sdk-js" />
+
+import type {
+  BearerIdentity,
+  HdIdentityVault,
+  WalletConnectOptions,
+  Web5Agent,
 } from '@web5/agent';
+
 import { Web5UserAgent } from '@web5/user-agent';
+import { DwnRegistrar, WalletConnect } from '@web5/agent';
+
 import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
-import { DwnRegistrar } from '@web5/agent';
 import { VcApi } from './vc-api.js';
-import { PortableDid } from '@web5/dids';
 
 /** Override defaults configured during the technical preview phase. */
 export type TechPreviewOptions = {
@@ -147,7 +153,7 @@ export type Web5ConnectResult = {
    * The resulting did of a successful wallet connect. Only returned on success if
    * {@link WalletConnectOptions} was provided.
    */
-  delegateDid?: PortableDid
+  delegateDid?: string;
 };
 
 /**
@@ -164,6 +170,9 @@ export type Web5Params = {
 
   /** The DID of the tenant under which all DID, DWN, and VC requests are being performed. */
   connectedDid: string;
+
+  /** The DID that will be signing Web5 messages using grants from the connectedDid */
+  delegateDid?: string;
 };
 
 /**
@@ -186,20 +195,20 @@ export class Web5 {
   /** Exposed instance to the VC APIs, allow users to issue, present and verify VCs */
   vc: VcApi;
 
-  /** The DID of the tenant under which DID operations are being performed. */
-  private connectedDid: string;
-
-  constructor({ agent, connectedDid }: Web5Params) {
+  constructor({ agent, connectedDid, delegateDid }: Web5Params) {
     this.agent = agent;
-    this.connectedDid = connectedDid;
     this.did = new DidApi({ agent, connectedDid });
-    this.dwn = new DwnApi({ agent, connectedDid });
+    this.dwn = new DwnApi({ agent, connectedDid, delegateDid });
     this.vc = new VcApi({ agent, connectedDid });
   }
 
   /**
    * Connects to a {@link Web5Agent}. Defaults to creating a local {@link Web5UserAgent} if one
    * isn't provided.
+   *
+   * If `walletConnectOptions` are provided, a WalletConnect flow will be initiated to import a delegated DID from an external wallet.
+   * If there is a failure at any point during connecting and processing grants, all created DIDs and Identities as well as the provided grants
+   * will be cleaned up and an error thrown. This allows for subsequent Connect attempts to be made without any errors.
    *
    * @param options - Optional overrides that can be provided when calling {@link Web5.connect}.
    * @returns A promise that resolves to a {@link Web5} instance and the connected DID.
@@ -216,6 +225,7 @@ export class Web5 {
     registration,
     walletConnectOptions,
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
+    let delegateDid: string | undefined;
     if (agent === undefined) {
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
       const userAgent = await Web5UserAgent.create({ agentVault });
@@ -239,75 +249,96 @@ export class Web5 {
         recoveryPhrase = await userAgent.initialize({ password, recoveryPhrase });
       }
       await userAgent.start({ password });
-
+      // Attempt to retrieve the connected Identity if it exists.
+      const connectedIdentity: BearerIdentity = await userAgent.identity.connectedIdentity();
       let identity: BearerIdentity;
+      if (connectedIdentity) {
+        // if a connected identity is found, use it
+        // TODO: In the future, implement a way to re-connect an already connected identity and apply additional grants/protocols
+        identity = connectedIdentity;
+      } else if (walletConnectOptions) {
+        // No connected identity found and connectOptions are provided, attempt to import a delegated DID from an external wallet
+        try {
+          // TEMPORARY: Placeholder for WalletConnect integration
+          const { connectedDid, delegateDid, delegateGrants } = await WalletConnect.initClient(walletConnectOptions);
 
-      // Query the Agent's DWN tenant for identity records.
-      const identities = await userAgent.identity.list();
+          // Import the delegated DID as an Identity in the User Agent.
+          // Setting the connectedDID in the metadata applies a relationship between the signer identity and the one it is impersonating.
+          identity = await userAgent.identity.import({ portableIdentity: {
+            portableDid : delegateDid,
+            metadata    : {
+              connectedDid,
+              name   : 'Default',
+              tenant : delegateDid.uri,
+              uri    : delegateDid.uri,
+            }
+          }});
+          await userAgent.identity.manage({ portableIdentity: await identity.export() });
 
-      // If an existing identity is not found found, create a new one.
-      const existingIdentityCount = identities.length;
-
-      // on init/registration
-      if (existingIdentityCount === 0) {
-        if (walletConnectOptions) {
-          // WIP: ingest this
-          const { delegateDid } = await WalletConnect.initClient(walletConnectOptions);
-          // WIP
-          // identity = await userAgent.identity.import({
-          //   portableIdentity: {
-          //     portableDid : did,
-          //     metadata    : { name: 'Connection', uri: did.uri, tenant: did.uri }
-          //   }
-          // });
-
-          // WIP. just going to early return for now.
-          return { web5: null, did: null, delegateDid };
+          // Attempts to process the connected grants to be used by the delegateDID
+          // If the process fails, we want to clean up the identity
+          await DwnApi.processConnectedGrants({ agent, delegateDid: delegateDid.uri, grants: delegateGrants });
+        } catch (error:any) {
+          // clean up the DID and Identity if import fails and throw
+          // TODO: Implement the ability to purge all of our messages as a tenant
+          await this.cleanUpIdentity({ identity, userAgent });
+          throw new Error(`Failed to connect to wallet: ${error.message}`);
         }
-
-        // Use the specified DWN endpoints or get default tech preview hosted nodes.
-        const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
-
-        // Generate a new Identity for the end-user.
-        identity = await userAgent.identity.create({
-          didMethod  : 'dht',
-          metadata   : { name: 'Default' },
-          didOptions : {
-            services: [
-              {
-                id              : 'dwn',
-                type            : 'DecentralizedWebNode',
-                serviceEndpoint : serviceEndpointNodes,
-                enc             : '#enc',
-                sig             : '#sig',
-              }
-            ],
-            verificationMethods: [
-              {
-                algorithm : 'Ed25519',
-                id        : 'sig',
-                purposes  : ['assertionMethod', 'authentication']
-              },
-              {
-                algorithm : 'secp256k1',
-                id        : 'enc',
-                purposes  : ['keyAgreement']
-              }
-            ]
-          }
-        });
-
-        // Persists the Identity to be available in future sessions
-        await userAgent.identity.manage({ portableIdentity: await identity.export() });
-      } else if (existingIdentityCount === 1) {
-        // An existing identity was found in the User Agent's tenant.
-        identity = identities[0];
       } else {
-        throw new Error(`connect() failed due to unexpected state: Expected 1 but found ${existingIdentityCount} stored identities.`);
+        // No connected identity found and no connectOptions provided, use local Identities
+        // Query the Agent's DWN tenant for identity records.
+        const identities = await userAgent.identity.list();
+
+        // If an existing identity is not found found, create a new one.
+        const existingIdentityCount = identities.length;
+        if (existingIdentityCount === 0) {
+          // Use the specified DWN endpoints or the latest TBD hosted DWN
+          const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
+
+          // Generate a new Identity for the end-user.
+          identity = await userAgent.identity.create({
+            didMethod  : 'dht',
+            metadata   : { name: 'Default' },
+            didOptions : {
+              services: [
+                {
+                  id              : 'dwn',
+                  type            : 'DecentralizedWebNode',
+                  serviceEndpoint : serviceEndpointNodes,
+                  enc             : '#enc',
+                  sig             : '#sig',
+                }
+              ],
+              verificationMethods: [
+                {
+                  algorithm : 'Ed25519',
+                  id        : 'sig',
+                  purposes  : ['assertionMethod', 'authentication']
+                },
+                {
+                  algorithm : 'secp256k1',
+                  id        : 'enc',
+                  purposes  : ['keyAgreement']
+                }
+              ]
+            }
+          });
+
+          // The User Agent will manage the Identity, which ensures it will be available on future
+          // sessions.
+          await userAgent.identity.manage({ portableIdentity: await identity.export() });
+
+        } else {
+          // If multiple identities are found, use the first one.
+          // TODO: Implement selecting a connectedDid from multiple identities
+          identity = identities[0];
+        }
       }
 
-      connectedDid = identity.did.uri;
-
+      // If the stored identity has a connected DID, use it as the connected DID, otherwise use the identity's DID.
+      connectedDid = identity.metadata.connectedDid ?? identity.did.uri;
+      // If the stored identity has a connected DID, use the identity DID as the delegated DID, otherwise it is undefined.
+      delegateDid = identity.metadata.connectedDid ? identity.did.uri : undefined;
       if (registration !== undefined) {
         // If a registration object is passed, we attempt to register the AgentDID and the ConnectedDID with the DWN endpoints provided
         const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints;
@@ -350,7 +381,35 @@ export class Web5 {
       }
     }
 
-    const web5 = new Web5({ agent, connectedDid });
-    return { web5, did: connectedDid, recoveryPhrase };
+    const web5 = new Web5({ agent, connectedDid, delegateDid });
+
+    return { web5, did: connectedDid, delegateDid, recoveryPhrase };
+  }
+
+  /**
+   * Cleans up the DID, Keys and Identity. Primarily used by a failed WalletConnect import.
+   * Does not throw on error, but logs to console.
+   */
+  private static async cleanUpIdentity({ identity, userAgent }:{
+    identity: BearerIdentity,
+    userAgent: Web5UserAgent
+  }): Promise<void> {
+    try {
+      // Delete the DID and the Associated Keys
+      await userAgent.did.delete({
+        didUri    : identity.did.uri,
+        tenant    : identity.metadata.tenant,
+        deleteKey : true,
+      });
+    } catch(error: any) {
+      console.error(`Failed to delete DID ${identity.did.uri}: ${error.message}`);
+    }
+
+    try {
+      // Delete the Identity
+      await userAgent.identity.delete({ didUri: identity.did.uri });
+    } catch(error: any) {
+      console.error(`Failed to delete Identity ${identity.metadata.name}: ${error.message}`);
+    }
   }
 }
