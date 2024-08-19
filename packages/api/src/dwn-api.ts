@@ -5,7 +5,6 @@
 /// <reference types="@tbd54566975/dwn-sdk-js" />
 
 import type {
-  CachedPermissions,
   CreateGrantParams,
   CreateRequestParams,
   FetchPermissionRequestParams,
@@ -18,6 +17,7 @@ import {
   DwnResponse,
   DwnMessageParams,
   DwnResponseStatus,
+  CachedPermissions,
   ProcessDwnRequest,
   DwnPaginationCursor,
   DwnDataEncodedRecordsWriteMessage,
@@ -279,6 +279,7 @@ export class DwnApi {
     this.connectedDid = options.connectedDid;
     this.delegateDid = options.delegateDid;
     this.permissionsApi = new AgentPermissionsApi({ agent: this.agent });
+    this.cachedPermissionsApi = new CachedPermissions({ agent: this.agent, cachedDefault: true });
   }
 
   /**
@@ -306,13 +307,13 @@ export class DwnApi {
         }
 
         const delegateGrant = await this.cachedPermissionsApi.getPermission({
-          connectedDid: this.connectedDid,
-          delegateDid: this.delegateDid,
-          messageType: messageParams.messageType,
-          protocol: messageParams.protocol,
-          delegate: true,
+          connectedDid : this.connectedDid,
+          delegateDid  : this.delegateDid,
+          messageType  : messageParams.messageType,
+          protocol     : messageParams.protocol,
+          delegate     : true,
           cached,
-        })
+        });
 
         if (!delegateGrant) {
           throw new Error(`AgentDwnApi: No permissions found for ${messageParams.messageType}: ${messageParams.protocol}`);

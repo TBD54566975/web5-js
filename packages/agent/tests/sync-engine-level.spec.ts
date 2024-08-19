@@ -906,7 +906,7 @@ describe('SyncEngineLevel', () => {
           }
         });
 
-        // Execute Sync to push sync, only foo protocol should be synced
+        // Execute Sync, only foo protocol should be synced
         await aliceDeviceXHarness.agent.sync.sync();
 
         // query aliceDeviceX to see foo records
@@ -928,7 +928,31 @@ describe('SyncEngineLevel', () => {
         expect(localFooRecords.reply.entries).to.have.length(1);
         expect(localFooRecords.reply.entries?.map(entry => entry.recordId)).to.have.deep.equal([ recordFoo.message?.recordId ]);
 
-        await aliceDeviceXHarness.createAgentDid();
+        // sanity check that bar records do not exist on aliceDeviceX
+        // since aliceDeviceX does not have a grant for the bar protocol, query the records using alice's signatures.
+        // confirm that the query was successful on alice's remote DWN and returns the message
+        const localBarRecordsQuery = await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            filter: {
+              protocol: protocolBar.protocol,
+            }
+          }
+        });
+        expect(localBarRecordsQuery.reply.status.code).to.equal(200);
+        expect(localBarRecordsQuery.reply.entries).to.have.length(1);
+
+        // use the same message to query `aliceDeviceXHarness` DWN, should return zero results because they were not synced
+        const localBarRecords = await aliceDeviceXHarness.agent.dwn.processRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsQuery,
+          rawMessage  : localBarRecordsQuery.message,
+        });
+        expect(localBarRecords.reply.status.code).to.equal(200);
+        expect(localBarRecords.reply.entries).to.have.length(0);
       });
     });
 

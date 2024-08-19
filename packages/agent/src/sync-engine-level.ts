@@ -394,14 +394,14 @@ export class SyncEngineLevel implements SyncEngine {
     let granteeDid: string | undefined;
     if (delegateDid) {
       // fetch the grants for the delegate DID
-      const messagesReadGrant = await this._cachedPermissionsApi.getPermission({
+      const messagesQueryGrant = await this._cachedPermissionsApi.getPermission({
         connectedDid : did,
-        messageType  : DwnInterface.MessagesRead,
+        messageType  : DwnInterface.MessagesQuery,
         delegateDid,
         protocol,
       });
 
-      permissionGrantId = messagesReadGrant?.grant.id;
+      permissionGrantId = messagesQueryGrant?.grant.id;
       granteeDid = delegateDid;
     }
 
