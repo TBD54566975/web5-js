@@ -1449,7 +1449,7 @@ describe('DwnApi', () => {
         });
         expect.fail('Should have thrown an error');
       } catch(error:any) {
-        expect(error.message).to.equal('AgentDwnApi: No permissions found for RecordsRead: http://example.com/protocol');
+        expect(error.message).to.equal('CachedPermissions: No permissions found for RecordsRead: http://example.com/protocol');
       }
       expect(fetchGrantsSpy.callCount).to.equal(1);
 
@@ -1463,7 +1463,7 @@ describe('DwnApi', () => {
         });
         expect.fail('Should have thrown an error');
       } catch(error:any) {
-        expect(error.message).to.equal('AgentDwnApi: No permissions found for RecordsRead: http://example.com/protocol');
+        expect(error.message).to.equal('CachedPermissions: No permissions found for RecordsRead: http://example.com/protocol');
       }
 
       expect(fetchGrantsSpy.callCount).to.equal(2); // should have been called again

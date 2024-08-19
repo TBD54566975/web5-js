@@ -315,10 +315,6 @@ export class DwnApi {
           cached,
         });
 
-        if (!delegateGrant) {
-          throw new Error(`AgentDwnApi: No permissions found for ${messageParams.messageType}: ${messageParams.protocol}`);
-        }
-
         const grant = await PermissionGrant.parse({ connectedDid: this.delegateDid, agent: this.agent, message: delegateGrant.message });
         return grant;
       }

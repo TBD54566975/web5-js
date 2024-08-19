@@ -203,7 +203,7 @@ describe('web5 api', () => {
 
           expect.fail('Should have thrown an error');
         } catch(error:any) {
-          expect(error.message).to.include('AgentDwnApi: No permissions found for RecordsQuery');
+          expect(error.message).to.include('CachedPermissions: No permissions found for RecordsQuery');
         }
 
         try {
@@ -216,7 +216,7 @@ describe('web5 api', () => {
 
           expect.fail('Should have thrown an error');
         } catch(error:any) {
-          expect(error.message).to.include('AgentDwnApi: No permissions found for RecordsDelete');
+          expect(error.message).to.include('CachedPermissions: No permissions found for RecordsDelete');
         }
 
         // grant query and delete permissions
@@ -559,7 +559,7 @@ describe('web5 api', () => {
 
           expect.fail('Should have thrown an error');
         } catch(error:any) {
-          expect(error.message).to.include('AgentDwnApi: No permissions found for RecordsQuery');
+          expect(error.message).to.include('CachedPermissions: No permissions found for RecordsQuery');
         }
 
         try {
@@ -572,7 +572,7 @@ describe('web5 api', () => {
 
           expect.fail('Should have thrown an error');
         } catch(error:any) {
-          expect(error.message).to.include('AgentDwnApi: No permissions found for RecordsDelete');
+          expect(error.message).to.include('CachedPermissions: No permissions found for RecordsDelete');
         }
 
         // grant query and delete permissions
