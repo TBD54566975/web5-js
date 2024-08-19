@@ -471,18 +471,7 @@ export class DwnApi {
         initialWrite
       };
 
-      let record:Record;
-      if (isDwnMessage(DwnInterface.RecordsWrite, message)) {
-        record = new Record(this.agent, { ...message, ...recordOptions });
-      } else {
-        // The event is a delete message, we first initialize the initialWrite
-        // and then we put it into a deleted state
-        // record = new Record(this.agent, {
-        //   ...recordOptions,
-        //   ...initialWrite
-        // });
-      }
-
+      const record = new Record(this.agent, { ...message, ...recordOptions });
       subscriptionHandler(record);
     };
   }
