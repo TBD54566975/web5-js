@@ -48,8 +48,8 @@ describe('DwnApi', () => {
     dwnBob = new DwnApi({ agent: testHarness.agent, connectedDid: bobDid.uri });
 
     // clear cached permissions between test runs
-    dwnAlice['cachedPermissions'].clear();
-    dwnBob['cachedPermissions'].clear();
+    dwnAlice['cachedPermissionsApi'].clear();
+    dwnBob['cachedPermissionsApi'].clear();
   });
 
   after(async () => {
