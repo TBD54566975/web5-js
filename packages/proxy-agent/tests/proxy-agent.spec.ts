@@ -23,7 +23,7 @@ describe('Web5ProxyAgent', () => {
   describe('agentDid', () => {
     it('throws an error if accessed before the Agent is initialized', async () => {
       // @ts-expect-error - Initializing with empty object to test error.
-      const userAgent = new Web5ProxyAgent({ didApi: {}, dwnApi: {}, identityApi: {}, keyManager: {}, syncApi: {} });
+      const userAgent = new Web5ProxyAgent({ didApi: {}, dwnApi: {}, identityApi: {}, keyManager: {}, permissionsApi: {}, syncApi: {} });
       try {
         userAgent.agentDid;
         throw new Error('Expected an error');

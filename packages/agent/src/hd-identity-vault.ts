@@ -40,7 +40,7 @@ export type HdIdentityVaultInitializeParams = {
 
    /**
     * Optional dwnEndpoints to register didService endpoints during HdIdentityVault initialization
-    * 
+    *
     * The dwnEndpoints are used to register a DWN endpoint during DidDht.create(). This allows the
     * agent to properly recover connectedDids from DWN. Also, this pattern can be used on the server
     * side in place of the agentDid-->connectedDids pattern.
@@ -511,30 +511,30 @@ export class HdIdentityVault implements IdentityVault<{ InitializeResult: string
       privateKeys: [identityPrivateKey, signingPrivateKey]
     });
 
-  // Create the DID using the derived identity, signing, and encryption keys.
-  const options = {
-    verificationMethods: [
-      {
-        algorithm : 'Ed25519',
-        id        : 'sig',
-        purposes  : ['assertionMethod', 'authentication']
-      },
-    ]
-  } as DidDhtCreateOptions<DeterministicKeyGenerator>;
+    // Create the DID using the derived identity, signing, and encryption keys.
+    const options = {
+      verificationMethods: [
+        {
+          algorithm : 'Ed25519',
+          id        : 'sig',
+          purposes  : ['assertionMethod', 'authentication']
+        },
+      ]
+    } as DidDhtCreateOptions<DeterministicKeyGenerator>;
 
-  if(dwnEndpoints && !!dwnEndpoints.length) {
-    options.services = [
-      {
-        id              : 'dwn',
-        type            : 'DecentralizedWebNode',
-        serviceEndpoint : dwnEndpoints,
-        enc             : '#enc',
-        sig             : '#sig',
-      }
-    ];
-  }
+    if(dwnEndpoints && !!dwnEndpoints.length) {
+      options.services = [
+        {
+          id              : 'dwn',
+          type            : 'DecentralizedWebNode',
+          serviceEndpoint : dwnEndpoints,
+          enc             : '#enc',
+          sig             : '#sig',
+        }
+      ];
+    }
 
-  const did = await DidDht.create({ keyManager: deterministicKeyGenerator, options });
+    const did = await DidDht.create({ keyManager: deterministicKeyGenerator, options });
 
     /**
      * STEP 6: Convert the DID to portable format and store it in the data store as a

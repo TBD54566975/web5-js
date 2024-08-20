@@ -61,7 +61,7 @@ export class AgentSyncApi implements SyncEngine {
     return this._syncEngine.pull();
   }
 
-  public sync(params: {syncDirection: string } = {syncDirection: 'push'}): Promise<void> {
-    return this._syncEngine.sync(params);
+  public syncOnce(params: {syncDirection: string } = {syncDirection: 'push'}): Promise<void> {
+    return this._syncEngine.syncOnce(params);
   }
 }

@@ -258,7 +258,7 @@ export class SyncEngineLevel implements SyncEngine {
     }
   }
 
-  public sync({ syncDirection }: { syncDirection: string }): Promise<void> {
+  public syncOnce({ syncDirection }: { syncDirection: string }): Promise<void> {
     return new Promise((resolve, reject) => {
       if (syncDirection === 'push') {
         this.push();
