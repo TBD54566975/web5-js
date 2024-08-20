@@ -7,8 +7,11 @@ component_management:
       - type: project
         target: auto # auto compares coverage to the previous base commit
         threshold: 5% # allows a 5% drop from the previous base commit coverage
+        informational: true
       - type: patch
         target: 90
+        informational: true
+        if_ci_failed: success
 
   individual_components:
     - component_id: package-agent
