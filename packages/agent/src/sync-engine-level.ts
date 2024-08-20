@@ -139,7 +139,7 @@ export class SyncEngineLevel implements SyncEngine {
           protocol,
         });
 
-        permissionGrantId = messagesReadGrant?.grant.id;
+        permissionGrantId = messagesReadGrant.grant.id;
         granteeDid = delegateDid;
       }
 
@@ -401,7 +401,7 @@ export class SyncEngineLevel implements SyncEngine {
         protocol,
       });
 
-      permissionGrantId = messagesQueryGrant?.grant.id;
+      permissionGrantId = messagesQueryGrant.grant.id;
       granteeDid = delegateDid;
     }
 
@@ -467,7 +467,7 @@ export class SyncEngineLevel implements SyncEngine {
         protocol,
       });
 
-      permissionGrantId = messagesReadGrant?.grant.id;
+      permissionGrantId = messagesReadGrant.grant.id;
       granteeDid = delegateDid;
     }
 
