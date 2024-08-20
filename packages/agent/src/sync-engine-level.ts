@@ -411,7 +411,7 @@ export class SyncEngineLevel implements SyncEngine {
         granteeDid = delegateDid;
       } catch(error:any) {
         console.log('SyncEngineLevel: Error fetching permission grant for delegate DID', error);
-        return;
+        return [];
       }
     }
 
