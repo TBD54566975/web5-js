@@ -132,15 +132,20 @@ export class SyncEngineLevel implements SyncEngine {
       let permissionGrantId: string | undefined;
       let granteeDid: string | undefined;
       if (delegateDid) {
-        const messagesReadGrant = await this._cachedPermissionsApi.getPermission({
-          connectedDid : did,
-          messageType  : DwnInterface.MessagesRead,
-          delegateDid,
-          protocol,
-        });
+        try {
+          const messagesReadGrant = await this._cachedPermissionsApi.getPermission({
+            connectedDid : did,
+            messageType  : DwnInterface.MessagesRead,
+            delegateDid,
+            protocol,
+          });
 
-        permissionGrantId = messagesReadGrant.grant.id;
-        granteeDid = delegateDid;
+          permissionGrantId = messagesReadGrant.grant.id;
+          granteeDid = delegateDid;
+        } catch(error:any) {
+          console.log('SyncEngineLevel: Error fetching permission grant for delegate DID', error);
+          continue;
+        }
       }
 
       const messagesRead = await this.agent.processDwnRequest({
@@ -394,15 +399,20 @@ export class SyncEngineLevel implements SyncEngine {
     let granteeDid: string | undefined;
     if (delegateDid) {
       // fetch the grants for the delegate DID
-      const messagesQueryGrant = await this._cachedPermissionsApi.getPermission({
-        connectedDid : did,
-        messageType  : DwnInterface.MessagesQuery,
-        delegateDid,
-        protocol,
-      });
+      try {
+        const messagesReadGrant = await this._cachedPermissionsApi.getPermission({
+          connectedDid : did,
+          messageType  : DwnInterface.MessagesQuery,
+          delegateDid,
+          protocol,
+        });
 
-      permissionGrantId = messagesQueryGrant.grant.id;
-      granteeDid = delegateDid;
+        permissionGrantId = messagesReadGrant.grant.id;
+        granteeDid = delegateDid;
+      } catch(error:any) {
+        console.log('SyncEngineLevel: Error fetching permission grant for delegate DID', error);
+        return;
+      }
     }
 
     if (syncDirection === 'pull') {
@@ -460,15 +470,20 @@ export class SyncEngineLevel implements SyncEngine {
     let granteeDid: string | undefined;
 
     if (delegateDid) {
-      const messagesReadGrant = await this._cachedPermissionsApi.getPermission({
-        connectedDid : author,
-        messageType  : DwnInterface.MessagesRead,
-        delegateDid,
-        protocol,
-      });
+      try {
+        const messagesReadGrant = await this._cachedPermissionsApi.getPermission({
+          connectedDid : author,
+          messageType  : DwnInterface.MessagesRead,
+          delegateDid,
+          protocol,
+        });
 
-      permissionGrantId = messagesReadGrant.grant.id;
-      granteeDid = delegateDid;
+        permissionGrantId = messagesReadGrant.grant.id;
+        granteeDid = delegateDid;
+      } catch(error:any) {
+        console.log('SyncEngineLevel: Error fetching permission grant for delegate DID', error);
+        return;
+      }
     }
 
     let { reply } = await this.agent.dwn.processRequest({
