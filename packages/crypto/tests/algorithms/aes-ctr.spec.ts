@@ -4,7 +4,7 @@ import { Convert } from '@web5/common';
 import type { Jwk } from '../../src/jose/jwk.js';
 
 import { isChrome } from '../utils/runtimes.js';
-import { randomBytes } from '../../src/utils.js';
+import { CryptoUtils } from '../../src/utils.js';
 import { AesCtrAlgorithm } from '../../src/algorithms/aes-ctr.js';
 
 describe('AesCtrAlgorithm', () => {
@@ -20,7 +20,7 @@ describe('AesCtrAlgorithm', () => {
     it('returns ciphertext as a Uint8Array', async () => {
       // Setup.
       const plaintext = new Uint8Array([1, 2, 3, 4]);
-      const counter = randomBytes(16); // Initial value of the counter block.
+      const counter = CryptoUtils.randomBytes(16); // Initial value of the counter block.
       const length = 64; // Number of bits in the counter block used for the counter.
 
       // Test the method.
@@ -41,7 +41,7 @@ describe('AesCtrAlgorithm', () => {
     it('returns plaintext as a Uint8Array', async () => {
       // Setup.
       const ciphertext = new Uint8Array([1, 2, 3, 4]);
-      const counter = randomBytes(16); // Initial value of the counter block.
+      const counter = CryptoUtils.randomBytes(16); // Initial value of the counter block.
       const length = 64; // Number of bits in the counter block used for the counter.
 
       // Test the method.
