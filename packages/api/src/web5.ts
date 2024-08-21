@@ -6,17 +6,21 @@
 
 import type {
   BearerIdentity,
+  DwnDataEncodedRecordsWriteMessage,
+  DwnMessagesPermissionScope,
+  DwnRecordsPermissionScope,
   HdIdentityVault,
   WalletConnectOptions,
   Web5Agent,
 } from '@web5/agent';
 
 import { Web5UserAgent } from '@web5/user-agent';
-import { DwnRegistrar, WalletConnect } from '@web5/agent';
+import { DwnRegistrar, isMessagesPermissionScope, isRecordPermissionScope, WalletConnect } from '@web5/agent';
 
 import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
 import { VcApi } from './vc-api.js';
+import { PermissionGrant } from './permission-grant.js';
 
 /** Override defaults configured during the technical preview phase. */
 export type TechPreviewOptions = {
@@ -252,11 +256,18 @@ export class Web5 {
       // Attempt to retrieve the connected Identity if it exists.
       const connectedIdentity: BearerIdentity = await userAgent.identity.connectedIdentity();
       let identity: BearerIdentity;
+      let connectedProtocols: string[] = [];
       if (connectedIdentity) {
         // if a connected identity is found, use it
         // TODO: In the future, implement a way to re-connect an already connected identity and apply additional grants/protocols
         identity = connectedIdentity;
       } else if (walletConnectOptions) {
+        if (sync === 'off') {
+          // Currently we require sync to be enabled when using WalletConnect
+          // This is to ensure a connected app is not in a disjointed state from any other clients/app using the connectedDid
+          throw new Error('Sync must not be disabled when using WalletConnect');
+        }
+
         // No connected identity found and connectOptions are provided, attempt to import a delegated DID from an external wallet
         try {
           // TEMPORARY: Placeholder for WalletConnect integration
@@ -277,7 +288,8 @@ export class Web5 {
 
           // Attempts to process the connected grants to be used by the delegateDID
           // If the process fails, we want to clean up the identity
-          await DwnApi.processConnectedGrants({ agent, delegateDid: delegateDid.uri, grants: delegateGrants });
+          // the connected grants will return a de-duped array of protocol URIs that are used to register sync for those protocols
+          connectedProtocols = await this.processConnectedGrants({ agent, delegateDid: delegateDid.uri, grants: delegateGrants });
         } catch (error:any) {
           // clean up the DID and Identity if import fails and throw
           // TODO: Implement the ability to purge all of our messages as a tenant
@@ -370,9 +382,13 @@ export class Web5 {
       // Enable sync, unless explicitly disabled.
       if (sync !== 'off') {
         // First, register the user identity for sync.
-        await userAgent.sync.registerIdentity({ did     : connectedDid, options : {
-          protocols: [] // TODO: Add protocols to sync
-        } });
+        // The connected protocols are used to register sync for only a subset of protocols from the connectedDid's DWN
+        await userAgent.sync.registerIdentity({
+          did     : connectedDid,
+          options : {
+            protocols: connectedProtocols
+          }
+        });
 
         // Enable sync using the specified interval or default.
         sync ??= '2m';
@@ -413,5 +429,36 @@ export class Web5 {
     } catch(error: any) {
       console.error(`Failed to delete Identity ${identity.metadata.name}: ${error.message}`);
     }
+  }
+
+  /**
+   * A static method to process connected grants for a delegate DID.
+   *
+   * This will store the grants as the DWN owner to be used later when impersonating the connected DID.
+   */
+  static async processConnectedGrants({ grants, agent, delegateDid }: {
+    grants: DwnDataEncodedRecordsWriteMessage[],
+    agent: Web5Agent,
+    delegateDid: string,
+  }): Promise<string[]> {
+    const connectedProtocols = new Set<string>();
+    for (const grantMessage of grants) {
+      // use the delegateDid as the connectedDid of the grant as they do not yet support impersonation/delegation
+      const grant = await PermissionGrant.parse({ connectedDid: delegateDid, agent, message: grantMessage });
+      // store the grant as the owner of the DWN, this will allow the delegateDid to use the grant when impersonating the connectedDid
+      const { status } = await grant.store(true);
+      if (status.code !== 202) {
+        throw new Error(`AgentDwnApi: Failed to process connected grant: ${status.detail}`);
+      }
+
+      const protocol = (grant.scope as DwnMessagesPermissionScope | DwnRecordsPermissionScope).protocol;
+      if (protocol) {
+        connectedProtocols.add(protocol);
+      }
+    }
+
+    // currently we return a de-duped set of protocols represented by these grants, this is used to register protocols for sync
+    // we expect that any connected protocols will include MessagesQuery and MessagesRead grants that will allow it to sync
+    return [...connectedProtocols];
   }
 }

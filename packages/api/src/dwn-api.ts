@@ -24,7 +24,7 @@ import {
   AgentPermissionsApi
 } from '@web5/agent';
 
-import { isEmptyObject, TtlCache } from '@web5/common';
+import { isEmptyObject } from '@web5/common';
 import { DwnInterface, getRecordAuthor } from '@web5/agent';
 
 import { Record } from './record.js';
@@ -32,6 +32,8 @@ import { dataToBlob } from './utils.js';
 import { Protocol } from './protocol.js';
 import { PermissionGrant } from './permission-grant.js';
 import { PermissionRequest } from './permission-request.js';
+import { DwnMessagesPermissionScope } from '@web5/agent';
+import { DwnRecordsPermissionScope } from '@web5/agent';
 
 /**
  * Represents the request payload for fetching permission requests from a Decentralized Web Node (DWN).
@@ -797,26 +799,5 @@ export class DwnApi {
         return { record, status };
       },
     };
-  }
-
-  /**
-   * A static method to process connected grants for a delegate DID.
-   *
-   * This will store the grants as the DWN owner to be used later when impersonating the connected DID.
-   */
-  static async processConnectedGrants({ grants, agent, delegateDid }: {
-    grants: DwnDataEncodedRecordsWriteMessage[],
-    agent: Web5Agent,
-    delegateDid: string,
-  }): Promise<void> {
-    for (const grantMessage of grants) {
-      // use the delegateDid as the connectedDid of the grant as they do not yet support impersonation/delegation
-      const grant = await PermissionGrant.parse({ connectedDid: delegateDid, agent, message: grantMessage });
-      // store the grant as the owner of the DWN, this will allow the delegateDid to use the grant when impersonating the connectedDid
-      const { status } = await grant.store(true);
-      if (status.code !== 202) {
-        throw new Error(`AgentDwnApi: Failed to process connected grant: ${status.detail}`);
-      }
-    }
   }
 }

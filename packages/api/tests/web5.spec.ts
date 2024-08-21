@@ -16,9 +16,21 @@ import { Web5 } from '../src/web5.js';
 import { DwnInterfaceName, DwnMethodName, Jws, Time } from '@tbd54566975/dwn-sdk-js';
 import { testDwnUrl } from './utils/test-config.js';
 import { DidJwk } from '@web5/dids';
-import { DwnApi } from '../src/dwn-api.js';
 
 describe('web5 api', () => {
+  let consoleWarn;
+
+  before(() => {
+    // Suppress console.warn output due to default password warnings
+    consoleWarn = console.warn;
+    console.warn = () => {};
+  });
+
+  after(() => {
+    // Restore console.warn output
+    console.warn = consoleWarn;
+  });
+
   describe('using Test Harness', () => {
     let testHarness: PlatformAgentTestHarness;
 
@@ -246,7 +258,7 @@ describe('web5 api', () => {
 
         // write the grants to app as owner
         // this also clears the grants cache
-        await DwnApi.processConnectedGrants({
+        await Web5.processConnectedGrants({
           grants      : [ queryGrant.message, deleteGrant.message ],
           agent       : appTestHarness.agent,
           delegateDid : app.uri,
@@ -602,7 +614,7 @@ describe('web5 api', () => {
 
         // write the grants to app as owner
         // this also clears the grants cache
-        await DwnApi.processConnectedGrants({
+        await Web5.processConnectedGrants({
           grants : [ queryGrant.message, deleteGrant.message ],
           agent  : appTestHarness.agent,
           delegateDid,

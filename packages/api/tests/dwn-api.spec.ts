@@ -11,6 +11,7 @@ import emailProtocolDefinition from './fixtures/protocol-definitions/email.json'
 import photosProtocolDefinition from './fixtures/protocol-definitions/photos.json' assert { type: 'json' };
 import { DwnInterfaceName, DwnMethodName, PermissionsProtocol, Time } from '@tbd54566975/dwn-sdk-js';
 import { PermissionGrant } from '../src/permission-grant.js';
+import { Web5 } from '../src/web5.js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -1389,7 +1390,7 @@ describe('DwnApi', () => {
       // simulate a connect where bobDid can impersonate aliceDid
       dwnBob['connectedDid'] = aliceDid.uri;
       dwnBob['delegateDid'] = bobDid.uri;
-      await DwnApi.processConnectedGrants({
+      await Web5.processConnectedGrants({
         agent       : testHarness.agent,
         delegateDid : bobDid.uri,
         grants      : [ deviceXGrant.rawMessage ]
