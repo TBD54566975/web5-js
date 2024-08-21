@@ -13,8 +13,13 @@ import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 import type { ConnectPermissionRequest } from './connect.js';
 import { DidDocument, DidJwk, PortableDid, type BearerDid } from '@web5/dids';
 import { AgentDwnApi } from './dwn-api.js';
-import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
+import {
+  DwnInterfaceName,
+  DwnMethodName,
+  PermissionScope,
+} from '@tbd54566975/dwn-sdk-js';
 import { DwnInterface } from './types/dwn.js';
+import { AgentPermissionsApi } from './permissions-api.js';
 
 /**
  * Sent to an OIDC server to authorize a client. Allows clients
@@ -240,10 +245,7 @@ async function generateCodeChallenge() {
 async function createAuthRequest(
   options: RequireOnly<
     Web5ConnectAuthRequest,
-    | 'client_id'
-    | 'scope'
-    | 'redirect_uri'
-    | 'permissionRequests'
+    'client_id' | 'scope' | 'redirect_uri' | 'permissionRequests'
   >
 ) {
   // Generate a random state value to associate the authorization request with the response.
@@ -606,39 +608,83 @@ function encryptAuthResponse({
  * Creates the permission grants that assign to the selectedDid the level of
  * permissions that the web app requested in the {@link Web5ConnectAuthRequest}
  */
-export async function createPermissionGrants(
+// TODO: need another helper to call multiple times for each protocol
+async function createPermissionGrants(
   selectedDid: string,
   delegateDid: BearerDid,
-  dwn: AgentDwnApi
+  dwn: AgentDwnApi,
+  permissionsApi: AgentPermissionsApi,
+  // we assume something generated the scopes
+  scopes: PermissionScope[],
+  protocolUri: string
 ) {
-  // TODO: remove mock after adding functionality: https://github.com/TBD54566975/web5-js/issues/827
-  const permissionRequestData = {
-    description:
-      'The app is asking to Records Write to http://profile-protocol.xyz',
-    scope: {
-      interface : DwnInterfaceName.Records,
-      method    : DwnMethodName.Write,
-      protocol  : 'http://profile-protocol.xyz',
-    },
-  };
+  // PermissionsApi.createRequest();
+  // grantedTo: delegateDid
 
-  // TODO: remove mock after adding functionality: https://github.com/TBD54566975/web5-js/issues/827
-  const message = await dwn.processRequest({
-    author        : selectedDid,
-    target        : selectedDid,
-    messageType   : DwnInterface.RecordsWrite,
-    messageParams : {
-      recipient    : delegateDid.uri,
-      protocolPath : 'grant',
-      protocol     : ' https://tbd.website/dwn/permissions',
-      dataFormat   : 'application/json',
-      data         : Convert.object(permissionRequestData).toUint8Array(),
-    },
-    // todo: is it data or datastream?
-    // dataStream: await Convert.object(permissionRequestData).toBlobAsync(),
-  });
+  // 1. fllw calls connect
+  // 2. fllw knows what it needs to operate: ['read', 'write', 'query']
+  const permissionGrants = await Promise.all(
+    scopes.map((scope) =>
+      permissionsApi.createGrant({
+        grantedTo   : delegateDid.uri,
+        scope,
+        dateExpires : '2040-06-25T16:09:16.693356Z',
+        author      : selectedDid,
+      })
+    )
+  );
 
-  return [message];
+  // By default we must grant Messages Query and Messages Read for sync
+  permissionGrants.push(await permissionsApi.createGrant({
+    grantedTo : delegateDid.uri,
+    scope     : {
+      interface : DwnInterfaceName.Messages,
+      method    : DwnMethodName.Query,
+      protocol  : protocolUri
+    },
+    dateExpires : '2040-06-25T16:09:16.693356Z',
+    author      : selectedDid,
+  }));
+  permissionGrants.push(await permissionsApi.createGrant({
+    grantedTo : delegateDid.uri,
+    scope     : {
+      interface : DwnInterfaceName.Messages,
+      method    : DwnMethodName.Read,
+      protocol  : protocolUri
+    },
+    dateExpires : '2040-06-25T16:09:16.693356Z',
+    author      : selectedDid,
+  }));
+
+  for (const grant of permissionGrants) {
+    // Quirk: we have to pull out encodedData out of the message the schema validator doesnt want it there
+    const { encodedData, ...rawMessage } = grant.message;
+
+    const data = Convert.base64Url(encodedData).toUint8Array();
+    const params = {
+      author      : selectedDid,
+      target      : selectedDid,
+      messageType : DwnInterface.RecordsWrite,
+      dataStream  : new Blob([data]),
+      rawMessage
+    };
+
+    // TODO: remove mock after adding functionality: https://github.com/TBD54566975/web5-js/issues/827
+    const message = await dwn.processRequest(params);
+    const sent = await dwn.sendRequest(params);
+
+    // TODO: cleanup all grants if one fails by deleting them from the DWN: https://github.com/TBD54566975/web5-js/issues/849
+    if (message.reply.status.code !== 202) {
+      throw new Error(`Could not process the message. Error details: ${message.reply.status.detail}`);
+    }
+    if (sent.reply.status.code !== 202) {
+      throw new Error(`Could not send the message. Error details: ${message.reply.status.detail}`);
+    }
+  }
+
+  const messages = permissionGrants.map((grant) => grant.message);
+
+  return messages;
 }
 
 /**
@@ -654,16 +700,27 @@ async function submitAuthResponse(
   selectedDid: string,
   authRequest: Web5ConnectAuthRequest,
   randomPin: string,
-  dwn: AgentDwnApi
+  agentDwnApi: AgentDwnApi,
+  agentPermissionsApi: AgentPermissionsApi
 ) {
   const delegateDid = await DidJwk.create();
   const delegateDidPortable = await delegateDid.export();
 
-  const permissionGrants = await Oidc.createPermissionGrants(
-    selectedDid,
-    delegateDid,
-    dwn
-  );
+  let grantArr = [];
+
+  for (const permissionRequest of authRequest.permissionRequests) {
+    // TODO: validate to make sure the scopes and definition are assigned to the same protocol
+    const permissionGrants = await Oidc.createPermissionGrants(
+      selectedDid,
+      delegateDid,
+      agentDwnApi,
+      agentPermissionsApi,
+      permissionRequest.permissionScopes,
+      permissionRequest.protocolDefinition.protocol
+    );
+
+    grantArr.push(...permissionGrants);
+  }
 
   const responseObject = await Oidc.createResponseObject({
     //* the IDP's did that was selected to be connected
@@ -674,7 +731,7 @@ async function submitAuthResponse(
     aud            : authRequest.client_id,
     //* the nonce of the original auth request
     nonce          : authRequest.nonce,
-    delegateGrants : permissionGrants,
+    delegateGrants : grantArr,
     delegateDid    : delegateDidPortable,
   });
 

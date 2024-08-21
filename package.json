@@ -19,7 +19,7 @@
     "build": "pnpm --recursive --stream build",
     "test:node": "pnpm --recursive test:node",
     "audit-ci": "audit-ci --config ./audit-ci.json",
-    "wallet:connect:example": "npx http-server & HTTP_SERVER_PID=$! && sleep 2 && open 'http://localhost:8080/examples/wallet-connect.html' && wait $HTTP_SERVER_PID"
+    "wallet:connect:example": "npx http-server -c-1 & HTTP_SERVER_PID=$! && sleep 2 && open 'http://localhost:8080/examples/wallet-connect.html' && wait $HTTP_SERVER_PID"
   },
   "repository": {
     "type": "git",

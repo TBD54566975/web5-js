@@ -154,6 +154,8 @@ export type Web5ConnectResult = {
    * {@link WalletConnectOptions} was provided.
    */
   delegateDid?: string;
+
+  delegateGrants: any;
 };
 
 /**
@@ -226,6 +228,7 @@ export class Web5 {
     walletConnectOptions,
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
     let delegateDid: string | undefined;
+    let returnedGrants: any;
     if (agent === undefined) {
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
       const userAgent = await Web5UserAgent.create({ agentVault });
@@ -261,6 +264,9 @@ export class Web5 {
         try {
           // TEMPORARY: Placeholder for WalletConnect integration
           const { connectedDid, delegateDid, delegateGrants } = await WalletConnect.initClient(walletConnectOptions);
+          returnedGrants = delegateGrants;
+          console.log('DELEGATEGRANTS ARE: ');
+          console.log(delegateGrants);
 
           // Import the delegated DID as an Identity in the User Agent.
           // Setting the connectedDID in the metadata applies a relationship between the signer identity and the one it is impersonating.
@@ -383,7 +389,7 @@ export class Web5 {
 
     const web5 = new Web5({ agent, connectedDid, delegateDid });
 
-    return { web5, did: connectedDid, delegateDid, recoveryPhrase };
+    return { web5, did: connectedDid, delegateDid, recoveryPhrase, delegateGrants: returnedGrants };
   }
 
   /**

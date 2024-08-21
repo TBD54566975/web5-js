@@ -139,10 +139,15 @@
         method: "Query",
         protocol: "http://profile-protocol.xyz",
       },
+      {
+        interface: "Records",
+        method: "Read",
+        protocol: "http://profile-protocol.xyz",
+      },
     ];
 
     try {
-      const { delegateDid } = await Web5.connect({
+      const { delegateDid, delegateGrants } = await Web5.connect({
         walletConnectOptions: {
           walletUri: "web5://connect",
           connectServerUrl: "http://localhost:3000/connect",
@@ -162,7 +167,7 @@
         },
       });
 
-      goToEndScreen(delegateDid);
+      goToEndScreen(delegateDid, delegateGrants);
     } catch (e) {
       document.getElementById(
         "errorMessage"
@@ -205,10 +210,10 @@
       document.getElementById("pinScreen").style.display = "block";
     }
 
-    function goToEndScreen(delegateDid) {
+    function goToEndScreen(delegateDid, delegateGrants) {
       document.getElementById("didInformation").innerText = `${JSON.stringify(
         delegateDid
-      )}`;
+      )} \n \n \n \n ${JSON.stringify(delegateGrants)}`;
 
       document.getElementById("pinScreen").style.display = "none";
       document.getElementById("endScreen").style.display = "block";
