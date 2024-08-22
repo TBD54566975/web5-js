@@ -635,26 +635,30 @@ async function createPermissionGrants(
   );
 
   // By default we must grant Messages Query and Messages Read for sync
-  permissionGrants.push(await permissionsApi.createGrant({
-    grantedTo : delegateDid.uri,
-    scope     : {
-      interface : DwnInterfaceName.Messages,
-      method    : DwnMethodName.Query,
-      protocol  : protocolUri
-    },
-    dateExpires : '2040-06-25T16:09:16.693356Z',
-    author      : selectedDid,
-  }));
-  permissionGrants.push(await permissionsApi.createGrant({
-    grantedTo : delegateDid.uri,
-    scope     : {
-      interface : DwnInterfaceName.Messages,
-      method    : DwnMethodName.Read,
-      protocol  : protocolUri
-    },
-    dateExpires : '2040-06-25T16:09:16.693356Z',
-    author      : selectedDid,
-  }));
+  permissionGrants.push(
+    await permissionsApi.createGrant({
+      grantedTo : delegateDid.uri,
+      scope     : {
+        interface : DwnInterfaceName.Messages,
+        method    : DwnMethodName.Query,
+        protocol  : protocolUri,
+      },
+      dateExpires : '2040-06-25T16:09:16.693356Z',
+      author      : selectedDid,
+    })
+  );
+  permissionGrants.push(
+    await permissionsApi.createGrant({
+      grantedTo : delegateDid.uri,
+      scope     : {
+        interface : DwnInterfaceName.Messages,
+        method    : DwnMethodName.Read,
+        protocol  : protocolUri,
+      },
+      dateExpires : '2040-06-25T16:09:16.693356Z',
+      author      : selectedDid,
+    })
+  );
 
   for (const grant of permissionGrants) {
     // Quirk: we have to pull out encodedData out of the message the schema validator doesnt want it there
@@ -666,7 +670,7 @@ async function createPermissionGrants(
       target      : selectedDid,
       messageType : DwnInterface.RecordsWrite,
       dataStream  : new Blob([data]),
-      rawMessage
+      rawMessage,
     };
 
     // TODO: remove mock after adding functionality: https://github.com/TBD54566975/web5-js/issues/827
@@ -675,10 +679,14 @@ async function createPermissionGrants(
 
     // TODO: cleanup all grants if one fails by deleting them from the DWN: https://github.com/TBD54566975/web5-js/issues/849
     if (message.reply.status.code !== 202) {
-      throw new Error(`Could not process the message. Error details: ${message.reply.status.detail}`);
+      throw new Error(
+        `Could not process the message. Error details: ${message.reply.status.detail}`
+      );
     }
     if (sent.reply.status.code !== 202) {
-      throw new Error(`Could not send the message. Error details: ${message.reply.status.detail}`);
+      throw new Error(
+        `Could not send the message. Error details: ${message.reply.status.detail}`
+      );
     }
   }
 
@@ -709,6 +717,31 @@ async function submitAuthResponse(
   let grantArr = [];
 
   for (const permissionRequest of authRequest.permissionRequests) {
+    const protocol = permissionRequest.protocolDefinition.protocol;
+    const response = await agentDwnApi.processRequest({
+      author        : selectedDid,
+      messageType   : DwnInterface.ProtocolsQuery,
+      target        : selectedDid,
+      messageParams : { filter: { protocol } },
+    });
+
+    if (response.reply.status.code === 404) {
+      const response = await agentDwnApi.processRequest({
+        author        : selectedDid,
+        messageType   : DwnInterface.ProtocolsConfigure,
+        target        : selectedDid,
+        messageParams : { definition: permissionRequest.protocolDefinition },
+      });
+
+      if (response.reply.status.code !== 202) {
+        throw new Error(
+          `Could not install protocol: ${response.reply.status.detail}`
+        );
+      }
+    } else if (response.reply.status.code !== 202) {
+      throw new Error(`Could not fetch protcol: ${response.reply.status.detail}`);
+    }
+
     // TODO: validate to make sure the scopes and definition are assigned to the same protocol
     const permissionGrants = await Oidc.createPermissionGrants(
       selectedDid,
@@ -716,7 +749,7 @@ async function submitAuthResponse(
       agentDwnApi,
       agentPermissionsApi,
       permissionRequest.permissionScopes,
-      permissionRequest.protocolDefinition.protocol
+      protocol
     );
 
     grantArr.push(...permissionGrants);
