@@ -18,7 +18,7 @@ import {
   DwnMethodName,
   PermissionScope,
 } from '@tbd54566975/dwn-sdk-js';
-import { DwnInterface } from './types/dwn.js';
+import { DwnInterface, DwnProtocolDefinition } from './types/dwn.js';
 import { AgentPermissionsApi } from './permissions-api.js';
 
 /**
@@ -608,21 +608,14 @@ function encryptAuthResponse({
  * Creates the permission grants that assign to the selectedDid the level of
  * permissions that the web app requested in the {@link Web5ConnectAuthRequest}
  */
-// TODO: need another helper to call multiple times for each protocol
 async function createPermissionGrants(
   selectedDid: string,
   delegateDid: BearerDid,
   dwn: AgentDwnApi,
   permissionsApi: AgentPermissionsApi,
-  // we assume something generated the scopes
   scopes: PermissionScope[],
   protocolUri: string
 ) {
-  // PermissionsApi.createRequest();
-  // grantedTo: delegateDid
-
-  // 1. fllw calls connect
-  // 2. fllw knows what it needs to operate: ['read', 'write', 'query']
   const permissionGrants = await Promise.all(
     scopes.map((scope) =>
       permissionsApi.createGrant({
@@ -634,7 +627,7 @@ async function createPermissionGrants(
     )
   );
 
-  // By default we must grant Messages Query and Messages Read for sync
+  // Grant Messages Query and Messages Read for sync to work
   permissionGrants.push(
     await permissionsApi.createGrant({
       grantedTo : delegateDid.uri,
@@ -660,7 +653,7 @@ async function createPermissionGrants(
     })
   );
 
-  for (const grant of permissionGrants) {
+  const messagePromises = permissionGrants.map(async (grant) => {
     // Quirk: we have to pull out encodedData out of the message the schema validator doesnt want it there
     const { encodedData, ...rawMessage } = grant.message;
 
@@ -688,11 +681,45 @@ async function createPermissionGrants(
         `Could not send the message. Error details: ${message.reply.status.detail}`
       );
     }
-  }
 
-  const messages = permissionGrants.map((grant) => grant.message);
+    return grant.message;
+  });
+
+  const messages = await Promise.all(messagePromises);
 
   return messages;
+}
+
+/**
+* Installs the protocols required by the Client on the Provider
+* if they don't already exist.
+*/
+async function prepareProtocols(
+  selectedDid: string,
+  agentDwnApi: AgentDwnApi,
+  protocolDefinition: DwnProtocolDefinition
+)  {
+  const queryMessage = await agentDwnApi.processRequest({
+    author        : selectedDid,
+    messageType   : DwnInterface.ProtocolsQuery,
+    target        : selectedDid,
+    messageParams : { filter: { protocol: protocolDefinition.protocol } },
+  });
+
+  if (queryMessage.reply.status.code === 404) {
+    const configureMessage = await agentDwnApi.processRequest({
+      author        : selectedDid,
+      messageType   : DwnInterface.ProtocolsConfigure,
+      target        : selectedDid,
+      messageParams : { definition: protocolDefinition },
+    });
+
+    if (configureMessage.reply.status.code !== 202) {
+      throw new Error(`Could not install protocol: ${configureMessage.reply.status.detail}`);
+    }
+  } else if (queryMessage.reply.status.code !== 200) {
+    throw new Error(`Could not fetch protcol: ${queryMessage.reply.status.detail}`);
+  }
 }
 
 /**
@@ -714,33 +741,8 @@ async function submitAuthResponse(
   const delegateDid = await DidJwk.create();
   const delegateDidPortable = await delegateDid.export();
 
-  let grantArr = [];
-
-  for (const permissionRequest of authRequest.permissionRequests) {
-    const protocol = permissionRequest.protocolDefinition.protocol;
-    const response = await agentDwnApi.processRequest({
-      author        : selectedDid,
-      messageType   : DwnInterface.ProtocolsQuery,
-      target        : selectedDid,
-      messageParams : { filter: { protocol } },
-    });
-
-    if (response.reply.status.code === 404) {
-      const response = await agentDwnApi.processRequest({
-        author        : selectedDid,
-        messageType   : DwnInterface.ProtocolsConfigure,
-        target        : selectedDid,
-        messageParams : { definition: permissionRequest.protocolDefinition },
-      });
-
-      if (response.reply.status.code !== 202) {
-        throw new Error(
-          `Could not install protocol: ${response.reply.status.detail}`
-        );
-      }
-    } else if (response.reply.status.code !== 202) {
-      throw new Error(`Could not fetch protcol: ${response.reply.status.detail}`);
-    }
+  const delegateGrantPromises = authRequest.permissionRequests.map(async (permissionRequest) => {
+    await prepareProtocols(selectedDid, agentDwnApi, permissionRequest.protocolDefinition);
 
     // TODO: validate to make sure the scopes and definition are assigned to the same protocol
     const permissionGrants = await Oidc.createPermissionGrants(
@@ -749,23 +751,25 @@ async function submitAuthResponse(
       agentDwnApi,
       agentPermissionsApi,
       permissionRequest.permissionScopes,
-      protocol
+      permissionRequest.protocolDefinition.protocol
     );
 
-    grantArr.push(...permissionGrants);
-  }
+    return permissionGrants;
+  });
+
+  const delegateGrants = (await Promise.all(delegateGrantPromises)).flat();
 
   const responseObject = await Oidc.createResponseObject({
     //* the IDP's did that was selected to be connected
-    iss            : selectedDid,
+    iss         : selectedDid,
     //* the client's new identity
-    sub            : delegateDid.uri,
+    sub         : delegateDid.uri,
     //* the client's temporary ephemeral did used for connect
-    aud            : authRequest.client_id,
+    aud         : authRequest.client_id,
     //* the nonce of the original auth request
-    nonce          : authRequest.nonce,
-    delegateGrants : grantArr,
-    delegateDid    : delegateDidPortable,
+    nonce       : authRequest.nonce,
+    delegateGrants,
+    delegateDid : delegateDidPortable,
   });
 
   // Sign the Response Object using the ephemeral DID's signing key.

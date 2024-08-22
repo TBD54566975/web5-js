@@ -211,9 +211,11 @@
     }
 
     function goToEndScreen(delegateDid, delegateGrants) {
-      document.getElementById("didInformation").innerText = `${JSON.stringify(
+      document.getElementById(
+        "didInformation"
+      ).innerText = `delegateDid\n:${JSON.stringify(
         delegateDid
-      )} \n\n\n ${JSON.stringify(delegateGrants)}`;
+      )} \n\n\n delegateGrants:\n${JSON.stringify(delegateGrants)}`;
 
       document.getElementById("pinScreen").style.display = "none";
       document.getElementById("endScreen").style.display = "block";
