@@ -605,7 +605,7 @@ describe('AgentDataStore', () => {
             expect.fail('Expected an error to be thrown');
 
           } catch (error: any) {
-            expect(error.message).to.include(`Failed to write data to store for: test-1`);
+            expect(error.message).to.include(`Failed to write data to store for test-1`);
           } finally {
             dwnApiStub.restore();
           }

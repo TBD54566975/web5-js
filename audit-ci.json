@@ -5,6 +5,7 @@
     "ip",
     "mysql2",
     "braces",
-    "GHSA-rv95-896h-c2vc"
+    "GHSA-rv95-896h-c2vc",
+    "GHSA-952p-6rrq-rcjv"
   ]
 }

@@ -231,6 +231,7 @@ export class Web5 {
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
     let delegateDid: string | undefined;
     if (agent === undefined) {
+      let registerSync = false;
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
       const userAgent = await Web5UserAgent.create({ agentVault });
       agent = userAgent;
@@ -268,6 +269,9 @@ export class Web5 {
           throw new Error('Sync must not be disabled when using WalletConnect');
         }
 
+        // Since we are connecting a new identity, we will want to register sync for the connectedDid
+        registerSync = true;
+
         // No connected identity found and connectOptions are provided, attempt to import a delegated DID from an external wallet
         try {
           // TEMPORARY: Placeholder for WalletConnect integration
@@ -304,6 +308,9 @@ export class Web5 {
         // If an existing identity is not found found, create a new one.
         const existingIdentityCount = identities.length;
         if (existingIdentityCount === 0) {
+          // since we are creating a new identity, we will want to register sync for the created Did
+          registerSync = true;
+
           // Use the specified DWN endpoints or the latest TBD hosted DWN
           const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
 
@@ -383,12 +390,22 @@ export class Web5 {
       if (sync !== 'off') {
         // First, register the user identity for sync.
         // The connected protocols are used to register sync for only a subset of protocols from the connectedDid's DWN
-        await userAgent.sync.registerIdentity({
-          did     : connectedDid,
-          options : {
-            protocols: connectedProtocols
+
+        if (registerSync) {
+          await userAgent.sync.registerIdentity({
+            did     : connectedDid,
+            options : {
+              delegateDid,
+              protocols: connectedProtocols
+            }
+          });
+
+          if(walletConnectOptions !== undefined) {
+            // If we are using WalletConnect, we should do a one-shot sync to pull down any messages that are associated with the connectedDid
+            await userAgent.sync.sync('pull');
           }
-        });
+
+        }
 
         // Enable sync using the specified interval or default.
         sync ??= '2m';

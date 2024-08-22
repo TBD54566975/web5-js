@@ -50,6 +50,85 @@ describe('SyncEngineLevel', () => {
     });
   });
 
+  describe('generateSyncMessageParamsKey & parseSyncMessageParamsKey', () => {
+    it('parses key into sync params', () => {
+      const did = 'did:example:alice';
+      const delegateDid = 'did:example:bob';
+      const dwnUrl = 'https://dwn.example.com';
+      const protocol = 'https://protocol.example.com';
+      const watermark = '1234567890';
+      const messageCid = 'abc123';
+
+      const key = SyncEngineLevel['generateSyncMessageParamsKey']({
+        did,
+        delegateDid,
+        dwnUrl,
+        protocol,
+        watermark,
+        messageCid
+      });
+
+      const syncParams = SyncEngineLevel['parseSyncMessageParamsKey'](key);
+      expect(syncParams.did).to.equal(did);
+      expect(syncParams.delegateDid).to.equal(delegateDid);
+      expect(syncParams.dwnUrl).to.equal(dwnUrl);
+      expect(syncParams.protocol).to.equal(protocol);
+      expect(syncParams.watermark).to.equal(watermark);
+      expect(syncParams.messageCid).to.equal(messageCid);
+    });
+
+    it('returns undefined protocol if not present', () => {
+      const did = 'did:example:alice';
+      const delegateDid = 'did:example:bob';
+      const dwnUrl = 'https://dwn.example.com';
+      const watermark = '1234567890';
+      const messageCid = 'abc123';
+
+      const key = SyncEngineLevel['generateSyncMessageParamsKey']({
+        did,
+        delegateDid,
+        dwnUrl,
+        watermark,
+        messageCid
+      });
+      console.log('key', key);
+
+      const syncParams = SyncEngineLevel['parseSyncMessageParamsKey'](key);
+      expect(syncParams.protocol).to.be.undefined;
+
+      expect(syncParams.did).to.equal(did);
+      expect(syncParams.delegateDid).to.equal(delegateDid);
+      expect(syncParams.dwnUrl).to.equal(dwnUrl);
+      expect(syncParams.watermark).to.equal(watermark);
+      expect(syncParams.messageCid).to.equal(messageCid);
+    });
+
+    it('returns undefined delegateDid if not present', () => {
+      const did = 'did:example:alice';
+      const dwnUrl = 'https://dwn.example.com';
+      const protocol = 'https://protocol.example.com';
+      const watermark = '1234567890';
+      const messageCid = 'abc123';
+
+      const key = SyncEngineLevel['generateSyncMessageParamsKey']({
+        did,
+        dwnUrl,
+        protocol,
+        watermark,
+        messageCid
+      });
+
+      const syncParams = SyncEngineLevel['parseSyncMessageParamsKey'](key);
+      expect(syncParams.delegateDid).to.be.undefined;
+
+      expect(syncParams.did).to.equal(did);
+      expect(syncParams.dwnUrl).to.equal(dwnUrl);
+      expect(syncParams.protocol).to.equal(protocol);
+      expect(syncParams.watermark).to.equal(watermark);
+      expect(syncParams.messageCid).to.equal(messageCid);
+    });
+  });
+
   describe('with Web5 Platform Agent', () => {
     let alice: BearerIdentity;
     let randomSchema: string;
@@ -72,6 +151,7 @@ describe('SyncEngineLevel', () => {
 
       sinon.restore();
 
+      syncEngine.stopSync();
       await syncEngine.clear();
       await testHarness.syncStore.clear();
       await testHarness.dwnDataStore.clear();
@@ -386,6 +466,29 @@ describe('SyncEngineLevel', () => {
         // Verify pull was called once and push was not called
         expect(pushSpy.notCalled).to.be.true;
         expect(pullSpy.calledOnce).to.be.true;
+      });
+
+      it('throws if sync is attempted while an interval sync is running', async () => {
+        // Register Alice's DID to be synchronized.
+        await testHarness.agent.sync.registerIdentity({
+          did     : alice.did.uri,
+          options : {
+            protocols: []
+          }
+        });
+
+        // start the sync engine with an interval of 10 seconds
+        syncEngine.startSync({ interval: '10s' });
+
+        try {
+          // Execute Sync to push and pull all records from Alice's remote DWN to Alice's local DWN.
+          await syncEngine.sync();
+
+          expect.fail('Expected an error to be thrown');
+        } catch (error: any) {
+          // Execute Sync to push and pull all records from Alice's remote DWN to Alice's local DWN.
+          expect(error.message).to.equal('SyncEngineLevel: Cannot call sync while a sync interval is active. Call `stopSync()` first.');
+        }
       });
     });
 
@@ -1294,6 +1397,136 @@ describe('SyncEngineLevel', () => {
         sendDwnRequestSpy.restore();
       });
 
+      it('logs an error if could not fetch MessagesQuery permission needed for a sync', async () => {
+        // create new identity to not conflict the previous tests's remote records
+        const aliceSync = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
+
+        const delegateDid = await testHarness.agent.identity.create({
+          store     : true,
+          didMethod : 'jwk',
+          metadata  : { name: 'Alice Delegate', connectedDid: aliceSync.did.uri }
+        });
+
+        await testHarness.agent.sync.registerIdentity({
+          did     : aliceSync.did.uri,
+          options : {
+            delegateDid : delegateDid.did.uri,
+            protocols   : [ 'https://protocol.xyz/foo' ]
+          }
+        });
+
+        // spy on console.error to check if the error message is logged
+        const consoleErrorSpy = sinon.stub(console, 'error').resolves();
+
+        await syncEngine.sync('pull');
+        expect(consoleErrorSpy.called).to.be.true;
+        expect(consoleErrorSpy.args[0][0]).to.include('SyncEngineLevel: Error fetching MessagesQuery permission grant for delegate DID');
+      });
+
+      it('logs an error if could not fetch MessagesRead permission needed for a sync', async () => {
+        // create new identity to not conflict the previous tests's remote records
+        const aliceSync = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
+
+        // create 3 local protocols
+        const protocolFoo: ProtocolDefinition = {
+          published : true,
+          protocol  : 'https://protocol.xyz/foo',
+          types     : {
+            foo: {
+              schema      : 'https://schemas.xyz/foo',
+              dataFormats : ['text/plain', 'application/json']
+            }
+          },
+          structure: {
+            foo: {}
+          }
+        };
+
+        // install a protocol on the remote node for aliceSync
+        const protocolsFoo = await testHarness.agent.sendDwnRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.ProtocolsConfigure,
+          messageParams : {
+            definition: protocolFoo
+          }
+        });
+        expect(protocolsFoo.reply.status.code).to.equal(202);
+
+
+        // create a record that will be read as a part of sync
+        const record1 = await testHarness.agent.sendDwnRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            protocol     : 'https://protocol.xyz/foo',
+            protocolPath : 'foo',
+            schema       : 'https://schemas.xyz/foo',
+            dataFormat   : 'text/plain',
+          },
+          dataStream: new Blob(['Hello, world!'])
+        });
+        expect(record1.reply.status.code).to.equal(202);
+
+
+        const delegateDid = await testHarness.agent.identity.create({
+          store     : true,
+          didMethod : 'jwk',
+          metadata  : { name: 'Alice Delegate', connectedDid: aliceSync.did.uri }
+        });
+
+        // write a MessagesQuery permission grant for the delegate DID
+        const messagesQueryGrant = await testHarness.agent.permissions.createGrant({
+          store       : true,
+          author      : aliceSync.did.uri,
+          grantedTo   : delegateDid.did.uri,
+          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+          scope       : {
+            interface : DwnInterfaceName.Messages,
+            method    : DwnMethodName.Query,
+            protocol  : 'https://protocol.xyz/foo'
+          }
+        });
+
+        const { encodedData: messagesQueryGrantData, ...messagesQueryGrantMessage } = messagesQueryGrant.message;
+        // send to the remote node
+        const sendGrant = await testHarness.agent.sendDwnRequest({
+          author      : aliceSync.did.uri,
+          target      : aliceSync.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : messagesQueryGrantMessage,
+          dataStream  : new Blob([ Convert.base64Url(messagesQueryGrantData).toUint8Array() ]),
+        });
+        expect(sendGrant.reply.status.code).to.equal(202);
+
+        // store it as the delegate DID so that it can be fetched during sync
+        const processGrant = await testHarness.agent.processDwnRequest({
+          author      : delegateDid.did.uri,
+          target      : delegateDid.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : messagesQueryGrantMessage,
+          dataStream  : new Blob([ Convert.base64Url(messagesQueryGrantData).toUint8Array() ]),
+          signAsOwner : true
+        });
+        expect(processGrant.reply.status.code).to.equal(202);
+
+        await testHarness.agent.sync.registerIdentity({
+          did     : aliceSync.did.uri,
+          options : {
+            delegateDid : delegateDid.did.uri,
+            protocols   : [ 'https://protocol.xyz/foo' ]
+          }
+        });
+
+        // spy on console.error to check if the error message is logged
+        const consoleErrorSpy = sinon.stub(console, 'error').resolves();
+
+        await syncEngine.sync('pull');
+        expect(consoleErrorSpy.called).to.be.true;
+        expect(consoleErrorSpy.args[0][0]).to.include('SyncEngineLevel: pull - Error fetching MessagesRead permission grant for delegate DID');
+      });
+
       it('synchronizes records for 1 identity from remote DWN to local DWN', async () => {
         // Write a test record to Alice's remote DWN.
         let writeResponse = await testHarness.agent.dwn.sendRequest({
@@ -1868,6 +2101,126 @@ describe('SyncEngineLevel', () => {
 
         didResolveSpy.restore();
         processRequestSpy.restore();
+      });
+
+      it('logs an error if could not fetch MessagesQuery permission needed for a sync', async () => {
+        // create new identity to not conflict the previous tests's remote records
+        const aliceSync = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
+
+        const delegateDid = await testHarness.agent.identity.create({
+          store     : true,
+          didMethod : 'jwk',
+          metadata  : { name: 'Alice Delegate', connectedDid: aliceSync.did.uri }
+        });
+
+        await testHarness.agent.sync.registerIdentity({
+          did     : aliceSync.did.uri,
+          options : {
+            delegateDid : delegateDid.did.uri,
+            protocols   : [ 'https://protocol.xyz/foo' ]
+          }
+        });
+
+        // spy on console.error to check if the error message is logged
+        const consoleErrorSpy = sinon.stub(console, 'error').resolves();
+
+        await syncEngine.sync('push');
+        expect(consoleErrorSpy.called).to.be.true;
+        expect(consoleErrorSpy.args[0][0]).to.include('SyncEngineLevel: Error fetching MessagesQuery permission grant for delegate DID');
+      });
+
+      it('logs an error if could not fetch MessagesRead permission needed for a sync', async () => {
+        // create new identity to not conflict the previous tests's remote records
+        const aliceSync = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
+
+        // create 3 local protocols
+        const protocolFoo: ProtocolDefinition = {
+          published : true,
+          protocol  : 'https://protocol.xyz/foo',
+          types     : {
+            foo: {
+              schema      : 'https://schemas.xyz/foo',
+              dataFormats : ['text/plain', 'application/json']
+            }
+          },
+          structure: {
+            foo: {}
+          }
+        };
+
+        // install a protocol on the local node for aliceSync
+        const protocolsFoo = await testHarness.agent.processDwnRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.ProtocolsConfigure,
+          messageParams : {
+            definition: protocolFoo
+          }
+        });
+        expect(protocolsFoo.reply.status.code).to.equal(202);
+
+
+        // create a record that will be read as a part of sync
+        const record1 = await testHarness.agent.processDwnRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            protocol     : 'https://protocol.xyz/foo',
+            protocolPath : 'foo',
+            schema       : 'https://schemas.xyz/foo',
+            dataFormat   : 'text/plain',
+          },
+          dataStream: new Blob(['Hello, world!'])
+        });
+        expect(record1.reply.status.code).to.equal(202);
+
+
+        const delegateDid = await testHarness.agent.identity.create({
+          store     : true,
+          didMethod : 'jwk',
+          metadata  : { name: 'Alice Delegate', connectedDid: aliceSync.did.uri }
+        });
+
+        // write a MessagesQuery permission grant for the delegate DID
+        const messagesQueryGrant = await testHarness.agent.permissions.createGrant({
+          store       : true,
+          author      : aliceSync.did.uri,
+          grantedTo   : delegateDid.did.uri,
+          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+          scope       : {
+            interface : DwnInterfaceName.Messages,
+            method    : DwnMethodName.Query,
+            protocol  : 'https://protocol.xyz/foo'
+          }
+        });
+
+        // store it as the delegate DID so that it can be fetched during sync
+        const { encodedData: messagesQueryGrantData, ...messagesQueryGrantMessage } = messagesQueryGrant.message;
+        const processGrant = await testHarness.agent.processDwnRequest({
+          author      : delegateDid.did.uri,
+          target      : delegateDid.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : messagesQueryGrantMessage,
+          dataStream  : new Blob([ Convert.base64Url(messagesQueryGrantData).toUint8Array() ]),
+          signAsOwner : true
+        });
+        expect(processGrant.reply.status.code).to.equal(202);
+
+        await testHarness.agent.sync.registerIdentity({
+          did     : aliceSync.did.uri,
+          options : {
+            delegateDid : delegateDid.did.uri,
+            protocols   : [ 'https://protocol.xyz/foo' ]
+          }
+        });
+
+        // spy on console.error to check if the error message is logged
+        const consoleErrorSpy = sinon.stub(console, 'error').resolves();
+
+        await syncEngine.sync('push');
+        expect(consoleErrorSpy.called).to.be.true;
+        expect(consoleErrorSpy.args[0][0]).to.include('SyncEngineLevel: push - Error fetching MessagesRead permission grant for delegate DID');
       });
 
       it('synchronizes records for 1 identity from local DWN to remote DWN', async () => {
