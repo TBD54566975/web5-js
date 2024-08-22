@@ -6,8 +6,6 @@ import { DidJwk } from '@web5/dids';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import { StatusList2021Entry, StatusListCredential, StatusPurpose } from '../src/status-list-credential.js';
 
-// import StatusListCredentialsCreateTestVector from '../../../web5-spec/test-vectors/status_list_credentials/create.json' assert { type: 'json' };
-
 describe('Status List Credential Tests', () => {
   let issuerDid: BearerDid;
   let holderDid: BearerDid;
