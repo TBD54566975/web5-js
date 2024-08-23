@@ -13,7 +13,7 @@ import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { TestAgent } from './utils/test-agent.js';
 import { testDwnUrl } from './utils/test-config.js';
 import { BearerIdentity, DwnProtocolDefinition, DwnProtocolPermissionScope, DwnResponse, WalletConnect } from '../src/index.js';
-import { type PermissionScope } from '@tbd54566975/dwn-sdk-js';
+import { RecordsPermissionScope, type PermissionScope } from '@tbd54566975/dwn-sdk-js';
 
 describe('web5 connect', function () {
   this.timeout(20000);
@@ -117,7 +117,7 @@ describe('web5 connect', function () {
     },
   ];
 
-  const protocol: DwnProtocolDefinition = {
+  const protocolDefinition: DwnProtocolDefinition = {
     protocol  : 'http://profile-protocol.xyz',
     published : true,
     types     : {
@@ -138,7 +138,7 @@ describe('web5 connect', function () {
     },
   };
 
-  const protocolScopes: PermissionScope[] = [
+  const permissionScopes: RecordsPermissionScope[] = [
     {
       interface : 'Records' as any,
       method    : 'Write' as any,
@@ -247,7 +247,7 @@ describe('web5 connect', function () {
         scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
         // code_challenge_method : 'S256' as const,
-        permissionRequests : {} as any, // TODO: use a better mock once DWN stuff is in place,
+        permissionRequests : [{ protocolDefinition, permissionScopes }],
         redirect_uri       : callbackUrl,
       };
       authRequest = await Oidc.createAuthRequest(options);
@@ -310,10 +310,11 @@ describe('web5 connect', function () {
         delegateBearerDid,
         testHarness.agent.dwn,
         testHarness.agent.permissions,
-        protocolScopes,
-        protocol.protocol
+        permissionScopes,
+        protocolDefinition.protocol
       );
-      expect(results).to.have.lengthOf(1);
+      const scopesRequestedPlusTwoDefaultScopes = permissionScopes.length + 2;
+      expect(results).to.have.lengthOf(scopesRequestedPlusTwoDefaultScopes);
       expect(results[0]).to.be.a('object');
     });
 

@@ -6,6 +6,7 @@
 
 import type {
   BearerIdentity,
+  DelegateGrant,
   HdIdentityVault,
   WalletConnectOptions,
   Web5Agent,
@@ -155,7 +156,7 @@ export type Web5ConnectResult = {
    */
   delegateDid?: string;
 
-  delegateGrants: any;
+  delegateGrants: DelegateGrant[];
 };
 
 /**
@@ -228,7 +229,7 @@ export class Web5 {
     walletConnectOptions,
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
     let delegateDid: string | undefined;
-    let delegateGrants: any;
+    let delegateGrants: DelegateGrant[];
     if (agent === undefined) {
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
       const userAgent = await Web5UserAgent.create({ agentVault });
@@ -262,9 +263,8 @@ export class Web5 {
       } else if (walletConnectOptions) {
         // No connected identity found and connectOptions are provided, attempt to import a delegated DID from an external wallet
         try {
-          const walletConnectResults = await WalletConnect.initClient(walletConnectOptions);
-          const delegatePortableDid = walletConnectResults.delegatePortableDid;
-          delegateGrants = walletConnectResults.delegateGrants;
+          const { delegatePortableDid, connectedDid, delegateGrants: returnedGrants } = await WalletConnect.initClient(walletConnectOptions);
+          delegateGrants = returnedGrants;
 
           // Import the delegated DID as an Identity in the User Agent.
           // Setting the connectedDID in the metadata applies a relationship between the signer identity and the one it is impersonating.
