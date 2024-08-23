@@ -151,9 +151,9 @@ describe('web5 api', function() {
         });
         expect(web5).to.exist;
         expect(did).to.exist;
-        // expect(delegateDid).to.exist;
+        expect(delegateDid).to.exist;
         expect(did).to.equal(alice.did.uri);
-        // expect(delegateDid).to.equal(app.uri);
+        expect(delegateDid).to.equal(app.uri);
 
         // in lieu of sync, we will process the grants and protocol definition on the local connected agent
         const { reply: localProtocolReply } = await web5.agent.processDwnRequest({
