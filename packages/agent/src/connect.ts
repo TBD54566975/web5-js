@@ -182,14 +182,4 @@ export type ConnectPermissionRequest = {
   permissionScopes: DwnRecordsPermissionScope[];
 };
 
-// TODO: add a convenience method for generating scopes and protcol definitions?
-
-// const SomeObject = 'i\'m a protocol';
-
-// Web5.connect({
-//   walletConnectOptions: {
-//     permissionRequests: [{ protcolDefinition: SomeObject, permissionScopes: [new PermissionScope()] }],
-//   },
-// });
-
 export const WalletConnect = { initClient };
