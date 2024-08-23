@@ -207,6 +207,7 @@ export type RecordsReadResponse = DwnResponseStatus & {
   record: Record;
 }
 
+/** Subscription handler for Records */
 export type RecordsSubscriptionHandler = (record: Record) => void;
 
 /**
@@ -226,8 +227,12 @@ export type RecordsSubscribeRequest = {
   subscriptionHandler: RecordsSubscriptionHandler;
 }
 
-
+/** Encapsulates the response from a DWN RecordsSubscriptionRequest */
 export type RecordsSubscribeResponse = DwnResponseStatus & {
+  /**
+   * Represents the subscription that was created. Includes an ID and the close method to stop the subscription.
+   *
+   * */
   subscription?: DwnMessageSubscription;
 }
 
