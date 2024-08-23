@@ -17,13 +17,14 @@ import {
   DwnResponse,
   DwnMessageParams,
   DwnResponseStatus,
+  CachedPermissions,
   ProcessDwnRequest,
   DwnPaginationCursor,
   DwnDataEncodedRecordsWriteMessage,
   AgentPermissionsApi
 } from '@web5/agent';
 
-import { isEmptyObject, TtlCache } from '@web5/common';
+import { isEmptyObject } from '@web5/common';
 import { DwnInterface, getRecordAuthor } from '@web5/agent';
 
 import { Record } from './record.js';
@@ -31,6 +32,8 @@ import { dataToBlob } from './utils.js';
 import { Protocol } from './protocol.js';
 import { PermissionGrant } from './permission-grant.js';
 import { PermissionRequest } from './permission-request.js';
+import { DwnMessagesPermissionScope } from '@web5/agent';
+import { DwnRecordsPermissionScope } from '@web5/agent';
 
 /**
  * Represents the request payload for fetching permission requests from a Decentralized Web Node (DWN).
@@ -271,13 +274,14 @@ export class DwnApi {
   private permissionsApi: AgentPermissionsApi;
 
   /** cache for fetching a permission {@link PermissionGrant}, keyed by a specific MessageType and protocol */
-  private cachedPermissions: TtlCache<string, PermissionGrant> = new TtlCache({ ttl: 60 * 1000 });
+  private cachedPermissionsApi: CachedPermissions;
 
   constructor(options: { agent: Web5Agent, connectedDid: string, delegateDid?: string }) {
     this.agent = options.agent;
     this.connectedDid = options.connectedDid;
     this.delegateDid = options.delegateDid;
     this.permissionsApi = new AgentPermissionsApi({ agent: this.agent });
+    this.cachedPermissionsApi = new CachedPermissions({ agent: this.agent, cachedDefault: true });
   }
 
   /**
@@ -304,33 +308,16 @@ export class DwnApi {
           throw new Error('AgentDwnApi: Cannot find connected grants without a signer DID');
         }
 
-        // Currently we only support finding grants based on protocols
-        // A different approach may be necessary when we introduce `protocolPath` and `contextId` specific impersonation
-        const cacheKey = [ this.connectedDid, messageParams.messageType, messageParams.protocol ].join('~');
-        const cachedGrant = cached ? this.cachedPermissions.get(cacheKey) : undefined;
-        if (cachedGrant) {
-          return cachedGrant;
-        }
-
-        const permissionGrants = await this.permissions.queryGrants({ checkRevoked: true, grantor: this.connectedDid });
-
-        const grantEntries = permissionGrants.map(grant => ({ message: grant.rawMessage, grant: grant.toJSON() }));
-
-        // get the delegate grants that match the messageParams and are associated with the connectedDid as the grantor
-        const delegateGrant = await AgentPermissionsApi.matchGrantFromArray(
-          this.connectedDid,
-          this.delegateDid,
-          messageParams,
-          grantEntries,
-          true
-        );
-
-        if (!delegateGrant) {
-          throw new Error(`AgentDwnApi: No permissions found for ${messageParams.messageType}: ${messageParams.protocol}`);
-        }
+        const delegateGrant = await this.cachedPermissionsApi.getPermission({
+          connectedDid : this.connectedDid,
+          delegateDid  : this.delegateDid,
+          messageType  : messageParams.messageType,
+          protocol     : messageParams.protocol,
+          delegate     : true,
+          cached,
+        });
 
         const grant = await PermissionGrant.parse({ connectedDid: this.delegateDid, agent: this.agent, message: delegateGrant.message });
-        this.cachedPermissions.set(cacheKey, grant);
         return grant;
       }
     };
@@ -812,26 +799,5 @@ export class DwnApi {
         return { record, status };
       },
     };
-  }
-
-  /**
-   * A static method to process connected grants for a delegate DID.
-   *
-   * This will store the grants as the DWN owner to be used later when impersonating the connected DID.
-   */
-  static async processConnectedGrants({ grants, agent, delegateDid }: {
-    grants: DwnDataEncodedRecordsWriteMessage[],
-    agent: Web5Agent,
-    delegateDid: string,
-  }): Promise<void> {
-    for (const grantMessage of grants) {
-      // use the delegateDid as the connectedDid of the grant as they do not yet support impersonation/delegation
-      const grant = await PermissionGrant.parse({ connectedDid: delegateDid, agent, message: grantMessage });
-      // store the grant as the owner of the DWN, this will allow the delegateDid to use the grant when impersonating the connectedDid
-      const { status } = await grant.store(true);
-      if (status.code !== 202) {
-        throw new Error(`AgentDwnApi: Failed to process connected grant: ${status.detail}`);
-      }
-    }
   }
 }

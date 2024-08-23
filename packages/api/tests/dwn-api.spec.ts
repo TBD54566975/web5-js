@@ -11,6 +11,7 @@ import emailProtocolDefinition from './fixtures/protocol-definitions/email.json'
 import photosProtocolDefinition from './fixtures/protocol-definitions/photos.json' assert { type: 'json' };
 import { DwnInterfaceName, DwnMethodName, PermissionsProtocol, Time } from '@tbd54566975/dwn-sdk-js';
 import { PermissionGrant } from '../src/permission-grant.js';
+import { Web5 } from '../src/web5.js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -46,6 +47,10 @@ describe('DwnApi', () => {
     // Instantiate DwnApi for both test identities.
     dwnAlice = new DwnApi({ agent: testHarness.agent, connectedDid: aliceDid.uri });
     dwnBob = new DwnApi({ agent: testHarness.agent, connectedDid: bobDid.uri });
+
+    // clear cached permissions between test runs
+    dwnAlice['cachedPermissionsApi'].clear();
+    dwnBob['cachedPermissionsApi'].clear();
   });
 
   after(async () => {
@@ -1385,7 +1390,7 @@ describe('DwnApi', () => {
       // simulate a connect where bobDid can impersonate aliceDid
       dwnBob['connectedDid'] = aliceDid.uri;
       dwnBob['delegateDid'] = bobDid.uri;
-      await DwnApi.processConnectedGrants({
+      await Web5.processConnectedGrants({
         agent       : testHarness.agent,
         delegateDid : bobDid.uri,
         grants      : [ deviceXGrant.rawMessage ]
@@ -1445,7 +1450,7 @@ describe('DwnApi', () => {
         });
         expect.fail('Should have thrown an error');
       } catch(error:any) {
-        expect(error.message).to.equal('AgentDwnApi: No permissions found for RecordsRead: http://example.com/protocol');
+        expect(error.message).to.equal('CachedPermissions: No permissions found for RecordsRead: http://example.com/protocol');
       }
       expect(fetchGrantsSpy.callCount).to.equal(1);
 
@@ -1459,7 +1464,7 @@ describe('DwnApi', () => {
         });
         expect.fail('Should have thrown an error');
       } catch(error:any) {
-        expect(error.message).to.equal('AgentDwnApi: No permissions found for RecordsRead: http://example.com/protocol');
+        expect(error.message).to.equal('CachedPermissions: No permissions found for RecordsRead: http://example.com/protocol');
       }
 
       expect(fetchGrantsSpy.callCount).to.equal(2); // should have been called again
