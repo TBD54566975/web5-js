@@ -4,6 +4,7 @@ import { CryptoUtils } from '@web5/crypto';
 import { type BearerDid, DidDht, DidJwk, PortableDid } from '@web5/dids';
 import { Convert } from '@web5/common';
 import {
+  DelegateGrant,
   Oidc,
   type Web5ConnectAuthRequest,
   type Web5ConnectAuthResponse,
@@ -11,7 +12,8 @@ import {
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { TestAgent } from './utils/test-agent.js';
 import { testDwnUrl } from './utils/test-config.js';
-import { BearerIdentity, DwnResponse, WalletConnect } from '../src/index.js';
+import { BearerIdentity, DwnProtocolDefinition, DwnProtocolPermissionScope, DwnResponse, WalletConnect } from '../src/index.js';
+import { type PermissionScope } from '@tbd54566975/dwn-sdk-js';
 
 describe('web5 connect', function () {
   this.timeout(20000);
@@ -75,7 +77,7 @@ describe('web5 connect', function () {
     ],
   };
 
-  let permissionGrants: DwnResponse<any>[] = [
+  let permissionGrants: any[] = [
     {
       reply   : { status: { code: 202, detail: 'Accepted' } },
       message : {
@@ -112,6 +114,45 @@ describe('web5 connect', function () {
         },
       },
       messageCid: 'bafyreievjytxn2qbfwg4fthnsrjnob3mm2j2haar6revl723v7q2up5g5i',
+    },
+  ];
+
+  const protocol: DwnProtocolDefinition = {
+    protocol  : 'http://profile-protocol.xyz',
+    published : true,
+    types     : {
+      profile: {
+        schema      : 'http://profile-protocol.xyz/schema/profile',
+        dataFormats : ['application/json'],
+      },
+    },
+    structure: {
+      profile: {
+        $actions: [
+          {
+            who : 'anyone',
+            can : ['create', 'update'],
+          },
+        ],
+      },
+    },
+  };
+
+  const protocolScopes: PermissionScope[] = [
+    {
+      interface : 'Records' as any,
+      method    : 'Write' as any,
+      protocol  : 'http://profile-protocol.xyz',
+    },
+    {
+      interface : 'Records' as any,
+      method    : 'Query' as any,
+      protocol  : 'http://profile-protocol.xyz',
+    },
+    {
+      interface : 'Records' as any,
+      method    : 'Read' as any,
+      protocol  : 'http://profile-protocol.xyz',
     },
   ];
 
@@ -267,7 +308,10 @@ describe('web5 connect', function () {
       const results = await Oidc.createPermissionGrants(
         providerIdentity.did.uri,
         delegateBearerDid,
-        testHarness.agent.dwn
+        testHarness.agent.dwn,
+        testHarness.agent.permissions,
+        protocolScopes,
+        protocol.protocol
       );
       expect(results).to.have.lengthOf(1);
       expect(results[0]).to.be.a('object');
@@ -280,7 +324,7 @@ describe('web5 connect', function () {
         aud            : authRequest.client_id,
         nonce          : authRequest.nonce,
         delegateGrants : permissionGrants,
-        delegateDid    : delegatePortableDid,
+        delegatePortableDid,
       };
       authResponse = await Oidc.createResponseObject(options);
 
@@ -336,7 +380,7 @@ describe('web5 connect', function () {
     });
 
     it('should send the encrypted jwe authresponse to the server', async () => {
-      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants);
+      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
       sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
       sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
 
@@ -367,7 +411,8 @@ describe('web5 connect', function () {
         selectedDid,
         authRequest,
         randomPin,
-        testHarness.agent.dwn
+        testHarness.agent.dwn,
+        testHarness.agent.permissions
       );
       expect(fetchSpy.calledOnce).to.be.true;
     });
@@ -461,7 +506,7 @@ describe('web5 connect', function () {
 
       expect(results).to.be.an('object');
       expect(results?.delegateGrants).to.be.an('array');
-      expect(results?.delegateDid).to.be.an('object');
+      expect(results?.delegatePortableDid).to.be.an('object');
     });
   });
 });

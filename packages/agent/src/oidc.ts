@@ -16,7 +16,8 @@ import { AgentDwnApi } from './dwn-api.js';
 import {
   DwnInterfaceName,
   DwnMethodName,
-  PermissionScope,
+  type PermissionScope,
+  type RecordsWriteMessage,
 } from '@tbd54566975/dwn-sdk-js';
 import { DwnInterface, DwnProtocolDefinition } from './types/dwn.js';
 import { AgentPermissionsApi } from './permissions-api.js';
@@ -162,9 +163,13 @@ export type SIOPv2AuthResponse = {
 
 /** An auth response that is compatible with both Web5 Connect and (hopefully, WIP) OIDC SIOPv2 */
 export type Web5ConnectAuthResponse = {
-  delegateGrants: any[];
-  delegateDid: PortableDid;
+  delegateGrants: DelegateGrant[];
+  delegatePortableDid: PortableDid;
 } & SIOPv2AuthResponse;
+
+export type DelegateGrant = (RecordsWriteMessage & {
+  encodedData: string;
+})
 
 /** Represents the different OIDC endpoint types.
  * 1. `pushedAuthorizationRequest`: client sends {@link PushedAuthRequest} receives {@link PushedAuthResponse}
@@ -308,7 +313,7 @@ async function encryptAuthRequest({
 async function createResponseObject(
   options: RequireOnly<
     Web5ConnectAuthResponse,
-    'iss' | 'sub' | 'aud' | 'delegateGrants' | 'delegateDid'
+    'iss' | 'sub' | 'aud' | 'delegateGrants' | 'delegatePortableDid'
   >
 ) {
   const currentTimeInSeconds = Math.floor(Date.now() / 1000);
@@ -478,12 +483,12 @@ async function decryptAuthResponse(
 
   // get the delegatedid public key from the header
   const header = Convert.base64Url(protectedHeaderB64U).toObject() as Jwk;
-  const delegateDid = await DidJwk.resolve(header.kid!.split('#')[0]);
+  const delegateResolvedDid = await DidJwk.resolve(header.kid!.split('#')[0]);
 
   // derive ECDH shared key using the provider's public key and our clientDid private key
   const sharedKey = await Oidc.deriveSharedKey(
     clientDid,
-    delegateDid.didDocument!
+    delegateResolvedDid.didDocument!
   );
 
   // add the pin to the AAD
@@ -610,7 +615,7 @@ function encryptAuthResponse({
  */
 async function createPermissionGrants(
   selectedDid: string,
-  delegateDid: BearerDid,
+  delegateBearerDid: BearerDid,
   dwn: AgentDwnApi,
   permissionsApi: AgentPermissionsApi,
   scopes: PermissionScope[],
@@ -619,7 +624,7 @@ async function createPermissionGrants(
   const permissionGrants = await Promise.all(
     scopes.map((scope) =>
       permissionsApi.createGrant({
-        grantedTo   : delegateDid.uri,
+        grantedTo   : delegateBearerDid.uri,
         scope,
         dateExpires : '2040-06-25T16:09:16.693356Z',
         author      : selectedDid,
@@ -630,7 +635,7 @@ async function createPermissionGrants(
   // Grant Messages Query and Messages Read for sync to work
   permissionGrants.push(
     await permissionsApi.createGrant({
-      grantedTo : delegateDid.uri,
+      grantedTo : delegateBearerDid.uri,
       scope     : {
         interface : DwnInterfaceName.Messages,
         method    : DwnMethodName.Query,
@@ -642,7 +647,7 @@ async function createPermissionGrants(
   );
   permissionGrants.push(
     await permissionsApi.createGrant({
-      grantedTo : delegateDid.uri,
+      grantedTo : delegateBearerDid.uri,
       scope     : {
         interface : DwnInterfaceName.Messages,
         method    : DwnMethodName.Read,
@@ -738,8 +743,8 @@ async function submitAuthResponse(
   agentDwnApi: AgentDwnApi,
   agentPermissionsApi: AgentPermissionsApi
 ) {
-  const delegateDid = await DidJwk.create();
-  const delegateDidPortable = await delegateDid.export();
+  const delegateBearerDid = await DidJwk.create();
+  const delegatePortableDid = await delegateBearerDid.export();
 
   const delegateGrantPromises = authRequest.permissionRequests.map(async (permissionRequest) => {
     await prepareProtocols(selectedDid, agentDwnApi, permissionRequest.protocolDefinition);
@@ -747,7 +752,7 @@ async function submitAuthResponse(
     // TODO: validate to make sure the scopes and definition are assigned to the same protocol
     const permissionGrants = await Oidc.createPermissionGrants(
       selectedDid,
-      delegateDid,
+      delegateBearerDid,
       agentDwnApi,
       agentPermissionsApi,
       permissionRequest.permissionScopes,
@@ -761,33 +766,33 @@ async function submitAuthResponse(
 
   const responseObject = await Oidc.createResponseObject({
     //* the IDP's did that was selected to be connected
-    iss         : selectedDid,
+    iss   : selectedDid,
     //* the client's new identity
-    sub         : delegateDid.uri,
+    sub   : delegateBearerDid.uri,
     //* the client's temporary ephemeral did used for connect
-    aud         : authRequest.client_id,
+    aud   : authRequest.client_id,
     //* the nonce of the original auth request
-    nonce       : authRequest.nonce,
+    nonce : authRequest.nonce,
     delegateGrants,
-    delegateDid : delegateDidPortable,
+    delegatePortableDid,
   });
 
   // Sign the Response Object using the ephemeral DID's signing key.
   const responseObjectJwt = await Oidc.signJwt({
-    did  : delegateDid,
+    did  : delegateBearerDid,
     data : responseObject,
   });
   const clientDid = await DidJwk.resolve(authRequest.client_id);
 
   const sharedKey = await Oidc.deriveSharedKey(
-    delegateDid,
+    delegateBearerDid,
     clientDid?.didDocument!
   );
 
   const encryptedResponse = Oidc.encryptAuthResponse({
     jwt              : responseObjectJwt!,
     encryptionKey    : sharedKey,
-    delegateDidKeyId : delegateDid.document.verificationMethod![0].id,
+    delegateDidKeyId : delegateBearerDid.document.verificationMethod![0].id,
     randomPin,
   });
 

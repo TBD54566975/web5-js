@@ -228,7 +228,7 @@ export class Web5 {
     walletConnectOptions,
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
     let delegateDid: string | undefined;
-    let returnedGrants: any;
+    let delegateGrants: any;
     if (agent === undefined) {
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
       const userAgent = await Web5UserAgent.create({ agentVault });
@@ -262,26 +262,26 @@ export class Web5 {
       } else if (walletConnectOptions) {
         // No connected identity found and connectOptions are provided, attempt to import a delegated DID from an external wallet
         try {
-          // TEMPORARY: Placeholder for WalletConnect integration
-          const { connectedDid, delegateDid, delegateGrants } = await WalletConnect.initClient(walletConnectOptions);
-          returnedGrants = delegateGrants;
+          const walletConnectResults = await WalletConnect.initClient(walletConnectOptions);
+          const delegatePortableDid = walletConnectResults.delegatePortableDid;
+          delegateGrants = walletConnectResults.delegateGrants;
 
           // Import the delegated DID as an Identity in the User Agent.
           // Setting the connectedDID in the metadata applies a relationship between the signer identity and the one it is impersonating.
           identity = await userAgent.identity.import({ portableIdentity: {
-            portableDid : delegateDid,
+            portableDid : delegatePortableDid,
             metadata    : {
               connectedDid,
               name   : 'Default',
-              tenant : delegateDid.uri,
-              uri    : delegateDid.uri,
+              tenant : delegatePortableDid.uri,
+              uri    : delegatePortableDid.uri,
             }
           }});
           await userAgent.identity.manage({ portableIdentity: await identity.export() });
 
           // Attempts to process the connected grants to be used by the delegateDID
           // If the process fails, we want to clean up the identity
-          await DwnApi.processConnectedGrants({ agent, delegateDid: delegateDid.uri, grants: delegateGrants });
+          await DwnApi.processConnectedGrants({ agent, delegateDid: delegatePortableDid.uri, grants: delegateGrants });
         } catch (error:any) {
           // clean up the DID and Identity if import fails and throw
           // TODO: Implement the ability to purge all of our messages as a tenant
@@ -387,7 +387,7 @@ export class Web5 {
 
     const web5 = new Web5({ agent, connectedDid, delegateDid });
 
-    return { web5, did: connectedDid, delegateDid, recoveryPhrase, delegateGrants: returnedGrants };
+    return { web5, did: connectedDid, delegateDid, recoveryPhrase, delegateGrants };
   }
 
   /**

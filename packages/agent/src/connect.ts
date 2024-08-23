@@ -118,9 +118,9 @@ async function initClient({
     })) as Web5ConnectAuthResponse;
 
     return {
-      delegateGrants : verifiedAuthResponse.delegateGrants,
-      delegateDid    : verifiedAuthResponse.delegateDid,
-      connectedDid   : verifiedAuthResponse.iss,
+      delegateGrants      : verifiedAuthResponse.delegateGrants,
+      delegatePortableDid : verifiedAuthResponse.delegatePortableDid,
+      connectedDid        : verifiedAuthResponse.iss,
     };
   }
 }
