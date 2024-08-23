@@ -265,8 +265,6 @@ export class Web5 {
           // TEMPORARY: Placeholder for WalletConnect integration
           const { connectedDid, delegateDid, delegateGrants } = await WalletConnect.initClient(walletConnectOptions);
           returnedGrants = delegateGrants;
-          console.log('DELEGATEGRANTS ARE: ');
-          console.log(delegateGrants);
 
           // Import the delegated DID as an Identity in the User Agent.
           // Setting the connectedDID in the metadata applies a relationship between the signer identity and the one it is impersonating.
