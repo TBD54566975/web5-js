@@ -192,28 +192,8 @@ describe('web5 connect', function () {
     clientEphemeralBearerDid = await DidJwk.create();
     clientEphemeralPortableDid = await clientEphemeralBearerDid.export();
 
-    // sinon.stub(DidDht, 'resolve').resolves({
-    //   didDocument           : clientEphemeralPortableDid!.document,
-    //   didDocumentMetadata   : clientEphemeralPortableDid!.metadata,
-    //   didResolutionMetadata : clientEphemeralPortableDid!.metadata,
-    // });
-    // clientEphemeralBearerDid = await DidDht.import({
-    //   portableDid: clientEphemeralPortableDid,
-    // });
-    // sinon.restore();
-
     delegateBearerDid = await DidJwk.create();
     delegatePortableDid = await delegateBearerDid.export();
-
-    // sinon.stub(DidDht, 'resolve').resolves({
-    //   didDocument           : delegatePortableDid!.document,
-    //   didDocumentMetadata   : delegatePortableDid!.metadata,
-    //   didResolutionMetadata : delegatePortableDid!.metadata,
-    // });
-    // delegateBearerDid = await DidDht.import({
-    //   portableDid: delegatePortableDid,
-    // });
-    // sinon.restore();
   });
 
   after(async () => {

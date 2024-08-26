@@ -671,7 +671,6 @@ async function createPermissionGrants(
       rawMessage,
     };
 
-    // TODO: remove mock after adding functionality: https://github.com/TBD54566975/web5-js/issues/827
     const message = await dwn.processRequest(params);
     const sent = await dwn.sendRequest(params);
 
