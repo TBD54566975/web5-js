@@ -1,13 +1,15 @@
-import { CryptoUtils } from '@web5/crypto';
-import { DwnPermissionScope, DwnProtocolDefinition, DwnRecordsPermissionScope } from './index.js';
+
+import type { PushedAuthResponse } from './oidc.js';
+import type { DwnPermissionScope, DwnProtocolDefinition, Web5ConnectAuthResponse } from './index.js';
+
 import {
-  Web5ConnectAuthResponse,
   Oidc,
-  type PushedAuthResponse,
 } from './oidc.js';
 import { pollWithTtl } from './utils.js';
-import { DidJwk } from '@web5/dids';
+
 import { Convert } from '@web5/common';
+import { CryptoUtils } from '@web5/crypto';
+import { DidJwk } from '@web5/dids';
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 
 /**
@@ -183,9 +185,9 @@ export type ConnectPermissionRequest = {
   permissionScopes: DwnPermissionScope[];
 };
 
-export type PermissionRequest = 'write' | 'read' | 'delete' | 'query' | 'subscribe';
+export type Permission = 'write' | 'read' | 'delete' | 'query' | 'subscribe';
 
-function requestPermissionsForProtocol(definition: DwnProtocolDefinition, permissions: PermissionRequest[]): ConnectPermissionRequest {
+function requestPermissionsForProtocol(definition: DwnProtocolDefinition, permissions: Permission[]): ConnectPermissionRequest {
   const requests: DwnPermissionScope[] = [];
 
   // In order to enable sync, we must request permissions for `MessagesQuery`, `MessagesRead` and `MessagesSubscribe`

@@ -288,7 +288,7 @@ describe('web5 connect', function () {
       const results = await Oidc.createPermissionGrants(
         providerIdentity.did.uri,
         delegateBearerDid,
-        testHarness.agent.dwn,
+        testHarness.agent,
         permissionScopes
       );
       const scopesRequestedPlusTwoDefaultScopes = permissionScopes.length;
@@ -390,7 +390,7 @@ describe('web5 connect', function () {
         selectedDid,
         authRequest,
         randomPin,
-        testHarness.agent.dwn
+        testHarness.agent
       );
       expect(fetchSpy.calledOnce).to.be.true;
     });

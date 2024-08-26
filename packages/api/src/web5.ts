@@ -6,11 +6,14 @@
 
 import type {
   BearerIdentity,
+  ConnectPermissionRequest,
   DelegateGrant,
   DwnDataEncodedRecordsWriteMessage,
   DwnMessagesPermissionScope,
+  DwnProtocolDefinition,
   DwnRecordsPermissionScope,
   HdIdentityVault,
+  Permission,
   WalletConnectOptions,
   Web5Agent,
 } from '@web5/agent';
@@ -479,5 +482,15 @@ export class Web5 {
     // currently we return a de-duped set of protocols represented by these grants, this is used to register protocols for sync
     // we expect that any connected protocols will include MessagesQuery and MessagesRead grants that will allow it to sync
     return [...connectedProtocols];
+  }
+
+  /**
+   * Creates a connect permissions request for specific protocols.
+   * If no permissions are explicitly provided, the default is all permissions ('read', 'write', 'delete', 'query', 'subscribe').
+   */
+  static requestPermissions(requests: { definition: DwnProtocolDefinition, permissions?: Permission[] }[]): ConnectPermissionRequest[] {
+    return requests.map(({ definition, permissions }) => WalletConnect.requestPermissionsForProtocol(definition, permissions ?? [
+      'read', 'write', 'delete', 'query', 'subscribe'
+    ]));
   }
 }
