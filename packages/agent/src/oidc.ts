@@ -13,11 +13,9 @@ import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 import type { ConnectPermissionRequest } from './connect.js';
 import { DidDocument, DidJwk, PortableDid, type BearerDid } from '@web5/dids';
 import { AgentDwnApi } from './dwn-api.js';
-import {
-  DwnInterfaceName,
-  DwnMethodName,
-  type PermissionScope,
-  type RecordsWriteMessage,
+import type {
+  PermissionScope,
+  RecordsWriteMessage,
 } from '@tbd54566975/dwn-sdk-js';
 import { DwnInterface, DwnProtocolDefinition } from './types/dwn.js';
 import { AgentPermissionsApi } from './permissions-api.js';
@@ -617,13 +615,16 @@ async function createPermissionGrants(
   selectedDid: string,
   delegateBearerDid: BearerDid,
   dwn: AgentDwnApi,
-  permissionsApi: AgentPermissionsApi,
   scopes: PermissionScope[],
-  protocolUri: string
 ) {
+
+  const permissionsApi = new AgentPermissionsApi(dwn);
+
+  // TODO: cleanup all grants if one fails by deleting them from the DWN: https://github.com/TBD54566975/web5-js/issues/849
   const permissionGrants = await Promise.all(
     scopes.map((scope) =>
       permissionsApi.createGrant({
+        store       : true,
         grantedTo   : delegateBearerDid.uri,
         scope,
         dateExpires : '2040-06-25T16:09:16.693356Z',
@@ -632,34 +633,8 @@ async function createPermissionGrants(
     )
   );
 
-  // Grant Messages Query and Messages Read for sync to work
-  permissionGrants.push(
-    await permissionsApi.createGrant({
-      grantedTo : delegateBearerDid.uri,
-      scope     : {
-        interface : DwnInterfaceName.Messages,
-        method    : DwnMethodName.Query,
-        protocol  : protocolUri,
-      },
-      dateExpires : '2040-06-25T16:09:16.693356Z',
-      author      : selectedDid,
-    })
-  );
-  permissionGrants.push(
-    await permissionsApi.createGrant({
-      grantedTo : delegateBearerDid.uri,
-      scope     : {
-        interface : DwnInterfaceName.Messages,
-        method    : DwnMethodName.Read,
-        protocol  : protocolUri,
-      },
-      dateExpires : '2040-06-25T16:09:16.693356Z',
-      author      : selectedDid,
-    })
-  );
-
   const messagePromises = permissionGrants.map(async (grant) => {
-    // Quirk: we have to pull out encodedData out of the message the schema validator doesnt want it there
+    // Quirk: we have to pull out encodedData out of the message the schema validator doesn't want it there
     const { encodedData, ...rawMessage } = grant.message;
 
     const data = Convert.base64Url(encodedData).toUint8Array();
@@ -671,18 +646,11 @@ async function createPermissionGrants(
       rawMessage,
     };
 
-    const message = await dwn.processRequest(params);
     const sent = await dwn.sendRequest(params);
 
-    // TODO: cleanup all grants if one fails by deleting them from the DWN: https://github.com/TBD54566975/web5-js/issues/849
-    if (message.reply.status.code !== 202) {
-      throw new Error(
-        `Could not process the message. Error details: ${message.reply.status.detail}`
-      );
-    }
     if (sent.reply.status.code !== 202) {
       throw new Error(
-        `Could not send the message. Error details: ${message.reply.status.detail}`
+        `Could not send the message. Error details: ${sent.reply.status.detail}`
       );
     }
 
@@ -740,23 +708,16 @@ async function submitAuthResponse(
   authRequest: Web5ConnectAuthRequest,
   randomPin: string,
   agentDwnApi: AgentDwnApi,
-  agentPermissionsApi: AgentPermissionsApi
 ) {
   const delegateBearerDid = await DidJwk.create();
   const delegatePortableDid = await delegateBearerDid.export();
 
   const delegateGrantPromises = authRequest.permissionRequests.map(async (permissionRequest) => {
-    await prepareProtocols(selectedDid, agentDwnApi, permissionRequest.protocolDefinition);
-
     // TODO: validate to make sure the scopes and definition are assigned to the same protocol
-    const permissionGrants = await Oidc.createPermissionGrants(
-      selectedDid,
-      delegateBearerDid,
-      agentDwnApi,
-      agentPermissionsApi,
-      permissionRequest.permissionScopes,
-      permissionRequest.protocolDefinition.protocol
-    );
+    const { protocolDefinition, permissionScopes } = permissionRequest;
+
+    await prepareProtocols(selectedDid, agentDwnApi, protocolDefinition);
+    const permissionGrants = await Oidc.createPermissionGrants(selectedDid, delegateBearerDid, agentDwnApi, permissionScopes);
 
     return permissionGrants;
   });

@@ -289,11 +289,9 @@ describe('web5 connect', function () {
         providerIdentity.did.uri,
         delegateBearerDid,
         testHarness.agent.dwn,
-        testHarness.agent.permissions,
-        permissionScopes,
-        protocolDefinition.protocol
+        permissionScopes
       );
-      const scopesRequestedPlusTwoDefaultScopes = permissionScopes.length + 2;
+      const scopesRequestedPlusTwoDefaultScopes = permissionScopes.length;
       expect(results).to.have.lengthOf(scopesRequestedPlusTwoDefaultScopes);
       expect(results[0]).to.be.a('object');
     });
@@ -392,8 +390,7 @@ describe('web5 connect', function () {
         selectedDid,
         authRequest,
         randomPin,
-        testHarness.agent.dwn,
-        testHarness.agent.permissions
+        testHarness.agent.dwn
       );
       expect(fetchSpy.calledOnce).to.be.true;
     });
