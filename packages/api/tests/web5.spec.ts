@@ -16,50 +16,291 @@ import { Web5 } from '../src/web5.js';
 import { DwnInterfaceName, DwnMethodName, Jws, Time } from '@tbd54566975/dwn-sdk-js';
 import { testDwnUrl } from './utils/test-config.js';
 import { DidJwk } from '@web5/dids';
-import { DwnApi } from '../src/dwn-api.js';
+import { Convert } from '@web5/common';
 
-describe('web5 api', function() {
-  describe('using Test Harness', function() {
+describe('web5 api', () => {
+  let consoleWarn;
+
+  before(() => {
+    // Suppress console.warn output due to default password warnings
+    consoleWarn = console.warn;
+    console.warn = () => {};
+  });
+
+  after(() => {
+    // Restore console.warn output
+    console.warn = consoleWarn;
+  });
+
+  describe('using Test Harness', () => {
     let testHarness: PlatformAgentTestHarness;
 
-    before(async function() {
+    before(async () => {
       testHarness = await PlatformAgentTestHarness.setup({
         agentClass  : Web5UserAgent,
         agentStores : 'memory',
       });
     });
 
-    beforeEach(async function() {
+    beforeEach(async () => {
       sinon.restore();
       await testHarness.clearStorage();
       await testHarness.createAgentDid();
     });
 
-    after(async function() {
+    after(async () => {
       sinon.restore();
       await testHarness.clearStorage();
       await testHarness.closeStorage();
     });
 
-    describe('connect()', function() {
-      it('accepts an externally created DID with an external agent', async function() {
-        const testIdentity = await testHarness.createIdentity({
-          name        : 'Test',
-          testDwnUrls : ['https://dwn.example.com']
+    describe('constructor', () => {
+      it('instantiates Web5 API with provided Web5Agent and connectedDid', async () => {
+        // Create a new Identity.
+        const socialIdentity = await testHarness.agent.identity.create({
+          metadata  : { name: 'Social' },
+          didMethod : 'jwk',
         });
 
-        // Call connect() with the custom agent.
-        const { web5, did } = await Web5.connect({
+        // Instantiates Web5 instance with test agent and new Identity's DID.
+        const web5 = new Web5({
           agent        : testHarness.agent,
-          connectedDid : testIdentity.did.uri
+          connectedDid : socialIdentity.did.uri,
         });
-
-        expect(did).to.exist;
         expect(web5).to.exist;
-        expect(did).to.equal(testIdentity.did.uri);
+        expect(web5).to.have.property('did');
+        expect(web5).to.have.property('dwn');
+        expect(web5).to.have.property('vc');
       });
 
-      it('uses walletConnectOptions to connect to a DID and import the grants', async function() {
+      it('supports a single agent with multiple Web5 instances and different DIDs', async () => {
+        // Create two identities, each of which is stored in a new tenant.
+        const careerIdentity = await testHarness.agent.identity.create({
+          metadata  : { name: 'Social' },
+          didMethod : 'jwk',
+        });
+        const socialIdentity = await testHarness.agent.identity.create({
+          metadata  : { name: 'Social' },
+          didMethod : 'jwk',
+        });
+
+        // Instantiate a Web5 instance with the "Career" Identity, write a record, and verify the result.
+        const web5Career = new Web5({
+          agent        : testHarness.agent,
+          connectedDid : careerIdentity.did.uri,
+        });
+        expect(web5Career).to.exist;
+
+        // Instantiate a Web5 instance with the "Social" Identity, write a record, and verify the result.
+        const web5Social = new Web5({
+          agent        : testHarness.agent,
+          connectedDid : socialIdentity.did.uri,
+        });
+        expect(web5Social).to.exist;
+      });
+    });
+
+    describe('scenarios', () => {
+      it('writes records with multiple identities under management', async () => {
+        // First launch and initialization.
+        await testHarness.agent.initialize({ password: 'test' });
+
+        // Start the Agent, which will decrypt and load the Agent's DID from the vault.
+        await testHarness.agent.start({ password: 'test' });
+
+        // Create two identities, each of which is stored in a new tenant.
+        const careerIdentity = await testHarness.agent.identity.create({
+          metadata  : { name: 'Social' },
+          didMethod : 'jwk',
+        });
+        const socialIdentity = await testHarness.agent.identity.create({
+          metadata  : { name: 'Social' },
+          didMethod : 'jwk',
+        });
+
+        // Instantiate a Web5 instance with the "Career" Identity, write a record, and verify the result.
+        const web5Career = new Web5({
+          agent        : testHarness.agent,
+          connectedDid : careerIdentity.did.uri,
+        });
+        const careerResult = await web5Career.dwn.records.write({
+          data    : 'Hello, world!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain',
+          },
+        });
+        expect(careerResult.status.code).to.equal(202);
+        expect(careerResult.record).to.exist;
+        expect(careerResult.record?.author).to.equal(careerIdentity.did.uri);
+        expect(await careerResult.record?.data.text()).to.equal(
+          'Hello, world!'
+        );
+
+        // Instantiate a Web5 instance with the "Social" Identity, write a record, and verify the result.
+        const web5Social = new Web5({
+          agent        : testHarness.agent,
+          connectedDid : socialIdentity.did.uri,
+        });
+        const socialResult = await web5Social.dwn.records.write({
+          data    : 'Hello, everyone!',
+          message : {
+            schema     : 'foo/bar',
+            dataFormat : 'text/plain',
+          },
+        });
+        expect(socialResult.status.code).to.equal(202);
+        expect(socialResult.record).to.exist;
+        expect(socialResult.record?.author).to.equal(socialIdentity.did.uri);
+        expect(await socialResult.record?.data.text()).to.equal(
+          'Hello, everyone!'
+        );
+      });
+    });
+  });
+
+  describe('connect()', () => {
+    let testHarness: PlatformAgentTestHarness;
+
+    before(async () => {
+      testHarness = await PlatformAgentTestHarness.setup({
+        agentClass  : Web5UserAgent,
+        agentStores : 'memory',
+      });
+    });
+
+    beforeEach(async () => {
+      sinon.restore();
+      testHarness.agent.sync.stopSync();
+      await testHarness.clearStorage();
+      await testHarness.createAgentDid();
+    });
+
+    after(async () => {
+      sinon.restore();
+      await testHarness.clearStorage();
+      await testHarness.closeStorage();
+    });
+
+    it('uses Web5UserAgent, by default', async () => {
+      // stub the create method of the Web5UserAgent to use the test harness agent
+      // this avoids DB locks when the agent is created twice
+      sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+
+      const { web5, recoveryPhrase, did } = await Web5.connect();
+      expect(web5).to.exist;
+      expect(web5.agent).to.be.instanceOf(Web5UserAgent);
+      // Verify recovery phrase is a 12-word string.
+      expect(recoveryPhrase).to.be.a('string');
+      expect(recoveryPhrase.split(' ')).to.have.lengthOf(12);
+
+      // if called again, the same DID is returned, and the recovery phrase is not regenerated
+      const { recoveryPhrase: recoveryPhraseConnect2, did: didConnect2 } = await Web5.connect();
+      expect(recoveryPhraseConnect2).to.be.undefined;
+      expect(didConnect2).to.equal(did);
+    });
+
+    it('accepts an externally created DID', async () => {
+      const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
+
+      const testIdentity = await testHarness.createIdentity({
+        name        : 'Test',
+        testDwnUrls : ['https://dwn.example.com'],
+      });
+
+      // Call connect() with the custom agent.
+      const { web5, did } = await Web5.connect({
+        agent        : testHarness.agent,
+        connectedDid : testIdentity.did.uri,
+      });
+
+      expect(did).to.exist;
+      expect(web5).to.exist;
+      expect(walletConnectSpy.called).to.be.false;
+    });
+
+    it('creates an identity using the provided techPreview dwnEndpoints', async () => {
+      sinon
+        .stub(Web5UserAgent, 'create')
+        .resolves(testHarness.agent as Web5UserAgent);
+      const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
+      const identityApiSpy = sinon.spy(AgentIdentityApi.prototype, 'create');
+      const { web5, did } = await Web5.connect({
+        techPreview: { dwnEndpoints: ['https://dwn.example.com/preview'] },
+      });
+      expect(web5).to.exist;
+      expect(did).to.exist;
+
+      expect(identityApiSpy.calledOnce, 'identityApiSpy called').to.be.true;
+      const serviceEndpoints = (
+        identityApiSpy.firstCall.args[0].didOptions as any
+      ).services[0].serviceEndpoint;
+      expect(serviceEndpoints).to.deep.equal([
+        'https://dwn.example.com/preview',
+      ]);
+      expect(walletConnectSpy.called).to.be.false;
+    });
+
+    it('creates an identity using the provided didCreateOptions dwnEndpoints', async () => {
+      sinon
+        .stub(Web5UserAgent, 'create')
+        .resolves(testHarness.agent as Web5UserAgent);
+      const identityApiSpy = sinon.spy(AgentIdentityApi.prototype, 'create');
+      const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
+      const { web5, did } = await Web5.connect({
+        didCreateOptions: { dwnEndpoints: ['https://dwn.example.com'] },
+      });
+      expect(web5).to.exist;
+      expect(did).to.exist;
+
+      expect(identityApiSpy.calledOnce, 'identityApiSpy called').to.be.true;
+      const serviceEndpoints = (
+        identityApiSpy.firstCall.args[0].didOptions as any
+      ).services[0].serviceEndpoint;
+      expect(serviceEndpoints).to.deep.equal(['https://dwn.example.com']);
+      expect(walletConnectSpy.called).to.be.false;
+    });
+
+    it('defaults to the first identity if multiple identities exist', async () => {
+      // scenario: For some reason more than one identity exists when attempting to re-connect to `Web5`
+      // the first identity in the array should be the one selected
+      // TODO: this has happened due to a race condition somewhere. Dig into this issue and implement a better way to select/manage DIDs when using `Web5.connect()`
+
+      // create an identity by connecting
+      sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+      const { web5, did } = await Web5.connect({ techPreview: { dwnEndpoints: [ testDwnUrl ] }});
+      expect(web5).to.exist;
+      expect(did).to.exist;
+
+      // create a second identity
+      await testHarness.agent.identity.create({
+        didMethod : 'jwk',
+        metadata  : { name: 'Second' }
+      });
+
+      // connect again
+      const { did: did2 } = await Web5.connect();
+      expect(did2).to.equal(did);
+    });
+
+    it('defaults to `https://dwn.tbddev.org/beta` as the single DWN Service endpoint if non is provided', async () => {
+      sinon
+        .stub(Web5UserAgent, 'create')
+        .resolves(testHarness.agent as Web5UserAgent);
+      const identityApiSpy = sinon.spy(AgentIdentityApi.prototype, 'create');
+      const { web5, did } = await Web5.connect();
+      expect(web5).to.exist;
+      expect(did).to.exist;
+
+      expect(identityApiSpy.calledOnce, 'identityApiSpy called').to.be.true;
+      const serviceEndpoints = (
+        identityApiSpy.firstCall.args[0].didOptions as any
+      ).services[0].serviceEndpoint;
+      expect(serviceEndpoints).to.deep.equal(['https://dwn.tbddev.org/beta']);
+    });
+
+    describe('walletConnectOptions', () => {
+      it('uses walletConnectOptions to connect to a DID and import the grants', async () => {
         // Create a new Identity.
         const alice = await testHarness.createIdentity({
           name        : 'Alice',
@@ -90,6 +331,16 @@ describe('web5 api', function() {
           },
         });
         expect(protocolConfigReply.status.code).to.equal(202);
+
+        // send the protocol to alice's remote DWN
+        const { reply: protocolSendReply } = await testHarness.agent.dwn.sendRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.ProtocolsConfigure,
+          rawMessage  : protocolConfigureMessage,
+        });
+        expect(protocolSendReply.status.code).to.equal(202);
+
         // create an identity for the app to use
         const app = await testHarness.agent.did.create({
           store  : false,
@@ -109,6 +360,16 @@ describe('web5 api', function() {
           }
         });
 
+        const { encodedData: writeGrantEncodedData, ...writeGrantMessage } = writeGrant.message;
+        const writeGrantSend = await testHarness.agent.sendDwnRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : writeGrantMessage,
+          dataStream  : new Blob([ Convert.base64Url(writeGrantEncodedData).toUint8Array() ])
+        });
+        expect(writeGrantSend.reply.status.code).to.equal(202);
+
         const readGrant = await testHarness.agent.permissions.createGrant({
           delegated   : true,
           author      : alice.did.uri,
@@ -121,11 +382,64 @@ describe('web5 api', function() {
           }
         });
 
-        // stub the walletInit method of the Connect placeholder class
+        const { encodedData: readGrantEncodedData, ...readGrantMessage } = readGrant.message;
+        const readGrantSend = await testHarness.agent.sendDwnRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : readGrantMessage,
+          dataStream  : new Blob([ Convert.base64Url(readGrantEncodedData).toUint8Array() ])
+        });
+        expect(readGrantSend.reply.status.code).to.equal(202);
+
+        // create MessagesQuery and MessagesRead grants so that sync does not fail
+        const messagesQueryGrant = await testHarness.agent.permissions.createGrant({
+          store       : true,
+          author      : alice.did.uri,
+          grantedTo   : app.uri,
+          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+          scope       : {
+            interface : DwnInterfaceName.Messages,
+            method    : DwnMethodName.Query,
+          }
+        });
+
+        const { encodedData: messagesQueryGrantEncodedData, ...messagesQueryGrantMessage} = messagesQueryGrant.message;
+        const messagesQueryGrantSend = await testHarness.agent.sendDwnRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : messagesQueryGrantMessage,
+          dataStream  : new Blob([ Convert.base64Url(messagesQueryGrantEncodedData).toUint8Array() ])
+        });
+        expect(messagesQueryGrantSend.reply.status.code).to.equal(202);
+
+        const messagesReadGrant = await testHarness.agent.permissions.createGrant({
+          store       : true,
+          author      : alice.did.uri,
+          grantedTo   : app.uri,
+          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+          scope       : {
+            interface : DwnInterfaceName.Messages,
+            method    : DwnMethodName.Read,
+          }
+        });
+
+        const { encodedData: messagesReadEncodedData, ...messagesReadGrantMessage  } = messagesReadGrant.message;
+        const messagesReadGrantSend = await testHarness.agent.sendDwnRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : messagesReadGrantMessage,
+          dataStream  : new Blob([ Convert.base64Url(messagesReadEncodedData).toUint8Array() ])
+        });
+        expect(messagesReadGrantSend.reply.status.code).to.equal(202);
+
+        // stub the walletInit method
         sinon.stub(WalletConnect, 'initClient').resolves({
-          delegateGrants      : [ writeGrant.message, readGrant.message ],
-          delegatePortableDid : await app.export(),
-          connectedDid        : alice.did.uri
+          delegateGrants : [ writeGrant.message, readGrant.message, messagesQueryGrant.message, messagesReadGrant.message ],
+          delegateDid    : await app.export(),
+          connectedDid   : alice.did.uri
         });
 
         const appTestHarness = await PlatformAgentTestHarness.setup({
@@ -154,15 +468,6 @@ describe('web5 api', function() {
         expect(delegateDid).to.exist;
         expect(did).to.equal(alice.did.uri);
         expect(delegateDid).to.equal(app.uri);
-
-        // in lieu of sync, we will process the grants and protocol definition on the local connected agent
-        const { reply: localProtocolReply } = await web5.agent.processDwnRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.ProtocolsConfigure,
-          rawMessage  : protocolConfigureMessage,
-        });
-        expect(localProtocolReply.status.code).to.equal(202);
 
         // use the grant to write a record
         const writeResult = await web5.dwn.records.write({
@@ -203,7 +508,7 @@ describe('web5 api', function() {
 
           expect.fail('Should have thrown an error');
         } catch(error:any) {
-          expect(error.message).to.include('AgentDwnApi: No permissions found for RecordsQuery');
+          expect(error.message).to.include('CachedPermissions: No permissions found for RecordsQuery');
         }
 
         try {
@@ -216,14 +521,14 @@ describe('web5 api', function() {
 
           expect.fail('Should have thrown an error');
         } catch(error:any) {
-          expect(error.message).to.include('AgentDwnApi: No permissions found for RecordsDelete');
+          expect(error.message).to.include('CachedPermissions: No permissions found for RecordsDelete');
         }
 
         // grant query and delete permissions
         const queryGrant = await testHarness.agent.permissions.createGrant({
-          author      : alice.did.uri,
           delegated   : true,
-          grantedTo   : app.uri,
+          author      : alice.did.uri,
+          grantedTo   : delegateDid,
           dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
           scope       : {
             interface : DwnInterfaceName.Records,
@@ -233,9 +538,9 @@ describe('web5 api', function() {
         });
 
         const deleteGrant = await testHarness.agent.permissions.createGrant({
-          author      : alice.did.uri,
           delegated   : true,
-          grantedTo   : app.uri,
+          author      : alice.did.uri,
+          grantedTo   : delegateDid,
           dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
           scope       : {
             interface : DwnInterfaceName.Records,
@@ -246,10 +551,10 @@ describe('web5 api', function() {
 
         // write the grants to app as owner
         // this also clears the grants cache
-        await DwnApi.processConnectedGrants({
-          grants      : [ queryGrant.message, deleteGrant.message ],
-          agent       : appTestHarness.agent,
-          delegateDid : app.uri,
+        await Web5.processConnectedGrants({
+          grants : [ queryGrant.message, deleteGrant.message ],
+          agent  : appTestHarness.agent,
+          delegateDid,
         });
 
         // attempt to delete using the grant
@@ -281,7 +586,7 @@ describe('web5 api', function() {
         await appTestHarness.closeStorage();
       });
 
-      it('cleans up imported Identity from walletConnectOptions flow if grants cannot be processed', async function() {
+      it('cleans up imported Identity from walletConnectOptions flow if grants cannot be processed', async () => {
         const alice = await testHarness.createIdentity({
           name        : 'Alice',
           testDwnUrls : [testDwnUrl]
@@ -344,9 +649,9 @@ describe('web5 api', function() {
 
         // stub the walletInit method of the Connect placeholder class
         sinon.stub(WalletConnect, 'initClient').resolves({
-          delegateGrants      : [ writeGrant.message, readGrant.message ],
-          delegatePortableDid : await app.export(),
-          connectedDid        : alice.did.uri
+          delegateGrants : [ writeGrant.message, readGrant.message ],
+          delegateDid    : await app.export(),
+          connectedDid   : alice.did.uri
         });
 
         const appTestHarness = await PlatformAgentTestHarness.setup({
@@ -367,13 +672,16 @@ describe('web5 api', function() {
         // stub the create method of the Web5UserAgent to use the test harness agent
         sinon.stub(Web5UserAgent, 'create').resolves(appTestHarness.agent as Web5UserAgent);
 
+        // stub console.error so that it doesn't log in the test output and use it as a spy confirming the error messages were logged
+        const consoleSpy = sinon.stub(console, 'error').returns();
+
         try {
           // connect to the app, the options don't matter because we're stubbing the initClient method
           await Web5.connect({
             walletConnectOptions: {
               connectServerUrl   : 'https://connect.example.com',
               walletUri          : 'https://wallet.example.com',
-              validatePin        : async function() { return '1234'; },
+              validatePin        : async () => { return '1234'; },
               onWalletUriReady   : (_walletUri: string) => {},
               permissionRequests : []
             }
@@ -385,15 +693,15 @@ describe('web5 api', function() {
         }
 
         // check that the Identity was deleted
-        const appDid = await appTestHarness.agent.identity.list();
-        expect(appDid).to.have.lengthOf(0);
+        const appIdentities = await appTestHarness.agent.identity.list();
+        expect(appIdentities).to.have.lengthOf(0);
 
         // close the app test harness storage
         await appTestHarness.clearStorage();
         await appTestHarness.closeStorage();
       });
 
-      it('logs an error if there is a failure during cleanup of Identity information, but does not throw', async function() {
+      it('logs an error if there is a failure during cleanup of Identity information, but does not throw', async () => {
         // create a DID that is not stored in the agent
         const did = await DidJwk.create();
         const identity = new BearerIdentity({
@@ -413,276 +721,82 @@ describe('web5 api', function() {
 
         expect(consoleSpy.calledTwice, 'console.error called twice').to.be.true;
       });
-    });
 
-    describe('constructor', function() {
-      it('instantiates Web5 API with provided Web5Agent and connectedDid', async function() {
+      it('throws an error if walletConnectOptions are provided and sync is set to `off`', async () => {
+        // stub the walletInit method
+        sinon.stub(WalletConnect, 'initClient').resolves({
+          delegateGrants : [ ],
+          delegateDid    : {} as any,
+          connectedDid   : ''
+        });
+
+        // stub the create method of the Web5UserAgent to use the test harness agent
+        sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+
+        try {
+
+          // attempt to connect with sync set to false
+          await Web5.connect({
+            sync                 : 'off',
+            walletConnectOptions : {
+              connectServerUrl   : 'https://connect.example.com',
+              walletUri          : 'https://wallet.example.com',
+              validatePin        : async () => { return '1234'; },
+              onWalletUriReady   : (_walletUri: string) => {},
+              permissionRequests : []
+            }
+          });
+
+          expect.fail('Should have thrown an error');
+        } catch(error: any) {
+          expect(error.message).to.equal('Sync must not be disabled when using WalletConnect');
+        }
+      });
+
+      it('does not throw an error if walletConnectOptions are provided and sync is not the default', async () => {
         // Create a new Identity.
-        const socialIdentity = await testHarness.agent.identity.create({
-          metadata  : { name: 'Social' },
-          didMethod : 'jwk',
+        const alice = await testHarness.createIdentity({
+          name        : 'Alice',
+          testDwnUrls : [testDwnUrl]
         });
 
-        // Instantiates Web5 instance with test agent and new Identity's DID.
-        const web5 = new Web5({
-          agent        : testHarness.agent,
-          connectedDid : socialIdentity.did.uri,
-        });
-        expect(web5).to.exist;
-        expect(web5).to.have.property('did');
-        expect(web5).to.have.property('dwn');
-        expect(web5).to.have.property('vc');
-      });
-
-      it('supports a single agent with multiple Web5 instances and different DIDs', async function() {
-        // Create two identities, each of which is stored in a new tenant.
-        const careerIdentity = await testHarness.agent.identity.create({
-          metadata  : { name: 'Social' },
-          didMethod : 'jwk',
-        });
-        const socialIdentity = await testHarness.agent.identity.create({
-          metadata  : { name: 'Social' },
-          didMethod : 'jwk',
+        // create an identity for the app to use
+        const app = await testHarness.agent.did.create({
+          store  : false,
+          method : 'jwk',
         });
 
-        // Instantiate a Web5 instance with the "Career" Identity, write a record, and verify the result.
-        const web5Career = new Web5({
-          agent        : testHarness.agent,
-          connectedDid : careerIdentity.did.uri,
+        // stub the walletInit method
+        sinon.stub(WalletConnect, 'initClient').resolves({
+          delegateGrants : [ ],
+          delegateDid    : await app.export(),
+          connectedDid   : alice.did.uri
         });
-        expect(web5Career).to.exist;
 
-        // Instantiate a Web5 instance with the "Social" Identity, write a record, and verify the result.
-        const web5Social = new Web5({
-          agent        : testHarness.agent,
-          connectedDid : socialIdentity.did.uri,
+        // stub the create method of the Web5UserAgent to use the test harness agent
+        sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+
+        // stub the sync records as we are not actually testing sync
+        sinon.stub(testHarness.agent.sync, 'sync').resolves();
+        const startSyncSpy = sinon.stub(testHarness.agent.sync, 'startSync').resolves();
+        // attempt to connect with sync set to false
+        await Web5.connect({
+          sync                 : '1m',
+          walletConnectOptions : {
+            connectServerUrl   : 'https://connect.example.com',
+            walletUri          : 'https://wallet.example.com',
+            validatePin        : async () => { return '1234'; },
+            onWalletUriReady   : (_walletUri: string) => {},
+            permissionRequests : []
+          }
         });
-        expect(web5Social).to.exist;
+
+        expect(startSyncSpy.args[0][0].interval).to.equal('1m');
       });
     });
 
-    describe('scenarios', function() {
-      it('writes records with multiple identities under management', async function() {
-        // First launch and initialization.
-        await testHarness.agent.initialize({ password: 'test' });
-
-        // Start the Agent, which will decrypt and load the Agent's DID from the vault.
-        await testHarness.agent.start({ password: 'test' });
-
-        // Create two identities, each of which is stored in a new tenant.
-        const careerIdentity = await testHarness.agent.identity.create({
-          metadata  : { name: 'Social' },
-          didMethod : 'jwk',
-        });
-        const socialIdentity = await testHarness.agent.identity.create({
-          metadata  : { name: 'Social' },
-          didMethod : 'jwk',
-        });
-
-        // Instantiate a Web5 instance with the "Career" Identity, write a record, and verify the result.
-        const web5Career = new Web5({
-          agent        : testHarness.agent,
-          connectedDid : careerIdentity.did.uri,
-        });
-        const careerResult = await web5Career.dwn.records.write({
-          data    : 'Hello, world!',
-          message : {
-            schema     : 'foo/bar',
-            dataFormat : 'text/plain',
-          },
-        });
-        expect(careerResult.status.code).to.equal(202);
-        expect(careerResult.record).to.exist;
-        expect(careerResult.record?.author).to.equal(careerIdentity.did.uri);
-        expect(await careerResult.record?.data.text()).to.equal(
-          'Hello, world!'
-        );
-
-        // Instantiate a Web5 instance with the "Social" Identity, write a record, and verify the result.
-        const web5Social = new Web5({
-          agent        : testHarness.agent,
-          connectedDid : socialIdentity.did.uri,
-        });
-        const socialResult = await web5Social.dwn.records.write({
-          data    : 'Hello, everyone!',
-          message : {
-            schema     : 'foo/bar',
-            dataFormat : 'text/plain',
-          },
-        });
-        expect(socialResult.status.code).to.equal(202);
-        expect(socialResult.record).to.exist;
-        expect(socialResult.record?.author).to.equal(socialIdentity.did.uri);
-        expect(await socialResult.record?.data.text()).to.equal(
-          'Hello, everyone!'
-        );
-      });
-    });
-  });
-
-  describe('connect()', function() {
-    let testHarness: PlatformAgentTestHarness;
-
-    before(async function() {
-      testHarness = await PlatformAgentTestHarness.setup({
-        agentClass  : Web5UserAgent,
-        agentStores : 'memory',
-      });
-    });
-
-    beforeEach(async function() {
-      sinon.restore();
-      await testHarness.clearStorage();
-      await testHarness.createAgentDid();
-    });
-
-    after(async function() {
-      sinon.restore();
-      await testHarness.clearStorage();
-      await testHarness.closeStorage();
-    });
-
-    it('uses Web5UserAgent, by default', async function() {
-      // stub the create method of the Web5UserAgent to use the test harness agent
-      // this avoids DB locks when the agent is created twice
-      sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
-
-      const { web5, recoveryPhrase, did } = await Web5.connect();
-      expect(web5).to.exist;
-      expect(web5.agent).to.be.instanceOf(Web5UserAgent);
-      // Verify recovery phrase is a 12-word string.
-      expect(recoveryPhrase).to.be.a('string');
-      expect(recoveryPhrase.split(' ')).to.have.lengthOf(12);
-
-      // if called again, the same DID is returned, and the recovery phrase is not regenerated
-      const { recoveryPhrase: recoveryPhraseConnect2, did: didConnect2 } = await Web5.connect();
-      expect(recoveryPhraseConnect2).to.be.undefined;
-      expect(didConnect2).to.equal(did);
-    });
-
-    it('accepts an externally created DID', async function() {
-      const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
-
-      const testIdentity = await testHarness.createIdentity({
-        name        : 'Test',
-        testDwnUrls : ['https://dwn.example.com'],
-      });
-
-      // Call connect() with the custom agent.
-      const { web5, did } = await Web5.connect({
-        agent        : testHarness.agent,
-        connectedDid : testIdentity.did.uri,
-      });
-
-      expect(did).to.exist;
-      expect(web5).to.exist;
-      expect(walletConnectSpy.called).to.be.false;
-    });
-
-    it('creates an identity using the provided techPreview dwnEndpoints', async function() {
-      sinon
-        .stub(Web5UserAgent, 'create')
-        .resolves(testHarness.agent as Web5UserAgent);
-      const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
-      const identityApiSpy = sinon.spy(AgentIdentityApi.prototype, 'create');
-      const { web5, did } = await Web5.connect({
-        techPreview: { dwnEndpoints: ['https://dwn.example.com/preview'] },
-      });
-      expect(web5).to.exist;
-      expect(did).to.exist;
-
-      expect(identityApiSpy.calledOnce, 'identityApiSpy called').to.be.true;
-      const serviceEndpoints = (
-        identityApiSpy.firstCall.args[0].didOptions as any
-      ).services[0].serviceEndpoint;
-      expect(serviceEndpoints).to.deep.equal([
-        'https://dwn.example.com/preview',
-      ]);
-      expect(walletConnectSpy.called).to.be.false;
-    });
-
-    it('creates an identity using the provided didCreateOptions dwnEndpoints', async function() {
-      sinon
-        .stub(Web5UserAgent, 'create')
-        .resolves(testHarness.agent as Web5UserAgent);
-      const identityApiSpy = sinon.spy(AgentIdentityApi.prototype, 'create');
-      const walletConnectSpy = sinon.spy(WalletConnect, 'initClient');
-      const { web5, did } = await Web5.connect({
-        didCreateOptions: { dwnEndpoints: ['https://dwn.example.com'] },
-      });
-      expect(web5).to.exist;
-      expect(did).to.exist;
-
-      expect(identityApiSpy.calledOnce, 'identityApiSpy called').to.be.true;
-      const serviceEndpoints = (
-        identityApiSpy.firstCall.args[0].didOptions as any
-      ).services[0].serviceEndpoint;
-      expect(serviceEndpoints).to.deep.equal(['https://dwn.example.com']);
-      expect(walletConnectSpy.called).to.be.false;
-    });
-
-    it('defaults to the first identity if multiple identities exist', async function() {
-      // scenario: For some reason more than one identity exists when attempting to re-connect to `Web5`
-      // the first identity in the array should be the one selected
-      // TODO: this has happened due to a race condition somewhere. Dig into this issue and implement a better way to select/manage DIDs when using `Web5.connect()`
-
-      // create an identity by connecting
-      sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
-      const { web5, did } = await Web5.connect({ techPreview: { dwnEndpoints: [ testDwnUrl ] }});
-      expect(web5).to.exist;
-      expect(did).to.exist;
-
-      // create a second identity
-      await testHarness.agent.identity.create({
-        didMethod : 'jwk',
-        metadata  : { name: 'Second' }
-      });
-
-      // connect again
-      const { did: did2 } = await Web5.connect();
-      expect(did2).to.equal(did);
-    });
-
-    it('defaults to the first identity if multiple identities exist', async function() {
-      // scenario: For some reason more than one identity exists when attempting to re-connect to `Web5`
-      // the first identity in the array should be the one selected
-      // TODO: this has happened due to a race condition somewhere. Dig into this issue and implement a better way to select/manage DIDs when using `Web5.connect()`
-
-      // create an identity by connecting
-      sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
-      const { web5, did } = await Web5.connect({ techPreview: { dwnEndpoints: [ testDwnUrl ] }});
-      expect(web5).to.exist;
-      expect(did).to.exist;
-
-      // create a second identity
-      await testHarness.agent.identity.create({
-        didMethod : 'jwk',
-        metadata  : { name: 'Second' }
-      });
-
-      // connect again
-      const { did: did2 } = await Web5.connect();
-      expect(did2).to.equal(did);
-    });
-
-    it('defaults to `https://dwn.tbddev.org/beta` as the single DWN Service endpoint if non is provided', async function() {
-      sinon
-        .stub(Web5UserAgent, 'create')
-        .resolves(testHarness.agent as Web5UserAgent);
-      const identityApiSpy = sinon.spy(AgentIdentityApi.prototype, 'create');
-      const { web5, did } = await Web5.connect();
-      expect(web5).to.exist;
-      expect(did).to.exist;
-
-      expect(identityApiSpy.calledOnce, 'identityApiSpy called').to.be.true;
-      const serviceEndpoints = (
-        identityApiSpy.firstCall.args[0].didOptions as any
-      ).services[0].serviceEndpoint;
-      expect(serviceEndpoints).to.deep.equal(['https://dwn.tbddev.org/beta']);
-    });
-
-    describe('registration', function() {
-      it('should call onSuccess if registration is successful', async function() {
+    describe('registration', () => {
+      it('should call onSuccess if registration is successful', async () => {
         sinon
           .stub(Web5UserAgent, 'create')
           .resolves(testHarness.agent as Web5UserAgent);
@@ -700,8 +814,8 @@ describe('web5 api', function() {
           .resolves();
 
         const registration = {
-          onSuccess : function() {},
-          onFailure : function() {},
+          onSuccess : () => {},
+          onFailure : () => {},
         };
 
         const registerSuccessSpy = sinon.spy(registration, 'onSuccess');
@@ -728,7 +842,7 @@ describe('web5 api', function() {
         expect(registerStub.callCount, 'registerTenant called').to.equal(4); // called twice for each dwnEndpoint
       });
 
-      it('should call onFailure if the registration attempts fail', async function() {
+      it('should call onFailure if the registration attempts fail', async () => {
         sinon
           .stub(Web5UserAgent, 'create')
           .resolves(testHarness.agent as Web5UserAgent);
@@ -746,8 +860,8 @@ describe('web5 api', function() {
           .rejects();
 
         const registration = {
-          onSuccess : function() {},
-          onFailure : function() {},
+          onSuccess : () => {},
+          onFailure : () => {},
         };
 
         const registerSuccessSpy = sinon.spy(registration, 'onSuccess');
@@ -774,7 +888,7 @@ describe('web5 api', function() {
         expect(registerStub.callCount, 'registerTenant called').to.equal(1); // called once and fails
       });
 
-      it('should not attempt registration if the server does not require it', async function() {
+      it('should not attempt registration if the server does not require it', async () => {
         sinon
           .stub(Web5UserAgent, 'create')
           .resolves(testHarness.agent as Web5UserAgent);
@@ -792,8 +906,8 @@ describe('web5 api', function() {
           .resolves();
 
         const registration = {
-          onSuccess : function() {},
-          onFailure : function() {},
+          onSuccess : () => {},
+          onFailure : () => {},
         };
 
         const registerSuccessSpy = sinon.spy(registration, 'onSuccess');
@@ -820,7 +934,7 @@ describe('web5 api', function() {
         expect(registerStub.notCalled, 'registerTenant not called').to.be.true; // not called
       });
 
-      it('techPreview.dwnEndpoints should take precedence over didCreateOptions.dwnEndpoints', async function() {
+      it('techPreview.dwnEndpoints should take precedence over didCreateOptions.dwnEndpoints', async () => {
         sinon
           .stub(Web5UserAgent, 'create')
           .resolves(testHarness.agent as Web5UserAgent);
@@ -838,8 +952,8 @@ describe('web5 api', function() {
           .resolves();
 
         const registration = {
-          onSuccess : function() {},
-          onFailure : function() {},
+          onSuccess : () => {},
+          onFailure : () => {},
         };
 
         const registerSuccessSpy = sinon.spy(registration, 'onSuccess');

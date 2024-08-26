@@ -165,7 +165,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
 
     // If the write fails, throw an error.
     if (!(message && status.code === 202)) {
-      throw new Error(`${this.name}: Failed to write data to store for: ${id}`);
+      throw new Error(`${this.name}: Failed to write data to store for ${id}: ${status.detail}`);
     }
 
     // Add the ID of the newly created record to the index.

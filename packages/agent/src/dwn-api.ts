@@ -5,6 +5,7 @@ import {
   DataStoreLevel,
   Dwn,
   DwnConfig,
+  DwnInterfaceName,
   DwnMethodName,
   EventLogLevel,
   GenericMessage,
@@ -23,8 +24,11 @@ import type {
   DwnMessageInstance,
   DwnMessageParams,
   DwnMessageReply,
+  DwnMessagesPermissionScope,
   DwnMessageWithData,
+  DwnPermissionScope,
   DwnRecordsInterfaces,
+  DwnRecordsPermissionScope,
   DwnResponse,
   DwnSigner,
   MessageHandler,
@@ -68,6 +72,14 @@ export function isRecordsType(messageType: DwnInterface): messageType is DwnReco
     messageType === DwnInterface.RecordsRead ||
     messageType === DwnInterface.RecordsSubscribe ||
     messageType === DwnInterface.RecordsWrite;
+}
+
+export function isRecordPermissionScope(scope: DwnPermissionScope): scope is DwnRecordsPermissionScope {
+  return scope.interface === DwnInterfaceName.Records;
+}
+
+export function isMessagesPermissionScope(scope: DwnPermissionScope): scope is DwnMessagesPermissionScope {
+  return scope.interface === DwnInterfaceName.Messages;
 }
 
 export class AgentDwnApi {
