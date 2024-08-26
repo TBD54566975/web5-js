@@ -159,8 +159,6 @@ export type Web5ConnectResult = {
    * {@link WalletConnectOptions} was provided.
    */
   delegateDid?: string;
-
-  delegateGrants: DelegateGrant[];
 };
 
 /**
@@ -422,7 +420,7 @@ export class Web5 {
 
     const web5 = new Web5({ agent, connectedDid, delegateDid });
 
-    return { web5, did: connectedDid, delegateDid, recoveryPhrase, delegateGrants };
+    return { web5, did: connectedDid, delegateDid, recoveryPhrase };
   }
 
   /**

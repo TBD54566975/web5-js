@@ -147,7 +147,7 @@
     ];
 
     try {
-      const { delegateDid, delegateGrants } = await Web5.connect({
+      const { delegateDid } = await Web5.connect({
         walletConnectOptions: {
           walletUri: "web5://connect",
           connectServerUrl: "http://localhost:3000/connect",
@@ -167,7 +167,7 @@
         },
       });
 
-      goToEndScreen(delegateDid, delegateGrants);
+      goToEndScreen(delegateDid);
     } catch (e) {
       document.getElementById(
         "errorMessage"
@@ -210,12 +210,12 @@
       document.getElementById("pinScreen").style.display = "block";
     }
 
-    function goToEndScreen(delegateDid, delegateGrants) {
+    function goToEndScreen(delegateDid) {
       document.getElementById(
         "didInformation"
       ).innerText = `delegateDid\n:${JSON.stringify(
         delegateDid
-      )} \n\n\n delegateGrants:\n${JSON.stringify(delegateGrants)}`;
+      )}`;
 
       document.getElementById("pinScreen").style.display = "none";
       document.getElementById("endScreen").style.display = "block";
