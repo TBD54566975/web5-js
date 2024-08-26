@@ -646,7 +646,8 @@ async function createPermissionGrants(
       rawMessage,
     });
 
-    if (reply.status.code !== 202) {
+    // check if the message was sent successfully, if the remote returns 409 the message may have come through already via sync
+    if (reply.status.code !== 202 && reply.status.code !== 409) {
       throw new Error(
         `Could not send the message. Error details: ${reply.status.detail}`
       );
@@ -686,6 +687,19 @@ async function prepareProtocols(
 
     if (configureMessage.reply.status.code !== 202) {
       throw new Error(`Could not install protocol: ${configureMessage.reply.status.detail}`);
+    }
+
+    // send the configure message to the remote DWN so that the APP can immediately use it without waiting for a sync cycle from the wallet
+    const { reply: sendReply } = await agent.sendDwnRequest({
+      author      : selectedDid,
+      target      : selectedDid,
+      messageType : DwnInterface.ProtocolsConfigure,
+      rawMessage  : configureMessage.message,
+    });
+
+    // check if the message was sent successfully, if the remote returns 409 the message may have come through already via sync
+    if (sendReply.status.code !== 202 && sendReply.status.code !== 409) {
+      throw new Error(`Could not send protocol: ${sendReply.status.detail}`);
     }
   } else if (queryMessage.reply.status.code !== 200) {
     throw new Error(`Could not fetch protcol: ${queryMessage.reply.status.detail}`);
