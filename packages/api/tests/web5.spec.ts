@@ -437,9 +437,9 @@ describe('web5 api', () => {
 
         // stub the walletInit method
         sinon.stub(WalletConnect, 'initClient').resolves({
-          delegateGrants : [ writeGrant.message, readGrant.message, messagesQueryGrant.message, messagesReadGrant.message ],
-          delegateDid    : await app.export(),
-          connectedDid   : alice.did.uri
+          delegateGrants      : [ writeGrant.message, readGrant.message, messagesQueryGrant.message, messagesReadGrant.message ],
+          delegatePortableDid : await app.export(),
+          connectedDid        : alice.did.uri
         });
 
         const appTestHarness = await PlatformAgentTestHarness.setup({
@@ -649,9 +649,9 @@ describe('web5 api', () => {
 
         // stub the walletInit method of the Connect placeholder class
         sinon.stub(WalletConnect, 'initClient').resolves({
-          delegateGrants : [ writeGrant.message, readGrant.message ],
-          delegateDid    : await app.export(),
-          connectedDid   : alice.did.uri
+          delegateGrants      : [ writeGrant.message, readGrant.message ],
+          delegatePortableDid : await app.export(),
+          connectedDid        : alice.did.uri
         });
 
         const appTestHarness = await PlatformAgentTestHarness.setup({
@@ -725,9 +725,9 @@ describe('web5 api', () => {
       it('throws an error if walletConnectOptions are provided and sync is set to `off`', async () => {
         // stub the walletInit method
         sinon.stub(WalletConnect, 'initClient').resolves({
-          delegateGrants : [ ],
-          delegateDid    : {} as any,
-          connectedDid   : ''
+          delegateGrants      : [ ],
+          delegatePortableDid : {} as any,
+          connectedDid        : ''
         });
 
         // stub the create method of the Web5UserAgent to use the test harness agent
@@ -768,9 +768,9 @@ describe('web5 api', () => {
 
         // stub the walletInit method
         sinon.stub(WalletConnect, 'initClient').resolves({
-          delegateGrants : [ ],
-          delegateDid    : await app.export(),
-          connectedDid   : alice.did.uri
+          delegateGrants      : [ ],
+          delegatePortableDid : await app.export(),
+          connectedDid        : alice.did.uri
         });
 
         // stub the create method of the Web5UserAgent to use the test harness agent

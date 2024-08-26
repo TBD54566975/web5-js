@@ -297,7 +297,7 @@ export class Web5 {
           // Attempts to process the connected grants to be used by the delegateDID
           // If the process fails, we want to clean up the identity
           // the connected grants will return a de-duped array of protocol URIs that are used to register sync for those protocols
-          connectedProtocols = await this.processConnectedGrants({ agent, delegateDid: delegateDid.uri, grants: delegateGrants });
+          connectedProtocols = await this.processConnectedGrants({ agent, delegateDid: delegatePortableDid.uri, grants: delegateGrants });
         } catch (error:any) {
           // clean up the DID and Identity if import fails and throw
           // TODO: Implement the ability to purge all of our messages as a tenant
