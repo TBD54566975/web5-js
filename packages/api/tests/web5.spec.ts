@@ -982,4 +982,71 @@ describe('web5 api', () => {
       });
     });
   });
+
+  describe('requestPermissions()', () => {
+    beforeEach(() => {
+      sinon.restore();
+    });
+
+    after(() => {
+      sinon.restore();
+    });
+
+    it('should request all permissions for a protocol if no specific permissions are provided', async () => {
+      // spy on the WalletConnect requestPermissionsForProtocol method
+      const requestPermissionsSpy = sinon.spy(WalletConnect, 'requestPermissionsForProtocol');
+
+      const permissionRequests = Web5.requestPermissions([{
+        definition: {
+          protocol  : 'https://example.com/test-protocol',
+          published : true,
+          types     : {
+            foo : {},
+            bar : {}
+          },
+          structure: {
+            foo: {
+              bar: {}
+            }
+          }
+        }
+      }]);
+
+      expect(permissionRequests.length).to.equal(1);
+      expect(requestPermissionsSpy.callCount).to.equal(1);
+      const call = requestPermissionsSpy.getCall(0);
+      expect(call.args[1]).to.have.members([
+        'read', 'write', 'delete', 'query', 'subscribe'
+      ]);
+    });
+
+    it('should only request the specified permissions for a protocol', async () => {
+      // spy on the WalletConnect requestPermissionsForProtocol method
+      const requestPermissionsSpy = sinon.spy(WalletConnect, 'requestPermissionsForProtocol');
+
+      const permissionRequests = Web5.requestPermissions([{
+        definition: {
+          protocol  : 'https://example.com/test-protocol',
+          published : true,
+          types     : {
+            foo : {},
+            bar : {}
+          },
+          structure: {
+            foo: {
+              bar: {}
+            }
+          }
+        },
+        permissions: ['read', 'write']
+      }]);
+
+      expect(permissionRequests.length).to.equal(1);
+      expect(requestPermissionsSpy.callCount).to.equal(1);
+      const call = requestPermissionsSpy.getCall(0);
+      expect(call.args[1]).to.have.members([
+        'read', 'write'
+      ]);
+    });
+  });
 });
