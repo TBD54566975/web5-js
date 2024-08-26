@@ -19,7 +19,7 @@
     "build": "pnpm --recursive --stream build",
     "test:node": "pnpm --recursive test:node",
     "audit-ci": "audit-ci --config ./audit-ci.json",
-    "wallet:connect:example": "npx http-server & HTTP_SERVER_PID=$! && sleep 2 && open 'http://localhost:8080/examples/wallet-connect.html' && wait $HTTP_SERVER_PID"
+    "wallet:connect:example": "npx http-server -c-1 & HTTP_SERVER_PID=$! && sleep 2 && open 'http://localhost:8080/examples/wallet-connect.html' && wait $HTTP_SERVER_PID"
   },
   "repository": {
     "type": "git",
@@ -43,7 +43,11 @@
       "ws@<8.17.1": ">=8.17.1",
       "braces@<3.0.3": ">=3.0.3",
       "fast-xml-parser@<4.4.1": ">=4.4.1",
-      "@75lb/deep-merge@<1.1.2": ">=1.1.2"
+      "@75lb/deep-merge@<1.1.2": ">=1.1.2",
+      "elliptic@>=4.0.0 <=6.5.6": ">=6.5.7",
+      "elliptic@>=2.0.0 <=6.5.6": ">=6.5.7",
+      "elliptic@>=5.2.1 <=6.5.6": ">=6.5.7",
+      "micromatch@<4.0.8": ">=4.0.8"
     }
   }
 }

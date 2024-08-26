@@ -90,7 +90,10 @@ async function initClient({
   // a route to its web5 connect provider flow and the params of where to fetch the auth request.
   const generatedWalletUri = new URL(walletUri);
   generatedWalletUri.searchParams.set('request_uri', parData.request_uri);
-  generatedWalletUri.searchParams.set('encryption_key', Convert.uint8Array(encryptionKey).toBase64Url());
+  generatedWalletUri.searchParams.set(
+    'encryption_key',
+    Convert.uint8Array(encryptionKey).toBase64Url()
+  );
 
   // call user's callback so they can send the URI to the wallet as they see fit
   onWalletUriReady(generatedWalletUri.toString());
@@ -115,9 +118,9 @@ async function initClient({
     })) as Web5ConnectAuthResponse;
 
     return {
-      delegateGrants : verifiedAuthResponse.delegateGrants,
-      delegateDid    : verifiedAuthResponse.delegateDid,
-      connectedDid   : verifiedAuthResponse.iss,
+      delegateGrants      : verifiedAuthResponse.delegateGrants,
+      delegatePortableDid : verifiedAuthResponse.delegatePortableDid,
+      connectedDid        : verifiedAuthResponse.iss,
     };
   }
 }
