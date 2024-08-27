@@ -16,6 +16,8 @@ describe('AgentDidResolverCache',  () => {
       agentClass  : TestAgent,
       agentStores : 'dwn'
     });
+
+    resolverCache = new AgentDidResolverCache({ agent: testHarness.agent, location: '__TESTDATA__/did_cache' });
   });
 
   after(async () => {
@@ -29,11 +31,6 @@ describe('AgentDidResolverCache',  () => {
     await testHarness.clearStorage();
     await testHarness.createAgentDid();
   });
-
-  before(() => {
-    resolverCache = new AgentDidResolverCache({ agent: testHarness.agent, location: '__TESTDATA__/did_cache' });
-  });
-
 
   it('does not attempt to resolve a DID that is already resolving', async () => {
     const did = testHarness.agent.agentDid.uri;
@@ -106,5 +103,40 @@ describe('AgentDidResolverCache',  () => {
     // get should be called once, and resolve should be called once
     expect(getStub.callCount).to.equal(1);
     expect(result).to.equal(undefined);
+  });
+
+  it('throws if the error is anything other than a notFound error', async () => {
+    const did = testHarness.agent.agentDid.uri;
+    const getStub = sinon.stub(resolverCache['cache'], 'get').rejects(new Error('Some Error'));
+
+    try {
+      await resolverCache.get(did);
+      expect.fail('Should have thrown');
+    } catch (error: any) {
+      expect(error.message).to.equal('Some Error');
+    }
+  });
+
+  it('throws if the agent is not initialized', async () => {
+    // close existing DB
+    await resolverCache['cache'].close();
+
+    // set resolver cache without an agent
+    resolverCache = new AgentDidResolverCache({ location: '__TESTDATA__/did_cache' });
+
+    try {
+      // attempt to access the agent property
+      resolverCache.agent;
+
+      expect.fail('Should have thrown');
+    } catch (error: any) {
+      expect(error.message).to.equal('Agent not initialized');
+    }
+
+    // set the agent property
+    resolverCache.agent = testHarness.agent;
+
+    // should not throw
+    resolverCache.agent;
   });
 });
