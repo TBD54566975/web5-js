@@ -45,6 +45,7 @@ describe('DidDht', () => {
 
   afterEach(() => {
     fetchStub.restore();
+    sinon.restore();
   });
 
   describe('create()', () => {

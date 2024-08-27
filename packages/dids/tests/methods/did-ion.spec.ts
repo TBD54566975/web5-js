@@ -40,6 +40,7 @@ describe('DidIon', () => {
 
   afterEach(() => {
     fetchStub.restore();
+    sinon.restore();
   });
 
   describe('create', () => {
