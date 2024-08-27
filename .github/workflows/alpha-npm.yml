@@ -63,11 +63,16 @@ jobs:
           node ./scripts/bump-workspace.mjs --prerelease=$ALPHA_PRERELEASE
         shell: bash
 
+      - name: Build the crypto package first
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: pnpm --filter @web5/crypto build
+
       - name: Build all workspace packages
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
         run: pnpm --recursive --stream build
-        
+
       - name: Publish selected @web5/* packages
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
