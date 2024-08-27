@@ -21,7 +21,8 @@ jobs:
 
     env:
       # Packages not listed here will be excluded from publishing
-      PACKAGES: "agent api common credentials crypto crypto-aws-kms dids identity-agent proxy-agent user-agent"
+      # These are currently in a specific order due to dependency requirements
+      PACKAGES: "crypto crypto-aws-kms common dids credentials agent identity-agent proxy-agent user-agent api"
 
     steps:
       - name: Checkout source
@@ -63,13 +64,16 @@ jobs:
           node ./scripts/bump-workspace.mjs --prerelease=$ALPHA_PRERELEASE
         shell: bash
 
-      - name: Make build script executable
-        run: chmod +x ./scripts/build-workspace.sh
-
       - name: Build all workspace packages sequentially
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-        run: ./scripts/build-workspace.sh
+        run: |
+          for package in $PACKAGES; do
+            cd packages/$package
+            pnpm build
+            cd ../..
+          done
+        shell: bash
 
       - name: Publish selected @web5/* packages
         env:
