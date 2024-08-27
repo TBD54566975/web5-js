@@ -6,7 +6,7 @@ export class AgentDidResolverCache extends DidResolverCacheLevel implements DidR
 
   private _agent?: Web5PlatformAgent;
 
-  private _resolving: Record<string, boolean> = {};
+  private _resolving: Map<string, boolean> = new Map();
 
   constructor({ agent, db, location, ttl }: DidResolverCacheLevelParams & { agent?: Web5PlatformAgent }) {
     super ({ db, location, ttl });
@@ -28,20 +28,20 @@ export class AgentDidResolverCache extends DidResolverCacheLevel implements DidR
     try {
       const str = await this.cache.get(did);
       const cachedResult = JSON.parse(str);
-      if (!this._resolving[did] && Date.now() >= cachedResult.ttlMillis) {
-        this._resolving[did] = true;
-        const list = await this.agent.identity.list();
-        if (this.agent.agentDid.uri === did || list.find(identity => identity.did.uri === did)) {
-          this.agent.did.resolve(did).then(result => {
+      if (!this._resolving.has(did) && Date.now() >= cachedResult.ttlMillis) {
+        this._resolving.set(did, true);
+        if (this.agent.agentDid.uri === did || 'undefined' !==  typeof await this.agent.identity.get({ didUri: did })) {
+          try {
+            const result = await this.agent.did.resolve(did);
             if (!result.didResolutionMetadata.error) {
               this.set(did, result);
             }
-          }).finally(() => delete this._resolving[did]);
-        }
-        else {
-          delete this._resolving[did];
+          } finally {
+            this._resolving.delete(did);
+          }
+        } else {
+          this._resolving.delete(did);
           this.cache.nextTick(() => this.cache.del(did));
-          return;
         }
       }
       return cachedResult.value;

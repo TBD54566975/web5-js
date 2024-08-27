@@ -185,7 +185,6 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
 
     const identities = await Promise.all(
       storedIdentities.map(async metadata => {
-        console.log('metadata', metadata.uri);
         return this.get({ didUri: metadata.uri, tenant: metadata.tenant });
       })
     );
