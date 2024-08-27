@@ -23,6 +23,10 @@ const fetchOkResponse = (response: any) => ({
 });
 
 describe('DidWeb', () => {
+  after(() => {
+    sinon.restore();
+  });
+
   describe('resolve()', () => {
     it(`returns a 'notFound' error if the HTTP GET response is not status code 200`, async () => {
       // Setup stub so that a mocked response is returned rather than calling over the network.

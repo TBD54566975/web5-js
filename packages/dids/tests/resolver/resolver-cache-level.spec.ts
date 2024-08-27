@@ -23,6 +23,7 @@ describe('DidResolverCacheLevel', () => {
 
   after(() => {
     clock.restore();
+    sinon.restore();
   });
 
   describe('constructor', () => {
