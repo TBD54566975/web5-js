@@ -57,9 +57,10 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
    * Index for mappings from Store Identifier to DWN record ID.
    * Since these values don't change, we can use a long TTL.
    *
-   * Up to 1,000 entries are retained for 30 days.
+   * Up to 1,000 entries are retained for 21 days.
+   * NOTE: The maximum number for the ttl is 2^31 - 1 milliseconds (24.8 days), setting to 21 days to be safe.
    */
-  protected _index = new TtlCache<string, string>({ ttl: ms('30 days'), max: 1000 });
+  protected _index = new TtlCache<string, string>({ ttl: ms('21 days'), max: 1000 });
 
   /**
    * Cache of tenant DIDs that have been initialized with the protocol.
@@ -67,7 +68,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
    *
    * Since these are default protocols and unlikely to change, we can use a long TTL.
    */
-  protected _protocolInitializedCache: TtlCache<string, boolean> = new TtlCache({ ttl: ms('30 days'), max: 1000 });
+  protected _protocolInitializedCache: TtlCache<string, boolean> = new TtlCache({ ttl: ms('21 days'), max: 1000 });
 
   /**
    * The protocol assigned to this storage instance.

@@ -151,11 +151,9 @@ export class Web5UserAgent<TKeyManager extends AgentKeyManager = LocalKeyManager
 
     cryptoApi ??= new AgentCryptoApi();
 
-    const didResolverCache =  new AgentDidResolverCache({ location: `${dataPath}/DID_RESOLVERCACHE` });
-
     didApi ??= new AgentDidApi({
       didMethods    : [DidDht, DidJwk],
-      resolverCache : didResolverCache,
+      resolverCache : new AgentDidResolverCache({ location: `${dataPath}/DID_RESOLVERCACHE` }),
       store         : new DwnDidStore()
     });
 
@@ -174,7 +172,7 @@ export class Web5UserAgent<TKeyManager extends AgentKeyManager = LocalKeyManager
     syncApi ??= new AgentSyncApi({ syncEngine: new SyncEngineLevel({ dataPath }) });
 
     // Instantiate the Agent using the provided or default components.
-    const web5USerAgent = new Web5UserAgent({
+    return new Web5UserAgent({
       agentDid,
       agentVault,
       cryptoApi,
@@ -186,11 +184,6 @@ export class Web5UserAgent<TKeyManager extends AgentKeyManager = LocalKeyManager
       rpcClient,
       syncApi
     });
-
-    // Set the agent on the resolver cache
-    didResolverCache.agent = web5USerAgent;
-
-    return web5USerAgent;
   }
 
   public async firstLaunch(): Promise<boolean> {
