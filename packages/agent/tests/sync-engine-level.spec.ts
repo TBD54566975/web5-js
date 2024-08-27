@@ -163,6 +163,7 @@ describe('SyncEngineLevel', () => {
     });
 
     after(async () => {
+      sinon.restore();
       await testHarness.clearStorage();
       await testHarness.closeStorage();
     });

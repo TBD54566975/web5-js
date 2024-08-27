@@ -69,6 +69,10 @@ describe('RPC Clients', () => {
       alice = await TestDataGenerator.generateDidKeyPersona();
     });
 
+    after(() => {
+      sinon.restore();
+    });
+
     it('returns available transports', async () => {
       const httpOnlyClient = new Web5RpcClient();
 
@@ -262,6 +266,10 @@ describe('RPC Clients', () => {
     let alice: Persona;
     let client: HttpWeb5RpcClient;
 
+    after(() => {
+      sinon.restore();
+    });
+
     beforeEach(async () => {
       sinon.restore();
 
@@ -352,6 +360,10 @@ describe('RPC Clients', () => {
     const dwnUrl = new URL(testDwnUrl);
     dwnUrl.protocol = dwnUrl.protocol === 'http:' ? 'ws:' : 'wss:';
     const socketDwnUrl = dwnUrl.toString();
+
+    after(() => {
+      sinon.restore();
+    });
 
     beforeEach(async () => {
       sinon.restore();

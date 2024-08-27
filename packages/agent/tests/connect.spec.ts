@@ -197,6 +197,7 @@ describe('web5 connect', function () {
   });
 
   after(async () => {
+    sinon.restore();
     await testHarness.clearStorage();
     await testHarness.closeStorage();
   });
@@ -488,7 +489,7 @@ describe('web5 connect', function () {
     });
   });
 
-  describe('requestPermissionsForProtocol', () => {
+  describe('createPermissionRequestForProtocol', () => {
     it('should add sync permissions to all requests', async () => {
       const protocol:DwnProtocolDefinition = {
         published : true,
@@ -504,7 +505,7 @@ describe('web5 connect', function () {
         }
       };
 
-      const permissionRequests = WalletConnect.requestPermissionsForProtocol(protocol, []);
+      const permissionRequests = WalletConnect.createPermissionRequestForProtocol(protocol, []);
 
       expect(permissionRequests.protocolDefinition).to.deep.equal(protocol);
       expect(permissionRequests.permissionScopes.length).to.equal(3); // only includes the sync permissions
@@ -528,7 +529,7 @@ describe('web5 connect', function () {
         }
       };
 
-      const permissionRequests = WalletConnect.requestPermissionsForProtocol(protocol, ['write', 'read']);
+      const permissionRequests = WalletConnect.createPermissionRequestForProtocol(protocol, ['write', 'read']);
 
       expect(permissionRequests.protocolDefinition).to.deep.equal(protocol);
 
@@ -553,7 +554,7 @@ describe('web5 connect', function () {
         }
       };
 
-      const permissionRequests = WalletConnect.requestPermissionsForProtocol(protocol, ['write', 'read', 'delete', 'query', 'subscribe']);
+      const permissionRequests = WalletConnect.createPermissionRequestForProtocol(protocol, ['write', 'read', 'delete', 'query', 'subscribe']);
 
       expect(permissionRequests.protocolDefinition).to.deep.equal(protocol);
 

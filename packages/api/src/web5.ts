@@ -6,7 +6,6 @@
 
 import type {
   BearerIdentity,
-  ConnectPermissionRequest,
   DelegateGrant,
   DwnDataEncodedRecordsWriteMessage,
   DwnMessagesPermissionScope,
@@ -38,6 +37,15 @@ export type DidCreateOptions = {
   dwnEndpoints?: string[];
 }
 
+export type ConnectPermissionRequest = {
+  protocolDefinition: DwnProtocolDefinition;
+  permissions?: Permission[];
+}
+
+export type ConnectOptions = Omit<WalletConnectOptions, 'permissionRequests'> & {
+  permissionRequests: ConnectPermissionRequest[];
+}
+
 /** Optional overrides that can be provided when calling {@link Web5.connect}. */
 export type Web5ConnectOptions = {
   /**
@@ -45,7 +53,7 @@ export type Web5ConnectOptions = {
    * This param currently will not work in apps that are currently connected.
    * It must only be invoked at registration with a reset and empty DWN and agent.
    */
-  walletConnectOptions?: WalletConnectOptions;
+  walletConnectOptions?: ConnectOptions;
 
   /**
    * Provide a {@link Web5Agent} implementation. Defaults to creating a local
@@ -279,7 +287,15 @@ export class Web5 {
 
         // No connected identity found and connectOptions are provided, attempt to import a delegated DID from an external wallet
         try {
-          const { delegatePortableDid, connectedDid, delegateGrants: returnedGrants } = await WalletConnect.initClient(walletConnectOptions);
+          const { permissionRequests, ...connectOptions } = walletConnectOptions;
+          const walletPermissionRequests = permissionRequests.map(({ protocolDefinition, permissions }) => WalletConnect.createPermissionRequestForProtocol(protocolDefinition, permissions ?? [
+            'read', 'write', 'delete', 'query', 'subscribe'
+          ]));
+
+          const { delegatePortableDid, connectedDid, delegateGrants: returnedGrants } = await WalletConnect.initClient({
+            ...connectOptions,
+            permissionRequests: walletPermissionRequests,
+          });
           delegateGrants = returnedGrants;
 
           // Import the delegated DID as an Identity in the User Agent.
@@ -482,15 +498,5 @@ export class Web5 {
     // currently we return a de-duped set of protocols represented by these grants, this is used to register protocols for sync
     // we expect that any connected protocols will include MessagesQuery and MessagesRead grants that will allow it to sync
     return [...connectedProtocols];
-  }
-
-  /**
-   * Creates a connect permissions request for specific protocols.
-   * If no permissions are explicitly provided, the default is all permissions ('read', 'write', 'delete', 'query', 'subscribe').
-   */
-  static requestPermissions(requests: { definition: DwnProtocolDefinition, permissions?: Permission[] }[]): ConnectPermissionRequest[] {
-    return requests.map(({ definition, permissions }) => WalletConnect.requestPermissionsForProtocol(definition, permissions ?? [
-      'read', 'write', 'delete', 'query', 'subscribe'
-    ]));
   }
 }

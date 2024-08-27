@@ -187,7 +187,7 @@ export type ConnectPermissionRequest = {
 
 export type Permission = 'write' | 'read' | 'delete' | 'query' | 'subscribe';
 
-function requestPermissionsForProtocol(definition: DwnProtocolDefinition, permissions: Permission[]): ConnectPermissionRequest {
+function createPermissionRequestForProtocol(definition: DwnProtocolDefinition, permissions: Permission[]): ConnectPermissionRequest {
   const requests: DwnPermissionScope[] = [];
 
   // In order to enable sync, we must request permissions for `MessagesQuery`, `MessagesRead` and `MessagesSubscribe`
@@ -252,4 +252,4 @@ function requestPermissionsForProtocol(definition: DwnProtocolDefinition, permis
   };
 }
 
-export const WalletConnect = { initClient, requestPermissionsForProtocol };
+export const WalletConnect = { initClient, createPermissionRequestForProtocol };
