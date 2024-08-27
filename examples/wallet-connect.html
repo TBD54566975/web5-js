@@ -128,35 +128,12 @@
       },
     };
 
-    const scopes = [
-      {
-        interface: "Records",
-        method: "Write",
-        protocol: "http://profile-protocol.xyz",
-      },
-      {
-        interface: "Records",
-        method: "Query",
-        protocol: "http://profile-protocol.xyz",
-      },
-      {
-        interface: "Records",
-        method: "Read",
-        protocol: "http://profile-protocol.xyz",
-      },
-    ];
-
     try {
       const { delegateDid } = await Web5.connect({
         walletConnectOptions: {
           walletUri: "web5://connect",
           connectServerUrl: "http://localhost:3000/connect",
-          permissionRequests: [
-            {
-              protocolDefinition: profileProtocol,
-              permissionScopes: scopes,
-            },
-          ],
+          permissionRequests: [{ protocolDefinition: profileProtocol }],
           onWalletUriReady: generateQRCode,
           validatePin: async () => {
             goToPinScreen();

@@ -12,15 +12,13 @@ import { concatenateUrl } from './utils.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 import type { ConnectPermissionRequest } from './connect.js';
 import { DidDocument, DidJwk, PortableDid, type BearerDid } from '@web5/dids';
-import { AgentDwnApi } from './dwn-api.js';
-import {
-  DwnInterfaceName,
-  DwnMethodName,
-  type PermissionScope,
-  type RecordsWriteMessage,
+import type {
+  PermissionScope,
+  RecordsWriteMessage,
 } from '@tbd54566975/dwn-sdk-js';
 import { DwnInterface, DwnProtocolDefinition } from './types/dwn.js';
 import { AgentPermissionsApi } from './permissions-api.js';
+import type { Web5Agent } from './types/agent.js';
 
 /**
  * Sent to an OIDC server to authorize a client. Allows clients
@@ -616,14 +614,17 @@ function encryptAuthResponse({
 async function createPermissionGrants(
   selectedDid: string,
   delegateBearerDid: BearerDid,
-  dwn: AgentDwnApi,
-  permissionsApi: AgentPermissionsApi,
+  agent: Web5Agent,
   scopes: PermissionScope[],
-  protocolUri: string
 ) {
+
+  const permissionsApi = new AgentPermissionsApi({ agent });
+
+  // TODO: cleanup all grants if one fails by deleting them from the DWN: https://github.com/TBD54566975/web5-js/issues/849
   const permissionGrants = await Promise.all(
     scopes.map((scope) =>
       permissionsApi.createGrant({
+        store       : true,
         grantedTo   : delegateBearerDid.uri,
         scope,
         dateExpires : '2040-06-25T16:09:16.693356Z',
@@ -632,57 +633,23 @@ async function createPermissionGrants(
     )
   );
 
-  // Grant Messages Query and Messages Read for sync to work
-  permissionGrants.push(
-    await permissionsApi.createGrant({
-      grantedTo : delegateBearerDid.uri,
-      scope     : {
-        interface : DwnInterfaceName.Messages,
-        method    : DwnMethodName.Query,
-        protocol  : protocolUri,
-      },
-      dateExpires : '2040-06-25T16:09:16.693356Z',
-      author      : selectedDid,
-    })
-  );
-  permissionGrants.push(
-    await permissionsApi.createGrant({
-      grantedTo : delegateBearerDid.uri,
-      scope     : {
-        interface : DwnInterfaceName.Messages,
-        method    : DwnMethodName.Read,
-        protocol  : protocolUri,
-      },
-      dateExpires : '2040-06-25T16:09:16.693356Z',
-      author      : selectedDid,
-    })
-  );
-
   const messagePromises = permissionGrants.map(async (grant) => {
-    // Quirk: we have to pull out encodedData out of the message the schema validator doesnt want it there
+    // Quirk: we have to pull out encodedData out of the message the schema validator doesn't want it there
     const { encodedData, ...rawMessage } = grant.message;
 
     const data = Convert.base64Url(encodedData).toUint8Array();
-    const params = {
+    const { reply  } = await agent.sendDwnRequest({
       author      : selectedDid,
       target      : selectedDid,
       messageType : DwnInterface.RecordsWrite,
       dataStream  : new Blob([data]),
       rawMessage,
-    };
+    });
 
-    const message = await dwn.processRequest(params);
-    const sent = await dwn.sendRequest(params);
-
-    // TODO: cleanup all grants if one fails by deleting them from the DWN: https://github.com/TBD54566975/web5-js/issues/849
-    if (message.reply.status.code !== 202) {
+    // check if the message was sent successfully, if the remote returns 409 the message may have come through already via sync
+    if (reply.status.code !== 202 && reply.status.code !== 409) {
       throw new Error(
-        `Could not process the message. Error details: ${message.reply.status.detail}`
-      );
-    }
-    if (sent.reply.status.code !== 202) {
-      throw new Error(
-        `Could not send the message. Error details: ${message.reply.status.detail}`
+        `Could not send the message. Error details: ${reply.status.detail}`
       );
     }
 
@@ -700,10 +667,10 @@ async function createPermissionGrants(
 */
 async function prepareProtocols(
   selectedDid: string,
-  agentDwnApi: AgentDwnApi,
+  agent: Web5Agent,
   protocolDefinition: DwnProtocolDefinition
 )  {
-  const queryMessage = await agentDwnApi.processRequest({
+  const queryMessage = await agent.processDwnRequest({
     author        : selectedDid,
     messageType   : DwnInterface.ProtocolsQuery,
     target        : selectedDid,
@@ -711,7 +678,7 @@ async function prepareProtocols(
   });
 
   if (queryMessage.reply.status.code === 404) {
-    const configureMessage = await agentDwnApi.processRequest({
+    const configureMessage = await agent.processDwnRequest({
       author        : selectedDid,
       messageType   : DwnInterface.ProtocolsConfigure,
       target        : selectedDid,
@@ -720,6 +687,19 @@ async function prepareProtocols(
 
     if (configureMessage.reply.status.code !== 202) {
       throw new Error(`Could not install protocol: ${configureMessage.reply.status.detail}`);
+    }
+
+    // send the configure message to the remote DWN so that the APP can immediately use it without waiting for a sync cycle from the wallet
+    const { reply: sendReply } = await agent.sendDwnRequest({
+      author      : selectedDid,
+      target      : selectedDid,
+      messageType : DwnInterface.ProtocolsConfigure,
+      rawMessage  : configureMessage.message,
+    });
+
+    // check if the message was sent successfully, if the remote returns 409 the message may have come through already via sync
+    if (sendReply.status.code !== 202 && sendReply.status.code !== 409) {
+      throw new Error(`Could not send protocol: ${sendReply.status.detail}`);
     }
   } else if (queryMessage.reply.status.code !== 200) {
     throw new Error(`Could not fetch protcol: ${queryMessage.reply.status.detail}`);
@@ -739,24 +719,17 @@ async function submitAuthResponse(
   selectedDid: string,
   authRequest: Web5ConnectAuthRequest,
   randomPin: string,
-  agentDwnApi: AgentDwnApi,
-  agentPermissionsApi: AgentPermissionsApi
+  agent: Web5Agent,
 ) {
   const delegateBearerDid = await DidJwk.create();
   const delegatePortableDid = await delegateBearerDid.export();
 
   const delegateGrantPromises = authRequest.permissionRequests.map(async (permissionRequest) => {
-    await prepareProtocols(selectedDid, agentDwnApi, permissionRequest.protocolDefinition);
-
     // TODO: validate to make sure the scopes and definition are assigned to the same protocol
-    const permissionGrants = await Oidc.createPermissionGrants(
-      selectedDid,
-      delegateBearerDid,
-      agentDwnApi,
-      agentPermissionsApi,
-      permissionRequest.permissionScopes,
-      permissionRequest.protocolDefinition.protocol
-    );
+    const { protocolDefinition, permissionScopes } = permissionRequest;
+
+    await prepareProtocols(selectedDid, agent, protocolDefinition);
+    const permissionGrants = await Oidc.createPermissionGrants(selectedDid, delegateBearerDid, agent, permissionScopes);
 
     return permissionGrants;
   });

@@ -250,9 +250,12 @@ export class SyncEngineLevel implements SyncEngine {
     await pushQueue.batch(deleteOperations as any);
   }
 
-  public async registerIdentity({ did, options }: { did: string; options: SyncIdentityOptions }): Promise<void> {
+  public async registerIdentity({ did, options }: { did: string; options?: SyncIdentityOptions }): Promise<void> {
     // Get a reference to the `registeredIdentities` sublevel.
     const registeredIdentities = this._db.sublevel('registeredIdentities');
+
+    // if no options are provided, we default to no delegateDid and all protocols (empty array)
+    options ??= { protocols: [] };
 
     // Add (or overwrite, if present) the Identity's DID as a registered identity.
     await registeredIdentities.put(did, JSON.stringify(options));

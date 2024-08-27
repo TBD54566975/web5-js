@@ -4,7 +4,6 @@ import { CryptoUtils } from '@web5/crypto';
 import { type BearerDid, DidDht, DidJwk, PortableDid } from '@web5/dids';
 import { Convert } from '@web5/common';
 import {
-  DelegateGrant,
   Oidc,
   type Web5ConnectAuthRequest,
   type Web5ConnectAuthResponse,
@@ -12,8 +11,9 @@ import {
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { TestAgent } from './utils/test-agent.js';
 import { testDwnUrl } from './utils/test-config.js';
-import { BearerIdentity, DwnProtocolDefinition, DwnProtocolPermissionScope, DwnResponse, WalletConnect } from '../src/index.js';
-import { RecordsPermissionScope, type PermissionScope } from '@tbd54566975/dwn-sdk-js';
+import { BearerIdentity, DwnProtocolDefinition,  WalletConnect } from '../src/index.js';
+import { RecordsPermissionScope } from '@tbd54566975/dwn-sdk-js';
+import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 
 describe('web5 connect', function () {
   this.timeout(20000);
@@ -197,6 +197,7 @@ describe('web5 connect', function () {
   });
 
   after(async () => {
+    sinon.restore();
     await testHarness.clearStorage();
     await testHarness.closeStorage();
   });
@@ -288,13 +289,11 @@ describe('web5 connect', function () {
       const results = await Oidc.createPermissionGrants(
         providerIdentity.did.uri,
         delegateBearerDid,
-        testHarness.agent.dwn,
-        testHarness.agent.permissions,
-        permissionScopes,
-        protocolDefinition.protocol
+        testHarness.agent,
+        permissionScopes
       );
-      const scopesRequestedPlusTwoDefaultScopes = permissionScopes.length + 2;
-      expect(results).to.have.lengthOf(scopesRequestedPlusTwoDefaultScopes);
+      const scopesRequested = permissionScopes.length;
+      expect(results).to.have.lengthOf(scopesRequested);
       expect(results[0]).to.be.a('object');
     });
 
@@ -392,8 +391,7 @@ describe('web5 connect', function () {
         selectedDid,
         authRequest,
         randomPin,
-        testHarness.agent.dwn,
-        testHarness.agent.permissions
+        testHarness.agent
       );
       expect(fetchSpy.calledOnce).to.be.true;
     });
@@ -488,6 +486,85 @@ describe('web5 connect', function () {
       expect(results).to.be.an('object');
       expect(results?.delegateGrants).to.be.an('array');
       expect(results?.delegatePortableDid).to.be.an('object');
+    });
+  });
+
+  describe('createPermissionRequestForProtocol', () => {
+    it('should add sync permissions to all requests', async () => {
+      const protocol:DwnProtocolDefinition = {
+        published : true,
+        protocol  : 'https://exmaple.org/protocols/social',
+        types     : {
+          note: {
+            schema      : 'https://example.org/schemas/note',
+            dataFormats : [ 'application/json', 'text/plain' ],
+          }
+        },
+        structure: {
+          note: {}
+        }
+      };
+
+      const permissionRequests = WalletConnect.createPermissionRequestForProtocol(protocol, []);
+
+      expect(permissionRequests.protocolDefinition).to.deep.equal(protocol);
+      expect(permissionRequests.permissionScopes.length).to.equal(3); // only includes the sync permissions
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Messages && scope.method === DwnMethodName.Read)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Messages && scope.method === DwnMethodName.Query)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Messages && scope.method === DwnMethodName.Subscribe)).to.not.be.undefined;
+    });
+
+    it('should add requested permissions to the request', async () => {
+      const protocol:DwnProtocolDefinition = {
+        published : true,
+        protocol  : 'https://exmaple.org/protocols/social',
+        types     : {
+          note: {
+            schema      : 'https://example.org/schemas/note',
+            dataFormats : [ 'application/json', 'text/plain' ],
+          }
+        },
+        structure: {
+          note: {}
+        }
+      };
+
+      const permissionRequests = WalletConnect.createPermissionRequestForProtocol(protocol, ['write', 'read']);
+
+      expect(permissionRequests.protocolDefinition).to.deep.equal(protocol);
+
+      // the 3 sync permissions plus the 2 requested permissions
+      expect(permissionRequests.permissionScopes.length).to.equal(5);
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Read)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Write)).to.not.be.undefined;
+    });
+
+    it('supports requesting `read`, `write`, `delete`, `query` and `subscribe` permissions', async () => {
+      const protocol:DwnProtocolDefinition = {
+        published : true,
+        protocol  : 'https://exmaple.org/protocols/social',
+        types     : {
+          note: {
+            schema      : 'https://example.org/schemas/note',
+            dataFormats : [ 'application/json', 'text/plain' ],
+          }
+        },
+        structure: {
+          note: {}
+        }
+      };
+
+      const permissionRequests = WalletConnect.createPermissionRequestForProtocol(protocol, ['write', 'read', 'delete', 'query', 'subscribe']);
+
+      expect(permissionRequests.protocolDefinition).to.deep.equal(protocol);
+
+      // the 3 sync permissions plus the 5 requested permissions
+      expect(permissionRequests.permissionScopes.length).to.equal(8);
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Read)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Write)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Delete)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Query)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Subscribe)).to.not.be.undefined;
     });
   });
 });

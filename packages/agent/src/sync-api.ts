@@ -41,7 +41,7 @@ export class AgentSyncApi implements SyncEngine {
     this._syncEngine.agent = agent;
   }
 
-  public async registerIdentity(params: { did: string; options: SyncIdentityOptions }): Promise<void> {
+  public async registerIdentity(params: { did: string; options?: SyncIdentityOptions }): Promise<void> {
     await this._syncEngine.registerIdentity(params);
   }
 

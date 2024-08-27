@@ -9,8 +9,10 @@ import type {
   DelegateGrant,
   DwnDataEncodedRecordsWriteMessage,
   DwnMessagesPermissionScope,
+  DwnProtocolDefinition,
   DwnRecordsPermissionScope,
   HdIdentityVault,
+  Permission,
   WalletConnectOptions,
   Web5Agent,
 } from '@web5/agent';
@@ -35,6 +37,15 @@ export type DidCreateOptions = {
   dwnEndpoints?: string[];
 }
 
+export type ConnectPermissionRequest = {
+  protocolDefinition: DwnProtocolDefinition;
+  permissions?: Permission[];
+}
+
+export type ConnectOptions = Omit<WalletConnectOptions, 'permissionRequests'> & {
+  permissionRequests: ConnectPermissionRequest[];
+}
+
 /** Optional overrides that can be provided when calling {@link Web5.connect}. */
 export type Web5ConnectOptions = {
   /**
@@ -42,7 +53,7 @@ export type Web5ConnectOptions = {
    * This param currently will not work in apps that are currently connected.
    * It must only be invoked at registration with a reset and empty DWN and agent.
    */
-  walletConnectOptions?: WalletConnectOptions;
+  walletConnectOptions?: ConnectOptions;
 
   /**
    * Provide a {@link Web5Agent} implementation. Defaults to creating a local
@@ -276,7 +287,15 @@ export class Web5 {
 
         // No connected identity found and connectOptions are provided, attempt to import a delegated DID from an external wallet
         try {
-          const { delegatePortableDid, connectedDid, delegateGrants: returnedGrants } = await WalletConnect.initClient(walletConnectOptions);
+          const { permissionRequests, ...connectOptions } = walletConnectOptions;
+          const walletPermissionRequests = permissionRequests.map(({ protocolDefinition, permissions }) => WalletConnect.createPermissionRequestForProtocol(protocolDefinition, permissions ?? [
+            'read', 'write', 'delete', 'query', 'subscribe'
+          ]));
+
+          const { delegatePortableDid, connectedDid, delegateGrants: returnedGrants } = await WalletConnect.initClient({
+            ...connectOptions,
+            permissionRequests: walletPermissionRequests,
+          });
           delegateGrants = returnedGrants;
 
           // Import the delegated DID as an Identity in the User Agent.
