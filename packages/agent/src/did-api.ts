@@ -3,12 +3,16 @@ import type {
   DidMetadata,
   PortableDid,
   DidMethodApi,
-  DidResolverCache,
   DidDhtCreateOptions,
   DidJwkCreateOptions,
   DidResolutionResult,
   DidResolutionOptions,
   DidVerificationMethod,
+  DidUrlDereferencer,
+  DidResolver,
+  DidDereferencingOptions,
+  DidDereferencingResult,
+  DidResolverCache,
 } from '@web5/dids';
 
 import { BearerDid, Did, UniversalResolver } from '@web5/dids';
@@ -18,7 +22,7 @@ import type { AgentKeyManager } from './types/key-manager.js';
 import type { ResponseStatus, Web5PlatformAgent } from './types/agent.js';
 
 import { InMemoryDidStore } from './store-did.js';
-import { DidResolverCacheMemory } from './prototyping/dids/resolver-cache-memory.js';
+import { AgentDidResolverCache } from './agent-did-resolver-cache.js';
 
 export enum DidInterface {
   Create  = 'Create',
@@ -84,11 +88,9 @@ export interface DidApiParams {
   agent?: Web5PlatformAgent;
 
   /**
-   * An optional `DidResolverCache` instance used for caching resolved DID documents.
-   *
-   * Providing a cache implementation can significantly enhance resolution performance by avoiding
-   * redundant resolutions for previously resolved DIDs. If omitted, a no-operation cache is used,
-   * which effectively disables caching.
+   * An optional `AgentDidResolverCache` instance used for caching resolved DID documents.
+   * 
+   * If omitted, the default LevelDB and parameters are used to create a new cache instance.
    */
   resolverCache?: DidResolverCache;
 
@@ -101,7 +103,7 @@ export function isDidRequest<T extends DidInterface>(
   return didRequest.messageType === messageType;
 }
 
-export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> extends UniversalResolver {
+export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> implements DidResolver, DidUrlDereferencer {
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
    * the `AgentDidApi`. This agent is used to interact with other Web5 agent components. It's vital
@@ -110,7 +112,11 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
    */
   private _agent?: Web5PlatformAgent;
 
+  private _cache: DidResolverCache;
+
   private _didMethods: Map<string, DidMethodApi> = new Map();
+
+  private _resolver: UniversalResolver;
 
   private _store: AgentDataStore<PortableDid>;
 
@@ -119,11 +125,11 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
       throw new TypeError(`AgentDidApi: Required parameter missing: 'didMethods'`);
     }
 
-    // Initialize the DID resolver with the given DID methods and resolver cache, or use a default
-    // in-memory cache if none is provided.
-    super({
-      didResolvers : didMethods,
-      cache        : resolverCache ?? new DidResolverCacheMemory()
+    this._cache = resolverCache ?? new AgentDidResolverCache({ location: 'DATA/AGENT/DID_CACHE' });
+
+    this._resolver = new UniversalResolver({
+      cache: this._cache,
+      didResolvers: didMethods
     });
 
     this._agent = agent;
@@ -152,6 +158,11 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
 
   set agent(agent: Web5PlatformAgent) {
     this._agent = agent;
+
+    // AgentDidResolverCache should set the agent if it is the type of cache being used
+    if ('agent' in this._cache) {
+      this._cache.agent = agent;
+    }
   }
 
   public async create({
@@ -340,6 +351,14 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
     }
 
     throw new Error(`AgentDidApi: Unsupported request type: ${request.messageType}`);
+  }
+
+  public async resolve(didUri: string, options?: DidResolutionOptions): Promise<DidResolutionResult> {
+    return this._resolver.resolve(didUri, options);
+  }
+
+  public async dereference(didUrl: string, options?: DidDereferencingOptions): Promise<DidDereferencingResult> {
+    return this._resolver.dereference(didUrl);
   }
 
   private getMethod(methodName: string): DidMethodApi {

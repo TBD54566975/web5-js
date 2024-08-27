@@ -66,7 +66,7 @@ export class UniversalResolver implements DidResolver, DidUrlDereferencer {
   /**
    * A cache for storing resolved DID documents.
    */
-  private cache: DidResolverCache;
+  protected cache: DidResolverCache;
 
   /**
    * A map to store method resolvers against method names.

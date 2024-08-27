@@ -12,6 +12,7 @@ import {
   ProcessDwnRequest,
   Web5PlatformAgent,
   AgentPermissionsApi,
+  AgentDidResolverCache,
 } from '@web5/agent';
 
 import { LevelStore } from '@web5/common';
@@ -150,9 +151,11 @@ export class Web5UserAgent<TKeyManager extends AgentKeyManager = LocalKeyManager
 
     cryptoApi ??= new AgentCryptoApi();
 
+    const didResolverCache =  new AgentDidResolverCache({ location: `${dataPath}/DID_RESOLVERCACHE` });
+
     didApi ??= new AgentDidApi({
       didMethods    : [DidDht, DidJwk],
-      resolverCache : new DidResolverCacheLevel({ location: `${dataPath}/DID_RESOLVERCACHE` }),
+      resolverCache : didResolverCache,
       store         : new DwnDidStore()
     });
 
@@ -171,7 +174,7 @@ export class Web5UserAgent<TKeyManager extends AgentKeyManager = LocalKeyManager
     syncApi ??= new AgentSyncApi({ syncEngine: new SyncEngineLevel({ dataPath }) });
 
     // Instantiate the Agent using the provided or default components.
-    return new Web5UserAgent({
+    const web5USerAgent = new Web5UserAgent({
       agentDid,
       agentVault,
       cryptoApi,
@@ -183,6 +186,11 @@ export class Web5UserAgent<TKeyManager extends AgentKeyManager = LocalKeyManager
       rpcClient,
       syncApi
     });
+
+    // Set the agent on the resolver cache
+    didResolverCache.agent = web5USerAgent;
+
+    return web5USerAgent;
   }
 
   public async firstLaunch(): Promise<boolean> {
