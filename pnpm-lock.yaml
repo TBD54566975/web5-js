@@ -14,6 +14,7 @@ overrides:
   elliptic@>=2.0.0 <=6.5.6: '>=6.5.7'
   elliptic@>=5.2.1 <=6.5.6: '>=6.5.7'
   micromatch@<4.0.8: '>=4.0.8'
+  webpack@<5.94.0: '>=5.94.0'
 
 importers:
 
@@ -5323,13 +5324,13 @@ packages:
     resolution: {integrity: sha512-oYwAqCuL0OZhBoSgmdrLa7mv9MjommVMiQIWgcztf+eS4+8BfcUee6nenFnDhKOhzAVnk5gpZdfnz1iiBv+5sg==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
-      webpack: ^5.72.1
+      webpack: '>=5.94.0'
 
   source-map-loader@5.0.0:
     resolution: {integrity: sha512-k2Dur7CbSLcAH73sBcIkV5xjPV4SzqO1NJ7+XaQl8if3VODDUj3FNchNGpqgJSKbvUfJuhVdv8K2Eu8/TNl2eA==}
     engines: {node: '>= 18.12.0'}
     peerDependencies:
-      webpack: ^5.72.1
+      webpack: '>=5.94.0'
 
   source-map-support@0.5.21:
     resolution: {integrity: sha512-uBHU3L3czsIyYXKX88fdrGovxdSCoTGDRZ6SYXtSRxLZUzHg5P/66Ht6uoUlHu9EZod+inXhKo3qQgwXUT/y1w==}
@@ -5507,7 +5508,7 @@ packages:
       '@swc/core': '*'
       esbuild: '*'
       uglify-js: '*'
-      webpack: ^5.1.0
+      webpack: '>=5.94.0'
     peerDependenciesMeta:
       '@swc/core':
         optional: true
