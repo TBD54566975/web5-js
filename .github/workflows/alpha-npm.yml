@@ -29,7 +29,7 @@ jobs:
 
       # https://cashapp.github.io/hermit/usage/ci/
       - name: Init Hermit
-        uses: cashapp/activate-hermit@31ce88b17a84941bb1b782f1b7b317856addf286 #v1.1.0
+        uses: cashapp/activate-hermit@v1
         with:
           cache: "true"
 
@@ -62,11 +62,6 @@ jobs:
           ALPHA_PRERELEASE="alpha-$YYYYMMDD-$SHORT_COMMIT_SHA"
           node ./scripts/bump-workspace.mjs --prerelease=$ALPHA_PRERELEASE
         shell: bash
-
-      - name: Build the crypto package first
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-        run: pnpm --filter @web5/crypto build
 
       - name: Build all workspace packages
         env:
