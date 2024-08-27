@@ -64,7 +64,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
   /**
    * Cache of tenant DIDs that have been initialized with the protocol.
    * This is used to avoid redundant protocol initialization requests.
-   * 
+   *
    * Since these are default protocols and unlikely to change, we can use a long TTL.
    */
   protected _protocolInitializedCache: TtlCache<string, boolean> = new TtlCache({ ttl: ms('30 days'), max: 1000 });

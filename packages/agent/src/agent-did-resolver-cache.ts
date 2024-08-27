@@ -35,6 +35,12 @@ export class AgentDidResolverCache extends DidResolverCacheLevel implements DidR
     this._agent = agent;
   }
 
+  /**
+   * Get the DID resolution result from the cache for the given DID.
+   *
+   * If the DID is managed by the agent, or is the agent's own DID, it will not evict it from the cache until a new resolution is successful.
+   * This is done to achieve quick and offline access to the agent's own managed DIDs.
+   */
   async get(did: string): Promise<DidResolutionResult | void> {
     try {
       const str = await this.cache.get(did);
