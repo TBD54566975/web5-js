@@ -128,16 +128,12 @@
       },
     };
 
-    const permissionRequests = Web5.requestPermissions([{
-      definition: profileProtocol,
-    }]);
-
     try {
       const { delegateDid } = await Web5.connect({
         walletConnectOptions: {
           walletUri: "web5://connect",
           connectServerUrl: "http://localhost:3000/connect",
-          permissionRequests: permissionRequests,
+          permissionRequests: [{ protocolDefinition: profileProtocol }],
           onWalletUriReady: generateQRCode,
           validatePin: async () => {
             goToPinScreen();
