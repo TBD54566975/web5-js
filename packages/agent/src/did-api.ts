@@ -89,7 +89,7 @@ export interface DidApiParams {
 
   /**
    * An optional `AgentDidResolverCache` instance used for caching resolved DID documents.
-   * 
+   *
    * If omitted, the default LevelDB and parameters are used to create a new cache instance.
    */
   resolverCache?: DidResolverCache;
@@ -128,8 +128,8 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
     this._cache = resolverCache ?? new AgentDidResolverCache({ location: 'DATA/AGENT/DID_CACHE' });
 
     this._resolver = new UniversalResolver({
-      cache: this._cache,
-      didResolvers: didMethods
+      cache        : this._cache,
+      didResolvers : didMethods
     });
 
     this._agent = agent;

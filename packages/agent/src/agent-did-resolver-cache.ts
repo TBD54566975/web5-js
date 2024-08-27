@@ -1,5 +1,5 @@
-import { DidResolutionResult, DidResolverCache, DidResolverCacheLevel, DidResolverCacheLevelParams } from "@web5/dids";
-import { Web5PlatformAgent } from "./types/agent.js";
+import { DidResolutionResult, DidResolverCache, DidResolverCacheLevel, DidResolverCacheLevelParams } from '@web5/dids';
+import { Web5PlatformAgent } from './types/agent.js';
 
 
 export class AgentDidResolverCache extends DidResolverCacheLevel implements DidResolverCache {
@@ -15,8 +15,8 @@ export class AgentDidResolverCache extends DidResolverCacheLevel implements DidR
 
   get agent() {
     if (!this._agent) {
-      throw new Error("Agent not initialized");
-    } 
+      throw new Error('Agent not initialized');
+    }
     return this._agent;
   }
 
@@ -36,7 +36,7 @@ export class AgentDidResolverCache extends DidResolverCacheLevel implements DidR
             if (!result.didResolutionMetadata.error) {
               this.set(did, result);
             }
-          }).finally(() => delete this._resolving[did])
+          }).finally(() => delete this._resolving[did]);
         }
         else {
           delete this._resolving[did];
