@@ -8,10 +8,6 @@ import type {
   DidResolutionResult,
   DidResolutionOptions,
   DidVerificationMethod,
-  DidUrlDereferencer,
-  DidResolver,
-  DidDereferencingOptions,
-  DidDereferencingResult,
   DidResolverCache,
 } from '@web5/dids';
 
@@ -88,9 +84,13 @@ export interface DidApiParams {
   agent?: Web5PlatformAgent;
 
   /**
-   * An optional `AgentDidResolverCache` instance used for caching resolved DID documents.
+   * An optional `DidResolverCache` instance used for caching resolved DID documents.
    *
-   * If omitted, the default LevelDB and parameters are used to create a new cache instance.
+   * Providing a cache implementation can significantly enhance resolution performance by avoiding
+   * redundant resolutions for previously resolved DIDs. If omitted, the default is an instance of `AgentDidResolverCache`.
+   *
+   * `AgentDidResolverCache` keeps a stale copy of the Agent's managed Identity DIDs and only refreshes upon a successful resolution.
+   * This allows for quick and offline access to the internal DIDs used by the agent.
    */
   resolverCache?: DidResolverCache;
 
@@ -103,7 +103,7 @@ export function isDidRequest<T extends DidInterface>(
   return didRequest.messageType === messageType;
 }
 
-export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> implements DidResolver, DidUrlDereferencer {
+export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> extends UniversalResolver {
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
    * the `AgentDidApi`. This agent is used to interact with other Web5 agent components. It's vital
@@ -112,11 +112,7 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
    */
   private _agent?: Web5PlatformAgent;
 
-  private _cache: DidResolverCache;
-
   private _didMethods: Map<string, DidMethodApi> = new Map();
-
-  private _resolver: UniversalResolver;
 
   private _store: AgentDataStore<PortableDid>;
 
@@ -125,11 +121,11 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
       throw new TypeError(`AgentDidApi: Required parameter missing: 'didMethods'`);
     }
 
-    this._cache = resolverCache ?? new AgentDidResolverCache({ location: 'DATA/AGENT/DID_CACHE' });
-
-    this._resolver = new UniversalResolver({
-      cache        : this._cache,
-      didResolvers : didMethods
+    // Initialize the DID resolver with the given DID methods and resolver cache, or use a default
+    // AgentDidResolverCache if none is provided.
+    super({
+      didResolvers : didMethods,
+      cache        : resolverCache ?? new AgentDidResolverCache({ agent, location: 'DATA/AGENT/DID_CACHE' })
     });
 
     this._agent = agent;
@@ -160,8 +156,8 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
     this._agent = agent;
 
     // AgentDidResolverCache should set the agent if it is the type of cache being used
-    if ('agent' in this._cache) {
-      this._cache.agent = agent;
+    if ('agent' in this.cache) {
+      this.cache.agent = agent;
     }
   }
 
@@ -351,14 +347,6 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
     }
 
     throw new Error(`AgentDidApi: Unsupported request type: ${request.messageType}`);
-  }
-
-  public async resolve(didUri: string, options?: DidResolutionOptions): Promise<DidResolutionResult> {
-    return this._resolver.resolve(didUri, options);
-  }
-
-  public async dereference(didUrl: string, options?: DidDereferencingOptions): Promise<DidDereferencingResult> {
-    return this._resolver.dereference(didUrl);
   }
 
   private getMethod(methodName: string): DidMethodApi {

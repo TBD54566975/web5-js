@@ -2,10 +2,21 @@ import { DidResolutionResult, DidResolverCache, DidResolverCacheLevel, DidResolv
 import { Web5PlatformAgent } from './types/agent.js';
 
 
+/**
+ * AgentDidResolverCache keeps a stale copy of the Agent's managed Identity DIDs and only evicts and refreshes upon a successful resolution.
+ * This allows for quick and offline access to the internal DIDs used by the agent.
+ */
 export class AgentDidResolverCache extends DidResolverCacheLevel implements DidResolverCache {
 
+  /**
+   * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
+   * the `AgentDidApi`. This agent is used to interact with other Web5 agent components. It's vital
+   * to ensure this instance is set to correctly contextualize operations within the broader Web5
+   * Agent framework.
+   */
   private _agent?: Web5PlatformAgent;
 
+  /** A map of DIDs that are currently in-flight. This helps avoid going into an infinite loop */
   private _resolving: Map<string, boolean> = new Map();
 
   constructor({ agent, db, location, ttl }: DidResolverCacheLevelParams & { agent?: Web5PlatformAgent }) {
