@@ -4,7 +4,7 @@
  */
 /// <reference types="@tbd54566975/dwn-sdk-js" />
 
-import type {
+import {
   BearerIdentity,
   HdIdentityVault,
   WalletConnectOptions,
@@ -18,6 +18,8 @@ import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
 import { VcApi } from './vc-api.js';
 import { validateRecoverParams } from './utils.js';
+import { LevelStore } from '@web5/common';
+import { DwnError } from '@tbd54566975/dwn-sdk-js';
 
 /** Override defaults configured during the technical preview phase. */
 export type TechPreviewOptions = {
@@ -180,14 +182,14 @@ export type Web5RecoverParams = {
   /**
    * The Web5 app `password` is used to protect data on the device the application is running on.
    *
-   * See {@link Web5ConnectOptions} for more information.
+   * See {@link Web5ConnectOptions.password} for more information.
    */
   password: string;
 
   /**
    * The `recoveryPhrase` is a unique, secure key for recovering the identity vault.
    *
-   * See {@link Web5ConnectOptions} for more information.
+   * See {@link Web5ConnectOptions.recoveryPhrase} for more information.
    */
   recoveryPhrase: string;
 
@@ -197,22 +199,27 @@ export type Web5RecoverParams = {
    * Also allows for the use of the agentDid as the connectedDid. E.g., server side applications
    * that do not need the agentDid/connectedDid(s) pattern.
    *
-   * See {@link TechPreviewOptions} and {@link HdIdentityVault.initialize} for more information.
+   * See {@link TechPreviewOptions.dwnEndpoints} and {@link HdIdentityVaultInitializeParams} for more information.
    */
   dwnEndpoints: string[];
 
   /**
    * The connected DID(s) to recover from the DWN. Can be 1 or more.
+   * Leave blank to recover all DIDs from the DWN.
    */
-  dids: string[];
+  dids?: string[];
 
   /**
-  * Enable synchronization of DWN records between local and remote DWNs.
-  * Sync defaults to running every 2 minutes and can be set to any value accepted by `ms()`.
-  * To disable sync set to 'off'.
-  *
-  * See {@link Web5ConnectOptions.sync} for more information.
-  */
+   *
+   * Passing a sync interval will engage the sync process after recovery similar to the connect process.
+   *
+   * Enable synchronization of DWN records between local and remote DWNs.
+   * Sync defaults to running every 2 minutes and can be set to any value accepted by `ms()`.
+   * To disable sync, leave undefined or set to 'off'. Turning sync off will allow the recover function to complete
+   * and return after recovering the Web5 data.
+   *
+   * See {@link Web5ConnectOptions.sync} for more information.
+   */
   sync?: string;
 };
 
@@ -461,34 +468,65 @@ export class Web5 {
     * @param params.password - The Web5 app `password` used to protect data on the device.
     * @param params.recoveryPhrase - The `recoveryPhrase` used to recover the identity vault.
     * @param params.dwnEndpoints - The DWN service endpoints to register to the agent DID.
-    * @param params.sync - Enable synchronization of DWN records between local and remote DWNs.
-    * @param params.dids - The connected DID(s) to recover from the DWN. Can be 1 or more.
+    * @param params.dids - Optional. The connected DID(s) to recover from the DWN. Can be 1 or more.
+    * @param params.sync - Optional. Enable synchronization of DWN records between local and remote DWNs.
     * @returns A promise that resolves to a {@link Web5} instance.
     */
   static async recover({
     password, recoveryPhrase, dwnEndpoints, dids, sync
   }: Web5RecoverParams): Promise<Web5ConnectResult> {
     // Validate the recovery parameters.
-    validateRecoverParams({ password, recoveryPhrase, dwnEndpoints, dids });
+    validateRecoverParams({ password, recoveryPhrase, dwnEndpoints, dids, sync });
 
     // Get default tech preview hosted nodes if not provided.
     dwnEndpoints ??= ['https://dwn.tbddev.org/beta'];
 
-    // Initialize the agent with the provided recovery phrase, password and dwnEndpoints.
+    // Create a new agent.
     const agent = await Web5UserAgent.create();
+    if(!await agent.firstLaunch()) {
+      throw new Error('recover() failed: agent already initialized');
+    }
+
+    // Initialize the agent with the provided recovery phrase, password and dwnEndpoints.
     await agent.initialize({ password, recoveryPhrase, dwnEndpoints });
 
     // Start the agent.
     await agent.start({ password });
-
-    // Register the agentDid.
-    await agent.sync.registerIdentity({ did: agent.agentDid.uri });
 
     // Enable sync using the specified interval or default.
     await agent.sync.syncOnce({ syncDirection: 'pull' })
       .catch((error: any) => {
         console.error(`Sync pull failed: ${error}`);
       });
+
+    // Create a new Web5 instance.
+    const web5 = new Web5({ agent, connectedDid: agent.agentDid.uri });
+
+    // Query the DWN for the agent's connected DID records.
+    const { records, status, cursor } = await web5.dwn.records.query({
+      from    : agent.agentDid.uri,
+      message : {
+        filter: {
+          protocol: 'https://tbd.website/dwn/permissions',
+        },
+      },
+    });
+
+    // Check if the DWN query was successful. Throw an error if it was not.
+    const { code, detail } = status ?? {};
+    if((code < 200 || code > 299) || (code < 300 && code > 399)) {
+      console.error(`DWN query failed: ${code} - ${detail}`);
+      throw new DwnError(code.toString(), `recover() failed: DWN query for did records unsuccessful: ${detail}`);
+    }
+
+    console.log('status', status);
+    console.log('cursor', cursor);
+    console.log('records', records);
+
+    // Check if any records were found. Throw an error if none are found.
+    if(!records || !records?.length) {
+      throw new Error('recover() failed: no DID records found in the DWN');
+    }
 
     // Get the agent identities and check if any exist.
     const agentIdentities = await agent.identity.list();
@@ -519,13 +557,17 @@ export class Web5 {
 
     const connectedDid = identity.did.uri;
 
-    sync ??= '2m';
-    agent.sync.startSync({ interval: sync })
-      .catch((error: any) => {
-        console.error(`Start sync failed: ${error}`);
-      });
+    if (sync && sync !== 'off') {
+      // First, register the user identity for sync.
+      await agent.sync.registerIdentity({ did: connectedDid });
 
-    const web5 = new Web5({ agent, connectedDid });
+      // Enable sync using the specified interval or default.
+      sync ??= '2m';
+      agent.sync.startSync({ interval: sync })
+        .catch((error: any) => {
+          console.error(`Sync failed: ${error}`);
+        });
+    }
 
     return { web5, did: connectedDid };
   }

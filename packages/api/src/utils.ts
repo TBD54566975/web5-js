@@ -75,7 +75,7 @@ export function validateRecoverParams(params: any): void {
   if (!params.dwnEndpoints || !Array.isArray(params.dwnEndpoints) || params.dwnEndpoints.length === 0) {
     throw new Error('Invalid DWN endpoints.');
   }
-  if (!params.dids || !Array.isArray(params.dids) || params.dids.length === 0) {
+  if (params.dids && (!Array.isArray(params.dids) || params.dids.length === 0)) {
     throw new Error('Invalid DIDs.');
   }
   if (params.sync && typeof params.sync !== 'string') {
