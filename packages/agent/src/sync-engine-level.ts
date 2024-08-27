@@ -255,7 +255,7 @@ export class SyncEngineLevel implements SyncEngine {
     const registeredIdentities = this._db.sublevel('registeredIdentities');
 
     // if no options are provided, we default to no delegateDid and all protocols (empty array)
-    options ??= { delegateDid: undefined, protocols: [] };
+    options ??= { protocols: [] };
 
     // Add (or overwrite, if present) the Identity's DID as a registered identity.
     await registeredIdentities.put(did, JSON.stringify(options));

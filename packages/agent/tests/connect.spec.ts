@@ -291,8 +291,8 @@ describe('web5 connect', function () {
         testHarness.agent,
         permissionScopes
       );
-      const scopesRequestedPlusTwoDefaultScopes = permissionScopes.length;
-      expect(results).to.have.lengthOf(scopesRequestedPlusTwoDefaultScopes);
+      const scopesRequested = permissionScopes.length;
+      expect(results).to.have.lengthOf(scopesRequested);
       expect(results[0]).to.be.a('object');
     });
 
