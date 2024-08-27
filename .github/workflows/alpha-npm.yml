@@ -63,10 +63,13 @@ jobs:
           node ./scripts/bump-workspace.mjs --prerelease=$ALPHA_PRERELEASE
         shell: bash
 
-      - name: Build all workspace packages
+      - name: Make build script executable
+        run: chmod +x ./scripts/build-workspace.sh
+
+      - name: Build all workspace packages sequentially
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-        run: pnpm --recursive --stream build
+        run: ./scripts/build-workspace.sh
 
       - name: Publish selected @web5/* packages
         env:
