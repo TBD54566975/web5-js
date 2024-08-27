@@ -18,7 +18,8 @@ import {
   DwnDateSort,
   DwnPaginationCursor,
   isDwnMessage,
-  SendDwnRequest
+  SendDwnRequest,
+  isRecordsWrite
 } from '@web5/agent';
 
 import { Convert, isEmptyObject, NodeStream, removeUndefinedProperties, Stream } from '@web5/common';
@@ -72,9 +73,21 @@ export type RecordModel = ImmutableRecordProperties & OptionalRecordProperties &
  *
  * @beta
  */
-export type RecordOptions = DwnMessage[DwnInterface.RecordsWrite] & {
+export type RecordOptions = DwnMessage[DwnInterface.RecordsWrite | DwnInterface.RecordsDelete] & {
   /** The DID that signed the record. */
   author: string;
+
+  /** The attestation signature(s) for the record. */
+  attestation?: DwnMessage[DwnInterface.RecordsWrite]['attestation'];
+
+  /** The encryption information for the record. */
+  encryption?: DwnMessage[DwnInterface.RecordsWrite]['encryption'];
+
+  /** The contextId associated with the record. */
+  contextId?: string;
+
+  /** The unique identifier of the record */
+  recordId?: string;
 
   /** The DID of the DWN tenant under which record operations are being performed. */
   connectedDid: string;
@@ -360,7 +373,7 @@ export class Record implements RecordModel {
     this._descriptor = options.descriptor;
     this._encryption = options.encryption;
     this._initialWrite = options.initialWrite;
-    this._recordId = options.recordId;
+    this._recordId = this.isRecordsDeleteDescriptor(options.descriptor) ? options.descriptor.recordId : options.recordId;
     this._protocolRole = options.protocolRole;
 
     if (options.encodedData) {
@@ -539,6 +552,7 @@ export class Record implements RecordModel {
   /**
    * Send the current record to a remote DWN by specifying their DID
    * If no DID is specified, the target is assumed to be the owner (connectedDID).
+   *
    * If an initial write is present and the Record class send cache has no awareness of it, the initial write is sent first
    * (vs waiting for the regular DWN sync)
    *
@@ -948,5 +962,14 @@ export class Record implements RecordModel {
         throw new Error(`${property} is an immutable property. Its value cannot be changed.`);
       }
     }
+  }
+
+  /**
+   * Checks if the descriptor is a RecordsDelete descriptor.
+   *
+   * @param descriptor a RecordsWrite or RecordsDelete descriptor
+   */
+  private isRecordsDeleteDescriptor(descriptor: DwnMessageDescriptor[DwnInterface.RecordsWrite | DwnInterface.RecordsDelete]): descriptor is DwnMessageDescriptor[DwnInterface.RecordsDelete] {
+    return descriptor.interface + descriptor.method === DwnInterface.RecordsDelete;
   }
 }

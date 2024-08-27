@@ -139,6 +139,11 @@
         method: "Query",
         protocol: "http://profile-protocol.xyz",
       },
+      {
+        interface: "Records",
+        method: "Read",
+        protocol: "http://profile-protocol.xyz",
+      },
     ];
 
     try {
@@ -206,7 +211,9 @@
     }
 
     function goToEndScreen(delegateDid) {
-      document.getElementById("didInformation").innerText = `${JSON.stringify(
+      document.getElementById(
+        "didInformation"
+      ).innerText = `delegateDid\n:${JSON.stringify(
         delegateDid
       )}`;
 

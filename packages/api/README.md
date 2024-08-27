@@ -20,6 +20,7 @@ The SDK is currently still under active development, but having entered the Tech
 - [API Documentation](#api-documentation)
   - [Web5.connect](#web5connectoptions)
   - [web5.dwn.records.query](#web5dwnrecordsqueryrequest)
+  - [web5.dwn.records.subscribe](#web5dwnrecordssubscriberequest)
   - [web5.dwn.records.create](#web5dwnrecordscreaterequest)
   - [web5.dwn.records.write](#web5dwnrecordswriterequest)
   - [web5.dwn.records.read](#web5dwnrecordsreadrequest)
@@ -232,6 +233,59 @@ The query `response` contains the following properties:
   - **`detail`** _`string`_: a detailed message describing the response.
 - **`records`** - _`Records array`_ (_optional_): the array of `Records` returned if the request was successful.
 - **`cursor`** - _`messageCid string`_ (_optional_): the `messageCid` of the last message returned in the results if there are exist additional records beyond the specified `limit` in the `query`.
+
+### **`web5.dwn.records.subscribe(request)`**
+
+Method for subscribing to either the locally connected DWeb Node or any remote DWeb Node specified in the `from` property.
+
+```javascript
+// This invocation will subscribe the user's own DWeb Nodes
+
+const subscriptionHandler = (record) => {
+  console.log("received", record);
+};
+
+const { status } = await web5.dwn.records.subscribe({
+  message: {
+    filter: {
+      protocol: "https://schema.org/protocols/social",
+    },
+  },
+  subscriptionHandler,
+});
+
+console.log(status.code === 200); // successful subscription
+
+// This invocation will query Bob's DWeb Nodes
+const { status } = await web5.dwn.records.query({
+  from: "did:example:bob",
+  message: {
+    filter: {
+      protocol: "https://schema.org/protocols/social",
+    },
+  },
+  subscriptionHandler,
+});
+
+console.log(status.code === 200); // successful subscription
+```
+
+#### **Request**
+
+The query `request` contains the following properties:
+
+- **`from`** - _`DID string`_ (_optional_): the decentralized identifier of the DWeb Node the subscribe will receive results from.
+- **`message`** - _`object`_: the properties of the DWeb Node Message Descriptor that will be used to construct a valid record subscription:
+  - **`filter`** - _`object`_: properties against which results of the subscription will be filtered:
+    - **`recordId`** - _`string`_ (_optional_): the record ID string that identifies the record data you are fetching.
+    - **`protocol`** - _`URI string`_ (_optional_): the URI of the protocol bucket in which to subscribe to.
+    - **`protocolPath`** - _`string`_ (_optional_): the path to the record in the protocol configuration.
+    - **`contextId`** _`string`_ (_optional_): the `recordId` of a root record of a protocol.
+    - **`parentId`** _`string`_ (_optional_): the `recordId` of a the parent of a protocol record.
+    - **`recipient`** - _`string`_ (_optional_): the DID in the `recipient` field of the record.
+    - **`schema`** - _`URI string`_ (_optional_): the URI of the schema bucket in which to subscribe to.
+    - **`dataFormat`** - _`Media Type string`_ (_optional_): the IANA string corresponding with the format of the data to filter for. See IANA's Media Type list here: https://www.iana.org/assignments/media-types/media-types.xhtml
+  - **`subscriptionHandler`** - _`function`_: The handler function which emits a `Record` object when any matching records arrive.
 
 ### **`web5.dwn.records.create(request)`**
 
@@ -497,7 +551,9 @@ metadata associated with a DID.
 #### **Usage**
 
 ```javascript
-const { didDocument } = await web5.did.resolve('did:dht:qftx7z968xcpfy1a1diu75pg5meap3gdtg6ezagaw849wdh6oubo');
+const { didDocument } = await web5.did.resolve(
+  "did:dht:qftx7z968xcpfy1a1diu75pg5meap3gdtg6ezagaw849wdh6oubo"
+);
 ```
 
 #### **Parameters**
@@ -514,7 +570,7 @@ The method returns a DID resolution result as a JavaScript object. The structure
 
 #### **Notes**
 
-- The resolution process for some DID methods like DID DHT involve network requests to the relevant DID verifiable 
+- The resolution process for some DID methods like DID DHT involve network requests to the relevant DID verifiable
   data registry or a resolver endpoint, which may introduce latency based on the network conditions and the specific DID
   method utilized.
 

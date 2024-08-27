@@ -64,7 +64,6 @@ describe('DidApi', () => {
 
   describe('resolve()', () => {
     it('resolves a DID and returns a resolution result', async () => {
-      // const testDid = 'did:jwk:eyJjcnYiOiJFZDI1NTE5Iiwia3R5IjoiT0tQIiwieCI6Im80MHNoWnJzY28tQ2ZFcWs2bUZzWGZjUDk0bHkzQXozZ204NFB6QVVzWG8iLCJraWQiOiJCRHAweGltODJHc3dseG5QVjhUUHRCZFV3ODB3a0dJRjhnakZidzF4NWlRIiwiYWxnIjoiRWREU0EifQ';
       const testDid = 'did:dht:ugkhixpk56o9izfp4ucc543scj5ajcis3rkh43yueq98qiaj8tgy';
 
       const didResolutionResult = await did.resolve(testDid);

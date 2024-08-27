@@ -50,11 +50,6 @@
       "types": "./dist/types/index.d.ts",
       "import": "./dist/esm/index.js",
       "require": "./dist/cjs/index.js"
-    },
-    "./utils": {
-      "types": "./dist/types/utils.d.ts",
-      "import": "./dist/esm/utils.js",
-      "require": "./dist/cjs/utils.js"
     }
   },
   "browser": {
