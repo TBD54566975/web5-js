@@ -6,7 +6,6 @@
 
 import type {
   BearerIdentity,
-  DelegateGrant,
   DwnDataEncodedRecordsWriteMessage,
   DwnMessagesPermissionScope,
   DwnProtocolDefinition,
@@ -242,7 +241,6 @@ export class Web5 {
     walletConnectOptions,
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
     let delegateDid: string | undefined;
-    let delegateGrants: DelegateGrant[];
     if (agent === undefined) {
       let registerSync = false;
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
@@ -292,11 +290,10 @@ export class Web5 {
             'read', 'write', 'delete', 'query', 'subscribe'
           ]));
 
-          const { delegatePortableDid, connectedDid, delegateGrants: returnedGrants } = await WalletConnect.initClient({
+          const { delegatePortableDid, connectedDid, delegateGrants } = await WalletConnect.initClient({
             ...connectOptions,
             permissionRequests: walletPermissionRequests,
           });
-          delegateGrants = returnedGrants;
 
           // Import the delegated DID as an Identity in the User Agent.
           // Setting the connectedDID in the metadata applies a relationship between the signer identity and the one it is impersonating.
