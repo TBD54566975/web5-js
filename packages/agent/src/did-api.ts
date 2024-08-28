@@ -3,12 +3,12 @@ import type {
   DidMetadata,
   PortableDid,
   DidMethodApi,
-  DidResolverCache,
   DidDhtCreateOptions,
   DidJwkCreateOptions,
   DidResolutionResult,
   DidResolutionOptions,
   DidVerificationMethod,
+  DidResolverCache,
 } from '@web5/dids';
 
 import { BearerDid, Did, UniversalResolver } from '@web5/dids';
@@ -18,7 +18,7 @@ import type { AgentKeyManager } from './types/key-manager.js';
 import type { ResponseStatus, Web5PlatformAgent } from './types/agent.js';
 
 import { InMemoryDidStore } from './store-did.js';
-import { DidResolverCacheMemory } from './prototyping/dids/resolver-cache-memory.js';
+import { AgentDidResolverCache } from './agent-did-resolver-cache.js';
 
 export enum DidInterface {
   Create  = 'Create',
@@ -87,8 +87,10 @@ export interface DidApiParams {
    * An optional `DidResolverCache` instance used for caching resolved DID documents.
    *
    * Providing a cache implementation can significantly enhance resolution performance by avoiding
-   * redundant resolutions for previously resolved DIDs. If omitted, a no-operation cache is used,
-   * which effectively disables caching.
+   * redundant resolutions for previously resolved DIDs. If omitted, the default is an instance of `AgentDidResolverCache`.
+   *
+   * `AgentDidResolverCache` keeps a stale copy of the Agent's managed Identity DIDs and only refreshes upon a successful resolution.
+   * This allows for quick and offline access to the internal DIDs used by the agent.
    */
   resolverCache?: DidResolverCache;
 
@@ -120,10 +122,10 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
     }
 
     // Initialize the DID resolver with the given DID methods and resolver cache, or use a default
-    // in-memory cache if none is provided.
+    // AgentDidResolverCache if none is provided.
     super({
       didResolvers : didMethods,
-      cache        : resolverCache ?? new DidResolverCacheMemory()
+      cache        : resolverCache ?? new AgentDidResolverCache({ agent, location: 'DATA/AGENT/DID_CACHE' })
     });
 
     this._agent = agent;
@@ -152,6 +154,11 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
 
   set agent(agent: Web5PlatformAgent) {
     this._agent = agent;
+
+    // AgentDidResolverCache should set the agent if it is the type of cache being used
+    if ('agent' in this.cache) {
+      this.cache.agent = agent;
+    }
   }
 
   public async create({

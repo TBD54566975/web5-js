@@ -4,11 +4,12 @@ import type { AbstractLevel } from 'abstract-level';
 import { Level } from 'level';
 import { LevelStore, MemoryStore } from '@web5/common';
 import { DataStoreLevel, Dwn, EventEmitterStream, EventLogLevel, MessageStoreLevel, ResumableTaskStoreLevel } from '@tbd54566975/dwn-sdk-js';
-import { DidDht, DidJwk, DidResolutionResult, DidResolverCache, DidResolverCacheLevel } from '@web5/dids';
+import { DidDht, DidJwk, DidResolutionResult, DidResolverCache } from '@web5/dids';
 
 import type { Web5PlatformAgent } from './types/agent.js';
 
 import { AgentDidApi } from './did-api.js';
+import { AgentDidResolverCache } from './agent-did-resolver-cache.js';
 import { AgentDwnApi } from './dwn-api.js';
 import { AgentSyncApi } from './sync-api.js';
 import { Web5RpcClient } from './rpc-client.js';
@@ -287,7 +288,7 @@ export class PlatformAgentTestHarness {
     const { didStore, identityStore, keyStore } = stores;
 
     // Setup DID Resolver Cache
-    const didResolverCache = new DidResolverCacheLevel({
+    const didResolverCache = new AgentDidResolverCache({
       location: testDataPath('DID_RESOLVERCACHE')
     });
 

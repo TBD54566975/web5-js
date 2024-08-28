@@ -73,10 +73,10 @@ type CachedDidResolutionResult = {
  */
 export class DidResolverCacheLevel implements DidResolverCache {
   /** The underlying LevelDB store used for caching. */
-  private cache;
+  protected cache;
 
   /** The time-to-live for cache entries in milliseconds. */
-  private ttl: number;
+  protected ttl: number;
 
   constructor({
     db,

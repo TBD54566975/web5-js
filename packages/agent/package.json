@@ -74,7 +74,7 @@
     "@tbd54566975/dwn-sdk-js": "0.4.6",
     "@web5/common": "1.0.0",
     "@web5/crypto": "workspace:*",
-    "@web5/dids": "1.1.0",
+    "@web5/dids": "workspace:*",
     "abstract-level": "1.0.4",
     "ed25519-keygen": "0.4.11",
     "isomorphic-ws": "^5.0.0",
