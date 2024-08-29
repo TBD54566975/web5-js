@@ -1,5 +1,14 @@
 # @web5/user-agent
 
+## 0.5.1
+
+### Patch Changes
+
+- [#857](https://github.com/TBD54566975/web5-js/pull/857) [`226455a`](https://github.com/TBD54566975/web5-js/commit/226455a7d6029292c810e67d80e129e2e20f83da) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Sync vs StartSync conflicting error.
+
+- Updated dependencies [[`226455a`](https://github.com/TBD54566975/web5-js/commit/226455a7d6029292c810e67d80e129e2e20f83da)]:
+  - @web5/agent@0.6.1
+
 ## 0.5.0
 
 ### Minor Changes
