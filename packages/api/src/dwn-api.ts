@@ -663,20 +663,22 @@ export class DwnApi {
              * Extract the `author` DID from the record entry since records may be signed by the
              * tenant owner or any other entity.
              */
-            author       : getRecordAuthor(entry),
+            author            : getRecordAuthor(entry),
             /**
              * Set the `connectedDid` to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
              * local DWN even if the record was returned by a query of a remote DWN.
              */
-            connectedDid : this.connectedDid,
+            connectedDid      : this.connectedDid,
             /**
              * If the record was returned by a query of a remote DWN, set the `remoteOrigin` to
              * the DID of the DWN that returned the record. The `remoteOrigin` property will be used
              * to determine which DWN to send subsequent read requests to in the event the data
              * payload exceeds the threshold for being returned with queries.
              */
-            remoteOrigin : request.from,
+            remoteOrigin      : request.from,
+            cachedPermissions : this.cachedPermissionsApi,
+            delegateDid       : this.delegateDid,
             ...entry as DwnMessage[DwnInterface.RecordsWrite]
           };
           const record = new Record(this.agent, recordOptions);
@@ -737,20 +739,22 @@ export class DwnApi {
              * Extract the `author` DID from the record since records may be signed by the
              * tenant owner or any other entity.
              */
-            author       : getRecordAuthor(responseRecord),
+            author            : getRecordAuthor(responseRecord),
             /**
              * Set the `connectedDid` to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
              * local DWN even if the record was read from a remote DWN.
              */
-            connectedDid : this.connectedDid,
+            connectedDid      : this.connectedDid,
             /**
              * If the record was returned by reading from a remote DWN, set the `remoteOrigin` to
              * the DID of the DWN that returned the record. The `remoteOrigin` property will be used
              * to determine which DWN to send subsequent read requests to in the event the data
              * payload must be read again (e.g., if the data stream is consumed).
              */
-            remoteOrigin : request.from,
+            remoteOrigin      : request.from,
+            cachedPermissions : this.cachedPermissionsApi,
+            delegateDid       : this.delegateDid,
             ...responseRecord,
           };
 
@@ -786,8 +790,10 @@ export class DwnApi {
            * The handler to process the subscription events.
            */
           subscriptionHandler: SubscriptionUtil.recordSubscriptionHandler({
-            agent        : this.agent,
-            connectedDid : this.connectedDid,
+            agent             : this.agent,
+            connectedDid      : this.connectedDid,
+            delegateDid       : this.delegateDid,
+            cachedPermissions : this.cachedPermissionsApi,
             request
           })
         };
@@ -855,14 +861,16 @@ export class DwnApi {
              * Assume the author is the connected DID since the record was just written to the
              * local DWN.
              */
-            author       : this.connectedDid,
+            author            : this.connectedDid,
             /**
              * Set the `connectedDid` to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
              * local DWN.
              */
-            connectedDid : this.connectedDid,
-            encodedData  : dataBlob,
+            connectedDid      : this.connectedDid,
+            encodedData       : dataBlob,
+            cachedPermissions : this.cachedPermissionsApi,
+            delegateDid       : this.delegateDid,
             ...responseMessage,
           };
 

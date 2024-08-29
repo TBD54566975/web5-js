@@ -96,6 +96,9 @@ export type RecordOptions = DwnMessage[DwnInterface.RecordsWrite | DwnInterface.
   /** The optional DID that will sign the records on behalf of the connectedDid  */
   delegateDid?: string;
 
+  /** cached permission API for fast grant lookup */
+  cachedPermissions?: CachedPermissions;
+
   /** The data of the record, either as a Base64 URL encoded string or a Blob. */
   encodedData?: string | Blob;
 
