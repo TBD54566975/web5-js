@@ -371,6 +371,7 @@ export class Record implements RecordModel {
     // connected DID's keys and DWN requests target the connected DID's DWN.
     this._connectedDid = options.connectedDid;
     this._delegateDid = options.delegateDid;
+    this._cachedPermissions = options.cachedPermissions;
 
     // If the record was queried or read from a remote DWN, the `remoteOrigin` DID will be
     // defined. This value is used to send subsequent read requests to the same remote DWN in the
