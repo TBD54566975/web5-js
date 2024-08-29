@@ -36,12 +36,28 @@ export type DidCreateOptions = {
   dwnEndpoints?: string[];
 }
 
+/**
+ * Represents a permission request for a protocol definition.
+ */
 export type ConnectPermissionRequest = {
+  /**
+   * The protocol definition for the protocol being requested.
+   */
   protocolDefinition: DwnProtocolDefinition;
+  /**
+   * The permissions being requested for the protocol. If none are provided, the default is to request all permissions.
+   */
   permissions?: Permission[];
 }
 
+/**
+ * Options for connecting to a Web5 agent. This includes the ability to connect to an external wallet
+ */
 export type ConnectOptions = Omit<WalletConnectOptions, 'permissionRequests'> & {
+  /**
+   * The permissions that are being requested for the connected DID.
+   * This is used to create the {@link ConnectPermissionRequest} for the wallet connect flow.
+   */
   permissionRequests: ConnectPermissionRequest[];
 }
 
@@ -286,9 +302,12 @@ export class Web5 {
         // No connected identity found and connectOptions are provided, attempt to import a delegated DID from an external wallet
         try {
           const { permissionRequests, ...connectOptions } = walletConnectOptions;
-          const walletPermissionRequests = permissionRequests.map(({ protocolDefinition, permissions }) => WalletConnect.createPermissionRequestForProtocol(protocolDefinition, permissions ?? [
-            'read', 'write', 'delete', 'query', 'subscribe'
-          ]));
+          const walletPermissionRequests = permissionRequests.map(({ protocolDefinition, permissions }) => WalletConnect.createPermissionRequestForProtocol({
+            definition  : protocolDefinition,
+            permissions : permissions ?? [
+              'read', 'write', 'delete', 'query', 'subscribe'
+            ]}
+          ));
 
           const { delegatePortableDid, connectedDid, delegateGrants } = await WalletConnect.initClient({
             ...connectOptions,
