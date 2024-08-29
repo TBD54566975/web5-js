@@ -11,6 +11,10 @@ import { LocalKeyManager } from '../src/local-key-manager.js';
 describe('LocalKeyManager', () => {
   let keyManager: LocalKeyManager;
 
+  after(() => {
+    sinon.restore();
+  });
+
   beforeEach(() => {
     keyManager = new LocalKeyManager();
   });

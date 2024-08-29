@@ -89,6 +89,7 @@ describe('SsiValidator', () => {
 
     afterEach(() => {
       fetchStub.restore();
+      sinon.restore();
     });
 
     it('should throw an error if credential schema is missing', async () => {

@@ -6,11 +6,12 @@
 
 import type {
   BearerIdentity,
-  DelegateGrant,
   DwnDataEncodedRecordsWriteMessage,
   DwnMessagesPermissionScope,
+  DwnProtocolDefinition,
   DwnRecordsPermissionScope,
   HdIdentityVault,
+  Permission,
   WalletConnectOptions,
   Web5Agent,
 } from '@web5/agent';
@@ -35,6 +36,31 @@ export type DidCreateOptions = {
   dwnEndpoints?: string[];
 }
 
+/**
+ * Represents a permission request for a protocol definition.
+ */
+export type ConnectPermissionRequest = {
+  /**
+   * The protocol definition for the protocol being requested.
+   */
+  protocolDefinition: DwnProtocolDefinition;
+  /**
+   * The permissions being requested for the protocol. If none are provided, the default is to request all permissions.
+   */
+  permissions?: Permission[];
+}
+
+/**
+ * Options for connecting to a Web5 agent. This includes the ability to connect to an external wallet
+ */
+export type ConnectOptions = Omit<WalletConnectOptions, 'permissionRequests'> & {
+  /**
+   * The permissions that are being requested for the connected DID.
+   * This is used to create the {@link ConnectPermissionRequest} for the wallet connect flow.
+   */
+  permissionRequests: ConnectPermissionRequest[];
+}
+
 /** Optional overrides that can be provided when calling {@link Web5.connect}. */
 export type Web5ConnectOptions = {
   /**
@@ -42,7 +68,7 @@ export type Web5ConnectOptions = {
    * This param currently will not work in apps that are currently connected.
    * It must only be invoked at registration with a reset and empty DWN and agent.
    */
-  walletConnectOptions?: WalletConnectOptions;
+  walletConnectOptions?: ConnectOptions;
 
   /**
    * Provide a {@link Web5Agent} implementation. Defaults to creating a local
@@ -231,7 +257,6 @@ export class Web5 {
     walletConnectOptions,
   }: Web5ConnectOptions = {}): Promise<Web5ConnectResult> {
     let delegateDid: string | undefined;
-    let delegateGrants: DelegateGrant[];
     if (agent === undefined) {
       let registerSync = false;
       // A custom Web5Agent implementation was not specified, so use default managed user agent.
@@ -276,8 +301,18 @@ export class Web5 {
 
         // No connected identity found and connectOptions are provided, attempt to import a delegated DID from an external wallet
         try {
-          const { delegatePortableDid, connectedDid, delegateGrants: returnedGrants } = await WalletConnect.initClient(walletConnectOptions);
-          delegateGrants = returnedGrants;
+          const { permissionRequests, ...connectOptions } = walletConnectOptions;
+          const walletPermissionRequests = permissionRequests.map(({ protocolDefinition, permissions }) => WalletConnect.createPermissionRequestForProtocol({
+            definition  : protocolDefinition,
+            permissions : permissions ?? [
+              'read', 'write', 'delete', 'query', 'subscribe'
+            ]}
+          ));
+
+          const { delegatePortableDid, connectedDid, delegateGrants } = await WalletConnect.initClient({
+            ...connectOptions,
+            permissionRequests: walletPermissionRequests,
+          });
 
           // Import the delegated DID as an Identity in the User Agent.
           // Setting the connectedDID in the metadata applies a relationship between the signer identity and the one it is impersonating.

@@ -793,6 +793,145 @@ describe('web5 api', () => {
 
         expect(startSyncSpy.args[0][0].interval).to.equal('1m');
       });
+
+
+
+      it('should request all permissions for a protocol if no specific permissions are provided', async () => {
+
+        sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+
+        // spy on the WalletConnect createPermissionRequestForProtocol method
+        const requestPermissionsSpy = sinon.spy(WalletConnect, 'createPermissionRequestForProtocol');
+
+        // We throw and spy on the initClient method to avoid the actual WalletConnect initialization
+        // but to still be able to spy on the passed parameters
+        sinon.stub(WalletConnect, 'initClient').throws('Error');
+
+        // stub the cleanUpIdentity method to avoid actual cleanup
+        sinon.stub(Web5 as any, 'cleanUpIdentity').resolves();
+
+        const protocolDefinition: DwnProtocolDefinition = {
+          protocol  : 'https://example.com/test-protocol',
+          published : true,
+          types     : {
+            foo : {},
+            bar : {}
+          },
+          structure: {
+            foo: {
+              bar: {}
+            }
+          }
+        };
+
+        try {
+
+          await Web5.connect({
+            walletConnectOptions: {
+              connectServerUrl   : 'https://connect.example.com',
+              walletUri          : 'https://wallet.example.com',
+              validatePin        : async () => { return '1234'; },
+              onWalletUriReady   : (_walletUri: string) => {},
+              permissionRequests : [{ protocolDefinition }]
+            }
+          });
+
+          expect.fail('Should have thrown an error');
+        } catch(error: any) {
+          // we expect an error because we stubbed the initClient method to throw it
+          expect(error.message).to.include('Sinon-provided Error');
+
+          // The `createPermissionRequestForProtocol` method should have been called once for the provided protocol
+          expect(requestPermissionsSpy.callCount).to.equal(1);
+          const call = requestPermissionsSpy.getCall(0);
+
+          // since no explicit permissions were provided, all permissions should be requested
+          expect(call.args[0].permissions).to.have.members([
+            'read', 'write', 'delete', 'query', 'subscribe'
+          ]);
+        }
+      });
+
+      it('should only request the specified permissions for a protocol', async () => {
+
+        sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
+
+        // spy on the WalletConnect createPermissionRequestForProtocol method
+        const requestPermissionsSpy = sinon.spy(WalletConnect, 'createPermissionRequestForProtocol');
+
+        // We throw and spy on the initClient method to avoid the actual WalletConnect initialization
+        // but to still be able to spy on the passed parameters
+        sinon.stub(WalletConnect, 'initClient').throws('Error');
+
+        // stub the cleanUpIdentity method to avoid actual cleanup
+        sinon.stub(Web5 as any, 'cleanUpIdentity').resolves();
+
+        const protocol1Definition: DwnProtocolDefinition = {
+          protocol  : 'https://example.com/test-protocol-1',
+          published : true,
+          types     : {
+            foo : {},
+            bar : {}
+          },
+          structure: {
+            foo: {
+              bar: {}
+            }
+          }
+        };
+
+        const protocol2Definition: DwnProtocolDefinition = {
+          protocol  : 'https://example.com/test-protocol-2',
+          published : true,
+          types     : {
+            foo : {},
+            bar : {}
+          },
+          structure: {
+            foo: {
+              bar: {}
+            }
+          }
+        };
+
+
+        try {
+
+          await Web5.connect({
+            walletConnectOptions: {
+              connectServerUrl   : 'https://connect.example.com',
+              walletUri          : 'https://wallet.example.com',
+              validatePin        : async () => { return '1234'; },
+              onWalletUriReady   : (_walletUri: string) => {},
+              permissionRequests : [
+                { protocolDefinition: protocol1Definition }, // no permissions provided, expect all permissions to be requested
+                { protocolDefinition: protocol2Definition, permissions: ['read', 'write'] } // only read and write permissions provided
+              ]
+            }
+          });
+
+          expect.fail('Should have thrown an error');
+        } catch(error: any) {
+          // we expect an error because we stubbed the initClient method to throw it
+          expect(error.message).to.include('Sinon-provided Error');
+
+          // The `createPermissionRequestForProtocol` method should have been called once for each provided request
+          expect(requestPermissionsSpy.callCount).to.equal(2);
+          const call1 = requestPermissionsSpy.getCall(0);
+
+          // since no explicit permissions were provided for the first protocol, all permissions should be requested
+          expect(call1.args[0].permissions).to.have.members([
+            'read', 'write', 'delete', 'query', 'subscribe'
+          ]);
+
+          const call2 = requestPermissionsSpy.getCall(1);
+
+          // only the provided permissions should be requested for the second protocol
+          expect(call2.args[0].permissions).to.have.members([
+            'read', 'write'
+          ]);
+        }
+      });
     });
 
     describe('registration', () => {

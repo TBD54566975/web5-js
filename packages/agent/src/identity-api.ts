@@ -183,14 +183,13 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
     // Retrieve the list of Identities from the Agent's Identity store.
     const storedIdentities = await this._store.list({ agent: this.agent, tenant });
 
-    const identities: BearerIdentity[] = [];
+    const identities = await Promise.all(
+      storedIdentities.map(async metadata => {
+        return this.get({ didUri: metadata.uri, tenant: metadata.tenant });
+      })
+    );
 
-    for (const metadata of storedIdentities) {
-      const identity = await this.get({ didUri: metadata.uri, tenant: metadata.tenant });
-      identities.push(identity!);
-    }
-
-    return identities;
+    return identities.filter(identity => typeof identity !== 'undefined') as BearerIdentity[];
   }
 
   public async manage({ portableIdentity }: {

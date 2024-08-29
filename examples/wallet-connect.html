@@ -121,42 +121,34 @@
           $actions: [
             {
               who: "anyone",
-              can: ["create", "update"],
+              can: ["read"],
             },
           ],
         },
       },
     };
 
-    const scopes = [
-      {
-        interface: "Records",
-        method: "Write",
-        protocol: "http://profile-protocol.xyz",
+    const fooProtocol = {
+      protocol: "http://foo-protocol.xyz",
+      published: true,
+      types: {
+        foo: {
+          schema: "http://foo-protocol.xyz/schema/foo",
+          dataFormats: ["application/json"],
+        },
       },
-      {
-        interface: "Records",
-        method: "Query",
-        protocol: "http://profile-protocol.xyz",
+      structure: {
+        foo: {},
       },
-      {
-        interface: "Records",
-        method: "Read",
-        protocol: "http://profile-protocol.xyz",
-      },
-    ];
+    };
 
     try {
-      const { delegateDid } = await Web5.connect({
+
+      const { delegateDid, web5 } = await Web5.connect({
         walletConnectOptions: {
           walletUri: "web5://connect",
           connectServerUrl: "http://localhost:3000/connect",
-          permissionRequests: [
-            {
-              protocolDefinition: profileProtocol,
-              permissionScopes: scopes,
-            },
-          ],
+          permissionRequests: [{ protocolDefinition: profileProtocol }, { protocolDefinition: fooProtocol }],
           onWalletUriReady: generateQRCode,
           validatePin: async () => {
             goToPinScreen();
@@ -167,7 +159,18 @@
         },
       });
 
-      goToEndScreen(delegateDid);
+      // attempt to write to the foo protocol
+      const { record, status } = await web5.dwn.records.create({
+        data: { fooData: 'Some Foo Data' },
+        message: {
+          protocol: fooProtocol.protocol,
+          protocolPath: 'foo',
+          schema: fooProtocol.types.foo.schema,
+          dataFormat: fooProtocol.types.foo.dataFormats[0],
+        }
+      });
+
+      goToEndScreen(delegateDid, record, status);
     } catch (e) {
       document.getElementById(
         "errorMessage"
@@ -210,12 +213,12 @@
       document.getElementById("pinScreen").style.display = "block";
     }
 
-    function goToEndScreen(delegateDid) {
+    function goToEndScreen(delegateDid, record, status) {
       document.getElementById(
         "didInformation"
       ).innerText = `delegateDid\n:${JSON.stringify(
         delegateDid
-      )}`;
+      )}\n\n\nRecordsWrite Status:${JSON.stringify(status)}\nRecord:${JSON.stringify(record, null, 2)}`;
 
       document.getElementById("pinScreen").style.display = "none";
       document.getElementById("endScreen").style.display = "block";

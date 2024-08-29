@@ -12,6 +12,7 @@ import { testDwnUrl } from './utils/test-config.js';
 import { SyncEngineLevel } from '../src/sync-engine-level.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { Convert } from '@web5/common';
+import { AbstractLevel } from 'abstract-level';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -162,6 +163,7 @@ describe('SyncEngineLevel', () => {
     });
 
     after(async () => {
+      sinon.restore();
       await testHarness.clearStorage();
       await testHarness.closeStorage();
     });
@@ -353,10 +355,7 @@ describe('SyncEngineLevel', () => {
 
       // Register Alice's DID to be synchronized.
       await testHarness.agent.sync.registerIdentity({
-        did     : alice.did.uri,
-        options : {
-          protocols: []
-        }
+        did: alice.did.uri,
       });
 
       // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
@@ -431,10 +430,7 @@ describe('SyncEngineLevel', () => {
 
         // Register Alice's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
         // Execute Sync to push and pull all records from Alice's remote DWN to Alice's local DWN.
@@ -471,10 +467,7 @@ describe('SyncEngineLevel', () => {
       it('throws if sync is attempted while an interval sync is running', async () => {
         // Register Alice's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
         // start the sync engine with an interval of 10 seconds
@@ -1057,6 +1050,21 @@ describe('SyncEngineLevel', () => {
         expect(localBarRecords.reply.status.code).to.equal(200);
         expect(localBarRecords.reply.entries).to.have.length(0);
       });
+
+      it('defaults to all protocols and undefined delegate if no options are provided', async () => {
+        // spy on AbstractLevel put
+        const abstractLevelPut = sinon.spy(AbstractLevel.prototype, 'put');
+
+        // register identity without any options
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri
+        });
+
+        const registerIdentitiesPutCall = abstractLevelPut.args[0];
+        const options = JSON.parse(registerIdentitiesPutCall[1] as string);
+        // confirm that without options the options are set to an empty protocol array
+        expect(options).to.deep.equal({ protocols: [] });
+      });
     });
 
     describe('pull()', () => {
@@ -1112,10 +1120,7 @@ describe('SyncEngineLevel', () => {
 
         // Register Alice's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
         // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
@@ -1208,10 +1213,7 @@ describe('SyncEngineLevel', () => {
 
         // Register Alice's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
         // Execute Sync to pull all records from Alice's remote DWNs
@@ -1337,10 +1339,7 @@ describe('SyncEngineLevel', () => {
 
         // Register Alice's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
         // spy on sendDwnRequest to the remote DWN
@@ -1561,10 +1560,7 @@ describe('SyncEngineLevel', () => {
 
         // Register Alice's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
         // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
@@ -1626,10 +1622,7 @@ describe('SyncEngineLevel', () => {
 
         // register alice
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
         // create a remote record
@@ -1720,18 +1713,12 @@ describe('SyncEngineLevel', () => {
 
         // Register Alice's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
         // Register Bob's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
-          did     : bob.did.uri,
-          options : {
-            protocols: []
-          }
+          did: bob.did.uri,
         });
 
         // Execute Sync to pull all records from Alice's and Bob's remove DWNs to their local DWNs.
@@ -1814,10 +1801,7 @@ describe('SyncEngineLevel', () => {
 
         // Register Alice's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
         // Execute Sync to pull all records from Alice's remote DWN to Alice's local DWN.
@@ -1917,10 +1901,7 @@ describe('SyncEngineLevel', () => {
 
         // Register Alice's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
         // Execute Sync to pull all records from Alice's remote DWNs
@@ -1956,10 +1937,7 @@ describe('SyncEngineLevel', () => {
 
         // Register Alice's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
         // scenario: The messageCids returned from the local eventLog contains a Cid that already exists in the remote DWN.
@@ -2251,10 +2229,7 @@ describe('SyncEngineLevel', () => {
 
         // Register Alice's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
         // Execute Sync to push all records from Alice's local DWN to Alice's remote DWN.
@@ -2315,10 +2290,7 @@ describe('SyncEngineLevel', () => {
 
         //register alice
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
         // create a local record
@@ -2407,18 +2379,12 @@ describe('SyncEngineLevel', () => {
 
         // Register Alice's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
         // Register Bob's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
-          did     : bob.did.uri,
-          options : {
-            protocols: []
-          }
+          did: bob.did.uri,
         });
 
         // Execute Sync to push all records from Alice's and Bob's local DWNs to their remote DWNs.
@@ -2449,56 +2415,61 @@ describe('SyncEngineLevel', () => {
     });
 
     describe('startSync()', () => {
-      it('calls sync() in each interval', async () => {
+      it('calls pull() and push() in each interval', async () => {
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
-        const syncSpy = sinon.stub(SyncEngineLevel.prototype, 'sync');
-        syncSpy.resolves();
+        const pullSpy = sinon.stub(SyncEngineLevel.prototype as any, 'pull');
+        pullSpy.resolves();
+
+        const pushSpy = sinon.stub(SyncEngineLevel.prototype as any, 'push');
+        pushSpy.resolves();
 
         const clock = sinon.useFakeTimers();
 
         testHarness.agent.sync.startSync({ interval: '500ms' });
 
         await clock.tickAsync(1_400); // just under 3 intervals
-        syncSpy.restore();
+        pullSpy.restore();
+        pushSpy.restore();
         clock.restore();
 
-        expect(syncSpy.callCount).to.equal(2, 'push');
+        expect(pullSpy.callCount).to.equal(2, 'push');
+        expect(pushSpy.callCount).to.equal(2, 'pull');
       });
 
       it('does not call sync() again until a sync round finishes', async () => {
         await testHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols: []
-          }
+          did: alice.did.uri,
         });
 
         const clock = sinon.useFakeTimers();
 
-        const syncSpy = sinon.stub(SyncEngineLevel.prototype, 'sync');
-        syncSpy.returns(new Promise((resolve) => {
+        const pullSpy = sinon.stub(SyncEngineLevel.prototype as any, 'pull');
+        pullSpy.returns(new Promise<void>((resolve) => {
           clock.setTimeout(() => {
             resolve();
           }, 1_500); // more than the interval
         }));
 
+        const pushSpy = sinon.stub(SyncEngineLevel.prototype as any, 'push');
+        pushSpy.resolves();
+
         testHarness.agent.sync.startSync({ interval: '500ms' });
 
         await clock.tickAsync(1_400); // less time than the push
 
-        expect(syncSpy.callCount).to.equal(1, 'sync');
+        expect(pullSpy.callCount).to.equal(1, 'pull');
+        expect(pullSpy.callCount).to.equal(1, 'push');
 
         await clock.tickAsync(600); //remaining time for a 2nd sync
 
-        expect(syncSpy.callCount).to.equal(2, 'sync');
+        expect(pullSpy.callCount).to.equal(2, 'pull');
+        expect(pushSpy.callCount).to.equal(2, 'push');
 
-        syncSpy.restore();
+        pullSpy.restore();
+        pushSpy.restore();
         clock.restore();
       });
     });
