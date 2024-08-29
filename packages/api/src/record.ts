@@ -19,12 +19,13 @@ import {
   DwnPaginationCursor,
   isDwnMessage,
   SendDwnRequest,
-  isRecordsWrite
+  CachedPermissions,
 } from '@web5/agent';
 
 import { Convert, isEmptyObject, NodeStream, removeUndefinedProperties, Stream } from '@web5/common';
 
 import { dataToBlob, SendCache } from './utils.js';
+import { PermissionGrant } from './permission-grant.js';
 
 /**
  * Represents Immutable Record properties that cannot be changed after the record is created.
@@ -91,6 +92,9 @@ export type RecordOptions = DwnMessage[DwnInterface.RecordsWrite | DwnInterface.
 
   /** The DID of the DWN tenant under which record operations are being performed. */
   connectedDid: string;
+
+  /** The optional DID that will sign the records on behalf of the connectedDid  */
+  delegateDid?: string;
 
   /** The data of the record, either as a Base64 URL encoded string or a Blob. */
   encodedData?: string | Blob;
@@ -205,6 +209,10 @@ export class Record implements RecordModel {
   private _agent: Web5Agent;
   /** The DID of the DWN tenant under which operations are being performed. */
   private _connectedDid: string;
+  /** The optional DID that is delegated to act on behalf of the connectedDid */
+  private _delegateDid?: string;
+  /** cache for fetching a permission {@link PermissionGrant}, keyed by a specific MessageType and protocol */
+  private _cachedPermissions?: CachedPermissions;
   /** Encoded data of the record, if available. */
   private _encodedData?: Blob;
   /** Stream of the record's data. */
@@ -359,6 +367,7 @@ export class Record implements RecordModel {
     // Store the currently `connectedDid` so that subsequent message signing is done with the
     // connected DID's keys and DWN requests target the connected DID's DWN.
     this._connectedDid = options.connectedDid;
+    this._delegateDid = options.delegateDid;
 
     // If the record was queried or read from a remote DWN, the `remoteOrigin` DID will be
     // defined. This value is used to send subsequent read requests to the same remote DWN in the
@@ -798,6 +807,20 @@ export class Record implements RecordModel {
       };
     }
 
+    if (this._delegateDid) {
+      // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
+      const { rawMessage: delegatedGrant } = await this.findPermissionGrantForMessage({
+        messageParams: {
+          messageType : DwnInterface.RecordsDelete,
+          protocol    : this.protocol,
+        }
+      });
+
+      // set the required delegated grant and grantee DID for the read operation
+      deleteOptions.messageParams.delegatedGrant = delegatedGrant;
+      deleteOptions.granteeDid = this._delegateDid;
+    }
+
     const agentResponse = await this._agent.processDwnRequest(deleteOptions);
     const { message, reply: { status } } = agentResponse;
 
@@ -842,6 +865,21 @@ export class Record implements RecordModel {
         store,
       };
 
+
+      if (this._delegateDid) {
+      // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
+        const { rawMessage: delegatedGrant } = await this.findPermissionGrantForMessage({
+          messageParams: {
+            messageType : DwnInterface.RecordsWrite,
+            protocol    : this.protocol,
+          }
+        });
+
+        // set the required delegated grant and grantee DID for the read operation
+        initialWriteRequest.messageParams.delegatedGrant = delegatedGrant;
+        initialWriteRequest.granteeDid = this._delegateDid;
+      }
+
       // Process the prepared initial write, with the options set for storing and/or signing as the owner.
       const agentResponse = await this._agent.processDwnRequest(initialWriteRequest);
 
@@ -871,6 +909,19 @@ export class Record implements RecordModel {
         signAsOwner,
         store,
       };
+      if (this._delegateDid) {
+        // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
+        const { rawMessage: delegatedGrant } = await this.findPermissionGrantForMessage({
+          messageParams: {
+            messageType : DwnInterface.RecordsDelete,
+            protocol    : this.protocol,
+          }
+        });
+
+        // set the required delegated grant and grantee DID for the read operation
+        requestOptions.messageParams.delegatedGrant = delegatedGrant;
+        requestOptions.granteeDid = this._delegateDid;
+      }
     } else {
       requestOptions = {
         messageType : DwnInterface.RecordsWrite,
@@ -881,6 +932,19 @@ export class Record implements RecordModel {
         signAsOwner,
         store,
       };
+      if (this._delegateDid) {
+        // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
+        const { rawMessage: delegatedGrant } = await this.findPermissionGrantForMessage({
+          messageParams: {
+            messageType : DwnInterface.RecordsWrite,
+            protocol    : this.protocol,
+          }
+        });
+
+        // set the required delegated grant and grantee DID for the read operation
+        requestOptions.messageParams.delegatedGrant = delegatedGrant;
+        requestOptions.granteeDid = this._delegateDid;
+      }
     }
 
     const agentResponse = await this._agent.processDwnRequest(requestOptions);
@@ -918,6 +982,20 @@ export class Record implements RecordModel {
       messageType   : DwnInterface.RecordsRead,
       target,
     };
+
+    if (this._delegateDid) {
+      // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
+      const { rawMessage: delegatedGrant } = await this.findPermissionGrantForMessage({
+        messageParams: {
+          messageType : DwnInterface.RecordsRead,
+          protocol    : this.protocol,
+        }
+      });
+
+      // set the required delegated grant and grantee DID for the read operation
+      readRequest.messageParams.delegatedGrant = delegatedGrant;
+      readRequest.granteeDid = this._delegateDid;
+    }
 
     const agentResponsePromise = isRemote ?
       this._agent.sendDwnRequest(readRequest) :
@@ -971,5 +1049,29 @@ export class Record implements RecordModel {
    */
   private isRecordsDeleteDescriptor(descriptor: DwnMessageDescriptor[DwnInterface.RecordsWrite | DwnInterface.RecordsDelete]): descriptor is DwnMessageDescriptor[DwnInterface.RecordsDelete] {
     return descriptor.interface + descriptor.method === DwnInterface.RecordsDelete;
+  }
+
+  private async findPermissionGrantForMessage<T extends DwnInterface>({ messageParams, cached = true }:{
+    cached?: boolean;
+    messageParams: {
+      messageType: T;
+      protocol: string;
+    }
+  }) : Promise<PermissionGrant> {
+    if(!this._delegateDid) {
+      throw new Error('Record: Cannot find connected grants without a signer DID');
+    }
+
+    const delegateGrant = await this._cachedPermissions.getPermission({
+      connectedDid : this._connectedDid,
+      delegateDid  : this._delegateDid,
+      messageType  : messageParams.messageType,
+      protocol     : messageParams.protocol,
+      delegate     : true,
+      cached,
+    });
+
+    const grant = await PermissionGrant.parse({ connectedDid: this._delegateDid, agent: this._agent, message: delegateGrant.message });
+    return grant;
   }
 }
