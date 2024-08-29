@@ -185,9 +185,27 @@ export type ConnectPermissionRequest = {
   permissionScopes: DwnPermissionScope[];
 };
 
+/**
+ * Shorthand for the types of permissions that can be requested.
+ */
 export type Permission = 'write' | 'read' | 'delete' | 'query' | 'subscribe';
 
-function createPermissionRequestForProtocol(definition: DwnProtocolDefinition, permissions: Permission[]): ConnectPermissionRequest {
+/**
+ * The options for creating a permission request for a given protocol.
+ */
+export type ProtocolPermissionOptions = {
+  /** The protocol definition for the protocol being requested */
+  definition: DwnProtocolDefinition;
+
+  /** The permissions being requested for the protocol */
+  permissions: Permission[];
+};
+
+/**
+ * Creates a set of Dwn Permission Scopes to request for a given protocol.
+ * If no permissions are provided, the default is to request all permissions (write, read, delete, query, subscribe).
+ */
+function createPermissionRequestForProtocol({ definition, permissions }: ProtocolPermissionOptions): ConnectPermissionRequest {
   const requests: DwnPermissionScope[] = [];
 
   // In order to enable sync, we must request permissions for `MessagesQuery`, `MessagesRead` and `MessagesSubscribe`

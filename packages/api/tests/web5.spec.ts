@@ -846,7 +846,7 @@ describe('web5 api', () => {
           const call = requestPermissionsSpy.getCall(0);
 
           // since no explicit permissions were provided, all permissions should be requested
-          expect(call.args[1]).to.have.members([
+          expect(call.args[0].permissions).to.have.members([
             'read', 'write', 'delete', 'query', 'subscribe'
           ]);
         }
@@ -920,14 +920,14 @@ describe('web5 api', () => {
           const call1 = requestPermissionsSpy.getCall(0);
 
           // since no explicit permissions were provided for the first protocol, all permissions should be requested
-          expect(call1.args[1]).to.have.members([
+          expect(call1.args[0].permissions).to.have.members([
             'read', 'write', 'delete', 'query', 'subscribe'
           ]);
 
           const call2 = requestPermissionsSpy.getCall(1);
 
           // only the provided permissions should be requested for the second protocol
-          expect(call2.args[1]).to.have.members([
+          expect(call2.args[0].permissions).to.have.members([
             'read', 'write'
           ]);
         }

@@ -288,7 +288,8 @@ export class SyncEngineLevel implements SyncEngine {
         }
 
         try {
-          await this.sync();
+          await this.push();
+          await this.pull();
         } catch (error: any) {
           this.stopSync();
           reject(error);

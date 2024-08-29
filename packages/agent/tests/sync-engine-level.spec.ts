@@ -2415,23 +2415,28 @@ describe('SyncEngineLevel', () => {
     });
 
     describe('startSync()', () => {
-      it('calls sync() in each interval', async () => {
+      it('calls pull() and push() in each interval', async () => {
         await testHarness.agent.sync.registerIdentity({
           did: alice.did.uri,
         });
 
-        const syncSpy = sinon.stub(SyncEngineLevel.prototype, 'sync');
-        syncSpy.resolves();
+        const pullSpy = sinon.stub(SyncEngineLevel.prototype as any, 'pull');
+        pullSpy.resolves();
+
+        const pushSpy = sinon.stub(SyncEngineLevel.prototype as any, 'push');
+        pushSpy.resolves();
 
         const clock = sinon.useFakeTimers();
 
         testHarness.agent.sync.startSync({ interval: '500ms' });
 
         await clock.tickAsync(1_400); // just under 3 intervals
-        syncSpy.restore();
+        pullSpy.restore();
+        pushSpy.restore();
         clock.restore();
 
-        expect(syncSpy.callCount).to.equal(2, 'push');
+        expect(pullSpy.callCount).to.equal(2, 'push');
+        expect(pushSpy.callCount).to.equal(2, 'pull');
       });
 
       it('does not call sync() again until a sync round finishes', async () => {
@@ -2441,24 +2446,30 @@ describe('SyncEngineLevel', () => {
 
         const clock = sinon.useFakeTimers();
 
-        const syncSpy = sinon.stub(SyncEngineLevel.prototype, 'sync');
-        syncSpy.returns(new Promise((resolve) => {
+        const pullSpy = sinon.stub(SyncEngineLevel.prototype as any, 'pull');
+        pullSpy.returns(new Promise<void>((resolve) => {
           clock.setTimeout(() => {
             resolve();
           }, 1_500); // more than the interval
         }));
 
+        const pushSpy = sinon.stub(SyncEngineLevel.prototype as any, 'push');
+        pushSpy.resolves();
+
         testHarness.agent.sync.startSync({ interval: '500ms' });
 
         await clock.tickAsync(1_400); // less time than the push
 
-        expect(syncSpy.callCount).to.equal(1, 'sync');
+        expect(pullSpy.callCount).to.equal(1, 'pull');
+        expect(pullSpy.callCount).to.equal(1, 'push');
 
         await clock.tickAsync(600); //remaining time for a 2nd sync
 
-        expect(syncSpy.callCount).to.equal(2, 'sync');
+        expect(pullSpy.callCount).to.equal(2, 'pull');
+        expect(pushSpy.callCount).to.equal(2, 'push');
 
-        syncSpy.restore();
+        pullSpy.restore();
+        pushSpy.restore();
         clock.restore();
       });
     });
