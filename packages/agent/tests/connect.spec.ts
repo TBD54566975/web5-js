@@ -11,7 +11,7 @@ import {
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { TestAgent } from './utils/test-agent.js';
 import { testDwnUrl } from './utils/test-config.js';
-import { BearerIdentity, DwnProtocolDefinition,  WalletConnect } from '../src/index.js';
+import { BearerIdentity, DwnInterface, DwnMessage, DwnProtocolDefinition,  WalletConnect } from '../src/index.js';
 import { RecordsPermissionScope } from '@tbd54566975/dwn-sdk-js';
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 
@@ -486,6 +486,261 @@ describe('web5 connect', function () {
       expect(results).to.be.an('object');
       expect(results?.delegateGrants).to.be.an('array');
       expect(results?.delegatePortableDid).to.be.an('object');
+    });
+  });
+
+  describe('submitAuthResponse', () => {
+    it('should not attempt to configure the protocol if it already exists', async () => {
+      // scenario: the wallet gets a request for a protocol that it already has configured
+      // the wallet should not attempt to re-configure, but instead ensure that the protocol is
+      // sent to the remote DWN for the requesting client to be able to sync it down later
+
+      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
+      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
+      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
+
+      const callbackUrl = Oidc.buildOidcUrl({
+        baseURL  : 'http://localhost:3000',
+        endpoint : 'callback',
+      });
+
+      const options = {
+        client_id          : clientEphemeralPortableDid.uri,
+        scope              : 'openid did:jwk',
+        // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
+        // code_challenge_method : 'S256' as const,
+        permissionRequests : [{ protocolDefinition, permissionScopes }],
+        redirect_uri       : callbackUrl,
+      };
+      authRequest = await Oidc.createAuthRequest(options);
+
+      // stub the processDwnRequest method to return a protocol entry
+      const protocolMessage = {} as DwnMessage[DwnInterface.ProtocolsConfigure];
+
+      // spy send request
+      const sendRequestSpy = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({
+        messageCid : '',
+        reply      : { status: { code: 202, detail: 'OK' } }
+      });
+
+      const processDwnRequestStub = sinon
+        .stub(testHarness.agent, 'processDwnRequest')
+        .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' }, entries: [ protocolMessage ]} });
+
+      // call submitAuthResponse
+      await Oidc.submitAuthResponse(
+        providerIdentity.did.uri,
+        authRequest,
+        randomPin,
+        testHarness.agent
+      );
+
+      // expect the process request to only be called once for ProtocolsQuery
+      expect(processDwnRequestStub.callCount).to.equal(1);
+      expect(processDwnRequestStub.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsQuery);
+
+      // send request should be called once as a ProtocolsConfigure
+      expect(sendRequestSpy.callCount).to.equal(1);
+      expect(sendRequestSpy.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsConfigure);
+    });
+
+    it('should configure the protocol if it does not exist', async () => {
+      // scenario: the wallet gets a request for a protocol that it does not have configured
+      // the wallet should attempt to configure the protocol and then send the protocol to the remote DWN
+
+      // looks for a response of 404, empty entries array or missing entries array
+
+      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
+      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
+      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
+
+      const callbackUrl = Oidc.buildOidcUrl({
+        baseURL  : 'http://localhost:3000',
+        endpoint : 'callback',
+      });
+
+      const options = {
+        client_id          : clientEphemeralPortableDid.uri,
+        scope              : 'openid did:jwk',
+        // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
+        // code_challenge_method : 'S256' as const,
+        permissionRequests : [{ protocolDefinition, permissionScopes }],
+        redirect_uri       : callbackUrl,
+      };
+      authRequest = await Oidc.createAuthRequest(options);
+
+      // spy send request
+      const sendRequestSpy = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({
+        messageCid : '',
+        reply      : { status: { code: 202, detail: 'OK' } }
+      });
+
+      const processDwnRequestStub = sinon
+        .stub(testHarness.agent, 'processDwnRequest')
+        .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' }, entries: [ ]} });
+
+      // call submitAuthResponse
+      await Oidc.submitAuthResponse(
+        providerIdentity.did.uri,
+        authRequest,
+        randomPin,
+        testHarness.agent
+      );
+
+      // expect the process request to be called for query and configure
+      expect(processDwnRequestStub.callCount).to.equal(2);
+      expect(processDwnRequestStub.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsQuery);
+      expect(processDwnRequestStub.secondCall.args[0].messageType).to.equal(DwnInterface.ProtocolsConfigure);
+
+      // send request should be called once as a ProtocolsConfigure
+      expect(sendRequestSpy.callCount).to.equal(1);
+      expect(sendRequestSpy.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsConfigure);
+
+      // reset the spys
+      processDwnRequestStub.resetHistory();
+      sendRequestSpy.resetHistory();
+
+      // processDwnRequestStub should resolve a 404
+      processDwnRequestStub.resolves({ messageCid: '', reply: { status: { code: 404, detail: 'Not Found' } } });
+
+      // call submitAuthResponse
+      await Oidc.submitAuthResponse(
+        providerIdentity.did.uri,
+        authRequest,
+        randomPin,
+        testHarness.agent
+      );
+
+      // expect the process request to be called for query and configure
+      expect(processDwnRequestStub.callCount).to.equal(2);
+      expect(processDwnRequestStub.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsQuery);
+      expect(processDwnRequestStub.secondCall.args[0].messageType).to.equal(DwnInterface.ProtocolsConfigure);
+
+      // send request should be called once as a ProtocolsConfigure
+      expect(sendRequestSpy.callCount).to.equal(1);
+      expect(sendRequestSpy.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsConfigure);
+
+      // reset the spys
+      processDwnRequestStub.resetHistory();
+      sendRequestSpy.resetHistory();
+
+      // processDwnRequestStub should resolve a 200 with no entires
+      processDwnRequestStub.resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' } } });
+
+      // call submitAuthResponse
+      await Oidc.submitAuthResponse(
+        providerIdentity.did.uri,
+        authRequest,
+        randomPin,
+        testHarness.agent
+      );
+
+      // expect the process request to be called for query and configure
+      expect(processDwnRequestStub.callCount).to.equal(2);
+      expect(processDwnRequestStub.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsQuery);
+      expect(processDwnRequestStub.secondCall.args[0].messageType).to.equal(DwnInterface.ProtocolsConfigure);
+
+      // send request should be called once as a ProtocolsConfigure
+      expect(sendRequestSpy.callCount).to.equal(1);
+      expect(sendRequestSpy.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsConfigure);
+    });
+
+    it('should fail if the send request fails for newly configured protocol', async () => {
+      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
+      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
+      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
+
+      const callbackUrl = Oidc.buildOidcUrl({
+        baseURL  : 'http://localhost:3000',
+        endpoint : 'callback',
+      });
+
+      const options = {
+        client_id          : clientEphemeralPortableDid.uri,
+        scope              : 'openid did:jwk',
+        // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
+        // code_challenge_method : 'S256' as const,
+        permissionRequests : [{ protocolDefinition, permissionScopes }],
+        redirect_uri       : callbackUrl,
+      };
+      authRequest = await Oidc.createAuthRequest(options);
+
+      // spy send request
+      const sendRequestSpy = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({
+        reply      : { status: { code: 500, detail: 'Internal Server Error' } },
+        messageCid : ''
+      });
+
+      // return without any entries
+      const processDwnRequestStub = sinon
+        .stub(testHarness.agent, 'processDwnRequest')
+        .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' } } });
+
+      try {
+        // call submitAuthResponse
+        await Oidc.submitAuthResponse(
+          providerIdentity.did.uri,
+          authRequest,
+          randomPin,
+          testHarness.agent
+        );
+
+        expect.fail('should have thrown an error');
+      } catch (error: any) {
+        expect(error.message).to.equal('Could not send protocol: Internal Server Error');
+        expect(sendRequestSpy.callCount).to.equal(1);
+      }
+    });
+
+    it('should fail if the send request fails for existing protocol', async () => {
+      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
+      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
+      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
+
+      const callbackUrl = Oidc.buildOidcUrl({
+        baseURL  : 'http://localhost:3000',
+        endpoint : 'callback',
+      });
+
+      const options = {
+        client_id          : clientEphemeralPortableDid.uri,
+        scope              : 'openid did:jwk',
+        // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
+        // code_challenge_method : 'S256' as const,
+        permissionRequests : [{ protocolDefinition, permissionScopes }],
+        redirect_uri       : callbackUrl,
+      };
+      authRequest = await Oidc.createAuthRequest(options);
+
+      // stub the processDwnRequest method to return a protocol entry
+      const protocolMessage = {} as DwnMessage[DwnInterface.ProtocolsConfigure];
+
+      // spy send request
+      const sendRequestSpy = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({
+        reply      : { status: { code: 500, detail: 'Internal Server Error' } },
+        messageCid : ''
+      });
+
+      // mock returning the protocol entry
+      const processDwnRequestStub = sinon
+        .stub(testHarness.agent, 'processDwnRequest')
+        .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' }, entries: [ protocolMessage ] } });
+
+      try {
+        // call submitAuthResponse
+        await Oidc.submitAuthResponse(
+          providerIdentity.did.uri,
+          authRequest,
+          randomPin,
+          testHarness.agent
+        );
+
+        expect.fail('should have thrown an error');
+      } catch (error: any) {
+        expect(error.message).to.equal('Could not send protocol: Internal Server Error');
+        expect(processDwnRequestStub.callCount).to.equal(1);
+        expect(sendRequestSpy.callCount).to.equal(1);
+      }
     });
   });
 

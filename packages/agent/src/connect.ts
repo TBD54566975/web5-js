@@ -1,6 +1,6 @@
 
 import type { PushedAuthResponse } from './oidc.js';
-import type { DwnPermissionScope, DwnProtocolDefinition, Web5ConnectAuthResponse } from './index.js';
+import type { DwnPermissionScope, DwnProtocolDefinition, Web5Agent, Web5ConnectAuthResponse } from './index.js';
 
 import {
   Oidc,
