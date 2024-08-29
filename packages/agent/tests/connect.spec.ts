@@ -577,31 +577,7 @@ describe('web5 connect', function () {
 
       const processDwnRequestStub = sinon
         .stub(testHarness.agent, 'processDwnRequest')
-        .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' }, entries: [ ]} });
-
-      // call submitAuthResponse
-      await Oidc.submitAuthResponse(
-        providerIdentity.did.uri,
-        authRequest,
-        randomPin,
-        testHarness.agent
-      );
-
-      // expect the process request to be called for query and configure
-      expect(processDwnRequestStub.callCount).to.equal(2);
-      expect(processDwnRequestStub.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsQuery);
-      expect(processDwnRequestStub.secondCall.args[0].messageType).to.equal(DwnInterface.ProtocolsConfigure);
-
-      // send request should be called once as a ProtocolsConfigure
-      expect(sendRequestSpy.callCount).to.equal(1);
-      expect(sendRequestSpy.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsConfigure);
-
-      // reset the spys
-      processDwnRequestStub.resetHistory();
-      sendRequestSpy.resetHistory();
-
-      // processDwnRequestStub should resolve a 404
-      processDwnRequestStub.resolves({ messageCid: '', reply: { status: { code: 404, detail: 'Not Found' } } });
+        .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' }, entries: [ ] } });
 
       // call submitAuthResponse
       await Oidc.submitAuthResponse(
@@ -740,6 +716,54 @@ describe('web5 connect', function () {
         expect(error.message).to.equal('Could not send protocol: Internal Server Error');
         expect(processDwnRequestStub.callCount).to.equal(1);
         expect(sendRequestSpy.callCount).to.equal(1);
+      }
+    });
+
+    it('should throw if protocol could not be fetched at all', async () => {
+      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
+      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
+      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
+
+      const callbackUrl = Oidc.buildOidcUrl({
+        baseURL  : 'http://localhost:3000',
+        endpoint : 'callback',
+      });
+
+      const options = {
+        client_id          : clientEphemeralPortableDid.uri,
+        scope              : 'openid did:jwk',
+        // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
+        // code_challenge_method : 'S256' as const,
+        permissionRequests : [{ protocolDefinition, permissionScopes }],
+        redirect_uri       : callbackUrl,
+      };
+      authRequest = await Oidc.createAuthRequest(options);
+
+      // spy send request
+      const sendRequestSpy = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({
+        reply      : { status: { code: 500, detail: 'Internal Server Error' } },
+        messageCid : ''
+      });
+
+      // mock returning the protocol entry
+      const processDwnRequestStub = sinon
+        .stub(testHarness.agent, 'processDwnRequest')
+        .resolves({ messageCid: '', reply: { status: { code: 500, detail: 'Some Error'}, } });
+
+      try {
+        // call submitAuthResponse
+        await Oidc.submitAuthResponse(
+          providerIdentity.did.uri,
+          authRequest,
+          randomPin,
+          testHarness.agent
+        );
+
+        expect.fail('should have thrown an error');
+      } catch (error: any) {
+        expect(error.message).to.equal('Could not fetch protocol: Some Error');
+        expect(processDwnRequestStub.callCount).to.equal(1);
+        expect(sendRequestSpy.callCount).to.equal(0);
       }
     });
   });

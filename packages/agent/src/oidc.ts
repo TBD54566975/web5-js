@@ -674,11 +674,12 @@ async function prepareProtocol(
     messageParams : { filter: { protocol: protocolDefinition.protocol } },
   });
 
-  if (
-    queryMessage.reply.status.code === 404 ||
-    queryMessage.reply.entries === undefined ||
-    queryMessage.reply.entries.length === 0
-  ) {
+  if ( queryMessage.reply.status.code !== 200) {
+    // if the query failed, throw an error
+    throw new Error(
+      `Could not fetch protocol: ${queryMessage.reply.status.detail}`
+    );
+  } else if (queryMessage.reply.entries === undefined || queryMessage.reply.entries.length === 0) {
 
     // send the protocol definition to the remote DWN first, if it passes we can process it locally
     const { reply: sendReply, message: configureMessage } = await agent.sendDwnRequest({
@@ -701,12 +702,6 @@ async function prepareProtocol(
       rawMessage  : configureMessage
     });
 
-  } else if (queryMessage.reply.status.code !== 200) {
-
-    // if the query failed, throw an error
-    throw new Error(
-      `Could not fetch protocol: ${queryMessage.reply.status.detail}`
-    );
   } else {
 
     // the protocol already exists, let's make sure it exists on the remote DWN as the requesting app will need it
