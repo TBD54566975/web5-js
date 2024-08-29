@@ -741,13 +741,28 @@ export class Record implements RecordModel {
       delete updateMessage.datePublished;
     }
 
-    const agentResponse = await this._agent.processDwnRequest({
+    const requestOptions: ProcessDwnRequest<DwnInterface.RecordsWrite> = {
       author        : this._connectedDid,
       dataStream    : dataBlob,
       messageParams : { ...updateMessage },
       messageType   : DwnInterface.RecordsWrite,
       target        : this._connectedDid,
-    });
+    };
+    if (this._delegateDid) {
+      // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
+      const { rawMessage: delegatedGrant } = await this.findPermissionGrantForMessage({
+        messageParams: {
+          messageType : DwnInterface.RecordsWrite,
+          protocol    : this.protocol,
+        }
+      });
+
+      // set the required delegated grant and grantee DID for the read operation
+      requestOptions.messageParams.delegatedGrant = delegatedGrant;
+      requestOptions.granteeDid = this._delegateDid;
+    }
+
+    const agentResponse = await this._agent.processDwnRequest(requestOptions);
 
     const { message, reply: { status } } = agentResponse;
     const responseMessage = message;
