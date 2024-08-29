@@ -766,6 +766,44 @@ describe('web5 connect', function () {
         expect(sendRequestSpy.callCount).to.equal(0);
       }
     });
+
+    it('should throw if a grant that is included in the request does not match the protocol definition', async () => {
+      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
+      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
+      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
+
+      const callbackUrl = Oidc.buildOidcUrl({
+        baseURL  : 'http://localhost:3000',
+        endpoint : 'callback',
+      });
+
+      const mismatchedScopes = [...permissionScopes];
+      mismatchedScopes[0].protocol = 'http://profile-protocol.xyz/other';
+
+      const options = {
+        client_id          : clientEphemeralPortableDid.uri,
+        scope              : 'openid did:jwk',
+        // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
+        // code_challenge_method : 'S256' as const,
+        permissionRequests : [{ protocolDefinition, permissionScopes }],
+        redirect_uri       : callbackUrl,
+      };
+      authRequest = await Oidc.createAuthRequest(options);
+
+      try {
+        // call submitAuthResponse
+        await Oidc.submitAuthResponse(
+          providerIdentity.did.uri,
+          authRequest,
+          randomPin,
+          testHarness.agent
+        );
+
+        expect.fail('should have thrown an error');
+      } catch (error: any) {
+        expect(error.message).to.equal('All permission scopes must match the protocol uri they are provided with.');
+      }
+    });
   });
 
   describe('createPermissionRequestForProtocol', () => {
