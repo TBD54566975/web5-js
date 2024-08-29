@@ -1,5 +1,15 @@
 # @web5/credentials
 
+## 1.1.1
+
+### Patch Changes
+
+- [#838](https://github.com/TBD54566975/web5-js/pull/838) [`2d0b423`](https://github.com/TBD54566975/web5-js/commit/2d0b423b90546c8d28735b600328c8a5937b57c8) Thanks [@shamilovtim](https://github.com/shamilovtim)! - cleanup crypto utils
+
+- Updated dependencies [[`2d0b423`](https://github.com/TBD54566975/web5-js/commit/2d0b423b90546c8d28735b600328c8a5937b57c8), [`5ac4fe5`](https://github.com/TBD54566975/web5-js/commit/5ac4fe51a2a87a266e95c3db8215059ac2d38e77)]:
+  - @web5/crypto@1.0.4
+  - @web5/dids@1.1.4
+
 ## 1.1.0
 
 ### Minor Changes

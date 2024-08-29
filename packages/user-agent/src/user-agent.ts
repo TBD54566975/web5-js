@@ -12,6 +12,7 @@ import {
   ProcessDwnRequest,
   Web5PlatformAgent,
   AgentPermissionsApi,
+  AgentDidResolverCache,
 } from '@web5/agent';
 
 import { LevelStore } from '@web5/common';
@@ -162,7 +163,7 @@ export class Web5UserAgent<TKeyManager extends AgentKeyManager = LocalKeyManager
 
     didApi ??= new AgentDidApi({
       didMethods    : [DidDht, DidJwk],
-      resolverCache : new DidResolverCacheLevel({ location: `${dataPath}/DID_RESOLVERCACHE` }),
+      resolverCache : new AgentDidResolverCache({ location: `${dataPath}/DID_RESOLVERCACHE` }),
       store         : new DwnDidStore()
     });
 

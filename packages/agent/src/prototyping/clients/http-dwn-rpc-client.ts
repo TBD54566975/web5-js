@@ -2,7 +2,7 @@ import type { JsonRpcResponse } from './json-rpc.js';
 import type { DwnRpc, DwnRpcRequest, DwnRpcResponse } from './dwn-rpc-types.js';
 
 import { createJsonRpcRequest, parseJson } from './json-rpc.js';
-import { utils as cryptoUtils } from '@web5/crypto';
+import { CryptoUtils } from '@web5/crypto';
 import { DwnServerInfoCache, ServerInfo } from './server-info-types.js';
 import { DwnServerInfoCacheMemory } from './dwn-server-info-cache-memory.js';
 
@@ -18,7 +18,7 @@ export class HttpDwnRpcClient implements DwnRpc {
   get transportProtocols() { return ['http:', 'https:']; }
 
   async sendDwnRequest(request: DwnRpcRequest): Promise<DwnRpcResponse> {
-    const requestId = cryptoUtils.randomUuid();
+    const requestId = CryptoUtils.randomUuid();
     const jsonRpcRequest = createJsonRpcRequest(requestId, 'dwn.processMessage', {
       target  : request.targetDid,
       message : request.message

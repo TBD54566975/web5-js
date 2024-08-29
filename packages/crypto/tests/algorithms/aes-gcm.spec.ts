@@ -4,7 +4,7 @@ import { Convert } from '@web5/common';
 import type { Jwk } from '../../src/jose/jwk.js';
 
 import { isChrome } from '../utils/runtimes.js';
-import { randomBytes } from '../../src/utils.js';
+import { CryptoUtils } from '../../src/utils.js';
 import { AesGcmAlgorithm } from '../../src/algorithms/aes-gcm.js';
 
 describe('AesGcmAlgorithm', () => {
@@ -20,7 +20,7 @@ describe('AesGcmAlgorithm', () => {
     it('returns ciphertext as a Uint8Array', async () => {
       // Setup.
       const plaintext = new Uint8Array([1, 2, 3, 4]);
-      const iv = randomBytes(12); // Initialization vector.
+      const iv = CryptoUtils.randomBytes(12); // Initialization vector.
       const tagLength = 128; // Size in bits of the authentication tag.
 
       // Test the method.

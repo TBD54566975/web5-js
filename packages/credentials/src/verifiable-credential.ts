@@ -1,7 +1,7 @@
 import type { BearerDid } from '@web5/dids';
 import type { ICredential, ICredentialSubject} from '@sphereon/ssi-types';
 
-import { utils as cryptoUtils } from '@web5/crypto';
+import { CryptoUtils } from '@web5/crypto';
 
 import { Jwt } from './jwt.js';
 import { SsiValidator } from './validators.js';
@@ -196,7 +196,7 @@ export class VerifiableCredential {
       type       : Array.isArray(type)
         ? [DEFAULT_VC_TYPE, ...type]
         : (type ? [DEFAULT_VC_TYPE, type] : [DEFAULT_VC_TYPE]),
-      id                : `urn:uuid:${cryptoUtils.randomUuid()}`,
+      id                : `urn:uuid:${CryptoUtils.randomUuid()}`,
       issuer            : issuer,
       issuanceDate      : issuanceDate || getCurrentXmlSchema112Timestamp(),
       credentialSubject : credentialSubject,

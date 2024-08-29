@@ -7,7 +7,9 @@ export type * from './types/permissions.js';
 export type * from './types/sync.js';
 export type * from './types/vc.js';
 
+export * from './agent-did-resolver-cache.js';
 export * from './bearer-identity.js';
+export * from './cached-permissions.js';
 export * from './crypto-api.js';
 export * from './did-api.js';
 export * from './dwn-api.js';

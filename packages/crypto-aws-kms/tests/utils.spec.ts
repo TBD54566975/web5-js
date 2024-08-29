@@ -7,6 +7,10 @@ import { Convert } from '@web5/common';
 import { mockEcdsaSecp256k1 } from './fixtures/mock-ecdsa-secp256k1.js';
 
 describe('AWS KMS Utils', () => {
+  after(() => {
+    sinon.restore();
+  });
+
   describe('convertSpkiToPublicKey()', () => {
     it('converts DER-encoded SPKI public key to JWK', () => {
       // Setup.

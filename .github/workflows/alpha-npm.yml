@@ -21,7 +21,8 @@ jobs:
 
     env:
       # Packages not listed here will be excluded from publishing
-      PACKAGES: "agent api common credentials crypto crypto-aws-kms dids identity-agent proxy-agent user-agent"
+      # These are currently in a specific order due to dependency requirements
+      PACKAGES: "crypto crypto-aws-kms common dids credentials agent identity-agent proxy-agent user-agent api"
 
     steps:
       - name: Checkout source
@@ -29,7 +30,7 @@ jobs:
 
       # https://cashapp.github.io/hermit/usage/ci/
       - name: Init Hermit
-        uses: cashapp/activate-hermit@31ce88b17a84941bb1b782f1b7b317856addf286 #v1.1.0
+        uses: cashapp/activate-hermit@v1
         with:
           cache: "true"
 
@@ -63,11 +64,17 @@ jobs:
           node ./scripts/bump-workspace.mjs --prerelease=$ALPHA_PRERELEASE
         shell: bash
 
-      - name: Build all workspace packages
+      - name: Build all workspace packages sequentially
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-        run: pnpm --recursive --stream build
-        
+        run: |
+          for package in $PACKAGES; do
+            cd packages/$package
+            pnpm build
+            cd ../..
+          done
+        shell: bash
+
       - name: Publish selected @web5/* packages
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}

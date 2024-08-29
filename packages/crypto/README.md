@@ -12,22 +12,35 @@
 
 ---
 
-- [Introduction](#introduction)
-  - [Supported Algorithms & Key Types](#supported-algorithms--key-types)
+- [Web5 Crypto API](#web5-crypto-api)
+  - [Supported Algorithms \& Key Types](#supported-algorithms--key-types)
   - [Extensions](#extensions)
-- [Getting Started](#getting-started)
-  - [Node.js](#nodejs)
-  - [Web Browsers](#web-browsers)
-  - [React Native](#react-native)
-- [Contributing](#contributing)
-- [Core Concepts](#usage)
-  - [Key URIs](#key-uris)
-  - [Using a Local KMS](#using-a-local-kms)
-  - [JSON Web Key (JWK)](#json-web-key-jwk)
-  - [Random Number Generation](#random-number-generation)
-- [Customization](#customization)
-  - [Persistent Local KMS Key Store](#persistent-local-kms-key-store)
-- [Cryptographic Primitives](#cryptographic-primitives)
+  - [Getting Started](#getting-started)
+    - [Node.js](#nodejs)
+    - [Web Browsers](#web-browsers)
+    - [React Native](#react-native)
+  - [Contributing](#contributing)
+  - [Core Concepts](#core-concepts)
+    - [Key URIs](#key-uris)
+    - [Using a Local KMS](#using-a-local-kms)
+    - [JSON Web Key (JWK)](#json-web-key-jwk)
+    - [Random Number Generation](#random-number-generation)
+      - [`randomBytes()`](#randombytes)
+      - [`randomUuid()`](#randomuuid)
+  - [Customization](#customization)
+    - [Persistent Local KMS Key Store](#persistent-local-kms-key-store)
+  - [Cryptographic Primitives](#cryptographic-primitives)
+    - [AES-CTR](#aes-ctr)
+    - [AES-GCM](#aes-gcm)
+    - [ConcatKDF](#concatkdf)
+    - [Ed25519](#ed25519)
+    - [PBKDF2](#pbkdf2)
+    - [secp256k1](#secp256k1)
+    - [SHA-256](#sha-256)
+    - [X25519](#x25519)
+    - [XChaCha20](#xchacha20)
+    - [XChaCha20-Poly1305](#xchacha20-poly1305)
+  - [Project Resources](#project-resources)
 
 ---
 
@@ -366,9 +379,9 @@ nonces and other random values.
 > available.
 
 ```typescript
-import { randomBytes } from "@web5/crypto/utils";
+import { CryptoUtils } from "@web5/crypto";
 
-const nonce = randomBytes(24);
+const nonce = CryptoUtils.randomBytes(24);
 ```
 
 #### `randomUuid()`
@@ -387,9 +400,9 @@ The following is an example of the string representation of a UUID as a URN:
 > This function is available only in [secure contexts](#secure-context) (HTTPS and localhost).
 
 ```typescript
-import { randomUuid } from "@web5/crypto/utils";
+import { CryptoUtils } from "@web5/crypto";
 
-const uuid = randomUuid();
+const uuid = CryptoUtils.randomUuid();
 ```
 
 ## Customization
@@ -439,7 +452,7 @@ and key conversion algorithms for advanced use cases.
 #### AES-CTR
 
 ```ts
-import { AesCtr, utils } from "@web5/crypto";
+import { AesCtr, CryptoUtils } from "@web5/crypto";
 
 // Key Generation
 const length = 256; // Length of the key in bits (e.g., 128, 192, 256)
@@ -447,7 +460,7 @@ const privateKey = await AesCtr.generateKey({ length });
 
 // Encryption
 const data = new TextEncoder().encode("Message");
-const counter = utils.randomBytes(16); // Initial value of the counter block
+const counter = CryptoUtils.randomBytes(16); // Initial value of the counter block
 const encryptedData = await AesCtr.encrypt({
   data,
   counter,
@@ -467,7 +480,7 @@ const decryptedData = await AesCtr.decrypt({
 #### AES-GCM
 
 ```ts
-import { AesGcm, utils } from "@web5/crypto";
+import { AesGcm, CryptoUtils } from "@web5/crypto";
 
 // Key Generation
 const length = 256; // Length of the key in bits (e.g., 128, 192, 256)
@@ -475,7 +488,7 @@ const privateKey = await AesGcm.generateKey({ length });
 
 // Encryption
 const data = new TextEncoder().encode("Message");
-const iv = utils.randomBytes(12); // Initialization vector
+const iv = CryptoUtils.randomBytes(12); // Initialization vector
 const encryptedData = await AesGcm.encrypt({
   data,
   iv,
@@ -493,11 +506,11 @@ const decryptedData = await AesGcm.decrypt({
 #### ConcatKDF
 
 ```ts
-import { ConcatKdf, utils } from "@web5/crypto";
+import { ConcatKdf, CryptoUtils } from "@web5/crypto";
 
 // Key Derivation
 const derivedKeyingMaterial = await ConcatKdf.deriveKey({
-  sharedSecret: utils.randomBytes(32),
+  sharedSecret: CryptoUtils.randomBytes(32),
   keyDataLen: 128,
   otherInfo: {
     algorithmId: "A128GCM",
@@ -536,13 +549,13 @@ const isValid = await Ed25519.verify({
 #### PBKDF2
 
 ```ts
-import { Pbkdf2, utils } from "@web5/crypto";
+import { Pbkdf2, CryptoUtils } from "@web5/crypto";
 
 // Key Derivation
 const derivedKey = await Pbkdf2.deriveKey({
   hash: "SHA-256", // Hash function to use ('SHA-256', 'SHA-384', 'SHA-512')
   password: new TextEncoder().encode("password"), // Password as a Uint8Array
-  salt: utils.randomBytes(16), // Salt value
+  salt: CryptoUtils.randomBytes(16), // Salt value
   iterations: 1000, // Number of iterations
   length: 256, // Length of the derived key in bits
 });
@@ -610,14 +623,14 @@ const sharedSecret = await X25519.sharedSecret({
 #### XChaCha20
 
 ```ts
-import { XChaCha20, utils } from "@web5/crypto";
+import { XChaCha20, CryptoUtils } from "@web5/crypto";
 
 // Key Generation
 const privateKey = await XChaCha20.generateKey();
 
 // Encryption
 const data = new TextEncoder().encode("Message");
-const nonce = utils.randomBytes(24);
+const nonce = CryptoUtils.randomBytes(24);
 const encryptedData = await XChaCha20.encrypt({
   data,
   nonce,
@@ -635,14 +648,14 @@ const decryptedData = await XChaCha20.decrypt({
 #### XChaCha20-Poly1305
 
 ```ts
-import { XChaCha20Poly1305, utils } from "@web5/crypto";
+import { XChaCha20Poly1305, CryptoUtils } from "@web5/crypto";
 
 // Key Generation
 const privateKey = await XChaCha20Poly1305.generateKey();
 
 // Encryption
 const data = new TextEncoder().encode("Message");
-const nonce = utils.randomBytes(24);
+const nonce = CryptoUtils.randomBytes(24);
 const additionalData = new TextEncoder().encode("Associated data");
 const { ciphertext, tag } = await XChaCha20Poly1305.encrypt({
   data,

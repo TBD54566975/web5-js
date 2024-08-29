@@ -1,6 +1,6 @@
 {
   "name": "@web5/crypto",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Web5 cryptographic library",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -50,11 +50,6 @@
       "types": "./dist/types/index.d.ts",
       "import": "./dist/esm/index.js",
       "require": "./dist/cjs/index.js"
-    },
-    "./utils": {
-      "types": "./dist/types/utils.d.ts",
-      "import": "./dist/esm/utils.js",
-      "require": "./dist/cjs/utils.js"
     }
   },
   "browser": {

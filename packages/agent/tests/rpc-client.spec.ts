@@ -1,7 +1,7 @@
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { testDwnUrl } from './utils/test-config.js';
-import { utils as cryptoUtils } from '@web5/crypto';
+import { CryptoUtils } from '@web5/crypto';
 
 import { DidRpcMethod, HttpWeb5RpcClient, Web5RpcClient, WebSocketWeb5RpcClient } from '../src/rpc-client.js';
 import { DwnServerInfoCacheMemory } from '../src/prototyping/clients/dwn-server-info-cache-memory.js';
@@ -67,6 +67,10 @@ describe('RPC Clients', () => {
       sinon.restore();
 
       alice = await TestDataGenerator.generateDidKeyPersona();
+    });
+
+    after(() => {
+      sinon.restore();
     });
 
     it('returns available transports', async () => {
@@ -262,6 +266,10 @@ describe('RPC Clients', () => {
     let alice: Persona;
     let client: HttpWeb5RpcClient;
 
+    after(() => {
+      sinon.restore();
+    });
+
     beforeEach(async () => {
       sinon.restore();
 
@@ -296,7 +304,7 @@ describe('RPC Clients', () => {
       it('should throw if json rpc server responds with an error', async () => {
         const request = { method: DidRpcMethod.Resolve, url: testDwnUrl, data: 'some-data' };
 
-        const requestId = cryptoUtils.randomUuid();
+        const requestId = CryptoUtils.randomUuid();
         const jsonRpcResponse = createJsonRpcErrorResponse(
           requestId,
           JsonRpcErrorCodes.InternalError,
@@ -330,7 +338,7 @@ describe('RPC Clients', () => {
       it('should return json rpc result', async () => {
         const request = { method: DidRpcMethod.Resolve, url: testDwnUrl, data: 'some-data' };
 
-        const requestId = cryptoUtils.randomUuid();
+        const requestId = CryptoUtils.randomUuid();
         const jsonRpcResponse = createJsonRpcSuccessResponse(
           requestId,
           { status: { code: 200 }, data: 'data' }
@@ -352,6 +360,10 @@ describe('RPC Clients', () => {
     const dwnUrl = new URL(testDwnUrl);
     dwnUrl.protocol = dwnUrl.protocol === 'http:' ? 'ws:' : 'wss:';
     const socketDwnUrl = dwnUrl.toString();
+
+    after(() => {
+      sinon.restore();
+    });
 
     beforeEach(async () => {
       sinon.restore();

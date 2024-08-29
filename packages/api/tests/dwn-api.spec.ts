@@ -9,8 +9,10 @@ import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
 import photosProtocolDefinition from './fixtures/protocol-definitions/photos.json' assert { type: 'json' };
-import { DwnInterfaceName, DwnMethodName, PermissionsProtocol, Time } from '@tbd54566975/dwn-sdk-js';
+import { DwnInterfaceName, DwnMethodName, PermissionsProtocol, Poller, RecordsWrite, Time } from '@tbd54566975/dwn-sdk-js';
 import { PermissionGrant } from '../src/permission-grant.js';
+import { Web5 } from '../src/web5.js';
+import { Record } from '../src/record.js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -46,6 +48,10 @@ describe('DwnApi', () => {
     // Instantiate DwnApi for both test identities.
     dwnAlice = new DwnApi({ agent: testHarness.agent, connectedDid: aliceDid.uri });
     dwnBob = new DwnApi({ agent: testHarness.agent, connectedDid: bobDid.uri });
+
+    // clear cached permissions between test runs
+    dwnAlice['cachedPermissionsApi'].clear();
+    dwnBob['cachedPermissionsApi'].clear();
   });
 
   after(async () => {
@@ -1243,6 +1249,7 @@ describe('DwnApi', () => {
         expect(writeResult.status.detail).to.equal('Accepted');
         expect(writeResult.record).to.exist;
 
+
         // Delete the record
         await writeResult.record!.delete();
 
@@ -1367,6 +1374,174 @@ describe('DwnApi', () => {
     });
   });
 
+  describe('records.subscribe()', () => {
+    describe('agent', () => {
+      it('subscribes to records', async () => {
+        // configure a protocol
+        const protocolConfigure = await dwnAlice.protocols.configure({
+          message: { definition: { ...emailProtocolDefinition, published: true } }
+        });
+        expect(protocolConfigure.status.code).to.equal(202);
+
+        // subscribe to all messages from the protocol
+        const records: Map<string, Record> = new Map();
+        const subscriptionHandler = async (record: Record) => {
+          records.set(record.id, record);
+        };
+
+        const subscribeResult = await dwnAlice.records.subscribe({
+          message: {
+            filter: {
+              protocol: emailProtocolDefinition.protocol
+            }
+          },
+          subscriptionHandler
+        });
+        expect(subscribeResult.status.code).to.equal(200);
+
+        // write a record
+        const writeResult = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            recipient    : bobDid.uri,
+            protocol     : emailProtocolDefinition.protocol,
+            protocolPath : 'thread',
+            schema       : emailProtocolDefinition.types.thread.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(writeResult.status.code).to.equal(202);
+
+        // wait for the record to be received
+        await Poller.pollUntilSuccessOrTimeout(async () => {
+          expect(records.size).to.equal(1);
+          const record = records.get(writeResult.record.id);
+          expect(record.toJSON()).to.deep.equal(writeResult.record.toJSON());
+          expect(record.deleted).to.be.false;
+        });
+
+        // delete the record using the original writeResult instance of it
+        const deleteResult = await writeResult.record.delete();
+        expect(deleteResult.status.code).to.equal(202);
+
+        // wait for the record state to be reflected as deleted
+        await Poller.pollUntilSuccessOrTimeout(async () => {
+          const record = records.get(writeResult.record.id);
+          expect(record).to.exist;
+          expect(record.deleted).to.be.true;
+        });
+
+        // write another record and delete the previous one, the state should be updated
+        const writeResult2 = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            recipient    : bobDid.uri,
+            protocol     : emailProtocolDefinition.protocol,
+            protocolPath : 'thread',
+            schema       : emailProtocolDefinition.types.thread.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(writeResult2.status.code).to.equal(202);
+
+        // wait for the record to be received
+        await Poller.pollUntilSuccessOrTimeout(async () => {
+          expect(records.size).to.equal(2);
+          const record = records.get(writeResult2.record.id);
+          expect(record.toJSON()).to.deep.equal(writeResult2.record.toJSON());
+          expect(record.deleted).to.be.false;
+        });
+      });
+    });
+
+    describe('from: did', () => {
+      it('subscribes to records from remote', async () => {
+        // configure a protocol
+        const protocolConfigure = await dwnAlice.protocols.configure({
+          message: { definition: { ...emailProtocolDefinition, published: true } }
+        });
+        expect(protocolConfigure.status.code).to.equal(202);
+        const protocolSend = await protocolConfigure.protocol.send(aliceDid.uri);
+        expect(protocolSend.status.code).to.equal(202);
+
+        // subscribe to all messages from the protocol
+        const records: Map<string, Record> = new Map();
+        const subscriptionHandler = async (record: Record) => {
+          records.set(record.id, record);
+        };
+
+        const subscribeResult = await dwnAlice.records.subscribe({
+          from    : aliceDid.uri,
+          message : {
+            filter: {
+              protocol: emailProtocolDefinition.protocol
+            }
+          },
+          subscriptionHandler
+        });
+        expect(subscribeResult.status.code).to.equal(200);
+
+        // write a record
+        const writeResult = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            recipient    : bobDid.uri,
+            protocol     : emailProtocolDefinition.protocol,
+            protocolPath : 'thread',
+            schema       : emailProtocolDefinition.types.thread.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(writeResult.status.code).to.equal(202);
+        const writeResultSend = await writeResult.record.send();
+        expect(writeResultSend.status.code).to.equal(202);
+
+        // wait for the record to be received
+        await Poller.pollUntilSuccessOrTimeout(async () => {
+          expect(records.size).to.equal(1);
+          const record = records.get(writeResult.record.id);
+          expect(record.toJSON()).to.deep.equal(writeResult.record.toJSON());
+          expect(record.deleted).to.be.false;
+        });
+
+        // delete the record using the original writeResult instance of it
+        const deleteResult = await writeResult.record.delete();
+        expect(deleteResult.status.code).to.equal(202);
+        const deleteResultSend = await writeResult.record.send();
+        expect(deleteResultSend.status.code).to.equal(202);
+
+        // wait for the record state to be reflected as deleted
+        await Poller.pollUntilSuccessOrTimeout(async () => {
+          const record = records.get(writeResult.record.id);
+          expect(record).to.exist;
+          expect(record.deleted).to.be.true;
+        });
+
+        // write another record and delete the previous one, the state should be updated
+        const writeResult2 = await dwnAlice.records.write({
+          data    : 'Hello, world!',
+          message : {
+            recipient    : bobDid.uri,
+            protocol     : emailProtocolDefinition.protocol,
+            protocolPath : 'thread',
+            schema       : emailProtocolDefinition.types.thread.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        const writeResult2Send = await writeResult2.record.send();
+        expect(writeResult2Send.status.code).to.equal(202);
+
+        // wait for the record to be received
+        await Poller.pollUntilSuccessOrTimeout(async () => {
+          expect(records.size).to.equal(2);
+          const record = records.get(writeResult2.record.id);
+          expect(record.toJSON()).to.deep.equal(writeResult2.record.toJSON());
+          expect(record.deleted).to.be.false;
+        });
+      });
+    });
+  });
+
   describe('connected.findPermissionGrantForRequest', () => {
     it('caches result', async () => {
       // create a grant for bob
@@ -1385,7 +1560,7 @@ describe('DwnApi', () => {
       // simulate a connect where bobDid can impersonate aliceDid
       dwnBob['connectedDid'] = aliceDid.uri;
       dwnBob['delegateDid'] = bobDid.uri;
-      await DwnApi.processConnectedGrants({
+      await Web5.processConnectedGrants({
         agent       : testHarness.agent,
         delegateDid : bobDid.uri,
         grants      : [ deviceXGrant.rawMessage ]
@@ -1445,7 +1620,7 @@ describe('DwnApi', () => {
         });
         expect.fail('Should have thrown an error');
       } catch(error:any) {
-        expect(error.message).to.equal('AgentDwnApi: No permissions found for RecordsRead: http://example.com/protocol');
+        expect(error.message).to.equal('CachedPermissions: No permissions found for RecordsRead: http://example.com/protocol');
       }
       expect(fetchGrantsSpy.callCount).to.equal(1);
 
@@ -1459,7 +1634,7 @@ describe('DwnApi', () => {
         });
         expect.fail('Should have thrown an error');
       } catch(error:any) {
-        expect(error.message).to.equal('AgentDwnApi: No permissions found for RecordsRead: http://example.com/protocol');
+        expect(error.message).to.equal('CachedPermissions: No permissions found for RecordsRead: http://example.com/protocol');
       }
 
       expect(fetchGrantsSpy.callCount).to.equal(2); // should have been called again
