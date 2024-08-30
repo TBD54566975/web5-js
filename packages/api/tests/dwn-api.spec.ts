@@ -3,15 +3,14 @@ import type { BearerDid } from '@web5/dids';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { Web5UserAgent } from '@web5/user-agent';
-import { AgentPermissionsApi, DwnDateSort, DwnInterface, DwnProtocolDefinition, getRecordAuthor, PlatformAgentTestHarness } from '@web5/agent';
+import { AgentPermissionsApi, DwnDateSort, DwnProtocolDefinition, getRecordAuthor, PlatformAgentTestHarness } from '@web5/agent';
 
 import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
 import photosProtocolDefinition from './fixtures/protocol-definitions/photos.json' assert { type: 'json' };
-import { DwnInterfaceName, DwnMethodName, PermissionsProtocol, Poller, RecordsWrite, Time } from '@tbd54566975/dwn-sdk-js';
+import { DwnInterfaceName, DwnMethodName, PermissionsProtocol, Poller, Time } from '@tbd54566975/dwn-sdk-js';
 import { PermissionGrant } from '../src/permission-grant.js';
-import { Web5 } from '../src/web5.js';
 import { Record } from '../src/record.js';
 import { TestDataGenerator } from './utils/test-data-generator.js';
 
@@ -1664,126 +1663,6 @@ describe('DwnApi', () => {
           expect(record.deleted).to.be.false;
         });
       });
-    });
-  });
-
-  describe('connected.findPermissionGrantForRequest', () => {
-    afterEach(() => {
-
-    });
-
-    it('caches result', async () => {
-      // create a grant for bob
-      const deviceXGrant = await dwnAlice.permissions.grant({
-        store       : true,
-        grantedTo   : bobDid.uri,
-        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        delegated   : true,
-        scope       : {
-          interface : DwnInterfaceName.Records,
-          method    : DwnMethodName.Write,
-          protocol  : 'http://example.com/protocol'
-        }
-      });
-
-      // simulate a connect where bobDid can impersonate aliceDid
-      dwnBob['connectedDid'] = aliceDid.uri;
-      dwnBob['delegateDid'] = bobDid.uri;
-
-      await Web5.processConnectedGrants({
-        agent       : testHarness.agent,
-        delegateDid : bobDid.uri,
-        grants      : [ deviceXGrant.rawMessage ]
-      });
-
-      const fetchGrantsSpy = sinon.spy(AgentPermissionsApi.prototype, 'fetchGrants');
-
-      // find the grant for a request
-      let grantForRequest = await dwnBob['connected'].findPermissionGrantForMessage({
-        messageParams: {
-          messageType : DwnInterface.RecordsWrite,
-          protocol    : 'http://example.com/protocol'
-        }
-      });
-
-      // expect to have the grant
-      expect(grantForRequest).to.exist;
-      expect(grantForRequest.id).to.equal(deviceXGrant.id);
-      expect(fetchGrantsSpy.callCount).to.equal(1);
-
-      fetchGrantsSpy.resetHistory();
-
-      // attempt to find the grant again
-      grantForRequest = await dwnBob['connected'].findPermissionGrantForMessage({
-        messageParams: {
-          messageType : DwnInterface.RecordsWrite,
-          protocol    : 'http://example.com/protocol'
-        }
-      });
-      expect(grantForRequest).to.exist;
-      expect(grantForRequest.id).to.equal(deviceXGrant.id);
-      expect(fetchGrantsSpy.callCount).to.equal(0);
-
-      // should call again if cached:false is passed
-      grantForRequest = await dwnBob['connected'].findPermissionGrantForMessage({
-        messageParams: {
-          messageType : DwnInterface.RecordsWrite,
-          protocol    : 'http://example.com/protocol'
-        },
-        cached: false
-      });
-      expect(grantForRequest).to.exist;
-      expect(grantForRequest.id).to.equal(deviceXGrant.id);
-      expect(fetchGrantsSpy.callCount).to.equal(1);
-
-      // reset the spy
-      fetchGrantsSpy.resetHistory();
-      expect(fetchGrantsSpy.callCount).to.equal(0);
-
-      // call for a different grant
-      try {
-        await dwnBob['connected'].findPermissionGrantForMessage({
-          messageParams: {
-            messageType : DwnInterface.RecordsRead,
-            protocol    : 'http://example.com/protocol'
-          }
-        });
-        expect.fail('Should have thrown an error');
-      } catch(error:any) {
-        expect(error.message).to.equal('CachedPermissions: No permissions found for RecordsRead: http://example.com/protocol');
-      }
-      expect(fetchGrantsSpy.callCount).to.equal(1);
-
-      // call again to ensure grants which are not found are not cached
-      try {
-        await dwnBob['connected'].findPermissionGrantForMessage({
-          messageParams: {
-            messageType : DwnInterface.RecordsRead,
-            protocol    : 'http://example.com/protocol'
-          }
-        });
-        expect.fail('Should have thrown an error');
-      } catch(error:any) {
-        expect(error.message).to.equal('CachedPermissions: No permissions found for RecordsRead: http://example.com/protocol');
-      }
-
-      expect(fetchGrantsSpy.callCount).to.equal(2); // should have been called again
-    });
-
-    it('throws if no delegateDid is set', async () => {
-      // make sure delegateDid is undefined
-      dwnAlice['delegateDid'] = undefined;
-      try {
-        await dwnAlice['connected'].findPermissionGrantForMessage({
-          messageParams: {
-            messageType : DwnInterface.RecordsWrite,
-            protocol    : 'http://example.com/protocol'
-          }
-        });
-        expect.fail('Error was not thrown');
-      } catch (e) {
-        expect(e.message).to.equal('AgentDwnApi: Cannot find connected grants without a signer DID');
-      }
     });
   });
 

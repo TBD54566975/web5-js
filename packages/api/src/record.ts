@@ -749,12 +749,15 @@ export class Record implements RecordModel {
       target        : this._connectedDid,
     };
     if (this._delegateDid) {
+
       // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-      const { rawMessage: delegatedGrant } = await this.findPermissionGrantForMessage({
-        messageParams: {
-          messageType : DwnInterface.RecordsWrite,
-          protocol    : this.protocol,
-        }
+      const { message: delegatedGrant } = await this._cachedPermissions.getPermission({
+        connectedDid : this._connectedDid,
+        delegateDid  : this._delegateDid,
+        messageType  : DwnInterface.RecordsWrite,
+        protocol     : this.protocol,
+        delegate     : true,
+        cached       : true,
       });
 
       // set the required delegated grant and grantee DID for the read operation
@@ -827,12 +830,14 @@ export class Record implements RecordModel {
     }
 
     if (this._delegateDid) {
-      // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-      const { rawMessage: delegatedGrant } = await this.findPermissionGrantForMessage({
-        messageParams: {
-          messageType : DwnInterface.RecordsDelete,
-          protocol    : this.protocol,
-        }
+
+      const { message: delegatedGrant } = await this._cachedPermissions.getPermission({
+        connectedDid : this._connectedDid,
+        delegateDid  : this._delegateDid,
+        messageType  : DwnInterface.RecordsDelete,
+        protocol     : this.protocol,
+        delegate     : true,
+        cached       : true,
       });
 
       // set the required delegated grant and grantee DID for the read operation
@@ -886,12 +891,14 @@ export class Record implements RecordModel {
 
 
       if (this._delegateDid) {
-      // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-        const { rawMessage: delegatedGrant } = await this.findPermissionGrantForMessage({
-          messageParams: {
-            messageType : DwnInterface.RecordsWrite,
-            protocol    : this.protocol,
-          }
+        // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
+        const { message: delegatedGrant } = await this._cachedPermissions.getPermission({
+          connectedDid : this._connectedDid,
+          delegateDid  : this._delegateDid,
+          messageType  : DwnInterface.RecordsWrite,
+          protocol     : this.protocol,
+          delegate     : true,
+          cached       : true,
         });
 
         // set the required delegated grant and grantee DID for the read operation
@@ -930,11 +937,13 @@ export class Record implements RecordModel {
       };
       if (this._delegateDid) {
         // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-        const { rawMessage: delegatedGrant } = await this.findPermissionGrantForMessage({
-          messageParams: {
-            messageType : DwnInterface.RecordsDelete,
-            protocol    : this.protocol,
-          }
+        const { message: delegatedGrant } = await this._cachedPermissions.getPermission({
+          connectedDid : this._connectedDid,
+          delegateDid  : this._delegateDid,
+          messageType  : DwnInterface.RecordsDelete,
+          protocol     : this.protocol,
+          delegate     : true,
+          cached       : true,
         });
 
         // set the required delegated grant and grantee DID for the read operation
@@ -953,11 +962,13 @@ export class Record implements RecordModel {
       };
       if (this._delegateDid) {
         // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-        const { rawMessage: delegatedGrant } = await this.findPermissionGrantForMessage({
-          messageParams: {
-            messageType : DwnInterface.RecordsWrite,
-            protocol    : this.protocol,
-          }
+        const { message: delegatedGrant } = await this._cachedPermissions.getPermission({
+          connectedDid : this._connectedDid,
+          delegateDid  : this._delegateDid,
+          messageType  : DwnInterface.RecordsWrite,
+          protocol     : this.protocol,
+          delegate     : true,
+          cached       : true,
         });
 
         // set the required delegated grant and grantee DID for the read operation
@@ -1004,11 +1015,13 @@ export class Record implements RecordModel {
 
     if (this._delegateDid) {
       // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-      const { rawMessage: delegatedGrant } = await this.findPermissionGrantForMessage({
-        messageParams: {
-          messageType : DwnInterface.RecordsRead,
-          protocol    : this.protocol,
-        }
+      const { message: delegatedGrant } = await this._cachedPermissions.getPermission({
+        connectedDid : this._connectedDid,
+        delegateDid  : this._delegateDid,
+        messageType  : DwnInterface.RecordsRead,
+        protocol     : this.protocol,
+        delegate     : true,
+        cached       : true,
       });
 
       // set the required delegated grant and grantee DID for the read operation
@@ -1068,29 +1081,5 @@ export class Record implements RecordModel {
    */
   private isRecordsDeleteDescriptor(descriptor: DwnMessageDescriptor[DwnInterface.RecordsWrite | DwnInterface.RecordsDelete]): descriptor is DwnMessageDescriptor[DwnInterface.RecordsDelete] {
     return descriptor.interface + descriptor.method === DwnInterface.RecordsDelete;
-  }
-
-  private async findPermissionGrantForMessage<T extends DwnInterface>({ messageParams, cached = true }:{
-    cached?: boolean;
-    messageParams: {
-      messageType: T;
-      protocol: string;
-    }
-  }) : Promise<PermissionGrant> {
-    if(!this._delegateDid) {
-      throw new Error('Record: Cannot find connected grants without a signer DID');
-    }
-
-    const delegateGrant = await this._cachedPermissions.getPermission({
-      connectedDid : this._connectedDid,
-      delegateDid  : this._delegateDid,
-      messageType  : messageParams.messageType,
-      protocol     : messageParams.protocol,
-      delegate     : true,
-      cached,
-    });
-
-    const grant = await PermissionGrant.parse({ connectedDid: this._delegateDid, agent: this._agent, message: delegateGrant.message });
-    return grant;
   }
 }

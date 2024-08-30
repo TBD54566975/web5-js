@@ -313,45 +313,6 @@ export class DwnApi {
   }
 
   /**
-   * API to interact with the DWN Permissions when the agent is connected to a delegateDid.
-   *
-   * NOTE: This is an EXPERIMENTAL API that will change behavior.
-   * @beta
-   */
-  private get connected() {
-    return {
-      /**
-       * Finds the appropriate permission grants associated with a message request
-       *
-       * (optionally) Caches the results for the given parameters to avoid redundant queries.
-       */
-      findPermissionGrantForMessage: async <T extends DwnInterface>({ messageParams, cached = true }:{
-        cached?: boolean;
-        messageParams: {
-          messageType: T;
-          protocol: string;
-        }
-      }) : Promise<PermissionGrant> => {
-        if(!this.delegateDid) {
-          throw new Error('AgentDwnApi: Cannot find connected grants without a signer DID');
-        }
-
-        const delegateGrant = await this.cachedPermissionsApi.getPermission({
-          connectedDid : this.connectedDid,
-          delegateDid  : this.delegateDid,
-          messageType  : messageParams.messageType,
-          protocol     : messageParams.protocol,
-          delegate     : true,
-          cached,
-        });
-
-        const grant = await PermissionGrant.parse({ connectedDid: this.delegateDid, agent: this.agent, message: delegateGrant.message });
-        return grant;
-      }
-    };
-  }
-
-  /**
    * API to interact with Grants
    *
    * NOTE: This is an EXPERIMENTAL API that will change behavior.
@@ -586,11 +547,13 @@ export class DwnApi {
 
         if (this.delegateDid) {
           // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-          const { rawMessage: delegatedGrant } = await this.connected.findPermissionGrantForMessage({
-            messageParams: {
-              messageType : DwnInterface.RecordsDelete,
-              protocol    : request.protocol,
-            }
+          const { message: delegatedGrant } = await this.cachedPermissionsApi.getPermission({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            messageType  : DwnInterface.RecordsDelete,
+            protocol     : request.protocol,
+            cached       : true,
+            delegate     : true
           });
 
           // set the required delegated grant and grantee DID for the read operation
@@ -632,11 +595,13 @@ export class DwnApi {
 
         if (this.delegateDid) {
           // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-          const { rawMessage: delegatedGrant } = await this.connected.findPermissionGrantForMessage({
-            messageParams: {
-              messageType : DwnInterface.RecordsQuery,
-              protocol    : agentRequest.messageParams.filter.protocol,
-            }
+          const { message: delegatedGrant } = await this.cachedPermissionsApi.getPermission({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            messageType  : DwnInterface.RecordsQuery,
+            protocol     : request.protocol,
+            cached       : true,
+            delegate     : true
           });
 
           // set the required delegated grant and grantee DID for the read operation
@@ -710,11 +675,13 @@ export class DwnApi {
 
         if (this.delegateDid) {
           // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-          const { rawMessage: delegatedGrant } = await this.connected.findPermissionGrantForMessage({
-            messageParams: {
-              messageType : DwnInterface.RecordsRead,
-              protocol    : request.protocol
-            }
+          const { message: delegatedGrant } = await this.cachedPermissionsApi.getPermission({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            messageType  : DwnInterface.RecordsRead,
+            protocol     : request.protocol,
+            cached       : true,
+            delegate     : true
           });
 
           // set the required delegated grant and grantee DID for the read operation
@@ -838,11 +805,14 @@ export class DwnApi {
 
         // if impersonation is enabled, fetch the delegated grant to use with the write operation
         if (this.delegateDid) {
-          const { rawMessage: delegatedGrant } = await this.connected.findPermissionGrantForMessage({
-            messageParams: {
-              messageType : DwnInterface.RecordsWrite,
-              protocol    : dwnRequestParams.messageParams.protocol,
-            }
+
+          const { message: delegatedGrant } = await this.cachedPermissionsApi.getPermission({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            messageType  : DwnInterface.RecordsWrite,
+            protocol     : request.message?.protocol,
+            cached       : true,
+            delegate     : true
           });
 
           // set the required delegated grant and grantee DID for the write operation
