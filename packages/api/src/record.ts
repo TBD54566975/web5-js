@@ -800,7 +800,7 @@ export class Record implements RecordModel {
    * @returns the status of the delete request
    */
   async delete(deleteParams?: RecordDeleteParams): Promise<DwnResponseStatus> {
-    const { store, signAsOwner, dateModified, ...params } = deleteParams || {};
+    const { store = true, signAsOwner, dateModified, prune = false } = deleteParams || {};
 
     const signAsOwnerValue = signAsOwner && this._delegateDid === undefined;
     const signAsOwnerDelegate = signAsOwner && this._delegateDid !== undefined;
@@ -827,14 +827,21 @@ export class Record implements RecordModel {
     } else {
       // otherwise we construct a delete message given the `RecordDeleteParams`
       deleteOptions.messageParams = {
-        ...params,
+        prune            : prune,
         recordId         : this._recordId,
         messageTimestamp : dateModified,
       };
     }
 
-    if (this._delegateDid) {
+    if (store === true) {
+      // if we are storing the delete we have to make sure the initial write is also stored
+      const { status: processStatus } = await this.processRecord({ store, signAsOwner });
+      if (processStatus.code !== 202 && processStatus.code !== 409) {
+        return { status: processStatus };
+      }
+    }
 
+    if (this._delegateDid) {
       const { message: delegatedGrant } = await this._cachedPermissions.getPermission({
         connectedDid : this._connectedDid,
         delegateDid  : this._delegateDid,

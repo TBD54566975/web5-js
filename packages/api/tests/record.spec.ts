@@ -257,7 +257,8 @@ describe('Record', () => {
     });
 
     it('should delete a record with a delegated grant', async () => {
-      const { status, record } = await delegateDwn.records.write({
+      // alice writes a record
+      const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
           protocol     : notesProtocol.protocol,
@@ -270,16 +271,36 @@ describe('Record', () => {
       expect(status.code).to.equal(202);
       expect(record).to.not.be.undefined;
 
-      // attempt to delete the record with the delegated grant
-      const deleteResult = await record!.delete();
-      expect(deleteResult.status.code).to.equal(202);
-
-      // send the delete to the remote DWN
+      // alice sends the record to her remote
       const sendResult = await record!.send();
       expect(sendResult.status.code).to.equal(202);
 
+      // alice device queries alice remote for the record
+      const aliceDeviceRemoteQuery = await delegateDwn.records.query({
+        from     : aliceDid.uri,
+        protocol : notesProtocol.protocol,
+        message  : {
+          filter: {
+            protocol     : notesProtocol.protocol,
+            protocolPath : 'note',
+          }
+        }
+      });
+
+      expect(aliceDeviceRemoteQuery.status.code).to.equal(200);
+      expect(aliceDeviceRemoteQuery.records.length).to.equal(1);
+      const aliceRecord = aliceDeviceRemoteQuery.records[0];
+
+      // attempt to delete the record with the delegated grant
+      const deleteResult = await aliceRecord.delete();
+      expect(deleteResult.status.code).to.equal(202, 'delete');
+
+      // send the delete to the remote DWN
+      const sendDeleteResult = await aliceRecord.send();
+      expect(sendDeleteResult.status.code).to.equal(202, 'send delete');
+
       // expect the delete to be signed by the delegateDid
-      const deleteSignature = Jws.getSignerDid(record.rawMessage.authorization.signature.signatures[0]);
+      const deleteSignature = Jws.getSignerDid(aliceRecord.rawMessage.authorization.signature.signatures[0]);
       expect(deleteSignature).to.equal(delegateDid.uri);
 
       // attempt to read the record with the delegated grant
@@ -293,7 +314,7 @@ describe('Record', () => {
         }
       });
 
-      expect(readResult.status.code).to.equal(404);
+      expect(readResult.status.code).to.equal(404, 'read');
       expect(readResult.record).to.be.undefined;
 
       // attempt to query the record from the remote
@@ -308,7 +329,7 @@ describe('Record', () => {
         }
       });
 
-      expect(queryResult.status.code).to.equal(200);
+      expect(queryResult.status.code).to.equal(200, 'query');
       expect(queryResult.records.length).to.equal(0);
     });
 
@@ -3141,27 +3162,6 @@ describe('Record', () => {
       expect(childrenStatusAfterDelete.code).to.equal(200);
       expect(childrenRecordsAfterDelete).to.exist;
       expect(childrenRecordsAfterDelete).to.have.lengthOf(0);
-    });
-
-    it('returns a 404 when the specified record does not exist', async () => {
-      // create a record but do not store it
-      const { status: createStatus, record }  = await dwnAlice.records.write({
-        store   : false,
-        data    : 'Hello, world!',
-        message : {
-          schema     : 'foo/bar',
-          dataFormat : 'text/plain'
-        }
-      });
-
-      expect(createStatus.code).to.equal(202);
-      expect(record).to.not.be.undefined;
-
-      const deleteResult = await record.delete();
-      expect(deleteResult.status.code).to.equal(404);
-
-      // confirm record is not in deleted state
-      expect(record.deleted).to.be.false;
     });
 
     it('throws if a record status is deleted and initialWrite is not set', async () => {
