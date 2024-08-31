@@ -5,7 +5,8 @@
     "thread": {
       "schema": "http://email-protocol.xyz/schema/thread",
       "dataFormats": [
-        "text/plain"
+        "text/plain",
+        "application/json"
       ]
     },
     "email": {

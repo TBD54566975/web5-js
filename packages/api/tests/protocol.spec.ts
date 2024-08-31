@@ -11,6 +11,7 @@ import emailProtocolDefinition from './fixtures/protocol-definitions/email.json'
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
 import { webcrypto } from 'node:crypto';
+import { TestDataGenerator } from './utils/test-data-generator.js';
 // @ts-ignore
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
@@ -27,9 +28,7 @@ describe('Protocol', () => {
       agentClass  : Web5UserAgent,
       agentStores : 'memory'
     });
-  });
 
-  beforeEach(async () => {
     await testHarness.clearStorage();
     await testHarness.createAgentDid();
 
@@ -42,6 +41,15 @@ describe('Protocol', () => {
     dwnAlice = new DwnApi({ agent: testHarness.agent, connectedDid: aliceDid.uri });
   });
 
+  beforeEach(async () => {
+    await testHarness.syncStore.clear();
+    await testHarness.dwnDataStore.clear();
+    await testHarness.dwnEventLog.clear();
+    await testHarness.dwnMessageStore.clear();
+    await testHarness.dwnResumableTaskStore.clear();
+    testHarness.dwnStores.clear();
+  });
+
   after(async () => {
     await testHarness.clearStorage();
     await testHarness.closeStorage();
@@ -50,14 +58,21 @@ describe('Protocol', () => {
   describe('send()', () => {
     it('configures protocols on remote DWNs for your own DID', async () => {
       // Alice configures a protocol on her agent connected DWN.
+      const protocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(10)}`;
       const { status: aliceEmailStatus, protocol: aliceEmailProtocol } = await dwnAlice.protocols.configure({
         message: {
-          definition: emailProtocolDefinition
+          definition: {
+            ...emailProtocolDefinition,
+            protocol: protocolUri
+          }
         }
       });
 
       expect(aliceEmailStatus.code).to.equal(202);
-      expect(aliceEmailProtocol.definition).to.deep.equal(emailProtocolDefinition);
+      expect(aliceEmailProtocol.definition).to.deep.equal({
+        ...emailProtocolDefinition,
+        protocol: protocolUri
+      });
 
       // Attempt to configure the protocol on Alice's remote DWN.
       const { status } = await aliceEmailProtocol.send(aliceDid.uri);
@@ -68,7 +83,7 @@ describe('Protocol', () => {
         from    : aliceDid.uri,
         message : {
           filter: {
-            protocol: emailProtocolDefinition.protocol
+            protocol: protocolUri,
           }
         }
       });
@@ -77,7 +92,10 @@ describe('Protocol', () => {
       expect(aliceRemoteQueryResult.protocols).to.exist;
       expect(aliceRemoteQueryResult.protocols.length).to.equal(1);
       const [ aliceRemoteEmailProtocol ] = aliceRemoteQueryResult.protocols;
-      expect(aliceRemoteEmailProtocol.definition).to.deep.equal(emailProtocolDefinition);
+      expect(aliceRemoteEmailProtocol.definition).to.deep.equal({
+        ...emailProtocolDefinition,
+        protocol: protocolUri
+      });
     });
   });
 
