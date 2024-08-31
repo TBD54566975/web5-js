@@ -1,5 +1,5 @@
 import type { BearerDid ,PortableDid } from '@web5/dids';
-import type { DwnMessageParams, DwnProtocolDefinition, DwnPublicKeyJwk, DwnSigner } from '@web5/agent';
+import type { DwnMessageParams, DwnProtocolDefinition, DwnPublicKeyJwk, DwnSigner, PortableIdentity } from '@web5/agent';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
@@ -17,7 +17,7 @@ import emailProtocolDefinition from './fixtures/protocol-definitions/email.json'
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
 import { webcrypto } from 'node:crypto';
-import { Message } from '@tbd54566975/dwn-sdk-js';
+import { Jws, Message } from '@tbd54566975/dwn-sdk-js';
 import { Web5 } from '../src/web5.js';
 // @ts-ignore
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
@@ -35,7 +35,13 @@ describe('Record', () => {
   let testHarness: PlatformAgentTestHarness;
   let protocolUri: string;
 
+  let consoleWarn;
+
   before(async () => {
+    // Suppress console.warn output due to default password warnings
+    consoleWarn = console.warn;
+    console.warn = () => {};
+
     testHarness = await PlatformAgentTestHarness.setup({
       agentClass  : Web5UserAgent,
       agentStores : 'memory'
@@ -97,26 +103,16 @@ describe('Record', () => {
     sinon.restore();
     await testHarness.clearStorage();
     await testHarness.closeStorage();
+
+    // Restore console.warn output
+    console.warn = consoleWarn;
   });
 
-  describe('delegateDid', () => {
+  describe('as delegateDid', () => {
     let delegateHarness: PlatformAgentTestHarness;
     let delegateDid: PortableDid;
     let delegateDwn: DwnApi;
-
-    const notesProtocol: DwnProtocolDefinition = {
-      published : true,
-      protocol  : 'https://notes-protocol.xyz',
-      types     : {
-        note: {
-          schema      : 'https://notes-protocol.xyz/schema/note',
-          dataFormats : [ 'text/plain', 'application/json' ]
-        }
-      },
-      structure: {
-        note: {}
-      }
-    };
+    let notesProtocol: DwnProtocolDefinition;
 
     before(async () => {
       delegateHarness = await PlatformAgentTestHarness.setup({
@@ -137,9 +133,24 @@ describe('Record', () => {
       await delegateHarness.dwnMessageStore.clear();
       await delegateHarness.dwnResumableTaskStore.clear();
       delegateHarness.dwnStores.clear();
-    });
 
-    it('should update a record with a delegated grant', async () => {
+      // avoid seeing the security warning of no password during connect
+      sinon.stub(console, 'warn');
+
+      notesProtocol = {
+        published : true,
+        protocol  : `http://notes-protocol.xyz/protocol/${TestDataGenerator.randomString(15)}`,
+        types     : {
+          note: {
+            schema      : 'https://notes-protocol.xyz/schema/note',
+            dataFormats : [ 'text/plain', 'application/json' ]
+          }
+        },
+        structure: {
+          note: {}
+        }
+      };
+
       // Create a "device" JWK to use as the delegateDid
       const delegatedBearerDid = await testHarness.agent.did.create({ store: false, method: 'jwk', });
       delegateDid = await delegatedBearerDid.export();
@@ -164,6 +175,8 @@ describe('Record', () => {
 
       sinon.stub(Web5UserAgent, 'create').resolves(delegateHarness.agent as Web5UserAgent);
       sinon.stub(WalletConnect, 'createPermissionRequestForProtocol').resolves(grantRequest);
+      sinon.stub(delegateHarness.agent.identity, 'connectedIdentity').resolves(undefined);
+      sinon.stub(delegateHarness.agent.sync, 'startSync').resolves();
       // // stub WalletConnect.initClient to return the did and grants
       sinon.stub(WalletConnect, 'initClient').resolves({
         connectedDid        : aliceDid.uri,
@@ -175,7 +188,30 @@ describe('Record', () => {
       ({ web5: { dwn: delegateDwn } } = await Web5.connect({ walletConnectOptions: {
         permissionRequests: [ grantRequest ]
       } as any }));
+    });
 
+    it('should create a record with a delegated grant', async () => {
+      const { status, record } = await delegateDwn.records.write({
+        data    : 'Hello, world!',
+        message : {
+          protocol     : notesProtocol.protocol,
+          protocolPath : 'note',
+          schema       : notesProtocol.types.note.schema,
+          dataFormat   : 'text/plain',
+        }
+      });
+
+      expect(status.code).to.equal(202);
+      expect(record).to.not.be.undefined;
+
+      // alice is the author, but the signer is the delegateDid
+      expect(record.author).to.equal(aliceDid.uri);
+      const signerDid = Jws.getSignerDid(record.rawMessage.authorization.signature.signatures[0]);
+      expect(signerDid).to.equal(delegateDid.uri);
+      expect(record.rawMessage.authorization.authorDelegatedGrant).to.not.be.undefined;
+    });
+
+    it('should update a record with a delegated grant', async () => {
       const { status, record } = await delegateDwn.records.write({
         data    : 'Hello, world!',
         message : {
@@ -192,7 +228,7 @@ describe('Record', () => {
       expect(record).to.not.be.undefined;
 
       // attempt to update the record with the delegated grant
-      const updateResult = await record!.update({ data: 'bye' });
+      const updateResult = await record!.update({ data: 'Delegate Updated' });
       expect(updateResult.status.code).to.equal(202);
 
       // attempt to read the record with the delegated grant
@@ -211,9 +247,72 @@ describe('Record', () => {
       expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
       expect(readResult.record.dataCid).to.equal(record!.dataCid);
 
-      const updatedData = await record!.data.text();
-      expect(updatedData).to.equal('bye');
+      // validate update signature is from the delegateDid but author is alice
+      const updateSignature = Jws.getSignerDid(readResult.record.rawMessage.authorization.signature.signatures[0]);
+      expect(updateSignature).to.equal(delegateDid.uri);
+      expect(readResult.record.author).to.equal(aliceDid.uri);
 
+      const updatedData = await record!.data.text();
+      expect(updatedData).to.equal('Delegate Updated');
+    });
+
+    it('should delete a record with a delegated grant', async () => {
+      const { status, record } = await delegateDwn.records.write({
+        data    : 'Hello, world!',
+        message : {
+          protocol     : notesProtocol.protocol,
+          protocolPath : 'note',
+          schema       : notesProtocol.types.note.schema,
+          dataFormat   : 'text/plain',
+        }
+      });
+
+      expect(status.code).to.equal(202);
+      expect(record).to.not.be.undefined;
+
+      // attempt to delete the record with the delegated grant
+      const deleteResult = await record!.delete();
+      expect(deleteResult.status.code).to.equal(202);
+
+      // send the delete to the remote DWN
+      const sendResult = await record!.send();
+      expect(sendResult.status.code).to.equal(202);
+
+      // expect the delete to be signed by the delegateDid
+      const deleteSignature = Jws.getSignerDid(record.rawMessage.authorization.signature.signatures[0]);
+      expect(deleteSignature).to.equal(delegateDid.uri);
+
+      // attempt to read the record with the delegated grant
+      const readResult = await delegateDwn.records.read({
+        protocol : notesProtocol.protocol,
+        message  : {
+          filter: {
+            protocol : notesProtocol.protocol,
+            recordId : record!.id
+          }
+        }
+      });
+
+      expect(readResult.status.code).to.equal(404);
+      expect(readResult.record).to.be.undefined;
+
+      // attempt to query the record from the remote
+      const queryResult = await delegateDwn.records.query({
+        from     : aliceDid.uri,
+        protocol : notesProtocol.protocol,
+        message  : {
+          filter: {
+            protocol : notesProtocol.protocol,
+            recordId : record!.id
+          }
+        }
+      });
+
+      expect(queryResult.status.code).to.equal(200);
+      expect(queryResult.records.length).to.equal(0);
+    });
+
+    it('should import a record with a delegated grant', async () => {
       // bob writes a note with alice as the recipient
       const { status: bobWriteStatus, record: bobRecord } = await dwnBob.records.write({
         data    : 'Hello, Alice!',
@@ -231,8 +330,20 @@ describe('Record', () => {
       const { status: bobSendStatus } = await bobRecord!.send();
       expect(bobSendStatus.code).to.equal(202);
 
+      // confirm that alice delegate does not have it stored locally
+      let aliceDeviceLocal = await delegateDwn.records.query({
+        protocol : notesProtocol.protocol,
+        message  : {
+          filter: {
+            protocol     : notesProtocol.protocol,
+            protocolPath : 'note',
+          }
+        }
+      });
+      expect(aliceDeviceLocal.status.code).to.equal(200);
+      expect(aliceDeviceLocal.records.length).to.equal(0);
 
-      // alicedevice is able to query for the note
+      // alice delegate is able to query for the note
       const { records: aliceQueryFromBobRecords, status: aliceQueryFromBobStatus } = await delegateDwn.records.query({
         from     : bobDid.uri,
         protocol : notesProtocol.protocol,
@@ -251,6 +362,85 @@ describe('Record', () => {
       // alicedevice imports the note
       const { status: importStatus } = await recordFromBob.import();
       expect(importStatus.code).to.equal(202);
+
+      // confirm the note is stored locally
+      aliceDeviceLocal = await delegateDwn.records.query({
+        protocol : notesProtocol.protocol,
+        message  : {
+          filter: {
+            protocol     : notesProtocol.protocol,
+            protocolPath : 'note',
+          }
+        }
+      });
+      expect(aliceDeviceLocal.status.code).to.equal(200);
+      expect(aliceDeviceLocal.records.length).to.equal(1);
+      expect(aliceDeviceLocal.records[0].id).to.equal(recordFromBob.id);
+    });
+
+    it('should store a record with a delegated grant', async () => {
+      // alice writes a note
+      const { status: aliceWritesStatus, record: aliceRecord } = await dwnAlice.records.write({
+        data    : 'Hello, From Alice!',
+        message : {
+          protocol     : notesProtocol.protocol,
+          protocolPath : 'note',
+          schema       : notesProtocol.types.note.schema,
+          dataFormat   : 'text/plain',
+        }
+      });
+      expect(aliceWritesStatus.code).to.equal(202);
+
+      // alice sends it to her remote DWN
+      const { status: aliceSendStatus } = await aliceRecord!.send();
+      expect(aliceSendStatus.code).to.equal(202);
+
+      // sanity: alice delegate does not have the note stored locally
+      let aliceDelegateResults = await delegateDwn.records.query({
+        protocol : notesProtocol.protocol,
+        message  : {
+          filter: {
+            protocol     : notesProtocol.protocol,
+            protocolPath : 'note',
+          }
+        }
+      });
+      expect(aliceDelegateResults.status.code).to.equal(200);
+      expect(aliceDelegateResults.records.length).to.equal(0);
+
+      // alice delegate is able to query for the note
+      const { records: aliceQueryFromBobRecords, status: aliceQueryFromBobStatus } = await delegateDwn.records.query({
+        from     : aliceDid.uri,
+        protocol : notesProtocol.protocol,
+        message  : {
+          filter: {
+            protocol     : notesProtocol.protocol,
+            protocolPath : 'note',
+          }
+        }
+      });
+      expect(aliceQueryFromBobStatus.code).to.equal(200);
+      expect(aliceQueryFromBobRecords).to.exist;
+      expect(aliceQueryFromBobRecords.length).to.equal(1);
+
+      const recordFromBob = aliceQueryFromBobRecords[0];
+
+      // alicedevice stores the note locally
+      const { status: storeStatus } = await recordFromBob.store();
+      expect(storeStatus.code).to.equal(202);
+
+      // confirm the note is stored locally
+      aliceDelegateResults = await delegateDwn.records.query({
+        protocol : notesProtocol.protocol,
+        message  : {
+          filter: {
+            protocol     : notesProtocol.protocol,
+            protocolPath : 'note',
+          }
+        }
+      });
+      expect(aliceDelegateResults.status.code).to.equal(200);
+      expect(aliceDelegateResults.records.length).to.equal(1);
     });
   });
 
