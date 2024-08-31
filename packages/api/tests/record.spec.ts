@@ -1,5 +1,5 @@
 import type { BearerDid } from '@web5/dids';
-import type { DwnMessageParams, DwnPublicKeyJwk, DwnSigner } from '@web5/agent';
+import type { DwnMessageParams, DwnProtocolDefinition, DwnPublicKeyJwk, DwnSigner } from '@web5/agent';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
@@ -32,6 +32,7 @@ describe('Record', () => {
   let dwnAlice: DwnApi;
   let dwnBob: DwnApi;
   let testHarness: PlatformAgentTestHarness;
+  let protocolUri: string;
 
   before(async () => {
     testHarness = await PlatformAgentTestHarness.setup({
@@ -41,10 +42,7 @@ describe('Record', () => {
 
     dataText = TestDataGenerator.randomString(100);
     ({ dataBlob, dataFormat } = dataToBlob(dataText));
-  });
 
-  beforeEach(async () => {
-    sinon.restore();
     await testHarness.clearStorage();
     await testHarness.createAgentDid();
 
@@ -63,6 +61,36 @@ describe('Record', () => {
     dwnBob = new DwnApi({ agent: testHarness.agent, connectedDid: bobDid.uri });
   });
 
+  beforeEach(async () => {
+    sinon.restore();
+    await testHarness.syncStore.clear();
+    await testHarness.dwnDataStore.clear();
+    await testHarness.dwnEventLog.clear();
+    await testHarness.dwnMessageStore.clear();
+    await testHarness.dwnResumableTaskStore.clear();
+    testHarness.dwnStores.clear();
+
+
+    // give the protocol a random URI on each run
+    protocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(10)}`;
+    const protocolDefinition = {
+      ...emailProtocolDefinition,
+      protocol: protocolUri
+    };
+
+    // Configure the protocol on both DWNs
+    const { status: aliceProtocolStatus, protocol: aliceProtocol } = await dwnAlice.protocols.configure({ message: { definition: protocolDefinition } });
+    expect(aliceProtocolStatus.code).to.equal(202);
+    expect(aliceProtocol).to.exist;
+    const { status: aliceProtocolSendStatus } = await aliceProtocol.send(aliceDid.uri);
+    expect(aliceProtocolSendStatus.code).to.equal(202);
+    const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({ message: { definition: protocolDefinition } });
+    expect(bobProtocolStatus.code).to.equal(202);
+    expect(bobProtocol).to.exist;
+    const { status: bobProtocolSendStatus } = await bobProtocol!.send(bobDid.uri);
+    expect(bobProtocolSendStatus.code).to.equal(202);
+  });
+
   after(async () => {
     sinon.restore();
     await testHarness.clearStorage();
@@ -70,40 +98,12 @@ describe('Record', () => {
   });
 
   it('imports a record that another user wrote', async () => {
-
-    // Install the thread protocol for Alice's local DWN.
-    let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
-      message: {
-        definition: emailProtocolDefinition,
-      }
-    });
-    expect(aliceStatus.code).to.equal(202);
-    expect(aliceProtocol).to.exist;
-
-    // Install the thread protocol for Alice's remote DWN.
-    const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.uri);
-    expect(alicePushStatus.code).to.equal(202);
-
-    // Install the thread protocol for Bob's local DWN.
-    const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
-      message: {
-        definition: emailProtocolDefinition
-      }
-    });
-
-    expect(bobStatus.code).to.equal(202);
-    expect(bobProtocol).to.exist;
-
-    // Install the thread protocol for Bob's remote DWN.
-    const { status: bobPushStatus } = await bobProtocol!.send(bobDid.uri);
-    expect(bobPushStatus.code).to.equal(202);
-
     // Alice creates a new large record and stores it on her own dwn
     const { status: aliceThreadStatus, record: aliceThreadRecord } = await dwnAlice.records.write({
       data    : TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000),
       message : {
         recipient    : bobDid.uri,
-        protocol     : emailProtocolDefinition.protocol,
+        protocol     : protocolUri,
         protocolPath : 'thread',
         schema       : 'http://email-protocol.xyz/schema/thread',
       }
@@ -117,7 +117,7 @@ describe('Record', () => {
       from    : bobDid.uri,
       message : {
         filter: {
-          protocol     : emailProtocolDefinition.protocol,
+          protocol     : protocolUri,
           protocolPath : 'thread',
         }
       }
@@ -130,7 +130,7 @@ describe('Record', () => {
       from    : aliceDid.uri,
       message : {
         filter: {
-          protocol     : emailProtocolDefinition.protocol,
+          protocol     : protocolUri,
           protocolPath : 'thread',
         }
       }
@@ -152,7 +152,7 @@ describe('Record', () => {
       from    : bobDid.uri,
       message : {
         filter: {
-          protocol     : emailProtocolDefinition.protocol,
+          protocol     : protocolUri,
           protocolPath : 'thread',
         }
       }
@@ -186,7 +186,7 @@ describe('Record', () => {
       from    : aliceDid.uri,
       message : {
         filter: {
-          protocol     : emailProtocolDefinition.protocol,
+          protocol     : protocolUri,
           protocolPath : 'thread',
         }
       }
@@ -209,7 +209,7 @@ describe('Record', () => {
       from    : bobDid.uri,
       message : {
         filter: {
-          protocol     : emailProtocolDefinition.protocol,
+          protocol     : protocolUri,
           protocolPath : 'thread',
         }
       }
@@ -259,18 +259,11 @@ describe('Record', () => {
     };
 
     // RecordsWriteDescriptor properties that can be pre-defined
-    const protocol = emailProtocolDefinition.protocol;
+    const protocol = protocolUri;
     const protocolPath = 'thread';
     const schema = emailProtocolDefinition.types.thread.schema;
     const recipient = aliceDid.uri;
     const published = true;
-
-    // Install a protocol on Alice's agent connected DWN.
-    await dwnAlice.protocols.configure({
-      message: {
-        definition: emailProtocolDefinition
-      }
-    });
 
     const RecordsWrite = dwnMessageConstructors[DwnInterface.RecordsWrite];
 
@@ -1154,35 +1147,54 @@ describe('Record', () => {
     });
 
     describe('with two Agents', () => {
-      let testHarnessBob: PlatformAgentTestHarness;
+      let dwnCarol: DwnApi;
+      let carolDid: BearerDid;
+      let testHarnessCarol: PlatformAgentTestHarness;
 
       before(async () => {
-        // Create a second `TestManagedAgent` that only Bob will use.
-        testHarnessBob = await PlatformAgentTestHarness.setup({
+        // Create a second `TestManagedAgent` that only Carol will use.
+        testHarnessCarol = await PlatformAgentTestHarness.setup({
           agentClass       : Web5UserAgent,
           agentStores      : 'memory',
           testDataLocation : '__TESTDATA__/AGENT_BOB'
         });
+
+
+        await testHarnessCarol.clearStorage();
+        await testHarnessCarol.createAgentDid();
+
+        // Create a carol Identity to author the DWN messages.
+        const carol = await testHarnessCarol.createIdentity({ name: 'Carol', testDwnUrls });
+        await testHarnessCarol.agent.identity.manage({ portableIdentity: await carol.export() });
+        carolDid = carol.did;
+
+        // Instantiate a new `DwnApi` using Bob's test agent.
+        dwnCarol = new DwnApi({ agent: testHarnessCarol.agent, connectedDid: carolDid.uri });
       });
 
       beforeEach(async () => {
-        await testHarnessBob.clearStorage();
+        await testHarnessCarol.syncStore.clear();
+        await testHarnessCarol.dwnDataStore.clear();
+        await testHarnessCarol.dwnEventLog.clear();
+        await testHarnessCarol.dwnMessageStore.clear();
+        await testHarnessCarol.dwnResumableTaskStore.clear();
+        testHarnessCarol.dwnStores.clear();
 
-        // Create an Agent DID.
-        await testHarnessBob.createAgentDid();
+        const protocolDefinition = {
+          ...emailProtocolDefinition,
+          protocol: protocolUri
+        };
 
-        // Create a new "bob" Identity to author the DWN messages.
-        const bob = await testHarnessBob.createIdentity({ name: 'Bob', testDwnUrls });
-        await testHarnessBob.agent.identity.manage({ portableIdentity: await bob.export() });
-        bobDid = bob.did;
-
-        // Instantiate a new `DwnApi` using Bob's test agent.
-        dwnBob = new DwnApi({ agent: testHarnessBob.agent, connectedDid: bobDid.uri });
+        const { status: carolProtocolStatus, protocol: carolProtocol } = await dwnCarol.protocols.configure({ message: { definition: protocolDefinition } });
+        expect(carolProtocolStatus.code).to.equal(202);
+        expect(carolProtocol).to.exist;
+        const { status: carolProtocolSendStatus } = await carolProtocol.send(carolDid.uri);
+        expect(carolProtocolSendStatus.code).to.equal(202);
       });
 
       after(async () => {
-        await testHarnessBob.clearStorage();
-        await testHarnessBob.closeStorage();
+        await testHarnessCarol.clearStorage();
+        await testHarnessCarol.closeStorage();
       });
 
       it('returns large data payloads of records signed by another entity after remote dwn.records.query()', async () => {
@@ -1210,25 +1222,6 @@ describe('Record', () => {
          * record to Bob's DWN, the record is signed by Alice's keys. When Bob fetches the record from
          * his DWN, this test validates that the `RecordsRead` is signed by Bob's keys.
          *
-         * SETUP STEPS:
-         *   S1. Install the email protocol to both Alice's and Bob's DWNs.
-         */
-        let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
-          message: { definition: emailProtocolDefinition }
-        });
-        expect(aliceStatus.code).to.equal(202);
-        const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.uri);
-        expect(alicePushStatus.code).to.equal(202);
-        const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
-          message: {
-            definition: emailProtocolDefinition
-          }
-        });
-        expect(bobStatus.code).to.equal(202);
-        const { status: bobPushStatus } = await bobProtocol!.send(bobDid.uri);
-        expect(bobPushStatus.code).to.equal(202);
-
-        /**
          * TEST STEPS:
          *
          *   1. Alice creates a record but does NOT store it her local, agent-connected DWN.
@@ -1237,22 +1230,22 @@ describe('Record', () => {
           data    : dataTextExceedingMaxSize,
           store   : false,
           message : {
-            protocol     : emailProtocolDefinition.protocol,
+            protocol     : protocolUri,
             protocolPath : 'thread',
             schema       : emailProtocolDefinition.types.thread.schema
           }
         });
         expect(status.code).to.equal(202);
         /**
-         *   2. Alice writes the record to Bob's remote DWN.
+         *   2. Alice writes the record to Carol's remote DWN.
          */
-        const { status: sendStatus } = await record!.send(bobDid.uri);
+        const { status: sendStatus } = await record!.send(carolDid.uri);
         expect(sendStatus.code).to.equal(202);
         /**
-         *   3. Bob queries his remote DWN for the record that Alice just wrote.
+         *   3. Carol queries his remote DWN for the record that Alice just wrote.
          */
-        const { records: queryRecordsFrom, status: queryRecordStatusFrom } = await dwnBob.records.query({
-          from    : bobDid.uri,
+        const { records: queryRecordsFrom, status: queryRecordStatusFrom } = await dwnCarol.records.query({
+          from    : carolDid.uri,
           message : { filter: { recordId: record!.id }}
         });
         expect(queryRecordStatusFrom.code).to.equal(200);
@@ -1288,25 +1281,6 @@ describe('Record', () => {
          * record to Bob's DWN, the record is signed by Alice's keys. When Bob fetches the record from
          * his DWN, this test validates that the `RecordsRead` is signed by Bob's keys.
          *
-         * SETUP STEPS:
-         *   S1. Install the email protocol to both Alice's and Bob's DWNs.
-         */
-        let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
-          message: { definition: emailProtocolDefinition }
-        });
-        expect(aliceStatus.code).to.equal(202);
-        const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.uri);
-        expect(alicePushStatus.code).to.equal(202);
-        const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
-          message: {
-            definition: emailProtocolDefinition
-          }
-        });
-        expect(bobStatus.code).to.equal(202);
-        const { status: bobPushStatus } = await bobProtocol!.send(bobDid.uri);
-        expect(bobPushStatus.code).to.equal(202);
-
-        /**
          * TEST STEPS:
          *
          *   1. Alice creates a record but does NOT store it her local, agent-connected DWN.
@@ -1315,32 +1289,32 @@ describe('Record', () => {
           data    : dataTextExceedingMaxSize,
           store   : false,
           message : {
-            protocol     : emailProtocolDefinition.protocol,
+            protocol     : protocolUri,
             protocolPath : 'thread',
             schema       : emailProtocolDefinition.types.thread.schema
           }
         });
         expect(status.code).to.equal(202);
         /**
-         *   2. Alice writes the record to Bob's remote DWN.
+         *   2. Alice writes the record to Carol's remote DWN.
          */
-        const { status: sendStatus } = await record!.send(bobDid.uri);
+        const { status: sendStatus } = await record!.send(carolDid.uri);
         expect(sendStatus.code).to.equal(202);
         /**
-         *   3. Bob queries his remote DWN for the record that Alice just wrote.
+         *   3. Carol queries her remote DWN for the record that Alice just wrote.
          */
-        const { records: queryRecordsFrom, status: queryRecordStatusFrom } = await dwnBob.records.query({
-          from    : bobDid.uri,
+        const { records: queryRecordsFrom, status: queryRecordStatusFrom } = await dwnCarol.records.query({
+          from    : carolDid.uri,
           message : { filter: { recordId: record!.id }}
         });
         expect(queryRecordStatusFrom.code).to.equal(200);
         /**
-         *   4. Validate that Bob is able to write the record to Alice's remote DWN.
+         *   4. Validate that Carol is able to write the record to Alice's remote DWN.
          */
         const { status: sendStatusToAlice } = await queryRecordsFrom[0]!.send(aliceDid.uri);
         expect(sendStatusToAlice.code).to.equal(202);
         /**
-         *  5. Alice queries her remote DWN for the record that Bob just wrote.
+         *  5. Alice queries her remote DWN for the record that Carol just wrote.
          */
         const { records: queryRecordsTo, status: queryRecordStatusTo } = await dwnAlice.records.query({
           from    : aliceDid.uri,
@@ -1534,39 +1508,14 @@ describe('Record', () => {
        * be fetched with a RecordsRead when record.data.blob() is executed. */
       const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
-      // Install the email protocol for Alice's local DWN.
-      let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
-        message: { definition: emailProtocolDefinition }
-      });
-      expect(aliceStatus.code).to.equal(202);
-      expect(aliceProtocol).to.exist;
-
-      // Install the email protocol for Alice's remote DWN.
-      const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.uri);
-      expect(alicePushStatus.code).to.equal(202);
-
-      // Install the email protocol for Bob's local DWN.
-      const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
-        message: {
-          definition: emailProtocolDefinition
-        }
-      });
-
-      expect(bobStatus.code).to.equal(202);
-      expect(bobProtocol).to.exist;
-
-      // Install the email protocol for Bob's remote DWN.
-      const { status: bobPushStatus } = await bobProtocol!.send(bobDid.uri);
-      expect(bobPushStatus.code).to.equal(202);
-
       // Alice creates a new large record but does not store it in her local DWN.
       const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwnAlice.records.write({
         store   : false,
         data    : dataText,
         message : {
-          protocol     : emailProtocolDefinition.protocol,
+          protocol     : protocolUri,
           protocolPath : 'thread',
-          schema       : 'http://email-protocol.xyz/schema/thread',
+          schema       : emailProtocolDefinition.types.thread.schema
         }
       });
       expect(aliceEmailStatus.code).to.equal(202);
@@ -1592,7 +1541,8 @@ describe('Record', () => {
         from    : bobDid.uri,
         message : {
           filter: {
-            schema: 'http://email-protocol.xyz/schema/thread'
+            protocol : protocolUri,
+            schema   : emailProtocolDefinition.types.thread.schema
           }
         }
       });
@@ -1606,39 +1556,14 @@ describe('Record', () => {
        * be fetched with a RecordsRead when record.data.blob() is executed. */
       const dataText = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
 
-      // Install the email protocol for Alice's local DWN.
-      let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
-        message: { definition: emailProtocolDefinition }
-      });
-      expect(aliceStatus.code).to.equal(202);
-      expect(aliceProtocol).to.exist;
-
-      // Install the email protocol for Alice's remote DWN.
-      const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.uri);
-      expect(alicePushStatus.code).to.equal(202);
-
-      // Install the email protocol for Bob's local DWN.
-      const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
-        message: {
-          definition: emailProtocolDefinition
-        }
-      });
-
-      expect(bobStatus.code).to.equal(202);
-      expect(bobProtocol).to.exist;
-
-      // Install the email protocol for Bob's remote DWN.
-      const { status: bobPushStatus } = await bobProtocol!.send(bobDid.uri);
-      expect(bobPushStatus.code).to.equal(202);
-
       // Alice creates a new large record but does not store it in her local DWN.
       const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwnAlice.records.write({
         store   : false,
         data    : dataText,
         message : {
-          protocol     : emailProtocolDefinition.protocol,
+          protocol     : protocolUri,
           protocolPath : 'thread',
-          schema       : 'http://email-protocol.xyz/schema/thread',
+          schema       : emailProtocolDefinition.types.thread.schema
         }
       });
       expect(aliceEmailStatus.code).to.equal(202);
@@ -1663,7 +1588,8 @@ describe('Record', () => {
         from    : bobDid.uri,
         message : {
           filter: {
-            schema: 'http://email-protocol.xyz/schema/thread'
+            protocol : protocolUri,
+            schema   : emailProtocolDefinition.types.thread.schema
           }
         }
       });
@@ -1675,41 +1601,13 @@ describe('Record', () => {
     it(`writes records to remote DWNs for someone else's DID`, async () => {
       const dataString = 'Hello, world!';
 
-      // Install the email protocol for Alice's local DWN.
-      let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
-        message: {
-          definition: emailProtocolDefinition
-        }
-      });
-
-      expect(aliceStatus.code).to.equal(202);
-      expect(aliceProtocol).to.exist;
-
-      // Install the email protocol for Alice's remote DWN.
-      const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.uri);
-      expect(alicePushStatus.code).to.equal(202);
-
-      // Install the email protocol for Bob's local DWN.
-      const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
-        message: {
-          definition: emailProtocolDefinition
-        }
-      });
-
-      expect(bobStatus.code).to.equal(202);
-      expect(bobProtocol).to.exist;
-
-      // Install the email protocol for Bob's remote DWN.
-      const { status: bobPushStatus } = await bobProtocol!.send(bobDid.uri);
-      expect(bobPushStatus.code).to.equal(202);
-
       // Alice writes a message to her own DWN.
       const { status: aliceEmailStatus, record: aliceEmailRecord } = await dwnAlice.records.write({
         data    : dataString,
         message : {
-          protocol     : emailProtocolDefinition.protocol,
+          protocol     : protocolUri,
           protocolPath : 'thread',
-          schema       : 'http://email-protocol.xyz/schema/thread',
+          schema       : emailProtocolDefinition.types.thread.schema
         }
       });
 
@@ -1724,7 +1622,8 @@ describe('Record', () => {
         from    : bobDid.uri,
         message : {
           filter: {
-            schema: 'http://email-protocol.xyz/schema/thread'
+            protocol : protocolUri,
+            schema   : emailProtocolDefinition.types.thread.schema
           }
         }
       });
@@ -1744,7 +1643,9 @@ describe('Record', () => {
           store   : false,
           data    : dataString,
           message : {
-            dataFormat: 'text/plain'
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : emailProtocolDefinition.types.thread.schema
           }
         });
 
@@ -1758,7 +1659,9 @@ describe('Record', () => {
         const queryResult = await dwnAlice.records.query({
           message: {
             filter: {
-              dataFormat: 'text/plain'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : emailProtocolDefinition.types.thread.schema
             }
           }
         });
@@ -1777,7 +1680,9 @@ describe('Record', () => {
           from    : aliceDid.uri,
           message : {
             filter: {
-              dataFormat: 'text/plain'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : emailProtocolDefinition.types.thread.schema
             }
           }
         });
@@ -1791,43 +1696,15 @@ describe('Record', () => {
       });
 
       it(`writes records to someone else's remote DWN but not your agent DWN`, async () => {
-        // Install a protocol on Alice's agent connected DWN.
-        let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
-          message: {
-            definition: emailProtocolDefinition
-          }
-        });
-
-        expect(aliceStatus.code).to.equal(202);
-        expect(aliceProtocol).to.exist;
-
-        // Install the protocol on Alice's remote DWN.
-        const { status: alicePushStatus } = await aliceProtocol!.send(aliceDid.uri);
-        expect(alicePushStatus.code).to.equal(202);
-
-        // Install the email protocol for Bob's local DWN.
-        const { protocol: bobProtocol, status: bobStatus } = await dwnBob.protocols.configure({
-          message: {
-            definition: emailProtocolDefinition
-          }
-        });
-
-        expect(bobStatus.code).to.equal(202);
-        expect(bobProtocol).to.exist;
-
-        // Install the email protocol for Bob's remote DWN.
-        const { status: bobPushStatus } = await bobProtocol!.send(bobDid.uri);
-        expect(bobPushStatus.code).to.equal(202);
-
         // Alice writes a message to her agent DWN with `store: false`.
         const dataString = 'Hello, world!';
         const writeResult = await dwnAlice.records.write({
           store   : false,
           data    : dataString,
           message : {
-            protocol     : emailProtocolDefinition.protocol,
+            protocol     : protocolUri,
             protocolPath : 'thread',
-            schema       : 'http://email-protocol.xyz/schema/thread',
+            schema       : emailProtocolDefinition.types.thread.schema
           }
         });
 
@@ -1841,7 +1718,9 @@ describe('Record', () => {
         const queryResult = await dwnAlice.records.query({
           message: {
             filter: {
-              schema: 'http://email-protocol.xyz/schema/thread'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : emailProtocolDefinition.types.thread.schema
             }
           }
         });
@@ -1860,7 +1739,9 @@ describe('Record', () => {
           from    : bobDid.uri,
           message : {
             filter: {
-              dataFormat: 'text/plain'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : emailProtocolDefinition.types.thread.schema
             }
           }
         });
@@ -1880,7 +1761,9 @@ describe('Record', () => {
           store   : true,
           data    : dataString,
           message : {
-            dataFormat: 'text/plain'
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : emailProtocolDefinition.types.thread.schema
           }
         });
 
@@ -1894,7 +1777,9 @@ describe('Record', () => {
         const queryResult = await dwnAlice.records.query({
           message: {
             filter: {
-              dataFormat: 'text/plain'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : emailProtocolDefinition.types.thread.schema
             }
           }
         });
@@ -1915,7 +1800,9 @@ describe('Record', () => {
           from    : aliceDid.uri,
           message : {
             filter: {
-              dataFormat: 'text/plain'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : emailProtocolDefinition.types.thread.schema
             }
           }
         });
@@ -1970,18 +1857,11 @@ describe('Record', () => {
       };
 
       // RecordsWriteDescriptor properties that can be pre-defined
-      const protocol = emailProtocolDefinition.protocol;
+      const protocol = protocolUri;
       const protocolPath = 'thread';
       const schema = emailProtocolDefinition.types.thread.schema;
       const recipient = aliceDid.uri;
       const published = true;
-
-      // Install a protocol on Alice's agent connected DWN.
-      await dwnAlice.protocols.configure({
-        message: {
-          definition: emailProtocolDefinition
-        }
-      });
 
       const RecordsWrite = dwnMessageConstructors[DwnInterface.RecordsWrite];
 
@@ -2074,20 +1954,11 @@ describe('Record', () => {
     });
 
     it('should return a string representation of the record with protocol properties', async () => {
-      // install a protocol to use for the record
-      let { protocol: aliceProtocol, status: aliceStatus } = await dwnAlice.protocols.configure({
-        message: {
-          definition: emailProtocolDefinition,
-        }
-      });
-      expect(aliceStatus.code).to.equal(202);
-      expect(aliceProtocol).to.exist;
-
       // create a record
       const { record, status } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
-          protocol     : emailProtocolDefinition.protocol,
+          protocol     : protocolUri,
           protocolPath : 'thread',
           schema       : emailProtocolDefinition.types.thread.schema,
           dataFormat   : 'text/plain'
@@ -2406,20 +2277,11 @@ describe('Record', () => {
     });
 
     it('updates a record which has a parent reference', async () => {
-      // install a protocol
-      let { protocol, status: protocolStatus } = await dwnAlice.protocols.configure({
-        message: {
-          definition: emailProtocolDefinition,
-        }
-      });
-      expect(protocolStatus.code).to.equal(202);
-      expect(protocolStatus).to.exist;
-
       // create a parent thread
       const { status: threadStatus, record: threadRecord } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
-          protocol     : protocol.definition.protocol,
+          protocol     : protocolUri,
           schema       : emailProtocolDefinition.types.thread.schema,
           protocolPath : 'thread'
         }
@@ -2433,7 +2295,7 @@ describe('Record', () => {
         data    : 'Hello, world!',
         message : {
           parentContextId : threadRecord.contextId,
-          protocol        : emailProtocolDefinition.protocol,
+          protocol        : protocolUri,
           protocolPath    : 'thread/email',
           schema          : emailProtocolDefinition.types.email.schema
         }
@@ -3075,6 +2937,44 @@ describe('Record', () => {
   });
 
   describe('store()', () => {
+    let ownerOnlyProtocolUri: string;
+    // install a protocol that only the owner of the DWN should be able to writing records
+    const ownerOnlyProtocolDefinition: DwnProtocolDefinition = {
+      protocol  : 'owner-only',
+      published : true,
+      types     : {
+        note: {
+          schema      : 'http://example.com/note',
+          dataFormats : ['text/plain', 'application/json']
+        }
+      },
+      structure: {
+        note: {}
+      }
+    };
+
+    beforeEach(async () => {
+
+      // give the protocol a random URI on each run
+      ownerOnlyProtocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(10)}`;
+      const protocolDefinition = {
+        ...ownerOnlyProtocolDefinition,
+        protocol: ownerOnlyProtocolUri
+      };
+
+
+      const { status: aliceProtocolStatus, protocol: aliceProtocol } = await dwnAlice.protocols.configure({ message: { definition: protocolDefinition } });
+      expect(aliceProtocolStatus.code).to.equal(202);
+      expect(aliceProtocol).to.exist;
+      const { status: aliceProtocolSendStatus } = await aliceProtocol.send(aliceDid.uri);
+      expect(aliceProtocolSendStatus.code).to.equal(202);
+      const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({ message: { definition: protocolDefinition } });
+      expect(bobProtocolStatus.code).to.equal(202);
+      expect(bobProtocol).to.exist;
+      const { status: bobProtocolSendStatus } = await bobProtocol!.send(bobDid.uri);
+      expect(bobProtocolSendStatus.code).to.equal(202);
+    });
+
     it('should store an external record if it has been imported by the dwn owner', async () => {
       // Scenario: Alice creates a record.
       //           Bob queries for the record from Alice's DWN and then stores it to their own DWN.
@@ -3083,9 +2983,10 @@ describe('Record', () => {
       const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
-          published  : true,
-          schema     : 'foo/bar',
-          dataFormat : 'text/plain'
+          published    : true,
+          protocol     : ownerOnlyProtocolUri,
+          protocolPath : 'note',
+          schema       : ownerOnlyProtocolDefinition.types.note.schema
         }
       });
       expect(status.code).to.equal(202, status.detail);
@@ -3146,9 +3047,10 @@ describe('Record', () => {
       const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
-          published  : true,
-          schema     : 'foo/bar',
-          dataFormat : 'text/plain'
+          published    : true,
+          protocol     : ownerOnlyProtocolUri,
+          protocolPath : 'note',
+          schema       : ownerOnlyProtocolDefinition.types.note.schema
         }
       });
       expect(status.code).to.equal(202, status.detail);
@@ -3218,8 +3120,9 @@ describe('Record', () => {
         store   : false,
         data    : 'Hello, world!',
         message : {
-          schema     : 'foo/bar',
-          dataFormat : 'text/plain'
+          protocol     : ownerOnlyProtocolUri,
+          protocolPath : 'note',
+          schema       : ownerOnlyProtocolDefinition.types.note.schema
         }
       });
       expect(writeStatus.code).to.equal(202);
@@ -3254,9 +3157,10 @@ describe('Record', () => {
       const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
-          published  : true,
-          schema     : 'foo/bar',
-          dataFormat : 'text/plain'
+          published    : true,
+          protocol     : protocolUri,
+          protocolPath : 'thread',
+          schema       : emailProtocolDefinition.types.thread.schema
         }
       });
       expect(status.code).to.equal(202, status.detail);
@@ -3302,9 +3206,10 @@ describe('Record', () => {
       const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
-          published  : true,
-          schema     : 'foo/bar',
-          dataFormat : 'text/plain'
+          published    : true,
+          protocol     : protocolUri,
+          protocolPath : 'thread',
+          schema       : emailProtocolDefinition.types.thread.schema
         }
       });
       expect(status.code).to.equal(202, status.detail);
@@ -3356,8 +3261,9 @@ describe('Record', () => {
         store   : false,
         data    : 'Hello, world!',
         message : {
-          schema     : 'foo/bar',
-          dataFormat : 'text/plain'
+          protocol     : protocolUri,
+          protocolPath : 'thread',
+          schema       : emailProtocolDefinition.types.thread.schema
         }
       });
       expect(writeStatus.code).to.equal(202);
@@ -3391,9 +3297,10 @@ describe('Record', () => {
         const { status, record } = await dwnAlice.records.write({
           data    : 'Hello, world!',
           message : {
-            published  : true,
-            schema     : 'foo/bar',
-            dataFormat : 'text/plain'
+            published    : true,
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : emailProtocolDefinition.types.thread.schema
           }
         });
         expect(status.code).to.equal(202, status.detail);
@@ -3455,9 +3362,10 @@ describe('Record', () => {
         const { status, record } = await dwnAlice.records.write({
           data    : 'Hello, world!',
           message : {
-            published  : true,
-            schema     : 'foo/bar',
-            dataFormat : 'text/plain'
+            published    : true,
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : emailProtocolDefinition.types.thread.schema
           }
         });
         expect(status.code).to.equal(202, status.detail);
@@ -3521,8 +3429,9 @@ describe('Record', () => {
       const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
-          schema     : 'foo/bar',
-          dataFormat : 'text/plain'
+          protocol     : protocolUri,
+          protocolPath : 'thread',
+          schema       : emailProtocolDefinition.types.thread.schema
         }
       });
 
@@ -3547,9 +3456,10 @@ describe('Record', () => {
       const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
         message : {
-          published  : true,
-          schema     : 'foo/bar',
-          dataFormat : 'text/plain'
+          published    : true,
+          protocol     : protocolUri,
+          protocolPath : 'thread',
+          schema       : emailProtocolDefinition.types.thread.schema
         }
       });
       expect(status.code).to.equal(202);
@@ -3586,8 +3496,9 @@ describe('Record', () => {
         store   : false,
         data    : 'Hello, world!',
         message : {
-          schema     : 'foo/bar',
-          dataFormat : 'text/plain'
+          protocol     : protocolUri,
+          protocolPath : 'thread',
+          schema       : emailProtocolDefinition.types.thread.schema
         }
       });
       expect(writeStatus.code).to.equal(202);

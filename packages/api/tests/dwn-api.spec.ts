@@ -3,7 +3,7 @@ import type { BearerDid } from '@web5/dids';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { Web5UserAgent } from '@web5/user-agent';
-import { AgentPermissionsApi, DwnDateSort, DwnInterface, getRecordAuthor, PlatformAgentTestHarness } from '@web5/agent';
+import { AgentPermissionsApi, DwnDateSort, DwnInterface, DwnProtocolDefinition, getRecordAuthor, PlatformAgentTestHarness } from '@web5/agent';
 
 import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';
@@ -13,6 +13,7 @@ import { DwnInterfaceName, DwnMethodName, PermissionsProtocol, Poller, RecordsWr
 import { PermissionGrant } from '../src/permission-grant.js';
 import { Web5 } from '../src/web5.js';
 import { Record } from '../src/record.js';
+import { TestDataGenerator } from './utils/test-data-generator.js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -22,16 +23,15 @@ describe('DwnApi', () => {
   let dwnAlice: DwnApi;
   let dwnBob: DwnApi;
   let testHarness: PlatformAgentTestHarness;
+  let protocolUri: string;
+  let protocolDefinition: DwnProtocolDefinition;
 
   before(async () => {
     testHarness = await PlatformAgentTestHarness.setup({
       agentClass  : Web5UserAgent,
       agentStores : 'memory'
     });
-  });
 
-  beforeEach(async () => {
-    sinon.restore();
     await testHarness.clearStorage();
     await testHarness.createAgentDid();
 
@@ -48,10 +48,33 @@ describe('DwnApi', () => {
     // Instantiate DwnApi for both test identities.
     dwnAlice = new DwnApi({ agent: testHarness.agent, connectedDid: aliceDid.uri });
     dwnBob = new DwnApi({ agent: testHarness.agent, connectedDid: bobDid.uri });
+  });
+
+  beforeEach(async () => {
+    sinon.restore();
+    await testHarness.syncStore.clear();
+    await testHarness.dwnDataStore.clear();
+    await testHarness.dwnEventLog.clear();
+    await testHarness.dwnMessageStore.clear();
+    await testHarness.dwnResumableTaskStore.clear();
+    testHarness.dwnStores.clear();
 
     // clear cached permissions between test runs
     dwnAlice['cachedPermissionsApi'].clear();
     dwnBob['cachedPermissionsApi'].clear();
+
+    dwnAlice['connectedDid'] = aliceDid.uri;
+    dwnBob['connectedDid'] = bobDid.uri;
+
+    delete dwnAlice['delegateDid'];
+    delete dwnBob['delegateDid'];
+
+    // give the protocol a random URI on each run
+    protocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(10)}`;
+    protocolDefinition = {
+      ...emailProtocolDefinition,
+      protocol: protocolUri
+    };
   });
 
   after(async () => {
@@ -65,7 +88,7 @@ describe('DwnApi', () => {
       it('writes a protocol definition', async () => {
         const response = await dwnAlice.protocols.configure({
           message: {
-            definition: emailProtocolDefinition
+            definition: protocolDefinition
           }
         });
 
@@ -81,7 +104,7 @@ describe('DwnApi', () => {
         // Write a protocols configure to the connected agent's DWN.
         const configureResponse = await dwnAlice.protocols.configure({
           message: {
-            definition: emailProtocolDefinition
+            definition: protocolDefinition
           }
         });
         expect(configureResponse.status.code).to.equal(202);
@@ -91,7 +114,7 @@ describe('DwnApi', () => {
         const queryResponse = await dwnAlice.protocols.query({
           message: {
             filter: {
-              protocol: emailProtocolDefinition.protocol
+              protocol: protocolDefinition.protocol
             }
           }
         });
@@ -100,7 +123,7 @@ describe('DwnApi', () => {
         expect(queryResponse.protocols.length).to.equal(1);
         expect(queryResponse.protocols[0].definition).to.have.property('types');
         expect(queryResponse.protocols[0].definition).to.have.property('protocol');
-        expect(queryResponse.protocols[0].definition.protocol).to.equal(emailProtocolDefinition.protocol);
+        expect(queryResponse.protocols[0].definition.protocol).to.equal(protocolDefinition.protocol);
         expect(queryResponse.protocols[0].definition).to.have.property('structure');
       });
     });
@@ -110,7 +133,7 @@ describe('DwnApi', () => {
         // Write a protocols configure to the connected agent's DWN.
         const configureResponse = await dwnAlice.protocols.configure({
           message: {
-            definition: emailProtocolDefinition
+            definition: protocolDefinition
           }
         });
         expect(configureResponse.status.code).to.equal(202);
@@ -124,7 +147,7 @@ describe('DwnApi', () => {
           from    : aliceDid.uri,
           message : {
             filter: {
-              protocol: emailProtocolDefinition.protocol
+              protocol: protocolDefinition.protocol
             }
           }
         });
@@ -133,7 +156,7 @@ describe('DwnApi', () => {
         expect(queryResponse.protocols.length).to.equal(1);
         expect(queryResponse.protocols[0].definition).to.have.property('types');
         expect(queryResponse.protocols[0].definition).to.have.property('protocol');
-        expect(queryResponse.protocols[0].definition.protocol).to.equal(emailProtocolDefinition.protocol);
+        expect(queryResponse.protocols[0].definition.protocol).to.equal(protocolDefinition.protocol);
         expect(queryResponse.protocols[0].definition).to.have.property('structure');
       });
 
@@ -157,7 +180,7 @@ describe('DwnApi', () => {
         // Configure a published protocol on Alice's local DWN.
         const publicProtocol = await dwnAlice.protocols.configure({
           message: {
-            definition: { ...emailProtocolDefinition, protocol: 'http://proto-published', published: true }
+            definition: { ...protocolDefinition, protocol: 'http://proto-published', published: true }
           }
         });
         expect(publicProtocol.status.code).to.equal(202);
@@ -186,7 +209,7 @@ describe('DwnApi', () => {
         // Configure an unpublished protocol on Alice's DWN.
         const notPublicProtocol = await dwnAlice.protocols.configure({
           message: {
-            definition: { ...emailProtocolDefinition, protocol: 'http://proto-not-published', published: false }
+            definition: { ...protocolDefinition, protocol: 'http://proto-not-published', published: false }
           }
         });
         expect(notPublicProtocol.status.code).to.equal(202);
@@ -231,14 +254,29 @@ describe('DwnApi', () => {
   });
 
   describe('records.create()', () => {
+    beforeEach(async() => {
+      // Configure the protocol on both DWNs
+      const { status: aliceProtocolStatus, protocol: aliceProtocol } = await dwnAlice.protocols.configure({ message: { definition: protocolDefinition } });
+      expect(aliceProtocolStatus.code).to.equal(202);
+      expect(aliceProtocol).to.exist;
+      const { status: aliceProtocolSendStatus } = await aliceProtocol.send(aliceDid.uri);
+      expect(aliceProtocolSendStatus.code).to.equal(202);
+      const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({ message: { definition: protocolDefinition } });
+      expect(bobProtocolStatus.code).to.equal(202);
+      expect(bobProtocol).to.exist;
+      const { status: bobProtocolSendStatus } = await bobProtocol!.send(bobDid.uri);
+      expect(bobProtocolSendStatus.code).to.equal(202);
+    });
+
     describe('agent', () => {
       it('creates a record with string data', async () => {
         const dataString = 'Hello, world!Hello, world!';
         const result = await dwnAlice.records.create({
           data    : dataString,
           message : {
-            schema     : 'foo/bar',
-            dataFormat : 'text/plain'
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : protocolDefinition.types.thread.schema,
           }
         });
 
@@ -252,9 +290,10 @@ describe('DwnApi', () => {
         const result = await dwnAlice.records.create({
           data    : 'some data',
           message : {
-            schema     : 'foo/bar',
-            dataFormat : 'text/plain',
-            tags       : {
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : protocolDefinition.types.thread.schema,
+            tags         : {
               foo   : 'bar',
               count : 2,
               bool  : true
@@ -279,11 +318,12 @@ describe('DwnApi', () => {
         const result = await dwnAlice.records.create({
           data    : dataJson,
           message : {
-            schema     : 'foo/bar',
-            dataFormat : 'application/json'
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : protocolDefinition.types.thread.schema,
+            dataFormat   : 'application/json'
           }
         });
-
         expect(result.status.code).to.equal(202);
         expect(result.status.detail).to.equal('Accepted');
         expect(result.record).to.exist;
@@ -767,7 +807,7 @@ describe('DwnApi', () => {
          */
         const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
           message: {
-            definition: emailProtocolDefinition
+            definition: protocolDefinition,
           }
         });
         expect(bobProtocolStatus.code).to.equal(202);
@@ -783,7 +823,7 @@ describe('DwnApi', () => {
           store   : false,
           data    : 'test',
           message : {
-            protocol     : 'http://email-protocol.xyz',
+            protocol     : protocolUri,
             protocolPath : 'thread',
             schema       : 'http://email-protocol.xyz/schema/thread',
             dataFormat   : 'text/plain'
@@ -811,16 +851,31 @@ describe('DwnApi', () => {
   });
 
   describe('records.query()', () => {
+    beforeEach(async() => {
+      // Configure the protocol on both DWNs
+      const { status: aliceProtocolStatus, protocol: aliceProtocol } = await dwnAlice.protocols.configure({ message: { definition: protocolDefinition } });
+      expect(aliceProtocolStatus.code).to.equal(202);
+      expect(aliceProtocol).to.exist;
+      const { status: aliceProtocolSendStatus } = await aliceProtocol.send(aliceDid.uri);
+      expect(aliceProtocolSendStatus.code).to.equal(202);
+      const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({ message: { definition: protocolDefinition } });
+      expect(bobProtocolStatus.code).to.equal(202);
+      expect(bobProtocol).to.exist;
+      const { status: bobProtocolSendStatus } = await bobProtocol!.send(bobDid.uri);
+      expect(bobProtocolSendStatus.code).to.equal(202);
+    });
+
     describe('agent', () => {
       it('returns an array of records that match the filter provided', async () => {
         const writeResult = await dwnAlice.records.write({
           data    : 'Hello, world!',
           message : {
-            schema     : 'foo/bar',
-            dataFormat : 'text/plain'
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : protocolDefinition.types.thread.schema,
+            dataFormat   : 'text/plain'
           }
         });
-
         expect(writeResult.status.code).to.equal(202);
         expect(writeResult.status.detail).to.equal('Accepted');
         expect(writeResult.record).to.exist;
@@ -828,7 +883,10 @@ describe('DwnApi', () => {
         const result = await dwnAlice.records.query({
           message: {
             filter: {
-              schema: 'foo/bar'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : protocolDefinition.types.thread.schema,
+              dataFormat   : 'text/plain'
             }
           }
         });
@@ -844,8 +902,10 @@ describe('DwnApi', () => {
           const writeResult = await dwnAlice.records.write({
             data    : `Hello, world ${i + 1}!`,
             message : {
-              schema     : 'foo/bar',
-              dataFormat : 'text/plain'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : protocolDefinition.types.thread.schema,
+              dataFormat   : 'text/plain'
             }
           });
 
@@ -857,7 +917,10 @@ describe('DwnApi', () => {
         const results = await dwnAlice.records.query({
           message: {
             filter: {
-              schema: 'foo/bar'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : protocolDefinition.types.thread.schema,
+              dataFormat   : 'text/plain'
             },
             pagination: { limit: 2 } // set a limit of 2
           }
@@ -871,7 +934,10 @@ describe('DwnApi', () => {
         const additionalResults = await dwnAlice.records.query({
           message: {
             filter: {
-              schema: 'foo/bar'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : protocolDefinition.types.thread.schema,
+              dataFormat   : 'text/plain'
             },
             pagination: { limit: 2, cursor: results.cursor}
           }
@@ -891,9 +957,11 @@ describe('DwnApi', () => {
           const writeResult = await dwnAlice.records.write({
             data    : `Hello, world ${i + 1}!`,
             message : {
-              published  : i % 2 == 0 ? true : false,
-              schema     : 'foo/bar',
-              dataFormat : 'text/plain'
+              published    : i % 2 == 0 ? true : false,
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : protocolDefinition.types.thread.schema,
+              dataFormat   : 'text/plain'
             }
           });
 
@@ -914,7 +982,10 @@ describe('DwnApi', () => {
         const createdAscResults = await dwnAlice.records.query({
           message: {
             filter: {
-              schema: 'foo/bar'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : protocolDefinition.types.thread.schema,
+              dataFormat   : 'text/plain'
             },
             dateSort: DwnDateSort.CreatedAscending // same as default
           }
@@ -928,7 +999,10 @@ describe('DwnApi', () => {
         const createdDescResults = await dwnAlice.records.query({
           message: {
             filter: {
-              schema: 'foo/bar'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : protocolDefinition.types.thread.schema,
+              dataFormat   : 'text/plain'
             },
             dateSort: DwnDateSort.CreatedDescending
           }
@@ -942,7 +1016,10 @@ describe('DwnApi', () => {
         const publishedAscResults = await dwnAlice.records.query({
           message: {
             filter: {
-              schema: 'foo/bar'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : protocolDefinition.types.thread.schema,
+              dataFormat   : 'text/plain'
             },
             dateSort: DwnDateSort.PublishedAscending
           }
@@ -956,7 +1033,10 @@ describe('DwnApi', () => {
         const publishedDescResults = await dwnAlice.records.query({
           message: {
             filter: {
-              schema: 'foo/bar'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : protocolDefinition.types.thread.schema,
+              dataFormat   : 'text/plain'
             },
             dateSort: DwnDateSort.PublishedDescending
           }
@@ -973,9 +1053,11 @@ describe('DwnApi', () => {
         const { status, record } = await dwnAlice.records.write({
           data    : 'Hello, world!',
           message : {
-            schema     : 'foo/bar',
-            dataFormat : 'text/plain',
-            tags       : {
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : protocolDefinition.types.thread.schema,
+            dataFormat   : 'text/plain',
+            tags         : {
               foo: 'bar',
             }
           }
@@ -986,9 +1068,11 @@ describe('DwnApi', () => {
         const { status: status2 } = await dwnAlice.records.write({
           data    : 'Hello, world!',
           message : {
-            schema     : 'foo/bar',
-            dataFormat : 'text/plain',
-            tags       : {
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : protocolDefinition.types.thread.schema,
+            dataFormat   : 'text/plain',
+            tags         : {
               foo: 'baz',
             }
           }
@@ -999,7 +1083,10 @@ describe('DwnApi', () => {
         const result = await dwnAlice.records.query({
           message: {
             filter: {
-              schema: 'foo/bar'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : protocolDefinition.types.thread.schema,
+              dataFormat   : 'text/plain'
             }
           }
         });
@@ -1014,8 +1101,11 @@ describe('DwnApi', () => {
         const fooBarResult = await dwnAlice.records.query({
           message: {
             filter: {
-              schema : 'foo/bar',
-              tags   : {
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : protocolDefinition.types.thread.schema,
+              dataFormat   : 'text/plain',
+              tags         : {
                 foo: 'bar',
               }
             }
@@ -1037,8 +1127,10 @@ describe('DwnApi', () => {
         const { record } = await dwnAlice.records.write({
           data    : 'Hello, world!',
           message : {
-            schema     : 'foo/bar',
-            dataFormat : 'text/plain'
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : protocolDefinition.types.thread.schema,
+            dataFormat   : 'text/plain'
           }
         });
 
@@ -1050,7 +1142,10 @@ describe('DwnApi', () => {
           from    : aliceDid.uri,
           message : {
             filter: {
-              schema: 'foo/bar'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : protocolDefinition.types.thread.schema,
+              dataFormat   : 'text/plain'
             }
           }
         });
@@ -1090,7 +1185,7 @@ describe('DwnApi', () => {
          */
         const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
           message: {
-            definition: emailProtocolDefinition
+            definition: protocolDefinition
           }
         });
         expect(bobProtocolStatus.code).to.equal(202);
@@ -1106,9 +1201,9 @@ describe('DwnApi', () => {
           store   : false,
           data    : 'test',
           message : {
-            protocol     : 'http://email-protocol.xyz',
+            protocol     : protocolUri,
             protocolPath : 'thread',
-            schema       : 'http://email-protocol.xyz/schema/thread',
+            schema       : protocolDefinition.types.thread.schema,
             dataFormat   : 'text/plain'
           }
         });
@@ -1143,9 +1238,11 @@ describe('DwnApi', () => {
           store   : false,
           data    : 'Hello, world!',
           message : {
-            schema     : 'foo/bar',
-            dataFormat : 'text/plain',
-            tags       : {
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : protocolDefinition.types.thread.schema,
+            dataFormat   : 'text/plain',
+            tags         : {
               foo: 'bar',
             }
           }
@@ -1159,9 +1256,11 @@ describe('DwnApi', () => {
           store   : false,
           data    : 'Hello, world!',
           message : {
-            schema     : 'foo/bar',
-            dataFormat : 'text/plain',
-            tags       : {
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : protocolDefinition.types.thread.schema,
+            dataFormat   : 'text/plain',
+            tags         : {
               foo: 'baz',
             }
           }
@@ -1175,7 +1274,10 @@ describe('DwnApi', () => {
           from    : aliceDid.uri,
           message : {
             filter: {
-              schema: 'foo/bar'
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : protocolDefinition.types.thread.schema,
+              dataFormat   : 'text/plain'
             }
           }
         });
@@ -1191,8 +1293,11 @@ describe('DwnApi', () => {
           from    : aliceDid.uri,
           message : {
             filter: {
-              schema : 'foo/bar',
-              tags   : {
+              protocol     : protocolUri,
+              protocolPath : 'thread',
+              schema       : protocolDefinition.types.thread.schema,
+              dataFormat   : 'text/plain',
+              tags         : {
                 foo: 'bar',
               }
             }
@@ -1210,13 +1315,29 @@ describe('DwnApi', () => {
   });
 
   describe('records.read()', () => {
+    beforeEach(async() => {
+      // Configure the protocol on both DWNs
+      const { status: aliceProtocolStatus, protocol: aliceProtocol } = await dwnAlice.protocols.configure({ message: { definition: protocolDefinition } });
+      expect(aliceProtocolStatus.code).to.equal(202);
+      expect(aliceProtocol).to.exist;
+      const { status: aliceProtocolSendStatus } = await aliceProtocol.send(aliceDid.uri);
+      expect(aliceProtocolSendStatus.code).to.equal(202);
+      const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({ message: { definition: protocolDefinition } });
+      expect(bobProtocolStatus.code).to.equal(202);
+      expect(bobProtocol).to.exist;
+      const { status: bobProtocolSendStatus } = await bobProtocol!.send(bobDid.uri);
+      expect(bobProtocolSendStatus.code).to.equal(202);
+    });
+
     describe('agent', () => {
       it('returns a record', async () => {
         const writeResult = await dwnAlice.records.write({
           data    : 'Hello, world!',
           message : {
-            schema     : 'foo/bar',
-            dataFormat : 'text/plain'
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : protocolDefinition.types.thread.schema,
+            dataFormat   : 'text/plain'
           }
         });
 
@@ -1240,8 +1361,10 @@ describe('DwnApi', () => {
         const writeResult = await dwnAlice.records.write({
           data    : 'Hello, world!',
           message : {
-            schema     : 'foo/bar',
-            dataFormat : 'text/plain'
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : protocolDefinition.types.thread.schema,
+            dataFormat   : 'text/plain'
           }
         });
 
@@ -1272,8 +1395,10 @@ describe('DwnApi', () => {
         const writeResult = await dwnAlice.records.write({
           data    : 'Hello, world!',
           message : {
-            schema     : 'foo/bar',
-            dataFormat : 'text/plain'
+            protocol     : protocolUri,
+            protocolPath : 'thread',
+            schema       : protocolDefinition.types.thread.schema,
+            dataFormat   : 'text/plain'
           }
         });
 
@@ -1326,7 +1451,7 @@ describe('DwnApi', () => {
          */
         const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
           message: {
-            definition: emailProtocolDefinition
+            definition: protocolDefinition,
           }
         });
         expect(bobProtocolStatus.code).to.equal(202);
@@ -1342,9 +1467,9 @@ describe('DwnApi', () => {
           store   : false,
           data    : 'test',
           message : {
-            protocol     : 'http://email-protocol.xyz',
+            protocol     : protocolUri,
             protocolPath : 'thread',
-            schema       : 'http://email-protocol.xyz/schema/thread',
+            schema       : protocolDefinition.types.thread.schema,
             dataFormat   : 'text/plain'
           }
         });
@@ -1543,6 +1668,10 @@ describe('DwnApi', () => {
   });
 
   describe('connected.findPermissionGrantForRequest', () => {
+    afterEach(() => {
+
+    });
+
     it('caches result', async () => {
       // create a grant for bob
       const deviceXGrant = await dwnAlice.permissions.grant({
@@ -1560,6 +1689,7 @@ describe('DwnApi', () => {
       // simulate a connect where bobDid can impersonate aliceDid
       dwnBob['connectedDid'] = aliceDid.uri;
       dwnBob['delegateDid'] = bobDid.uri;
+
       await Web5.processConnectedGrants({
         agent       : testHarness.agent,
         delegateDid : bobDid.uri,
@@ -2275,11 +2405,11 @@ describe('DwnApi', () => {
 
       const grantFromAlice = await PermissionGrant.parse({
         agent        : testHarness.agent,
-        connectedDid : bobDid.uri,
+        connectedDid : bobDid.uri, // bob is the connectedDid
         message      : messageGrantFromAlice
       });
 
-      // import the grant
+      // bob imports the grant
       const importFromAlice = await grantFromAlice.import(true);
       expect(importFromAlice.status.code).to.equal(202);
 
@@ -2298,7 +2428,7 @@ describe('DwnApi', () => {
 
       const grantFromCarol = await PermissionGrant.parse({
         agent        : testHarness.agent,
-        connectedDid : bobDid.uri,
+        connectedDid : bobDid.uri, // bob is the connectedDid
         message      : messageGrantFromCarol
       });
 
@@ -2309,14 +2439,14 @@ describe('DwnApi', () => {
       const fetchedGrantsAlice = await dwnBob.permissions.queryGrants({
         grantor: aliceDid.uri
       });
-      expect(fetchedGrantsAlice.length).to.equal(1);
+      expect(fetchedGrantsAlice.length).to.equal(1, 'alice grantor');
       expect(fetchedGrantsAlice[0].id).to.equal(grantFromAlice.id);
 
       // query for the grants with carol as the grantor
       const fetchedGrantsCarol = await dwnBob.permissions.queryGrants({
         grantor: carolDid.uri
       });
-      expect(fetchedGrantsCarol.length).to.equal(1);
+      expect(fetchedGrantsCarol.length).to.equal(1, 'carol grantor');
       expect(fetchedGrantsCarol[0].id).to.equal(grantFromCarol.id);
     });
 

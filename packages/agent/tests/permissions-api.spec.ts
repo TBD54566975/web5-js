@@ -5,11 +5,9 @@ import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { TestAgent } from './utils/test-agent.js';
 import { BearerDid } from '@web5/dids';
 
-import { testDwnUrl } from './utils/test-config.js';
 import { DwnInterfaceName, DwnMethodName, Time } from '@tbd54566975/dwn-sdk-js';
 import { DwnInterface, DwnPermissionGrant, DwnPermissionScope, Web5PlatformAgent } from '../src/index.js';
 
-let testDwnUrls: string[] = [testDwnUrl];
 
 describe('AgentPermissionsApi', () => {
   let testHarness: PlatformAgentTestHarness;
@@ -34,7 +32,7 @@ describe('AgentPermissionsApi', () => {
     await testHarness.createAgentDid();
 
     // Create an "alice" Identity to author the DWN messages.
-    const alice = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
+    const alice = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Alice' } });
     await testHarness.agent.identity.manage({ portableIdentity: await alice.export() });
     aliceDid = alice.did;
   });
