@@ -1,4 +1,4 @@
-import type { BearerDid } from '@web5/dids';
+import type { BearerDid ,PortableDid } from '@web5/dids';
 import type { DwnMessageParams, DwnProtocolDefinition, DwnPublicKeyJwk, DwnSigner } from '@web5/agent';
 
 import sinon from 'sinon';
@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { NodeStream } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { Web5UserAgent } from '@web5/user-agent';
-import { DwnConstant, DwnDateSort, DwnEncryptionAlgorithm, DwnInterface, DwnKeyDerivationScheme, dwnMessageConstructors, PlatformAgentTestHarness } from '@web5/agent';
+import { DwnConstant, DwnDateSort, DwnEncryptionAlgorithm, DwnInterface, DwnKeyDerivationScheme, dwnMessageConstructors, Oidc, PlatformAgentTestHarness, WalletConnect } from '@web5/agent';
 import { Record } from '../src/record.js';
 import { DwnApi } from '../src/dwn-api.js';
 import { dataToBlob } from '../src/utils.js';
@@ -18,6 +18,7 @@ import emailProtocolDefinition from './fixtures/protocol-definitions/email.json'
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
 import { webcrypto } from 'node:crypto';
 import { Message } from '@tbd54566975/dwn-sdk-js';
+import { Web5 } from '../src/web5.js';
 // @ts-ignore
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
@@ -84,6 +85,7 @@ describe('Record', () => {
     expect(aliceProtocol).to.exist;
     const { status: aliceProtocolSendStatus } = await aliceProtocol.send(aliceDid.uri);
     expect(aliceProtocolSendStatus.code).to.equal(202);
+
     const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({ message: { definition: protocolDefinition } });
     expect(bobProtocolStatus.code).to.equal(202);
     expect(bobProtocol).to.exist;
@@ -95,6 +97,161 @@ describe('Record', () => {
     sinon.restore();
     await testHarness.clearStorage();
     await testHarness.closeStorage();
+  });
+
+  describe('delegateDid', () => {
+    let delegateHarness: PlatformAgentTestHarness;
+    let delegateDid: PortableDid;
+    let delegateDwn: DwnApi;
+
+    const notesProtocol: DwnProtocolDefinition = {
+      published : true,
+      protocol  : 'https://notes-protocol.xyz',
+      types     : {
+        note: {
+          schema      : 'https://notes-protocol.xyz/schema/note',
+          dataFormats : [ 'text/plain', 'application/json' ]
+        }
+      },
+      structure: {
+        note: {}
+      }
+    };
+
+    before(async () => {
+      delegateHarness = await PlatformAgentTestHarness.setup({
+        agentClass       : Web5UserAgent,
+        agentStores      : 'memory',
+        testDataLocation : '__TESTDATA__/delegateDid'
+      });
+
+      await delegateHarness.clearStorage();
+      await delegateHarness.createAgentDid();
+    });
+
+    beforeEach(async () => {
+      sinon.restore();
+      await delegateHarness.syncStore.clear();
+      await delegateHarness.dwnDataStore.clear();
+      await delegateHarness.dwnEventLog.clear();
+      await delegateHarness.dwnMessageStore.clear();
+      await delegateHarness.dwnResumableTaskStore.clear();
+      delegateHarness.dwnStores.clear();
+    });
+
+    it('should update a record with a delegated grant', async () => {
+      // Create a "device" JWK to use as the delegateDid
+      const delegatedBearerDid = await testHarness.agent.did.create({ store: false, method: 'jwk', });
+      delegateDid = await delegatedBearerDid.export();
+
+      const grantRequest = WalletConnect.createPermissionRequestForProtocol({
+        definition  : notesProtocol,
+        permissions : ['write', 'read', 'delete', 'query', 'subscribe']
+      });
+
+      // alice and bob both configure the protocol
+      const { status: aliceConfigStatus, protocol: aliceNotesProtocol } = await dwnAlice.protocols.configure({ message: { definition: notesProtocol } });
+      expect(aliceConfigStatus.code).to.equal(202);
+      const { status: aliceNotesProtocolSend } = await aliceNotesProtocol.send(aliceDid.uri);
+      expect(aliceNotesProtocolSend.code).to.equal(202);
+
+      const { status: bobConfigStatus, protocol: bobNotesProtocol } = await dwnBob.protocols.configure({ message: { definition: notesProtocol } });
+      expect(bobConfigStatus.code).to.equal(202);
+      const { status: bobNotesProtocolSend } = await bobNotesProtocol!.send(bobDid.uri);
+      expect(bobNotesProtocolSend.code).to.equal(202);
+
+      const grants = await Oidc.createPermissionGrants(aliceDid.uri, delegatedBearerDid, testHarness.agent, grantRequest.permissionScopes);
+
+      sinon.stub(Web5UserAgent, 'create').resolves(delegateHarness.agent as Web5UserAgent);
+      sinon.stub(WalletConnect, 'createPermissionRequestForProtocol').resolves(grantRequest);
+      // // stub WalletConnect.initClient to return the did and grants
+      sinon.stub(WalletConnect, 'initClient').resolves({
+        connectedDid        : aliceDid.uri,
+        delegatePortableDid : delegateDid,
+        delegateGrants      : grants,
+      });
+
+      // connect with grants
+      ({ web5: { dwn: delegateDwn } } = await Web5.connect({ walletConnectOptions: {
+        permissionRequests: [ grantRequest ]
+      } as any }));
+
+      const { status, record } = await delegateDwn.records.write({
+        data    : 'Hello, world!',
+        message : {
+          protocol     : notesProtocol.protocol,
+          protocolPath : 'note',
+          schema       : notesProtocol.types.note.schema,
+          dataFormat   : 'text/plain',
+        }
+      });
+
+      const dataCidBeforeDataUpdate = record!.dataCid;
+
+      expect(status.code).to.equal(202);
+      expect(record).to.not.be.undefined;
+
+      // attempt to update the record with the delegated grant
+      const updateResult = await record!.update({ data: 'bye' });
+      expect(updateResult.status.code).to.equal(202);
+
+      // attempt to read the record with the delegated grant
+      const readResult = await delegateDwn.records.read({
+        protocol : notesProtocol.protocol,
+        message  : {
+          filter: {
+            recordId: record!.id
+          }
+        }
+      });
+
+      expect(readResult.status.code).to.equal(200);
+      expect(readResult.record).to.not.be.undefined;
+
+      expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
+      expect(readResult.record.dataCid).to.equal(record!.dataCid);
+
+      const updatedData = await record!.data.text();
+      expect(updatedData).to.equal('bye');
+
+      // bob writes a note with alice as the recipient
+      const { status: bobWriteStatus, record: bobRecord } = await dwnBob.records.write({
+        data    : 'Hello, Alice!',
+        message : {
+          protocol     : notesProtocol.protocol,
+          protocolPath : 'note',
+          schema       : notesProtocol.types.note.schema,
+          dataFormat   : 'text/plain',
+          recipient    : aliceDid.uri
+        }
+      });
+      expect(bobWriteStatus.code).to.equal(202);
+
+      // bob sends it to his remote DWN
+      const { status: bobSendStatus } = await bobRecord!.send();
+      expect(bobSendStatus.code).to.equal(202);
+
+
+      // alicedevice is able to query for the note
+      const { records: aliceQueryFromBobRecords, status: aliceQueryFromBobStatus } = await delegateDwn.records.query({
+        from     : bobDid.uri,
+        protocol : notesProtocol.protocol,
+        message  : {
+          filter: {
+            protocol     : notesProtocol.protocol,
+            protocolPath : 'note',
+          }
+        }
+      });
+      expect(aliceQueryFromBobStatus.code).to.equal(200);
+      expect(aliceQueryFromBobRecords).to.exist;
+      expect(aliceQueryFromBobRecords.length).to.equal(1);
+
+      const recordFromBob = aliceQueryFromBobRecords[0];
+      // alicedevice imports the note
+      const { status: importStatus } = await recordFromBob.import();
+      expect(importStatus.code).to.equal(202);
+    });
   });
 
   it('imports a record that another user wrote', async () => {

@@ -439,7 +439,6 @@ export class Web5 {
             // If we are using WalletConnect, we should do a one-shot sync to pull down any messages that are associated with the connectedDid
             await userAgent.sync.sync('pull');
           }
-
         }
 
         // Enable sync using the specified interval or default.

@@ -619,7 +619,7 @@ export class DwnApi {
         }
 
         const reply = agentResponse.reply;
-        const { entries, status, cursor } = reply;
+        const { entries = [], status, cursor } = reply;
 
         const records = entries.map((entry) => {
 
