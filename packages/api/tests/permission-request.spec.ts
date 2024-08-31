@@ -9,6 +9,7 @@ import { PlatformAgentTestHarness } from '@web5/agent';
 import { Web5UserAgent } from '@web5/user-agent';
 import { DwnInterfaceName, DwnMethodName, Time } from '@tbd54566975/dwn-sdk-js';
 import { PermissionRequest } from '../src/permission-request.js';
+import { TestDataGenerator } from './utils/test-data-generator.js';
 
 const testDwnUrls = [testDwnUrl];
 
@@ -18,6 +19,7 @@ describe('PermissionRequest', () => {
   let aliceDwn: DwnApi;
   let bobDwn: DwnApi;
   let testHarness: PlatformAgentTestHarness;
+  let protocolUri: string;
 
   before(async () => {
     testHarness = await PlatformAgentTestHarness.setup({
@@ -25,9 +27,6 @@ describe('PermissionRequest', () => {
       agentStores : 'memory'
     });
 
-  });
-
-  beforeEach(async () => {
     sinon.restore();
     await testHarness.clearStorage();
     await testHarness.createAgentDid();
@@ -46,6 +45,20 @@ describe('PermissionRequest', () => {
     bobDwn = new DwnApi({ agent: testHarness.agent, connectedDid: bobDid.uri });
   });
 
+  beforeEach(async () => {
+    sinon.restore();
+    await testHarness.syncStore.clear();
+    await testHarness.dwnDataStore.clear();
+    await testHarness.dwnEventLog.clear();
+    await testHarness.dwnMessageStore.clear();
+    await testHarness.dwnResumableTaskStore.clear();
+    testHarness.dwnStores.clear();
+
+    // create a random protocol URI for each run
+    protocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(10)}`;
+  });
+
+
   after(async () => {
     sinon.restore();
     await testHarness.clearStorage();
@@ -58,7 +71,8 @@ describe('PermissionRequest', () => {
         author : aliceDid.uri,
         scope  : {
           interface : DwnInterfaceName.Messages,
-          method    : DwnMethodName.Read
+          method    : DwnMethodName.Read,
+          protocol  : protocolUri
         }
       });
 
@@ -88,13 +102,15 @@ describe('PermissionRequest', () => {
         store : false,
         scope : {
           interface : DwnInterfaceName.Messages,
-          method    : DwnMethodName.Read
+          method    : DwnMethodName.Read,
+          protocol  : protocolUri
         }
       });
 
       // confirm the request is not present on the remote
       let requests = await aliceDwn.permissions.queryRequests({
-        from: aliceDid.uri
+        from     : aliceDid.uri,
+        protocol : protocolUri
       });
       expect(requests).to.have.length(0);
 
@@ -103,7 +119,8 @@ describe('PermissionRequest', () => {
 
       // fetch the requests from the remote
       requests = await aliceDwn.permissions.queryRequests({
-        from: aliceDid.uri
+        from     : aliceDid.uri,
+        protocol : protocolUri
       });
 
       expect(requests).to.have.length(1);
@@ -115,13 +132,15 @@ describe('PermissionRequest', () => {
         store : false,
         scope : {
           interface : DwnInterfaceName.Messages,
-          method    : DwnMethodName.Read
+          method    : DwnMethodName.Read,
+          protocol  : protocolUri
         }
       });
 
       // confirm the request is not present on the remote
       let remoteRequestsBob = await bobDwn.permissions.queryRequests({
-        from: bobDid.uri
+        from     : bobDid.uri,
+        protocol : protocolUri
       });
       expect(remoteRequestsBob).to.have.length(0);
 
@@ -131,7 +150,8 @@ describe('PermissionRequest', () => {
 
       // fetch the requests from the remote
       remoteRequestsBob = await bobDwn.permissions.queryRequests({
-        from: bobDid.uri
+        from     : bobDid.uri,
+        protocol : protocolUri
       });
       expect(remoteRequestsBob).to.have.length(1);
       expect(remoteRequestsBob[0].id).to.deep.equal(grantRequest.id);
@@ -143,12 +163,13 @@ describe('PermissionRequest', () => {
       // create a grant not marked as stored
       const request = await aliceDwn.permissions.request({
         store : false,
-        scope : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri }
       });
 
       // validate the grant does not exist in the DWN
       let fetchedRequests = await bobDwn.permissions.queryRequests({
-        from: bobDid.uri,
+        from     : bobDid.uri,
+        protocol : protocolUri
       });
       expect(fetchedRequests.length).to.equal(0);
 
@@ -157,11 +178,14 @@ describe('PermissionRequest', () => {
 
       // Bob fetches requests
       fetchedRequests = await bobDwn.permissions.queryRequests({
-        from: bobDid.uri,
+        from     : bobDid.uri,
+        protocol : protocolUri
       });
       expect(fetchedRequests.length).to.equal(1);
 
-      let localRequests = await bobDwn.permissions.queryRequests();
+      let localRequests = await bobDwn.permissions.queryRequests({
+        protocol: protocolUri
+      });
       expect(localRequests.length).to.equal(0);
 
       const remoteGrant = fetchedRequests[0];
@@ -171,7 +195,9 @@ describe('PermissionRequest', () => {
       expect(stored.status.code).to.equal(202);
 
       // validate the grant now exists in the DWN
-      localRequests = await bobDwn.permissions.queryRequests();
+      localRequests = await bobDwn.permissions.queryRequests({
+        protocol: protocolUri
+      });
       expect(localRequests.length).to.equal(1);
       expect(localRequests[0].toJSON()).to.deep.equal(request.toJSON());
     });
@@ -181,7 +207,7 @@ describe('PermissionRequest', () => {
     it('should create a grant and store it by default', async () => {
       const requestFromBob = await bobDwn.permissions.request({
         store : false,
-        scope : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri }
       });
 
       const sentToAlice = await requestFromBob.send(aliceDid.uri);
@@ -189,12 +215,15 @@ describe('PermissionRequest', () => {
 
       // Alice fetches requests
       let requests = await aliceDwn.permissions.queryRequests({
-        from: aliceDid.uri
+        from     : aliceDid.uri,
+        protocol : protocolUri
       });
       expect(requests.length).to.equal(1);
 
       // confirm no grants exist
-      let grants = await aliceDwn.permissions.queryGrants();
+      let grants = await aliceDwn.permissions.queryGrants({
+        protocol: protocolUri
+      });
       expect(grants.length).to.equal(0);
 
       // Alice grants the request and it will be stored by default
@@ -203,7 +232,9 @@ describe('PermissionRequest', () => {
       expect(grant).to.exist;
 
       // confirm the grant exists
-      grants = await aliceDwn.permissions.queryGrants();
+      grants = await aliceDwn.permissions.queryGrants({
+        protocol: protocolUri
+      });
       expect(grants.length).to.equal(1);
       expect(grants[0].id).to.equal(grant.id);
     });
@@ -211,7 +242,7 @@ describe('PermissionRequest', () => {
     it('does not store the grant if store is false', async () => {
       const requestFromBob = await bobDwn.permissions.request({
         store : false,
-        scope : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri }
       });
 
       const sentToAlice = await requestFromBob.send(aliceDid.uri);
@@ -219,12 +250,15 @@ describe('PermissionRequest', () => {
 
       // Alice fetches requests
       let requests = await aliceDwn.permissions.queryRequests({
-        from: aliceDid.uri
+        from     : aliceDid.uri,
+        protocol : protocolUri
       });
       expect(requests.length).to.equal(1);
 
       // confirm no grants exist
-      let grants = await aliceDwn.permissions.queryGrants();
+      let grants = await aliceDwn.permissions.queryGrants({
+        protocol: protocolUri
+      });
       expect(grants.length).to.equal(0);
 
       // Alice grants the request but does not store it
@@ -233,7 +267,9 @@ describe('PermissionRequest', () => {
       expect(grant).to.exist;
 
       // confirm the grant does not exist
-      grants = await aliceDwn.permissions.queryGrants();
+      grants = await aliceDwn.permissions.queryGrants({
+        protocol: protocolUri
+      });
       expect(grants.length).to.equal(0);
     });
   });
@@ -244,7 +280,8 @@ describe('PermissionRequest', () => {
         author : aliceDid.uri,
         scope  : {
           interface : DwnInterfaceName.Messages,
-          method    : DwnMethodName.Read
+          method    : DwnMethodName.Read,
+          protocol  : protocolUri
         }
       });
 
