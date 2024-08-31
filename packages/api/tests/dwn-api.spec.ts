@@ -69,7 +69,7 @@ describe('DwnApi', () => {
     delete dwnBob['delegateDid'];
 
     // give the protocol a random URI on each run
-    protocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(10)}`;
+    protocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(15)}`;
     protocolDefinition = {
       ...emailProtocolDefinition,
       protocol: protocolUri

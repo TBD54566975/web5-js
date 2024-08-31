@@ -58,7 +58,7 @@ describe('Protocol', () => {
   describe('send()', () => {
     it('configures protocols on remote DWNs for your own DID', async () => {
       // Alice configures a protocol on her agent connected DWN.
-      const protocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(10)}`;
+      const protocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(15)}`;
       const { status: aliceEmailStatus, protocol: aliceEmailProtocol } = await dwnAlice.protocols.configure({
         message: {
           definition: {

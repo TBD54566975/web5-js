@@ -55,7 +55,7 @@ describe('PermissionRequest', () => {
     testHarness.dwnStores.clear();
 
     // create a random protocol URI for each run
-    protocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(10)}`;
+    protocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(15)}`;
   });
 
 

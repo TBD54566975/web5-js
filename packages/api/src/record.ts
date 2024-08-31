@@ -802,13 +802,17 @@ export class Record implements RecordModel {
   async delete(deleteParams?: RecordDeleteParams): Promise<DwnResponseStatus> {
     const { store, signAsOwner, dateModified, ...params } = deleteParams || {};
 
+    const signAsOwnerValue = signAsOwner && this._delegateDid === undefined;
+    const signAsOwnerDelegate = signAsOwner && this._delegateDid !== undefined;
+
     // prepare delete options
     let deleteOptions: ProcessDwnRequest<DwnInterface.RecordsDelete> = {
       messageType : DwnInterface.RecordsDelete,
       author      : this._connectedDid,
       target      : this._connectedDid,
-      store,
-      signAsOwner
+      signAsOwner : signAsOwnerValue,
+      signAsOwnerDelegate,
+      store
     };
 
     if (this.deleted) {
@@ -878,6 +882,9 @@ export class Record implements RecordModel {
    * and whether to add an owner signature to the initial write to enable storage when protocol rules require it.
    */
   private async processRecord({ store, signAsOwner }:{ store: boolean, signAsOwner: boolean }): Promise<DwnResponseStatus> {
+    const signAsOwnerValue = signAsOwner && this._delegateDid === undefined;
+    const signAsOwnerDelegate = signAsOwner && this._delegateDid !== undefined;
+
     // if there is an initial write and we haven't already processed it, we first process it and marked it as such.
     if (this.initialWrite && ((signAsOwner && !this._initialWriteSigned) || (store && !this._initialWriteStored))) {
 
@@ -887,10 +894,10 @@ export class Record implements RecordModel {
         messageParams : {
           dataFormat: this.initialWrite.descriptor.dataFormat,
         },
-        author              : this._connectedDid,
-        target              : this._connectedDid,
-        signAsOwnerDelegate : signAsOwner && this._delegateDid !== undefined,
-        signAsOwner         : signAsOwner && this._delegateDid === undefined,
+        author      : this._connectedDid,
+        target      : this._connectedDid,
+        signAsOwner : signAsOwnerValue,
+        signAsOwnerDelegate,
         store,
       };
 
@@ -933,12 +940,12 @@ export class Record implements RecordModel {
     // If the record has been deleted, we need to send a delete request. Otherwise, we send a write request.
     if(this.deleted) {
       requestOptions = {
-        messageType         : DwnInterface.RecordsDelete,
-        rawMessage          : this.rawMessage,
-        author              : this._connectedDid,
-        target              : this._connectedDid,
-        signAsOwnerDelegate : signAsOwner && this._delegateDid !== undefined,
-        signAsOwner         : signAsOwner && this._delegateDid === undefined,
+        messageType : DwnInterface.RecordsDelete,
+        rawMessage  : this.rawMessage,
+        author      : this._connectedDid,
+        target      : this._connectedDid,
+        signAsOwner : signAsOwnerValue,
+        signAsOwnerDelegate,
         store,
       };
       if (this._delegateDid) {
@@ -963,11 +970,11 @@ export class Record implements RecordModel {
         messageParams : {
           dataFormat: this.dataFormat,
         },
-        author              : this._connectedDid,
-        target              : this._connectedDid,
-        dataStream          : await this.data.blob(),
-        signAsOwnerDelegate : signAsOwner && this._delegateDid !== undefined,
-        signAsOwner         : signAsOwner && this._delegateDid === undefined,
+        author      : this._connectedDid,
+        target      : this._connectedDid,
+        dataStream  : await this.data.blob(),
+        signAsOwner : signAsOwnerValue,
+        signAsOwnerDelegate,
         store,
       };
       if (this._delegateDid) {

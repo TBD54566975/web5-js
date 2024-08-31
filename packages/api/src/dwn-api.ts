@@ -810,7 +810,7 @@ export class DwnApi {
             connectedDid : this.connectedDid,
             delegateDid  : this.delegateDid,
             messageType  : DwnInterface.RecordsWrite,
-            protocol     : request.message?.protocol,
+            protocol     : request.message.protocol,
             cached       : true,
             delegate     : true
           });

@@ -73,7 +73,7 @@ describe('Record', () => {
 
 
     // give the protocol a random URI on each run
-    protocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(10)}`;
+    protocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(15)}`;
     const protocolDefinition = {
       ...emailProtocolDefinition,
       protocol: protocolUri
@@ -3113,7 +3113,7 @@ describe('Record', () => {
     beforeEach(async () => {
 
       // give the protocol a random URI on each run
-      ownerOnlyProtocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(10)}`;
+      ownerOnlyProtocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(15)}`;
       const protocolDefinition = {
         ...ownerOnlyProtocolDefinition,
         protocol: ownerOnlyProtocolUri
