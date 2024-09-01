@@ -20,6 +20,7 @@ import {
   isDwnMessage,
   SendDwnRequest,
   CachedPermissions,
+  DwnRecordsInterfaces,
 } from '@web5/agent';
 
 import { Convert, isEmptyObject, NodeStream, removeUndefinedProperties, Stream } from '@web5/common';
@@ -382,7 +383,7 @@ export class Record implements RecordModel {
     // RecordsWriteMessage properties.
     this._attestation = options.attestation;
     this._authorization = options.authorization;
-    this._contextId = options.contextId;
+    this._contextId = options.contextId ?? options.initialWrite?.contextId;
     this._descriptor = options.descriptor;
     this._encryption = options.encryption;
     this._initialWrite = options.initialWrite;
@@ -696,8 +697,8 @@ export class Record implements RecordModel {
    */
   async update({ dateModified, data, ...params }: RecordUpdateParams): Promise<DwnResponseStatus> {
 
-    if (!isDwnMessage(DwnInterface.RecordsWrite, this.rawMessage) && !this._initialWrite) {
-      throw new Error('If initial write is not set, the current rawRecord must be a RecordsWrite message.');
+    if (this.deleted) {
+      throw new Error('Record: Cannot revive a deleted record.');
     }
 
     // if there is a parentId, we remove it from the descriptor and set a parentContextId
@@ -748,20 +749,9 @@ export class Record implements RecordModel {
       messageType   : DwnInterface.RecordsWrite,
       target        : this._connectedDid,
     };
+
     if (this._delegateDid) {
-
-      // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-      const { message: delegatedGrant } = await this._cachedPermissions.getPermission({
-        connectedDid : this._connectedDid,
-        delegateDid  : this._delegateDid,
-        messageType  : DwnInterface.RecordsWrite,
-        protocol     : this.protocol,
-        delegate     : true,
-        cached       : true,
-      });
-
-      // set the required delegated grant and grantee DID for the read operation
-      requestOptions.messageParams.delegatedGrant = delegatedGrant;
+      requestOptions.messageParams = await this.addDelegateGrantToMessage(DwnInterface.RecordsWrite, requestOptions);
       requestOptions.granteeDid = this._delegateDid;
     }
 
@@ -805,6 +795,22 @@ export class Record implements RecordModel {
     const signAsOwnerValue = signAsOwner && this._delegateDid === undefined;
     const signAsOwnerDelegate = signAsOwner && this._delegateDid !== undefined;
 
+    if (this.deleted && !this._initialWrite) {
+      throw new Error('Record: Record is in an invalid state, initial write is missing.');
+    }
+
+    if (!this._initialWrite) {
+      // If there is no initial write, we need to create one from the current record state.
+      // We checked in the beginning of the function that the initialWrite is not set if the rawMessage is a RecordsDelete message.
+      // So we can safely assume that the rawMessage is a RecordsWrite message.
+      this._initialWrite = { ...this.rawMessage as DwnMessage[DwnInterface.RecordsWrite] };
+    }
+
+    // if there is an initial write and we haven't already processed it, we first process it and marked it as such.
+    if ((signAsOwner && !this._initialWriteSigned) || (store && !this._initialWriteStored)) {
+      await this.processInitialWrite({ store, signAsOwner });
+    }
+
     // prepare delete options
     let deleteOptions: ProcessDwnRequest<DwnInterface.RecordsDelete> = {
       messageType : DwnInterface.RecordsDelete,
@@ -816,12 +822,6 @@ export class Record implements RecordModel {
     };
 
     if (this.deleted) {
-      if (!this._initialWrite) {
-        // if the rawMessage is a `RecordsDelete` the initial message must be set.
-        // this should never happen, but we check as a form of defensive programming.
-        throw new Error('If initial write is not set, the current rawRecord must be a RecordsWrite message.');
-      }
-
       // if we have a delete message we can just use it
       deleteOptions.rawMessage = this.rawMessage as DwnMessage[DwnInterface.RecordsDelete];
     } else {
@@ -833,26 +833,8 @@ export class Record implements RecordModel {
       };
     }
 
-    if (store === true) {
-      // if we are storing the delete we have to make sure the initial write is also stored
-      const { status: processStatus } = await this.processRecord({ store, signAsOwner });
-      if (processStatus.code !== 202 && processStatus.code !== 409) {
-        return { status: processStatus };
-      }
-    }
-
     if (this._delegateDid) {
-      const { message: delegatedGrant } = await this._cachedPermissions.getPermission({
-        connectedDid : this._connectedDid,
-        delegateDid  : this._delegateDid,
-        messageType  : DwnInterface.RecordsDelete,
-        protocol     : this.protocol,
-        delegate     : true,
-        cached       : true,
-      });
-
-      // set the required delegated grant and grantee DID for the read operation
-      deleteOptions.messageParams.delegatedGrant = delegatedGrant;
+      deleteOptions.messageParams = await this.addDelegateGrantToMessage(DwnInterface.RecordsDelete, deleteOptions);
       deleteOptions.granteeDid = this._delegateDid;
     }
 
@@ -862,13 +844,6 @@ export class Record implements RecordModel {
     if (status.code !== 202) {
       // If the delete was not successful, return the status.
       return { status };
-    }
-
-    if (!this._initialWrite) {
-      // If there is no initial write, we need to create one from the current record state.
-      // We checked in the beginning of the function that the initialWrite is not set if the rawMessage is a RecordsDelete message.
-      // So we can safely assume that the rawMessage is a RecordsWrite message.
-      this._initialWrite = { ...this.rawMessage as DwnMessage[DwnInterface.RecordsWrite] };
     }
 
     // If the delete was successful, update the Record author to the author of the delete message.
@@ -884,6 +859,40 @@ export class Record implements RecordModel {
     return { status };
   }
 
+  private async processInitialWrite({ store, signAsOwner }:{ store: boolean, signAsOwner: boolean }): Promise<void> {
+    const signAsOwnerValue = signAsOwner && this._delegateDid === undefined;
+    const signAsOwnerDelegate = signAsOwner && this._delegateDid !== undefined;
+
+    const initialWriteRequest: ProcessDwnRequest<DwnInterface.RecordsWrite> = {
+      messageType : DwnInterface.RecordsWrite,
+      rawMessage  : this.initialWrite,
+      author      : this._connectedDid,
+      target      : this._connectedDid,
+      signAsOwner : signAsOwnerValue,
+      signAsOwnerDelegate,
+      store,
+    };
+
+    if (this._delegateDid) {
+      initialWriteRequest.messageParams = await this.addDelegateGrantToMessage(DwnInterface.RecordsWrite, initialWriteRequest);
+      initialWriteRequest.granteeDid = this._delegateDid;
+    }
+
+    // Process the prepared initial write, with the options set for storing and/or signing as the owner.
+    const agentResponse = await this._agent.processDwnRequest(initialWriteRequest);
+
+    const { message, reply: { status } } = agentResponse;
+    const responseMessage = message;
+
+    if (200 <= status.code && status.code <= 299) {
+      if (store) this._initialWriteStored = true;
+      if (signAsOwner) {
+        this._initialWriteSigned = true;
+        this.initialWrite.authorization = responseMessage.authorization;
+      }
+    }
+  }
+
   /**
    * Handles the various conditions around there being an initial write, whether to store initial/current state,
    * and whether to add an owner signature to the initial write to enable storage when protocol rules require it.
@@ -894,52 +903,7 @@ export class Record implements RecordModel {
 
     // if there is an initial write and we haven't already processed it, we first process it and marked it as such.
     if (this.initialWrite && ((signAsOwner && !this._initialWriteSigned) || (store && !this._initialWriteStored))) {
-
-      const initialWriteRequest: ProcessDwnRequest<DwnInterface.RecordsWrite> = {
-        messageType   : DwnInterface.RecordsWrite,
-        rawMessage    : this.initialWrite,
-        messageParams : {
-          dataFormat: this.initialWrite.descriptor.dataFormat,
-        },
-        author      : this._connectedDid,
-        target      : this._connectedDid,
-        signAsOwner : signAsOwnerValue,
-        signAsOwnerDelegate,
-        store,
-      };
-
-
-      if (this._delegateDid) {
-        // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-        const { message: delegatedGrant } = await this._cachedPermissions.getPermission({
-          connectedDid : this._connectedDid,
-          delegateDid  : this._delegateDid,
-          messageType  : DwnInterface.RecordsWrite,
-          protocol     : this.protocol,
-          delegate     : true,
-          cached       : true,
-        });
-
-        // set the required delegated grant and grantee DID for the read operation
-        initialWriteRequest.messageParams.delegatedGrant = delegatedGrant;
-        initialWriteRequest.granteeDid = this._delegateDid;
-      }
-
-      // Process the prepared initial write, with the options set for storing and/or signing as the owner.
-      const agentResponse = await this._agent.processDwnRequest(initialWriteRequest);
-
-      const { message, reply: { status } } = agentResponse;
-      const responseMessage = message;
-
-      // If we are signing as owner, make sure to update the initial write's authorization, because now it will have the owner's signature on it
-      // set the stored or signed status to true so we don't process it again.
-      if (200 <= status.code && status.code <= 299) {
-        if (store) this._initialWriteStored = true;
-        if (signAsOwner) {
-          this._initialWriteSigned = true;
-          this.initialWrite.authorization = responseMessage.authorization;
-        }
-      }
+      await this.processInitialWrite({ store, signAsOwner });
     }
 
     let requestOptions: ProcessDwnRequest<DwnInterface.RecordsWrite | DwnInterface.RecordsDelete>;
@@ -955,28 +919,10 @@ export class Record implements RecordModel {
         signAsOwnerDelegate,
         store,
       };
-      if (this._delegateDid) {
-        // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-        const { message: delegatedGrant } = await this._cachedPermissions.getPermission({
-          connectedDid : this._connectedDid,
-          delegateDid  : this._delegateDid,
-          messageType  : DwnInterface.RecordsDelete,
-          protocol     : this.protocol,
-          delegate     : true,
-          cached       : true,
-        });
-
-        // set the required delegated grant and grantee DID for the read operation
-        requestOptions.messageParams.delegatedGrant = delegatedGrant;
-        requestOptions.granteeDid = this._delegateDid;
-      }
     } else {
       requestOptions = {
-        messageType   : DwnInterface.RecordsWrite,
-        rawMessage    : this.rawMessage,
-        messageParams : {
-          dataFormat: this.dataFormat,
-        },
+        messageType : DwnInterface.RecordsWrite,
+        rawMessage  : this.rawMessage,
         author      : this._connectedDid,
         target      : this._connectedDid,
         dataStream  : await this.data.blob(),
@@ -984,21 +930,11 @@ export class Record implements RecordModel {
         signAsOwnerDelegate,
         store,
       };
-      if (this._delegateDid) {
-        // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-        const { message: delegatedGrant } = await this._cachedPermissions.getPermission({
-          connectedDid : this._connectedDid,
-          delegateDid  : this._delegateDid,
-          messageType  : DwnInterface.RecordsWrite,
-          protocol     : this.protocol,
-          delegate     : true,
-          cached       : true,
-        });
+    }
 
-        // set the required delegated grant and grantee DID for the read operation
-        requestOptions.messageParams.delegatedGrant = delegatedGrant;
-        requestOptions.granteeDid = this._delegateDid;
-      }
+    if (this._delegateDid) {
+      requestOptions.messageParams = await this.addDelegateGrantToMessage(requestOptions.messageType, requestOptions);
+      requestOptions.granteeDid = this._delegateDid;
     }
 
     const agentResponse = await this._agent.processDwnRequest(requestOptions);
@@ -1038,18 +974,7 @@ export class Record implements RecordModel {
     };
 
     if (this._delegateDid) {
-      // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-      const { message: delegatedGrant } = await this._cachedPermissions.getPermission({
-        connectedDid : this._connectedDid,
-        delegateDid  : this._delegateDid,
-        messageType  : DwnInterface.RecordsRead,
-        protocol     : this.protocol,
-        delegate     : true,
-        cached       : true,
-      });
-
-      // set the required delegated grant and grantee DID for the read operation
-      readRequest.messageParams.delegatedGrant = delegatedGrant;
+      readRequest.messageParams = await this.addDelegateGrantToMessage(DwnInterface.RecordsRead, readRequest);
       readRequest.granteeDid = this._delegateDid;
     }
 
@@ -1105,5 +1030,23 @@ export class Record implements RecordModel {
    */
   private isRecordsDeleteDescriptor(descriptor: DwnMessageDescriptor[DwnInterface.RecordsWrite | DwnInterface.RecordsDelete]): descriptor is DwnMessageDescriptor[DwnInterface.RecordsDelete] {
     return descriptor.interface + descriptor.method === DwnInterface.RecordsDelete;
+  }
+
+  private async addDelegateGrantToMessage<T extends DwnRecordsInterfaces>(messageType: T, request: ProcessDwnRequest<T>): Promise<DwnMessageParams[T]> {
+    const messageParams: DwnMessageParams[T] = request.messageParams || {} as DwnMessageParams[T];
+    // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
+    const { message: delegatedGrant } = await this._cachedPermissions.getPermission({
+      connectedDid : this._connectedDid,
+      delegateDid  : this._delegateDid,
+      protocol     : this.protocol,
+      delegate     : true,
+      cached       : true,
+      messageType
+    });
+
+    return {
+      ...messageParams,
+      delegatedGrant,
+    };
   }
 }

@@ -220,6 +220,9 @@ export type RecordsSubscribeRequest = {
   /** Optional DID specifying the remote target DWN tenant to subscribe from. */
   from?: string;
 
+  /** Records must be scoped to a specific protocol */
+  protocol?: string;
+
   /** The parameters for the subscription operation, detailing the criteria for the subscription filter */
   message: Omit<DwnMessageParams[DwnInterface.RecordsSubscribe], 'signer'>;
 
@@ -764,6 +767,22 @@ export class DwnApi {
             request
           })
         };
+
+        if (this.delegateDid) {
+          // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
+          const { message: delegatedGrant } = await this.cachedPermissionsApi.getPermission({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            messageType  : DwnInterface.RecordsSubscribe,
+            protocol     : request.protocol,
+            cached       : true,
+            delegate     : true
+          });
+
+          // set the required delegated grant and grantee DID for the read operation
+          agentRequest.messageParams.delegatedGrant = delegatedGrant;
+          agentRequest.granteeDid = this.delegateDid;
+        }
 
         let agentResponse: DwnResponse<DwnInterface.RecordsSubscribe>;
 
