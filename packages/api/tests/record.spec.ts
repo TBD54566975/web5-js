@@ -3654,7 +3654,7 @@ describe('Record', () => {
       expect(processMessageSpy.callCount).to.equal(2);
     });
 
-    it('stores as owner a deleted record to the local DWN from an external signer', async () => {
+    it('stores a deleted record as owner to the local DWN from an external signer', async () => {
       // subscribe to records so that we can receive a record in a deleted state
       const records = new Map<string, Record>();
       const subscriptionHandler = (record: Record) => {

@@ -7,11 +7,13 @@ import { BearerDid } from '@web5/dids';
 
 import { DwnInterfaceName, DwnMethodName, Time } from '@tbd54566975/dwn-sdk-js';
 import { DwnInterface, DwnPermissionGrant, DwnPermissionScope, Web5PlatformAgent } from '../src/index.js';
+import { Convert } from '@web5/common';
 
 
 describe('AgentPermissionsApi', () => {
   let testHarness: PlatformAgentTestHarness;
   let aliceDid: BearerDid;
+  let bobDid: BearerDid;
 
   before(async () => {
     testHarness = await PlatformAgentTestHarness.setup({
@@ -35,6 +37,10 @@ describe('AgentPermissionsApi', () => {
     const alice = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Alice' } });
     await testHarness.agent.identity.manage({ portableIdentity: await alice.export() });
     aliceDid = alice.did;
+
+    const bob = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Bob' } });
+    await testHarness.agent.identity.manage({ portableIdentity: await bob.export() });
+    bobDid = bob.did;
   });
 
   describe('get agent', () => {
@@ -51,6 +57,53 @@ describe('AgentPermissionsApi', () => {
       expect(() =>
         permissionsApi.agent
       ).to.throw(Error, 'AgentPermissionsApi: Agent is not set');
+    });
+  });
+
+  describe('getPermission', () => {
+    it('throws an error if no permissions are found', async () => {
+      try {
+        await testHarness.agent.permissions.getPermission({
+          connectedDid : aliceDid.uri,
+          delegateDid  : bobDid.uri,
+          messageType  : DwnInterface.MessagesQuery,
+        });
+        expect.fail('Expected an error to be thrown');
+      } catch(error: any) {
+        expect(error.message).to.equal('CachedPermissions: No permissions found for MessagesQuery: undefined');
+      }
+
+      // create a permission grant to fetch
+      const messagesQueryGrant = await testHarness.agent.permissions.createGrant({
+        store       : true,
+        author      : aliceDid.uri,
+        grantedTo   : bobDid.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : {
+          interface : DwnInterfaceName.Messages,
+          method    : DwnMethodName.Query,
+        }
+      });
+
+      // store the grant as owner from bob so that it can be fetched
+      const { encodedData, ...messagesQueryGrantMessage } = messagesQueryGrant.message;
+      const grantReply = await testHarness.agent.processDwnRequest({
+        target      : bobDid.uri,
+        author      : bobDid.uri,
+        signAsOwner : true,
+        messageType : DwnInterface.RecordsWrite,
+        rawMessage  : messagesQueryGrantMessage,
+        dataStream  : new Blob([ Convert.base64Url(encodedData).toUint8Array() ])
+      });
+      expect(grantReply.reply.status.code).to.equal(202);
+
+      // fetch the grant
+      const fetchedMessagesQueryGrant = await testHarness.agent.permissions.getPermission({
+        connectedDid : aliceDid.uri,
+        delegateDid  : bobDid.uri,
+        messageType  : DwnInterface.MessagesQuery,
+      });
+      expect(fetchedMessagesQueryGrant.message.recordId).to.equal(messagesQueryGrant.message.recordId);
     });
   });
 

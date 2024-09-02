@@ -19,7 +19,6 @@ import {
   DwnMessageParams,
   DwnMessageSubscription,
   DwnResponseStatus,
-  CachedPermissions,
   ProcessDwnRequest,
   DwnPaginationCursor,
   AgentPermissionsApi,
@@ -305,15 +304,11 @@ export class DwnApi {
   /** Holds the instance of {@link AgentPermissionsApi} that helps when dealing with permissions protocol records */
   private permissionsApi: AgentPermissionsApi;
 
-  /** cache for fetching a permission {@link PermissionGrant}, keyed by a specific MessageType and protocol */
-  private cachedPermissionsApi: CachedPermissions;
-
   constructor(options: { agent: Web5Agent, connectedDid: string, delegateDid?: string }) {
     this.agent = options.agent;
     this.connectedDid = options.connectedDid;
     this.delegateDid = options.delegateDid;
     this.permissionsApi = new AgentPermissionsApi({ agent: this.agent });
-    this.cachedPermissionsApi = new CachedPermissions({ agent: this.agent, cachedDefault: true });
   }
 
   /**
@@ -488,30 +483,6 @@ export class DwnApi {
    */
   get records() {
 
-    /**
-     * Adds the appropriate delegate grant to the messageParams for the given messageType.
-     *
-     * @param messageType the type of message to add the delegate grant to
-     * @param messageParams the message parameters to add the delegate grant to
-     * @param protocol the protocol to scope the delegate grant to
-     *
-     * @returns a copy of the messageParams with the delegate grant added
-     */
-    const addDelegateGrantToMessageParams = <T extends DwnRecordsInterfaces>({ messageParams, protocol, messageType }:{
-      messageType: T,
-      messageParams: DwnMessageParams[T],
-      protocol: string
-    }) => {
-      return Record.addDelegateGrantToMessageParams({
-        connectedDid      : this.connectedDid,
-        delegateDid       : this.delegateDid,
-        messageParams     : messageParams,
-        cachedPermissions : this.cachedPermissionsApi,
-        messageType,
-        protocol,
-      });
-    };
-
     return {
       /**
        * Alias for the `write` method
@@ -575,11 +546,19 @@ export class DwnApi {
         };
 
         if (this.delegateDid) {
-          agentRequest.messageParams = await addDelegateGrantToMessageParams({
-            messageType   : DwnInterface.RecordsDelete,
-            messageParams : agentRequest.messageParams,
-            protocol      : request.protocol
+          const { message: delegatedGrant } = await this.permissionsApi.getPermission({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            protocol     : request.protocol,
+            delegate     : true,
+            cached       : true,
+            messageType  : agentRequest.messageType
           });
+
+          agentRequest.messageParams = {
+            ...agentRequest.messageParams,
+            delegatedGrant
+          };
           agentRequest.granteeDid = this.delegateDid;
         }
 
@@ -616,11 +595,19 @@ export class DwnApi {
         };
 
         if (this.delegateDid) {
-          agentRequest.messageParams = await addDelegateGrantToMessageParams({
-            messageType   : DwnInterface.RecordsQuery,
-            messageParams : agentRequest.messageParams,
-            protocol      : request.protocol
+          const { message: delegatedGrant } = await this.permissionsApi.getPermission({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            protocol     : request.protocol,
+            delegate     : true,
+            cached       : true,
+            messageType  : agentRequest.messageType
           });
+
+          agentRequest.messageParams = {
+            ...agentRequest.messageParams,
+            delegatedGrant
+          };
           agentRequest.granteeDid = this.delegateDid;
         }
 
@@ -643,25 +630,24 @@ export class DwnApi {
              * Extract the `author` DID from the record entry since records may be signed by the
              * tenant owner or any other entity.
              */
-            author            : getRecordAuthor(entry),
+            author       : getRecordAuthor(entry),
             /**
              * Set the `connectedDid` to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
              * local DWN even if the record was returned by a query of a remote DWN.
              */
-            connectedDid      : this.connectedDid,
+            connectedDid : this.connectedDid,
             /**
              * If the record was returned by a query of a remote DWN, set the `remoteOrigin` to
              * the DID of the DWN that returned the record. The `remoteOrigin` property will be used
              * to determine which DWN to send subsequent read requests to in the event the data
              * payload exceeds the threshold for being returned with queries.
              */
-            remoteOrigin      : request.from,
-            cachedPermissions : this.cachedPermissionsApi,
-            delegateDid       : this.delegateDid,
+            remoteOrigin : request.from,
+            delegateDid  : this.delegateDid,
             ...entry as DwnMessage[DwnInterface.RecordsWrite]
           };
-          const record = new Record(this.agent, recordOptions);
+          const record = new Record(this.agent, recordOptions, this.permissionsApi);
           return record;
         });
 
@@ -688,12 +674,19 @@ export class DwnApi {
           target        : request.from || this.connectedDid
         };
         if (this.delegateDid) {
-          agentRequest.messageParams = await addDelegateGrantToMessageParams({
-            messageType   : DwnInterface.RecordsRead,
-            messageParams : agentRequest.messageParams,
-            protocol      : request.protocol
+          const { message: delegatedGrant } = await this.permissionsApi.getPermission({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            protocol     : request.protocol,
+            delegate     : true,
+            cached       : true,
+            messageType  : agentRequest.messageType
           });
 
+          agentRequest.messageParams = {
+            ...agentRequest.messageParams,
+            delegatedGrant
+          };
           agentRequest.granteeDid = this.delegateDid;
         }
 
@@ -714,26 +707,25 @@ export class DwnApi {
              * Extract the `author` DID from the record since records may be signed by the
              * tenant owner or any other entity.
              */
-            author            : getRecordAuthor(responseRecord),
+            author       : getRecordAuthor(responseRecord),
             /**
              * Set the `connectedDid` to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
              * local DWN even if the record was read from a remote DWN.
              */
-            connectedDid      : this.connectedDid,
+            connectedDid : this.connectedDid,
             /**
              * If the record was returned by reading from a remote DWN, set the `remoteOrigin` to
              * the DID of the DWN that returned the record. The `remoteOrigin` property will be used
              * to determine which DWN to send subsequent read requests to in the event the data
              * payload must be read again (e.g., if the data stream is consumed).
              */
-            remoteOrigin      : request.from,
-            cachedPermissions : this.cachedPermissionsApi,
-            delegateDid       : this.delegateDid,
+            remoteOrigin : request.from,
+            delegateDid  : this.delegateDid,
             ...responseRecord,
           };
 
-          record = new Record(this.agent, recordOptions);
+          record = new Record(this.agent, recordOptions, this.permissionsApi);
         }
 
         return { record, status };
@@ -765,21 +757,28 @@ export class DwnApi {
            * The handler to process the subscription events.
            */
           subscriptionHandler: SubscriptionUtil.recordSubscriptionHandler({
-            agent             : this.agent,
-            connectedDid      : this.connectedDid,
-            delegateDid       : this.delegateDid,
-            cachedPermissions : this.cachedPermissionsApi,
+            agent          : this.agent,
+            connectedDid   : this.connectedDid,
+            delegateDid    : this.delegateDid,
+            permissionsApi : this.permissionsApi,
             request
           })
         };
 
         if (this.delegateDid) {
-          agentRequest.messageParams = await addDelegateGrantToMessageParams({
-            messageType   : DwnInterface.RecordsSubscribe,
-            messageParams : agentRequest.messageParams,
-            protocol      : request.protocol
+          const { message: delegatedGrant } = await this.permissionsApi.getPermission({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            protocol     : request.protocol,
+            delegate     : true,
+            cached       : true,
+            messageType  : agentRequest.messageType
           });
 
+          agentRequest.messageParams = {
+            ...agentRequest.messageParams,
+            delegatedGrant
+          };
           agentRequest.granteeDid = this.delegateDid;
         };
 
@@ -823,11 +822,19 @@ export class DwnApi {
 
         // if impersonation is enabled, fetch the delegated grant to use with the write operation
         if (this.delegateDid) {
-          dwnRequestParams.messageParams = await addDelegateGrantToMessageParams({
-            messageType   : DwnInterface.RecordsWrite,
-            messageParams : dwnRequestParams.messageParams,
-            protocol      : request.message?.protocol
+          const { message: delegatedGrant } = await this.permissionsApi.getPermission({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            protocol     : request.message.protocol,
+            delegate     : true,
+            cached       : true,
+            messageType  : dwnRequestParams.messageType
           });
+
+          dwnRequestParams.messageParams = {
+            ...dwnRequestParams.messageParams,
+            delegatedGrant
+          };
           dwnRequestParams.granteeDid = this.delegateDid;
         };
 
@@ -842,20 +849,19 @@ export class DwnApi {
              * Assume the author is the connected DID since the record was just written to the
              * local DWN.
              */
-            author            : this.connectedDid,
+            author       : this.connectedDid,
             /**
              * Set the `connectedDid` to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
              * local DWN.
              */
-            connectedDid      : this.connectedDid,
-            encodedData       : dataBlob,
-            cachedPermissions : this.cachedPermissionsApi,
-            delegateDid       : this.delegateDid,
+            connectedDid : this.connectedDid,
+            encodedData  : dataBlob,
+            delegateDid  : this.delegateDid,
             ...responseMessage,
           };
 
-          record = new Record(this.agent, recordOptions);
+          record = new Record(this.agent, recordOptions, this.permissionsApi);
         }
 
         return { record, status };

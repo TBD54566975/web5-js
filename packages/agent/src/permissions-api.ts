@@ -1,11 +1,14 @@
 import { PermissionGrant, PermissionGrantData, PermissionRequestData, PermissionRevocationData, PermissionsProtocol } from '@tbd54566975/dwn-sdk-js';
 import { Web5Agent } from './types/agent.js';
 import { DwnDataEncodedRecordsWriteMessage, DwnInterface, DwnMessageParams, DwnMessagesPermissionScope, DwnPermissionGrant, DwnPermissionRequest, DwnPermissionScope, DwnProtocolPermissionScope, DwnRecordsPermissionScope, ProcessDwnRequest } from './types/dwn.js';
-import { Convert } from '@web5/common';
-import { CreateGrantParams, CreateRequestParams, CreateRevocationParams, FetchPermissionRequestParams, FetchPermissionsParams, IsGrantRevokedParams, PermissionGrantEntry, PermissionRequestEntry, PermissionRevocationEntry, PermissionsApi } from './types/permissions.js';
+import { Convert, TtlCache } from '@web5/common';
+import { CreateGrantParams, CreateRequestParams, CreateRevocationParams, FetchPermissionRequestParams, FetchPermissionsParams, GetPermissionParams, IsGrantRevokedParams, PermissionGrantEntry, PermissionRequestEntry, PermissionRevocationEntry, PermissionsApi } from './types/permissions.js';
 import { isRecordsType } from './dwn-api.js';
 
 export class AgentPermissionsApi implements PermissionsApi {
+
+  /** cache for fetching a permission {@link PermissionGrant}, keyed by a specific MessageType and protocol */
+  private _cachedPermissions: TtlCache<string, PermissionGrantEntry> = new TtlCache({ ttl: 60 * 1000 });
 
   private _agent?: Web5Agent;
 
@@ -22,6 +25,46 @@ export class AgentPermissionsApi implements PermissionsApi {
 
   constructor({ agent }: { agent?: Web5Agent } = {}) {
     this._agent = agent;
+  }
+
+  async getPermission({
+    connectedDid,
+    delegateDid,
+    delegate,
+    messageType,
+    protocol,
+    cached = false
+  }: GetPermissionParams): Promise<PermissionGrantEntry> {
+    // Currently we only support finding grants based on protocols
+    // A different approach may be necessary when we introduce `protocolPath` and `contextId` specific impersonation
+    const cacheKey = [ connectedDid, delegateDid, messageType, protocol ].join('~');
+    const cachedGrant = this._cachedPermissions?.get(cacheKey);
+    if (cachedGrant) {
+      return cachedGrant;
+    }
+
+    const permissionGrants = await this.fetchGrants({
+      author  : delegateDid,
+      target  : delegateDid,
+      grantor : connectedDid,
+      grantee : delegateDid,
+    });
+
+    // get the delegate grants that match the messageParams and are associated with the connectedDid as the grantor
+    const grant = await AgentPermissionsApi.matchGrantFromArray(
+      connectedDid,
+      delegateDid,
+      { messageType, protocol },
+      permissionGrants,
+      delegate
+    );
+
+    if (!grant) {
+      throw new Error(`CachedPermissions: No permissions found for ${messageType}: ${protocol}`);
+    }
+
+    this._cachedPermissions?.set(cacheKey, grant);
+    return grant;
   }
 
   async fetchGrants({
@@ -267,6 +310,10 @@ export class AgentPermissionsApi implements PermissionsApi {
     };
 
     return { message: dataEncodedMessage };
+  }
+
+  async clear():Promise<void> {
+    this._cachedPermissions?.clear();
   }
 
   /**

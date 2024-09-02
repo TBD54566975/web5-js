@@ -58,11 +58,8 @@ describe('DwnApi', () => {
     await testHarness.dwnEventLog.clear();
     await testHarness.dwnMessageStore.clear();
     await testHarness.dwnResumableTaskStore.clear();
+    await testHarness.agent.permissions.clear();
     testHarness.dwnStores.clear();
-
-    // clear cached permissions between test runs
-    dwnAlice['cachedPermissionsApi'].clear();
-    dwnBob['cachedPermissionsApi'].clear();
 
     dwnAlice['connectedDid'] = aliceDid.uri;
     dwnBob['connectedDid'] = bobDid.uri;

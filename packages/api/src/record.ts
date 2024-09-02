@@ -19,8 +19,8 @@ import {
   DwnPaginationCursor,
   isDwnMessage,
   SendDwnRequest,
-  CachedPermissions,
-  DwnRecordsInterfaces,
+  PermissionsApi,
+  AgentPermissionsApi,
 } from '@web5/agent';
 
 import { Convert, isEmptyObject, NodeStream, removeUndefinedProperties, Stream } from '@web5/common';
@@ -96,9 +96,6 @@ export type RecordOptions = DwnMessage[DwnInterface.RecordsWrite | DwnInterface.
 
   /** The optional DID that will sign the records on behalf of the connectedDid  */
   delegateDid?: string;
-
-  /** cached permission API for fast grant lookup */
-  cachedPermissions?: CachedPermissions;
 
   /** The data of the record, either as a Base64 URL encoded string or a Blob. */
   encodedData?: string | Blob;
@@ -216,7 +213,7 @@ export class Record implements RecordModel {
   /** The optional DID that is delegated to act on behalf of the connectedDid */
   private _delegateDid?: string;
   /** cache for fetching a permission {@link PermissionGrant}, keyed by a specific MessageType and protocol */
-  private _cachedPermissions?: CachedPermissions;
+  private _permissionsApi: PermissionsApi;
   /** Encoded data of the record, if available. */
   private _encodedData?: Blob;
   /** Stream of the record's data. */
@@ -267,8 +264,8 @@ export class Record implements RecordModel {
   /** Record's ID */
   get id() { return this._recordId; }
 
-  /** Record's context ID */
-  get contextId() { return this._contextId; }
+  /** Record's context ID. If the record is deleted, the context Id comes from the initial write */
+  get contextId() { return this.deleted ? this._initialWrite.contextId : this._contextId; }
 
   /** Record's creation date */
   get dateCreated() { return this._immutableProperties.dateCreated; }
@@ -360,7 +357,7 @@ export class Record implements RecordModel {
     return message;
   }
 
-  constructor(agent: Web5Agent, options: RecordOptions) {
+  constructor(agent: Web5Agent, options: RecordOptions, permissionsApi?: PermissionsApi) {
 
     this._agent = agent;
 
@@ -368,11 +365,11 @@ export class Record implements RecordModel {
     // that they don't have to decode the signer's DID from the JWS.
     this._author = options.author;
 
-    // Store the currently `connectedDid` so that subsequent message signing is done with the
-    // connected DID's keys and DWN requests target the connected DID's DWN.
+    // Store the `connectedDid`, and optionally the `delegateDid` and `permissionsApi` in order to be able
+    // to perform operations on the record (update, delete, data) as a delegate of the connected DID.
     this._connectedDid = options.connectedDid;
     this._delegateDid = options.delegateDid;
-    this._cachedPermissions = options.cachedPermissions;
+    this._permissionsApi = permissionsApi ?? new AgentPermissionsApi({ agent });
 
     // If the record was queried or read from a remote DWN, the `remoteOrigin` DID will be
     // defined. This value is used to send subsequent read requests to the same remote DWN in the
@@ -383,7 +380,7 @@ export class Record implements RecordModel {
     // RecordsWriteMessage properties.
     this._attestation = options.attestation;
     this._authorization = options.authorization;
-    this._contextId = options.contextId ?? options.initialWrite?.contextId;
+    this._contextId = options.contextId;
     this._descriptor = options.descriptor;
     this._encryption = options.encryption;
     this._initialWrite = options.initialWrite;
@@ -751,7 +748,15 @@ export class Record implements RecordModel {
     };
 
     if (this._delegateDid) {
-      requestOptions.messageParams = await this.addDelegateGrantToMessageParams(DwnInterface.RecordsWrite, requestOptions);
+      const { message: delegatedGrant } = await this._permissionsApi.getPermission({
+        connectedDid : this._connectedDid,
+        delegateDid  : this._delegateDid,
+        protocol     : this.protocol,
+        delegate     : true,
+        cached       : true,
+        messageType  : requestOptions.messageType
+      });
+      requestOptions.messageParams.delegatedGrant = delegatedGrant;
       requestOptions.granteeDid = this._delegateDid;
     }
 
@@ -834,7 +839,20 @@ export class Record implements RecordModel {
     }
 
     if (this._delegateDid) {
-      deleteOptions.messageParams = await this.addDelegateGrantToMessageParams(DwnInterface.RecordsDelete, deleteOptions);
+      const { message: delegatedGrant } = await this._permissionsApi.getPermission({
+        connectedDid : this._connectedDid,
+        delegateDid  : this._delegateDid,
+        protocol     : this.protocol,
+        delegate     : true,
+        cached       : true,
+        messageType  : deleteOptions.messageType
+      });
+
+      deleteOptions.messageParams = {
+        ...deleteOptions.messageParams,
+        delegatedGrant
+      };
+
       deleteOptions.granteeDid = this._delegateDid;
     }
 
@@ -855,6 +873,7 @@ export class Record implements RecordModel {
     this._encodedData = undefined;
     this._encryption = undefined;
     this._attestation = undefined;
+    this._contextId = undefined;
 
     return { status };
   }
@@ -874,7 +893,20 @@ export class Record implements RecordModel {
     };
 
     if (this._delegateDid) {
-      initialWriteRequest.messageParams = await this.addDelegateGrantToMessageParams(DwnInterface.RecordsWrite, initialWriteRequest);
+      const { message: delegatedGrant } = await this._permissionsApi.getPermission({
+        connectedDid : this._connectedDid,
+        delegateDid  : this._delegateDid,
+        protocol     : this.protocol,
+        delegate     : true,
+        cached       : true,
+        messageType  : initialWriteRequest.messageType
+      });
+
+      initialWriteRequest.messageParams = {
+        ...initialWriteRequest.messageParams,
+        delegatedGrant
+      };
+
       initialWriteRequest.granteeDid = this._delegateDid;
     }
 
@@ -933,7 +965,20 @@ export class Record implements RecordModel {
     }
 
     if (this._delegateDid) {
-      requestOptions.messageParams = await this.addDelegateGrantToMessageParams(requestOptions.messageType, requestOptions);
+      const { message: delegatedGrant } = await this._permissionsApi.getPermission({
+        connectedDid : this._connectedDid,
+        delegateDid  : this._delegateDid,
+        protocol     : this.protocol,
+        delegate     : true,
+        cached       : true,
+        messageType  : requestOptions.messageType
+      });
+
+      requestOptions.messageParams = {
+        ...requestOptions.messageParams,
+        delegatedGrant
+      };
+
       requestOptions.granteeDid = this._delegateDid;
     }
 
@@ -974,7 +1019,20 @@ export class Record implements RecordModel {
     };
 
     if (this._delegateDid) {
-      readRequest.messageParams = await this.addDelegateGrantToMessageParams(DwnInterface.RecordsRead, readRequest);
+      const { message: delegatedGrant } = await this._permissionsApi.getPermission({
+        connectedDid : this._connectedDid,
+        delegateDid  : this._delegateDid,
+        protocol     : this.protocol,
+        delegate     : true,
+        cached       : true,
+        messageType  : readRequest.messageType
+      });
+
+      readRequest.messageParams = {
+        ...readRequest.messageParams,
+        delegatedGrant
+      };
+
       readRequest.granteeDid = this._delegateDid;
     }
 
@@ -1030,68 +1088,5 @@ export class Record implements RecordModel {
    */
   private isRecordsDeleteDescriptor(descriptor: DwnMessageDescriptor[DwnInterface.RecordsWrite | DwnInterface.RecordsDelete]): descriptor is DwnMessageDescriptor[DwnInterface.RecordsDelete] {
     return descriptor.interface + descriptor.method === DwnInterface.RecordsDelete;
-  }
-
-  /**
-   *  Adds the appropriate delegate grant to the messageParams for the given messageType.
-   *
-   * @param messageType The type of message to add the delegate grant to.
-   * @param request The request object containing the message parameters.
-   *
-   * @returns a copy of the message parameters with the delegate grant added.
-   */
-  private addDelegateGrantToMessageParams<T extends DwnRecordsInterfaces>(messageType: T, request: ProcessDwnRequest<T>): Promise<DwnMessageParams[T]> {
-    return Record.addDelegateGrantToMessageParams({
-      messageType,
-      delegateDid       : this._delegateDid,
-      connectedDid      : this._connectedDid,
-      protocol          : this.protocol,
-      cachedPermissions : this._cachedPermissions,
-      messageParams     : request.messageParams
-    });
-  }
-
-  /**
-   * Adds the appropriate delegate grant to the messageParams for the given messageType.
-   *
-   * @param messageType The type of message to add the delegate grant to.
-   * @param messageParams The message parameters to add the delegate grant to.
-   * @param delegateDid The DID the grant is granted to (grantee).
-   * @param connectedDid The DID the grant is granted by (grantor).
-   * @param protocol The protocol the grant is for.
-   * @param cachedPermissions The cached permissions object.
-   *
-   * @returns a copy of the message parameters with the delegate grant added.
-   */
-  static async addDelegateGrantToMessageParams<T extends DwnRecordsInterfaces>({
-    messageType,
-    delegateDid,
-    connectedDid,
-    protocol,
-    cachedPermissions,
-    messageParams = {} as DwnMessageParams[T]
-  }:{
-    messageType: T,
-    delegateDid: string,
-    connectedDid: string,
-    protocol: string,
-    cachedPermissions: CachedPermissions;
-    messageParams?: DwnMessageParams[T];
-  }): Promise<DwnMessageParams[T]> {
-
-    // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-    const { message: delegatedGrant } = await cachedPermissions.getPermission({
-      connectedDid : connectedDid,
-      delegateDid  : delegateDid,
-      protocol     : protocol,
-      delegate     : true,
-      cached       : true,
-      messageType
-    });
-
-    return {
-      ...messageParams,
-      delegatedGrant,
-    };
   }
 }
