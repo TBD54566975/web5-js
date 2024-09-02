@@ -276,9 +276,12 @@ export class Web5 {
         );
       }
 
+      // Use the specified DWN endpoints or the latest TBD hosted DWN
+      const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
+
       // Initialize, if necessary, and start the agent.
       if (await userAgent.firstLaunch()) {
-        recoveryPhrase = await userAgent.initialize({ password, recoveryPhrase });
+        recoveryPhrase = await userAgent.initialize({ password, recoveryPhrase, dwnEndpoints: serviceEndpointNodes });
       }
       await userAgent.start({ password });
       // Attempt to retrieve the connected Identity if it exists.
@@ -348,9 +351,6 @@ export class Web5 {
           // since we are creating a new identity, we will want to register sync for the created Did
           registerSync = true;
 
-          // Use the specified DWN endpoints or the latest TBD hosted DWN
-          const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
-
           // Generate a new Identity for the end-user.
           identity = await userAgent.identity.create({
             didMethod  : 'dht',
@@ -397,8 +397,6 @@ export class Web5 {
       delegateDid = identity.metadata.connectedDid ? identity.did.uri : undefined;
       if (registration !== undefined) {
         // If a registration object is passed, we attempt to register the AgentDID and the ConnectedDID with the DWN endpoints provided
-        const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints;
-
         try {
           for (const dwnEndpoint of serviceEndpointNodes) {
             // check if endpoint needs registration
