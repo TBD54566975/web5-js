@@ -75,6 +75,7 @@ describe('Record', () => {
     await testHarness.dwnEventLog.clear();
     await testHarness.dwnMessageStore.clear();
     await testHarness.dwnResumableTaskStore.clear();
+    await testHarness.agent.permissions.clear();
     testHarness.dwnStores.clear();
 
     protocolDefinition = {
@@ -93,7 +94,7 @@ describe('Record', () => {
     const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({ message: { definition: protocolDefinition } });
     expect(bobProtocolStatus.code).to.equal(202);
     expect(bobProtocol).to.exist;
-    const { status: bobProtocolSendStatus } = await bobProtocol!.send(bobDid.uri);
+    const { status: bobProtocolSendStatus } = await bobProtocol.send(bobDid.uri);
     expect(bobProtocolSendStatus.code).to.equal(202);
   });
 
@@ -130,6 +131,7 @@ describe('Record', () => {
       await delegateHarness.dwnEventLog.clear();
       await delegateHarness.dwnMessageStore.clear();
       await delegateHarness.dwnResumableTaskStore.clear();
+      await testHarness.agent.permissions.clear();
       delegateHarness.dwnStores.clear();
 
       // avoid seeing the security warning of no password during connect
@@ -1567,6 +1569,7 @@ describe('Record', () => {
         await testHarnessCarol.dwnEventLog.clear();
         await testHarnessCarol.dwnMessageStore.clear();
         await testHarnessCarol.dwnResumableTaskStore.clear();
+        await testHarness.agent.permissions.clear();
         testHarnessCarol.dwnStores.clear();
 
         const { status: carolProtocolStatus, protocol: carolProtocol } = await dwnCarol.protocols.configure({ message: { definition: protocolDefinition } });

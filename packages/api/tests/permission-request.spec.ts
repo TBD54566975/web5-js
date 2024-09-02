@@ -52,6 +52,7 @@ describe('PermissionRequest', () => {
     await testHarness.dwnEventLog.clear();
     await testHarness.dwnMessageStore.clear();
     await testHarness.dwnResumableTaskStore.clear();
+    await testHarness.agent.permissions.clear();
     testHarness.dwnStores.clear();
 
     // create a random protocol URI for each run

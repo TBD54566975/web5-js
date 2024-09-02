@@ -811,10 +811,7 @@ export class Record implements RecordModel {
       this._initialWrite = { ...this.rawMessage as DwnMessage[DwnInterface.RecordsWrite] };
     }
 
-    // if there is an initial write and we haven't already processed it, we first process it and marked it as such.
-    if ((signAsOwner && !this._initialWriteSigned) || (store && !this._initialWriteStored)) {
-      await this.processInitialWrite({ store, signAsOwner });
-    }
+    await this.processInitialWriteIfNeeded({ store, signAsOwner });
 
     // prepare delete options
     let deleteOptions: ProcessDwnRequest<DwnInterface.RecordsDelete> = {
@@ -878,49 +875,54 @@ export class Record implements RecordModel {
     return { status };
   }
 
-  private async processInitialWrite({ store, signAsOwner }:{ store: boolean, signAsOwner: boolean }): Promise<void> {
-    const signAsOwnerValue = signAsOwner && this._delegateDid === undefined;
-    const signAsOwnerDelegate = signAsOwner && this._delegateDid !== undefined;
+  /**
+   * Process the initial write, if it hasn't already been processed, with the options set for storing and/or signing as the owner.
+   */
+  private async processInitialWriteIfNeeded({ store, signAsOwner }:{ store: boolean, signAsOwner: boolean }): Promise<void> {
+    if (this.initialWrite && ((signAsOwner && !this._initialWriteSigned) || (store && !this._initialWriteStored))) {
+      const signAsOwnerValue = signAsOwner && this._delegateDid === undefined;
+      const signAsOwnerDelegate = signAsOwner && this._delegateDid !== undefined;
 
-    const initialWriteRequest: ProcessDwnRequest<DwnInterface.RecordsWrite> = {
-      messageType : DwnInterface.RecordsWrite,
-      rawMessage  : this.initialWrite,
-      author      : this._connectedDid,
-      target      : this._connectedDid,
-      signAsOwner : signAsOwnerValue,
-      signAsOwnerDelegate,
-      store,
-    };
-
-    if (this._delegateDid) {
-      const { message: delegatedGrant } = await this._permissionsApi.getPermission({
-        connectedDid : this._connectedDid,
-        delegateDid  : this._delegateDid,
-        protocol     : this.protocol,
-        delegate     : true,
-        cached       : true,
-        messageType  : initialWriteRequest.messageType
-      });
-
-      initialWriteRequest.messageParams = {
-        ...initialWriteRequest.messageParams,
-        delegatedGrant
+      const initialWriteRequest: ProcessDwnRequest<DwnInterface.RecordsWrite> = {
+        messageType : DwnInterface.RecordsWrite,
+        rawMessage  : this.initialWrite,
+        author      : this._connectedDid,
+        target      : this._connectedDid,
+        signAsOwner : signAsOwnerValue,
+        signAsOwnerDelegate,
+        store,
       };
 
-      initialWriteRequest.granteeDid = this._delegateDid;
-    }
+      if (this._delegateDid) {
+        const { message: delegatedGrant } = await this._permissionsApi.getPermission({
+          connectedDid : this._connectedDid,
+          delegateDid  : this._delegateDid,
+          protocol     : this.protocol,
+          delegate     : true,
+          cached       : true,
+          messageType  : initialWriteRequest.messageType
+        });
 
-    // Process the prepared initial write, with the options set for storing and/or signing as the owner.
-    const agentResponse = await this._agent.processDwnRequest(initialWriteRequest);
+        initialWriteRequest.messageParams = {
+          ...initialWriteRequest.messageParams,
+          delegatedGrant
+        };
 
-    const { message, reply: { status } } = agentResponse;
-    const responseMessage = message;
+        initialWriteRequest.granteeDid = this._delegateDid;
+      }
 
-    if (200 <= status.code && status.code <= 299) {
-      if (store) this._initialWriteStored = true;
-      if (signAsOwner) {
-        this._initialWriteSigned = true;
-        this.initialWrite.authorization = responseMessage.authorization;
+      // Process the prepared initial write, with the options set for storing and/or signing as the owner.
+      const agentResponse = await this._agent.processDwnRequest(initialWriteRequest);
+
+      const { message, reply: { status } } = agentResponse;
+      const responseMessage = message;
+
+      if (200 <= status.code && status.code <= 299) {
+        if (store) this._initialWriteStored = true;
+        if (signAsOwner) {
+          this._initialWriteSigned = true;
+          this.initialWrite.authorization = responseMessage.authorization;
+        }
       }
     }
   }
@@ -933,10 +935,7 @@ export class Record implements RecordModel {
     const signAsOwnerValue = signAsOwner && this._delegateDid === undefined;
     const signAsOwnerDelegate = signAsOwner && this._delegateDid !== undefined;
 
-    // if there is an initial write and we haven't already processed it, we first process it and marked it as such.
-    if (this.initialWrite && ((signAsOwner && !this._initialWriteSigned) || (store && !this._initialWriteStored))) {
-      await this.processInitialWrite({ store, signAsOwner });
-    }
+    await this.processInitialWriteIfNeeded({ store, signAsOwner });
 
     let requestOptions: ProcessDwnRequest<DwnInterface.RecordsWrite | DwnInterface.RecordsDelete>;
     // Now that we've processed a potential initial write, we can process the current record state.

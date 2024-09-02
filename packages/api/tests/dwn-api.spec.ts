@@ -105,6 +105,7 @@ describe('DwnApi', () => {
       await delegateHarness.dwnEventLog.clear();
       await delegateHarness.dwnMessageStore.clear();
       await delegateHarness.dwnResumableTaskStore.clear();
+      await testHarness.agent.permissions.clear();
       delegateHarness.dwnStores.clear();
 
       // avoid seeing the security warning of no password during connect
