@@ -38,7 +38,7 @@ export class AgentPermissionsApi implements PermissionsApi {
     // Currently we only support finding grants based on protocols
     // A different approach may be necessary when we introduce `protocolPath` and `contextId` specific impersonation
     const cacheKey = [ connectedDid, delegateDid, messageType, protocol ].join('~');
-    const cachedGrant = this._cachedPermissions?.get(cacheKey);
+    const cachedGrant = cached ? this._cachedPermissions.get(cacheKey) : undefined;
     if (cachedGrant) {
       return cachedGrant;
     }
@@ -63,7 +63,7 @@ export class AgentPermissionsApi implements PermissionsApi {
       throw new Error(`CachedPermissions: No permissions found for ${messageType}: ${protocol}`);
     }
 
-    this._cachedPermissions?.set(cacheKey, grant);
+    this._cachedPermissions.set(cacheKey, grant);
     return grant;
   }
 
@@ -313,7 +313,7 @@ export class AgentPermissionsApi implements PermissionsApi {
   }
 
   async clear():Promise<void> {
-    this._cachedPermissions?.clear();
+    this._cachedPermissions.clear();
   }
 
   /**
