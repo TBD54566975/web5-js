@@ -546,7 +546,7 @@ export class DwnApi {
         };
 
         if (this.delegateDid) {
-          const { message: delegatedGrant } = await this.permissionsApi.getPermission({
+          const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
             connectedDid : this.connectedDid,
             delegateDid  : this.delegateDid,
             protocol     : request.protocol,
@@ -595,7 +595,7 @@ export class DwnApi {
         };
 
         if (this.delegateDid) {
-          const { message: delegatedGrant } = await this.permissionsApi.getPermission({
+          const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
             connectedDid : this.connectedDid,
             delegateDid  : this.delegateDid,
             protocol     : request.protocol,
@@ -674,7 +674,7 @@ export class DwnApi {
           target        : request.from || this.connectedDid
         };
         if (this.delegateDid) {
-          const { message: delegatedGrant } = await this.permissionsApi.getPermission({
+          const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
             connectedDid : this.connectedDid,
             delegateDid  : this.delegateDid,
             protocol     : request.protocol,
@@ -766,7 +766,7 @@ export class DwnApi {
         };
 
         if (this.delegateDid) {
-          const { message: delegatedGrant } = await this.permissionsApi.getPermission({
+          const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
             connectedDid : this.connectedDid,
             delegateDid  : this.delegateDid,
             protocol     : request.protocol,
@@ -822,7 +822,7 @@ export class DwnApi {
 
         // if impersonation is enabled, fetch the delegated grant to use with the write operation
         if (this.delegateDid) {
-          const { message: delegatedGrant } = await this.permissionsApi.getPermission({
+          const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
             connectedDid : this.connectedDid,
             delegateDid  : this.delegateDid,
             protocol     : request.message.protocol,

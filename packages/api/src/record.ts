@@ -748,7 +748,7 @@ export class Record implements RecordModel {
     };
 
     if (this._delegateDid) {
-      const { message: delegatedGrant } = await this._permissionsApi.getPermission({
+      const { message: delegatedGrant } = await this._permissionsApi.getPermissionForRequest({
         connectedDid : this._connectedDid,
         delegateDid  : this._delegateDid,
         protocol     : this.protocol,
@@ -836,7 +836,7 @@ export class Record implements RecordModel {
     }
 
     if (this._delegateDid) {
-      const { message: delegatedGrant } = await this._permissionsApi.getPermission({
+      const { message: delegatedGrant } = await this._permissionsApi.getPermissionForRequest({
         connectedDid : this._connectedDid,
         delegateDid  : this._delegateDid,
         protocol     : this.protocol,
@@ -894,7 +894,7 @@ export class Record implements RecordModel {
       };
 
       if (this._delegateDid) {
-        const { message: delegatedGrant } = await this._permissionsApi.getPermission({
+        const { message: delegatedGrant } = await this._permissionsApi.getPermissionForRequest({
           connectedDid : this._connectedDid,
           delegateDid  : this._delegateDid,
           protocol     : this.protocol,
@@ -964,7 +964,7 @@ export class Record implements RecordModel {
     }
 
     if (this._delegateDid) {
-      const { message: delegatedGrant } = await this._permissionsApi.getPermission({
+      const { message: delegatedGrant } = await this._permissionsApi.getPermissionForRequest({
         connectedDid : this._connectedDid,
         delegateDid  : this._delegateDid,
         protocol     : this.protocol,
@@ -1018,7 +1018,7 @@ export class Record implements RecordModel {
     };
 
     if (this._delegateDid) {
-      const { message: delegatedGrant } = await this._permissionsApi.getPermission({
+      const { message: delegatedGrant } = await this._permissionsApi.getPermissionForRequest({
         connectedDid : this._connectedDid,
         delegateDid  : this._delegateDid,
         protocol     : this.protocol,

@@ -134,11 +134,12 @@ export class SyncEngineLevel implements SyncEngine {
       let granteeDid: string | undefined;
       if (delegateDid) {
         try {
-          const messagesReadGrant = await this._permissionsApi.getPermission({
+          const messagesReadGrant = await this._permissionsApi.getPermissionForRequest({
             connectedDid : did,
             messageType  : DwnInterface.MessagesRead,
             delegateDid,
             protocol,
+            cached       : true
           });
 
           permissionGrantId = messagesReadGrant.grant.id;
@@ -403,11 +404,12 @@ export class SyncEngineLevel implements SyncEngine {
     if (delegateDid) {
       // fetch the grants for the delegate DID
       try {
-        const messagesQueryGrant = await this._permissionsApi.getPermission({
+        const messagesQueryGrant = await this._permissionsApi.getPermissionForRequest({
           connectedDid : did,
           messageType  : DwnInterface.MessagesQuery,
           delegateDid,
           protocol,
+          cached       : true
         });
 
         permissionGrantId = messagesQueryGrant.grant.id;
@@ -470,11 +472,12 @@ export class SyncEngineLevel implements SyncEngine {
     let permissionGrantId: string | undefined;
     if (delegateDid) {
       try {
-        const messagesReadGrant = await this._permissionsApi.getPermission({
+        const messagesReadGrant = await this._permissionsApi.getPermissionForRequest({
           connectedDid : author,
           messageType  : DwnInterface.MessagesRead,
           delegateDid,
           protocol,
+          cached       : true
         });
 
         permissionGrantId = messagesReadGrant.grant.id;

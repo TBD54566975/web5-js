@@ -27,7 +27,7 @@ export class AgentPermissionsApi implements PermissionsApi {
     this._agent = agent;
   }
 
-  async getPermission({
+  async getPermissionForRequest({
     connectedDid,
     delegateDid,
     delegate,

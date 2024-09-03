@@ -76,7 +76,7 @@ export interface PermissionsApi {
   /**
    * Get the permission grant for a given author, target, and protocol. To be used when authoring delegated requests.
    */
-  getPermission: (params: GetPermissionParams) => Promise<PermissionGrantEntry>;
+  getPermissionForRequest: (params: GetPermissionParams) => Promise<PermissionGrantEntry>;
 
   /**
    * Fetch all grants for a given author and target, optionally filtered by a specific grantee, grantor, or protocol.
