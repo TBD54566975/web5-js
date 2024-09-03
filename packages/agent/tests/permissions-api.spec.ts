@@ -60,7 +60,7 @@ describe('AgentPermissionsApi', () => {
     });
   });
 
-  describe.only('getPermission', () => {
+  describe('getPermission', () => {
     it('throws an error if no permissions are found', async () => {
       try {
         await testHarness.agent.permissions.getPermissionForRequest({
