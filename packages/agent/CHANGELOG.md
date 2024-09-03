@@ -1,5 +1,11 @@
 # @web5/agent
 
+## 0.7.0
+
+### Minor Changes
+
+- [#859](https://github.com/TBD54566975/web5-js/pull/859) [`7fc1f1d`](https://github.com/TBD54566975/web5-js/commit/7fc1f1dc1913fb3c77516db0f6ba2c55787bc84b) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Tefactor getting permissions for grants into a single Permission API interface
+
 ## 0.6.1
 
 ### Patch Changes
