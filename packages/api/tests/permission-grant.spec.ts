@@ -56,10 +56,11 @@ describe('PermissionGrant', () => {
     await testHarness.dwnEventLog.clear();
     await testHarness.dwnMessageStore.clear();
     await testHarness.dwnResumableTaskStore.clear();
+    await testHarness.agent.permissions.clear();
     testHarness.dwnStores.clear();
 
     // create a random protocol URI for each run
-    protocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(10)}`;
+    protocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(15)}`;
   });
 
 
