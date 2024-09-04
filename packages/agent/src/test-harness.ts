@@ -94,6 +94,7 @@ export class PlatformAgentTestHarness {
     await this.dwnResumableTaskStore.clear();
     await this.syncStore.clear();
     await this.vaultStore.clear();
+    await this.agent.permissions.clear();
     this.dwnStores.clear();
 
     // Reset the indexes and caches for the Agent's DWN data stores.

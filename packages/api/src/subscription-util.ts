@@ -1,4 +1,4 @@
-import { DwnRecordSubscriptionHandler, getRecordAuthor, Web5Agent } from '@web5/agent';
+import { DwnRecordSubscriptionHandler, getRecordAuthor, PermissionsApi, Web5Agent } from '@web5/agent';
 import { RecordsSubscribeRequest } from './dwn-api.js';
 import { Record } from './record.js';
 
@@ -9,9 +9,11 @@ export class SubscriptionUtil {
   /**
    * Creates a record subscription handler that can be used to process incoming {Record} messages.
    */
-  static recordSubscriptionHandler({ agent, connectedDid, request }:{
+  static recordSubscriptionHandler({ agent, connectedDid, request, delegateDid, permissionsApi }:{
     agent: Web5Agent;
     connectedDid: string;
+    delegateDid?: string;
+    permissionsApi?: PermissionsApi;
     request: RecordsSubscribeRequest;
   }): DwnRecordSubscriptionHandler {
     const { subscriptionHandler, from: remoteOrigin } = request;
@@ -26,7 +28,12 @@ export class SubscriptionUtil {
         initialWrite
       };
 
-      const record = new Record(agent, { ...message, ...recordOptions });
+      const record = new Record(agent, {
+        ...message,
+        ...recordOptions,
+        delegateDid: delegateDid,
+      }, permissionsApi);
+
       subscriptionHandler(record);
     };
   }

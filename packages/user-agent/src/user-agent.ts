@@ -53,6 +53,16 @@ export type AgentInitializeParams = {
    * If omitted, a new phrase is generated, which should be securely recorded for future recovery needs.
    */
    recoveryPhrase?: string;
+
+  /**
+   * Optional dwnEndpoints to register didService endpoints during Web5UserAgent initialization
+   *
+   * The dwnEndpoints are used to register DWN endpoints against the agent DID created during
+   * Web5UserAgent.initialize() =>  DidDht.create(). This allows the
+   * agent to properly recover connectedDids from DWN. Also, this pattern can be used on the server
+   * side in place of the agentDid-->connectedDids pattern.
+   */
+   dwnEndpoints?: string[];
  };
 
 export type AgentStartParams = {
@@ -202,9 +212,9 @@ export class Web5UserAgent<TKeyManager extends AgentKeyManager = LocalKeyManager
    * cryptographic keys for the vault. If a recovery phrase is not provided, a new recovery phrase
    * will be generated and returned. The password should be chosen and entered by the end-user.
    */
-  public async initialize({ password, recoveryPhrase }: AgentInitializeParams): Promise<string> {
+  public async initialize({ password, recoveryPhrase, dwnEndpoints }: AgentInitializeParams): Promise<string> {
     // Initialize the Agent vault.
-    recoveryPhrase = await this.vault.initialize({ password, recoveryPhrase });
+    recoveryPhrase = await this.vault.initialize({ password, recoveryPhrase, dwnEndpoints });
 
     return recoveryPhrase;
   }

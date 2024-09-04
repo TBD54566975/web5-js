@@ -5,15 +5,15 @@ import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { TestAgent } from './utils/test-agent.js';
 import { BearerDid } from '@web5/dids';
 
-import { testDwnUrl } from './utils/test-config.js';
 import { DwnInterfaceName, DwnMethodName, Time } from '@tbd54566975/dwn-sdk-js';
 import { DwnInterface, DwnPermissionGrant, DwnPermissionScope, Web5PlatformAgent } from '../src/index.js';
+import { Convert } from '@web5/common';
 
-let testDwnUrls: string[] = [testDwnUrl];
 
 describe('AgentPermissionsApi', () => {
   let testHarness: PlatformAgentTestHarness;
   let aliceDid: BearerDid;
+  let bobDid: BearerDid;
 
   before(async () => {
     testHarness = await PlatformAgentTestHarness.setup({
@@ -34,9 +34,13 @@ describe('AgentPermissionsApi', () => {
     await testHarness.createAgentDid();
 
     // Create an "alice" Identity to author the DWN messages.
-    const alice = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
+    const alice = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Alice' } });
     await testHarness.agent.identity.manage({ portableIdentity: await alice.export() });
     aliceDid = alice.did;
+
+    const bob = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Bob' } });
+    await testHarness.agent.identity.manage({ portableIdentity: await bob.export() });
+    bobDid = bob.did;
   });
 
   describe('get agent', () => {
@@ -53,6 +57,181 @@ describe('AgentPermissionsApi', () => {
       expect(() =>
         permissionsApi.agent
       ).to.throw(Error, 'AgentPermissionsApi: Agent is not set');
+    });
+  });
+
+  describe('getPermission', () => {
+    it('throws an error if no permissions are found', async () => {
+      try {
+        await testHarness.agent.permissions.getPermissionForRequest({
+          connectedDid : aliceDid.uri,
+          delegateDid  : bobDid.uri,
+          messageType  : DwnInterface.MessagesQuery,
+        });
+        expect.fail('Expected an error to be thrown');
+      } catch(error: any) {
+        expect(error.message).to.equal('CachedPermissions: No permissions found for MessagesQuery: undefined');
+      }
+
+      // create a permission grant to fetch
+      const messagesQueryGrant = await testHarness.agent.permissions.createGrant({
+        store       : true,
+        author      : aliceDid.uri,
+        grantedTo   : bobDid.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : {
+          interface : DwnInterfaceName.Messages,
+          method    : DwnMethodName.Query,
+        }
+      });
+
+      // store the grant as owner from bob so that it can be fetched
+      const { encodedData, ...messagesQueryGrantMessage } = messagesQueryGrant.message;
+      const grantReply = await testHarness.agent.processDwnRequest({
+        target      : bobDid.uri,
+        author      : bobDid.uri,
+        signAsOwner : true,
+        messageType : DwnInterface.RecordsWrite,
+        rawMessage  : messagesQueryGrantMessage,
+        dataStream  : new Blob([ Convert.base64Url(encodedData).toUint8Array() ])
+      });
+      expect(grantReply.reply.status.code).to.equal(202);
+
+      // fetch the grant
+      const fetchedMessagesQueryGrant = await testHarness.agent.permissions.getPermissionForRequest({
+        connectedDid : aliceDid.uri,
+        delegateDid  : bobDid.uri,
+        messageType  : DwnInterface.MessagesQuery,
+      });
+      expect(fetchedMessagesQueryGrant.message.recordId).to.equal(messagesQueryGrant.message.recordId);
+    });
+
+    it('caches and returns the permission grant', async () => {
+      // create a RecordsWrite grant from alice to bob
+      const protocolUri = 'http://example.com/protocol';
+      const recordsWriteGrant = await testHarness.agent.permissions.createGrant({
+        store       : true,
+        author      : aliceDid.uri,
+        grantedTo   : bobDid.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : protocolUri
+        }
+      });
+      expect(recordsWriteGrant).to.exist;
+
+      // store as bob
+      const { encodedData, ...recordsWriteGrantMessage } = recordsWriteGrant.message;
+      const grantReply = await testHarness.agent.processDwnRequest({
+        target      : bobDid.uri,
+        author      : bobDid.uri,
+        signAsOwner : true,
+        messageType : DwnInterface.RecordsWrite,
+        rawMessage  : recordsWriteGrantMessage,
+        dataStream  : new Blob([ Convert.base64Url(encodedData).toUint8Array() ])
+      });
+      expect(grantReply.reply.status.code).to.equal(202);
+
+      // spy on fetchGrant to ensure it's only called once
+      const fetchGrantSpy = sinon.spy(testHarness.agent.permissions, 'fetchGrants');
+
+      // get the grant
+      const fetchedMessagesQueryGrant = await testHarness.agent.permissions.getPermissionForRequest({
+        connectedDid : aliceDid.uri,
+        delegateDid  : bobDid.uri,
+        messageType  : DwnInterface.RecordsWrite,
+        protocol     : protocolUri,
+        cached       : true
+      });
+      expect(fetchedMessagesQueryGrant.message.recordId).to.equal(recordsWriteGrant.message.recordId);
+
+      expect(fetchGrantSpy.callCount).to.equal(1, 'fetched');
+
+      // get the grant again
+      const fetchedMessagesQueryGrant2 = await testHarness.agent.permissions.getPermissionForRequest({
+        connectedDid : aliceDid.uri,
+        delegateDid  : bobDid.uri,
+        messageType  : DwnInterface.RecordsWrite,
+        protocol     : protocolUri,
+        cached       : true
+      });
+      expect(fetchedMessagesQueryGrant2.message.recordId).to.equal(recordsWriteGrant.message.recordId);
+
+      // expect the fetchGrant method to not have been called again
+      expect(fetchGrantSpy.callCount).to.equal(1, 'got from cache');
+    });
+
+    it('should cache the results of a fetch even if cache is set to false', async () => {
+      // create a RecordsWrite grant from alice to bob
+      const protocolUri = 'http://example.com/protocol';
+      const recordsWriteGrant = await testHarness.agent.permissions.createGrant({
+        store       : true,
+        author      : aliceDid.uri,
+        grantedTo   : bobDid.uri,
+        dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+        scope       : {
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+          protocol  : protocolUri
+        }
+      });
+      expect(recordsWriteGrant).to.exist;
+
+      // store as bob
+      const { encodedData, ...recordsWriteGrantMessage } = recordsWriteGrant.message;
+      const grantReply = await testHarness.agent.processDwnRequest({
+        target      : bobDid.uri,
+        author      : bobDid.uri,
+        signAsOwner : true,
+        messageType : DwnInterface.RecordsWrite,
+        rawMessage  : recordsWriteGrantMessage,
+        dataStream  : new Blob([ Convert.base64Url(encodedData).toUint8Array() ])
+      });
+      expect(grantReply.reply.status.code).to.equal(202);
+
+      // spy on fetchGrant to ensure it's only called once
+      const fetchGrantSpy = sinon.spy(testHarness.agent.permissions, 'fetchGrants');
+
+      // get the grant with cache set to false (default)
+      // this will refresh the cache with the result anyway, but will always call fetchGrant when set to false
+      const fetchedMessagesQueryGrant = await testHarness.agent.permissions.getPermissionForRequest({
+        connectedDid : aliceDid.uri,
+        delegateDid  : bobDid.uri,
+        messageType  : DwnInterface.RecordsWrite,
+        protocol     : protocolUri,
+        cached       : false
+      });
+      expect(fetchedMessagesQueryGrant.message.recordId).to.equal(recordsWriteGrant.message.recordId);
+
+      expect(fetchGrantSpy.callCount).to.equal(1, 'fetched');
+
+      // get the grant again (with cache set to true)
+      const fetchedMessagesQueryGrant2 = await testHarness.agent.permissions.getPermissionForRequest({
+        connectedDid : aliceDid.uri,
+        delegateDid  : bobDid.uri,
+        messageType  : DwnInterface.RecordsWrite,
+        protocol     : protocolUri,
+        cached       : true
+      });
+      expect(fetchedMessagesQueryGrant2.message.recordId).to.equal(recordsWriteGrant.message.recordId);
+
+      // expect the fetchGrant method to not have been called again
+      expect(fetchGrantSpy.callCount).to.equal(1, 'got from cache');
+
+      // call again with cache set to false
+      const fetchedMessagesQueryGrant3 = await testHarness.agent.permissions.getPermissionForRequest({
+        connectedDid : aliceDid.uri,
+        delegateDid  : bobDid.uri,
+        messageType  : DwnInterface.RecordsWrite,
+        protocol     : protocolUri,
+        cached       : false
+      });
+      expect(fetchedMessagesQueryGrant3.message.recordId).to.equal(recordsWriteGrant.message.recordId);
+
+      // now cache was not set to true, so expect the fetchGrant method to have been called again
+      expect(fetchGrantSpy.callCount).to.equal(2, 'fetched again');
     });
   });
 

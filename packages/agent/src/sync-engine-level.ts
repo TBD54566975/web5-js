@@ -22,7 +22,8 @@ import type { Web5Agent, Web5PlatformAgent } from './types/agent.js';
 
 import { DwnInterface } from './types/dwn.js';
 import { getDwnServiceEndpointUrls, isRecordsWrite } from './utils.js';
-import { CachedPermissions } from './cached-permissions.js';
+import { PermissionsApi } from './types/permissions.js';
+import { AgentPermissionsApi } from './permissions-api.js';
 
 export type SyncEngineLevelParams = {
   agent?: Web5PlatformAgent;
@@ -64,7 +65,7 @@ export class SyncEngineLevel implements SyncEngine {
   /**
    * An instance of the `AgentPermissionsApi` that is used to interact with permissions grants used during sync
    */
-  private _cachedPermissionsApi: CachedPermissions;
+  private _permissionsApi: PermissionsApi;;
 
   private _db: AbstractLevel<string | Buffer | Uint8Array>;
   private _syncIntervalId?: ReturnType<typeof setInterval>;
@@ -72,7 +73,7 @@ export class SyncEngineLevel implements SyncEngine {
 
   constructor({ agent, dataPath, db }: SyncEngineLevelParams) {
     this._agent = agent;
-    this._cachedPermissionsApi = new CachedPermissions({ agent: agent as Web5Agent, cachedDefault: true });
+    this._permissionsApi = new AgentPermissionsApi({ agent: agent as Web5Agent });
     this._db = (db) ? db : new Level<string, string>(dataPath ?? 'DATA/AGENT/SYNC_STORE');
     this._ulidFactory = monotonicFactory();
   }
@@ -93,11 +94,11 @@ export class SyncEngineLevel implements SyncEngine {
 
   set agent(agent: Web5PlatformAgent) {
     this._agent = agent;
-    this._cachedPermissionsApi = new CachedPermissions({ agent: agent as Web5Agent, cachedDefault: true });
+    this._permissionsApi = new AgentPermissionsApi({ agent: agent as Web5Agent });
   }
 
   public async clear(): Promise<void> {
-    await this._cachedPermissionsApi.clear();
+    await this._permissionsApi.clear();
     await this._db.clear();
   }
 
@@ -133,11 +134,12 @@ export class SyncEngineLevel implements SyncEngine {
       let granteeDid: string | undefined;
       if (delegateDid) {
         try {
-          const messagesReadGrant = await this._cachedPermissionsApi.getPermission({
+          const messagesReadGrant = await this._permissionsApi.getPermissionForRequest({
             connectedDid : did,
             messageType  : DwnInterface.MessagesRead,
             delegateDid,
             protocol,
+            cached       : true
           });
 
           permissionGrantId = messagesReadGrant.grant.id;
@@ -402,11 +404,12 @@ export class SyncEngineLevel implements SyncEngine {
     if (delegateDid) {
       // fetch the grants for the delegate DID
       try {
-        const messagesQueryGrant = await this._cachedPermissionsApi.getPermission({
+        const messagesQueryGrant = await this._permissionsApi.getPermissionForRequest({
           connectedDid : did,
           messageType  : DwnInterface.MessagesQuery,
           delegateDid,
           protocol,
+          cached       : true
         });
 
         permissionGrantId = messagesQueryGrant.grant.id;
@@ -469,11 +472,12 @@ export class SyncEngineLevel implements SyncEngine {
     let permissionGrantId: string | undefined;
     if (delegateDid) {
       try {
-        const messagesReadGrant = await this._cachedPermissionsApi.getPermission({
+        const messagesReadGrant = await this._permissionsApi.getPermissionForRequest({
           connectedDid : author,
           messageType  : DwnInterface.MessagesRead,
           delegateDid,
           protocol,
+          cached       : true
         });
 
         permissionGrantId = messagesReadGrant.grant.id;

@@ -9,7 +9,7 @@ import { testDwnUrl } from './utils/test-config.js';
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
 import { webcrypto } from 'node:crypto';
 import { PlatformAgentTestHarness } from '@web5/agent';
-import { DwnInterfaceName, DwnMethodName, Time } from '@tbd54566975/dwn-sdk-js';
+import { DwnInterfaceName, DwnMethodName, TestDataGenerator, Time } from '@tbd54566975/dwn-sdk-js';
 import { PermissionGrant } from '../src/permission-grant.js';
 import { DwnApi } from '../src/dwn-api.js';
 // @ts-ignore
@@ -23,6 +23,7 @@ describe('PermissionGrant', () => {
   let aliceDwn: DwnApi;
   let bobDwn: DwnApi;
   let testHarness: PlatformAgentTestHarness;
+  let protocolUri: string;
 
   before(async () => {
     testHarness = await PlatformAgentTestHarness.setup({
@@ -30,9 +31,6 @@ describe('PermissionGrant', () => {
       agentStores : 'memory'
     });
 
-  });
-
-  beforeEach(async () => {
     sinon.restore();
     await testHarness.clearStorage();
     await testHarness.createAgentDid();
@@ -51,6 +49,21 @@ describe('PermissionGrant', () => {
     bobDwn = new DwnApi({ agent: testHarness.agent, connectedDid: bobDid.uri });
   });
 
+  beforeEach(async () => {
+    sinon.restore();
+    await testHarness.syncStore.clear();
+    await testHarness.dwnDataStore.clear();
+    await testHarness.dwnEventLog.clear();
+    await testHarness.dwnMessageStore.clear();
+    await testHarness.dwnResumableTaskStore.clear();
+    await testHarness.agent.permissions.clear();
+    testHarness.dwnStores.clear();
+
+    // create a random protocol URI for each run
+    protocolUri = `http://example.com/protocol/${TestDataGenerator.randomString(15)}`;
+  });
+
+
   after(async () => {
     sinon.restore();
     await testHarness.clearStorage();
@@ -66,7 +79,7 @@ describe('PermissionGrant', () => {
         requestId   : '123',
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
         description : 'This is a grant',
-        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri },
       });
 
       const parsedGrant = await PermissionGrant.parse({
@@ -100,12 +113,13 @@ describe('PermissionGrant', () => {
         store       : false,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri },
       });
 
       // query the remote for the grant
       let fetchedRemote = await aliceDwn.permissions.queryGrants({
-        from: aliceDid.uri,
+        from     : aliceDid.uri,
+        protocol : protocolUri,
       });
       expect(fetchedRemote.length).to.equal(0);
 
@@ -115,7 +129,8 @@ describe('PermissionGrant', () => {
 
       // query the remote for the grant, should now exist
       fetchedRemote = await aliceDwn.permissions.queryGrants({
-        from: aliceDid.uri,
+        from     : aliceDid.uri,
+        protocol : protocolUri,
       });
       expect(fetchedRemote.length).to.equal(1);
     });
@@ -126,7 +141,7 @@ describe('PermissionGrant', () => {
         store       : false,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri },
       });
       // alice sends it to her own DWN
       const aliceSent = await grant.send();
@@ -134,13 +149,15 @@ describe('PermissionGrant', () => {
 
       // bob queries alice's remote for a grant
       const fetchedFromAlice = await bobDwn.permissions.queryGrants({
-        from: aliceDid.uri,
+        from     : aliceDid.uri,
+        protocol : protocolUri,
       });
       expect(fetchedFromAlice.length).to.equal(1);
 
       // fetch from bob's remote. should have no grants
       let fetchedRemote = await bobDwn.permissions.queryGrants({
-        from: bobDid.uri,
+        from     : bobDid.uri,
+        protocol : protocolUri,
       });
       expect(fetchedRemote.length).to.equal(0);
 
@@ -157,7 +174,8 @@ describe('PermissionGrant', () => {
       // // send the gran
       // the grant should now exist in bob's remote
       fetchedRemote = await bobDwn.permissions.queryGrants({
-        from: bobDid.uri,
+        from     : bobDid.uri,
+        protocol : protocolUri,
       });
       expect(fetchedRemote.length).to.equal(1);
       expect(fetchedRemote[0].toJSON()).to.deep.equal(grant.toJSON());
@@ -171,11 +189,13 @@ describe('PermissionGrant', () => {
         store       : false,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri },
       });
 
       // validate the grant does not exist in the DWN
-      let fetchedGrants = await aliceDwn.permissions.queryGrants();
+      let fetchedGrants = await aliceDwn.permissions.queryGrants({
+        protocol: protocolUri,
+      });
       expect(fetchedGrants.length).to.equal(0);
 
       // store the grant
@@ -183,7 +203,9 @@ describe('PermissionGrant', () => {
       expect(stored.status.code).to.equal(202);
 
       // validate the grant now exists in the DWN
-      fetchedGrants = await aliceDwn.permissions.queryGrants();
+      fetchedGrants = await aliceDwn.permissions.queryGrants({
+        protocol: protocolUri,
+      });
       expect(fetchedGrants.length).to.equal(1);
       expect(fetchedGrants[0].toJSON()).to.deep.equal(grant.toJSON());
     });
@@ -194,14 +216,15 @@ describe('PermissionGrant', () => {
         store       : false,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri },
       });
       const sent = await grant.send();
       expect(sent.status.code).to.equal(202);
 
       // bob queries alice's remote for a grant
       let fetchedFromAlice = await bobDwn.permissions.queryGrants({
-        from: aliceDid.uri,
+        from     : aliceDid.uri,
+        protocol : protocolUri,
       });
       expect(fetchedFromAlice.length).to.equal(1);
 
@@ -211,7 +234,9 @@ describe('PermissionGrant', () => {
       expect(stored.status.code).to.equal(401);
 
       // attempt to fetch from local to ensure it was not imported
-      let fetchedLocal = await bobDwn.permissions.queryGrants();
+      let fetchedLocal = await bobDwn.permissions.queryGrants({
+        protocol: protocolUri,
+      });
       expect(fetchedLocal.length).to.equal(0);
 
       // store the grant and import it
@@ -219,7 +244,9 @@ describe('PermissionGrant', () => {
       expect(stored.status.code).to.equal(202);
 
       // fetch from local to ensure it was imported
-      fetchedLocal = await bobDwn.permissions.queryGrants();
+      fetchedLocal = await bobDwn.permissions.queryGrants({
+        protocol: protocolUri,
+      });
       expect(fetchedLocal.length).to.equal(1);
       expect(fetchedLocal[0].toJSON()).to.deep.equal(fetchedGrant.toJSON());
     });
@@ -232,21 +259,23 @@ describe('PermissionGrant', () => {
         store       : false,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri },
       });
       const sent = await grant.send();
       expect(sent.status.code).to.equal(202);
 
       // bob queries alice's remote for a grant
       let fetchedFromAlice = await bobDwn.permissions.queryGrants({
-        from: aliceDid.uri,
+        from     : aliceDid.uri,
+        protocol : protocolUri,
       });
       expect(fetchedFromAlice.length).to.equal(1);
       const fetchedGrant = fetchedFromAlice[0];
 
       // confirm the grant does not yet exist in bob's remote
       let fetchedRemote = await bobDwn.permissions.queryGrants({
-        from: bobDid.uri,
+        from     : bobDid.uri,
+        protocol : protocolUri,
       });
       expect(fetchedRemote.length).to.equal(0);
 
@@ -259,7 +288,9 @@ describe('PermissionGrant', () => {
       expect(imported.status.code).to.equal(202);
 
       // fetch from local to ensure it was not stored
-      const fetchedLocal = await bobDwn.permissions.queryGrants();
+      const fetchedLocal = await bobDwn.permissions.queryGrants({
+        protocol: protocolUri,
+      });
       expect(fetchedLocal.length).to.equal(0);
 
       // send the grant to bob's remote
@@ -268,7 +299,8 @@ describe('PermissionGrant', () => {
 
       // fetch from bob's remote to ensure it was imported
       fetchedRemote = await bobDwn.permissions.queryGrants({
-        from: bobDid.uri,
+        from     : bobDid.uri,
+        protocol : protocolUri,
       });
       expect(fetchedRemote.length).to.equal(1);
       expect(fetchedRemote[0].toJSON()).to.deep.equal(fetchedGrant.toJSON());
@@ -280,21 +312,23 @@ describe('PermissionGrant', () => {
         store       : false,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri },
       });
       const sent = await grant.send();
       expect(sent.status.code).to.equal(202);
 
       // bob queries alice's remote for a grant
       let fetchedFromAlice = await bobDwn.permissions.queryGrants({
-        from: aliceDid.uri,
+        from     : aliceDid.uri,
+        protocol : protocolUri,
       });
       expect(fetchedFromAlice.length).to.equal(1);
       const fetchedGrant = fetchedFromAlice[0];
 
       // confirm the grant does not yet exist in bob's remote
       let fetchedRemote = await bobDwn.permissions.queryGrants({
-        from: bobDid.uri,
+        from     : bobDid.uri,
+        protocol : protocolUri,
       });
       expect(fetchedRemote.length).to.equal(0);
 
@@ -303,7 +337,9 @@ describe('PermissionGrant', () => {
       expect(imported.status.code).to.equal(202);
 
       // fetch from local to ensure it was stored
-      const fetchedLocal = await bobDwn.permissions.queryGrants();
+      const fetchedLocal = await bobDwn.permissions.queryGrants({
+        protocol: protocolUri,
+      });
       expect(fetchedLocal.length).to.equal(1);
       expect(fetchedLocal[0].toJSON()).to.deep.equal(fetchedGrant.toJSON());
     });
@@ -316,7 +352,7 @@ describe('PermissionGrant', () => {
         author      : aliceDid.uri,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri },
       });
 
       const parsedGrant = await PermissionGrant.parse({
@@ -336,7 +372,7 @@ describe('PermissionGrant', () => {
         store       : true,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri },
       });
 
       let isRevoked = await grant.isRevoked();
@@ -356,7 +392,7 @@ describe('PermissionGrant', () => {
         store       : true,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri },
       });
 
       let isRevoked = await grant.isRevoked();
@@ -384,7 +420,7 @@ describe('PermissionGrant', () => {
         store       : true,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri },
       });
 
       // send the grant to alice's remote
@@ -413,7 +449,7 @@ describe('PermissionGrant', () => {
         store       : true,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri },
       });
 
       let isRevoked = await grant.isRevoked();
@@ -433,7 +469,7 @@ describe('PermissionGrant', () => {
         store       : true,
         grantedTo   : bobDid.uri,
         dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        scope       : { interface: DwnInterfaceName.Messages, method: DwnMethodName.Read, protocol: protocolUri },
       });
 
       // send the grant to alice's remote
