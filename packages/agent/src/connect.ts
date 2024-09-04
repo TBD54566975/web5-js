@@ -1,13 +1,16 @@
-import { CryptoUtils } from '@web5/crypto';
-import { DwnProtocolDefinition, DwnRecordsPermissionScope } from './index.js';
+
+import type { PushedAuthResponse } from './oidc.js';
+import type { DwnPermissionScope, DwnProtocolDefinition, Web5Agent, Web5ConnectAuthResponse } from './index.js';
+
 import {
-  Web5ConnectAuthResponse,
   Oidc,
-  type PushedAuthResponse,
 } from './oidc.js';
 import { pollWithTtl } from './utils.js';
-import { DidJwk } from '@web5/dids';
+
 import { Convert } from '@web5/common';
+import { CryptoUtils } from '@web5/crypto';
+import { DidJwk } from '@web5/dids';
+import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 
 /**
  * Initiates the wallet connect process. Used when a client wants to obtain
@@ -90,7 +93,10 @@ async function initClient({
   // a route to its web5 connect provider flow and the params of where to fetch the auth request.
   const generatedWalletUri = new URL(walletUri);
   generatedWalletUri.searchParams.set('request_uri', parData.request_uri);
-  generatedWalletUri.searchParams.set('encryption_key', Convert.uint8Array(encryptionKey).toBase64Url());
+  generatedWalletUri.searchParams.set(
+    'encryption_key',
+    Convert.uint8Array(encryptionKey).toBase64Url()
+  );
 
   // call user's callback so they can send the URI to the wallet as they see fit
   onWalletUriReady(generatedWalletUri.toString());
@@ -115,9 +121,9 @@ async function initClient({
     })) as Web5ConnectAuthResponse;
 
     return {
-      delegateGrants : verifiedAuthResponse.delegateGrants,
-      delegateDid    : verifiedAuthResponse.delegateDid,
-      connectedDid   : verifiedAuthResponse.iss,
+      delegateGrants      : verifiedAuthResponse.delegateGrants,
+      delegatePortableDid : verifiedAuthResponse.delegatePortableDid,
+      connectedDid        : verifiedAuthResponse.iss,
     };
   }
 }
@@ -176,7 +182,92 @@ export type ConnectPermissionRequest = {
   protocolDefinition: DwnProtocolDefinition;
 
   /** The scope of the permissions being requested for the given protocol */
-  permissionScopes: DwnRecordsPermissionScope[];
+  permissionScopes: DwnPermissionScope[];
 };
 
-export const WalletConnect = { initClient };
+/**
+ * Shorthand for the types of permissions that can be requested.
+ */
+export type Permission = 'write' | 'read' | 'delete' | 'query' | 'subscribe';
+
+/**
+ * The options for creating a permission request for a given protocol.
+ */
+export type ProtocolPermissionOptions = {
+  /** The protocol definition for the protocol being requested */
+  definition: DwnProtocolDefinition;
+
+  /** The permissions being requested for the protocol */
+  permissions: Permission[];
+};
+
+/**
+ * Creates a set of Dwn Permission Scopes to request for a given protocol.
+ * If no permissions are provided, the default is to request all permissions (write, read, delete, query, subscribe).
+ */
+function createPermissionRequestForProtocol({ definition, permissions }: ProtocolPermissionOptions): ConnectPermissionRequest {
+  const requests: DwnPermissionScope[] = [];
+
+  // In order to enable sync, we must request permissions for `MessagesQuery`, `MessagesRead` and `MessagesSubscribe`
+  requests.push({
+    protocol  : definition.protocol,
+    interface : DwnInterfaceName.Messages,
+    method    : DwnMethodName.Read,
+  }, {
+    protocol  : definition.protocol,
+    interface : DwnInterfaceName.Messages,
+    method    : DwnMethodName.Query,
+  }, {
+    protocol  : definition.protocol,
+    interface : DwnInterfaceName.Messages,
+    method    : DwnMethodName.Subscribe,
+  });
+
+  // We also request any additional permissions the user has requested for this protocol
+  for (const permission of permissions) {
+    switch (permission) {
+      case 'write':
+        requests.push({
+          protocol  : definition.protocol,
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Write,
+        });
+        break;
+      case 'read':
+        requests.push({
+          protocol  : definition.protocol,
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Read,
+        });
+        break;
+      case 'delete':
+        requests.push({
+          protocol  : definition.protocol,
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Delete,
+        });
+        break;
+      case 'query':
+        requests.push({
+          protocol  : definition.protocol,
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Query,
+        });
+        break;
+      case 'subscribe':
+        requests.push({
+          protocol  : definition.protocol,
+          interface : DwnInterfaceName.Records,
+          method    : DwnMethodName.Subscribe,
+        });
+        break;
+    }
+  }
+
+  return {
+    protocolDefinition : definition,
+    permissionScopes   : requests,
+  };
+}
+
+export const WalletConnect = { initClient, createPermissionRequestForProtocol };

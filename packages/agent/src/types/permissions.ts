@@ -1,4 +1,4 @@
-import { DwnDataEncodedRecordsWriteMessage, DwnPermissionGrant, DwnPermissionRequest, DwnPermissionScope } from './dwn.js';
+import { DwnDataEncodedRecordsWriteMessage, DwnInterface, DwnPermissionGrant, DwnPermissionRequest, DwnPermissionScope } from './dwn.js';
 
 export type FetchPermissionsParams = {
   author: string;
@@ -63,7 +63,21 @@ export type CreateRevocationParams = {
   description?: string;
 }
 
+export type GetPermissionParams = {
+  connectedDid: string;
+  delegateDid: string;
+  messageType: DwnInterface;
+  protocol?: string;
+  cached?: boolean;
+  delegate?: boolean;
+}
+
 export interface PermissionsApi {
+  /**
+   * Get the permission grant for a given author, target, and protocol. To be used when authoring delegated requests.
+   */
+  getPermissionForRequest: (params: GetPermissionParams) => Promise<PermissionGrantEntry>;
+
   /**
    * Fetch all grants for a given author and target, optionally filtered by a specific grantee, grantor, or protocol.
    */
@@ -93,4 +107,9 @@ export interface PermissionsApi {
    * Create a new permission revocation, optionally storing it in the DWN.
    */
   createRevocation(params: CreateRevocationParams): Promise<PermissionRevocationEntry>;
+
+  /**
+   * Clears the cache of matched permissions.
+   */
+  clear: () => Promise<void>;
 }

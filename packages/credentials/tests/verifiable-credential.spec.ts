@@ -19,6 +19,10 @@ describe('Verifiable Credential Tests', () => {
     ) {}
   }
 
+  after(() => {
+    sinon.restore();
+  });
+
   beforeEach(async () => {
     issuerDid = await DidJwk.create();
   });

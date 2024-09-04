@@ -12,9 +12,10 @@ import { concatenateUrl } from './utils.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 import type { ConnectPermissionRequest } from './connect.js';
 import { DidDocument, DidJwk, PortableDid, type BearerDid } from '@web5/dids';
-import { AgentDwnApi } from './dwn-api.js';
-import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
-import { DwnInterface } from './types/dwn.js';
+import { DwnDataEncodedRecordsWriteMessage, DwnInterface, DwnPermissionScope, DwnProtocolDefinition } from './types/dwn.js';
+import { AgentPermissionsApi } from './permissions-api.js';
+import type { Web5Agent } from './types/agent.js';
+import { isRecordPermissionScope } from './dwn-api.js';
 
 /**
  * Sent to an OIDC server to authorize a client. Allows clients
@@ -157,8 +158,8 @@ export type SIOPv2AuthResponse = {
 
 /** An auth response that is compatible with both Web5 Connect and (hopefully, WIP) OIDC SIOPv2 */
 export type Web5ConnectAuthResponse = {
-  delegateGrants: any[];
-  delegateDid: PortableDid;
+  delegateGrants: DwnDataEncodedRecordsWriteMessage[];
+  delegatePortableDid: PortableDid;
 } & SIOPv2AuthResponse;
 
 /** Represents the different OIDC endpoint types.
@@ -240,10 +241,7 @@ async function generateCodeChallenge() {
 async function createAuthRequest(
   options: RequireOnly<
     Web5ConnectAuthRequest,
-    | 'client_id'
-    | 'scope'
-    | 'redirect_uri'
-    | 'permissionRequests'
+    'client_id' | 'scope' | 'redirect_uri' | 'permissionRequests'
   >
 ) {
   // Generate a random state value to associate the authorization request with the response.
@@ -306,7 +304,7 @@ async function encryptAuthRequest({
 async function createResponseObject(
   options: RequireOnly<
     Web5ConnectAuthResponse,
-    'iss' | 'sub' | 'aud' | 'delegateGrants' | 'delegateDid'
+    'iss' | 'sub' | 'aud' | 'delegateGrants' | 'delegatePortableDid'
   >
 ) {
   const currentTimeInSeconds = Math.floor(Date.now() / 1000);
@@ -476,12 +474,12 @@ async function decryptAuthResponse(
 
   // get the delegatedid public key from the header
   const header = Convert.base64Url(protectedHeaderB64U).toObject() as Jwk;
-  const delegateDid = await DidJwk.resolve(header.kid!.split('#')[0]);
+  const delegateResolvedDid = await DidJwk.resolve(header.kid!.split('#')[0]);
 
   // derive ECDH shared key using the provider's public key and our clientDid private key
   const sharedKey = await Oidc.deriveSharedKey(
     clientDid,
-    delegateDid.didDocument!
+    delegateResolvedDid.didDocument!
   );
 
   // add the pin to the AAD
@@ -606,39 +604,119 @@ function encryptAuthResponse({
  * Creates the permission grants that assign to the selectedDid the level of
  * permissions that the web app requested in the {@link Web5ConnectAuthRequest}
  */
-export async function createPermissionGrants(
+async function createPermissionGrants(
   selectedDid: string,
-  delegateDid: BearerDid,
-  dwn: AgentDwnApi
+  delegateBearerDid: BearerDid,
+  agent: Web5Agent,
+  scopes: DwnPermissionScope[],
 ) {
-  // TODO: remove mock after adding functionality: https://github.com/TBD54566975/web5-js/issues/827
-  const permissionRequestData = {
-    description:
-      'The app is asking to Records Write to http://profile-protocol.xyz',
-    scope: {
-      interface : DwnInterfaceName.Records,
-      method    : DwnMethodName.Write,
-      protocol  : 'http://profile-protocol.xyz',
-    },
-  };
+  const permissionsApi = new AgentPermissionsApi({ agent });
 
-  // TODO: remove mock after adding functionality: https://github.com/TBD54566975/web5-js/issues/827
-  const message = await dwn.processRequest({
-    author        : selectedDid,
-    target        : selectedDid,
-    messageType   : DwnInterface.RecordsWrite,
-    messageParams : {
-      recipient    : delegateDid.uri,
-      protocolPath : 'grant',
-      protocol     : ' https://tbd.website/dwn/permissions',
-      dataFormat   : 'application/json',
-      data         : Convert.object(permissionRequestData).toUint8Array(),
-    },
-    // todo: is it data or datastream?
-    // dataStream: await Convert.object(permissionRequestData).toBlobAsync(),
+  // TODO: cleanup all grants if one fails by deleting them from the DWN: https://github.com/TBD54566975/web5-js/issues/849
+  const permissionGrants = await Promise.all(
+    scopes.map((scope) => {
+
+      // check if the scope is a records permission scope, if so it is a delegated permission
+      const delegated = isRecordPermissionScope(scope);
+      return permissionsApi.createGrant({
+        delegated,
+        store       : true,
+        grantedTo   : delegateBearerDid.uri,
+        scope,
+        dateExpires : '2040-06-25T16:09:16.693356Z', // TODO: make dateExpires optional
+        author      : selectedDid,
+      });
+
+    })
+  );
+
+  const messagePromises = permissionGrants.map(async (grant) => {
+    // Quirk: we have to pull out encodedData out of the message the schema validator doesn't want it there
+    const { encodedData, ...rawMessage } = grant.message;
+
+    const data = Convert.base64Url(encodedData).toUint8Array();
+    const { reply } = await agent.sendDwnRequest({
+      author      : selectedDid,
+      target      : selectedDid,
+      messageType : DwnInterface.RecordsWrite,
+      dataStream  : new Blob([data]),
+      rawMessage,
+    });
+
+    // check if the message was sent successfully, if the remote returns 409 the message may have come through already via sync
+    if (reply.status.code !== 202 && reply.status.code !== 409) {
+      throw new Error(
+        `Could not send the message. Error details: ${reply.status.detail}`
+      );
+    }
+
+    return grant.message;
   });
 
-  return [message];
+  const messages = await Promise.all(messagePromises);
+
+  return messages;
+}
+
+/**
+ * Installs the protocol required by the Client on the Provider if it doesn't already exist.
+ */
+async function prepareProtocol(
+  selectedDid: string,
+  agent: Web5Agent,
+  protocolDefinition: DwnProtocolDefinition
+): Promise<void> {
+
+  const queryMessage = await agent.processDwnRequest({
+    author        : selectedDid,
+    messageType   : DwnInterface.ProtocolsQuery,
+    target        : selectedDid,
+    messageParams : { filter: { protocol: protocolDefinition.protocol } },
+  });
+
+  if ( queryMessage.reply.status.code !== 200) {
+    // if the query failed, throw an error
+    throw new Error(
+      `Could not fetch protocol: ${queryMessage.reply.status.detail}`
+    );
+  } else if (queryMessage.reply.entries === undefined || queryMessage.reply.entries.length === 0) {
+
+    // send the protocol definition to the remote DWN first, if it passes we can process it locally
+    const { reply: sendReply, message: configureMessage } = await agent.sendDwnRequest({
+      author        : selectedDid,
+      target        : selectedDid,
+      messageType   : DwnInterface.ProtocolsConfigure,
+      messageParams : { definition: protocolDefinition },
+    });
+
+    // check if the message was sent successfully, if the remote returns 409 the message may have come through already via sync
+    if (sendReply.status.code !== 202 && sendReply.status.code !== 409) {
+      throw new Error(`Could not send protocol: ${sendReply.status.detail}`);
+    }
+
+    // process the protocol locally, we don't have to check if it exists as this is just a convenience over waiting for sync.
+    await agent.processDwnRequest({
+      author      : selectedDid,
+      target      : selectedDid,
+      messageType : DwnInterface.ProtocolsConfigure,
+      rawMessage  : configureMessage
+    });
+
+  } else {
+
+    // the protocol already exists, let's make sure it exists on the remote DWN as the requesting app will need it
+    const configureMessage = queryMessage.reply.entries![0];
+    const { reply: sendReply } = await agent.sendDwnRequest({
+      author      : selectedDid,
+      target      : selectedDid,
+      messageType : DwnInterface.ProtocolsConfigure,
+      rawMessage  : configureMessage,
+    });
+
+    if (sendReply.status.code !== 202 && sendReply.status.code !== 409) {
+      throw new Error(`Could not send protocol: ${sendReply.status.detail}`);
+    }
+  }
 }
 
 /**
@@ -654,46 +732,66 @@ async function submitAuthResponse(
   selectedDid: string,
   authRequest: Web5ConnectAuthRequest,
   randomPin: string,
-  dwn: AgentDwnApi
+  agent: Web5Agent
 ) {
-  const delegateDid = await DidJwk.create();
-  const delegateDidPortable = await delegateDid.export();
+  const delegateBearerDid = await DidJwk.create();
+  const delegatePortableDid = await delegateBearerDid.export();
 
-  const permissionGrants = await Oidc.createPermissionGrants(
-    selectedDid,
-    delegateDid,
-    dwn
+  // TODO: roll back permissions and protocol configurations if an error occurs. Need a way to delete protocols to achieve this.
+  const delegateGrantPromises = authRequest.permissionRequests.map(
+    async (permissionRequest) => {
+      const { protocolDefinition, permissionScopes } = permissionRequest;
+
+      // We validate that all permission scopes match the protocol uri of the protocol definition they are provided with.
+      const grantsMatchProtocolUri = permissionScopes.every(scope => 'protocol' in scope && scope.protocol === protocolDefinition.protocol);
+      if (!grantsMatchProtocolUri) {
+        throw new Error('All permission scopes must match the protocol uri they are provided with.');
+      }
+
+      await prepareProtocol(selectedDid, agent, protocolDefinition);
+
+      const permissionGrants = await Oidc.createPermissionGrants(
+        selectedDid,
+        delegateBearerDid,
+        agent,
+        permissionScopes
+      );
+
+      return permissionGrants;
+    }
   );
+
+  const delegateGrants = (await Promise.all(delegateGrantPromises)).flat();
 
   const responseObject = await Oidc.createResponseObject({
     //* the IDP's did that was selected to be connected
-    iss            : selectedDid,
+    iss   : selectedDid,
     //* the client's new identity
-    sub            : delegateDid.uri,
+    sub   : delegateBearerDid.uri,
     //* the client's temporary ephemeral did used for connect
-    aud            : authRequest.client_id,
+    aud   : authRequest.client_id,
     //* the nonce of the original auth request
-    nonce          : authRequest.nonce,
-    delegateGrants : permissionGrants,
-    delegateDid    : delegateDidPortable,
+    nonce : authRequest.nonce,
+    delegateGrants,
+    delegatePortableDid,
   });
 
   // Sign the Response Object using the ephemeral DID's signing key.
   const responseObjectJwt = await Oidc.signJwt({
-    did  : delegateDid,
+    did  : delegateBearerDid,
     data : responseObject,
   });
   const clientDid = await DidJwk.resolve(authRequest.client_id);
 
   const sharedKey = await Oidc.deriveSharedKey(
-    delegateDid,
+    delegateBearerDid,
     clientDid?.didDocument!
   );
 
   const encryptedResponse = Oidc.encryptAuthResponse({
     jwt              : responseObjectJwt!,
     encryptionKey    : sharedKey,
-    delegateDidKeyId : delegateDid.document.verificationMethod![0].id,
+    delegateDidKeyId : delegateBearerDid.document.verificationMethod![0].id,
     randomPin,
   });
 

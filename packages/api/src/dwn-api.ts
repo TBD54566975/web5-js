@@ -7,6 +7,7 @@
 import type {
   CreateGrantParams,
   CreateRequestParams,
+  DwnRecordsInterfaces,
   FetchPermissionRequestParams,
   FetchPermissionsParams
 } from '@web5/agent';
@@ -16,14 +17,14 @@ import {
   DwnMessage,
   DwnResponse,
   DwnMessageParams,
+  DwnMessageSubscription,
   DwnResponseStatus,
   ProcessDwnRequest,
   DwnPaginationCursor,
-  DwnDataEncodedRecordsWriteMessage,
-  AgentPermissionsApi
+  AgentPermissionsApi,
 } from '@web5/agent';
 
-import { isEmptyObject, TtlCache } from '@web5/common';
+import { isEmptyObject } from '@web5/common';
 import { DwnInterface, getRecordAuthor } from '@web5/agent';
 
 import { Record } from './record.js';
@@ -31,6 +32,7 @@ import { dataToBlob } from './utils.js';
 import { Protocol } from './protocol.js';
 import { PermissionGrant } from './permission-grant.js';
 import { PermissionRequest } from './permission-request.js';
+import { SubscriptionUtil } from './subscription-util.js';
 
 /**
  * Represents the request payload for fetching permission requests from a Decentralized Web Node (DWN).
@@ -176,7 +178,7 @@ export type RecordsQueryResponse = DwnResponseStatus & {
 
   /** If there are additional results, the messageCid of the last record will be returned as a pagination cursor. */
   cursor?: DwnPaginationCursor;
-};
+}
 
 /**
  * Represents a request to read a specific record from a Decentralized Web Node (DWN).
@@ -203,7 +205,39 @@ export type RecordsReadRequest = {
 export type RecordsReadResponse = DwnResponseStatus & {
   /** The record retrieved by the read operation. */
   record: Record;
-};
+}
+
+/** Subscription handler for Records */
+export type RecordsSubscriptionHandler = (record: Record) => void;
+
+/**
+ * Represents a request to subscribe to records from a Decentralized Web Node (DWN).
+ *
+ * This request type is used to specify the target DWN from which records matching the subscription
+ * criteria should be emitted. It's useful for being notified in real time when records are written, deleted or modified.
+ */
+export type RecordsSubscribeRequest = {
+  /** Optional DID specifying the remote target DWN tenant to subscribe from. */
+  from?: string;
+
+  /** Records must be scoped to a specific protocol */
+  protocol?: string;
+
+  /** The parameters for the subscription operation, detailing the criteria for the subscription filter */
+  message: Omit<DwnMessageParams[DwnInterface.RecordsSubscribe], 'signer'>;
+
+  /** The handler to process the subscription events */
+  subscriptionHandler: RecordsSubscriptionHandler;
+}
+
+/** Encapsulates the response from a DWN RecordsSubscriptionRequest */
+export type RecordsSubscribeResponse = DwnResponseStatus & {
+  /**
+   * Represents the subscription that was created. Includes an ID and the close method to stop the subscription.
+   *
+   * */
+  subscription?: DwnMessageSubscription;
+}
 
 /**
  * Defines a request to write (create) a record to a Decentralized Web Node (DWN).
@@ -249,7 +283,7 @@ export type RecordsWriteResponse = DwnResponseStatus & {
    * DWN as a result of the write operation.
    */
   record?: Record
-};
+}
 
 /**
  * Interface to interact with DWN Records and Protocols
@@ -270,70 +304,11 @@ export class DwnApi {
   /** Holds the instance of {@link AgentPermissionsApi} that helps when dealing with permissions protocol records */
   private permissionsApi: AgentPermissionsApi;
 
-  /** cache for fetching a permission {@link PermissionGrant}, keyed by a specific MessageType and protocol */
-  private cachedPermissions: TtlCache<string, PermissionGrant> = new TtlCache({ ttl: 60 * 1000 });
-
   constructor(options: { agent: Web5Agent, connectedDid: string, delegateDid?: string }) {
     this.agent = options.agent;
     this.connectedDid = options.connectedDid;
     this.delegateDid = options.delegateDid;
     this.permissionsApi = new AgentPermissionsApi({ agent: this.agent });
-  }
-
-  /**
-   * API to interact with the DWN Permissions when the agent is connected to a delegateDid.
-   *
-   * NOTE: This is an EXPERIMENTAL API that will change behavior.
-   * @beta
-   */
-  private get connected() {
-    return {
-      /**
-       * Finds the appropriate permission grants associated with a message request
-       *
-       * (optionally) Caches the results for the given parameters to avoid redundant queries.
-       */
-      findPermissionGrantForMessage: async <T extends DwnInterface>({ messageParams, cached = true }:{
-        cached?: boolean;
-        messageParams: {
-          messageType: T;
-          protocol: string;
-        }
-      }) : Promise<PermissionGrant> => {
-        if(!this.delegateDid) {
-          throw new Error('AgentDwnApi: Cannot find connected grants without a signer DID');
-        }
-
-        // Currently we only support finding grants based on protocols
-        // A different approach may be necessary when we introduce `protocolPath` and `contextId` specific impersonation
-        const cacheKey = [ this.connectedDid, messageParams.messageType, messageParams.protocol ].join('~');
-        const cachedGrant = cached ? this.cachedPermissions.get(cacheKey) : undefined;
-        if (cachedGrant) {
-          return cachedGrant;
-        }
-
-        const permissionGrants = await this.permissions.queryGrants({ checkRevoked: true, grantor: this.connectedDid });
-
-        const grantEntries = permissionGrants.map(grant => ({ message: grant.rawMessage, grant: grant.toJSON() }));
-
-        // get the delegate grants that match the messageParams and are associated with the connectedDid as the grantor
-        const delegateGrant = await AgentPermissionsApi.matchGrantFromArray(
-          this.connectedDid,
-          this.delegateDid,
-          messageParams,
-          grantEntries,
-          true
-        );
-
-        if (!delegateGrant) {
-          throw new Error(`AgentDwnApi: No permissions found for ${messageParams.messageType}: ${messageParams.protocol}`);
-        }
-
-        const grant = await PermissionGrant.parse({ connectedDid: this.delegateDid, agent: this.agent, message: delegateGrant.message });
-        this.cachedPermissions.set(cacheKey, grant);
-        return grant;
-      }
-    };
   }
 
   /**
@@ -507,6 +482,7 @@ export class DwnApi {
    * API to interact with DWN records (e.g., `dwn.records.create()`).
    */
   get records() {
+
     return {
       /**
        * Alias for the `write` method
@@ -570,16 +546,19 @@ export class DwnApi {
         };
 
         if (this.delegateDid) {
-          // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-          const { rawMessage: delegatedGrant } = await this.connected.findPermissionGrantForMessage({
-            messageParams: {
-              messageType : DwnInterface.RecordsDelete,
-              protocol    : request.protocol,
-            }
+          const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            protocol     : request.protocol,
+            delegate     : true,
+            cached       : true,
+            messageType  : agentRequest.messageType
           });
 
-          // set the required delegated grant and grantee DID for the read operation
-          agentRequest.messageParams.delegatedGrant = delegatedGrant;
+          agentRequest.messageParams = {
+            ...agentRequest.messageParams,
+            delegatedGrant
+          };
           agentRequest.granteeDid = this.delegateDid;
         }
 
@@ -595,7 +574,6 @@ export class DwnApi {
 
         return { status };
       },
-
       /**
        * Query a single or multiple records based on the given filter
        */
@@ -617,16 +595,19 @@ export class DwnApi {
         };
 
         if (this.delegateDid) {
-          // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-          const { rawMessage: delegatedGrant } = await this.connected.findPermissionGrantForMessage({
-            messageParams: {
-              messageType : DwnInterface.RecordsQuery,
-              protocol    : agentRequest.messageParams.filter.protocol,
-            }
+          const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            protocol     : request.protocol,
+            delegate     : true,
+            cached       : true,
+            messageType  : agentRequest.messageType
           });
 
-          // set the required delegated grant and grantee DID for the read operation
-          agentRequest.messageParams.delegatedGrant = delegatedGrant;
+          agentRequest.messageParams = {
+            ...agentRequest.messageParams,
+            delegatedGrant
+          };
           agentRequest.granteeDid = this.delegateDid;
         }
 
@@ -640,7 +621,7 @@ export class DwnApi {
         }
 
         const reply = agentResponse.reply;
-        const { entries, status, cursor } = reply;
+        const { entries = [], status, cursor } = reply;
 
         const records = entries.map((entry) => {
 
@@ -663,9 +644,10 @@ export class DwnApi {
              * payload exceeds the threshold for being returned with queries.
              */
             remoteOrigin : request.from,
+            delegateDid  : this.delegateDid,
             ...entry as DwnMessage[DwnInterface.RecordsWrite]
           };
-          const record = new Record(this.agent, recordOptions);
+          const record = new Record(this.agent, recordOptions, this.permissionsApi);
           return record;
         });
 
@@ -691,18 +673,20 @@ export class DwnApi {
            */
           target        : request.from || this.connectedDid
         };
-
         if (this.delegateDid) {
-          // if an app is scoped down to a specific protocolPath or contextId, it must include those filters in the read request
-          const { rawMessage: delegatedGrant } = await this.connected.findPermissionGrantForMessage({
-            messageParams: {
-              messageType : DwnInterface.RecordsRead,
-              protocol    : request.protocol
-            }
+          const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            protocol     : request.protocol,
+            delegate     : true,
+            cached       : true,
+            messageType  : agentRequest.messageType
           });
 
-          // set the required delegated grant and grantee DID for the read operation
-          agentRequest.messageParams.delegatedGrant = delegatedGrant;
+          agentRequest.messageParams = {
+            ...agentRequest.messageParams,
+            delegatedGrant
+          };
           agentRequest.granteeDid = this.delegateDid;
         }
 
@@ -737,13 +721,79 @@ export class DwnApi {
              * payload must be read again (e.g., if the data stream is consumed).
              */
             remoteOrigin : request.from,
+            delegateDid  : this.delegateDid,
             ...responseRecord,
           };
 
-          record = new Record(this.agent, recordOptions);
+          record = new Record(this.agent, recordOptions, this.permissionsApi);
         }
 
         return { record, status };
+      },
+
+      /**
+       * Subscribes to records based on the given filter and emits events to the `subscriptionHandler`.
+       *
+       * @param request must include the `message` with the subscription filter and the `subscriptionHandler` to process the events.
+       * @returns the subscription status and the subscription object used to close the subscription.
+       */
+      subscribe: async (request: RecordsSubscribeRequest): Promise<RecordsSubscribeResponse> => {
+        const agentRequest: ProcessDwnRequest<DwnInterface.RecordsSubscribe> = {
+          /**
+           * The `author` is the DID that will sign the message and must be the DID the Web5 app is
+           * connected with and is authorized to access the signing private key of.
+           */
+          author        : this.connectedDid,
+          messageParams : request.message,
+          messageType   : DwnInterface.RecordsSubscribe,
+          /**
+           * The `target` is the DID of the DWN tenant under which the subscribe operation will be executed.
+           * If `from` is provided, the subscribe operation will be executed on a remote DWN.
+           * Otherwise, the local DWN will execute the subscribe operation.
+           */
+          target        : request.from || this.connectedDid,
+
+          /**
+           * The handler to process the subscription events.
+           */
+          subscriptionHandler: SubscriptionUtil.recordSubscriptionHandler({
+            agent          : this.agent,
+            connectedDid   : this.connectedDid,
+            delegateDid    : this.delegateDid,
+            permissionsApi : this.permissionsApi,
+            request
+          })
+        };
+
+        if (this.delegateDid) {
+          const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            protocol     : request.protocol,
+            delegate     : true,
+            cached       : true,
+            messageType  : agentRequest.messageType
+          });
+
+          agentRequest.messageParams = {
+            ...agentRequest.messageParams,
+            delegatedGrant
+          };
+          agentRequest.granteeDid = this.delegateDid;
+        };
+
+        let agentResponse: DwnResponse<DwnInterface.RecordsSubscribe>;
+
+        if (request.from) {
+          agentResponse = await this.agent.sendDwnRequest(agentRequest);
+        } else {
+          agentResponse = await this.agent.processDwnRequest(agentRequest);
+        }
+
+        const reply = agentResponse.reply;
+        const { status, subscription } = reply;
+
+        return { status, subscription };
       },
 
       /**
@@ -772,15 +822,19 @@ export class DwnApi {
 
         // if impersonation is enabled, fetch the delegated grant to use with the write operation
         if (this.delegateDid) {
-          const { rawMessage: delegatedGrant } = await this.connected.findPermissionGrantForMessage({
-            messageParams: {
-              messageType : DwnInterface.RecordsWrite,
-              protocol    : dwnRequestParams.messageParams.protocol,
-            }
+          const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            protocol     : request.message.protocol,
+            delegate     : true,
+            cached       : true,
+            messageType  : dwnRequestParams.messageType
           });
 
-          // set the required delegated grant and grantee DID for the write operation
-          dwnRequestParams.messageParams.delegatedGrant = delegatedGrant;
+          dwnRequestParams.messageParams = {
+            ...dwnRequestParams.messageParams,
+            delegatedGrant
+          };
           dwnRequestParams.granteeDid = this.delegateDid;
         };
 
@@ -803,35 +857,15 @@ export class DwnApi {
              */
             connectedDid : this.connectedDid,
             encodedData  : dataBlob,
+            delegateDid  : this.delegateDid,
             ...responseMessage,
           };
 
-          record = new Record(this.agent, recordOptions);
+          record = new Record(this.agent, recordOptions, this.permissionsApi);
         }
 
         return { record, status };
       },
     };
-  }
-
-  /**
-   * A static method to process connected grants for a delegate DID.
-   *
-   * This will store the grants as the DWN owner to be used later when impersonating the connected DID.
-   */
-  static async processConnectedGrants({ grants, agent, delegateDid }: {
-    grants: DwnDataEncodedRecordsWriteMessage[],
-    agent: Web5Agent,
-    delegateDid: string,
-  }): Promise<void> {
-    for (const grantMessage of grants) {
-      // use the delegateDid as the connectedDid of the grant as they do not yet support impersonation/delegation
-      const grant = await PermissionGrant.parse({ connectedDid: delegateDid, agent, message: grantMessage });
-      // store the grant as the owner of the DWN, this will allow the delegateDid to use the grant when impersonating the connectedDid
-      const { status } = await grant.store(true);
-      if (status.code !== 202) {
-        throw new Error(`AgentDwnApi: Failed to process connected grant: ${status.detail}`);
-      }
-    }
   }
 }

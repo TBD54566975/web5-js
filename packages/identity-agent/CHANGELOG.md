@@ -1,5 +1,48 @@
 # @web5/identity-agent
 
+## 0.6.0
+
+### Minor Changes
+
+- [#859](https://github.com/TBD54566975/web5-js/pull/859) [`7fc1f1d`](https://github.com/TBD54566975/web5-js/commit/7fc1f1dc1913fb3c77516db0f6ba2c55787bc84b) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Tefactor getting permissions for grants into a single Permission API interface
+
+### Patch Changes
+
+- Updated dependencies [[`7fc1f1d`](https://github.com/TBD54566975/web5-js/commit/7fc1f1dc1913fb3c77516db0f6ba2c55787bc84b)]:
+  - @web5/agent@0.7.0
+
+## 0.5.1
+
+### Patch Changes
+
+- [#857](https://github.com/TBD54566975/web5-js/pull/857) [`226455a`](https://github.com/TBD54566975/web5-js/commit/226455a7d6029292c810e67d80e129e2e20f83da) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Sync vs StartSync conflicting error.
+
+- Updated dependencies [[`226455a`](https://github.com/TBD54566975/web5-js/commit/226455a7d6029292c810e67d80e129e2e20f83da)]:
+  - @web5/agent@0.6.1
+
+## 0.5.0
+
+### Minor Changes
+
+- [#836](https://github.com/TBD54566975/web5-js/pull/836) [`3d1f825`](https://github.com/TBD54566975/web5-js/commit/3d1f8258465e1177d6d5fe17c2e1ea786baa331d) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Add ability to Sync a subset of protocols as a delegate
+
+- [#824](https://github.com/TBD54566975/web5-js/pull/824) [`0862ffc`](https://github.com/TBD54566975/web5-js/commit/0862ffc1f23550406ff592e8393cb2eb5a769079) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Simplify support for Permission Grant logic within agent.
+
+### Patch Changes
+
+- [#838](https://github.com/TBD54566975/web5-js/pull/838) [`2d0b423`](https://github.com/TBD54566975/web5-js/commit/2d0b423b90546c8d28735b600328c8a5937b57c8) Thanks [@shamilovtim](https://github.com/shamilovtim)! - cleanup crypto utils
+
+- [#855](https://github.com/TBD54566975/web5-js/pull/855) [`5ac4fe5`](https://github.com/TBD54566975/web5-js/commit/5ac4fe51a2a87a266e95c3db8215059ac2d38e77) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Implement DidResolverCache thats specific to Agent usage
+
+- [#824](https://github.com/TBD54566975/web5-js/pull/824) [`0862ffc`](https://github.com/TBD54566975/web5-js/commit/0862ffc1f23550406ff592e8393cb2eb5a769079) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Introduce a `PermissionsApi` for Web5Agents
+
+- [#853](https://github.com/TBD54566975/web5-js/pull/853) [`7347438`](https://github.com/TBD54566975/web5-js/commit/734743884f21491efce9392e129d612735e85282) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Upgrade `dwn-sdk-js` version and `dwn-server` dependency
+
+- Updated dependencies [[`3d1f825`](https://github.com/TBD54566975/web5-js/commit/3d1f8258465e1177d6d5fe17c2e1ea786baa331d), [`4ff2316`](https://github.com/TBD54566975/web5-js/commit/4ff2316e28ad3f29f0336c69adde0a37840ebb33), [`2d0b423`](https://github.com/TBD54566975/web5-js/commit/2d0b423b90546c8d28735b600328c8a5937b57c8), [`5ac4fe5`](https://github.com/TBD54566975/web5-js/commit/5ac4fe51a2a87a266e95c3db8215059ac2d38e77), [`0862ffc`](https://github.com/TBD54566975/web5-js/commit/0862ffc1f23550406ff592e8393cb2eb5a769079), [`0862ffc`](https://github.com/TBD54566975/web5-js/commit/0862ffc1f23550406ff592e8393cb2eb5a769079), [`fea0535`](https://github.com/TBD54566975/web5-js/commit/fea0535876d5b00ab5e0abea695e52aeaad9d78b), [`7347438`](https://github.com/TBD54566975/web5-js/commit/734743884f21491efce9392e129d612735e85282)]:
+  - @web5/agent@0.6.0
+  - @web5/crypto@1.0.4
+  - @web5/dids@1.1.4
+
 ## 0.4.3
 
 ### Patch Changes

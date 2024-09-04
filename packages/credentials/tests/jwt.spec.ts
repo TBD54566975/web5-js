@@ -12,6 +12,11 @@ import { VerifiableCredential } from '../src/verifiable-credential.js';
 import sinon from 'sinon';
 
 describe('Jwt', () => {
+
+  after(() => {
+    sinon.restore();
+  });
+
   describe('parse()', () => {
     it('throws error if JWT doesnt contain 3 parts', async () => {
       expect(() =>

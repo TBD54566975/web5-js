@@ -11,13 +11,13 @@ import { expect } from 'chai';
 
 import type { PortableIdentity } from '../src/types/identity.js';
 
-import { DwnInterface } from '../src/types/dwn.js';
+import { DwnInterface, DwnPermissionScope } from '../src/types/dwn.js';
 import { BearerIdentity } from '../src/bearer-identity.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { TestAgent } from './utils/test-agent.js';
 import { testDwnUrl } from './utils/test-config.js';
-import { AgentDwnApi, isDwnMessage } from '../src/dwn-api.js';
+import { AgentDwnApi, isDwnMessage, isMessagesPermissionScope, isRecordPermissionScope } from '../src/dwn-api.js';
 
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
@@ -1934,5 +1934,49 @@ describe('isDwnMessage', () => {
     // negative tests
     expect(isDwnMessage(DwnInterface.RecordsQuery, recordsWriteMessage)).to.be.false;
     expect(isDwnMessage(DwnInterface.RecordsWrite, recordsQueryMessage)).to.be.false;
+  });
+});
+
+describe('isRecordPermissionScope', () => {
+  it('asserts the type of RecordPermissionScope', async () => {
+    // messages read scope to test negative case
+    const messagesReadScope:DwnPermissionScope = {
+      interface : DwnInterfaceName.Messages,
+      method    : DwnMethodName.Read
+    };
+
+    expect(isRecordPermissionScope(messagesReadScope)).to.be.false;
+
+    // records read scope to test positive case
+    const recordsReadScope:DwnPermissionScope = {
+      interface : DwnInterfaceName.Records,
+      method    : DwnMethodName.Read,
+      protocol  : 'https://schemas.xyz/example'
+    };
+
+    expect(isRecordPermissionScope(recordsReadScope)).to.be.true;
+  });
+});
+
+describe('isMessagesPermissionScope', () => {
+  it('asserts the type of RecordPermissionScope', async () => {
+
+    // records read scope to test negative case
+    const recordsReadScope:DwnPermissionScope = {
+      interface : DwnInterfaceName.Records,
+      method    : DwnMethodName.Read,
+      protocol  : 'https://schemas.xyz/example'
+    };
+
+    expect(isMessagesPermissionScope(recordsReadScope)).to.be.false;
+
+    // messages read scope to test positive case
+    const messagesReadScope:DwnPermissionScope = {
+      interface : DwnInterfaceName.Messages,
+      method    : DwnMethodName.Read
+    };
+
+    expect(isMessagesPermissionScope(messagesReadScope)).to.be.true;
+
   });
 });

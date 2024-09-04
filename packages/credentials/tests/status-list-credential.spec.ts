@@ -6,8 +6,6 @@ import { DidJwk } from '@web5/dids';
 import { VerifiableCredential } from '../src/verifiable-credential.js';
 import { StatusList2021Entry, StatusListCredential, StatusPurpose } from '../src/status-list-credential.js';
 
-import StatusListCredentialsCreateTestVector from '../../../web5-spec/test-vectors/status_list_credentials/create.json' assert { type: 'json' };
-
 describe('Status List Credential Tests', () => {
   let issuerDid: BearerDid;
   let holderDid: BearerDid;
@@ -234,35 +232,36 @@ describe('Status List Credential Tests', () => {
     });
   });
 
-  describe('Web5TestVectorsStatusListCredentials', () => {
-    it('create', async () => {
-      const vectors = StatusListCredentialsCreateTestVector.vectors;
+  // TODO: Add tests for validateCredentialInStatusList once we create new vectors - https://github.com/TBD54566975/web5-spec/issues/169
+  // describe('Web5TestVectorsStatusListCredentials', () => {
+  //   it('create', async () => {
+  //     const vectors = StatusListCredentialsCreateTestVector.vectors;
 
-      for (const vector of vectors) {
-        const { input, output } = vector;
+  //     for (const vector of vectors) {
+  //       const { input, output } = vector;
 
-        const vcWithCredStatus = await VerifiableCredential.create({
-          type             : input.credential.type,
-          issuer           : input.credential.issuer,
-          subject          : input.credential.subject,
-          data             : input.credential.credentialSubject,
-          credentialStatus : input.credential.credentialStatus
-        });
+  //       const vcWithCredStatus = await VerifiableCredential.create({
+  //         type             : input.credential.type,
+  //         issuer           : input.credential.issuer,
+  //         subject          : input.credential.subject,
+  //         data             : input.credential.credentialSubject,
+  //         credentialStatus : input.credential.credentialStatus
+  //       });
 
-        const statusListCred = StatusListCredential.create({
-          statusListCredentialId : input.statusListCredential.statusListCredentialId,
-          issuer                 : input.statusListCredential.issuer,
-          statusPurpose          : input.statusListCredential.statusPurpose as StatusPurpose,
-          credentialsToDisable   : [vcWithCredStatus]
-        });
+  //       const statusListCred = StatusListCredential.create({
+  //         statusListCredentialId : input.statusListCredential.statusListCredentialId,
+  //         issuer                 : input.statusListCredential.issuer,
+  //         statusPurpose          : input.statusListCredential.statusPurpose as StatusPurpose,
+  //         credentialsToDisable   : [vcWithCredStatus]
+  //       });
 
-        expect(StatusListCredential.validateCredentialInStatusList(vcWithCredStatus, statusListCred)).to.be.true;
+  //       expect(StatusListCredential.validateCredentialInStatusList(vcWithCredStatus, statusListCred)).to.be.true;
 
-        const statusListCredSubject = statusListCred.vcDataModel.credentialSubject as any;
-        expect(statusListCredSubject['type']).to.equal('StatusList2021');
-        expect(statusListCredSubject['statusPurpose']).to.equal(input.statusListCredential.statusPurpose);
-        expect(statusListCredSubject['encodedList']).to.equal(output.encodedList);
-      }
-    });
-  });
+  //       const statusListCredSubject = statusListCred.vcDataModel.credentialSubject as any;
+  //       expect(statusListCredSubject['type']).to.equal('StatusList2021');
+  //       expect(statusListCredSubject['statusPurpose']).to.equal(input.statusListCredential.statusPurpose);
+  //       expect(statusListCredSubject['encodedList']).to.equal(output.encodedList);
+  //     }
+  //   });
+  // });
 });
