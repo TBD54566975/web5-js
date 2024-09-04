@@ -6,6 +6,12 @@
 [![License](https://img.shields.io/npm/l/@web5/api.svg?style=flat-square&color=24f2ff&logo=apache&logoColor=FFFFFF&santize=true)](https://github.com/TBD54566975/web5-js/blob/main/LICENSE)
 [![Chat](https://img.shields.io/badge/chat-on%20discord-7289da.svg?style=flat-square&color=9a1aff&logo=discord&logoColor=FFFFFF&sanitize=true)](https://discord.com/channels/937858703112155166/969272658501976117)
 
+## Available DWN Endpoints
+
+These are TBD hosted publicly available DWN endpoints. The data is wiped every so often, to keep updated please join our [Discord](https://discord.com/channels/937858703112155166/969272658501976117). The versions signify which version of [dwn-server](https://github.com/TBD54566975/dwn-server) is deployed.
+
+[![BETA](https://img.shields.io/badge/dynamic/json.svg?url=https://dwn.tbddev.org/beta/info&query=version&logo=googlecloudstorage&label=https://dwn.tbddev.org/beta&color=orange)](https://github.com/TBD54566975/dwn-server/releases) [![LATEST](https://img.shields.io/badge/dynamic/json.svg?url=https://dwn.tbddev.org/latest/info&query=version&logo=googlecloudstorage&label=https://dwn.tbddev.org/latest&color=yellow)](https://github.com/TBD54566975/dwn-server/releases/latest)
+
 Making developing with Web5 components at least 5 times easier to work with.
 
 > ⚠️ WEB5 JS SDK IS CURRENTLY IN TECH PREVIEW ⚠️
@@ -41,9 +47,6 @@ Web5 consists of the following components:
 The SDK sets out to gather the most oft used functionality from all three of these
 pillar technologies to provide a simple library that is as close to effortless as
 possible.
-
- ![LATEST](https://img.shields.io/badge/dynamic/json.svg?url=https://dwn.tbddev.org/latest/info&query=
- version&label=LATEST&color=blue)
 
 ## Installation
 
