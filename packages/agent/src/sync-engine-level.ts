@@ -289,11 +289,19 @@ export class SyncEngineLevel implements SyncEngine {
     }
   }
 
-  public startSync({ interval }: {
+  public async startSync({ interval }: {
     interval: string
   }): Promise<void> {
     // Convert the interval string to milliseconds.
     const intervalMilliseconds = ms(interval);
+
+    if (this._syncIntervalId) {
+      this.stopSync();
+    }
+
+    if (!this._syncLock) {
+      await this.sync();
+    }
 
     return new Promise((resolve, reject) => {
       const intervalSync = async () => {
@@ -316,10 +324,6 @@ export class SyncEngineLevel implements SyncEngine {
           this._syncIntervalId = setInterval(intervalSync, intervalMilliseconds);
         }
       };
-
-      if (this._syncIntervalId) {
-        clearInterval(this._syncIntervalId);
-      }
 
       this._syncIntervalId = setInterval(intervalSync, intervalMilliseconds);
     });
