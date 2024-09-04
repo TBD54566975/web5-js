@@ -265,25 +265,18 @@ export class SyncEngineLevel implements SyncEngine {
   }
 
   public async sync(direction?: 'push' | 'pull'): Promise<void> {
-    if (this._syncIntervalId) {
-      throw new Error('SyncEngineLevel: Cannot call sync while a sync interval is active. Call `stopSync()` first.');
-    }
-
     if (this._syncLock) {
-      throw new Error('SyncEngineLevel: Cannot call sync while a sync operation is in progress.');
+      throw new Error('SyncEngineLevel: Sync operation is already in progress.');
     }
 
+    this._syncLock = true;
     try {
-      this._syncLock = true;
       if (!direction || direction === 'push') {
         await this.push();
       }
       if (!direction || direction === 'pull') {
         await this.pull();
       }
-    } catch (error: any) {
-      this._syncLock = false;
-      throw error;
     } finally {
       this._syncLock = false;
     }
@@ -295,38 +288,31 @@ export class SyncEngineLevel implements SyncEngine {
     // Convert the interval string to milliseconds.
     const intervalMilliseconds = ms(interval);
 
+    const intervalSync = async () => {
+      if (this._syncLock) {
+        return;
+      }
+
+      clearInterval(this._syncIntervalId);
+      this._syncIntervalId = undefined;
+      await this.sync();
+
+      if (!this._syncIntervalId) {
+        this._syncIntervalId = setInterval(intervalSync, intervalMilliseconds);
+      }
+    };
+
     if (this._syncIntervalId) {
-      this.stopSync();
+      clearInterval(this._syncIntervalId);
     }
 
+    // Set up a new interval.
+    this._syncIntervalId = setInterval(intervalSync, intervalMilliseconds);
+
+    // initiate an immediate sync
     if (!this._syncLock) {
       await this.sync();
     }
-
-    return new Promise((resolve, reject) => {
-      const intervalSync = async () => {
-        if (this._syncLock) {
-          return;
-        }
-
-        // clears the interval and sets the syncIntervalId to undefined
-        this.stopSync();
-
-        try {
-          await this.sync();
-        } catch (error: any) {
-          this.stopSync();
-          reject(error);
-        }
-
-        if (!this._syncIntervalId) {
-          // only set a new interval if none is set. The most recently called `startSync` will set the final interval.
-          this._syncIntervalId = setInterval(intervalSync, intervalMilliseconds);
-        }
-      };
-
-      this._syncIntervalId = setInterval(intervalSync, intervalMilliseconds);
-    });
   }
 
   public stopSync(): void {
