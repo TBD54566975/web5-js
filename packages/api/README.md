@@ -42,6 +42,9 @@ The SDK sets out to gather the most oft used functionality from all three of the
 pillar technologies to provide a simple library that is as close to effortless as
 possible.
 
+ ![LATEST](https://img.shields.io/badge/dynamic/json.svg?url=https://dwn.tbddev.org/latest/info&query=
+ version&label=LATEST&color=blue)
+
 ## Installation
 
 _NPM_
