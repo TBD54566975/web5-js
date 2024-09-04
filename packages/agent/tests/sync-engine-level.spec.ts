@@ -2473,6 +2473,49 @@ describe('SyncEngineLevel', () => {
         pushSpy.restore();
         clock.restore();
       });
+
+      it('calls sync once per interval with the latest interval timer being respected', async () => {
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri,
+        });
+
+        const clock = sinon.useFakeTimers();
+
+        const syncSpy = sinon.stub(SyncEngineLevel.prototype as any, 'sync');
+        // set to be a sync time longer than the interval
+        syncSpy.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 1_000);
+        }));
+
+        testHarness.agent.sync.startSync({ interval: '500ms' });
+
+        await clock.tickAsync(1_400); // less than the initial interval + the sync time
+
+        expect(syncSpy.callCount).to.equal(1);
+
+        // set to be a short sync time
+        syncSpy.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 15);
+        }));
+
+        testHarness.agent.sync.startSync({ interval: '300ms' });
+
+        await clock.tickAsync(301); // exactly the new interval + 1
+
+        expect(syncSpy.callCount).to.equal(2);
+
+
+        await clock.tickAsync(601); // two more intervals
+
+        expect(syncSpy.callCount).to.equal(4);
+
+        syncSpy.restore();
+        clock.restore();
+      });
     });
   });
 });

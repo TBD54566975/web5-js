@@ -69,6 +69,7 @@ export class SyncEngineLevel implements SyncEngine {
 
   private _db: AbstractLevel<string | Buffer | Uint8Array>;
   private _syncIntervalId?: ReturnType<typeof setInterval>;
+  private _syncLock = false;
   private _ulidFactory: ULIDFactory;
 
   constructor({ agent, dataPath, db }: SyncEngineLevelParams) {
@@ -268,11 +269,23 @@ export class SyncEngineLevel implements SyncEngine {
       throw new Error('SyncEngineLevel: Cannot call sync while a sync interval is active. Call `stopSync()` first.');
     }
 
-    if (!direction || direction === 'push') {
-      await this.push();
+    if (this._syncLock) {
+      throw new Error('SyncEngineLevel: Cannot call sync while a sync operation is in progress.');
     }
-    if (!direction || direction === 'pull') {
-      await this.pull();
+
+    try {
+      this._syncLock = true;
+      if (!direction || direction === 'push') {
+        await this.push();
+      }
+      if (!direction || direction === 'pull') {
+        await this.pull();
+      }
+    } catch (error: any) {
+      this._syncLock = false;
+      throw error;
+    } finally {
+      this._syncLock = false;
     }
   }
 
@@ -283,23 +296,30 @@ export class SyncEngineLevel implements SyncEngine {
     const intervalMilliseconds = ms(interval);
 
     return new Promise((resolve, reject) => {
-
       const intervalSync = async () => {
-        if (this._syncIntervalId) {
-          clearInterval(this._syncIntervalId);
+        if (this._syncLock) {
+          return;
         }
 
+        // clears the interval and sets the syncIntervalId to undefined
+        this.stopSync();
+
         try {
-          await this.push();
-          await this.pull();
+          await this.sync();
         } catch (error: any) {
           this.stopSync();
           reject(error);
         }
 
-        // then we start sync again
-        this._syncIntervalId = setInterval(intervalSync, intervalMilliseconds);
+        if (!this._syncIntervalId) {
+          // only set a new interval if none is set. The most recently called `startSync` will set the final interval.
+          this._syncIntervalId = setInterval(intervalSync, intervalMilliseconds);
+        }
       };
+
+      if (this._syncIntervalId) {
+        clearInterval(this._syncIntervalId);
+      }
 
       this._syncIntervalId = setInterval(intervalSync, intervalMilliseconds);
     });
