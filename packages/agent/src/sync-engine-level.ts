@@ -536,7 +536,16 @@ export class SyncEngineLevel implements SyncEngine {
 
     // iterate over all registered identities
     for await (const [ did, options ] of this._db.sublevel('registeredIdentities').iterator()) {
-      const { protocols, delegateDid } = JSON.parse(options) as SyncIdentityOptions;
+
+      const { protocols, delegateDid } = await new Promise<SyncIdentityOptions>((resolve) => {
+        try {
+          const { protocols, delegateDid } = JSON.parse(options) as SyncIdentityOptions;
+          resolve({ protocols, delegateDid });
+        } catch(error: any) {
+          resolve({ protocols: [] });
+        }
+      });
+
       // First, confirm the DID can be resolved and extract the DWN service endpoint URLs.
       const dwnEndpointUrls = await getDwnServiceEndpointUrls(did, this.agent.did);
       if (dwnEndpointUrls.length === 0) {
