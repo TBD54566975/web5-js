@@ -306,7 +306,7 @@ export class SyncEngineLevel implements SyncEngine {
               protocol,
               cached       : true
             });
-  
+
             permissionGrantId = messagesReadGrant.grant.id;
             granteeDid = delegateDid;
           } catch(error:any) {
@@ -316,11 +316,11 @@ export class SyncEngineLevel implements SyncEngine {
         }
 
         const { reply: { status, subscription } } = await this.agent.processDwnRequest({
-          author: did,
-          target: did,
-          messageType: DwnInterface.MessagesSubscribe,
+          author        : did,
+          target        : did,
+          messageType   : DwnInterface.MessagesSubscribe,
           granteeDid,
-          messageParams: {
+          messageParams : {
             permissionGrantId
           },
           subscriptionHandler: async (event) => {
@@ -371,12 +371,12 @@ export class SyncEngineLevel implements SyncEngine {
                 protocol,
                 cached       : true
               });
-    
+
               permissionGrantId = messagesReadGrant.grant.id;
               granteeDid = delegateDid;
             } catch(error:any) {
               console.error('SyncEngineLevel: pull - Error fetching MessagesRead permission grant for delegate DID', error);
-              return
+              return;
             }
           }
 
@@ -391,9 +391,9 @@ export class SyncEngineLevel implements SyncEngine {
               permissionGrantId
             }
           });
-    
+
           let reply: MessagesReadReply;
-    
+
           try {
             reply = await this.agent.rpc.sendDwnRequest({
               dwnUrl,
@@ -413,7 +413,7 @@ export class SyncEngineLevel implements SyncEngine {
           if (processStatus.code === 202 || processStatus.code === 204 || processStatus.code === 409) {
             await this.addMessage(did, messageCid);
           }
-        }
+        };
         let permissionGrantId: string | undefined;
         let granteeDid: string | undefined;
         if (delegateDid) {
@@ -425,7 +425,7 @@ export class SyncEngineLevel implements SyncEngine {
               protocol,
               cached       : true
             });
-  
+
             permissionGrantId = messagesReadGrant.grant.id;
             granteeDid = delegateDid;
           } catch(error:any) {
@@ -434,12 +434,12 @@ export class SyncEngineLevel implements SyncEngine {
           }
         }
         const messagesSubscribeMessage = await this.agent.sendDwnRequest({
-          store: false,
-          author: did,
-          target: did,
-          messageType: DwnInterface.MessagesSubscribe,
+          store         : false,
+          author        : did,
+          target        : did,
+          messageType   : DwnInterface.MessagesSubscribe,
           granteeDid,
-          messageParams: {
+          messageParams : {
             permissionGrantId,
           },
           subscriptionHandler
@@ -447,8 +447,8 @@ export class SyncEngineLevel implements SyncEngine {
 
         const { status: sendStatus, subscription } = await this.agent.rpc.sendDwnRequest({
           dwnUrl,
-          targetDid: did,
-          message: messagesSubscribeMessage.message,
+          targetDid : did,
+          message   : messagesSubscribeMessage.message,
           subscriptionHandler
         });
 
