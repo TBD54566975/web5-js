@@ -39,5 +39,5 @@ export interface SyncEngine {
   /**
    * Stops the periodic sync operation, will complete the current sync operation if one is already in progress.
    */
-  stopSync(): void;
+  stopSync(): Promise<void>;
 }

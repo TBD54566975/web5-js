@@ -152,7 +152,6 @@ describe('SyncEngineLevel', () => {
 
       sinon.restore();
 
-      syncEngine.stopSync();
       await syncEngine.clear();
       await testHarness.syncStore.clear();
       await testHarness.dwnDataStore.clear();
