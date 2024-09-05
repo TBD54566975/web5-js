@@ -69,6 +69,7 @@ export class SyncEngineLevel implements SyncEngine {
 
   private _db: AbstractLevel<string | Buffer | Uint8Array>;
   private _syncIntervalId?: ReturnType<typeof setInterval>;
+  private _syncLock = false;
   private _ulidFactory: ULIDFactory;
 
   constructor({ agent, dataPath, db }: SyncEngineLevelParams) {
@@ -264,45 +265,54 @@ export class SyncEngineLevel implements SyncEngine {
   }
 
   public async sync(direction?: 'push' | 'pull'): Promise<void> {
-    if (this._syncIntervalId) {
-      throw new Error('SyncEngineLevel: Cannot call sync while a sync interval is active. Call `stopSync()` first.');
+    if (this._syncLock) {
+      throw new Error('SyncEngineLevel: Sync operation is already in progress.');
     }
 
-    if (!direction || direction === 'push') {
-      await this.push();
-    }
-    if (!direction || direction === 'pull') {
-      await this.pull();
+    this._syncLock = true;
+    try {
+      if (!direction || direction === 'push') {
+        await this.push();
+      }
+      if (!direction || direction === 'pull') {
+        await this.pull();
+      }
+    } finally {
+      this._syncLock = false;
     }
   }
 
-  public startSync({ interval }: {
+  public async startSync({ interval }: {
     interval: string
   }): Promise<void> {
     // Convert the interval string to milliseconds.
     const intervalMilliseconds = ms(interval);
 
-    return new Promise((resolve, reject) => {
+    const intervalSync = async () => {
+      if (this._syncLock) {
+        return;
+      }
 
-      const intervalSync = async () => {
-        if (this._syncIntervalId) {
-          clearInterval(this._syncIntervalId);
-        }
+      clearInterval(this._syncIntervalId);
+      this._syncIntervalId = undefined;
+      await this.sync();
 
-        try {
-          await this.push();
-          await this.pull();
-        } catch (error: any) {
-          this.stopSync();
-          reject(error);
-        }
-
-        // then we start sync again
+      if (!this._syncIntervalId) {
         this._syncIntervalId = setInterval(intervalSync, intervalMilliseconds);
-      };
+      }
+    };
 
-      this._syncIntervalId = setInterval(intervalSync, intervalMilliseconds);
-    });
+    if (this._syncIntervalId) {
+      clearInterval(this._syncIntervalId);
+    }
+
+    // Set up a new interval.
+    this._syncIntervalId = setInterval(intervalSync, intervalMilliseconds);
+
+    // initiate an immediate sync
+    if (!this._syncLock) {
+      await this.sync();
+    }
   }
 
   public stopSync(): void {
@@ -526,7 +536,16 @@ export class SyncEngineLevel implements SyncEngine {
 
     // iterate over all registered identities
     for await (const [ did, options ] of this._db.sublevel('registeredIdentities').iterator()) {
-      const { protocols, delegateDid } = JSON.parse(options) as SyncIdentityOptions;
+
+      const { protocols, delegateDid } = await new Promise<SyncIdentityOptions>((resolve) => {
+        try {
+          const { protocols, delegateDid } = JSON.parse(options) as SyncIdentityOptions;
+          resolve({ protocols, delegateDid });
+        } catch(error: any) {
+          resolve({ protocols: [] });
+        }
+      });
+
       // First, confirm the DID can be resolved and extract the DWN service endpoint URLs.
       const dwnEndpointUrls = await getDwnServiceEndpointUrls(did, this.agent.did);
       if (dwnEndpointUrls.length === 0) {

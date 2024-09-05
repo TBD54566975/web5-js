@@ -98,6 +98,11 @@ describe('DwnApi', () => {
       await delegateHarness.createAgentDid();
     });
 
+    after(async () => {
+      await delegateHarness.clearStorage();
+      await delegateHarness.closeStorage();
+    });
+
     beforeEach(async () => {
       sinon.restore();
       await delegateHarness.syncStore.clear();

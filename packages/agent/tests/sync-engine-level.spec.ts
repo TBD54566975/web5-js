@@ -465,24 +465,41 @@ describe('SyncEngineLevel', () => {
         expect(pullSpy.calledOnce).to.be.true;
       });
 
-      it('throws if sync is attempted while an interval sync is running', async () => {
+      it('throws an error if the sync is currently already running', async () => {
         // Register Alice's DID to be synchronized.
         await testHarness.agent.sync.registerIdentity({
           did: alice.did.uri,
         });
 
-        // start the sync engine with an interval of 10 seconds
-        syncEngine.startSync({ interval: '10s' });
+        const clock = sinon.useFakeTimers();
+        sinon.stub(syncEngine as any, 'push').resolves();
+        const pullSpy = sinon.stub(syncEngine as any, 'pull');
+        pullSpy.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 90);
+        }));
 
+        // do not await
+        syncEngine.sync();
+
+        await clock.tickAsync(50);
+
+        // do not block for subsequent syncs
+        pullSpy.returns(Promise.resolve());
         try {
-          // Execute Sync to push and pull all records from Alice's remote DWN to Alice's local DWN.
           await syncEngine.sync();
-
           expect.fail('Expected an error to be thrown');
-        } catch (error: any) {
-          // Execute Sync to push and pull all records from Alice's remote DWN to Alice's local DWN.
-          expect(error.message).to.equal('SyncEngineLevel: Cannot call sync while a sync interval is active. Call `stopSync()` first.');
+        } catch(error:any) {
+          expect(error.message).to.equal('SyncEngineLevel: Sync operation is already in progress.');
         }
+
+        await clock.tickAsync(50);
+
+        // no error thrown
+        await syncEngine.sync();
+
+        clock.restore();
       });
     });
 
@@ -2436,8 +2453,9 @@ describe('SyncEngineLevel', () => {
         pushSpy.restore();
         clock.restore();
 
-        expect(pullSpy.callCount).to.equal(2, 'push');
-        expect(pushSpy.callCount).to.equal(2, 'pull');
+        // one when starting the sync, and another for each interval
+        expect(pullSpy.callCount).to.equal(3, 'push');
+        expect(pushSpy.callCount).to.equal(3, 'pull');
       });
 
       it('does not call sync() again until a sync round finishes', async () => {
@@ -2461,16 +2479,110 @@ describe('SyncEngineLevel', () => {
 
         await clock.tickAsync(1_400); // less time than the push
 
+        // only once for when starting the sync
         expect(pullSpy.callCount).to.equal(1, 'pull');
         expect(pullSpy.callCount).to.equal(1, 'push');
 
-        await clock.tickAsync(600); //remaining time for a 2nd sync
+        await clock.tickAsync(200); //remaining time and one interval
 
+        // once when starting, and once for the interval
         expect(pullSpy.callCount).to.equal(2, 'pull');
         expect(pushSpy.callCount).to.equal(2, 'push');
 
+        await clock.tickAsync(500); // one more interval
+
+        // one more for the interval
+        expect(pullSpy.callCount).to.equal(3, 'pull');
+        expect(pushSpy.callCount).to.equal(3, 'push');
+
         pullSpy.restore();
         pushSpy.restore();
+        clock.restore();
+      });
+
+      it('calls sync once per interval with the latest interval timer being respected', async () => {
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri,
+        });
+
+        const clock = sinon.useFakeTimers();
+
+        const syncSpy = sinon.stub(SyncEngineLevel.prototype as any, 'sync');
+        // set to be a sync time longer than the interval
+        syncSpy.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 1_000);
+        }));
+
+        testHarness.agent.sync.startSync({ interval: '500ms' });
+
+        await clock.tickAsync(1_400); // less than the initial interval + the sync time
+
+        // once for the initial call and once for each interval call
+        expect(syncSpy.callCount).to.equal(2);
+
+        // set to be a short sync time
+        syncSpy.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 15);
+        }));
+
+        testHarness.agent.sync.startSync({ interval: '300ms' });
+
+        await clock.tickAsync(301); // exactly the new interval + 1
+
+        // one for the initial 'startSync' call and one for each interval call
+        expect(syncSpy.callCount).to.equal(4);
+
+
+        await clock.tickAsync(601); // two more intervals
+
+        expect(syncSpy.callCount).to.equal(6);
+
+        syncSpy.restore();
+        clock.restore();
+      });
+
+      it('should replace the interval timer with the latest interval timer', async () => {
+
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri,
+        });
+
+        const clock = sinon.useFakeTimers();
+
+        const syncSpy = sinon.stub(SyncEngineLevel.prototype as any, 'sync');
+        // set to be a sync time longer than the interval
+        syncSpy.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 100);
+        }));
+
+        testHarness.agent.sync.startSync({ interval: '500ms' });
+
+        // two intervals
+        await clock.tickAsync(1_001);
+
+        // this should equal 3, once for the initial call and once for each interval call
+        expect(syncSpy.callCount).to.equal(3);
+
+        syncSpy.resetHistory();
+        testHarness.agent.sync.startSync({ interval: '200ms' });
+
+        await clock.tickAsync(401); // two intervals
+
+        // one for the initial 'startSync' call and one for each interval call
+        expect(syncSpy.callCount).to.equal(3);
+
+        await clock.tickAsync(401); // two more intervals
+
+        // one additional calls for each interval
+        expect(syncSpy.callCount).to.equal(5);
+
+        syncSpy.restore();
         clock.restore();
       });
     });
