@@ -171,7 +171,6 @@ describe('web5 api', () => {
 
     beforeEach(async () => {
       sinon.restore();
-      testHarness.agent.sync.stopSync();
       await testHarness.clearStorage();
       await testHarness.createAgentDid();
     });
@@ -793,8 +792,6 @@ describe('web5 api', () => {
 
         expect(startSyncSpy.args[0][0].interval).to.equal('1m');
       });
-
-
 
       it('should request all permissions for a protocol if no specific permissions are provided', async () => {
 

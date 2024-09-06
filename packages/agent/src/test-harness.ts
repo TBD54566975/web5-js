@@ -85,6 +85,9 @@ export class PlatformAgentTestHarness {
   }
 
   public async clearStorage(): Promise<void> {
+    // first stop any ongoing sync operations
+    await this.agent.sync.stopSync();
+
     // @ts-expect-error since normally this property shouldn't be set to undefined.
     this.agent.agentDid = undefined;
     await this.didResolverCache.clear();

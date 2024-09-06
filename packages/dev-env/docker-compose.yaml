@@ -3,6 +3,6 @@ version: "3.98"
 services:
   dwn-server:
     container_name: dwn-server
-    image: ghcr.io/tbd54566975/dwn-server:0.4.8
+    image: ghcr.io/tbd54566975/dwn-server:0.4.9
     ports:
       - "3000:3000"
