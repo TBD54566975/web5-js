@@ -140,6 +140,9 @@ export type RecordUpdateParams = {
    */
   dataCid?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['dataCid'];
 
+  /** The data format/MIME type of the supplied data */
+  dataFormat?: string;
+
   /** The size of the data in bytes. */
   dataSize?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['dataSize'];
 
@@ -154,6 +157,7 @@ export type RecordUpdateParams = {
 
   /** The published status of the record. */
   published?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['published'];
+
 
   /** The tags associated with the updated record */
   tags?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['tags'];
@@ -730,7 +734,7 @@ export class Record implements RecordModel {
 
     // Throw an error if an attempt is made to modify immutable properties.
     // Note: `data` and `dateModified` have already been handled.
-    const mutableDescriptorProperties = new Set(['data', 'dataCid', 'dataSize', 'datePublished', 'messageTimestamp', 'published', 'tags']);
+    const mutableDescriptorProperties = new Set(['data', 'dataCid', 'dataFormat', 'dataSize', 'datePublished', 'messageTimestamp', 'published', 'tags']);
     Record.verifyPermittedMutation(Object.keys(params), mutableDescriptorProperties);
 
     // If `published` is set to false, ensure that `datePublished` is undefined. Otherwise, DWN SDK's schema validation

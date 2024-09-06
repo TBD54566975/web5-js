@@ -2756,7 +2756,7 @@ describe('Record', () => {
 
       try {
         // @ts-expect-error because this test intentionally specifies an immutable property that is not present in RecordUpdateOptions.
-        await record!.update({ dataFormat: 'application/json' });
+        await record!.update({ schema: 'bar/baz' });
         expect.fail('Expected an exception to be thrown');
       } catch (error: any) {
         expect(error.message).to.include('is an immutable property. Its value cannot be changed.');
@@ -2875,6 +2875,36 @@ describe('Record', () => {
 
       expect(updateResultWithNullTags.status.code).to.equal(202);
       expect(record.tags).to.not.exist; // removed
+    });
+
+    it('should allow updating the dataFormat of a record', async () => {
+      // alice writes a record with the data format set to text/plain
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, world!',
+        message : {
+          protocol     : protocolDefinition.protocol,
+          protocolPath : 'thread',
+          schema       : protocolDefinition.types.thread.schema,
+          dataFormat   : 'text/plain'
+        }
+      });
+
+      expect(status.code).to.equal(202);
+      expect(record).to.not.be.undefined;
+      expect(record.dataFormat).to.equal('text/plain');
+      expect(await record.data.text()).to.equal('Hello, world!');
+
+      // update the record to JSON
+      const updateResult = await record!.update({ dataFormat: 'application/json', data: { subject: 'some subject', body: 'some body' } });
+      expect(updateResult.status.code).to.equal(202);
+      expect(record.dataFormat).to.equal('application/json');
+      expect(await record.data.json()).to.deep.equal({ subject: 'some subject', body: 'some body' });
+
+      // update again without changing the dataFormat
+      const updateResult2 = await record!.update({ data: { subject: 'another subject', body: 'another body' } });
+      expect(updateResult2.status.code).to.equal(202);
+      expect(record.dataFormat).to.equal('application/json');
+      expect(await record.data.json()).to.deep.equal({ subject: 'another subject', body: 'another body' });
     });
   });
 
