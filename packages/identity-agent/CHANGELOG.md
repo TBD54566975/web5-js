@@ -1,5 +1,14 @@
 # @web5/identity-agent
 
+## 0.6.1
+
+### Patch Changes
+
+- [#889](https://github.com/TBD54566975/web5-js/pull/889) [`e578e20`](https://github.com/TBD54566975/web5-js/commit/e578e204bb918f0d16c1e1ea641699086338ad3d) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Fix sync race condition issue
+
+- Updated dependencies [[`e578e20`](https://github.com/TBD54566975/web5-js/commit/e578e204bb918f0d16c1e1ea641699086338ad3d)]:
+  - @web5/agent@0.7.1
+
 ## 0.6.0
 
 ### Minor Changes
