@@ -19,6 +19,7 @@ export * from './local-key-manager.js';
 export * from './permissions-api.js';
 export * from './rpc-client.js';
 export * from './store-data.js';
+export * from './store-data-protocols.js';
 export * from './store-did.js';
 export * from './store-identity.js';
 export * from './store-key.js';

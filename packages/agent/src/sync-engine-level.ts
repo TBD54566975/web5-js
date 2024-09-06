@@ -4,6 +4,7 @@ import type {
   GenericMessage,
   MessagesQueryReply,
   MessagesReadReply,
+  MessageSubscriptionHandler,
   PaginationCursor,
   UnionMessageReply,
 } from '@tbd54566975/dwn-sdk-js';
@@ -15,12 +16,13 @@ import { NodeStream } from '@web5/common';
 import {
   DwnInterfaceName,
   DwnMethodName,
+  Message,
 } from '@tbd54566975/dwn-sdk-js';
 
 import type { SyncEngine, SyncIdentityOptions } from './types/sync.js';
 import type { Web5Agent, Web5PlatformAgent } from './types/agent.js';
 
-import { DwnInterface } from './types/dwn.js';
+import { DwnInterface, DwnMessageSubscription } from './types/dwn.js';
 import { getDwnServiceEndpointUrls, isRecordsWrite } from './utils.js';
 import { PermissionsApi } from './types/permissions.js';
 import { AgentPermissionsApi } from './permissions-api.js';
@@ -71,6 +73,7 @@ export class SyncEngineLevel implements SyncEngine {
   private _syncIntervalId?: ReturnType<typeof setInterval>;
   private _syncLock = false;
   private _ulidFactory: ULIDFactory;
+  private _subscriptions: Map<string, DwnMessageSubscription> = new Map();
 
   constructor({ agent, dataPath, db }: SyncEngineLevelParams) {
     this._agent = agent;
@@ -164,10 +167,10 @@ export class SyncEngineLevel implements SyncEngine {
       });
 
       let reply: MessagesReadReply;
-
       try {
         reply = await this.agent.rpc.sendDwnRequest({
-          dwnUrl,          targetDid : did,
+          dwnUrl,
+          targetDid : did,
           message   : messagesRead.message,
         }) as MessagesReadReply;
       } catch(e) {
@@ -198,6 +201,7 @@ export class SyncEngineLevel implements SyncEngine {
     }
 
     await pullQueue.batch(deleteOperations as any);
+    await this.syncInstant({ syncDirection: 'pull' });
   }
 
   private async push(): Promise<void> {
@@ -251,6 +255,7 @@ export class SyncEngineLevel implements SyncEngine {
     }
 
     await pushQueue.batch(deleteOperations as any);
+    await this.syncInstant({ syncDirection: 'push' });
   }
 
   public async registerIdentity({ did, options }: { did: string; options?: SyncIdentityOptions }): Promise<void> {
@@ -279,6 +284,183 @@ export class SyncEngineLevel implements SyncEngine {
       }
     } finally {
       this._syncLock = false;
+    }
+  }
+
+  private async syncInstant({ syncDirection }: {
+    syncDirection: SyncDirection;
+  }): Promise<void> {
+    const syncPeerState = await this.getSyncPeerInfo({ syncDirection });
+    for (const peerState of syncPeerState) {
+      const { did, delegateDid, dwnUrl, protocol } = peerState;
+      const key = `${did}~${delegateDid}~${dwnUrl}~${protocol}~${syncDirection}`;
+      if (syncDirection === 'push') {
+        let permissionGrantId: string | undefined;
+        let granteeDid: string | undefined;
+        if (delegateDid) {
+          try {
+            const messagesReadGrant = await this._permissionsApi.getPermissionForRequest({
+              connectedDid : did,
+              messageType  : DwnInterface.MessagesSubscribe,
+              delegateDid,
+              protocol,
+              cached       : true
+            });
+
+            permissionGrantId = messagesReadGrant.grant.id;
+            granteeDid = delegateDid;
+          } catch(error:any) {
+            console.error('SyncEngineLevel: pull - Error fetching MessagesRead permission grant for delegate DID', error);
+            continue;
+          }
+        }
+
+        const { reply: { status, subscription } } = await this.agent.processDwnRequest({
+          author        : did,
+          target        : did,
+          messageType   : DwnInterface.MessagesSubscribe,
+          granteeDid,
+          messageParams : {
+            permissionGrantId
+          },
+          subscriptionHandler: async (event) => {
+            const { message } = event;
+            const messageCid = await Message.getCid(message);
+
+            // send the message to the remote DWN
+            const { status } = await this.agent.rpc.sendDwnRequest({
+              targetDid: did,
+              dwnUrl,
+              message,
+            });
+
+            if (status.code === 202 || status.code === 204 || status.code === 409) {
+              await this.addMessage(did, messageCid);
+            }
+          }
+        });
+
+        if (status.code === 200 && subscription) {
+          const existingSubscription = this._subscriptions.get(key);
+          if (existingSubscription) {
+            await existingSubscription.close();
+          }
+
+          this._subscriptions.set(key, subscription);
+        }
+      }
+
+      if (syncDirection === 'pull') {
+
+        const subscriptionHandler: MessageSubscriptionHandler = async (event) => {
+          const { message } = event;
+          const messageCid = await Message.getCid(message);
+
+          const messageExists = await this.messageExists(did, messageCid);
+          if (messageExists) {
+            return;
+          }
+          let permissionGrantId: string | undefined;
+          let granteeDid: string | undefined;
+          if (delegateDid) {
+            try {
+              const messagesReadGrant = await this._permissionsApi.getPermissionForRequest({
+                connectedDid : did,
+                messageType  : DwnInterface.MessagesRead,
+                delegateDid,
+                protocol,
+                cached       : true
+              });
+
+              permissionGrantId = messagesReadGrant.grant.id;
+              granteeDid = delegateDid;
+            } catch(error:any) {
+              console.error('SyncEngineLevel: pull - Error fetching MessagesRead permission grant for delegate DID', error);
+              return;
+            }
+          }
+
+          const messagesRead = await this.agent.processDwnRequest({
+            store         : false,
+            author        : did,
+            target        : did,
+            granteeDid,
+            messageType   : DwnInterface.MessagesRead,
+            messageParams : {
+              messageCid,
+              permissionGrantId
+            }
+          });
+
+          let reply: MessagesReadReply;
+
+          try {
+            reply = await this.agent.rpc.sendDwnRequest({
+              dwnUrl,
+              targetDid : did,
+              message   : messagesRead.message,
+            }) as MessagesReadReply;
+          } catch(e) {
+            return;
+          }
+
+          if (reply.status.code !== 200 || !reply.entry?.message) {
+            return;
+          }
+
+          const replyEntry = reply.entry;
+          const { status: processStatus } = await this.agent.dwn.node.processMessage(did, replyEntry.message, { dataStream: replyEntry.data });
+          if (processStatus.code === 202 || processStatus.code === 204 || processStatus.code === 409) {
+            await this.addMessage(did, messageCid);
+          }
+        };
+        let permissionGrantId: string | undefined;
+        let granteeDid: string | undefined;
+        if (delegateDid) {
+          try {
+            const messagesReadGrant = await this._permissionsApi.getPermissionForRequest({
+              connectedDid : did,
+              messageType  : DwnInterface.MessagesSubscribe,
+              delegateDid,
+              protocol,
+              cached       : true
+            });
+
+            permissionGrantId = messagesReadGrant.grant.id;
+            granteeDid = delegateDid;
+          } catch(error:any) {
+            console.error('SyncEngineLevel: pull - Error fetching MessagesRead permission grant for delegate DID', error);
+            continue;
+          }
+        }
+        const messagesSubscribeMessage = await this.agent.sendDwnRequest({
+          store         : false,
+          author        : did,
+          target        : did,
+          messageType   : DwnInterface.MessagesSubscribe,
+          granteeDid,
+          messageParams : {
+            permissionGrantId,
+          },
+          subscriptionHandler
+        });
+
+        const { status: sendStatus, subscription } = await this.agent.rpc.sendDwnRequest({
+          dwnUrl,
+          targetDid : did,
+          message   : messagesSubscribeMessage.message,
+          subscriptionHandler
+        });
+
+        if (sendStatus.code === 200 && subscription) {
+          const existingSubscription = this._subscriptions.get(key);
+          if (existingSubscription) {
+            await existingSubscription.close();
+          }
+
+          this._subscriptions.set(key, subscription);
+        }
+      }
     }
   }
 
@@ -540,6 +722,43 @@ export class SyncEngineLevel implements SyncEngine {
     }
 
     return dwnMessageWithBlob;
+  }
+
+  private async getSyncPeerInfo({ syncDirection }: {
+    syncDirection: SyncDirection;
+  }): Promise<SyncState[]> {
+
+    // Array to accumulate the list of sync peers for each DID.
+    const syncPeerState: SyncState[] = [];
+
+    // iterate over all registered identities
+    for await (const [ did, options ] of this._db.sublevel('registeredIdentities').iterator()) {
+      const { protocols, delegateDid } = JSON.parse(options) as SyncIdentityOptions;
+      // First, confirm the DID can be resolved and extract the DWN service endpoint URLs.
+      const dwnEndpointUrls = await getDwnServiceEndpointUrls(did, this.agent.did);
+      if (dwnEndpointUrls.length === 0) {
+        // Silently ignore and do not try to perform Sync for any DID that does not have a DWN
+        // service endpoint published in its DID document.
+        continue;
+      }
+
+      // Get the cursor (or undefined) for each (DID, DWN service endpoint, sync direction)
+      // combination and add it to the sync peer state array.
+      for (let dwnUrl of dwnEndpointUrls) {
+        const info = await this.agent.rpc.getServerInfo(dwnUrl);
+        if (info.webSocketSupport) {
+          if (protocols.length === 0) {
+            syncPeerState.push({ did, dwnUrl, delegateDid });
+          } else {
+            for (const protocol of protocols) {
+              syncPeerState.push({ did, dwnUrl, delegateDid, protocol });
+            }
+          }
+        }
+      }
+    }
+
+    return syncPeerState;
   }
 
   private async getSyncPeerState({ syncDirection }: {

@@ -17,7 +17,7 @@ import type {
 } from '@web5/agent';
 
 import { Web5UserAgent } from '@web5/user-agent';
-import { DwnRegistrar, WalletConnect } from '@web5/agent';
+import { DwnRegistrar, IdentityProtocolDefinition, JwkProtocolDefinition, WalletConnect } from '@web5/agent';
 
 import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
@@ -280,10 +280,28 @@ export class Web5 {
       const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
 
       // Initialize, if necessary, and start the agent.
-      if (await userAgent.firstLaunch()) {
+      const firstLaunch = await userAgent.firstLaunch();
+      if (firstLaunch) {
         recoveryPhrase = await userAgent.initialize({ password, recoveryPhrase, dwnEndpoints: serviceEndpointNodes });
       }
       await userAgent.start({ password });
+      if (firstLaunch && sync !== 'off') {
+
+        // register only the identity-specific protocols for agent sync
+        await userAgent.sync.registerIdentity({
+          did     : userAgent.agentDid.uri,
+          options : {
+            protocols: [
+              IdentityProtocolDefinition.protocol,
+              JwkProtocolDefinition.protocol
+            ]
+          }
+        });
+
+        // attempt to pull the latest messages from the DWN so that the identities can be in sync
+        await userAgent.sync.sync('pull');
+      }
+
       // Attempt to retrieve the connected Identity if it exists.
       const connectedIdentity: BearerIdentity = await userAgent.identity.connectedIdentity();
       let identity: BearerIdentity;
