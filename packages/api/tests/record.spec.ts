@@ -2885,7 +2885,7 @@ describe('Record', () => {
           protocol     : protocolDefinition.protocol,
           protocolPath : 'thread',
           schema       : protocolDefinition.types.thread.schema,
-          dataFormat : 'text/plain'
+          dataFormat   : 'text/plain'
         }
       });
 
@@ -2899,6 +2899,12 @@ describe('Record', () => {
       expect(updateResult.status.code).to.equal(202);
       expect(record.dataFormat).to.equal('application/json');
       expect(await record.data.json()).to.deep.equal({ subject: 'some subject', body: 'some body' });
+
+      // update again without changing the dataFormat
+      const updateResult2 = await record!.update({ data: { subject: 'another subject', body: 'another body' } });
+      expect(updateResult2.status.code).to.equal(202);
+      expect(record.dataFormat).to.equal('application/json');
+      expect(await record.data.json()).to.deep.equal({ subject: 'another subject', body: 'another body' });
     });
   });
 
