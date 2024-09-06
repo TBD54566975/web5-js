@@ -38,6 +38,9 @@ export interface SyncEngine {
   startSync(params: { interval: string }): Promise<void>;
   /**
    * Stops the periodic sync operation, will complete the current sync operation if one is already in progress.
+   *
+   * @param timeout the maximum amount of time, in milliseconds, to wait for the current sync operation to complete. Default is 2000 (2 seconds).
+   * @throws {Error} if the sync operation fails to stop before the timeout.
    */
-  stopSync(): Promise<void>;
+  stopSync(timeout?: number): Promise<void>;
 }

@@ -319,16 +319,16 @@ export class SyncEngineLevel implements SyncEngine {
    * stopSync currently awaits the completion of the current sync operation before stopping the sync interval.
    * TODO: implement a signal to gracefully stop sync immediately https://github.com/TBD54566975/web5-js/issues/890
    */
-  public async stopSync(): Promise<void> {
+  public async stopSync(timeout: number = 2000): Promise<void> {
     let elapsedTimeout = 0;
 
     while(this._syncLock) {
-      if (elapsedTimeout > 2000) {
-        throw new Error('SyncEngineLevel: Existing sync operation did not complete within 5 seconds.');
+      if (elapsedTimeout >= timeout) {
+        throw new Error(`SyncEngineLevel: Existing sync operation did not complete within ${timeout} milliseconds.`);
       }
 
       elapsedTimeout += 100;
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, timeout < 100 ? timeout : 100));
     }
 
     if (this._syncIntervalId) {

@@ -92,7 +92,6 @@ describe('SyncEngineLevel', () => {
         watermark,
         messageCid
       });
-      console.log('key', key);
 
       const syncParams = SyncEngineLevel['parseSyncMessageParamsKey'](key);
       expect(syncParams.protocol).to.be.undefined;
@@ -470,7 +469,7 @@ describe('SyncEngineLevel', () => {
           did: alice.did.uri,
         });
 
-        const clock = sinon.useFakeTimers();
+        const clock = sinon.useFakeTimers({ shouldClearNativeTimers: true });
         sinon.stub(syncEngine as any, 'push').resolves();
         const pullSpy = sinon.stub(syncEngine as any, 'pull');
         pullSpy.returns(new Promise<void>((resolve) => {
@@ -2443,7 +2442,7 @@ describe('SyncEngineLevel', () => {
         const pushSpy = sinon.stub(SyncEngineLevel.prototype as any, 'push');
         pushSpy.resolves();
 
-        const clock = sinon.useFakeTimers();
+        const clock = sinon.useFakeTimers({ shouldClearNativeTimers: true });
 
         testHarness.agent.sync.startSync({ interval: '500ms' });
 
@@ -2462,7 +2461,7 @@ describe('SyncEngineLevel', () => {
           did: alice.did.uri,
         });
 
-        const clock = sinon.useFakeTimers();
+        const clock = sinon.useFakeTimers({ shouldClearNativeTimers: true });
 
         const pullSpy = sinon.stub(SyncEngineLevel.prototype as any, 'pull');
         pullSpy.returns(new Promise<void>((resolve) => {
@@ -2504,7 +2503,7 @@ describe('SyncEngineLevel', () => {
           did: alice.did.uri,
         });
 
-        const clock = sinon.useFakeTimers();
+        const clock = sinon.useFakeTimers({ shouldClearNativeTimers: true });
 
         const syncSpy = sinon.stub(SyncEngineLevel.prototype as any, 'sync');
         // set to be a sync time longer than the interval
@@ -2550,7 +2549,7 @@ describe('SyncEngineLevel', () => {
           did: alice.did.uri,
         });
 
-        const clock = sinon.useFakeTimers();
+        const clock = sinon.useFakeTimers({ shouldClearNativeTimers: true });
 
         const syncSpy = sinon.stub(SyncEngineLevel.prototype as any, 'sync');
         // set to be a sync time longer than the interval
@@ -2584,6 +2583,271 @@ describe('SyncEngineLevel', () => {
         syncSpy.restore();
         clock.restore();
       });
+    });
+
+    describe('stopSync()', () => {
+      it('stops the sync interval', async () => {
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri,
+        });
+
+        const clock = sinon.useFakeTimers({ shouldClearNativeTimers: true });
+
+        const syncSpy = sinon.spy(SyncEngineLevel.prototype as any, 'sync');
+
+        // stub push and pull to take 3 ms each
+        const pullStub = sinon.stub(SyncEngineLevel.prototype as any, 'pull');
+        pullStub.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 3);
+        }));
+
+        const pushStub = sinon.stub(SyncEngineLevel.prototype as any, 'push');
+        pushStub.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 3);
+        }));
+
+        testHarness.agent.sync.startSync({ interval: '500ms' });
+
+        // expect the immediate sync call
+        expect(syncSpy.callCount).to.equal(1);
+
+
+        await clock.tickAsync(1_300); // just under 3 intervals
+
+        // expect 2 sync interval calls + initial sync
+        expect(syncSpy.callCount).to.equal(3);
+
+        await testHarness.agent.sync.stopSync();
+
+        await clock.tickAsync(1_000); // 2 intervals
+
+        // sync calls remain unchanged
+        expect(syncSpy.callCount).to.equal(3);
+
+        syncSpy.restore();
+        clock.restore();
+      });
+
+      it('waits for the current sync to complete before stopping', async () => {
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri,
+        });
+
+        const clock = sinon.useFakeTimers({ shouldClearNativeTimers: true });
+
+        const syncSpy = sinon.spy(SyncEngineLevel.prototype as any, 'sync');
+
+        // stub push and pull to take 3 ms each
+        const pullStub = sinon.stub(SyncEngineLevel.prototype as any, 'pull');
+        pullStub.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 3);
+        }));
+
+        const pushStub = sinon.stub(SyncEngineLevel.prototype as any, 'push');
+        pushStub.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 3);
+        }));
+
+        testHarness.agent.sync.startSync({ interval: '500ms' });
+
+        // expect the immediate sync call
+        expect(syncSpy.callCount).to.equal(1);
+
+        await clock.tickAsync(1_300); // just under 3 intervals
+
+        // expect 2 sync interval calls + initial sync
+        expect(syncSpy.callCount).to.equal(3);
+
+        // cause pull to take longer
+        pullStub.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 1_000);
+        }));
+
+        await clock.tickAsync(201); // Enough time for the next interval to start
+
+        // next interval was called
+        expect(syncSpy.callCount).to.equal(4);
+
+        // stop the sync
+        await new Promise<void>((resolve) => {
+          const stopPromise = testHarness.agent.sync.stopSync();
+          clock.tickAsync(1_000).then(async () => {
+            await stopPromise;
+            resolve();
+          });
+        });
+
+        // sync calls remain unchanged
+        expect(syncSpy.callCount).to.equal(4);
+
+        // wait for future intervals
+        await clock.tickAsync(2_000);
+
+        // sync calls remain unchanged
+        expect(syncSpy.callCount).to.equal(4);
+
+        syncSpy.restore();
+        clock.restore();
+      });
+
+      it('throws if ongoing sync does not complete within 2 seconds', async () => {
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri,
+        });
+
+        const clock = sinon.useFakeTimers({ shouldClearNativeTimers: true });
+
+        const syncSpy = sinon.spy(SyncEngineLevel.prototype as any, 'sync');
+
+        // stub push and pull to take 3 ms each
+        const pullStub = sinon.stub(SyncEngineLevel.prototype as any, 'pull');
+        pullStub.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 3);
+        }));
+
+        const pushStub = sinon.stub(SyncEngineLevel.prototype as any, 'push');
+        pushStub.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 3);
+        }));
+
+        testHarness.agent.sync.startSync({ interval: '500ms' });
+
+        // expect the immediate sync call
+        expect(syncSpy.callCount).to.equal(1);
+
+        await clock.tickAsync(1_300); // just under 3 intervals
+
+        // expect 2 sync interval calls + initial sync
+        expect(syncSpy.callCount).to.equal(3);
+
+        // cause pull to take longer
+        pullStub.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 2_700); // longer than the 2 seconds
+        }));
+
+        await clock.tickAsync(201); // Enough time for the next interval to start
+
+        // next interval was called
+        expect(syncSpy.callCount).to.equal(4);
+
+        const stopPromise = testHarness.agent.sync.stopSync();
+
+        try {
+          await new Promise<void>((resolve, reject) => {
+            stopPromise.catch((error) => reject(error));
+
+            clock.runToLastAsync().then(async () => {
+              try {
+                await stopPromise;
+                resolve();
+              } catch(error) {
+                reject(error);
+              }
+            });
+
+          });
+          expect.fail('Expected an error to be thrown');
+        } catch(error:any) {
+          expect(error.message).to.equal('SyncEngineLevel: Existing sync operation did not complete within 2000 milliseconds.');
+        }
+
+        syncSpy.restore();
+        clock.restore();
+      });
+
+      it('only waits for the ongoing sync for the given timeout before failing', async () => {
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri,
+        });
+
+        const clock = sinon.useFakeTimers({ shouldClearNativeTimers: true });
+
+        const syncSpy = sinon.spy(SyncEngineLevel.prototype as any, 'sync');
+
+        // stub push and pull to take 3 ms each
+        const pullStub = sinon.stub(SyncEngineLevel.prototype as any, 'pull');
+        pullStub.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 3);
+        }));
+
+        const pushStub = sinon.stub(SyncEngineLevel.prototype as any, 'push');
+        pushStub.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 3);
+        }));
+
+        testHarness.agent.sync.startSync({ interval: '500ms' });
+
+        // expect the immediate sync call
+        expect(syncSpy.callCount).to.equal(1);
+
+        await clock.tickAsync(10); // enough time for the sync round trip to complete
+
+        // cause pull to take longer
+        pullStub.returns(new Promise<void>((resolve) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 2_700); // longer than the 2 seconds
+        }));
+
+        await clock.tickAsync(501); // Enough time for the next interval to start
+
+        // next interval was called
+        expect(syncSpy.callCount).to.equal(2);
+
+        const stopPromise = testHarness.agent.sync.stopSync(10);
+        try {
+          await new Promise<void>((resolve, reject) => {
+            stopPromise.catch((error) => reject(error));
+
+            clock.tickAsync(10).then(async () => {
+              try {
+                await stopPromise;
+                resolve();
+              } catch(error) {
+                reject(error);
+              }
+            });
+
+          });
+          expect.fail('Expected an error to be thrown');
+        } catch(error:any) {
+          expect(error.message).to.equal('SyncEngineLevel: Existing sync operation did not complete within 10 milliseconds.');
+        }
+
+        // call again with a longer timeout
+        await new Promise<void>((resolve) => {
+          const stopPromise2 = testHarness.agent.sync.stopSync(3_000);
+          // enough time for the ongoing sync to complete + 100ms as the check interval
+          clock.tickAsync(2800).then(async () => {
+            stopPromise2.then(() => resolve());
+          });
+        });
+
+        await clock.runToLastAsync();
+        syncSpy.restore();
+        clock.restore();
+      });
+
     });
   });
 });
