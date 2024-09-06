@@ -2403,6 +2403,51 @@ describe('Record', () => {
   });
 
   describe('update()', () => {
+    let notesProtocol: DwnProtocolDefinition;
+
+    beforeEach(async () => {
+      const protocolUri = `http://example.com/notes-${TestDataGenerator.randomString(15)}`;
+
+      notesProtocol = {
+        published : true,
+        protocol  : protocolUri,
+        types     : {
+          note: {
+            schema: 'http://example.com/note'
+          },
+          request: {
+            schema: 'http://example.com/request'
+          }
+        },
+        structure: {
+          request: {
+            $actions: [{
+              who : 'anyone',
+              can : ['create', 'update', 'delete']
+            },{
+              who : 'recipient',
+              of  : 'request',
+              can : ['co-update']
+            }]
+          },
+          note: {
+          }
+        }
+      };
+
+      // alice and bob both configure the protocol
+      const { status: aliceConfigStatus, protocol: aliceNotesProtocol } = await dwnAlice.protocols.configure({ message: { definition: notesProtocol } });
+      expect(aliceConfigStatus.code).to.equal(202);
+      const { status: aliceNotesProtocolSend } = await aliceNotesProtocol.send(aliceDid.uri);
+      expect(aliceNotesProtocolSend.code).to.equal(202);
+
+      const { status: bobConfigStatus, protocol: bobNotesProtocol } = await dwnBob.protocols.configure({ message: { definition: notesProtocol } });
+      expect(bobConfigStatus.code).to.equal(202);
+      const { status: bobNotesProtocolSend } = await bobNotesProtocol!.send(bobDid.uri);
+      expect(bobNotesProtocolSend.code).to.equal(202);
+
+    });
+
     it('updates a local record on the local DWN', async () => {
       const { status, record } = await dwnAlice.records.write({
         data    : 'Hello, world!',
@@ -2905,6 +2950,64 @@ describe('Record', () => {
       expect(updateResult2.status.code).to.equal(202);
       expect(record.dataFormat).to.equal('application/json');
       expect(await record.data.json()).to.deep.equal({ subject: 'another subject', body: 'another body' });
+    });
+
+    it('differentiates between creator and author', async () => {
+      const { status, record } = await dwnAlice.records.write({
+        data    : 'Hello, Bob!',
+        message : {
+          recipient    : bobDid.uri,
+          protocol     : notesProtocol.protocol,
+          protocolPath : 'request',
+          schema       : notesProtocol.types.request.schema,
+        }
+      });
+      expect(status.code).to.equal(202, 'create');
+      expect(record).to.not.be.undefined;
+      const { status: sendStatus } = await record.send();
+      expect(sendStatus.code).to.equal(202, 'send');
+
+      // bob reads the record
+      const readResult = await dwnBob.records.read({
+        protocol : notesProtocol.protocol,
+        from     : aliceDid.uri,
+        message  : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(200, 'bob reads record');
+      expect(readResult.record).to.not.be.undefined;
+
+      const bobRecord = readResult.record;
+      const { status: storeStatus } = await bobRecord!.store();
+      expect(storeStatus.code).to.equal(202, 'store');
+      const { status: updateStatus } = await bobRecord.update({ data: 'Hello, Alice!' });
+      expect(updateStatus.code).to.equal(202, 'update');
+
+      const updatedData = await bobRecord.send(aliceDid.uri);
+      expect(updatedData.status.code).to.equal(202, 'send update');
+
+      // alice reads the record
+      const readResultAlice = await dwnAlice.records.read({
+        from     : aliceDid.uri,
+        protocol : notesProtocol.protocol,
+        message  : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+
+      expect(readResultAlice.status.code).to.equal(200, 'alice reads record');
+      expect(readResultAlice.record).to.not.be.undefined;
+      expect(await readResultAlice.record!.data.text()).to.equal('Hello, Alice!');
+
+      // alice is the creator
+      expect(readResultAlice.record!.creator).to.equal(aliceDid.uri);
+      // bob is the author
+      expect(readResultAlice.record!.author).to.equal(bobDid.uri);
     });
   });
 
