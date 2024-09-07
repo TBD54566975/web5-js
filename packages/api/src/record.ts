@@ -227,8 +227,10 @@ export class Record implements RecordModel {
 
   // Private variables for DWN `RecordsWrite` message properties.
 
-  /** The DID of the entity that authored the record. */
+  /** The DID of the entity that most recently authored or deleted the record. */
   private _author: string;
+  /** The DID of the entity that originally created the record. */
+  private _creator: string;
   /** Attestation JWS signature. */
   private _attestation?: DwnMessage[DwnInterface.RecordsWrite]['attestation'];
   /** Authorization signature(s). */
@@ -314,6 +316,9 @@ export class Record implements RecordModel {
   /** DID that is the logical author of the Record. */
   get author(): string { return this._author; }
 
+  /** DID that is the original creator of the Record. */
+  get creator(): string { return this._creator; }
+
   /** Record's modified date */
   get dateModified() { return this._descriptor.messageTimestamp; }
 
@@ -368,6 +373,8 @@ export class Record implements RecordModel {
     // Store the author DID that originally signed the message as a convenience for developers, so
     // that they don't have to decode the signer's DID from the JWS.
     this._author = options.author;
+    // The creator is the author of the initial write, or the author of the record if there is no initial write.
+    this._creator = options.initialWrite ? getRecordAuthor(options.initialWrite) : options.author;
 
     // Store the `connectedDid`, and optionally the `delegateDid` and `permissionsApi` in order to be able
     // to perform operations on the record (update, delete, data) as a delegate of the connected DID.
