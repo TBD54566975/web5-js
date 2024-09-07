@@ -483,7 +483,13 @@ export class DwnApi {
         };
 
         if (this.delegateDid) {
+          // We attempt to get a grant within a try catch, if there is no grant we will still sign the query with the delegate DID's key
+          // If the protocol is public, the query should be successful. This allows the app to query for public protocols without having a grant.
+
           try {
+            // NOTE: Currently protocol permissions are not scoped to specific protocols.
+            // TODO: Scope Protocol Permissions to a specific protocol. https://github.com/TBD54566975/dwn-sdk-js/issues/802
+
             const { grant: { id: permissionGrantId } } = await this.permissionsApi.getPermissionForRequest({
               connectedDid : this.connectedDid,
               delegateDid  : this.delegateDid,
