@@ -223,12 +223,8 @@ function createPermissionRequestForProtocol({ definition, permissions }: Protoco
     method    : DwnMethodName.Subscribe,
   });
 
-  // In order to allow the application the ability to query for installed protocols.
   // TODO: Scope Protocol Permissions to a specific protocol. https://github.com/TBD54566975/dwn-sdk-js/issues/802
-  requests.push({
-    interface : DwnInterfaceName.Protocols,
-    method    : DwnMethodName.Query,
-  });
+  // When this is done we should add a request to query the specific protocol.
 
   // We also request any additional permissions the user has requested for this protocol
   for (const permission of permissions) {

@@ -17,7 +17,7 @@ import type {
 } from '@web5/agent';
 
 import { Web5UserAgent } from '@web5/user-agent';
-import { DwnRegistrar, WalletConnect } from '@web5/agent';
+import { DwnInterface, DwnRegistrar, WalletConnect } from '@web5/agent';
 
 import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
