@@ -223,6 +223,12 @@ function createPermissionRequestForProtocol({ definition, permissions }: Protoco
     method    : DwnMethodName.Subscribe,
   });
 
+  // In order to allow the application the ability to query for installed protocols.
+  requests.push({
+    interface : DwnInterfaceName.Protocols,
+    method    : DwnMethodName.Query,
+  });
+
   // We also request any additional permissions the user has requested for this protocol
   for (const permission of permissions) {
     switch (permission) {

@@ -7,7 +7,6 @@
 import type {
   CreateGrantParams,
   CreateRequestParams,
-  DwnRecordsInterfaces,
   FetchPermissionRequestParams,
   FetchPermissionsParams
 } from '@web5/agent';
@@ -428,12 +427,38 @@ export class DwnApi {
        * Configure method, used to setup a new protocol (or update) with the passed definitions
        */
       configure: async (request: ProtocolsConfigureRequest): Promise<ProtocolsConfigureResponse> => {
-        const agentResponse = await this.agent.processDwnRequest({
+
+        const agentRequest:ProcessDwnRequest<DwnInterface.ProtocolsConfigure> = {
           author        : this.connectedDid,
           messageParams : request.message,
           messageType   : DwnInterface.ProtocolsConfigure,
           target        : this.connectedDid
-        });
+        };
+
+        if (this.delegateDid) {
+          // NOTE:  currently protocol configure only allows normal permission grants, not delegated grants.
+          //        However, protocol grants should be used in a delegated scenario as they modify state.
+          //        Additionally currently ProtocolConfigure does not scope to specific protocols, which it should.
+          //        TODO: Add Delegate Grants to ProtocolConfigure https://github.com/TBD54566975/dwn-sdk-js/issues/801
+          //        TODO: Scope Protocol Permissions to a specific protocol. https://github.com/TBD54566975/dwn-sdk-js/issues/802
+
+          const { grant: { id: permissionGrantId }} = await this.permissionsApi.getPermissionForRequest({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            delegate     : true,
+            cached       : true,
+            messageType  : agentRequest.messageType
+          });
+
+          agentRequest.messageParams = {
+            ...agentRequest.messageParams,
+            permissionGrantId
+          };
+
+          agentRequest.granteeDid = this.delegateDid;
+        }
+
+        const agentResponse = await this.agent.processDwnRequest(agentRequest);
 
         const { message, messageCid, reply: { status }} = agentResponse;
         const response: ProtocolsConfigureResponse = { status };
@@ -456,6 +481,27 @@ export class DwnApi {
           messageType   : DwnInterface.ProtocolsQuery,
           target        : request.from || this.connectedDid
         };
+
+        if (this.delegateDid) {
+          try {
+            const { grant: { id: permissionGrantId } } = await this.permissionsApi.getPermissionForRequest({
+              connectedDid : this.connectedDid,
+              delegateDid  : this.delegateDid,
+              delegate     : true,
+              cached       : true,
+              messageType  : agentRequest.messageType
+            });
+
+            agentRequest.messageParams = {
+              ...agentRequest.messageParams,
+              permissionGrantId
+            };
+            agentRequest.granteeDid = this.delegateDid;
+          } catch(error) {
+            // if a grant is not found, we should sign the request as the delegated DID to get public protocols
+            agentRequest.author = this.delegateDid;
+          }
+        }
 
         let agentResponse: DwnResponse<DwnInterface.ProtocolsQuery>;
 
