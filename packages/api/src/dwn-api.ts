@@ -668,8 +668,8 @@ export class DwnApi {
               delegatedGrant
             };
             agentRequest.granteeDid = this.delegateDid;
-          } catch(error:any) {
-            // set the author of the request to the delegate did
+          } catch(error) {
+            // if a grant is not found, we should sign the request as the delegated DID to get public records
             agentRequest.author = this.delegateDid;
           }
         }
@@ -759,8 +759,8 @@ export class DwnApi {
               delegatedGrant
             };
             agentRequest.granteeDid = this.delegateDid;
-          } catch(_error:any) {
-            // set the author of the request to the delegate did
+          } catch(error) {
+            // if a grant is not found, we should sign the request as the delegated DID to get public records
             agentRequest.author = this.delegateDid;
           }
         }
@@ -862,8 +862,8 @@ export class DwnApi {
               delegatedGrant
             };
             agentRequest.granteeDid = this.delegateDid;
-          } catch(_error:any) {
-            // set the author of the request to the delegate did
+          } catch(error) {
+            // if a grant is not found, we should sign the request as the delegated DID to get public records
             agentRequest.author = this.delegateDid;
           }
         };
