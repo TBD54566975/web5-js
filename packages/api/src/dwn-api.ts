@@ -437,25 +437,9 @@ export class DwnApi {
 
         if (this.delegateDid) {
           // NOTE:  currently protocol configure only allows normal permission grants, not delegated grants.
-          //        However, protocol grants should be used in a delegated scenario as they modify state.
-          //        Additionally currently ProtocolConfigure does not scope to specific protocols, which it should.
           //        TODO: Add Delegate Grants to ProtocolConfigure https://github.com/TBD54566975/dwn-sdk-js/issues/801
           //        TODO: Scope Protocol Permissions to a specific protocol. https://github.com/TBD54566975/dwn-sdk-js/issues/802
-
-          const { grant: { id: permissionGrantId }} = await this.permissionsApi.getPermissionForRequest({
-            connectedDid : this.connectedDid,
-            delegateDid  : this.delegateDid,
-            delegate     : true,
-            cached       : true,
-            messageType  : agentRequest.messageType
-          });
-
-          agentRequest.messageParams = {
-            ...agentRequest.messageParams,
-            permissionGrantId
-          };
-
-          agentRequest.granteeDid = this.delegateDid;
+          throw new Error('Delegated grants are not yet supported for protocol configuration: https://github.com/TBD54566975/dwn-sdk-js/issues/801');
         }
 
         const agentResponse = await this.agent.processDwnRequest(agentRequest);
@@ -487,12 +471,14 @@ export class DwnApi {
           // If the protocol is public, the query should be successful. This allows the app to query for public protocols without having a grant.
 
           try {
+            const protocolFromRequest = request.message.filter?.protocol;
+
             // NOTE: Currently protocol permissions are not scoped to specific protocols.
             // TODO: Scope Protocol Permissions to a specific protocol. https://github.com/TBD54566975/dwn-sdk-js/issues/802
-
             const { grant: { id: permissionGrantId } } = await this.permissionsApi.getPermissionForRequest({
               connectedDid : this.connectedDid,
               delegateDid  : this.delegateDid,
+              protocol     : protocolFromRequest,
               delegate     : true,
               cached       : true,
               messageType  : agentRequest.messageType
