@@ -133,18 +133,18 @@ describe('AgentIdentityApi', () => {
           });
 
           // List identities and verify the result.
-          const storedIdentities = await testHarness.agent.identity.list();
+          const storedIdentities = await testHarness.agent.identity.listMetadata();
           expect(storedIdentities).to.have.length(3);
 
           const createdIdentities = [alice.did.uri, bob.did.uri, carol.did.uri];
           for (const storedIdentity of storedIdentities) {
-            expect(createdIdentities).to.include(storedIdentity.did.uri);
+            expect(createdIdentities).to.include(storedIdentity.uri);
           }
         });
 
         it('returns an empty array if the store contains no Identities', async () => {
           // List identities and verify the result is empty.
-          const storedIdentities = await testHarness.agent.identity.list();
+          const storedIdentities = await testHarness.agent.identity.listMetadata();
           expect(storedIdentities).to.be.empty;
         });
       });

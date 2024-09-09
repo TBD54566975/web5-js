@@ -137,6 +137,9 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
     const storedDid = await this.agent.did.get({ didUri, tenant: storedIdentity.tenant });
 
     // If the Identity is present but the DID is not found, throw an error.
+    // If this error is thrown, it is likely that identity data came in through a sync.
+    // Registering the `http://identity.foundation/protocols/web5/identity-store` protocol to sync
+    // for the given Identity URI will resolve this issue.
     if (!storedDid) {
       throw new Error(`AgentIdentityApi: Identity is present in the store but DID is missing: ${didUri}`);
     }
@@ -177,19 +180,13 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
     return identity;
   }
 
-  public async list({ tenant }: {
+  public listMetadata({ tenant }: {
     tenant?: string;
-  } = {}): Promise<BearerIdentity[]> {
+  } = {}): Promise<IdentityMetadata[]> {
     // Retrieve the list of Identities from the Agent's Identity store.
-    const storedIdentities = await this._store.list({ agent: this.agent, tenant });
-
-    const identities = await Promise.all(
-      storedIdentities.map(async metadata => {
-        return this.get({ didUri: metadata.uri, tenant: metadata.tenant });
-      })
-    );
-
-    return identities.filter(identity => typeof identity !== 'undefined') as BearerIdentity[];
+    // We do not retrieve each individual Identity's DID from the DID store as that Identity may
+    // not have synced the 'http://identity.foundation/protocols/web5/identity-store' protocol.
+    return this._store.list({ agent: this.agent, tenant });
   }
 
   public async manage({ portableIdentity }: {
@@ -242,15 +239,19 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
    * if none is provided the first connected identity is returned.
    */
   public async connectedIdentity({ connectedDid }:{ connectedDid?: string } = {}): Promise<BearerIdentity | undefined> {
-    const identities = await this.list();
+    const identities = await this.listMetadata();
     if (identities.length < 1) {
       return undefined;
     }
 
     // If a specific connected DID is provided, return the first identity that matches it.
     // Otherwise, return the first connected identity.
-    return connectedDid ?
-      identities.find(identity => identity.metadata.connectedDid === connectedDid) :
-      identities.find(identity => identity.metadata.connectedDid !== undefined);
+    const identityDid = connectedDid ?
+      identities.find(identity => identity.connectedDid === connectedDid) :
+      identities.find(identity => identity.connectedDid !== undefined);
+
+    if (identityDid) {
+      return this.get({ didUri: identityDid.uri, tenant: identityDid.tenant });
+    }
   }
 }

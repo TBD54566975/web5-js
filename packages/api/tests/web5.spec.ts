@@ -692,7 +692,7 @@ describe('web5 api', () => {
         }
 
         // check that the Identity was deleted
-        const appIdentities = await appTestHarness.agent.identity.list();
+        const appIdentities = await appTestHarness.agent.identity.listMetadata();
         expect(appIdentities).to.have.lengthOf(0);
 
         // close the app test harness storage
@@ -716,7 +716,7 @@ describe('web5 api', () => {
         const consoleSpy = sinon.stub(console, 'error').returns();
 
         // call identityCleanup on a did that does not exist
-        await Web5['cleanUpIdentity']({ userAgent: testHarness.agent as Web5UserAgent, identity });
+        await Web5['cleanUpIdentity']({ userAgent: testHarness.agent as Web5UserAgent, identity: identity.metadata });
 
         expect(consoleSpy.calledTwice, 'console.error called twice').to.be.true;
       });

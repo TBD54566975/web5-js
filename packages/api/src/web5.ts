@@ -11,6 +11,7 @@ import type {
   DwnProtocolDefinition,
   DwnRecordsPermissionScope,
   HdIdentityVault,
+  IdentityMetadata,
   Permission,
   WalletConnectOptions,
   Web5Agent,
@@ -286,12 +287,12 @@ export class Web5 {
       await userAgent.start({ password });
       // Attempt to retrieve the connected Identity if it exists.
       const connectedIdentity: BearerIdentity = await userAgent.identity.connectedIdentity();
-      let identity: BearerIdentity;
+      let identity: IdentityMetadata;
       let connectedProtocols: string[] = [];
       if (connectedIdentity) {
         // if a connected identity is found, use it
         // TODO: In the future, implement a way to re-connect an already connected identity and apply additional grants/protocols
-        identity = connectedIdentity;
+        identity = connectedIdentity.metadata;
       } else if (walletConnectOptions) {
         if (sync === 'off') {
           // Currently we require sync to be enabled when using WalletConnect
@@ -319,7 +320,7 @@ export class Web5 {
 
           // Import the delegated DID as an Identity in the User Agent.
           // Setting the connectedDID in the metadata applies a relationship between the signer identity and the one it is impersonating.
-          identity = await userAgent.identity.import({ portableIdentity: {
+          const connectedIdentity = await userAgent.identity.import({ portableIdentity: {
             portableDid : delegatePortableDid,
             metadata    : {
               connectedDid,
@@ -328,7 +329,8 @@ export class Web5 {
               uri    : delegatePortableDid.uri,
             }
           }});
-          await userAgent.identity.manage({ portableIdentity: await identity.export() });
+          await userAgent.identity.manage({ portableIdentity: await connectedIdentity.export() });
+          identity = connectedIdentity.metadata;
 
           // Attempts to process the connected grants to be used by the delegateDID
           // If the process fails, we want to clean up the identity
@@ -343,7 +345,7 @@ export class Web5 {
       } else {
         // No connected identity found and no connectOptions provided, use local Identities
         // Query the Agent's DWN tenant for identity records.
-        const identities = await userAgent.identity.list();
+        const identities = await userAgent.identity.listMetadata();
 
         // If an existing identity is not found found, create a new one.
         const existingIdentityCount = identities.length;
@@ -352,7 +354,7 @@ export class Web5 {
           registerSync = true;
 
           // Generate a new Identity for the end-user.
-          identity = await userAgent.identity.create({
+          const createdIdentity = await userAgent.identity.create({
             didMethod  : 'dht',
             metadata   : { name: 'Default' },
             didOptions : {
@@ -382,8 +384,8 @@ export class Web5 {
 
           // The User Agent will manage the Identity, which ensures it will be available on future
           // sessions.
-          await userAgent.identity.manage({ portableIdentity: await identity.export() });
-
+          await userAgent.identity.manage({ portableIdentity: await createdIdentity.export() });
+          identity = createdIdentity.metadata;
         } else {
           // If multiple identities are found, use the first one.
           // TODO: Implement selecting a connectedDid from multiple identities
@@ -392,9 +394,9 @@ export class Web5 {
       }
 
       // If the stored identity has a connected DID, use it as the connected DID, otherwise use the identity's DID.
-      connectedDid = identity.metadata.connectedDid ?? identity.did.uri;
+      connectedDid = identity.connectedDid ?? identity.uri;
       // If the stored identity has a connected DID, use the identity DID as the delegated DID, otherwise it is undefined.
-      delegateDid = identity.metadata.connectedDid ? identity.did.uri : undefined;
+      delegateDid = identity.connectedDid ? identity.uri : undefined;
       if (registration !== undefined) {
         // If a registration object is passed, we attempt to register the AgentDID and the ConnectedDID with the DWN endpoints provided
         try {
@@ -460,25 +462,25 @@ export class Web5 {
    * Does not throw on error, but logs to console.
    */
   private static async cleanUpIdentity({ identity, userAgent }:{
-    identity: BearerIdentity,
+    identity: IdentityMetadata,
     userAgent: Web5UserAgent
   }): Promise<void> {
     try {
       // Delete the DID and the Associated Keys
       await userAgent.did.delete({
-        didUri    : identity.did.uri,
-        tenant    : identity.metadata.tenant,
+        didUri    : identity.uri,
+        tenant    : identity.tenant,
         deleteKey : true,
       });
     } catch(error: any) {
-      console.error(`Failed to delete DID ${identity.did.uri}: ${error.message}`);
+      console.error(`Failed to delete DID ${identity.uri}: ${error.message}`);
     }
 
     try {
       // Delete the Identity
-      await userAgent.identity.delete({ didUri: identity.did.uri });
+      await userAgent.identity.delete({ didUri: identity.uri });
     } catch(error: any) {
-      console.error(`Failed to delete Identity ${identity.metadata.name}: ${error.message}`);
+      console.error(`Failed to delete Identity ${identity.name}: ${error.message}`);
     }
   }
 

@@ -98,7 +98,7 @@ describe('Managing Identities', () => {
             await testHarness.agent.identity.manage({ portableIdentity: await socialIdentity.export() });
 
             // Verify the Identities were ALSO stored in the Identity Agent's tenant.
-            const storedIdentities = await testHarness.agent.identity.list();
+            const storedIdentities = await testHarness.agent.identity.listMetadata();
             expect(storedIdentities).to.have.length(3);
 
             // Verify the DIDs were only stored in the new Identity's tenant.
