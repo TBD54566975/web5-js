@@ -13,6 +13,7 @@ import { SyncEngineLevel } from '../src/sync-engine-level.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { Convert } from '@web5/common';
 import { AbstractLevel } from 'abstract-level';
+import { SyncIdentityOptions } from '../src/index.js';
 
 let testDwnUrls: string[] = [testDwnUrl];
 
@@ -498,588 +499,6 @@ describe('SyncEngineLevel', () => {
         await syncEngine.sync();
 
         clock.restore();
-      });
-    });
-
-    describe('registerIdentity()', () => {
-      it('syncs only specified protocols', async () => {
-        // create new identity to not conflict the previous tests's remote records
-        const aliceSync = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
-
-        // create 3 local protocols
-        const protocolFoo: ProtocolDefinition = {
-          published : true,
-          protocol  : 'https://protocol.xyz/foo',
-          types     : {
-            foo: {
-              schema      : 'https://schemas.xyz/foo',
-              dataFormats : ['text/plain', 'application/json']
-            }
-          },
-          structure: {
-            foo: {}
-          }
-        };
-
-        const protocolBar: ProtocolDefinition = {
-          published : true,
-          protocol  : 'https://protocol.xyz/bar',
-          types     : {
-            bar: {
-              schema      : 'https://schemas.xyz/bar',
-              dataFormats : ['text/plain', 'application/json']
-            }
-          },
-          structure: {
-            bar: {}
-          }
-        };
-
-        const protocolBaz: ProtocolDefinition = {
-          published : true,
-          protocol  : 'https://protocol.xyz/baz',
-          types     : {
-            baz: {
-              schema      : 'https://schemas.xyz/baz',
-              dataFormats : ['text/plain', 'application/json']
-            }
-          },
-          structure: {
-            baz: {}
-          }
-        };
-
-        const protocolsFoo = await testHarness.agent.processDwnRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.ProtocolsConfigure,
-          messageParams : {
-            definition: protocolFoo
-          }
-        });
-        expect(protocolsFoo.reply.status.code).to.equal(202);
-
-        const protocolsBar = await testHarness.agent.processDwnRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.ProtocolsConfigure,
-          messageParams : {
-            definition: protocolBar
-          }
-        });
-        expect(protocolsBar.reply.status.code).to.equal(202);
-
-        const protocolsBaz = await testHarness.agent.processDwnRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.ProtocolsConfigure,
-          messageParams : {
-            definition: protocolBaz
-          }
-        });
-        expect(protocolsBaz.reply.status.code).to.equal(202);
-
-        // write a record for each protocol
-        const recordFoo = await testHarness.agent.processDwnRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.RecordsWrite,
-          messageParams : {
-            dataFormat   : 'text/plain',
-            protocol     : protocolFoo.protocol,
-            protocolPath : 'foo',
-            schema       : protocolFoo.types.foo.schema
-          },
-          dataStream: new Blob(['Hello, foo!'])
-        });
-        expect(recordFoo.reply.status.code).to.equal(202);
-
-        const recordBar = await testHarness.agent.processDwnRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.RecordsWrite,
-          messageParams : {
-            dataFormat   : 'text/plain',
-            protocol     : protocolBar.protocol,
-            protocolPath : 'bar',
-            schema       : protocolBar.types.bar.schema
-          },
-          dataStream: new Blob(['Hello, bar!'])
-        });
-        expect(recordBar.reply.status.code).to.equal(202);
-
-        const recordBaz = await testHarness.agent.processDwnRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.RecordsWrite,
-          messageParams : {
-            dataFormat   : 'text/plain',
-            protocol     : protocolBaz.protocol,
-            protocolPath : 'baz',
-            schema       : protocolBaz.types.baz.schema
-          },
-          dataStream: new Blob(['Hello, baz!'])
-        });
-        expect(recordBaz.reply.status.code).to.equal(202);
-
-        // Register Alice's DID to be synchronized with only foo and bar protocols
-        await testHarness.agent.sync.registerIdentity({
-          did     : aliceSync.did.uri,
-          options : {
-            protocols: [ 'https://protocol.xyz/foo', 'https://protocol.xyz/bar' ]
-          }
-        });
-
-        // Execute Sync to push sync, only foo protocol should be synced
-        await syncEngine.sync('push');
-
-        // query remote to see foo protocol
-        const remoteProtocolsQueryResponse = await testHarness.agent.dwn.sendRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.ProtocolsQuery,
-          messageParams : {}
-        });
-        const remoteProtocolsQueryReply = remoteProtocolsQueryResponse.reply;
-        expect(remoteProtocolsQueryReply.status.code).to.equal(200);
-        expect(remoteProtocolsQueryReply.entries?.length).to.equal(2);
-        expect(remoteProtocolsQueryReply.entries).to.have.deep.equal([ protocolsFoo.message, protocolsBar.message ]);
-
-        // query remote to see foo record
-        let remoteFooRecordsResponse = await testHarness.agent.dwn.sendRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.RecordsQuery,
-          messageParams : {
-            filter: {
-              protocol: protocolFoo.protocol,
-            }
-          }
-        });
-        let remoteFooRecordsReply = remoteFooRecordsResponse.reply;
-        expect(remoteFooRecordsReply.status.code).to.equal(200);
-        expect(remoteFooRecordsReply.entries).to.have.length(1);
-        let remoteFooRecordIds = remoteFooRecordsReply.entries?.map(entry => entry.recordId);
-        expect(remoteFooRecordIds).to.have.members([ recordFoo.message!.recordId ]);
-
-        // query remote to see bar record
-        let remoteBarRecordsResponse = await testHarness.agent.dwn.sendRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.RecordsQuery,
-          messageParams : {
-            filter: {
-              protocol: protocolBar.protocol,
-            }
-          }
-        });
-        let remoteBarRecordsReply = remoteBarRecordsResponse.reply;
-        expect(remoteBarRecordsReply.status.code).to.equal(200);
-        expect(remoteBarRecordsReply.entries).to.have.length(1);
-        let remoteBarRecordIds = remoteBarRecordsReply.entries?.map(entry => entry.recordId);
-        expect(remoteBarRecordIds).to.have.members([ recordBar.message!.recordId ]);
-
-        // query remote to see baz record, none should be returned
-        let remoteBazRecordsResponse = await testHarness.agent.dwn.sendRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.RecordsQuery,
-          messageParams : {
-            filter: {
-              protocol: protocolBaz.protocol,
-            }
-          }
-        });
-        let remoteBazRecordsReply = remoteBazRecordsResponse.reply;
-        expect(remoteBazRecordsReply.status.code).to.equal(200);
-        expect(remoteBazRecordsReply.entries).to.have.length(0);
-
-
-        // now write a foo record remotely, and a bar record locally
-        // initiate a sync to both push and pull the records respectively
-
-        // write a record to the remote for the foo protocol
-        const recordFoo2 = await testHarness.agent.sendDwnRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.RecordsWrite,
-          messageParams : {
-            dataFormat   : 'text/plain',
-            protocol     : protocolFoo.protocol,
-            protocolPath : 'foo',
-            schema       : protocolFoo.types.foo.schema
-          },
-          dataStream: new Blob(['Hello, foo 2!'])
-        });
-        expect(recordFoo2.reply.status.code).to.equal(202);
-
-        // write a local record to the bar protocol
-        const recordBar2 = await testHarness.agent.processDwnRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.RecordsWrite,
-          messageParams : {
-            dataFormat   : 'text/plain',
-            protocol     : protocolBar.protocol,
-            protocolPath : 'bar',
-            schema       : protocolBar.types.bar.schema
-          },
-          dataStream: new Blob(['Hello, bar 2!'])
-        });
-        expect(recordBar2.reply.status.code).to.equal(202);
-
-        // confirm that the foo record is not yet in the local DWN
-        let localFooRecordsResponse = await testHarness.agent.dwn.processRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.RecordsQuery,
-          messageParams : {
-            filter: {
-              protocol: protocolFoo.protocol,
-            }
-          }
-        });
-        let localFooRecordsReply = localFooRecordsResponse.reply;
-        expect(localFooRecordsReply.status.code).to.equal(200);
-        expect(localFooRecordsReply.entries).to.have.length(1);
-        let localFooRecordIds = localFooRecordsReply.entries?.map(entry => entry.recordId);
-        expect(localFooRecordIds).to.not.include(recordFoo2.message!.recordId);
-
-
-        // confirm that the bar record is not yet in the remote DWN
-        remoteBarRecordsResponse = await testHarness.agent.dwn.sendRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.RecordsQuery,
-          messageParams : {
-            filter: {
-              protocol: protocolBar.protocol,
-            }
-          }
-        });
-        remoteBarRecordsReply = remoteBarRecordsResponse.reply;
-        expect(remoteBarRecordsReply.status.code).to.equal(200);
-        expect(remoteBarRecordsReply.entries).to.have.length(1);
-        remoteBarRecordIds = remoteBarRecordsReply.entries?.map(entry => entry.recordId);
-        expect(remoteBarRecordIds).to.not.include(recordBar2.message!.recordId);
-
-        // preform a pull and push sync
-        await syncEngine.sync();
-
-        // query local to see foo records with the new record
-        localFooRecordsResponse = await testHarness.agent.dwn.processRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.RecordsQuery,
-          messageParams : {
-            filter: {
-              protocol: protocolFoo.protocol,
-            }
-          }
-        });
-        localFooRecordsReply = localFooRecordsResponse.reply;
-        expect(localFooRecordsReply.status.code).to.equal(200);
-        expect(localFooRecordsReply.entries).to.have.length(2);
-        localFooRecordIds = localFooRecordsReply.entries?.map(entry => entry.recordId);
-        expect(localFooRecordIds).to.have.members([ recordFoo.message!.recordId, recordFoo2.message!.recordId ]);
-
-        // query remote to see bar records with the new record
-        remoteBarRecordsResponse = await testHarness.agent.dwn.sendRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.RecordsQuery,
-          messageParams : {
-            filter: {
-              protocol: protocolBar.protocol,
-            }
-          }
-        });
-        remoteBarRecordsReply = remoteBarRecordsResponse.reply;
-        expect(remoteBarRecordsReply.status.code).to.equal(200);
-        expect(remoteBarRecordsReply.entries).to.have.length(2);
-        remoteBarRecordIds = remoteBarRecordsReply.entries?.map(entry => entry.recordId);
-        expect(remoteBarRecordIds).to.have.members([ recordBar.message!.recordId, recordBar2.message!.recordId ]);
-
-        // confirm that still no baz records exist remotely
-        remoteBazRecordsResponse = await testHarness.agent.dwn.sendRequest({
-          author        : aliceSync.did.uri,
-          target        : aliceSync.did.uri,
-          messageType   : DwnInterface.RecordsQuery,
-          messageParams : {
-            filter: {
-              protocol: protocolBaz.protocol,
-            }
-          }
-        });
-        remoteBazRecordsReply = remoteBazRecordsResponse.reply;
-        expect(remoteBazRecordsReply.status.code).to.equal(200);
-        expect(remoteBazRecordsReply.entries).to.have.length(0);
-      });
-
-      it('syncs only specified protocols and delegates', async () => {
-        const alice = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
-
-        const aliceDeviceXHarness = await PlatformAgentTestHarness.setup({
-          agentClass       : TestAgent,
-          agentStores      : 'memory',
-          testDataLocation : '__TESTDATA__/alice-device',
-        });
-        await aliceDeviceXHarness.clearStorage();
-        await aliceDeviceXHarness.createAgentDid();
-
-        // create a connected DID
-        const aliceDeviceX = await aliceDeviceXHarness.agent.identity.create({
-          store     : true,
-          didMethod : 'jwk',
-          metadata  : { name: 'Alice Device X', connectedDid: alice.did.uri }
-        });
-
-        // Alice create 2 protocols on alice's remote DWN
-        const protocolFoo: ProtocolDefinition = {
-          published : true,
-          protocol  : 'https://protocol.xyz/foo',
-          types     : {
-            foo: {
-              schema      : 'https://schemas.xyz/foo',
-              dataFormats : ['text/plain', 'application/json']
-            }
-          },
-          structure: {
-            foo: {}
-          }
-        };
-
-        const protocolBar: ProtocolDefinition = {
-          published : true,
-          protocol  : 'https://protocol.xyz/bar',
-          types     : {
-            bar: {
-              schema      : 'https://schemas.xyz/bar',
-              dataFormats : ['text/plain', 'application/json']
-            }
-          },
-          structure: {
-            bar: {}
-          }
-        };
-
-        // configure the protocols
-        const protocolsFoo = await testHarness.agent.sendDwnRequest({
-          author        : alice.did.uri,
-          target        : alice.did.uri,
-          messageType   : DwnInterface.ProtocolsConfigure,
-          messageParams : {
-            definition: protocolFoo
-          }
-        });
-        expect(protocolsFoo.reply.status.code).to.equal(202);
-
-        const protocolsBar = await testHarness.agent.sendDwnRequest({
-          author        : alice.did.uri,
-          target        : alice.did.uri,
-          messageType   : DwnInterface.ProtocolsConfigure,
-          messageParams : {
-            definition: protocolBar
-          }
-        });
-        expect(protocolsBar.reply.status.code).to.equal(202);
-
-        // create grants for foo protocol, granted to aliceDeviceX
-        const messagesReadGrant = await testHarness.agent.permissions.createGrant({
-          store       : true,
-          author      : alice.did.uri,
-          grantedTo   : aliceDeviceX.did.uri,
-          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-          scope       : { protocol: protocolFoo.protocol, interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
-        });
-
-        const messagesQueryGrant = await testHarness.agent.permissions.createGrant({
-          store       : true,
-          author      : alice.did.uri,
-          grantedTo   : aliceDeviceX.did.uri,
-          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-          scope       : { protocol: protocolFoo.protocol, interface: DwnInterfaceName.Messages, method: DwnMethodName.Query }
-        });
-
-        const recordsQueryGrant = await testHarness.agent.permissions.createGrant({
-          store       : true,
-          author      : alice.did.uri,
-          grantedTo   : aliceDeviceX.did.uri,
-          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
-          delegated   : true,
-          scope       : { protocol: protocolFoo.protocol, interface: DwnInterfaceName.Records, method: DwnMethodName.Query }
-        });
-
-        const { encodedData: readGrantData, ... messagesReadGrantMessage } = messagesReadGrant.message;
-        const processMessagesReadGrantAsOwner = await aliceDeviceXHarness.agent.processDwnRequest({
-          author      : aliceDeviceX.did.uri,
-          target      : aliceDeviceX.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : messagesReadGrantMessage,
-          dataStream  : new Blob([ Convert.base64Url(readGrantData).toUint8Array() ]),
-          signAsOwner : true
-        });
-        expect(processMessagesReadGrantAsOwner.reply.status.code).to.equal(202);
-
-        const processMessagesReadGrant = await aliceDeviceXHarness.agent.processDwnRequest({
-          author      : aliceDeviceX.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : messagesReadGrantMessage,
-          dataStream  : new Blob([ Convert.base64Url(readGrantData).toUint8Array() ])
-        });
-        expect(processMessagesReadGrant.reply.status.code).to.equal(202);
-
-        const { encodedData: queryGrantData, ... messagesQueryGrantMessage } = messagesQueryGrant.message;
-        const processMessagesQueryGrantAsOwner = await aliceDeviceXHarness.agent.processDwnRequest({
-          author      : aliceDeviceX.did.uri,
-          target      : aliceDeviceX.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : messagesQueryGrantMessage,
-          dataStream  : new Blob([ Convert.base64Url(queryGrantData).toUint8Array() ]),
-          signAsOwner : true
-        });
-        expect(processMessagesQueryGrantAsOwner.reply.status.code).to.equal(202);
-
-        const processMessagesQueryGrant = await aliceDeviceXHarness.agent.processDwnRequest({
-          author      : aliceDeviceX.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : messagesQueryGrantMessage,
-          dataStream  : new Blob([ Convert.base64Url(queryGrantData).toUint8Array() ]),
-        });
-        expect(processMessagesQueryGrant.reply.status.code).to.equal(202);
-
-        // send the grants to the remote DWN
-        const remoteMessagesQueryGrant = await testHarness.agent.sendDwnRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : messagesQueryGrantMessage,
-          dataStream  : new Blob([ Convert.base64Url(queryGrantData).toUint8Array() ]),
-        });
-        expect(remoteMessagesQueryGrant.reply.status.code).to.equal(202);
-
-        const remoteMessagesReadGrant = await testHarness.agent.sendDwnRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : messagesReadGrantMessage,
-          dataStream  : new Blob([ Convert.base64Url(readGrantData).toUint8Array() ]),
-        });
-        expect(remoteMessagesReadGrant.reply.status.code).to.equal(202);
-
-        const { encodedData: recordsQueryGrantData, ... recordsQueryGrantMessage } = recordsQueryGrant.message;
-        const processRecordsQueryGrant = await testHarness.agent.sendDwnRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsWrite,
-          rawMessage  : recordsQueryGrantMessage,
-          dataStream  : new Blob([ Convert.base64Url(recordsQueryGrantData).toUint8Array() ]),
-        });
-        expect(processRecordsQueryGrant.reply.status.code).to.equal(202);
-
-
-        // create a record for each protocol
-        const recordFoo = await testHarness.agent.sendDwnRequest({
-          author        : alice.did.uri,
-          target        : alice.did.uri,
-          messageType   : DwnInterface.RecordsWrite,
-          messageParams : {
-            dataFormat   : 'text/plain',
-            protocol     : protocolFoo.protocol,
-            protocolPath : 'foo',
-            schema       : protocolFoo.types.foo.schema
-          },
-          dataStream: new Blob(['Hello, foo!'])
-        });
-        expect(recordFoo.reply.status.code).to.equal(202);
-
-        const recordBar = await testHarness.agent.sendDwnRequest({
-          author        : alice.did.uri,
-          target        : alice.did.uri,
-          messageType   : DwnInterface.RecordsWrite,
-          messageParams : {
-            dataFormat   : 'text/plain',
-            protocol     : protocolBar.protocol,
-            protocolPath : 'bar',
-            schema       : protocolBar.types.bar.schema
-          },
-          dataStream: new Blob(['Hello, bar!'])
-        });
-        expect(recordBar.reply.status.code).to.equal(202);
-
-        // Register Alice's DID to be synchronized with only foo protocol
-        await aliceDeviceXHarness.agent.sync.registerIdentity({
-          did     : alice.did.uri,
-          options : {
-            protocols   : [ protocolFoo.protocol ],
-            delegateDid : aliceDeviceX.did.uri
-          }
-        });
-
-        // Execute Sync, only foo protocol should be synced
-        await aliceDeviceXHarness.agent.sync.sync();
-
-        // query aliceDeviceX to see foo records
-        const localFooRecords = await aliceDeviceXHarness.agent.dwn.processRequest({
-          author        : alice.did.uri,
-          target        : alice.did.uri,
-          granteeDid    : aliceDeviceX.did.uri,
-          messageType   : DwnInterface.RecordsQuery,
-          messageParams : {
-            delegatedGrant : recordsQueryGrant.message,
-            filter         : {
-              protocol: protocolFoo.protocol,
-            }
-          }
-        });
-        const didAuthor = Jws.getSignerDid(localFooRecords.message!.authorization?.signature.signatures[0]!);
-        expect(didAuthor).to.equal(aliceDeviceX.did.uri);
-        expect(localFooRecords.reply.status.code).to.equal(200);
-        expect(localFooRecords.reply.entries).to.have.length(1);
-        expect(localFooRecords.reply.entries?.map(entry => entry.recordId)).to.have.deep.equal([ recordFoo.message?.recordId ]);
-
-        // sanity check that bar records do not exist on aliceDeviceX
-        // since aliceDeviceX does not have a grant for the bar protocol, query the records using alice's signatures.
-        // confirm that the query was successful on alice's remote DWN and returns the message
-        const localBarRecordsQuery = await testHarness.agent.dwn.sendRequest({
-          author        : alice.did.uri,
-          target        : alice.did.uri,
-          messageType   : DwnInterface.RecordsQuery,
-          messageParams : {
-            filter: {
-              protocol: protocolBar.protocol,
-            }
-          }
-        });
-        expect(localBarRecordsQuery.reply.status.code).to.equal(200);
-        expect(localBarRecordsQuery.reply.entries).to.have.length(1);
-
-        // use the same message to query `aliceDeviceXHarness` DWN, should return zero results because they were not synced
-        const localBarRecords = await aliceDeviceXHarness.agent.dwn.processRequest({
-          author      : alice.did.uri,
-          target      : alice.did.uri,
-          messageType : DwnInterface.RecordsQuery,
-          rawMessage  : localBarRecordsQuery.message,
-        });
-        expect(localBarRecords.reply.status.code).to.equal(200);
-        expect(localBarRecords.reply.entries).to.have.length(0);
-      });
-
-      it('defaults to all protocols and undefined delegate if no options are provided', async () => {
-        // spy on AbstractLevel put
-        const abstractLevelPut = sinon.spy(AbstractLevel.prototype, 'put');
-
-        // register identity without any options
-        await testHarness.agent.sync.registerIdentity({
-          did: alice.did.uri
-        });
-
-        const registerIdentitiesPutCall = abstractLevelPut.args[0];
-        const options = JSON.parse(registerIdentitiesPutCall[1] as string);
-        // confirm that without options the options are set to an empty protocol array
-        expect(options).to.deep.equal({ protocols: [] });
       });
     });
 
@@ -2848,6 +2267,701 @@ describe('SyncEngineLevel', () => {
         clock.restore();
       });
 
+    });
+
+    describe('Identity Registration', () => {
+      it('registers an identity with the sync engine', async () => {
+        const did = alice.did.uri;
+        const syncOption: SyncIdentityOptions = {
+          protocols: ['https://protocol.xyz/foo', 'https://protocol.xyz/bar', 'https://protocol.xyz/baz']
+        };
+        await testHarness.agent.sync.registerIdentity({ did, options: syncOption });
+
+        const identityOptions = await testHarness.agent.sync.getIdentityOptions(did);
+        expect(identityOptions).to.deep.equal(syncOption);
+      });
+
+      it('throws if attempting to register an identity that is already registered', async () => {
+        const did = alice.did.uri;
+        const syncOption: SyncIdentityOptions = {
+          protocols: ['https://protocol.xyz/foo', 'https://protocol.xyz/bar', 'https://protocol.xyz/baz']
+        };
+        await testHarness.agent.sync.registerIdentity({ did, options: syncOption });
+
+        try {
+          await testHarness.agent.sync.registerIdentity({ did, options: syncOption });
+          expect.fail('Expected an error to be thrown');
+        } catch(error:any) {
+          expect(error.message).to.equal(`SyncEngineLevel: Identity with DID ${did} is already registered.`);
+        }
+      });
+
+      it('unregisters an identity from the sync engine', async () => {
+        const did = alice.did.uri;
+        const syncOption: SyncIdentityOptions = {
+          protocols: ['https://protocol.xyz/foo', 'https://protocol.xyz/bar', 'https://protocol.xyz/baz']
+        };
+        await testHarness.agent.sync.registerIdentity({ did, options: syncOption });
+
+        // sanity confirm that the identity is registered
+        let identityOptions = await testHarness.agent.sync.getIdentityOptions(did);
+        expect(identityOptions).to.deep.equal(syncOption);
+
+        await testHarness.agent.sync.unregisterIdentity(did);
+
+        identityOptions = await testHarness.agent.sync.getIdentityOptions(did);
+        expect(identityOptions).to.be.undefined;
+      });
+
+      it('throws when attempting to unregister an identity that is not registered', async () => {
+        const did = alice.did.uri;
+        try {
+          await testHarness.agent.sync.unregisterIdentity(did);
+          expect.fail('Expected an error to be thrown');
+        } catch(error:any) {
+          expect(error.message).to.equal(`SyncEngineLevel: Identity with DID ${did} is not registered.`);
+        }
+      });
+
+      it('gets the sync options for a specific identity', async () => {
+        const did = alice.did.uri;
+        const syncOption: SyncIdentityOptions = {
+          protocols: ['https://protocol.xyz/foo', 'https://protocol.xyz/bar', 'https://protocol.xyz/baz']
+        };
+        await testHarness.agent.sync.registerIdentity({ did, options: syncOption });
+
+        const identityOptions = await testHarness.agent.sync.getIdentityOptions(did);
+        expect(identityOptions).to.deep.equal(syncOption);
+      });
+
+      it('throws if underlying DB throws an error when getting identity options', async () => {
+        // stub the sublevel get method to throw an error
+        const stubbedSublevel = {
+          get: (_key:string) => { throw { code: 'DB_ERROR' }; }
+        };
+        sinon.stub(syncEngine['_db'], 'sublevel').withArgs('registeredIdentities').returns(stubbedSublevel as any);
+
+        try {
+          await testHarness.agent.sync.getIdentityOptions('did:example:123');
+          expect.fail('Expected an error to be thrown');
+        } catch(error:any) {
+          expect(error.message).to.equal('SyncEngineLevel: Error reading level: DB_ERROR.');
+        }
+      });
+
+      it('updates the sync options for a specific identity', async () => {
+        const did = alice.did.uri;
+        const syncOption: SyncIdentityOptions = {
+          protocols: ['https://protocol.xyz/foo', 'https://protocol.xyz/bar', 'https://protocol.xyz/baz']
+        };
+        await testHarness.agent.sync.registerIdentity({ did, options: syncOption });
+
+        // sanity confirm that the identity is registered
+        let identityOptions = await testHarness.agent.sync.getIdentityOptions(did);
+        expect(identityOptions).to.deep.equal(syncOption);
+
+        const updatedSyncOption: SyncIdentityOptions = {
+          protocols: ['https://protocol.xyz/foo', 'https://protocol.xyz/bar']
+        };
+        await testHarness.agent.sync.updateIdentityOptions({ did, options: updatedSyncOption });
+
+        identityOptions = await testHarness.agent.sync.getIdentityOptions(did);
+        expect(identityOptions).to.deep.equal(updatedSyncOption);
+      });
+
+      it('throws if attempting to update an identity that is not registered', async () => {
+        const did = alice.did.uri;
+        const syncOption: SyncIdentityOptions = {
+          protocols: ['https://protocol.xyz/foo', 'https://protocol.xyz/bar', 'https://protocol.xyz/baz']
+        };
+
+        try {
+          await testHarness.agent.sync.updateIdentityOptions({ did, options: syncOption });
+          expect.fail('Expected an error to be thrown');
+        } catch(error:any) {
+          expect(error.message).to.equal(`SyncEngineLevel: Identity with DID ${did} is not registered.`);
+        }
+      });
+
+      it('syncs only specified protocols', async () => {
+        // create new identity to not conflict the previous tests's remote records
+        const aliceSync = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
+
+        // create 3 local protocols
+        const protocolFoo: ProtocolDefinition = {
+          published : true,
+          protocol  : 'https://protocol.xyz/foo',
+          types     : {
+            foo: {
+              schema      : 'https://schemas.xyz/foo',
+              dataFormats : ['text/plain', 'application/json']
+            }
+          },
+          structure: {
+            foo: {}
+          }
+        };
+
+        const protocolBar: ProtocolDefinition = {
+          published : true,
+          protocol  : 'https://protocol.xyz/bar',
+          types     : {
+            bar: {
+              schema      : 'https://schemas.xyz/bar',
+              dataFormats : ['text/plain', 'application/json']
+            }
+          },
+          structure: {
+            bar: {}
+          }
+        };
+
+        const protocolBaz: ProtocolDefinition = {
+          published : true,
+          protocol  : 'https://protocol.xyz/baz',
+          types     : {
+            baz: {
+              schema      : 'https://schemas.xyz/baz',
+              dataFormats : ['text/plain', 'application/json']
+            }
+          },
+          structure: {
+            baz: {}
+          }
+        };
+
+        const protocolsFoo = await testHarness.agent.processDwnRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.ProtocolsConfigure,
+          messageParams : {
+            definition: protocolFoo
+          }
+        });
+        expect(protocolsFoo.reply.status.code).to.equal(202);
+
+        const protocolsBar = await testHarness.agent.processDwnRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.ProtocolsConfigure,
+          messageParams : {
+            definition: protocolBar
+          }
+        });
+        expect(protocolsBar.reply.status.code).to.equal(202);
+
+        const protocolsBaz = await testHarness.agent.processDwnRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.ProtocolsConfigure,
+          messageParams : {
+            definition: protocolBaz
+          }
+        });
+        expect(protocolsBaz.reply.status.code).to.equal(202);
+
+        // write a record for each protocol
+        const recordFoo = await testHarness.agent.processDwnRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat   : 'text/plain',
+            protocol     : protocolFoo.protocol,
+            protocolPath : 'foo',
+            schema       : protocolFoo.types.foo.schema
+          },
+          dataStream: new Blob(['Hello, foo!'])
+        });
+        expect(recordFoo.reply.status.code).to.equal(202);
+
+        const recordBar = await testHarness.agent.processDwnRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat   : 'text/plain',
+            protocol     : protocolBar.protocol,
+            protocolPath : 'bar',
+            schema       : protocolBar.types.bar.schema
+          },
+          dataStream: new Blob(['Hello, bar!'])
+        });
+        expect(recordBar.reply.status.code).to.equal(202);
+
+        const recordBaz = await testHarness.agent.processDwnRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat   : 'text/plain',
+            protocol     : protocolBaz.protocol,
+            protocolPath : 'baz',
+            schema       : protocolBaz.types.baz.schema
+          },
+          dataStream: new Blob(['Hello, baz!'])
+        });
+        expect(recordBaz.reply.status.code).to.equal(202);
+
+        // Register Alice's DID to be synchronized with only foo and bar protocols
+        await testHarness.agent.sync.registerIdentity({
+          did     : aliceSync.did.uri,
+          options : {
+            protocols: [ 'https://protocol.xyz/foo', 'https://protocol.xyz/bar' ]
+          }
+        });
+
+        // Execute Sync to push sync, only foo protocol should be synced
+        await syncEngine.sync('push');
+
+        // query remote to see foo protocol
+        const remoteProtocolsQueryResponse = await testHarness.agent.dwn.sendRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.ProtocolsQuery,
+          messageParams : {}
+        });
+        const remoteProtocolsQueryReply = remoteProtocolsQueryResponse.reply;
+        expect(remoteProtocolsQueryReply.status.code).to.equal(200);
+        expect(remoteProtocolsQueryReply.entries?.length).to.equal(2);
+        expect(remoteProtocolsQueryReply.entries).to.have.deep.equal([ protocolsFoo.message, protocolsBar.message ]);
+
+        // query remote to see foo record
+        let remoteFooRecordsResponse = await testHarness.agent.dwn.sendRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            filter: {
+              protocol: protocolFoo.protocol,
+            }
+          }
+        });
+        let remoteFooRecordsReply = remoteFooRecordsResponse.reply;
+        expect(remoteFooRecordsReply.status.code).to.equal(200);
+        expect(remoteFooRecordsReply.entries).to.have.length(1);
+        let remoteFooRecordIds = remoteFooRecordsReply.entries?.map(entry => entry.recordId);
+        expect(remoteFooRecordIds).to.have.members([ recordFoo.message!.recordId ]);
+
+        // query remote to see bar record
+        let remoteBarRecordsResponse = await testHarness.agent.dwn.sendRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            filter: {
+              protocol: protocolBar.protocol,
+            }
+          }
+        });
+        let remoteBarRecordsReply = remoteBarRecordsResponse.reply;
+        expect(remoteBarRecordsReply.status.code).to.equal(200);
+        expect(remoteBarRecordsReply.entries).to.have.length(1);
+        let remoteBarRecordIds = remoteBarRecordsReply.entries?.map(entry => entry.recordId);
+        expect(remoteBarRecordIds).to.have.members([ recordBar.message!.recordId ]);
+
+        // query remote to see baz record, none should be returned
+        let remoteBazRecordsResponse = await testHarness.agent.dwn.sendRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            filter: {
+              protocol: protocolBaz.protocol,
+            }
+          }
+        });
+        let remoteBazRecordsReply = remoteBazRecordsResponse.reply;
+        expect(remoteBazRecordsReply.status.code).to.equal(200);
+        expect(remoteBazRecordsReply.entries).to.have.length(0);
+
+
+        // now write a foo record remotely, and a bar record locally
+        // initiate a sync to both push and pull the records respectively
+
+        // write a record to the remote for the foo protocol
+        const recordFoo2 = await testHarness.agent.sendDwnRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat   : 'text/plain',
+            protocol     : protocolFoo.protocol,
+            protocolPath : 'foo',
+            schema       : protocolFoo.types.foo.schema
+          },
+          dataStream: new Blob(['Hello, foo 2!'])
+        });
+        expect(recordFoo2.reply.status.code).to.equal(202);
+
+        // write a local record to the bar protocol
+        const recordBar2 = await testHarness.agent.processDwnRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat   : 'text/plain',
+            protocol     : protocolBar.protocol,
+            protocolPath : 'bar',
+            schema       : protocolBar.types.bar.schema
+          },
+          dataStream: new Blob(['Hello, bar 2!'])
+        });
+        expect(recordBar2.reply.status.code).to.equal(202);
+
+        // confirm that the foo record is not yet in the local DWN
+        let localFooRecordsResponse = await testHarness.agent.dwn.processRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            filter: {
+              protocol: protocolFoo.protocol,
+            }
+          }
+        });
+        let localFooRecordsReply = localFooRecordsResponse.reply;
+        expect(localFooRecordsReply.status.code).to.equal(200);
+        expect(localFooRecordsReply.entries).to.have.length(1);
+        let localFooRecordIds = localFooRecordsReply.entries?.map(entry => entry.recordId);
+        expect(localFooRecordIds).to.not.include(recordFoo2.message!.recordId);
+
+
+        // confirm that the bar record is not yet in the remote DWN
+        remoteBarRecordsResponse = await testHarness.agent.dwn.sendRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            filter: {
+              protocol: protocolBar.protocol,
+            }
+          }
+        });
+        remoteBarRecordsReply = remoteBarRecordsResponse.reply;
+        expect(remoteBarRecordsReply.status.code).to.equal(200);
+        expect(remoteBarRecordsReply.entries).to.have.length(1);
+        remoteBarRecordIds = remoteBarRecordsReply.entries?.map(entry => entry.recordId);
+        expect(remoteBarRecordIds).to.not.include(recordBar2.message!.recordId);
+
+        // preform a pull and push sync
+        await syncEngine.sync();
+
+        // query local to see foo records with the new record
+        localFooRecordsResponse = await testHarness.agent.dwn.processRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            filter: {
+              protocol: protocolFoo.protocol,
+            }
+          }
+        });
+        localFooRecordsReply = localFooRecordsResponse.reply;
+        expect(localFooRecordsReply.status.code).to.equal(200);
+        expect(localFooRecordsReply.entries).to.have.length(2);
+        localFooRecordIds = localFooRecordsReply.entries?.map(entry => entry.recordId);
+        expect(localFooRecordIds).to.have.members([ recordFoo.message!.recordId, recordFoo2.message!.recordId ]);
+
+        // query remote to see bar records with the new record
+        remoteBarRecordsResponse = await testHarness.agent.dwn.sendRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            filter: {
+              protocol: protocolBar.protocol,
+            }
+          }
+        });
+        remoteBarRecordsReply = remoteBarRecordsResponse.reply;
+        expect(remoteBarRecordsReply.status.code).to.equal(200);
+        expect(remoteBarRecordsReply.entries).to.have.length(2);
+        remoteBarRecordIds = remoteBarRecordsReply.entries?.map(entry => entry.recordId);
+        expect(remoteBarRecordIds).to.have.members([ recordBar.message!.recordId, recordBar2.message!.recordId ]);
+
+        // confirm that still no baz records exist remotely
+        remoteBazRecordsResponse = await testHarness.agent.dwn.sendRequest({
+          author        : aliceSync.did.uri,
+          target        : aliceSync.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            filter: {
+              protocol: protocolBaz.protocol,
+            }
+          }
+        });
+        remoteBazRecordsReply = remoteBazRecordsResponse.reply;
+        expect(remoteBazRecordsReply.status.code).to.equal(200);
+        expect(remoteBazRecordsReply.entries).to.have.length(0);
+      });
+
+      it('syncs only specified protocols and delegates', async () => {
+        const alice = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
+
+        const aliceDeviceXHarness = await PlatformAgentTestHarness.setup({
+          agentClass       : TestAgent,
+          agentStores      : 'memory',
+          testDataLocation : '__TESTDATA__/alice-device',
+        });
+        await aliceDeviceXHarness.clearStorage();
+        await aliceDeviceXHarness.createAgentDid();
+
+        // create a connected DID
+        const aliceDeviceX = await aliceDeviceXHarness.agent.identity.create({
+          store     : true,
+          didMethod : 'jwk',
+          metadata  : { name: 'Alice Device X', connectedDid: alice.did.uri }
+        });
+
+        // Alice create 2 protocols on alice's remote DWN
+        const protocolFoo: ProtocolDefinition = {
+          published : true,
+          protocol  : 'https://protocol.xyz/foo',
+          types     : {
+            foo: {
+              schema      : 'https://schemas.xyz/foo',
+              dataFormats : ['text/plain', 'application/json']
+            }
+          },
+          structure: {
+            foo: {}
+          }
+        };
+
+        const protocolBar: ProtocolDefinition = {
+          published : true,
+          protocol  : 'https://protocol.xyz/bar',
+          types     : {
+            bar: {
+              schema      : 'https://schemas.xyz/bar',
+              dataFormats : ['text/plain', 'application/json']
+            }
+          },
+          structure: {
+            bar: {}
+          }
+        };
+
+        // configure the protocols
+        const protocolsFoo = await testHarness.agent.sendDwnRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.ProtocolsConfigure,
+          messageParams : {
+            definition: protocolFoo
+          }
+        });
+        expect(protocolsFoo.reply.status.code).to.equal(202);
+
+        const protocolsBar = await testHarness.agent.sendDwnRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.ProtocolsConfigure,
+          messageParams : {
+            definition: protocolBar
+          }
+        });
+        expect(protocolsBar.reply.status.code).to.equal(202);
+
+        // create grants for foo protocol, granted to aliceDeviceX
+        const messagesReadGrant = await testHarness.agent.permissions.createGrant({
+          store       : true,
+          author      : alice.did.uri,
+          grantedTo   : aliceDeviceX.did.uri,
+          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+          scope       : { protocol: protocolFoo.protocol, interface: DwnInterfaceName.Messages, method: DwnMethodName.Read }
+        });
+
+        const messagesQueryGrant = await testHarness.agent.permissions.createGrant({
+          store       : true,
+          author      : alice.did.uri,
+          grantedTo   : aliceDeviceX.did.uri,
+          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+          scope       : { protocol: protocolFoo.protocol, interface: DwnInterfaceName.Messages, method: DwnMethodName.Query }
+        });
+
+        const recordsQueryGrant = await testHarness.agent.permissions.createGrant({
+          store       : true,
+          author      : alice.did.uri,
+          grantedTo   : aliceDeviceX.did.uri,
+          dateExpires : Time.createOffsetTimestamp({ seconds: 60 }),
+          delegated   : true,
+          scope       : { protocol: protocolFoo.protocol, interface: DwnInterfaceName.Records, method: DwnMethodName.Query }
+        });
+
+        const { encodedData: readGrantData, ... messagesReadGrantMessage } = messagesReadGrant.message;
+        const processMessagesReadGrantAsOwner = await aliceDeviceXHarness.agent.processDwnRequest({
+          author      : aliceDeviceX.did.uri,
+          target      : aliceDeviceX.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : messagesReadGrantMessage,
+          dataStream  : new Blob([ Convert.base64Url(readGrantData).toUint8Array() ]),
+          signAsOwner : true
+        });
+        expect(processMessagesReadGrantAsOwner.reply.status.code).to.equal(202);
+
+        const processMessagesReadGrant = await aliceDeviceXHarness.agent.processDwnRequest({
+          author      : aliceDeviceX.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : messagesReadGrantMessage,
+          dataStream  : new Blob([ Convert.base64Url(readGrantData).toUint8Array() ])
+        });
+        expect(processMessagesReadGrant.reply.status.code).to.equal(202);
+
+        const { encodedData: queryGrantData, ... messagesQueryGrantMessage } = messagesQueryGrant.message;
+        const processMessagesQueryGrantAsOwner = await aliceDeviceXHarness.agent.processDwnRequest({
+          author      : aliceDeviceX.did.uri,
+          target      : aliceDeviceX.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : messagesQueryGrantMessage,
+          dataStream  : new Blob([ Convert.base64Url(queryGrantData).toUint8Array() ]),
+          signAsOwner : true
+        });
+        expect(processMessagesQueryGrantAsOwner.reply.status.code).to.equal(202);
+
+        const processMessagesQueryGrant = await aliceDeviceXHarness.agent.processDwnRequest({
+          author      : aliceDeviceX.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : messagesQueryGrantMessage,
+          dataStream  : new Blob([ Convert.base64Url(queryGrantData).toUint8Array() ]),
+        });
+        expect(processMessagesQueryGrant.reply.status.code).to.equal(202);
+
+        // send the grants to the remote DWN
+        const remoteMessagesQueryGrant = await testHarness.agent.sendDwnRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : messagesQueryGrantMessage,
+          dataStream  : new Blob([ Convert.base64Url(queryGrantData).toUint8Array() ]),
+        });
+        expect(remoteMessagesQueryGrant.reply.status.code).to.equal(202);
+
+        const remoteMessagesReadGrant = await testHarness.agent.sendDwnRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : messagesReadGrantMessage,
+          dataStream  : new Blob([ Convert.base64Url(readGrantData).toUint8Array() ]),
+        });
+        expect(remoteMessagesReadGrant.reply.status.code).to.equal(202);
+
+        const { encodedData: recordsQueryGrantData, ... recordsQueryGrantMessage } = recordsQueryGrant.message;
+        const processRecordsQueryGrant = await testHarness.agent.sendDwnRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsWrite,
+          rawMessage  : recordsQueryGrantMessage,
+          dataStream  : new Blob([ Convert.base64Url(recordsQueryGrantData).toUint8Array() ]),
+        });
+        expect(processRecordsQueryGrant.reply.status.code).to.equal(202);
+
+
+        // create a record for each protocol
+        const recordFoo = await testHarness.agent.sendDwnRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat   : 'text/plain',
+            protocol     : protocolFoo.protocol,
+            protocolPath : 'foo',
+            schema       : protocolFoo.types.foo.schema
+          },
+          dataStream: new Blob(['Hello, foo!'])
+        });
+        expect(recordFoo.reply.status.code).to.equal(202);
+
+        const recordBar = await testHarness.agent.sendDwnRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsWrite,
+          messageParams : {
+            dataFormat   : 'text/plain',
+            protocol     : protocolBar.protocol,
+            protocolPath : 'bar',
+            schema       : protocolBar.types.bar.schema
+          },
+          dataStream: new Blob(['Hello, bar!'])
+        });
+        expect(recordBar.reply.status.code).to.equal(202);
+
+        // Register Alice's DID to be synchronized with only foo protocol
+        await aliceDeviceXHarness.agent.sync.registerIdentity({
+          did     : alice.did.uri,
+          options : {
+            protocols   : [ protocolFoo.protocol ],
+            delegateDid : aliceDeviceX.did.uri
+          }
+        });
+
+        // Execute Sync, only foo protocol should be synced
+        await aliceDeviceXHarness.agent.sync.sync();
+
+        // query aliceDeviceX to see foo records
+        const localFooRecords = await aliceDeviceXHarness.agent.dwn.processRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          granteeDid    : aliceDeviceX.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            delegatedGrant : recordsQueryGrant.message,
+            filter         : {
+              protocol: protocolFoo.protocol,
+            }
+          }
+        });
+        const didAuthor = Jws.getSignerDid(localFooRecords.message!.authorization?.signature.signatures[0]!);
+        expect(didAuthor).to.equal(aliceDeviceX.did.uri);
+        expect(localFooRecords.reply.status.code).to.equal(200);
+        expect(localFooRecords.reply.entries).to.have.length(1);
+        expect(localFooRecords.reply.entries?.map(entry => entry.recordId)).to.have.deep.equal([ recordFoo.message?.recordId ]);
+
+        // sanity check that bar records do not exist on aliceDeviceX
+        // since aliceDeviceX does not have a grant for the bar protocol, query the records using alice's signatures.
+        // confirm that the query was successful on alice's remote DWN and returns the message
+        const localBarRecordsQuery = await testHarness.agent.dwn.sendRequest({
+          author        : alice.did.uri,
+          target        : alice.did.uri,
+          messageType   : DwnInterface.RecordsQuery,
+          messageParams : {
+            filter: {
+              protocol: protocolBar.protocol,
+            }
+          }
+        });
+        expect(localBarRecordsQuery.reply.status.code).to.equal(200);
+        expect(localBarRecordsQuery.reply.entries).to.have.length(1);
+
+        // use the same message to query `aliceDeviceXHarness` DWN, should return zero results because they were not synced
+        const localBarRecords = await aliceDeviceXHarness.agent.dwn.processRequest({
+          author      : alice.did.uri,
+          target      : alice.did.uri,
+          messageType : DwnInterface.RecordsQuery,
+          rawMessage  : localBarRecordsQuery.message,
+        });
+        expect(localBarRecords.reply.status.code).to.equal(200);
+        expect(localBarRecords.reply.entries).to.have.length(0);
+      });
+
+      it('defaults to all protocols and undefined delegate if no options are provided', async () => {
+        // spy on AbstractLevel put
+        const abstractLevelPut = sinon.spy(AbstractLevel.prototype, 'put');
+
+        // register identity without any options
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri
+        });
+
+        const registerIdentitiesPutCall = abstractLevelPut.args[0];
+        const options = JSON.parse(registerIdentitiesPutCall[1] as string);
+        // confirm that without options the options are set to an empty protocol array
+        expect(options).to.deep.equal({ protocols: [] });
+      });
     });
   });
 });

@@ -24,6 +24,18 @@ export interface SyncEngine {
    */
   registerIdentity(params: { did: string, options?: SyncIdentityOptions }): Promise<void>;
   /**
+   * Unregister an identity from the SyncEngine, this will stop syncing messages for this identity.
+   */
+  unregisterIdentity(did: string): Promise<void>;
+  /**
+   * Get the Sync Options for a specific identity.
+   */
+  getIdentityOptions(did: string): Promise<SyncIdentityOptions | undefined>;
+  /**
+   * Update the Sync Options for a specific identity, replaces the existing options.
+   */
+  updateIdentityOptions(params: { did: string, options: SyncIdentityOptions }): Promise<void>;
+  /**
    * Preforms a one-shot sync operation. If no direction is provided, it will perform both push and pull.
    * @param direction which direction you'd like to perform the sync operation.
    *
