@@ -34,7 +34,7 @@ export interface SyncEngine {
   /**
    * Update the Sync Options for a specific identity, replaces the existing options.
    */
-  updateIdentityOptions(did: string, options: SyncIdentityOptions): Promise<void>;
+  updateIdentityOptions(params: { did: string, options: SyncIdentityOptions }): Promise<void>;
   /**
    * Preforms a one-shot sync operation. If no direction is provided, it will perform both push and pull.
    * @param direction which direction you'd like to perform the sync operation.

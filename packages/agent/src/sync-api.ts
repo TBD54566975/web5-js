@@ -53,8 +53,8 @@ export class AgentSyncApi implements SyncEngine {
     return await this._syncEngine.getIdentityOptions(did);
   }
 
-  public async updateIdentityOptions(did: string, options: SyncIdentityOptions): Promise<void> {
-    await this._syncEngine.updateIdentityOptions(did, options);
+  public async updateIdentityOptions(params: { did: string, options: SyncIdentityOptions }): Promise<void> {
+    await this._syncEngine.updateIdentityOptions(params);
   }
 
   public sync(direction?: 'push' | 'pull'): Promise<void> {

@@ -260,7 +260,7 @@ export class SyncEngineLevel implements SyncEngine {
 
     const existing = await this.getIdentityOptions(did);
     if (existing) {
-      throw new Error(`SyncEngineLevel: Identity with DID ${did} is already registered`);
+      throw new Error(`SyncEngineLevel: Identity with DID ${did} is already registered.`);
     }
 
     // if no options are provided, we default to no delegateDid and all protocols (empty array)
@@ -274,7 +274,7 @@ export class SyncEngineLevel implements SyncEngine {
     const registeredIdentities = this._db.sublevel('registeredIdentities');
     const existing = await this.getIdentityOptions(did);
     if (!existing) {
-      throw new Error(`SyncEngineLevel: Identity with DID ${did} is not registered`);
+      throw new Error(`SyncEngineLevel: Identity with DID ${did} is not registered.`);
     }
 
     await registeredIdentities.del(did);
@@ -298,11 +298,11 @@ export class SyncEngineLevel implements SyncEngine {
     }
   }
 
-  public async updateIdentityOptions(did: string, options: SyncIdentityOptions): Promise<void> {
+  public async updateIdentityOptions({ did, options }: { did: string, options: SyncIdentityOptions }): Promise<void> {
     const registeredIdentities = this._db.sublevel('registeredIdentities');
     const existingOptions = await this.getIdentityOptions(did);
     if (!existingOptions) {
-      throw new Error(`SyncEngineLevel: Identity with DID ${did} is not registered`);
+      throw new Error(`SyncEngineLevel: Identity with DID ${did} is not registered.`);
     }
 
     await registeredIdentities.put(did, JSON.stringify(options));
