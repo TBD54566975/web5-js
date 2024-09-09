@@ -1,5 +1,5 @@
 import type { ULIDFactory } from 'ulidx';
-import type { AbstractBatchOperation, AbstractLevel } from 'abstract-level';
+import { AbstractBatchOperation, AbstractLevel } from 'abstract-level';
 import type {
   GenericMessage,
   MessagesQueryReply,
@@ -171,6 +171,7 @@ export class SyncEngineLevel implements SyncEngine {
           message   : messagesRead.message,
         }) as MessagesReadReply;
       } catch(e) {
+        console.log('SyncEngineLevel: pull - Error fetching message from remote DWN', e);
         errored.add(dwnUrl);
         continue;
       }
@@ -257,10 +258,53 @@ export class SyncEngineLevel implements SyncEngine {
     // Get a reference to the `registeredIdentities` sublevel.
     const registeredIdentities = this._db.sublevel('registeredIdentities');
 
+    const existing = await this.getIdentityOptions(did);
+    if (existing) {
+      throw new Error(`SyncEngineLevel: Identity with DID ${did} is already registered`);
+    }
+
     // if no options are provided, we default to no delegateDid and all protocols (empty array)
     options ??= { protocols: [] };
 
     // Add (or overwrite, if present) the Identity's DID as a registered identity.
+    await registeredIdentities.put(did, JSON.stringify(options));
+  }
+
+  public async unregisterIdentity(did: string): Promise<void> {
+    const registeredIdentities = this._db.sublevel('registeredIdentities');
+    const existing = await this.getIdentityOptions(did);
+    if (!existing) {
+      throw new Error(`SyncEngineLevel: Identity with DID ${did} is not registered`);
+    }
+
+    await registeredIdentities.del(did);
+  }
+
+  public async getIdentityOptions(did: string): Promise<SyncIdentityOptions | undefined> {
+    const registeredIdentities = this._db.sublevel('registeredIdentities');
+    try {
+      const options = await registeredIdentities.get(did);
+      if (options) {
+        return JSON.parse(options) as SyncIdentityOptions;
+      }
+    } catch(error) {
+      const e = error as { code: string };
+      // `Level`` throws an error if the key is not present.  Return `undefined` in this case.
+      if (e.code === 'LEVEL_NOT_FOUND') {
+        return;
+      } else {
+        throw new Error(`SyncEngineLevel: Error reading level: ${e.code}.`);
+      }
+    }
+  }
+
+  public async updateIdentityOptions(did: string, options: SyncIdentityOptions): Promise<void> {
+    const registeredIdentities = this._db.sublevel('registeredIdentities');
+    const existingOptions = await this.getIdentityOptions(did);
+    if (!existingOptions) {
+      throw new Error(`SyncEngineLevel: Identity with DID ${did} is not registered`);
+    }
+
     await registeredIdentities.put(did, JSON.stringify(options));
   }
 

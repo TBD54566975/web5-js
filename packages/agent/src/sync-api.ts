@@ -45,6 +45,18 @@ export class AgentSyncApi implements SyncEngine {
     await this._syncEngine.registerIdentity(params);
   }
 
+  public async unregisterIdentity(did: string): Promise<void> {
+    await this._syncEngine.unregisterIdentity(did);
+  }
+
+  public async getIdentityOptions(did: string): Promise<SyncIdentityOptions | undefined> {
+    return await this._syncEngine.getIdentityOptions(did);
+  }
+
+  public async updateIdentityOptions(did: string, options: SyncIdentityOptions): Promise<void> {
+    await this._syncEngine.updateIdentityOptions(did, options);
+  }
+
   public sync(direction?: 'push' | 'pull'): Promise<void> {
     return this._syncEngine.sync(direction);
   }
