@@ -1,5 +1,5 @@
 import type { ULIDFactory } from 'ulidx';
-import { AbstractBatchOperation, AbstractLevel } from 'abstract-level';
+import type { AbstractBatchOperation, AbstractLevel } from 'abstract-level';
 import type {
   GenericMessage,
   MessagesQueryReply,
