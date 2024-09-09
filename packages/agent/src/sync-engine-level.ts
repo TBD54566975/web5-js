@@ -171,7 +171,6 @@ export class SyncEngineLevel implements SyncEngine {
           message   : messagesRead.message,
         }) as MessagesReadReply;
       } catch(e) {
-        console.log('SyncEngineLevel: pull - Error fetching message from remote DWN', e);
         errored.add(dwnUrl);
         continue;
       }
