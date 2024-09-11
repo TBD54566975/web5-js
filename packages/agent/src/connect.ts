@@ -276,6 +276,7 @@ function createPermissionRequestForProtocol({ definition, permissions }: Protoco
           interface : DwnInterfaceName.Protocols,
           method    : DwnMethodName.Configure,
         });
+        break;
     }
   }
 
