@@ -602,12 +602,16 @@ function encryptAuthResponse({
 }
 
 function shouldUseDelegatePermission(scope: DwnPermissionScope): boolean {
+  // Currently all record permissions are treated as delegated permissions
+  // In the future only methods that modify state will be delegated and the rest will be normal permissions
   if (isRecordPermissionScope(scope)) {
     return true;
   } else if (scope.interface === DwnInterfaceName.Protocols && scope.method === DwnMethodName.Configure) {
+    // ProtocolConfigure messages are also delegated, as they modify state
     return true;
   }
 
+  // All other permissions are not treated as delegated
   return false;
 }
 
@@ -626,7 +630,6 @@ async function createPermissionGrants(
   // TODO: cleanup all grants if one fails by deleting them from the DWN: https://github.com/TBD54566975/web5-js/issues/849
   const permissionGrants = await Promise.all(
     scopes.map((scope) => {
-
       // check if the scope is a records permission scope, or a protocol configure scope, if so it should use a delegated permission.
       const delegated = shouldUseDelegatePermission(scope);
       return permissionsApi.createGrant({

@@ -481,11 +481,10 @@ export class DwnApi {
           // If the protocol is public, the query should be successful. This allows the app to query for public protocols without having a grant.
 
           try {
-            const protocolFromRequest = request.message.filter?.protocol;
             const { grant: { id: permissionGrantId } } = await this.permissionsApi.getPermissionForRequest({
               connectedDid : this.connectedDid,
               delegateDid  : this.delegateDid,
-              protocol     : protocolFromRequest,
+              protocol     : request.message.filter.protocol,
               cached       : true,
               messageType  : agentRequest.messageType
             });
