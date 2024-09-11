@@ -188,7 +188,7 @@ export type ConnectPermissionRequest = {
 /**
  * Shorthand for the types of permissions that can be requested.
  */
-export type Permission = 'write' | 'read' | 'delete' | 'query' | 'subscribe';
+export type Permission = 'write' | 'read' | 'delete' | 'query' | 'subscribe' | 'configure';
 
 /**
  * The options for creating a permission request for a given protocol.
@@ -203,10 +203,19 @@ export type ProtocolPermissionOptions = {
 
 /**
  * Creates a set of Dwn Permission Scopes to request for a given protocol.
- * If no permissions are provided, the default is to request all permissions (write, read, delete, query, subscribe).
+ *
+ * If no permissions are provided, the default is to request all relevant record permissions (write, read, delete, query, subscribe).
+ * 'configure' is not included by default, as this gives the application a lot of control over the protocol.
  */
 function createPermissionRequestForProtocol({ definition, permissions }: ProtocolPermissionOptions): ConnectPermissionRequest {
   const requests: DwnPermissionScope[] = [];
+
+  // Add the ability to query for the specific protocol
+  requests.push({
+    protocol  : definition.protocol,
+    interface : DwnInterfaceName.Protocols,
+    method    : DwnMethodName.Query,
+  });
 
   // In order to enable sync, we must request permissions for `MessagesQuery`, `MessagesRead` and `MessagesSubscribe`
   requests.push({
@@ -222,9 +231,6 @@ function createPermissionRequestForProtocol({ definition, permissions }: Protoco
     interface : DwnInterfaceName.Messages,
     method    : DwnMethodName.Subscribe,
   });
-
-  // TODO: Scope Protocol Permissions to a specific protocol. https://github.com/TBD54566975/dwn-sdk-js/issues/802
-  // When this is done we should add a request to query the specific protocol.
 
   // We also request any additional permissions the user has requested for this protocol
   for (const permission of permissions) {
@@ -264,6 +270,12 @@ function createPermissionRequestForProtocol({ definition, permissions }: Protoco
           method    : DwnMethodName.Subscribe,
         });
         break;
+      case 'configure':
+        requests.push({
+          protocol  : definition.protocol,
+          interface : DwnInterfaceName.Protocols,
+          method    : DwnMethodName.Configure,
+        });
     }
   }
 

@@ -827,10 +827,11 @@ describe('web5 connect', function () {
       });
 
       expect(permissionRequests.protocolDefinition).to.deep.equal(protocol);
-      expect(permissionRequests.permissionScopes.length).to.equal(3); // only includes the sync permissions
+      expect(permissionRequests.permissionScopes.length).to.equal(4); // only includes the sync permissions + protocol query permission
       expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Messages && scope.method === DwnMethodName.Read)).to.not.be.undefined;
       expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Messages && scope.method === DwnMethodName.Query)).to.not.be.undefined;
       expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Messages && scope.method === DwnMethodName.Subscribe)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Protocols && scope.method === DwnMethodName.Query)).to.not.be.undefined;
     });
 
     it('should add requested permissions to the request', async () => {
@@ -854,13 +855,13 @@ describe('web5 connect', function () {
 
       expect(permissionRequests.protocolDefinition).to.deep.equal(protocol);
 
-      // the 3 sync permissions plus the 2 requested permissions
-      expect(permissionRequests.permissionScopes.length).to.equal(5);
+      // the 3 sync permissions plus the 2 requested permissions, and a protocol query permission
+      expect(permissionRequests.permissionScopes.length).to.equal(6);
       expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Read)).to.not.be.undefined;
       expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Write)).to.not.be.undefined;
     });
 
-    it('supports requesting `read`, `write`, `delete`, `query` and `subscribe` permissions', async () => {
+    it('supports requesting `read`, `write`, `delete`, `query`, `subscribe` and `configure` permissions', async () => {
       const protocol:DwnProtocolDefinition = {
         published : true,
         protocol  : 'https://exmaple.org/protocols/social',
@@ -876,18 +877,20 @@ describe('web5 connect', function () {
       };
 
       const permissionRequests = WalletConnect.createPermissionRequestForProtocol({
-        definition: protocol, permissions: ['write', 'read', 'delete', 'query', 'subscribe']
+        definition: protocol, permissions: ['write', 'read', 'delete', 'query', 'subscribe', 'configure']
       });
 
       expect(permissionRequests.protocolDefinition).to.deep.equal(protocol);
 
       // the 3 sync permissions plus the 5 requested permissions
-      expect(permissionRequests.permissionScopes.length).to.equal(8);
+      expect(permissionRequests.permissionScopes.length).to.equal(10);
       expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Read)).to.not.be.undefined;
       expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Write)).to.not.be.undefined;
       expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Delete)).to.not.be.undefined;
       expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Query)).to.not.be.undefined;
       expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Subscribe)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Protocols && scope.method === DwnMethodName.Query)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Protocols && scope.method === DwnMethodName.Configure)).to.not.be.undefined;
     });
   });
 });

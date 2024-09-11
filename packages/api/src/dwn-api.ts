@@ -436,10 +436,20 @@ export class DwnApi {
         };
 
         if (this.delegateDid) {
-          // NOTE:  currently protocol configure only allows normal permission grants, not delegated grants.
-          //        TODO: Add Delegate Grants to ProtocolConfigure https://github.com/TBD54566975/dwn-sdk-js/issues/801
-          //        TODO: Scope Protocol Permissions to a specific protocol. https://github.com/TBD54566975/dwn-sdk-js/issues/802
-          throw new Error('Delegated grants are not yet supported for protocol configuration: https://github.com/TBD54566975/dwn-sdk-js/issues/801');
+          const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            protocol     : request.message.definition.protocol,
+            delegate     : true,
+            cached       : true,
+            messageType  : agentRequest.messageType
+          });
+
+          agentRequest.messageParams = {
+            ...agentRequest.messageParams,
+            delegatedGrant
+          };
+          agentRequest.granteeDid = this.delegateDid;
         }
 
         const agentResponse = await this.agent.processDwnRequest(agentRequest);
@@ -472,14 +482,10 @@ export class DwnApi {
 
           try {
             const protocolFromRequest = request.message.filter?.protocol;
-
-            // NOTE: Currently protocol permissions are not scoped to specific protocols.
-            // TODO: Scope Protocol Permissions to a specific protocol. https://github.com/TBD54566975/dwn-sdk-js/issues/802
             const { grant: { id: permissionGrantId } } = await this.permissionsApi.getPermissionForRequest({
               connectedDid : this.connectedDid,
               delegateDid  : this.delegateDid,
               protocol     : protocolFromRequest,
-              delegate     : true,
               cached       : true,
               messageType  : agentRequest.messageType
             });
@@ -489,8 +495,8 @@ export class DwnApi {
               permissionGrantId
             };
             agentRequest.granteeDid = this.delegateDid;
-          } catch(error) {
-            // if a grant is not found, we should sign the request as the delegated DID to get public protocols
+          } catch(_error:any) {
+            // if a grant is not found, we should author the request as the delegated DID to get public protocols
             agentRequest.author = this.delegateDid;
           }
         }
@@ -654,8 +660,8 @@ export class DwnApi {
               delegatedGrant
             };
             agentRequest.granteeDid = this.delegateDid;
-          } catch(error) {
-            // if a grant is not found, we should sign the request as the delegated DID to get public records
+          } catch(_error:any) {
+            // if a grant is not found, we should author the request as the delegated DID to get public records
             agentRequest.author = this.delegateDid;
           }
         }
@@ -745,8 +751,8 @@ export class DwnApi {
               delegatedGrant
             };
             agentRequest.granteeDid = this.delegateDid;
-          } catch(error) {
-            // if a grant is not found, we should sign the request as the delegated DID to get public records
+          } catch(_error:any) {
+            // if a grant is not found, we should author the request as the delegated DID to get public records
             agentRequest.author = this.delegateDid;
           }
         }
@@ -848,8 +854,8 @@ export class DwnApi {
               delegatedGrant
             };
             agentRequest.granteeDid = this.delegateDid;
-          } catch(error) {
-            // if a grant is not found, we should sign the request as the delegated DID to get public records
+          } catch(_error:any) {
+            // if a grant is not found, we should author the request as the delegated DID to get public records
             agentRequest.author = this.delegateDid;
           }
         };

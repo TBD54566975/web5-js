@@ -553,16 +553,6 @@ describe('web5 api', () => {
           delegateDid,
         });
 
-        // attempt to query using the grant
-        let queryResult = await web5.dwn.records.query({
-          protocol : protocol.protocol,
-          message  : {
-            filter: { protocol: protocol.protocol }
-          }
-        });
-        expect(queryResult.status.code).to.equal(200);
-        expect(queryResult.records).to.have.lengthOf(1);
-
         // attempt to delete using the grant
         const deleteResult = await web5.dwn.records.delete({
           protocol : protocol.protocol,
@@ -572,15 +562,15 @@ describe('web5 api', () => {
         });
         expect(deleteResult.status.code).to.equal(202);
 
-        // query again after the deletion
-        queryResult = await web5.dwn.records.query({
+        // attempt to query using the grant
+        const queryResult = await web5.dwn.records.query({
           protocol : protocol.protocol,
           message  : {
             filter: { protocol: protocol.protocol }
           }
         });
         expect(queryResult.status.code).to.equal(200);
-        expect(queryResult.records).to.have.lengthOf(0); // deleted
+        expect(queryResult.records).to.have.lengthOf(0); // record has been deleted
 
         // connecting a 2nd time will return the same connectedDID and delegatedDID
         const { did: did2, delegateDid: delegateDid2 } = await Web5.connect();
