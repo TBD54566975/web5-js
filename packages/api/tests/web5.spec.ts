@@ -496,19 +496,16 @@ describe('web5 api', () => {
         const readSigner = Jws.getSignerDid(readResult.record.authorization.signature.signatures[0]);
         expect(readSigner).to.equal(delegateDid);
 
-        // attempt to query or delete, should fail because we did not grant query permissions
-        try {
-          await web5.dwn.records.query({
-            protocol : protocol.protocol,
-            message  : {
-              filter: { protocol: protocol.protocol }
-            }
-          });
-
-          expect.fail('Should have thrown an error');
-        } catch(error:any) {
-          expect(error.message).to.include('CachedPermissions: No permissions found for RecordsQuery');
-        }
+        // Because no grants exist for query, it will not fail but instead author AND sign as the delegate DID.
+        // It will only return results if they are public, here it will return none. This is tested elsewhere.
+        const noPermissionQuery = await web5.dwn.records.query({
+          protocol : protocol.protocol,
+          message  : {
+            filter: { protocol: protocol.protocol }
+          }
+        });
+        expect(noPermissionQuery.status.code).to.equal(200);
+        expect(noPermissionQuery.records).to.have.lengthOf(0);
 
         try {
           await web5.dwn.records.delete({

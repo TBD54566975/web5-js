@@ -595,20 +595,31 @@ export class DwnApi {
         };
 
         if (this.delegateDid) {
-          const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
-            connectedDid : this.connectedDid,
-            delegateDid  : this.delegateDid,
-            protocol     : request.protocol,
-            delegate     : true,
-            cached       : true,
-            messageType  : agentRequest.messageType
-          });
+          // if we don't find a delegated grant, we will attempt to query signing as the delegated DID
+          // This is to allow the API caller to query public records without needing to impersonate the delegate.
+          //
+          // NOTE: When a read-only DwnApi is implemented, callers should use that instead when they don't have an explicit permission.
+          // This should fail if a permission is not found.
+          // TODO: https://github.com/TBD54566975/web5-js/issues/898
+          try {
+            const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
+              connectedDid : this.connectedDid,
+              delegateDid  : this.delegateDid,
+              protocol     : request.protocol,
+              delegate     : true,
+              cached       : true,
+              messageType  : agentRequest.messageType
+            });
 
-          agentRequest.messageParams = {
-            ...agentRequest.messageParams,
-            delegatedGrant
-          };
-          agentRequest.granteeDid = this.delegateDid;
+            agentRequest.messageParams = {
+              ...agentRequest.messageParams,
+              delegatedGrant
+            };
+            agentRequest.granteeDid = this.delegateDid;
+          } catch(error:any) {
+            // set the author of the request to the delegate did
+            agentRequest.author = this.delegateDid;
+          }
         }
 
 
@@ -674,20 +685,32 @@ export class DwnApi {
           target        : request.from || this.connectedDid
         };
         if (this.delegateDid) {
-          const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
-            connectedDid : this.connectedDid,
-            delegateDid  : this.delegateDid,
-            protocol     : request.protocol,
-            delegate     : true,
-            cached       : true,
-            messageType  : agentRequest.messageType
-          });
+          // if we don't find a delegated grant, we will attempt to read signing as the delegated DID
+          // This is to allow the API caller to read public records without needing to impersonate the delegate.
+          //
+          // NOTE: When a read-only DwnApi is implemented, callers should use that instead when they don't have an explicit permission.
+          // This should fail if a permission is not found.
+          // TODO: https://github.com/TBD54566975/web5-js/issues/898
 
-          agentRequest.messageParams = {
-            ...agentRequest.messageParams,
-            delegatedGrant
-          };
-          agentRequest.granteeDid = this.delegateDid;
+          try {
+            const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
+              connectedDid : this.connectedDid,
+              delegateDid  : this.delegateDid,
+              protocol     : request.protocol,
+              delegate     : true,
+              cached       : true,
+              messageType  : agentRequest.messageType
+            });
+
+            agentRequest.messageParams = {
+              ...agentRequest.messageParams,
+              delegatedGrant
+            };
+            agentRequest.granteeDid = this.delegateDid;
+          } catch(_error:any) {
+            // set the author of the request to the delegate did
+            agentRequest.author = this.delegateDid;
+          }
         }
 
         let agentResponse: DwnResponse<DwnInterface.RecordsRead>;
@@ -766,20 +789,31 @@ export class DwnApi {
         };
 
         if (this.delegateDid) {
-          const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
-            connectedDid : this.connectedDid,
-            delegateDid  : this.delegateDid,
-            protocol     : request.protocol,
-            delegate     : true,
-            cached       : true,
-            messageType  : agentRequest.messageType
-          });
+          // if we don't find a delegated grant, we will attempt to subscribe signing as the delegated DID
+          // This is to allow the API caller to subscribe to public records without needing to impersonate the delegate.
+          //
+          // NOTE: When a read-only DwnApi is implemented, callers should use that instead when they don't have an explicit permission.
+          // This should fail if a permission is not found.
+          // TODO: https://github.com/TBD54566975/web5-js/issues/898
+          try {
+            const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
+              connectedDid : this.connectedDid,
+              delegateDid  : this.delegateDid,
+              protocol     : request.protocol,
+              delegate     : true,
+              cached       : true,
+              messageType  : agentRequest.messageType
+            });
 
-          agentRequest.messageParams = {
-            ...agentRequest.messageParams,
-            delegatedGrant
-          };
-          agentRequest.granteeDid = this.delegateDid;
+            agentRequest.messageParams = {
+              ...agentRequest.messageParams,
+              delegatedGrant
+            };
+            agentRequest.granteeDid = this.delegateDid;
+          } catch(_error:any) {
+            // set the author of the request to the delegate did
+            agentRequest.author = this.delegateDid;
+          }
         };
 
         let agentResponse: DwnResponse<DwnInterface.RecordsSubscribe>;

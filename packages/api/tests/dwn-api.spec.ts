@@ -190,6 +190,37 @@ describe('DwnApi', () => {
       expect(record.rawMessage.authorization.authorDelegatedGrant).to.not.be.undefined;
     });
 
+    it('should read records with a delegated grant', async () => {
+      const { status: writeStatus, record } = await dwnAlice.records.create({
+        data    : 'Hello, world!',
+        message : {
+          protocol     : notesProtocol.protocol,
+          protocolPath : 'note',
+          schema       : notesProtocol.types.note.schema,
+          dataFormat   : 'text/plain',
+        }
+      });
+
+      expect(writeStatus.code).to.equal(202);
+      expect(record).to.not.be.undefined;
+      const { status: sendStatus } = await record.send();
+      expect(sendStatus.code).to.equal(202);
+
+      const { status: readStatus, record: readRecord } = await delegateDwn.records.read({
+        from     : aliceDid.uri,
+        protocol : notesProtocol.protocol,
+        message  : {
+          filter: {
+            recordId: record.id
+          }
+        }
+      });
+
+      expect(readStatus.code).to.equal(200);
+      expect(readRecord).to.exist;
+      expect(readRecord.id).to.equal;
+    });
+
     it('should query records with a delegated grant', async () => {
       const { status: writeStatus, record } = await delegateDwn.records.create({
         data    : 'Hello, world!',
@@ -302,6 +333,347 @@ describe('DwnApi', () => {
         const deletedRecord = records.get(writeResult.record.id);
         expect(deletedRecord).to.exist;
         expect(deletedRecord.deleted).to.be.true;
+      });
+    });
+
+    it('should read records as the delegate DID if no grant is found', async () => {
+      // alice installs some other protocol
+      const { status: aliceConfigStatus, protocol: aliceOtherProtocol } = await dwnAlice.protocols.configure({ message: { definition: {
+        ...notesProtocol,
+        protocol: `http://other-protocol.xyz/protocol/${TestDataGenerator.randomString(15)}`
+      }} });
+      expect(aliceConfigStatus.code).to.equal(202);
+      const { status: aliceOtherProtocolSend } = await aliceOtherProtocol.send(aliceDid.uri);
+      expect(aliceOtherProtocolSend.code).to.equal(202);
+
+      // alice writes a note record to the permissioned protocol
+      const { status: writeStatus1, record: allowedRecord } = await dwnAlice.records.create({
+        data    : 'Hello, world!',
+        message : {
+          protocol     : notesProtocol.protocol,
+          protocolPath : 'note',
+          schema       : notesProtocol.types.note.schema,
+          dataFormat   : 'text/plain',
+        }
+      });
+      expect(writeStatus1.code).to.equal(202);
+      expect(allowedRecord).to.not.be.undefined;
+      const { status: allowedRecordSendStatus } = await allowedRecord.send();
+      expect(allowedRecordSendStatus.code).to.equal(202);
+
+      // alice writes a public and private note to the other protocol
+      const { status: writeStatus2, record: publicRecord } = await dwnAlice.records.create({
+        data    : 'Hello, world!',
+        message : {
+          published    : true,
+          protocol     : aliceOtherProtocol.definition.protocol,
+          protocolPath : 'note',
+          schema       : aliceOtherProtocol.definition.types.note.schema,
+          dataFormat   : 'text/plain',
+        }
+      });
+      expect(writeStatus2.code).to.equal(202);
+      expect(publicRecord).to.not.be.undefined;
+      const { status: publicRecordSendStatus } = await publicRecord.send();
+      expect(publicRecordSendStatus.code).to.equal(202);
+
+      const { status: writeStatus3, record: privateRecord } = await dwnAlice.records.create({
+        data    : 'Hello, world!',
+        message : {
+          protocol     : aliceOtherProtocol.definition.protocol,
+          protocolPath : 'note',
+          schema       : aliceOtherProtocol.definition.types.note.schema,
+          dataFormat   : 'text/plain',
+        }
+      });
+      expect(writeStatus3.code).to.equal(202);
+      expect(privateRecord).to.not.be.undefined;
+      const { status: privateRecordSendStatus } = await privateRecord.send();
+      expect(privateRecordSendStatus.code).to.equal(202);
+
+
+      // sanity: delegateDwn reads from the allowed record from alice's DWN
+      const { status: readStatus1, record: allowedRecordReturned } = await delegateDwn.records.read({
+        from     : aliceDid.uri,
+        protocol : notesProtocol.protocol,
+        message  : {
+          filter: {
+            recordId: allowedRecord.id
+          }
+        }
+      });
+      expect(readStatus1.code).to.equal(200);
+      expect(allowedRecordReturned).to.exist;
+      expect(allowedRecordReturned.id).to.equal(allowedRecord.id);
+
+      // delegateDwn reads from the other protocol, which no permissions exist
+      // only the public record is successfully returned
+      const { status: readStatus2, record: publicRecordReturned } = await delegateDwn.records.read({
+        from     : aliceDid.uri,
+        protocol : aliceOtherProtocol.definition.protocol,
+        message  : {
+          filter: {
+            recordId: publicRecord.id
+          }
+        }
+      });
+      expect(readStatus2.code).to.equal(200);
+      expect(publicRecordReturned).to.exist;
+      expect(publicRecordReturned.id).to.equal(publicRecord.id);
+
+      // attempt to read the private record, which should fail
+      const { status: readStatus3, record: privateRecordReturned } = await delegateDwn.records.read({
+        from     : aliceDid.uri,
+        protocol : aliceOtherProtocol.definition.protocol,
+        message  : {
+          filter: {
+            recordId: privateRecord.id
+          }
+        }
+      });
+      expect(readStatus3.code).to.equal(401);
+      expect(privateRecordReturned).to.be.undefined;
+
+      // sanity: query as alice to get both records
+      const { status: readStatus4, record: privateRecordReturnedAlice } = await dwnAlice.records.read({
+        from     : aliceDid.uri,
+        protocol : aliceOtherProtocol.definition.protocol,
+        message  : {
+          filter: {
+            recordId: privateRecord.id
+          }
+        }
+      });
+      expect(readStatus4.code).to.equal(200);
+      expect(privateRecordReturnedAlice).to.exist;
+      expect(privateRecordReturnedAlice.id).to.equal(privateRecord.id);
+    });
+
+    it('should query records as the delegate DID if no grant is found', async () => {
+      // alice installs some other protocol
+      const { status: aliceConfigStatus, protocol: aliceOtherProtocol } = await dwnAlice.protocols.configure({ message: { definition: {
+        ...notesProtocol,
+        protocol: `http://other-protocol.xyz/protocol/${TestDataGenerator.randomString(15)}`
+      }} });
+      expect(aliceConfigStatus.code).to.equal(202);
+      const { status: aliceOtherProtocolSend } = await aliceOtherProtocol.send(aliceDid.uri);
+      expect(aliceOtherProtocolSend.code).to.equal(202);
+
+      // alice writes a note record to the permissioned protocol
+      const { status: writeStatus1, record: allowedRecord } = await dwnAlice.records.create({
+        data    : 'Hello, world!',
+        message : {
+          protocol     : notesProtocol.protocol,
+          protocolPath : 'note',
+          schema       : notesProtocol.types.note.schema,
+          dataFormat   : 'text/plain',
+        }
+      });
+      expect(writeStatus1.code).to.equal(202);
+      expect(allowedRecord).to.not.be.undefined;
+      const { status: allowedRecordSendStatus } = await allowedRecord.send();
+      expect(allowedRecordSendStatus.code).to.equal(202);
+
+      // alice writes a public and private note to the other protocol
+      const { status: writeStatus2, record: publicRecord } = await dwnAlice.records.create({
+        data    : 'Hello, world!',
+        message : {
+          published    : true,
+          protocol     : aliceOtherProtocol.definition.protocol,
+          protocolPath : 'note',
+          schema       : aliceOtherProtocol.definition.types.note.schema,
+          dataFormat   : 'text/plain',
+        }
+      });
+      expect(writeStatus2.code).to.equal(202);
+      expect(publicRecord).to.not.be.undefined;
+      const { status: publicRecordSendStatus } = await publicRecord.send();
+      expect(publicRecordSendStatus.code).to.equal(202);
+
+      const { status: writeStatus3, record: privateRecord } = await dwnAlice.records.create({
+        data    : 'Hello, world!',
+        message : {
+          protocol     : aliceOtherProtocol.definition.protocol,
+          protocolPath : 'note',
+          schema       : aliceOtherProtocol.definition.types.note.schema,
+          dataFormat   : 'text/plain',
+        }
+      });
+      expect(writeStatus3.code).to.equal(202);
+      expect(privateRecord).to.not.be.undefined;
+      const { status: privateRecordSendStatus } = await privateRecord.send();
+      expect(privateRecordSendStatus.code).to.equal(202);
+
+
+      // sanity: delegateDwn queries for the allowed record from alice's DWN
+      const { status: queryStatus1, records: allowedRecords } = await delegateDwn.records.query({
+        from     : aliceDid.uri,
+        protocol : notesProtocol.protocol,
+        message  : {
+          filter: {
+            protocol: notesProtocol.protocol
+          }
+        }
+      });
+      expect(queryStatus1.code).to.equal(200);
+      expect(allowedRecords).to.exist;
+      expect(allowedRecords).to.have.lengthOf(1);
+
+      // delegateDwn queries for the other protocol, which no permissions exist
+      // only the public record is returned
+      const { status: queryStatus2, records: publicRecords } = await delegateDwn.records.query({
+        from     : aliceDid.uri,
+        protocol : aliceOtherProtocol.definition.protocol,
+        message  : {
+          filter: {
+            protocol: aliceOtherProtocol.definition.protocol
+          }
+        }
+      });
+      expect(queryStatus2.code).to.equal(200);
+      expect(publicRecords).to.exist;
+      expect(publicRecords).to.have.lengthOf(1);
+      expect(publicRecords![0].id).to.equal(publicRecord.id);
+
+      // sanity: query as alice to get both records
+      const { status: queryStatus3, records: allRecords } = await dwnAlice.records.query({
+        from     : aliceDid.uri,
+        protocol : aliceOtherProtocol.definition.protocol,
+        message  : {
+          filter: {
+            protocol: aliceOtherProtocol.definition.protocol
+          }
+        }
+      });
+      expect(queryStatus3.code).to.equal(200);
+      expect(allRecords).to.exist;
+      expect(allRecords).to.have.lengthOf(2);
+      expect(allRecords.map(r => r.id)).to.have.members([publicRecord.id, privateRecord.id]);
+    });
+
+    it('should subscribe to records as the delegate DID if no grant is found', async () => {
+      // alice installs some other protocol
+      const { status: aliceConfigStatus, protocol: aliceOtherProtocol } = await dwnAlice.protocols.configure({ message: { definition: {
+        ...notesProtocol,
+        protocol: `http://other-protocol.xyz/protocol/${TestDataGenerator.randomString(15)}`
+      }} });
+      expect(aliceConfigStatus.code).to.equal(202);
+      const { status: aliceOtherProtocolSend } = await aliceOtherProtocol.send(aliceDid.uri);
+      expect(aliceOtherProtocolSend.code).to.equal(202);
+
+      // delegatedDwn subscribes to both protocols
+      const permissionedNotesRecords: Map<string, Record> = new Map();
+      const permissionedNotesSubscriptionHandler = async (record: Record) => {
+        permissionedNotesRecords.set(record.id, record);
+      };
+      const permissionedNotesSubscribeResult = await delegateDwn.records.subscribe({
+        from     : aliceDid.uri,
+        protocol : notesProtocol.protocol,
+        message  : {
+          filter: {
+            protocol: notesProtocol.protocol
+          }
+        },
+        subscriptionHandler: permissionedNotesSubscriptionHandler
+      });
+      expect(permissionedNotesSubscribeResult.status.code).to.equal(200);
+
+      const otherProtocolRecords: Map<string, Record> = new Map();
+      const otherProtocolSubscriptionHandler = async (record: Record) => {
+        otherProtocolRecords.set(record.id, record);
+      };
+      const otherProtocolSubscribeResult = await delegateDwn.records.subscribe({
+        from     : aliceDid.uri,
+        protocol : aliceOtherProtocol.definition.protocol,
+        message  : {
+          filter: {
+            protocol: aliceOtherProtocol.definition.protocol
+          }
+        },
+        subscriptionHandler: otherProtocolSubscriptionHandler
+      });
+      expect(otherProtocolSubscribeResult.status.code).to.equal(200);
+
+      // alice subscribes to the other protocol as a sanity
+      const aliceOtherProtocolRecords: Map<string, Record> = new Map();
+      const aliceOtherProtocolSubscriptionHandler = async (record: Record) => {
+        aliceOtherProtocolRecords.set(record.id, record);
+      };
+      const aliceOtherProtocolSubscribeResult = await dwnAlice.records.subscribe({
+        from     : aliceDid.uri,
+        protocol : aliceOtherProtocol.definition.protocol,
+        message  : {
+          filter: {
+            protocol: aliceOtherProtocol.definition.protocol
+          }
+        },
+        subscriptionHandler: aliceOtherProtocolSubscriptionHandler
+      });
+      expect(aliceOtherProtocolSubscribeResult.status.code).to.equal(200);
+
+      // NOTE: write the private record before the public so that it should be received first
+      // alice writes a public and private note to the other protocol
+      const { status: writeStatus2, record: publicRecord } = await dwnAlice.records.create({
+        data    : 'Hello, world!',
+        message : {
+          published    : true,
+          protocol     : aliceOtherProtocol.definition.protocol,
+          protocolPath : 'note',
+          schema       : aliceOtherProtocol.definition.types.note.schema,
+          dataFormat   : 'text/plain',
+        }
+      });
+      expect(writeStatus2.code).to.equal(202);
+      expect(publicRecord).to.not.be.undefined;
+      const { status: publicRecordSendStatus } = await publicRecord.send();
+      expect(publicRecordSendStatus.code).to.equal(202);
+
+      // alice writes a note record to the permissioned protocol
+      const { status: writeStatus1, record: allowedRecord } = await dwnAlice.records.create({
+        data    : 'Hello, world!',
+        message : {
+          protocol     : notesProtocol.protocol,
+          protocolPath : 'note',
+          schema       : notesProtocol.types.note.schema,
+          dataFormat   : 'text/plain',
+        }
+      });
+      expect(writeStatus1.code).to.equal(202);
+      expect(allowedRecord).to.not.be.undefined;
+      const { status: allowedRecordSendStatus } = await allowedRecord.send();
+      expect(allowedRecordSendStatus.code).to.equal(202);
+
+      const { status: writeStatus3, record: privateRecord } = await dwnAlice.records.create({
+        data    : 'Hello, world!',
+        message : {
+          protocol     : aliceOtherProtocol.definition.protocol,
+          protocolPath : 'note',
+          schema       : aliceOtherProtocol.definition.types.note.schema,
+          dataFormat   : 'text/plain',
+        }
+      });
+      expect(writeStatus3.code).to.equal(202);
+      expect(privateRecord).to.not.be.undefined;
+      const { status: privateRecordSendStatus } = await privateRecord.send();
+      expect(privateRecordSendStatus.code).to.equal(202);
+
+      // wait for the records to be received
+      // alice receives both the public and private records on her subscription
+      await Poller.pollUntilSuccessOrTimeout(async () => {
+        expect(aliceOtherProtocolRecords.size).to.equal(2);
+        expect(aliceOtherProtocolRecords.get(publicRecord.id)).to.exist;
+        expect(aliceOtherProtocolRecords.get(privateRecord.id)).to.exist;
+      });
+
+      // delegated agent only receives the public record from the other protocol
+      await Poller.pollUntilSuccessOrTimeout(async () => {
+        // permissionedNotesRecords should have the allowedRecord
+        expect(permissionedNotesRecords.size).to.equal(1);
+        expect(permissionedNotesRecords.get(allowedRecord.id)).to.exist;
+
+        // otherProtocolRecords should have only the publicRecord
+        expect(otherProtocolRecords.size).to.equal(1);
+        expect(otherProtocolRecords.get(publicRecord.id)).to.exist;
       });
     });
   });

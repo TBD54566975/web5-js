@@ -951,7 +951,7 @@ export class Record implements RecordModel {
     let requestOptions: ProcessDwnRequest<DwnInterface.RecordsWrite | DwnInterface.RecordsDelete>;
     // Now that we've processed a potential initial write, we can process the current record state.
     // If the record has been deleted, we need to send a delete request. Otherwise, we send a write request.
-    if(this.deleted) {
+    if (this.deleted) {
       requestOptions = {
         messageType : DwnInterface.RecordsDelete,
         rawMessage  : this.rawMessage,
@@ -1029,21 +1029,32 @@ export class Record implements RecordModel {
     };
 
     if (this._delegateDid) {
-      const { message: delegatedGrant } = await this._permissionsApi.getPermissionForRequest({
-        connectedDid : this._connectedDid,
-        delegateDid  : this._delegateDid,
-        protocol     : this.protocol,
-        delegate     : true,
-        cached       : true,
-        messageType  : readRequest.messageType
-      });
+      // When reading the data as a delegate, if we don't find a grant we will attempt to read it with the delegate DID as the author.
+      // This allows users to read publicly available data without needing explicit grants.
+      //
+      // NOTE: When a read-only Record class is implemented, callers would have that returned instead when they don't have an explicit permission.
+      // This should fail if a permission is not found, although it should not happen in practice.
+      // TODO: https://github.com/TBD54566975/web5-js/issues/898
+      try {
+        const { message: delegatedGrant } = await this._permissionsApi.getPermissionForRequest({
+          connectedDid : this._connectedDid,
+          delegateDid  : this._delegateDid,
+          protocol     : this.protocol,
+          delegate     : true,
+          cached       : true,
+          messageType  : readRequest.messageType
+        });
 
-      readRequest.messageParams = {
-        ...readRequest.messageParams,
-        delegatedGrant
-      };
+        readRequest.messageParams = {
+          ...readRequest.messageParams,
+          delegatedGrant
+        };
 
-      readRequest.granteeDid = this._delegateDid;
+        readRequest.granteeDid = this._delegateDid;
+      } catch(error) {
+        // If there is an error fetching the grant, we will attempt to read the data as the delegate.
+        readRequest.author = this._delegateDid;
+      }
     }
 
     const agentResponsePromise = isRemote ?
