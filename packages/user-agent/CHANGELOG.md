@@ -1,5 +1,14 @@
 # @web5/user-agent
 
+## 0.6.2
+
+### Patch Changes
+
+- [#895](https://github.com/TBD54566975/web5-js/pull/895) [`57803fa`](https://github.com/TBD54566975/web5-js/commit/57803fae0427225c7fceb08d2c42b76ffff4e0ea) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Add additionaly Sync Identity Management capabilities
+
+- Updated dependencies [[`57803fa`](https://github.com/TBD54566975/web5-js/commit/57803fae0427225c7fceb08d2c42b76ffff4e0ea)]:
+  - @web5/agent@0.7.2
+
 ## 0.6.1
 
 ### Patch Changes
