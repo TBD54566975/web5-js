@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { NodeStream } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { Web5UserAgent } from '@web5/user-agent';
-import { DwnConstant, DwnDateSort, DwnEncryptionAlgorithm, DwnInterface, DwnKeyDerivationScheme, dwnMessageConstructors, Oidc, PlatformAgentTestHarness, WalletConnect } from '@web5/agent';
+import { DwnConstant, DwnDateSort, DwnEncryptionAlgorithm, DwnInterface, DwnKeyDerivationScheme, dwnMessageConstructors, getRecordAuthor, Oidc, PlatformAgentTestHarness, WalletConnect } from '@web5/agent';
 import { Record } from '../src/record.js';
 import { DwnApi } from '../src/dwn-api.js';
 import { dataToBlob } from '../src/utils.js';
@@ -490,6 +490,86 @@ describe('Record', () => {
       // Read the data stream Bytes
       const dataBytes = await queriedRecord.data.bytes();
       expect(dataBytes).to.deep.equal(largeDataBytes, 'bytes');
+    });
+
+    it('should read large data payloads as a stream with from a public record without an explicit grant', async () => {
+      // install some other protocol that the delegated did does not have a grant for
+      // alice installs some other protocol
+      const { status: aliceConfigStatus, protocol: aliceOtherProtocol } = await dwnAlice.protocols.configure({ message: { definition: {
+        ...notesProtocol,
+        protocol: `http://other-protocol.xyz/protocol/${TestDataGenerator.randomString(15)}`
+      }} });
+      expect(aliceConfigStatus.code).to.equal(202);
+      const { status: aliceOtherProtocolSend } = await aliceOtherProtocol.send(aliceDid.uri);
+      expect(aliceOtherProtocolSend.code).to.equal(202);
+
+      // alice writes a private and public note with a large data payload
+      const largeDataJson1 = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
+
+      const { status: aliceWritesStatus, record: aliceRecord } = await dwnAlice.records.write({
+        data    : largeDataJson1,
+        message : {
+          protocol     : aliceOtherProtocol.definition.protocol,
+          protocolPath : 'note',
+          schema       : aliceOtherProtocol.definition.types.note.schema,
+          dataFormat   : 'application/json',
+        }
+      });
+      expect(aliceWritesStatus.code).to.equal(202);
+      const { status: aliceSendStatus } = await aliceRecord!.send();
+      expect(aliceSendStatus.code).to.equal(202);
+
+      const largeDataJson2 = TestDataGenerator.randomJson(DwnConstant.maxDataSizeAllowedToBeEncoded + 1000);
+      const publicRecordDataBytes = new TextEncoder().encode(JSON.stringify(largeDataJson2));
+
+      const { status: aliceWritesStatus2, record: alicePublicRecord } = await dwnAlice.records.write({
+        data    : largeDataJson2,
+        message : {
+          published    : true,
+          protocol     : aliceOtherProtocol.definition.protocol,
+          protocolPath : 'note',
+          schema       : aliceOtherProtocol.definition.types.note.schema,
+          dataFormat   : 'application/json',
+        }
+      });
+      expect(aliceWritesStatus2.code).to.equal(202);
+      const { status: aliceSendStatus2 } = await alicePublicRecord!.send();
+      expect(aliceSendStatus2.code).to.equal(202);
+
+      // the delegate attempts to read the public note
+      const { records: publicRecords, status: publicStatus } = await delegateDwn.records.query({
+        from     : aliceDid.uri,
+        protocol : aliceOtherProtocol.definition.protocol,
+        message  : {
+          filter: {
+            protocol     : aliceOtherProtocol.definition.protocol,
+            protocolPath : 'note',
+          }
+        }
+      });
+      expect(publicStatus.code).to.equal(200);
+      expect(publicRecords.length).to.equal(1);
+      const publicRecord = publicRecords[0];
+      expect(publicRecord.author).to.equal(aliceDid.uri);
+      const publicDataBytes = await publicRecord.data.bytes();
+      expect(publicDataBytes).to.deep.equal(publicRecordDataBytes);
+
+      // sanity, this won't happen in real-world, but testing the results if a read is attempted on an unaauthed record
+      const privateRecordOptions = {
+        author       : getRecordAuthor(aliceRecord!.rawMessage),
+        connectedDid : aliceDid.uri,
+        remoteOrigin : aliceDid.uri,
+        delegateDid  : delegateDid.uri,
+        ...aliceRecord!.rawMessage,
+      };
+
+      const record = new Record(delegateHarness.agent, privateRecordOptions);
+      try {
+        await record.data.bytes();
+        expect.fail('Expected unauthorized data read to fail.');
+      } catch(error:any) {
+        expect(error.message).to.include('Error encountered while attempting to read data:');
+      }
     });
   });
 
