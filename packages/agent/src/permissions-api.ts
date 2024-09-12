@@ -365,7 +365,7 @@ export class AgentPermissionsApi implements PermissionsApi {
     if (scopeMessageType === messageType) {
       if (isRecordsType(messageType)) {
         const recordScope = scope as DwnRecordsPermissionScope;
-        if (!this.matchesProtocol(recordScope, protocol)) {
+        if (recordScope.protocol !== protocol) {
           return false;
         }
 
@@ -386,11 +386,12 @@ export class AgentPermissionsApi implements PermissionsApi {
         }
       } else {
         const messagesScope = scope as DwnMessagesPermissionScope | DwnProtocolPermissionScope;
-        if (this.protocolScopeUnrestricted(messagesScope)) {
+        // Checks for unrestricted protocol scope, if no protocol is defined in the scope it is unrestricted
+        if (messagesScope.protocol === undefined) {
           return true;
         }
 
-        if (!this.matchesProtocol(messagesScope, protocol)) {
+        if (messagesScope.protocol !== protocol) {
           return false;
         }
 
@@ -399,17 +400,6 @@ export class AgentPermissionsApi implements PermissionsApi {
     }
 
     return false;
-  }
-
-  private static matchesProtocol(scope: DwnPermissionScope & { protocol?: string }, protocol?: string): boolean {
-    return scope.protocol !== undefined && scope.protocol === protocol;
-  }
-
-  /**
-   *  Checks if the scope is restricted to a specific protocol
-   */
-  private static protocolScopeUnrestricted(scope: DwnPermissionScope & { protocol?: string }): boolean {
-    return scope.protocol === undefined;
   }
 
   private static isUnrestrictedProtocolScope(scope: DwnPermissionScope & { contextId?: string, protocolPath?: string }): boolean {

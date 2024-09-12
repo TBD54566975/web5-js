@@ -39,7 +39,7 @@ export async function getDwnServiceEndpointUrls(didUri: string, dereferencer: Di
 }
 
 export function getRecordAuthor(record: RecordsWriteMessage | RecordsDeleteMessage): string | undefined {
-  return Records.getAuthor(record);
+  return Message.getAuthor(record);
 }
 
 export function isRecordsWrite(obj: unknown): obj is RecordsWrite {

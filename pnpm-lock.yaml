@@ -40,8 +40,8 @@ importers:
         specifier: 7.9.0
         version: 7.9.0(@typescript-eslint/parser@7.14.1(eslint@9.7.0)(typescript@5.5.4))(eslint@9.7.0)(typescript@5.5.4)
       '@web5/dwn-server':
-        specifier: 0.4.9
-        version: 0.4.9
+        specifier: 0.4.10
+        version: 0.4.10
       audit-ci:
         specifier: ^7.0.1
         version: 7.1.0
@@ -64,8 +64,8 @@ importers:
         specifier: 1.2.2
         version: 1.2.2
       '@tbd54566975/dwn-sdk-js':
-        specifier: 0.4.6
-        version: 0.4.6
+        specifier: 0.4.7
+        version: 0.4.7
       '@web5/common':
         specifier: 1.0.0
         version: 1.0.0
@@ -192,8 +192,8 @@ importers:
         specifier: 1.45.3
         version: 1.45.3
       '@tbd54566975/dwn-sdk-js':
-        specifier: 0.4.6
-        version: 0.4.6
+        specifier: 0.4.7
+        version: 0.4.7
       '@types/chai':
         specifier: 4.3.6
         version: 4.3.6
@@ -2108,12 +2108,12 @@ packages:
   '@sphereon/ssi-types@0.26.0':
     resolution: {integrity: sha512-r4JQIN7rnPunEv0HvCFC1ZCc9qlWcegYvhJbMJqSvyFE6VhmT5NNdH9jNV9QetgMa0yo5r3k+TnHNv3nH58Dmg==}
 
-  '@tbd54566975/dwn-sdk-js@0.4.6':
-    resolution: {integrity: sha512-eTd9v2ioT+hYrmob28OgxyLgOPAqJosb8rIAHDpFzEjYlQZSxCEohIZysMrLgWIcSLljyViSFr06mDelRPgGPg==}
+  '@tbd54566975/dwn-sdk-js@0.4.7':
+    resolution: {integrity: sha512-VYaLT4FKdHfVvUPZbicUpF77erkOSi1xBP/EVQIpnp0khPujp2lYcojbRcw4c4JR23CrRvLPy/iWXmEhdP8LqA==}
     engines: {node: '>= 18'}
 
-  '@tbd54566975/dwn-sql-store@0.6.6':
-    resolution: {integrity: sha512-LY8it9npYjI/Kx/aK94gR6/1AfptmRGagUuXOfprm/lUcK3uJ79EReOq8zk7CXyTK66+GAu+oGFzuCoo12EJ1g==}
+  '@tbd54566975/dwn-sql-store@0.6.7':
+    resolution: {integrity: sha512-5v/BudrItBx8UUMEIH42nMBwykpM9ZyBpMERmWwJn06Xe47wv+ojkDhVX000Npuv4q+bsLv0lQhCaIAmKcMlaQ==}
     engines: {node: '>=18'}
 
   '@tootallnate/quickjs-emscripten@0.23.0':
@@ -2511,8 +2511,8 @@ packages:
     resolution: {integrity: sha512-M9EfsEYcOtYuEvUQjow4vpxXbD0Sz5H8EuDXMtwuvP4UdYL0ATl+60F8+8HDmwPFeUy6M2wxuoixrLDwSRFwZA==}
     engines: {node: '>=18.0.0'}
 
-  '@web5/dwn-server@0.4.9':
-    resolution: {integrity: sha512-LCBu7gcmfWcT8i571LPK5bHsBqtF2b0gC1VjAqZTo7ESCjGPrL6byvntiGiYWfSfzl9zgxpb/dIdVu/Ia8xvFA==}
+  '@web5/dwn-server@0.4.10':
+    resolution: {integrity: sha512-gdXIDC4OkCS58+EG85SN82IeWynl3uqkpeoq79A6X9NCGWO9+5XM5pNKCjkPxxNdsGfz0sX+nYLkSqrRX5BcFA==}
     hasBin: true
 
   '@webassemblyjs/ast@1.12.1':
@@ -7369,7 +7369,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@tbd54566975/dwn-sdk-js@0.4.6':
+  '@tbd54566975/dwn-sdk-js@0.4.7':
     dependencies:
       '@ipld/dag-cbor': 9.0.3
       '@js-temporal/polyfill': 0.4.4
@@ -7402,10 +7402,10 @@ snapshots:
       - encoding
       - supports-color
 
-  '@tbd54566975/dwn-sql-store@0.6.6':
+  '@tbd54566975/dwn-sql-store@0.6.7':
     dependencies:
       '@ipld/dag-cbor': 9.0.5
-      '@tbd54566975/dwn-sdk-js': 0.4.6
+      '@tbd54566975/dwn-sdk-js': 0.4.7
       kysely: 0.26.3
       multiformats: 12.0.1
       readable-stream: 4.4.2
@@ -8355,10 +8355,10 @@ snapshots:
       level: 8.0.1
       ms: 2.1.3
 
-  '@web5/dwn-server@0.4.9':
+  '@web5/dwn-server@0.4.10':
     dependencies:
-      '@tbd54566975/dwn-sdk-js': 0.4.6
-      '@tbd54566975/dwn-sql-store': 0.6.6
+      '@tbd54566975/dwn-sdk-js': 0.4.7
+      '@tbd54566975/dwn-sql-store': 0.6.7
       '@web5/crypto': 1.0.3
       better-sqlite3: 8.7.0
       body-parser: 1.20.3

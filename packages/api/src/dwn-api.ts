@@ -7,7 +7,6 @@
 import type {
   CreateGrantParams,
   CreateRequestParams,
-  DwnRecordsInterfaces,
   FetchPermissionRequestParams,
   FetchPermissionsParams
 } from '@web5/agent';
@@ -428,12 +427,32 @@ export class DwnApi {
        * Configure method, used to setup a new protocol (or update) with the passed definitions
        */
       configure: async (request: ProtocolsConfigureRequest): Promise<ProtocolsConfigureResponse> => {
-        const agentResponse = await this.agent.processDwnRequest({
+
+        const agentRequest:ProcessDwnRequest<DwnInterface.ProtocolsConfigure> = {
           author        : this.connectedDid,
           messageParams : request.message,
           messageType   : DwnInterface.ProtocolsConfigure,
           target        : this.connectedDid
-        });
+        };
+
+        if (this.delegateDid) {
+          const { message: delegatedGrant } = await this.permissionsApi.getPermissionForRequest({
+            connectedDid : this.connectedDid,
+            delegateDid  : this.delegateDid,
+            protocol     : request.message.definition.protocol,
+            delegate     : true,
+            cached       : true,
+            messageType  : agentRequest.messageType
+          });
+
+          agentRequest.messageParams = {
+            ...agentRequest.messageParams,
+            delegatedGrant
+          };
+          agentRequest.granteeDid = this.delegateDid;
+        }
+
+        const agentResponse = await this.agent.processDwnRequest(agentRequest);
 
         const { message, messageCid, reply: { status }} = agentResponse;
         const response: ProtocolsConfigureResponse = { status };
@@ -456,6 +475,30 @@ export class DwnApi {
           messageType   : DwnInterface.ProtocolsQuery,
           target        : request.from || this.connectedDid
         };
+
+        if (this.delegateDid) {
+          // We attempt to get a grant within a try catch, if there is no grant we will still sign the query with the delegate DID's key
+          // If the protocol is public, the query should be successful. This allows the app to query for public protocols without having a grant.
+
+          try {
+            const { grant: { id: permissionGrantId } } = await this.permissionsApi.getPermissionForRequest({
+              connectedDid : this.connectedDid,
+              delegateDid  : this.delegateDid,
+              protocol     : request.message.filter.protocol,
+              cached       : true,
+              messageType  : agentRequest.messageType
+            });
+
+            agentRequest.messageParams = {
+              ...agentRequest.messageParams,
+              permissionGrantId
+            };
+            agentRequest.granteeDid = this.delegateDid;
+          } catch(_error:any) {
+            // if a grant is not found, we should author the request as the delegated DID to get public protocols
+            agentRequest.author = this.delegateDid;
+          }
+        }
 
         let agentResponse: DwnResponse<DwnInterface.ProtocolsQuery>;
 
@@ -616,8 +659,8 @@ export class DwnApi {
               delegatedGrant
             };
             agentRequest.granteeDid = this.delegateDid;
-          } catch(error:any) {
-            // set the author of the request to the delegate did
+          } catch(_error:any) {
+            // if a grant is not found, we should author the request as the delegated DID to get public records
             agentRequest.author = this.delegateDid;
           }
         }
@@ -708,7 +751,7 @@ export class DwnApi {
             };
             agentRequest.granteeDid = this.delegateDid;
           } catch(_error:any) {
-            // set the author of the request to the delegate did
+            // if a grant is not found, we should author the request as the delegated DID to get public records
             agentRequest.author = this.delegateDid;
           }
         }
@@ -811,7 +854,7 @@ export class DwnApi {
             };
             agentRequest.granteeDid = this.delegateDid;
           } catch(_error:any) {
-            // set the author of the request to the delegate did
+            // if a grant is not found, we should author the request as the delegated DID to get public records
             agentRequest.author = this.delegateDid;
           }
         };
