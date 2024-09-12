@@ -1,5 +1,11 @@
 # @web5/agent
 
+## 0.7.3
+
+### Patch Changes
+
+- [#894](https://github.com/TBD54566975/web5-js/pull/894) [`e7cb25a`](https://github.com/TBD54566975/web5-js/commit/e7cb25a06ac5c521943bd0bb1cac55770c2ea82c) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Enable ProtocolQuery/Configure with delegate grant
+
 ## 0.7.2
 
 ### Patch Changes
