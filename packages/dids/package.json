@@ -78,7 +78,7 @@
   "dependencies": {
     "@decentralized-identity/ion-sdk": "1.0.4",
     "@dnsquery/dns-packet": "6.1.1",
-    "@web5/common": "1.0.0",
+    "@web5/common": "workspace:*",
     "@web5/crypto": "workspace:*",
     "abstract-level": "1.0.4",
     "bencode": "4.0.0",
