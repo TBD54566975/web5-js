@@ -22,7 +22,7 @@ jobs:
     env:
       # Packages not listed here will be excluded from publishing
       # These are currently in a specific order due to dependency requirements
-      PACKAGES: "crypto crypto-aws-kms common dids credentials agent identity-agent proxy-agent user-agent api"
+      PACKAGES: "common crypto crypto-aws-kms dids credentials agent identity-agent proxy-agent user-agent api browser"
 
     steps:
       - name: Checkout source
