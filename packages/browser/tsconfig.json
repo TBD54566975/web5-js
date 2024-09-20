@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["DOM", "ES6", "WebWorker"],
+    "strict": false,
+    "declarationDir": "dist/types",
+    "outDir": "dist/esm"
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

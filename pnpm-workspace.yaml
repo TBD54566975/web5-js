@@ -9,3 +9,4 @@ packages:
   - "packages/proxy-agent"
   - "packages/identity-agent"
   - "packages/api"
+  - "packages/browser"

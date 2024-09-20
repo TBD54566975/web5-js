@@ -1,0 +1,82 @@
+{
+  "name": "@web5/browser",
+  "version": "0.0.1",
+  "description": "Web5 tools and features to use in the brwoser",
+  "type": "module",
+  "main": "./dist/esm/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "scripts": {
+    "clean": "rimraf dist coverage tests/compiled",
+    "build:tests": "rimraf tests/compiled && node build/esbuild-tests.cjs",
+    "build": "rimraf dist/esm dist/types && pnpm tsc -p tsconfig.json",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "test:browser": "pnpm build:tests && web-test-runner"
+  },
+  "homepage": "https://github.com/TBD54566975/web5-js/tree/main/packages/browser#readme",
+  "bugs": "https://github.com/TBD54566975/web5-js/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TBD54566975/web5-js.git",
+    "directory": "packages/browser"
+  },
+  "license": "Apache-2.0",
+  "contributors": [
+    {
+      "name": "Daniel Buchner",
+      "url": "https://github.com/csuwildcat"
+    },
+    {
+      "name": "Liran Cohen",
+      "url": "https://github.com/lirancohen"
+    }
+  ],
+  "files": [
+    "dist",
+    "src"
+  ],
+  "keywords": [
+    "decentralized",
+    "decentralized-applications",
+    "decentralized-identity",
+    "decentralized-web",
+    "DID",
+    "sdk",
+    "verifiable-credentials",
+    "web5",
+    "web5-sdk",
+    "browser",
+    "tools"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@web5/dids": "workspace:*"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.45.3",
+    "@types/chai": "4.3.6",
+    "@types/eslint": "8.56.10",
+    "@types/mocha": "10.0.1",
+    "@types/sinon": "17.0.3",
+    "@typescript-eslint/eslint-plugin": "7.9.0",
+    "@typescript-eslint/parser": "7.14.1",
+    "@web/test-runner": "0.18.2",
+    "@web/test-runner-playwright": "0.11.0",
+    "c8": "9.1.0",
+    "chai": "4.3.10",
+    "esbuild": "0.19.8",
+    "eslint": "9.3.0",
+    "eslint-plugin-mocha": "10.4.3",
+    "mocha": "10.2.0",
+    "mocha-junit-reporter": "2.2.1",
+    "playwright": "1.45.3",
+    "rimraf": "4.4.0",
+    "sinon": "18.0.0",
+    "source-map-loader": "4.0.2",
+    "typescript": "5.1.6"
+  }
+}
