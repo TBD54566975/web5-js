@@ -1,3 +1,5 @@
+//@ts-nocheck
+
 /*
   This file is run in dual environments to make installation of the Service Worker code easier.
   Be mindful that code placed in any open excution space may be evaluated multiple times in different contexts,
@@ -6,6 +8,17 @@
 
 import { UniversalResolver, DidDht, DidWeb } from '@web5/dids';
 
+// This is in place to prevent our `bundler-bonanza` repo from failing for Node CJS builds
+// Not sure if this is working as expected in all environments, crated an issue
+// TODO: https://github.com/TBD54566975/web5-js/issues/767
+function importMetaIfSupported() {
+  try {
+    return new Function('return import.meta')();
+  } catch (_error) {
+    return undefined;
+  }
+}
+
 declare const ServiceWorkerGlobalScope: any;
 
 const DidResolver = new UniversalResolver({ didResolvers: [DidDht, DidWeb] });
@@ -13,25 +26,20 @@ const didUrlRegex = /^https?:\/\/dweb\/([^/]+)\/?(.*)?$/;
 const httpToHttpsRegex = /^http:/;
 const trailingSlashRegex = /\/$/;
 
-// This is in place to prevent our `bundler-bonanza` repo from failing for Node CJS builds
-// Not sure if this is working as expected in all environments, crated an issue
-// TODO: https://github.com/TBD54566975/web5-js/issues/767
-function importMetaIfSupported() {
-  try {
-    return new Function('return import.meta')();
-  } catch(_error) {
-    return undefined;
-  }
-}
-
 async function getDwnEndpoints(did) {
   const { didDocument } = await DidResolver.resolve(did);
-  let endpoints = didDocument?.service?.find(service => service.type === 'DecentralizedWebNode')?.serviceEndpoint;
-  return (Array.isArray(endpoints) ? endpoints : [endpoints]).filter(url => url.startsWith('http'));
+  const endpoints = didDocument?.service?.find(
+    (service) => service.type === 'DecentralizedWebNode'
+  )?.serviceEndpoint;
+  return (Array.isArray(endpoints) ? endpoints : [endpoints]).filter((url) =>
+    url.startsWith('http')
+  );
 }
 
-async function handleEvent(event, did, path, options){
-  const drl = event.request.url.replace(httpToHttpsRegex, 'https:').replace(trailingSlashRegex, '');
+async function handleEvent(event, did, path, options) {
+  const drl = event.request.url
+    .replace(httpToHttpsRegex, 'https:')
+    .replace(trailingSlashRegex, '');
   const responseCache = await caches.open('drl');
   const cachedResponse = await responseCache.match(drl);
   if (cachedResponse) {
@@ -39,7 +47,10 @@ async function handleEvent(event, did, path, options){
     const match = await options?.onCacheCheck(event, drl);
     if (match) {
       const cacheTime = cachedResponse.headers.get('dwn-cache-time');
-      if (cacheTime && Date.now() < Number(cacheTime) + (Number(match.ttl) || 0)) {
+      if (
+        cacheTime &&
+        Date.now() < Number(cacheTime) + (Number(match.ttl) || 0)
+      ) {
         return cachedResponse;
       }
     }
@@ -50,13 +61,12 @@ async function handleEvent(event, did, path, options){
       return new Response(JSON.stringify(response), {
         status  : 200,
         headers : {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
-    }
-    else return await fetchResource(event, did, drl, path, responseCache, options);
-  }
-  catch(error){
+    } else
+      return await fetchResource(event, did, drl, path, responseCache, options);
+  } catch (error) {
     if (error instanceof Response) {
       return error;
     }
@@ -68,7 +78,10 @@ async function handleEvent(event, did, path, options){
 async function fetchResource(event, did, drl, path, responseCache, options) {
   const endpoints = await getDwnEndpoints(did);
   if (!endpoints?.length) {
-    throw new Response('DWeb Node resolution failed: no valid endpoints found.', { status: 530 });
+    throw new Response(
+      'DWeb Node resolution failed: no valid endpoints found.',
+      { status: 530 }
+    );
   }
   for (const endpoint of endpoints) {
     try {
@@ -82,16 +95,19 @@ async function fetchResource(event, did, drl, path, responseCache, options) {
         return response;
       }
       console.log(`DWN endpoint error: ${response.status}`);
-      return new Response('DWeb Node request failed', { status: response.status });
-    }
-    catch (error) {
+      return new Response('DWeb Node request failed', {
+        status: response.status,
+      });
+    } catch (error) {
       console.log(`DWN endpoint error: ${error}`);
-      return new Response('DWeb Node request failed: ' + error, { status: 500 });
+      return new Response('DWeb Node request failed: ' + error, {
+        status: 500,
+      });
     }
   }
 }
 
-async function cacheResponse(drl, url, response, cache){
+async function cacheResponse(drl, url, response, cache) {
   const clonedResponse = response.clone();
   const headers = new Headers(clonedResponse.headers);
   headers.append('dwn-cache-time', Date.now().toString());
@@ -107,13 +123,16 @@ async function installWorker(options: any = {}): Promise<void> {
   try {
     // Check to see if we are in a Service Worker already, if so, proceed
     // You can call the activatePolyfills() function in your own worker, or standalone as a root worker
-    if (typeof ServiceWorkerGlobalScope !== 'undefined' && workerSelf instanceof ServiceWorkerGlobalScope) {
+    if (
+      typeof ServiceWorkerGlobalScope !== 'undefined' &&
+      workerSelf instanceof ServiceWorkerGlobalScope
+    ) {
       workerSelf.skipWaiting();
-      workerSelf.addEventListener('activate', event => {
+      workerSelf.addEventListener('activate', (event) => {
         // Claim clients to make the service worker take control immediately
         event.waitUntil(workerSelf.clients.claim());
       });
-      workerSelf.addEventListener('fetch', event => {
+      workerSelf.addEventListener('fetch', (event) => {
         const match = event.request.url.match(didUrlRegex);
         if (match) {
           event.respondWith(handleEvent(event, match[1], match[2], options));
@@ -124,16 +143,27 @@ async function installWorker(options: any = {}): Promise<void> {
     else if (globalThis?.navigator?.serviceWorker) {
       const registration = await navigator.serviceWorker.getRegistration('/');
       // You can only have one worker per path, so check to see if one is already registered
-      if (!registration){
+      if (!registration) {
         // @ts-ignore
-        const installUrl =  options.path || (globalThis.document ? document?.currentScript?.src : importMetaIfSupported()?.url);
-        if (installUrl) navigator.serviceWorker.register(installUrl, { type: 'module' }).catch(error => {
-          console.error('DWeb networking feature installation failed: ', error);
-        });
+        const installUrl =
+        options.path ||
+        (globalThis.document
+          ? document?.currentScript?.src
+          : importMetaIfSupported()?.url);
+        if (installUrl)
+          navigator.serviceWorker
+            .register(installUrl, { type: 'module' })
+            .catch((error) => {
+              console.error(
+                'DWeb networking feature installation failed: ',
+                error
+              );
+            });
       }
-    }
-    else {
-      throw new Error('DWeb networking features are not available for install in this environment');
+    } else {
+      throw new Error(
+        'DWeb networking features are not available for install in this environment'
+      );
     }
   } catch (error) {
     console.error('Error in installing networking features:', error);
@@ -218,7 +248,7 @@ const loaderStyles = `
     }
 
     .drl-loading-overlay span::before {
-      content: "✕ ";
+      content: '✕ ';
       margin: 0 0.4em 0 0;
       color: red;
       font-size: 65%;
@@ -226,7 +256,7 @@ const loaderStyles = `
     }
 
     .drl-loading-overlay span::after {
-      content: "stop";
+      content: 'stop';
       display: block;
       font-size: 60%;
       line-height: 0;
@@ -234,7 +264,7 @@ const loaderStyles = `
     }
 
     .drl-loading-overlay.new-tab-overlay span::after {
-      content: "close";
+      content: 'close';
     }
   
   @keyframes drl-loading-spinner {
@@ -250,10 +280,10 @@ const loaderStyles = `
 `;
 const tabContent = `
 <!DOCTYPE html>
-<html lang="en">
+<html lang='en'>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
   <title>Loading DRL...</title>
   <style>
     html, body {
@@ -268,12 +298,12 @@ const tabContent = `
   </style>
 </head>
 <body>
-  <div class="drl-loading-overlay new-tab-overlay">
-    <div class="drl-loading-spinner">
+  <div class='drl-loading-overlay new-tab-overlay'>
+    <div class='drl-loading-spinner'>
       <div></div>
       Loading DRL
     </div>
-    <span onclick="window.close()" tabindex="0"></span>
+    <span onclick='window.close()' tabindex='0'></span>
   </div>
 </body>
 </html>
@@ -299,37 +329,37 @@ function injectElements() {
   `;
   document.head.append(style);
 
-  let overlay = document.createElement('div');
+  const overlay = document.createElement('div');
   overlay.classList.add('drl-loading-overlay');
   overlay.innerHTML = `
-    <div class="drl-loading-spinner">
+    <div class='drl-loading-spinner'>
       <div></div>
       Loading DRL
     </div> 
-    <span tabindex="0"></span>
+    <span tabindex='0'></span>
   `;
   overlay.lastElementChild.addEventListener('click', cancelNavigation);
   document.body.prepend(overlay);
   elementsInjected = true;
 }
 
-function cancelNavigation(){
+function cancelNavigation() {
   document.documentElement.removeAttribute('drl-link-loading');
   activeNavigation = null;
 }
 
 let activeNavigation;
 let linkFeaturesActive = false;
-function addLinkFeatures(){
+function addLinkFeatures() {
   if (!linkFeaturesActive) {
     document.addEventListener('click', async (event: any) => {
-      let anchor = event.target.closest('a');
+      const anchor = event.target.closest('a');
       if (anchor) {
-        let href = anchor.href;
+        const href = anchor.href;
         const match = href.match(didUrlRegex);
         if (match) {
-          let did = match[1];
-          let path = match[2];
+          const did = match[1];
+          const path = match[2];
           const openAsTab = anchor.target === '_blank';
           event.preventDefault();
           try {
@@ -337,27 +367,33 @@ function addLinkFeatures(){
             if (openAsTab) {
               tab = window.open('', '_blank');
               tab.document.write(tabContent);
-            }
-            else {
+            } else {
               activeNavigation = path;
               // this is to allow for cached DIDs to instantly load without any flash of loading UI
-              setTimeout(() => document.documentElement.setAttribute('drl-link-loading', ''), 50);
+              setTimeout(
+                () =>
+                  document.documentElement.setAttribute('drl-link-loading', ''),
+                50
+              );
             }
             const endpoints = await getDwnEndpoints(did);
             if (!endpoints.length) throw null;
-            let url = `${endpoints[0].replace(trailingSlashRegex, '')}/${did}/${path}`;
+            const url = `${endpoints[0].replace(
+              trailingSlashRegex,
+              ''
+            )}/${did}/${path}`;
             if (openAsTab) {
               if (!tab.closed) tab.location.href = url;
-            }
-            else if (activeNavigation === path) {
+            } else if (activeNavigation === path) {
               window.location.href = url;
             }
-          }
-          catch(e) {
+          } catch (e) {
             if (activeNavigation === path) {
               cancelNavigation();
             }
-            throw new Error(`DID endpoint resolution failed for the DRL: ${href}`);
+            throw new Error(
+              `DID endpoint resolution failed for the DRL: ${href}`
+            );
           }
         }
       }
@@ -366,21 +402,26 @@ function addLinkFeatures(){
     document.addEventListener('pointercancel', resetContextMenuTarget);
     document.addEventListener('pointerdown', async (event: any) => {
       const target = event.composedPath()[0];
-      if ((event.pointerType === 'mouse' && event.button === 2) ||
-          (event.pointerType === 'touch' && event.isPrimary)) {
+      if (
+        (event.pointerType === 'mouse' && event.button === 2) ||
+        (event.pointerType === 'touch' && event.isPrimary)
+      ) {
         resetContextMenuTarget();
         if (target && target?.src?.match(didUrlRegex)) {
           contextMenuTarget = target;
           target.__src__ = target.src;
-          const drl = target.src.replace(httpToHttpsRegex, 'https:').replace(trailingSlashRegex, '');
+          const drl = target.src
+            .replace(httpToHttpsRegex, 'https:')
+            .replace(trailingSlashRegex, '');
           const responseCache = await caches.open('drl');
           const response = await responseCache.match(drl);
           const url = response.headers.get('dwn-composed-url');
           if (url) target.src = url;
-          target.addEventListener('pointerup', resetContextMenuTarget, { once: true });
+          target.addEventListener('pointerup', resetContextMenuTarget, {
+            once: true,
+          });
         }
-      }
-      else if (target === contextMenuTarget) {
+      } else if (target === contextMenuTarget) {
         resetContextMenuTarget();
       }
     });
@@ -390,9 +431,9 @@ function addLinkFeatures(){
 }
 
 let contextMenuTarget;
-async function resetContextMenuTarget(e?: any){
+async function resetContextMenuTarget(e?: any) {
   if (e?.type === 'pointerup') {
-    await new Promise(r => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
   }
   if (contextMenuTarget) {
     contextMenuTarget.src = contextMenuTarget.__src__;
@@ -429,8 +470,8 @@ async function resetContextMenuTarget(e?: any){
  * @example
  * // Activate polyfills, but without Service Worker activation
  * activatePolyfills({ serviceWorker: false });
-*/
-export function activatePolyfills(options: any = {}){
+ */
+export function activatePolyfills(options: any = {}) {
   if (options.serviceWorker !== false) {
     installWorker(options);
   }
@@ -438,7 +479,9 @@ export function activatePolyfills(options: any = {}){
     if (options.injectStyles !== false) {
       if (document.readyState !== 'loading') injectElements();
       else {
-        document.addEventListener('DOMContentLoaded', injectElements, { once: true });
+        document.addEventListener('DOMContentLoaded', injectElements, {
+          once: true,
+        });
       }
     }
     if (options.links !== false) addLinkFeatures();

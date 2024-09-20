@@ -16,6 +16,11 @@
       "path": "packages/api",
     },
     {
+      //@web5/browser
+      "name": "browser",
+      "path": "packages/browser",
+    },
+    {
       // @web5/common
       "name": "common",
       "path": "packages/common",

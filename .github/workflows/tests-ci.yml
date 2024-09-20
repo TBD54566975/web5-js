@@ -64,7 +64,7 @@ jobs:
         run: pnpm --recursive --stream --sequential build:tests:node
 
       - name: Run tests for all packages
-        run: pnpm --recursive --stream exec c8 mocha -- --color
+        run: pnpm --recursive --filter '!browser' --stream exec c8 mocha -- --color
         env:
           TEST_DWN_URL: http://localhost:3000
 
@@ -89,7 +89,7 @@ jobs:
           - group: "B"
             packages: "--filter dids --filter identity-agent"
           - group: "C"
-            packages: "--filter api"
+            packages: "--filter api --filter browser"
           - group: "D"
             packages: "--filter crypto"
           - group: "E"

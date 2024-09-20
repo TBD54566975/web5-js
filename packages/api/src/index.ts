@@ -30,7 +30,6 @@ export * from './protocol.js';
 export * from './record.js';
 export * from './vc-api.js';
 export * from './web5.js';
-export * from './web-features.js';
 
 import * as utils from './utils.js';
 export { utils };

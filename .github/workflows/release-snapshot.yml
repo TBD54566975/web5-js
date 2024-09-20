@@ -27,6 +27,7 @@ jobs:
           [
             "agent",
             "api",
+            "browser",
             "common",
             "credentials",
             "crypto",

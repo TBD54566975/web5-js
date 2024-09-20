@@ -1,0 +1,19 @@
+{
+  "all": true,
+  "cache": false,
+  "extension": [
+    ".js"
+  ],
+  "include": [
+    "tests/compiled/**/src/**"
+  ],
+  "exclude": [
+    "tests/compiled/**/src/index.js",
+    "tests/compiled/**/src/types.js",
+    "tests/compiled/**/src/types/**"
+  ],
+  "reporter": [
+    "cobertura",
+    "text"
+  ]
+}
