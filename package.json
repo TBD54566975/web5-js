@@ -12,7 +12,8 @@
     "packages/user-agent",
     "packages/proxy-agent",
     "packages/api",
-    "packages/identity-agent"
+    "packages/identity-agent",
+    "packages/browser"
   ],
   "scripts": {
     "clean": "pnpm npkill -d $(pwd)/packages -t dist && pnpm npkill -d $(pwd) -t node_modules",
