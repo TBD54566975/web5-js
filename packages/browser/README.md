@@ -44,11 +44,10 @@ To enable this functionality import and run `activatePolyfills()` at the entrypo
 [browser-build-badge]: https://img.shields.io/github/actions/workflow/status/TBD54566975/web5-js/tests-ci.yml?branch=main&label=build
 [browser-build-link]: https://github.com/TBD54566975/web5-js/actions/workflows/tests-ci.yml
 [browser-coverage-badge]: https://img.shields.io/codecov/c/gh/TBD54566975/web5-js/main?style=flat&token=YI87CKF1LI
-[browser-coverage-link]: https://app.codecov.io/github/TBD54566975/web5-js/tree/main/packages%2Fcrypto
-[browser-issues-badge]: https://img.shields.io/github/issues/TBD54566975/web5-js/package:%20crypto?label=issues
-[browser-issues-link]: https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+is%3Aissue+label%3A"package%3A+crypto"
-[browser-aws-kms-repo-link]: https://github.com/TBD54566975/web5-js/tree/main/packages/browser-aws-kms
-[browser-repo-link]: https://github.com/TBD54566975/web5-js/tree/main/packages/crypto
+[browser-coverage-link]: https://app.codecov.io/github/TBD54566975/web5-js/tree/main/packages%2Fbrowser
+[browser-issues-badge]: https://img.shields.io/github/issues/TBD54566975/web5-js/package:%20browser?label=issues
+[browser-issues-link]: https://github.com/TBD54566975/web5-js/issues?q=is%3Aopen+is%3Aissue+label%3A"package%3A+browser"
+[browser-repo-link]: https://github.com/TBD54566975/web5-js/tree/main/packages/browser
 [browser-jsdelivr-link]: https://www.jsdelivr.com/package/npm/@web5/browser
 [browser-jsdelivr-browser]: https://cdn.jsdelivr.net/npm/@web5/browser/dist/browser.mjs
 [browser-unpkg-link]: https://unpkg.com/@web5/browser
