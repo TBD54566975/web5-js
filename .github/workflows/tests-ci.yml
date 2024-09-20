@@ -89,7 +89,7 @@ jobs:
           - group: "B"
             packages: "--filter dids --filter identity-agent"
           - group: "C"
-            packages: "--filter api"
+            packages: "--filter api --filter browser"
           - group: "D"
             packages: "--filter crypto"
           - group: "E"

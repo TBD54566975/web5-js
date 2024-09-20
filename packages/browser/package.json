@@ -9,7 +9,8 @@
   "scripts": {
     "clean": "rimraf dist coverage tests/compiled",
     "build:tests": "rimraf tests/compiled && node build/esbuild-tests.cjs",
-    "build": "rimraf dist/esm dist/types && pnpm tsc -p tsconfig.json",
+    "build:esm": "rimraf dist/esm dist/types && pnpm tsc -p tsconfig.json",
+    "build": "pnpm clean && pnpm build:esm",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "test:browser": "pnpm build:tests && web-test-runner"
