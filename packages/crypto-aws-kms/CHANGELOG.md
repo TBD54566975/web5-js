@@ -1,5 +1,14 @@
 # @web5/crypto-aws-kms
 
+## 1.0.5
+
+### Patch Changes
+
+- [#903](https://github.com/TBD54566975/web5-js/pull/903) [`17a4290`](https://github.com/TBD54566975/web5-js/commit/17a42902582481e2424fe7f3c3eb10dd1851e24a) Thanks [@shamilovtim](https://github.com/shamilovtim)! - use workspace for deps
+
+- Updated dependencies [[`17a4290`](https://github.com/TBD54566975/web5-js/commit/17a42902582481e2424fe7f3c3eb10dd1851e24a)]:
+  - @web5/crypto@1.0.5
+
 ## 1.0.4
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @web5/proxy-agent
 
+## 0.6.4
+
+### Patch Changes
+
+- [#903](https://github.com/TBD54566975/web5-js/pull/903) [`17a4290`](https://github.com/TBD54566975/web5-js/commit/17a42902582481e2424fe7f3c3eb10dd1851e24a) Thanks [@shamilovtim](https://github.com/shamilovtim)! - use workspace for deps
+
+- Updated dependencies [[`17a4290`](https://github.com/TBD54566975/web5-js/commit/17a42902582481e2424fe7f3c3eb10dd1851e24a)]:
+  - @web5/crypto@1.0.5
+  - @web5/agent@0.7.4
+  - @web5/dids@1.1.5
+
 ## 0.6.3
 
 ### Patch Changes
