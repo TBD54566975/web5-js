@@ -10,6 +10,7 @@
     "clean": "rimraf dist coverage tests/compiled",
     "build:tests": "rimraf tests/compiled && node build/esbuild-tests.cjs",
     "build:esm": "rimraf dist/esm dist/types && pnpm tsc -p tsconfig.json",
+    "build:browser": "pnpm build:esm",
     "build": "pnpm clean && pnpm build:esm",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
