@@ -1,6 +1,6 @@
 {
   "name": "@web5/crypto-aws-kms",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Web5 cryptographic library using AWS KMS",
   "type": "module",
   "main": "./dist/cjs/index.js",

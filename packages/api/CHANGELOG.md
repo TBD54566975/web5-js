@@ -1,5 +1,43 @@
 # @web5/api
 
+## 0.11.0
+
+### Minor Changes
+
+- [#824](https://github.com/TBD54566975/web5-js/pull/824) [`0862ffc`](https://github.com/TBD54566975/web5-js/commit/0862ffc1f23550406ff592e8393cb2eb5a769079) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Support impersonation using delegated grants for DWN record operations using WalletConnect
+
+- [#836](https://github.com/TBD54566975/web5-js/pull/836) [`3d1f825`](https://github.com/TBD54566975/web5-js/commit/3d1f8258465e1177d6d5fe17c2e1ea786baa331d) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Finalize ability to WalletConnect with sync involved
+
+- [#850](https://github.com/TBD54566975/web5-js/pull/850) [`fea0535`](https://github.com/TBD54566975/web5-js/commit/fea0535876d5b00ab5e0abea695e52aeaad9d78b) Thanks [@shamilovtim](https://github.com/shamilovtim)! - connect methods now work with dwn and user agent and are no longer stubbed
+
+### Patch Changes
+
+- [#893](https://github.com/TBD54566975/web5-js/pull/893) [`43a5078`](https://github.com/TBD54566975/web5-js/commit/43a50783b150a2363c75f06d47903602a6920f5e) Thanks [@LiranCohen](https://github.com/LiranCohen)! - differentiate between Record creator and author
+
+- [#894](https://github.com/TBD54566975/web5-js/pull/894) [`e7cb25a`](https://github.com/TBD54566975/web5-js/commit/e7cb25a06ac5c521943bd0bb1cac55770c2ea82c) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Enable Protocol Query/Configure with delegate Grant
+
+- [#892](https://github.com/TBD54566975/web5-js/pull/892) [`2ec2d21`](https://github.com/TBD54566975/web5-js/commit/2ec2d213ae10a9576da78927771768a11a05409b) Thanks [@LiranCohen](https://github.com/LiranCohen)! - dataFormat is a mutible record property
+
+- [#824](https://github.com/TBD54566975/web5-js/pull/824) [`0862ffc`](https://github.com/TBD54566975/web5-js/commit/0862ffc1f23550406ff592e8393cb2eb5a769079) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Introduce a `grants` API for `Web5.dwn`
+
+- [#853](https://github.com/TBD54566975/web5-js/pull/853) [`7347438`](https://github.com/TBD54566975/web5-js/commit/734743884f21491efce9392e129d612735e85282) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Upgrade `agent` to refelcy the newest `dwn-sdk-js` and `dwn-server`
+
+- [#522](https://github.com/TBD54566975/web5-js/pull/522) [`2f7bbbe`](https://github.com/TBD54566975/web5-js/commit/2f7bbbe5c3947460eb6336e1153851de69a38ee8) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Add `records.subscribe()` functionality to the DwnApi
+
+- [#859](https://github.com/TBD54566975/web5-js/pull/859) [`7fc1f1d`](https://github.com/TBD54566975/web5-js/commit/7fc1f1dc1913fb3c77516db0f6ba2c55787bc84b) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Consume single PermissionApi for dealing with permissions, fix bug for Record class not fetching delegate permissions for request.
+
+- [#905](https://github.com/TBD54566975/web5-js/pull/905) [`3cfc21d`](https://github.com/TBD54566975/web5-js/commit/3cfc21df01e505891a47c9d6cd5bd1aa916c1550) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Moving web-features to @web5/browser package
+
+- [#899](https://github.com/TBD54566975/web5-js/pull/899) [`9f0a128`](https://github.com/TBD54566975/web5-js/commit/9f0a1280eb0b0b85794e6c2509aa3ed751511662) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Allow reading public records in delegate state even if no explicit grant exists.
+
+- [#903](https://github.com/TBD54566975/web5-js/pull/903) [`17a4290`](https://github.com/TBD54566975/web5-js/commit/17a42902582481e2424fe7f3c3eb10dd1851e24a) Thanks [@shamilovtim](https://github.com/shamilovtim)! - use workspace for deps
+
+- Updated dependencies [[`17a4290`](https://github.com/TBD54566975/web5-js/commit/17a42902582481e2424fe7f3c3eb10dd1851e24a)]:
+  - @web5/user-agent@0.6.4
+  - @web5/crypto@1.0.5
+  - @web5/agent@0.7.4
+  - @web5/dids@1.1.5
+
 ## 0.10.0
 
 ### Minor Changes
