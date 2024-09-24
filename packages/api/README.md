@@ -256,8 +256,8 @@ const { status } = await web5.dwn.records.subscribe({
 
 console.log(status.code === 200); // successful subscription
 
-// This invocation will query Bob's DWeb Nodes
-const { status } = await web5.dwn.records.query({
+// This invocation will subscribe to Bob's DWeb Nodes
+const { status } = await web5.dwn.records.subscribe({
   from: "did:example:bob",
   message: {
     filter: {
