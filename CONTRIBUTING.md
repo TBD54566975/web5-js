@@ -10,6 +10,41 @@ There are many ways to be an open source contributor, and we're here to help you
 
 This guide is for you.
 
+## 🎉 Hacktoberfest 2024 🎉
+
+`web5-js` is a participating in Hacktoberfest 2024! We’re so excited for your contributions, and have created a wide variety of issues so that anyone can contribute. Whether you're a seasoned developer or a first-time open source contributor, there's something for everyone.
+
+### Here's how you can get started:
+1. Read the [code of conduct](https://github.com/TBD54566975/web5-js/blob/main/CODE_OF_CONDUCT.md).
+2. Choose a task from this project's Hacktoberfest issues in our Project Hubs for [our protocol builder here](https://github.com/TBD54566975/tbd-examples/issues/97) and [general tasks here](https://github.com/TBD54566975/web5-js/issues/908) and follow the instructions. Each issue has the 🏷️ `hacktoberfest` label.
+5. Comment ".take" on the corresponding issue to get assigned the task.
+6. Fork the repository and create a new branch for your work.
+7. Make your changes and submit a pull request.
+8. Wait for review and address any feedback.
+
+### 🏆 Leaderboard & Prizes
+Be among the top 10 with the most points to snag custom swag just for you from our TBD shop! To earn your place in the leaderboard, we have created a points system that is explained below. As you complete tasks, you will automatically be granted a certain # of points.
+
+#### Point System
+| Weight | Points Awarded | Description |
+|---------|-------------|-------------|
+| 🐭 **Small** | 5 points | For smaller tasks that take limited time to complete and/or don't require any product knowledge. |
+| 🐰 **Medium** | 10 points | For average tasks that take additional time to complete and/or require some product knowledge. |
+| 🐂 **Large** | 15 points | For heavy tasks that takes lots of time to complete and/or possibly require deep product knowledge. |
+
+#### Prizes
+Top 10 contributors with the most points will be awarded TBD x Hacktoberfest 2024 swag. The Top 3 contributors will have special swag customized with your GitHub handle in a very limited design. (more info in our Discord)
+
+
+
+### 👩‍ Need help?
+Need help or have questions? Feel free to reach out by connecting with us in our [Discord community](https://discord.gg/tbd) to get direct help from our team in the `#hacktoberfest` project channel.
+
+Happy contributing!
+
+---
+
+
 ## Communications
 
 ### Issues
