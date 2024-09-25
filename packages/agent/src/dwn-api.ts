@@ -7,6 +7,7 @@ import {
   DwnConfig,
   DwnInterfaceName,
   DwnMethodName,
+  EventEmitterStream,
   EventLogLevel,
   GenericMessage,
   Message,
@@ -155,6 +156,8 @@ export class AgentDwnApi {
     }));
 
     resumableTaskStore ??= new ResumableTaskStoreLevel({ location: `${dataPath}/DWN_RESUMABLETASKSTORE` });
+
+    eventStream ??= new EventEmitterStream();
 
     return await Dwn.create({ dataStore, didResolver, eventLog, eventStream, messageStore, tenantGate, resumableTaskStore });
   }
