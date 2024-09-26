@@ -61,11 +61,10 @@ describe('AgentDidResolverCache',  () => {
   });
 
   it('should not call resolve if the DID is not the agent DID or exists as an identity in the agent', async () => {
-    const did = await DidJwk.create({});
+    const did = await DidJwk.create();
     const getStub = sinon.stub(resolverCache['cache'], 'get').resolves(JSON.stringify({ ttlMillis: Date.now() - 1000, value: { didDocument: { id: did.uri } } }));
-    const resolveSpy = sinon.spy(testHarness.agent.did, 'resolve');
+    const resolveSpy = sinon.spy(testHarness.agent.did, 'resolve').withArgs(did.uri);
     const nextTickSpy = sinon.stub(resolverCache['cache'], 'nextTick').resolves();
-    sinon.stub(testHarness.agent.identity, 'get').resolves(undefined);
 
     await resolverCache.get(did.uri),
 

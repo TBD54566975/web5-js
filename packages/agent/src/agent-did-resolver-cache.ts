@@ -47,11 +47,18 @@ export class AgentDidResolverCache extends DidResolverCacheLevel implements DidR
       const cachedResult = JSON.parse(str);
       if (!this._resolving.has(did) && Date.now() >= cachedResult.ttlMillis) {
         this._resolving.set(did, true);
-        if (this.agent.agentDid.uri === did || 'undefined' !==  typeof await this.agent.identity.get({ didUri: did })) {
+
+        const storedDid = await this.agent.did.get({ didUri: did, tenant: this.agent.agentDid.uri });
+        if ('undefined' !==  typeof storedDid) {
           try {
             const result = await this.agent.did.resolve(did);
-            if (!result.didResolutionMetadata.error) {
-              this.set(did, result);
+            if (!result.didResolutionMetadata.error && result.didDocument) {
+              const portableDid = {
+                ...storedDid,
+                document : result.didDocument,
+                metadata : result.didDocumentMetadata,
+              };
+              await this.agent.did.update({ portableDid, tenant: this.agent.agentDid.uri });
             }
           } finally {
             this._resolving.delete(did);
