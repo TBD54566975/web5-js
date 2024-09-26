@@ -406,7 +406,7 @@ describe('Web5IdentityAgent', () => {
 
             // Try to get the identity and verify it exists.
             const storedIdentity = await testHarness.agent.identity.get({
-              didUri : socialIdentity.did.uri,
+              didUri: socialIdentity.did.uri,
             });
 
             expect(storedIdentity).to.exist;
