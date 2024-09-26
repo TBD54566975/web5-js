@@ -634,6 +634,71 @@ describe('AgentDidApi', () => {
           // Verify publish was called
           expect(publishSpy.called).to.be.false;
         });
+
+        it('updates a DID under the tenant of the updated DID if tenant is not provided ', async () => {
+          // Generate a new DID.
+          const did = await testHarness.agent.did.create({ method: 'dht'});
+          const portableDid = await did.export();
+
+          const updateDid = {
+            ...portableDid,
+            document: {
+              ...portableDid.document,
+              service: [{ id: 'service1', type: 'example', serviceEndpoint: 'https://example.com' }]
+            }
+          };
+
+          // Update the DID.
+          await testHarness.agent.did.update({ portableDid: updateDid });
+
+          // get the updated DID
+          const updatedDid = await testHarness.agent.did.get({ didUri: did.uri, tenant: did.uri });
+
+          // Verify the result.
+          expect(updatedDid).to.have.property('uri', did.uri);
+          expect(updatedDid).to.have.property('document');
+          expect(updatedDid).to.have.property('metadata');
+
+          // Verify the updated document.
+          expect(updatedDid!.document).to.deep.equal(updateDid.document);
+        });
+
+        it('throws if DID does not exist in the store', async () => {
+          // Generate a new DID.
+          const did = await testHarness.agent.did.create({ method: 'dht'});
+          const portableDid = await did.export();
+
+          const updateDid = {
+            ...portableDid,
+            uri      : 'did:example:123', // change the uri to a different DID
+            document : {
+              ...portableDid.document,
+              service: [{ id: 'service1', type: 'example', serviceEndpoint: 'https://example.com' }]
+            }
+          };
+
+          try {
+            // Update the DID.
+            await testHarness.agent.did.update({ portableDid: updateDid, tenant: testHarness.agent.agentDid.uri });
+            expect.fail('Expected an error to be thrown');
+          } catch(error: any) {
+            expect(error.message).to.include('AgentDidApi: Could not update, DID not found');
+          }
+        });
+
+        it('throws if the DID document is not updated', async () => {
+          // Generate a new DID.
+          const did = await testHarness.agent.did.create({ method: 'jwk', tenant: testHarness.agent.agentDid.uri });
+          const portableDid = await did.export();
+
+          try {
+            // Update the DID.
+            await testHarness.agent.did.update({ portableDid, tenant: testHarness.agent.agentDid.uri });
+            expect.fail('Expected an error to be thrown');
+          } catch(error: any) {
+            expect(error.message).to.include('AgentDidApi: No changes detected, update aborted');
+          }
+        });
       });
     });
   });

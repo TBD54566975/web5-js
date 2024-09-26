@@ -264,7 +264,7 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
   }): Promise<BearerDid> {
 
     // Check if the DID exists in the store.
-    const existingDid = await this.get({ didUri: portableDid.uri, tenant });
+    const existingDid = await this.get({ didUri: portableDid.uri, tenant: tenant ?? portableDid.uri });
     if (!existingDid) {
       throw new Error(`AgentDidApi: Could not update, DID not found: ${portableDid.uri}`);
     }
