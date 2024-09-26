@@ -35,11 +35,9 @@ describe('AgentPermissionsApi', () => {
 
     // Create an "alice" Identity to author the DWN messages.
     const alice = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Alice' } });
-    await testHarness.agent.identity.manage({ portableIdentity: await alice.export() });
     aliceDid = alice.did;
 
     const bob = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Bob' } });
-    await testHarness.agent.identity.manage({ portableIdentity: await bob.export() });
     bobDid = bob.did;
   });
 

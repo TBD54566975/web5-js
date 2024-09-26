@@ -170,13 +170,6 @@ export class PlatformAgentTestHarness {
     return bearerIdentity;
   }
 
-  public async preloadResolverCache({ didUri, resolutionResult }: {
-    didUri: string;
-    resolutionResult: DidResolutionResult;
-  }): Promise<void> {
-    await this.didResolverCache.set(didUri, resolutionResult);
-  }
-
   public static async setup({ agentClass, agentStores, testDataLocation }: {
       agentClass: new (params: any) => Web5PlatformAgent<LocalKeyManager>
       agentStores?: 'dwn' | 'memory';
