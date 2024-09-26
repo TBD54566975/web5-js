@@ -324,11 +324,10 @@ export class Web5 {
             metadata    : {
               connectedDid,
               name   : 'Default',
-              tenant : delegatePortableDid.uri,
               uri    : delegatePortableDid.uri,
+              tenant : agent.agentDid.uri,
             }
           }});
-          await userAgent.identity.manage({ portableIdentity: await identity.export() });
 
           // Attempts to process the connected grants to be used by the delegateDID
           // If the process fails, we want to clean up the identity
@@ -379,10 +378,6 @@ export class Web5 {
               ]
             }
           });
-
-          // The User Agent will manage the Identity, which ensures it will be available on future
-          // sessions.
-          await userAgent.identity.manage({ portableIdentity: await identity.export() });
 
         } else {
           // If multiple identities are found, use the first one.

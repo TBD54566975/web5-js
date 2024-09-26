@@ -39,7 +39,7 @@ manage one or more decentralized identities.
 ## Getting Started
 
 This JavaScript library was designed for modern development runtimes, including Node.js, web
-browsers, and React Native.  The package is distributed as `@web5/identity-agent` via
+browsers, and React Native. The package is distributed as `@web5/identity-agent` via
 [npmjs.com][identity-agent-npm-link], [jsdelivr.com][identity-agent-jsdelivr-link],
 [unpkg.com][identity-agent-unpkg-link], and [github.com][identity-agent-repo-link].
 
@@ -192,7 +192,7 @@ Agent, and store data in the
 data store controlled by the newly created identity.
 
 ```ts
-import { getTechPreviewDwnEndpoints, Web5 } from '@web5/api';
+import { getTechPreviewDwnEndpoints, Web5 } from "@web5/api";
 
 // Retrieve publicly addressable DWNs that other network participants can use to exchange messages
 // and data with the new Identity.
@@ -200,42 +200,39 @@ const serviceEndpointNodes = await getTechPreviewDwnEndpoints();
 
 // Generate a new Identity for the end-user.
 const careerIdentity = await agent.identity.create({
-  didMethod  : 'dht',
-  metadata   : { name: 'Alice' },
-  didOptions : {
+  didMethod: "dht",
+  metadata: { name: "Alice" },
+  didOptions: {
     services: [
       {
-        id              : 'dwn',
-        type            : 'DecentralizedWebNode',
-        serviceEndpoint : serviceEndpointNodes,
-        enc             : '#enc',
-        sig             : '#sig',
-      }
+        id: "dwn",
+        type: "DecentralizedWebNode",
+        serviceEndpoint: serviceEndpointNodes,
+        enc: "#enc",
+        sig: "#sig",
+      },
     ],
     verificationMethods: [
       {
-        algorithm : 'Ed25519',
-        id        : 'sig',
-        purposes  : ['assertionMethod', 'authentication']
+        algorithm: "Ed25519",
+        id: "sig",
+        purposes: ["assertionMethod", "authentication"],
       },
       {
-        algorithm : 'secp256k1',
-        id        : 'enc',
-        purposes  : ['keyAgreement']
-      }
-    ]
-  }
+        algorithm: "secp256k1",
+        id: "enc",
+        purposes: ["keyAgreement"],
+      },
+    ],
+  },
 });
-
-// Enable management by this Identity Manager.
-await agent.identity.manage({ portableIdentity: await identity.export() });
 ```
 
 ### Writing Data to an Identity's Data Store
 
 The [Web5 API](https://github.com/TBD54566975/web5-js/tree/main/packages/api) makes it simple to
 store data in an identity's DWN data store by handling all of the message and data preparation and
-processing steps.  Using the `careerIdentity` created earlier, a simple message payload can be
+processing steps. Using the `careerIdentity` created earlier, a simple message payload can be
 written as follows:
 
 ```ts
@@ -244,13 +241,13 @@ const web5Career = new Web5({ agent, connectedDid: careerIdentity.did.uri });
 
 // Write a simple text record.
 const { record, status } = await web5Career.dwn.records.write({
-  data    : 'Message',
-  message : {
-    dataFormat : 'text/plain'
-  }
+  data: "Message",
+  message: {
+    dataFormat: "text/plain",
+  },
 });
 
-console.log(status.code) // Output: 202
+console.log(status.code); // Output: 202
 
 const recordData = await record?.data.text();
 console.log(recordData); // Output: Message
@@ -271,26 +268,26 @@ interface can be substituted for the default identity vault and DID resolver cac
 For example, to use the in-memory `KeyValueStore` implementation from `@web5/common`:
 
 ```ts
-import { MemoryStore } from '@web5/common';
-import { DidDht, DidJwk } from '@web5/dids';
-import { Web5IdentityAgent } from '@web5/identity-agent';
-import { AgentDidApi, DidResolverCacheLevel, DwnDidStore } from '@web5/agent';
+import { MemoryStore } from "@web5/common";
+import { DidDht, DidJwk } from "@web5/dids";
+import { Web5IdentityAgent } from "@web5/identity-agent";
+import { AgentDidApi, DidResolverCacheLevel, DwnDidStore } from "@web5/agent";
 
 // Instantiate Identity Vault with an in-memory store.
 const agentVault = new HdIdentityVault({
   keyDerivationWorkFactor: 210_000,
-  store: new MemoryStore<string, string>()
+  store: new MemoryStore<string, string>(),
 });
 
 // Instantiate DID API with an in-memory resolver cache.
 const didApi = new AgentDidApi({
-  didMethods    : [DidDht, DidJwk],
-  resolverCache : new DidResolverCacheMemory(),
-  store         : new DwnDidStore()
+  didMethods: [DidDht, DidJwk],
+  resolverCache: new DidResolverCacheMemory(),
+  store: new DwnDidStore(),
 });
 
 // Create a Web5 Identity Agent instance.
-const agent = await Web5IdentityAgent.create({ agentVault, didApi});
+const agent = await Web5IdentityAgent.create({ agentVault, didApi });
 ```
 
 ## Project Resources
