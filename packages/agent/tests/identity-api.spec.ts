@@ -105,9 +105,9 @@ describe('AgentIdentityApi', () => {
 
           // create a synthetic PortableIdentity based on the returned BearerIdentity without calling the export function.
           const portableIdentity:PortableIdentity = {
-            portableDid: { uri: identity.did.uri, document: identity.did.document, metadata: identity.did.metadata },
-            metadata: { ...identity.metadata },
-          }
+            portableDid : { uri: identity.did.uri, document: identity.did.document, metadata: identity.did.metadata },
+            metadata    : { ...identity.metadata },
+          };
 
           // the exported DID comes with private key material
           // those are not exposed in the returned BearIdentity object, so we add them to the rest of the identity we are comparing
