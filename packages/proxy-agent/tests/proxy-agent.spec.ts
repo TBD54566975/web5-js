@@ -331,15 +331,6 @@ describe('Web5ProxyAgent', () => {
               }
             };
 
-            await testHarness.preloadResolverCache({
-              didUri           : testPortableIdentity.portableDid.uri,
-              resolutionResult : {
-                didDocument           : testPortableIdentity.portableDid.document,
-                didDocumentMetadata   : testPortableIdentity.portableDid.metadata,
-                didResolutionMetadata : {}
-              }
-            });
-
             alice = await testHarness.agent.identity.import({
               portableIdentity: testPortableIdentity
             });
@@ -416,7 +407,6 @@ describe('Web5ProxyAgent', () => {
             // Try to get the identity and verify it exists.
             const storedIdentity = await testHarness.agent.identity.get({
               didUri : socialIdentity.did.uri,
-              tenant : socialIdentity.did.uri
             });
 
             expect(storedIdentity).to.exist;
