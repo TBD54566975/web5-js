@@ -37,12 +37,10 @@ describe('PermissionGrant', () => {
 
     // Create an "alice" Identity to author the DWN messages.
     const alice = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
-    await testHarness.agent.identity.manage({ portableIdentity: await alice.export() });
     aliceDid = alice.did;
 
     // Create a "bob" Identity to author the DWN messages.
     const bob = await testHarness.createIdentity({ name: 'Bob', testDwnUrls });
-    await testHarness.agent.identity.manage({ portableIdentity: await bob.export() });
     bobDid = bob.did;
 
     aliceDwn = new DwnApi({ agent: testHarness.agent, connectedDid: aliceDid.uri });

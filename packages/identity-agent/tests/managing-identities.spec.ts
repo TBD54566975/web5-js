@@ -92,11 +92,6 @@ describe('Managing Identities', () => {
               didMethod : 'jwk'
             });
 
-            // Manage the newly created identities with the Identity Agent.
-            await testHarness.agent.identity.manage({ portableIdentity: await careerIdentity.export() });
-            await testHarness.agent.identity.manage({ portableIdentity: await familyIdentity.export() });
-            await testHarness.agent.identity.manage({ portableIdentity: await socialIdentity.export() });
-
             // Verify the Identities were ALSO stored in the Identity Agent's tenant.
             const storedIdentities = await testHarness.agent.identity.list();
             expect(storedIdentities).to.have.length(3);
