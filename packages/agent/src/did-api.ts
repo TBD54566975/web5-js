@@ -170,6 +170,9 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
     // Create the DID and store the generated keys in the Agent's key manager.
     const bearerDid = await didMethod.create({ keyManager: this.agent.keyManager, options });
 
+    // pre-populate the resolution cache with the document and metadata
+    await this.cache.set(bearerDid.uri, { didDocument: bearerDid.document, didResolutionMetadata: { }, didDocumentMetadata: bearerDid.metadata });
+
     // Persist the DID to the store, by default, unless the `store` option is set to false.
     if (store ?? true) {
       // Data stored in the Agent's DID store must be in PortableDid format.
@@ -260,6 +263,8 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
     const { uri, document, metadata } = bearerDid;
     const portableDidWithoutKeys: PortableDid = { uri, document, metadata };
 
+    await this.cache.set(uri, { didDocument: document, didResolutionMetadata: { }, didDocumentMetadata: metadata });
+
     // Store the DID in the agent's DID store.
     // Unless an existing `tenant` is specified, a record that includes the DID's URI, document,
     // and metadata will be stored under a new tenant controlled by the imported DID.
@@ -284,6 +289,9 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
     if(!portableDid) {
       throw new Error('AgentDidApi: Could not delete, DID not found');
     }
+
+    // delete from the cache
+    await this.cache.delete(didUri);
 
     // Delete the data before deleting the associated keys.
     await this._store.delete({ id: didUri, agent: this.agent, tenant });
