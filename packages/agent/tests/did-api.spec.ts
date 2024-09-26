@@ -1,6 +1,6 @@
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { BearerDid, DidJwk } from '@web5/dids';
+import { BearerDid, DidDht, DidJwk, PortableDid } from '@web5/dids';
 
 import type { Web5PlatformAgent } from '../src/types/agent.js';
 
@@ -300,7 +300,25 @@ describe('AgentDidApi', () => {
       });
 
       describe('export()', () => {
-        xit('should be implemented');
+        it('exports a DID to a PortableDid object', async () => {
+          // Generate a new DID.
+          const did = await DidJwk.create();
+          const portableDid = await did.export();
+
+          // import the DID
+          await testHarness.agent.did.import({ portableDid, tenant: testHarness.agent.agentDid.uri });
+
+          // Export the DID to a PortableDid object.
+          const exportedDid = await testHarness.agent.did.export({ didUri: did.uri, tenant: testHarness.agent.agentDid.uri });
+
+          // Verify the result.
+          expect(exportedDid).to.have.property('uri', did.uri);
+          expect(exportedDid).to.have.property('document');
+          expect(exportedDid).to.have.property('metadata');
+
+          // Verify the exported document.
+          expect(exportedDid.document).to.deep.equal(portableDid.document);
+        });
       });
 
       describe('import()', () => {
@@ -481,7 +499,141 @@ describe('AgentDidApi', () => {
       });
 
       describe('update()', () => {
-        xit('should be implemented');
+        beforeEach(async () => {
+          // Generate a new DID.
+          const mockedPortableDid: PortableDid = {
+            uri      : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+            document : {
+              '@context'         : 'https://www.w3.org/ns/did/v1',
+              id                 : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+              verificationMethod : [
+                {
+                  id           : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0',
+                  type         : 'JsonWebKey',
+                  controller   : 'did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo',
+                  publicKeyJwk : {
+                    crv : 'Ed25519',
+                    kty : 'OKP',
+                    x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
+                    kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
+                    alg : 'EdDSA',
+                  },
+                },
+              ],
+              authentication       : ['did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'],
+              assertionMethod      : ['did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'],
+              capabilityDelegation : ['did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'],
+              capabilityInvocation : ['did:dht:ksbkpsjytbm7kh6hnt3xi91t6to98zndtrrxzsqz9y87m5qztyqo#0'],
+            },
+            metadata: {
+            },
+            privateKeys: [
+              {
+                crv : 'Ed25519',
+                d   : 'hdSIwbQwVD-fNOVEgt-k3mMl44Ip1iPi58Ex6VDGxqY',
+                kty : 'OKP',
+                x   : 'VYKm2SCIV9Vz3BRy-v5R9GHz3EOJCPvZ1_gP1e3XiB0',
+                kid : 'cyvOypa6k-4ffsRWcza37s5XVOh1kO9ICUeo1ZxHVM8',
+                alg : 'EdDSA',
+              },
+            ],
+          };
+
+          const mockedBearerDid = await DidDht.import({ portableDid: mockedPortableDid, keyManager: testHarness.agent.keyManager });
+          sinon.stub(DidDht, 'create').resolves(mockedBearerDid);
+        });
+
+        it('updates a DID in the store', async () => {
+          // Generate a new DID.
+          const did = await testHarness.agent.did.create({ method: 'jwk', tenant: testHarness.agent.agentDid.uri });
+          const portableDid = await did.export();
+
+          const updateDid = {
+            ...portableDid,
+            document: {
+              ...portableDid.document,
+              service: [{ id: 'service1', type: 'example', serviceEndpoint: 'https://example.com' }]
+            }
+          };
+
+          // Update the DID.
+          await testHarness.agent.did.update({ portableDid: updateDid, tenant: testHarness.agent.agentDid.uri });
+
+          // get the updated DID
+          const updatedDid = await testHarness.agent.did.get({ didUri: did.uri, tenant: testHarness.agent.agentDid.uri });
+
+          // Verify the result.
+          expect(updatedDid).to.have.property('uri', did.uri);
+          expect(updatedDid).to.have.property('document');
+          expect(updatedDid).to.have.property('metadata');
+
+          // Verify the updated document.
+          expect(updatedDid!.document).to.deep.equal(updateDid.document);
+        });
+
+        it('updates a DID DHT and publishes it by default', async () => {
+          const publishSpy = sinon.spy(DidDht, 'publish');
+
+          const did = await testHarness.agent.did.create({ method: 'dht', tenant: testHarness.agent.agentDid.uri });
+          const portableDid = await did.export();
+
+          const updateDid = {
+            ...portableDid,
+            document: {
+              ...portableDid.document,
+              service: [{ id: 'service1', type: 'example', serviceEndpoint: 'https://example.com' }]
+            }
+          };
+
+          // Update the DID, publishes by default
+          await testHarness.agent.did.update({ portableDid: updateDid, tenant: testHarness.agent.agentDid.uri });
+
+          // get the updated DID
+          const updatedDid = await testHarness.agent.did.get({ didUri: did.uri, tenant: testHarness.agent.agentDid.uri });
+
+          // Verify the result.
+          expect(updatedDid).to.have.property('uri', did.uri);
+          expect(updatedDid).to.have.property('document');
+          expect(updatedDid).to.have.property('metadata');
+
+          // Verify the updated document.
+          expect(updatedDid!.document).to.deep.equal(updateDid.document);
+
+          // Verify publish was called
+          expect(publishSpy.called).to.be.true;
+        });
+
+        it('updates a DID DHT and does not publish it if publish is false', async () => {
+          const publishSpy = sinon.spy(DidDht, 'publish');
+
+          const did = await testHarness.agent.did.create({ method: 'dht', tenant: testHarness.agent.agentDid.uri });
+          const portableDid = await did.export();
+
+          const updateDid = {
+            ...portableDid,
+            document: {
+              ...portableDid.document,
+              service: [{ id: 'service1', type: 'example', serviceEndpoint: 'https://example.com' }]
+            }
+          };
+
+          // Update the DID.
+          await testHarness.agent.did.update({ portableDid: updateDid, tenant: testHarness.agent.agentDid.uri, publish: false });
+
+          // get the updated DID
+          const updatedDid = await testHarness.agent.did.get({ didUri: did.uri, tenant: testHarness.agent.agentDid.uri });
+
+          // Verify the result.
+          expect(updatedDid).to.have.property('uri', did.uri);
+          expect(updatedDid).to.have.property('document');
+          expect(updatedDid).to.have.property('metadata');
+
+          // Verify the updated document.
+          expect(updatedDid!.document).to.deep.equal(updateDid.document);
+
+          // Verify publish was called
+          expect(publishSpy.called).to.be.false;
+        });
       });
     });
   });

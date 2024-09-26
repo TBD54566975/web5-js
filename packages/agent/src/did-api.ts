@@ -274,32 +274,30 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
       throw new Error('AgentDidApi: No changes detected, update aborted');
     }
 
-    // If private keys are present in the PortableDid, import the key material into the Agent's key
-    // manager. Validate that the key material for every verification method in the DID document is
-    // present in the key manager.
-    const bearerDid = await BearerDid.import({ keyManager: this.agent.keyManager, portableDid });
+    const bearerDid = new BearerDid({
+      uri        : portableDid.uri,
+      document   : portableDid.document,
+      metadata   : portableDid.metadata,
+      keyManager : this.agent.keyManager
+    });
 
     // Only the DID URI, document, and metadata are stored in the Agent's DID store.
     const { uri, document, metadata } = bearerDid;
-    const portableDidWithoutKeys: PortableDid = { uri, document, metadata };
 
     // pre-populate the resolution cache with the document and metadata
     await this.cache.set(uri, { didDocument: document, didResolutionMetadata: { }, didDocumentMetadata: metadata });
 
-    // Store the DID in the agent's DID store.
-    // Unless an existing `tenant` is specified, a record that includes the DID's URI, document,
-    // and metadata will be stored under a new tenant controlled by the imported DID.
     await this._store.set({
-      id             : portableDidWithoutKeys.uri,
-      data           : portableDidWithoutKeys,
+      id             : uri,
+      data           : { uri, document, metadata }, // portable did without the keys
       agent          : this.agent,
-      tenant         : tenant ?? portableDidWithoutKeys.uri,
+      tenant         : tenant ?? uri,
       updateExisting : true,
       useCache       : true
     });
 
     if (publish) {
-      const parsedDid = Did.parse(bearerDid.uri);
+      const parsedDid = Did.parse(uri);
       // currently only supporting DHT as a publishable method.
       // TODO: abstract this into the didMethod class so that other publishable methods can be supported.
       if (parsedDid && parsedDid.method === 'dht') {
