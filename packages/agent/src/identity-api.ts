@@ -34,6 +34,16 @@ export function isPortableIdentity(obj: unknown): obj is PortableIdentity {
     && isPortableDid(obj.did);
 }
 
+/**
+ * This API is used to manage and interact with Identities within the Web5 Agent framework.
+ * An Identity is a DID that is associated with metadata that describes the Identity.
+ * Metadata includes A name(label), and whether or not the Identity is connected (delegated to act on the behalf of another DID).
+ *
+ * A KeyManager is used to manage the cryptographic keys associated with the Identities.
+ *
+ * The `DidApi` is used internally to create, store, and manage DIDs.
+ * When a DWN Data Store is used, the Identity and DID information are stored under the Agent DID's tenant.
+ */
 export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyManager> {
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for

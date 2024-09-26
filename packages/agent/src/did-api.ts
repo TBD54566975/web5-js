@@ -103,6 +103,12 @@ export function isDidRequest<T extends DidInterface>(
   return didRequest.messageType === messageType;
 }
 
+/**
+ * This API is used to manage and interact with DIDs within the Web5 Agent framework.
+ *
+ * If a DWN Data Store is used, the DID information is stored under DID's own tenant by default.
+ * If a tenant property is passed, that tenant will be used to store the DID information.
+ */
 export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> extends UniversalResolver {
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
