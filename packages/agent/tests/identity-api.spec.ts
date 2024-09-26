@@ -4,6 +4,7 @@ import { expect } from 'chai';
 import { TestAgent } from './utils/test-agent.js';
 import { AgentIdentityApi } from '../src/identity-api.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
+import { PortableIdentity } from '../src/index.js';
 
 describe('AgentIdentityApi', () => {
 
@@ -35,6 +36,23 @@ describe('AgentIdentityApi', () => {
     });
   });
 
+  describe('get tenant', () => {
+    it('should throw if no agent is set', async () => {
+      const identityApi = new AgentIdentityApi();
+      expect(() =>
+        identityApi.tenant
+      ).to.throw(Error, 'The agent must be set to perform tenant specific actions.');
+    });
+
+    it('should return the did of the agent as the tenant', async () => {
+      const mockAgent: any = {
+        agentDid: { uri: 'did:method:abc123' }
+      };
+      const identityApi = new AgentIdentityApi({ agent: mockAgent });
+      expect(identityApi.tenant).to.equal('did:method:abc123');
+    });
+  });
+
   // Run tests for each supported data store type.
   const agentStoreTypes = ['dwn'] as const;
   // const agentStoreTypes = ['dwn', 'memory'] as const;
@@ -61,6 +79,42 @@ describe('AgentIdentityApi', () => {
         sinon.restore();
         await testHarness.clearStorage();
         await testHarness.closeStorage();
+      });
+
+      describe('export', () => {
+        it('should fail to export a DID that is not found', async () => {
+          const identityApi = new AgentIdentityApi({ agent: testHarness.agent });
+          try {
+            await identityApi.export({ didUri: 'did:method:xyz123' });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error.message).to.include('AgentIdentityApi: Failed to export due to Identity not found');
+          }
+        });
+
+        it('should export a DID', async () => {
+          // Create a new Identity.
+          const identity = await testHarness.agent.identity.create({
+            didMethod : 'jwk',
+            metadata  : { name: 'Test Identity' },
+            store     : true
+          });
+
+          // Export the Identity.
+          const exportedIdentity = await testHarness.agent.identity.export({ didUri: identity.did.uri });
+
+          // create a synthetic PortableIdentity based on the returned BearerIdentity without calling the export function.
+          const portableIdentity:PortableIdentity = {
+            portableDid: { uri: identity.did.uri, document: identity.did.document, metadata: identity.did.metadata },
+            metadata: { ...identity.metadata },
+          }
+
+          // the exported DID comes with private key material
+          // those are not exposed in the returned BearIdentity object, so we add them to the rest of the identity we are comparing
+          portableIdentity.portableDid.privateKeys = exportedIdentity.portableDid.privateKeys;
+
+          expect(exportedIdentity).to.deep.equal(portableIdentity);
+        });
       });
 
       describe('create()', () => {

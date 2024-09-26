@@ -263,6 +263,7 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
     const { uri, document, metadata } = bearerDid;
     const portableDidWithoutKeys: PortableDid = { uri, document, metadata };
 
+    // pre-populate the resolution cache with the document and metadata
     await this.cache.set(uri, { didDocument: document, didResolutionMetadata: { }, didDocumentMetadata: metadata });
 
     // Store the DID in the agent's DID store.

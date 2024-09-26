@@ -113,8 +113,6 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
   public async export({ didUri }: {
     didUri: string;
   }): Promise<PortableIdentity> {
-
-    // Attempt to retrieve the Identity from the Agent's Identity store.
     const bearerIdentity = await this.get({ didUri });
 
     if (!bearerIdentity) {
@@ -131,8 +129,7 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
   public async get({ didUri }: {
     didUri: string;
   }): Promise<BearerIdentity | undefined> {
-    // Attempt to retrieve the Identity from the Agent's Identity store.
-    const storedIdentity = await this._store.get({ id: didUri, agent: this.agent, tenant: this.tenant, useCache: true });
+    const storedIdentity = await this._store.get({ id: didUri, agent: this.agent, useCache: true });
 
     // If the Identity is not found in the store, return undefined.
     if (!storedIdentity) return undefined;
@@ -197,18 +194,16 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
     return identities.filter(identity => typeof identity !== 'undefined') as BearerIdentity[];
   }
 
-  public async delete({ didUri, tenant }:{
+  public async delete({ didUri }:{
     didUri: string;
-    tenant?: string;
   }): Promise<void> {
-    // Attempt to retrieve the Identity from the Agent's Identity store.
-    const storedIdentity = await this._store.get({ id: didUri, agent: this.agent, tenant, useCache: true });
+    const storedIdentity = await this._store.get({ id: didUri, agent: this.agent, useCache: true });
     if (!storedIdentity) {
       throw new Error(`AgentIdentityApi: Failed to purge due to Identity not found: ${didUri}`);
     }
 
     // Delete the Identity from the Agent's Identity store.
-    await this._store.delete({ id: didUri, agent: this.agent, tenant });
+    await this._store.delete({ id: didUri, agent: this.agent });
   }
 
   /**
