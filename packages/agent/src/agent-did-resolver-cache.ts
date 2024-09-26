@@ -48,17 +48,31 @@ export class AgentDidResolverCache extends DidResolverCacheLevel implements DidR
       if (!this._resolving.has(did) && Date.now() >= cachedResult.ttlMillis) {
         this._resolving.set(did, true);
 
+        // if a DID is stored in the DID Store, then we don't want to evict it from the cache until we have a successful resolution
+        // upon a successful resolution, we will update both the storage and the cache with the newly resolved Document.
         const storedDid = await this.agent.did.get({ didUri: did, tenant: this.agent.agentDid.uri });
         if ('undefined' !==  typeof storedDid) {
           try {
             const result = await this.agent.did.resolve(did);
+
+            // if the resolution was successful, update the stored DID with the new Document
             if (!result.didResolutionMetadata.error && result.didDocument) {
+
               const portableDid = {
                 ...storedDid,
                 document : result.didDocument,
                 metadata : result.didDocumentMetadata,
               };
-              await this.agent.did.update({ portableDid, tenant: this.agent.agentDid.uri });
+
+              // this will throw an error if the DID is not managed by the agent, or there is no difference between the stored and resolved DID
+              try {
+                await this.agent.did.update({ portableDid, tenant: this.agent.agentDid.uri });
+              } catch(error: any) {
+                // if the error is not due to no changes detected, log the error
+                if (error.message && !error.message.includes('No changes detected, update aborted')) {
+                  console.log(`Error updating DID: ${error.message}`);
+                }
+              }
             }
           } finally {
             this._resolving.delete(did);
