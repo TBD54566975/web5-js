@@ -70,7 +70,7 @@ export class AgentDidResolverCache extends DidResolverCacheLevel implements DidR
               } catch(error: any) {
                 // if the error is not due to no changes detected, log the error
                 if (error.message && !error.message.includes('No changes detected, update aborted')) {
-                  console.log(`Error updating DID: ${error.message}`);
+                  console.error(`Error updating DID: ${error.message}`);
                 }
               }
             }
