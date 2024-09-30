@@ -34,7 +34,6 @@ describe('Protocol', () => {
 
     // Create an "alice" Identity to author the DWN messages.
     const alice = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
-    await testHarness.agent.identity.manage({ portableIdentity: await alice.export() });
     aliceDid = alice.did;
 
     // Instantiate DwnApi for both test identities.

@@ -55,12 +55,10 @@ describe('Record', () => {
 
     // Create an "alice" Identity to author the DWN messages.
     const alice = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
-    await testHarness.agent.identity.manage({ portableIdentity: await alice.export() });
     aliceDid = alice.did;
 
     // Create a "bob" Identity to author the DWN messages.
     const bob = await testHarness.createIdentity({ name: 'Bob', testDwnUrls });
-    await testHarness.agent.identity.manage({ portableIdentity: await bob.export() });
     bobDid = bob.did;
 
     // Instantiate DwnApi for both test identities.
@@ -1641,7 +1639,6 @@ describe('Record', () => {
 
         // Create a carol Identity to author the DWN messages.
         const carol = await testHarnessCarol.createIdentity({ name: 'Carol', testDwnUrls });
-        await testHarnessCarol.agent.identity.manage({ portableIdentity: await carol.export() });
         carolDid = carol.did;
 
         // Instantiate a new `DwnApi` using Bob's test agent.
