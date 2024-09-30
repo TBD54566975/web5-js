@@ -1,0 +1,87 @@
+name: Alpha to NPM Registry
+
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Allow only one concurrent deployment,but do NOT cancel in-progress runs as
+# we want to allow these alpha deployments to complete.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # necessary for NPM provenance
+
+jobs:
+  publish-alpha-npm:
+    name: NPM Publish
+    runs-on: ubuntu-latest
+
+    env:
+      # Packages not listed here will be excluded from publishing
+      # These are currently in a specific order due to dependency requirements
+      PACKAGES: "common crypto crypto-aws-kms dids credentials agent identity-agent proxy-agent user-agent api browser"
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+
+      # https://cashapp.github.io/hermit/usage/ci/
+      - name: Init Hermit
+        uses: cashapp/activate-hermit@v1
+        with:
+          cache: "true"
+
+      - name: Store NPM Registry Settings to .npmrc
+        run: |
+          echo -e "//registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}" > ~/.npmrc
+
+      # Note - this is not required but it gives a clean failure prior to attempting a release if
+      # the GH workflow runner is not authenticated with NPMjs.com
+      - name: Verify NPM token is authenticated with NPMjs.com
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: pnpm whoami
+
+      - name: Print Node.js, npm, & pnpm versions for debugging if needed
+        run: |
+          node -v
+          npm -v
+          pnpm -v
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate alpha prerelease and bump package.json @web5/* versions
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: |
+          SHORT_COMMIT_SHA=$(git rev-parse --short HEAD)
+          YYYYMMDD=$(date +'%Y%m%d')
+          ALPHA_PRERELEASE="alpha-$YYYYMMDD-$SHORT_COMMIT_SHA"
+          node ./scripts/bump-workspace.mjs --prerelease=$ALPHA_PRERELEASE
+        shell: bash
+
+      - name: Build all workspace packages sequentially
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: |
+          for package in $PACKAGES; do
+            cd packages/$package
+            pnpm build
+            cd ../..
+          done
+        shell: bash
+
+      - name: Publish selected @web5/* packages
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: |
+          for package in $PACKAGES; do
+            cd packages/$package
+            pnpm publish --tag alpha --access public --provenance --no-git-checks
+            cd ../..
+          done
+        shell: bash
