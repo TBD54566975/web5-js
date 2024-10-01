@@ -87,7 +87,7 @@
     "ms": "2.1.3"
   },
   "devDependencies": {
-    "@playwright/test": "1.45.3",
+    "@playwright/test": "1.47.2",
     "@types/bencode": "2.0.4",
     "@types/chai": "4.3.16",
     "@types/chai-as-promised": "7.1.8",
