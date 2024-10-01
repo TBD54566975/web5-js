@@ -64,9 +64,10 @@ export class AgentDidResolverCache extends DidResolverCacheLevel implements DidR
                 metadata : result.didDocumentMetadata,
               };
 
-              // this will throw an error if the DID is not managed by the agent, or there is no difference between the stored and resolved DID
               try {
-                await this.agent.did.update({ portableDid, tenant: this.agent.agentDid.uri });
+                // this will throw an error if the DID is not managed by the agent, or there is no difference between the stored and resolved DID
+                // We don't publish the DID in this case, as it was received by the resolver.
+                await this.agent.did.update({ portableDid, tenant: this.agent.agentDid.uri, publish: false });
               } catch(error: any) {
                 // if the error is not due to no changes detected, log the error
                 if (error.message && !error.message.includes('No changes detected, update aborted')) {
