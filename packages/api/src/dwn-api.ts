@@ -699,6 +699,7 @@ export class DwnApi {
              */
             remoteOrigin : request.from,
             delegateDid  : this.delegateDid,
+            protocolRole: request.message.protocolRole,
             ...entry as DwnMessage[DwnInterface.RecordsWrite]
           };
           const record = new Record(this.agent, recordOptions, this.permissionsApi);
@@ -787,6 +788,7 @@ export class DwnApi {
              * payload must be read again (e.g., if the data stream is consumed).
              */
             remoteOrigin : request.from,
+            protocolRole: request.message.protocolRole,
             delegateDid  : this.delegateDid,
             data         : entry.data,
             initialWrite : entry.initialWrite,
@@ -829,6 +831,7 @@ export class DwnApi {
             connectedDid   : this.connectedDid,
             delegateDid    : this.delegateDid,
             permissionsApi : this.permissionsApi,
+            protocolRole   : request.message.protocolRole,
             request
           })
         };

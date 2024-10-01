@@ -1023,7 +1023,7 @@ export class Record implements RecordModel {
   private async readRecordData({ target, isRemote }: { target: string, isRemote: boolean }) {
     const readRequest: ProcessDwnRequest<DwnInterface.RecordsRead> = {
       author        : this._connectedDid,
-      messageParams : { filter: { recordId: this.id } },
+      messageParams : { filter: { recordId: this.id }, protocolRole: this._protocolRole },
       messageType   : DwnInterface.RecordsRead,
       target,
     };
