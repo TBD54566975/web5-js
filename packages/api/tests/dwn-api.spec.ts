@@ -38,12 +38,10 @@ describe('DwnApi', () => {
 
     // Create an "alice" Identity to author the DWN messages.
     const alice = await testHarness.createIdentity({ name: 'Alice', testDwnUrls });
-    await testHarness.agent.identity.manage({ portableIdentity: await alice.export() });
     aliceDid = alice.did;
 
     // Create a "bob" Identity to author the DWN messages.
     const bob = await testHarness.createIdentity({ name: 'Bob', testDwnUrls });
-    await testHarness.agent.identity.manage({ portableIdentity: await bob.export() });
     bobDid = bob.did;
 
     // Instantiate DwnApi for both test identities.
@@ -699,7 +697,7 @@ describe('DwnApi', () => {
         }
 
         // create a grant for the protocol
-        const delegatedBearerDid = await delegateHarness.agent.did.get({ didUri: delegateDid.uri, tenant: delegateDid.uri });
+        const delegatedBearerDid = await delegateHarness.agent.did.get({ didUri: delegateDid.uri });
         const grants = await Oidc.createPermissionGrants(aliceDid.uri, delegatedBearerDid, testHarness.agent, [{
           interface : DwnInterfaceName.Protocols,
           method    : DwnMethodName.Configure,
@@ -754,7 +752,7 @@ describe('DwnApi', () => {
         expect(nonPublicProtocols).to.have.lengthOf(0);
 
         // grant the delegate DID access to query the non-public protocol
-        const delegatedBearerDid = await delegateHarness.agent.did.get({ didUri: delegateDid.uri, tenant: delegateDid.uri });
+        const delegatedBearerDid = await delegateHarness.agent.did.get({ didUri: delegateDid.uri });
         const grants = await Oidc.createPermissionGrants(aliceDid.uri, delegatedBearerDid, testHarness.agent, [{
           interface : DwnInterfaceName.Protocols,
           method    : DwnMethodName.Query,

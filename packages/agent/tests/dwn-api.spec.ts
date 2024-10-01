@@ -1082,15 +1082,6 @@ describe('AgentDwnApi', () => {
         }
       };
 
-      await testHarness.preloadResolverCache({
-        didUri           : testPortableIdentity.portableDid.uri,
-        resolutionResult : {
-          didDocument           : testPortableIdentity.portableDid.document,
-          didDocumentMetadata   : testPortableIdentity.portableDid.metadata,
-          didResolutionMetadata : {}
-        }
-      });
-
       alice = await testHarness.agent.identity.import({
         portableIdentity: testPortableIdentity
       });
@@ -1838,17 +1829,6 @@ describe('AgentDwnApi', () => {
         didMethod  : 'dht',
         didOptions : { services: [], publish: false },
         store      : false
-      });
-
-      // Since the DID DHT document wasn't published, add the DID DHT document to the resolver
-      // cache so that DID resolution will succeed during the dereferencing operation.
-      await testHarness.preloadResolverCache({
-        didUri           : identity.did.uri,
-        resolutionResult : {
-          didDocument           : identity.did.document,
-          didDocumentMetadata   : identity.did.metadata,
-          didResolutionMetadata : {}
-        }
       });
 
       try {
