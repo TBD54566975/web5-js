@@ -64,17 +64,15 @@ describe('IdentityStore', () => {
 
           // Test deleting the Identity and validate the result.
           const deleteResult = await identityStore.delete({
-            id     : identity.did.uri,
-            tenant : identity.did.uri,
-            agent  : testHarness.agent
+            id    : identity.did.uri,
+            agent : testHarness.agent
           });
           expect(deleteResult).to.be.true;
 
           // Verify the Identity is no longer in the store.
           const storedIdentity = await identityStore.get({
-            id     : identity.did.uri,
-            tenant : identity.did.uri,
-            agent  : testHarness.agent
+            id    : identity.did.uri,
+            agent : testHarness.agent
           });
           expect(storedIdentity).to.be.undefined;
         });
@@ -116,7 +114,7 @@ describe('IdentityStore', () => {
           });
 
           // Test getting the Identity.
-          const storedIdentity = await identityStore.get({ id: identity.did.uri, tenant: identity.did.uri, agent: testHarness.agent });
+          const storedIdentity = await identityStore.get({ id: identity.did.uri, agent: testHarness.agent });
 
           // Verify the Identity is in the store.
           expect(storedIdentity).to.exist;
@@ -155,9 +153,9 @@ describe('IdentityStore', () => {
       describe('list()', () => {
         it('should return an array of all Identities in the store', async () => {
           // Generate three new Identities that are stored under the Agent's context.
-          const bearerIdentity1 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 1' }, tenant: testHarness.agent.agentDid.uri });
-          const bearerIdentity2 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 2' }, tenant: testHarness.agent.agentDid.uri });
-          const bearerIdentity3 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 3' }, tenant: testHarness.agent.agentDid.uri });
+          const bearerIdentity1 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 1' } });
+          const bearerIdentity2 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 2' } });
+          const bearerIdentity3 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 3' } });
 
           // List Identities and verify the result.
           const storedDids = await identityStore.list({ agent: testHarness.agent });
@@ -183,12 +181,12 @@ describe('IdentityStore', () => {
           await testHarness.agent.keyManager.importKey({ key: authorDid.privateKeys![0] });
 
           // Generate three new Identities that are stored under the custom author context.
-          const bearerIdentity1 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 1' }, tenant: authorDid.uri });
-          const bearerIdentity2 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 2' }, tenant: authorDid.uri });
-          const bearerIdentity3 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 3' }, tenant: authorDid.uri });
+          const bearerIdentity1 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 1' } });
+          const bearerIdentity2 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 2' } });
+          const bearerIdentity3 = await testHarness.agent.identity.create({ didMethod: 'jwk', metadata: { name: 'Test Identity 3' } });
 
           // List Identities and verify the result.
-          const storedDids = await identityStore.list({ tenant: authorDid.uri, agent: testHarness.agent });
+          const storedDids = await identityStore.list({ agent: testHarness.agent });
           expect(storedDids).to.have.length(3);
           const importedDids = [bearerIdentity1.did.uri, bearerIdentity2.did.uri, bearerIdentity3.did.uri];
           for (const storedIdentity of storedDids) {

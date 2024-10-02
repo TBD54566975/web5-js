@@ -23,7 +23,6 @@ export interface IdentityCreateParams<
   metadata: RequireOnly<IdentityMetadata, 'name'>;
   didMethod?: TMethod;
   didOptions?: DidMethodCreateOptions<TKeyManager>[TMethod];
-  tenant?: string;
   store?: boolean;
 }
 
@@ -35,6 +34,16 @@ export function isPortableIdentity(obj: unknown): obj is PortableIdentity {
     && isPortableDid(obj.did);
 }
 
+/**
+ * This API is used to manage and interact with Identities within the Web5 Agent framework.
+ * An Identity is a DID that is associated with metadata that describes the Identity.
+ * Metadata includes A name(label), and whether or not the Identity is connected (delegated to act on the behalf of another DID).
+ *
+ * A KeyManager is used to manage the cryptographic keys associated with the Identities.
+ *
+ * The `DidApi` is used internally to create, store, and manage DIDs.
+ * When a DWN Data Store is used, the Identity and DID information are stored under the Agent DID's tenant.
+ */
 export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyManager> {
   /**
    * Holds the instance of a `Web5PlatformAgent` that represents the current execution context for
@@ -71,22 +80,29 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
     this._agent = agent;
   }
 
-  public async create({ metadata, didMethod = 'dht', didOptions, store, tenant }:
+  get tenant(): string {
+    if (!this._agent) {
+      throw new Error('AgentIdentityApi: The agent must be set to perform tenant specific actions.');
+    }
+
+    return this._agent.agentDid.uri;
+  }
+
+  public async create({ metadata, didMethod = 'dht', didOptions, store }:
     IdentityCreateParams<TKeyManager>
   ): Promise<BearerIdentity> {
-    // Unless an existing `tenant` is specified, a record that includes the DID's URI, document,
-    // and metadata will be stored under a new tenant controlled by the newly created DID.
+
     const bearerDid = await this.agent.did.create({
       method  : didMethod,
       options : didOptions,
+      tenant  : this.tenant,
       store,
-      tenant
     });
 
     // Create the BearerIdentity object.
     const identity = new BearerIdentity({
       did      : bearerDid,
-      metadata : { ...metadata, uri: bearerDid.uri, tenant: tenant ?? bearerDid.uri }
+      metadata : { ...metadata, uri: bearerDid.uri, tenant: this.tenant }
     });
 
     // Persist the Identity to the store, by default, unless the `store` option is set to false.
@@ -104,12 +120,10 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
     return identity;
   }
 
-  public async export({ didUri, tenant }: {
+  public async export({ didUri }: {
     didUri: string;
-    tenant?: string;
   }): Promise<PortableIdentity> {
-    // Attempt to retrieve the Identity from the Agent's Identity store.
-    const bearerIdentity = await this.get({ didUri, tenant });
+    const bearerIdentity = await this.get({ didUri });
 
     if (!bearerIdentity) {
       throw new Error(`AgentIdentityApi: Failed to export due to Identity not found: ${didUri}`);
@@ -122,12 +136,10 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
     return portableIdentity;
   }
 
-  public async get({ didUri, tenant }: {
+  public async get({ didUri }: {
     didUri: string;
-    tenant?: string;
   }): Promise<BearerIdentity | undefined> {
-    // Attempt to retrieve the Identity from the Agent's Identity store.
-    const storedIdentity = await this._store.get({ id: didUri, agent: this.agent, tenant, useCache: true });
+    const storedIdentity = await this._store.get({ id: didUri, agent: this.agent, useCache: true });
 
     // If the Identity is not found in the store, return undefined.
     if (!storedIdentity) return undefined;
@@ -150,6 +162,10 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
   public async import({ portableIdentity }: {
     portableIdentity: PortableIdentity;
   }): Promise<BearerIdentity> {
+
+    // set the tenant of the portable identity to the agent's tenant
+    portableIdentity.metadata.tenant = this.tenant;
+
     // Import the PortableDid to the Agent's DID store.
     const storedDid = await this.agent.did.import({
       portableDid : portableIdentity.portableDid,
@@ -183,56 +199,21 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
     // Retrieve the list of Identities from the Agent's Identity store.
     const storedIdentities = await this._store.list({ agent: this.agent, tenant });
 
-    const identities = await Promise.all(
-      storedIdentities.map(async metadata => {
-        return this.get({ didUri: metadata.uri, tenant: metadata.tenant });
-      })
-    );
+    const identities = await Promise.all(storedIdentities.map(metadata => this.get({ didUri: metadata.uri })));
 
     return identities.filter(identity => typeof identity !== 'undefined') as BearerIdentity[];
   }
 
-  public async manage({ portableIdentity }: {
-    portableIdentity: PortableIdentity;
-  }): Promise<BearerIdentity> {
-    // Retrieve the DID using the `tenant` stored in the given Identity's metadata.
-    const storedDid = await this.agent.did.get({
-      didUri : portableIdentity.metadata.uri,
-      tenant : portableIdentity.metadata.tenant
-    });
-
-    // Verify the DID is present in the DID store.
-    if (!storedDid) {
-      throw new Error(`AgentIdentityApi: Failed to manage Identity: ${portableIdentity.metadata.uri}`);
-    }
-
-    // Create the BearerIdentity object.
-    const identity = new BearerIdentity({ did: storedDid, metadata: portableIdentity.metadata });
-
-    // Store the Identity metadata in the Agent's Identity store.
-    await this._store.set({
-      id                : identity.did.uri,
-      data              : identity.metadata,
-      agent             : this.agent,
-      preventDuplicates : true,
-      useCache          : true
-    });
-
-    return identity;
-  }
-
-  public async delete({ didUri, tenant }:{
+  public async delete({ didUri }:{
     didUri: string;
-    tenant?: string;
   }): Promise<void> {
-    // Attempt to retrieve the Identity from the Agent's Identity store.
-    const storedIdentity = await this._store.get({ id: didUri, agent: this.agent, tenant, useCache: true });
+    const storedIdentity = await this._store.get({ id: didUri, agent: this.agent, useCache: true });
     if (!storedIdentity) {
       throw new Error(`AgentIdentityApi: Failed to purge due to Identity not found: ${didUri}`);
     }
 
     // Delete the Identity from the Agent's Identity store.
-    await this._store.delete({ id: didUri, agent: this.agent, tenant });
+    await this._store.delete({ id: didUri, agent: this.agent });
   }
 
   /**

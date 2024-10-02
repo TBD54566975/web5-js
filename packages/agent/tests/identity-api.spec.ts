@@ -4,6 +4,7 @@ import { expect } from 'chai';
 import { TestAgent } from './utils/test-agent.js';
 import { AgentIdentityApi } from '../src/identity-api.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
+import { PortableIdentity } from '../src/index.js';
 
 describe('AgentIdentityApi', () => {
 
@@ -35,6 +36,23 @@ describe('AgentIdentityApi', () => {
     });
   });
 
+  describe('get tenant', () => {
+    it('should throw if no agent is set', async () => {
+      const identityApi = new AgentIdentityApi();
+      expect(() =>
+        identityApi.tenant
+      ).to.throw(Error, 'The agent must be set to perform tenant specific actions.');
+    });
+
+    it('should return the did of the agent as the tenant', async () => {
+      const mockAgent: any = {
+        agentDid: { uri: 'did:method:abc123' }
+      };
+      const identityApi = new AgentIdentityApi({ agent: mockAgent });
+      expect(identityApi.tenant).to.equal('did:method:abc123');
+    });
+  });
+
   // Run tests for each supported data store type.
   const agentStoreTypes = ['dwn'] as const;
   // const agentStoreTypes = ['dwn', 'memory'] as const;
@@ -63,6 +81,42 @@ describe('AgentIdentityApi', () => {
         await testHarness.closeStorage();
       });
 
+      describe('export', () => {
+        it('should fail to export a DID that is not found', async () => {
+          const identityApi = new AgentIdentityApi({ agent: testHarness.agent });
+          try {
+            await identityApi.export({ didUri: 'did:method:xyz123' });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error.message).to.include('AgentIdentityApi: Failed to export due to Identity not found');
+          }
+        });
+
+        it('should export a DID', async () => {
+          // Create a new Identity.
+          const identity = await testHarness.agent.identity.create({
+            didMethod : 'jwk',
+            metadata  : { name: 'Test Identity' },
+            store     : true
+          });
+
+          // Export the Identity.
+          const exportedIdentity = await testHarness.agent.identity.export({ didUri: identity.did.uri });
+
+          // create a synthetic PortableIdentity based on the returned BearerIdentity without calling the export function.
+          const portableIdentity:PortableIdentity = {
+            portableDid : { uri: identity.did.uri, document: identity.did.document, metadata: identity.did.metadata },
+            metadata    : { ...identity.metadata },
+          };
+
+          // the exported DID comes with private key material
+          // those are not exposed in the returned BearIdentity object, so we add them to the rest of the identity we are comparing
+          portableIdentity.portableDid.privateKeys = exportedIdentity.portableDid.privateKeys;
+
+          expect(exportedIdentity).to.deep.equal(portableIdentity);
+        });
+      });
+
       describe('create()', () => {
         it('creates and returns an Identity', async () => {
 
@@ -83,53 +137,20 @@ describe('AgentIdentityApi', () => {
         });
       });
 
-      describe('manage()' , () => {
-        it('imports only the Identity Metadata to Agent tenant', async () => {
-          // Create a new Identity, which by default is stored under the tenant of the created DID.
-          const identity = await testHarness.agent.identity.create({
-            didMethod : 'jwk',
-            metadata  : { name: 'Test Identity' },
-          });
-
-          // Verify that the Identity is stored under the new Identity's tenant.
-          let storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri, tenant: identity.did.uri });
-          expect(storedIdentity).to.exist;
-
-          // Add a managed Identity to the Agent's tenant.
-          const managedIdentity = await testHarness.agent.identity.manage({
-            portableIdentity: await identity.export()
-          });
-          expect(managedIdentity).to.deep.equal(identity);
-
-          // Verify that the Identity Metadata is stored under the Agent's tenant.
-          storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri });
-          expect(storedIdentity).to.exist;
-
-          // Verify the DID ONLY exists under the tenant of the previously created DID.
-          let storedDidAgent = await testHarness.agent.did.get({ didUri: identity.did.uri });
-          expect(storedDidAgent).to.not.exist;
-          let storedDidNewIdentity = await testHarness.agent.did.get({ didUri: identity.did.uri, tenant: identity.did.uri });
-          expect(storedDidNewIdentity).to.exist;
-        });
-      });
-
       describe('list()', () => {
         it('returns an array of all identities', async () => {
           // Create three new identities all under the Agent's tenant.
           const alice = await testHarness.agent.identity.create({
             didMethod : 'jwk',
             metadata  : { name: 'Alice' },
-            tenant    : testHarness.agent.agentDid.uri
           });
           const bob = await testHarness.agent.identity.create({
             didMethod : 'jwk',
             metadata  : { name: 'Bob' },
-            tenant    : testHarness.agent.agentDid.uri
           });
           const carol = await testHarness.agent.identity.create({
             didMethod : 'jwk',
             metadata  : { name: 'Carol' },
-            tenant    : testHarness.agent.agentDid.uri
           });
 
           // List identities and verify the result.
@@ -159,19 +180,19 @@ describe('AgentIdentityApi', () => {
           });
 
           // Verify that the Identity exists.
-          let storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri, tenant: identity.did.uri });
+          let storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri });
           expect(storedIdentity).to.exist;
           expect(storedIdentity?.did.uri).to.equal(identity.did.uri);
 
           // Delete the Identity.
-          await testHarness.agent.identity.delete({ didUri: identity.did.uri, tenant: identity.did.uri });
+          await testHarness.agent.identity.delete({ didUri: identity.did.uri });
 
           // Verify that the Identity no longer exists.
-          storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri, tenant: identity.did.uri });
+          storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri });
           expect(storedIdentity).to.not.exist;
 
           // Verify that the DID still exists
-          const storedDid = await testHarness.agent.did.get({ didUri: identity.did.uri, tenant: identity.did.uri });
+          const storedDid = await testHarness.agent.did.get({ didUri: identity.did.uri });
           expect(storedDid).to.not.be.undefined;
           expect(storedDid!.uri).to.equal(identity.did.uri);
         });
@@ -212,7 +233,6 @@ describe('AgentIdentityApi', () => {
           await testHarness.agent.identity.create({
             didMethod : 'jwk',
             metadata  : { name: 'Alice' },
-            tenant    : testHarness.agent.agentDid.uri
           });
 
           // attempt to get a connected identity when none exist
@@ -223,14 +243,12 @@ describe('AgentIdentityApi', () => {
           const connectedDid1 = await testHarness.agent.identity.create({
             didMethod : 'jwk',
             metadata  : { name: 'Bob', connectedDid: 'did:method:abc123' },
-            tenant    : testHarness.agent.agentDid.uri
           });
 
           // Create another connected Identity.
           const connectedDid2 = await testHarness.agent.identity.create({
             didMethod : 'jwk',
             metadata  : { name: 'Carol', connectedDid: 'did:method:def456' },
-            tenant    : testHarness.agent.agentDid.uri
           });
 
           // get the first connected identity
