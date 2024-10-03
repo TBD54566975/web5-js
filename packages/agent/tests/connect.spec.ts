@@ -224,6 +224,7 @@ describe('web5 connect', function () {
       });
 
       const options = {
+        displayName        : 'Sample App',
         client_id          : clientEphemeralPortableDid.uri,
         scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
@@ -457,6 +458,7 @@ describe('web5 connect', function () {
       fetchStub.callThrough();
 
       const results = await WalletConnect.initClient({
+        displayName        : 'Sample App',
         walletUri          : 'http://localhost:3000/',
         connectServerUrl   : 'http://localhost:3000/connect',
         permissionRequests : [
@@ -505,6 +507,7 @@ describe('web5 connect', function () {
       });
 
       const options = {
+        displayName        : 'Sample App',
         client_id          : clientEphemeralPortableDid.uri,
         scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
@@ -560,6 +563,7 @@ describe('web5 connect', function () {
       });
 
       const options = {
+        displayName        : 'Sample App',
         client_id          : clientEphemeralPortableDid.uri,
         scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
@@ -632,6 +636,7 @@ describe('web5 connect', function () {
       });
 
       const options = {
+        displayName        : 'Sample App',
         client_id          : clientEphemeralPortableDid.uri,
         scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
@@ -679,6 +684,7 @@ describe('web5 connect', function () {
       });
 
       const options = {
+        displayName        : 'Sample App',
         client_id          : clientEphemeralPortableDid.uri,
         scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
@@ -730,6 +736,7 @@ describe('web5 connect', function () {
       });
 
       const options = {
+        displayName        : 'Sample App',
         client_id          : clientEphemeralPortableDid.uri,
         scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
@@ -781,6 +788,7 @@ describe('web5 connect', function () {
       mismatchedScopes[0].protocol = 'http://profile-protocol.xyz/other';
 
       const options = {
+        displayName        : 'Sample App',
         client_id          : clientEphemeralPortableDid.uri,
         scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
