@@ -53,7 +53,7 @@ export type ConnectPermissionRequest = {
 
 /**
  * Options for connecting to a Web5 agent. This includes the ability to connect to an external wallet.
- * 
+ *
  * NOTE: the returned `ConnectPermissionRequest` type is different to the `ConnectPermissionRequest` type in the `@web5/agent` package.
  */
 export type ConnectOptions = Omit<WalletConnectOptions, 'permissionRequests'> & {
