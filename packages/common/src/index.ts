@@ -2,6 +2,7 @@ export type * from './types.js';
 
 export * from './cache.js';
 export * from './convert.js';
+export * from './logger.js';
 export * from './multicodec.js';
 export * from './object.js';
 export * from './stores.js';

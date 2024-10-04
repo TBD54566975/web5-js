@@ -7,7 +7,7 @@ import {
 } from './oidc.js';
 import { pollWithTtl } from './utils.js';
 
-import { Convert } from '@web5/common';
+import { Convert, logger } from '@web5/common';
 import { CryptoUtils } from '@web5/crypto';
 import { DidJwk } from '@web5/dids';
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
@@ -94,6 +94,7 @@ async function initClient({
 
   // a deeplink to a web5 compatible wallet. if the wallet scans this link it should receive
   // a route to its web5 connect provider flow and the params of where to fetch the auth request.
+  logger.log(`Wallet URI: ${walletUri}`);
   const generatedWalletUri = new URL(walletUri);
   generatedWalletUri.searchParams.set('request_uri', parData.request_uri);
   generatedWalletUri.searchParams.set(
