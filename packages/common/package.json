@@ -72,6 +72,7 @@
     "@isaacs/ttlcache": "1.4.1",
     "level": "8.0.1",
     "multiformats": "13.1.0",
+    "pino": "9.4.0",
     "readable-stream": "4.5.2"
   },
   "devDependencies": {
