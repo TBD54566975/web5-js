@@ -669,12 +669,8 @@ async function createPermissionGrants(
     return grant.message;
   });
 
-  try {
-    const messages = await Promise.all(messagePromises);
-    return messages;
-  } catch (error) {
-    throw error;
-  }
+  const messages = await Promise.all(messagePromises);
+  return messages;
 }
 
 /**
