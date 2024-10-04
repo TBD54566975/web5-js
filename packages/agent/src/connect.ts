@@ -17,6 +17,7 @@ import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
  * a did from a provider.
  */
 async function initClient({
+  displayName,
   connectServerUrl,
   walletUri,
   permissionRequests,
@@ -44,10 +45,12 @@ async function initClient({
   const request = await Oidc.createAuthRequest({
     client_id          : clientDid.uri,
     scope              : 'openid did:jwk',
+    redirect_uri       : callbackEndpoint,
+    // custom properties:
     // code_challenge        : codeChallengeBase64Url,
     // code_challenge_method : 'S256',
     permissionRequests : permissionRequests,
-    redirect_uri       : callbackEndpoint,
+    displayName,
   });
 
   // Sign the Request Object using the Client DID's signing key.
@@ -133,7 +136,10 @@ async function initClient({
  * a did from a provider.
  */
 export type WalletConnectOptions = {
-  /** The URL of the intermediary server which relays messages between the client and provider */
+  /** The user friendly name of the client/app to be displayed when prompting end-user with permission requests. */
+  displayName: string;
+
+  /** The URL of the intermediary server which relays messages between the client and provider. */
   connectServerUrl: string;
 
   /**

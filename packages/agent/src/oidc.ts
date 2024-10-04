@@ -128,6 +128,9 @@ export type SIOPv2AuthRequest = {
  * The contents of this are inserted into a JWT inside of the {@link PushedAuthRequest}.
  */
 export type Web5ConnectAuthRequest = {
+  /** The user friendly name of the client/app to be displayed when prompting end-user with permission requests. */
+  displayName: string;
+
   /** PermissionGrants that are to be sent to the provider */
   permissionRequests: ConnectPermissionRequest[];
 } & SIOPv2AuthRequest;
@@ -242,7 +245,7 @@ async function generateCodeChallenge() {
 async function createAuthRequest(
   options: RequireOnly<
     Web5ConnectAuthRequest,
-    'client_id' | 'scope' | 'redirect_uri' | 'permissionRequests'
+    'client_id' | 'scope' | 'redirect_uri' | 'permissionRequests' | 'displayName'
   >
 ) {
   // Generate a random state value to associate the authorization request with the response.
@@ -667,7 +670,6 @@ async function createPermissionGrants(
   });
 
   const messages = await Promise.all(messagePromises);
-
   return messages;
 }
 
@@ -693,7 +695,6 @@ async function prepareProtocol(
       `Could not fetch protocol: ${queryMessage.reply.status.detail}`
     );
   } else if (queryMessage.reply.entries === undefined || queryMessage.reply.entries.length === 0) {
-
     // send the protocol definition to the remote DWN first, if it passes we can process it locally
     const { reply: sendReply, message: configureMessage } = await agent.sendDwnRequest({
       author        : selectedDid,
@@ -716,7 +717,6 @@ async function prepareProtocol(
     });
 
   } else {
-
     // the protocol already exists, let's make sure it exists on the remote DWN as the requesting app will need it
     const configureMessage = queryMessage.reply.entries![0];
     const { reply: sendReply } = await agent.sendDwnRequest({
