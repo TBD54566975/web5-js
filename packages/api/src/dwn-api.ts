@@ -764,7 +764,7 @@ export class DwnApi {
           agentResponse = await this.agent.processDwnRequest(agentRequest);
         }
 
-        const { reply: { record: responseRecord, status } } = agentResponse;
+        const { reply: { entry, status } } = agentResponse;
 
         let record: Record;
         if (200 <= status.code && status.code <= 299) {
@@ -773,7 +773,7 @@ export class DwnApi {
              * Extract the `author` DID from the record since records may be signed by the
              * tenant owner or any other entity.
              */
-            author       : getRecordAuthor(responseRecord),
+            author       : getRecordAuthor(entry.recordsWrite),
             /**
              * Set the `connectedDid` to currently connected DID so that subsequent calls to
              * {@link Record} instance methods, such as `record.update()` are executed on the
@@ -788,7 +788,9 @@ export class DwnApi {
              */
             remoteOrigin : request.from,
             delegateDid  : this.delegateDid,
-            ...responseRecord,
+            data         : entry.data,
+            initialWrite : entry.initialWrite,
+            ...entry.recordsWrite,
           };
 
           record = new Record(this.agent, recordOptions, this.permissionsApi);

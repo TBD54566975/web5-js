@@ -243,12 +243,12 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
       messageParams : { filter: { recordId } }
     });
 
-    if (!readReply.record?.data) {
+    if (!readReply.entry?.data) {
       throw new Error(`${this.name}: Failed to read data from DWN for: ${recordId}`);
     }
 
     // If the record was found, convert back to store object format.
-    const storeObject = await NodeStream.consumeToJson({ readable: readReply.record.data }) as TStoreObject;
+    const storeObject = await NodeStream.consumeToJson({ readable: readReply.entry.data }) as TStoreObject;
 
     // If caching is enabled, add the store object to the cache.
     if (useCache) {

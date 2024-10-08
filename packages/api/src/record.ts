@@ -1062,12 +1062,12 @@ export class Record implements RecordModel {
       this._agent.processDwnRequest(readRequest);
 
     try {
-      const { reply: { status, record }} = await agentResponsePromise;
+      const { reply: { status, entry }} = await agentResponsePromise;
       if (status.code !== 200) {
         throw new Error(`${status.code}: ${status.detail}`);
       }
 
-      const dataStream: ReadableStream | Readable = record.data;
+      const dataStream: ReadableStream | Readable = entry.data;
       // If the data stream is a web ReadableStream, convert it to a Node.js Readable.
       const nodeReadable = Stream.isReadableStream(dataStream) ?
         NodeStream.fromWebReadable({ readableStream: dataStream }) :
