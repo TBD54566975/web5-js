@@ -487,11 +487,11 @@ describe('AgentDwnApi', () => {
       expect(readReply).to.have.property('status');
       expect(readReply.status.code).to.equal(200);
       expect(readReply).to.have.property('record');
-      expect(readReply.record).to.have.property('data');
-      expect(readReply.record).to.have.property('descriptor');
-      expect(readReply.record).to.have.property('recordId', writeMessage.recordId);
+      expect(readReply.entry).to.have.property('data');
+      expect(readReply.entry!.recordsWrite).to.have.property('descriptor');
+      expect(readReply.entry!.recordsWrite).to.have.property('recordId', writeMessage.recordId);
 
-      const readDataBytes = await NodeStream.consumeToBytes({ readable: readReply.record!.data });
+      const readDataBytes = await NodeStream.consumeToBytes({ readable: readReply.entry!.data! });
       expect(readDataBytes).to.deep.equal(dataBytes);
     });
 
@@ -1530,11 +1530,11 @@ describe('AgentDwnApi', () => {
       expect(readReply).to.have.property('status');
       expect(readReply.status.code).to.equal(200);
       expect(readReply).to.have.property('record');
-      expect(readReply.record).to.have.property('data');
-      expect(readReply.record).to.have.property('descriptor');
-      expect(readReply.record).to.have.property('recordId', writeMessage.recordId);
+      expect(readReply.entry).to.have.property('data');
+      expect(readReply.entry?.recordsWrite).to.have.property('descriptor');
+      expect(readReply.entry?.recordsWrite).to.have.property('recordId', writeMessage.recordId);
 
-      const dataStream: ReadableStream | Readable = readReply.record!.data;
+      const dataStream: ReadableStream | Readable = readReply.entry!.data!;
       // If the data stream is a web ReadableStream, convert it to a Node.js Readable.
       const nodeReadable = Stream.isReadableStream(dataStream) ?
         NodeStream.fromWebReadable({ readableStream: dataStream }) :

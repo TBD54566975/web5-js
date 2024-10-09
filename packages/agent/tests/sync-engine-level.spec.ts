@@ -1109,9 +1109,9 @@ describe('SyncEngineLevel', () => {
           messageParams : { filter: { recordId: writeResponse.message!.recordId } }
         });
         expect(readResponse.reply.status.code).to.equal(200);
-        expect(readResponse.reply.record).to.exist;
-        expect(readResponse.reply.record!.data).to.exist;
-        expect(readResponse.reply.record!.descriptor.dataSize).to.equal(LARGE_DATA_SIZE);
+        expect(readResponse.reply.entry).to.exist;
+        expect(readResponse.reply.entry!.data).to.exist;
+        expect(readResponse.reply.entry!.recordsWrite!.descriptor.dataSize).to.equal(LARGE_DATA_SIZE);
       }).slow(1200); // Yellow at 600ms, Red at 1200ms.
 
       it('synchronizes records for multiple identities from remote DWN to local DWN', async () => {
@@ -1776,8 +1776,8 @@ describe('SyncEngineLevel', () => {
         });
         const reply = readRecord.reply;
         expect(reply.status.code).to.equal(200);
-        expect(reply.record).to.not.be.undefined;
-        expect(reply.record!.data).to.not.be.undefined;
+        expect(reply.entry).to.exist;
+        expect(reply.entry!.data).to.exist;
       }).slow(1200); // Yellow at 600ms, Red at 1200ms.
 
       it('synchronizes records for multiple identities from local DWN to remote DWN', async () => {
