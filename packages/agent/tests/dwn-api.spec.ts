@@ -486,7 +486,7 @@ describe('AgentDwnApi', () => {
       const readReply = readResponse.reply;
       expect(readReply).to.have.property('status');
       expect(readReply.status.code).to.equal(200);
-      expect(readReply).to.have.property('record');
+      expect(readReply).to.have.property('entry');
       expect(readReply.entry).to.have.property('data');
       expect(readReply.entry!.recordsWrite).to.have.property('descriptor');
       expect(readReply.entry!.recordsWrite).to.have.property('recordId', writeMessage.recordId);
@@ -1529,7 +1529,7 @@ describe('AgentDwnApi', () => {
       const readReply = readResponse.reply;
       expect(readReply).to.have.property('status');
       expect(readReply.status.code).to.equal(200);
-      expect(readReply).to.have.property('record');
+      expect(readReply).to.have.property('entry');
       expect(readReply.entry).to.have.property('data');
       expect(readReply.entry?.recordsWrite).to.have.property('descriptor');
       expect(readReply.entry?.recordsWrite).to.have.property('recordId', writeMessage.recordId);
