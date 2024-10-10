@@ -1,5 +1,12 @@
 # @web5/browser
 
+## 0.0.3
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @web5/dids@1.1.6
+
 ## 0.0.2
 
 ### Patch Changes
