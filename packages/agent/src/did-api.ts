@@ -274,22 +274,23 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
       throw new Error('AgentDidApi: No changes detected, update aborted');
     }
 
-    const bearerDid = new BearerDid({
-      uri        : portableDid.uri,
-      document   : portableDid.document,
-      metadata   : portableDid.metadata,
-      keyManager : this.agent.keyManager
-    });
+    // If private keys are present in the PortableDid, import the key material into the Agent's key
+    // manager. Validate that the key material for every verification method in the DID document is
+    // present in the key manager. If no keys are present, this will fail.
+    // NOTE: We currently do not delete the previous keys from the document.
+    // TODO: Add support for deleting the keys no longer present in the document.
+    const bearerDid = await BearerDid.import({ keyManager: this.agent.keyManager, portableDid });
 
     // Only the DID URI, document, and metadata are stored in the Agent's DID store.
     const { uri, document, metadata } = bearerDid;
+    const portableDidWithoutKeys: PortableDid = { uri, document, metadata };
 
     // pre-populate the resolution cache with the document and metadata
     await this.cache.set(uri, { didDocument: document, didResolutionMetadata: { }, didDocumentMetadata: metadata });
 
     await this._store.set({
       id             : uri,
-      data           : { uri, document, metadata }, // portable did without the keys
+      data           : portableDidWithoutKeys,
       agent          : this.agent,
       tenant         : tenant ?? uri,
       updateExisting : true,
