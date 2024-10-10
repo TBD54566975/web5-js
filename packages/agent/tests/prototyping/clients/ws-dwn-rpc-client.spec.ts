@@ -144,8 +144,8 @@ describe('WebSocketDwnRpcClient', () => {
 
       // should return success, and the record we inserted
       expect(readResponse.status.code).to.equal(200);
-      expect(readResponse.record).to.exist;
-      expect(readResponse.record?.recordId).to.equal(writeMessage.recordId);
+      expect(readResponse.entry).to.exist;
+      expect(readResponse.entry?.recordsWrite?.recordId).to.equal(writeMessage.recordId);
     });
 
     it('subscribes to updates to a record', async () => {
